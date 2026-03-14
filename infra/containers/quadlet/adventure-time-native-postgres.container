@@ -1,0 +1,18 @@
+[Unit]
+Description=Adventure Time Native Postgres
+After=network-online.target
+
+[Container]
+ContainerName=adventure-time-native-postgres
+Image=docker.io/library/postgres:16-alpine
+PublishPort=127.0.0.1:5434:5432
+Volume=/srv/adventure-time-native/postgres:/var/lib/postgresql/data:Z
+Environment=POSTGRES_DB=adventure_time_native
+Environment=POSTGRES_USER=postgres
+Environment=POSTGRES_PASSWORD=postgres
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=default.target

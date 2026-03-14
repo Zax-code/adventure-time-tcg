@@ -1,0 +1,18 @@
+{
+  "expo": {
+    "name": "Adventure Time Native",
+    "slug": "adventure-time-native",
+    "scheme": "adventure-time-native",
+    "plugins": ["expo-router", "expo-secure-store"],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {},
+    "web": {
+      "bundler": "metro"
+    }
+  }
+}

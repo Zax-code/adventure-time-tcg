@@ -1,0 +1,16 @@
+{
+  "name": "@adventure-time/api-client",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@adventure-time/shared": "file:../shared"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2"
+  }
+}

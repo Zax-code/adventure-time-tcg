@@ -1,0 +1,12 @@
+node_modules/
+.npm/
+dist/
+coverage/
+.env
+.env.*
+!.env.example
+.expo/
+.expo-shared/
+*.log
+.DS_Store
+.vscode/

@@ -1,0 +1,27 @@
+{
+  "name": "@adventure-time/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@adventure-time/db": "file:../../packages/db",
+    "@adventure-time/shared": "file:../../packages/shared",
+    "bcryptjs": "^3.0.2",
+    "dotenv": "^16.4.5",
+    "fastify": "^5.0.0",
+    "fastify-plugin": "^5.0.1",
+    "jose": "^6.1.0",
+    "uuid": "^11.0.5",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2"
+  }
+}

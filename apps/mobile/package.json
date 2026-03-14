@@ -1,0 +1,36 @@
+{
+  "name": "@adventure-time/mobile",
+  "version": "0.1.0",
+  "private": true,
+  "main": "expo-router/entry",
+  "scripts": {
+    "dev": "expo start",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@adventure-time/api-client": "file:../../packages/api-client",
+    "@adventure-time/shared": "file:../../packages/shared",
+    "@tanstack/react-query": "^5.66.8",
+    "expo": "^53.0.0",
+    "expo-image": "~2.4.0",
+    "expo-linear-gradient": "~14.1.5",
+    "expo-router": "~5.1.0",
+    "expo-secure-store": "~14.2.0",
+    "expo-status-bar": "~2.2.3",
+    "nativewind": "^4.1.23",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "react-hook-form": "^7.54.2",
+    "react-native": "0.79.6",
+    "react-native-gesture-handler": "~2.24.0",
+    "react-native-reanimated": "~3.17.4",
+    "react-native-safe-area-context": "5.4.0",
+    "react-native-screens": "~4.11.1",
+    "zustand": "^5.0.3"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.10",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.9.2"
+  }
+}

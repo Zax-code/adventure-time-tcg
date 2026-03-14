@@ -1,0 +1,21 @@
+app.leaetzak.love {
+	import common_security
+	request_body {
+		max_size 16MB
+	}
+
+	log {
+		output file /var/log/caddy/app.leaetzak.love.access.log {
+			roll_size 25MiB
+			roll_keep 10
+			roll_keep_for 720h
+		}
+		format json
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+	}
+
+	reverse_proxy 127.0.0.1:4100
+}

@@ -1,0 +1,18 @@
+{
+  "name": "adventure-time-native",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev -w @adventure-time/api",
+    "dev:mobile": "npm run dev -w @adventure-time/mobile",
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "db:generate": "npm run db:generate -w @adventure-time/db",
+    "db:migrate": "npm run db:migrate -w @adventure-time/db"
+  }
+}

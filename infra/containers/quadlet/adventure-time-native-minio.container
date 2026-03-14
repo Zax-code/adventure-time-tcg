@@ -1,0 +1,19 @@
+[Unit]
+Description=Adventure Time Native MinIO
+After=network-online.target
+
+[Container]
+ContainerName=adventure-time-native-minio
+Image=quay.io/minio/minio:RELEASE.2025-02-28T09-55-16Z
+PublishPort=127.0.0.1:9100:9000
+PublishPort=127.0.0.1:9101:9001
+Volume=/srv/adventure-time-native/minio:/data:Z
+Environment=MINIO_ROOT_USER=minio
+Environment=MINIO_ROOT_PASSWORD=minioadmin
+Exec=minio server /data --console-address :9001
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=default.target
