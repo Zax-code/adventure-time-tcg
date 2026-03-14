@@ -1,9 +1,10 @@
-import { and, eq } from "drizzle-orm";
+import { randomUUID } from "node:crypto";
+import { and, desc, eq } from "drizzle-orm";
 
 import { calculateCollectionCompletion } from "@adventure-time/game-engine";
 
 import { db } from "./client";
-import { cards, imageAssets, ownedCards, users } from "./schema";
+import { cards, imageAssets, ownedCards, userStepSnapshots, users } from "./schema";
 
 export async function getUserByEmail(email: string) {
   return db.query.users.findFirst({
@@ -104,5 +105,69 @@ export async function getCollectionForUser(userId: string) {
 export async function getImageAssetById(assetId: string, kind: "card" | "profile") {
   return db.query.imageAssets.findFirst({
     where: and(eq(imageAssets.id, assetId), eq(imageAssets.kind, kind)),
+  });
+}
+
+export async function updatePreferredStepSource(userId: string, preferredStepSource: "device_health" | "fitbit") {
+  await db
+    .update(users)
+    .set({ preferredStepSource, updatedAt: new Date() })
+    .where(eq(users.id, userId));
+
+  return db.query.users.findFirst({
+    where: eq(users.id, userId),
+  });
+}
+
+export async function upsertStepSnapshot(input: {
+  userId: string;
+  source: "device_health" | "fitbit";
+  stepCount: number;
+  recordedFor: string;
+}) {
+  const existing = await db.query.userStepSnapshots.findFirst({
+    where: and(
+      eq(userStepSnapshots.userId, input.userId),
+      eq(userStepSnapshots.source, input.source),
+      eq(userStepSnapshots.recordedFor, input.recordedFor),
+    ),
+  });
+
+  if (existing) {
+    await db
+      .update(userStepSnapshots)
+      .set({
+        stepCount: input.stepCount,
+        updatedAt: new Date(),
+      })
+      .where(eq(userStepSnapshots.id, existing.id));
+
+    return db.query.userStepSnapshots.findFirst({
+      where: eq(userStepSnapshots.id, existing.id),
+    });
+  }
+
+  await db.insert(userStepSnapshots).values({
+    id: randomUUID(),
+    userId: input.userId,
+    source: input.source,
+    stepCount: input.stepCount,
+    recordedFor: input.recordedFor,
+    updatedAt: new Date(),
+  });
+
+  return db.query.userStepSnapshots.findFirst({
+    where: and(
+      eq(userStepSnapshots.userId, input.userId),
+      eq(userStepSnapshots.source, input.source),
+      eq(userStepSnapshots.recordedFor, input.recordedFor),
+    ),
+  });
+}
+
+export async function getLatestStepSnapshot(userId: string) {
+  return db.query.userStepSnapshots.findFirst({
+    where: eq(userStepSnapshots.userId, userId),
+    orderBy: [desc(userStepSnapshots.recordedFor), desc(userStepSnapshots.updatedAt)],
   });
 }

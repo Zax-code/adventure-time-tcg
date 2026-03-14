@@ -1,14 +1,23 @@
 import {
+  authUserSchema,
   authResponseSchema,
   collectionResponseSchema,
+  healthStepsResponseSchema,
   homeResponseSchema,
   loginSchema,
+  refreshTokenSchema,
   registerSchema,
+  syncStepsSchema,
+  updateStepSourceSchema,
   type AuthResponse,
   type CollectionResponse,
+  type HealthStepsResponse,
   type HomeResponse,
   type LoginInput,
+  type RefreshTokenInput,
   type RegisterInput,
+  type SyncStepsInput,
+  type UpdateStepSourceInput,
 } from "@adventure-time/shared";
 
 export interface ApiClientOptions {
@@ -48,11 +57,34 @@ export class ApiClient {
     return this.request("/auth/login", { method: "POST", body: JSON.stringify(body) }, (data) => authResponseSchema.parse(data));
   }
 
+  async refresh(input: RefreshTokenInput): Promise<AuthResponse> {
+    const body = refreshTokenSchema.parse(input);
+    return this.request("/auth/refresh", { method: "POST", body: JSON.stringify(body) }, (data) => authResponseSchema.parse(data));
+  }
+
+  async me() {
+    return this.request("/me", { method: "GET" }, (data) => authUserSchema.parse(data));
+  }
+
   async home(): Promise<HomeResponse> {
     return this.request("/home", { method: "GET" }, (data) => homeResponseSchema.parse(data));
   }
 
   async collection(): Promise<CollectionResponse> {
     return this.request("/collection", { method: "GET" }, (data) => collectionResponseSchema.parse(data));
+  }
+
+  async getHealthSteps(): Promise<HealthStepsResponse> {
+    return this.request("/health/steps", { method: "GET" }, (data) => healthStepsResponseSchema.parse(data));
+  }
+
+  async syncSteps(input: SyncStepsInput) {
+    const body = syncStepsSchema.parse(input);
+    return this.request("/health/steps", { method: "POST", body: JSON.stringify(body) }, (data) => data);
+  }
+
+  async updateStepSource(input: UpdateStepSourceInput) {
+    const body = updateStepSourceSchema.parse(input);
+    return this.request("/settings/step-source", { method: "PATCH", body: JSON.stringify(body) }, (data) => authUserSchema.parse(data));
   }
 }

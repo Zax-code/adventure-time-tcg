@@ -111,12 +111,40 @@ export const ownedCards = pgTable(
   (table) => [uniqueIndex("owned_cards_card_id_user_id_key").on(table.cardId, table.userId)],
 );
 
+export const userStepSnapshots = pgTable(
+  "user_step_snapshots",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade", onUpdate: "cascade" }),
+    source: stepSourceEnum("source").notNull(),
+    stepCount: integer("step_count").notNull(),
+    recordedFor: text("recorded_for").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("user_step_snapshots_user_id_idx").on(table.userId),
+    uniqueIndex("user_step_snapshots_user_source_day_key").on(
+      table.userId,
+      table.source,
+      table.recordedFor,
+    ),
+  ],
+);
+
 export const usersRelations = relations(users, ({ many, one }) => ({
   credential: one(emailAuthCredentials, {
     fields: [users.id],
     references: [emailAuthCredentials.userId],
   }),
   ownedCards: many(ownedCards),
+  stepSnapshots: many(userStepSnapshots),
   avatarAsset: one(imageAssets, {
     fields: [users.avatarAssetId],
     references: [imageAssets.id],
@@ -143,6 +171,13 @@ export const ownedCardsRelations = relations(ownedCards, ({ one }) => ({
   card: one(cards, {
     fields: [ownedCards.cardId],
     references: [cards.id],
+  }),
+}));
+
+export const userStepSnapshotsRelations = relations(userStepSnapshots, ({ one }) => ({
+  user: one(users, {
+    fields: [userStepSnapshots.userId],
+    references: [users.id],
   }),
 }));
 

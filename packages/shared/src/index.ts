@@ -21,6 +21,10 @@ export const authTokensSchema = z.object({
   expiresInSeconds: z.number().int().positive(),
 });
 
+export const refreshTokenSchema = z.object({
+  refreshToken: z.string().min(1),
+});
+
 export const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
@@ -81,8 +85,35 @@ export const authResponseSchema = z.object({
   tokens: authTokensSchema,
 });
 
+export const stepSummarySchema = z.object({
+  source: stepSourceSchema,
+  stepCount: z.number().int().nonnegative(),
+  recordedFor: z.string(),
+  updatedAt: z.string(),
+});
+
+export const healthStepsResponseSchema = z.object({
+  preferredSource: stepSourceSchema,
+  latest: stepSummarySchema.nullable(),
+});
+
+export const syncStepsSchema = z.object({
+  source: stepSourceSchema,
+  stepCount: z.number().int().nonnegative(),
+  recordedFor: z.string().min(1),
+});
+
+export const updateStepSourceSchema = z.object({
+  preferredStepSource: stepSourceSchema,
+});
+
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RegisterInput = z.infer<typeof registerSchema>;
+export type RefreshTokenInput = z.infer<typeof refreshTokenSchema>;
 export type AuthResponse = z.infer<typeof authResponseSchema>;
 export type CollectionResponse = z.infer<typeof collectionResponseSchema>;
 export type HomeResponse = z.infer<typeof homeResponseSchema>;
+export type StepSummary = z.infer<typeof stepSummarySchema>;
+export type HealthStepsResponse = z.infer<typeof healthStepsResponseSchema>;
+export type SyncStepsInput = z.infer<typeof syncStepsSchema>;
+export type UpdateStepSourceInput = z.infer<typeof updateStepSourceSchema>;

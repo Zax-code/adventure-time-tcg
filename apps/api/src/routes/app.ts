@@ -1,6 +1,14 @@
 import { FastifyInstance } from "fastify";
 
-import { getCollectionForUser, getImageAssetById, getUserWithCollectionStats } from "@adventure-time/db";
+import {
+  getCollectionForUser,
+  getImageAssetById,
+  getLatestStepSnapshot,
+  getUserWithCollectionStats,
+  updatePreferredStepSource,
+  upsertStepSnapshot,
+} from "@adventure-time/db";
+import { syncStepsSchema, updateStepSourceSchema } from "@adventure-time/shared";
 
 import { getPrivateObject } from "../services/media-service";
 
@@ -64,6 +72,82 @@ export async function appRoutes(fastify: FastifyInstance) {
     }
 
     return getCollectionForUser(userContext.id);
+  });
+
+  fastify.patch("/settings/step-source", { preHandler: [(fastify as any).authenticate] }, async (request, reply) => {
+    const userContext = request.authUser;
+    if (!userContext) {
+      return reply.code(401).send({ error: "Unauthorized" });
+    }
+
+    const body = updateStepSourceSchema.parse(request.body);
+    const user = await updatePreferredStepSource(userContext.id, body.preferredStepSource);
+    if (!user) {
+      return reply.code(404).send({ error: "User not found" });
+    }
+
+    return {
+      id: user.id,
+      email: user.email,
+      displayName: user.displayName,
+      avatarAssetId: user.avatarAssetId,
+      coins: user.coins,
+      dust: user.dust,
+      isAdmin: user.isAdmin,
+      preferredStepSource: user.preferredStepSource,
+    };
+  });
+
+  fastify.get("/health/steps", { preHandler: [(fastify as any).authenticate] }, async (request, reply) => {
+    const userContext = request.authUser;
+    if (!userContext) {
+      return reply.code(401).send({ error: "Unauthorized" });
+    }
+
+    const result = await getUserWithCollectionStats(userContext.id);
+    if (!result) {
+      return reply.code(404).send({ error: "User not found" });
+    }
+
+    const latest = await getLatestStepSnapshot(userContext.id);
+
+    return {
+      preferredSource: result.user.preferredStepSource,
+      latest: latest
+        ? {
+            source: latest.source,
+            stepCount: latest.stepCount,
+            recordedFor: latest.recordedFor,
+            updatedAt: latest.updatedAt.toISOString(),
+          }
+        : null,
+    };
+  });
+
+  fastify.post("/health/steps", { preHandler: [(fastify as any).authenticate] }, async (request, reply) => {
+    const userContext = request.authUser;
+    if (!userContext) {
+      return reply.code(401).send({ error: "Unauthorized" });
+    }
+
+    const body = syncStepsSchema.parse(request.body);
+    const snapshot = await upsertStepSnapshot({
+      userId: userContext.id,
+      source: body.source,
+      stepCount: body.stepCount,
+      recordedFor: body.recordedFor,
+    });
+
+    if (!snapshot) {
+      return reply.code(500).send({ error: "Failed to store step data" });
+    }
+
+    return reply.code(201).send({
+      source: snapshot.source,
+      stepCount: snapshot.stepCount,
+      recordedFor: snapshot.recordedFor,
+      updatedAt: snapshot.updatedAt.toISOString(),
+    });
   });
 
   fastify.get("/media/card/:id", { preHandler: [(fastify as any).authenticate] }, async (request, reply) => {

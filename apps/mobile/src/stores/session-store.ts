@@ -8,9 +8,10 @@ interface SessionState {
   accessToken: string | null;
   refreshToken: string | null;
   hydrated: boolean;
+  setHydrated: (hydrated: boolean) => void;
   setSession: (params: { user: AuthUser; accessToken: string; refreshToken: string }) => Promise<void>;
   clearSession: () => Promise<void>;
-  hydrate: () => Promise<void>;
+  hydrateFromStorage: () => Promise<void>;
 }
 
 export const useSessionStore = create<SessionState>((set) => ({
@@ -18,6 +19,9 @@ export const useSessionStore = create<SessionState>((set) => ({
   accessToken: null,
   refreshToken: null,
   hydrated: false,
+  setHydrated(hydrated) {
+    set({ hydrated });
+  },
   async setSession({ user, accessToken, refreshToken }) {
     await Promise.all([
       SecureStore.setItemAsync("accessToken", accessToken),
@@ -36,7 +40,7 @@ export const useSessionStore = create<SessionState>((set) => ({
 
     set({ user: null, accessToken: null, refreshToken: null, hydrated: true });
   },
-  async hydrate() {
+  async hydrateFromStorage() {
     const [accessToken, refreshToken, userJson] = await Promise.all([
       SecureStore.getItemAsync("accessToken"),
       SecureStore.getItemAsync("refreshToken"),
