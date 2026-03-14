@@ -409,6 +409,60 @@ export const adminCardEditSchema = z.object({
   isArchived: z.boolean().optional(),
 });
 
+export const adminAbilitySchema = z.object({
+  id: z.string(),
+  key: z.string(),
+  name: z.string(),
+  description: z.string(),
+  descriptionFr: z.string().nullable().optional(),
+  nameFr: z.string().nullable().optional(),
+  type: z.enum(["PASSIVE", "SKILL", "ULTIMATE"]),
+  cost: z.number().int().nonnegative(),
+  cooldown: z.number().int().nullable(),
+  oncePerMatch: z.boolean(),
+  payload: z.any(),
+});
+
+export const adminCardAbilityAssignmentSchema = z.object({
+  id: z.string(),
+  cardId: z.string(),
+  passiveId: z.string().nullable(),
+  skillId: z.string().nullable(),
+  ultimateId: z.string().nullable(),
+});
+
+export const adminAbilitiesResponseSchema = z.object({
+  abilities: z.array(adminAbilitySchema),
+  cardAbilities: z.array(adminCardAbilityAssignmentSchema),
+  cards: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    character: z.string(),
+    type: z.string(),
+  })),
+});
+
+export const adminAbilityEditSchema = z.object({
+  id: z.string().optional(),
+  key: z.string().min(1),
+  name: z.string().min(1),
+  description: z.string().min(1),
+  descriptionFr: z.string().optional().nullable(),
+  nameFr: z.string().optional().nullable(),
+  type: z.enum(["PASSIVE", "SKILL", "ULTIMATE"]),
+  cost: z.number().int().nonnegative(),
+  cooldown: z.number().int().nullable().optional(),
+  oncePerMatch: z.boolean().optional(),
+  payload: z.any().optional(),
+});
+
+export const adminCardAbilityAssignSchema = z.object({
+  cardId: z.string().min(1),
+  passiveId: z.string().nullable().optional(),
+  skillId: z.string().nullable().optional(),
+  ultimateId: z.string().nullable().optional(),
+});
+
 export const homeResponseSchema = z.object({
   user: authUserSchema,
   collectionStats: collectionStatsSchema,
@@ -465,6 +519,7 @@ export type PvpMatchDetailResponse = z.infer<typeof pvpMatchDetailResponseSchema
 export type PvpLoadoutsResponse = z.infer<typeof pvpLoadoutsResponseSchema>;
 export type AdminCardsResponse = z.infer<typeof adminCardsResponseSchema>;
 export type AdminCardDetail = z.infer<typeof adminCardDetailSchema>;
+export type AdminAbilitiesResponse = z.infer<typeof adminAbilitiesResponseSchema>;
 export type GiftsResponse = z.infer<typeof giftsResponseSchema>;
 export type StepSummary = z.infer<typeof stepSummarySchema>;
 export type HealthStepsResponse = z.infer<typeof healthStepsResponseSchema>;

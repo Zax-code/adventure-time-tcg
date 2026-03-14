@@ -1,6 +1,9 @@
 import {
+  adminAbilitiesResponseSchema,
+  adminAbilityEditSchema,
   adminCardsResponseSchema,
   adminCardDetailSchema,
+  adminCardAbilityAssignSchema,
   adminCardSummarySchema,
   authUserSchema,
   authResponseSchema,
@@ -38,6 +41,7 @@ import {
   wordleStateResponseSchema,
   wordleSubmitResponseSchema,
   wordleSubmitSchema,
+  type AdminAbilitiesResponse,
   type AdminCardsResponse,
   type AuthResponse,
   type ClaimQuestInput,
@@ -263,6 +267,33 @@ export class ApiClient {
 
   async adminCards(): Promise<AdminCardsResponse> {
     return this.request("/admin/cards", { method: "GET" }, (data) => adminCardsResponseSchema.parse(data));
+  }
+
+  async adminAbilities(): Promise<AdminAbilitiesResponse> {
+    return this.request("/admin/abilities", { method: "GET" }, (data) => adminAbilitiesResponseSchema.parse(data));
+  }
+
+  async createAdminAbility(input: Record<string, unknown>) {
+    const body = adminAbilityEditSchema.parse(input);
+    return this.request("/admin/abilities", { method: "POST", body: JSON.stringify(body) }, (data) => data as { ability: unknown });
+  }
+
+  async updateAdminAbility(id: string, input: Record<string, unknown>) {
+    const body = adminAbilityEditSchema.parse(input);
+    return this.request(`/admin/abilities/${id}`, { method: "PATCH", body: JSON.stringify(body) }, (data) => data as { ability: unknown });
+  }
+
+  async deleteAdminAbility(id: string) {
+    return this.request(`/admin/abilities/${id}`, { method: "DELETE" }, (data) => data as { success: boolean });
+  }
+
+  async assignAdminCardAbility(input: { cardId: string; passiveId?: string | null; skillId?: string | null; ultimateId?: string | null }) {
+    const body = adminCardAbilityAssignSchema.parse(input);
+    return this.request("/admin/abilities/assign", { method: "POST", body: JSON.stringify(body) }, (data) => data as { cardAbility: unknown });
+  }
+
+  async deleteAdminCardAbility(cardId: string) {
+    return this.request(`/admin/abilities/assign/${cardId}`, { method: "DELETE" }, (data) => data as { success: boolean });
   }
 
   async updateAdminCard(cardId: string, input: { isFeatured?: boolean; isArchived?: boolean }) {

@@ -1,8 +1,10 @@
 import { asc, eq } from "drizzle-orm";
 import { FastifyInstance } from "fastify";
 
-import { db, cards } from "@adventure-time/db";
-import { adminCardEditSchema, adminCardMutationSchema } from "@adventure-time/shared";
+import { randomUUID } from "node:crypto";
+
+import { db, abilityDefs, cardAbilities, cards } from "@adventure-time/db";
+import { adminAbilityEditSchema, adminCardAbilityAssignSchema, adminCardEditSchema, adminCardMutationSchema } from "@adventure-time/shared";
 
 function ensureAdmin(request: any, reply: any) {
   if (!request.authUser) {
@@ -120,5 +122,147 @@ export async function adminRoutes(fastify: FastifyInstance) {
       speed: card!.speed,
       type: card!.type,
     };
+  });
+
+  fastify.get("/admin/abilities", { preHandler: [(fastify as any).authenticate] }, async (request, reply) => {
+    if (!ensureAdmin(request, reply)) return;
+    const [abilities, assignments, cardRows] = await Promise.all([
+      db.query.abilityDefs.findMany({ orderBy: [asc(abilityDefs.type), asc(abilityDefs.key)] }),
+      db.query.cardAbilities.findMany(),
+      db.query.cards.findMany({ orderBy: [asc(cards.name)] }),
+    ]);
+    return {
+      abilities: abilities.map((ability) => ({
+        id: ability.id,
+        key: ability.key,
+        name: ability.name,
+        description: ability.description,
+        descriptionFr: ability.descriptionFr,
+        nameFr: ability.nameFr,
+        type: ability.type,
+        cost: ability.cost,
+        cooldown: ability.cooldown,
+        oncePerMatch: ability.oncePerMatch,
+        payload: JSON.parse(ability.payload),
+      })),
+      cardAbilities: assignments,
+      cards: cardRows.map((card) => ({ id: card.id, name: card.name, character: card.character, type: card.type })),
+    };
+  });
+
+  fastify.post("/admin/abilities", { preHandler: [(fastify as any).authenticate] }, async (request, reply) => {
+    if (!ensureAdmin(request, reply)) return;
+    const body = adminAbilityEditSchema.parse(request.body);
+    const existing = await db.query.abilityDefs.findFirst({ where: eq(abilityDefs.key, body.key) });
+    if (existing) {
+      return reply.code(400).send({ error: "An ability with this key already exists" });
+    }
+    const inserted = await db.insert(abilityDefs).values({
+      id: randomUUID(),
+      key: body.key,
+      name: body.name,
+      description: body.description,
+      descriptionFr: body.descriptionFr ?? null,
+      nameFr: body.nameFr ?? null,
+      type: body.type,
+      cost: body.cost,
+      cooldown: body.cooldown ?? null,
+      oncePerMatch: body.oncePerMatch ?? false,
+      payload: JSON.stringify(body.payload ?? {}),
+      updatedAt: new Date(),
+    }).returning().then((rows) => rows[0]);
+    return {
+      ability: {
+        ...inserted,
+        payload: JSON.parse(inserted.payload),
+      },
+    };
+  });
+
+  fastify.patch("/admin/abilities/:id", { preHandler: [(fastify as any).authenticate] }, async (request, reply) => {
+    if (!ensureAdmin(request, reply)) return;
+    const { id } = request.params as { id: string };
+    const body = adminAbilityEditSchema.parse(request.body);
+    const existing = await db.query.abilityDefs.findFirst({ where: eq(abilityDefs.id, id) });
+    if (!existing) {
+      return reply.code(404).send({ error: "Ability not found" });
+    }
+    if (body.key !== existing.key) {
+      const duplicate = await db.query.abilityDefs.findFirst({ where: eq(abilityDefs.key, body.key) });
+      if (duplicate) {
+        return reply.code(400).send({ error: "An ability with this key already exists" });
+      }
+    }
+    await db.update(abilityDefs).set({
+      key: body.key,
+      name: body.name,
+      description: body.description,
+      descriptionFr: body.descriptionFr ?? null,
+      nameFr: body.nameFr ?? null,
+      type: body.type,
+      cost: body.cost,
+      cooldown: body.cooldown ?? null,
+      oncePerMatch: body.oncePerMatch ?? false,
+      payload: JSON.stringify(body.payload ?? {}),
+      updatedAt: new Date(),
+    }).where(eq(abilityDefs.id, id));
+    const ability = await db.query.abilityDefs.findFirst({ where: eq(abilityDefs.id, id) });
+    return {
+      ability: {
+        ...ability!,
+        payload: JSON.parse(ability!.payload),
+      },
+    };
+  });
+
+  fastify.delete("/admin/abilities/:id", { preHandler: [(fastify as any).authenticate] }, async (request, reply) => {
+    if (!ensureAdmin(request, reply)) return;
+    const { id } = request.params as { id: string };
+    const existing = await db.query.abilityDefs.findFirst({ where: eq(abilityDefs.id, id) });
+    if (!existing) {
+      return reply.code(404).send({ error: "Ability not found" });
+    }
+    await db.delete(abilityDefs).where(eq(abilityDefs.id, id));
+    return { success: true };
+  });
+
+  fastify.post("/admin/abilities/assign", { preHandler: [(fastify as any).authenticate] }, async (request, reply) => {
+    if (!ensureAdmin(request, reply)) return;
+    const body = adminCardAbilityAssignSchema.parse(request.body);
+    const existingCard = await db.query.cards.findFirst({ where: eq(cards.id, body.cardId) });
+    if (!existingCard) {
+      return reply.code(404).send({ error: "Card not found" });
+    }
+    const existing = await db.query.cardAbilities.findFirst({ where: eq(cardAbilities.cardId, body.cardId) });
+    if (existing) {
+      await db.update(cardAbilities).set({
+        passiveId: body.passiveId ?? null,
+        skillId: body.skillId ?? null,
+        ultimateId: body.ultimateId ?? null,
+        updatedAt: new Date(),
+      }).where(eq(cardAbilities.id, existing.id));
+    } else {
+      await db.insert(cardAbilities).values({
+        id: randomUUID(),
+        cardId: body.cardId,
+        passiveId: body.passiveId ?? null,
+        skillId: body.skillId ?? null,
+        ultimateId: body.ultimateId ?? null,
+        updatedAt: new Date(),
+      });
+    }
+    const assignment = await db.query.cardAbilities.findFirst({ where: eq(cardAbilities.cardId, body.cardId) });
+    return { cardAbility: assignment };
+  });
+
+  fastify.delete("/admin/abilities/assign/:cardId", { preHandler: [(fastify as any).authenticate] }, async (request, reply) => {
+    if (!ensureAdmin(request, reply)) return;
+    const { cardId } = request.params as { cardId: string };
+    const existing = await db.query.cardAbilities.findFirst({ where: eq(cardAbilities.cardId, cardId) });
+    if (!existing) {
+      return reply.code(404).send({ error: "No ability assignment found for this card" });
+    }
+    await db.delete(cardAbilities).where(eq(cardAbilities.id, existing.id));
+    return { success: true };
   });
 }
