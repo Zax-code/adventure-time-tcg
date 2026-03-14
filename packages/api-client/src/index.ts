@@ -1,6 +1,9 @@
 import {
+  adminCardsResponseSchema,
   authUserSchema,
   authResponseSchema,
+  claimQuestResponseSchema,
+  claimQuestSchema,
   collectionResponseSchema,
   dailyClaimResponseSchema,
   dailyClaimStatusSchema,
@@ -10,11 +13,24 @@ import {
   openPackResponseSchema,
   openPackSchema,
   packsResponseSchema,
+  pvpHistoryResponseSchema,
+  pvpInviteSchema,
+  pvpInvitesResponseSchema,
+  questsResponseSchema,
   refreshTokenSchema,
   registerSchema,
+  speedAnswerSchema,
+  speedFinishSchema,
+  speedRunStateSchema,
   syncStepsSchema,
   updateStepSourceSchema,
+  wordleStateResponseSchema,
+  wordleSubmitResponseSchema,
+  wordleSubmitSchema,
+  type AdminCardsResponse,
   type AuthResponse,
+  type ClaimQuestInput,
+  type ClaimQuestResponse,
   type CollectionResponse,
   type DailyClaimResponse,
   type DailyClaimStatus,
@@ -24,10 +40,16 @@ import {
   type OpenPackInput,
   type OpenPackResponse,
   type PacksResponse,
+  type PvpMatch,
+  type QuestsResponse,
   type RefreshTokenInput,
   type RegisterInput,
+  type SpeedRunState,
   type SyncStepsInput,
   type UpdateStepSourceInput,
+  type WordleStateResponse,
+  type WordleSubmitInput,
+  type WordleSubmitResponse,
 } from "@adventure-time/shared";
 
 export interface ApiClientOptions {
@@ -99,6 +121,75 @@ export class ApiClient {
 
   async claimDailyReward(): Promise<DailyClaimResponse> {
     return this.request("/daily-claim", { method: "POST" }, (data) => dailyClaimResponseSchema.parse(data));
+  }
+
+  async quests(): Promise<QuestsResponse> {
+    return this.request("/quests", { method: "GET" }, (data) => questsResponseSchema.parse(data));
+  }
+
+  async claimQuest(input: ClaimQuestInput): Promise<ClaimQuestResponse> {
+    const body = claimQuestSchema.parse(input);
+    return this.request("/quests/claim", { method: "POST", body: JSON.stringify(body) }, (data) => claimQuestResponseSchema.parse(data));
+  }
+
+  async wordleState(): Promise<WordleStateResponse> {
+    return this.request("/wordle", { method: "GET" }, (data) => wordleStateResponseSchema.parse(data));
+  }
+
+  async submitWordle(input: WordleSubmitInput): Promise<WordleSubmitResponse> {
+    const body = wordleSubmitSchema.parse(input);
+    return this.request("/wordle", { method: "POST", body: JSON.stringify(body) }, (data) => wordleSubmitResponseSchema.parse(data));
+  }
+
+  async speedCalculusState(): Promise<SpeedRunState> {
+    return this.request("/quests/speed-calculus", { method: "GET" }, (data) => speedRunStateSchema.parse(data));
+  }
+
+  async startSpeedCalculus(): Promise<SpeedRunState> {
+    return this.request("/quests/speed-calculus/start", { method: "POST" }, (data) => speedRunStateSchema.parse(data));
+  }
+
+  async answerSpeedCalculus(runId: string, answer: number) {
+    const body = speedAnswerSchema.parse({ runId, answer });
+    return this.request("/quests/speed-calculus/answer", { method: "POST", body: JSON.stringify(body) }, (data) => data as { ok: boolean; activeRun: SpeedRunState["activeRun"] });
+  }
+
+  async finishSpeedCalculus(runId: string): Promise<SpeedRunState> {
+    const body = speedFinishSchema.parse({ runId });
+    return this.request("/quests/speed-calculus/finish", { method: "POST", body: JSON.stringify(body) }, (data) => speedRunStateSchema.parse(data));
+  }
+
+  async pvpInvites() {
+    return this.request("/pvp/invites", { method: "GET" }, (data) => pvpInvitesResponseSchema.parse(data));
+  }
+
+  async createPvpInvite(inviteeEmail: string, loadout: string[]) {
+    const body = pvpInviteSchema.parse({ inviteeEmail, loadout });
+    return this.request("/pvp/invites", { method: "POST", body: JSON.stringify(body) }, (data) => data as { success: boolean });
+  }
+
+  async pvpMatches() {
+    return this.request("/pvp/matches", { method: "GET" }, (data) => pvpHistoryResponseSchema.parse(data));
+  }
+
+  async pvpHistory() {
+    return this.request("/pvp/history", { method: "GET" }, (data) => pvpHistoryResponseSchema.parse(data));
+  }
+
+  async acceptPvpMatch(matchId: string, loadout: string[]) {
+    return this.request(`/pvp/matches/${matchId}/accept`, { method: "POST", body: JSON.stringify({ loadout }) }, (data) => data as PvpMatch);
+  }
+
+  async declinePvpMatch(matchId: string) {
+    return this.request(`/pvp/matches/${matchId}/decline`, { method: "POST" }, (data) => data as { success: boolean });
+  }
+
+  async concedePvpMatch(matchId: string) {
+    return this.request(`/pvp/matches/${matchId}/concede`, { method: "POST" }, (data) => data as { success: boolean });
+  }
+
+  async adminCards(): Promise<AdminCardsResponse> {
+    return this.request("/admin/cards", { method: "GET" }, (data) => adminCardsResponseSchema.parse(data));
   }
 
   async getHealthSteps(): Promise<HealthStepsResponse> {

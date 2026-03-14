@@ -2,8 +2,11 @@ import Fastify from "fastify";
 
 import authPlugin from "./plugins/auth";
 import { env } from "./lib/env";
+import { adminRoutes } from "./routes/admin";
 import { appRoutes } from "./routes/app";
 import { authRoutes } from "./routes/auth";
+import { pvpRoutes } from "./routes/pvp";
+import { questRoutes } from "./routes/quests";
 
 async function main() {
   const fastify = Fastify({ logger: true });
@@ -11,6 +14,9 @@ async function main() {
   await fastify.register(authPlugin);
   await fastify.register(authRoutes);
   await fastify.register(appRoutes);
+  await fastify.register(questRoutes);
+  await fastify.register(pvpRoutes);
+  await fastify.register(adminRoutes);
 
   fastify.setErrorHandler((error, _request, reply) => {
     if ((error as { name?: string }).name === "ZodError") {

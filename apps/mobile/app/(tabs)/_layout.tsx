@@ -19,6 +19,8 @@ export default function TabLayout() {
     <Tabs screenOptions={{ headerShown: false, tabBarActiveTintColor: "#ea580c" }}>
       <Tabs.Screen name="index" options={{ title: "Home" }} />
       <Tabs.Screen name="packs" options={{ title: "Packs" }} />
+      <Tabs.Screen name="quests" options={{ title: "Quests" }} />
+      <Tabs.Screen name="pvp" options={{ title: "PvP" }} />
       <Tabs.Screen name="collection" options={{ title: "Collection" }} />
       <Tabs.Screen name="settings" options={{ title: "Settings" }} />
     </Tabs>

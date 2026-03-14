@@ -13,6 +13,7 @@ import {
 
 export const stepSourceEnum = pgEnum("step_source", ["device_health", "fitbit"]);
 export const imageKindEnum = pgEnum("image_kind", ["card", "profile"]);
+export const pvpMatchStatusEnum = pgEnum("pvp_match_status", ["PENDING", "IN_PROGRESS", "COMPLETED", "DECLINED"]);
 
 export const users = pgTable(
   "users",
@@ -115,6 +116,125 @@ export const packs = pgTable(
     guaranteedRarity: text("guaranteed_rarity"),
   },
   (table) => [uniqueIndex("packs_name_key").on(table.name)],
+);
+
+export const questDefinitions = pgTable(
+  "quest_definitions",
+  {
+    id: text("id").primaryKey(),
+    questType: text("quest_type").notNull(),
+    titleKey: text("title_key").notNull(),
+    descriptionKey: text("description_key").notNull(),
+    icon: text("icon").notNull(),
+    target: integer("target").notNull(),
+    reward: integer("reward").notNull(),
+    requiresFitbit: boolean("requires_fitbit").default(false).notNull(),
+    isActive: boolean("is_active").default(true).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [uniqueIndex("quest_definitions_quest_type_key").on(table.questType)],
+);
+
+export const dailyQuests = pgTable(
+  "daily_quests",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade", onUpdate: "cascade" }),
+    date: text("date").notNull(),
+    questType: text("quest_type").notNull(),
+    target: integer("target").notNull(),
+    reward: integer("reward").notNull(),
+    progress: integer("progress").default(0).notNull(),
+    completed: boolean("completed").default(false).notNull(),
+    claimed: boolean("claimed").default(false).notNull(),
+    completedAt: timestamp("completed_at", { withTimezone: true, mode: "date" }),
+    claimedAt: timestamp("claimed_at", { withTimezone: true, mode: "date" }),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("daily_quests_user_id_idx").on(table.userId),
+    uniqueIndex("daily_quests_user_date_type_key").on(table.userId, table.date, table.questType),
+  ],
+);
+
+export const wordleDailyWords = pgTable(
+  "wordle_daily_words",
+  {
+    id: text("id").primaryKey(),
+    date: text("date").notNull(),
+    word: text("word").notNull(),
+    source: text("source").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [uniqueIndex("wordle_daily_words_date_key").on(table.date)],
+);
+
+export const wordleDictionaryWords = pgTable(
+  "wordle_dictionary_words",
+  {
+    id: text("id").primaryKey(),
+    locale: text("locale").notNull(),
+    word: text("word").notNull(),
+    length: integer("length").notNull(),
+    isAllowedGuess: boolean("is_allowed_guess").default(true).notNull(),
+    isSolutionCandidate: boolean("is_solution_candidate").default(true).notNull(),
+  },
+  (table) => [uniqueIndex("wordle_dictionary_locale_word_key").on(table.locale, table.word)],
+);
+
+export const wordleDailyAttempts = pgTable(
+  "wordle_daily_attempts",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade", onUpdate: "cascade" }),
+    date: text("date").notNull(),
+    attempt: integer("attempt").notNull(),
+    guess: text("guess").notNull(),
+    evaluation: text("evaluation").notNull(),
+    solved: boolean("solved").default(false).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [uniqueIndex("wordle_attempts_user_date_attempt_key").on(table.userId, table.date, table.attempt)],
+);
+
+export const speedCalculusDailyRuns = pgTable(
+  "speed_calculus_daily_runs",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade", onUpdate: "cascade" }),
+    date: text("date").notNull(),
+    runNumber: integer("run_number").notNull(),
+    seed: text("seed").notNull(),
+    answers: text("answers").default("[]").notNull(),
+    status: text("status").default("in_progress").notNull(),
+    score: integer("score").default(0).notNull(),
+    reward: integer("reward").default(0).notNull(),
+    startedAt: timestamp("started_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+    finishedAt: timestamp("finished_at", { withTimezone: true, mode: "date" }),
+    pauseExpiresAt: timestamp("pause_expires_at", { withTimezone: true, mode: "date" }),
+  },
+  (table) => [uniqueIndex("speed_runs_user_date_run_key").on(table.userId, table.date, table.runNumber)],
+);
+
+export const pvpMatches = pgTable(
+  "pvp_matches",
+  {
+    id: text("id").primaryKey(),
+    inviterId: text("inviter_id").notNull().references(() => users.id, { onDelete: "cascade", onUpdate: "cascade" }),
+    inviteeId: text("invitee_id").notNull().references(() => users.id, { onDelete: "cascade", onUpdate: "cascade" }),
+    status: pvpMatchStatusEnum("status").default("PENDING").notNull(),
+    inviterLoadout: text("inviter_loadout").default("[]").notNull(),
+    inviteeLoadout: text("invitee_loadout").default("[]").notNull(),
+    winnerId: text("winner_id").references(() => users.id, { onDelete: "set null", onUpdate: "cascade" }),
+    matchLog: text("match_log").default("[]").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("pvp_matches_inviter_id_idx").on(table.inviterId),
+    index("pvp_matches_invitee_id_idx").on(table.inviteeId),
+    index("pvp_matches_status_idx").on(table.status),
+  ],
 );
 
 export const ownedCards = pgTable(
