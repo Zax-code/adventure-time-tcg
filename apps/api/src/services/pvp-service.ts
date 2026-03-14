@@ -1,138 +1,164 @@
 import { randomUUID } from "node:crypto";
 
+import {
+  createBattleState,
+  createBattleStateView,
+  deserializeStoredBattleState,
+  inflateBattleState,
+  serializeBattleState,
+  simulateActions,
+  simulateEndTurn,
+  type BattleContext,
+  type BattleState,
+  type BattleStateView,
+  type CardData,
+} from "@adventure-time/game-engine";
 import { and, eq, inArray, or } from "drizzle-orm";
 
 import { db, cards, ownedCards, pvpMatches, users } from "@adventure-time/db";
 
 import { validateLoadoutRarityCaps } from "../lib/loadout-rules";
 
-type BattleUnit = {
-  cardId: string;
-  name: string;
-  hp: number;
-  maxHp: number;
-  attack: number;
-  defense: number;
-  knockedOut: boolean;
-};
-
-type BattlePlayerState = {
-  userId: string;
-  activeIndex: number;
-  team: BattleUnit[];
-};
-
-type BattleLogEvent = {
-  turn: number;
-  actorId: string;
-  type: string;
-  summary: string;
-};
-
-type BattleState = {
-  currentPlayerId: string;
-  turn: number;
-  players: [BattlePlayerState, BattlePlayerState];
-  log: BattleLogEvent[];
-  phase: "active" | "ended";
-  winnerId: string | null;
-};
-
 function parseLoadout(raw: string) {
   return JSON.parse(raw) as string[];
 }
 
-function serializeBattleState(state: BattleState) {
-  return JSON.stringify(state);
+function normalizeCardType(type: string) {
+  const normalized = type.trim().toLowerCase();
+  const mapped = normalized.charAt(0).toUpperCase() + normalized.slice(1);
+  const allowed = new Set(["Hero", "Tech", "Royalty", "Candy", "Undead", "Ice", "Fire", "Magic", "Demon", "Cosmic"]);
+  return allowed.has(mapped) ? mapped : "Hero";
 }
 
-function deserializeBattleState(raw: string | null) {
-  return raw ? (JSON.parse(raw) as BattleState) : null;
-}
-
-function firstAliveIndex(team: BattleUnit[]) {
-  const index = team.findIndex((unit) => !unit.knockedOut && unit.hp > 0);
-  return index === -1 ? 0 : index;
-}
-
-function buildBattleState(params: {
-  inviterId: string;
-  inviteeId: string;
-  inviterCards: Array<typeof cards.$inferSelect>;
-  inviteeCards: Array<typeof cards.$inferSelect>;
-}): BattleState {
-  const toUnit = (card: typeof cards.$inferSelect): BattleUnit => ({
-    cardId: card.id,
+function toCardData(card: typeof cards.$inferSelect & { rarity?: { name: string } | null }): CardData {
+  return {
+    id: card.id,
     name: card.name,
+    character: card.character,
+    type: normalizeCardType(card.type),
     hp: card.hp,
-    maxHp: card.hp,
     attack: card.attack,
     defense: card.defense,
-    knockedOut: false,
-  });
-
-  return {
-    currentPlayerId: params.inviterId,
-    turn: 1,
-    players: [
-      { userId: params.inviterId, activeIndex: 0, team: params.inviterCards.map(toUnit) },
-      { userId: params.inviteeId, activeIndex: 0, team: params.inviteeCards.map(toUnit) },
-    ],
-    log: [{ turn: 1, actorId: params.inviterId, type: "match_started", summary: "Match started" }],
-    phase: "active",
-    winnerId: null,
+    speed: card.speed,
+    imageUrl: card.imageAssetId ? `/api/media/card/${card.imageAssetId}` : "",
+    rarity: { name: card.rarity?.name ?? "Common" },
+    abilities: null,
   };
 }
 
-async function buildStateFromStoredLoadouts(match: typeof pvpMatches.$inferSelect) {
-  const inviterLoadout = parseLoadout(match.inviterLoadout);
-  const inviteeLoadout = parseLoadout(match.inviteeLoadout);
-  if (inviterLoadout.length !== 6 || inviteeLoadout.length !== 6) {
-    return null;
+function summarizeCombatEvent(event: BattleStateView["log"][number]) {
+  const payload = event.payload as Record<string, unknown>;
+  switch (event.type) {
+    case "matchStart":
+      return "Match started";
+    case "turnStart":
+      return `Turn ${event.turn} started`;
+    case "turnEnd":
+      return `Turn ${event.turn} ended`;
+    case "damage":
+      return `${String(payload.attackerName ?? payload.sourceName ?? "Unit")} dealt ${String(payload.amount ?? payload.damage ?? 0)} damage to ${String(payload.targetName ?? "target")}`;
+    case "ko":
+      return `${String(payload.targetName ?? "Unit")} was knocked out`;
+    case "swap":
+      return `${String(payload.playerName ?? payload.userId ?? "Player")} swapped units`;
+    case "gameOver":
+      return `Winner: ${String(payload.winnerId ?? "unknown")}`;
+    default:
+      return event.type;
   }
-
-  const allCardIds = [...inviterLoadout, ...inviteeLoadout];
-  const loadoutCards = await db.query.cards.findMany({ where: inArray(cards.id, [...new Set(allCardIds)]) });
-  const cardMap = new Map(loadoutCards.map((card) => [card.id, card]));
-  const inviterCards = inviterLoadout.map((id) => cardMap.get(id)).filter(Boolean) as Array<typeof cards.$inferSelect>;
-  const inviteeCards = inviteeLoadout.map((id) => cardMap.get(id)).filter(Boolean) as Array<typeof cards.$inferSelect>;
-  if (inviterCards.length !== 6 || inviteeCards.length !== 6) {
-    return null;
-  }
-
-  return buildBattleState({ inviterId: match.inviterId, inviteeId: match.inviteeId, inviterCards, inviteeCards });
 }
 
-async function ensureBattleState(match: typeof pvpMatches.$inferSelect) {
-  const existing = deserializeBattleState(match.state);
-  if (existing) {
-    return existing;
+function projectBattleState(view: BattleStateView) {
+  return {
+    currentPlayerId: view.currentPlayerId,
+    turn: view.turn,
+    phase: view.phase,
+    winnerId: view.winnerId ?? null,
+    players: view.players.map((player) => ({
+      userId: player.userId,
+      name: player.name,
+      energy: player.energy,
+      activeIndex: player.units.findIndex((unit) => unit.position === 1),
+      team: [...player.units, ...player.bench].map((unit) => ({
+        instanceId: unit.instanceId,
+        cardId: unit.cardId,
+        name: unit.name,
+        hp: unit.hp,
+        maxHp: unit.maxHp,
+        attack: unit.attack,
+        defense: unit.defense,
+        knockedOut: unit.hp <= 0,
+        position: unit.position,
+      })),
+    })),
+    log: view.log.map((event) => ({
+      turn: event.turn,
+      actorId: String((event.payload as Record<string, unknown>).actorId ?? (event.payload as Record<string, unknown>).userId ?? view.currentPlayerId),
+      type: event.type,
+      summary: summarizeCombatEvent(event),
+    })),
+  };
+}
+
+async function loadCardsByIds(cardIds: string[]) {
+  return db.query.cards.findMany({
+    where: inArray(cards.id, [...new Set(cardIds)]),
+    with: { rarity: true },
+  });
+}
+
+async function loadNativeBattleContext(cardIds: string[]): Promise<BattleContext> {
+  const cardRows = await loadCardsByIds(cardIds);
+  const cardData: BattleContext["cardData"] = {};
+  const cardAbilities: BattleContext["cardAbilities"] = {};
+
+  for (const card of cardRows) {
+    cardData[card.id] = {
+      name: card.name,
+      character: card.character,
+      type: normalizeCardType(card.type),
+      rarity: { name: card.rarity?.name ?? "Common" },
+      imageUrl: card.imageAssetId ? `/api/media/card/${card.imageAssetId}` : "",
+    };
+    cardAbilities[card.id] = {
+      passives: [],
+      skill: "default.focusedStrike",
+      ultimate: "default.battleCry",
+    };
   }
 
-  if (match.status !== "IN_PROGRESS") {
+  return {
+    cardData,
+    cardAbilities,
+    abilityDefinitions: {},
+  };
+}
+
+async function inflateMatchState(match: typeof pvpMatches.$inferSelect) {
+  if (!match.state) {
     return null;
   }
-
-  const rebuilt = await buildStateFromStoredLoadouts(match);
-  if (!rebuilt) {
-    return null;
-  }
-
-  await db.update(pvpMatches).set({
-    state: serializeBattleState(rebuilt),
-    matchLog: JSON.stringify(rebuilt.log),
-    currentTurn: rebuilt.turn,
-    turnStartedAt: new Date(),
-    updatedAt: new Date(),
-  }).where(eq(pvpMatches.id, match.id));
-
-  return rebuilt;
+  const stored = deserializeStoredBattleState(match.state);
+  const ctx = await loadNativeBattleContext(stored.players.flatMap((player) => [...player.units, ...player.bench].map((unit) => unit.cardId)));
+  return inflateBattleState(stored, ctx);
 }
 
 function ensureParticipant(match: typeof pvpMatches.$inferSelect, userId: string) {
   if (match.inviterId !== userId && match.inviteeId !== userId) {
     throw new Error("Forbidden");
   }
+}
+
+async function persistBattleState(matchId: string, state: BattleState, statusOverride?: typeof pvpMatches.$inferSelect.status) {
+  await db.update(pvpMatches).set({
+    state: serializeBattleState(state),
+    status: statusOverride ?? (state.phase === "ended" ? "COMPLETED" : "IN_PROGRESS"),
+    winnerId: state.winnerId ?? null,
+    currentTurn: state.turn,
+    turnStartedAt: new Date(),
+    updatedAt: new Date(),
+    matchLog: JSON.stringify(state.log),
+  }).where(eq(pvpMatches.id, matchId));
 }
 
 export async function listInvites(userId: string) {
@@ -148,7 +174,7 @@ export async function createInvite(inviterId: string, inviteeEmail: string, load
   if (loadout.length !== 6 || new Set(loadout).size !== loadout.length) throw new Error("Loadout must contain 6 unique cards");
   const inviterOwned = await db.query.ownedCards.findMany({ where: and(eq(ownedCards.userId, inviterId), inArray(ownedCards.cardId, loadout)) });
   if (inviterOwned.length !== loadout.length) throw new Error("You don't own all selected cards");
-  const inviterCardsForValidation = await db.query.cards.findMany({ where: inArray(cards.id, loadout), with: { rarity: true } });
+  const inviterCardsForValidation = await loadCardsByIds(loadout);
   const inviterValidation = validateLoadoutRarityCaps(inviterCardsForValidation.map((card) => card.rarity));
   if (!inviterValidation.valid) throw new Error(inviterValidation.error);
   const existing = await db.query.pvpMatches.findFirst({
@@ -177,6 +203,7 @@ export async function setMatchStatus(matchId: string, userId: string, action: "a
   const match = await db.query.pvpMatches.findFirst({ where: eq(pvpMatches.id, matchId) });
   if (!match) throw new Error("Match not found");
   ensureParticipant(match, userId);
+
   if (action === "accept") {
     if (match.inviteeId !== userId) throw new Error("Only the invitee can accept");
     const inviterLoadout = parseLoadout(match.inviterLoadout);
@@ -185,39 +212,50 @@ export async function setMatchStatus(matchId: string, userId: string, action: "a
     if (new Set(inviteeLoadout).size !== inviteeLoadout.length) throw new Error("Invitee loadout cannot contain duplicate cards");
     const inviteeOwned = await db.query.ownedCards.findMany({ where: and(eq(ownedCards.userId, userId), inArray(ownedCards.cardId, inviteeLoadout)) });
     if (inviteeOwned.length !== inviteeLoadout.length) throw new Error("Invitee does not own all selected cards");
-    const loadoutCardIds = [...inviterLoadout, ...inviteeLoadout];
-    const loadoutCards = await db.query.cards.findMany({ where: inArray(cards.id, [...new Set(loadoutCardIds)]) });
-    const cardMap = new Map(loadoutCards.map((card) => [card.id, card]));
-    const inviterCards = inviterLoadout.map((id) => cardMap.get(id)).filter(Boolean) as Array<typeof cards.$inferSelect>;
-    const inviteeCards = inviteeLoadout.map((id) => cardMap.get(id)).filter(Boolean) as Array<typeof cards.$inferSelect>;
-    if (inviterCards.length !== 6 || inviteeCards.length !== 6) throw new Error("Loadout cards not found");
-    const inviterCardsWithRarity = await db.query.cards.findMany({ where: inArray(cards.id, inviterLoadout), with: { rarity: true } });
-    const inviteeCardsWithRarity = await db.query.cards.findMany({ where: inArray(cards.id, inviteeLoadout), with: { rarity: true } });
+
+    const inviterCardsWithRarity = await loadCardsByIds(inviterLoadout);
+    const inviteeCardsWithRarity = await loadCardsByIds(inviteeLoadout);
     const inviterRarityValidation = validateLoadoutRarityCaps(inviterCardsWithRarity.map((card) => card.rarity));
     if (!inviterRarityValidation.valid) throw new Error(`Inviter loadout invalid: ${inviterRarityValidation.error}`);
     const inviteeRarityValidation = validateLoadoutRarityCaps(inviteeCardsWithRarity.map((card) => card.rarity));
     if (!inviteeRarityValidation.valid) throw new Error(`Invitee loadout invalid: ${inviteeRarityValidation.error}`);
-    const battleState = buildBattleState({ inviterId: match.inviterId, inviteeId: match.inviteeId, inviterCards, inviteeCards });
+
+    const inviterCards = inviterLoadout.map((id) => inviterCardsWithRarity.find((card) => card.id === id)).filter(Boolean).map((card) => toCardData(card!));
+    const inviteeCards = inviteeLoadout.map((id) => inviteeCardsWithRarity.find((card) => card.id === id)).filter(Boolean).map((card) => toCardData(card!));
+
+    const battleState = createBattleState(
+      matchId,
+      { userId: match.inviterId, name: match.inviterId, cards: inviterCards },
+      { userId: match.inviteeId, name: match.inviteeId, cards: inviteeCards },
+    );
+
     await db.update(pvpMatches).set({
       status: "IN_PROGRESS",
       inviteeLoadout: JSON.stringify(inviteeLoadout),
-      state: serializeBattleState(battleState),
-      currentTurn: 1,
+      currentTurn: battleState.turn,
       turnStartedAt: new Date(),
       updatedAt: new Date(),
       matchLog: JSON.stringify(battleState.log),
+      state: serializeBattleState(battleState),
     }).where(eq(pvpMatches.id, matchId));
     return;
   }
+
   if (action === "decline") {
     await db.update(pvpMatches).set({ status: "DECLINED", updatedAt: new Date() }).where(eq(pvpMatches.id, matchId));
     return;
   }
+
+  const state = await inflateMatchState(match);
   const winnerId = match.inviterId === userId ? match.inviteeId : match.inviterId;
-  const state = deserializeBattleState(match.state);
-  const nextLog = state?.log ?? [];
-  nextLog.push({ turn: state?.turn ?? match.currentTurn, actorId: userId, type: "concede", summary: `${userId} conceded` });
-  await db.update(pvpMatches).set({ status: "COMPLETED", winnerId, updatedAt: new Date(), matchLog: JSON.stringify(nextLog), state: state ? serializeBattleState({ ...state, phase: "ended", winnerId, log: nextLog }) : match.state }).where(eq(pvpMatches.id, matchId));
+  if (state) {
+    state.phase = "ended";
+    state.winnerId = winnerId;
+    await persistBattleState(matchId, state, "COMPLETED");
+    return;
+  }
+
+  await db.update(pvpMatches).set({ status: "COMPLETED", winnerId, updatedAt: new Date() }).where(eq(pvpMatches.id, matchId));
 }
 
 export async function listMatches(userId: string) {
@@ -241,73 +279,63 @@ export async function getMatch(matchId: string, userId: string) {
 
 export async function getMatchDetail(matchId: string, userId: string) {
   const match = await getMatch(matchId, userId);
+  const state = await inflateMatchState(match);
+  const view = state ? createBattleStateView(state, userId) : null;
   return {
     match,
-    battleState: await ensureBattleState(match),
+    battleState: view ? projectBattleState(view) : null,
   };
 }
 
 export async function performMatchAction(matchId: string, userId: string, actionType: "attack") {
   const match = await getMatch(matchId, userId);
   if (match.status !== "IN_PROGRESS") throw new Error("Match is not in progress");
-  const state = await ensureBattleState(match);
+  const state = await inflateMatchState(match);
   if (!state) throw new Error("Match state not found");
   if (state.currentPlayerId !== userId) throw new Error("Not your turn");
   if (actionType !== "attack") throw new Error("Unsupported action");
 
-  const actorIndex = state.players.findIndex((player) => player.userId === userId);
-  const targetIndex = actorIndex === 0 ? 1 : 0;
-  const actor = state.players[actorIndex];
-  const target = state.players[targetIndex];
-  actor.activeIndex = firstAliveIndex(actor.team);
-  target.activeIndex = firstAliveIndex(target.team);
-  const attacker = actor.team[actor.activeIndex];
-  const defender = target.team[target.activeIndex];
-  if (!attacker || attacker.knockedOut) throw new Error("Actor not found or not active");
-  if (!defender || defender.knockedOut) throw new Error("Defender not found or already knocked out");
+  const currentPlayer = state.players.find((player) => player.userId === userId);
+  const opponent = state.players.find((player) => player.userId !== userId);
+  const actor = currentPlayer?.units.find((unit) => unit.hp > 0);
+  const target = opponent?.units.find((unit) => unit.hp > 0);
+  if (!actor || !target) throw new Error("Actor not found or not active");
 
-  const damage = Math.max(1, attacker.attack - Math.floor(defender.defense / 2));
-  defender.hp = Math.max(0, defender.hp - damage);
-  if (defender.hp === 0) {
-    defender.knockedOut = true;
-    target.activeIndex = firstAliveIndex(target.team);
+  const result = simulateActions(state, [{
+    kind: "basic",
+    actorInstanceId: actor.instanceId,
+    targetInstanceId: target.instanceId,
+  }]);
+  if (result.errors.length > 0) {
+    throw new Error(result.errors.join("; "));
   }
 
-  const logEntry = { turn: state.turn, actorId: userId, type: "attack", summary: `${attacker.name} hit ${defender.name} for ${damage}` };
-  state.log.push(logEntry);
-  const targetAlive = target.team.some((unit) => !unit.knockedOut && unit.hp > 0);
-  if (!targetAlive) {
-    state.phase = "ended";
-    state.winnerId = userId;
-  }
-
-  await db.update(pvpMatches).set({
-    state: serializeBattleState(state),
-    status: state.phase === "ended" ? "COMPLETED" : match.status,
-    winnerId: state.winnerId,
-    updatedAt: new Date(),
-    matchLog: JSON.stringify(state.log),
-  }).where(eq(pvpMatches.id, matchId));
-
-  return { match: await getMatch(matchId, userId), battleState: state, events: [logEntry] };
+  await persistBattleState(matchId, result.state);
+  const updatedMatch = await getMatch(matchId, userId);
+  return {
+    match: updatedMatch,
+    battleState: projectBattleState(createBattleStateView(result.state, userId)),
+    events: result.events,
+  };
 }
 
 export async function endTurn(matchId: string, userId: string) {
   const match = await getMatch(matchId, userId);
   if (match.status !== "IN_PROGRESS") throw new Error("Match is not in progress");
-  const state = await ensureBattleState(match);
+  const state = await inflateMatchState(match);
   if (!state) throw new Error("Match state not found");
   if (state.currentPlayerId !== userId) throw new Error("Not your turn");
-  state.currentPlayerId = state.players.find((player) => player.userId !== userId)?.userId ?? userId;
-  state.turn += 1;
-  const logEntry = { turn: state.turn, actorId: userId, type: "end_turn", summary: `${userId} ended turn` };
-  state.log.push(logEntry);
-  await db.update(pvpMatches).set({
-    state: serializeBattleState(state),
-    currentTurn: state.turn,
-    turnStartedAt: new Date(),
-    updatedAt: new Date(),
-    matchLog: JSON.stringify(state.log),
-  }).where(eq(pvpMatches.id, matchId));
-  return { match: await getMatch(matchId, userId), battleState: state, events: [logEntry] };
+
+  const result = simulateEndTurn(state);
+  if (result.errors.length > 0) {
+    throw new Error(result.errors.join("; "));
+  }
+
+  await persistBattleState(matchId, result.state);
+  const updatedMatch = await getMatch(matchId, userId);
+  return {
+    match: updatedMatch,
+    battleState: projectBattleState(createBattleStateView(result.state, userId)),
+    events: result.events,
+  };
 }

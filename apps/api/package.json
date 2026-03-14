@@ -9,6 +9,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@adventure-time/game-engine": "file:../../packages/game-engine",
     "@adventure-time/db": "file:../../packages/db",
     "@adventure-time/shared": "file:../../packages/shared",
     "bcryptjs": "^3.0.2",
