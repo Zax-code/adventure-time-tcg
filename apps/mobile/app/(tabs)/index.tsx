@@ -17,21 +17,26 @@ export default function HomeScreen() {
     return <View className="flex-1 bg-parchment p-6"><Text>{homeQuery.error.message}</Text></View>;
   }
 
+  const home = homeQuery.data;
+  if (!home) {
+    return <View className="flex-1 bg-parchment p-6"><Text>Home is unavailable.</Text></View>;
+  }
+
   return (
     <View className="flex-1 gap-3 bg-parchment p-6">
       <Text className="text-3xl font-bold text-amber-900">
-        Hey, {homeQuery.data.user.displayName ?? homeQuery.data.user.email}
+        Hey, {home.user.displayName ?? home.user.email}
       </Text>
-      <Text className="text-lg text-orange-800">Coins: {homeQuery.data.user.coins}</Text>
-      <Text className="text-lg text-orange-800">Dust: {homeQuery.data.user.dust}</Text>
+      <Text className="text-lg text-orange-800">Coins: {home.user.coins}</Text>
+      <Text className="text-lg text-orange-800">Dust: {home.user.dust}</Text>
       <Text className="text-lg text-orange-800">
-        Collection: {homeQuery.data.collectionStats.uniqueOwned}/{homeQuery.data.collectionStats.totalCards}
+        Collection: {home.collectionStats.uniqueOwned}/{home.collectionStats.totalCards}
       </Text>
       <Text className="text-lg text-orange-800">
-        Completion: {homeQuery.data.collectionStats.completionPercentage}%
+        Completion: {home.collectionStats.completionPercentage}%
       </Text>
       <Text className="mt-3 text-stone-600">
-        Default steps source: {homeQuery.data.user.preferredStepSource}
+        Default steps source: {home.user.preferredStepSource}
       </Text>
     </View>
   );

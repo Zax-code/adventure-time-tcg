@@ -2,6 +2,8 @@ import { FastifyInstance } from "fastify";
 
 import { getCollectionForUser, getImageAssetById, getUserWithCollectionStats } from "@adventure-time/db";
 
+import { getPrivateObject } from "../services/media-service";
+
 export async function appRoutes(fastify: FastifyInstance) {
   fastify.get("/health", async () => ({ status: "ok" }));
   fastify.get("/ready", async () => ({ status: "ready" }));
@@ -72,7 +74,12 @@ export async function appRoutes(fastify: FastifyInstance) {
       return reply.code(404).send({ error: "Image not found" });
     }
 
-    const body = asset.placeholderSvg ?? `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512"><rect width="100%" height="100%" fill="#1f2937"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#f9fafb" font-size="28">Adventure Time Card</text></svg>`;
+    const body = asset.objectKey
+      ? await getPrivateObject(asset.objectKey)
+      : Buffer.from(
+          asset.placeholderSvg ??
+            `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512"><rect width="100%" height="100%" fill="#1f2937"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#f9fafb" font-size="28">Adventure Time Card</text></svg>`,
+        );
     reply.header("Content-Type", asset.mimeType || "image/svg+xml");
     reply.header("Cache-Control", "private, max-age=3600");
     return reply.send(body);
@@ -86,7 +93,12 @@ export async function appRoutes(fastify: FastifyInstance) {
       return reply.code(404).send({ error: "Image not found" });
     }
 
-    const body = asset.placeholderSvg ?? `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><rect width="100%" height="100%" rx="128" fill="#0f766e"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#ecfeff" font-size="24">AT</text></svg>`;
+    const body = asset.objectKey
+      ? await getPrivateObject(asset.objectKey)
+      : Buffer.from(
+          asset.placeholderSvg ??
+            `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><rect width="100%" height="100%" rx="128" fill="#0f766e"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#ecfeff" font-size="24">AT</text></svg>`,
+        );
     reply.header("Content-Type", asset.mimeType || "image/svg+xml");
     reply.header("Cache-Control", "private, max-age=3600");
     return reply.send(body);

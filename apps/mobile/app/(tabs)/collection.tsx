@@ -20,11 +20,16 @@ export default function CollectionScreen() {
     return <View className="flex-1 bg-parchment p-6"><Text>{collectionQuery.error.message}</Text></View>;
   }
 
+  const collection = collectionQuery.data;
+  if (!collection) {
+    return <View className="flex-1 bg-parchment p-6"><Text>Collection is unavailable.</Text></View>;
+  }
+
   return (
     <ScrollView className="flex-1 bg-parchment" contentContainerClassName="gap-4 p-5">
       <Text className="text-3xl font-bold text-amber-900">Collection</Text>
-      <Text className="text-base text-orange-800">Dust: {collectionQuery.data.dust}</Text>
-      {collectionQuery.data.cards.map((entry) => (
+      <Text className="text-base text-orange-800">Dust: {collection.dust}</Text>
+      {collection.cards.map((entry) => (
         <View key={entry.id} className="flex-row gap-4 rounded-3xl bg-white p-3">
           {entry.card.imageAssetId ? (
             <Image

@@ -2,7 +2,7 @@ import bcrypt from "bcryptjs";
 import { and, eq, isNull } from "drizzle-orm";
 import { v4 as uuid } from "uuid";
 
-import { db, authSessions, emailAuthCredentials, users } from "@adventure-time/db";
+import { db, authSessions, emailAuthCredentials, ownedCards, users } from "@adventure-time/db";
 import type { AuthUser } from "@adventure-time/shared";
 
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from "../lib/tokens";
@@ -63,6 +63,14 @@ export async function register(input: { email: string; password: string; display
     userId,
     passwordHash: await bcrypt.hash(input.password, 12),
     updatedAt: now,
+  });
+
+  await db.insert(ownedCards).values({
+    id: uuid(),
+    userId,
+    cardId: "finn-hero",
+    quantity: 1,
+    obtainedAt: now,
   });
 
   const user = await db.query.users.findFirst({ where: eq(users.id, userId) });

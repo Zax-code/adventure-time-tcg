@@ -2,6 +2,7 @@ node_modules/
 .npm/
 dist/
 coverage/
+*.tsbuildinfo
 .env
 .env.*
 !.env.example
