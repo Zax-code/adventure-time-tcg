@@ -75,6 +75,61 @@ export const collectionResponseSchema = z.object({
   stats: collectionStatsSchema,
 });
 
+export const userSummarySchema = z.object({
+  id: z.string(),
+  email: z.string().email(),
+  displayName: z.string(),
+});
+
+export const usersResponseSchema = z.object({
+  users: z.array(userSummarySchema),
+});
+
+export const dustActionSchema = z.object({
+  cardId: z.string().min(1),
+  quantity: z.number().int().positive().default(1),
+});
+
+export const craftRecycleResponseSchema = z.object({
+  success: z.boolean(),
+  cardId: z.string(),
+  newDustBalance: z.number().int().nonnegative(),
+});
+
+export const giftSchema = z.object({
+  id: z.string(),
+  cardId: z.string(),
+  quantity: z.number().int().positive(),
+  message: z.string().nullable(),
+  status: z.string(),
+  createdAt: z.string(),
+  fromUser: userSummarySchema,
+  toUser: userSummarySchema,
+  card: z.object({
+    id: z.string(),
+    name: z.string(),
+    character: z.string(),
+    rarity: raritySchema,
+  }),
+});
+
+export const giftsResponseSchema = z.object({
+  gifts: z.array(giftSchema),
+  pendingCount: z.number().int().nonnegative(),
+});
+
+export const sendGiftSchema = z.object({
+  cardId: z.string().min(1),
+  toUserId: z.string().min(1),
+  quantity: z.number().int().positive().default(1),
+  message: z.string().optional(),
+});
+
+export const processGiftSchema = z.object({
+  giftId: z.string().min(1),
+  action: z.enum(["accept", "reject"]),
+});
+
 export const packSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -391,6 +446,7 @@ export type RegisterInput = z.infer<typeof registerSchema>;
 export type RefreshTokenInput = z.infer<typeof refreshTokenSchema>;
 export type AuthResponse = z.infer<typeof authResponseSchema>;
 export type CollectionResponse = z.infer<typeof collectionResponseSchema>;
+export type UsersResponse = z.infer<typeof usersResponseSchema>;
 export type HomeResponse = z.infer<typeof homeResponseSchema>;
 export type PacksResponse = z.infer<typeof packsResponseSchema>;
 export type OpenPackInput = z.infer<typeof openPackSchema>;
@@ -409,6 +465,7 @@ export type PvpMatchDetailResponse = z.infer<typeof pvpMatchDetailResponseSchema
 export type PvpLoadoutsResponse = z.infer<typeof pvpLoadoutsResponseSchema>;
 export type AdminCardsResponse = z.infer<typeof adminCardsResponseSchema>;
 export type AdminCardDetail = z.infer<typeof adminCardDetailSchema>;
+export type GiftsResponse = z.infer<typeof giftsResponseSchema>;
 export type StepSummary = z.infer<typeof stepSummarySchema>;
 export type HealthStepsResponse = z.infer<typeof healthStepsResponseSchema>;
 export type SyncStepsInput = z.infer<typeof syncStepsSchema>;

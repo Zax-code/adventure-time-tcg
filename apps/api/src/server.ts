@@ -5,9 +5,11 @@ import { env } from "./lib/env";
 import { adminRoutes } from "./routes/admin";
 import { appRoutes } from "./routes/app";
 import { authRoutes } from "./routes/auth";
+import { economyRoutes } from "./routes/economy";
 import { pvpRoutes } from "./routes/pvp";
 import { pvpLoadoutRoutes } from "./routes/pvp-loadouts";
 import { questRoutes } from "./routes/quests";
+import { socialRoutes } from "./routes/social";
 
 async function main() {
   const fastify = Fastify({ logger: true });
@@ -16,6 +18,8 @@ async function main() {
   await fastify.register(authRoutes);
   await fastify.register(appRoutes);
   await fastify.register(questRoutes);
+  await fastify.register(economyRoutes);
+  await fastify.register(socialRoutes);
   await fastify.register(pvpRoutes);
   await fastify.register(pvpLoadoutRoutes);
   await fastify.register(adminRoutes);

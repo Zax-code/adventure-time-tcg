@@ -7,8 +7,11 @@ import {
   claimQuestResponseSchema,
   claimQuestSchema,
   collectionResponseSchema,
+  craftRecycleResponseSchema,
   dailyClaimResponseSchema,
   dailyClaimStatusSchema,
+  dustActionSchema,
+  giftsResponseSchema,
   healthStepsResponseSchema,
   homeResponseSchema,
   loginSchema,
@@ -24,11 +27,14 @@ import {
   questsResponseSchema,
   refreshTokenSchema,
   registerSchema,
+  processGiftSchema,
+  sendGiftSchema,
   speedAnswerSchema,
   speedFinishSchema,
   speedRunStateSchema,
   syncStepsSchema,
   updateStepSourceSchema,
+  usersResponseSchema,
   wordleStateResponseSchema,
   wordleSubmitResponseSchema,
   wordleSubmitSchema,
@@ -109,6 +115,34 @@ export class ApiClient {
 
   async collection(): Promise<CollectionResponse> {
     return this.request("/collection", { method: "GET" }, (data) => collectionResponseSchema.parse(data));
+  }
+
+  async users() {
+    return this.request("/users", { method: "GET" }, (data) => usersResponseSchema.parse(data));
+  }
+
+  async gifts() {
+    return this.request("/gifts", { method: "GET" }, (data) => giftsResponseSchema.parse(data));
+  }
+
+  async sendGift(input: { cardId: string; toUserId: string; quantity?: number; message?: string }) {
+    const body = sendGiftSchema.parse(input);
+    return this.request("/gifts", { method: "POST", body: JSON.stringify(body) }, (data) => data as { gift: { id: string } });
+  }
+
+  async processGift(input: { giftId: string; action: "accept" | "reject" }) {
+    const body = processGiftSchema.parse(input);
+    return this.request("/gifts", { method: "PATCH", body: JSON.stringify(body) }, (data) => data as { success: boolean; status: string });
+  }
+
+  async craftCard(cardId: string, quantity = 1) {
+    const body = dustActionSchema.parse({ cardId, quantity });
+    return this.request("/collection/craft", { method: "POST", body: JSON.stringify(body) }, (data) => craftRecycleResponseSchema.parse(data));
+  }
+
+  async recycleCard(cardId: string, quantity = 1) {
+    const body = dustActionSchema.parse({ cardId, quantity });
+    return this.request("/collection/recycle", { method: "POST", body: JSON.stringify(body) }, (data) => craftRecycleResponseSchema.parse(data));
   }
 
   async packs(): Promise<PacksResponse> {

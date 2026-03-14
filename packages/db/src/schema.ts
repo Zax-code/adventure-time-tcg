@@ -253,6 +253,26 @@ export const pvpLoadouts = pgTable(
   (table) => [index("pvp_loadouts_owner_id_idx").on(table.ownerId)],
 );
 
+export const cardGifts = pgTable(
+  "card_gifts",
+  {
+    id: text("id").primaryKey(),
+    cardId: text("card_id").notNull().references(() => cards.id, { onDelete: "cascade", onUpdate: "cascade" }),
+    fromUserId: text("from_user_id").notNull().references(() => users.id, { onDelete: "cascade", onUpdate: "cascade" }),
+    toUserId: text("to_user_id").notNull().references(() => users.id, { onDelete: "cascade", onUpdate: "cascade" }),
+    quantity: integer("quantity").default(1).notNull(),
+    message: text("message"),
+    status: text("status").default("pending").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("card_gifts_from_user_id_idx").on(table.fromUserId),
+    index("card_gifts_to_user_id_idx").on(table.toUserId),
+    index("card_gifts_status_idx").on(table.status),
+  ],
+);
+
 export const ownedCards = pgTable(
   "owned_cards",
   {
@@ -298,6 +318,9 @@ export const usersRelations = relations(users, ({ many, one }) => ({
     references: [emailAuthCredentials.userId],
   }),
   ownedCards: many(ownedCards),
+  pvpLoadouts: many(pvpLoadouts),
+  sentGifts: many(cardGifts, { relationName: "gift_sender" }),
+  receivedGifts: many(cardGifts, { relationName: "gift_recipient" }),
   stepSnapshots: many(userStepSnapshots),
   avatarAsset: one(imageAssets, {
     fields: [users.avatarAssetId],
@@ -315,6 +338,7 @@ export const cardsRelations = relations(cards, ({ one, many }) => ({
     references: [imageAssets.id],
   }),
   ownedCards: many(ownedCards),
+  gifts: many(cardGifts),
 }));
 
 export const ownedCardsRelations = relations(ownedCards, ({ one }) => ({
@@ -332,6 +356,30 @@ export const userStepSnapshotsRelations = relations(userStepSnapshots, ({ one })
   user: one(users, {
     fields: [userStepSnapshots.userId],
     references: [users.id],
+  }),
+}));
+
+export const pvpLoadoutsRelations = relations(pvpLoadouts, ({ one }) => ({
+  owner: one(users, {
+    fields: [pvpLoadouts.ownerId],
+    references: [users.id],
+  }),
+}));
+
+export const cardGiftsRelations = relations(cardGifts, ({ one }) => ({
+  card: one(cards, {
+    fields: [cardGifts.cardId],
+    references: [cards.id],
+  }),
+  fromUser: one(users, {
+    fields: [cardGifts.fromUserId],
+    references: [users.id],
+    relationName: "gift_sender",
+  }),
+  toUser: one(users, {
+    fields: [cardGifts.toUserId],
+    references: [users.id],
+    relationName: "gift_recipient",
   }),
 }));
 

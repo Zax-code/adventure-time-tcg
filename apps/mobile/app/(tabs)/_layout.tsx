@@ -21,6 +21,7 @@ export default function TabLayout() {
       <Tabs.Screen name="packs" options={{ title: "Packs" }} />
       <Tabs.Screen name="quests" options={{ title: "Quests" }} />
       <Tabs.Screen name="pvp" options={{ title: "PvP" }} />
+      <Tabs.Screen name="gifts" options={{ title: "Gifts" }} />
       <Tabs.Screen name="collection" options={{ title: "Collection" }} />
       <Tabs.Screen name="settings" options={{ title: "Settings" }} />
     </Tabs>
