@@ -2,7 +2,9 @@ import { randomUUID } from "node:crypto";
 
 import { and, eq, inArray, or } from "drizzle-orm";
 
-import { db, cards, pvpMatches, users } from "@adventure-time/db";
+import { db, cards, ownedCards, pvpMatches, users } from "@adventure-time/db";
+
+import { validateLoadoutRarityCaps } from "../lib/loadout-rules";
 
 type BattleUnit = {
   cardId: string;
@@ -143,6 +145,12 @@ export async function createInvite(inviterId: string, inviteeEmail: string, load
   const invitee = await db.query.users.findFirst({ where: eq(users.email, inviteeEmail.toLowerCase()) });
   if (!invitee) throw new Error("Invitee not found");
   if (invitee.id === inviterId) throw new Error("Cannot invite yourself");
+  if (loadout.length !== 6 || new Set(loadout).size !== loadout.length) throw new Error("Loadout must contain 6 unique cards");
+  const inviterOwned = await db.query.ownedCards.findMany({ where: and(eq(ownedCards.userId, inviterId), inArray(ownedCards.cardId, loadout)) });
+  if (inviterOwned.length !== loadout.length) throw new Error("You don't own all selected cards");
+  const inviterCardsForValidation = await db.query.cards.findMany({ where: inArray(cards.id, loadout), with: { rarity: true } });
+  const inviterValidation = validateLoadoutRarityCaps(inviterCardsForValidation.map((card) => card.rarity));
+  if (!inviterValidation.valid) throw new Error(inviterValidation.error);
   const existing = await db.query.pvpMatches.findFirst({
     where: and(
       or(
@@ -174,12 +182,21 @@ export async function setMatchStatus(matchId: string, userId: string, action: "a
     const inviterLoadout = parseLoadout(match.inviterLoadout);
     const inviteeLoadout = loadout ?? [];
     if (inviterLoadout.length !== 6 || inviteeLoadout.length !== 6) throw new Error("Loadouts must contain exactly 6 cards");
+    if (new Set(inviteeLoadout).size !== inviteeLoadout.length) throw new Error("Invitee loadout cannot contain duplicate cards");
+    const inviteeOwned = await db.query.ownedCards.findMany({ where: and(eq(ownedCards.userId, userId), inArray(ownedCards.cardId, inviteeLoadout)) });
+    if (inviteeOwned.length !== inviteeLoadout.length) throw new Error("Invitee does not own all selected cards");
     const loadoutCardIds = [...inviterLoadout, ...inviteeLoadout];
     const loadoutCards = await db.query.cards.findMany({ where: inArray(cards.id, [...new Set(loadoutCardIds)]) });
     const cardMap = new Map(loadoutCards.map((card) => [card.id, card]));
     const inviterCards = inviterLoadout.map((id) => cardMap.get(id)).filter(Boolean) as Array<typeof cards.$inferSelect>;
     const inviteeCards = inviteeLoadout.map((id) => cardMap.get(id)).filter(Boolean) as Array<typeof cards.$inferSelect>;
     if (inviterCards.length !== 6 || inviteeCards.length !== 6) throw new Error("Loadout cards not found");
+    const inviterCardsWithRarity = await db.query.cards.findMany({ where: inArray(cards.id, inviterLoadout), with: { rarity: true } });
+    const inviteeCardsWithRarity = await db.query.cards.findMany({ where: inArray(cards.id, inviteeLoadout), with: { rarity: true } });
+    const inviterRarityValidation = validateLoadoutRarityCaps(inviterCardsWithRarity.map((card) => card.rarity));
+    if (!inviterRarityValidation.valid) throw new Error(`Inviter loadout invalid: ${inviterRarityValidation.error}`);
+    const inviteeRarityValidation = validateLoadoutRarityCaps(inviteeCardsWithRarity.map((card) => card.rarity));
+    if (!inviteeRarityValidation.valid) throw new Error(`Invitee loadout invalid: ${inviteeRarityValidation.error}`);
     const battleState = buildBattleState({ inviterId: match.inviterId, inviteeId: match.inviteeId, inviterCards, inviteeCards });
     await db.update(pvpMatches).set({
       status: "IN_PROGRESS",

@@ -234,6 +234,26 @@ export const pvpInviteSchema = z.object({
   loadout: z.array(z.string()).length(6),
 });
 
+export const pvpLoadoutSchema = z.object({
+  id: z.string(),
+  ownerId: z.string(),
+  name: z.string(),
+  cardIds: z.array(z.string()).length(6),
+  invalidCardIds: z.array(z.string()),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
+export const pvpLoadoutsResponseSchema = z.object({
+  loadouts: z.array(pvpLoadoutSchema),
+});
+
+export const pvpLoadoutMutationSchema = z.object({
+  loadoutId: z.string().optional(),
+  name: z.string().min(1),
+  cardIds: z.array(z.string()).length(6),
+});
+
 export const pvpMatchSchema = z.object({
   id: z.string(),
   inviterId: z.string(),
@@ -306,8 +326,32 @@ export const adminCardSummarySchema = z.object({
   isFeatured: z.boolean(),
 });
 
+export const adminCardDetailSchema = adminCardSummarySchema.extend({
+  description: z.string(),
+  hp: z.number().int(),
+  attack: z.number().int(),
+  defense: z.number().int(),
+  speed: z.number().int(),
+  type: z.string(),
+  rarityId: z.string(),
+});
+
 export const adminCardsResponseSchema = z.object({
   cards: z.array(adminCardSummarySchema),
+});
+
+export const adminCardEditSchema = z.object({
+  name: z.string().min(1),
+  character: z.string().min(1),
+  description: z.string().min(1),
+  hp: z.number().int().positive(),
+  attack: z.number().int().positive(),
+  defense: z.number().int().positive(),
+  speed: z.number().int().positive(),
+  type: z.string().min(1),
+  rarityId: z.string().min(1),
+  isFeatured: z.boolean().optional(),
+  isArchived: z.boolean().optional(),
 });
 
 export const homeResponseSchema = z.object({
@@ -362,7 +406,9 @@ export type WordleSubmitResponse = z.infer<typeof wordleSubmitResponseSchema>;
 export type SpeedRunState = z.infer<typeof speedRunStateSchema>;
 export type PvpMatch = z.infer<typeof pvpMatchSchema>;
 export type PvpMatchDetailResponse = z.infer<typeof pvpMatchDetailResponseSchema>;
+export type PvpLoadoutsResponse = z.infer<typeof pvpLoadoutsResponseSchema>;
 export type AdminCardsResponse = z.infer<typeof adminCardsResponseSchema>;
+export type AdminCardDetail = z.infer<typeof adminCardDetailSchema>;
 export type StepSummary = z.infer<typeof stepSummarySchema>;
 export type HealthStepsResponse = z.infer<typeof healthStepsResponseSchema>;
 export type SyncStepsInput = z.infer<typeof syncStepsSchema>;

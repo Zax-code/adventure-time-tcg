@@ -6,6 +6,7 @@ import { adminRoutes } from "./routes/admin";
 import { appRoutes } from "./routes/app";
 import { authRoutes } from "./routes/auth";
 import { pvpRoutes } from "./routes/pvp";
+import { pvpLoadoutRoutes } from "./routes/pvp-loadouts";
 import { questRoutes } from "./routes/quests";
 
 async function main() {
@@ -16,6 +17,7 @@ async function main() {
   await fastify.register(appRoutes);
   await fastify.register(questRoutes);
   await fastify.register(pvpRoutes);
+  await fastify.register(pvpLoadoutRoutes);
   await fastify.register(adminRoutes);
 
   fastify.setErrorHandler((error, _request, reply) => {

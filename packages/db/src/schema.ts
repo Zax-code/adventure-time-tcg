@@ -240,6 +240,19 @@ export const pvpMatches = pgTable(
   ],
 );
 
+export const pvpLoadouts = pgTable(
+  "pvp_loadouts",
+  {
+    id: text("id").primaryKey(),
+    ownerId: text("owner_id").notNull().references(() => users.id, { onDelete: "cascade", onUpdate: "cascade" }),
+    name: text("name").notNull(),
+    cardIds: text("card_ids").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [index("pvp_loadouts_owner_id_idx").on(table.ownerId)],
+);
+
 export const ownedCards = pgTable(
   "owned_cards",
   {

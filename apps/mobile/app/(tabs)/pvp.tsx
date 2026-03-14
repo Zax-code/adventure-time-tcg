@@ -4,38 +4,49 @@ import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 
 import { apiClient } from "../../src/lib/api";
 
-const DEFAULT_LOADOUT = ["finn-hero", "finn-hero", "finn-hero", "finn-hero", "finn-hero", "finn-hero"];
+const DEFAULT_LOADOUT = ["finn-hero", "46e81111-4cef-4ac1-838e-7557c72f2108", "4ff9d797-c8a1-43f3-95f5-fbf7579b6341", "65894b66-f196-4bd1-b0e5-9ab2cf498f84", "be08faba-3433-4ad9-b344-4d360a0fe217", "f971f5e0-0d7d-4aa5-a41d-937d6f17d8be"];
 
 export default function PvpScreen() {
   const queryClient = useQueryClient();
   const [inviteeEmail, setInviteeEmail] = useState("");
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
+  const [loadoutName, setLoadoutName] = useState("Starter Loadout");
   const invitesQuery = useQuery({ queryKey: ["pvp-invites"], queryFn: () => apiClient.pvpInvites() });
   const matchesQuery = useQuery({ queryKey: ["pvp-matches"], queryFn: () => apiClient.pvpMatches() });
   const historyQuery = useQuery({ queryKey: ["pvp-history"], queryFn: () => apiClient.pvpHistory() });
+  const loadoutsQuery = useQuery({ queryKey: ["pvp-loadouts"], queryFn: () => apiClient.pvpLoadouts() });
   const selectedMatchQuery = useQuery({
     queryKey: ["pvp-match", selectedMatchId],
     queryFn: () => apiClient.pvpMatch(selectedMatchId as string),
     enabled: Boolean(selectedMatchId),
   });
 
+  const defaultLoadout = loadoutsQuery.data?.loadouts[0]?.cardIds ?? DEFAULT_LOADOUT;
+
   const refreshAll = async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["pvp-invites"] }),
       queryClient.invalidateQueries({ queryKey: ["pvp-matches"] }),
       queryClient.invalidateQueries({ queryKey: ["pvp-history"] }),
+      queryClient.invalidateQueries({ queryKey: ["pvp-loadouts"] }),
       queryClient.invalidateQueries({ queryKey: ["pvp-match", selectedMatchId] }),
     ]);
   };
 
+  const createLoadoutMutation = useMutation({
+    mutationFn: () => apiClient.createPvpLoadout(loadoutName, DEFAULT_LOADOUT),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["pvp-loadouts"] });
+    },
+  });
   const createMutation = useMutation({
-    mutationFn: () => apiClient.createPvpInvite(inviteeEmail, DEFAULT_LOADOUT),
+    mutationFn: () => apiClient.createPvpInvite(inviteeEmail, defaultLoadout),
     onSuccess: async () => {
       setInviteeEmail("");
       await refreshAll();
     },
   });
-  const acceptMutation = useMutation({ mutationFn: (id: string) => apiClient.acceptPvpMatch(id, DEFAULT_LOADOUT), onSuccess: refreshAll });
+  const acceptMutation = useMutation({ mutationFn: (id: string) => apiClient.acceptPvpMatch(id, defaultLoadout), onSuccess: refreshAll });
   const declineMutation = useMutation({ mutationFn: (id: string) => apiClient.declinePvpMatch(id), onSuccess: refreshAll });
   const concedeMutation = useMutation({ mutationFn: (id: string) => apiClient.concedePvpMatch(id), onSuccess: refreshAll });
   const attackMutation = useMutation({ mutationFn: (id: string) => apiClient.actPvpMatch(id), onSuccess: refreshAll });
@@ -46,6 +57,20 @@ export default function PvpScreen() {
   return (
     <ScrollView className="flex-1 bg-parchment" contentContainerClassName="gap-4 p-5">
       <Text className="text-3xl font-bold text-amber-900">PvP</Text>
+      <View className="gap-3 rounded-3xl bg-white p-4">
+        <Text className="text-lg font-bold text-stone-900">Loadouts</Text>
+        <TextInput value={loadoutName} onChangeText={setLoadoutName} placeholder="Loadout name" className="rounded-2xl border border-orange-300 bg-white px-4 py-3" />
+        <Pressable className="items-center rounded-2xl bg-stone-900 px-4 py-4" onPress={() => void createLoadoutMutation.mutateAsync()}>
+          <Text className="font-bold text-white">Save starter loadout</Text>
+        </Pressable>
+        {loadoutsQuery.data?.loadouts.map((loadout) => (
+          <View key={loadout.id} className="rounded-2xl bg-orange-50 p-3">
+            <Text className="font-semibold text-stone-900">{loadout.name}</Text>
+            <Text className="text-stone-700">Cards: {loadout.cardIds.length}</Text>
+            {loadout.invalidCardIds.length > 0 ? <Text className="text-red-700">Invalid cards: {loadout.invalidCardIds.length}</Text> : null}
+          </View>
+        ))}
+      </View>
       <View className="gap-3 rounded-3xl bg-white p-4">
         <Text className="text-lg font-bold text-stone-900">Send Invite</Text>
         <TextInput value={inviteeEmail} onChangeText={setInviteeEmail} autoCapitalize="none" placeholder="Friend email" className="rounded-2xl border border-orange-300 bg-white px-4 py-3" />

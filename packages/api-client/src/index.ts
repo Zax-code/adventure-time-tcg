@@ -1,5 +1,6 @@
 import {
   adminCardsResponseSchema,
+  adminCardDetailSchema,
   adminCardSummarySchema,
   authUserSchema,
   authResponseSchema,
@@ -15,6 +16,8 @@ import {
   openPackSchema,
   packsResponseSchema,
   pvpHistoryResponseSchema,
+  pvpLoadoutMutationSchema,
+  pvpLoadoutsResponseSchema,
   pvpMatchDetailResponseSchema,
   pvpInviteSchema,
   pvpInvitesResponseSchema,
@@ -170,6 +173,24 @@ export class ApiClient {
     return this.request("/pvp/invites", { method: "POST", body: JSON.stringify(body) }, (data) => data as { success: boolean });
   }
 
+  async pvpLoadouts() {
+    return this.request("/pvp/loadouts", { method: "GET" }, (data) => pvpLoadoutsResponseSchema.parse(data));
+  }
+
+  async createPvpLoadout(name: string, cardIds: string[]) {
+    const body = pvpLoadoutMutationSchema.parse({ name, cardIds });
+    return this.request("/pvp/loadouts", { method: "POST", body: JSON.stringify(body) }, (data) => data as { loadout: unknown });
+  }
+
+  async updatePvpLoadout(loadoutId: string, name: string, cardIds: string[]) {
+    const body = pvpLoadoutMutationSchema.parse({ name, cardIds });
+    return this.request(`/pvp/loadouts/${loadoutId}`, { method: "PUT", body: JSON.stringify(body) }, (data) => data as { loadout: unknown });
+  }
+
+  async deletePvpLoadout(loadoutId: string) {
+    return this.request(`/pvp/loadouts/${loadoutId}`, { method: "DELETE" }, (data) => data as { success: boolean });
+  }
+
   async pvpMatches() {
     return this.request("/pvp/matches", { method: "GET" }, (data) => pvpHistoryResponseSchema.parse(data));
   }
@@ -212,6 +233,14 @@ export class ApiClient {
 
   async updateAdminCard(cardId: string, input: { isFeatured?: boolean; isArchived?: boolean }) {
     return this.request(`/admin/cards/${cardId}`, { method: "PATCH", body: JSON.stringify(input) }, (data) => adminCardSummarySchema.parse(data));
+  }
+
+  async adminCard(cardId: string) {
+    return this.request(`/admin/cards/${cardId}`, { method: "GET" }, (data) => adminCardDetailSchema.parse(data));
+  }
+
+  async saveAdminCard(cardId: string, input: Record<string, unknown>) {
+    return this.request(`/admin/cards/${cardId}`, { method: "PUT", body: JSON.stringify(input) }, (data) => adminCardDetailSchema.parse(data));
   }
 
   async getHealthSteps(): Promise<HealthStepsResponse> {
