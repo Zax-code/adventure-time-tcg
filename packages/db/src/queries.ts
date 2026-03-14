@@ -1,10 +1,10 @@
 import { randomUUID } from "node:crypto";
-import { and, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 
 import { calculateCollectionCompletion } from "@adventure-time/game-engine";
 
 import { db } from "./client";
-import { cards, imageAssets, ownedCards, userStepSnapshots, users } from "./schema";
+import { cards, imageAssets, ownedCards, packs, userStepSnapshots, users } from "./schema";
 
 export async function getUserByEmail(email: string) {
   return db.query.users.findFirst({
@@ -169,5 +169,12 @@ export async function getLatestStepSnapshot(userId: string) {
   return db.query.userStepSnapshots.findFirst({
     where: eq(userStepSnapshots.userId, userId),
     orderBy: [desc(userStepSnapshots.recordedFor), desc(userStepSnapshots.updatedAt)],
+  });
+}
+
+export async function getActivePacks() {
+  return db.query.packs.findMany({
+    where: eq(packs.isActive, true),
+    orderBy: [asc(packs.cost)],
   });
 }

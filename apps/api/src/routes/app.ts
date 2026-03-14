@@ -4,13 +4,19 @@ import {
   getCollectionForUser,
   getImageAssetById,
   getLatestStepSnapshot,
+  getActivePacks,
   getUserWithCollectionStats,
   updatePreferredStepSource,
   upsertStepSnapshot,
+  db,
+  users,
 } from "@adventure-time/db";
-import { syncStepsSchema, updateStepSourceSchema } from "@adventure-time/shared";
+import { eq } from "drizzle-orm";
+import { openPackSchema, syncStepsSchema, updateStepSourceSchema } from "@adventure-time/shared";
 
+import { DAILY_REWARD, RESET_TIMEZONE, canClaimDaily, getTimeUntilNextClaim } from "../lib/reset-clock";
 import { getPrivateObject } from "../services/media-service";
+import { openPackForUser } from "../services/pack-service";
 
 export async function appRoutes(fastify: FastifyInstance) {
   fastify.get("/health", async () => ({ status: "ok" }));
@@ -72,6 +78,108 @@ export async function appRoutes(fastify: FastifyInstance) {
     }
 
     return getCollectionForUser(userContext.id);
+  });
+
+  fastify.get("/packs", { preHandler: [(fastify as any).authenticate] }, async (request, reply) => {
+    if (!request.authUser) {
+      return reply.code(401).send({ error: "Unauthorized" });
+    }
+
+    const activePacks = await getActivePacks();
+    return { packs: activePacks };
+  });
+
+  fastify.post("/packs/open", { preHandler: [(fastify as any).authenticate] }, async (request, reply) => {
+    const userContext = request.authUser;
+    if (!userContext) {
+      return reply.code(401).send({ error: "Unauthorized" });
+    }
+
+    const body = openPackSchema.parse(request.body);
+
+    try {
+      return await openPackForUser(userContext.id, body.packId);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to open pack";
+      if (message === "Not enough coins") {
+        return reply.code(400).send({ error: message });
+      }
+      if (message === "Pack not found or inactive" || message === "No cards available") {
+        return reply.code(404).send({ error: message });
+      }
+      if (message === "User not found") {
+        return reply.code(404).send({ error: message });
+      }
+      return reply.code(500).send({ error: message });
+    }
+  });
+
+  fastify.get("/daily-claim", { preHandler: [(fastify as any).authenticate] }, async (request, reply) => {
+    const userContext = request.authUser;
+    if (!userContext) {
+      return reply.code(401).send({ error: "Unauthorized" });
+    }
+
+    const user = await db.query.users.findFirst({
+      where: eq(users.id, userContext.id),
+    });
+    if (!user) {
+      return reply.code(404).send({ error: "User not found" });
+    }
+
+    const canClaim = canClaimDaily(user.lastDailyClaim ?? null);
+
+    return {
+      coins: user.coins,
+      canClaim,
+      timeUntilNextClaim: canClaim ? 0 : getTimeUntilNextClaim(),
+      dailyReward: DAILY_REWARD,
+      timezone: RESET_TIMEZONE,
+    };
+  });
+
+  fastify.post("/daily-claim", { preHandler: [(fastify as any).authenticate] }, async (request, reply) => {
+    const userContext = request.authUser;
+    if (!userContext) {
+      return reply.code(401).send({ error: "Unauthorized" });
+    }
+
+    const user = await db.query.users.findFirst({ where: eq(users.id, userContext.id) });
+    if (!user) {
+      return reply.code(404).send({ error: "User not found" });
+    }
+
+    if (!canClaimDaily(user.lastDailyClaim ?? null)) {
+      return reply.code(400).send({
+        error: "Already claimed today",
+        timeUntilNextClaim: getTimeUntilNextClaim(),
+        timezone: RESET_TIMEZONE,
+      });
+    }
+
+    const newBalance = user.coins + DAILY_REWARD;
+    await db.update(users).set({ coins: newBalance, lastDailyClaim: new Date(), updatedAt: new Date() }).where(eq(users.id, userContext.id));
+
+    return {
+      success: true,
+      coinsAwarded: DAILY_REWARD,
+      newBalance,
+    };
+  });
+
+  fastify.get("/admin/status", { preHandler: [(fastify as any).authenticate] }, async (request, reply) => {
+    if (!request.authUser) {
+      return reply.code(401).send({ error: "Unauthorized" });
+    }
+
+    if (!request.authUser.isAdmin) {
+      return reply.code(403).send({ error: "Forbidden" });
+    }
+
+    return {
+      ok: true,
+      message: "Admin access granted",
+    };
   });
 
   fastify.patch("/settings/step-source", { preHandler: [(fastify as any).authenticate] }, async (request, reply) => {

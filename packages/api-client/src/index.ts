@@ -2,18 +2,28 @@ import {
   authUserSchema,
   authResponseSchema,
   collectionResponseSchema,
+  dailyClaimResponseSchema,
+  dailyClaimStatusSchema,
   healthStepsResponseSchema,
   homeResponseSchema,
   loginSchema,
+  openPackResponseSchema,
+  openPackSchema,
+  packsResponseSchema,
   refreshTokenSchema,
   registerSchema,
   syncStepsSchema,
   updateStepSourceSchema,
   type AuthResponse,
   type CollectionResponse,
+  type DailyClaimResponse,
+  type DailyClaimStatus,
   type HealthStepsResponse,
   type HomeResponse,
   type LoginInput,
+  type OpenPackInput,
+  type OpenPackResponse,
+  type PacksResponse,
   type RefreshTokenInput,
   type RegisterInput,
   type SyncStepsInput,
@@ -72,6 +82,23 @@ export class ApiClient {
 
   async collection(): Promise<CollectionResponse> {
     return this.request("/collection", { method: "GET" }, (data) => collectionResponseSchema.parse(data));
+  }
+
+  async packs(): Promise<PacksResponse> {
+    return this.request("/packs", { method: "GET" }, (data) => packsResponseSchema.parse(data));
+  }
+
+  async openPack(input: OpenPackInput): Promise<OpenPackResponse> {
+    const body = openPackSchema.parse(input);
+    return this.request("/packs/open", { method: "POST", body: JSON.stringify(body) }, (data) => openPackResponseSchema.parse(data));
+  }
+
+  async getDailyClaimStatus(): Promise<DailyClaimStatus> {
+    return this.request("/daily-claim", { method: "GET" }, (data) => dailyClaimStatusSchema.parse(data));
+  }
+
+  async claimDailyReward(): Promise<DailyClaimResponse> {
+    return this.request("/daily-claim", { method: "POST" }, (data) => dailyClaimResponseSchema.parse(data));
   }
 
   async getHealthSteps(): Promise<HealthStepsResponse> {

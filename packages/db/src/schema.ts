@@ -22,6 +22,7 @@ export const users = pgTable(
     displayName: text("display_name"),
     coins: integer("coins").default(100).notNull(),
     dust: integer("dust").default(0).notNull(),
+    lastDailyClaim: timestamp("last_daily_claim", { withTimezone: true, mode: "date" }),
     avatarAssetId: text("avatar_asset_id"),
     isAdmin: boolean("is_admin").default(false).notNull(),
     preferredStepSource: stepSourceEnum("preferred_step_source").default("device_health").notNull(),
@@ -94,10 +95,27 @@ export const cards = pgTable("cards", {
   type: text("type").notNull(),
   rarityId: text("rarity_id").notNull().references(() => rarities.id, { onDelete: "restrict", onUpdate: "cascade" }),
   imageAssetId: text("image_asset_id").references(() => imageAssets.id, { onDelete: "set null", onUpdate: "cascade" }),
+  isFeatured: boolean("is_featured").default(false).notNull(),
   isArchived: boolean("is_archived").default(false).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
 });
+
+export const packs = pgTable(
+  "packs",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    description: text("description").notNull(),
+    cardCount: integer("card_count").default(5).notNull(),
+    cost: integer("cost").default(100).notNull(),
+    imageUrl: text("image_url").notNull(),
+    color: text("color").default("#EC4899").notNull(),
+    isActive: boolean("is_active").default(true).notNull(),
+    guaranteedRarity: text("guaranteed_rarity"),
+  },
+  (table) => [uniqueIndex("packs_name_key").on(table.name)],
+);
 
 export const ownedCards = pgTable(
   "owned_cards",

@@ -75,6 +75,50 @@ export const collectionResponseSchema = z.object({
   stats: collectionStatsSchema,
 });
 
+export const packSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string(),
+  cardCount: z.number().int().positive(),
+  cost: z.number().int().nonnegative(),
+  imageUrl: z.string(),
+  color: z.string(),
+  isActive: z.boolean(),
+  guaranteedRarity: z.string().nullable(),
+});
+
+export const packsResponseSchema = z.object({
+  packs: z.array(packSchema),
+});
+
+export const openedCardSchema = cardSchema.extend({
+  isNewForUser: z.boolean(),
+});
+
+export const openPackSchema = z.object({
+  packId: z.string().min(1),
+});
+
+export const openPackResponseSchema = z.object({
+  pack: packSchema,
+  cards: z.array(openedCardSchema),
+  newBalance: z.number().int().nonnegative(),
+});
+
+export const dailyClaimStatusSchema = z.object({
+  coins: z.number().int().nonnegative(),
+  canClaim: z.boolean(),
+  timeUntilNextClaim: z.number().int().nonnegative(),
+  dailyReward: z.number().int().nonnegative(),
+  timezone: z.string(),
+});
+
+export const dailyClaimResponseSchema = z.object({
+  success: z.boolean(),
+  coinsAwarded: z.number().int().nonnegative(),
+  newBalance: z.number().int().nonnegative(),
+});
+
 export const homeResponseSchema = z.object({
   user: authUserSchema,
   collectionStats: collectionStatsSchema,
@@ -113,6 +157,11 @@ export type RefreshTokenInput = z.infer<typeof refreshTokenSchema>;
 export type AuthResponse = z.infer<typeof authResponseSchema>;
 export type CollectionResponse = z.infer<typeof collectionResponseSchema>;
 export type HomeResponse = z.infer<typeof homeResponseSchema>;
+export type PacksResponse = z.infer<typeof packsResponseSchema>;
+export type OpenPackInput = z.infer<typeof openPackSchema>;
+export type OpenPackResponse = z.infer<typeof openPackResponseSchema>;
+export type DailyClaimStatus = z.infer<typeof dailyClaimStatusSchema>;
+export type DailyClaimResponse = z.infer<typeof dailyClaimResponseSchema>;
 export type StepSummary = z.infer<typeof stepSummarySchema>;
 export type HealthStepsResponse = z.infer<typeof healthStepsResponseSchema>;
 export type SyncStepsInput = z.infer<typeof syncStepsSchema>;

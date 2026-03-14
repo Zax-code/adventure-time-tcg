@@ -18,6 +18,7 @@ export default function TabLayout() {
   return (
     <Tabs screenOptions={{ headerShown: false, tabBarActiveTintColor: "#ea580c" }}>
       <Tabs.Screen name="index" options={{ title: "Home" }} />
+      <Tabs.Screen name="packs" options={{ title: "Packs" }} />
       <Tabs.Screen name="collection" options={{ title: "Collection" }} />
       <Tabs.Screen name="settings" options={{ title: "Settings" }} />
     </Tabs>

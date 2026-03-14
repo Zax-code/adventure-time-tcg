@@ -78,7 +78,15 @@ export default function SettingsScreen() {
         <Text className="font-semibold text-white">Sync sample device steps</Text>
       </Pressable>
       {user?.isAdmin ? (
-        <Text className="text-stone-700">Admin tools will live behind a hidden route group.</Text>
+        <>
+          <Text className="text-stone-700">Admin tools live behind a hidden route group.</Text>
+          <Pressable
+            className="rounded-2xl bg-stone-800 px-4 py-3"
+            onPress={() => router.push("/admin")}
+          >
+            <Text className="font-semibold text-white">Open hidden admin tools</Text>
+          </Pressable>
+        </>
       ) : null}
       <Pressable
         className="mt-4 items-center rounded-2xl bg-stone-900 py-4"
