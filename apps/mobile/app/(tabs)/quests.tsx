@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 
 import { apiClient } from "../../src/lib/api";
 import { useSessionStore } from "../../src/stores/session-store";
+import { PrimaryButton } from "../../src/components/button";
 
 export default function QuestsScreen() {
   const router = useRouter();
@@ -27,29 +28,31 @@ export default function QuestsScreen() {
     },
   });
 
-  if (questsQuery.isLoading) return <View className="flex-1 bg-parchment p-6"><Text>Loading quests...</Text></View>;
-  if (questsQuery.isError || !questsQuery.data) return <View className="flex-1 bg-parchment p-6"><Text>{questsQuery.error?.message ?? "Quest data unavailable."}</Text></View>;
+  if (questsQuery.isLoading) return <View className="flex-1 bg-bg p-6"><Text className="font-nunito text-fgMuted">Loading quests...</Text></View>;
+  if (questsQuery.isError || !questsQuery.data) return <View className="flex-1 bg-bg p-6"><Text className="font-nunito text-red-600">{questsQuery.error?.message ?? "Quest data unavailable."}</Text></View>;
 
   return (
-    <ScrollView className="flex-1 bg-parchment" contentContainerClassName="gap-4 p-5">
-      <Text className="text-3xl font-bold text-amber-900">Quests</Text>
+    <ScrollView className="flex-1 bg-bg" contentContainerClassName="gap-4 p-5">
+      <Text className="font-nunito-extrabold text-2xl text-fg">Quests</Text>
       {questsQuery.data.quests.map((quest) => (
-        <View key={quest.id} className="gap-3 rounded-3xl bg-white p-4">
-          <Text className="text-xl font-bold text-stone-900">{quest.title}</Text>
-          <Text className="text-stone-700">{quest.description}</Text>
-          <Text className="text-stone-700">Progress: {quest.progress}/{quest.target}</Text>
-          <Text className="text-stone-700">Reward: {quest.reward}</Text>
+        <View key={quest.id} className="gap-3 rounded-3xl border border-primaryBorder bg-white p-4">
+          <Text className="font-nunito-bold text-lg text-fg">{quest.title}</Text>
+          <Text className="font-nunito text-fgMuted">{quest.description}</Text>
+          <Text className="font-nunito text-fgMuted">Progress: {quest.progress}/{quest.target}</Text>
+          <View className="self-start rounded-full bg-secondary px-3 py-1">
+            <Text className="font-nunito-bold text-xs text-fg">Reward: {quest.reward}</Text>
+          </View>
           {quest.actionPath ? (
-            <Pressable className="rounded-2xl bg-orange-100 px-4 py-3" onPress={() => router.push(quest.actionPath as any)}>
-              <Text className="font-semibold text-orange-900">Open quest</Text>
+            <Pressable className="rounded-2xl bg-primaryTint px-4 py-3" onPress={() => router.push(quest.actionPath as any)}>
+              <Text className="font-nunito-semibold text-primaryText">Open quest</Text>
             </Pressable>
           ) : null}
           {quest.completed && !quest.claimed ? (
-            <Pressable className="rounded-2xl bg-orange-600 px-4 py-3" onPress={() => void claimQuestMutation.mutateAsync(quest.id)}>
-              <Text className="font-semibold text-white">Claim reward</Text>
-            </Pressable>
+            <PrimaryButton onPress={() => void claimQuestMutation.mutateAsync(quest.id)}>
+              Claim reward
+            </PrimaryButton>
           ) : null}
-          {quest.failed ? <Text className="text-red-700">This quest failed for today.</Text> : null}
+          {quest.failed ? <Text className="font-nunito text-sm text-red-600">This quest failed for today.</Text> : null}
         </View>
       ))}
     </ScrollView>

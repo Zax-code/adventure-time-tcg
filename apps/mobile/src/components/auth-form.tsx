@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 
 import { apiClient } from "../lib/api";
 import { useSessionStore } from "../stores/session-store";
+import { PrimaryButton } from "./button";
 
 export function AuthForm() {
   const router = useRouter();
@@ -43,9 +44,9 @@ export function AuthForm() {
   }
 
   return (
-    <View className="w-full gap-3 rounded-[24px] bg-orange-50 p-6">
-      <Text className="text-3xl font-bold text-amber-900">Adventure Time Native</Text>
-      <Text className="text-base text-orange-700">
+    <View className="w-full gap-3 rounded-3xl border border-primaryBorder bg-white p-6">
+      <Text className="font-nunito-extrabold text-3xl text-fg">Adventure Time</Text>
+      <Text className="font-nunito text-base text-fgMuted">
         Sign in to the new native-first build.
       </Text>
       {mode === "register" ? (
@@ -53,7 +54,8 @@ export function AuthForm() {
           value={displayName}
           onChangeText={setDisplayName}
           placeholder="Display name"
-          className="rounded-2xl border border-orange-300 bg-white px-4 py-3"
+          placeholderTextColor="#9CA3AF"
+          className="rounded-2xl border border-primaryBorder bg-primaryBg px-4 py-3 font-nunito text-fg"
         />
       ) : null}
       <TextInput
@@ -61,27 +63,23 @@ export function AuthForm() {
         onChangeText={setEmail}
         autoCapitalize="none"
         placeholder="Email"
-        className="rounded-2xl border border-orange-300 bg-white px-4 py-3"
+        placeholderTextColor="#9CA3AF"
+        className="rounded-2xl border border-primaryBorder bg-primaryBg px-4 py-3 font-nunito text-fg"
       />
       <TextInput
         value={password}
         onChangeText={setPassword}
         secureTextEntry
         placeholder="Password"
-        className="rounded-2xl border border-orange-300 bg-white px-4 py-3"
+        placeholderTextColor="#9CA3AF"
+        className="rounded-2xl border border-primaryBorder bg-primaryBg px-4 py-3 font-nunito text-fg"
       />
       {error ? <Text className="text-sm text-red-700">{error}</Text> : null}
-      <Pressable
-        className="items-center rounded-2xl bg-orange-600 px-4 py-4"
-        onPress={() => void submit()}
-        disabled={loading}
-      >
-        <Text className="font-bold text-white">
-          {loading ? "Working..." : mode === "login" ? "Login" : "Create account"}
-        </Text>
-      </Pressable>
+      <PrimaryButton onPress={() => void submit()} loading={loading}>
+        {mode === "login" ? "Login" : "Create account"}
+      </PrimaryButton>
       <Pressable onPress={() => setMode((current) => (current === "login" ? "register" : "login"))}>
-        <Text className="text-center text-sm text-orange-700">
+        <Text className="text-center font-nunito text-sm text-primaryText">
           {mode === "login"
             ? "Need an account? Register"
             : "Already have an account? Login"}

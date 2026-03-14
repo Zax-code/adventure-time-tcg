@@ -1,8 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Pressable, Text, View } from "react-native";
+import { ScrollView, Text, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 
 import { apiClient } from "../../src/lib/api";
 import { useSessionStore } from "../../src/stores/session-store";
+import { PrimaryButton } from "../../src/components/button";
 
 export default function HomeScreen() {
   const queryClient = useQueryClient();
@@ -32,54 +34,75 @@ export default function HomeScreen() {
   });
 
   if (homeQuery.isLoading) {
-    return <View className="flex-1 bg-parchment p-6"><Text>Loading home...</Text></View>;
+    return <View className="flex-1 bg-bg p-6"><Text className="font-nunito text-fgMuted">Loading...</Text></View>;
   }
 
   if (homeQuery.isError) {
-    return <View className="flex-1 bg-parchment p-6"><Text>{homeQuery.error.message}</Text></View>;
+    return <View className="flex-1 bg-bg p-6"><Text className="font-nunito text-red-600">{homeQuery.error.message}</Text></View>;
   }
 
   const home = homeQuery.data;
   if (!home) {
-    return <View className="flex-1 bg-parchment p-6"><Text>Home is unavailable.</Text></View>;
+    return <View className="flex-1 bg-bg p-6"><Text className="font-nunito text-fgMuted">Home is unavailable.</Text></View>;
   }
 
+  const canClaim = dailyClaimQuery.data?.canClaim ?? false;
+
   return (
-    <View className="flex-1 gap-3 bg-parchment p-6">
-      <Text className="text-3xl font-bold text-amber-900">
-        Hey, {home.user.displayName ?? home.user.email}
-      </Text>
-      <Text className="text-lg text-orange-800">Coins: {home.user.coins}</Text>
-      <Text className="text-lg text-orange-800">Dust: {home.user.dust}</Text>
-      <Text className="text-lg text-orange-800">
-        Collection: {home.collectionStats.uniqueOwned}/{home.collectionStats.totalCards}
-      </Text>
-      <Text className="text-lg text-orange-800">
-        Completion: {home.collectionStats.completionPercentage}%
-      </Text>
-      <Text className="mt-3 text-stone-600">
-        Default steps source: {home.user.preferredStepSource}
-      </Text>
-      <View className="mt-4 gap-2 rounded-3xl bg-white p-4">
-        <Text className="text-lg font-bold text-amber-900">Daily Claim</Text>
-        <Text className="text-stone-700">
+    <ScrollView className="flex-1 bg-bg" contentContainerClassName="gap-4 pb-6">
+      {/* Header banner */}
+      <LinearGradient colors={["#fce7f3", "#fdf2f8"]} className="px-6 pb-5 pt-14">
+        <View className="flex-row items-center justify-between">
+          <Text className="font-nunito-extrabold text-2xl text-fg">
+            Hey, {home.user.displayName ?? home.user.email} 👋
+          </Text>
+          <View className="flex-row gap-2">
+            <View className="rounded-full bg-secondary px-3 py-1">
+              <Text className="font-nunito-bold text-sm text-fg">{home.user.coins} 🪙</Text>
+            </View>
+            <View className="rounded-full bg-primaryTint px-3 py-1">
+              <Text className="font-nunito-bold text-sm text-primaryText">{home.user.dust} ✨</Text>
+            </View>
+          </View>
+        </View>
+        <View className="mt-3 flex-row gap-3">
+          <Text className="font-nunito text-sm text-fgMuted">
+            Collection: {home.collectionStats.uniqueOwned}/{home.collectionStats.totalCards}
+          </Text>
+          <Text className="font-nunito text-sm text-fgMuted">
+            {home.collectionStats.completionPercentage}% complete
+          </Text>
+        </View>
+      </LinearGradient>
+
+      {/* Daily Claim card */}
+      <View className="mx-5 gap-3 rounded-3xl border border-primaryBorder bg-white p-5">
+        <Text className="font-nunito-bold text-lg text-fg">Daily Claim</Text>
+        <Text className="font-nunito text-fgMuted">
           Reward: {dailyClaimQuery.data?.dailyReward ?? 100} coins
         </Text>
-        <Text className="text-stone-700">
-          {dailyClaimQuery.data?.canClaim
+        <Text className="font-nunito text-fgMuted">
+          {canClaim
             ? "Ready to claim now."
             : `Next claim in ${Math.ceil((dailyClaimQuery.data?.timeUntilNextClaim ?? 0) / 3600000)}h`}
         </Text>
-        <Pressable
-          className={`items-center rounded-2xl px-4 py-4 ${dailyClaimQuery.data?.canClaim ? "bg-orange-600" : "bg-stone-300"}`}
-          disabled={!dailyClaimQuery.data?.canClaim || claimMutation.isPending}
-          onPress={() => void claimMutation.mutateAsync()}
-        >
-          <Text className="font-bold text-white">
-            {claimMutation.isPending ? "Claiming..." : "Claim daily reward"}
-          </Text>
-        </Pressable>
+        {canClaim ? (
+          <PrimaryButton
+            onPress={() => void claimMutation.mutateAsync()}
+            loading={claimMutation.isPending}
+          >
+            Claim daily reward
+          </PrimaryButton>
+        ) : (
+          <View className="items-center rounded-full bg-primaryTint px-4 py-3">
+            <Text className="font-nunito-semibold text-primaryText">Already claimed today</Text>
+          </View>
+        )}
       </View>
-    </View>
+
+      <Text className="px-5 font-nunito text-xs text-fgMuted">
+        Steps source: {home.user.preferredStepSource}
+      </Text>
+    </ScrollView>
   );
 }

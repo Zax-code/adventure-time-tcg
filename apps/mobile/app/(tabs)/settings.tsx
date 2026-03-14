@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Pressable, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { useRouter } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
 
 import { apiClient } from "../../src/lib/api";
 import { useSessionStore } from "../../src/stores/session-store";
+import { PrimaryButton } from "../../src/components/button";
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -13,6 +16,8 @@ export default function SettingsScreen() {
   const setSession = useSessionStore((state) => state.setSession);
   const accessToken = useSessionStore((state) => state.accessToken);
   const refreshToken = useSessionStore((state) => state.refreshToken);
+
+  const [displayNameInput, setDisplayNameInput] = useState(user?.displayName ?? "");
 
   const stepQuery = useQuery({
     queryKey: ["health-steps"],
@@ -32,6 +37,39 @@ export default function SettingsScreen() {
     },
   });
 
+  const updateDisplayNameMutation = useMutation({
+    mutationFn: (displayName: string) => apiClient.updateDisplayName(displayName),
+    onSuccess: async (nextUser) => {
+      if (accessToken && refreshToken) {
+        await setSession({ user: nextUser, accessToken, refreshToken });
+      }
+      await queryClient.invalidateQueries({ queryKey: ["home"] });
+    },
+  });
+
+  const uploadAvatarMutation = useMutation({
+    mutationFn: async () => {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+      if (result.canceled || !result.assets[0]) throw new Error("Cancelled");
+      const asset = result.assets[0];
+      const formData = new FormData();
+      formData.append("file", {
+        uri: asset.uri,
+        name: "avatar.jpg",
+        type: asset.mimeType ?? "image/jpeg",
+      } as any);
+      return apiClient.uploadProfileImage(formData);
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["home"] });
+    },
+  });
+
   const syncSampleStepsMutation = useMutation({
     mutationFn: () =>
       apiClient.syncSteps({
@@ -45,55 +83,83 @@ export default function SettingsScreen() {
   });
 
   return (
-    <View className="flex-1 gap-4 bg-parchment p-6">
-      <Text className="text-3xl font-bold text-amber-900">Settings</Text>
-      <Text className="text-stone-700">
-        Preferred steps source: {user?.preferredStepSource ?? "device_health"}
-      </Text>
-      <View className="gap-2">
+    <ScrollView className="flex-1 bg-bg" contentContainerClassName="gap-4 p-6">
+      <Text className="font-nunito-extrabold text-2xl text-fg">Settings</Text>
+
+      <View className="gap-3 rounded-3xl border border-primaryBorder bg-white p-4">
+        <Text className="font-nunito-bold text-primaryStrong">Display Name</Text>
+        <TextInput
+          value={displayNameInput}
+          onChangeText={setDisplayNameInput}
+          placeholder="Enter display name"
+          placeholderTextColor="#9CA3AF"
+          className="rounded-2xl border border-primaryBorder bg-primaryBg px-4 py-3 font-nunito text-fg"
+        />
+        <PrimaryButton onPress={() => void updateDisplayNameMutation.mutateAsync(displayNameInput)}>
+          Save display name
+        </PrimaryButton>
         <Pressable
-          className="rounded-2xl bg-orange-600 px-4 py-3"
-          onPress={() => updateSourceMutation.mutate("device_health")}
+          className="items-center rounded-full border border-primaryBorder px-4 py-3"
+          onPress={() => void uploadAvatarMutation.mutateAsync()}
         >
-          <Text className="font-semibold text-white">Use Apple Health / Health Connect</Text>
-        </Pressable>
-        <Pressable
-          className="rounded-2xl bg-orange-200 px-4 py-3"
-          onPress={() => updateSourceMutation.mutate("fitbit")}
-        >
-          <Text className="font-semibold text-orange-900">Prefer Fitbit when connected</Text>
+          <Text className="font-nunito-semibold text-primaryText">
+            {uploadAvatarMutation.isPending ? "Uploading…" : "Change profile picture"}
+          </Text>
         </Pressable>
       </View>
-      <Text className="text-stone-700">Fitbit connection remains optional and will be wired later.</Text>
-      <Text className="text-stone-700">
-        Latest synced steps: {stepQuery.data?.latest?.stepCount ?? 0}
-      </Text>
-      <Text className="text-stone-700">
-        Latest step source: {stepQuery.data?.latest?.source ?? user?.preferredStepSource ?? "device_health"}
-      </Text>
-      <Pressable
-        className="rounded-2xl bg-teal-700 px-4 py-3"
-        onPress={() => syncSampleStepsMutation.mutate()}
-      >
-        <Text className="font-semibold text-white">Sync sample device steps</Text>
-      </Pressable>
+
+      <View className="gap-3 rounded-3xl border border-primaryBorder bg-white p-4">
+        <Text className="font-nunito-bold text-primaryStrong">Step Source</Text>
+        <Text className="font-nunito text-fgMuted">
+          Preferred: {user?.preferredStepSource ?? "device_health"}
+        </Text>
+        <PrimaryButton onPress={() => updateSourceMutation.mutate("device_health")}>
+          Use Apple Health / Health Connect
+        </PrimaryButton>
+        <Pressable
+          className="items-center rounded-full border border-primaryBorder px-4 py-3"
+          onPress={() => updateSourceMutation.mutate("fitbit")}
+        >
+          <Text className="font-nunito-semibold text-primaryText">Prefer Fitbit when connected</Text>
+        </Pressable>
+        <Text className="font-nunito text-xs text-fgMuted">Fitbit connection remains optional and will be wired later.</Text>
+      </View>
+
+      <View className="gap-3 rounded-3xl border border-primaryBorder bg-white p-4">
+        <Text className="font-nunito-bold text-primaryStrong">Health Steps</Text>
+        <Text className="font-nunito text-fgMuted">
+          Latest synced: {stepQuery.data?.latest?.stepCount ?? 0} steps
+        </Text>
+        <Text className="font-nunito text-fgMuted">
+          Source: {stepQuery.data?.latest?.source ?? user?.preferredStepSource ?? "device_health"}
+        </Text>
+        <Pressable
+          className="items-center rounded-full border border-primaryBorder px-4 py-3"
+          onPress={() => syncSampleStepsMutation.mutate()}
+        >
+          <Text className="font-nunito-semibold text-primaryText">Sync sample device steps</Text>
+        </Pressable>
+      </View>
+
       {user?.isAdmin ? (
-        <>
-          <Text className="text-stone-700">Admin tools live behind a hidden route group.</Text>
+        <View className="gap-3 rounded-3xl border border-primaryBorder bg-white p-4">
+          <Text className="font-nunito-bold text-primaryStrong">Admin</Text>
+          <Text className="font-nunito text-fgMuted">Admin tools live behind a hidden route group.</Text>
           <Pressable
-            className="rounded-2xl bg-stone-800 px-4 py-3"
+            className="items-center rounded-full bg-fg px-4 py-3"
             onPress={() => router.push("/admin")}
           >
-            <Text className="font-semibold text-white">Open hidden admin tools</Text>
+            <Text className="font-nunito-bold text-white">Open hidden admin tools</Text>
           </Pressable>
-        </>
+        </View>
       ) : null}
+
       <Pressable
-        className="mt-4 items-center rounded-2xl bg-stone-900 py-4"
+        className="items-center rounded-full bg-primaryDark py-4"
         onPress={() => void clearSession().then(() => router.replace("/login"))}
       >
-        <Text className="font-bold text-white">Log out</Text>
+        <Text className="font-nunito-bold text-white">Log out</Text>
       </Pressable>
-    </View>
+    </ScrollView>
   );
 }
