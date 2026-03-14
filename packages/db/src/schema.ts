@@ -226,7 +226,11 @@ export const pvpMatches = pgTable(
     inviterLoadout: text("inviter_loadout").default("[]").notNull(),
     inviteeLoadout: text("invitee_loadout").default("[]").notNull(),
     winnerId: text("winner_id").references(() => users.id, { onDelete: "set null", onUpdate: "cascade" }),
+    seed: text("seed"),
     state: text("state"),
+    initialState: text("initial_state"),
+    replayVersion: integer("replay_version"),
+    turnSnapshots: text("turn_snapshots"),
     matchLog: text("match_log").default("[]").notNull(),
     currentTurn: integer("current_turn").default(1).notNull(),
     turnStartedAt: timestamp("turn_started_at", { withTimezone: true, mode: "date" }),
@@ -237,6 +241,43 @@ export const pvpMatches = pgTable(
     index("pvp_matches_inviter_id_idx").on(table.inviterId),
     index("pvp_matches_invitee_id_idx").on(table.inviteeId),
     index("pvp_matches_status_idx").on(table.status),
+  ],
+);
+
+export const abilityDefs = pgTable(
+  "ability_defs",
+  {
+    id: text("id").primaryKey(),
+    key: text("key").notNull(),
+    name: text("name").notNull(),
+    description: text("description").notNull(),
+    descriptionFr: text("description_fr"),
+    nameFr: text("name_fr"),
+    type: text("type").notNull(),
+    cost: integer("cost").default(0).notNull(),
+    cooldown: integer("cooldown"),
+    oncePerMatch: boolean("once_per_match").default(false).notNull(),
+    payload: text("payload").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [uniqueIndex("ability_defs_key_key").on(table.key)],
+);
+
+export const cardAbilities = pgTable(
+  "card_abilities",
+  {
+    id: text("id").primaryKey(),
+    cardId: text("card_id").notNull().references(() => cards.id, { onDelete: "restrict", onUpdate: "cascade" }),
+    passiveId: text("passive_id").references(() => abilityDefs.id, { onDelete: "set null", onUpdate: "cascade" }),
+    skillId: text("skill_id").references(() => abilityDefs.id, { onDelete: "set null", onUpdate: "cascade" }),
+    ultimateId: text("ultimate_id").references(() => abilityDefs.id, { onDelete: "set null", onUpdate: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("card_abilities_card_id_key").on(table.cardId),
+    index("card_abilities_card_id_idx").on(table.cardId),
   ],
 );
 
@@ -339,6 +380,10 @@ export const cardsRelations = relations(cards, ({ one, many }) => ({
   }),
   ownedCards: many(ownedCards),
   gifts: many(cardGifts),
+  abilities: one(cardAbilities, {
+    fields: [cards.id],
+    references: [cardAbilities.cardId],
+  }),
 }));
 
 export const ownedCardsRelations = relations(ownedCards, ({ one }) => ({
@@ -363,6 +408,34 @@ export const pvpLoadoutsRelations = relations(pvpLoadouts, ({ one }) => ({
   owner: one(users, {
     fields: [pvpLoadouts.ownerId],
     references: [users.id],
+  }),
+}));
+
+export const abilityDefsRelations = relations(abilityDefs, ({ many }) => ({
+  passiveAssignments: many(cardAbilities, { relationName: "passive_ability" }),
+  skillAssignments: many(cardAbilities, { relationName: "skill_ability" }),
+  ultimateAssignments: many(cardAbilities, { relationName: "ultimate_ability" }),
+}));
+
+export const cardAbilitiesRelations = relations(cardAbilities, ({ one }) => ({
+  card: one(cards, {
+    fields: [cardAbilities.cardId],
+    references: [cards.id],
+  }),
+  passive: one(abilityDefs, {
+    fields: [cardAbilities.passiveId],
+    references: [abilityDefs.id],
+    relationName: "passive_ability",
+  }),
+  skill: one(abilityDefs, {
+    fields: [cardAbilities.skillId],
+    references: [abilityDefs.id],
+    relationName: "skill_ability",
+  }),
+  ultimate: one(abilityDefs, {
+    fields: [cardAbilities.ultimateId],
+    references: [abilityDefs.id],
+    relationName: "ultimate_ability",
   }),
 }));
 

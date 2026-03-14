@@ -1,8 +1,11 @@
 import { randomUUID } from "node:crypto";
 
 import {
+  REPLAY_VERSION_CURRENT,
+  captureTurnSnapshot,
   createBattleState,
   createBattleStateView,
+  deserializeTurnSnapshots,
   deserializeStoredBattleState,
   inflateBattleState,
   serializeBattleState,
@@ -108,9 +111,22 @@ async function loadCardsByIds(cardIds: string[]) {
 }
 
 async function loadNativeBattleContext(cardIds: string[]): Promise<BattleContext> {
-  const cardRows = await loadCardsByIds(cardIds);
+  const cardRows = await db.query.cards.findMany({
+    where: inArray(cards.id, [...new Set(cardIds)]),
+    with: {
+      rarity: true,
+      abilities: {
+        with: {
+          passive: true,
+          skill: true,
+          ultimate: true,
+        },
+      },
+    },
+  });
   const cardData: BattleContext["cardData"] = {};
   const cardAbilities: BattleContext["cardAbilities"] = {};
+  const abilityDefinitions: BattleContext["abilityDefinitions"] = {};
 
   for (const card of cardRows) {
     cardData[card.id] = {
@@ -120,17 +136,35 @@ async function loadNativeBattleContext(cardIds: string[]): Promise<BattleContext
       rarity: { name: card.rarity?.name ?? "Common" },
       imageUrl: card.imageAssetId ? `/api/media/card/${card.imageAssetId}` : "",
     };
+    const assignment = card.abilities;
+    const passive = assignment?.passive;
+    const skill = assignment?.skill;
+    const ultimate = assignment?.ultimate;
     cardAbilities[card.id] = {
-      passives: [],
-      skill: "default.focusedStrike",
-      ultimate: "default.battleCry",
+      passives: passive?.key ? [passive.key] : [],
+      skill: skill?.key ?? "default.focusedStrike",
+      ultimate: ultimate?.key ?? "default.battleCry",
     };
+
+    for (const def of [passive, skill, ultimate]) {
+      if (!def?.key) continue;
+      abilityDefinitions[def.key] = {
+        key: def.key,
+        name: def.name,
+        description: def.description,
+        type: def.type as "PASSIVE" | "SKILL" | "ULTIMATE",
+        cost: def.cost,
+        cooldown: def.cooldown ?? undefined,
+        oncePerMatch: def.oncePerMatch,
+        payload: typeof def.payload === "string" ? JSON.parse(def.payload) : def.payload,
+      };
+    }
   }
 
   return {
     cardData,
     cardAbilities,
-    abilityDefinitions: {},
+    abilityDefinitions,
   };
 }
 
@@ -143,6 +177,11 @@ async function inflateMatchState(match: typeof pvpMatches.$inferSelect) {
   return inflateBattleState(stored, ctx);
 }
 
+function collectReplayCardIds(stateJson: string) {
+  const stored = deserializeStoredBattleState(stateJson);
+  return stored.players.flatMap((player) => [...player.units, ...player.bench].map((unit) => unit.cardId));
+}
+
 function ensureParticipant(match: typeof pvpMatches.$inferSelect, userId: string) {
   if (match.inviterId !== userId && match.inviteeId !== userId) {
     throw new Error("Forbidden");
@@ -150,6 +189,10 @@ function ensureParticipant(match: typeof pvpMatches.$inferSelect, userId: string
 }
 
 async function persistBattleState(matchId: string, state: BattleState, statusOverride?: typeof pvpMatches.$inferSelect.status) {
+  const match = await db.query.pvpMatches.findFirst({ where: eq(pvpMatches.id, matchId) });
+  const turnSnapshots = match?.turnSnapshots ? deserializeTurnSnapshots(match.turnSnapshots) : {};
+  turnSnapshots[state.turn] = captureTurnSnapshot(state);
+
   await db.update(pvpMatches).set({
     state: serializeBattleState(state),
     status: statusOverride ?? (state.phase === "ended" ? "COMPLETED" : "IN_PROGRESS"),
@@ -158,6 +201,8 @@ async function persistBattleState(matchId: string, state: BattleState, statusOve
     turnStartedAt: new Date(),
     updatedAt: new Date(),
     matchLog: JSON.stringify(state.log),
+    turnSnapshots: JSON.stringify(turnSnapshots),
+    replayVersion: REPLAY_VERSION_CURRENT,
   }).where(eq(pvpMatches.id, matchId));
 }
 
@@ -232,11 +277,15 @@ export async function setMatchStatus(matchId: string, userId: string, action: "a
     await db.update(pvpMatches).set({
       status: "IN_PROGRESS",
       inviteeLoadout: JSON.stringify(inviteeLoadout),
+      seed: battleState.seed,
       currentTurn: battleState.turn,
       turnStartedAt: new Date(),
       updatedAt: new Date(),
       matchLog: JSON.stringify(battleState.log),
       state: serializeBattleState(battleState),
+      initialState: serializeBattleState(battleState),
+      replayVersion: REPLAY_VERSION_CURRENT,
+      turnSnapshots: JSON.stringify({ 1: captureTurnSnapshot(battleState) }),
     }).where(eq(pvpMatches.id, matchId));
     return;
   }
@@ -281,9 +330,20 @@ export async function getMatchDetail(matchId: string, userId: string) {
   const match = await getMatch(matchId, userId);
   const state = await inflateMatchState(match);
   const view = state ? createBattleStateView(state, userId) : null;
+  const initialState = match.initialState ? inflateBattleState(deserializeStoredBattleState(match.initialState), await loadNativeBattleContext(collectReplayCardIds(match.initialState))) : null;
+  const turnSnapshots = match.turnSnapshots ? deserializeTurnSnapshots(match.turnSnapshots) : {};
   return {
     match,
     battleState: view ? projectBattleState(view) : null,
+    replay: match.replayVersion === REPLAY_VERSION_CURRENT && match.initialState && match.state
+      ? {
+          replayVersion: match.replayVersion,
+          finalState: view ? projectBattleState(view) : null,
+          initialState: initialState ? projectBattleState(createBattleStateView(initialState, userId)) : null,
+          availableTurns: Object.keys(turnSnapshots).map(Number).sort((a, b) => a - b),
+          turnSnapshots,
+        }
+      : null,
   };
 }
 
