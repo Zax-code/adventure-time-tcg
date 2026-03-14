@@ -1,8 +1,8 @@
 import { FastifyInstance } from "fastify";
 
-import { pvpInviteSchema } from "@adventure-time/shared";
+import { pvpActionSchema, pvpInviteSchema } from "@adventure-time/shared";
 
-import { createInvite, getMatch, listInvites, listMatches, setMatchStatus } from "../services/pvp-service";
+import { createInvite, endTurn, getMatch, getMatchDetail, listHistory, listInvites, listMatches, performMatchAction, setMatchStatus } from "../services/pvp-service";
 
 function serializeMatch(match: any) {
   return {
@@ -13,6 +13,7 @@ function serializeMatch(match: any) {
     inviterLoadout: JSON.parse(match.inviterLoadout),
     inviteeLoadout: JSON.parse(match.inviteeLoadout),
     winnerId: match.winnerId,
+    currentTurn: match.currentTurn,
     createdAt: match.createdAt.toISOString(),
     updatedAt: match.updatedAt.toISOString(),
   };
@@ -45,8 +46,30 @@ export async function pvpRoutes(fastify: FastifyInstance) {
 
   fastify.get("/pvp/history", { preHandler: [(fastify as any).authenticate] }, async (request, reply) => {
     if (!request.authUser) return reply.code(401).send({ error: "Unauthorized" });
-    const matches = (await listMatches(request.authUser.id)).filter((match) => match.status === "COMPLETED");
+    const matches = await listHistory(request.authUser.id);
     return { matches: matches.map(serializeMatch) };
+  });
+
+  fastify.get("/pvp/history/:id", { preHandler: [(fastify as any).authenticate] }, async (request, reply) => {
+    if (!request.authUser) return reply.code(401).send({ error: "Unauthorized" });
+    const { id } = request.params as { id: string };
+    try {
+      const detail = await getMatchDetail(id, request.authUser.id);
+      return { match: serializeMatch(detail.match), battleState: detail.battleState };
+    } catch (error) {
+      return reply.code(404).send({ error: error instanceof Error ? error.message : "Match not found" });
+    }
+  });
+
+  fastify.get("/pvp/matches/:id", { preHandler: [(fastify as any).authenticate] }, async (request, reply) => {
+    if (!request.authUser) return reply.code(401).send({ error: "Unauthorized" });
+    const { id } = request.params as { id: string };
+    try {
+      const detail = await getMatchDetail(id, request.authUser.id);
+      return { match: serializeMatch(detail.match), battleState: detail.battleState };
+    } catch (error) {
+      return reply.code(404).send({ error: error instanceof Error ? error.message : "Match not found" });
+    }
   });
 
   fastify.post("/pvp/matches/:id/accept", { preHandler: [(fastify as any).authenticate] }, async (request, reply) => {
@@ -81,6 +104,29 @@ export async function pvpRoutes(fastify: FastifyInstance) {
       return { success: true };
     } catch (error) {
       return reply.code(400).send({ error: error instanceof Error ? error.message : "Failed to concede" });
+    }
+  });
+
+  fastify.post("/pvp/matches/:id/action", { preHandler: [(fastify as any).authenticate] }, async (request, reply) => {
+    if (!request.authUser) return reply.code(401).send({ error: "Unauthorized" });
+    const { id } = request.params as { id: string };
+    const body = pvpActionSchema.parse(request.body);
+    try {
+      const result = await performMatchAction(id, request.authUser.id, body.actionType);
+      return { match: serializeMatch(result.match), battleState: result.battleState, events: result.events };
+    } catch (error) {
+      return reply.code(400).send({ error: error instanceof Error ? error.message : "Failed to execute action" });
+    }
+  });
+
+  fastify.post("/pvp/matches/:id/end-turn", { preHandler: [(fastify as any).authenticate] }, async (request, reply) => {
+    if (!request.authUser) return reply.code(401).send({ error: "Unauthorized" });
+    const { id } = request.params as { id: string };
+    try {
+      const result = await endTurn(id, request.authUser.id);
+      return { match: serializeMatch(result.match), battleState: result.battleState, events: result.events };
+    } catch (error) {
+      return reply.code(400).send({ error: error instanceof Error ? error.message : "Failed to end turn" });
     }
   });
 }

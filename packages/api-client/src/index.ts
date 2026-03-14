@@ -1,5 +1,6 @@
 import {
   adminCardsResponseSchema,
+  adminCardSummarySchema,
   authUserSchema,
   authResponseSchema,
   claimQuestResponseSchema,
@@ -14,6 +15,7 @@ import {
   openPackSchema,
   packsResponseSchema,
   pvpHistoryResponseSchema,
+  pvpMatchDetailResponseSchema,
   pvpInviteSchema,
   pvpInvitesResponseSchema,
   questsResponseSchema,
@@ -172,8 +174,16 @@ export class ApiClient {
     return this.request("/pvp/matches", { method: "GET" }, (data) => pvpHistoryResponseSchema.parse(data));
   }
 
+  async pvpMatch(matchId: string) {
+    return this.request(`/pvp/matches/${matchId}`, { method: "GET" }, (data) => pvpMatchDetailResponseSchema.parse(data));
+  }
+
   async pvpHistory() {
     return this.request("/pvp/history", { method: "GET" }, (data) => pvpHistoryResponseSchema.parse(data));
+  }
+
+  async pvpHistoryDetail(matchId: string) {
+    return this.request(`/pvp/history/${matchId}`, { method: "GET" }, (data) => pvpMatchDetailResponseSchema.parse(data));
   }
 
   async acceptPvpMatch(matchId: string, loadout: string[]) {
@@ -188,8 +198,20 @@ export class ApiClient {
     return this.request(`/pvp/matches/${matchId}/concede`, { method: "POST" }, (data) => data as { success: boolean });
   }
 
+  async actPvpMatch(matchId: string) {
+    return this.request(`/pvp/matches/${matchId}/action`, { method: "POST", body: JSON.stringify({ actionType: "attack" }) }, (data) => data as { match: PvpMatch; battleState: unknown; events: unknown[] });
+  }
+
+  async endTurnPvpMatch(matchId: string) {
+    return this.request(`/pvp/matches/${matchId}/end-turn`, { method: "POST", body: JSON.stringify({}) }, (data) => data as { match: PvpMatch; battleState: unknown; events: unknown[] });
+  }
+
   async adminCards(): Promise<AdminCardsResponse> {
     return this.request("/admin/cards", { method: "GET" }, (data) => adminCardsResponseSchema.parse(data));
+  }
+
+  async updateAdminCard(cardId: string, input: { isFeatured?: boolean; isArchived?: boolean }) {
+    return this.request(`/admin/cards/${cardId}`, { method: "PATCH", body: JSON.stringify(input) }, (data) => adminCardSummarySchema.parse(data));
   }
 
   async getHealthSteps(): Promise<HealthStepsResponse> {

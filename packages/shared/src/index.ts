@@ -242,8 +242,51 @@ export const pvpMatchSchema = z.object({
   inviterLoadout: z.array(z.string()),
   inviteeLoadout: z.array(z.string()),
   winnerId: z.string().nullable(),
+  currentTurn: z.number().int().positive().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
+});
+
+export const pvpBattleStateSchema = z.object({
+  currentPlayerId: z.string(),
+  turn: z.number().int().positive(),
+  players: z.array(z.object({
+    userId: z.string(),
+    activeIndex: z.number().int().nonnegative(),
+    team: z.array(z.object({
+      cardId: z.string(),
+      name: z.string(),
+      hp: z.number().int(),
+      maxHp: z.number().int(),
+      attack: z.number().int(),
+      defense: z.number().int(),
+      knockedOut: z.boolean(),
+    })),
+  })),
+  log: z.array(z.object({
+    turn: z.number().int().positive(),
+    actorId: z.string(),
+    type: z.string(),
+    summary: z.string(),
+  })),
+  phase: z.enum(["active", "ended"]),
+  winnerId: z.string().nullable(),
+});
+
+export const pvpMatchDetailResponseSchema = z.object({
+  match: pvpMatchSchema,
+  battleState: pvpBattleStateSchema.nullable(),
+});
+
+export const pvpActionSchema = z.object({
+  actionType: z.enum(["attack"]),
+});
+
+export const pvpEndTurnSchema = z.object({});
+
+export const adminCardMutationSchema = z.object({
+  isFeatured: z.boolean().optional(),
+  isArchived: z.boolean().optional(),
 });
 
 export const pvpInvitesResponseSchema = z.object({
@@ -318,6 +361,7 @@ export type WordleSubmitInput = z.infer<typeof wordleSubmitSchema>;
 export type WordleSubmitResponse = z.infer<typeof wordleSubmitResponseSchema>;
 export type SpeedRunState = z.infer<typeof speedRunStateSchema>;
 export type PvpMatch = z.infer<typeof pvpMatchSchema>;
+export type PvpMatchDetailResponse = z.infer<typeof pvpMatchDetailResponseSchema>;
 export type AdminCardsResponse = z.infer<typeof adminCardsResponseSchema>;
 export type StepSummary = z.infer<typeof stepSummarySchema>;
 export type HealthStepsResponse = z.infer<typeof healthStepsResponseSchema>;
