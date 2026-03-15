@@ -274,6 +274,147 @@ export function CraftIcon({ size = 24, color = "#DB2777" }: IconProps) {
 }
 
 // ============================================
+// QUEST ICONS
+// ============================================
+
+export function CheckCircleIcon({ size = 24, color = "#16A34A" }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx={12} cy={12} r={10} stroke={color} strokeWidth={2} />
+      <Path d="M7 12l3.5 3.5L17 9" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+export function ClaimedIcon({ size = 24, color = "#9CA3AF" }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx={12} cy={12} r={10} fill={color} fillOpacity={0.2} stroke={color} strokeWidth={2} />
+      <Path d="M6.5 12l3 3L17.5 8" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d="M4 12l3 3L13.5 9" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" opacity={0.4} />
+    </Svg>
+  );
+}
+
+export function XCircleIcon({ size = 24, color = "#DC2626" }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx={12} cy={12} r={10} stroke={color} strokeWidth={2} />
+      <Path d="M9 9l6 6M15 9l-6 6" stroke={color} strokeWidth={2} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+export function SparklesIcon({ size = 24, color = "#DB2777" }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M12 2l1.2 3.6L17 7l-3.8 1.2L12 12l-1.2-3.8L7 7l3.8-1.4L12 2z" fill={color} />
+      <Path d="M19 13l.7 2L22 16l-2.3.7L19 19l-.7-2.3L16 16l2.3-.7L19 13z" fill={color} />
+      <Path d="M5.5 15l.5 1.5L7.5 17l-1.5.5L5.5 19l-.5-1.5L3.5 17l1.5-.5L5.5 15z" fill={color} />
+    </Svg>
+  );
+}
+
+export function HelpCircleIcon({ size = 24, color = "#DB2777" }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx={12} cy={12} r={10} stroke={color} strokeWidth={2} />
+      <Path
+        d="M9.5 9.5a2.5 2.5 0 0 1 5 0c0 1.5-1.5 2-2.5 2.5V14"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+      />
+      <Circle cx={12} cy={17} r={1} fill={color} />
+    </Svg>
+  );
+}
+
+export function WalkingIcon({ size = 24, color = "#DB2777" }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx={13} cy={3.5} r={1.5} fill={color} />
+      <Path
+        d="M10 8.5l1.5 3.5 3-1.5 1 3.5"
+        stroke={color}
+        strokeWidth={1.8}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M11.5 12l-1.5 4 2.5-.5L11 20.5"
+        stroke={color}
+        strokeWidth={1.8}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M15.5 14l1.5 4"
+        stroke={color}
+        strokeWidth={1.8}
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
+
+// ============================================
+// RARITY ICON (for RarityCrest)
+// ============================================
+
+// ============================================
+// PACK ICONS
+// ============================================
+
+export function CrownIcon({ size = 24, color = "#D97706" }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M2 17h20" stroke={color} strokeWidth={2} strokeLinecap="round" />
+      <Path d="M4 17l-1-9 4 4 5-7 5 7 4-4-1 9H4z" stroke={color} strokeWidth={2} strokeLinejoin="round" fill={color} fillOpacity={0.25} />
+    </Svg>
+  );
+}
+
+export function DiamondIcon({ size = 24, color = "#7C3AED" }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M12 2l8 8-8 12-8-12 8-8z" fill={color} fillOpacity={0.25} stroke={color} strokeWidth={2} strokeLinejoin="round" />
+      <Path d="M4 10h16M12 2l-4 8M12 2l4 8" stroke={color} strokeWidth={1.2} strokeOpacity={0.6} />
+    </Svg>
+  );
+}
+
+export function GiftBoxIcon({ size = 24, color = "#DC2626" }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Rect x={3} y={10} width={18} height={11} rx={2} fill={color} fillOpacity={0.2} stroke={color} strokeWidth={2} />
+      <Rect x={2} y={7} width={20} height={4} rx={1} fill={color} fillOpacity={0.3} stroke={color} strokeWidth={2} />
+      <Path d="M12 7V21" stroke={color} strokeWidth={2} />
+      <Path d="M12 7C12 7 10 3 8 4C6 5 8 7 12 7Z" fill={color} />
+      <Path d="M12 7C12 7 14 3 16 4C18 5 16 7 12 7Z" fill={color} />
+    </Svg>
+  );
+}
+
+export function BoxIcon({ size = 24, color = "#6B7280" }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M3 9l9-5 9 5v11l-9 5-9-5V9z" fill={color} fillOpacity={0.2} stroke={color} strokeWidth={2} strokeLinejoin="round" />
+      <Path d="M3 9l9 5 9-5" stroke={color} strokeWidth={2} strokeLinejoin="round" />
+      <Path d="M12 14v10" stroke={color} strokeWidth={2} />
+    </Svg>
+  );
+}
+
+export function SparkleIcon({ size = 24, color = "#DB2777" }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M12 2l1.5 8.5L22 12l-8.5 1.5L12 22l-1.5-8.5L2 12l8.5-1.5L12 2z" fill={color} stroke={color} strokeWidth={1} strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+// ============================================
 // RARITY ICON (for RarityCrest)
 // ============================================
 
