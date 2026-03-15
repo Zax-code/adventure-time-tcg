@@ -5,6 +5,16 @@ import {
   adminCardDetailSchema,
   adminCardAbilityAssignSchema,
   adminCardSummarySchema,
+  adminUsersResponseSchema,
+  allowedEmailsResponseSchema,
+  emailAccessRequestsResponseSchema,
+  featuredCardsResponseSchema,
+  raritiesResponseSchema,
+  pvpSpectateResponseSchema,
+  updateDisplayNameSchema,
+  adminCoinAdjustSchema,
+  adminAllowedEmailSchema,
+  adminEmailRequestActionSchema,
   authUserSchema,
   authResponseSchema,
   claimQuestResponseSchema,
@@ -15,6 +25,7 @@ import {
   dailyClaimStatusSchema,
   dustActionSchema,
   giftsResponseSchema,
+  googleAuthSchema,
   healthStepsResponseSchema,
   homeResponseSchema,
   loginSchema,
@@ -43,6 +54,12 @@ import {
   wordleSubmitSchema,
   type AdminAbilitiesResponse,
   type AdminCardsResponse,
+  type AdminUsersResponse,
+  type AllowedEmailsResponse,
+  type EmailAccessRequestsResponse,
+  type FeaturedCardsResponse,
+  type RaritiesResponse,
+  type PvpSpectateResponse,
   type AuthResponse,
   type ClaimQuestInput,
   type ClaimQuestResponse,
@@ -51,6 +68,7 @@ import {
   type DailyClaimStatus,
   type HealthStepsResponse,
   type HomeResponse,
+  type GoogleAuthInput,
   type LoginInput,
   type OpenPackInput,
   type OpenPackResponse,
@@ -72,6 +90,14 @@ export interface ApiClientOptions {
   getAccessToken?: () => string | null | Promise<string | null>;
 }
 
+export class ApiClientError extends Error {
+  constructor(message: string, public readonly status: number, public readonly code?: string) {
+    super(message);
+    this.name = "ApiClientError";
+  }
+}
+
+
 export class ApiClient {
   constructor(private readonly options: ApiClientOptions) {}
 
@@ -87,8 +113,26 @@ export class ApiClient {
     });
 
     if (!response.ok) {
-      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-      throw new Error(payload?.error ?? `Request failed with status ${response.status}`);
+      const payload = (await response.json().catch(() => null)) as { error?: string; code?: string } | null;
+      throw new ApiClientError(payload?.error ?? `Request failed with status ${response.status}`, response.status, payload?.code);
+    }
+
+    return parser(await response.json());
+  }
+
+  private async upload<T>(path: string, formData: FormData, parser: (data: unknown) => T): Promise<T> {
+    const accessToken = await this.options.getAccessToken?.();
+    const response = await fetch(`${this.options.baseUrl}${path}`, {
+      method: "POST",
+      body: formData,
+      headers: {
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
+    });
+
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => null)) as { error?: string; code?: string } | null;
+      throw new ApiClientError(payload?.error ?? `Request failed with status ${response.status}`, response.status, payload?.code);
     }
 
     return parser(await response.json());
@@ -102,6 +146,11 @@ export class ApiClient {
   async login(input: LoginInput): Promise<AuthResponse> {
     const body = loginSchema.parse(input);
     return this.request("/auth/login", { method: "POST", body: JSON.stringify(body) }, (data) => authResponseSchema.parse(data));
+  }
+
+  async googleAuth(input: GoogleAuthInput): Promise<AuthResponse> {
+    const body = googleAuthSchema.parse(input);
+    return this.request("/auth/google", { method: "POST", body: JSON.stringify(body) }, (data) => authResponseSchema.parse(data));
   }
 
   async refresh(input: RefreshTokenInput): Promise<AuthResponse> {
@@ -320,5 +369,74 @@ export class ApiClient {
   async updateStepSource(input: UpdateStepSourceInput) {
     const body = updateStepSourceSchema.parse(input);
     return this.request("/settings/step-source", { method: "PATCH", body: JSON.stringify(body) }, (data) => authUserSchema.parse(data));
+  }
+
+  async updateDisplayName(displayName: string) {
+    const body = updateDisplayNameSchema.parse({ displayName });
+    return this.request("/settings/display-name", { method: "PATCH", body: JSON.stringify(body) }, (data) => authUserSchema.parse(data));
+  }
+
+  async uploadProfileImage(formData: FormData) {
+    return this.upload("/settings/upload", formData, (data) => data as { assetId: string });
+  }
+
+  async rarities(): Promise<RaritiesResponse> {
+    return this.request("/rarities", { method: "GET" }, (data) => raritiesResponseSchema.parse(data));
+  }
+
+  async featuredCards(): Promise<FeaturedCardsResponse> {
+    return this.request("/featured-cards", { method: "GET" }, (data) => featuredCardsResponseSchema.parse(data));
+  }
+
+  async createAdminCard(input: Record<string, unknown>) {
+    return this.request("/admin/cards", { method: "POST", body: JSON.stringify(input) }, (data) => data as Record<string, unknown>);
+  }
+
+  async uploadAdminCardImage(cardId: string, formData: FormData) {
+    return this.upload(`/admin/cards/${cardId}/image`, formData, (data) => data as { assetId: string });
+  }
+
+  async adminUsers(): Promise<AdminUsersResponse> {
+    return this.request("/admin/users", { method: "GET" }, (data) => adminUsersResponseSchema.parse(data));
+  }
+
+  async adjustAdminUserCoins(userId: string, delta: number) {
+    const body = adminCoinAdjustSchema.parse({ delta });
+    return this.request(`/admin/users/${userId}/coins`, { method: "PATCH", body: JSON.stringify(body) }, (data) => data as { id: string; coins: number });
+  }
+
+  async adminAllowedEmails(): Promise<AllowedEmailsResponse> {
+    return this.request("/admin/emails", { method: "GET" }, (data) => allowedEmailsResponseSchema.parse(data));
+  }
+
+  async addAdminAllowedEmail(email: string, isAdmin?: boolean) {
+    const body = adminAllowedEmailSchema.parse({ email, isAdmin });
+    return this.request("/admin/emails", { method: "POST", body: JSON.stringify(body) }, (data) => data as Record<string, unknown>);
+  }
+
+  async updateAdminAllowedEmail(id: string, isAdmin: boolean) {
+    const body = adminAllowedEmailSchema.parse({ email: "", isAdmin });
+    return this.request(`/admin/emails/${id}`, { method: "PATCH", body: JSON.stringify({ isAdmin: body.isAdmin }) }, (data) => data as Record<string, unknown>);
+  }
+
+  async deleteAdminAllowedEmail(id: string) {
+    return this.request(`/admin/emails/${id}`, { method: "DELETE" }, (data) => data as { success: boolean });
+  }
+
+  async adminEmailRequests(): Promise<EmailAccessRequestsResponse> {
+    return this.request("/admin/email-requests", { method: "GET" }, (data) => emailAccessRequestsResponseSchema.parse(data));
+  }
+
+  async reviewAdminEmailRequest(id: string, status: "approved" | "rejected") {
+    const body = adminEmailRequestActionSchema.parse({ status });
+    return this.request(`/admin/email-requests/${id}`, { method: "PATCH", body: JSON.stringify(body) }, (data) => data as { id: string; status: string });
+  }
+
+  async pvpSpectate(): Promise<PvpSpectateResponse> {
+    return this.request("/pvp/spectate", { method: "GET" }, (data) => pvpSpectateResponseSchema.parse(data));
+  }
+
+  async pvpSpectateMatch(matchId: string) {
+    return this.request(`/pvp/spectate/${matchId}`, { method: "GET" }, (data) => data as { match: PvpMatch; battleState: unknown });
   }
 }

@@ -9,6 +9,10 @@ const envSchema = z.object({
   DATABASE_URL: z.string().min(1),
   ACCESS_TOKEN_SECRET: z.string().min(16),
   REFRESH_TOKEN_SECRET: z.string().min(16),
+  AUTH_GOOGLE_ID: z.string().min(1),
+  AUTH_GOOGLE_SECRET: z.string().min(1),
+  GOOGLE_IOS_CLIENT_ID: z.string().min(1).optional(),
+  GOOGLE_ANDROID_CLIENT_ID: z.string().min(1).optional(),
   MINIO_ENDPOINT: z.string().default("127.0.0.1"),
   MINIO_PORT: z.coerce.number().default(9100),
   MINIO_USE_SSL: z

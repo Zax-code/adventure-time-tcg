@@ -10,6 +10,10 @@ const minio = new Client({
   secretKey: env.MINIO_SECRET_KEY,
 });
 
+export async function putPrivateObject(objectKey: string, buffer: Buffer, mimeType: string) {
+  await minio.putObject(env.MINIO_BUCKET, objectKey, buffer, buffer.length, { "Content-Type": mimeType });
+}
+
 export async function getPrivateObject(objectKey: string) {
   const stream = await minio.getObject(env.MINIO_BUCKET, objectKey);
   const chunks: Buffer[] = [];

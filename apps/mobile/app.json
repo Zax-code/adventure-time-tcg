@@ -2,15 +2,25 @@
   "expo": {
     "name": "Adventure Time Native",
     "slug": "adventure-time-native",
+    "owner": "zax-code",
     "scheme": "adventure-time-native",
-    "plugins": ["expo-router", "expo-secure-store"],
+    "userInterfaceStyle": "automatic",
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-font",
+      "expo-web-browser"
+    ],
     "experiments": {
       "typedRoutes": true
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "love.leaetzak.adventuretimenative"
     },
-    "android": {},
+    "android": {
+      "package": "love.leaetzak.adventuretimenative"
+    },
     "web": {
       "bundler": "metro"
     }

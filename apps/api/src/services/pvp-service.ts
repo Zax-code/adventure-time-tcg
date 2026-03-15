@@ -379,6 +379,44 @@ export async function performMatchAction(matchId: string, userId: string, action
   };
 }
 
+export async function getActiveMatchCardIds(userId: string): Promise<string[]> {
+  const activeMatches = await db.query.pvpMatches.findMany({
+    where: and(
+      eq(pvpMatches.status, "IN_PROGRESS"),
+      or(eq(pvpMatches.inviterId, userId), eq(pvpMatches.inviteeId, userId)),
+    ),
+  });
+
+  const cardIds = new Set<string>();
+  for (const match of activeMatches) {
+    const isInviter = match.inviterId === userId;
+    const loadout = parseLoadout(isInviter ? match.inviterLoadout : match.inviteeLoadout);
+    for (const id of loadout) {
+      cardIds.add(id);
+    }
+  }
+  return [...cardIds];
+}
+
+export async function getSpectatable() {
+  return db.query.pvpMatches.findMany({
+    where: eq(pvpMatches.status, "IN_PROGRESS"),
+    orderBy: (table, { desc }) => [desc(table.updatedAt)],
+  });
+}
+
+export async function getSpectatableDetail(matchId: string) {
+  const match = await db.query.pvpMatches.findFirst({ where: eq(pvpMatches.id, matchId) });
+  if (!match) throw new Error("Match not found");
+  if (match.status !== "IN_PROGRESS") throw new Error("Match is not in progress");
+  const state = await inflateMatchState(match);
+  const view = state ? createBattleStateView(state, match.inviterId) : null;
+  return {
+    match,
+    battleState: view ? projectBattleState(view) : null,
+  };
+}
+
 export async function endTurn(matchId: string, userId: string) {
   const match = await getMatch(matchId, userId);
   if (match.status !== "IN_PROGRESS") throw new Error("Match is not in progress");

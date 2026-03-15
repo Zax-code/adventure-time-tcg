@@ -7,6 +7,7 @@ import { db, cards, ownedCards, users } from "@adventure-time/db";
 import { dustActionSchema } from "@adventure-time/shared";
 
 import { getDustCraftCost, getDustSacrificeValue } from "../lib/dust";
+import { getActiveMatchCardIds } from "../services/pvp-service";
 
 export async function economyRoutes(fastify: FastifyInstance) {
   fastify.post("/collection/craft", { preHandler: [(fastify as any).authenticate] }, async (request, reply) => {
@@ -41,8 +42,10 @@ export async function economyRoutes(fastify: FastifyInstance) {
     if (owned.quantity < body.quantity) return reply.code(400).send({ error: "Not enough copies to recycle", owned: owned.quantity, requested: body.quantity });
     const user = await db.query.users.findFirst({ where: eq(users.id, request.authUser.id) });
     if (!user) return reply.code(404).send({ error: "User not found" });
-    const activeLock = false;
-    if (activeLock && owned.quantity === body.quantity) return reply.code(400).send({ error: "This card is currently in use in an active PvP match" });
+    const activeCardIds = await getActiveMatchCardIds(request.authUser.id);
+    if (activeCardIds.includes(body.cardId) && owned.quantity === body.quantity) {
+      return reply.code(400).send({ error: "Card is in an active PvP match" });
+    }
     const dustGained = getDustSacrificeValue(owned.card.rarity.name) * body.quantity;
     const nextDust = user.dust + dustGained;
     await db.transaction(async (tx) => {

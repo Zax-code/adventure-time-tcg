@@ -34,6 +34,13 @@ export const registerSchema = loginSchema.extend({
   displayName: z.string().min(1).max(64),
 });
 
+export const googleAuthSchema = z.object({
+  idToken: z.string().min(1).optional(),
+  accessToken: z.string().min(1).optional(),
+}).refine((value) => Boolean(value.idToken || value.accessToken), {
+  message: "Either idToken or accessToken is required.",
+});
+
 export const raritySchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -463,6 +470,12 @@ export const adminCardAbilityAssignSchema = z.object({
   ultimateId: z.string().nullable().optional(),
 });
 
+export const featuredCardsResponseSchema = z.object({
+  cards: collectionResponseSchema.shape.cards,
+});
+
+export type FeaturedCardsResponse = z.infer<typeof featuredCardsResponseSchema>;
+
 export const homeResponseSchema = z.object({
   user: authUserSchema,
   collectionStats: collectionStatsSchema,
@@ -497,6 +510,7 @@ export const updateStepSourceSchema = z.object({
 
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RegisterInput = z.infer<typeof registerSchema>;
+export type GoogleAuthInput = z.infer<typeof googleAuthSchema>;
 export type RefreshTokenInput = z.infer<typeof refreshTokenSchema>;
 export type AuthResponse = z.infer<typeof authResponseSchema>;
 export type CollectionResponse = z.infer<typeof collectionResponseSchema>;
@@ -525,3 +539,83 @@ export type StepSummary = z.infer<typeof stepSummarySchema>;
 export type HealthStepsResponse = z.infer<typeof healthStepsResponseSchema>;
 export type SyncStepsInput = z.infer<typeof syncStepsSchema>;
 export type UpdateStepSourceInput = z.infer<typeof updateStepSourceSchema>;
+
+export const updateDisplayNameSchema = z.object({
+  displayName: z.string().min(1).max(64),
+});
+
+export const raritiesResponseSchema = z.object({
+  rarities: z.array(raritySchema.extend({
+    dustValue: z.number().int().nonnegative().optional(),
+    craftCost: z.number().int().nonnegative().optional(),
+  })),
+});
+
+export const adminUserSchema = z.object({
+  id: z.string(),
+  email: z.string().email(),
+  displayName: z.string().nullable(),
+  coins: z.number().int().nonnegative(),
+  isAdmin: z.boolean(),
+  createdAt: z.string(),
+});
+
+export const adminUsersResponseSchema = z.object({
+  users: z.array(adminUserSchema),
+});
+
+export const adminCoinAdjustSchema = z.object({
+  delta: z.number().int(),
+});
+
+export const adminAllowedEmailSchema = z.object({
+  email: z.string().email(),
+  isAdmin: z.boolean().optional(),
+});
+
+export const adminEmailRequestActionSchema = z.object({
+  status: z.enum(["approved", "rejected"]),
+});
+
+export const allowedEmailSchema = z.object({
+  id: z.string(),
+  email: z.string().email(),
+  isAdmin: z.boolean(),
+  createdAt: z.string(),
+});
+
+export const allowedEmailsResponseSchema = z.object({
+  emails: z.array(allowedEmailSchema),
+});
+
+export const emailAccessRequestSchema = z.object({
+  id: z.string(),
+  email: z.string().email(),
+  status: z.enum(["pending", "approved", "rejected"]),
+  createdAt: z.string(),
+});
+
+export const emailAccessRequestsResponseSchema = z.object({
+  requests: z.array(emailAccessRequestSchema),
+});
+
+export const pvpSpectateMatchSchema = z.object({
+  id: z.string(),
+  inviterId: z.string(),
+  inviteeId: z.string(),
+  currentTurn: z.number().int().positive(),
+  createdAt: z.string(),
+});
+
+export const pvpSpectateResponseSchema = z.object({
+  matches: z.array(pvpSpectateMatchSchema),
+});
+
+export type UpdateDisplayNameInput = z.infer<typeof updateDisplayNameSchema>;
+export type RaritiesResponse = z.infer<typeof raritiesResponseSchema>;
+export type AdminUser = z.infer<typeof adminUserSchema>;
+export type AdminUsersResponse = z.infer<typeof adminUsersResponseSchema>;
+export type AdminCoinAdjustInput = z.infer<typeof adminCoinAdjustSchema>;
+export type AllowedEmailsResponse = z.infer<typeof allowedEmailsResponseSchema>;
+export type EmailAccessRequestsResponse = z.infer<typeof emailAccessRequestsResponseSchema>;
+export type PvpSpectateResponse = z.infer<typeof pvpSpectateResponseSchema>;

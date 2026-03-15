@@ -1,7 +1,7 @@
 import fp from "fastify-plugin";
 import { eq } from "drizzle-orm";
 
-import { db, users } from "@adventure-time/db";
+import { db, allowedEmails, users } from "@adventure-time/db";
 
 import { verifyAccessToken } from "../lib/tokens";
 
@@ -32,10 +32,17 @@ export default fp(async (fastify) => {
         return reply.code(401).send({ error: "Unauthorized" });
       }
 
+      const allowedEmail = await db.query.allowedEmails.findFirst({ where: eq(allowedEmails.email, user.email.toLowerCase()) });
+      const isAdmin = allowedEmail?.isAdmin ?? false;
+
+      if (user.isAdmin !== isAdmin) {
+        await db.update(users).set({ isAdmin, updatedAt: new Date() }).where(eq(users.id, user.id));
+      }
+
       request.authUser = {
         id: user.id,
         email: user.email,
-        isAdmin: user.isAdmin,
+        isAdmin,
       };
     } catch {
       return reply.code(401).send({ error: "Unauthorized" });

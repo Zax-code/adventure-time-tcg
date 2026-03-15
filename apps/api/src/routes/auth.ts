@@ -1,8 +1,8 @@
 import { FastifyInstance } from "fastify";
 
-import { registerSchema, loginSchema } from "@adventure-time/shared";
+import { googleAuthSchema, registerSchema, loginSchema } from "@adventure-time/shared";
 
-import { login, logout, refresh, register } from "../services/auth-service";
+import { AuthError, login, loginWithGoogle, logout, refresh, register } from "../services/auth-service";
 
 export async function authRoutes(fastify: FastifyInstance) {
   fastify.post("/auth/register", async (request, reply) => {
@@ -29,6 +29,23 @@ export async function authRoutes(fastify: FastifyInstance) {
       });
     } catch (error) {
       return reply.code(401).send({ error: error instanceof Error ? error.message : "Authentication failed" });
+    }
+  });
+
+  fastify.post("/auth/google", async (request, reply) => {
+    const body = googleAuthSchema.parse(request.body);
+    try {
+      return await loginWithGoogle({
+        ...body,
+        userAgent: request.headers["user-agent"],
+        ipAddress: request.ip,
+      });
+    } catch (error) {
+      if (error instanceof AuthError) {
+        return reply.code(error.statusCode).send({ error: error.message, code: error.code });
+      }
+
+      return reply.code(401).send({ error: error instanceof Error ? error.message : "Google authentication failed" });
     }
   });
 

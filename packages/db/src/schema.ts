@@ -14,6 +14,7 @@ import {
 export const stepSourceEnum = pgEnum("step_source", ["device_health", "fitbit"]);
 export const imageKindEnum = pgEnum("image_kind", ["card", "profile"]);
 export const pvpMatchStatusEnum = pgEnum("pvp_match_status", ["PENDING", "IN_PROGRESS", "COMPLETED", "DECLINED"]);
+export const emailAccessRequestStatusEnum = pgEnum("email_access_request_status", ["pending", "approved", "rejected"]);
 
 export const users = pgTable(
   "users",
@@ -350,6 +351,32 @@ export const userStepSnapshots = pgTable(
       table.source,
       table.recordedFor,
     ),
+  ],
+);
+
+export const allowedEmails = pgTable(
+  "allowed_emails",
+  {
+    id: text("id").primaryKey(),
+    email: text("email").notNull(),
+    isAdmin: boolean("is_admin").default(false).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [uniqueIndex("allowed_emails_email_key").on(table.email)],
+);
+
+export const emailAccessRequests = pgTable(
+  "email_access_requests",
+  {
+    id: text("id").primaryKey(),
+    email: text("email").notNull(),
+    status: emailAccessRequestStatusEnum("status").default("pending").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("email_access_requests_status_idx").on(table.status),
+    uniqueIndex("email_access_requests_email_key").on(table.email),
   ],
 );
 

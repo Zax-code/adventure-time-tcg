@@ -11,6 +11,8 @@ export const CARD_TYPE_COLORS: Record<string, { frame: string; light: string; da
   Cosmic:  { frame: "#818CF8", light: "#E0E7FF", dark: "#4338CA" },
 };
 
+export const SECONDARY_TINT = "rgba(253, 224, 71, 0.15)";
+
 export const RARITY_COLORS: Record<string, { from: string; to: string; ring: string }> = {
   Common:    { from: "#9CA3AF", to: "#6B7280", ring: "#9CA3AF" },
   Uncommon:  { from: "#34D399", to: "#059669", ring: "#10B981" },

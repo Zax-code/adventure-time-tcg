@@ -2,7 +2,7 @@ import { FastifyInstance } from "fastify";
 
 import { pvpActionSchema, pvpInviteSchema } from "@adventure-time/shared";
 
-import { createInvite, endTurn, getMatch, getMatchDetail, listHistory, listInvites, listMatches, performMatchAction, setMatchStatus } from "../services/pvp-service";
+import { createInvite, endTurn, getMatch, getMatchDetail, getSpectatable, getSpectatableDetail, listHistory, listInvites, listMatches, performMatchAction, setMatchStatus } from "../services/pvp-service";
 
 function serializeMatch(match: any) {
   return {
@@ -116,6 +116,31 @@ export async function pvpRoutes(fastify: FastifyInstance) {
       return { match: serializeMatch(result.match), battleState: result.battleState, events: result.events };
     } catch (error) {
       return reply.code(400).send({ error: error instanceof Error ? error.message : "Failed to execute action" });
+    }
+  });
+
+  fastify.get("/pvp/spectate", { preHandler: [(fastify as any).authenticate] }, async (request, reply) => {
+    if (!request.authUser) return reply.code(401).send({ error: "Unauthorized" });
+    const matches = await getSpectatable();
+    return {
+      matches: matches.map((m) => ({
+        id: m.id,
+        inviterId: m.inviterId,
+        inviteeId: m.inviteeId,
+        currentTurn: m.currentTurn,
+        createdAt: m.createdAt.toISOString(),
+      })),
+    };
+  });
+
+  fastify.get("/pvp/spectate/:id", { preHandler: [(fastify as any).authenticate] }, async (request, reply) => {
+    if (!request.authUser) return reply.code(401).send({ error: "Unauthorized" });
+    const { id } = request.params as { id: string };
+    try {
+      const detail = await getSpectatableDetail(id);
+      return { match: serializeMatch(detail.match), battleState: detail.battleState };
+    } catch (error) {
+      return reply.code(404).send({ error: error instanceof Error ? error.message : "Match not found" });
     }
   });
 

@@ -1,8 +1,10 @@
 import Fastify from "fastify";
+import multipart from "@fastify/multipart";
 
 import authPlugin from "./plugins/auth";
 import { env } from "./lib/env";
 import { adminRoutes } from "./routes/admin";
+import { adminUsersRoutes } from "./routes/admin-users";
 import { appRoutes } from "./routes/app";
 import { authRoutes } from "./routes/auth";
 import { economyRoutes } from "./routes/economy";
@@ -14,6 +16,7 @@ import { socialRoutes } from "./routes/social";
 async function main() {
   const fastify = Fastify({ logger: true });
 
+  await fastify.register(multipart, { limits: { fileSize: 10 * 1024 * 1024 } });
   await fastify.register(authPlugin);
   await fastify.register(authRoutes);
   await fastify.register(appRoutes);
@@ -23,6 +26,7 @@ async function main() {
   await fastify.register(pvpRoutes);
   await fastify.register(pvpLoadoutRoutes);
   await fastify.register(adminRoutes);
+  await fastify.register(adminUsersRoutes);
 
   fastify.setErrorHandler((error, _request, reply) => {
     if ((error as { name?: string }).name === "ZodError") {

@@ -1,6 +1,6 @@
 import * as SecureStore from "expo-secure-store";
 
-import { ApiClient } from "@adventure-time/api-client";
+import { ApiClient, ApiClientError } from "@adventure-time/api-client";
 
 import { useSessionStore } from "../stores/session-store";
 
@@ -14,3 +14,5 @@ export const apiClient = new ApiClient({
   baseUrl: API_BASE_URL,
   getAccessToken,
 });
+
+export { ApiClientError };

@@ -1,10 +1,21 @@
-import { useState } from "react";
-import { Pressable, Text, TextInput, View } from "react-native";
+import React, { useState } from "react";
+import * as Google from "expo-auth-session/providers/google";
+import { SessionUrlProvider } from "expo-auth-session/build/SessionUrlProvider";
+import Constants, { ExecutionEnvironment } from "expo-constants";
+import * as WebBrowser from "expo-web-browser";
 import { useRouter } from "expo-router";
+import { Pressable, Text, TextInput, View, Platform } from "react-native";
 
-import { apiClient } from "../lib/api";
+import { ApiClientError, apiClient } from "../lib/api";
 import { useSessionStore } from "../stores/session-store";
-import { PrimaryButton } from "./button";
+import { GhostButton, PrimaryButton } from "./button";
+
+WebBrowser.maybeCompleteAuthSession();
+
+const sessionUrlProvider = new SessionUrlProvider();
+const expoProxyProjectName = "@zax-code/adventure-time-native";
+const expoProxyRedirectUri = sessionUrlProvider.getRedirectUrl({ projectNameForProxy: expoProxyProjectName });
+const expoProxyReturnUrl = sessionUrlProvider.getDefaultReturnUrl();
 
 export function AuthForm() {
   const router = useRouter();
@@ -15,6 +26,38 @@ export function AuthForm() {
   const [mode, setMode] = useState<"login" | "register">("login");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+  const [request, _response, promptAsync] = Google.useAuthRequest(
+    isExpoGo
+      ? {
+          clientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+          redirectUri: expoProxyRedirectUri,
+          responseType: "token",
+          scopes: ["openid", "profile", "email"],
+          selectAccount: true,
+          shouldAutoExchangeCode: false,
+        }
+      : {
+          iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+          androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
+          webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+          scopes: ["openid", "profile", "email"],
+          selectAccount: true,
+        },
+  );
+
+  function getFriendlyError(submitError: unknown) {
+    if (submitError instanceof ApiClientError && submitError.code === "ACCESS_REQUEST_PENDING") {
+      return "This Google account is pending approval. Your access request has been submitted.";
+    }
+
+    if (submitError instanceof Error) {
+      return submitError.message;
+    }
+
+    return "Authentication failed";
+  }
 
   async function submit() {
     setLoading(true);
@@ -33,13 +76,71 @@ export function AuthForm() {
       });
       router.replace("/(tabs)");
     } catch (submitError) {
-      setError(
-        submitError instanceof Error
-          ? submitError.message
-          : "Authentication failed",
-      );
+      setError(getFriendlyError(submitError));
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function submitGoogle() {
+    if (!isExpoGo && Platform.OS === "android" && !process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID) {
+      setError("Google sign-in is not configured for Android yet.");
+      return;
+    }
+
+    if (!request) {
+      setError("Google sign-in is still loading. Please try again.");
+      return;
+    }
+
+    setGoogleLoading(true);
+    setError(null);
+
+    try {
+      const result = await (isExpoGo
+        ? (() => {
+            if (!request.url) {
+              throw new Error("Google sign-in is still loading. Please try again.");
+            }
+
+            return WebBrowser.openAuthSessionAsync(
+              sessionUrlProvider.getStartUrl(
+                request.url,
+                expoProxyReturnUrl,
+                Constants.expoConfig?.originalFullName ?? expoProxyProjectName,
+              ),
+              expoProxyReturnUrl,
+            ).then((webResult) => {
+              if (webResult.type !== "success") {
+                return { type: webResult.type };
+              }
+
+              return request.parseReturnUrl(webResult.url);
+            });
+          })()
+        : promptAsync());
+
+      if (result.type !== "success") {
+        return;
+      }
+
+      const idToken = result.authentication?.idToken ?? result.params.id_token;
+      const accessToken = result.authentication?.accessToken ?? result.params.access_token;
+      if (!idToken && !accessToken) {
+        throw new Error("Google did not return a usable token.");
+      }
+
+      const authResult = await apiClient.googleAuth({ idToken, accessToken });
+      await setSession({
+        user: authResult.user,
+        accessToken: authResult.tokens.accessToken,
+        refreshToken: authResult.tokens.refreshToken,
+      });
+      router.replace("/(tabs)");
+    } catch (submitError) {
+      setError(getFriendlyError(submitError));
+    } finally {
+      setGoogleLoading(false);
     }
   }
 
@@ -78,6 +179,9 @@ export function AuthForm() {
       <PrimaryButton onPress={() => void submit()} loading={loading}>
         {mode === "login" ? "Login" : "Create account"}
       </PrimaryButton>
+      <GhostButton onPress={() => void submitGoogle()} loading={googleLoading} disabled={!request || loading}>
+        Continue with Google
+      </GhostButton>
       <Pressable onPress={() => setMode((current) => (current === "login" ? "register" : "login"))}>
         <Text className="text-center font-nunito text-sm text-primaryText">
           {mode === "login"

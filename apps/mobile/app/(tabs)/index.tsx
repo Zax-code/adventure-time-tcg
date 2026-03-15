@@ -1,13 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ScrollView, Text, View } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import { FlatList, ScrollView, Text, View } from "react-native";
+import { useRouter } from "expo-router";
 
 import { apiClient } from "../../src/lib/api";
 import { useSessionStore } from "../../src/stores/session-store";
-import { PrimaryButton } from "../../src/components/button";
+import { PrimaryButton, SecondaryButton } from "../../src/components/button";
+import { CardTile } from "../../src/components/card-tile";
 
 export default function HomeScreen() {
   const queryClient = useQueryClient();
+  const router = useRouter();
   const accessToken = useSessionStore((state) => state.accessToken);
   const refreshToken = useSessionStore((state) => state.refreshToken);
   const setSession = useSessionStore((state) => state.setSession);
@@ -18,6 +20,14 @@ export default function HomeScreen() {
   const dailyClaimQuery = useQuery({
     queryKey: ["daily-claim"],
     queryFn: () => apiClient.getDailyClaimStatus(),
+  });
+  const featuredQuery = useQuery({
+    queryKey: ["featured-cards"],
+    queryFn: () => apiClient.featuredCards(),
+  });
+  const raritiesQuery = useQuery({
+    queryKey: ["rarities"],
+    queryFn: () => apiClient.rarities(),
   });
 
   const claimMutation = useMutation({
@@ -47,33 +57,32 @@ export default function HomeScreen() {
   }
 
   const canClaim = dailyClaimQuery.data?.canClaim ?? false;
+  const rarities = raritiesQuery.data?.rarities ?? [];
+  const totalDropRate = rarities.reduce((s, r) => s + r.dropRate, 0);
 
   return (
     <ScrollView className="flex-1 bg-bg" contentContainerClassName="gap-4 pb-6">
-      {/* Header banner */}
-      <LinearGradient colors={["#fce7f3", "#fdf2f8"]} className="px-6 pb-5 pt-14">
-        <View className="flex-row items-center justify-between">
-          <Text className="font-nunito-extrabold text-2xl text-fg">
-            Hey, {home.user.displayName ?? home.user.email} 👋
-          </Text>
-          <View className="flex-row gap-2">
-            <View className="rounded-full bg-secondary px-3 py-1">
-              <Text className="font-nunito-bold text-sm text-fg">{home.user.coins} 🪙</Text>
-            </View>
-            <View className="rounded-full bg-primaryTint px-3 py-1">
-              <Text className="font-nunito-bold text-sm text-primaryText">{home.user.dust} ✨</Text>
-            </View>
-          </View>
+      {/* Collection progress bar */}
+      <View className="mx-5 gap-2 rounded-3xl border border-primaryBorder bg-white p-5">
+        <Text className="font-nunito-bold text-lg text-fg">Collection Progress</Text>
+        <View className="flex-row justify-between">
+          <Text className="font-nunito text-sm text-fgMuted">{home.collectionStats.uniqueOwned}/{home.collectionStats.totalCards}</Text>
+          <Text className="font-nunito text-sm text-fgMuted">{home.collectionStats.completionPercentage}% complete</Text>
         </View>
-        <View className="mt-3 flex-row gap-3">
-          <Text className="font-nunito text-sm text-fgMuted">
-            Collection: {home.collectionStats.uniqueOwned}/{home.collectionStats.totalCards}
-          </Text>
-          <Text className="font-nunito text-sm text-fgMuted">
-            {home.collectionStats.completionPercentage}% complete
-          </Text>
+        <View className="h-2 overflow-hidden rounded-full bg-primaryTint">
+          <View style={{ width: `${home.collectionStats.completionPercentage}%` }} className="h-full rounded-full bg-primary" />
         </View>
-      </LinearGradient>
+      </View>
+
+      {/* Quick action buttons */}
+      <View className="mx-5 flex-row gap-3">
+        <PrimaryButton onPress={() => router.push("/(tabs)/packs")} style={{ flex: 1 }}>
+          Open Packs
+        </PrimaryButton>
+        <SecondaryButton onPress={() => router.push("/(tabs)/collection")} style={{ flex: 1 }}>
+          My Cards
+        </SecondaryButton>
+      </View>
 
       {/* Daily Claim card */}
       <View className="mx-5 gap-3 rounded-3xl border border-primaryBorder bg-white p-5">
@@ -100,9 +109,40 @@ export default function HomeScreen() {
         )}
       </View>
 
-      <Text className="px-5 font-nunito text-xs text-fgMuted">
-        Steps source: {home.user.preferredStepSource}
-      </Text>
+      {/* Featured Cards carousel */}
+      {(featuredQuery.data?.cards.length ?? 0) > 0 && (
+        <View className="gap-2">
+          <Text className="px-5 font-nunito-bold text-lg text-fg">Featured Cards</Text>
+          <FlatList
+            horizontal
+            data={featuredQuery.data?.cards ?? []}
+            keyExtractor={(item) => item.card.id}
+            renderItem={({ item }) => (
+              <View style={{ width: 140, marginHorizontal: 4 }}>
+                <CardTile entry={item} accessToken={accessToken} />
+              </View>
+            )}
+            contentContainerStyle={{ paddingHorizontal: 16 }}
+            showsHorizontalScrollIndicator={false}
+          />
+        </View>
+      )}
+
+      {/* Drop Rates */}
+      {rarities.length > 0 && (
+        <View className="mx-5 gap-3 rounded-3xl border border-primaryBorder bg-white p-5">
+          <Text className="font-nunito-bold text-lg text-fg">Drop Rates</Text>
+          {rarities.map((rarity) => {
+            const pct = totalDropRate > 0 ? Math.round((rarity.dropRate / totalDropRate) * 100) : 0;
+            return (
+              <View key={rarity.id} className="flex-row justify-between">
+                <Text style={{ color: rarity.color }} className="font-nunito-semibold">{rarity.name}</Text>
+                <Text className="font-nunito text-fgMuted">×{rarity.dropRate} (≈{pct}%)</Text>
+              </View>
+            );
+          })}
+        </View>
+      )}
     </ScrollView>
   );
 }

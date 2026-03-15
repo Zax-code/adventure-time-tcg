@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import { FastifyInstance } from "fastify";
 
 import {
@@ -10,12 +12,15 @@ import {
   upsertStepSnapshot,
   db,
   users,
+  cards,
+  imageAssets,
+  rarities,
 } from "@adventure-time/db";
-import { eq } from "drizzle-orm";
-import { openPackSchema, syncStepsSchema, updateStepSourceSchema } from "@adventure-time/shared";
+import { and, eq } from "drizzle-orm";
+import { openPackSchema, syncStepsSchema, updateStepSourceSchema, updateDisplayNameSchema } from "@adventure-time/shared";
 
 import { DAILY_REWARD, RESET_TIMEZONE, canClaimDaily, getTimeUntilNextClaim } from "../lib/reset-clock";
-import { getPrivateObject } from "../services/media-service";
+import { getPrivateObject, putPrivateObject } from "../services/media-service";
 import { openPackForUser } from "../services/pack-service";
 
 export async function appRoutes(fastify: FastifyInstance) {
@@ -256,6 +261,75 @@ export async function appRoutes(fastify: FastifyInstance) {
       recordedFor: snapshot.recordedFor,
       updatedAt: snapshot.updatedAt.toISOString(),
     });
+  });
+
+  fastify.get("/rarities", { preHandler: [(fastify as any).authenticate] }, async (request, reply) => {
+    if (!request.authUser) return reply.code(401).send({ error: "Unauthorized" });
+    const rows = await db.query.rarities.findMany();
+    return { rarities: rows };
+  });
+
+  fastify.get("/featured-cards", { preHandler: [(fastify as any).authenticate] }, async (request, reply) => {
+    if (!request.authUser) return reply.code(401).send({ error: "Unauthorized" });
+    const featuredCards = await db.query.cards.findMany({
+      where: and(eq(cards.isFeatured, true), eq(cards.isArchived, false)),
+      with: { rarity: true },
+    });
+    return {
+      cards: featuredCards.map((c) => ({
+        id: c.id,
+        cardId: c.id,
+        quantity: 1,
+        obtainedAt: new Date().toISOString(),
+        card: {
+          id: c.id,
+          name: c.name,
+          character: c.character,
+          description: c.description,
+          hp: c.hp,
+          attack: c.attack,
+          defense: c.defense,
+          speed: c.speed,
+          type: c.type,
+          rarity: c.rarity,
+          imageAssetId: c.imageAssetId ?? null,
+        },
+      })),
+    };
+  });
+
+  fastify.patch("/settings/display-name", { preHandler: [(fastify as any).authenticate] }, async (request, reply) => {
+    const userContext = request.authUser;
+    if (!userContext) return reply.code(401).send({ error: "Unauthorized" });
+    const body = updateDisplayNameSchema.parse(request.body);
+    await db.update(users).set({ displayName: body.displayName, updatedAt: new Date() }).where(eq(users.id, userContext.id));
+    const user = await db.query.users.findFirst({ where: eq(users.id, userContext.id) });
+    if (!user) return reply.code(404).send({ error: "User not found" });
+    return {
+      id: user.id,
+      email: user.email,
+      displayName: user.displayName,
+      avatarAssetId: user.avatarAssetId,
+      coins: user.coins,
+      dust: user.dust,
+      isAdmin: user.isAdmin,
+      preferredStepSource: user.preferredStepSource,
+    };
+  });
+
+  fastify.post("/settings/upload", { preHandler: [(fastify as any).authenticate] }, async (request, reply) => {
+    const userContext = request.authUser;
+    if (!userContext) return reply.code(401).send({ error: "Unauthorized" });
+    const data = await (request as any).file();
+    if (!data) return reply.code(400).send({ error: "No file uploaded" });
+    const buffer = await data.toBuffer();
+    const mimeType = data.mimetype as string;
+    const objectKey = `profile/${userContext.id}/${randomUUID()}`;
+    await putPrivateObject(objectKey, buffer, mimeType);
+    const assetId = randomUUID();
+    await db.insert(imageAssets).values({ id: assetId, kind: "profile", mimeType, objectKey });
+    await db.update(users).set({ avatarAssetId: assetId, updatedAt: new Date() }).where(eq(users.id, userContext.id));
+    return { assetId };
   });
 
   fastify.get("/media/card/:id", { preHandler: [(fastify as any).authenticate] }, async (request, reply) => {

@@ -2,7 +2,17 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "jsx": "react-jsx",
-    "types": ["expo-router/types", "react", "react-native"]
+    "types": [
+      "expo-router/types",
+      "react",
+      "react-native"
+    ]
   },
-  "include": ["app", "src", "expo-env.d.ts", "nativewind-env.d.ts"]
+  "include": [
+    "app",
+    "src",
+    "expo-env.d.ts",
+    "nativewind-env.d.ts",
+    ".expo/types/**/*.ts"
+  ]
 }

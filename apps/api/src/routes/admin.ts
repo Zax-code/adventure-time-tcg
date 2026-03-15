@@ -3,8 +3,9 @@ import { FastifyInstance } from "fastify";
 
 import { randomUUID } from "node:crypto";
 
-import { db, abilityDefs, cardAbilities, cards } from "@adventure-time/db";
+import { db, abilityDefs, cardAbilities, cards, imageAssets } from "@adventure-time/db";
 import { adminAbilityEditSchema, adminCardAbilityAssignSchema, adminCardEditSchema, adminCardMutationSchema } from "@adventure-time/shared";
+import { putPrivateObject } from "../services/media-service";
 
 function ensureAdmin(request: any, reply: any) {
   if (!request.authUser) {
@@ -19,6 +20,59 @@ function ensureAdmin(request: any, reply: any) {
 }
 
 export async function adminRoutes(fastify: FastifyInstance) {
+  fastify.post("/admin/cards", { preHandler: [(fastify as any).authenticate] }, async (request, reply) => {
+    if (!ensureAdmin(request, reply)) return;
+    const body = adminCardEditSchema.parse(request.body);
+    const inserted = await db.insert(cards).values({
+      id: randomUUID(),
+      name: body.name,
+      character: body.character,
+      description: body.description,
+      hp: body.hp,
+      attack: body.attack,
+      defense: body.defense,
+      speed: body.speed,
+      type: body.type,
+      rarityId: body.rarityId,
+      isFeatured: body.isFeatured ?? false,
+      isArchived: body.isArchived ?? false,
+      updatedAt: new Date(),
+    }).returning().then((rows) => rows[0]);
+    const card = await db.query.cards.findFirst({ where: eq(cards.id, inserted.id), with: { rarity: true } });
+    return {
+      id: card!.id,
+      name: card!.name,
+      character: card!.character,
+      rarityName: card!.rarity.name,
+      rarityId: card!.rarityId,
+      isArchived: card!.isArchived,
+      isFeatured: card!.isFeatured,
+      description: card!.description,
+      hp: card!.hp,
+      attack: card!.attack,
+      defense: card!.defense,
+      speed: card!.speed,
+      type: card!.type,
+    };
+  });
+
+  fastify.post("/admin/cards/:id/image", { preHandler: [(fastify as any).authenticate] }, async (request, reply) => {
+    if (!ensureAdmin(request, reply)) return;
+    const { id } = request.params as { id: string };
+    const existing = await db.query.cards.findFirst({ where: eq(cards.id, id) });
+    if (!existing) return reply.code(404).send({ error: "Card not found" });
+    const data = await (request as any).file();
+    if (!data) return reply.code(400).send({ error: "No file uploaded" });
+    const buffer = await data.toBuffer();
+    const mimeType = data.mimetype as string;
+    const objectKey = `card/${id}/${randomUUID()}`;
+    await putPrivateObject(objectKey, buffer, mimeType);
+    const assetId = randomUUID();
+    await db.insert(imageAssets).values({ id: assetId, kind: "card", mimeType, objectKey });
+    await db.update(cards).set({ imageAssetId: assetId, updatedAt: new Date() }).where(eq(cards.id, id));
+    return { assetId };
+  });
+
   fastify.get("/admin/cards", { preHandler: [(fastify as any).authenticate] }, async (request, reply) => {
     if (!ensureAdmin(request, reply)) return;
     const rows = await db.query.cards.findMany({ with: { rarity: true }, orderBy: [asc(cards.name)] });
