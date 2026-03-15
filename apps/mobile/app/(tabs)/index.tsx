@@ -118,7 +118,7 @@ export default function HomeScreen() {
             data={featuredQuery.data?.cards ?? []}
             keyExtractor={(item) => item.card.id}
             renderItem={({ item }) => (
-              <View style={{ width: 140, marginHorizontal: 4 }}>
+              <View style={{ width: 160, marginHorizontal: 4 }}>
                 <CardTile entry={item} accessToken={accessToken} />
               </View>
             )}

@@ -49,6 +49,7 @@ export default function CollectionScreen() {
       className="flex-1 bg-bg"
       contentContainerStyle={{ padding: 16 }}
       numColumns={2}
+      columnWrapperStyle={{ justifyContent: 'space-evenly' }}
       data={collection.cards}
       keyExtractor={(entry) => entry.id}
       ListHeaderComponent={

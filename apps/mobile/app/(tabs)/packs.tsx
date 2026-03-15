@@ -509,7 +509,6 @@ export default function PacksScreen() {
           <Animated.View
             style={{
               transform: [{ scale: cardScale }],
-              width: 240,
               shadowColor: glowColor,
               shadowRadius: 24,
               shadowOpacity: 0.6,
@@ -600,7 +599,7 @@ export default function PacksScreen() {
           {openedCards.map((card, i) => {
             const entry = { card: card as any, quantity: 1 };
             return (
-              <View key={`${card.id}-${i}`} style={{ width: "50%", padding: 4 }}>
+              <View key={`${card.id}-${i}`} style={{ width: "50%", padding: 4, alignItems: 'center' }}>
                 <CardTile entry={entry as any} accessToken={accessToken} />
                 {card.isNewForUser ? (
                   <View style={{ alignItems: "center", marginTop: 4 }}>

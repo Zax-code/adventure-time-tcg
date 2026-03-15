@@ -55,13 +55,14 @@ export function CardTile({ entry, accessToken, onPress, onRecycle, onCraft }: Ca
   const rarityColor = RARITY_COLORS[card.rarity.name] ?? { from: "#9CA3AF", to: "#6B7280", ring: "#9CA3AF" };
 
   return (
-    <Pressable onPress={onPress} style={{ flex: 1, margin: 4 }}>
+    <Pressable onPress={onPress} style={{ width: 152, margin: 4 }}>
       {/* Outer card: type-colored frame background */}
       <View
         style={{
           borderRadius: 12,
           overflow: "hidden",
           backgroundColor: typeColor.frame,
+          height: 240,
         }}
       >
         {/* Rarity ring overlay */}
