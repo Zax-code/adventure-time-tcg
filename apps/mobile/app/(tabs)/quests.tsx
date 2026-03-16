@@ -521,10 +521,22 @@ export default function QuestsScreen() {
                     >
                       {status === "claimed" ? (
                         <View
-                          style={{ backgroundColor: "#9CA3AF", minHeight: 44 }}
+                          style={{
+                            backgroundColor: "#9CA3AF",
+                            minHeight: 44,
+                            paddingHorizontal: 16,
+                            flexDirection: "row",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
                           className="items-center justify-center"
                         >
-                          <Text className="font-nunito-bold text-white">{actionLabel}</Text>
+                          <Text
+                            className="font-nunito-bold text-white"
+                            style={{ textAlign: "center", lineHeight: 20 }}
+                          >
+                            {actionLabel}
+                          </Text>
                         </View>
                       ) : (
                         <LinearGradient
@@ -532,9 +544,20 @@ export default function QuestsScreen() {
                           start={{ x: 0, y: 0 }}
                           end={{ x: 1, y: 0 }}
                           className="items-center justify-center"
-                          style={{ minHeight: 44 }}
+                          style={{
+                            minHeight: 44,
+                            paddingHorizontal: 16,
+                            flexDirection: "row",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
                         >
-                          <Text className="font-nunito-bold text-white">{actionLabel}</Text>
+                          <Text
+                            className="font-nunito-bold text-white"
+                            style={{ textAlign: "center", lineHeight: 20 }}
+                          >
+                            {actionLabel}
+                          </Text>
                         </LinearGradient>
                       )}
                     </TouchableOpacity>
@@ -558,14 +581,22 @@ export default function QuestsScreen() {
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 0 }}
                         className="items-center flex-row justify-center gap-2"
-                        style={{ minHeight: 44 }}
+                        style={{
+                          minHeight: 44,
+                          paddingHorizontal: 16,
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
                       >
                         {isClaimLoading ? (
                           <ActivityIndicator color="white" size="small" />
                         ) : (
                           <>
                             <SparklesIcon size={20} color="white" />
-                            <Text className="font-nunito-bold text-white">
+                            <Text
+                              className="font-nunito-bold text-white"
+                              style={{ textAlign: "center", lineHeight: 20 }}
+                            >
                               {t("quests.claim")}
                             </Text>
                           </>
