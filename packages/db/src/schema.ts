@@ -11,10 +11,22 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 
-export const stepSourceEnum = pgEnum("step_source", ["device_health", "fitbit"]);
+export const stepSourceEnum = pgEnum("step_source", [
+  "device_health",
+  "fitbit",
+]);
+export const localeEnum = pgEnum("locale", ["en", "fr"]);
 export const imageKindEnum = pgEnum("image_kind", ["card", "profile"]);
-export const pvpMatchStatusEnum = pgEnum("pvp_match_status", ["PENDING", "IN_PROGRESS", "COMPLETED", "DECLINED"]);
-export const emailAccessRequestStatusEnum = pgEnum("email_access_request_status", ["pending", "approved", "rejected"]);
+export const pvpMatchStatusEnum = pgEnum("pvp_match_status", [
+  "PENDING",
+  "IN_PROGRESS",
+  "COMPLETED",
+  "DECLINED",
+]);
+export const emailAccessRequestStatusEnum = pgEnum(
+  "email_access_request_status",
+  ["pending", "approved", "rejected"],
+);
 
 export const users = pgTable(
   "users",
@@ -24,12 +36,22 @@ export const users = pgTable(
     displayName: text("display_name"),
     coins: integer("coins").default(100).notNull(),
     dust: integer("dust").default(0).notNull(),
-    lastDailyClaim: timestamp("last_daily_claim", { withTimezone: true, mode: "date" }),
+    preferredLanguage: localeEnum("preferred_language").default("en").notNull(),
+    lastDailyClaim: timestamp("last_daily_claim", {
+      withTimezone: true,
+      mode: "date",
+    }),
     avatarAssetId: text("avatar_asset_id"),
     isAdmin: boolean("is_admin").default(false).notNull(),
-    preferredStepSource: stepSourceEnum("preferred_step_source").default("device_health").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+    preferredStepSource: stepSourceEnum("preferred_step_source")
+      .default("device_health")
+      .notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" })
+      .defaultNow()
+      .notNull(),
   },
   (table) => [uniqueIndex("users_email_key").on(table.email)],
 );
@@ -38,25 +60,40 @@ export const emailAuthCredentials = pgTable(
   "email_auth_credentials",
   {
     id: text("id").primaryKey(),
-    userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade", onUpdate: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade", onUpdate: "cascade" }),
     passwordHash: text("password_hash").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" })
+      .defaultNow()
+      .notNull(),
   },
-  (table) => [uniqueIndex("email_auth_credentials_user_id_key").on(table.userId)],
+  (table) => [
+    uniqueIndex("email_auth_credentials_user_id_key").on(table.userId),
+  ],
 );
 
 export const authSessions = pgTable(
   "auth_sessions",
   {
     id: text("id").primaryKey(),
-    userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade", onUpdate: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade", onUpdate: "cascade" }),
     refreshTokenHash: text("refresh_token_hash").notNull(),
     userAgent: text("user_agent"),
     ipAddress: text("ip_address"),
-    expiresAt: timestamp("expires_at", { withTimezone: true, mode: "date" }).notNull(),
+    expiresAt: timestamp("expires_at", {
+      withTimezone: true,
+      mode: "date",
+    }).notNull(),
     revokedAt: timestamp("revoked_at", { withTimezone: true, mode: "date" }),
-    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
+      .defaultNow()
+      .notNull(),
   },
   (table) => [index("auth_sessions_user_id_idx").on(table.userId)],
 );
@@ -80,7 +117,9 @@ export const imageAssets = pgTable(
     mimeType: text("mime_type").notNull(),
     objectKey: text("object_key"),
     placeholderSvg: text("placeholder_svg"),
-    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
+      .defaultNow()
+      .notNull(),
   },
   (table) => [index("image_assets_kind_idx").on(table.kind)],
 );
@@ -95,12 +134,24 @@ export const cards = pgTable("cards", {
   defense: integer("defense").notNull(),
   speed: integer("speed").default(40).notNull(),
   type: text("type").notNull(),
-  rarityId: text("rarity_id").notNull().references(() => rarities.id, { onDelete: "restrict", onUpdate: "cascade" }),
-  imageAssetId: text("image_asset_id").references(() => imageAssets.id, { onDelete: "set null", onUpdate: "cascade" }),
+  rarityId: text("rarity_id")
+    .notNull()
+    .references(() => rarities.id, {
+      onDelete: "restrict",
+      onUpdate: "cascade",
+    }),
+  imageAssetId: text("image_asset_id").references(() => imageAssets.id, {
+    onDelete: "set null",
+    onUpdate: "cascade",
+  }),
   isFeatured: boolean("is_featured").default(false).notNull(),
   isArchived: boolean("is_archived").default(false).notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" })
+    .defaultNow()
+    .notNull(),
 });
 
 export const packs = pgTable(
@@ -131,16 +182,22 @@ export const questDefinitions = pgTable(
     reward: integer("reward").notNull(),
     requiresFitbit: boolean("requires_fitbit").default(false).notNull(),
     isActive: boolean("is_active").default(true).notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
+      .defaultNow()
+      .notNull(),
   },
-  (table) => [uniqueIndex("quest_definitions_quest_type_key").on(table.questType)],
+  (table) => [
+    uniqueIndex("quest_definitions_quest_type_key").on(table.questType),
+  ],
 );
 
 export const dailyQuests = pgTable(
   "daily_quests",
   {
     id: text("id").primaryKey(),
-    userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade", onUpdate: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade", onUpdate: "cascade" }),
     date: text("date").notNull(),
     questType: text("quest_type").notNull(),
     target: integer("target").notNull(),
@@ -148,13 +205,22 @@ export const dailyQuests = pgTable(
     progress: integer("progress").default(0).notNull(),
     completed: boolean("completed").default(false).notNull(),
     claimed: boolean("claimed").default(false).notNull(),
-    completedAt: timestamp("completed_at", { withTimezone: true, mode: "date" }),
+    completedAt: timestamp("completed_at", {
+      withTimezone: true,
+      mode: "date",
+    }),
     claimedAt: timestamp("claimed_at", { withTimezone: true, mode: "date" }),
-    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" })
+      .defaultNow()
+      .notNull(),
   },
   (table) => [
     index("daily_quests_user_id_idx").on(table.userId),
-    uniqueIndex("daily_quests_user_date_type_key").on(table.userId, table.date, table.questType),
+    uniqueIndex("daily_quests_user_date_type_key").on(
+      table.userId,
+      table.date,
+      table.questType,
+    ),
   ],
 );
 
@@ -165,7 +231,9 @@ export const wordleDailyWords = pgTable(
     date: text("date").notNull(),
     word: text("word").notNull(),
     source: text("source").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
+      .defaultNow()
+      .notNull(),
   },
   (table) => [uniqueIndex("wordle_daily_words_date_key").on(table.date)],
 );
@@ -178,31 +246,50 @@ export const wordleDictionaryWords = pgTable(
     word: text("word").notNull(),
     length: integer("length").notNull(),
     isAllowedGuess: boolean("is_allowed_guess").default(true).notNull(),
-    isSolutionCandidate: boolean("is_solution_candidate").default(true).notNull(),
+    isSolutionCandidate: boolean("is_solution_candidate")
+      .default(true)
+      .notNull(),
   },
-  (table) => [uniqueIndex("wordle_dictionary_locale_word_key").on(table.locale, table.word)],
+  (table) => [
+    uniqueIndex("wordle_dictionary_locale_word_key").on(
+      table.locale,
+      table.word,
+    ),
+  ],
 );
 
 export const wordleDailyAttempts = pgTable(
   "wordle_daily_attempts",
   {
     id: text("id").primaryKey(),
-    userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade", onUpdate: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade", onUpdate: "cascade" }),
     date: text("date").notNull(),
     attempt: integer("attempt").notNull(),
     guess: text("guess").notNull(),
     evaluation: text("evaluation").notNull(),
     solved: boolean("solved").default(false).notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
+      .defaultNow()
+      .notNull(),
   },
-  (table) => [uniqueIndex("wordle_attempts_user_date_attempt_key").on(table.userId, table.date, table.attempt)],
+  (table) => [
+    uniqueIndex("wordle_attempts_user_date_attempt_key").on(
+      table.userId,
+      table.date,
+      table.attempt,
+    ),
+  ],
 );
 
 export const speedCalculusDailyRuns = pgTable(
   "speed_calculus_daily_runs",
   {
     id: text("id").primaryKey(),
-    userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade", onUpdate: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade", onUpdate: "cascade" }),
     date: text("date").notNull(),
     runNumber: integer("run_number").notNull(),
     seed: text("seed").notNull(),
@@ -210,23 +297,41 @@ export const speedCalculusDailyRuns = pgTable(
     status: text("status").default("in_progress").notNull(),
     score: integer("score").default(0).notNull(),
     reward: integer("reward").default(0).notNull(),
-    startedAt: timestamp("started_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+    startedAt: timestamp("started_at", { withTimezone: true, mode: "date" })
+      .defaultNow()
+      .notNull(),
     finishedAt: timestamp("finished_at", { withTimezone: true, mode: "date" }),
-    pauseExpiresAt: timestamp("pause_expires_at", { withTimezone: true, mode: "date" }),
+    pauseExpiresAt: timestamp("pause_expires_at", {
+      withTimezone: true,
+      mode: "date",
+    }),
   },
-  (table) => [uniqueIndex("speed_runs_user_date_run_key").on(table.userId, table.date, table.runNumber)],
+  (table) => [
+    uniqueIndex("speed_runs_user_date_run_key").on(
+      table.userId,
+      table.date,
+      table.runNumber,
+    ),
+  ],
 );
 
 export const pvpMatches = pgTable(
   "pvp_matches",
   {
     id: text("id").primaryKey(),
-    inviterId: text("inviter_id").notNull().references(() => users.id, { onDelete: "cascade", onUpdate: "cascade" }),
-    inviteeId: text("invitee_id").notNull().references(() => users.id, { onDelete: "cascade", onUpdate: "cascade" }),
+    inviterId: text("inviter_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade", onUpdate: "cascade" }),
+    inviteeId: text("invitee_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade", onUpdate: "cascade" }),
     status: pvpMatchStatusEnum("status").default("PENDING").notNull(),
     inviterLoadout: text("inviter_loadout").default("[]").notNull(),
     inviteeLoadout: text("invitee_loadout").default("[]").notNull(),
-    winnerId: text("winner_id").references(() => users.id, { onDelete: "set null", onUpdate: "cascade" }),
+    winnerId: text("winner_id").references(() => users.id, {
+      onDelete: "set null",
+      onUpdate: "cascade",
+    }),
     seed: text("seed"),
     state: text("state"),
     initialState: text("initial_state"),
@@ -234,9 +339,16 @@ export const pvpMatches = pgTable(
     turnSnapshots: text("turn_snapshots"),
     matchLog: text("match_log").default("[]").notNull(),
     currentTurn: integer("current_turn").default(1).notNull(),
-    turnStartedAt: timestamp("turn_started_at", { withTimezone: true, mode: "date" }),
-    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+    turnStartedAt: timestamp("turn_started_at", {
+      withTimezone: true,
+      mode: "date",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" })
+      .defaultNow()
+      .notNull(),
   },
   (table) => [
     index("pvp_matches_inviter_id_idx").on(table.inviterId),
@@ -259,8 +371,12 @@ export const abilityDefs = pgTable(
     cooldown: integer("cooldown"),
     oncePerMatch: boolean("once_per_match").default(false).notNull(),
     payload: text("payload").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" })
+      .defaultNow()
+      .notNull(),
   },
   (table) => [uniqueIndex("ability_defs_key_key").on(table.key)],
 );
@@ -269,12 +385,30 @@ export const cardAbilities = pgTable(
   "card_abilities",
   {
     id: text("id").primaryKey(),
-    cardId: text("card_id").notNull().references(() => cards.id, { onDelete: "restrict", onUpdate: "cascade" }),
-    passiveId: text("passive_id").references(() => abilityDefs.id, { onDelete: "set null", onUpdate: "cascade" }),
-    skillId: text("skill_id").references(() => abilityDefs.id, { onDelete: "set null", onUpdate: "cascade" }),
-    ultimateId: text("ultimate_id").references(() => abilityDefs.id, { onDelete: "set null", onUpdate: "cascade" }),
-    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+    cardId: text("card_id")
+      .notNull()
+      .references(() => cards.id, {
+        onDelete: "restrict",
+        onUpdate: "cascade",
+      }),
+    passiveId: text("passive_id").references(() => abilityDefs.id, {
+      onDelete: "set null",
+      onUpdate: "cascade",
+    }),
+    skillId: text("skill_id").references(() => abilityDefs.id, {
+      onDelete: "set null",
+      onUpdate: "cascade",
+    }),
+    ultimateId: text("ultimate_id").references(() => abilityDefs.id, {
+      onDelete: "set null",
+      onUpdate: "cascade",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" })
+      .defaultNow()
+      .notNull(),
   },
   (table) => [
     uniqueIndex("card_abilities_card_id_key").on(table.cardId),
@@ -286,11 +420,17 @@ export const pvpLoadouts = pgTable(
   "pvp_loadouts",
   {
     id: text("id").primaryKey(),
-    ownerId: text("owner_id").notNull().references(() => users.id, { onDelete: "cascade", onUpdate: "cascade" }),
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade", onUpdate: "cascade" }),
     name: text("name").notNull(),
     cardIds: text("card_ids").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" })
+      .defaultNow()
+      .notNull(),
   },
   (table) => [index("pvp_loadouts_owner_id_idx").on(table.ownerId)],
 );
@@ -299,14 +439,24 @@ export const cardGifts = pgTable(
   "card_gifts",
   {
     id: text("id").primaryKey(),
-    cardId: text("card_id").notNull().references(() => cards.id, { onDelete: "cascade", onUpdate: "cascade" }),
-    fromUserId: text("from_user_id").notNull().references(() => users.id, { onDelete: "cascade", onUpdate: "cascade" }),
-    toUserId: text("to_user_id").notNull().references(() => users.id, { onDelete: "cascade", onUpdate: "cascade" }),
+    cardId: text("card_id")
+      .notNull()
+      .references(() => cards.id, { onDelete: "cascade", onUpdate: "cascade" }),
+    fromUserId: text("from_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade", onUpdate: "cascade" }),
+    toUserId: text("to_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade", onUpdate: "cascade" }),
     quantity: integer("quantity").default(1).notNull(),
     message: text("message"),
     status: text("status").default("pending").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" })
+      .defaultNow()
+      .notNull(),
   },
   (table) => [
     index("card_gifts_from_user_id_idx").on(table.fromUserId),
@@ -319,12 +469,24 @@ export const ownedCards = pgTable(
   "owned_cards",
   {
     id: text("id").primaryKey(),
-    cardId: text("card_id").notNull().references(() => cards.id, { onDelete: "cascade", onUpdate: "cascade" }),
-    userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade", onUpdate: "cascade" }),
+    cardId: text("card_id")
+      .notNull()
+      .references(() => cards.id, { onDelete: "cascade", onUpdate: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade", onUpdate: "cascade" }),
     quantity: integer("quantity").notNull(),
-    obtainedAt: timestamp("obtained_at", { withTimezone: true, mode: "date" }).notNull(),
+    obtainedAt: timestamp("obtained_at", {
+      withTimezone: true,
+      mode: "date",
+    }).notNull(),
   },
-  (table) => [uniqueIndex("owned_cards_card_id_user_id_key").on(table.cardId, table.userId)],
+  (table) => [
+    uniqueIndex("owned_cards_card_id_user_id_key").on(
+      table.cardId,
+      table.userId,
+    ),
+  ],
 );
 
 export const userStepSnapshots = pgTable(
@@ -360,7 +522,9 @@ export const allowedEmails = pgTable(
     id: text("id").primaryKey(),
     email: text("email").notNull(),
     isAdmin: boolean("is_admin").default(false).notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
+      .defaultNow()
+      .notNull(),
   },
   (table) => [uniqueIndex("allowed_emails_email_key").on(table.email)],
 );
@@ -371,8 +535,12 @@ export const emailAccessRequests = pgTable(
     id: text("id").primaryKey(),
     email: text("email").notNull(),
     status: emailAccessRequestStatusEnum("status").default("pending").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" })
+      .defaultNow()
+      .notNull(),
   },
   (table) => [
     index("email_access_requests_status_idx").on(table.status),
@@ -424,12 +592,15 @@ export const ownedCardsRelations = relations(ownedCards, ({ one }) => ({
   }),
 }));
 
-export const userStepSnapshotsRelations = relations(userStepSnapshots, ({ one }) => ({
-  user: one(users, {
-    fields: [userStepSnapshots.userId],
-    references: [users.id],
+export const userStepSnapshotsRelations = relations(
+  userStepSnapshots,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [userStepSnapshots.userId],
+      references: [users.id],
+    }),
   }),
-}));
+);
 
 export const pvpLoadoutsRelations = relations(pvpLoadouts, ({ one }) => ({
   owner: one(users, {
@@ -441,7 +612,9 @@ export const pvpLoadoutsRelations = relations(pvpLoadouts, ({ one }) => ({
 export const abilityDefsRelations = relations(abilityDefs, ({ many }) => ({
   passiveAssignments: many(cardAbilities, { relationName: "passive_ability" }),
   skillAssignments: many(cardAbilities, { relationName: "skill_ability" }),
-  ultimateAssignments: many(cardAbilities, { relationName: "ultimate_ability" }),
+  ultimateAssignments: many(cardAbilities, {
+    relationName: "ultimate_ability",
+  }),
 }));
 
 export const cardAbilitiesRelations = relations(cardAbilities, ({ one }) => ({
@@ -483,9 +656,12 @@ export const cardGiftsRelations = relations(cardGifts, ({ one }) => ({
   }),
 }));
 
-export const emailAuthCredentialsRelations = relations(emailAuthCredentials, ({ one }) => ({
-  user: one(users, {
-    fields: [emailAuthCredentials.userId],
-    references: [users.id],
+export const emailAuthCredentialsRelations = relations(
+  emailAuthCredentials,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [emailAuthCredentials.userId],
+      references: [users.id],
+    }),
   }),
-}));
+);

@@ -246,12 +246,8 @@
           "name": "auth_sessions_user_id_users_id_fk",
           "tableFrom": "auth_sessions",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         }
@@ -348,12 +344,8 @@
           "name": "card_abilities_card_id_cards_id_fk",
           "tableFrom": "card_abilities",
           "tableTo": "cards",
-          "columnsFrom": [
-            "card_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["card_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "cascade"
         },
@@ -361,12 +353,8 @@
           "name": "card_abilities_passive_id_ability_defs_id_fk",
           "tableFrom": "card_abilities",
           "tableTo": "ability_defs",
-          "columnsFrom": [
-            "passive_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["passive_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "cascade"
         },
@@ -374,12 +362,8 @@
           "name": "card_abilities_skill_id_ability_defs_id_fk",
           "tableFrom": "card_abilities",
           "tableTo": "ability_defs",
-          "columnsFrom": [
-            "skill_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["skill_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "cascade"
         },
@@ -387,12 +371,8 @@
           "name": "card_abilities_ultimate_id_ability_defs_id_fk",
           "tableFrom": "card_abilities",
           "tableTo": "ability_defs",
-          "columnsFrom": [
-            "ultimate_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["ultimate_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "cascade"
         }
@@ -518,12 +498,8 @@
           "name": "card_gifts_card_id_cards_id_fk",
           "tableFrom": "card_gifts",
           "tableTo": "cards",
-          "columnsFrom": [
-            "card_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["card_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         },
@@ -531,12 +507,8 @@
           "name": "card_gifts_from_user_id_users_id_fk",
           "tableFrom": "card_gifts",
           "tableTo": "users",
-          "columnsFrom": [
-            "from_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["from_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         },
@@ -544,12 +516,8 @@
           "name": "card_gifts_to_user_id_users_id_fk",
           "tableFrom": "card_gifts",
           "tableTo": "users",
-          "columnsFrom": [
-            "to_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["to_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         }
@@ -666,12 +634,8 @@
           "name": "cards_rarity_id_rarities_id_fk",
           "tableFrom": "cards",
           "tableTo": "rarities",
-          "columnsFrom": [
-            "rarity_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["rarity_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "cascade"
         },
@@ -679,12 +643,8 @@
           "name": "cards_image_asset_id_image_assets_id_fk",
           "tableFrom": "cards",
           "tableTo": "image_assets",
-          "columnsFrom": [
-            "image_asset_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["image_asset_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "cascade"
         }
@@ -825,12 +785,8 @@
           "name": "daily_quests_user_id_users_id_fk",
           "tableFrom": "daily_quests",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         }
@@ -978,12 +934,8 @@
           "name": "email_auth_credentials_user_id_users_id_fk",
           "tableFrom": "email_auth_credentials",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         }
@@ -1124,12 +1076,8 @@
           "name": "owned_cards_card_id_cards_id_fk",
           "tableFrom": "owned_cards",
           "tableTo": "cards",
-          "columnsFrom": [
-            "card_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["card_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         },
@@ -1137,12 +1085,8 @@
           "name": "owned_cards_user_id_users_id_fk",
           "tableFrom": "owned_cards",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         }
@@ -1305,12 +1249,8 @@
           "name": "pvp_loadouts_owner_id_users_id_fk",
           "tableFrom": "pvp_loadouts",
           "tableTo": "users",
-          "columnsFrom": [
-            "owner_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["owner_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         }
@@ -1488,12 +1428,8 @@
           "name": "pvp_matches_inviter_id_users_id_fk",
           "tableFrom": "pvp_matches",
           "tableTo": "users",
-          "columnsFrom": [
-            "inviter_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["inviter_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         },
@@ -1501,12 +1437,8 @@
           "name": "pvp_matches_invitee_id_users_id_fk",
           "tableFrom": "pvp_matches",
           "tableTo": "users",
-          "columnsFrom": [
-            "invitee_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["invitee_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         },
@@ -1514,12 +1446,8 @@
           "name": "pvp_matches_winner_id_users_id_fk",
           "tableFrom": "pvp_matches",
           "tableTo": "users",
-          "columnsFrom": [
-            "winner_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["winner_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "cascade"
         }
@@ -1791,12 +1719,8 @@
           "name": "speed_calculus_daily_runs_user_id_users_id_fk",
           "tableFrom": "speed_calculus_daily_runs",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         }
@@ -1906,12 +1830,8 @@
           "name": "user_step_snapshots_user_id_users_id_fk",
           "tableFrom": "user_step_snapshots",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         }
@@ -1984,6 +1904,14 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'device_health'"
+        },
+        "preferred_language": {
+          "name": "preferred_language",
+          "type": "locale",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'en'"
         },
         "created_at": {
           "name": "created_at",
@@ -2113,12 +2041,8 @@
           "name": "wordle_daily_attempts_user_id_users_id_fk",
           "tableFrom": "wordle_daily_attempts",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         }
@@ -2267,37 +2191,27 @@
     "public.email_access_request_status": {
       "name": "email_access_request_status",
       "schema": "public",
-      "values": [
-        "pending",
-        "approved",
-        "rejected"
-      ]
+      "values": ["pending", "approved", "rejected"]
     },
     "public.image_kind": {
       "name": "image_kind",
       "schema": "public",
-      "values": [
-        "card",
-        "profile"
-      ]
+      "values": ["card", "profile"]
     },
     "public.pvp_match_status": {
       "name": "pvp_match_status",
       "schema": "public",
-      "values": [
-        "PENDING",
-        "IN_PROGRESS",
-        "COMPLETED",
-        "DECLINED"
-      ]
+      "values": ["PENDING", "IN_PROGRESS", "COMPLETED", "DECLINED"]
+    },
+    "public.locale": {
+      "name": "locale",
+      "schema": "public",
+      "values": ["en", "fr"]
     },
     "public.step_source": {
       "name": "step_source",
       "schema": "public",
-      "values": [
-        "device_health",
-        "fitbit"
-      ]
+      "values": ["device_health", "fitbit"]
     }
   },
   "schemas": {},

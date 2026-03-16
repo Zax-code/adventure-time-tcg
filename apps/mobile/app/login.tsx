@@ -1,18 +1,65 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { Text, View } from "react-native";
+import { useRef, useEffect } from "react";
+import { Animated, View } from "react-native";
 
 import { AuthForm } from "../src/components/auth-form";
+
+const PARTICLES = [
+  { left: "8%", top: "12%", size: 14, delay: 0, duration: 3200 },
+  { left: "78%", top: "8%", size: 10, delay: 500, duration: 2800 },
+  { left: "22%", top: "28%", size: 8, delay: 1000, duration: 3600 },
+  { left: "88%", top: "35%", size: 12, delay: 300, duration: 3000 },
+  { left: "5%", top: "55%", size: 9, delay: 700, duration: 2600 },
+  { left: "92%", top: "60%", size: 11, delay: 1200, duration: 3400 },
+  { left: "15%", top: "72%", size: 7, delay: 400, duration: 2900 },
+  { left: "82%", top: "78%", size: 13, delay: 900, duration: 3100 },
+  { left: "45%", top: "5%", size: 8, delay: 600, duration: 3300 },
+  { left: "55%", top: "88%", size: 10, delay: 1100, duration: 2700 },
+  { left: "35%", top: "92%", size: 7, delay: 200, duration: 3500 },
+  { left: "70%", top: "20%", size: 9, delay: 800, duration: 2950 },
+] as const;
+
+function FloatingHeart({ left, top, size, delay, duration }: (typeof PARTICLES)[number]) {
+  const anim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(anim, { toValue: 1, duration, delay, useNativeDriver: true }),
+        Animated.timing(anim, { toValue: 0, duration, useNativeDriver: true }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [anim, delay, duration]);
+
+  const translateY = anim.interpolate({ inputRange: [0, 1], outputRange: [0, -20] });
+  const opacity = anim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.3, 0.7, 0.3] });
+
+  return (
+    <Animated.View
+      style={{
+        position: "absolute",
+        left,
+        top,
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        backgroundColor: "#F472B6",
+        transform: [{ translateY }],
+        opacity,
+      }}
+    />
+  );
+}
 
 export default function LoginScreen() {
   return (
     <LinearGradient colors={["#fce7f3", "#fdf2f8", "#f9a8d4"]} style={{ flex: 1 }}>
+      {PARTICLES.map((p, i) => (
+        <FloatingHeart key={i} {...p} />
+      ))}
       <View className="flex-1 justify-center p-5">
-        <View className="mb-6 px-2">
-          <Text className="font-nunito-extrabold text-4xl text-fg">Welcome back</Text>
-          <Text className="mt-2 font-nunito text-base text-fgMuted">
-            Sign in with your Adventure Time account or continue with Google.
-          </Text>
-        </View>
         <AuthForm />
       </View>
     </LinearGradient>

@@ -4,7 +4,14 @@ import { and, asc, desc, eq } from "drizzle-orm";
 import { calculateCollectionCompletion } from "@adventure-time/game-engine";
 
 import { db } from "./client";
-import { cards, imageAssets, ownedCards, packs, userStepSnapshots, users } from "./schema";
+import {
+  cards,
+  imageAssets,
+  ownedCards,
+  packs,
+  userStepSnapshots,
+  users,
+} from "./schema";
 
 export async function getUserByEmail(email: string) {
   return db.query.users.findFirst({
@@ -34,16 +41,24 @@ export async function getUserWithCollectionStats(userId: string) {
     orderBy: (table, { desc }) => [desc(table.obtainedAt)],
   });
 
-  const totalCardsRows = await db.select({ id: cards.id }).from(cards).where(eq(cards.isArchived, false));
+  const totalCardsRows = await db
+    .select({ id: cards.id })
+    .from(cards)
+    .where(eq(cards.isArchived, false));
   const totalCards = totalCardsRows.length;
-  const uniqueOwned = collection.filter((entry) => !entry.card.isArchived).length;
+  const uniqueOwned = collection.filter(
+    (entry) => !entry.card.isArchived,
+  ).length;
 
   return {
     user,
     stats: {
       totalCards,
       uniqueOwned,
-      completionPercentage: calculateCollectionCompletion(totalCards, uniqueOwned),
+      completionPercentage: calculateCollectionCompletion(
+        totalCards,
+        uniqueOwned,
+      ),
     },
   };
 }
@@ -63,7 +78,10 @@ export async function getCollectionForUser(userId: string) {
   });
 
   const filteredRows = rows.filter((row) => !row.card.isArchived);
-  const totalCardsRows = await db.select({ id: cards.id }).from(cards).where(eq(cards.isArchived, false));
+  const totalCardsRows = await db
+    .select({ id: cards.id })
+    .from(cards)
+    .where(eq(cards.isArchived, false));
   const totalCards = totalCardsRows.length;
   const uniqueOwned = filteredRows.length;
   const user = await db.query.users.findFirst({ where: eq(users.id, userId) });
@@ -97,21 +115,44 @@ export async function getCollectionForUser(userId: string) {
     stats: {
       totalCards,
       uniqueOwned,
-      completionPercentage: calculateCollectionCompletion(totalCards, uniqueOwned),
+      completionPercentage: calculateCollectionCompletion(
+        totalCards,
+        uniqueOwned,
+      ),
     },
   };
 }
 
-export async function getImageAssetById(assetId: string, kind: "card" | "profile") {
+export async function getImageAssetById(
+  assetId: string,
+  kind: "card" | "profile",
+) {
   return db.query.imageAssets.findFirst({
     where: and(eq(imageAssets.id, assetId), eq(imageAssets.kind, kind)),
   });
 }
 
-export async function updatePreferredStepSource(userId: string, preferredStepSource: "device_health" | "fitbit") {
+export async function updatePreferredStepSource(
+  userId: string,
+  preferredStepSource: "device_health" | "fitbit",
+) {
   await db
     .update(users)
     .set({ preferredStepSource, updatedAt: new Date() })
+    .where(eq(users.id, userId));
+
+  return db.query.users.findFirst({
+    where: eq(users.id, userId),
+  });
+}
+
+export async function updatePreferredLanguage(
+  userId: string,
+  preferredLanguage: "en" | "fr",
+) {
+  await db
+    .update(users)
+    .set({ preferredLanguage, updatedAt: new Date() })
     .where(eq(users.id, userId));
 
   return db.query.users.findFirst({
@@ -168,7 +209,10 @@ export async function upsertStepSnapshot(input: {
 export async function getLatestStepSnapshot(userId: string) {
   return db.query.userStepSnapshots.findFirst({
     where: eq(userStepSnapshots.userId, userId),
-    orderBy: [desc(userStepSnapshots.recordedFor), desc(userStepSnapshots.updatedAt)],
+    orderBy: [
+      desc(userStepSnapshots.recordedFor),
+      desc(userStepSnapshots.updatedAt),
+    ],
   });
 }
 

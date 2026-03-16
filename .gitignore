@@ -11,3 +11,4 @@ coverage/
 *.log
 .DS_Store
 .vscode/
+**/.migration-reports/

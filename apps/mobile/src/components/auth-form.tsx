@@ -2,24 +2,35 @@ import React, { useState } from "react";
 import * as Google from "expo-auth-session/providers/google";
 import { SessionUrlProvider } from "expo-auth-session/build/SessionUrlProvider";
 import Constants, { ExecutionEnvironment } from "expo-constants";
+import { LinearGradient } from "expo-linear-gradient";
 import * as WebBrowser from "expo-web-browser";
 import { useRouter } from "expo-router";
-import { Pressable, Text, TextInput, View, Platform } from "react-native";
-
+import {
+  Pressable,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  Platform,
+} from "react-native";
 import { ApiClientError, apiClient } from "../lib/api";
+import { useTranslation } from "../i18n";
 import { useSessionStore } from "../stores/session-store";
-import { GhostButton, PrimaryButton } from "./button";
+import { PrimaryButton } from "./button";
 
 WebBrowser.maybeCompleteAuthSession();
 
 const sessionUrlProvider = new SessionUrlProvider();
 const expoProxyProjectName = "@zax-code/adventure-time-native";
-const expoProxyRedirectUri = sessionUrlProvider.getRedirectUrl({ projectNameForProxy: expoProxyProjectName });
+const expoProxyRedirectUri = sessionUrlProvider.getRedirectUrl({
+  projectNameForProxy: expoProxyProjectName,
+});
 const expoProxyReturnUrl = sessionUrlProvider.getDefaultReturnUrl();
 
 export function AuthForm() {
   const router = useRouter();
   const setSession = useSessionStore((state) => state.setSession);
+  const { t } = useTranslation();
   const [displayName, setDisplayName] = useState("Finn Fan");
   const [email, setEmail] = useState("finn@example.com");
   const [password, setPassword] = useState("password123");
@@ -27,7 +38,8 @@ export function AuthForm() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+  const isExpoGo =
+    Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
   const [request, _response, promptAsync] = Google.useAuthRequest(
     isExpoGo
       ? {
@@ -48,15 +60,18 @@ export function AuthForm() {
   );
 
   function getFriendlyError(submitError: unknown) {
-    if (submitError instanceof ApiClientError && submitError.code === "ACCESS_REQUEST_PENDING") {
-      return "This Google account is pending approval. Your access request has been submitted.";
+    if (
+      submitError instanceof ApiClientError &&
+      submitError.code === "ACCESS_REQUEST_PENDING"
+    ) {
+      return t("native.auth.googlePendingApproval");
     }
 
     if (submitError instanceof Error) {
       return submitError.message;
     }
 
-    return "Authentication failed";
+    return t("native.auth.failed");
   }
 
   async function submit() {
@@ -83,13 +98,17 @@ export function AuthForm() {
   }
 
   async function submitGoogle() {
-    if (!isExpoGo && Platform.OS === "android" && !process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID) {
-      setError("Google sign-in is not configured for Android yet.");
+    if (
+      !isExpoGo &&
+      Platform.OS === "android" &&
+      !process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID
+    ) {
+      setError(t("native.auth.googleNotConfiguredAndroid"));
       return;
     }
 
     if (!request) {
-      setError("Google sign-in is still loading. Please try again.");
+      setError(t("native.auth.googleLoading"));
       return;
     }
 
@@ -100,7 +119,7 @@ export function AuthForm() {
       const result = await (isExpoGo
         ? (() => {
             if (!request.url) {
-              throw new Error("Google sign-in is still loading. Please try again.");
+              throw new Error(t("native.auth.googleLoading"));
             }
 
             return WebBrowser.openAuthSessionAsync(
@@ -125,7 +144,8 @@ export function AuthForm() {
       }
 
       const idToken = result.authentication?.idToken ?? result.params.id_token;
-      const accessToken = result.authentication?.accessToken ?? result.params.access_token;
+      const accessToken =
+        result.authentication?.accessToken ?? result.params.access_token;
       if (!idToken && !accessToken) {
         throw new Error("Google did not return a usable token.");
       }
@@ -145,50 +165,239 @@ export function AuthForm() {
   }
 
   return (
-    <View className="w-full gap-3 rounded-3xl border border-primaryBorder bg-white p-6">
-      <Text className="font-nunito-extrabold text-3xl text-fg">Adventure Time</Text>
-      <Text className="font-nunito text-base text-fgMuted">
-        Sign in to the new native-first build.
-      </Text>
-      {mode === "register" ? (
-        <TextInput
-          value={displayName}
-          onChangeText={setDisplayName}
-          placeholder="Display name"
-          placeholderTextColor="#9CA3AF"
-          className="rounded-2xl border border-primaryBorder bg-primaryBg px-4 py-3 font-nunito text-fg"
-        />
-      ) : null}
-      <TextInput
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        placeholder="Email"
-        placeholderTextColor="#9CA3AF"
-        className="rounded-2xl border border-primaryBorder bg-primaryBg px-4 py-3 font-nunito text-fg"
-      />
-      <TextInput
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-        placeholder="Password"
-        placeholderTextColor="#9CA3AF"
-        className="rounded-2xl border border-primaryBorder bg-primaryBg px-4 py-3 font-nunito text-fg"
-      />
-      {error ? <Text className="text-sm text-red-700">{error}</Text> : null}
-      <PrimaryButton onPress={() => void submit()} loading={loading}>
-        {mode === "login" ? "Login" : "Create account"}
-      </PrimaryButton>
-      <GhostButton onPress={() => void submitGoogle()} loading={googleLoading} disabled={!request || loading}>
-        Continue with Google
-      </GhostButton>
-      <Pressable onPress={() => setMode((current) => (current === "login" ? "register" : "login"))}>
-        <Text className="text-center font-nunito text-sm text-primaryText">
-          {mode === "login"
-            ? "Need an account? Register"
-            : "Already have an account? Login"}
+    <View className="w-full gap-4 rounded-3xl border border-primaryBorder bg-white p-6">
+      {/* Card Header */}
+      <View className="items-center gap-1">
+        <Text className="font-nunito-bold text-xl text-primary">
+          {t("authLogin.welcomeTo")}
         </Text>
-      </Pressable>
+        <Text className="font-nunito-extrabold text-3xl text-primary">
+          {t("authLogin.gameTitle")}
+        </Text>
+      </View>
+
+      {/* Description */}
+      <View className="rounded-2xl border border-primaryTint bg-primaryBg p-4">
+        <Text className="text-center font-nunito text-sm text-primaryText">
+          {t("authLogin.description")}
+        </Text>
+      </View>
+
+      {/* Feature Grid */}
+      <View style={{ flexDirection: "row", gap: 8 }}>
+        <View
+          style={{
+            flex: 1,
+            alignItems: "center",
+            gap: 6,
+            backgroundColor: "#E0F2FE",
+            borderRadius: 12,
+            padding: 10,
+          }}
+        >
+          <Text style={{ fontSize: 20 }}>📦</Text>
+          <Text
+            style={{
+              fontSize: 11,
+              fontFamily: "Nunito-Bold",
+              color: "#0369A1",
+              textAlign: "center",
+            }}
+          >
+            {t("authLogin.features.openPacks")}
+          </Text>
+        </View>
+        <View
+          style={{
+            flex: 1,
+            alignItems: "center",
+            gap: 6,
+            backgroundColor: "#F3E8FF",
+            borderRadius: 12,
+            padding: 10,
+          }}
+        >
+          <Text style={{ fontSize: 20 }}>🃏</Text>
+          <Text
+            style={{
+              fontSize: 11,
+              fontFamily: "Nunito-Bold",
+              color: "#9333EA",
+              textAlign: "center",
+            }}
+          >
+            {t("authLogin.features.collectCards")}
+          </Text>
+        </View>
+        <View
+          style={{
+            flex: 1,
+            alignItems: "center",
+            gap: 6,
+            backgroundColor: "#CCFBF1",
+            borderRadius: 12,
+            padding: 10,
+          }}
+        >
+          <Text style={{ fontSize: 20 }}>🏆</Text>
+          <Text
+            style={{
+              fontSize: 11,
+              fontFamily: "Nunito-Bold",
+              color: "#0D9488",
+              textAlign: "center",
+            }}
+          >
+            {t("authLogin.features.completeQuests")}
+          </Text>
+        </View>
+      </View>
+
+      {/* Tab Switcher + Form */}
+      <View className="rounded-2xl border border-primaryTint bg-primaryBg p-3 gap-3">
+        {/* Pills */}
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          <Pressable
+            onPress={() => setMode("login")}
+            style={{
+              flex: 1,
+              alignItems: "center",
+              paddingVertical: 8,
+              paddingHorizontal: 16,
+              borderRadius: 999,
+              backgroundColor:
+                mode === "login" ? "#EC4899" : "rgba(255,255,255,0.8)",
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: "Nunito-Bold",
+                fontSize: 14,
+                color: mode === "login" ? "white" : "#9D174D",
+              }}
+            >
+              {t("authLogin.tabs.signIn")}
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setMode("register")}
+            style={{
+              flex: 1,
+              alignItems: "center",
+              paddingVertical: 8,
+              paddingHorizontal: 16,
+              borderRadius: 999,
+              backgroundColor:
+                mode === "register" ? "#EC4899" : "rgba(255,255,255,0.8)",
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: "Nunito-Bold",
+                fontSize: 14,
+                color: mode === "register" ? "white" : "#9D174D",
+              }}
+            >
+              {t("authLogin.tabs.register")}
+            </Text>
+          </Pressable>
+        </View>
+
+        {/* Form Fields */}
+        <TextInput
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+          placeholder={t("authLogin.fields.email")}
+          placeholderTextColor="#9CA3AF"
+          className="rounded-2xl border border-primaryBorder bg-white px-4 py-3 font-nunito text-fg"
+        />
+        <TextInput
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+          placeholder={
+            mode === "register"
+              ? t("authLogin.fields.passwordMin")
+              : t("authLogin.fields.password")
+          }
+          placeholderTextColor="#9CA3AF"
+          className="rounded-2xl border border-primaryBorder bg-white px-4 py-3 font-nunito text-fg"
+        />
+        {mode === "register" ? (
+          <TextInput
+            value={displayName}
+            onChangeText={setDisplayName}
+            placeholder={t("authLogin.fields.displayNameOptional")}
+            placeholderTextColor="#9CA3AF"
+            className="rounded-2xl border border-primaryBorder bg-white px-4 py-3 font-nunito text-fg"
+          />
+        ) : null}
+
+        {error ? (
+          <Text className="text-xs font-nunito-semibold text-red-600">
+            {error}
+          </Text>
+        ) : null}
+
+        <PrimaryButton onPress={() => void submit()} loading={loading}>
+          {mode === "login"
+            ? t("authLogin.actions.signIn")
+            : t("authLogin.actions.register")}
+        </PrimaryButton>
+      </View>
+
+      {/* Google Button */}
+      <View className="gap-3">
+        <Text className="text-center font-nunito text-xs uppercase tracking-widest text-primaryText">
+          {t("authLogin.actions.orContinueWithGoogle")}
+        </Text>
+        <TouchableOpacity
+          onPress={() => void submitGoogle()}
+          disabled={!request || loading || googleLoading}
+          activeOpacity={0.85}
+        >
+          <LinearGradient
+            colors={["#F472B6", "#EC4899"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 10,
+              borderRadius: 999,
+              paddingVertical: 16,
+              paddingHorizontal: 24,
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: "Nunito-Bold",
+                fontSize: 16,
+                color: "white",
+              }}
+            >
+              G
+            </Text>
+            <Text
+              style={{
+                fontFamily: "Nunito-Bold",
+                fontSize: 16,
+                color: "white",
+              }}
+            >
+              {t("authLogin.actions.enterCandyKingdom")}
+            </Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      </View>
+
+      {/* Footer */}
+      <Text className="text-center font-nunito text-sm text-primary">
+        {t("authLogin.labels.madeWithLoveBy")}
+      </Text>
     </View>
   );
 }

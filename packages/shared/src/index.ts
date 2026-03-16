@@ -1,6 +1,9 @@
 import { z } from "zod";
 
+export { translations, type Locale } from "./i18n/translations";
+
 export const stepSourceSchema = z.enum(["device_health", "fitbit"]);
+export const localeSchema = z.enum(["en", "fr"]);
 
 export const authUserSchema = z.object({
   id: z.string(),
@@ -11,6 +14,7 @@ export const authUserSchema = z.object({
   dust: z.number().int().nonnegative(),
   isAdmin: z.boolean(),
   preferredStepSource: stepSourceSchema,
+  preferredLanguage: localeSchema,
 });
 
 export type AuthUser = z.infer<typeof authUserSchema>;
@@ -34,12 +38,14 @@ export const registerSchema = loginSchema.extend({
   displayName: z.string().min(1).max(64),
 });
 
-export const googleAuthSchema = z.object({
-  idToken: z.string().min(1).optional(),
-  accessToken: z.string().min(1).optional(),
-}).refine((value) => Boolean(value.idToken || value.accessToken), {
-  message: "Either idToken or accessToken is required.",
-});
+export const googleAuthSchema = z
+  .object({
+    idToken: z.string().min(1).optional(),
+    accessToken: z.string().min(1).optional(),
+  })
+  .refine((value) => Boolean(value.idToken || value.accessToken), {
+    message: "Either idToken or accessToken is required.",
+  });
 
 export const raritySchema = z.object({
   id: z.string(),
@@ -263,23 +269,27 @@ export const speedRunStateSchema = z.object({
   latestScore: z.number().int().nonnegative(),
   rewardPreview: z.number().int().nonnegative(),
   locked: z.boolean(),
-  activeRun: z.object({
-    runId: z.string(),
-    runNumber: z.number().int().positive(),
-    seed: z.string(),
-    questionIndex: z.number().int().nonnegative(),
-    questions: z.array(speedQuestionSchema),
-    answers: z.array(z.number().int()),
-    pauseExpiresAt: z.string().nullable(),
-    startedAt: z.string(),
-  }).nullable(),
-  history: z.array(z.object({
-    runId: z.string(),
-    runNumber: z.number().int().positive(),
-    status: z.string(),
-    score: z.number().int().nonnegative(),
-    reward: z.number().int().nonnegative(),
-  })),
+  activeRun: z
+    .object({
+      runId: z.string(),
+      runNumber: z.number().int().positive(),
+      seed: z.string(),
+      questionIndex: z.number().int().nonnegative(),
+      questions: z.array(speedQuestionSchema),
+      answers: z.array(z.number().int()),
+      pauseExpiresAt: z.string().nullable(),
+      startedAt: z.string(),
+    })
+    .nullable(),
+  history: z.array(
+    z.object({
+      runId: z.string(),
+      runNumber: z.number().int().positive(),
+      status: z.string(),
+      score: z.number().int().nonnegative(),
+      reward: z.number().int().nonnegative(),
+    }),
+  ),
 });
 
 export const speedAnswerSchema = z.object({
@@ -332,25 +342,31 @@ export const pvpMatchSchema = z.object({
 export const pvpBattleStateSchema = z.object({
   currentPlayerId: z.string(),
   turn: z.number().int().positive(),
-  players: z.array(z.object({
-    userId: z.string(),
-    activeIndex: z.number().int().nonnegative(),
-    team: z.array(z.object({
-      cardId: z.string(),
-      name: z.string(),
-      hp: z.number().int(),
-      maxHp: z.number().int(),
-      attack: z.number().int(),
-      defense: z.number().int(),
-      knockedOut: z.boolean(),
-    })),
-  })),
-  log: z.array(z.object({
-    turn: z.number().int().positive(),
-    actorId: z.string(),
-    type: z.string(),
-    summary: z.string(),
-  })),
+  players: z.array(
+    z.object({
+      userId: z.string(),
+      activeIndex: z.number().int().nonnegative(),
+      team: z.array(
+        z.object({
+          cardId: z.string(),
+          name: z.string(),
+          hp: z.number().int(),
+          maxHp: z.number().int(),
+          attack: z.number().int(),
+          defense: z.number().int(),
+          knockedOut: z.boolean(),
+        }),
+      ),
+    }),
+  ),
+  log: z.array(
+    z.object({
+      turn: z.number().int().positive(),
+      actorId: z.string(),
+      type: z.string(),
+      summary: z.string(),
+    }),
+  ),
   phase: z.enum(["active", "ended"]),
   winnerId: z.string().nullable(),
 });
@@ -441,12 +457,14 @@ export const adminCardAbilityAssignmentSchema = z.object({
 export const adminAbilitiesResponseSchema = z.object({
   abilities: z.array(adminAbilitySchema),
   cardAbilities: z.array(adminCardAbilityAssignmentSchema),
-  cards: z.array(z.object({
-    id: z.string(),
-    name: z.string(),
-    character: z.string(),
-    type: z.string(),
-  })),
+  cards: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      character: z.string(),
+      type: z.string(),
+    }),
+  ),
 });
 
 export const adminAbilityEditSchema = z.object({
@@ -508,6 +526,10 @@ export const updateStepSourceSchema = z.object({
   preferredStepSource: stepSourceSchema,
 });
 
+export const updateLanguageSchema = z.object({
+  preferredLanguage: localeSchema,
+});
+
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type GoogleAuthInput = z.infer<typeof googleAuthSchema>;
@@ -529,26 +551,33 @@ export type WordleSubmitInput = z.infer<typeof wordleSubmitSchema>;
 export type WordleSubmitResponse = z.infer<typeof wordleSubmitResponseSchema>;
 export type SpeedRunState = z.infer<typeof speedRunStateSchema>;
 export type PvpMatch = z.infer<typeof pvpMatchSchema>;
-export type PvpMatchDetailResponse = z.infer<typeof pvpMatchDetailResponseSchema>;
+export type PvpMatchDetailResponse = z.infer<
+  typeof pvpMatchDetailResponseSchema
+>;
 export type PvpLoadoutsResponse = z.infer<typeof pvpLoadoutsResponseSchema>;
 export type AdminCardsResponse = z.infer<typeof adminCardsResponseSchema>;
 export type AdminCardDetail = z.infer<typeof adminCardDetailSchema>;
-export type AdminAbilitiesResponse = z.infer<typeof adminAbilitiesResponseSchema>;
+export type AdminAbilitiesResponse = z.infer<
+  typeof adminAbilitiesResponseSchema
+>;
 export type GiftsResponse = z.infer<typeof giftsResponseSchema>;
 export type StepSummary = z.infer<typeof stepSummarySchema>;
 export type HealthStepsResponse = z.infer<typeof healthStepsResponseSchema>;
 export type SyncStepsInput = z.infer<typeof syncStepsSchema>;
 export type UpdateStepSourceInput = z.infer<typeof updateStepSourceSchema>;
+export type UpdateLanguageInput = z.infer<typeof updateLanguageSchema>;
 
 export const updateDisplayNameSchema = z.object({
   displayName: z.string().min(1).max(64),
 });
 
 export const raritiesResponseSchema = z.object({
-  rarities: z.array(raritySchema.extend({
-    dustValue: z.number().int().nonnegative().optional(),
-    craftCost: z.number().int().nonnegative().optional(),
-  })),
+  rarities: z.array(
+    raritySchema.extend({
+      dustValue: z.number().int().nonnegative().optional(),
+      craftCost: z.number().int().nonnegative().optional(),
+    }),
+  ),
 });
 
 export const adminUserSchema = z.object({
@@ -617,5 +646,7 @@ export type AdminUser = z.infer<typeof adminUserSchema>;
 export type AdminUsersResponse = z.infer<typeof adminUsersResponseSchema>;
 export type AdminCoinAdjustInput = z.infer<typeof adminCoinAdjustSchema>;
 export type AllowedEmailsResponse = z.infer<typeof allowedEmailsResponseSchema>;
-export type EmailAccessRequestsResponse = z.infer<typeof emailAccessRequestsResponseSchema>;
+export type EmailAccessRequestsResponse = z.infer<
+  typeof emailAccessRequestsResponseSchema
+>;
 export type PvpSpectateResponse = z.infer<typeof pvpSpectateResponseSchema>;

@@ -22,6 +22,7 @@ const envSchema = z.object({
   MINIO_ACCESS_KEY: z.string().default("minio"),
   MINIO_SECRET_KEY: z.string().default("minioadmin"),
   MINIO_BUCKET: z.string().default("private-images"),
+  DEEPL_API_KEY: z.string().min(1).optional(),
 });
 
 export const env = envSchema.parse(process.env);

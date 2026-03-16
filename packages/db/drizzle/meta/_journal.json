@@ -6,7 +6,63 @@
       "idx": 0,
       "version": "7",
       "when": 1773506125333,
-      "tag": "0000_worthless_marvex",
+      "tag": "0000_initial",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1773506126333,
+      "tag": "0001_step_snapshots",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1773506127333,
+      "tag": "0002_packs_daily_claim_and_featured",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1773506128333,
+      "tag": "0003_quests_wordle_speed_pvp",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1773506129333,
+      "tag": "0004_pvp_state_and_admin_mutations",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1773506130333,
+      "tag": "0005_pvp_loadouts",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1773506131333,
+      "tag": "0006_gifts",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1773506132333,
+      "tag": "0007_ability_defs_and_replay_columns",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1773506133333,
+      "tag": "0008_preferred_language",
       "breakpoints": true
     }
   ]

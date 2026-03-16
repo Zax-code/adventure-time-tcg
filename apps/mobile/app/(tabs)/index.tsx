@@ -6,6 +6,7 @@ import { apiClient } from "../../src/lib/api";
 import { useSessionStore } from "../../src/stores/session-store";
 import { PrimaryButton, SecondaryButton } from "../../src/components/button";
 import { CardTile } from "../../src/components/card-tile";
+import { useTranslation } from "../../src/i18n";
 
 export default function HomeScreen() {
   const queryClient = useQueryClient();
@@ -13,6 +14,7 @@ export default function HomeScreen() {
   const accessToken = useSessionStore((state) => state.accessToken);
   const refreshToken = useSessionStore((state) => state.refreshToken);
   const setSession = useSessionStore((state) => state.setSession);
+  const { t } = useTranslation();
   const homeQuery = useQuery({
     queryKey: ["home"],
     queryFn: () => apiClient.home(),
@@ -44,16 +46,32 @@ export default function HomeScreen() {
   });
 
   if (homeQuery.isLoading) {
-    return <View className="flex-1 bg-bg p-6"><Text className="font-nunito text-fgMuted">Loading...</Text></View>;
+    return (
+      <View className="flex-1 bg-bg p-6">
+        <Text className="font-nunito text-fgMuted">{t("common.loading")}</Text>
+      </View>
+    );
   }
 
   if (homeQuery.isError) {
-    return <View className="flex-1 bg-bg p-6"><Text className="font-nunito text-red-600">{homeQuery.error.message}</Text></View>;
+    return (
+      <View className="flex-1 bg-bg p-6">
+        <Text className="font-nunito text-red-600">
+          {homeQuery.error.message}
+        </Text>
+      </View>
+    );
   }
 
   const home = homeQuery.data;
   if (!home) {
-    return <View className="flex-1 bg-bg p-6"><Text className="font-nunito text-fgMuted">Home is unavailable.</Text></View>;
+    return (
+      <View className="flex-1 bg-bg p-6">
+        <Text className="font-nunito text-fgMuted">
+          {t("native.home.homeUnavailable")}
+        </Text>
+      </View>
+    );
   }
 
   const canClaim = dailyClaimQuery.data?.canClaim ?? false;
@@ -64,47 +82,74 @@ export default function HomeScreen() {
     <ScrollView className="flex-1 bg-bg" contentContainerClassName="gap-4 pb-6">
       {/* Collection progress bar */}
       <View className="mx-5 gap-2 rounded-3xl border border-primaryBorder bg-white p-5">
-        <Text className="font-nunito-bold text-lg text-fg">Collection Progress</Text>
+        <Text className="font-nunito-bold text-lg text-fg">
+          {t("home.collectionProgress")}
+        </Text>
         <View className="flex-row justify-between">
-          <Text className="font-nunito text-sm text-fgMuted">{home.collectionStats.uniqueOwned}/{home.collectionStats.totalCards}</Text>
-          <Text className="font-nunito text-sm text-fgMuted">{home.collectionStats.completionPercentage}% complete</Text>
+          <Text className="font-nunito text-sm text-fgMuted">
+            {home.collectionStats.uniqueOwned}/{home.collectionStats.totalCards}
+          </Text>
+          <Text className="font-nunito text-sm text-fgMuted">
+            {t("home.complete", {
+              percent: home.collectionStats.completionPercentage,
+            })}
+          </Text>
         </View>
         <View className="h-2 overflow-hidden rounded-full bg-primaryTint">
-          <View style={{ width: `${home.collectionStats.completionPercentage}%` }} className="h-full rounded-full bg-primary" />
+          <View
+            style={{ width: `${home.collectionStats.completionPercentage}%` }}
+            className="h-full rounded-full bg-primary"
+          />
         </View>
       </View>
 
       {/* Quick action buttons */}
       <View className="mx-5 flex-row gap-3">
-        <PrimaryButton onPress={() => router.push("/(tabs)/packs")} style={{ flex: 1 }}>
-          Open Packs
+        <PrimaryButton
+          onPress={() => router.push("/(tabs)/packs")}
+          style={{ flex: 1 }}
+        >
+          {t("home.openPack")}
         </PrimaryButton>
-        <SecondaryButton onPress={() => router.push("/(tabs)/collection")} style={{ flex: 1 }}>
-          My Cards
+        <SecondaryButton
+          onPress={() => router.push("/(tabs)/collection")}
+          style={{ flex: 1 }}
+        >
+          {t("home.myCards")}
         </SecondaryButton>
       </View>
 
       {/* Daily Claim card */}
       <View className="mx-5 gap-3 rounded-3xl border border-primaryBorder bg-white p-5">
-        <Text className="font-nunito-bold text-lg text-fg">Daily Claim</Text>
+        <Text className="font-nunito-bold text-lg text-fg">
+          {t("home.dailyReward")}
+        </Text>
         <Text className="font-nunito text-fgMuted">
-          Reward: {dailyClaimQuery.data?.dailyReward ?? 100} coins
+          {t("native.home.rewardLine", {
+            amount: dailyClaimQuery.data?.dailyReward ?? 100,
+          })}
         </Text>
         <Text className="font-nunito text-fgMuted">
           {canClaim
-            ? "Ready to claim now."
-            : `Next claim in ${Math.ceil((dailyClaimQuery.data?.timeUntilNextClaim ?? 0) / 3600000)}h`}
+            ? t("native.home.readyToClaim")
+            : t("native.home.nextClaimInHours", {
+                hours: Math.ceil(
+                  (dailyClaimQuery.data?.timeUntilNextClaim ?? 0) / 3600000,
+                ),
+              })}
         </Text>
         {canClaim ? (
           <PrimaryButton
             onPress={() => void claimMutation.mutateAsync()}
             loading={claimMutation.isPending}
           >
-            Claim daily reward
+            {t("home.claim")}
           </PrimaryButton>
         ) : (
           <View className="items-center rounded-full bg-primaryTint px-4 py-3">
-            <Text className="font-nunito-semibold text-primaryText">Already claimed today</Text>
+            <Text className="font-nunito-semibold text-primaryText">
+              {t("native.home.alreadyClaimed")}
+            </Text>
           </View>
         )}
       </View>
@@ -112,7 +157,9 @@ export default function HomeScreen() {
       {/* Featured Cards carousel */}
       {(featuredQuery.data?.cards.length ?? 0) > 0 && (
         <View className="gap-2">
-          <Text className="px-5 font-nunito-bold text-lg text-fg">Featured Cards</Text>
+          <Text className="px-5 font-nunito-bold text-lg text-fg">
+            {t("home.featuredCards")}
+          </Text>
           <FlatList
             horizontal
             data={featuredQuery.data?.cards ?? []}
@@ -131,13 +178,25 @@ export default function HomeScreen() {
       {/* Drop Rates */}
       {rarities.length > 0 && (
         <View className="mx-5 gap-3 rounded-3xl border border-primaryBorder bg-white p-5">
-          <Text className="font-nunito-bold text-lg text-fg">Drop Rates</Text>
+          <Text className="font-nunito-bold text-lg text-fg">
+            {t("home.dropRates")}
+          </Text>
           {rarities.map((rarity) => {
-            const pct = totalDropRate > 0 ? Math.round((rarity.dropRate / totalDropRate) * 100) : 0;
+            const pct =
+              totalDropRate > 0
+                ? Math.round((rarity.dropRate / totalDropRate) * 100)
+                : 0;
             return (
               <View key={rarity.id} className="flex-row justify-between">
-                <Text style={{ color: rarity.color }} className="font-nunito-semibold">{rarity.name}</Text>
-                <Text className="font-nunito text-fgMuted">×{rarity.dropRate} (≈{pct}%)</Text>
+                <Text
+                  style={{ color: rarity.color }}
+                  className="font-nunito-semibold"
+                >
+                  {rarity.name}
+                </Text>
+                <Text className="font-nunito text-fgMuted">
+                  ×{rarity.dropRate} (≈{pct}%)
+                </Text>
               </View>
             );
           })}

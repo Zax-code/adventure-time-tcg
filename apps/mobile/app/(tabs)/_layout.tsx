@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useSessionStore } from "../../src/stores/session-store";
 import { AppHeader } from "../../src/components/app-header";
+import { useTranslation } from "../../src/i18n";
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
 
@@ -18,6 +19,7 @@ export default function TabLayout() {
   const hydrated = useSessionStore((state) => state.hydrated);
   const user = useSessionStore((state) => state.user);
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
 
   if (!hydrated) {
     return null;
@@ -28,7 +30,7 @@ export default function TabLayout() {
   }
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: '#FDF2F8' }}>
       <AppHeader />
       <Tabs
         screenOptions={{
@@ -49,31 +51,52 @@ export default function TabLayout() {
       >
         <Tabs.Screen
           name="index"
-          options={{ title: "Home", tabBarIcon: tabIcon("home", "home-outline") }}
+          options={{
+            title: t("nav.home"),
+            tabBarIcon: tabIcon("home", "home-outline"),
+          }}
         />
         <Tabs.Screen
           name="packs"
-          options={{ title: "Packs", tabBarIcon: tabIcon("albums", "albums-outline") }}
+          options={{
+            title: t("nav.pack"),
+            tabBarIcon: tabIcon("albums", "albums-outline"),
+          }}
         />
         <Tabs.Screen
           name="quests"
-          options={{ title: "Quests", tabBarIcon: tabIcon("trophy", "trophy-outline") }}
+          options={{
+            title: t("nav.quests"),
+            tabBarIcon: tabIcon("trophy", "trophy-outline"),
+          }}
         />
         <Tabs.Screen
           name="pvp"
-          options={{ title: "PvP", tabBarIcon: tabIcon("flash", "flash-outline") }}
+          options={{
+            title: "PvP",
+            tabBarIcon: tabIcon("flash", "flash-outline"),
+          }}
         />
         <Tabs.Screen
           name="gifts"
-          options={{ title: "Gifts", tabBarIcon: tabIcon("gift", "gift-outline") }}
+          options={{
+            title: t("nav.gifts"),
+            tabBarIcon: tabIcon("gift", "gift-outline"),
+          }}
         />
         <Tabs.Screen
           name="collection"
-          options={{ title: "Collection", tabBarIcon: tabIcon("layers", "layers-outline") }}
+          options={{
+            title: t("nav.collection"),
+            tabBarIcon: tabIcon("layers", "layers-outline"),
+          }}
         />
         <Tabs.Screen
           name="settings"
-          options={{ title: "Settings", tabBarIcon: tabIcon("settings", "settings-outline") }}
+          options={{
+            title: t("settings.title"),
+            tabBarIcon: tabIcon("settings", "settings-outline"),
+          }}
         />
       </Tabs>
     </View>

@@ -57,3 +57,13 @@ After it starts:
 3. Keep the terminal session running while testing.
 
 If tunnel startup fails, the usual cause is Expo/ngrok connectivity or Expo account state on the server, not app code. In that case, rerun the same command in the foreground and use the printed error directly.
+
+## Drizzle Migration History Repair
+
+If you are working with an older dev database that already has the schema but is missing rows in `drizzle.__drizzle_migrations`, run:
+
+```bash
+npm run db:repair-history -w @adventure-time/db
+```
+
+Use this only to repair an already-bootstrapped database whose tables match the checked-in migrations. After that, `npm run db:migrate` should work normally again.

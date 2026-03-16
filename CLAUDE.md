@@ -8,10 +8,13 @@ Adventure Time Native is a native-first rebuild of [~/adventure-time-tcg](../adv
 
 ## Commands
 
+Run commands from the repo root unless a package-specific command is clearer.
+
 ```bash
 # Development
 npm run dev:api          # Start API server (tsx watch)
 npm run dev:mobile       # Start Expo dev server
+npm run dev:mobile:tunnel  # Start Expo in tunnel mode
 
 # Build & Type Check
 npm run build            # Build all workspaces
@@ -21,9 +24,21 @@ npm run lint             # Lint all workspaces
 # Database
 npm run db:generate      # Generate Drizzle migrations
 npm run db:migrate       # Run migrations
+npm run db:repair-history -w @adventure-time/db  # Repair missing drizzle.__drizzle_migrations rows on older dev DBs
+
+# Workspace-specific checks
+npm run build -w @adventure-time/api
+npm run typecheck -w @adventure-time/api
+npm run typecheck -w @adventure-time/mobile
+npm run typecheck -w @adventure-time/db
+npm run typecheck -w @adventure-time/shared
+npm run typecheck -w @adventure-time/game-engine
+npm run typecheck -w @adventure-time/api-client
 ```
 
-No test suite yet.
+There is currently no configured test runner in this repo. Until that changes, prefer targeted typechecks, package builds, and manual API/mobile verification for changed flows.
+
+Use `npm run db:repair-history -w @adventure-time/db` only for older already-bootstrapped dev databases whose schema already matches the checked-in migrations but whose `drizzle.__drizzle_migrations` rows are missing or incomplete.
 
 ## Architecture
 
@@ -50,6 +65,7 @@ packages/api-client      Typed fetch client used by mobile
 ## Environment
 
 API `.env` (at `apps/api/.env`):
+
 ```
 PORT=4100
 HOST=127.0.0.1
@@ -62,9 +78,11 @@ MINIO_USE_SSL=false
 MINIO_ACCESS_KEY=minio
 MINIO_SECRET_KEY=...
 MINIO_BUCKET=private-images
+DEEPL_API_KEY=...
 ```
 
 Mobile `.env` (at `apps/mobile/.env`):
+
 ```
 EXPO_PUBLIC_API_BASE_URL=https://app.leaetzak.love
 ```

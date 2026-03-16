@@ -24,6 +24,7 @@ import {
   SparklesIcon,
 } from "../../src/components/icons";
 import { RARITY_COLORS } from "../../src/components/theme";
+import { useTranslation } from "../../src/i18n";
 
 import type { PacksResponse, OpenPackResponse } from "@adventure-time/shared";
 
@@ -40,20 +41,43 @@ type OpeningPhase =
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
+const PARTICLE_CONFIGS = [
+  { angle: 0,   dist: 140, isSparkle: false },
+  { angle: 45,  dist: 160, isSparkle: false },
+  { angle: 90,  dist: 130, isSparkle: false },
+  { angle: 135, dist: 155, isSparkle: false },
+  { angle: 180, dist: 140, isSparkle: false },
+  { angle: 225, dist: 150, isSparkle: false },
+  { angle: 270, dist: 135, isSparkle: false },
+  { angle: 315, dist: 160, isSparkle: false },
+  { angle: 22,  dist: 180, isSparkle: true },
+  { angle: 112, dist: 175, isSparkle: true },
+  { angle: 202, dist: 185, isSparkle: true },
+  { angle: 292, dist: 170, isSparkle: true },
+];
+
 function getRarityGlowColor(rarityName: string): string {
   switch (rarityName) {
-    case "Legendary": return "#FFD700";
-    case "Epic":      return "#A855F7";
-    case "Rare":      return "#3B82F6";
-    default:          return "#EC4899";
+    case "Legendary":
+      return "#FFD700";
+    case "Epic":
+      return "#A855F7";
+    case "Rare":
+      return "#3B82F6";
+    default:
+      return "#EC4899";
   }
 }
 
 function getPackIcon(packName: string, size = 36) {
-  if (packName.includes("Legendary")) return <CrownIcon size={size} color="#D97706" />;
-  if (packName.includes("Epic"))      return <DiamondIcon size={size} color="#7C3AED" />;
-  if (packName.includes("Premium"))   return <SparkleIcon size={size} color="#DB2777" />;
-  if (packName.includes("Standard"))  return <GiftBoxIcon size={size} color="#DC2626" />;
+  if (packName.includes("Legendary"))
+    return <CrownIcon size={size} color="#D97706" />;
+  if (packName.includes("Epic"))
+    return <DiamondIcon size={size} color="#7C3AED" />;
+  if (packName.includes("Premium"))
+    return <SparkleIcon size={size} color="#DB2777" />;
+  if (packName.includes("Standard"))
+    return <GiftBoxIcon size={size} color="#DC2626" />;
   return <BoxIcon size={size} color="#6B7280" />;
 }
 
@@ -63,6 +87,7 @@ export default function PacksScreen() {
   const refreshToken = useSessionStore((state) => state.refreshToken);
   const setSession = useSessionStore((state) => state.setSession);
   const coins = useSessionStore((state) => state.user?.coins ?? 0);
+  const { t } = useTranslation();
 
   const [phase, setPhase] = useState<OpeningPhase>("selecting");
   const [selectedPack, setSelectedPack] = useState<Pack | null>(null);
@@ -76,11 +101,14 @@ export default function PacksScreen() {
   // Animated values
   const shakeAnim = useRef(new Animated.Value(0)).current;
   const burstScaleAnim = useRef(new Animated.Value(1)).current;
+  const burstParticleAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const flipAnim = useRef(new Animated.Value(0)).current;
   const spinAnim = useRef(new Animated.Value(0)).current;
   const shimmerAnim = useRef(new Animated.Value(-SCREEN_WIDTH * 2)).current;
-  const floatAnims = useRef([...Array(8)].map(() => new Animated.Value(0))).current;
+  const floatAnims = useRef(
+    [...Array(8)].map(() => new Animated.Value(0)),
+  ).current;
 
   // Floating hearts background animation
   useEffect(() => {
@@ -100,7 +128,7 @@ export default function PacksScreen() {
             useNativeDriver: true,
           }),
         ]),
-        { iterations: -1 }
+        { iterations: -1 },
       );
     });
     const stagger = Animated.stagger(200, animations);
@@ -114,9 +142,17 @@ export default function PacksScreen() {
     pulseAnim.setValue(1);
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1.06, duration: 700, useNativeDriver: true }),
-        Animated.timing(pulseAnim, { toValue: 0.97, duration: 700, useNativeDriver: true }),
-      ])
+        Animated.timing(pulseAnim, {
+          toValue: 1.06,
+          duration: 700,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 0.97,
+          duration: 700,
+          useNativeDriver: true,
+        }),
+      ]),
     );
     loop.start();
     return () => loop.stop();
@@ -127,7 +163,11 @@ export default function PacksScreen() {
     if (phase !== "loading") return;
     spinAnim.setValue(0);
     const loop = Animated.loop(
-      Animated.timing(spinAnim, { toValue: 1, duration: 800, useNativeDriver: true })
+      Animated.timing(spinAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
     );
     loop.start();
     return () => loop.stop();
@@ -137,14 +177,38 @@ export default function PacksScreen() {
     shakeAnim.setValue(0);
     Animated.loop(
       Animated.sequence([
-        Animated.timing(shakeAnim, { toValue: 12, duration: 60, useNativeDriver: true }),
-        Animated.timing(shakeAnim, { toValue: -12, duration: 60, useNativeDriver: true }),
-        Animated.timing(shakeAnim, { toValue: 8, duration: 60, useNativeDriver: true }),
-        Animated.timing(shakeAnim, { toValue: -8, duration: 60, useNativeDriver: true }),
-        Animated.timing(shakeAnim, { toValue: 4, duration: 60, useNativeDriver: true }),
-        Animated.timing(shakeAnim, { toValue: 0, duration: 60, useNativeDriver: true }),
+        Animated.timing(shakeAnim, {
+          toValue: 12,
+          duration: 60,
+          useNativeDriver: true,
+        }),
+        Animated.timing(shakeAnim, {
+          toValue: -12,
+          duration: 60,
+          useNativeDriver: true,
+        }),
+        Animated.timing(shakeAnim, {
+          toValue: 8,
+          duration: 60,
+          useNativeDriver: true,
+        }),
+        Animated.timing(shakeAnim, {
+          toValue: -8,
+          duration: 60,
+          useNativeDriver: true,
+        }),
+        Animated.timing(shakeAnim, {
+          toValue: 4,
+          duration: 60,
+          useNativeDriver: true,
+        }),
+        Animated.timing(shakeAnim, {
+          toValue: 0,
+          duration: 60,
+          useNativeDriver: true,
+        }),
       ]),
-      { iterations: 8 }
+      { iterations: 8 },
     ).start();
 
     // Shimmer sweep
@@ -154,7 +218,7 @@ export default function PacksScreen() {
         toValue: SCREEN_WIDTH * 2,
         duration: 1000,
         useNativeDriver: true,
-      })
+      }),
     ).start();
   }
 
@@ -165,11 +229,20 @@ export default function PacksScreen() {
       duration: 600,
       useNativeDriver: true,
     }).start();
+
+    burstParticleAnim.setValue(0);
+    Animated.timing(burstParticleAnim, {
+      toValue: 1,
+      duration: 600,
+      useNativeDriver: true,
+    }).start();
   }
 
   async function openPack(pack: Pack) {
     if (coins < pack.cost) {
-      setOpenError(`Need ${pack.cost} coins (have ${coins})`);
+      setOpenError(
+        t("native.packs.needCoins", { required: pack.cost, current: coins }),
+      );
       return;
     }
     setOpenError(null);
@@ -221,7 +294,9 @@ export default function PacksScreen() {
       setPhase("readyToReveal");
       setRevealedIndex(-1);
     } catch (err) {
-      setOpenError(err instanceof Error ? err.message : "Failed to open pack.");
+      setOpenError(
+        err instanceof Error ? err.message : t("native.packs.openFailed"),
+      );
       setPhase("selecting");
     } finally {
       setIsOpening(false);
@@ -253,6 +328,7 @@ export default function PacksScreen() {
     setNewBalance(null);
     shakeAnim.setValue(0);
     burstScaleAnim.setValue(1);
+    burstParticleAnim.setValue(0);
     pulseAnim.setValue(1);
     flipAnim.setValue(0);
     shimmerAnim.setValue(-SCREEN_WIDTH * 2);
@@ -266,7 +342,9 @@ export default function PacksScreen() {
   if (packsQuery.isLoading) {
     return (
       <View className="flex-1 bg-bg p-6">
-        <Text className="font-nunito text-fgMuted">Loading packs...</Text>
+        <Text className="font-nunito text-fgMuted">
+          {t("native.packs.loading")}
+        </Text>
       </View>
     );
   }
@@ -275,7 +353,7 @@ export default function PacksScreen() {
     return (
       <View className="flex-1 bg-bg p-6">
         <Text className="font-nunito text-red-600">
-          {packsQuery.error?.message ?? "Packs unavailable."}
+          {packsQuery.error?.message ?? t("native.packs.unavailable")}
         </Text>
       </View>
     );
@@ -285,25 +363,63 @@ export default function PacksScreen() {
 
   // ── SHAKING / BURSTING phase ──────────────────────────────────────────────
   if ((phase === "shaking" || phase === "bursting") && selectedPack) {
-    const spin = spinAnim.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "360deg"] });
+    const spin = spinAnim.interpolate({
+      inputRange: [0, 1],
+      outputRange: ["0deg", "360deg"],
+    });
     return (
       <View className="flex-1 bg-bg items-center justify-center">
-        <Text className="font-nunito-extrabold text-2xl text-fg mb-8">Card Packs</Text>
+        <Text className="font-nunito-extrabold text-2xl text-fg mb-8">
+          {t("native.packs.title")}
+        </Text>
+        {phase === "bursting" && selectedPack ? (
+          <View style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }}>
+            {PARTICLE_CONFIGS.map(({ angle, dist, isSparkle }, i) => {
+              const rad = (angle * Math.PI) / 180;
+              const tx = burstParticleAnim.interpolate({
+                inputRange: [0, 1], outputRange: [0, Math.cos(rad) * dist],
+              });
+              const ty = burstParticleAnim.interpolate({
+                inputRange: [0, 1], outputRange: [0, Math.sin(rad) * dist],
+              });
+              const opacity = burstParticleAnim.interpolate({
+                inputRange: [0, 0.4, 1], outputRange: [1, 0.8, 0],
+              });
+              return (
+                <Animated.View key={i} style={{
+                  position: "absolute", top: "50%", left: "50%",
+                  transform: [{ translateX: tx }, { translateY: ty }], opacity,
+                }}>
+                  {isSparkle
+                    ? <SparkleIcon size={20} color={selectedPack.color || "#EC4899"} />
+                    : <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: selectedPack.color || "#EC4899" }} />}
+                </Animated.View>
+              );
+            })}
+          </View>
+        ) : null}
         <Animated.View
           style={{
             transform: [
-              { translateX: phase === "shaking" ? shakeAnim : new Animated.Value(0) },
+              {
+                translateX:
+                  phase === "shaking" ? shakeAnim : new Animated.Value(0),
+              },
               { scale: burstScaleAnim },
             ],
-            width: 200,
-            height: 280,
-            borderRadius: 16,
+            width: 320,
+            height: 480,
+            borderRadius: 20,
             overflow: "hidden",
             backgroundColor: selectedPack.color || "#EC4899",
           }}
         >
           <LinearGradient
-            colors={["rgba(255,255,255,0.2)", "transparent", "rgba(0,0,0,0.15)"]}
+            colors={[
+              "rgba(255,255,255,0.2)",
+              "transparent",
+              "rgba(0,0,0,0.15)",
+            ]}
             style={{ position: "absolute", inset: 0 }}
           />
           {/* Shimmer overlay — shaking phase only */}
@@ -327,22 +443,31 @@ export default function PacksScreen() {
           ) : null}
           <View className="flex-1 items-center justify-center gap-2">
             {getPackIcon(selectedPack.name, 80)}
-            <Text className="font-nunito-bold text-white text-lg">{selectedPack.name}</Text>
-            <Text className="font-nunito text-white/80 text-sm">{selectedPack.cardCount} cards</Text>
+            <Text className="font-nunito-bold text-white text-lg">
+              {selectedPack.name}
+            </Text>
+            <Text className="font-nunito text-white/80 text-sm">
+              {selectedPack.cardCount} cards
+            </Text>
           </View>
         </Animated.View>
-        <Text className="font-nunito text-fgMuted mt-6 text-base">Opening...</Text>
+        <Text className="font-nunito text-fgMuted mt-6 text-base">
+          Opening...
+        </Text>
       </View>
     );
   }
 
   // ── LOADING phase ─────────────────────────────────────────────────────────
   if (phase === "loading" && selectedPack) {
-    const spin = spinAnim.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "360deg"] });
+    const spin = spinAnim.interpolate({
+      inputRange: [0, 1],
+      outputRange: ["0deg", "360deg"],
+    });
     return (
       <View className="flex-1 bg-bg items-center justify-center gap-6">
         {/* Stacked card backs */}
-        <View style={{ width: 200, height: 280, position: "relative" }}>
+        <View style={{ width: 320, height: 480, position: "relative" }}>
           {[
             { rotate: "-8deg", tx: -12, ty: 8 },
             { rotate: "-4deg", tx: -6, ty: 4 },
@@ -356,14 +481,22 @@ export default function PacksScreen() {
                 inset: 0,
                 borderRadius: 16,
                 overflow: "hidden",
-                transform: [{ rotate: s.rotate }, { translateX: s.tx }, { translateY: s.ty }],
+                transform: [
+                  { rotate: s.rotate },
+                  { translateX: s.tx },
+                  { translateY: s.ty },
+                ],
                 borderWidth: 2,
                 borderColor: "#F9A8D4",
               }}
             >
               <LinearGradient
                 colors={["#FCE7F3", "#FBCFE8", "#F9A8D4"]}
-                style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+                style={{
+                  flex: 1,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
               >
                 <SparklesIcon size={32} color="#DB2777" />
               </LinearGradient>
@@ -374,7 +507,7 @@ export default function PacksScreen() {
           <Animated.View
             style={{
               position: "absolute",
-              inset: -20,
+              inset: -24,
               borderRadius: 9999,
               borderWidth: 4,
               borderColor: "#F9A8D4",
@@ -385,15 +518,29 @@ export default function PacksScreen() {
         </View>
 
         {/* Progress bar */}
-        <View style={{ width: 256, height: 12, backgroundColor: "#F3F4F6", borderRadius: 9999, overflow: "hidden" }}>
+        <View
+          style={{
+            width: 256,
+            height: 12,
+            backgroundColor: "#F3F4F6",
+            borderRadius: 9999,
+            overflow: "hidden",
+          }}
+        >
           <LinearGradient
             colors={["#F472B6", "#EC4899"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
-            style={{ height: "100%", width: `${loadingProgress}%`, borderRadius: 9999 }}
+            style={{
+              height: "100%",
+              width: `${loadingProgress}%`,
+              borderRadius: 9999,
+            }}
           />
         </View>
-        <Text className="font-nunito text-fgMuted">Preparing cards... {loadingProgress}%</Text>
+        <Text className="font-nunito text-fgMuted">
+          Preparing cards... {loadingProgress}%
+        </Text>
       </View>
     );
   }
@@ -410,9 +557,9 @@ export default function PacksScreen() {
           <LinearGradient
             colors={["#FCE7F3", "#F9A8D4", "#EC4899"]}
             style={{
-              width: 200,
-              height: 280,
-              borderRadius: 16,
+              width: 320,
+              height: 480,
+              borderRadius: 20,
               borderWidth: 4,
               borderColor: "#F9A8D4",
               alignItems: "center",
@@ -423,10 +570,10 @@ export default function PacksScreen() {
           >
             {/* Scattered sparkles */}
             {[
-              { top: 20, left: 20 },
-              { top: 20, right: 20 },
-              { bottom: 20, left: 20 },
-              { bottom: 20, right: 20 },
+              { top: 40, left: 40 },
+              { top: 40, right: 40 },
+              { bottom: 40, left: 40 },
+              { bottom: 40, right: 40 },
               { top: "40%", left: 10 },
               { top: "40%", right: 10 },
             ].map((pos, i) => (
@@ -434,7 +581,15 @@ export default function PacksScreen() {
                 <SparkleIcon size={16} color="rgba(255,255,255,0.6)" />
               </View>
             ))}
-            <Text style={{ color: "#fff", fontSize: 64, fontFamily: "Nunito_800ExtraBold" }}>?</Text>
+            <Text
+              style={{
+                color: "#fff",
+                fontSize: 64,
+                fontFamily: "Nunito_800ExtraBold",
+              }}
+            >
+              ?
+            </Text>
           </LinearGradient>
         </Animated.View>
 
@@ -454,19 +609,26 @@ export default function PacksScreen() {
           ))}
         </View>
 
-        <Text className="font-nunito text-fgMuted">Tap to reveal</Text>
+        <Text style={{ fontFamily: "Nunito_700Bold", fontSize: 18, color: "#DB2777" }}>Tap to reveal</Text>
       </TouchableOpacity>
     );
   }
 
   // ── REVEALING phase ───────────────────────────────────────────────────────
-  if (phase === "revealing" && revealedIndex >= 0 && revealedIndex < openedCards.length) {
+  if (
+    phase === "revealing" &&
+    revealedIndex >= 0 &&
+    revealedIndex < openedCards.length
+  ) {
     const card = openedCards[revealedIndex];
     const rarityName = card.rarity?.name ?? "Common";
     const glowColor = getRarityGlowColor(rarityName);
     const rarityRing = RARITY_COLORS[rarityName]?.ring ?? "#9CA3AF";
     const isHighRarity = ["Legendary", "Epic", "Rare"].includes(rarityName);
-    const cardScale = flipAnim.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] });
+    const cardScale = flipAnim.interpolate({
+      inputRange: [0, 1],
+      outputRange: [0.6, 1],
+    });
     const isLast = revealedIndex === openedCards.length - 1;
     const entry = { card: card as any, quantity: 1 };
 
@@ -521,22 +683,39 @@ export default function PacksScreen() {
               style={{
                 position: "absolute",
                 inset: -4,
-                borderRadius: 16,
+                borderRadius: 20,
                 borderWidth: 3,
                 borderColor: rarityRing,
                 zIndex: 10,
               }}
             />
-            <CardTile entry={entry as any} accessToken={accessToken} />
+            <CardTile entry={entry as any} size="large" accessToken={accessToken} />
 
             {/* NEW! badge */}
             {card.isNewForUser ? (
-              <View style={{ position: "absolute", top: -10, right: -10, zIndex: 20 }}>
+              <View
+                style={{
+                  position: "absolute",
+                  top: -10,
+                  right: -10,
+                  zIndex: 20,
+                }}
+              >
                 <LinearGradient
                   colors={["#34D399", "#059669"]}
-                  style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 9999 }}
+                  style={{
+                    paddingHorizontal: 8,
+                    paddingVertical: 3,
+                    borderRadius: 9999,
+                  }}
                 >
-                  <Text style={{ color: "#fff", fontSize: 10, fontFamily: "Nunito_800ExtraBold" }}>
+                  <Text
+                    style={{
+                      color: "#fff",
+                      fontSize: 10,
+                      fontFamily: "Nunito_800ExtraBold",
+                    }}
+                  >
                     NEW!
                   </Text>
                 </LinearGradient>
@@ -548,11 +727,12 @@ export default function PacksScreen() {
           <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
             {openedCards.map((c, i) => {
               const rName = c.rarity?.name ?? "Common";
-              const dotColor = i === revealedIndex
-                ? (RARITY_COLORS[rName]?.ring ?? "#EC4899")
-                : i < revealedIndex
-                ? "#EC4899"
-                : "#F9A8D4";
+              const dotColor =
+                i === revealedIndex
+                  ? (RARITY_COLORS[rName]?.ring ?? "#EC4899")
+                  : i < revealedIndex
+                    ? "#EC4899"
+                    : "#F9A8D4";
               return (
                 <View
                   key={i}
@@ -568,8 +748,10 @@ export default function PacksScreen() {
             })}
           </View>
 
-          <Text className="font-nunito text-fgMuted">
-            {isLast ? "Tap to see summary" : `${revealedIndex + 1} / ${openedCards.length}`}
+          <Text style={{ fontFamily: "Nunito_700Bold", fontSize: 18, color: "#DB2777" }}>
+            {isLast
+              ? "Tap to see summary"
+              : `${revealedIndex + 1} / ${openedCards.length}`}
           </Text>
         </View>
       </TouchableOpacity>
@@ -579,35 +761,49 @@ export default function PacksScreen() {
   // ── COMPLETE phase ────────────────────────────────────────────────────────
   if (phase === "complete") {
     const newCount = openedCards.filter((c) => c.isNewForUser).length;
-    const rarityBreakdown = openedCards.reduce<Record<string, { total: number; newCount: number }>>(
-      (acc, c) => {
-        const rName = c.rarity?.name ?? "Common";
-        if (!acc[rName]) acc[rName] = { total: 0, newCount: 0 };
-        acc[rName].total++;
-        if (c.isNewForUser) acc[rName].newCount++;
-        return acc;
-      },
-      {}
-    );
+    const rarityBreakdown = openedCards.reduce<
+      Record<string, { total: number; newCount: number }>
+    >((acc, c) => {
+      const rName = c.rarity?.name ?? "Common";
+      if (!acc[rName]) acc[rName] = { total: 0, newCount: 0 };
+      acc[rName].total++;
+      if (c.isNewForUser) acc[rName].newCount++;
+      return acc;
+    }, {});
 
     return (
       <ScrollView className="flex-1 bg-bg" contentContainerClassName="p-4 pb-8">
-        <Text className="font-nunito-extrabold text-2xl text-fg mb-4">Your Cards!</Text>
+        <Text className="font-nunito-extrabold text-2xl text-fg mb-4">
+          Your Cards!
+        </Text>
 
         {/* 2-column card grid */}
         <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
           {openedCards.map((card, i) => {
             const entry = { card: card as any, quantity: 1 };
             return (
-              <View key={`${card.id}-${i}`} style={{ width: "50%", padding: 4, alignItems: 'center' }}>
+              <View
+                key={`${card.id}-${i}`}
+                style={{ width: "50%", padding: 4, alignItems: "center" }}
+              >
                 <CardTile entry={entry as any} accessToken={accessToken} />
                 {card.isNewForUser ? (
                   <View style={{ alignItems: "center", marginTop: 4 }}>
                     <LinearGradient
                       colors={["#34D399", "#059669"]}
-                      style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 9999 }}
+                      style={{
+                        paddingHorizontal: 8,
+                        paddingVertical: 2,
+                        borderRadius: 9999,
+                      }}
                     >
-                      <Text style={{ color: "#fff", fontSize: 10, fontFamily: "Nunito_800ExtraBold" }}>
+                      <Text
+                        style={{
+                          color: "#fff",
+                          fontSize: 10,
+                          fontFamily: "Nunito_800ExtraBold",
+                        }}
+                      >
                         NEW!
                       </Text>
                     </LinearGradient>
@@ -630,24 +826,43 @@ export default function PacksScreen() {
             gap: 8,
           }}
         >
-          <Text className="font-nunito-bold text-lg text-fg">Summary</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <SparkleIcon size={20} color="#DB2777" />
+            <Text className="font-nunito-bold text-lg text-fg">Summary</Text>
+          </View>
 
           {newCount > 0 ? (
-            <Text className="font-nunito text-fgMuted">
-              ✨ New cards: {newCount}/{openedCards.length}
-            </Text>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center",
+              paddingBottom: 10, marginBottom: 8, borderBottomWidth: 1, borderBottomColor: "#F9A8D4" }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                <SparkleIcon size={16} color="#059669" />
+                <Text style={{ fontFamily: "Nunito_600SemiBold", color: "#059669" }}>New cards discovered</Text>
+              </View>
+              <Text style={{ fontFamily: "Nunito_700Bold", color: "#059669" }}>{newCount} / {openedCards.length}</Text>
+            </View>
           ) : null}
 
-          {Object.entries(rarityBreakdown).map(([rName, info]) => (
-            <Text key={rName} className="font-nunito text-fgMuted">
-              {rName} x{info.total}
-              {info.newCount > 0 ? ` (${info.newCount} new)` : ""}
-            </Text>
-          ))}
+          {(["Legendary", "Epic", "Rare", "Uncommon", "Common"] as const).map((rName) => {
+            const info = rarityBreakdown[rName];
+            if (!info) return null;
+            const rc = RARITY_COLORS[rName] ?? RARITY_COLORS.Common;
+            return (
+              <View key={rName} style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                <Text style={{ fontFamily: "Nunito_600SemiBold", color: rc.from }}>{rName}</Text>
+                <Text style={{ fontFamily: "Nunito_700Bold", color: rc.to }}>
+                  x{info.total}
+                  {info.newCount > 0 ? (
+                    <Text style={{ fontSize: 11, color: "#059669" }}> ({info.newCount} new)</Text>
+                  ) : null}
+                </Text>
+              </View>
+            );
+          })}
 
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8,
+            paddingTop: 8, borderTopWidth: 1, borderTopColor: "#F9A8D4" }}>
             <CoinIcon size={18} />
-            <Text className="font-nunito text-fgMuted">
+            <Text style={{ fontFamily: "Nunito_400Regular", color: "#6B7280" }}>
               Remaining coins: {newBalance ?? coins}
             </Text>
           </View>
@@ -657,9 +872,19 @@ export default function PacksScreen() {
         <Pressable onPress={reset} style={{ marginTop: 16 }}>
           <LinearGradient
             colors={["#F472B6", "#EC4899"]}
-            style={{ borderRadius: 16, paddingVertical: 14, alignItems: "center" }}
+            style={{
+              borderRadius: 16,
+              paddingVertical: 14,
+              alignItems: "center",
+            }}
           >
-            <Text style={{ color: "#fff", fontFamily: "Nunito_800ExtraBold", fontSize: 16 }}>
+            <Text
+              style={{
+                color: "#fff",
+                fontFamily: "Nunito_800ExtraBold",
+                fontSize: 16,
+              }}
+            >
               Open Another Pack
             </Text>
           </LinearGradient>
@@ -685,14 +910,20 @@ export default function PacksScreen() {
       {/* Floating hearts background */}
       {floatAnims.map((anim, i) => {
         const pos = heartPositions[i];
-        const translateY = anim.interpolate({ inputRange: [0, 1], outputRange: [0, -80] });
+        const translateY = anim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, -80],
+        });
         return (
           <Animated.View
             key={i}
             style={{
               position: "absolute",
               ...pos,
-              opacity: anim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.3, 0.6, 0.3] }),
+              opacity: anim.interpolate({
+                inputRange: [0, 0.5, 1],
+                outputRange: [0.3, 0.6, 0.3],
+              }),
               transform: [{ translateY }],
               zIndex: 0,
             }}
@@ -704,10 +935,20 @@ export default function PacksScreen() {
 
       <ScrollView contentContainerStyle={{ padding: 20, gap: 16, zIndex: 1 }}>
         {/* Header */}
-        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
           <View>
-            <Text className="font-nunito-extrabold text-2xl text-fg">Card Packs</Text>
-            <Text className="font-nunito text-fgMuted text-sm">Choose a pack to open</Text>
+            <Text className="font-nunito-extrabold text-2xl text-fg">
+              Card Packs
+            </Text>
+            <Text className="font-nunito text-fgMuted text-sm">
+              Choose a pack to open
+            </Text>
           </View>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
             <CoinIcon size={20} />
@@ -717,7 +958,9 @@ export default function PacksScreen() {
 
         {openError ? (
           <View className="rounded-2xl bg-red-50 border border-red-200 p-3">
-            <Text className="font-nunito text-red-600 text-sm">{openError}</Text>
+            <Text className="font-nunito text-red-600 text-sm">
+              {openError}
+            </Text>
           </View>
         ) : null}
 
@@ -740,7 +983,14 @@ export default function PacksScreen() {
                 }}
               >
                 {/* Icon + content row */}
-                <View style={{ flexDirection: "row", padding: 16, gap: 14, alignItems: "flex-start" }}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    padding: 16,
+                    gap: 14,
+                    alignItems: "flex-start",
+                  }}
+                >
                   {/* Icon box */}
                   <View
                     style={{
@@ -758,7 +1008,13 @@ export default function PacksScreen() {
 
                   {/* Text content */}
                   <View style={{ flex: 1, gap: 4 }}>
-                    <Text style={{ fontFamily: "Nunito_700Bold", fontSize: 16, color: "#1F2937" }}>
+                    <Text
+                      style={{
+                        fontFamily: "Nunito_700Bold",
+                        fontSize: 16,
+                        color: "#1F2937",
+                      }}
+                    >
                       {pack.name}
                     </Text>
                     <Text
@@ -775,7 +1031,14 @@ export default function PacksScreen() {
                     </Text>
 
                     {/* Chips row */}
-                    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 4 }}>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        flexWrap: "wrap",
+                        gap: 6,
+                        marginTop: 4,
+                      }}
+                    >
                       {/* Cost chip */}
                       <View
                         style={{
@@ -809,7 +1072,13 @@ export default function PacksScreen() {
                           borderRadius: 9999,
                         }}
                       >
-                        <Text style={{ fontFamily: "Nunito_600SemiBold", fontSize: 12, color: "#166534" }}>
+                        <Text
+                          style={{
+                            fontFamily: "Nunito_600SemiBold",
+                            fontSize: 12,
+                            color: "#166534",
+                          }}
+                        >
                           {pack.cardCount} cards
                         </Text>
                       </View>
@@ -824,7 +1093,13 @@ export default function PacksScreen() {
                             borderRadius: 9999,
                           }}
                         >
-                          <Text style={{ fontFamily: "Nunito_600SemiBold", fontSize: 12, color: "#7E22CE" }}>
+                          <Text
+                            style={{
+                              fontFamily: "Nunito_600SemiBold",
+                              fontSize: 12,
+                              color: "#7E22CE",
+                            }}
+                          >
                             Guaranteed: {pack.guaranteedRarity}
                           </Text>
                         </View>

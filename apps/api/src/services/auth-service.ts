@@ -2,16 +2,32 @@ import bcrypt from "bcryptjs";
 import { and, eq, isNull } from "drizzle-orm";
 import { v4 as uuid } from "uuid";
 
-import { db, allowedEmails, authSessions, emailAccessRequests, emailAuthCredentials, ownedCards, users } from "@adventure-time/db";
+import {
+  db,
+  allowedEmails,
+  authSessions,
+  emailAccessRequests,
+  emailAuthCredentials,
+  ownedCards,
+  users,
+} from "@adventure-time/db";
 import type { AuthUser } from "@adventure-time/shared";
 
 import { env } from "../lib/env";
-import { signAccessToken, signRefreshToken, verifyRefreshToken } from "../lib/tokens";
+import {
+  signAccessToken,
+  signRefreshToken,
+  verifyRefreshToken,
+} from "../lib/tokens";
 
 const STARTER_CARD_ID = "finn-hero";
 
 export class AuthError extends Error {
-  constructor(message: string, public readonly statusCode: number, public readonly code?: string) {
+  constructor(
+    message: string,
+    public readonly statusCode: number,
+    public readonly code?: string,
+  ) {
     super(message);
     this.name = "AuthError";
   }
@@ -42,11 +58,14 @@ function mapAuthUser(user: typeof users.$inferSelect): AuthUser {
     dust: user.dust,
     isAdmin: user.isAdmin,
     preferredStepSource: user.preferredStepSource,
+    preferredLanguage: user.preferredLanguage,
   };
 }
 
 async function getAllowedEmailRecord(email: string) {
-  return db.query.allowedEmails.findFirst({ where: eq(allowedEmails.email, email.toLowerCase()) });
+  return db.query.allowedEmails.findFirst({
+    where: eq(allowedEmails.email, email.toLowerCase()),
+  });
 }
 
 async function syncUserAdminStatus(user: typeof users.$inferSelect) {
@@ -57,13 +76,19 @@ async function syncUserAdminStatus(user: typeof users.$inferSelect) {
     return user;
   }
 
-  await db.update(users).set({ isAdmin, updatedAt: new Date() }).where(eq(users.id, user.id));
+  await db
+    .update(users)
+    .set({ isAdmin, updatedAt: new Date() })
+    .where(eq(users.id, user.id));
   return { ...user, isAdmin };
 }
 
 async function ensureStarterCard(userId: string) {
   const existingStarter = await db.query.ownedCards.findFirst({
-    where: and(eq(ownedCards.userId, userId), eq(ownedCards.cardId, STARTER_CARD_ID)),
+    where: and(
+      eq(ownedCards.userId, userId),
+      eq(ownedCards.cardId, STARTER_CARD_ID),
+    ),
   });
 
   if (existingStarter) {
@@ -99,7 +124,10 @@ async function ensurePendingAccessRequest(email: string) {
     return;
   }
 
-  await db.update(emailAccessRequests).set({ status: "pending", updatedAt: new Date() }).where(eq(emailAccessRequests.id, existing.id));
+  await db
+    .update(emailAccessRequests)
+    .set({ status: "pending", updatedAt: new Date() })
+    .where(eq(emailAccessRequests.id, existing.id));
 }
 
 async function createGoogleUser(profile: GoogleProfile) {
@@ -123,10 +151,18 @@ async function createGoogleUser(profile: GoogleProfile) {
   return user;
 }
 
-export async function verifyGoogleIdToken(idToken: string): Promise<GoogleProfile> {
-  const response = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`);
+export async function verifyGoogleIdToken(
+  idToken: string,
+): Promise<GoogleProfile> {
+  const response = await fetch(
+    `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`,
+  );
   if (!response.ok) {
-    throw new AuthError("Google authentication failed.", 401, "GOOGLE_AUTH_FAILED");
+    throw new AuthError(
+      "Google authentication failed.",
+      401,
+      "GOOGLE_AUTH_FAILED",
+    );
   }
 
   const payload = (await response.json()) as GoogleTokenInfo;
@@ -142,17 +178,28 @@ function getAllowedGoogleAudiences() {
   ].filter((value): value is string => Boolean(value));
 }
 
-function getGoogleProfileFromTokenInfo(payload: GoogleTokenInfo): GoogleProfile {
+function getGoogleProfileFromTokenInfo(
+  payload: GoogleTokenInfo,
+): GoogleProfile {
   const allowedAudiences = getAllowedGoogleAudiences();
 
   if (!payload.aud || !allowedAudiences.includes(payload.aud)) {
-    throw new AuthError("Google authentication failed.", 401, "GOOGLE_AUTH_FAILED");
+    throw new AuthError(
+      "Google authentication failed.",
+      401,
+      "GOOGLE_AUTH_FAILED",
+    );
   }
 
-  const emailVerified = payload.email_verified === "true" || payload.verified_email === "true";
+  const emailVerified =
+    payload.email_verified === "true" || payload.verified_email === "true";
 
   if (!payload.email || !emailVerified) {
-    throw new AuthError("Your Google account does not have a verified email.", 401, "GOOGLE_EMAIL_UNVERIFIED");
+    throw new AuthError(
+      "Your Google account does not have a verified email.",
+      401,
+      "GOOGLE_EMAIL_UNVERIFIED",
+    );
   }
 
   return {
@@ -162,20 +209,31 @@ function getGoogleProfileFromTokenInfo(payload: GoogleTokenInfo): GoogleProfile 
   };
 }
 
-export async function verifyGoogleAccessToken(accessToken: string): Promise<GoogleProfile> {
-  const tokenInfoResponse = await fetch(`https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=${encodeURIComponent(accessToken)}`);
+export async function verifyGoogleAccessToken(
+  accessToken: string,
+): Promise<GoogleProfile> {
+  const tokenInfoResponse = await fetch(
+    `https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=${encodeURIComponent(accessToken)}`,
+  );
   if (!tokenInfoResponse.ok) {
-    throw new AuthError("Google authentication failed.", 401, "GOOGLE_AUTH_FAILED");
+    throw new AuthError(
+      "Google authentication failed.",
+      401,
+      "GOOGLE_AUTH_FAILED",
+    );
   }
 
   const tokenInfo = (await tokenInfoResponse.json()) as GoogleTokenInfo;
   const baseProfile = getGoogleProfileFromTokenInfo(tokenInfo);
 
-  const userInfoResponse = await fetch("https://openidconnect.googleapis.com/v1/userinfo", {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
+  const userInfoResponse = await fetch(
+    "https://openidconnect.googleapis.com/v1/userinfo",
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
     },
-  });
+  );
 
   if (!userInfoResponse.ok) {
     return baseProfile;
@@ -185,11 +243,18 @@ export async function verifyGoogleAccessToken(accessToken: string): Promise<Goog
   return {
     email: baseProfile.email,
     name: typeof userInfo.name === "string" ? userInfo.name : baseProfile.name,
-    picture: typeof userInfo.picture === "string" ? userInfo.picture : baseProfile.picture,
+    picture:
+      typeof userInfo.picture === "string"
+        ? userInfo.picture
+        : baseProfile.picture,
   };
 }
 
-async function issueSession(user: typeof users.$inferSelect, userAgent?: string, ipAddress?: string | null) {
+async function issueSession(
+  user: typeof users.$inferSelect,
+  userAgent?: string,
+  ipAddress?: string | null,
+) {
   const syncedUser = await syncUserAdminStatus(user);
   const sessionId = uuid();
   const refreshToken = await signRefreshToken(sessionId, user.id);
@@ -206,15 +271,27 @@ async function issueSession(user: typeof users.$inferSelect, userAgent?: string,
   return {
     user: mapAuthUser(syncedUser),
     tokens: {
-      accessToken: await signAccessToken({ id: syncedUser.id, email: syncedUser.email, isAdmin: syncedUser.isAdmin }),
+      accessToken: await signAccessToken({
+        id: syncedUser.id,
+        email: syncedUser.email,
+        isAdmin: syncedUser.isAdmin,
+      }),
       refreshToken,
       expiresInSeconds: 15 * 60,
     },
   };
 }
 
-export async function register(input: { email: string; password: string; displayName: string; userAgent?: string; ipAddress?: string | null }) {
-  const existing = await db.query.users.findFirst({ where: eq(users.email, input.email.toLowerCase()) });
+export async function register(input: {
+  email: string;
+  password: string;
+  displayName: string;
+  userAgent?: string;
+  ipAddress?: string | null;
+}) {
+  const existing = await db.query.users.findFirst({
+    where: eq(users.email, input.email.toLowerCase()),
+  });
   if (existing) {
     throw new Error("An account already exists for this email.");
   }
@@ -251,13 +328,22 @@ export async function register(input: { email: string; password: string; display
   return issueSession(user, input.userAgent, input.ipAddress);
 }
 
-export async function login(input: { email: string; password: string; userAgent?: string; ipAddress?: string | null }) {
-  const user = await db.query.users.findFirst({ where: eq(users.email, input.email.toLowerCase()) });
+export async function login(input: {
+  email: string;
+  password: string;
+  userAgent?: string;
+  ipAddress?: string | null;
+}) {
+  const user = await db.query.users.findFirst({
+    where: eq(users.email, input.email.toLowerCase()),
+  });
   if (!user) {
     throw new Error("Invalid email or password.");
   }
 
-  const credential = await db.query.emailAuthCredentials.findFirst({ where: eq(emailAuthCredentials.userId, user.id) });
+  const credential = await db.query.emailAuthCredentials.findFirst({
+    where: eq(emailAuthCredentials.userId, user.id),
+  });
   if (!credential) {
     throw new Error("Invalid email or password.");
   }
@@ -270,13 +356,22 @@ export async function login(input: { email: string; password: string; userAgent?
   return issueSession(user, input.userAgent, input.ipAddress);
 }
 
-export async function loginWithGoogle(input: { idToken?: string; accessToken?: string; userAgent?: string; ipAddress?: string | null }) {
+export async function loginWithGoogle(input: {
+  idToken?: string;
+  accessToken?: string;
+  userAgent?: string;
+  ipAddress?: string | null;
+}) {
   const profile = input.idToken
     ? await verifyGoogleIdToken(input.idToken)
     : input.accessToken
       ? await verifyGoogleAccessToken(input.accessToken)
       : (() => {
-          throw new AuthError("Google authentication failed.", 400, "GOOGLE_AUTH_MISSING_TOKEN");
+          throw new AuthError(
+            "Google authentication failed.",
+            400,
+            "GOOGLE_AUTH_MISSING_TOKEN",
+          );
         })();
   const allowedEmail = await getAllowedEmailRecord(profile.email);
 
@@ -289,21 +384,34 @@ export async function loginWithGoogle(input: { idToken?: string; accessToken?: s
     );
   }
 
-  let user = await db.query.users.findFirst({ where: eq(users.email, profile.email) });
+  let user = await db.query.users.findFirst({
+    where: eq(users.email, profile.email),
+  });
   if (!user) {
     user = await createGoogleUser(profile);
   } else if (profile.name && user.displayName !== profile.name) {
-    await db.update(users).set({ displayName: profile.name, updatedAt: new Date() }).where(eq(users.id, user.id));
+    await db
+      .update(users)
+      .set({ displayName: profile.name, updatedAt: new Date() })
+      .where(eq(users.id, user.id));
     user = { ...user, displayName: profile.name };
   }
 
   return issueSession(user, input.userAgent, input.ipAddress);
 }
 
-export async function refresh(refreshToken: string, userAgent?: string, ipAddress?: string | null) {
+export async function refresh(
+  refreshToken: string,
+  userAgent?: string,
+  ipAddress?: string | null,
+) {
   const payload = await verifyRefreshToken(refreshToken);
   const session = await db.query.authSessions.findFirst({
-    where: and(eq(authSessions.id, payload.sid), eq(authSessions.userId, payload.sub), isNull(authSessions.revokedAt)),
+    where: and(
+      eq(authSessions.id, payload.sid),
+      eq(authSessions.userId, payload.sub),
+      isNull(authSessions.revokedAt),
+    ),
   });
 
   if (!session) {
@@ -315,8 +423,13 @@ export async function refresh(refreshToken: string, userAgent?: string, ipAddres
     throw new Error("Invalid refresh token.");
   }
 
-  await db.update(authSessions).set({ revokedAt: new Date() }).where(eq(authSessions.id, session.id));
-  const user = await db.query.users.findFirst({ where: eq(users.id, payload.sub) });
+  await db
+    .update(authSessions)
+    .set({ revokedAt: new Date() })
+    .where(eq(authSessions.id, session.id));
+  const user = await db.query.users.findFirst({
+    where: eq(users.id, payload.sub),
+  });
   if (!user) {
     throw new Error("User not found.");
   }
@@ -326,5 +439,8 @@ export async function refresh(refreshToken: string, userAgent?: string, ipAddres
 
 export async function logout(refreshToken: string) {
   const payload = await verifyRefreshToken(refreshToken);
-  await db.update(authSessions).set({ revokedAt: new Date() }).where(eq(authSessions.id, payload.sid));
+  await db
+    .update(authSessions)
+    .set({ revokedAt: new Date() })
+    .where(eq(authSessions.id, payload.sid));
 }
