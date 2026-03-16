@@ -512,24 +512,17 @@ export default function QuestsScreen() {
                   <View
                     style={{
                       marginTop: 16,
-                      shadowColor: "#000",
-                      shadowOpacity: 0.15,
-                      shadowRadius: 6,
-                      shadowOffset: { width: 0, height: 3 },
-                      elevation: 4,
                       borderRadius: 12,
-                      alignSelf: "stretch",
                     }}
                   >
                     <TouchableOpacity
                       onPress={() => router.push(quest.actionPath as never)}
-                      disabled={status === "claimed"}
-                      style={{ borderRadius: 12, overflow: "hidden", width: "100%" }}
+                      style={{ borderRadius: 12, overflow: "hidden" }}
                     >
                       {status === "claimed" ? (
                         <View
-                          style={{ backgroundColor: "#9CA3AF" }}
-                          className="py-3 items-center justify-center"
+                          style={{ backgroundColor: "#9CA3AF", minHeight: 44 }}
+                          className="items-center justify-center"
                         >
                           <Text className="font-nunito-bold text-white">{actionLabel}</Text>
                         </View>
@@ -538,7 +531,8 @@ export default function QuestsScreen() {
                           colors={[colors.gradStart, colors.gradEnd]}
                           start={{ x: 0, y: 0 }}
                           end={{ x: 1, y: 0 }}
-                          className="py-3 items-center justify-center"
+                          className="items-center justify-center"
+                          style={{ minHeight: 44 }}
                         >
                           <Text className="font-nunito-bold text-white">{actionLabel}</Text>
                         </LinearGradient>
@@ -551,25 +545,20 @@ export default function QuestsScreen() {
                   <View
                     style={{
                       marginTop: 16,
-                      shadowColor: "#000",
-                      shadowOpacity: 0.15,
-                      shadowRadius: 6,
-                      shadowOffset: { width: 0, height: 3 },
-                      elevation: 4,
                       borderRadius: 12,
-                      alignSelf: "stretch",
                     }}
                   >
                     <TouchableOpacity
                       onPress={() => void claimQuestMutation.mutateAsync(quest.id)}
                       disabled={isClaimLoading}
-                      style={{ borderRadius: 12, overflow: "hidden", width: "100%" }}
+                      style={{ borderRadius: 12, overflow: "hidden" }}
                     >
                       <LinearGradient
                         colors={["#2DD4BF", "#14B8A6"]}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 0 }}
-                        className="py-3 items-center flex-row justify-center gap-2"
+                        className="items-center flex-row justify-center gap-2"
+                        style={{ minHeight: 44 }}
                       >
                         {isClaimLoading ? (
                           <ActivityIndicator color="white" size="small" />
