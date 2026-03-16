@@ -141,19 +141,6 @@ export default function SettingsScreen() {
         </Pressable>
       </View>
 
-      {user?.isAdmin ? (
-        <View className="gap-3 rounded-3xl border border-primaryBorder bg-white p-4">
-          <Text className="font-nunito-bold text-primaryStrong">Admin</Text>
-          <Text className="font-nunito text-fgMuted">Admin tools live behind a hidden route group.</Text>
-          <Pressable
-            className="items-center rounded-full bg-fg px-4 py-3"
-            onPress={() => router.push("/admin")}
-          >
-            <Text className="font-nunito-bold text-white">Open hidden admin tools</Text>
-          </Pressable>
-        </View>
-      ) : null}
-
       <Pressable
         className="items-center rounded-full bg-primaryDark py-4"
         onPress={() => void clearSession().then(() => router.replace("/login"))}
