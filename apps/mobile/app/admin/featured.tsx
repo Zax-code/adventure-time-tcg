@@ -1,12 +1,11 @@
 import { useMemo, useState } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { apiClient } from "../../src/lib/api";
 import { AdminCardTile } from "../../src/components/admin/admin-card-tile";
 import {
-  AdminButton,
   AdminChip,
   AdminEmptyState,
   AdminPageScroll,
@@ -56,6 +55,13 @@ export default function AdminFeaturedScreen() {
           <AdminChip label={`${featuredCards.length} / 5 featured`} tone="warning" />
           <AdminChip label={`${nonFeaturedCards.length} waiting`} tone="default" />
         </View>
+        {maxReached ? (
+          <View style={styles.warningPanel}>
+            <Text style={styles.warningText}>
+              Maximum of five featured cards reached. Remove one above before adding another.
+            </Text>
+          </View>
+        ) : null}
       </AdminPanel>
 
       <AdminPanel>
@@ -73,7 +79,6 @@ export default function AdminFeaturedScreen() {
                     <Ionicons name="star" size={16} color="#FFFFFF" />
                   </Pressable>
                 </View>
-                <AdminButton label="Remove" variant="warning" onPress={() => toggleMutation.mutate({ cardId: card.id, isFeatured: false })} />
               </View>
             ))
           ) : (
@@ -83,27 +88,21 @@ export default function AdminFeaturedScreen() {
       </AdminPanel>
 
       <AdminPanel>
-        <AdminSectionTitle title={`All cards (${nonFeaturedCards.length})`} subtitle={maxReached ? "Maximum of five featured cards reached. Remove one above before adding another." : undefined} />
+        <AdminSectionTitle title={`All cards (${nonFeaturedCards.length})`} />
         <View style={styles.grid}>
           {nonFeaturedCards.length ? (
             nonFeaturedCards.map((card) => (
               <View key={card.id} style={styles.tileWrap}>
-                <View style={[maxReached ? styles.dimmed : null]}>
+                <View style={[styles.candidateWrap, maxReached ? styles.dimmed : null]}>
                   <AdminCardTile card={card} />
                   <Pressable
                     disabled={maxReached}
                     style={[styles.starButton, maxReached ? styles.starButtonDisabled : styles.starButtonMuted]}
                     onPress={() => toggleMutation.mutate({ cardId: card.id, isFeatured: true })}
-                  >
-                    <Ionicons name="star-outline" size={16} color={maxReached ? "#6B7280" : "#A16207"} />
-                  </Pressable>
-                </View>
-                <AdminButton
-                  label="Feature"
-                  variant="secondary"
-                  disabled={maxReached}
-                  onPress={() => toggleMutation.mutate({ cardId: card.id, isFeatured: true })}
-                />
+                    >
+                      <Ionicons name="star-outline" size={16} color={maxReached ? "#6B7280" : "#A16207"} />
+                    </Pressable>
+                  </View>
               </View>
             ))
           ) : (
@@ -126,19 +125,36 @@ const styles = StyleSheet.create({
     marginTop: 12,
     flexDirection: "row",
     flexWrap: "wrap",
-    justifyContent: "space-between",
-    gap: 16,
+    justifyContent: "center",
+    columnGap: 12,
+    rowGap: 16,
   },
   tileWrap: {
     width: "48%",
-    gap: 8,
     alignItems: "center",
+  },
+  warningPanel: {
+    marginTop: 12,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    backgroundColor: "#FEF3C7",
+    borderWidth: 1,
+    borderColor: "#FDE68A",
+  },
+  warningText: {
+    fontFamily: "Nunito_700Bold",
+    fontSize: 13,
+    color: "#A16207",
   },
   featuredRing: {
     borderWidth: 4,
     borderColor: "#FACC15",
     borderRadius: 18,
     padding: 2,
+  },
+  candidateWrap: {
+    position: "relative",
   },
   starButton: {
     position: "absolute",

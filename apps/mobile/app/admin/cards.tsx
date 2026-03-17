@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -10,14 +11,11 @@ import { AdminCardTile } from "../../src/components/admin/admin-card-tile";
 import {
   AbilityTypeChip,
   AdminButton,
-  AdminChip,
-  AdminEmptyState,
   AdminField,
   AdminModal,
   AdminPageScroll,
   AdminPanel,
   AdminSearchInput,
-  AdminSectionTitle,
 } from "../../src/components/admin/admin-ui";
 
 type CardDraft = {
@@ -87,6 +85,9 @@ export default function AdminCardsScreen() {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
+  const [selectedArchivedCardId, setSelectedArchivedCardId] = useState<string | null>(null);
+  const [isActiveCardsOpen, setIsActiveCardsOpen] = useState(true);
+  const [isArchivedCardsOpen, setIsArchivedCardsOpen] = useState(true);
   const [draft, setDraft] = useState<CardDraft>(BLANK_CARD_DRAFT);
   const [pickerRole, setPickerRole] = useState<"passive" | "skill" | "ultimate" | null>(null);
   const [assignmentDraft, setAssignmentDraft] = useState({ passiveId: "", skillId: "", ultimateId: "" });
@@ -177,15 +178,19 @@ export default function AdminCardsScreen() {
     const query = searchQuery.trim().toLowerCase();
     return (cardsQuery.data?.cards ?? []).filter((card) => {
       if (!query) return true;
-      return [card.name, card.character, card.rarityName, card.type]
+      return [card.name, card.character]
         .join(" ")
         .toLowerCase()
         .includes(query);
     });
   }, [cardsQuery.data?.cards, searchQuery]);
 
+  const cards = cardsQuery.data?.cards ?? [];
+  const allActiveCards = cards.filter((card) => !card.isArchived);
+  const allArchivedCards = cards.filter((card) => card.isArchived);
   const activeCards = filtered.filter((card) => !card.isArchived);
   const archivedCards = filtered.filter((card) => card.isArchived);
+  const selectedArchivedCard = archivedCards.find((card) => card.id === selectedArchivedCardId) ?? allArchivedCards.find((card) => card.id === selectedArchivedCardId) ?? null;
   const previewCard = detailQuery.data ?? (editingCardId ? null : {
     id: "preview",
     ...savePayload(draft),
@@ -208,98 +213,107 @@ export default function AdminCardsScreen() {
   return (
     <>
       <AdminPageScroll>
-        <AdminPanel>
-          <AdminSectionTitle
-            title="Card Admin"
-            subtitle="Mirror the PWA card curation flow with previews, featured states, and archive controls."
-            right={
-              <AdminButton
-                label="Add card"
-                icon="add"
-                onPress={() => {
-                  setEditingCardId("");
-                  setDraft({
-                    ...BLANK_CARD_DRAFT,
-                    rarityId: raritiesQuery.data?.rarities[0]?.id ?? "",
-                  });
-                }}
-              />
-            }
+        <View style={styles.pageHeader}>
+          <Text style={styles.pageTitle}>Card Admin</Text>
+        </View>
+
+        <View style={styles.ctaRow}>
+          <AdminButton
+            label="Add card"
+            icon="add"
+            onPress={() => {
+              setEditingCardId("");
+              setDraft({
+                ...BLANK_CARD_DRAFT,
+                rarityId: raritiesQuery.data?.rarities[0]?.id ?? "",
+              });
+            }}
           />
-          <View style={{ height: 12 }} />
+        </View>
+
+        <AdminPanel style={styles.statsPanel}>
+          <Text style={styles.statsTitle}>Card Stats</Text>
+          <View style={styles.statsGrid}>
+            {raritiesQuery.data?.rarities.map((rarity) => (
+              <View key={rarity.id} style={styles.statTile}>
+                <Text style={[styles.statCount, { color: rarity.color || "#DB2777" }]}>
+                  {cards.filter((card) => card.rarityId === rarity.id).length}
+                </Text>
+                <Text style={styles.statLabel}>{rarity.name}</Text>
+              </View>
+            ))}
+          </View>
+        </AdminPanel>
+
+        <View style={styles.searchSection}>
           <AdminSearchInput
             value={searchQuery}
             onChangeText={setSearchQuery}
-            placeholder="Search by name, character, rarity, or type"
+            placeholder="Search cards by name or character..."
           />
-          <View style={styles.summaryRow}>
-            <AdminChip label={`${activeCards.length} active`} tone="success" />
-            <AdminChip label={`${archivedCards.length} archived`} tone="danger" />
-            <AdminChip
-              label={`${filtered.filter((card) => card.isFeatured).length} featured`}
-              tone="warning"
+        </View>
+
+        <View style={styles.collectionSection}>
+          <Pressable style={styles.collectionToggle} onPress={() => setIsActiveCardsOpen((current) => !current)}>
+            <Text style={styles.collectionTitle}>
+              All Cards ({activeCards.length}){searchQuery ? ` / ${allActiveCards.length}` : ""}
+            </Text>
+            <Ionicons
+              name="chevron-down"
+              size={20}
+              color="#BE185D"
+              style={[styles.chevron, isActiveCardsOpen ? styles.chevronOpen : null]}
             />
-          </View>
-        </AdminPanel>
-
-        <AdminPanel>
-          <AdminSectionTitle title={`Active cards (${activeCards.length})`} />
-          <View style={styles.grid}>
-            {activeCards.length ? (
-              activeCards.map((card) => (
-                <View key={card.id} style={styles.tileWrap}>
-                  <AdminCardTile
-                    card={card}
-                    onPress={() => {
-                      setEditingCardId(card.id);
-                    }}
-                  />
-                  <View style={styles.tileActionRow}>
-                    <AdminButton label="Edit" variant="ghost" onPress={() => setEditingCardId(card.id)} />
-                    <AdminButton
-                      label={card.isFeatured ? "Unfeature" : "Feature"}
-                      variant="warning"
-                      onPress={() => featureMutation.mutate({ cardId: card.id, isFeatured: !card.isFeatured })}
-                    />
-                  </View>
-                  <View style={styles.tileActionRow}>
-                    <AdminButton label="Upload art" variant="secondary" onPress={() => uploadMutation.mutate(card.id)} />
-                    <AdminButton
-                      label="Archive"
-                      variant="danger"
-                      onPress={() => featureMutation.mutate({ cardId: card.id, isArchived: true })}
-                    />
-                  </View>
+          </Pressable>
+          {isActiveCardsOpen ? (
+            <View style={styles.collectionBody}>
+              <Text style={styles.helperText}>Tap a card to edit it.</Text>
+              {activeCards.length ? (
+                <View style={styles.grid}>
+                  {activeCards.map((card) => (
+                    <Pressable key={card.id} style={styles.tileWrap} onPress={() => setEditingCardId(card.id)}>
+                      <AdminCardTile card={card} />
+                    </Pressable>
+                  ))}
                 </View>
-              ))
-            ) : (
-              <AdminEmptyState icon="albums" title="No active cards" body="Try a different search or create a new card." />
-            )}
-          </View>
-        </AdminPanel>
+              ) : (
+                <Text style={styles.emptyCopy}>No cards match your search.</Text>
+              )}
+            </View>
+          ) : null}
+        </View>
 
-        <AdminPanel>
-          <AdminSectionTitle title={`Archived cards (${archivedCards.length})`} subtitle="Restore cards from the archive without leaving the admin flow." />
-          <View style={styles.grid}>
-            {archivedCards.length ? (
-              archivedCards.map((card) => (
-                <View key={card.id} style={styles.tileWrap}>
-                  <AdminCardTile card={card} onPress={() => setEditingCardId(card.id)} />
-                  <View style={styles.tileActionRow}>
-                    <AdminButton label="Inspect" variant="ghost" onPress={() => setEditingCardId(card.id)} />
-                    <AdminButton
-                      label="Restore"
-                      variant="secondary"
-                      onPress={() => featureMutation.mutate({ cardId: card.id, isArchived: false })}
-                    />
-                  </View>
+        <View style={styles.collectionSection}>
+          <Pressable style={styles.archivedToggle} onPress={() => setIsArchivedCardsOpen((current) => !current)}>
+            <Text style={styles.archivedTitle}>
+              Archived Cards ({archivedCards.length}){searchQuery ? ` / ${allArchivedCards.length}` : ""}
+            </Text>
+            <Ionicons
+              name="chevron-down"
+              size={20}
+              color="#BE123C"
+              style={[styles.chevron, isArchivedCardsOpen ? styles.chevronOpen : null]}
+            />
+          </Pressable>
+          {isArchivedCardsOpen ? (
+            <View style={styles.collectionBody}>
+              {archivedCards.length ? <Text style={styles.helperText}>Tap a card to manage it.</Text> : null}
+              {archivedCards.length ? (
+                <View style={styles.grid}>
+                  {archivedCards.map((card) => (
+                    <Pressable key={card.id} style={[styles.tileWrap, styles.archivedTile]} onPress={() => setSelectedArchivedCardId(card.id)}>
+                      <AdminCardTile card={card} />
+                    </Pressable>
+                  ))}
                 </View>
-              ))
-            ) : (
-              <AdminEmptyState icon="archive" title="Archive is empty" body="Archived cards will appear here." />
-            )}
-          </View>
-        </AdminPanel>
+              ) : (
+                <Text style={styles.emptyCopy}>
+                  {searchQuery ? "No archived cards match your search." : "No archived cards."}
+                </Text>
+              )}
+            </View>
+          ) : null}
+        </View>
       </AdminPageScroll>
 
       <AdminModal
@@ -456,28 +470,152 @@ export default function AdminCardsScreen() {
           </>
         ) : null}
       </AdminModal>
+
+      <AdminModal visible={selectedArchivedCard !== null} title="Archived Card" onClose={() => setSelectedArchivedCardId(null)}>
+        {selectedArchivedCard ? (
+          <>
+            <View style={styles.archivedModalPreview}>
+              <AdminCardTile card={selectedArchivedCard} size="large" />
+            </View>
+            <Text style={styles.archivedModalTitle}>{selectedArchivedCard.name}</Text>
+            <View style={styles.archivedModalActions}>
+              <AdminButton
+                label="Restore card"
+                variant="secondary"
+                onPress={() => {
+                  featureMutation.mutate({ cardId: selectedArchivedCard.id, isArchived: false });
+                  setSelectedArchivedCardId(null);
+                }}
+              />
+              <AdminButton label="Cancel" variant="ghost" onPress={() => setSelectedArchivedCardId(null)} />
+            </View>
+          </>
+        ) : null}
+      </AdminModal>
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  summaryRow: {
-    marginTop: 12,
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
+  pageHeader: {
+    alignItems: "center",
+    paddingTop: 4,
+    paddingHorizontal: 16,
   },
-  grid: {
-    marginTop: 12,
+  pageTitle: {
+    fontFamily: "Nunito_800ExtraBold",
+    fontSize: 28,
+    color: "#BE185D",
+  },
+  ctaRow: {
+    paddingHorizontal: 16,
+  },
+  statsPanel: {
+    marginHorizontal: 16,
+    paddingBottom: 18,
+  },
+  statsTitle: {
+    fontFamily: "Nunito_800ExtraBold",
+    fontSize: 20,
+    color: "#7A284D",
+    marginBottom: 12,
+  },
+  statsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    gap: 16,
+    gap: 10,
+  },
+  statTile: {
+    width: "48%",
+    backgroundColor: "rgba(255,255,255,0.6)",
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 10,
+    alignItems: "center",
+  },
+  statCount: {
+    fontFamily: "Nunito_800ExtraBold",
+    fontSize: 26,
+  },
+  statLabel: {
+    marginTop: 3,
+    fontFamily: "Nunito_700Bold",
+    fontSize: 13,
+    color: "#6B7280",
+  },
+  searchSection: {
+    paddingHorizontal: 16,
+  },
+  collectionSection: {
+    marginBottom: 8,
+  },
+  collectionToggle: {
+    marginHorizontal: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 16,
+    backgroundColor: "#FCE7F3",
+  },
+  collectionTitle: {
+    fontFamily: "Nunito_800ExtraBold",
+    fontSize: 18,
+    color: "#7A284D",
+  },
+  archivedToggle: {
+    marginHorizontal: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 16,
+    backgroundColor: "#FFE4E6",
+  },
+  archivedTitle: {
+    fontFamily: "Nunito_800ExtraBold",
+    fontSize: 18,
+    color: "#BE123C",
+  },
+  chevron: {
+    transform: [{ rotate: "0deg" }],
+  },
+  chevronOpen: {
+    transform: [{ rotate: "180deg" }],
+  },
+  collectionBody: {
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 4,
+  },
+  helperText: {
+    marginBottom: 12,
+    fontFamily: "Nunito_600SemiBold",
+    fontSize: 12,
+    color: "#6B7280",
+  },
+  emptyCopy: {
+    fontFamily: "Nunito_600SemiBold",
+    fontSize: 14,
+    color: "#6B7280",
+  },
+  grid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    columnGap: 12,
+    rowGap: 16,
   },
   tileWrap: {
     width: "48%",
-    gap: 8,
     alignItems: "center",
+  },
+  archivedTile: {
+    opacity: 0.6,
   },
   tileActionRow: {
     width: "100%",
@@ -566,5 +704,19 @@ const styles = StyleSheet.create({
     fontFamily: "Nunito_600SemiBold",
     fontSize: 13,
     color: "#6B7280",
+  },
+  archivedModalPreview: {
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  archivedModalTitle: {
+    textAlign: "center",
+    fontFamily: "Nunito_700Bold",
+    fontSize: 16,
+    color: "#7A284D",
+    marginBottom: 18,
+  },
+  archivedModalActions: {
+    gap: 10,
   },
 });
