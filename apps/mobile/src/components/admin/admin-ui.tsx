@@ -163,7 +163,7 @@ export function AdminModal({
   children: ReactNode;
 }) {
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
       <View style={styles.modalBackdrop}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         <View style={styles.modalCard}>

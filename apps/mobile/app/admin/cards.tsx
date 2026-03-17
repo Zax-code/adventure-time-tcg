@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   FlatList,
   Pressable,
@@ -56,6 +56,8 @@ type CardsListItem =
   | { id: string; type: "active-row"; row: CardRow }
   | { id: string; type: "archived-header" }
   | { id: string; type: "archived-row"; row: CardRow };
+
+const keyExtractor = (item: CardsListItem) => item.id;
 
 const BLANK_CARD_DRAFT: CardDraft = {
   name: "",
@@ -280,9 +282,16 @@ export default function AdminCardsScreen() {
     ? derived.cardById.get(selectedArchivedCardId) ?? null
     : null;
 
+  // Stabilize prefetch — key on a joined string of asset IDs, not the array reference
+  const prefetchKey = useMemo(
+    () => cards.slice(0, 48).map((c) => c.imageAssetId).filter(Boolean).join(","),
+    [cards],
+  );
   useEffect(() => {
-    void prefetchCardImages(cards.slice(0, 48).map((card) => card.imageAssetId));
-  }, [cards]);
+    if (prefetchKey) {
+      void prefetchCardImages(prefetchKey.split(","));
+    }
+  }, [prefetchKey]);
 
   useEffect(() => {
     if (!editingCardId || !selectedEditingCard) {
@@ -473,10 +482,10 @@ export default function AdminCardsScreen() {
     },
     [
       cardsError,
-      derived.activeCards,
+      derived.activeCards.length,
       derived.allActiveCount,
       derived.allArchivedCount,
-      derived.archivedCards,
+      derived.archivedCards.length,
       isActiveCardsOpen,
       isArchivedCardsOpen,
       isCardsLoading,
@@ -485,54 +494,63 @@ export default function AdminCardsScreen() {
     ],
   );
 
+  const listHeader = useMemo(
+    () => (
+      <>
+        <View style={styles.pageHeader}>
+          <Text style={styles.pageTitle}>Card Admin</Text>
+        </View>
+
+        <View style={styles.ctaRow}>
+          <AdminButton label="Add card" icon="add" onPress={openCreateModal} />
+        </View>
+
+        <AdminPanel style={styles.statsPanel}>
+          <Text style={styles.statsTitle}>Card Stats</Text>
+          {isCardsLoading ? (
+            <Text style={styles.helperText}>Loading cards...</Text>
+          ) : cardsError ? (
+            <Text style={styles.errorCopy}>{cardsError}</Text>
+          ) : (
+            <View style={styles.statsGrid}>
+              {raritiesQuery.data?.rarities.map((rarity) => (
+                <View key={rarity.id} style={styles.statTile}>
+                  <Text style={[styles.statCount, { color: rarity.color || "#DB2777" }]}>
+                    {derived.rarityCounts.get(rarity.id) ?? 0}
+                  </Text>
+                  <Text style={styles.statLabel}>{rarity.name}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </AdminPanel>
+
+        <View style={styles.searchSection}>
+          <AdminSearchInput
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Search cards by name or character..."
+          />
+        </View>
+      </>
+    ),
+    [searchQuery, isCardsLoading, cardsError, raritiesQuery.data?.rarities, derived.rarityCounts, openCreateModal],
+  );
+
   return (
     <>
       <FlatList
         data={listData}
-        keyExtractor={(item) => item.id}
+        keyExtractor={keyExtractor}
         renderItem={renderItem}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.pageContent}
-        ListHeaderComponent={
-          <>
-            <View style={styles.pageHeader}>
-              <Text style={styles.pageTitle}>Card Admin</Text>
-            </View>
-
-            <View style={styles.ctaRow}>
-              <AdminButton label="Add card" icon="add" onPress={openCreateModal} />
-            </View>
-
-            <AdminPanel style={styles.statsPanel}>
-              <Text style={styles.statsTitle}>Card Stats</Text>
-              {isCardsLoading ? (
-                <Text style={styles.helperText}>Loading cards...</Text>
-              ) : cardsError ? (
-                <Text style={styles.errorCopy}>{cardsError}</Text>
-              ) : (
-                <View style={styles.statsGrid}>
-                  {raritiesQuery.data?.rarities.map((rarity) => (
-                    <View key={rarity.id} style={styles.statTile}>
-                      <Text style={[styles.statCount, { color: rarity.color || "#DB2777" }]}>
-                        {derived.rarityCounts.get(rarity.id) ?? 0}
-                      </Text>
-                      <Text style={styles.statLabel}>{rarity.name}</Text>
-                    </View>
-                  ))}
-                </View>
-              )}
-            </AdminPanel>
-
-            <View style={styles.searchSection}>
-              <AdminSearchInput
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                placeholder="Search cards by name or character..."
-              />
-            </View>
-          </>
-        }
+        ListHeaderComponent={listHeader}
+        removeClippedSubviews
+        windowSize={5}
+        maxToRenderPerBatch={6}
+        initialNumToRender={8}
       />
 
       {editingCardId !== null ? (

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   FlatList,
   Pressable,
@@ -42,6 +42,8 @@ type FeaturedListItem =
   | { id: string; type: "candidate-header" }
   | { id: string; type: "candidate-row"; row: CardRow };
 
+const keyExtractor = (item: FeaturedListItem) => item.id;
+
 function getFeaturedTileWidth(screenWidth: number) {
   const availableWidth = screenWidth - SCREEN_SIDE_PADDING * 2 - PANEL_INNER_PADDING * 2;
   return Math.floor((availableWidth - GRID_GAP) / 2) - 2;
@@ -82,9 +84,20 @@ export default function AdminFeaturedScreen() {
   const isCardsLoading = cardsQuery.isLoading;
   const cardsError = cardsQuery.error instanceof Error ? cardsQuery.error.message : null;
 
+  // Stable ref for mutation so renderRow's useCallback doesn't depend on toggleMutation object
+  const toggleRef = useRef(toggleMutation.mutate);
+  toggleRef.current = toggleMutation.mutate;
+
+  // Stabilize prefetch — key on a joined string of asset IDs, not the array reference
+  const prefetchKey = useMemo(
+    () => cards.slice(0, 48).map((c) => c.imageAssetId).filter(Boolean).join(","),
+    [cards],
+  );
   useEffect(() => {
-    void prefetchCardImages(cards.slice(0, 48).map((card) => card.imageAssetId));
-  }, [cards]);
+    if (prefetchKey) {
+      void prefetchCardImages(prefetchKey.split(","));
+    }
+  }, [prefetchKey]);
 
   const derived = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -141,7 +154,7 @@ export default function AdminFeaturedScreen() {
                     : styles.starButtonMuted,
               ]}
               onPress={() =>
-                toggleMutation.mutate({ cardId: row.left.id, isFeatured: !featured })
+                toggleRef.current({ cardId: row.left.id, isFeatured: !featured })
               }
             >
               <Ionicons
@@ -172,7 +185,7 @@ export default function AdminFeaturedScreen() {
                       : styles.starButtonMuted,
                 ]}
                 onPress={() =>
-                  toggleMutation.mutate({ cardId: row.right!.id, isFeatured: !featured })
+                  toggleRef.current({ cardId: row.right!.id, isFeatured: !featured })
                 }
               >
                 <Ionicons
@@ -188,7 +201,7 @@ export default function AdminFeaturedScreen() {
         )}
       </View>
     ),
-    [maxReached, tileWidth, toggleMutation],
+    [maxReached, tileWidth],
   );
 
   const renderItem = useCallback(
@@ -240,45 +253,54 @@ export default function AdminFeaturedScreen() {
     [cardsError, derived.featuredCards.length, derived.nonFeaturedCards.length, isCardsLoading, renderRow],
   );
 
+  const listHeader = useMemo(
+    () => (
+      <AdminPanel>
+        <AdminSectionTitle
+          title="Featured cards"
+          subtitle="Highlight the showcase roster exactly like the PWA carousel selection flow."
+        />
+        <View style={{ height: 12 }} />
+        <AdminSearchInput
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          placeholder="Search featured candidates"
+        />
+        <View style={styles.metaRow}>
+          <AdminChip
+            label={`${isCardsLoading ? "..." : derived.featuredCards.length} / 5 featured`}
+            tone="warning"
+          />
+          <AdminChip
+            label={`${isCardsLoading ? "..." : derived.nonFeaturedCards.length} waiting`}
+            tone="default"
+          />
+        </View>
+        {maxReached ? (
+          <View style={styles.warningPanel}>
+            <Text style={styles.warningText}>
+              Maximum of five featured cards reached. Remove one above before adding another.
+            </Text>
+          </View>
+        ) : null}
+      </AdminPanel>
+    ),
+    [searchQuery, derived.featuredCards.length, derived.nonFeaturedCards.length, isCardsLoading, maxReached],
+  );
+
   return (
     <FlatList
       data={listData}
-      keyExtractor={(item) => item.id}
+      keyExtractor={keyExtractor}
       renderItem={renderItem}
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
       contentContainerStyle={styles.pageContent}
-      ListHeaderComponent={
-        <AdminPanel>
-          <AdminSectionTitle
-            title="Featured cards"
-            subtitle="Highlight the showcase roster exactly like the PWA carousel selection flow."
-          />
-          <View style={{ height: 12 }} />
-          <AdminSearchInput
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholder="Search featured candidates"
-          />
-          <View style={styles.metaRow}>
-            <AdminChip
-              label={`${isCardsLoading ? "..." : derived.featuredCards.length} / 5 featured`}
-              tone="warning"
-            />
-            <AdminChip
-              label={`${isCardsLoading ? "..." : derived.nonFeaturedCards.length} waiting`}
-              tone="default"
-            />
-          </View>
-          {maxReached ? (
-            <View style={styles.warningPanel}>
-              <Text style={styles.warningText}>
-                Maximum of five featured cards reached. Remove one above before adding another.
-              </Text>
-            </View>
-          ) : null}
-        </AdminPanel>
-      }
+      ListHeaderComponent={listHeader}
+      removeClippedSubviews
+      windowSize={5}
+      maxToRenderPerBatch={6}
+      initialNumToRender={8}
     />
   );
 }

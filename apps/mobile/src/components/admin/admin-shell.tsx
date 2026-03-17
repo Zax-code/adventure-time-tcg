@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { memo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { usePathname, useRouter } from "expo-router";
@@ -17,25 +18,33 @@ const NAV_ITEMS = [
   { path: "/admin/users", label: "Users", icon: "people" as const, tint: "#7C3AED" },
 ];
 
+// Isolated coin display — subscribes to Zustand independently so coin
+// updates never re-render the shell or its children.
+const CoinPill = memo(function CoinPill() {
+  const coins = useSessionStore((state) => state.user?.coins ?? 0);
+  return (
+    <LinearGradient
+      colors={[ADMIN_COLORS.shellYellow, ADMIN_COLORS.shellYellowDark]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 0 }}
+      style={styles.coinPill}
+    >
+      <CoinIcon size={20} />
+      <Text style={styles.coinText}>{coins.toLocaleString()}</Text>
+    </LinearGradient>
+  );
+});
+
 export function AdminShell({ children }: { children: ReactNode }) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const pathname = usePathname();
-  const coins = useSessionStore((state) => state.user?.coins ?? 0);
 
   return (
     <View style={styles.root}>
       <AdminBackground>
         <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-          <LinearGradient
-            colors={[ADMIN_COLORS.shellYellow, ADMIN_COLORS.shellYellowDark]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.coinPill}
-          >
-            <CoinIcon size={20} />
-            <Text style={styles.coinText}>{coins.toLocaleString()}</Text>
-          </LinearGradient>
+          <CoinPill />
 
           <Pressable onPress={() => router.replace("/(tabs)" as any)} style={styles.gameButton}>
             <HomeIcon size={18} color="#FFFFFF" />
