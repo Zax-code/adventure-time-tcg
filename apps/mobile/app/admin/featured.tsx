@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -14,8 +14,18 @@ import {
   AdminSectionTitle,
 } from "../../src/components/admin/admin-ui";
 
+const GRID_GAP = 12;
+const PANEL_INNER_PADDING = 16;
+const FEATURED_RING_EXTRA = 4;
+
+function getFeaturedTileWidth(screenWidth: number) {
+  const availableWidth = screenWidth - PANEL_INNER_PADDING * 2 - PANEL_INNER_PADDING * 2;
+  return Math.floor((availableWidth - GRID_GAP) / 2) - FEATURED_RING_EXTRA;
+}
+
 export default function AdminFeaturedScreen() {
   const queryClient = useQueryClient();
+  const { width } = useWindowDimensions();
   const [searchQuery, setSearchQuery] = useState("");
   const cardsQuery = useQuery({ queryKey: ["admin-cards"], queryFn: () => apiClient.adminCards() });
   const toggleMutation = useMutation({
@@ -37,6 +47,11 @@ export default function AdminFeaturedScreen() {
   const featuredCards = filtered.filter((card) => card.isFeatured && !card.isArchived);
   const nonFeaturedCards = filtered.filter((card) => !card.isFeatured && !card.isArchived);
   const maxReached = featuredCards.length >= 5;
+  const tileWidth = getFeaturedTileWidth(width);
+  const isCardsLoading = cardsQuery.isLoading;
+  const cardsError = cardsQuery.error instanceof Error ? cardsQuery.error.message : null;
+  const featuredCountLabel = isCardsLoading ? "..." : String(featuredCards.length);
+  const waitingCountLabel = isCardsLoading ? "..." : String(nonFeaturedCards.length);
 
   return (
     <AdminPageScroll>
@@ -52,8 +67,8 @@ export default function AdminFeaturedScreen() {
           placeholder="Search featured candidates"
         />
         <View style={styles.metaRow}>
-          <AdminChip label={`${featuredCards.length} / 5 featured`} tone="warning" />
-          <AdminChip label={`${nonFeaturedCards.length} waiting`} tone="default" />
+          <AdminChip label={`${featuredCountLabel} / 5 featured`} tone="warning" />
+          <AdminChip label={`${waitingCountLabel} waiting`} tone="default" />
         </View>
         {maxReached ? (
           <View style={styles.warningPanel}>
@@ -67,11 +82,15 @@ export default function AdminFeaturedScreen() {
       <AdminPanel>
         <AdminSectionTitle title={`Currently featured (${featuredCards.length})`} />
         <View style={styles.grid}>
-          {featuredCards.length ? (
+          {isCardsLoading ? (
+            <Text style={styles.stateCopy}>Loading cards...</Text>
+          ) : cardsError ? (
+            <Text style={styles.errorCopy}>{cardsError}</Text>
+          ) : featuredCards.length ? (
             featuredCards.map((card) => (
-              <View key={card.id} style={styles.tileWrap}>
+              <View key={card.id} style={[styles.tileWrap, { width: tileWidth }]}> 
                 <View style={styles.featuredRing}>
-                  <AdminCardTile card={card} />
+                  <AdminCardTile card={card} fitContainer />
                   <Pressable
                     style={styles.starButton}
                     onPress={() => toggleMutation.mutate({ cardId: card.id, isFeatured: false })}
@@ -90,11 +109,15 @@ export default function AdminFeaturedScreen() {
       <AdminPanel>
         <AdminSectionTitle title={`All cards (${nonFeaturedCards.length})`} />
         <View style={styles.grid}>
-          {nonFeaturedCards.length ? (
+          {isCardsLoading ? (
+            <Text style={styles.stateCopy}>Loading cards...</Text>
+          ) : cardsError ? (
+            <Text style={styles.errorCopy}>{cardsError}</Text>
+          ) : nonFeaturedCards.length ? (
             nonFeaturedCards.map((card) => (
-              <View key={card.id} style={styles.tileWrap}>
+              <View key={card.id} style={[styles.tileWrap, { width: tileWidth }]}> 
                 <View style={[styles.candidateWrap, maxReached ? styles.dimmed : null]}>
-                  <AdminCardTile card={card} />
+                  <AdminCardTile card={card} fitContainer />
                   <Pressable
                     disabled={maxReached}
                     style={[styles.starButton, maxReached ? styles.starButtonDisabled : styles.starButtonMuted]}
@@ -126,12 +149,22 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "center",
-    columnGap: 12,
-    rowGap: 16,
+    gap: GRID_GAP,
   },
   tileWrap: {
-    width: "48%",
     alignItems: "center",
+  },
+  stateCopy: {
+    fontFamily: "Nunito_600SemiBold",
+    fontSize: 13,
+    color: "#6B7280",
+    textAlign: "center",
+  },
+  errorCopy: {
+    fontFamily: "Nunito_700Bold",
+    fontSize: 13,
+    color: "#BE123C",
+    textAlign: "center",
   },
   warningPanel: {
     marginTop: 12,
@@ -148,10 +181,10 @@ const styles = StyleSheet.create({
     color: "#A16207",
   },
   featuredRing: {
-    borderWidth: 4,
+    borderWidth: 2,
     borderColor: "#FACC15",
     borderRadius: 18,
-    padding: 2,
+    padding: 0,
   },
   candidateWrap: {
     position: "relative",

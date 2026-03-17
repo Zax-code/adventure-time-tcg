@@ -8,10 +8,12 @@ export function AdminCardTile({
   card,
   onPress,
   size = "small",
+  fitContainer = false,
 }: {
   card: AdminCard;
   onPress?: () => void;
   size?: "small" | "large";
+  fitContainer?: boolean;
 }) {
   return (
     <CardTile
@@ -40,6 +42,7 @@ export function AdminCardTile({
         },
       }}
       size={size}
+      fitContainer={fitContainer}
       onPress={onPress}
     />
   );

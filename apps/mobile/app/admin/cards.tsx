@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -17,6 +17,15 @@ import {
   AdminPanel,
   AdminSearchInput,
 } from "../../src/components/admin/admin-ui";
+
+const GRID_GAP = 12;
+const SCREEN_SIDE_PADDING = 16;
+const COLLECTION_SIDE_PADDING = 12;
+
+function getTwoColumnWidth(screenWidth: number) {
+  const availableWidth = screenWidth - SCREEN_SIDE_PADDING * 2 - COLLECTION_SIDE_PADDING * 2;
+  return Math.floor((availableWidth - GRID_GAP) / 2);
+}
 
 type CardDraft = {
   name: string;
@@ -83,6 +92,7 @@ function savePayload(draft: CardDraft) {
 
 export default function AdminCardsScreen() {
   const queryClient = useQueryClient();
+  const { width } = useWindowDimensions();
   const [searchQuery, setSearchQuery] = useState("");
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
   const [selectedArchivedCardId, setSelectedArchivedCardId] = useState<string | null>(null);
@@ -210,6 +220,14 @@ export default function AdminCardsScreen() {
     return (abilitiesQuery.data?.abilities ?? []).filter((ability) => ability.type === type);
   }, [abilitiesQuery.data?.abilities, pickerRole]);
 
+  const tileWidth = getTwoColumnWidth(width);
+  const isCardsLoading = cardsQuery.isLoading;
+  const cardsError = cardsQuery.error instanceof Error ? cardsQuery.error.message : null;
+  const activeCountLabel = isCardsLoading ? "..." : String(activeCards.length);
+  const activeTotalLabel = isCardsLoading ? "..." : String(allActiveCards.length);
+  const archivedCountLabel = isCardsLoading ? "..." : String(archivedCards.length);
+  const archivedTotalLabel = isCardsLoading ? "..." : String(allArchivedCards.length);
+
   return (
     <>
       <AdminPageScroll>
@@ -233,16 +251,22 @@ export default function AdminCardsScreen() {
 
         <AdminPanel style={styles.statsPanel}>
           <Text style={styles.statsTitle}>Card Stats</Text>
-          <View style={styles.statsGrid}>
-            {raritiesQuery.data?.rarities.map((rarity) => (
-              <View key={rarity.id} style={styles.statTile}>
-                <Text style={[styles.statCount, { color: rarity.color || "#DB2777" }]}>
-                  {cards.filter((card) => card.rarityId === rarity.id).length}
-                </Text>
-                <Text style={styles.statLabel}>{rarity.name}</Text>
-              </View>
-            ))}
-          </View>
+          {isCardsLoading ? (
+            <Text style={styles.helperText}>Loading cards...</Text>
+          ) : cardsError ? (
+            <Text style={styles.errorCopy}>{cardsError}</Text>
+          ) : (
+            <View style={styles.statsGrid}>
+              {raritiesQuery.data?.rarities.map((rarity) => (
+                <View key={rarity.id} style={styles.statTile}>
+                  <Text style={[styles.statCount, { color: rarity.color || "#DB2777" }]}>
+                    {cards.filter((card) => card.rarityId === rarity.id).length}
+                  </Text>
+                  <Text style={styles.statLabel}>{rarity.name}</Text>
+                </View>
+              ))}
+            </View>
+          )}
         </AdminPanel>
 
         <View style={styles.searchSection}>
@@ -256,7 +280,7 @@ export default function AdminCardsScreen() {
         <View style={styles.collectionSection}>
           <Pressable style={styles.collectionToggle} onPress={() => setIsActiveCardsOpen((current) => !current)}>
             <Text style={styles.collectionTitle}>
-              All Cards ({activeCards.length}){searchQuery ? ` / ${allActiveCards.length}` : ""}
+              All Cards ({activeCountLabel}){searchQuery ? ` / ${activeTotalLabel}` : ""}
             </Text>
             <Ionicons
               name="chevron-down"
@@ -267,15 +291,21 @@ export default function AdminCardsScreen() {
           </Pressable>
           {isActiveCardsOpen ? (
             <View style={styles.collectionBody}>
-              <Text style={styles.helperText}>Tap a card to edit it.</Text>
-              {activeCards.length ? (
+              {isCardsLoading ? (
+                <Text style={styles.helperText}>Loading cards...</Text>
+              ) : cardsError ? (
+                <Text style={styles.errorCopy}>{cardsError}</Text>
+              ) : activeCards.length ? (
+                <>
+                  <Text style={styles.helperText}>Tap a card to edit it.</Text>
                 <View style={styles.grid}>
                   {activeCards.map((card) => (
-                    <Pressable key={card.id} style={styles.tileWrap} onPress={() => setEditingCardId(card.id)}>
-                      <AdminCardTile card={card} />
+                    <Pressable key={card.id} style={[styles.tileWrap, { width: tileWidth }]} onPress={() => setEditingCardId(card.id)}>
+                      <AdminCardTile card={card} fitContainer />
                     </Pressable>
                   ))}
                 </View>
+                </>
               ) : (
                 <Text style={styles.emptyCopy}>No cards match your search.</Text>
               )}
@@ -286,7 +316,7 @@ export default function AdminCardsScreen() {
         <View style={styles.collectionSection}>
           <Pressable style={styles.archivedToggle} onPress={() => setIsArchivedCardsOpen((current) => !current)}>
             <Text style={styles.archivedTitle}>
-              Archived Cards ({archivedCards.length}){searchQuery ? ` / ${allArchivedCards.length}` : ""}
+              Archived Cards ({archivedCountLabel}){searchQuery ? ` / ${archivedTotalLabel}` : ""}
             </Text>
             <Ionicons
               name="chevron-down"
@@ -297,15 +327,21 @@ export default function AdminCardsScreen() {
           </Pressable>
           {isArchivedCardsOpen ? (
             <View style={styles.collectionBody}>
-              {archivedCards.length ? <Text style={styles.helperText}>Tap a card to manage it.</Text> : null}
-              {archivedCards.length ? (
+              {isCardsLoading ? (
+                <Text style={styles.helperText}>Loading cards...</Text>
+              ) : cardsError ? (
+                <Text style={styles.errorCopy}>{cardsError}</Text>
+              ) : archivedCards.length ? (
+                <>
+                  <Text style={styles.helperText}>Tap a card to manage it.</Text>
                 <View style={styles.grid}>
                   {archivedCards.map((card) => (
-                    <Pressable key={card.id} style={[styles.tileWrap, styles.archivedTile]} onPress={() => setSelectedArchivedCardId(card.id)}>
-                      <AdminCardTile card={card} />
+                    <Pressable key={card.id} style={[styles.tileWrap, styles.archivedTile, { width: tileWidth }]} onPress={() => setSelectedArchivedCardId(card.id)}>
+                      <AdminCardTile card={card} fitContainer />
                     </Pressable>
                   ))}
                 </View>
+                </>
               ) : (
                 <Text style={styles.emptyCopy}>
                   {searchQuery ? "No archived cards match your search." : "No archived cards."}
@@ -588,7 +624,7 @@ const styles = StyleSheet.create({
   },
   collectionBody: {
     alignItems: "center",
-    paddingHorizontal: 16,
+    paddingHorizontal: COLLECTION_SIDE_PADDING,
     paddingTop: 14,
     paddingBottom: 4,
   },
@@ -602,16 +638,21 @@ const styles = StyleSheet.create({
     fontFamily: "Nunito_600SemiBold",
     fontSize: 14,
     color: "#6B7280",
+    textAlign: "center",
+  },
+  errorCopy: {
+    fontFamily: "Nunito_700Bold",
+    fontSize: 13,
+    color: "#BE123C",
+    textAlign: "center",
   },
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "center",
-    columnGap: 12,
-    rowGap: 16,
+    gap: GRID_GAP,
   },
   tileWrap: {
-    width: "48%",
     alignItems: "center",
   },
   archivedTile: {

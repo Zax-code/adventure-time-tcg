@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import type { StyleProp, ViewStyle } from "react-native";
 import { Animated, Easing, Pressable, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
@@ -17,6 +18,8 @@ interface CardTileProps {
   onRecycle?: () => void;
   onCraft?: () => void;
   size?: "small" | "large";
+  fitContainer?: boolean;
+  containerStyle?: StyleProp<ViewStyle>;
 }
 
 const sizeConfig = {
@@ -98,7 +101,16 @@ function RarityCrest({ rarityName, cfg }: { rarityName: string; cfg: typeof size
   );
 }
 
-export function CardTile({ entry, accessToken, onPress, onRecycle, onCraft, size = "small" }: CardTileProps) {
+export function CardTile({
+  entry,
+  accessToken,
+  onPress,
+  onRecycle,
+  onCraft,
+  size = "small",
+  fitContainer = false,
+  containerStyle,
+}: CardTileProps) {
   const { card, quantity } = entry;
   const cfg = sizeConfig[size];
   const typeColor = CARD_TYPE_COLORS[card.type] ?? { frame: "#9CA3AF", light: "#F3F4F6", dark: "#374151" };
@@ -118,14 +130,24 @@ export function CardTile({ entry, accessToken, onPress, onRecycle, onCraft, size
   }, [quantity, size]);
 
   return (
-    <Pressable onPress={onPress} style={{ width: cfg.width, margin: size === "small" ? 4 : 0 }}>
+    <Pressable
+      onPress={onPress}
+      style={[
+        {
+          width: fitContainer ? "100%" : cfg.width,
+          margin: fitContainer ? 0 : size === "small" ? 4 : 0,
+        },
+        containerStyle,
+      ]}
+    >
       {/* Outer card: type-colored frame background */}
       <View
         style={{
           borderRadius: cfg.borderRadius,
           overflow: "hidden",
           backgroundColor: typeColor.frame,
-          height: cfg.height,
+          height: fitContainer ? undefined : cfg.height,
+          aspectRatio: fitContainer ? cfg.width / cfg.height : undefined,
         }}
       >
         {/* Rarity ring overlay */}
