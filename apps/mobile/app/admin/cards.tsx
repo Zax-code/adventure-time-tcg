@@ -1,19 +1,27 @@
-import { useEffect, useMemo, useState } from "react";
-import { Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  FlatList,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import type { AdminAbilitiesResponse, AdminCardDetail } from "@adventure-time/shared";
+import type { AdminAbilitiesResponse, AdminCardsResponse } from "@adventure-time/shared";
 
 import { apiClient } from "../../src/lib/api";
+import { prefetchCardImages } from "../../src/lib/card-images";
 import { AdminCardTile } from "../../src/components/admin/admin-card-tile";
 import {
   AbilityTypeChip,
   AdminButton,
+  AdminChip,
   AdminField,
   AdminModal,
-  AdminPageScroll,
   AdminPanel,
   AdminSearchInput,
 } from "../../src/components/admin/admin-ui";
@@ -21,11 +29,9 @@ import {
 const GRID_GAP = 12;
 const SCREEN_SIDE_PADDING = 16;
 const COLLECTION_SIDE_PADDING = 12;
+const CONTENT_BOTTOM_PADDING = 128;
 
-function getTwoColumnWidth(screenWidth: number) {
-  const availableWidth = screenWidth - SCREEN_SIDE_PADDING * 2 - COLLECTION_SIDE_PADDING * 2;
-  return Math.floor((availableWidth - GRID_GAP) / 2);
-}
+type AdminCard = AdminCardsResponse["cards"][number];
 
 type CardDraft = {
   name: string;
@@ -39,6 +45,18 @@ type CardDraft = {
   rarityId: string;
 };
 
+type CardRow = {
+  id: string;
+  left: AdminCard;
+  right?: AdminCard;
+};
+
+type CardsListItem =
+  | { id: string; type: "active-header" }
+  | { id: string; type: "active-row"; row: CardRow }
+  | { id: string; type: "archived-header" }
+  | { id: string; type: "archived-row"; row: CardRow };
+
 const BLANK_CARD_DRAFT: CardDraft = {
   name: "",
   character: "",
@@ -51,7 +69,11 @@ const BLANK_CARD_DRAFT: CardDraft = {
   rarityId: "",
 };
 
-const FIELD_LABELS: Array<{ key: keyof CardDraft; label: string; keyboardType?: "default" | "numeric" }> = [
+const FIELD_LABELS: Array<{
+  key: keyof CardDraft;
+  label: string;
+  keyboardType?: "default" | "numeric";
+}> = [
   { key: "name", label: "Name" },
   { key: "character", label: "Character" },
   { key: "description", label: "Description" },
@@ -62,7 +84,13 @@ const FIELD_LABELS: Array<{ key: keyof CardDraft; label: string; keyboardType?: 
   { key: "type", label: "Type" },
 ];
 
-function toDraft(card: AdminCardDetail): CardDraft {
+function getTwoColumnWidth(screenWidth: number) {
+  const availableWidth =
+    screenWidth - SCREEN_SIDE_PADDING * 2 - COLLECTION_SIDE_PADDING * 2;
+  return Math.floor((availableWidth - GRID_GAP) / 2);
+}
+
+function toDraft(card: AdminCard): CardDraft {
   return {
     name: card.name,
     character: card.character,
@@ -90,43 +118,52 @@ function savePayload(draft: CardDraft) {
   };
 }
 
+function chunkCards(cards: AdminCard[]) {
+  const rows: CardRow[] = [];
+
+  for (let index = 0; index < cards.length; index += 2) {
+    rows.push({
+      id: `row-${cards[index].id}-${cards[index + 1]?.id ?? "empty"}`,
+      left: cards[index],
+      right: cards[index + 1],
+    });
+  }
+
+  return rows;
+}
+
 export default function AdminCardsScreen() {
   const queryClient = useQueryClient();
   const { width } = useWindowDimensions();
   const [searchQuery, setSearchQuery] = useState("");
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
-  const [selectedArchivedCardId, setSelectedArchivedCardId] = useState<string | null>(null);
+  const [selectedArchivedCardId, setSelectedArchivedCardId] = useState<string | null>(
+    null,
+  );
   const [isActiveCardsOpen, setIsActiveCardsOpen] = useState(true);
   const [isArchivedCardsOpen, setIsArchivedCardsOpen] = useState(true);
   const [draft, setDraft] = useState<CardDraft>(BLANK_CARD_DRAFT);
-  const [pickerRole, setPickerRole] = useState<"passive" | "skill" | "ultimate" | null>(null);
-  const [assignmentDraft, setAssignmentDraft] = useState({ passiveId: "", skillId: "", ultimateId: "" });
-
-  const cardsQuery = useQuery({ queryKey: ["admin-cards"], queryFn: () => apiClient.adminCards() });
-  const raritiesQuery = useQuery({ queryKey: ["admin-rarities"], queryFn: () => apiClient.rarities() });
-  const abilitiesQuery = useQuery({ queryKey: ["admin-abilities"], queryFn: () => apiClient.adminAbilities() });
-  const detailQuery = useQuery({
-    queryKey: ["admin-card", editingCardId],
-    queryFn: () => apiClient.adminCard(editingCardId as string),
-    enabled: Boolean(editingCardId),
+  const [pickerRole, setPickerRole] = useState<
+    "passive" | "skill" | "ultimate" | null
+  >(null);
+  const [assignmentDraft, setAssignmentDraft] = useState({
+    passiveId: "",
+    skillId: "",
+    ultimateId: "",
   });
 
-  useEffect(() => {
-    if (detailQuery.data) {
-      setDraft(toDraft(detailQuery.data));
-      const currentAssignment = abilitiesQuery.data?.cardAbilities.find(
-        (entry) => entry.cardId === detailQuery.data?.id,
-      );
-      setAssignmentDraft({
-        passiveId: currentAssignment?.passiveId ?? "",
-        skillId: currentAssignment?.skillId ?? "",
-        ultimateId: currentAssignment?.ultimateId ?? "",
-      });
-    } else if (!editingCardId) {
-      setDraft(BLANK_CARD_DRAFT);
-      setAssignmentDraft({ passiveId: "", skillId: "", ultimateId: "" });
-    }
-  }, [abilitiesQuery.data?.cardAbilities, detailQuery.data, editingCardId]);
+  const cardsQuery = useQuery({
+    queryKey: ["admin-cards"],
+    queryFn: () => apiClient.adminCards(),
+  });
+  const raritiesQuery = useQuery({
+    queryKey: ["admin-rarities"],
+    queryFn: () => apiClient.rarities(),
+  });
+  const abilitiesQuery = useQuery({
+    queryKey: ["admin-abilities"],
+    queryFn: () => apiClient.adminAbilities(),
+  });
 
   const saveCardMutation = useMutation({
     mutationFn: async () => {
@@ -136,24 +173,32 @@ export default function AdminCardsScreen() {
       return apiClient.saveAdminCard(editingCardId, savePayload(draft));
     },
     onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["admin-cards"] }),
-        queryClient.invalidateQueries({ queryKey: ["admin-card", editingCardId] }),
-      ]);
+      await queryClient.invalidateQueries({ queryKey: ["admin-cards"] });
       setEditingCardId(null);
       setDraft(BLANK_CARD_DRAFT);
     },
   });
   const featureMutation = useMutation({
-    mutationFn: ({ cardId, isFeatured, isArchived }: { cardId: string; isFeatured?: boolean; isArchived?: boolean }) =>
-      apiClient.updateAdminCard(cardId, { isFeatured, isArchived }),
+    mutationFn: ({
+      cardId,
+      isFeatured,
+      isArchived,
+    }: {
+      cardId: string;
+      isFeatured?: boolean;
+      isArchived?: boolean;
+    }) => apiClient.updateAdminCard(cardId, { isFeatured, isArchived }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["admin-cards"] });
     },
   });
   const assignMutation = useMutation({
-    mutationFn: (payload: { cardId: string; passiveId?: string | null; skillId?: string | null; ultimateId?: string | null }) =>
-      apiClient.assignAdminCardAbility(payload),
+    mutationFn: (payload: {
+      cardId: string;
+      passiveId?: string | null;
+      skillId?: string | null;
+      ultimateId?: string | null;
+    }) => apiClient.assignAdminCardAbility(payload),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["admin-abilities"] });
     },
@@ -177,366 +222,554 @@ export default function AdminCardsScreen() {
       await apiClient.uploadAdminCardImage(cardId, formData);
     },
     onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["admin-cards"] }),
-        queryClient.invalidateQueries({ queryKey: ["admin-card", editingCardId] }),
-      ]);
+      await queryClient.invalidateQueries({ queryKey: ["admin-cards"] });
     },
   });
 
-  const filtered = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
-    return (cardsQuery.data?.cards ?? []).filter((card) => {
-      if (!query) return true;
-      return [card.name, card.character]
-        .join(" ")
-        .toLowerCase()
-        .includes(query);
-    });
-  }, [cardsQuery.data?.cards, searchQuery]);
-
+  const tileWidth = getTwoColumnWidth(width);
   const cards = cardsQuery.data?.cards ?? [];
-  const allActiveCards = cards.filter((card) => !card.isArchived);
-  const allArchivedCards = cards.filter((card) => card.isArchived);
-  const activeCards = filtered.filter((card) => !card.isArchived);
-  const archivedCards = filtered.filter((card) => card.isArchived);
-  const selectedArchivedCard = archivedCards.find((card) => card.id === selectedArchivedCardId) ?? allArchivedCards.find((card) => card.id === selectedArchivedCardId) ?? null;
-  const previewCard = detailQuery.data ?? (editingCardId ? null : {
-    id: "preview",
-    ...savePayload(draft),
-    rarityId: draft.rarityId || raritiesQuery.data?.rarities[0]?.id || "",
-    rarityName:
-      raritiesQuery.data?.rarities.find((rarity) => rarity.id === draft.rarityId)?.name ??
-      raritiesQuery.data?.rarities[0]?.name ??
-      "Common",
-    isArchived: false,
-    isFeatured: false,
-    imageAssetId: null,
-  });
+  const isCardsLoading = cardsQuery.isLoading;
+  const cardsError = cardsQuery.error instanceof Error ? cardsQuery.error.message : null;
+
+  const derived = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    const active: AdminCard[] = [];
+    const archived: AdminCard[] = [];
+    const rarityCounts = new Map<string, number>();
+    const cardById = new Map<string, AdminCard>();
+
+    for (const card of cards) {
+      cardById.set(card.id, card);
+      rarityCounts.set(card.rarityId, (rarityCounts.get(card.rarityId) ?? 0) + 1);
+
+      const matchesSearch =
+        !query || `${card.name} ${card.character}`.toLowerCase().includes(query);
+
+      if (!matchesSearch) {
+        continue;
+      }
+
+      if (card.isArchived) {
+        archived.push(card);
+      } else {
+        active.push(card);
+      }
+    }
+
+    const cardAbilityByCardId = new Map(
+      (abilitiesQuery.data?.cardAbilities ?? []).map((entry) => [entry.cardId, entry]),
+    );
+    const abilityById = new Map(
+      (abilitiesQuery.data?.abilities ?? []).map((ability) => [ability.id, ability]),
+    );
+
+    return {
+      activeCards: active,
+      archivedCards: archived,
+      allActiveCount: cards.filter((card) => !card.isArchived).length,
+      allArchivedCount: cards.filter((card) => card.isArchived).length,
+      rarityCounts,
+      cardById,
+      cardAbilityByCardId,
+      abilityById,
+    };
+  }, [abilitiesQuery.data?.abilities, abilitiesQuery.data?.cardAbilities, cards, searchQuery]);
+
+  const selectedEditingCard = editingCardId ? derived.cardById.get(editingCardId) ?? null : null;
+  const selectedArchivedCard = selectedArchivedCardId
+    ? derived.cardById.get(selectedArchivedCardId) ?? null
+    : null;
+
+  useEffect(() => {
+    void prefetchCardImages(cards.slice(0, 48).map((card) => card.imageAssetId));
+  }, [cards]);
+
+  useEffect(() => {
+    if (!editingCardId || !selectedEditingCard) {
+      return;
+    }
+
+    setDraft(toDraft(selectedEditingCard));
+    const currentAssignment = derived.cardAbilityByCardId.get(selectedEditingCard.id);
+    setAssignmentDraft({
+      passiveId: currentAssignment?.passiveId ?? "",
+      skillId: currentAssignment?.skillId ?? "",
+      ultimateId: currentAssignment?.ultimateId ?? "",
+    });
+  }, [derived.cardAbilityByCardId, editingCardId, selectedEditingCard]);
+
+  const previewCard = useMemo(() => {
+    if (editingCardId === null) {
+      return null;
+    }
+
+    return {
+      id: selectedEditingCard?.id ?? "preview",
+      ...savePayload(draft),
+      rarityId: draft.rarityId || raritiesQuery.data?.rarities[0]?.id || "",
+      rarityName:
+        raritiesQuery.data?.rarities.find((rarity) => rarity.id === draft.rarityId)?.name ??
+        selectedEditingCard?.rarityName ??
+        raritiesQuery.data?.rarities[0]?.name ??
+        "Common",
+      isArchived: selectedEditingCard?.isArchived ?? false,
+      isFeatured: selectedEditingCard?.isFeatured ?? false,
+      imageAssetId: selectedEditingCard?.imageAssetId ?? null,
+    };
+  }, [draft, editingCardId, raritiesQuery.data?.rarities, selectedEditingCard]);
 
   const pickerOptions = useMemo(() => {
-    if (!pickerRole) return [] as AdminAbilitiesResponse["abilities"];
+    if (!pickerRole) {
+      return [] as AdminAbilitiesResponse["abilities"];
+    }
     const type = pickerRole.toUpperCase();
     return (abilitiesQuery.data?.abilities ?? []).filter((ability) => ability.type === type);
   }, [abilitiesQuery.data?.abilities, pickerRole]);
 
-  const tileWidth = getTwoColumnWidth(width);
-  const isCardsLoading = cardsQuery.isLoading;
-  const cardsError = cardsQuery.error instanceof Error ? cardsQuery.error.message : null;
-  const activeCountLabel = isCardsLoading ? "..." : String(activeCards.length);
-  const activeTotalLabel = isCardsLoading ? "..." : String(allActiveCards.length);
-  const archivedCountLabel = isCardsLoading ? "..." : String(archivedCards.length);
-  const archivedTotalLabel = isCardsLoading ? "..." : String(allArchivedCards.length);
+  const listData = useMemo(() => {
+    const items: CardsListItem[] = [{ id: "active-header", type: "active-header" }];
+
+    if (isActiveCardsOpen) {
+      chunkCards(derived.activeCards).forEach((row) => {
+        items.push({ id: `active-${row.id}`, type: "active-row", row });
+      });
+    }
+
+    items.push({ id: "archived-header", type: "archived-header" });
+
+    if (isArchivedCardsOpen) {
+      chunkCards(derived.archivedCards).forEach((row) => {
+        items.push({ id: `archived-${row.id}`, type: "archived-row", row });
+      });
+    }
+
+    return items;
+  }, [derived.activeCards, derived.archivedCards, isActiveCardsOpen, isArchivedCardsOpen]);
+
+  const openCreateModal = useCallback(() => {
+    setEditingCardId("");
+    setDraft({
+      ...BLANK_CARD_DRAFT,
+      rarityId: raritiesQuery.data?.rarities[0]?.id ?? "",
+    });
+    setAssignmentDraft({ passiveId: "", skillId: "", ultimateId: "" });
+  }, [raritiesQuery.data?.rarities]);
+
+  const renderCardRow = useCallback(
+    (row: CardRow, archived: boolean) => (
+      <View style={styles.rowWrap}>
+        <Pressable
+          style={[styles.tileWrap, { width: tileWidth }, archived ? styles.archivedTile : null]}
+          onPress={() =>
+            archived ? setSelectedArchivedCardId(row.left.id) : setEditingCardId(row.left.id)
+          }
+        >
+          <AdminCardTile card={row.left} fitContainer />
+        </Pressable>
+        {row.right ? (
+          <Pressable
+            style={[styles.tileWrap, { width: tileWidth }, archived ? styles.archivedTile : null]}
+            onPress={() =>
+              archived ? setSelectedArchivedCardId(row.right!.id) : setEditingCardId(row.right!.id)
+            }
+          >
+            <AdminCardTile card={row.right} fitContainer />
+          </Pressable>
+        ) : (
+          <View style={{ width: tileWidth }} />
+        )}
+      </View>
+    ),
+    [tileWidth],
+  );
+
+  const renderItem = useCallback(
+    ({ item }: { item: CardsListItem }) => {
+      if (item.type === "active-header") {
+        const activeCountLabel = isCardsLoading ? "..." : String(derived.activeCards.length);
+        const activeTotalLabel = isCardsLoading ? "..." : String(derived.allActiveCount);
+
+        return (
+          <View style={styles.collectionSection}>
+            <Pressable
+              style={styles.collectionToggle}
+              onPress={() => setIsActiveCardsOpen((current) => !current)}
+            >
+              <Text style={styles.collectionTitle}>
+                All Cards ({activeCountLabel})
+                {searchQuery ? ` / ${activeTotalLabel}` : ""}
+              </Text>
+              <Ionicons
+                name="chevron-down"
+                size={20}
+                color="#BE185D"
+                style={[styles.chevron, isActiveCardsOpen ? styles.chevronOpen : null]}
+              />
+            </Pressable>
+            {isActiveCardsOpen ? (
+              <View style={styles.collectionBody}>
+                {isCardsLoading ? (
+                  <Text style={styles.helperText}>Loading cards...</Text>
+                ) : cardsError ? (
+                  <Text style={styles.errorCopy}>{cardsError}</Text>
+                ) : derived.activeCards.length ? (
+                  <Text style={styles.helperText}>Tap a card to edit it.</Text>
+                ) : (
+                  <Text style={styles.emptyCopy}>No cards match your search.</Text>
+                )}
+              </View>
+            ) : null}
+          </View>
+        );
+      }
+
+      if (item.type === "archived-header") {
+        const archivedCountLabel = isCardsLoading ? "..." : String(derived.archivedCards.length);
+        const archivedTotalLabel = isCardsLoading ? "..." : String(derived.allArchivedCount);
+
+        return (
+          <View style={styles.collectionSection}>
+            <Pressable
+              style={styles.archivedToggle}
+              onPress={() => setIsArchivedCardsOpen((current) => !current)}
+            >
+              <Text style={styles.archivedTitle}>
+                Archived Cards ({archivedCountLabel})
+                {searchQuery ? ` / ${archivedTotalLabel}` : ""}
+              </Text>
+              <Ionicons
+                name="chevron-down"
+                size={20}
+                color="#BE123C"
+                style={[styles.chevron, isArchivedCardsOpen ? styles.chevronOpen : null]}
+              />
+            </Pressable>
+            {isArchivedCardsOpen ? (
+              <View style={styles.collectionBody}>
+                {isCardsLoading ? (
+                  <Text style={styles.helperText}>Loading cards...</Text>
+                ) : cardsError ? (
+                  <Text style={styles.errorCopy}>{cardsError}</Text>
+                ) : derived.archivedCards.length ? (
+                  <Text style={styles.helperText}>Tap a card to manage it.</Text>
+                ) : (
+                  <Text style={styles.emptyCopy}>
+                    {searchQuery
+                      ? "No archived cards match your search."
+                      : "No archived cards."}
+                  </Text>
+                )}
+              </View>
+            ) : null}
+          </View>
+        );
+      }
+
+      if (item.type === "active-row") {
+        return renderCardRow(item.row, false);
+      }
+
+      return renderCardRow(item.row, true);
+    },
+    [
+      cardsError,
+      derived.activeCards,
+      derived.allActiveCount,
+      derived.allArchivedCount,
+      derived.archivedCards,
+      isActiveCardsOpen,
+      isArchivedCardsOpen,
+      isCardsLoading,
+      renderCardRow,
+      searchQuery,
+    ],
+  );
 
   return (
     <>
-      <AdminPageScroll>
-        <View style={styles.pageHeader}>
-          <Text style={styles.pageTitle}>Card Admin</Text>
-        </View>
-
-        <View style={styles.ctaRow}>
-          <AdminButton
-            label="Add card"
-            icon="add"
-            onPress={() => {
-              setEditingCardId("");
-              setDraft({
-                ...BLANK_CARD_DRAFT,
-                rarityId: raritiesQuery.data?.rarities[0]?.id ?? "",
-              });
-            }}
-          />
-        </View>
-
-        <AdminPanel style={styles.statsPanel}>
-          <Text style={styles.statsTitle}>Card Stats</Text>
-          {isCardsLoading ? (
-            <Text style={styles.helperText}>Loading cards...</Text>
-          ) : cardsError ? (
-            <Text style={styles.errorCopy}>{cardsError}</Text>
-          ) : (
-            <View style={styles.statsGrid}>
-              {raritiesQuery.data?.rarities.map((rarity) => (
-                <View key={rarity.id} style={styles.statTile}>
-                  <Text style={[styles.statCount, { color: rarity.color || "#DB2777" }]}>
-                    {cards.filter((card) => card.rarityId === rarity.id).length}
-                  </Text>
-                  <Text style={styles.statLabel}>{rarity.name}</Text>
-                </View>
-              ))}
+      <FlatList
+        data={listData}
+        keyExtractor={(item) => item.id}
+        renderItem={renderItem}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.pageContent}
+        ListHeaderComponent={
+          <>
+            <View style={styles.pageHeader}>
+              <Text style={styles.pageTitle}>Card Admin</Text>
             </View>
-          )}
-        </AdminPanel>
 
-        <View style={styles.searchSection}>
-          <AdminSearchInput
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholder="Search cards by name or character..."
-          />
-        </View>
+            <View style={styles.ctaRow}>
+              <AdminButton label="Add card" icon="add" onPress={openCreateModal} />
+            </View>
 
-        <View style={styles.collectionSection}>
-          <Pressable style={styles.collectionToggle} onPress={() => setIsActiveCardsOpen((current) => !current)}>
-            <Text style={styles.collectionTitle}>
-              All Cards ({activeCountLabel}){searchQuery ? ` / ${activeTotalLabel}` : ""}
-            </Text>
-            <Ionicons
-              name="chevron-down"
-              size={20}
-              color="#BE185D"
-              style={[styles.chevron, isActiveCardsOpen ? styles.chevronOpen : null]}
-            />
-          </Pressable>
-          {isActiveCardsOpen ? (
-            <View style={styles.collectionBody}>
+            <AdminPanel style={styles.statsPanel}>
+              <Text style={styles.statsTitle}>Card Stats</Text>
               {isCardsLoading ? (
                 <Text style={styles.helperText}>Loading cards...</Text>
               ) : cardsError ? (
                 <Text style={styles.errorCopy}>{cardsError}</Text>
-              ) : activeCards.length ? (
-                <>
-                  <Text style={styles.helperText}>Tap a card to edit it.</Text>
-                <View style={styles.grid}>
-                  {activeCards.map((card) => (
-                    <Pressable key={card.id} style={[styles.tileWrap, { width: tileWidth }]} onPress={() => setEditingCardId(card.id)}>
-                      <AdminCardTile card={card} fitContainer />
-                    </Pressable>
+              ) : (
+                <View style={styles.statsGrid}>
+                  {raritiesQuery.data?.rarities.map((rarity) => (
+                    <View key={rarity.id} style={styles.statTile}>
+                      <Text style={[styles.statCount, { color: rarity.color || "#DB2777" }]}>
+                        {derived.rarityCounts.get(rarity.id) ?? 0}
+                      </Text>
+                      <Text style={styles.statLabel}>{rarity.name}</Text>
+                    </View>
                   ))}
                 </View>
-                </>
-              ) : (
-                <Text style={styles.emptyCopy}>No cards match your search.</Text>
               )}
+            </AdminPanel>
+
+            <View style={styles.searchSection}>
+              <AdminSearchInput
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholder="Search cards by name or character..."
+              />
+            </View>
+          </>
+        }
+      />
+
+      {editingCardId !== null ? (
+        <AdminModal
+          visible
+          title={editingCardId ? "Edit card" : "Create new card"}
+          onClose={() => {
+            setEditingCardId(null);
+            setDraft(BLANK_CARD_DRAFT);
+          }}
+        >
+          {previewCard ? (
+            <View style={{ alignItems: "center" }}>
+              <Text style={styles.previewLabel}>Live preview</Text>
+              <AdminCardTile card={previewCard} size="large" />
             </View>
           ) : null}
-        </View>
 
-        <View style={styles.collectionSection}>
-          <Pressable style={styles.archivedToggle} onPress={() => setIsArchivedCardsOpen((current) => !current)}>
-            <Text style={styles.archivedTitle}>
-              Archived Cards ({archivedCountLabel}){searchQuery ? ` / ${archivedTotalLabel}` : ""}
-            </Text>
-            <Ionicons
-              name="chevron-down"
-              size={20}
-              color="#BE123C"
-              style={[styles.chevron, isArchivedCardsOpen ? styles.chevronOpen : null]}
-            />
-          </Pressable>
-          {isArchivedCardsOpen ? (
-            <View style={styles.collectionBody}>
-              {isCardsLoading ? (
-                <Text style={styles.helperText}>Loading cards...</Text>
-              ) : cardsError ? (
-                <Text style={styles.errorCopy}>{cardsError}</Text>
-              ) : archivedCards.length ? (
-                <>
-                  <Text style={styles.helperText}>Tap a card to manage it.</Text>
-                <View style={styles.grid}>
-                  {archivedCards.map((card) => (
-                    <Pressable key={card.id} style={[styles.tileWrap, styles.archivedTile, { width: tileWidth }]} onPress={() => setSelectedArchivedCardId(card.id)}>
-                      <AdminCardTile card={card} fitContainer />
-                    </Pressable>
-                  ))}
-                </View>
-                </>
-              ) : (
-                <Text style={styles.emptyCopy}>
-                  {searchQuery ? "No archived cards match your search." : "No archived cards."}
-                </Text>
-              )}
+          <View style={styles.modalBlock}>
+            <Text style={styles.modalBlockTitle}>Card basics</Text>
+            {FIELD_LABELS.map((field) => (
+              <AdminField
+                key={field.key}
+                label={field.label}
+                value={draft[field.key]}
+                onChangeText={(value) =>
+                  setDraft((current) => ({ ...current, [field.key]: value }))
+                }
+                multiline={field.key === "description"}
+                keyboardType={field.keyboardType}
+              />
+            ))}
+          </View>
+
+          <View style={styles.modalBlock}>
+            <Text style={styles.modalBlockTitle}>Rarity</Text>
+            <View style={styles.pillRow}>
+              {raritiesQuery.data?.rarities.map((rarity) => {
+                const active = draft.rarityId === rarity.id;
+                return (
+                  <Pressable
+                    key={rarity.id}
+                    onPress={() =>
+                      setDraft((current) => ({ ...current, rarityId: rarity.id }))
+                    }
+                    style={[styles.rarityPill, active ? styles.rarityPillActive : null]}
+                  >
+                    <Text style={[styles.rarityText, active ? styles.rarityTextActive : null]}>
+                      {rarity.name}
+                    </Text>
+                  </Pressable>
+                );
+              })}
             </View>
-          ) : null}
-        </View>
-      </AdminPageScroll>
-
-      <AdminModal
-        visible={editingCardId !== null}
-        title={editingCardId ? "Edit card" : "Create new card"}
-        onClose={() => {
-          setEditingCardId(null);
-          setDraft(BLANK_CARD_DRAFT);
-        }}
-      >
-        {previewCard ? (
-          <View style={{ alignItems: "center" }}>
-            <Text style={styles.previewLabel}>Live preview</Text>
-            <AdminCardTile card={previewCard} size="large" />
           </View>
-        ) : null}
 
-        <View style={styles.modalBlock}>
-          <Text style={styles.modalBlockTitle}>Card basics</Text>
-          {FIELD_LABELS.map((field) => (
-            <AdminField
-              key={field.key}
-              label={field.label}
-              value={draft[field.key]}
-              onChangeText={(value) => setDraft((current) => ({ ...current, [field.key]: value }))}
-              multiline={field.key === "description"}
-              keyboardType={field.keyboardType}
-            />
-          ))}
-        </View>
-
-        <View style={styles.modalBlock}>
-          <Text style={styles.modalBlockTitle}>Rarity</Text>
-          <View style={styles.pillRow}>
-            {raritiesQuery.data?.rarities.map((rarity) => {
-              const active = draft.rarityId === rarity.id;
-              return (
-                <Pressable
-                  key={rarity.id}
-                  onPress={() => setDraft((current) => ({ ...current, rarityId: rarity.id }))}
-                  style={[styles.rarityPill, active ? styles.rarityPillActive : null]}
-                >
-                  <Text style={[styles.rarityText, active ? styles.rarityTextActive : null]}>{rarity.name}</Text>
-                </Pressable>
-              );
-            })}
+          <View style={styles.modalBlock}>
+            <Text style={styles.modalBlockTitle}>Ability assignment</Text>
+            <View style={{ gap: 10 }}>
+              {([
+                ["passive", "Passive", assignmentDraft.passiveId],
+                ["skill", "Skill", assignmentDraft.skillId],
+                ["ultimate", "Ultimate", assignmentDraft.ultimateId],
+              ] as const).map(([role, label, selectedId]) => {
+                const selected = selectedId ? derived.abilityById.get(selectedId) : undefined;
+                return (
+                  <Pressable
+                    key={role}
+                    onPress={() => setPickerRole(role)}
+                    style={styles.assignmentCard}
+                  >
+                    <View style={{ flex: 1, gap: 6 }}>
+                      <Text style={styles.assignmentLabel}>{label}</Text>
+                      <Text style={styles.assignmentTitle}>
+                        {selected?.name ?? `Choose ${label.toLowerCase()} ability`}
+                      </Text>
+                      {selected ? (
+                        <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}>
+                          <AbilityTypeChip type={selected.type} />
+                          <AdminChip label={`Cost ${selected.cost}`} tone="info" />
+                          {selected.cooldown ? (
+                            <AdminChip label={`CD ${selected.cooldown}`} tone="accent" />
+                          ) : null}
+                        </View>
+                      ) : null}
+                    </View>
+                    <Text style={styles.changeText}>Change</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            {editingCardId ? (
+              <View style={styles.tileActionRow}>
+                <AdminButton
+                  label="Save assignment"
+                  onPress={() =>
+                    assignMutation.mutate({
+                      cardId: editingCardId,
+                      passiveId: assignmentDraft.passiveId || null,
+                      skillId: assignmentDraft.skillId || null,
+                      ultimateId: assignmentDraft.ultimateId || null,
+                    })
+                  }
+                />
+                <AdminButton
+                  label="Clear"
+                  variant="ghost"
+                  onPress={() =>
+                    setAssignmentDraft({ passiveId: "", skillId: "", ultimateId: "" })
+                  }
+                />
+              </View>
+            ) : null}
           </View>
-        </View>
 
-        <View style={styles.modalBlock}>
-          <Text style={styles.modalBlockTitle}>Ability assignment</Text>
-          <View style={{ gap: 10 }}>
-            {([
-              ["passive", "Passive", assignmentDraft.passiveId],
-              ["skill", "Skill", assignmentDraft.skillId],
-              ["ultimate", "Ultimate", assignmentDraft.ultimateId],
-            ] as const).map(([role, label, selectedId]) => {
-              const selected = abilitiesQuery.data?.abilities.find((ability) => ability.id === selectedId);
-              return (
-                <Pressable key={role} onPress={() => setPickerRole(role)} style={styles.assignmentCard}>
-                  <View style={{ flex: 1, gap: 6 }}>
-                    <Text style={styles.assignmentLabel}>{label}</Text>
-                    <Text style={styles.assignmentTitle}>{selected?.name ?? `Choose ${label.toLowerCase()} ability`}</Text>
-                    {selected ? (
-                      <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}>
-                        <AbilityTypeChip type={selected.type} />
-                        <AdminChip label={`Cost ${selected.cost}`} tone="info" />
-                        {selected.cooldown ? <AdminChip label={`CD ${selected.cooldown}`} tone="accent" /> : null}
-                      </View>
-                    ) : null}
-                  </View>
-                  <Text style={styles.changeText}>Change</Text>
-                </Pressable>
-              );
-            })}
-          </View>
           {editingCardId ? (
             <View style={styles.tileActionRow}>
               <AdminButton
-                label="Save assignment"
+                label="Upload image"
+                variant="secondary"
+                onPress={() => uploadMutation.mutate(editingCardId)}
+              />
+              <AdminButton
+                label={selectedEditingCard?.isArchived ? "Restore" : "Archive"}
+                variant="danger"
                 onPress={() =>
-                  assignMutation.mutate({
+                  featureMutation.mutate({
                     cardId: editingCardId,
-                    passiveId: assignmentDraft.passiveId || null,
-                    skillId: assignmentDraft.skillId || null,
-                    ultimateId: assignmentDraft.ultimateId || null,
+                    isArchived: !(selectedEditingCard?.isArchived ?? false),
                   })
                 }
               />
-              <AdminButton
-                label="Clear"
-                variant="ghost"
-                onPress={() => setAssignmentDraft({ passiveId: "", skillId: "", ultimateId: "" })}
-              />
             </View>
           ) : null}
-        </View>
 
-        {editingCardId ? (
-          <View style={styles.tileActionRow}>
-            <AdminButton label="Upload image" variant="secondary" onPress={() => uploadMutation.mutate(editingCardId)} />
-            <AdminButton
-              label={detailQuery.data?.isArchived ? "Restore" : "Archive"}
-              variant="danger"
-              onPress={() =>
-                featureMutation.mutate({
-                  cardId: editingCardId,
-                  isArchived: !(detailQuery.data?.isArchived ?? false),
-                })
-              }
-            />
-          </View>
-        ) : null}
+          <AdminButton
+            label={
+              saveCardMutation.isPending
+                ? "Saving..."
+                : editingCardId
+                  ? "Save card"
+                  : "Create card"
+            }
+            onPress={() => saveCardMutation.mutate()}
+            disabled={saveCardMutation.isPending || !draft.rarityId}
+          />
+        </AdminModal>
+      ) : null}
 
-        <AdminButton
-          label={saveCardMutation.isPending ? "Saving..." : editingCardId ? "Save card" : "Create card"}
-          onPress={() => saveCardMutation.mutate()}
-          disabled={saveCardMutation.isPending || !draft.rarityId}
-        />
-      </AdminModal>
-
-      <AdminModal visible={pickerRole !== null} title="Choose ability" onClose={() => setPickerRole(null)}>
-        {pickerRole ? (
-          <>
-            <AdminButton
-              label="Use default / none"
-              variant="ghost"
+      {pickerRole !== null ? (
+        <AdminModal visible title="Choose ability" onClose={() => setPickerRole(null)}>
+          <AdminButton
+            label="Use default / none"
+            variant="ghost"
+            onPress={() => {
+              setAssignmentDraft(
+                (current) => ({ ...current, [`${pickerRole}Id`]: "" }) as typeof current,
+              );
+              setPickerRole(null);
+            }}
+          />
+          {pickerOptions.map((ability) => (
+            <Pressable
+              key={ability.id}
               onPress={() => {
-                setAssignmentDraft((current) => ({ ...current, [`${pickerRole}Id`]: "" } as typeof current));
+                setAssignmentDraft(
+                  (current) => ({ ...current, [`${pickerRole}Id`]: ability.id }) as typeof current,
+                );
                 setPickerRole(null);
               }}
-            />
-            {pickerOptions.map((ability) => (
-              <Pressable
-                key={ability.id}
-                onPress={() => {
-                  setAssignmentDraft((current) => ({ ...current, [`${pickerRole}Id`]: ability.id } as typeof current));
-                  setPickerRole(null);
+              style={styles.abilityOption}
+            >
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: 8,
                 }}
-                style={styles.abilityOption}
               >
-                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-                  <Text style={styles.assignmentTitle}>{ability.name}</Text>
-                  <AbilityTypeChip type={ability.type} />
-                </View>
-                <Text style={styles.optionDescription}>{ability.description}</Text>
-                <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}>
-                  <AdminChip label={ability.key} tone="accent" />
-                  <AdminChip label={`Cost ${ability.cost}`} tone="info" />
-                  {ability.cooldown ? <AdminChip label={`Cooldown ${ability.cooldown}`} tone="warning" /> : null}
-                </View>
-              </Pressable>
-            ))}
-          </>
-        ) : null}
-      </AdminModal>
+                <Text style={styles.assignmentTitle}>{ability.name}</Text>
+                <AbilityTypeChip type={ability.type} />
+              </View>
+              <Text style={styles.optionDescription}>{ability.description}</Text>
+              <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}>
+                <AdminChip label={ability.key} tone="accent" />
+                <AdminChip label={`Cost ${ability.cost}`} tone="info" />
+                {ability.cooldown ? (
+                  <AdminChip label={`Cooldown ${ability.cooldown}`} tone="warning" />
+                ) : null}
+              </View>
+            </Pressable>
+          ))}
+        </AdminModal>
+      ) : null}
 
-      <AdminModal visible={selectedArchivedCard !== null} title="Archived Card" onClose={() => setSelectedArchivedCardId(null)}>
-        {selectedArchivedCard ? (
-          <>
-            <View style={styles.archivedModalPreview}>
-              <AdminCardTile card={selectedArchivedCard} size="large" />
-            </View>
-            <Text style={styles.archivedModalTitle}>{selectedArchivedCard.name}</Text>
-            <View style={styles.archivedModalActions}>
-              <AdminButton
-                label="Restore card"
-                variant="secondary"
-                onPress={() => {
-                  featureMutation.mutate({ cardId: selectedArchivedCard.id, isArchived: false });
-                  setSelectedArchivedCardId(null);
-                }}
-              />
-              <AdminButton label="Cancel" variant="ghost" onPress={() => setSelectedArchivedCardId(null)} />
-            </View>
-          </>
-        ) : null}
-      </AdminModal>
+      {selectedArchivedCard ? (
+        <AdminModal
+          visible
+          title="Archived Card"
+          onClose={() => setSelectedArchivedCardId(null)}
+        >
+          <View style={styles.archivedModalPreview}>
+            <AdminCardTile card={selectedArchivedCard} size="large" />
+          </View>
+          <Text style={styles.archivedModalTitle}>{selectedArchivedCard.name}</Text>
+          <View style={styles.archivedModalActions}>
+            <AdminButton
+              label="Restore card"
+              variant="secondary"
+              onPress={() => {
+                featureMutation.mutate({ cardId: selectedArchivedCard.id, isArchived: false });
+                setSelectedArchivedCardId(null);
+              }}
+            />
+            <AdminButton
+              label="Cancel"
+              variant="ghost"
+              onPress={() => setSelectedArchivedCardId(null)}
+            />
+          </View>
+        </AdminModal>
+      ) : null}
     </>
   );
 }
 
 const styles = StyleSheet.create({
+  pageContent: {
+    paddingHorizontal: SCREEN_SIDE_PADDING,
+    paddingTop: 8,
+    paddingBottom: CONTENT_BOTTOM_PADDING,
+    gap: 16,
+  },
   pageHeader: {
     alignItems: "center",
     paddingTop: 4,
-    paddingHorizontal: 16,
   },
   pageTitle: {
     fontFamily: "Nunito_800ExtraBold",
@@ -544,10 +777,10 @@ const styles = StyleSheet.create({
     color: "#BE185D",
   },
   ctaRow: {
-    paddingHorizontal: 16,
+    marginTop: 16,
   },
   statsPanel: {
-    marginHorizontal: 16,
+    marginTop: 16,
     paddingBottom: 18,
   },
   statsTitle: {
@@ -581,13 +814,12 @@ const styles = StyleSheet.create({
     color: "#6B7280",
   },
   searchSection: {
-    paddingHorizontal: 16,
+    marginTop: 16,
   },
   collectionSection: {
-    marginBottom: 8,
+    marginTop: 8,
   },
   collectionToggle: {
-    marginHorizontal: 8,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -602,7 +834,6 @@ const styles = StyleSheet.create({
     color: "#7A284D",
   },
   archivedToggle: {
-    marginHorizontal: 8,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -646,11 +877,12 @@ const styles = StyleSheet.create({
     color: "#BE123C",
     textAlign: "center",
   },
-  grid: {
+  rowWrap: {
+    marginTop: 12,
     flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "center",
+    justifyContent: "space-between",
     gap: GRID_GAP,
+    paddingHorizontal: COLLECTION_SIDE_PADDING,
   },
   tileWrap: {
     alignItems: "center",

@@ -470,7 +470,6 @@ export async function appRoutes(fastify: FastifyInstance) {
 
   fastify.get(
     "/media/card/:id",
-    { preHandler: [(fastify as any).authenticate] },
     async (request, reply) => {
       const { id } = request.params as { id: string };
       const asset = await getImageAssetById(id, "card");
@@ -486,7 +485,7 @@ export async function appRoutes(fastify: FastifyInstance) {
               `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512"><rect width="100%" height="100%" fill="#1f2937"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#f9fafb" font-size="28">Adventure Time Card</text></svg>`,
           );
       reply.header("Content-Type", asset.mimeType || "image/svg+xml");
-      reply.header("Cache-Control", "private, max-age=3600");
+      reply.header("Cache-Control", "public, max-age=31536000, immutable");
       return reply.send(body);
     },
   );

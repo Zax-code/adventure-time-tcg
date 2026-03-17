@@ -1,11 +1,11 @@
-import { useEffect, useRef } from "react";
+import { memo, useEffect, useRef } from "react";
 import type { StyleProp, ViewStyle } from "react-native";
 import { Animated, Easing, Pressable, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 
 import type { CollectionResponse } from "@adventure-time/shared";
-import { API_BASE_URL } from "../lib/api";
+import { getCardImageCacheKey, getCardImageUrl } from "../lib/card-images";
 import { CARD_TYPE_COLORS, RARITY_COLORS, SECONDARY_TINT } from "./theme";
 import { HPIcon, SpeedIcon, RarityIcon } from "./icons";
 
@@ -101,9 +101,9 @@ function RarityCrest({ rarityName, cfg }: { rarityName: string; cfg: typeof size
   );
 }
 
-export function CardTile({
+export const CardTile = memo(function CardTile({
   entry,
-  accessToken,
+  accessToken: _accessToken,
   onPress,
   onRecycle,
   onCraft,
@@ -185,12 +185,13 @@ export function CardTile({
             {card.imageAssetId ? (
               <Image
                 source={{
-                  uri: `${API_BASE_URL}/media/card/${card.imageAssetId}`,
-                  headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+                  uri: getCardImageUrl(card.imageAssetId),
+                  cacheKey: getCardImageCacheKey(card.imageAssetId),
                 }}
                 placeholder={{ blurhash: "LKO2?U%2Tw=w]~RBVZRi};RPxuwH" }}
                 style={{ width: "100%", height: "100%" }}
                 contentFit="cover"
+                cachePolicy="memory-disk"
               />
             ) : (
               <View style={{ flex: 1, backgroundColor: typeColor.light, alignItems: "center", justifyContent: "center" }}>
@@ -331,4 +332,4 @@ export function CardTile({
       ) : null}
     </Pressable>
   );
-}
+});

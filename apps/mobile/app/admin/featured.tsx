@@ -1,33 +1,74 @@
-import { useMemo, useState } from "react";
-import { Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  FlatList,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import type { AdminCardsResponse } from "@adventure-time/shared";
+
 import { apiClient } from "../../src/lib/api";
+import { prefetchCardImages } from "../../src/lib/card-images";
 import { AdminCardTile } from "../../src/components/admin/admin-card-tile";
 import {
   AdminChip,
   AdminEmptyState,
-  AdminPageScroll,
   AdminPanel,
   AdminSearchInput,
   AdminSectionTitle,
 } from "../../src/components/admin/admin-ui";
 
 const GRID_GAP = 12;
+const SCREEN_SIDE_PADDING = 16;
 const PANEL_INNER_PADDING = 16;
-const FEATURED_RING_EXTRA = 4;
+const CONTENT_BOTTOM_PADDING = 128;
+
+type AdminCard = AdminCardsResponse["cards"][number];
+
+type CardRow = {
+  id: string;
+  left: AdminCard;
+  right?: AdminCard;
+};
+
+type FeaturedListItem =
+  | { id: string; type: "featured-header" }
+  | { id: string; type: "featured-row"; row: CardRow }
+  | { id: string; type: "candidate-header" }
+  | { id: string; type: "candidate-row"; row: CardRow };
 
 function getFeaturedTileWidth(screenWidth: number) {
-  const availableWidth = screenWidth - PANEL_INNER_PADDING * 2 - PANEL_INNER_PADDING * 2;
-  return Math.floor((availableWidth - GRID_GAP) / 2) - FEATURED_RING_EXTRA;
+  const availableWidth = screenWidth - SCREEN_SIDE_PADDING * 2 - PANEL_INNER_PADDING * 2;
+  return Math.floor((availableWidth - GRID_GAP) / 2) - 2;
+}
+
+function chunkCards(cards: AdminCard[]) {
+  const rows: CardRow[] = [];
+
+  for (let index = 0; index < cards.length; index += 2) {
+    rows.push({
+      id: `row-${cards[index].id}-${cards[index + 1]?.id ?? "empty"}`,
+      left: cards[index],
+      right: cards[index + 1],
+    });
+  }
+
+  return rows;
 }
 
 export default function AdminFeaturedScreen() {
   const queryClient = useQueryClient();
   const { width } = useWindowDimensions();
   const [searchQuery, setSearchQuery] = useState("");
-  const cardsQuery = useQuery({ queryKey: ["admin-cards"], queryFn: () => apiClient.adminCards() });
+  const cardsQuery = useQuery({
+    queryKey: ["admin-cards"],
+    queryFn: () => apiClient.adminCards(),
+  });
   const toggleMutation = useMutation({
     mutationFn: ({ cardId, isFeatured }: { cardId: string; isFeatured: boolean }) =>
       apiClient.updateAdminCard(cardId, { isFeatured }),
@@ -36,135 +77,224 @@ export default function AdminFeaturedScreen() {
     },
   });
 
-  const filtered = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
-    return (cardsQuery.data?.cards ?? []).filter((card) => {
-      if (!query) return true;
-      return `${card.name} ${card.character}`.toLowerCase().includes(query);
-    });
-  }, [cardsQuery.data?.cards, searchQuery]);
-
-  const featuredCards = filtered.filter((card) => card.isFeatured && !card.isArchived);
-  const nonFeaturedCards = filtered.filter((card) => !card.isFeatured && !card.isArchived);
-  const maxReached = featuredCards.length >= 5;
+  const cards = cardsQuery.data?.cards ?? [];
   const tileWidth = getFeaturedTileWidth(width);
   const isCardsLoading = cardsQuery.isLoading;
   const cardsError = cardsQuery.error instanceof Error ? cardsQuery.error.message : null;
-  const featuredCountLabel = isCardsLoading ? "..." : String(featuredCards.length);
-  const waitingCountLabel = isCardsLoading ? "..." : String(nonFeaturedCards.length);
+
+  useEffect(() => {
+    void prefetchCardImages(cards.slice(0, 48).map((card) => card.imageAssetId));
+  }, [cards]);
+
+  const derived = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    const featuredCards: AdminCard[] = [];
+    const nonFeaturedCards: AdminCard[] = [];
+
+    for (const card of cards) {
+      if (card.isArchived) {
+        continue;
+      }
+
+      if (query && !`${card.name} ${card.character}`.toLowerCase().includes(query)) {
+        continue;
+      }
+
+      if (card.isFeatured) {
+        featuredCards.push(card);
+      } else {
+        nonFeaturedCards.push(card);
+      }
+    }
+
+    return { featuredCards, nonFeaturedCards };
+  }, [cards, searchQuery]);
+
+  const maxReached = derived.featuredCards.length >= 5;
+
+  const listData = useMemo(() => {
+    const items: FeaturedListItem[] = [{ id: "featured-header", type: "featured-header" }];
+    chunkCards(derived.featuredCards).forEach((row) => {
+      items.push({ id: `featured-${row.id}`, type: "featured-row", row });
+    });
+    items.push({ id: "candidate-header", type: "candidate-header" });
+    chunkCards(derived.nonFeaturedCards).forEach((row) => {
+      items.push({ id: `candidate-${row.id}`, type: "candidate-row", row });
+    });
+    return items;
+  }, [derived.featuredCards, derived.nonFeaturedCards]);
+
+  const renderRow = useCallback(
+    (row: CardRow, featured: boolean) => (
+      <View style={styles.rowWrap}>
+        <View style={[styles.tileWrap, { width: tileWidth }]}> 
+          <View style={featured ? styles.featuredRing : styles.candidateWrap}>
+            <AdminCardTile card={row.left} fitContainer />
+            <Pressable
+              disabled={!featured && maxReached}
+              style={[
+                styles.starButton,
+                featured
+                  ? null
+                  : maxReached
+                    ? styles.starButtonDisabled
+                    : styles.starButtonMuted,
+              ]}
+              onPress={() =>
+                toggleMutation.mutate({ cardId: row.left.id, isFeatured: !featured })
+              }
+            >
+              <Ionicons
+                name={featured ? "star" : "star-outline"}
+                size={16}
+                color={featured ? "#FFFFFF" : maxReached ? "#6B7280" : "#A16207"}
+              />
+            </Pressable>
+          </View>
+        </View>
+        {row.right ? (
+          <View style={[styles.tileWrap, { width: tileWidth }]}> 
+            <View
+              style={[
+                featured ? styles.featuredRing : styles.candidateWrap,
+                !featured && maxReached ? styles.dimmed : null,
+              ]}
+            >
+              <AdminCardTile card={row.right} fitContainer />
+              <Pressable
+                disabled={!featured && maxReached}
+                style={[
+                  styles.starButton,
+                  featured
+                    ? null
+                    : maxReached
+                      ? styles.starButtonDisabled
+                      : styles.starButtonMuted,
+                ]}
+                onPress={() =>
+                  toggleMutation.mutate({ cardId: row.right!.id, isFeatured: !featured })
+                }
+              >
+                <Ionicons
+                  name={featured ? "star" : "star-outline"}
+                  size={16}
+                  color={featured ? "#FFFFFF" : maxReached ? "#6B7280" : "#A16207"}
+                />
+              </Pressable>
+            </View>
+          </View>
+        ) : (
+          <View style={{ width: tileWidth }} />
+        )}
+      </View>
+    ),
+    [maxReached, tileWidth, toggleMutation],
+  );
+
+  const renderItem = useCallback(
+    ({ item }: { item: FeaturedListItem }) => {
+      if (item.type === "featured-header") {
+        return (
+          <View style={styles.sectionPanel}>
+            <AdminSectionTitle title={`Currently featured (${derived.featuredCards.length})`} />
+            <View style={styles.sectionStateWrap}>
+              {isCardsLoading ? (
+                <Text style={styles.stateCopy}>Loading cards...</Text>
+              ) : cardsError ? (
+                <Text style={styles.errorCopy}>{cardsError}</Text>
+              ) : derived.featuredCards.length ? null : (
+                <AdminEmptyState
+                  icon="star-outline"
+                  title="No featured cards"
+                  body="Tap any card below to promote it into the featured set."
+                />
+              )}
+            </View>
+          </View>
+        );
+      }
+
+      if (item.type === "candidate-header") {
+        return (
+          <View style={styles.sectionPanel}>
+            <AdminSectionTitle title={`All cards (${derived.nonFeaturedCards.length})`} />
+            <View style={styles.sectionStateWrap}>
+              {isCardsLoading ? (
+                <Text style={styles.stateCopy}>Loading cards...</Text>
+              ) : cardsError ? (
+                <Text style={styles.errorCopy}>{cardsError}</Text>
+              ) : derived.nonFeaturedCards.length ? null : (
+                <AdminEmptyState
+                  icon="search"
+                  title="No cards match"
+                  body="Clear the search or add more cards on the cards tab."
+                />
+              )}
+            </View>
+          </View>
+        );
+      }
+
+      return renderRow(item.row, item.type === "featured-row");
+    },
+    [cardsError, derived.featuredCards.length, derived.nonFeaturedCards.length, isCardsLoading, renderRow],
+  );
 
   return (
-    <AdminPageScroll>
-      <AdminPanel>
-        <AdminSectionTitle
-          title="Featured cards"
-          subtitle="Highlight the showcase roster exactly like the PWA carousel selection flow."
-        />
-        <View style={{ height: 12 }} />
-        <AdminSearchInput
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholder="Search featured candidates"
-        />
-        <View style={styles.metaRow}>
-          <AdminChip label={`${featuredCountLabel} / 5 featured`} tone="warning" />
-          <AdminChip label={`${waitingCountLabel} waiting`} tone="default" />
-        </View>
-        {maxReached ? (
-          <View style={styles.warningPanel}>
-            <Text style={styles.warningText}>
-              Maximum of five featured cards reached. Remove one above before adding another.
-            </Text>
+    <FlatList
+      data={listData}
+      keyExtractor={(item) => item.id}
+      renderItem={renderItem}
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={styles.pageContent}
+      ListHeaderComponent={
+        <AdminPanel>
+          <AdminSectionTitle
+            title="Featured cards"
+            subtitle="Highlight the showcase roster exactly like the PWA carousel selection flow."
+          />
+          <View style={{ height: 12 }} />
+          <AdminSearchInput
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Search featured candidates"
+          />
+          <View style={styles.metaRow}>
+            <AdminChip
+              label={`${isCardsLoading ? "..." : derived.featuredCards.length} / 5 featured`}
+              tone="warning"
+            />
+            <AdminChip
+              label={`${isCardsLoading ? "..." : derived.nonFeaturedCards.length} waiting`}
+              tone="default"
+            />
           </View>
-        ) : null}
-      </AdminPanel>
-
-      <AdminPanel>
-        <AdminSectionTitle title={`Currently featured (${featuredCards.length})`} />
-        <View style={styles.grid}>
-          {isCardsLoading ? (
-            <Text style={styles.stateCopy}>Loading cards...</Text>
-          ) : cardsError ? (
-            <Text style={styles.errorCopy}>{cardsError}</Text>
-          ) : featuredCards.length ? (
-            featuredCards.map((card) => (
-              <View key={card.id} style={[styles.tileWrap, { width: tileWidth }]}> 
-                <View style={styles.featuredRing}>
-                  <AdminCardTile card={card} fitContainer />
-                  <Pressable
-                    style={styles.starButton}
-                    onPress={() => toggleMutation.mutate({ cardId: card.id, isFeatured: false })}
-                  >
-                    <Ionicons name="star" size={16} color="#FFFFFF" />
-                  </Pressable>
-                </View>
-              </View>
-            ))
-          ) : (
-            <AdminEmptyState icon="star-outline" title="No featured cards" body="Tap any card below to promote it into the featured set." />
-          )}
-        </View>
-      </AdminPanel>
-
-      <AdminPanel>
-        <AdminSectionTitle title={`All cards (${nonFeaturedCards.length})`} />
-        <View style={styles.grid}>
-          {isCardsLoading ? (
-            <Text style={styles.stateCopy}>Loading cards...</Text>
-          ) : cardsError ? (
-            <Text style={styles.errorCopy}>{cardsError}</Text>
-          ) : nonFeaturedCards.length ? (
-            nonFeaturedCards.map((card) => (
-              <View key={card.id} style={[styles.tileWrap, { width: tileWidth }]}> 
-                <View style={[styles.candidateWrap, maxReached ? styles.dimmed : null]}>
-                  <AdminCardTile card={card} fitContainer />
-                  <Pressable
-                    disabled={maxReached}
-                    style={[styles.starButton, maxReached ? styles.starButtonDisabled : styles.starButtonMuted]}
-                    onPress={() => toggleMutation.mutate({ cardId: card.id, isFeatured: true })}
-                    >
-                      <Ionicons name="star-outline" size={16} color={maxReached ? "#6B7280" : "#A16207"} />
-                    </Pressable>
-                  </View>
-              </View>
-            ))
-          ) : (
-            <AdminEmptyState icon="search" title="No cards match" body="Clear the search or add more cards on the cards tab." />
-          )}
-        </View>
-      </AdminPanel>
-    </AdminPageScroll>
+          {maxReached ? (
+            <View style={styles.warningPanel}>
+              <Text style={styles.warningText}>
+                Maximum of five featured cards reached. Remove one above before adding another.
+              </Text>
+            </View>
+          ) : null}
+        </AdminPanel>
+      }
+    />
   );
 }
 
 const styles = StyleSheet.create({
+  pageContent: {
+    paddingHorizontal: SCREEN_SIDE_PADDING,
+    paddingTop: 8,
+    paddingBottom: CONTENT_BOTTOM_PADDING,
+    gap: 16,
+  },
   metaRow: {
     marginTop: 12,
     flexDirection: "row",
     gap: 8,
     flexWrap: "wrap",
-  },
-  grid: {
-    marginTop: 12,
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "center",
-    gap: GRID_GAP,
-  },
-  tileWrap: {
-    alignItems: "center",
-  },
-  stateCopy: {
-    fontFamily: "Nunito_600SemiBold",
-    fontSize: 13,
-    color: "#6B7280",
-    textAlign: "center",
-  },
-  errorCopy: {
-    fontFamily: "Nunito_700Bold",
-    fontSize: 13,
-    color: "#BE123C",
-    textAlign: "center",
   },
   warningPanel: {
     marginTop: 12,
@@ -179,6 +309,34 @@ const styles = StyleSheet.create({
     fontFamily: "Nunito_700Bold",
     fontSize: 13,
     color: "#A16207",
+  },
+  sectionPanel: {
+    marginTop: 16,
+  },
+  sectionStateWrap: {
+    marginTop: 12,
+  },
+  stateCopy: {
+    fontFamily: "Nunito_600SemiBold",
+    fontSize: 13,
+    color: "#6B7280",
+    textAlign: "center",
+  },
+  errorCopy: {
+    fontFamily: "Nunito_700Bold",
+    fontSize: 13,
+    color: "#BE123C",
+    textAlign: "center",
+  },
+  rowWrap: {
+    marginTop: 12,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: GRID_GAP,
+    paddingHorizontal: PANEL_INNER_PADDING,
+  },
+  tileWrap: {
+    alignItems: "center",
   },
   featuredRing: {
     borderWidth: 2,
