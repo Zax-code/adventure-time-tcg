@@ -75,6 +75,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
         defense: card!.defense,
         speed: card!.speed,
         type: card!.type,
+        imageAssetId: card!.imageAssetId,
       };
     },
   );
@@ -116,16 +117,24 @@ export async function adminRoutes(fastify: FastifyInstance) {
         with: { rarity: true },
         orderBy: [asc(cards.name)],
       });
-      return {
-        cards: rows.map((card) => ({
-          id: card.id,
-          name: card.name,
-          character: card.character,
-          rarityName: card.rarity.name,
-          isArchived: card.isArchived,
-          isFeatured: card.isFeatured,
-        })),
-      };
+        return {
+          cards: rows.map((card) => ({
+            id: card.id,
+            name: card.name,
+            character: card.character,
+            rarityName: card.rarity.name,
+            rarityId: card.rarityId,
+            isArchived: card.isArchived,
+            isFeatured: card.isFeatured,
+            description: card.description,
+            hp: card.hp,
+            attack: card.attack,
+            defense: card.defense,
+            speed: card.speed,
+            type: card.type,
+            imageAssetId: card.imageAssetId,
+          })),
+        };
     },
   );
 
@@ -166,8 +175,16 @@ export async function adminRoutes(fastify: FastifyInstance) {
         name: card!.name,
         character: card!.character,
         rarityName: card!.rarity.name,
+        rarityId: card!.rarityId,
         isArchived: card!.isArchived,
         isFeatured: card!.isFeatured,
+        description: card!.description,
+        hp: card!.hp,
+        attack: card!.attack,
+        defense: card!.defense,
+        speed: card!.speed,
+        type: card!.type,
+        imageAssetId: card!.imageAssetId,
       };
     },
   );
@@ -199,6 +216,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
         defense: card.defense,
         speed: card.speed,
         type: card.type,
+        imageAssetId: card.imageAssetId,
       };
     },
   );
@@ -252,6 +270,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
         defense: card!.defense,
         speed: card!.speed,
         type: card!.type,
+        imageAssetId: card!.imageAssetId,
       };
     },
   );

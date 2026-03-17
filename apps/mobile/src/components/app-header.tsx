@@ -56,7 +56,7 @@ export function AppHeader() {
         </LinearGradient>
         <View className="flex-row items-center" style={{ columnGap: 16 }}>
           {user?.isAdmin ? (
-            <Pressable onPress={() => router.push("/admin")} hitSlop={8}>
+            <Pressable onPress={() => router.push("/admin/cards" as never)} hitSlop={8}>
               <LinearGradient
                 colors={["#C084FC", "#A855F7", "#9333EA"]}
                 start={{ x: 0, y: 0 }}

@@ -1,5 +1,6 @@
-import { Stack, Redirect } from "expo-router";
+import { Redirect, Slot } from "expo-router";
 
+import { AdminShell } from "../../src/components/admin/admin-shell";
 import { useSessionStore } from "../../src/stores/session-store";
 
 export default function AdminLayout() {
@@ -14,5 +15,9 @@ export default function AdminLayout() {
     return <Redirect href="/(tabs)/settings" />;
   }
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <AdminShell>
+      <Slot />
+    </AdminShell>
+  );
 }

@@ -400,19 +400,19 @@ export const adminCardSummarySchema = z.object({
   name: z.string(),
   character: z.string(),
   rarityName: z.string(),
+  rarityId: z.string(),
   isArchived: z.boolean(),
   isFeatured: z.boolean(),
-});
-
-export const adminCardDetailSchema = adminCardSummarySchema.extend({
   description: z.string(),
   hp: z.number().int(),
   attack: z.number().int(),
   defense: z.number().int(),
   speed: z.number().int(),
   type: z.string(),
-  rarityId: z.string(),
+  imageAssetId: z.string().nullable(),
 });
+
+export const adminCardDetailSchema = adminCardSummarySchema;
 
 export const adminCardsResponseSchema = z.object({
   cards: z.array(adminCardSummarySchema),
