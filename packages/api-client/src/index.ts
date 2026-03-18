@@ -338,7 +338,7 @@ export class ApiClient {
   async startSpeedCalculus(): Promise<SpeedRunState> {
     return this.request(
       "/quests/speed-calculus/start",
-      { method: "POST" },
+      { method: "POST", body: JSON.stringify({}) },
       (data) => speedRunStateSchema.parse(data),
     );
   }
