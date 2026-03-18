@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
+  Dimensions,
   Modal,
   ScrollView,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
@@ -43,7 +45,7 @@ const C = {
   primaryStrong: "#9D174D",
   successDark: "#14B8A6",
   dangerDark: "#F43F5E",
-  screenBg: "#FFF8F0",
+  screenBg: "#fff0f5",
 };
 
 function tileVisuals(state?: LetterState): { bg: string; border: string; text: string } {
@@ -60,8 +62,19 @@ function keyVisuals(state?: LetterState): { bg: string; border: string; text: st
   return { bg: C.keyBg, border: C.keyBg, text: C.keyText };
 }
 
+const SCREEN_H_PADDING = 32;
+const CARD_H_PADDING = 32;
+const KEY_GAP = 6;
+const MAX_ROW_KEYS = 10;
+
 export default function WordleScreen() {
   const { t, locale } = useTranslation();
+  const insets = useSafeAreaInsets();
+  const screenWidth = Dimensions.get("window").width;
+  const keyWidth = Math.max(
+    24,
+    Math.floor((screenWidth - SCREEN_H_PADDING - CARD_H_PADDING - KEY_GAP * (MAX_ROW_KEYS - 1)) / MAX_ROW_KEYS)
+  );
   const router = useRouter();
   const queryClient = useQueryClient();
 
@@ -354,7 +367,7 @@ export default function WordleScreen() {
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: C.screenBg }}
-      contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 40 }}
+      contentContainerStyle={{ paddingHorizontal: 16, paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24, gap: 16 }}
       keyboardShouldPersistTaps="handled"
     >
       {/* ── Header ──────────────────────────────────────────────────────── */}
@@ -535,7 +548,7 @@ export default function WordleScreen() {
                   onPress={() => addLetter(letter)}
                   activeOpacity={0.7}
                   style={{
-                    width: 32,
+                    width: keyWidth,
                     height: 44,
                     borderRadius: 8,
                     borderWidth: 1,
