@@ -18,5 +18,8 @@
   },
   "dependencies": {
     "react-native-svg": "15.12.1"
+  },
+  "devDependencies": {
+    "@types/react": "~19.1.10"
   }
 }
