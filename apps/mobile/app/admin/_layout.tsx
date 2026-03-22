@@ -12,7 +12,7 @@ export default function AdminLayout() {
   }
 
   if (!user?.isAdmin) {
-    return <Redirect href="/(tabs)/settings" />;
+    return <Redirect href="/(tabs)" />;
   }
 
   return (

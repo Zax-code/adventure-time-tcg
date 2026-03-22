@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   FlatList,
   Pressable,
-  StyleSheet,
   Text,
   View,
   useWindowDimensions,
@@ -22,6 +21,8 @@ import {
   AdminSearchInput,
   AdminSectionTitle,
 } from "../../src/components/admin/admin-ui";
+import { useThemeStore } from "../../src/stores/theme-store";
+import { THEME_COLORS } from "../../src/theme/themes";
 
 const GRID_GAP = 12;
 const SCREEN_SIDE_PADDING = 16;
@@ -67,6 +68,9 @@ export default function AdminFeaturedScreen() {
   const queryClient = useQueryClient();
   const { width } = useWindowDimensions();
   const [searchQuery, setSearchQuery] = useState("");
+  const { themeName } = useThemeStore();
+  const tc = THEME_COLORS[themeName];
+
   const cardsQuery = useQuery({
     queryKey: ["admin-cards"],
     queryFn: () => apiClient.adminCards(),
@@ -139,20 +143,23 @@ export default function AdminFeaturedScreen() {
 
   const renderRow = useCallback(
     (row: CardRow, featured: boolean) => (
-      <View style={styles.rowWrap}>
-        <View style={[styles.tileWrap, { width: tileWidth }]}> 
-          <View style={featured ? styles.featuredRing : styles.candidateWrap}>
+      <View className="mt-3 flex-row justify-between gap-3 px-4">
+        <View className="items-center" style={{ width: tileWidth }}>
+          <View
+            className={featured ? "border-2 rounded-[18]" : "relative"}
+            style={featured ? { borderColor: tc.secondaryDark } : undefined}
+          >
             <AdminCardTile card={row.left} fitContainer />
             <Pressable
               disabled={!featured && maxReached}
-              style={[
-                styles.starButton,
-                featured
-                  ? null
+              className="absolute -top-2 -right-2 w-8 h-8 rounded-full items-center justify-center"
+              style={{
+                backgroundColor: featured
+                  ? tc.secondaryText
                   : maxReached
-                    ? styles.starButtonDisabled
-                    : styles.starButtonMuted,
-              ]}
+                    ? "rgba(209,213,219,0.9)"
+                    : tc.surfaceMuted,
+              }}
               onPress={() =>
                 toggleRef.current({ cardId: row.left.id, isFeatured: !featured })
               }
@@ -160,30 +167,31 @@ export default function AdminFeaturedScreen() {
               <Ionicons
                 name={featured ? "star" : "star-outline"}
                 size={16}
-                color={featured ? "#FFFFFF" : maxReached ? "#6B7280" : "#A16207"}
+                color={featured ? "#FFFFFF" : maxReached ? tc.fgMuted : tc.secondaryText}
               />
             </Pressable>
           </View>
         </View>
         {row.right ? (
-          <View style={[styles.tileWrap, { width: tileWidth }]}> 
+          <View
+            className="items-center"
+            style={{ width: tileWidth, opacity: !featured && maxReached ? 0.55 : 1 }}
+          >
             <View
-              style={[
-                featured ? styles.featuredRing : styles.candidateWrap,
-                !featured && maxReached ? styles.dimmed : null,
-              ]}
+              className={featured ? "border-2 rounded-[18]" : "relative"}
+              style={featured ? { borderColor: tc.secondaryDark } : undefined}
             >
               <AdminCardTile card={row.right} fitContainer />
               <Pressable
                 disabled={!featured && maxReached}
-                style={[
-                  styles.starButton,
-                  featured
-                    ? null
+                className="absolute -top-2 -right-2 w-8 h-8 rounded-full items-center justify-center"
+                style={{
+                  backgroundColor: featured
+                    ? tc.secondaryText
                     : maxReached
-                      ? styles.starButtonDisabled
-                      : styles.starButtonMuted,
-                ]}
+                      ? "rgba(209,213,219,0.9)"
+                      : tc.surfaceMuted,
+                }}
                 onPress={() =>
                   toggleRef.current({ cardId: row.right!.id, isFeatured: !featured })
                 }
@@ -191,7 +199,7 @@ export default function AdminFeaturedScreen() {
                 <Ionicons
                   name={featured ? "star" : "star-outline"}
                   size={16}
-                  color={featured ? "#FFFFFF" : maxReached ? "#6B7280" : "#A16207"}
+                  color={featured ? "#FFFFFF" : maxReached ? tc.fgMuted : tc.secondaryText}
                 />
               </Pressable>
             </View>
@@ -201,20 +209,20 @@ export default function AdminFeaturedScreen() {
         )}
       </View>
     ),
-    [maxReached, tileWidth],
+    [maxReached, tileWidth, tc],
   );
 
   const renderItem = useCallback(
     ({ item }: { item: FeaturedListItem }) => {
       if (item.type === "featured-header") {
         return (
-          <View style={styles.sectionPanel}>
+          <View className="mt-4">
             <AdminSectionTitle title={`Currently featured (${derived.featuredCards.length})`} />
-            <View style={styles.sectionStateWrap}>
+            <View className="mt-3">
               {isCardsLoading ? (
-                <Text style={styles.stateCopy}>Loading cards...</Text>
+                <Text className="font-nunito-semibold text-[13px] text-fgMuted text-center">Loading cards...</Text>
               ) : cardsError ? (
-                <Text style={styles.errorCopy}>{cardsError}</Text>
+                <Text className="font-nunito-bold text-[13px] text-dangerText text-center">{cardsError}</Text>
               ) : derived.featuredCards.length ? null : (
                 <AdminEmptyState
                   icon="star-outline"
@@ -229,13 +237,13 @@ export default function AdminFeaturedScreen() {
 
       if (item.type === "candidate-header") {
         return (
-          <View style={styles.sectionPanel}>
+          <View className="mt-4">
             <AdminSectionTitle title={`All cards (${derived.nonFeaturedCards.length})`} />
-            <View style={styles.sectionStateWrap}>
+            <View className="mt-3">
               {isCardsLoading ? (
-                <Text style={styles.stateCopy}>Loading cards...</Text>
+                <Text className="font-nunito-semibold text-[13px] text-fgMuted text-center">Loading cards...</Text>
               ) : cardsError ? (
-                <Text style={styles.errorCopy}>{cardsError}</Text>
+                <Text className="font-nunito-bold text-[13px] text-dangerText text-center">{cardsError}</Text>
               ) : derived.nonFeaturedCards.length ? null : (
                 <AdminEmptyState
                   icon="search"
@@ -260,13 +268,13 @@ export default function AdminFeaturedScreen() {
           title="Featured cards"
           subtitle="Highlight the showcase roster exactly like the PWA carousel selection flow."
         />
-        <View style={{ height: 12 }} />
+        <View className="h-3" />
         <AdminSearchInput
           value={searchQuery}
           onChangeText={setSearchQuery}
           placeholder="Search featured candidates"
         />
-        <View style={styles.metaRow}>
+        <View className="mt-3 flex-row gap-2 flex-wrap">
           <AdminChip
             label={`${isCardsLoading ? "..." : derived.featuredCards.length} / 5 featured`}
             tone="warning"
@@ -277,8 +285,8 @@ export default function AdminFeaturedScreen() {
           />
         </View>
         {maxReached ? (
-          <View style={styles.warningPanel}>
-            <Text style={styles.warningText}>
+          <View className="mt-3 rounded-2xl px-[14] py-3 bg-secondaryTint border border-secondaryBorder">
+            <Text className="font-nunito-bold text-[13px] text-secondaryText">
               Maximum of five featured cards reached. Remove one above before adding another.
             </Text>
           </View>
@@ -295,7 +303,12 @@ export default function AdminFeaturedScreen() {
       renderItem={renderItem}
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
-      contentContainerStyle={styles.pageContent}
+      contentContainerStyle={{
+        paddingHorizontal: SCREEN_SIDE_PADDING,
+        paddingTop: 8,
+        paddingBottom: CONTENT_BOTTOM_PADDING,
+        gap: 16,
+      }}
       ListHeaderComponent={listHeader}
       removeClippedSubviews
       windowSize={5}
@@ -304,89 +317,3 @@ export default function AdminFeaturedScreen() {
     />
   );
 }
-
-const styles = StyleSheet.create({
-  pageContent: {
-    paddingHorizontal: SCREEN_SIDE_PADDING,
-    paddingTop: 8,
-    paddingBottom: CONTENT_BOTTOM_PADDING,
-    gap: 16,
-  },
-  metaRow: {
-    marginTop: 12,
-    flexDirection: "row",
-    gap: 8,
-    flexWrap: "wrap",
-  },
-  warningPanel: {
-    marginTop: 12,
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    backgroundColor: "#FEF3C7",
-    borderWidth: 1,
-    borderColor: "#FDE68A",
-  },
-  warningText: {
-    fontFamily: "Nunito_700Bold",
-    fontSize: 13,
-    color: "#A16207",
-  },
-  sectionPanel: {
-    marginTop: 16,
-  },
-  sectionStateWrap: {
-    marginTop: 12,
-  },
-  stateCopy: {
-    fontFamily: "Nunito_600SemiBold",
-    fontSize: 13,
-    color: "#6B7280",
-    textAlign: "center",
-  },
-  errorCopy: {
-    fontFamily: "Nunito_700Bold",
-    fontSize: 13,
-    color: "#BE123C",
-    textAlign: "center",
-  },
-  rowWrap: {
-    marginTop: 12,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: GRID_GAP,
-    paddingHorizontal: PANEL_INNER_PADDING,
-  },
-  tileWrap: {
-    alignItems: "center",
-  },
-  featuredRing: {
-    borderWidth: 2,
-    borderColor: "#FACC15",
-    borderRadius: 18,
-    padding: 0,
-  },
-  candidateWrap: {
-    position: "relative",
-  },
-  starButton: {
-    position: "absolute",
-    top: -8,
-    right: -8,
-    width: 32,
-    height: 32,
-    borderRadius: 999,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#CA8A04",
-  },
-  starButtonMuted: {
-    backgroundColor: "rgba(255,255,255,0.86)",
-  },
-  starButtonDisabled: {
-    backgroundColor: "rgba(209,213,219,0.9)",
-  },
-  dimmed: {
-    opacity: 0.55,
-  },
-});
