@@ -1,96 +1,154 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Repo-specific guidance for Claude Code and similar agents working in `adventure-time-native`.
 
 ## Project Overview
+`adventure-time-native` is a native-first rebuild of `~/adventure-time-tcg`, the legacy PWA.
+It is still a copy-in-progress, so preserve parity with the PWA wherever practical: gameplay, contracts, naming, reward logic, and UX intent should stay aligned unless the task explicitly changes them.
 
-Adventure Time Native is a native-first rebuild of [~/adventure-time-tcg](../adventure-time-tcg) — a TCG mobile game. It's migrating from a PWA to a native stack (React Native + Fastify API). **The clone is not finished and the design does not match the original yet.**
+## Extra Rule Files
+Checked rule sources:
+- no `.cursorrules`
+- no `.cursor/rules/`
+- no `.github/copilot-instructions.md`
+If any appear later, merge their instructions into this document.
+
+## Repo Shape
+Npm workspace monorepo:
+- `apps/api` - Fastify REST API
+- `apps/mobile` - Expo / React Native app
+- `packages/db` - Drizzle schema, migrations, DB client
+- `packages/shared` - Zod schemas and shared DTOs
+- `packages/game-engine` - pure combat and PvP engine
+- `packages/api-client` - typed API client used by mobile
+Architecture expectations:
+- mobile talks to the backend through `@adventure-time/api-client`
+- shared request/response schemas belong in `@adventure-time/shared`
+- API handles auth, persistence, uploads, DB access, and orchestration
+- `@adventure-time/game-engine` stays pure with no DB, network, filesystem, or env access
+- Drizzle schema is the DB source of truth
 
 ## Commands
-
 Run commands from the repo root unless a package-specific command is clearer.
-
 ```bash
-# Development
-npm run dev:api          # Start API server (tsx watch)
-npm run dev:mobile       # Start Expo dev server
-npm run dev:mobile:tunnel  # Start Expo in tunnel mode
+# Root
+npm run dev:api
+npm run dev:mobile
+npm run dev:mobile:tunnel
+npm run build
+npm run typecheck
+npm run lint
+npm run db:generate
+npm run db:migrate
 
-# Build & Type Check
-npm run build            # Build all workspaces
-npm run typecheck        # Type check all workspaces
-npm run lint             # Lint all workspaces
-
-# Database
-npm run db:generate      # Generate Drizzle migrations
-npm run db:migrate       # Run migrations
-npm run db:repair-history -w @adventure-time/db  # Repair missing drizzle.__drizzle_migrations rows on older dev DBs
-
-# Workspace-specific checks
+# API
+npm run dev -w @adventure-time/api
 npm run build -w @adventure-time/api
 npm run typecheck -w @adventure-time/api
+npm run abilities:translate-description -w @adventure-time/api
+npm run abilities:backfill-fr -w @adventure-time/api
+npm run abilities:retranslate-fr -w @adventure-time/api
+npm run migrate:pwa-users:audit -w @adventure-time/api
+npm run migrate:pwa-users:dry-run -w @adventure-time/api
+npm run migrate:pwa-users:apply -w @adventure-time/api
+npm run migrate:pwa-users:verify -w @adventure-time/api
+
+# Mobile and packages
+npm run dev -w @adventure-time/mobile
+npm run dev:tunnel -w @adventure-time/mobile
 npm run typecheck -w @adventure-time/mobile
 npm run typecheck -w @adventure-time/db
 npm run typecheck -w @adventure-time/shared
 npm run typecheck -w @adventure-time/game-engine
 npm run typecheck -w @adventure-time/api-client
+npm run db:generate -w @adventure-time/db
+npm run db:migrate -w @adventure-time/db
+npm run db:repair-history -w @adventure-time/db
 ```
 
-There is currently no configured test runner in this repo. Until that changes, prefer targeted typechecks, package builds, and manual API/mobile verification for changed flows.
-
-Use `npm run db:repair-history -w @adventure-time/db` only for older already-bootstrapped dev databases whose schema already matches the checked-in migrations but whose `drizzle.__drizzle_migrations` rows are missing or incomplete.
-
-## Architecture
-
-Npm workspace monorepo with two apps and four shared packages:
-
-```
-apps/api           Fastify REST API (port 4100, behind Caddy)
-apps/mobile        React Native / Expo app
-
-packages/db              Drizzle schema, migrations, db client
-packages/shared          Zod schemas & DTOs shared across all apps
-packages/game-engine     Combat simulation, PvP contracts, replay
-packages/api-client      Typed fetch client used by mobile
-```
-
-**Data flow**: Mobile → `api-client` (typed fetch) → Fastify routes → services → Drizzle → PostgreSQL. MinIO stores card/profile images.
-
-**Auth**: JWT (jose) with access + refresh tokens. Mobile stores tokens in Expo Secure Store via `session-store.ts`. API validates via `plugins/auth.ts` Fastify plugin.
-
-**Game logic** lives entirely in `packages/game-engine` — it's pure TypeScript with no I/O dependencies. The combat engine is the core: `types → rng → speed → damage → effects → targeting → abilities → validate`. PvP routes in the API delegate to this engine and persist replay data.
-
-**Mobile routing**: Expo Router (file-based). Tabs layout at `app/(tabs)/`. Auth gate in root `_layout.tsx` via `use-bootstrap.ts` hook. Data fetching with React Query; global state with Zustand.
+## Tests
+There is currently no configured test runner.
+There are no `test` scripts and no `*.test.*` or `*.spec.*` files.
+There is therefore no supported command for running all tests or a single test.
+Until tests exist, verify with targeted workspace typechecks, targeted builds, and manual API/mobile checks.
+If tests are added later, document both the general test command and the exact single-file or single-case invocation.
 
 ## Environment
+Env files:
+- API: `apps/api/.env`
+- mobile: `apps/mobile/.env`
+Common API vars include `PORT`, `HOST`, `DATABASE_URL`, `ACCESS_TOKEN_SECRET`, `REFRESH_TOKEN_SECRET`, and MinIO settings.
+Mobile uses `EXPO_PUBLIC_API_BASE_URL`.
+Do not hardcode secrets or commit env values.
 
-API `.env` (at `apps/api/.env`):
+## Mobile UI: NativeWind First
+NativeWind is the primary mobile styling system and should always be used first.
+Prefer `className` utilities over React Native `style` props.
+Avoid `style` props whenever possible.
+If a `style` prop is unavoidable, keep it small and source colors from theme tokens instead of raw literals.
+Preferred semantic classes include:
+- `bg-bg`, `text-fg`, `bg-surface`, `bg-surfaceMuted`
+- `text-fgMuted`, `border-primaryBorder`, `bg-primaryTint`
+- `text-primaryText`, `text-secondaryText`, `text-dangerDark`
+- Nunito font utilities defined in `apps/mobile/tailwind.config.js`
+Use `style` only for cases like gradients, animated transforms, measured dimensions, safe-area math, `contentContainerStyle`, or placeholder colors.
+Even there, prefer `THEME_COLORS[themeName]` over hardcoded colors.
 
+## Theme System
+Theme data is split across NativeWind CSS vars and JS token maps.
+Main files:
+- `apps/mobile/src/stores/theme-store.ts`
+- `apps/mobile/src/theme/themes.ts`
+- `apps/mobile/global.css`
+- `apps/mobile/tailwind.config.js`
+- `apps/mobile/app/_layout.tsx`
+Rules:
+- keep `global.css` and `src/theme/themes.ts` aligned when changing tokens
+- use `THEME_COLORS[themeName]` for JS-only color values
+- use `THEME_VARS[themeName]` for root/full-screen themed containers when needed
+- do not invent new font utility names; use the existing Nunito aliases only
+
+## Code Style
+Imports:
+1. external packages
+2. workspace aliases like `@adventure-time/*`
+3. local relative imports
+Formatting and typing:
+- use `import type` when practical
+- use semicolons and double quotes
+- keep trailing commas in multiline structures
+- TypeScript is `strict: true`
+- prefer Zod validation at boundaries
+- keep shared DTOs in `packages/shared`
+- avoid `any`; prefer narrower types and validation
+- keep files ASCII unless Unicode is already justified
+Naming:
+- kebab-case files
+- PascalCase React components
+- `useSomething` hooks
+- `something-store.ts` store files
+- `*-service.ts` service files
+- `fooSchema` / `fooResponseSchema` for Zod exports
+- plural camelCase table identifiers mapped to snake_case SQL names
+
+## API, DB, and Errors
+- keep Fastify routes thin
+- put business rules in services
+- return clear expected user-facing errors
+- let unexpected failures reach the server error handler
+- prefer Drizzle query builders over raw SQL
+- serialize `Date` values to ISO strings before returning JSON
+- use transactions for multi-step writes
+After schema changes, run:
+```bash
+npm run db:generate
+npm run db:migrate
 ```
-PORT=4100
-HOST=127.0.0.1
-DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5434/adventure_time_native
-ACCESS_TOKEN_SECRET=...
-REFRESH_TOKEN_SECRET=...
-MINIO_ENDPOINT=127.0.0.1
-MINIO_PORT=9100
-MINIO_USE_SSL=false
-MINIO_ACCESS_KEY=minio
-MINIO_SECRET_KEY=...
-MINIO_BUCKET=private-images
-DEEPL_API_KEY=...
-```
 
-Mobile `.env` (at `apps/mobile/.env`):
-
-```
-EXPO_PUBLIC_API_BASE_URL=https://app.leaetzak.love
-```
-
-## Key Conventions
-
-- **Shared types first**: Add new DTOs/validation to `packages/shared` so both API and mobile stay in sync.
-- **Zod everywhere**: All API route bodies/params are Zod-validated. `packages/shared` exports the schemas; `packages/api-client` mirrors them for the mobile side.
-- **Game engine is pure**: No DB calls inside `packages/game-engine`. The API service layer hydrates data, passes plain objects to the engine, then persists results.
-- **Drizzle, not raw SQL**: Schema is the source of truth in `packages/db/src/schema.ts`. Run `db:generate` after schema changes.
-- **Path aliases**: Packages are imported as `@adventure-time/db`, `@adventure-time/shared`, etc.
+## Working Style
+Before editing, inspect neighboring files and preserve existing local patterns.
+Prefer minimal changes and preserve architecture boundaries.
+For mobile work, avoid introducing new style-prop-heavy code when NativeWind and theme tokens can express the UI.
+Before finishing, run the narrowest relevant verification commands.
+At minimum, typecheck touched workspaces and build any touched workspace that defines a build script.
+Explicitly say what you could not verify.
