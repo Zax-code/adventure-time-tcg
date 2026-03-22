@@ -1,0 +1,217 @@
+import { Pressable, ScrollView, Text, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { useThemeStore } from "../src/stores/theme-store";
+import { THEME_COLORS, THEME_VARS } from "../src/theme/themes";
+import { useTranslation } from "../src/i18n";
+
+const STATUS_ENTRIES = [
+  { name: "Burn",              colorClass: "text-dangerDark" },
+  { name: "Freeze",            colorClass: "text-accentText" },
+  { name: "Shield",            colorClass: "text-successDark" },
+  { name: "GuardUp",           colorClass: "text-successDark" },
+  { name: "Vulnerable",        colorClass: "text-accentText" },
+  { name: "Weakened",          colorClass: "text-accentText" },
+  { name: "Haste",             colorClass: "text-successDark" },
+  { name: "Taunt",             colorClass: "text-infoDark" },
+  { name: "Regeneration",      colorClass: "text-successDark" },
+  { name: "Regen",             colorClass: "text-successDark" },
+  { name: "Silence",           colorClass: "text-accentText" },
+  { name: "Cleanse",           colorClass: "text-infoDark" },
+  { name: "SummoningSickness", colorClass: "text-infoDark" },
+  { name: "Cover",             colorClass: "text-infoDark" },
+  { name: "Stunned",           colorClass: "text-accentText" },
+  { name: "Poison",            colorClass: "text-accentText" },
+  { name: "Thorns",            colorClass: "text-accentText" },
+  { name: "Stealth",           colorClass: "text-infoDark" },
+  { name: "Empower",           colorClass: "text-successDark" },
+  { name: "Counter",           colorClass: "text-successDark" },
+  { name: "Mark",              colorClass: "text-accentText" },
+  { name: "Barrier",           colorClass: "text-successDark" },
+  { name: "Doom",              colorClass: "text-dangerDark" },
+] as const;
+
+const CORE_ITEMS = [
+  "speed",
+  "cooldown",
+  "formation",
+  "slotLimits",
+  "mitigation",
+  "retaliation",
+] as const;
+
+const TYPE_ROWS = [
+  { type: "Hero",    strong: [] as string[],              weak: [] as string[],               special: "Takes 5% less incoming damage from all types" },
+  { type: "Tech",    strong: ["Royalty", "Candy"],        weak: ["Magic"],                    special: null },
+  { type: "Royalty", strong: ["Undead", "Demon"],         weak: ["Tech"],                     special: null },
+  { type: "Candy",   strong: [] as string[],              weak: [] as string[],               special: "Takes reduced incoming damage from Fire (-15%), Magic (-15%)" },
+  { type: "Undead",  strong: ["Candy"],                   weak: ["Royalty", "Fire"],          special: null },
+  { type: "Ice",     strong: ["Magic", "Demon"],          weak: ["Undead", "Fire"],           special: null },
+  { type: "Fire",    strong: ["Undead", "Ice"],           weak: ["Magic"],                    special: null },
+  { type: "Magic",   strong: ["Tech", "Fire"],            weak: ["Ice", "Cosmic"],            special: null },
+  { type: "Demon",   strong: ["Cosmic"],                  weak: ["Royalty", "Ice"],           special: null },
+  { type: "Cosmic",  strong: ["Magic"],                   weak: ["Demon"],                    special: null },
+] as const;
+
+const RARITY_ROWS = [
+  { name: "Common",    hpBonus: "+0%", atkBonus: "+0%", extraPassive: false },
+  { name: "Uncommon",  hpBonus: "+2%", atkBonus: "+0%", extraPassive: false },
+  { name: "Rare",      hpBonus: "+2%", atkBonus: "+1%", extraPassive: false },
+  { name: "Epic",      hpBonus: "+4%", atkBonus: "+2%", extraPassive: false },
+  { name: "Legendary", hpBonus: "+5%", atkBonus: "+3%", extraPassive: true  },
+] as const;
+
+export default function PvpReferenceScreen() {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const themeName = useThemeStore((s) => s.themeName);
+  const tc = THEME_COLORS[themeName];
+  const { t } = useTranslation();
+
+  return (
+    <View style={[{ flex: 1 }, THEME_VARS[themeName]]}>
+      <View className="flex-1 bg-bg">
+        {/* Drag handle */}
+        <View className="w-9 h-1 rounded-full bg-muted self-center mt-2 mb-1" />
+
+        {/* Header */}
+        <LinearGradient
+          colors={[tc.infoDark, tc.info]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            paddingHorizontal: 20,
+            paddingVertical: 16,
+          }}
+        >
+          <Text
+            style={{ fontFamily: "Nunito_800ExtraBold", fontSize: 20, color: "#fff" }}
+          >
+            {t("native.pvp.reference.title")}
+          </Text>
+          <Pressable onPress={() => router.back()} className="px-3 py-1 rounded-full bg-white/20">
+            <Text style={{ fontFamily: "Nunito_700Bold", fontSize: 14, color: "#fff" }}>✕</Text>
+          </Pressable>
+        </LinearGradient>
+
+        <ScrollView
+          className="flex-1"
+          contentContainerStyle={{ gap: 16, padding: 20, paddingBottom: insets.bottom + 24 }}
+        >
+          {/* Intro */}
+          <Text className="font-nunito text-sm text-fgMuted">
+            {t("native.pvp.reference.intro")}
+          </Text>
+
+          {/* Status Effects */}
+          <View className="gap-3 rounded-2xl border border-infoBorder bg-infoTint p-4">
+            <Text className="font-nunito-bold text-base text-infoDark">
+              {t("native.pvp.reference.statusTitle")}
+            </Text>
+            <Text className="font-nunito text-xs text-fgMuted">
+              {t("native.pvp.reference.statusIntro")}
+            </Text>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+              {STATUS_ENTRIES.map((entry) => (
+                <View
+                  key={entry.name}
+                  className="rounded-xl border border-infoBorder bg-surface p-3"
+                  style={{ width: "47%" }}
+                >
+                  <Text className={`font-nunito-bold text-sm ${entry.colorClass}`}>
+                    {entry.name}
+                  </Text>
+                  <Text className="font-nunito text-xs text-fgMuted mt-1">
+                    {t(`native.pvp.reference.statusDesc.${entry.name}`)}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          {/* Core Combat Effects */}
+          <View className="gap-3 rounded-2xl border border-successBorder bg-successTint p-4">
+            <Text className="font-nunito-bold text-base text-successDark">
+              {t("native.pvp.reference.coreTitle")}
+            </Text>
+            <Text className="font-nunito text-xs text-fgMuted">
+              {t("native.pvp.reference.coreIntro")}
+            </Text>
+            {CORE_ITEMS.map((key) => (
+              <View key={key} className="flex-row gap-2">
+                <Text className="font-nunito text-sm text-successDark">•</Text>
+                <Text className="font-nunito flex-1 text-sm text-fg">
+                  {t(`native.pvp.reference.coreItems.${key}`)}
+                </Text>
+              </View>
+            ))}
+          </View>
+
+          {/* Type Chart */}
+          <View className="gap-3 rounded-2xl border border-accentBorder bg-accentTint p-4">
+            <Text className="font-nunito-bold text-base text-accentText">
+              {t("native.pvp.reference.typeTitle")}
+            </Text>
+            <Text className="font-nunito text-xs text-fgMuted">
+              {t("native.pvp.reference.typeIntro")}
+            </Text>
+            {TYPE_ROWS.map((row) => (
+              <View key={row.type} className="gap-1 rounded-xl border border-accentBorder bg-surface p-3">
+                <Text className="font-nunito-bold text-sm text-fg">{row.type}</Text>
+                <Text className="font-nunito text-xs text-successDark">
+                  {t("native.pvp.reference.strongAgainst")}: {row.strong.length > 0 ? row.strong.join(", ") : t("native.pvp.reference.typeSpecialNone")}
+                </Text>
+                <Text className="font-nunito text-xs text-dangerDark">
+                  {t("native.pvp.reference.weakAgainst")}: {row.weak.length > 0 ? row.weak.join(", ") : t("native.pvp.reference.typeSpecialNone")}
+                </Text>
+                {row.special && (
+                  <Text className="font-nunito text-xs text-fgMuted mt-0.5">{row.special}</Text>
+                )}
+              </View>
+            ))}
+          </View>
+
+          {/* Rarity Differences */}
+          <View className="gap-3 rounded-2xl border border-secondaryBorder bg-secondaryTint p-4">
+            <Text className="font-nunito-bold text-base text-secondaryText">
+              {t("native.pvp.reference.rarityTitle")}
+            </Text>
+            <Text className="font-nunito text-xs text-fgMuted">
+              {t("native.pvp.reference.rarityIntro")}
+            </Text>
+            {/* Header row */}
+            <View className="flex-row gap-1 border-b border-secondaryBorder pb-2">
+              <Text className="font-nunito-bold flex-1 text-xs text-secondaryText">
+                {t("native.pvp.reference.rarityColRarity")}
+              </Text>
+              <Text className="font-nunito-bold w-16 text-center text-xs text-secondaryText">
+                {t("native.pvp.reference.rarityColHp")}
+              </Text>
+              <Text className="font-nunito-bold w-16 text-center text-xs text-secondaryText">
+                {t("native.pvp.reference.rarityColAtk")}
+              </Text>
+              <Text className="font-nunito-bold w-20 text-center text-xs text-secondaryText">
+                {t("native.pvp.reference.rarityColPassive")}
+              </Text>
+            </View>
+            {RARITY_ROWS.map((row) => (
+              <View key={row.name} className="flex-row gap-1 items-center border-b border-secondaryBorder py-1.5">
+                <Text className="font-nunito-semibold flex-1 text-sm text-fg">{row.name}</Text>
+                <Text className="font-nunito w-16 text-center text-sm text-fgMuted">{row.hpBonus}</Text>
+                <Text className="font-nunito w-16 text-center text-sm text-fgMuted">{row.atkBonus}</Text>
+                <Text className={`font-nunito-semibold w-20 text-center text-xs ${row.extraPassive ? "text-successDark" : "text-fgMuted"}`}>
+                  {row.extraPassive ? t("native.pvp.reference.rarityYes") : t("native.pvp.reference.rarityNo")}
+                </Text>
+              </View>
+            ))}
+          </View>
+        </ScrollView>
+      </View>
+    </View>
+  );
+}
