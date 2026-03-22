@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
+import { useRouter } from "expo-router";
 import {
   FlatList,
   Modal,
@@ -15,11 +16,18 @@ import { LinearGradient } from "expo-linear-gradient";
 import type { CollectionResponse } from "@adventure-time/shared";
 import { apiClient } from "../../src/lib/api";
 import { useSessionStore } from "../../src/stores/session-store";
-import { CardDetailModal } from "../../src/components/card-detail-modal";
 import { CardTile } from "../../src/components/card-tile";
 import { RARITY_COLORS } from "../../src/components/theme";
-import { DustIcon, RecycleIcon, CraftIcon } from "../../src/components/icons";
+import {
+  DustIcon,
+  RecycleIcon,
+  CraftIcon,
+  BarChartIcon,
+} from "../../src/components/icons";
 import { useTranslation } from "../../src/i18n";
+import { useThemeStore } from "../../src/stores/theme-store";
+import { useBottomTabBarContentPadding } from "../../src/theme/layout";
+import { THEME_COLORS } from "../../src/theme/themes";
 
 type CollectionEntry = CollectionResponse["cards"][number];
 
@@ -39,18 +47,17 @@ const DUST_TABLE = [
 ];
 
 export default function CollectionScreen() {
-  const queryClient = useQueryClient();
+  const router = useRouter();
   const accessToken = useSessionStore((state) => state.accessToken);
   const { t } = useTranslation();
+  const tc = THEME_COLORS[useThemeStore((s) => s.themeName)];
+  const bottomTabPadding = useBottomTabBarContentPadding();
 
   const [filterRarity, setFilterRarity] = useState<string>("all");
   const [sortBy, setSortBy] = useState<
     "rarity" | "name" | "quantity" | "newest"
   >("rarity");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedEntry, setSelectedEntry] = useState<CollectionEntry | null>(
-    null,
-  );
   const [showStatsModal, setShowStatsModal] = useState(false);
   const [showSortModal, setShowSortModal] = useState(false);
   const [showDustModal, setShowDustModal] = useState(false);
@@ -58,27 +65,6 @@ export default function CollectionScreen() {
   const collectionQuery = useQuery({
     queryKey: ["collection"],
     queryFn: () => apiClient.collection(),
-  });
-
-  const recycleMutation = useMutation({
-    mutationFn: ({ cardId, quantity }: { cardId: string; quantity: number }) =>
-      apiClient.recycleCard(cardId, quantity),
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["collection"] }),
-        queryClient.invalidateQueries({ queryKey: ["home"] }),
-      ]);
-    },
-  });
-
-  const craftMutation = useMutation({
-    mutationFn: (cardId: string) => apiClient.craftCard(cardId),
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["collection"] }),
-        queryClient.invalidateQueries({ queryKey: ["home"] }),
-      ]);
-    },
   });
 
   // Derived data — computed before early returns to satisfy Rules of Hooks
@@ -145,7 +131,7 @@ export default function CollectionScreen() {
   if (collectionQuery.isError) {
     return (
       <View className="flex-1 bg-bg p-6">
-        <Text className="font-nunito text-red-600">
+        <Text className="font-nunito text-danger">
           {collectionQuery.error.message}
         </Text>
       </View>
@@ -163,30 +149,6 @@ export default function CollectionScreen() {
     );
   }
 
-  const handleRecycle = async (cardId: string, quantity: number) => {
-    try {
-      await recycleMutation.mutateAsync({ cardId, quantity });
-      return { success: true };
-    } catch (err) {
-      return {
-        success: false,
-        error: err instanceof Error ? err.message : "Recycle failed",
-      };
-    }
-  };
-
-  const handleCraft = async (cardId: string) => {
-    try {
-      await craftMutation.mutateAsync(cardId);
-      return { success: true };
-    } catch (err) {
-      return {
-        success: false,
-        error: err instanceof Error ? err.message : "Craft failed",
-      };
-    }
-  };
-
   const listHeader = (
     <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 }}>
       {/* Title */}
@@ -194,68 +156,99 @@ export default function CollectionScreen() {
         style={{
           fontSize: 30,
           fontFamily: "Nunito_800ExtraBold",
-          color: "#111827",
+          color: tc.primaryDark,
+          textAlign: "center",
           marginBottom: 12,
+          textShadowColor: "rgba(0,0,0,0.15)",
+          textShadowOffset: { width: 0, height: 1 },
+          textShadowRadius: 3,
         }}
       >
         {t("collection.title")}
       </Text>
 
-      {/* Dust + Stats pills */}
-      <View
-        style={{
-          flexDirection: "row",
-          gap: 8,
-          marginBottom: 16,
-          flexWrap: "wrap",
-        }}
-      >
+      {/* Dust pill — centered */}
+      <View style={{ alignItems: "center", marginBottom: 8 }}>
         <Pressable
           onPress={() => setShowDustModal(true)}
+          className="bg-secondaryTint"
           style={{
-            backgroundColor: "#FEF9C3",
             borderRadius: 999,
-            paddingHorizontal: 12,
-            paddingVertical: 6,
+            paddingHorizontal: 16,
+            paddingVertical: 4,
             flexDirection: "row",
             alignItems: "center",
-            gap: 4,
+            gap: 6,
+            shadowColor: "#000",
+            shadowOpacity: 0.1,
+            shadowRadius: 6,
+            elevation: 2,
           }}
         >
-          <Text style={{ fontSize: 14 }}>✨</Text>
+          <DustIcon size={16} color={tc.secondaryText} />
           <Text
-            style={{
-              fontSize: 13,
-              fontFamily: "Nunito_700Bold",
-              color: "#92400E",
-            }}
+            className="text-secondaryText"
+            style={{ fontSize: 14, fontFamily: "Nunito_700Bold" }}
           >
-            {collection.dust} {t("native.collection.dust")}
+            {t("collection.dust")}
+          </Text>
+          <Text
+            className="text-secondaryText"
+            style={{ fontSize: 14, fontFamily: "Nunito_700Bold" }}
+          >
+            {collection.dust}
           </Text>
         </Pressable>
+      </View>
 
+      {/* Stats button — centered, glassmorphic */}
+      <View style={{ alignItems: "center", marginBottom: 16 }}>
         <Pressable
           onPress={() => setShowStatsModal(true)}
           style={{
-            backgroundColor: "#EDE9FE",
-            borderRadius: 999,
-            paddingHorizontal: 12,
-            paddingVertical: 6,
             flexDirection: "row",
             alignItems: "center",
-            gap: 4,
+            gap: 8,
+            backgroundColor: "rgba(255,255,255,0.6)",
+            borderWidth: 1,
+            borderColor: tc.primaryTint,
+            borderRadius: 999,
+            paddingHorizontal: 20,
+            paddingVertical: 8,
+            shadowColor: "#000",
+            shadowOpacity: 0.1,
+            shadowRadius: 6,
+            elevation: 2,
           }}
         >
-          <Text style={{ fontSize: 14 }}>📊</Text>
+          <BarChartIcon size={20} color={tc.primaryText} />
           <Text
             style={{
-              fontSize: 13,
               fontFamily: "Nunito_700Bold",
-              color: "#5B21B6",
+              fontSize: 14,
+              color: tc.primaryText,
             }}
           >
-            {t("native.collection.cardStats")} ({collection.stats.uniqueOwned})
+            {t("collection.cardStats")}
           </Text>
+          <View
+            style={{
+              backgroundColor: tc.primaryTint,
+              borderRadius: 999,
+              paddingHorizontal: 8,
+              paddingVertical: 2,
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: "Nunito_700Bold",
+                fontSize: 12,
+                color: tc.primaryStrong,
+              }}
+            >
+              {collection.stats.uniqueOwned}
+            </Text>
+          </View>
         </Pressable>
       </View>
 
@@ -264,16 +257,16 @@ export default function CollectionScreen() {
         style={{
           flexDirection: "row",
           alignItems: "center",
-          backgroundColor: "#F9FAFB",
+          backgroundColor: "rgba(255,255,255,0.7)",
           borderRadius: 999,
           paddingHorizontal: 12,
           paddingVertical: 8,
           borderWidth: 1,
-          borderColor: "#E5E7EB",
+          borderColor: tc.primaryBorder,
           marginBottom: 12,
         }}
       >
-        <Text style={{ fontSize: 14, marginRight: 6, color: "#9CA3AF" }}>
+        <Text style={{ fontSize: 14, marginRight: 6, color: tc.muted }}>
           🔍
         </Text>
         <TextInput
@@ -281,17 +274,17 @@ export default function CollectionScreen() {
             flex: 1,
             fontFamily: "Nunito_400Regular",
             fontSize: 14,
-            color: "#111827",
+            color: tc.fg,
           }}
           placeholder={t("native.collection.searchByNameOrCharacter")}
-          placeholderTextColor="#9CA3AF"
+          placeholderTextColor={tc.muted}
           value={searchQuery}
           onChangeText={setSearchQuery}
           returnKeyType="search"
         />
         {searchQuery ? (
           <Pressable onPress={() => setSearchQuery("")} hitSlop={8}>
-            <Text style={{ fontSize: 16, color: "#9CA3AF" }}>✕</Text>
+            <Text style={{ fontSize: 16, color: tc.muted }}>✕</Text>
           </Pressable>
         ) : null}
       </View>
@@ -306,17 +299,21 @@ export default function CollectionScreen() {
           <Pressable
             onPress={() => setFilterRarity("all")}
             style={{
-              backgroundColor: filterRarity === "all" ? "#7C3AED" : "#EDE9FE",
+              backgroundColor:
+                filterRarity === "all" ? tc.accentDark : tc.accentTint,
               borderRadius: 999,
               paddingHorizontal: 12,
               paddingVertical: 6,
+              ...(filterRarity === "all"
+                ? { shadowColor: "#000", shadowOpacity: 0.15, shadowRadius: 4, elevation: 2 }
+                : {}),
             }}
           >
             <Text
               style={{
                 fontFamily: "Nunito_600SemiBold",
                 fontSize: 13,
-                color: filterRarity === "all" ? "#fff" : "#5B21B6",
+                color: filterRarity === "all" ? tc.accentTint : tc.accentText,
               }}
             >
               {t("native.collection.all")} ({collection.cards.length})
@@ -327,17 +324,21 @@ export default function CollectionScreen() {
               key={name}
               onPress={() => setFilterRarity(name)}
               style={{
-                backgroundColor: filterRarity === name ? "#7C3AED" : "#EDE9FE",
+                backgroundColor:
+                  filterRarity === name ? tc.accentDark : tc.accentTint,
                 borderRadius: 999,
                 paddingHorizontal: 12,
                 paddingVertical: 6,
+                ...(filterRarity === name
+                  ? { shadowColor: "#000", shadowOpacity: 0.15, shadowRadius: 4, elevation: 2 }
+                  : {}),
               }}
             >
               <Text
                 style={{
                   fontFamily: "Nunito_600SemiBold",
                   fontSize: 13,
-                  color: filterRarity === name ? "#fff" : "#5B21B6",
+                  color: filterRarity === name ? tc.accentTint : tc.accentText,
                 }}
               >
                 {name} ({count})
@@ -347,30 +348,42 @@ export default function CollectionScreen() {
         </View>
       </ScrollView>
 
-      {/* Sort by */}
-      <Pressable
-        onPress={() => setShowSortModal(true)}
-        style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}
-      >
-        <Text
+      {/* Sort button */}
+      <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
+        <Pressable
+          onPress={() => setShowSortModal(true)}
           style={{
-            fontFamily: "Nunito_600SemiBold",
-            fontSize: 13,
-            color: "#6B7280",
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 4,
+            backgroundColor: "rgba(255,255,255,0.6)",
+            borderWidth: 1,
+            borderColor: tc.primaryTint,
+            borderRadius: 8,
+            paddingHorizontal: 12,
+            paddingVertical: 6,
           }}
         >
-          {t("native.collection.sortBy")}:{" "}
-        </Text>
-        <Text
-          style={{
-            fontFamily: "Nunito_700Bold",
-            fontSize: 13,
-            color: "#7C3AED",
-          }}
-        >
-          {SORT_LABELS[sortBy]} ▼
-        </Text>
-      </Pressable>
+          <Text
+            style={{
+              fontFamily: "Nunito_600SemiBold",
+              fontSize: 13,
+              color: tc.fg,
+            }}
+          >
+            {t("native.collection.sortBy")}:{" "}
+          </Text>
+          <Text
+            style={{
+              fontFamily: "Nunito_700Bold",
+              fontSize: 13,
+              color: tc.primaryStrong,
+            }}
+          >
+            {SORT_LABELS[sortBy]}
+          </Text>
+        </Pressable>
+      </View>
     </View>
   );
 
@@ -378,7 +391,7 @@ export default function CollectionScreen() {
     <View className="flex-1 bg-bg">
       <FlatList
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: 24 }}
+        contentContainerStyle={{ paddingBottom: bottomTabPadding }}
         numColumns={2}
         columnWrapperStyle={{ justifyContent: "space-evenly" }}
         data={filteredCards}
@@ -387,9 +400,9 @@ export default function CollectionScreen() {
         ListEmptyComponent={
           <View style={{ padding: 32, alignItems: "center" }}>
             <Text
+              className="text-primaryText"
               style={{
                 fontFamily: "Nunito_600SemiBold",
-                color: "#DB2777",
                 fontSize: 16,
                 textAlign: "center",
               }}
@@ -404,7 +417,7 @@ export default function CollectionScreen() {
           <CardTile
             entry={item}
             accessToken={accessToken}
-            onPress={() => setSelectedEntry(item)}
+            onPress={() => router.push({ pathname: "/collection-card-detail", params: { cardId: item.cardId } })}
           />
         )}
       />
@@ -427,28 +440,29 @@ export default function CollectionScreen() {
         >
           <View
             style={{
-              backgroundColor: "#fff",
+              backgroundColor: tc.surface,
               borderRadius: 16,
               padding: 24,
               shadowColor: "#000",
               shadowOpacity: 0.15,
               shadowRadius: 12,
+              elevation: 8,
             }}
             onStartShouldSetResponder={() => true}
           >
             <Text
               style={{
                 fontSize: 18,
-                fontFamily: "Nunito_800ExtraBold",
-                color: "#111827",
+                fontFamily: "Nunito_700Bold",
+                color: tc.fg,
                 textAlign: "center",
                 marginBottom: 12,
                 paddingBottom: 12,
                 borderBottomWidth: 1,
-                borderBottomColor: "#F3F4F6",
+                borderBottomColor: tc.accentBorder,
               }}
             >
-              {t("native.collection.cardStats")}
+              {t("collection.cardStats")}
             </Text>
             <View
               style={{
@@ -464,7 +478,7 @@ export default function CollectionScreen() {
                   <View
                     key={name}
                     style={{
-                      backgroundColor: "#F9FAFB",
+                      backgroundColor: tc.surfaceMuted,
                       borderRadius: 12,
                       paddingVertical: 12,
                       paddingHorizontal: 12,
@@ -476,7 +490,7 @@ export default function CollectionScreen() {
                     <Text
                       style={{
                         fontSize: 24,
-                        fontFamily: "Nunito_800ExtraBold",
+                        fontFamily: "Nunito_700Bold",
                         color: rc.from,
                       }}
                     >
@@ -486,7 +500,7 @@ export default function CollectionScreen() {
                       style={{
                         fontSize: 12,
                         fontFamily: "Nunito_600SemiBold",
-                        color: "#6B7280",
+                        color: tc.fgMuted,
                         marginTop: 2,
                       }}
                     >
@@ -501,7 +515,7 @@ export default function CollectionScreen() {
               style={{ marginTop: 20, borderRadius: 12, overflow: "hidden" }}
             >
               <LinearGradient
-                colors={["#F472B6", "#EC4899"]}
+                colors={[tc.primary, tc.primaryDark]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={{ paddingVertical: 12, alignItems: "center" }}
@@ -509,11 +523,11 @@ export default function CollectionScreen() {
                 <Text
                   style={{
                     fontFamily: "Nunito_700Bold",
-                    color: "#fff",
+                    color: tc.surface,
                     fontSize: 14,
                   }}
                 >
-                  Close
+                  {t("common.close")}
                 </Text>
               </LinearGradient>
             </Pressable>
@@ -538,51 +552,102 @@ export default function CollectionScreen() {
           onPress={() => setShowSortModal(false)}
         >
           <View
-            style={{ backgroundColor: "#fff", borderRadius: 16, padding: 20 }}
+            style={{
+              backgroundColor: tc.surface,
+              borderRadius: 16,
+              padding: 20,
+              shadowColor: "#000",
+              shadowOpacity: 0.15,
+              shadowRadius: 12,
+              elevation: 8,
+            }}
             onStartShouldSetResponder={() => true}
           >
             <Text
               style={{
-                fontSize: 20,
-                fontFamily: "Nunito_800ExtraBold",
-                color: "#111827",
+                fontSize: 18,
+                fontFamily: "Nunito_700Bold",
+                color: tc.fg,
+                textAlign: "center",
                 marginBottom: 12,
+                paddingBottom: 12,
+                borderBottomWidth: 1,
+                borderBottomColor: tc.accentBorder,
               }}
             >
               {t("native.collection.sortTitle")}
             </Text>
-            {(["rarity", "name", "quantity", "newest"] as const).map(
-              (option, idx, arr) => (
-                <Pressable
-                  key={option}
-                  onPress={() => {
-                    setSortBy(option);
-                    setShowSortModal(false);
-                  }}
+            <View style={{ gap: 8 }}>
+              {(["rarity", "name", "quantity", "newest"] as const).map(
+                (option) => {
+                  const isActive = sortBy === option;
+                  return (
+                    <Pressable
+                      key={option}
+                      onPress={() => {
+                        setSortBy(option);
+                        setShowSortModal(false);
+                      }}
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        paddingVertical: 12,
+                        paddingHorizontal: 16,
+                        borderRadius: 12,
+                        borderWidth: 2,
+                        backgroundColor: isActive
+                          ? tc.primaryTint
+                          : tc.surfaceMuted,
+                        borderColor: isActive
+                          ? tc.primaryBorder
+                          : "transparent",
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontFamily: isActive
+                            ? "Nunito_700Bold"
+                            : "Nunito_600SemiBold",
+                          fontSize: 15,
+                          color: isActive ? tc.primaryStrong : tc.fg,
+                        }}
+                      >
+                        {SORT_LABELS[option]}
+                      </Text>
+                      {isActive ? (
+                        <Text
+                          style={{ color: tc.primaryStrong, fontSize: 16, fontFamily: "Nunito_700Bold" }}
+                        >
+                          ✓
+                        </Text>
+                      ) : null}
+                    </Pressable>
+                  );
+                },
+              )}
+            </View>
+            <Pressable
+              onPress={() => setShowSortModal(false)}
+              style={{ marginTop: 16, borderRadius: 12, overflow: "hidden" }}
+            >
+              <LinearGradient
+                colors={[tc.primary, tc.primaryDark]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={{ paddingVertical: 12, alignItems: "center" }}
+              >
+                <Text
                   style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    paddingVertical: 12,
-                    borderBottomWidth: idx < arr.length - 1 ? 1 : 0,
-                    borderBottomColor: "#F3F4F6",
+                    fontFamily: "Nunito_700Bold",
+                    color: tc.surface,
+                    fontSize: 14,
                   }}
                 >
-                  <Text
-                    style={{
-                      fontFamily: "Nunito_600SemiBold",
-                      fontSize: 15,
-                      color: sortBy === option ? "#7C3AED" : "#374151",
-                    }}
-                  >
-                    {SORT_LABELS[option]}
-                  </Text>
-                  {sortBy === option ? (
-                    <Text style={{ color: "#7C3AED", fontSize: 16 }}>✓</Text>
-                  ) : null}
-                </Pressable>
-              ),
-            )}
+                  {t("common.close")}
+                </Text>
+              </LinearGradient>
+            </Pressable>
           </View>
         </Pressable>
       </Modal>
@@ -605,12 +670,13 @@ export default function CollectionScreen() {
         >
           <View
             style={{
-              backgroundColor: "#fff",
+              backgroundColor: tc.surface,
               borderRadius: 16,
               padding: 20,
               shadowColor: "#000",
               shadowOpacity: 0.15,
               shadowRadius: 12,
+              elevation: 8,
             }}
             onStartShouldSetResponder={() => true}
           >
@@ -623,26 +689,26 @@ export default function CollectionScreen() {
                 marginBottom: 10,
               }}
             >
-              <DustIcon size={22} color="#92400E" />
+              <DustIcon size={22} color={tc.secondaryText} />
               <Text
+                className="text-secondaryText"
                 style={{
                   flex: 1,
                   fontSize: 18,
                   fontFamily: "Nunito_800ExtraBold",
-                  color: "#92400E",
                 }}
               >
                 {t("native.collection.dust")}
               </Text>
               <Pressable onPress={() => setShowDustModal(false)} hitSlop={8}>
-                <Text style={{ fontSize: 18, color: "#9CA3AF" }}>✕</Text>
+                <Text style={{ fontSize: 18, color: tc.muted }}>✕</Text>
               </Pressable>
             </View>
 
             <Text
               style={{
                 fontSize: 13,
-                color: "#6B7280",
+                color: tc.fgMuted,
                 fontFamily: "Nunito_400Regular",
                 marginBottom: 20,
                 lineHeight: 20,
@@ -674,7 +740,7 @@ export default function CollectionScreen() {
                   style={{
                     flex: 2,
                     fontFamily: "Nunito_700Bold",
-                    color: "#92400E",
+                    color: tc.secondaryText,
                     fontSize: 12,
                   }}
                 >
@@ -689,11 +755,11 @@ export default function CollectionScreen() {
                     gap: 3,
                   }}
                 >
-                  <RecycleIcon size={14} color="#065F46" />
+                  <RecycleIcon size={14} color={tc.successText} />
                   <Text
                     style={{
                       fontFamily: "Nunito_700Bold",
-                      color: "#065F46",
+                      color: tc.successText,
                       fontSize: 12,
                     }}
                   >
@@ -709,11 +775,11 @@ export default function CollectionScreen() {
                     gap: 3,
                   }}
                 >
-                  <CraftIcon size={14} color="#DB2777" />
+                  <CraftIcon size={14} color={tc.primaryText} />
                   <Text
                     style={{
                       fontFamily: "Nunito_700Bold",
-                      color: "#DB2777",
+                      color: tc.primaryText,
                       fontSize: 12,
                     }}
                   >
@@ -730,7 +796,7 @@ export default function CollectionScreen() {
                       flexDirection: "row",
                       paddingVertical: 10,
                       paddingHorizontal: 12,
-                      backgroundColor: idx % 2 === 0 ? "#fff" : "#F9FAFB",
+                      backgroundColor: idx % 2 === 0 ? tc.surface : tc.surfaceMuted,
                     }}
                   >
                     <Text
@@ -752,11 +818,11 @@ export default function CollectionScreen() {
                         gap: 3,
                       }}
                     >
-                      <DustIcon size={12} color="#059669" />
+                      <DustIcon size={12} color={tc.successDark} />
                       <Text
                         style={{
                           fontFamily: "Nunito_700Bold",
-                          color: "#059669",
+                          color: tc.successDark,
                           fontSize: 14,
                         }}
                       >
@@ -772,11 +838,11 @@ export default function CollectionScreen() {
                         gap: 3,
                       }}
                     >
-                      <DustIcon size={12} color="#DB2777" />
+                      <DustIcon size={12} color={tc.primaryText} />
                       <Text
                         style={{
                           fontFamily: "Nunito_700Bold",
-                          color: "#DB2777",
+                          color: tc.primaryText,
                           fontSize: 14,
                         }}
                       >
@@ -791,15 +857,6 @@ export default function CollectionScreen() {
         </Pressable>
       </Modal>
 
-      {/* Card Detail Modal */}
-      <CardDetailModal
-        entry={selectedEntry}
-        dust={collection.dust}
-        onClose={() => setSelectedEntry(null)}
-        onRecycle={handleRecycle}
-        onCraft={handleCraft}
-        accessToken={accessToken}
-      />
     </View>
   );
 }

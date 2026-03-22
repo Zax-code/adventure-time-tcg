@@ -1,5 +1,7 @@
 import { ActivityIndicator, Pressable, Text, ViewStyle } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { useThemeStore } from "../stores/theme-store";
+import { THEME_COLORS } from "../theme/themes";
 
 interface ButtonProps {
   onPress?: () => void;
@@ -10,10 +12,11 @@ interface ButtonProps {
 }
 
 export function PrimaryButton({ onPress, disabled, loading, children, style }: ButtonProps) {
+  const tc = THEME_COLORS[useThemeStore((s) => s.themeName)];
   return (
     <Pressable onPress={onPress} disabled={disabled || loading} style={style}>
       <LinearGradient
-        colors={["#F472B6", "#EC4899"]}
+        colors={[tc.primary, tc.primaryDark]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         style={{
@@ -37,10 +40,11 @@ export function PrimaryButton({ onPress, disabled, loading, children, style }: B
 }
 
 export function SecondaryButton({ onPress, disabled, loading, children, style }: ButtonProps) {
+  const tc = THEME_COLORS[useThemeStore((s) => s.themeName)];
   return (
     <Pressable onPress={onPress} disabled={disabled || loading} style={style}>
       <LinearGradient
-        colors={["#FDE047", "#EAB308"]}
+        colors={[tc.secondary, tc.secondaryDark]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         style={{
@@ -52,9 +56,9 @@ export function SecondaryButton({ onPress, disabled, loading, children, style }:
         }}
       >
         {loading ? (
-          <ActivityIndicator color="#BE185D" />
+          <ActivityIndicator color={tc.primaryStrong} />
         ) : (
-          <Text style={{ color: "#BE185D", fontFamily: "Nunito_700Bold", fontSize: 15 }}>
+          <Text style={{ color: tc.primaryStrong, fontFamily: "Nunito_700Bold", fontSize: 15 }}>
             {children}
           </Text>
         )}
@@ -64,6 +68,7 @@ export function SecondaryButton({ onPress, disabled, loading, children, style }:
 }
 
 export function GhostButton({ onPress, disabled, loading, children, style }: ButtonProps) {
+  const tc = THEME_COLORS[useThemeStore((s) => s.themeName)];
   return (
     <Pressable
       onPress={onPress}
@@ -75,16 +80,16 @@ export function GhostButton({ onPress, disabled, loading, children, style }: But
           paddingHorizontal: 20,
           alignItems: "center",
           borderWidth: 1,
-          borderColor: "#F9A8D4",
+          borderColor: tc.primaryBorder,
           opacity: disabled || loading ? 0.6 : 1,
         },
         style,
       ]}
     >
       {loading ? (
-        <ActivityIndicator color="#DB2777" />
+        <ActivityIndicator color={tc.primaryText} />
       ) : (
-        <Text style={{ color: "#DB2777", fontFamily: "Nunito_600SemiBold", fontSize: 14 }}>
+        <Text style={{ color: tc.primaryText, fontFamily: "Nunito_600SemiBold", fontSize: 14 }}>
           {children}
         </Text>
       )}

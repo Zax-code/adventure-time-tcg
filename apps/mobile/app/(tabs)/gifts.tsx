@@ -4,9 +4,14 @@ import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 
 import { apiClient } from "../../src/lib/api";
 import { PrimaryButton } from "../../src/components/button";
+import { useThemeStore } from "../../src/stores/theme-store";
+import { useBottomTabBarContentPadding } from "../../src/theme/layout";
+import { THEME_COLORS } from "../../src/theme/themes";
 
 export default function GiftsScreen() {
   const queryClient = useQueryClient();
+  const tc = THEME_COLORS[useThemeStore((s) => s.themeName)];
+  const bottomTabPadding = useBottomTabBarContentPadding();
   const [recipientId, setRecipientId] = useState("");
   const [cardId, setCardId] = useState("");
   const [message, setMessage] = useState("");
@@ -31,19 +36,22 @@ export default function GiftsScreen() {
   });
 
   return (
-    <ScrollView className="flex-1 bg-bg" contentContainerClassName="gap-4 p-5">
+    <ScrollView
+      className="flex-1 bg-bg"
+      contentContainerStyle={{ gap: 16, padding: 20, paddingBottom: bottomTabPadding }}
+    >
       <Text className="font-nunito-extrabold text-2xl text-fg">Gifts</Text>
-      <View className="gap-3 rounded-3xl border border-primaryBorder bg-white p-4">
+      <View className="gap-3 rounded-3xl border border-primaryBorder bg-surface p-4">
         <Text className="font-nunito-bold text-lg text-fg">Send Gift</Text>
-        <TextInput value={cardId} onChangeText={setCardId} placeholder="Card ID" placeholderTextColor="#9CA3AF" className="rounded-2xl border border-primaryBorder bg-primaryBg px-4 py-3 font-nunito text-fg" />
-        <TextInput value={recipientId} onChangeText={setRecipientId} placeholder="Recipient user ID" placeholderTextColor="#9CA3AF" className="rounded-2xl border border-primaryBorder bg-primaryBg px-4 py-3 font-nunito text-fg" />
-        <TextInput value={message} onChangeText={setMessage} placeholder="Message" placeholderTextColor="#9CA3AF" className="rounded-2xl border border-primaryBorder bg-primaryBg px-4 py-3 font-nunito text-fg" />
+        <TextInput value={cardId} onChangeText={setCardId} placeholder="Card ID" placeholderTextColor={tc.muted} className="rounded-2xl border border-primaryBorder bg-primaryBg px-4 py-3 font-nunito text-fg" />
+        <TextInput value={recipientId} onChangeText={setRecipientId} placeholder="Recipient user ID" placeholderTextColor={tc.muted} className="rounded-2xl border border-primaryBorder bg-primaryBg px-4 py-3 font-nunito text-fg" />
+        <TextInput value={message} onChangeText={setMessage} placeholder="Message" placeholderTextColor={tc.muted} className="rounded-2xl border border-primaryBorder bg-primaryBg px-4 py-3 font-nunito text-fg" />
         <PrimaryButton onPress={() => void sendGiftMutation.mutateAsync()}>
           Send gift
         </PrimaryButton>
         <Text className="font-nunito text-xs text-fgMuted">Users: {(usersQuery.data?.users ?? []).map((user) => `${user.displayName} (${user.id})`).slice(0, 4).join(", ")}</Text>
       </View>
-      <View className="gap-3 rounded-3xl border border-primaryBorder bg-white p-4">
+      <View className="gap-3 rounded-3xl border border-primaryBorder bg-surface p-4">
         <Text className="font-nunito-bold text-lg text-fg">Inbox / Sent</Text>
         <View className="self-start rounded-full bg-primaryTint px-3 py-1">
           <Text className="font-nunito-bold text-sm text-primaryText">Pending: {giftsQuery.data?.pendingCount ?? 0}</Text>
@@ -57,10 +65,10 @@ export default function GiftsScreen() {
             {gift.message ? <Text className="font-nunito text-fgMuted">Message: {gift.message}</Text> : null}
             {gift.status === "pending" ? (
               <View className="flex-row gap-2">
-                <Pressable className="flex-1 items-center rounded-xl bg-green-600 px-4 py-2" onPress={() => void processGiftMutation.mutateAsync({ giftId: gift.id, action: "accept" })}>
+                <Pressable className="flex-1 items-center rounded-xl bg-successDark px-4 py-2" onPress={() => void processGiftMutation.mutateAsync({ giftId: gift.id, action: "accept" })}>
                   <Text className="font-nunito-bold text-white">Accept</Text>
                 </Pressable>
-                <Pressable className="flex-1 items-center rounded-xl bg-red-500 px-4 py-2" onPress={() => void processGiftMutation.mutateAsync({ giftId: gift.id, action: "reject" })}>
+                <Pressable className="flex-1 items-center rounded-xl bg-dangerDark px-4 py-2" onPress={() => void processGiftMutation.mutateAsync({ giftId: gift.id, action: "reject" })}>
                   <Text className="font-nunito-bold text-white">Reject</Text>
                 </Pressable>
               </View>

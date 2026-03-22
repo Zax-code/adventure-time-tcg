@@ -7,6 +7,6 @@ module.exports = function (api) {
   const { expoRouterBabelPlugin } = require("babel-preset-expo/build/expo-router-plugin");
   return {
     presets: ["babel-preset-expo", "nativewind/babel"],
-    plugins: [expoRouterBabelPlugin],
+    plugins: [expoRouterBabelPlugin, "react-native-reanimated/plugin"],
   };
 };

@@ -6,6 +6,8 @@ import Svg, { Circle, Path } from "react-native-svg";
 
 import { CoinIcon, SettingsIcon } from "./icons";
 import { useSessionStore } from "../stores/session-store";
+import { useThemeStore } from "../stores/theme-store";
+import { THEME_COLORS } from "../theme/themes";
 
 function HeaderShieldUserIcon({ size = 24, color = "#FFFFFF" }: { size?: number; color?: string }) {
   return (
@@ -29,12 +31,13 @@ export function AppHeader() {
   const router = useRouter();
   const user = useSessionStore((state) => state.user);
   const coins = useSessionStore((state) => state.user?.coins ?? 0);
+  const tc = THEME_COLORS[useThemeStore((s) => s.themeName)];
 
   return (
     <View style={{ paddingTop: insets.top, backgroundColor: 'transparent' }}>
       <View className="flex-row items-center justify-between px-4 py-2">
         <LinearGradient
-          colors={["#FDE047", "#FACC15"]}
+          colors={[tc.secondary, tc.secondaryDark]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={{
@@ -52,13 +55,13 @@ export function AppHeader() {
           }}
         >
           <CoinIcon size={20} />
-          <Text style={{ fontFamily: "Nunito_700Bold", fontSize: 14, color: "#894B00" }}>{coins}</Text>
+          <Text style={{ fontFamily: "Nunito_700Bold", fontSize: 14, color: tc.secondaryText }}>{coins}</Text>
         </LinearGradient>
         <View className="flex-row items-center" style={{ columnGap: 16 }}>
           {user?.isAdmin ? (
             <Pressable onPress={() => router.push("/admin/cards" as never)} hitSlop={8}>
               <LinearGradient
-                colors={["#C084FC", "#A855F7", "#9333EA"]}
+                colors={[tc.accent, tc.accentDark, tc.accentText]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={{
@@ -79,7 +82,7 @@ export function AppHeader() {
             </Pressable>
           ) : null}
 
-          <Pressable onPress={() => router.push("/(tabs)/settings")} hitSlop={8}>
+          <Pressable onPress={() => router.push("/settings")} hitSlop={8}>
             <View
               style={{
                 width: 40,
@@ -87,7 +90,7 @@ export function AppHeader() {
                 borderRadius: 999,
                 alignItems: "center",
                 justifyContent: "center",
-                backgroundColor: "rgba(255,255,255,0.6)",
+                backgroundColor: tc.surfaceMuted,
                 shadowColor: "#000",
                 shadowOpacity: 0.1,
                 shadowRadius: 4,
@@ -95,7 +98,7 @@ export function AppHeader() {
                 elevation: 2,
               }}
             >
-              <SettingsIcon size={24} color="#EC4899" />
+              <SettingsIcon size={24} color={tc.primaryDark} />
             </View>
           </Pressable>
         </View>

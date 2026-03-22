@@ -66,12 +66,94 @@ export function PackIcon({ size = 24, color = "#DB2777" }: IconProps) {
 export function GiftHeartIcon({ size = 24, color = "#DB2777" }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Rect x={3} y={10} width={18} height={11} rx={2} fill={color} fillOpacity={0.2} stroke={color} strokeWidth={2} />
-      <Path d="M2 10C2 8.89543 2.89543 8 4 8H20C21.1046 8 22 8.89543 22 10V10H2V10Z" fill={color} fillOpacity={0.3} stroke={color} strokeWidth={2} />
-      <Path d="M12 7.5C10.5 7 8 6.5 7.5 5C7 3.5 9 3 10.5 3.5C12 4 12 6 12 7.5Z" fill={color} fillOpacity={0.5} stroke={color} strokeWidth={1.5} strokeLinecap="round" />
-      <Path d="M12 7.5C13.5 7 16 6.5 16.5 5C17 3.5 15 3 13.5 3.5C12 4 12 6 12 7.5Z" fill={color} fillOpacity={0.5} stroke={color} strokeWidth={1.5} strokeLinecap="round" />
-      <Path d="M12 8V21" stroke={color} strokeWidth={2} />
-      <Path d="M12 17C12 17 9.5 14.8 9.5 13.2C9.5 12.3 10 12 10.8 12C11.4 12 11.8 12.3 12 12.6C12.2 12.3 12.6 12 13.2 12C14 12 14.5 12.3 14.5 13.2C14.5 14.8 12 17 12 17Z" fill={color} />
+      <Rect
+        x={3}
+        y={10}
+        width={18}
+        height={11}
+        rx={2}
+        fill={color}
+        fillOpacity={0.2}
+        stroke={color}
+        strokeWidth={2}
+      />
+      <Path
+        d="M2 10C2 8.89543 2.89543 8 4 8H20C21.1046 8 22 8.89543 22 10V10H2V10Z"
+        fill={color}
+        fillOpacity={0.3}
+        stroke={color}
+        strokeWidth={2}
+      />
+      <Path
+        d="M12 7.5C10.5 7 8 6.5 7.5 5C7 3.5 9 3 10.5 3.5C12 4 12 6 12 7.5Z"
+        fill={color}
+        fillOpacity={0.3}
+        stroke={color}
+        strokeWidth={1.5}
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M12 7.5C13.5 7 16 6.5 16.5 5C17 3.5 15 3 13.5 3.5C12 4 12 6 12 7.5Z"
+        fill={color}
+        fillOpacity={0.3}
+        stroke={color}
+        strokeWidth={1.5}
+        strokeLinejoin="round"
+      />
+      <Ellipse cx={12} cy={7.5} rx={1.5} ry={1} fill={color} />
+      <Path
+        d="M10.5 8L8.5 10M13.5 8L15.5 10"
+        stroke={color}
+        strokeWidth={1.5}
+        strokeLinecap="round"
+      />
+      <Path
+        d="M12 19.5C12 19.5 7.5 17 7.5 14.5C7.5 13.2 8.5 12.2 9.8 12.2C10.6 12.2 11.4 12.6 12 13.3C12.6 12.6 13.4 12.2 14.2 12.2C15.5 12.2 16.5 13.2 16.5 14.5C16.5 17 12 19.5 12 19.5Z"
+        fill={color}
+        fillOpacity={0.5}
+        stroke={color}
+        strokeWidth={1}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+export function QuestIcon({ size = 24, color = "#DB2777" }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M6 4C6 2.89543 6.89543 2 8 2H16C17.1046 2 18 2.89543 18 4V20C18 21.1046 17.1046 22 16 22H8C6.89543 22 6 21.1046 6 20V4Z"
+        fill={color}
+        fillOpacity={0.2}
+        stroke={color}
+        strokeWidth={2}
+      />
+      <Path
+        d="M6 6H4C3.44772 6 3 5.55228 3 5C3 4.44772 3.44772 4 4 4H6M18 6H20C20.5523 6 21 5.55228 21 5C21 4.44772 20.5523 4 20 4H18"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+      />
+      <Path
+        d="M12 8L13 10.5L15.5 11L13.5 13L14 15.5L12 14L10 15.5L10.5 13L8.5 11L11 10.5L12 8Z"
+        fill={color}
+      />
+      <Path
+        d="M9 18H15"
+        stroke={color}
+        strokeWidth={1.5}
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
+
+export function SwordsIcon({ size = 24, color = "#DB2777" }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
+      <Path d="M6.152 19.092a3.1 3.1 0 0 0-.53-.71 3.1 3.1 0 0 0-.75-.55c-.325-.172-.068-.54-.068-.54.333-.507.636-1.015.887-1.458l-1.683-1.682H2.374a.57.57 0 0 1-.57-.569.57.57 0 0 1 .57-.569h1.869a.57.57 0 0 1 .403.167l6.15 6.144a.57.57 0 0 1 .167.403v1.878a.57.57 0 0 1-.57.569.57.57 0 0 1-.569-.57v-1.641l-1.676-1.675a25 25 0 0 0-1.5.955s-.298.212-.496-.152m-2.69-.466c-.512 0-.993.199-1.355.56a1.9 1.9 0 0 0-.56 1.353c0 .512.198.992.56 1.353s.843.56 1.355.56.993-.199 1.355-.56.56-.842.56-1.353-.199-.991-.56-1.352a1.9 1.9 0 0 0-1.355-.561m5.358-3.947a.65.65 0 0 1-.917 0l-.635-.634a.65.65 0 0 1 0-.916L18.102 2.306c.252-.252.75-.485 1.104-.517l2.656-.241a.522.522 0 0 1 .587.587l-.241 2.65c-.032.355-.265.852-.517 1.104L10.856 16.713a.65.65 0 0 1-.918 0l-.635-.635a.65.65 0 0 1 0-.916l9.071-9.063a.34.34 0 0 0 0-.483.34.34 0 0 0-.483 0z" />
     </Svg>
   );
 }
@@ -83,6 +165,66 @@ export function TrophyIcon({ size = 24, color = "#DB2777" }: IconProps) {
       <Path d="M6 5H4C3.44772 5 3 5.44772 3 6V8C3 9.65685 4.34315 11 6 11" stroke={color} strokeWidth={2} strokeLinecap="round" />
       <Path d="M18 5H20C20.5523 5 21 5.44772 21 6V8C21 9.65685 19.6569 11 18 11" stroke={color} strokeWidth={2} strokeLinecap="round" />
       <Path d="M12 15V18M8 21H16M12 18H12C10.8954 18 10 18.8954 10 20V21H14V20C14 18.8954 13.1046 18 12 18Z" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+export function UserPlusIcon({ size = 24, color = "#DB2777" }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx={9} cy={7} r={4} fill={color} fillOpacity={0.2} stroke={color} strokeWidth={2} />
+      <Path d="M2 21C2 17.134 5.13401 14 9 14H13C16.866 14 20 17.134 20 21" stroke={color} strokeWidth={2} strokeLinecap="round" />
+      <Path d="M19 8V14M16 11H22" stroke={color} strokeWidth={2} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+export function ClockIcon({ size = 24, color = "#DB2777" }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx={12} cy={12} r={9} fill={color} fillOpacity={0.15} stroke={color} strokeWidth={2} />
+      <Path d="M12 7V12L15 15" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+export function XIcon({ size = 24, color = "#DB2777" }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M18 6L6 18M6 6L18 18" stroke={color} strokeWidth={2} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+export function CheckIcon({ size = 24, color = "#DB2777" }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M4 12L9 17L20 6" stroke={color} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+export function ChevronRightIcon({ size = 24, color = "#DB2777" }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M9 6L15 12L9 18" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+export function ChevronDownIcon({ size = 24, color = "#DB2777" }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M19 9l-7 7-7-7" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+export function SwapIcon({ size = 24, color = "#DB2777" }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M5 8H17M17 8L14 5M17 8L14 11" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d="M19 16H7M7 16L10 13M7 16L10 19" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
     </Svg>
   );
 }
@@ -483,6 +625,20 @@ export function SparkleIcon({ size = 24, color = "#DB2777" }: IconProps) {
 // ============================================
 // RARITY ICON (for RarityCrest)
 // ============================================
+
+export function BarChartIcon({ size = 24, color = "#DB2777" }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        stroke={color}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+      />
+    </Svg>
+  );
+}
 
 export function RarityIcon({ rarityName, size = 8, color = "#fff" }: { rarityName: string; size?: number; color?: string }) {
   if (rarityName === "Legendary") {

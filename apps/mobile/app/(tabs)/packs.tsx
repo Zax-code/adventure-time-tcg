@@ -25,11 +25,16 @@ import {
 } from "../../src/components/icons";
 import { RARITY_COLORS } from "../../src/components/theme";
 import { useTranslation } from "../../src/i18n";
+import { useThemeStore } from "../../src/stores/theme-store";
+import { useBottomTabBarContentPadding } from "../../src/theme/layout";
+import { THEME_COLORS } from "../../src/theme/themes";
 
 import type { PacksResponse, OpenPackResponse } from "@adventure-time/shared";
+import type { ViewStyle } from "react-native";
 
 type Pack = PacksResponse["packs"][number];
 type OpenedCard = OpenPackResponse["cards"][number];
+type AbsolutePosition = Pick<ViewStyle, "top" | "right" | "bottom" | "left">;
 type OpeningPhase =
   | "selecting"
   | "shaking"
@@ -54,6 +59,37 @@ const PARTICLE_CONFIGS = [
   { angle: 112, dist: 175, isSparkle: true },
   { angle: 202, dist: 185, isSparkle: true },
   { angle: 292, dist: 170, isSparkle: true },
+];
+
+const READY_REVEAL_SPARKLE_POSITIONS: AbsolutePosition[] = [
+  { top: 40, left: 40 },
+  { top: 40, right: 40 },
+  { bottom: 40, left: 40 },
+  { bottom: 40, right: 40 },
+  { top: "40%", left: 10 },
+  { top: "40%", right: 10 },
+];
+
+const HIGH_RARITY_SPARKLE_POSITIONS: AbsolutePosition[] = [
+  { top: 80, left: 40 },
+  { top: 80, right: 40 },
+  { top: "35%", left: 20 },
+  { top: "35%", right: 20 },
+  { top: "65%", left: 30 },
+  { top: "65%", right: 30 },
+  { bottom: 120, left: 50 },
+  { bottom: 120, right: 50 },
+];
+
+const HEART_POSITIONS: AbsolutePosition[] = [
+  { left: "10%", top: "15%" },
+  { left: "25%", top: "5%" },
+  { left: "45%", top: "20%" },
+  { left: "65%", top: "8%" },
+  { left: "80%", top: "18%" },
+  { left: "15%", top: "70%" },
+  { left: "60%", top: "75%" },
+  { left: "85%", top: "65%" },
 ];
 
 function getRarityGlowColor(rarityName: string): string {
@@ -84,10 +120,12 @@ function getPackIcon(packName: string, size = 36) {
 export default function PacksScreen() {
   const queryClient = useQueryClient();
   const accessToken = useSessionStore((state) => state.accessToken);
+  const tc = THEME_COLORS[useThemeStore((s) => s.themeName)];
   const refreshToken = useSessionStore((state) => state.refreshToken);
   const setSession = useSessionStore((state) => state.setSession);
   const coins = useSessionStore((state) => state.user?.coins ?? 0);
   const { t } = useTranslation();
+  const bottomTabPadding = useBottomTabBarContentPadding();
 
   const [phase, setPhase] = useState<OpeningPhase>("selecting");
   const [selectedPack, setSelectedPack] = useState<Pack | null>(null);
@@ -352,7 +390,7 @@ export default function PacksScreen() {
   if (packsQuery.isError || !packsQuery.data) {
     return (
       <View className="flex-1 bg-bg p-6">
-        <Text className="font-nunito text-red-600">
+        <Text className="font-nunito text-danger">
           {packsQuery.error?.message ?? t("native.packs.unavailable")}
         </Text>
       </View>
@@ -487,18 +525,18 @@ export default function PacksScreen() {
                   { translateY: s.ty },
                 ],
                 borderWidth: 2,
-                borderColor: "#F9A8D4",
+                borderColor: tc.primaryBorder,
               }}
             >
               <LinearGradient
-                colors={["#FCE7F3", "#FBCFE8", "#F9A8D4"]}
+                colors={[tc.primaryTint, tc.primaryBorder]}
                 style={{
                   flex: 1,
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                <SparklesIcon size={32} color="#DB2777" />
+                <SparklesIcon size={32} color={tc.primaryText} />
               </LinearGradient>
             </View>
           ))}
@@ -510,8 +548,8 @@ export default function PacksScreen() {
               inset: -24,
               borderRadius: 9999,
               borderWidth: 4,
-              borderColor: "#F9A8D4",
-              borderTopColor: "#EC4899",
+              borderColor: tc.primaryBorder,
+              borderTopColor: tc.primaryDark,
               transform: [{ rotate: spin }],
             }}
           />
@@ -522,13 +560,13 @@ export default function PacksScreen() {
           style={{
             width: 256,
             height: 12,
-            backgroundColor: "#F3F4F6",
+            backgroundColor: tc.surfaceMuted,
             borderRadius: 9999,
             overflow: "hidden",
           }}
         >
           <LinearGradient
-            colors={["#F472B6", "#EC4899"]}
+            colors={[tc.primary, tc.primaryDark]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={{
@@ -555,13 +593,13 @@ export default function PacksScreen() {
       >
         <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
           <LinearGradient
-            colors={["#FCE7F3", "#F9A8D4", "#EC4899"]}
+            colors={[tc.primaryTint, tc.primaryBorder, tc.primaryDark]}
             style={{
               width: 320,
               height: 480,
               borderRadius: 20,
               borderWidth: 4,
-              borderColor: "#F9A8D4",
+              borderColor: tc.primaryBorder,
               alignItems: "center",
               justifyContent: "center",
               position: "relative",
@@ -569,14 +607,7 @@ export default function PacksScreen() {
             }}
           >
             {/* Scattered sparkles */}
-            {[
-              { top: 40, left: 40 },
-              { top: 40, right: 40 },
-              { bottom: 40, left: 40 },
-              { bottom: 40, right: 40 },
-              { top: "40%", left: 10 },
-              { top: "40%", right: 10 },
-            ].map((pos, i) => (
+            {READY_REVEAL_SPARKLE_POSITIONS.map((pos, i) => (
               <View key={i} style={{ position: "absolute", ...pos }}>
                 <SparkleIcon size={16} color="rgba(255,255,255,0.6)" />
               </View>
@@ -602,14 +633,14 @@ export default function PacksScreen() {
                 width: 8,
                 height: 8,
                 borderRadius: 4,
-                backgroundColor: "#F9A8D4",
+                backgroundColor: tc.primaryBorder,
                 opacity: 0.5,
               }}
             />
           ))}
         </View>
 
-        <Text style={{ fontFamily: "Nunito_700Bold", fontSize: 18, color: "#DB2777" }}>Tap to reveal</Text>
+        <Text style={{ fontFamily: "Nunito_700Bold", fontSize: 18, color: tc.primaryText }}>Tap to reveal</Text>
       </TouchableOpacity>
     );
   }
@@ -651,16 +682,7 @@ export default function PacksScreen() {
         <View className="flex-1 items-center justify-center gap-4">
           {/* Sparkles for high rarity */}
           {isHighRarity
-            ? [
-                { top: 80, left: 40 },
-                { top: 80, right: 40 },
-                { top: "35%", left: 20 },
-                { top: "35%", right: 20 },
-                { top: "65%", left: 30 },
-                { top: "65%", right: 30 },
-                { bottom: 120, left: 50 },
-                { bottom: 120, right: 50 },
-              ].map((pos, i) => (
+            ? HIGH_RARITY_SPARKLE_POSITIONS.map((pos, i) => (
                 <View key={i} style={{ position: "absolute", ...pos }}>
                   <SparkleIcon size={14} color={glowColor} />
                 </View>
@@ -729,10 +751,10 @@ export default function PacksScreen() {
               const rName = c.rarity?.name ?? "Common";
               const dotColor =
                 i === revealedIndex
-                  ? (RARITY_COLORS[rName]?.ring ?? "#EC4899")
+                  ? (RARITY_COLORS[rName]?.ring ?? tc.primaryDark)
                   : i < revealedIndex
-                    ? "#EC4899"
-                    : "#F9A8D4";
+                    ? tc.primaryDark
+                    : tc.primaryBorder;
               return (
                 <View
                   key={i}
@@ -748,7 +770,7 @@ export default function PacksScreen() {
             })}
           </View>
 
-          <Text style={{ fontFamily: "Nunito_700Bold", fontSize: 18, color: "#DB2777" }}>
+          <Text style={{ fontFamily: "Nunito_700Bold", fontSize: 18, color: tc.primaryText }}>
             {isLast
               ? "Tap to see summary"
               : `${revealedIndex + 1} / ${openedCards.length}`}
@@ -772,7 +794,10 @@ export default function PacksScreen() {
     }, {});
 
     return (
-      <ScrollView className="flex-1 bg-bg" contentContainerClassName="p-4 pb-8">
+      <ScrollView
+        className="flex-1 bg-bg"
+        contentContainerStyle={{ padding: 16, paddingBottom: bottomTabPadding }}
+      >
         <Text className="font-nunito-extrabold text-2xl text-fg mb-4">
           Your Cards!
         </Text>
@@ -817,28 +842,28 @@ export default function PacksScreen() {
         {/* Summary panel */}
         <View
           style={{
-            backgroundColor: "rgba(255,255,255,0.6)",
+            backgroundColor: tc.surfaceMuted,
             borderRadius: 16,
             borderWidth: 1,
-            borderColor: "#F9A8D4",
+            borderColor: tc.primaryBorder,
             padding: 16,
             marginTop: 12,
             gap: 8,
           }}
         >
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <SparkleIcon size={20} color="#DB2777" />
+            <SparkleIcon size={20} color={tc.primaryText} />
             <Text className="font-nunito-bold text-lg text-fg">Summary</Text>
           </View>
 
           {newCount > 0 ? (
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center",
-              paddingBottom: 10, marginBottom: 8, borderBottomWidth: 1, borderBottomColor: "#F9A8D4" }}>
+              paddingBottom: 10, marginBottom: 8, borderBottomWidth: 1, borderBottomColor: tc.primaryBorder }}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                <SparkleIcon size={16} color="#059669" />
-                <Text style={{ fontFamily: "Nunito_600SemiBold", color: "#059669" }}>New cards discovered</Text>
+                <SparkleIcon size={16} color={tc.successDark} />
+                <Text style={{ fontFamily: "Nunito_600SemiBold", color: tc.successDark }}>New cards discovered</Text>
               </View>
-              <Text style={{ fontFamily: "Nunito_700Bold", color: "#059669" }}>{newCount} / {openedCards.length}</Text>
+              <Text style={{ fontFamily: "Nunito_700Bold", color: tc.successDark }}>{newCount} / {openedCards.length}</Text>
             </View>
           ) : null}
 
@@ -852,7 +877,7 @@ export default function PacksScreen() {
                 <Text style={{ fontFamily: "Nunito_700Bold", color: rc.to }}>
                   x{info.total}
                   {info.newCount > 0 ? (
-                    <Text style={{ fontSize: 11, color: "#059669" }}> ({info.newCount} new)</Text>
+                    <Text style={{ fontSize: 11, color: tc.successDark }}> ({info.newCount} new)</Text>
                   ) : null}
                 </Text>
               </View>
@@ -860,9 +885,9 @@ export default function PacksScreen() {
           })}
 
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8,
-            paddingTop: 8, borderTopWidth: 1, borderTopColor: "#F9A8D4" }}>
+            paddingTop: 8, borderTopWidth: 1, borderTopColor: tc.primaryBorder }}>
             <CoinIcon size={18} />
-            <Text style={{ fontFamily: "Nunito_400Regular", color: "#6B7280" }}>
+            <Text style={{ fontFamily: "Nunito_400Regular", color: tc.fgMuted }}>
               Remaining coins: {newBalance ?? coins}
             </Text>
           </View>
@@ -871,7 +896,7 @@ export default function PacksScreen() {
         {/* Open Another Pack button */}
         <Pressable onPress={reset} style={{ marginTop: 16 }}>
           <LinearGradient
-            colors={["#F472B6", "#EC4899"]}
+            colors={[tc.primary, tc.primaryDark]}
             style={{
               borderRadius: 16,
               paddingVertical: 14,
@@ -880,7 +905,7 @@ export default function PacksScreen() {
           >
             <Text
               style={{
-                color: "#fff",
+                color: tc.surface,
                 fontFamily: "Nunito_800ExtraBold",
                 fontSize: 16,
               }}
@@ -894,22 +919,11 @@ export default function PacksScreen() {
   }
 
   // ── SELECTING phase (default) ─────────────────────────────────────────────
-  const heartPositions = [
-    { left: "10%", top: "15%" },
-    { left: "25%", top: "5%" },
-    { left: "45%", top: "20%" },
-    { left: "65%", top: "8%" },
-    { left: "80%", top: "18%" },
-    { left: "15%", top: "70%" },
-    { left: "60%", top: "75%" },
-    { left: "85%", top: "65%" },
-  ] as const;
-
   return (
     <View className="flex-1 bg-bg">
       {/* Floating hearts background */}
       {floatAnims.map((anim, i) => {
-        const pos = heartPositions[i];
+        const pos = HEART_POSITIONS[i];
         const translateY = anim.interpolate({
           inputRange: [0, 1],
           outputRange: [0, -80],
@@ -933,7 +947,14 @@ export default function PacksScreen() {
         );
       })}
 
-      <ScrollView contentContainerStyle={{ padding: 20, gap: 16, zIndex: 1 }}>
+      <ScrollView
+        contentContainerStyle={{
+          padding: 20,
+          gap: 16,
+          zIndex: 1,
+          paddingBottom: bottomTabPadding,
+        }}
+      >
         {/* Header */}
         <View
           style={{
@@ -957,8 +978,8 @@ export default function PacksScreen() {
         </View>
 
         {openError ? (
-          <View className="rounded-2xl bg-red-50 border border-red-200 p-3">
-            <Text className="font-nunito text-red-600 text-sm">
+          <View className="rounded-2xl bg-dangerTint border border-dangerBorder p-3">
+            <Text className="font-nunito text-danger text-sm">
               {openError}
             </Text>
           </View>
@@ -977,8 +998,8 @@ export default function PacksScreen() {
                 style={{
                   borderRadius: 16,
                   borderWidth: 2,
-                  borderColor: pack.color || "#F9A8D4",
-                  backgroundColor: "#fff",
+                  borderColor: pack.color || tc.primaryBorder,
+                  backgroundColor: tc.surface,
                   overflow: "hidden",
                 }}
               >
@@ -1012,7 +1033,7 @@ export default function PacksScreen() {
                       style={{
                         fontFamily: "Nunito_700Bold",
                         fontSize: 16,
-                        color: "#1F2937",
+                        color: tc.fg,
                       }}
                     >
                       {pack.name}
@@ -1021,10 +1042,10 @@ export default function PacksScreen() {
                       style={{
                         fontFamily: "Nunito_400Regular",
                         fontSize: 13,
-                        color: "#6B7280",
+                        color: tc.fgMuted,
                         paddingBottom: 8,
                         borderBottomWidth: 1,
-                        borderBottomColor: "#F3F4F6",
+                        borderBottomColor: tc.surfaceMuted,
                       }}
                     >
                       {pack.description}
@@ -1045,7 +1066,7 @@ export default function PacksScreen() {
                           flexDirection: "row",
                           alignItems: "center",
                           gap: 4,
-                          backgroundColor: canAfford ? "#FEF3C7" : "#FEE2E2",
+                          backgroundColor: canAfford ? tc.secondaryTint : tc.dangerTint,
                           paddingHorizontal: 8,
                           paddingVertical: 3,
                           borderRadius: 9999,
@@ -1056,7 +1077,7 @@ export default function PacksScreen() {
                           style={{
                             fontFamily: "Nunito_700Bold",
                             fontSize: 12,
-                            color: canAfford ? "#92400E" : "#B91C1C",
+                            color: canAfford ? tc.secondaryText : tc.dangerText,
                           }}
                         >
                           {pack.cost}
@@ -1066,7 +1087,7 @@ export default function PacksScreen() {
                       {/* Card count chip */}
                       <View
                         style={{
-                          backgroundColor: "#F0FDF4",
+                          backgroundColor: tc.successTint,
                           paddingHorizontal: 8,
                           paddingVertical: 3,
                           borderRadius: 9999,
@@ -1076,7 +1097,7 @@ export default function PacksScreen() {
                           style={{
                             fontFamily: "Nunito_600SemiBold",
                             fontSize: 12,
-                            color: "#166534",
+                            color: tc.successText,
                           }}
                         >
                           {pack.cardCount} cards
@@ -1087,7 +1108,7 @@ export default function PacksScreen() {
                       {pack.guaranteedRarity ? (
                         <View
                           style={{
-                            backgroundColor: "#FDF4FF",
+                            backgroundColor: tc.accentTint,
                             paddingHorizontal: 8,
                             paddingVertical: 3,
                             borderRadius: 9999,
@@ -1097,7 +1118,7 @@ export default function PacksScreen() {
                             style={{
                               fontFamily: "Nunito_600SemiBold",
                               fontSize: 12,
-                              color: "#7E22CE",
+                              color: tc.accentText,
                             }}
                           >
                             Guaranteed: {pack.guaranteedRarity}

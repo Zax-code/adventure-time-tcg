@@ -17,9 +17,15 @@
     "db:migrate": "npm run db:migrate -w @adventure-time/db"
   },
   "dependencies": {
-    "react-native-svg": "15.12.1"
+    "react-native-svg": "15.12.1",
+    "react-native-worklets": "0.5.1"
   },
   "devDependencies": {
     "@types/react": "~19.1.10"
+  },
+  "overrides": {
+    "nativewind": "4.2.3",
+    "react-native-css-interop": "0.2.3",
+    "react-native-worklets": "0.5.1"
   }
 }

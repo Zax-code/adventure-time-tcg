@@ -16,7 +16,10 @@ import {
 import { ApiClientError, apiClient } from "../lib/api";
 import { useTranslation } from "../i18n";
 import { useSessionStore } from "../stores/session-store";
+import { useThemeStore } from "../stores/theme-store";
+import { THEME_COLORS } from "../theme/themes";
 import { PrimaryButton } from "./button";
+import { CardsIcon, PackIcon, QuestIcon } from "./icons";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -31,6 +34,7 @@ export function AuthForm() {
   const router = useRouter();
   const setSession = useSessionStore((state) => state.setSession);
   const { t } = useTranslation();
+  const tc = THEME_COLORS[useThemeStore((s) => s.themeName)];
   const [displayName, setDisplayName] = useState("Finn Fan");
   const [email, setEmail] = useState("finn@example.com");
   const [password, setPassword] = useState("password123");
@@ -165,7 +169,7 @@ export function AuthForm() {
   }
 
   return (
-    <View className="w-full gap-4 rounded-3xl border border-primaryBorder bg-white p-6">
+    <View className="w-full gap-4 rounded-3xl border border-primaryBorder bg-primaryBg p-6">
       {/* Card Header */}
       <View className="items-center gap-1">
         <Text className="font-nunito-bold text-xl text-primary">
@@ -184,70 +188,22 @@ export function AuthForm() {
       </View>
 
       {/* Feature Grid */}
-      <View style={{ flexDirection: "row", gap: 8 }}>
-        <View
-          style={{
-            flex: 1,
-            alignItems: "center",
-            gap: 6,
-            backgroundColor: "#E0F2FE",
-            borderRadius: 12,
-            padding: 10,
-          }}
-        >
-          <Text style={{ fontSize: 20 }}>📦</Text>
-          <Text
-            style={{
-              fontSize: 11,
-              fontFamily: "Nunito-Bold",
-              color: "#0369A1",
-              textAlign: "center",
-            }}
-          >
+      <View className="flex-row gap-2">
+        <View className="flex-1 items-center gap-1.5 rounded-xl border border-infoBorder bg-infoTint p-2.5">
+          <PackIcon size={24} color={tc.infoText} />
+          <Text className="text-center font-nunito-semibold text-[11px] text-infoText">
             {t("authLogin.features.openPacks")}
           </Text>
         </View>
-        <View
-          style={{
-            flex: 1,
-            alignItems: "center",
-            gap: 6,
-            backgroundColor: "#F3E8FF",
-            borderRadius: 12,
-            padding: 10,
-          }}
-        >
-          <Text style={{ fontSize: 20 }}>🃏</Text>
-          <Text
-            style={{
-              fontSize: 11,
-              fontFamily: "Nunito-Bold",
-              color: "#9333EA",
-              textAlign: "center",
-            }}
-          >
+        <View className="flex-1 items-center gap-1.5 rounded-xl border border-accentBorder bg-accentTint p-2.5">
+          <CardsIcon size={24} color={tc.accentText} />
+          <Text className="text-center font-nunito-semibold text-[11px] text-accentText">
             {t("authLogin.features.collectCards")}
           </Text>
         </View>
-        <View
-          style={{
-            flex: 1,
-            alignItems: "center",
-            gap: 6,
-            backgroundColor: "#CCFBF1",
-            borderRadius: 12,
-            padding: 10,
-          }}
-        >
-          <Text style={{ fontSize: 20 }}>🏆</Text>
-          <Text
-            style={{
-              fontSize: 11,
-              fontFamily: "Nunito-Bold",
-              color: "#0D9488",
-              textAlign: "center",
-            }}
-          >
+        <View className="flex-1 items-center gap-1.5 rounded-xl border border-successBorder bg-successTint p-2.5">
+          <QuestIcon size={24} color={tc.successDark} />
+          <Text className="text-center font-nunito-semibold text-[11px] text-successDark">
             {t("authLogin.features.completeQuests")}
           </Text>
         </View>
@@ -265,15 +221,14 @@ export function AuthForm() {
               paddingVertical: 8,
               paddingHorizontal: 16,
               borderRadius: 999,
-              backgroundColor:
-                mode === "login" ? "#EC4899" : "rgba(255,255,255,0.8)",
+              backgroundColor: mode === "login" ? tc.primaryDark : tc.surfaceMuted,
             }}
           >
             <Text
               style={{
                 fontFamily: "Nunito-Bold",
                 fontSize: 14,
-                color: mode === "login" ? "white" : "#9D174D",
+                color: mode === "login" ? "white" : tc.primaryStrong,
               }}
             >
               {t("authLogin.tabs.signIn")}
@@ -287,15 +242,14 @@ export function AuthForm() {
               paddingVertical: 8,
               paddingHorizontal: 16,
               borderRadius: 999,
-              backgroundColor:
-                mode === "register" ? "#EC4899" : "rgba(255,255,255,0.8)",
+              backgroundColor: mode === "register" ? tc.primaryDark : tc.surfaceMuted,
             }}
           >
             <Text
               style={{
                 fontFamily: "Nunito-Bold",
                 fontSize: 14,
-                color: mode === "register" ? "white" : "#9D174D",
+                color: mode === "register" ? "white" : tc.primaryStrong,
               }}
             >
               {t("authLogin.tabs.register")}
@@ -310,8 +264,8 @@ export function AuthForm() {
           autoCapitalize="none"
           keyboardType="email-address"
           placeholder={t("authLogin.fields.email")}
-          placeholderTextColor="#9CA3AF"
-          className="rounded-2xl border border-primaryBorder bg-white px-4 py-3 font-nunito text-fg"
+          placeholderTextColor={tc.muted}
+          className="rounded-2xl border border-primaryBorder bg-primaryBg px-4 py-3 font-nunito text-fg"
         />
         <TextInput
           value={password}
@@ -322,21 +276,21 @@ export function AuthForm() {
               ? t("authLogin.fields.passwordMin")
               : t("authLogin.fields.password")
           }
-          placeholderTextColor="#9CA3AF"
-          className="rounded-2xl border border-primaryBorder bg-white px-4 py-3 font-nunito text-fg"
+          placeholderTextColor={tc.muted}
+          className="rounded-2xl border border-primaryBorder bg-primaryBg px-4 py-3 font-nunito text-fg"
         />
         {mode === "register" ? (
           <TextInput
             value={displayName}
             onChangeText={setDisplayName}
             placeholder={t("authLogin.fields.displayNameOptional")}
-            placeholderTextColor="#9CA3AF"
-            className="rounded-2xl border border-primaryBorder bg-white px-4 py-3 font-nunito text-fg"
+            placeholderTextColor={tc.muted}
+            className="rounded-2xl border border-primaryBorder bg-primaryBg px-4 py-3 font-nunito text-fg"
           />
         ) : null}
 
         {error ? (
-          <Text className="text-xs font-nunito-semibold text-red-600">
+          <Text className="text-xs font-nunito-semibold text-danger">
             {error}
           </Text>
         ) : null}
@@ -359,7 +313,7 @@ export function AuthForm() {
           activeOpacity={0.85}
         >
           <LinearGradient
-            colors={["#F472B6", "#EC4899"]}
+            colors={[tc.primary, tc.primaryDark]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={{

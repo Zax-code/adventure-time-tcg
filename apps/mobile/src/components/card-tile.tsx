@@ -8,6 +8,8 @@ import type { CollectionResponse } from "@adventure-time/shared";
 import { getCardImageCacheKey, getCardImageUrl } from "../lib/card-images";
 import { CARD_TYPE_COLORS, RARITY_COLORS, SECONDARY_TINT } from "./theme";
 import { HPIcon, SpeedIcon, RarityIcon } from "./icons";
+import { useThemeStore } from "../stores/theme-store";
+import { THEME_COLORS } from "../theme/themes";
 
 type CollectionEntry = CollectionResponse["cards"][number];
 
@@ -113,6 +115,7 @@ export const CardTile = memo(function CardTile({
 }: CardTileProps) {
   const { card, quantity } = entry;
   const cfg = sizeConfig[size];
+  const tc = THEME_COLORS[useThemeStore((s) => s.themeName)];
   const typeColor = CARD_TYPE_COLORS[card.type] ?? { frame: "#9CA3AF", light: "#F3F4F6", dark: "#374151" };
   const rarityColor = RARITY_COLORS[card.rarity.name] ?? { from: "#9CA3AF", to: "#6B7280", ring: "#9CA3AF" };
 
@@ -253,7 +256,7 @@ export const CardTile = memo(function CardTile({
             }}
           >
             <Text
-              style={{ color: "#DB2777", fontSize: cfg.descFontSize, fontFamily: "Nunito_400Regular", lineHeight: cfg.descLineHeight }}
+              style={{ color: tc.primaryText, fontSize: cfg.descFontSize, fontFamily: "Nunito_400Regular", lineHeight: cfg.descLineHeight }}
               numberOfLines={size === "large" ? 6 : 4}
             >
               {card.description}
@@ -303,10 +306,10 @@ export const CardTile = memo(function CardTile({
                 paddingVertical: 4,
                 borderRadius: 8,
                 borderWidth: 1,
-                borderColor: "#F9A8D4",
+                borderColor: tc.primaryBorder,
               }}
             >
-              <Text style={{ fontSize: 10, color: "#DB2777", fontFamily: "Nunito_600SemiBold" }}>
+              <Text style={{ fontSize: 10, color: tc.primaryText, fontFamily: "Nunito_600SemiBold" }}>
                 Recycle
               </Text>
             </Pressable>
@@ -320,10 +323,10 @@ export const CardTile = memo(function CardTile({
                 paddingVertical: 4,
                 borderRadius: 8,
                 borderWidth: 1,
-                borderColor: "#F9A8D4",
+                borderColor: tc.primaryBorder,
               }}
             >
-              <Text style={{ fontSize: 10, color: "#DB2777", fontFamily: "Nunito_600SemiBold" }}>
+              <Text style={{ fontSize: 10, color: tc.primaryText, fontFamily: "Nunito_600SemiBold" }}>
                 Craft
               </Text>
             </Pressable>
