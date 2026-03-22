@@ -216,6 +216,7 @@ export function getTypeAdvantageDescription(
  */
 export function getStrongAgainst(type: TypeName): TypeName[] {
   const chart = TYPE_CHART[type];
+  if (!chart) return [];
   return (Object.entries(chart) as [TypeName, number][])
     .filter(([, mult]) => mult > 1)
     .map(([t]) => t);
@@ -226,6 +227,7 @@ export function getStrongAgainst(type: TypeName): TypeName[] {
  */
 export function getWeakAgainst(type: TypeName): TypeName[] {
   const chart = TYPE_CHART[type];
+  if (!chart) return [];
   return (Object.entries(chart) as [TypeName, number][])
     .filter(([, mult]) => mult < 1)
     .map(([t]) => t);

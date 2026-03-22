@@ -11,6 +11,7 @@ declare module "fastify" {
       id: string;
       email: string;
       isAdmin: boolean;
+      isSuperAdmin: boolean;
     };
   }
 }
@@ -33,7 +34,8 @@ export default fp(async (fastify) => {
       }
 
       const allowedEmail = await db.query.allowedEmails.findFirst({ where: eq(allowedEmails.email, user.email.toLowerCase()) });
-      const isAdmin = allowedEmail?.isAdmin ?? false;
+      const isSuperAdmin = allowedEmail?.isSuperAdmin ?? false;
+      const isAdmin = isSuperAdmin || (allowedEmail?.isAdmin ?? false);
 
       if (user.isAdmin !== isAdmin) {
         await db.update(users).set({ isAdmin, updatedAt: new Date() }).where(eq(users.id, user.id));
@@ -43,6 +45,7 @@ export default fp(async (fastify) => {
         id: user.id,
         email: user.email,
         isAdmin,
+        isSuperAdmin,
       };
     } catch {
       return reply.code(401).send({ error: "Unauthorized" });

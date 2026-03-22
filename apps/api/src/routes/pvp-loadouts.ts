@@ -8,12 +8,23 @@ import { pvpLoadoutMutationSchema } from "@adventure-time/shared";
 
 import { validateLoadoutRarityCaps } from "../lib/loadout-rules";
 
-function serializeLoadout(loadout: typeof pvpLoadouts.$inferSelect, invalidCardIds: string[]) {
+type LoadoutCard = Awaited<ReturnType<typeof db.query.cards.findMany>>[number];
+
+function isPresent<T>(value: T | undefined): value is T {
+  return value !== undefined;
+}
+
+function serializeLoadout(
+  loadout: typeof pvpLoadouts.$inferSelect,
+  invalidCardIds: string[],
+  cards: LoadoutCard[],
+) {
   return {
     id: loadout.id,
     ownerId: loadout.ownerId,
     name: loadout.name,
     cardIds: loadout.cardIds.split(",").filter(Boolean),
+    cards,
     invalidCardIds,
     createdAt: loadout.createdAt.toISOString(),
     updatedAt: loadout.updatedAt.toISOString(),
@@ -48,8 +59,26 @@ export async function pvpLoadoutRoutes(fastify: FastifyInstance) {
     const allCardIds = [...new Set(loadouts.flatMap((loadout) => loadout.cardIds.split(",").filter(Boolean)))];
     const owned = await db.query.ownedCards.findMany({ where: and(eq(ownedCards.userId, request.authUser.id), inArray(ownedCards.cardId, allCardIds.length > 0 ? allCardIds : ["__none__"])) });
     const ownedSet = new Set(owned.map((entry) => entry.cardId));
+    const cardRows = allCardIds.length > 0
+      ? await db.query.cards.findMany({
+          where: inArray(cards.id, allCardIds),
+          with: { rarity: true },
+        })
+      : [];
+    const cardMap = new Map(cardRows.map((card) => [card.id, card]));
+
     return {
-      loadouts: loadouts.map((loadout) => serializeLoadout(loadout, loadout.cardIds.split(",").filter(Boolean).filter((cardId) => !ownedSet.has(cardId)))),
+      loadouts: loadouts.map((loadout) => {
+        const orderedCardIds = loadout.cardIds.split(",").filter(Boolean);
+
+        return serializeLoadout(
+          loadout,
+          orderedCardIds.filter((cardId) => !ownedSet.has(cardId)),
+          orderedCardIds
+            .map((cardId) => cardMap.get(cardId))
+            .filter(isPresent),
+        );
+      }),
     };
   });
 
@@ -64,7 +93,19 @@ export async function pvpLoadoutRoutes(fastify: FastifyInstance) {
         name: body.name,
         cardIds: body.cardIds.join(","),
       }).returning().then((rows) => rows[0]);
-      return reply.code(201).send({ loadout: serializeLoadout(loadout, []) });
+      const cardRows = await db.query.cards.findMany({
+        where: inArray(cards.id, body.cardIds),
+        with: { rarity: true },
+      });
+      const cardMap = new Map(cardRows.map((card) => [card.id, card]));
+
+      return reply.code(201).send({
+        loadout: serializeLoadout(
+        loadout,
+        [],
+          body.cardIds.map((cardId) => cardMap.get(cardId)).filter(isPresent),
+        ),
+      });
     } catch (error) {
       return reply.code(400).send({ error: error instanceof Error ? error.message : "Failed to create loadout" });
     }
@@ -80,7 +121,19 @@ export async function pvpLoadoutRoutes(fastify: FastifyInstance) {
       await validateLoadoutOwnership(request.authUser.id, body.cardIds);
       await db.update(pvpLoadouts).set({ name: body.name, cardIds: body.cardIds.join(","), updatedAt: new Date() }).where(eq(pvpLoadouts.id, id));
       const loadout = await db.query.pvpLoadouts.findFirst({ where: eq(pvpLoadouts.id, id) });
-      return { loadout: serializeLoadout(loadout!, []) };
+      const cardRows = await db.query.cards.findMany({
+        where: inArray(cards.id, body.cardIds),
+        with: { rarity: true },
+      });
+      const cardMap = new Map(cardRows.map((card) => [card.id, card]));
+
+      return {
+        loadout: serializeLoadout(
+        loadout!,
+        [],
+          body.cardIds.map((cardId) => cardMap.get(cardId)).filter(isPresent),
+        ),
+      };
     } catch (error) {
       return reply.code(400).send({ error: error instanceof Error ? error.message : "Failed to update loadout" });
     }

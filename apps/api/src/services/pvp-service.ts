@@ -20,6 +20,8 @@ import { and, eq, inArray, or } from "drizzle-orm";
 
 import { db, cards, ownedCards, pvpMatches, users } from "@adventure-time/db";
 
+import type { PvpAction } from "@adventure-time/shared";
+
 import { validateLoadoutRarityCaps } from "../lib/loadout-rules";
 
 function parseLoadout(raw: string) {
@@ -71,35 +73,72 @@ function summarizeCombatEvent(event: BattleStateView["log"][number]) {
   }
 }
 
-function projectBattleState(view: BattleStateView) {
+type UnitState = BattleStateView["players"][0]["units"][0];
+
+function mapUnit(unit: UnitState) {
   return {
-    currentPlayerId: view.currentPlayerId,
+    instanceId: unit.instanceId,
+    cardId: unit.cardId,
+    name: unit.name,
+    character: unit.character,
+    type: unit.type,
+    rarity: unit.rarity,
+    imageUrl: unit.imageUrl,
+    hp: unit.hp,
+    maxHp: unit.maxHp,
+    attack: unit.attack,
+    defense: unit.defense,
+    speed: unit.speed,
+    baseMaxHp: unit.baseMaxHp,
+    baseAttack: unit.baseAttack,
+    baseDefense: unit.baseDefense,
+    baseSpeed: unit.baseSpeed,
+    statuses: unit.statuses.map((s) => ({
+      name: s.name,
+      duration: s.duration,
+      magnitude: s.magnitude,
+      appliedAt: s.appliedAt,
+    })),
+    cooldowns: unit.cooldowns,
+    usedUltimate: unit.usedUltimate,
+    position: unit.position,
+    skill: unit.skill,
+    ultimate: unit.ultimate,
+    passives: unit.passives,
+    knockedOut: unit.hp <= 0,
+  };
+}
+
+function mapPlayer(player: BattleStateView["players"][0]) {
+  return {
+    userId: player.userId,
+    name: player.name,
+    energy: player.energy,
+    units: player.units.map(mapUnit),
+    bench: player.bench.map(mapUnit),
+  };
+}
+
+function fullProjectBattleState(view: BattleStateView) {
+  return {
+    id: view.id,
     turn: view.turn,
     phase: view.phase,
+    currentPlayerId: view.currentPlayerId,
+    isMyTurn: view.isMyTurn,
+    myUserId: view.myUserId,
     winnerId: view.winnerId ?? null,
-    players: view.players.map((player) => ({
-      userId: player.userId,
-      name: player.name,
-      energy: player.energy,
-      activeIndex: player.units.findIndex((unit) => unit.position === 1),
-      team: [...player.units, ...player.bench].map((unit) => ({
-        instanceId: unit.instanceId,
-        cardId: unit.cardId,
-        name: unit.name,
-        hp: unit.hp,
-        maxHp: unit.maxHp,
-        attack: unit.attack,
-        defense: unit.defense,
-        knockedOut: unit.hp <= 0,
-        position: unit.position,
-      })),
-    })),
+    players: [mapPlayer(view.players[0]), mapPlayer(view.players[1])] as [
+      ReturnType<typeof mapPlayer>,
+      ReturnType<typeof mapPlayer>,
+    ],
     log: view.log.map((event) => ({
+      seq: event.seq,
       turn: event.turn,
-      actorId: String((event.payload as Record<string, unknown>).actorId ?? (event.payload as Record<string, unknown>).userId ?? view.currentPlayerId),
       type: event.type,
-      summary: summarizeCombatEvent(event),
+      payload: event.payload,
     })),
+    abilityDefinitions: view.abilityDefinitions,
   };
 }
 
@@ -206,10 +245,23 @@ async function persistBattleState(matchId: string, state: BattleState, statusOve
   }).where(eq(pvpMatches.id, matchId));
 }
 
+async function enrichWithNames<T extends { inviterId: string; inviteeId: string }>(rows: T[]) {
+  if (!rows.length) return rows as (T & { inviterName: string; inviteeName: string })[];
+  const ids = [...new Set(rows.flatMap((r) => [r.inviterId, r.inviteeId]))];
+  const records = await db.query.users.findMany({ where: inArray(users.id, ids) });
+  const nameMap = new Map(records.map((u) => [u.id, u.displayName ?? u.id]));
+  return rows.map((r) => ({
+    ...r,
+    inviterName: nameMap.get(r.inviterId) ?? r.inviterId,
+    inviteeName: nameMap.get(r.inviteeId) ?? r.inviteeId,
+  }));
+}
+
 export async function listInvites(userId: string) {
-  return db.query.pvpMatches.findMany({
+  const rows = await db.query.pvpMatches.findMany({
     where: and(eq(pvpMatches.status, "PENDING"), or(eq(pvpMatches.inviterId, userId), eq(pvpMatches.inviteeId, userId))),
   });
+  return enrichWithNames(rows);
 }
 
 export async function createInvite(inviterId: string, inviteeEmail: string, loadout: string[]) {
@@ -268,10 +320,14 @@ export async function setMatchStatus(matchId: string, userId: string, action: "a
     const inviterCards = inviterLoadout.map((id) => inviterCardsWithRarity.find((card) => card.id === id)).filter(Boolean).map((card) => toCardData(card!));
     const inviteeCards = inviteeLoadout.map((id) => inviteeCardsWithRarity.find((card) => card.id === id)).filter(Boolean).map((card) => toCardData(card!));
 
+    const [inviterUser, inviteeUser] = await Promise.all([
+      db.query.users.findFirst({ where: eq(users.id, match.inviterId) }),
+      db.query.users.findFirst({ where: eq(users.id, match.inviteeId) }),
+    ]);
     const battleState = createBattleState(
       matchId,
-      { userId: match.inviterId, name: match.inviterId, cards: inviterCards },
-      { userId: match.inviteeId, name: match.inviteeId, cards: inviteeCards },
+      { userId: match.inviterId, name: inviterUser?.displayName ?? match.inviterId, cards: inviterCards },
+      { userId: match.inviteeId, name: inviteeUser?.displayName ?? match.inviteeId, cards: inviteeCards },
     );
 
     await db.update(pvpMatches).set({
@@ -308,15 +364,20 @@ export async function setMatchStatus(matchId: string, userId: string, action: "a
 }
 
 export async function listMatches(userId: string) {
-  return db.query.pvpMatches.findMany({
-    where: and(or(eq(pvpMatches.inviterId, userId), eq(pvpMatches.inviteeId, userId)), or(eq(pvpMatches.status, "IN_PROGRESS"), eq(pvpMatches.status, "COMPLETED"))),
+  const rows = await db.query.pvpMatches.findMany({
+    where: and(
+      or(eq(pvpMatches.inviterId, userId), eq(pvpMatches.inviteeId, userId)),
+      eq(pvpMatches.status, "IN_PROGRESS"),
+    ),
   });
+  return enrichWithNames(rows);
 }
 
 export async function listHistory(userId: string) {
-  return db.query.pvpMatches.findMany({
+  const rows = await db.query.pvpMatches.findMany({
     where: and(or(eq(pvpMatches.inviterId, userId), eq(pvpMatches.inviteeId, userId)), eq(pvpMatches.status, "COMPLETED")),
   });
+  return enrichWithNames(rows);
 }
 
 export async function getMatch(matchId: string, userId: string) {
@@ -334,12 +395,12 @@ export async function getMatchDetail(matchId: string, userId: string) {
   const turnSnapshots = match.turnSnapshots ? deserializeTurnSnapshots(match.turnSnapshots) : {};
   return {
     match,
-    battleState: view ? projectBattleState(view) : null,
+    battleState: view ? fullProjectBattleState(view) : null,
     replay: match.replayVersion === REPLAY_VERSION_CURRENT && match.initialState && match.state
       ? {
           replayVersion: match.replayVersion,
-          finalState: view ? projectBattleState(view) : null,
-          initialState: initialState ? projectBattleState(createBattleStateView(initialState, userId)) : null,
+          finalState: view ? fullProjectBattleState(view) : null,
+          initialState: initialState ? fullProjectBattleState(createBattleStateView(initialState, userId)) : null,
           availableTurns: Object.keys(turnSnapshots).map(Number).sort((a, b) => a - b),
           turnSnapshots,
         }
@@ -347,25 +408,14 @@ export async function getMatchDetail(matchId: string, userId: string) {
   };
 }
 
-export async function performMatchAction(matchId: string, userId: string, actionType: "attack") {
+export async function performMatchAction(matchId: string, userId: string, action: PvpAction) {
   const match = await getMatch(matchId, userId);
   if (match.status !== "IN_PROGRESS") throw new Error("Match is not in progress");
   const state = await inflateMatchState(match);
   if (!state) throw new Error("Match state not found");
   if (state.currentPlayerId !== userId) throw new Error("Not your turn");
-  if (actionType !== "attack") throw new Error("Unsupported action");
 
-  const currentPlayer = state.players.find((player) => player.userId === userId);
-  const opponent = state.players.find((player) => player.userId !== userId);
-  const actor = currentPlayer?.units.find((unit) => unit.hp > 0);
-  const target = opponent?.units.find((unit) => unit.hp > 0);
-  if (!actor || !target) throw new Error("Actor not found or not active");
-
-  const result = simulateActions(state, [{
-    kind: "basic",
-    actorInstanceId: actor.instanceId,
-    targetInstanceId: target.instanceId,
-  }]);
+  const result = simulateActions(state, [action]);
   if (result.errors.length > 0) {
     throw new Error(result.errors.join("; "));
   }
@@ -374,7 +424,7 @@ export async function performMatchAction(matchId: string, userId: string, action
   const updatedMatch = await getMatch(matchId, userId);
   return {
     match: updatedMatch,
-    battleState: projectBattleState(createBattleStateView(result.state, userId)),
+    battleState: fullProjectBattleState(createBattleStateView(result.state, userId)),
     events: result.events,
   };
 }
@@ -413,18 +463,29 @@ export async function getSpectatableDetail(matchId: string) {
   const view = state ? createBattleStateView(state, match.inviterId) : null;
   return {
     match,
-    battleState: view ? projectBattleState(view) : null,
+    battleState: view ? fullProjectBattleState(view) : null,
   };
 }
 
-export async function endTurn(matchId: string, userId: string) {
+export async function endTurn(matchId: string, userId: string, swap?: { activeInstanceId: string; benchInstanceId: string }) {
   const match = await getMatch(matchId, userId);
   if (match.status !== "IN_PROGRESS") throw new Error("Match is not in progress");
   const state = await inflateMatchState(match);
   if (!state) throw new Error("Match state not found");
   if (state.currentPlayerId !== userId) throw new Error("Not your turn");
 
-  const result = simulateEndTurn(state);
+  let currentState = state;
+  if (swap) {
+    const swapResult = simulateActions(currentState, [{
+      kind: "swap",
+      activeInstanceId: swap.activeInstanceId,
+      benchInstanceId: swap.benchInstanceId,
+    }]);
+    if (swapResult.errors.length > 0) throw new Error(swapResult.errors.join("; "));
+    currentState = swapResult.state;
+  }
+
+  const result = simulateEndTurn(currentState);
   if (result.errors.length > 0) {
     throw new Error(result.errors.join("; "));
   }
@@ -433,7 +494,7 @@ export async function endTurn(matchId: string, userId: string) {
   const updatedMatch = await getMatch(matchId, userId);
   return {
     match: updatedMatch,
-    battleState: projectBattleState(createBattleStateView(result.state, userId)),
+    battleState: fullProjectBattleState(createBattleStateView(result.state, userId)),
     events: result.events,
   };
 }

@@ -1,11 +1,23 @@
 import { randomUUID } from "node:crypto";
 
-import { and, desc, eq, or } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 
 import { db, dailyQuests, questDefinitions, speedCalculusDailyRuns, userStepSnapshots, users, wordleDailyAttempts } from "@adventure-time/db";
 
 import { getResetDateKey } from "../lib/reset-clock";
-import { SPEED_CALCULUS_MAX_RUNS, SPEED_CALCULUS_QUEST_TYPE, calculateSpeedCalculusReward } from "../lib/speed-calculus";
+import {
+  SPEED_CALCULUS_FINISH_GRACE_SECONDS,
+  SPEED_CALCULUS_MAX_RUNS,
+  SPEED_CALCULUS_QUEST_TYPE,
+  SPEED_CALCULUS_RESUME_PAUSE_SECONDS,
+  SPEED_CALCULUS_REWARD_PER_ANSWER,
+  SPEED_CALCULUS_RUN_DURATION_SECONDS,
+  buildSpeedCalculusRunHistory,
+  buildSpeedCalculusQuestions,
+  calculateSpeedCalculusReward,
+  evaluateSpeedCalculusAnswers,
+  toPublicQuestions,
+} from "../lib/speed-calculus";
 
 const DEFAULT_DEFINITIONS = [
   { questType: "steps_10k", titleKey: "steps_10k", descriptionKey: "steps_10k_desc", icon: "walking", target: 10000, reward: 150, requiresFitbit: false },
@@ -77,23 +89,100 @@ export async function syncStepsQuest(userId: string, date = getResetDateKey(new 
   }).where(eq(dailyQuests.id, quest.id));
 }
 
+function serializeActiveRun(run: typeof speedCalculusDailyRuns.$inferSelect) {
+  const answers = JSON.parse(run.answers) as number[];
+  const questions = toPublicQuestions(buildSpeedCalculusQuestions(run.seed));
+  const { correctAnswers } = evaluateSpeedCalculusAnswers(run.seed, run.answers);
+  const now = Date.now();
+  const startedAtMs = run.startedAt.getTime();
+  const elapsed = (now - startedAtMs) / 1000;
+  const remainingSeconds = Math.max(0, Math.ceil(SPEED_CALCULUS_RUN_DURATION_SECONDS - elapsed));
+  const pauseRemainingSeconds = run.pauseExpiresAt
+    ? Math.max(0, Math.ceil((run.pauseExpiresAt.getTime() - now) / 1000))
+    : 0;
+
+  return {
+    runId: run.id,
+    runNumber: run.runNumber,
+    seed: run.seed,
+    questionIndex: answers.length,
+    questions,
+    answers,
+    correctAnswers,
+    remainingSeconds,
+    pauseRemainingSeconds,
+    durationSeconds: SPEED_CALCULUS_RUN_DURATION_SECONDS,
+    pauseExpiresAt: run.pauseExpiresAt ? run.pauseExpiresAt.toISOString() : null,
+    startedAt: run.startedAt.toISOString(),
+  };
+}
+
+export async function settleExpiredRuns(userId: string, date = getResetDateKey(new Date())) {
+  const runs = await db.query.speedCalculusDailyRuns.findMany({
+    where: and(eq(speedCalculusDailyRuns.userId, userId), eq(speedCalculusDailyRuns.date, date)),
+    orderBy: [speedCalculusDailyRuns.runNumber] as any,
+  });
+  const now = Date.now();
+  for (const run of runs) {
+    if (run.status !== "in_progress") continue;
+    const startedAtMs = run.startedAt.getTime();
+    const deadline = startedAtMs + (SPEED_CALCULUS_RUN_DURATION_SECONDS + SPEED_CALCULUS_FINISH_GRACE_SECONDS) * 1000;
+    if (now > deadline) {
+      await db.update(speedCalculusDailyRuns).set({
+        status: "abandoned",
+        score: 0,
+        reward: 0,
+        finishedAt: new Date(),
+      }).where(eq(speedCalculusDailyRuns.id, run.id));
+    }
+  }
+}
+
 export async function getSpeedCalculusState(userId: string, date = getResetDateKey(new Date())) {
+  await materializeDailyQuestsForUser(userId, date);
+  await settleExpiredRuns(userId, date);
+
+  const quest = await db.query.dailyQuests.findFirst({
+    where: and(eq(dailyQuests.userId, userId), eq(dailyQuests.date, date), eq(dailyQuests.questType, SPEED_CALCULUS_QUEST_TYPE)),
+  });
+
   const runs = await db.query.speedCalculusDailyRuns.findMany({
     where: and(eq(speedCalculusDailyRuns.userId, userId), eq(speedCalculusDailyRuns.date, date)),
     orderBy: [speedCalculusDailyRuns.runNumber] as any,
   });
   const settledRuns = runs.filter((run) => run.status !== "in_progress");
   const latestSettled = settledRuns.at(-1);
-  const activeRun = runs.find((run) => run.status === "in_progress") ?? null;
+  const activeRunRow = runs.find((run) => run.status === "in_progress") ?? null;
+  const locked = quest?.completed ?? (settledRuns.length >= SPEED_CALCULUS_MAX_RUNS);
+  const claimed = quest?.claimed ?? false;
+  const runsUsed = settledRuns.length;
+  const latestScore = latestSettled?.score ?? 0;
+  const rewardPreview = calculateSpeedCalculusReward(latestScore);
+
   return {
     date,
-    runsUsed: settledRuns.length,
+    runsUsed,
     maxRuns: SPEED_CALCULUS_MAX_RUNS,
-    latestScore: latestSettled?.score ?? 0,
-    rewardPreview: latestSettled?.reward ?? 0,
-    locked: settledRuns.length >= SPEED_CALCULUS_MAX_RUNS,
-    activeRun,
-    history: runs.map((run) => ({ runId: run.id, runNumber: run.runNumber, status: run.status, score: run.score, reward: run.reward })),
+    latestScore,
+    rewardPreview,
+    locked,
+    claimed,
+    completed: locked,
+    canCashOut: !locked && !claimed && !activeRunRow && runsUsed > 0,
+    canStartRun: !locked && !claimed && !activeRunRow && runsUsed < SPEED_CALCULUS_MAX_RUNS,
+    rewardPerAnswer: SPEED_CALCULUS_REWARD_PER_ANSWER,
+    runDurationSeconds: SPEED_CALCULUS_RUN_DURATION_SECONDS,
+    activeRun: activeRunRow ? serializeActiveRun(activeRunRow) : null,
+    history: settledRuns.map((run) => ({
+      runId: run.id,
+      runNumber: run.runNumber,
+      status: run.status,
+      score: run.score,
+      reward: run.reward,
+      totalAnswered: (JSON.parse(run.answers) as number[]).length,
+      correctAnswers: evaluateSpeedCalculusAnswers(run.seed, run.answers).correctAnswers,
+      history: buildSpeedCalculusRunHistory(run.seed, run.answers),
+    })),
   };
 }
 
@@ -157,18 +246,155 @@ export async function buildQuestList(userId: string, date = getResetDateKey(new 
   };
 }
 
+export async function resetDailyQuestsForAdmin(
+  userId: string,
+  options?: {
+    date?: string;
+    questType?: string;
+    adminId?: string;
+  },
+) {
+  const date = options?.date ?? getResetDateKey(new Date());
+  const questType = options?.questType ?? null;
+
+  await ensureQuestDefinitions();
+
+  await db.transaction(async (tx) => {
+    if (questType) {
+      await tx
+        .delete(dailyQuests)
+        .where(
+          and(
+            eq(dailyQuests.userId, userId),
+            eq(dailyQuests.date, date),
+            eq(dailyQuests.questType, questType),
+          ),
+        );
+    } else {
+      await tx
+        .delete(dailyQuests)
+        .where(and(eq(dailyQuests.userId, userId), eq(dailyQuests.date, date)));
+    }
+
+    if (!questType || questType === "wordle_daily") {
+      await tx
+        .delete(wordleDailyAttempts)
+        .where(
+          and(
+            eq(wordleDailyAttempts.userId, userId),
+            eq(wordleDailyAttempts.date, date),
+          ),
+        );
+    }
+
+    if (!questType || questType === SPEED_CALCULUS_QUEST_TYPE) {
+      await tx
+        .delete(speedCalculusDailyRuns)
+        .where(
+          and(
+            eq(speedCalculusDailyRuns.userId, userId),
+            eq(speedCalculusDailyRuns.date, date),
+          ),
+        );
+    }
+  });
+
+  await materializeDailyQuestsForUser(userId, date);
+
+  if (options?.adminId && (!questType || questType === "wordle_daily")) {
+    await db
+      .update(dailyQuests)
+      .set({ resetByUserId: options.adminId })
+      .where(
+        and(
+          eq(dailyQuests.userId, userId),
+          eq(dailyQuests.date, date),
+          eq(dailyQuests.questType, "wordle_daily"),
+        ),
+      );
+  }
+
+  return {
+    resetDate: date,
+    resetMode: questType ? ("single" as const) : ("all" as const),
+    questType,
+  };
+}
+
 export async function syncSpeedCalculusQuestFromRuns(userId: string, date = getResetDateKey(new Date())) {
-  const state = await getSpeedCalculusState(userId, date);
-  const quest = await db.query.dailyQuests.findFirst({ where: and(eq(dailyQuests.userId, userId), eq(dailyQuests.date, date), eq(dailyQuests.questType, SPEED_CALCULUS_QUEST_TYPE)) });
-  if (!quest) return state;
-  const completed = state.runsUsed >= SPEED_CALCULUS_MAX_RUNS || state.locked;
+  const runs = await db.query.speedCalculusDailyRuns.findMany({
+    where: and(eq(speedCalculusDailyRuns.userId, userId), eq(speedCalculusDailyRuns.date, date)),
+    orderBy: [speedCalculusDailyRuns.runNumber] as any,
+  });
+  const settledRuns = runs.filter((run) => run.status !== "in_progress");
+  const latestSettled = settledRuns.at(-1);
+  const quest = await db.query.dailyQuests.findFirst({
+    where: and(eq(dailyQuests.userId, userId), eq(dailyQuests.date, date), eq(dailyQuests.questType, SPEED_CALCULUS_QUEST_TYPE)),
+  });
+  if (!quest) return;
+  const locked = settledRuns.length >= SPEED_CALCULUS_MAX_RUNS;
+  const reward = calculateSpeedCalculusReward(latestSettled?.score ?? 0);
   await db.update(dailyQuests).set({
-    progress: state.runsUsed,
+    progress: settledRuns.length,
     target: SPEED_CALCULUS_MAX_RUNS,
-    reward: state.rewardPreview,
-    completed,
-    completedAt: completed ? (quest.completedAt ?? new Date()) : null,
+    reward,
+    completed: quest.completed || locked,
+    completedAt: locked ? (quest.completedAt ?? new Date()) : quest.completedAt,
     updatedAt: new Date(),
   }).where(eq(dailyQuests.id, quest.id));
-  return state;
+}
+
+export async function resumeSpeedCalculusRun(userId: string, date = getResetDateKey(new Date())) {
+  await settleExpiredRuns(userId, date);
+
+  const runs = await db.query.speedCalculusDailyRuns.findMany({
+    where: and(eq(speedCalculusDailyRuns.userId, userId), eq(speedCalculusDailyRuns.date, date)),
+    orderBy: [speedCalculusDailyRuns.runNumber] as any,
+  });
+  const activeRun = runs.find((run) => run.status === "in_progress") ?? null;
+  if (!activeRun) {
+    return getSpeedCalculusState(userId, date);
+  }
+
+  const pauseUntil = new Date(Date.now() + SPEED_CALCULUS_RESUME_PAUSE_SECONDS * 1000);
+  await db.update(speedCalculusDailyRuns).set({
+    pauseExpiresAt: pauseUntil,
+  }).where(eq(speedCalculusDailyRuns.id, activeRun.id));
+
+  return getSpeedCalculusState(userId, date);
+}
+
+export async function cashoutSpeedCalculus(userId: string, date = getResetDateKey(new Date())) {
+  await settleExpiredRuns(userId, date);
+
+  const quest = await db.query.dailyQuests.findFirst({
+    where: and(eq(dailyQuests.userId, userId), eq(dailyQuests.date, date), eq(dailyQuests.questType, SPEED_CALCULUS_QUEST_TYPE)),
+  });
+  if (!quest) throw new Error("Quest not found");
+  if (quest.completed) throw new Error("Quest already locked");
+  if (quest.claimed) throw new Error("Quest already claimed");
+
+  const runs = await db.query.speedCalculusDailyRuns.findMany({
+    where: and(eq(speedCalculusDailyRuns.userId, userId), eq(speedCalculusDailyRuns.date, date)),
+    orderBy: [speedCalculusDailyRuns.runNumber] as any,
+  });
+  const activeRun = runs.find((run) => run.status === "in_progress");
+  if (activeRun) throw new Error("Cannot cash out while a run is active");
+
+  const settledRuns = runs.filter((run) => run.status !== "in_progress");
+  if (settledRuns.length === 0) throw new Error("No runs completed");
+
+  const latestSettled = settledRuns.at(-1)!;
+  const reward = calculateSpeedCalculusReward(latestSettled.score);
+
+  await db.update(dailyQuests).set({
+    progress: settledRuns.length,
+    target: SPEED_CALCULUS_MAX_RUNS,
+    reward,
+    completed: true,
+    completedAt: quest.completedAt ?? new Date(),
+    updatedAt: new Date(),
+  }).where(eq(dailyQuests.id, quest.id));
+
+  return getSpeedCalculusState(userId, date);
 }

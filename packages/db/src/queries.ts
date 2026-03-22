@@ -69,6 +69,13 @@ export async function getCollectionForUser(userId: string) {
     with: {
       card: {
         with: {
+          abilities: {
+            with: {
+              passive: true,
+              skill: true,
+              ultimate: true,
+            },
+          },
           rarity: true,
           imageAsset: true,
         },
@@ -87,30 +94,122 @@ export async function getCollectionForUser(userId: string) {
   const user = await db.query.users.findFirst({ where: eq(users.id, userId) });
 
   return {
-    cards: filteredRows.map((row) => ({
+    cards: filteredRows.map((row) => {
+      const card = row.card as typeof row.card & {
+        abilities?: {
+          passive?: {
+            key: string;
+            name: string;
+            nameFr: string | null;
+            description: string;
+            descriptionFr: string | null;
+            type: string;
+            cost: number;
+            cooldown: number | null;
+            oncePerMatch: boolean;
+          } | null;
+          skill?: {
+            key: string;
+            name: string;
+            nameFr: string | null;
+            description: string;
+            descriptionFr: string | null;
+            type: string;
+            cost: number;
+            cooldown: number | null;
+            oncePerMatch: boolean;
+          } | null;
+          ultimate?: {
+            key: string;
+            name: string;
+            nameFr: string | null;
+            description: string;
+            descriptionFr: string | null;
+            type: string;
+            cost: number;
+            cooldown: number | null;
+            oncePerMatch: boolean;
+          } | null;
+        } | null;
+      };
+
+      return {
       id: row.id,
       cardId: row.cardId,
       quantity: row.quantity,
       obtainedAt: row.obtainedAt.toISOString(),
       card: {
-        id: row.card.id,
-        name: row.card.name,
-        character: row.card.character,
-        description: row.card.description,
-        hp: row.card.hp,
-        attack: row.card.attack,
-        defense: row.card.defense,
-        speed: row.card.speed,
-        type: row.card.type,
-        imageAssetId: row.card.imageAssetId,
+        id: card.id,
+        name: card.name,
+        character: card.character,
+        description: card.description,
+        hp: card.hp,
+        attack: card.attack,
+        defense: card.defense,
+        speed: card.speed,
+        type: card.type,
+        imageAssetId: card.imageAssetId,
+        abilities: card.abilities
+          ? {
+              passive: card.abilities.passive
+                ? {
+                    key: card.abilities.passive.key,
+                    name: card.abilities.passive.name,
+                    nameFr: card.abilities.passive.nameFr,
+                    description: card.abilities.passive.description,
+                    descriptionFr: card.abilities.passive.descriptionFr,
+                    type: card.abilities.passive.type as
+                      | "PASSIVE"
+                      | "SKILL"
+                      | "ULTIMATE",
+                    cost: card.abilities.passive.cost,
+                    cooldown: card.abilities.passive.cooldown,
+                    oncePerMatch: card.abilities.passive.oncePerMatch,
+                  }
+                : null,
+              skill: card.abilities.skill
+                ? {
+                    key: card.abilities.skill.key,
+                    name: card.abilities.skill.name,
+                    nameFr: card.abilities.skill.nameFr,
+                    description: card.abilities.skill.description,
+                    descriptionFr: card.abilities.skill.descriptionFr,
+                    type: card.abilities.skill.type as
+                      | "PASSIVE"
+                      | "SKILL"
+                      | "ULTIMATE",
+                    cost: card.abilities.skill.cost,
+                    cooldown: card.abilities.skill.cooldown,
+                    oncePerMatch: card.abilities.skill.oncePerMatch,
+                  }
+                : null,
+              ultimate: card.abilities.ultimate
+                ? {
+                    key: card.abilities.ultimate.key,
+                    name: card.abilities.ultimate.name,
+                    nameFr: card.abilities.ultimate.nameFr,
+                    description: card.abilities.ultimate.description,
+                    descriptionFr: card.abilities.ultimate.descriptionFr,
+                    type: card.abilities.ultimate.type as
+                      | "PASSIVE"
+                      | "SKILL"
+                      | "ULTIMATE",
+                    cost: card.abilities.ultimate.cost,
+                    cooldown: card.abilities.ultimate.cooldown,
+                    oncePerMatch: card.abilities.ultimate.oncePerMatch,
+                  }
+                : null,
+            }
+          : null,
         rarity: {
-          id: row.card.rarity.id,
-          name: row.card.rarity.name,
-          dropRate: row.card.rarity.dropRate,
-          color: row.card.rarity.color,
+          id: card.rarity.id,
+          name: card.rarity.name,
+          dropRate: card.rarity.dropRate,
+          color: card.rarity.color,
         },
       },
-    })),
+      };
+    }),
     dust: user?.dust ?? 0,
     stats: {
       totalCards,

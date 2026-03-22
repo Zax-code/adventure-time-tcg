@@ -280,6 +280,8 @@ export const translations = {
       speedCalculusStartError: "Failed to start a new run.",
       speedCalculusFinishError: "Failed to finish the run.",
       speedCalculusCashOutError: "Failed to cash out the run.",
+      speedCalculusRoundOver: "Round is over!",
+      speedCalculusBackToMain: "Back to speed calculus",
       speedCalculusQuestCardMeta:
         "Latest run: {score} correct, {reward} coins, {runs}/{total} runs used.",
     },
@@ -1076,6 +1078,7 @@ export const translations = {
       daysAgo: "{count} days ago",
       yesterday: "Yesterday",
       backToPvp: "Back to PvP",
+      cardDetailsTitle: "Card Details",
       loadingBattle: "Loading battle...",
       loader: {
         title: "Arena Sync In Progress",
@@ -1779,6 +1782,8 @@ export const translations = {
       speedCalculusStartError: "Impossible de lancer une nouvelle manche.",
       speedCalculusFinishError: "Impossible de terminer la manche.",
       speedCalculusCashOutError: "Impossible de sécuriser le score.",
+      speedCalculusRoundOver: "La manche est terminée !",
+      speedCalculusBackToMain: "Retour au calcul mental",
       speedCalculusQuestCardMeta:
         "Dernière manche : {score} bonnes réponses, {reward} pièces, {runs}/{total} manches utilisées.",
     },
@@ -2600,6 +2605,7 @@ export const translations = {
       daysAgo: "il y a {count} jours",
       yesterday: "Hier",
       backToPvp: "Retour au PvP",
+      cardDetailsTitle: "Details de la carte",
       loadingBattle: "Chargement du combat...",
       loader: {
         title: "Synchronisation de l'arène",

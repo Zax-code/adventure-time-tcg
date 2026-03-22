@@ -26,49 +26,12 @@ import {
 import { useTranslation } from "../../src/i18n";
 import { apiClient } from "../../src/lib/api";
 import { useSessionStore } from "../../src/stores/session-store";
+import { useThemeStore } from "../../src/stores/theme-store";
+import { useBottomTabBarContentPadding } from "../../src/theme/layout";
+import { THEME_COLORS } from "../../src/theme/themes";
 
 type QuestStatus = "active" | "completed" | "claimed" | "failed";
 type Quest = QuestsResponse["quests"][number];
-
-const STATUS_COLORS: Record<
-  QuestStatus,
-  {
-    border: string;
-    iconBg: string;
-    iconColor: string;
-    gradStart: string;
-    gradEnd: string;
-  }
-> = {
-  active: {
-    border: "#F9A8D4",
-    iconBg: "#FCE7F3",
-    iconColor: "#DB2777",
-    gradStart: "#F472B6",
-    gradEnd: "#EC4899",
-  },
-  completed: {
-    border: "#96F7E4",
-    iconBg: "#CCFBF1",
-    iconColor: "#14B8A6",
-    gradStart: "#2DD4BF",
-    gradEnd: "#14B8A6",
-  },
-  claimed: {
-    border: "#D1D5DB",
-    iconBg: "#E5E7EB",
-    iconColor: "#9CA3AF",
-    gradStart: "#9CA3AF",
-    gradEnd: "#9CA3AF",
-  },
-  failed: {
-    border: "#FECDD3",
-    iconBg: "#FFE4E6",
-    iconColor: "#F43F5E",
-    gradStart: "#FB7185",
-    gradEnd: "#F43F5E",
-  },
-};
 
 function formatProgress(progress: number, target: number) {
   if (target >= 10000) {
@@ -105,17 +68,17 @@ function getQuestDesc(
   return translated.startsWith("quests.") ? descKey : translated;
 }
 
-function getProgressColor(status: QuestStatus) {
-  if (status === "claimed") return "#6B7280";
-  if (status === "completed") return "#0F766E";
-  if (status === "failed") return "#BE123C";
-  return "#7C3AED";
+function getProgressColor(status: QuestStatus, tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS]) {
+  if (status === "claimed") return tc.muted;
+  if (status === "completed") return tc.successDark;
+  if (status === "failed") return tc.dangerDark;
+  return tc.accentStrong;
 }
 
-function getMetaColor(status: QuestStatus) {
-  if (status === "claimed") return "#6B7280";
-  if (status === "completed") return "#0F766E";
-  return "#831843";
+function getMetaColor(status: QuestStatus, tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS]) {
+  if (status === "claimed") return tc.muted;
+  if (status === "completed") return tc.successDark;
+  return tc.primaryStrong;
 }
 
 function isWordleQuest(questType: string) {
@@ -133,6 +96,7 @@ export default function QuestsScreen() {
   const refreshToken = useSessionStore((state) => state.refreshToken);
   const setSession = useSessionStore((state) => state.setSession);
   const { t } = useTranslation();
+  const bottomTabPadding = useBottomTabBarContentPadding();
 
   const [showDescriptionFor, setShowDescriptionFor] = useState<Quest | null>(
     null,
@@ -158,9 +122,22 @@ export default function QuestsScreen() {
     return () => clearTimeout(timer);
   }, [toast, toastAnim]);
 
+  const tc = THEME_COLORS[useThemeStore((s) => s.themeName)];
+
+  const STATUS_COLORS: Record<
+    QuestStatus,
+    { border: string; iconBg: string; iconColor: string; gradStart: string; gradEnd: string }
+  > = {
+    active:    { border: tc.primaryBorder, iconBg: tc.primaryTint,  iconColor: tc.primaryText, gradStart: tc.primary,  gradEnd: tc.primaryDark  },
+    completed: { border: tc.successBorder, iconBg: tc.successTint,  iconColor: tc.successDark, gradStart: tc.success,  gradEnd: tc.successDark  },
+    claimed:   { border: tc.muted,         iconBg: tc.surfaceMuted, iconColor: tc.muted,       gradStart: tc.muted,    gradEnd: tc.muted        },
+    failed:    { border: tc.dangerBorder,  iconBg: tc.dangerTint,   iconColor: tc.dangerDark,  gradStart: tc.danger,   gradEnd: tc.dangerDark   },
+  };
+
   const questsQuery = useQuery({
     queryKey: ["quests"],
     queryFn: () => apiClient.quests(),
+    refetchInterval: 30_000,
   });
 
   const claimQuestMutation = useMutation({
@@ -192,7 +169,7 @@ export default function QuestsScreen() {
   if (questsQuery.isLoading) {
     return (
       <View className="flex-1 bg-bg items-center justify-center px-6">
-        <ActivityIndicator size="large" color="#EC4899" />
+        <ActivityIndicator size="large" color={tc.primaryDark} />
         <Text className="font-nunito text-fgMuted mt-4">
           {t("native.quests.loading")}
         </Text>
@@ -203,7 +180,7 @@ export default function QuestsScreen() {
   if (questsQuery.isError || !questsQuery.data) {
     return (
       <View className="flex-1 bg-bg p-6">
-        <Text className="font-nunito text-red-600">
+        <Text className="font-nunito text-danger">
           {questsQuery.error?.message ?? t("native.quests.unavailable")}
         </Text>
       </View>
@@ -225,7 +202,7 @@ export default function QuestsScreen() {
         >
           <View
             style={{
-              backgroundColor: toast.type === "success" ? "#16A34A" : "#DC2626",
+              backgroundColor: toast.type === "success" ? tc.successDark : tc.dangerDark,
             }}
             className="rounded-xl p-4 shadow-lg"
           >
@@ -238,7 +215,7 @@ export default function QuestsScreen() {
         className="flex-1"
         contentContainerStyle={{
           paddingTop: 16,
-          paddingBottom: 20,
+          paddingBottom: bottomTabPadding,
           paddingHorizontal: 16,
         }}
       >
@@ -256,7 +233,7 @@ export default function QuestsScreen() {
           <Text
             className="font-nunito-medium text-sm px-4"
             style={{
-              color: "rgba(236,72,153,0.8)",
+              color: tc.primaryDark,
               textAlign: "center",
             }}
           >
@@ -266,10 +243,8 @@ export default function QuestsScreen() {
 
         {!questsQuery.data.fitbitConnected ? (
           <View
+            className="bg-successTint border border-successBorder"
             style={{
-              backgroundColor: "#CCFBF1",
-              borderWidth: 1,
-              borderColor: "#96F7E4",
               borderRadius: 16,
               padding: 16,
               marginTop: 16,
@@ -282,12 +257,12 @@ export default function QuestsScreen() {
             }}
           >
             <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 12 }}>
-              <WalkingIcon size={32} color="#14B8A6" />
+              <WalkingIcon size={32} color={tc.successDark} />
               <View style={{ flex: 1 }}>
-                <Text className="font-nunito-bold text-base" style={{ color: "#14B8A6" }}>
+                <Text className="font-nunito-bold text-base text-successDark">
                   {t("settings.connectFitbit")}
                 </Text>
-                <Text className="font-nunito text-sm mt-1" style={{ color: "#14B8A6" }}>
+                <Text className="font-nunito text-sm mt-1 text-successDark">
                   {t("quests.connectFitbitDesc")}
                 </Text>
                 <View
@@ -303,11 +278,11 @@ export default function QuestsScreen() {
                   }}
                 >
                   <TouchableOpacity
-                    onPress={() => router.push("/(tabs)/settings")}
+                    onPress={() => router.push("/settings")}
                     style={{ borderRadius: 8, overflow: "hidden" }}
                   >
                     <LinearGradient
-                      colors={["#2DD4BF", "#14B8A6"]}
+                      colors={[tc.success, tc.successDark]}
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 0 }}
                       style={{ paddingHorizontal: 16, paddingVertical: 8 }}
@@ -325,18 +300,16 @@ export default function QuestsScreen() {
 
         {questsQuery.data.quests.length === 0 ? (
           <View
+            className="bg-surfaceMuted border border-primaryBorder"
             style={{
-              backgroundColor: "rgba(255,255,255,0.6)",
               borderRadius: 16,
-              borderWidth: 1,
-              borderColor: "#F9A8D4",
               padding: 32,
               alignItems: "center",
             }}
           >
             {questsQuery.data.fitbitConnected ? (
               <>
-                <SparklesIcon size={48} color="#F9A8D4" />
+                <SparklesIcon size={48} color={tc.primaryBorder} />
                 <Text className="font-nunito-bold text-base text-fgMuted mt-4">
                   {t("quests.noQuests")}
                 </Text>
@@ -346,7 +319,7 @@ export default function QuestsScreen() {
               </>
             ) : (
               <>
-                <WalkingIcon size={48} color="#F9A8D4" />
+                <WalkingIcon size={48} color={tc.primaryBorder} />
                 <Text className="font-nunito-bold text-base text-fgMuted mt-4">
                   {t("settings.connectFitbit")}
                 </Text>
@@ -386,7 +359,7 @@ export default function QuestsScreen() {
                 key={quest.id}
                 className="rounded-2xl p-4"
                 style={{
-                  backgroundColor: "rgba(255,255,255,0.8)",
+                  backgroundColor: tc.surface,
                   borderWidth: 2,
                   borderColor: colors.border,
                   opacity: status === "claimed" ? 0.6 : 1,
@@ -405,7 +378,7 @@ export default function QuestsScreen() {
                 >
                   <View
                     style={{
-                      backgroundColor: "rgba(255,255,255,0.8)",
+                      backgroundColor: tc.surface,
                       borderRadius: 999,
                       borderWidth: 2,
                       borderColor: colors.border,
@@ -444,7 +417,7 @@ export default function QuestsScreen() {
 
                   <View className="flex-row items-center gap-1">
                     <CoinIcon size={18} />
-                    <Text style={{ color: "#EAB308" }} className="font-nunito-bold text-base">
+                    <Text style={{ color: tc.secondaryDark }} className="font-nunito-bold text-base">
                       {quest.reward}
                     </Text>
                   </View>
@@ -457,17 +430,17 @@ export default function QuestsScreen() {
                     </Text>
                     <Text
                       className="font-nunito-bold text-xs"
-                      style={{ color: getProgressColor(status) }}
+                      style={{ color: getProgressColor(status, tc) }}
                     >
                       {formatProgress(quest.progress, quest.target)}
                     </Text>
                   </View>
-                  <View className="h-3 rounded-full overflow-hidden bg-gray-100">
+                  <View className="h-3 rounded-full overflow-hidden bg-primaryTint">
                     {status === "claimed" ? (
                       <View
                         style={{
                           width: `${progressPct}%`,
-                          backgroundColor: "#9CA3AF",
+                          backgroundColor: tc.muted,
                           height: "100%",
                         }}
                       />
@@ -485,7 +458,7 @@ export default function QuestsScreen() {
                   quest.attemptsUsed != null ? (
                     <Text
                       className="font-nunito-bold text-xs text-center mt-1"
-                      style={{ color: status === "claimed" ? "#6B7280" : "#0F766E" }}
+                      style={{ color: status === "claimed" ? tc.muted : tc.successDark }}
                     >
                       {t("quests.wordleSolvedIn", {
                         used: quest.attemptsUsed,
@@ -496,7 +469,7 @@ export default function QuestsScreen() {
                   {isSpeedCalculusQuest(quest.type) ? (
                     <Text
                       className="font-nunito-bold text-xs text-center mt-1"
-                      style={{ color: getMetaColor(status) }}
+                      style={{ color: getMetaColor(status, tc) }}
                     >
                       {t("quests.speedCalculusQuestCardMeta", {
                         score: quest.latestScore ?? 0,
@@ -522,7 +495,7 @@ export default function QuestsScreen() {
                       {status === "claimed" ? (
                         <View
                           style={{
-                            backgroundColor: "#9CA3AF",
+                            backgroundColor: tc.muted,
                             minHeight: 44,
                             paddingHorizontal: 16,
                             flexDirection: "row",
@@ -577,7 +550,7 @@ export default function QuestsScreen() {
                       style={{ borderRadius: 12, overflow: "hidden" }}
                     >
                       <LinearGradient
-                        colors={["#2DD4BF", "#14B8A6"]}
+                        colors={[tc.success, tc.successDark]}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 0 }}
                         className="items-center flex-row justify-center gap-2"
@@ -633,7 +606,7 @@ export default function QuestsScreen() {
               return (
                 <View
                   style={{
-                    backgroundColor: "white",
+                    backgroundColor: tc.surface,
                     borderRadius: 16,
                     borderWidth: 3,
                     borderColor: colors.border,
@@ -646,7 +619,7 @@ export default function QuestsScreen() {
                       position: "absolute",
                       top: -10,
                       right: -10,
-                      backgroundColor: "white",
+                      backgroundColor: tc.surface,
                       borderRadius: 999,
                       borderWidth: 3,
                       borderColor: colors.border,
@@ -664,7 +637,7 @@ export default function QuestsScreen() {
                     className="font-nunito-bold text-lg text-fg text-center"
                     style={{
                       borderBottomWidth: 1,
-                      borderBottomColor: "#E5E7EB",
+                      borderBottomColor: tc.accentBorder,
                       paddingBottom: 12,
                     }}
                   >

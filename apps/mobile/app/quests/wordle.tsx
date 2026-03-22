@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ElementRef } from "react";
 import {
   Animated,
-  Dimensions,
   Modal,
   ScrollView,
   Text,
@@ -10,12 +9,17 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { runOnJS, useSharedValue } from "react-native-reanimated";
+import * as Haptics from "expo-haptics";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 
 import { ApiClientError } from "@adventure-time/api-client";
 import { apiClient } from "../../src/lib/api";
 import { useTranslation } from "../../src/i18n";
+import { useThemeStore } from "../../src/stores/theme-store";
+import { THEME_COLORS, THEME_VARS } from "../../src/theme/themes";
 
 const MAX_ATTEMPTS = 6;
 const WORD_LENGTH = 5;
@@ -26,55 +30,42 @@ const LETTER_PRIORITY: Record<string, number> = { absent: 0, present: 1, correct
 type LetterState = "correct" | "present" | "absent";
 type GuessResult = { guess: string; evaluation: LetterState[] };
 
-const C = {
-  correct: "#14B8A6",
-  present: "#FACC15",
-  absent: "#9CA3AF",
-  emptyBg: "#FFFFFF",
-  emptyBorder: "#FCE7F3",
-  emptyText: "#EC4899",
-  evalTextAbsent: "#4a3728",
-  evalTextOther: "#FFFFFF",
-  keyBg: "#FCE7F3",
-  keyText: "#9D174D",
-  surface: "#FFFFFF",
-  surfaceBorder: "#FCE7F3",
-  primary: "#F472B6",
-  primaryText: "#FCE7F3",
-  primaryDark: "#EC4899",
-  primaryStrong: "#9D174D",
-  successDark: "#14B8A6",
-  dangerDark: "#F43F5E",
-  screenBg: "#fff0f5",
-};
 
-function tileVisuals(state?: LetterState): { bg: string; border: string; text: string } {
-  if (state === "correct") return { bg: C.correct, border: C.correct, text: C.evalTextOther };
-  if (state === "present") return { bg: C.present, border: C.present, text: C.evalTextOther };
-  if (state === "absent") return { bg: C.absent, border: C.absent, text: C.evalTextAbsent };
-  return { bg: C.emptyBg, border: C.emptyBorder, text: C.emptyText };
+type KeyLayout = { x: number; y: number; width: number; height: number };
+
+function tileBgBorderClass(state?: LetterState): string {
+  if (state === "correct") return "bg-successDark border-successDark";
+  if (state === "present") return "bg-secondary border-secondary";
+  if (state === "absent") return "bg-muted border-muted";
+  return "bg-surface border-primaryTint";
 }
 
-function keyVisuals(state?: LetterState): { bg: string; border: string; text: string } {
-  if (state === "correct") return { bg: C.correct, border: C.correct, text: C.evalTextOther };
-  if (state === "present") return { bg: C.present, border: C.present, text: C.evalTextOther };
-  if (state === "absent") return { bg: C.absent, border: C.absent, text: C.evalTextAbsent };
-  return { bg: C.keyBg, border: C.keyBg, text: C.keyText };
+function tileLetterClass(state?: LetterState): string {
+  if (state === "correct" || state === "present") return "text-white";
+  if (state === "absent") return "text-fg";
+  return "text-primaryDark";
 }
 
-const SCREEN_H_PADDING = 32;
-const CARD_H_PADDING = 32;
-const KEY_GAP = 6;
-const MAX_ROW_KEYS = 10;
+function keyBgBorderClass(state?: LetterState): string {
+  if (state === "correct") return "bg-successDark border-successDark";
+  if (state === "present") return "bg-secondary border-secondary";
+  if (state === "absent") return "bg-muted border-muted";
+  return "bg-primaryTint border-primaryTint";
+}
+
+function keyLetterClass(state?: LetterState): string {
+  if (state === "correct") return "text-successDark";
+  if (state === "present") return "text-yellow-600";
+  if (state === "absent") return "text-muted";
+  return "text-primaryStrong";
+}
 
 export default function WordleScreen() {
   const { t, locale } = useTranslation();
+  const themeName = useThemeStore((s) => s.themeName);
+  const tc = THEME_COLORS[themeName];
+
   const insets = useSafeAreaInsets();
-  const screenWidth = Dimensions.get("window").width;
-  const keyWidth = Math.max(
-    24,
-    Math.floor((screenWidth - SCREEN_H_PADDING - CARD_H_PADDING - KEY_GAP * (MAX_ROW_KEYS - 1)) / MAX_ROW_KEYS)
-  );
   const router = useRouter();
   const queryClient = useQueryClient();
 
@@ -85,7 +76,7 @@ export default function WordleScreen() {
   const [message, setMessage] = useState<string | null>(null);
   const [targetWord, setTargetWord] = useState<string | null>(null);
   const [activeDateKey, setActiveDateKey] = useState<string | null>(null);
-  const [showResetModal, setShowResetModal] = useState(false);
+  const [resetModalKind, setResetModalKind] = useState<null | "rollover" | "admin">(null);
   const [removingCellIndex, setRemovingCellIndex] = useState<number | null>(null);
   const [animatingRowIndex, setAnimatingRowIndex] = useState<number | null>(null);
   const [tileFaceUp, setTileFaceUp] = useState<Set<string>>(new Set());
@@ -94,12 +85,26 @@ export default function WordleScreen() {
   const attemptsLeft = Math.max(0, MAX_ATTEMPTS - attemptsUsed);
   const gameOver = solved || attemptsUsed >= MAX_ATTEMPTS;
   const keyboardLocked = gameOver || submitting;
+  const rowClearDisabled = currentGuess.every((l) => l === null) || keyboardLocked;
+
+  const [activeKeys, setActiveKeys] = useState<string[]>([]);
+  const [rowContainerWidth, setRowContainerWidth] = useState(0);
+  const keyLayoutsRef = useRef<Partial<Record<string, KeyLayout>>>({});
+  const keyRefs = useRef<Partial<Record<string, ElementRef<typeof View> | null>>>({});
+  const containerRef = useRef<View>(null);
+  const activeTouchesRef = useRef<Record<number, string>>({});
+  const touchStartYRef = useRef<Record<number, number>>({});
+  const touchCountSV = useSharedValue(0);
 
   // Stable refs for async closures
   const guessesRef = useRef(guesses);
   guessesRef.current = guesses;
   const solvedRef = useRef(solved);
   solvedRef.current = solved;
+  const currentGuessRef = useRef(currentGuess);
+  currentGuessRef.current = currentGuess;
+  const questVersionRef = useRef<string | null>(null);
+  const resetByNameRef = useRef<string | null>(null);
 
   // Animation values — initialized once, stable across renders
   const popAnims = useRef(Array.from({ length: WORD_LENGTH }, () => new Animated.Value(1))).current;
@@ -146,26 +151,46 @@ export default function WordleScreen() {
         setGuesses(data.guesses as GuessResult[]);
         setSolved(data.solved);
         if (data.targetWord) setTargetWord(data.targetWord);
+        questVersionRef.current = data.questVersion ?? null;
         return serverDate;
       }
 
       if (prevDate !== serverDate) {
-        // Date changed mid-session
+        // Date changed mid-session (day rollover)
         const hadProgress = guessesRef.current.length > 0;
         setGuesses(data.guesses as GuessResult[]);
         setSolved(data.solved);
         setCurrentGuess(Array(WORD_LENGTH).fill(null));
         setMessage(null);
         setTargetWord(data.targetWord ?? null);
-        if (hadProgress) setShowResetModal(true);
+        questVersionRef.current = data.questVersion ?? null;
+        if (hadProgress) setResetModalKind("rollover");
         return serverDate;
       }
 
-      // Same date — sync only if server is ahead
+      // Same date — detect admin reset via questVersion or guess count going backwards
+      const versionChanged = data.questVersion != null && data.questVersion !== questVersionRef.current;
+      const adminReset = versionChanged || data.guesses.length < guessesRef.current.length;
+      if (adminReset) {
+        setGuesses(data.guesses as GuessResult[]);
+        setSolved(data.solved);
+        setCurrentGuess(Array(WORD_LENGTH).fill(null));
+        setMessage(null);
+        setTargetWord(data.targetWord ?? null);
+        questVersionRef.current = data.questVersion ?? null;
+        if (guessesRef.current.length > 0 || solvedRef.current) {
+          resetByNameRef.current = data.resetByName ?? null;
+          setResetModalKind("admin");
+        }
+        return prevDate;
+      }
+
+      // Same date — sync if server is ahead
       if (data.guesses.length > guessesRef.current.length || (data.solved && !solvedRef.current)) {
         setGuesses(data.guesses as GuessResult[]);
         setSolved(data.solved);
         if (data.targetWord) setTargetWord(data.targetWord);
+        questVersionRef.current = data.questVersion ?? null;
       }
 
       return prevDate;
@@ -180,7 +205,7 @@ export default function WordleScreen() {
     setSolved(false);
     setMessage(null);
     setTargetWord(null);
-    setShowResetModal(true);
+    setResetModalKind("rollover");
   }, []);
 
   const triggerShake = useCallback(() => {
@@ -195,9 +220,14 @@ export default function WordleScreen() {
   }, [shakeAnim]);
 
   const addLetter = useCallback((letter: string) => {
-    if (keyboardLocked || currentGuess.every((l) => l !== null)) return;
-    const firstNull = currentGuess.findIndex((l) => l === null);
+    if (keyboardLocked) return;
+    const firstNull = currentGuessRef.current.findIndex((l) => l === null);
     if (firstNull === -1) return;
+
+    // Mutate ref immediately so rapid successive calls see the updated slot
+    const next = [...currentGuessRef.current];
+    next[firstNull] = letter;
+    currentGuessRef.current = next;
 
     popAnims[firstNull].setValue(0.82);
     Animated.spring(popAnims[firstNull], {
@@ -207,12 +237,8 @@ export default function WordleScreen() {
       bounciness: 8,
     }).start();
 
-    setCurrentGuess((prev) => {
-      const next = [...prev];
-      next[firstNull] = letter;
-      return next;
-    });
-  }, [keyboardLocked, currentGuess, popAnims]);
+    setCurrentGuess(next);
+  }, [keyboardLocked, popAnims]);
 
   const handleRemoveAnimationEnd = useCallback((colIndex: number) => {
     setCurrentGuess((prev) => {
@@ -285,23 +311,23 @@ export default function WordleScreen() {
       setTileFaceUp(new Set());
 
       // Flip reveal: each tile flips in sequence, 90ms stagger
+      const flipSequences: Animated.CompositeAnimation[] = [];
       for (let col = 0; col < WORD_LENGTH; col++) {
         flipAnims[col].setValue(1);
         const delay = col * 90;
-        Animated.sequence([
-          Animated.delay(delay),
-          Animated.timing(flipAnims[col], { toValue: 0, duration: 260, useNativeDriver: true }),
-          Animated.timing(flipAnims[col], { toValue: 1, duration: 260, useNativeDriver: true }),
-        ]).start();
+        flipSequences.push(
+          Animated.sequence([
+            Animated.delay(delay),
+            Animated.timing(flipAnims[col], { toValue: 0, duration: 260, useNativeDriver: true }),
+            Animated.timing(flipAnims[col], { toValue: 1, duration: 260, useNativeDriver: true }),
+          ])
+        );
         // Flip color at the midpoint (tile is edge-on)
         setTimeout(() => {
           setTileFaceUp((prev) => new Set([...prev, `${rowIndex}-${col}`]));
         }, delay + 260);
       }
-
-      // Total animation: last tile starts at (WORD_LENGTH-1)*90, takes 520ms total
-      const totalAnimMs = (WORD_LENGTH - 1) * 90 + 520;
-      setTimeout(() => {
+      Animated.parallel(flipSequences).start(() => {
         setAnimatingRowIndex(null);
         if (result.solved) {
           setSolved(true);
@@ -312,7 +338,7 @@ export default function WordleScreen() {
             if (state.targetWord) setTargetWord(state.targetWord);
           }).catch(() => {});
         }
-      }, totalAnimMs);
+      });
 
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["wordle"] }),
@@ -338,6 +364,146 @@ export default function WordleScreen() {
     }
   }, [keyboardLocked, currentGuess, activeDateKey, guesses, flipAnims, t, triggerShake, resetBoardForNewDay, queryClient]);
 
+  // ── Keyboard gesture helpers ─────────────────────────────────────────────
+
+  const syncActiveKeys = useCallback(() => {
+    setActiveKeys(Array.from(new Set(Object.values(activeTouchesRef.current))));
+  }, []);
+
+  const clearActiveTouches = useCallback(() => {
+    activeTouchesRef.current = {};
+    touchStartYRef.current = {};
+    setActiveKeys([]);
+  }, []);
+
+  const updateKeyLayout = useCallback((keyId: string) => {
+    const keyRef = keyRefs.current[keyId];
+    if (!keyRef || !containerRef.current) return;
+    keyRef.measureLayout(
+      containerRef.current,
+      (x, y, width, height) => {
+        keyLayoutsRef.current[keyId] = { x, y, width, height };
+      },
+      () => {}
+    );
+  }, []);
+
+  const findKeyAtPoint = useCallback((x: number, y: number) => {
+    const layoutEntries = Object.entries(keyLayoutsRef.current) as Array<[string, KeyLayout]>;
+    return layoutEntries.find(([, layout]) => {
+      return x >= layout.x && x <= layout.x + layout.width && y >= layout.y && y <= layout.y + layout.height;
+    })?.[0] ?? null;
+  }, []);
+
+  const activateKey = useCallback((keyId: string) => {
+    if (keyId === "CLEAR") {
+      if (rowClearDisabled) return;
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      clearRow();
+    } else if (keyId === "SUBMIT") {
+      if (keyboardLocked) return;
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      void submitGuess();
+    } else {
+      if (keyboardLocked) return;
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      addLetter(keyId);
+    }
+  }, [rowClearDisabled, keyboardLocked, clearRow, submitGuess, addLetter]);
+
+  const releaseTouches = useCallback((touches: Array<{ id: number; x?: number; y?: number }>, activate = false) => {
+    let changed = false;
+    touches.forEach((touch) => {
+      const keyId = activeTouchesRef.current[touch.id];
+      if (keyId) {
+        if (activate) activateKey(keyId);
+        delete activeTouchesRef.current[touch.id];
+        delete touchStartYRef.current[touch.id];
+        changed = true;
+      }
+    });
+    if (changed) syncActiveKeys();
+  }, [activateKey, syncActiveKeys]);
+
+  const handleTouchesDown = useCallback((touches: Array<{ id: number; x: number; y: number }>) => {
+    let changed = false;
+    touches.forEach((touch) => {
+      if (activeTouchesRef.current[touch.id]) return;
+      const keyId = findKeyAtPoint(touch.x, touch.y);
+      if (!keyId) return;
+      activeTouchesRef.current[touch.id] = keyId;
+      touchStartYRef.current[touch.id] = touch.y;
+      changed = true;
+    });
+    if (changed) syncActiveKeys();
+  }, [findKeyAtPoint, syncActiveKeys]);
+
+  const handleTouchesMove = useCallback((touches: Array<{ id: number; x: number; y: number }>) => {
+    const SCROLL_THRESHOLD = 8;
+    let changed = false;
+    touches.forEach((touch) => {
+      const activeKeyId = activeTouchesRef.current[touch.id];
+      if (!activeKeyId) return;
+      const startY = touchStartYRef.current[touch.id];
+      if (startY !== undefined && Math.abs(touch.y - startY) > SCROLL_THRESHOLD) {
+        delete activeTouchesRef.current[touch.id];
+        delete touchStartYRef.current[touch.id];
+        changed = true;
+        return;
+      }
+      const currentKeyId = findKeyAtPoint(touch.x, touch.y);
+      if (currentKeyId === activeKeyId) return;
+      delete activeTouchesRef.current[touch.id];
+      delete touchStartYRef.current[touch.id];
+      changed = true;
+    });
+    if (changed) syncActiveKeys();
+  }, [findKeyAtPoint, syncActiveKeys]);
+
+  const handleTouchesUp = useCallback((touches: Array<{ id: number }>) => {
+    releaseTouches(touches, true);
+  }, [releaseTouches]);
+
+  const handleTouchesCancel = useCallback((touches: Array<{ id: number }>) => {
+    releaseTouches(touches, false);
+  }, [releaseTouches]);
+
+  const keyboardGesture = useMemo(() => (
+    Gesture.Manual()
+      .shouldCancelWhenOutside(false)
+      .onTouchesDown((event, manager) => {
+        'worklet';
+        if (touchCountSV.value === 0) manager.activate();
+        touchCountSV.value += event.changedTouches.length;
+        runOnJS(handleTouchesDown)(
+          event.changedTouches.map(t => ({ id: t.id, x: t.x, y: t.y }))
+        );
+      })
+      .onTouchesMove((event) => {
+        'worklet';
+        runOnJS(handleTouchesMove)(
+          event.changedTouches.map(t => ({ id: t.id, x: t.x, y: t.y }))
+        );
+      })
+      .onTouchesUp((event, manager) => {
+        'worklet';
+        touchCountSV.value = Math.max(0, touchCountSV.value - event.changedTouches.length);
+        runOnJS(handleTouchesUp)(event.changedTouches.map(t => ({ id: t.id })));
+        if (touchCountSV.value === 0) manager.end();
+      })
+      .onTouchesCancelled((event, manager) => {
+        'worklet';
+        touchCountSV.value = Math.max(0, touchCountSV.value - event.changedTouches.length);
+        runOnJS(handleTouchesCancel)(event.changedTouches.map(t => ({ id: t.id })));
+        if (touchCountSV.value === 0) manager.end();
+      })
+      .onFinalize(() => {
+        'worklet';
+        touchCountSV.value = 0;
+        runOnJS(clearActiveTouches)();
+      })
+  ), [handleTouchesDown, handleTouchesMove, handleTouchesUp, handleTouchesCancel, clearActiveTouches, touchCountSV]);
+
   // ── Tile helpers ─────────────────────────────────────────────────────────
 
   const getTileState = (rowIndex: number, colIndex: number): LetterState | undefined => {
@@ -353,38 +519,38 @@ export default function WordleScreen() {
 
   if (stateQuery.isLoading && !stateQuery.data) {
     return (
-      <View style={{ flex: 1, backgroundColor: C.screenBg, alignItems: "center", justifyContent: "center" }}>
-        <Text style={{ color: C.primaryStrong, fontFamily: "Nunito_600SemiBold" }}>
+      <View style={THEME_VARS[themeName]} className="flex-1 bg-bg items-center justify-center">
+        <Text className="text-primaryStrong font-nunito-semibold">
           {t("native.wordle.title")}…
         </Text>
       </View>
     );
   }
 
-  const attemptsColor = solved ? C.successDark : gameOver ? C.dangerDark : C.primaryStrong;
-  const rowClearDisabled = currentGuess.every((l) => l === null) || keyboardLocked;
+  const attemptsClass = solved ? "text-successDark" : gameOver ? "text-dangerDark" : "text-primaryStrong";
 
   return (
     <ScrollView
-      style={{ flex: 1, backgroundColor: C.screenBg }}
+      className="flex-1 bg-bg"
+      style={THEME_VARS[themeName]}
       contentContainerStyle={{ paddingHorizontal: 16, paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24, gap: 16 }}
       keyboardShouldPersistTaps="handled"
     >
       {/* ── Header ──────────────────────────────────────────────────────── */}
-      <View style={{ alignItems: "center", gap: 8, marginBottom: 4 }}>
-        <Text style={{ fontSize: 30, fontFamily: "Nunito_800ExtraBold", color: C.primaryDark }}>
+      <View className="items-center gap-2 mb-1">
+        <Text className="text-[30px] font-nunito-extrabold text-primaryDark">
           {t("native.wordle.title")}
         </Text>
-        <Text style={{ fontSize: 14, color: "rgba(236,72,153,0.8)", fontFamily: "Nunito_400Regular" }}>
+        <Text className="text-sm text-primaryDark font-nunito">
           {t("native.wordle.subtitle")}
         </Text>
         <TouchableOpacity
           onPress={() => router.back()}
-          style={{ width: "100%", borderRadius: 12, overflow: "hidden" }}
+          className="w-full rounded-xl overflow-hidden"
           activeOpacity={0.8}
         >
-          <View style={{ backgroundColor: C.primary, paddingVertical: 8, alignItems: "center" }}>
-            <Text style={{ color: C.primaryText, fontFamily: "Nunito_600SemiBold", fontSize: 14 }}>
+          <View className="bg-primary py-2 items-center">
+            <Text className="text-primaryText font-nunito-semibold text-sm">
               {t("native.wordle.backToQuests")}
             </Text>
           </View>
@@ -392,31 +558,19 @@ export default function WordleScreen() {
       </View>
 
       {/* ── Board card ──────────────────────────────────────────────────── */}
-      <View style={{
-        backgroundColor: C.surface,
-        borderRadius: 16,
-        borderWidth: 2,
-        borderColor: C.surfaceBorder,
-        padding: 16,
-        gap: 16,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 12,
-        elevation: 4,
-      }}>
+      <View className="bg-surface rounded-2xl border-2 border-primaryTint p-4 gap-4 shadow shadow-black/10">
         {/* Attempts row */}
-        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-          <Text style={{ fontSize: 13, fontFamily: "Nunito_700Bold", color: attemptsColor }}>
+        <View className="flex-row justify-between">
+          <Text className={`text-[13px] font-nunito-bold ${attemptsClass}`}>
             {solved ? t("native.wordle.attemptsUsed") : t("native.wordle.attempts")}
           </Text>
-          <Text style={{ fontSize: 13, fontFamily: "Nunito_700Bold", color: attemptsColor }}>
+          <Text className={`text-[13px] font-nunito-bold ${attemptsClass}`}>
             {solved ? attemptsUsed : attemptsLeft} / {MAX_ATTEMPTS}
           </Text>
         </View>
 
         {/* Grid */}
-        <View style={{ gap: 16 }}>
+        <View className="gap-4">
           {Array.from({ length: MAX_ATTEMPTS }).map((_, rowIndex) => {
             const rowGuess = guesses[rowIndex];
             const isActiveRow = rowIndex === attemptsUsed && !rowGuess;
@@ -427,24 +581,15 @@ export default function WordleScreen() {
                 : Array<string>(WORD_LENGTH).fill("");
 
             const rowTiles = (
-              <View style={{ flexDirection: "row", gap: 8 }}>
+              <View className="flex-row gap-2">
                 {letters.map((letter, colIndex) => {
                   const evalState = getTileState(rowIndex, colIndex);
-                  const v = tileVisuals(evalState);
+                  const bgBorderCls = tileBgBorderClass(evalState);
+                  const letterCls = tileLetterClass(evalState);
                   const isAnimatingRow = animatingRowIndex === rowIndex;
                   const isRemovingCell = isActiveRow && colIndex === removingCellIndex;
 
-                  const tileStyle = {
-                    height: 48,
-                    borderRadius: 12,
-                    borderWidth: 2,
-                    borderColor: v.border,
-                    backgroundColor: v.bg,
-                    alignItems: "center" as const,
-                    justifyContent: "center" as const,
-                  };
-
-                  // Build transform and opacity
+                  // Build transform and opacity for animated values
                   const animStyle: Record<string, unknown> = {};
                   const transforms: unknown[] = [];
 
@@ -464,33 +609,27 @@ export default function WordleScreen() {
                   }
 
                   const letterEl = (
-                    <Text style={{ fontSize: 20, fontFamily: "Nunito_800ExtraBold", color: v.text }}>
+                    <Text className={`text-xl font-nunito-extrabold ${letterCls}`}>
                       {letter}
                     </Text>
                   );
 
-                  if (isActiveRow && letter && !keyboardLocked) {
-                    return (
-                      <TouchableOpacity
-                        key={`${rowIndex}-${colIndex}`}
-                        style={{ flex: 1 }}
-                        activeOpacity={0.7}
-                        onPress={() => removeLetter(colIndex)}
-                      >
-                        <Animated.View style={[{ width: "100%", ...tileStyle }, animStyle]}>
-                          {letterEl}
-                        </Animated.View>
-                      </TouchableOpacity>
-                    );
-                  }
-
+                  const isTappable = isActiveRow && !!letter && !keyboardLocked;
                   return (
-                    <Animated.View
+                    <TouchableOpacity
                       key={`${rowIndex}-${colIndex}`}
-                      style={[{ flex: 1, ...tileStyle }, animStyle]}
+                      style={{ flex: 1, height: 48 }}
+                      activeOpacity={isTappable ? 0.7 : 1}
+                      onPress={isTappable ? () => removeLetter(colIndex) : undefined}
+                      disabled={!isTappable}
                     >
-                      {letterEl}
-                    </Animated.View>
+                      <Animated.View
+                        className={`rounded-xl border-2 items-center justify-center ${bgBorderCls}`}
+                        style={[{ width: "100%", height: 48 }, animStyle]}
+                      >
+                        {letterEl}
+                      </Animated.View>
+                    </TouchableOpacity>
                   );
                 })}
               </View>
@@ -510,153 +649,138 @@ export default function WordleScreen() {
 
         {/* Message */}
         {message !== null && (
-          <Text style={{ fontSize: 13, fontFamily: "Nunito_700Bold", textAlign: "center", color: C.primaryStrong }}>
+          <Text className="text-[13px] font-nunito-bold text-center text-primaryStrong">
             {message}
           </Text>
         )}
 
         {/* Revealed word on loss */}
         {gameOver && !solved && targetWord !== null && (
-          <Text style={{ fontSize: 13, fontFamily: "Nunito_700Bold", textAlign: "center", color: C.dangerDark }}>
+          <Text className="text-[13px] font-nunito-bold text-center text-dangerDark">
             {t("native.wordle.revealedWord", { word: targetWord })}
           </Text>
         )}
       </View>
 
       {/* ── Keyboard card ───────────────────────────────────────────────── */}
-      <View style={{
-        backgroundColor: C.surface,
-        borderRadius: 16,
-        borderWidth: 2,
-        borderColor: C.surfaceBorder,
-        padding: 16,
-        gap: 8,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 8,
-        elevation: 2,
-      }}>
-        {keyboardRows.map((row) => (
-          <View key={row} style={{ flexDirection: "row", justifyContent: "center", gap: 6 }}>
-            {row.split("").map((letter) => {
-              const kv = keyVisuals(keyboardState[letter]);
-              return (
-                <TouchableOpacity
-                  key={letter}
-                  disabled={keyboardLocked}
-                  onPress={() => addLetter(letter)}
-                  activeOpacity={0.7}
-                  style={{
-                    width: keyWidth,
-                    height: 44,
-                    borderRadius: 8,
-                    borderWidth: 1,
-                    borderColor: kv.border,
-                    backgroundColor: kv.bg,
-                    alignItems: "center",
-                    justifyContent: "center",
-                    opacity: keyboardLocked ? 0.5 : 1,
-                  }}
-                >
-                  <Text style={{ fontSize: 12, fontFamily: "Nunito_800ExtraBold", color: kv.text }}>
-                    {letter}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
+      <GestureDetector gesture={keyboardGesture}>
+        <View ref={containerRef}>
+          <View
+            onLayout={(e) => setRowContainerWidth(e.nativeEvent.layout.width)}
+          >
+            {(() => {
+              const SEP = 1;
+              const maxRowKeys = Math.max(...keyboardRows.map((r) => r.length));
+              const keyWidth = rowContainerWidth > 0
+                ? Math.floor((rowContainerWidth - (maxRowKeys - 1) * SEP) / maxRowKeys)
+                : 0;
+              return keyboardRows.map((row, rowIdx) => (
+                <Fragment key={row}>
+                  {rowIdx > 0 && <View className="h-px bg-primaryTint" />}
+                  <View className="flex-row justify-center">
+                    {row.split("").map((letter, i) => {
+                      const kState = keyboardState[letter];
+                      return (
+                        <Fragment key={letter}>
+                          {i > 0 && <View style={{ width: 1, alignSelf: "stretch" }} className="bg-primaryTint" />}
+                          <View
+                            ref={(node) => { keyRefs.current[letter] = node; }}
+                            onLayout={() => { requestAnimationFrame(() => updateKeyLayout(letter)); }}
+                            className="h-[56px] items-center justify-center"
+                            pointerEvents="none"
+                            style={{
+                              width: keyWidth || undefined,
+                              opacity: keyboardLocked ? 0.45 : activeKeys.includes(letter) ? 0.7 : 1,
+                              transform: [{ scale: activeKeys.includes(letter) && !keyboardLocked ? 0.95 : 1 }],
+                            }}
+                          >
+                            <Text className={`text-sm font-nunito-extrabold ${keyLetterClass(kState)}`}>
+                              {letter}
+                            </Text>
+                          </View>
+                        </Fragment>
+                      );
+                    })}
+                  </View>
+                </Fragment>
+              ));
+            })()}
           </View>
-        ))}
 
-        {/* Clear + Guess row */}
-        <View style={{ flexDirection: "row", gap: 8, marginTop: 4 }}>
-          <TouchableOpacity
-            onPress={clearRow}
-            disabled={rowClearDisabled}
-            activeOpacity={0.7}
-            style={{
-              flex: 1,
-              height: 44,
-              borderRadius: 12,
-              borderWidth: 2,
-              borderColor: C.surfaceBorder,
-              backgroundColor: C.keyBg,
-              alignItems: "center",
-              justifyContent: "center",
-              opacity: rowClearDisabled ? 0.5 : 1,
-            }}
-          >
-            <Text style={{ fontSize: 12, fontFamily: "Nunito_800ExtraBold", color: C.primaryStrong }}>
-              {t("native.wordle.clear")}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => void submitGuess()}
-            disabled={keyboardLocked}
-            activeOpacity={0.8}
-            style={{ flex: 1, height: 44, borderRadius: 12, overflow: "hidden", opacity: keyboardLocked ? 0.5 : 1 }}
-          >
-            <LinearGradient
-              colors={[C.primary, C.primaryDark]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+          <View className="h-px bg-primaryTint" />
+          {/* Clear + Submit row */}
+          <View className="flex-row gap-2">
+            <View
+              ref={(node) => { keyRefs.current["CLEAR"] = node; }}
+              onLayout={() => { requestAnimationFrame(() => updateKeyLayout("CLEAR")); }}
+              pointerEvents="none"
+              className="flex-1 h-[56px] rounded-xl border-2 border-primaryTint bg-primaryTint items-center justify-center"
+              style={{
+                opacity: rowClearDisabled ? 0.45 : activeKeys.includes("CLEAR") ? 0.7 : 1,
+                transform: [{ scale: activeKeys.includes("CLEAR") && !rowClearDisabled ? 0.95 : 1 }],
+              }}
             >
-              <Text style={{ fontSize: 12, fontFamily: "Nunito_800ExtraBold", color: "#FFFFFF" }}>
-                {submitting ? "…" : t("native.wordle.submit")}
+              <Text className="text-xs font-nunito-extrabold text-primaryStrong">
+                {t("native.wordle.clear")}
               </Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
-      </View>
+            </View>
 
-      {/* ── Reset modal ─────────────────────────────────────────────────── */}
-      <Modal
-        visible={showResetModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowResetModal(false)}
-      >
-        <View style={{
-          flex: 1,
-          backgroundColor: "rgba(0,0,0,0.45)",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: 16,
-        }}>
-          <View style={{
-            backgroundColor: C.surface,
-            borderRadius: 16,
-            borderWidth: 2,
-            borderColor: C.surfaceBorder,
-            padding: 20,
-            width: "100%",
-            maxWidth: 360,
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 8 },
-            shadowOpacity: 0.2,
-            shadowRadius: 24,
-            elevation: 8,
-          }}>
-            <Text style={{ fontSize: 18, fontFamily: "Nunito_800ExtraBold", color: C.primaryStrong }}>
-              {t("native.wordle.resetTitle")}
-            </Text>
-            <Text style={{ marginTop: 8, fontSize: 14, lineHeight: 20, fontFamily: "Nunito_400Regular", color: C.primaryStrong }}>
-              {t("native.wordle.resetBody")}
-            </Text>
-            <TouchableOpacity
-              onPress={() => setShowResetModal(false)}
-              activeOpacity={0.8}
-              style={{ marginTop: 20, height: 44, borderRadius: 12, overflow: "hidden" }}
+            <View
+              ref={(node) => { keyRefs.current["SUBMIT"] = node; }}
+              onLayout={() => { requestAnimationFrame(() => updateKeyLayout("SUBMIT")); }}
+              pointerEvents="none"
+              className="flex-1 h-[56px] rounded-xl overflow-hidden"
+              style={{
+                opacity: keyboardLocked ? 0.45 : activeKeys.includes("SUBMIT") ? 0.7 : 1,
+                transform: [{ scale: activeKeys.includes("SUBMIT") && !keyboardLocked ? 0.95 : 1 }],
+              }}
             >
               <LinearGradient
-                colors={[C.primary, C.primaryDark]}
+                colors={[tc.primary, tc.primaryDark]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
               >
-                <Text style={{ fontSize: 14, fontFamily: "Nunito_700Bold", color: "#FFFFFF" }}>
+                <Text className="text-xs font-nunito-extrabold text-white">
+                  {submitting ? "…" : t("native.wordle.submit")}
+                </Text>
+              </LinearGradient>
+            </View>
+          </View>
+        </View>
+      </GestureDetector>
+
+      {/* ── Reset modal ─────────────────────────────────────────────────── */}
+      <Modal
+        visible={resetModalKind !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setResetModalKind(null)}
+      >
+        <View className="flex-1 bg-black/45 items-center justify-center p-4">
+          <View className="bg-surface rounded-2xl border-2 border-primaryTint p-5 w-full max-w-[360px] shadow shadow-black/20">
+            <Text className="text-lg font-nunito-extrabold text-primaryStrong">
+              {resetModalKind === "admin"
+                ? t("native.wordle.adminResetTitle")
+                : t("native.wordle.resetTitle")}
+            </Text>
+            <Text className="mt-2 text-sm leading-5 font-nunito text-primaryStrong">
+              {resetModalKind === "admin"
+                ? t("native.wordle.adminResetBody", { name: resetByNameRef.current ?? (locale === "fr" ? "un administrateur" : "an admin") })
+                : t("native.wordle.resetBody")}
+            </Text>
+            <TouchableOpacity
+              onPress={() => setResetModalKind(null)}
+              activeOpacity={0.8}
+              className="mt-5 h-11 rounded-xl overflow-hidden"
+            >
+              <LinearGradient
+                colors={[tc.primary, tc.primaryDark]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+              >
+                <Text className="text-sm font-nunito-bold text-white">
                   {t("native.wordle.resetCta")}
                 </Text>
               </LinearGradient>

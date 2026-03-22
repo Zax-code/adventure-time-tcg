@@ -17,7 +17,7 @@ import {
   imageAssets,
   rarities,
 } from "@adventure-time/db";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import {
   openPackSchema,
   syncStepsSchema,
@@ -61,6 +61,7 @@ export async function appRoutes(fastify: FastifyInstance) {
         coins: result.user.coins,
         dust: result.user.dust,
         isAdmin: result.user.isAdmin,
+        isSuperAdmin: userContext.isSuperAdmin,
         preferredStepSource: result.user.preferredStepSource,
         preferredLanguage: result.user.preferredLanguage,
       };
@@ -90,6 +91,7 @@ export async function appRoutes(fastify: FastifyInstance) {
           coins: result.user.coins,
           dust: result.user.dust,
           isAdmin: result.user.isAdmin,
+          isSuperAdmin: userContext.isSuperAdmin,
           preferredStepSource: result.user.preferredStepSource,
           preferredLanguage: result.user.preferredLanguage,
         },
@@ -202,22 +204,37 @@ export async function appRoutes(fastify: FastifyInstance) {
       }
 
       if (!canClaimDaily(user.lastDailyClaim ?? null)) {
-        return reply.code(400).send({
+        return reply.code(409).send({
           error: "Already claimed today",
+          code: "DAILY_ALREADY_CLAIMED",
           timeUntilNextClaim: getTimeUntilNextClaim(),
           timezone: RESET_TIMEZONE,
         });
       }
 
       const newBalance = user.coins + DAILY_REWARD;
-      await db
+      const lastClaimCondition = user.lastDailyClaim
+        ? eq(users.lastDailyClaim, user.lastDailyClaim)
+        : isNull(users.lastDailyClaim);
+
+      const updatedUsers = await db
         .update(users)
         .set({
           coins: newBalance,
           lastDailyClaim: new Date(),
           updatedAt: new Date(),
         })
-        .where(eq(users.id, userContext.id));
+        .where(and(eq(users.id, userContext.id), lastClaimCondition))
+        .returning({ id: users.id });
+
+      if (updatedUsers.length === 0) {
+        return reply.code(409).send({
+          error: "Already claimed today",
+          code: "DAILY_ALREADY_CLAIMED",
+          timeUntilNextClaim: getTimeUntilNextClaim(),
+          timezone: RESET_TIMEZONE,
+        });
+      }
 
       return {
         success: true,
@@ -272,6 +289,7 @@ export async function appRoutes(fastify: FastifyInstance) {
         coins: user.coins,
         dust: user.dust,
         isAdmin: user.isAdmin,
+        isSuperAdmin: userContext.isSuperAdmin,
         preferredStepSource: user.preferredStepSource,
         preferredLanguage: user.preferredLanguage,
       };
@@ -304,6 +322,7 @@ export async function appRoutes(fastify: FastifyInstance) {
         coins: user.coins,
         dust: user.dust,
         isAdmin: user.isAdmin,
+        isSuperAdmin: userContext.isSuperAdmin,
         preferredStepSource: user.preferredStepSource,
         preferredLanguage: user.preferredLanguage,
       };
@@ -438,6 +457,7 @@ export async function appRoutes(fastify: FastifyInstance) {
         coins: user.coins,
         dust: user.dust,
         isAdmin: user.isAdmin,
+        isSuperAdmin: userContext.isSuperAdmin,
         preferredStepSource: user.preferredStepSource,
         preferredLanguage: user.preferredLanguage,
       };

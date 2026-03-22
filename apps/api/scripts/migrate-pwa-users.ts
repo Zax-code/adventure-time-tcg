@@ -477,12 +477,19 @@ async function main() {
       for (const allowedEmail of sourceAllowedEmails) {
         await targetClient.query(
           `
-            insert into allowed_emails (id, email, is_admin, created_at)
-            values ($1, $2, $3, $4)
+            insert into allowed_emails (id, email, is_admin, is_super_admin, created_at)
+            values ($1, $2, $3, $4, $5)
             on conflict (email) do update
-              set is_admin = excluded.is_admin
+              set is_admin = excluded.is_admin,
+                  is_super_admin = excluded.is_super_admin
           `,
-          [allowedEmail.id, allowedEmail.email, allowedEmail.isAdmin, allowedEmail.createdAt],
+          [
+            allowedEmail.id,
+            allowedEmail.email,
+            allowedEmail.isAdmin || allowedEmail.isSuperAdmin,
+            allowedEmail.isSuperAdmin,
+            allowedEmail.createdAt,
+          ],
         );
       }
 
@@ -521,7 +528,7 @@ async function main() {
             record.displayName,
             record.sourceUser.coins,
             record.sourceUser.dust,
-            record.sourceAllowedEmail.isAdmin,
+            record.sourceAllowedEmail.isAdmin || record.sourceAllowedEmail.isSuperAdmin,
             record.preferredStepSource,
             record.sourceUser.createdAt,
             record.sourceUser.updatedAt,

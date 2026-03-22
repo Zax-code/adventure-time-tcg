@@ -1,10 +1,17 @@
 import {
+  adminAbilitySchema,
   adminAbilitiesResponseSchema,
   adminAbilityEditSchema,
+  adminCardAbilityAssignmentSchema,
   adminCardsResponseSchema,
   adminCardDetailSchema,
   adminCardAbilityAssignSchema,
   adminCardSummarySchema,
+  adminUserDeleteResponseSchema,
+  adminUserDetailSchema,
+  adminUserQuestResetInputSchema,
+  adminUserQuestResetResponseSchema,
+  adminUserRoleUpdateSchema,
   adminUsersResponseSchema,
   allowedEmailsResponseSchema,
   emailAccessRequestsResponseSchema,
@@ -15,6 +22,7 @@ import {
   updateLanguageSchema,
   adminCoinAdjustSchema,
   adminAllowedEmailSchema,
+  adminAllowedEmailUpdateSchema,
   adminEmailRequestActionSchema,
   authUserSchema,
   authResponseSchema,
@@ -33,6 +41,8 @@ import {
   openPackResponseSchema,
   openPackSchema,
   packsResponseSchema,
+  pvpActionSchema,
+  pvpEndTurnSchema,
   pvpHistoryResponseSchema,
   pvpLoadoutMutationSchema,
   pvpLoadoutsResponseSchema,
@@ -55,6 +65,11 @@ import {
   wordleSubmitSchema,
   type AdminAbilitiesResponse,
   type AdminCardsResponse,
+  type AdminUserDeleteResponse,
+  type AdminUserDetail,
+  type AdminUserQuestResetInput,
+  type AdminUserQuestResetResponse,
+  type AdminUserRoleUpdateInput,
   type AdminUsersResponse,
   type AllowedEmailsResponse,
   type EmailAccessRequestsResponse,
@@ -74,7 +89,11 @@ import {
   type OpenPackInput,
   type OpenPackResponse,
   type PacksResponse,
+  type PvpAction,
+  type PvpEndTurnInput,
+  type PvpBattleState,
   type PvpMatch,
+  type PvpMatchDetailResponse,
   type QuestsResponse,
   type RefreshTokenInput,
   type RegisterInput,
@@ -86,6 +105,20 @@ import {
   type WordleSubmitInput,
   type WordleSubmitResponse,
 } from "@adventure-time/shared";
+import { z } from "zod";
+
+const adminAbilitiesEnvelopeSchema = z.object({
+  abilities: z.array(z.unknown()),
+  cardAbilities: z.array(z.unknown()),
+  cards: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      character: z.string(),
+      type: z.string(),
+    }),
+  ),
+});
 
 export interface ApiClientOptions {
   baseUrl: string;
@@ -97,6 +130,7 @@ export class ApiClientError extends Error {
     message: string,
     public readonly status: number,
     public readonly code?: string,
+    public readonly details?: Record<string, unknown>,
   ) {
     super(message);
     this.name = "ApiClientError";
@@ -112,24 +146,30 @@ export class ApiClient {
     parser: (data: unknown) => T,
   ): Promise<T> {
     const accessToken = await this.options.getAccessToken?.();
+    const headers: Record<string, string> = {
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      ...((init.headers as Record<string, string> | undefined) ?? {}),
+    };
+
+    if (init.body !== undefined && init.body !== null && !("Content-Type" in headers)) {
+      headers["Content-Type"] = "application/json";
+    }
+
     const response = await fetch(`${this.options.baseUrl}${path}`, {
       ...init,
-      headers: {
-        "Content-Type": "application/json",
-        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-        ...(init.headers ?? {}),
-      },
+      headers,
     });
 
     if (!response.ok) {
-      const payload = (await response.json().catch(() => null)) as {
+      const payload = (await response.json().catch(() => null)) as ({
         error?: string;
         code?: string;
-      } | null;
+      } & Record<string, unknown>) | null;
       throw new ApiClientError(
         payload?.error ?? `Request failed with status ${response.status}`,
         response.status,
         payload?.code,
+        payload ?? undefined,
       );
     }
 
@@ -151,14 +191,15 @@ export class ApiClient {
     });
 
     if (!response.ok) {
-      const payload = (await response.json().catch(() => null)) as {
+      const payload = (await response.json().catch(() => null)) as ({
         error?: string;
         code?: string;
-      } | null;
+      } & Record<string, unknown>) | null;
       throw new ApiClientError(
         payload?.error ?? `Request failed with status ${response.status}`,
         response.status,
         payload?.code,
+        payload ?? undefined,
       );
     }
 
@@ -343,20 +384,44 @@ export class ApiClient {
     );
   }
 
-  async answerSpeedCalculus(runId: string, answer: number) {
+  async answerSpeedCalculus(runId: string, answer: number): Promise<SpeedRunState> {
     const body = speedAnswerSchema.parse({ runId, answer });
     return this.request(
       "/quests/speed-calculus/answer",
       { method: "POST", body: JSON.stringify(body) },
-      (data) => data as { ok: boolean; activeRun: SpeedRunState["activeRun"] },
+      (data) => speedRunStateSchema.parse(data),
     );
   }
 
-  async finishSpeedCalculus(runId: string): Promise<SpeedRunState> {
+  async resumeSpeedCalculus(): Promise<SpeedRunState> {
+    return this.request(
+      "/quests/speed-calculus/resume",
+      { method: "POST", body: JSON.stringify({}) },
+      (data) => speedRunStateSchema.parse(data),
+    );
+  }
+
+  async finishSpeedCalculus(runId: string): Promise<SpeedRunState & { correctAnswers?: number; reward?: number }> {
     const body = speedFinishSchema.parse({ runId });
     return this.request(
       "/quests/speed-calculus/finish",
       { method: "POST", body: JSON.stringify(body) },
+      (data) => {
+        const parsed = speedRunStateSchema.parse(data);
+        const raw = data as Record<string, unknown>;
+        return {
+          ...parsed,
+          correctAnswers: typeof raw.correctAnswers === "number" ? raw.correctAnswers : undefined,
+          reward: typeof raw.reward === "number" ? raw.reward : parsed.rewardPreview,
+        };
+      },
+    );
+  }
+
+  async cashoutSpeedCalculus(): Promise<SpeedRunState> {
+    return this.request(
+      "/quests/speed-calculus/cashout",
+      { method: "POST", body: JSON.stringify({}) },
       (data) => speedRunStateSchema.parse(data),
     );
   }
@@ -414,7 +479,7 @@ export class ApiClient {
     );
   }
 
-  async pvpMatch(matchId: string) {
+  async pvpMatch(matchId: string): Promise<PvpMatchDetailResponse> {
     return this.request(`/pvp/matches/${matchId}`, { method: "GET" }, (data) =>
       pvpMatchDetailResponseSchema.parse(data),
     );
@@ -456,21 +521,21 @@ export class ApiClient {
     );
   }
 
-  async actPvpMatch(matchId: string) {
+  async actPvpMatch(matchId: string, action: PvpAction): Promise<{ match: PvpMatch; battleState: PvpBattleState | null; events: unknown[] }> {
+    const body = pvpActionSchema.parse(action);
     return this.request(
       `/pvp/matches/${matchId}/action`,
-      { method: "POST", body: JSON.stringify({ actionType: "attack" }) },
-      (data) =>
-        data as { match: PvpMatch; battleState: unknown; events: unknown[] },
+      { method: "POST", body: JSON.stringify(body) },
+      (data) => data as { match: PvpMatch; battleState: PvpBattleState | null; events: unknown[] },
     );
   }
 
-  async endTurnPvpMatch(matchId: string) {
+  async endTurnPvpMatch(matchId: string, input?: PvpEndTurnInput): Promise<{ match: PvpMatch; battleState: PvpBattleState | null; events: unknown[] }> {
+    const body = pvpEndTurnSchema.parse(input ?? {});
     return this.request(
       `/pvp/matches/${matchId}/end-turn`,
-      { method: "POST", body: JSON.stringify({}) },
-      (data) =>
-        data as { match: PvpMatch; battleState: unknown; events: unknown[] },
+      { method: "POST", body: JSON.stringify(body) },
+      (data) => data as { match: PvpMatch; battleState: PvpBattleState | null; events: unknown[] },
     );
   }
 
@@ -482,7 +547,26 @@ export class ApiClient {
 
   async adminAbilities(): Promise<AdminAbilitiesResponse> {
     return this.request("/admin/abilities", { method: "GET" }, (data) =>
-      adminAbilitiesResponseSchema.parse(data),
+      {
+        const parsed = adminAbilitiesResponseSchema.safeParse(data);
+        if (parsed.success) {
+          return parsed.data;
+        }
+
+        const envelope = adminAbilitiesEnvelopeSchema.parse(data);
+
+        return {
+          abilities: envelope.abilities.flatMap((ability) => {
+            const parsedAbility = adminAbilitySchema.safeParse(ability);
+            return parsedAbility.success ? [parsedAbility.data] : [];
+          }),
+          cardAbilities: envelope.cardAbilities.flatMap((assignment) => {
+            const parsedAssignment = adminCardAbilityAssignmentSchema.safeParse(assignment);
+            return parsedAssignment.success ? [parsedAssignment.data] : [];
+          }),
+          cards: envelope.cards,
+        };
+      },
     );
   }
 
@@ -643,12 +727,45 @@ export class ApiClient {
     );
   }
 
+  async adminUserDetail(userId: string): Promise<AdminUserDetail> {
+    return this.request(`/admin/users/${userId}`, { method: "GET" }, (data) =>
+      adminUserDetailSchema.parse(data),
+    );
+  }
+
   async adjustAdminUserCoins(userId: string, delta: number) {
     const body = adminCoinAdjustSchema.parse({ delta });
     return this.request(
       `/admin/users/${userId}/coins`,
       { method: "PATCH", body: JSON.stringify(body) },
       (data) => data as { id: string; coins: number },
+    );
+  }
+
+  async updateAdminUserRole(userId: string, input: AdminUserRoleUpdateInput) {
+    const body = adminUserRoleUpdateSchema.parse(input);
+    return this.request(
+      `/admin/users/${userId}/role`,
+      { method: "PATCH", body: JSON.stringify(body) },
+      (data) => data as { id: string; isAdmin: boolean; isSuperAdmin: boolean },
+    );
+  }
+
+  async resetAdminUserDailyQuests(
+    userId: string,
+    input: AdminUserQuestResetInput,
+  ): Promise<AdminUserQuestResetResponse> {
+    const body = adminUserQuestResetInputSchema.parse(input);
+    return this.request(
+      `/admin/users/${userId}/reset-daily-quests`,
+      { method: "POST", body: JSON.stringify(body) },
+      (data) => adminUserQuestResetResponseSchema.parse(data),
+    );
+  }
+
+  async deleteAdminUser(userId: string): Promise<AdminUserDeleteResponse> {
+    return this.request(`/admin/users/${userId}`, { method: "DELETE" }, (data) =>
+      adminUserDeleteResponseSchema.parse(data),
     );
   }
 
@@ -668,10 +785,10 @@ export class ApiClient {
   }
 
   async updateAdminAllowedEmail(id: string, isAdmin: boolean) {
-    const body = adminAllowedEmailSchema.parse({ email: "", isAdmin });
+    const body = adminAllowedEmailUpdateSchema.parse({ isAdmin });
     return this.request(
       `/admin/emails/${id}`,
-      { method: "PATCH", body: JSON.stringify({ isAdmin: body.isAdmin }) },
+      { method: "PATCH", body: JSON.stringify(body) },
       (data) => data as Record<string, unknown>,
     );
   }

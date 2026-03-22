@@ -1,6 +1,6 @@
 import { FastifyInstance } from "fastify";
 
-import { pvpActionSchema, pvpInviteSchema } from "@adventure-time/shared";
+import { pvpActionSchema, pvpEndTurnSchema, pvpInviteSchema } from "@adventure-time/shared";
 
 import { createInvite, endTurn, getMatch, getMatchDetail, getSpectatable, getSpectatableDetail, listHistory, listInvites, listMatches, performMatchAction, setMatchStatus } from "../services/pvp-service";
 
@@ -9,6 +9,8 @@ function serializeMatch(match: any) {
     id: match.id,
     inviterId: match.inviterId,
     inviteeId: match.inviteeId,
+    inviterName: match.inviterName,
+    inviteeName: match.inviteeName,
     status: match.status,
     inviterLoadout: JSON.parse(match.inviterLoadout),
     inviteeLoadout: JSON.parse(match.inviteeLoadout),
@@ -112,7 +114,7 @@ export async function pvpRoutes(fastify: FastifyInstance) {
     const { id } = request.params as { id: string };
     const body = pvpActionSchema.parse(request.body);
     try {
-      const result = await performMatchAction(id, request.authUser.id, body.actionType);
+      const result = await performMatchAction(id, request.authUser.id, body);
       return { match: serializeMatch(result.match), battleState: result.battleState, events: result.events };
     } catch (error) {
       return reply.code(400).send({ error: error instanceof Error ? error.message : "Failed to execute action" });
@@ -147,8 +149,9 @@ export async function pvpRoutes(fastify: FastifyInstance) {
   fastify.post("/pvp/matches/:id/end-turn", { preHandler: [(fastify as any).authenticate] }, async (request, reply) => {
     if (!request.authUser) return reply.code(401).send({ error: "Unauthorized" });
     const { id } = request.params as { id: string };
+    const body = pvpEndTurnSchema.parse(request.body ?? {});
     try {
-      const result = await endTurn(id, request.authUser.id);
+      const result = await endTurn(id, request.authUser.id, body.swap);
       return { match: serializeMatch(result.match), battleState: result.battleState, events: result.events };
     } catch (error) {
       return reply.code(400).send({ error: error instanceof Error ? error.message : "Failed to end turn" });

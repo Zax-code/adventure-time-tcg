@@ -64,6 +64,20 @@
       "when": 1773506133333,
       "tag": "0008_preferred_language",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1773506134333,
+      "tag": "0009_super_admin_allowlist",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1774202308146,
+      "tag": "0010_spooky_jack_flag",
+      "breakpoints": true
     }
   ]
 }

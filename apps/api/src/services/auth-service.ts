@@ -48,7 +48,10 @@ interface GoogleTokenInfo {
   picture?: string;
 }
 
-function mapAuthUser(user: typeof users.$inferSelect): AuthUser {
+function mapAuthUser(
+  user: typeof users.$inferSelect,
+  isSuperAdmin: boolean,
+): AuthUser {
   return {
     id: user.id,
     email: user.email,
@@ -57,6 +60,7 @@ function mapAuthUser(user: typeof users.$inferSelect): AuthUser {
     coins: user.coins,
     dust: user.dust,
     isAdmin: user.isAdmin,
+    isSuperAdmin,
     preferredStepSource: user.preferredStepSource,
     preferredLanguage: user.preferredLanguage,
   };
@@ -70,17 +74,24 @@ async function getAllowedEmailRecord(email: string) {
 
 async function syncUserAdminStatus(user: typeof users.$inferSelect) {
   const allowedEmail = await getAllowedEmailRecord(user.email);
-  const isAdmin = allowedEmail?.isAdmin ?? false;
+  const isSuperAdmin = allowedEmail?.isSuperAdmin ?? false;
+  const isAdmin = isSuperAdmin || (allowedEmail?.isAdmin ?? false);
 
   if (user.isAdmin === isAdmin) {
-    return user;
+    return {
+      user,
+      isSuperAdmin,
+    };
   }
 
   await db
     .update(users)
     .set({ isAdmin, updatedAt: new Date() })
     .where(eq(users.id, user.id));
-  return { ...user, isAdmin };
+  return {
+    user: { ...user, isAdmin },
+    isSuperAdmin,
+  };
 }
 
 async function ensureStarterCard(userId: string) {
@@ -255,7 +266,8 @@ async function issueSession(
   userAgent?: string,
   ipAddress?: string | null,
 ) {
-  const syncedUser = await syncUserAdminStatus(user);
+  const synced = await syncUserAdminStatus(user);
+  const syncedUser = synced.user;
   const sessionId = uuid();
   const refreshToken = await signRefreshToken(sessionId, user.id);
   const refreshTokenHash = await bcrypt.hash(refreshToken, 10);
@@ -269,12 +281,13 @@ async function issueSession(
   });
 
   return {
-    user: mapAuthUser(syncedUser),
+    user: mapAuthUser(syncedUser, synced.isSuperAdmin),
     tokens: {
       accessToken: await signAccessToken({
         id: syncedUser.id,
         email: syncedUser.email,
         isAdmin: syncedUser.isAdmin,
+        isSuperAdmin: synced.isSuperAdmin,
       }),
       refreshToken,
       expiresInSeconds: 15 * 60,

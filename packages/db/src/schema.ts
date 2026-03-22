@@ -210,6 +210,7 @@ export const dailyQuests = pgTable(
       mode: "date",
     }),
     claimedAt: timestamp("claimed_at", { withTimezone: true, mode: "date" }),
+    resetByUserId: text("reset_by_user_id"),
     updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" })
       .defaultNow()
       .notNull(),
@@ -522,6 +523,7 @@ export const allowedEmails = pgTable(
     id: text("id").primaryKey(),
     email: text("email").notNull(),
     isAdmin: boolean("is_admin").default(false).notNull(),
+    isSuperAdmin: boolean("is_super_admin").default(false).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
       .defaultNow()
       .notNull(),

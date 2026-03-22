@@ -1,31 +1,16 @@
 import { randomUUID } from "node:crypto";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { FastifyInstance } from "fastify";
 
-import { db, speedCalculusDailyRuns, wordleDailyAttempts } from "@adventure-time/db";
+import { dailyQuests, db, speedCalculusDailyRuns, users, wordleDailyAttempts } from "@adventure-time/db";
 import { claimQuestSchema, speedAnswerSchema, speedFinishSchema, wordleSubmitSchema } from "@adventure-time/shared";
 
-import { buildQuestList, claimQuestReward, getSpeedCalculusState, materializeDailyQuestsForUser, syncSpeedCalculusQuestFromRuns } from "../services/quest-service";
-import { SPEED_CALCULUS_FINISH_GRACE_SECONDS, SPEED_CALCULUS_MAX_RUNS, buildSpeedCalculusQuestions, calculateSpeedCalculusReward, toPublicQuestions } from "../lib/speed-calculus";
+import { buildQuestList, cashoutSpeedCalculus, claimQuestReward, getSpeedCalculusState, materializeDailyQuestsForUser, resumeSpeedCalculusRun, syncSpeedCalculusQuestFromRuns } from "../services/quest-service";
+import { SPEED_CALCULUS_RESUME_PAUSE_SECONDS, calculateSpeedCalculusReward, evaluateSpeedCalculusAnswers } from "../lib/speed-calculus";
 import { completeWordleQuest, evaluateGuess, getDailyFrenchWord, getWordleAttempts, getWordleDateKey, isValidFrenchWord, normalizeFrenchWord } from "../lib/wordle";
 
 const WORDLE_MAX_ATTEMPTS = 6;
-
-function serializeActiveRun(run: typeof speedCalculusDailyRuns.$inferSelect) {
-  const answers = JSON.parse(run.answers) as number[];
-  const questions = toPublicQuestions(buildSpeedCalculusQuestions(run.seed));
-  return {
-    runId: run.id,
-    runNumber: run.runNumber,
-    seed: run.seed,
-    questionIndex: answers.length,
-    questions,
-    answers,
-    pauseExpiresAt: run.pauseExpiresAt ? run.pauseExpiresAt.toISOString() : null,
-    startedAt: run.startedAt.toISOString(),
-  };
-}
 
 export async function questRoutes(fastify: FastifyInstance) {
   fastify.get("/quests", { preHandler: [(fastify as any).authenticate] }, async (request, reply) => {
@@ -53,7 +38,15 @@ export async function questRoutes(fastify: FastifyInstance) {
     const solved = attempts.some((attempt) => attempt.solved);
     const gameOver = solved || attempts.length >= WORDLE_MAX_ATTEMPTS;
     const targetWord = gameOver && !solved ? await getDailyFrenchWord(date) : undefined;
-    return { date, resetTimezone: "Europe/Paris", guesses, solved, ...(targetWord ? { targetWord } : {}) };
+    const questRow = await db.query.dailyQuests.findFirst({
+      where: and(eq(dailyQuests.userId, request.authUser.id), eq(dailyQuests.date, date), eq(dailyQuests.questType, "wordle_daily")),
+    });
+    let resetByName: string | null = null;
+    if (questRow?.resetByUserId) {
+      const adminUser = await db.query.users.findFirst({ where: eq(users.id, questRow.resetByUserId) });
+      resetByName = adminUser?.displayName ?? null;
+    }
+    return { date, resetTimezone: "Europe/Paris", guesses, solved, questVersion: questRow?.id ?? null, resetByName, ...(targetWord ? { targetWord } : {}) };
   });
 
   fastify.post("/wordle", { preHandler: [(fastify as any).authenticate] }, async (request, reply) => {
@@ -81,28 +74,23 @@ export async function questRoutes(fastify: FastifyInstance) {
     return { evaluation, solved, date, questJustCompleted };
   });
 
+  // ── Speed Calculus ──────────────────────────────────────────────────
+
   fastify.get("/quests/speed-calculus", { preHandler: [(fastify as any).authenticate] }, async (request, reply) => {
     if (!request.authUser) return reply.code(401).send({ error: "Unauthorized" });
-    const state = await getSpeedCalculusState(request.authUser.id);
-    return {
-      ...state,
-      activeRun: state.activeRun ? serializeActiveRun(state.activeRun) : null,
-    };
+    return getSpeedCalculusState(request.authUser.id);
   });
 
   fastify.post("/quests/speed-calculus/start", { preHandler: [(fastify as any).authenticate] }, async (request, reply) => {
     if (!request.authUser) return reply.code(401).send({ error: "Unauthorized" });
     const date = getWordleDateKey();
-    await materializeDailyQuestsForUser(request.authUser.id, date);
     const state = await getSpeedCalculusState(request.authUser.id, date);
-    if (state.activeRun) {
-      return { ...state, activeRun: serializeActiveRun(state.activeRun) };
+    if (state.activeRun) return state;
+    if (!state.canStartRun) {
+      return reply.code(400).send({ error: "Cannot start a new run" });
     }
-    if (state.runsUsed >= SPEED_CALCULUS_MAX_RUNS) {
-      return reply.code(400).send({ error: "Daily runs exhausted" });
-    }
-    const runNumber = state.history.length + 1;
-    const seed = `${request.authUser.id}:${date}:${runNumber}`;
+    const runNumber = state.runsUsed + 1;
+    const seed = randomUUID();
     await db.insert(speedCalculusDailyRuns).values({
       id: randomUUID(),
       userId: request.authUser.id,
@@ -111,10 +99,9 @@ export async function questRoutes(fastify: FastifyInstance) {
       seed,
       answers: "[]",
       status: "in_progress",
-      pauseExpiresAt: new Date(Date.now() + SPEED_CALCULUS_FINISH_GRACE_SECONDS * 1000),
+      pauseExpiresAt: new Date(Date.now() + SPEED_CALCULUS_RESUME_PAUSE_SECONDS * 1000),
     });
-    const nextState = await getSpeedCalculusState(request.authUser.id, date);
-    return { ...nextState, activeRun: nextState.activeRun ? serializeActiveRun(nextState.activeRun) : null };
+    return getSpeedCalculusState(request.authUser.id, date);
   });
 
   fastify.post("/quests/speed-calculus/answer", { preHandler: [(fastify as any).authenticate] }, async (request, reply) => {
@@ -123,13 +110,18 @@ export async function questRoutes(fastify: FastifyInstance) {
     const run = await db.query.speedCalculusDailyRuns.findFirst({ where: eq(speedCalculusDailyRuns.id, body.runId) });
     if (!run || run.userId !== request.authUser.id) return reply.code(404).send({ error: "Run not found" });
     if (run.status !== "in_progress") return reply.code(400).send({ error: "Run is not active" });
-    const pauseValid = !run.pauseExpiresAt || run.pauseExpiresAt.getTime() >= Date.now();
-    if (!pauseValid) return reply.code(400).send({ error: "Run is paused too long" });
+    if (run.pauseExpiresAt && run.pauseExpiresAt.getTime() > Date.now()) {
+      return reply.code(400).send({ error: "Run is paused" });
+    }
     const answers = JSON.parse(run.answers) as number[];
     answers.push(body.answer);
     await db.update(speedCalculusDailyRuns).set({ answers: JSON.stringify(answers) }).where(eq(speedCalculusDailyRuns.id, run.id));
-    const refreshed = await db.query.speedCalculusDailyRuns.findFirst({ where: eq(speedCalculusDailyRuns.id, run.id) });
-    return { ok: true, activeRun: refreshed ? serializeActiveRun(refreshed) : null };
+    return getSpeedCalculusState(request.authUser.id, run.date);
+  });
+
+  fastify.post("/quests/speed-calculus/resume", { preHandler: [(fastify as any).authenticate] }, async (request, reply) => {
+    if (!request.authUser) return reply.code(401).send({ error: "Unauthorized" });
+    return resumeSpeedCalculusRun(request.authUser.id);
   });
 
   fastify.post("/quests/speed-calculus/finish", { preHandler: [(fastify as any).authenticate] }, async (request, reply) => {
@@ -137,15 +129,27 @@ export async function questRoutes(fastify: FastifyInstance) {
     const body = speedFinishSchema.parse(request.body);
     const run = await db.query.speedCalculusDailyRuns.findFirst({ where: eq(speedCalculusDailyRuns.id, body.runId) });
     if (!run || run.userId !== request.authUser.id) return reply.code(404).send({ error: "Run not found" });
-    const answers = JSON.parse(run.answers) as number[];
-    const questions = buildSpeedCalculusQuestions(run.seed);
-    let correct = 0;
-    answers.forEach((answer, index) => {
-      if (questions[index]?.answer === answer) correct += 1;
-    });
-    const reward = calculateSpeedCalculusReward(correct);
-    await db.update(speedCalculusDailyRuns).set({ status: "completed", score: correct, reward, finishedAt: new Date() }).where(eq(speedCalculusDailyRuns.id, run.id));
+    if (run.status !== "in_progress") return reply.code(400).send({ error: "Run is not active" });
+    const { correctAnswers } = evaluateSpeedCalculusAnswers(run.seed, run.answers);
+    const reward = calculateSpeedCalculusReward(correctAnswers);
+    await db.update(speedCalculusDailyRuns).set({
+      status: "completed",
+      score: correctAnswers,
+      reward,
+      finishedAt: new Date(),
+    }).where(eq(speedCalculusDailyRuns.id, run.id));
     await syncSpeedCalculusQuestFromRuns(request.authUser.id, run.date);
-    return getSpeedCalculusState(request.authUser.id, run.date).then((state) => ({ ...state, activeRun: state.activeRun ? serializeActiveRun(state.activeRun) : null }));
+    const state = await getSpeedCalculusState(request.authUser.id, run.date);
+    return { ...state, correctAnswers, reward, locked: state.locked };
+  });
+
+  fastify.post("/quests/speed-calculus/cashout", { preHandler: [(fastify as any).authenticate] }, async (request, reply) => {
+    if (!request.authUser) return reply.code(401).send({ error: "Unauthorized" });
+    try {
+      return await cashoutSpeedCalculus(request.authUser.id);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to cash out";
+      return reply.code(400).send({ error: message });
+    }
   });
 }

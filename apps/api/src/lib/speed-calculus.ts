@@ -60,3 +60,66 @@ export function toPublicQuestions(questions: SpeedCalculusQuestion[]) {
 export function calculateSpeedCalculusReward(correctAnswers: number) {
   return Math.max(0, correctAnswers) * SPEED_CALCULUS_REWARD_PER_ANSWER;
 }
+
+export const SPEED_CALCULUS_RESUME_PAUSE_SECONDS = 5;
+
+export type SpeedCalculusRunHistoryEntry = {
+  index: number;
+  left: number;
+  right: number;
+  operator: SpeedCalculusOperator;
+  userAnswer: number | null;
+  wasAnswered: boolean;
+  isCorrect: boolean;
+  correctAnswer: number | null;
+};
+
+export function buildSpeedCalculusRunHistory(
+  seed: string,
+  answersJson: string,
+): SpeedCalculusRunHistoryEntry[] {
+  const questions = buildSpeedCalculusQuestions(seed);
+  let answers: number[];
+  try {
+    answers = JSON.parse(answersJson) as number[];
+  } catch {
+    answers = [];
+  }
+  const answerCount = Math.min(answers.length, questions.length);
+
+  return questions.slice(0, answerCount).map((question, index) => {
+    const wasAnswered = index < answerCount;
+    const userAnswer = wasAnswered ? (answers[index] ?? null) : null;
+    const isCorrect = wasAnswered && userAnswer === question.answer;
+
+    return {
+      index: question.index,
+      left: question.left,
+      right: question.right,
+      operator: question.operator,
+      userAnswer,
+      wasAnswered,
+      isCorrect,
+      correctAnswer: !wasAnswered || !isCorrect ? question.answer : null,
+    };
+  });
+}
+
+export function evaluateSpeedCalculusAnswers(
+  seed: string,
+  answersJson: string,
+): { correctAnswers: number; totalAnswered: number } {
+  const questions = buildSpeedCalculusQuestions(seed);
+  let answers: number[];
+  try {
+    answers = JSON.parse(answersJson) as number[];
+  } catch {
+    answers = [];
+  }
+  let correctAnswers = 0;
+  const limited = answers.slice(0, questions.length);
+  limited.forEach((answer, index) => {
+    if (questions[index]?.answer === answer) correctAnswers += 1;
+  });
+  return { correctAnswers, totalAnswered: limited.length };
+}
