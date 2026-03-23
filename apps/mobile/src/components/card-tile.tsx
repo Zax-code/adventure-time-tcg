@@ -193,7 +193,7 @@ export const CardTile = memo(function CardTile({
             style={{
               position: "absolute",
               top: 0,
-              height: cfg.height * 0.44,
+              height: cfg.height,
               width: cfg.width * 3,
               transform: [{ translateX: shimmerTranslate }],
               zIndex: 15,
