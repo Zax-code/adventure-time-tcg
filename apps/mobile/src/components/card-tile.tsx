@@ -147,10 +147,11 @@ export const CardTile = memo(function CardTile({
     return () => loop.stop();
   }, [hasShimmer, isLegendary]);
 
-  const shimmerColor = isLegendary ? "rgba(239, 217, 72, 0.18)" : "rgba(174, 82, 255, 0.16)";
+  const shimmerColorPeak = isLegendary ? "rgba(239, 217, 72, 0.18)" : "rgba(174, 82, 255, 0.16)";
+  const shimmerColorEdge = isLegendary ? "rgba(239, 217, 72, 0)"    : "rgba(174, 82, 255, 0)";
   const shimmerTranslate = shimmerAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [-cfg.width * 2, cfg.width],
+    outputRange: [-cfg.width * 3, cfg.width],
   });
 
   return (
@@ -199,7 +200,7 @@ export const CardTile = memo(function CardTile({
             }}
           >
             <LinearGradient
-              colors={["transparent", shimmerColor, "transparent"]}
+              colors={[shimmerColorEdge, shimmerColorPeak, shimmerColorEdge]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={{ flex: 1 }}
