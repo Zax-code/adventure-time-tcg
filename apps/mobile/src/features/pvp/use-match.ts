@@ -38,7 +38,18 @@ export function useMatch(matchId: string) {
           newEvents.push({
             seq: event.seq,
             targetInstanceId,
-            type: event.type === "crit" ? "crit" : "damage",
+            type: Boolean(payload.isMiss) ? "miss" : event.type === "crit" || Boolean(payload.isCrit) ? "crit" : "damage",
+            amount,
+          });
+        }
+      } else if (event.type === "heal") {
+        const targetInstanceId = String(payload.targetInstanceId ?? payload.targetId ?? "");
+        const amount = Number(payload.amount ?? 0);
+        if (targetInstanceId && amount > 0) {
+          newEvents.push({
+            seq: event.seq,
+            targetInstanceId,
+            type: "heal",
             amount,
           });
         }

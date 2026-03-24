@@ -410,6 +410,7 @@ export const pvpAbilityDefinitionSchema = z.object({
   cost: z.number().int(),
   cooldown: z.number().int().optional(),
   oncePerMatch: z.boolean(),
+  payload: z.record(z.string(), z.unknown()).optional(),
 });
 
 export const pvpUnitStateSchema = z.object({

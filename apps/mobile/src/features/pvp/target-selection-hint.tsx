@@ -8,6 +8,16 @@ interface TargetSelectionHintProps {
 
 export function TargetSelectionHint({ targeting }: TargetSelectionHintProps) {
   if (!targeting) return null;
+
+  const label =
+    targeting.stage === "copy-source"
+      ? "Select a source unit"
+      : targeting.targetLabel === "ally"
+        ? "Select an ally"
+        : targeting.targetLabel === "any"
+          ? "Select any unit"
+          : "Select a target";
+
   return (
     <View
       style={{
@@ -29,7 +39,7 @@ export function TargetSelectionHint({ targeting }: TargetSelectionHintProps) {
           textAlign: "center",
         }}
       >
-        Select a target
+        {label}
       </Text>
     </View>
   );

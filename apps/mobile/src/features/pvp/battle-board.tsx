@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 
 import type { PvpAction, PvpEndTurnInput } from "@adventure-time/shared";
@@ -36,6 +36,10 @@ interface BattleBoardProps {
   submitEndTurn: (input?: PvpEndTurnInput) => void;
 }
 
+function sortByPosition<T extends { position?: number | null }>(items: T[]) {
+  return [...items].sort((a, b) => (a.position ?? 99) - (b.position ?? 99));
+}
+
 export function BattleBoard({
   matchView,
   newEvents,
@@ -66,83 +70,54 @@ export function BattleBoard({
   const prevTurnRef = useRef(turn);
   const [bannerKey, setBannerKey] = useState(0);
 
-  // Show banner on turn change
-  useMemo(() => {
+  useEffect(() => {
     if (prevTurnRef.current !== turn) {
       prevTurnRef.current = turn;
-      setBannerKey((k) => k + 1);
+      setBannerKey((current) => current + 1);
       setShowTurnBanner(true);
     }
   }, [turn]);
 
-  // Per-unit floating events
   const floatingByUnit = useMemo(() => {
-    const map: Record<string, FloatingEvent[]> = {};
-    for (const e of newEvents) {
-      if (!map[e.targetInstanceId]) map[e.targetInstanceId] = [];
-      map[e.targetInstanceId].push(e);
+    const next: Record<string, FloatingEvent[]> = {};
+    for (const event of newEvents) {
+      if (!next[event.targetInstanceId]) {
+        next[event.targetInstanceId] = [];
+      }
+      next[event.targetInstanceId].push(event);
     }
-    return map;
+    return next;
   }, [newEvents]);
 
-  const selectedActor = selectedActorId
-    ? myPlayer.units.find((u) => u.instanceId === selectedActorId)
-    : null;
-
+  const sortedMyUnits = useMemo(() => sortByPosition(myPlayer.units), [myPlayer.units]);
+  const sortedOpponentUnits = useMemo(() => sortByPosition(opponentPlayer.units), [opponentPlayer.units]);
+  const selectedActor = selectedActorId ? sortedMyUnits.find((unit) => unit.instanceId === selectedActorId) ?? null : null;
   const actorType = selectedActor?.type;
-  const hasBench = myPlayer.bench.some((u) => u.hp > 0);
+  const hasBench = myPlayer.bench.some((unit) => unit.hp > 0);
 
-  const handleUnitPress = (instanceId: string) => {
-    if (targeting) {
-      if (targeting.validTargetIds.includes(instanceId)) {
-        onSelectTarget(instanceId);
-      }
-      return;
-    }
-    if (isSwapMode) {
-      onSelectUnit(instanceId);
-      return;
-    }
-    if (!isMyTurn) return;
-    const unit = myPlayer.units.find((u) => u.instanceId === instanceId);
-    if (!unit || unit.hp <= 0) return;
-    setSelectedActorId(instanceId);
-    setShowActionModal(true);
-  };
-
-  const handleOppUnitPress = (instanceId: string) => {
-    if (targeting && targeting.validTargetIds.includes(instanceId)) {
-      onSelectTarget(instanceId);
-    }
-  };
-
-  const handleBenchPress = (instanceId: string) => {
-    if (isSwapMode) {
-      onSelectBench(instanceId);
-    }
-  };
-
-  const handleLongPress = (instanceId: string) => {
-    setLongPressUnitId(instanceId);
-    onUnitLongPress(instanceId);
-  };
-
-  const longPressUnit =
-    longPressUnitId
-      ? [...myPlayer.units, ...myPlayer.bench, ...opponentPlayer.units, ...opponentPlayer.bench].find(
-          (u) => u.instanceId === longPressUnitId,
-        )
-      : null;
+  const longPressUnit = longPressUnitId
+    ? [...myPlayer.units, ...myPlayer.bench, ...opponentPlayer.units, ...opponentPlayer.bench].find(
+        (unit) => unit.instanceId === longPressUnitId,
+      ) ?? null
+    : null;
 
   const hint = isMyTurn
     ? targeting
-      ? null
+      ? targeting.stage === "copy-source"
+        ? "Tap a source unit to copy from"
+        : targeting.targetLabel === "ally"
+          ? "Tap an ally to target"
+          : targeting.targetLabel === "any"
+            ? "Tap any unit to target"
+            : targeting.targetLabel === "copy source"
+              ? "Choose a source unit"
+              : "Tap a highlighted target"
       : isSwapMode
-      ? "Tap active unit to swap"
-      : "Tap your unit to act"
-    : "Waiting for opponent...";
+        ? "Tap active unit then bench"
+        : "Tap a card for actions"
+    : "Waiting for opponent";
 
-  const overlayBtnStyle = {
+  const overlayButtonStyle = {
     width: 36,
     height: 36,
     minWidth: 36,
@@ -153,183 +128,225 @@ export function BattleBoard({
     backgroundColor: "rgba(255,255,255,0.85)",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.12,
     shadowRadius: 2,
     elevation: 2,
   };
 
+  const isOverlayOpen = showActionModal || showLogModal || longPressUnit !== null;
+
+  const handleUnitPress = (instanceId: string) => {
+    if (targeting) {
+      if (targeting.validTargetIds.includes(instanceId)) {
+        onSelectTarget(instanceId);
+      }
+      return;
+    }
+
+    if (isSwapMode) {
+      onSelectUnit(instanceId);
+      return;
+    }
+
+    if (!isMyTurn || isOverlayOpen) {
+      return;
+    }
+
+    const unit = myPlayer.units.find((entry) => entry.instanceId === instanceId);
+    if (!unit || unit.hp <= 0 || unit.statuses.some((status) => status.name === "SummoningSickness")) {
+      return;
+    }
+
+    setSelectedActorId(instanceId);
+    setShowActionModal(true);
+  };
+
+  const handleOppUnitPress = (instanceId: string) => {
+    if (targeting?.validTargetIds.includes(instanceId)) {
+      onSelectTarget(instanceId);
+    }
+  };
+
+  const handleBenchPress = (instanceId: string) => {
+    if (targeting?.validTargetIds.includes(instanceId)) {
+      onSelectTarget(instanceId);
+      return;
+    }
+
+    if (isSwapMode) {
+      onSelectBench(instanceId);
+    }
+  };
+
+  const handleLongPress = (instanceId: string) => {
+    if (showActionModal) {
+      return;
+    }
+    setLongPressUnitId(instanceId);
+    onUnitLongPress(instanceId);
+  };
+
   return (
-    <View
-      className="flex-1 bg-bg flex-col justify-center"
-      style={{ paddingHorizontal: 40, paddingVertical: 8, gap: 4 }}
-    >
-      {/* ── Opponent lane ── */}
-      <View
-        className="flex-1 min-h-0 rounded-xl bg-danger"
-        style={{
-          padding: 6,
-          shadowColor: "#F9A8D4",
-          shadowOffset: { width: 0, height: -4 },
-          shadowOpacity: 1,
-          shadowRadius: 10,
-          elevation: 8,
-        }}
-      >
-        {/* Overlay controls: Back | Name·Energy | Log | Concede */}
-        <View className="flex-row items-center justify-between" style={{ marginBottom: 4 }}>
-          <Pressable onPress={onBack} style={overlayBtnStyle}>
-            <ChevronRightIcon size={16} color="#9D174D" />
-          </Pressable>
-
-          <View className="flex-row items-center" style={{ gap: 6 }}>
-            <View style={{ backgroundColor: "rgba(244,63,94,0.85)", borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 }}>
-              <Text style={{ color: "#fff", fontSize: 12, fontFamily: "Nunito_700Bold" }}>{opponentPlayer.name}</Text>
-            </View>
-            <View style={{ backgroundColor: "rgba(254,240,138,0.9)", borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3, flexDirection: "row", alignItems: "center", gap: 2 }}>
-              <Text style={{ color: "#854D0E", fontSize: 12, fontFamily: "Nunito_700Bold" }}>⚡{opponentPlayer.energy}</Text>
-            </View>
-          </View>
-
-          <View className="flex-row" style={{ gap: 4 }}>
-            <Pressable onPress={() => setShowLogModal(true)} style={overlayBtnStyle}>
-              <ClockIcon size={15} color="#6366F1" />
-            </Pressable>
-            <Pressable onPress={onConcede} style={[overlayBtnStyle, { backgroundColor: "rgba(255,255,255,0.85)" }]}>
-              <XCircleIcon size={15} color="#F43F5E" />
-            </Pressable>
-          </View>
-        </View>
-
-        {/* Opponent active units */}
-        <View className="flex-1 flex-row" style={{ gap: 8 }}>
-          {opponentPlayer.units.map((unit) => (
-            <UnitCard
-              key={unit.instanceId}
-              unit={unit}
-              isValidTarget={targeting?.validTargetIds.includes(unit.instanceId) ?? false}
-              attackerType={actorType}
-              onPress={() => handleOppUnitPress(unit.instanceId)}
-              onLongPress={() => handleLongPress(unit.instanceId)}
-              floatingEvents={floatingByUnit[unit.instanceId] ?? []}
-            />
-          ))}
-        </View>
-
-        {/* Opponent bench */}
-        <View className="flex-row justify-center items-center" style={{ height: 52, gap: 16, marginTop: 4 }}>
-          <Text style={{ fontSize: 9, fontFamily: "Nunito_700Bold", color: "rgba(255,255,255,0.7)", letterSpacing: 2 }}>BENCH</Text>
-          {[...opponentPlayer.bench].reverse().map((unit) => (
-            <BenchCard
-              key={unit.instanceId}
-              unit={unit}
-              onPress={() => handleOppUnitPress(unit.instanceId)}
-              onLongPress={() => handleLongPress(unit.instanceId)}
-            />
-          ))}
-        </View>
-      </View>
-
-      {/* ── Center bar ── */}
-      <View
-        className="bg-accent flex-row items-center justify-center"
-        style={{
-          height: 32,
-          borderRadius: 999,
-          paddingHorizontal: 12,
-          gap: 4,
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.15,
-          shadowRadius: 4,
-          elevation: 4,
-        }}
-      >
-        <Text style={{ fontSize: 11, fontFamily: "Nunito_600SemiBold", color: "#fff" }}>
-          ⚔ Turn {turn}{hint ? ` · ${hint}` : ""}
-        </Text>
-      </View>
-
-      {/* ── Player lane ── */}
-      <View
-        className="flex-1 min-h-0 rounded-xl bg-info"
-        style={{
-          padding: 6,
-          shadowColor: "#6366F1",
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.7,
-          shadowRadius: 10,
-          elevation: 8,
-        }}
-      >
-        {/* Player info badge - absolute top-right */}
+    <View className="flex-1 bg-bg px-12 py-2">
+      <View className="relative z-10 flex-1 justify-center" style={{ gap: 2 }}>
         <View
-          className="absolute flex-row items-center"
-          style={{ top: 6, right: 6, gap: 6, zIndex: 10 }}
+          className="relative min-h-0 flex-1 rounded-xl bg-danger px-1.5 py-1.5"
+          style={{
+            shadowColor: "#f9a8d4",
+            shadowOffset: { width: 0, height: -4 },
+            shadowOpacity: 1,
+            shadowRadius: 10,
+            elevation: 8,
+          }}
         >
-          <View style={{ backgroundColor: "rgba(99,102,241,0.85)", borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 }}>
-            <Text style={{ color: "#fff", fontSize: 12, fontFamily: "Nunito_700Bold" }}>{myPlayer.name}</Text>
+          <View className="absolute left-1 right-1 top-1 z-20 flex-row items-center justify-between">
+            <Pressable onPress={onBack} style={overlayButtonStyle}>
+              <View style={{ transform: [{ rotate: "180deg" }] }}>
+                <ChevronRightIcon size={16} color="#7f1d1d" />
+              </View>
+            </Pressable>
+
+            <View className="flex-row" style={{ gap: 6 }}>
+              <Pressable onPress={() => setShowLogModal(true)} style={overlayButtonStyle}>
+                <ClockIcon size={15} color="#334155" />
+              </Pressable>
+              <Pressable onPress={onConcede} style={overlayButtonStyle}>
+                <XCircleIcon size={15} color="#e11d48" />
+              </Pressable>
+            </View>
           </View>
-          <View style={{ backgroundColor: "rgba(254,240,138,0.9)", borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3, flexDirection: "row", alignItems: "center", gap: 2 }}>
-            <Text style={{ color: "#854D0E", fontSize: 12, fontFamily: "Nunito_700Bold" }}>⚡{myPlayer.energy}</Text>
+
+          <View className="absolute bottom-0 left-1 right-1 z-20 flex-row items-center justify-between">
+            <View className="rounded-full bg-rose-900/80 px-3 py-1">
+              <Text className="font-nunito-bold text-xs text-white">{opponentPlayer.name}</Text>
+            </View>
+            <View className="flex-row items-center rounded-full bg-secondaryBorder/90 px-4 py-1">
+              <Text className="font-nunito-bold text-xs text-secondaryText">⚡ {opponentPlayer.energy}</Text>
+            </View>
+          </View>
+
+          <View className="h-full justify-between">
+            <View className="h-[46px] flex-row items-center px-1" style={{ gap: 10 }}>
+              <Text style={{ color: "rgba(127,29,29,0.8)", fontSize: 11, fontFamily: "Nunito_700Bold", letterSpacing: 1.4 }}>
+                BENCH
+              </Text>
+              {opponentPlayer.bench.map((unit) => (
+                <View key={unit.instanceId} style={{ height: "100%", width: 64 }}>
+                  <BenchCard
+                    unit={unit}
+                    onPress={() => handleOppUnitPress(unit.instanceId)}
+                    onLongPress={() => handleLongPress(unit.instanceId)}
+                  />
+                </View>
+              ))}
+            </View>
+
+            <View className="flex-row items-center justify-between" style={{ gap: 6, height: 76 }}>
+              {sortedOpponentUnits.map((unit) => (
+                <View key={unit.instanceId} style={{ width: "29.75%" }}>
+                  <UnitCard
+                    unit={unit}
+                    isValidTarget={targeting?.validTargetIds.includes(unit.instanceId) ?? false}
+                    attackerType={actorType}
+                    onPress={() => handleOppUnitPress(unit.instanceId)}
+                    onLongPress={() => handleLongPress(unit.instanceId)}
+                    floatingEvents={floatingByUnit[unit.instanceId] ?? []}
+                  />
+                </View>
+              ))}
+            </View>
           </View>
         </View>
 
-        {/* Player active units */}
-        <View className="flex-1 flex-row" style={{ gap: 8, marginTop: 28 }}>
-          {myPlayer.units.map((unit) => (
-            <UnitCard
-              key={unit.instanceId}
-              unit={unit}
-              isSelected={selectedActorId === unit.instanceId && showActionModal}
-              isValidTarget={targeting?.validTargetIds.includes(unit.instanceId) ?? false}
-              onPress={() => handleUnitPress(unit.instanceId)}
-              onLongPress={() => handleLongPress(unit.instanceId)}
-              floatingEvents={floatingByUnit[unit.instanceId] ?? []}
-            />
-          ))}
+        <View
+          className="rounded-full bg-accent px-2"
+          style={{
+            height: 32,
+            justifyContent: "center",
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.15,
+            shadowRadius: 4,
+            elevation: 4,
+          }}
+        >
+          <View className="w-full items-center justify-center px-4">
+            <Text className="font-nunito-semibold text-[11px] text-white">Turn {turn} • {hint}</Text>
+          </View>
         </View>
 
-        {/* Player bench */}
-        <View className="flex-row justify-center items-center" style={{ height: 52, gap: 16, marginTop: 4 }}>
-          {myPlayer.bench.map((unit) => (
-            <BenchCard
-              key={unit.instanceId}
-              unit={unit}
-              isSelected={pendingSwap?.activeInstanceId === unit.instanceId}
-              isSwapTarget={isSwapMode}
-              onPress={() => handleBenchPress(unit.instanceId)}
-              onLongPress={() => handleLongPress(unit.instanceId)}
-            />
-          ))}
-          <Text style={{ fontSize: 9, fontFamily: "Nunito_700Bold", color: "rgba(255,255,255,0.7)", letterSpacing: 2 }}>BENCH</Text>
+        <View
+          className="relative min-h-0 flex-1 rounded-xl bg-info px-1.5 py-1.5"
+          style={{
+            shadowColor: "#1d4ed8",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.75,
+            shadowRadius: 10,
+            elevation: 8,
+          }}
+        >
+          <View className="absolute left-1 right-1 top-0 z-20 flex-row items-center justify-between">
+            <View className="flex-row items-center rounded-full bg-secondaryBorder/90 px-4 py-1">
+              <Text className="font-nunito-bold text-xs text-secondaryText">⚡ {myPlayer.energy}</Text>
+            </View>
+            <View className="rounded-full bg-sky-900/80 px-3 py-1">
+              <Text className="font-nunito-bold text-xs text-white">{myPlayer.name}</Text>
+            </View>
+          </View>
+
+          <View className="h-full justify-between">
+            <View className="flex-row items-center justify-between" style={{ gap: 6, height: 76, marginTop: 18 }}>
+              {sortedMyUnits.map((unit) => (
+                <View key={unit.instanceId} style={{ width: "29.75%" }}>
+                  <UnitCard
+                    unit={unit}
+                    isSelected={selectedActorId === unit.instanceId && showActionModal}
+                    isValidTarget={targeting?.validTargetIds.includes(unit.instanceId) ?? false}
+                    canSelectAsActor={isMyTurn && !targeting && !isSwapMode && unit.hp > 0}
+                    onPress={() => handleUnitPress(unit.instanceId)}
+                    onLongPress={() => handleLongPress(unit.instanceId)}
+                    floatingEvents={floatingByUnit[unit.instanceId] ?? []}
+                  />
+                </View>
+              ))}
+            </View>
+
+            <View className="h-[46px] flex-row items-center justify-end px-1" style={{ gap: 10 }}>
+              {myPlayer.bench.map((unit) => (
+                <View key={unit.instanceId} style={{ height: "100%", width: 64 }}>
+                  <BenchCard
+                    unit={unit}
+                    isSelected={pendingSwap?.activeInstanceId === unit.instanceId}
+                    isSwapTarget={isSwapMode}
+                    isValidTarget={targeting?.validTargetIds.includes(unit.instanceId) ?? false}
+                    onPress={() => handleBenchPress(unit.instanceId)}
+                    onLongPress={() => handleLongPress(unit.instanceId)}
+                  />
+                </View>
+              ))}
+              <Text style={{ color: "rgba(30,64,175,0.8)", fontSize: 11, fontFamily: "Nunito_700Bold", letterSpacing: 1.4 }}>
+                BENCH
+              </Text>
+            </View>
+          </View>
+
+          <ActionButtons
+            isSwapMode={isSwapMode}
+            isTargeting={targeting !== null}
+            hasBench={hasBench}
+            isMyTurn={isMyTurn}
+            isActing={isActing}
+            onSwapToggle={onSwapToggle}
+            onCancel={onCancelTargeting}
+            onEndTurn={onEndTurn}
+          />
         </View>
       </View>
 
-      {/* Target hint */}
       <TargetSelectionHint targeting={targeting} />
 
-      {/* Action buttons (abs bottom-right — relative to board) */}
-      <ActionButtons
-        isSwapMode={isSwapMode}
-        isTargeting={targeting !== null}
-        hasBench={hasBench}
-        isMyTurn={isMyTurn}
-        isActing={isActing}
-        onSwapToggle={onSwapToggle}
-        onCancel={onCancelTargeting}
-        onEndTurn={onEndTurn}
-      />
+      {showTurnBanner ? <TurnBanner key={bannerKey} isMyTurn={isMyTurn} onDone={() => setShowTurnBanner(false)} /> : null}
 
-      {/* Turn banner */}
-      {showTurnBanner && (
-        <TurnBanner
-          key={bannerKey}
-          isMyTurn={isMyTurn}
-          onDone={() => setShowTurnBanner(false)}
-        />
-      )}
-
-      {/* Results overlay */}
       <ResultsScreen
         phase={phase}
         winnerId={winnerId}
@@ -338,7 +355,6 @@ export function BattleBoard({
         onBack={onBack}
       />
 
-      {/* Action modal */}
       <ActionModal
         visible={showActionModal}
         unit={selectedActor ?? null}
@@ -350,26 +366,18 @@ export function BattleBoard({
         onSelectAction={(mode) => {
           onEnterTargeting(mode);
         }}
-        onSubmitNoTarget={() => {
-          if (selectedActor) {
-            submitAction({ kind: "pass" });
-          }
+        onSubmitAction={(action) => {
+          submitAction(action);
           setShowActionModal(false);
           setSelectedActorId(null);
         }}
       />
 
-      {/* Combat log */}
-      <CombatLogModal
-        visible={showLogModal}
-        log={matchView.log}
-        onClose={() => setShowLogModal(false)}
-      />
+      <CombatLogModal visible={showLogModal} log={matchView.log} onClose={() => setShowLogModal(false)} />
 
-      {/* Card info modal */}
       <CardInfoModal
         visible={longPressUnit !== null && !showActionModal}
-        unit={longPressUnit ?? null}
+        unit={longPressUnit}
         abilityDefinitions={abilityDefinitions}
         onClose={() => setLongPressUnitId(null)}
       />

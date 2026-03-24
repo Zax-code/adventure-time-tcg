@@ -93,6 +93,13 @@ export {
   checkGameEnd,
 } from "./validators";
 
+// Targeting helpers
+export {
+  getAbilityTarget,
+  targetNeedsSelection,
+  requiresTargetSelection,
+} from "./targeting";
+
 // Resolution
 export {
   startTurn,

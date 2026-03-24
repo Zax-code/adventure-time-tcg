@@ -1,10 +1,15 @@
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useMemo } from "react";
+import { Pressable, Text, View } from "react-native";
 import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 
 import { getStrongAgainst, getWeakAgainst } from "@adventure-time/game-engine";
+import type { PvpAction } from "@adventure-time/shared";
 
-import { API_BASE_URL } from "../../lib/api";
-import type { MyMatchView, PvpUnitState, TargetingMode } from "./types";
+import { XIcon, ZapIcon, SwordsIcon, SparklesIcon } from "../../components/icons";
+import { BattleFullScreenSheet } from "./battle-full-screen-sheet";
+import { resolveBattleImageUrl } from "./image-url";
+import { prepareBattleAction, type MyMatchView, type PvpUnitState, type TargetingMode } from "./types";
 
 interface ActionModalProps {
   visible: boolean;
@@ -12,7 +17,7 @@ interface ActionModalProps {
   matchView: MyMatchView;
   onClose: () => void;
   onSelectAction: (mode: Omit<TargetingMode, "validTargetIds"> & { validTargetIds?: string[] }) => void;
-  onSubmitNoTarget: (kind: "pass") => void;
+  onSubmitAction: (action: PvpAction) => void;
 }
 
 export function ActionModal({
@@ -21,306 +26,244 @@ export function ActionModal({
   matchView,
   onClose,
   onSelectAction,
-  onSubmitNoTarget,
+  onSubmitAction,
 }: ActionModalProps) {
-  if (!unit) return null;
+  const { myPlayer, opponentPlayer, abilityDefinitions, battleState } = matchView;
 
-  const { myPlayer, opponentPlayer, abilityDefinitions } = matchView;
+  if (!unit) {
+    return null;
+  }
+
   const energy = myPlayer.energy;
   const skillDef = abilityDefinitions?.[unit.skill];
   const ultimateDef = abilityDefinitions?.[unit.ultimate];
-
-  const isSilenced = unit.statuses.some((s) => s.name === "Silence");
+  const isSilenced = unit.statuses.some((status) => status.name === "Silence");
   const skillCd = unit.cooldowns[unit.skill] ?? 0;
   const ultimateCd = unit.cooldowns[unit.ultimate] ?? 0;
-  const skillDisabled = energy < (skillDef?.cost ?? 1) || skillCd > 0 || isSilenced;
-  const ultimateDisabled =
-    energy < (ultimateDef?.cost ?? 2) ||
-    ultimateCd > 0 ||
-    isSilenced ||
-    unit.usedUltimate;
+  const strongTypes = getStrongAgainst(unit.type as never);
+  const weakTypes = getWeakAgainst(unit.type as never);
 
-  const strongTypes = getStrongAgainst(unit.type as any);
-  const weakTypes = getWeakAgainst(unit.type as any);
+  const imageUrl = resolveBattleImageUrl(unit.imageUrl);
 
-  const liveOpponents = opponentPlayer.units.filter((u) => u.hp > 0);
+  const actionCards = useMemo(
+    () => [
+      {
+        key: "basic" as const,
+        label: "Basic Attack",
+        subtitle: "Target a visible enemy",
+        icon: <SwordsIcon size={18} color="#4B5563" />,
+        tint: "bg-slate-100",
+        border: "border-slate-200",
+        text: "text-slate-700",
+        cost: 1,
+        disabled: energy < 1,
+        note: energy < 1 ? "Not enough energy" : null,
+      },
+      {
+        key: "skill" as const,
+        label: skillDef?.name ?? "Skill",
+        subtitle: skillDef?.description ?? "",
+        icon: <ZapIcon size={18} color="#1D4ED8" />,
+        tint: "bg-infoTint",
+        border: "border-infoBorder",
+        text: "text-infoDark",
+        cost: skillDef?.cost ?? 0,
+        disabled: !skillDef || energy < (skillDef?.cost ?? 0) || skillCd > 0 || isSilenced,
+        note: skillCd > 0 ? `Cooldown ${skillCd}` : isSilenced ? "Silenced" : energy < (skillDef?.cost ?? 0) ? "Not enough energy" : null,
+      },
+      {
+        key: "ultimate" as const,
+        label: ultimateDef?.name ?? "Ultimate",
+        subtitle: ultimateDef?.description ?? "",
+        icon: <SparklesIcon size={18} color="#BE185D" />,
+        tint: "bg-accentTint",
+        border: "border-accent",
+        text: "text-accentText",
+        cost: ultimateDef?.cost ?? 0,
+        disabled:
+          !ultimateDef ||
+          energy < (ultimateDef?.cost ?? 0) ||
+          ultimateCd > 0 ||
+          isSilenced ||
+          unit.usedUltimate,
+        note: unit.usedUltimate
+          ? "Used already"
+          : ultimateCd > 0
+            ? `Cooldown ${ultimateCd}`
+            : isSilenced
+              ? "Silenced"
+              : energy < (ultimateDef?.cost ?? 0)
+                ? "Not enough energy"
+                : null,
+      },
+    ],
+    [energy, isSilenced, skillCd, skillDef, ultimateCd, ultimateDef, unit.usedUltimate],
+  );
 
-  const imageUrl = unit.imageUrl
-    ? unit.imageUrl.startsWith("http")
-      ? unit.imageUrl
-      : `${API_BASE_URL}${unit.imageUrl}`
-    : null;
+  const handleAction = (actionKey: "basic" | "skill" | "ultimate") => {
+    const abilityKey = actionKey === "skill" ? unit.skill : actionKey === "ultimate" ? unit.ultimate : undefined;
+    const prepared = prepareBattleAction(battleState, unit.instanceId, actionKey, abilityKey);
+    if (!prepared) {
+      return;
+    }
 
-  const handleBasic = () => {
-    const taunters = liveOpponents.filter((u) => u.statuses.some((s) => s.name === "Taunt"));
-    const validTargets = (taunters.length > 0 ? taunters : liveOpponents).map((u) => u.instanceId);
-    onSelectAction({ actorInstanceId: unit.instanceId, actionKind: "basic", validTargetIds: validTargets });
-    onClose();
-  };
+    if (!prepared.requiresTargetSelection && prepared.actionKind !== "copy") {
+      onSubmitAction(
+        prepared.actionKind === "basic"
+          ? { kind: "basic", actorInstanceId: prepared.actorInstanceId, targetInstanceId: prepared.validTargetIds[0] ?? "" }
+          : {
+              kind: prepared.actionKind,
+              actorInstanceId: prepared.actorInstanceId,
+              abilityKey: prepared.abilityKey!,
+            },
+      );
+      onClose();
+      return;
+    }
 
-  const handleSkill = () => {
-    if (skillDisabled || !skillDef) return;
-    const validTargets = liveOpponents.map((u) => u.instanceId);
     onSelectAction({
-      actorInstanceId: unit.instanceId,
-      actionKind: "skill",
-      abilityKey: unit.skill,
-      validTargetIds: validTargets,
+      actorInstanceId: prepared.actorInstanceId,
+      actionKind: prepared.actionKind,
+      abilityKey: prepared.abilityKey,
+      sourceInstanceId: prepared.sourceInstanceId,
+      copiedAbilityKey: prepared.copiedAbilityKey,
+      stage: prepared.stage,
+      targetLabel: prepared.targetLabel,
+      validTargetIds: prepared.validTargetIds,
     });
-    onClose();
-  };
-
-  const handleUltimate = () => {
-    if (ultimateDisabled || !ultimateDef) return;
-    const validTargets = liveOpponents.map((u) => u.instanceId);
-    onSelectAction({
-      actorInstanceId: unit.instanceId,
-      actionKind: "ultimate",
-      abilityKey: unit.ultimate,
-      validTargetIds: validTargets,
-    });
-    onClose();
-  };
-
-  const handlePass = () => {
-    onSubmitNoTarget("pass");
     onClose();
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose} />
-      <View style={styles.sheet}>
-        <View style={styles.row}>
-          {/* Left: unit info */}
-          <View style={styles.leftPanel}>
-            <View style={styles.thumbnail}>
-              {imageUrl ? (
-                <Image source={{ uri: imageUrl }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
-              ) : (
-                <View style={[StyleSheet.absoluteFillObject, { backgroundColor: "#374151", alignItems: "center", justifyContent: "center" }]}>
-                  <Text style={{ color: "#9CA3AF", fontSize: 20 }}>{unit.name.charAt(0)}</Text>
+    <BattleFullScreenSheet visible={visible} title="Choose Action" onClose={onClose}>
+      <View className="px-4 pb-4 pt-4">
+        <View className="overflow-hidden rounded-[28px] border border-primaryTint bg-white shadow-sm">
+          <View className="flex-row">
+            <View className="w-1/2 bg-slate-900 px-5 py-5">
+              <View className="overflow-hidden rounded-[24px] bg-slate-800" style={{ width: "100%", aspectRatio: 320 / 192 }}>
+                {imageUrl ? (
+                  <Image source={{ uri: imageUrl }} style={{ width: "100%", height: "100%" }} contentFit="cover" />
+                ) : (
+                  <View className="h-full w-full items-center justify-center bg-slate-700">
+                    <Text className="font-nunito-extrabold text-6xl text-white">{unit.name.charAt(0)}</Text>
+                  </View>
+                )}
+                <LinearGradient
+                  colors={["rgba(0,0,0,0.05)", "rgba(0,0,0,0.85)"]}
+                  start={{ x: 0.5, y: 0 }}
+                  end={{ x: 0.5, y: 1 }}
+                  style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0 }}
+                />
+                <View className="absolute left-4 top-4 rounded-xl bg-black/55 px-3 py-1.5">
+                  <Text className="font-nunito-bold text-xs text-white">{unit.type}</Text>
                 </View>
-              )}
-            </View>
-            <Text style={styles.unitName} numberOfLines={1}>{unit.name}</Text>
-            <Text style={styles.typeBadge}>{unit.type}</Text>
-            <View style={styles.statsRow}>
-              <StatLine label="ATK" value={unit.attack} />
-              <StatLine label="DEF" value={unit.defense} />
-              <StatLine label="SPD" value={unit.speed} />
-            </View>
-            <Text style={styles.energyLabel}>⚡ {energy}</Text>
-            {strongTypes.length > 0 && (
-              <Text style={styles.strongText}>Strong vs: {strongTypes.join(", ")}</Text>
-            )}
-            {weakTypes.length > 0 && (
-              <Text style={styles.weakText}>Weak vs: {weakTypes.join(", ")}</Text>
-            )}
-          </View>
+              </View>
 
-          {/* Right: actions */}
-          <ScrollView style={styles.rightPanel} showsVerticalScrollIndicator={false}>
-            <ActionButton
-              label="Basic Attack"
-              subtitle="1 energy • targets enemy"
-              cost={1}
-              energy={energy}
-              onPress={handleBasic}
-            />
-            <ActionButton
-              label={skillDef?.name ?? "Skill"}
-              subtitle={skillDef?.description ?? ""}
-              cost={skillDef?.cost ?? 1}
-              energy={energy}
-              cooldown={skillCd}
-              disabled={skillDisabled}
-              onPress={handleSkill}
-            />
-            <ActionButton
-              label={ultimateDef?.name ?? "Ultimate"}
-              subtitle={ultimateDef?.description ?? ""}
-              cost={ultimateDef?.cost ?? 2}
-              energy={energy}
-              cooldown={ultimateCd}
-              used={unit.usedUltimate}
-              silenced={isSilenced}
-              disabled={ultimateDisabled}
-              onPress={handleUltimate}
-              isUltimate
-            />
-            <Pressable style={styles.passButton} onPress={handlePass}>
-              <Text style={styles.passText}>Pass</Text>
+              <View className="mt-4 gap-1">
+                <Text className="font-nunito text-base italic text-fgMuted" numberOfLines={1}>
+                  {unit.name}
+                </Text>
+                <Text className="font-nunito-extrabold text-3xl text-fg" numberOfLines={2}>
+                  {unit.character || unit.name}
+                </Text>
+                <Text className="font-nunito-bold text-sm text-fgMuted">{unit.rarity}</Text>
+              </View>
+
+              <View className="mt-4 flex-row flex-wrap gap-2">
+                <StatChip label="ATK" value={unit.attack} base={unit.baseAttack} />
+                <StatChip label="DEF" value={unit.defense} base={unit.baseDefense} />
+                <StatChip label="SPD" value={unit.speed} base={unit.baseSpeed} />
+              </View>
+
+              <View className="mt-5 rounded-2xl bg-primaryBg px-4 py-3">
+                <View className="flex-row items-center justify-between">
+                  <View className="flex-row items-center gap-2 rounded-full bg-secondaryTint px-3 py-1.5">
+                    <ZapIcon size={14} color="#854D0E" />
+                    <Text className="font-nunito-bold text-secondaryText">Energy {energy}</Text>
+                  </View>
+                  <Text className="font-nunito-semibold text-xs text-fgMuted">
+                    {opponentPlayer.units.filter((enemy) => enemy.hp > 0).length} active enemies
+                  </Text>
+                </View>
+                {strongTypes.length > 0 || weakTypes.length > 0 ? (
+                  <View className="mt-3 gap-1">
+                    {strongTypes.length > 0 ? (
+                      <Text className="font-nunito text-xs text-successDark">Strong vs: {strongTypes.join(", ")}</Text>
+                    ) : null}
+                    {weakTypes.length > 0 ? (
+                      <Text className="font-nunito text-xs text-dangerDark">Weak vs: {weakTypes.join(", ")}</Text>
+                    ) : null}
+                  </View>
+                ) : null}
+              </View>
+            </View>
+
+            <View className="w-1/2 gap-3 px-4 py-4">
+              <View className="mb-1 flex-row justify-end">
+                <Pressable onPress={onClose} className="rounded-full bg-surfaceMuted p-2">
+                  <XIcon size={16} color="#475569" />
+                </Pressable>
+              </View>
+
+            {actionCards.map((card) => (
+              <Pressable
+                key={card.key}
+                disabled={card.disabled}
+                onPress={() => handleAction(card.key)}
+                className={`rounded-2xl border-2 px-4 py-4 ${card.tint} ${card.border} ${card.disabled ? "opacity-45" : ""}`}
+              >
+                <View className="flex-row items-start justify-between gap-3">
+                  <View className="flex-1 flex-row gap-3">
+                    <View className={`rounded-xl p-2 ${card.tint}`}>{card.icon}</View>
+                    <View className="flex-1">
+                      <Text className={`font-nunito-bold text-base ${card.text}`}>{card.label}</Text>
+                      <Text className="mt-1 font-nunito text-xs leading-4 text-fgMuted">{card.subtitle}</Text>
+                      {card.note ? (
+                        <Text className="mt-2 font-nunito-semibold text-xs text-dangerDark">{card.note}</Text>
+                      ) : null}
+                    </View>
+                  </View>
+                  <View className="rounded-full bg-secondaryTint px-2.5 py-1">
+                    <Text className="font-nunito-bold text-secondaryText">{card.cost} EN</Text>
+                  </View>
+                </View>
+              </Pressable>
+            ))}
+
+            <Pressable
+              onPress={() => {
+                onSubmitAction({ kind: "pass" });
+                onClose();
+              }}
+              className="rounded-2xl bg-slate-600 px-4 py-4"
+            >
+              <Text className="text-center font-nunito-bold text-white">Pass</Text>
             </Pressable>
-          </ScrollView>
+            </View>
+          </View>
         </View>
       </View>
-    </Modal>
+    </BattleFullScreenSheet>
   );
 }
 
-function StatLine({ label, value }: { label: string; value: number }) {
+function StatChip({
+  label,
+  value,
+  base,
+}: {
+  label: string;
+  value: number;
+  base?: number;
+}) {
+  const delta = base != null ? value - base : 0;
+
   return (
-    <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 2 }}>
-      <Text style={{ color: "#9CA3AF", fontSize: 11 }}>{label}</Text>
-      <Text style={{ color: "#fff", fontSize: 11, fontFamily: "Nunito_700Bold" }}>{value}</Text>
+    <View className="rounded-full bg-black/25 px-2.5 py-1">
+      <Text className="font-nunito-bold text-xs text-white">
+        {label} {value}
+        {delta !== 0 ? ` ${delta > 0 ? `+${delta}` : delta}` : ""}
+      </Text>
     </View>
   );
 }
-
-function ActionButton({
-  label,
-  subtitle,
-  cost,
-  energy,
-  cooldown = 0,
-  used = false,
-  silenced = false,
-  disabled = false,
-  isUltimate = false,
-  onPress,
-}: {
-  label: string;
-  subtitle: string;
-  cost: number;
-  energy: number;
-  cooldown?: number;
-  used?: boolean;
-  silenced?: boolean;
-  disabled?: boolean;
-  isUltimate?: boolean;
-  onPress: () => void;
-}) {
-  const canAfford = energy >= cost;
-  const isDisabled = disabled || !canAfford;
-  const statusNote = used
-    ? "Used"
-    : silenced
-    ? "Silenced"
-    : cooldown > 0
-    ? `CD: ${cooldown}`
-    : !canAfford
-    ? "Not enough energy"
-    : null;
-
-  return (
-    <Pressable
-      style={[styles.actionBtn, isDisabled && styles.actionBtnDisabled, isUltimate && styles.ultimateBtn]}
-      onPress={isDisabled ? undefined : onPress}
-    >
-      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-        <Text style={[styles.actionLabel, isDisabled && styles.actionLabelDisabled]}>{label}</Text>
-        <Text style={styles.costBadge}>⚡{cost}</Text>
-      </View>
-      <Text style={styles.actionSubtitle} numberOfLines={2}>{subtitle}</Text>
-      {statusNote && <Text style={styles.statusNote}>{statusNote}</Text>}
-    </Pressable>
-  );
-}
-
-const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-  },
-  sheet: {
-    backgroundColor: "#1F2937",
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    maxHeight: 340,
-    padding: 16,
-  },
-  row: {
-    flexDirection: "row",
-    flex: 1,
-  },
-  leftPanel: {
-    width: "38%",
-    paddingRight: 12,
-  },
-  thumbnail: {
-    width: 56,
-    height: 56,
-    borderRadius: 8,
-    overflow: "hidden",
-    marginBottom: 6,
-  },
-  unitName: {
-    color: "#fff",
-    fontSize: 13,
-    fontFamily: "Nunito_700Bold",
-  },
-  typeBadge: {
-    color: "#9CA3AF",
-    fontSize: 11,
-    marginBottom: 6,
-  },
-  statsRow: {
-    marginBottom: 6,
-  },
-  energyLabel: {
-    color: "#FACC15",
-    fontSize: 14,
-    fontFamily: "Nunito_700Bold",
-    marginBottom: 6,
-  },
-  strongText: {
-    color: "#10B981",
-    fontSize: 10,
-    marginBottom: 2,
-  },
-  weakText: {
-    color: "#EF4444",
-    fontSize: 10,
-  },
-  rightPanel: {
-    flex: 1,
-  },
-  actionBtn: {
-    backgroundColor: "#374151",
-    borderRadius: 10,
-    padding: 10,
-    marginBottom: 8,
-  },
-  actionBtnDisabled: {
-    opacity: 0.5,
-  },
-  ultimateBtn: {
-    borderWidth: 1,
-    borderColor: "#EF4444",
-  },
-  actionLabel: {
-    color: "#fff",
-    fontSize: 13,
-    fontFamily: "Nunito_700Bold",
-  },
-  actionLabelDisabled: {
-    color: "#9CA3AF",
-  },
-  costBadge: {
-    color: "#FACC15",
-    fontSize: 12,
-    fontFamily: "Nunito_700Bold",
-  },
-  actionSubtitle: {
-    color: "#9CA3AF",
-    fontSize: 11,
-    marginTop: 2,
-  },
-  statusNote: {
-    color: "#EF4444",
-    fontSize: 10,
-    marginTop: 2,
-  },
-  passButton: {
-    backgroundColor: "#4B5563",
-    borderRadius: 10,
-    padding: 10,
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  passText: {
-    color: "#9CA3AF",
-    fontSize: 13,
-    fontFamily: "Nunito_700Bold",
-  },
-});
