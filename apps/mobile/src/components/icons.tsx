@@ -1,3 +1,4 @@
+import type { ComponentProps, ComponentType } from "react";
 import Svg, {
   Circle,
   Defs,
@@ -367,8 +368,10 @@ export function HPIcon({ size = 24, hpVal = 0 }: { size?: number; hpVal?: string
 }
 
 export function SpeedIcon({ size = 24, speedVal = 0 }: { size?: number; speedVal?: string | number }) {
+  // `overflow` is a valid SVG attribute but not typed in react-native-svg's SvgProps
+  const SvgOverflow = Svg as ComponentType<ComponentProps<typeof Svg> & { overflow?: string }>;
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <SvgOverflow width={size} height={size} viewBox="0 0 24 24" fill="none" overflow="visible">
       <G transform="rotate(-45, 12, 12)">
         <Path
           fill="#76bb40"
@@ -387,7 +390,7 @@ export function SpeedIcon({ size = 24, speedVal = 0 }: { size?: number; speedVal
           {String(speedVal)}
         </SvgText>
       </G>
-    </Svg>
+    </SvgOverflow>
   );
 }
 
