@@ -189,6 +189,22 @@ export function ClockIcon({ size = 24, color = "#DB2777" }: IconProps) {
   );
 }
 
+export function ZapIcon({ size = 24, color = "#DB2777" }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M13 2L5 13H11L10 22L19 10H13L13 2Z"
+        fill={color}
+        fillOpacity={0.18}
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
 export function XIcon({ size = 24, color = "#DB2777" }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">

@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
-  Modal,
   Pressable,
   StatusBar,
   StyleSheet,
@@ -17,8 +15,9 @@ import type { PvpAction } from "@adventure-time/shared";
 import { useThemeStore } from "../src/stores/theme-store";
 import { THEME_VARS } from "../src/theme/themes";
 import { BattleBoard } from "../src/features/pvp/battle-board";
+import { BattleFullScreenSheet } from "../src/features/pvp/battle-full-screen-sheet";
 import { useMatch } from "../src/features/pvp/use-match";
-import type { TargetingMode, SwapSelection } from "../src/features/pvp/types";
+import { prepareCopyFollowUp, type TargetingMode, type SwapSelection } from "../src/features/pvp/types";
 
 export default function PvpMatchScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -48,7 +47,44 @@ export default function PvpMatchScreen() {
   };
 
   const handleSelectTarget = (targetInstanceId: string) => {
-    if (!targeting) return;
+    if (!targeting || !matchView) return;
+
+    if (targeting.actionKind === "copy" && targeting.stage === "copy-source") {
+      const followUp = prepareCopyFollowUp(
+        matchView.battleState,
+        targeting.actorInstanceId,
+        targeting.abilityKey!,
+        targetInstanceId,
+      );
+      if (!followUp) {
+        setTargeting(null);
+        return;
+      }
+
+      if (!followUp.requiresTargetSelection) {
+        submitAction({
+          kind: "copy",
+          actorInstanceId: followUp.actorInstanceId,
+          abilityKey: followUp.abilityKey!,
+          sourceInstanceId: targetInstanceId,
+        });
+        setTargeting(null);
+        return;
+      }
+
+      setTargeting({
+        actorInstanceId: followUp.actorInstanceId,
+        actionKind: "copy",
+        abilityKey: followUp.abilityKey,
+        sourceInstanceId: targetInstanceId,
+        copiedAbilityKey: followUp.copiedAbilityKey,
+        stage: "target",
+        targetLabel: followUp.targetLabel,
+        validTargetIds: followUp.validTargetIds,
+      });
+      return;
+    }
+
     const { actorInstanceId, actionKind, abilityKey } = targeting;
 
     let action: PvpAction;
@@ -58,6 +94,14 @@ export default function PvpMatchScreen() {
       action = { kind: "skill", actorInstanceId, abilityKey: abilityKey!, targetInstanceId };
     } else if (actionKind === "ultimate") {
       action = { kind: "ultimate", actorInstanceId, abilityKey: abilityKey!, targetInstanceId };
+    } else if (actionKind === "copy") {
+      action = {
+        kind: "copy",
+        actorInstanceId,
+        abilityKey: abilityKey!,
+        sourceInstanceId: targeting.sourceInstanceId!,
+        targetInstanceId,
+      };
     } else {
       action = { kind: "pass" };
     }
@@ -174,59 +218,75 @@ export default function PvpMatchScreen() {
         submitEndTurn={submitEndTurn}
       />
 
-      {/* End turn confirm */}
-      <Modal visible={showEndTurnConfirm} transparent animationType="fade">
-        <View style={styles.confirmBackdrop}>
-          <View style={styles.confirmCard}>
-            <Text style={styles.confirmTitle}>End Turn?</Text>
-            <Text style={styles.confirmBody}>
-              You still have {matchView.myPlayer.energy} energy remaining.
-            </Text>
-            <View style={styles.confirmBtns}>
-              <Pressable style={styles.confirmCancel} onPress={() => setShowEndTurnConfirm(false)}>
-                <Text style={styles.confirmCancelText}>Cancel</Text>
-              </Pressable>
-              <Pressable
-                style={styles.confirmOk}
-                onPress={() => {
-                  setShowEndTurnConfirm(false);
-                  submitEndTurn();
-                }}
-              >
-                <Text style={styles.confirmOkText}>End Turn</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      <ConfirmSheet
+        visible={showEndTurnConfirm}
+        title="End Turn?"
+        body={`You still have ${matchView.myPlayer.energy} energy remaining.`}
+        confirmLabel="End Turn"
+        onCancel={() => setShowEndTurnConfirm(false)}
+        onConfirm={() => {
+          setShowEndTurnConfirm(false);
+          submitEndTurn();
+        }}
+      />
 
-      {/* Concede confirm */}
-      <Modal visible={showConcedeConfirm} transparent animationType="fade">
-        <View style={styles.confirmBackdrop}>
-          <View style={styles.confirmCard}>
-            <Text style={styles.confirmTitle}>Concede?</Text>
-            <Text style={styles.confirmBody}>
-              This will count as a loss. Are you sure?
-            </Text>
-            <View style={styles.confirmBtns}>
-              <Pressable style={styles.confirmCancel} onPress={() => setShowConcedeConfirm(false)}>
-                <Text style={styles.confirmCancelText}>Cancel</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.confirmOk, { backgroundColor: "#EF4444" }]}
-                onPress={() => {
-                  setShowConcedeConfirm(false);
-                  concede();
-                  router.back();
-                }}
-              >
-                <Text style={styles.confirmOkText}>Concede</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      <ConfirmSheet
+        visible={showConcedeConfirm}
+        title="Concede?"
+        body="This will count as a loss. Are you sure?"
+        confirmLabel="Concede"
+        danger
+        onCancel={() => setShowConcedeConfirm(false)}
+        onConfirm={() => {
+          setShowConcedeConfirm(false);
+          concede();
+          router.back();
+        }}
+      />
     </View>
+  );
+}
+
+function ConfirmSheet({
+  visible,
+  title,
+  body,
+  confirmLabel,
+  onCancel,
+  onConfirm,
+  danger = false,
+}: {
+  visible: boolean;
+  title: string;
+  body: string;
+  confirmLabel: string;
+  onCancel: () => void;
+  onConfirm: () => void;
+  danger?: boolean;
+}) {
+  return (
+    <BattleFullScreenSheet
+      visible={visible}
+      title={title}
+      onClose={onCancel}
+      footer={
+        <View className="flex-row gap-3">
+          <Pressable onPress={onCancel} className="flex-1 rounded-2xl bg-surfaceMuted px-4 py-3">
+            <Text className="text-center font-nunito-bold text-fgMuted">Cancel</Text>
+          </Pressable>
+          <Pressable onPress={onConfirm} className={`flex-1 rounded-2xl px-4 py-3 ${danger ? "bg-dangerDark" : "bg-primaryDark"}`}>
+            <Text className="text-center font-nunito-bold text-white">{confirmLabel}</Text>
+          </Pressable>
+        </View>
+      }
+    >
+      <View className="flex-1 items-center justify-center px-6 py-10">
+        <View className="w-full max-w-[520px] rounded-[28px] border border-primaryTint bg-white px-6 py-8">
+          <Text className="text-center font-nunito-extrabold text-3xl text-fg">{title}</Text>
+          <Text className="mt-4 text-center font-nunito text-base leading-6 text-fgMuted">{body}</Text>
+        </View>
+      </View>
+    </BattleFullScreenSheet>
   );
 }
 
@@ -245,57 +305,5 @@ const styles = StyleSheet.create({
   loadingText: {
     color: "#9CA3AF",
     fontSize: 14,
-  },
-  confirmBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  confirmCard: {
-    backgroundColor: "#1F2937",
-    borderRadius: 16,
-    padding: 24,
-    width: "80%",
-    maxWidth: 320,
-  },
-  confirmTitle: {
-    color: "#fff",
-    fontSize: 18,
-    fontFamily: "Nunito_700Bold",
-    marginBottom: 8,
-  },
-  confirmBody: {
-    color: "#9CA3AF",
-    fontSize: 14,
-    marginBottom: 20,
-  },
-  confirmBtns: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  confirmCancel: {
-    flex: 1,
-    backgroundColor: "#374151",
-    borderRadius: 10,
-    padding: 12,
-    alignItems: "center",
-  },
-  confirmCancelText: {
-    color: "#D1D5DB",
-    fontSize: 14,
-    fontFamily: "Nunito_700Bold",
-  },
-  confirmOk: {
-    flex: 1,
-    backgroundColor: "#3B82F6",
-    borderRadius: 10,
-    padding: 12,
-    alignItems: "center",
-  },
-  confirmOkText: {
-    color: "#fff",
-    fontSize: 14,
-    fontFamily: "Nunito_700Bold",
   },
 });
