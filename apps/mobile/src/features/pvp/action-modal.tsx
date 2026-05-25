@@ -7,6 +7,8 @@ import { getStrongAgainst, getWeakAgainst } from "@adventure-time/game-engine";
 import type { PvpAction } from "@adventure-time/shared";
 
 import { XIcon, ZapIcon, SwordsIcon, SparklesIcon } from "../../components/icons";
+import { useTranslation } from "../../i18n";
+import { localizeRarityName, localizeTypeName } from "../../lib/combat-i18n";
 import { BattleFullScreenSheet } from "./battle-full-screen-sheet";
 import { resolveBattleImageUrl } from "./image-url";
 import { prepareBattleAction, type MyMatchView, type PvpUnitState, type TargetingMode } from "./types";
@@ -28,18 +30,21 @@ export function ActionModal({
   onSelectAction,
   onSubmitAction,
 }: ActionModalProps) {
+  const { t } = useTranslation();
   const { myPlayer, opponentPlayer, abilityDefinitions, battleState } = matchView;
 
   if (!unit) {
     return null;
   }
 
+  const skillKey = unit.skill ?? undefined;
+  const ultimateKey = unit.ultimate ?? undefined;
   const energy = myPlayer.energy;
-  const skillDef = abilityDefinitions?.[unit.skill];
-  const ultimateDef = abilityDefinitions?.[unit.ultimate];
+  const skillDef = skillKey ? abilityDefinitions?.[skillKey] : undefined;
+  const ultimateDef = ultimateKey ? abilityDefinitions?.[ultimateKey] : undefined;
   const isSilenced = unit.statuses.some((status) => status.name === "Silence");
-  const skillCd = unit.cooldowns[unit.skill] ?? 0;
-  const ultimateCd = unit.cooldowns[unit.ultimate] ?? 0;
+  const skillCd = skillKey ? (unit.cooldowns[skillKey] ?? 0) : 0;
+  const ultimateCd = ultimateKey ? (unit.cooldowns[ultimateKey] ?? 0) : 0;
   const strongTypes = getStrongAgainst(unit.type as never);
   const weakTypes = getWeakAgainst(unit.type as never);
 
@@ -49,19 +54,19 @@ export function ActionModal({
     () => [
       {
         key: "basic" as const,
-        label: "Basic Attack",
-        subtitle: "Target a visible enemy",
+        label: t("pvp.action.basic"),
+        subtitle: t("pvp.action.basicSubtitle"),
         icon: <SwordsIcon size={18} color="#4B5563" />,
         tint: "bg-slate-100",
         border: "border-slate-200",
         text: "text-slate-700",
         cost: 1,
         disabled: energy < 1,
-        note: energy < 1 ? "Not enough energy" : null,
+        note: energy < 1 ? t("pvp.action.notEnoughEnergy") : null,
       },
       {
         key: "skill" as const,
-        label: skillDef?.name ?? "Skill",
+        label: skillDef?.name ?? t("pvp.action.skillFallback"),
         subtitle: skillDef?.description ?? "",
         icon: <ZapIcon size={18} color="#1D4ED8" />,
         tint: "bg-infoTint",
@@ -69,11 +74,11 @@ export function ActionModal({
         text: "text-infoDark",
         cost: skillDef?.cost ?? 0,
         disabled: !skillDef || energy < (skillDef?.cost ?? 0) || skillCd > 0 || isSilenced,
-        note: skillCd > 0 ? `Cooldown ${skillCd}` : isSilenced ? "Silenced" : energy < (skillDef?.cost ?? 0) ? "Not enough energy" : null,
+        note: skillCd > 0 ? t("pvp.action.cooldown", { count: skillCd }) : isSilenced ? t("pvp.action.silenced") : energy < (skillDef?.cost ?? 0) ? t("pvp.action.notEnoughEnergy") : null,
       },
       {
         key: "ultimate" as const,
-        label: ultimateDef?.name ?? "Ultimate",
+        label: ultimateDef?.name ?? t("pvp.action.ultimateFallback"),
         subtitle: ultimateDef?.description ?? "",
         icon: <SparklesIcon size={18} color="#BE185D" />,
         tint: "bg-accentTint",
@@ -87,21 +92,21 @@ export function ActionModal({
           isSilenced ||
           unit.usedUltimate,
         note: unit.usedUltimate
-          ? "Used already"
+          ? t("pvp.action.usedAlready")
           : ultimateCd > 0
-            ? `Cooldown ${ultimateCd}`
+            ? t("pvp.action.cooldown", { count: ultimateCd })
             : isSilenced
-              ? "Silenced"
+              ? t("pvp.action.silenced")
               : energy < (ultimateDef?.cost ?? 0)
-                ? "Not enough energy"
+                ? t("pvp.action.notEnoughEnergy")
                 : null,
       },
     ],
-    [energy, isSilenced, skillCd, skillDef, ultimateCd, ultimateDef, unit.usedUltimate],
+    [energy, isSilenced, skillCd, skillDef, t, ultimateCd, ultimateDef, unit.usedUltimate],
   );
 
   const handleAction = (actionKey: "basic" | "skill" | "ultimate") => {
-    const abilityKey = actionKey === "skill" ? unit.skill : actionKey === "ultimate" ? unit.ultimate : undefined;
+    const abilityKey = actionKey === "skill" ? skillKey : actionKey === "ultimate" ? ultimateKey : undefined;
     const prepared = prepareBattleAction(battleState, unit.instanceId, actionKey, abilityKey);
     if (!prepared) {
       return;
@@ -135,7 +140,7 @@ export function ActionModal({
   };
 
   return (
-    <BattleFullScreenSheet visible={visible} title="Choose Action" onClose={onClose}>
+    <BattleFullScreenSheet visible={visible} title={t("pvp.action.title")} onClose={onClose}>
       <View className="px-4 pb-4 pt-4">
         <View className="overflow-hidden rounded-[28px] border border-primaryTint bg-white shadow-sm">
           <View className="flex-row">
@@ -155,7 +160,7 @@ export function ActionModal({
                   style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0 }}
                 />
                 <View className="absolute left-4 top-4 rounded-xl bg-black/55 px-3 py-1.5">
-                  <Text className="font-nunito-bold text-xs text-white">{unit.type}</Text>
+                  <Text className="font-nunito-bold text-xs text-white">{localizeTypeName(unit.type, t)}</Text>
                 </View>
               </View>
 
@@ -166,7 +171,7 @@ export function ActionModal({
                 <Text className="font-nunito-extrabold text-3xl text-fg" numberOfLines={2}>
                   {unit.character || unit.name}
                 </Text>
-                <Text className="font-nunito-bold text-sm text-fgMuted">{unit.rarity}</Text>
+                <Text className="font-nunito-bold text-sm text-fgMuted">{localizeRarityName(unit.rarity, t)}</Text>
               </View>
 
               <View className="mt-4 flex-row flex-wrap gap-2">
@@ -179,19 +184,19 @@ export function ActionModal({
                 <View className="flex-row items-center justify-between">
                   <View className="flex-row items-center gap-2 rounded-full bg-secondaryTint px-3 py-1.5">
                     <ZapIcon size={14} color="#854D0E" />
-                    <Text className="font-nunito-bold text-secondaryText">Energy {energy}</Text>
+                    <Text className="font-nunito-bold text-secondaryText">{t("pvp.action.energy", { count: energy })}</Text>
                   </View>
                   <Text className="font-nunito-semibold text-xs text-fgMuted">
-                    {opponentPlayer.units.filter((enemy) => enemy.hp > 0).length} active enemies
+                      {t("pvp.action.activeEnemies", { count: opponentPlayer.units.filter((enemy) => enemy.hp > 0).length })}
                   </Text>
                 </View>
                 {strongTypes.length > 0 || weakTypes.length > 0 ? (
                   <View className="mt-3 gap-1">
                     {strongTypes.length > 0 ? (
-                      <Text className="font-nunito text-xs text-successDark">Strong vs: {strongTypes.join(", ")}</Text>
+                        <Text className="font-nunito text-xs text-successDark">{t("pvp.action.strongAgainst", { value: strongTypes.map((type) => localizeTypeName(type, t)).join(", ") })}</Text>
                     ) : null}
                     {weakTypes.length > 0 ? (
-                      <Text className="font-nunito text-xs text-dangerDark">Weak vs: {weakTypes.join(", ")}</Text>
+                        <Text className="font-nunito text-xs text-dangerDark">{t("pvp.action.weakAgainst", { value: weakTypes.map((type) => localizeTypeName(type, t)).join(", ") })}</Text>
                     ) : null}
                   </View>
                 ) : null}
@@ -237,7 +242,7 @@ export function ActionModal({
               }}
               className="rounded-2xl bg-slate-600 px-4 py-4"
             >
-              <Text className="text-center font-nunito-bold text-white">Pass</Text>
+              <Text className="text-center font-nunito-bold text-white">{t("pvp.action.pass")}</Text>
             </Pressable>
             </View>
           </View>

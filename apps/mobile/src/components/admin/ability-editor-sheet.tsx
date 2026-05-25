@@ -23,6 +23,7 @@ import {
   type TypeName,
 } from "./ability-payload";
 import { AdminButton, AdminField } from "./admin-ui";
+import { useTranslation } from "../../i18n";
 import { useThemeStore } from "../../stores/theme-store";
 import { THEME_COLORS } from "../../theme/themes";
 
@@ -58,12 +59,12 @@ type AbilityEditorFormProps = {
   onDelete: (abilityId: string) => Promise<void> | void;
 };
 
-function formatError(error: unknown) {
+function formatError(error: unknown, fallback: string) {
   if (error instanceof Error) {
     return error.message;
   }
 
-  return "Something went wrong.";
+  return fallback;
 }
 
 function defaultStatusEntry() {
@@ -120,6 +121,10 @@ export function AbilityEditorForm({
   onSubmit,
   onDelete,
 }: AbilityEditorFormProps) {
+  const { t } = useTranslation();
+  const fieldLabel = (key: string) => t(`admin.abilityEditor.fieldLabels.${key}`);
+  const toggleLabel = (key: string) => t(`admin.abilityEditor.toggleLabels.${key}`);
+  const optionLabel = (key: string) => t(`admin.abilityEditor.optionLabels.${key}`);
   const initialState = getInitialEditorState(ability);
   const [formKey, setFormKey] = useState(initialState.formKey);
   const [formName, setFormName] = useState(initialState.formName);
@@ -246,8 +251,8 @@ export function AbilityEditorForm({
     setRawPayloadError("");
 
     if (!formKey.trim() || !formName.trim() || !formDescription.trim()) {
-      setFormError("Key, name, and description are required.");
-      return false;
+        setFormError(t("admin.abilityEditor.requiredFields"));
+        return false;
     }
 
     let payload: Record<string, unknown>;
@@ -256,14 +261,14 @@ export function AbilityEditorForm({
       try {
         const parsed = JSON.parse(rawPayloadText);
         if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-          throw new Error("Payload JSON must be an object.");
+          throw new Error(t("admin.abilityEditor.payloadObjectError"));
         }
 
         payload = parsed as Record<string, unknown>;
       } catch (error) {
-        const message = formatError(error);
+        const message = formatError(error, t("admin.abilityEditor.genericError"));
         setRawPayloadError(message);
-        setFormError("Fix the raw payload JSON before saving.");
+        setFormError(t("admin.abilityEditor.fixRawPayload"));
         return false;
       }
     } else {
@@ -278,8 +283,8 @@ export function AbilityEditorForm({
       );
 
       if (invalidStatusDuration) {
-        setFormError("Status durations must be positive whole numbers.");
-        return false;
+          setFormError(t("admin.abilityEditor.statusDurationError"));
+          return false;
       }
 
       if (
@@ -287,7 +292,7 @@ export function AbilityEditorForm({
         formPayload.adjacentAuraStatusDuration.trim() !== "" &&
         !isPositiveInteger(formPayload.adjacentAuraStatusDuration)
       ) {
-        setFormError("Adjacent aura duration must be a positive whole number.");
+        setFormError(t("admin.abilityEditor.auraDurationError"));
         return false;
       }
 
@@ -295,8 +300,12 @@ export function AbilityEditorForm({
         try {
           JSON.parse(formPayload.conditionalRaw);
         } catch (error) {
-          setFormError(`Conditional JSON is invalid. ${formatError(error)}`);
-          return false;
+           setFormError(
+             t("admin.abilityEditor.conditionalInvalid", {
+                error: formatError(error, t("admin.abilityEditor.genericError")),
+              }),
+            );
+           return false;
         }
       }
 
@@ -337,13 +346,13 @@ export function AbilityEditorForm({
     <View className="flex-row gap-2 items-center">
       {ability ? (
         <AdminButton
-          label="Delete"
+          label={t("admin.abilityEditor.delete")}
           variant="danger"
           onPress={() =>
-            Alert.alert("Delete ability", `Delete ${ability.name}?`, [
-              { text: "Cancel", style: "cancel" },
+            Alert.alert(t("admin.abilityEditor.deleteAbilityTitle"), t("admin.abilityEditor.deleteAbilityBody", { name: ability.name }), [
+              { text: t("common.cancel"), style: "cancel" },
               {
-                text: "Delete",
+                text: t("admin.abilityEditor.delete"),
                 style: "destructive",
                 onPress: () => void onDelete(ability.id),
               },
@@ -352,29 +361,29 @@ export function AbilityEditorForm({
         />
       ) : null}
       <View className="flex-1" />
-      <AdminButton label={saving ? "Saving..." : "Save"} onPress={() => void submit()} disabled={saving} />
+      <AdminButton label={saving ? t("admin.abilityEditor.saving") : t("admin.abilityEditor.save")} onPress={() => void submit()} disabled={saving} />
     </View>
   );
 
   return (
     <>
-      <Section title="Basic info" defaultOpen>
-        <AdminField label="Key" value={formKey} onChangeText={setFormKey} placeholder="ability_key" />
-        <AdminField label="Name" value={formName} onChangeText={setFormName} placeholder="Ability name" />
+      <Section title={t("admin.abilityEditor.basicInfo")} defaultOpen>
+        <AdminField label={t("admin.abilityEditor.key")} value={formKey} onChangeText={setFormKey} placeholder={t("admin.abilityEditor.keyPlaceholder")} />
+        <AdminField label={t("admin.abilityEditor.name")} value={formName} onChangeText={setFormName} placeholder={t("admin.abilityEditor.namePlaceholder")} />
         <AdminField
-          label="Description"
+          label={t("admin.abilityEditor.description")}
           value={formDescription}
           onChangeText={setFormDescription}
-          placeholder="Describe what the ability does"
+          placeholder={t("admin.abilityEditor.descriptionPlaceholder")}
           multiline
         />
         <SelectField
           id="type"
-          label="Type"
+          label={t("admin.abilityEditor.type")}
           options={[
-            { label: "PASSIVE", value: "PASSIVE" },
-            { label: "SKILL", value: "SKILL" },
-            { label: "ULTIMATE", value: "ULTIMATE" },
+            { label: t("admin.abilities.type.PASSIVE"), value: "PASSIVE" },
+            { label: t("admin.abilities.type.SKILL"), value: "SKILL" },
+            { label: t("admin.abilities.type.ULTIMATE"), value: "ULTIMATE" },
           ]}
           value={formType}
           onChange={(value) => setFormType(value as AbilityType)}
@@ -384,24 +393,24 @@ export function AbilityEditorForm({
         {formType !== "PASSIVE" ? (
           <View className="flex-row gap-[10]">
             <View className="flex-1">
-              <AdminField label="Cost" value={formCost} onChangeText={setFormCost} keyboardType="numeric" />
+              <AdminField label={t("admin.abilityEditor.cost")} value={formCost} onChangeText={setFormCost} keyboardType="numeric" />
             </View>
             {formType === "SKILL" ? (
               <View className="flex-1">
-                <AdminField label="Cooldown" value={formCooldown} onChangeText={setFormCooldown} keyboardType="numeric" />
+                <AdminField label={t("admin.abilityEditor.cooldown")} value={formCooldown} onChangeText={setFormCooldown} keyboardType="numeric" />
               </View>
             ) : null}
           </View>
         ) : null}
         {formType === "SKILL" ? (
-          <ToggleRow label="Once per match" value={formOncePerMatch} onChange={setFormOncePerMatch} />
+          <ToggleRow label={t("admin.abilityEditor.oncePerMatch")} value={formOncePerMatch} onChange={setFormOncePerMatch} />
         ) : formType === "ULTIMATE" ? (
-          <InfoPill text="Ultimates save as once per match." />
+          <InfoPill text={t("admin.abilityEditor.ultimatesOncePerMatch")} />
         ) : null}
         <SelectField
           id="target"
-          label="Target"
-          options={[{ label: "None", value: "" }, ...ABILITY_TARGETS.map((value) => ({ label: value, value }))]}
+          label={t("admin.abilityEditor.target")}
+          options={[{ label: t("admin.abilityEditor.none"), value: "" }, ...ABILITY_TARGETS.map((value) => ({ label: value, value }))]}
           value={formPayload.target}
           onChange={(value) => setFormPayload((current) => ({ ...current, target: value as PayloadFormState["target"] }))}
           openDropdownId={openDropdownId}
@@ -409,8 +418,8 @@ export function AbilityEditorForm({
         />
         <SelectField
           id="target-selector"
-          label="Target selector"
-          options={[{ label: "None", value: "" }, ...ABILITY_TARGET_SELECTORS.map((value) => ({ label: value, value }))]}
+          label={t("admin.abilityEditor.targetSelector")}
+          options={[{ label: t("admin.abilityEditor.none"), value: "" }, ...ABILITY_TARGET_SELECTORS.map((value) => ({ label: value, value }))]}
           value={formPayload.targetSelector}
           onChange={(value) => setFormPayload((current) => ({ ...current, targetSelector: value as PayloadFormState["targetSelector"] }))}
           openDropdownId={openDropdownId}
@@ -419,11 +428,11 @@ export function AbilityEditorForm({
       </Section>
 
       {formType === "PASSIVE" ? (
-        <Section title="Passive trigger" defaultOpen={sectionDefaults.passiveTrigger}>
+        <Section title={t("admin.abilityEditor.passiveTrigger")} defaultOpen={sectionDefaults.passiveTrigger}>
           <SelectField
             id="trigger"
-            label="Trigger"
-            options={[{ label: "None", value: "" }, ...PASSIVE_TRIGGERS.map((value) => ({ label: value, value }))]}
+            label={t("admin.abilityEditor.trigger")}
+            options={[{ label: t("admin.abilityEditor.none"), value: "" }, ...PASSIVE_TRIGGERS.map((value) => ({ label: value, value }))]}
             value={formPayload.trigger}
             onChange={(value) => setFormPayload((current) => ({ ...current, trigger: value as PayloadFormState["trigger"] }))}
             openDropdownId={openDropdownId}
@@ -431,52 +440,52 @@ export function AbilityEditorForm({
           />
           <GridFields
             fields={[
-              { label: "Chance", value: formPayload.chance, onChangeText: (value) => setFormPayload((current) => ({ ...current, chance: value })) },
-              { label: "Threshold %", value: formPayload.thresholdPct, onChangeText: (value) => setFormPayload((current) => ({ ...current, thresholdPct: value })) },
-              { label: "Below HP threshold", value: formPayload.belowHpThreshold, onChangeText: (value) => setFormPayload((current) => ({ ...current, belowHpThreshold: value })) },
-              { label: "Healing bonus", value: formPayload.healingBonus, onChangeText: (value) => setFormPayload((current) => ({ ...current, healingBonus: value })) },
-              { label: "Debuff immunity count", value: formPayload.debuffImmunityCount, onChangeText: (value) => setFormPayload((current) => ({ ...current, debuffImmunityCount: value })) },
-              { label: "Bonus crit chance basic", value: formPayload.bonusCritChanceBasic, onChangeText: (value) => setFormPayload((current) => ({ ...current, bonusCritChanceBasic: value })) },
-              { label: "Battle start energy bonus", value: formPayload.battleStartEnergyBonus, onChangeText: (value) => setFormPayload((current) => ({ ...current, battleStartEnergyBonus: value })) },
-              { label: "Redirect incoming chance", value: formPayload.redirectIncomingChance, onChangeText: (value) => setFormPayload((current) => ({ ...current, redirectIncomingChance: value })) },
-              { label: "Redirect if self above HP %", value: formPayload.redirectIfSelfAboveHpPct, onChangeText: (value) => setFormPayload((current) => ({ ...current, redirectIfSelfAboveHpPct: value })) },
-              { label: "Evasion chance", value: formPayload.evasionChance, onChangeText: (value) => setFormPayload((current) => ({ ...current, evasionChance: value })) },
+              { label: fieldLabel("chance"), value: formPayload.chance, onChangeText: (value) => setFormPayload((current) => ({ ...current, chance: value })) },
+              { label: fieldLabel("thresholdPct"), value: formPayload.thresholdPct, onChangeText: (value) => setFormPayload((current) => ({ ...current, thresholdPct: value })) },
+              { label: fieldLabel("belowHpThreshold"), value: formPayload.belowHpThreshold, onChangeText: (value) => setFormPayload((current) => ({ ...current, belowHpThreshold: value })) },
+              { label: fieldLabel("healingBonus"), value: formPayload.healingBonus, onChangeText: (value) => setFormPayload((current) => ({ ...current, healingBonus: value })) },
+              { label: fieldLabel("debuffImmunityCount"), value: formPayload.debuffImmunityCount, onChangeText: (value) => setFormPayload((current) => ({ ...current, debuffImmunityCount: value })) },
+              { label: fieldLabel("bonusCritChanceBasic"), value: formPayload.bonusCritChanceBasic, onChangeText: (value) => setFormPayload((current) => ({ ...current, bonusCritChanceBasic: value })) },
+              { label: fieldLabel("battleStartEnergyBonus"), value: formPayload.battleStartEnergyBonus, onChangeText: (value) => setFormPayload((current) => ({ ...current, battleStartEnergyBonus: value })) },
+              { label: fieldLabel("redirectIncomingChance"), value: formPayload.redirectIncomingChance, onChangeText: (value) => setFormPayload((current) => ({ ...current, redirectIncomingChance: value })) },
+              { label: fieldLabel("redirectIfSelfAboveHpPct"), value: formPayload.redirectIfSelfAboveHpPct, onChangeText: (value) => setFormPayload((current) => ({ ...current, redirectIfSelfAboveHpPct: value })) },
+              { label: fieldLabel("evasionChance"), value: formPayload.evasionChance, onChangeText: (value) => setFormPayload((current) => ({ ...current, evasionChance: value })) },
             ]}
           />
-          <ToggleRow label="Once" value={formPayload.once} onChange={(value) => setFormPayload((current) => ({ ...current, once: value }))} />
-          <ToggleRow label="On basic only" value={formPayload.onBasicOnly} onChange={(value) => setFormPayload((current) => ({ ...current, onBasicOnly: value }))} />
+          <ToggleRow label={toggleLabel("once")} value={formPayload.once} onChange={(value) => setFormPayload((current) => ({ ...current, once: value }))} />
+          <ToggleRow label={toggleLabel("onBasicOnly")} value={formPayload.onBasicOnly} onChange={(value) => setFormPayload((current) => ({ ...current, onBasicOnly: value }))} />
         </Section>
       ) : null}
 
-      <Section title="Damage" defaultOpen={sectionDefaults.damage}>
+      <Section title={t("admin.abilityEditor.damage")} defaultOpen={sectionDefaults.damage}>
         <GridFields
           fields={[
-            { label: "Damage multiplier", value: formPayload.damageMul, onChangeText: (value) => setFormPayload((current) => ({ ...current, damageMul: value })) },
-            { label: "Ignore defense %", value: formPayload.ignoreDefensePct, onChangeText: (value) => setFormPayload((current) => ({ ...current, ignoreDefensePct: value })) },
-            { label: "Splash %", value: formPayload.splashPct, onChangeText: (value) => setFormPayload((current) => ({ ...current, splashPct: value })) },
-            { label: "Burn bonus multiplier", value: formPayload.burnBonusMul, onChangeText: (value) => setFormPayload((current) => ({ ...current, burnBonusMul: value })) },
-            { label: "Bonus damage vs debuffed %", value: formPayload.bonusDamageVsDebuffedTargetsPct, onChangeText: (value) => setFormPayload((current) => ({ ...current, bonusDamageVsDebuffedTargetsPct: value })) },
-            { label: "Instant KO if target below HP %", value: formPayload.instantKoIfTargetBelowHpPct, onChangeText: (value) => setFormPayload((current) => ({ ...current, instantKoIfTargetBelowHpPct: value })) },
-            { label: "Apply status chance", value: formPayload.applyStatusChance, onChangeText: (value) => setFormPayload((current) => ({ ...current, applyStatusChance: value })) },
-            { label: "Hits", value: formPayload.hits, onChangeText: (value) => setFormPayload((current) => ({ ...current, hits: value })) },
-            { label: "Execute damage multiplier", value: formPayload.executeDamageMul, onChangeText: (value) => setFormPayload((current) => ({ ...current, executeDamageMul: value })) },
-            { label: "Execute threshold", value: formPayload.executeThreshold, onChangeText: (value) => setFormPayload((current) => ({ ...current, executeThreshold: value })) },
-            { label: "Heal % max HP on execute", value: formPayload.healPctOfMaxHpOnExecute, onChangeText: (value) => setFormPayload((current) => ({ ...current, healPctOfMaxHpOnExecute: value })) },
-            { label: "Damage reduction", value: formPayload.damageReduction, onChangeText: (value) => setFormPayload((current) => ({ ...current, damageReduction: value })) },
+            { label: fieldLabel("damageMul"), value: formPayload.damageMul, onChangeText: (value) => setFormPayload((current) => ({ ...current, damageMul: value })) },
+            { label: fieldLabel("ignoreDefensePct"), value: formPayload.ignoreDefensePct, onChangeText: (value) => setFormPayload((current) => ({ ...current, ignoreDefensePct: value })) },
+            { label: fieldLabel("splashPct"), value: formPayload.splashPct, onChangeText: (value) => setFormPayload((current) => ({ ...current, splashPct: value })) },
+            { label: fieldLabel("burnBonusMul"), value: formPayload.burnBonusMul, onChangeText: (value) => setFormPayload((current) => ({ ...current, burnBonusMul: value })) },
+            { label: fieldLabel("bonusDamageVsDebuffedTargetsPct"), value: formPayload.bonusDamageVsDebuffedTargetsPct, onChangeText: (value) => setFormPayload((current) => ({ ...current, bonusDamageVsDebuffedTargetsPct: value })) },
+            { label: fieldLabel("instantKoIfTargetBelowHpPct"), value: formPayload.instantKoIfTargetBelowHpPct, onChangeText: (value) => setFormPayload((current) => ({ ...current, instantKoIfTargetBelowHpPct: value })) },
+            { label: fieldLabel("applyStatusChance"), value: formPayload.applyStatusChance, onChangeText: (value) => setFormPayload((current) => ({ ...current, applyStatusChance: value })) },
+            { label: fieldLabel("hits"), value: formPayload.hits, onChangeText: (value) => setFormPayload((current) => ({ ...current, hits: value })) },
+            { label: fieldLabel("executeDamageMul"), value: formPayload.executeDamageMul, onChangeText: (value) => setFormPayload((current) => ({ ...current, executeDamageMul: value })) },
+            { label: fieldLabel("executeThreshold"), value: formPayload.executeThreshold, onChangeText: (value) => setFormPayload((current) => ({ ...current, executeThreshold: value })) },
+            { label: fieldLabel("healPctOfMaxHpOnExecute"), value: formPayload.healPctOfMaxHpOnExecute, onChangeText: (value) => setFormPayload((current) => ({ ...current, healPctOfMaxHpOnExecute: value })) },
+            { label: fieldLabel("damageReduction"), value: formPayload.damageReduction, onChangeText: (value) => setFormPayload((current) => ({ ...current, damageReduction: value })) },
           ]}
         />
-        <ToggleRow label="Line only" value={formPayload.lineOnly} onChange={(value) => setFormPayload((current) => ({ ...current, lineOnly: value }))} />
+        <ToggleRow label={toggleLabel("lineOnly")} value={formPayload.lineOnly} onChange={(value) => setFormPayload((current) => ({ ...current, lineOnly: value }))} />
       </Section>
 
-      <Section title="Healing and shield" defaultOpen={sectionDefaults.healing}>
+      <Section title={t("admin.abilityEditor.healingAndShield")} defaultOpen={sectionDefaults.healing}>
         <SelectField
           id="shield-target"
-          label="Shield target"
+          label={fieldLabel("shieldTarget")}
           options={[
-            { label: "None", value: "" },
-            { label: "self", value: "self" },
-            { label: "target", value: "target" },
-            { label: "allAllies", value: "allAllies" },
+            { label: t("admin.abilityEditor.none"), value: "" },
+            { label: optionLabel("self"), value: "self" },
+            { label: optionLabel("target"), value: "target" },
+            { label: optionLabel("allAllies"), value: "allAllies" },
           ]}
           value={formPayload.shieldTarget}
           onChange={(value) => setFormPayload((current) => ({ ...current, shieldTarget: value as PayloadFormState["shieldTarget"] }))}
@@ -485,19 +494,19 @@ export function AbilityEditorForm({
         />
         <GridFields
           fields={[
-            { label: "Shield % max HP", value: formPayload.shieldPctOfMaxHp, onChangeText: (value) => setFormPayload((current) => ({ ...current, shieldPctOfMaxHp: value })) },
-            { label: "Heal % of damage", value: formPayload.healPctOfDamage, onChangeText: (value) => setFormPayload((current) => ({ ...current, healPctOfDamage: value })) },
-            { label: "Heal lowest ally % of damage", value: formPayload.healLowestAllyPctOfDamage, onChangeText: (value) => setFormPayload((current) => ({ ...current, healLowestAllyPctOfDamage: value })) },
-            { label: "Heal % max HP", value: formPayload.healPctOfMaxHp, onChangeText: (value) => setFormPayload((current) => ({ ...current, healPctOfMaxHp: value })) },
-            { label: "Lifesteal %", value: formPayload.lifestealPct, onChangeText: (value) => setFormPayload((current) => ({ ...current, lifestealPct: value })) },
-            { label: "Heal lowest HP ally % max HP", value: formPayload.healLowestHpAllyPctOfMaxHp, onChangeText: (value) => setFormPayload((current) => ({ ...current, healLowestHpAllyPctOfMaxHp: value })) },
+            { label: fieldLabel("shieldPctOfMaxHp"), value: formPayload.shieldPctOfMaxHp, onChangeText: (value) => setFormPayload((current) => ({ ...current, shieldPctOfMaxHp: value })) },
+            { label: fieldLabel("healPctOfDamage"), value: formPayload.healPctOfDamage, onChangeText: (value) => setFormPayload((current) => ({ ...current, healPctOfDamage: value })) },
+            { label: fieldLabel("healLowestAllyPctOfDamage"), value: formPayload.healLowestAllyPctOfDamage, onChangeText: (value) => setFormPayload((current) => ({ ...current, healLowestAllyPctOfDamage: value })) },
+            { label: fieldLabel("healPctOfMaxHp"), value: formPayload.healPctOfMaxHp, onChangeText: (value) => setFormPayload((current) => ({ ...current, healPctOfMaxHp: value })) },
+            { label: fieldLabel("lifestealPct"), value: formPayload.lifestealPct, onChangeText: (value) => setFormPayload((current) => ({ ...current, lifestealPct: value })) },
+            { label: fieldLabel("healLowestHpAllyPctOfMaxHp"), value: formPayload.healLowestHpAllyPctOfMaxHp, onChangeText: (value) => setFormPayload((current) => ({ ...current, healLowestHpAllyPctOfMaxHp: value })) },
           ]}
         />
       </Section>
 
-      <Section title="Statuses and buffs" defaultOpen={sectionDefaults.statuses}>
+      <Section title={t("admin.abilityEditor.statusesAndBuffs")} defaultOpen={sectionDefaults.statuses}>
         <StatusArrayEditor
-          label="Apply statuses"
+          label={t("admin.abilityEditor.groups.applyStatuses")}
           entries={formPayload.applyStatuses}
           includeTargeting
           dropdownIdPrefix="apply-statuses"
@@ -507,7 +516,7 @@ export function AbilityEditorForm({
           onChange={(entries) => setFormPayload((current) => ({ ...current, applyStatuses: entries as PayloadFormState["applyStatuses"] }))}
         />
         <StatusArrayEditor
-          label="Random statuses"
+          label={t("admin.abilityEditor.groups.randomStatuses")}
           entries={formPayload.randomStatuses}
           dropdownIdPrefix="random-statuses"
           openDropdownId={openDropdownId}
@@ -516,7 +525,7 @@ export function AbilityEditorForm({
           onChange={(entries) => setFormPayload((current) => ({ ...current, randomStatuses: entries as PayloadFormState["randomStatuses"] }))}
         />
         <StatusArrayEditor
-          label="Apply statuses to attacker"
+          label={t("admin.abilityEditor.groups.applyStatusesToAttacker")}
           entries={formPayload.applyStatusesToAttacker}
           dropdownIdPrefix="statuses-to-attacker"
           openDropdownId={openDropdownId}
@@ -526,16 +535,16 @@ export function AbilityEditorForm({
         />
       </Section>
 
-      <Section title="Utility" defaultOpen={sectionDefaults.utility}>
+      <Section title={t("admin.abilityEditor.utility")} defaultOpen={sectionDefaults.utility}>
         <SelectField
           id="cleanse-target"
-          label="Cleanse target"
+          label={fieldLabel("cleanseTarget")}
           options={[
-            { label: "None", value: "" },
-            { label: "self", value: "self" },
-            { label: "ally", value: "ally" },
-            { label: "allAllies", value: "allAllies" },
-            { label: "allEnemies", value: "allEnemies" },
+            { label: t("admin.abilityEditor.none"), value: "" },
+            { label: optionLabel("self"), value: "self" },
+            { label: optionLabel("ally"), value: "ally" },
+            { label: optionLabel("allAllies"), value: "allAllies" },
+            { label: optionLabel("allEnemies"), value: "allEnemies" },
           ]}
           value={formPayload.cleanseTarget}
           onChange={(value) => setFormPayload((current) => ({ ...current, cleanseTarget: value as PayloadFormState["cleanseTarget"] }))}
@@ -544,33 +553,33 @@ export function AbilityEditorForm({
         />
         <GridFields
           fields={[
-            { label: "Cleanse count", value: formPayload.cleanseCount, onChangeText: (value) => setFormPayload((current) => ({ ...current, cleanseCount: value })) },
-            { label: "Revive %", value: formPayload.revivePct, onChangeText: (value) => setFormPayload((current) => ({ ...current, revivePct: value })) },
-            { label: "Revive ally on enemy KO %", value: formPayload.reviveAllyOnEnemyKoPct, onChangeText: (value) => setFormPayload((current) => ({ ...current, reviveAllyOnEnemyKoPct: value })) },
-            { label: "Reduce cooldowns", value: formPayload.reduceCooldowns, onChangeText: (value) => setFormPayload((current) => ({ ...current, reduceCooldowns: value })) },
-            { label: "Increase target cooldowns", value: formPayload.increaseTargetCooldowns, onChangeText: (value) => setFormPayload((current) => ({ ...current, increaseTargetCooldowns: value })) },
-            { label: "Reduce enemy cooldowns", value: formPayload.reduceEnemyCooldowns, onChangeText: (value) => setFormPayload((current) => ({ ...current, reduceEnemyCooldowns: value })) },
-            { label: "Hit count limit", value: formPayload.hitCountLimit, onChangeText: (value) => setFormPayload((current) => ({ ...current, hitCountLimit: value })) },
-            { label: "Self damage %", value: formPayload.selfDamagePct, onChangeText: (value) => setFormPayload((current) => ({ ...current, selfDamagePct: value })) },
-            { label: "Steal buff count", value: formPayload.stealBuffCount, onChangeText: (value) => setFormPayload((current) => ({ ...current, stealBuffCount: value })) },
+            { label: fieldLabel("cleanseCount"), value: formPayload.cleanseCount, onChangeText: (value) => setFormPayload((current) => ({ ...current, cleanseCount: value })) },
+            { label: fieldLabel("revivePct"), value: formPayload.revivePct, onChangeText: (value) => setFormPayload((current) => ({ ...current, revivePct: value })) },
+            { label: fieldLabel("reviveAllyOnEnemyKoPct"), value: formPayload.reviveAllyOnEnemyKoPct, onChangeText: (value) => setFormPayload((current) => ({ ...current, reviveAllyOnEnemyKoPct: value })) },
+            { label: fieldLabel("reduceCooldowns"), value: formPayload.reduceCooldowns, onChangeText: (value) => setFormPayload((current) => ({ ...current, reduceCooldowns: value })) },
+            { label: fieldLabel("increaseTargetCooldowns"), value: formPayload.increaseTargetCooldowns, onChangeText: (value) => setFormPayload((current) => ({ ...current, increaseTargetCooldowns: value })) },
+            { label: fieldLabel("reduceEnemyCooldowns"), value: formPayload.reduceEnemyCooldowns, onChangeText: (value) => setFormPayload((current) => ({ ...current, reduceEnemyCooldowns: value })) },
+            { label: fieldLabel("hitCountLimit"), value: formPayload.hitCountLimit, onChangeText: (value) => setFormPayload((current) => ({ ...current, hitCountLimit: value })) },
+            { label: fieldLabel("selfDamagePct"), value: formPayload.selfDamagePct, onChangeText: (value) => setFormPayload((current) => ({ ...current, selfDamagePct: value })) },
+            { label: fieldLabel("stealBuffCount"), value: formPayload.stealBuffCount, onChangeText: (value) => setFormPayload((current) => ({ ...current, stealBuffCount: value })) },
           ]}
         />
-        <ToggleRow label="Cleanse all statuses" value={formPayload.cleanseAllStatuses} onChange={(value) => setFormPayload((current) => ({ ...current, cleanseAllStatuses: value }))} />
-        <ToggleRow label="Also cleanse all enemies" value={formPayload.alsoCleanseAllEnemies} onChange={(value) => setFormPayload((current) => ({ ...current, alsoCleanseAllEnemies: value }))} />
-        <ToggleRow label="Prevent death" value={formPayload.preventDeath} onChange={(value) => setFormPayload((current) => ({ ...current, preventDeath: value }))} />
-        <ToggleRow label="Swap HP percentages" value={formPayload.swapHpPercentages} onChange={(value) => setFormPayload((current) => ({ ...current, swapHpPercentages: value }))} />
+        <ToggleRow label={toggleLabel("cleanseAllStatuses")} value={formPayload.cleanseAllStatuses} onChange={(value) => setFormPayload((current) => ({ ...current, cleanseAllStatuses: value }))} />
+        <ToggleRow label={toggleLabel("alsoCleanseAllEnemies")} value={formPayload.alsoCleanseAllEnemies} onChange={(value) => setFormPayload((current) => ({ ...current, alsoCleanseAllEnemies: value }))} />
+        <ToggleRow label={toggleLabel("preventDeath")} value={formPayload.preventDeath} onChange={(value) => setFormPayload((current) => ({ ...current, preventDeath: value }))} />
+        <ToggleRow label={toggleLabel("swapHpPercentages")} value={formPayload.swapHpPercentages} onChange={(value) => setFormPayload((current) => ({ ...current, swapHpPercentages: value }))} />
       </Section>
 
       {formType === "PASSIVE" ? (
-        <Section title="Stat bonuses" defaultOpen={sectionDefaults.statBonuses}>
+        <Section title={t("admin.abilityEditor.statBonuses")} defaultOpen={sectionDefaults.statBonuses}>
           <SelectField
             id="stat-bonus-target"
-            label="Stat bonus target"
+            label={fieldLabel("statBonusTarget")}
             options={[
-              { label: "None", value: "" },
-              { label: "self", value: "self" },
-              { label: "allAllies", value: "allAllies" },
-              { label: "allEnemies", value: "allEnemies" },
+              { label: t("admin.abilityEditor.none"), value: "" },
+              { label: optionLabel("self"), value: "self" },
+              { label: optionLabel("allAllies"), value: "allAllies" },
+              { label: optionLabel("allEnemies"), value: "allEnemies" },
             ]}
             value={formPayload.statBonusTarget}
             onChange={(value) => setFormPayload((current) => ({ ...current, statBonusTarget: value as PayloadFormState["statBonusTarget"] }))}
@@ -579,11 +588,11 @@ export function AbilityEditorForm({
           />
           <SelectField
             id="stat-duration-mode"
-            label="Duration mode"
+            label={fieldLabel("statBonusDurationMode")}
             options={[
-              { label: "None", value: "" },
-              { label: "permanent", value: "permanent" },
-              { label: "whileSourceActive", value: "whileSourceActive" },
+              { label: t("admin.abilityEditor.none"), value: "" },
+              { label: optionLabel("permanent"), value: "permanent" },
+              { label: optionLabel("whileSourceActive"), value: "whileSourceActive" },
             ]}
             value={formPayload.statBonusDurationMode}
             onChange={(value) => setFormPayload((current) => ({ ...current, statBonusDurationMode: value as PayloadFormState["statBonusDurationMode"] }))}
@@ -592,44 +601,44 @@ export function AbilityEditorForm({
           />
           <GridFields
             fields={[
-              { label: "HP bonus", value: formPayload.statBonusHp, onChangeText: (value) => setFormPayload((current) => ({ ...current, statBonusHp: value })) },
-              { label: "Attack bonus", value: formPayload.statBonusAttack, onChangeText: (value) => setFormPayload((current) => ({ ...current, statBonusAttack: value })) },
-              { label: "Defense bonus", value: formPayload.statBonusDefense, onChangeText: (value) => setFormPayload((current) => ({ ...current, statBonusDefense: value })) },
-              { label: "Speed bonus", value: formPayload.statBonusSpeed, onChangeText: (value) => setFormPayload((current) => ({ ...current, statBonusSpeed: value })) },
-              { label: "Adjacent aura duration", value: formPayload.adjacentAuraStatusDuration, onChangeText: (value) => setFormPayload((current) => ({ ...current, adjacentAuraStatusDuration: value })) },
+              { label: fieldLabel("statBonusHp"), value: formPayload.statBonusHp, onChangeText: (value) => setFormPayload((current) => ({ ...current, statBonusHp: value })) },
+              { label: fieldLabel("statBonusAttack"), value: formPayload.statBonusAttack, onChangeText: (value) => setFormPayload((current) => ({ ...current, statBonusAttack: value })) },
+              { label: fieldLabel("statBonusDefense"), value: formPayload.statBonusDefense, onChangeText: (value) => setFormPayload((current) => ({ ...current, statBonusDefense: value })) },
+              { label: fieldLabel("statBonusSpeed"), value: formPayload.statBonusSpeed, onChangeText: (value) => setFormPayload((current) => ({ ...current, statBonusSpeed: value })) },
+              { label: fieldLabel("adjacentAuraStatusDuration"), value: formPayload.adjacentAuraStatusDuration, onChangeText: (value) => setFormPayload((current) => ({ ...current, adjacentAuraStatusDuration: value })) },
             ]}
           />
           <SelectField
             id="adjacent-aura-status"
-            label="Adjacent aura status"
-            options={[{ label: "None", value: "" }, ...STATUS_NAMES.map((value) => ({ label: value, value }))]}
+            label={fieldLabel("adjacentAuraStatusName")}
+            options={[{ label: t("admin.abilityEditor.none"), value: "" }, ...STATUS_NAMES.map((value) => ({ label: value, value }))]}
             value={formPayload.adjacentAuraStatusName}
             onChange={(value) => setFormPayload((current) => ({ ...current, adjacentAuraStatusName: value as PayloadFormState["adjacentAuraStatusName"] }))}
             openDropdownId={openDropdownId}
             setOpenDropdownId={setOpenDropdownId}
           />
           <MultiSelectRow
-            label="Required any ally types"
+            label={fieldLabel("requiredAnyAllyTypes")}
             values={formPayload.requiredAnyAllyTypes}
             options={TYPE_NAMES}
             onToggle={(value) => setFormPayload((current) => ({ ...current, requiredAnyAllyTypes: toggleListValue(current.requiredAnyAllyTypes, value as TypeName) }))}
           />
           <MultiSelectRow
-            label="Apply to ally types"
+            label={fieldLabel("applyToAllyTypes")}
             values={formPayload.applyToAllyTypes}
             options={TYPE_NAMES}
             onToggle={(value) => setFormPayload((current) => ({ ...current, applyToAllyTypes: toggleListValue(current.applyToAllyTypes, value as TypeName) }))}
           />
         </Section>
       ) : (
-        <Section title="Copy ability" defaultOpen={sectionDefaults.copyAbility}>
+        <Section title={t("admin.abilityEditor.copyAbility")} defaultOpen={sectionDefaults.copyAbility}>
           <SelectField
             id="copy-ability-type"
-            label="Copy ability type"
+            label={fieldLabel("copyAbilityType")}
             options={[
-              { label: "None", value: "" },
-              { label: "SKILL", value: "SKILL" },
-              { label: "ULTIMATE", value: "ULTIMATE" },
+              { label: t("admin.abilityEditor.none"), value: "" },
+              { label: t("admin.abilities.type.SKILL"), value: "SKILL" },
+              { label: t("admin.abilities.type.ULTIMATE"), value: "ULTIMATE" },
             ]}
             value={formPayload.copyAbilityType}
             onChange={(value) => setFormPayload((current) => ({ ...current, copyAbilityType: value as PayloadFormState["copyAbilityType"] }))}
@@ -638,12 +647,12 @@ export function AbilityEditorForm({
           />
           <SelectField
             id="copy-source"
-            label="Copy source"
+            label={fieldLabel("copyAbilitySource")}
             options={[
-              { label: "None", value: "" },
-              { label: "enemy", value: "enemy" },
-              { label: "ally", value: "ally" },
-              { label: "either", value: "either" },
+              { label: t("admin.abilityEditor.none"), value: "" },
+              { label: optionLabel("enemy"), value: "enemy" },
+              { label: optionLabel("ally"), value: "ally" },
+              { label: optionLabel("either"), value: "either" },
             ]}
             value={formPayload.copyAbilitySource}
             onChange={(value) => setFormPayload((current) => ({ ...current, copyAbilitySource: value as PayloadFormState["copyAbilitySource"] }))}
@@ -653,21 +662,21 @@ export function AbilityEditorForm({
         </Section>
       )}
 
-      <Section title="Conditional JSON" defaultOpen={sectionDefaults.conditional}>
+      <Section title={t("admin.abilityEditor.conditionalJson")} defaultOpen={sectionDefaults.conditional}>
         <JsonField
-          label="Conditional"
+          label={t("admin.abilityEditor.conditional")}
           value={formPayload.conditionalRaw}
           onChangeText={(value) => setFormPayload((current) => ({ ...current, conditionalRaw: value }))}
           placeholder='{"when": {...}}'
         />
       </Section>
 
-      <Section title="Raw payload JSON" defaultOpen={showRawJson}>
-        <ToggleRow label="Use raw payload editor" value={showRawJson} onChange={setShowRawJson} />
+      <Section title={t("admin.abilityEditor.rawPayloadJson")} defaultOpen={showRawJson}>
+        <ToggleRow label={t("admin.abilityEditor.useRawPayloadEditor")} value={showRawJson} onChange={setShowRawJson} />
         {showRawJson ? (
           <>
             <JsonField
-              label="Payload JSON"
+              label={t("admin.abilityEditor.payloadJson")}
               value={rawPayloadText}
               onChangeText={(value) => {
                 setRawPayloadTouched(true);
@@ -678,7 +687,7 @@ export function AbilityEditorForm({
             {rawPayloadError ? <Text className="font-nunito-bold text-xs text-dangerText">{rawPayloadError}</Text> : null}
           </>
         ) : (
-          <Text className="font-nunito-semibold text-xs text-fgMuted">Structured fields stay in sync here until you start editing raw JSON directly.</Text>
+          <Text className="font-nunito-semibold text-xs text-fgMuted">{t("admin.abilityEditor.rawPayloadSyncHint")}</Text>
         )}
       </Section>
 
@@ -694,12 +703,13 @@ function toggleListValue<T extends string>(values: T[], value: T) {
 
 function Section({ title, defaultOpen = false, children }: { title: string; defaultOpen?: boolean; children: ReactNode }) {
   const [open, setOpen] = useState(defaultOpen);
+  const { t } = useTranslation();
 
   return (
     <View className="rounded-[22] overflow-hidden border border-primaryBorder/18 bg-surfaceMuted">
       <Pressable className="px-4 py-[14] flex-row items-center justify-between bg-primaryTint/95" onPress={() => setOpen((current) => !current)}>
         <Text className="font-nunito-extrabold text-[15px] text-primaryStrong">{title}</Text>
-        <Text className="font-nunito-bold text-xs text-primaryStrong">{open ? "Hide" : "Show"}</Text>
+        <Text className="font-nunito-bold text-xs text-primaryStrong">{open ? t("admin.abilityEditor.hide") : t("admin.abilityEditor.show")}</Text>
       </Pressable>
       {open ? <View className="p-[14] gap-[14]">{children}</View> : null}
     </View>
@@ -711,6 +721,7 @@ function GridFields({
 }: {
   fields: Array<{ label: string; value: string; onChangeText: (value: string) => void }>;
 }) {
+  const { t } = useTranslation();
   return (
     <View className="flex-row flex-wrap gap-[10]">
       {fields.map((field) => (
@@ -723,6 +734,7 @@ function GridFields({
 }
 
 function ToggleRow({ label, value, onChange }: { label: string; value: boolean; onChange: (value: boolean) => void }) {
+  const { t } = useTranslation();
   return (
     <Pressable
       className={`rounded-2xl border px-[14] py-3 flex-row items-center justify-between ${value ? "bg-primaryBg border-primary" : "border-primaryBorder/18 bg-surface/92"}`}
@@ -730,7 +742,7 @@ function ToggleRow({ label, value, onChange }: { label: string; value: boolean; 
     >
       <Text className={`font-nunito-bold text-[13px] flex-1 ${value ? "text-primaryStrong" : "text-primaryText"}`}>{label}</Text>
       <View className={`rounded-full px-[10] py-[5] ${value ? "bg-primaryText" : "bg-[#F3F4F6]"}`}>
-        <Text className={`font-nunito-extrabold text-[11px] ${value ? "text-white" : "text-fgMuted"}`}>{value ? "ON" : "OFF"}</Text>
+        <Text className={`font-nunito-extrabold text-[11px] ${value ? "text-white" : "text-fgMuted"}`}>{value ? t("admin.abilityEditor.on") : t("admin.abilityEditor.off")}</Text>
       </View>
     </Pressable>
   );
@@ -755,8 +767,9 @@ function SelectField({
 }) {
   const { themeName } = useThemeStore();
   const tc = THEME_COLORS[themeName];
+  const { t } = useTranslation();
   const open = openDropdownId === id;
-  const selectedLabel = options.find((option) => option.value === value)?.label ?? "Select an option";
+  const selectedLabel = options.find((option) => option.value === value)?.label ?? t("admin.abilityEditor.selectOption");
 
   return (
     <View className="gap-2">
@@ -859,26 +872,27 @@ function StatusArrayEditor({
     }>,
   ) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <View className="gap-3">
       <View className="flex-row justify-between items-center gap-[10]">
         <Text className="font-nunito-bold text-xs text-primaryText">{label}</Text>
-        <AdminButton label="Add" variant="ghost" onPress={onAdd} />
+        <AdminButton label={t("admin.abilityEditor.add")} variant="ghost" onPress={onAdd} />
       </View>
-      {entries.length === 0 ? <Text className="font-nunito-semibold text-xs text-fgMuted">No entries yet.</Text> : null}
+      {entries.length === 0 ? <Text className="font-nunito-semibold text-xs text-fgMuted">{t("admin.abilityEditor.noEntriesYet")}</Text> : null}
       {entries.map((entry, index) => (
         <View key={`${label}-${index}`} className="rounded-[18] p-3 gap-3 bg-surface/92 border border-primaryBorder/16">
           <View className="flex-row justify-between items-center gap-[10]">
-            <Text className="font-nunito-extrabold text-[13px] text-primaryText">Entry {index + 1}</Text>
+            <Text className="font-nunito-extrabold text-[13px] text-primaryText">{t("admin.abilityEditor.entry", { index: index + 1 })}</Text>
             <AdminButton
-              label="Remove"
+              label={t("admin.abilityEditor.remove")}
               variant="ghost"
               onPress={() => onChange(entries.filter((_, entryIndex) => entryIndex !== index))}
             />
           </View>
           <SelectField
             id={`${dropdownIdPrefix}-${index}-status`}
-            label="Status"
+            label={t("admin.abilityEditor.status")}
             options={STATUS_NAMES.map((value) => ({ label: value, value }))}
             value={entry.name}
             onChange={(value) =>
@@ -894,7 +908,7 @@ function StatusArrayEditor({
           <View className="flex-row gap-[10]">
             <View className="flex-1">
               <AdminField
-                label="Duration"
+                label={t("admin.abilityEditor.duration")}
                 value={entry.duration}
                 onChangeText={(value) =>
                   onChange(
@@ -908,7 +922,7 @@ function StatusArrayEditor({
             </View>
             <View className="flex-1">
               <AdminField
-                label="Magnitude"
+                label={t("admin.abilityEditor.magnitude")}
                 value={entry.magnitude}
                 onChangeText={(value) =>
                   onChange(
@@ -925,8 +939,8 @@ function StatusArrayEditor({
             <>
               <SelectField
                 id={`${dropdownIdPrefix}-${index}-target`}
-                label="Entry target"
-                options={[{ label: "None", value: "" }, ...ABILITY_TARGETS.map((value) => ({ label: value, value }))]}
+                label={t("admin.abilityEditor.entryTarget")}
+                options={[{ label: t("admin.abilityEditor.none"), value: "" }, ...ABILITY_TARGETS.map((value) => ({ label: value, value }))]}
                 value={entry.target ?? ""}
                 onChange={(value) =>
                   onChange(
@@ -940,8 +954,8 @@ function StatusArrayEditor({
               />
               <SelectField
                 id={`${dropdownIdPrefix}-${index}-selector`}
-                label="Entry selector"
-                options={[{ label: "None", value: "" }, ...ABILITY_TARGET_SELECTORS.map((value) => ({ label: value, value }))]}
+                label={t("admin.abilityEditor.entrySelector")}
+                options={[{ label: t("admin.abilityEditor.none"), value: "" }, ...ABILITY_TARGET_SELECTORS.map((value) => ({ label: value, value }))]}
                 value={entry.targetSelector ?? ""}
                 onChange={(value) =>
                   onChange(

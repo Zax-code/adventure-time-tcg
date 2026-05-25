@@ -49,11 +49,11 @@ export function BottomTabBar({ state, descriptors, navigation }: BottomTabBarPro
     const route = state.routes[routeIndex];
     const focused = state.index === routeIndex;
     const color = focused ? tc.primaryText : tc.primary;
-    const label =
+      const label =
       name === "index"
         ? t("nav.home")
         : name === "pvp"
-          ? "PvP"
+          ? t("nav.pvp")
           : name === "quests"
             ? t("nav.quests")
             : name === "collection"

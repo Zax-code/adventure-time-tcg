@@ -1,8 +1,9 @@
-import { Animated, Modal, View } from "react-native";
+import { Animated, Modal, Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import type { SpeedRunState } from "@adventure-time/shared";
 
+import { useTranslation } from "../../../i18n";
 import { type FeedbackType } from "./constants";
 import { HudCard } from "./hud-card";
 import { FeedbackBanner } from "./feedback-banner";
@@ -22,6 +23,8 @@ type ActiveRunPanelProps = {
   state: SpeedRunState;
   remainingSeconds: number;
   pauseRemainingSeconds: number;
+  displayedCorrectAnswers: number;
+  isManuallyPaused: boolean;
   feedback: FeedbackType;
   feedbackSlide: Animated.Value;
   feedbackOpacity: Animated.Value;
@@ -34,6 +37,9 @@ type ActiveRunPanelProps = {
   keypadLocked: boolean;
   submitDisabled: boolean;
   currentQuestion: Question | null;
+  onPause: () => void;
+  onResume: () => void;
+  onLeavePaused: () => void;
   onDigit: (key: string) => void;
   onDelete: () => void;
   onClear: () => void;
@@ -51,6 +57,8 @@ export function ActiveRunPanel({
   state,
   remainingSeconds,
   pauseRemainingSeconds,
+  displayedCorrectAnswers,
+  isManuallyPaused,
   feedback,
   feedbackSlide,
   feedbackOpacity,
@@ -63,6 +71,9 @@ export function ActiveRunPanel({
   keypadLocked,
   submitDisabled,
   currentQuestion,
+  onPause,
+  onResume,
+  onLeavePaused,
   onDigit,
   onDelete,
   onClear,
@@ -71,13 +82,14 @@ export function ActiveRunPanel({
   onDismiss,
 }: ActiveRunPanelProps) {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
 
   return (
     <Modal
       visible={visible}
       transparent={false}
       animationType="slide"
-      onRequestClose={() => {/* no-op during active run */}}
+      onRequestClose={isManuallyPaused ? onLeavePaused : () => {/* no-op during active run */}}
       statusBarTranslucent
     >
       <GestureHandlerRootView style={{ flex: 1 }}>
@@ -90,6 +102,10 @@ export function ActiveRunPanel({
             state={state}
             remainingSeconds={remainingSeconds}
             pauseRemainingSeconds={pauseRemainingSeconds}
+            displayedCorrectAnswers={displayedCorrectAnswers}
+            isManuallyPaused={isManuallyPaused}
+            onPause={onPause}
+            pauseDisabled={!activeRun || pauseRemainingSeconds > 0 || isManuallyPaused || submitting}
           />
 
           <FeedbackBanner
@@ -135,6 +151,42 @@ export function ActiveRunPanel({
               onDismiss={onDismiss}
             />
           )}
+
+          {isManuallyPaused ? (
+            <View className="absolute inset-0 items-center justify-center bg-primaryBg/95 px-6">
+              <View className="w-full max-w-[320px] rounded-[28px] border border-primaryBorder bg-surface px-6 py-7 items-center">
+                <Text className="text-[11px] font-nunito-bold uppercase tracking-[3px] text-primary/60">
+                  {t("quests.speedCalculusPausedTitle")}
+                </Text>
+                <Text className="mt-3 text-center font-nunito-extrabold text-3xl text-primaryDark">
+                  {t("quests.speedCalculusPausedHeading")}
+                </Text>
+                <Text className="mt-3 text-center font-nunito text-sm text-primaryDark/70">
+                  {t("quests.speedCalculusPausedBody")}
+                </Text>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={onResume}
+                  className="mt-6 w-full rounded-2xl bg-primary px-5 py-3 items-center"
+                  style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
+                >
+                  <Text className="font-nunito-extrabold text-base text-primaryBg">
+                    {t("quests.speedCalculusResume")}
+                  </Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={onLeavePaused}
+                  className="mt-3"
+                  style={({ pressed }) => ({ opacity: pressed ? 0.75 : 1 })}
+                >
+                  <Text className="font-nunito-semibold text-sm text-primaryDark/70">
+                    {t("quests.wordle.backToQuests")}
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+          ) : null}
         </View>
       </GestureHandlerRootView>
     </Modal>

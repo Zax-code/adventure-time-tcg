@@ -1,0 +1,298 @@
+const pvp = {
+  lobby: {
+    title: "Combat PvP",
+    subtitle: "Défie tes amis · Crée tes compositions · Grimpe dans le classement",
+    accept: "Accepter",
+    decline: "Refuser",
+    expired: "Expirée",
+    declined: "Refusée",
+    turn: "Tour {count}",
+    watch: "Observer",
+    spectating: "Observation du match",
+  },
+  match: {
+    loading: "Chargement du match...",
+    loadFailed: "Impossible de charger le match.",
+    goBack: "Retour",
+    ended: "Le match est terminé.",
+    expiredInvite: "Cette invitation de match a expiré.",
+    declinedInvite: "Cette invitation de match a été refusée.",
+    notReady: "Le match n'est pas encore prêt.",
+    endTurnTitle: "Terminer le tour ?",
+    endTurnBody: "Il te reste encore {energy} énergie.",
+    endTurnConfirm: "Terminer le tour",
+    concedeTitle: "Abandonner ?",
+    concedeBody: "Cela comptera comme une défaite. Tu es sûr ?",
+    concedeConfirm: "Abandonner",
+  },
+  board: {
+    bench: "BANC",
+    turnLabel: "Tour {turn} • {hint}",
+    hint: {
+      copySource: "Appuie sur l'unité source à copier",
+      ally: "Appuie sur un allié à cibler",
+      any: "Appuie sur n'importe quelle unité à cibler",
+      sourceUnit: "Choisis une unité source",
+      highlighted: "Appuie sur une cible en surbrillance",
+      swap: "Appuie sur l'actif puis sur le banc",
+      actions: "Appuie sur une carte pour agir",
+      waiting: "En attente de l'adversaire",
+    },
+  },
+  targetHint: {
+    sourceUnit: "Sélectionne une unité source",
+    ally: "Sélectionne un allié",
+    any: "Sélectionne n'importe quelle unité",
+    target: "Sélectionne une cible",
+  },
+  turnBanner: {
+    yourTurn: "Ton tour",
+    opponentTurn: "Tour adverse",
+  },
+  action: {
+    title: "Choisir une action",
+    basic: "Attaque de base",
+    basicSubtitle: "Cible un ennemi visible",
+    skillFallback: "Compétence",
+    ultimateFallback: "Ultime",
+    notEnoughEnergy: "Pas assez d'énergie",
+    cooldown: "Recharge {count}",
+    silenced: "Réduit au silence",
+    usedAlready: "Déjà utilisé",
+    energy: "Énergie {count}",
+    activeEnemies: "{count} ennemis actifs",
+    strongAgainst: "Fort contre : {value}",
+    weakAgainst: "Faible contre : {value}",
+    pass: "Passer",
+  },
+  combatLog: {
+    title: "Journal de combat",
+    empty: "Aucun événement pour le moment.",
+    matchStart: "Le match commence",
+    turnStart: "Le tour {turn} commence",
+    turnEnd: "Le tour {turn} se termine",
+    abilityStart: "{actor} utilise {ability}",
+    miss: "{attacker} a manqué {target}",
+    damage: "{attacker} inflige {amount} dégâts à {target}",
+    crit: "Coup critique sur {target}",
+    ko: "{target} a été mis K.O.",
+    heal: "{target} récupère {amount} PV",
+    revive: "{target} revient au combat",
+    swap: "{player} échange ses unités",
+    formation: "La formation se réorganise",
+    statusApply: "{target} gagne {status}",
+    statusTick: "{target} subit {status}",
+    statusExpire: "{status} expire sur {target}",
+    winner: "Vainqueur : {winner}",
+    unitFallback: "Unité",
+    playerFallback: "Joueur",
+    targetFallback: "cible",
+    abilityFallback: "une capacité",
+    unknown: "inconnu",
+    turnBadge: "T{turn}",
+  },
+  results: {
+    victory: "VICTOIRE",
+    defeat: "DÉFAITE",
+    youDefeated: "Tu as vaincu {opponent}",
+    opponentWon: "{opponent} a remporté ce match",
+    back: "Retour au PvP",
+  },
+  effectiveness: {
+    super: "2x Super efficace",
+    weak: "0.5x Peu efficace",
+    neutral: "1x Neutre",
+  },
+  mechanics: {
+    open: "Comment fonctionne le PvP",
+    title: "Fonctionnement du PvP",
+    intro:
+      "Ce résumé reflète les règles de combat actuellement appliquées en jeu.",
+    objectiveTitle: "Objectif",
+    objectiveBody:
+      "Mets K.O. toute l'équipe adverse. Tu gagnes quand les 6 cartes ennemies (actives + banc) sont K.O.",
+    teamTitle: "Composition",
+    teamItem1:
+      "Chaque composition utilise 6 cartes : les 3 premières sont actives, les 3 dernières sont sur le banc.",
+    teamItem2:
+      "Seules les cartes actives peuvent agir. Quand une place active est vide, une carte vivante du banc entre automatiquement.",
+    teamItem3:
+      "Limites de rareté par composition : maximum 1 carte légendaire et 2 cartes épiques.",
+    turnTitle: "Déroulement d'un tour",
+    turnItem1:
+      "Au début du tour, le joueur actif gagne de l'énergie (2 au tour 1, puis 3 par tour).",
+    turnItem2:
+      "Au début de ton tour, les ticks de statut se résolvent et les recharges baissent de 1 pour tes cartes actives et de banc.",
+    turnItem3:
+      "Tu peux enchaîner les actions jusqu'à cliquer sur Terminer le tour ou ne plus avoir d'option utilisable.",
+    actionsTitle: "Actions et coûts",
+    actionsItem1: "L'attaque de base coûte 1 énergie.",
+    actionsItem2:
+      "La compétence coûte généralement 2 énergies (selon les données de la capacité).",
+    actionsItem3:
+      "L'ultime coûte généralement 3 énergies et ne peut être utilisé qu'une fois par match.",
+    actionsItem4:
+      "Silence empêche d'utiliser compétence et ultime. Étourdi ajoute +1 énergie à ta prochaine attaque, compétence ou ultime, puis disparaît.",
+    swapTitle: "Échange avec le banc",
+    swapItem1:
+      "L'échange coûte 1 énergie et est mis en file avec Terminer le tour.",
+    swapItem2:
+      "Tu sélectionnes 1 carte active à remplacer et 1 carte vivante du banc pour entrer.",
+    swapItem3:
+      "La carte qui entre reçoit Mal d'invocation et ne peut pas agir avant ton prochain tour.",
+    targetingTitle: "Ciblage et dégâts",
+    targetingItem1:
+      "Les avantages de type comptent : utilise les types forts pour infliger plus de dégâts.",
+    targetingItem2:
+      "La vitesse influence les chances de rater et de critique sur les attaques.",
+    targetingItem3:
+      "Provocation force les actions ennemies mono-cible. Les ennemis camouflés ne peuvent pas être ciblés.",
+    statusTitle: "Statuts et recharges",
+    statusBody:
+      "Les statuts (Brûlure, Gel, Étourdi, etc.) sont appliqués par les capacités puis résolus par le moteur via les ticks de début de tour, la consommation à l'action et les expirations.",
+  },
+  reference: {
+    open: "Référence de combat",
+    title: "Référence PvP",
+    intro:
+      "Référence détaillée des statuts, des interactions de types et des bonus de rareté utilisés par le système de combat.",
+    statusTitle: "Effets de statut",
+    statusIntro:
+      "Voici les statuts qui peuvent apparaître en combat. Leurs effets proviennent des capacités, des passifs et du déroulement des tours.",
+    statusDesc: {
+      Burn: "Inflige 10 % des PV max en début de tour et réduit les dégâts d'attaque infligés (-10 %).",
+      Freeze:
+        "Fait passer la prochaine action quand l'unité agit et augmente les dégâts reçus (+20 %) tant qu'il est actif.",
+      Shield: "Absorbe les dégâts reçus avant la perte de PV.",
+      GuardUp: "Augmente la défense tant que le statut est actif (+25 %).",
+      Vulnerable: "Augmente les dégâts reçus (+25 %).",
+      Weakened: "Réduit les dégâts d'attaque infligés (-25 %).",
+      Haste:
+        "Augmente la vitesse (+20 %) et peut rendre une attaque de base gratuite ce tour.",
+      Taunt:
+        "Force les ennemis à cibler cette unité quand les règles de ciblage mono-cible s'appliquent.",
+      Regeneration: "Rend 8 % des PV max en début de tour.",
+      Regen: "Alias de Régénération ; même soin de 8 % des PV max en début de tour.",
+      Silence: "Empêche d'utiliser la compétence et l'ultime tant qu'il est actif.",
+      Cleanse:
+        "Retire un ou plusieurs malus ou effets de statut de l'unité cible.",
+      SummoningSickness:
+        "Empêche d'agir jusqu'au début du prochain tour du propriétaire.",
+      Cover:
+        "Redirige une partie des dégâts vers la source de couverture adjacente tant qu'elle reste valide.",
+      Stunned:
+        "La prochaine action coûte +1 énergie, puis l'effet est consommé.",
+      Poison:
+        "Inflige 5 % des PV max en dégâts de début de tour par charge et peut se cumuler.",
+      Thorns: "Renvoie 15 % des dégâts d'attaque reçus vers les attaquants.",
+      Stealth:
+        "Empêche le ciblage par les actions ennemies mono-cible ; l'effet est retiré après action.",
+      Empower:
+        "Le prochain coup inflige plus de dégâts (+25 %), puis l'effet est consommé.",
+      Counter:
+        "Esquive la prochaine attaque entrante et contre-attaque, puis l'effet est consommé.",
+      Mark: "Augmente les dégâts reçus par l'unité (+15 %).",
+      Barrier:
+        "Bloque la prochaine application de malus, puis l'effet est consommé.",
+      Doom: "Malus à compte à rebours pouvant infliger des dégâts fatals à l'expiration.",
+    },
+    coreTitle: "Effets de combat essentiels",
+    coreIntro:
+      "Règles de combat visibles pour les joueurs qui ne sont pas des statuts, mais qui se résolvent à chaque partie.",
+    coreItems: {
+      speed:
+        "La vitesse pilote les chances de toucher, de rater et de critiquer.",
+      cooldown:
+        "Les recharges diminuent au début du tour du propriétaire, y compris pour les cartes sur le banc.",
+      formation:
+        "Quand une carte active est K.O., le moteur remplit automatiquement les places actives libres avec des cartes vivantes du banc.",
+      slotLimits:
+        "Une unité peut avoir au maximum 3 bonus et 3 malus.",
+      mitigation:
+        "Les boucliers absorbent les dégâts avant les PV.",
+      retaliation:
+        "Contre peut esquiver puis riposter. Épines renvoie une partie des dégâts.",
+    },
+    typeTitle: "Forces et faiblesses des types",
+    typeIntro:
+      "Un affrontement favorable inflige plus de dégâts, un affrontement défavorable en inflige moins.",
+    strongAgainst: "Fort contre",
+    weakAgainst: "Faible contre",
+    typeSpecialNone: "-",
+    typeSpecial: {
+      Hero: "Subit 5 % de dégâts en moins de tous les types",
+      Candy: "Subit moins de dégâts du Feu (-15 %) et de la Magie (-15 %)",
+    },
+    rarityTitle: "Différences de rareté",
+    rarityIntro:
+      "La rareté modifie les statistiques de base au début du combat.",
+    rarityColRarity: "Rareté",
+    rarityColHp: "Bonus PV",
+    rarityColAtk: "Bonus ATK",
+    rarityColPassive: "Passif en plus",
+    rarityYes: "Oui",
+    rarityNo: "Non",
+  },
+  unknown: "Inconnu",
+  sendInvite: "Envoyer une invitation",
+  sendChallenge: "Envoyer un défi",
+  friendEmailPlaceholder: "ami@example.com",
+  createLoadout: "Créer une composition",
+  editLoadout: "Modifier la composition",
+  editLoadouts: "Modifier les compositions",
+  yourLoadouts: "Tes compositions",
+  myLoadouts: "Mes compositions",
+  loadoutNamePlaceholder: "Nom de la composition...",
+  selectLoadout: "Choisis ta composition :",
+  selectLoadoutLabel: "Choisir une composition",
+  maxCards: "Maximum 6 cartes autorisées",
+  maxLegendaryOne: "La composition peut contenir au maximum 1 carte légendaire",
+  maxEpicTwo: "La composition peut contenir au maximum 2 cartes épiques",
+  rarityCapLegendary: "Légendaire : {count}/1",
+  rarityCapEpic: "Épique : {count}/2",
+  selectExactlySix: "Sélectionne exactement 6 cartes",
+  enterLoadoutName: "Entre un nom de composition",
+  loadoutCreated: "Composition créée !",
+  loadoutUpdated: "Composition mise à jour !",
+  loadoutDeleted: "Composition supprimée",
+  noCardsFound: "Aucune carte trouvée. Ouvre des packs pour agrandir ta collection !",
+  activeBenchHint:
+    "Les 3 premières cartes sont actives (anneau vert), les 3 dernières sont sur le banc",
+  activeSlot: "Actif {index}",
+  benchSlot: "Banc {index}",
+  firstThreeActive: "Les 3 premières cartes sont actives, les 3 dernières sont sur le banc",
+  cardMissingTitle: "Carte non possédée",
+  update: "Mettre à jour",
+  create: "Créer",
+  all: "Toutes",
+  incomingChallenges: "Défis reçus",
+  activeBattles: "Combats actifs ({count})",
+  spectateOpen: "Observer",
+  sentInvites: "Invitations envoyées ({count})",
+  waitingResponse: "En attente de réponse...",
+  recentBattles: "Combats récents",
+  replayArrow: "Replay ->",
+  viewAllArrow: "Voir tout ->",
+  continueArrow: "Continuer ->",
+  win: "VICTOIRE",
+  loss: "DÉFAITE",
+  readyForBattle: "Prêt pour le combat ?",
+  readyForBattleHint: "Crée une composition et défie un ami pour commencer !",
+  friendEmail: "E-mail de ton ami",
+  invalidLoadout: "{count} carte(s) invalide(s) - composition inutilisable",
+  needValidLoadout: "Tu as besoin d'une composition valide pour accepter ce défi.",
+  liveMatches: "Matchs en direct",
+  stopWatching: "Arrêter de regarder",
+  challengeBy: "T'a défié {time}",
+  cardDetailsTitle: "Détails de la carte",
+  activeEffects: "Effets actifs",
+  oncePerMatch: "Une fois par match",
+  statusEffect: "Effet de statut",
+  untilUsed: "Jusqu'à utilisation",
+  hp: "PV",
+  atk: "ATK",
+  def: "DEF",
+  spd: "VIT",
+};
+
+export default pvp;

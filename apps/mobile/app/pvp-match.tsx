@@ -18,11 +18,13 @@ import { BattleBoard } from "../src/features/pvp/battle-board";
 import { BattleFullScreenSheet } from "../src/features/pvp/battle-full-screen-sheet";
 import { useMatch } from "../src/features/pvp/use-match";
 import { prepareCopyFollowUp, type TargetingMode, type SwapSelection } from "../src/features/pvp/types";
+import { useTranslation } from "../src/i18n";
 
 export default function PvpMatchScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const themeName = useThemeStore((s) => s.themeName);
+  const { t } = useTranslation();
 
   const { matchView, isLoading, isError, rawMatch, isActing, newEvents, submitAction, submitEndTurn, concede } =
     useMatch(id ?? "");
@@ -161,7 +163,7 @@ export default function PvpMatchScreen() {
     return (
       <View style={[styles.loading, THEME_VARS[themeName] as any]}>
         <ActivityIndicator size="large" color="#fff" />
-        <Text style={styles.loadingText}>Loading match...</Text>
+        <Text style={styles.loadingText}>{t("pvp.match.loading")}</Text>
       </View>
     );
   }
@@ -169,22 +171,29 @@ export default function PvpMatchScreen() {
   if (isError) {
     return (
       <View style={[styles.loading, THEME_VARS[themeName] as any]}>
-        <Text style={styles.loadingText}>Failed to load match.</Text>
+        <Text style={styles.loadingText}>{t("pvp.match.loadFailed")}</Text>
         <Pressable onPress={() => router.back()}>
-          <Text style={styles.loadingText}>Go Back</Text>
+          <Text style={styles.loadingText}>{t("pvp.match.goBack")}</Text>
         </Pressable>
       </View>
     );
   }
 
   if (!matchView) {
+    const message =
+      rawMatch?.status === "COMPLETED"
+        ? t("pvp.match.ended")
+        : rawMatch?.status === "EXPIRED"
+          ? t("pvp.match.expiredInvite")
+          : rawMatch?.status === "DECLINED"
+            ? t("pvp.match.declinedInvite")
+            : t("pvp.match.notReady");
+
     return (
       <View style={[styles.loading, THEME_VARS[themeName] as any]}>
-        <Text style={styles.loadingText}>
-          {rawMatch?.status === "COMPLETED" ? "Match has ended." : "Match not ready yet."}
-        </Text>
+        <Text style={styles.loadingText}>{message}</Text>
         <Pressable onPress={() => router.back()}>
-          <Text style={styles.loadingText}>Go Back</Text>
+          <Text style={styles.loadingText}>{t("pvp.match.goBack")}</Text>
         </Pressable>
       </View>
     );
@@ -220,9 +229,9 @@ export default function PvpMatchScreen() {
 
       <ConfirmSheet
         visible={showEndTurnConfirm}
-        title="End Turn?"
-        body={`You still have ${matchView.myPlayer.energy} energy remaining.`}
-        confirmLabel="End Turn"
+        title={t("pvp.match.endTurnTitle")}
+        body={t("pvp.match.endTurnBody", { energy: matchView.myPlayer.energy })}
+        confirmLabel={t("pvp.match.endTurnConfirm")}
         onCancel={() => setShowEndTurnConfirm(false)}
         onConfirm={() => {
           setShowEndTurnConfirm(false);
@@ -232,9 +241,9 @@ export default function PvpMatchScreen() {
 
       <ConfirmSheet
         visible={showConcedeConfirm}
-        title="Concede?"
-        body="This will count as a loss. Are you sure?"
-        confirmLabel="Concede"
+        title={t("pvp.match.concedeTitle")}
+        body={t("pvp.match.concedeBody")}
+        confirmLabel={t("pvp.match.concedeConfirm")}
         danger
         onCancel={() => setShowConcedeConfirm(false)}
         onConfirm={() => {
@@ -264,6 +273,7 @@ function ConfirmSheet({
   onConfirm: () => void;
   danger?: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <BattleFullScreenSheet
       visible={visible}
@@ -272,7 +282,7 @@ function ConfirmSheet({
       footer={
         <View className="flex-row gap-3">
           <Pressable onPress={onCancel} className="flex-1 rounded-2xl bg-surfaceMuted px-4 py-3">
-            <Text className="text-center font-nunito-bold text-fgMuted">Cancel</Text>
+            <Text className="text-center font-nunito-bold text-fgMuted">{t("common.cancel")}</Text>
           </Pressable>
           <Pressable onPress={onConfirm} className={`flex-1 rounded-2xl px-4 py-3 ${danger ? "bg-dangerDark" : "bg-primaryDark"}`}>
             <Text className="text-center font-nunito-bold text-white">{confirmLabel}</Text>

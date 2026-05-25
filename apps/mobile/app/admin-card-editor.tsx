@@ -15,6 +15,7 @@ import {
   toCardSavePayload,
 } from "../src/components/admin/card-editor-sheet";
 import { apiClient } from "../src/lib/api";
+import { useTranslation } from "../src/i18n";
 import { useThemeStore } from "../src/stores/theme-store";
 import { THEME_COLORS, THEME_VARS } from "../src/theme/themes";
 
@@ -34,6 +35,7 @@ export default function AdminCardEditorScreen() {
   const insets = useSafeAreaInsets();
   const themeName = useThemeStore((state) => state.themeName);
   const tc = THEME_COLORS[themeName];
+  const { t } = useTranslation();
   const { mode, cardId } = useLocalSearchParams<{ mode?: string; cardId?: string }>();
   const isCreateMode = mode !== "edit";
 
@@ -107,7 +109,7 @@ export default function AdminCardEditorScreen() {
         : cardId ?? null;
 
       if (!savedCardId) {
-        throw new Error("Card saved, but the editor did not receive a card id back.");
+        throw new Error(t("admin.cardEditor.missingCardId"));
       }
 
       const shouldPersistAssignments =
@@ -134,14 +136,14 @@ export default function AdminCardEditorScreen() {
       router.back();
     },
     onError: (error) => {
-      Alert.alert("Save failed", getErrorMessage(error, "Could not save this card."));
+      Alert.alert(t("admin.cardEditor.saveFailed"), getErrorMessage(error, t("admin.cardEditor.saveFailedBody")));
     },
   });
 
   const archiveMutation = useMutation({
     mutationFn: async () => {
       if (!cardQuery.data) {
-        throw new Error("This card is not loaded yet.");
+        throw new Error(t("admin.cardEditor.cardNotLoaded"));
       }
 
       return apiClient.updateAdminCard(cardQuery.data.id, {
@@ -153,14 +155,14 @@ export default function AdminCardEditorScreen() {
       router.back();
     },
     onError: (error) => {
-      Alert.alert("Update failed", getErrorMessage(error, "Could not update this card."));
+      Alert.alert(t("admin.cardEditor.updateFailed"), getErrorMessage(error, t("admin.cardEditor.updateFailedBody")));
     },
   });
 
   const uploadMutation = useMutation({
     mutationFn: async () => {
       if (!cardId) {
-        throw new Error("Save the card before uploading artwork.");
+        throw new Error(t("admin.cardEditor.saveBeforeUpload"));
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -189,7 +191,7 @@ export default function AdminCardEditorScreen() {
       ]);
     },
     onError: (error) => {
-      Alert.alert("Upload failed", getErrorMessage(error, "Could not upload the card image."));
+      Alert.alert(t("admin.cardEditor.uploadFailed"), getErrorMessage(error, t("admin.cardEditor.uploadFailedBody")));
     },
   });
 
@@ -210,10 +212,10 @@ export default function AdminCardEditorScreen() {
           <View className="flex-row items-center justify-between gap-3">
             <View className="w-14" />
             <Text className="flex-1 text-center font-nunito-extrabold text-[24px] text-white">
-              {isCreateMode ? "Create new card" : "Edit card"}
+              {isCreateMode ? t("admin.cardEditor.createTitle") : t("admin.cardEditor.editTitle")}
             </Text>
             <Pressable className="w-14 items-end" onPress={() => router.back()}>
-              <Text className="font-nunito-bold text-sm text-white">Close</Text>
+              <Text className="font-nunito-bold text-sm text-white">{t("admin.common.close")}</Text>
             </Pressable>
           </View>
         </LinearGradient>
@@ -221,19 +223,19 @@ export default function AdminCardEditorScreen() {
         {loading ? (
           <View className="flex-1 items-center justify-center px-6">
             <Text className="font-nunito-bold text-[15px] text-primaryText text-center">
-              Loading card editor...
+              {t("admin.cardEditor.loading")}
             </Text>
           </View>
         ) : error ? (
           <View className="flex-1 items-center justify-center px-6">
             <Text className="font-nunito-bold text-[15px] text-dangerText text-center">
-              {getErrorMessage(error, "Failed to load this card.")}
+              {getErrorMessage(error, t("admin.cardEditor.loadFailed"))}
             </Text>
           </View>
         ) : !isCreateMode && !cardQuery.data ? (
           <View className="flex-1 items-center justify-center px-6">
             <Text className="font-nunito-bold text-[15px] text-dangerText text-center">
-              That card could not be found.
+              {t("admin.cardEditor.notFound")}
             </Text>
           </View>
         ) : (

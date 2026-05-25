@@ -1,5 +1,6 @@
 import { Text, View } from "react-native";
 
+import { useTranslation } from "../../i18n";
 import type { TargetingMode } from "./types";
 
 interface TargetSelectionHintProps {
@@ -7,16 +8,17 @@ interface TargetSelectionHintProps {
 }
 
 export function TargetSelectionHint({ targeting }: TargetSelectionHintProps) {
+  const { t } = useTranslation();
   if (!targeting) return null;
 
   const label =
     targeting.stage === "copy-source"
-      ? "Select a source unit"
+      ? t("pvp.targetHint.sourceUnit")
       : targeting.targetLabel === "ally"
-        ? "Select an ally"
+        ? t("pvp.targetHint.ally")
         : targeting.targetLabel === "any"
-          ? "Select any unit"
-          : "Select a target";
+          ? t("pvp.targetHint.any")
+          : t("pvp.targetHint.target");
 
   return (
     <View

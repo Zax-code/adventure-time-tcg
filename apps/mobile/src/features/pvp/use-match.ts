@@ -5,6 +5,12 @@ import type { PvpAction, PvpEndTurnInput } from "@adventure-time/shared";
 
 import { apiClient } from "../../lib/api";
 import { useSessionStore } from "../../stores/session-store";
+import {
+  getEventAmount,
+  getEventTargetInstanceId,
+  isCritEvent,
+  isMissEvent,
+} from "./event-payload";
 import { deriveMyMatchView, type FloatingEvent, type MyMatchView } from "./types";
 
 export function useMatch(matchId: string) {
@@ -30,21 +36,24 @@ export function useMatch(matchId: string) {
   if (battleState) {
     const logSlice = battleState.log.slice(prevLogLength);
     for (const event of logSlice) {
-      const payload = event.payload as Record<string, unknown>;
       if (event.type === "damage" || event.type === "crit") {
-        const targetInstanceId = String(payload.targetInstanceId ?? payload.targetId ?? "");
-        const amount = Number(payload.amount ?? payload.damage ?? 0);
+        const targetInstanceId = getEventTargetInstanceId(event) ?? "";
+        const amount = getEventAmount(event) ?? 0;
         if (targetInstanceId) {
           newEvents.push({
             seq: event.seq,
             targetInstanceId,
-            type: Boolean(payload.isMiss) ? "miss" : event.type === "crit" || Boolean(payload.isCrit) ? "crit" : "damage",
+            type: isMissEvent(event)
+              ? "miss"
+              : isCritEvent(event)
+                ? "crit"
+                : "damage",
             amount,
           });
         }
       } else if (event.type === "heal") {
-        const targetInstanceId = String(payload.targetInstanceId ?? payload.targetId ?? "");
-        const amount = Number(payload.amount ?? 0);
+        const targetInstanceId = getEventTargetInstanceId(event) ?? "";
+        const amount = getEventAmount(event) ?? 0;
         if (targetInstanceId && amount > 0) {
           newEvents.push({
             seq: event.seq,

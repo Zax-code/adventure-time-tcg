@@ -62,7 +62,7 @@ export default function TabLayout() {
         <Tabs.Screen
           name="pvp"
           options={{
-            title: "PvP",
+            title: t("nav.pvp"),
           }}
         />
         <Tabs.Screen

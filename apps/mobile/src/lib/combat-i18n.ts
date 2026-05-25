@@ -1,4 +1,4 @@
-import type { Locale } from "@adventure-time/shared";
+import type { Locale } from "../i18n/types";
 
 type TranslateFn = (key: string, params?: Record<string, string | number>) => string;
 
@@ -23,6 +23,14 @@ function humanizeAbilityKey(key: string) {
 
 export function localizeTypeName(type: string, t: TranslateFn) {
   return tr(t, `combat.type.${type}`, type);
+}
+
+export function localizeRarityName(rarity: string, t: TranslateFn) {
+  return tr(t, `combat.rarity.${rarity}`, rarity);
+}
+
+export function localizeAbilityType(type: string, t: TranslateFn) {
+  return tr(t, `combat.abilityType.${type}`, type);
 }
 
 export function localizeStatusName(status: string, t: TranslateFn) {

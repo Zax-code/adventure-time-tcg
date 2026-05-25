@@ -4,6 +4,7 @@ import { Image } from "expo-image";
 import { Modal, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import type { PvpSpectateBattleState } from "@adventure-time/shared";
 
 import { apiClient } from "../../src/lib/api";
 import { getCardImageCacheKey, getCardImageUrl } from "../../src/lib/card-images";
@@ -38,11 +39,11 @@ function getTimeAgo(
   const diffMins = Math.floor(
     (Date.now() - new Date(dateStr).getTime()) / 60000,
   );
-  if (diffMins < 1) return t("native.time.justNow");
-  if (diffMins < 60) return t("native.time.minutesAgo", { count: diffMins });
+  if (diffMins < 1) return t("time.justNow");
+  if (diffMins < 60) return t("time.minutesAgo", { count: diffMins });
   const diffHours = Math.floor(diffMins / 60);
-  if (diffHours < 24) return t("native.time.hoursAgo", { count: diffHours });
-  return t("native.time.daysAgo", { count: Math.floor(diffHours / 24) });
+  if (diffHours < 24) return t("time.hoursAgo", { count: diffHours });
+  return t("time.daysAgo", { count: Math.floor(diffHours / 24) });
 }
 
 export default function PvpScreen() {
@@ -131,6 +132,7 @@ export default function PvpScreen() {
     () => selectedMatchQuery.data?.battleState,
     [selectedMatchQuery.data],
   );
+  const spectateBattleState: PvpSpectateBattleState | null = spectateDetailQuery.data?.battleState ?? null;
 
   return (
     <ScrollView
@@ -143,7 +145,7 @@ export default function PvpScreen() {
         <View style={{ position: "relative", alignItems: "center" }}>
           <View className="flex-row items-center gap-2">
             <SwordsIcon size={32} color={tc.primaryDark} />
-            <Text className="font-nunito-extrabold text-3xl text-primaryDark">PvP Battle</Text>
+            <Text className="font-nunito-extrabold text-3xl text-primaryDark">{t("pvp.lobby.title")}</Text>
           </View>
           {pendingReceivedInvites.length > 0 && (
             <View
@@ -155,7 +157,7 @@ export default function PvpScreen() {
           )}
         </View>
         <Text className="font-nunito-semibold text-center text-sm text-primary">
-          Challenge friends · Build loadouts · Climb the ranks
+          {t("pvp.lobby.subtitle")}
         </Text>
         <View className="flex-row gap-3 mt-1">
           <Pressable
@@ -163,7 +165,7 @@ export default function PvpScreen() {
             className="rounded-xl border border-dangerBorder bg-dangerTint px-4 py-2"
           >
             <Text className="font-nunito-bold text-sm text-dangerText">
-              {t("native.pvp.howPvpWorks")}
+              {t("pvp.mechanics.open")}
             </Text>
           </Pressable>
           <Pressable
@@ -171,7 +173,7 @@ export default function PvpScreen() {
             className="rounded-xl border border-infoBorder bg-infoTint px-4 py-2"
           >
             <Text className="font-nunito-bold text-sm text-infoDark">
-              {t("native.pvp.combatReference")}
+              {t("pvp.reference.open")}
             </Text>
           </Pressable>
         </View>
@@ -192,7 +194,7 @@ export default function PvpScreen() {
           >
             <UserPlusIcon size={22} color="white" />
             <Text className="font-nunito-bold text-center text-xs text-white">
-              {t("native.pvp.sendInvite")}
+              {t("pvp.sendInvite")}
             </Text>
           </LinearGradient>
         </Pressable>
@@ -209,8 +211,8 @@ export default function PvpScreen() {
             <SwordsIcon size={22} color="white" />
             <Text className="font-nunito-bold text-center text-xs text-white">
               {(loadoutsQuery.data?.loadouts.length ?? 0) > 0
-                ? t("native.pvp.editLoadouts")
-                : t("native.pvp.createLoadout")}
+                ? t("pvp.editLoadouts")
+                : t("pvp.createLoadout")}
             </Text>
           </LinearGradient>
         </Pressable>
@@ -223,7 +225,7 @@ export default function PvpScreen() {
           >
             <SwordsIcon size={22} color="white" />
             <Text className="font-nunito-bold text-center text-xs text-white">
-              {t("native.pvp.spectateOpen")}
+              {t("pvp.spectateOpen")}
             </Text>
           </LinearGradient>
         </Pressable>
@@ -248,7 +250,7 @@ export default function PvpScreen() {
           >
             <SwordsIcon size={20} color="white" />
             <Text className="font-nunito-bold flex-1 text-white">
-              {t("native.pvp.incomingChallenges")}
+              {t("pvp.incomingChallenges")}
             </Text>
             <View className="items-center justify-center rounded-full bg-surface px-2 py-0.5">
               <Text className="font-nunito-bold text-xs text-dangerDark">{pendingReceivedInvites.length}</Text>
@@ -275,14 +277,14 @@ export default function PvpScreen() {
                     <View className="flex-1">
                       <Text className="font-nunito-bold text-fg">{invite.inviterName ?? `${invite.inviterId.slice(0, 12)}…`}</Text>
                       <Text className="font-nunito text-xs text-fgMuted">
-                        {t("native.pvp.challengeBy", { time: getTimeAgo(invite.createdAt, t) })}
+                        {t("pvp.challengeBy", { time: getTimeAgo(invite.createdAt, t) })}
                       </Text>
                     </View>
                   </View>
                   {validLoadouts.length > 0 ? (
                     <>
                       <Text className="font-nunito-semibold text-xs text-primaryDark">
-                        {t("native.pvp.selectLoadout")}
+                        {t("pvp.selectLoadout")}
                       </Text>
                       <View className="gap-2">
                         {validLoadouts.map((l) => (
@@ -325,7 +327,7 @@ export default function PvpScreen() {
                             }}
                           >
                             <CheckIcon size={16} color="white" />
-                            <Text className="font-nunito-bold text-white">Accept</Text>
+                            <Text className="font-nunito-bold text-white">{t("pvp.lobby.accept")}</Text>
                           </LinearGradient>
                         </Pressable>
                         <Pressable
@@ -333,14 +335,14 @@ export default function PvpScreen() {
                           onPress={() => void declineMutation.mutateAsync(invite.id)}
                         >
                           <XIcon size={16} color={tc.dangerDark} />
-                          <Text className="font-nunito-bold text-dangerDark">Decline</Text>
+                          <Text className="font-nunito-bold text-dangerDark">{t("pvp.lobby.decline")}</Text>
                         </Pressable>
                       </View>
                     </>
                   ) : (
                     <View className="rounded-xl border border-secondaryBorder bg-secondaryTint p-3">
                       <Text className="font-nunito text-sm text-secondaryText">
-                        {t("native.pvp.needValidLoadout")}
+                        {t("pvp.needValidLoadout")}
                       </Text>
                     </View>
                   )}
@@ -357,7 +359,7 @@ export default function PvpScreen() {
           <View className="flex-row items-center gap-2">
             <SwordsIcon size={20} color={tc.successDark} />
             <Text className="font-nunito-bold text-lg text-successDark">
-              {t("native.pvp.activeBattles", { count: activeMatches.length })}
+              {t("pvp.activeBattles", { count: activeMatches.length })}
             </Text>
           </View>
           {activeMatches.map((match) => {
@@ -375,12 +377,12 @@ export default function PvpScreen() {
                   <SwordsIcon size={20} color={tc.successDark} />
                 </View>
                 <View className="flex-1">
-                  <Text className="font-nunito-bold text-fg">vs {opponentName ?? `${opponentId.slice(0, 10)}…`}</Text>
-                  <Text className="font-nunito text-xs text-successDark">
-                    Turn {match.currentTurn ?? 1}
-                  </Text>
+                   <Text className="font-nunito-bold text-fg">vs {opponentName ?? `${opponentId.slice(0, 10)}…`}</Text>
+                   <Text className="font-nunito text-xs text-successDark">
+                     {t("pvp.lobby.turn", { count: match.currentTurn ?? 1 })}
+                   </Text>
                 </View>
-                <Text className="font-nunito-bold text-success">{t("native.pvp.continue")}</Text>
+                <Text className="font-nunito-bold text-success">{t("pvp.continueArrow")}</Text>
               </Pressable>
             );
           })}
@@ -393,7 +395,7 @@ export default function PvpScreen() {
           <View className="flex-row items-center gap-2">
             <ClockIcon size={20} color={tc.infoDark} />
             <Text className="font-nunito-bold text-lg text-infoDark">
-              {t("native.pvp.sentInvites", { count: pendingSentInvites.length })}
+              {t("pvp.sentInvites", { count: pendingSentInvites.length })}
             </Text>
           </View>
           {pendingSentInvites.map((invite) => (
@@ -407,7 +409,7 @@ export default function PvpScreen() {
               <View className="flex-1">
                 <Text className="font-nunito-semibold text-fg">{invite.inviteeName ?? `${invite.inviteeId.slice(0, 12)}…`}</Text>
                 <Text className="font-nunito text-xs text-fgMuted">
-                  {t("native.pvp.waitingForResponse")}
+                  {t("pvp.waitingResponse")}
                 </Text>
               </View>
               <Pressable onPress={() => void declineMutation.mutateAsync(invite.id)} className="p-2">
@@ -424,12 +426,14 @@ export default function PvpScreen() {
           <View className="flex-row items-center gap-2">
             <TrophyIcon size={20} color={tc.primary} />
             <Text className="font-nunito-bold flex-1 text-lg text-fg">
-              {t("native.pvp.recentBattles")}
+              {t("pvp.recentBattles")}
             </Text>
-            <Text className="font-nunito-bold text-sm text-accentText">{t("native.pvp.viewAll")}</Text>
+            <Text className="font-nunito-bold text-sm text-accentText">{t("pvp.viewAllArrow")}</Text>
           </View>
           {completedMatches.map((match) => {
             const won = match.winnerId === currentUserId;
+            const isExpired = match.status === "EXPIRED";
+            const isDeclined = match.status === "DECLINED";
             const opponentId =
               match.inviterId === currentUserId ? match.inviteeId : match.inviterId;
             const opponentName =
@@ -438,25 +442,37 @@ export default function PvpScreen() {
               <Pressable
                 key={match.id}
                 className={`flex-row items-center gap-3 rounded-xl border bg-surface p-3 ${
-                  won ? "border-successBorder" : "border-dangerBorder"
+                  isExpired || isDeclined
+                    ? "border-infoBorder"
+                    : won
+                      ? "border-successBorder"
+                      : "border-dangerBorder"
                 }`}
                 onPress={() => setSelectedMatchId(match.id)}
               >
                 <Text
                   className={`font-nunito-bold text-sm ${
-                    won ? "text-successDark" : "text-dangerDark"
+                    isExpired || isDeclined
+                      ? "text-infoDark"
+                      : won
+                        ? "text-successDark"
+                        : "text-dangerDark"
                   }`}
                 >
-                  {won
-                    ? t("native.pvp.win")
-                    : match.winnerId
-                      ? t("native.pvp.loss")
-                      : "—"}
+                  {isExpired
+                     ? t("pvp.lobby.expired")
+                     : isDeclined
+                       ? t("pvp.lobby.declined")
+                       : won
+                        ? t("pvp.win")
+                        : match.winnerId
+                          ? t("pvp.loss")
+                          : "—"}
                 </Text>
                 <Text className="flex-1 font-nunito text-sm text-fgMuted">
                   vs {opponentName ?? `${opponentId.slice(0, 10)}…`}
                 </Text>
-                <Text className="font-nunito-bold text-xs text-accent">{t("native.pvp.replay")}</Text>
+                <Text className="font-nunito-bold text-xs text-accent">{t("pvp.replayArrow")}</Text>
               </Pressable>
             );
           })}
@@ -468,10 +484,10 @@ export default function PvpScreen() {
         <View className="items-center gap-3 rounded-2xl border border-primaryTint bg-surface p-8">
           <SwordsIcon size={48} color={tc.primaryBorder} />
           <Text className="font-nunito-bold text-center text-lg text-fg">
-            {t("native.pvp.readyForBattle")}
+            {t("pvp.readyForBattle")}
           </Text>
           <Text className="font-nunito text-center text-sm text-fgMuted">
-            {t("native.pvp.readyForBattleHint")}
+            {t("pvp.readyForBattleHint")}
           </Text>
         </View>
       )}
@@ -480,7 +496,7 @@ export default function PvpScreen() {
       {(loadoutsQuery.data?.loadouts.length ?? 0) > 0 && (
         <View className="gap-3">
           <Text className="font-nunito-bold text-lg text-accentText">
-            {t("native.pvp.myLoadouts")}
+            {t("pvp.myLoadouts")}
           </Text>
           {loadoutsQuery.data!.loadouts.map((loadout) => {
             const isValid = loadout.invalidCardIds.length === 0;
@@ -494,7 +510,7 @@ export default function PvpScreen() {
                 {!isValid && (
                   <View className="mb-3 flex-row items-center gap-2 rounded-lg border border-dangerBorder bg-dangerTint px-3 py-2">
                     <Text className="font-nunito-bold text-sm text-dangerDark">
-                      ⚠ {t("native.pvp.invalidLoadout", { count: loadout.invalidCardIds.length })}
+                      ⚠ {t("pvp.invalidLoadout", { count: loadout.invalidCardIds.length })}
                     </Text>
                   </View>
                 )}
@@ -546,7 +562,7 @@ export default function PvpScreen() {
                   </View>
                 </ScrollView>
                 <Text className="font-nunito mt-1 text-xs text-fgMuted">
-                  {t("native.pvp.firstThreeActive")}
+                  {t("pvp.firstThreeActive")}
                 </Text>
               </View>
             );
@@ -559,29 +575,38 @@ export default function PvpScreen() {
         <View className="gap-3">
           <View className="flex-row items-center gap-2">
             <SwordsIcon size={20} color={tc.info} />
-            <Text className="font-nunito-bold text-lg text-infoDark">{t("native.pvp.liveMatches")}</Text>
+            <Text className="font-nunito-bold text-lg text-infoDark">{t("pvp.liveMatches")}</Text>
           </View>
           {spectateQuery.data!.matches.map((m) => (
             <View key={m.id} className="gap-2 rounded-2xl border border-infoBorder bg-infoTint p-4">
               <Text className="font-nunito text-fg">
-                Turn {m.currentTurn} · {m.id.slice(0, 8)}
-              </Text>
+                 {t("pvp.lobby.turn", { count: m.currentTurn })} · {m.id.slice(0, 8)}
+               </Text>
               <Pressable
                 className="rounded-xl border border-infoBorder px-4 py-2"
                 onPress={() => setSpectateMatchId(m.id)}
               >
-                <Text className="font-nunito-semibold text-infoDark">Watch</Text>
-              </Pressable>
+                 <Text className="font-nunito-semibold text-infoDark">{t("pvp.lobby.watch")}</Text>
+               </Pressable>
             </View>
           ))}
           {spectateMatchId && spectateDetailQuery.data ? (
             <View className="gap-2 rounded-2xl bg-primaryBg p-3">
-              <Text className="font-nunito-semibold text-fg">Spectating match</Text>
-              {(spectateDetailQuery.data.battleState as any)?.players?.map((player: any) => (
+               <Text className="font-nunito-semibold text-fg">{t("pvp.lobby.spectating")}</Text>
+              {spectateBattleState?.players.map((player) => (
                 <View key={player.userId} className="gap-1">
                   <Text className="font-nunito-semibold text-fg">{player.userId}</Text>
-                  {player.team?.map((unit: any) => (
-                    <Text key={unit.cardId} className="font-nunito text-fgMuted">
+                  {player.units.map((unit) => (
+                    <Text key={unit.instanceId} className="font-nunito text-fgMuted">
+                      {unit.name}: {unit.hp}/{unit.maxHp}
+                      {unit.knockedOut ? " KO" : ""}
+                    </Text>
+                  ))}
+                  {player.bench.length > 0 ? (
+                    <Text className="font-nunito text-xs text-fgMuted">{t("pvp.board.bench")}</Text>
+                  ) : null}
+                  {player.bench.map((unit) => (
+                    <Text key={unit.instanceId} className="font-nunito text-fgMuted">
                       {unit.name}: {unit.hp}/{unit.maxHp}
                       {unit.knockedOut ? " KO" : ""}
                     </Text>
@@ -593,7 +618,7 @@ export default function PvpScreen() {
                 onPress={() => setSpectateMatchId(null)}
               >
                 <Text className="font-nunito-semibold text-primaryText">
-                  {t("native.pvp.stopWatching")}
+                  {t("pvp.stopWatching")}
                 </Text>
               </Pressable>
             </View>
@@ -613,7 +638,7 @@ export default function PvpScreen() {
           <View className="gap-5 rounded-t-3xl bg-surface p-6">
             <View className="flex-row items-center justify-between">
               <Text className="font-nunito-bold text-xl text-primaryText">
-                {t("native.pvp.sendChallenge")}
+                {t("pvp.sendChallenge")}
               </Text>
               <Pressable onPress={() => setShowInviteModal(false)} className="p-1">
                 <XIcon size={22} color={tc.dangerDark} />
@@ -622,7 +647,7 @@ export default function PvpScreen() {
             {(loadoutsQuery.data?.loadouts.filter((l) => l.invalidCardIds.length === 0).length ?? 0) > 0 && (
               <View className="gap-2">
                 <Text className="font-nunito-semibold text-sm text-primaryDark">
-                  {t("native.pvp.selectLoadoutLabel")}
+                  {t("pvp.selectLoadoutLabel")}
                 </Text>
                 <View className="gap-2">
                   {loadoutsQuery.data!.loadouts
@@ -645,14 +670,14 @@ export default function PvpScreen() {
             )}
             <View className="gap-2">
               <Text className="font-nunito-semibold text-sm text-primaryDark">
-                {t("native.pvp.friendEmail")}
+                {t("pvp.friendEmail")}
               </Text>
               <TextInput
                 value={inviteeEmail}
                 onChangeText={setInviteeEmail}
                 autoCapitalize="none"
                 keyboardType="email-address"
-                placeholder="friend@example.com"
+                placeholder={t("pvp.friendEmailPlaceholder")}
                 placeholderTextColor={tc.muted}
                 className="rounded-2xl border border-primaryBorder bg-primaryBg px-4 py-3 font-nunito text-fg"
               />
@@ -662,8 +687,8 @@ export default function PvpScreen() {
                 className="flex-1 items-center rounded-xl bg-surfaceMuted py-3"
                 onPress={() => setShowInviteModal(false)}
               >
-                <Text className="font-nunito-bold text-fgMuted">Cancel</Text>
-              </Pressable>
+                 <Text className="font-nunito-bold text-fgMuted">{t("common.cancel")}</Text>
+               </Pressable>
               <Pressable
                 disabled={!inviteeEmail}
                 style={{ flex: 1, borderRadius: 12, overflow: "hidden", opacity: inviteeEmail ? 1 : 0.5 }}
@@ -675,7 +700,7 @@ export default function PvpScreen() {
                   end={{ x: 1, y: 1 }}
                   style={{ alignItems: "center", paddingVertical: 12, paddingHorizontal: 16 }}
                 >
-                  <Text className="font-nunito-bold text-white">{t("native.pvp.sendChallenge")}</Text>
+                  <Text className="font-nunito-bold text-white">{t("pvp.sendChallenge")}</Text>
                 </LinearGradient>
               </Pressable>
             </View>

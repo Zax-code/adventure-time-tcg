@@ -1,0 +1,121 @@
+const quests = {
+  title: "Quêtes quotidiennes",
+  subtitle: "Termine des quêtes pour gagner des pièces bonus !",
+  noQuests: "Aucune quête disponible aujourd'hui",
+  checkBackLater: "Reviens plus tard pour de nouvelles quêtes !",
+  connectFitbitDesc:
+    "Associe ton compte Fitbit pour débloquer les quêtes de suivi de pas et gagner plus de pièces !",
+  connectInSettings: "Connecter dans les paramètres",
+  claim: "Récupérer",
+  progress: "Progression",
+  playQuest: "Jouer la quête",
+  seeResults: "Voir les tentatives",
+  loading: "Chargement des quêtes...",
+  unavailable: "Données de quête indisponibles.",
+  claimSuccess: "+{amount} pièces récupérées !",
+  claimFailed: "Impossible de récupérer la récompense.",
+  questReset: "{quest} a été réinitialisée.",
+  questResetByAdmin: "{quest} a été réinitialisée par {name}.",
+  wordleAttemptsUsed: "{used} / {total} essais utilisés",
+  wordleSolvedIn: "Résolu en {used}/{total} essais !",
+  steps_10k: "Marcher 10 000 pas",
+  steps_10k_desc: "Marche 10 000 pas aujourd'hui pour gagner des pièces",
+  daily_login: "Connexion quotidienne",
+  daily_login_desc: "Connecte-toi au jeu chaque jour",
+  wordle_daily: "Terminer un Wordle",
+  wordle_daily_desc: "Résous le Wordle du jour",
+  speed_calculus_daily: "Sprint de calcul mental",
+  speed_calculus_daily_desc: "Résous un maximum d'additions et de soustractions",
+  wordle: {
+    title: "Wordle quotidien",
+    subtitle: "Résous l'énigme pour terminer la quête du jour.",
+    backToQuests: "Retour aux quêtes",
+    attempts: "Essais restants",
+    attemptsUsed: "Résolu en",
+    submit: "Valider",
+    clear: "Effacer la ligne",
+    wordLength: "Entre un mot de 5 lettres.",
+    wordNotFound: "Mot introuvable dans le dictionnaire.",
+    solved: "Énigme résolue.",
+    solvedQuest: "Énigme résolue. Quête terminée !",
+    failed: "Tu n'as plus d'essais aujourd'hui. Réessaie demain.",
+    revealedWord: "Le mot était : {word}",
+    resetTitle: "Trop tard, le mot a changé !",
+    resetBody:
+      "Le Wordle quotidien vient de passer à un nouveau mot. Ta grille en cours a été réinitialisée.",
+    resetCta: "Commencer le nouveau mot",
+    adminResetTitle: "Ta quête a été réinitialisée",
+    adminResetBody:
+      "Ta progression a été réinitialisée par {name}. Tu peux rejouer depuis le début.",
+    tryAgain: "Une erreur est survenue, réessaie.",
+  },
+  speedCalculusTitle: "Calcul mental rapide",
+  speedCalculusSubtitle:
+    "Trois manches maximum. Chaque manche dure {seconds} secondes, et seule ta dernière manche compte tant que tu n'as pas sécurisé ton score.",
+  speedCalculusRules: "Règles",
+  speedCalculusRuleLine:
+    "Tu as {seconds} secondes par manche. Chaque bonne réponse vaut {reward} pièces lorsque ton score est verrouillé.",
+  speedCalculusRunsLeft: "Manches restantes",
+  speedCalculusLatestReward: "Récompense actuelle",
+  speedCalculusLatestScore: "Dernier score",
+  speedCalculusStartRun: "Lancer la manche {run}",
+  speedCalculusCashOut: "Sécuriser {reward} pièces",
+  speedCalculusClaimed: "Récompense déjà récupérée aujourd'hui.",
+  speedCalculusLocked:
+    "Score final verrouillé. Ta récompense de quête est de {reward} pièces.",
+  speedCalculusClaimReminder:
+    "Retourne aux quêtes quotidiennes pour récupérer la récompense quand tu veux.",
+  speedCalculusRunLabel: "Manche {run}/{total}",
+  speedCalculusCorrectNow: "Bonnes réponses",
+  speedCalculusQuestionNumber: "Question {current}",
+  speedCalculusAnswerPlaceholder: "Réponse",
+  speedCalculusClear: "Effacer",
+  speedCalculusDelete: "Retour",
+  speedCalculusToggleNegative: "+/-",
+  speedCalculusSubmit: "Valider",
+  speedCalculusCorrectFeedback: "Correct.",
+  speedCalculusWrongFeedback: "Faux. Bonne réponse : {answer}.",
+  speedCalculusResumeCountdownTitle: "Prépare-toi",
+  speedCalculusResumeCountdownBody:
+    "Ta manche reprend dans {seconds} secondes.",
+  speedCalculusRunHistory: "Historique des manches",
+  speedCalculusRunExpired: "Cette manche a expiré avant d'être validée.",
+  speedCalculusRunSummary:
+    "{score} bonnes réponses sur {answered} réponses envoyées.",
+  speedCalculusRunDetailsToggle: "Détails",
+  speedCalculusHistoryQuestion: "Question {current}",
+  speedCalculusHistoryUserAnswer: "Ta réponse : {answer}",
+  speedCalculusHistoryUnanswered: "Aucune réponse envoyée.",
+  speedCalculusHistoryCorrectAnswer: "Bonne réponse : {answer}",
+  speedCalculusNoRunsYet: "Aucune manche terminée aujourd'hui.",
+  speedCalculusRunFinished:
+    "Manche terminée : {score} bonnes réponses pour {reward} pièces si tu sécurises maintenant.",
+  speedCalculusRunLocked:
+    "Manche terminée et verrouillée : {score} bonnes réponses pour {reward} pièces.",
+  speedCalculusCashOutSuccess:
+    "Score verrouillé. Tu peux maintenant récupérer {reward} pièces depuis la page des quêtes.",
+  speedCalculusLoadError: "Impossible de charger la quête de calcul mental.",
+  speedCalculusStartError: "Impossible de lancer une nouvelle manche.",
+  speedCalculusFinishError: "Impossible de terminer la manche.",
+  speedCalculusCashOutError: "Impossible de sécuriser le score.",
+  speedCalculusRoundOver: "La manche est terminée !",
+  speedCalculusBackToMain: "Retour au calcul mental",
+  speedCalculusQuestCardMeta:
+    "Dernière manche : {score} bonnes réponses, {reward} pièces, {runs}/{total} manches utilisées.",
+  speedCalculusReset:
+    "Ta partie de calcul rapide a été réinitialisée. Actualisation en cours.",
+  speedCalculusResetByAdmin:
+    "Ta partie de calcul rapide a été réinitialisée par {name}.",
+  speedCalculusPause: "Pause",
+  speedCalculusResume: "Reprendre",
+  speedCalculusPausedTitle: "En pause",
+  speedCalculusPausedHeading: "Souffle un peu",
+  speedCalculusPausedBody:
+    "Reprends quand tu veux. Le compte à rebours habituel de 5 secondes commencera ensuite.",
+  speedCalculusPauseError:
+    "Impossible de mettre en pause la partie de calcul rapide.",
+  speedCalculusResumeError:
+    "Impossible de reprendre la partie de calcul rapide.",
+};
+
+export default quests;

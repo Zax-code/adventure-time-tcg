@@ -7,6 +7,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 
 import { CoinIcon, CardsIcon, HomeIcon } from "../icons";
+import { useTranslation } from "../../i18n";
 import { useSessionStore } from "../../stores/session-store";
 import { useThemeStore } from "../../stores/theme-store";
 import { THEME_COLORS } from "../../theme/themes";
@@ -14,11 +15,13 @@ import { AdminBackground } from "./admin-ui";
 
 type ThemeColorKey = keyof (typeof THEME_COLORS)["candy"];
 
-const NAV_ITEMS: { path: string; label: string; icon: "albums" | "star" | "flash" | "people"; tintKey: ThemeColorKey }[] = [
-  { path: "/admin/cards", label: "Cards", icon: "albums", tintKey: "primaryText" },
-  { path: "/admin/featured", label: "Featured", icon: "star", tintKey: "secondaryText" },
-  { path: "/admin/abilities", label: "Abilities", icon: "flash", tintKey: "accentText" },
-  { path: "/admin/users", label: "Users", icon: "people", tintKey: "accentStrong" },
+const NAV_ITEMS: { path: string; labelKey: string; icon: "albums" | "cube" | "images" | "star" | "flash" | "people"; tintKey: ThemeColorKey }[] = [
+  { path: "/admin/cards", labelKey: "admin.shell.nav.cards", icon: "albums", tintKey: "primaryText" },
+  { path: "/admin/packs", labelKey: "admin.shell.nav.packs", icon: "cube", tintKey: "secondaryText" },
+  { path: "/admin/image-assets", labelKey: "admin.shell.nav.assets", icon: "images", tintKey: "infoText" },
+  { path: "/admin/featured", labelKey: "admin.shell.nav.featured", icon: "star", tintKey: "secondaryText" },
+  { path: "/admin/abilities", labelKey: "admin.shell.nav.abilities", icon: "flash", tintKey: "accentText" },
+  { path: "/admin/users", labelKey: "admin.shell.nav.users", icon: "people", tintKey: "accentStrong" },
 ];
 
 // Isolated coin display — subscribes to Zustand independently so coin
@@ -58,6 +61,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { themeName } = useThemeStore();
   const tc = THEME_COLORS[themeName];
+  const { t } = useTranslation();
 
   return (
     <View className="flex-1">
@@ -81,7 +85,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
             }}
           >
             <HomeIcon size={18} color="#FFFFFF" />
-            <Text className="text-white font-nunito-bold text-[13px]">Back to game</Text>
+            <Text className="text-white font-nunito-bold text-[13px]">{t("admin.shell.backToGame")}</Text>
           </Pressable>
         </View>
 
@@ -114,7 +118,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
                   className="font-nunito-extrabold text-[10px]"
                   style={{ color: active ? tint : tc.fgMuted }}
                 >
-                  {item.label}
+                  {t(item.labelKey)}
                 </Text>
               </Pressable>
             );

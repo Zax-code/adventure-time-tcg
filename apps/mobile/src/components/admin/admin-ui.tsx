@@ -14,6 +14,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 
 import { ADMIN_TYPE_COLORS } from "./admin-theme";
+import { useTranslation } from "../../i18n";
 import { useThemeStore } from "../../stores/theme-store";
 import { THEME_COLORS } from "../../theme/themes";
 
@@ -166,12 +167,13 @@ export function AdminChip({ label, tone = "default" }: { label: string; tone?: "
 
 export function AbilityTypeChip({ type }: { type: "PASSIVE" | "SKILL" | "ULTIMATE" }) {
   const palette = ADMIN_TYPE_COLORS[type];
+  const { t } = useTranslation();
   return (
     <View
       className="px-[10] py-[5] rounded-full border"
       style={{ backgroundColor: palette.bg, borderColor: palette.border }}
     >
-      <Text className="font-nunito-extrabold text-[11px]" style={{ color: palette.text }}>{type}</Text>
+      <Text className="font-nunito-extrabold text-[11px]" style={{ color: palette.text }}>{t(`admin.abilities.type.${type}`)}</Text>
     </View>
   );
 }

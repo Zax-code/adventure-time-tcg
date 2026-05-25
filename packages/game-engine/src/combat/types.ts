@@ -374,7 +374,15 @@ export type CombatEventType =
   | "gameOver"
   | "freeze_skip"
   | "stun_consume"
-  | "revive";
+  | "revive"
+  | "pass"
+  | "concede"
+  | "coverRedirect"
+  | "thorns"
+  | "counter"
+  | "preventDeath"
+  | "statusSteal"
+  | "swapHp";
 
 export interface CombatEvent {
   seq: number; // sequence number
@@ -399,6 +407,29 @@ export interface BattleState {
   actionsThisTurn: Action[];
   turnEnded: boolean;
   // Ability definitions keyed by ability key, loaded from AbilityDef table.
+  abilityDefinitions?: Record<string, AbilityDefinition>;
+}
+
+// Narrow state shape used by targeting helpers and UI consumers.
+export interface TargetingUnitState {
+  instanceId: string;
+  hp: number;
+  maxHp: number;
+  attack: number;
+  defense: number;
+  speed: number;
+  statuses: Status[];
+}
+
+export interface TargetingPlayerState {
+  userId: string;
+  units: TargetingUnitState[];
+  bench: TargetingUnitState[];
+}
+
+export interface TargetingBattleState {
+  currentPlayerId: string;
+  players: [TargetingPlayerState, TargetingPlayerState];
   abilityDefinitions?: Record<string, AbilityDefinition>;
 }
 

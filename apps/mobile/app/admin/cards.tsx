@@ -15,6 +15,7 @@ import {
   AdminPanel,
   AdminSearchInput,
 } from "../../src/components/admin/admin-ui";
+import { useTranslation } from "../../src/i18n";
 import { useThemeStore } from "../../src/stores/theme-store";
 import { THEME_COLORS } from "../../src/theme/themes";
 
@@ -69,6 +70,7 @@ export default function AdminCardsScreen() {
   );
   const [isActiveCardsOpen, setIsActiveCardsOpen] = useState(true);
   const [isArchivedCardsOpen, setIsArchivedCardsOpen] = useState(true);
+  const { t } = useTranslation();
 
   const { themeName } = useThemeStore();
   const tc = THEME_COLORS[themeName];
@@ -223,8 +225,12 @@ export default function AdminCardsScreen() {
               onPress={() => setIsActiveCardsOpen((current) => !current)}
             >
               <Text className="font-nunito-extrabold text-[18px] text-primaryText">
-                All Cards ({activeCountLabel})
-                {searchQuery ? ` / ${activeTotalLabel}` : ""}
+                {searchQuery
+                  ? t("admin.cards.activeTitleWithTotal", {
+                      count: activeCountLabel,
+                      total: activeTotalLabel,
+                    })
+                  : t("admin.cards.activeTitle", { count: activeCountLabel })}
               </Text>
               <Ionicons
                 name="chevron-down"
@@ -236,13 +242,13 @@ export default function AdminCardsScreen() {
             {isActiveCardsOpen ? (
               <View className="items-center px-3 pt-[14] pb-1">
                 {isCardsLoading ? (
-                  <Text className="mb-3 font-nunito-semibold text-xs text-fgMuted">Loading cards...</Text>
+                  <Text className="mb-3 font-nunito-semibold text-xs text-fgMuted">{t("admin.cards.loading")}</Text>
                 ) : cardsError ? (
                   <Text className="font-nunito-bold text-[13px] text-dangerText text-center">{cardsError}</Text>
                 ) : derived.activeCards.length ? (
-                  <Text className="mb-3 font-nunito-semibold text-xs text-fgMuted">Tap a card to edit it.</Text>
+                  <Text className="mb-3 font-nunito-semibold text-xs text-fgMuted">{t("admin.cards.tapToEdit")}</Text>
                 ) : (
-                  <Text className="font-nunito-semibold text-sm text-fgMuted text-center">No cards match your search.</Text>
+                  <Text className="font-nunito-semibold text-sm text-fgMuted text-center">{t("admin.cards.noActiveBody")}</Text>
                 )}
               </View>
             ) : null}
@@ -261,8 +267,12 @@ export default function AdminCardsScreen() {
               onPress={() => setIsArchivedCardsOpen((current) => !current)}
             >
               <Text className="font-nunito-extrabold text-[18px] text-dangerText">
-                Archived Cards ({archivedCountLabel})
-                {searchQuery ? ` / ${archivedTotalLabel}` : ""}
+                {searchQuery
+                  ? t("admin.cards.archivedTitleWithTotal", {
+                      count: archivedCountLabel,
+                      total: archivedTotalLabel,
+                    })
+                  : t("admin.cards.archivedTitle", { count: archivedCountLabel })}
               </Text>
               <Ionicons
                 name="chevron-down"
@@ -274,16 +284,16 @@ export default function AdminCardsScreen() {
             {isArchivedCardsOpen ? (
               <View className="items-center px-3 pt-[14] pb-1">
                 {isCardsLoading ? (
-                  <Text className="mb-3 font-nunito-semibold text-xs text-fgMuted">Loading cards...</Text>
+                  <Text className="mb-3 font-nunito-semibold text-xs text-fgMuted">{t("admin.cards.loading")}</Text>
                 ) : cardsError ? (
                   <Text className="font-nunito-bold text-[13px] text-dangerText text-center">{cardsError}</Text>
                 ) : derived.archivedCards.length ? (
-                  <Text className="mb-3 font-nunito-semibold text-xs text-fgMuted">Tap a card to manage it.</Text>
+                  <Text className="mb-3 font-nunito-semibold text-xs text-fgMuted">{t("admin.cards.tapToManage")}</Text>
                 ) : (
                   <Text className="font-nunito-semibold text-sm text-fgMuted text-center">
                     {searchQuery
-                      ? "No archived cards match your search."
-                      : "No archived cards."}
+                      ? t("admin.cards.noArchivedSearchBody")
+                      : t("admin.cards.noArchivedBody")}
                   </Text>
                 )}
               </View>
@@ -317,17 +327,17 @@ export default function AdminCardsScreen() {
     () => (
       <>
         <View className="items-center pt-1">
-          <Text className="font-nunito-extrabold text-[28px] text-primaryStrong">Card Admin</Text>
+          <Text className="font-nunito-extrabold text-[28px] text-primaryStrong">{t("admin.cards.title")}</Text>
         </View>
 
         <View className="mt-4">
-          <AdminButton label="Add card" icon="add" onPress={() => openCardEditor("create")} />
+          <AdminButton label={t("admin.cards.createCard")} icon="add" onPress={() => openCardEditor("create")} />
         </View>
 
         <AdminPanel style={{ marginTop: 16, paddingBottom: 18 }}>
-          <Text className="font-nunito-extrabold text-[20px] text-primaryText mb-3">Card Stats</Text>
+          <Text className="font-nunito-extrabold text-[20px] text-primaryText mb-3">{t("admin.cards.stats")}</Text>
           {isCardsLoading ? (
-            <Text className="mb-3 font-nunito-semibold text-xs text-fgMuted">Loading cards...</Text>
+            <Text className="mb-3 font-nunito-semibold text-xs text-fgMuted">{t("admin.cards.loading")}</Text>
           ) : cardsError ? (
             <Text className="font-nunito-bold text-[13px] text-dangerText text-center">{cardsError}</Text>
           ) : (
@@ -348,7 +358,7 @@ export default function AdminCardsScreen() {
           <AdminSearchInput
             value={searchQuery}
             onChangeText={setSearchQuery}
-            placeholder="Search cards by name or character..."
+            placeholder={t("admin.cards.searchPlaceholder")}
           />
         </View>
       </>
@@ -380,7 +390,7 @@ export default function AdminCardsScreen() {
       {selectedArchivedCard ? (
         <AdminModal
           visible
-          title="Archived Card"
+          title={t("admin.cards.archivedCardTitle")}
           onClose={() => setSelectedArchivedCardId(null)}
         >
           <View className="items-center mb-4">
@@ -389,7 +399,7 @@ export default function AdminCardsScreen() {
           <Text className="text-center font-nunito-bold text-[16px] text-primaryText mb-[18]">{selectedArchivedCard.name}</Text>
           <View className="gap-[10]">
             <AdminButton
-              label="Restore card"
+              label={t("admin.cards.restoreCard")}
               variant="secondary"
               onPress={() => {
                 featureMutation.mutate({ cardId: selectedArchivedCard.id, isArchived: false });
@@ -397,7 +407,7 @@ export default function AdminCardsScreen() {
               }}
             />
             <AdminButton
-              label="Cancel"
+              label={t("common.cancel")}
               variant="ghost"
               onPress={() => setSelectedArchivedCardId(null)}
             />

@@ -1,8 +1,8 @@
-import 'react-native-reanimated';
+import "react-native-reanimated";
 import { useEffect } from "react";
-import { View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 import { Stack } from "expo-router";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -17,13 +17,23 @@ import {
 
 import "../global.css";
 
+import { queryClient } from "../src/lib/query-client";
 import { useBootstrap } from "../src/hooks/use-bootstrap";
+import { apiClient, API_BASE_URL } from "../src/lib/api";
+import {
+  connectQuestRealtime,
+  disconnectQuestRealtime,
+} from "../src/lib/quest-realtime";
+import {
+  type QuestResetPayload,
+  useQuestResetStore,
+} from "../src/stores/quest-reset-store";
+import { useSessionStore } from "../src/stores/session-store";
+import { useLocaleStore } from "../src/stores/locale-store";
 import { useThemeStore } from "../src/stores/theme-store";
-import { THEME_VARS } from "../src/theme/themes";
+import { THEME_COLORS, THEME_VARS } from "../src/theme/themes";
 
 SplashScreen.preventAutoHideAsync();
-
-const queryClient = new QueryClient();
 
 export default function RootLayout() {
   useBootstrap();
@@ -31,6 +41,13 @@ export default function RootLayout() {
   const hydrateTheme = useThemeStore((state) => state.hydrateFromStorage);
   const themeHydrated = useThemeStore((state) => state.hydrated);
   const themeName = useThemeStore((state) => state.themeName);
+  const hydrateLocale = useLocaleStore((state) => state.hydrateFromStorage);
+  const localeHydrated = useLocaleStore((state) => state.hydrated);
+  const sessionHydrated = useSessionStore((state) => state.hydrated);
+  const accessToken = useSessionStore((state) => state.accessToken);
+  const authUserId = useSessionStore((state) => state.user?.id ?? null);
+  const publishReset = useQuestResetStore((state) => state.publishReset);
+  const tc = THEME_COLORS[themeName];
 
   const [fontsLoaded] = useFonts({
     Nunito_400Regular,
@@ -44,13 +61,139 @@ export default function RootLayout() {
   }, [hydrateTheme]);
 
   useEffect(() => {
-    if (fontsLoaded && themeHydrated) {
+    void hydrateLocale();
+  }, [hydrateLocale]);
+
+  useEffect(() => {
+    if (fontsLoaded && themeHydrated && localeHydrated && sessionHydrated) {
       void SplashScreen.hideAsync();
     }
-  }, [fontsLoaded, themeHydrated]);
+  }, [fontsLoaded, localeHydrated, sessionHydrated, themeHydrated]);
 
-  if (!fontsLoaded || !themeHydrated) {
-    return null;
+  useEffect(() => {
+    if (!accessToken || !authUserId) {
+      disconnectQuestRealtime();
+      return;
+    }
+
+    return connectQuestRealtime({
+      baseUrl: API_BASE_URL,
+      token: accessToken,
+      userId: authUserId,
+      onQuestReset: (payload) => {
+        const resetPayload = (payload ?? {}) as QuestResetPayload;
+        const resetMarker = `${resetPayload.resetDate ?? "unknown"}:reset:${Date.now()}`;
+
+        publishReset(resetPayload);
+        queryClient.setQueryData(
+          ["quests"],
+          (
+            current:
+              | {
+                  fitbitConnected: boolean;
+                  quests: Array<Record<string, unknown>>;
+                }
+              | undefined,
+          ) => {
+            if (!current) return current;
+
+            const nextQuests = current.quests.map((quest) => {
+              const questType = quest.type;
+              if (
+                resetPayload.questType &&
+                questType !== resetPayload.questType
+              ) {
+                return quest;
+              }
+
+              const nextQuest = {
+                ...quest,
+                version: `${String(quest.version ?? quest.id ?? questType)}:${resetMarker}`,
+                resetByName: resetPayload.resetByName ?? null,
+                progress: 0,
+                completed: false,
+                claimed: false,
+                failed: false,
+              };
+
+              if (questType === "wordle_daily") {
+                return {
+                  ...nextQuest,
+                  attemptsUsed: 0,
+                };
+              }
+
+              if (questType === "speed_calculus_daily") {
+                return {
+                  ...nextQuest,
+                  runsUsed: 0,
+                  latestScore: 0,
+                  rewardPreview: 0,
+                  locked: false,
+                };
+              }
+
+              return nextQuest;
+            });
+
+            return {
+              ...current,
+              quests: nextQuests,
+            };
+          },
+        );
+
+        if (!resetPayload.questType || resetPayload.questType === "wordle_daily") {
+          queryClient.setQueryData(
+            ["wordle"],
+            (
+              current:
+                | {
+                    date: string;
+                    resetTimezone: string;
+                    guesses: Array<Record<string, unknown>>;
+                    solved: boolean;
+                    targetWord?: string | null;
+                    questVersion?: string | null;
+                    resetByName?: string | null;
+                  }
+                | undefined,
+            ) => {
+              if (!current) return current;
+
+              return {
+                ...current,
+                guesses: [],
+                solved: false,
+                targetWord: null,
+                questVersion: null,
+                resetByName: resetPayload.resetByName ?? null,
+              };
+            },
+          );
+        }
+
+        void queryClient.fetchQuery({
+          queryKey: ["quests"],
+          queryFn: () => apiClient.quests(),
+          staleTime: 0,
+        });
+        void queryClient.invalidateQueries({ queryKey: ["speed-calculus"] });
+      },
+    });
+  }, [accessToken, authUserId, publishReset]);
+
+  if (!fontsLoaded || !themeHydrated || !localeHydrated || !sessionHydrated) {
+    return (
+      <View
+        style={[
+          { flex: 1, alignItems: "center", justifyContent: "center" },
+          THEME_VARS[themeName],
+        ]}
+      >
+        <ActivityIndicator size="large" color={tc.primaryDark} />
+      </View>
+    );
   }
 
   return (

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 
-import type { AdminAbilitiesResponse, AdminCardDetail, AdminCardsResponse, RaritiesResponse } from "@adventure-time/shared";
+import { cardTypeValues, type AdminAbilitiesResponse, type AdminCardDetail, type AdminCardsResponse, type CardType, type RaritiesResponse } from "@adventure-time/shared";
 
 import { AdminCardTile } from "./admin-card-tile";
 import {
@@ -12,6 +12,7 @@ import {
   AdminModal,
   AdminPanel,
 } from "./admin-ui";
+import { useTranslation } from "../../i18n";
 
 type EditableCard = AdminCardsResponse["cards"][number] | AdminCardDetail;
 type Ability = AdminAbilitiesResponse["abilities"][number];
@@ -25,7 +26,7 @@ export type CardDraft = {
   attack: string;
   defense: string;
   speed: string;
-  type: string;
+  type: CardType;
   rarityId: string;
 };
 
@@ -70,16 +71,15 @@ export const BLANK_CARD_DRAFT: CardDraft = {
 
 const STAT_FIELDS: Array<{
   key: keyof CardDraft;
-  label: string;
   keyboardType?: "default" | "numeric";
 }> = [
-  { key: "hp", label: "HP", keyboardType: "numeric" },
-  { key: "attack", label: "Attack", keyboardType: "numeric" },
-  { key: "defense", label: "Defense", keyboardType: "numeric" },
-  { key: "speed", label: "Speed", keyboardType: "numeric" },
+  { key: "hp", keyboardType: "numeric" },
+  { key: "attack", keyboardType: "numeric" },
+  { key: "defense", keyboardType: "numeric" },
+  { key: "speed", keyboardType: "numeric" },
 ];
 
-const CARD_TYPES = ["Hero", "Villain", "Candy", "Earth", "Wizard", "Beast"];
+const CARD_TYPES = [...cardTypeValues];
 
 export function toCardDraft(card: EditableCard): CardDraft {
   return {
@@ -104,20 +104,29 @@ export function toCardSavePayload(draft: CardDraft) {
     attack: Number(draft.attack),
     defense: Number(draft.defense),
     speed: Number(draft.speed),
-    type: draft.type.trim(),
+    type: draft.type,
     rarityId: draft.rarityId,
   };
 }
 
-function getPreviewCard(card: EditableCard | null, draft: CardDraft, rarities: Rarity[]) {
+function getPreviewCard(
+  card: EditableCard | null,
+  draft: CardDraft,
+  rarities: Rarity[],
+  strings: {
+    previewName: string;
+    previewCharacter: string;
+    previewDescription: string;
+  },
+) {
   const fallbackRarity = rarities[0];
   const selectedRarity = rarities.find((rarity) => rarity.id === draft.rarityId) ?? fallbackRarity;
 
   return {
     id: card?.id ?? "preview",
-    name: draft.name || "Card Name",
-    character: draft.character || "Character",
-    description: draft.description || "Card description goes here.",
+    name: draft.name || strings.previewName,
+    character: draft.character || strings.previewCharacter,
+    description: draft.description || strings.previewDescription,
     hp: Number(draft.hp) || 0,
     attack: Number(draft.attack) || 0,
     defense: Number(draft.defense) || 0,
@@ -174,8 +183,19 @@ export function CardEditorSheet({
 }: CardEditorSheetProps) {
   const [showAbilitiesSection, setShowAbilitiesSection] = useState(false);
   const [pickerRole, setPickerRole] = useState<PickerRole | null>(null);
+  const { t } = useTranslation();
+  const statLabel = (key: keyof Pick<CardDraft, "hp" | "attack" | "defense" | "speed">) =>
+    t(`admin.cardEditor.${key}`);
 
-  const previewCard = useMemo(() => getPreviewCard(card, draft, rarities), [card, draft, rarities]);
+  const previewCard = useMemo(
+    () =>
+      getPreviewCard(card, draft, rarities, {
+        previewName: t("admin.cardEditor.previewName"),
+        previewCharacter: t("admin.cardEditor.previewCharacter"),
+        previewDescription: t("admin.cardEditor.previewDescription"),
+      }),
+    [card, draft, rarities, t],
+  );
   const defaultSkill = useMemo(
     () => abilities.find((ability) => ability.key === "default.focusedStrike") ?? null,
     [abilities],
@@ -211,38 +231,38 @@ export function CardEditorSheet({
       <View className="gap-4">
         <AdminPanel>
           <View className="items-center gap-3">
-            <Text className="font-nunito-extrabold text-lg text-primaryStrong">Live preview</Text>
+            <Text className="font-nunito-extrabold text-lg text-primaryStrong">{t("admin.cardEditor.livePreview")}</Text>
             <AdminCardTile card={previewCard} size="large" />
           </View>
         </AdminPanel>
 
         <AdminPanel>
-          <Text className="font-nunito-extrabold text-[20px] text-primaryStrong">Card basics</Text>
+          <Text className="font-nunito-extrabold text-[20px] text-primaryStrong">{t("admin.cardEditor.basics")}</Text>
           <View className="mt-4 gap-4">
             <View className="flex-row gap-3">
               <View className="flex-1">
                 <AdminField
-                  label="Name"
+                  label={t("admin.cardEditor.name")}
                   value={draft.name}
                   onChangeText={(value) => onDraftChange("name", value)}
-                  placeholder="Finn the Human"
+                  placeholder={t("admin.cardEditor.namePlaceholder")}
                 />
               </View>
               <View className="flex-1">
                 <AdminField
-                  label="Character"
+                  label={t("admin.cardEditor.character")}
                   value={draft.character}
                   onChangeText={(value) => onDraftChange("character", value)}
-                  placeholder="Finn"
+                  placeholder={t("admin.cardEditor.characterPlaceholder")}
                 />
               </View>
             </View>
 
             <AdminField
-              label="Description"
+              label={t("admin.cardEditor.description")}
               value={draft.description}
               onChangeText={(value) => onDraftChange("description", value)}
-              placeholder="Short flavor text or gameplay summary"
+              placeholder={t("admin.cardEditor.descriptionPlaceholder")}
               multiline
             />
 
@@ -250,7 +270,7 @@ export function CardEditorSheet({
               {STAT_FIELDS.map((field) => (
                 <View key={field.key} className="w-[48%]">
                   <AdminField
-                    label={field.label}
+                    label={statLabel(field.key as "hp" | "attack" | "defense" | "speed")}
                     value={draft[field.key]}
                     onChangeText={(value) => onDraftChange(field.key, value)}
                     keyboardType={field.keyboardType}
@@ -262,24 +282,24 @@ export function CardEditorSheet({
         </AdminPanel>
 
         <AdminPanel>
-          <Text className="font-nunito-extrabold text-[20px] text-primaryStrong">Card image</Text>
+          <Text className="font-nunito-extrabold text-[20px] text-primaryStrong">{t("admin.cardEditor.image")}</Text>
           <View className="mt-4 gap-3">
             <AdminButton
-              label={uploadPending ? "Uploading..." : card ? "Upload image" : "Save card before upload"}
+              label={uploadPending ? t("admin.common.uploading") : card ? t("admin.cardEditor.uploadImage") : t("admin.cardEditor.saveBeforeUpload")}
               variant="secondary"
               onPress={onUploadImage}
               disabled={uploadPending || !card}
             />
             <Text className="font-nunito-semibold text-xs text-fgMuted">
               {card
-                ? "Pick a new card image from the device library."
-                : "Create the card first, then reopen it to upload artwork."}
+                  ? t("admin.cardEditor.uploadImage")
+                  : t("admin.cardEditor.saveBeforeUpload")}
             </Text>
           </View>
         </AdminPanel>
 
         <AdminPanel>
-          <Text className="font-nunito-extrabold text-[20px] text-primaryStrong">Rarity</Text>
+          <Text className="font-nunito-extrabold text-[20px] text-primaryStrong">{t("admin.cardEditor.rarity")}</Text>
           <View className="mt-4 flex-row flex-wrap gap-3">
             {rarities.map((rarity) => (
               <Pressable
@@ -294,7 +314,7 @@ export function CardEditorSheet({
                   {rarity.name}
                 </Text>
                 <Text className={`mt-1 font-nunito-bold text-[11px] ${draft.rarityId === rarity.id ? "text-white/80" : "text-fgMuted"}`}>
-                  {rarity.dropRate}% drop rate
+                  {rarity.dropRate}%
                 </Text>
               </Pressable>
             ))}
@@ -302,7 +322,7 @@ export function CardEditorSheet({
         </AdminPanel>
 
         <AdminPanel>
-          <Text className="font-nunito-extrabold text-[20px] text-primaryStrong">Type</Text>
+          <Text className="font-nunito-extrabold text-[20px] text-primaryStrong">{t("admin.cardEditor.type")}</Text>
           <View className="mt-4 flex-row flex-wrap gap-3">
             {CARD_TYPES.map((type) => (
               <SelectionChip
@@ -322,33 +342,33 @@ export function CardEditorSheet({
           >
             <View className="flex-row items-center justify-between gap-3">
               <View className="flex-1 flex-row items-center gap-2">
-                <Text className="font-nunito-extrabold text-base text-accentText">Abilities</Text>
-                {hasCustomAssignments ? <AdminChip label="Custom" tone="accent" /> : null}
+                <Text className="font-nunito-extrabold text-base text-accentText">{t("admin.cardEditor.abilitiesTitle")}</Text>
+                {hasCustomAssignments ? <AdminChip label={t("admin.abilities.title")} tone="accent" /> : null}
               </View>
               <Text className="font-nunito-bold text-xs text-accentText">
-                {showAbilitiesSection ? "Hide" : "Manage"}
+                {showAbilitiesSection ? t("admin.cardEditor.hideAbilities") : t("admin.common.manage")}
               </Text>
             </View>
           </Pressable>
 
           {!showAbilitiesSection ? (
             <View className="mt-3 flex-row flex-wrap gap-2">
-              {currentPassive ? <AdminChip label={`Passive: ${currentPassive.name}`} tone="success" /> : null}
-              {currentSkill ? <AdminChip label={`Skill: ${currentSkill.name}`} tone="info" /> : null}
-              {currentUltimate ? <AdminChip label={`Ultimate: ${currentUltimate.name}`} tone="warning" /> : null}
+              {currentPassive ? <AdminChip label={`${t("admin.cardEditor.passive")}: ${currentPassive.name}`} tone="success" /> : null}
+              {currentSkill ? <AdminChip label={`${t("admin.cardEditor.skill")}: ${currentSkill.name}`} tone="info" /> : null}
+              {currentUltimate ? <AdminChip label={`${t("admin.cardEditor.ultimate")}: ${currentUltimate.name}`} tone="warning" /> : null}
               {!currentPassive && !currentSkill && !currentUltimate ? (
-                <Text className="font-nunito-semibold text-xs italic text-fgMuted">Uses default ability kit.</Text>
+                <Text className="font-nunito-semibold text-xs italic text-fgMuted">{t("admin.common.useDefault")}</Text>
               ) : null}
             </View>
           ) : (
             <View className="mt-4 gap-3 rounded-2xl bg-surface/70 p-4">
               <Text className="font-nunito-semibold text-xs text-fgMuted">
-                Leave a slot on default to use the app's fallback combat kit.
+                {t("admin.common.useDefault")}
               </Text>
               {([
-                ["passive", "Passive", currentPassive],
-                ["skill", "Skill", currentSkill],
-                ["ultimate", "Ultimate", currentUltimate],
+                ["passive", t("admin.cardEditor.passive"), currentPassive],
+                ["skill", t("admin.cardEditor.skill"), currentSkill],
+                ["ultimate", t("admin.cardEditor.ultimate"), currentUltimate],
               ] as const).map(([role, label, selected]) => (
                 <Pressable
                   key={role}
@@ -361,23 +381,23 @@ export function CardEditorSheet({
                         {label}
                       </Text>
                       <Text className="font-nunito-extrabold text-sm text-fg">
-                        {selected?.name ?? `Choose ${label.toLowerCase()} ability`}
+                        {selected?.name ?? `${t("admin.common.manage")} ${label.toLowerCase()}`}
                       </Text>
                       {selected ? (
                         <View className="flex-row flex-wrap gap-2">
                           <AbilityTypeChip type={selected.type} />
-                          <AdminChip label={`Cost ${selected.cost}`} tone="info" />
-                          {selected.cooldown ? <AdminChip label={`CD ${selected.cooldown}`} tone="warning" /> : null}
+                          <AdminChip label={`${t("admin.abilityEditor.cost")} ${selected.cost}`} tone="info" />
+                          {selected.cooldown ? <AdminChip label={`${t("admin.abilityEditor.cooldown")} ${selected.cooldown}`} tone="warning" /> : null}
                         </View>
                       ) : null}
                     </View>
-                    <Text className="font-nunito-extrabold text-xs text-primaryStrong">Change</Text>
+                    <Text className="font-nunito-extrabold text-xs text-primaryStrong">{t("admin.common.edit")}</Text>
                   </View>
                 </Pressable>
               ))}
 
               {hasCustomAssignments ? (
-                <AdminButton label="Clear custom abilities" variant="ghost" onPress={onAssignmentClear} />
+                <AdminButton label={t("admin.cardEditor.clearAssignments")} variant="ghost" onPress={onAssignmentClear} />
               ) : null}
             </View>
           )}
@@ -387,11 +407,11 @@ export function CardEditorSheet({
           <View className="gap-3">
             <View className="flex-row gap-3">
               <View className="flex-1">
-                <AdminButton label="Cancel" variant="ghost" onPress={onClose} />
+                <AdminButton label={t("common.cancel")} variant="ghost" onPress={onClose} />
               </View>
               <View className="flex-1">
                 <AdminButton
-                  label={savePending ? "Saving..." : mode === "create" ? "Create card" : "Save card"}
+                  label={savePending ? t("admin.common.saving") : mode === "create" ? t("admin.cards.createCard") : t("admin.cardEditor.saveCard")}
                   onPress={onSubmit}
                   disabled={savePending || !draft.rarityId}
                 />
@@ -400,7 +420,7 @@ export function CardEditorSheet({
 
             {mode === "edit" && card ? (
               <AdminButton
-                label={archivePending ? "Working..." : card.isArchived ? "Restore card" : "Archive card"}
+                label={archivePending ? t("admin.common.saving") : card.isArchived ? t("admin.cardEditor.restoreCard") : t("admin.cardEditor.archiveCard")}
                 variant="danger"
                 onPress={onToggleArchive}
                 disabled={archivePending}
@@ -411,9 +431,9 @@ export function CardEditorSheet({
       </View>
 
       {pickerRole ? (
-        <AdminModal visible title="Choose ability" onClose={() => setPickerRole(null)}>
+        <AdminModal visible title={t("admin.abilities.assignTitle")} onClose={() => setPickerRole(null)}>
           <AdminButton
-            label="Use default / none"
+            label={t("admin.common.useDefault")}
             variant="ghost"
             onPress={() => {
               onAssignmentChange(pickerRole, "");
@@ -436,8 +456,8 @@ export function CardEditorSheet({
               <Text className="font-nunito-semibold text-[13px] text-fgMuted">{ability.description}</Text>
               <View className="flex-row flex-wrap gap-2">
                 <AdminChip label={ability.key} tone="accent" />
-                <AdminChip label={`Cost ${ability.cost}`} tone="info" />
-                {ability.cooldown ? <AdminChip label={`Cooldown ${ability.cooldown}`} tone="warning" /> : null}
+                <AdminChip label={`${t("admin.abilityEditor.cost")} ${ability.cost}`} tone="info" />
+                {ability.cooldown ? <AdminChip label={`${t("admin.abilityEditor.cooldown")} ${ability.cooldown}`} tone="warning" /> : null}
               </View>
             </Pressable>
           ))}

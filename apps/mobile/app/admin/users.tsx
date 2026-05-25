@@ -12,6 +12,7 @@ import {
   AdminSearchInput,
   AdminSectionTitle,
 } from "../../src/components/admin/admin-ui";
+import { useTranslation } from "../../src/i18n";
 import { apiClient } from "../../src/lib/api";
 import { useSessionStore } from "../../src/stores/session-store";
 
@@ -24,12 +25,6 @@ const SORT_DEFAULTS: Record<SortField, SortDir> = {
   createdAt: "desc",
 };
 
-const SORT_LABELS: Record<SortField, string> = {
-  email: "Email",
-  coins: "Coins",
-  createdAt: "Joined",
-};
-
 export default function AdminUsersScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -37,7 +32,25 @@ export default function AdminUsersScreen() {
   const [sortField, setSortField] = useState<SortField>("email");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
 
-  const currentUserId = useSessionStore((state) => state.user?.id);
+  const currentUser = useSessionStore((state) => state.user);
+  const currentUserId = currentUser?.id;
+  const isSuperAdmin = currentUser?.isSuperAdmin ?? false;
+  const { t } = useTranslation();
+  const requestStatusLabel = (status: string, hasAccount: boolean) => {
+    if (status === "approved" && !hasAccount) {
+      return t("admin.users.approvedWaiting");
+    }
+    if (status === "approved") {
+      return t("admin.users.approved");
+    }
+    if (status === "pending") {
+      return t("admin.users.pending");
+    }
+    if (status === "rejected") {
+      return t("admin.users.rejected");
+    }
+    return status;
+  };
 
   const usersQuery = useQuery({
     queryKey: ["admin-users"],
@@ -46,6 +59,7 @@ export default function AdminUsersScreen() {
   const requestsQuery = useQuery({
     queryKey: ["admin-email-requests"],
     queryFn: () => apiClient.adminEmailRequests(),
+    enabled: isSuperAdmin,
   });
 
   const reviewRequestMutation = useMutation({
@@ -97,21 +111,28 @@ export default function AdminUsersScreen() {
     <AdminPageScroll>
       <AdminPanel>
         <AdminSectionTitle
-          title="Users"
-          subtitle="Browse player accounts and open the full-screen management sheet for coins, quests, permissions, and deletion."
+          title={t("admin.users.title")}
+          subtitle={t("admin.users.subtitle")}
         />
         <View className="h-3" />
         <AdminSearchInput
           value={searchQuery}
           onChangeText={setSearchQuery}
-          placeholder="Search by email or display name"
+          placeholder={t("admin.users.searchPlaceholder")}
         />
         <View className="mt-3 flex-row flex-wrap gap-2">
+          {isSuperAdmin ? (
+            <AdminChip
+               label={t("admin.users.requestsCount", {
+                 count: requestsQuery.data?.requests.length ?? 0,
+               })}
+               tone="warning"
+             />
+           ) : null}
           <AdminChip
-            label={`${requestsQuery.data?.requests.length ?? 0} requests`}
-            tone="warning"
+            label={t("admin.users.usersCount", { count: filteredUsers.length })}
+            tone="info"
           />
-          <AdminChip label={`${filteredUsers.length} users`} tone="info" />
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mt-2 -mx-1">
           <View className="flex-row gap-2 px-1 py-1">
@@ -121,9 +142,9 @@ export default function AdminUsersScreen() {
               return (
                 <Pressable key={field} onPress={() => handleSortPress(field)}>
                   <AdminChip
-                    label={`${SORT_LABELS[field]}${arrow}`}
-                    tone={active ? "accent" : "default"}
-                  />
+                     label={`${t(`admin.users.sort.${field}`)}${arrow}`}
+                     tone={active ? "accent" : "default"}
+                   />
                 </Pressable>
               );
             })}
@@ -133,8 +154,8 @@ export default function AdminUsersScreen() {
 
       <AdminPanel>
         <AdminSectionTitle
-          title="User accounts"
-          subtitle="Tap any user to open the full-screen editor."
+          title={t("admin.users.accountsTitle")}
+          subtitle={t("admin.users.accountsSubtitle")}
         />
         <View className="mt-3 gap-3">
           {filteredUsers.length ? (
@@ -153,36 +174,40 @@ export default function AdminUsersScreen() {
                   {user.email}
                 </Text>
                 <Text className="font-nunito-semibold text-[13px] text-fgMuted">
-                  {user.displayName ?? "No display name"}
+                  {user.displayName ?? t("admin.common.noDisplayName")}
                 </Text>
                 <View className="flex-row flex-wrap gap-2">
                   {user.id === currentUserId ? (
-                    <AdminChip label="You" tone="success" />
+                    <AdminChip label={t("admin.common.you")} tone="success" />
                   ) : null}
                   {user.isSuperAdmin ? (
-                    <AdminChip label="Super Admin" tone="success" />
+                    <AdminChip label={t("admin.common.superAdmin")} tone="success" />
                   ) : null}
                   {user.isAdmin ? (
-                    <AdminChip label="Admin" tone="accent" />
+                    <AdminChip label={t("admin.common.admin")} tone="accent" />
                   ) : null}
-                  <AdminChip label={`${user.coins} coins`} tone="warning" />
+                  <AdminChip
+                    label={t("admin.common.coinsCount", { count: user.coins })}
+                    tone="warning"
+                  />
                 </View>
               </Pressable>
             ))
           ) : (
             <AdminEmptyState
               icon="people"
-              title="No users found"
-              body="Try a different search term."
-            />
+               title={t("admin.users.noUsersTitle")}
+               body={t("admin.users.noUsersBody")}
+             />
           )}
         </View>
       </AdminPanel>
 
-      <AdminPanel>
+      {isSuperAdmin ? (
+        <AdminPanel>
           <AdminSectionTitle
-            title="Access requests"
-            subtitle="Approve or reject new sign-in requests. Approved users stay here until they create an account."
+            title={t("admin.users.accessRequestsTitle")}
+            subtitle={t("admin.users.accessRequestsSubtitle")}
           />
           <View className="mt-3 gap-3">
             {(requestsQuery.data?.requests ?? []).length ? (
@@ -196,13 +221,7 @@ export default function AdminUsersScreen() {
                   </Text>
                   <View className="flex-row flex-wrap gap-2">
                     <AdminChip
-                      label={
-                        request.status === "approved" && !request.hasAccount
-                          ? "Approved - waiting for sign-in"
-                          : request.status === "approved"
-                            ? "Approved"
-                            : request.status
-                      }
+                      label={requestStatusLabel(request.status, request.hasAccount)}
                       tone={
                         request.status === "pending"
                           ? "warning"
@@ -216,13 +235,13 @@ export default function AdminUsersScreen() {
                         tone="default"
                       />
                       {request.hasAccount ? (
-                        <AdminChip label="Account created" tone="info" />
+                        <AdminChip label={t("admin.users.accountCreated")} tone="info" />
                       ) : null}
                   </View>
                   {request.status === "pending" ? (
                     <View className="flex-row gap-2">
                       <AdminButton
-                        label="Approve"
+                         label={t("admin.users.approve")}
                         variant="secondary"
                         onPress={() =>
                           reviewRequestMutation.mutate({
@@ -232,7 +251,7 @@ export default function AdminUsersScreen() {
                         }
                       />
                       <AdminButton
-                        label="Reject"
+                         label={t("admin.users.reject")}
                         variant="danger"
                         onPress={() =>
                           reviewRequestMutation.mutate({
@@ -248,12 +267,13 @@ export default function AdminUsersScreen() {
             ) : (
               <AdminEmptyState
                 icon="checkmark-circle"
-                title="No requests waiting"
-                body="New access requests will appear here."
-              />
+                 title={t("admin.users.noRequestsTitle")}
+                 body={t("admin.users.noRequestsBody")}
+               />
             )}
           </View>
         </AdminPanel>
+      ) : null}
     </AdminPageScroll>
   );
 }

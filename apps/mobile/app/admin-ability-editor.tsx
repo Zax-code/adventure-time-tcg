@@ -5,11 +5,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ZodError } from "zod";
 
 import { AbilityEditorForm } from "../src/components/admin/ability-editor-sheet";
+import { useTranslation } from "../src/i18n";
 import { apiClient } from "../src/lib/api";
 import { useThemeStore } from "../src/stores/theme-store";
 import { THEME_VARS } from "../src/theme/themes";
 
-function formatAbilitiesError(error: unknown) {
+function formatAbilitiesError(error: unknown, invalidDataLabel: string) {
   if (error instanceof ZodError) {
     const details = error.issues
       .slice(0, 3)
@@ -19,7 +20,7 @@ function formatAbilitiesError(error: unknown) {
       })
       .join("; ");
 
-    return `Ability data from the API is invalid. ${details}`;
+    return invalidDataLabel.replace("{details}", details);
   }
 
   if (error instanceof Error) {
@@ -35,6 +36,7 @@ export default function AdminAbilityEditorScreen() {
   const insets = useSafeAreaInsets();
   const { mode, abilityId } = useLocalSearchParams<{ mode?: string; abilityId?: string }>();
   const themeName = useThemeStore((state) => state.themeName);
+  const { t } = useTranslation();
 
   const isCreateMode = mode !== "edit";
 
@@ -88,7 +90,10 @@ export default function AdminAbilityEditorScreen() {
           : null;
       })();
 
-  const queryError = formatAbilitiesError(abilitiesQuery.error);
+  const queryError = formatAbilitiesError(
+    abilitiesQuery.error,
+    t("admin.abilityEditor.invalidApiData", { details: "{details}" }),
+  );
 
   return (
     <View className="flex-1" style={THEME_VARS[themeName]}>
@@ -96,13 +101,13 @@ export default function AdminAbilityEditorScreen() {
         <View className="w-9 h-1 rounded-full bg-[#D1D5DB] self-center mt-2 mb-[6]" />
         <View className="items-center px-5 pb-[14] border-b border-primaryBorder/16" style={{ paddingTop: 6 }}>
           <Text className="self-center font-nunito-extrabold text-[24px] text-primaryStrong">
-            {isCreateMode ? "Create ability" : "Edit ability"}
+            {isCreateMode ? t("admin.abilityEditor.createTitle") : t("admin.abilityEditor.editTitle")}
           </Text>
         </View>
 
         {abilitiesQuery.isLoading && !isCreateMode ? (
           <View className="flex-1 items-center justify-center px-6">
-            <Text className="font-nunito-bold text-[15px] text-primaryText text-center">Loading ability...</Text>
+            <Text className="font-nunito-bold text-[15px] text-primaryText text-center">{t("admin.abilityEditor.loading")}</Text>
           </View>
         ) : queryError ? (
           <View className="flex-1 items-center justify-center px-6">
@@ -110,7 +115,7 @@ export default function AdminAbilityEditorScreen() {
           </View>
         ) : !isCreateMode && !selectedAbility ? (
           <View className="flex-1 items-center justify-center px-6">
-            <Text className="font-nunito-bold text-[15px] text-dangerText text-center">That ability could not be found.</Text>
+            <Text className="font-nunito-bold text-[15px] text-dangerText text-center">{t("admin.abilityEditor.notFound")}</Text>
           </View>
         ) : (
           <ScrollView

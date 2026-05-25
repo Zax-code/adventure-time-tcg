@@ -52,7 +52,7 @@ export default function AdminUserEditorScreen() {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["admin-user", userId] }),
       queryClient.invalidateQueries({ queryKey: ["admin-users"] }),
-      queryClient.invalidateQueries({ queryKey: ["admin-emails"] }),
+      queryClient.invalidateQueries({ queryKey: ["admin-email-requests"] }),
     ]);
   };
 
@@ -84,6 +84,7 @@ export default function AdminUserEditorScreen() {
   });
 
   const detail = detailQuery.data;
+  const isViewerSuperAdmin = sessionUser?.isSuperAdmin ?? false;
   const isSelf = detail?.id === sessionUser?.id;
   const canManageCoins = detail?.viewerPermissions.canManageCoins ?? false;
   const canManageRights = detail?.viewerPermissions.canManageAdminRights ?? false;
@@ -114,12 +115,12 @@ export default function AdminUserEditorScreen() {
 
   const confirmResetAll = () => {
     Alert.alert(
-      "Reset all quests?",
-      "This will clear the user's progress for all of today's daily quests.",
+      t("admin.userEditor.resetAllTitle"),
+      t("admin.userEditor.resetAllBody"),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "Reset all",
+          text: t("admin.userEditor.resetAllConfirm"),
           style: "destructive",
           onPress: () => resetMutation.mutate({ mode: "all" }),
         },
@@ -129,12 +130,12 @@ export default function AdminUserEditorScreen() {
 
   const confirmResetQuest = (questType: string, questLabel: string) => {
     Alert.alert(
-      "Reset quest?",
-      `This will clear today's progress for ${questLabel}.`,
+      t("admin.userEditor.resetQuestTitle"),
+      t("admin.userEditor.resetQuestBody", { quest: questLabel }),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "Reset quest",
+          text: t("admin.userEditor.resetQuestConfirm"),
           style: "destructive",
           onPress: () => resetMutation.mutate({ mode: "single", questType }),
         },
@@ -148,12 +149,12 @@ export default function AdminUserEditorScreen() {
     }
 
     Alert.alert(
-      "Delete user?",
-      `This permanently deletes ${detail.email} and removes their admin approval data.`,
+      t("admin.userEditor.deleteTitle"),
+      t("admin.userEditor.deleteBody", { email: detail.email }),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "Delete user",
+          text: t("admin.userEditor.deleteConfirm"),
           style: "destructive",
           onPress: () => deleteMutation.mutate(),
         },
@@ -167,26 +168,26 @@ export default function AdminUserEditorScreen() {
         <View className="w-9 h-1 rounded-full bg-[#D1D5DB] self-center mt-2 mb-[6]" />
         <View className="items-center px-5 pb-[14] border-b border-primaryBorder/16 pt-[6]">
           <Text className="self-center font-nunito-extrabold text-[24px] text-primaryStrong">
-            Manage user
+            {t("admin.userEditor.title")}
           </Text>
           <Pressable
             className="absolute right-4 top-1 rounded-full px-3 py-2"
             onPress={() => router.back()}
           >
-            <Text className="font-nunito-bold text-sm text-primaryStrong">Close</Text>
+            <Text className="font-nunito-bold text-sm text-primaryStrong">{t("admin.common.close")}</Text>
           </Pressable>
         </View>
 
         {!userId ? (
           <View className="flex-1 items-center justify-center px-6">
             <Text className="font-nunito-bold text-[15px] text-dangerText text-center">
-              Missing user id.
+                {t("admin.userEditor.missingUserId")}
             </Text>
           </View>
         ) : detailQuery.isLoading ? (
           <View className="flex-1 items-center justify-center px-6">
             <Text className="font-nunito-bold text-[15px] text-primaryText text-center">
-              Loading user...
+               {t("admin.userEditor.loadingUser")}
             </Text>
           </View>
         ) : detailQuery.error ? (
@@ -194,13 +195,13 @@ export default function AdminUserEditorScreen() {
             <Text className="font-nunito-bold text-[15px] text-dangerText text-center">
               {detailQuery.error instanceof Error
                 ? detailQuery.error.message
-                : "Failed to load this user."}
+                : t("admin.userEditor.loadFailed")}
             </Text>
           </View>
         ) : !detail ? (
           <View className="flex-1 items-center justify-center px-6">
             <Text className="font-nunito-bold text-[15px] text-dangerText text-center">
-              That user could not be found.
+               {t("admin.userEditor.notFound")}
             </Text>
           </View>
         ) : (
@@ -217,30 +218,30 @@ export default function AdminUserEditorScreen() {
           >
             <AdminPanel>
               <AdminSectionTitle
-                title={detail.displayName ?? "No display name"}
+                title={detail.displayName ?? t("admin.common.noDisplayName")}
                 subtitle={detail.email}
               />
               <View className="mt-3 flex-row flex-wrap gap-2">
-                <AdminChip label={`${detail.coins} coins`} tone="warning" />
-                {isSelf ? <AdminChip label="You" tone="info" /> : null}
+                <AdminChip label={t("admin.common.coinsCount", { count: detail.coins })} tone="warning" />
+                {isSelf ? <AdminChip label={t("admin.common.you")} tone="info" /> : null}
                 {detail.isSuperAdmin ? (
-                  <AdminChip label="Super Admin" tone="success" />
+                  <AdminChip label={t("admin.common.superAdmin")} tone="success" />
                 ) : null}
-                {detail.isAdmin ? <AdminChip label="Admin" tone="accent" /> : null}
-                <AdminChip label={`Joined ${formatDate(detail.createdAt)}`} tone="default" />
-                <AdminChip label={`Today ${detail.todayDate}`} tone="default" />
+                {detail.isAdmin ? <AdminChip label={t("admin.common.admin")} tone="accent" /> : null}
+                <AdminChip label={t("admin.common.joinedDate", { date: formatDate(detail.createdAt) })} tone="default" />
+                <AdminChip label={t("admin.common.todayDate", { date: detail.todayDate })} tone="default" />
               </View>
             </AdminPanel>
 
             <AdminPanel>
               <AdminSectionTitle
-                title="Coins"
-                subtitle="Current balance is always visible. Coin controls are limited to the super admin."
+                title={t("admin.userEditor.coinsTitle")}
+                subtitle={t("admin.userEditor.coinsSubtitle")}
               />
               <View className="mt-3 gap-3">
                 <View className="rounded-[20px] border border-primaryBorder/30 bg-surface p-4">
                   <Text className="font-nunito-bold text-xs text-fgMuted">
-                    Current balance
+                    {t("admin.userEditor.currentBalance")}
                   </Text>
                   <Text className="mt-1 font-nunito-extrabold text-[28px] text-primaryStrong">
                     {detail.coins.toLocaleString()}
@@ -270,21 +271,21 @@ export default function AdminUserEditorScreen() {
                     </View>
 
                     <AdminField
-                      label="Custom coin delta"
+                      label={t("admin.userEditor.customCoinDelta")}
                       value={coinDelta}
                       keyboardType="numeric"
                       onChangeText={setCoinDelta}
-                      placeholder="Use a negative number to remove coins"
+                      placeholder={t("admin.userEditor.customCoinPlaceholder")}
                     />
                     <AdminButton
-                      label={adjustCoinsMutation.isPending ? "Updating..." : "Apply coin change"}
+                      label={adjustCoinsMutation.isPending ? t("admin.userEditor.updating") : t("admin.userEditor.applyCoinChange")}
                       disabled={busy}
                       onPress={() => void handleAdjustCoins(Number.parseInt(coinDelta || "0", 10))}
                     />
                   </>
                 ) : (
                   <Text className="font-nunito-semibold text-[13px] text-fgMuted">
-                    Only the super admin can adjust coins.
+                    {t("admin.userEditor.onlySuperAdminCoins")}
                   </Text>
                 )}
               </View>
@@ -292,12 +293,12 @@ export default function AdminUserEditorScreen() {
 
             <AdminPanel>
               <AdminSectionTitle
-                title="Today's daily quests"
-                subtitle="See quest-by-quest progress. The super admin can reset one quest at a time or wipe the whole day."
+                title={t("admin.userEditor.questsTitle")}
+                subtitle={t("admin.userEditor.questsSubtitle")}
                 right={
                   canResetQuests ? (
                     <AdminButton
-                      label={resetMutation.isPending ? "Resetting..." : "Reset all"}
+                      label={resetMutation.isPending ? t("admin.userEditor.resetting") : t("admin.userEditor.resetAllConfirm")}
                       variant="warning"
                       disabled={busy}
                       onPress={confirmResetAll}
@@ -333,12 +334,12 @@ export default function AdminUserEditorScreen() {
                         <AdminChip
                           label={
                             quest.claimed
-                              ? "Claimed"
+                              ? t("admin.userEditor.statusClaimed")
                               : quest.completed
-                                ? "Completed"
+                                ? t("admin.userEditor.statusCompleted")
                                 : quest.failed
-                                  ? "Failed"
-                                  : "In progress"
+                                  ? t("admin.userEditor.statusFailed")
+                                  : t("admin.userEditor.statusInProgress")
                           }
                           tone={getQuestTone(quest)}
                         />
@@ -346,21 +347,21 @@ export default function AdminUserEditorScreen() {
 
                       <View className="flex-row flex-wrap gap-2">
                         <AdminChip label={`${quest.progress}/${quest.target}`} tone="info" />
-                        <AdminChip label={`${quest.reward} coins`} tone="warning" />
+                        <AdminChip label={t("admin.common.coinsCount", { count: quest.reward })} tone="warning" />
                         {quest.attemptsUsed !== undefined ? (
-                          <AdminChip label={`${quest.attemptsUsed} guesses`} tone="default" />
+                          <AdminChip label={t("admin.userEditor.guessesCount", { count: quest.attemptsUsed })} tone="default" />
                         ) : null}
                         {quest.runsUsed !== undefined && quest.maxRuns !== undefined ? (
-                          <AdminChip label={`${quest.runsUsed}/${quest.maxRuns} runs`} tone="default" />
+                          <AdminChip label={t("admin.userEditor.runsCount", { used: quest.runsUsed, max: quest.maxRuns })} tone="default" />
                         ) : null}
                         {quest.latestScore !== undefined ? (
-                          <AdminChip label={`Score ${quest.latestScore}`} tone="default" />
+                          <AdminChip label={t("admin.userEditor.scoreLabel", { score: quest.latestScore })} tone="default" />
                         ) : null}
                       </View>
 
                       {canResetQuests ? (
                         <AdminButton
-                          label="Reset quest"
+                          label={t("admin.userEditor.resetQuestConfirm")}
                           variant="ghost"
                           disabled={busy}
                           onPress={() => confirmResetQuest(quest.type, questTitle)}
@@ -374,64 +375,66 @@ export default function AdminUserEditorScreen() {
 
             <AdminPanel>
               <AdminSectionTitle
-                title="Permissions"
-                subtitle="Admin rights and super-admin visibility are controlled from this user's approval record. Only the super admin can change them."
+                title={t("admin.userEditor.permissionsTitle")}
+                subtitle={t("admin.userEditor.permissionsSubtitle")}
               />
               <View className="mt-3 gap-3">
                 <View className="flex-row flex-wrap gap-2">
                   {detail.isSuperAdmin ? (
-                    <AdminChip label="Super Admin" tone="success" />
+                    <AdminChip label={t("admin.common.superAdmin")} tone="success" />
                   ) : null}
                   {detail.isAdmin ? (
-                    <AdminChip label="Admin access enabled" tone="accent" />
+                    <AdminChip label={t("admin.userEditor.adminAccessEnabled")} tone="accent" />
                   ) : (
-                    <AdminChip label="Admin access disabled" tone="default" />
+                    <AdminChip label={t("admin.userEditor.adminAccessDisabled")} tone="default" />
                   )}
                 </View>
 
                 {canManageRights ? (
                   <AdminButton
-                    label={roleMutation.isPending ? "Saving..." : detail.isAdmin ? "Revoke admin access" : "Grant admin access"}
+                    label={roleMutation.isPending ? t("admin.common.saving") : detail.isAdmin ? t("admin.userEditor.revokeAdminAccess") : t("admin.userEditor.grantAdminAccess")}
                     variant={detail.isAdmin ? "ghost" : "primary"}
                     disabled={busy || isSelf}
                     onPress={() => roleMutation.mutate(!detail.isAdmin)}
                   />
                 ) : (
                   <Text className="font-nunito-semibold text-[13px] text-fgMuted">
-                    Only the super admin can change admin rights.
+                    {t("admin.userEditor.onlySuperAdminRights")}
                   </Text>
                 )}
 
                 {isSelf ? (
                   <Text className="font-nunito-semibold text-[13px] text-fgMuted">
-                    You cannot revoke your own admin access here.
+                    {t("admin.userEditor.cannotRevokeSelf")}
                   </Text>
                 ) : null}
               </View>
             </AdminPanel>
 
-            <AdminPanel>
-              <AdminSectionTitle
-                title="Danger zone"
-                subtitle="Permanent account deletion is limited to the super admin and cannot target the currently signed-in user."
-              />
-              <View className="mt-3 gap-3">
-                <Text className="font-nunito-semibold text-[13px] text-dangerText">
-                  Delete {detail.email} and remove their admin approval record.
-                </Text>
-                <AdminButton
-                  label={deleteMutation.isPending ? "Deleting..." : "Delete user"}
-                  variant="danger"
-                  disabled={!canDeleteUser || busy}
-                  onPress={confirmDelete}
+            {isViewerSuperAdmin ? (
+              <AdminPanel>
+                <AdminSectionTitle
+                  title={t("admin.userEditor.dangerTitle")}
+                  subtitle={t("admin.userEditor.dangerSubtitle")}
                 />
-                {!canDeleteUser ? (
-                  <Text className="font-nunito-semibold text-[13px] text-fgMuted">
-                    Only the super admin can delete users, and self-delete is blocked.
+                <View className="mt-3 gap-3">
+                  <Text className="font-nunito-semibold text-[13px] text-dangerText">
+                    {t("admin.userEditor.deletePrompt", { email: detail.email })}
                   </Text>
-                ) : null}
-              </View>
-            </AdminPanel>
+                  <AdminButton
+                    label={deleteMutation.isPending ? t("admin.userEditor.deleting") : t("admin.userEditor.deleteConfirm")}
+                    variant="danger"
+                    disabled={!canDeleteUser || busy}
+                    onPress={confirmDelete}
+                  />
+                  {!canDeleteUser ? (
+                    <Text className="font-nunito-semibold text-[13px] text-fgMuted">
+                      {t("admin.userEditor.deleteRestriction")}
+                    </Text>
+                  ) : null}
+                </View>
+              </AdminPanel>
+            ) : null}
           </ScrollView>
         )}
       </View>

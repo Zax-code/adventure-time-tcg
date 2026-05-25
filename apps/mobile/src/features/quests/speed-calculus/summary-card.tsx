@@ -10,10 +10,18 @@ type SummaryCardProps = {
   activeRun: SpeedRunState["activeRun"];
   submitting: boolean;
   onStartRun: () => void;
+  onResumeRun: () => void;
   onCashOut: () => void;
 };
 
-export function SummaryCard({ state, activeRun, submitting, onStartRun, onCashOut }: SummaryCardProps) {
+export function SummaryCard({
+  state,
+  activeRun,
+  submitting,
+  onStartRun,
+  onResumeRun,
+  onCashOut,
+}: SummaryCardProps) {
   const { t } = useTranslation();
   return (
     <View
@@ -47,6 +55,26 @@ export function SummaryCard({ state, activeRun, submitting, onStartRun, onCashOu
           </Text>
         </View>
       </View>
+
+      {activeRun?.isManuallyPaused ? (
+        <Pressable
+          onPress={onResumeRun}
+          disabled={submitting}
+          className="rounded-2xl overflow-hidden mt-2"
+          style={({ pressed }) => ({ opacity: submitting ? 0.5 : pressed ? 0.9 : 1 })}
+        >
+          <LinearGradient
+            colors={["#F59E0B", "#EF4444"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={{ paddingVertical: 14, alignItems: "center", borderRadius: 16 }}
+          >
+            <Text className="font-nunito-bold text-white text-[15px]">
+              {submitting ? "..." : t("quests.speedCalculusResume")}
+            </Text>
+          </LinearGradient>
+        </Pressable>
+      ) : null}
 
       {!activeRun && state?.canStartRun && (
         <Pressable

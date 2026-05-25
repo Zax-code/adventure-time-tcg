@@ -1,13 +1,20 @@
 import { useEffect } from "react";
 
-import { apiClient } from "../lib/api";
+import { ApiClientError } from "@adventure-time/api-client";
+
+import {
+  apiClient,
+  clearAppSession,
+  shouldClearSessionForAuthError,
+} from "../lib/api";
 import { useSessionStore } from "../stores/session-store";
 
 export function useBootstrap() {
-  const hydrateFromStorage = useSessionStore((state) => state.hydrateFromStorage);
+  const hydrateFromStorage = useSessionStore(
+    (state) => state.hydrateFromStorage,
+  );
   const setHydrated = useSessionStore((state) => state.setHydrated);
   const setSession = useSessionStore((state) => state.setSession);
-  const clearSession = useSessionStore((state) => state.clearSession);
 
   useEffect(() => {
     let cancelled = false;
@@ -30,8 +37,13 @@ export function useBootstrap() {
           await setSession({ user: me, accessToken, refreshToken });
         }
         return;
-      } catch {
-        // Continue into refresh path.
+      } catch (error) {
+        if (!(error instanceof ApiClientError) || error.status !== 401) {
+          if (!cancelled) {
+            setHydrated(true);
+          }
+          return;
+        }
       }
 
       try {
@@ -43,9 +55,9 @@ export function useBootstrap() {
             refreshToken: refreshed.tokens.refreshToken,
           });
         }
-      } catch {
-        if (!cancelled) {
-          await clearSession();
+      } catch (error) {
+        if (!cancelled && shouldClearSessionForAuthError(error)) {
+          await clearAppSession();
         }
       } finally {
         if (!cancelled) {
@@ -59,5 +71,5 @@ export function useBootstrap() {
     return () => {
       cancelled = true;
     };
-  }, [clearSession, hydrateFromStorage, setHydrated, setSession]);
+  }, [hydrateFromStorage, setHydrated, setSession]);
 }

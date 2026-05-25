@@ -4,6 +4,9 @@ import {
   Action,
   CopyAction,
   BattleState,
+  TargetingBattleState,
+  TargetingPlayerState,
+  TargetingUnitState,
   UnitState,
   PlayerState,
   ValidationResult,
@@ -34,6 +37,41 @@ export function getOpponent(state: BattleState): PlayerState {
 
 export function getKoAllies(player: PlayerState): UnitState[] {
   return [...player.units, ...player.bench].filter((u) => u.hp <= 0);
+}
+
+function getTargetingCurrentPlayer(
+  state: TargetingBattleState,
+): TargetingPlayerState {
+  return state.players.find((p) => p.userId === state.currentPlayerId)!;
+}
+
+function getTargetingOpponent(
+  state: TargetingBattleState,
+): TargetingPlayerState {
+  return state.players.find((p) => p.userId !== state.currentPlayerId)!;
+}
+
+function getKoTargetingAllies(
+  player: TargetingPlayerState,
+): TargetingUnitState[] {
+  return [...player.units, ...player.bench].filter((u) => u.hp <= 0);
+}
+
+function hasTargetingStatus(
+  unit: TargetingUnitState,
+  statusName: string,
+): boolean {
+  return unit.statuses.some((status) => status.name === statusName);
+}
+
+function isTargetingStealthed(unit: TargetingUnitState): boolean {
+  return hasTargetingStatus(unit, "Stealth");
+}
+
+function findTargetingTaunter(
+  enemies: TargetingUnitState[],
+): TargetingUnitState | undefined {
+  return enemies.find((unit) => unit.hp > 0 && hasTargetingStatus(unit, "Taunt"));
 }
 
 /**
@@ -762,13 +800,13 @@ export function validateAction(
  * Get all valid targets for an action type
  */
 export function getValidTargets(
-  state: BattleState,
+  state: TargetingBattleState,
   actorInstanceId: string,
   actionKind: "basic" | "skill" | "ultimate",
   abilityKey?: string,
 ): string[] {
-  const currentPlayer = getCurrentPlayer(state);
-  const opponent = getOpponent(state);
+  const currentPlayer = getTargetingCurrentPlayer(state);
+  const opponent = getTargetingOpponent(state);
 
   const actor = currentPlayer.units.find(
     (u) => u.instanceId === actorInstanceId,
@@ -778,9 +816,9 @@ export function getValidTargets(
   if (actionKind === "basic") {
     // Basic attacks target enemies
     const visibleEnemies = opponent.units.filter(
-      (u) => u.hp > 0 && !isStealthed(u),
+      (u) => u.hp > 0 && !isTargetingStealthed(u),
     );
-    const taunter = findTaunter(visibleEnemies);
+    const taunter = findTargetingTaunter(visibleEnemies);
     if (taunter) {
       return [taunter.instanceId];
     }
@@ -800,7 +838,7 @@ export function getValidTargets(
 
     // Revive targets KO'd allies from active or bench.
     if (payload.revivePct) {
-      return getKoAllies(currentPlayer).map((u) => u.instanceId);
+      return getKoTargetingAllies(currentPlayer).map((u) => u.instanceId);
     }
 
     if (!requiresTargetSelection(payload)) {
@@ -809,9 +847,9 @@ export function getValidTargets(
 
     if (targetMode === "enemy") {
       const visibleEnemies = opponent.units.filter(
-        (u) => u.hp > 0 && !isStealthed(u),
+        (u) => u.hp > 0 && !isTargetingStealthed(u),
       );
-      const taunter = findTaunter(visibleEnemies);
+      const taunter = findTargetingTaunter(visibleEnemies);
       if (taunter) {
         return [taunter.instanceId];
       }
@@ -828,8 +866,8 @@ export function getValidTargets(
       const allies = [...currentPlayer.units, ...currentPlayer.bench].filter(
         (u) => u.hp > 0,
       );
-      const enemies = opponent.units.filter((u) => u.hp > 0 && !isStealthed(u));
-      const taunter = findTaunter(enemies);
+      const enemies = opponent.units.filter((u) => u.hp > 0 && !isTargetingStealthed(u));
+      const taunter = findTargetingTaunter(enemies);
       const enemyTargets = taunter ? [taunter] : enemies;
       return [...allies, ...enemyTargets].map((u) => u.instanceId);
     }
@@ -845,7 +883,7 @@ export function getValidTargets(
 
     // Default: enemy targets
     return opponent.units
-      .filter((u) => u.hp > 0 && !isStealthed(u))
+      .filter((u) => u.hp > 0 && !isTargetingStealthed(u))
       .map((u) => u.instanceId);
   }
 

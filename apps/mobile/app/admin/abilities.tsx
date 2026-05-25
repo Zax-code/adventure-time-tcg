@@ -16,8 +16,9 @@ import {
   AdminSearchInput,
   AdminSectionTitle,
 } from "../../src/components/admin/admin-ui";
+import { useTranslation } from "../../src/i18n";
 
-function formatAbilitiesError(error: unknown) {
+function formatAbilitiesError(error: unknown, invalidDataLabel: string) {
   if (error instanceof ZodError) {
     const details = error.issues
       .slice(0, 3)
@@ -27,7 +28,7 @@ function formatAbilitiesError(error: unknown) {
       })
       .join("; ");
 
-    return `Ability data from the API is invalid. ${details}`;
+    return invalidDataLabel.replace("{details}", details);
   }
 
   if (error instanceof Error) {
@@ -40,6 +41,7 @@ function formatAbilitiesError(error: unknown) {
 export default function AdminAbilitiesScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<"abilities" | "assignments">("abilities");
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<"all" | "PASSIVE" | "SKILL" | "ULTIMATE">("all");
@@ -48,7 +50,10 @@ export default function AdminAbilitiesScreen() {
 
   const abilitiesQuery = useQuery({ queryKey: ["admin-abilities"], queryFn: () => apiClient.adminAbilities() });
   const isAbilitiesLoading = abilitiesQuery.isLoading;
-  const abilitiesError = formatAbilitiesError(abilitiesQuery.error);
+  const abilitiesError = formatAbilitiesError(
+    abilitiesQuery.error,
+    t("admin.abilities.invalidApiData", { details: "{details}" }),
+  );
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => apiClient.deleteAdminAbility(id),
@@ -88,27 +93,27 @@ export default function AdminAbilitiesScreen() {
     <>
       <AdminPageScroll>
         <AdminPanel>
-          <AdminSectionTitle title="Abilities" subtitle="Use the same two-mode management flow as the PWA: ability library and card assignments." />
+          <AdminSectionTitle title={t("admin.abilities.title")} subtitle={t("admin.abilities.subtitle")} />
           <View className="h-3" />
           <View className="flex-row gap-2">
             <Pressable
               className={`flex-1 py-[10] rounded-[14] items-center ${activeTab === "abilities" ? "bg-primaryText" : "bg-surface/78"}`}
               onPress={() => setActiveTab("abilities")}
             >
-              <Text className={`font-nunito-extrabold ${activeTab === "abilities" ? "text-white" : "text-primaryText"}`}>Abilities</Text>
+                <Text className={`font-nunito-extrabold ${activeTab === "abilities" ? "text-white" : "text-primaryText"}`}>{t("admin.abilities.tabAbilities")}</Text>
             </Pressable>
             <Pressable
               className={`flex-1 py-[10] rounded-[14] items-center ${activeTab === "assignments" ? "bg-primaryText" : "bg-surface/78"}`}
               onPress={() => setActiveTab("assignments")}
             >
-              <Text className={`font-nunito-extrabold ${activeTab === "assignments" ? "text-white" : "text-primaryText"}`}>Assignments</Text>
+                <Text className={`font-nunito-extrabold ${activeTab === "assignments" ? "text-white" : "text-primaryText"}`}>{t("admin.abilities.tabAssignments")}</Text>
             </Pressable>
           </View>
           <View className="h-3" />
           <AdminSearchInput
             value={searchQuery}
             onChangeText={setSearchQuery}
-            placeholder={activeTab === "abilities" ? "Search abilities" : "Search cards"}
+            placeholder={activeTab === "abilities" ? t("admin.abilities.searchAbilities") : t("admin.abilities.searchCards")}
           />
           {activeTab === "abilities" ? (
             <View className="mt-3 flex-row flex-wrap gap-2">
@@ -120,21 +125,21 @@ export default function AdminAbilitiesScreen() {
                     className={`px-[10] py-2 rounded-full ${active ? "bg-primaryTint border border-primaryBorder" : "bg-surface/86"}`}
                     onPress={() => setTypeFilter(type)}
                   >
-                    <Text className={`font-nunito-bold text-xs ${active ? "text-primaryStrong" : "text-primaryText"}`}>{type}</Text>
+                      <Text className={`font-nunito-bold text-xs ${active ? "text-primaryStrong" : "text-primaryText"}`}>{type === "all" ? t("collection.all") : t(`admin.abilities.type.${type}`)}</Text>
                   </Pressable>
                 );
               })}
             </View>
           ) : null}
-          {activeTab === "abilities" ? <AdminButton label="Create ability" icon="add" onPress={() => router.push({ pathname: "/admin-ability-editor", params: { mode: "create" } } as any)} /> : null}
+          {activeTab === "abilities" ? <AdminButton label={t("admin.abilities.createAbility")} icon="add" onPress={() => router.push({ pathname: "/admin-ability-editor", params: { mode: "create" } } as any)} /> : null}
         </AdminPanel>
 
         {activeTab === "abilities" ? (
           <AdminPanel>
-            <AdminSectionTitle title={`Ability library (${filteredAbilities.length})`} />
+            <AdminSectionTitle title={t("admin.abilities.libraryTitle", { count: filteredAbilities.length })} />
             <View className="mt-3 gap-3">
               {isAbilitiesLoading ? (
-                <Text className="font-nunito-bold text-[13px] text-primaryText">Loading abilities...</Text>
+                <Text className="font-nunito-bold text-[13px] text-primaryText">{t("admin.abilities.loadingAbilities")}</Text>
               ) : abilitiesError ? (
                 <Text className="font-nunito-bold text-[13px] text-dangerText">{abilitiesError}</Text>
               ) : filteredAbilities.length ? (
@@ -150,28 +155,28 @@ export default function AdminAbilitiesScreen() {
                     </View>
                     <View className="flex-row flex-wrap gap-2">
                       <AdminChip label={ability.key} tone="accent" />
-                      <AdminChip label={`Cost ${ability.cost}`} tone="info" />
-                      {ability.cooldown ? <AdminChip label={`CD ${ability.cooldown}`} tone="warning" /> : null}
-                      {ability.oncePerMatch ? <AdminChip label="Once / match" tone="success" /> : null}
+                      <AdminChip label={t("admin.abilities.costLabel", { cost: ability.cost })} tone="info" />
+                      {ability.cooldown ? <AdminChip label={t("admin.abilities.cooldownLabel", { count: ability.cooldown })} tone="warning" /> : null}
+                      {ability.oncePerMatch ? <AdminChip label={t("admin.abilities.oncePerMatchShort")} tone="success" /> : null}
                     </View>
                     <Text className="font-nunito-semibold text-[13px] text-fgMuted">{ability.description}</Text>
                     <View className="flex-row gap-2">
-                      <AdminButton label="Edit" variant="ghost" onPress={() => router.push({ pathname: "/admin-ability-editor", params: { mode: "edit", abilityId: ability.id } } as any)} />
-                      <AdminButton label="Delete" variant="danger" onPress={() => deleteMutation.mutate(ability.id)} />
+                      <AdminButton label={t("admin.common.edit")} variant="ghost" onPress={() => router.push({ pathname: "/admin-ability-editor", params: { mode: "edit", abilityId: ability.id } } as any)} />
+                      <AdminButton label={t("admin.common.delete")} variant="danger" onPress={() => deleteMutation.mutate(ability.id)} />
                     </View>
                   </Pressable>
                 ))
               ) : (
-                <AdminEmptyState icon="flash" title="No abilities" body="No abilities match the current search filters, or this API has no imported ability data yet." />
+                <AdminEmptyState icon="flash" title={t("admin.abilities.noAbilitiesTitle")} body={t("admin.abilities.noAbilitiesBody")} />
               )}
             </View>
           </AdminPanel>
         ) : (
           <AdminPanel>
-            <AdminSectionTitle title={`Card assignments (${filteredCards.length})`} />
+            <AdminSectionTitle title={t("admin.abilities.assignmentsTitle", { count: filteredCards.length })} />
             <View className="mt-3 gap-3">
               {isAbilitiesLoading ? (
-                <Text className="font-nunito-bold text-[13px] text-primaryText">Loading card assignments...</Text>
+                <Text className="font-nunito-bold text-[13px] text-primaryText">{t("admin.abilities.loadingAssignments")}</Text>
               ) : abilitiesError ? (
                 <Text className="font-nunito-bold text-[13px] text-dangerText">{abilitiesError}</Text>
               ) : filteredCards.length ? (
@@ -197,11 +202,11 @@ export default function AdminAbilitiesScreen() {
                       <Text className="flex-1 font-nunito-extrabold text-[15px] text-fg">{card.name}</Text>
                       <Text className="font-nunito-semibold text-xs text-muted">{card.character} - {card.type}</Text>
                       <View className="flex-row flex-wrap gap-2">
-                        <AdminChip label={`Passive: ${passive?.name ?? "Default"}`} tone="success" />
-                        <AdminChip label={`Skill: ${skill?.name ?? "Default"}`} tone="info" />
-                        <AdminChip label={`Ultimate: ${ultimate?.name ?? "Default"}`} tone="warning" />
+                        <AdminChip label={t("admin.abilities.passiveLabel", { name: passive?.name ?? t("admin.common.default") })} tone="success" />
+                        <AdminChip label={t("admin.abilities.skillLabel", { name: skill?.name ?? t("admin.common.default") })} tone="info" />
+                        <AdminChip label={t("admin.abilities.ultimateLabel", { name: ultimate?.name ?? t("admin.common.default") })} tone="warning" />
                       </View>
-                      <AdminButton label="Manage" variant="ghost" onPress={() => {
+                      <AdminButton label={t("admin.common.manage")} variant="ghost" onPress={() => {
                         setAssigningCardId(card.id);
                         setAssignmentDraft({
                           passiveId: assignment?.passiveId ?? "",
@@ -213,20 +218,20 @@ export default function AdminAbilitiesScreen() {
                   );
                 })
               ) : (
-                <AdminEmptyState icon="people" title="No cards" body="Cards appear here once the admin catalog has content." />
+                <AdminEmptyState icon="people" title={t("admin.abilities.noCardsTitle")} body={t("admin.abilities.noCardsBody")} />
               )}
             </View>
           </AdminPanel>
         )}
       </AdminPageScroll>
-      <AdminModal visible={assigningCardId !== null} title="Assign abilities" onClose={() => setAssigningCardId(null)}>
+      <AdminModal visible={assigningCardId !== null} title={t("admin.abilities.assignTitle")} onClose={() => setAssigningCardId(null)}>
         {(["passive", "skill", "ultimate"] as const).map((role) => {
           const selectedId = assignmentDraft[`${role}Id` as const];
           return (
             <View key={role} className="gap-[10] rounded-[20] p-[14] bg-surface/82">
-              <Text className="font-nunito-extrabold text-sm text-primaryText">{role.toUpperCase()}</Text>
+               <Text className="font-nunito-extrabold text-sm text-primaryText">{t(`admin.abilities.type.${role.toUpperCase()}`)}</Text>
               <AdminButton
-                label="Use default"
+                 label={t("admin.common.useDefault")}
                 variant="ghost"
                 onPress={() => setAssignmentDraft((current) => ({ ...current, [`${role}Id`]: "" } as typeof current))}
               />
@@ -246,7 +251,7 @@ export default function AdminAbilitiesScreen() {
           );
         })}
         <AdminButton
-          label="Save assignments"
+          label={t("admin.abilities.saveAssignments")}
           onPress={() =>
             assigningCardId &&
             assignmentMutation.mutate({

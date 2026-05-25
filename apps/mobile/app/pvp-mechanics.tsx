@@ -36,7 +36,7 @@ export default function PvpMechanicsScreen() {
           <Text
             style={{ fontFamily: "Nunito_800ExtraBold", fontSize: 20, color: "#fff" }}
           >
-            {t("native.pvp.mechanics.title")}
+            {t("pvp.mechanics.title")}
           </Text>
           <Pressable onPress={() => router.back()} className="px-3 py-1 rounded-full bg-white/20">
             <Text style={{ fontFamily: "Nunito_700Bold", fontSize: 14, color: "#fff" }}>✕</Text>
@@ -49,77 +49,77 @@ export default function PvpMechanicsScreen() {
         >
           {/* Intro */}
           <Text className="font-nunito text-sm text-primaryStrong">
-            {t("native.pvp.mechanics.intro")}
+            {t("pvp.mechanics.intro")}
           </Text>
 
           {/* Objective */}
           <View className="gap-2 rounded-2xl border border-dangerBorder bg-dangerTint p-4">
             <Text className="font-nunito-bold text-base text-dangerText">
-              {t("native.pvp.mechanics.objectiveTitle")}
+              {t("pvp.mechanics.objectiveTitle")}
             </Text>
             <Text className="font-nunito text-sm text-fg">
-              {t("native.pvp.mechanics.objectiveBody")}
+              {t("pvp.mechanics.objectiveBody")}
             </Text>
           </View>
 
           {/* Team Setup */}
           <View className="gap-2 rounded-2xl border border-accentBorder bg-accentTint p-4">
             <Text className="font-nunito-bold text-base text-accentText">
-              {t("native.pvp.mechanics.teamTitle")}
+              {t("pvp.mechanics.teamTitle")}
             </Text>
-            <Text className="font-nunito text-sm text-fg">• {t("native.pvp.mechanics.teamItem1")}</Text>
-            <Text className="font-nunito text-sm text-fg">• {t("native.pvp.mechanics.teamItem2")}</Text>
-            <Text className="font-nunito text-sm text-fg">• {t("native.pvp.mechanics.teamItem3")}</Text>
+            <Text className="font-nunito text-sm text-fg">• {t("pvp.mechanics.teamItem1")}</Text>
+            <Text className="font-nunito text-sm text-fg">• {t("pvp.mechanics.teamItem2")}</Text>
+            <Text className="font-nunito text-sm text-fg">• {t("pvp.mechanics.teamItem3")}</Text>
           </View>
 
           {/* Turn Flow */}
           <View className="gap-2 rounded-2xl border border-dangerBorder bg-dangerTint p-4">
             <Text className="font-nunito-bold text-base text-dangerText">
-              {t("native.pvp.mechanics.turnTitle")}
+              {t("pvp.mechanics.turnTitle")}
             </Text>
-            <Text className="font-nunito text-sm text-fg">• {t("native.pvp.mechanics.turnItem1")}</Text>
-            <Text className="font-nunito text-sm text-fg">• {t("native.pvp.mechanics.turnItem2")}</Text>
-            <Text className="font-nunito text-sm text-fg">• {t("native.pvp.mechanics.turnItem3")}</Text>
+            <Text className="font-nunito text-sm text-fg">• {t("pvp.mechanics.turnItem1")}</Text>
+            <Text className="font-nunito text-sm text-fg">• {t("pvp.mechanics.turnItem2")}</Text>
+            <Text className="font-nunito text-sm text-fg">• {t("pvp.mechanics.turnItem3")}</Text>
           </View>
 
           {/* Actions & Costs */}
           <View className="gap-2 rounded-2xl border border-accentBorder bg-accentTint p-4">
             <Text className="font-nunito-bold text-base text-accentText">
-              {t("native.pvp.mechanics.actionsTitle")}
+              {t("pvp.mechanics.actionsTitle")}
             </Text>
-            <Text className="font-nunito text-sm text-fg">• {t("native.pvp.mechanics.actionsItem1")}</Text>
-            <Text className="font-nunito text-sm text-fg">• {t("native.pvp.mechanics.actionsItem2")}</Text>
-            <Text className="font-nunito text-sm text-fg">• {t("native.pvp.mechanics.actionsItem3")}</Text>
-            <Text className="font-nunito text-sm text-fg">• {t("native.pvp.mechanics.actionsItem4")}</Text>
+            <Text className="font-nunito text-sm text-fg">• {t("pvp.mechanics.actionsItem1")}</Text>
+            <Text className="font-nunito text-sm text-fg">• {t("pvp.mechanics.actionsItem2")}</Text>
+            <Text className="font-nunito text-sm text-fg">• {t("pvp.mechanics.actionsItem3")}</Text>
+            <Text className="font-nunito text-sm text-fg">• {t("pvp.mechanics.actionsItem4")}</Text>
           </View>
 
           {/* Bench Swap */}
           <View className="gap-2 rounded-2xl border border-dangerBorder bg-dangerTint p-4">
             <Text className="font-nunito-bold text-base text-dangerText">
-              {t("native.pvp.mechanics.swapTitle")}
+              {t("pvp.mechanics.swapTitle")}
             </Text>
-            <Text className="font-nunito text-sm text-fg">• {t("native.pvp.mechanics.swapItem1")}</Text>
-            <Text className="font-nunito text-sm text-fg">• {t("native.pvp.mechanics.swapItem2")}</Text>
-            <Text className="font-nunito text-sm text-fg">• {t("native.pvp.mechanics.swapItem3")}</Text>
+            <Text className="font-nunito text-sm text-fg">• {t("pvp.mechanics.swapItem1")}</Text>
+            <Text className="font-nunito text-sm text-fg">• {t("pvp.mechanics.swapItem2")}</Text>
+            <Text className="font-nunito text-sm text-fg">• {t("pvp.mechanics.swapItem3")}</Text>
           </View>
 
           {/* Targeting & Damage */}
           <View className="gap-2 rounded-2xl border border-accentBorder bg-accentTint p-4">
             <Text className="font-nunito-bold text-base text-accentText">
-              {t("native.pvp.mechanics.targetingTitle")}
+              {t("pvp.mechanics.targetingTitle")}
             </Text>
-            <Text className="font-nunito text-sm text-fg">• {t("native.pvp.mechanics.targetingItem1")}</Text>
-            <Text className="font-nunito text-sm text-fg">• {t("native.pvp.mechanics.targetingItem2")}</Text>
-            <Text className="font-nunito text-sm text-fg">• {t("native.pvp.mechanics.targetingItem3")}</Text>
+            <Text className="font-nunito text-sm text-fg">• {t("pvp.mechanics.targetingItem1")}</Text>
+            <Text className="font-nunito text-sm text-fg">• {t("pvp.mechanics.targetingItem2")}</Text>
+            <Text className="font-nunito text-sm text-fg">• {t("pvp.mechanics.targetingItem3")}</Text>
           </View>
 
           {/* Statuses & Cooldowns */}
           <View className="gap-2 rounded-2xl border border-dangerBorder bg-dangerTint p-4">
             <Text className="font-nunito-bold text-base text-dangerText">
-              {t("native.pvp.mechanics.statusTitle")}
+              {t("pvp.mechanics.statusTitle")}
             </Text>
             <Text className="font-nunito text-sm text-fg">
-              {t("native.pvp.mechanics.statusBody")}
+              {t("pvp.mechanics.statusBody")}
             </Text>
           </View>
         </ScrollView>

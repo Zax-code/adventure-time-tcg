@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import {
+  Animated,
   FlatList,
   Modal,
   Pressable,
@@ -24,7 +25,9 @@ import {
   CraftIcon,
   BarChartIcon,
 } from "../../src/components/icons";
+import { ToastBanner } from "../../src/components/toast-banner";
 import { useTranslation } from "../../src/i18n";
+import { useCollectionFeedbackStore } from "../../src/stores/collection-feedback-store";
 import { useThemeStore } from "../../src/stores/theme-store";
 import { useBottomTabBarContentPadding } from "../../src/theme/layout";
 import { THEME_COLORS } from "../../src/theme/themes";
@@ -52,6 +55,12 @@ export default function CollectionScreen() {
   const { t } = useTranslation();
   const tc = THEME_COLORS[useThemeStore((s) => s.themeName)];
   const bottomTabPadding = useBottomTabBarContentPadding();
+  const collectionFeedbackMessage = useCollectionFeedbackStore(
+    (state) => state.message,
+  );
+  const clearCollectionFeedback = useCollectionFeedbackStore(
+    (state) => state.clear,
+  );
 
   const [filterRarity, setFilterRarity] = useState<string>("all");
   const [sortBy, setSortBy] = useState<
@@ -61,6 +70,35 @@ export default function CollectionScreen() {
   const [showStatsModal, setShowStatsModal] = useState(false);
   const [showSortModal, setShowSortModal] = useState(false);
   const [showDustModal, setShowDustModal] = useState(false);
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error";
+  } | null>(null);
+  const toastAnim = useRef(new Animated.Value(-60)).current;
+
+  useEffect(() => {
+    if (!toast) {
+      return;
+    }
+
+    toastAnim.setValue(-60);
+    Animated.timing(toastAnim, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+    const timer = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(timer);
+  }, [toast, toastAnim]);
+
+  useEffect(() => {
+    if (!collectionFeedbackMessage) {
+      return;
+    }
+
+    setToast({ type: "success", message: collectionFeedbackMessage });
+    clearCollectionFeedback();
+  }, [clearCollectionFeedback, collectionFeedbackMessage]);
 
   const collectionQuery = useQuery({
     queryKey: ["collection"],
@@ -276,7 +314,7 @@ export default function CollectionScreen() {
             fontSize: 14,
             color: tc.fg,
           }}
-          placeholder={t("native.collection.searchByNameOrCharacter")}
+          placeholder={t("collection.searchByNameOrCharacter")}
           placeholderTextColor={tc.muted}
           value={searchQuery}
           onChangeText={setSearchQuery}
@@ -305,7 +343,12 @@ export default function CollectionScreen() {
               paddingHorizontal: 12,
               paddingVertical: 6,
               ...(filterRarity === "all"
-                ? { shadowColor: "#000", shadowOpacity: 0.15, shadowRadius: 4, elevation: 2 }
+                ? {
+                    shadowColor: "#000",
+                    shadowOpacity: 0.15,
+                    shadowRadius: 4,
+                    elevation: 2,
+                  }
                 : {}),
             }}
           >
@@ -316,7 +359,7 @@ export default function CollectionScreen() {
                 color: filterRarity === "all" ? tc.accentTint : tc.accentText,
               }}
             >
-              {t("native.collection.all")} ({collection.cards.length})
+              {t("collection.all")} ({collection.cards.length})
             </Text>
           </Pressable>
           {rarityGroups.map(({ name, count }) => (
@@ -330,7 +373,12 @@ export default function CollectionScreen() {
                 paddingHorizontal: 12,
                 paddingVertical: 6,
                 ...(filterRarity === name
-                  ? { shadowColor: "#000", shadowOpacity: 0.15, shadowRadius: 4, elevation: 2 }
+                  ? {
+                      shadowColor: "#000",
+                      shadowOpacity: 0.15,
+                      shadowRadius: 4,
+                      elevation: 2,
+                    }
                   : {}),
               }}
             >
@@ -349,7 +397,9 @@ export default function CollectionScreen() {
       </ScrollView>
 
       {/* Sort button */}
-      <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
+      <View
+        style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}
+      >
         <Pressable
           onPress={() => setShowSortModal(true)}
           style={{
@@ -371,7 +421,7 @@ export default function CollectionScreen() {
               color: tc.fg,
             }}
           >
-            {t("native.collection.sortBy")}:{" "}
+            {t("collection.sortBy")}:{" "}
           </Text>
           <Text
             style={{
@@ -389,6 +439,16 @@ export default function CollectionScreen() {
 
   return (
     <View className="flex-1 bg-bg">
+      {toast ? (
+        <ToastBanner
+          message={toast.message}
+          type={toast.type}
+          translateY={toastAnim}
+          successColor={tc.successDark}
+          errorColor={tc.dangerDark}
+        />
+      ) : null}
+
       <FlatList
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingBottom: bottomTabPadding }}
@@ -408,8 +468,8 @@ export default function CollectionScreen() {
               }}
             >
               {searchQuery || filterRarity !== "all"
-                ? t("native.collection.noFilterMatches")
-                : t("native.collection.empty")}
+                ? t("collection.noFilterMatches")
+                : t("collection.empty")}
             </Text>
           </View>
         }
@@ -417,7 +477,12 @@ export default function CollectionScreen() {
           <CardTile
             entry={item}
             accessToken={accessToken}
-            onPress={() => router.push({ pathname: "/collection-card-detail", params: { cardId: item.cardId } })}
+            onPress={() =>
+              router.push({
+                pathname: "/collection-card-detail",
+                params: { cardId: item.cardId },
+              })
+            }
           />
         )}
       />
@@ -575,7 +640,7 @@ export default function CollectionScreen() {
                 borderBottomColor: tc.accentBorder,
               }}
             >
-              {t("native.collection.sortTitle")}
+              {t("collection.sortTitle")}
             </Text>
             <View style={{ gap: 8 }}>
               {(["rarity", "name", "quantity", "newest"] as const).map(
@@ -617,7 +682,11 @@ export default function CollectionScreen() {
                       </Text>
                       {isActive ? (
                         <Text
-                          style={{ color: tc.primaryStrong, fontSize: 16, fontFamily: "Nunito_700Bold" }}
+                          style={{
+                            color: tc.primaryStrong,
+                            fontSize: 16,
+                            fontFamily: "Nunito_700Bold",
+                          }}
                         >
                           ✓
                         </Text>
@@ -698,7 +767,7 @@ export default function CollectionScreen() {
                   fontFamily: "Nunito_800ExtraBold",
                 }}
               >
-                {t("native.collection.dust")}
+                {t("collection.dust")}
               </Text>
               <Pressable onPress={() => setShowDustModal(false)} hitSlop={8}>
                 <Text style={{ fontSize: 18, color: tc.muted }}>✕</Text>
@@ -744,7 +813,7 @@ export default function CollectionScreen() {
                     fontSize: 12,
                   }}
                 >
-                  {t("native.cardDetail.rarity")}
+                  {t("collection.detail.rarity")}
                 </Text>
                 <View
                   style={{
@@ -763,7 +832,7 @@ export default function CollectionScreen() {
                       fontSize: 12,
                     }}
                   >
-                    {t("native.cardDetail.recycle")}
+                    {t("collection.detail.recycle")}
                   </Text>
                 </View>
                 <View
@@ -783,7 +852,7 @@ export default function CollectionScreen() {
                       fontSize: 12,
                     }}
                   >
-                    {t("native.cardDetail.craft")}
+                    {t("collection.detail.craft")}
                   </Text>
                 </View>
               </View>
@@ -796,7 +865,8 @@ export default function CollectionScreen() {
                       flexDirection: "row",
                       paddingVertical: 10,
                       paddingHorizontal: 12,
-                      backgroundColor: idx % 2 === 0 ? tc.surface : tc.surfaceMuted,
+                      backgroundColor:
+                        idx % 2 === 0 ? tc.surface : tc.surfaceMuted,
                     }}
                   >
                     <Text
@@ -856,7 +926,6 @@ export default function CollectionScreen() {
           </View>
         </Pressable>
       </Modal>
-
     </View>
   );
 }

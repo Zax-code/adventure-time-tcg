@@ -17,8 +17,7 @@ export default function HomeScreen() {
   const queryClient = useQueryClient();
   const router = useRouter();
   const accessToken = useSessionStore((state) => state.accessToken);
-  const refreshToken = useSessionStore((state) => state.refreshToken);
-  const setSession = useSessionStore((state) => state.setSession);
+  const patchUser = useSessionStore((state) => state.patchUser);
   const { t } = useTranslation();
   const tc = THEME_COLORS[useThemeStore((s) => s.themeName)];
   const bottomTabPadding = useBottomTabBarContentPadding();
@@ -42,14 +41,10 @@ export default function HomeScreen() {
 
   const claimMutation = useMutation({
     mutationFn: () => apiClient.claimDailyReward(),
-    onSuccess: async () => {
+    onSuccess: async (data) => {
       await queryClient.invalidateQueries({ queryKey: ["daily-claim"] });
       await queryClient.invalidateQueries({ queryKey: ["home"] });
-
-      if (accessToken && refreshToken) {
-        const me = await apiClient.me();
-        await setSession({ user: me, accessToken, refreshToken });
-      }
+      await patchUser({ coins: data.newBalance });
     },
     onError: async (error) => {
       if (
@@ -83,7 +78,7 @@ export default function HomeScreen() {
       });
     }, 1000);
     return () => clearInterval(id);
-  }, [liveTime, canClaim]);
+  }, [liveTime, canClaim, queryClient]);
 
   function formatTimeRemaining(ms: number) {
     const h = Math.floor(ms / 3600000);
@@ -115,7 +110,7 @@ export default function HomeScreen() {
     return (
       <View className="flex-1 bg-bg p-6">
         <Text className="font-nunito text-fgMuted">
-          {t("native.home.homeUnavailable")}
+          {t("home.homeUnavailable")}
         </Text>
       </View>
     );
@@ -167,8 +162,14 @@ export default function HomeScreen() {
               </LinearGradient>
             </Pressable>
           ) : (
-            <View className="rounded-full px-4 py-2" style={{ backgroundColor: tc.infoTint + '99' }}>
-              <Text className="font-nunito-bold text-sm" style={{ color: tc.infoDark + '99' }}>
+            <View
+              className="rounded-full px-4 py-2"
+              style={{ backgroundColor: tc.infoTint + "99" }}
+            >
+              <Text
+                className="font-nunito-bold text-sm"
+                style={{ color: tc.infoDark + "99" }}
+              >
                 {t("home.claimed")}
               </Text>
             </View>
@@ -177,7 +178,10 @@ export default function HomeScreen() {
       </View>
 
       {/* Collection Progress */}
-      <View className="mx-5 rounded-2xl border border-secondaryBorder p-4" style={{ backgroundColor: tc.secondaryTint + '99' }}>
+      <View
+        className="mx-5 rounded-2xl border border-secondaryBorder p-4"
+        style={{ backgroundColor: tc.secondaryTint + "99" }}
+      >
         <Text className="mb-2 font-nunito-bold text-lg text-primaryText">
           {t("home.collectionProgress")}
         </Text>
@@ -198,7 +202,10 @@ export default function HomeScreen() {
             {home.collectionStats.uniqueOwned}/{home.collectionStats.totalCards}
           </Text>
         </View>
-        <Text className="mt-2 font-nunito text-sm" style={{ color: tc.primaryDark + 'b3' }}>
+        <Text
+          className="mt-2 font-nunito text-sm"
+          style={{ color: tc.primaryDark + "b3" }}
+        >
           {t("home.complete", {
             percent: home.collectionStats.completionPercentage,
           })}
@@ -236,7 +243,10 @@ export default function HomeScreen() {
                 <CardTile entry={item} accessToken={accessToken} />
               </View>
             )}
-            contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 32 }}
+            contentContainerStyle={{
+              paddingHorizontal: 16,
+              paddingVertical: 32,
+            }}
             showsHorizontalScrollIndicator={false}
           />
         </View>
@@ -246,7 +256,7 @@ export default function HomeScreen() {
       {rarities.length > 0 && (
         <View
           className="mx-5 rounded-2xl border border-secondaryBorder p-4"
-          style={{ marginTop: -40, backgroundColor: tc.secondaryTint + '99' }}
+          style={{ marginTop: -40, backgroundColor: tc.secondaryTint + "99" }}
         >
           <Text className="mb-3 font-nunito-bold text-lg text-secondaryText">
             {t("home.dropRates")}

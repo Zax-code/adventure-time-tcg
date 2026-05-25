@@ -3,13 +3,20 @@ import { create } from "zustand";
 
 import type { AuthUser } from "@adventure-time/shared";
 
+import { useLocaleStore } from "./locale-store";
+
 interface SessionState {
   user: AuthUser | null;
   accessToken: string | null;
   refreshToken: string | null;
   hydrated: boolean;
   setHydrated: (hydrated: boolean) => void;
-  setSession: (params: { user: AuthUser; accessToken: string; refreshToken: string }) => Promise<void>;
+  setSession: (params: {
+    user: AuthUser;
+    accessToken: string;
+    refreshToken: string;
+  }) => Promise<void>;
+  patchUser: (updates: Partial<AuthUser>) => Promise<void>;
   clearSession: () => Promise<void>;
   hydrateFromStorage: () => Promise<void>;
 }
@@ -29,7 +36,18 @@ export const useSessionStore = create<SessionState>((set) => ({
       SecureStore.setItemAsync("user", JSON.stringify(user)),
     ]);
 
+    await useLocaleStore.getState().setLocale(user.preferredLanguage);
+
     set({ user, accessToken, refreshToken, hydrated: true });
+  },
+  async patchUser(updates) {
+    const currentUser = useSessionStore.getState().user;
+    if (!currentUser) return;
+
+    const nextUser: AuthUser = { ...currentUser, ...updates };
+    await SecureStore.setItemAsync("user", JSON.stringify(nextUser));
+    await useLocaleStore.getState().setLocale(nextUser.preferredLanguage);
+    set({ user: nextUser, hydrated: true });
   },
   async clearSession() {
     await Promise.all([
@@ -51,7 +69,7 @@ export const useSessionStore = create<SessionState>((set) => ({
       accessToken,
       refreshToken,
       user: userJson ? JSON.parse(userJson) : null,
-      hydrated: true,
+      hydrated: false,
     });
   },
 }));

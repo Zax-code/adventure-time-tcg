@@ -7,7 +7,7 @@ import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { apiClient, API_BASE_URL } from "../src/lib/api";
+import { apiClient, API_BASE_URL, clearAppSession } from "../src/lib/api";
 import { useSessionStore } from "../src/stores/session-store";
 import { useThemeStore } from "../src/stores/theme-store";
 import type { ThemeName } from "../src/theme/themes";
@@ -20,7 +20,6 @@ export default function SettingsScreen() {
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
   const user = useSessionStore((state) => state.user);
-  const clearSession = useSessionStore((state) => state.clearSession);
   const setSession = useSessionStore((state) => state.setSession);
   const accessToken = useSessionStore((state) => state.accessToken);
   const refreshToken = useSessionStore((state) => state.refreshToken);
@@ -148,7 +147,7 @@ export default function SettingsScreen() {
                 color={tc.primaryDark}
               />
               <Text className="font-nunito-bold text-lg text-primaryStrong">
-                {t("native.settings.profile")}
+                {t("settings.profile")}
               </Text>
             </View>
 
@@ -166,7 +165,9 @@ export default function SettingsScreen() {
                 {/* Avatar — always visible; camera badge in edit mode */}
                 <Pressable
                   onPress={() =>
-                    editing ? void uploadAvatarMutation.mutateAsync() : undefined
+                    editing
+                      ? void uploadAvatarMutation.mutateAsync()
+                      : undefined
                   }
                   disabled={!editing}
                   className="relative"
@@ -227,7 +228,7 @@ export default function SettingsScreen() {
                   <TextInput
                     value={displayNameInput}
                     onChangeText={setDisplayNameInput}
-                    placeholder={t("native.settings.displayNamePlaceholder")}
+                    placeholder={t("settings.displayNamePlaceholder")}
                     placeholderTextColor={tc.muted}
                     autoFocus
                     className="w-full text-center font-nunito-bold text-base py-1 px-0"
@@ -247,7 +248,10 @@ export default function SettingsScreen() {
                 )}
 
                 {/* Email line — identical in both modes */}
-                <Text className="font-nunito text-sm text-fgMuted" numberOfLines={1}>
+                <Text
+                  className="font-nunito text-sm text-fgMuted"
+                  numberOfLines={1}
+                >
                   {user?.email}
                 </Text>
 
@@ -262,7 +266,7 @@ export default function SettingsScreen() {
                       className="flex-1 items-center justify-center py-2 rounded-full border border-primaryBorder"
                     >
                       <Text className="font-nunito-semibold text-sm text-primaryText">
-                        {t("native.settings.cancelEdit")}
+                        {t("settings.cancelEdit")}
                       </Text>
                     </Pressable>
                     <Pressable
@@ -276,7 +280,7 @@ export default function SettingsScreen() {
                       <Text className="font-nunito-semibold text-sm text-white">
                         {updateDisplayNameMutation.isPending
                           ? "..."
-                          : t("native.settings.saveDisplayName")}
+                          : t("settings.saveDisplayName")}
                       </Text>
                     </Pressable>
                   </View>
@@ -289,7 +293,7 @@ export default function SettingsScreen() {
                     className="px-5 py-2 rounded-full border border-primaryBorder mt-1"
                   >
                     <Text className="font-nunito-semibold text-sm text-primaryText">
-                      {t("native.settings.edit")}
+                      {t("settings.edit")}
                     </Text>
                   </Pressable>
                 )}
@@ -306,7 +310,7 @@ export default function SettingsScreen() {
                 color={tc.primaryDark}
               />
               <Text className="font-nunito-bold text-lg text-primaryStrong">
-                {t("native.settings.language")}
+                {t("settings.language")}
               </Text>
             </View>
             <View
@@ -320,7 +324,7 @@ export default function SettingsScreen() {
               }}
             >
               <Text className="font-nunito text-fgMuted mb-3">
-                {t("native.settings.preferredLanguage", {
+                {t("settings.preferredLanguage", {
                   language:
                     (user?.preferredLanguage ?? locale) === "fr"
                       ? t("settings.french")
@@ -366,7 +370,7 @@ export default function SettingsScreen() {
                 color={tc.primaryDark}
               />
               <Text className="font-nunito-bold text-lg text-primaryStrong">
-                {t("native.settings.stepSource")}
+                {t("settings.stepSource")}
               </Text>
             </View>
             <View
@@ -380,16 +384,16 @@ export default function SettingsScreen() {
               }}
             >
               <Text className="font-nunito text-fgMuted mb-3">
-                {t("native.settings.preferredStepSource", {
+                {t("settings.preferredStepSource", {
                   source: t(
-                    `native.settings.stepSources.${user?.preferredStepSource ?? "device_health"}`,
+                    `settings.stepSources.${user?.preferredStepSource ?? "device_health"}`,
                   ),
                 })}
               </Text>
               <PrimaryButton
                 onPress={() => updateSourceMutation.mutate("device_health")}
               >
-                {t("native.settings.useDeviceHealth")}
+                {t("settings.useDeviceHealth")}
               </PrimaryButton>
               <View style={{ height: 8 }} />
               <Pressable
@@ -397,11 +401,11 @@ export default function SettingsScreen() {
                 onPress={() => updateSourceMutation.mutate("fitbit")}
               >
                 <Text className="font-nunito-semibold text-primaryText">
-                  {t("native.settings.preferFitbit")}
+                  {t("settings.preferFitbit")}
                 </Text>
               </Pressable>
               <Text className="font-nunito text-xs text-fgMuted mt-2">
-                {t("native.settings.fitbitHelp")}
+                {t("settings.fitbitHelp")}
               </Text>
             </View>
           </View>
@@ -409,13 +413,9 @@ export default function SettingsScreen() {
           {/* Health Steps */}
           <View className="gap-3">
             <View className="flex-row items-center gap-2">
-              <Ionicons
-                name="heart-outline"
-                size={22}
-                color={tc.primaryDark}
-              />
+              <Ionicons name="heart-outline" size={22} color={tc.primaryDark} />
               <Text className="font-nunito-bold text-lg text-primaryStrong">
-                {t("native.settings.healthSteps")}
+                {t("settings.healthSteps")}
               </Text>
             </View>
             <View
@@ -429,14 +429,14 @@ export default function SettingsScreen() {
               }}
             >
               <Text className="font-nunito text-fgMuted">
-                {t("native.settings.latestSynced", {
+                {t("settings.latestSynced", {
                   count: stepQuery.data?.latest?.stepCount ?? 0,
                 })}
               </Text>
               <Text className="font-nunito text-fgMuted mb-3">
-                {t("native.settings.source", {
+                {t("settings.source", {
                   source: t(
-                    `native.settings.stepSources.${stepQuery.data?.latest?.source ?? user?.preferredStepSource ?? "device_health"}`,
+                    `settings.stepSources.${stepQuery.data?.latest?.source ?? user?.preferredStepSource ?? "device_health"}`,
                   ),
                 })}
               </Text>
@@ -445,7 +445,7 @@ export default function SettingsScreen() {
                 onPress={() => syncSampleStepsMutation.mutate()}
               >
                 <Text className="font-nunito-semibold text-primaryText">
-                  {t("native.settings.syncSample")}
+                  {t("settings.syncSample")}
                 </Text>
               </Pressable>
             </View>
@@ -460,7 +460,7 @@ export default function SettingsScreen() {
                 color={tc.primaryDark}
               />
               <Text className="font-nunito-bold text-lg text-primaryStrong">
-                {t("native.settings.theme")}
+                {t("settings.theme")}
               </Text>
             </View>
             <View
@@ -490,7 +490,7 @@ export default function SettingsScreen() {
                           themeName === name ? "text-white" : "text-primaryText"
                         }`}
                       >
-                        {name}
+                        {t(`settings.themeNames.${name}`)}
                       </Text>
                     </Pressable>
                   ),
@@ -503,7 +503,7 @@ export default function SettingsScreen() {
           <Pressable
             className="items-center rounded-full bg-primaryDark py-4 flex-row justify-center gap-2"
             onPress={() =>
-              void clearSession().then(() => router.replace("/login"))
+              void clearAppSession().then(() => router.replace("/login"))
             }
           >
             <Ionicons name="log-out-outline" size={20} color="#fff" />

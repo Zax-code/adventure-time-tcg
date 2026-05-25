@@ -11,10 +11,10 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  Platform,
 } from "react-native";
 import { ApiClientError, apiClient } from "../lib/api";
 import { useTranslation } from "../i18n";
+import { useLocaleStore } from "../stores/locale-store";
 import { useSessionStore } from "../stores/session-store";
 import { useThemeStore } from "../stores/theme-store";
 import { THEME_COLORS } from "../theme/themes";
@@ -24,30 +24,46 @@ import { CardsIcon, PackIcon, QuestIcon } from "./icons";
 WebBrowser.maybeCompleteAuthSession();
 
 const sessionUrlProvider = new SessionUrlProvider();
-const expoProxyProjectName = "@zax-code/adventure-time-native";
+const expoProxyProjectName = "@zax-code/adventure-time-tcg";
 const expoProxyRedirectUri = sessionUrlProvider.getRedirectUrl({
   projectNameForProxy: expoProxyProjectName,
 });
 const expoProxyReturnUrl = sessionUrlProvider.getDefaultReturnUrl();
+const googleWebClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+const googleIosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
+const googleAndroidClientId = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID;
 
-export function AuthForm() {
+type AuthMode = "login" | "register";
+type AuthStage = "credentials" | "verify";
+
+function GoogleAuthSection({
+  loading,
+  preferredLanguage,
+  setError,
+  setGoogleLoading,
+  setSession,
+  t,
+  tc,
+}: {
+  loading: boolean;
+  preferredLanguage: "en" | "fr";
+  setError: (value: string | null) => void;
+  setGoogleLoading: (value: boolean) => void;
+  setSession: (params: {
+    user: import("@adventure-time/shared").AuthUser;
+    accessToken: string;
+    refreshToken: string;
+  }) => Promise<void>;
+  t: (key: string) => string;
+  tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
+}) {
   const router = useRouter();
-  const setSession = useSessionStore((state) => state.setSession);
-  const { t } = useTranslation();
-  const tc = THEME_COLORS[useThemeStore((s) => s.themeName)];
-  const [displayName, setDisplayName] = useState("Finn Fan");
-  const [email, setEmail] = useState("finn@example.com");
-  const [password, setPassword] = useState("password123");
-  const [mode, setMode] = useState<"login" | "register">("login");
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
   const isExpoGo =
     Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
   const [request, _response, promptAsync] = Google.useAuthRequest(
     isExpoGo
       ? {
-          clientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+          clientId: googleWebClientId,
           redirectUri: expoProxyRedirectUri,
           responseType: "token",
           scopes: ["openid", "profile", "email"],
@@ -55,64 +71,17 @@ export function AuthForm() {
           shouldAutoExchangeCode: false,
         }
       : {
-          iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-          androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
-          webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+          iosClientId: googleIosClientId,
+          androidClientId: googleAndroidClientId,
+          webClientId: googleWebClientId,
           scopes: ["openid", "profile", "email"],
           selectAccount: true,
         },
   );
 
-  function getFriendlyError(submitError: unknown) {
-    if (
-      submitError instanceof ApiClientError &&
-      submitError.code === "ACCESS_REQUEST_PENDING"
-    ) {
-      return t("native.auth.googlePendingApproval");
-    }
-
-    if (submitError instanceof Error) {
-      return submitError.message;
-    }
-
-    return t("native.auth.failed");
-  }
-
-  async function submit() {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const result =
-        mode === "login"
-          ? await apiClient.login({ email, password })
-          : await apiClient.register({ email, password, displayName });
-
-      await setSession({
-        user: result.user,
-        accessToken: result.tokens.accessToken,
-        refreshToken: result.tokens.refreshToken,
-      });
-      router.replace("/(tabs)");
-    } catch (submitError) {
-      setError(getFriendlyError(submitError));
-    } finally {
-      setLoading(false);
-    }
-  }
-
   async function submitGoogle() {
-    if (
-      !isExpoGo &&
-      Platform.OS === "android" &&
-      !process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID
-    ) {
-      setError(t("native.auth.googleNotConfiguredAndroid"));
-      return;
-    }
-
     if (!request) {
-      setError(t("native.auth.googleLoading"));
+      setError(t("auth.status.googleLoading"));
       return;
     }
 
@@ -123,7 +92,7 @@ export function AuthForm() {
       const result = await (isExpoGo
         ? (() => {
             if (!request.url) {
-              throw new Error(t("native.auth.googleLoading"));
+              throw new Error(t("auth.status.googleLoading"));
             }
 
             return WebBrowser.openAuthSessionAsync(
@@ -154,7 +123,11 @@ export function AuthForm() {
         throw new Error("Google did not return a usable token.");
       }
 
-      const authResult = await apiClient.googleAuth({ idToken, accessToken });
+      const authResult = await apiClient.googleAuth({
+        idToken,
+        accessToken,
+        preferredLanguage,
+      });
       await setSession({
         user: authResult.user,
         accessToken: authResult.tokens.accessToken,
@@ -162,59 +135,225 @@ export function AuthForm() {
       });
       router.replace("/(tabs)");
     } catch (submitError) {
-      setError(getFriendlyError(submitError));
+      setError(submitError instanceof Error ? submitError.message : t("auth.errors.failed"));
     } finally {
       setGoogleLoading(false);
     }
   }
 
   return (
+    <View className="gap-3">
+      <Text className="text-center font-nunito text-xs uppercase tracking-widest text-primaryText">
+        {t("auth.actions.orContinueWithGoogle")}
+      </Text>
+      <TouchableOpacity
+        onPress={() => void submitGoogle()}
+        disabled={!request || loading}
+        activeOpacity={0.85}
+      >
+        <LinearGradient
+          colors={[tc.primary, tc.primaryDark]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 10,
+            borderRadius: 999,
+            paddingVertical: 16,
+            paddingHorizontal: 24,
+          }}
+        >
+          <Text
+            style={{
+              fontFamily: "Nunito-Bold",
+              fontSize: 16,
+              color: "white",
+            }}
+          >
+            G
+          </Text>
+          <Text
+            style={{
+              fontFamily: "Nunito-Bold",
+              fontSize: 16,
+              color: "white",
+            }}
+          >
+            {t("auth.actions.enterCandyKingdom")}
+          </Text>
+        </LinearGradient>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+export function AuthForm() {
+  const router = useRouter();
+  const setSession = useSessionStore((state) => state.setSession);
+  const preferredLanguage = useLocaleStore((state) => state.locale);
+  const setPreferredLanguage = useLocaleStore((state) => state.setLocale);
+  const { t } = useTranslation();
+  const tc = THEME_COLORS[useThemeStore((s) => s.themeName)];
+  const [displayName, setDisplayName] = useState("Finn Fan");
+  const [email, setEmail] = useState("finn@example.com");
+  const [password, setPassword] = useState("password123");
+  const [verificationCode, setVerificationCode] = useState("");
+  const [mode, setMode] = useState<AuthMode>("login");
+  const [stage, setStage] = useState<AuthStage>("credentials");
+  const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const googleAuthConfigured = Boolean(
+    googleWebClientId && googleIosClientId && googleAndroidClientId,
+  );
+
+  function switchMode(nextMode: AuthMode) {
+    setMode(nextMode);
+    setStage("credentials");
+    setVerificationCode("");
+    setError(null);
+    setInfo(null);
+  }
+
+  function enterVerificationStage(nextInfo?: string | null) {
+    setStage("verify");
+    setMode("register");
+    setVerificationCode("");
+    setError(null);
+    setInfo(nextInfo ?? null);
+  }
+
+  function getFriendlyError(submitError: unknown) {
+    if (submitError instanceof ApiClientError) {
+      if (submitError.code === "ACCESS_REQUEST_PENDING") {
+        return stage === "verify" || mode === "register"
+          ? t("auth.status.emailVerifiedPendingApproval")
+          : t("auth.status.googlePendingApproval");
+      }
+
+      if (submitError.code === "EMAIL_VERIFICATION_REQUIRED") {
+        enterVerificationStage(t("auth.status.verificationCodeSentCheckEmail"));
+        return t("auth.status.verificationCodeSentCheckEmail");
+      }
+    }
+
+    if (submitError instanceof Error) {
+      return submitError.message;
+    }
+
+    return t("auth.errors.failed");
+  }
+
+  async function submit() {
+    setLoading(true);
+    setError(null);
+
+    try {
+      if (stage === "verify") {
+        const result = await apiClient.verifyEmail({
+          email,
+          code: verificationCode,
+        });
+
+        setInfo(
+          result.authorized
+            ? t("auth.status.emailVerifiedCanSignIn")
+            : t("auth.status.emailVerifiedPendingApproval"),
+        );
+        setStage("credentials");
+        setMode("login");
+        setVerificationCode("");
+        return;
+      }
+
+      if (mode === "login") {
+        const result = await apiClient.login({ email, password });
+        await setSession({
+          user: result.user,
+          accessToken: result.tokens.accessToken,
+          refreshToken: result.tokens.refreshToken,
+        });
+        router.replace("/(tabs)");
+        return;
+      }
+
+      const result = await apiClient.register({
+        email,
+        password,
+        displayName,
+        preferredLanguage,
+      });
+      enterVerificationStage(
+        result.accessRequestPending
+          ? t("auth.status.verificationCodeSentAccessRequested")
+          : t("auth.status.verificationCodeSentCheckEmail"),
+      );
+    } catch (submitError) {
+      setError(getFriendlyError(submitError));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function resendCode() {
+    setLoading(true);
+    setError(null);
+
+    try {
+      await apiClient.resendVerification({ email });
+      setInfo(t("auth.status.newVerificationCodeSent"));
+    } catch (submitError) {
+      setError(getFriendlyError(submitError));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
     <View className="w-full gap-4 rounded-3xl border border-primaryBorder bg-primaryBg p-6">
-      {/* Card Header */}
       <View className="items-center gap-1">
         <Text className="font-nunito-bold text-xl text-primary">
-          {t("authLogin.welcomeTo")}
+          {t("auth.welcomeTo")}
         </Text>
         <Text className="font-nunito-extrabold text-3xl text-primary">
-          {t("authLogin.gameTitle")}
+          {t("auth.gameTitle")}
         </Text>
       </View>
 
-      {/* Description */}
       <View className="rounded-2xl border border-primaryTint bg-primaryBg p-4">
         <Text className="text-center font-nunito text-sm text-primaryText">
-          {t("authLogin.description")}
+          {t("auth.description")}
         </Text>
       </View>
 
-      {/* Feature Grid */}
       <View className="flex-row gap-2">
         <View className="flex-1 items-center gap-1.5 rounded-xl border border-infoBorder bg-infoTint p-2.5">
           <PackIcon size={24} color={tc.infoText} />
           <Text className="text-center font-nunito-semibold text-[11px] text-infoText">
-            {t("authLogin.features.openPacks")}
+            {t("auth.features.openPacks")}
           </Text>
         </View>
         <View className="flex-1 items-center gap-1.5 rounded-xl border border-accentBorder bg-accentTint p-2.5">
           <CardsIcon size={24} color={tc.accentText} />
           <Text className="text-center font-nunito-semibold text-[11px] text-accentText">
-            {t("authLogin.features.collectCards")}
+            {t("auth.features.collectCards")}
           </Text>
         </View>
         <View className="flex-1 items-center gap-1.5 rounded-xl border border-successBorder bg-successTint p-2.5">
           <QuestIcon size={24} color={tc.successDark} />
           <Text className="text-center font-nunito-semibold text-[11px] text-successDark">
-            {t("authLogin.features.completeQuests")}
+            {t("auth.features.completeQuests")}
           </Text>
         </View>
       </View>
 
-      {/* Tab Switcher + Form */}
       <View className="rounded-2xl border border-primaryTint bg-primaryBg p-3 gap-3">
-        {/* Pills */}
         <View style={{ flexDirection: "row", gap: 8 }}>
           <Pressable
-            onPress={() => setMode("login")}
+            onPress={() => switchMode("login")}
             style={{
               flex: 1,
               alignItems: "center",
@@ -231,11 +370,11 @@ export function AuthForm() {
                 color: mode === "login" ? "white" : tc.primaryStrong,
               }}
             >
-              {t("authLogin.tabs.signIn")}
+              {t("auth.tabs.signIn")}
             </Text>
           </Pressable>
           <Pressable
-            onPress={() => setMode("register")}
+            onPress={() => switchMode("register")}
             style={{
               flex: 1,
               alignItems: "center",
@@ -252,41 +391,92 @@ export function AuthForm() {
                 color: mode === "register" ? "white" : tc.primaryStrong,
               }}
             >
-              {t("authLogin.tabs.register")}
+              {t("auth.tabs.register")}
             </Text>
           </Pressable>
         </View>
 
-        {/* Form Fields */}
+        <View className="gap-2">
+          <Text className="font-nunito-bold text-sm text-primaryStrong">
+            {t("auth.language.label")}
+          </Text>
+          <View className="flex-row gap-2">
+            {(["en", "fr"] as const).map((language) => (
+              <Pressable
+                key={language}
+                className={`flex-1 items-center rounded-full border px-4 py-3 ${
+                  preferredLanguage === language
+                    ? "border-primary bg-primary"
+                    : "border-primaryBorder bg-primaryBg"
+                }`}
+                onPress={() => void setPreferredLanguage(language)}
+              >
+                <Text
+                  className={`font-nunito-semibold ${
+                    preferredLanguage === language
+                      ? "text-white"
+                      : "text-primaryText"
+                  }`}
+                >
+                  {language === "fr"
+                    ? t("settings.french")
+                    : t("settings.english")}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+
         <TextInput
           value={email}
           onChangeText={setEmail}
           autoCapitalize="none"
           keyboardType="email-address"
-          placeholder={t("authLogin.fields.email")}
+          placeholder={t("auth.fields.email")}
           placeholderTextColor={tc.muted}
           className="rounded-2xl border border-primaryBorder bg-primaryBg px-4 py-3 font-nunito text-fg"
         />
-        <TextInput
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          placeholder={
-            mode === "register"
-              ? t("authLogin.fields.passwordMin")
-              : t("authLogin.fields.password")
-          }
-          placeholderTextColor={tc.muted}
-          className="rounded-2xl border border-primaryBorder bg-primaryBg px-4 py-3 font-nunito text-fg"
-        />
-        {mode === "register" ? (
+
+        {stage === "verify" ? (
           <TextInput
-            value={displayName}
-            onChangeText={setDisplayName}
-            placeholder={t("authLogin.fields.displayNameOptional")}
+            value={verificationCode}
+            onChangeText={setVerificationCode}
+            keyboardType="number-pad"
+            maxLength={6}
+            placeholder={t("auth.fields.verificationCode")}
             placeholderTextColor={tc.muted}
             className="rounded-2xl border border-primaryBorder bg-primaryBg px-4 py-3 font-nunito text-fg"
           />
+        ) : (
+          <>
+            <TextInput
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              placeholder={
+                mode === "register"
+                  ? t("auth.fields.passwordMin")
+                  : t("auth.fields.password")
+              }
+              placeholderTextColor={tc.muted}
+              className="rounded-2xl border border-primaryBorder bg-primaryBg px-4 py-3 font-nunito text-fg"
+            />
+            {mode === "register" ? (
+              <TextInput
+                value={displayName}
+                onChangeText={setDisplayName}
+                placeholder={t("auth.fields.displayNameOptional")}
+                placeholderTextColor={tc.muted}
+                className="rounded-2xl border border-primaryBorder bg-primaryBg px-4 py-3 font-nunito text-fg"
+              />
+            ) : null}
+          </>
+        )}
+
+        {info ? (
+          <Text className="text-xs font-nunito-semibold text-successDark">
+            {info}
+          </Text>
         ) : null}
 
         {error ? (
@@ -296,61 +486,36 @@ export function AuthForm() {
         ) : null}
 
         <PrimaryButton onPress={() => void submit()} loading={loading}>
-          {mode === "login"
-            ? t("authLogin.actions.signIn")
-            : t("authLogin.actions.register")}
+          {stage === "verify"
+            ? t("auth.actions.verify")
+            : mode === "login"
+              ? t("auth.actions.signIn")
+              : t("auth.actions.register")}
         </PrimaryButton>
+
+        {stage === "verify" ? (
+          <Pressable onPress={() => void resendCode()} disabled={loading}>
+            <Text className="text-center font-nunito-bold text-sm text-primaryStrong">
+              {t("auth.actions.resendCode")}
+            </Text>
+          </Pressable>
+        ) : null}
       </View>
 
-      {/* Google Button */}
-      <View className="gap-3">
-        <Text className="text-center font-nunito text-xs uppercase tracking-widest text-primaryText">
-          {t("authLogin.actions.orContinueWithGoogle")}
-        </Text>
-        <TouchableOpacity
-          onPress={() => void submitGoogle()}
-          disabled={!request || loading || googleLoading}
-          activeOpacity={0.85}
-        >
-          <LinearGradient
-            colors={[tc.primary, tc.primaryDark]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 10,
-              borderRadius: 999,
-              paddingVertical: 16,
-              paddingHorizontal: 24,
-            }}
-          >
-            <Text
-              style={{
-                fontFamily: "Nunito-Bold",
-                fontSize: 16,
-                color: "white",
-              }}
-            >
-              G
-            </Text>
-            <Text
-              style={{
-                fontFamily: "Nunito-Bold",
-                fontSize: 16,
-                color: "white",
-              }}
-            >
-              {t("authLogin.actions.enterCandyKingdom")}
-            </Text>
-          </LinearGradient>
-        </TouchableOpacity>
-      </View>
+      {stage === "verify" || !googleAuthConfigured ? null : (
+        <GoogleAuthSection
+          loading={loading || googleLoading}
+          preferredLanguage={preferredLanguage}
+          setError={setError}
+          setGoogleLoading={setGoogleLoading}
+          setSession={setSession}
+          t={t}
+          tc={tc}
+        />
+      )}
 
-      {/* Footer */}
       <Text className="text-center font-nunito text-sm text-primary">
-        {t("authLogin.labels.madeWithLoveBy")}
+        {t("auth.labels.madeWithLoveBy")}
       </Text>
     </View>
   );

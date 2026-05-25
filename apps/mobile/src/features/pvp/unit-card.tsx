@@ -6,6 +6,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { getTypeMultiplier } from "@adventure-time/game-engine";
 
 import { XCircleIcon } from "../../components/icons";
+import { useTranslation } from "../../i18n";
 import { FloatingNumber } from "./floating-number";
 import { resolveBattleImageUrl } from "./image-url";
 import { StatusIcon } from "./status-icon";
@@ -45,6 +46,7 @@ export function UnitCard({
   onLongPress,
   floatingEvents = [],
 }: UnitCardProps) {
+  const { t } = useTranslation();
   const isDead = unit.hp <= 0;
   const hasSummoningSickness = unit.statuses.some((status) => status.name === "SummoningSickness");
   const shieldAmount = unit.statuses
@@ -94,13 +96,13 @@ export function UnitCard({
 
     const mult = getTypeMultiplier(attackerType as never, unit.type as never);
     if (mult > 1) {
-      return { label: "2x Super Effective", bg: "#16A34A", border: "#22C55E" };
+      return { label: t("pvp.effectiveness.super"), bg: "#16A34A", border: "#22C55E" };
     }
     if (mult < 1) {
-      return { label: "0.5x Not Effective", bg: "#DC2626", border: "#FB7185" };
+      return { label: t("pvp.effectiveness.weak"), bg: "#DC2626", border: "#FB7185" };
     }
-    return { label: "1x Neutral", bg: "#64748B", border: "#94A3B8" };
-  }, [attackerType, isValidTarget, unit.type]);
+    return { label: t("pvp.effectiveness.neutral"), bg: "#64748B", border: "#94A3B8" };
+  }, [attackerType, isValidTarget, t, unit.type]);
 
   const imageUrl = resolveBattleImageUrl(unit.imageUrl);
 
@@ -153,9 +155,9 @@ export function UnitCard({
             <Text className="font-nunito text-[9px] italic text-gray-200" numberOfLines={1}>
               {unit.name}
             </Text>
-            <Text className="font-nunito-bold text-[10px] text-white" numberOfLines={1}>
-              {unit.character || "Unknown"}
-            </Text>
+              <Text className="font-nunito-bold text-[10px] text-white" numberOfLines={1}>
+               {unit.character || t("pvp.unknown")}
+              </Text>
           </View>
 
           <View className="absolute right-1 top-1 gap-0.5" style={{ width: "42%" }}>

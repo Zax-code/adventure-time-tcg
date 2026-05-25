@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useThemeStore } from "../src/stores/theme-store";
 import { THEME_COLORS, THEME_VARS } from "../src/theme/themes";
 import { useTranslation } from "../src/i18n";
+import { localizeRarityName, localizeStatusName, localizeTypeName } from "../src/lib/combat-i18n";
 
 const STATUS_ENTRIES = [
   { name: "Burn",              colorClass: "text-dangerDark" },
@@ -43,16 +44,16 @@ const CORE_ITEMS = [
 ] as const;
 
 const TYPE_ROWS = [
-  { type: "Hero",    strong: [] as string[],              weak: [] as string[],               special: "Takes 5% less incoming damage from all types" },
-  { type: "Tech",    strong: ["Royalty", "Candy"],        weak: ["Magic"],                    special: null },
-  { type: "Royalty", strong: ["Undead", "Demon"],         weak: ["Tech"],                     special: null },
-  { type: "Candy",   strong: [] as string[],              weak: [] as string[],               special: "Takes reduced incoming damage from Fire (-15%), Magic (-15%)" },
-  { type: "Undead",  strong: ["Candy"],                   weak: ["Royalty", "Fire"],          special: null },
-  { type: "Ice",     strong: ["Magic", "Demon"],          weak: ["Undead", "Fire"],           special: null },
-  { type: "Fire",    strong: ["Undead", "Ice"],           weak: ["Magic"],                    special: null },
-  { type: "Magic",   strong: ["Tech", "Fire"],            weak: ["Ice", "Cosmic"],            special: null },
-  { type: "Demon",   strong: ["Cosmic"],                  weak: ["Royalty", "Ice"],           special: null },
-  { type: "Cosmic",  strong: ["Magic"],                   weak: ["Demon"],                    special: null },
+  { type: "Hero", strong: [] as string[], weak: [] as string[], hasSpecial: true },
+  { type: "Tech", strong: ["Royalty", "Candy"], weak: ["Magic"], hasSpecial: false },
+  { type: "Royalty", strong: ["Undead", "Demon"], weak: ["Tech"], hasSpecial: false },
+  { type: "Candy", strong: [] as string[], weak: [] as string[], hasSpecial: true },
+  { type: "Undead", strong: ["Candy"], weak: ["Royalty", "Fire"], hasSpecial: false },
+  { type: "Ice", strong: ["Magic", "Demon"], weak: ["Undead", "Fire"], hasSpecial: false },
+  { type: "Fire", strong: ["Undead", "Ice"], weak: ["Magic"], hasSpecial: false },
+  { type: "Magic", strong: ["Tech", "Fire"], weak: ["Ice", "Cosmic"], hasSpecial: false },
+  { type: "Demon", strong: ["Cosmic"], weak: ["Royalty", "Ice"], hasSpecial: false },
+  { type: "Cosmic", strong: ["Magic"], weak: ["Demon"], hasSpecial: false },
 ] as const;
 
 const RARITY_ROWS = [
@@ -92,7 +93,7 @@ export default function PvpReferenceScreen() {
           <Text
             style={{ fontFamily: "Nunito_800ExtraBold", fontSize: 20, color: "#fff" }}
           >
-            {t("native.pvp.reference.title")}
+            {t("pvp.reference.title")}
           </Text>
           <Pressable onPress={() => router.back()} className="px-3 py-1 rounded-full bg-white/20">
             <Text style={{ fontFamily: "Nunito_700Bold", fontSize: 14, color: "#fff" }}>✕</Text>
@@ -105,16 +106,16 @@ export default function PvpReferenceScreen() {
         >
           {/* Intro */}
           <Text className="font-nunito text-sm text-fgMuted">
-            {t("native.pvp.reference.intro")}
+            {t("pvp.reference.intro")}
           </Text>
 
           {/* Status Effects */}
           <View className="gap-3 rounded-2xl border border-infoBorder bg-infoTint p-4">
             <Text className="font-nunito-bold text-base text-infoDark">
-              {t("native.pvp.reference.statusTitle")}
+              {t("pvp.reference.statusTitle")}
             </Text>
             <Text className="font-nunito text-xs text-fgMuted">
-              {t("native.pvp.reference.statusIntro")}
+              {t("pvp.reference.statusIntro")}
             </Text>
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
               {STATUS_ENTRIES.map((entry) => (
@@ -124,10 +125,10 @@ export default function PvpReferenceScreen() {
                   style={{ width: "47%" }}
                 >
                   <Text className={`font-nunito-bold text-sm ${entry.colorClass}`}>
-                    {entry.name}
+                    {localizeStatusName(entry.name, t)}
                   </Text>
                   <Text className="font-nunito text-xs text-fgMuted mt-1">
-                    {t(`native.pvp.reference.statusDesc.${entry.name}`)}
+                    {t(`pvp.reference.statusDesc.${entry.name}`)}
                   </Text>
                 </View>
               ))}
@@ -137,16 +138,16 @@ export default function PvpReferenceScreen() {
           {/* Core Combat Effects */}
           <View className="gap-3 rounded-2xl border border-successBorder bg-successTint p-4">
             <Text className="font-nunito-bold text-base text-successDark">
-              {t("native.pvp.reference.coreTitle")}
+              {t("pvp.reference.coreTitle")}
             </Text>
             <Text className="font-nunito text-xs text-fgMuted">
-              {t("native.pvp.reference.coreIntro")}
+              {t("pvp.reference.coreIntro")}
             </Text>
             {CORE_ITEMS.map((key) => (
               <View key={key} className="flex-row gap-2">
                 <Text className="font-nunito text-sm text-successDark">•</Text>
                 <Text className="font-nunito flex-1 text-sm text-fg">
-                  {t(`native.pvp.reference.coreItems.${key}`)}
+                  {t(`pvp.reference.coreItems.${key}`)}
                 </Text>
               </View>
             ))}
@@ -155,22 +156,22 @@ export default function PvpReferenceScreen() {
           {/* Type Chart */}
           <View className="gap-3 rounded-2xl border border-accentBorder bg-accentTint p-4">
             <Text className="font-nunito-bold text-base text-accentText">
-              {t("native.pvp.reference.typeTitle")}
+              {t("pvp.reference.typeTitle")}
             </Text>
             <Text className="font-nunito text-xs text-fgMuted">
-              {t("native.pvp.reference.typeIntro")}
+              {t("pvp.reference.typeIntro")}
             </Text>
             {TYPE_ROWS.map((row) => (
               <View key={row.type} className="gap-1 rounded-xl border border-accentBorder bg-surface p-3">
-                <Text className="font-nunito-bold text-sm text-fg">{row.type}</Text>
+                <Text className="font-nunito-bold text-sm text-fg">{localizeTypeName(row.type, t)}</Text>
                 <Text className="font-nunito text-xs text-successDark">
-                  {t("native.pvp.reference.strongAgainst")}: {row.strong.length > 0 ? row.strong.join(", ") : t("native.pvp.reference.typeSpecialNone")}
+                  {t("pvp.reference.strongAgainst")}: {row.strong.length > 0 ? row.strong.map((type) => localizeTypeName(type, t)).join(", ") : t("pvp.reference.typeSpecialNone")}
                 </Text>
                 <Text className="font-nunito text-xs text-dangerDark">
-                  {t("native.pvp.reference.weakAgainst")}: {row.weak.length > 0 ? row.weak.join(", ") : t("native.pvp.reference.typeSpecialNone")}
+                  {t("pvp.reference.weakAgainst")}: {row.weak.length > 0 ? row.weak.map((type) => localizeTypeName(type, t)).join(", ") : t("pvp.reference.typeSpecialNone")}
                 </Text>
-                {row.special && (
-                  <Text className="font-nunito text-xs text-fgMuted mt-0.5">{row.special}</Text>
+                {row.hasSpecial && (
+                  <Text className="font-nunito text-xs text-fgMuted mt-0.5">{t(`pvp.reference.typeSpecial.${row.type}`)}</Text>
                 )}
               </View>
             ))}
@@ -179,33 +180,33 @@ export default function PvpReferenceScreen() {
           {/* Rarity Differences */}
           <View className="gap-3 rounded-2xl border border-secondaryBorder bg-secondaryTint p-4">
             <Text className="font-nunito-bold text-base text-secondaryText">
-              {t("native.pvp.reference.rarityTitle")}
+              {t("pvp.reference.rarityTitle")}
             </Text>
             <Text className="font-nunito text-xs text-fgMuted">
-              {t("native.pvp.reference.rarityIntro")}
+              {t("pvp.reference.rarityIntro")}
             </Text>
             {/* Header row */}
             <View className="flex-row gap-1 border-b border-secondaryBorder pb-2">
               <Text className="font-nunito-bold flex-1 text-xs text-secondaryText">
-                {t("native.pvp.reference.rarityColRarity")}
+                {t("pvp.reference.rarityColRarity")}
               </Text>
               <Text className="font-nunito-bold w-16 text-center text-xs text-secondaryText">
-                {t("native.pvp.reference.rarityColHp")}
+                {t("pvp.reference.rarityColHp")}
               </Text>
               <Text className="font-nunito-bold w-16 text-center text-xs text-secondaryText">
-                {t("native.pvp.reference.rarityColAtk")}
+                {t("pvp.reference.rarityColAtk")}
               </Text>
               <Text className="font-nunito-bold w-20 text-center text-xs text-secondaryText">
-                {t("native.pvp.reference.rarityColPassive")}
+                {t("pvp.reference.rarityColPassive")}
               </Text>
             </View>
             {RARITY_ROWS.map((row) => (
               <View key={row.name} className="flex-row gap-1 items-center border-b border-secondaryBorder py-1.5">
-                <Text className="font-nunito-semibold flex-1 text-sm text-fg">{row.name}</Text>
+                 <Text className="font-nunito-semibold flex-1 text-sm text-fg">{localizeRarityName(row.name, t)}</Text>
                 <Text className="font-nunito w-16 text-center text-sm text-fgMuted">{row.hpBonus}</Text>
                 <Text className="font-nunito w-16 text-center text-sm text-fgMuted">{row.atkBonus}</Text>
                 <Text className={`font-nunito-semibold w-20 text-center text-xs ${row.extraPassive ? "text-successDark" : "text-fgMuted"}`}>
-                  {row.extraPassive ? t("native.pvp.reference.rarityYes") : t("native.pvp.reference.rarityNo")}
+                  {row.extraPassive ? t("pvp.reference.rarityYes") : t("pvp.reference.rarityNo")}
                 </Text>
               </View>
             ))}

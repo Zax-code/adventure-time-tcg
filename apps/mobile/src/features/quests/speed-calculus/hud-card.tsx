@@ -1,5 +1,4 @@
-import { useEffect, useRef } from "react";
-import { Animated, Text, View } from "react-native";
+import { Pressable, Text, View, type DimensionValue } from "react-native";
 import type { SpeedRunState } from "@adventure-time/shared";
 
 import { useTranslation } from "../../../i18n";
@@ -11,35 +10,34 @@ type HudCardProps = {
   state: SpeedRunState;
   remainingSeconds: number;
   pauseRemainingSeconds: number;
+  displayedCorrectAnswers: number;
+  isManuallyPaused: boolean;
+  onPause: () => void;
+  pauseDisabled: boolean;
 };
 
-export function HudCard({ activeRun, state, remainingSeconds, pauseRemainingSeconds }: HudCardProps) {
+export function HudCard({
+  activeRun,
+  state,
+  remainingSeconds,
+  pauseRemainingSeconds,
+  displayedCorrectAnswers,
+  isManuallyPaused,
+  onPause,
+  pauseDisabled,
+}: HudCardProps) {
   const { t } = useTranslation();
   const tc = THEME_COLORS[useThemeStore((s) => s.themeName)];
-
-  // ── Smooth timer bar ──────────────────────────────────────────────
-  const timerBarAnim = useRef(new Animated.Value(1)).current;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    if (!activeRun || pauseRemainingSeconds > 0 || remainingSeconds <= 0) return;
-    const maxSecs = state.runDurationSeconds ?? 30;
-    timerBarAnim.setValue(remainingSeconds / maxSecs);
-    const anim = Animated.timing(timerBarAnim, {
-      toValue: 0,
-      duration: remainingSeconds * 1000,
-      useNativeDriver: false,
-    });
-    anim.start();
-    return () => anim.stop();
-  // Restart only when a new run begins or the pause countdown ends
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeRun?.runId, pauseRemainingSeconds === 0]);
 
   // ── Timer urgency ─────────────────────────────────────────────────
   const maxSeconds = state.runDurationSeconds ?? 30;
   const timerIsLow = remainingSeconds <= Math.floor(maxSeconds * 0.33);
   const timerIsCritical = remainingSeconds <= 5;
   const timerColor = timerIsCritical ? tc.dangerDark : timerIsLow ? tc.secondaryDark : tc.primaryDark;
+  const timerProgress: DimensionValue =
+    activeRun && maxSeconds > 0
+      ? `${Math.max(0, Math.min(100, (remainingSeconds / maxSeconds) * 100))}%`
+      : "100%";
 
   return (
     <View
@@ -52,7 +50,7 @@ export function HudCard({ activeRun, state, remainingSeconds, pauseRemainingSeco
         elevation: 4,
       }}
     >
-      <View className="flex-row items-start justify-between">
+      <View className="flex-row items-start justify-between gap-3">
         {/* Timer */}
         <View className="items-start">
           <Text
@@ -70,7 +68,7 @@ export function HudCard({ activeRun, state, remainingSeconds, pauseRemainingSeco
         {/* Score */}
         <View className="items-end">
           <Text className="font-nunito-extrabold text-primaryDark text-4xl leading-10">
-            {activeRun?.correctAnswers ?? 0}
+            {displayedCorrectAnswers}
           </Text>
           <Text className="text-[10px] font-nunito-bold uppercase tracking-[2.5px] text-primaryDark/50 -mt-0.5">
             {t("quests.speedCalculusCorrectNow")}
@@ -78,12 +76,32 @@ export function HudCard({ activeRun, state, remainingSeconds, pauseRemainingSeco
         </View>
       </View>
 
+      {activeRun ? (
+        <View className="mt-3 flex-row justify-end">
+          <Pressable
+            accessibilityRole="button"
+            disabled={pauseDisabled}
+            onPress={onPause}
+            className="rounded-full border px-4 py-2"
+            style={({ pressed }) => ({
+              opacity: pauseDisabled ? 0.45 : pressed ? 0.8 : 1,
+              borderColor: tc.primaryBorder,
+              backgroundColor: isManuallyPaused ? tc.primaryTint : tc.primaryBg,
+            })}
+          >
+            <Text className="font-nunito-bold text-sm" style={{ color: tc.primaryDark }}>
+              {t("quests.speedCalculusPause")}
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
+
       {/* Timer progress bar — smooth continuous drain */}
       <View className="mt-2.5 mb-0.5 h-[5px] rounded-full overflow-hidden bg-primaryTint">
-        <Animated.View
+        <View
           className="h-full rounded-full"
           style={{
-            width: timerBarAnim.interpolate({ inputRange: [0, 1], outputRange: ["0%", "100%"] }),
+            width: timerProgress,
             backgroundColor: timerColor,
           }}
         />

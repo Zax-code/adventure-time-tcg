@@ -21,6 +21,7 @@ import {
   AdminSearchInput,
   AdminSectionTitle,
 } from "../../src/components/admin/admin-ui";
+import { useTranslation } from "../../src/i18n";
 import { useThemeStore } from "../../src/stores/theme-store";
 import { THEME_COLORS } from "../../src/theme/themes";
 
@@ -70,6 +71,7 @@ export default function AdminFeaturedScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const { themeName } = useThemeStore();
   const tc = THEME_COLORS[themeName];
+  const { t } = useTranslation();
 
   const cardsQuery = useQuery({
     queryKey: ["admin-cards"],
@@ -217,17 +219,17 @@ export default function AdminFeaturedScreen() {
       if (item.type === "featured-header") {
         return (
           <View className="mt-4">
-            <AdminSectionTitle title={`Currently featured (${derived.featuredCards.length})`} />
+            <AdminSectionTitle title={t("admin.featured.currentTitle", { count: derived.featuredCards.length })} />
             <View className="mt-3">
               {isCardsLoading ? (
-                <Text className="font-nunito-semibold text-[13px] text-fgMuted text-center">Loading cards...</Text>
+                <Text className="font-nunito-semibold text-[13px] text-fgMuted text-center">{t("admin.featured.loading")}</Text>
               ) : cardsError ? (
                 <Text className="font-nunito-bold text-[13px] text-dangerText text-center">{cardsError}</Text>
               ) : derived.featuredCards.length ? null : (
                 <AdminEmptyState
                   icon="star-outline"
-                  title="No featured cards"
-                  body="Tap any card below to promote it into the featured set."
+                  title={t("admin.featured.noFeaturedTitle")}
+                  body={t("admin.featured.noFeaturedBody")}
                 />
               )}
             </View>
@@ -238,17 +240,17 @@ export default function AdminFeaturedScreen() {
       if (item.type === "candidate-header") {
         return (
           <View className="mt-4">
-            <AdminSectionTitle title={`All cards (${derived.nonFeaturedCards.length})`} />
+            <AdminSectionTitle title={t("admin.featured.allCardsTitle", { count: derived.nonFeaturedCards.length })} />
             <View className="mt-3">
               {isCardsLoading ? (
-                <Text className="font-nunito-semibold text-[13px] text-fgMuted text-center">Loading cards...</Text>
+                <Text className="font-nunito-semibold text-[13px] text-fgMuted text-center">{t("admin.featured.loading")}</Text>
               ) : cardsError ? (
                 <Text className="font-nunito-bold text-[13px] text-dangerText text-center">{cardsError}</Text>
               ) : derived.nonFeaturedCards.length ? null : (
                 <AdminEmptyState
                   icon="search"
-                  title="No cards match"
-                  body="Clear the search or add more cards on the cards tab."
+                  title={t("admin.featured.noMatchesTitle")}
+                  body={t("admin.featured.noMatchesBody")}
                 />
               )}
             </View>
@@ -265,29 +267,29 @@ export default function AdminFeaturedScreen() {
     () => (
       <AdminPanel>
         <AdminSectionTitle
-          title="Featured cards"
-          subtitle="Highlight the showcase roster exactly like the PWA carousel selection flow."
+          title={t("admin.featured.title")}
+          subtitle={t("admin.featured.subtitle")}
         />
         <View className="h-3" />
         <AdminSearchInput
           value={searchQuery}
           onChangeText={setSearchQuery}
-          placeholder="Search featured candidates"
+          placeholder={t("admin.featured.searchPlaceholder")}
         />
         <View className="mt-3 flex-row gap-2 flex-wrap">
           <AdminChip
-            label={`${isCardsLoading ? "..." : derived.featuredCards.length} / 5 featured`}
+            label={t("admin.featured.featuredCount", { count: isCardsLoading ? "..." : derived.featuredCards.length })}
             tone="warning"
           />
           <AdminChip
-            label={`${isCardsLoading ? "..." : derived.nonFeaturedCards.length} waiting`}
+            label={t("admin.featured.waitingCount", { count: isCardsLoading ? "..." : derived.nonFeaturedCards.length })}
             tone="default"
           />
         </View>
         {maxReached ? (
           <View className="mt-3 rounded-2xl px-[14] py-3 bg-secondaryTint border border-secondaryBorder">
             <Text className="font-nunito-bold text-[13px] text-secondaryText">
-              Maximum of five featured cards reached. Remove one above before adding another.
+              {t("admin.featured.maxReached")}
             </Text>
           </View>
         ) : null}

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Animated } from "react-native";
+import { useTranslation } from "../../i18n";
 
 interface TurnBannerProps {
   isMyTurn: boolean;
@@ -7,6 +8,7 @@ interface TurnBannerProps {
 }
 
 export function TurnBanner({ isMyTurn, onDone }: TurnBannerProps) {
+  const { t } = useTranslation();
   const scale = useRef(new Animated.Value(0.8)).current;
   const opacity = useRef(new Animated.Value(0)).current;
 
@@ -66,7 +68,7 @@ export function TurnBanner({ isMyTurn, onDone }: TurnBannerProps) {
             textAlign: "center",
           }}
         >
-          {isMyTurn ? "Your Turn" : "Opponent's Turn"}
+          {isMyTurn ? t("pvp.turnBanner.yourTurn") : t("pvp.turnBanner.opponentTurn")}
         </Animated.Text>
       </Animated.View>
     </Animated.View>

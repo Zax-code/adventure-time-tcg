@@ -171,6 +171,9 @@ function applyEventToState(state: BattleState, event: CombatEvent): ApplyEventRe
   state.log.push(event);
   const payload = event.payload;
 
+  const targetId = pickString(payload, ["targetId", "unitId"]);
+  const statusName = pickString(payload, ["statusName", "status", "name"]);
+
   switch (event.type) {
     case "matchStart":
       // Initial state is already set
@@ -203,7 +206,7 @@ function applyEventToState(state: BattleState, event: CombatEvent): ApplyEventRe
     }
 
     case "damage": {
-      const targetId = payload.targetId as string | undefined;
+      const targetId = pickString(payload, ["targetId", "unitId"]);
       if (!targetId) {
         return { success: false, error: "missing targetId" };
       }
@@ -219,7 +222,7 @@ function applyEventToState(state: BattleState, event: CombatEvent): ApplyEventRe
     }
 
     case "heal": {
-      const targetId = payload.targetId as string | undefined;
+      const targetId = pickString(payload, ["targetId", "unitId"]);
       if (!targetId) {
         return { success: false, error: "missing targetId" };
       }
@@ -234,7 +237,7 @@ function applyEventToState(state: BattleState, event: CombatEvent): ApplyEventRe
     }
 
     case "shieldAbsorb": {
-      const targetId = payload.targetId as string | undefined;
+      const targetId = pickString(payload, ["targetId", "unitId"]);
       if (!targetId) {
         return { success: false, error: "missing targetId" };
       }
@@ -244,7 +247,12 @@ function applyEventToState(state: BattleState, event: CombatEvent): ApplyEventRe
       }
       const shieldStatus = target.statuses.find((s) => s.name === "Shield");
       if (shieldStatus && shieldStatus.magnitude !== undefined) {
-        shieldStatus.magnitude = (payload.remaining as number) ?? 0;
+        const absorbed = pickNumber(payload, ["amount", "absorbed"]);
+        const remaining =
+          pickNumber(payload, ["remaining"]) ??
+          Math.max(0, shieldStatus.magnitude - (absorbed ?? 0));
+
+        shieldStatus.magnitude = remaining;
         if (shieldStatus.magnitude <= 0) {
           target.statuses = target.statuses.filter((s) => s.name !== "Shield");
         }
@@ -253,7 +261,6 @@ function applyEventToState(state: BattleState, event: CombatEvent): ApplyEventRe
     }
 
     case "statusApply": {
-      const targetId = (payload.targetId || payload.unitId) as string | undefined;
       if (!targetId) {
         return { success: false, error: "missing targetId/unitId" };
       }
@@ -261,7 +268,6 @@ function applyEventToState(state: BattleState, event: CombatEvent): ApplyEventRe
       if (!target) {
         return { success: false, error: `target unit ${targetId} not found` };
       }
-      const statusName = (payload.statusName || payload.status || payload.name) as string;
       if (!statusName) {
         return { success: false, error: "missing status name" };
       }
@@ -279,7 +285,6 @@ function applyEventToState(state: BattleState, event: CombatEvent): ApplyEventRe
 
     case "statusExpire":
     case "statusCleanse": {
-      const targetId = payload.unitId as string | undefined;
       if (!targetId) {
         return { success: false, error: "missing unitId" };
       }
@@ -287,7 +292,6 @@ function applyEventToState(state: BattleState, event: CombatEvent): ApplyEventRe
       if (!target) {
         return { success: false, error: `unit ${targetId} not found` };
       }
-      const statusName = (payload.statusName || payload.status || payload.name) as string;
       if (statusName) {
         target.statuses = target.statuses.filter((s) => s.name !== statusName);
       }
@@ -296,7 +300,6 @@ function applyEventToState(state: BattleState, event: CombatEvent): ApplyEventRe
 
     case "statusTick": {
       // Status tick applies damage/healing from DoT/Regen effects
-      const targetId = payload.unitId as string | undefined;
       if (!targetId) {
         return { success: false, error: "missing unitId" };
       }
@@ -304,19 +307,23 @@ function applyEventToState(state: BattleState, event: CombatEvent): ApplyEventRe
       if (!target) {
         return { success: false, error: `unit ${targetId} not found` };
       }
+      const amount = pickNumber(payload, ["amount"]);
+      const legacyDamage = pickNumber(payload, ["damage"]);
+      const legacyHealing = pickNumber(payload, ["healing"]);
+      const inferredDamage = amount && amount > 0 && legacyHealing == null ? amount : null;
+
       // Apply damage from status tick
-      if (typeof payload.damage === "number" && payload.damage > 0) {
-        target.hp = Math.max(0, target.hp - payload.damage);
+      if ((legacyDamage ?? inferredDamage ?? 0) > 0) {
+        target.hp = Math.max(0, target.hp - (legacyDamage ?? inferredDamage ?? 0));
       }
       // Apply healing from status tick
-      if (typeof payload.healing === "number" && payload.healing > 0) {
-        target.hp = Math.min(target.maxHp, target.hp + payload.healing);
+      if ((legacyHealing ?? 0) > 0) {
+        target.hp = Math.min(target.maxHp, target.hp + (legacyHealing ?? 0));
       }
       return { success: true };
     }
 
     case "ko": {
-      const targetId = payload.unitId as string | undefined;
       if (!targetId) {
         return { success: false, error: "missing unitId" };
       }
@@ -404,7 +411,7 @@ function applyEventToState(state: BattleState, event: CombatEvent): ApplyEventRe
     }
 
     case "cooldownTick": {
-      const targetId = payload.unitId as string | undefined;
+      const targetId = pickString(payload, ["targetId", "unitId"]);
       if (!targetId) {
         return { success: false, error: "missing unitId" };
       }
@@ -420,7 +427,7 @@ function applyEventToState(state: BattleState, event: CombatEvent): ApplyEventRe
     }
 
     case "revive": {
-      const targetId = payload.targetId as string | undefined;
+      const targetId = pickString(payload, ["targetId", "unitId"]);
       if (!targetId) {
         return { success: false, error: "missing targetId" };
       }
@@ -440,6 +447,14 @@ function applyEventToState(state: BattleState, event: CombatEvent): ApplyEventRe
     case "abilityStart":
     case "passiveTrigger":
     case "crit":
+    case "pass":
+    case "concede":
+    case "coverRedirect":
+    case "thorns":
+    case "counter":
+    case "preventDeath":
+    case "statusSteal":
+    case "swapHp":
     case "freeze_skip":
     case "stun_consume":
       // These events don't affect state - they're informational
@@ -448,6 +463,28 @@ function applyEventToState(state: BattleState, event: CombatEvent): ApplyEventRe
     default:
       return { success: false, error: `unhandled event type: ${(event as CombatEvent).type}` };
   }
+}
+
+function pickString(payload: Record<string, unknown>, keys: string[]): string | undefined {
+  for (const key of keys) {
+    const value = payload[key];
+    if (typeof value === "string" && value.length > 0) {
+      return value;
+    }
+  }
+
+  return undefined;
+}
+
+function pickNumber(payload: Record<string, unknown>, keys: string[]): number | undefined {
+  for (const key of keys) {
+    const value = payload[key];
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return value;
+    }
+  }
+
+  return undefined;
 }
 
 /**

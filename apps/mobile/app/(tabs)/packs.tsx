@@ -47,15 +47,15 @@ type OpeningPhase =
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 const PARTICLE_CONFIGS = [
-  { angle: 0,   dist: 140, isSparkle: false },
-  { angle: 45,  dist: 160, isSparkle: false },
-  { angle: 90,  dist: 130, isSparkle: false },
+  { angle: 0, dist: 140, isSparkle: false },
+  { angle: 45, dist: 160, isSparkle: false },
+  { angle: 90, dist: 130, isSparkle: false },
   { angle: 135, dist: 155, isSparkle: false },
   { angle: 180, dist: 140, isSparkle: false },
   { angle: 225, dist: 150, isSparkle: false },
   { angle: 270, dist: 135, isSparkle: false },
   { angle: 315, dist: 160, isSparkle: false },
-  { angle: 22,  dist: 180, isSparkle: true },
+  { angle: 22, dist: 180, isSparkle: true },
   { angle: 112, dist: 175, isSparkle: true },
   { angle: 202, dist: 185, isSparkle: true },
   { angle: 292, dist: 170, isSparkle: true },
@@ -121,8 +121,7 @@ export default function PacksScreen() {
   const queryClient = useQueryClient();
   const accessToken = useSessionStore((state) => state.accessToken);
   const tc = THEME_COLORS[useThemeStore((s) => s.themeName)];
-  const refreshToken = useSessionStore((state) => state.refreshToken);
-  const setSession = useSessionStore((state) => state.setSession);
+  const patchUser = useSessionStore((state) => state.patchUser);
   const coins = useSessionStore((state) => state.user?.coins ?? 0);
   const { t } = useTranslation();
   const bottomTabPadding = useBottomTabBarContentPadding();
@@ -279,7 +278,7 @@ export default function PacksScreen() {
   async function openPack(pack: Pack) {
     if (coins < pack.cost) {
       setOpenError(
-        t("native.packs.needCoins", { required: pack.cost, current: coins }),
+        t("packs.needCoins", { required: pack.cost, current: coins }),
       );
       return;
     }
@@ -324,16 +323,13 @@ export default function PacksScreen() {
         queryClient.invalidateQueries({ queryKey: ["home"] }),
         queryClient.invalidateQueries({ queryKey: ["daily-claim"] }),
       ]);
-      if (accessToken && refreshToken) {
-        const me = await apiClient.me();
-        await setSession({ user: me, accessToken, refreshToken });
-      }
+      await patchUser({ coins: result.newBalance });
 
       setPhase("readyToReveal");
       setRevealedIndex(-1);
     } catch (err) {
       setOpenError(
-        err instanceof Error ? err.message : t("native.packs.openFailed"),
+        err instanceof Error ? err.message : t("packs.openFailed"),
       );
       setPhase("selecting");
     } finally {
@@ -381,7 +377,7 @@ export default function PacksScreen() {
     return (
       <View className="flex-1 bg-bg p-6">
         <Text className="font-nunito text-fgMuted">
-          {t("native.packs.loading")}
+          {t("packs.loading")}
         </Text>
       </View>
     );
@@ -391,7 +387,7 @@ export default function PacksScreen() {
     return (
       <View className="flex-1 bg-bg p-6">
         <Text className="font-nunito text-danger">
-          {packsQuery.error?.message ?? t("native.packs.unavailable")}
+          {packsQuery.error?.message ?? t("packs.unavailable")}
         </Text>
       </View>
     );
@@ -408,29 +404,57 @@ export default function PacksScreen() {
     return (
       <View className="flex-1 bg-bg items-center justify-center">
         <Text className="font-nunito-extrabold text-2xl text-fg mb-8">
-          {t("native.packs.title")}
+          {t("packs.title")}
         </Text>
         {phase === "bursting" && selectedPack ? (
-          <View style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }}>
+          <View
+            style={{
+              position: "absolute",
+              inset: 0,
+              pointerEvents: "none",
+              overflow: "hidden",
+            }}
+          >
             {PARTICLE_CONFIGS.map(({ angle, dist, isSparkle }, i) => {
               const rad = (angle * Math.PI) / 180;
               const tx = burstParticleAnim.interpolate({
-                inputRange: [0, 1], outputRange: [0, Math.cos(rad) * dist],
+                inputRange: [0, 1],
+                outputRange: [0, Math.cos(rad) * dist],
               });
               const ty = burstParticleAnim.interpolate({
-                inputRange: [0, 1], outputRange: [0, Math.sin(rad) * dist],
+                inputRange: [0, 1],
+                outputRange: [0, Math.sin(rad) * dist],
               });
               const opacity = burstParticleAnim.interpolate({
-                inputRange: [0, 0.4, 1], outputRange: [1, 0.8, 0],
+                inputRange: [0, 0.4, 1],
+                outputRange: [1, 0.8, 0],
               });
               return (
-                <Animated.View key={i} style={{
-                  position: "absolute", top: "50%", left: "50%",
-                  transform: [{ translateX: tx }, { translateY: ty }], opacity,
-                }}>
-                  {isSparkle
-                    ? <SparkleIcon size={20} color={selectedPack.color || "#EC4899"} />
-                    : <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: selectedPack.color || "#EC4899" }} />}
+                <Animated.View
+                  key={i}
+                  style={{
+                    position: "absolute",
+                    top: "50%",
+                    left: "50%",
+                    transform: [{ translateX: tx }, { translateY: ty }],
+                    opacity,
+                  }}
+                >
+                  {isSparkle ? (
+                    <SparkleIcon
+                      size={20}
+                      color={selectedPack.color || "#EC4899"}
+                    />
+                  ) : (
+                    <View
+                      style={{
+                        width: 12,
+                        height: 12,
+                        borderRadius: 6,
+                        backgroundColor: selectedPack.color || "#EC4899",
+                      }}
+                    />
+                  )}
                 </Animated.View>
               );
             })}
@@ -640,7 +664,15 @@ export default function PacksScreen() {
           ))}
         </View>
 
-        <Text style={{ fontFamily: "Nunito_700Bold", fontSize: 18, color: tc.primaryText }}>Tap to reveal</Text>
+        <Text
+          style={{
+            fontFamily: "Nunito_700Bold",
+            fontSize: 18,
+            color: tc.primaryText,
+          }}
+        >
+          {t("packs.tapToReveal")}
+        </Text>
       </TouchableOpacity>
     );
   }
@@ -711,7 +743,11 @@ export default function PacksScreen() {
                 zIndex: 10,
               }}
             />
-            <CardTile entry={entry as any} size="large" accessToken={accessToken} />
+            <CardTile
+              entry={entry as any}
+              size="large"
+              accessToken={accessToken}
+            />
 
             {/* NEW! badge */}
             {card.isNewForUser ? (
@@ -738,7 +774,7 @@ export default function PacksScreen() {
                       fontFamily: "Nunito_800ExtraBold",
                     }}
                   >
-                    NEW!
+                    {t("packs.openResult.newBadge")}
                   </Text>
                 </LinearGradient>
               </View>
@@ -770,9 +806,15 @@ export default function PacksScreen() {
             })}
           </View>
 
-          <Text style={{ fontFamily: "Nunito_700Bold", fontSize: 18, color: tc.primaryText }}>
+          <Text
+            style={{
+              fontFamily: "Nunito_700Bold",
+              fontSize: 18,
+              color: tc.primaryText,
+            }}
+          >
             {isLast
-              ? "Tap to see summary"
+              ? t("packs.tapToSeeSummary")
               : `${revealedIndex + 1} / ${openedCards.length}`}
           </Text>
         </View>
@@ -799,7 +841,7 @@ export default function PacksScreen() {
         contentContainerStyle={{ padding: 16, paddingBottom: bottomTabPadding }}
       >
         <Text className="font-nunito-extrabold text-2xl text-fg mb-4">
-          Your Cards!
+          {t("packs.yourCards")}
         </Text>
 
         {/* 2-column card grid */}
@@ -829,7 +871,7 @@ export default function PacksScreen() {
                           fontFamily: "Nunito_800ExtraBold",
                         }}
                       >
-                        NEW!
+                        {t("packs.openResult.newBadge")}
                       </Text>
                     </LinearGradient>
                   </View>
@@ -853,42 +895,90 @@ export default function PacksScreen() {
         >
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <SparkleIcon size={20} color={tc.primaryText} />
-            <Text className="font-nunito-bold text-lg text-fg">Summary</Text>
+            <Text className="font-nunito-bold text-lg text-fg">{t("packs.openResult.summary")}</Text>
           </View>
 
           {newCount > 0 ? (
-            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center",
-              paddingBottom: 10, marginBottom: 8, borderBottomWidth: 1, borderBottomColor: tc.primaryBorder }}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+                paddingBottom: 10,
+                marginBottom: 8,
+                borderBottomWidth: 1,
+                borderBottomColor: tc.primaryBorder,
+              }}
+            >
+              <View
+                style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+              >
                 <SparkleIcon size={16} color={tc.successDark} />
-                <Text style={{ fontFamily: "Nunito_600SemiBold", color: tc.successDark }}>New cards discovered</Text>
+                <Text
+                  style={{
+                    fontFamily: "Nunito_600SemiBold",
+                    color: tc.successDark,
+                  }}
+                >
+                  {t("packs.openResult.newCardsDiscovered")}
+                </Text>
               </View>
-              <Text style={{ fontFamily: "Nunito_700Bold", color: tc.successDark }}>{newCount} / {openedCards.length}</Text>
+              <Text
+                style={{ fontFamily: "Nunito_700Bold", color: tc.successDark }}
+              >
+                {newCount} / {openedCards.length}
+              </Text>
             </View>
           ) : null}
 
-          {(["Legendary", "Epic", "Rare", "Uncommon", "Common"] as const).map((rName) => {
-            const info = rarityBreakdown[rName];
-            if (!info) return null;
-            const rc = RARITY_COLORS[rName] ?? RARITY_COLORS.Common;
-            return (
-              <View key={rName} style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                <Text style={{ fontFamily: "Nunito_600SemiBold", color: rc.from }}>{rName}</Text>
-                <Text style={{ fontFamily: "Nunito_700Bold", color: rc.to }}>
-                  x{info.total}
-                  {info.newCount > 0 ? (
-                    <Text style={{ fontSize: 11, color: tc.successDark }}> ({info.newCount} new)</Text>
-                  ) : null}
-                </Text>
-              </View>
-            );
-          })}
+          {(["Legendary", "Epic", "Rare", "Uncommon", "Common"] as const).map(
+            (rName) => {
+              const info = rarityBreakdown[rName];
+              if (!info) return null;
+              const rc = RARITY_COLORS[rName] ?? RARITY_COLORS.Common;
+              return (
+                <View
+                  key={rName}
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <Text
+                    style={{ fontFamily: "Nunito_600SemiBold", color: rc.from }}
+                  >
+                    {rName}
+                  </Text>
+                  <Text style={{ fontFamily: "Nunito_700Bold", color: rc.to }}>
+                    x{info.total}
+                    {info.newCount > 0 ? (
+                      <Text style={{ fontSize: 11, color: tc.successDark }}>
+                        {" "}
+                        {t("packs.openResult.newCount", { count: info.newCount })}
+                      </Text>
+                    ) : null}
+                  </Text>
+                </View>
+              );
+            },
+          )}
 
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8,
-            paddingTop: 8, borderTopWidth: 1, borderTopColor: tc.primaryBorder }}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 6,
+              marginTop: 8,
+              paddingTop: 8,
+              borderTopWidth: 1,
+              borderTopColor: tc.primaryBorder,
+            }}
+          >
             <CoinIcon size={18} />
-            <Text style={{ fontFamily: "Nunito_400Regular", color: tc.fgMuted }}>
-              Remaining coins: {newBalance ?? coins}
+            <Text
+              style={{ fontFamily: "Nunito_400Regular", color: tc.fgMuted }}
+            >
+              {t("packs.openResult.remainingCoins", { count: newBalance ?? coins })}
             </Text>
           </View>
         </View>
@@ -910,7 +1000,7 @@ export default function PacksScreen() {
                 fontSize: 16,
               }}
             >
-              Open Another Pack
+              {t("packs.openAnother")}
             </Text>
           </LinearGradient>
         </Pressable>
@@ -965,11 +1055,11 @@ export default function PacksScreen() {
         >
           <View>
             <Text className="font-nunito-extrabold text-2xl text-fg">
-              Card Packs
-            </Text>
-            <Text className="font-nunito text-fgMuted text-sm">
-              Choose a pack to open
-            </Text>
+               {t("packs.title")}
+             </Text>
+             <Text className="font-nunito text-fgMuted text-sm">
+               {t("packs.subtitle")}
+             </Text>
           </View>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
             <CoinIcon size={20} />
@@ -979,9 +1069,7 @@ export default function PacksScreen() {
 
         {openError ? (
           <View className="rounded-2xl bg-dangerTint border border-dangerBorder p-3">
-            <Text className="font-nunito text-danger text-sm">
-              {openError}
-            </Text>
+            <Text className="font-nunito text-danger text-sm">{openError}</Text>
           </View>
         ) : null}
 
@@ -1066,7 +1154,9 @@ export default function PacksScreen() {
                           flexDirection: "row",
                           alignItems: "center",
                           gap: 4,
-                          backgroundColor: canAfford ? tc.secondaryTint : tc.dangerTint,
+                          backgroundColor: canAfford
+                            ? tc.secondaryTint
+                            : tc.dangerTint,
                           paddingHorizontal: 8,
                           paddingVertical: 3,
                           borderRadius: 9999,

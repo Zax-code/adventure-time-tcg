@@ -1,17 +1,110 @@
-import { useEffect, useState } from "react";
-import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Animated,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { apiClient } from "../src/lib/api";
+import { useCollectionFeedbackStore } from "../src/stores/collection-feedback-store";
 import { useSessionStore } from "../src/stores/session-store";
+import { useThemeStore } from "../src/stores/theme-store";
 import { useTranslation } from "../src/i18n";
 import { CardTile } from "../src/components/card-tile";
 import { RARITY_COLORS } from "../src/components/theme";
-import { ChevronDownIcon, CraftIcon, DustIcon, GiftHeartIcon, RecycleIcon, SwordsIcon } from "../src/components/icons";
+import { THEME_COLORS } from "../src/theme/themes";
+import {
+  ChevronDownIcon,
+  CraftIcon,
+  DustIcon,
+  GiftHeartIcon,
+  RecycleIcon,
+  SwordsIcon,
+} from "../src/components/icons";
+import { ToastBanner } from "../src/components/toast-banner";
 import { getDustSacrificeValue, getDustCraftCost } from "../src/lib/dust";
+import type { CollectionResponse, HomeResponse } from "@adventure-time/shared";
+
+function estimateCatalogCount(stats: CollectionResponse["stats"]) {
+  if (stats.uniqueOwned <= 0 || stats.completionPercentage <= 0) {
+    return null;
+  }
+
+  return Math.max(
+    stats.uniqueOwned,
+    Math.round((stats.uniqueOwned * 100) / stats.completionPercentage),
+  );
+}
+
+function patchCollectionAfterDustAction(
+  current: CollectionResponse | undefined,
+  cardId: string,
+  quantityDelta: number,
+  nextDust: number,
+): CollectionResponse | undefined {
+  if (!current) return current;
+
+  const nextCards = current.cards
+    .map((entry) => {
+      if (entry.cardId !== cardId) {
+        return entry;
+      }
+
+      const nextQuantity = entry.quantity + quantityDelta;
+      if (nextQuantity <= 0) {
+        return null;
+      }
+
+      return {
+        ...entry,
+        quantity: nextQuantity,
+      };
+    })
+    .filter(
+      (entry): entry is CollectionResponse["cards"][number] => entry !== null,
+    );
+
+  const totalCards = nextCards.reduce((sum, entry) => sum + entry.quantity, 0);
+  const uniqueOwned = nextCards.length;
+  const estimatedCatalogCount = estimateCatalogCount(current.stats);
+  const completionPercentage =
+    estimatedCatalogCount && estimatedCatalogCount > 0
+      ? Math.round((uniqueOwned / estimatedCatalogCount) * 100)
+      : current.stats.completionPercentage;
+
+  return {
+    ...current,
+    cards: nextCards,
+    dust: nextDust,
+    stats: {
+      totalCards,
+      uniqueOwned,
+      completionPercentage,
+    },
+  };
+}
+
+function patchHomeDust(
+  current: HomeResponse | undefined,
+  nextDust: number,
+): HomeResponse | undefined {
+  if (!current) return current;
+
+  return {
+    ...current,
+    user: {
+      ...current.user,
+      dust: nextDust,
+    },
+  };
+}
 
 export default function CollectionCardDetailScreen() {
   const router = useRouter();
@@ -21,6 +114,10 @@ export default function CollectionCardDetailScreen() {
   const params = useLocalSearchParams<{ cardId?: string }>();
   const accessToken = useSessionStore((state) => state.accessToken);
   const currentUserId = useSessionStore((state) => state.user?.id);
+  const tc = THEME_COLORS[useThemeStore((state) => state.themeName)];
+  const publishCollectionFeedback = useCollectionFeedbackStore(
+    (state) => state.publish,
+  );
 
   const [recycleExpanded, setRecycleExpanded] = useState(false);
   const [statsExpanded, setStatsExpanded] = useState(false);
@@ -33,6 +130,11 @@ export default function CollectionCardDetailScreen() {
   const [giftMessage, setGiftMessage] = useState("");
   const [userSearch, setUserSearch] = useState("");
   const [isBusy, setIsBusy] = useState(false);
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error";
+  } | null>(null);
+  const toastAnim = useRef(new Animated.Value(-60)).current;
 
   const collectionQuery = useQuery({
     queryKey: ["collection"],
@@ -45,11 +147,28 @@ export default function CollectionCardDetailScreen() {
     enabled: giftExpanded,
   });
 
-  const entry = collectionQuery.data?.cards.find(
-    (e) => e.cardId === params.cardId,
-  ) ?? null;
+  const entry =
+    collectionQuery.data?.cards.find((e) => e.cardId === params.cardId) ?? null;
 
   const dust = collectionQuery.data?.dust ?? 0;
+  const homeQueryKey = useMemo(() => ["home"] as const, []);
+  const collectionQueryKey = useMemo(() => ["collection"] as const, []);
+
+  useEffect(() => {
+    if (!toast) {
+      return;
+    }
+
+    toastAnim.setValue(-60);
+    Animated.timing(toastAnim, {
+      toValue: 0,
+      duration: 250,
+      useNativeDriver: true,
+    }).start();
+
+    const timer = setTimeout(() => setToast(null), 2600);
+    return () => clearTimeout(timer);
+  }, [toast, toastAnim]);
 
   useEffect(() => {
     setRecycleExpanded(false);
@@ -63,32 +182,28 @@ export default function CollectionCardDetailScreen() {
     setGiftMessage("");
     setUserSearch("");
     setIsBusy(false);
+    setToast(null);
   }, [params.cardId]);
 
   const recycleMutation = useMutation({
     mutationFn: ({ cardId, quantity }: { cardId: string; quantity: number }) =>
       apiClient.recycleCard(cardId, quantity),
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["collection"] }),
-        queryClient.invalidateQueries({ queryKey: ["home"] }),
-      ]);
-    },
   });
 
   const craftMutation = useMutation({
     mutationFn: (cardId: string) => apiClient.craftCard(cardId),
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["collection"] }),
-        queryClient.invalidateQueries({ queryKey: ["home"] }),
-      ]);
-    },
   });
 
   const sendGiftMutation = useMutation({
-    mutationFn: ({ cardId, toUserId, message }: { cardId: string; toUserId: string; message?: string }) =>
-      apiClient.sendGift({ cardId, toUserId, quantity: 1, message }),
+    mutationFn: ({
+      cardId,
+      toUserId,
+      message,
+    }: {
+      cardId: string;
+      toUserId: string;
+      message?: string;
+    }) => apiClient.sendGift({ cardId, toUserId, quantity: 1, message }),
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["gifts"] }),
@@ -103,10 +218,67 @@ export default function CollectionCardDetailScreen() {
     setIsBusy(true);
     setRecycleError("");
     try {
-      await recycleMutation.mutateAsync({ cardId: entry.cardId, quantity: recycleQuantity });
-      router.back();
+      const remainingQuantity = entry.quantity - recycleQuantity;
+      const result = await recycleMutation.mutateAsync({
+        cardId: entry.cardId,
+        quantity: recycleQuantity,
+      });
+
+      queryClient.setQueryData(
+        collectionQueryKey,
+        (current: CollectionResponse | undefined) =>
+          patchCollectionAfterDustAction(
+            current,
+            result.cardId,
+            -(result.quantityRecycled ?? recycleQuantity),
+            result.newDustBalance,
+          ),
+      );
+      queryClient.setQueryData(
+        homeQueryKey,
+        (current: HomeResponse | undefined) =>
+          patchHomeDust(current, result.newDustBalance),
+      );
+
+      if (remainingQuantity <= 0) {
+        publishCollectionFeedback(
+          t("collection.detail.recycleSuccess", {
+            count: result.quantityRecycled ?? recycleQuantity,
+            dust:
+              result.dustGained ??
+              getDustSacrificeValue(entry.card.rarity.name) * recycleQuantity,
+          }),
+        );
+        router.back();
+      } else {
+        setIsBusy(false);
+        setRecycleExpanded(false);
+        setRecycleQuantity(1);
+        setToast({
+          type: "success",
+          message: t("collection.detail.recycleSuccess", {
+            count: result.quantityRecycled ?? recycleQuantity,
+            dust:
+              result.dustGained ??
+              getDustSacrificeValue(entry.card.rarity.name) * recycleQuantity,
+          }),
+        });
+      }
+
+      void queryClient.invalidateQueries({
+        queryKey: collectionQueryKey,
+        refetchType: "active",
+      });
+      void queryClient.invalidateQueries({
+        queryKey: homeQueryKey,
+        refetchType: "inactive",
+      });
     } catch (err) {
-      setRecycleError(err instanceof Error ? err.message : t("native.cardDetail.recycleFailed"));
+      setRecycleError(
+        err instanceof Error
+          ? err.message
+          : t("collection.detail.recycleFailed"),
+      );
       setIsBusy(false);
     }
   };
@@ -116,10 +288,45 @@ export default function CollectionCardDetailScreen() {
     setIsBusy(true);
     setCraftError("");
     try {
-      await craftMutation.mutateAsync(entry.cardId);
-      router.back();
+      const result = await craftMutation.mutateAsync(entry.cardId);
+
+      queryClient.setQueryData(
+        collectionQueryKey,
+        (current: CollectionResponse | undefined) =>
+          patchCollectionAfterDustAction(
+            current,
+            result.cardId,
+            result.quantityCrafted ?? 1,
+            result.newDustBalance,
+          ),
+      );
+      queryClient.setQueryData(
+        homeQueryKey,
+        (current: HomeResponse | undefined) =>
+          patchHomeDust(current, result.newDustBalance),
+      );
+
+      setIsBusy(false);
+      setToast({
+        type: "success",
+        message: t("collection.detail.craftSuccess", {
+          count: result.quantityCrafted ?? 1,
+          dust: result.dustSpent ?? getDustCraftCost(entry.card.rarity.name),
+        }),
+      });
+
+      void queryClient.invalidateQueries({
+        queryKey: collectionQueryKey,
+        refetchType: "active",
+      });
+      void queryClient.invalidateQueries({
+        queryKey: homeQueryKey,
+        refetchType: "inactive",
+      });
     } catch (err) {
-      setCraftError(err instanceof Error ? err.message : t("native.cardDetail.craftFailed"));
+      setCraftError(
+        err instanceof Error ? err.message : t("collection.detail.craftFailed"),
+      );
       setIsBusy(false);
     }
   };
@@ -146,7 +353,20 @@ export default function CollectionCardDetailScreen() {
 
   return (
     <View className="flex-1 bg-bg">
-      <View className="h-1 w-9 self-center rounded-full bg-muted" style={{ marginTop: 8, marginBottom: 4 }} />
+      {toast ? (
+        <ToastBanner
+          message={toast.message}
+          type={toast.type}
+          translateY={toastAnim}
+          successColor={tc.successDark}
+          errorColor={tc.dangerDark}
+        />
+      ) : null}
+
+      <View
+        className="h-1 w-9 self-center rounded-full bg-muted"
+        style={{ marginTop: 8, marginBottom: 4 }}
+      />
 
       <View className="items-center border-b border-primaryTint px-6 py-4">
         <Text className="font-nunito-extrabold text-2xl text-fg">
@@ -156,7 +376,9 @@ export default function CollectionCardDetailScreen() {
 
       {collectionQuery.isLoading ? (
         <View className="flex-1 items-center justify-center px-6">
-          <Text className="font-nunito text-fgMuted">{t("common.loading")}</Text>
+          <Text className="font-nunito text-fgMuted">
+            {t("common.loading")}
+          </Text>
         </View>
       ) : !entry ? (
         <View className="flex-1 items-center justify-center px-6">
@@ -183,7 +405,8 @@ export default function CollectionCardDetailScreen() {
 
           {/* Rarity panel */}
           {(() => {
-            const rarityColor = RARITY_COLORS[entry.card.rarity.name] ?? RARITY_COLORS.Common;
+            const rarityColor =
+              RARITY_COLORS[entry.card.rarity.name] ?? RARITY_COLORS.Common;
             return (
               <View
                 style={{
@@ -211,7 +434,7 @@ export default function CollectionCardDetailScreen() {
                     letterSpacing: 1,
                   }}
                 >
-                  {t("native.cardDetail.rarity")}
+                  {t("collection.detail.rarity")}
                 </Text>
                 <LinearGradient
                   colors={[rarityColor.from, rarityColor.to]}
@@ -265,15 +488,33 @@ export default function CollectionCardDetailScreen() {
               onPress={() => setStatsExpanded(!statsExpanded)}
             >
               <SwordsIcon size={18} color="#1F2937" />
-              <Text style={{ flex: 1, fontSize: 14, fontFamily: "Nunito_700Bold", color: "#1F2937" }}>
-                {t("native.cardDetail.stats")}
+              <Text
+                style={{
+                  flex: 1,
+                  fontSize: 14,
+                  fontFamily: "Nunito_700Bold",
+                  color: "#1F2937",
+                }}
+              >
+                {t("collection.detail.stats")}
               </Text>
-              <View style={{ transform: [{ rotate: statsExpanded ? "180deg" : "0deg" }] }}>
+              <View
+                style={{
+                  transform: [{ rotate: statsExpanded ? "180deg" : "0deg" }],
+                }}
+              >
                 <ChevronDownIcon size={18} color="#DB2777" />
               </View>
             </Pressable>
             {statsExpanded && (
-              <View style={{ flexDirection: "row", paddingHorizontal: 12, paddingBottom: 14, gap: 8 }}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  paddingHorizontal: 12,
+                  paddingBottom: 14,
+                  gap: 8,
+                }}
+              >
                 {[
                   { label: "HP", value: entry.card.hp, color: "#FB7185" },
                   { label: "ATK", value: entry.card.attack, color: "#FBBF24" },
@@ -290,10 +531,23 @@ export default function CollectionCardDetailScreen() {
                       paddingVertical: 10,
                     }}
                   >
-                    <Text style={{ fontSize: 18, fontFamily: "Nunito_800ExtraBold", color }}>
+                    <Text
+                      style={{
+                        fontSize: 18,
+                        fontFamily: "Nunito_800ExtraBold",
+                        color,
+                      }}
+                    >
                       {value}
                     </Text>
-                    <Text style={{ fontSize: 10, fontFamily: "Nunito_600SemiBold", color: "#6B7280", textTransform: "uppercase" }}>
+                    <Text
+                      style={{
+                        fontSize: 10,
+                        fontFamily: "Nunito_600SemiBold",
+                        color: "#6B7280",
+                        textTransform: "uppercase",
+                      }}
+                    >
                       {label}
                     </Text>
                   </View>
@@ -317,58 +571,168 @@ export default function CollectionCardDetailScreen() {
             }}
           >
             <Pressable
-              style={{ flexDirection: "row", alignItems: "center", padding: 12, gap: 8 }}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                padding: 12,
+                gap: 8,
+              }}
               onPress={() => setRecycleExpanded(!recycleExpanded)}
             >
               <RecycleIcon size={18} color="#065F46" />
-              <Text style={{ flex: 1, fontSize: 14, fontFamily: "Nunito_700Bold", color: "#065F46" }}>
-                {t("native.cardDetail.recycle")}
+              <Text
+                style={{
+                  flex: 1,
+                  fontSize: 14,
+                  fontFamily: "Nunito_700Bold",
+                  color: "#065F46",
+                }}
+              >
+                {t("collection.detail.recycle")}
               </Text>
-              <View style={{ backgroundColor: "#D1FAE5", borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2, flexDirection: "row", alignItems: "center", gap: 4 }}>
-                <Text style={{ fontSize: 12, fontFamily: "Nunito_600SemiBold", color: "#065F46" }}>
+              <View
+                style={{
+                  backgroundColor: "#D1FAE5",
+                  borderRadius: 999,
+                  paddingHorizontal: 8,
+                  paddingVertical: 2,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 4,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 12,
+                    fontFamily: "Nunito_600SemiBold",
+                    color: "#065F46",
+                  }}
+                >
                   +{getDustSacrificeValue(entry.card.rarity.name)}
                 </Text>
                 <DustIcon size={12} color="#065F46" />
               </View>
-              <View style={{ transform: [{ rotate: recycleExpanded ? "180deg" : "0deg" }] }}>
+              <View
+                style={{
+                  transform: [{ rotate: recycleExpanded ? "180deg" : "0deg" }],
+                }}
+              >
                 <ChevronDownIcon size={18} color="#065F46" />
               </View>
             </Pressable>
             {recycleExpanded && (
               <View style={{ paddingHorizontal: 12, paddingBottom: 12 }}>
                 {entry.quantity > 1 && (
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 12, justifyContent: "center" }}>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 12,
+                      marginBottom: 12,
+                      justifyContent: "center",
+                    }}
+                  >
                     <Pressable
-                      onPress={() => setRecycleQuantity(Math.max(1, recycleQuantity - 1))}
-                      style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: "#D1FAE5", alignItems: "center", justifyContent: "center" }}
+                      onPress={() =>
+                        setRecycleQuantity(Math.max(1, recycleQuantity - 1))
+                      }
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 16,
+                        backgroundColor: "#D1FAE5",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
                     >
-                      <Text style={{ color: "#065F46", fontFamily: "Nunito_700Bold", fontSize: 18 }}>−</Text>
+                      <Text
+                        style={{
+                          color: "#065F46",
+                          fontFamily: "Nunito_700Bold",
+                          fontSize: 18,
+                        }}
+                      >
+                        −
+                      </Text>
                     </Pressable>
-                    <Text style={{ fontSize: 15, fontFamily: "Nunito_700Bold", color: "#065F46", minWidth: 80, textAlign: "center" }}>
+                    <Text
+                      style={{
+                        fontSize: 15,
+                        fontFamily: "Nunito_700Bold",
+                        color: "#065F46",
+                        minWidth: 80,
+                        textAlign: "center",
+                      }}
+                    >
                       {recycleQuantity}
                     </Text>
                     <Pressable
-                      onPress={() => setRecycleQuantity(Math.min(entry.quantity, recycleQuantity + 1))}
-                      style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: "#D1FAE5", alignItems: "center", justifyContent: "center" }}
+                      onPress={() =>
+                        setRecycleQuantity(
+                          Math.min(entry.quantity, recycleQuantity + 1),
+                        )
+                      }
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 16,
+                        backgroundColor: "#D1FAE5",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
                     >
-                      <Text style={{ color: "#065F46", fontFamily: "Nunito_700Bold", fontSize: 18 }}>+</Text>
+                      <Text
+                        style={{
+                          color: "#065F46",
+                          fontFamily: "Nunito_700Bold",
+                          fontSize: 18,
+                        }}
+                      >
+                        +
+                      </Text>
                     </Pressable>
                   </View>
                 )}
                 <Pressable
                   onPress={() => void handleRecycle()}
                   disabled={isBusy}
-                  style={{ backgroundColor: "#059669", borderRadius: 8, paddingVertical: 10, alignItems: "center", opacity: isBusy ? 0.6 : 1 }}
+                  style={{
+                    backgroundColor: "#059669",
+                    borderRadius: 8,
+                    paddingVertical: 10,
+                    alignItems: "center",
+                    opacity: isBusy ? 0.6 : 1,
+                  }}
                 >
                   {isBusy ? (
-                    <Text style={{ color: "#fff", fontFamily: "Nunito_700Bold", fontSize: 14 }}>
-                      {t("native.cardDetail.recycling")}
+                    <Text
+                      style={{
+                        color: "#fff",
+                        fontFamily: "Nunito_700Bold",
+                        fontSize: 14,
+                      }}
+                    >
+                      {t("collection.detail.recycling")}
                     </Text>
                   ) : (
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                      <Text style={{ color: "#fff", fontFamily: "Nunito_700Bold", fontSize: 14 }}>
-                        {t("native.cardDetail.confirmRecycle", {
-                          amount: getDustSacrificeValue(entry.card.rarity.name) * recycleQuantity,
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 6,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: "#fff",
+                          fontFamily: "Nunito_700Bold",
+                          fontSize: 14,
+                        }}
+                      >
+                        {t("collection.detail.confirmRecycle", {
+                          amount:
+                            getDustSacrificeValue(entry.card.rarity.name) *
+                            recycleQuantity,
                         })}
                       </Text>
                       <DustIcon size={14} color="#fff" />
@@ -394,15 +758,41 @@ export default function CollectionCardDetailScreen() {
               gap: 8,
               borderWidth: 1,
               borderColor: "#FDE047",
-              opacity: isBusy || dust < getDustCraftCost(entry.card.rarity.name) ? 0.5 : 1,
+              opacity:
+                isBusy || dust < getDustCraftCost(entry.card.rarity.name)
+                  ? 0.5
+                  : 1,
             }}
           >
             <CraftIcon size={18} color="#92400E" />
-            <Text style={{ flex: 1, fontSize: 14, fontFamily: "Nunito_700Bold", color: "#92400E" }}>
-              {t("native.cardDetail.craft")}
+            <Text
+              style={{
+                flex: 1,
+                fontSize: 14,
+                fontFamily: "Nunito_700Bold",
+                color: "#92400E",
+              }}
+            >
+              {t("collection.detail.craft")}
             </Text>
-            <View style={{ backgroundColor: "#FDE047", borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3, flexDirection: "row", alignItems: "center", gap: 4 }}>
-              <Text style={{ fontSize: 12, fontFamily: "Nunito_700Bold", color: "#92400E" }}>
+            <View
+              style={{
+                backgroundColor: "#FDE047",
+                borderRadius: 999,
+                paddingHorizontal: 8,
+                paddingVertical: 3,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 4,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 12,
+                  fontFamily: "Nunito_700Bold",
+                  color: "#92400E",
+                }}
+              >
                 −{getDustCraftCost(entry.card.rarity.name)}
               </Text>
               <DustIcon size={12} color="#92400E" />
@@ -424,27 +814,52 @@ export default function CollectionCardDetailScreen() {
             }}
           >
             <Pressable
-              style={{ flexDirection: "row", alignItems: "center", padding: 12, gap: 8 }}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                padding: 12,
+                gap: 8,
+              }}
               onPress={() => setGiftExpanded(!giftExpanded)}
             >
               <GiftHeartIcon size={18} color="#1D4ED8" />
-              <Text style={{ flex: 1, fontSize: 14, fontFamily: "Nunito_700Bold", color: "#1D4ED8" }}>
+              <Text
+                style={{
+                  flex: 1,
+                  fontSize: 14,
+                  fontFamily: "Nunito_700Bold",
+                  color: "#1D4ED8",
+                }}
+              >
                 {t("gifts.sendGift")}
               </Text>
-              <View style={{ transform: [{ rotate: giftExpanded ? "180deg" : "0deg" }] }}>
+              <View
+                style={{
+                  transform: [{ rotate: giftExpanded ? "180deg" : "0deg" }],
+                }}
+              >
                 <ChevronDownIcon size={18} color="#1D4ED8" />
               </View>
             </Pressable>
             {giftExpanded && (
-              <View style={{ paddingHorizontal: 12, paddingBottom: 12, gap: 10 }}>
+              <View
+                style={{ paddingHorizontal: 12, paddingBottom: 12, gap: 10 }}
+              >
                 <View style={{ gap: 6 }}>
-                  <Text style={{ fontSize: 12, fontFamily: "Nunito_600SemiBold", color: "#1D4ED8", marginBottom: 2 }}>
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      fontFamily: "Nunito_600SemiBold",
+                      color: "#1D4ED8",
+                      marginBottom: 2,
+                    }}
+                  >
                     {t("gifts.giftTo")}
                   </Text>
                   <TextInput
                     value={userSearch}
                     onChangeText={setUserSearch}
-                    placeholder="Search players..."
+                    placeholder={t("collection.gift.searchPlayersPlaceholder")}
                     placeholderTextColor="#93C5FD"
                     style={{
                       backgroundColor: "#fff",
@@ -470,17 +885,41 @@ export default function CollectionCardDetailScreen() {
                     keyboardShouldPersistTaps="handled"
                   >
                     {usersQuery.isLoading ? (
-                      <Text style={{ fontFamily: "Nunito_400Regular", fontSize: 13, color: "#6B7280", textAlign: "center", padding: 12 }}>
+                      <Text
+                        style={{
+                          fontFamily: "Nunito_400Regular",
+                          fontSize: 13,
+                          color: "#6B7280",
+                          textAlign: "center",
+                          padding: 12,
+                        }}
+                      >
                         {t("common.loading")}
                       </Text>
-                    ) : otherUsers.filter((u) => u.displayName.toLowerCase().includes(userSearch.toLowerCase())).length === 0 ? (
-                      <Text style={{ fontFamily: "Nunito_400Regular", fontSize: 13, color: "#6B7280", textAlign: "center", padding: 12 }}>
-                        No players found.
+                    ) : otherUsers.filter((u) =>
+                        u.displayName
+                          .toLowerCase()
+                          .includes(userSearch.toLowerCase()),
+                      ).length === 0 ? (
+                      <Text
+                        style={{
+                          fontFamily: "Nunito_400Regular",
+                          fontSize: 13,
+                          color: "#6B7280",
+                          textAlign: "center",
+                          padding: 12,
+                        }}
+                      >
+                        {t("collection.gift.noPlayersFound")}
                       </Text>
                     ) : (
                       <View style={{ padding: 6, gap: 4 }}>
                         {otherUsers
-                          .filter((u) => u.displayName.toLowerCase().includes(userSearch.toLowerCase()))
+                          .filter((u) =>
+                            u.displayName
+                              .toLowerCase()
+                              .includes(userSearch.toLowerCase()),
+                          )
                           .map((u) => (
                             <Pressable
                               key={u.id}
@@ -492,15 +931,37 @@ export default function CollectionCardDetailScreen() {
                                 paddingHorizontal: 12,
                                 borderRadius: 8,
                                 borderWidth: 2,
-                                backgroundColor: selectedUserId === u.id ? "#DBEAFE" : "#fff",
-                                borderColor: selectedUserId === u.id ? "#3B82F6" : "transparent",
+                                backgroundColor:
+                                  selectedUserId === u.id ? "#DBEAFE" : "#fff",
+                                borderColor:
+                                  selectedUserId === u.id
+                                    ? "#3B82F6"
+                                    : "transparent",
                               }}
                             >
-                              <Text style={{ flex: 1, fontFamily: selectedUserId === u.id ? "Nunito_700Bold" : "Nunito_600SemiBold", fontSize: 14, color: "#1E3A8A" }}>
+                              <Text
+                                style={{
+                                  flex: 1,
+                                  fontFamily:
+                                    selectedUserId === u.id
+                                      ? "Nunito_700Bold"
+                                      : "Nunito_600SemiBold",
+                                  fontSize: 14,
+                                  color: "#1E3A8A",
+                                }}
+                              >
                                 {u.displayName}
                               </Text>
                               {selectedUserId === u.id && (
-                                <Text style={{ color: "#3B82F6", fontSize: 16, fontFamily: "Nunito_700Bold" }}>✓</Text>
+                                <Text
+                                  style={{
+                                    color: "#3B82F6",
+                                    fontSize: 16,
+                                    fontFamily: "Nunito_700Bold",
+                                  }}
+                                >
+                                  ✓
+                                </Text>
                               )}
                             </Pressable>
                           ))}
@@ -511,7 +972,7 @@ export default function CollectionCardDetailScreen() {
                 <TextInput
                   value={giftMessage}
                   onChangeText={setGiftMessage}
-                  placeholder="Message (optional)"
+                  placeholder={t("collection.gift.messageOptionalPlaceholder")}
                   placeholderTextColor="#93C5FD"
                   style={{
                     backgroundColor: "#fff",
@@ -536,8 +997,14 @@ export default function CollectionCardDetailScreen() {
                     opacity: isBusy || !selectedUserId ? 0.5 : 1,
                   }}
                 >
-                  <Text style={{ color: "#fff", fontFamily: "Nunito_700Bold", fontSize: 14 }}>
-                    {isBusy ? "Sending..." : t("gifts.sendGiftButton")}
+                  <Text
+                    style={{
+                      color: "#fff",
+                      fontFamily: "Nunito_700Bold",
+                      fontSize: 14,
+                    }}
+                  >
+                    {isBusy ? t("collection.gift.sending") : t("gifts.sendGiftButton")}
                   </Text>
                 </Pressable>
               </View>
@@ -545,15 +1012,24 @@ export default function CollectionCardDetailScreen() {
           </View>
 
           {/* Errors */}
-          {(recycleError || craftError || giftError) ? (
-            <Text style={{ color: "#DC2626", fontFamily: "Nunito_400Regular", fontSize: 12, textAlign: "center" }}>
+          {recycleError || craftError || giftError ? (
+            <Text
+              style={{
+                color: "#DC2626",
+                fontFamily: "Nunito_400Regular",
+                fontSize: 12,
+                textAlign: "center",
+              }}
+            >
               {recycleError || craftError || giftError}
             </Text>
           ) : null}
 
           {/* Close button */}
           <Pressable
-            onPress={() => { if (!isBusy) router.back(); }}
+            onPress={() => {
+              if (!isBusy) router.back();
+            }}
             style={{
               width: "100%",
               borderRadius: 12,
@@ -566,7 +1042,13 @@ export default function CollectionCardDetailScreen() {
               marginBottom: 8,
             }}
           >
-            <Text style={{ fontFamily: "Nunito_600SemiBold", color: "#DB2777", fontSize: 14 }}>
+            <Text
+              style={{
+                fontFamily: "Nunito_600SemiBold",
+                color: "#DB2777",
+                fontSize: 14,
+              }}
+            >
               {t("common.close")}
             </Text>
           </Pressable>

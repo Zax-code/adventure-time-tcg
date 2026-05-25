@@ -4,6 +4,7 @@ import { Pressable, Text, View } from "react-native";
 import type { PvpAction, PvpEndTurnInput } from "@adventure-time/shared";
 
 import { ChevronRightIcon, ClockIcon, XCircleIcon } from "../../components/icons";
+import { useTranslation } from "../../i18n";
 import { ActionButtons } from "./action-buttons";
 import { ActionModal } from "./action-modal";
 import { BenchCard } from "./bench-card";
@@ -60,6 +61,7 @@ export function BattleBoard({
   submitAction,
   submitEndTurn,
 }: BattleBoardProps) {
+  const { t } = useTranslation();
   const { myPlayer, opponentPlayer, isMyTurn, turn, phase, winnerId, myUserId, abilityDefinitions } = matchView;
 
   const [showActionModal, setShowActionModal] = useState(false);
@@ -104,18 +106,18 @@ export function BattleBoard({
   const hint = isMyTurn
     ? targeting
       ? targeting.stage === "copy-source"
-        ? "Tap a source unit to copy from"
+        ? t("pvp.board.hint.copySource")
         : targeting.targetLabel === "ally"
-          ? "Tap an ally to target"
+          ? t("pvp.board.hint.ally")
           : targeting.targetLabel === "any"
-            ? "Tap any unit to target"
+            ? t("pvp.board.hint.any")
             : targeting.targetLabel === "copy source"
-              ? "Choose a source unit"
-              : "Tap a highlighted target"
+              ? t("pvp.board.hint.sourceUnit")
+              : t("pvp.board.hint.highlighted")
       : isSwapMode
-        ? "Tap active unit then bench"
-        : "Tap a card for actions"
-    : "Waiting for opponent";
+        ? t("pvp.board.hint.swap")
+        : t("pvp.board.hint.actions")
+    : t("pvp.board.hint.waiting");
 
   const overlayButtonStyle = {
     width: 36,
@@ -228,7 +230,7 @@ export function BattleBoard({
           <View className="h-full justify-between">
             <View className="h-[46px] flex-row items-center px-1" style={{ gap: 10 }}>
               <Text style={{ color: "rgba(127,29,29,0.8)", fontSize: 11, fontFamily: "Nunito_700Bold", letterSpacing: 1.4 }}>
-                BENCH
+                {t("pvp.board.bench")}
               </Text>
               {opponentPlayer.bench.map((unit) => (
                 <View key={unit.instanceId} style={{ height: "100%", width: 64 }}>
@@ -271,7 +273,7 @@ export function BattleBoard({
           }}
         >
           <View className="w-full items-center justify-center px-4">
-            <Text className="font-nunito-semibold text-[11px] text-white">Turn {turn} • {hint}</Text>
+             <Text className="font-nunito-semibold text-[11px] text-white">{t("pvp.board.turnLabel", { turn, hint })}</Text>
           </View>
         </View>
 
@@ -325,7 +327,7 @@ export function BattleBoard({
                 </View>
               ))}
               <Text style={{ color: "rgba(30,64,175,0.8)", fontSize: 11, fontFamily: "Nunito_700Bold", letterSpacing: 1.4 }}>
-                BENCH
+                {t("pvp.board.bench")}
               </Text>
             </View>
           </View>

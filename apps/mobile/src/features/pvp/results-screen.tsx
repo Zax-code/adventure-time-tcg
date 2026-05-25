@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { SwordsIcon } from "../../components/icons";
+import { useTranslation } from "../../i18n";
 
 interface ResultsScreenProps {
   phase: "active" | "ended";
@@ -11,6 +12,7 @@ interface ResultsScreenProps {
 }
 
 export function ResultsScreen({ phase, winnerId, myUserId, opponentName, onBack }: ResultsScreenProps) {
+  const { t } = useTranslation();
   if (phase !== "ended") return null;
 
   const isWinner = winnerId === myUserId;
@@ -20,15 +22,15 @@ export function ResultsScreen({ phase, winnerId, myUserId, opponentName, onBack 
       <View style={styles.content}>
         <SwordsIcon size={64} color={isWinner ? "#FACC15" : "#9CA3AF"} />
         <Text style={[styles.title, isWinner ? styles.titleWin : styles.titleLose]}>
-          {isWinner ? "VICTORY" : "DEFEAT"}
+          {isWinner ? t("pvp.results.victory") : t("pvp.results.defeat")}
         </Text>
         <Text style={styles.subtitle}>
           {isWinner
-            ? `You defeated ${opponentName}`
-            : `${opponentName} won this match`}
+            ? t("pvp.results.youDefeated", { opponent: opponentName })
+            : t("pvp.results.opponentWon", { opponent: opponentName })}
         </Text>
         <Pressable style={styles.backBtn} onPress={onBack}>
-          <Text style={styles.backBtnText}>Back to PVP</Text>
+          <Text style={styles.backBtnText}>{t("pvp.results.back")}</Text>
         </Pressable>
       </View>
     </View>

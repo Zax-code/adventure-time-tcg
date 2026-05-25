@@ -1,30 +1,18 @@
 import { useMemo } from "react";
 
-import { translations, type Locale } from "@adventure-time/shared";
-
+import { useLocaleStore } from "../stores/locale-store";
 import { useSessionStore } from "../stores/session-store";
-import { nativeTranslations } from "./native-translations";
+import en from "./locales/en";
+import fr from "./locales/fr";
+import type { Locale } from "./types";
+
+const translations: Record<Locale, Record<string, unknown>> = {
+  en,
+  fr,
+};
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
-
-function mergeTranslations(
-  base: Record<string, unknown>,
-  extra: Record<string, unknown>,
-) {
-  const out: Record<string, unknown> = { ...base };
-
-  for (const [key, value] of Object.entries(extra)) {
-    const existing = out[key];
-    if (isRecord(existing) && isRecord(value)) {
-      out[key] = mergeTranslations(existing, value);
-      continue;
-    }
-    out[key] = value;
-  }
-
-  return out;
 }
 
 function getNestedValue(
@@ -61,14 +49,8 @@ export function getTranslation(
   key: string,
   params?: Record<string, string | number>,
 ) {
-  const localeTranslations = mergeTranslations(
-    translations[locale] as unknown as Record<string, unknown>,
-    nativeTranslations[locale],
-  );
-  const fallbackTranslations = mergeTranslations(
-    translations.en as unknown as Record<string, unknown>,
-    nativeTranslations.en,
-  );
+  const localeTranslations = translations[locale];
+  const fallbackTranslations = translations.en;
 
   const value =
     getNestedValue(localeTranslations, key) ??
@@ -79,9 +61,9 @@ export function getTranslation(
 }
 
 export function useTranslation() {
-  const locale = useSessionStore(
-    (state) => state.user?.preferredLanguage ?? "en",
-  );
+  const userLocale = useSessionStore((state) => state.user?.preferredLanguage);
+  const guestLocale = useLocaleStore((state) => state.locale);
+  const locale = userLocale ?? guestLocale;
 
   return useMemo(
     () => ({

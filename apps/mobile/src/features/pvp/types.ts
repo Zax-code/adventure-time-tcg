@@ -2,8 +2,12 @@ import {
   getAbilityTarget,
   getValidTargets,
   requiresTargetSelection,
+  type AbilityDefinition,
   type AbilityPayload,
-  type BattleState,
+  type StatusName,
+  type TargetingBattleState,
+  type TargetingPlayerState,
+  type TargetingUnitState,
 } from "@adventure-time/game-engine";
 import type { PvpBattleState, PvpPlayerState, PvpUnitState } from "@adventure-time/shared";
 
@@ -55,6 +59,31 @@ export interface PreparedBattleAction {
   targetLabel?: string;
 }
 
+const VALID_STATUS_NAMES = new Set<StatusName>([
+  "Burn",
+  "Freeze",
+  "Shield",
+  "GuardUp",
+  "Vulnerable",
+  "Weakened",
+  "Haste",
+  "Taunt",
+  "Regeneration",
+  "Regen",
+  "Silence",
+  "SummoningSickness",
+  "Cover",
+  "Stunned",
+  "Poison",
+  "Thorns",
+  "Stealth",
+  "Empower",
+  "Counter",
+  "Mark",
+  "Barrier",
+  "Doom",
+]);
+
 export function deriveMyMatchView(
   state: PvpBattleState,
   myUserId: string,
@@ -77,8 +106,90 @@ export function deriveMyMatchView(
   };
 }
 
-function asBattleState(state: PvpBattleState): BattleState {
-  return state as unknown as BattleState;
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function normalizeAbilityPayload(payload: unknown): AbilityPayload | null {
+  if (!isRecord(payload)) {
+    return null;
+  }
+
+  return payload as AbilityPayload;
+}
+
+function isStatusName(value: string): value is StatusName {
+  return VALID_STATUS_NAMES.has(value as StatusName);
+}
+
+function toTargetingUnitState(unit: PvpUnitState): TargetingUnitState {
+  return {
+    instanceId: unit.instanceId,
+    hp: unit.hp,
+    maxHp: unit.maxHp,
+    attack: unit.attack,
+    defense: unit.defense,
+    speed: unit.speed,
+    statuses: unit.statuses.flatMap((status) =>
+      isStatusName(status.name)
+        ? [
+            {
+              ...status,
+              name: status.name,
+              magnitude: status.magnitude ?? undefined,
+            },
+          ]
+        : [],
+    ),
+  };
+}
+
+function toTargetingPlayerState(player: PvpPlayerState): TargetingPlayerState {
+  return {
+    userId: player.userId,
+    units: player.units.map(toTargetingUnitState),
+    bench: player.bench.map(toTargetingUnitState),
+  };
+}
+
+function toTargetingAbilityDefinition(
+  definition: NonNullable<PvpBattleState["abilityDefinitions"]>[string],
+): AbilityDefinition | null {
+  const payload = normalizeAbilityPayload(definition.payload);
+  if (!payload) {
+    return null;
+  }
+
+  return {
+    key: definition.key,
+    name: definition.name,
+    description: definition.description,
+    type: definition.type,
+    cost: definition.cost,
+    cooldown: definition.cooldown ?? undefined,
+    oncePerMatch: definition.oncePerMatch,
+    payload,
+  };
+}
+
+function toTargetingBattleState(state: PvpBattleState): TargetingBattleState {
+  const abilityDefinitions = state.abilityDefinitions
+    ? Object.fromEntries(
+        Object.entries(state.abilityDefinitions).flatMap(([key, definition]) => {
+          const normalized = toTargetingAbilityDefinition(definition);
+          return normalized ? [[key, normalized]] : [];
+        }),
+      )
+    : undefined;
+
+  return {
+    currentPlayerId: state.currentPlayerId,
+    players: [
+      toTargetingPlayerState(state.players[0]),
+      toTargetingPlayerState(state.players[1]),
+    ],
+    abilityDefinitions,
+  };
 }
 
 function getAbilityPayload(
@@ -87,7 +198,7 @@ function getAbilityPayload(
 ): AbilityPayload | null {
   if (!abilityKey) return null;
   const payload = state.abilityDefinitions?.[abilityKey]?.payload;
-  return payload ? (payload as AbilityPayload) : null;
+  return normalizeAbilityPayload(payload);
 }
 
 export function prepareBattleAction(
@@ -96,8 +207,10 @@ export function prepareBattleAction(
   actionKind: "basic" | "skill" | "ultimate",
   abilityKey?: string,
 ): PreparedBattleAction | null {
+  const targetingState = toTargetingBattleState(state);
+
   if (actionKind === "basic") {
-    const validTargetIds = getValidTargets(asBattleState(state), actorInstanceId, "basic");
+    const validTargetIds = getValidTargets(targetingState, actorInstanceId, "basic");
     return {
       actionKind,
       actorInstanceId,
@@ -145,7 +258,7 @@ export function prepareBattleAction(
     actionKind,
     actorInstanceId,
     abilityKey,
-    validTargetIds: getValidTargets(asBattleState(state), actorInstanceId, actionKind, abilityKey),
+    validTargetIds: getValidTargets(targetingState, actorInstanceId, actionKind, abilityKey),
     requiresTargetSelection: requiresTargetSelection(payload),
     targetLabel: getAbilityTarget(payload),
   };
@@ -173,7 +286,14 @@ export function prepareCopyFollowUp(
     return null;
   }
 
-  const copiedAbilityKey = copyPayload.copyAbilityType === "SKILL" ? sourceUnit.skill : sourceUnit.ultimate;
+  const copiedAbilityKey =
+    (copyPayload.copyAbilityType === "SKILL"
+      ? sourceUnit.skill
+      : sourceUnit.ultimate) ?? undefined;
+  if (!copiedAbilityKey) {
+    return null;
+  }
+
   const copiedPayload = getAbilityPayload(state, copiedAbilityKey);
   if (!copiedPayload) {
     return null;
@@ -182,17 +302,18 @@ export function prepareCopyFollowUp(
   const targetMode = getAbilityTarget(copiedPayload);
   const me = actorSide;
   const enemy = opponentSide;
+  const targetingState = toTargetingBattleState(state);
 
   let validTargetIds: string[] = [];
   if (copiedPayload.revivePct !== undefined) {
     validTargetIds = [...me.units, ...me.bench].filter((unit) => unit.hp <= 0).map((unit) => unit.instanceId);
   } else if (targetMode === "enemy") {
-    validTargetIds = getValidTargets(asBattleState(state), actorInstanceId, "skill", copiedAbilityKey);
+    validTargetIds = getValidTargets(targetingState, actorInstanceId, "skill", copiedAbilityKey);
   } else if (targetMode === "ally") {
     validTargetIds = [...me.units, ...me.bench].filter((unit) => unit.hp > 0).map((unit) => unit.instanceId);
   } else if (targetMode === "any") {
     const allyTargets = [...me.units, ...me.bench].filter((unit) => unit.hp > 0).map((unit) => unit.instanceId);
-    const enemyTargets = getValidTargets(asBattleState(state), actorInstanceId, "skill", copiedAbilityKey);
+    const enemyTargets = getValidTargets(targetingState, actorInstanceId, "skill", copiedAbilityKey);
     validTargetIds = [...allyTargets, ...enemyTargets];
   }
 
@@ -207,29 +328,4 @@ export function prepareCopyFollowUp(
     stage: "target",
     targetLabel: copiedPayload.revivePct !== undefined ? "ally" : targetMode,
   };
-}
-
-export function deriveValidTargets(
-  myPlayer: PvpPlayerState,
-  oppPlayer: PvpPlayerState,
-  actionKind: TargetingMode["actionKind"],
-  abilityKey: string | undefined,
-  abilityDefs: PvpBattleState["abilityDefinitions"],
-): string[] {
-  if (actionKind === "basic") {
-    const liveOpp = oppPlayer.units.filter((u) => u.hp > 0);
-    const taunters = liveOpp.filter((u) => u.statuses.some((s) => s.name === "Taunt"));
-    return (taunters.length > 0 ? taunters : liveOpp).map((u) => u.instanceId);
-  }
-
-  if (abilityKey && abilityDefs) {
-    const def = abilityDefs[abilityKey];
-    if (def) {
-      // For AoE/self abilities, no explicit target needed - return empty to mean "submit without target"
-      // For targeted abilities, return live opponents
-    }
-  }
-
-  // Default: live opponents
-  return oppPlayer.units.filter((u) => u.hp > 0).map((u) => u.instanceId);
 }

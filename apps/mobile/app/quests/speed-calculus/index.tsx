@@ -1,29 +1,50 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import * as Haptics from "expo-haptics";
-import { Animated, LayoutAnimation, Platform, Pressable, ScrollView, Text, UIManager, View } from "react-native";
+import {
+  AppState,
+  Animated,
+  LayoutAnimation,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  UIManager,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
+import { useQueryClient } from "@tanstack/react-query";
 
-import type { SpeedRunState } from "@adventure-time/shared";
+import type { SpeedRunAnswerResponse, SpeedRunState } from "@adventure-time/shared";
 
-import { apiClient } from "../../../src/lib/api";
+import { ApiClientError, apiClient } from "../../../src/lib/api";
 import { useTranslation } from "../../../src/i18n";
+import { useQuestResetStore } from "../../../src/stores/quest-reset-store";
 
 import { ActiveRunPanel } from "../../../src/features/quests/speed-calculus/active-run-panel";
 import { RunHistoryCard } from "../../../src/features/quests/speed-calculus/run-history";
 import { SummaryCard } from "../../../src/features/quests/speed-calculus/summary-card";
 import {
-  appendDigit, deleteDigit, toggleSign, canSubmitAnswer,
-  type ToastType, type FeedbackType,
+  appendDigit,
+  deleteDigit,
+  toggleSign,
+  canSubmitAnswer,
+  type ToastType,
+  type FeedbackType,
 } from "../../../src/features/quests/speed-calculus/constants";
 
-if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
+if (
+  Platform.OS === "android" &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
 export default function SpeedCalculusScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const queryClient = useQueryClient();
+  const lastQuestResetAt = useQuestResetStore((state) => state.lastResetAt);
 
   // ── Core state ───────────────────────────────────────────────────
   const [state, setState] = useState<SpeedRunState | null>(null);
@@ -41,11 +62,11 @@ export default function SpeedCalculusScreen() {
   // ── Refs ─────────────────────────────────────────────────────────
   const playDeadlineRef = useRef<number | null>(null);
   const pauseDeadlineRef = useRef<number | null>(null);
-  const pauseStartedRef = useRef<number | null>(null);
   const finishRequestedRef = useRef(false);
-  const resumedOnMountRef = useRef(false);
   const feedbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const answerRef = useRef("");
+  const questVersionRef = useRef<string | null>(null);
+  const mutationEpochRef = useRef(0);
   const shakeAnim = useRef(new Animated.Value(0)).current;
   const feedbackSlide = useRef(new Animated.Value(-20)).current;
   const feedbackOpacity = useRef(new Animated.Value(0)).current;
@@ -55,7 +76,9 @@ export default function SpeedCalculusScreen() {
     if (!activeRun) return null;
     return activeRun.questions[activeRun.questionIndex] ?? null;
   }, [activeRun]);
-  const keypadLocked = !currentQuestion || submitting || pauseRemainingSeconds > 0;
+  const isManuallyPaused = activeRun?.isManuallyPaused ?? false;
+  const keypadLocked =
+    !currentQuestion || submitting || pauseRemainingSeconds > 0 || isManuallyPaused;
   const submitDisabled = keypadLocked || !canSubmitAnswer(answer);
 
   // ── Apply state from API ─────────────────────────────────────────
@@ -71,39 +94,200 @@ export default function SpeedCalculusScreen() {
       setFeedback(null);
       return;
     }
-    const pauseDeadline = next.activeRun.pauseExpiresAt
-      ? new Date(next.activeRun.pauseExpiresAt).getTime()
-      : null;
-    const playDeadline = new Date(next.activeRun.startedAt).getTime() + (next.activeRun.durationSeconds * 1000);
-
-    pauseDeadlineRef.current = pauseDeadline;
-    pauseStartedRef.current = pauseDeadline ? Date.now() : null;
-    playDeadlineRef.current = playDeadline;
-
     const now = Date.now();
-    setPauseRemainingSeconds(pauseDeadline ? Math.max(0, Math.ceil((pauseDeadline - now) / 1000)) : 0);
-    setRemainingSeconds(Math.max(0, Math.ceil((playDeadline - now) / 1000)));
+    const nextPauseRemainingSeconds = next.activeRun.pauseRemainingSeconds;
+    const nextRemainingSeconds = next.activeRun.remainingSeconds;
+
+    if (nextPauseRemainingSeconds > 0) {
+      pauseDeadlineRef.current = now + nextPauseRemainingSeconds * 1000;
+      playDeadlineRef.current =
+        pauseDeadlineRef.current + nextRemainingSeconds * 1000;
+    } else {
+      pauseDeadlineRef.current = null;
+      playDeadlineRef.current = now + nextRemainingSeconds * 1000;
+    }
+
+    setPauseRemainingSeconds(nextPauseRemainingSeconds);
+    setRemainingSeconds(nextRemainingSeconds);
     answerRef.current = "";
     setAnswer("");
   }, []);
 
-  // ── Load state ───────────────────────────────────────────────────
-  const loadState = useCallback(async (resumeActive: boolean) => {
-    try {
-      let data = await apiClient.speedCalculusState();
-      if (resumeActive && data.activeRun && !resumedOnMountRef.current) {
-        resumedOnMountRef.current = true;
-        data = await apiClient.resumeSpeedCalculus();
-      }
-      applyState(data);
-    } catch (error) {
-      setToast({ type: "error", message: t("quests.speedCalculusLoadError") });
-    } finally {
-      setLoading(false);
-    }
-  }, [applyState, t]);
+  const notifySpeedReset = useCallback(
+    (nextState?: SpeedRunState | null) => {
+      setShowRoundOver(false);
+      setModalVisible(false);
+      setOpenRuns({});
+      setToast({
+        type: "success",
+        message: nextState?.resetByName
+          ? t("quests.speedCalculusResetByAdmin", {
+              name: nextState.resetByName,
+            })
+          : t("quests.speedCalculusReset"),
+      });
+      void queryClient.invalidateQueries({ queryKey: ["quests"] });
+    },
+    [queryClient, t],
+  );
 
-  useEffect(() => { void loadState(true); }, [loadState]);
+  const syncLoadedState = useCallback(
+    (next: SpeedRunState) => {
+      const previousVersion = questVersionRef.current;
+      const nextVersion = next.questVersion ?? null;
+
+      if (previousVersion && nextVersion && previousVersion !== nextVersion) {
+        notifySpeedReset(next);
+      }
+
+      questVersionRef.current = nextVersion;
+      applyState(next);
+    },
+    [applyState, notifySpeedReset],
+  );
+
+  // ── Load state ───────────────────────────────────────────────────
+  const loadState = useCallback(
+    async () => {
+      const requestEpoch = mutationEpochRef.current;
+
+      try {
+        const data = await apiClient.speedCalculusState();
+        if (requestEpoch !== mutationEpochRef.current) {
+          return;
+        }
+
+        syncLoadedState(data);
+      } catch (error) {
+        if (requestEpoch !== mutationEpochRef.current) {
+          return;
+        }
+
+        if (__DEV__) {
+          console.warn("[speed-calculus] failed to load state", error);
+        }
+
+        setToast({
+          type: "error",
+          message:
+            error instanceof Error
+              ? error.message
+              : t("quests.speedCalculusLoadError"),
+        });
+      } finally {
+        if (requestEpoch === mutationEpochRef.current) {
+          setLoading(false);
+        }
+      }
+    },
+    [syncLoadedState, t],
+  );
+
+  const applyAnswerUpdate = useCallback(
+    (next: SpeedRunAnswerResponse) => {
+      const previousVersion = questVersionRef.current;
+      const nextVersion = next.questVersion ?? null;
+
+      if (!next.activeRun) {
+        void loadState();
+        return;
+      }
+
+      if (previousVersion && nextVersion && previousVersion !== nextVersion) {
+        void loadState();
+        return;
+      }
+
+      setState((prev) => {
+        if (!prev?.activeRun || prev.activeRun.runId !== next.activeRun?.runId) {
+          return prev;
+        }
+
+        return {
+          ...prev,
+          questVersion: nextVersion,
+          activeRun: {
+            ...prev.activeRun,
+            runId: next.activeRun.runId,
+            runNumber: next.activeRun.runNumber,
+            questionIndex: next.activeRun.questionIndex,
+            correctAnswers: next.activeRun.correctAnswers,
+            remainingSeconds: next.activeRun.remainingSeconds,
+            pauseRemainingSeconds: next.activeRun.pauseRemainingSeconds,
+            isManuallyPaused: next.activeRun.isManuallyPaused,
+          },
+        };
+      });
+
+      questVersionRef.current = nextVersion;
+      setPauseRemainingSeconds(next.activeRun.pauseRemainingSeconds);
+      setRemainingSeconds(next.activeRun.remainingSeconds);
+
+      const now = Date.now();
+
+      if (next.activeRun.pauseRemainingSeconds > 0) {
+        pauseDeadlineRef.current = now + next.activeRun.pauseRemainingSeconds * 1000;
+        playDeadlineRef.current =
+          pauseDeadlineRef.current + next.activeRun.remainingSeconds * 1000;
+      } else {
+        pauseDeadlineRef.current = null;
+        playDeadlineRef.current = now + next.activeRun.remainingSeconds * 1000;
+      }
+
+      answerRef.current = "";
+      setAnswer("");
+    },
+    [loadState],
+  );
+
+  useEffect(() => {
+    void loadState();
+  }, [loadState]);
+
+  useEffect(() => {
+    if (activeRun) {
+      return;
+    }
+
+    const intervalMs = 15_000;
+    const interval = setInterval(() => {
+      void loadState();
+    }, intervalMs);
+
+    return () => clearInterval(interval);
+  }, [activeRun, loadState]);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (nextState) => {
+      if (nextState === "active") {
+        void loadState();
+      }
+    });
+
+    return () => subscription.remove();
+  }, [loadState]);
+
+  useEffect(() => {
+    if (!lastQuestResetAt) return;
+    void loadState();
+  }, [lastQuestResetAt, loadState]);
+
+  const handleSpeedResetError = useCallback(
+    async (error: unknown) => {
+      if (
+        error instanceof ApiClientError &&
+        error.status === 409 &&
+        error.code === "SPEED_CALCULUS_RESET"
+      ) {
+        notifySpeedReset(state);
+        await loadState();
+        return true;
+      }
+
+      return false;
+    },
+    [loadState, notifySpeedReset, state],
+  );
 
   // ── Toast auto-dismiss ───────────────────────────────────────────
   useEffect(() => {
@@ -123,34 +307,67 @@ export default function SpeedCalculusScreen() {
   const finishRun = useCallback(async () => {
     if (finishRequestedRef.current || !state?.activeRun) return;
     finishRequestedRef.current = true;
+    mutationEpochRef.current += 1;
     const finishingRunNumber = state.activeRun.runNumber;
     setSubmitting(true);
     try {
-      const result = await apiClient.finishSpeedCalculus(state.activeRun.runId);
+      const result = await apiClient.finishSpeedCalculus(
+        state.activeRun.runId,
+        state.questVersion ?? undefined,
+      );
       setRoundOverRunNumber(finishingRunNumber);
       setRoundOverScore(result.correctAnswers ?? 0);
-      applyState(result); // clears activeRun before showing overlay
+      syncLoadedState(result); // clears activeRun before showing overlay
       setShowRoundOver(true); // safe to show now: activeRun is null, modal won't re-open
+      void queryClient.invalidateQueries({ queryKey: ["quests"] });
       setToast({
         type: "success",
         message: result.locked
-          ? t("quests.speedCalculusRunLocked", { score: result.correctAnswers ?? 0, reward: result.reward ?? 0 })
-          : t("quests.speedCalculusRunFinished", { score: result.correctAnswers ?? 0, reward: result.reward ?? 0 }),
+          ? t("quests.speedCalculusRunLocked", {
+              score: result.correctAnswers ?? 0,
+              reward: result.reward ?? 0,
+            })
+          : t("quests.speedCalculusRunFinished", {
+              score: result.correctAnswers ?? 0,
+              reward: result.reward ?? 0,
+            }),
       });
-    } catch {
+    } catch (error) {
+      if (await handleSpeedResetError(error)) {
+        return;
+      }
       setShowRoundOver(false);
       setModalVisible(false);
-      setToast({ type: "error", message: t("quests.speedCalculusFinishError") });
-      await loadState(false);
+      setToast({
+        type: "error",
+        message: t("quests.speedCalculusFinishError"),
+      });
+        await loadState();
     } finally {
       finishRequestedRef.current = false;
       setSubmitting(false);
     }
-  }, [applyState, loadState, state?.activeRun, t]);
+  }, [
+    handleSpeedResetError,
+    loadState,
+    queryClient,
+    state,
+    syncLoadedState,
+    t,
+  ]);
 
   // ── Countdown timer ──────────────────────────────────────────────
   useEffect(() => {
     if (!state?.activeRun) return;
+
+    if (isManuallyPaused) {
+      if (pauseDeadlineRef.current) {
+        pauseDeadlineRef.current = null;
+      }
+
+      return;
+    }
+
     const interval = setInterval(() => {
       const now = Date.now();
       const nextPause = pauseDeadlineRef.current
@@ -161,11 +378,6 @@ export default function SpeedCalculusScreen() {
         return;
       }
       if (pauseDeadlineRef.current) {
-        const pauseDuration = pauseStartedRef.current !== null ? now - pauseStartedRef.current : 0;
-        if (playDeadlineRef.current) {
-          playDeadlineRef.current += pauseDuration;
-        }
-        pauseStartedRef.current = null;
         pauseDeadlineRef.current = null;
         setPauseRemainingSeconds(0);
       }
@@ -179,51 +391,85 @@ export default function SpeedCalculusScreen() {
       }
     }, 250);
     return () => clearInterval(interval);
-  }, [finishRun, state?.activeRun]);
+  }, [finishRun, isManuallyPaused, state?.activeRun]);
 
   // ── Auto-finish when all questions answered ──────────────────────
   useEffect(() => {
-    if (!activeRun || pauseRemainingSeconds > 0) return;
+    if (!activeRun || pauseRemainingSeconds > 0 || isManuallyPaused) return;
     if (activeRun.questionIndex >= activeRun.questions.length) {
       void finishRun();
     }
-  }, [activeRun, finishRun, pauseRemainingSeconds]);
+  }, [activeRun, finishRun, isManuallyPaused, pauseRemainingSeconds]);
 
   // ── Animation helpers ────────────────────────────────────────────
   const triggerShake = useCallback(() => {
     shakeAnim.setValue(0);
     Animated.sequence([
-      Animated.timing(shakeAnim, { toValue: 7, duration: 68, useNativeDriver: true }),
-      Animated.timing(shakeAnim, { toValue: -7, duration: 68, useNativeDriver: true }),
-      Animated.timing(shakeAnim, { toValue: 5, duration: 68, useNativeDriver: true }),
-      Animated.timing(shakeAnim, { toValue: -5, duration: 68, useNativeDriver: true }),
-      Animated.timing(shakeAnim, { toValue: 0, duration: 68, useNativeDriver: true }),
+      Animated.timing(shakeAnim, {
+        toValue: 7,
+        duration: 68,
+        useNativeDriver: true,
+      }),
+      Animated.timing(shakeAnim, {
+        toValue: -7,
+        duration: 68,
+        useNativeDriver: true,
+      }),
+      Animated.timing(shakeAnim, {
+        toValue: 5,
+        duration: 68,
+        useNativeDriver: true,
+      }),
+      Animated.timing(shakeAnim, {
+        toValue: -5,
+        duration: 68,
+        useNativeDriver: true,
+      }),
+      Animated.timing(shakeAnim, {
+        toValue: 0,
+        duration: 68,
+        useNativeDriver: true,
+      }),
     ]).start();
   }, [shakeAnim]);
 
-  const showFeedback = useCallback((fb: FeedbackType) => {
-    if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
-    setFeedback(fb);
-    feedbackSlide.setValue(-20);
-    feedbackOpacity.setValue(0);
-    Animated.parallel([
-      Animated.timing(feedbackSlide, { toValue: 0, duration: 300, useNativeDriver: true }),
-      Animated.timing(feedbackOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
-    ]).start();
-    feedbackTimeoutRef.current = setTimeout(() => {
-      setFeedback(null);
-      feedbackTimeoutRef.current = null;
-    }, 1600);
-  }, [feedbackSlide, feedbackOpacity]);
+  const showFeedback = useCallback(
+    (fb: FeedbackType) => {
+      if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
+      setFeedback(fb);
+      feedbackSlide.setValue(-20);
+      feedbackOpacity.setValue(0);
+      Animated.parallel([
+        Animated.timing(feedbackSlide, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(feedbackOpacity, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
+      feedbackTimeoutRef.current = setTimeout(() => {
+        setFeedback(null);
+        feedbackTimeoutRef.current = null;
+      }, 1600);
+    },
+    [feedbackSlide, feedbackOpacity],
+  );
 
   // ── Keypad handlers ──────────────────────────────────────────────
-  const handleDigit = useCallback((digit: string) => {
-    if (keypadLocked) return;
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const next = appendDigit(answerRef.current, digit);
-    answerRef.current = next;
-    setAnswer(next);
-  }, [keypadLocked]);
+  const handleDigit = useCallback(
+    (digit: string) => {
+      if (keypadLocked) return;
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      const next = appendDigit(answerRef.current, digit);
+      answerRef.current = next;
+      setAnswer(next);
+    },
+    [keypadLocked],
+  );
 
   const handleDelete = useCallback(() => {
     if (keypadLocked) return;
@@ -250,30 +496,37 @@ export default function SpeedCalculusScreen() {
 
   // ── Submit answer ────────────────────────────────────────────────
   const handleSubmit = useCallback(async () => {
-    if (!currentQuestion || submitting || pauseRemainingSeconds > 0) return;
+    if (!currentQuestion || submitting || pauseRemainingSeconds > 0 || isManuallyPaused) return;
     const trimmed = answerRef.current.trim();
     if (!canSubmitAnswer(trimmed)) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       triggerShake();
       return;
     }
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setSubmitting(true);
-
-    const expectedAnswer = currentQuestion.operator === "+"
-      ? currentQuestion.left + currentQuestion.right
-      : currentQuestion.left - currentQuestion.right;
+    const expectedAnswer =
+      currentQuestion.operator === "+"
+        ? currentQuestion.left + currentQuestion.right
+        : currentQuestion.left - currentQuestion.right;
     const parsed = parseInt(trimmed, 10);
     const runId = activeRun?.runId;
     if (!runId) return;
 
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setSubmitting(true);
+    mutationEpochRef.current += 1;
+
     // Show feedback immediately — correctness is known locally
     if (parsed === expectedAnswer) {
-      showFeedback({ kind: "correct", message: t("quests.speedCalculusCorrectFeedback") });
+      showFeedback({
+        kind: "correct",
+        message: t("quests.speedCalculusCorrectFeedback"),
+      });
     } else {
       showFeedback({
         kind: "incorrect",
-        message: t("quests.speedCalculusWrongFeedback", { answer: expectedAnswer }),
+        message: t("quests.speedCalculusWrongFeedback", {
+          answer: expectedAnswer,
+        }),
         questionLabel: `${currentQuestion.left} ${currentQuestion.operator} ${currentQuestion.right}`,
         correctAnswer: expectedAnswer,
       });
@@ -286,66 +539,177 @@ export default function SpeedCalculusScreen() {
 
     // Optimistically advance to next question. Skip on the last question to avoid
     // triggering the auto-finish effect before the answer is recorded server-side.
-    const isLastQuestion = activeRun != null &&
+    const isLastQuestion =
+      activeRun != null &&
       activeRun.questionIndex + 1 >= activeRun.questions.length;
     if (!isLastQuestion) {
       setState((prev) =>
         prev?.activeRun
-          ? { ...prev, activeRun: { ...prev.activeRun, questionIndex: prev.activeRun.questionIndex + 1 } }
-          : prev
+          ? {
+              ...prev,
+              activeRun: {
+                ...prev.activeRun,
+                questionIndex: prev.activeRun.questionIndex + 1,
+              },
+            }
+          : prev,
       );
     }
 
     try {
-      const data = await apiClient.answerSpeedCalculus(runId, parsed);
-      applyState(data);
-      if (data.activeRun && data.activeRun.questionIndex >= data.activeRun.questions.length) {
+      const data = await apiClient.answerSpeedCalculus(
+        runId,
+        parsed,
+        state?.questVersion ?? undefined,
+      );
+      if (!data.activeRun || data.activeRun.runId !== runId) {
+        await loadState();
+        return;
+      }
+
+      applyAnswerUpdate(data);
+
+      if (
+        activeRun &&
+        data.activeRun.questionIndex >= activeRun.questions.length
+      ) {
         await finishRun();
       }
-    } catch {
-      setToast({ type: "error", message: t("quests.speedCalculusFinishError") });
-      await loadState(false);
+    } catch (error) {
+      if (await handleSpeedResetError(error)) {
+        return;
+      }
+      setToast({
+        type: "error",
+        message: t("quests.speedCalculusFinishError"),
+      });
+      await loadState();
     } finally {
       setSubmitting(false);
     }
-  }, [activeRun, applyState, currentQuestion, finishRun, loadState, pauseRemainingSeconds, showFeedback, submitting, t, triggerShake]);
+  }, [
+    activeRun,
+    currentQuestion,
+    finishRun,
+    handleSpeedResetError,
+    loadState,
+    pauseRemainingSeconds,
+    isManuallyPaused,
+    showFeedback,
+    state?.questVersion,
+    submitting,
+    applyAnswerUpdate,
+    syncLoadedState,
+    t,
+    triggerShake,
+  ]);
 
   // ── Start run ────────────────────────────────────────────────────
   const startRun = useCallback(async () => {
+    mutationEpochRef.current += 1;
     setSubmitting(true);
     try {
       const data = await apiClient.startSpeedCalculus();
-      resumedOnMountRef.current = true;
-      applyState(data);
+       syncLoadedState(data);
+      void queryClient.invalidateQueries({ queryKey: ["quests"] });
     } catch (error) {
       setToast({
         type: "error",
-        message: error instanceof Error ? error.message : t("quests.speedCalculusStartError"),
+        message:
+          error instanceof Error
+            ? error.message
+            : t("quests.speedCalculusStartError"),
       });
     } finally {
       setSubmitting(false);
     }
-  }, [applyState, t]);
+  }, [queryClient, syncLoadedState, t]);
 
   // ── Cash out ─────────────────────────────────────────────────────
   const cashOut = useCallback(async () => {
+    mutationEpochRef.current += 1;
     setSubmitting(true);
     try {
       const data = await apiClient.cashoutSpeedCalculus();
-      applyState(data);
+      syncLoadedState(data);
+      void queryClient.invalidateQueries({ queryKey: ["quests"] });
       setToast({
         type: "success",
-        message: t("quests.speedCalculusCashOutSuccess", { reward: data.rewardPreview }),
+        message: t("quests.speedCalculusCashOutSuccess", {
+          reward: data.rewardPreview,
+        }),
       });
     } catch (error) {
       setToast({
         type: "error",
-        message: error instanceof Error ? error.message : t("quests.speedCalculusCashOutError"),
+        message:
+          error instanceof Error
+            ? error.message
+            : t("quests.speedCalculusCashOutError"),
       });
     } finally {
       setSubmitting(false);
     }
-  }, [applyState, t]);
+  }, [queryClient, syncLoadedState, t]);
+
+  const pauseRun = useCallback(() => {
+    if (!activeRun || pauseRemainingSeconds > 0 || isManuallyPaused || submitting) {
+      return;
+    }
+
+    setSubmitting(true);
+    mutationEpochRef.current += 1;
+
+    apiClient
+      .pauseSpeedCalculus()
+      .then((data) => {
+        syncLoadedState(data);
+      })
+      .catch(async (error) => {
+        if (await handleSpeedResetError(error)) {
+          return;
+        }
+
+        setToast({
+          type: "error",
+          message:
+            error instanceof Error
+              ? error.message
+              : t("quests.speedCalculusPauseError"),
+        });
+      })
+      .finally(() => {
+        setSubmitting(false);
+      });
+  }, [activeRun, handleSpeedResetError, isManuallyPaused, pauseRemainingSeconds, submitting, syncLoadedState, t]);
+
+  const resumeRun = useCallback(async () => {
+    if (!activeRun || !isManuallyPaused || submitting) {
+      return;
+    }
+
+    setSubmitting(true);
+    mutationEpochRef.current += 1;
+
+    try {
+      const data = await apiClient.resumeSpeedCalculus();
+      syncLoadedState(data);
+    } catch (error) {
+      if (await handleSpeedResetError(error)) {
+        return;
+      }
+
+      setToast({
+        type: "error",
+        message:
+          error instanceof Error
+            ? error.message
+            : t("quests.speedCalculusResumeError"),
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  }, [activeRun, handleSpeedResetError, isManuallyPaused, submitting, syncLoadedState, t]);
 
   // ── Toggle run history accordion ─────────────────────────────────
   const toggleRunHistory = useCallback((runNumber: number) => {
@@ -356,9 +720,11 @@ export default function SpeedCalculusScreen() {
   // ── Modal visibility ─────────────────────────────────────────────
   const [modalVisible, setModalVisible] = useState(false);
   const [showRoundOver, setShowRoundOver] = useState(false);
+  const displayedCorrectAnswers =
+    activeRun?.correctAnswers ?? (showRoundOver ? roundOverScore : 0);
 
   useEffect(() => {
-    if (activeRun && !modalVisible) {
+    if (activeRun && !activeRun.isManuallyPaused && !modalVisible) {
       setModalVisible(true);
       setShowRoundOver(false);
     }
@@ -370,9 +736,24 @@ export default function SpeedCalculusScreen() {
   }, []);
 
   // ── Answer box colors (tristate: correct / incorrect / default) ──
-  const answerBoxBg = feedback?.kind === "correct" ? "#CCFBF1" : feedback?.kind === "incorrect" ? "#FFE4E6" : "#FFFFFF";
-  const answerBoxBorder = feedback?.kind === "correct" ? "rgba(20,184,166,0.3)" : feedback?.kind === "incorrect" ? "#FECDD3" : "#FCE7F3";
-  const answerBoxText = feedback?.kind === "correct" ? "#005F5A" : feedback?.kind === "incorrect" ? "#A50036" : "#EC4899";
+  const answerBoxBg =
+    feedback?.kind === "correct"
+      ? "#CCFBF1"
+      : feedback?.kind === "incorrect"
+        ? "#FFE4E6"
+        : "#FFFFFF";
+  const answerBoxBorder =
+    feedback?.kind === "correct"
+      ? "rgba(20,184,166,0.3)"
+      : feedback?.kind === "incorrect"
+        ? "#FECDD3"
+        : "#FCE7F3";
+  const answerBoxText =
+    feedback?.kind === "correct"
+      ? "#005F5A"
+      : feedback?.kind === "incorrect"
+        ? "#A50036"
+        : "#EC4899";
 
   // ── Loading state ────────────────────────────────────────────────
   if (loading) {
@@ -430,7 +811,9 @@ export default function SpeedCalculusScreen() {
             {t("quests.speedCalculusTitle")}
           </Text>
           <Text className="text-sm font-nunito text-center text-primaryDark/80 max-w-[340px]">
-            {t("quests.speedCalculusSubtitle", { seconds: state?.runDurationSeconds ?? 30 })}
+            {t("quests.speedCalculusSubtitle", {
+              seconds: state?.runDurationSeconds ?? 30,
+            })}
           </Text>
           <Pressable
             onPress={() => router.back()}
@@ -439,7 +822,7 @@ export default function SpeedCalculusScreen() {
           >
             <View className="bg-primary py-2 items-center rounded-xl">
               <Text className="text-primaryBg font-nunito-semibold text-sm">
-                {t("native.wordle.backToQuests")}
+                {t("quests.wordle.backToQuests")}
               </Text>
             </View>
           </Pressable>
@@ -462,7 +845,10 @@ export default function SpeedCalculusScreen() {
                 {t("quests.speedCalculusRules")}
               </Text>
               <Text className="text-sm font-nunito mt-2 text-primaryDark/80 leading-5">
-                {t("quests.speedCalculusRuleLine", { seconds: state?.runDurationSeconds ?? 30, reward: state?.rewardPerAnswer ?? 4 })}
+                {t("quests.speedCalculusRuleLine", {
+                  seconds: state?.runDurationSeconds ?? 30,
+                  reward: state?.rewardPerAnswer ?? 4,
+                })}
               </Text>
             </View>
             <View className="rounded-2xl bg-primaryTint px-4 py-3 items-center">
@@ -482,9 +868,9 @@ export default function SpeedCalculusScreen() {
           activeRun={activeRun}
           submitting={submitting}
           onStartRun={() => void startRun()}
+          onResumeRun={() => void resumeRun()}
           onCashOut={() => void cashOut()}
         />
-
 
         {/* ── Run History ──────────────────────────────────────────── */}
         <RunHistoryCard
@@ -503,6 +889,8 @@ export default function SpeedCalculusScreen() {
         state={state!}
         remainingSeconds={remainingSeconds}
         pauseRemainingSeconds={pauseRemainingSeconds}
+        displayedCorrectAnswers={displayedCorrectAnswers}
+        isManuallyPaused={isManuallyPaused}
         feedback={feedback}
         feedbackSlide={feedbackSlide}
         feedbackOpacity={feedbackOpacity}
@@ -515,6 +903,9 @@ export default function SpeedCalculusScreen() {
         keypadLocked={keypadLocked}
         submitDisabled={submitDisabled}
         currentQuestion={currentQuestion}
+        onPause={pauseRun}
+        onResume={() => void resumeRun()}
+        onLeavePaused={handleRoundOverDismiss}
         onDigit={handleDigit}
         onDelete={handleDelete}
         onClear={handleClear}
