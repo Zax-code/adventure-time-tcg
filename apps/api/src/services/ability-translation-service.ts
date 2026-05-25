@@ -5,32 +5,32 @@ const MAX_RETRIES = 6;
 const BASE_DELAY_MS = 1000;
 
 const PROTECTED_EFFECT_TERMS = [
-  "Summoning Sickness",
-  "Guard Up",
-  "Regeneration",
-  "Burning",
-  "Weaken",
-  "Vulnerable",
-  "Weakened",
-  "Stunned",
-  "Silence",
-  "Cleanse",
-  "Barrier",
-  "Stealth",
-  "Counter",
-  "Empower",
-  "Shield",
-  "Freeze",
-  "Haste",
-  "Taunt",
-  "Cover",
-  "Poison",
-  "Thorns",
-  "Mark",
-  "Doom",
-  "Regen",
-  "Burn",
-  "GuardUp",
+  { source: "Summoning Sickness", target: "Mal d'invocation" },
+  { source: "Guard Up", target: "Garde renforcée" },
+  { source: "GuardUp", target: "Garde renforcée" },
+  { source: "Regeneration", target: "Régénération" },
+  { source: "Regen", target: "Régénération" },
+  { source: "Burning", target: "Brûlure" },
+  { source: "Burn", target: "Brûlure" },
+  { source: "Weaken", target: "Affaibli" },
+  { source: "Weakened", target: "Affaibli" },
+  { source: "Vulnerable", target: "Vulnérable" },
+  { source: "Stunned", target: "Étourdi" },
+  { source: "Silence", target: "Silence" },
+  { source: "Cleanse", target: "Purification" },
+  { source: "Barrier", target: "Barrière" },
+  { source: "Stealth", target: "Furtivité" },
+  { source: "Counter", target: "Contre" },
+  { source: "Empower", target: "Puissance" },
+  { source: "Shield", target: "Bouclier" },
+  { source: "Freeze", target: "Gel" },
+  { source: "Haste", target: "Hâte" },
+  { source: "Taunt", target: "Provocation" },
+  { source: "Cover", target: "Couverture" },
+  { source: "Poison", target: "Poison" },
+  { source: "Thorns", target: "Épines" },
+  { source: "Mark", target: "Marque" },
+  { source: "Doom", target: "Condamnation" },
 ] as const;
 
 function sleep(ms: number) {
@@ -45,6 +45,26 @@ function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+function normalizeFrenchAbilityText(input: string) {
+  return input
+    .replace(/\bHP\b/g, "PV")
+    .replace(/\bmax PV\b/g, "PV max")
+    .replace(/\bPV maximum\b/g, "PV max")
+    .replace(/\bcooldowns\b/gi, "recharges")
+    .replace(/\bcooldown\b/gi, "recharge")
+    .replace(/\bdebuffs\b/gi, "malus")
+    .replace(/\bdebuff\b/gi, "malus")
+    .replace(/\bbuffs\b/gi, "bonus")
+    .replace(/\bbuff\b/gi, "bonus")
+    .replace(/\bDoTs\b/g, "dégâts sur la durée")
+    .replace(/\bDOTs\b/g, "dégâts sur la durée")
+    .replace(/\bKO\b/g, "K.O.")
+    .replace(/\s+;/g, " ;")
+    .replace(/\s+:/g, " :")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function protectEffectTerms(input: string): {
   text: string;
   tokens: Map<string, string>;
@@ -55,9 +75,9 @@ function protectEffectTerms(input: string): {
   for (let i = 0; i < PROTECTED_EFFECT_TERMS.length; i += 1) {
     const term = PROTECTED_EFFECT_TERMS[i];
     const token = `ZXTERM${i}ZX`;
-    const pattern = new RegExp(`\\b${escapeRegExp(term)}\\b`, "gi");
+    const pattern = new RegExp(`\\b${escapeRegExp(term.source)}\\b`, "gi");
     out = out.replace(pattern, token);
-    tokens.set(token, term);
+    tokens.set(token, term.target);
   }
 
   return { text: out, tokens };
@@ -136,9 +156,10 @@ async function translateText(text: string, preserveTerms: boolean) {
         translations?: Array<{ text: string }>;
       };
       const translatedText = data.translations?.[0]?.text?.trim() || normalized;
-      return preserveTerms
+      const restored = preserveTerms
         ? restoreEffectTerms(translatedText, protectedValue.tokens)
         : translatedText;
+      return normalizeFrenchAbilityText(restored);
     } catch (error) {
       if (attempt === MAX_RETRIES) {
         console.error(
@@ -151,7 +172,9 @@ async function translateText(text: string, preserveTerms: boolean) {
     }
   }
 
-  return normalized;
+  return preserveTerms
+    ? normalizeFrenchAbilityText(restoreEffectTerms(normalized, protectedValue.tokens))
+    : normalizeFrenchAbilityText(normalized);
 }
 
 export async function translateAbilityToFrench(input: {

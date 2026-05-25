@@ -1,0 +1,125 @@
+defmodule AdventureTimeApiWeb.Router do
+  use AdventureTimeApiWeb, :router
+
+  alias AdventureTimeApiWeb.Plugs.RequireAuth
+
+  pipeline :api do
+    plug(:accepts, ["json"])
+  end
+
+  pipeline :api_auth do
+    plug(:accepts, ["json"])
+    plug(RequireAuth)
+  end
+
+  scope "/", AdventureTimeApiWeb do
+    pipe_through(:api)
+
+    get("/health", HealthController, :show)
+    get("/ready", HealthController, :ready)
+    get("/media/card/:id", MediaController, :card)
+    get("/media/catalog/:id", MediaController, :catalog)
+
+    post("/auth/register", AuthController, :register)
+    post("/auth/verify-email", AuthController, :verify_email)
+    post("/auth/resend-verification", AuthController, :resend_verification)
+    post("/auth/login", AuthController, :login)
+    post("/auth/google", AuthController, :google)
+    post("/auth/refresh", AuthController, :refresh)
+    post("/auth/logout", AuthController, :logout)
+  end
+
+  scope "/", AdventureTimeApiWeb do
+    pipe_through(:api_auth)
+
+    get("/me", AppController, :me)
+    get("/media/profile/:id", MediaController, :profile)
+    get("/home", AppController, :home)
+    get("/collection", AppController, :collection)
+    get("/users", SocialController, :users)
+    get("/gifts", SocialController, :gifts)
+    post("/gifts", SocialController, :send_gift)
+    patch("/gifts", SocialController, :process_gift)
+    get("/packs", AppController, :packs)
+    post("/packs/open", AppController, :open_pack)
+    get("/daily-claim", AppController, :daily_claim_status)
+    post("/daily-claim", AppController, :daily_claim)
+    get("/rarities", AppController, :rarities)
+    get("/featured-cards", AppController, :featured_cards)
+
+    post("/collection/craft", AppController, :craft_card)
+    post("/collection/recycle", AppController, :recycle_card)
+
+    patch("/settings/display-name", AppController, :update_display_name)
+    patch("/settings/language", AppController, :update_language)
+    patch("/settings/step-source", AppController, :update_step_source)
+    post("/settings/upload", MediaController, :upload_profile)
+
+    get("/health/steps", AppController, :health_steps)
+    post("/health/steps", AppController, :sync_steps)
+
+    get("/quests", QuestsController, :list_quests)
+    post("/quests/claim", QuestsController, :claim_quest)
+    get("/quests/speed-calculus", QuestsController, :speed_calculus_state)
+    post("/quests/speed-calculus/start", QuestsController, :start_speed_calculus_run)
+    post("/quests/speed-calculus/answer", QuestsController, :answer_speed_calculus)
+    post("/quests/speed-calculus/pause", QuestsController, :pause_speed_calculus)
+    post("/quests/speed-calculus/resume", QuestsController, :resume_speed_calculus)
+    post("/quests/speed-calculus/finish", QuestsController, :finish_speed_calculus)
+    post("/quests/speed-calculus/cashout", QuestsController, :cashout_speed_calculus)
+    get("/wordle", QuestsController, :wordle_state)
+    post("/wordle", QuestsController, :submit_wordle_guess)
+
+    get("/pvp/loadouts", PvpController, :list_loadouts)
+    post("/pvp/loadouts", PvpController, :create_loadout)
+    put("/pvp/loadouts/:id", PvpController, :update_loadout)
+    delete("/pvp/loadouts/:id", PvpController, :delete_loadout)
+
+    get("/pvp/invites", PvpController, :list_invites)
+    post("/pvp/invites", PvpController, :create_invite)
+
+    get("/pvp/matches", PvpController, :list_matches)
+    get("/pvp/matches/:id", PvpController, :get_match)
+    get("/pvp/history", PvpController, :list_history)
+    get("/pvp/history/:id", PvpController, :get_history_detail)
+
+    post("/pvp/matches/:id/accept", PvpController, :accept_match)
+    post("/pvp/matches/:id/decline", PvpController, :decline_match)
+    post("/pvp/matches/:id/concede", PvpController, :concede_match)
+    post("/pvp/matches/:id/action", PvpController, :perform_action)
+    post("/pvp/matches/:id/end-turn", PvpController, :end_turn)
+
+    get("/pvp/spectate", PvpController, :list_spectatable)
+    get("/pvp/spectate/:id", PvpController, :get_spectate)
+
+    get("/admin/users", AdminController, :users)
+    get("/admin/users/:id", AdminController, :user_detail)
+    patch("/admin/users/:id/coins", AdminController, :adjust_user_coins)
+    patch("/admin/users/:id/role", AdminController, :update_user_role)
+    post("/admin/users/:id/reset-daily-quests", AdminController, :reset_user_daily_quests)
+    delete("/admin/users/:id", AdminController, :delete_user)
+    get("/admin/email-requests", AdminController, :email_requests)
+    patch("/admin/email-requests/:id", AdminController, :review_email_request)
+
+    get("/admin/packs", AdminController, :list_packs)
+    post("/admin/packs", AdminController, :create_pack)
+    patch("/admin/packs/:id", AdminController, :patch_pack)
+
+    get("/admin/image-assets", AdminController, :list_image_assets)
+    post("/admin/image-assets", AdminController, :create_image_asset)
+
+    get("/admin/abilities", AdminController, :list_abilities)
+    post("/admin/abilities", AdminController, :create_ability)
+    patch("/admin/abilities/:id", AdminController, :update_ability)
+    delete("/admin/abilities/:id", AdminController, :delete_ability)
+    post("/admin/abilities/assign", AdminController, :assign_card_ability)
+    delete("/admin/abilities/assign/:card_id", AdminController, :remove_card_ability)
+
+    get("/admin/cards", AdminController, :list_cards)
+    get("/admin/cards/:id", AdminController, :get_card)
+    post("/admin/cards", AdminController, :create_card)
+    put("/admin/cards/:id", AdminController, :update_card)
+    patch("/admin/cards/:id", AdminController, :patch_card)
+    post("/admin/cards/:id/image", AdminController, :upload_card_image)
+  end
+end

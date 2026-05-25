@@ -1,0 +1,31 @@
+{
+  "cli": {
+    "version": ">= 18.13.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "production": {
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://app.leaetzak.love",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "831806850937-p3udmkmhoeik4d63rt3r422bj91g02b3.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "831806850937-udqpted9icstf3m5q3li3elhkgironf0.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "831806850937-64l1nt24a0m4b6joisv18kis4m2up18k.apps.googleusercontent.com"
+      },
+      "ios": {
+        "resourceClass": "m-medium"
+      },
+      "android": {
+        "buildType": "app-bundle"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "android": {
+        "track": "internal",
+        "releaseStatus": "completed"
+      }
+    }
+  }
+}

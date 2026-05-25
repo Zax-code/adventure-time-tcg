@@ -1,113 +1,68 @@
-# PWA User Migration
+# PWA To Phoenix Migration
 
-This migration covers the narrowed scope agreed for the Adventure Time PWA to native cutover:
+Phoenix now owns the production import workflow from the legacy PWA.
 
-- allowlisted users
-- admin flags from the allowlist
-- user rows for allowlisted users
-- coins and dust
-- owned cards
-- user-facing settings that native currently supports
-  - display name
-  - preferred step source
-  - profile pictures copied into native MinIO
+## Scope
 
-Not migrated yet:
+Migrated:
 
-- super-admin role semantics
-- email verification state
-- push subscriptions
-- full notification settings
-- language/theme preferences
-- Fitbit OAuth tokens
+- users
+- email credentials
+- email access requests and signup verification codes
+- coins, dust, display names, preferred language, preferred step source
+- profile and card images copied into Phoenix-backed object storage
+- rarities, cards, packs, abilities, and card-ability assignments
+- owned cards and gifts
+- daily quests, Wordle attempts, Speed Calculus runs, and the Wordle dictionary
 
-## Source and target env files
+Not migrated:
 
-By default the script reads:
+- `pvp_matches`
+- `pvp_match_events`
+- `pvp_match_snapshots`
+- `pvp_loadouts`
 
-- source PWA env: `~/adventure-time-tcg/.env.postgres.production.local`
-- target native env: `apps/api/.env`
+## Default Env Files
 
-You can override these paths with:
-
-- `PWA_ENV_FILE=/path/to/source.env`
-- `NATIVE_ENV_FILE=/path/to/native.env`
+- source PWA env: `/home/zax/adventure-time-tcg/.env.postgres.production.local`
+- target Phoenix env: `apps/phoenix/.env`
 
 ## Commands
 
-Run from the repo root.
-
-Audit only:
+Run from `apps/phoenix` after loading env vars:
 
 ```bash
-npm run migrate:pwa-users:audit -w @adventure-time/api
+set -a
+source .env
+set +a
+MIX_ENV=dev mix pwa_import audit
+MIX_ENV=dev mix pwa_import apply
+MIX_ENV=dev mix pwa_import verify
 ```
 
-Dry-run migration plan:
+Reports are written to `/home/zax/adventure-time-native/.migration-reports` by default.
 
-```bash
-npm run migrate:pwa-users:dry-run -w @adventure-time/api
-```
+## What `mix pwa_import apply` Does
 
-Apply migration:
+1. audits source PWA tables needed by Phoenix
+2. clears Phoenix placeholder/dev data
+3. copies referenced card/profile media into the Phoenix MinIO bucket
+4. imports non-PvP data into Phoenix with UUID-safe remapping where required
+5. verifies final target counts
 
-```bash
-npm run migrate:pwa-users:apply -w @adventure-time/api
-```
+## Safety Notes
 
-Post-migration verification:
+Before running apply against a target environment:
 
-```bash
-npm run migrate:pwa-users:verify -w @adventure-time/api
-```
+1. snapshot the Phoenix Postgres database
+2. snapshot or version the Phoenix MinIO bucket if needed
+3. run `mix pwa_import audit`
+4. inspect the generated JSON report
 
-Reports are written to `.migration-reports/` by default.
+## Key Mapping Notes
 
-## What the script does
-
-1. Reads the PWA allowlist and only keeps users whose email is allowlisted.
-2. Builds an admin details report including `isAdmin` and `isSuperAdmin`.
-3. Upserts native `allowed_emails`.
-4. Upserts native `users` for allowlisted users.
-5. Upserts native `owned_cards` for those users.
-6. Copies profile pictures into the native MinIO bucket:
-   - managed PWA profile images are copied directly from the PWA private bucket
-   - external or relative profile image URLs are fetched and re-uploaded into native MinIO
-7. Creates native `image_assets` rows and links `users.avatar_asset_id`.
-
-## Mapping rules
-
-- `AllowedEmail.email` -> `allowed_emails.email`
-- `AllowedEmail.isAdmin` -> `allowed_emails.is_admin`
-- `User.coins` -> `users.coins`
-- `User.dust` -> `users.dust`
-- `UserSettings.displayName` -> `users.display_name`
-- fallback display name: `User.name`
-- preferred step source:
-  - `fitbit` if the PWA user had a Fitbit account
-  - otherwise `device_health`
-- profile picture source priority:
-  - `UserSettings.profilePicture`
-  - fallback `User.image`
-
-## Safety checks
-
-The script refuses to proceed if:
-
-- owned card IDs exist in PWA but not in native `cards`
-- a PWA user ID collides with a different native email
-
-## Rollback
-
-Before running apply in production:
-
-1. snapshot the native Postgres database
-2. snapshot or version the native MinIO bucket
-3. run `audit`
-4. run `dry-run`
-
-If rollback is needed:
-
-1. restore the native Postgres snapshot
-2. remove or restore imported profile objects in native MinIO
-3. rerun `audit` to confirm the target is back to the expected baseline
+- PWA allowlist/admin semantics become Phoenix `users.role` plus `email_access_requests`
+- existing PWA users import as `access_status = approved`
+- PWA card types are normalized to the Phoenix canonical card taxonomy
+- pending gifts are converted to Phoenix expiry-aware gift rows
+- legacy PvP history is ignored on purpose

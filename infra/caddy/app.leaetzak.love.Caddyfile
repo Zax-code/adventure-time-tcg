@@ -17,5 +17,5 @@ app.leaetzak.love {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 	}
 
-	reverse_proxy 127.0.0.1:4100
+	reverse_proxy 127.0.0.1:4200
 }

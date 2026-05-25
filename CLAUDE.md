@@ -1,154 +1,241 @@
 # CLAUDE.md
 
-Repo-specific guidance for Claude Code and similar agents working in `adventure-time-native`.
+Repo-specific guidance for Claude Code and similar agents working in `adventure-time-native` after the Phoenix cutover.
 
-## Project Overview
-`adventure-time-native` is a native-first rebuild of `~/adventure-time-tcg`, the legacy PWA.
-It is still a copy-in-progress, so preserve parity with the PWA wherever practical: gameplay, contracts, naming, reward logic, and UX intent should stay aligned unless the task explicitly changes them.
+## Mission
 
-## Extra Rule Files
-Checked rule sources:
-- no `.cursorrules`
-- no `.cursor/rules/`
-- no `.github/copilot-instructions.md`
-If any appear later, merge their instructions into this document.
+This repo now operates as a Phoenix-first backend and Expo mobile app workspace for the Adventure Time TCG.
+
+Primary goals:
+- keep the Phoenix backend healthy and production-ready
+- preserve gameplay and mobile-facing contract behavior unless a change is intentional
+- use the legacy PWA and the old Fastify API as reference sources, not target architecture
+- keep shared mobile/runtime packages (`packages/api-client`, `packages/shared`, `packages/game-engine`) working until a later consolidation pass removes them deliberately
+
+You are usually operating directly on the Arch Linux VPS that hosts the app.
+Assume local environment setup, systemd work, Caddy work, PostgreSQL access, MinIO access, and Phoenix tooling are in scope when needed.
+
+## Source Hierarchy
+
+Use this order when behavior is unclear:
+1. the current Phoenix implementation in this repo
+2. the legacy PWA production data and codebase at `~/adventure-time-tcg`
+3. the legacy Fastify implementation in `apps/api`
+4. the backup repo copy at `/home/zax/adventure-time-native-backup-pre-phoenix-20260324-123939`
 
 ## Repo Shape
-Npm workspace monorepo:
-- `apps/api` - Fastify REST API
+
+Apps:
+- `apps/phoenix` - primary backend
 - `apps/mobile` - Expo / React Native app
-- `packages/db` - Drizzle schema, migrations, DB client
-- `packages/shared` - Zod schemas and shared DTOs
-- `packages/game-engine` - pure combat and PvP engine
-- `packages/api-client` - typed API client used by mobile
-Architecture expectations:
+- `apps/api` - archived legacy Fastify reference only
+
+Packages still in active use:
+- `packages/api-client` - typed client used by mobile
+- `packages/shared` - shared schemas, DTOs, and enums; not a UI translation home
+- `packages/game-engine` - pure TS combat helpers used by mobile
+- `packages/db` - legacy schema/migration reference
+
+Architecture rules:
 - mobile talks to the backend through `@adventure-time/api-client`
-- shared request/response schemas belong in `@adventure-time/shared`
-- API handles auth, persistence, uploads, DB access, and orchestration
-- `@adventure-time/game-engine` stays pure with no DB, network, filesystem, or env access
-- Drizzle schema is the DB source of truth
+- shared request/response types stay in `@adventure-time/shared`
+- mobile UI translations live in `apps/mobile/src/i18n/`
+- do not put UI translation strings back into `packages/shared`
+- Phoenix owns auth, persistence, uploads, jobs, and DB access
+- `@adventure-time/game-engine` must stay pure and must not access DB, network, env, or filesystem
+- Ecto migrations are the Phoenix source of truth
+
+## Mobile Translations
+
+UI translations are mobile-owned and live only in `apps/mobile/src/i18n/`.
+
+Main files:
+- `apps/mobile/src/i18n/index.ts`
+- `apps/mobile/src/i18n/types.ts`
+- `apps/mobile/src/i18n/locales/en/`
+- `apps/mobile/src/i18n/locales/fr/`
+
+Current feature files:
+- `apps/mobile/src/i18n/locales/en/admin.ts`
+- `apps/mobile/src/i18n/locales/en/auth.ts`
+- `apps/mobile/src/i18n/locales/en/collection.ts`
+- `apps/mobile/src/i18n/locales/en/combat.ts`
+- `apps/mobile/src/i18n/locales/en/common.ts`
+- `apps/mobile/src/i18n/locales/en/gifts.ts`
+- `apps/mobile/src/i18n/locales/en/home.ts`
+- `apps/mobile/src/i18n/locales/en/messages.ts`
+- `apps/mobile/src/i18n/locales/en/nav.ts`
+- `apps/mobile/src/i18n/locales/en/packs.ts`
+- `apps/mobile/src/i18n/locales/en/pvp.ts`
+- `apps/mobile/src/i18n/locales/en/quests.ts`
+- `apps/mobile/src/i18n/locales/en/settings.ts`
+- `apps/mobile/src/i18n/locales/en/time.ts`
+- matching files under `apps/mobile/src/i18n/locales/fr/`
+
+Translation rules:
+- do not reintroduce the old `native.` prefix or split translations by platform
+- add UI copy to feature files under `apps/mobile/src/i18n/locales/<locale>/`
+- keep `en` and `fr` file structure aligned when adding or removing keys
+- prefer feature scopes like `auth.*`, `packs.*`, `quests.*`, `quests.wordle.*`, `pvp.*`, `admin.*`, `combat.*`
+- preserve dynamic key families that are composed at runtime, especially `quests.*`, `combat.*`, `pvp.reference.*`, `settings.stepSources.*`, `admin.*`, and `gifts.statusLabel.*`
+- canonical backend/engine values stay raw in data; localize them at render time with display maps/helpers instead of changing stored values
+- if a key is clearly unused after checking live consumers and dynamic families, remove it instead of leaving stale translation debt behind
 
 ## Commands
+
 Run commands from the repo root unless a package-specific command is clearer.
-```bash
-# Root
-npm run dev:api
-npm run dev:mobile
-npm run dev:mobile:tunnel
-npm run build
-npm run typecheck
-npm run lint
-npm run db:generate
-npm run db:migrate
 
-# API
-npm run dev -w @adventure-time/api
-npm run build -w @adventure-time/api
-npm run typecheck -w @adventure-time/api
-npm run abilities:translate-description -w @adventure-time/api
-npm run abilities:backfill-fr -w @adventure-time/api
-npm run abilities:retranslate-fr -w @adventure-time/api
-npm run migrate:pwa-users:audit -w @adventure-time/api
-npm run migrate:pwa-users:dry-run -w @adventure-time/api
-npm run migrate:pwa-users:apply -w @adventure-time/api
-npm run migrate:pwa-users:verify -w @adventure-time/api
+Root:
+- `npm run dev:api` - start Phoenix
+- `npm run dev:mobile`
+- `npm run dev:mobile:tunnel`
+- `npm run build`
+- `npm run typecheck`
 
-# Mobile and packages
-npm run dev -w @adventure-time/mobile
-npm run dev:tunnel -w @adventure-time/mobile
-npm run typecheck -w @adventure-time/mobile
-npm run typecheck -w @adventure-time/db
-npm run typecheck -w @adventure-time/shared
-npm run typecheck -w @adventure-time/game-engine
-npm run typecheck -w @adventure-time/api-client
-npm run db:generate -w @adventure-time/db
-npm run db:migrate -w @adventure-time/db
-npm run db:repair-history -w @adventure-time/db
-```
+Phoenix:
+- `cd apps/phoenix && mix deps.get`
+- `cd apps/phoenix && mix ecto.create`
+- `cd apps/phoenix && mix ecto.migrate`
+- `cd apps/phoenix && mix ecto.reset`
+- `cd apps/phoenix && mix run priv/repo/seeds.exs`
+- `cd apps/phoenix && mix phx.server`
+- `cd apps/phoenix && mix test`
+- `cd apps/phoenix && mix test test/path/to/file_test.exs`
+- `cd apps/phoenix && mix format`
+- `cd apps/phoenix && mix precommit`
 
-## Tests
-There is currently no configured test runner.
-There are no `test` scripts and no `*.test.*` or `*.spec.*` files.
-There is therefore no supported command for running all tests or a single test.
-Until tests exist, verify with targeted workspace typechecks, targeted builds, and manual API/mobile checks.
-If tests are added later, document both the general test command and the exact single-file or single-case invocation.
+PWA import:
+- `cd apps/phoenix && set -a && source .env && set +a && MIX_ENV=dev mix pwa_import audit`
+- `cd apps/phoenix && set -a && source .env && set +a && MIX_ENV=dev mix pwa_import apply`
+- `cd apps/phoenix && set -a && source .env && set +a && MIX_ENV=dev mix pwa_import verify`
+
+## Production Data Migration Rules
+
+The PWA is the production data source of truth.
+
+The Phoenix importer intentionally migrates:
+- users
+- email credentials, email access requests, signup verification codes
+- coins, dust, display name, preferred language, preferred step source
+- cards, rarities, packs, abilities, card-ability assignments, and image assets
+- owned cards and gifts
+- daily quests, Wordle attempts, Speed Calculus runs, and the Wordle dictionary
+
+The importer intentionally does not migrate:
+- `pvp_matches`
+- `pvp_match_events`
+- `pvp_match_snapshots`
+- `pvp_loadouts`
+
+When touching migration code:
+- keep the importer idempotent enough for reset-and-rerun workflows
+- preserve report output in `.migration-reports/`
+- keep placeholder/dev data cleanup explicit
+- document any newly skipped or transformed legacy fields
+
+## Verification
+
+Primary verification is Phoenix-based now.
+
+Before finishing backend work:
+- run the narrowest relevant Phoenix tests
+- run `mix format` if Elixir files changed
+- run `mix precommit` for substantial Phoenix changes
+- explicitly say what you could not verify
+
+For mobile/shared changes:
+- run `npm run typecheck`
+- run targeted workspace typechecks or builds as needed
 
 ## Environment
-Env files:
-- API: `apps/api/.env`
-- mobile: `apps/mobile/.env`
-Common API vars include `PORT`, `HOST`, `DATABASE_URL`, `ACCESS_TOKEN_SECRET`, `REFRESH_TOKEN_SECRET`, and MinIO settings.
-Mobile uses `EXPO_PUBLIC_API_BASE_URL`.
-Do not hardcode secrets or commit env values.
 
-## Mobile UI: NativeWind First
-NativeWind is the primary mobile styling system and should always be used first.
-Prefer `className` utilities over React Native `style` props.
-Avoid `style` props whenever possible.
-If a `style` prop is unavoidable, keep it small and source colors from theme tokens instead of raw literals.
-Preferred semantic classes include:
+Primary env files:
+- Phoenix: `apps/phoenix/.env`
+- mobile: `apps/mobile/.env`
+- no archived legacy runtime env file should remain in-repo; keep any temporary historical copy outside the repo
+
+Key Phoenix vars:
+- `DATABASE_URL`
+- `SECRET_KEY_BASE`
+- `ACCESS_TOKEN_SECRET`
+- `REFRESH_TOKEN_SECRET`
+- `EMAIL_VERIFICATION_SECRET`
+- `PHX_HOST`
+- MinIO settings
+- Google client IDs
+
+Public app host should be:
+- `https://app.leaetzak.love`
+
+## Mobile Styling: NativeWind First
+
+For mobile UI work, NativeWind must be the default styling system.
+Always prefer `className` utilities first.
+Avoid React Native `style` props unless they are truly required.
+If a `style` prop is necessary, keep it minimal and prefer theme tokens over raw literals.
+
+Use semantic classes first:
 - `bg-bg`, `text-fg`, `bg-surface`, `bg-surfaceMuted`
 - `text-fgMuted`, `border-primaryBorder`, `bg-primaryTint`
-- `text-primaryText`, `text-secondaryText`, `text-dangerDark`
-- Nunito font utilities defined in `apps/mobile/tailwind.config.js`
-Use `style` only for cases like gradients, animated transforms, measured dimensions, safe-area math, `contentContainerStyle`, or placeholder colors.
-Even there, prefer `THEME_COLORS[themeName]` over hardcoded colors.
+- `text-primaryText`, `text-dangerDark`, `bg-infoTint`
+- Nunito font utilities from `apps/mobile/tailwind.config.js`
+
+Acceptable `style` use cases:
+- gradients
+- blur views
+- animated transforms
+- measured dimensions
+- safe-area math
+- `contentContainerStyle`
+- placeholder colors
 
 ## Theme System
-Theme data is split across NativeWind CSS vars and JS token maps.
+
 Main files:
 - `apps/mobile/src/stores/theme-store.ts`
 - `apps/mobile/src/theme/themes.ts`
 - `apps/mobile/global.css`
 - `apps/mobile/tailwind.config.js`
 - `apps/mobile/app/_layout.tsx`
-Rules:
-- keep `global.css` and `src/theme/themes.ts` aligned when changing tokens
-- use `THEME_COLORS[themeName]` for JS-only color values
+
+Theme rules:
+- keep `global.css` and `themes.ts` aligned when tokens change
+- use `THEME_COLORS[themeName]` for JS-only values
 - use `THEME_VARS[themeName]` for root/full-screen themed containers when needed
 - do not invent new font utility names; use the existing Nunito aliases only
 
-## Code Style
-Imports:
+## Imports, Formatting, and Types
+
+Import order:
 1. external packages
 2. workspace aliases like `@adventure-time/*`
 3. local relative imports
-Formatting and typing:
-- use `import type` when practical
-- use semicolons and double quotes
-- keep trailing commas in multiline structures
-- TypeScript is `strict: true`
-- prefer Zod validation at boundaries
-- keep shared DTOs in `packages/shared`
-- avoid `any`; prefer narrower types and validation
-- keep files ASCII unless Unicode is already justified
-Naming:
-- kebab-case files
-- PascalCase React components
-- `useSomething` hooks
-- `something-store.ts` store files
-- `*-service.ts` service files
-- `fooSchema` / `fooResponseSchema` for Zod exports
-- plural camelCase table identifiers mapped to snake_case SQL names
 
-## API, DB, and Errors
-- keep Fastify routes thin
-- put business rules in services
-- return clear expected user-facing errors
-- let unexpected failures reach the server error handler
-- prefer Drizzle query builders over raw SQL
-- serialize `Date` values to ISO strings before returning JSON
-- use transactions for multi-step writes
-After schema changes, run:
-```bash
-npm run db:generate
-npm run db:migrate
-```
+Other rules:
+- use `import type` when practical
+- prefer workspace aliases instead of deep relative cross-workspace imports
+- remove unused imports
+- TypeScript is strict
+- use semicolons and double quotes in TS files
+- use trailing commas in multiline structures
+- keep files ASCII unless Unicode is already justified
+- avoid `any`; prefer narrower types and validation
 
 ## Working Style
-Before editing, inspect neighboring files and preserve existing local patterns.
-Prefer minimal changes and preserve architecture boundaries.
-For mobile work, avoid introducing new style-prop-heavy code when NativeWind and theme tokens can express the UI.
-Before finishing, run the narrowest relevant verification commands.
-At minimum, typecheck touched workspaces and build any touched workspace that defines a build script.
-Explicitly say what you could not verify.
+
+Before editing:
+- inspect neighboring files and match local conventions
+- prefer targeted changes over broad churn
+- preserve Phoenix context boundaries
+- treat `apps/api` and the PWA as reference material unless the task explicitly targets them
+- inspect active services, listeners, and reverse proxy wiring before changing host-level infra
+
+Before finishing:
+- report what changed
+- report verification performed
+- call out contract changes, migration implications, or operational follow-up
+
+## Docs Sync
+
+`AGENTS.md` is the canonical template.
+After updating it, mirror the same structure and state into `CLAUDE.md`, keeping only the document title and one-line intro intentionally different.

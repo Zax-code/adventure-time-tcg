@@ -1,31 +1,34 @@
 {
-  "name": "adventure-time-native",
-  "private": true,
-  "version": "0.1.0",
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
-  "scripts": {
-    "dev:api": "npm run dev -w @adventure-time/api",
-    "dev:mobile": "npm run dev -w @adventure-time/mobile",
-    "dev:mobile:tunnel": "npm run dev:tunnel -w @adventure-time/mobile",
-    "build": "npm run build --workspaces --if-present",
-    "typecheck": "npm run typecheck --workspaces --if-present",
-    "lint": "npm run lint --workspaces --if-present",
-    "db:generate": "npm run db:generate -w @adventure-time/db",
-    "db:migrate": "npm run db:migrate -w @adventure-time/db"
-  },
-  "dependencies": {
-    "react-native-svg": "15.12.1",
-    "react-native-worklets": "0.5.1"
-  },
-  "devDependencies": {
-    "@types/react": "~19.1.10"
-  },
-  "overrides": {
-    "nativewind": "4.2.3",
-    "react-native-css-interop": "0.2.3",
-    "react-native-worklets": "0.5.1"
-  }
+    "name": "adventure-time-native",
+    "private": true,
+    "version": "0.1.0",
+    "workspaces": [
+        "apps/mobile",
+        "packages/*"
+    ],
+    "scripts": {
+        "dev:api": "cd apps/phoenix && mix phx.server",
+        "dev:phoenix": "cd apps/phoenix && mix phx.server",
+        "dev:mobile": "npm run dev -w @adventure-time/mobile",
+        "dev:mobile:tunnel": "cd apps/mobile && npm run dev:tunnel -w @adventure-time/mobile",
+        "release:mobile:android": "npm run release:android -w @adventure-time/mobile",
+        "release:mobile:ios": "npm run release:ios -w @adventure-time/mobile",
+        "build": "npm run build --workspaces --if-present",
+        "typecheck": "npm run typecheck --workspaces --if-present",
+        "lint": "npm run lint --workspaces --if-present",
+        "db:generate": "npm run db:generate -w @adventure-time/db",
+        "db:migrate": "npm run db:migrate -w @adventure-time/db"
+    },
+    "dependencies": {
+        "react-native-svg": "15.12.1",
+        "react-native-worklets": "0.5.1"
+    },
+    "devDependencies": {
+        "@types/react": "~19.1.10"
+    },
+    "overrides": {
+        "nativewind": "4.2.3",
+        "react-native-css-interop": "0.2.3",
+        "react-native-worklets": "0.5.1"
+    }
 }

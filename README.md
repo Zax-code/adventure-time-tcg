@@ -1,235 +1,216 @@
 # Adventure Time Native
 
-`adventure-time-native` is a native-first rebuild of the Adventure Time TCG.
-It replaces the legacy PWA stack with an Expo / React Native client, a Fastify API, shared typed packages, and a pure TypeScript game engine.
+`adventure-time-native` is the active production workspace for the Adventure Time TCG mobile app and Phoenix backend.
 
-This repo is still an in-progress rewrite, not a finished replacement.
-The legacy PWA remains the behavior and UX reference:
-
-- Native repo: `https://github.com/Zax-code/adventure-time-native`
-- Legacy PWA repo: `https://github.com/Zax-code/adventure-time-tcg`
+The Phoenix API is now the main backend. The legacy PWA and the old Fastify API remain in the repo as migration/reference material, not as the primary development target.
 
 ## Current Status
 
-The project is well past the original scaffold stage.
-Today the repo contains a playable app surface, a production-style API, shared contracts, and admin tooling.
+- Phoenix owns the live backend architecture and database schema.
+- The mobile app targets the Phoenix HTTP API.
+- Production data migration now uses the Phoenix-native `mix pwa_import` workflow.
+- PvP history from the legacy stack is intentionally not migrated.
+- `apps/api` is kept only as an archived behavior/reference copy.
 
-When making changes, the goal is parity with the PWA where it matters most:
-
-- gameplay rules
-- API contracts
-- naming and reward logic
-- user-facing flow intent
-
-## What Players Can Do Today
-
-The current mobile app already supports real game flows, including:
-
-- email/password auth and Google sign-in
-- session bootstrap and authenticated app shell
-- home dashboard with daily reward and collection progress
-- pack browsing and pack opening
-- searchable collection and card detail views
-- quests, including Wordle and Speed Calculus
-- PvP invites, loadouts, live matches, and spectating
-- gifting and social flows
-- settings for avatar, language, theme, and health-step source
-
-## Admin Features
-
-The repo also includes admin surfaces for:
-
-- card management
-- featured/archive state management
-- ability management and translation workflows
-- user management and approval flows
-
-## Monorepo Structure
+## Repo Layout
 
 Apps:
 
-- `apps/api` - Fastify REST API
+- `apps/phoenix` - Phoenix JSON API
 - `apps/mobile` - Expo / React Native app
+- `apps/api` - archived legacy Fastify API reference
 
-Packages:
+Packages still used by mobile/runtime code:
 
-- `packages/db` - Drizzle schema, migrations, DB client
-- `packages/shared` - Zod schemas and shared DTOs
-- `packages/game-engine` - pure combat and PvP engine
-- `packages/api-client` - typed API client used by mobile
+- `packages/api-client` - typed client used by mobile
+- `packages/shared` - shared DTOs and enums; no longer owns UI translations
+- `packages/game-engine` - pure TypeScript combat helpers used by mobile
+- `packages/db` - legacy Drizzle schema and migration history reference
 
-Infrastructure and host helpers:
+Infrastructure helpers:
 
-- `infra/caddy` - Caddy snippets
-- `infra/containers/quadlet` - Podman / systemd templates
+- `infra/caddy` - Caddy site snippets
 - `infra/scripts` - host and local helper scripts
+- `infra/systemd-adventure-time-native-api.service` - checked-in Phoenix service template
 
-## Tech Stack
+## Primary Commands
 
-- mobile: Expo, React Native, Expo Router, NativeWind, React Query, Zustand
-- API: Fastify, Zod, JWT auth, multipart uploads
-- data: PostgreSQL, Drizzle ORM, MinIO-compatible object storage
-- shared code: TypeScript workspaces, shared schemas, pure game engine
-
-## Prerequisites
-
-- Node `22.14.0` from `.nvmrc`
-- npm workspaces
-- PostgreSQL
-- MinIO or another S3-compatible local object store
-
-The mobile dev script uses `infra/scripts/expo-go.sh`, which switches to the repo-pinned Node runtime because Expo is not stable on newer Node versions on the target host.
-
-## Environment Setup
-
-1. Install dependencies:
-
-```bash
-npm install
-```
-
-2. Create env files from the examples:
-
-```bash
-cp apps/api/.env.example apps/api/.env
-cp apps/mobile/.env.example apps/mobile/.env
-```
-
-3. Fill in the required secrets and service configuration.
-
-Important API env values include:
-
-- `PORT`
-- `HOST`
-- `DATABASE_URL`
-- `ACCESS_TOKEN_SECRET`
-- `REFRESH_TOKEN_SECRET`
-- MinIO settings
-- optional Google auth values
-
-Important mobile env values include:
-
-- `EXPO_PUBLIC_API_BASE_URL`
-- optional Google client IDs
-
-The documented local database URL is:
-
-```bash
-postgresql://postgres:postgres@127.0.0.1:5434/adventure_time_native
-```
-
-The documented MinIO defaults are:
-
-- endpoint: `127.0.0.1`
-- port: `9100`
-- bucket: `private-images`
-
-## Database Setup
-
-Generate and apply migrations from the repo root:
-
-```bash
-npm run db:generate
-npm run db:migrate
-```
-
-If you are working with an older dev database that already matches the schema but is missing rows in `drizzle.__drizzle_migrations`, repair the history with:
-
-```bash
-npm run db:repair-history -w @adventure-time/db
-```
-
-Use that repair command only for an already-bootstrapped database whose tables already match the checked-in migrations.
-
-## Run The App
-
-Start the API:
+From the repo root:
 
 ```bash
 npm run dev:api
-```
-
-Start the mobile app:
-
-```bash
 npm run dev:mobile
-```
-
-Start the mobile app with Expo tunnel mode:
-
-```bash
 npm run dev:mobile:tunnel
-```
-
-Useful workspace commands:
-
-```bash
 npm run build
 npm run typecheck
-npm run build -w @adventure-time/api
-npm run typecheck -w @adventure-time/api
-npm run typecheck -w @adventure-time/mobile
-npm run typecheck -w @adventure-time/db
-npm run typecheck -w @adventure-time/shared
-npm run typecheck -w @adventure-time/game-engine
-npm run typecheck -w @adventure-time/api-client
 ```
 
-## Mobile Notes
+What they do:
 
-The mobile app uses NativeWind as its primary styling system and a runtime theme system built from CSS variables plus JS theme tokens.
-It currently ships multiple themes and uses shared semantic color tokens across screens.
+- `npm run dev:api` - start Phoenix
+- `npm run dev:mobile` - start Expo Go
+- `npm run dev:mobile:tunnel` - start Expo Go with tunnel mode
 
-Expo tunnel mode is especially useful when running the mobile dev server on a remote VPS instead of your local network.
-The helper script also cleans up stale ngrok processes and installs `@expo/ngrok` for the active Node runtime if needed.
+## Mobile Translations
 
-## Architecture Notes
+Mobile UI translations are now owned entirely by the Expo app and live in `apps/mobile/src/i18n/`.
 
-A few boundaries matter across the repo:
+Main translation entry points:
 
-- mobile talks to the backend through `@adventure-time/api-client`
-- shared request and response schemas live in `@adventure-time/shared`
-- the API owns auth, persistence, uploads, and DB access
-- `@adventure-time/game-engine` stays pure and must not access DB, network, env, or filesystem
-- Drizzle schema is the DB source of truth
+- `apps/mobile/src/i18n/index.ts`
+- `apps/mobile/src/i18n/types.ts`
+- `apps/mobile/src/i18n/locales/en/`
+- `apps/mobile/src/i18n/locales/fr/`
+
+Feature-based locale files currently include:
+
+- `admin.ts`
+- `auth.ts`
+- `collection.ts`
+- `combat.ts`
+- `common.ts`
+- `gifts.ts`
+- `home.ts`
+- `messages.ts`
+- `nav.ts`
+- `packs.ts`
+- `pvp.ts`
+- `quests.ts`
+- `settings.ts`
+- `time.ts`
+
+Notes:
+
+- the old split between shared legacy translations and mobile-native translations has been removed
+- the old `native.` namespace is gone; use unified feature namespaces instead
+- do not add UI translations back to `packages/shared`
+- when adding copy, update both `en` and `fr`
+- preserve dynamic/runtime-composed families such as `quests.*`, `combat.*`, `pvp.reference.*`, `settings.stepSources.*`, `admin.*`, and `gifts.statusLabel.*`
+- canonical backend or engine values should stay raw in data and be localized at render time via display maps/helpers
+
+## Phoenix Workflow
+
+From `apps/phoenix`:
+
+```bash
+mix deps.get
+mix ecto.create
+mix ecto.migrate
+mix ecto.reset
+mix run priv/repo/seeds.exs
+mix phx.server
+mix test
+mix test test/adventure_time_api_web/controllers/health_controller_test.exs
+mix format
+mix format --check-formatted
+mix precommit
+```
+
+Load env vars before running Phoenix commands that depend on secrets:
+
+```bash
+cd apps/phoenix
+set -a
+source .env
+set +a
+```
+
+## Production Data Migration
+
+Phoenix now owns the PWA import flow.
+
+Default source of truth:
+
+- source PWA env: `/home/zax/adventure-time-tcg/.env.postgres.production.local`
+- target Phoenix env: `apps/phoenix/.env`
+
+Commands:
+
+```bash
+cd apps/phoenix
+set -a
+source .env
+set +a
+MIX_ENV=dev mix pwa_import audit
+MIX_ENV=dev mix pwa_import apply
+MIX_ENV=dev mix pwa_import verify
+```
+
+What the importer migrates:
+
+- users, roles, access requests, verification codes, and email credentials
+- rarities, cards, packs, abilities, card-ability assignments, and media assets
+- owned cards and gifts
+- daily quests, Wordle attempts, Speed Calculus runs, and the Wordle dictionary
+
+What it does not migrate:
+
+- `pvp_matches`
+- `pvp_match_events`
+- `pvp_match_snapshots`
+- `pvp_loadouts`
+
+The importer clears Phoenix placeholder/dev data before applying production rows.
+
+## Environment
+
+Key env files:
+
+- Phoenix: `apps/phoenix/.env`
+- mobile: `apps/mobile/.env`
+- no archived legacy runtime env file should remain in-repo; keep any temporary historical copy outside the repo
+
+Important mobile env value:
+
+```bash
+EXPO_PUBLIC_API_BASE_URL=https://app.leaetzak.love
+```
+
+Important Phoenix env values include:
+
+- `DATABASE_URL`
+- `SECRET_KEY_BASE`
+- `ACCESS_TOKEN_SECRET`
+- `REFRESH_TOKEN_SECRET`
+- `EMAIL_VERIFICATION_SECRET`
+- `PHX_HOST`
+- MinIO settings
+- Google auth client IDs
 
 ## Verification
 
-There is currently no configured test runner in this repo.
-There are no `test` scripts and no supported command for running all tests or a single test.
-
-Until a test runner exists, verify changes with:
-
-- targeted workspace typechecks
-- targeted builds where available
-- manual API and mobile flow checks for touched behavior
+Phoenix is the primary verification target now.
 
 Recommended checks:
 
 ```bash
+cd apps/phoenix
+set -a
+source .env
+set +a
+mix test
+mix precommit
+```
+
+For mobile/shared changes, also run:
+
+```bash
 npm run typecheck
 npm run build
 npm run typecheck -w @adventure-time/mobile
-npm run typecheck -w @adventure-time/api
-npm run build -w @adventure-time/api
 ```
 
-## Self-Hosting Notes
+## Operational Notes
 
-This repo includes host-facing infrastructure helpers, but they are optional for local development:
+- Caddy should proxy `app.leaetzak.love` to Phoenix on `127.0.0.1:4200`.
+- The checked-in Caddy snippet lives at `infra/caddy/app.leaetzak.love.Caddyfile`.
+- The checked-in Phoenix systemd unit template lives at `infra/systemd-adventure-time-native-api.service`.
+- `apps/api` remains on disk as archive-only reference material and is no longer part of active workspace tooling.
 
-- `infra/caddy` for Caddy configuration
-- `infra/containers/quadlet` for container service templates
-- `infra/scripts` for host bootstrap and dev helpers
+## Development Guidance
 
-## Current Constraints
-
-- the rewrite is still in progress
-- the legacy PWA is still the main parity reference
-- there is no formal test runner yet
-- some local and hosted flows depend on PostgreSQL, MinIO, and Expo tunnel behavior being configured correctly
-
-## Contributing Mindset
-
-If you are extending the app, prefer changes that preserve parity with the PWA while still fitting the native stack cleanly.
-When in doubt, keep the gameplay and contract behavior aligned first, then improve implementation details around it.
+- preserve gameplay and contract parity unless a change is intentional and documented
+- keep Phoenix controllers thin and business rules in contexts/domain modules
+- keep mobile talking to the backend through `@adventure-time/api-client`
+- keep `@adventure-time/game-engine` pure
+- treat the legacy PWA and `apps/api` as reference sources, not the target architecture

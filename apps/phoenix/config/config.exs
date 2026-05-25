@@ -1,0 +1,71 @@
+# This file is responsible for configuring your application
+# and its dependencies with the aid of the Config module.
+#
+# This configuration file is loaded before any dependency and
+# is restricted to this project.
+
+# General application configuration
+import Config
+
+config :adventure_time_api,
+  ecto_repos: [AdventureTimeApi.Repo],
+  generators: [timestamp_type: :utc_datetime, binary_id: true]
+
+config :adventure_time_api, AdventureTimeApiWeb.Endpoint,
+  adapter: Bandit.PhoenixAdapter,
+  render_errors: [formats: [json: AdventureTimeApiWeb.ErrorJSON], layout: false],
+  pubsub_server: AdventureTimeApi.PubSub,
+  url: [host: "127.0.0.1"]
+
+# Configures Elixir's Logger
+config :logger, :default_formatter,
+  format: "$time $metadata[$level] $message\n",
+  metadata: [:request_id]
+
+config :phoenix, :json_library, Jason
+
+config :req, user_agent: "adventure-time-phoenix"
+
+config :elixir, :time_zone_database, Tzdata.TimeZoneDatabase
+
+config :adventure_time_api, AdventureTimeApi.Auth,
+  access_token_ttl_seconds: 15 * 60,
+  refresh_token_ttl_days: 30,
+  google_client_ids: []
+
+config :adventure_time_api, AdventureTimeApi.Accounts,
+  verification_secret: "dev-email-verification-secret-please-change-1234567890",
+  expose_dev_code: false
+
+config :adventure_time_api, AdventureTimeApi.Accounts.EmailDelivery,
+  adapter: AdventureTimeApi.Accounts.EmailDelivery.SendmailAdapter
+
+config :adventure_time_api, AdventureTimeApi.Media,
+  base_url: nil,
+  bucket: nil,
+  access_key: nil,
+  secret_key: nil
+
+config :adventure_time_api, Oban,
+  repo: AdventureTimeApi.Repo,
+  queues: [default: 10, maintenance: 5],
+  plugins: [Oban.Plugins.Pruner]
+
+config :adventure_time_api, AdventureTimeApi.Pvp, invite_ttl_hours: 24
+
+config :adventure_time_api, AdventureTimeApi.Social, gift_ttl_days: 7
+
+config :adventure_time_api, AdventureTimeApiWeb.Plugs.RateLimit,
+  buckets: %{
+    auth_register: %{limit: 10, scale_ms: 60_000},
+    auth_login: %{limit: 12, scale_ms: 60_000},
+    auth_verify_email: %{limit: 10, scale_ms: 60_000},
+    auth_resend_verification: %{limit: 10, scale_ms: 60_000},
+    auth_google: %{limit: 10, scale_ms: 60_000},
+    auth_refresh: %{limit: 20, scale_ms: 60_000},
+    pvp_match_write: %{limit: 30, scale_ms: 60_000}
+  }
+
+# Import environment specific config. This must remain at the bottom
+# of this file so it overrides the configuration defined above.
+import_config "#{config_env()}.exs"
