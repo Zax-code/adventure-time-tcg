@@ -4,6 +4,17 @@
 
 The Phoenix API is now the main backend. The legacy PWA and the old Fastify API remain in the repo as migration/reference material, not as the primary development target.
 
+## Rename Note
+
+This repository was renamed from `adventure-time-native` to `adventure-time-tcg`.
+
+Current canonical names and paths:
+
+- GitHub repo: `Zax-code/adventure-time-tcg`
+- local checkout: `/home/zax/adventure-time-tcg`
+- host data directory: `/srv/adventure-time-tcg`
+- checked-in Phoenix unit template: `infra/systemd-adventure-time-tcg-api.service`
+
 ## Current Status
 
 - Phoenix owns the live backend architecture and database schema.
