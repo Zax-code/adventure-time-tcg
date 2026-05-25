@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Repo-specific guidance for Claude Code and similar agents working in `adventure-time-native` after the Phoenix cutover.
+Repo-specific guidance for Claude Code and similar agents working in `adventure-time-tcg` after the Phoenix cutover.
 
 ## Mission
 
@@ -21,7 +21,7 @@ Use this order when behavior is unclear:
 1. the current Phoenix implementation in this repo
 2. the legacy PWA production data and codebase at `~/adventure-time-tcg`
 3. the legacy Fastify implementation in `apps/api`
-4. the backup repo copy at `/home/zax/adventure-time-native-backup-pre-phoenix-20260324-123939`
+4. the backup repo copy at `/home/zax/adventure-time-tcg-backup-pre-phoenix-20260324-123939`
 
 ## Repo Shape
 

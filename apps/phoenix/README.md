@@ -1,6 +1,6 @@
 # Adventure Time Phoenix API
 
-This is the primary backend for `adventure-time-native`.
+This is the primary backend for `adventure-time-tcg`.
 
 ## Role
 
@@ -58,7 +58,7 @@ Default import source:
 
 Default report directory:
 
-- `/home/zax/adventure-time-native/.migration-reports`
+- `/home/zax/adventure-time-tcg/.migration-reports`
 
 The importer removes Phoenix placeholder/dev rows first and intentionally leaves all legacy PvP history behind.
 
@@ -66,7 +66,7 @@ The importer removes Phoenix placeholder/dev rows first and intentionally leaves
 
 The checked-in systemd unit template is:
 
-- `infra/systemd-adventure-time-native-api.service`
+- `infra/systemd-adventure-time-tcg-api.service`
 
 The checked-in public Caddy proxy snippet is:
 

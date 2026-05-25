@@ -25,8 +25,8 @@ defmodule AdventureTimeApi.PwaImport do
 
   @gift_ttl_days 7
   @default_source_env_path "/home/zax/adventure-time-tcg/.env.postgres.production.local"
-  @default_target_env_path "/home/zax/adventure-time-native/apps/phoenix/.env"
-  @default_report_dir "/home/zax/adventure-time-native/.migration-reports"
+  @default_target_env_path "/home/zax/adventure-time-tcg/apps/phoenix/.env"
+  @default_report_dir "/home/zax/adventure-time-tcg/.migration-reports"
   @managed_card_prefix "/api/media/card/"
   @managed_profile_prefix "/api/media/profile/"
 

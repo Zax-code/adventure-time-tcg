@@ -1,6 +1,6 @@
-# Adventure Time Native
+# Adventure Time TCG
 
-`adventure-time-native` is the active production workspace for the Adventure Time TCG mobile app and Phoenix backend.
+`adventure-time-tcg` is the active production workspace for the Adventure Time TCG mobile app and Phoenix backend.
 
 The Phoenix API is now the main backend. The legacy PWA and the old Fastify API remain in the repo as migration/reference material, not as the primary development target.
 
@@ -31,7 +31,7 @@ Infrastructure helpers:
 
 - `infra/caddy` - Caddy site snippets
 - `infra/scripts` - host and local helper scripts
-- `infra/systemd-adventure-time-native-api.service` - checked-in Phoenix service template
+- `infra/systemd-adventure-time-tcg-api.service` - checked-in Phoenix service template
 
 ## Primary Commands
 
@@ -204,7 +204,7 @@ npm run typecheck -w @adventure-time/mobile
 
 - Caddy should proxy `app.leaetzak.love` to Phoenix on `127.0.0.1:4200`.
 - The checked-in Caddy snippet lives at `infra/caddy/app.leaetzak.love.Caddyfile`.
-- The checked-in Phoenix systemd unit template lives at `infra/systemd-adventure-time-native-api.service`.
+- The checked-in Phoenix systemd unit template lives at `infra/systemd-adventure-time-tcg-api.service`.
 - `apps/api` remains on disk as archive-only reference material and is no longer part of active workspace tooling.
 
 ## Development Guidance

@@ -9,7 +9,7 @@ import pg from "pg";
 const { Client } = pg;
 
 const OLD_ENV_PATH = "/home/zax/adventure-time-tcg/.env.postgres.production.local";
-const NEW_ENV_PATH = "/home/zax/adventure-time-native-secrets/api.env";
+const NEW_ENV_PATH = "/home/zax/adventure-time-tcg-secrets/api.env";
 const OLD_API_BASE_URL = "https://game.leaetzak.love";
 
 function parseEnvFile(contents) {

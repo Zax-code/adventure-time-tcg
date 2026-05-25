@@ -17,7 +17,7 @@ function parseEnvFile(contents) {
   return values;
 }
 
-const envRaw = await readFile("/home/zax/adventure-time-native-secrets/api.env", "utf8");
+const envRaw = await readFile("/home/zax/adventure-time-tcg-secrets/api.env", "utf8");
 const env = parseEnvFile(envRaw);
 const dictionary = JSON.parse(await readFile("/home/zax/adventure-time-tcg/data/seed/wordle-dictionary.json", "utf8"));
 const client = new Client({ connectionString: env.DATABASE_URL });

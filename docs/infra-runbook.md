@@ -10,7 +10,7 @@
 ## Checked-In Host Files
 
 - Caddy snippet: `infra/caddy/app.leaetzak.love.Caddyfile`
-- Phoenix systemd unit template: `infra/systemd-adventure-time-native-api.service`
+- Phoenix systemd unit template: `infra/systemd-adventure-time-tcg-api.service`
 
 ## Current Data Services
 
@@ -22,9 +22,9 @@
 Install/update the checked-in service file and then reload systemd:
 
 ```bash
-sudo cp infra/systemd-adventure-time-native-api.service /etc/systemd/system/adventure-time-native-api.service
+sudo cp infra/systemd-adventure-time-tcg-api.service /etc/systemd/system/adventure-time-tcg-api.service
 sudo systemctl daemon-reload
-sudo systemctl enable --now adventure-time-native-api.service
+sudo systemctl enable --now adventure-time-tcg-api.service
 ```
 
 ## Caddy Cutover

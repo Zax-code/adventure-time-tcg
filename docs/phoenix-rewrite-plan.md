@@ -1,6 +1,6 @@
 # Phoenix Rewrite Plan
 
-This document is preserved as historical context for the backend replacement that moved `adventure-time-native` from the legacy Fastify API to Phoenix.
+This document is preserved as historical context for the backend replacement that moved `adventure-time-tcg` from the legacy Fastify API to Phoenix.
 
 ## Outcome
 
@@ -23,8 +23,8 @@ The rewrite aimed to:
 ## Reference Sources
 
 Use these when historical behavior is unclear:
-- active repo: `/home/zax/adventure-time-native`
-- backup repo: `/home/zax/adventure-time-native-backup-pre-phoenix-20260324-123939`
+- active repo: `/home/zax/adventure-time-tcg`
+- backup repo: `/home/zax/adventure-time-tcg-backup-pre-phoenix-20260324-123939`
 - legacy PWA: `~/adventure-time-tcg`
 - archived Fastify backend: `apps/api`
 

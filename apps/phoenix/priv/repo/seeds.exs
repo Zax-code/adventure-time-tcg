@@ -209,7 +209,7 @@ end
 
 # ── Wordle Dictionary ────────────────────────────────────────────────────────
 # Source CSV: exported from backup DB via:
-#   PGPASSWORD=postgres psql -h 127.0.0.1 -p 5434 -U postgres adventure_time_native \
+#   PGPASSWORD=postgres psql -h 127.0.0.1 -p 5434 -U postgres adventure_time_tcg \
 #     -c "\COPY (SELECT word, is_allowed_guess, is_solution_candidate FROM wordle_dictionary_words WHERE locale='fr' ORDER BY word) TO '/tmp/fr_words.csv' CSV HEADER"
 wordle_csv = "/tmp/fr_words.csv"
 
@@ -261,7 +261,7 @@ else
   IO.puts("WARNING: Wordle CSV not found at #{wordle_csv}. Skipping Wordle seed.")
 
   IO.puts(
-    "Run: PGPASSWORD=postgres psql -h 127.0.0.1 -p 5434 -U postgres adventure_time_native -c \"\\COPY (SELECT word, is_allowed_guess, is_solution_candidate FROM wordle_dictionary_words WHERE locale='fr' ORDER BY word) TO '/tmp/fr_words.csv' CSV HEADER\""
+    "Run: PGPASSWORD=postgres psql -h 127.0.0.1 -p 5434 -U postgres adventure_time_tcg -c \"\\COPY (SELECT word, is_allowed_guess, is_solution_candidate FROM wordle_dictionary_words WHERE locale='fr' ORDER BY word) TO '/tmp/fr_words.csv' CSV HEADER\""
   )
 end
 

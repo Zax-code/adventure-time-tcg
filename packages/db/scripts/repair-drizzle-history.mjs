@@ -12,7 +12,7 @@ const migrationsFolder = new URL("../drizzle/", import.meta.url);
 const journalPath = new URL("../drizzle/meta/_journal.json", import.meta.url);
 const connectionString =
   process.env.DATABASE_URL ??
-  "postgresql://postgres:postgres@127.0.0.1:5434/adventure_time_native";
+  "postgresql://postgres:postgres@127.0.0.1:5434/adventure_time_tcg";
 
 async function loadMigrations() {
   const journal = JSON.parse(await readFile(journalPath, "utf8"));

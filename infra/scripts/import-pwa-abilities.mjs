@@ -16,7 +16,7 @@ function parseEnvFile(contents) {
 }
 
 const oldEnv = parseEnvFile(await readFile("/home/zax/adventure-time-tcg/.env.postgres.production.local", "utf8"));
-const newEnv = parseEnvFile(await readFile("/home/zax/adventure-time-native-secrets/api.env", "utf8"));
+const newEnv = parseEnvFile(await readFile("/home/zax/adventure-time-tcg-secrets/api.env", "utf8"));
 const oldDb = new Client({ connectionString: oldEnv.DATABASE_URL });
 const newDb = new Client({ connectionString: newEnv.DATABASE_URL });
 

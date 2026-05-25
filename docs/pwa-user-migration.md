@@ -40,7 +40,7 @@ MIX_ENV=dev mix pwa_import apply
 MIX_ENV=dev mix pwa_import verify
 ```
 
-Reports are written to `/home/zax/adventure-time-native/.migration-reports` by default.
+Reports are written to `/home/zax/adventure-time-tcg/.migration-reports` by default.
 
 ## What `mix pwa_import apply` Does
 
