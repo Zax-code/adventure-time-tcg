@@ -51,7 +51,14 @@ From the repo root:
 ```bash
 npm run dev:api
 npm run dev:mobile
+npm run dev:mobile:ios
+npm run dev:mobile:android
 npm run dev:mobile:tunnel
+npm run build:mobile:dev:android
+npm run build:mobile:dev:ios
+npm run build:mobile:dev:ios:simulator
+npm run build:mobile:local -- --platform both
+npm run release:mobile -- --platform both --android-note="Fixes PvP reconnection."
 npm run build
 npm run typecheck
 ```
@@ -59,8 +66,15 @@ npm run typecheck
 What they do:
 
 - `npm run dev:api` - start Phoenix
-- `npm run dev:mobile` - start Expo Go
-- `npm run dev:mobile:tunnel` - start Expo Go with tunnel mode
+- `npm run dev:mobile` - start the Expo dev server for installed development builds
+- `npm run dev:mobile:ios` - boot the iOS simulator if needed and install/run the local iOS development build
+- `npm run dev:mobile:android` - boot or create an Android emulator if needed and install/run the local Android development build
+- `npm run dev:mobile:tunnel` - start the Expo dev server for development builds with tunnel mode
+- `npm run build:mobile:dev:android` - create an Android development build with EAS using the `development` profile
+- `npm run build:mobile:dev:ios` - create a device-ready iOS development build with EAS using the `development` profile
+- `npm run build:mobile:dev:ios:simulator` - create an iOS simulator development build with EAS using the `development-simulator` profile
+- `npm run build:mobile:local -- --platform <android|ios|both>` - build local production `.aab` and/or `.ipa` artifacts with `eas build --local`
+- `npm run release:mobile -- --platform <android|ios|both> ...` - build local production artifacts first, then submit them through EAS
 
 ## Mobile Translations
 
@@ -177,6 +191,13 @@ Important mobile env value:
 EXPO_PUBLIC_API_BASE_URL=https://app.leaetzak.love
 ```
 
+Optional local mobile release helpers:
+
+```bash
+APP_STORE_CONNECT_APP_ID=1234567890
+GOOGLE_PLAY_SERVICE_ACCOUNT_KEY_PATH=/absolute/path/to/google-play-service-account.json
+```
+
 Important Phoenix env values include:
 
 - `DATABASE_URL`
@@ -210,6 +231,48 @@ npm run typecheck
 npm run build
 npm run typecheck -w @adventure-time/mobile
 ```
+
+## Mobile Local Build And Release
+
+Development build workflow:
+
+```bash
+npm run dev:mobile
+npm run dev:mobile:ios
+npm run dev:mobile:android
+```
+
+If you need a shareable development client outside the local simulator/emulator flow:
+
+```bash
+npm run build:mobile:dev:android
+npm run build:mobile:dev:ios
+npm run build:mobile:dev:ios:simulator
+```
+
+Local production artifact builds:
+
+```bash
+npm run build:mobile:local -- --platform android
+npm run build:mobile:local -- --platform ios
+npm run build:mobile:local -- --platform both
+```
+
+Root mobile release entrypoint:
+
+```bash
+npm run release:mobile -- --platform android --android-note="Adds smoother pack opening animations."
+npm run release:mobile -- --platform ios --ios-asc-app-id="1234567890" --ios-note="Verify pack opening, quests, and sign-in."
+npm run release:mobile -- --platform both --android-note="Fixes auth refresh and PvP reconnect."
+```
+
+Notes:
+
+- `release:mobile` runs Android first and iOS second when `--platform both` is used
+- Android releases now build a local `.aab`, submit that artifact with EAS, then update the Google Play release note
+- iOS releases now build a local `.ipa`, temporarily switch the selected EAS build profile to `credentialsSource: "local"`, submit that artifact to TestFlight, then restore `eas.json`
+- successful mobile releases create annotated git tags under `mobile/android/...` and `mobile/ios/...` as a local release trace
+- local iOS production builds require local signing material, typically via ignored files such as `apps/mobile/credentials.json` and related certificate/provisioning assets
 
 ## Operational Notes
 

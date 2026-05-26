@@ -1,16 +1,70 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { parseArgs } from "node:util";
+import { recordMobileRelease } from "./release-trace.mjs";
 
 const DEFAULT_PROFILE = "production";
 const DEFAULT_GROUPS = [];
+const DEFAULT_OUTPUT_PATH = path.resolve(
+  import.meta.dirname,
+  "../local-build/ios-production.ipa",
+);
 
-function printHelp() {
-  process.stdout.write(`Usage: npm run release:ios -w @adventure-time/mobile -- --asc-app-id <id> [options]\n\nOptions:\n  --asc-app-id <id>         App Store Connect Apple ID for the app\n  --group <name>            Internal TestFlight group to add (repeatable)\n  --note <text>             Optional local release note label\n  --profile <name>          EAS build/submit profile (default: ${DEFAULT_PROFILE})\n  --message <text>          Optional EAS build message\n  --help                    Show this help\n`);
+async function readEnvValueFromFile(filePath, key) {
+  if (!existsSync(filePath)) {
+    return "";
+  }
+
+  const contents = await readFile(filePath, "utf8");
+
+  for (const line of contents.split(/\r?\n/)) {
+    const trimmed = line.trim();
+
+    if (!trimmed || trimmed.startsWith("#")) {
+      continue;
+    }
+
+    const separatorIndex = trimmed.indexOf("=");
+    if (separatorIndex <= 0) {
+      continue;
+    }
+
+    const candidateKey = trimmed.slice(0, separatorIndex).trim();
+    if (candidateKey !== key) {
+      continue;
+    }
+
+    return trimmed
+      .slice(separatorIndex + 1)
+      .trim()
+      .replace(/^['"]|['"]$/g, "");
+  }
+
+  return "";
 }
 
-function parseCliOptions() {
+async function readLocalEnvValue(mobileRoot, key) {
+  const envLocalValue = await readEnvValueFromFile(
+    path.join(mobileRoot, ".env.local"),
+    key,
+  );
+
+  if (envLocalValue) {
+    return envLocalValue;
+  }
+
+  return readEnvValueFromFile(path.join(mobileRoot, ".env"), key);
+}
+
+function printHelp() {
+  process.stdout.write(
+    `Usage: npm run release:ios -w @adventure-time/mobile -- --asc-app-id <id> [options]\n\nOptions:\n  --asc-app-id <id>         App Store Connect Apple ID for the app\n  --group <name>            Internal TestFlight group to add (repeatable)\n  --note <text>             Optional local release note label\n  --profile <name>          EAS build/submit profile (default: ${DEFAULT_PROFILE})\n  --message <text>          Optional EAS build message\n  --output <path>           Local .ipa output path (default: ${DEFAULT_OUTPUT_PATH})\n  --help                    Show this help\n`,
+  );
+}
+
+async function parseCliOptions(mobileRoot) {
   const { values } = parseArgs({
     options: {
       "asc-app-id": { type: "string" },
@@ -18,6 +72,7 @@ function parseCliOptions() {
       help: { type: "boolean" },
       message: { type: "string" },
       note: { type: "string" },
+      output: { type: "string" },
       profile: { type: "string" },
     },
     allowPositionals: false,
@@ -28,10 +83,16 @@ function parseCliOptions() {
     process.exit(0);
   }
 
+  const localAscAppId = await readLocalEnvValue(
+    mobileRoot,
+    "APP_STORE_CONNECT_APP_ID",
+  );
+
   const ascAppId =
     values["asc-app-id"]?.trim() ||
     process.env.APP_STORE_CONNECT_APP_ID?.trim() ||
     process.env.EXPO_ASC_APP_ID?.trim() ||
+    localAscAppId ||
     "";
 
   if (!ascAppId) {
@@ -47,6 +108,7 @@ function parseCliOptions() {
       .filter(Boolean),
     message: values.message?.trim() || "",
     note: values.note?.trim() || "",
+    outputPath: values.output?.trim() || DEFAULT_OUTPUT_PATH,
     profile: values.profile?.trim() || DEFAULT_PROFILE,
   };
 }
@@ -56,22 +118,13 @@ function runCommand(command, args, { cwd }) {
     const child = spawn(command, args, {
       cwd,
       env: process.env,
-      stdio: ["inherit", "pipe", "pipe"],
+      stdio: "inherit",
     });
-    let stdout = "";
 
-    child.stdout.on("data", (chunk) => {
-      const text = chunk.toString();
-      stdout += text;
-      process.stdout.write(text);
-    });
-    child.stderr.on("data", (chunk) => {
-      process.stderr.write(chunk.toString());
-    });
     child.on("error", reject);
     child.on("close", (code) => {
       if (code === 0) {
-        resolve(stdout);
+        resolve();
         return;
       }
 
@@ -84,29 +137,22 @@ function runCommand(command, args, { cwd }) {
   });
 }
 
-function parseJsonOutput(stdout, label) {
-  try {
-    return JSON.parse(stdout);
-  } catch {
-    throw new Error(`Failed to parse JSON output from ${label}.`);
-  }
-}
-
-function extractBuildId(buildOutput) {
-  if (Array.isArray(buildOutput)) {
-    return buildOutput[0]?.id ?? "";
-  }
-
-  return buildOutput?.id ?? "";
-}
-
-function buildSubmitProfile(existingConfig, profileName, ascAppId) {
+function buildPatchedEasConfig(existingConfig, profileName, ascAppId) {
+  const build = existingConfig.build ?? {};
+  const currentBuildProfile = build[profileName] ?? {};
   const submit = existingConfig.submit ?? {};
   const currentProfile = submit[profileName] ?? {};
   const currentIos = currentProfile.ios ?? {};
 
   return {
     ...existingConfig,
+    build: {
+      ...build,
+      [profileName]: {
+        ...currentBuildProfile,
+        credentialsSource: "local",
+      },
+    },
     submit: {
       ...submit,
       [profileName]: {
@@ -129,7 +175,11 @@ async function withTemporarySubmitProfile(
   const easConfigPath = path.join(mobileRoot, "eas.json");
   const originalContents = await readFile(easConfigPath, "utf8");
   const parsedConfig = JSON.parse(originalContents);
-  const patchedConfig = buildSubmitProfile(parsedConfig, profileName, ascAppId);
+  const patchedConfig = buildPatchedEasConfig(
+    parsedConfig,
+    profileName,
+    ascAppId,
+  );
 
   await writeFile(
     easConfigPath,
@@ -145,39 +195,42 @@ async function withTemporarySubmitProfile(
 }
 
 async function main() {
-  const options = parseCliOptions();
   const mobileRoot = path.resolve(import.meta.dirname, "..");
-  const buildArgs = [
-    "eas-cli",
-    "build",
-    "--platform",
-    "ios",
-    "--profile",
-    options.profile,
-    "--non-interactive",
-    "--wait",
-    "--json",
-  ];
+  process.env.NODE_ENV ??= "production";
+  process.env.EAS_NO_VCS ??= "1";
+  process.env.EAS_BUILD_DISABLE_EXPO_DOCTOR_STEP ??= "1";
 
-  if (options.message) {
-    buildArgs.push("--message", options.message);
-  }
-
-  const buildOutput = parseJsonOutput(
-    await runCommand("npx", buildArgs, { cwd: mobileRoot }),
-    "eas build",
-  );
-  const buildId = extractBuildId(buildOutput);
-
-  if (!buildId) {
-    throw new Error("Failed to extract the EAS build id from build output.");
-  }
+  const options = await parseCliOptions(mobileRoot);
+  await mkdir(path.dirname(options.outputPath), { recursive: true });
 
   await withTemporarySubmitProfile(
     mobileRoot,
     options.profile,
     options.ascAppId,
     async () => {
+      const buildArgs = [
+        "eas-cli",
+        "build",
+        "--platform",
+        "ios",
+        "--profile",
+        options.profile,
+        "--local",
+        "--output",
+        options.outputPath,
+        "--non-interactive",
+      ];
+
+      if (options.message) {
+        buildArgs.push("--message", options.message);
+      }
+
+      await runCommand("npx", buildArgs, { cwd: mobileRoot });
+
+      if (!existsSync(options.outputPath)) {
+        throw new Error(`Expected local iOS artifact at ${options.outputPath}.`);
+      }
+
       if (options.note) {
         process.stdout.write(
           "Skipping TestFlight changelog submission because EAS restricts it to Enterprise plans.\n",
@@ -191,8 +244,8 @@ async function main() {
         "ios",
         "--profile",
         options.profile,
-        "--id",
-        buildId,
+        "--path",
+        options.outputPath,
         "--non-interactive",
         "--wait",
       ];
@@ -204,8 +257,17 @@ async function main() {
       await runCommand("npx", submitArgs, { cwd: mobileRoot });
     },
   );
+  await recordMobileRelease({
+    artifactPath: options.outputPath,
+    mobileRoot,
+    note: options.note,
+    platform: "ios",
+    profile: options.profile,
+  });
 
-  process.stdout.write(`iOS TestFlight release complete for build ${buildId}.\n`);
+  process.stdout.write(
+    `iOS TestFlight release complete from local artifact ${options.outputPath}.\n`,
+  );
 }
 
 main().catch((error) => {

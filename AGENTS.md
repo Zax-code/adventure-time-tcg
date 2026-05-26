@@ -87,8 +87,13 @@ Run commands from the repo root unless a package-specific command is clearer.
 
 Root:
 - `npm run dev:api` - start Phoenix
-- `npm run dev:mobile`
-- `npm run dev:mobile:tunnel`
+- `npm run dev:mobile` - start the Expo dev server for development builds
+- `npm run dev:mobile:ios` - install/run the local iOS development build
+- `npm run dev:mobile:android` - install/run the local Android development build
+- `npm run dev:mobile:tunnel` - start the Expo dev server for development builds with tunnel mode
+- `npm run build:mobile:dev:android` - create an Android EAS development build
+- `npm run build:mobile:dev:ios` - create a device-ready iOS EAS development build
+- `npm run build:mobile:dev:ios:simulator` - create an iOS simulator EAS development build
 - `npm run build`
 - `npm run typecheck`
 

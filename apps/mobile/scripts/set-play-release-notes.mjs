@@ -14,13 +14,16 @@ const ANDROID_PUBLISHER_SCOPE =
   "https://www.googleapis.com/auth/androidpublisher";
 
 function printHelp() {
-  process.stdout.write(`Usage: npm run play:release-notes -w @adventure-time/mobile -- --version-code <code> --note "<text>" [options]\n\nOptions:\n  --version-code <code>    Android versionCode to update\n  --note <text>            Short Google Play release note\n  --track <name>           Play track to update (default: ${DEFAULT_TRACK})\n  --locale <code>          Play note locale (default: ${DEFAULT_LOCALE})\n  --package <name>         Android package name (default: ${DEFAULT_PACKAGE_NAME})\n  --service-account <path> Service account JSON path\n  --help                   Show this help\n`);
+  process.stdout.write(
+    `Usage: npm run play:release-notes -w @adventure-time/mobile -- (--version-code <code> | --latest-version-code) --note "<text>" [options]\n\nOptions:\n  --version-code <code>    Android versionCode to update\n  --latest-version-code    Update the highest versionCode currently present on the target track\n  --note <text>            Short Google Play release note\n  --track <name>           Play track to update (default: ${DEFAULT_TRACK})\n  --locale <code>          Play note locale (default: ${DEFAULT_LOCALE})\n  --package <name>         Android package name (default: ${DEFAULT_PACKAGE_NAME})\n  --service-account <path> Service account JSON path\n  --help                   Show this help\n`,
+  );
 }
 
 function parseCliOptions() {
   const { values } = parseArgs({
     options: {
       help: { type: "boolean" },
+      "latest-version-code": { type: "boolean" },
       locale: { type: "string" },
       note: { type: "string" },
       package: { type: "string" },
@@ -36,11 +39,20 @@ function parseCliOptions() {
     process.exit(0);
   }
 
-  const versionCode = values["version-code"]?.trim();
+  const versionCode = values["version-code"]?.trim() || "";
+  const latestVersionCode = values["latest-version-code"] === true;
   const note = values.note?.trim();
 
-  if (!versionCode) {
-    throw new Error("Missing required --version-code value.");
+  if (!versionCode && !latestVersionCode) {
+    throw new Error(
+      "Missing required version target. Pass --version-code or --latest-version-code.",
+    );
+  }
+
+  if (versionCode && latestVersionCode) {
+    throw new Error(
+      "Pass either --version-code or --latest-version-code, not both.",
+    );
   }
 
   if (!note) {
@@ -48,6 +60,7 @@ function parseCliOptions() {
   }
 
   return {
+    latestVersionCode,
     locale: values.locale?.trim() || DEFAULT_LOCALE,
     note,
     packageName: values.package?.trim() || DEFAULT_PACKAGE_NAME,
@@ -184,9 +197,7 @@ async function commitEdit(accessToken, packageName, editId) {
   } catch (error) {
     if (
       error instanceof Error &&
-      error.message.includes(
-        "changesNotSentForReview must not be set",
-      )
+      error.message.includes("changesNotSentForReview must not be set")
     ) {
       await googlePlayRequest(
         accessToken,
@@ -200,6 +211,38 @@ async function commitEdit(accessToken, packageName, editId) {
 
     throw error;
   }
+}
+
+function resolveVersionCode(trackResponse, requestedVersionCode, latestVersionCode) {
+  if (requestedVersionCode) {
+    return requestedVersionCode;
+  }
+
+  if (!latestVersionCode) {
+    throw new Error("Unable to resolve version code target.");
+  }
+
+  const allVersionCodes = (Array.isArray(trackResponse.releases)
+    ? trackResponse.releases
+    : []
+  )
+    .flatMap((release) =>
+      Array.isArray(release.versionCodes)
+        ? release.versionCodes.map((versionCode) => String(versionCode))
+        : [],
+    )
+    .filter(Boolean)
+    .sort((left, right) => Number(right) - Number(left));
+
+  const resolvedVersionCode = allVersionCodes[0] || "";
+
+  if (!resolvedVersionCode) {
+    throw new Error(
+      `No version codes were found on the ${trackResponse.track ?? DEFAULT_TRACK} track.`,
+    );
+  }
+
+  return resolvedVersionCode;
 }
 
 function updateReleaseNotes(trackResponse, versionCode, locale, note) {
@@ -256,9 +299,14 @@ async function main() {
     accessToken,
     `applications/${packageName}/edits/${edit.id}/tracks/${trackName}`,
   );
-  const { releases, updatedRelease } = updateReleaseNotes(
+  const versionCode = resolveVersionCode(
     trackResponse,
     options.versionCode,
+    options.latestVersionCode,
+  );
+  const { releases, updatedRelease } = updateReleaseNotes(
+    trackResponse,
+    versionCode,
     options.locale,
     options.note,
   );
@@ -274,7 +322,7 @@ async function main() {
   await commitEdit(accessToken, packageName, edit.id);
 
   process.stdout.write(
-    `Updated Google Play ${options.track} release note for versionCode ${options.versionCode} (${updatedRelease.status ?? "unknown status"}) in ${options.locale}.\n`,
+    `Updated Google Play ${options.track} release note for versionCode ${versionCode} (${updatedRelease.status ?? "unknown status"}) in ${options.locale}.\n`,
   );
 }
 

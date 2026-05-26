@@ -27,4 +27,4 @@ if (( ${#stale_ngrok_pids[@]} > 0 )); then
   sleep 1
 fi
 
-exec npx expo start --go "$@"
+exec npx expo start --dev-client "$@"

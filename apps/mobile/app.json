@@ -6,6 +6,7 @@
     "scheme": "adventure-time",
     "userInterfaceStyle": "automatic",
     "plugins": [
+      "expo-dev-client",
       "expo-router",
       "expo-secure-store",
       "expo-font",
