@@ -742,6 +742,7 @@ export const pvpMatchSchema = z.object({
   inviteeLoadout: z.array(z.string()),
   winnerId: z.string().nullable(),
   currentTurn: z.number().int().positive().optional(),
+  hasReplayData: z.boolean().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -834,6 +835,16 @@ export const pvpBattleStateSchema = pvpParticipantBattleStateSchema;
 export const pvpMatchDetailResponseSchema = z.object({
   match: pvpMatchSchema,
   battleState: pvpParticipantBattleStateSchema.nullable(),
+  replay: z
+    .object({
+      log: z.array(pvpCombatEventSchema),
+      initialState: z.record(z.string(), z.unknown()),
+      finalState: z.record(z.string(), z.unknown()).nullable().optional(),
+      seed: z.string(),
+      totalTurns: z.number().int().positive().nullable().optional(),
+    })
+    .nullable()
+    .optional(),
 });
 
 export const pvpMatchMutationResponseSchema = z.object({
@@ -892,6 +903,15 @@ export const pvpInvitesResponseSchema = z.object({
 
 export const pvpHistoryResponseSchema = z.object({
   matches: z.array(pvpMatchSchema),
+  totalCount: z.number().int().nonnegative().optional(),
+  currentUserId: z.string().optional(),
+  stats: z
+    .object({
+      wins: z.number().int().nonnegative(),
+      losses: z.number().int().nonnegative(),
+      winRate: z.number().int().nonnegative(),
+    })
+    .optional(),
 });
 
 export const adminCardSummarySchema = z.object({
@@ -1239,8 +1259,14 @@ export const pvpSpectateMatchSchema = z.object({
   id: z.string(),
   inviterId: z.string(),
   inviteeId: z.string(),
+  inviterName: z.string().nullable().optional(),
+  inviteeName: z.string().nullable().optional(),
+  status: z
+    .enum(["PENDING", "IN_PROGRESS", "COMPLETED", "DECLINED", "EXPIRED"])
+    .optional(),
   currentTurn: z.number().int().positive(),
   createdAt: z.string(),
+  updatedAt: z.string().optional(),
 });
 
 export const pvpSpectateResponseSchema = z.object({

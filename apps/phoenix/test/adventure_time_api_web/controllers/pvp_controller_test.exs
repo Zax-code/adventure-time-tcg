@@ -228,6 +228,21 @@ defmodule AdventureTimeApiWeb.PvpControllerTest do
     assert history_response["match"]["status"] == "COMPLETED"
     assert history_response["match"]["winnerId"] == acting_user_id
     assert history_response["battleState"]["phase"] == "ended"
+    assert history_response["replay"]["seed"]
+    assert is_list(history_response["replay"]["log"])
+    assert history_response["replay"]["initialState"]["id"] == match_id
+    assert history_response["replay"]["finalState"]["phase"] == "ended"
+    assert history_response["replay"]["totalTurns"] >= 1
+
+    loser_id = if acting_user_id == inviter.id, do: invitee.id, else: inviter.id
+
+    history_list_conn = other_token |> auth_conn() |> get(~p"/pvp/history")
+    history_list_response = json_response(history_list_conn, 200)
+
+    assert history_list_response["currentUserId"] == loser_id
+    assert history_list_response["totalCount"] == 1
+    assert history_list_response["stats"]["wins"] + history_list_response["stats"]["losses"] == 1
+    assert Enum.at(history_list_response["matches"], 0)["hasReplayData"] == true
   end
 
   test "loadouts can be updated and deleted with validation errors", _context do
@@ -327,6 +342,29 @@ defmodule AdventureTimeApiWeb.PvpControllerTest do
     assert json_response(forbidden_history_conn, 403) == %{"error" => "Forbidden"}
 
     assert inviter.id != invitee.id
+  end
+
+  test "sent invites can be canceled by the inviter", _context do
+    %{inviter_token: inviter_token, invitee_token: invitee_token, match_id: match_id} =
+      create_pending_match_fixture("cancel")
+
+    cancel_conn =
+      inviter_token
+      |> auth_conn()
+      |> delete(~p"/pvp/invites?matchId=#{match_id}")
+
+    assert json_response(cancel_conn, 200) == %{"success" => true}
+
+    invites_conn = inviter_token |> auth_conn() |> get(~p"/pvp/invites")
+    assert json_response(invites_conn, 200)["invites"] == []
+
+    received_invites_conn = invitee_token |> auth_conn() |> get(~p"/pvp/invites")
+    assert json_response(received_invites_conn, 200)["invites"] == []
+
+    history_conn = invitee_token |> auth_conn() |> get(~p"/pvp/history")
+    assert %{"matches" => [match]} = json_response(history_conn, 200)
+    assert match["id"] == match_id
+    assert match["status"] == "DECLINED"
   end
 
   test "matches and spectate endpoints expose accepted matches", _context do
@@ -460,7 +498,6 @@ defmodule AdventureTimeApiWeb.PvpControllerTest do
 
   test "expired invites move to history and no longer block reinvites", _context do
     %{
-      inviter: inviter,
       invitee: invitee,
       inviter_token: inviter_token,
       invitee_token: invitee_token,

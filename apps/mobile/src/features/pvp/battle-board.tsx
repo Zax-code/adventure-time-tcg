@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Pressable, Text, View } from "react-native";
 
 import type { PvpAction, PvpEndTurnInput } from "@adventure-time/api-client";
@@ -35,6 +35,8 @@ interface BattleBoardProps {
   onEnterTargeting: (mode: Omit<TargetingMode, "validTargetIds"> & { validTargetIds?: string[] }) => void;
   submitAction: (action: PvpAction) => void;
   submitEndTurn: (input?: PvpEndTurnInput) => void;
+  readOnly?: boolean;
+  bottomOverlay?: ReactNode;
 }
 
 function sortByPosition<T extends { position?: number | null }>(items: T[]) {
@@ -60,6 +62,8 @@ export function BattleBoard({
   onEnterTargeting,
   submitAction,
   submitEndTurn,
+  readOnly = false,
+  bottomOverlay,
 }: BattleBoardProps) {
   const { t } = useTranslation();
   const { myPlayer, opponentPlayer, isMyTurn, turn, phase, winnerId, myUserId, abilityDefinitions } = matchView;
@@ -103,7 +107,9 @@ export function BattleBoard({
       ) ?? null
     : null;
 
-  const hint = isMyTurn
+  const hint = readOnly
+    ? t("pvp.board.hint.waiting")
+    : isMyTurn
     ? targeting
       ? targeting.stage === "copy-source"
         ? t("pvp.board.hint.copySource")
@@ -138,6 +144,10 @@ export function BattleBoard({
   const isOverlayOpen = showActionModal || showLogModal || longPressUnit !== null;
 
   const handleUnitPress = (instanceId: string) => {
+    if (readOnly) {
+      return;
+    }
+
     if (targeting) {
       if (targeting.validTargetIds.includes(instanceId)) {
         onSelectTarget(instanceId);
@@ -164,12 +174,20 @@ export function BattleBoard({
   };
 
   const handleOppUnitPress = (instanceId: string) => {
+    if (readOnly) {
+      return;
+    }
+
     if (targeting?.validTargetIds.includes(instanceId)) {
       onSelectTarget(instanceId);
     }
   };
 
   const handleBenchPress = (instanceId: string) => {
+    if (readOnly) {
+      return;
+    }
+
     if (targeting?.validTargetIds.includes(instanceId)) {
       onSelectTarget(instanceId);
       return;
@@ -212,9 +230,11 @@ export function BattleBoard({
               <Pressable onPress={() => setShowLogModal(true)} style={overlayButtonStyle}>
                 <ClockIcon size={15} color="#334155" />
               </Pressable>
-              <Pressable onPress={onConcede} style={overlayButtonStyle}>
-                <XCircleIcon size={15} color="#e11d48" />
-              </Pressable>
+              {!readOnly ? (
+                <Pressable onPress={onConcede} style={overlayButtonStyle}>
+                  <XCircleIcon size={15} color="#e11d48" />
+                </Pressable>
+              ) : null}
             </View>
           </View>
 
@@ -332,30 +352,34 @@ export function BattleBoard({
             </View>
           </View>
 
-          <ActionButtons
-            isSwapMode={isSwapMode}
-            isTargeting={targeting !== null}
-            hasBench={hasBench}
-            isMyTurn={isMyTurn}
-            isActing={isActing}
-            onSwapToggle={onSwapToggle}
-            onCancel={onCancelTargeting}
-            onEndTurn={onEndTurn}
-          />
+          {!readOnly ? (
+            <ActionButtons
+              isSwapMode={isSwapMode}
+              isTargeting={targeting !== null}
+              hasBench={hasBench}
+              isMyTurn={isMyTurn}
+              isActing={isActing}
+              onSwapToggle={onSwapToggle}
+              onCancel={onCancelTargeting}
+              onEndTurn={onEndTurn}
+            />
+          ) : null}
         </View>
       </View>
 
-      <TargetSelectionHint targeting={targeting} />
+      {!readOnly ? <TargetSelectionHint targeting={targeting} /> : null}
 
-      {showTurnBanner ? <TurnBanner key={bannerKey} isMyTurn={isMyTurn} onDone={() => setShowTurnBanner(false)} /> : null}
+      {!readOnly && showTurnBanner ? <TurnBanner key={bannerKey} isMyTurn={isMyTurn} onDone={() => setShowTurnBanner(false)} /> : null}
 
-      <ResultsScreen
-        phase={phase}
-        winnerId={winnerId}
-        myUserId={myUserId}
-        opponentName={opponentPlayer.name}
-        onBack={onBack}
-      />
+      {!readOnly ? (
+        <ResultsScreen
+          phase={phase}
+          winnerId={winnerId}
+          myUserId={myUserId}
+          opponentName={opponentPlayer.name}
+          onBack={onBack}
+        />
+      ) : null}
 
       <ActionModal
         visible={showActionModal}
@@ -383,6 +407,12 @@ export function BattleBoard({
         abilityDefinitions={abilityDefinitions}
         onClose={() => setLongPressUnitId(null)}
       />
+
+      {bottomOverlay ? (
+        <View pointerEvents="box-none" className="absolute bottom-3 left-0 right-0 items-center px-6">
+          {bottomOverlay}
+        </View>
+      ) : null}
     </View>
   );
 }

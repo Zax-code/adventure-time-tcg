@@ -145,6 +145,24 @@ defmodule AdventureTimeApi.Pvp do
     end
   end
 
+  def cancel_invite(user_id, match_id) do
+    with %Match{} = match <- Repo.get(Match, match_id),
+         match <- maybe_expire_match_if_due(match),
+         :ok <- verify_participant(match, user_id),
+         :ok <- guard_status(match, "pending") do
+      match
+      |> Match.changeset(%{status: "declined"})
+      |> Repo.update()
+      |> case do
+        {:ok, _match} -> {:ok, %{success: true}}
+        {:error, changeset} -> {:error, changeset}
+      end
+    else
+      nil -> {:error, :not_found}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
   def list_matches(user_id) do
     matches =
       Match
@@ -171,7 +189,29 @@ defmodule AdventureTimeApi.Pvp do
       |> order_by([m], desc: m.updated_at)
       |> Repo.all()
 
-    {:ok, serialize_matches(matches)}
+    completed_matches = Enum.filter(matches, &(&1.status == "completed"))
+    wins = Enum.count(completed_matches, &(&1.winner_id == user_id))
+    losses = Enum.count(completed_matches, &(&1.winner_id && &1.winner_id != user_id))
+    display_names = user_display_map(matches)
+
+    serialized_matches =
+      Enum.map(matches, fn match ->
+        match
+        |> serialize_match(display_names)
+        |> maybe_put_replay_flag(match)
+      end)
+
+    {:ok,
+     %{
+       matches: serialized_matches,
+       totalCount: length(completed_matches),
+       currentUserId: user_id,
+       stats: %{
+         wins: wins,
+         losses: losses,
+         winRate: if(wins + losses > 0, do: round(wins / (wins + losses) * 100), else: 0)
+       }
+     }}
   end
 
   def get_match(user_id, match_id) do
@@ -192,7 +232,12 @@ defmodule AdventureTimeApi.Pvp do
          :ok <- verify_participant(match, user_id),
          true <- match.status in ["completed", "declined", "expired"],
          {:ok, battle_state} <- build_battle_state_for_view(match, user_id) do
-      {:ok, %{match: serialize_match(match), battleState: battle_state}}
+      {:ok,
+       %{
+         match: serialize_match(match),
+         battleState: battle_state,
+         replay: build_replay_payload(match)
+       }}
     else
       nil -> {:error, :not_found}
       false -> {:error, :not_found}
@@ -725,6 +770,13 @@ defmodule AdventureTimeApi.Pvp do
     Enum.map(matches, &serialize_match(&1, display_names))
   end
 
+  defp maybe_put_replay_flag(payload, %Match{status: "completed", initial_state: initial_state})
+       when is_map(initial_state) do
+    Map.put(payload, :hasReplayData, true)
+  end
+
+  defp maybe_put_replay_flag(payload, _match), do: payload
+
   defp user_display_map(matches) do
     user_ids =
       matches
@@ -783,6 +835,23 @@ defmodule AdventureTimeApi.Pvp do
       {:ok, BattleEngine.build_spectator_view(state)}
     end
   end
+
+  defp build_replay_payload(%Match{status: "completed"} = match) do
+    with %{} = initial_state <- match.initial_state,
+         {:ok, final_state} <- reconstruct_state(match.id) do
+      %{
+        log: Map.get(final_state, "log", []),
+        initialState: initial_state,
+        finalState: final_state,
+        seed: match.seed,
+        totalTurns: Map.get(final_state, "turn")
+      }
+    else
+      _ -> nil
+    end
+  end
+
+  defp build_replay_payload(_match), do: nil
 
   defp latest_snapshot_for_match(match_id) do
     MatchSnapshot
