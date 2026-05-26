@@ -207,7 +207,7 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
 
   # Apply a status to a unit. Returns {state, [events]}.
   # opts: [magnitude: integer | nil, source_instance_id: string | nil]
-  defp apply_status(state, unit_id, name, duration, opts \\ []) do
+  defp apply_status(state, unit_id, name, duration, opts) do
     magnitude = Keyword.get(opts, :magnitude)
     source_id = Keyword.get(opts, :source_instance_id)
     trigger_passives = Keyword.get(opts, :trigger_passives, true)
@@ -477,19 +477,6 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
     Map.update!(unit, "statuses", fn statuses ->
       Enum.reject(statuses, &(&1["name"] == name))
     end)
-  end
-
-  defp remove_status(state, unit_id, name) do
-    event =
-      new_event(state, "statusExpire", %{
-        "targetId" => unit_id,
-        "unitId" => unit_id,
-        "statusName" => name,
-        "status" => name
-      })
-
-    state = update_unit(state, unit_id, fn u -> remove_status_from_unit(u, name) end)
-    {append_log(state, [event]), event}
   end
 
   # Tick statuses for all active units of a given player.
@@ -954,7 +941,7 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
     end
   end
 
-  defp check_passives(state, trigger, context \\ %{}) do
+  defp check_passives(state, trigger, context) do
     Enum.reduce(alive_active_units_with_players(state), state, fn {player, unit}, acc_state ->
       current_unit =
         case find_unit_across_players(acc_state, unit["instanceId"]) do
@@ -1872,7 +1859,7 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
     end
   end
 
-  defp validate_energy(player, ability_def, extra_cost \\ 0) do
+  defp validate_energy(player, ability_def, extra_cost) do
     cost = (ability_def["cost"] || 0) + extra_cost
     if player["energy"] >= cost, do: :ok, else: {:error, :not_enough_energy}
   end
@@ -2372,12 +2359,12 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
     )
   end
 
-  defp apply_ability_heal_amount(state, unit_id, amount, opts \\ []) do
+  defp apply_ability_heal_amount(state, unit_id, amount, opts) do
     {:ok, unit} = find_unit_across_players(state, unit_id)
     do_heal_unit(state, unit_id, unit["hp"], unit["maxHp"], amount, opts)
   end
 
-  defp do_heal_unit(state, unit_id, hp_before, max_hp, amount, opts \\ []) do
+  defp do_heal_unit(state, unit_id, hp_before, max_hp, amount, opts) do
     hp_after = min(max_hp, hp_before + amount)
     actual = hp_after - hp_before
     healer_id = Keyword.get(opts, :healer_id)
