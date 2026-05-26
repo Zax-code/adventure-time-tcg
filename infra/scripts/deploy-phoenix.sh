@@ -66,6 +66,7 @@ APP_DIR="apps/phoenix"
 SERVICE_NAME="adventure-time-tcg-api.service"
 HEALTH_URL=""
 SKIP_MIGRATE="false"
+RESOLVED_REF=""
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -122,15 +123,19 @@ require_clean_worktree
 echo "Fetching latest repository state..."
 git fetch --tags --prune origin
 
-if ! git rev-parse --verify --quiet "${REF}^{commit}" >/dev/null; then
+if git rev-parse --verify --quiet "origin/${REF}^{commit}" >/dev/null; then
+  RESOLVED_REF="origin/${REF}"
+elif git rev-parse --verify --quiet "${REF}^{commit}" >/dev/null; then
+  RESOLVED_REF="$REF"
+else
   echo "Unable to resolve deploy ref: $REF" >&2
   exit 1
 fi
 
-TARGET_SHA="$(git rev-parse "${REF}^{commit}")"
+TARGET_SHA="$(git rev-parse "${RESOLVED_REF}^{commit}")"
 CURRENT_SHA="$(git rev-parse HEAD)"
 
-echo "Deploying Phoenix from $CURRENT_SHA to $TARGET_SHA."
+echo "Deploying Phoenix from $CURRENT_SHA to $TARGET_SHA using $RESOLVED_REF."
 git checkout -B main "$TARGET_SHA"
 
 cd "$REPO_ROOT/$APP_DIR"
