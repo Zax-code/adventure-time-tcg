@@ -581,6 +581,14 @@ export class ApiClient {
     );
   }
 
+  async cancelPvpInvite(matchId: string) {
+    return this.request(
+      `/pvp/invites?matchId=${encodeURIComponent(matchId)}`,
+      { method: "DELETE" },
+      (data) => data as { success: boolean },
+    );
+  }
+
   async acceptPvpMatch(matchId: string, loadout: string[]) {
     return this.request(
       `/pvp/matches/${matchId}/accept`,

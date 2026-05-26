@@ -1,0 +1,1302 @@
+{
+  "rarities": [
+    {
+      "id": "69787fda-646b-4b38-aee0-707e733e4337",
+      "name": "Common",
+      "dropRate": 60,
+      "color": "#9CA3AF"
+    },
+    {
+      "id": "340c5059-b2fb-45ad-899f-b9379830faad",
+      "name": "Uncommon",
+      "dropRate": 25,
+      "color": "#10B981"
+    },
+    {
+      "id": "15e6b19e-94bc-4ebc-93fa-5da53aa01527",
+      "name": "Rare",
+      "dropRate": 10,
+      "color": "#3B82F6"
+    },
+    {
+      "id": "0ce8b509-affb-4241-b303-b40bf7e00921",
+      "name": "Epic",
+      "dropRate": 1,
+      "color": "#8B5CF6"
+    },
+    {
+      "id": "c0311b67-1b78-49f0-8306-5e9cef457ba8",
+      "name": "Legendary",
+      "dropRate": 0.10000000149011612,
+      "color": "#F59E0B"
+    }
+  ],
+  "packs": [
+    {
+      "id": "87b86283-4a00-4940-b8b8-af346c500c80",
+      "name": "Basic Pack",
+      "description": "3 cards with standard drop rates. A great way to start!",
+      "cardCount": 3,
+      "cost": 50,
+      "color": "#9CA3AF",
+      "isActive": true,
+      "guaranteedRarity": null
+    },
+    {
+      "id": "c7f9d07d-3c25-42cb-ba93-bb53b3357fd9",
+      "name": "Epic Pack",
+      "description": "6 cards with at least 1 guaranteed Epic or better!",
+      "cardCount": 6,
+      "cost": 400,
+      "color": "#EC4899",
+      "isActive": true,
+      "guaranteedRarity": "Epic"
+    },
+    {
+      "id": "e307357a-7f48-4928-a897-bbf05b30c0ca",
+      "name": "Legendary Pack",
+      "description": "7 cards with at least 1 guaranteed Legendary!",
+      "cardCount": 7,
+      "cost": 1000,
+      "color": "#F59E0B",
+      "isActive": true,
+      "guaranteedRarity": "Legendary"
+    },
+    {
+      "id": "9f35818e-6c8e-4d15-9036-e6e51bd571c8",
+      "name": "Premium Pack",
+      "description": "5 cards with at least 1 guaranteed Rare or better!",
+      "cardCount": 5,
+      "cost": 200,
+      "color": "#8B5CF6",
+      "isActive": true,
+      "guaranteedRarity": "Rare"
+    },
+    {
+      "id": "e36b6468-a945-4ad2-896b-f26285df6c3b",
+      "name": "Standard Pack",
+      "description": "5 cards with standard drop rates.",
+      "cardCount": 5,
+      "cost": 100,
+      "color": "#3B82F6",
+      "isActive": true,
+      "guaranteedRarity": null
+    }
+  ],
+  "cards": [
+    {
+      "card": {
+        "hp": 100,
+        "id": "4ed9e794-0bc6-4897-99a4-fd94f51d569e",
+        "name": "Canopy Huntress",
+        "type": "Magic",
+        "speed": 57,
+        "attack": 62,
+        "rarity": {
+          "id": "15e6b19e-94bc-4ebc-93fa-5da53aa01527",
+          "name": "Rare",
+          "color": "#3B82F6",
+          "dropRate": 10
+        },
+        "defense": 42,
+        "character": "Huntress Wizard",
+        "isArchived": false,
+        "isFeatured": false,
+        "description": "One part fierce warrior, one part mystical druid, all parts socially distant. The forest is her home, her weapon, and her only reliable date."
+      },
+      "imageAsset": {
+        "id": "a7211f6a-a4b9-5778-8648-07ad0aeffa44",
+        "kind": "card",
+        "mimeType": "image/webp",
+        "objectKey": "migration/pwa/card/4ed9e794-0bc6-4897-99a4-fd94f51d569e/a7211f6a-a4b9-5778-8648-07ad0aeffa44.webp",
+        "placeholderSvg": null,
+        "seedFile": "4ed9e794-0bc6-4897-99a4-fd94f51d569e.webp"
+      },
+      "cardAbility": {
+        "id": "6e660c01-6cdd-5948-917e-c1586efea4b7",
+        "skillId": "eb38b74e-59d4-517c-b6b9-d9c25fef1ca6",
+        "passiveId": null,
+        "ultimateId": "f76d51aa-51c6-5146-9964-8ad1bc67be00"
+      },
+      "abilities": {
+        "skill": {
+          "id": "eb38b74e-59d4-517c-b6b9-d9c25fef1ca6",
+          "key": "hw.piercingArrow",
+          "cost": 2,
+          "name": "Piercing Arrow",
+          "type": "SKILL",
+          "nameFr": "Fl\u00e8che perforante",
+          "payload": {
+            "target": "enemy",
+            "damageMul": 1.1,
+            "ignoreDefensePct": 0.5
+          },
+          "cooldown": 2,
+          "description": "Deal 110% damage ignoring 50% of target's Defense.",
+          "oncePerMatch": false,
+          "descriptionFr": "Inflige 110 % de d\u00e9g\u00e2ts en ignorant 50 % de la d\u00e9fense de la cible."
+        },
+        "passive": null,
+        "ultimate": {
+          "id": "f76d51aa-51c6-5146-9964-8ad1bc67be00",
+          "key": "hw.verdantBind",
+          "cost": 3,
+          "name": "Verdant Bind",
+          "type": "ULTIMATE",
+          "nameFr": "Entrave verdoyante",
+          "payload": {
+            "target": "enemy",
+            "damageMul": 1.5,
+            "applyStatuses": [
+              {
+                "name": "Freeze",
+                "duration": 1
+              },
+              {
+                "name": "Regeneration",
+                "target": "allAllies",
+                "duration": 2
+              }
+            ]
+          },
+          "cooldown": null,
+          "description": "Deals a 150% to a single target, applies Freeze to that target and Regeneration to all allies.",
+          "oncePerMatch": true,
+          "descriptionFr": "Inflige 150 % de d\u00e9g\u00e2ts \u00e0 une cible, applique Gel \u00e0 cette cible et R\u00e9g\u00e9n\u00e9ration \u00e0 tous les alli\u00e9s."
+        }
+      }
+    },
+    {
+      "card": {
+        "hp": 92,
+        "id": "6ae49754-57ad-4847-b256-e427fdfd8d2f",
+        "name": "Cartridge Hop",
+        "type": "Tech",
+        "speed": 51,
+        "attack": 34,
+        "rarity": {
+          "id": "69787fda-646b-4b38-aee0-707e733e4337",
+          "name": "Common",
+          "color": "#9CA3AF",
+          "dropRate": 60
+        },
+        "defense": 46,
+        "character": "BMO",
+        "isArchived": false,
+        "isFeatured": false,
+        "description": "Stealth mode: enabled. Sound effects: also enabled. Stealth score: adorable."
+      },
+      "imageAsset": {
+        "id": "f9537735-0a87-5278-b2de-86819a097688",
+        "kind": "card",
+        "mimeType": "image/webp",
+        "objectKey": "migration/pwa/card/6ae49754-57ad-4847-b256-e427fdfd8d2f/f9537735-0a87-5278-b2de-86819a097688.webp",
+        "placeholderSvg": null,
+        "seedFile": "6ae49754-57ad-4847-b256-e427fdfd8d2f.webp"
+      },
+      "cardAbility": {
+        "id": "e5c263b4-cff9-55b9-9dd6-cacbecb78654",
+        "skillId": "644fdc5c-ee57-55af-a797-c339d5ddfbee",
+        "passiveId": null,
+        "ultimateId": "1d88eef5-8c23-54a1-a99a-762a6400fb76"
+      },
+      "abilities": {
+        "skill": {
+          "id": "644fdc5c-ee57-55af-a797-c339d5ddfbee",
+          "key": "bmo.overclock",
+          "cost": 2,
+          "name": "Overclock",
+          "type": "SKILL",
+          "nameFr": "Surcaden\u00e7age",
+          "payload": {
+            "target": "ally",
+            "applyStatuses": [
+              {
+                "name": "Haste",
+                "duration": 2
+              },
+              {
+                "name": "Empower",
+                "duration": 1
+              }
+            ]
+          },
+          "cooldown": 2,
+          "description": "Grant Haste and Empower to an ally.",
+          "oncePerMatch": false,
+          "descriptionFr": "Accorde H\u00e2te et Puissance \u00e0 un alli\u00e9."
+        },
+        "passive": null,
+        "ultimate": {
+          "id": "1d88eef5-8c23-54a1-a99a-762a6400fb76",
+          "key": "bmo.reboot",
+          "cost": 3,
+          "name": "Reboot",
+          "type": "ULTIMATE",
+          "nameFr": "Red\u00e9marrage",
+          "payload": {
+            "target": "allAllies",
+            "cleanse": {
+              "count": 99,
+              "target": "allAllies"
+            },
+            "applyStatuses": [
+              {
+                "name": "Barrier",
+                "target": "allAllies",
+                "duration": 2
+              }
+            ],
+            "shieldPctOfMaxHp": 0.15
+          },
+          "cooldown": null,
+          "description": "Cleanse and Shield all allies (15% max HP), grant Barrier.",
+          "oncePerMatch": true,
+          "descriptionFr": "Dissipe les malus de tous les alli\u00e9s, leur accorde un bouclier \u00e9quivalent \u00e0 15 % de leurs PV max, puis leur applique Barri\u00e8re."
+        }
+      }
+    },
+    {
+      "card": {
+        "hp": 125,
+        "id": "76a7469a-f982-484f-a7be-582ae345e335",
+        "name": "Chill Vibes",
+        "type": "Hero",
+        "speed": 58,
+        "attack": 58,
+        "rarity": {
+          "id": "0ce8b509-affb-4241-b303-b40bf7e00921",
+          "name": "Epic",
+          "color": "#8B5CF6",
+          "dropRate": 1
+        },
+        "defense": 55,
+        "character": "Jake",
+        "isArchived": false,
+        "isFeatured": false,
+        "description": "Meditation tip from Jake: breathe in, breathe out, become a chair. Finn sat on him for an hour. Zen achieved."
+      },
+      "imageAsset": {
+        "id": "15dc1cfd-ba9b-5a19-95d7-13d6ef664186",
+        "kind": "card",
+        "mimeType": "image/webp",
+        "objectKey": "migration/pwa/card/76a7469a-f982-484f-a7be-582ae345e335/15dc1cfd-ba9b-5a19-95d7-13d6ef664186.webp",
+        "placeholderSvg": null,
+        "seedFile": "76a7469a-f982-484f-a7be-582ae345e335.webp"
+      },
+      "cardAbility": {
+        "id": "0a70c952-a878-5401-8529-3e78dae34fc8",
+        "skillId": "ae4efd43-55f8-5f62-bfa8-6cf15f3b2777",
+        "passiveId": "52a5b289-e680-53a7-8ec8-a36ca0f6decf",
+        "ultimateId": "d07356cc-1014-51da-928a-d3545cd10349"
+      },
+      "abilities": {
+        "skill": {
+          "id": "ae4efd43-55f8-5f62-bfa8-6cf15f3b2777",
+          "key": "jake.elasticSlam",
+          "cost": 2,
+          "name": "Elastic Slam",
+          "type": "SKILL",
+          "nameFr": "\u00c9crasement \u00e9lastique",
+          "payload": {
+            "target": "enemy",
+            "damageMul": 1.1,
+            "applyStatuses": [
+              {
+                "name": "Taunt",
+                "target": "self",
+                "duration": 1
+              }
+            ]
+          },
+          "cooldown": 2,
+          "description": "Deal 110% damage to a target and apply Taunt to self for 1 turn.",
+          "oncePerMatch": false,
+          "descriptionFr": "Inflige 110 % de d\u00e9g\u00e2ts \u00e0 une cible et s'applique Provocation pendant 1 tour."
+        },
+        "passive": {
+          "id": "52a5b289-e680-53a7-8ec8-a36ca0f6decf",
+          "key": "jake.shapeshifter",
+          "cost": 0,
+          "name": "Shapeshifter",
+          "type": "PASSIVE",
+          "nameFr": "M\u00e9tamorphe",
+          "payload": {
+            "chance": 0.2,
+            "target": "self",
+            "trigger": "onDamageTaken",
+            "shieldTarget": "self",
+            "shieldPctOfMaxHp": 0.1
+          },
+          "cooldown": null,
+          "description": "when taking damages 20% chance of getting a 10% max HP shield",
+          "oncePerMatch": false,
+          "descriptionFr": "Quand il subit des d\u00e9g\u00e2ts, a 20 % de chances de gagner un bouclier \u00e9quivalent \u00e0 10 % de ses PV max."
+        },
+        "ultimate": {
+          "id": "d07356cc-1014-51da-928a-d3545cd10349",
+          "key": "jake.megaMorph",
+          "cost": 3,
+          "name": "Mega Morph",
+          "type": "ULTIMATE",
+          "nameFr": "M\u00e9ga morph",
+          "payload": {
+            "target": "self",
+            "shieldTarget": "self",
+            "applyStatuses": [
+              {
+                "name": "GuardUp",
+                "target": "allAllies",
+                "duration": 2
+              },
+              {
+                "name": "Haste",
+                "target": "allAllies",
+                "duration": 2
+              }
+            ],
+            "shieldPctOfMaxHp": 0.25
+          },
+          "cooldown": null,
+          "description": "Grant Guard Up and Shield (25% max HP) to self, Haste to all allies.",
+          "oncePerMatch": true,
+          "descriptionFr": "S'accorde Garde renforc\u00e9e et un bouclier \u00e9quivalent \u00e0 25 % de ses PV max, puis accorde H\u00e2te \u00e0 tous les alli\u00e9s."
+        }
+      }
+    },
+    {
+      "card": {
+        "hp": 88,
+        "id": "95fb3bf2-9fa1-474d-9178-7699f42a8dd9",
+        "name": "Classic",
+        "type": "Candy",
+        "speed": 56,
+        "attack": 42,
+        "rarity": {
+          "id": "69787fda-646b-4b38-aee0-707e733e4337",
+          "name": "Common",
+          "color": "#9CA3AF",
+          "dropRate": 60
+        },
+        "defense": 48,
+        "character": "Peppermint Butler",
+        "isArchived": false,
+        "isFeatured": false,
+        "description": "Polite bow, mysterious aura. He\u2019ll serve you tea and an eldritch favor receipt."
+      },
+      "imageAsset": {
+        "id": "4ce9cc7a-9149-5f33-8c67-a5c699e3ac17",
+        "kind": "card",
+        "mimeType": "image/webp",
+        "objectKey": "migration/pwa/card/95fb3bf2-9fa1-474d-9178-7699f42a8dd9/4ce9cc7a-9149-5f33-8c67-a5c699e3ac17.webp",
+        "placeholderSvg": null,
+        "seedFile": "95fb3bf2-9fa1-474d-9178-7699f42a8dd9.webp"
+      },
+      "cardAbility": {
+        "id": "c95f8b68-0ec1-5b75-982c-315738cceee2",
+        "skillId": "94813c50-1adf-525d-8d1a-6021908b5879",
+        "passiveId": null,
+        "ultimateId": "53847c51-0731-5f9a-8331-bb06e1c8e7b6"
+      },
+      "abilities": {
+        "skill": {
+          "id": "94813c50-1adf-525d-8d1a-6021908b5879",
+          "key": "peppermint.sweetHex",
+          "cost": 2,
+          "name": "Sweet Hex",
+          "type": "SKILL",
+          "nameFr": "Mal\u00e9fice sucr\u00e9",
+          "payload": {
+            "target": "enemy",
+            "damageMul": 0.85,
+            "applyStatuses": [
+              {
+                "name": "Weakened",
+                "duration": 2
+              },
+              {
+                "name": "Poison",
+                "duration": 3,
+                "magnitude": 2
+              }
+            ]
+          },
+          "cooldown": 2,
+          "description": "Deal 85% damage, apply Weakened and Poison (2 stacks).",
+          "oncePerMatch": false,
+          "descriptionFr": "Inflige 85 % de d\u00e9g\u00e2ts et applique Affaibli et Poison (2 charges)."
+        },
+        "passive": null,
+        "ultimate": {
+          "id": "53847c51-0731-5f9a-8331-bb06e1c8e7b6",
+          "key": "peppermint.candyWard",
+          "cost": 3,
+          "name": "Candy Ward",
+          "type": "ULTIMATE",
+          "nameFr": "Protection sucr\u00e9e",
+          "payload": {
+            "target": "ally",
+            "cleanse": {
+              "count": 99,
+              "target": "ally"
+            },
+            "conditional": [
+              {
+                "when": {
+                  "allyType": "Royalty"
+                },
+                "addApplyStatuses": [
+                  {
+                    "name": "Taunt",
+                    "duration": 1
+                  }
+                ]
+              }
+            ],
+            "shieldPctOfMaxHp": 0.3
+          },
+          "cooldown": null,
+          "description": "Cleanse an ally, grant 30% max HP Shield; if Royalty, also Taunt.",
+          "oncePerMatch": true,
+          "descriptionFr": "Dissipe les malus d'un alli\u00e9 et lui accorde un bouclier \u00e9quivalent \u00e0 30 % de ses PV max ; s'il est de type Royaut\u00e9, lui applique aussi Provocation."
+        }
+      }
+    },
+    {
+      "card": {
+        "hp": 95,
+        "id": "abb55b67-d427-4d70-8865-f238f76e39e7",
+        "name": "Classic",
+        "type": "Royalty",
+        "speed": 52,
+        "attack": 42,
+        "rarity": {
+          "id": "340c5059-b2fb-45ad-899f-b9379830faad",
+          "name": "Uncommon",
+          "color": "#10B981",
+          "dropRate": 25
+        },
+        "defense": 52,
+        "character": "Princess Bubblegum",
+        "isArchived": false,
+        "isFeatured": false,
+        "description": "Her beaker\u2019s labeled \u201cTotally Safe.\u201d The label fell off three times. She saved the city twice that day."
+      },
+      "imageAsset": {
+        "id": "48e33141-94db-5129-a27c-f3c4647c83f4",
+        "kind": "card",
+        "mimeType": "image/webp",
+        "objectKey": "migration/pwa/card/abb55b67-d427-4d70-8865-f238f76e39e7/48e33141-94db-5129-a27c-f3c4647c83f4.webp",
+        "placeholderSvg": null,
+        "seedFile": "abb55b67-d427-4d70-8865-f238f76e39e7.webp"
+      },
+      "cardAbility": {
+        "id": "bd5422f9-2099-5af0-a422-c869a6c9f2fb",
+        "skillId": "8eb82566-ef0f-55e7-b550-2171f0622e6e",
+        "passiveId": null,
+        "ultimateId": "7e0cbbac-f704-55ca-9c67-7472d06132a6"
+      },
+      "abilities": {
+        "skill": {
+          "id": "8eb82566-ef0f-55e7-b550-2171f0622e6e",
+          "key": "pb.polymershield",
+          "cost": 2,
+          "name": "Polymershield",
+          "type": "SKILL",
+          "nameFr": "Bouclier polym\u00e8re",
+          "payload": {
+            "target": "ally",
+            "applyStatuses": [
+              {
+                "name": "GuardUp",
+                "duration": 2
+              },
+              {
+                "name": "Barrier",
+                "duration": 2
+              }
+            ],
+            "shieldPctOfMaxHp": 0.25
+          },
+          "cooldown": 2,
+          "description": "Grant Shield (25% PB's max HP), Guard Up, and Barrier to an ally.",
+          "oncePerMatch": false,
+          "descriptionFr": "Accorde \u00e0 un alli\u00e9 un bouclier \u00e9quivalent \u00e0 25 % des PV max de PB, Garde renforc\u00e9e et Barri\u00e8re."
+        },
+        "passive": null,
+        "ultimate": {
+          "id": "7e0cbbac-f704-55ca-9c67-7472d06132a6",
+          "key": "pb.royalDirective",
+          "cost": 3,
+          "name": "Royal Directive",
+          "type": "ULTIMATE",
+          "nameFr": "Directive royale",
+          "payload": {
+            "target": "allAllies",
+            "cleanse": {
+              "count": 99,
+              "target": "allAllies"
+            },
+            "applyStatuses": [
+              {
+                "name": "Haste",
+                "target": "allAllies",
+                "duration": 2
+              },
+              {
+                "name": "Regeneration",
+                "target": "allAllies",
+                "duration": 2
+              }
+            ]
+          },
+          "cooldown": null,
+          "description": "Cleanse all allies, grant Haste and Regeneration for 2 turns.",
+          "oncePerMatch": true,
+          "descriptionFr": "Dissipe les malus de tous les alli\u00e9s, puis leur accorde H\u00e2te et R\u00e9g\u00e9n\u00e9ration pendant 2 tours."
+        }
+      }
+    },
+    {
+      "card": {
+        "hp": 94,
+        "id": "65894b66-f196-4bd1-b0e5-9ab2cf498f84",
+        "name": "Classic",
+        "type": "Ice",
+        "speed": 54,
+        "attack": 35,
+        "rarity": {
+          "id": "69787fda-646b-4b38-aee0-707e733e4337",
+          "name": "Common",
+          "color": "#9CA3AF",
+          "dropRate": 60
+        },
+        "defense": 48,
+        "character": "Simon Petrikov",
+        "isArchived": false,
+        "isFeatured": false,
+        "description": "Carries a journal and 17 feelings. Offers hot cocoa like a side quest."
+      },
+      "imageAsset": {
+        "id": "b34d849b-1f96-57db-a3d6-1f34cb0bc192",
+        "kind": "card",
+        "mimeType": "image/webp",
+        "objectKey": "migration/pwa/card/65894b66-f196-4bd1-b0e5-9ab2cf498f84/b34d849b-1f96-57db-a3d6-1f34cb0bc192.webp",
+        "placeholderSvg": null,
+        "seedFile": "65894b66-f196-4bd1-b0e5-9ab2cf498f84.webp"
+      },
+      "cardAbility": {
+        "id": "3be42554-6c2c-5ec3-bcfc-c35f15d534fe",
+        "skillId": "7e8d793e-550d-55f6-85a8-c23b5a96b3f8",
+        "passiveId": null,
+        "ultimateId": "55d4479d-0394-5306-964c-5ace6d914faa"
+      },
+      "abilities": {
+        "skill": {
+          "id": "7e8d793e-550d-55f6-85a8-c23b5a96b3f8",
+          "key": "simon.ancientTome",
+          "cost": 2,
+          "name": "Ancient Tome",
+          "type": "SKILL",
+          "nameFr": "Tome ancien",
+          "payload": {
+            "target": "ally",
+            "applyStatuses": [
+              {
+                "name": "Barrier",
+                "duration": 2
+              },
+              {
+                "name": "Empower",
+                "duration": 1
+              }
+            ],
+            "reduceCooldowns": 1
+          },
+          "cooldown": 2,
+          "description": "Grant Barrier and Empower to an ally, reduce their Skill CD by 1.",
+          "oncePerMatch": false,
+          "descriptionFr": "Accorde Barri\u00e8re et Puissance \u00e0 un alli\u00e9, puis r\u00e9duit de 1 la recharge de sa comp\u00e9tence."
+        },
+        "passive": null,
+        "ultimate": {
+          "id": "55d4479d-0394-5306-964c-5ace6d914faa",
+          "key": "simon.crownResistance",
+          "cost": 3,
+          "name": "Crown Resistance",
+          "type": "ULTIMATE",
+          "nameFr": "R\u00e9sistance de la couronne",
+          "payload": {
+            "target": "allAllies",
+            "cleanse": {
+              "count": 1,
+              "target": "allAllies"
+            },
+            "applyStatuses": [
+              {
+                "name": "Barrier",
+                "target": "allAllies",
+                "duration": 2
+              }
+            ],
+            "shieldPctOfMaxHp": 0.15
+          },
+          "cooldown": null,
+          "description": "Grant all allies Barrier and Shield (15% max HP). Cleanse 1 debuff each.",
+          "oncePerMatch": true,
+          "descriptionFr": "Accorde \u00e0 tous les alli\u00e9s Barri\u00e8re et un bouclier \u00e9quivalent \u00e0 15 % de leurs PV max. Dissipe aussi 1 malus chacun."
+        }
+      }
+    },
+    {
+      "card": {
+        "hp": 118,
+        "id": "150deb14-40f6-4cd1-848e-07f48c78d0f8",
+        "name": "Endbringer",
+        "type": "Demon",
+        "speed": 55,
+        "attack": 66,
+        "rarity": {
+          "id": "0ce8b509-affb-4241-b303-b40bf7e00921",
+          "name": "Epic",
+          "color": "#8B5CF6",
+          "dropRate": 1
+        },
+        "defense": 48,
+        "character": "The Lich",
+        "isArchived": false,
+        "isFeatured": false,
+        "description": "The ancient, undead manifestation of the inevitable end of all things. He commands dark magic and the souls of the fallen."
+      },
+      "imageAsset": {
+        "id": "febad39e-e3de-5091-814b-8ba2b8d73233",
+        "kind": "card",
+        "mimeType": "image/webp",
+        "objectKey": "migration/pwa/card/150deb14-40f6-4cd1-848e-07f48c78d0f8/febad39e-e3de-5091-814b-8ba2b8d73233.webp",
+        "placeholderSvg": null,
+        "seedFile": "150deb14-40f6-4cd1-848e-07f48c78d0f8.webp"
+      },
+      "cardAbility": {
+        "id": "7f044f69-e360-5f39-b30f-504a71c2dfbf",
+        "skillId": "a92bf9eb-a2c3-52fd-a145-57e2c9e16d0f",
+        "passiveId": "aaf4b6eb-bb0b-57cb-92c8-0b001944130b",
+        "ultimateId": "473f7e17-cc8f-5262-b0a2-ed985c95579f"
+      },
+      "abilities": {
+        "skill": {
+          "id": "a92bf9eb-a2c3-52fd-a145-57e2c9e16d0f",
+          "key": "lich.necroticWave",
+          "cost": 2,
+          "name": "Necrotic Wave",
+          "type": "SKILL",
+          "nameFr": "Vague n\u00e9crotique",
+          "payload": {
+            "target": "enemy",
+            "damageMul": 0.95,
+            "applyStatuses": [
+              {
+                "name": "Vulnerable",
+                "duration": 1
+              },
+              {
+                "name": "Mark",
+                "duration": 2
+              }
+            ]
+          },
+          "cooldown": 2,
+          "description": "Deal 95% damage, apply Vulnerable and Mark.",
+          "oncePerMatch": false,
+          "descriptionFr": "Inflige 95 % de d\u00e9g\u00e2ts, applique Vuln\u00e9rable et Marque."
+        },
+        "passive": {
+          "id": "aaf4b6eb-bb0b-57cb-92c8-0b001944130b",
+          "key": "lich.dread",
+          "cost": 0,
+          "name": "Dread",
+          "type": "PASSIVE",
+          "nameFr": "Effroi",
+          "payload": {
+            "target": "allEnemies",
+            "trigger": "onBattleInit",
+            "statBonus": {
+              "speed": -10
+            },
+            "statBonusTarget": "allEnemies",
+            "statBonusDurationMode": "whileSourceActive"
+          },
+          "cooldown": null,
+          "description": "Enemies start battle with -10% Speed while Lich is active.",
+          "oncePerMatch": false,
+          "descriptionFr": "Les ennemis commencent le combat avec -10 % de vitesse lorsque la liche est active."
+        },
+        "ultimate": {
+          "id": "473f7e17-cc8f-5262-b0a2-ed985c95579f",
+          "key": "lich.endOfAll",
+          "cost": 3,
+          "name": "End of All Things",
+          "type": "ULTIMATE",
+          "nameFr": "Fin de toute chose",
+          "payload": {
+            "target": "allEnemies",
+            "damageMul": 1.4,
+            "applyStatuses": [
+              {
+                "name": "Silence",
+                "target": "self",
+                "duration": 1
+              },
+              {
+                "name": "Silence",
+                "target": "allEnemies",
+                "duration": 1,
+                "magnitude": null
+              },
+              {
+                "name": "Doom",
+                "target": "allEnemies",
+                "duration": 3,
+                "magnitude": 0.35
+              }
+            ]
+          },
+          "cooldown": null,
+          "description": "Deal 140% damage to all enemies, apply Silence and Doom (35%) for 3 turns, then self-Silence for 1 turn.",
+          "oncePerMatch": true,
+          "descriptionFr": "Inflige 140 % de d\u00e9g\u00e2ts \u00e0 tous les ennemis, applique Silence et Condamnation (35 %) pendant 3 tours, puis s'inflige Silence pendant 1 tour."
+        }
+      }
+    },
+    {
+      "card": {
+        "hp": 140,
+        "id": "7cd3fc67-dc0a-4787-83c6-6386f29bcf5b",
+        "name": "Grass Finn",
+        "type": "Hero",
+        "speed": 60,
+        "attack": 69,
+        "rarity": {
+          "id": "c0311b67-1b78-49f0-8306-5e9cef457ba8",
+          "name": "Legendary",
+          "color": "#F59E0B",
+          "dropRate": 0.10000000149011612
+        },
+        "defense": 60,
+        "character": "Fern",
+        "isArchived": false,
+        "isFeatured": false,
+        "description": "As he was recently brought into existence, Fern initially thought of himself as the true Finn, before he began taking on his own personality as Fern. Fern doesn't understand much of what is considered right or wrong in a situation"
+      },
+      "imageAsset": {
+        "id": "a9f9e2a3-270f-5bf2-a40b-1da6783bb1c4",
+        "kind": "card",
+        "mimeType": "image/webp",
+        "objectKey": "migration/pwa/card/7cd3fc67-dc0a-4787-83c6-6386f29bcf5b/a9f9e2a3-270f-5bf2-a40b-1da6783bb1c4.webp",
+        "placeholderSvg": null,
+        "seedFile": "7cd3fc67-dc0a-4787-83c6-6386f29bcf5b.webp"
+      },
+      "cardAbility": {
+        "id": "650f797f-2230-5574-a9da-a21bf3858400",
+        "skillId": "8ce0096f-9523-56f3-bdec-3b70003f4302",
+        "passiveId": "bdd69d13-b7fc-5249-906c-c548203b3dbf",
+        "ultimateId": "d4e198c3-db3d-5a7b-9f7b-424dd994ea7c"
+      },
+      "abilities": {
+        "skill": {
+          "id": "8ce0096f-9523-56f3-bdec-3b70003f4302",
+          "key": "fern.copycat",
+          "cost": 2,
+          "name": "Copycat",
+          "type": "SKILL",
+          "nameFr": "Copieur",
+          "payload": {
+            "target": "enemy",
+            "copyAbilityType": "SKILL",
+            "copyAbilitySource": "either"
+          },
+          "cooldown": 2,
+          "description": "copies the skill of an enemy target",
+          "oncePerMatch": false,
+          "descriptionFr": "copie la comp\u00e9tence d'une cible ennemie"
+        },
+        "passive": {
+          "id": "bdd69d13-b7fc-5249-906c-c548203b3dbf",
+          "key": "fern.thornyskin",
+          "cost": 0,
+          "name": "Thorny skin",
+          "type": "PASSIVE",
+          "nameFr": "Peau \u00e9pineuse",
+          "payload": {
+            "chance": 0.5,
+            "target": "enemy",
+            "trigger": "onStartTurn",
+            "applyStatuses": [
+              {
+                "name": "Thorns",
+                "target": "self",
+                "duration": 1
+              }
+            ]
+          },
+          "cooldown": null,
+          "description": "when hit 50% chance of dealing 15% damage to the attacker",
+          "oncePerMatch": false,
+          "descriptionFr": "lorsqu'il est touch\u00e9, 50 % de chances d'infliger 15 % de d\u00e9g\u00e2ts \u00e0 l'attaquant"
+        },
+        "ultimate": {
+          "id": "d4e198c3-db3d-5a7b-9f7b-424dd994ea7c",
+          "key": "fern.imposter",
+          "cost": 3,
+          "name": "Imposter",
+          "type": "ULTIMATE",
+          "nameFr": "Imposteur",
+          "payload": {
+            "target": "enemy",
+            "copyAbilityType": "ULTIMATE",
+            "copyAbilitySource": "either"
+          },
+          "cooldown": 2,
+          "description": "copies the ultimate of the target",
+          "oncePerMatch": true,
+          "descriptionFr": "copie l'ultime de la cible"
+        }
+      }
+    },
+    {
+      "card": {
+        "hp": 120,
+        "id": "2b08616b-c070-41c8-9b31-7f51bd07005e",
+        "name": "Gum Dragon",
+        "type": "Candy",
+        "speed": 10,
+        "attack": 70,
+        "rarity": {
+          "id": "0ce8b509-affb-4241-b303-b40bf7e00921",
+          "name": "Epic",
+          "color": "#8B5CF6",
+          "dropRate": 1
+        },
+        "defense": 30,
+        "character": "Neddy Bubblegum",
+        "isArchived": false,
+        "isFeatured": false,
+        "description": "Neddy is a shy and sensitive Gum Dragon. Neddy seems to have a very infantile mentality and is easily frightened. His only source of comfort is suckling candy tree roots and his beloved sister's lullaby. "
+      },
+      "imageAsset": {
+        "id": "32d966a9-f499-5d55-9900-495582a4d651",
+        "kind": "card",
+        "mimeType": "image/webp",
+        "objectKey": "migration/pwa/card/2b08616b-c070-41c8-9b31-7f51bd07005e/32d966a9-f499-5d55-9900-495582a4d651.webp",
+        "placeholderSvg": null,
+        "seedFile": "2b08616b-c070-41c8-9b31-7f51bd07005e.webp"
+      },
+      "cardAbility": {
+        "id": "e9c30b6e-9bd6-597c-9631-36f23881f78d",
+        "skillId": "8e80f529-859e-559e-b0c8-6bbfb82ba53c",
+        "passiveId": "e172f719-930d-5240-bf89-962b2de1f63f",
+        "ultimateId": "b2343234-0c48-5df8-84a4-604ffbc9da92"
+      },
+      "abilities": {
+        "skill": {
+          "id": "8e80f529-859e-559e-b0c8-6bbfb82ba53c",
+          "key": "neddy.babycry",
+          "cost": 2,
+          "name": "Baby Cry",
+          "type": "SKILL",
+          "nameFr": "Pleurs de b\u00e9b\u00e9",
+          "payload": {
+            "target": "ally",
+            "shieldTarget": "target",
+            "healPctOfMaxHp": 0.4,
+            "shieldPctOfMaxHp": 0.1
+          },
+          "cooldown": 2,
+          "description": "Heals 40% max HP of the target and gives them a 10% max HP shield",
+          "oncePerMatch": false,
+          "descriptionFr": "Soigne la cible de 40 % de ses PV max et lui accorde un bouclier \u00e9quivalent \u00e0 10 % de ses PV max."
+        },
+        "passive": {
+          "id": "e172f719-930d-5240-bf89-962b2de1f63f",
+          "key": "neddy.candyjuice",
+          "cost": 0,
+          "name": "Candy juice maker",
+          "type": "PASSIVE",
+          "nameFr": "Machine \u00e0 jus de bonbon",
+          "payload": {
+            "chance": 1,
+            "target": "self",
+            "trigger": "onBattleInit",
+            "statBonus": {
+              "hp": 10,
+              "speed": 10,
+              "attack": 10,
+              "defense": 10
+            },
+            "statBonusTarget": "allAllies",
+            "applyToAllyTypes": [
+              "Candy"
+            ],
+            "requiredAnyAllyTypes": [
+              "Candy"
+            ]
+          },
+          "cooldown": null,
+          "description": "All candy allies add +10% to all stats",
+          "oncePerMatch": false,
+          "descriptionFr": "Tous les alli\u00e9s de type Bonbon gagnent +10 % dans toutes les stats."
+        },
+        "ultimate": {
+          "id": "b2343234-0c48-5df8-84a4-604ffbc9da92",
+          "key": "Neddy.Gumroar",
+          "cost": 3,
+          "name": "Gum Roar",
+          "type": "ULTIMATE",
+          "nameFr": "Rugissement de gomme",
+          "payload": {
+            "target": "allAllies",
+            "shieldTarget": "allAllies",
+            "applyStatuses": [
+              {
+                "name": "Empower",
+                "duration": 2
+              }
+            ],
+            "healPctOfMaxHp": 0.25,
+            "shieldPctOfMaxHp": 0.1
+          },
+          "cooldown": 2,
+          "description": "Heals all 25% max HP gives a shield of 10% max HP and gives empowers to all allies",
+          "oncePerMatch": true,
+          "descriptionFr": "Soigne tous les alli\u00e9s de 25 % de leurs PV max, leur accorde un bouclier \u00e9quivalent \u00e0 10 % de leurs PV max et applique Puissance \u00e0 tous les alli\u00e9s."
+        }
+      }
+    },
+    {
+      "card": {
+        "hp": 136,
+        "id": "165b7f16-6df8-41b7-bfcc-848681218f57",
+        "name": "Lord of Evil",
+        "type": "Demon",
+        "speed": 65,
+        "attack": 70,
+        "rarity": {
+          "id": "c0311b67-1b78-49f0-8306-5e9cef457ba8",
+          "name": "Legendary",
+          "color": "#F59E0B",
+          "dropRate": 0.10000000149011612
+        },
+        "defense": 62,
+        "character": "Hunson Abadeer",
+        "isArchived": false,
+        "isFeatured": true,
+        "description": "The casually devastating ruler of the Nightosphere, Hunson Abadeer considers soul-stealing just another Tuesday \u2014 and he dressed up for this one. He might eat your fries too."
+      },
+      "imageAsset": {
+        "id": "c1b61303-8ccb-597a-bdb0-d6081a32ed4b",
+        "kind": "card",
+        "mimeType": "image/webp",
+        "objectKey": "migration/pwa/card/165b7f16-6df8-41b7-bfcc-848681218f57/c1b61303-8ccb-597a-bdb0-d6081a32ed4b.webp",
+        "placeholderSvg": null,
+        "seedFile": "165b7f16-6df8-41b7-bfcc-848681218f57.webp"
+      },
+      "cardAbility": {
+        "id": "a6bca1b1-fb3e-537a-97c4-dc2e9097236f",
+        "skillId": "486e3bb0-5b53-5ff5-9698-36ce341058c0",
+        "passiveId": "6c9a32ed-76e1-526f-ab3b-49de8cd9eec3",
+        "ultimateId": "c1892815-42ad-5ac7-9fc0-fe1fa32e712c"
+      },
+      "abilities": {
+        "skill": {
+          "id": "486e3bb0-5b53-5ff5-9698-36ce341058c0",
+          "key": "hunson.axeOfDamnation",
+          "cost": 2,
+          "name": "Axe of Damnation",
+          "type": "SKILL",
+          "nameFr": "Hache de damnation",
+          "payload": {
+            "target": "enemy",
+            "damageMul": 1.1,
+            "applyStatuses": [
+              {
+                "name": "Weakened",
+                "duration": 1
+              },
+              {
+                "name": "Mark",
+                "duration": 1
+              }
+            ]
+          },
+          "cooldown": 2,
+          "description": "Deal 110% damage. Apply Weakened and Mark for 2 turns.",
+          "oncePerMatch": false,
+          "descriptionFr": "Inflige 110 % de d\u00e9g\u00e2ts. Applique Affaibli et Marque pendant 2 tours."
+        },
+        "passive": {
+          "id": "6c9a32ed-76e1-526f-ab3b-49de8cd9eec3",
+          "key": "hunson.nightosphereDominion",
+          "cost": 0,
+          "name": "Nightosphere's Dominion",
+          "type": "PASSIVE",
+          "nameFr": "Domination de la Nightosphere",
+          "payload": {
+            "target": "self",
+            "trigger": "onBattleInit",
+            "statBonus": {
+              "attack": -8,
+              "defense": -6
+            },
+            "statBonusTarget": "allEnemies",
+            "statBonusDurationMode": "whileSourceActive"
+          },
+          "cooldown": null,
+          "description": "All enemies start battle with -8% Attack and -6% Defense while Hunson is active.",
+          "oncePerMatch": false,
+          "descriptionFr": "Tous les ennemis commencent le combat avec -8 % d'attaque et -6 % de d\u00e9fense lorsque Hunson est actif."
+        },
+        "ultimate": {
+          "id": "c1892815-42ad-5ac7-9fc0-fe1fa32e712c",
+          "key": "hunson.devourAllSouls",
+          "cost": 3,
+          "name": "Devour All Souls",
+          "type": "ULTIMATE",
+          "nameFr": "D\u00e9vore toutes les \u00e2mes",
+          "payload": {
+            "target": "allEnemies",
+            "damageMul": 1.35,
+            "applyStatuses": [
+              {
+                "name": "Regeneration",
+                "target": "self",
+                "duration": 2
+              },
+              {
+                "name": "Doom",
+                "target": "allEnemies",
+                "duration": 2,
+                "magnitude": 0.27
+              }
+            ]
+          },
+          "cooldown": null,
+          "description": "Deal 135% damage to all enemies, apply Doom (27%) for 2 turns, then gain Regeneration for 2 turns.",
+          "oncePerMatch": true,
+          "descriptionFr": "Inflige 135 % de d\u00e9g\u00e2ts \u00e0 tous les ennemis, applique Condamnation (27 %) pendant 2 tours, puis gagne R\u00e9g\u00e9n\u00e9ration pendant 2 tours."
+        }
+      }
+    },
+    {
+      "card": {
+        "hp": 126,
+        "id": "b6c0aeeb-0805-4cee-b066-d6f5c10240ab",
+        "name": "Sunlit Glide",
+        "type": "Magic",
+        "speed": 59,
+        "attack": 60,
+        "rarity": {
+          "id": "0ce8b509-affb-4241-b303-b40bf7e00921",
+          "name": "Epic",
+          "color": "#8B5CF6",
+          "dropRate": 1
+        },
+        "defense": 62,
+        "character": "Lady Rainicorn",
+        "isArchived": false,
+        "isFeatured": false,
+        "description": "Sunbeam hair day. Birds formed a fan club. Membership: chirp."
+      },
+      "imageAsset": {
+        "id": "1fe1095b-3101-500c-b605-5a147028a406",
+        "kind": "card",
+        "mimeType": "image/webp",
+        "objectKey": "migration/pwa/card/b6c0aeeb-0805-4cee-b066-d6f5c10240ab/1fe1095b-3101-500c-b605-5a147028a406.webp",
+        "placeholderSvg": null,
+        "seedFile": "b6c0aeeb-0805-4cee-b066-d6f5c10240ab.webp"
+      },
+      "cardAbility": {
+        "id": "bf759575-29fe-5243-9c6a-d28c6a0dac3a",
+        "skillId": "d43bb874-61ea-5da1-bb18-5403b650d7e8",
+        "passiveId": "23c39d96-149f-51ce-8052-1bb081a0cc3d",
+        "ultimateId": "05b429e6-8d23-5932-82b1-85ce19a0c644"
+      },
+      "abilities": {
+        "skill": {
+          "id": "d43bb874-61ea-5da1-bb18-5403b650d7e8",
+          "key": "rainicorn.rainbowBeam",
+          "cost": 2,
+          "name": "Rainbow Beam",
+          "type": "SKILL",
+          "nameFr": "Faisceau arc-en-ciel",
+          "payload": {
+            "target": "enemy",
+            "damageMul": 0.9,
+            "randomStatuses": [
+              {
+                "name": "Burn",
+                "duration": 2
+              },
+              {
+                "name": "Freeze",
+                "duration": 1
+              },
+              {
+                "name": "Stunned",
+                "duration": 2
+              }
+            ]
+          },
+          "cooldown": 2,
+          "description": "Deal 90% damage and apply random debuff (Burn, Freeze, or Stunned).",
+          "oncePerMatch": false,
+          "descriptionFr": "Inflige 90 % de d\u00e9g\u00e2ts et applique un malus al\u00e9atoire (Br\u00fblure, Gel ou \u00c9tourdi)."
+        },
+        "passive": {
+          "id": "23c39d96-149f-51ce-8052-1bb081a0cc3d",
+          "key": "rainicorn.prismAura",
+          "cost": 0,
+          "name": "Prism Aura",
+          "type": "PASSIVE",
+          "nameFr": "Aura prismatique",
+          "payload": {
+            "target": "self",
+            "trigger": "onBattleInit",
+            "statBonus": {
+              "speed": 5,
+              "attack": 5,
+              "defense": 5
+            },
+            "statBonusTarget": "allAllies",
+            "statBonusDurationMode": "whileSourceActive"
+          },
+          "cooldown": null,
+          "description": "Allies gain +5% all stats while Lady Rainicorn is alive.",
+          "oncePerMatch": false,
+          "descriptionFr": "Les alli\u00e9s gagnent +5 % \u00e0 toutes les statistiques tant que Dame Rainicorne est en vie."
+        },
+        "ultimate": {
+          "id": "05b429e6-8d23-5932-82b1-85ce19a0c644",
+          "key": "rainicorn.spectrumBlessing",
+          "cost": 3,
+          "name": "Spectrum Blessing",
+          "type": "ULTIMATE",
+          "nameFr": "B\u00e9n\u00e9diction du spectre",
+          "payload": {
+            "target": "allAllies",
+            "applyStatuses": [
+              {
+                "name": "Haste",
+                "target": "allAllies",
+                "duration": 2
+              },
+              {
+                "name": "Regeneration",
+                "target": "allAllies",
+                "duration": 2
+              }
+            ],
+            "healPctOfMaxHp": 0.2
+          },
+          "cooldown": null,
+          "description": "Heal all allies 20% max HP, grant Haste and Regeneration.",
+          "oncePerMatch": true,
+          "descriptionFr": "Soigne tous les alli\u00e9s de 20 % de leurs PV max et leur accorde H\u00e2te et R\u00e9g\u00e9n\u00e9ration."
+        }
+      }
+    },
+    {
+      "card": {
+        "hp": 105,
+        "id": "2632c5c5-fa12-4efa-af62-0acd2a7af34e",
+        "name": "The Green Knight",
+        "type": "Hero",
+        "speed": 50,
+        "attack": 60,
+        "rarity": {
+          "id": "15e6b19e-94bc-4ebc-93fa-5da53aa01527",
+          "name": "Rare",
+          "color": "#3B82F6",
+          "dropRate": 10
+        },
+        "defense": 47,
+        "character": "Fern",
+        "isArchived": false,
+        "isFeatured": false,
+        "description": "The Green Knight is a mystery knight, come to challenge Finn the human and test his opponent\u2019s heroism and mettle."
+      },
+      "imageAsset": {
+        "id": "8560a020-2a63-5c74-b95d-d97032dff1a1",
+        "kind": "card",
+        "mimeType": "image/webp",
+        "objectKey": "migration/pwa/card/2632c5c5-fa12-4efa-af62-0acd2a7af34e/8560a020-2a63-5c74-b95d-d97032dff1a1.webp",
+        "placeholderSvg": null,
+        "seedFile": "2632c5c5-fa12-4efa-af62-0acd2a7af34e.webp"
+      },
+      "cardAbility": {
+        "id": "17561ea1-fb07-5ec2-9f7e-98afb6c4cb7a",
+        "skillId": "8ce0096f-9523-56f3-bdec-3b70003f4302",
+        "passiveId": "bdd69d13-b7fc-5249-906c-c548203b3dbf",
+        "ultimateId": "c17369cd-1e47-5737-bb93-d798cc31cc63"
+      },
+      "abilities": {
+        "skill": {
+          "id": "8ce0096f-9523-56f3-bdec-3b70003f4302",
+          "key": "fern.copycat",
+          "cost": 2,
+          "name": "Copycat",
+          "type": "SKILL",
+          "nameFr": "Copieur",
+          "payload": {
+            "target": "enemy",
+            "copyAbilityType": "SKILL",
+            "copyAbilitySource": "either"
+          },
+          "cooldown": 2,
+          "description": "copies the skill of an enemy target",
+          "oncePerMatch": false,
+          "descriptionFr": "copie la comp\u00e9tence d'une cible ennemie"
+        },
+        "passive": {
+          "id": "bdd69d13-b7fc-5249-906c-c548203b3dbf",
+          "key": "fern.thornyskin",
+          "cost": 0,
+          "name": "Thorny skin",
+          "type": "PASSIVE",
+          "nameFr": "Peau \u00e9pineuse",
+          "payload": {
+            "chance": 0.5,
+            "target": "enemy",
+            "trigger": "onStartTurn",
+            "applyStatuses": [
+              {
+                "name": "Thorns",
+                "target": "self",
+                "duration": 1
+              }
+            ]
+          },
+          "cooldown": null,
+          "description": "when hit 50% chance of dealing 15% damage to the attacker",
+          "oncePerMatch": false,
+          "descriptionFr": "lorsqu'il est touch\u00e9, 50 % de chances d'infliger 15 % de d\u00e9g\u00e2ts \u00e0 l'attaquant"
+        },
+        "ultimate": {
+          "id": "c17369cd-1e47-5737-bb93-d798cc31cc63",
+          "key": "fern.thornpunch",
+          "cost": 3,
+          "name": "Thorn Punch",
+          "type": "ULTIMATE",
+          "nameFr": "Poing \u00e9pineux",
+          "payload": {
+            "target": "enemy",
+            "damageMul": 0.8,
+            "ignoreDefensePct": 1
+          },
+          "cooldown": 2,
+          "description": "deals 80% damages to the target ignoring defense",
+          "oncePerMatch": true,
+          "descriptionFr": "inflige 80 % des d\u00e9g\u00e2ts \u00e0 la cible en ignorant la d\u00e9fense"
+        }
+      }
+    }
+  ]
+}

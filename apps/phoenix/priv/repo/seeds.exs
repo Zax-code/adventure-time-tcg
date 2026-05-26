@@ -1,211 +1,557 @@
-alias AdventureTimeApi.Catalog.Rarity
-alias AdventureTimeApi.Quests.WordleDictionaryWord
-alias AdventureTimeApi.Catalog.{Card, Pack}
+import Ecto.Query
+
 alias AdventureTimeApi.Accounts.User
-alias AdventureTimeApi.Pvp.{AbilityDef, CardAbility}
+alias AdventureTimeApi.Catalog.{Card, ImageAsset, Pack, Rarity}
+alias AdventureTimeApi.Inventory.OwnedCard
+alias AdventureTimeApi.Pvp.{AbilityDef, CardAbility, Loadout, Match}
+alias AdventureTimeApi.Quests.WordleDictionaryWord
 alias AdventureTimeApi.Repo
 
-rarities = [
-  %{name: "Common", drop_rate: 60.0, color: "#9CA3AF"},
-  %{name: "Uncommon", drop_rate: 25.0, color: "#10B981"},
-  %{name: "Rare", drop_rate: 10.0, color: "#3B82F6"},
-  %{name: "Epic", drop_rate: 1.0, color: "#8B5CF6"},
-  %{name: "Legendary", drop_rate: 0.1, color: "#F59E0B"}
-]
+defmodule AdventureTimeApi.Seeds.PvpCatalog do
+  import Ecto.Query
 
-Enum.each(rarities, fn attrs ->
-  %Rarity{}
-  |> Rarity.changeset(attrs)
-  |> Repo.insert!(on_conflict: {:replace, [:drop_rate, :color]}, conflict_target: [:name])
-end)
+  alias AdventureTimeApi.Catalog.{Card, ImageAsset, Pack, Rarity}
+  alias AdventureTimeApi.Inventory.OwnedCard
+  alias AdventureTimeApi.Pvp.{AbilityDef, CardAbility, Loadout, Match}
+  alias AdventureTimeApi.Repo
 
-rarity_ids =
-  Rarity
-  |> Repo.all()
-  |> Map.new(&{&1.name, &1.id})
+  @seed_path Path.expand("seed_data/pvp_seed_catalog.json", __DIR__)
+  @seed_images_dir Path.expand("seed_data/pvp_card_images", __DIR__)
 
-cards = [
-  %{
-    name: "Finn the Human",
-    character: "Finn",
-    description: "A brave hero who charges into danger with his sword ready.",
-    hp: 18,
-    attack: 8,
-    defense: 5,
-    speed: 52,
-    type: "Hero",
-    rarity_id: rarity_ids["Common"],
-    is_featured: true,
-    is_archived: false
-  },
-  %{
-    name: "Jake the Dog",
-    character: "Jake",
-    description: "A stretchy partner who can adapt to almost any fight.",
-    hp: 16,
-    attack: 7,
-    defense: 6,
-    speed: 48,
-    type: "Hero",
-    rarity_id: rarity_ids["Common"],
-    is_featured: true,
-    is_archived: false
-  },
-  %{
-    name: "Princess Bubblegum",
-    character: "Princess Bubblegum",
-    description: "A candy scientist who outsmarts opponents with clever plans.",
-    hp: 14,
-    attack: 6,
-    defense: 7,
-    speed: 46,
-    type: "Candy",
-    rarity_id: rarity_ids["Uncommon"],
-    is_featured: false,
-    is_archived: false
-  },
-  %{
-    name: "Marceline",
-    character: "Marceline",
-    description: "A vampire rocker whose riffs hit hard and fast.",
-    hp: 15,
-    attack: 9,
-    defense: 4,
-    speed: 58,
-    type: "Undead",
-    rarity_id: rarity_ids["Rare"],
-    is_featured: true,
-    is_archived: false
-  },
-  %{
-    name: "Ice King",
-    character: "Ice King",
-    description: "A chaotic wizard who brings frosty pressure to the arena.",
-    hp: 17,
-    attack: 7,
-    defense: 5,
-    speed: 42,
-    type: "Ice",
-    rarity_id: rarity_ids["Uncommon"],
-    is_featured: false,
-    is_archived: false
-  },
-  %{
-    name: "BMO",
-    character: "BMO",
-    description: "A cheerful console friend whose quick thinking keeps the team steady.",
-    hp: 13,
-    attack: 6,
-    defense: 8,
-    speed: 55,
-    type: "Tech",
-    rarity_id: rarity_ids["Common"],
-    is_featured: false,
-    is_archived: false
+  @placeholder_pack %{
+    name: "Hero Pack",
+    description: "A starter booster filled with familiar heroes from Ooo."
   }
-]
 
-Enum.each(cards, fn attrs ->
-  case Repo.get_by(Card, name: attrs.name) do
-    nil ->
-      %Card{}
-      |> Card.changeset(attrs)
-      |> Repo.insert!()
+  @placeholder_ability_keys ["default.focused_strike", "default.battle_cry"]
 
-    %Card{} = card ->
-      card
-      |> Card.changeset(attrs)
-      |> Repo.update!()
+  @placeholder_cards [
+    %{
+      name: "Finn the Human",
+      character: "Finn",
+      description: "A brave hero who charges into danger with his sword ready."
+    },
+    %{
+      name: "Jake the Dog",
+      character: "Jake",
+      description: "A stretchy partner who can adapt to almost any fight."
+    },
+    %{
+      name: "Princess Bubblegum",
+      character: "Princess Bubblegum",
+      description: "A candy scientist who outsmarts opponents with clever plans."
+    },
+    %{
+      name: "Marceline",
+      character: "Marceline",
+      description: "A vampire rocker whose riffs hit hard and fast."
+    },
+    %{
+      name: "Ice King",
+      character: "Ice King",
+      description: "A chaotic wizard who brings frosty pressure to the arena."
+    },
+    %{
+      name: "BMO",
+      character: "BMO",
+      description: "A cheerful console friend whose quick thinking keeps the team steady."
+    }
+  ]
+
+  def run! do
+    catalog = load_seed_catalog!()
+
+    cleanup_placeholder_seed!()
+
+    rarity_ids = upsert_rarities!(catalog["rarities"] || [])
+
+    Enum.each(catalog["packs"] || [], &upsert_pack!/1)
+
+    Enum.each(catalog["cards"] || [], fn row ->
+      upsert_seed_card_bundle!(row, rarity_ids)
+    end)
+
+    IO.puts(
+      "Seeded #{length(catalog["cards"] || [])} live PvP cards, #{length(catalog["packs"] || [])} packs, and #{length(catalog["rarities"] || [])} rarities."
+    )
   end
-end)
 
-# ── Ability Defs ─────────────────────────────────────────────────────────────
-ability_seeds = [
-  %{
-    key: "default.focused_strike",
-    name: "Focused Strike",
-    name_fr: "Frappe ciblée",
-    description: "Deals 130% of normal damage to a single target.",
-    description_fr: "Inflige 130 % des dégâts normaux à une cible.",
-    type: "SKILL",
-    cost: 1,
-    cooldown: 2,
-    once_per_match: false,
-    payload: %{"damageMul" => 1.3}
-  },
-  %{
-    key: "default.battle_cry",
-    name: "Battle Cry",
-    name_fr: "Cri de guerre",
-    description: "Rallies inner strength, recovering 15% of max HP.",
-    description_fr: "Puise dans ses forces intérieures et récupère 15 % de ses PV max.",
-    type: "ULTIMATE",
-    cost: 3,
-    cooldown: nil,
-    once_per_match: true,
-    payload: %{"healPctOfMaxHp" => 0.15}
-  }
-]
-
-for attrs <- ability_seeds do
-  unless Repo.get_by(AbilityDef, key: attrs.key) do
-    %AbilityDef{}
-    |> AbilityDef.changeset(attrs)
-    |> Repo.insert!()
+  defp load_seed_catalog! do
+    @seed_path
+    |> File.read!()
+    |> Jason.decode!()
   end
-end
 
-skill_def = Repo.get_by!(AbilityDef, key: "default.focused_strike")
-ultimate_def = Repo.get_by!(AbilityDef, key: "default.battle_cry")
+  defp cleanup_placeholder_seed! do
+    placeholder_card_ids =
+      Enum.flat_map(@placeholder_cards, fn attrs ->
+        Card
+        |> where(
+          [card],
+          card.name == ^attrs.name and
+            card.character == ^attrs.character and
+            card.description == ^attrs.description
+        )
+        |> Repo.all()
+        |> Enum.map(& &1.id)
+      end)
+      |> Enum.uniq()
 
-seed_card_names = [
-  "Finn the Human",
-  "Jake the Dog",
-  "Princess Bubblegum",
-  "Marceline",
-  "Ice King",
-  "BMO"
-]
+    if placeholder_card_ids != [] do
+      loadout_ids =
+        Loadout
+        |> Repo.all()
+        |> Enum.filter(&overlap?(&1.card_ids, placeholder_card_ids))
+        |> Enum.map(& &1.id)
 
-seed_card_ids =
-  Card
-  |> Repo.all()
-  |> Enum.filter(&(&1.name in seed_card_names))
-  |> Enum.map(& &1.id)
+      if loadout_ids != [] do
+        from(loadout in Loadout, where: loadout.id in ^loadout_ids)
+        |> Repo.delete_all()
+      end
 
-for card_id <- seed_card_ids do
-  unless Repo.get_by(CardAbility, card_id: card_id) do
-    %CardAbility{}
-    |> CardAbility.changeset(%{
+      match_ids =
+        Match
+        |> Repo.all()
+        |> Enum.filter(fn match ->
+          overlap?(match.inviter_card_ids, placeholder_card_ids) or
+            overlap?(match.invitee_card_ids, placeholder_card_ids)
+        end)
+        |> Enum.map(& &1.id)
+
+      if match_ids != [] do
+        from(match in Match, where: match.id in ^match_ids)
+        |> Repo.delete_all()
+      end
+
+      from(owned_card in OwnedCard, where: owned_card.card_id in ^placeholder_card_ids)
+      |> Repo.delete_all()
+
+      from(card_ability in CardAbility, where: card_ability.card_id in ^placeholder_card_ids)
+      |> Repo.delete_all()
+
+      from(card in Card, where: card.id in ^placeholder_card_ids)
+      |> Repo.delete_all()
+    end
+
+    from(pack in Pack,
+      where:
+        pack.name == ^@placeholder_pack.name and
+          pack.description == ^@placeholder_pack.description
+    )
+    |> Repo.delete_all()
+
+    from(ability_def in AbilityDef, where: ability_def.key in ^@placeholder_ability_keys)
+    |> Repo.delete_all()
+  end
+
+  defp overlap?(nil, _card_ids), do: false
+
+  defp overlap?(existing_ids, card_ids) when is_list(existing_ids) do
+    blocked = MapSet.new(card_ids)
+    Enum.any?(existing_ids, &MapSet.member?(blocked, &1))
+  end
+
+  defp upsert_rarities!(rarities) do
+    Enum.reduce(rarities, %{}, fn rarity, acc ->
+      attrs = %{
+        name: rarity["name"],
+        drop_rate: rarity["dropRate"] * 1.0,
+        color: rarity["color"]
+      }
+
+      record =
+        Repo.get(Rarity, rarity["id"]) ||
+          Repo.get_by(Rarity, name: attrs.name)
+
+      seeded =
+        case record do
+          nil ->
+            %Rarity{id: rarity["id"]}
+            |> Rarity.changeset(attrs)
+            |> Repo.insert!()
+
+          %Rarity{} = existing ->
+            existing
+            |> Rarity.changeset(attrs)
+            |> Repo.update!()
+        end
+
+      Map.put(acc, attrs.name, seeded.id)
+    end)
+  end
+
+  defp upsert_pack!(pack) do
+    attrs = %{
+      name: pack["name"],
+      description: pack["description"],
+      card_count: pack["cardCount"],
+      cost: pack["cost"],
+      color: pack["color"],
+      is_active: pack["isActive"],
+      guaranteed_rarity: pack["guaranteedRarity"]
+    }
+
+    record =
+      Repo.get(Pack, pack["id"]) ||
+        Repo.get_by(Pack, name: attrs.name)
+
+    case record do
+      nil ->
+        %Pack{id: pack["id"]}
+        |> Pack.changeset(attrs)
+        |> Repo.insert!()
+
+      %Pack{} = existing ->
+        existing
+        |> Pack.changeset(attrs)
+        |> Repo.update!()
+    end
+  end
+
+  defp upsert_seed_card_bundle!(row, rarity_ids) do
+    image_asset = upsert_image_asset!(row["imageAsset"])
+    card = upsert_card!(row["card"], rarity_ids, image_asset.id)
+    ability_ids = upsert_abilities!(row["abilities"] || %{})
+    upsert_card_ability!(row["cardAbility"], card.id, ability_ids)
+  end
+
+  defp upsert_image_asset!(image_asset) do
+    image_binary =
+      @seed_images_dir
+      |> Path.join(image_asset["seedFile"])
+      |> File.read!()
+
+    upload_object!(image_asset["objectKey"], image_binary, image_asset["mimeType"])
+
+    attrs = %{
+      kind: String.to_existing_atom(image_asset["kind"]),
+      mime_type: image_asset["mimeType"],
+      object_key: image_asset["objectKey"],
+      placeholder_svg: image_asset["placeholderSvg"]
+    }
+
+    record =
+      Repo.get(ImageAsset, image_asset["id"]) ||
+        Repo.get_by(ImageAsset, object_key: image_asset["objectKey"])
+
+    case record do
+      nil ->
+        %ImageAsset{id: image_asset["id"]}
+        |> ImageAsset.changeset(attrs)
+        |> Repo.insert!()
+
+      %ImageAsset{} = existing ->
+        existing
+        |> ImageAsset.changeset(attrs)
+        |> Repo.update!()
+    end
+  end
+
+  defp upsert_card!(card, rarity_ids, image_asset_id) do
+    attrs = %{
+      name: card["name"],
+      character: card["character"],
+      description: card["description"],
+      hp: card["hp"],
+      attack: card["attack"],
+      defense: card["defense"],
+      speed: card["speed"],
+      type: card["type"],
+      rarity_id: Map.fetch!(rarity_ids, card["rarity"]["name"]),
+      image_asset_id: image_asset_id,
+      is_featured: card["isFeatured"],
+      is_archived: card["isArchived"]
+    }
+
+    record =
+      Repo.get(Card, card["id"]) ||
+        Repo.get_by(Card, name: attrs.name, character: attrs.character)
+
+    case record do
+      nil ->
+        %Card{id: card["id"]}
+        |> Card.changeset(attrs)
+        |> Repo.insert!()
+
+      %Card{} = existing ->
+        existing
+        |> Card.changeset(attrs)
+        |> Repo.update!()
+    end
+  end
+
+  defp upsert_abilities!(abilities) do
+    Enum.reduce(["passive", "skill", "ultimate"], %{}, fn slot, acc ->
+      case abilities[slot] do
+        nil ->
+          Map.put(acc, String.to_atom(slot), nil)
+
+        ability ->
+          attrs = %{
+            key: ability["key"],
+            name: ability["name"],
+            name_fr: ability["nameFr"],
+            description: ability["description"],
+            description_fr: ability["descriptionFr"],
+            type: ability["type"],
+            cost: ability["cost"] || 0,
+            cooldown: ability["cooldown"],
+            once_per_match: ability["oncePerMatch"] || false,
+            payload: ability["payload"] || %{}
+          }
+
+          record =
+            Repo.get(AbilityDef, ability["id"]) ||
+              Repo.get_by(AbilityDef, key: attrs.key)
+
+          seeded =
+            case record do
+              nil ->
+                %AbilityDef{id: ability["id"]}
+                |> AbilityDef.changeset(attrs)
+                |> Repo.insert!()
+
+              %AbilityDef{} = existing ->
+                existing
+                |> AbilityDef.changeset(attrs)
+                |> Repo.update!()
+            end
+
+          Map.put(acc, String.to_atom(slot), seeded.id)
+      end
+    end)
+  end
+
+  defp upsert_card_ability!(card_ability, card_id, ability_ids) do
+    attrs = %{
       card_id: card_id,
-      skill_id: skill_def.id,
-      ultimate_id: ultimate_def.id
-    })
-    |> Repo.insert!()
+      passive_id: ability_ids.passive,
+      skill_id: ability_ids.skill,
+      ultimate_id: ability_ids.ultimate
+    }
+
+    record =
+      Repo.get(CardAbility, card_ability["id"]) ||
+        Repo.get_by(CardAbility, card_id: card_id)
+
+    case record do
+      nil ->
+        %CardAbility{id: card_ability["id"]}
+        |> CardAbility.changeset(attrs)
+        |> Repo.insert!()
+
+      %CardAbility{} = existing ->
+        existing
+        |> CardAbility.changeset(attrs)
+        |> Repo.update!()
+    end
   end
+
+  defp upload_object!(object_key, binary_data, mime_type) do
+    %{base_url: base_url, bucket: bucket, access_key: access_key, secret_key: secret_key} =
+      object_storage_config()
+
+    url = object_url(base_url, bucket, object_key)
+
+    case signed_request(:put, url, binary_data, access_key, secret_key, [
+           {"content-type", mime_type},
+           {"cache-control", "private, max-age=31536000, immutable"},
+           {"x-amz-meta-kind", "cardIllustration"}
+         ]) do
+      {:ok, %{status: status}} when status in [200, 201] ->
+        :ok
+
+      {:ok, %{status: status, body: body}} ->
+        raise "seed image upload failed with status #{status}: #{inspect(body)}"
+
+      {:error, reason} ->
+        raise "seed image upload failed: #{inspect(reason)}"
+    end
+  end
+
+  defp object_storage_config do
+    config =
+      Application.get_env(:adventure_time_api, AdventureTimeApi.Media, [])
+      |> Enum.into(%{})
+
+    base_url =
+      System.get_env("MINIO_BASE_URL") ||
+        config[:base_url] ||
+        minio_base_url_from_parts()
+
+    bucket = System.get_env("MINIO_BUCKET") || config[:bucket]
+    access_key = System.get_env("MINIO_ACCESS_KEY") || config[:access_key]
+    secret_key = System.get_env("MINIO_SECRET_KEY") || config[:secret_key]
+
+    unless is_binary(base_url) and base_url != "" do
+      raise "MinIO base URL is not configured for seeds"
+    end
+
+    unless is_binary(bucket) and bucket != "" do
+      raise "MinIO bucket is not configured for seeds"
+    end
+
+    unless is_binary(access_key) and access_key != "" do
+      raise "MinIO access key is not configured for seeds"
+    end
+
+    unless is_binary(secret_key) and secret_key != "" do
+      raise "MinIO secret key is not configured for seeds"
+    end
+
+    %{
+      base_url: base_url,
+      bucket: bucket,
+      access_key: access_key,
+      secret_key: secret_key
+    }
+  end
+
+  defp minio_base_url_from_parts do
+    case {System.get_env("MINIO_ENDPOINT"), System.get_env("MINIO_PORT")} do
+      {endpoint, port}
+      when is_binary(endpoint) and endpoint != "" and is_binary(port) and port != "" ->
+        scheme = if System.get_env("MINIO_USE_SSL") in ~w(true 1), do: "https", else: "http"
+        "#{scheme}://#{endpoint}:#{port}"
+
+      _ ->
+        nil
+    end
+  end
+
+  defp object_url(base_url, bucket, object_key) do
+    encoded_key =
+      object_key
+      |> String.split("/", trim: true)
+      |> Enum.map(fn segment -> URI.encode(segment, &URI.char_unreserved?/1) end)
+      |> Enum.join("/")
+
+    String.trim_trailing(base_url, "/") <> "/" <> bucket <> "/" <> encoded_key
+  end
+
+  defp signed_request(method, url, body, access_key, secret_key, extra_headers) do
+    uri = URI.parse(url)
+    payload_hash = sha256_hex(body)
+    amz_date = amz_now()
+    date_stamp = String.slice(amz_date, 0, 8)
+    host = host_header(uri)
+
+    headers =
+      [
+        {"host", host},
+        {"x-amz-content-sha256", payload_hash},
+        {"x-amz-date", amz_date}
+      ] ++ extra_headers
+
+    canonical_request =
+      [
+        method |> Atom.to_string() |> String.upcase(),
+        canonical_uri(uri),
+        canonical_query(uri),
+        canonical_headers(headers),
+        "",
+        signed_headers(headers),
+        payload_hash
+      ]
+      |> Enum.join("\n")
+
+    credential_scope = Enum.join([date_stamp, "us-east-1", "s3", "aws4_request"], "/")
+
+    string_to_sign =
+      [
+        "AWS4-HMAC-SHA256",
+        amz_date,
+        credential_scope,
+        sha256_hex(canonical_request)
+      ]
+      |> Enum.join("\n")
+
+    signature =
+      signing_key(secret_key, date_stamp)
+      |> hmac(string_to_sign)
+      |> Base.encode16(case: :lower)
+
+    authorization =
+      "AWS4-HMAC-SHA256 Credential=#{access_key}/#{credential_scope}, SignedHeaders=#{signed_headers(headers)}, Signature=#{signature}"
+
+    Req.request(
+      method: method,
+      url: url,
+      body: body,
+      headers: headers ++ [{"authorization", authorization}]
+    )
+  end
+
+  defp canonical_uri(%URI{path: path}) do
+    path
+    |> to_string()
+    |> String.split("/", trim: false)
+    |> Enum.map(fn segment -> URI.encode(segment, &URI.char_unreserved?/1) end)
+    |> Enum.join("/")
+    |> case do
+      "" -> "/"
+      encoded -> encoded
+    end
+  end
+
+  defp canonical_query(%URI{query: nil}), do: ""
+
+  defp canonical_query(%URI{query: query}) do
+    query
+    |> URI.decode_query()
+    |> Enum.sort_by(fn {key, value} -> {key, value} end)
+    |> Enum.map_join("&", fn {key, value} ->
+      URI.encode_www_form(key) <> "=" <> URI.encode_www_form(value)
+    end)
+  end
+
+  defp canonical_headers(headers) do
+    headers
+    |> Enum.map(fn {key, value} ->
+      normalized = value |> to_string() |> String.trim() |> String.replace(~r/\s+/, " ")
+      {String.downcase(key), normalized}
+    end)
+    |> Enum.sort_by(fn {key, _value} -> key end)
+    |> Enum.map_join("\n", fn {key, value} -> "#{key}:#{value}" end)
+  end
+
+  defp signed_headers(headers) do
+    headers
+    |> Enum.map(fn {key, _value} -> String.downcase(key) end)
+    |> Enum.uniq()
+    |> Enum.sort()
+    |> Enum.join(";")
+  end
+
+  defp host_header(%URI{host: host, port: port, scheme: scheme}) do
+    default_port = if scheme == "https", do: 443, else: 80
+
+    case port do
+      nil -> host
+      ^default_port -> host
+      _ -> "#{host}:#{port}"
+    end
+  end
+
+  defp amz_now do
+    DateTime.utc_now()
+    |> DateTime.truncate(:second)
+    |> Calendar.strftime("%Y%m%dT%H%M%SZ")
+  end
+
+  defp signing_key(secret_key, date_stamp) do
+    ("AWS4" <> secret_key)
+    |> hmac(date_stamp)
+    |> hmac("us-east-1")
+    |> hmac("s3")
+    |> hmac("aws4_request")
+  end
+
+  defp hmac(key, data), do: :crypto.mac(:hmac, :sha256, key, data)
+  defp sha256_hex(data), do: :crypto.hash(:sha256, data) |> Base.encode16(case: :lower)
 end
 
-starter_pack_attrs = %{
-  name: "Hero Pack",
-  description: "A starter booster filled with familiar heroes from Ooo.",
-  card_count: 5,
-  cost: 100,
-  color: "#F59E0B",
-  is_active: true,
-  guaranteed_rarity: "Rare"
-}
-
-case Repo.get_by(Pack, name: starter_pack_attrs.name) do
-  nil ->
-    %Pack{}
-    |> Pack.changeset(starter_pack_attrs)
-    |> Repo.insert!()
-
-  %Pack{} = pack ->
-    pack
-    |> Pack.changeset(starter_pack_attrs)
-    |> Repo.update!()
-end
+AdventureTimeApi.Seeds.PvpCatalog.run!()
 
 # ── Wordle Dictionary ────────────────────────────────────────────────────────
 # Source CSV: exported from backup DB via:

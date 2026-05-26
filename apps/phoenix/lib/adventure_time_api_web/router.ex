@@ -77,6 +77,7 @@ defmodule AdventureTimeApiWeb.Router do
 
     get("/pvp/invites", PvpController, :list_invites)
     post("/pvp/invites", PvpController, :create_invite)
+    delete("/pvp/invites", PvpController, :delete_invite)
 
     get("/pvp/matches", PvpController, :list_matches)
     get("/pvp/matches/:id", PvpController, :get_match)

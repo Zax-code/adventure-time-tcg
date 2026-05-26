@@ -148,6 +148,32 @@ defmodule AdventureTimeApiWeb.PvpController do
     conn |> put_status(400) |> json(%{error: "inviteeEmail and loadout are required"})
   end
 
+  # DELETE /pvp/invites?matchId=:id
+  def delete_invite(conn, %{"matchId" => match_id}) do
+    user_id = conn.assigns.auth_user.id
+
+    case Pvp.cancel_invite(user_id, match_id) do
+      {:ok, result} ->
+        json(conn, result)
+
+      {:error, :not_found} ->
+        conn |> put_status(404) |> json(%{error: "Match not found"})
+
+      {:error, :forbidden} ->
+        conn |> put_status(403) |> json(%{error: "Forbidden"})
+
+      {:error, {:wrong_status, _status}} ->
+        conn |> put_status(400) |> json(%{error: "Cannot cancel a non-pending invite"})
+
+      {:error, _} ->
+        conn |> put_status(500) |> json(%{error: "Internal error"})
+    end
+  end
+
+  def delete_invite(conn, _params) do
+    conn |> put_status(400) |> json(%{error: "matchId is required"})
+  end
+
   # GET /pvp/matches
   def list_matches(conn, _params) do
     user_id = conn.assigns.auth_user.id
@@ -181,7 +207,7 @@ defmodule AdventureTimeApiWeb.PvpController do
     user_id = conn.assigns.auth_user.id
 
     case Pvp.list_history(user_id) do
-      {:ok, matches} -> json(conn, %{matches: matches})
+      {:ok, history} -> json(conn, history)
     end
   end
 
