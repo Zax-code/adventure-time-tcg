@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { mkdir } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { parseArgs } from "node:util";
@@ -106,6 +106,62 @@ function extractVersionCodeFromBuildLogs(stdout) {
   return match?.[1]?.trim() || "";
 }
 
+function buildPatchedEasConfig(
+  existingConfig,
+  profileName,
+  serviceAccountKeyPath,
+  track,
+) {
+  const submit = existingConfig.submit ?? {};
+  const currentProfile = submit[profileName] ?? {};
+  const currentAndroid = currentProfile.android ?? {};
+
+  return {
+    ...existingConfig,
+    submit: {
+      ...submit,
+      [profileName]: {
+        ...currentProfile,
+        android: {
+          ...currentAndroid,
+          serviceAccountKeyPath,
+          track,
+        },
+      },
+    },
+  };
+}
+
+async function withTemporarySubmitProfile(
+  mobileRoot,
+  profileName,
+  serviceAccountKeyPath,
+  track,
+  callback,
+) {
+  const easConfigPath = path.join(mobileRoot, "eas.json");
+  const originalContents = await readFile(easConfigPath, "utf8");
+  const parsedConfig = JSON.parse(originalContents);
+  const patchedConfig = buildPatchedEasConfig(
+    parsedConfig,
+    profileName,
+    serviceAccountKeyPath,
+    track,
+  );
+
+  await writeFile(
+    easConfigPath,
+    `${JSON.stringify(patchedConfig, null, 2)}\n`,
+    "utf8",
+  );
+
+  try {
+    return await callback();
+  } finally {
+    await writeFile(easConfigPath, originalContents, "utf8");
+  }
+}
+
 async function main() {
   const mobileRoot = path.resolve(import.meta.dirname, "..");
   process.env.NODE_ENV ??= "production";
@@ -115,49 +171,60 @@ async function main() {
   const options = parseCliOptions();
   ensureGooglePlayServiceAccountConfigured(options.serviceAccountPath);
   await mkdir(path.dirname(options.outputPath), { recursive: true });
+  let versionCode = "";
 
-  const buildArgs = [
-    "eas-cli",
-    "build",
-    "--platform",
-    "android",
-    "--profile",
+  await withTemporarySubmitProfile(
+    mobileRoot,
     options.profile,
-    "--local",
-    "--output",
-    options.outputPath,
-    "--non-interactive",
-  ];
+    options.serviceAccountPath,
+    options.track,
+    async () => {
+      const buildArgs = [
+        "eas-cli",
+        "build",
+        "--platform",
+        "android",
+        "--profile",
+        options.profile,
+        "--local",
+        "--output",
+        options.outputPath,
+        "--non-interactive",
+      ];
 
-  if (options.message) {
-    buildArgs.push("--message", options.message);
-  }
+      if (options.message) {
+        buildArgs.push("--message", options.message);
+      }
 
-  const buildOutput = await runCommand("npx", buildArgs, {
-    cwd: mobileRoot,
-    captureStdout: true,
-  });
-  const versionCode = extractVersionCodeFromBuildLogs(buildOutput);
+      const buildOutput = await runCommand("npx", buildArgs, {
+        cwd: mobileRoot,
+        captureStdout: true,
+      });
+      versionCode = extractVersionCodeFromBuildLogs(buildOutput);
 
-  if (!existsSync(options.outputPath)) {
-    throw new Error(`Expected local Android artifact at ${options.outputPath}.`);
-  }
+      if (!existsSync(options.outputPath)) {
+        throw new Error(
+          `Expected local Android artifact at ${options.outputPath}.`,
+        );
+      }
 
-  await runCommand(
-    "npx",
-    [
-      "eas-cli",
-      "submit",
-      "--platform",
-      "android",
-      "--profile",
-      options.profile,
-      "--path",
-      options.outputPath,
-      "--non-interactive",
-      "--wait",
-    ],
-    { cwd: mobileRoot },
+      await runCommand(
+        "npx",
+        [
+          "eas-cli",
+          "submit",
+          "--platform",
+          "android",
+          "--profile",
+          options.profile,
+          "--path",
+          options.outputPath,
+          "--non-interactive",
+          "--wait",
+        ],
+        { cwd: mobileRoot },
+      );
+    },
   );
   await runCommand(
     "node",
