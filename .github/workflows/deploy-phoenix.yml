@@ -34,29 +34,83 @@ jobs:
     timeout-minutes: 30
     environment:
       name: production
+    env:
+      PRODUCTION_HEALTHCHECK_URL: ${{ secrets.PRODUCTION_HEALTHCHECK_URL || '' }}
+      PRODUCTION_HOST: ${{ secrets.PRODUCTION_HOST }}
+      PRODUCTION_REPO_PATH: ${{ secrets.PRODUCTION_REPO_PATH || '/home/zax/adventure-time-tcg' }}
+      PRODUCTION_SSH_PORT: ${{ secrets.PRODUCTION_SSH_PORT || '22' }}
+      PRODUCTION_SSH_USER: ${{ secrets.PRODUCTION_SSH_USER }}
+      PRODUCTION_SYSTEMD_SERVICE: ${{ secrets.PRODUCTION_SYSTEMD_SERVICE || 'adventure-time-tcg-api.service' }}
+      TAILSCALE_AUTHKEY: ${{ secrets.TS_AUTHKEY }}
+      TAILSCALE_OAUTH_CLIENT_ID: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+      TAILSCALE_OAUTH_SECRET: ${{ secrets.TS_OAUTH_SECRET }}
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v5
+
+      - name: Connect to Tailscale with OAuth
+        if: ${{ env.TAILSCALE_OAUTH_CLIENT_ID != '' && env.TAILSCALE_OAUTH_SECRET != '' }}
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ env.TAILSCALE_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ env.TAILSCALE_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Connect to Tailscale with auth key
+        if: ${{ env.TAILSCALE_OAUTH_CLIENT_ID == '' && env.TAILSCALE_AUTHKEY != '' }}
+        uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ env.TAILSCALE_AUTHKEY }}
 
       - name: Start SSH agent
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.PRODUCTION_SSH_PRIVATE_KEY }}
 
-      - name: Add production host to known_hosts
-        env:
-          PRODUCTION_HOST: ${{ secrets.PRODUCTION_HOST }}
-          PRODUCTION_SSH_PORT: ${{ secrets.PRODUCTION_SSH_PORT || '22' }}
+      - name: Preflight production host resolution
         run: |
+          set -euo pipefail
+
+          if getent ahosts "$PRODUCTION_HOST" >/dev/null 2>&1; then
+            echo "Resolved production host: $PRODUCTION_HOST"
+            exit 0
+          fi
+
+          echo "Unable to resolve PRODUCTION_HOST=$PRODUCTION_HOST from the GitHub runner." >&2
+
+          if [ -n "$TAILSCALE_OAUTH_CLIENT_ID" ] || [ -n "$TAILSCALE_AUTHKEY" ]; then
+            echo "Tailscale credentials are configured, but the host still does not resolve." >&2
+            echo "Use the full MagicDNS hostname or a Tailscale IP for PRODUCTION_HOST." >&2
+          else
+            echo "If the production host is tailnet-only, configure TS_OAUTH_CLIENT_ID and TS_OAUTH_SECRET or TS_AUTHKEY in the production environment." >&2
+          fi
+
+          exit 1
+
+      - name: Add production host to known_hosts
+        run: |
+          set -euo pipefail
+
           mkdir -p ~/.ssh
-          ssh-keyscan -p "$PRODUCTION_SSH_PORT" -H "$PRODUCTION_HOST" >> ~/.ssh/known_hosts
+          keyscan_output="$(mktemp)"
+          keyscan_error="$(mktemp)"
+
+          for attempt in $(seq 1 10); do
+            if ssh-keyscan -p "$PRODUCTION_SSH_PORT" -H "$PRODUCTION_HOST" >"$keyscan_output" 2>"$keyscan_error"; then
+              cat "$keyscan_output" >> ~/.ssh/known_hosts
+              exit 0
+            fi
+
+            cat "$keyscan_error" >&2 || true
+            echo "ssh-keyscan attempt $attempt/10 failed for $PRODUCTION_HOST; retrying..." >&2
+            sleep 3
+          done
+
+          echo "Unable to fetch the SSH host key from $PRODUCTION_HOST:$PRODUCTION_SSH_PORT." >&2
+          exit 1
 
       - name: Upload deploy script
-        env:
-          PRODUCTION_HOST: ${{ secrets.PRODUCTION_HOST }}
-          PRODUCTION_SSH_PORT: ${{ secrets.PRODUCTION_SSH_PORT || '22' }}
-          PRODUCTION_SSH_USER: ${{ secrets.PRODUCTION_SSH_USER }}
         run: |
           scp -P "$PRODUCTION_SSH_PORT" infra/scripts/deploy-phoenix.sh \
             "$PRODUCTION_SSH_USER@$PRODUCTION_HOST:/tmp/deploy-phoenix.sh"
@@ -64,12 +118,6 @@ jobs:
       - name: Run production deploy
         env:
           DEPLOY_REF: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref || github.sha }}
-          PRODUCTION_HEALTHCHECK_URL: ${{ secrets.PRODUCTION_HEALTHCHECK_URL || '' }}
-          PRODUCTION_HOST: ${{ secrets.PRODUCTION_HOST }}
-          PRODUCTION_REPO_PATH: ${{ secrets.PRODUCTION_REPO_PATH || '/home/zax/adventure-time-tcg' }}
-          PRODUCTION_SSH_PORT: ${{ secrets.PRODUCTION_SSH_PORT || '22' }}
-          PRODUCTION_SSH_USER: ${{ secrets.PRODUCTION_SSH_USER }}
-          PRODUCTION_SYSTEMD_SERVICE: ${{ secrets.PRODUCTION_SYSTEMD_SERVICE || 'adventure-time-tcg-api.service' }}
           SKIP_MIGRATE: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.skip_migrate || 'false' }}
         run: |
           remote_args=(
