@@ -236,6 +236,7 @@ Before editing:
 - inspect active services, listeners, and reverse proxy wiring before changing host-level infra
 
 Before finishing:
+- commit each completed change or logical change set before moving on
 - report what changed
 - report verification performed
 - call out contract changes, migration implications, or operational follow-up
