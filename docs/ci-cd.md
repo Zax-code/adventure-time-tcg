@@ -24,12 +24,6 @@ What it does:
 
 This is the required branch-protection workflow for `main`.
 
-### `Dependency Review`
-
-File: `.github/workflows/dependency-review.yml`
-
-Runs on pull requests and blocks dependency diffs that introduce vulnerabilities at `moderate` severity or above.
-
 ### `Deploy Phoenix`
 
 File: `.github/workflows/deploy-phoenix.yml`
