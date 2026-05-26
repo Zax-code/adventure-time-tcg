@@ -120,27 +120,26 @@ PWA import:
 
 ## Mobile Build And Release Policy
 
-Production mobile builds must be local.
+Production mobile build and release work is initiated from this Mac, not from GitHub Actions.
 
 Rules:
-- do not trigger remote EAS iOS builds unless the user explicitly asks for a remote build
-- do not trigger remote EAS Android builds unless the user explicitly asks for a remote build
+- do not add or rely on GitHub Actions workflows to build or release the mobile app
 - when the user asks to "release", assume the workflow is build first and release second unless they explicitly say not to build
-- when the user asks to "release iOS", assume the `.ipa` must be produced locally on this machine before EAS submission
-- when the user asks to "release Android", assume the `.aab` must be produced locally on this machine before EAS submission
+- when the user asks to "release iOS", run the release workflow from this Mac and use EAS as the release backend
+- when the user asks to "release Android", run the release workflow from this Mac and use EAS as the release backend
 - when the user asks to release both platforms, handle Android and iOS in one pass unless they say otherwise
 - always bump the app version/build metadata first as part of the release flow; do not skip version bumping unless the user explicitly asks to keep versions unchanged
-- EAS is allowed for submission, metadata, TestFlight delivery, and Play upload after the local build artifact exists
-- prefer the dedicated local paths: `npm run build:mobile:ios:local` followed by `npm run release:mobile:ios`, and the equivalent Android local build/release path
+- EAS is the preferred path for build and submission work
+- prefer the repo’s dedicated mobile release scripts and EAS profiles instead of inventing ad hoc release commands
 - Android releases require an appropriate Google Play release note; do not ship Android without one
 - Android release notes should be based on the diff between the last released Android commit and the current release commit; use the latest `mobile/android/*` tag as the baseline
 - keep iOS and Android release history independently via git tags because one platform may ship without the other; use the latest `mobile/ios/*` and `mobile/android/*` tags as the source of truth for the last released commit on each platform
 - if a platform has no prior release tag yet, treat the current ship as the first true release for that platform and create the tag baseline during the release flow
 - after a successful platform release, ensure the new per-platform release tag exists locally and remind the user to push tags so future agents can diff from the correct baseline
 - use the `../cleantrack` release scripts as the local reference for expected release behavior on this MacBook when adapting or debugging the workflow
-- the local iOS release path expects local signing material such as `apps/mobile/credentials.json` and the referenced Apple certificate/profile files
-- the local Android release path expects the signing material, service account credentials, and release-note inputs needed by the release scripts
-- if local signing material or App Store Connect identifiers are missing, stop and report the exact missing inputs instead of falling back to a remote build
+- the iOS release path expects signing material such as `apps/mobile/credentials.json` and the referenced Apple certificate/profile files
+- the Android release path expects the signing material, service account credentials, and release-note inputs needed by the release scripts
+- if signing material or App Store Connect identifiers are missing, stop and report the exact missing inputs instead of adding GitHub-based release automation
 
 ## Production Data Migration Rules
 
@@ -257,6 +256,8 @@ Other rules:
 ## Working Style
 
 Before editing:
+- pull the latest `main` with `git switch main && git pull --ff-only origin main`
+- create a fresh working branch from `main` before making changes; use the `codex/` prefix unless the user asks otherwise
 - inspect neighboring files and match local conventions
 - prefer targeted changes over broad churn
 - preserve Phoenix context boundaries
@@ -266,9 +267,17 @@ Before editing:
 Before finishing:
 - commit each completed change or logical change set before moving on
 - push committed changes before finishing the task unless the user explicitly asks you not to push
+- open a pull request for every finished change set; the user merges manually
 - report what changed
 - report verification performed
 - call out contract changes, migration implications, or operational follow-up
+
+CI/CD workflow:
+- GitHub Actions is for validation and Phoenix backend deployment only
+- mobile builds and store releases are not run on GitHub
+- mobile builds are performed on this Mac
+- EAS is the preferred mobile release path
+- do not merge pull requests on the user’s behalf unless they explicitly ask
 
 ## Docs Sync
 

@@ -1,6 +1,6 @@
 # CI/CD Runbook
 
-This repo now ships with GitHub Actions workflows for validation, backend deployment, and mobile release orchestration.
+This repo now ships with GitHub Actions workflows for validation and Phoenix backend deployment.
 
 ## Workflow Overview
 
@@ -16,7 +16,7 @@ What it does:
 - runs `npm ci`
 - runs `npm run typecheck`
 - runs `npm run build`
-- provisions PostgreSQL 16 for Phoenix tests
+- provisions PostgreSQL 16 for Phoenix validation
 - runs `mix deps.get`
 - runs `mix format --check-formatted`
 - runs `mix compile --warnings-as-errors`
@@ -49,37 +49,16 @@ What it does:
 
 The production logic lives in `infra/scripts/deploy-phoenix.sh`, so deploy behavior is versioned with the application code.
 
-### `Mobile Release Plan`
+## Mobile Release Policy
 
-File: `.github/workflows/mobile-release-plan.yml`
+Mobile builds and releases do not run on GitHub Actions.
 
-Manual workflow that prepares release notes and commit summaries for Android, iOS, or both.
+Current policy:
 
-What it does:
-
-- checks out a chosen ref
-- runs `npm run typecheck`
-- compares the target ref to the latest `mobile/android/*` and `mobile/ios/*` tags
-- generates suggested store notes and a release plan artifact under `.release/`
-
-Use this before cutting a store release if you want a reviewable artifact and a clean diff against the last shipped platform version.
-
-### `Mobile Release`
-
-File: `.github/workflows/mobile-release-self-hosted.yml`
-
-Manual workflow intended for a self-hosted macOS runner that has Xcode, Android SDK tooling, EAS local build prerequisites, and signing material already installed.
-
-What it does:
-
-- checks out a chosen ref from `main`
-- runs `npm ci`
-- runs `npm run typecheck`
-- generates platform release notes from git tags
-- runs the existing local production release scripts
-- pushes newly created `mobile/android/*` and `mobile/ios/*` tags back to GitHub
-
-This workflow exists because production mobile builds in this repo must remain local, especially for iOS.
+- build mobile from this Mac, not on GitHub runners
+- use EAS for build/submission workflows
+- keep GitHub focused on validation and backend deployment
+- open a pull request for code review first; merge is manual
 
 ## GitHub Environments And Secrets
 
@@ -100,34 +79,6 @@ Recommended secrets:
 - `PRODUCTION_SYSTEMD_SERVICE`: defaults to `adventure-time-tcg-api.service`
 - `PRODUCTION_HEALTHCHECK_URL`: optional override; by default deploy checks `http://127.0.0.1:$PHX_PORT/ready`
 
-### Mobile production environment
-
-Create a GitHub environment named `mobile-production` if you plan to use the self-hosted mobile release workflow.
-
-The workflow assumes signing assets stay on the runner host rather than in GitHub secrets when possible.
-
-Recommended runner-local environment variables:
-
-- `APP_STORE_CONNECT_APP_ID`
-- `GOOGLE_PLAY_SERVICE_ACCOUNT_KEY_PATH`
-
-The release scripts already know how to read those values.
-
-## Self-Hosted macOS Runner Expectations
-
-If you want GitHub-triggered local mobile releases, register the release Mac as a self-hosted runner with the `macOS` label.
-
-Recommended tooling:
-
-- Node.js `22.14.0`
-- Xcode and command-line tools matching the current Expo SDK
-- Android SDK and Java runtime for local `.aab` builds
-- EAS local-build prerequisites
-- local iOS signing files referenced by `apps/mobile/credentials.json`
-- Google Play service-account JSON on disk
-
-Keep the runner dedicated to release work if possible. That reduces signing drift and avoids surprise filesystem changes between releases.
-
 ## Branch Protection And Deployment Policy
 
 Recommended GitHub settings:
@@ -137,6 +88,7 @@ Recommended GitHub settings:
 - restrict direct pushes to `main`
 - require approvals for the `production` environment
 - keep deploy concurrency to one production run at a time
+- merge pull requests manually after review
 
 ## Production Host Expectations
 
@@ -162,6 +114,4 @@ Current Caddy reverse proxy template:
 2. Create the `production` GitHub environment and add the backend deploy secrets.
 3. Confirm the VPS repo path, systemd service name, and `/ready` health endpoint match reality.
 4. Test `Deploy Phoenix` with `workflow_dispatch` against `main`.
-5. Optionally register a self-hosted macOS runner and create the `mobile-production` environment.
-6. Test `Mobile Release Plan`.
-7. Test `Mobile Release` only after the self-hosted runner has confirmed local signing inputs.
+5. Keep mobile release credentials and EAS access on this Mac instead of GitHub.
