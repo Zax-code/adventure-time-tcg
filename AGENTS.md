@@ -19,9 +19,8 @@ Assume local environment setup, systemd work, Caddy work, PostgreSQL access, Min
 
 Use this order when behavior is unclear:
 1. the current Phoenix implementation in this repo
-2. the legacy PWA production data and codebase at `~/adventure-time-tcg`
+2. the legacy PWA production data and codebase at `~/adventure-time-tcg-pwa` or `~/Develop/adventure-time-tcg-pwa`
 3. the legacy Fastify implementation in `apps/api`
-4. the backup repo copy at `/home/zax/adventure-time-tcg-backup-pre-phoenix-20260324-123939`
 
 ## Repo Shape
 
@@ -92,8 +91,13 @@ Root:
 - `npm run dev:mobile:android` - install/run the local Android development build
 - `npm run dev:mobile:tunnel` - start the Expo dev server for development builds with tunnel mode
 - `npm run build:mobile:dev:android` - create an Android EAS development build
-- `npm run build:mobile:dev:ios` - create a device-ready iOS EAS development build
+- `npm run build:mobile:dev:ios` - create a device-ready iOS development build; prefer local iOS builds unless the user explicitly asks for remote EAS builds
 - `npm run build:mobile:dev:ios:simulator` - create an iOS simulator EAS development build
+- `npm run build:mobile:ios:local` - create the production iOS `.ipa` locally with EAS local build
+- `npm run build:mobile:android:local` - create the production Android `.aab` locally with EAS local build
+- `npm run release:mobile:ios` - submit a locally built iOS artifact through EAS/TestFlight; do not use this to perform a remote iOS build
+- `npm run release:mobile:android` - submit a locally built Android artifact through EAS/Google Play and then push the Play release note
+- `npm run release:mobile -- --platform <ios|android|both> ...` - default mobile release entry point when the user asks to "release"
 - `npm run build`
 - `npm run typecheck`
 
@@ -113,6 +117,26 @@ PWA import:
 - `cd apps/phoenix && set -a && source .env && set +a && MIX_ENV=dev mix pwa_import audit`
 - `cd apps/phoenix && set -a && source .env && set +a && MIX_ENV=dev mix pwa_import apply`
 - `cd apps/phoenix && set -a && source .env && set +a && MIX_ENV=dev mix pwa_import verify`
+
+## Mobile Build And Release Policy
+
+Production mobile builds must be local.
+
+Rules:
+- do not trigger remote EAS iOS builds unless the user explicitly asks for a remote build
+- do not trigger remote EAS Android builds unless the user explicitly asks for a remote build
+- when the user asks to "release", assume the workflow is build first and release second unless they explicitly say not to build
+- when the user asks to "release iOS", assume the `.ipa` must be produced locally on this machine before EAS submission
+- when the user asks to "release Android", assume the `.aab` must be produced locally on this machine before EAS submission
+- when the user asks to release both platforms, handle Android and iOS in one pass unless they say otherwise
+- always bump the app version/build metadata first as part of the release flow; do not skip version bumping unless the user explicitly asks to keep versions unchanged
+- EAS is allowed for submission, metadata, TestFlight delivery, and Play upload after the local build artifact exists
+- prefer the dedicated local paths: `npm run build:mobile:ios:local` followed by `npm run release:mobile:ios`, and the equivalent Android local build/release path
+- Android releases require an appropriate Google Play release note; do not ship Android without one
+- use the `../cleantrack` release scripts as the local reference for expected release behavior on this MacBook when adapting or debugging the workflow
+- the local iOS release path expects local signing material such as `apps/mobile/credentials.json` and the referenced Apple certificate/profile files
+- the local Android release path expects the signing material, service account credentials, and release-note inputs needed by the release scripts
+- if local signing material or App Store Connect identifiers are missing, stop and report the exact missing inputs instead of falling back to a remote build
 
 ## Production Data Migration Rules
 
