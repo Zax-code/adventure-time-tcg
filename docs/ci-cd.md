@@ -32,6 +32,7 @@ Runs automatically on pushes to `main` when backend/deploy-relevant files change
 
 What it does:
 
+- optionally connects the GitHub runner to Tailscale before SSH when tailnet credentials are configured
 - uploads the repo-owned deploy script to the production host
 - deploys an exact Git SHA or ref
 - refuses to deploy from a dirty host checkout
@@ -73,6 +74,17 @@ Recommended secrets:
 - `PRODUCTION_SYSTEMD_SERVICE`: defaults to `adventure-time-tcg-api.service`
 - `PRODUCTION_HEALTHCHECK_URL`: optional override; by default deploy checks `http://127.0.0.1:$PHX_PORT/ready`
 
+Optional Tailscale secrets for tailnet-only production hosts:
+
+- `TS_OAUTH_CLIENT_ID`: recommended Tailscale OAuth client ID for ephemeral CI nodes
+- `TS_OAUTH_SECRET`: recommended Tailscale OAuth secret; the client needs writable `auth_keys` scope and permission to advertise `tag:ci`
+- `TS_AUTHKEY`: fallback auth key if you do not want to use OAuth yet
+
+Tailscale host notes:
+
+- if `PRODUCTION_HOST` is only reachable over Tailscale, prefer the full MagicDNS hostname or the node's `100.x` Tailscale IP
+- the workflow now attempts Tailscale first when those secrets are present, then fails early with a clearer resolution error before SSH
+
 ## Branch Protection And Deployment Policy
 
 Recommended GitHub settings:
@@ -93,6 +105,7 @@ The deploy workflow assumes:
 - the active service reads from that checkout
 - passwordless `sudo` is available for `systemctl restart`
 - the Phoenix service name is `adventure-time-tcg-api.service` unless overridden
+- if the host is tailnet-only, the `production` GitHub environment includes working Tailscale credentials
 
 Current checked-in service template:
 
