@@ -1127,16 +1127,6 @@ defmodule AdventureTimeApi.Pvp do
     }
   end
 
-  defp serialize_card_ability(ca) do
-    %{
-      id: ca.id,
-      cardId: ca.card_id,
-      passiveKey: ca.passive && ca.passive.key,
-      skillKey: ca.skill && ca.skill.key,
-      ultimateKey: ca.ultimate && ca.ultimate.key
-    }
-  end
-
   defp serialize_admin_card_ability(ca) do
     %{
       id: ca.id,

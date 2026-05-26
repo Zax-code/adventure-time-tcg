@@ -925,8 +925,6 @@ defmodule AdventureTimeApi.PwaImport do
     end
   end
 
-  defp run_mc!(args, env \\ [])
-
   defp run_mc!(args, env) do
     case System.cmd("mc", args, env: env, stderr_to_stdout: true) do
       {_output, 0} -> :ok
