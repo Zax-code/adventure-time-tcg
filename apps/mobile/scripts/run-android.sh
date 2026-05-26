@@ -10,6 +10,8 @@ ANDROID_HOME="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
 JAVA_HOME="${JAVA_HOME:-/Applications/Android Studio.app/Contents/jbr/Contents/Home}"
 ANDROID_CMDLINE_TOOLS_ROOT="${ANDROID_HOME}/cmdline-tools/latest"
 HOMEBREW_CMDLINE_TOOLS_ROOT="/opt/homebrew/share/android-commandlinetools/cmdline-tools/latest"
+DEBUG_KEYSTORE_PATH="$MOBILE_ROOT/android/app/debug.keystore"
+HOME_DEBUG_KEYSTORE_PATH="$HOME/.android/debug.keystore"
 AVD_NAME="${ANDROID_AVD_NAME:-AdventureTime-Pixel-8}"
 SYSTEM_IMAGE="${ANDROID_SYSTEM_IMAGE:-system-images;android-36;google_apis;arm64-v8a}"
 PLATFORM_PACKAGE="${ANDROID_PLATFORM_PACKAGE:-platforms;android-36}"
@@ -17,7 +19,7 @@ BUILD_TOOLS_PACKAGE="${ANDROID_BUILD_TOOLS_PACKAGE:-build-tools;36.0.0}"
 NDK_PACKAGE="${ANDROID_NDK_PACKAGE:-ndk;27.1.12297006}"
 DEVICE_NAME="${ANDROID_AVD_DEVICE:-pixel_8}"
 EMULATOR_LOG="${TMPDIR:-/tmp}/adventure-time-android-emulator.log"
-API_BASE_URL="${EXPO_PUBLIC_API_BASE_URL:-http://127.0.0.1:4200}"
+API_BASE_URL="${EXPO_PUBLIC_API_BASE_URL:-http://10.0.2.2:4200}"
 SDKMANAGER_BIN="${ANDROID_CMDLINE_TOOLS_ROOT}/bin/sdkmanager"
 AVDMANAGER_BIN="${ANDROID_CMDLINE_TOOLS_ROOT}/bin/avdmanager"
 
@@ -69,6 +71,31 @@ ensure_sdk_package() {
 
   echo "Installing Android SDK package: $package_name"
   yes | "$SDKMANAGER_BIN" --install "$package_name" >/dev/null
+}
+
+ensure_debug_keystore() {
+  if [[ -f "$DEBUG_KEYSTORE_PATH" ]]; then
+    return 0
+  fi
+
+  mkdir -p "$(dirname "$DEBUG_KEYSTORE_PATH")"
+
+  if [[ -f "$HOME_DEBUG_KEYSTORE_PATH" ]]; then
+    echo "Copying Android debug keystore into app module"
+    cp "$HOME_DEBUG_KEYSTORE_PATH" "$DEBUG_KEYSTORE_PATH"
+    return 0
+  fi
+
+  echo "Generating Android debug keystore at $DEBUG_KEYSTORE_PATH"
+  keytool \
+    -genkeypair \
+    -alias androiddebugkey \
+    -dname "CN=Android Debug,O=Android,C=US" \
+    -keyalg RSA \
+    -keypass android \
+    -keystore "$DEBUG_KEYSTORE_PATH" \
+    -storepass android \
+    -validity 10000 >/dev/null
 }
 
 bootstrap_cmdline_tools() {
@@ -145,12 +172,13 @@ wait_for_boot() {
   exit 1
 }
 
-for command_name in adb emulator npx node rg; do
+for command_name in adb emulator keytool npx node rg; do
   require_command "$command_name"
 done
 
 ensure_directory "$JAVA_HOME"
 ensure_directory "$ANDROID_HOME"
+ensure_debug_keystore
 bootstrap_cmdline_tools
 require_command "$AVDMANAGER_BIN"
 require_command "$SDKMANAGER_BIN"
