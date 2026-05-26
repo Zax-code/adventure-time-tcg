@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import * as Google from "expo-auth-session/providers/google";
 import { SessionUrlProvider } from "expo-auth-session/build/SessionUrlProvider";
 import Constants, { ExecutionEnvironment } from "expo-constants";
@@ -6,6 +6,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as WebBrowser from "expo-web-browser";
 import { useRouter } from "expo-router";
 import {
+  Platform,
   Pressable,
   Text,
   TextInput,
@@ -36,6 +37,22 @@ const googleAndroidClientId = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID;
 type AuthMode = "login" | "register";
 type AuthStage = "credentials" | "verify";
 
+function hasGoogleAuthConfig() {
+  if (Constants.executionEnvironment === ExecutionEnvironment.StoreClient) {
+    return Boolean(googleWebClientId);
+  }
+
+  if (Platform.OS === "ios") {
+    return Boolean(googleIosClientId || googleWebClientId);
+  }
+
+  if (Platform.OS === "android") {
+    return Boolean(googleAndroidClientId || googleWebClientId);
+  }
+
+  return Boolean(googleWebClientId);
+}
+
 function GoogleAuthSection({
   loading,
   preferredLanguage,
@@ -60,7 +77,7 @@ function GoogleAuthSection({
   const router = useRouter();
   const isExpoGo =
     Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
-  const [request, _response, promptAsync] = Google.useAuthRequest(
+  const [request, response, promptAsync] = Google.useAuthRequest(
     isExpoGo
       ? {
           clientId: googleWebClientId,
@@ -79,7 +96,80 @@ function GoogleAuthSection({
         },
   );
 
+  useEffect(() => {
+    if (!response) {
+      return;
+    }
+
+    if (response.type !== "success") {
+      setGoogleLoading(false);
+      return;
+    }
+
+    const idToken = response.authentication?.idToken ?? response.params.id_token;
+    const accessToken =
+      response.authentication?.accessToken ?? response.params.access_token;
+
+    if (!idToken && !accessToken) {
+      setError("Google did not return a usable token.");
+      setGoogleLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function finishGoogleAuth() {
+      try {
+        const authResult = await apiClient.googleAuth({
+          idToken,
+          accessToken,
+          preferredLanguage,
+        });
+
+        if (cancelled) {
+          return;
+        }
+
+        await setSession({
+          user: authResult.user,
+          accessToken: authResult.tokens.accessToken,
+          refreshToken: authResult.tokens.refreshToken,
+        });
+        router.replace("/(tabs)");
+      } catch (submitError) {
+        if (!cancelled) {
+          setError(
+            submitError instanceof Error ? submitError.message : t("auth.errors.failed"),
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setGoogleLoading(false);
+        }
+      }
+    }
+
+    void finishGoogleAuth();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    preferredLanguage,
+    response,
+    router,
+    setError,
+    setGoogleLoading,
+    setSession,
+    t,
+  ]);
+
   async function submitGoogle() {
+    if (!hasGoogleAuthConfig()) {
+      setError(t("auth.status.googleNotConfigured"));
+      return;
+    }
+
     if (!request) {
       setError(t("auth.status.googleLoading"));
       return;
@@ -113,30 +203,11 @@ function GoogleAuthSection({
         : promptAsync());
 
       if (result.type !== "success") {
+        setGoogleLoading(false);
         return;
       }
-
-      const idToken = result.authentication?.idToken ?? result.params.id_token;
-      const accessToken =
-        result.authentication?.accessToken ?? result.params.access_token;
-      if (!idToken && !accessToken) {
-        throw new Error("Google did not return a usable token.");
-      }
-
-      const authResult = await apiClient.googleAuth({
-        idToken,
-        accessToken,
-        preferredLanguage,
-      });
-      await setSession({
-        user: authResult.user,
-        accessToken: authResult.tokens.accessToken,
-        refreshToken: authResult.tokens.refreshToken,
-      });
-      router.replace("/(tabs)");
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : t("auth.errors.failed"));
-    } finally {
       setGoogleLoading(false);
     }
   }
@@ -206,9 +277,7 @@ export function AuthForm() {
   const [info, setInfo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const googleAuthConfigured = Boolean(
-    googleWebClientId && googleIosClientId && googleAndroidClientId,
-  );
+  const googleAuthConfigured = hasGoogleAuthConfig();
 
   function switchMode(nextMode: AuthMode) {
     setMode(nextMode);

@@ -36,15 +36,19 @@ defmodule AdventureTimeApiWeb.Plugs.RateLimit.Store do
   defp ensure_table! do
     case :ets.whereis(@table) do
       :undefined ->
-        :ets.new(@table, [
-          :named_table,
-          :public,
-          :set,
-          read_concurrency: true,
-          write_concurrency: true
-        ])
+        try do
+          :ets.new(@table, [
+            :named_table,
+            :public,
+            :set,
+            read_concurrency: true,
+            write_concurrency: true
+          ])
 
-        :ok
+          :ok
+        rescue
+          ArgumentError -> :ok
+        end
 
       _ ->
         :ok

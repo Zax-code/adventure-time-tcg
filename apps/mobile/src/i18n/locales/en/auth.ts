@@ -43,7 +43,8 @@ const auth = {
     newVerificationCodeSent: "A new verification code was sent.",
     googlePendingApproval:
       "This Google account is pending approval. Your access request has been submitted.",
-    googleNotConfiguredAndroid: "Google sign-in is not configured for Android yet.",
+    googleNotConfigured:
+      "Google sign-in is not configured for this app environment yet.",
     googleLoading: "Google sign-in is still loading. Please try again.",
   },
   errors: {

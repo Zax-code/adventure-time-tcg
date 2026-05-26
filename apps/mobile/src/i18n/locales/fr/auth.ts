@@ -43,8 +43,8 @@ const auth = {
     newVerificationCodeSent: "Un nouveau code de vérification a été envoyé.",
     googlePendingApproval:
       "Ce compte Google est en attente d'approbation. Ta demande d'accès a été envoyée.",
-    googleNotConfiguredAndroid:
-      "La connexion Google n'est pas encore configurée sur Android.",
+    googleNotConfigured:
+      "La connexion Google n'est pas encore configurée pour cet environnement de l'application.",
     googleLoading:
       "La connexion Google est encore en cours de chargement. Réessaie.",
   },
