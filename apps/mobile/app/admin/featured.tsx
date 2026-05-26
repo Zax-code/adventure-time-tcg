@@ -9,7 +9,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import type { AdminCardsResponse } from "@adventure-time/shared";
+import type { AdminCardsResponse } from "@adventure-time/api-client";
 
 import { apiClient } from "../../src/lib/api";
 import { prefetchCardImages } from "../../src/lib/card-images";

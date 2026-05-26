@@ -2,7 +2,7 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 
-import type { CollectionResponse } from "@adventure-time/shared";
+import type { CollectionResponse } from "@adventure-time/api-client";
 
 import { useTranslation } from "../../i18n";
 import {

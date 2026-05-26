@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import type { AdminPacksResponse } from "@adventure-time/shared";
+import type { AdminPacksResponse } from "@adventure-time/api-client";
 
 import { apiClient } from "../../src/lib/api";
 import {

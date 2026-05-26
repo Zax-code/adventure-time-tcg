@@ -1,7 +1,7 @@
 import { useCallback, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import type { PvpAction, PvpEndTurnInput } from "@adventure-time/shared";
+import type { PvpAction, PvpEndTurnInput } from "@adventure-time/api-client";
 
 import { apiClient } from "../../lib/api";
 import { useSessionStore } from "../../stores/session-store";

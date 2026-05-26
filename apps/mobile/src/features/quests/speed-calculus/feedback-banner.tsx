@@ -1,5 +1,5 @@
 import { Animated, Text, View } from "react-native";
-import type { SpeedRunState } from "@adventure-time/shared";
+import type { SpeedRunState } from "@adventure-time/api-client";
 
 import { type FeedbackType } from "./constants";
 

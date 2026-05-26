@@ -4,7 +4,7 @@ import { and, eq } from "drizzle-orm";
 import { FastifyInstance } from "fastify";
 
 import { dailyQuests, db, speedCalculusDailyRuns, users, wordleDailyAttempts } from "@adventure-time/db";
-import { claimQuestSchema, speedAnswerSchema, speedFinishSchema, wordleSubmitSchema } from "@adventure-time/shared";
+import { claimQuestSchema, speedAnswerSchema, speedFinishSchema, wordleSubmitSchema } from "@adventure-time/contracts";
 
 import { buildQuestList, cashoutSpeedCalculus, claimQuestReward, getSpeedCalculusState, materializeDailyQuestsForUser, resumeSpeedCalculusRun, syncSpeedCalculusQuestFromRuns } from "../services/quest-service";
 import { SPEED_CALCULUS_RESUME_PAUSE_SECONDS, calculateSpeedCalculusReward, evaluateSpeedCalculusAnswers } from "../lib/speed-calculus";

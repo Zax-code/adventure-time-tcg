@@ -1,7 +1,7 @@
 import * as SecureStore from "expo-secure-store";
 import { create } from "zustand";
 
-import type { AuthUser } from "@adventure-time/shared";
+import type { AuthUser } from "@adventure-time/api-client";
 
 import { useLocaleStore } from "./locale-store";
 

@@ -11,7 +11,7 @@ import {
   ownedCards,
   users,
 } from "@adventure-time/db";
-import type { AuthUser } from "@adventure-time/shared";
+import type { AuthUser } from "@adventure-time/contracts";
 
 import { env } from "../lib/env";
 import {

@@ -4,7 +4,7 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { getStrongAgainst, getWeakAgainst } from "@adventure-time/game-engine";
-import type { PvpAction } from "@adventure-time/shared";
+import type { PvpAction } from "@adventure-time/api-client";
 
 import { XIcon, ZapIcon, SwordsIcon, SparklesIcon } from "../../components/icons";
 import { useTranslation } from "../../i18n";

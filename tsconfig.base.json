@@ -12,7 +12,7 @@
     "baseUrl": ".",
     "paths": {
       "@adventure-time/db": ["packages/db/src/index.ts"],
-      "@adventure-time/shared": ["packages/shared/src/index.ts"],
+      "@adventure-time/contracts": ["packages/contracts/src/index.ts"],
       "@adventure-time/game-engine": ["packages/game-engine/src/index.ts"],
       "@adventure-time/api-client": ["packages/api-client/src/index.ts"]
     }

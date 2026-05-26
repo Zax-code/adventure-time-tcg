@@ -1,5 +1,4 @@
 import {
-  Fragment,
   useCallback,
   useEffect,
   useMemo,
@@ -24,7 +23,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 
 import { ApiClientError } from "@adventure-time/api-client";
-import type { QuestsResponse, WordleStateResponse, WordleSubmitResponse } from "@adventure-time/shared";
+import type { QuestsResponse, WordleStateResponse, WordleSubmitResponse } from "@adventure-time/api-client";
 import { apiClient } from "../../src/lib/api";
 import { useTranslation } from "../../src/i18n";
 import { useQuestResetStore } from "../../src/stores/quest-reset-store";
@@ -62,14 +61,13 @@ function tileLetterClass(state?: LetterState): string {
 function keyBgBorderClass(state?: LetterState): string {
   if (state === "correct") return "bg-successDark border-successDark";
   if (state === "present") return "bg-secondary border-secondary";
-  if (state === "absent") return "bg-muted border-muted";
-  return "bg-primaryTint border-primaryTint";
+  if (state === "absent") return "bg-surfaceMuted border-primaryTint";
+  return "bg-surface border-primaryTint";
 }
 
 function keyLetterClass(state?: LetterState): string {
-  if (state === "correct") return "text-successDark";
-  if (state === "present") return "text-yellow-600";
-  if (state === "absent") return "text-muted";
+  if (state === "correct" || state === "present") return "text-white";
+  if (state === "absent") return "text-fgMuted";
   return "text-primaryStrong";
 }
 
@@ -418,6 +416,7 @@ export default function WordleScreen() {
         targetIndex = currentGuess.length - 1 - lastFilled;
       }
 
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       setRemovingCellIndex(targetIndex);
       removeAnim.scale.setValue(1);
       removeAnim.opacity.setValue(1);
@@ -1015,79 +1014,69 @@ export default function WordleScreen() {
 
       {/* ── Keyboard card ───────────────────────────────────────────────── */}
       <GestureDetector gesture={keyboardGesture}>
-        <View ref={containerRef}>
+        <View
+          ref={containerRef}
+          className="rounded-[28px] border-2 border-primaryTint bg-surface p-3 shadow shadow-black/10"
+        >
           <View
             onLayout={(e) => setRowContainerWidth(e.nativeEvent.layout.width)}
+            className="gap-2"
           >
             {(() => {
-              const SEP = 1;
+              const KEY_GAP = 6;
               const maxRowKeys = Math.max(...keyboardRows.map((r) => r.length));
               const keyWidth =
                 rowContainerWidth > 0
                   ? Math.floor(
-                      (rowContainerWidth - (maxRowKeys - 1) * SEP) / maxRowKeys,
+                      (rowContainerWidth - (maxRowKeys - 1) * KEY_GAP) /
+                        maxRowKeys,
                     )
                   : 0;
+
               return keyboardRows.map((row, rowIdx) => (
-                <Fragment key={row}>
-                  {rowIdx > 0 && <View className="h-px bg-primaryTint" />}
-                  <View className="flex-row justify-center">
+                <View key={row} className={rowIdx > 0 ? "mt-1" : undefined}>
+                  <View className="flex-row justify-center gap-1.5">
                     {row.split("").map((letter, i) => {
                       const kState = keyboardState[letter];
+                      const pressed =
+                        activeKeys.includes(letter) && !inputLocked;
+                      const keyCls = keyBgBorderClass(kState);
                       return (
-                        <Fragment key={letter}>
-                          {i > 0 && (
-                            <View
-                              style={{ width: 1, alignSelf: "stretch" }}
-                              className="bg-primaryTint"
-                            />
-                          )}
-                          <View
-                            ref={(node) => {
-                              keyRefs.current[letter] = node;
-                            }}
-                            onLayout={() => {
-                              requestAnimationFrame(() =>
-                                updateKeyLayout(letter),
-                              );
-                            }}
-                            className="h-[56px] items-center justify-center"
-                            pointerEvents="none"
-                            style={{
-                              width: keyWidth || undefined,
-                              opacity: inputLocked
-                                ? 0.45
-                                : activeKeys.includes(letter)
-                                  ? 0.7
-                                  : 1,
-                              transform: [
-                                {
-                                  scale:
-                                    activeKeys.includes(letter) && !inputLocked
-                                      ? 0.95
-                                      : 1,
-                                },
-                              ],
-                            }}
+                        <View
+                          key={letter}
+                          ref={(node) => {
+                            keyRefs.current[letter] = node;
+                          }}
+                          onLayout={() => {
+                            requestAnimationFrame(() =>
+                              updateKeyLayout(letter),
+                            );
+                          }}
+                          className={`h-[56px] rounded-2xl border-2 items-center justify-center shadow shadow-black/10 ${keyCls}`}
+                          pointerEvents="none"
+                          style={{
+                            width: keyWidth || undefined,
+                            opacity: inputLocked ? 0.45 : pressed ? 0.82 : 1,
+                            transform: [{ scale: pressed ? 0.96 : 1 }],
+                          }}
+                        >
+                          <Text
+                            className={`text-sm font-nunito-extrabold ${keyLetterClass(kState)}`}
                           >
-                            <Text
-                              className={`text-sm font-nunito-extrabold ${keyLetterClass(kState)}`}
-                            >
-                              {letter}
-                            </Text>
-                          </View>
-                        </Fragment>
+                            {letter}
+                          </Text>
+                        </View>
                       );
                     })}
                   </View>
-                </Fragment>
+                </View>
               ));
             })()}
           </View>
 
-          <View className="h-px bg-primaryTint" />
+          <View className="mt-3 h-px bg-primaryTint" />
           {/* Clear + Submit row */}
-          <View className="flex-row gap-2">
+          <View className="mt-3 flex-row gap-2">
             <View
               ref={(node) => {
                 keyRefs.current["CLEAR"] = node;
@@ -1096,18 +1085,18 @@ export default function WordleScreen() {
                 requestAnimationFrame(() => updateKeyLayout("CLEAR"));
               }}
               pointerEvents="none"
-              className="flex-1 h-[56px] rounded-xl border-2 border-primaryTint bg-primaryTint items-center justify-center"
+              className="flex-1 h-[56px] rounded-2xl border-2 border-primaryTint bg-surfaceMuted items-center justify-center shadow shadow-black/10"
               style={{
                 opacity: rowClearDisabled
-                  ? 0.45
+                  ? 0.4
                   : activeKeys.includes("CLEAR")
-                    ? 0.7
+                    ? 0.82
                     : 1,
                 transform: [
                   {
                     scale:
                       activeKeys.includes("CLEAR") && !rowClearDisabled
-                        ? 0.95
+                        ? 0.96
                         : 1,
                   },
                 ],
@@ -1126,17 +1115,19 @@ export default function WordleScreen() {
                 requestAnimationFrame(() => updateKeyLayout("SUBMIT"));
               }}
               pointerEvents="none"
-              className="flex-1 h-[56px] rounded-xl overflow-hidden"
+              className="flex-1 h-[56px] rounded-2xl overflow-hidden shadow shadow-black/10"
               style={{
                 opacity: submitLocked
-                  ? 0.45
+                  ? 0.4
                   : activeKeys.includes("SUBMIT")
-                    ? 0.7
+                    ? 0.88
                     : 1,
                 transform: [
                   {
                     scale:
-                      activeKeys.includes("SUBMIT") && !submitLocked ? 0.95 : 1,
+                      activeKeys.includes("SUBMIT") && !submitLocked
+                        ? 0.96
+                        : 1,
                   },
                 ],
               }}

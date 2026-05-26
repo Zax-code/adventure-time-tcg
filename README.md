@@ -34,7 +34,7 @@ Apps:
 Packages still used by mobile/runtime code:
 
 - `packages/api-client` - typed client used by mobile
-- `packages/shared` - shared DTOs and enums; no longer owns UI translations
+- `packages/contracts` - backend/mobile DTOs, schemas, and enums
 - `packages/game-engine` - pure TypeScript combat helpers used by mobile
 - `packages/db` - legacy Drizzle schema and migration history reference
 
@@ -108,7 +108,7 @@ Notes:
 
 - the old split between shared legacy translations and mobile-native translations has been removed
 - the old `native.` namespace is gone; use unified feature namespaces instead
-- do not add UI translations back to `packages/shared`
+- do not add UI translations to `packages/contracts`
 - when adding copy, update both `en` and `fr`
 - preserve dynamic/runtime-composed families such as `quests.*`, `combat.*`, `pvp.reference.*`, `settings.stepSources.*`, `admin.*`, and `gifts.statusLabel.*`
 - canonical backend or engine values should stay raw in data and be localized at render time via display maps/helpers

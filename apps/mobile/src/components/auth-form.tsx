@@ -67,7 +67,7 @@ function GoogleAuthSection({
   setError: (value: string | null) => void;
   setGoogleLoading: (value: boolean) => void;
   setSession: (params: {
-    user: import("@adventure-time/shared").AuthUser;
+    user: import("@adventure-time/api-client").AuthUser;
     accessToken: string;
     refreshToken: string;
   }) => Promise<void>;

@@ -4,7 +4,7 @@ import { and, desc, eq, or } from "drizzle-orm";
 import { FastifyInstance } from "fastify";
 
 import { cardGifts, cards, db, ownedCards, users } from "@adventure-time/db";
-import { processGiftSchema, sendGiftSchema } from "@adventure-time/shared";
+import { processGiftSchema, sendGiftSchema } from "@adventure-time/contracts";
 
 function serializeUser(user: { id: string; email: string; displayName: string | null }) {
   return {

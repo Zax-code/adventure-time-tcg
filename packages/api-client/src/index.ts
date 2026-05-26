@@ -128,8 +128,10 @@ import {
   type WordleStateResponse,
   type WordleSubmitInput,
   type WordleSubmitResponse,
-} from "@adventure-time/shared";
+} from "@adventure-time/contracts";
 import { z } from "zod";
+
+export * from "@adventure-time/contracts";
 
 const adminAbilitiesEnvelopeSchema = z.object({
   abilities: z.array(z.unknown()),

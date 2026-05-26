@@ -12,7 +12,7 @@ import {
   View,
 } from "react-native";
 
-import type { QuestsResponse } from "@adventure-time/shared";
+import type { QuestsResponse } from "@adventure-time/api-client";
 
 import {
   CheckCircleIcon,

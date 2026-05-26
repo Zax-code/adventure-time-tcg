@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 
-import type { PvpAction, PvpEndTurnInput } from "@adventure-time/shared";
+import type { PvpAction, PvpEndTurnInput } from "@adventure-time/api-client";
 
 import { ChevronRightIcon, ClockIcon, XCircleIcon } from "../../components/icons";
 import { useTranslation } from "../../i18n";

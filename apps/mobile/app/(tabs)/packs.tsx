@@ -29,7 +29,7 @@ import { useThemeStore } from "../../src/stores/theme-store";
 import { useBottomTabBarContentPadding } from "../../src/theme/layout";
 import { THEME_COLORS } from "../../src/theme/themes";
 
-import type { PacksResponse, OpenPackResponse } from "@adventure-time/shared";
+import type { PacksResponse, OpenPackResponse } from "@adventure-time/api-client";
 import type { ViewStyle } from "react-native";
 
 type Pack = PacksResponse["packs"][number];

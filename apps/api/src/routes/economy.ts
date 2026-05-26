@@ -4,7 +4,7 @@ import { and, eq } from "drizzle-orm";
 import { FastifyInstance } from "fastify";
 
 import { db, cards, ownedCards, users } from "@adventure-time/db";
-import { dustActionSchema } from "@adventure-time/shared";
+import { dustActionSchema } from "@adventure-time/contracts";
 
 import { getDustCraftCost, getDustSacrificeValue } from "../lib/dust";
 import { getActiveMatchCardIds } from "../services/pvp-service";

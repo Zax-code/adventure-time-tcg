@@ -1,5 +1,5 @@
 import { Pressable, Text, View } from "react-native";
-import type { SpeedRunState } from "@adventure-time/shared";
+import type { SpeedRunState } from "@adventure-time/api-client";
 
 import { useTranslation } from "../../../i18n";
 import { CoinIcon, SparklesIcon } from "../../../components/icons";

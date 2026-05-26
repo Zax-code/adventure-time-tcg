@@ -1,6 +1,6 @@
 import { FastifyInstance } from "fastify";
 
-import { pvpActionSchema, pvpEndTurnSchema, pvpInviteSchema } from "@adventure-time/shared";
+import { pvpActionSchema, pvpEndTurnSchema, pvpInviteSchema } from "@adventure-time/contracts";
 
 import { createInvite, endTurn, getMatch, getMatchDetail, getSpectatable, getSpectatableDetail, listHistory, listInvites, listMatches, performMatchAction, setMatchStatus } from "../services/pvp-service";
 

@@ -8,7 +8,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@adventure-time/shared": "file:../shared"
+    "@adventure-time/contracts": "file:../contracts",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "typescript": "^5.9.2"

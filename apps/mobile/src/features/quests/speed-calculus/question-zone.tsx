@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Animated, Text, View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
-import type { SpeedRunState } from "@adventure-time/shared";
+import type { SpeedRunState } from "@adventure-time/api-client";
 
 import { useTranslation } from "../../../i18n";
 import { useThemeStore } from "../../../stores/theme-store";

@@ -14,7 +14,7 @@ import {
 
 import { LinearGradient } from "expo-linear-gradient";
 
-import type { CollectionResponse } from "@adventure-time/shared";
+import type { CollectionResponse } from "@adventure-time/api-client";
 import { apiClient } from "../../src/lib/api";
 import { useSessionStore } from "../../src/stores/session-store";
 import { CardTile } from "../../src/components/card-tile";

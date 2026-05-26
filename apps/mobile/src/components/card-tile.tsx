@@ -4,7 +4,7 @@ import { Animated, Easing, Pressable, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 
-import type { CollectionResponse } from "@adventure-time/shared";
+import type { CollectionResponse } from "@adventure-time/api-client";
 import { getCardImageCacheKey, getCardImageUrl } from "../lib/card-images";
 import { CARD_TYPE_COLORS, RARITY_COLORS, SECONDARY_TINT } from "./theme";
 import { HPIcon, SpeedIcon, RarityIcon } from "./icons";

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 
-import { cardTypeValues, type AdminAbilitiesResponse, type AdminCardDetail, type AdminCardsResponse, type CardType, type RaritiesResponse } from "@adventure-time/shared";
+import { cardTypeValues, type AdminAbilitiesResponse, type AdminCardDetail, type AdminCardsResponse, type CardType, type RaritiesResponse } from "@adventure-time/api-client";
 
 import { AdminCardTile } from "./admin-card-tile";
 import {

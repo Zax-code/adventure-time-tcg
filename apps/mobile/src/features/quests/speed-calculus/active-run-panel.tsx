@@ -1,7 +1,7 @@
 import { Animated, Modal, Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import type { SpeedRunState } from "@adventure-time/shared";
+import type { SpeedRunState } from "@adventure-time/api-client";
 
 import { useTranslation } from "../../../i18n";
 import { type FeedbackType } from "./constants";

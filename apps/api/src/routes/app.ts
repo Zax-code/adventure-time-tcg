@@ -24,7 +24,7 @@ import {
   updateStepSourceSchema,
   updateLanguageSchema,
   updateDisplayNameSchema,
-} from "@adventure-time/shared";
+} from "@adventure-time/contracts";
 
 import {
   DAILY_REWARD,

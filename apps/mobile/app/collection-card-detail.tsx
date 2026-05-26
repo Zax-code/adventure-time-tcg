@@ -30,7 +30,7 @@ import {
 } from "../src/components/icons";
 import { ToastBanner } from "../src/components/toast-banner";
 import { getDustSacrificeValue, getDustCraftCost } from "../src/lib/dust";
-import type { CollectionResponse, HomeResponse } from "@adventure-time/shared";
+import type { CollectionResponse, HomeResponse } from "@adventure-time/api-client";
 
 function estimateCatalogCount(stats: CollectionResponse["stats"]) {
   if (stats.uniqueOwned <= 0 || stats.completionPercentage <= 0) {

@@ -15,7 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
 
-import type { SpeedRunAnswerResponse, SpeedRunState } from "@adventure-time/shared";
+import type { SpeedRunAnswerResponse, SpeedRunState } from "@adventure-time/api-client";
 
 import { ApiClientError, apiClient } from "../../../src/lib/api";
 import { useTranslation } from "../../../src/i18n";

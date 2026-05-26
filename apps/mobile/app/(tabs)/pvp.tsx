@@ -4,7 +4,7 @@ import { Image } from "expo-image";
 import { Modal, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import type { PvpSpectateBattleState } from "@adventure-time/shared";
+import type { PvpSpectateBattleState } from "@adventure-time/api-client";
 
 import { apiClient } from "../../src/lib/api";
 import { getCardImageCacheKey, getCardImageUrl } from "../../src/lib/card-images";

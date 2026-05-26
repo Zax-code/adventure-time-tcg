@@ -1,6 +1,6 @@
 import { memo, useMemo } from "react";
 
-import type { AdminCardDetail, AdminCardsResponse } from "@adventure-time/shared";
+import type { AdminCardDetail, AdminCardsResponse } from "@adventure-time/api-client";
 
 import { CardTile } from "../card-tile";
 

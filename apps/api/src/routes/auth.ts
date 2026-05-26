@@ -1,6 +1,6 @@
 import { FastifyInstance } from "fastify";
 
-import { googleAuthSchema, registerSchema, loginSchema } from "@adventure-time/shared";
+import { googleAuthSchema, registerSchema, loginSchema } from "@adventure-time/contracts";
 
 import { AuthError, login, loginWithGoogle, logout, refresh, register } from "../services/auth-service";
 

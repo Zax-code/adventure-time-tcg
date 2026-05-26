@@ -4,7 +4,7 @@ import * as ImagePicker from "expo-image-picker";
 import { Image } from "expo-image";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import type { AdminImageAssetsResponse } from "@adventure-time/shared";
+import type { AdminImageAssetsResponse } from "@adventure-time/api-client";
 
 import { apiClient, API_BASE_URL } from "../../src/lib/api";
 import {

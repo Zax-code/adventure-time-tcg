@@ -6,7 +6,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import type { CollectionResponse } from "@adventure-time/shared";
+import type { CollectionResponse } from "@adventure-time/api-client";
 
 import { apiClient } from "../src/lib/api";
 import { localizeTypeName } from "../src/lib/combat-i18n";

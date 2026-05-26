@@ -20,7 +20,7 @@ import { and, eq, inArray, or } from "drizzle-orm";
 
 import { db, cards, ownedCards, pvpMatches, users } from "@adventure-time/db";
 
-import type { PvpAction } from "@adventure-time/shared";
+import type { PvpAction } from "@adventure-time/contracts";
 
 import { validateLoadoutRarityCaps } from "../lib/loadout-rules";
 

@@ -4,7 +4,7 @@ import { and, desc, eq, inArray } from "drizzle-orm";
 import { FastifyInstance } from "fastify";
 
 import { db, cards, ownedCards, pvpLoadouts } from "@adventure-time/db";
-import { pvpLoadoutMutationSchema } from "@adventure-time/shared";
+import { pvpLoadoutMutationSchema } from "@adventure-time/contracts";
 
 import { validateLoadoutRarityCaps } from "../lib/loadout-rules";
 

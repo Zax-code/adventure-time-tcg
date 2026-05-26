@@ -1,5 +1,5 @@
 import { Pressable, Text, View, type DimensionValue } from "react-native";
-import type { SpeedRunState } from "@adventure-time/shared";
+import type { SpeedRunState } from "@adventure-time/api-client";
 
 import { useTranslation } from "../../../i18n";
 import { useThemeStore } from "../../../stores/theme-store";

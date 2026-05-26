@@ -17,7 +17,7 @@ import {
   adminEmailRequestActionSchema,
   adminUserQuestResetInputSchema,
   adminUserRoleUpdateSchema,
-} from "@adventure-time/shared";
+} from "@adventure-time/contracts";
 
 import {
   buildQuestList,

@@ -15,7 +15,7 @@ import {
   adminCardAbilityAssignSchema,
   adminCardEditSchema,
   adminCardMutationSchema,
-} from "@adventure-time/shared";
+} from "@adventure-time/contracts";
 import { putPrivateObject } from "../services/media-service";
 import { translateAbilityToFrench } from "../services/ability-translation-service";
 

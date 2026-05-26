@@ -9,7 +9,7 @@ import {
   type TargetingPlayerState,
   type TargetingUnitState,
 } from "@adventure-time/game-engine";
-import type { PvpBattleState, PvpPlayerState, PvpUnitState } from "@adventure-time/shared";
+import type { PvpBattleState, PvpPlayerState, PvpUnitState } from "@adventure-time/api-client";
 
 export type { PvpBattleState, PvpPlayerState, PvpUnitState };
 

@@ -10,7 +10,7 @@ Primary goals:
 - keep the Phoenix backend healthy and production-ready
 - preserve gameplay and mobile-facing contract behavior unless a change is intentional
 - use the legacy PWA and the old Fastify API as reference sources, not target architecture
-- keep shared mobile/runtime packages (`packages/api-client`, `packages/shared`, `packages/game-engine`) working until a later consolidation pass removes them deliberately
+- keep shared mobile/runtime packages (`packages/api-client`, `packages/contracts`, `packages/game-engine`) working until a later consolidation pass removes them deliberately
 
 You are usually operating directly on the Arch Linux VPS that hosts the app.
 Assume local environment setup, systemd work, Caddy work, PostgreSQL access, MinIO access, and Phoenix tooling are in scope when needed.
@@ -31,15 +31,15 @@ Apps:
 
 Packages still in active use:
 - `packages/api-client` - typed client used by mobile
-- `packages/shared` - shared schemas, DTOs, and enums; not a UI translation home
+- `packages/contracts` - backend/mobile wire schemas, DTOs, and enums
 - `packages/game-engine` - pure TS combat helpers used by mobile
 - `packages/db` - legacy schema/migration reference
 
 Architecture rules:
 - mobile talks to the backend through `@adventure-time/api-client`
-- shared request/response types stay in `@adventure-time/shared`
+- request/response contracts live in `@adventure-time/contracts` and are re-exported by `@adventure-time/api-client`
 - mobile UI translations live in `apps/mobile/src/i18n/`
-- do not put UI translation strings back into `packages/shared`
+- do not put UI translation strings into `packages/contracts`
 - Phoenix owns auth, persistence, uploads, jobs, and DB access
 - `@adventure-time/game-engine` must stay pure and must not access DB, network, env, or filesystem
 - Ecto migrations are the Phoenix source of truth
@@ -265,6 +265,7 @@ Before editing:
 
 Before finishing:
 - commit each completed change or logical change set before moving on
+- push committed changes before finishing the task unless the user explicitly asks you not to push
 - report what changed
 - report verification performed
 - call out contract changes, migration implications, or operational follow-up
