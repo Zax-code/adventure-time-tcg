@@ -3,16 +3,16 @@ import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { parseArgs } from "node:util";
+import {
+  ensureGooglePlayServiceAccountConfigured,
+  resolveGooglePlayServiceAccountPath,
+} from "./google-play-service-account.mjs";
 import { recordMobileRelease } from "./release-trace.mjs";
 
 const DEFAULT_PACKAGE_NAME = "love.leaetzak.adventuretime";
 const DEFAULT_PROFILE = "production";
 const DEFAULT_TRACK = "internal";
 const DEFAULT_LOCALE = "en-US";
-const DEFAULT_SERVICE_ACCOUNT_PATH = path.resolve(
-  import.meta.dirname,
-  "../credentials.json",
-);
 const DEFAULT_OUTPUT_PATH = path.resolve(
   import.meta.dirname,
   "../local-build/android-production.aab",
@@ -58,24 +58,11 @@ function parseCliOptions() {
     outputPath: values.output?.trim() || DEFAULT_OUTPUT_PATH,
     packageName: values.package?.trim() || DEFAULT_PACKAGE_NAME,
     profile: values.profile?.trim() || DEFAULT_PROFILE,
-    serviceAccountPath:
-      values["service-account"]?.trim() ||
-      process.env.GOOGLE_PLAY_SERVICE_ACCOUNT_KEY_PATH ||
-      DEFAULT_SERVICE_ACCOUNT_PATH,
+    serviceAccountPath: resolveGooglePlayServiceAccountPath(
+      values["service-account"],
+    ),
     track: values.track?.trim() || DEFAULT_TRACK,
   };
-}
-
-function ensureServiceAccountConfigured(serviceAccountPath) {
-  if (process.env.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON) {
-    return;
-  }
-
-  if (!existsSync(serviceAccountPath)) {
-    throw new Error(
-      `Google Play service account key not found at ${serviceAccountPath}.`,
-    );
-  }
 }
 
 function runCommand(command, args, { cwd, captureStdout = false }) {
@@ -126,7 +113,7 @@ async function main() {
   process.env.EAS_BUILD_DISABLE_EXPO_DOCTOR_STEP ??= "1";
 
   const options = parseCliOptions();
-  ensureServiceAccountConfigured(options.serviceAccountPath);
+  ensureGooglePlayServiceAccountConfigured(options.serviceAccountPath);
   await mkdir(path.dirname(options.outputPath), { recursive: true });
 
   const buildArgs = [

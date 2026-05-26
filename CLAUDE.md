@@ -134,6 +134,10 @@ Rules:
 - EAS is allowed for submission, metadata, TestFlight delivery, and Play upload after the local build artifact exists
 - prefer the dedicated local paths: `npm run build:mobile:ios:local` followed by `npm run release:mobile:ios`, and the equivalent Android local build/release path
 - Android releases require an appropriate Google Play release note; do not ship Android without one
+- Android release notes should be based on the diff between the last released Android commit and the current release commit; use the latest `mobile/android/*` tag as the baseline
+- keep iOS and Android release history independently via git tags because one platform may ship without the other; use the latest `mobile/ios/*` and `mobile/android/*` tags as the source of truth for the last released commit on each platform
+- if a platform has no prior release tag yet, treat the current ship as the first true release for that platform and create the tag baseline during the release flow
+- after a successful platform release, ensure the new per-platform release tag exists locally and remind the user to push tags so future agents can diff from the correct baseline
 - use the `../cleantrack` release scripts as the local reference for expected release behavior on this MacBook when adapting or debugging the workflow
 - the local iOS release path expects local signing material such as `apps/mobile/credentials.json` and the referenced Apple certificate/profile files
 - the local Android release path expects the signing material, service account credentials, and release-note inputs needed by the release scripts

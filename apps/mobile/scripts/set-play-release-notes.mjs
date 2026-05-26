@@ -1,15 +1,13 @@
 import { createSign } from "node:crypto";
-import { existsSync, readFileSync } from "node:fs";
-import path from "node:path";
 import { parseArgs } from "node:util";
+import {
+  loadGooglePlayServiceAccount,
+  resolveGooglePlayServiceAccountPath,
+} from "./google-play-service-account.mjs";
 
 const DEFAULT_PACKAGE_NAME = "love.leaetzak.adventuretime";
 const DEFAULT_TRACK = "internal";
 const DEFAULT_LOCALE = "en-US";
-const DEFAULT_SERVICE_ACCOUNT_PATH = path.resolve(
-  import.meta.dirname,
-  "../credentials.json",
-);
 const ANDROID_PUBLISHER_SCOPE =
   "https://www.googleapis.com/auth/androidpublisher";
 
@@ -64,29 +62,12 @@ function parseCliOptions() {
     locale: values.locale?.trim() || DEFAULT_LOCALE,
     note,
     packageName: values.package?.trim() || DEFAULT_PACKAGE_NAME,
-    serviceAccountPath:
-      values["service-account"]?.trim() ||
-      process.env.GOOGLE_PLAY_SERVICE_ACCOUNT_KEY_PATH ||
-      DEFAULT_SERVICE_ACCOUNT_PATH,
+    serviceAccountPath: resolveGooglePlayServiceAccountPath(
+      values["service-account"],
+    ),
     track: values.track?.trim() || DEFAULT_TRACK,
     versionCode,
   };
-}
-
-function loadServiceAccount(serviceAccountPath) {
-  const inlineJson = process.env.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON;
-
-  if (inlineJson) {
-    return JSON.parse(inlineJson);
-  }
-
-  if (!existsSync(serviceAccountPath)) {
-    throw new Error(
-      `Google Play service account key not found at ${serviceAccountPath}.`,
-    );
-  }
-
-  return JSON.parse(readFileSync(serviceAccountPath, "utf8"));
 }
 
 function base64UrlEncode(value) {
@@ -286,7 +267,9 @@ function updateReleaseNotes(trackResponse, versionCode, locale, note) {
 
 async function main() {
   const options = parseCliOptions();
-  const serviceAccount = loadServiceAccount(options.serviceAccountPath);
+  const serviceAccount = loadGooglePlayServiceAccount(
+    options.serviceAccountPath,
+  );
   const accessToken = await fetchAccessToken(serviceAccount);
   const packageName = encodeURIComponent(options.packageName);
   const trackName = encodeURIComponent(options.track);
