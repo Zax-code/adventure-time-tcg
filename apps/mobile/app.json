@@ -4,6 +4,7 @@
     "slug": "adventure-time-tcg",
     "owner": "zax-code",
     "scheme": "adventure-time",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "plugins": [
       "expo-dev-client",
@@ -12,18 +13,31 @@
       "expo-font",
       "expo-web-browser"
     ],
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FF69B4",
+      "imageWidth": 200
+    },
     "experiments": {
       "typedRoutes": true
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "love.leaetzak.adventuretime"
+      "bundleIdentifier": "love.leaetzak.adventuretime",
+      "icon": "./assets/ios-icon.png"
     },
     "android": {
-      "package": "love.leaetzak.adventuretime"
+      "package": "love.leaetzak.adventuretime",
+      "icon": "./assets/icon.png",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FF69B4"
+      }
     },
     "web": {
-      "bundler": "metro"
+      "bundler": "metro",
+      "favicon": "./assets/favicon.png"
     },
     "extra": {
       "router": {},
