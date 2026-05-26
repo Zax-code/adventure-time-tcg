@@ -5,7 +5,7 @@ const VALID_PLATFORMS = new Set(["android", "ios", "both"]);
 
 function printHelp() {
   process.stdout.write(
-    `Usage: npm run release:mobile -- --platform <android|ios|both> [options]\n\nOptions:\n  --platform <name>         Platform to release: android, ios, or both\n  --android-note <text>     Required when releasing android\n  --android-message <text>  Optional Android EAS build message\n  --android-output <path>   Optional Android local artifact path\n  --android-profile <name>  Optional Android EAS build profile\n  --ios-asc-app-id <id>     Optional App Store Connect app id override\n  --ios-group <name>        Optional TestFlight group (repeatable)\n  --ios-message <text>      Optional iOS EAS build message\n  --ios-note <text>         Optional local iOS release note label\n  --ios-output <path>       Optional iOS local artifact path\n  --ios-profile <name>      Optional iOS EAS build profile\n  --help                    Show this help\n`,
+    `Usage: npm run release:mobile -- --platform <android|ios|both> [options]\n\nOptions:\n  --platform <name>              Platform to release: android, ios, or both\n  --android-note <text>          Required when releasing android\n  --android-locale <code>        Optional Android Play note locale\n  --android-track <name>         Optional Android Play track\n  --android-service-account <path> Optional Android Play service-account JSON path\n  --android-message <text>       Optional Android EAS build message\n  --android-output <path>        Optional Android local artifact path\n  --android-profile <name>       Optional Android EAS build profile\n  --ios-asc-app-id <id>          Optional App Store Connect app id override\n  --ios-group <name>             Optional TestFlight group (repeatable)\n  --ios-message <text>           Optional iOS EAS build message\n  --ios-note <text>              Optional local iOS release note label\n  --ios-output <path>            Optional iOS local artifact path\n  --ios-profile <name>           Optional iOS EAS build profile\n  --help                         Show this help\n`,
   );
 }
 
@@ -50,6 +50,18 @@ function buildAndroidArgs(options) {
 
   if (options.androidProfile) {
     args.push("--profile", options.androidProfile);
+  }
+
+  if (options.androidLocale) {
+    args.push("--locale", options.androidLocale);
+  }
+
+  if (options.androidTrack) {
+    args.push("--track", options.androidTrack);
+  }
+
+  if (options.androidServiceAccount) {
+    args.push("--service-account", options.androidServiceAccount);
   }
 
   if (options.androidMessage) {
@@ -97,10 +109,13 @@ async function main() {
   const { values, positionals } = parseArgs({
     allowPositionals: true,
     options: {
+      "android-locale": { type: "string" },
       "android-message": { type: "string" },
       "android-note": { type: "string" },
       "android-output": { type: "string" },
       "android-profile": { type: "string" },
+      "android-service-account": { type: "string" },
+      "android-track": { type: "string" },
       help: { type: "boolean" },
       "ios-asc-app-id": { type: "string" },
       "ios-group": { type: "string", multiple: true },
@@ -125,10 +140,13 @@ async function main() {
   }
 
   const options = {
+    androidLocale: values["android-locale"]?.trim() || "",
     androidMessage: values["android-message"]?.trim() || "",
     androidNote: values["android-note"]?.trim() || "",
     androidOutput: values["android-output"]?.trim() || "",
     androidProfile: values["android-profile"]?.trim() || "",
+    androidServiceAccount: values["android-service-account"]?.trim() || "",
+    androidTrack: values["android-track"]?.trim() || "",
     iosAscAppId: values["ios-asc-app-id"]?.trim() || "",
     iosGroups: (values["ios-group"] ?? [])
       .map((group) => group.trim())
