@@ -1,0 +1,162 @@
+name: Mobile Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: Platform to release
+        required: true
+        type: choice
+        options:
+          - android
+          - ios
+          - both
+      ref:
+        description: Git ref or SHA to release
+        required: false
+        default: main
+      android_track:
+        description: Google Play track
+        required: false
+        type: choice
+        options:
+          - internal
+          - alpha
+          - beta
+          - production
+        default: internal
+      android_locale:
+        description: Google Play release-note locale
+        required: false
+        default: en-US
+      android_note_override:
+        description: Optional Android release note override
+        required: false
+        default: ""
+      ios_groups:
+        description: Optional comma-separated TestFlight groups
+        required: false
+        default: ""
+      ios_note_override:
+        description: Optional iOS release label override
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mobile-production-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Local Production Release
+    runs-on:
+      - self-hosted
+      - macOS
+    timeout-minutes: 240
+    environment:
+      name: mobile-production
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.inputs.ref }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Validate release branch
+        run: |
+          git fetch origin main --tags
+
+          if ! git merge-base --is-ancestor HEAD origin/main; then
+            echo "Mobile releases must use a commit from main." >&2
+            exit 1
+          fi
+
+      - name: Run release validation gates
+        run: npm run typecheck
+
+      - name: Generate release plan
+        run: node ./scripts/prepare-mobile-release.mjs --platform "${{ github.event.inputs.platform }}" --ref HEAD --output-dir .release
+
+      - name: Publish release plan summary
+        run: cat .release/mobile-release-plan.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Run local production release
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          platform="${{ github.event.inputs.platform }}"
+          android_note="${{ github.event.inputs.android_note_override }}"
+          ios_note="${{ github.event.inputs.ios_note_override }}"
+
+          if [ -z "$android_note" ] && [ -f .release/android-note.txt ]; then
+            android_note="$(cat .release/android-note.txt)"
+          fi
+
+          if [ -z "$ios_note" ] && [ -f .release/ios-note.txt ]; then
+            ios_note="$(cat .release/ios-note.txt)"
+          fi
+
+          args=(run release:mobile -- --platform "$platform")
+
+          if [ "$platform" = "android" ] || [ "$platform" = "both" ]; then
+            args+=(
+              --android-note "$android_note"
+              --android-track "${{ github.event.inputs.android_track }}"
+              --android-locale "${{ github.event.inputs.android_locale }}"
+            )
+          fi
+
+          if [ "$platform" = "ios" ] || [ "$platform" = "both" ]; then
+            if [ -n "$ios_note" ]; then
+              args+=(--ios-note "$ios_note")
+            fi
+
+            if [ -n "${{ github.event.inputs.ios_groups }}" ]; then
+              IFS=',' read -r -a groups <<< "${{ github.event.inputs.ios_groups }}"
+
+              for group in "${groups[@]}"; do
+                trimmed="$(echo "$group" | xargs)"
+
+                if [ -n "$trimmed" ]; then
+                  args+=(--ios-group "$trimmed")
+                fi
+              done
+            fi
+          fi
+
+          npm "${args[@]}"
+
+      - name: Push newly created release tags
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mapfile -t release_tags < <(git tag --points-at HEAD --list 'mobile/*')
+
+          if [ "${#release_tags[@]}" -eq 0 ]; then
+            echo "No release tags were created on the current commit." >&2
+            exit 1
+          fi
+
+          for tag in "${release_tags[@]}"; do
+            if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1; then
+              echo "Tag $tag already exists on origin."
+              continue
+            fi
+
+            git push origin "refs/tags/$tag"
+          done

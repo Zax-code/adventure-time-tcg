@@ -177,6 +177,21 @@ What it does not migrate:
 
 The importer clears Phoenix placeholder/dev data before applying production rows.
 
+## CI/CD
+
+GitHub Actions now handles repository validation, production Phoenix deployment, and mobile release orchestration.
+
+Primary runbook:
+
+- [`docs/ci-cd.md`](docs/ci-cd.md)
+
+Key workflows:
+
+- `CI` - pull request and `main` validation for Phoenix, mobile, and shared code
+- `Deploy Phoenix` - production backend deployment to the VPS with migrations and `/ready` health checks
+- `Mobile Release Plan` - manual release diff and note generation from platform tags
+- `Mobile Release` - manual self-hosted macOS workflow for local-only production store releases
+
 ## Environment
 
 Key env files:
