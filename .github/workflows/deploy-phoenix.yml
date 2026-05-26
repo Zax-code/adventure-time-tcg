@@ -1,0 +1,91 @@
+name: Deploy Phoenix
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/deploy-phoenix.yml"
+      - "apps/phoenix/**"
+      - "infra/**"
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Git ref or SHA to deploy
+        required: false
+        default: main
+      skip_migrate:
+        description: Skip database migrations
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-phoenix
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: production
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Start SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.PRODUCTION_SSH_PRIVATE_KEY }}
+
+      - name: Add production host to known_hosts
+        env:
+          PRODUCTION_HOST: ${{ secrets.PRODUCTION_HOST }}
+          PRODUCTION_SSH_PORT: ${{ secrets.PRODUCTION_SSH_PORT || '22' }}
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -p "$PRODUCTION_SSH_PORT" -H "$PRODUCTION_HOST" >> ~/.ssh/known_hosts
+
+      - name: Upload deploy script
+        env:
+          PRODUCTION_HOST: ${{ secrets.PRODUCTION_HOST }}
+          PRODUCTION_SSH_PORT: ${{ secrets.PRODUCTION_SSH_PORT || '22' }}
+          PRODUCTION_SSH_USER: ${{ secrets.PRODUCTION_SSH_USER }}
+        run: |
+          scp -P "$PRODUCTION_SSH_PORT" infra/scripts/deploy-phoenix.sh \
+            "$PRODUCTION_SSH_USER@$PRODUCTION_HOST:/tmp/deploy-phoenix.sh"
+
+      - name: Run production deploy
+        env:
+          DEPLOY_REF: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref || github.sha }}
+          PRODUCTION_HEALTHCHECK_URL: ${{ secrets.PRODUCTION_HEALTHCHECK_URL || '' }}
+          PRODUCTION_HOST: ${{ secrets.PRODUCTION_HOST }}
+          PRODUCTION_REPO_PATH: ${{ secrets.PRODUCTION_REPO_PATH || '/home/zax/adventure-time-tcg' }}
+          PRODUCTION_SSH_PORT: ${{ secrets.PRODUCTION_SSH_PORT || '22' }}
+          PRODUCTION_SSH_USER: ${{ secrets.PRODUCTION_SSH_USER }}
+          PRODUCTION_SYSTEMD_SERVICE: ${{ secrets.PRODUCTION_SYSTEMD_SERVICE || 'adventure-time-tcg-api.service' }}
+          SKIP_MIGRATE: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.skip_migrate || 'false' }}
+        run: |
+          remote_args=(
+            /tmp/deploy-phoenix.sh
+            --repo-root "$PRODUCTION_REPO_PATH"
+            --ref "$DEPLOY_REF"
+            --service "$PRODUCTION_SYSTEMD_SERVICE"
+          )
+
+          if [ -n "$PRODUCTION_HEALTHCHECK_URL" ]; then
+            remote_args+=(--health-url "$PRODUCTION_HEALTHCHECK_URL")
+          fi
+
+          if [ "$SKIP_MIGRATE" = "true" ]; then
+            remote_args+=(--skip-migrate)
+          fi
+
+          ssh -p "$PRODUCTION_SSH_PORT" "$PRODUCTION_SSH_USER@$PRODUCTION_HOST" \
+            "chmod +x /tmp/deploy-phoenix.sh && $(printf '%q ' "${remote_args[@]}")"
