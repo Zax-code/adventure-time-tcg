@@ -13,6 +13,25 @@
     "plugins": [
       "expo-dev-client",
       "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#FF4AA2",
+          "resizeMode": "contain",
+          "ios": {
+            "backgroundColor": "#FF4AA2",
+            "image": "./assets/splash-icon.png",
+            "imageWidth": 470,
+            "resizeMode": "contain"
+          },
+          "android": {
+            "backgroundColor": "#FF4AA2",
+            "image": "./assets/adaptive-icon.png",
+            "imageWidth": 220,
+            "resizeMode": "contain"
+          }
+        }
+      ],
       "expo-secure-store",
       "expo-font",
       "expo-web-browser",
@@ -26,8 +45,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#FF4AA2",
-      "imageWidth": 470
+      "backgroundColor": "#FF4AA2"
     },
     "experiments": {
       "typedRoutes": true
