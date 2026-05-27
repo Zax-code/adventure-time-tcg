@@ -227,6 +227,18 @@ function GoogleAuthSection({
           })()
         : promptAsync());
 
+      if (completesAuthInCallbackRoute) {
+        // On Android development/standalone builds, AuthSession can report a
+        // non-success result before the browser callback is delivered. Leave
+        // the pending session intact unless the user explicitly cancels.
+        if (result.type === "cancel") {
+          await clearPendingGoogleAuthSession();
+          setGoogleLoading(false);
+        }
+
+        return;
+      }
+
       if (result.type !== "success") {
         await clearPendingGoogleAuthSession();
         setGoogleLoading(false);
