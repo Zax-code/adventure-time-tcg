@@ -10,6 +10,7 @@ Image=ghcr.io/zax-code/adventure-time-tcg-api:latest
 Pull=never
 Pod=adventure-time-tcg.pod
 Environment=PHX_SERVER=true
+Environment=PHX_IP=127.0.0.1
 Environment=PHX_PORT=4200
 EnvironmentFile=/home/zax/adventure-time-tcg-secrets/api.container.env
 User=app
