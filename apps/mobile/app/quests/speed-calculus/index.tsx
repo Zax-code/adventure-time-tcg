@@ -19,6 +19,7 @@ import type { SpeedRunAnswerResponse, SpeedRunState } from "@adventure-time/api-
 
 import { ApiClientError, apiClient } from "../../../src/lib/api";
 import { useTranslation } from "../../../src/i18n";
+import { PageLoadingState } from "../../../src/components/loading-state";
 import { useQuestResetStore } from "../../../src/stores/quest-reset-store";
 
 import { ActiveRunPanel } from "../../../src/features/quests/speed-calculus/active-run-panel";
@@ -758,11 +759,11 @@ export default function SpeedCalculusScreen() {
   // ── Loading state ────────────────────────────────────────────────
   if (loading) {
     return (
-      <View className="flex-1 bg-primaryBg items-center justify-center">
-        <Text className="text-primaryDark font-nunito-semibold">
-          {t("quests.speedCalculusTitle")}...
-        </Text>
-      </View>
+      <PageLoadingState
+        title={t("quests.speedCalculusTitle")}
+        message={t("common.loadingStates.pageBody")}
+        icon="flash"
+      />
     );
   }
 

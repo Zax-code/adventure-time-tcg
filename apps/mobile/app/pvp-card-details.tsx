@@ -3,6 +3,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { LoadingPanel } from "../src/components/loading-state";
 import { LoadoutCardDetailsContent } from "../src/components/pvp/loadout-card-details-content";
 import { apiClient } from "../src/lib/api";
 import { useTranslation } from "../src/i18n";
@@ -32,7 +33,11 @@ export default function PvpCardDetailsScreen() {
 
       {collectionQuery.isLoading ? (
         <View className="flex-1 items-center justify-center px-6">
-          <Text className="font-nunito text-fgMuted">{t("common.loading")}</Text>
+          <LoadingPanel
+            title={t("pvp.cardDetailsTitle")}
+            message={t("common.loadingStates.sectionBody")}
+            icon="sparkles"
+          />
         </View>
       ) : collectionQuery.isError ? (
         <View className="flex-1 items-center justify-center px-6">

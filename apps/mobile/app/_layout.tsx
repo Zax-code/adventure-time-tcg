@@ -19,6 +19,7 @@ import "../global.css";
 
 import { useStepSyncManager } from "../src/hooks/use-step-sync-manager";
 import { useStepQuestWidgetSync } from "../src/hooks/use-step-quest-widget-sync";
+import { AppLaunchScreen } from "../src/components/app-launch-screen";
 import { queryClient } from "../src/lib/query-client";
 import { useBootstrap } from "../src/hooks/use-bootstrap";
 import { apiClient, API_BASE_URL } from "../src/lib/api";
@@ -48,6 +49,7 @@ export default function RootLayout() {
   const hydrateLocale = useLocaleStore((state) => state.hydrateFromStorage);
   const localeHydrated = useLocaleStore((state) => state.hydrated);
   const sessionHydrated = useSessionStore((state) => state.hydrated);
+  const bootstrapPhase = useSessionStore((state) => state.bootstrapPhase);
   const accessToken = useSessionStore((state) => state.accessToken);
   const authUserId = useSessionStore((state) => state.user?.id ?? null);
   const publishReset = useQuestResetStore((state) => state.publishReset);
@@ -59,6 +61,8 @@ export default function RootLayout() {
     Nunito_700Bold,
     Nunito_800ExtraBold,
   });
+  const localBootReady =
+    fontsLoaded && themeHydrated && localeHydrated && sessionHydrated;
 
   useEffect(() => {
     void hydrateTheme();
@@ -69,10 +73,10 @@ export default function RootLayout() {
   }, [hydrateLocale]);
 
   useEffect(() => {
-    if (fontsLoaded && themeHydrated && localeHydrated && sessionHydrated) {
+    if (localBootReady) {
       void SplashScreen.hideAsync();
     }
-  }, [fontsLoaded, localeHydrated, sessionHydrated, themeHydrated]);
+  }, [localBootReady]);
 
   useEffect(() => {
     if (!accessToken || !authUserId) {
@@ -187,7 +191,7 @@ export default function RootLayout() {
     });
   }, [accessToken, authUserId, publishReset]);
 
-  if (!fontsLoaded || !themeHydrated || !localeHydrated || !sessionHydrated) {
+  if (!localBootReady) {
     return (
       <View
         style={[
@@ -206,40 +210,44 @@ export default function RootLayout() {
         <QueryClientProvider client={queryClient}>
           <View style={[{ flex: 1 }, THEME_VARS[themeName]]}>
             <StatusBar style="dark" />
-            <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen
-                name="admin-card-editor"
-                options={{ presentation: "modal", headerShown: false }}
-              />
-              <Stack.Screen
-                name="admin-ability-editor"
-                options={{ presentation: "modal", headerShown: false }}
-              />
-              <Stack.Screen
-                name="admin-user-editor"
-                options={{ presentation: "modal", headerShown: false }}
-              />
-              <Stack.Screen
-                name="settings"
-                options={{ presentation: "modal", headerShown: false }}
-              />
-              <Stack.Screen
-                name="pvp-mechanics"
-                options={{ presentation: "modal", headerShown: false }}
-              />
-              <Stack.Screen
-                name="pvp-reference"
-                options={{ presentation: "modal", headerShown: false }}
-              />
-              <Stack.Screen
-                name="pvp-card-details"
-                options={{ presentation: "modal", headerShown: false }}
-              />
-              <Stack.Screen
-                name="collection-card-detail"
-                options={{ presentation: "modal", headerShown: false }}
-              />
-            </Stack>
+            {bootstrapPhase !== "ready" ? (
+              <AppLaunchScreen phase={bootstrapPhase} />
+            ) : (
+              <Stack screenOptions={{ headerShown: false }}>
+                <Stack.Screen
+                  name="admin-card-editor"
+                  options={{ presentation: "modal", headerShown: false }}
+                />
+                <Stack.Screen
+                  name="admin-ability-editor"
+                  options={{ presentation: "modal", headerShown: false }}
+                />
+                <Stack.Screen
+                  name="admin-user-editor"
+                  options={{ presentation: "modal", headerShown: false }}
+                />
+                <Stack.Screen
+                  name="settings"
+                  options={{ presentation: "modal", headerShown: false }}
+                />
+                <Stack.Screen
+                  name="pvp-mechanics"
+                  options={{ presentation: "modal", headerShown: false }}
+                />
+                <Stack.Screen
+                  name="pvp-reference"
+                  options={{ presentation: "modal", headerShown: false }}
+                />
+                <Stack.Screen
+                  name="pvp-card-details"
+                  options={{ presentation: "modal", headerShown: false }}
+                />
+                <Stack.Screen
+                  name="collection-card-detail"
+                  options={{ presentation: "modal", headerShown: false }}
+                />
+              </Stack>
+            )}
           </View>
         </QueryClientProvider>
       </SafeAreaProvider>

@@ -5,6 +5,7 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { apiClient } from "../src/lib/api";
+import { LoadingPanel } from "../src/components/loading-state";
 import { useTranslation } from "../src/i18n";
 import { useThemeStore } from "../src/stores/theme-store";
 import { THEME_COLORS } from "../src/theme/themes";
@@ -105,9 +106,11 @@ export default function PvpHistoryScreen() {
         </View>
 
         {historyQuery.isLoading ? (
-          <View className="items-center justify-center rounded-2xl border border-primaryTint bg-surface p-8">
-            <Text className="font-nunito text-fgMuted">{t("common.loading")}</Text>
-          </View>
+          <LoadingPanel
+            title={t("pvp.matchHistory")}
+            message={t("common.loadingStates.sectionBody")}
+            icon="time"
+          />
         ) : historyQuery.isError ? (
           <View className="items-center justify-center rounded-2xl border border-dangerBorder bg-dangerTint p-8">
             <Text className="text-center font-nunito text-dangerDark">

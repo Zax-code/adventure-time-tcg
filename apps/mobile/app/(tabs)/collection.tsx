@@ -25,6 +25,7 @@ import {
   CraftIcon,
   BarChartIcon,
 } from "../../src/components/icons";
+import { PageLoadingState } from "../../src/components/loading-state";
 import { ToastBanner } from "../../src/components/toast-banner";
 import { useTranslation } from "../../src/i18n";
 import { useCollectionFeedbackStore } from "../../src/stores/collection-feedback-store";
@@ -160,9 +161,11 @@ export default function CollectionScreen() {
 
   if (collectionQuery.isLoading) {
     return (
-      <View className="flex-1 bg-bg p-6">
-        <Text className="font-nunito text-fgMuted">{t("common.loading")}</Text>
-      </View>
+      <PageLoadingState
+        title={t("nav.collection")}
+        message={t("common.loadingStates.pageBody")}
+        icon="albums"
+      />
     );
   }
 

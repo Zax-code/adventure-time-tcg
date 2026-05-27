@@ -7,6 +7,7 @@ import { useRouter } from "expo-router";
 import { ApiClientError } from "@adventure-time/api-client";
 
 import { ToastBanner } from "../../src/components/toast-banner";
+import { LoadingPanel } from "../../src/components/loading-state";
 import {
   CheckIcon,
   ClockIcon,
@@ -812,9 +813,11 @@ export default function PvpScreen() {
               <ScrollView style={{ maxHeight: 240 }} showsVerticalScrollIndicator={false}>
                 <View className="gap-2">
                   {usersQuery.isLoading ? (
-                    <View className="rounded-xl border border-primaryTint bg-surfaceMuted px-4 py-3">
-                      <Text className="font-nunito text-fgMuted">{t("common.loading")}</Text>
-                    </View>
+                    <LoadingPanel
+                      title={t("pvp.chooseOpponent")}
+                      message={t("common.loadingStates.rosterBody")}
+                      icon="people"
+                    />
                   ) : (usersQuery.data?.users.length ?? 0) === 0 ? (
                     <View className="rounded-xl border border-primaryTint bg-surfaceMuted px-4 py-3">
                       <Text className="font-nunito text-fgMuted">{t("pvp.noPlayersAvailable")}</Text>

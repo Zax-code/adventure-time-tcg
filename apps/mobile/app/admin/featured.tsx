@@ -17,6 +17,7 @@ import { AdminCardTile } from "../../src/components/admin/admin-card-tile";
 import {
   AdminChip,
   AdminEmptyState,
+  AdminLoadingState,
   AdminPanel,
   AdminSearchInput,
   AdminSectionTitle,
@@ -222,7 +223,11 @@ export default function AdminFeaturedScreen() {
             <AdminSectionTitle title={t("admin.featured.currentTitle", { count: derived.featuredCards.length })} />
             <View className="mt-3">
               {isCardsLoading ? (
-                <Text className="font-nunito-semibold text-[13px] text-fgMuted text-center">{t("admin.featured.loading")}</Text>
+                <AdminLoadingState
+                  title={t("admin.featured.loading")}
+                  body={t("common.loadingStates.adminBody")}
+                  icon="star"
+                />
               ) : cardsError ? (
                 <Text className="font-nunito-bold text-[13px] text-dangerText text-center">{cardsError}</Text>
               ) : derived.featuredCards.length ? null : (
@@ -243,7 +248,11 @@ export default function AdminFeaturedScreen() {
             <AdminSectionTitle title={t("admin.featured.allCardsTitle", { count: derived.nonFeaturedCards.length })} />
             <View className="mt-3">
               {isCardsLoading ? (
-                <Text className="font-nunito-semibold text-[13px] text-fgMuted text-center">{t("admin.featured.loading")}</Text>
+                <AdminLoadingState
+                  title={t("admin.featured.loading")}
+                  body={t("common.loadingStates.adminBody")}
+                  icon="sparkles"
+                />
               ) : cardsError ? (
                 <Text className="font-nunito-bold text-[13px] text-dangerText text-center">{cardsError}</Text>
               ) : derived.nonFeaturedCards.length ? null : (

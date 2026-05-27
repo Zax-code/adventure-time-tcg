@@ -10,6 +10,7 @@ import {
   AdminChip,
   AdminEmptyState,
   AdminField,
+  AdminLoadingState,
   AdminModal,
   AdminPageScroll,
   AdminPanel,
@@ -194,7 +195,11 @@ export default function AdminPacksScreen() {
           <AdminSectionTitle title={t("admin.packs.activeTitle", { count: activePacks.length })} />
           <View className="mt-3 gap-3">
             {packsQuery.isLoading ? (
-              <Text className="font-nunito-bold text-[13px] text-primaryText">{t("admin.packs.loading")}</Text>
+              <AdminLoadingState
+                title={t("admin.packs.loading")}
+                body={t("common.loadingStates.adminBody")}
+                icon="cube"
+              />
             ) : packsError ? (
               <Text className="font-nunito-bold text-[13px] text-dangerText">{packsError}</Text>
             ) : activePacks.length ? (
@@ -209,7 +214,11 @@ export default function AdminPacksScreen() {
           <AdminSectionTitle title={t("admin.packs.inactiveTitle", { count: inactivePacks.length })} />
           <View className="mt-3 gap-3">
             {packsQuery.isLoading ? (
-              <Text className="font-nunito-bold text-[13px] text-primaryText">{t("admin.packs.loading")}</Text>
+              <AdminLoadingState
+                title={t("admin.packs.loading")}
+                body={t("common.loadingStates.adminBody")}
+                icon="cube-outline"
+              />
             ) : packsError ? (
               <Text className="font-nunito-bold text-[13px] text-dangerText">{packsError}</Text>
             ) : inactivePacks.length ? (

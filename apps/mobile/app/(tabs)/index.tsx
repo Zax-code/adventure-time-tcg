@@ -11,6 +11,7 @@ import { useBottomTabBarContentPadding } from "../../src/theme/layout";
 import { THEME_COLORS } from "../../src/theme/themes";
 import { PrimaryButton, SecondaryButton } from "../../src/components/button";
 import { CardTile } from "../../src/components/card-tile";
+import { PageLoadingState } from "../../src/components/loading-state";
 import { useTranslation } from "../../src/i18n";
 
 export default function HomeScreen() {
@@ -89,9 +90,11 @@ export default function HomeScreen() {
 
   if (homeQuery.isLoading) {
     return (
-      <View className="flex-1 bg-bg p-6">
-        <Text className="font-nunito text-fgMuted">{t("common.loading")}</Text>
-      </View>
+      <PageLoadingState
+        title={t("nav.home")}
+        message={t("common.loadingStates.pageBody")}
+        icon="sunny"
+      />
     );
   }
 
