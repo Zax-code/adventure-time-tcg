@@ -17,6 +17,7 @@ import {
 
 import "../global.css";
 
+import { useStepSyncManager } from "../src/hooks/use-step-sync-manager";
 import { queryClient } from "../src/lib/query-client";
 import { useBootstrap } from "../src/hooks/use-bootstrap";
 import { apiClient, API_BASE_URL } from "../src/lib/api";
@@ -37,6 +38,7 @@ SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   useBootstrap();
+  useStepSyncManager();
 
   const hydrateTheme = useThemeStore((state) => state.hydrateFromStorage);
   const themeHydrated = useThemeStore((state) => state.hydrated);

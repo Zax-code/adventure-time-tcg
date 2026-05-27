@@ -47,10 +47,16 @@
     </dict>
     <key>NSCameraUsageDescription</key>
     <string>Allow $(PRODUCT_NAME) to access your camera</string>
-    <key>NSFaceIDUsageDescription</key>
-    <string>Allow $(PRODUCT_NAME) to access your Face ID biometric data.</string>
-    <key>NSMicrophoneUsageDescription</key>
-    <string>Allow $(PRODUCT_NAME) to access your microphone</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Allow $(PRODUCT_NAME) to access your Face ID biometric data.</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Adventure Time reads your daily step count to keep step quests synced.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Adventure Time uses HealthKit background delivery to keep step quests up to date.</string>
+	<key>NSMotionUsageDescription</key>
+	<string>Adventure Time uses motion activity to show live step progress while the app is open.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Allow $(PRODUCT_NAME) to access your microphone</string>
     <key>NSPhotoLibraryUsageDescription</key>
     <string>Allow $(PRODUCT_NAME) to access your photos</string>
     <key>NSUserActivityTypes</key>

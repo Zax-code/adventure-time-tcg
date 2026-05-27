@@ -13,6 +13,7 @@
     "plugins": [
       "expo-dev-client",
       "expo-router",
+      "expo-notifications",
       [
         "expo-splash-screen",
         {
@@ -33,8 +34,33 @@
         }
       ],
       "expo-secure-store",
+      [
+        "expo-sensors",
+        {
+          "motionPermission": "Adventure Time uses motion activity to show live step progress while the app is open."
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 36,
+            "targetSdkVersion": 36,
+            "minSdkVersion": 26
+          }
+        }
+      ],
+      "expo-health-connect",
       "expo-font",
       "expo-web-browser",
+      [
+        "@kingstinct/react-native-healthkit",
+        {
+          "NSHealthShareUsageDescription": "Adventure Time reads your daily step count to keep step quests synced.",
+          "NSHealthUpdateUsageDescription": "Adventure Time uses HealthKit background delivery to keep step quests up to date.",
+          "background": true
+        }
+      ],
       [
         "@react-native-google-signin/google-signin",
         {

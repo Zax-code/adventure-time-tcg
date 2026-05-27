@@ -15,7 +15,18 @@ const settings = {
   healthSteps: "Health Steps",
   latestSynced: "Latest synced: {count} steps",
   source: "Source: {source}",
-  syncSample: "Sync sample device steps",
+  deviceToday: "Device today: {count} steps",
+  healthAccess: "Health access: {status}",
+  goalNotifications: "Goal notifications: {status}",
+  enableStepSync: "Enable step syncing",
+  openHealthConnect: "Open Health Connect",
+  syncNow: "Sync now",
+  syncing: "Syncing...",
+  stepSyncHelp:
+    "Foreground steps update immediately via the pedometer, then re-sync against Apple Health or Health Connect for accuracy.",
+  stepGoalReachedTitle: "Step goal reached",
+  stepGoalReachedBody:
+    "You hit 10,000 steps. Your daily quest is ready to claim.",
   theme: "Theme",
   themeNames: {
     candy: "Candy",
@@ -28,6 +39,12 @@ const settings = {
   stepSources: {
     device_health: "Device health",
     fitbit: "Fitbit",
+  },
+  permissionStates: {
+    unknown: "Checking",
+    not_requested: "Not requested",
+    granted: "Granted",
+    denied: "Denied",
   },
 };
 

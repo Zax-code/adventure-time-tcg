@@ -8,7 +8,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { apiClient, API_BASE_URL, clearAppSession } from "../src/lib/api";
+import {
+  openDeviceHealthSetup,
+  syncDeviceStepsNow,
+} from "../src/lib/step-sync";
 import { useSessionStore } from "../src/stores/session-store";
+import { useStepSyncStore } from "../src/stores/step-sync-store";
 import { useThemeStore } from "../src/stores/theme-store";
 import type { ThemeName } from "../src/theme/themes";
 import { THEME_COLORS, THEME_VARS } from "../src/theme/themes";
@@ -27,6 +32,7 @@ export default function SettingsScreen() {
 
   const themeName = useThemeStore((state) => state.themeName);
   const setTheme = useThemeStore((state) => state.setTheme);
+  const stepSync = useStepSyncStore();
   const tc = THEME_COLORS[themeName];
 
   const [editing, setEditing] = useState(false);
@@ -98,21 +104,34 @@ export default function SettingsScreen() {
     },
   });
 
-  const syncSampleStepsMutation = useMutation({
-    mutationFn: () =>
-      apiClient.syncSteps({
-        source: "device_health",
-        stepCount: 7421,
-        recordedFor: new Date().toISOString().slice(0, 10),
-      }),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["health-steps"] });
-    },
-  });
-
   const avatarUri = user?.avatarAssetId
     ? `${API_BASE_URL}/media/profile/${user.avatarAssetId}`
     : null;
+
+  const healthStatusLabel = t(
+    `settings.permissionStates.${stepSync.healthPermissionStatus}`,
+  );
+  const notificationStatusLabel = t(
+    `settings.permissionStates.${stepSync.notificationPermissionStatus}`,
+  );
+  const stepActionLabel =
+    stepSync.availability === "setup_required"
+      ? t("settings.openHealthConnect")
+      : stepSync.healthPermissionStatus === "granted"
+        ? t("settings.syncNow")
+        : t("settings.enableStepSync");
+
+  const handleStepAction = async () => {
+    if (stepSync.availability === "setup_required") {
+      await openDeviceHealthSetup();
+      return;
+    }
+
+    await syncDeviceStepsNow({
+      interactive: true,
+      source: "manual",
+    });
+  };
 
   return (
     <View style={[{ flex: 1 }, THEME_VARS[themeName]]}>
@@ -433,21 +452,46 @@ export default function SettingsScreen() {
                   count: stepQuery.data?.latest?.stepCount ?? 0,
                 })}
               </Text>
-              <Text className="font-nunito text-fgMuted mb-3">
+              <Text className="font-nunito text-fgMuted">
                 {t("settings.source", {
                   source: t(
                     `settings.stepSources.${stepQuery.data?.latest?.source ?? user?.preferredStepSource ?? "device_health"}`,
                   ),
                 })}
               </Text>
+              <Text className="font-nunito text-fgMuted">
+                {t("settings.deviceToday", {
+                  count: stepSync.deviceStepCount ?? 0,
+                })}
+              </Text>
+              <Text className="font-nunito text-fgMuted">
+                {t("settings.healthAccess", {
+                  status: healthStatusLabel,
+                })}
+              </Text>
+              <Text className="font-nunito text-fgMuted mb-3">
+                {t("settings.goalNotifications", {
+                  status: notificationStatusLabel,
+                })}
+              </Text>
+              {stepSync.lastError ? (
+                <Text className="font-nunito text-sm text-dangerDark mb-3">
+                  {stepSync.lastError}
+                </Text>
+              ) : null}
               <Pressable
                 className="items-center rounded-full border border-primaryBorder px-4 py-3"
-                onPress={() => syncSampleStepsMutation.mutate()}
+                onPress={() => {
+                  void handleStepAction();
+                }}
               >
                 <Text className="font-nunito-semibold text-primaryText">
-                  {t("settings.syncSample")}
+                  {stepSync.isSyncing ? t("settings.syncing") : stepActionLabel}
                 </Text>
               </Pressable>
+              <Text className="font-nunito text-xs text-fgMuted mt-2">
+                {t("settings.stepSyncHelp")}
+              </Text>
             </View>
           </View>
 
