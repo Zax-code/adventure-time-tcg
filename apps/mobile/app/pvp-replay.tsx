@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, StatusBar, Text, View } from "react-native";
+import { Pressable, StatusBar, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import * as ScreenOrientation from "expo-screen-orientation";
 
+import { PageLoadingState } from "../src/components/loading-state";
 import type { FloatingEvent } from "../src/features/pvp/types";
 import { BattleBoard } from "../src/features/pvp/battle-board";
 import {
@@ -128,10 +129,11 @@ export default function PvpReplayScreen() {
 
   if (replayQuery.isLoading) {
     return (
-      <View style={[styles.loading, THEME_VARS[themeName] as never]}>
-        <ActivityIndicator size="large" color="#fff" />
-        <Text style={styles.loadingText}>{t("pvp.loadingReplay")}</Text>
-      </View>
+      <PageLoadingState
+        title={t("pvp.loadingReplay")}
+        message={t("common.loadingStates.battleBody")}
+        icon="play-back"
+      />
     );
   }
 

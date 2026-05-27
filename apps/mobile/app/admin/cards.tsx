@@ -11,6 +11,7 @@ import { prefetchCardImages } from "../../src/lib/card-images";
 import { AdminCardTile } from "../../src/components/admin/admin-card-tile";
 import {
   AdminButton,
+  AdminLoadingState,
   AdminModal,
   AdminPanel,
   AdminSearchInput,
@@ -242,7 +243,11 @@ export default function AdminCardsScreen() {
             {isActiveCardsOpen ? (
               <View className="items-center px-3 pt-[14] pb-1">
                 {isCardsLoading ? (
-                  <Text className="mb-3 font-nunito-semibold text-xs text-fgMuted">{t("admin.cards.loading")}</Text>
+                  <AdminLoadingState
+                    title={t("admin.cards.loading")}
+                    body={t("common.loadingStates.adminBody")}
+                    icon="albums"
+                  />
                 ) : cardsError ? (
                   <Text className="font-nunito-bold text-[13px] text-dangerText text-center">{cardsError}</Text>
                 ) : derived.activeCards.length ? (
@@ -284,7 +289,11 @@ export default function AdminCardsScreen() {
             {isArchivedCardsOpen ? (
               <View className="items-center px-3 pt-[14] pb-1">
                 {isCardsLoading ? (
-                  <Text className="mb-3 font-nunito-semibold text-xs text-fgMuted">{t("admin.cards.loading")}</Text>
+                  <AdminLoadingState
+                    title={t("admin.cards.loading")}
+                    body={t("common.loadingStates.adminBody")}
+                    icon="archive"
+                  />
                 ) : cardsError ? (
                   <Text className="font-nunito-bold text-[13px] text-dangerText text-center">{cardsError}</Text>
                 ) : derived.archivedCards.length ? (
@@ -337,7 +346,11 @@ export default function AdminCardsScreen() {
         <AdminPanel style={{ marginTop: 16, paddingBottom: 18 }}>
           <Text className="font-nunito-extrabold text-[20px] text-primaryText mb-3">{t("admin.cards.stats")}</Text>
           {isCardsLoading ? (
-            <Text className="mb-3 font-nunito-semibold text-xs text-fgMuted">{t("admin.cards.loading")}</Text>
+            <AdminLoadingState
+              title={t("admin.cards.loading")}
+              body={t("common.loadingStates.adminBody")}
+              icon="stats-chart"
+            />
           ) : cardsError ? (
             <Text className="font-nunito-bold text-[13px] text-dangerText text-center">{cardsError}</Text>
           ) : (

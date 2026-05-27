@@ -14,6 +14,7 @@ import {
   toCardDraft,
   toCardSavePayload,
 } from "../src/components/admin/card-editor-sheet";
+import { LoadingPanel } from "../src/components/loading-state";
 import { apiClient } from "../src/lib/api";
 import { useTranslation } from "../src/i18n";
 import { useSessionStore } from "../src/stores/session-store";
@@ -234,9 +235,11 @@ export default function AdminCardEditorScreen() {
 
         {loading ? (
           <View className="flex-1 items-center justify-center px-6">
-            <Text className="font-nunito-bold text-[15px] text-primaryText text-center">
-              {t("admin.cardEditor.loading")}
-            </Text>
+            <LoadingPanel
+              title={t("admin.cardEditor.loading")}
+              message={t("common.loadingStates.adminBody")}
+              icon="albums"
+            />
           </View>
         ) : error ? (
           <View className="flex-1 items-center justify-center px-6">

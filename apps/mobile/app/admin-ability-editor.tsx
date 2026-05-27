@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ZodError } from "zod";
 
 import { AbilityEditorForm } from "../src/components/admin/ability-editor-sheet";
+import { LoadingPanel } from "../src/components/loading-state";
 import { useTranslation } from "../src/i18n";
 import { apiClient } from "../src/lib/api";
 import { useSessionStore } from "../src/stores/session-store";
@@ -119,7 +120,11 @@ export default function AdminAbilityEditorScreen() {
 
         {abilitiesQuery.isLoading && !isCreateMode ? (
           <View className="flex-1 items-center justify-center px-6">
-            <Text className="font-nunito-bold text-[15px] text-primaryText text-center">{t("admin.abilityEditor.loading")}</Text>
+            <LoadingPanel
+              title={t("admin.abilityEditor.loading")}
+              message={t("common.loadingStates.adminBody")}
+              icon="flash"
+            />
           </View>
         ) : queryError ? (
           <View className="flex-1 items-center justify-center px-6">

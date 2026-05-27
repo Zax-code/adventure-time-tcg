@@ -13,7 +13,7 @@ export function useBootstrap() {
   const hydrateFromStorage = useSessionStore(
     (state) => state.hydrateFromStorage,
   );
-  const setHydrated = useSessionStore((state) => state.setHydrated);
+  const setBootstrapPhase = useSessionStore((state) => state.setBootstrapPhase);
   const setSession = useSessionStore((state) => state.setSession);
 
   useEffect(() => {
@@ -26,9 +26,13 @@ export function useBootstrap() {
 
       if (!accessToken || !refreshToken || !user) {
         if (!cancelled) {
-          setHydrated(true);
+          setBootstrapPhase("ready");
         }
         return;
+      }
+
+      if (!cancelled) {
+        setBootstrapPhase("restoring");
       }
 
       try {
@@ -40,7 +44,7 @@ export function useBootstrap() {
       } catch (error) {
         if (!(error instanceof ApiClientError) || error.status !== 401) {
           if (!cancelled) {
-            setHydrated(true);
+            setBootstrapPhase("ready");
           }
           return;
         }
@@ -61,7 +65,7 @@ export function useBootstrap() {
         }
       } finally {
         if (!cancelled) {
-          setHydrated(true);
+          setBootstrapPhase("ready");
         }
       }
     }
@@ -71,5 +75,5 @@ export function useBootstrap() {
     return () => {
       cancelled = true;
     };
-  }, [hydrateFromStorage, setHydrated, setSession]);
+  }, [hydrateFromStorage, setBootstrapPhase, setSession]);
 }

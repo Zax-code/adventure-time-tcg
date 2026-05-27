@@ -16,6 +16,7 @@ import { useThemeStore } from "../src/stores/theme-store";
 import { THEME_COLORS } from "../src/theme/themes";
 import { CARD_TYPE_COLORS, RARITY_COLORS } from "../src/components/theme";
 import { CheckIcon, ChevronRightIcon, SwordsIcon, XIcon } from "../src/components/icons";
+import { PageLoadingState } from "../src/components/loading-state";
 
 type CollectionEntry = CollectionResponse["cards"][number];
 type BuilderCard = CollectionEntry["card"];
@@ -275,9 +276,11 @@ export default function PvpLoadoutsScreen() {
 
   if (collectionQuery.isLoading || loadoutsQuery.isLoading) {
     return (
-      <View className="flex-1 items-center justify-center bg-bg px-6">
-        <Text className="font-nunito text-fgMuted">{t("common.loading")}</Text>
-      </View>
+      <PageLoadingState
+        title={t("pvp.yourLoadouts")}
+        message={t("common.loadingStates.rosterBody")}
+        icon="shield-half"
+      />
     );
   }
 

@@ -23,6 +23,7 @@ import {
   WalkingIcon,
   XCircleIcon,
 } from "../../src/components/icons";
+import { PageLoadingState } from "../../src/components/loading-state";
 import { ToastBanner } from "../../src/components/toast-banner";
 import { useTranslation } from "../../src/i18n";
 import { apiClient } from "../../src/lib/api";
@@ -324,12 +325,11 @@ export default function QuestsScreen() {
 
   if (questsQuery.isLoading) {
     return (
-      <View className="flex-1 bg-bg items-center justify-center px-6">
-        <ActivityIndicator size="large" color={tc.primaryDark} />
-        <Text className="font-nunito text-fgMuted mt-4">
-          {t("quests.loading")}
-        </Text>
-      </View>
+      <PageLoadingState
+        title={t("nav.quests")}
+        message={t("common.loadingStates.pageBody")}
+        icon="trophy"
+      />
     );
   }
 

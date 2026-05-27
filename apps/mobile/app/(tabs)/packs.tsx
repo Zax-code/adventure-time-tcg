@@ -23,6 +23,7 @@ import {
   SparkleIcon,
   SparklesIcon,
 } from "../../src/components/icons";
+import { PageLoadingState } from "../../src/components/loading-state";
 import { RARITY_COLORS } from "../../src/components/theme";
 import { useTranslation } from "../../src/i18n";
 import { useThemeStore } from "../../src/stores/theme-store";
@@ -375,11 +376,11 @@ export default function PacksScreen() {
 
   if (packsQuery.isLoading) {
     return (
-      <View className="flex-1 bg-bg p-6">
-        <Text className="font-nunito text-fgMuted">
-          {t("packs.loading")}
-        </Text>
-      </View>
+      <PageLoadingState
+        title={t("nav.pack")}
+        message={t("common.loadingStates.pageBody")}
+        icon="gift"
+      />
     );
   }
 

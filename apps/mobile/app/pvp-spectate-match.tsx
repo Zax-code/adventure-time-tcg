@@ -1,9 +1,10 @@
 import { useEffect } from "react";
-import { ActivityIndicator, StatusBar, Text, View } from "react-native";
+import { StatusBar, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import * as ScreenOrientation from "expo-screen-orientation";
 
+import { PageLoadingState } from "../src/components/loading-state";
 import { BattleBoard } from "../src/features/pvp/battle-board";
 import { buildSpectateMatchView } from "../src/features/pvp/read-only-view";
 import { useTranslation } from "../src/i18n";
@@ -36,10 +37,11 @@ export default function PvpSpectateMatchScreen() {
 
   if (spectateQuery.isLoading) {
     return (
-      <View style={[styles.loading, THEME_VARS[themeName] as never]}>
-        <ActivityIndicator size="large" color="#fff" />
-        <Text style={styles.loadingText}>{t("pvp.loadingBattle")}</Text>
-      </View>
+      <PageLoadingState
+        title={t("pvp.loadingBattle")}
+        message={t("common.loadingStates.battleBody")}
+        icon="flame"
+      />
     );
   }
 

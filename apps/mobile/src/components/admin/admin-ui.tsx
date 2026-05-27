@@ -13,6 +13,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 
+import { LoadingPanel } from "../loading-state";
 import { ADMIN_TYPE_COLORS } from "./admin-theme";
 import { useTranslation } from "../../i18n";
 import { useThemeStore } from "../../stores/theme-store";
@@ -385,4 +386,16 @@ export function AdminEmptyState({ icon, title, body }: { icon: keyof typeof Ioni
       <Text className="font-nunito-semibold text-[13px] text-fgMuted text-center">{body}</Text>
     </View>
   );
+}
+
+export function AdminLoadingState({
+  title,
+  body,
+  icon = "sparkles",
+}: {
+  title: string;
+  body: string;
+  icon?: keyof typeof Ionicons.glyphMap;
+}) {
+  return <LoadingPanel title={title} message={body} icon={icon} />;
 }

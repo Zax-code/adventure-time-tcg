@@ -10,7 +10,11 @@ interface SessionState {
   accessToken: string | null;
   refreshToken: string | null;
   hydrated: boolean;
+  bootstrapPhase: "hydrating" | "restoring" | "ready";
   setHydrated: (hydrated: boolean) => void;
+  setBootstrapPhase: (
+    bootstrapPhase: SessionState["bootstrapPhase"],
+  ) => void;
   setSession: (params: {
     user: AuthUser;
     accessToken: string;
@@ -26,8 +30,12 @@ export const useSessionStore = create<SessionState>((set) => ({
   accessToken: null,
   refreshToken: null,
   hydrated: false,
+  bootstrapPhase: "hydrating",
   setHydrated(hydrated) {
     set({ hydrated });
+  },
+  setBootstrapPhase(bootstrapPhase) {
+    set({ bootstrapPhase });
   },
   async setSession({ user, accessToken, refreshToken }) {
     await Promise.all([
@@ -38,7 +46,13 @@ export const useSessionStore = create<SessionState>((set) => ({
 
     await useLocaleStore.getState().setLocale(user.preferredLanguage);
 
-    set({ user, accessToken, refreshToken, hydrated: true });
+    set({
+      user,
+      accessToken,
+      refreshToken,
+      hydrated: true,
+      bootstrapPhase: "ready",
+    });
   },
   async patchUser(updates) {
     const currentUser = useSessionStore.getState().user;
@@ -47,7 +61,7 @@ export const useSessionStore = create<SessionState>((set) => ({
     const nextUser: AuthUser = { ...currentUser, ...updates };
     await SecureStore.setItemAsync("user", JSON.stringify(nextUser));
     await useLocaleStore.getState().setLocale(nextUser.preferredLanguage);
-    set({ user: nextUser, hydrated: true });
+    set({ user: nextUser, hydrated: true, bootstrapPhase: "ready" });
   },
   async clearSession() {
     await Promise.all([
@@ -56,7 +70,13 @@ export const useSessionStore = create<SessionState>((set) => ({
       SecureStore.deleteItemAsync("user"),
     ]);
 
-    set({ user: null, accessToken: null, refreshToken: null, hydrated: true });
+    set({
+      user: null,
+      accessToken: null,
+      refreshToken: null,
+      hydrated: true,
+      bootstrapPhase: "ready",
+    });
   },
   async hydrateFromStorage() {
     const [accessToken, refreshToken, userJson] = await Promise.all([
@@ -69,7 +89,8 @@ export const useSessionStore = create<SessionState>((set) => ({
       accessToken,
       refreshToken,
       user: userJson ? JSON.parse(userJson) : null,
-      hydrated: false,
+      hydrated: true,
+      bootstrapPhase: "hydrating",
     });
   },
 }));
