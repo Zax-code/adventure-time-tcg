@@ -5,10 +5,7 @@ Wants=network-online.target
 
 [Pod]
 PodName=adventure-time-tcg
-PublishPort=127.0.0.1:4200:4200
-PublishPort=127.0.0.1:5434:5432
-PublishPort=127.0.0.1:9100:9000
-PublishPort=127.0.0.1:9101:9001
+Network=host
 
 [Install]
 WantedBy=multi-user.target

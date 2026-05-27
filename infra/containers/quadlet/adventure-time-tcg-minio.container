@@ -11,7 +11,7 @@ Pod=adventure-time-tcg.pod
 Volume=/srv/adventure-time-tcg/minio:/data:Z
 Environment=MINIO_ROOT_USER=minio
 Environment=MINIO_ROOT_PASSWORD=minioadmin
-Exec=minio server /data --console-address :9001
+Exec=minio server /data --address 127.0.0.1:9000 --console-address 127.0.0.1:9001
 
 [Service]
 Restart=always

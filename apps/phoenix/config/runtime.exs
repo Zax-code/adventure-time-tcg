@@ -109,6 +109,14 @@ if config_env() == :prod do
   port =
     String.to_integer(System.get_env("PORT") || System.get_env("PHX_PORT") || "4200")
 
+  ip =
+    case System.get_env("PHX_IP") || "0.0.0.0" do
+      "0.0.0.0" -> {0, 0, 0, 0}
+      "127.0.0.1" -> {127, 0, 0, 1}
+      "localhost" -> {127, 0, 0, 1}
+      other -> raise "unsupported PHX_IP value: #{inspect(other)}"
+    end
+
   config :adventure_time_api, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
   config :adventure_time_api, AdventureTimeApiWeb.Endpoint,
@@ -118,7 +126,7 @@ if config_env() == :prod do
       # Set it to  {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.
       # See the documentation on https://hexdocs.pm/bandit/Bandit.html#t:options/0
       # for details about using IPv6 vs IPv4 and loopback vs public addresses.
-      ip: {0, 0, 0, 0, 0, 0, 0, 0},
+      ip: ip,
       port: port
     ],
     secret_key_base: secret_key_base
