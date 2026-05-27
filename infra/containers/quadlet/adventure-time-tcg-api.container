@@ -8,7 +8,7 @@ Requires=adventure-time-tcg-pod.service adventure-time-tcg-postgres.service adve
 ContainerName=adventure-time-tcg-api
 Image=ghcr.io/zax-code/adventure-time-tcg-api:latest
 Pull=never
-Pod=adventure-time-tcg.pod
+Network=host
 Environment=PHX_SERVER=true
 Environment=PHX_IP=127.0.0.1
 Environment=PHX_PORT=4200
