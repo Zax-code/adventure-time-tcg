@@ -24,10 +24,10 @@ Install/update the checked-in Quadlet files and then reload systemd:
 ```bash
 sudo cp infra/containers/quadlet/* /etc/containers/systemd/
 sudo systemctl daemon-reload
-sudo systemctl enable --now adventure-time-tcg-network.service
-sudo systemctl enable --now adventure-time-tcg-postgres.service
-sudo systemctl enable --now adventure-time-tcg-minio.service
-sudo systemctl enable --now adventure-time-tcg-api.service
+sudo systemctl start adventure-time-tcg-network.service
+sudo systemctl start adventure-time-tcg-postgres.service
+sudo systemctl start adventure-time-tcg-minio.service
+sudo systemctl start adventure-time-tcg-api.service
 ```
 
 ## Caddy Cutover

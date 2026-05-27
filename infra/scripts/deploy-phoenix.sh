@@ -284,10 +284,9 @@ echo "Reloading systemd..."
 sudo systemctl daemon-reload
 
 echo "Ensuring backing services are running..."
-sudo systemctl enable adventure-time-tcg-network.service \
-  adventure-time-tcg-postgres.service \
-  adventure-time-tcg-minio.service >/dev/null
-sudo systemctl restart adventure-time-tcg-postgres.service adventure-time-tcg-minio.service
+sudo systemctl restart adventure-time-tcg-network.service || sudo systemctl start adventure-time-tcg-network.service
+sudo systemctl restart adventure-time-tcg-postgres.service adventure-time-tcg-minio.service || \
+  sudo systemctl start adventure-time-tcg-postgres.service adventure-time-tcg-minio.service
 wait_for_systemd adventure-time-tcg-postgres.service
 wait_for_systemd adventure-time-tcg-minio.service
 
@@ -305,7 +304,6 @@ cut_over_legacy_service
 
 echo "Reloading systemd after API cutover..."
 sudo systemctl daemon-reload
-sudo systemctl enable "$SERVICE_NAME" >/dev/null
 sudo systemctl restart "$SERVICE_NAME" || sudo systemctl start "$SERVICE_NAME"
 wait_for_systemd "$SERVICE_NAME"
 
