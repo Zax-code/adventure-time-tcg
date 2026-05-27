@@ -95,9 +95,7 @@ render_container_env() {
   temp_env="$(mktemp)"
 
   sed -E \
-    -e 's#^(DATABASE_URL=.*@)(127\.0\.0\.1|localhost|host\.containers\.internal):5434/#\1127.0.0.1:5432/#' \
     -e 's#^MINIO_ENDPOINT=(127\.0\.0\.1|localhost|host\.containers\.internal)$#MINIO_ENDPOINT=127.0.0.1#' \
-    -e 's#^MINIO_PORT=9100$#MINIO_PORT=9000#' \
     "$source_env" > "$temp_env"
 
   sudo install -d -m 0755 "$(dirname "$target_env")"
@@ -204,7 +202,7 @@ run_migrations() {
   sudo podman run --rm \
     --name adventure-time-tcg-api-migrate \
     --pull=never \
-    --pod adventure-time-tcg \
+    --network host \
     --env-file "$CONTAINER_ENV_FILE" \
     "$IMAGE_REF" \
     bin/adventure_time_api eval "AdventureTimeApi.Release.migrate"
