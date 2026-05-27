@@ -4,7 +4,10 @@
     "slug": "adventure-time-tcg",
     "version": "0.1.2",
     "owner": "zax-code",
-    "scheme": "adventure-time",
+    "scheme": [
+      "adventure-time",
+      "love.leaetzak.adventuretime"
+    ],
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "plugins": [
