@@ -10,6 +10,7 @@ import {
   AdminButton,
   AdminChip,
   AdminEmptyState,
+  AdminLoadingState,
   AdminModal,
   AdminPageScroll,
   AdminPanel,
@@ -139,7 +140,11 @@ export default function AdminAbilitiesScreen() {
             <AdminSectionTitle title={t("admin.abilities.libraryTitle", { count: filteredAbilities.length })} />
             <View className="mt-3 gap-3">
               {isAbilitiesLoading ? (
-                <Text className="font-nunito-bold text-[13px] text-primaryText">{t("admin.abilities.loadingAbilities")}</Text>
+                <AdminLoadingState
+                  title={t("admin.abilities.loadingAbilities")}
+                  body={t("common.loadingStates.adminBody")}
+                  icon="flash"
+                />
               ) : abilitiesError ? (
                 <Text className="font-nunito-bold text-[13px] text-dangerText">{abilitiesError}</Text>
               ) : filteredAbilities.length ? (
@@ -176,7 +181,11 @@ export default function AdminAbilitiesScreen() {
             <AdminSectionTitle title={t("admin.abilities.assignmentsTitle", { count: filteredCards.length })} />
             <View className="mt-3 gap-3">
               {isAbilitiesLoading ? (
-                <Text className="font-nunito-bold text-[13px] text-primaryText">{t("admin.abilities.loadingAssignments")}</Text>
+                <AdminLoadingState
+                  title={t("admin.abilities.loadingAssignments")}
+                  body={t("common.loadingStates.adminBody")}
+                  icon="git-network"
+                />
               ) : abilitiesError ? (
                 <Text className="font-nunito-bold text-[13px] text-dangerText">{abilitiesError}</Text>
               ) : filteredCards.length ? (

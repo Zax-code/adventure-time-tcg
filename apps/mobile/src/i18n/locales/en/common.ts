@@ -13,6 +13,13 @@ const common = {
     preparing: "Preparing your adventure...",
     restoring: "Reconnecting to the Candy Kingdom...",
   },
+  loadingStates: {
+    pageBody: "One moment while we bring this screen to life.",
+    sectionBody: "Fresh details are on the way.",
+    battleBody: "Summoning the board and syncing the latest turn order.",
+    rosterBody: "Checking the latest players and lineups.",
+    adminBody: "Gathering the latest tools and records for this workspace.",
+  },
 };
 
 export default common;

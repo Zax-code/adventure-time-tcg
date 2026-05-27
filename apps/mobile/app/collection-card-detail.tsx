@@ -18,6 +18,10 @@ import { useSessionStore } from "../src/stores/session-store";
 import { useThemeStore } from "../src/stores/theme-store";
 import { useTranslation } from "../src/i18n";
 import { CardTile } from "../src/components/card-tile";
+import {
+  LoadingPanel,
+  PageLoadingState,
+} from "../src/components/loading-state";
 import { RARITY_COLORS } from "../src/components/theme";
 import { THEME_COLORS } from "../src/theme/themes";
 import {
@@ -375,11 +379,11 @@ export default function CollectionCardDetailScreen() {
       </View>
 
       {collectionQuery.isLoading ? (
-        <View className="flex-1 items-center justify-center px-6">
-          <Text className="font-nunito text-fgMuted">
-            {t("common.loading")}
-          </Text>
-        </View>
+        <PageLoadingState
+          title={t("pvp.cardDetailsTitle")}
+          message={t("common.loadingStates.pageBody")}
+          icon="sparkles"
+        />
       ) : !entry ? (
         <View className="flex-1 items-center justify-center px-6">
           <Text className="text-center font-nunito text-fgMuted">
@@ -885,17 +889,13 @@ export default function CollectionCardDetailScreen() {
                     keyboardShouldPersistTaps="handled"
                   >
                     {usersQuery.isLoading ? (
-                      <Text
-                        style={{
-                          fontFamily: "Nunito_400Regular",
-                          fontSize: 13,
-                          color: "#6B7280",
-                          textAlign: "center",
-                          padding: 12,
-                        }}
-                      >
-                        {t("common.loading")}
-                      </Text>
+                      <View style={{ padding: 12 }}>
+                        <LoadingPanel
+                          title={t("gifts.users")}
+                          message={t("common.loadingStates.sectionBody")}
+                          icon="people"
+                        />
+                      </View>
                     ) : otherUsers.filter((u) =>
                         u.displayName
                           .toLowerCase()

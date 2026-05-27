@@ -11,6 +11,7 @@ import {
   AdminButton,
   AdminChip,
   AdminEmptyState,
+  AdminLoadingState,
   AdminPageScroll,
   AdminPanel,
   AdminSectionTitle,
@@ -151,7 +152,11 @@ export default function AdminImageAssetsScreen() {
         <AdminSectionTitle title={t("admin.imageAssets.recentUploads", { count: imageAssets.length })} />
         <View className="mt-3 gap-3">
           {imageAssetsQuery.isLoading ? (
-            <Text className="font-nunito-bold text-[13px] text-primaryText">{t("admin.imageAssets.loading")}</Text>
+            <AdminLoadingState
+              title={t("admin.imageAssets.loading")}
+              body={t("common.loadingStates.adminBody")}
+              icon="images"
+            />
           ) : imageAssetsError ? (
             <Text className="font-nunito-bold text-[13px] text-dangerText">{imageAssetsError}</Text>
           ) : recentAssets.length ? (

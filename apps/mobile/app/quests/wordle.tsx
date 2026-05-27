@@ -25,6 +25,7 @@ import { useRouter } from "expo-router";
 import { ApiClientError } from "@adventure-time/api-client";
 import type { QuestsResponse, WordleStateResponse, WordleSubmitResponse } from "@adventure-time/api-client";
 import { apiClient } from "../../src/lib/api";
+import { PageLoadingState } from "../../src/components/loading-state";
 import { useTranslation } from "../../src/i18n";
 import { useQuestResetStore } from "../../src/stores/quest-reset-store";
 import { useThemeStore } from "../../src/stores/theme-store";
@@ -846,14 +847,11 @@ export default function WordleScreen() {
 
   if (stateQuery.isLoading && !stateQuery.data) {
     return (
-      <View
-        style={THEME_VARS[themeName]}
-        className="flex-1 bg-bg items-center justify-center"
-      >
-        <Text className="text-primaryStrong font-nunito-semibold">
-          {t("quests.wordle.title")}…
-        </Text>
-      </View>
+      <PageLoadingState
+        title={t("quests.wordle.title")}
+        message={t("common.loadingStates.pageBody")}
+        icon="grid"
+      />
     );
   }
 
