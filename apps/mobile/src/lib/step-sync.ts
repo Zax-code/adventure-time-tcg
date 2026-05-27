@@ -241,6 +241,39 @@ async function readIosHealthStepsToday() {
   return Math.max(0, Math.round(result.sumQuantity?.quantity ?? 0));
 }
 
+async function readIosPedometerStepsToday(interactive: boolean) {
+  const granted = await ensurePedometerPermission(interactive);
+  if (!granted) {
+    return null;
+  }
+
+  const now = new Date();
+  const result = await Pedometer.getStepCountAsync(startOfLocalDay(now), now);
+  return Math.max(0, Math.round(result.steps ?? 0));
+}
+
+async function readIosDeviceStepsToday(interactive: boolean) {
+  let healthSteps: number | null = null;
+
+  const healthGranted = await ensureIosHealthPermission(interactive);
+  if (healthGranted) {
+    healthSteps = await readIosHealthStepsToday();
+  }
+
+  const pedometerSteps = await readIosPedometerStepsToday(interactive);
+
+  if (healthSteps == null) {
+    return pedometerSteps;
+  }
+
+  if (pedometerSteps == null) {
+    return healthSteps;
+  }
+
+  // HealthKit and CMPedometer can disagree briefly; trust the higher total for today.
+  return Math.max(healthSteps, pedometerSteps);
+}
+
 async function ensureIosHealthPermission(interactive: boolean) {
   const available = await isHealthDataAvailableAsync();
   if (!available) {
@@ -392,12 +425,7 @@ async function readAndroidHealthStepsToday() {
 
 async function readAuthoritativeDeviceStepsToday(interactive: boolean) {
   if (Platform.OS === "ios") {
-    const granted = await ensureIosHealthPermission(interactive);
-    if (!granted) {
-      return null;
-    }
-
-    return readIosHealthStepsToday();
+    return readIosDeviceStepsToday(interactive);
   }
 
   if (Platform.OS === "android") {
@@ -601,6 +629,8 @@ export async function syncDeviceStepsNow({
 
       if (source === "manual") {
         await ensureNotificationPermission(false);
+        void startForegroundStepTracking();
+        void startIosHealthSubscription();
       }
     } catch (error) {
       const message =
