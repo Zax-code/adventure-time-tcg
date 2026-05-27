@@ -13,6 +13,13 @@ defmodule AdventureTimeApiWeb.Endpoint do
     plug(Phoenix.Ecto.CheckRepoStatus, otp_app: :adventure_time_api)
   end
 
+  plug(Plug.Static,
+    at: "/",
+    from: :adventure_time_api,
+    gzip: false,
+    only: AdventureTimeApiWeb.static_paths()
+  )
+
   plug(Plug.RequestId)
   plug(Plug.Telemetry, event_prefix: [:phoenix, :endpoint])
 
