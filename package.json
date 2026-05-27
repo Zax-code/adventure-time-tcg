@@ -7,8 +7,8 @@
         "packages/*"
     ],
     "scripts": {
-        "dev:api": "cd apps/phoenix && mix phx.server",
-        "dev:phoenix": "cd apps/phoenix && mix phx.server",
+        "dev:api": "cd apps/phoenix && /bin/bash -lc 'set -a && source .env && set +a && mix phx.server'",
+        "dev:phoenix": "cd apps/phoenix && /bin/bash -lc 'set -a && source .env && set +a && mix phx.server'",
         "dev:mobile": "npm run dev -w @adventure-time/mobile",
         "dev:mobile:android": "npm run android:local -w @adventure-time/mobile",
         "dev:mobile:ios": "npm run ios:local -w @adventure-time/mobile",

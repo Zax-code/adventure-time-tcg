@@ -5,6 +5,16 @@ defmodule AdventureTimeApiWeb.MediaControllerTest do
   alias AdventureTimeApi.Catalog.ImageAsset
   alias AdventureTimeApi.Repo
 
+  @minio_env_keys [
+    "MINIO_BASE_URL",
+    "MINIO_ENDPOINT",
+    "MINIO_PORT",
+    "MINIO_USE_SSL",
+    "MINIO_BUCKET",
+    "MINIO_ACCESS_KEY",
+    "MINIO_SECRET_KEY"
+  ]
+
   setup do
     original_config = Application.get_env(:adventure_time_api, AdventureTimeApi.Media)
 
@@ -101,6 +111,74 @@ defmodule AdventureTimeApiWeb.MediaControllerTest do
     assert get_resp_header(conn, "content-type") == ["image/png"]
   end
 
+  test "GET /media/card/:id serves object storage bytes when configured through MinIO env parts",
+       %{conn: conn} do
+    bypass = Bypass.open()
+    restore_minio_env_on_exit()
+
+    Application.put_env(:adventure_time_api, AdventureTimeApi.Media,
+      base_url: nil,
+      bucket: nil,
+      access_key: nil,
+      secret_key: nil
+    )
+
+    System.delete_env("MINIO_BASE_URL")
+    System.put_env("MINIO_ENDPOINT", "127.0.0.1")
+    System.put_env("MINIO_PORT", Integer.to_string(bypass.port))
+    System.put_env("MINIO_USE_SSL", "false")
+    System.put_env("MINIO_BUCKET", "private-images")
+    System.put_env("MINIO_ACCESS_KEY", "minio")
+    System.put_env("MINIO_SECRET_KEY", "secret")
+
+    Bypass.expect_once(bypass, "GET", "/private-images/cards/jake.png", fn conn ->
+      conn = Plug.Conn.put_resp_header(conn, "content-type", "image/png")
+      Plug.Conn.resp(conn, 200, "ENVPNG")
+    end)
+
+    asset =
+      Repo.insert!(
+        ImageAsset.changeset(%ImageAsset{}, %{
+          kind: :card,
+          mime_type: "image/png",
+          object_key: "cards/jake.png"
+        })
+      )
+
+    conn = get(conn, ~p"/media/card/#{asset.id}")
+
+    assert response(conn, 200) == "ENVPNG"
+    assert get_resp_header(conn, "content-type") == ["image/png"]
+  end
+
+  test "GET /media/card/:id serves svg placeholder content type when object storage is unavailable",
+       %{conn: conn} do
+    restore_minio_env_on_exit()
+
+    Application.put_env(:adventure_time_api, AdventureTimeApi.Media,
+      base_url: nil,
+      bucket: nil,
+      access_key: nil,
+      secret_key: nil
+    )
+
+    Enum.each(@minio_env_keys, &System.delete_env/1)
+
+    asset =
+      Repo.insert!(
+        ImageAsset.changeset(%ImageAsset{}, %{
+          kind: :card,
+          mime_type: "image/png",
+          object_key: "cards/missing.png"
+        })
+      )
+
+    conn = get(conn, ~p"/media/card/#{asset.id}")
+
+    assert response(conn, 200) =~ "<svg"
+    assert get_resp_header(conn, "content-type") == ["image/svg+xml"]
+  end
+
   test "GET /media/catalog/:id serves placeholder svg publicly", %{conn: conn} do
     asset =
       Repo.insert!(
@@ -176,5 +254,19 @@ defmodule AdventureTimeApiWeb.MediaControllerTest do
   defp auth_conn(access_token) do
     build_conn()
     |> put_req_header("authorization", "Bearer #{access_token}")
+  end
+
+  defp restore_minio_env_on_exit do
+    original_env =
+      Map.new(@minio_env_keys, fn key ->
+        {key, System.get_env(key)}
+      end)
+
+    on_exit(fn ->
+      Enum.each(original_env, fn
+        {key, nil} -> System.delete_env(key)
+        {key, value} -> System.put_env(key, value)
+      end)
+    end)
   end
 end
