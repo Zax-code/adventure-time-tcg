@@ -7,9 +7,19 @@ defmodule AdventureTimeApiWeb.Router do
     plug(:accepts, ["json"])
   end
 
+  pipeline :browser_html do
+    plug(:accepts, ["html"])
+  end
+
   pipeline :api_auth do
     plug(:accepts, ["json"])
     plug(RequireAuth)
+  end
+
+  scope "/", AdventureTimeApiWeb do
+    pipe_through(:browser_html)
+
+    get("/", LandingController, :index)
   end
 
   scope "/", AdventureTimeApiWeb do

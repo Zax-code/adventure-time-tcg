@@ -1,0 +1,5 @@
+Contact: https://github.com/Zax-code/adventure-time-tcg/issues/new
+Canonical: https://app.leaetzak.love/.well-known/security.txt
+Policy: https://github.com/Zax-code/adventure-time-tcg
+Preferred-Languages: en
+Expires: 2027-05-27T00:00:00.000Z
