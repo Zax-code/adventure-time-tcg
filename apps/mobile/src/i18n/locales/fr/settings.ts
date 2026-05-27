@@ -23,7 +23,7 @@ const settings = {
   syncNow: "Synchroniser maintenant",
   syncing: "Synchronisation...",
   stepSyncHelp:
-    "Les pas en premier plan se mettent a jour tout de suite via le podometre, puis se resynchronisent avec Apple Health ou Health Connect pour rester justes.",
+    "Les pas au premier plan se mettent a jour tout de suite via le podometre. La synchronisation en arriere-plan garde Apple Health ou Health Connect a jour quand le systeme le permet.",
   stepGoalReachedTitle: "Objectif de pas atteint",
   stepGoalReachedBody:
     "Tu as atteint 10 000 pas. Ta quete du jour est prete a etre reclamee.",

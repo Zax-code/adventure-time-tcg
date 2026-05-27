@@ -1,13 +1,17 @@
 import { Platform } from "react-native";
+import * as BackgroundTask from "expo-background-task";
 import * as Notifications from "expo-notifications";
 import { Pedometer } from "expo-sensors";
 import * as SecureStore from "expo-secure-store";
+import * as TaskManager from "expo-task-manager";
 import {
   AuthorizationRequestStatus,
   AuthorizationStatus,
   type EmitterSubscription,
   UpdateFrequency,
   authorizationStatusFor,
+  clearBackgroundTypes,
+  configureBackgroundTypes,
   enableBackgroundDelivery,
   getRequestStatusForAuthorization,
   isHealthDataAvailableAsync,
@@ -25,7 +29,7 @@ import {
   requestPermission,
 } from "react-native-health-connect";
 
-import { apiClient } from "./api";
+import { apiClient, getStoredUser } from "./api";
 import { getTranslation } from "../i18n";
 import { queryClient } from "./query-client";
 import {
@@ -45,6 +49,8 @@ const PEDOMETER_PERMISSION_PROMPT_KEY =
 const NOTIFICATION_PERMISSION_PROMPT_KEY =
   "step-sync-notification-permission-prompted-v1";
 const STEP_NOTIFICATION_CHANNEL_ID = "step-goals";
+const STEP_SYNC_BACKGROUND_TASK = "step-sync-background-task";
+const BACKGROUND_STEP_SYNC_INTERVAL_MINUTES = 15;
 
 let activeSyncPromise: Promise<void> | null = null;
 let pedometerSubscription: ReturnType<typeof Pedometer.watchStepCount> | null =
@@ -52,6 +58,14 @@ let pedometerSubscription: ReturnType<typeof Pedometer.watchStepCount> | null =
 let iosHealthSubscription: EmitterSubscription | null = null;
 let pedometerBaseSteps: number | null = null;
 let pedometerSyncTimeout: ReturnType<typeof setTimeout> | null = null;
+
+type SyncSource =
+  | "manual"
+  | "interval"
+  | "resume"
+  | "focus"
+  | "foreground_pedometer"
+  | "background_task";
 
 function formatLocalDate(date: Date) {
   const year = date.getFullYear();
@@ -74,6 +88,10 @@ async function markPrompted(key: string) {
 
 async function hasPrompted(key: string) {
   return (await SecureStore.getItemAsync(key)) === "1";
+}
+
+async function getStepSyncUser() {
+  return getStoredUser();
 }
 
 function setStore(
@@ -114,8 +132,7 @@ async function ensureNotificationPermission(interactive: boolean) {
       current.canAskAgain || !current.status ? "not_requested" : "denied",
   });
 
-  const alreadyPrompted = await hasPrompted(NOTIFICATION_PERMISSION_PROMPT_KEY);
-  if (!interactive && alreadyPrompted) {
+  if (!interactive || !current.canAskAgain) {
     return false;
   }
 
@@ -143,9 +160,9 @@ async function notifyStepGoalReached(userId: string, recordedFor: string) {
     return;
   }
 
+  const user = await getStepSyncUser();
   const locale =
-    useSessionStore.getState().user?.preferredLanguage ??
-    useLocaleStore.getState().locale;
+    user?.preferredLanguage ?? useLocaleStore.getState().locale;
 
   await Notifications.scheduleNotificationAsync({
     content: {
@@ -160,6 +177,21 @@ async function notifyStepGoalReached(userId: string, recordedFor: string) {
   });
 
   await SecureStore.setItemAsync(key, "1");
+}
+
+async function ensureIosBackgroundDeliveryConfigured() {
+  try {
+    await configureBackgroundTypes([IOS_STEP_TYPE], UpdateFrequency.immediate);
+    return;
+  } catch {
+    // Fall back to the direct HealthKit registration if the helper fails.
+  }
+
+  try {
+    await enableBackgroundDelivery(IOS_STEP_TYPE, UpdateFrequency.immediate);
+  } catch {
+    // Foreground sync still works if background delivery cannot be enabled.
+  }
 }
 
 async function readIosHealthStepsToday() {
@@ -219,6 +251,7 @@ async function ensureIosHealthPermission(interactive: boolean) {
 
   const currentStatus = authorizationStatusFor(IOS_STEP_TYPE);
   if (currentStatus === AuthorizationStatus.sharingAuthorized) {
+    await ensureIosBackgroundDeliveryConfigured();
     setStore({
       availability: "available",
       healthPermissionStatus: "granted",
@@ -242,8 +275,7 @@ async function ensureIosHealthPermission(interactive: boolean) {
     return false;
   }
 
-  const alreadyPrompted = await hasPrompted(HEALTH_PERMISSION_PROMPT_KEY);
-  if (!interactive && alreadyPrompted) {
+  if (!interactive) {
     return false;
   }
 
@@ -258,12 +290,7 @@ async function ensureIosHealthPermission(interactive: boolean) {
       healthPermissionStatus: "granted",
       lastError: null,
     });
-
-    try {
-      await enableBackgroundDelivery(IOS_STEP_TYPE, UpdateFrequency.immediate);
-    } catch {
-      // Foreground sync still works if background delivery cannot be enabled.
-    }
+    await ensureIosBackgroundDeliveryConfigured();
 
     return true;
   }
@@ -324,54 +351,28 @@ async function ensureAndroidHealthPermission(interactive: boolean) {
     healthPermissionStatus: "not_requested",
   });
 
-  const alreadyPrompted = await hasPrompted(HEALTH_PERMISSION_PROMPT_KEY);
-  if (!interactive && alreadyPrompted) {
+  if (!interactive) {
     return false;
   }
 
-  if (!interactive && !alreadyPrompted) {
-    const requested = await requestPermission([
-      {
-        accessType: "read",
-        recordType: "Steps",
-      },
-    ]);
-    await markPrompted(HEALTH_PERMISSION_PROMPT_KEY);
+  const requested = await requestPermission([
+    {
+      accessType: "read",
+      recordType: "Steps",
+    },
+  ]);
+  await markPrompted(HEALTH_PERMISSION_PROMPT_KEY);
 
-    const granted = requested.some(
-      (permission) =>
-        permission.accessType === "read" && permission.recordType === "Steps",
-    );
+  const granted = requested.some(
+    (permission) =>
+      permission.accessType === "read" && permission.recordType === "Steps",
+  );
 
-    setStore({
-      availability: "available",
-      healthPermissionStatus: granted ? "granted" : "denied",
-    });
-    return granted;
-  }
-
-  if (interactive) {
-    const requested = await requestPermission([
-      {
-        accessType: "read",
-        recordType: "Steps",
-      },
-    ]);
-    await markPrompted(HEALTH_PERMISSION_PROMPT_KEY);
-
-    const granted = requested.some(
-      (permission) =>
-        permission.accessType === "read" && permission.recordType === "Steps",
-    );
-
-    setStore({
-      availability: "available",
-      healthPermissionStatus: granted ? "granted" : "denied",
-    });
-    return granted;
-  }
-
-  return false;
+  setStore({
+    availability: "available",
+    healthPermissionStatus: granted ? "granted" : "denied",
+  });
+  return granted;
 }
 
 async function readAndroidHealthStepsToday() {
@@ -469,20 +470,75 @@ export async function configureStepNotifications() {
   }
 }
 
+async function backgroundTaskAvailable() {
+  const [taskManagerAvailable, backgroundTaskStatus] = await Promise.all([
+    TaskManager.isAvailableAsync().catch(() => false),
+    BackgroundTask.getStatusAsync().catch(() => null),
+  ]);
+
+  return (
+    taskManagerAvailable &&
+    backgroundTaskStatus === BackgroundTask.BackgroundTaskStatus.Available
+  );
+}
+
+export async function ensureBackgroundStepTaskRegistered() {
+  const available = await backgroundTaskAvailable();
+  if (!available) {
+    return false;
+  }
+
+  const registered = await TaskManager.isTaskRegisteredAsync(
+    STEP_SYNC_BACKGROUND_TASK,
+  );
+
+  if (!registered) {
+    await BackgroundTask.registerTaskAsync(STEP_SYNC_BACKGROUND_TASK, {
+      minimumInterval: BACKGROUND_STEP_SYNC_INTERVAL_MINUTES,
+    });
+  }
+
+  return true;
+}
+
+export async function unregisterBackgroundStepTask() {
+  const registered = await TaskManager.isTaskRegisteredAsync(
+    STEP_SYNC_BACKGROUND_TASK,
+  ).catch(() => false);
+
+  if (registered) {
+    await BackgroundTask.unregisterTaskAsync(STEP_SYNC_BACKGROUND_TASK);
+  }
+}
+
+export async function disableBackgroundStepSync() {
+  await unregisterBackgroundStepTask();
+
+  if (Platform.OS === "ios") {
+    try {
+      await clearBackgroundTypes();
+    } catch {
+      // Ignore teardown failures on logout.
+    }
+  }
+}
+
 export async function syncDeviceStepsNow({
   interactive = false,
+  allowPermissionPrompt = interactive,
   source = "manual",
 }: {
   interactive?: boolean;
-  source?: "manual" | "interval" | "resume" | "focus" | "foreground_pedometer";
+  allowPermissionPrompt?: boolean;
+  source?: SyncSource;
 } = {}) {
   if (activeSyncPromise) {
     return activeSyncPromise;
   }
 
   activeSyncPromise = (async () => {
-    const userId = useSessionStore.getState().user?.id;
-    if (!userId) {
+    const user = await getStepSyncUser();
+    if (!user?.id) {
       return;
     }
 
@@ -492,7 +548,9 @@ export async function syncDeviceStepsNow({
     });
 
     try {
-      const steps = await readAuthoritativeDeviceStepsToday(interactive);
+      const steps = await readAuthoritativeDeviceStepsToday(
+        allowPermissionPrompt,
+      );
       if (steps == null) {
         setStore({ isSyncing: false });
         return;
@@ -525,7 +583,7 @@ export async function syncDeviceStepsNow({
       ]);
 
       if (steps >= STEP_GOAL) {
-        await notifyStepGoalReached(userId, recordedFor);
+        await notifyStepGoalReached(user.id, recordedFor);
       }
 
       if (source === "manual") {
@@ -624,3 +682,8 @@ export function resetStepSyncState() {
 export function stepSyncIntervalMs() {
   return STEP_SYNC_INTERVAL_MS;
 }
+
+export {
+  BACKGROUND_STEP_SYNC_INTERVAL_MINUTES,
+  STEP_SYNC_BACKGROUND_TASK,
+};

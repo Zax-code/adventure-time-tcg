@@ -23,7 +23,7 @@ const settings = {
   syncNow: "Sync now",
   syncing: "Syncing...",
   stepSyncHelp:
-    "Foreground steps update immediately via the pedometer, then re-sync against Apple Health or Health Connect for accuracy.",
+    "Foreground steps update immediately via the pedometer. Background sync keeps Apple Health or Health Connect in sync when the OS allows it.",
   stepGoalReachedTitle: "Step goal reached",
   stepGoalReachedBody:
     "You hit 10,000 steps. Your daily quest is ready to claim.",

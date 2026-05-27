@@ -34,6 +34,10 @@
     </array>
     <key>CFBundleVersion</key>
     <string>1</string>
+    <key>BGTaskSchedulerPermittedIdentifiers</key>
+    <array>
+      <string>com.expo.modules.backgroundtask.processing</string>
+    </array>
     <key>LSMinimumSystemVersion</key>
     <string>12.0</string>
     <key>LSRequiresIPhoneOS</key>
@@ -70,6 +74,10 @@
     <key>UIRequiredDeviceCapabilities</key>
     <array>
       <string>arm64</string>
+    </array>
+    <key>UIBackgroundModes</key>
+    <array>
+      <string>processing</string>
     </array>
     <key>UIRequiresFullScreen</key>
     <false/>

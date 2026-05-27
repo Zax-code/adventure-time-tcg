@@ -3,6 +3,8 @@ import { AppState } from "react-native";
 
 import {
   configureStepNotifications,
+  disableBackgroundStepSync,
+  ensureBackgroundStepTaskRegistered,
   resetStepSyncState,
   startForegroundStepTracking,
   startIosHealthSubscription,
@@ -21,6 +23,7 @@ export function useStepSyncManager() {
 
   useEffect(() => {
     if (!userId) {
+      void disableBackgroundStepSync();
       resetStepSyncState();
       return;
     }
@@ -29,6 +32,8 @@ export function useStepSyncManager() {
 
     const syncNow = (source: "interval" | "resume" | "focus") =>
       syncDeviceStepsNow({ interactive: false, source });
+
+    void ensureBackgroundStepTaskRegistered();
 
     void syncNow("focus").then(() => {
       if (cancelled) {

@@ -1,7 +1,11 @@
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 
-import { ApiClient, ApiClientError } from "@adventure-time/api-client";
+import {
+  ApiClient,
+  ApiClientError,
+  type AuthUser,
+} from "@adventure-time/api-client";
 
 import { queryClient } from "./query-client";
 import { useSessionStore } from "../stores/session-store";
@@ -48,6 +52,24 @@ async function getRefreshToken() {
   );
 }
 
+export async function getStoredUser() {
+  const inMemoryUser = useSessionStore.getState().user;
+  if (inMemoryUser) {
+    return inMemoryUser;
+  }
+
+  const userJson = await SecureStore.getItemAsync("user");
+  if (!userJson) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(userJson) as AuthUser;
+  } catch {
+    return null;
+  }
+}
+
 export async function clearAppSession() {
   await useSessionStore.getState().clearSession();
   queryClient.clear();
@@ -67,7 +89,7 @@ async function refreshAccessToken() {
 
   refreshPromise = (async () => {
     const refreshToken = await getRefreshToken();
-    const currentUser = useSessionStore.getState().user;
+    const currentUser = await getStoredUser();
 
     if (!refreshToken || !currentUser) {
       return null;
