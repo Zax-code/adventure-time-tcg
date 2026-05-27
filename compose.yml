@@ -46,6 +46,7 @@ services:
       MIX_ENV: dev
       PHX_SERVER: "true"
       PHX_PORT: "4200"
+      PHX_HTTP_IP: "0.0.0.0"
       PHX_HOST: "127.0.0.1"
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/adventure_time_phoenix_dev
       SECRET_KEY_BASE: dev-secret-key-base-change-me-1234567890
