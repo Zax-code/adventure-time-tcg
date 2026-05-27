@@ -79,7 +79,6 @@ jobs:
     environment:
       name: production
     env:
-      PRODUCTION_HEALTHCHECK_URL: ${{ secrets.PRODUCTION_HEALTHCHECK_URL || '' }}
       PRODUCTION_HOST: ${{ secrets.PRODUCTION_HOST }}
       PRODUCTION_REPO_PATH: ${{ secrets.PRODUCTION_REPO_PATH || '/home/zax/adventure-time-tcg' }}
       PRODUCTION_CONTAINER_ENV_FILE: ${{ secrets.PRODUCTION_CONTAINER_ENV_FILE || '/home/zax/adventure-time-tcg-secrets/api.container.env' }}
@@ -181,10 +180,6 @@ jobs:
             --quadlet-dir "$PRODUCTION_QUADLET_DIR"
             --registry-username "$REGISTRY_USERNAME"
           )
-
-          if [ -n "$PRODUCTION_HEALTHCHECK_URL" ]; then
-            remote_args+=(--health-url "$PRODUCTION_HEALTHCHECK_URL")
-          fi
 
           if [ -n "$PRODUCTION_ENV_FILE" ]; then
             remote_args+=(--env-file "$PRODUCTION_ENV_FILE")

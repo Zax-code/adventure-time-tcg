@@ -95,8 +95,8 @@ render_container_env() {
   temp_env="$(mktemp)"
 
   sed -E \
-    -e 's#^(DATABASE_URL=.*@)(127\.0\.0\.1|localhost|host\.containers\.internal):5434/#\1host.containers.internal:5434/#' \
-    -e 's#^MINIO_ENDPOINT=(127\.0\.0\.1|localhost|host\.containers\.internal)$#MINIO_ENDPOINT=host.containers.internal#' \
+    -e 's#^(DATABASE_URL=.*@)(127\.0\.0\.1|localhost|host\.containers\.internal):5434/#\1127.0.0.1:5432/#' \
+    -e 's#^MINIO_ENDPOINT=(127\.0\.0\.1|localhost|host\.containers\.internal)$#MINIO_ENDPOINT=127.0.0.1#' \
     -e 's#^MINIO_PORT=9100$#MINIO_PORT=9000#' \
     "$source_env" > "$temp_env"
 
@@ -115,8 +115,9 @@ install_quadlets() {
     "$quadlet_source_dir/adventure-time-tcg-api.container" > "$rendered_api"
 
   sudo install -d -m 0755 "$QUADLET_DIR"
-  sudo install -m 0644 "$quadlet_source_dir/adventure-time-tcg.network" \
-    "$QUADLET_DIR/adventure-time-tcg.network"
+  sudo rm -f "$QUADLET_DIR/adventure-time-tcg.network"
+  sudo install -m 0644 "$quadlet_source_dir/adventure-time-tcg.pod" \
+    "$QUADLET_DIR/adventure-time-tcg.pod"
   sudo install -m 0644 "$quadlet_source_dir/adventure-time-tcg-postgres.container" \
     "$QUADLET_DIR/adventure-time-tcg-postgres.container"
   sudo install -m 0644 "$quadlet_source_dir/adventure-time-tcg-minio.container" \
@@ -126,18 +127,37 @@ install_quadlets() {
   rm -f "$rendered_api"
 }
 
+retire_legacy_network_unit() {
+  sudo systemctl stop adventure-time-tcg-network.service >/dev/null 2>&1 || true
+  sudo systemctl disable adventure-time-tcg-network.service >/dev/null 2>&1 || true
+}
+
 pull_image() {
+  local authfile=""
   local pull_args=(pull "$IMAGE_REF")
 
-  if [ -n "$REGISTRY_USERNAME" ] && [ -n "$REGISTRY_PASSWORD" ]; then
-    printf '%s' "$REGISTRY_PASSWORD" | sudo podman login \
-      --username "$REGISTRY_USERNAME" \
-      --password-stdin \
-      ghcr.io
-  fi
+  cleanup_authfile() {
+    if [ -n "$authfile" ]; then
+      rm -f "$authfile"
+    fi
+  }
+
+  trap cleanup_authfile RETURN
 
   if [ -n "$REGISTRY_AUTH_FILE" ]; then
     pull_args=(pull --authfile "$REGISTRY_AUTH_FILE" "$IMAGE_REF")
+  fi
+
+  if [ -z "$REGISTRY_AUTH_FILE" ] && [ -n "$REGISTRY_USERNAME" ] && [ -n "$REGISTRY_PASSWORD" ]; then
+    authfile="$(mktemp)"
+
+    printf '%s' "$REGISTRY_PASSWORD" | sudo podman login \
+      --authfile "$authfile" \
+      --username "$REGISTRY_USERNAME" \
+      --password-stdin \
+      ghcr.io
+
+    pull_args=(pull --authfile "$authfile" "$IMAGE_REF")
   fi
 
   sudo podman "${pull_args[@]}"
@@ -166,7 +186,7 @@ run_migrations() {
   sudo podman run --rm \
     --name adventure-time-tcg-api-migrate \
     --pull=never \
-    --network adventure-time-tcg \
+    --pod adventure-time-tcg \
     --env-file "$CONTAINER_ENV_FILE" \
     "$IMAGE_REF" \
     bin/adventure_time_api eval "AdventureTimeApi.Release.migrate"
@@ -310,14 +330,16 @@ render_container_env "$ENV_FILE" "$CONTAINER_ENV_FILE"
 
 echo "Installing Quadlet units..."
 install_quadlets "$REPO_ROOT"
+retire_legacy_network_unit
 
 echo "Reloading systemd..."
 sudo systemctl daemon-reload
 
 echo "Ensuring backing services are running..."
-sudo systemctl restart adventure-time-tcg-network.service || sudo systemctl start adventure-time-tcg-network.service
+sudo systemctl restart adventure-time-tcg-pod.service || sudo systemctl start adventure-time-tcg-pod.service
 sudo systemctl restart adventure-time-tcg-postgres.service adventure-time-tcg-minio.service || \
   sudo systemctl start adventure-time-tcg-postgres.service adventure-time-tcg-minio.service
+wait_for_systemd adventure-time-tcg-pod.service
 wait_for_systemd adventure-time-tcg-postgres.service
 wait_for_systemd adventure-time-tcg-minio.service
 wait_for_postgres_tcp

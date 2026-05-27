@@ -115,7 +115,7 @@ The deploy workflow assumes:
 
 Current checked-in Quadlet templates:
 
-- `infra/containers/quadlet/adventure-time-tcg.network`
+- `infra/containers/quadlet/adventure-time-tcg.pod`
 - `infra/containers/quadlet/adventure-time-tcg-postgres.container`
 - `infra/containers/quadlet/adventure-time-tcg-minio.container`
 - `infra/containers/quadlet/adventure-time-tcg-api.container`

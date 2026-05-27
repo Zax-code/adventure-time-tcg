@@ -1,16 +1,14 @@
 [Unit]
 Description=Adventure Time TCG API
-After=network-online.target adventure-time-tcg-postgres.service adventure-time-tcg-minio.service
-Wants=adventure-time-tcg-network.service
-Requires=adventure-time-tcg-postgres.service adventure-time-tcg-minio.service
+After=network-online.target adventure-time-tcg-pod.service adventure-time-tcg-postgres.service adventure-time-tcg-minio.service
+Wants=adventure-time-tcg-pod.service
+Requires=adventure-time-tcg-pod.service adventure-time-tcg-postgres.service adventure-time-tcg-minio.service
 
 [Container]
 ContainerName=adventure-time-tcg-api
 Image=ghcr.io/zax-code/adventure-time-tcg-api:latest
-Network=adventure-time-tcg.network
-NetworkAlias=api
-IP=10.89.0.10
-PublishPort=127.0.0.1:4200:4200
+Pull=never
+Pod=adventure-time-tcg.pod
 Environment=PHX_SERVER=true
 Environment=PHX_PORT=4200
 EnvironmentFile=/home/zax/adventure-time-tcg-secrets/api.container.env

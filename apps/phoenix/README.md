@@ -73,7 +73,7 @@ The importer removes Phoenix placeholder/dev rows first and intentionally leaves
 
 The checked-in Quadlet templates are:
 
-- `infra/containers/quadlet/adventure-time-tcg.network`
+- `infra/containers/quadlet/adventure-time-tcg.pod`
 - `infra/containers/quadlet/adventure-time-tcg-postgres.container`
 - `infra/containers/quadlet/adventure-time-tcg-minio.container`
 - `infra/containers/quadlet/adventure-time-tcg-api.container`

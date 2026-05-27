@@ -42,7 +42,7 @@ Infrastructure helpers:
 
 - `infra/caddy` - Caddy site snippets
 - `infra/scripts` - host and local helper scripts
-- `infra/containers/quadlet` - checked-in Podman Quadlet units for API, PostgreSQL, MinIO, and the shared network
+- `infra/containers/quadlet` - checked-in Podman Quadlet units for the production pod plus API, PostgreSQL, and MinIO containers
 
 ## Primary Commands
 
