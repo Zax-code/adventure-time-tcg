@@ -76,7 +76,7 @@ Recommended secrets:
 
 Optional Tailscale secrets for tailnet-only production hosts:
 
-- `TS_OAUTH_CLIENT_ID`: recommended Tailscale OAuth client ID for ephemeral CI nodes
+- `TS_OAUTH_CLIENT_ID`: recommended Tailscale OAuth client ID for ephemeral CI nodes; this can be stored as either a GitHub environment variable or a secret
 - `TS_OAUTH_SECRET`: recommended Tailscale OAuth secret; the client needs writable `auth_keys` scope and permission to advertise `tag:ci`
 - `TS_AUTHKEY`: fallback auth key if you do not want to use OAuth yet
 
