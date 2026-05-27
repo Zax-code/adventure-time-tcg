@@ -14,6 +14,10 @@ import {
   View,
 } from "react-native";
 import { ApiClientError, apiClient } from "../lib/api";
+import {
+  clearPendingGoogleAuthSession,
+  savePendingGoogleAuthSession,
+} from "../lib/google-auth-session";
 import { useTranslation } from "../i18n";
 import { useLocaleStore } from "../stores/locale-store";
 import { useSessionStore } from "../stores/session-store";
@@ -77,6 +81,7 @@ function GoogleAuthSection({
   const router = useRouter();
   const isExpoGo =
     Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+  const completesAuthInCallbackRoute = Platform.OS === "android" && !isExpoGo;
   const [request, response, promptAsync] = Google.useAuthRequest(
     isExpoGo
       ? {
@@ -97,6 +102,10 @@ function GoogleAuthSection({
   );
 
   useEffect(() => {
+    if (completesAuthInCallbackRoute) {
+      return;
+    }
+
     if (!response) {
       return;
     }
@@ -156,6 +165,7 @@ function GoogleAuthSection({
     };
   }, [
     preferredLanguage,
+    completesAuthInCallbackRoute,
     response,
     router,
     setError,
@@ -179,6 +189,21 @@ function GoogleAuthSection({
     setError(null);
 
     try {
+      if (completesAuthInCallbackRoute) {
+        if (!request.codeVerifier) {
+          throw new Error(t("auth.status.googleLoading"));
+        }
+
+        await savePendingGoogleAuthSession({
+          clientId: request.clientId,
+          codeVerifier: request.codeVerifier,
+          redirectUri: request.redirectUri,
+          scopes: request.scopes ?? ["openid", "profile", "email"],
+          state: request.state,
+          preferredLanguage,
+        });
+      }
+
       const result = await (isExpoGo
         ? (() => {
             if (!request.url) {
@@ -203,10 +228,12 @@ function GoogleAuthSection({
         : promptAsync());
 
       if (result.type !== "success") {
+        await clearPendingGoogleAuthSession();
         setGoogleLoading(false);
         return;
       }
     } catch (submitError) {
+      await clearPendingGoogleAuthSession();
       setError(submitError instanceof Error ? submitError.message : t("auth.errors.failed"));
       setGoogleLoading(false);
     }

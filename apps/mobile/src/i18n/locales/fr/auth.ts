@@ -47,6 +47,7 @@ const auth = {
       "La connexion Google n'est pas encore configurée pour cet environnement de l'application.",
     googleLoading:
       "La connexion Google est encore en cours de chargement. Réessaie.",
+    completingGoogleSignIn: "Finalisation de la connexion Google...",
   },
   errors: {
     failed: "Échec de l'authentification",
