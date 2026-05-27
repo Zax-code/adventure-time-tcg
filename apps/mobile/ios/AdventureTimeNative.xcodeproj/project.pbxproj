@@ -12,6 +12,7 @@
 		A1B200000000000000000002 /* StepQuestWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B200000000000000000013 /* StepQuestWidgetBundle.swift */; };
 		A1B200000000000000000003 /* StepQuestWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B200000000000000000014 /* StepQuestWidget.swift */; };
 		A1B200000000000000000004 /* StepQuestWidgetExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = A1B200000000000000000012 /* StepQuestWidgetExtension.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		A1B200000000000000000005 /* WidgetSnapshotBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B200000000000000000015 /* WidgetSnapshotBridge.swift */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
 		455A0B487A783EDC7A0C9601 /* libPods-AdventureTimeNative.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 532976EFA2A870FB4BC380C0 /* libPods-AdventureTimeNative.a */; };
@@ -49,10 +50,11 @@
 		13B07F961A680F5B00A75B9A /* AdventureTimeNative.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AdventureTimeNative.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = AdventureTimeNative/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = AdventureTimeNative/Info.plist; sourceTree = "<group>"; };
-		A1B200000000000000000011 /* WidgetSnapshotBridge.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = WidgetSnapshotBridge.m; sourceTree = "<group>"; };
+		A1B200000000000000000011 /* WidgetSnapshotBridge.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AdventureTimeNative/WidgetSnapshotBridge.m; sourceTree = "<group>"; };
 		A1B200000000000000000012 /* StepQuestWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = StepQuestWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		A1B200000000000000000013 /* StepQuestWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StepQuestWidgetBundle.swift; sourceTree = "<group>"; };
 		A1B200000000000000000014 /* StepQuestWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StepQuestWidget.swift; sourceTree = "<group>"; };
+		A1B200000000000000000015 /* WidgetSnapshotBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdventureTimeNative/WidgetSnapshotBridge.swift; sourceTree = "<group>"; };
 		A1B200000000000000000016 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A1B200000000000000000017 /* StepQuestWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = StepQuestWidgetExtension.entitlements; sourceTree = "<group>"; };
 		532976EFA2A870FB4BC380C0 /* libPods-AdventureTimeNative.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-AdventureTimeNative.a"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -90,6 +92,7 @@
 			children = (
 				F11748412D0307B40044C1D9 /* AppDelegate.swift */,
 				A1B200000000000000000011 /* WidgetSnapshotBridge.m */,
+				A1B200000000000000000015 /* WidgetSnapshotBridge.swift */,
 				F11748442D0722820044C1D9 /* AdventureTimeNative-Bridging-Header.h */,
 				BB2F792B24A3F905000567C9 /* Supporting */,
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
@@ -434,6 +437,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A1B200000000000000000001 /* WidgetSnapshotBridge.m in Sources */,
+				A1B200000000000000000005 /* WidgetSnapshotBridge.swift in Sources */,
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
 				023F9DC157D8905FA5C0197D /* ExpoModulesProvider.swift in Sources */,
 			);
@@ -478,7 +482,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 0.1.0;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
@@ -509,7 +513,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 0.1.0;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
@@ -539,7 +543,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = love.leaetzak.adventuretime.stepquestwidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -563,7 +567,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = love.leaetzak.adventuretime.stepquestwidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
