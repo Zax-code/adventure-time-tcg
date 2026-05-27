@@ -3,7 +3,7 @@ import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
@@ -16,6 +16,7 @@ import {
 } from "../src/components/admin/card-editor-sheet";
 import { apiClient } from "../src/lib/api";
 import { useTranslation } from "../src/i18n";
+import { useSessionStore } from "../src/stores/session-store";
 import { useThemeStore } from "../src/stores/theme-store";
 import { THEME_COLORS, THEME_VARS } from "../src/theme/themes";
 
@@ -33,6 +34,8 @@ export default function AdminCardEditorScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
+  const sessionHydrated = useSessionStore((state) => state.hydrated);
+  const isAdmin = useSessionStore((state) => state.user?.isAdmin ?? false);
   const themeName = useThemeStore((state) => state.themeName);
   const tc = THEME_COLORS[themeName];
   const { t } = useTranslation();
@@ -43,6 +46,15 @@ export default function AdminCardEditorScreen() {
   const [assignmentDraft, setAssignmentDraft] = useState<AssignmentDraft>(EMPTY_ASSIGNMENT_DRAFT);
   const initializedCardIdRef = useRef<string | null>(null);
   const initializedCreateRef = useRef(false);
+  const closeEditor = () => router.dismissTo("/admin/cards" as any);
+
+  if (!sessionHydrated) {
+    return null;
+  }
+
+  if (!isAdmin) {
+    return <Redirect href="/(tabs)" />;
+  }
 
   const cardQuery = useQuery({
     queryKey: ["admin-card", cardId],
@@ -133,7 +145,7 @@ export default function AdminCardEditorScreen() {
         queryClient.invalidateQueries({ queryKey: ["admin-card", cardId] }),
         queryClient.invalidateQueries({ queryKey: ["admin-abilities"] }),
       ]);
-      router.back();
+      closeEditor();
     },
     onError: (error) => {
       Alert.alert(t("admin.cardEditor.saveFailed"), getErrorMessage(error, t("admin.cardEditor.saveFailedBody")));
@@ -152,7 +164,7 @@ export default function AdminCardEditorScreen() {
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["admin-cards"] });
-      router.back();
+      closeEditor();
     },
     onError: (error) => {
       Alert.alert(t("admin.cardEditor.updateFailed"), getErrorMessage(error, t("admin.cardEditor.updateFailedBody")));
@@ -214,7 +226,7 @@ export default function AdminCardEditorScreen() {
             <Text className="flex-1 text-center font-nunito-extrabold text-[24px] text-white">
               {isCreateMode ? t("admin.cardEditor.createTitle") : t("admin.cardEditor.editTitle")}
             </Text>
-            <Pressable className="w-14 items-end" onPress={() => router.back()}>
+            <Pressable className="w-14 items-end" onPress={closeEditor}>
               <Text className="font-nunito-bold text-sm text-white">{t("admin.common.close")}</Text>
             </Pressable>
           </View>
@@ -260,7 +272,7 @@ export default function AdminCardEditorScreen() {
               savePending={saveMutation.isPending}
               archivePending={archiveMutation.isPending}
               uploadPending={uploadMutation.isPending}
-              onClose={() => router.back()}
+              onClose={closeEditor}
               onSubmit={() => saveMutation.mutate()}
               onUploadImage={() => uploadMutation.mutate()}
               onToggleArchive={() => archiveMutation.mutate()}
