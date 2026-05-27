@@ -1,12 +1,13 @@
 import { ScrollView, Text, View } from "react-native";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ZodError } from "zod";
 
 import { AbilityEditorForm } from "../src/components/admin/ability-editor-sheet";
 import { useTranslation } from "../src/i18n";
 import { apiClient } from "../src/lib/api";
+import { useSessionStore } from "../src/stores/session-store";
 import { useThemeStore } from "../src/stores/theme-store";
 import { THEME_VARS } from "../src/theme/themes";
 
@@ -35,10 +36,21 @@ export default function AdminAbilityEditorScreen() {
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
   const { mode, abilityId } = useLocalSearchParams<{ mode?: string; abilityId?: string }>();
+  const sessionHydrated = useSessionStore((state) => state.hydrated);
+  const isAdmin = useSessionStore((state) => state.user?.isAdmin ?? false);
   const themeName = useThemeStore((state) => state.themeName);
   const { t } = useTranslation();
 
   const isCreateMode = mode !== "edit";
+  const closeEditor = () => router.dismissTo("/admin/abilities" as any);
+
+  if (!sessionHydrated) {
+    return null;
+  }
+
+  if (!isAdmin) {
+    return <Redirect href="/(tabs)" />;
+  }
 
   const abilitiesQuery = useQuery({
     queryKey: ["admin-abilities"],
@@ -49,7 +61,7 @@ export default function AdminAbilityEditorScreen() {
     mutationFn: (input: Record<string, unknown>) => apiClient.createAdminAbility(input),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["admin-abilities"] });
-      router.back();
+      closeEditor();
     },
   });
 
@@ -58,7 +70,7 @@ export default function AdminAbilityEditorScreen() {
       apiClient.updateAdminAbility(id, input),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["admin-abilities"] });
-      router.back();
+      closeEditor();
     },
   });
 
@@ -66,7 +78,7 @@ export default function AdminAbilityEditorScreen() {
     mutationFn: (id: string) => apiClient.deleteAdminAbility(id),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["admin-abilities"] });
-      router.back();
+      closeEditor();
     },
   });
 

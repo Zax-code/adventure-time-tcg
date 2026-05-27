@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -39,8 +39,18 @@ export default function AdminUserEditorScreen() {
   const { t } = useTranslation();
   const themeName = useThemeStore((state) => state.themeName);
   const sessionUser = useSessionStore((state) => state.user);
+  const sessionHydrated = useSessionStore((state) => state.hydrated);
   const { userId } = useLocalSearchParams<{ userId?: string }>();
   const [coinDelta, setCoinDelta] = useState("100");
+  const closeEditor = () => router.dismissTo("/admin/users" as any);
+
+  if (!sessionHydrated) {
+    return null;
+  }
+
+  if (!sessionUser?.isAdmin) {
+    return <Redirect href="/(tabs)" />;
+  }
 
   const detailQuery = useQuery({
     queryKey: ["admin-user", userId],
@@ -79,7 +89,7 @@ export default function AdminUserEditorScreen() {
     mutationFn: () => apiClient.deleteAdminUser(userId!),
     onSuccess: async () => {
       await invalidateAdminQueries();
-      router.back();
+      closeEditor();
     },
   });
 
@@ -172,7 +182,7 @@ export default function AdminUserEditorScreen() {
           </Text>
           <Pressable
             className="absolute right-4 top-1 rounded-full px-3 py-2"
-            onPress={() => router.back()}
+            onPress={closeEditor}
           >
             <Text className="font-nunito-bold text-sm text-primaryStrong">{t("admin.common.close")}</Text>
           </Pressable>

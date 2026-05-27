@@ -5,6 +5,7 @@ import { LinearGradient } from "expo-linear-gradient";
 
 import { getStrongAgainst, getWeakAgainst } from "@adventure-time/game-engine";
 import type { PvpAction } from "@adventure-time/api-client";
+import type { ComponentType } from "react";
 
 import { XIcon, ZapIcon, SwordsIcon, SparklesIcon } from "../../components/icons";
 import { useTranslation } from "../../i18n";
@@ -56,7 +57,8 @@ export function ActionModal({
         key: "basic" as const,
         label: t("pvp.action.basic"),
         subtitle: t("pvp.action.basicSubtitle"),
-        icon: <SwordsIcon size={18} color="#4B5563" />,
+        Icon: SwordsIcon as ComponentType<{ size?: number; color?: string }>,
+        iconColor: "#4B5563",
         tint: "bg-slate-100",
         border: "border-slate-200",
         text: "text-slate-700",
@@ -68,7 +70,8 @@ export function ActionModal({
         key: "skill" as const,
         label: skillDef?.name ?? t("pvp.action.skillFallback"),
         subtitle: skillDef?.description ?? "",
-        icon: <ZapIcon size={18} color="#1D4ED8" />,
+        Icon: ZapIcon as ComponentType<{ size?: number; color?: string }>,
+        iconColor: "#1D4ED8",
         tint: "bg-infoTint",
         border: "border-infoBorder",
         text: "text-infoDark",
@@ -80,7 +83,8 @@ export function ActionModal({
         key: "ultimate" as const,
         label: ultimateDef?.name ?? t("pvp.action.ultimateFallback"),
         subtitle: ultimateDef?.description ?? "",
-        icon: <SparklesIcon size={18} color="#BE185D" />,
+        Icon: SparklesIcon as ComponentType<{ size?: number; color?: string }>,
+        iconColor: "#BE185D",
         tint: "bg-accentTint",
         border: "border-accent",
         text: "text-accentText",
@@ -219,7 +223,9 @@ export function ActionModal({
               >
                 <View className="flex-row items-start justify-between gap-3">
                   <View className="flex-1 flex-row gap-3">
-                    <View className={`rounded-xl p-2 ${card.tint}`}>{card.icon}</View>
+                    <View className={`rounded-xl p-2 ${card.tint}`}>
+                      <card.Icon size={18} color={card.iconColor} />
+                    </View>
                     <View className="flex-1">
                       <Text className={`font-nunito-bold text-base ${card.text}`}>{card.label}</Text>
                       <Text className="mt-1 font-nunito text-xs leading-4 text-fgMuted">{card.subtitle}</Text>
