@@ -1,4 +1,11 @@
 import React, { useEffect, useState } from "react";
+import {
+  GoogleSignin,
+  isCancelledResponse,
+  isErrorWithCode,
+  isSuccessResponse,
+  statusCodes,
+} from "@react-native-google-signin/google-signin";
 import * as Google from "expo-auth-session/providers/google";
 import { SessionUrlProvider } from "expo-auth-session/build/SessionUrlProvider";
 import Constants, { ExecutionEnvironment } from "expo-constants";
@@ -32,10 +39,10 @@ const expoProxyRedirectUri = sessionUrlProvider.getRedirectUrl({
 const expoProxyReturnUrl = sessionUrlProvider.getDefaultReturnUrl();
 const googleWebClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
 const googleIosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
-const googleAndroidClientId = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID;
 
 type AuthMode = "login" | "register";
 type AuthStage = "credentials" | "verify";
+let nativeGoogleConfigured = false;
 
 function hasGoogleAuthConfig() {
   if (Constants.executionEnvironment === ExecutionEnvironment.StoreClient) {
@@ -47,13 +54,85 @@ function hasGoogleAuthConfig() {
   }
 
   if (Platform.OS === "android") {
-    return Boolean(googleAndroidClientId || googleWebClientId);
+    return Boolean(googleWebClientId);
   }
 
   return Boolean(googleWebClientId);
 }
 
-function GoogleAuthSection({
+function configureNativeGoogleSignIn() {
+  if (nativeGoogleConfigured || Platform.OS !== "android" || !googleWebClientId) {
+    return;
+  }
+
+  GoogleSignin.configure({
+    webClientId: googleWebClientId,
+    iosClientId: googleIosClientId,
+    offlineAccess: false,
+  });
+  nativeGoogleConfigured = true;
+}
+
+function GoogleSignInButton({
+  disabled,
+  onPress,
+  tc,
+  t,
+}: {
+  disabled: boolean;
+  onPress: () => void;
+  tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
+  t: (key: string) => string;
+}) {
+  return (
+    <View className="gap-3">
+      <Text className="text-center font-nunito text-xs uppercase tracking-widest text-primaryText">
+        {t("auth.actions.orContinueWithGoogle")}
+      </Text>
+      <TouchableOpacity
+        onPress={onPress}
+        disabled={disabled}
+        activeOpacity={0.85}
+      >
+        <LinearGradient
+          colors={[tc.primary, tc.primaryDark]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 10,
+            borderRadius: 999,
+            paddingVertical: 16,
+            paddingHorizontal: 24,
+          }}
+        >
+          <Text
+            style={{
+              fontFamily: "Nunito-Bold",
+              fontSize: 16,
+              color: "white",
+            }}
+          >
+            G
+          </Text>
+          <Text
+            style={{
+              fontFamily: "Nunito-Bold",
+              fontSize: 16,
+              color: "white",
+            }}
+          >
+            {t("auth.actions.enterCandyKingdom")}
+          </Text>
+        </LinearGradient>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+function BrowserGoogleAuthSection({
   loading,
   preferredLanguage,
   setError,
@@ -89,10 +168,7 @@ function GoogleAuthSection({
         }
       : {
           iosClientId: googleIosClientId,
-          androidClientId: googleAndroidClientId,
           webClientId: googleWebClientId,
-          // Keep Android on the app's registered scheme instead of the package-name default.
-          redirectUri: Platform.OS === "android" ? "adventure-time:/oauthredirect" : undefined,
           scopes: ["openid", "profile", "email"],
           selectAccount: true,
         },
@@ -215,50 +291,110 @@ function GoogleAuthSection({
   }
 
   return (
-    <View className="gap-3">
-      <Text className="text-center font-nunito text-xs uppercase tracking-widest text-primaryText">
-        {t("auth.actions.orContinueWithGoogle")}
-      </Text>
-      <TouchableOpacity
-        onPress={() => void submitGoogle()}
-        disabled={!request || loading}
-        activeOpacity={0.85}
-      >
-        <LinearGradient
-          colors={[tc.primary, tc.primaryDark]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 10,
-            borderRadius: 999,
-            paddingVertical: 16,
-            paddingHorizontal: 24,
-          }}
-        >
-          <Text
-            style={{
-              fontFamily: "Nunito-Bold",
-              fontSize: 16,
-              color: "white",
-            }}
-          >
-            G
-          </Text>
-          <Text
-            style={{
-              fontFamily: "Nunito-Bold",
-              fontSize: 16,
-              color: "white",
-            }}
-          >
-            {t("auth.actions.enterCandyKingdom")}
-          </Text>
-        </LinearGradient>
-      </TouchableOpacity>
-    </View>
+    <GoogleSignInButton
+      disabled={!request || loading}
+      onPress={() => void submitGoogle()}
+      tc={tc}
+      t={t}
+    />
+  );
+}
+
+function NativeGoogleAuthSection({
+  loading,
+  preferredLanguage,
+  setError,
+  setGoogleLoading,
+  setSession,
+  t,
+  tc,
+}: {
+  loading: boolean;
+  preferredLanguage: "en" | "fr";
+  setError: (value: string | null) => void;
+  setGoogleLoading: (value: boolean) => void;
+  setSession: (params: {
+    user: import("@adventure-time/api-client").AuthUser;
+    accessToken: string;
+    refreshToken: string;
+  }) => Promise<void>;
+  t: (key: string) => string;
+  tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
+}) {
+  const router = useRouter();
+
+  async function submitGoogle() {
+    if (!googleWebClientId) {
+      setError(t("auth.status.googleNotConfigured"));
+      return;
+    }
+
+    configureNativeGoogleSignIn();
+    setGoogleLoading(true);
+    setError(null);
+
+    try {
+      await GoogleSignin.hasPlayServices({
+        showPlayServicesUpdateDialog: true,
+      });
+
+      const response = await GoogleSignin.signIn();
+      if (isCancelledResponse(response)) {
+        return;
+      }
+
+      if (!isSuccessResponse(response)) {
+        throw new Error(t("auth.errors.failed"));
+      }
+
+      const tokens = await GoogleSignin.getTokens();
+      const idToken = response.data.idToken ?? tokens.idToken;
+      const accessToken = tokens.accessToken;
+
+      if (!idToken && !accessToken) {
+        throw new Error("Google did not return a usable token.");
+      }
+
+      const authResult = await apiClient.googleAuth({
+        idToken,
+        accessToken,
+        preferredLanguage,
+      });
+
+      await setSession({
+        user: authResult.user,
+        accessToken: authResult.tokens.accessToken,
+        refreshToken: authResult.tokens.refreshToken,
+      });
+      router.replace("/(tabs)");
+    } catch (submitError) {
+      if (
+        isErrorWithCode(submitError) &&
+        submitError.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE
+      ) {
+        setError(submitError.message);
+      } else if (
+        isErrorWithCode(submitError) &&
+        submitError.code === statusCodes.IN_PROGRESS
+      ) {
+        setError(submitError.message);
+      } else {
+        setError(
+          submitError instanceof Error ? submitError.message : t("auth.errors.failed"),
+        );
+      }
+    } finally {
+      setGoogleLoading(false);
+    }
+  }
+
+  return (
+    <GoogleSignInButton
+      disabled={loading}
+      onPress={() => void submitGoogle()}
+      tc={tc}
+      t={t}
+    />
   );
 }
 
@@ -573,17 +709,32 @@ export function AuthForm() {
         ) : null}
       </View>
 
-      {stage === "verify" || !googleAuthConfigured ? null : (
-        <GoogleAuthSection
-          loading={loading || googleLoading}
-          preferredLanguage={preferredLanguage}
-          setError={setError}
-          setGoogleLoading={setGoogleLoading}
-          setSession={setSession}
-          t={t}
-          tc={tc}
-        />
-      )}
+      {stage === "verify" || !googleAuthConfigured
+        ? null
+        : Platform.OS === "android" &&
+            Constants.executionEnvironment !== ExecutionEnvironment.StoreClient
+          ? (
+            <NativeGoogleAuthSection
+              loading={loading || googleLoading}
+              preferredLanguage={preferredLanguage}
+              setError={setError}
+              setGoogleLoading={setGoogleLoading}
+              setSession={setSession}
+              t={t}
+              tc={tc}
+            />
+          )
+          : (
+            <BrowserGoogleAuthSection
+              loading={loading || googleLoading}
+              preferredLanguage={preferredLanguage}
+              setError={setError}
+              setGoogleLoading={setGoogleLoading}
+              setSession={setSession}
+              t={t}
+              tc={tc}
+            />
+          )}
 
       <Text className="text-center font-nunito text-sm text-primary">
         {t("auth.labels.madeWithLoveBy")}
