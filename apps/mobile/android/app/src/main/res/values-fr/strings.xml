@@ -1,0 +1,5 @@
+<resources>
+  <string name="step_quest_widget_name">Quete de pas</string>
+  <string name="step_quest_widget_fallback_title">Quete de pas</string>
+  <string name="step_quest_widget_fallback_body">Ouvre l\'application pour charger la progression du jour.</string>
+</resources>

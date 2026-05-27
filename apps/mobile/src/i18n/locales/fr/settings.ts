@@ -15,7 +15,18 @@ const settings = {
   healthSteps: "Pas santé",
   latestSynced: "Dernière synchronisation : {count} pas",
   source: "Source : {source}",
-  syncSample: "Synchroniser un exemple de pas de l'appareil",
+  deviceToday: "Appareil aujourd'hui : {count} pas",
+  healthAccess: "Accès santé : {status}",
+  goalNotifications: "Notifications d'objectif : {status}",
+  enableStepSync: "Activer la synchronisation des pas",
+  openHealthConnect: "Ouvrir Health Connect",
+  syncNow: "Synchroniser maintenant",
+  syncing: "Synchronisation...",
+  stepSyncHelp:
+    "Les pas au premier plan se mettent a jour tout de suite via le podometre. La synchronisation en arriere-plan garde Apple Health ou Health Connect a jour quand le systeme le permet.",
+  stepGoalReachedTitle: "Objectif de pas atteint",
+  stepGoalReachedBody:
+    "Tu as atteint 10 000 pas. Ta quete du jour est prete a etre reclamee.",
   theme: "Thème",
   themeNames: {
     candy: "Bonbon",
@@ -28,6 +39,12 @@ const settings = {
   stepSources: {
     device_health: "Santé de l'appareil",
     fitbit: "Fitbit",
+  },
+  permissionStates: {
+    unknown: "Verification",
+    not_requested: "Non demande",
+    granted: "Autorise",
+    denied: "Refuse",
   },
 };
 

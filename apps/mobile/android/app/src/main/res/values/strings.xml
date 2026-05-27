@@ -2,4 +2,7 @@
   <string name="app_name">Adventure Time</string>
   <string name="expo_splash_screen_resize_mode" translatable="false">contain</string>
   <string name="expo_splash_screen_status_bar_translucent" translatable="false">false</string>
+  <string name="step_quest_widget_name">Step Quest</string>
+  <string name="step_quest_widget_fallback_title">Step quest</string>
+  <string name="step_quest_widget_fallback_body">Open the app to load today\'s progress.</string>
 </resources>

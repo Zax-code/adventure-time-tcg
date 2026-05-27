@@ -19,7 +19,7 @@ defmodule AdventureTimeApi.Health do
   def get_latest_step_snapshot(user_id) do
     StepSnapshot
     |> where([s], s.user_id == ^user_id)
-    |> order_by([s], desc: s.inserted_at)
+    |> order_by([s], desc: s.recorded_for, desc: s.updated_at, desc: s.inserted_at)
     |> limit(1)
     |> Repo.one()
   end

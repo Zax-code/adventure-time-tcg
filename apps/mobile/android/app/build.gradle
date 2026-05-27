@@ -90,7 +90,7 @@ android {
     namespace 'love.leaetzak.adventuretime'
     defaultConfig {
         applicationId 'love.leaetzak.adventuretime'
-        minSdkVersion rootProject.ext.minSdkVersion
+        minSdkVersion 26
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "0.1.0"
