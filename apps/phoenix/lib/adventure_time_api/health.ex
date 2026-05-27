@@ -7,6 +7,14 @@ defmodule AdventureTimeApi.Health do
 
   alias AdventureTimeApi.Health.StepSnapshot
   alias AdventureTimeApi.Repo
+  alias Ecto.Adapters.SQL
+
+  def ready? do
+    case SQL.query(Repo, "SELECT 1", []) do
+      {:ok, _result} -> :ok
+      {:error, reason} -> {:error, reason}
+    end
+  end
 
   def get_latest_step_snapshot(user_id) do
     StepSnapshot

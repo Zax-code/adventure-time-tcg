@@ -1,0 +1,8 @@
+[Unit]
+Description=Adventure Time TCG container network
+
+[Network]
+NetworkName=adventure-time-tcg
+
+[Install]
+WantedBy=multi-user.target

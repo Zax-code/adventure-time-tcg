@@ -33,13 +33,14 @@ Runs automatically on pushes to `main` when backend/deploy-relevant files change
 What it does:
 
 - optionally connects the GitHub runner to Tailscale before SSH when tailnet credentials are configured
+- builds and pushes the Phoenix release image to GHCR
 - uploads the repo-owned deploy script to the production host
 - deploys an exact Git SHA or ref
 - refuses to deploy from a dirty host checkout
-- runs `mix deps.get --only prod`
-- runs `mix compile`
-- runs `mix ecto.migrate` unless manually skipped
-- restarts the configured systemd service
+- installs the checked-in Quadlet units into `/etc/containers/systemd`
+- renders a container-friendly env file from the host secrets file
+- runs `AdventureTimeApi.Release.migrate` in a one-off container unless manually skipped
+- restarts the Quadlet-generated systemd service
 - verifies `/ready` before reporting success
 
 The production logic lives in `infra/scripts/deploy-phoenix.sh`, so deploy behavior is versioned with the application code.
@@ -71,8 +72,12 @@ Recommended secrets:
 
 - `PRODUCTION_SSH_PORT`: defaults to `22`
 - `PRODUCTION_REPO_PATH`: defaults to `/home/zax/adventure-time-tcg`
+- `PRODUCTION_ENV_FILE`: optional source env file for Phoenix secrets; if omitted the deploy script prefers `/home/zax/adventure-time-tcg-secrets/api.env` and then `apps/phoenix/.env`
+- `PRODUCTION_CONTAINER_ENV_FILE`: defaults to `/home/zax/adventure-time-tcg-secrets/api.container.env`
+- `PRODUCTION_QUADLET_DIR`: defaults to `/etc/containers/systemd`
+- `PRODUCTION_REGISTRY_AUTH_FILE`: optional host-side Podman auth file path for private GHCR pulls
 - `PRODUCTION_SYSTEMD_SERVICE`: defaults to `adventure-time-tcg-api.service`
-- `PRODUCTION_HEALTHCHECK_URL`: optional override; by default deploy checks `http://127.0.0.1:$PHX_PORT/ready`
+- `PRODUCTION_HEALTHCHECK_URL`: optional override; by default deploy checks `http://127.0.0.1:4200/ready`
 
 Optional Tailscale secrets for tailnet-only production hosts:
 
@@ -101,15 +106,19 @@ Recommended GitHub settings:
 The deploy workflow assumes:
 
 - the repo is already cloned on the VPS at `/home/zax/adventure-time-tcg` unless overridden
-- `apps/phoenix/.env` exists on the host
-- the active service reads from that checkout
+- the host can install Quadlet files into `/etc/containers/systemd`
+- the Phoenix secrets file exists either at `/home/zax/adventure-time-tcg-secrets/api.env` or `apps/phoenix/.env`
+- Podman is installed on the VPS
 - passwordless `sudo` is available for `systemctl restart`
 - the Phoenix service name is `adventure-time-tcg-api.service` unless overridden
 - if the host is tailnet-only, the `production` GitHub environment includes working Tailscale credentials
 
-Current checked-in service template:
+Current checked-in Quadlet templates:
 
-- `infra/systemd-adventure-time-tcg-api.service`
+- `infra/containers/quadlet/adventure-time-tcg.network`
+- `infra/containers/quadlet/adventure-time-tcg-postgres.container`
+- `infra/containers/quadlet/adventure-time-tcg-minio.container`
+- `infra/containers/quadlet/adventure-time-tcg-api.container`
 
 Current Caddy reverse proxy template:
 
@@ -119,6 +128,6 @@ Current Caddy reverse proxy template:
 
 1. Add branch protection for `main` and require `CI`.
 2. Create the `production` GitHub environment and add the backend deploy secrets.
-3. Confirm the VPS repo path, systemd service name, and `/ready` health endpoint match reality.
+3. Confirm the VPS repo path, Quadlet directory, and secrets file paths match reality.
 4. Test `Deploy Phoenix` with `workflow_dispatch` against `main`.
 5. Keep mobile release credentials and EAS access on this Mac instead of GitHub.

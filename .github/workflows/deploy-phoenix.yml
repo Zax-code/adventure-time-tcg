@@ -22,22 +22,70 @@ on:
 
 permissions:
   contents: read
+  packages: write
 
 concurrency:
   group: production-phoenix
   cancel-in-progress: false
 
 jobs:
+  build-image:
+    name: Build and Publish Phoenix Image
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      IMAGE_NAME: ghcr.io/zax-code/adventure-time-tcg-api
+    outputs:
+      image_ref: ${{ steps.image.outputs.image_ref }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Phoenix image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: ./apps/phoenix
+          file: ./apps/phoenix/Dockerfile
+          platforms: linux/amd64
+          push: true
+          provenance: false
+          tags: |
+            ${{ env.IMAGE_NAME }}:latest
+            ${{ env.IMAGE_NAME }}:sha-${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Capture immutable image reference
+        id: image
+        run: echo "image_ref=${IMAGE_NAME}@${{ steps.build.outputs.digest }}" >> "$GITHUB_OUTPUT"
+
   deploy:
     name: Deploy to Production
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    needs: build-image
     environment:
       name: production
     env:
       PRODUCTION_HEALTHCHECK_URL: ${{ secrets.PRODUCTION_HEALTHCHECK_URL || '' }}
       PRODUCTION_HOST: ${{ secrets.PRODUCTION_HOST }}
       PRODUCTION_REPO_PATH: ${{ secrets.PRODUCTION_REPO_PATH || '/home/zax/adventure-time-tcg' }}
+      PRODUCTION_CONTAINER_ENV_FILE: ${{ secrets.PRODUCTION_CONTAINER_ENV_FILE || '/home/zax/adventure-time-tcg-secrets/api.container.env' }}
+      PRODUCTION_ENV_FILE: ${{ secrets.PRODUCTION_ENV_FILE || '' }}
+      PRODUCTION_QUADLET_DIR: ${{ secrets.PRODUCTION_QUADLET_DIR || '/etc/containers/systemd' }}
+      PRODUCTION_REGISTRY_AUTH_FILE: ${{ secrets.PRODUCTION_REGISTRY_AUTH_FILE || '' }}
       PRODUCTION_SSH_PORT: ${{ secrets.PRODUCTION_SSH_PORT || '22' }}
       PRODUCTION_SSH_USER: ${{ secrets.PRODUCTION_SSH_USER }}
       PRODUCTION_SYSTEMD_SERVICE: ${{ secrets.PRODUCTION_SYSTEMD_SERVICE || 'adventure-time-tcg-api.service' }}
@@ -118,17 +166,29 @@ jobs:
       - name: Run production deploy
         env:
           DEPLOY_REF: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref || github.sha }}
+          IMAGE_REF: ${{ needs.build-image.outputs.image_ref }}
           SKIP_MIGRATE: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.skip_migrate || 'false' }}
         run: |
           remote_args=(
             /tmp/deploy-phoenix.sh
             --repo-root "$PRODUCTION_REPO_PATH"
             --ref "$DEPLOY_REF"
+            --image-ref "$IMAGE_REF"
             --service "$PRODUCTION_SYSTEMD_SERVICE"
+            --container-env-file "$PRODUCTION_CONTAINER_ENV_FILE"
+            --quadlet-dir "$PRODUCTION_QUADLET_DIR"
           )
 
           if [ -n "$PRODUCTION_HEALTHCHECK_URL" ]; then
             remote_args+=(--health-url "$PRODUCTION_HEALTHCHECK_URL")
+          fi
+
+          if [ -n "$PRODUCTION_ENV_FILE" ]; then
+            remote_args+=(--env-file "$PRODUCTION_ENV_FILE")
+          fi
+
+          if [ -n "$PRODUCTION_REGISTRY_AUTH_FILE" ]; then
+            remote_args+=(--registry-auth-file "$PRODUCTION_REGISTRY_AUTH_FILE")
           fi
 
           if [ "$SKIP_MIGRATE" = "true" ]; then

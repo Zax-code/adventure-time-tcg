@@ -13,7 +13,7 @@ Current canonical names and paths:
 - GitHub repo: `Zax-code/adventure-time-tcg`
 - local checkout: `/home/zax/adventure-time-tcg`
 - host data directory: `/srv/adventure-time-tcg`
-- checked-in Phoenix unit template: `infra/systemd-adventure-time-tcg-api.service`
+- checked-in Quadlet directory: `infra/containers/quadlet`
 
 ## Current Status
 
@@ -42,7 +42,7 @@ Infrastructure helpers:
 
 - `infra/caddy` - Caddy site snippets
 - `infra/scripts` - host and local helper scripts
-- `infra/systemd-adventure-time-tcg-api.service` - checked-in Phoenix service template
+- `infra/containers/quadlet` - checked-in Podman Quadlet units for API, PostgreSQL, MinIO, and the shared network
 
 ## Primary Commands
 
@@ -66,6 +66,8 @@ npm run typecheck
 What they do:
 
 - `npm run dev:api` - start Phoenix
+- `npm run dev:api:container` - start the Phoenix API inside the local compose stack
+- `npm run dev:stack` - start Phoenix, PostgreSQL, and MinIO together in containers
 - `npm run dev:mobile` - start the Expo dev server for installed development builds
 - `npm run dev:mobile:ios` - boot the iOS simulator if needed and install/run the local iOS development build
 - `npm run dev:mobile:android` - boot or create an Android emulator if needed and install/run the local Android development build
@@ -140,6 +142,13 @@ source .env
 set +a
 ```
 
+Containerized local dev from the repo root:
+
+```bash
+docker compose up
+npm run dev:api:container
+```
+
 ## Production Data Migration
 
 Phoenix now owns the PWA import flow.
@@ -187,8 +196,8 @@ Primary runbook:
 
 Key workflows:
 
-- `CI` - pull request and `main` validation for Phoenix, mobile, and shared code
-- `Deploy Phoenix` - production backend deployment to the VPS with migrations and `/ready` health checks
+- `CI` - pull request and `main` validation for Phoenix, mobile, shared code, and the Phoenix release image build
+- `Deploy Phoenix` - production backend deployment to the VPS by publishing a release image, running release migrations, and restarting the API container
 
 Mobile builds and store releases are intentionally not run on GitHub. Build and release mobile from this Mac with EAS.
 
@@ -293,7 +302,7 @@ Notes:
 
 - Caddy should proxy `app.leaetzak.love` to Phoenix on `127.0.0.1:4200`.
 - The checked-in Caddy snippet lives at `infra/caddy/app.leaetzak.love.Caddyfile`.
-- The checked-in Phoenix systemd unit template lives at `infra/systemd-adventure-time-tcg-api.service`.
+- The checked-in Podman Quadlet templates live in `infra/containers/quadlet`.
 - `apps/api` remains on disk as archive-only reference material and is no longer part of active workspace tooling.
 
 ## Development Guidance

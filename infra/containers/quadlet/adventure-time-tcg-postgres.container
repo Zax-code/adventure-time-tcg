@@ -1,18 +1,27 @@
 [Unit]
 Description=Adventure Time TCG Postgres
 After=network-online.target
+Wants=adventure-time-tcg-network.service
 
 [Container]
 ContainerName=adventure-time-tcg-postgres
 Image=docker.io/library/postgres:16-alpine
+Network=adventure-time-tcg.network
+NetworkAlias=postgres
 PublishPort=127.0.0.1:5434:5432
 Volume=/srv/adventure-time-tcg/postgres:/var/lib/postgresql/data:Z
 Environment=POSTGRES_DB=adventure_time_tcg
 Environment=POSTGRES_USER=postgres
 Environment=POSTGRES_PASSWORD=postgres
+HealthCmd=pg_isready -U postgres
+HealthInterval=30s
+HealthRetries=5
+HealthStartPeriod=15s
+HealthOnFailure=kill
 
 [Service]
 Restart=always
+TimeoutStartSec=900
 
 [Install]
-WantedBy=default.target
+WantedBy=multi-user.target
