@@ -165,6 +165,22 @@ pull_image() {
   sudo podman "${pull_args[@]}"
 }
 
+wait_for_image_ref() {
+  for attempt in $(seq 1 10); do
+    if sudo podman image inspect "$IMAGE_REF" >/dev/null 2>&1; then
+      echo "Image reference is available locally: $IMAGE_REF"
+      return 0
+    fi
+
+    echo "Image reference $IMAGE_REF is not yet visible locally; retrying ($attempt/10)..." >&2
+    sleep 1
+  done
+
+  echo "Pulled image never became addressable locally: $IMAGE_REF" >&2
+  sudo podman images --digests >&2 || true
+  exit 1
+}
+
 wait_for_postgres_tcp() {
   for attempt in $(seq 1 20); do
     if sudo podman exec adventure-time-tcg-postgres \
@@ -348,6 +364,7 @@ wait_for_postgres_tcp
 
 echo "Pulling API image $IMAGE_REF..."
 pull_image
+wait_for_image_ref
 
 if [ "$SKIP_MIGRATE" != "true" ]; then
   echo "Running database migrations..."
@@ -360,6 +377,7 @@ cut_over_legacy_service
 
 echo "Reloading systemd after API cutover..."
 sudo systemctl daemon-reload
+sudo systemctl reset-failed "$SERVICE_NAME" || true
 sudo systemctl restart "$SERVICE_NAME" || sudo systemctl start "$SERVICE_NAME"
 wait_for_systemd "$SERVICE_NAME"
 
