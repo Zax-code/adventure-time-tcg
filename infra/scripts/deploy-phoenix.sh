@@ -3,15 +3,20 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: deploy-phoenix.sh --ref <git-ref-or-sha> [options]
+Usage: deploy-phoenix.sh --ref <git-ref-or-sha> --image-ref <image-ref> [options]
 
 Options:
-  --repo-root <path>   Repo checkout on the production host
-  --app-dir <path>     Phoenix app directory relative to repo root
-  --service <name>     systemd service name
-  --health-url <url>   Ready-check URL; defaults to localhost using PHX_PORT
-  --skip-migrate       Skip mix ecto.migrate
-  --help               Show this help
+  --repo-root <path>            Repo checkout on the production host
+  --app-dir <path>              Phoenix app directory relative to repo root
+  --service <name>              systemd service name for the API container
+  --env-file <path>             Source env file for Phoenix secrets
+  --container-env-file <path>   Rendered env file consumed by the API container
+  --quadlet-dir <path>          Quadlet installation directory
+  --health-url <url>            Ready-check URL; defaults to localhost using port 4200
+  --registry-auth-file <path>   Optional Podman auth file for private registries
+  --registry-username <value>   Optional registry username for an ephemeral login
+  --skip-migrate                Skip release migrations
+  --help                        Show this help
 EOF
 }
 
@@ -60,18 +65,169 @@ wait_for_healthcheck() {
   return 1
 }
 
+resolve_env_file() {
+  local repo_root="$1"
+
+  if [ -n "$ENV_FILE" ]; then
+    printf '%s\n' "$ENV_FILE"
+    return 0
+  fi
+
+  if [ -f "/home/zax/adventure-time-tcg-secrets/api.env" ]; then
+    printf '%s\n' "/home/zax/adventure-time-tcg-secrets/api.env"
+    return 0
+  fi
+
+  if [ -f "$repo_root/$APP_DIR/.env" ]; then
+    printf '%s\n' "$repo_root/$APP_DIR/.env"
+    return 0
+  fi
+
+  echo "Unable to find a Phoenix env file. Provide --env-file explicitly." >&2
+  exit 1
+}
+
+render_container_env() {
+  local source_env="$1"
+  local target_env="$2"
+  local temp_env
+
+  temp_env="$(mktemp)"
+
+  sed -E \
+    -e 's#^(DATABASE_URL=.*@)(127\.0\.0\.1|localhost|host\.containers\.internal):5434/#\1127.0.0.1:5432/#' \
+    -e 's#^MINIO_ENDPOINT=(127\.0\.0\.1|localhost|host\.containers\.internal)$#MINIO_ENDPOINT=127.0.0.1#' \
+    -e 's#^MINIO_PORT=9100$#MINIO_PORT=9000#' \
+    "$source_env" > "$temp_env"
+
+  sudo install -d -m 0755 "$(dirname "$target_env")"
+  sudo install -m 0600 "$temp_env" "$target_env"
+  rm -f "$temp_env"
+}
+
+install_quadlets() {
+  local repo_root="$1"
+  local quadlet_source_dir="$repo_root/infra/containers/quadlet"
+  local rendered_api
+
+  rendered_api="$(mktemp)"
+  sed "s#^Image=.*#Image=$IMAGE_REF#" \
+    "$quadlet_source_dir/adventure-time-tcg-api.container" > "$rendered_api"
+
+  sudo install -d -m 0755 "$QUADLET_DIR"
+  sudo rm -f "$QUADLET_DIR/adventure-time-tcg.network"
+  sudo install -m 0644 "$quadlet_source_dir/adventure-time-tcg.pod" \
+    "$QUADLET_DIR/adventure-time-tcg.pod"
+  sudo install -m 0644 "$quadlet_source_dir/adventure-time-tcg-postgres.container" \
+    "$QUADLET_DIR/adventure-time-tcg-postgres.container"
+  sudo install -m 0644 "$quadlet_source_dir/adventure-time-tcg-minio.container" \
+    "$QUADLET_DIR/adventure-time-tcg-minio.container"
+  sudo install -m 0644 "$rendered_api" \
+    "$QUADLET_DIR/adventure-time-tcg-api.container"
+  rm -f "$rendered_api"
+}
+
+retire_legacy_network_unit() {
+  sudo systemctl stop adventure-time-tcg-network.service >/dev/null 2>&1 || true
+  sudo systemctl disable adventure-time-tcg-network.service >/dev/null 2>&1 || true
+}
+
+pull_image() {
+  local authdir=""
+  local authfile=""
+  local pull_args=(pull "$IMAGE_REF")
+
+  cleanup_authfile() {
+    if [ -n "$authdir" ]; then
+      rm -rf "$authdir"
+    fi
+  }
+
+  trap cleanup_authfile RETURN
+
+  if [ -n "$REGISTRY_AUTH_FILE" ]; then
+    pull_args=(pull --authfile "$REGISTRY_AUTH_FILE" "$IMAGE_REF")
+  fi
+
+  if [ -z "$REGISTRY_AUTH_FILE" ] && [ -n "$REGISTRY_USERNAME" ] && [ -n "$REGISTRY_PASSWORD" ]; then
+    authdir="$(mktemp -d)"
+    authfile="$authdir/auth.json"
+
+    printf '%s' "$REGISTRY_PASSWORD" | sudo podman login \
+      --authfile "$authfile" \
+      --username "$REGISTRY_USERNAME" \
+      --password-stdin \
+      ghcr.io
+
+    pull_args=(pull --authfile "$authfile" "$IMAGE_REF")
+  fi
+
+  sudo podman "${pull_args[@]}"
+}
+
+wait_for_postgres_tcp() {
+  for attempt in $(seq 1 20); do
+    if sudo podman exec adventure-time-tcg-postgres \
+      sh -lc 'pg_isready -U postgres -h 127.0.0.1 -p 5432 >/dev/null'; then
+      echo "Postgres is accepting TCP connections."
+      return 0
+    fi
+
+    echo "Postgres TCP readiness attempt $attempt/20 failed; retrying..." >&2
+    sleep 3
+  done
+
+  echo "Postgres never became reachable over TCP." >&2
+  sudo journalctl -u adventure-time-tcg-postgres.service -n 200 --no-pager >&2 || true
+  exit 1
+}
+
+run_migrations() {
+  sudo podman rm -f adventure-time-tcg-api-migrate >/dev/null 2>&1 || true
+
+  sudo podman run --rm \
+    --name adventure-time-tcg-api-migrate \
+    --pull=never \
+    --pod adventure-time-tcg \
+    --env-file "$CONTAINER_ENV_FILE" \
+    "$IMAGE_REF" \
+    bin/adventure_time_api eval "AdventureTimeApi.Release.migrate"
+}
+
+cut_over_legacy_service() {
+  local legacy_unit="/etc/systemd/system/$SERVICE_NAME"
+
+  if [ -f "$legacy_unit" ]; then
+    echo "Removing legacy systemd unit at $legacy_unit."
+    sudo systemctl stop "$SERVICE_NAME" || true
+    sudo systemctl disable "$SERVICE_NAME" || true
+    sudo rm -f "$legacy_unit"
+  fi
+}
+
 REF=""
+IMAGE_REF=""
 REPO_ROOT="/home/zax/adventure-time-tcg"
 APP_DIR="apps/phoenix"
 SERVICE_NAME="adventure-time-tcg-api.service"
-HEALTH_URL=""
+ENV_FILE=""
+CONTAINER_ENV_FILE="/home/zax/adventure-time-tcg-secrets/api.container.env"
+QUADLET_DIR="/etc/containers/systemd"
+HEALTH_URL="http://127.0.0.1:4200/ready"
+REGISTRY_AUTH_FILE=""
+REGISTRY_USERNAME=""
 SKIP_MIGRATE="false"
 RESOLVED_REF=""
+REGISTRY_PASSWORD="${REGISTRY_PASSWORD:-}"
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --ref)
       REF="${2:-}"
+      shift 2
+      ;;
+    --image-ref)
+      IMAGE_REF="${2:-}"
       shift 2
       ;;
     --repo-root)
@@ -86,8 +242,28 @@ while [ "$#" -gt 0 ]; do
       SERVICE_NAME="${2:-}"
       shift 2
       ;;
+    --env-file)
+      ENV_FILE="${2:-}"
+      shift 2
+      ;;
+    --container-env-file)
+      CONTAINER_ENV_FILE="${2:-}"
+      shift 2
+      ;;
+    --quadlet-dir)
+      QUADLET_DIR="${2:-}"
+      shift 2
+      ;;
     --health-url)
       HEALTH_URL="${2:-}"
+      shift 2
+      ;;
+    --registry-auth-file)
+      REGISTRY_AUTH_FILE="${2:-}"
+      shift 2
+      ;;
+    --registry-username)
+      REGISTRY_USERNAME="${2:-}"
       shift 2
       ;;
     --skip-migrate)
@@ -112,9 +288,15 @@ if [ -z "$REF" ]; then
   exit 1
 fi
 
+if [ -z "$IMAGE_REF" ]; then
+  echo "Missing required --image-ref argument." >&2
+  usage >&2
+  exit 1
+fi
+
 require_command git
-require_command mix
 require_command curl
+require_command podman
 require_command sudo
 
 cd "$REPO_ROOT"
@@ -138,40 +320,47 @@ CURRENT_SHA="$(git rev-parse HEAD)"
 echo "Deploying Phoenix from $CURRENT_SHA to $TARGET_SHA using $RESOLVED_REF."
 git checkout -B main "$TARGET_SHA"
 
-cd "$REPO_ROOT/$APP_DIR"
+ENV_FILE="$(resolve_env_file "$REPO_ROOT")"
 
-if [ ! -f ".env" ]; then
-  echo "Missing Phoenix environment file at $REPO_ROOT/$APP_DIR/.env" >&2
+if [ -n "$REGISTRY_AUTH_FILE" ] && [ ! -f "$REGISTRY_AUTH_FILE" ]; then
+  echo "Missing registry auth file: $REGISTRY_AUTH_FILE" >&2
   exit 1
 fi
 
-set -a
-source ./.env
-set +a
+echo "Rendering container env file from $ENV_FILE..."
+render_container_env "$ENV_FILE" "$CONTAINER_ENV_FILE"
 
-export MIX_ENV=prod
-export PHX_SERVER=true
-export PORT="${PHX_PORT:-4200}"
+echo "Installing Quadlet units..."
+install_quadlets "$REPO_ROOT"
+retire_legacy_network_unit
 
-if [ -z "$HEALTH_URL" ]; then
-  HEALTH_URL="http://127.0.0.1:${PORT}/ready"
-fi
+echo "Reloading systemd..."
+sudo systemctl daemon-reload
 
-echo "Installing production dependencies..."
-mix deps.get --only prod
+echo "Ensuring backing services are running..."
+sudo systemctl restart adventure-time-tcg-pod.service || sudo systemctl start adventure-time-tcg-pod.service
+sudo systemctl restart adventure-time-tcg-postgres.service adventure-time-tcg-minio.service || \
+  sudo systemctl start adventure-time-tcg-postgres.service adventure-time-tcg-minio.service
+wait_for_systemd adventure-time-tcg-pod.service
+wait_for_systemd adventure-time-tcg-postgres.service
+wait_for_systemd adventure-time-tcg-minio.service
+wait_for_postgres_tcp
 
-echo "Compiling Phoenix application..."
-mix compile
+echo "Pulling API image $IMAGE_REF..."
+pull_image
 
 if [ "$SKIP_MIGRATE" != "true" ]; then
   echo "Running database migrations..."
-  mix ecto.migrate
+  run_migrations
 else
   echo "Skipping database migrations by request."
 fi
 
-echo "Restarting $SERVICE_NAME..."
-sudo systemctl restart "$SERVICE_NAME"
+cut_over_legacy_service
+
+echo "Reloading systemd after API cutover..."
+sudo systemctl daemon-reload
+sudo systemctl restart "$SERVICE_NAME" || sudo systemctl start "$SERVICE_NAME"
 wait_for_systemd "$SERVICE_NAME"
 
 if ! wait_for_healthcheck "$HEALTH_URL"; then
@@ -180,4 +369,4 @@ if ! wait_for_healthcheck "$HEALTH_URL"; then
   exit 1
 fi
 
-echo "Phoenix deploy finished successfully at commit $TARGET_SHA."
+echo "Phoenix container deploy finished successfully at commit $TARGET_SHA."

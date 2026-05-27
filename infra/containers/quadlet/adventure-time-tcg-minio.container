@@ -1,12 +1,13 @@
 [Unit]
 Description=Adventure Time TCG MinIO
-After=network-online.target
+After=network-online.target adventure-time-tcg-pod.service
+Wants=adventure-time-tcg-pod.service
+Requires=adventure-time-tcg-pod.service
 
 [Container]
 ContainerName=adventure-time-tcg-minio
 Image=quay.io/minio/minio:RELEASE.2025-02-28T09-55-16Z
-PublishPort=127.0.0.1:9100:9000
-PublishPort=127.0.0.1:9101:9001
+Pod=adventure-time-tcg.pod
 Volume=/srv/adventure-time-tcg/minio:/data:Z
 Environment=MINIO_ROOT_USER=minio
 Environment=MINIO_ROOT_PASSWORD=minioadmin
@@ -14,6 +15,7 @@ Exec=minio server /data --console-address :9001
 
 [Service]
 Restart=always
+TimeoutStartSec=900
 
 [Install]
-WantedBy=default.target
+WantedBy=multi-user.target
