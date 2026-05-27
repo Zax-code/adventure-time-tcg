@@ -1,15 +1,32 @@
 import Config
 
+database_url = System.get_env("DATABASE_URL")
+
+http_ip =
+  case System.get_env("PHX_HTTP_IP") do
+    "0.0.0.0" -> {0, 0, 0, 0}
+    "127.0.0.1" -> {127, 0, 0, 1}
+    _ -> {127, 0, 0, 1}
+  end
+
 # Configure your database
-config :adventure_time_api, AdventureTimeApi.Repo,
-  username: "postgres",
-  password: "postgres",
-  hostname: "127.0.0.1",
-  port: 5434,
-  database: "adventure_time_phoenix_dev",
-  stacktrace: true,
-  show_sensitive_data_on_connection_error: true,
-  pool_size: 10
+if is_binary(database_url) and database_url != "" do
+  config :adventure_time_api, AdventureTimeApi.Repo,
+    url: database_url,
+    stacktrace: true,
+    show_sensitive_data_on_connection_error: true,
+    pool_size: 10
+else
+  config :adventure_time_api, AdventureTimeApi.Repo,
+    username: "postgres",
+    password: "postgres",
+    hostname: "127.0.0.1",
+    port: 5434,
+    database: "adventure_time_phoenix_dev",
+    stacktrace: true,
+    show_sensitive_data_on_connection_error: true,
+    pool_size: 10
+end
 
 # For development, we disable any cache and enable
 # debugging and code reloading.
@@ -18,7 +35,7 @@ config :adventure_time_api, AdventureTimeApi.Repo,
 # watchers to your application. For example, we can use it
 # to bundle .js and .css sources.
 config :adventure_time_api, AdventureTimeApiWeb.Endpoint,
-  http: [ip: {127, 0, 0, 1}, port: String.to_integer(System.get_env("PHX_PORT") || "4200")],
+  http: [ip: http_ip, port: String.to_integer(System.get_env("PHX_PORT") || "4200")],
   check_origin: false,
   code_reloader: true,
   debug_errors: true,

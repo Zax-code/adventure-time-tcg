@@ -10,7 +10,7 @@
 ## Checked-In Host Files
 
 - Caddy snippet: `infra/caddy/app.leaetzak.love.Caddyfile`
-- Phoenix systemd unit template: `infra/systemd-adventure-time-tcg-api.service`
+- Quadlet templates: `infra/containers/quadlet/`
 
 ## Current Data Services
 
@@ -19,12 +19,15 @@
 
 ## Phoenix Service
 
-Install/update the checked-in service file and then reload systemd:
+Install/update the checked-in Quadlet files and then reload systemd:
 
 ```bash
-sudo cp infra/systemd-adventure-time-tcg-api.service /etc/systemd/system/adventure-time-tcg-api.service
+sudo cp infra/containers/quadlet/* /etc/containers/systemd/
 sudo systemctl daemon-reload
-sudo systemctl enable --now adventure-time-tcg-api.service
+sudo systemctl start adventure-time-tcg-pod.service
+sudo systemctl start adventure-time-tcg-postgres.service
+sudo systemctl start adventure-time-tcg-minio.service
+sudo systemctl start adventure-time-tcg-api.service
 ```
 
 ## Caddy Cutover
@@ -46,3 +49,6 @@ sudo systemctl reload caddy
 - the Caddy access log path is `/var/log/caddy/app.leaetzak.love.access.log`
 - Caddy runs as `caddy:caddy`, so keep that file writable by the Caddy service user
 - if Caddy status still shows a stale permission warning after a successful reload, validate with a direct local HTTPS request before treating it as a live routing problem
+- the API container expects a rendered env file at `/home/zax/adventure-time-tcg-secrets/api.container.env`
+- PostgreSQL and MinIO publish only to the VPS loopback interface via the shared pod, so Phoenix should target them as `127.0.0.1:5432` and `127.0.0.1:9000` from inside the pod
+- `apps/phoenix/.env.container.example` is the checked-in reference shape for container-side Phoenix env vars

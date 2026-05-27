@@ -1,0 +1,87 @@
+services:
+  postgres:
+    image: docker.io/library/postgres:16-alpine
+    environment:
+      POSTGRES_DB: adventure_time_phoenix_dev
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d adventure_time_phoenix_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "127.0.0.1:5434:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  minio:
+    image: quay.io/minio/minio:RELEASE.2025-02-28T09-55-16Z
+    command: minio server /data --console-address :9001
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "127.0.0.1:9100:9000"
+      - "127.0.0.1:9101:9001"
+    volumes:
+      - minio_data:/data
+
+  api:
+    build:
+      context: ./apps/phoenix
+      dockerfile: Dockerfile
+      target: dev
+    command: >
+      sh -lc "mix deps.get &&
+      mix ecto.create &&
+      mix ecto.migrate &&
+      mix phx.server"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    environment:
+      MIX_ENV: dev
+      PHX_SERVER: "true"
+      PHX_PORT: "4200"
+      PHX_HTTP_IP: "0.0.0.0"
+      PHX_HOST: "127.0.0.1"
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/adventure_time_phoenix_dev
+      SECRET_KEY_BASE: dev-secret-key-base-change-me-1234567890
+      ACCESS_TOKEN_SECRET: dev-access-token-secret-please-change-1234567890
+      REFRESH_TOKEN_SECRET: dev-refresh-token-secret-please-change-1234567890
+      EMAIL_VERIFICATION_SECRET: dev-email-verification-secret-please-change-1234567890
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: "9000"
+      MINIO_USE_SSL: "false"
+      MINIO_ACCESS_KEY: minio
+      MINIO_SECRET_KEY: minioadmin
+      MINIO_BUCKET: private-images
+      AUTH_EMAIL_DELIVERY_ADAPTER: noop
+      AUTH_EMAIL_EXPOSE_DEV_CODE: "true"
+      BOOTSTRAP_SUPERADMIN_EMAIL: boomslang.a@gmail.com
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent http://127.0.0.1:4200/ready >/dev/null"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    init: true
+    ports:
+      - "127.0.0.1:4200:4200"
+    volumes:
+      - ./apps/phoenix:/app
+      - phoenix_build:/app/_build
+      - phoenix_deps:/app/deps
+      - phoenix_hex:/root/.hex
+      - phoenix_mix:/root/.mix
+
+volumes:
+  minio_data:
+  phoenix_build:
+  phoenix_deps:
+  phoenix_hex:
+  phoenix_mix:
+  postgres_data:

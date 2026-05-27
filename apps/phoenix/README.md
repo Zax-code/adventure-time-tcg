@@ -40,6 +40,13 @@ source .env
 set +a
 ```
 
+Containerized local dev from the repo root:
+
+```bash
+docker compose up
+npm run dev:api:container
+```
+
 ## PWA Import Commands
 
 ```bash
@@ -62,11 +69,14 @@ Default report directory:
 
 The importer removes Phoenix placeholder/dev rows first and intentionally leaves all legacy PvP history behind.
 
-## Production Service
+## Production Container
 
-The checked-in systemd unit template is:
+The checked-in Quadlet templates are:
 
-- `infra/systemd-adventure-time-tcg-api.service`
+- `infra/containers/quadlet/adventure-time-tcg.pod`
+- `infra/containers/quadlet/adventure-time-tcg-postgres.container`
+- `infra/containers/quadlet/adventure-time-tcg-minio.container`
+- `infra/containers/quadlet/adventure-time-tcg-api.container`
 
 The checked-in public Caddy proxy snippet is:
 

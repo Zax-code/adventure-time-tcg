@@ -20,6 +20,19 @@ if System.get_env("PHX_SERVER") do
   config :adventure_time_api, AdventureTimeApiWeb.Endpoint, server: true
 end
 
+case System.get_env("AUTH_EMAIL_DELIVERY_ADAPTER") do
+  "noop" ->
+    config :adventure_time_api, AdventureTimeApi.Accounts.EmailDelivery,
+      adapter: AdventureTimeApi.Accounts.EmailDelivery.NoopAdapter
+
+  "sendmail" ->
+    config :adventure_time_api, AdventureTimeApi.Accounts.EmailDelivery,
+      adapter: AdventureTimeApi.Accounts.EmailDelivery.SendmailAdapter
+
+  _ ->
+    :ok
+end
+
 if config_env() == :prod do
   config :adventure_time_api, AdventureTimeApi.Auth,
     access_token_secret:
@@ -92,7 +105,9 @@ if config_env() == :prod do
       """
 
   host = System.get_env("PHX_HOST") || "app.leaetzak.love"
-  port = String.to_integer(System.get_env("PORT") || "4200")
+
+  port =
+    String.to_integer(System.get_env("PORT") || System.get_env("PHX_PORT") || "4200")
 
   config :adventure_time_api, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
