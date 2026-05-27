@@ -228,9 +228,10 @@ async function readIosHealthStepsToday() {
     {
       filter: {
         date: {
+          // Step samples can span midnight; a strict start predicate can drop
+          // samples that still contribute to today's total in HealthKit.
           startDate: startOfLocalDay(now),
           endDate: now,
-          strictStartDate: true,
         },
       },
       unit: "count",
