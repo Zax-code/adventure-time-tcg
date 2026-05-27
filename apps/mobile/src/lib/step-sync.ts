@@ -32,6 +32,7 @@ import {
 import { apiClient, getStoredUser } from "./api";
 import { getTranslation } from "../i18n";
 import { queryClient } from "./query-client";
+import { syncStepQuestWidgetSnapshot } from "./step-quest-widget";
 import {
   type StepSyncAvailability,
   useStepSyncStore,
@@ -581,6 +582,17 @@ export async function syncDeviceStepsNow({
         queryClient.invalidateQueries({ queryKey: ["quests"] }),
         queryClient.invalidateQueries({ queryKey: ["home"] }),
       ]);
+
+      const questsResponse = await queryClient.fetchQuery({
+        queryKey: ["quests"],
+        queryFn: () => apiClient.quests(),
+        staleTime: 0,
+      });
+
+      await syncStepQuestWidgetSnapshot(
+        questsResponse,
+        user.preferredLanguage ?? useLocaleStore.getState().locale,
+      );
 
       if (steps >= STEP_GOAL) {
         await notifyStepGoalReached(user.id, recordedFor);

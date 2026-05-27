@@ -48,5 +48,16 @@
         <category android:name="android.intent.category.HEALTH_PERMISSIONS"/>
       </intent-filter>
     </activity-alias>
+    <receiver
+      android:name=".StepQuestWidgetProvider"
+      android:exported="true"
+      android:label="@string/step_quest_widget_name">
+      <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+      </intent-filter>
+      <meta-data
+        android:name="android.appwidget.provider"
+        android:resource="@xml/step_quest_widget_info"/>
+    </receiver>
   </application>
 </manifest>
