@@ -3,6 +3,7 @@ import * as SecureStore from "expo-secure-store";
 import type { Locale } from "../i18n/types";
 
 const PENDING_GOOGLE_AUTH_KEY = "pendingGoogleAuth";
+let pendingGoogleAuthSession: PendingGoogleAuthSession | null = null;
 
 export interface PendingGoogleAuthSession {
   clientId: string;
@@ -16,27 +17,35 @@ export interface PendingGoogleAuthSession {
 export async function savePendingGoogleAuthSession(
   session: PendingGoogleAuthSession,
 ) {
-  await SecureStore.setItemAsync(
-    PENDING_GOOGLE_AUTH_KEY,
-    JSON.stringify(session),
-  );
+  pendingGoogleAuthSession = session;
+  SecureStore.setItem(PENDING_GOOGLE_AUTH_KEY, JSON.stringify(session));
 }
 
 export async function getPendingGoogleAuthSession() {
-  const value = await SecureStore.getItemAsync(PENDING_GOOGLE_AUTH_KEY);
+  if (pendingGoogleAuthSession) {
+    return pendingGoogleAuthSession;
+  }
+
+  const value =
+    SecureStore.getItem(PENDING_GOOGLE_AUTH_KEY) ??
+    (await SecureStore.getItemAsync(PENDING_GOOGLE_AUTH_KEY));
 
   if (!value) {
     return null;
   }
 
   try {
-    return JSON.parse(value) as PendingGoogleAuthSession;
+    const session = JSON.parse(value) as PendingGoogleAuthSession;
+    pendingGoogleAuthSession = session;
+    return session;
   } catch {
     await SecureStore.deleteItemAsync(PENDING_GOOGLE_AUTH_KEY);
+    pendingGoogleAuthSession = null;
     return null;
   }
 }
 
 export async function clearPendingGoogleAuthSession() {
+  pendingGoogleAuthSession = null;
   await SecureStore.deleteItemAsync(PENDING_GOOGLE_AUTH_KEY);
 }
