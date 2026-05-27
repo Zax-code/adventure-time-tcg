@@ -95,8 +95,8 @@ render_container_env() {
   temp_env="$(mktemp)"
 
   sed -E \
-    -e 's#^(DATABASE_URL=.*@)(127\.0\.0\.1|localhost|host\.containers\.internal):5434/#\110.89.0.12:5432/#' \
-    -e 's#^MINIO_ENDPOINT=(127\.0\.0\.1|localhost|host\.containers\.internal)$#MINIO_ENDPOINT=10.89.0.11#' \
+    -e 's#^(DATABASE_URL=.*@)(127\.0\.0\.1|localhost|host\.containers\.internal):5434/#\1host.containers.internal:5434/#' \
+    -e 's#^MINIO_ENDPOINT=(127\.0\.0\.1|localhost|host\.containers\.internal)$#MINIO_ENDPOINT=host.containers.internal#' \
     -e 's#^MINIO_PORT=9100$#MINIO_PORT=9000#' \
     "$source_env" > "$temp_env"
 
