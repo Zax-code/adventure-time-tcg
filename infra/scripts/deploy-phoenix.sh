@@ -133,12 +133,13 @@ retire_legacy_network_unit() {
 }
 
 pull_image() {
+  local authdir=""
   local authfile=""
   local pull_args=(pull "$IMAGE_REF")
 
   cleanup_authfile() {
-    if [ -n "$authfile" ]; then
-      rm -f "$authfile"
+    if [ -n "$authdir" ]; then
+      rm -rf "$authdir"
     fi
   }
 
@@ -149,7 +150,8 @@ pull_image() {
   fi
 
   if [ -z "$REGISTRY_AUTH_FILE" ] && [ -n "$REGISTRY_USERNAME" ] && [ -n "$REGISTRY_PASSWORD" ]; then
-    authfile="$(mktemp)"
+    authdir="$(mktemp -d)"
+    authfile="$authdir/auth.json"
 
     printf '%s' "$REGISTRY_PASSWORD" | sudo podman login \
       --authfile "$authfile" \
