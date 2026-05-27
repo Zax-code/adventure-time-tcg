@@ -95,8 +95,8 @@ render_container_env() {
   temp_env="$(mktemp)"
 
   sed -E \
-    -e 's#^(DATABASE_URL=.*@)(127\.0\.0\.1|localhost|host\.containers\.internal):5434/#\1postgres:5432/#' \
-    -e 's#^MINIO_ENDPOINT=(127\.0\.0\.1|localhost|host\.containers\.internal)$#MINIO_ENDPOINT=minio#' \
+    -e 's#^(DATABASE_URL=.*@)(127\.0\.0\.1|localhost|host\.containers\.internal):5434/#\110.89.0.12:5432/#' \
+    -e 's#^MINIO_ENDPOINT=(127\.0\.0\.1|localhost|host\.containers\.internal)$#MINIO_ENDPOINT=10.89.0.11#' \
     -e 's#^MINIO_PORT=9100$#MINIO_PORT=9000#' \
     "$source_env" > "$temp_env"
 
@@ -141,6 +141,23 @@ pull_image() {
   fi
 
   sudo podman "${pull_args[@]}"
+}
+
+wait_for_postgres_tcp() {
+  for attempt in $(seq 1 20); do
+    if sudo podman exec adventure-time-tcg-postgres \
+      sh -lc 'pg_isready -U postgres -h 127.0.0.1 -p 5432 >/dev/null'; then
+      echo "Postgres is accepting TCP connections."
+      return 0
+    fi
+
+    echo "Postgres TCP readiness attempt $attempt/20 failed; retrying..." >&2
+    sleep 3
+  done
+
+  echo "Postgres never became reachable over TCP." >&2
+  sudo journalctl -u adventure-time-tcg-postgres.service -n 200 --no-pager >&2 || true
+  exit 1
 }
 
 run_migrations() {
@@ -303,6 +320,7 @@ sudo systemctl restart adventure-time-tcg-postgres.service adventure-time-tcg-mi
   sudo systemctl start adventure-time-tcg-postgres.service adventure-time-tcg-minio.service
 wait_for_systemd adventure-time-tcg-postgres.service
 wait_for_systemd adventure-time-tcg-minio.service
+wait_for_postgres_tcp
 
 echo "Pulling API image $IMAGE_REF..."
 pull_image

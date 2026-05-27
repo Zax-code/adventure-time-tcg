@@ -8,11 +8,13 @@ ContainerName=adventure-time-tcg-postgres
 Image=docker.io/library/postgres:16-alpine
 Network=adventure-time-tcg.network
 NetworkAlias=postgres
+IP=10.89.0.12
 PublishPort=127.0.0.1:5434:5432
 Volume=/srv/adventure-time-tcg/postgres:/var/lib/postgresql/data:Z
 Environment=POSTGRES_DB=adventure_time_tcg
 Environment=POSTGRES_USER=postgres
 Environment=POSTGRES_PASSWORD=postgres
+Exec=postgres -c listen_addresses=0.0.0.0
 HealthCmd=pg_isready -U postgres
 HealthInterval=30s
 HealthRetries=5

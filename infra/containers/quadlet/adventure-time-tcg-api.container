@@ -9,6 +9,7 @@ ContainerName=adventure-time-tcg-api
 Image=ghcr.io/zax-code/adventure-time-tcg-api:latest
 Network=adventure-time-tcg.network
 NetworkAlias=api
+IP=10.89.0.10
 PublishPort=127.0.0.1:4200:4200
 Environment=PHX_SERVER=true
 Environment=PHX_PORT=4200
