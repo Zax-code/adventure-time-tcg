@@ -167,6 +167,8 @@ jobs:
         env:
           DEPLOY_REF: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref || github.sha }}
           IMAGE_REF: ${{ needs.build-image.outputs.image_ref }}
+          REGISTRY_PASSWORD: ${{ github.token }}
+          REGISTRY_USERNAME: ${{ github.actor }}
           SKIP_MIGRATE: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.skip_migrate || 'false' }}
         run: |
           remote_args=(
@@ -177,6 +179,7 @@ jobs:
             --service "$PRODUCTION_SYSTEMD_SERVICE"
             --container-env-file "$PRODUCTION_CONTAINER_ENV_FILE"
             --quadlet-dir "$PRODUCTION_QUADLET_DIR"
+            --registry-username "$REGISTRY_USERNAME"
           )
 
           if [ -n "$PRODUCTION_HEALTHCHECK_URL" ]; then
@@ -195,5 +198,7 @@ jobs:
             remote_args+=(--skip-migrate)
           fi
 
+          remote_command="chmod +x /tmp/deploy-phoenix.sh && $(printf '%q ' "${remote_args[@]}")"
+
           ssh -p "$PRODUCTION_SSH_PORT" "$PRODUCTION_SSH_USER@$PRODUCTION_HOST" \
-            "chmod +x /tmp/deploy-phoenix.sh && $(printf '%q ' "${remote_args[@]}")"
+            "export REGISTRY_PASSWORD=$(printf '%q' "$REGISTRY_PASSWORD"); $remote_command"

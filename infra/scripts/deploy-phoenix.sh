@@ -14,6 +14,7 @@ Options:
   --quadlet-dir <path>          Quadlet installation directory
   --health-url <url>            Ready-check URL; defaults to localhost using port 4200
   --registry-auth-file <path>   Optional Podman auth file for private registries
+  --registry-username <value>   Optional registry username for an ephemeral login
   --skip-migrate                Skip release migrations
   --help                        Show this help
 EOF
@@ -128,6 +129,13 @@ install_quadlets() {
 pull_image() {
   local pull_args=(pull "$IMAGE_REF")
 
+  if [ -n "$REGISTRY_USERNAME" ] && [ -n "$REGISTRY_PASSWORD" ]; then
+    printf '%s' "$REGISTRY_PASSWORD" | sudo podman login \
+      --username "$REGISTRY_USERNAME" \
+      --password-stdin \
+      ghcr.io
+  fi
+
   if [ -n "$REGISTRY_AUTH_FILE" ]; then
     pull_args=(pull --authfile "$REGISTRY_AUTH_FILE" "$IMAGE_REF")
   fi
@@ -168,8 +176,10 @@ CONTAINER_ENV_FILE="/home/zax/adventure-time-tcg-secrets/api.container.env"
 QUADLET_DIR="/etc/containers/systemd"
 HEALTH_URL="http://127.0.0.1:4200/ready"
 REGISTRY_AUTH_FILE=""
+REGISTRY_USERNAME=""
 SKIP_MIGRATE="false"
 RESOLVED_REF=""
+REGISTRY_PASSWORD="${REGISTRY_PASSWORD:-}"
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -211,6 +221,10 @@ while [ "$#" -gt 0 ]; do
       ;;
     --registry-auth-file)
       REGISTRY_AUTH_FILE="${2:-}"
+      shift 2
+      ;;
+    --registry-username)
+      REGISTRY_USERNAME="${2:-}"
       shift 2
       ;;
     --skip-migrate)
