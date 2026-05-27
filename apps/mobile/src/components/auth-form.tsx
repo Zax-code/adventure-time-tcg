@@ -91,8 +91,6 @@ function GoogleAuthSection({
           iosClientId: googleIosClientId,
           androidClientId: googleAndroidClientId,
           webClientId: googleWebClientId,
-          // Keep Android on the app's registered scheme instead of the package-name default.
-          redirectUri: Platform.OS === "android" ? "adventure-time:/oauthredirect" : undefined,
           scopes: ["openid", "profile", "email"],
           selectAccount: true,
         },
