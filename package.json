@@ -9,7 +9,6 @@
     "scripts": {
         "dev:api": "cd apps/phoenix && /bin/bash -lc 'set -a && source .env && set +a && mix phx.server'",
         "dev:phoenix": "cd apps/phoenix && /bin/bash -lc 'set -a && source .env && set +a && mix phx.server'",
-        "dev:api": "cd apps/phoenix && mix phx.server",
         "dev:api:container": "docker compose up api",
         "dev:stack": "docker compose up",
         "dev:mobile": "npm run dev -w @adventure-time/mobile",
