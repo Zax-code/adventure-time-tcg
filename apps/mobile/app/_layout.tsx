@@ -19,6 +19,7 @@ import "../global.css";
 
 import { useStepSyncManager } from "../src/hooks/use-step-sync-manager";
 import { useStepQuestWidgetSync } from "../src/hooks/use-step-quest-widget-sync";
+import { useUserTimezoneSync } from "../src/hooks/use-user-timezone-sync";
 import { AppLaunchScreen } from "../src/components/app-launch-screen";
 import { queryClient } from "../src/lib/query-client";
 import { useBootstrap } from "../src/hooks/use-bootstrap";
@@ -40,6 +41,7 @@ SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   useBootstrap();
+  useUserTimezoneSync();
   useStepSyncManager();
   useStepQuestWidgetSync();
 

@@ -10,6 +10,7 @@ defmodule AdventureTimeApi.Accounts.User do
   @locales [:en, :fr]
   @roles [:user, :admin, :super_admin]
   @access_statuses [:pending, :approved, :rejected]
+  @default_timezone "Europe/Paris"
 
   schema "users" do
     field(:email, :string)
@@ -22,6 +23,7 @@ defmodule AdventureTimeApi.Accounts.User do
     field(:access_status, Ecto.Enum, values: @access_statuses, default: :pending)
     field(:preferred_step_source, Ecto.Enum, values: @step_sources, default: :device_health)
     field(:preferred_language, Ecto.Enum, values: @locales, default: :en)
+    field(:timezone, :string, default: @default_timezone)
 
     has_one(:email_credential, AdventureTimeApi.Accounts.EmailCredential)
 
@@ -30,18 +32,26 @@ defmodule AdventureTimeApi.Accounts.User do
 
   def registration_changeset(user, attrs) do
     user
-    |> cast(attrs, [:email, :display_name, :preferred_language])
+    |> cast(attrs, [:email, :display_name, :preferred_language, :timezone])
     |> validate_required([:email])
     |> update_change(:email, &String.downcase/1)
     |> validate_length(:display_name, min: 1, max: 64)
+    |> validate_length(:timezone, min: 1, max: 128)
     |> validate_format(:email, ~r/^[^\s]+@[^\s]+$/)
     |> unique_constraint(:email, name: :users_email_key)
   end
 
   def profile_changeset(user, attrs) do
     user
-    |> cast(attrs, [:display_name, :avatar_asset_id, :preferred_step_source, :preferred_language])
+    |> cast(attrs, [
+      :display_name,
+      :avatar_asset_id,
+      :preferred_step_source,
+      :preferred_language,
+      :timezone
+    ])
     |> validate_length(:display_name, min: 1, max: 64)
+    |> validate_length(:timezone, min: 1, max: 128)
   end
 
   def access_changeset(user, attrs) do
