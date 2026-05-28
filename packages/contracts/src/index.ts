@@ -14,6 +14,7 @@ export const authUserSchema = z.object({
   isSuperAdmin: z.boolean(),
   preferredStepSource: stepSourceSchema,
   preferredLanguage: localeSchema,
+  timezone: z.string().min(1),
 });
 
 export type AuthUser = z.infer<typeof authUserSchema>;
@@ -1079,6 +1080,10 @@ export const updateLanguageSchema = z.object({
   preferredLanguage: localeSchema,
 });
 
+export const updateTimezoneSchema = z.object({
+  timezone: z.string().min(1),
+});
+
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type GoogleAuthInput = z.infer<typeof googleAuthSchema>;
@@ -1144,6 +1149,7 @@ export type HealthStepsResponse = z.infer<typeof healthStepsResponseSchema>;
 export type SyncStepsInput = z.infer<typeof syncStepsSchema>;
 export type UpdateStepSourceInput = z.infer<typeof updateStepSourceSchema>;
 export type UpdateLanguageInput = z.infer<typeof updateLanguageSchema>;
+export type UpdateTimezoneInput = z.infer<typeof updateTimezoneSchema>;
 
 export const updateDisplayNameSchema = z.object({
   displayName: z.string().min(1).max(64),

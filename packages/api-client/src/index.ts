@@ -27,6 +27,7 @@ import {
   pvpSpectateDetailResponseSchema,
   updateDisplayNameSchema,
   updateLanguageSchema,
+  updateTimezoneSchema,
   adminCoinAdjustSchema,
   adminAllowedEmailSchema,
   adminAllowedEmailUpdateSchema,
@@ -123,6 +124,7 @@ import {
   type SyncStepsInput,
   type UpdateStepSourceInput,
   type UpdateLanguageInput,
+  type UpdateTimezoneInput,
   type VerifyEmailInput,
   type VerifyEmailResponse,
   type WordleStateResponse,
@@ -829,6 +831,15 @@ export class ApiClient {
     const body = updateLanguageSchema.parse(input);
     return this.request(
       "/settings/language",
+      { method: "PATCH", body: JSON.stringify(body) },
+      (data) => authUserSchema.parse(data),
+    );
+  }
+
+  async updateTimezone(input: UpdateTimezoneInput) {
+    const body = updateTimezoneSchema.parse(input);
+    return this.request(
+      "/settings/timezone",
       { method: "PATCH", body: JSON.stringify(body) },
       (data) => authUserSchema.parse(data),
     );

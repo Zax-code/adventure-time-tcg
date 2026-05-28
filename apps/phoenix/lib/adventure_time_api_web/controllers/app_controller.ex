@@ -172,6 +172,18 @@ defmodule AdventureTimeApiWeb.AppController do
     conn |> put_status(:bad_request) |> json(%{error: "preferredStepSource is required"})
   end
 
+  def update_timezone(conn, %{"timezone" => timezone}) do
+    case Accounts.update_timezone(conn.assigns.auth_user.id, timezone) do
+      {:ok, user} -> json(conn, user)
+      {:error, :not_found} -> conn |> put_status(:not_found) |> json(%{error: "User not found"})
+      {:error, :validation, msg} -> conn |> put_status(:bad_request) |> json(%{error: msg})
+    end
+  end
+
+  def update_timezone(conn, _params) do
+    conn |> put_status(:bad_request) |> json(%{error: "timezone is required"})
+  end
+
   def health_steps(conn, _params) do
     user_id = conn.assigns.auth_user.id
 
@@ -204,6 +216,8 @@ defmodule AdventureTimeApiWeb.AppController do
       }) do
     case Health.upsert_step_snapshot(conn.assigns.auth_user.id, source, step_count, recorded_for) do
       {:ok, snapshot} ->
+        :ok = Quests.sync_steps_quest(conn.assigns.auth_user.id)
+
         conn
         |> put_status(:created)
         |> json(%{

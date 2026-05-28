@@ -37,6 +37,7 @@ export const users = pgTable(
     coins: integer("coins").default(100).notNull(),
     dust: integer("dust").default(0).notNull(),
     preferredLanguage: localeEnum("preferred_language").default("en").notNull(),
+    timezone: text("timezone").default("Europe/Paris").notNull(),
     lastDailyClaim: timestamp("last_daily_claim", {
       withTimezone: true,
       mode: "date",

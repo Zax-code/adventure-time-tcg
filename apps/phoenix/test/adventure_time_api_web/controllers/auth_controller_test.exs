@@ -232,7 +232,8 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
              "isAdmin" => true,
              "isSuperAdmin" => true,
              "preferredStepSource" => "device_health",
-             "preferredLanguage" => "en"
+             "preferredLanguage" => "en",
+             "timezone" => "Europe/Paris"
            }
   end
 

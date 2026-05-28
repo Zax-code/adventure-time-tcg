@@ -88,6 +88,23 @@ defmodule AdventureTimeApi.Quests do
 
   def daily_reward, do: @daily_reward
   def reset_timezone, do: @reset_timezone
+  def current_reset_date, do: current_reset_date(@reset_timezone)
+
+  def current_reset_date(timezone) when is_binary(timezone) do
+    now_in_reset_timezone(timezone)
+    |> DateTime.to_date()
+  end
+
+  def current_reset_date_for_user(user_id) do
+    current_reset_date(reset_timezone_for_user(user_id))
+  end
+
+  def reset_timezone_for_user(user_id) do
+    case Repo.get(User, user_id) do
+      %User{} = user when is_binary(user.timezone) and user.timezone != "" -> user.timezone
+      _ -> @reset_timezone
+    end
+  end
 
   def daily_claim_status(user_id) do
     case Repo.get(User, user_id) do
@@ -102,7 +119,7 @@ defmodule AdventureTimeApi.Quests do
         {:error, :not_found}
 
       %User{} = user ->
-        if can_claim_daily?(user.last_daily_claim) do
+        if can_claim_daily?(user.last_daily_claim, user.timezone || @reset_timezone) do
           new_balance = user.coins + @daily_reward
           now = now_utc()
 
@@ -121,24 +138,25 @@ defmodule AdventureTimeApi.Quests do
               {:ok, %{success: true, coinsAwarded: @daily_reward, newBalance: new_balance}}
 
             _ ->
-              {:error, :already_claimed, conflict_payload()}
+              {:error, :already_claimed, conflict_payload(user.timezone || @reset_timezone)}
           end
         else
-          {:error, :already_claimed, conflict_payload()}
+          {:error, :already_claimed, conflict_payload(user.timezone || @reset_timezone)}
         end
     end
   end
 
-  def can_claim_daily?(nil), do: true
+  def can_claim_daily?(last_claim, timezone \\ @reset_timezone)
+  def can_claim_daily?(nil, _timezone), do: true
 
-  def can_claim_daily?(%DateTime{} = last_claim) do
-    current_reset_date() != reset_date_for(last_claim)
+  def can_claim_daily?(%DateTime{} = last_claim, timezone) do
+    current_reset_date(timezone) != reset_date_for(last_claim, timezone)
   end
 
-  def time_until_next_claim_ms do
-    now = now_in_reset_timezone()
+  def time_until_next_claim_ms(timezone \\ @reset_timezone) do
+    now = now_in_reset_timezone(timezone)
     tomorrow = Date.add(DateTime.to_date(now), 1)
-    midnight = DateTime.new!(tomorrow, ~T[00:00:00], @reset_timezone)
+    midnight = DateTime.new!(tomorrow, ~T[00:00:00], timezone)
     DateTime.diff(midnight, now, :millisecond)
   end
 
@@ -149,7 +167,7 @@ defmodule AdventureTimeApi.Quests do
   Inserts on first call; on conflict, updates only target (preserves progress/reward/completion).
   """
   def materialize_daily_quests(user_id, date \\ nil) do
-    date = date || current_reset_date()
+    date = date || current_reset_date_for_user(user_id)
     now = now_utc()
 
     Enum.each(@quest_definitions, fn def ->
@@ -177,7 +195,7 @@ defmodule AdventureTimeApi.Quests do
   Sync the steps_10k quest progress from today's step snapshot (if any).
   """
   def sync_steps_quest(user_id, date \\ nil) do
-    date = date || current_reset_date()
+    date = date || current_reset_date_for_user(user_id)
     now = now_utc()
 
     quest =
@@ -215,7 +233,7 @@ defmodule AdventureTimeApi.Quests do
   Build the full quest list for the user, materializing quests for today if needed.
   """
   def list_quests_for_user(user_id) do
-    date = current_reset_date()
+    date = current_reset_date_for_user(user_id)
     materialize_daily_quests(user_id, date)
     sync_steps_quest(user_id, date)
 
@@ -246,7 +264,7 @@ defmodule AdventureTimeApi.Quests do
   end
 
   def admin_reset_daily_quests(user_id, options \\ %{}) do
-    date = Map.get(options, :date, current_reset_date())
+    date = Map.get(options, :date, current_reset_date_for_user(user_id))
     quest_type = Map.get(options, :quest_type)
     admin_id = Map.get(options, :admin_id)
 
@@ -328,7 +346,8 @@ defmodule AdventureTimeApi.Quests do
   def wordle_state(user_id) do
     {payload, duration_ms} =
       timed(fn ->
-        date = current_reset_date()
+        timezone = reset_timezone_for_user(user_id)
+        date = current_reset_date(timezone)
         attempts = load_wordle_attempts(user_id, date)
         solved = Enum.any?(attempts, & &1.solved)
         game_over = solved || length(attempts) >= @wordle_max_attempts
@@ -348,7 +367,7 @@ defmodule AdventureTimeApi.Quests do
 
         %{
           date: Date.to_iso8601(date),
-          resetTimezone: @reset_timezone,
+          resetTimezone: timezone,
           guesses: Enum.map(attempts, fn a -> %{guess: a.guess, evaluation: a.evaluation} end),
           solved: solved,
           questVersion: if(quest, do: quest.id, else: nil),
@@ -378,7 +397,7 @@ defmodule AdventureTimeApi.Quests do
       ) do
     {{result, breakdown}, duration_ms} =
       timed(fn ->
-        date = current_reset_date()
+        date = current_reset_date_for_user(user_id)
         guess = WordleEngine.normalize(raw_guess)
 
         {validation_result, validation_ms} =
@@ -499,7 +518,7 @@ defmodule AdventureTimeApi.Quests do
 
   @doc "Get the full Speed Calculus state for a user."
   def speed_calculus_state(user_id) do
-    date = current_reset_date()
+    date = current_reset_date_for_user(user_id)
     materialize_daily_quests(user_id, date)
     settle_expired_runs(user_id, date)
     {:ok, build_speed_calculus_state(user_id, date)}
@@ -507,7 +526,7 @@ defmodule AdventureTimeApi.Quests do
 
   @doc "Start a new Speed Calculus run (or return existing state if a run is active)."
   def start_speed_calculus_run(user_id) do
-    date = current_reset_date()
+    date = current_reset_date_for_user(user_id)
     materialize_daily_quests(user_id, date)
     settle_expired_runs(user_id, date)
     state = build_speed_calculus_state(user_id, date)
@@ -552,7 +571,7 @@ defmodule AdventureTimeApi.Quests do
 
   @doc "Record a user answer for the active run."
   def answer_speed_calculus(user_id, run_id, answer, expected_quest_version \\ nil) do
-    date = current_reset_date()
+    date = current_reset_date_for_user(user_id)
 
     with {:ok, run} <- get_visible_speed_run(user_id, run_id),
          :ok <- validate_speed_calculus_version(user_id, date, expected_quest_version) do
@@ -602,7 +621,7 @@ defmodule AdventureTimeApi.Quests do
 
   @doc "Pause the active run until the player explicitly resumes it."
   def pause_speed_calculus(user_id) do
-    date = current_reset_date()
+    date = current_reset_date_for_user(user_id)
     settle_expired_runs(user_id, date)
 
     active_run =
@@ -636,7 +655,7 @@ defmodule AdventureTimeApi.Quests do
 
   @doc "Resume a paused run (extends pause window 5 seconds)."
   def resume_speed_calculus(user_id) do
-    date = current_reset_date()
+    date = current_reset_date_for_user(user_id)
     settle_expired_runs(user_id, date)
 
     active_run =
@@ -673,7 +692,7 @@ defmodule AdventureTimeApi.Quests do
 
   @doc "Finish the active run: score it, update quest, return result."
   def finish_speed_calculus(user_id, run_id, expected_quest_version \\ nil) do
-    date = current_reset_date()
+    date = current_reset_date_for_user(user_id)
 
     with {:ok, run} <- get_visible_speed_run(user_id, run_id),
          :ok <- validate_speed_calculus_version(user_id, date, expected_quest_version) do
@@ -714,7 +733,7 @@ defmodule AdventureTimeApi.Quests do
 
   @doc "Cash out: lock the speed calculus quest early with the best run's reward."
   def cashout_speed_calculus(user_id) do
-    date = current_reset_date()
+    date = current_reset_date_for_user(user_id)
     settle_expired_runs(user_id, date)
 
     quest =
@@ -1345,41 +1364,37 @@ defmodule AdventureTimeApi.Quests do
   defp maybe_log_slow(_duration_ms, _threshold_ms, _event, _metadata), do: :ok
 
   defp status_payload(user) do
-    can_claim = can_claim_daily?(user.last_daily_claim)
+    timezone = user.timezone || @reset_timezone
+    can_claim = can_claim_daily?(user.last_daily_claim, timezone)
 
     %{
       coins: user.coins,
       canClaim: can_claim,
-      timeUntilNextClaim: if(can_claim, do: 0, else: time_until_next_claim_ms()),
+      timeUntilNextClaim: if(can_claim, do: 0, else: time_until_next_claim_ms(timezone)),
       dailyReward: @daily_reward,
-      timezone: @reset_timezone
+      timezone: timezone
     }
   end
 
-  defp conflict_payload do
+  defp conflict_payload(timezone) do
     %{
       error: "Already claimed today",
       code: "DAILY_ALREADY_CLAIMED",
-      timeUntilNextClaim: time_until_next_claim_ms(),
-      timezone: @reset_timezone
+      timeUntilNextClaim: time_until_next_claim_ms(timezone),
+      timezone: timezone
     }
   end
 
-  def current_reset_date do
-    now_in_reset_timezone()
-    |> DateTime.to_date()
-  end
-
-  defp reset_date_for(last_claim) do
+  defp reset_date_for(last_claim, timezone) do
     last_claim
-    |> DateTime.shift_zone!(@reset_timezone)
+    |> DateTime.shift_zone!(timezone)
     |> DateTime.to_date()
   end
 
-  defp now_in_reset_timezone do
+  defp now_in_reset_timezone(timezone) do
     DateTime.utc_now()
     |> DateTime.truncate(:second)
-    |> DateTime.shift_zone!(@reset_timezone)
+    |> DateTime.shift_zone!(timezone)
   end
 
   defp now_utc, do: DateTime.utc_now() |> DateTime.truncate(:second)

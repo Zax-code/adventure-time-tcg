@@ -63,6 +63,7 @@ defmodule AdventureTimeApiWeb.Router do
     patch("/settings/display-name", AppController, :update_display_name)
     patch("/settings/language", AppController, :update_language)
     patch("/settings/step-source", AppController, :update_step_source)
+    patch("/settings/timezone", AppController, :update_timezone)
     post("/settings/upload", MediaController, :upload_profile)
 
     get("/health/steps", AppController, :health_steps)

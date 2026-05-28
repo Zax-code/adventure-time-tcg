@@ -31,6 +31,7 @@ defmodule AdventureTimeApi.Accounts do
   @verification_purpose :signup
   @verification_ttl_minutes 15
   @verification_max_attempts 5
+  @default_timezone "Europe/Paris"
 
   def user_module, do: User
   def email_credential_module, do: EmailCredential
@@ -333,6 +334,21 @@ defmodule AdventureTimeApi.Accounts do
     end
   end
 
+  def update_timezone(user_id, timezone) do
+    with %User{} = user <- Repo.get(User, user_id),
+         {:ok, normalized_timezone} <- parse_timezone(timezone),
+         {:ok, updated} <-
+           user
+           |> User.profile_changeset(%{timezone: normalized_timezone})
+           |> Repo.update() do
+      build_auth_user(updated)
+    else
+      nil -> {:error, :not_found}
+      {:error, %Ecto.Changeset{} = cs} -> {:error, :validation, first_error(cs)}
+      {:error, message} -> {:error, :validation, message}
+    end
+  end
+
   def list_admin_users do
     User
     |> order_by([user], asc: user.email)
@@ -355,7 +371,8 @@ defmodule AdventureTimeApi.Accounts do
           {:ok,
            admin_user_payload(user)
            |> Map.merge(%{
-             "todayDate" => Quests.current_reset_date() |> Date.to_iso8601(),
+             "todayDate" =>
+               Quests.current_reset_date(user.timezone || @default_timezone) |> Date.to_iso8601(),
              "dailyQuests" => quest_payload.quests,
              "viewerPermissions" => %{
                "canManageCoins" => super_admin?(viewer),
@@ -692,7 +709,8 @@ defmodule AdventureTimeApi.Accounts do
        isAdmin: admin_role?(user.role),
        isSuperAdmin: super_admin_role?(user.role),
        preferredStepSource: Atom.to_string(user.preferred_step_source),
-       preferredLanguage: Atom.to_string(user.preferred_language)
+       preferredLanguage: Atom.to_string(user.preferred_language),
+       timezone: user.timezone || @default_timezone
      }}
   end
 
@@ -919,6 +937,21 @@ defmodule AdventureTimeApi.Accounts do
   defp parse_preferred_language(:en), do: {:ok, :en}
   defp parse_preferred_language(:fr), do: {:ok, :fr}
   defp parse_preferred_language(_), do: {:error, "preferredLanguage must be en or fr"}
+
+  defp parse_timezone(timezone) when is_binary(timezone) do
+    normalized_timezone = String.trim(timezone)
+
+    if normalized_timezone == "" do
+      {:error, "timezone is required"}
+    else
+      case DateTime.shift_zone(DateTime.utc_now(), normalized_timezone) do
+        {:ok, _} -> {:ok, normalized_timezone}
+        {:error, _} -> {:error, "timezone must be a valid IANA timezone"}
+      end
+    end
+  end
+
+  defp parse_timezone(_), do: {:error, "timezone must be a valid IANA timezone"}
 
   defp prevent_self_demote(actor, target_user, next_role) do
     if actor.id == target_user.id and actor.isSuperAdmin and next_role != :super_admin do

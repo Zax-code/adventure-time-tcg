@@ -5,6 +5,7 @@ defmodule AdventureTimeApiWeb.AppControllerTest do
   alias AdventureTimeApi.Catalog.{Card, Pack, Rarity}
   alias AdventureTimeApi.Inventory.OwnedCard
   alias AdventureTimeApi.Pvp.Match
+  alias AdventureTimeApi.Quests
   alias AdventureTimeApi.Repo
 
   test "GET /rarities returns mobile rarity payloads", %{conn: conn} do
@@ -54,6 +55,48 @@ defmodule AdventureTimeApiWeb.AppControllerTest do
     assert conflict["code"] == "DAILY_ALREADY_CLAIMED"
     assert conflict["timezone"] == "Europe/Paris"
     assert conflict["timeUntilNextClaim"] > 0
+  end
+
+  test "PATCH /settings/timezone updates the user timezone and daily claim payload", _context do
+    user = create_user_with_password("timezone@example.com", "treasure123")
+    access_token = login_access_token(user.email, "treasure123")
+
+    updated =
+      access_token
+      |> auth_conn()
+      |> patch(~p"/settings/timezone", %{"timezone" => "America/New_York"})
+      |> json_response(200)
+
+    assert updated["timezone"] == "America/New_York"
+
+    status = access_token |> auth_conn() |> get(~p"/daily-claim") |> json_response(200)
+    assert status["timezone"] == "America/New_York"
+  end
+
+  test "POST /health/steps syncs the step quest using the user's timezone", _context do
+    user = create_user_with_password("steps-timezone@example.com", "treasure123")
+    user = user |> Ecto.Changeset.change(timezone: "America/New_York") |> Repo.update!()
+    access_token = login_access_token(user.email, "treasure123")
+    recorded_for = Quests.current_reset_date("America/New_York") |> Date.to_iso8601()
+
+    access_token
+    |> auth_conn()
+    |> post(~p"/health/steps", %{
+      "source" => "device_health",
+      "stepCount" => 3456,
+      "recordedFor" => recorded_for
+    })
+    |> json_response(201)
+
+    quests = access_token |> auth_conn() |> get(~p"/quests") |> json_response(200)
+
+    step_quest =
+      Enum.find(quests["quests"], fn quest ->
+        quest["type"] == "steps_10k"
+      end)
+
+    assert step_quest["progress"] == 3456
+    assert step_quest["completed"] == false
   end
 
   test "POST /packs/open returns opened cards and new balance", _context do
