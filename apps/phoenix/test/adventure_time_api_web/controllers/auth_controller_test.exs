@@ -57,6 +57,35 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
     assert request.requested_locale == :fr
   end
 
+  test "POST /auth/register auto-approves the configured bootstrap superadmin", %{conn: conn} do
+    configure_bootstrap_superadmin_email("boomslang.a@gmail.com")
+
+    conn =
+      post(conn, ~p"/auth/register", %{
+        email: "boomslang.a@gmail.com",
+        password: "supersecure",
+        displayName: "Boomslang",
+        preferredLanguage: "fr"
+      })
+
+    body = json_response(conn, 201)
+
+    assert body["success"] == true
+    assert body["message"] == "Verification code sent"
+    assert body["authorized"] == true
+    assert body["accessRequestPending"] == false
+    assert body["devCode"] =~ ~r/^\d{6}$/
+
+    user = Repo.get_by!(User, email: "boomslang.a@gmail.com")
+    request = Repo.get_by!(EmailAccessRequest, email: user.email)
+
+    assert user.role == :super_admin
+    assert user.access_status == :approved
+    assert user.preferred_language == :fr
+    assert request.status == :approved
+    assert request.requested_locale == :fr
+  end
+
   test "POST /auth/register updates preferred language for an existing pending account", %{
     conn: conn
   } do
@@ -202,6 +231,47 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
     assert request.requested_locale == :fr
   end
 
+  test "POST /auth/google auto-provisions the configured bootstrap superadmin", %{conn: conn} do
+    configure_bootstrap_superadmin_email("boomslang.a@gmail.com")
+
+    bypass = start_bypass_google_tokeninfo("boomslang.a@gmail.com")
+
+    Application.put_env(:adventure_time_api, GoogleAuth,
+      id_token_info_url: bypass_url(bypass, "/tokeninfo"),
+      access_token_info_url: bypass_url(bypass, "/access-token-info"),
+      userinfo_url: bypass_url(bypass, "/userinfo")
+    )
+
+    on_exit(fn -> Application.delete_env(:adventure_time_api, GoogleAuth) end)
+
+    conn =
+      post(conn, ~p"/auth/google", %{"idToken" => "valid-token", "preferredLanguage" => "fr"})
+
+    assert %{
+             "user" => %{
+               "email" => "boomslang.a@gmail.com",
+               "isAdmin" => true,
+               "isSuperAdmin" => true,
+               "preferredLanguage" => "fr"
+             },
+             "tokens" => %{
+               "accessToken" => _access_token,
+               "refreshToken" => _refresh_token,
+               "expiresInSeconds" => expires_in_seconds
+             }
+           } = json_response(conn, 200)
+
+    assert is_integer(expires_in_seconds)
+
+    user = Repo.get_by!(User, email: "boomslang.a@gmail.com")
+    request = Repo.get_by!(EmailAccessRequest, email: user.email)
+
+    assert user.role == :super_admin
+    assert user.access_status == :approved
+    assert request.status == :approved
+    assert request.requested_locale == :fr
+  end
+
   test "GET /me returns authenticated user", %{conn: conn} do
     user =
       create_user_with_password("iceking@example.com", "penguin123", "Ice King",
@@ -301,6 +371,20 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
     )
 
     user
+  end
+
+  defp configure_bootstrap_superadmin_email(email) do
+    previous_value = System.get_env("BOOTSTRAP_SUPERADMIN_EMAIL")
+
+    System.put_env("BOOTSTRAP_SUPERADMIN_EMAIL", email)
+
+    on_exit(fn ->
+      if previous_value do
+        System.put_env("BOOTSTRAP_SUPERADMIN_EMAIL", previous_value)
+      else
+        System.delete_env("BOOTSTRAP_SUPERADMIN_EMAIL")
+      end
+    end)
   end
 
   defp start_bypass_google_tokeninfo(email) do

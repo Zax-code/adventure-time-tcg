@@ -2,4 +2,11 @@
   <string name="step_quest_widget_name">Quete de pas</string>
   <string name="step_quest_widget_fallback_title">Quete de pas</string>
   <string name="step_quest_widget_fallback_body">Ouvre l\'application pour charger la progression du jour.</string>
+  <string name="step_quest_widget_badge">PAS DU JOUR</string>
+  <string name="step_quest_widget_sync_short">SYNC</string>
+  <string name="step_quest_widget_today_short">Auj.</string>
+  <string name="step_quest_widget_status_active">En cours</string>
+  <string name="step_quest_widget_status_completed">A reclamer</string>
+  <string name="step_quest_widget_status_claimed">Recuperee</string>
+  <string name="step_quest_widget_status_failed">Demain</string>
 </resources>

@@ -604,18 +604,43 @@ defmodule AdventureTimeApi.Accounts do
   defp login_google_profile(profile, metadata, preferred_language) do
     case Repo.get_by(User, email: profile.email) do
       nil ->
-        ensure_pending_access_request(profile.email, preferred_language)
+        if bootstrap_superadmin_email?(profile.email) do
+          with {:ok, user} <-
+                 upsert_registration_user(
+                   Repo,
+                   nil,
+                   profile.email,
+                   profile.name,
+                   preferred_language
+                 ),
+               {:ok, updated_user} <- refresh_user_access_state(Repo, user) do
+            issue_session(updated_user, metadata)
+          else
+            {:error, %Ecto.Changeset{} = changeset} ->
+              {:error,
+               %AuthError{
+                 message: first_error(changeset),
+                 status_code: 400,
+                 code: "VALIDATION_ERROR"
+               }}
+          end
+        else
+          ensure_pending_access_request(profile.email, preferred_language)
 
-        {:error,
-         %AuthError{
-           message:
-             "This Google account is not approved yet. An access request has been submitted.",
-           status_code: 403,
-           code: "ACCESS_REQUEST_PENDING"
-         }}
+          {:error,
+           %AuthError{
+             message:
+               "This Google account is not approved yet. An access request has been submitted.",
+             status_code: 403,
+             code: "ACCESS_REQUEST_PENDING"
+           }}
+        end
 
       %User{} = user ->
-        user = maybe_update_google_profile(user, profile)
+        user =
+          user
+          |> maybe_update_google_profile(profile)
+          |> then(&refresh_user_access_state!(Repo, &1))
 
         case user.access_status do
           :approved -> issue_session(user, metadata)
@@ -740,7 +765,7 @@ defmodule AdventureTimeApi.Accounts do
           display_name: display_name,
           preferred_language: preferred_language
         }),
-        %{role: :user, access_status: :pending}
+        registration_access_attrs(email)
       )
     )
   end
@@ -753,7 +778,7 @@ defmodule AdventureTimeApi.Accounts do
           display_name: display_name || user.display_name,
           preferred_language: preferred_language
         }),
-        %{role: user.role, access_status: next_pending_status(user.access_status)}
+        refreshed_access_attrs(user)
       )
     )
   end
@@ -780,63 +805,106 @@ defmodule AdventureTimeApi.Accounts do
   defp ensure_pending_access_request(email_or_repo, requested_locale_or_user \\ :en)
 
   defp ensure_pending_access_request(repo, %User{} = user) do
-    case refresh_user_access_state(repo, user) do
-      {:ok, updated_user} ->
-        ensure_pending_access_request(updated_user.email, updated_user.preferred_language)
-        {:ok, updated_user}
-
-      error ->
-        error
-    end
+    refresh_user_access_state(repo, user)
   end
 
   defp ensure_pending_access_request(email, requested_locale) do
+    ensure_access_request_status(Repo, email, requested_locale, :pending)
+  end
+
+  defp ensure_access_request_status(repo, email, requested_locale, status) do
     normalized_email = normalize_email(email)
 
-    case Repo.get_by(EmailAccessRequest, email: normalized_email) do
+    attrs =
+      %{
+        email: normalized_email,
+        requested_locale: requested_locale,
+        status: status
+      }
+      |> maybe_clear_review(status)
+
+    case repo.get_by(EmailAccessRequest, email: normalized_email) do
       nil ->
         %EmailAccessRequest{}
-        |> EmailAccessRequest.changeset(%{
-          email: normalized_email,
-          requested_locale: requested_locale,
-          status: :pending
-        })
-        |> Repo.insert()
-
-      %EmailAccessRequest{status: :pending} = request ->
-        request
-        |> EmailAccessRequest.changeset(%{
-          email: normalized_email,
-          requested_locale: requested_locale,
-          status: :pending
-        })
-        |> Repo.update()
+        |> EmailAccessRequest.changeset(attrs)
+        |> repo.insert()
 
       %EmailAccessRequest{} = request ->
         request
-        |> EmailAccessRequest.changeset(%{
-          email: normalized_email,
-          requested_locale: requested_locale,
-          status: :pending,
-          reviewed_by: nil,
-          reviewed_at: nil
-        })
-        |> Repo.update()
+        |> EmailAccessRequest.changeset(attrs)
+        |> repo.update()
     end
   end
 
   defp refresh_user_access_state(repo, %User{} = user) do
-    next_status = next_pending_status(user.access_status)
+    user =
+      case refreshed_access_attrs(user) do
+        %{role: role, access_status: access_status}
+        when role == user.role and access_status == user.access_status ->
+          user
 
-    if next_status == user.access_status do
+        attrs ->
+          case repo.update(User.access_changeset(user, attrs)) do
+            {:ok, updated_user} -> updated_user
+            {:error, reason} -> throw({:refresh_user_access_state_error, reason})
+          end
+      end
+
+    with {:ok, _request} <-
+           ensure_access_request_status(
+             repo,
+             user.email,
+             user.preferred_language,
+             if(approved?(user), do: :approved, else: :pending)
+           ) do
       {:ok, user}
-    else
-      repo.update(User.access_changeset(user, %{role: user.role, access_status: next_status}))
     end
+  catch
+    {:refresh_user_access_state_error, reason} -> {:error, reason}
   end
 
   defp next_pending_status(:approved), do: :approved
   defp next_pending_status(_), do: :pending
+
+  defp registration_access_attrs(email) do
+    if bootstrap_superadmin_email?(email) do
+      %{role: :super_admin, access_status: :approved}
+    else
+      %{role: :user, access_status: :pending}
+    end
+  end
+
+  defp refreshed_access_attrs(%User{} = user) do
+    if bootstrap_superadmin_email?(user.email) do
+      %{role: :super_admin, access_status: :approved}
+    else
+      %{role: user.role, access_status: next_pending_status(user.access_status)}
+    end
+  end
+
+  defp refresh_user_access_state!(repo, %User{} = user) do
+    case refresh_user_access_state(repo, user) do
+      {:ok, updated_user} -> updated_user
+      {:error, _reason} -> user
+    end
+  end
+
+  defp maybe_clear_review(attrs, :pending) do
+    Map.merge(attrs, %{reviewed_by: nil, reviewed_at: nil})
+  end
+
+  defp maybe_clear_review(attrs, _status), do: attrs
+
+  defp bootstrap_superadmin_email?(email) when is_binary(email) do
+    normalized_email = normalize_email(email)
+
+    case System.get_env("BOOTSTRAP_SUPERADMIN_EMAIL") do
+      nil -> false
+      value -> normalize_email(value) == normalized_email
+    end
+  end
+
+  defp bootstrap_superadmin_email?(_), do: false
 
   defp active_verification_code(email) do
     now = now_utc()

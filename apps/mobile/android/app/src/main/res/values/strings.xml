@@ -5,4 +5,11 @@
   <string name="step_quest_widget_name">Step Quest</string>
   <string name="step_quest_widget_fallback_title">Step quest</string>
   <string name="step_quest_widget_fallback_body">Open the app to load today\'s progress.</string>
+  <string name="step_quest_widget_badge">DAILY STEPS</string>
+  <string name="step_quest_widget_sync_short">SYNC</string>
+  <string name="step_quest_widget_today_short">Today</string>
+  <string name="step_quest_widget_status_active">On track</string>
+  <string name="step_quest_widget_status_completed">Claim now</string>
+  <string name="step_quest_widget_status_claimed">Claimed</string>
+  <string name="step_quest_widget_status_failed">Tomorrow</string>
 </resources>
