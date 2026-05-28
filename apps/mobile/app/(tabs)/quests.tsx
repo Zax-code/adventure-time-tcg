@@ -27,8 +27,10 @@ import { PageLoadingState } from "../../src/components/loading-state";
 import { ToastBanner } from "../../src/components/toast-banner";
 import { useTranslation } from "../../src/i18n";
 import { apiClient } from "../../src/lib/api";
+import { openDeviceHealthSetup } from "../../src/lib/step-sync";
 import { useQuestResetStore } from "../../src/stores/quest-reset-store";
 import { useSessionStore } from "../../src/stores/session-store";
+import { useStepSyncStore } from "../../src/stores/step-sync-store";
 import { useThemeStore } from "../../src/stores/theme-store";
 import { useBottomTabBarContentPadding } from "../../src/theme/layout";
 import { THEME_COLORS } from "../../src/theme/themes";
@@ -98,6 +100,10 @@ function isSpeedCalculusQuest(questType: string) {
   return questType === "speed_calculus_daily";
 }
 
+function isStepQuest(questType: string) {
+  return questType === "steps_10k";
+}
+
 function getQuestProgressDisplay(quest: Quest) {
   if (isWordleQuest(quest.type)) {
     const used = quest.attemptsUsed ?? 0;
@@ -121,6 +127,8 @@ export default function QuestsScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const patchUser = useSessionStore((state) => state.patchUser);
+  const user = useSessionStore((state) => state.user);
+  const stepSync = useStepSyncStore();
   const { t } = useTranslation();
   const bottomTabPadding = useBottomTabBarContentPadding();
   const lastQuestResetAt = useQuestResetStore((state) => state.lastResetAt);
@@ -200,6 +208,12 @@ export default function QuestsScreen() {
     queryFn: () => apiClient.quests(),
     refetchInterval: 30_000,
   });
+
+  const showStepQuestActivationPrompt =
+    user?.preferredStepSource === "device_health" &&
+    (stepSync.availability === "setup_required" ||
+      (stepSync.healthPermissionStatus !== "granted" &&
+        stepSync.healthPermissionStatus !== "unknown"));
 
   useFocusEffect(
     useCallback(() => {
@@ -494,6 +508,10 @@ export default function QuestsScreen() {
               status === "active"
                 ? t("quests.playQuest")
                 : t("quests.seeResults");
+            const shouldShowActivationPrompt =
+              isStepQuest(quest.type) &&
+              status === "active" &&
+              showStepQuestActivationPrompt;
 
             let statusIcon;
             if (status === "completed") {
@@ -589,6 +607,55 @@ export default function QuestsScreen() {
                 </View>
 
                 <View style={{ marginTop: 16 }}>
+                  {shouldShowActivationPrompt ? (
+                    <View
+                      className="rounded-2xl border border-primaryBorder bg-primaryTint p-3"
+                      style={{ marginBottom: 16 }}
+                    >
+                      <Text className="font-nunito-bold text-sm text-primaryStrong">
+                        {t("quests.stepSyncPromptTitle")}
+                      </Text>
+                      <Text className="font-nunito text-sm text-primaryStrong mt-1">
+                        {stepSync.availability === "setup_required"
+                          ? t("quests.stepSyncPromptSetupBody")
+                          : t("quests.stepSyncPromptBody")}
+                      </Text>
+                      <View className="flex-row items-center gap-3 mt-3">
+                        <TouchableOpacity
+                          onPress={() => {
+                            void openDeviceHealthSetup();
+                          }}
+                          style={{ borderRadius: 10, overflow: "hidden" }}
+                        >
+                          <LinearGradient
+                            colors={[colors.gradStart, colors.gradEnd]}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                            style={{
+                              minHeight: 40,
+                              paddingHorizontal: 14,
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            <Text className="font-nunito-bold text-white">
+                              {stepSync.availability === "setup_required"
+                                ? t("settings.openHealthConnect")
+                                : t("settings.enableStepSync")}
+                            </Text>
+                          </LinearGradient>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={() => router.push("/settings")}
+                        >
+                          <Text className="font-nunito-bold text-sm text-primaryText">
+                            {t("quests.stepSyncPromptSettings")}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  ) : null}
+
                   <View className="flex-row justify-between mb-1">
                     <Text className="font-nunito text-xs text-fgMuted">
                       {t("quests.progress")}

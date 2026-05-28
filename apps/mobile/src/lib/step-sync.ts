@@ -6,10 +6,8 @@ import * as SecureStore from "expo-secure-store";
 import * as TaskManager from "expo-task-manager";
 import {
   AuthorizationRequestStatus,
-  AuthorizationStatus,
   type EmitterSubscription,
   UpdateFrequency,
-  authorizationStatusFor,
   clearBackgroundTypes,
   configureBackgroundTypes,
   enableBackgroundDelivery,
@@ -35,6 +33,7 @@ import { queryClient } from "./query-client";
 import { syncStepQuestWidgetSnapshot } from "./step-quest-widget";
 import {
   type StepSyncAvailability,
+  type StepSyncPermissionStatus,
   useStepSyncStore,
 } from "../stores/step-sync-store";
 import { useLocaleStore } from "../stores/locale-store";
@@ -195,6 +194,28 @@ async function ensureIosBackgroundDeliveryConfigured() {
   }
 }
 
+function mapIosRequestStatusToPermissionStatus(
+  requestStatus: AuthorizationRequestStatus,
+): StepSyncPermissionStatus {
+  if (requestStatus === AuthorizationRequestStatus.unnecessary) {
+    return "granted";
+  }
+
+  if (requestStatus === AuthorizationRequestStatus.shouldRequest) {
+    return "not_requested";
+  }
+
+  return "unknown";
+}
+
+async function getIosHealthPermissionStatus() {
+  const requestStatus = await getRequestStatusForAuthorization({
+    toRead: [IOS_STEP_TYPE],
+  });
+
+  return mapIosRequestStatusToPermissionStatus(requestStatus);
+}
+
 async function readIosHealthStepsToday() {
   const available = await isHealthDataAvailableAsync();
   if (!available) {
@@ -205,21 +226,19 @@ async function readIosHealthStepsToday() {
     return null;
   }
 
-  const status = authorizationStatusFor(IOS_STEP_TYPE);
-  const requestStatus = await getRequestStatusForAuthorization({
-    toRead: [IOS_STEP_TYPE],
-  });
-
-  if (status !== AuthorizationStatus.sharingAuthorized) {
+  const permissionStatus = await getIosHealthPermissionStatus();
+  if (permissionStatus !== "granted") {
     setStore({
       availability: "available",
-      healthPermissionStatus:
-        requestStatus === AuthorizationRequestStatus.shouldRequest
-          ? "not_requested"
-          : "denied",
+      healthPermissionStatus: permissionStatus,
     });
     return null;
   }
+
+  setStore({
+    availability: "available",
+    healthPermissionStatus: "granted",
+  });
 
   const now = new Date();
   const result = await queryStatisticsForQuantity(
@@ -284,8 +303,8 @@ async function ensureIosHealthPermission(interactive: boolean) {
     return false;
   }
 
-  const currentStatus = authorizationStatusFor(IOS_STEP_TYPE);
-  if (currentStatus === AuthorizationStatus.sharingAuthorized) {
+  const currentPermissionStatus = await getIosHealthPermissionStatus();
+  if (currentPermissionStatus === "granted") {
     await ensureIosBackgroundDeliveryConfigured();
     setStore({
       availability: "available",
@@ -294,32 +313,23 @@ async function ensureIosHealthPermission(interactive: boolean) {
     return true;
   }
 
-  const requestStatus = await getRequestStatusForAuthorization({
-    toRead: [IOS_STEP_TYPE],
-  });
-
   setStore({
     availability: "available",
-    healthPermissionStatus:
-      requestStatus === AuthorizationRequestStatus.shouldRequest
-        ? "not_requested"
-        : "denied",
+    healthPermissionStatus: currentPermissionStatus,
   });
-
-  if (!interactive && requestStatus !== AuthorizationRequestStatus.shouldRequest) {
-    return false;
-  }
 
   if (!interactive) {
     return false;
   }
 
-  const granted = await requestAuthorization({
+  await requestAuthorization({
     toRead: [IOS_STEP_TYPE],
   });
   await markPrompted(HEALTH_PERMISSION_PROMPT_KEY);
 
-  if (granted) {
+  const nextPermissionStatus = await getIosHealthPermissionStatus();
+
+  if (nextPermissionStatus === "granted") {
     setStore({
       availability: "available",
       healthPermissionStatus: "granted",
@@ -332,7 +342,7 @@ async function ensureIosHealthPermission(interactive: boolean) {
 
   setStore({
     availability: "available",
-    healthPermissionStatus: "denied",
+    healthPermissionStatus: nextPermissionStatus,
   });
   return false;
 }
