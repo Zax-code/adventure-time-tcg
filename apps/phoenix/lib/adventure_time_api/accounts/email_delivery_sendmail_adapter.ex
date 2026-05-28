@@ -3,24 +3,22 @@ defmodule AdventureTimeApi.Accounts.EmailDelivery.SendmailAdapter do
 
   @behaviour AdventureTimeApi.Accounts.EmailDelivery
 
-  alias AdventureTimeApi.Accounts.VerificationEmailTemplate
-
-  def render_verification_message(email, code) do
+  def render_verification_message(email, code, opts \\ []) do
     from =
       System.get_env("AUTH_EMAIL_FROM") || "Adventure Time TCG <no-reply@leaetzak.love>"
 
-    email_content = VerificationEmailTemplate.render(code)
+    email_content = AdventureTimeApi.Accounts.VerificationEmailTemplate.render(email, code, opts)
     build_message(from, email, email_content)
   end
 
-  def send_verification_code(email, code) do
+  def send_verification_code(email, code, opts \\ []) do
     sendmail_path = System.get_env("AUTH_EMAIL_SENDMAIL_PATH") || "/usr/bin/sendmail"
 
     from =
       System.get_env("AUTH_EMAIL_FROM") || "Adventure Time TCG <no-reply@leaetzak.love>"
 
     envelope_from = envelope_sender(from)
-    email_content = VerificationEmailTemplate.render(code)
+    email_content = AdventureTimeApi.Accounts.VerificationEmailTemplate.render(email, code, opts)
 
     body = build_message(from, email, email_content)
     temp_path = write_temp_message!(body)

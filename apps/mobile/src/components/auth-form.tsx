@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   GoogleSignin,
   isCancelledResponse,
@@ -41,7 +41,14 @@ const googleWebClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
 const googleIosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
 
 type AuthMode = "login" | "register";
-type AuthStage = "credentials" | "verify";
+type AuthStage = "credentials" | "verify" | "pendingApproval";
+type AuthFormPrefill = {
+  email?: string;
+  code?: string;
+  locale?: "en" | "fr";
+  mode?: "login" | "verify";
+  autoVerify?: boolean;
+};
 let nativeGoogleConfigured = false;
 
 function hasGoogleAuthConfig() {
@@ -398,7 +405,7 @@ function NativeGoogleAuthSection({
   );
 }
 
-export function AuthForm() {
+export function AuthForm({ prefill }: { prefill?: AuthFormPrefill }) {
   const router = useRouter();
   const setSession = useSessionStore((state) => state.setSession);
   const preferredLanguage = useLocaleStore((state) => state.locale);
@@ -416,6 +423,8 @@ export function AuthForm() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const googleAuthConfigured = hasGoogleAuthConfig();
+  const appliedPrefillRef = useRef(false);
+  const autoVerifyTriggeredRef = useRef(false);
 
   function switchMode(nextMode: AuthMode) {
     setMode(nextMode);
@@ -425,18 +434,90 @@ export function AuthForm() {
     setInfo(null);
   }
 
-  function enterVerificationStage(nextInfo?: string | null) {
+  function enterVerificationStage(
+    nextInfo?: string | null,
+    opts?: { preserveCode?: boolean },
+  ) {
     setStage("verify");
     setMode("register");
+    if (!opts?.preserveCode) {
+      setVerificationCode("");
+    }
+    setError(null);
+    setInfo(nextInfo ?? null);
+  }
+
+  function enterPendingApprovalStage(nextInfo?: string | null) {
+    setStage("pendingApproval");
+    setMode("login");
+    setPassword("");
     setVerificationCode("");
     setError(null);
     setInfo(nextInfo ?? null);
   }
 
+  function returnToSignIn(nextInfo?: string | null) {
+    setStage("credentials");
+    setMode("login");
+    setVerificationCode("");
+    setError(null);
+    setInfo(nextInfo ?? null);
+  }
+
+  useEffect(() => {
+    if (!prefill || appliedPrefillRef.current) {
+      return;
+    }
+
+    appliedPrefillRef.current = true;
+
+    if (prefill.locale && prefill.locale !== preferredLanguage) {
+      void setPreferredLanguage(prefill.locale);
+    }
+
+    if (prefill.email) {
+      setEmail(prefill.email);
+    }
+
+    if (prefill.code) {
+      setVerificationCode(prefill.code);
+    }
+
+    if (prefill.mode === "verify") {
+      enterVerificationStage(t("auth.status.deepLinkReady"), { preserveCode: true });
+      return;
+    }
+
+    if (prefill.mode === "login" && prefill.email) {
+      returnToSignIn(t("auth.status.emailVerifiedCanSignIn"));
+    }
+  }, [prefill, preferredLanguage, setPreferredLanguage, t]);
+
+  useEffect(() => {
+    if (
+      !prefill?.autoVerify ||
+      autoVerifyTriggeredRef.current ||
+      stage !== "verify" ||
+      !String(email).includes("@") ||
+      !/^\d{6}$/.test(verificationCode)
+    ) {
+      return;
+    }
+
+    autoVerifyTriggeredRef.current = true;
+    setInfo(t("auth.status.deepLinkVerifying"));
+    void submit();
+  }, [email, prefill?.autoVerify, stage, t, verificationCode]);
+
   function getFriendlyError(submitError: unknown) {
     if (submitError instanceof ApiClientError) {
       if (submitError.code === "ACCESS_REQUEST_PENDING") {
-        return stage === "verify" || mode === "register"
+        if (stage === "verify" || mode === "register") {
+          enterPendingApprovalStage(t("auth.status.emailVerifiedPendingApproval"));
+          return t("auth.status.emailVerifiedPendingApproval");
+        }
+
+        return stage === "pendingApproval"
           ? t("auth.status.emailVerifiedPendingApproval")
           : t("auth.status.googlePendingApproval");
       }
@@ -455,6 +536,11 @@ export function AuthForm() {
   }
 
   async function submit() {
+    if (stage === "pendingApproval") {
+      returnToSignIn(info);
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -465,14 +551,11 @@ export function AuthForm() {
           code: verificationCode,
         });
 
-        setInfo(
-          result.authorized
-            ? t("auth.status.emailVerifiedCanSignIn")
-            : t("auth.status.emailVerifiedPendingApproval"),
-        );
-        setStage("credentials");
-        setMode("login");
-        setVerificationCode("");
+        if (result.authorized) {
+          returnToSignIn(t("auth.status.emailVerifiedCanSignIn"));
+        } else {
+          enterPendingApprovalStage(t("auth.status.emailVerifiedPendingApproval"));
+        }
         return;
       }
 
@@ -493,6 +576,7 @@ export function AuthForm() {
         displayName,
         preferredLanguage,
       });
+      setVerificationCode("");
       enterVerificationStage(
         result.accessRequestPending
           ? t("auth.status.verificationCodeSentAccessRequested")
@@ -561,13 +645,19 @@ export function AuthForm() {
         <View style={{ flexDirection: "row", gap: 8 }}>
           <Pressable
             onPress={() => switchMode("login")}
+            disabled={stage === "pendingApproval"}
             style={{
               flex: 1,
               alignItems: "center",
               paddingVertical: 8,
               paddingHorizontal: 16,
               borderRadius: 999,
-              backgroundColor: mode === "login" ? tc.primaryDark : tc.surfaceMuted,
+              backgroundColor:
+                stage === "pendingApproval"
+                  ? tc.surfaceMuted
+                  : mode === "login"
+                    ? tc.primaryDark
+                    : tc.surfaceMuted,
             }}
           >
             <Text
@@ -582,13 +672,19 @@ export function AuthForm() {
           </Pressable>
           <Pressable
             onPress={() => switchMode("register")}
+            disabled={stage === "pendingApproval"}
             style={{
               flex: 1,
               alignItems: "center",
               paddingVertical: 8,
               paddingHorizontal: 16,
               borderRadius: 999,
-              backgroundColor: mode === "register" ? tc.primaryDark : tc.surfaceMuted,
+              backgroundColor:
+                stage === "pendingApproval"
+                  ? tc.surfaceMuted
+                  : mode === "register"
+                    ? tc.primaryDark
+                    : tc.surfaceMuted,
             }}
           >
             <Text
@@ -641,8 +737,20 @@ export function AuthForm() {
           keyboardType="email-address"
           placeholder={t("auth.fields.email")}
           placeholderTextColor={tc.muted}
+          editable={stage !== "pendingApproval"}
           className="rounded-2xl border border-primaryBorder bg-primaryBg px-4 py-3 font-nunito text-fg"
         />
+
+        {stage === "verify" ? (
+          <View className="gap-3 rounded-2xl border border-infoBorder bg-infoTint p-4">
+            <Text className="font-nunito-bold text-base text-infoText">
+              {t("auth.status.verifyTitle")}
+            </Text>
+            <Text className="font-nunito text-sm leading-6 text-infoText">
+              {t("auth.status.verifyBody")}
+            </Text>
+          </View>
+        ) : null}
 
         {stage === "verify" ? (
           <TextInput
@@ -654,6 +762,15 @@ export function AuthForm() {
             placeholderTextColor={tc.muted}
             className="rounded-2xl border border-primaryBorder bg-primaryBg px-4 py-3 font-nunito text-fg"
           />
+        ) : stage === "pendingApproval" ? (
+          <View className="gap-3 rounded-2xl border border-successBorder bg-successTint p-4">
+            <Text className="font-nunito-bold text-base text-successDark">
+              {t("auth.status.pendingApprovalTitle")}
+            </Text>
+            <Text className="font-nunito text-sm leading-6 text-successDark">
+              {t("auth.status.pendingApprovalBody")}
+            </Text>
+          </View>
         ) : (
           <>
             <TextInput
@@ -693,7 +810,9 @@ export function AuthForm() {
         ) : null}
 
         <PrimaryButton onPress={() => void submit()} loading={loading}>
-          {stage === "verify"
+          {stage === "pendingApproval"
+            ? t("auth.actions.backToSignIn")
+            : stage === "verify"
             ? t("auth.actions.verify")
             : mode === "login"
               ? t("auth.actions.signIn")
@@ -701,15 +820,28 @@ export function AuthForm() {
         </PrimaryButton>
 
         {stage === "verify" ? (
-          <Pressable onPress={() => void resendCode()} disabled={loading}>
-            <Text className="text-center font-nunito-bold text-sm text-primaryStrong">
-              {t("auth.actions.resendCode")}
+          <View className="gap-2">
+            <Pressable onPress={() => void resendCode()} disabled={loading}>
+              <Text className="text-center font-nunito-bold text-sm text-primaryStrong">
+                {t("auth.actions.resendCode")}
+              </Text>
+            </Pressable>
+            <Pressable onPress={() => switchMode("register")} disabled={loading}>
+              <Text className="text-center font-nunito text-sm text-primary">
+                {t("auth.actions.useDifferentEmail")}
+              </Text>
+            </Pressable>
+          </View>
+        ) : stage === "pendingApproval" ? (
+          <Pressable onPress={() => returnToSignIn(info)} disabled={loading}>
+            <Text className="text-center font-nunito text-sm text-primary">
+              {t("auth.status.pendingApprovalFootnote")}
             </Text>
           </Pressable>
         ) : null}
       </View>
 
-      {stage === "verify" || !googleAuthConfigured
+      {stage !== "credentials" || !googleAuthConfigured
         ? null
         : Platform.OS === "android" &&
             Constants.executionEnvironment !== ExecutionEnvironment.StoreClient

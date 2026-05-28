@@ -1,10 +1,11 @@
 defmodule AdventureTimeApi.Accounts.EmailDelivery do
   @moduledoc false
 
-  @callback send_verification_code(String.t(), String.t()) :: :ok | {:error, String.t()}
+  @callback send_verification_code(String.t(), String.t(), keyword()) ::
+              :ok | {:error, String.t()}
 
-  def send_verification_code(email, code) do
-    adapter().send_verification_code(email, code)
+  def send_verification_code(email, code, opts \\ []) do
+    adapter().send_verification_code(email, code, opts)
   end
 
   defp adapter do

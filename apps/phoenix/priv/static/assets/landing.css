@@ -259,6 +259,75 @@ h1 {
   opacity: 0.9;
 }
 
+.verify-page-shell {
+  width: min(1100px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 1.5rem 0 3rem;
+}
+
+.verify-card {
+  min-height: calc(100vh - 4rem);
+  align-items: stretch;
+}
+
+.verify-title {
+  max-width: 10ch;
+}
+
+.verify-lede {
+  max-width: 40rem;
+}
+
+.verify-panel {
+  justify-content: center;
+}
+
+.verify-mark {
+  min-height: 280px;
+}
+
+.verify-detail-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 1.5rem;
+}
+
+.verify-detail-card {
+  box-shadow: var(--shadow-soft);
+}
+
+.verify-detail-value {
+  margin-top: 0.45rem;
+  font-size: 1rem;
+  color: var(--fg);
+  word-break: break-word;
+}
+
+.verify-code-pill {
+  display: inline-flex;
+  margin-top: 0.55rem;
+  padding: 0.55rem 0.85rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #fff2a8, var(--secondary));
+  color: var(--secondary-dark);
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+}
+
+.verify-help {
+  margin-top: 1rem;
+  color: var(--fg-soft);
+}
+
+.verify-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.9rem;
+  margin-top: 1.5rem;
+}
+
 .card-shadow-right {
   transform: rotate(13deg) translate(4.5rem, 1.1rem);
   opacity: 0.88;
@@ -412,6 +481,10 @@ a:focus-visible,
     grid-template-columns: 1fr;
   }
 
+  .verify-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
   h1 {
     max-width: none;
   }
@@ -425,6 +498,11 @@ a:focus-visible,
   .page-shell {
     width: min(calc(100% - 1rem), 1180px);
     padding-top: 0.5rem;
+  }
+
+  .verify-page-shell {
+    width: min(calc(100% - 1rem), 1100px);
+    padding-top: 0.75rem;
   }
 
   .hero-shell {
@@ -453,7 +531,9 @@ a:focus-visible,
     flex-direction: column;
   }
 
-  .action {
+  .action,
+  .verify-actions,
+  .verify-actions form {
     width: 100%;
   }
 

@@ -27,6 +27,8 @@ const auth = {
     register: "Register",
     verify: "Verify",
     resendCode: "Resend code",
+    useDifferentEmail: "Use a different email",
+    backToSignIn: "Back to sign in",
     orContinueWithGoogle: "or continue with Google",
     enterCandyKingdom: "Enter the Candy Kingdom",
   },
@@ -37,9 +39,18 @@ const auth = {
     verificationCodeSentCheckEmail: "Verification code sent. Check your email.",
     verificationCodeSentAccessRequested:
       "Verification code sent. Access request submitted automatically.",
+    deepLinkReady: "Verification details filled in. Confirm when you're ready.",
+    deepLinkVerifying: "Finishing your email confirmation...",
+    verifyTitle: "Check your email",
+    verifyBody:
+      "Enter the 6-digit code we sent you, or use the confirmation page link in the email to come back here with everything filled in.",
     emailVerifiedCanSignIn: "Email verified. You can now sign in.",
     emailVerifiedPendingApproval:
       "Email verified and account created. Your access request is pending super admin approval.",
+    pendingApprovalTitle: "You're almost in",
+    pendingApprovalBody:
+      "Your email is confirmed and your account is waiting for super admin approval. Once approved, come back here and sign in with the same email and password.",
+    pendingApprovalFootnote: "You can return to sign in when access has been approved.",
     newVerificationCodeSent: "A new verification code was sent.",
     googlePendingApproval:
       "This Google account is pending approval. Your access request has been submitted.",

@@ -35,6 +35,16 @@ require_clean_worktree() {
   fi
 }
 
+require_file() {
+  local path="$1"
+  local description="$2"
+
+  if [ ! -f "$path" ]; then
+    echo "Missing required $description: $path" >&2
+    exit 1
+  fi
+}
+
 wait_for_systemd() {
   local service="$1"
 
@@ -226,6 +236,7 @@ APP_DIR="apps/phoenix"
 SERVICE_NAME="adventure-time-tcg-api.service"
 ENV_FILE=""
 CONTAINER_ENV_FILE="/home/zax/adventure-time-tcg-secrets/api.container.env"
+MAIL_RELAY_CONFIG_FILE="/home/zax/adventure-time-tcg-secrets/msmtprc"
 QUADLET_DIR="/etc/containers/systemd"
 HEALTH_URL="http://127.0.0.1:4200/ready"
 REGISTRY_AUTH_FILE=""
@@ -343,6 +354,7 @@ fi
 
 echo "Rendering container env file from $ENV_FILE..."
 render_container_env "$ENV_FILE" "$CONTAINER_ENV_FILE"
+require_file "$MAIL_RELAY_CONFIG_FILE" "msmtp relay config"
 
 echo "Installing Quadlet units..."
 install_quadlets "$REPO_ROOT"

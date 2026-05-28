@@ -1,69 +1,69 @@
 defmodule AdventureTimeApi.Accounts.VerificationEmailTemplate do
   @moduledoc false
 
-  def render(code) do
-    subject = "Confirm your Adventure Time TCG account"
-    preheader = "Use this verification code to finish creating your account."
-    title = "Confirm your account"
-    intro = "Use this verification code to finish creating your account."
-    expiry_prefix = "Expires in"
-    expiry_value = "15 minutes"
-    copy_hint = "Tap and hold, then copy all 6 digits at once."
-    ignore_hint = "If you didn't request this, you can safely ignore this email."
+  def render(email, code, opts \\ []) do
+    locale = Keyword.get(opts, :locale, :en)
+    copy = copy_for(locale)
+    verification_url = verification_url(email, code, locale)
 
     %{
-      subject: subject,
-      text: text_body(code),
-      html:
-        html_body(
-          subject,
-          preheader,
-          title,
-          intro,
-          expiry_prefix,
-          expiry_value,
-          copy_hint,
-          ignore_hint,
-          code
-        )
+      subject: copy.subject,
+      text: text_body(copy, code, verification_url),
+      html: html_body(copy, code, verification_url)
     }
   end
 
-  defp text_body(code) do
+  defp verification_url(email, code, locale) do
+    endpoint_url =
+      Application.fetch_env!(:adventure_time_api, AdventureTimeApiWeb.Endpoint)
+      |> Keyword.fetch!(:url)
+
+    query =
+      URI.encode_query(%{
+        email: email,
+        code: code,
+        locale: Atom.to_string(locale)
+      })
+
+    %URI{
+      scheme: Keyword.get(endpoint_url, :scheme, "https"),
+      host: Keyword.fetch!(endpoint_url, :host),
+      port: endpoint_url[:port],
+      path: "/email/verify",
+      query: query
+    }
+    |> URI.to_string()
+  end
+
+  defp text_body(copy, code, verification_url) do
     [
       "Adventure Time TCG",
       "",
-      "Use this verification code to finish creating your account.",
+      copy.intro,
       "",
-      "Verification code: #{code}",
-      "Expires in 15 minutes.",
+      "#{copy.code_label}: #{code}",
+      "#{copy.expiry_prefix} #{copy.expiry_value}.",
       "",
-      "Tip: copy all 6 digits and paste them in the verify form."
+      copy.copy_hint,
+      "",
+      "#{copy.browser_cta}: #{verification_url}",
+      "",
+      copy.ignore_hint
     ]
     |> Enum.join("\n")
   end
 
-  defp html_body(
-         subject,
-         preheader,
-         title,
-         intro,
-         expiry_prefix,
-         expiry_value,
-         copy_hint,
-         ignore_hint,
-         code
-       ) do
+  defp html_body(copy, code, verification_url) do
     """
     <!doctype html>
-    <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+    <html lang="#{copy.lang}" xmlns="http://www.w3.org/1999/xhtml">
       <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <meta name="color-scheme" content="light dark" />
         <meta name="supported-color-schemes" content="light dark" />
-        <title>#{subject}</title>
+        <title>#{copy.subject}</title>
         <style>
           :root {
             color-scheme: light dark;
@@ -110,6 +110,16 @@ defmodule AdventureTimeApi.Accounts.VerificationEmailTemplate do
             color: #2f2333 !important;
           }
 
+          .cta-link {
+            display: inline-block;
+            padding: 14px 20px;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #be185d, #f472b6);
+            color: #fff9fc !important;
+            font-weight: 800;
+            text-decoration: none;
+          }
+
           @media (prefers-color-scheme: dark) {
             .app-shell {
               background-color: #20131b !important;
@@ -144,7 +154,7 @@ defmodule AdventureTimeApi.Accounts.VerificationEmailTemplate do
         </style>
       </head>
       <body style="margin:0;padding:0;background-color:#fff0f5;color:#4a3728;font-family:Nunito,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-        <div style="display:none;font-size:1px;color:#fff0f5;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">#{preheader}</div>
+        <div style="display:none;font-size:1px;color:#fff0f5;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">#{copy.preheader}</div>
         <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" bgcolor="#fff0f5" class="app-shell" style="background-color:#fff0f5;margin:0;padding:0;">
           <tr>
             <td align="center" style="padding:24px 12px;">
@@ -156,12 +166,12 @@ defmodule AdventureTimeApi.Accounts.VerificationEmailTemplate do
                 </tr>
                 <tr>
                   <td class="app-title" style="padding:20px 24px 8px;font-size:18px;font-weight:700;color:#4a3728;">
-                    #{title}
+                    #{copy.title}
                   </td>
                 </tr>
                 <tr>
                   <td class="app-copy" style="padding:0 24px 12px;font-size:15px;line-height:1.6;color:#4d3846;">
-                    #{intro}
+                    #{copy.intro}
                   </td>
                 </tr>
                 <tr>
@@ -176,13 +186,18 @@ defmodule AdventureTimeApi.Accounts.VerificationEmailTemplate do
                   </td>
                 </tr>
                 <tr>
+                  <td style="padding:10px 24px 4px;">
+                    <a href="#{verification_url}" class="cta-link">#{copy.browser_button}</a>
+                  </td>
+                </tr>
+                <tr>
                   <td class="app-meta" style="padding:8px 24px 0;font-size:13px;line-height:1.6;color:#614b58;">
-                    #{expiry_prefix} <strong>#{expiry_value}</strong>. #{copy_hint}
+                    #{copy.expiry_prefix} <strong>#{copy.expiry_value}</strong>. #{copy.copy_hint}
                   </td>
                 </tr>
                 <tr>
                   <td class="app-footnote" style="padding:18px 24px 24px;font-size:12px;line-height:1.6;color:#6f5866;">
-                    #{ignore_hint}
+                    #{copy.ignore_hint}
                   </td>
                 </tr>
               </table>
@@ -192,5 +207,39 @@ defmodule AdventureTimeApi.Accounts.VerificationEmailTemplate do
       </body>
     </html>
     """
+  end
+
+  defp copy_for(:fr) do
+    %{
+      lang: "fr",
+      subject: "Confirme ton compte Adventure Time TCG",
+      preheader: "Utilise ce code pour terminer la creation de ton compte.",
+      title: "Confirme ton compte",
+      intro: "Utilise ce code pour terminer la creation de ton compte.",
+      code_label: "Code de verification",
+      expiry_prefix: "Expire dans",
+      expiry_value: "15 minutes",
+      copy_hint: "Tu peux aussi ouvrir la page de confirmation pour valider plus facilement.",
+      browser_cta: "Page de confirmation",
+      browser_button: "Ouvrir la confirmation",
+      ignore_hint: "Si tu n'es pas a l'origine de cette demande, tu peux ignorer cet e-mail."
+    }
+  end
+
+  defp copy_for(_locale) do
+    %{
+      lang: "en",
+      subject: "Confirm your Adventure Time TCG account",
+      preheader: "Use this verification code to finish creating your account.",
+      title: "Confirm your account",
+      intro: "Use this verification code to finish creating your account.",
+      code_label: "Verification code",
+      expiry_prefix: "Expires in",
+      expiry_value: "15 minutes",
+      copy_hint: "You can also open the confirmation page for a smoother finish.",
+      browser_cta: "Confirmation page",
+      browser_button: "Open confirmation page",
+      ignore_hint: "If you didn't request this, you can safely ignore this email."
+    }
   end
 end

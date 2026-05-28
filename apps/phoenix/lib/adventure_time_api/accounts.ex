@@ -87,7 +87,10 @@ defmodule AdventureTimeApi.Accounts do
       |> Repo.transaction()
       |> case do
         {:ok, %{user: user}} ->
-          with :ok <- EmailDelivery.send_verification_code(normalized_email, verification_code) do
+          with :ok <-
+                 EmailDelivery.send_verification_code(normalized_email, verification_code,
+                   locale: preferred_language
+                 ) do
             {:ok, registration_response(user, verification_code)}
           else
             {:error, message} -> {:error, :delivery, message}
@@ -193,7 +196,10 @@ defmodule AdventureTimeApi.Accounts do
       |> Repo.transaction()
       |> case do
         {:ok, %{user: refreshed_user}} ->
-          with :ok <- EmailDelivery.send_verification_code(normalized_email, verification_code) do
+          with :ok <-
+                 EmailDelivery.send_verification_code(normalized_email, verification_code,
+                   locale: user.preferred_language
+                 ) do
             {:ok, resend_response(refreshed_user, verification_code)}
           else
             {:error, message} -> {:error, :delivery, message}

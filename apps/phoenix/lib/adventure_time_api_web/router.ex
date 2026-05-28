@@ -20,6 +20,8 @@ defmodule AdventureTimeApiWeb.Router do
     pipe_through(:browser_html)
 
     get("/", LandingController, :index)
+    get("/email/verify", EmailVerificationController, :show)
+    post("/email/verify", EmailVerificationController, :confirm)
   end
 
   scope "/", AdventureTimeApiWeb do
