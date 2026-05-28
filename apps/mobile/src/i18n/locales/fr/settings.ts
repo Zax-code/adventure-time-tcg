@@ -41,10 +41,10 @@ const settings = {
     fitbit: "Fitbit",
   },
   permissionStates: {
-    unknown: "Verification",
-    not_requested: "Non demande",
-    granted: "Autorise",
-    denied: "Refuse",
+    unknown: "Vérification",
+    not_requested: "Non demandé",
+    granted: "Autorisé",
+    denied: "Refusé",
   },
 };
 

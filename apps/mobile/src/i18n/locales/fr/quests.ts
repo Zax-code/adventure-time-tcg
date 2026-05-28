@@ -16,6 +16,12 @@ const quests = {
   claimFailed: "Impossible de récupérer la récompense.",
   questReset: "{quest} a été réinitialisée.",
   questResetByAdmin: "{quest} a été réinitialisée par {name}.",
+  stepSyncPromptTitle: "Active le suivi des pas pour cette quête",
+  stepSyncPromptBody:
+    "Active Apple Health ou Health Connect une fois pour que cette quête puisse compter tes pas.",
+  stepSyncPromptSetupBody:
+    "Termine d'abord la configuration de Health Connect pour que cette quête puisse compter tes pas.",
+  stepSyncPromptSettings: "Ouvrir les paramètres",
   widgetRemainingSteps: "{count} pas restants",
   widgetReadyToClaim: "Récompense prête : {reward} pièces",
   widgetClaimedToday: "Récupérée pour aujourd'hui",
