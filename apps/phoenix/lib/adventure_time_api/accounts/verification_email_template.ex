@@ -111,13 +111,19 @@ defmodule AdventureTimeApi.Accounts.VerificationEmailTemplate do
           }
 
           .cta-link {
-            display: inline-block;
+            display: block;
+            width: 100%;
             padding: 14px 20px;
-            border-radius: 999px;
-            background: linear-gradient(135deg, #be185d, #f472b6);
             color: #fff9fc !important;
             font-weight: 800;
             text-decoration: none;
+            text-align: center;
+            box-sizing: border-box;
+          }
+
+          .cta-cell {
+            background: linear-gradient(135deg, #be185d, #f472b6);
+            border-radius: 999px;
           }
 
           @media (prefers-color-scheme: dark) {
@@ -187,7 +193,13 @@ defmodule AdventureTimeApi.Accounts.VerificationEmailTemplate do
                 </tr>
                 <tr>
                   <td style="padding:10px 24px 4px;">
-                    <a href="#{verification_url}" class="cta-link">#{copy.browser_button}</a>
+                    <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td align="center" class="cta-cell" style="background:linear-gradient(135deg, #be185d, #f472b6);border-radius:999px;">
+                          <a href="#{verification_url}" class="cta-link">#{copy.browser_button}</a>
+                        </td>
+                      </tr>
+                    </table>
                   </td>
                 </tr>
                 <tr>
