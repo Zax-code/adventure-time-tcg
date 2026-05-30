@@ -5,4 +5,18 @@
   <string name="step_quest_widget_name">Step Quest</string>
   <string name="step_quest_widget_fallback_title">Step quest</string>
   <string name="step_quest_widget_fallback_body">Open the app to load today\'s progress.</string>
+  <string name="step_quest_widget_badge_small">STEP QUEST</string>
+  <string name="step_quest_widget_badge_medium">STEP QUEST</string>
+  <string name="step_quest_widget_small_title">10 000 Steps</string>
+  <string name="step_quest_widget_medium_title">Walk 10,000 steps today</string>
+  <string name="step_quest_widget_ring_goal">goal</string>
+  <string name="step_quest_widget_sync_short">SYNC</string>
+  <string name="step_quest_widget_status_active">On track</string>
+  <string name="step_quest_widget_status_completed">Claim now</string>
+  <string name="step_quest_widget_status_claimed">Claimed</string>
+  <string name="step_quest_widget_status_failed">Tomorrow</string>
+  <string name="step_quest_widget_footnote_active">Keep walking to finish today\'s quest.</string>
+  <string name="step_quest_widget_footnote_completed">Reward is ready to claim.</string>
+  <string name="step_quest_widget_footnote_claimed">You already grabbed today\'s reward.</string>
+  <string name="step_quest_widget_footnote_failed">A fresh quest will appear tomorrow.</string>
 </resources>
