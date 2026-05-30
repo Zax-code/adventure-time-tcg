@@ -212,47 +212,38 @@ private struct StepQuestSmallLayout: View {
   }
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 8) {
+    VStack(alignment: .leading, spacing: 4) {
       HStack(alignment: .center, spacing: 8) {
-        WidgetBadge(text: localized(en: "STEP QUEST", fr: "QUETE"), palette: palette)
+        WidgetBadge(text: localized(en: "STEP QUEST", fr: "QUÊTE"), palette: palette)
         Spacer(minLength: 8)
         RewardChip(reward: snapshot.reward, compact: true)
       }
-
-      Text(localized(en: "10K Steps", fr: "10k pas"))
-        .font(.system(size: 16, weight: .heavy, design: .rounded))
-        .foregroundStyle(palette.title)
-        .lineLimit(1)
-        .minimumScaleFactor(0.9)
-
-      HStack(alignment: .center, spacing: 10) {
-        ProgressRing(
-          progress: progressRatio,
-          palette: palette,
-          primaryLabel: percentText(for: snapshot),
-          secondaryLabel: localized(en: "goal", fr: "but")
-        )
-        .frame(width: 60, height: 60)
-
-        VStack(alignment: .leading, spacing: 5) {
-          StatusPill(text: statusHeadline(for: snapshot.status), palette: palette, compact: true)
-
-          Text(compactProgressLabel(for: snapshot))
-            .font(.system(size: 12, weight: .bold, design: .rounded))
+      HStack(alignment: .center, spacing:0)
+      {
+        Spacer(minLength: 0)
+      
+        VStack(alignment: .center, spacing:5){
+          Text(localized(en: "10 000 Steps", fr: "10 000 pas"))
+            .font(.system(size: 16, weight: .heavy, design: .rounded))
             .foregroundStyle(palette.title)
             .lineLimit(1)
-
-          Text(shortStatusSupport(for: snapshot))
-            .font(.system(size: 10, weight: .semibold, design: .rounded))
-            .foregroundStyle(palette.body)
-            .lineLimit(1)
+            .minimumScaleFactor(0.9)
+          VStack(alignment: .center, spacing: 6) {
+            StatusPill(text: statusHeadline(for: snapshot.status), palette: palette, compact: true)
+            
+            ProgressRing(
+              progress: progressRatio,
+              palette: palette,
+              primaryLabel: percentText(for: snapshot),
+              secondaryLabel: compactRingProgressLabel(for: snapshot)
+            )
+            .frame(width: 70, height: 70)
+            
+          }
         }
-
         Spacer(minLength: 0)
-      }
 
-      ProgressBar(progress: progressRatio, palette: palette)
-        .frame(height: 8)
+      }
     }
     .padding(.horizontal, 12)
     .padding(.vertical, 10)
@@ -269,36 +260,31 @@ private struct StepQuestMediumLayout: View {
   }
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      HStack(alignment: .center, spacing: 10) {
-        WidgetBadge(text: localized(en: "STEP QUEST", fr: "QUETE DE PAS"), palette: palette)
-        Spacer(minLength: 6)
-        StatusPill(text: statusHeadline(for: snapshot.status), palette: palette, compact: true)
-        RewardChip(reward: snapshot.reward, compact: true)
+    VStack(alignment: .leading, spacing: 10) {
+      VStack(alignment: .leading, spacing: 4){
+        HStack(alignment: .center, spacing: 10) {
+          WidgetBadge(text: localized(en: "STEP QUEST", fr: "QUÊTE DE PAS"), palette: palette)
+          Spacer(minLength: 6)
+          StatusPill(text: statusHeadline(for: snapshot.status), palette: palette, compact: true)
+          RewardChip(reward: snapshot.reward, compact: true)
+        }
+        
+        Text(localized(en: "Walk 10,000 steps today", fr: "Marche 10 000 pas aujourd'hui"))
+          .font(.system(size: 16, weight: .heavy, design: .rounded))
+          .foregroundStyle(palette.title)
+          .lineLimit(1)
+          .minimumScaleFactor(0.8)
       }
-
-      Text(localized(en: "Walk 10,000 steps today", fr: "Marche 10 000 pas aujourd'hui"))
-        .font(.system(size: 16, weight: .heavy, design: .rounded))
-        .foregroundStyle(palette.title)
-        .lineLimit(1)
-        .minimumScaleFactor(0.8)
-
-      Text(compactSubtitle(for: snapshot))
-        .font(.system(size: 11, weight: .semibold, design: .rounded))
-        .foregroundStyle(palette.body)
-        .lineLimit(1)
-        .minimumScaleFactor(0.85)
-
-      HStack(alignment: .center, spacing: 12) {
+      HStack(alignment: .bottom, spacing: 20) {
         ProgressRing(
           progress: progressRatio,
           palette: palette,
           primaryLabel: percentText(for: snapshot),
-          secondaryLabel: localized(en: "goal", fr: "but")
+          secondaryLabel: localized(en: "goal", fr: "objectif")
         )
         .frame(width: 68, height: 68)
 
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 4) {
           Text(snapshot.progressLabel)
             .font(.system(size: 12, weight: .bold, design: .rounded))
             .foregroundStyle(palette.title)
@@ -309,24 +295,13 @@ private struct StepQuestMediumLayout: View {
             .foregroundStyle(palette.muted)
             .lineLimit(2)
             .minimumScaleFactor(0.85)
-        }
+        }.padding(.bottom, 6)
 
-        Spacer(minLength: 0)
       }
 
-      VStack(alignment: .leading, spacing: 6) {
-        ProgressBar(progress: progressRatio, palette: palette)
-          .frame(height: 10)
-
-        Text(snapshot.statusLabel)
-          .font(.system(size: 10, weight: .bold, design: .rounded))
-          .foregroundStyle(palette.muted)
-          .lineLimit(1)
-      }
     }
-    .padding(.horizontal, 12)
-    .padding(.top, 18)
-    .padding(.bottom, 8)
+    .padding(.vertical, 15)
+    .padding(.horizontal, 20)
   }
 }
 
@@ -342,7 +317,7 @@ private struct StepQuestFallbackLayout: View {
         CoinToken(size: family == .systemSmall ? 26 : 30)
       }
 
-      Text(localized(en: "Step quest", fr: "Quete de pas"))
+      Text(localized(en: "Step quest", fr: "Quête de pas"))
         .font(.system(size: family == .systemSmall ? 16 : 18, weight: .heavy, design: .rounded))
         .foregroundStyle(palette.title)
         .lineLimit(2)
@@ -667,36 +642,27 @@ private func compactSubtitle(for snapshot: StepQuestSnapshot) -> String {
   }
 }
 
-private func compactProgressLabel(for snapshot: StepQuestSnapshot) -> String {
-  "\(abbreviatedStepCount(snapshot.progress)) / \(abbreviatedStepCount(snapshot.target))"
+private func fullProgressLabel(for snapshot: StepQuestSnapshot) -> String {
+  "\(localizedNumber(snapshot.progress)) / \(localizedNumber(snapshot.target))"
 }
 
-private func shortStatusSupport(for snapshot: StepQuestSnapshot) -> String {
-  switch snapshot.status {
-  case "completed":
-    return localized(en: "Ready to collect", fr: "Pret a recuperer")
-  case "claimed":
-    return localized(en: "Done for today", fr: "Fait pour aujourd'hui")
-  case "failed":
-    return localized(en: "Try again tomorrow", fr: "Reessaie demain")
-  default:
-    return localized(en: "Daily progress", fr: "Progression du jour")
-  }
+private func compactRingProgressLabel(for snapshot: StepQuestSnapshot) -> String {
+  "\(abbreviatedStepCount(snapshot.progress)) / \(abbreviatedStepCount(snapshot.target))"
 }
 
 private func abbreviatedStepCount(_ value: Int) -> String {
   if value >= 10_000 {
     let rounded = Double(value) / 1_000
     if value % 1_000 == 0 {
-      return "\(Int(rounded))k"
+      return "\(Int(rounded))K"
     }
 
-    return "\(trimmedSingleDecimal(rounded))k"
+    return "\(trimmedSingleDecimal(rounded))K"
   }
 
   if value >= 1_000 {
     let rounded = Double(value) / 1_000
-    return "\(trimmedSingleDecimal(rounded))k"
+    return "\(trimmedSingleDecimal(rounded))K"
   }
 
   return localizedNumber(value)

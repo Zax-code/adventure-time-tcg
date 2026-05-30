@@ -6,107 +6,46 @@
   android:background="@drawable/step_quest_widget_background_medium"
   android:gravity="top"
   android:orientation="vertical"
-  android:padding="12dp">
+  android:paddingStart="20dp"
+  android:paddingTop="15dp"
+  android:paddingEnd="20dp"
+  android:paddingBottom="15dp">
 
   <LinearLayout
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:gravity="center_vertical"
-    android:orientation="horizontal">
-
-    <TextView
-      android:id="@+id/widget_badge"
-      android:layout_width="wrap_content"
-      android:layout_height="wrap_content"
-      android:fontFamily="sans-serif-medium"
-      android:includeFontPadding="false"
-      android:paddingStart="8dp"
-      android:paddingTop="4dp"
-      android:paddingEnd="8dp"
-      android:paddingBottom="4dp"
-      android:textColor="#4A3728"
-      android:textSize="9sp"
-      android:textStyle="bold" />
-
-    <Space
-      android:layout_width="0dp"
-      android:layout_height="1dp"
-      android:layout_weight="1" />
+    android:orientation="vertical">
 
     <LinearLayout
-      android:id="@+id/widget_reward_chip"
-      android:layout_width="wrap_content"
+      android:layout_width="match_parent"
       android:layout_height="wrap_content"
       android:gravity="center_vertical"
-      android:orientation="horizontal"
-      android:paddingStart="2dp"
-      android:paddingTop="2dp"
-      android:paddingEnd="2dp"
-      android:paddingBottom="2dp">
-
-      <ImageView
-        android:id="@+id/widget_reward_icon"
-        android:layout_width="18dp"
-        android:layout_height="18dp"
-        android:contentDescription="@null"
-        android:src="@drawable/ic_widget_coin" />
+      android:orientation="horizontal">
 
       <TextView
-        android:id="@+id/widget_reward"
+        android:id="@+id/widget_badge"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="4dp"
+        android:background="@drawable/step_quest_widget_badge"
         android:fontFamily="sans-serif-medium"
         android:includeFontPadding="false"
-        android:textColor="#894B00"
-        android:textSize="11sp"
+        android:paddingStart="9dp"
+        android:paddingTop="5dp"
+        android:paddingEnd="9dp"
+        android:paddingBottom="5dp"
+        android:textColor="#4A3728"
+        android:textSize="9sp"
         android:textStyle="bold" />
-    </LinearLayout>
-  </LinearLayout>
 
-  <TextView
-    android:id="@+id/widget_title"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:layout_marginTop="8dp"
-    android:ellipsize="end"
-    android:fontFamily="sans-serif-black"
-    android:includeFontPadding="false"
-    android:maxLines="1"
-    android:textColor="#4A3728"
-    android:textSize="16sp" />
-
-  <LinearLayout
-    android:layout_width="match_parent"
-    android:layout_height="0dp"
-    android:layout_marginTop="10dp"
-    android:layout_weight="1"
-    android:gravity="center_vertical"
-    android:orientation="horizontal">
-
-    <LinearLayout
-      android:layout_width="0dp"
-      android:layout_height="match_parent"
-      android:layout_weight="1"
-      android:gravity="top"
-      android:orientation="vertical">
-
-      <TextView
-        android:id="@+id/widget_subtitle"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:ellipsize="end"
-        android:fontFamily="sans-serif"
-        android:includeFontPadding="false"
-        android:maxLines="1"
-        android:textColor="#6B5A47"
-        android:textSize="11sp" />
+      <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="1dp"
+        android:layout_weight="1" />
 
       <TextView
         android:id="@+id/widget_status_pill"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
         android:background="@drawable/step_quest_widget_status_active"
         android:fontFamily="sans-serif-medium"
         android:includeFontPadding="false"
@@ -118,64 +57,100 @@
         android:textSize="10sp"
         android:textStyle="bold" />
 
-      <ProgressBar
-        android:id="@+id/widget_progress"
-        style="?android:attr/progressBarStyleHorizontal"
-        android:layout_width="match_parent"
-        android:layout_height="10dp"
-        android:layout_marginTop="10dp"
-        android:layout_marginEnd="10dp"
-        android:max="10000"
-        android:progress="0"
-        android:progressDrawable="@drawable/step_quest_widget_progress" />
-
-      <TextView
-        android:id="@+id/widget_progress_label"
-        android:layout_width="match_parent"
+      <LinearLayout
+        android:id="@+id/widget_reward_chip"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
-        android:fontFamily="sans-serif-medium"
-        android:includeFontPadding="false"
-        android:textColor="#4A3728"
-        android:textSize="11sp"
-        android:textStyle="bold" />
+        android:layout_marginStart="8dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <ImageView
+          android:layout_width="18dp"
+          android:layout_height="18dp"
+          android:contentDescription="@null"
+          android:src="@drawable/ic_widget_coin" />
+
+        <TextView
+          android:id="@+id/widget_reward"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:layout_marginStart="4dp"
+          android:fontFamily="sans-serif-black"
+          android:includeFontPadding="false"
+          android:textColor="#8A4A00"
+          android:textSize="11sp" />
+      </LinearLayout>
     </LinearLayout>
 
+    <TextView
+      android:id="@+id/widget_title"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:layout_marginTop="4dp"
+      android:fontFamily="sans-serif-black"
+      android:includeFontPadding="false"
+      android:maxLines="1"
+      android:textColor="#4A3728"
+      android:textSize="16sp" />
+
+    <TextView
+      android:id="@+id/widget_fallback_body"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:layout_marginTop="8dp"
+      android:fontFamily="sans-serif-medium"
+      android:includeFontPadding="false"
+      android:maxLines="2"
+      android:textColor="#6B5A47"
+      android:textSize="11sp"
+      android:visibility="gone" />
+  </LinearLayout>
+
+  <LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="0dp"
+    android:layout_weight="1"
+    android:layout_marginTop="10dp"
+    android:gravity="bottom"
+    android:orientation="horizontal">
+
+    <ImageView
+      android:id="@+id/widget_ring"
+      android:layout_width="112dp"
+      android:layout_height="112dp"
+      android:contentDescription="@null" />
+
     <LinearLayout
-      android:layout_width="78dp"
-      android:layout_height="match_parent"
-      android:gravity="center"
+      android:layout_width="0dp"
+      android:layout_height="wrap_content"
+      android:layout_gravity="bottom"
+      android:layout_marginStart="20dp"
+      android:layout_weight="1"
+      android:gravity="bottom"
       android:orientation="vertical"
-      android:padding="6dp">
+      android:paddingBottom="6dp">
 
       <TextView
-        android:id="@+id/widget_metric_value"
-        android:layout_width="wrap_content"
+        android:id="@+id/widget_detail_label"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:fontFamily="sans-serif-black"
         android:includeFontPadding="false"
-        android:textColor="#DB2777"
-        android:textSize="21sp" />
+        android:maxLines="1"
+        android:textColor="#4A3728"
+        android:textSize="12sp" />
 
       <TextView
-        android:id="@+id/widget_metric_label"
-        android:layout_width="wrap_content"
+        android:id="@+id/widget_detail_body"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
         android:fontFamily="sans-serif-medium"
-        android:gravity="center"
         android:includeFontPadding="false"
-        android:maxLines="1"
+        android:maxLines="2"
         android:textColor="#7A6A56"
-        android:textSize="9sp"
-        android:textStyle="bold" />
-
-      <ImageView
-        android:layout_width="24dp"
-        android:layout_height="24dp"
-        android:layout_marginTop="6dp"
-        android:contentDescription="@null"
-        android:src="@drawable/ic_widget_coin" />
+        android:textSize="11sp" />
     </LinearLayout>
   </LinearLayout>
 </LinearLayout>

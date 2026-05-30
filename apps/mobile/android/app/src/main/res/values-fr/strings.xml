@@ -1,12 +1,19 @@
 <resources>
-  <string name="step_quest_widget_name">Quete de pas</string>
-  <string name="step_quest_widget_fallback_title">Quete de pas</string>
+  <string name="step_quest_widget_name">Quête de pas</string>
+  <string name="step_quest_widget_fallback_title">Quête de pas</string>
   <string name="step_quest_widget_fallback_body">Ouvre l\'application pour charger la progression du jour.</string>
-  <string name="step_quest_widget_badge">PAS DU JOUR</string>
+  <string name="step_quest_widget_badge_small">QUÊTE</string>
+  <string name="step_quest_widget_badge_medium">QUÊTE DE PAS</string>
+  <string name="step_quest_widget_small_title">10 000 pas</string>
+  <string name="step_quest_widget_medium_title">Marche 10 000 pas aujourd\'hui</string>
+  <string name="step_quest_widget_ring_goal">objectif</string>
   <string name="step_quest_widget_sync_short">SYNC</string>
-  <string name="step_quest_widget_today_short">Auj.</string>
   <string name="step_quest_widget_status_active">En cours</string>
-  <string name="step_quest_widget_status_completed">A reclamer</string>
-  <string name="step_quest_widget_status_claimed">Recuperee</string>
+  <string name="step_quest_widget_status_completed">À réclamer</string>
+  <string name="step_quest_widget_status_claimed">Récupérée</string>
   <string name="step_quest_widget_status_failed">Demain</string>
+  <string name="step_quest_widget_footnote_active">Continue à marcher pour finir.</string>
+  <string name="step_quest_widget_footnote_completed">La récompense est prête.</string>
+  <string name="step_quest_widget_footnote_claimed">Récompense déjà prise.</string>
+  <string name="step_quest_widget_footnote_failed">Nouvelle quête demain.</string>
 </resources>
