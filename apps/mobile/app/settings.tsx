@@ -427,7 +427,7 @@ export default function SettingsScreen() {
                         </View>
                       </View>
                     ) : (
-                      <View className="self-start pt-1">
+                      <View className="w-full pt-1">
                         <GhostButton
                           onPress={() => {
                             setDisplayNameInput(user?.displayName ?? "");
