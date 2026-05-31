@@ -1,5 +1,4 @@
 import * as SecureStore from "expo-secure-store";
-import { Platform } from "react-native";
 
 import {
   ApiClient,
@@ -8,33 +7,11 @@ import {
 } from "@adventure-time/api-client";
 
 import { queryClient } from "./query-client";
+import { unregisterNotificationDeviceBeforeSessionClear } from "./widget-refresh-push";
+import { API_BASE_URL } from "./api-config";
 import { useSessionStore } from "../stores/session-store";
 
-function resolveApiBaseUrl(rawBaseUrl: string) {
-  if (Platform.OS !== "android") {
-    return rawBaseUrl;
-  }
-
-  try {
-    const url = new URL(rawBaseUrl);
-
-    if (url.hostname !== "127.0.0.1" && url.hostname !== "localhost") {
-      return rawBaseUrl;
-    }
-
-    url.hostname = "10.0.2.2";
-
-    const pathname = url.pathname === "/" ? "" : url.pathname.replace(/\/$/, "");
-
-    return `${url.origin}${pathname}${url.search}${url.hash}`;
-  } catch {
-    return rawBaseUrl;
-  }
-}
-
-export const API_BASE_URL = resolveApiBaseUrl(
-  process.env.EXPO_PUBLIC_API_BASE_URL ?? "https://app.leaetzak.love",
-);
+export { API_BASE_URL };
 
 let refreshPromise: Promise<string | null> | null = null;
 
@@ -71,6 +48,7 @@ export async function getStoredUser() {
 }
 
 export async function clearAppSession() {
+  await unregisterNotificationDeviceBeforeSessionClear();
   await useSessionStore.getState().clearSession();
   queryClient.clear();
 }

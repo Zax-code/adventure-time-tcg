@@ -63,6 +63,7 @@ import {
   pvpInviteSchema,
   pvpInvitesResponseSchema,
   questsResponseSchema,
+  registerNotificationDeviceSchema,
   refreshTokenSchema,
   requestPasswordResetResponseSchema,
   requestPasswordResetSchema,
@@ -127,6 +128,7 @@ import {
   type PvpMatch,
   type PvpMatchDetailResponse,
   type QuestsResponse,
+  type RegisterNotificationDeviceInput,
   type RefreshTokenInput,
   type RequestPasswordResetInput,
   type RequestPasswordResetResponse,
@@ -901,6 +903,23 @@ export class ApiClient {
       "/settings/timezone",
       { method: "PATCH", body: JSON.stringify(body) },
       (data) => authUserSchema.parse(data),
+    );
+  }
+
+  async registerNotificationDevice(input: RegisterNotificationDeviceInput) {
+    const body = registerNotificationDeviceSchema.parse(input);
+    return this.request(
+      "/notifications/device",
+      { method: "POST", body: JSON.stringify(body) },
+      () => undefined,
+    );
+  }
+
+  async unregisterNotificationDevice(installationId: string) {
+    return this.request(
+      `/notifications/device/${encodeURIComponent(installationId)}`,
+      { method: "DELETE" },
+      () => undefined,
     );
   }
 

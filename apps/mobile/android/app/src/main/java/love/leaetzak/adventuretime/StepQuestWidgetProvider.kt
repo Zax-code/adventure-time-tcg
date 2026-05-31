@@ -18,7 +18,9 @@ import android.os.Bundle
 import android.view.View
 import android.widget.RemoteViews
 import java.text.NumberFormat
+import java.text.SimpleDateFormat
 import java.util.Locale
+import java.util.Date
 import kotlin.math.floor
 import kotlin.math.roundToInt
 
@@ -92,7 +94,9 @@ class StepQuestWidgetProvider : AppWidgetProvider() {
       appWidgetId: Int,
     ) {
       val layout = resolveLayout(appWidgetManager.getAppWidgetOptions(appWidgetId))
-      val snapshot = StepQuestWidgetStore.readSnapshot(context)
+      val snapshot = StepQuestWidgetStore
+        .readSnapshot(context)
+        ?.let { normalizeSnapshotForToday(context, it) }
       val palette = paletteForStatus(snapshot?.status)
       val views = RemoteViews(context.packageName, layout.layoutRes)
 
@@ -213,6 +217,33 @@ class StepQuestWidgetProvider : AppWidgetProvider() {
           views.setTextViewText(R.id.widget_detail_body, progressFootnote(context, snapshot.status))
         }
       }
+    }
+
+    private fun normalizeSnapshotForToday(
+      context: Context,
+      snapshot: StepQuestWidgetSnapshot,
+    ): StepQuestWidgetSnapshot {
+      val recordedFor = snapshot.recordedFor
+      if (recordedFor == null || recordedFor == currentLocalDateString()) {
+        return snapshot
+      }
+
+      val target = snapshot.target.coerceAtLeast(1)
+      val targetLabel = formatNumber(target)
+
+      return snapshot.copy(
+        progress = 0,
+        status = "active",
+        recordedFor = currentLocalDateString(),
+        progressLabel = "0 / $targetLabel",
+        statusLabel = context.getString(R.string.step_quest_widget_status_active),
+        subtitle = context.getString(R.string.step_quest_widget_fallback_body),
+      )
+    }
+
+    private fun currentLocalDateString(): String {
+      val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+      return formatter.format(Date())
     }
 
     private fun resolveLayout(options: Bundle): WidgetLayout {

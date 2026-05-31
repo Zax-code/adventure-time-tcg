@@ -1123,6 +1123,14 @@ export const updateTimezoneSchema = z.object({
   timezone: z.string().min(1),
 });
 
+export const notificationPlatformSchema = z.enum(["ios", "android"]);
+
+export const registerNotificationDeviceSchema = z.object({
+  installationId: z.string().min(1).max(128),
+  platform: notificationPlatformSchema,
+  expoPushToken: z.string().min(1).max(512),
+});
+
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type GoogleAuthInput = z.infer<typeof googleAuthSchema>;
@@ -1203,6 +1211,9 @@ export type SyncStepsInput = z.infer<typeof syncStepsSchema>;
 export type UpdateStepSourceInput = z.infer<typeof updateStepSourceSchema>;
 export type UpdateLanguageInput = z.infer<typeof updateLanguageSchema>;
 export type UpdateTimezoneInput = z.infer<typeof updateTimezoneSchema>;
+export type RegisterNotificationDeviceInput = z.infer<
+  typeof registerNotificationDeviceSchema
+>;
 
 export const updateDisplayNameSchema = z.object({
   displayName: z.string().min(1).max(64),

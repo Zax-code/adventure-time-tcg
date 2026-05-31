@@ -7,6 +7,7 @@ defmodule AdventureTimeApi.Fitbit do
 
   alias AdventureTimeApi.Fitbit.Account
   alias AdventureTimeApi.Health
+  alias AdventureTimeApi.Notifications
   alias AdventureTimeApi.Quests
   alias AdventureTimeApi.Repo
   alias AdventureTimeApiWeb.Endpoint
@@ -161,6 +162,7 @@ defmodule AdventureTimeApi.Fitbit do
       }) do
     with {:ok, date} <- Date.from_iso8601(date_string),
          {:ok, _steps} <- sync_steps_for_date(user_id, date) do
+      _ = Notifications.send_fitbit_widget_refresh(user_id)
       :ok
     else
       _ -> :ok
