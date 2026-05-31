@@ -6,6 +6,10 @@ RCT_EXTERN_METHOD(setStepQuestSnapshot:(NSString *)snapshotJson
                   resolver:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject)
 
+RCT_EXTERN_METHOD(setStepQuestSyncContext:(NSString *)contextJson
+                  resolver:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject)
+
 _RCT_EXTERN_REMAP_METHOD(clearStepQuestSnapshot,
                          clearStepQuestSnapshotWithResolver:(RCTPromiseResolveBlock)resolve
                          rejecter:(RCTPromiseRejectBlock)reject,

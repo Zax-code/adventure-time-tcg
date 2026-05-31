@@ -29,6 +29,11 @@ export interface StepQuestWidgetSnapshot {
 interface WidgetSnapshotBridgeModule {
   setStepQuestSnapshot: (snapshotJson: string) => Promise<void>;
   clearStepQuestSnapshot: () => Promise<void>;
+  setStepQuestSyncContext: (contextJson: string) => Promise<void>;
+}
+
+interface StepQuestWidgetSyncContext {
+  apiBaseUrl: string;
 }
 
 const widgetSnapshotBridge = NativeModules
@@ -144,6 +149,16 @@ export async function clearStepQuestWidgetSnapshot() {
   }
 
   await widgetSnapshotBridge.clearStepQuestSnapshot();
+}
+
+export async function setStepQuestWidgetSyncContext(
+  context: StepQuestWidgetSyncContext,
+) {
+  if (!widgetSnapshotBridge) {
+    return;
+  }
+
+  await widgetSnapshotBridge.setStepQuestSyncContext(JSON.stringify(context));
 }
 
 export async function syncStepQuestWidgetSnapshot(

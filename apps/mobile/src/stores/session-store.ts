@@ -5,6 +5,10 @@ import type { AuthUser } from "@adventure-time/api-client";
 
 import { useLocaleStore } from "./locale-store";
 
+const SESSION_SECURE_STORE_OPTIONS = {
+  keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK,
+} as const;
+
 interface SessionState {
   user: AuthUser | null;
   accessToken: string | null;
@@ -40,9 +44,21 @@ export const useSessionStore = create<SessionState>((set) => ({
   },
   async setSession({ user, accessToken, refreshToken }) {
     await Promise.all([
-      SecureStore.setItemAsync("accessToken", accessToken),
-      SecureStore.setItemAsync("refreshToken", refreshToken),
-      SecureStore.setItemAsync("user", JSON.stringify(user)),
+      SecureStore.setItemAsync(
+        "accessToken",
+        accessToken,
+        SESSION_SECURE_STORE_OPTIONS,
+      ),
+      SecureStore.setItemAsync(
+        "refreshToken",
+        refreshToken,
+        SESSION_SECURE_STORE_OPTIONS,
+      ),
+      SecureStore.setItemAsync(
+        "user",
+        JSON.stringify(user),
+        SESSION_SECURE_STORE_OPTIONS,
+      ),
     ]);
 
     await useLocaleStore.getState().setLocale(user.preferredLanguage);
@@ -56,7 +72,11 @@ export const useSessionStore = create<SessionState>((set) => ({
     });
   },
   async setUser(user) {
-    await SecureStore.setItemAsync("user", JSON.stringify(user));
+    await SecureStore.setItemAsync(
+      "user",
+      JSON.stringify(user),
+      SESSION_SECURE_STORE_OPTIONS,
+    );
     await useLocaleStore.getState().setLocale(user.preferredLanguage);
 
     set({ user, hydrated: true, bootstrapPhase: "ready" });
@@ -66,7 +86,11 @@ export const useSessionStore = create<SessionState>((set) => ({
     if (!currentUser) return;
 
     const nextUser: AuthUser = { ...currentUser, ...updates };
-    await SecureStore.setItemAsync("user", JSON.stringify(nextUser));
+    await SecureStore.setItemAsync(
+      "user",
+      JSON.stringify(nextUser),
+      SESSION_SECURE_STORE_OPTIONS,
+    );
     await useLocaleStore.getState().setLocale(nextUser.preferredLanguage);
     set({ user: nextUser, hydrated: true, bootstrapPhase: "ready" });
   },
@@ -91,6 +115,34 @@ export const useSessionStore = create<SessionState>((set) => ({
       SecureStore.getItemAsync("refreshToken"),
       SecureStore.getItemAsync("user"),
     ]);
+
+    const migrationWrites: Array<Promise<void>> = [];
+    if (accessToken) {
+      migrationWrites.push(
+        SecureStore.setItemAsync(
+          "accessToken",
+          accessToken,
+          SESSION_SECURE_STORE_OPTIONS,
+        ),
+      );
+    }
+    if (refreshToken) {
+      migrationWrites.push(
+        SecureStore.setItemAsync(
+          "refreshToken",
+          refreshToken,
+          SESSION_SECURE_STORE_OPTIONS,
+        ),
+      );
+    }
+    if (userJson) {
+      migrationWrites.push(
+        SecureStore.setItemAsync("user", userJson, SESSION_SECURE_STORE_OPTIONS),
+      );
+    }
+    if (migrationWrites.length > 0) {
+      await Promise.all(migrationWrites);
+    }
 
     set({
       accessToken,

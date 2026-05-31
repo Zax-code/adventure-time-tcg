@@ -5,6 +5,7 @@ import WidgetKit
 private let atStepQuestWidgetAppGroup = "group.love.leaetzak.adventuretime"
 private let atStepQuestWidgetSnapshotKey = "stepQuestWidgetSnapshot"
 private let atStepQuestWidgetKind = "StepQuestWidget"
+private let atStepQuestWidgetApiBaseUrlKey = "stepQuestWidgetApiBaseUrl"
 
 @objc(WidgetSnapshotBridge)
 final class WidgetSnapshotBridge: NSObject {
@@ -26,6 +27,36 @@ final class WidgetSnapshotBridge: NSObject {
 
     defaults.set(snapshotJson, forKey: atStepQuestWidgetSnapshotKey)
     reloadWidgetTimeline()
+    Task {
+      await StepQuestBackgroundSyncService.shared.configure()
+    }
+    resolve(nil)
+  }
+
+  @objc(setStepQuestSyncContext:resolver:rejecter:)
+  func setStepQuestSyncContext(
+    _ contextJson: String,
+    resolver resolve: RCTPromiseResolveBlock,
+    rejecter reject: RCTPromiseRejectBlock
+  ) {
+    guard let defaults = UserDefaults(suiteName: atStepQuestWidgetAppGroup) else {
+      reject("WIDGET_SYNC_CONTEXT_WRITE_FAILED", "App group defaults are unavailable.", nil)
+      return
+    }
+
+    guard let data = contextJson.data(using: .utf8),
+          let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+          let apiBaseUrl = json["apiBaseUrl"] as? String,
+          !apiBaseUrl.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    else {
+      reject("WIDGET_SYNC_CONTEXT_INVALID", "The widget sync context is invalid.", nil)
+      return
+    }
+
+    defaults.set(apiBaseUrl, forKey: atStepQuestWidgetApiBaseUrlKey)
+    Task {
+      await StepQuestBackgroundSyncService.shared.configure()
+    }
     resolve(nil)
   }
 

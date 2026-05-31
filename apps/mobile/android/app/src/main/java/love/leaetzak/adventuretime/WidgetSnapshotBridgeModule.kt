@@ -23,6 +23,11 @@ class WidgetSnapshotBridgeModule(
   }
 
   @ReactMethod
+  fun setStepQuestSyncContext(contextJson: String, promise: Promise) {
+    promise.resolve(null)
+  }
+
+  @ReactMethod
   fun clearStepQuestSnapshot(promise: Promise) {
     try {
       StepQuestWidgetStore.clearSnapshot(reactApplicationContext)

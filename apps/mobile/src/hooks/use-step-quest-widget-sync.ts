@@ -2,11 +2,12 @@ import { useEffect } from "react";
 
 import type { QuestsResponse } from "@adventure-time/api-client";
 
-import { apiClient } from "../lib/api";
+import { apiClient, API_BASE_URL } from "../lib/api";
 import { queryClient } from "../lib/query-client";
 import {
   clearStepQuestWidgetSnapshot,
   isWidgetSnapshotBridgeAvailable,
+  setStepQuestWidgetSyncContext,
   syncStepQuestWidgetSnapshot,
 } from "../lib/step-quest-widget";
 import { useLocaleStore } from "../stores/locale-store";
@@ -23,6 +24,12 @@ export function useStepQuestWidgetSync() {
     if (!isWidgetSnapshotBridgeAvailable()) {
       return;
     }
+
+    void setStepQuestWidgetSyncContext({
+      apiBaseUrl: API_BASE_URL,
+    }).catch(() => {
+      // Keep the last known native sync configuration if this write fails.
+    });
 
     if (!accessToken || !userId) {
       void clearStepQuestWidgetSnapshot();

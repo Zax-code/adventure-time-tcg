@@ -12,7 +12,9 @@ private struct StepQuestSnapshot: Decodable {
   let target: Int
   let reward: Int
   let status: String
+  let recordedFor: String?
   let deepLink: String
+  let updatedAt: String?
   let progressLabel: String
   let statusLabel: String
   let subtitle: String
@@ -108,7 +110,9 @@ private struct StepQuestProvider: TimelineProvider {
         target: 10_000,
         reward: 150,
         status: "active",
+        recordedFor: currentLocalDateString(),
         deepLink: defaultDeepLink,
+        updatedAt: ISO8601DateFormatter().string(from: Date()),
         progressLabel: "7,421 / 10,000",
         statusLabel: localized(en: "Progress", fr: "Progression"),
         subtitle: localized(en: "2,579 steps left", fr: "2 579 pas restants")
@@ -132,9 +136,52 @@ private struct StepQuestProvider: TimelineProvider {
     let snapshot = snapshotJson
       .flatMap { $0.data(using: .utf8) }
       .flatMap { try? JSONDecoder().decode(StepQuestSnapshot.self, from: $0) }
+      .map(normalizeSnapshotForToday)
 
     return StepQuestEntry(date: Date(), snapshot: snapshot)
   }
+}
+
+private func normalizeSnapshotForToday(_ snapshot: StepQuestSnapshot) -> StepQuestSnapshot {
+  let today = currentLocalDateString()
+  guard let recordedFor = snapshot.recordedFor, recordedFor != today else {
+    return snapshot
+  }
+
+  let target = max(snapshot.target, 1)
+  let progressLabel = "0 / \(formatNumber(target))"
+
+  return StepQuestSnapshot(
+    title: snapshot.title,
+    progress: 0,
+    target: target,
+    reward: snapshot.reward,
+    status: "active",
+    recordedFor: today,
+    deepLink: snapshot.deepLink,
+    updatedAt: ISO8601DateFormatter().string(from: Date()),
+    progressLabel: progressLabel,
+    statusLabel: localized(en: "Progress", fr: "Progression"),
+    subtitle: localized(
+      en: "\(formatNumber(target)) steps left",
+      fr: "\(formatNumber(target)) pas restants"
+    )
+  )
+}
+
+private func currentLocalDateString() -> String {
+  let components = Calendar.current.dateComponents([.year, .month, .day], from: Date())
+  let year = components.year ?? 0
+  let month = components.month ?? 0
+  let day = components.day ?? 0
+  return String(format: "%04d-%02d-%02d", year, month, day)
+}
+
+private func formatNumber(_ value: Int) -> String {
+  let formatter = NumberFormatter()
+  formatter.locale = Locale.autoupdatingCurrent
+  formatter.numberStyle = .decimal
+  return formatter.string(from: NSNumber(value: value)) ?? "\(value)"
 }
 
 struct StepQuestWidget: Widget {
