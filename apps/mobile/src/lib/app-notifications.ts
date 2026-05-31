@@ -21,7 +21,7 @@ export const GENERAL_NOTIFICATION_CHANNEL_ID = "game-updates";
 export const STEP_NOTIFICATION_CHANNEL_ID = "step-goals";
 
 function notificationPromptHiddenKey(userId: string) {
-  return `${NOTIFICATION_PROMPT_HIDDEN_KEY_PREFIX}:${userId}`;
+  return `${NOTIFICATION_PROMPT_HIDDEN_KEY_PREFIX}.${userId}`;
 }
 
 function notificationsGranted(settings: Notifications.NotificationPermissionsStatus) {
