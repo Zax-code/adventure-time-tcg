@@ -24,6 +24,11 @@ defmodule AdventureTimeApi.Accounts.User do
     field(:preferred_step_source, Ecto.Enum, values: @step_sources, default: :device_health)
     field(:preferred_language, Ecto.Enum, values: @locales, default: :en)
     field(:timezone, :string, default: @default_timezone)
+    field(:notify_daily_reset, :boolean, default: true)
+    field(:notify_step_goal, :boolean, default: true)
+    field(:notify_pvp_invite, :boolean, default: true)
+    field(:notify_pvp_turn, :boolean, default: true)
+    field(:notify_gift_received, :boolean, default: true)
 
     has_one(:email_credential, AdventureTimeApi.Accounts.EmailCredential)
 
@@ -48,7 +53,12 @@ defmodule AdventureTimeApi.Accounts.User do
       :avatar_asset_id,
       :preferred_step_source,
       :preferred_language,
-      :timezone
+      :timezone,
+      :notify_daily_reset,
+      :notify_step_goal,
+      :notify_pvp_invite,
+      :notify_pvp_turn,
+      :notify_gift_received
     ])
     |> validate_length(:display_name, min: 1, max: 64)
     |> validate_length(:timezone, min: 1, max: 128)

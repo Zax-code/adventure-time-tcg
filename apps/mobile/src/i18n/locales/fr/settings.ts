@@ -52,6 +52,45 @@ const settings = {
   theme: "Thème",
   themeHelp: "Change les couleurs de l'app.",
   themePreview: "Aperçu",
+  notificationsTitle: "Notifications",
+  notificationsIntro: "Choisis les alertes qui comptent vraiment.",
+  notificationsPreferencesTitle: "Préférences de notification",
+  notificationsPreferencesHelp:
+    "Les rappels de réinitialisation sont programmés sur cet appareil. Les cadeaux et alertes JcJ passent par les notifications push.",
+  notificationsPermissionLabel: "Accès aux notifications",
+  notificationsEnabledHelp:
+    "Cet appareil peut recevoir les rappels et les alertes de jeu.",
+  notificationsDisabledHelp:
+    "Active les notifications pour recevoir les rappels quotidiens, les cadeaux et les alertes JcJ.",
+  enableNotifications: "Activer les notifications",
+  openNotificationSettings: "Ouvrir les réglages",
+  notificationsPermissionRequired:
+    "Il faut autoriser les notifications au niveau du système avant d'activer ce réglage.",
+  dailyResetNotificationTitle: "La réinitialisation quotidienne est là",
+  dailyResetNotificationBody:
+    "Tes quêtes du jour et ta récompense quotidienne sont de nouveau disponibles.",
+  notificationOptions: {
+    dailyReset: {
+      title: "Réinitialisation quotidienne",
+      description: "Quand les quêtes du jour et la récompense quotidienne reviennent.",
+    },
+    stepGoal: {
+      title: "Objectif de pas atteint",
+      description: "Quand tu atteins ton objectif de pas de la journée.",
+    },
+    pvpInvite: {
+      title: "Invitations au combat",
+      description: "Quand un autre joueur t'invite à un combat.",
+    },
+    pvpTurn: {
+      title: "À ton tour en combat",
+      description: "Quand une partie JcJ attend ton prochain coup.",
+    },
+    giftReceived: {
+      title: "Cadeau reçu",
+      description: "Quand un autre joueur t'envoie un cadeau.",
+    },
+  },
   themeNames: {
     candy: "Bonbon",
     ice: "Glace",

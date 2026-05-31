@@ -9,6 +9,7 @@ import {
 } from "@adventure-time/api-client";
 
 import { queryClient } from "./query-client";
+import { clearScheduledNotificationPreferencesForSession } from "./app-notifications";
 import { unregisterNotificationDeviceBeforeSessionClear } from "./widget-refresh-push";
 import { API_BASE_URL } from "./api-config";
 import { useSessionStore } from "../stores/session-store";
@@ -51,6 +52,7 @@ export async function getStoredUser() {
 
 export async function clearAppSession() {
   await unregisterNotificationDeviceBeforeSessionClear();
+  await clearScheduledNotificationPreferencesForSession();
   await useSessionStore.getState().clearSession();
   queryClient.clear();
 }

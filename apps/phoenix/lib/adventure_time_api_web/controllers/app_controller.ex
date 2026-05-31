@@ -185,6 +185,20 @@ defmodule AdventureTimeApiWeb.AppController do
     conn |> put_status(:bad_request) |> json(%{error: "timezone is required"})
   end
 
+  def update_notification_preferences(conn, %{"notificationPreferences" => preferences}) do
+    case Accounts.update_notification_preferences(conn.assigns.auth_user.id, preferences) do
+      {:ok, user} -> json(conn, user)
+      {:error, :not_found} -> conn |> put_status(:not_found) |> json(%{error: "User not found"})
+      {:error, :validation, msg} -> conn |> put_status(:bad_request) |> json(%{error: msg})
+    end
+  end
+
+  def update_notification_preferences(conn, _params) do
+    conn
+    |> put_status(:bad_request)
+    |> json(%{error: "notificationPreferences is required"})
+  end
+
   def health_steps(conn, _params) do
     user_id = conn.assigns.auth_user.id
 

@@ -8,6 +8,7 @@ defmodule AdventureTimeApi.Pvp do
   alias AdventureTimeApi.Accounts.User
   alias AdventureTimeApi.Catalog.{Card, CardType, Rarity}
   alias AdventureTimeApi.Inventory.OwnedCard
+  alias AdventureTimeApi.Notifications
 
   alias AdventureTimeApi.Pvp.{
     AbilityDef,
@@ -134,6 +135,11 @@ defmodule AdventureTimeApi.Pvp do
       |> case do
         {:ok, match} ->
           schedule_invite_expiry!(match.id, expires_at)
+
+          dispatch_notification(fn ->
+            _ = Notifications.send_pvp_invite(invitee.id, user_display_name(inviter_id))
+          end)
+
           {:ok, %{success: true}}
 
         {:error, changeset} ->
@@ -303,6 +309,7 @@ defmodule AdventureTimeApi.Pvp do
       end)
       |> case do
         {:ok, %{match: updated_match, battle_state: battle_state}} ->
+          maybe_notify_current_player(updated_match, battle_state, user_id)
           {:ok, %{match: serialize_match(updated_match), battleState: battle_state}}
 
         {:error, %Ecto.Changeset{} = changeset} ->
@@ -421,6 +428,8 @@ defmodule AdventureTimeApi.Pvp do
           end)
           |> case do
             {:ok, %{match: updated_match, battle_state: battle_state, events: persisted_events}} ->
+              maybe_notify_current_player(updated_match, battle_state, user_id)
+
               {:ok,
                %{
                  match: serialize_match(updated_match),
@@ -483,6 +492,8 @@ defmodule AdventureTimeApi.Pvp do
       end)
       |> case do
         {:ok, %{match: updated_match, battle_state: battle_state, events: persisted_events}} ->
+          maybe_notify_current_player(updated_match, battle_state, user_id)
+
           {:ok,
            %{
              match: serialize_match(updated_match),
@@ -1001,6 +1012,51 @@ defmodule AdventureTimeApi.Pvp do
     %{"match_id" => match_id}
     |> ExpirePendingInviteWorker.new(scheduled_at: expires_at)
     |> Oban.insert!()
+  end
+
+  defp maybe_notify_current_player(
+         %Match{status: "in_progress"} = match,
+         battle_state,
+         acting_user_id
+       ) do
+    current_player_id = battle_state["currentPlayerId"]
+
+    if is_binary(current_player_id) and current_player_id != acting_user_id do
+      dispatch_notification(fn ->
+        opponent_name =
+          if current_player_id == match.inviter_id do
+            user_display_name(match.invitee_id)
+          else
+            user_display_name(match.inviter_id)
+          end
+
+        _ = Notifications.send_pvp_turn(current_player_id, opponent_name)
+      end)
+    end
+  end
+
+  defp maybe_notify_current_player(_match, _battle_state, _acting_user_id), do: :ok
+
+  defp dispatch_notification(fun) when is_function(fun, 0) do
+    if sandbox_repo?() do
+      fun.()
+      :ok
+    else
+      Task.start(fun)
+      :ok
+    end
+  end
+
+  defp sandbox_repo? do
+    Application.get_env(:adventure_time_api, AdventureTimeApi.Repo, [])
+    |> Keyword.get(:pool) == Ecto.Adapters.SQL.Sandbox
+  end
+
+  defp user_display_name(user_id) do
+    case Repo.get(User, user_id) do
+      %User{} = user -> user.display_name || user.email
+      nil -> "Someone"
+    end
   end
 
   defp expire_due_pending_invites(nil) do

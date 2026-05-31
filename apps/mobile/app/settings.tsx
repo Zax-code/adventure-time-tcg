@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
@@ -6,9 +6,12 @@ import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
 import {
   ActivityIndicator,
+  AppState,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
+  Switch,
   Text,
   TextInput,
   View,
@@ -22,6 +25,10 @@ import {
 } from "../src/components/keyboard-screen-view";
 import { useTranslation } from "../src/i18n";
 import { apiClient, API_BASE_URL, clearAppSession } from "../src/lib/api";
+import {
+  ensureAppNotificationPermission,
+  getNotificationPermissionStatus,
+} from "../src/lib/app-notifications";
 import { connectFitbit } from "../src/lib/fitbit";
 import {
   openDeviceHealthSetup,
@@ -38,6 +45,12 @@ const STEP_SOURCE_OPTIONS = ["device_health", "fitbit"] as const;
 const THEME_OPTIONS: ThemeName[] = ["candy", "ice", "nightosphere"];
 
 type ToneName = "primary" | "success" | "danger" | "neutral";
+type NotificationPreferenceKey =
+  | "dailyReset"
+  | "stepGoal"
+  | "pvpInvite"
+  | "pvpTurn"
+  | "giftReceived";
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -59,6 +72,9 @@ export default function SettingsScreen() {
   );
   const [fitbitError, setFitbitError] = useState<string | null>(null);
   const [isConnectingFitbit, setIsConnectingFitbit] = useState(false);
+  const [notificationError, setNotificationError] = useState<string | null>(
+    null,
+  );
 
   const stepQuery = useQuery({
     queryKey: ["health-steps"],
@@ -101,6 +117,15 @@ export default function SettingsScreen() {
     },
   });
 
+  const updateNotificationPreferencesMutation = useMutation({
+    mutationFn: (notificationPreferences: NonNullable<typeof user>["notificationPreferences"]) =>
+      apiClient.updateNotificationPreferences({ notificationPreferences }),
+    onSuccess: async (nextUser) => {
+      await setUser(nextUser);
+      await queryClient.invalidateQueries({ queryKey: ["home"] });
+    },
+  });
+
   const uploadAvatarMutation = useMutation({
     mutationFn: async () => {
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -131,6 +156,13 @@ export default function SettingsScreen() {
     : null;
   const currentLanguage = user?.preferredLanguage ?? locale;
   const currentStepSource = user?.preferredStepSource ?? "device_health";
+  const notificationPreferences = user?.notificationPreferences ?? {
+    dailyReset: true,
+    stepGoal: true,
+    pvpInvite: true,
+    pvpTurn: true,
+    giftReceived: true,
+  };
   const healthStatusLabel = t(
     `settings.permissionStates.${stepSync.healthPermissionStatus}`,
   );
@@ -162,6 +194,14 @@ export default function SettingsScreen() {
   const fitbitStatusLabel = fitbitConnected
     ? t("settings.fitbitConnected")
     : t("settings.fitbitNotConnected");
+  const notificationPermissionCta =
+    stepSync.notificationPermissionStatus === "denied"
+      ? t("settings.openNotificationSettings")
+      : t("settings.enableNotifications");
+  const notificationPermissionSummary =
+    stepSync.notificationPermissionStatus === "granted"
+      ? t("settings.notificationsEnabledHelp")
+      : t("settings.notificationsDisabledHelp");
   const syncTone: ToneName = prefersFitbit
     ? fitbitConnected
       ? "success"
@@ -191,6 +231,20 @@ export default function SettingsScreen() {
       : stepSync.healthPermissionStatus === "granted"
         ? t("settings.syncNow")
         : t("settings.enableStepSync");
+
+  useEffect(() => {
+    void getNotificationPermissionStatus();
+
+    const subscription = AppState.addEventListener("change", (nextState) => {
+      if (nextState === "active") {
+        void getNotificationPermissionStatus();
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
 
   const handleStepAction = async () => {
     if (prefersFitbit) {
@@ -266,6 +320,42 @@ export default function SettingsScreen() {
       stepQuery.refetch(),
       queryClient.invalidateQueries({ queryKey: ["quests"] }),
     ]);
+  };
+
+  const handleNotificationPermissionAction = async () => {
+    setNotificationError(null);
+
+    if (stepSync.notificationPermissionStatus === "denied") {
+      await Linking.openSettings();
+      return;
+    }
+
+    const granted = await ensureAppNotificationPermission(true);
+
+    if (!granted) {
+      setNotificationError(t("settings.notificationsPermissionRequired"));
+    }
+  };
+
+  const handleNotificationPreferenceToggle = async (
+    key: NotificationPreferenceKey,
+    nextValue: boolean,
+  ) => {
+    setNotificationError(null);
+
+    if (nextValue) {
+      const granted = await ensureAppNotificationPermission(true);
+
+      if (!granted) {
+        setNotificationError(t("settings.notificationsPermissionRequired"));
+        return;
+      }
+    }
+
+    await updateNotificationPreferencesMutation.mutateAsync({
+      ...notificationPreferences,
+      [key]: nextValue,
+    });
   };
 
   return (
@@ -762,6 +852,130 @@ export default function SettingsScreen() {
 
             <View className="gap-4">
               <SectionHeader
+                icon="notifications-outline"
+                title={t("settings.notificationsTitle")}
+                description={t("settings.notificationsIntro")}
+                tc={tc}
+              />
+
+              <SurfaceCard tc={tc}>
+                <View className="gap-5">
+                  <View className="gap-1">
+                    <Text className="font-nunito-bold text-lg text-fg">
+                      {t("settings.notificationsPreferencesTitle")}
+                    </Text>
+                    <Text className="font-nunito text-sm leading-5 text-fgMuted">
+                      {t("settings.notificationsPreferencesHelp")}
+                    </Text>
+                  </View>
+
+                  <ToneBanner
+                    tone={
+                      stepSync.notificationPermissionStatus === "granted"
+                        ? "success"
+                        : "neutral"
+                    }
+                    tc={tc}
+                  >
+                    <View className="gap-4">
+                      <View className="gap-1">
+                        <Text className="font-nunito-semibold text-xs uppercase text-fgMuted">
+                          {t("settings.notificationsPermissionLabel")}
+                        </Text>
+                        <Text className="font-nunito-extrabold text-xl text-fg">
+                          {notificationStatusLabel}
+                        </Text>
+                        <Text className="font-nunito text-sm leading-5 text-fgMuted">
+                          {notificationPermissionSummary}
+                        </Text>
+                      </View>
+
+                      {stepSync.notificationPermissionStatus !== "granted" ? (
+                        <View className="self-start">
+                          <GhostButton onPress={() => void handleNotificationPermissionAction()}>
+                            {notificationPermissionCta}
+                          </GhostButton>
+                        </View>
+                      ) : null}
+                    </View>
+                  </ToneBanner>
+
+                  <View className="gap-3">
+                    <SettingsToggleRow
+                      title={t("settings.notificationOptions.dailyReset.title")}
+                      description={t(
+                        "settings.notificationOptions.dailyReset.description",
+                      )}
+                      value={notificationPreferences.dailyReset}
+                      disabled={updateNotificationPreferencesMutation.isPending}
+                      onToggle={(value) => {
+                        void handleNotificationPreferenceToggle("dailyReset", value);
+                      }}
+                      tc={tc}
+                    />
+                    <SettingsToggleRow
+                      title={t("settings.notificationOptions.stepGoal.title")}
+                      description={t(
+                        "settings.notificationOptions.stepGoal.description",
+                      )}
+                      value={notificationPreferences.stepGoal}
+                      disabled={updateNotificationPreferencesMutation.isPending}
+                      onToggle={(value) => {
+                        void handleNotificationPreferenceToggle("stepGoal", value);
+                      }}
+                      tc={tc}
+                    />
+                    <SettingsToggleRow
+                      title={t("settings.notificationOptions.pvpInvite.title")}
+                      description={t(
+                        "settings.notificationOptions.pvpInvite.description",
+                      )}
+                      value={notificationPreferences.pvpInvite}
+                      disabled={updateNotificationPreferencesMutation.isPending}
+                      onToggle={(value) => {
+                        void handleNotificationPreferenceToggle("pvpInvite", value);
+                      }}
+                      tc={tc}
+                    />
+                    <SettingsToggleRow
+                      title={t("settings.notificationOptions.pvpTurn.title")}
+                      description={t(
+                        "settings.notificationOptions.pvpTurn.description",
+                      )}
+                      value={notificationPreferences.pvpTurn}
+                      disabled={updateNotificationPreferencesMutation.isPending}
+                      onToggle={(value) => {
+                        void handleNotificationPreferenceToggle("pvpTurn", value);
+                      }}
+                      tc={tc}
+                    />
+                    <SettingsToggleRow
+                      title={t("settings.notificationOptions.giftReceived.title")}
+                      description={t(
+                        "settings.notificationOptions.giftReceived.description",
+                      )}
+                      value={notificationPreferences.giftReceived}
+                      disabled={updateNotificationPreferencesMutation.isPending}
+                      onToggle={(value) => {
+                        void handleNotificationPreferenceToggle("giftReceived", value);
+                      }}
+                      tc={tc}
+                    />
+                  </View>
+
+                  {notificationError ? (
+                    <ToneBanner tone="danger" tc={tc}>
+                      <Text className="font-nunito-semibold text-sm leading-5 text-dangerText">
+                        {notificationError}
+                      </Text>
+                    </ToneBanner>
+                  ) : null}
+                </View>
+              </SurfaceCard>
+            </View>
+
+            <View className="gap-4">
+              <SectionHeader
                 icon="shield-checkmark-outline"
                 title={t("settings.sessionTitle")}
                 description={t("settings.sessionIntro")}
@@ -927,6 +1141,51 @@ function SummaryChip({
         {value}
       </Text>
     </View>
+  );
+}
+
+function SettingsToggleRow({
+  description,
+  disabled,
+  onToggle,
+  tc,
+  title,
+  value,
+}: {
+  description: string;
+  disabled?: boolean;
+  onToggle: (nextValue: boolean) => void;
+  tc: (typeof THEME_COLORS)[ThemeName];
+  title: string;
+  value: boolean;
+}) {
+  return (
+    <Pressable
+      className="rounded-3xl border border-primaryBorder bg-surfaceMuted p-4"
+      disabled={disabled}
+      onPress={() => onToggle(!value)}
+      style={{ opacity: disabled ? 0.65 : 1 }}
+    >
+      <View className="flex-row items-start gap-4">
+        <View className="flex-1 gap-1">
+          <Text className="font-nunito-bold text-base text-fg">{title}</Text>
+          <Text className="font-nunito text-sm leading-5 text-fgMuted">
+            {description}
+          </Text>
+        </View>
+        <Switch
+          disabled={disabled}
+          ios_backgroundColor={tc.primaryBorder}
+          onValueChange={onToggle}
+          thumbColor={value ? "#fff" : "#fff"}
+          trackColor={{
+            false: tc.primaryBorder,
+            true: tc.primary,
+          }}
+          value={value}
+        />
+      </View>
+    </Pressable>
   );
 }
 

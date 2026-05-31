@@ -8,6 +8,7 @@ defmodule AdventureTimeApi.Social do
   alias AdventureTimeApi.Accounts.User
   alias AdventureTimeApi.Catalog.Card
   alias AdventureTimeApi.Inventory.OwnedCard
+  alias AdventureTimeApi.Notifications
   alias AdventureTimeApi.Repo
   alias AdventureTimeApi.Social.CardGift
   alias AdventureTimeApi.Workers.ExpirePendingGiftWorker
@@ -70,8 +71,16 @@ defmodule AdventureTimeApi.Social do
         end)
 
       case result do
-        {:ok, %CardGift{id: id}} -> {:ok, %{gift: %{id: id}}}
-        {:error, reason} -> {:error, reason}
+        {:ok, %CardGift{id: id}} ->
+          dispatch_notification(fn ->
+            sender_name = sender_display_name(from_user_id)
+            _ = Notifications.send_gift_received(to_user.id, sender_name)
+          end)
+
+          {:ok, %{gift: %{id: id}}}
+
+        {:error, reason} ->
+          {:error, reason}
       end
     end
   end
@@ -236,6 +245,28 @@ defmodule AdventureTimeApi.Social do
       Application.get_env(:adventure_time_api, __MODULE__, []) |> Keyword.get(:gift_ttl_days, 7)
 
     DateTime.add(DateTime.utc_now() |> DateTime.truncate(:second), days * 24 * 60 * 60, :second)
+  end
+
+  defp dispatch_notification(fun) when is_function(fun, 0) do
+    if sandbox_repo?() do
+      fun.()
+      :ok
+    else
+      Task.start(fun)
+      :ok
+    end
+  end
+
+  defp sandbox_repo? do
+    Application.get_env(:adventure_time_api, AdventureTimeApi.Repo, [])
+    |> Keyword.get(:pool) == Ecto.Adapters.SQL.Sandbox
+  end
+
+  defp sender_display_name(user_id) do
+    case Repo.get(User, user_id) do
+      %User{} = user -> user.display_name || user.email
+      nil -> "Someone"
+    end
   end
 
   defp gift_expired?(%CardGift{expires_at: %DateTime{} = expires_at}) do

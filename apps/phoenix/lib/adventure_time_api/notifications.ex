@@ -1,6 +1,6 @@
 defmodule AdventureTimeApi.Notifications do
   @moduledoc """
-  Device registration and silent widget refresh pushes.
+  Device registration, widget refresh pushes, and visible game notifications.
   """
 
   import Ecto.Query
@@ -14,6 +14,8 @@ defmodule AdventureTimeApi.Notifications do
   @widget_refresh_event "fitbit_widget_refresh"
   @widget_refresh_throttle_minutes 20
   @widget_refresh_ttl_seconds 900
+  @visible_push_ttl_seconds 86_400
+  @general_channel_id "game-updates"
 
   def register_device(user_id, attrs) when is_binary(user_id) and is_map(attrs) do
     now = now_utc()
@@ -74,6 +76,39 @@ defmodule AdventureTimeApi.Notifications do
     :ok
   end
 
+  def send_gift_received(user_id, sender_name)
+      when is_binary(user_id) and is_binary(sender_name) do
+    with {:ok, user} <- fetch_push_user(user_id, :notify_gift_received) do
+      send_visible_notification(user, %{
+        title: notification_title(user.preferred_language, :gift_received),
+        body: notification_body(user.preferred_language, :gift_received, %{name: sender_name}),
+        data: %{"eventType" => "gift_received"}
+      })
+    end
+  end
+
+  def send_pvp_invite(user_id, inviter_name)
+      when is_binary(user_id) and is_binary(inviter_name) do
+    with {:ok, user} <- fetch_push_user(user_id, :notify_pvp_invite) do
+      send_visible_notification(user, %{
+        title: notification_title(user.preferred_language, :pvp_invite),
+        body: notification_body(user.preferred_language, :pvp_invite, %{name: inviter_name}),
+        data: %{"eventType" => "pvp_invite"}
+      })
+    end
+  end
+
+  def send_pvp_turn(user_id, opponent_name)
+      when is_binary(user_id) and is_binary(opponent_name) do
+    with {:ok, user} <- fetch_push_user(user_id, :notify_pvp_turn) do
+      send_visible_notification(user, %{
+        title: notification_title(user.preferred_language, :pvp_turn),
+        body: notification_body(user.preferred_language, :pvp_turn, %{name: opponent_name}),
+        data: %{"eventType" => "pvp_turn"}
+      })
+    end
+  end
+
   def send_fitbit_widget_refresh(user_id) when is_binary(user_id) do
     if fitbit_push_enabled_for_user?(user_id) do
       now = now_utc()
@@ -112,6 +147,20 @@ defmodule AdventureTimeApi.Notifications do
     )
   end
 
+  defp fetch_push_user(user_id, preference_field) do
+    case Repo.get(User, user_id) do
+      %User{access_status: :approved} = user ->
+        if Map.get(user, preference_field) do
+          {:ok, user}
+        else
+          :ok
+        end
+
+      _ ->
+        :ok
+    end
+  end
+
   defp push_silent_widget_refresh(devices, now) do
     payloads =
       Enum.map(devices, fn device ->
@@ -148,6 +197,49 @@ defmodule AdventureTimeApi.Notifications do
     end
   end
 
+  defp send_visible_notification(%User{} = user, attrs) do
+    devices =
+      Device
+      |> where([device], device.user_id == ^user.id)
+      |> order_by([device], asc: device.inserted_at)
+      |> Repo.all()
+
+    case devices do
+      [] ->
+        :ok
+
+      _ ->
+        payloads =
+          Enum.map(devices, fn device ->
+            %{
+              "to" => device.expo_push_token,
+              "title" => attrs.title,
+              "body" => attrs.body,
+              "sound" => "default",
+              "priority" => "high",
+              "ttl" => @visible_push_ttl_seconds,
+              "channelId" => @general_channel_id,
+              "data" => Map.get(attrs, :data, %{})
+            }
+          end)
+
+        case Req.post(push_api_url(), headers: push_headers(), json: payloads) do
+          {:ok, %Req.Response{status: status, body: %{"data" => results}}}
+          when status in 200..299 and is_list(results) ->
+            prune_failed_devices(devices, results)
+            :ok
+
+          {:ok, %Req.Response{status: status, body: body}} ->
+            Logger.warning("Expo visible push failed with status #{status}: #{inspect(body)}")
+            :ok
+
+          {:error, reason} ->
+            Logger.warning("Expo visible push request failed: #{inspect(reason)}")
+            :ok
+        end
+    end
+  end
+
   defp handle_push_results(devices, results, now) do
     devices
     |> Enum.zip(results)
@@ -177,6 +269,48 @@ defmodule AdventureTimeApi.Notifications do
       end
     end)
   end
+
+  defp prune_failed_devices(devices, results) do
+    devices
+    |> Enum.zip(results)
+    |> Enum.each(fn {device, result} ->
+      case result do
+        %{"status" => "error", "details" => %{"error" => "DeviceNotRegistered"}} ->
+          _ =
+            Device
+            |> where([entry], entry.id == ^device.id)
+            |> Repo.delete_all()
+
+        _ ->
+          :ok
+      end
+    end)
+  end
+
+  defp notification_title(:fr, :gift_received), do: "Nouveau cadeau"
+  defp notification_title(:fr, :pvp_invite), do: "Invitation au combat"
+  defp notification_title(:fr, :pvp_turn), do: "A vous de jouer"
+  defp notification_title(_locale, :gift_received), do: "New gift"
+  defp notification_title(_locale, :pvp_invite), do: "Combat invitation"
+  defp notification_title(_locale, :pvp_turn), do: "Your turn to play"
+
+  defp notification_body(:fr, :gift_received, %{name: name}),
+    do: "#{name} vous a envoyé un cadeau."
+
+  defp notification_body(:fr, :pvp_invite, %{name: name}),
+    do: "#{name} vous a invité à un combat."
+
+  defp notification_body(:fr, :pvp_turn, %{name: name}),
+    do: "À vous de jouer contre #{name}."
+
+  defp notification_body(_locale, :gift_received, %{name: name}),
+    do: "#{name} sent you a gift."
+
+  defp notification_body(_locale, :pvp_invite, %{name: name}),
+    do: "#{name} invited you to a combat match."
+
+  defp notification_body(_locale, :pvp_turn, %{name: name}),
+    do: "It's your turn against #{name}."
 
   defp push_headers do
     access_token = config(:access_token)

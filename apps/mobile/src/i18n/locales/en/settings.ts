@@ -52,6 +52,44 @@ const settings = {
   theme: "Theme",
   themeHelp: "Themes refresh color across the whole app.",
   themePreview: "Preview palette",
+  notificationsTitle: "Notifications",
+  notificationsIntro: "Choose which alerts are worth your attention.",
+  notificationsPreferencesTitle: "Notification preferences",
+  notificationsPreferencesHelp:
+    "Quest reset reminders are scheduled on this device. Gifts and PvP alerts use push notifications.",
+  notificationsPermissionLabel: "Notification access",
+  notificationsEnabledHelp: "This device can receive reminders and live game alerts.",
+  notificationsDisabledHelp:
+    "Turn notifications on to receive daily reminders, gifts, and PvP updates.",
+  enableNotifications: "Enable notifications",
+  openNotificationSettings: "Open notification settings",
+  notificationsPermissionRequired:
+    "Notifications need OS permission before this preference can be enabled.",
+  dailyResetNotificationTitle: "Daily reset is live",
+  dailyResetNotificationBody:
+    "Your daily quests and daily reward are ready again.",
+  notificationOptions: {
+    dailyReset: {
+      title: "Daily reset",
+      description: "When daily quests and the daily reward reset.",
+    },
+    stepGoal: {
+      title: "Step goal reached",
+      description: "When you reach your daily step goal.",
+    },
+    pvpInvite: {
+      title: "Combat invitations",
+      description: "When another player invites you to a combat match.",
+    },
+    pvpTurn: {
+      title: "Your turn in combat",
+      description: "When a PvP match is waiting on your next move.",
+    },
+    giftReceived: {
+      title: "Gift received",
+      description: "When another player sends you a gift.",
+    },
+  },
   themeNames: {
     candy: "Candy",
     ice: "Ice",
