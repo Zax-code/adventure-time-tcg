@@ -3,6 +3,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { parseArgs } from "node:util";
+import { buildIosLocally } from "./ios-local-build.mjs";
 import { recordMobileRelease } from "./release-trace.mjs";
 
 const DEFAULT_PROFILE = "production";
@@ -60,7 +61,7 @@ async function readLocalEnvValue(mobileRoot, key) {
 
 function printHelp() {
   process.stdout.write(
-    `Usage: npm run release:ios -w @adventure-time/mobile -- --asc-app-id <id> [options]\n\nOptions:\n  --asc-app-id <id>         App Store Connect Apple ID for the app\n  --group <name>            Internal TestFlight group to add (repeatable)\n  --note <text>             Optional local release note label\n  --profile <name>          EAS build/submit profile (default: ${DEFAULT_PROFILE})\n  --message <text>          Optional EAS build message\n  --output <path>           Local .ipa output path (default: ${DEFAULT_OUTPUT_PATH})\n  --help                    Show this help\n`,
+    `Usage: npm run release:ios -w @adventure-time/mobile -- --asc-app-id <id> [options]\n\nOptions:\n  --asc-app-id <id>         App Store Connect Apple ID for the app\n  --group <name>            Internal TestFlight group to add (repeatable)\n  --note <text>             Optional local release note label\n  --profile <name>          EAS submit profile (default: ${DEFAULT_PROFILE})\n  --output <path>           Local .ipa output path (default: ${DEFAULT_OUTPUT_PATH})\n  --help                    Show this help\n`,
   );
 }
 
@@ -70,7 +71,6 @@ async function parseCliOptions(mobileRoot) {
       "asc-app-id": { type: "string" },
       group: { type: "string", multiple: true },
       help: { type: "boolean" },
-      message: { type: "string" },
       note: { type: "string" },
       output: { type: "string" },
       profile: { type: "string" },
@@ -106,7 +106,6 @@ async function parseCliOptions(mobileRoot) {
     groups: (values.group ?? DEFAULT_GROUPS)
       .map((group) => group.trim())
       .filter(Boolean),
-    message: values.message?.trim() || "",
     note: values.note?.trim() || "",
     outputPath: values.output?.trim() || DEFAULT_OUTPUT_PATH,
     profile: values.profile?.trim() || DEFAULT_PROFILE,
@@ -138,21 +137,12 @@ function runCommand(command, args, { cwd }) {
 }
 
 function buildPatchedEasConfig(existingConfig, profileName, ascAppId) {
-  const build = existingConfig.build ?? {};
-  const currentBuildProfile = build[profileName] ?? {};
   const submit = existingConfig.submit ?? {};
   const currentProfile = submit[profileName] ?? {};
   const currentIos = currentProfile.ios ?? {};
 
   return {
     ...existingConfig,
-    build: {
-      ...build,
-      [profileName]: {
-        ...currentBuildProfile,
-        credentialsSource: "local",
-      },
-    },
     submit: {
       ...submit,
       [profileName]: {
@@ -208,24 +198,10 @@ async function main() {
     options.profile,
     options.ascAppId,
     async () => {
-      const buildArgs = [
-        "eas-cli",
-        "build",
-        "--platform",
-        "ios",
-        "--profile",
-        options.profile,
-        "--local",
-        "--output",
-        options.outputPath,
-        "--non-interactive",
-      ];
-
-      if (options.message) {
-        buildArgs.push("--message", options.message);
-      }
-
-      await runCommand("npx", buildArgs, { cwd: mobileRoot });
+      await buildIosLocally({
+        mobileRoot,
+        outputPath: options.outputPath,
+      });
 
       if (!existsSync(options.outputPath)) {
         throw new Error(`Expected local iOS artifact at ${options.outputPath}.`);
