@@ -8,10 +8,15 @@ defmodule AdventureTimeApiWeb.PasswordResetController do
     email = params["email"] || ""
     code = params["code"] || ""
 
+    assigns =
+      if valid_prefill?(email, code),
+        do: pending_assigns(locale, email, code),
+        else: missing_assigns(locale, email, code)
+
     conn
     |> put_resp_content_type("text/html")
     |> put_resp_header("cache-control", "no-store")
-    |> send_resp(200, reset_html(locale, pending_assigns(locale, email, code)))
+    |> send_resp(200, reset_html(locale, assigns))
   end
 
   def confirm(conn, params) do
@@ -31,8 +36,11 @@ defmodule AdventureTimeApiWeb.PasswordResetController do
         {:error, :invalid_code, _message} ->
           invalid_assigns(locale, email, code)
 
-        {:error, :not_found, _message} ->
+        {:error, :expired, _message} ->
           expired_assigns(locale, email, code)
+
+        {:error, :not_found, _message} ->
+          missing_assigns(locale, email, code)
       end
 
     conn
@@ -111,6 +119,27 @@ defmodule AdventureTimeApiWeb.PasswordResetController do
       badge: copy.error_badge,
       title: copy.invalid_title,
       body: copy.invalid_body,
+      email: email,
+      code: code,
+      locale: locale,
+      error_message: nil,
+      show_form?: false,
+      show_open_app?: true,
+      app_link: app_link(email, code, locale, mode: "reset-password"),
+      primary_label: copy.open_in_app,
+      secondary_label: copy.open_in_app,
+      password_label: copy.password_label,
+      password_placeholder: copy.password_placeholder
+    }
+  end
+
+  defp missing_assigns(locale, email, code) do
+    copy = copy_for(locale)
+
+    %{
+      badge: copy.error_badge,
+      title: copy.missing_title,
+      body: copy.missing_body,
       email: email,
       code: code,
       locale: locale,
@@ -320,6 +349,9 @@ defmodule AdventureTimeApiWeb.PasswordResetController do
       invalid_title: "Ce code n'a pas pu etre valide",
       invalid_body:
         "Le code semble incorrect. Ouvre l'application pour demander un nouvel e-mail de reinitialisation.",
+      missing_title: "Aucune reinitialisation en attente",
+      missing_body:
+        "Ce lien ne correspond a aucune demande active. Ouvre l'application pour demander un nouvel e-mail de reinitialisation.",
       expired_title: "Ce lien n'est plus actif",
       expired_body:
         "Ce code a peut-etre deja ete utilise ou il a expire. Ouvre l'application pour demander un nouveau code.",
@@ -359,6 +391,9 @@ defmodule AdventureTimeApiWeb.PasswordResetController do
       invalid_title: "This code could not be used",
       invalid_body:
         "The code looks incorrect. Open the app to request a fresh password reset email.",
+      missing_title: "No reset is waiting",
+      missing_body:
+        "This link does not match any active reset request. Open the app to request a fresh password reset email.",
       expired_title: "This link is no longer active",
       expired_body:
         "This code may have already been used or it expired. Open the app to request a fresh code.",

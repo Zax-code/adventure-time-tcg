@@ -62,6 +62,12 @@ defmodule AdventureTimeApiWeb.AuthController do
         {:error, :validation, message} ->
           conn |> put_status(:bad_request) |> json(%{error: message})
 
+        {:error, :invalid_code, message} ->
+          conn |> put_status(:bad_request) |> json(%{error: message})
+
+        {:error, :expired, message} ->
+          conn |> put_status(:gone) |> json(%{error: message})
+
         {:error, :not_found, message} ->
           conn |> put_status(:not_found) |> json(%{error: message})
       end
@@ -124,6 +130,9 @@ defmodule AdventureTimeApiWeb.AuthController do
 
         {:error, :invalid_code, message} ->
           conn |> put_status(:bad_request) |> json(%{error: message})
+
+        {:error, :expired, message} ->
+          conn |> put_status(:gone) |> json(%{error: message})
 
         {:error, :not_found, message} ->
           conn |> put_status(:not_found) |> json(%{error: message})

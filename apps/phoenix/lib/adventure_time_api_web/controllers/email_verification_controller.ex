@@ -8,10 +8,15 @@ defmodule AdventureTimeApiWeb.EmailVerificationController do
     email = params["email"] || ""
     code = params["code"] || ""
 
+    assigns =
+      if valid_prefill?(email, code),
+        do: pending_assigns(locale, email, code),
+        else: missing_assigns(locale, email, code)
+
     conn
     |> put_resp_content_type("text/html")
     |> put_resp_header("cache-control", "no-store")
-    |> send_resp(200, verification_html(locale, pending_assigns(locale, email, code)))
+    |> send_resp(200, verification_html(locale, assigns))
   end
 
   def confirm(conn, params) do
@@ -24,11 +29,17 @@ defmodule AdventureTimeApiWeb.EmailVerificationController do
         {:ok, response} ->
           success_assigns(locale, email, code, response.authorized)
 
+        {:error, :invalid_code, _message} ->
+          invalid_assigns(locale, email, code)
+
+        {:error, :expired, _message} ->
+          expired_assigns(locale, email, code)
+
         {:error, :validation, _message} ->
           invalid_assigns(locale, email, code)
 
         {:error, :not_found, _message} ->
-          expired_assigns(locale, email, code)
+          missing_assigns(locale, email, code)
       end
 
     conn
@@ -101,6 +112,25 @@ defmodule AdventureTimeApiWeb.EmailVerificationController do
       badge: copy.error_badge,
       title: copy.invalid_title,
       body: copy.invalid_body,
+      email: email,
+      code: code,
+      locale: locale,
+      show_confirm?: false,
+      show_open_app?: true,
+      show_back_to_app?: false,
+      app_link: app_link(email, code, locale, mode: "verify"),
+      primary_label: copy.open_app,
+      secondary_label: copy.back_to_app
+    }
+  end
+
+  defp missing_assigns(locale, email, code) do
+    copy = copy_for(locale)
+
+    %{
+      badge: copy.error_badge,
+      title: copy.missing_title,
+      body: copy.missing_body,
       email: email,
       code: code,
       locale: locale,
@@ -290,6 +320,9 @@ defmodule AdventureTimeApiWeb.EmailVerificationController do
       invalid_title: "Ce code n'a pas pu etre valide",
       invalid_body:
         "Le code semble incorrect. Ouvre l'application pour corriger l'e-mail, verifier le code, ou en demander un nouveau.",
+      missing_title: "Aucune verification en attente",
+      missing_body:
+        "Ce lien ne correspond a aucune verification active. Ouvre l'application pour demander un nouveau code ou reprendre l'inscription.",
       expired_title: "Ce lien n'est plus actif",
       expired_body:
         "Ce code a peut-etre deja ete utilise ou il a expire. Ouvre l'application pour demander un nouveau code.",
@@ -329,6 +362,9 @@ defmodule AdventureTimeApiWeb.EmailVerificationController do
       invalid_title: "This code could not be confirmed",
       invalid_body:
         "The code looks incorrect. Open the app to edit the email, verify the code, or request a fresh one.",
+      missing_title: "No verification is waiting",
+      missing_body:
+        "This link does not match any active verification. Open the app to request a fresh code or restart signup.",
       expired_title: "This link is no longer active",
       expired_body:
         "This code may have already been used or it expired. Open the app to request a new code.",

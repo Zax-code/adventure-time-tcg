@@ -13,7 +13,10 @@ config :adventure_time_api,
 
 config :adventure_time_api, AdventureTimeApiWeb.Endpoint,
   adapter: Bandit.PhoenixAdapter,
-  render_errors: [formats: [json: AdventureTimeApiWeb.ErrorJSON], layout: false],
+  render_errors: [
+    formats: [html: AdventureTimeApiWeb.ErrorHTML, json: AdventureTimeApiWeb.ErrorJSON],
+    layout: false
+  ],
   pubsub_server: AdventureTimeApi.PubSub,
   url: [host: "127.0.0.1"]
 
