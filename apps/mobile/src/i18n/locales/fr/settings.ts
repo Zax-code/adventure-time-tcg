@@ -9,7 +9,7 @@ const settings = {
   saveDisplayName: "Enregistrer le nom",
   stepSource: "Source de pas",
   preferredStepSource: "Préférée : {source}",
-  useDeviceHealth: "Utiliser Apple Health / Health Connect",
+  useDeviceHealth: "Utiliser {healthSystem}",
   preferFitbit: "Préférer Fitbit quand il est connecté",
   connectingFitbit: "Connexion à Fitbit...",
   fitbitHelp:
@@ -23,19 +23,24 @@ const settings = {
   healthAccess: "Accès santé : {status}",
   goalNotifications: "Notifications d'objectif : {status}",
   enableStepSync: "Activer la synchronisation des pas",
-  openHealthConnect: "Ouvrir Health Connect",
+  openHealthConnect: "Ouvrir {healthSystem}",
   syncNow: "Synchroniser maintenant",
   syncing: "Synchronisation...",
   stepSyncHelp:
-    "Les pas au premier plan se mettent a jour tout de suite via le podometre. La synchronisation en arriere-plan garde Apple Health ou Health Connect a jour quand le systeme le permet.",
+    "Les pas au premier plan se mettent à jour tout de suite via le podomètre. La synchronisation en arrière-plan garde {healthSystem} à jour quand le système le permet.",
   stepGoalReachedTitle: "Objectif de pas atteint",
   stepGoalReachedBody:
-    "Tu as atteint 10 000 pas. Ta quete du jour est prete a etre reclamee.",
+    "Tu as atteint 10 000 pas. Ta quête du jour est prête à être réclamée.",
   theme: "Thème",
   themeNames: {
     candy: "Bonbon",
     ice: "Glace",
     nightosphere: "Nightosphere",
+  },
+  healthSystems: {
+    ios: "l'app Santé",
+    android: "Health Connect",
+    default: "la santé de l'appareil",
   },
   profile: "Profil",
   edit: "Modifier",

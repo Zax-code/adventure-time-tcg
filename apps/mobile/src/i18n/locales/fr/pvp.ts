@@ -1,7 +1,8 @@
 const pvp = {
   lobby: {
     title: "Combat PvP",
-    subtitle: "Défie tes amis · Crée tes compositions · Grimpe dans le classement",
+    subtitle:
+      "Défie tes amis · Crée tes compositions · Grimpe dans le classement",
     accept: "Accepter",
     decline: "Refuser",
     expired: "Expirée",
@@ -172,8 +173,10 @@ const pvp = {
       Taunt:
         "Force les ennemis à cibler cette unité quand les règles de ciblage mono-cible s'appliquent.",
       Regeneration: "Rend 8 % des PV max en début de tour.",
-      Regen: "Alias de Régénération ; même soin de 8 % des PV max en début de tour.",
-      Silence: "Empêche d'utiliser la compétence et l'ultime tant qu'il est actif.",
+      Regen:
+        "Alias de Régénération ; même soin de 8 % des PV max en début de tour.",
+      Silence:
+        "Empêche d'utiliser la compétence et l'ultime tant qu'il est actif.",
       Cleanse:
         "Retire un ou plusieurs malus ou effets de statut de l'unité cible.",
       SummoningSickness:
@@ -206,10 +209,8 @@ const pvp = {
         "Les recharges diminuent au début du tour du propriétaire, y compris pour les cartes sur le banc.",
       formation:
         "Quand une carte active est K.O., le moteur remplit automatiquement les places actives libres avec des cartes vivantes du banc.",
-      slotLimits:
-        "Une unité peut avoir au maximum 3 bonus et 3 malus.",
-      mitigation:
-        "Les boucliers absorbent les dégâts avant les PV.",
+      slotLimits: "Une unité peut avoir au maximum 3 bonus et 3 malus.",
+      mitigation: "Les boucliers absorbent les dégâts avant les PV.",
       retaliation:
         "Contre peut esquiver puis riposter. Épines renvoie une partie des dégâts.",
     },
@@ -255,12 +256,14 @@ const pvp = {
   loadoutCreated: "Composition créée !",
   loadoutUpdated: "Composition mise à jour !",
   loadoutDeleted: "Composition supprimée",
-  noCardsFound: "Aucune carte trouvée. Ouvre des packs pour agrandir ta collection !",
+  noCardsFound:
+    "Aucune carte trouvée. Ouvre des packs pour agrandir ta collection !",
   activeBenchHint:
     "Les 3 premières cartes sont actives (anneau vert), les 3 dernières sont sur le banc",
   activeSlot: "Actif {index}",
   benchSlot: "Banc {index}",
-  firstThreeActive: "Les 3 premières cartes sont actives, les 3 dernières sont sur le banc",
+  firstThreeActive:
+    "Les 3 premières cartes sont actives, les 3 dernières sont sur le banc",
   cardMissingTitle: "Carte non possédée",
   update: "Mettre à jour",
   create: "Créer",
@@ -280,7 +283,8 @@ const pvp = {
   readyForBattleHint: "Crée une composition et défie un ami pour commencer !",
   friendEmail: "E-mail de ton ami",
   invalidLoadout: "{count} carte(s) invalide(s) - composition inutilisable",
-  needValidLoadout: "Tu as besoin d'une composition valide pour accepter ce défi.",
+  needValidLoadout:
+    "Tu as besoin d'une composition valide pour accepter ce défi.",
   liveMatches: "Matchs en direct",
   stopWatching: "Arrêter de regarder",
   live: "Direct",
@@ -303,7 +307,7 @@ const pvp = {
   loadingReplay: "Chargement du replay...",
   failedLoadReplay: "Impossible de charger le replay.",
   replayNotAvailable: "Replay indisponible pour ce match.",
-  replayPrevious: "Prec.",
+  replayPrevious: "Préc.",
   replayNext: "Suiv.",
   replayPlay: "Lecture",
   replayPause: "Pause",
@@ -314,7 +318,7 @@ const pvp = {
   matchNotFound: "Match introuvable.",
   inviteSent: "Invitation envoyée !",
   failedSendInvite: "Impossible d'envoyer l'invitation.",
-  failedCancelInvite: "Impossible de mettre a jour l'invitation.",
+  failedCancelInvite: "Impossible de mettre à jour l'invitation.",
   failedAcceptInvite: "Impossible d'accepter l'invitation.",
   inviteDeclined: "Invitation refusée.",
   sending: "Envoi...",
