@@ -30,9 +30,11 @@ export const KEYBOARD_AWARE_SCROLL_PROPS: Pick<
 
 export function KeyboardScreenView({
   children,
+  fill = true,
   keyboardVerticalOffset = 0,
   style,
 }: PropsWithChildren<{
+  fill?: boolean;
   keyboardVerticalOffset?: number;
   style?: StyleProp<ViewStyle>;
 }>) {
@@ -40,7 +42,7 @@ export function KeyboardScreenView({
     <KeyboardAvoidingView
       behavior={KEYBOARD_AVOIDING_BEHAVIOR}
       keyboardVerticalOffset={keyboardVerticalOffset}
-      style={[{ flex: 1 }, style]}
+      style={[fill ? { flex: 1 } : null, style]}
     >
       {children}
     </KeyboardAvoidingView>

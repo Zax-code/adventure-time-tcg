@@ -28,6 +28,7 @@ import { useThemeStore } from "../stores/theme-store";
 import { THEME_COLORS } from "../theme/themes";
 import { PrimaryButton } from "./button";
 import { CardsIcon, PackIcon, QuestIcon } from "./icons";
+import { KeyboardScreenView } from "./keyboard-screen-view";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -795,110 +796,114 @@ export function AuthForm({ prefill }: { prefill?: AuthFormPrefill }) {
           </View>
         </View>
 
-        <TextInput
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          keyboardType="email-address"
-          placeholder={t("auth.fields.email")}
-          placeholderTextColor={tc.muted}
-          editable={stage !== "pendingApproval"}
-          className="rounded-2xl border border-primaryBorder bg-primaryBg px-4 py-3 font-nunito text-fg"
-        />
+        <KeyboardScreenView fill={false}>
+          <View className="gap-3">
+            <TextInput
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              placeholder={t("auth.fields.email")}
+              placeholderTextColor={tc.muted}
+              editable={stage !== "pendingApproval"}
+              className="rounded-2xl border border-primaryBorder bg-primaryBg px-4 py-3 font-nunito text-fg"
+            />
 
-        {stage === "verify" ? (
-          <View className="gap-3 rounded-2xl border border-infoBorder bg-infoTint p-4">
-            <Text className="font-nunito-bold text-base text-infoText">
-              {t("auth.status.verifyTitle")}
-            </Text>
-            <Text className="font-nunito text-sm leading-6 text-infoText">
-              {t("auth.status.verifyBody")}
-            </Text>
-          </View>
-        ) : stage === "resetRequest" ? (
-          <View className="gap-3 rounded-2xl border border-infoBorder bg-infoTint p-4">
-            <Text className="font-nunito-bold text-base text-infoText">
-              {t("auth.status.resetRequestTitle")}
-            </Text>
-            <Text className="font-nunito text-sm leading-6 text-infoText">
-              {t("auth.status.resetRequestBody")}
-            </Text>
-          </View>
-        ) : stage === "resetPassword" ? (
-          <View className="gap-3 rounded-2xl border border-infoBorder bg-infoTint p-4">
-            <Text className="font-nunito-bold text-base text-infoText">
-              {t("auth.status.resetReadyTitle")}
-            </Text>
-            <Text className="font-nunito text-sm leading-6 text-infoText">
-              {t("auth.status.resetReadyBody")}
-            </Text>
-          </View>
-        ) : null}
+            {stage === "verify" ? (
+              <View className="gap-3 rounded-2xl border border-infoBorder bg-infoTint p-4">
+                <Text className="font-nunito-bold text-base text-infoText">
+                  {t("auth.status.verifyTitle")}
+                </Text>
+                <Text className="font-nunito text-sm leading-6 text-infoText">
+                  {t("auth.status.verifyBody")}
+                </Text>
+              </View>
+            ) : stage === "resetRequest" ? (
+              <View className="gap-3 rounded-2xl border border-infoBorder bg-infoTint p-4">
+                <Text className="font-nunito-bold text-base text-infoText">
+                  {t("auth.status.resetRequestTitle")}
+                </Text>
+                <Text className="font-nunito text-sm leading-6 text-infoText">
+                  {t("auth.status.resetRequestBody")}
+                </Text>
+              </View>
+            ) : stage === "resetPassword" ? (
+              <View className="gap-3 rounded-2xl border border-infoBorder bg-infoTint p-4">
+                <Text className="font-nunito-bold text-base text-infoText">
+                  {t("auth.status.resetReadyTitle")}
+                </Text>
+                <Text className="font-nunito text-sm leading-6 text-infoText">
+                  {t("auth.status.resetReadyBody")}
+                </Text>
+              </View>
+            ) : null}
 
-        {stage === "verify" ? (
-          <TextInput
-            value={verificationCode}
-            onChangeText={setVerificationCode}
-            keyboardType="number-pad"
-            maxLength={6}
-            placeholder={t("auth.fields.verificationCode")}
-            placeholderTextColor={tc.muted}
-            className="rounded-2xl border border-primaryBorder bg-primaryBg px-4 py-3 font-nunito text-fg"
-          />
-        ) : stage === "resetPassword" ? (
-          <>
-            <TextInput
-              value={verificationCode}
-              onChangeText={setVerificationCode}
-              keyboardType="number-pad"
-              maxLength={6}
-              placeholder={t("auth.fields.verificationCode")}
-              placeholderTextColor={tc.muted}
-              className="rounded-2xl border border-primaryBorder bg-primaryBg px-4 py-3 font-nunito text-fg"
-            />
-            <TextInput
-              value={resetPassword}
-              onChangeText={setResetPassword}
-              secureTextEntry
-              placeholder={t("auth.fields.newPassword")}
-              placeholderTextColor={tc.muted}
-              className="rounded-2xl border border-primaryBorder bg-primaryBg px-4 py-3 font-nunito text-fg"
-            />
-          </>
-        ) : stage === "pendingApproval" ? (
-          <View className="gap-3 rounded-2xl border border-successBorder bg-successTint p-4">
-            <Text className="font-nunito-bold text-base text-successDark">
-              {t("auth.status.pendingApprovalTitle")}
-            </Text>
-            <Text className="font-nunito text-sm leading-6 text-successDark">
-              {t("auth.status.pendingApprovalBody")}
-            </Text>
-          </View>
-        ) : stage === "resetRequest" ? null : (
-          <>
-            <TextInput
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              placeholder={
-                mode === "register"
-                  ? t("auth.fields.passwordMin")
-                  : t("auth.fields.password")
-              }
-              placeholderTextColor={tc.muted}
-              className="rounded-2xl border border-primaryBorder bg-primaryBg px-4 py-3 font-nunito text-fg"
-            />
-            {mode === "register" ? (
+            {stage === "verify" ? (
               <TextInput
-                value={displayName}
-                onChangeText={setDisplayName}
-                placeholder={t("auth.fields.displayNameOptional")}
+                value={verificationCode}
+                onChangeText={setVerificationCode}
+                keyboardType="number-pad"
+                maxLength={6}
+                placeholder={t("auth.fields.verificationCode")}
                 placeholderTextColor={tc.muted}
                 className="rounded-2xl border border-primaryBorder bg-primaryBg px-4 py-3 font-nunito text-fg"
               />
-            ) : null}
-          </>
-        )}
+            ) : stage === "resetPassword" ? (
+              <>
+                <TextInput
+                  value={verificationCode}
+                  onChangeText={setVerificationCode}
+                  keyboardType="number-pad"
+                  maxLength={6}
+                  placeholder={t("auth.fields.verificationCode")}
+                  placeholderTextColor={tc.muted}
+                  className="rounded-2xl border border-primaryBorder bg-primaryBg px-4 py-3 font-nunito text-fg"
+                />
+                <TextInput
+                  value={resetPassword}
+                  onChangeText={setResetPassword}
+                  secureTextEntry
+                  placeholder={t("auth.fields.newPassword")}
+                  placeholderTextColor={tc.muted}
+                  className="rounded-2xl border border-primaryBorder bg-primaryBg px-4 py-3 font-nunito text-fg"
+                />
+              </>
+            ) : stage === "pendingApproval" ? (
+              <View className="gap-3 rounded-2xl border border-successBorder bg-successTint p-4">
+                <Text className="font-nunito-bold text-base text-successDark">
+                  {t("auth.status.pendingApprovalTitle")}
+                </Text>
+                <Text className="font-nunito text-sm leading-6 text-successDark">
+                  {t("auth.status.pendingApprovalBody")}
+                </Text>
+              </View>
+            ) : stage === "resetRequest" ? null : (
+              <>
+                <TextInput
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry
+                  placeholder={
+                    mode === "register"
+                      ? t("auth.fields.passwordMin")
+                      : t("auth.fields.password")
+                  }
+                  placeholderTextColor={tc.muted}
+                  className="rounded-2xl border border-primaryBorder bg-primaryBg px-4 py-3 font-nunito text-fg"
+                />
+                {mode === "register" ? (
+                  <TextInput
+                    value={displayName}
+                    onChangeText={setDisplayName}
+                    placeholder={t("auth.fields.displayNameOptional")}
+                    placeholderTextColor={tc.muted}
+                    className="rounded-2xl border border-primaryBorder bg-primaryBg px-4 py-3 font-nunito text-fg"
+                  />
+                ) : null}
+              </>
+            )}
+          </View>
+        </KeyboardScreenView>
 
         {info ? (
           <Text className="text-xs font-nunito-semibold text-successDark">

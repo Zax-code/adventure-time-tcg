@@ -5,10 +5,7 @@ import { useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AuthForm } from "../src/components/auth-form";
-import {
-  KEYBOARD_AWARE_SCROLL_PROPS,
-  KeyboardScreenView,
-} from "../src/components/keyboard-screen-view";
+import { KEYBOARD_AWARE_SCROLL_PROPS } from "../src/components/keyboard-screen-view";
 
 const PARTICLES = [
   { left: "8%", top: "12%", size: 14, delay: 0, duration: 3200 },
@@ -94,45 +91,43 @@ export default function LoginScreen() {
       {PARTICLES.map((p, i) => (
         <FloatingHeart key={i} {...p} />
       ))}
-      <KeyboardScreenView>
-        <ScrollView
-          {...KEYBOARD_AWARE_SCROLL_PROPS}
-          className="flex-1"
-          contentContainerStyle={{
-            flexGrow: 1,
-            justifyContent: "center",
-            paddingHorizontal: 20,
-            paddingTop: insets.top + 20,
-            paddingBottom: insets.bottom + 20,
-          }}
-          showsVerticalScrollIndicator={false}
-        >
-          <View>
-            <AuthForm
-              prefill={{
-                email:
-                  typeof params.email === "string" ? params.email : undefined,
-                code: typeof params.code === "string" ? params.code : undefined,
-                locale:
-                  params.locale === "fr"
-                    ? "fr"
-                    : params.locale === "en"
-                      ? "en"
+      <ScrollView
+        {...KEYBOARD_AWARE_SCROLL_PROPS}
+        className="flex-1"
+        contentContainerStyle={{
+          flexGrow: 1,
+          justifyContent: "center",
+          paddingHorizontal: 20,
+          paddingTop: insets.top + 20,
+          paddingBottom: insets.bottom + 20,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
+        <View>
+          <AuthForm
+            prefill={{
+              email:
+                typeof params.email === "string" ? params.email : undefined,
+              code: typeof params.code === "string" ? params.code : undefined,
+              locale:
+                params.locale === "fr"
+                  ? "fr"
+                  : params.locale === "en"
+                    ? "en"
+                    : undefined,
+              mode:
+                params.mode === "verify"
+                  ? "verify"
+                  : params.mode === "reset-password"
+                    ? "reset-password"
+                    : params.mode === "login"
+                      ? "login"
                       : undefined,
-                mode:
-                  params.mode === "verify"
-                    ? "verify"
-                    : params.mode === "reset-password"
-                      ? "reset-password"
-                      : params.mode === "login"
-                        ? "login"
-                        : undefined,
-                autoVerify: params.auto_verify === "true",
-              }}
-            />
-          </View>
-        </ScrollView>
-      </KeyboardScreenView>
+              autoVerify: params.auto_verify === "true",
+            }}
+          />
+        </View>
+      </ScrollView>
     </LinearGradient>
   );
 }
