@@ -20,7 +20,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { ApiClientError, apiClient } from "../lib/api";
+import { SectionErrorState } from "./error-state";
+import { ApiClientError, apiClient, isNetworkError } from "../lib/api";
 import { useTranslation } from "../i18n";
 import { useLocaleStore } from "../stores/locale-store";
 import { useSessionStore } from "../stores/session-store";
@@ -55,6 +56,11 @@ type AuthFormPrefill = {
   mode?: "login" | "verify" | "reset-password";
   autoVerify?: boolean;
 };
+type AuthErrorOptions = {
+  cause?: unknown;
+  onRetry?: () => void;
+};
+
 let nativeGoogleConfigured = false;
 
 function hasGoogleAuthConfig() {
@@ -156,7 +162,7 @@ function BrowserGoogleAuthSection({
 }: {
   loading: boolean;
   preferredLanguage: "en" | "fr";
-  setError: (value: string | null) => void;
+  setError: (value: string | null, options?: AuthErrorOptions) => void;
   setGoogleLoading: (value: boolean) => void;
   setSession: (params: {
     user: import("@adventure-time/api-client").AuthUser;
@@ -231,6 +237,10 @@ function BrowserGoogleAuthSection({
         if (!cancelled) {
           setError(
             submitError instanceof Error ? submitError.message : t("auth.errors.failed"),
+            {
+              cause: submitError,
+              onRetry: () => void submitGoogle(),
+            },
           );
         }
       } finally {
@@ -298,7 +308,13 @@ function BrowserGoogleAuthSection({
         return;
       }
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : t("auth.errors.failed"));
+      setError(
+        submitError instanceof Error ? submitError.message : t("auth.errors.failed"),
+        {
+          cause: submitError,
+          onRetry: () => void submitGoogle(),
+        },
+      );
       setGoogleLoading(false);
     }
   }
@@ -324,7 +340,7 @@ function NativeGoogleAuthSection({
 }: {
   loading: boolean;
   preferredLanguage: "en" | "fr";
-  setError: (value: string | null) => void;
+  setError: (value: string | null, options?: AuthErrorOptions) => void;
   setGoogleLoading: (value: boolean) => void;
   setSession: (params: {
     user: import("@adventure-time/api-client").AuthUser;
@@ -394,6 +410,10 @@ function NativeGoogleAuthSection({
       } else {
         setError(
           submitError instanceof Error ? submitError.message : t("auth.errors.failed"),
+          {
+            cause: submitError,
+            onRetry: () => void submitGoogle(),
+          },
         );
       }
     } finally {
@@ -425,13 +445,28 @@ export function AuthForm({ prefill }: { prefill?: AuthFormPrefill }) {
   const [resetPassword, setResetPassword] = useState("");
   const [mode, setMode] = useState<AuthMode>("login");
   const [stage, setStage] = useState<AuthStage>("credentials");
-  const [error, setError] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [errorCause, setErrorCause] = useState<unknown>(null);
+  const [errorRetry, setErrorRetry] = useState<(() => void) | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const googleAuthConfigured = hasGoogleAuthConfig();
   const appliedPrefillRef = useRef(false);
   const autoVerifyTriggeredRef = useRef(false);
+
+  function setError(value: string | null, options?: AuthErrorOptions) {
+    if (!value) {
+      setErrorMessage(null);
+      setErrorCause(null);
+      setErrorRetry(null);
+      return;
+    }
+
+    setErrorMessage(value);
+    setErrorCause(options?.cause);
+    setErrorRetry(() => options?.onRetry ?? null);
+  }
 
   function switchMode(nextMode: AuthMode) {
     setMode(nextMode);
@@ -572,6 +607,10 @@ export function AuthForm({ prefill }: { prefill?: AuthFormPrefill }) {
       }
     }
 
+    if (isNetworkError(submitError)) {
+      return t("auth.errors.networkFallback");
+    }
+
     if (submitError instanceof Error) {
       return submitError.message;
     }
@@ -644,7 +683,10 @@ export function AuthForm({ prefill }: { prefill?: AuthFormPrefill }) {
           : t("auth.status.verificationCodeSentCheckEmail"),
       );
     } catch (submitError) {
-      setError(getFriendlyError(submitError));
+      setError(getFriendlyError(submitError), {
+        cause: submitError,
+        onRetry: () => void submit(),
+      });
     } finally {
       setLoading(false);
     }
@@ -663,7 +705,10 @@ export function AuthForm({ prefill }: { prefill?: AuthFormPrefill }) {
         setInfo(t("auth.status.newVerificationCodeSent"));
       }
     } catch (submitError) {
-      setError(getFriendlyError(submitError));
+      setError(getFriendlyError(submitError), {
+        cause: submitError,
+        onRetry: () => void resendCode(),
+      });
     } finally {
       setLoading(false);
     }
@@ -911,10 +956,21 @@ export function AuthForm({ prefill }: { prefill?: AuthFormPrefill }) {
           </Text>
         ) : null}
 
-        {error ? (
-          <Text className="text-xs font-nunito-semibold text-danger">
-            {error}
-          </Text>
+        {errorMessage && isNetworkError(errorCause) ? (
+          <SectionErrorState
+            error={errorCause}
+            title={t("auth.errors.networkTitle")}
+            body={t("auth.errors.networkBody")}
+            detail={t("auth.errors.networkDetail")}
+            retryLabel={t("auth.errors.networkAction")}
+            onRetry={errorRetry ?? (() => void submit())}
+          />
+        ) : errorMessage ? (
+          <View className="rounded-2xl border border-dangerBorder bg-dangerTint px-4 py-3">
+            <Text className="font-nunito-bold text-sm text-dangerDark">
+              {errorMessage}
+            </Text>
+          </View>
         ) : null}
 
         <PrimaryButton onPress={() => void submit()} loading={loading}>

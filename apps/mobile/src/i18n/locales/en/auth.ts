@@ -80,6 +80,12 @@ const auth = {
   },
   errors: {
     failed: "Authentication failed",
+    networkFallback: "We couldn't reach the server. Please try again.",
+    networkTitle: "We couldn't connect to the game server.",
+    networkBody:
+      "Your sign-in details are still here. This usually means your connection dropped for a moment or the server needs another try.",
+    networkDetail: "Refresh this step once your connection is back.",
+    networkAction: "Refresh and try again",
   },
 };
 

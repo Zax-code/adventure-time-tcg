@@ -11,6 +11,7 @@ import { useBottomTabBarContentPadding } from "../../src/theme/layout";
 import { THEME_COLORS } from "../../src/theme/themes";
 import { PrimaryButton, SecondaryButton } from "../../src/components/button";
 import { CardTile } from "../../src/components/card-tile";
+import { PageErrorState } from "../../src/components/error-state";
 import { PageLoadingState } from "../../src/components/loading-state";
 import { useTranslation } from "../../src/i18n";
 
@@ -100,11 +101,12 @@ export default function HomeScreen() {
 
   if (homeQuery.isError) {
     return (
-      <View className="flex-1 bg-bg p-6">
-        <Text className="font-nunito text-danger">
-          {homeQuery.error.message}
-        </Text>
-      </View>
+      <PageErrorState
+        error={homeQuery.error}
+        onRetry={() => {
+          void homeQuery.refetch();
+        }}
+      />
     );
   }
 

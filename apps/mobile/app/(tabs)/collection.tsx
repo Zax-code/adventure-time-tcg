@@ -25,6 +25,7 @@ import {
   CraftIcon,
   BarChartIcon,
 } from "../../src/components/icons";
+import { PageErrorState } from "../../src/components/error-state";
 import { PageLoadingState } from "../../src/components/loading-state";
 import { ToastBanner } from "../../src/components/toast-banner";
 import { useTranslation } from "../../src/i18n";
@@ -172,11 +173,12 @@ export default function CollectionScreen() {
 
   if (collectionQuery.isError) {
     return (
-      <View className="flex-1 bg-bg p-6">
-        <Text className="font-nunito text-danger">
-          {collectionQuery.error.message}
-        </Text>
-      </View>
+      <PageErrorState
+        error={collectionQuery.error}
+        onRetry={() => {
+          void collectionQuery.refetch();
+        }}
+      />
     );
   }
 

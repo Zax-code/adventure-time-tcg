@@ -20,6 +20,24 @@ const common = {
     rosterBody: "Checking the latest players and lineups.",
     adminBody: "Gathering the latest tools and records for this workspace.",
   },
+  errorStates: {
+    network: {
+      eyebrow: "Connection interrupted",
+      title: "We can't reach the game server right now.",
+      body: "Your progress is safe. This usually means your connection dropped for a moment or the server needs another try.",
+      detail: "Refresh this screen once you're back online.",
+      action: "Refresh screen",
+    },
+    generic: {
+      eyebrow: "Unexpected hiccup",
+      title: "This screen did not load correctly.",
+      body: "Ask the app for a fresh copy and we will try again.",
+      detail: "If this keeps happening, come back in a moment.",
+      action: "Try again",
+    },
+    technicalLabel: "Technical details",
+    backAction: "Go back",
+  },
 };
 
 export default common;

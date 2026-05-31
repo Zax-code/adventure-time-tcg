@@ -185,6 +185,30 @@ export class ApiClientError extends Error {
   }
 }
 
+export class ApiNetworkError extends Error {
+  constructor(
+    message = "Network request failed",
+    public readonly cause?: unknown,
+  ) {
+    super(message);
+    this.name = "ApiNetworkError";
+  }
+}
+
+export function isNetworkError(error: unknown): error is ApiNetworkError {
+  if (error instanceof ApiNetworkError) {
+    return true;
+  }
+
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  return /network request failed|failed to fetch|load failed/i.test(
+    error.message,
+  );
+}
+
 export class ApiClient {
   constructor(private readonly options: ApiClientOptions) {}
 
@@ -209,10 +233,21 @@ export class ApiClient {
       headers["Content-Type"] = "application/json";
     }
 
-    const response = await fetch(`${this.options.baseUrl}${path}`, {
-      ...init,
-      headers,
-    });
+    let response: Response;
+
+    try {
+      response = await fetch(`${this.options.baseUrl}${path}`, {
+        ...init,
+        headers,
+      });
+    } catch (error) {
+      throw new ApiNetworkError(
+        error instanceof Error && error.message
+          ? error.message
+          : "Network request failed",
+        error,
+      );
+    }
 
     if (
       response.status === 401 &&

@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import * as ScreenOrientation from "expo-screen-orientation";
 
 import { PageLoadingState } from "../src/components/loading-state";
+import { PageErrorState } from "../src/components/error-state";
 import { BattleBoard } from "../src/features/pvp/battle-board";
 import { buildSpectateMatchView } from "../src/features/pvp/read-only-view";
 import { useTranslation } from "../src/i18n";
@@ -47,16 +48,14 @@ export default function PvpSpectateMatchScreen() {
 
   if (spectateQuery.isError && !matchView) {
     return (
-      <View style={[styles.loading, THEME_VARS[themeName] as never]}>
-        <Text style={styles.loadingText}>
-          {spectateQuery.error instanceof Error
-            ? spectateQuery.error.message
-            : t("pvp.failedLoadMatch")}
-        </Text>
-        <Text style={styles.linkText} onPress={() => router.push("/pvp-spectate" as never)}>
-          {t("pvp.backToPvp")}
-        </Text>
-      </View>
+      <PageErrorState
+        error={spectateQuery.error}
+        title={t("pvp.failedLoadMatch")}
+        onRetry={() => {
+          void spectateQuery.refetch();
+        }}
+        onBack={() => router.push("/pvp-spectate" as never)}
+      />
     );
   }
 

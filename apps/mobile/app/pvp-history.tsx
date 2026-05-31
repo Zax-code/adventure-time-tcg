@@ -5,6 +5,7 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { apiClient } from "../src/lib/api";
+import { SectionErrorState } from "../src/components/error-state";
 import { LoadingPanel } from "../src/components/loading-state";
 import { useTranslation } from "../src/i18n";
 import { useThemeStore } from "../src/stores/theme-store";
@@ -112,13 +113,13 @@ export default function PvpHistoryScreen() {
             icon="time"
           />
         ) : historyQuery.isError ? (
-          <View className="items-center justify-center rounded-2xl border border-dangerBorder bg-dangerTint p-8">
-            <Text className="text-center font-nunito text-dangerDark">
-              {historyQuery.error instanceof Error
-                ? historyQuery.error.message
-                : t("pvp.failedLoadReplay")}
-            </Text>
-          </View>
+          <SectionErrorState
+            error={historyQuery.error}
+            title={t("pvp.failedLoadReplay")}
+            onRetry={() => {
+              void historyQuery.refetch();
+            }}
+          />
         ) : completedMatches.length === 0 ? (
           <View className="items-center rounded-2xl border border-primaryTint bg-surface p-8">
             <SwordsIcon size={48} color={tc.primaryBorder} />

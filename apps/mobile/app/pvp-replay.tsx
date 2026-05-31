@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import * as ScreenOrientation from "expo-screen-orientation";
 
 import { PageLoadingState } from "../src/components/loading-state";
+import { PageErrorState } from "../src/components/error-state";
 import type { FloatingEvent } from "../src/features/pvp/types";
 import { BattleBoard } from "../src/features/pvp/battle-board";
 import {
@@ -139,16 +140,14 @@ export default function PvpReplayScreen() {
 
   if (replayQuery.isError) {
     return (
-      <View style={[styles.loading, THEME_VARS[themeName] as never]}>
-        <Text style={styles.loadingText}>
-          {replayQuery.error instanceof Error
-            ? replayQuery.error.message
-            : t("pvp.failedLoadReplay")}
-        </Text>
-        <Text style={styles.linkText} onPress={() => router.push("/pvp-history" as never)}>
-          {t("pvp.backToPvp")}
-        </Text>
-      </View>
+      <PageErrorState
+        error={replayQuery.error}
+        title={t("pvp.failedLoadReplay")}
+        onRetry={() => {
+          void replayQuery.refetch();
+        }}
+        onBack={() => router.push("/pvp-history" as never)}
+      />
     );
   }
 

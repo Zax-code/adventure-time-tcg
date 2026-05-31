@@ -82,6 +82,12 @@ const auth = {
   },
   errors: {
     failed: "Échec de l'authentification",
+    networkFallback: "Impossible de joindre le serveur. Réessaie.",
+    networkTitle: "Impossible de se connecter au serveur du jeu.",
+    networkBody:
+      "Tes informations de connexion sont toujours là. Cela veut souvent dire que la connexion a coupé un instant ou que le serveur a besoin d'une nouvelle tentative.",
+    networkDetail: "Actualise cette étape quand la connexion est revenue.",
+    networkAction: "Actualiser et réessayer",
   },
 };
 

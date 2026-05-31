@@ -23,6 +23,7 @@ import {
   WalkingIcon,
   XCircleIcon,
 } from "../../src/components/icons";
+import { PageErrorState } from "../../src/components/error-state";
 import { PageLoadingState } from "../../src/components/loading-state";
 import { ToastBanner } from "../../src/components/toast-banner";
 import { useTranslation } from "../../src/i18n";
@@ -419,11 +420,23 @@ export default function QuestsScreen() {
 
   if (questsQuery.isError || !questsQuery.data) {
     return (
-      <View className="flex-1 bg-bg p-6">
-        <Text className="font-nunito text-danger">
-          {questsQuery.error?.message ?? t("quests.unavailable")}
-        </Text>
-      </View>
+      <PageErrorState
+        error={questsQuery.error}
+        title={questsQuery.error ? undefined : t("quests.unavailable")}
+        body={
+          questsQuery.error
+            ? undefined
+            : t("common.errorStates.generic.body")
+        }
+        detail={
+          questsQuery.error
+            ? undefined
+            : t("common.errorStates.generic.detail")
+        }
+        onRetry={() => {
+          void questsQuery.refetch();
+        }}
+      />
     );
   }
 

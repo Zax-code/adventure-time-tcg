@@ -3,6 +3,8 @@ import * as SecureStore from "expo-secure-store";
 import {
   ApiClient,
   ApiClientError,
+  ApiNetworkError,
+  isNetworkError,
   type AuthUser,
 } from "@adventure-time/api-client";
 
@@ -113,3 +115,4 @@ export const apiClient = new ApiClient({
 });
 
 export { ApiClientError };
+export { ApiNetworkError, isNetworkError };

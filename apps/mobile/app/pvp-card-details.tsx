@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { LoadingPanel } from "../src/components/loading-state";
+import { PageErrorState } from "../src/components/error-state";
 import { LoadoutCardDetailsContent } from "../src/components/pvp/loadout-card-details-content";
 import { apiClient } from "../src/lib/api";
 import { useTranslation } from "../src/i18n";
@@ -40,13 +41,14 @@ export default function PvpCardDetailsScreen() {
           />
         </View>
       ) : collectionQuery.isError ? (
-        <View className="flex-1 items-center justify-center px-6">
-          <Text className="text-center font-nunito text-danger">
-            {collectionQuery.error instanceof Error
-              ? collectionQuery.error.message
-              : t("messages.somethingWentWrong")}
-          </Text>
-        </View>
+        <PageErrorState
+          error={collectionQuery.error}
+          title={t("messages.somethingWentWrong")}
+          onRetry={() => {
+            void collectionQuery.refetch();
+          }}
+          onBack={() => router.back()}
+        />
       ) : !card ? (
         <View className="flex-1 items-center justify-center px-6">
           <Text className="text-center font-nunito text-fgMuted">

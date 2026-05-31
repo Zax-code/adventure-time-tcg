@@ -7,6 +7,7 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import type { GiftsResponse } from "@adventure-time/api-client";
 
 import { PrimaryButton } from "../../src/components/button";
+import { PageErrorState } from "../../src/components/error-state";
 import {
   BoxIcon,
   CheckCircleIcon,
@@ -78,11 +79,12 @@ export default function GiftsScreen() {
 
   if (giftsQuery.isError) {
     return (
-      <View className="flex-1 bg-bg p-6">
-        <Text className="font-nunito text-dangerDark">
-          {giftsQuery.error.message}
-        </Text>
-      </View>
+      <PageErrorState
+        error={giftsQuery.error}
+        onRetry={() => {
+          void giftsQuery.refetch();
+        }}
+      />
     );
   }
 

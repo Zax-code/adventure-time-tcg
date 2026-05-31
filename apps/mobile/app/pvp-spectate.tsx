@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { apiClient } from "../src/lib/api";
+import { SectionErrorState } from "../src/components/error-state";
 import { LoadingPanel } from "../src/components/loading-state";
 import { useTranslation } from "../src/i18n";
 import { useThemeStore } from "../src/stores/theme-store";
@@ -69,13 +70,13 @@ export default function PvpSpectateScreen() {
             icon="eye"
           />
         ) : spectateQuery.isError ? (
-          <View className="items-center justify-center rounded-2xl border border-dangerBorder bg-dangerTint p-8">
-            <Text className="text-center font-nunito text-dangerDark">
-              {spectateQuery.error instanceof Error
-                ? spectateQuery.error.message
-                : t("pvp.failedLoadMatch")}
-            </Text>
-          </View>
+          <SectionErrorState
+            error={spectateQuery.error}
+            title={t("pvp.failedLoadMatch")}
+            onRetry={() => {
+              void spectateQuery.refetch();
+            }}
+          />
         ) : (spectateQuery.data?.matches.length ?? 0) === 0 ? (
           <View className="items-center rounded-2xl border border-primaryTint bg-surface p-8">
             <SwordsIcon size={48} color={tc.primaryBorder} />

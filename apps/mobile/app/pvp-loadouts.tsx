@@ -32,6 +32,7 @@ import {
   SwordsIcon,
   XIcon,
 } from "../src/components/icons";
+import { PageErrorState } from "../src/components/error-state";
 import { PageLoadingState } from "../src/components/loading-state";
 
 type CollectionEntry = CollectionResponse["cards"][number];
@@ -330,11 +331,13 @@ export default function PvpLoadoutsScreen() {
 
   if (collectionQuery.isError || loadoutsQuery.isError) {
     return (
-      <View className="flex-1 items-center justify-center bg-bg px-6">
-        <Text className="font-nunito text-center text-danger">
-          {collectionQuery.error?.message ?? loadoutsQuery.error?.message}
-        </Text>
-      </View>
+      <PageErrorState
+        error={collectionQuery.error ?? loadoutsQuery.error}
+        onRetry={() => {
+          void collectionQuery.refetch();
+          void loadoutsQuery.refetch();
+        }}
+      />
     );
   }
 

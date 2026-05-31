@@ -12,6 +12,7 @@ import * as ScreenOrientation from "expo-screen-orientation";
 import type { PvpAction } from "@adventure-time/api-client";
 
 import { PageLoadingState } from "../src/components/loading-state";
+import { PageErrorState } from "../src/components/error-state";
 import { useThemeStore } from "../src/stores/theme-store";
 import { THEME_VARS } from "../src/theme/themes";
 import { BattleBoard } from "../src/features/pvp/battle-board";
@@ -171,12 +172,10 @@ export default function PvpMatchScreen() {
 
   if (isError) {
     return (
-      <View style={[styles.loading, THEME_VARS[themeName] as any]}>
-        <Text style={styles.loadingText}>{t("pvp.match.loadFailed")}</Text>
-        <Pressable onPress={() => router.back()}>
-          <Text style={styles.loadingText}>{t("pvp.match.goBack")}</Text>
-        </Pressable>
-      </View>
+      <PageErrorState
+        title={t("pvp.match.loadFailed")}
+        onBack={() => router.back()}
+      />
     );
   }
 

@@ -14,6 +14,7 @@ import { useRef, useState, useEffect } from "react";
 import { apiClient } from "../../src/lib/api";
 import { useSessionStore } from "../../src/stores/session-store";
 import { CardTile } from "../../src/components/card-tile";
+import { PageErrorState } from "../../src/components/error-state";
 import {
   CoinIcon,
   CrownIcon,
@@ -386,11 +387,23 @@ export default function PacksScreen() {
 
   if (packsQuery.isError || !packsQuery.data) {
     return (
-      <View className="flex-1 bg-bg p-6">
-        <Text className="font-nunito text-danger">
-          {packsQuery.error?.message ?? t("packs.unavailable")}
-        </Text>
-      </View>
+      <PageErrorState
+        error={packsQuery.error}
+        title={packsQuery.error ? undefined : t("packs.unavailable")}
+        body={
+          packsQuery.error
+            ? undefined
+            : t("common.errorStates.generic.body")
+        }
+        detail={
+          packsQuery.error
+            ? undefined
+            : t("common.errorStates.generic.detail")
+        }
+        onRetry={() => {
+          void packsQuery.refetch();
+        }}
+      />
     );
   }
 
