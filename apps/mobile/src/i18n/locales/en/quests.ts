@@ -21,7 +21,10 @@ const quests = {
     "Enable Apple Health or Health Connect once so this quest can count your steps.",
   stepSyncPromptSetupBody:
     "Finish setting up Health Connect first so this quest can count your steps.",
-  stepSyncPromptSettings: "Open settings instead",
+  stepSyncRefreshTitle: "Refresh step progress for this quest",
+  stepSyncRefreshBody:
+    "Step tracking is active. Use these controls if today's quest progress looks stale.",
+  stepSyncPromptRefresh: "Force refresh",
   widgetRemainingSteps: "{count} steps left",
   widgetReadyToClaim: "Reward ready: {reward} coins",
   widgetClaimedToday: "Claimed for today",
