@@ -2,7 +2,6 @@ import { useEffect } from "react";
 
 import type { QuestsResponse } from "@adventure-time/api-client";
 
-import { apiClient } from "../lib/api";
 import { API_BASE_URL } from "../lib/api-config";
 import { queryClient } from "../lib/query-client";
 import {
@@ -62,19 +61,6 @@ export function useStepQuestWidgetSync() {
 
     const currentData = queryClient.getQueryData<QuestsResponse>(["quests"]);
     void syncFromData(currentData);
-
-    void queryClient
-      .fetchQuery({
-        queryKey: ["quests"],
-        queryFn: () => apiClient.quests(),
-        staleTime: 30_000,
-      })
-      .then((data) => {
-        void syncFromData(data);
-      })
-      .catch(() => {
-        // Keep the last widget snapshot when a background refresh fails.
-      });
 
     const unsubscribe = queryClient.getQueryCache().subscribe(() => {
       const nextData = queryClient.getQueryData<QuestsResponse>(["quests"]);

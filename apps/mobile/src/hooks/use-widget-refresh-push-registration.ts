@@ -14,7 +14,7 @@ export function useWidgetRefreshPushRegistration(params: {
   const { accessToken, preferredStepSource, userId } = params;
 
   useEffect(() => {
-    if (!accessToken || !userId) {
+    if (!accessToken || !userId || preferredStepSource !== "fitbit") {
       return;
     }
 
@@ -22,10 +22,6 @@ export function useWidgetRefreshPushRegistration(params: {
       accessToken,
       preferredStepSource,
     });
-
-    if (preferredStepSource !== "fitbit") {
-      return;
-    }
 
     const subscription = Notifications.addPushTokenListener((devicePushToken) => {
       void registerWidgetRefreshPushTokenFromDeviceToken(

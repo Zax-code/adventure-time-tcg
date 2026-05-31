@@ -27,9 +27,6 @@ final class WidgetSnapshotBridge: NSObject {
 
     defaults.set(snapshotJson, forKey: atStepQuestWidgetSnapshotKey)
     reloadWidgetTimeline()
-    Task {
-      await StepQuestBackgroundSyncService.shared.configure()
-    }
     resolve(nil)
   }
 
@@ -54,9 +51,6 @@ final class WidgetSnapshotBridge: NSObject {
     }
 
     defaults.set(apiBaseUrl, forKey: atStepQuestWidgetApiBaseUrlKey)
-    Task {
-      await StepQuestBackgroundSyncService.shared.configure()
-    }
     resolve(nil)
   }
 

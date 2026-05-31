@@ -17,11 +17,6 @@ public class AppDelegate: ExpoAppDelegate {
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
   ) -> Bool {
-    setupHealthkitBackgroundObservers()
-    Task {
-      await StepQuestBackgroundSyncService.shared.configure()
-    }
-
     let delegate = ReactNativeDelegate()
     let factory = ExpoReactNativeFactory(delegate: delegate)
     delegate.dependencyProvider = RCTAppDependencyProvider()
@@ -40,30 +35,6 @@ public class AppDelegate: ExpoAppDelegate {
 
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
-
-  private func setupHealthkitBackgroundObservers() {
-    let sharedSelector = NSSelectorFromString("shared")
-    let setupSelector = NSSelectorFromString("setupBackgroundObservers")
-
-    guard
-      let managerClass = NSClassFromString("ReactNativeHealthkit.BackgroundDeliveryManager")
-    else {
-      return
-    }
-
-    let managerClassObject = managerClass as AnyObject
-    guard
-      managerClassObject.responds(to: sharedSelector),
-      let manager = managerClassObject.perform(sharedSelector)?.takeUnretainedValue() as? NSObject
-    else {
-      return
-    }
-
-    if manager.responds(to: setupSelector) {
-      _ = manager.perform(setupSelector)
-    }
-  }
-
   // Linking API
   public override func application(
     _ app: UIApplication,
