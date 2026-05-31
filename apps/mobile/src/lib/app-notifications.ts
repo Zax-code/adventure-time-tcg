@@ -11,12 +11,18 @@ import {
 } from "../stores/step-sync-store";
 
 const DAILY_RESET_NOTIFICATION_ID_KEY = "daily-reset-notification-id-v1";
+const NOTIFICATION_PROMPT_HIDDEN_KEY_PREFIX =
+  "notification-permission-prompt-hidden";
 const SESSION_SECURE_STORE_OPTIONS = {
   keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK,
 } as const;
 
 export const GENERAL_NOTIFICATION_CHANNEL_ID = "game-updates";
 export const STEP_NOTIFICATION_CHANNEL_ID = "step-goals";
+
+function notificationPromptHiddenKey(userId: string) {
+  return `${NOTIFICATION_PROMPT_HIDDEN_KEY_PREFIX}:${userId}`;
+}
 
 function notificationsGranted(settings: Notifications.NotificationPermissionsStatus) {
   return (
@@ -181,4 +187,32 @@ export async function syncLocalNotificationSchedules(
 
 export async function clearScheduledNotificationPreferencesForSession() {
   await cancelDailyResetNotification();
+}
+
+export async function getNotificationPermissionPromptHidden(userId: string) {
+  return (
+    (await SecureStore.getItemAsync(
+      notificationPromptHiddenKey(userId),
+      SESSION_SECURE_STORE_OPTIONS,
+    )) === "1"
+  );
+}
+
+export async function setNotificationPermissionPromptHidden(
+  userId: string,
+  hidden: boolean,
+) {
+  if (hidden) {
+    await SecureStore.setItemAsync(
+      notificationPromptHiddenKey(userId),
+      "1",
+      SESSION_SECURE_STORE_OPTIONS,
+    );
+    return;
+  }
+
+  await SecureStore.deleteItemAsync(
+    notificationPromptHiddenKey(userId),
+    SESSION_SECURE_STORE_OPTIONS,
+  );
 }

@@ -10,6 +10,12 @@ const home = {
   myCards: "Mes cartes",
   featuredCards: "Cartes à la une",
   dropRates: "Taux d'obtention",
+  notificationsPromptTitle: "Active les notifications",
+  notificationsPromptBody:
+    "Reste au courant des réinitialisations, objectifs de pas, cadeaux et tours JcJ.",
+  notificationsPromptSettings: "Aller aux réglages",
+  notificationsPromptIgnore: "Ignorer",
+  notificationsPromptHide: "Ne plus afficher",
   logout: "Déconnexion",
   homeUnavailable: "L'accueil est indisponible.",
 };
