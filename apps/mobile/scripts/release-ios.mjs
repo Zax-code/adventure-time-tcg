@@ -235,10 +235,44 @@ function runCommand(command, args, { cwd }) {
   });
 }
 
-async function readPlistValue(plistPath, key) {
-  return runCommand("/usr/libexec/PlistBuddy", ["-c", `Print :${key}`, plistPath], {
-    cwd: path.dirname(plistPath),
+function runCommandCapture(command, args, { cwd }) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, {
+      cwd,
+      env: process.env,
+      stdio: ["inherit", "pipe", "inherit"],
+    });
+
+    let stdout = "";
+
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk.toString();
+    });
+
+    child.on("error", reject);
+    child.on("close", (code) => {
+      if (code === 0) {
+        resolve(stdout);
+        return;
+      }
+
+      reject(
+        new Error(
+          `Command failed with exit code ${code}: ${command} ${args.join(" ")}`,
+        ),
+      );
+    });
   });
+}
+
+async function readPlistValue(plistPath, key) {
+  return runCommandCapture(
+    "/usr/libexec/PlistBuddy",
+    ["-c", `Print :${key}`, plistPath],
+    {
+      cwd: path.dirname(plistPath),
+    },
+  );
 }
 
 async function main() {
