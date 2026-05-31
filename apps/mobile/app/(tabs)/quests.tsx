@@ -27,7 +27,11 @@ import { PageLoadingState } from "../../src/components/loading-state";
 import { ToastBanner } from "../../src/components/toast-banner";
 import { useTranslation } from "../../src/i18n";
 import { apiClient } from "../../src/lib/api";
-import { openDeviceHealthSetup } from "../../src/lib/step-sync";
+import { connectFitbit } from "../../src/lib/fitbit";
+import {
+  openDeviceHealthSetup,
+  syncDeviceStepsNow,
+} from "../../src/lib/step-sync";
 import { useQuestResetStore } from "../../src/stores/quest-reset-store";
 import { useSessionStore } from "../../src/stores/session-store";
 import { useStepSyncStore } from "../../src/stores/step-sync-store";
@@ -143,6 +147,9 @@ export default function QuestsScreen() {
     message: string;
     type: "success" | "error";
   } | null>(null);
+  const [isConnectingFitbit, setIsConnectingFitbit] = useState(false);
+  const [isForceRefreshingStepQuest, setIsForceRefreshingStepQuest] =
+    useState(false);
   const toastAnim = useRef(new Animated.Value(-60)).current;
   const lastImmediateResetAtRef = useRef(0);
 
@@ -208,12 +215,75 @@ export default function QuestsScreen() {
     queryFn: () => apiClient.quests(),
     refetchInterval: 30_000,
   });
+  const showFitbitConnectCta =
+    user?.preferredStepSource === "fitbit" &&
+    !questsQuery.data?.fitbitConnected;
 
   const showStepQuestActivationPrompt =
     user?.preferredStepSource === "device_health" &&
     (stepSync.availability === "setup_required" ||
-      (stepSync.healthPermissionStatus !== "granted" &&
-        stepSync.healthPermissionStatus !== "unknown"));
+      stepSync.healthPermissionStatus !== "granted");
+  const stepActionLabel =
+    stepSync.availability === "setup_required"
+      ? t("settings.openHealthConnect")
+      : stepSync.healthPermissionStatus === "granted"
+        ? t("settings.syncNow")
+        : t("settings.enableStepSync");
+
+  const handleStepAction = useCallback(async () => {
+    if (stepSync.availability === "setup_required") {
+      await openDeviceHealthSetup();
+      return;
+    }
+
+    await syncDeviceStepsNow({
+      interactive: true,
+      source: "manual",
+    });
+  }, [stepSync.availability]);
+
+  const handleForceRefresh = useCallback(async () => {
+    setIsForceRefreshingStepQuest(true);
+
+    try {
+      await syncDeviceStepsNow({
+        interactive: false,
+        source: "manual",
+      });
+      await questsQuery.refetch();
+    } finally {
+      setIsForceRefreshingStepQuest(false);
+    }
+  }, [questsQuery]);
+
+  const handleConnectFitbit = useCallback(async () => {
+    setIsConnectingFitbit(true);
+
+    try {
+      const result = await connectFitbit("/quests");
+
+      await questsQuery.refetch();
+
+      if (result.type === "success") {
+        setToast({
+          message: t("quests.fitbitConnectedSuccess"),
+          type: "success",
+        });
+      } else if (result.type === "error") {
+        setToast({
+          message: t("quests.fitbitConnectFailed"),
+          type: "error",
+        });
+      }
+    } catch {
+      setToast({
+        message: t("quests.fitbitConnectFailed"),
+        type: "error",
+      });
+    } finally {
+      setIsConnectingFitbit(false);
+    }
+  }, [questsQuery, t]);
 
   useFocusEffect(
     useCallback(() => {
@@ -399,7 +469,7 @@ export default function QuestsScreen() {
           </Text>
         </View>
 
-        {!questsQuery.data.fitbitConnected ? (
+        {showFitbitConnectCta ? (
           <View
             className="bg-successTint border border-successBorder"
             style={{
@@ -442,7 +512,9 @@ export default function QuestsScreen() {
                   }}
                 >
                   <TouchableOpacity
-                    onPress={() => router.push("/settings")}
+                    onPress={() => {
+                      void handleConnectFitbit();
+                    }}
                     style={{ borderRadius: 8, overflow: "hidden" }}
                   >
                     <LinearGradient
@@ -452,7 +524,9 @@ export default function QuestsScreen() {
                       style={{ paddingHorizontal: 16, paddingVertical: 8 }}
                     >
                       <Text className="font-nunito text-white text-sm">
-                        {t("quests.connectInSettings")}
+                        {isConnectingFitbit
+                          ? t("settings.connectingFitbit")
+                          : t("settings.connectFitbit")}
                       </Text>
                     </LinearGradient>
                   </TouchableOpacity>
@@ -471,7 +545,7 @@ export default function QuestsScreen() {
               alignItems: "center",
             }}
           >
-            {questsQuery.data.fitbitConnected ? (
+            {!showFitbitConnectCta ? (
               <>
                 <SparklesIcon size={48} color={tc.primaryBorder} />
                 <Text className="font-nunito-bold text-base text-fgMuted mt-4">
@@ -490,6 +564,19 @@ export default function QuestsScreen() {
                 <Text className="font-nunito text-sm text-fgMuted mt-2 text-center">
                   {t("quests.connectFitbitDesc")}
                 </Text>
+                <TouchableOpacity
+                  className="mt-4"
+                  onPress={() => {
+                    void handleConnectFitbit();
+                  }}
+                  disabled={isConnectingFitbit}
+                >
+                  <Text className="font-nunito-bold text-primaryText">
+                    {isConnectingFitbit
+                      ? t("settings.connectingFitbit")
+                      : t("settings.connectFitbit")}
+                  </Text>
+                </TouchableOpacity>
               </>
             )}
           </View>
@@ -512,6 +599,11 @@ export default function QuestsScreen() {
               isStepQuest(quest.type) &&
               status === "active" &&
               showStepQuestActivationPrompt;
+            const shouldShowDiscreteSyncButton =
+              isStepQuest(quest.type) &&
+              status === "active" &&
+              user?.preferredStepSource === "device_health" &&
+              !shouldShowActivationPrompt;
 
             let statusIcon;
             if (status === "completed") {
@@ -620,11 +712,17 @@ export default function QuestsScreen() {
                           ? t("quests.stepSyncPromptSetupBody")
                           : t("quests.stepSyncPromptBody")}
                       </Text>
-                      <View className="flex-row items-center gap-3 mt-3">
+                      {stepSync.lastError ? (
+                        <Text className="font-nunito text-sm text-dangerDark mt-2">
+                          {stepSync.lastError}
+                        </Text>
+                      ) : null}
+                      <View className="flex-row flex-wrap items-center gap-3 mt-3">
                         <TouchableOpacity
                           onPress={() => {
-                            void openDeviceHealthSetup();
+                            void handleStepAction();
                           }}
+                          disabled={stepSync.isSyncing}
                           style={{ borderRadius: 10, overflow: "hidden" }}
                         >
                           <LinearGradient
@@ -639,18 +737,11 @@ export default function QuestsScreen() {
                             }}
                           >
                             <Text className="font-nunito-bold text-white">
-                              {stepSync.availability === "setup_required"
-                                ? t("settings.openHealthConnect")
-                                : t("settings.enableStepSync")}
+                              {stepSync.isSyncing
+                                ? t("settings.syncing")
+                                : stepActionLabel}
                             </Text>
                           </LinearGradient>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          onPress={() => router.push("/settings")}
-                        >
-                          <Text className="font-nunito-bold text-sm text-primaryText">
-                            {t("quests.stepSyncPromptSettings")}
-                          </Text>
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -728,6 +819,30 @@ export default function QuestsScreen() {
                         total: quest.maxRuns ?? quest.target,
                       })}
                     </Text>
+                  ) : null}
+                  {shouldShowDiscreteSyncButton || stepSync.lastError ? (
+                    <View className="mt-2 items-end">
+                      {shouldShowDiscreteSyncButton ? (
+                        <TouchableOpacity
+                          onPress={() => {
+                            void handleForceRefresh();
+                          }}
+                          disabled={stepSync.isSyncing || isForceRefreshingStepQuest}
+                          hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+                        >
+                          <Text className="font-nunito-semibold text-xs text-primaryText">
+                            {stepSync.isSyncing || isForceRefreshingStepQuest
+                              ? t("settings.syncing")
+                              : t("settings.syncNow")}
+                          </Text>
+                        </TouchableOpacity>
+                      ) : null}
+                      {stepSync.lastError ? (
+                        <Text className="font-nunito text-xs text-dangerDark mt-1 text-right">
+                          {stepSync.lastError}
+                        </Text>
+                      ) : null}
+                    </View>
                   ) : null}
                 </View>
 

@@ -33,6 +33,13 @@ case System.get_env("AUTH_EMAIL_DELIVERY_ADAPTER") do
     :ok
 end
 
+config :adventure_time_api, AdventureTimeApi.Fitbit,
+  client_id: System.get_env("FITBIT_CLIENT_ID"),
+  client_secret: System.get_env("FITBIT_CLIENT_SECRET"),
+  redirect_uri: System.get_env("FITBIT_REDIRECT_URI"),
+  verification_code: System.get_env("FITBIT_VERIFICATION_CODE"),
+  mobile_redirect_uri: System.get_env("FITBIT_MOBILE_REDIRECT_URI")
+
 if config_env() == :prod do
   config :adventure_time_api, AdventureTimeApi.Auth,
     access_token_secret:

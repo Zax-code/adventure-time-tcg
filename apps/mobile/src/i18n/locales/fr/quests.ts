@@ -5,7 +5,6 @@ const quests = {
   checkBackLater: "Reviens plus tard pour de nouvelles quêtes !",
   connectFitbitDesc:
     "Associe ton compte Fitbit pour débloquer les quêtes de suivi de pas et gagner plus de pièces !",
-  connectInSettings: "Connecter dans les paramètres",
   claim: "Récupérer",
   progress: "Progression",
   playQuest: "Jouer la quête",
@@ -14,6 +13,8 @@ const quests = {
   unavailable: "Données de quête indisponibles.",
   claimSuccess: "+{amount} pièces récupérées !",
   claimFailed: "Impossible de récupérer la récompense.",
+  fitbitConnectedSuccess: "Fitbit connecté.",
+  fitbitConnectFailed: "Impossible de connecter Fitbit.",
   questReset: "{quest} a été réinitialisée.",
   questResetByAdmin: "{quest} a été réinitialisée par {name}.",
   stepSyncPromptTitle: "Active le suivi des pas pour cette quête",
@@ -21,7 +22,6 @@ const quests = {
     "Active Apple Health ou Health Connect une fois pour que cette quête puisse compter tes pas.",
   stepSyncPromptSetupBody:
     "Termine d'abord la configuration de Health Connect pour que cette quête puisse compter tes pas.",
-  stepSyncPromptSettings: "Ouvrir les paramètres",
   widgetRemainingSteps: "{count} pas restants",
   widgetReadyToClaim: "Récompense prête : {reward} pièces",
   widgetClaimedToday: "Récupérée pour aujourd'hui",

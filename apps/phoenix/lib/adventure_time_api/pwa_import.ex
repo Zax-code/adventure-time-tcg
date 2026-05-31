@@ -9,6 +9,7 @@ defmodule AdventureTimeApi.PwaImport do
   }
 
   alias AdventureTimeApi.Catalog.{Card, CardType, ImageAsset, Pack, Rarity}
+  alias AdventureTimeApi.Fitbit.Account
   alias AdventureTimeApi.Health.StepSnapshot
   alias AdventureTimeApi.Inventory.OwnedCard
   alias AdventureTimeApi.Pvp.{AbilityDef, CardAbility}
@@ -56,6 +57,7 @@ defmodule AdventureTimeApi.PwaImport do
 
   @target_verify_tables [
     users: "users",
+    fitbit_accounts: "fitbit_accounts",
     email_auth_credentials: "email_auth_credentials",
     email_access_requests: "email_access_requests",
     email_verification_codes: "email_verification_codes",
@@ -261,6 +263,24 @@ defmodule AdventureTimeApi.PwaImport do
           email_verified_at: row.email_verified_at,
           inserted_at: row.created_at,
           updated_at: row.updated_at
+        }
+      end)
+
+    fitbit_accounts =
+      Enum.map(data.fitbit_accounts, fn row ->
+        inserted_at = parse_datetime!(row.created_at)
+
+        %{
+          id: map_id(:fitbit_account, row.id),
+          user_id: user_map[row.user_id],
+          fitbit_user_id: row.fitbit_user_id,
+          access_token: row.access_token,
+          refresh_token: row.refresh_token,
+          token_expires_at: parse_datetime!(row.token_expires_at),
+          scope: row.scope || "",
+          subscription_id: present_string(row.subscription_id),
+          inserted_at: inserted_at,
+          updated_at: parse_datetime!(row.updated_at) || inserted_at
         }
       end)
 
@@ -485,6 +505,7 @@ defmodule AdventureTimeApi.PwaImport do
     %{
       rows: %{
         users: users,
+        fitbit_accounts: fitbit_accounts,
         email_credentials: email_credentials,
         email_access_requests: Enum.map(email_access_requests, &Map.delete(&1, :synthetic)),
         email_verification_codes: email_verification_codes,
@@ -510,6 +531,7 @@ defmodule AdventureTimeApi.PwaImport do
         Enum.map(image_assets, &Map.take(&1, [:id, :kind, :mime_type, :object_key, :source])),
       counts: %{
         users: length(users),
+        fitbit_accounts: length(fitbit_accounts),
         email_auth_credentials: length(email_credentials),
         email_access_requests: length(email_access_requests),
         email_verification_codes: length(email_verification_codes),
@@ -751,6 +773,7 @@ defmodule AdventureTimeApi.PwaImport do
       insert_all!(AbilityDef, plan.rows.abilities)
       insert_all!(CardAbility, plan.rows.card_abilities)
       insert_all!(User, plan.rows.users)
+      insert_all!(Account, plan.rows.fitbit_accounts)
       insert_all!(EmailCredential, plan.rows.email_credentials)
       insert_all!(EmailAccessRequest, plan.rows.email_access_requests)
       insert_all!(EmailVerificationCode, plan.rows.email_verification_codes)
@@ -1187,6 +1210,22 @@ defmodule AdventureTimeApi.PwaImport do
   defp parse_date!(%Date{} = value), do: value
   defp parse_date!(value) when is_binary(value), do: Date.from_iso8601!(value)
 
+  defp parse_datetime!(nil), do: nil
+  defp parse_datetime!(%DateTime{} = value), do: DateTime.truncate(value, :second)
+
+  defp parse_datetime!(%NaiveDateTime{} = value) do
+    value
+    |> NaiveDateTime.truncate(:second)
+    |> DateTime.from_naive!("Etc/UTC")
+  end
+
+  defp parse_datetime!(value) when is_binary(value) do
+    case DateTime.from_iso8601(value) do
+      {:ok, parsed, _offset} -> DateTime.truncate(parsed, :second)
+      _ -> value |> NaiveDateTime.from_iso8601!() |> parse_datetime!()
+    end
+  end
+
   defp maybe_mapped_id(nil, _map), do: nil
   defp maybe_mapped_id(value, map), do: Map.get(map, value)
 
@@ -1379,7 +1418,22 @@ defmodule AdventureTimeApi.PwaImport do
     """
   end
 
-  defp fitbit_accounts_sql, do: "SELECT \"userId\" AS user_id FROM \"FitbitAccount\""
+  defp fitbit_accounts_sql do
+    """
+    SELECT
+      id,
+      "userId" AS user_id,
+      "fitbitUserId" AS fitbit_user_id,
+      "accessToken" AS access_token,
+      "refreshToken" AS refresh_token,
+      "tokenExpiresAt" AS token_expires_at,
+      scope,
+      "subscriptionId" AS subscription_id,
+      "createdAt" AS created_at,
+      "updatedAt" AS updated_at
+    FROM "FitbitAccount"
+    """
+  end
 
   defp email_credentials_sql do
     """

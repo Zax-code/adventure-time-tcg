@@ -11,6 +11,10 @@ defmodule AdventureTimeApiWeb.Router do
     plug(:accepts, ["html"])
   end
 
+  pipeline :fitbit_public do
+    plug(:accepts, ["html", "json"])
+  end
+
   pipeline :api_auth do
     plug(:accepts, ["json"])
     plug(RequireAuth)
@@ -24,6 +28,14 @@ defmodule AdventureTimeApiWeb.Router do
     post("/email/verify", EmailVerificationController, :confirm)
     get("/password/reset", PasswordResetController, :show)
     post("/password/reset", PasswordResetController, :confirm)
+  end
+
+  scope "/", AdventureTimeApiWeb do
+    pipe_through(:fitbit_public)
+
+    get("/fitbit/callback", FitbitController, :callback)
+    get("/fitbit/webhook", FitbitController, :webhook_verify)
+    post("/fitbit/webhook", FitbitController, :webhook)
   end
 
   scope "/", AdventureTimeApiWeb do
@@ -71,6 +83,9 @@ defmodule AdventureTimeApiWeb.Router do
     patch("/settings/step-source", AppController, :update_step_source)
     patch("/settings/timezone", AppController, :update_timezone)
     post("/settings/upload", MediaController, :upload_profile)
+    post("/fitbit/authorize", FitbitController, :authorize)
+    get("/fitbit/status", FitbitController, :status)
+    post("/fitbit/disconnect", FitbitController, :disconnect)
 
     get("/health/steps", AppController, :health_steps)
     post("/health/steps", AppController, :sync_steps)

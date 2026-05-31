@@ -11,7 +11,11 @@ const settings = {
   preferredStepSource: "Préférée : {source}",
   useDeviceHealth: "Utiliser Apple Health / Health Connect",
   preferFitbit: "Préférer Fitbit quand il est connecté",
-  fitbitHelp: "La connexion Fitbit reste optionnelle et sera branchée plus tard.",
+  connectingFitbit: "Connexion à Fitbit...",
+  fitbitHelp:
+    "Choisis Fitbit si tu veux que les quêtes de pas se synchronisent depuis ton compte Fitbit.",
+  fitbitConnectedHelp: "Fitbit est connecté et prêt à synchroniser tes pas.",
+  fitbitConnectFailed: "Impossible de connecter Fitbit.",
   healthSteps: "Pas santé",
   latestSynced: "Dernière synchronisation : {count} pas",
   source: "Source : {source}",
