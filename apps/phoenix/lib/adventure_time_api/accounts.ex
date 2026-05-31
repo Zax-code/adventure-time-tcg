@@ -4,6 +4,7 @@ defmodule AdventureTimeApi.Accounts do
   """
 
   import Ecto.Query
+  require Logger
 
   alias Ecto.Multi
   alias AdventureTimeApi.Auth
@@ -28,7 +29,8 @@ defmodule AdventureTimeApi.Accounts do
   alias AdventureTimeApi.Quests.{DailyQuest, SpeedCalculusDailyRun, WordleDailyAttempt}
   alias AdventureTimeApi.Social.CardGift
 
-  @verification_purpose :signup
+  @signup_purpose :signup
+  @password_reset_purpose :password_reset
   @verification_ttl_minutes 15
   @verification_max_attempts 5
   @default_timezone "Europe/Paris"
@@ -47,7 +49,10 @@ defmodule AdventureTimeApi.Accounts do
       now = now_utc()
       password_hash = Bcrypt.hash_pwd_salt(attrs["password"])
       verification_code = generate_verification_code()
-      verification_hash = hash_verification_code(normalized_email, verification_code)
+
+      verification_hash =
+        hash_verification_code(normalized_email, @signup_purpose, verification_code)
+
       expires_at = DateTime.add(now, @verification_ttl_minutes * 60, :second)
 
       Multi.new()
@@ -70,7 +75,7 @@ defmodule AdventureTimeApi.Accounts do
         :clear_codes,
         from(code in EmailVerificationCode,
           where:
-            code.email == ^normalized_email and code.purpose == ^@verification_purpose and
+            code.email == ^normalized_email and code.purpose == ^@signup_purpose and
               is_nil(code.used_at)
         )
       )
@@ -79,7 +84,7 @@ defmodule AdventureTimeApi.Accounts do
         EmailVerificationCode.changeset(%EmailVerificationCode{}, %{
           email: normalized_email,
           code_hash: verification_hash,
-          purpose: @verification_purpose,
+          purpose: @signup_purpose,
           expires_at: expires_at,
           attempt_count: 0
         })
@@ -119,8 +124,9 @@ defmodule AdventureTimeApi.Accounts do
          {:ok, _code} <- validate_code(code),
          %User{} = user <- Repo.get_by(User, email: normalized_email),
          %EmailCredential{} = credential <- Repo.get_by(EmailCredential, user_id: user.id),
-         %EmailVerificationCode{} = verification <- active_verification_code(normalized_email) do
-      verification_hash = hash_verification_code(normalized_email, code)
+         %EmailVerificationCode{} = verification <-
+           active_verification_code(normalized_email, @signup_purpose) do
+      verification_hash = hash_verification_code(normalized_email, @signup_purpose, code)
 
       if secure_equals?(verification.code_hash, verification_hash) do
         now = now_utc()
@@ -170,7 +176,10 @@ defmodule AdventureTimeApi.Accounts do
          true <- is_nil(credential.email_verified_at) do
       now = now_utc()
       verification_code = generate_verification_code()
-      verification_hash = hash_verification_code(normalized_email, verification_code)
+
+      verification_hash =
+        hash_verification_code(normalized_email, @signup_purpose, verification_code)
+
       expires_at = DateTime.add(now, @verification_ttl_minutes * 60, :second)
 
       Multi.new()
@@ -179,7 +188,7 @@ defmodule AdventureTimeApi.Accounts do
         :clear_codes,
         from(code in EmailVerificationCode,
           where:
-            code.email == ^normalized_email and code.purpose == ^@verification_purpose and
+            code.email == ^normalized_email and code.purpose == ^@signup_purpose and
               is_nil(code.used_at)
         )
       )
@@ -188,7 +197,7 @@ defmodule AdventureTimeApi.Accounts do
         EmailVerificationCode.changeset(%EmailVerificationCode{}, %{
           email: normalized_email,
           code_hash: verification_hash,
-          purpose: @verification_purpose,
+          purpose: @signup_purpose,
           expires_at: expires_at,
           attempt_count: 0
         })
@@ -230,6 +239,85 @@ defmodule AdventureTimeApi.Accounts do
       nil -> {:error, :invalid_credentials, "Invalid email or password."}
       false -> {:error, :invalid_credentials, "Invalid email or password."}
       {:error, %AuthError{} = error} -> {:error, error}
+      {:error, message} -> {:error, :validation, message}
+    end
+  end
+
+  def request_password_reset(attrs) do
+    normalized_email = normalize_email(attrs["email"])
+
+    with {:ok, _email} <- validate_email(normalized_email) do
+      response =
+        case resettable_email_account(normalized_email) do
+          {:ok, %{user: user, credential: credential}} ->
+            maybe_send_password_reset_email(user, credential)
+
+          :ignore ->
+            password_reset_request_response(nil)
+        end
+
+      {:ok, response}
+    else
+      {:error, message} ->
+        {:error, :validation, message}
+    end
+  end
+
+  def reset_password(attrs) do
+    normalized_email = normalize_email(attrs["email"])
+    code = normalize_code(attrs["code"])
+
+    with {:ok, _email} <- validate_email(normalized_email),
+         {:ok, _code} <- validate_code(code),
+         {:ok, password} <- validate_password(attrs["password"]),
+         %User{} = user <- Repo.get_by(User, email: normalized_email),
+         %EmailCredential{} = credential <- Repo.get_by(EmailCredential, user_id: user.id),
+         %EmailVerificationCode{} = verification <-
+           active_verification_code(normalized_email, @password_reset_purpose) do
+      verification_hash = hash_verification_code(normalized_email, @password_reset_purpose, code)
+
+      if secure_equals?(verification.code_hash, verification_hash) do
+        now = now_utc()
+
+        Multi.new()
+        |> Multi.update(
+          :verification_code,
+          Ecto.Changeset.change(verification,
+            used_at: now,
+            attempt_count: verification.attempt_count + 1
+          )
+        )
+        |> Multi.update(
+          :credential,
+          EmailCredential.changeset(credential, %{
+            password_hash: Bcrypt.hash_pwd_salt(password),
+            email_verified_at: credential.email_verified_at
+          })
+        )
+        |> Multi.update_all(
+          :revoke_sessions,
+          from(session in Session,
+            where: session.user_id == ^user.id and is_nil(session.revoked_at)
+          ),
+          set: [revoked_at: now]
+        )
+        |> Repo.transaction()
+        |> case do
+          {:ok, _changes} ->
+            {:ok, password_reset_response()}
+
+          {:error, _step, %Ecto.Changeset{} = changeset, _changes} ->
+            {:error, :validation, first_error(changeset)}
+
+          {:error, _step, reason, _changes} when is_binary(reason) ->
+            {:error, :validation, reason}
+        end
+      else
+        register_failed_attempt(verification)
+        {:error, :invalid_code, "Invalid password reset code"}
+      end
+    else
+      nil -> {:error, :not_found, "No pending password reset"}
       {:error, message} -> {:error, :validation, message}
     end
   end
@@ -844,13 +932,83 @@ defmodule AdventureTimeApi.Accounts do
   defp next_pending_status(:approved), do: :approved
   defp next_pending_status(_), do: :pending
 
-  defp active_verification_code(email) do
+  defp resettable_email_account(email) do
+    case Repo.get_by(User, email: email) do
+      %User{} = user ->
+        case Repo.get_by(EmailCredential, user_id: user.id) do
+          %EmailCredential{email_verified_at: %DateTime{}} = credential ->
+            {:ok, %{user: user, credential: credential}}
+
+          _ ->
+            :ignore
+        end
+
+      nil ->
+        :ignore
+    end
+  end
+
+  defp maybe_send_password_reset_email(user, _credential) do
+    now = now_utc()
+    verification_code = generate_verification_code()
+
+    verification_hash =
+      hash_verification_code(user.email, @password_reset_purpose, verification_code)
+
+    expires_at = DateTime.add(now, @verification_ttl_minutes * 60, :second)
+
+    result =
+      Multi.new()
+      |> Multi.delete_all(
+        :clear_codes,
+        from(code in EmailVerificationCode,
+          where:
+            code.email == ^user.email and code.purpose == ^@password_reset_purpose and
+              is_nil(code.used_at)
+        )
+      )
+      |> Multi.insert(
+        :verification_code,
+        EmailVerificationCode.changeset(%EmailVerificationCode{}, %{
+          email: user.email,
+          code_hash: verification_hash,
+          purpose: @password_reset_purpose,
+          expires_at: expires_at,
+          attempt_count: 0
+        })
+      )
+      |> Repo.transaction()
+
+    case result do
+      {:ok, _changes} ->
+        case EmailDelivery.send_password_reset_code(user.email, verification_code,
+               locale: user.preferred_language
+             ) do
+          :ok ->
+            password_reset_request_response(verification_code)
+
+          {:error, message} ->
+            Logger.error("Failed to deliver password reset email to #{user.email}: #{message}")
+
+            password_reset_request_response(verification_code)
+        end
+
+      {:error, _step, %Ecto.Changeset{} = changeset, _changes} ->
+        Logger.error(
+          "Failed to create password reset request for #{user.email}: #{first_error(changeset)}"
+        )
+
+        password_reset_request_response(nil)
+    end
+  end
+
+  defp active_verification_code(email, purpose) do
     now = now_utc()
 
     EmailVerificationCode
     |> where(
       [code],
-      code.email == ^email and code.purpose == ^@verification_purpose and is_nil(code.used_at) and
+      code.email == ^email and code.purpose == ^purpose and is_nil(code.used_at) and
         code.expires_at > ^now
     )
     |> order_by([code], desc: code.inserted_at)
@@ -1068,6 +1226,23 @@ defmodule AdventureTimeApi.Accounts do
     )
   end
 
+  defp password_reset_request_response(verification_code) do
+    maybe_put_optional_dev_code(
+      %{
+        success: true,
+        message: "If an account matches this email, a password reset code has been sent."
+      },
+      verification_code
+    )
+  end
+
+  defp password_reset_response do
+    %{
+      success: true,
+      message: "Password updated."
+    }
+  end
+
   defp maybe_put_dev_code(payload, verification_code) do
     if expose_dev_code?() do
       Map.put(payload, :devCode, verification_code)
@@ -1076,15 +1251,20 @@ defmodule AdventureTimeApi.Accounts do
     end
   end
 
+  defp maybe_put_optional_dev_code(payload, nil), do: payload
+
+  defp maybe_put_optional_dev_code(payload, verification_code),
+    do: maybe_put_dev_code(payload, verification_code)
+
   defp generate_verification_code do
     (100_000 + :rand.uniform(900_000) - 1)
     |> Integer.to_string()
   end
 
-  defp hash_verification_code(email, code) do
+  defp hash_verification_code(email, purpose, code) do
     secret = verification_secret()
 
-    :crypto.mac(:hmac, :sha256, secret, "#{email}:#{@verification_purpose}:#{code}")
+    :crypto.mac(:hmac, :sha256, secret, "#{email}:#{purpose}:#{code}")
     |> Base.encode16(case: :lower)
   end
 

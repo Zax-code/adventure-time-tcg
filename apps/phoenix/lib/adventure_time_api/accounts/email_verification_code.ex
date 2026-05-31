@@ -6,7 +6,7 @@ defmodule AdventureTimeApi.Accounts.EmailVerificationCode do
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
 
-  @purposes [:signup]
+  @purposes [:signup, :password_reset]
 
   schema "email_verification_codes" do
     field(:email, :string)

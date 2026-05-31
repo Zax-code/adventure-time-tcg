@@ -41,12 +41,17 @@ const googleWebClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
 const googleIosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
 
 type AuthMode = "login" | "register";
-type AuthStage = "credentials" | "verify" | "pendingApproval";
+type AuthStage =
+  | "credentials"
+  | "verify"
+  | "pendingApproval"
+  | "resetRequest"
+  | "resetPassword";
 type AuthFormPrefill = {
   email?: string;
   code?: string;
   locale?: "en" | "fr";
-  mode?: "login" | "verify";
+  mode?: "login" | "verify" | "reset-password";
   autoVerify?: boolean;
 };
 let nativeGoogleConfigured = false;
@@ -416,6 +421,7 @@ export function AuthForm({ prefill }: { prefill?: AuthFormPrefill }) {
   const [email, setEmail] = useState("finn@example.com");
   const [password, setPassword] = useState("password123");
   const [verificationCode, setVerificationCode] = useState("");
+  const [resetPassword, setResetPassword] = useState("");
   const [mode, setMode] = useState<AuthMode>("login");
   const [stage, setStage] = useState<AuthStage>("credentials");
   const [error, setError] = useState<string | null>(null);
@@ -430,6 +436,7 @@ export function AuthForm({ prefill }: { prefill?: AuthFormPrefill }) {
     setMode(nextMode);
     setStage("credentials");
     setVerificationCode("");
+    setResetPassword("");
     setError(null);
     setInfo(null);
   }
@@ -443,6 +450,7 @@ export function AuthForm({ prefill }: { prefill?: AuthFormPrefill }) {
     if (!opts?.preserveCode) {
       setVerificationCode("");
     }
+    setResetPassword("");
     setError(null);
     setInfo(nextInfo ?? null);
   }
@@ -452,6 +460,7 @@ export function AuthForm({ prefill }: { prefill?: AuthFormPrefill }) {
     setMode("login");
     setPassword("");
     setVerificationCode("");
+    setResetPassword("");
     setError(null);
     setInfo(nextInfo ?? null);
   }
@@ -459,7 +468,34 @@ export function AuthForm({ prefill }: { prefill?: AuthFormPrefill }) {
   function returnToSignIn(nextInfo?: string | null) {
     setStage("credentials");
     setMode("login");
+    setPassword("");
     setVerificationCode("");
+    setResetPassword("");
+    setError(null);
+    setInfo(nextInfo ?? null);
+  }
+
+  function enterResetRequestStage(nextInfo?: string | null) {
+    setStage("resetRequest");
+    setMode("login");
+    setPassword("");
+    setVerificationCode("");
+    setResetPassword("");
+    setError(null);
+    setInfo(nextInfo ?? null);
+  }
+
+  function enterResetPasswordStage(
+    nextInfo?: string | null,
+    opts?: { preserveCode?: boolean },
+  ) {
+    setStage("resetPassword");
+    setMode("login");
+    setPassword("");
+    if (!opts?.preserveCode) {
+      setVerificationCode("");
+    }
+    setResetPassword("");
     setError(null);
     setInfo(nextInfo ?? null);
   }
@@ -485,6 +521,13 @@ export function AuthForm({ prefill }: { prefill?: AuthFormPrefill }) {
 
     if (prefill.mode === "verify") {
       enterVerificationStage(t("auth.status.deepLinkReady"), { preserveCode: true });
+      return;
+    }
+
+    if (prefill.mode === "reset-password") {
+      enterResetPasswordStage(t("auth.status.deepLinkResetReady"), {
+        preserveCode: true,
+      });
       return;
     }
 
@@ -559,6 +602,23 @@ export function AuthForm({ prefill }: { prefill?: AuthFormPrefill }) {
         return;
       }
 
+      if (stage === "resetRequest") {
+        await apiClient.requestPasswordReset({ email });
+        setVerificationCode("");
+        enterResetPasswordStage(t("auth.status.resetLinkSentCheckEmail"));
+        return;
+      }
+
+      if (stage === "resetPassword") {
+        await apiClient.resetPassword({
+          email,
+          code: verificationCode,
+          password: resetPassword,
+        });
+        returnToSignIn(t("auth.status.passwordResetSuccess"));
+        return;
+      }
+
       if (mode === "login") {
         const result = await apiClient.login({ email, password });
         await setSession({
@@ -594,8 +654,13 @@ export function AuthForm({ prefill }: { prefill?: AuthFormPrefill }) {
     setError(null);
 
     try {
-      await apiClient.resendVerification({ email });
-      setInfo(t("auth.status.newVerificationCodeSent"));
+      if (stage === "resetPassword") {
+        await apiClient.requestPasswordReset({ email });
+        setInfo(t("auth.status.newResetCodeSent"));
+      } else {
+        await apiClient.resendVerification({ email });
+        setInfo(t("auth.status.newVerificationCodeSent"));
+      }
     } catch (submitError) {
       setError(getFriendlyError(submitError));
     } finally {
@@ -750,6 +815,24 @@ export function AuthForm({ prefill }: { prefill?: AuthFormPrefill }) {
               {t("auth.status.verifyBody")}
             </Text>
           </View>
+        ) : stage === "resetRequest" ? (
+          <View className="gap-3 rounded-2xl border border-infoBorder bg-infoTint p-4">
+            <Text className="font-nunito-bold text-base text-infoText">
+              {t("auth.status.resetRequestTitle")}
+            </Text>
+            <Text className="font-nunito text-sm leading-6 text-infoText">
+              {t("auth.status.resetRequestBody")}
+            </Text>
+          </View>
+        ) : stage === "resetPassword" ? (
+          <View className="gap-3 rounded-2xl border border-infoBorder bg-infoTint p-4">
+            <Text className="font-nunito-bold text-base text-infoText">
+              {t("auth.status.resetReadyTitle")}
+            </Text>
+            <Text className="font-nunito text-sm leading-6 text-infoText">
+              {t("auth.status.resetReadyBody")}
+            </Text>
+          </View>
         ) : null}
 
         {stage === "verify" ? (
@@ -762,6 +845,26 @@ export function AuthForm({ prefill }: { prefill?: AuthFormPrefill }) {
             placeholderTextColor={tc.muted}
             className="rounded-2xl border border-primaryBorder bg-primaryBg px-4 py-3 font-nunito text-fg"
           />
+        ) : stage === "resetPassword" ? (
+          <>
+            <TextInput
+              value={verificationCode}
+              onChangeText={setVerificationCode}
+              keyboardType="number-pad"
+              maxLength={6}
+              placeholder={t("auth.fields.verificationCode")}
+              placeholderTextColor={tc.muted}
+              className="rounded-2xl border border-primaryBorder bg-primaryBg px-4 py-3 font-nunito text-fg"
+            />
+            <TextInput
+              value={resetPassword}
+              onChangeText={setResetPassword}
+              secureTextEntry
+              placeholder={t("auth.fields.newPassword")}
+              placeholderTextColor={tc.muted}
+              className="rounded-2xl border border-primaryBorder bg-primaryBg px-4 py-3 font-nunito text-fg"
+            />
+          </>
         ) : stage === "pendingApproval" ? (
           <View className="gap-3 rounded-2xl border border-successBorder bg-successTint p-4">
             <Text className="font-nunito-bold text-base text-successDark">
@@ -771,7 +874,7 @@ export function AuthForm({ prefill }: { prefill?: AuthFormPrefill }) {
               {t("auth.status.pendingApprovalBody")}
             </Text>
           </View>
-        ) : (
+        ) : stage === "resetRequest" ? null : (
           <>
             <TextInput
               value={password}
@@ -813,10 +916,14 @@ export function AuthForm({ prefill }: { prefill?: AuthFormPrefill }) {
           {stage === "pendingApproval"
             ? t("auth.actions.backToSignIn")
             : stage === "verify"
-            ? t("auth.actions.verify")
-            : mode === "login"
-              ? t("auth.actions.signIn")
-              : t("auth.actions.register")}
+              ? t("auth.actions.verify")
+              : stage === "resetRequest"
+                ? t("auth.actions.sendResetLink")
+                : stage === "resetPassword"
+                  ? t("auth.actions.resetPassword")
+                  : mode === "login"
+                    ? t("auth.actions.signIn")
+                    : t("auth.actions.register")}
         </PrimaryButton>
 
         {stage === "verify" ? (
@@ -836,6 +943,31 @@ export function AuthForm({ prefill }: { prefill?: AuthFormPrefill }) {
           <Pressable onPress={() => returnToSignIn(info)} disabled={loading}>
             <Text className="text-center font-nunito text-sm text-primary">
               {t("auth.status.pendingApprovalFootnote")}
+            </Text>
+          </Pressable>
+        ) : stage === "resetRequest" ? (
+          <Pressable onPress={() => returnToSignIn(null)} disabled={loading}>
+            <Text className="text-center font-nunito text-sm text-primary">
+              {t("auth.actions.backToSignIn")}
+            </Text>
+          </Pressable>
+        ) : stage === "resetPassword" ? (
+          <View className="gap-2">
+            <Pressable onPress={() => void resendCode()} disabled={loading}>
+              <Text className="text-center font-nunito-bold text-sm text-primaryStrong">
+                {t("auth.actions.resendResetEmail")}
+              </Text>
+            </Pressable>
+            <Pressable onPress={() => enterResetRequestStage(null)} disabled={loading}>
+              <Text className="text-center font-nunito text-sm text-primary">
+                {t("auth.actions.useDifferentEmail")}
+              </Text>
+            </Pressable>
+          </View>
+        ) : mode === "login" ? (
+          <Pressable onPress={() => enterResetRequestStage(null)} disabled={loading}>
+            <Text className="text-center font-nunito text-sm text-primaryStrong">
+              {t("auth.actions.forgotPassword")}
             </Text>
           </Pressable>
         ) : null}

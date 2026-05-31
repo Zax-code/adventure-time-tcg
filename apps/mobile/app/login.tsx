@@ -59,7 +59,7 @@ export default function LoginScreen() {
     email?: string;
     code?: string;
     locale?: "en" | "fr";
-    mode?: "login" | "verify";
+    mode?: "login" | "verify" | "reset-password";
     auto_verify?: string;
   }>();
 
@@ -82,6 +82,8 @@ export default function LoginScreen() {
             mode:
               params.mode === "verify"
                 ? "verify"
+                : params.mode === "reset-password"
+                  ? "reset-password"
                 : params.mode === "login"
                   ? "login"
                   : undefined,

@@ -19,6 +19,7 @@ const auth = {
     email: "Email",
     password: "Password",
     passwordMin: "Password (8+ characters)",
+    newPassword: "New password (8+ characters)",
     displayNameOptional: "Display name (optional)",
     verificationCode: "Verification code",
   },
@@ -26,7 +27,11 @@ const auth = {
     signIn: "Sign in",
     register: "Register",
     verify: "Verify",
+    forgotPassword: "Forgot password?",
+    sendResetLink: "Send reset email",
+    resetPassword: "Update password",
     resendCode: "Resend code",
+    resendResetEmail: "Send another reset email",
     useDifferentEmail: "Use a different email",
     backToSignIn: "Back to sign in",
     orContinueWithGoogle: "or continue with Google",
@@ -41,9 +46,21 @@ const auth = {
       "Verification code sent. Access request submitted automatically.",
     deepLinkReady: "Verification details filled in. Confirm when you're ready.",
     deepLinkVerifying: "Finishing your email confirmation...",
+    deepLinkResetReady:
+      "Reset details are filled in. Enter your new password when you're ready.",
     verifyTitle: "Check your email",
     verifyBody:
       "Enter the 6-digit code we sent you, or use the confirmation page link in the email to come back here with everything filled in.",
+    resetRequestTitle: "Reset your password",
+    resetRequestBody:
+      "Enter your email and we'll send a 6-digit reset code if this account is ready for password reset.",
+    resetReadyTitle: "Check your reset email",
+    resetReadyBody:
+      "Enter the 6-digit reset code from your email, then choose a new password. You can also use the reset page link from the email.",
+    resetLinkSentCheckEmail:
+      "If this email matches an account, a password reset code has been sent.",
+    passwordResetSuccess:
+      "Password updated. Sign in with your new password when you're ready.",
     emailVerifiedCanSignIn: "Email verified. You can now sign in.",
     emailVerifiedPendingApproval:
       "Email verified and account created. Your access request is pending super admin approval.",
@@ -52,6 +69,8 @@ const auth = {
       "Your email is confirmed and your account is waiting for super admin approval. Once approved, come back here and sign in with the same email and password.",
     pendingApprovalFootnote: "You can return to sign in when access has been approved.",
     newVerificationCodeSent: "A new verification code was sent.",
+    newResetCodeSent:
+      "If this email matches an account, another reset code has been sent.",
     googlePendingApproval:
       "This Google account is pending approval. Your access request has been submitted.",
     googleNotConfigured:

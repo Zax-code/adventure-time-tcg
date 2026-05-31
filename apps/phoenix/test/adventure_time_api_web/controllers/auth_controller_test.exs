@@ -3,7 +3,14 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
 
   import Ecto.Query
 
-  alias AdventureTimeApi.Accounts.{EmailAccessRequest, EmailCredential, Session, User}
+  alias AdventureTimeApi.Accounts.{
+    EmailAccessRequest,
+    EmailCredential,
+    EmailVerificationCode,
+    Session,
+    User
+  }
+
   alias AdventureTimeApi.Accounts.GoogleAuth
   alias AdventureTimeApi.Repo
 
@@ -147,6 +154,103 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
            }
   end
 
+  test "POST /auth/request-password-reset returns a generic success and creates a reset code", %{
+    conn: conn
+  } do
+    user =
+      create_user_with_password("resetme@example.com", "science-rules", "PB",
+        verified?: true,
+        access_status: :approved
+      )
+
+    conn = post(conn, ~p"/auth/request-password-reset", %{email: user.email})
+
+    assert %{
+             "success" => true,
+             "message" =>
+               "If an account matches this email, a password reset code has been sent.",
+             "devCode" => dev_code
+           } = json_response(conn, 200)
+
+    assert dev_code =~ ~r/^\d{6}$/
+
+    assert %EmailVerificationCode{purpose: :password_reset, used_at: nil} =
+             Repo.one!(
+               from(code in EmailVerificationCode,
+                 where: code.email == ^user.email and code.purpose == :password_reset,
+                 order_by: [desc: code.inserted_at],
+                 limit: 1
+               )
+             )
+  end
+
+  test "POST /auth/request-password-reset validates email format without leaking account state",
+       %{
+         conn: conn
+       } do
+    conn = post(conn, ~p"/auth/request-password-reset", %{email: "not-an-email"})
+
+    assert json_response(conn, 400) == %{
+             "error" => "Invalid email format"
+           }
+  end
+
+  test "POST /auth/reset-password updates the password and revokes active sessions", %{
+    conn: conn
+  } do
+    user =
+      create_user_with_password("reset-later@example.com", "old-password", "Reset User",
+        verified?: true,
+        access_status: :approved
+      )
+
+    login_response =
+      build_conn()
+      |> post(~p"/auth/login", %{email: user.email, password: "old-password"})
+      |> json_response(200)
+
+    old_refresh_token = get_in(login_response, ["tokens", "refreshToken"])
+
+    request_response =
+      build_conn()
+      |> post(~p"/auth/request-password-reset", %{email: user.email})
+      |> json_response(200)
+
+    conn =
+      post(conn, ~p"/auth/reset-password", %{
+        email: user.email,
+        code: request_response["devCode"],
+        password: "new-password"
+      })
+
+    assert json_response(conn, 200) == %{
+             "success" => true,
+             "message" => "Password updated."
+           }
+
+    assert json_response(
+             post(build_conn(), ~p"/auth/login", %{
+               email: user.email,
+               password: "old-password"
+             }),
+             401
+           ) == %{"error" => "Invalid email or password."}
+
+    assert get_in(
+             post(build_conn(), ~p"/auth/login", %{
+               email: user.email,
+               password: "new-password"
+             })
+             |> json_response(200),
+             ["tokens", "accessToken"]
+           )
+
+    assert json_response(
+             post(build_conn(), ~p"/auth/refresh", %{"refreshToken" => old_refresh_token}),
+             401
+           ) == %{"error" => "Session not found."}
+  end
+
   test "POST /auth/refresh rotates session for approved verified users", _context do
     user =
       create_user_with_password("bubblegum@example.com", "science-rules", "PB",
@@ -244,6 +348,8 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
         auth_login: %{limit: 2, scale_ms: 60_000},
         auth_verify_email: %{limit: 10, scale_ms: 60_000},
         auth_resend_verification: %{limit: 10, scale_ms: 60_000},
+        auth_request_password_reset: %{limit: 10, scale_ms: 60_000},
+        auth_reset_password: %{limit: 10, scale_ms: 60_000},
         auth_google: %{limit: 10, scale_ms: 60_000},
         auth_refresh: %{limit: 20, scale_ms: 60_000},
         pvp_match_write: %{limit: 30, scale_ms: 60_000}
