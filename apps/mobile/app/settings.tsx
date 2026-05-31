@@ -277,7 +277,7 @@ export default function SettingsScreen() {
           {...KEYBOARD_AWARE_SCROLL_PROPS}
           className="flex-1"
           contentContainerStyle={{
-            paddingTop: 14,
+            paddingTop: 20,
             paddingHorizontal: 20,
             paddingBottom: insets.bottom + 32,
           }}
