@@ -390,31 +390,6 @@ export default function SettingsScreen() {
                       </View>
                     </View>
 
-                    <View className="flex-row flex-wrap gap-3 pt-1">
-                      <SummaryChip
-                        label={t("settings.language")}
-                        value={
-                          currentLanguage === "fr"
-                            ? t("settings.french")
-                            : t("settings.english")
-                        }
-                        tone="neutral"
-                        tc={tc}
-                      />
-                      <SummaryChip
-                        label={t("settings.theme")}
-                        value={t(`settings.themeNames.${themeName}`)}
-                        tone="primary"
-                        tc={tc}
-                      />
-                      <SummaryChip
-                        label={t("settings.stepSource")}
-                        value={t(`settings.stepSources.${currentStepSource}`)}
-                        tone="neutral"
-                        tc={tc}
-                      />
-                    </View>
-
                     {editing ? (
                       <View className="gap-3">
                         <TextInput
@@ -452,7 +427,7 @@ export default function SettingsScreen() {
                         </View>
                       </View>
                     ) : (
-                      <View className="self-start">
+                      <View className="self-start pt-1">
                         <GhostButton
                           onPress={() => {
                             setDisplayNameInput(user?.displayName ?? "");
@@ -463,6 +438,37 @@ export default function SettingsScreen() {
                         </GhostButton>
                       </View>
                     )}
+
+                    <View className="flex-row gap-3">
+                      <View className="flex-1">
+                        <SummaryChip
+                          label={t("settings.language")}
+                          value={
+                            currentLanguage === "fr"
+                              ? t("settings.french")
+                              : t("settings.english")
+                          }
+                          tone="neutral"
+                          tc={tc}
+                        />
+                      </View>
+                      <View className="flex-1">
+                        <SummaryChip
+                          label={t("settings.theme")}
+                          value={t(`settings.themeNames.${themeName}`)}
+                          tone="primary"
+                          tc={tc}
+                        />
+                      </View>
+                      <View className="flex-1">
+                        <SummaryChip
+                          label={t("settings.stepSource")}
+                          value={t(`settings.stepSources.${currentStepSource}`)}
+                          tone="neutral"
+                          tc={tc}
+                        />
+                      </View>
+                    </View>
                 </View>
               </View>
             </View>
@@ -714,19 +720,23 @@ export default function SettingsScreen() {
                     </View>
                   </View>
 
-                  <View className="flex-row flex-wrap gap-3">
-                    <StatusPill
-                      label={t("settings.sourceLabel")}
-                      value={t(`settings.stepSources.${latestStepSource}`)}
-                      tone="neutral"
-                      tc={tc}
-                    />
-                    <StatusPill
-                      label={t("settings.goalNotificationsLabel")}
-                      value={notificationStatusLabel}
-                      tone="neutral"
-                      tc={tc}
-                    />
+                  <View className="flex-row justify-center gap-3 px-4">
+                    <View className="w-[148px]">
+                      <SummaryChip
+                        label={t("settings.sourceLabel")}
+                        value={t(`settings.stepSources.${latestStepSource}`)}
+                        tone="neutral"
+                        tc={tc}
+                      />
+                    </View>
+                    <View className="w-[148px]">
+                      <SummaryChip
+                        label={t("settings.goalNotificationsLabel")}
+                        value={notificationStatusLabel}
+                        tone="neutral"
+                        tc={tc}
+                      />
+                    </View>
                   </View>
 
                   {stepSync.lastError ? (
@@ -889,42 +899,6 @@ function ThemePreview({ themeName }: { themeName: ThemeName }) {
         className="h-4 w-4 rounded-full"
         style={{ backgroundColor: preview.accent }}
       />
-    </View>
-  );
-}
-
-function StatusPill({
-  label,
-  tc,
-  tone,
-  value,
-}: {
-  label: string;
-  tc: (typeof THEME_COLORS)[ThemeName];
-  tone: ToneName;
-  value: string;
-}) {
-  const colors = toneColors(tc, tone);
-
-  return (
-    <View
-      className="rounded-full px-3 py-2"
-      style={{
-        backgroundColor: colors.bg,
-        borderWidth: 1,
-        borderColor: colors.border,
-      }}
-    >
-      <Text className="font-nunito-semibold text-xs uppercase text-fgMuted">
-        {label}
-      </Text>
-      <Text
-        className="font-nunito-bold text-sm"
-        style={{ color: colors.text }}
-        numberOfLines={1}
-      >
-        {value}
-      </Text>
     </View>
   );
 }
