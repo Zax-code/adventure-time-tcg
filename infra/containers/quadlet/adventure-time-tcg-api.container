@@ -13,6 +13,7 @@ Environment=PHX_SERVER=true
 Environment=PHX_IP=127.0.0.1
 Environment=PHX_PORT=4200
 EnvironmentFile=/home/zax/adventure-time-tcg-secrets/api.container.env
+Volume=/home/zax/adventure-time-tcg-secrets/msmtprc:/etc/msmtprc:ro
 User=app
 NoNewPrivileges=true
 Notify=healthy

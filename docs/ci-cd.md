@@ -108,6 +108,8 @@ The deploy workflow assumes:
 - the repo is already cloned on the VPS at `/home/zax/adventure-time-tcg` unless overridden
 - the host can install Quadlet files into `/etc/containers/systemd`
 - the Phoenix secrets file exists either at `/home/zax/adventure-time-tcg-secrets/api.env` or `apps/phoenix/.env`
+- the API container env file is rendered to `/home/zax/adventure-time-tcg-secrets/api.container.env`
+- the host mail relay config exists at `/home/zax/adventure-time-tcg-secrets/msmtprc` so the containerized `sendmail` command can reach Postfix
 - Podman is installed on the VPS
 - passwordless `sudo` is available for `systemctl restart`
 - the Phoenix service name is `adventure-time-tcg-api.service` unless overridden

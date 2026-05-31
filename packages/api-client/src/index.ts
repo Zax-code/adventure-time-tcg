@@ -60,9 +60,13 @@ import {
   pvpInvitesResponseSchema,
   questsResponseSchema,
   refreshTokenSchema,
+  requestPasswordResetResponseSchema,
+  requestPasswordResetSchema,
   registerSchema,
   registerResponseSchema,
   processGiftSchema,
+  resetPasswordResponseSchema,
+  resetPasswordSchema,
   resendVerificationSchema,
   sendGiftSchema,
   speedAnswerSchema,
@@ -116,8 +120,12 @@ import {
   type PvpMatchDetailResponse,
   type QuestsResponse,
   type RefreshTokenInput,
+  type RequestPasswordResetInput,
+  type RequestPasswordResetResponse,
   type RegisterInput,
   type RegisterResponse,
+  type ResetPasswordInput,
+  type ResetPasswordResponse,
   type ResendVerificationInput,
   type SpeedRunAnswerResponse,
   type SpeedRunState,
@@ -279,6 +287,26 @@ export class ApiClient {
       "/auth/resend-verification",
       { method: "POST", body: JSON.stringify(body) },
       (data) => verifyEmailResponseSchema.parse(data),
+    );
+  }
+
+  async requestPasswordReset(
+    input: RequestPasswordResetInput,
+  ): Promise<RequestPasswordResetResponse> {
+    const body = requestPasswordResetSchema.parse(input);
+    return this.request(
+      "/auth/request-password-reset",
+      { method: "POST", body: JSON.stringify(body) },
+      (data) => requestPasswordResetResponseSchema.parse(data),
+    );
+  }
+
+  async resetPassword(input: ResetPasswordInput): Promise<ResetPasswordResponse> {
+    const body = resetPasswordSchema.parse(input);
+    return this.request(
+      "/auth/reset-password",
+      { method: "POST", body: JSON.stringify(body) },
+      (data) => resetPasswordResponseSchema.parse(data),
     );
   }
 

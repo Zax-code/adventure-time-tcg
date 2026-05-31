@@ -48,6 +48,16 @@ export const resendVerificationSchema = z.object({
   email: z.string().email(),
 });
 
+export const requestPasswordResetSchema = z.object({
+  email: z.string().email(),
+});
+
+export const resetPasswordSchema = z.object({
+  email: z.string().email(),
+  code: z.string().regex(/^\d{6}$/),
+  password: z.string().min(8),
+});
+
 export const googleAuthSchema = z
   .object({
     idToken: z.string().min(1).optional(),
@@ -1054,6 +1064,17 @@ export const verifyEmailResponseSchema = z.object({
   devCode: z.string().optional(),
 });
 
+export const requestPasswordResetResponseSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+  devCode: z.string().optional(),
+});
+
+export const resetPasswordResponseSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+});
+
 export const stepSummarySchema = z.object({
   source: stepSourceSchema,
   stepCount: z.number().int().nonnegative(),
@@ -1093,6 +1114,12 @@ export type RegisterResponse = z.infer<typeof registerResponseSchema>;
 export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;
 export type VerifyEmailResponse = z.infer<typeof verifyEmailResponseSchema>;
 export type ResendVerificationInput = z.infer<typeof resendVerificationSchema>;
+export type RequestPasswordResetInput = z.infer<typeof requestPasswordResetSchema>;
+export type RequestPasswordResetResponse = z.infer<
+  typeof requestPasswordResetResponseSchema
+>;
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+export type ResetPasswordResponse = z.infer<typeof resetPasswordResponseSchema>;
 export type CollectionResponse = z.infer<typeof collectionResponseSchema>;
 export type UsersResponse = z.infer<typeof usersResponseSchema>;
 export type HomeResponse = z.infer<typeof homeResponseSchema>;

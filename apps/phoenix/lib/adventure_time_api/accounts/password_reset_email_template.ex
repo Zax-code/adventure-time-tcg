@@ -1,19 +1,19 @@
-defmodule AdventureTimeApi.Accounts.VerificationEmailTemplate do
+defmodule AdventureTimeApi.Accounts.PasswordResetEmailTemplate do
   @moduledoc false
 
   def render(email, code, opts \\ []) do
     locale = Keyword.get(opts, :locale, :en)
     copy = copy_for(locale)
-    verification_url = verification_url(email, code, locale)
+    reset_url = reset_url(email, code, locale)
 
     %{
       subject: copy.subject,
-      text: text_body(copy, code, verification_url),
-      html: html_body(copy, code, verification_url)
+      text: text_body(copy, code, reset_url),
+      html: html_body(copy, code, reset_url)
     }
   end
 
-  defp verification_url(email, code, locale) do
+  defp reset_url(email, code, locale) do
     endpoint_url =
       Application.fetch_env!(:adventure_time_api, AdventureTimeApiWeb.Endpoint)
       |> Keyword.fetch!(:url)
@@ -29,13 +29,13 @@ defmodule AdventureTimeApi.Accounts.VerificationEmailTemplate do
       scheme: Keyword.get(endpoint_url, :scheme, "https"),
       host: Keyword.fetch!(endpoint_url, :host),
       port: endpoint_url[:port],
-      path: "/email/verify",
+      path: "/password/reset",
       query: query
     }
     |> URI.to_string()
   end
 
-  defp text_body(copy, code, verification_url) do
+  defp text_body(copy, code, reset_url) do
     [
       "Adventure Time TCG",
       "",
@@ -46,14 +46,14 @@ defmodule AdventureTimeApi.Accounts.VerificationEmailTemplate do
       "",
       copy.copy_hint,
       "",
-      "#{copy.browser_cta}: #{verification_url}",
+      "#{copy.browser_cta}: #{reset_url}",
       "",
       copy.ignore_hint
     ]
     |> Enum.join("\n")
   end
 
-  defp html_body(copy, code, verification_url) do
+  defp html_body(copy, code, reset_url) do
     """
     <!doctype html>
     <html lang="#{copy.lang}" xmlns="http://www.w3.org/1999/xhtml">
@@ -196,7 +196,7 @@ defmodule AdventureTimeApi.Accounts.VerificationEmailTemplate do
                     <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0">
                       <tr>
                         <td align="center" class="cta-cell" style="background:linear-gradient(135deg, #be185d, #f472b6);border-radius:999px;">
-                          <a href="#{verification_url}" class="cta-link">#{copy.browser_button}</a>
+                          <a href="#{reset_url}" class="cta-link">#{copy.browser_button}</a>
                         </td>
                       </tr>
                     </table>
@@ -224,16 +224,16 @@ defmodule AdventureTimeApi.Accounts.VerificationEmailTemplate do
   defp copy_for(:fr) do
     %{
       lang: "fr",
-      subject: "Confirme ton compte Adventure Time TCG",
-      preheader: "Utilise ce code pour terminer la creation de ton compte.",
-      title: "Confirme ton compte",
-      intro: "Utilise ce code pour terminer la creation de ton compte.",
-      code_label: "Code de verification",
+      subject: "Reinitialise ton mot de passe Adventure Time TCG",
+      preheader: "Utilise ce code pour choisir un nouveau mot de passe.",
+      title: "Reinitialise ton mot de passe",
+      intro: "Utilise ce code pour choisir un nouveau mot de passe.",
+      code_label: "Code de reinitialisation",
       expiry_prefix: "Expire dans",
       expiry_value: "15 minutes",
-      copy_hint: "Tu peux aussi ouvrir la page de confirmation pour valider plus facilement.",
-      browser_cta: "Page de confirmation",
-      browser_button: "Ouvrir la confirmation",
+      copy_hint: "Tu peux aussi ouvrir la page de reinitialisation pour terminer plus vite.",
+      browser_cta: "Page de reinitialisation",
+      browser_button: "Ouvrir la reinitialisation",
       ignore_hint: "Si tu n'es pas a l'origine de cette demande, tu peux ignorer cet e-mail."
     }
   end
@@ -241,16 +241,16 @@ defmodule AdventureTimeApi.Accounts.VerificationEmailTemplate do
   defp copy_for(_locale) do
     %{
       lang: "en",
-      subject: "Confirm your Adventure Time TCG account",
-      preheader: "Use this verification code to finish creating your account.",
-      title: "Confirm your account",
-      intro: "Use this verification code to finish creating your account.",
-      code_label: "Verification code",
+      subject: "Reset your Adventure Time TCG password",
+      preheader: "Use this code to choose a new password.",
+      title: "Reset your password",
+      intro: "Use this code to choose a new password.",
+      code_label: "Reset code",
       expiry_prefix: "Expires in",
       expiry_value: "15 minutes",
-      copy_hint: "You can also open the confirmation page for a smoother finish.",
-      browser_cta: "Confirmation page",
-      browser_button: "Open confirmation page",
+      copy_hint: "You can also open the reset page to finish more smoothly.",
+      browser_cta: "Reset page",
+      browser_button: "Open reset page",
       ignore_hint: "If you didn't request this, you can safely ignore this email."
     }
   end

@@ -62,6 +62,12 @@ defmodule AdventureTimeApiWeb.AuthController do
         {:error, :validation, message} ->
           conn |> put_status(:bad_request) |> json(%{error: message})
 
+        {:error, :invalid_code, message} ->
+          conn |> put_status(:bad_request) |> json(%{error: message})
+
+        {:error, :expired, message} ->
+          conn |> put_status(:gone) |> json(%{error: message})
+
         {:error, :not_found, message} ->
           conn |> put_status(:not_found) |> json(%{error: message})
       end
@@ -89,6 +95,47 @@ defmodule AdventureTimeApiWeb.AuthController do
 
         {:error, :delivery, message} ->
           conn |> put_status(:internal_server_error) |> json(%{error: message})
+      end
+    end
+  end
+
+  def request_password_reset(conn, params) do
+    conn = RateLimit.call(conn, bucket: :auth_request_password_reset, key_strategy: :ip_email)
+
+    if conn.halted do
+      conn
+    else
+      case Accounts.request_password_reset(params) do
+        {:ok, response} ->
+          json(conn, response)
+
+        {:error, :validation, message} ->
+          conn |> put_status(:bad_request) |> json(%{error: message})
+      end
+    end
+  end
+
+  def reset_password(conn, params) do
+    conn = RateLimit.call(conn, bucket: :auth_reset_password, key_strategy: :ip_email)
+
+    if conn.halted do
+      conn
+    else
+      case Accounts.reset_password(params) do
+        {:ok, response} ->
+          json(conn, response)
+
+        {:error, :validation, message} ->
+          conn |> put_status(:bad_request) |> json(%{error: message})
+
+        {:error, :invalid_code, message} ->
+          conn |> put_status(:bad_request) |> json(%{error: message})
+
+        {:error, :expired, message} ->
+          conn |> put_status(:gone) |> json(%{error: message})
+
+        {:error, :not_found, message} ->
+          conn |> put_status(:not_found) |> json(%{error: message})
       end
     end
   end

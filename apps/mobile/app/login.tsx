@@ -1,6 +1,7 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { useRef, useEffect } from "react";
 import { Animated, View } from "react-native";
+import { useLocalSearchParams } from "expo-router";
 
 import { AuthForm } from "../src/components/auth-form";
 
@@ -54,13 +55,41 @@ function FloatingHeart({ left, top, size, delay, duration }: (typeof PARTICLES)[
 }
 
 export default function LoginScreen() {
+  const params = useLocalSearchParams<{
+    email?: string;
+    code?: string;
+    locale?: "en" | "fr";
+    mode?: "login" | "verify" | "reset-password";
+    auto_verify?: string;
+  }>();
+
   return (
     <LinearGradient colors={["#fce7f3", "#fdf2f8", "#f9a8d4"]} style={{ flex: 1 }}>
       {PARTICLES.map((p, i) => (
         <FloatingHeart key={i} {...p} />
       ))}
       <View className="flex-1 justify-center p-5">
-        <AuthForm />
+        <AuthForm
+          prefill={{
+            email: typeof params.email === "string" ? params.email : undefined,
+            code: typeof params.code === "string" ? params.code : undefined,
+            locale:
+              params.locale === "fr"
+                ? "fr"
+                : params.locale === "en"
+                  ? "en"
+                  : undefined,
+            mode:
+              params.mode === "verify"
+                ? "verify"
+                : params.mode === "reset-password"
+                  ? "reset-password"
+                : params.mode === "login"
+                  ? "login"
+                  : undefined,
+            autoVerify: params.auto_verify === "true",
+          }}
+        />
       </View>
     </LinearGradient>
   );

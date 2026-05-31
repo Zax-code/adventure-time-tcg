@@ -19,6 +19,27 @@
 
 ## Phoenix Service
 
+The API container expects two host-managed secret files:
+
+- `/home/zax/adventure-time-tcg-secrets/api.container.env`
+- `/home/zax/adventure-time-tcg-secrets/msmtprc`
+
+The `msmtprc` file is required because the production image ships `sendmail` via `msmtp`. On this VPS it should relay through the host Postfix listener at `127.0.0.1:25`, for example:
+
+```ini
+defaults
+auth off
+tls off
+tls_starttls off
+account default
+host 127.0.0.1
+port 25
+from no-reply@leaetzak.love
+auto_from off
+add_missing_from_header on
+set_from_header on
+```
+
 Install/update the checked-in Quadlet files and then reload systemd:
 
 ```bash
@@ -50,5 +71,6 @@ sudo systemctl reload caddy
 - Caddy runs as `caddy:caddy`, so keep that file writable by the Caddy service user
 - if Caddy status still shows a stale permission warning after a successful reload, validate with a direct local HTTPS request before treating it as a live routing problem
 - the API container expects a rendered env file at `/home/zax/adventure-time-tcg-secrets/api.container.env`
+- the API container also expects `/home/zax/adventure-time-tcg-secrets/msmtprc`, mounted to `/etc/msmtprc`, so verification emails can relay through host Postfix
 - PostgreSQL and MinIO publish only to the VPS loopback interface via the shared pod, so Phoenix should target them as `127.0.0.1:5432` and `127.0.0.1:9000` from inside the pod
 - `apps/phoenix/.env.container.example` is the checked-in reference shape for container-side Phoenix env vars

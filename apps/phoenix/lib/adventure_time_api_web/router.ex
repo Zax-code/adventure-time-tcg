@@ -20,6 +20,10 @@ defmodule AdventureTimeApiWeb.Router do
     pipe_through(:browser_html)
 
     get("/", LandingController, :index)
+    get("/email/verify", EmailVerificationController, :show)
+    post("/email/verify", EmailVerificationController, :confirm)
+    get("/password/reset", PasswordResetController, :show)
+    post("/password/reset", PasswordResetController, :confirm)
   end
 
   scope "/", AdventureTimeApiWeb do
@@ -33,6 +37,8 @@ defmodule AdventureTimeApiWeb.Router do
     post("/auth/register", AuthController, :register)
     post("/auth/verify-email", AuthController, :verify_email)
     post("/auth/resend-verification", AuthController, :resend_verification)
+    post("/auth/request-password-reset", AuthController, :request_password_reset)
+    post("/auth/reset-password", AuthController, :reset_password)
     post("/auth/login", AuthController, :login)
     post("/auth/google", AuthController, :google)
     post("/auth/refresh", AuthController, :refresh)

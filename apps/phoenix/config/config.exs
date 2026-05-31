@@ -13,7 +13,10 @@ config :adventure_time_api,
 
 config :adventure_time_api, AdventureTimeApiWeb.Endpoint,
   adapter: Bandit.PhoenixAdapter,
-  render_errors: [formats: [json: AdventureTimeApiWeb.ErrorJSON], layout: false],
+  render_errors: [
+    formats: [html: AdventureTimeApiWeb.ErrorHTML, json: AdventureTimeApiWeb.ErrorJSON],
+    layout: false
+  ],
   pubsub_server: AdventureTimeApi.PubSub,
   url: [host: "127.0.0.1"]
 
@@ -61,6 +64,8 @@ config :adventure_time_api, AdventureTimeApiWeb.Plugs.RateLimit,
     auth_login: %{limit: 12, scale_ms: 60_000},
     auth_verify_email: %{limit: 10, scale_ms: 60_000},
     auth_resend_verification: %{limit: 10, scale_ms: 60_000},
+    auth_request_password_reset: %{limit: 6, scale_ms: 60_000},
+    auth_reset_password: %{limit: 10, scale_ms: 60_000},
     auth_google: %{limit: 10, scale_ms: 60_000},
     auth_refresh: %{limit: 20, scale_ms: 60_000},
     pvp_match_write: %{limit: 30, scale_ms: 60_000}
