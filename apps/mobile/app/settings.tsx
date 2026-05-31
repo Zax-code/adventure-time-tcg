@@ -1,6 +1,13 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import {
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
@@ -117,20 +124,28 @@ export default function SettingsScreen() {
   const healthStatusLabel = t(
     `settings.permissionStates.${stepSync.healthPermissionStatus}`,
   );
+  const healthSystemLabel = t(
+    Platform.OS === "ios"
+      ? "settings.healthSystems.ios"
+      : Platform.OS === "android"
+        ? "settings.healthSystems.android"
+        : "settings.healthSystems.default",
+  );
   const notificationStatusLabel = t(
     `settings.permissionStates.${stepSync.notificationPermissionStatus}`,
   );
   const fitbitConnected = fitbitStatusQuery.data?.connected ?? false;
   const prefersFitbit = user?.preferredStepSource === "fitbit";
-  const stepActionLabel =
-    prefersFitbit
-      ? fitbitConnected
-        ? t("settings.syncNow")
-        : isConnectingFitbit
-          ? t("settings.connectingFitbit")
-          : t("settings.connectFitbit")
-      : stepSync.availability === "setup_required"
-      ? t("settings.openHealthConnect")
+  const stepActionLabel = prefersFitbit
+    ? fitbitConnected
+      ? t("settings.syncNow")
+      : isConnectingFitbit
+        ? t("settings.connectingFitbit")
+        : t("settings.connectFitbit")
+    : stepSync.availability === "setup_required"
+      ? t("settings.openHealthConnect", {
+          healthSystem: healthSystemLabel,
+        })
       : stepSync.healthPermissionStatus === "granted"
         ? t("settings.syncNow")
         : t("settings.enableStepSync");
@@ -491,7 +506,9 @@ export default function SettingsScreen() {
               <PrimaryButton
                 onPress={() => updateSourceMutation.mutate("device_health")}
               >
-                {t("settings.useDeviceHealth")}
+                {t("settings.useDeviceHealth", {
+                  healthSystem: healthSystemLabel,
+                })}
               </PrimaryButton>
               <View style={{ height: 8 }} />
               <Pressable
@@ -592,7 +609,9 @@ export default function SettingsScreen() {
                 </Text>
               </Pressable>
               <Text className="font-nunito text-xs text-fgMuted mt-2">
-                {t("settings.stepSyncHelp")}
+                {t("settings.stepSyncHelp", {
+                  healthSystem: healthSystemLabel,
+                })}
               </Text>
             </View>
           </View>

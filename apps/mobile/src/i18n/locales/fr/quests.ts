@@ -19,9 +19,9 @@ const quests = {
   questResetByAdmin: "{quest} a été réinitialisée par {name}.",
   stepSyncPromptTitle: "Active le suivi des pas pour cette quête",
   stepSyncPromptBody:
-    "Active Apple Health ou Health Connect une fois pour que cette quête puisse compter tes pas.",
+    "Active {healthSystem} une fois pour que cette quête puisse compter tes pas.",
   stepSyncPromptSetupBody:
-    "Termine d'abord la configuration de Health Connect pour que cette quête puisse compter tes pas.",
+    "Termine d'abord la configuration de {healthSystem} pour que cette quête puisse compter tes pas.",
   widgetRemainingSteps: "{count} pas restants",
   widgetReadyToClaim: "Récompense prête : {reward} pièces",
   widgetClaimedToday: "Récupérée pour aujourd'hui",
@@ -35,7 +35,8 @@ const quests = {
   wordle_daily: "Terminer un Wordle",
   wordle_daily_desc: "Résous le Wordle du jour",
   speed_calculus_daily: "Sprint de calcul mental",
-  speed_calculus_daily_desc: "Résous un maximum d'additions et de soustractions",
+  speed_calculus_daily_desc:
+    "Résous un maximum d'additions et de soustractions",
   wordle: {
     title: "Wordle quotidien",
     subtitle: "Résous l'énigme pour terminer la quête du jour.",

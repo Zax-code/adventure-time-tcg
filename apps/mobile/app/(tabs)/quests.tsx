@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   Animated,
   Modal,
+  Platform,
   ScrollView,
   Text,
   TouchableOpacity,
@@ -224,9 +225,18 @@ export default function QuestsScreen() {
     user?.preferredStepSource === "device_health" &&
     (stepSync.availability === "setup_required" ||
       stepSync.healthPermissionStatus !== "granted");
+  const healthSystemLabel = t(
+    Platform.OS === "ios"
+      ? "settings.healthSystems.ios"
+      : Platform.OS === "android"
+        ? "settings.healthSystems.android"
+        : "settings.healthSystems.default",
+  );
   const stepActionLabel =
     stepSync.availability === "setup_required"
-      ? t("settings.openHealthConnect")
+      ? t("settings.openHealthConnect", {
+          healthSystem: healthSystemLabel,
+        })
       : stepSync.healthPermissionStatus === "granted"
         ? t("settings.syncNow")
         : t("settings.enableStepSync");
@@ -424,14 +434,10 @@ export default function QuestsScreen() {
         error={questsQuery.error}
         title={questsQuery.error ? undefined : t("quests.unavailable")}
         body={
-          questsQuery.error
-            ? undefined
-            : t("common.errorStates.generic.body")
+          questsQuery.error ? undefined : t("common.errorStates.generic.body")
         }
         detail={
-          questsQuery.error
-            ? undefined
-            : t("common.errorStates.generic.detail")
+          questsQuery.error ? undefined : t("common.errorStates.generic.detail")
         }
         onRetry={() => {
           void questsQuery.refetch();
@@ -722,8 +728,12 @@ export default function QuestsScreen() {
                       </Text>
                       <Text className="font-nunito text-sm text-primaryStrong mt-1">
                         {stepSync.availability === "setup_required"
-                          ? t("quests.stepSyncPromptSetupBody")
-                          : t("quests.stepSyncPromptBody")}
+                          ? t("quests.stepSyncPromptSetupBody", {
+                              healthSystem: healthSystemLabel,
+                            })
+                          : t("quests.stepSyncPromptBody", {
+                              healthSystem: healthSystemLabel,
+                            })}
                       </Text>
                       {stepSync.lastError ? (
                         <Text className="font-nunito text-sm text-dangerDark mt-2">
@@ -840,7 +850,9 @@ export default function QuestsScreen() {
                           onPress={() => {
                             void handleForceRefresh();
                           }}
-                          disabled={stepSync.isSyncing || isForceRefreshingStepQuest}
+                          disabled={
+                            stepSync.isSyncing || isForceRefreshingStepQuest
+                          }
                           hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
                         >
                           <Text className="font-nunito-semibold text-xs text-primaryText">

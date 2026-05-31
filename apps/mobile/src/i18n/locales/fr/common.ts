@@ -7,35 +7,37 @@ const common = {
   delete: "Supprimer",
   launch: {
     eyebrow: "Adventure Time TCG",
-    title: "Le deck se prepare",
+    title: "Le deck se prépare",
     subtitle:
       "Nous remettons en place tes cartes, tes couleurs et les portes du royaume avant l'aventure.",
-    preparing: "Preparation de l'aventure...",
-    restoring: "Reconnexion au Royaume des Bonbons...",
+    preparing: "Préparation de l'aventure...",
+    restoring: "Réconnexion au Royaume des Bonbons...",
   },
   loadingStates: {
-    pageBody: "Un instant pendant que nous preparons cet ecran.",
-    sectionBody: "Les derniers details arrivent.",
-    battleBody: "Nous mettons en place le plateau et synchronisons l'ordre du tour.",
-    rosterBody: "Nous verifions les derniers joueurs et leurs compositions.",
-    adminBody: "Nous rassemblons les derniers outils et donnees pour cet espace.",
+    pageBody: "Un instant pendant que nous préparons cet écran.",
+    sectionBody: "Les derniers détails arrivent.",
+    battleBody:
+      "Nous mettons en place le plateau et synchronisons l'ordre du tour.",
+    rosterBody: "Nous vérifions les derniers joueurs et leurs compositions.",
+    adminBody:
+      "Nous rassemblons les derniers outils et données pour cet espace.",
   },
   errorStates: {
     network: {
       eyebrow: "Connexion interrompue",
       title: "Impossible de joindre le serveur du jeu pour le moment.",
-      body: "Ta progression est en securite. Cela veut souvent dire que la connexion a coupe un instant ou que le serveur a besoin d'une nouvelle tentative.",
-      detail: "Actualise cet ecran quand la connexion est revenue.",
-      action: "Actualiser l'ecran",
+      body: "Ta progression est en sécurité. Cela veut souvent dire que la connexion a coupé un instant ou que le serveur a besoin d'une nouvelle tentative.",
+      detail: "Actualise cet écran quand la connexion est revenue.",
+      action: "Actualiser l'écran",
     },
     generic: {
       eyebrow: "Petit contretemps",
-      title: "Cet ecran ne s'est pas charge correctement.",
+      title: "Cet écran ne s'est pas chargé correctement.",
       body: "Demande une nouvelle tentative et nous irons chercher une version propre.",
       detail: "Si cela continue, reviens dans un instant.",
-      action: "Reessayer",
+      action: "Réessayer",
     },
-    technicalLabel: "Details techniques",
+    technicalLabel: "Détails techniques",
     backAction: "Retour",
   },
 };

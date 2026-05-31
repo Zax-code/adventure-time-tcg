@@ -19,9 +19,9 @@ const quests = {
   questResetByAdmin: "{quest} was reset by {name}.",
   stepSyncPromptTitle: "Turn on step tracking for this quest",
   stepSyncPromptBody:
-    "Enable Apple Health or Health Connect once so this quest can count your steps.",
+    "Enable {healthSystem} once so this quest can count your steps.",
   stepSyncPromptSetupBody:
-    "Finish setting up Health Connect first so this quest can count your steps.",
+    "Finish setting up {healthSystem} first so this quest can count your steps.",
   widgetRemainingSteps: "{count} steps left",
   widgetReadyToClaim: "Reward ready: {reward} coins",
   widgetClaimedToday: "Claimed for today",
@@ -112,10 +112,8 @@ const quests = {
   speedCalculusBackToMain: "Back to speed calculus",
   speedCalculusQuestCardMeta:
     "Latest run: {score} correct, {reward} coins, {runs}/{total} runs used.",
-  speedCalculusReset:
-    "Your Speed Calculus run was reset. Refreshing state.",
-  speedCalculusResetByAdmin:
-    "Your Speed Calculus run was reset by {name}.",
+  speedCalculusReset: "Your Speed Calculus run was reset. Refreshing state.",
+  speedCalculusResetByAdmin: "Your Speed Calculus run was reset by {name}.",
   speedCalculusPause: "Pause",
   speedCalculusResume: "Resume",
   speedCalculusPausedTitle: "Paused",
