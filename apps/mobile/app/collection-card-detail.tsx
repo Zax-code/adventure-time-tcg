@@ -19,6 +19,10 @@ import { useThemeStore } from "../src/stores/theme-store";
 import { useTranslation } from "../src/i18n";
 import { CardTile } from "../src/components/card-tile";
 import {
+  KEYBOARD_AWARE_SCROLL_PROPS,
+  KeyboardScreenView,
+} from "../src/components/keyboard-screen-view";
+import {
   LoadingPanel,
   PageLoadingState,
 } from "../src/components/loading-state";
@@ -34,7 +38,10 @@ import {
 } from "../src/components/icons";
 import { ToastBanner } from "../src/components/toast-banner";
 import { getDustSacrificeValue, getDustCraftCost } from "../src/lib/dust";
-import type { CollectionResponse, HomeResponse } from "@adventure-time/api-client";
+import type {
+  CollectionResponse,
+  HomeResponse,
+} from "@adventure-time/api-client";
 
 function estimateCatalogCount(stats: CollectionResponse["stats"]) {
   if (stats.uniqueOwned <= 0 || stats.completionPercentage <= 0) {
@@ -356,250 +363,449 @@ export default function CollectionCardDetailScreen() {
   );
 
   return (
-    <View className="flex-1 bg-bg">
-      {toast ? (
-        <ToastBanner
-          message={toast.message}
-          type={toast.type}
-          translateY={toastAnim}
-          successColor={tc.successDark}
-          errorColor={tc.dangerDark}
+    <KeyboardScreenView>
+      <View className="flex-1 bg-bg">
+        {toast ? (
+          <ToastBanner
+            message={toast.message}
+            type={toast.type}
+            translateY={toastAnim}
+            successColor={tc.successDark}
+            errorColor={tc.dangerDark}
+          />
+        ) : null}
+
+        <View
+          className="h-1 w-9 self-center rounded-full bg-muted"
+          style={{ marginTop: 8, marginBottom: 4 }}
         />
-      ) : null}
 
-      <View
-        className="h-1 w-9 self-center rounded-full bg-muted"
-        style={{ marginTop: 8, marginBottom: 4 }}
-      />
-
-      <View className="items-center border-b border-primaryTint px-6 py-4">
-        <Text className="font-nunito-extrabold text-2xl text-fg">
-          {t("pvp.cardDetailsTitle")}
-        </Text>
-      </View>
-
-      {collectionQuery.isLoading ? (
-        <PageLoadingState
-          title={t("pvp.cardDetailsTitle")}
-          message={t("common.loadingStates.pageBody")}
-          icon="sparkles"
-        />
-      ) : !entry ? (
-        <View className="flex-1 items-center justify-center px-6">
-          <Text className="text-center font-nunito text-fgMuted">
-            {t("pvp.cardMissingTitle")}
+        <View className="items-center border-b border-primaryTint px-6 py-4">
+          <Text className="font-nunito-extrabold text-2xl text-fg">
+            {t("pvp.cardDetailsTitle")}
           </Text>
         </View>
-      ) : (
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={{
-            alignItems: "center",
-            paddingVertical: 24,
-            paddingHorizontal: 16,
-            gap: 14,
-            paddingBottom: insets.bottom + 24,
-          }}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Large card */}
-          <View style={{ marginTop: 4 }}>
-            <CardTile entry={entry} size="large" accessToken={accessToken} />
-          </View>
 
-          {/* Rarity panel */}
-          {(() => {
-            const rarityColor =
-              RARITY_COLORS[entry.card.rarity.name] ?? RARITY_COLORS.Common;
-            return (
-              <View
-                style={{
-                  width: "100%",
-                  backgroundColor: "#fff",
-                  borderRadius: 12,
-                  borderWidth: 1,
-                  borderColor: "#FCE7F3",
-                  paddingHorizontal: 16,
-                  paddingVertical: 12,
-                  shadowColor: "#000",
-                  shadowOpacity: 0.08,
-                  shadowRadius: 6,
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                }}
-              >
-                <Text
+        {collectionQuery.isLoading ? (
+          <PageLoadingState
+            title={t("pvp.cardDetailsTitle")}
+            message={t("common.loadingStates.pageBody")}
+            icon="sparkles"
+          />
+        ) : !entry ? (
+          <View className="flex-1 items-center justify-center px-6">
+            <Text className="text-center font-nunito text-fgMuted">
+              {t("pvp.cardMissingTitle")}
+            </Text>
+          </View>
+        ) : (
+          <ScrollView
+            {...KEYBOARD_AWARE_SCROLL_PROPS}
+            style={{ flex: 1 }}
+            contentContainerStyle={{
+              alignItems: "center",
+              paddingVertical: 24,
+              paddingHorizontal: 16,
+              gap: 14,
+              paddingBottom: insets.bottom + 24,
+            }}
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Large card */}
+            <View style={{ marginTop: 4 }}>
+              <CardTile entry={entry} size="large" accessToken={accessToken} />
+            </View>
+
+            {/* Rarity panel */}
+            {(() => {
+              const rarityColor =
+                RARITY_COLORS[entry.card.rarity.name] ?? RARITY_COLORS.Common;
+              return (
+                <View
                   style={{
-                    fontSize: 11,
-                    fontFamily: "Nunito_600SemiBold",
-                    color: "#9CA3AF",
-                    textTransform: "uppercase",
-                    letterSpacing: 1,
-                  }}
-                >
-                  {t("collection.detail.rarity")}
-                </Text>
-                <LinearGradient
-                  colors={[rarityColor.from, rarityColor.to]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={{
+                    width: "100%",
+                    backgroundColor: "#fff",
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    borderColor: "#FCE7F3",
+                    paddingHorizontal: 16,
+                    paddingVertical: 12,
+                    shadowColor: "#000",
+                    shadowOpacity: 0.08,
+                    shadowRadius: 6,
                     flexDirection: "row",
                     alignItems: "center",
-                    gap: 6,
-                    paddingHorizontal: 12,
-                    paddingVertical: 5,
-                    borderRadius: 999,
+                    justifyContent: "space-between",
                   }}
                 >
                   <Text
                     style={{
-                      color: "#fff",
-                      fontFamily: "Nunito_800ExtraBold",
-                      fontSize: 12,
+                      fontSize: 11,
+                      fontFamily: "Nunito_600SemiBold",
+                      color: "#9CA3AF",
+                      textTransform: "uppercase",
+                      letterSpacing: 1,
                     }}
                   >
-                    {entry.card.rarity.name.toUpperCase()}
+                    {t("collection.detail.rarity")}
                   </Text>
-                </LinearGradient>
-              </View>
-            );
-          })()}
+                  <LinearGradient
+                    colors={[rarityColor.from, rarityColor.to]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 6,
+                      paddingHorizontal: 12,
+                      paddingVertical: 5,
+                      borderRadius: 999,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: "#fff",
+                        fontFamily: "Nunito_800ExtraBold",
+                        fontSize: 12,
+                      }}
+                    >
+                      {entry.card.rarity.name.toUpperCase()}
+                    </Text>
+                  </LinearGradient>
+                </View>
+              );
+            })()}
 
-          {/* Stats panel */}
-          <View
-            style={{
-              width: "100%",
-              backgroundColor: "#fff",
-              borderRadius: 16,
-              borderWidth: 1,
-              borderColor: "#FCE7F3",
-              shadowColor: "#000",
-              shadowOpacity: 0.1,
-              shadowRadius: 8,
-              overflow: "hidden",
-            }}
-          >
-            <Pressable
+            {/* Stats panel */}
+            <View
               style={{
-                flexDirection: "row",
-                alignItems: "center",
-                paddingHorizontal: 16,
-                paddingVertical: 12,
-                gap: 8,
+                width: "100%",
+                backgroundColor: "#fff",
+                borderRadius: 16,
+                borderWidth: 1,
+                borderColor: "#FCE7F3",
+                shadowColor: "#000",
+                shadowOpacity: 0.1,
+                shadowRadius: 8,
+                overflow: "hidden",
               }}
-              onPress={() => setStatsExpanded(!statsExpanded)}
             >
-              <SwordsIcon size={18} color="#1F2937" />
-              <Text
-                style={{
-                  flex: 1,
-                  fontSize: 14,
-                  fontFamily: "Nunito_700Bold",
-                  color: "#1F2937",
-                }}
-              >
-                {t("collection.detail.stats")}
-              </Text>
-              <View
-                style={{
-                  transform: [{ rotate: statsExpanded ? "180deg" : "0deg" }],
-                }}
-              >
-                <ChevronDownIcon size={18} color="#DB2777" />
-              </View>
-            </Pressable>
-            {statsExpanded && (
-              <View
+              <Pressable
                 style={{
                   flexDirection: "row",
-                  paddingHorizontal: 12,
-                  paddingBottom: 14,
+                  alignItems: "center",
+                  paddingHorizontal: 16,
+                  paddingVertical: 12,
                   gap: 8,
                 }}
+                onPress={() => setStatsExpanded(!statsExpanded)}
               >
-                {[
-                  { label: "HP", value: entry.card.hp, color: "#FB7185" },
-                  { label: "ATK", value: entry.card.attack, color: "#FBBF24" },
-                  { label: "DEF", value: entry.card.defense, color: "#818CF8" },
-                  { label: "SPD", value: entry.card.speed, color: "#2DD4BF" },
-                ].map(({ label, value, color }) => (
-                  <View
-                    key={label}
+                <SwordsIcon size={18} color="#1F2937" />
+                <Text
+                  style={{
+                    flex: 1,
+                    fontSize: 14,
+                    fontFamily: "Nunito_700Bold",
+                    color: "#1F2937",
+                  }}
+                >
+                  {t("collection.detail.stats")}
+                </Text>
+                <View
+                  style={{
+                    transform: [{ rotate: statsExpanded ? "180deg" : "0deg" }],
+                  }}
+                >
+                  <ChevronDownIcon size={18} color="#DB2777" />
+                </View>
+              </Pressable>
+              {statsExpanded && (
+                <View
+                  style={{
+                    flexDirection: "row",
+                    paddingHorizontal: 12,
+                    paddingBottom: 14,
+                    gap: 8,
+                  }}
+                >
+                  {[
+                    { label: "HP", value: entry.card.hp, color: "#FB7185" },
+                    {
+                      label: "ATK",
+                      value: entry.card.attack,
+                      color: "#FBBF24",
+                    },
+                    {
+                      label: "DEF",
+                      value: entry.card.defense,
+                      color: "#818CF8",
+                    },
+                    { label: "SPD", value: entry.card.speed, color: "#2DD4BF" },
+                  ].map(({ label, value, color }) => (
+                    <View
+                      key={label}
+                      style={{
+                        flex: 1,
+                        alignItems: "center",
+                        backgroundColor: "#F9FAFB",
+                        borderRadius: 10,
+                        paddingVertical: 10,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 18,
+                          fontFamily: "Nunito_800ExtraBold",
+                          color,
+                        }}
+                      >
+                        {value}
+                      </Text>
+                      <Text
+                        style={{
+                          fontSize: 10,
+                          fontFamily: "Nunito_600SemiBold",
+                          color: "#6B7280",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        {label}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+
+            {/* Recycle section */}
+            <View
+              style={{
+                width: "100%",
+                backgroundColor: "#ECFDF5",
+                borderRadius: 16,
+                borderWidth: 1,
+                borderColor: "#6EE7B7",
+                shadowColor: "#000",
+                shadowOpacity: 0.12,
+                shadowRadius: 8,
+                overflow: "hidden",
+              }}
+            >
+              <Pressable
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  padding: 12,
+                  gap: 8,
+                }}
+                onPress={() => setRecycleExpanded(!recycleExpanded)}
+              >
+                <RecycleIcon size={18} color="#065F46" />
+                <Text
+                  style={{
+                    flex: 1,
+                    fontSize: 14,
+                    fontFamily: "Nunito_700Bold",
+                    color: "#065F46",
+                  }}
+                >
+                  {t("collection.detail.recycle")}
+                </Text>
+                <View
+                  style={{
+                    backgroundColor: "#D1FAE5",
+                    borderRadius: 999,
+                    paddingHorizontal: 8,
+                    paddingVertical: 2,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 4,
+                  }}
+                >
+                  <Text
                     style={{
-                      flex: 1,
-                      alignItems: "center",
-                      backgroundColor: "#F9FAFB",
-                      borderRadius: 10,
-                      paddingVertical: 10,
+                      fontSize: 12,
+                      fontFamily: "Nunito_600SemiBold",
+                      color: "#065F46",
                     }}
                   >
-                    <Text
+                    +{getDustSacrificeValue(entry.card.rarity.name)}
+                  </Text>
+                  <DustIcon size={12} color="#065F46" />
+                </View>
+                <View
+                  style={{
+                    transform: [
+                      { rotate: recycleExpanded ? "180deg" : "0deg" },
+                    ],
+                  }}
+                >
+                  <ChevronDownIcon size={18} color="#065F46" />
+                </View>
+              </Pressable>
+              {recycleExpanded && (
+                <View style={{ paddingHorizontal: 12, paddingBottom: 12 }}>
+                  {entry.quantity > 1 && (
+                    <View
                       style={{
-                        fontSize: 18,
-                        fontFamily: "Nunito_800ExtraBold",
-                        color,
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 12,
+                        marginBottom: 12,
+                        justifyContent: "center",
                       }}
                     >
-                      {value}
-                    </Text>
-                    <Text
-                      style={{
-                        fontSize: 10,
-                        fontFamily: "Nunito_600SemiBold",
-                        color: "#6B7280",
-                        textTransform: "uppercase",
-                      }}
-                    >
-                      {label}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            )}
-          </View>
+                      <Pressable
+                        onPress={() =>
+                          setRecycleQuantity(Math.max(1, recycleQuantity - 1))
+                        }
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 16,
+                          backgroundColor: "#D1FAE5",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <Text
+                          style={{
+                            color: "#065F46",
+                            fontFamily: "Nunito_700Bold",
+                            fontSize: 18,
+                          }}
+                        >
+                          −
+                        </Text>
+                      </Pressable>
+                      <Text
+                        style={{
+                          fontSize: 15,
+                          fontFamily: "Nunito_700Bold",
+                          color: "#065F46",
+                          minWidth: 80,
+                          textAlign: "center",
+                        }}
+                      >
+                        {recycleQuantity}
+                      </Text>
+                      <Pressable
+                        onPress={() =>
+                          setRecycleQuantity(
+                            Math.min(entry.quantity, recycleQuantity + 1),
+                          )
+                        }
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 16,
+                          backgroundColor: "#D1FAE5",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <Text
+                          style={{
+                            color: "#065F46",
+                            fontFamily: "Nunito_700Bold",
+                            fontSize: 18,
+                          }}
+                        >
+                          +
+                        </Text>
+                      </Pressable>
+                    </View>
+                  )}
+                  <Pressable
+                    onPress={() => void handleRecycle()}
+                    disabled={isBusy}
+                    style={{
+                      backgroundColor: "#059669",
+                      borderRadius: 8,
+                      paddingVertical: 10,
+                      alignItems: "center",
+                      opacity: isBusy ? 0.6 : 1,
+                    }}
+                  >
+                    {isBusy ? (
+                      <Text
+                        style={{
+                          color: "#fff",
+                          fontFamily: "Nunito_700Bold",
+                          fontSize: 14,
+                        }}
+                      >
+                        {t("collection.detail.recycling")}
+                      </Text>
+                    ) : (
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 6,
+                        }}
+                      >
+                        <Text
+                          style={{
+                            color: "#fff",
+                            fontFamily: "Nunito_700Bold",
+                            fontSize: 14,
+                          }}
+                        >
+                          {t("collection.detail.confirmRecycle", {
+                            amount:
+                              getDustSacrificeValue(entry.card.rarity.name) *
+                              recycleQuantity,
+                          })}
+                        </Text>
+                        <DustIcon size={14} color="#fff" />
+                      </View>
+                    )}
+                  </Pressable>
+                </View>
+              )}
+            </View>
 
-          {/* Recycle section */}
-          <View
-            style={{
-              width: "100%",
-              backgroundColor: "#ECFDF5",
-              borderRadius: 16,
-              borderWidth: 1,
-              borderColor: "#6EE7B7",
-              shadowColor: "#000",
-              shadowOpacity: 0.12,
-              shadowRadius: 8,
-              overflow: "hidden",
-            }}
-          >
+            {/* Craft button */}
             <Pressable
+              onPress={() => void handleCraft()}
+              disabled={
+                isBusy || dust < getDustCraftCost(entry.card.rarity.name)
+              }
               style={{
+                width: "100%",
+                backgroundColor: "#FEF9C3",
+                borderRadius: 12,
+                paddingVertical: 12,
+                paddingHorizontal: 16,
                 flexDirection: "row",
                 alignItems: "center",
-                padding: 12,
                 gap: 8,
+                borderWidth: 1,
+                borderColor: "#FDE047",
+                opacity:
+                  isBusy || dust < getDustCraftCost(entry.card.rarity.name)
+                    ? 0.5
+                    : 1,
               }}
-              onPress={() => setRecycleExpanded(!recycleExpanded)}
             >
-              <RecycleIcon size={18} color="#065F46" />
+              <CraftIcon size={18} color="#92400E" />
               <Text
                 style={{
                   flex: 1,
                   fontSize: 14,
                   fontFamily: "Nunito_700Bold",
-                  color: "#065F46",
+                  color: "#92400E",
                 }}
               >
-                {t("collection.detail.recycle")}
+                {t("collection.detail.craft")}
               </Text>
               <View
                 style={{
-                  backgroundColor: "#D1FAE5",
+                  backgroundColor: "#FDE047",
                   borderRadius: 999,
                   paddingHorizontal: 8,
-                  paddingVertical: 2,
+                  paddingVertical: 3,
                   flexDirection: "row",
                   alignItems: "center",
                   gap: 4,
@@ -608,262 +814,192 @@ export default function CollectionCardDetailScreen() {
                 <Text
                   style={{
                     fontSize: 12,
-                    fontFamily: "Nunito_600SemiBold",
-                    color: "#065F46",
+                    fontFamily: "Nunito_700Bold",
+                    color: "#92400E",
                   }}
                 >
-                  +{getDustSacrificeValue(entry.card.rarity.name)}
+                  −{getDustCraftCost(entry.card.rarity.name)}
                 </Text>
-                <DustIcon size={12} color="#065F46" />
-              </View>
-              <View
-                style={{
-                  transform: [{ rotate: recycleExpanded ? "180deg" : "0deg" }],
-                }}
-              >
-                <ChevronDownIcon size={18} color="#065F46" />
+                <DustIcon size={12} color="#92400E" />
               </View>
             </Pressable>
-            {recycleExpanded && (
-              <View style={{ paddingHorizontal: 12, paddingBottom: 12 }}>
-                {entry.quantity > 1 && (
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: 12,
-                      marginBottom: 12,
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Pressable
-                      onPress={() =>
-                        setRecycleQuantity(Math.max(1, recycleQuantity - 1))
-                      }
-                      style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: 16,
-                        backgroundColor: "#D1FAE5",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <Text
-                        style={{
-                          color: "#065F46",
-                          fontFamily: "Nunito_700Bold",
-                          fontSize: 18,
-                        }}
-                      >
-                        −
-                      </Text>
-                    </Pressable>
-                    <Text
-                      style={{
-                        fontSize: 15,
-                        fontFamily: "Nunito_700Bold",
-                        color: "#065F46",
-                        minWidth: 80,
-                        textAlign: "center",
-                      }}
-                    >
-                      {recycleQuantity}
-                    </Text>
-                    <Pressable
-                      onPress={() =>
-                        setRecycleQuantity(
-                          Math.min(entry.quantity, recycleQuantity + 1),
-                        )
-                      }
-                      style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: 16,
-                        backgroundColor: "#D1FAE5",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <Text
-                        style={{
-                          color: "#065F46",
-                          fontFamily: "Nunito_700Bold",
-                          fontSize: 18,
-                        }}
-                      >
-                        +
-                      </Text>
-                    </Pressable>
-                  </View>
-                )}
-                <Pressable
-                  onPress={() => void handleRecycle()}
-                  disabled={isBusy}
-                  style={{
-                    backgroundColor: "#059669",
-                    borderRadius: 8,
-                    paddingVertical: 10,
-                    alignItems: "center",
-                    opacity: isBusy ? 0.6 : 1,
-                  }}
-                >
-                  {isBusy ? (
-                    <Text
-                      style={{
-                        color: "#fff",
-                        fontFamily: "Nunito_700Bold",
-                        fontSize: 14,
-                      }}
-                    >
-                      {t("collection.detail.recycling")}
-                    </Text>
-                  ) : (
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        gap: 6,
-                      }}
-                    >
-                      <Text
-                        style={{
-                          color: "#fff",
-                          fontFamily: "Nunito_700Bold",
-                          fontSize: 14,
-                        }}
-                      >
-                        {t("collection.detail.confirmRecycle", {
-                          amount:
-                            getDustSacrificeValue(entry.card.rarity.name) *
-                            recycleQuantity,
-                        })}
-                      </Text>
-                      <DustIcon size={14} color="#fff" />
-                    </View>
-                  )}
-                </Pressable>
-              </View>
-            )}
-          </View>
 
-          {/* Craft button */}
-          <Pressable
-            onPress={() => void handleCraft()}
-            disabled={isBusy || dust < getDustCraftCost(entry.card.rarity.name)}
-            style={{
-              width: "100%",
-              backgroundColor: "#FEF9C3",
-              borderRadius: 12,
-              paddingVertical: 12,
-              paddingHorizontal: 16,
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 8,
-              borderWidth: 1,
-              borderColor: "#FDE047",
-              opacity:
-                isBusy || dust < getDustCraftCost(entry.card.rarity.name)
-                  ? 0.5
-                  : 1,
-            }}
-          >
-            <CraftIcon size={18} color="#92400E" />
-            <Text
-              style={{
-                flex: 1,
-                fontSize: 14,
-                fontFamily: "Nunito_700Bold",
-                color: "#92400E",
-              }}
-            >
-              {t("collection.detail.craft")}
-            </Text>
+            {/* Gift section */}
             <View
               style={{
-                backgroundColor: "#FDE047",
-                borderRadius: 999,
-                paddingHorizontal: 8,
-                paddingVertical: 3,
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 4,
+                width: "100%",
+                backgroundColor: "#EFF6FF",
+                borderRadius: 16,
+                borderWidth: 1,
+                borderColor: "#93C5FD",
+                shadowColor: "#000",
+                shadowOpacity: 0.1,
+                shadowRadius: 8,
+                overflow: "hidden",
               }}
             >
-              <Text
+              <Pressable
                 style={{
-                  fontSize: 12,
-                  fontFamily: "Nunito_700Bold",
-                  color: "#92400E",
+                  flexDirection: "row",
+                  alignItems: "center",
+                  padding: 12,
+                  gap: 8,
                 }}
+                onPress={() => setGiftExpanded(!giftExpanded)}
               >
-                −{getDustCraftCost(entry.card.rarity.name)}
-              </Text>
-              <DustIcon size={12} color="#92400E" />
-            </View>
-          </Pressable>
-
-          {/* Gift section */}
-          <View
-            style={{
-              width: "100%",
-              backgroundColor: "#EFF6FF",
-              borderRadius: 16,
-              borderWidth: 1,
-              borderColor: "#93C5FD",
-              shadowColor: "#000",
-              shadowOpacity: 0.1,
-              shadowRadius: 8,
-              overflow: "hidden",
-            }}
-          >
-            <Pressable
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                padding: 12,
-                gap: 8,
-              }}
-              onPress={() => setGiftExpanded(!giftExpanded)}
-            >
-              <GiftHeartIcon size={18} color="#1D4ED8" />
-              <Text
-                style={{
-                  flex: 1,
-                  fontSize: 14,
-                  fontFamily: "Nunito_700Bold",
-                  color: "#1D4ED8",
-                }}
-              >
-                {t("gifts.sendGift")}
-              </Text>
-              <View
-                style={{
-                  transform: [{ rotate: giftExpanded ? "180deg" : "0deg" }],
-                }}
-              >
-                <ChevronDownIcon size={18} color="#1D4ED8" />
-              </View>
-            </Pressable>
-            {giftExpanded && (
-              <View
-                style={{ paddingHorizontal: 12, paddingBottom: 12, gap: 10 }}
-              >
-                <View style={{ gap: 6 }}>
-                  <Text
-                    style={{
-                      fontSize: 12,
-                      fontFamily: "Nunito_600SemiBold",
-                      color: "#1D4ED8",
-                      marginBottom: 2,
-                    }}
-                  >
-                    {t("gifts.giftTo")}
-                  </Text>
+                <GiftHeartIcon size={18} color="#1D4ED8" />
+                <Text
+                  style={{
+                    flex: 1,
+                    fontSize: 14,
+                    fontFamily: "Nunito_700Bold",
+                    color: "#1D4ED8",
+                  }}
+                >
+                  {t("gifts.sendGift")}
+                </Text>
+                <View
+                  style={{
+                    transform: [{ rotate: giftExpanded ? "180deg" : "0deg" }],
+                  }}
+                >
+                  <ChevronDownIcon size={18} color="#1D4ED8" />
+                </View>
+              </Pressable>
+              {giftExpanded && (
+                <View
+                  style={{ paddingHorizontal: 12, paddingBottom: 12, gap: 10 }}
+                >
+                  <View style={{ gap: 6 }}>
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        fontFamily: "Nunito_600SemiBold",
+                        color: "#1D4ED8",
+                        marginBottom: 2,
+                      }}
+                    >
+                      {t("gifts.giftTo")}
+                    </Text>
+                    <TextInput
+                      value={userSearch}
+                      onChangeText={setUserSearch}
+                      placeholder={t(
+                        "collection.gift.searchPlayersPlaceholder",
+                      )}
+                      placeholderTextColor="#93C5FD"
+                      style={{
+                        backgroundColor: "#fff",
+                        borderRadius: 8,
+                        borderWidth: 1,
+                        borderColor: "#BFDBFE",
+                        paddingHorizontal: 12,
+                        paddingVertical: 8,
+                        fontFamily: "Nunito_400Regular",
+                        fontSize: 14,
+                        color: "#1E3A8A",
+                      }}
+                    />
+                    <ScrollView
+                      style={{
+                        maxHeight: 180,
+                        backgroundColor: "#F0F9FF",
+                        borderRadius: 10,
+                        borderWidth: 1,
+                        borderColor: "#BFDBFE",
+                      }}
+                      nestedScrollEnabled
+                      keyboardShouldPersistTaps="handled"
+                    >
+                      {usersQuery.isLoading ? (
+                        <View style={{ padding: 12 }}>
+                          <LoadingPanel
+                            title={t("gifts.users")}
+                            message={t("common.loadingStates.sectionBody")}
+                            icon="people"
+                          />
+                        </View>
+                      ) : otherUsers.filter((u) =>
+                          u.displayName
+                            .toLowerCase()
+                            .includes(userSearch.toLowerCase()),
+                        ).length === 0 ? (
+                        <Text
+                          style={{
+                            fontFamily: "Nunito_400Regular",
+                            fontSize: 13,
+                            color: "#6B7280",
+                            textAlign: "center",
+                            padding: 12,
+                          }}
+                        >
+                          {t("collection.gift.noPlayersFound")}
+                        </Text>
+                      ) : (
+                        <View style={{ padding: 6, gap: 4 }}>
+                          {otherUsers
+                            .filter((u) =>
+                              u.displayName
+                                .toLowerCase()
+                                .includes(userSearch.toLowerCase()),
+                            )
+                            .map((u) => (
+                              <Pressable
+                                key={u.id}
+                                onPress={() => setSelectedUserId(u.id)}
+                                style={{
+                                  flexDirection: "row",
+                                  alignItems: "center",
+                                  paddingVertical: 10,
+                                  paddingHorizontal: 12,
+                                  borderRadius: 8,
+                                  borderWidth: 2,
+                                  backgroundColor:
+                                    selectedUserId === u.id
+                                      ? "#DBEAFE"
+                                      : "#fff",
+                                  borderColor:
+                                    selectedUserId === u.id
+                                      ? "#3B82F6"
+                                      : "transparent",
+                                }}
+                              >
+                                <Text
+                                  style={{
+                                    flex: 1,
+                                    fontFamily:
+                                      selectedUserId === u.id
+                                        ? "Nunito_700Bold"
+                                        : "Nunito_600SemiBold",
+                                    fontSize: 14,
+                                    color: "#1E3A8A",
+                                  }}
+                                >
+                                  {u.displayName}
+                                </Text>
+                                {selectedUserId === u.id && (
+                                  <Text
+                                    style={{
+                                      color: "#3B82F6",
+                                      fontSize: 16,
+                                      fontFamily: "Nunito_700Bold",
+                                    }}
+                                  >
+                                    ✓
+                                  </Text>
+                                )}
+                              </Pressable>
+                            ))}
+                        </View>
+                      )}
+                    </ScrollView>
+                  </View>
                   <TextInput
-                    value={userSearch}
-                    onChangeText={setUserSearch}
-                    placeholder={t("collection.gift.searchPlayersPlaceholder")}
+                    value={giftMessage}
+                    onChangeText={setGiftMessage}
+                    placeholder={t(
+                      "collection.gift.messageOptionalPlaceholder",
+                    )}
                     placeholderTextColor="#93C5FD"
                     style={{
                       backgroundColor: "#fff",
@@ -877,183 +1013,77 @@ export default function CollectionCardDetailScreen() {
                       color: "#1E3A8A",
                     }}
                   />
-                  <ScrollView
+                  <Pressable
+                    onPress={() => void handleSendGift()}
+                    disabled={isBusy || !selectedUserId}
                     style={{
-                      maxHeight: 180,
-                      backgroundColor: "#F0F9FF",
-                      borderRadius: 10,
-                      borderWidth: 1,
-                      borderColor: "#BFDBFE",
+                      backgroundColor: "#2563EB",
+                      borderRadius: 8,
+                      paddingVertical: 10,
+                      alignItems: "center",
+                      opacity: isBusy || !selectedUserId ? 0.5 : 1,
                     }}
-                    nestedScrollEnabled
-                    keyboardShouldPersistTaps="handled"
                   >
-                    {usersQuery.isLoading ? (
-                      <View style={{ padding: 12 }}>
-                        <LoadingPanel
-                          title={t("gifts.users")}
-                          message={t("common.loadingStates.sectionBody")}
-                          icon="people"
-                        />
-                      </View>
-                    ) : otherUsers.filter((u) =>
-                        u.displayName
-                          .toLowerCase()
-                          .includes(userSearch.toLowerCase()),
-                      ).length === 0 ? (
-                      <Text
-                        style={{
-                          fontFamily: "Nunito_400Regular",
-                          fontSize: 13,
-                          color: "#6B7280",
-                          textAlign: "center",
-                          padding: 12,
-                        }}
-                      >
-                        {t("collection.gift.noPlayersFound")}
-                      </Text>
-                    ) : (
-                      <View style={{ padding: 6, gap: 4 }}>
-                        {otherUsers
-                          .filter((u) =>
-                            u.displayName
-                              .toLowerCase()
-                              .includes(userSearch.toLowerCase()),
-                          )
-                          .map((u) => (
-                            <Pressable
-                              key={u.id}
-                              onPress={() => setSelectedUserId(u.id)}
-                              style={{
-                                flexDirection: "row",
-                                alignItems: "center",
-                                paddingVertical: 10,
-                                paddingHorizontal: 12,
-                                borderRadius: 8,
-                                borderWidth: 2,
-                                backgroundColor:
-                                  selectedUserId === u.id ? "#DBEAFE" : "#fff",
-                                borderColor:
-                                  selectedUserId === u.id
-                                    ? "#3B82F6"
-                                    : "transparent",
-                              }}
-                            >
-                              <Text
-                                style={{
-                                  flex: 1,
-                                  fontFamily:
-                                    selectedUserId === u.id
-                                      ? "Nunito_700Bold"
-                                      : "Nunito_600SemiBold",
-                                  fontSize: 14,
-                                  color: "#1E3A8A",
-                                }}
-                              >
-                                {u.displayName}
-                              </Text>
-                              {selectedUserId === u.id && (
-                                <Text
-                                  style={{
-                                    color: "#3B82F6",
-                                    fontSize: 16,
-                                    fontFamily: "Nunito_700Bold",
-                                  }}
-                                >
-                                  ✓
-                                </Text>
-                              )}
-                            </Pressable>
-                          ))}
-                      </View>
-                    )}
-                  </ScrollView>
+                    <Text
+                      style={{
+                        color: "#fff",
+                        fontFamily: "Nunito_700Bold",
+                        fontSize: 14,
+                      }}
+                    >
+                      {isBusy
+                        ? t("collection.gift.sending")
+                        : t("gifts.sendGiftButton")}
+                    </Text>
+                  </Pressable>
                 </View>
-                <TextInput
-                  value={giftMessage}
-                  onChangeText={setGiftMessage}
-                  placeholder={t("collection.gift.messageOptionalPlaceholder")}
-                  placeholderTextColor="#93C5FD"
-                  style={{
-                    backgroundColor: "#fff",
-                    borderRadius: 8,
-                    borderWidth: 1,
-                    borderColor: "#BFDBFE",
-                    paddingHorizontal: 12,
-                    paddingVertical: 8,
-                    fontFamily: "Nunito_400Regular",
-                    fontSize: 14,
-                    color: "#1E3A8A",
-                  }}
-                />
-                <Pressable
-                  onPress={() => void handleSendGift()}
-                  disabled={isBusy || !selectedUserId}
-                  style={{
-                    backgroundColor: "#2563EB",
-                    borderRadius: 8,
-                    paddingVertical: 10,
-                    alignItems: "center",
-                    opacity: isBusy || !selectedUserId ? 0.5 : 1,
-                  }}
-                >
-                  <Text
-                    style={{
-                      color: "#fff",
-                      fontFamily: "Nunito_700Bold",
-                      fontSize: 14,
-                    }}
-                  >
-                    {isBusy ? t("collection.gift.sending") : t("gifts.sendGiftButton")}
-                  </Text>
-                </Pressable>
-              </View>
-            )}
-          </View>
+              )}
+            </View>
 
-          {/* Errors */}
-          {recycleError || craftError || giftError ? (
-            <Text
+            {/* Errors */}
+            {recycleError || craftError || giftError ? (
+              <Text
+                style={{
+                  color: "#DC2626",
+                  fontFamily: "Nunito_400Regular",
+                  fontSize: 12,
+                  textAlign: "center",
+                }}
+              >
+                {recycleError || craftError || giftError}
+              </Text>
+            ) : null}
+
+            {/* Close button */}
+            <Pressable
+              onPress={() => {
+                if (!isBusy) router.back();
+              }}
               style={{
-                color: "#DC2626",
-                fontFamily: "Nunito_400Regular",
-                fontSize: 12,
-                textAlign: "center",
+                width: "100%",
+                borderRadius: 12,
+                paddingVertical: 12,
+                alignItems: "center",
+                backgroundColor: "#fff",
+                shadowColor: "#000",
+                shadowOpacity: 0.08,
+                shadowRadius: 6,
+                marginBottom: 8,
               }}
             >
-              {recycleError || craftError || giftError}
-            </Text>
-          ) : null}
-
-          {/* Close button */}
-          <Pressable
-            onPress={() => {
-              if (!isBusy) router.back();
-            }}
-            style={{
-              width: "100%",
-              borderRadius: 12,
-              paddingVertical: 12,
-              alignItems: "center",
-              backgroundColor: "#fff",
-              shadowColor: "#000",
-              shadowOpacity: 0.08,
-              shadowRadius: 6,
-              marginBottom: 8,
-            }}
-          >
-            <Text
-              style={{
-                fontFamily: "Nunito_600SemiBold",
-                color: "#DB2777",
-                fontSize: 14,
-              }}
-            >
-              {t("common.close")}
-            </Text>
-          </Pressable>
-        </ScrollView>
-      )}
-    </View>
+              <Text
+                style={{
+                  fontFamily: "Nunito_600SemiBold",
+                  color: "#DB2777",
+                  fontSize: 14,
+                }}
+              >
+                {t("common.close")}
+              </Text>
+            </Pressable>
+          </ScrollView>
+        )}
+      </View>
+    </KeyboardScreenView>
   );
 }

@@ -5,6 +5,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ZodError } from "zod";
 
 import { AbilityEditorForm } from "../src/components/admin/ability-editor-sheet";
+import {
+  KEYBOARD_AWARE_SCROLL_PROPS,
+  KeyboardScreenView,
+} from "../src/components/keyboard-screen-view";
 import { LoadingPanel } from "../src/components/loading-state";
 import { useTranslation } from "../src/i18n";
 import { apiClient } from "../src/lib/api";
@@ -36,7 +40,10 @@ export default function AdminAbilityEditorScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
-  const { mode, abilityId } = useLocalSearchParams<{ mode?: string; abilityId?: string }>();
+  const { mode, abilityId } = useLocalSearchParams<{
+    mode?: string;
+    abilityId?: string;
+  }>();
   const sessionHydrated = useSessionStore((state) => state.hydrated);
   const isAdmin = useSessionStore((state) => state.user?.isAdmin ?? false);
   const themeName = useThemeStore((state) => state.themeName);
@@ -59,7 +66,8 @@ export default function AdminAbilityEditorScreen() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (input: Record<string, unknown>) => apiClient.createAdminAbility(input),
+    mutationFn: (input: Record<string, unknown>) =>
+      apiClient.createAdminAbility(input),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["admin-abilities"] });
       closeEditor();
@@ -67,8 +75,13 @@ export default function AdminAbilityEditorScreen() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, input }: { id: string; input: Record<string, unknown> }) =>
-      apiClient.updateAdminAbility(id, input),
+    mutationFn: ({
+      id,
+      input,
+    }: {
+      id: string;
+      input: Record<string, unknown>;
+    }) => apiClient.updateAdminAbility(id, input),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["admin-abilities"] });
       closeEditor();
@@ -86,7 +99,9 @@ export default function AdminAbilityEditorScreen() {
   const selectedAbility = isCreateMode
     ? null
     : (() => {
-        const match = (abilitiesQuery.data?.abilities ?? []).find((ability) => ability.id === abilityId);
+        const match = (abilitiesQuery.data?.abilities ?? []).find(
+          (ability) => ability.id === abilityId,
+        );
 
         return match
           ? {
@@ -109,12 +124,17 @@ export default function AdminAbilityEditorScreen() {
   );
 
   return (
-    <View className="flex-1" style={THEME_VARS[themeName]}>
+    <KeyboardScreenView style={THEME_VARS[themeName]}>
       <View className="flex-1 bg-primaryBg">
         <View className="w-9 h-1 rounded-full bg-[#D1D5DB] self-center mt-2 mb-[6]" />
-        <View className="items-center px-5 pb-[14] border-b border-primaryBorder/16" style={{ paddingTop: 6 }}>
+        <View
+          className="items-center px-5 pb-[14] border-b border-primaryBorder/16"
+          style={{ paddingTop: 6 }}
+        >
           <Text className="self-center font-nunito-extrabold text-[24px] text-primaryStrong">
-            {isCreateMode ? t("admin.abilityEditor.createTitle") : t("admin.abilityEditor.editTitle")}
+            {isCreateMode
+              ? t("admin.abilityEditor.createTitle")
+              : t("admin.abilityEditor.editTitle")}
           </Text>
         </View>
 
@@ -128,14 +148,19 @@ export default function AdminAbilityEditorScreen() {
           </View>
         ) : queryError ? (
           <View className="flex-1 items-center justify-center px-6">
-            <Text className="font-nunito-bold text-[15px] text-dangerText text-center">{queryError}</Text>
+            <Text className="font-nunito-bold text-[15px] text-dangerText text-center">
+              {queryError}
+            </Text>
           </View>
         ) : !isCreateMode && !selectedAbility ? (
           <View className="flex-1 items-center justify-center px-6">
-            <Text className="font-nunito-bold text-[15px] text-dangerText text-center">{t("admin.abilityEditor.notFound")}</Text>
+            <Text className="font-nunito-bold text-[15px] text-dangerText text-center">
+              {t("admin.abilityEditor.notFound")}
+            </Text>
           </View>
         ) : (
           <ScrollView
+            {...KEYBOARD_AWARE_SCROLL_PROPS}
             className="flex-1"
             contentContainerStyle={{
               gap: 14,
@@ -144,19 +169,23 @@ export default function AdminAbilityEditorScreen() {
               paddingBottom: insets.bottom + 20,
             }}
             showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
           >
             <AbilityEditorForm
               ability={selectedAbility}
               saving={
-                createMutation.isPending || updateMutation.isPending || deleteMutation.isPending
+                createMutation.isPending ||
+                updateMutation.isPending ||
+                deleteMutation.isPending
               }
               onDelete={async (id) => {
                 await deleteMutation.mutateAsync(id);
               }}
               onSubmit={async (input) => {
                 if (selectedAbility) {
-                  await updateMutation.mutateAsync({ id: selectedAbility.id, input });
+                  await updateMutation.mutateAsync({
+                    id: selectedAbility.id,
+                    input,
+                  });
                   return;
                 }
 
@@ -166,6 +195,6 @@ export default function AdminAbilityEditorScreen() {
           </ScrollView>
         )}
       </View>
-    </View>
+    </KeyboardScreenView>
   );
 }

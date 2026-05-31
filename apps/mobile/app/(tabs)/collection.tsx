@@ -28,6 +28,7 @@ import {
 import { PageLoadingState } from "../../src/components/loading-state";
 import { ToastBanner } from "../../src/components/toast-banner";
 import { useTranslation } from "../../src/i18n";
+import { KEYBOARD_AWARE_SCROLL_PROPS } from "../../src/components/keyboard-screen-view";
 import { useCollectionFeedbackStore } from "../../src/stores/collection-feedback-store";
 import { useThemeStore } from "../../src/stores/theme-store";
 import { useBottomTabBarContentPadding } from "../../src/theme/layout";
@@ -453,6 +454,7 @@ export default function CollectionScreen() {
       ) : null}
 
       <FlatList
+        {...KEYBOARD_AWARE_SCROLL_PROPS}
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingBottom: bottomTabPadding }}
         numColumns={2}

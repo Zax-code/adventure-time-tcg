@@ -4,7 +4,17 @@ import { useMemo, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { AdminButton, AdminChip, AdminField, AdminPanel, AdminSectionTitle } from "../src/components/admin/admin-ui";
+import {
+  AdminButton,
+  AdminChip,
+  AdminField,
+  AdminPanel,
+  AdminSectionTitle,
+} from "../src/components/admin/admin-ui";
+import {
+  KEYBOARD_AWARE_SCROLL_PROPS,
+  KeyboardScreenView,
+} from "../src/components/keyboard-screen-view";
 import { LoadingPanel } from "../src/components/loading-state";
 import { useTranslation } from "../src/i18n";
 import { apiClient } from "../src/lib/api";
@@ -68,7 +78,8 @@ export default function AdminUserEditorScreen() {
   };
 
   const adjustCoinsMutation = useMutation({
-    mutationFn: (delta: number) => apiClient.adjustAdminUserCoins(userId!, delta),
+    mutationFn: (delta: number) =>
+      apiClient.adjustAdminUserCoins(userId!, delta),
     onSuccess: async () => {
       setCoinDelta("100");
       await invalidateAdminQueries();
@@ -76,13 +87,15 @@ export default function AdminUserEditorScreen() {
   });
 
   const roleMutation = useMutation({
-    mutationFn: (isAdmin: boolean) => apiClient.updateAdminUserRole(userId!, { isAdmin }),
+    mutationFn: (isAdmin: boolean) =>
+      apiClient.updateAdminUserRole(userId!, { isAdmin }),
     onSuccess: invalidateAdminQueries,
   });
 
   const resetMutation = useMutation({
-    mutationFn: (input: { mode: "all" } | { mode: "single"; questType: string }) =>
-      apiClient.resetAdminUserDailyQuests(userId!, input),
+    mutationFn: (
+      input: { mode: "all" } | { mode: "single"; questType: string },
+    ) => apiClient.resetAdminUserDailyQuests(userId!, input),
     onSuccess: invalidateAdminQueries,
   });
 
@@ -98,9 +111,11 @@ export default function AdminUserEditorScreen() {
   const isViewerSuperAdmin = sessionUser?.isSuperAdmin ?? false;
   const isSelf = detail?.id === sessionUser?.id;
   const canManageCoins = detail?.viewerPermissions.canManageCoins ?? false;
-  const canManageRights = detail?.viewerPermissions.canManageAdminRights ?? false;
+  const canManageRights =
+    detail?.viewerPermissions.canManageAdminRights ?? false;
   const canResetQuests = detail?.viewerPermissions.canResetDailyQuests ?? false;
-  const canDeleteUser = (detail?.viewerPermissions.canDeleteUser ?? false) && !isSelf;
+  const canDeleteUser =
+    (detail?.viewerPermissions.canDeleteUser ?? false) && !isSelf;
 
   const busy = useMemo(
     () =>
@@ -174,7 +189,7 @@ export default function AdminUserEditorScreen() {
   };
 
   return (
-    <View className="flex-1" style={THEME_VARS[themeName]}>
+    <KeyboardScreenView style={THEME_VARS[themeName]}>
       <View className="flex-1 bg-primaryBg">
         <View className="w-9 h-1 rounded-full bg-[#D1D5DB] self-center mt-2 mb-[6]" />
         <View className="items-center px-5 pb-[14] border-b border-primaryBorder/16 pt-[6]">
@@ -185,14 +200,16 @@ export default function AdminUserEditorScreen() {
             className="absolute right-4 top-1 rounded-full px-3 py-2"
             onPress={closeEditor}
           >
-            <Text className="font-nunito-bold text-sm text-primaryStrong">{t("admin.common.close")}</Text>
+            <Text className="font-nunito-bold text-sm text-primaryStrong">
+              {t("admin.common.close")}
+            </Text>
           </Pressable>
         </View>
 
         {!userId ? (
           <View className="flex-1 items-center justify-center px-6">
             <Text className="font-nunito-bold text-[15px] text-dangerText text-center">
-                {t("admin.userEditor.missingUserId")}
+              {t("admin.userEditor.missingUserId")}
             </Text>
           </View>
         ) : detailQuery.isLoading ? (
@@ -214,11 +231,12 @@ export default function AdminUserEditorScreen() {
         ) : !detail ? (
           <View className="flex-1 items-center justify-center px-6">
             <Text className="font-nunito-bold text-[15px] text-dangerText text-center">
-               {t("admin.userEditor.notFound")}
+              {t("admin.userEditor.notFound")}
             </Text>
           </View>
         ) : (
           <ScrollView
+            {...KEYBOARD_AWARE_SCROLL_PROPS}
             className="flex-1"
             contentContainerStyle={{
               gap: 14,
@@ -227,7 +245,6 @@ export default function AdminUserEditorScreen() {
               paddingBottom: insets.bottom + 24,
             }}
             showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
           >
             <AdminPanel>
               <AdminSectionTitle
@@ -235,14 +252,34 @@ export default function AdminUserEditorScreen() {
                 subtitle={detail.email}
               />
               <View className="mt-3 flex-row flex-wrap gap-2">
-                <AdminChip label={t("admin.common.coinsCount", { count: detail.coins })} tone="warning" />
-                {isSelf ? <AdminChip label={t("admin.common.you")} tone="info" /> : null}
-                {detail.isSuperAdmin ? (
-                  <AdminChip label={t("admin.common.superAdmin")} tone="success" />
+                <AdminChip
+                  label={t("admin.common.coinsCount", { count: detail.coins })}
+                  tone="warning"
+                />
+                {isSelf ? (
+                  <AdminChip label={t("admin.common.you")} tone="info" />
                 ) : null}
-                {detail.isAdmin ? <AdminChip label={t("admin.common.admin")} tone="accent" /> : null}
-                <AdminChip label={t("admin.common.joinedDate", { date: formatDate(detail.createdAt) })} tone="default" />
-                <AdminChip label={t("admin.common.todayDate", { date: detail.todayDate })} tone="default" />
+                {detail.isSuperAdmin ? (
+                  <AdminChip
+                    label={t("admin.common.superAdmin")}
+                    tone="success"
+                  />
+                ) : null}
+                {detail.isAdmin ? (
+                  <AdminChip label={t("admin.common.admin")} tone="accent" />
+                ) : null}
+                <AdminChip
+                  label={t("admin.common.joinedDate", {
+                    date: formatDate(detail.createdAt),
+                  })}
+                  tone="default"
+                />
+                <AdminChip
+                  label={t("admin.common.todayDate", {
+                    date: detail.todayDate,
+                  })}
+                  tone="default"
+                />
               </View>
             </AdminPanel>
 
@@ -291,9 +328,17 @@ export default function AdminUserEditorScreen() {
                       placeholder={t("admin.userEditor.customCoinPlaceholder")}
                     />
                     <AdminButton
-                      label={adjustCoinsMutation.isPending ? t("admin.userEditor.updating") : t("admin.userEditor.applyCoinChange")}
+                      label={
+                        adjustCoinsMutation.isPending
+                          ? t("admin.userEditor.updating")
+                          : t("admin.userEditor.applyCoinChange")
+                      }
                       disabled={busy}
-                      onPress={() => void handleAdjustCoins(Number.parseInt(coinDelta || "0", 10))}
+                      onPress={() =>
+                        void handleAdjustCoins(
+                          Number.parseInt(coinDelta || "0", 10),
+                        )
+                      }
                     />
                   </>
                 ) : (
@@ -311,7 +356,11 @@ export default function AdminUserEditorScreen() {
                 right={
                   canResetQuests ? (
                     <AdminButton
-                      label={resetMutation.isPending ? t("admin.userEditor.resetting") : t("admin.userEditor.resetAllConfirm")}
+                      label={
+                        resetMutation.isPending
+                          ? t("admin.userEditor.resetting")
+                          : t("admin.userEditor.resetAllConfirm")
+                      }
                       variant="warning"
                       disabled={busy}
                       onPress={confirmResetAll}
@@ -359,16 +408,41 @@ export default function AdminUserEditorScreen() {
                       </View>
 
                       <View className="flex-row flex-wrap gap-2">
-                        <AdminChip label={`${quest.progress}/${quest.target}`} tone="info" />
-                        <AdminChip label={t("admin.common.coinsCount", { count: quest.reward })} tone="warning" />
+                        <AdminChip
+                          label={`${quest.progress}/${quest.target}`}
+                          tone="info"
+                        />
+                        <AdminChip
+                          label={t("admin.common.coinsCount", {
+                            count: quest.reward,
+                          })}
+                          tone="warning"
+                        />
                         {quest.attemptsUsed !== undefined ? (
-                          <AdminChip label={t("admin.userEditor.guessesCount", { count: quest.attemptsUsed })} tone="default" />
+                          <AdminChip
+                            label={t("admin.userEditor.guessesCount", {
+                              count: quest.attemptsUsed,
+                            })}
+                            tone="default"
+                          />
                         ) : null}
-                        {quest.runsUsed !== undefined && quest.maxRuns !== undefined ? (
-                          <AdminChip label={t("admin.userEditor.runsCount", { used: quest.runsUsed, max: quest.maxRuns })} tone="default" />
+                        {quest.runsUsed !== undefined &&
+                        quest.maxRuns !== undefined ? (
+                          <AdminChip
+                            label={t("admin.userEditor.runsCount", {
+                              used: quest.runsUsed,
+                              max: quest.maxRuns,
+                            })}
+                            tone="default"
+                          />
                         ) : null}
                         {quest.latestScore !== undefined ? (
-                          <AdminChip label={t("admin.userEditor.scoreLabel", { score: quest.latestScore })} tone="default" />
+                          <AdminChip
+                            label={t("admin.userEditor.scoreLabel", {
+                              score: quest.latestScore,
+                            })}
+                            tone="default"
+                          />
                         ) : null}
                       </View>
 
@@ -377,7 +451,9 @@ export default function AdminUserEditorScreen() {
                           label={t("admin.userEditor.resetQuestConfirm")}
                           variant="ghost"
                           disabled={busy}
-                          onPress={() => confirmResetQuest(quest.type, questTitle)}
+                          onPress={() =>
+                            confirmResetQuest(quest.type, questTitle)
+                          }
                         />
                       ) : null}
                     </View>
@@ -394,18 +470,33 @@ export default function AdminUserEditorScreen() {
               <View className="mt-3 gap-3">
                 <View className="flex-row flex-wrap gap-2">
                   {detail.isSuperAdmin ? (
-                    <AdminChip label={t("admin.common.superAdmin")} tone="success" />
+                    <AdminChip
+                      label={t("admin.common.superAdmin")}
+                      tone="success"
+                    />
                   ) : null}
                   {detail.isAdmin ? (
-                    <AdminChip label={t("admin.userEditor.adminAccessEnabled")} tone="accent" />
+                    <AdminChip
+                      label={t("admin.userEditor.adminAccessEnabled")}
+                      tone="accent"
+                    />
                   ) : (
-                    <AdminChip label={t("admin.userEditor.adminAccessDisabled")} tone="default" />
+                    <AdminChip
+                      label={t("admin.userEditor.adminAccessDisabled")}
+                      tone="default"
+                    />
                   )}
                 </View>
 
                 {canManageRights ? (
                   <AdminButton
-                    label={roleMutation.isPending ? t("admin.common.saving") : detail.isAdmin ? t("admin.userEditor.revokeAdminAccess") : t("admin.userEditor.grantAdminAccess")}
+                    label={
+                      roleMutation.isPending
+                        ? t("admin.common.saving")
+                        : detail.isAdmin
+                          ? t("admin.userEditor.revokeAdminAccess")
+                          : t("admin.userEditor.grantAdminAccess")
+                    }
                     variant={detail.isAdmin ? "ghost" : "primary"}
                     disabled={busy || isSelf}
                     onPress={() => roleMutation.mutate(!detail.isAdmin)}
@@ -432,10 +523,16 @@ export default function AdminUserEditorScreen() {
                 />
                 <View className="mt-3 gap-3">
                   <Text className="font-nunito-semibold text-[13px] text-dangerText">
-                    {t("admin.userEditor.deletePrompt", { email: detail.email })}
+                    {t("admin.userEditor.deletePrompt", {
+                      email: detail.email,
+                    })}
                   </Text>
                   <AdminButton
-                    label={deleteMutation.isPending ? t("admin.userEditor.deleting") : t("admin.userEditor.deleteConfirm")}
+                    label={
+                      deleteMutation.isPending
+                        ? t("admin.userEditor.deleting")
+                        : t("admin.userEditor.deleteConfirm")
+                    }
                     variant="danger"
                     disabled={!canDeleteUser || busy}
                     onPress={confirmDelete}
@@ -451,6 +548,6 @@ export default function AdminUserEditorScreen() {
           </ScrollView>
         )}
       </View>
-    </View>
+    </KeyboardScreenView>
   );
 }

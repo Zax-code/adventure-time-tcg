@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { apiClient } from "../lib/api";
 import { useTranslation } from "../i18n";
+import { useKeyboardVisibility } from "./keyboard-screen-view";
 import { useThemeStore } from "../stores/theme-store";
 import { BOTTOM_TAB_BAR_OVERLAY_HEIGHT } from "../theme/layout";
 import { THEME_COLORS } from "../theme/themes";
@@ -28,8 +29,13 @@ const TAB_ORDER: VisibleTabName[] = [
   "gifts",
 ];
 
-export function BottomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+export function BottomTabBar({
+  state,
+  descriptors,
+  navigation,
+}: BottomTabBarProps) {
   const { bottom } = useSafeAreaInsets();
+  const keyboardVisible = useKeyboardVisibility();
   const { t } = useTranslation();
   const themeName = useThemeStore((state) => state.themeName);
   const tc = THEME_COLORS[themeName];
@@ -49,7 +55,7 @@ export function BottomTabBar({ state, descriptors, navigation }: BottomTabBarPro
     const route = state.routes[routeIndex];
     const focused = state.index === routeIndex;
     const color = focused ? tc.primaryText : tc.primary;
-      const label =
+    const label =
       name === "index"
         ? t("nav.home")
         : name === "pvp"
@@ -62,11 +68,15 @@ export function BottomTabBar({ state, descriptors, navigation }: BottomTabBarPro
 
     const badge =
       name === "gifts" && (giftsQuery.data?.pendingCount ?? 0) > 0
-        ? giftsQuery.data?.pendingCount ?? 0
+        ? (giftsQuery.data?.pendingCount ?? 0)
         : undefined;
 
     return { route, routeIndex, focused, color, label, badge };
   }).filter((tab): tab is NonNullable<typeof tab> => tab !== null);
+
+  if (keyboardVisible) {
+    return null;
+  }
 
   return (
     <View
@@ -104,7 +114,11 @@ export function BottomTabBar({ state, descriptors, navigation }: BottomTabBarPro
           style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0 }}
         />
         <LinearGradient
-          colors={["rgba(255,255,255,0.26)", "rgba(255,255,255,0.08)", "rgba(255,255,255,0.01)"]}
+          colors={[
+            "rgba(255,255,255,0.26)",
+            "rgba(255,255,255,0.08)",
+            "rgba(255,255,255,0.01)",
+          ]}
           start={{ x: 0.5, y: 0 }}
           end={{ x: 0.5, y: 1 }}
           style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0 }}
@@ -153,7 +167,10 @@ export function BottomTabBar({ state, descriptors, navigation }: BottomTabBarPro
                   style={{ transform: [{ scale: tab.focused ? 1.1 : 1 }] }}
                 >
                   <View className="relative">
-                    <TabIcon routeName={tab.route.name as VisibleTabName} color={tab.color} />
+                    <TabIcon
+                      routeName={tab.route.name as VisibleTabName}
+                      color={tab.color}
+                    />
                     {tab.badge ? (
                       <View
                         className="absolute size-4 items-center justify-center rounded bg-dangerDark"
@@ -188,7 +205,13 @@ function withAlpha(hex: string, alpha: string) {
   return hex;
 }
 
-function TabIcon({ routeName, color }: { routeName: VisibleTabName; color: string }) {
+function TabIcon({
+  routeName,
+  color,
+}: {
+  routeName: VisibleTabName;
+  color: string;
+}) {
   switch (routeName) {
     case "index":
       return <HomeIcon size={24} color={color} />;
