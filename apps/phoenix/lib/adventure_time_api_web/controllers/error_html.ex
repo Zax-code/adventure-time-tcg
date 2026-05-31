@@ -1,13 +1,15 @@
 defmodule AdventureTimeApiWeb.ErrorHTML do
   @moduledoc false
 
+  import Phoenix.HTML, only: [raw: 1]
+
   def render(template, _assigns) do
     status = template |> String.replace_suffix(".html", "")
 
     {badge, title, body, primary_label, primary_href, secondary_label, secondary_href} =
       copy_for(status)
 
-    """
+    raw("""
     <!DOCTYPE html>
     <html lang="en">
       <head>
@@ -66,7 +68,7 @@ defmodule AdventureTimeApiWeb.ErrorHTML do
         </main>
       </body>
     </html>
-    """
+    """)
   end
 
   defp copy_for("404") do

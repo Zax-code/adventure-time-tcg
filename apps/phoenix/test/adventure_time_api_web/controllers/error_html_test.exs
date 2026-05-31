@@ -11,5 +11,6 @@ defmodule AdventureTimeApiWeb.ErrorHTMLTest do
 
     assert html =~ "This page wandered off"
     assert html =~ "Go to homepage"
+    refute html =~ "&lt;!DOCTYPE html&gt;"
   end
 end
