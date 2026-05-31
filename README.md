@@ -199,7 +199,7 @@ Key workflows:
 - `CI` - pull request and `main` validation for Phoenix, mobile, shared code, and the Phoenix release image build
 - `Deploy Phoenix` - production backend deployment to the VPS by publishing a release image, running release migrations, and restarting the API container
 
-Mobile builds and store releases are intentionally not run on GitHub. Build and release mobile from this Mac with EAS.
+Mobile builds and store releases are intentionally not run on GitHub. Build and release mobile from this Mac. Android uses EAS/Google Play; iOS defaults to a local App Store Connect upload with Apple's tooling.
 
 ## Environment
 
@@ -219,6 +219,10 @@ Optional local mobile release helpers:
 
 ```bash
 APP_STORE_CONNECT_APP_ID=1234567890
+APP_STORE_CONNECT_API_KEY_ID=ABC123DEFG
+APP_STORE_CONNECT_API_ISSUER_ID=57246542-96fe-1a63-e053-0824d011072a
+APP_STORE_CONNECT_API_KEY_PATH=/absolute/path/to/AuthKey_ABC123DEFG.p8
+APP_STORE_CONNECT_API_KEY_SUBJECT=user
 GOOGLE_PLAY_SERVICE_ACCOUNT_KEY_PATH=/absolute/path/to/google-play-service-account.json
 ```
 

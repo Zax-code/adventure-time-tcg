@@ -5,7 +5,7 @@ const VALID_PLATFORMS = new Set(["android", "ios", "both"]);
 
 function printHelp() {
   process.stdout.write(
-    `Usage: npm run release:mobile -- --platform <android|ios|both> [options]\n\nOptions:\n  --platform <name>              Platform to release: android, ios, or both\n  --android-note <text>          Required when releasing android\n  --android-locale <code>        Optional Android Play note locale\n  --android-track <name>         Optional Android Play track\n  --android-service-account <path> Optional Android Play service-account JSON path\n  --android-message <text>       Optional Android EAS build message\n  --android-output <path>        Optional Android local artifact path\n  --android-profile <name>       Optional Android EAS build profile\n  --ios-asc-app-id <id>          Optional App Store Connect app id override\n  --ios-group <name>             Optional TestFlight group (repeatable)\n  --ios-message <text>           Optional iOS EAS build message\n  --ios-note <text>              Optional local iOS release note label\n  --ios-output <path>            Optional iOS local artifact path\n  --ios-profile <name>           Optional iOS EAS build profile\n  --help                         Show this help\n`,
+    `Usage: npm run release:mobile -- --platform <android|ios|both> [options]\n\nOptions:\n  --platform <name>              Platform to release: android, ios, or both\n  --android-note <text>          Required when releasing android\n  --android-locale <code>        Optional Android Play note locale\n  --android-track <name>         Optional Android Play track\n  --android-service-account <path> Optional Android Play service-account JSON path\n  --android-message <text>       Optional Android EAS build message\n  --android-output <path>        Optional Android local artifact path\n  --android-profile <name>       Optional Android EAS build profile\n  --ios-asc-app-id <id>          Optional App Store Connect app id override\n  --ios-api-key-id <id>          Optional App Store Connect API key ID override\n  --ios-api-issuer <id>          Optional App Store Connect API issuer ID override\n  --ios-api-key-path <path>      Optional App Store Connect API private key path override\n  --ios-api-key-subject <name>   Optional App Store Connect API key subject override\n  --ios-group <name>             Deprecated; direct iOS uploads do not auto-assign TestFlight groups\n  --ios-message <text>           Deprecated; local iOS uploads ignore EAS build messages\n  --ios-note <text>              Optional local iOS release note label\n  --ios-output <path>            Optional iOS local artifact path\n  --ios-profile <name>           Optional iOS local release trace label\n  --help                         Show this help\n`,
   );
 }
 
@@ -82,6 +82,22 @@ function buildIosArgs(options) {
     args.push("--asc-app-id", options.iosAscAppId);
   }
 
+  if (options.iosApiKeyId) {
+    args.push("--api-key-id", options.iosApiKeyId);
+  }
+
+  if (options.iosApiIssuer) {
+    args.push("--api-issuer", options.iosApiIssuer);
+  }
+
+  if (options.iosApiKeyPath) {
+    args.push("--api-key-path", options.iosApiKeyPath);
+  }
+
+  if (options.iosApiKeySubject) {
+    args.push("--api-key-subject", options.iosApiKeySubject);
+  }
+
   for (const group of options.iosGroups) {
     args.push("--group", group);
   }
@@ -118,6 +134,10 @@ async function main() {
       "android-track": { type: "string" },
       help: { type: "boolean" },
       "ios-asc-app-id": { type: "string" },
+      "ios-api-key-id": { type: "string" },
+      "ios-api-key-path": { type: "string" },
+      "ios-api-key-subject": { type: "string" },
+      "ios-api-issuer": { type: "string" },
       "ios-group": { type: "string", multiple: true },
       "ios-message": { type: "string" },
       "ios-note": { type: "string" },
@@ -148,6 +168,10 @@ async function main() {
     androidServiceAccount: values["android-service-account"]?.trim() || "",
     androidTrack: values["android-track"]?.trim() || "",
     iosAscAppId: values["ios-asc-app-id"]?.trim() || "",
+    iosApiKeyId: values["ios-api-key-id"]?.trim() || "",
+    iosApiKeyPath: values["ios-api-key-path"]?.trim() || "",
+    iosApiKeySubject: values["ios-api-key-subject"]?.trim() || "",
+    iosApiIssuer: values["ios-api-issuer"]?.trim() || "",
     iosGroups: (values["ios-group"] ?? [])
       .map((group) => group.trim())
       .filter(Boolean),

@@ -96,7 +96,7 @@ Root:
 - `npm run build:mobile:dev:ios:simulator` - create an iOS simulator EAS development build
 - `npm run build:mobile:ios:local` - create the production iOS `.ipa` locally with EAS local build
 - `npm run build:mobile:android:local` - create the production Android `.aab` locally with EAS local build
-- `npm run release:mobile:ios` - submit a locally built iOS artifact through EAS/TestFlight; do not use this to perform a remote iOS build
+- `npm run release:mobile:ios` - build a local iOS `.ipa` and upload it directly to App Store Connect/TestFlight with Apple's local tooling
 - `npm run release:mobile:android` - submit a locally built Android artifact through EAS/Google Play and then push the Play release note
 - `npm run release:mobile -- --platform <ios|android|both> ...` - default mobile release entry point when the user asks to "release"
 - `npm run build`
@@ -126,12 +126,12 @@ Production mobile build and release work is initiated from this Mac, not from Gi
 Rules:
 - do not add or rely on GitHub Actions workflows to build or release the mobile app
 - when the user asks to "release", assume the workflow is build first and release second unless they explicitly say not to build
-- when the user asks to "release iOS", run the release workflow from this Mac and use EAS as the release backend
+- when the user asks to "release iOS", run the release workflow from this Mac and prefer the direct local App Store Connect upload path
 - when the user asks to "release Android", run the release workflow from this Mac and use EAS as the release backend
 - when the user asks to release both platforms, handle Android and iOS in one pass unless they say otherwise
 - always bump the app version/build metadata first as part of the release flow; do not skip version bumping unless the user explicitly asks to keep versions unchanged
-- EAS is the preferred path for build and submission work
-- prefer the repo’s dedicated mobile release scripts and EAS profiles instead of inventing ad hoc release commands
+- EAS is the preferred path for build work and Android submission work; iOS submission defaults to Apple's local upload tooling
+- prefer the repo’s dedicated mobile release scripts instead of inventing ad hoc release commands
 - Android releases require an appropriate Google Play release note; do not ship Android without one
 - Android release notes should be based on the diff between the last released Android commit and the current release commit; use the latest `mobile/android/*` tag as the baseline
 - iOS releases should also carry a release note for the release record even if TestFlight changelog upload is unavailable; base it on the diff between the last released iOS commit and the current release commit using the latest `mobile/ios/*` tag as the baseline
@@ -139,7 +139,7 @@ Rules:
 - if a platform has no prior release tag yet, treat the current ship as the first true release for that platform and create the tag baseline during the release flow
 - after a successful platform release, ensure the new per-platform release tag exists locally and remind the user to push tags so future agents can diff from the correct baseline
 - use the `../cleantrack` release scripts as the local reference for expected release behavior on this MacBook when adapting or debugging the workflow
-- the iOS release path expects signing material such as `apps/mobile/credentials.json` and the referenced Apple certificate/profile files
+- the iOS release path expects signing material such as `apps/mobile/credentials.json`, the referenced Apple certificate/profile files, and local App Store Connect API key settings
 - the Android release path expects the signing material, service account credentials, and release-note inputs needed by the release scripts
 - when preparing release notes, summarize the meaningful changes in the diff since the platform's last release tag instead of inventing generic copy
 - if signing material or App Store Connect identifiers are missing, stop and report the exact missing inputs instead of adding GitHub-based release automation
