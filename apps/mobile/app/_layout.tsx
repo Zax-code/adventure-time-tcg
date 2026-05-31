@@ -18,6 +18,7 @@ import {
 import "../global.css";
 
 import { useStepSyncManager } from "../src/hooks/use-step-sync-manager";
+import { useRetryFailedQueriesOnAppActive } from "../src/hooks/use-retry-failed-queries-on-app-active";
 import { useStepQuestWidgetSync } from "../src/hooks/use-step-quest-widget-sync";
 import { useUserTimezoneSync } from "../src/hooks/use-user-timezone-sync";
 import { useWidgetRefreshPushRegistration } from "../src/hooks/use-widget-refresh-push-registration";
@@ -43,6 +44,7 @@ SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   useBootstrap();
+  useRetryFailedQueriesOnAppActive();
   useUserTimezoneSync();
   useStepSyncManager();
   useStepQuestWidgetSync();

@@ -3,6 +3,8 @@ import { ZodError } from "zod";
 
 import { ApiClientError } from "@adventure-time/api-client";
 
+import { isNetworkError } from "./api";
+
 function shouldRetry(failureCount: number, error: unknown) {
   if (error instanceof ApiClientError) {
     if (error.status >= 400 && error.status < 500) {
@@ -14,6 +16,10 @@ function shouldRetry(failureCount: number, error: unknown) {
     return false;
   }
 
+  if (isNetworkError(error)) {
+    return failureCount < 3;
+  }
+
   return failureCount < 1;
 }
 
@@ -21,8 +27,14 @@ export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: shouldRetry,
+      retryDelay: (attemptIndex, error) =>
+        isNetworkError(error) ? Math.min(1_000 * 2 ** attemptIndex, 4_000) : 1_000,
       staleTime: 15_000,
-      refetchOnMount: false,
+      refetchOnMount: (query) =>
+        query.state.status === "error" && isNetworkError(query.state.error)
+          ? "always"
+          : false,
+      refetchOnReconnect: true,
       refetchOnWindowFocus: false,
     },
     mutations: {
