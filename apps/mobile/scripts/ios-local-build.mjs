@@ -102,13 +102,15 @@ function stripTeamPrefix(applicationIdentifier) {
 }
 
 async function readProvisioningProfile(profilePath) {
-  const [uuid, applicationIdentifier] = await Promise.all([
+  const [name, uuid, applicationIdentifier] = await Promise.all([
+    readProfileField(profilePath, "Name"),
     readProfileField(profilePath, "UUID"),
     readProfileField(profilePath, "Entitlements.application-identifier"),
   ]);
 
   return {
     bundleIdentifier: stripTeamPrefix(applicationIdentifier),
+    name,
     path: profilePath,
     uuid,
   };
@@ -184,6 +186,90 @@ async function writeExportOptionsPlist(exportOptionsPath, profiles, certificateS
 `;
 
   await writeFile(exportOptionsPath, plist, "utf8");
+}
+
+async function extractProfileEntitlements(profilePath, outputPath) {
+  const quotedProfile = profilePath.replace(/'/g, "'\\''");
+  const quotedOutput = outputPath.replace(/'/g, "'\\''");
+
+  await shell(
+    `security cms -D -i '${quotedProfile}' | plutil -extract Entitlements xml1 -o '${quotedOutput}' -`,
+  );
+}
+
+async function resignBundle({
+  bundlePath,
+  certificateSha1,
+  entitlementsPath,
+}) {
+  await runCommand(
+    "codesign",
+    [
+      "--force",
+      "--sign",
+      certificateSha1,
+      "--keychain",
+      LOGIN_KEYCHAIN_PATH,
+      "--entitlements",
+      entitlementsPath,
+      "--generate-entitlement-der",
+      bundlePath,
+    ],
+    {},
+  );
+}
+
+async function resignExportedIpa({
+  certificateSha1,
+  exportPath,
+  profiles,
+}) {
+  const exportedIpaPath = path.join(exportPath, "AdventureTimeNative.ipa");
+  const unpackedRoot = path.join(exportPath, "ipa-unpacked");
+  const payloadPath = path.join(unpackedRoot, "Payload");
+  const appPath = path.join(payloadPath, "AdventureTimeNative.app");
+  const widgetPath = path.join(
+    appPath,
+    "PlugIns/StepQuestWidgetExtension.appex",
+  );
+  const appEntitlementsPath = path.join(exportPath, "app-entitlements.plist");
+  const widgetEntitlementsPath = path.join(
+    exportPath,
+    "widget-entitlements.plist",
+  );
+
+  await runCommand("mkdir", ["-p", unpackedRoot]);
+  await runCommand("unzip", ["-q", exportedIpaPath, "-d", unpackedRoot]);
+
+  await Promise.all([
+    cp(profiles.main.path, path.join(appPath, "embedded.mobileprovision")),
+    cp(
+      profiles.widget.path,
+      path.join(widgetPath, "embedded.mobileprovision"),
+    ),
+    extractProfileEntitlements(profiles.main.path, appEntitlementsPath),
+    extractProfileEntitlements(profiles.widget.path, widgetEntitlementsPath),
+  ]);
+
+  await resignBundle({
+    bundlePath: widgetPath,
+    certificateSha1,
+    entitlementsPath: widgetEntitlementsPath,
+  });
+  await resignBundle({
+    bundlePath: appPath,
+    certificateSha1,
+    entitlementsPath: appEntitlementsPath,
+  });
+
+  await rm(exportedIpaPath, { force: true });
+  await runCommand(
+    "ditto",
+    ["-c", "-k", "--sequesterRsrc", "--keepParent", "Payload", exportedIpaPath],
+    { cwd: unpackedRoot },
+  );
+
+  return exportedIpaPath;
 }
 
 export async function buildIosLocally({
@@ -265,7 +351,14 @@ export async function buildIosLocally({
       },
     );
 
-    const exportedIpaPath = path.join(exportPath, "AdventureTimeNative.ipa");
+    const exportedIpaPath = await resignExportedIpa({
+      certificateSha1,
+      exportPath,
+      profiles: {
+        main: mainProfile,
+        widget: widgetProfile,
+      },
+    });
     await cp(exportedIpaPath, outputPath);
 
     return outputPath;
