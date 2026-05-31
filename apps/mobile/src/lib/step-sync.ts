@@ -80,8 +80,12 @@ function startOfLocalDay(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
 }
 
+function secureStoreKeySegment(value: string) {
+  return value.replace(/[^0-9A-Za-z._-]/g, "_");
+}
+
 function notificationKeyForDate(userId: string, recordedFor: string) {
-  return `step-goal-notified:${userId}:${recordedFor}`;
+  return `step-goal-notified.${secureStoreKeySegment(userId)}.${secureStoreKeySegment(recordedFor)}`;
 }
 
 async function markPrompted(key: string) {
