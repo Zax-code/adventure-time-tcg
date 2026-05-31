@@ -1,7 +1,7 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -54,6 +54,7 @@ type NotificationPreferenceKey =
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ section?: string }>();
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
   const user = useSessionStore((state) => state.user);
@@ -75,6 +76,10 @@ export default function SettingsScreen() {
   const [notificationError, setNotificationError] = useState<string | null>(
     null,
   );
+  const scrollViewRef = useRef<ScrollView | null>(null);
+  const [notificationsSectionY, setNotificationsSectionY] = useState<
+    number | null
+  >(null);
 
   const stepQuery = useQuery({
     queryKey: ["health-steps"],
@@ -246,6 +251,23 @@ export default function SettingsScreen() {
     };
   }, []);
 
+  useEffect(() => {
+    if (params.section !== "notifications" || notificationsSectionY === null) {
+      return;
+    }
+
+    const frame = requestAnimationFrame(() => {
+      scrollViewRef.current?.scrollTo({
+        y: Math.max(notificationsSectionY - 20, 0),
+        animated: true,
+      });
+    });
+
+    return () => {
+      cancelAnimationFrame(frame);
+    };
+  }, [notificationsSectionY, params.section]);
+
   const handleStepAction = async () => {
     if (prefersFitbit) {
       setFitbitError(null);
@@ -364,6 +386,7 @@ export default function SettingsScreen() {
         <View className="mt-2 h-1.5 w-10 self-center rounded-full bg-primaryBorder" />
 
         <ScrollView
+          ref={scrollViewRef}
           {...KEYBOARD_AWARE_SCROLL_PROPS}
           className="flex-1"
           contentContainerStyle={{
@@ -850,7 +873,12 @@ export default function SettingsScreen() {
               </SurfaceCard>
             </View>
 
-            <View className="gap-4">
+            <View
+              className="gap-4"
+              onLayout={(event) => {
+                setNotificationsSectionY(event.nativeEvent.layout.y);
+              }}
+            >
               <SectionHeader
                 icon="notifications-outline"
                 title={t("settings.notificationsTitle")}

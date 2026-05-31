@@ -225,7 +225,10 @@ export default function HomeScreen() {
           <View className="mt-4 gap-2">
             <PrimaryButton
               onPress={() => {
-                router.push("/settings");
+                router.push({
+                  pathname: "/settings",
+                  params: { section: "notifications" },
+                });
               }}
             >
               {t("home.notificationsPromptSettings")}
