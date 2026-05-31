@@ -455,6 +455,8 @@ defmodule AdventureTimeApi.PwaImport do
           started_at: row.started_at,
           finished_at: row.finished_at,
           pause_expires_at: row.pause_until,
+          play_deadline_at: add_seconds(row.started_at, 35),
+          manual_paused_at: nil,
           inserted_at: row.created_at
         }
       end)
@@ -989,6 +991,13 @@ defmodule AdventureTimeApi.PwaImport do
   defp truncate_temporal(%DateTime{} = value), do: DateTime.truncate(value, :second)
   defp truncate_temporal(%NaiveDateTime{} = value), do: NaiveDateTime.truncate(value, :second)
   defp truncate_temporal(value), do: value
+
+  defp add_seconds(nil, _seconds), do: nil
+
+  defp add_seconds(%NaiveDateTime{} = value, seconds),
+    do: NaiveDateTime.add(value, seconds, :second)
+
+  defp add_seconds(%DateTime{} = value, seconds), do: DateTime.add(value, seconds, :second)
 
   defp datetime_to_naive(nil), do: nil
   defp datetime_to_naive(%NaiveDateTime{} = value), do: NaiveDateTime.truncate(value, :second)
