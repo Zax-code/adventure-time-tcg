@@ -293,13 +293,6 @@ export default function SettingsScreen() {
                     {t("settings.subtitle")}
                   </Text>
                 </View>
-                <Pressable
-                  accessibilityLabel={t("settings.close")}
-                  className="h-11 w-11 items-center justify-center rounded-full border border-primaryBorder bg-surface"
-                  onPress={() => router.back()}
-                >
-                  <Ionicons name="close" size={20} color={tc.primaryText} />
-                </Pressable>
               </View>
 
               <View
