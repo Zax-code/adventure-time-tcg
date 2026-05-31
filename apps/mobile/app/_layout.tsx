@@ -20,10 +20,12 @@ import "../global.css";
 import { useStepSyncManager } from "../src/hooks/use-step-sync-manager";
 import { useStepQuestWidgetSync } from "../src/hooks/use-step-quest-widget-sync";
 import { useUserTimezoneSync } from "../src/hooks/use-user-timezone-sync";
+import { useWidgetRefreshPushRegistration } from "../src/hooks/use-widget-refresh-push-registration";
 import { AppLaunchScreen } from "../src/components/app-launch-screen";
 import { queryClient } from "../src/lib/query-client";
 import { useBootstrap } from "../src/hooks/use-bootstrap";
-import { apiClient, API_BASE_URL } from "../src/lib/api";
+import { apiClient } from "../src/lib/api";
+import { API_BASE_URL } from "../src/lib/api-config";
 import {
   connectQuestRealtime,
   disconnectQuestRealtime,
@@ -54,8 +56,17 @@ export default function RootLayout() {
   const bootstrapPhase = useSessionStore((state) => state.bootstrapPhase);
   const accessToken = useSessionStore((state) => state.accessToken);
   const authUserId = useSessionStore((state) => state.user?.id ?? null);
+  const preferredStepSource = useSessionStore(
+    (state) => state.user?.preferredStepSource ?? "device_health",
+  );
   const publishReset = useQuestResetStore((state) => state.publishReset);
   const tc = THEME_COLORS[themeName];
+
+  useWidgetRefreshPushRegistration({
+    accessToken,
+    preferredStepSource,
+    userId: authUserId,
+  });
 
   const [fontsLoaded] = useFonts({
     Nunito_400Regular,

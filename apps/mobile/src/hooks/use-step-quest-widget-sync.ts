@@ -2,7 +2,8 @@ import { useEffect } from "react";
 
 import type { QuestsResponse } from "@adventure-time/api-client";
 
-import { apiClient, API_BASE_URL } from "../lib/api";
+import { apiClient } from "../lib/api";
+import { API_BASE_URL } from "../lib/api-config";
 import { queryClient } from "../lib/query-client";
 import {
   clearStepQuestWidgetSnapshot,

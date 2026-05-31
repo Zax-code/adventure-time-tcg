@@ -83,6 +83,8 @@ defmodule AdventureTimeApiWeb.Router do
     patch("/settings/step-source", AppController, :update_step_source)
     patch("/settings/timezone", AppController, :update_timezone)
     post("/settings/upload", MediaController, :upload_profile)
+    post("/notifications/device", NotificationController, :register_device)
+    delete("/notifications/device/:installation_id", NotificationController, :unregister_device)
     post("/fitbit/authorize", FitbitController, :authorize)
     get("/fitbit/status", FitbitController, :status)
     post("/fitbit/disconnect", FitbitController, :disconnect)

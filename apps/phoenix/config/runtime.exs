@@ -40,6 +40,10 @@ config :adventure_time_api, AdventureTimeApi.Fitbit,
   verification_code: System.get_env("FITBIT_VERIFICATION_CODE"),
   mobile_redirect_uri: System.get_env("FITBIT_MOBILE_REDIRECT_URI")
 
+config :adventure_time_api, AdventureTimeApi.Notifications,
+  push_api_url: System.get_env("EXPO_PUSH_API_URL"),
+  access_token: System.get_env("EXPO_ACCESS_TOKEN")
+
 if config_env() == :prod do
   config :adventure_time_api, AdventureTimeApi.Auth,
     access_token_secret:
