@@ -40,6 +40,10 @@ import {
   craftRecycleResponseSchema,
   dailyClaimResponseSchema,
   dailyClaimStatusSchema,
+  fitbitAuthorizeResponseSchema,
+  fitbitAuthorizeSchema,
+  fitbitDisconnectResponseSchema,
+  fitbitStatusResponseSchema,
   dustActionSchema,
   giftsResponseSchema,
   googleAuthSchema,
@@ -106,6 +110,10 @@ import {
   type CollectionResponse,
   type DailyClaimResponse,
   type DailyClaimStatus,
+  type FitbitAuthorizeInput,
+  type FitbitAuthorizeResponse,
+  type FitbitDisconnectResponse,
+  type FitbitStatusResponse,
   type HealthStepsResponse,
   type HomeResponse,
   type GoogleAuthInput,
@@ -438,6 +446,29 @@ export class ApiClient {
   async quests(): Promise<QuestsResponse> {
     return this.request("/quests", { method: "GET" }, (data) =>
       questsResponseSchema.parse(data),
+    );
+  }
+
+  async fitbitStatus(): Promise<FitbitStatusResponse> {
+    return this.request("/fitbit/status", { method: "GET" }, (data) =>
+      fitbitStatusResponseSchema.parse(data),
+    );
+  }
+
+  async createFitbitAuthorizeUrl(
+    input: FitbitAuthorizeInput,
+  ): Promise<FitbitAuthorizeResponse> {
+    const body = fitbitAuthorizeSchema.parse(input);
+    return this.request(
+      "/fitbit/authorize",
+      { method: "POST", body: JSON.stringify(body) },
+      (data) => fitbitAuthorizeResponseSchema.parse(data),
+    );
+  }
+
+  async disconnectFitbit(): Promise<FitbitDisconnectResponse> {
+    return this.request("/fitbit/disconnect", { method: "POST" }, (data) =>
+      fitbitDisconnectResponseSchema.parse(data),
     );
   }
 

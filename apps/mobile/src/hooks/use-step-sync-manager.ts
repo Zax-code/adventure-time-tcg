@@ -16,13 +16,16 @@ import { useSessionStore } from "../stores/session-store";
 
 export function useStepSyncManager() {
   const userId = useSessionStore((state) => state.user?.id ?? null);
+  const preferredStepSource = useSessionStore(
+    (state) => state.user?.preferredStepSource ?? "device_health",
+  );
 
   useEffect(() => {
     void configureStepNotifications();
   }, []);
 
   useEffect(() => {
-    if (!userId) {
+    if (!userId || preferredStepSource !== "device_health") {
       void disableBackgroundStepSync();
       resetStepSyncState();
       return;
@@ -60,5 +63,5 @@ export function useStepSyncManager() {
       subscription.remove();
       stopStepTracking();
     };
-  }, [userId]);
+  }, [preferredStepSource, userId]);
 }

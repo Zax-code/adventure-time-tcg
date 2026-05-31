@@ -3,6 +3,7 @@ defmodule AdventureTimeApiWeb.AppController do
 
   alias AdventureTimeApi.Accounts
   alias AdventureTimeApi.Catalog
+  alias AdventureTimeApi.Fitbit
   alias AdventureTimeApi.Health
   alias AdventureTimeApi.Inventory
   alias AdventureTimeApi.Quests
@@ -189,7 +190,13 @@ defmodule AdventureTimeApiWeb.AppController do
 
     case Accounts.auth_user_for_id(user_id) do
       {:ok, auth_user} ->
-        latest = Health.get_latest_step_snapshot(user_id)
+        preferred_source = auth_user.preferredStepSource
+
+        if preferred_source == "fitbit" && Fitbit.connected?(user_id) && Fitbit.configured?() do
+          _ = Fitbit.sync_steps_for_date(user_id, Quests.current_reset_date_for_user(user_id))
+        end
+
+        latest = Health.get_latest_step_snapshot(user_id, preferred_source)
 
         json(conn, %{
           preferredSource: auth_user.preferredStepSource,

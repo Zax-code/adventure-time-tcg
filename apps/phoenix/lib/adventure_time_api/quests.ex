@@ -8,6 +8,7 @@ defmodule AdventureTimeApi.Quests do
   require Logger
 
   alias AdventureTimeApi.Accounts.User
+  alias AdventureTimeApi.Fitbit
   alias AdventureTimeApi.Health
 
   alias AdventureTimeApi.Quests.{
@@ -198,13 +199,19 @@ defmodule AdventureTimeApi.Quests do
     date = date || current_reset_date_for_user(user_id)
     now = now_utc()
 
+    preferred_source =
+      case Repo.get(User, user_id) do
+        %User{preferred_step_source: source} -> source
+        _ -> :device_health
+      end
+
     quest =
       DailyQuest
       |> where([q], q.user_id == ^user_id and q.date == ^date and q.quest_type == "steps_10k")
       |> Repo.one()
 
     if quest do
-      snapshot = Health.get_step_snapshot_for_date(user_id, date)
+      snapshot = Health.get_step_snapshot_for_date(user_id, date, preferred_source)
       progress = if snapshot, do: snapshot.step_count, else: 0
       completed = progress >= quest.target
 
@@ -234,7 +241,15 @@ defmodule AdventureTimeApi.Quests do
   """
   def list_quests_for_user(user_id) do
     date = current_reset_date_for_user(user_id)
+    user = Repo.get(User, user_id)
+    fitbit_connected = Fitbit.connected?(user_id)
+
     materialize_daily_quests(user_id, date)
+
+    if user && user.preferred_step_source == :fitbit && fitbit_connected && Fitbit.configured?() do
+      _ = Fitbit.sync_steps_for_date(user_id, date)
+    end
+
     sync_steps_quest(user_id, date)
 
     quests =
@@ -260,7 +275,7 @@ defmodule AdventureTimeApi.Quests do
       end)
       |> Enum.reject(&is_nil/1)
 
-    {:ok, %{quests: quest_list, fitbitConnected: false}}
+    {:ok, %{quests: quest_list, fitbitConnected: fitbit_connected}}
   end
 
   def admin_reset_daily_quests(user_id, options \\ %{}) do

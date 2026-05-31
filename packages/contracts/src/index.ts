@@ -574,6 +574,24 @@ export const questsResponseSchema = z.object({
   fitbitConnected: z.boolean(),
 });
 
+export const fitbitStatusResponseSchema = z.object({
+  connected: z.boolean(),
+  userId: z.string().optional(),
+  connectedAt: z.string().optional(),
+});
+
+export const fitbitAuthorizeSchema = z.object({
+  redirectUri: z.string().min(1),
+});
+
+export const fitbitAuthorizeResponseSchema = z.object({
+  authorizeUrl: z.string().min(1),
+});
+
+export const fitbitDisconnectResponseSchema = z.object({
+  success: z.boolean(),
+});
+
 export const claimQuestSchema = z.object({
   questId: z.string().min(1),
 });
@@ -1136,6 +1154,14 @@ export type DailyClaimStatus = z.infer<typeof dailyClaimStatusSchema>;
 export type DailyClaimResponse = z.infer<typeof dailyClaimResponseSchema>;
 export type DailyClaimConflict = z.infer<typeof dailyClaimConflictSchema>;
 export type QuestsResponse = z.infer<typeof questsResponseSchema>;
+export type FitbitStatusResponse = z.infer<typeof fitbitStatusResponseSchema>;
+export type FitbitAuthorizeInput = z.infer<typeof fitbitAuthorizeSchema>;
+export type FitbitAuthorizeResponse = z.infer<
+  typeof fitbitAuthorizeResponseSchema
+>;
+export type FitbitDisconnectResponse = z.infer<
+  typeof fitbitDisconnectResponseSchema
+>;
 export type ClaimQuestInput = z.infer<typeof claimQuestSchema>;
 export type ClaimQuestResponse = z.infer<typeof claimQuestResponseSchema>;
 export type WordleStateResponse = z.infer<typeof wordleStateResponseSchema>;

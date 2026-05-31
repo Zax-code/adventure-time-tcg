@@ -2,6 +2,8 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
   use AdventureTimeApiWeb.ConnCase, async: false
 
   alias AdventureTimeApi.Accounts.{EmailCredential, User}
+  alias AdventureTimeApi.Fitbit.Account
+  alias AdventureTimeApi.Health.StepSnapshot
   alias AdventureTimeApi.Quests
 
   alias AdventureTimeApi.Quests.{
@@ -107,6 +109,50 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
       access_token |> auth_conn() |> post(~p"/quests/claim", %{}) |> json_response(400)
 
     assert missing_params == %{"error" => "questId is required"}
+  end
+
+  test "GET /quests reports Fitbit connection and uses the preferred step source snapshot",
+       _context do
+    user = create_user_with_password("fitbit-quests@example.com", "password123")
+    access_token = login_access_token(user.email, "password123")
+    date = Quests.current_reset_date()
+
+    Repo.update!(Ecto.Changeset.change(user, preferred_step_source: :fitbit))
+
+    Repo.insert!(
+      Account.changeset(%Account{}, %{
+        user_id: user.id,
+        fitbit_user_id: "fitbit-user-1",
+        access_token: "access-token",
+        refresh_token: "refresh-token",
+        token_expires_at: DateTime.utc_now() |> DateTime.add(3600, :second),
+        scope: "activity"
+      })
+    )
+
+    Repo.insert!(
+      StepSnapshot.changeset(%StepSnapshot{}, %{
+        user_id: user.id,
+        source: :device_health,
+        step_count: 1200,
+        recorded_for: date
+      })
+    )
+
+    Repo.insert!(
+      StepSnapshot.changeset(%StepSnapshot{}, %{
+        user_id: user.id,
+        source: :fitbit,
+        step_count: 6400,
+        recorded_for: date
+      })
+    )
+
+    response = access_token |> auth_conn() |> get(~p"/quests") |> json_response(200)
+
+    assert response["fitbitConnected"] == true
+
+    assert Enum.find(response["quests"], &(&1["type"] == "steps_10k"))["progress"] == 6400
   end
 
   test "POST /quests/claim returns 404 for unknown and foreign quests", _context do

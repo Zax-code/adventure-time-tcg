@@ -8,6 +8,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { apiClient, API_BASE_URL, clearAppSession } from "../src/lib/api";
+import { connectFitbit } from "../src/lib/fitbit";
 import {
   openDeviceHealthSetup,
   syncDeviceStepsNow,
@@ -42,10 +43,18 @@ export default function SettingsScreen() {
   const [displayNameInput, setDisplayNameInput] = useState(
     user?.displayName ?? "",
   );
+  const [fitbitError, setFitbitError] = useState<string | null>(null);
+  const [isConnectingFitbit, setIsConnectingFitbit] = useState(false);
 
   const stepQuery = useQuery({
     queryKey: ["health-steps"],
     queryFn: () => apiClient.getHealthSteps(),
+    enabled: Boolean(user),
+  });
+
+  const fitbitStatusQuery = useQuery({
+    queryKey: ["fitbit-status"],
+    queryFn: () => apiClient.fitbitStatus(),
     enabled: Boolean(user),
   });
 
@@ -111,14 +120,56 @@ export default function SettingsScreen() {
   const notificationStatusLabel = t(
     `settings.permissionStates.${stepSync.notificationPermissionStatus}`,
   );
+  const fitbitConnected = fitbitStatusQuery.data?.connected ?? false;
+  const prefersFitbit = user?.preferredStepSource === "fitbit";
   const stepActionLabel =
-    stepSync.availability === "setup_required"
+    prefersFitbit
+      ? fitbitConnected
+        ? t("settings.syncNow")
+        : isConnectingFitbit
+          ? t("settings.connectingFitbit")
+          : t("settings.connectFitbit")
+      : stepSync.availability === "setup_required"
       ? t("settings.openHealthConnect")
       : stepSync.healthPermissionStatus === "granted"
         ? t("settings.syncNow")
         : t("settings.enableStepSync");
 
   const handleStepAction = async () => {
+    if (prefersFitbit) {
+      setFitbitError(null);
+
+      if (!fitbitConnected) {
+        setIsConnectingFitbit(true);
+
+        try {
+          const result = await connectFitbit("/settings");
+
+          if (result.type === "error") {
+            setFitbitError(t("settings.fitbitConnectFailed"));
+          }
+        } catch {
+          setFitbitError(t("settings.fitbitConnectFailed"));
+        } finally {
+          setIsConnectingFitbit(false);
+        }
+
+        await Promise.all([
+          fitbitStatusQuery.refetch(),
+          stepQuery.refetch(),
+          queryClient.invalidateQueries({ queryKey: ["quests"] }),
+        ]);
+        return;
+      }
+
+      await Promise.all([
+        fitbitStatusQuery.refetch(),
+        stepQuery.refetch(),
+        queryClient.invalidateQueries({ queryKey: ["quests"] }),
+      ]);
+      return;
+    }
+
     if (stepSync.availability === "setup_required") {
       await openDeviceHealthSetup();
       return;
@@ -128,6 +179,36 @@ export default function SettingsScreen() {
       interactive: true,
       source: "manual",
     });
+  };
+
+  const handleChooseFitbit = async () => {
+    setFitbitError(null);
+
+    await updateSourceMutation.mutateAsync("fitbit");
+
+    if (fitbitConnected) {
+      return;
+    }
+
+    setIsConnectingFitbit(true);
+
+    try {
+      const result = await connectFitbit("/settings");
+
+      if (result.type === "error") {
+        setFitbitError(t("settings.fitbitConnectFailed"));
+      }
+    } catch {
+      setFitbitError(t("settings.fitbitConnectFailed"));
+    } finally {
+      setIsConnectingFitbit(false);
+    }
+
+    await Promise.all([
+      fitbitStatusQuery.refetch(),
+      stepQuery.refetch(),
+      queryClient.invalidateQueries({ queryKey: ["quests"] }),
+    ]);
   };
 
   return (
@@ -415,15 +496,38 @@ export default function SettingsScreen() {
               <View style={{ height: 8 }} />
               <Pressable
                 className="items-center rounded-full border border-primaryBorder px-4 py-3"
-                onPress={() => updateSourceMutation.mutate("fitbit")}
+                onPress={() => {
+                  void handleChooseFitbit();
+                }}
               >
                 <Text className="font-nunito-semibold text-primaryText">
                   {t("settings.preferFitbit")}
                 </Text>
               </Pressable>
               <Text className="font-nunito text-xs text-fgMuted mt-2">
-                {t("settings.fitbitHelp")}
+                {fitbitConnected
+                  ? t("settings.fitbitConnectedHelp")
+                  : t("settings.fitbitHelp")}
               </Text>
+              {prefersFitbit && !fitbitConnected ? (
+                <Pressable
+                  className="items-center rounded-full border border-primaryBorder px-4 py-3 mt-3"
+                  onPress={() => {
+                    void handleStepAction();
+                  }}
+                >
+                  <Text className="font-nunito-semibold text-primaryText">
+                    {isConnectingFitbit
+                      ? t("settings.connectingFitbit")
+                      : t("settings.connectFitbit")}
+                  </Text>
+                </Pressable>
+              ) : null}
+              {fitbitError ? (
+                <Text className="font-nunito text-xs text-dangerDark mt-2">
+                  {fitbitError}
+                </Text>
+              ) : null}
             </View>
           </View>
 

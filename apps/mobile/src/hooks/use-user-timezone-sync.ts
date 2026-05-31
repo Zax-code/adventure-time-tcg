@@ -14,6 +14,9 @@ function getDeviceTimezone() {
 export function useUserTimezoneSync() {
   const userId = useSessionStore((state) => state.user?.id ?? null);
   const currentTimezone = useSessionStore((state) => state.user?.timezone ?? null);
+  const preferredStepSource = useSessionStore(
+    (state) => state.user?.preferredStepSource ?? "device_health",
+  );
   const patchUser = useSessionStore((state) => state.patchUser);
 
   useEffect(() => {
@@ -48,10 +51,12 @@ export function useUserTimezoneSync() {
           queryClient.invalidateQueries({ queryKey: ["home"] }),
         ]);
 
-        await syncDeviceStepsNow({
-          interactive: false,
-          source: "focus",
-        });
+        if (preferredStepSource === "device_health") {
+          await syncDeviceStepsNow({
+            interactive: false,
+            source: "focus",
+          });
+        }
       } catch {
         // Keep using the last known backend timezone if sync fails.
       }
@@ -69,5 +74,5 @@ export function useUserTimezoneSync() {
       cancelled = true;
       subscription.remove();
     };
-  }, [currentTimezone, patchUser, userId]);
+  }, [currentTimezone, patchUser, preferredStepSource, userId]);
 }

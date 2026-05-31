@@ -5,7 +5,6 @@ const quests = {
   checkBackLater: "Check back later for new quests!",
   connectFitbitDesc:
     "Link your Fitbit account to unlock step-tracking quests and earn more coins!",
-  connectInSettings: "Connect in Settings",
   claim: "Claim",
   progress: "Progress",
   playQuest: "Play quest",
@@ -14,6 +13,8 @@ const quests = {
   unavailable: "Quest data unavailable.",
   claimSuccess: "+{amount} coins claimed!",
   claimFailed: "Failed to claim reward.",
+  fitbitConnectedSuccess: "Fitbit connected.",
+  fitbitConnectFailed: "Failed to connect Fitbit.",
   questReset: "{quest} was reset.",
   questResetByAdmin: "{quest} was reset by {name}.",
   stepSyncPromptTitle: "Turn on step tracking for this quest",
