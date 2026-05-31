@@ -22,6 +22,7 @@ import {
   AdminSearchInput,
   AdminSectionTitle,
 } from "../../src/components/admin/admin-ui";
+import { KEYBOARD_AWARE_SCROLL_PROPS } from "../../src/components/keyboard-screen-view";
 import { useTranslation } from "../../src/i18n";
 import { useThemeStore } from "../../src/stores/theme-store";
 import { THEME_COLORS } from "../../src/theme/themes";
@@ -48,7 +49,8 @@ type FeaturedListItem =
 const keyExtractor = (item: FeaturedListItem) => item.id;
 
 function getFeaturedTileWidth(screenWidth: number) {
-  const availableWidth = screenWidth - SCREEN_SIDE_PADDING * 2 - PANEL_INNER_PADDING * 2;
+  const availableWidth =
+    screenWidth - SCREEN_SIDE_PADDING * 2 - PANEL_INNER_PADDING * 2;
   return Math.floor((availableWidth - GRID_GAP) / 2) - 2;
 }
 
@@ -79,8 +81,13 @@ export default function AdminFeaturedScreen() {
     queryFn: () => apiClient.adminCards(),
   });
   const toggleMutation = useMutation({
-    mutationFn: ({ cardId, isFeatured }: { cardId: string; isFeatured: boolean }) =>
-      apiClient.updateAdminCard(cardId, { isFeatured }),
+    mutationFn: ({
+      cardId,
+      isFeatured,
+    }: {
+      cardId: string;
+      isFeatured: boolean;
+    }) => apiClient.updateAdminCard(cardId, { isFeatured }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["admin-cards"] });
     },
@@ -89,7 +96,8 @@ export default function AdminFeaturedScreen() {
   const cards = cardsQuery.data?.cards ?? [];
   const tileWidth = getFeaturedTileWidth(width);
   const isCardsLoading = cardsQuery.isLoading;
-  const cardsError = cardsQuery.error instanceof Error ? cardsQuery.error.message : null;
+  const cardsError =
+    cardsQuery.error instanceof Error ? cardsQuery.error.message : null;
 
   // Stable ref for mutation so renderRow's useCallback doesn't depend on toggleMutation object
   const toggleRef = useRef(toggleMutation.mutate);
@@ -97,7 +105,12 @@ export default function AdminFeaturedScreen() {
 
   // Stabilize prefetch — key on a joined string of asset IDs, not the array reference
   const prefetchKey = useMemo(
-    () => cards.slice(0, 48).map((c) => c.imageAssetId).filter(Boolean).join(","),
+    () =>
+      cards
+        .slice(0, 48)
+        .map((c) => c.imageAssetId)
+        .filter(Boolean)
+        .join(","),
     [cards],
   );
   useEffect(() => {
@@ -116,7 +129,10 @@ export default function AdminFeaturedScreen() {
         continue;
       }
 
-      if (query && !`${card.name} ${card.character}`.toLowerCase().includes(query)) {
+      if (
+        query &&
+        !`${card.name} ${card.character}`.toLowerCase().includes(query)
+      ) {
         continue;
       }
 
@@ -133,7 +149,9 @@ export default function AdminFeaturedScreen() {
   const maxReached = derived.featuredCards.length >= 5;
 
   const listData = useMemo(() => {
-    const items: FeaturedListItem[] = [{ id: "featured-header", type: "featured-header" }];
+    const items: FeaturedListItem[] = [
+      { id: "featured-header", type: "featured-header" },
+    ];
     chunkCards(derived.featuredCards).forEach((row) => {
       items.push({ id: `featured-${row.id}`, type: "featured-row", row });
     });
@@ -164,13 +182,22 @@ export default function AdminFeaturedScreen() {
                     : tc.surfaceMuted,
               }}
               onPress={() =>
-                toggleRef.current({ cardId: row.left.id, isFeatured: !featured })
+                toggleRef.current({
+                  cardId: row.left.id,
+                  isFeatured: !featured,
+                })
               }
             >
               <Ionicons
                 name={featured ? "star" : "star-outline"}
                 size={16}
-                color={featured ? "#FFFFFF" : maxReached ? tc.fgMuted : tc.secondaryText}
+                color={
+                  featured
+                    ? "#FFFFFF"
+                    : maxReached
+                      ? tc.fgMuted
+                      : tc.secondaryText
+                }
               />
             </Pressable>
           </View>
@@ -178,7 +205,10 @@ export default function AdminFeaturedScreen() {
         {row.right ? (
           <View
             className="items-center"
-            style={{ width: tileWidth, opacity: !featured && maxReached ? 0.55 : 1 }}
+            style={{
+              width: tileWidth,
+              opacity: !featured && maxReached ? 0.55 : 1,
+            }}
           >
             <View
               className={featured ? "border-2 rounded-[18]" : "relative"}
@@ -196,13 +226,22 @@ export default function AdminFeaturedScreen() {
                       : tc.surfaceMuted,
                 }}
                 onPress={() =>
-                  toggleRef.current({ cardId: row.right!.id, isFeatured: !featured })
+                  toggleRef.current({
+                    cardId: row.right!.id,
+                    isFeatured: !featured,
+                  })
                 }
               >
                 <Ionicons
                   name={featured ? "star" : "star-outline"}
                   size={16}
-                  color={featured ? "#FFFFFF" : maxReached ? tc.fgMuted : tc.secondaryText}
+                  color={
+                    featured
+                      ? "#FFFFFF"
+                      : maxReached
+                        ? tc.fgMuted
+                        : tc.secondaryText
+                  }
                 />
               </Pressable>
             </View>
@@ -220,7 +259,11 @@ export default function AdminFeaturedScreen() {
       if (item.type === "featured-header") {
         return (
           <View className="mt-4">
-            <AdminSectionTitle title={t("admin.featured.currentTitle", { count: derived.featuredCards.length })} />
+            <AdminSectionTitle
+              title={t("admin.featured.currentTitle", {
+                count: derived.featuredCards.length,
+              })}
+            />
             <View className="mt-3">
               {isCardsLoading ? (
                 <AdminLoadingState
@@ -229,7 +272,9 @@ export default function AdminFeaturedScreen() {
                   icon="star"
                 />
               ) : cardsError ? (
-                <Text className="font-nunito-bold text-[13px] text-dangerText text-center">{cardsError}</Text>
+                <Text className="font-nunito-bold text-[13px] text-dangerText text-center">
+                  {cardsError}
+                </Text>
               ) : derived.featuredCards.length ? null : (
                 <AdminEmptyState
                   icon="star-outline"
@@ -245,7 +290,11 @@ export default function AdminFeaturedScreen() {
       if (item.type === "candidate-header") {
         return (
           <View className="mt-4">
-            <AdminSectionTitle title={t("admin.featured.allCardsTitle", { count: derived.nonFeaturedCards.length })} />
+            <AdminSectionTitle
+              title={t("admin.featured.allCardsTitle", {
+                count: derived.nonFeaturedCards.length,
+              })}
+            />
             <View className="mt-3">
               {isCardsLoading ? (
                 <AdminLoadingState
@@ -254,7 +303,9 @@ export default function AdminFeaturedScreen() {
                   icon="sparkles"
                 />
               ) : cardsError ? (
-                <Text className="font-nunito-bold text-[13px] text-dangerText text-center">{cardsError}</Text>
+                <Text className="font-nunito-bold text-[13px] text-dangerText text-center">
+                  {cardsError}
+                </Text>
               ) : derived.nonFeaturedCards.length ? null : (
                 <AdminEmptyState
                   icon="search"
@@ -269,7 +320,13 @@ export default function AdminFeaturedScreen() {
 
       return renderRow(item.row, item.type === "featured-row");
     },
-    [cardsError, derived.featuredCards.length, derived.nonFeaturedCards.length, isCardsLoading, renderRow],
+    [
+      cardsError,
+      derived.featuredCards.length,
+      derived.nonFeaturedCards.length,
+      isCardsLoading,
+      renderRow,
+    ],
   );
 
   const listHeader = useMemo(
@@ -287,11 +344,15 @@ export default function AdminFeaturedScreen() {
         />
         <View className="mt-3 flex-row gap-2 flex-wrap">
           <AdminChip
-            label={t("admin.featured.featuredCount", { count: isCardsLoading ? "..." : derived.featuredCards.length })}
+            label={t("admin.featured.featuredCount", {
+              count: isCardsLoading ? "..." : derived.featuredCards.length,
+            })}
             tone="warning"
           />
           <AdminChip
-            label={t("admin.featured.waitingCount", { count: isCardsLoading ? "..." : derived.nonFeaturedCards.length })}
+            label={t("admin.featured.waitingCount", {
+              count: isCardsLoading ? "..." : derived.nonFeaturedCards.length,
+            })}
             tone="default"
           />
         </View>
@@ -304,11 +365,18 @@ export default function AdminFeaturedScreen() {
         ) : null}
       </AdminPanel>
     ),
-    [searchQuery, derived.featuredCards.length, derived.nonFeaturedCards.length, isCardsLoading, maxReached],
+    [
+      searchQuery,
+      derived.featuredCards.length,
+      derived.nonFeaturedCards.length,
+      isCardsLoading,
+      maxReached,
+    ],
   );
 
   return (
     <FlatList
+      {...KEYBOARD_AWARE_SCROLL_PROPS}
       data={listData}
       keyExtractor={keyExtractor}
       renderItem={renderItem}

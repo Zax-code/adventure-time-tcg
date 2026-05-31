@@ -14,6 +14,10 @@ import {
   toCardDraft,
   toCardSavePayload,
 } from "../src/components/admin/card-editor-sheet";
+import {
+  KEYBOARD_AWARE_SCROLL_PROPS,
+  KeyboardScreenView,
+} from "../src/components/keyboard-screen-view";
 import { LoadingPanel } from "../src/components/loading-state";
 import { apiClient } from "../src/lib/api";
 import { useTranslation } from "../src/i18n";
@@ -40,11 +44,16 @@ export default function AdminCardEditorScreen() {
   const themeName = useThemeStore((state) => state.themeName);
   const tc = THEME_COLORS[themeName];
   const { t } = useTranslation();
-  const { mode, cardId } = useLocalSearchParams<{ mode?: string; cardId?: string }>();
+  const { mode, cardId } = useLocalSearchParams<{
+    mode?: string;
+    cardId?: string;
+  }>();
   const isCreateMode = mode !== "edit";
 
   const [draft, setDraft] = useState<CardDraft>(BLANK_CARD_DRAFT);
-  const [assignmentDraft, setAssignmentDraft] = useState<AssignmentDraft>(EMPTY_ASSIGNMENT_DRAFT);
+  const [assignmentDraft, setAssignmentDraft] = useState<AssignmentDraft>(
+    EMPTY_ASSIGNMENT_DRAFT,
+  );
   const initializedCardIdRef = useRef<string | null>(null);
   const initializedCreateRef = useRef(false);
   const closeEditor = () => router.dismissTo("/admin/cards" as any);
@@ -83,7 +92,10 @@ export default function AdminCardEditorScreen() {
       }
 
       initializedCreateRef.current = true;
-      setDraft((current) => ({ ...current, rarityId: current.rarityId || defaultRarityId }));
+      setDraft((current) => ({
+        ...current,
+        rarityId: current.rarityId || defaultRarityId,
+      }));
       setAssignmentDraft(EMPTY_ASSIGNMENT_DRAFT);
       return;
     }
@@ -106,7 +118,12 @@ export default function AdminCardEditorScreen() {
       skillId: currentAssignment?.skillId ?? "",
       ultimateId: currentAssignment?.ultimateId ?? "",
     });
-  }, [abilitiesQuery.data?.cardAbilities, cardQuery.data, isCreateMode, raritiesQuery.data?.rarities]);
+  }, [
+    abilitiesQuery.data?.cardAbilities,
+    cardQuery.data,
+    isCreateMode,
+    raritiesQuery.data?.rarities,
+  ]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -119,7 +136,7 @@ export default function AdminCardEditorScreen() {
         ? typeof savedCard.id === "string"
           ? savedCard.id
           : null
-        : cardId ?? null;
+        : (cardId ?? null);
 
       if (!savedCardId) {
         throw new Error(t("admin.cardEditor.missingCardId"));
@@ -128,7 +145,9 @@ export default function AdminCardEditorScreen() {
       const shouldPersistAssignments =
         !isCreateMode ||
         Boolean(
-          assignmentDraft.passiveId || assignmentDraft.skillId || assignmentDraft.ultimateId,
+          assignmentDraft.passiveId ||
+          assignmentDraft.skillId ||
+          assignmentDraft.ultimateId,
         );
 
       if (shouldPersistAssignments) {
@@ -149,7 +168,10 @@ export default function AdminCardEditorScreen() {
       closeEditor();
     },
     onError: (error) => {
-      Alert.alert(t("admin.cardEditor.saveFailed"), getErrorMessage(error, t("admin.cardEditor.saveFailedBody")));
+      Alert.alert(
+        t("admin.cardEditor.saveFailed"),
+        getErrorMessage(error, t("admin.cardEditor.saveFailedBody")),
+      );
     },
   });
 
@@ -168,7 +190,10 @@ export default function AdminCardEditorScreen() {
       closeEditor();
     },
     onError: (error) => {
-      Alert.alert(t("admin.cardEditor.updateFailed"), getErrorMessage(error, t("admin.cardEditor.updateFailedBody")));
+      Alert.alert(
+        t("admin.cardEditor.updateFailed"),
+        getErrorMessage(error, t("admin.cardEditor.updateFailedBody")),
+      );
     },
   });
 
@@ -190,10 +215,11 @@ export default function AdminCardEditorScreen() {
 
       const asset = result.assets[0];
       const formData = new FormData();
-      formData.append(
-        "file",
-        { uri: asset.uri, name: "card.jpg", type: asset.mimeType ?? "image/jpeg" } as never,
-      );
+      formData.append("file", {
+        uri: asset.uri,
+        name: "card.jpg",
+        type: asset.mimeType ?? "image/jpeg",
+      } as never);
 
       await apiClient.uploadAdminCardImage(cardId, formData);
     },
@@ -204,15 +230,21 @@ export default function AdminCardEditorScreen() {
       ]);
     },
     onError: (error) => {
-      Alert.alert(t("admin.cardEditor.uploadFailed"), getErrorMessage(error, t("admin.cardEditor.uploadFailedBody")));
+      Alert.alert(
+        t("admin.cardEditor.uploadFailed"),
+        getErrorMessage(error, t("admin.cardEditor.uploadFailedBody")),
+      );
     },
   });
 
-  const loading = (!isCreateMode && cardQuery.isLoading) || raritiesQuery.isLoading || abilitiesQuery.isLoading;
+  const loading =
+    (!isCreateMode && cardQuery.isLoading) ||
+    raritiesQuery.isLoading ||
+    abilitiesQuery.isLoading;
   const error = cardQuery.error || raritiesQuery.error || abilitiesQuery.error;
 
   return (
-    <View className="flex-1" style={THEME_VARS[themeName]}>
+    <KeyboardScreenView style={THEME_VARS[themeName]}>
       <View className="flex-1 bg-primaryBg">
         <View className="items-center px-4 pt-2">
           <View className="h-1 w-9 rounded-full bg-[#D1D5DB]" />
@@ -225,10 +257,14 @@ export default function AdminCardEditorScreen() {
           <View className="flex-row items-center justify-between gap-3">
             <View className="w-14" />
             <Text className="flex-1 text-center font-nunito-extrabold text-[24px] text-white">
-              {isCreateMode ? t("admin.cardEditor.createTitle") : t("admin.cardEditor.editTitle")}
+              {isCreateMode
+                ? t("admin.cardEditor.createTitle")
+                : t("admin.cardEditor.editTitle")}
             </Text>
             <Pressable className="w-14 items-end" onPress={closeEditor}>
-              <Text className="font-nunito-bold text-sm text-white">{t("admin.common.close")}</Text>
+              <Text className="font-nunito-bold text-sm text-white">
+                {t("admin.common.close")}
+              </Text>
             </Pressable>
           </View>
         </LinearGradient>
@@ -255,6 +291,7 @@ export default function AdminCardEditorScreen() {
           </View>
         ) : (
           <ScrollView
+            {...KEYBOARD_AWARE_SCROLL_PROPS}
             className="flex-1"
             contentContainerStyle={{
               paddingHorizontal: 16,
@@ -263,7 +300,6 @@ export default function AdminCardEditorScreen() {
               gap: 16,
             }}
             showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
           >
             <CardEditorSheet
               mode={isCreateMode ? "create" : "edit"}
@@ -283,13 +319,18 @@ export default function AdminCardEditorScreen() {
                 setDraft((current) => ({ ...current, [key]: value }));
               }}
               onAssignmentChange={(role, value) => {
-                setAssignmentDraft((current) => ({ ...current, [`${role}Id`]: value } as AssignmentDraft));
+                setAssignmentDraft(
+                  (current) =>
+                    ({ ...current, [`${role}Id`]: value }) as AssignmentDraft,
+                );
               }}
-              onAssignmentClear={() => setAssignmentDraft(EMPTY_ASSIGNMENT_DRAFT)}
+              onAssignmentClear={() =>
+                setAssignmentDraft(EMPTY_ASSIGNMENT_DRAFT)
+              }
             />
           </ScrollView>
         )}
       </View>
-    </View>
+    </KeyboardScreenView>
   );
 }

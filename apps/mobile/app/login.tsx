@@ -1,9 +1,14 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { useRef, useEffect } from "react";
-import { Animated, View } from "react-native";
+import { Animated, ScrollView, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AuthForm } from "../src/components/auth-form";
+import {
+  KEYBOARD_AWARE_SCROLL_PROPS,
+  KeyboardScreenView,
+} from "../src/components/keyboard-screen-view";
 
 const PARTICLES = [
   { left: "8%", top: "12%", size: 14, delay: 0, duration: 3200 },
@@ -20,13 +25,24 @@ const PARTICLES = [
   { left: "70%", top: "20%", size: 9, delay: 800, duration: 2950 },
 ] as const;
 
-function FloatingHeart({ left, top, size, delay, duration }: (typeof PARTICLES)[number]) {
+function FloatingHeart({
+  left,
+  top,
+  size,
+  delay,
+  duration,
+}: (typeof PARTICLES)[number]) {
   const anim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(anim, { toValue: 1, duration, delay, useNativeDriver: true }),
+        Animated.timing(anim, {
+          toValue: 1,
+          duration,
+          delay,
+          useNativeDriver: true,
+        }),
         Animated.timing(anim, { toValue: 0, duration, useNativeDriver: true }),
       ]),
     );
@@ -34,8 +50,14 @@ function FloatingHeart({ left, top, size, delay, duration }: (typeof PARTICLES)[
     return () => loop.stop();
   }, [anim, delay, duration]);
 
-  const translateY = anim.interpolate({ inputRange: [0, 1], outputRange: [0, -20] });
-  const opacity = anim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.3, 0.7, 0.3] });
+  const translateY = anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, -20],
+  });
+  const opacity = anim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [0.3, 0.7, 0.3],
+  });
 
   return (
     <Animated.View
@@ -55,6 +77,7 @@ function FloatingHeart({ left, top, size, delay, duration }: (typeof PARTICLES)[
 }
 
 export default function LoginScreen() {
+  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{
     email?: string;
     code?: string;
@@ -64,33 +87,52 @@ export default function LoginScreen() {
   }>();
 
   return (
-    <LinearGradient colors={["#fce7f3", "#fdf2f8", "#f9a8d4"]} style={{ flex: 1 }}>
+    <LinearGradient
+      colors={["#fce7f3", "#fdf2f8", "#f9a8d4"]}
+      style={{ flex: 1 }}
+    >
       {PARTICLES.map((p, i) => (
         <FloatingHeart key={i} {...p} />
       ))}
-      <View className="flex-1 justify-center p-5">
-        <AuthForm
-          prefill={{
-            email: typeof params.email === "string" ? params.email : undefined,
-            code: typeof params.code === "string" ? params.code : undefined,
-            locale:
-              params.locale === "fr"
-                ? "fr"
-                : params.locale === "en"
-                  ? "en"
-                  : undefined,
-            mode:
-              params.mode === "verify"
-                ? "verify"
-                : params.mode === "reset-password"
-                  ? "reset-password"
-                : params.mode === "login"
-                  ? "login"
-                  : undefined,
-            autoVerify: params.auto_verify === "true",
+      <KeyboardScreenView>
+        <ScrollView
+          {...KEYBOARD_AWARE_SCROLL_PROPS}
+          className="flex-1"
+          contentContainerStyle={{
+            flexGrow: 1,
+            justifyContent: "center",
+            paddingHorizontal: 20,
+            paddingTop: insets.top + 20,
+            paddingBottom: insets.bottom + 20,
           }}
-        />
-      </View>
+          showsVerticalScrollIndicator={false}
+        >
+          <View>
+            <AuthForm
+              prefill={{
+                email:
+                  typeof params.email === "string" ? params.email : undefined,
+                code: typeof params.code === "string" ? params.code : undefined,
+                locale:
+                  params.locale === "fr"
+                    ? "fr"
+                    : params.locale === "en"
+                      ? "en"
+                      : undefined,
+                mode:
+                  params.mode === "verify"
+                    ? "verify"
+                    : params.mode === "reset-password"
+                      ? "reset-password"
+                      : params.mode === "login"
+                        ? "login"
+                        : undefined,
+                autoVerify: params.auto_verify === "true",
+              }}
+            />
+          </View>
+        </ScrollView>
+      </KeyboardScreenView>
     </LinearGradient>
   );
 }

@@ -12,6 +12,10 @@ import {
   openDeviceHealthSetup,
   syncDeviceStepsNow,
 } from "../src/lib/step-sync";
+import {
+  KEYBOARD_AWARE_SCROLL_PROPS,
+  KeyboardScreenView,
+} from "../src/components/keyboard-screen-view";
 import { useSessionStore } from "../src/stores/session-store";
 import { useStepSyncStore } from "../src/stores/step-sync-store";
 import { useThemeStore } from "../src/stores/theme-store";
@@ -127,7 +131,7 @@ export default function SettingsScreen() {
   };
 
   return (
-    <View style={[{ flex: 1 }, THEME_VARS[themeName]]}>
+    <KeyboardScreenView style={THEME_VARS[themeName]}>
       <View className="flex-1 bg-bg">
         {/* Drag handle */}
         <View className="w-9 h-1 rounded-full bg-muted self-center mt-2 mb-1" />
@@ -143,6 +147,7 @@ export default function SettingsScreen() {
         </View>
 
         <ScrollView
+          {...KEYBOARD_AWARE_SCROLL_PROPS}
           className="flex-1"
           contentContainerStyle={{
             gap: 16,
@@ -550,6 +555,6 @@ export default function SettingsScreen() {
           </Pressable>
         </ScrollView>
       </View>
-    </View>
+    </KeyboardScreenView>
   );
 }
