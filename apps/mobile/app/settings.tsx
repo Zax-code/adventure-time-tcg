@@ -1,6 +1,5 @@
 import { useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { LinearGradient } from "expo-linear-gradient";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
@@ -38,7 +37,7 @@ const LANGUAGE_OPTIONS = ["en", "fr"] as const;
 const STEP_SOURCE_OPTIONS = ["device_health", "fitbit"] as const;
 const THEME_OPTIONS: ThemeName[] = ["candy", "ice", "nightosphere"];
 
-type ToneName = "primary" | "accent" | "success" | "info" | "danger";
+type ToneName = "primary" | "success" | "danger" | "neutral";
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -166,12 +165,10 @@ export default function SettingsScreen() {
   const syncTone: ToneName = prefersFitbit
     ? fitbitConnected
       ? "success"
-      : "accent"
+      : "neutral"
     : stepSync.healthPermissionStatus === "granted"
       ? "success"
-      : stepSync.availability === "setup_required"
-        ? "accent"
-        : "info";
+      : "neutral";
   const syncSummary = prefersFitbit
     ? fitbitConnected
       ? t("settings.fitbitConnectedHelp")
@@ -306,22 +303,17 @@ export default function SettingsScreen() {
               </View>
 
               <View
-                className="overflow-hidden rounded-3xl border border-primaryBorder"
+                className="rounded-3xl border border-primaryBorder px-5 py-5"
                 style={{
+                  backgroundColor: tc.surface,
                   shadowColor: "#000",
-                  shadowOpacity: 0.08,
-                  shadowRadius: 12,
-                  shadowOffset: { width: 0, height: 6 },
-                  elevation: 4,
+                  shadowOpacity: 0.04,
+                  shadowRadius: 8,
+                  shadowOffset: { width: 0, height: 3 },
+                  elevation: 2,
                 }}
               >
-                <LinearGradient
-                  colors={[tc.primaryTint, tc.secondaryTint, tc.surface]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={{ padding: 20 }}
-                >
-                  <View className="gap-4">
+                <View className="gap-4">
                     <View className="flex-row items-center gap-4">
                       <Pressable
                         onPress={() =>
@@ -342,8 +334,8 @@ export default function SettingsScreen() {
                               width: 84,
                               height: 84,
                               borderRadius: 42,
-                              borderWidth: 3,
-                              borderColor: tc.surface,
+                              borderWidth: 2,
+                              borderColor: tc.primaryBorder,
                             }}
                             contentFit="cover"
                           />
@@ -353,8 +345,8 @@ export default function SettingsScreen() {
                             style={{
                               width: 84,
                               height: 84,
-                              borderWidth: 3,
-                              borderColor: tc.surface,
+                              borderWidth: 2,
+                              borderColor: tc.primaryBorder,
                             }}
                           >
                             <Text className="font-nunito-extrabold text-3xl text-white">
@@ -390,7 +382,7 @@ export default function SettingsScreen() {
                         <Text className="font-nunito text-sm text-fgMuted">
                           {user?.email}
                         </Text>
-                        <Text className="font-nunito text-sm leading-5 text-primaryText">
+                        <Text className="font-nunito text-sm leading-5 text-fgMuted">
                           {editing
                             ? t("settings.profileEditTip")
                             : t("settings.accountIntro")}
@@ -406,7 +398,7 @@ export default function SettingsScreen() {
                             ? t("settings.french")
                             : t("settings.english")
                         }
-                        tone="accent"
+                        tone="neutral"
                         tc={tc}
                       />
                       <StatusPill
@@ -418,7 +410,7 @@ export default function SettingsScreen() {
                       <StatusPill
                         label={t("settings.stepSource")}
                         value={t(`settings.stepSources.${currentStepSource}`)}
-                        tone="success"
+                        tone="neutral"
                         tc={tc}
                       />
                     </View>
@@ -471,8 +463,7 @@ export default function SettingsScreen() {
                         </GhostButton>
                       </View>
                     )}
-                  </View>
-                </LinearGradient>
+                </View>
               </View>
             </View>
 
@@ -505,7 +496,6 @@ export default function SettingsScreen() {
                           onPress={() =>
                             void updateLanguageMutation.mutateAsync(language)
                           }
-                          tone="accent"
                           tc={tc}
                         >
                           <View className="gap-2">
@@ -523,7 +513,7 @@ export default function SettingsScreen() {
                                 <Ionicons
                                   name="checkmark-circle"
                                   size={18}
-                                  color={tc.accentText}
+                                  color={tc.primaryText}
                                 />
                               ) : null}
                             </View>
@@ -556,7 +546,6 @@ export default function SettingsScreen() {
                           key={name}
                           selected={selected}
                           onPress={() => void setTheme(name)}
-                          tone="primary"
                           tc={tc}
                         >
                           <View className="flex-row items-center gap-3">
@@ -579,13 +568,7 @@ export default function SettingsScreen() {
                                 size={20}
                                 color={tc.primaryText}
                               />
-                            ) : (
-                              <Ionicons
-                                name="chevron-forward"
-                                size={18}
-                                color={tc.muted}
-                              />
-                            )}
+                            ) : null}
                           </View>
                         </ChoiceCard>
                       );
@@ -631,7 +614,6 @@ export default function SettingsScreen() {
                             setFitbitError(null);
                             void updateSourceMutation.mutateAsync("device_health");
                           }}
-                          tone={isFitbitSource ? "accent" : "success"}
                           tc={tc}
                         >
                           <View className="gap-3">
@@ -656,9 +638,7 @@ export default function SettingsScreen() {
                                 <Ionicons
                                   name="checkmark-circle"
                                   size={20}
-                                  color={
-                                    isFitbitSource ? tc.accentText : tc.successText
-                                  }
+                                  color={tc.primaryText}
                                 />
                               ) : null}
                             </View>
@@ -668,14 +648,14 @@ export default function SettingsScreen() {
                                 <StatusPill
                                   label={t("settings.fitbitStatus")}
                                   value={fitbitStatusLabel}
-                                  tone={fitbitConnected ? "success" : "accent"}
+                                  tone={fitbitConnected ? "success" : "neutral"}
                                   tc={tc}
                                 />
                               ) : (
                                 <StatusPill
                                   label={t("settings.healthSystem")}
                                   value={healthSystemLabel}
-                                  tone="info"
+                                  tone="neutral"
                                   tc={tc}
                                 />
                               )}
@@ -710,13 +690,7 @@ export default function SettingsScreen() {
                         </Text>
                       </View>
                       <Ionicons
-                        name={
-                          syncTone === "success"
-                            ? "checkmark-circle"
-                            : syncTone === "accent"
-                              ? "link"
-                              : "pulse"
-                        }
+                        name={syncTone === "success" ? "checkmark-circle" : "pulse"}
                         size={24}
                         color={toneColors(tc, syncTone).text}
                       />
@@ -730,7 +704,7 @@ export default function SettingsScreen() {
                         value={t("settings.stepCountValue", {
                           count: stepQuery.data?.latest?.stepCount ?? 0,
                         })}
-                        tone="primary"
+                        tone="neutral"
                         tc={tc}
                       />
                       <StatTile
@@ -738,7 +712,7 @@ export default function SettingsScreen() {
                         value={t("settings.stepCountValue", {
                           count: stepSync.deviceStepCount ?? 0,
                         })}
-                        tone="success"
+                        tone="neutral"
                         tc={tc}
                       />
                     </View>
@@ -746,13 +720,13 @@ export default function SettingsScreen() {
                       <StatTile
                         label={t("settings.recordedFor")}
                         value={recordedForDate ?? "—"}
-                        tone="accent"
+                        tone="neutral"
                         tc={tc}
                       />
                       <StatTile
                         label={t("settings.lastUpdated")}
                         value={latestSyncedDate ?? "—"}
-                        tone="info"
+                        tone="neutral"
                         tc={tc}
                       />
                     </View>
@@ -762,13 +736,13 @@ export default function SettingsScreen() {
                     <StatusPill
                       label={t("settings.sourceLabel")}
                       value={t(`settings.stepSources.${latestStepSource}`)}
-                      tone="primary"
+                      tone="neutral"
                       tc={tc}
                     />
                     <StatusPill
                       label={t("settings.goalNotificationsLabel")}
                       value={notificationStatusLabel}
-                      tone="info"
+                      tone="neutral"
                       tc={tc}
                     />
                   </View>
@@ -814,14 +788,18 @@ export default function SettingsScreen() {
                     {t("settings.sessionHelp")}
                   </Text>
                   <Pressable
-                    className="items-center rounded-full bg-primaryDark px-5 py-4"
+                    className="items-center rounded-full border border-primaryBorder bg-surfaceMuted px-5 py-4"
                     onPress={() =>
                       void clearAppSession().then(() => router.replace("/login"))
                     }
                   >
                     <View className="flex-row items-center gap-2">
-                      <Ionicons name="log-out-outline" size={20} color="#fff" />
-                      <Text className="font-nunito-bold text-base text-white">
+                      <Ionicons
+                        name="log-out-outline"
+                        size={20}
+                        color={tc.primaryText}
+                      />
+                      <Text className="font-nunito-bold text-base text-primaryText">
                         {t("home.logout")}
                       </Text>
                     </View>
@@ -849,14 +827,9 @@ function SectionHeader({
 }) {
   return (
     <View className="flex-row items-start gap-3 px-1">
-      <View
-        className="h-11 w-11 items-center justify-center rounded-2xl bg-primaryTint"
-        style={{ borderWidth: 1, borderColor: tc.primaryBorder }}
-      >
-        <Ionicons name={icon} size={20} color={tc.primaryText} />
-      </View>
+      <Ionicons name={icon} size={20} color={tc.primaryText} />
       <View className="flex-1 gap-1">
-        <Text className="font-nunito-extrabold text-xl text-fg">{title}</Text>
+        <Text className="font-nunito-bold text-xl text-fg">{title}</Text>
         <Text className="font-nunito text-sm leading-5 text-fgMuted">
           {description}
         </Text>
@@ -877,10 +850,10 @@ function SurfaceCard({
       className="rounded-3xl border border-primaryBorder bg-surface p-5"
       style={{
         shadowColor: "#000",
-        shadowOpacity: 0.06,
-        shadowRadius: 12,
-        shadowOffset: { width: 0, height: 4 },
-        elevation: 3,
+        shadowOpacity: 0.04,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 3 },
+        elevation: 2,
       }}
     >
       {children}
@@ -894,25 +867,21 @@ function ChoiceCard({
   onPress,
   selected,
   tc,
-  tone,
 }: {
   children: ReactNode;
   disabled?: boolean;
   onPress: () => void;
   selected: boolean;
   tc: (typeof THEME_COLORS)[ThemeName];
-  tone: ToneName;
 }) {
-  const colors = toneColors(tc, tone);
-
   return (
     <Pressable
       onPress={onPress}
       disabled={disabled}
       className="flex-1 rounded-3xl border p-4"
       style={{
-        backgroundColor: selected ? colors.bg : tc.surface,
-        borderColor: selected ? colors.border : tc.primaryBorder,
+        backgroundColor: selected ? tc.primaryBg : tc.surface,
+        borderColor: selected ? tc.primaryBorder : tc.primaryBorder,
         opacity: disabled ? 0.65 : 1,
       }}
     >
@@ -958,7 +927,11 @@ function StatusPill({
   return (
     <View
       className="rounded-full px-3 py-2"
-      style={{ backgroundColor: colors.bg, borderWidth: 1, borderColor: colors.border }}
+      style={{
+        backgroundColor: colors.bg,
+        borderWidth: 1,
+        borderColor: colors.border,
+      }}
     >
       <Text className="font-nunito-semibold text-xs uppercase text-fgMuted">
         {label}
@@ -990,7 +963,11 @@ function StatTile({
   return (
     <View
       className="flex-1 rounded-3xl p-4"
-      style={{ backgroundColor: colors.bg, borderWidth: 1, borderColor: colors.border }}
+      style={{
+        backgroundColor: colors.bg,
+        borderWidth: 1,
+        borderColor: colors.border,
+      }}
     >
       <Text className="font-nunito-semibold text-xs uppercase text-fgMuted">
         {label}
@@ -1020,7 +997,11 @@ function ToneBanner({
   return (
     <View
       className="rounded-3xl p-4"
-      style={{ backgroundColor: colors.bg, borderWidth: 1, borderColor: colors.border }}
+      style={{
+        backgroundColor: colors.bg,
+        borderWidth: 1,
+        borderColor: colors.border,
+      }}
     >
       {children}
     </View>
@@ -1029,23 +1010,11 @@ function ToneBanner({
 
 function toneColors(tc: (typeof THEME_COLORS)[ThemeName], tone: ToneName) {
   switch (tone) {
-    case "accent":
-      return {
-        bg: tc.accentTint,
-        border: tc.accentBorder,
-        text: tc.accentText,
-      };
     case "success":
       return {
         bg: tc.successTint,
         border: tc.successBorder,
         text: tc.successText,
-      };
-    case "info":
-      return {
-        bg: tc.infoTint,
-        border: tc.infoBorder,
-        text: tc.infoText,
       };
     case "danger":
       return {
@@ -1053,10 +1022,16 @@ function toneColors(tc: (typeof THEME_COLORS)[ThemeName], tone: ToneName) {
         border: tc.dangerBorder,
         text: tc.dangerText,
       };
+    case "neutral":
+      return {
+        bg: tc.surfaceMuted,
+        border: tc.primaryBorder,
+        text: tc.fg,
+      };
     case "primary":
     default:
       return {
-        bg: tc.primaryTint,
+        bg: tc.primaryBg,
         border: tc.primaryBorder,
         text: tc.primaryText,
       };
