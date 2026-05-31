@@ -116,6 +116,142 @@ defmodule AdventureTimeApi.NotificationsTest do
     refute Repo.exists?(from(device in Device, where: device.installation_id == "installation-2"))
   end
 
+  test "send_gift_received sends a visible localized push when enabled", %{bypass: bypass} do
+    user =
+      create_user("gift-fr@example.com",
+        preferred_language: :fr,
+        notify_gift_received: true
+      )
+
+    insert_device(user.id, "gift-installation", :ios, "ExponentPushToken[gift-one]")
+
+    Bypass.expect_once(bypass, "POST", "/--/api/v2/push/send", fn conn ->
+      {:ok, raw_body, conn} = Plug.Conn.read_body(conn)
+      payload = Jason.decode!(raw_body)
+
+      assert [
+               %{
+                 "body" => "Marceline vous a envoyé un cadeau.",
+                 "channelId" => "game-updates",
+                 "data" => %{"eventType" => "gift_received"},
+                 "priority" => "high",
+                 "sound" => "default",
+                 "title" => "Nouveau cadeau",
+                 "to" => "ExponentPushToken[gift-one]",
+                 "ttl" => 86_400
+               }
+             ] = payload
+
+      conn
+      |> Plug.Conn.put_resp_content_type("application/json")
+      |> Plug.Conn.resp(
+        200,
+        Jason.encode!(%{"data" => [%{"status" => "ok", "id" => "ticket-visible-1"}]})
+      )
+    end)
+
+    assert :ok = Notifications.send_gift_received(user.id, "Marceline")
+  end
+
+  test "send_pvp_invite sends a visible push when enabled", %{bypass: bypass} do
+    user =
+      create_user("invite-live@example.com",
+        notify_pvp_invite: true
+      )
+
+    insert_device(user.id, "invite-live-installation", :android, "ExponentPushToken[invite-live]")
+
+    Bypass.expect_once(bypass, "POST", "/--/api/v2/push/send", fn conn ->
+      {:ok, raw_body, conn} = Plug.Conn.read_body(conn)
+      payload = Jason.decode!(raw_body)
+
+      assert [
+               %{
+                 "body" => "Finn invited you to a combat match.",
+                 "channelId" => "game-updates",
+                 "data" => %{"eventType" => "pvp_invite"},
+                 "priority" => "high",
+                 "sound" => "default",
+                 "title" => "Combat invitation",
+                 "to" => "ExponentPushToken[invite-live]",
+                 "ttl" => 86_400
+               }
+             ] = payload
+
+      conn
+      |> Plug.Conn.put_resp_content_type("application/json")
+      |> Plug.Conn.resp(
+        200,
+        Jason.encode!(%{"data" => [%{"status" => "ok", "id" => "ticket-visible-2"}]})
+      )
+    end)
+
+    assert :ok = Notifications.send_pvp_invite(user.id, "Finn")
+  end
+
+  test "send_pvp_invite respects the notification preference", %{bypass: _bypass} do
+    user =
+      create_user("invite-muted@example.com",
+        notify_pvp_invite: false
+      )
+
+    insert_device(user.id, "invite-installation", :android, "ExponentPushToken[invite-one]")
+
+    assert :ok = Notifications.send_pvp_invite(user.id, "Finn")
+
+    assert Repo.exists?(
+             from(device in Device, where: device.installation_id == "invite-installation")
+           )
+  end
+
+  test "send_pvp_turn removes devices that Expo reports as unregistered", %{bypass: bypass} do
+    user =
+      create_user("turn-en@example.com",
+        notify_pvp_turn: true
+      )
+
+    insert_device(user.id, "turn-installation", :android, "ExponentPushToken[turn-one]")
+
+    Bypass.expect_once(bypass, "POST", "/--/api/v2/push/send", fn conn ->
+      {:ok, raw_body, conn} = Plug.Conn.read_body(conn)
+      payload = Jason.decode!(raw_body)
+
+      assert [
+               %{
+                 "body" => "It's your turn against Jake.",
+                 "channelId" => "game-updates",
+                 "data" => %{"eventType" => "pvp_turn"},
+                 "priority" => "high",
+                 "sound" => "default",
+                 "title" => "Your turn to play",
+                 "to" => "ExponentPushToken[turn-one]",
+                 "ttl" => 86_400
+               }
+             ] = payload
+
+      conn
+      |> Plug.Conn.put_resp_content_type("application/json")
+      |> Plug.Conn.resp(
+        200,
+        Jason.encode!(%{
+          "data" => [
+            %{
+              "status" => "error",
+              "message" => "Device not registered",
+              "details" => %{"error" => "DeviceNotRegistered"}
+            }
+          ]
+        })
+      )
+    end)
+
+    assert :ok = Notifications.send_pvp_turn(user.id, "Jake")
+
+    refute Repo.exists?(
+             from(device in Device, where: device.installation_id == "turn-installation")
+           )
+  end
+
   defp endpoint_url(bypass) do
     "http://127.0.0.1:#{bypass.port}/--/api/v2/push/send"
   end
@@ -126,7 +262,27 @@ defmodule AdventureTimeApi.NotificationsTest do
     Repo.insert!(
       User.registration_changeset(%User{}, %{email: email, display_name: "Tester"})
       |> User.profile_changeset(%{preferred_step_source: preferred_step_source})
+      |> User.profile_changeset(%{
+        preferred_language: Keyword.get(opts, :preferred_language, :en),
+        notify_daily_reset: Keyword.get(opts, :notify_daily_reset, true),
+        notify_step_goal: Keyword.get(opts, :notify_step_goal, true),
+        notify_pvp_invite: Keyword.get(opts, :notify_pvp_invite, true),
+        notify_pvp_turn: Keyword.get(opts, :notify_pvp_turn, true),
+        notify_gift_received: Keyword.get(opts, :notify_gift_received, true)
+      })
       |> User.access_changeset(%{role: :user, access_status: :approved})
+    )
+  end
+
+  defp insert_device(user_id, installation_id, platform, expo_push_token) do
+    Repo.insert!(
+      Device.changeset(%Device{}, %{
+        user_id: user_id,
+        installation_id: installation_id,
+        platform: platform,
+        expo_push_token: expo_push_token,
+        last_registered_at: DateTime.utc_now() |> DateTime.truncate(:second)
+      })
     )
   end
 end

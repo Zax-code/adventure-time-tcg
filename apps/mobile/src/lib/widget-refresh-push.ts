@@ -4,7 +4,10 @@ import * as Notifications from "expo-notifications";
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 
+import type { AuthUser } from "@adventure-time/api-client";
+
 import { API_BASE_URL } from "./api-config";
+import type { StepSyncPermissionStatus } from "../stores/step-sync-store";
 
 const WIDGET_REFRESH_INSTALLATION_ID_KEY =
   "widget-refresh-push-installation-id";
@@ -122,17 +125,36 @@ async function unregisterInstallation(accessToken: string) {
   return response.ok;
 }
 
-export async function syncWidgetRefreshPushRegistration(params: {
+export async function syncNotificationDeviceRegistration(params: {
   accessToken: string;
   preferredStepSource: "device_health" | "fitbit";
+  notificationPermissionStatus: StepSyncPermissionStatus;
+  notificationPreferences: AuthUser["notificationPreferences"];
 }) {
   if (!isSupportedPlatform()) {
     return;
   }
 
-  if (params.preferredStepSource !== "fitbit") {
+  const wantsWidgetRefresh = params.preferredStepSource === "fitbit";
+  const wantsVisiblePushes =
+    params.notificationPreferences.pvpInvite ||
+    params.notificationPreferences.pvpTurn ||
+    params.notificationPreferences.giftReceived;
+
+  if (!wantsWidgetRefresh && !wantsVisiblePushes) {
     await unregisterInstallation(params.accessToken).catch(() => {
-      // Keep widget refresh registration best-effort.
+      // Registration cleanup should stay best-effort.
+    });
+    return;
+  }
+
+  if (
+    wantsVisiblePushes &&
+    params.notificationPermissionStatus !== "granted" &&
+    !wantsWidgetRefresh
+  ) {
+    await unregisterInstallation(params.accessToken).catch(() => {
+      // Visible push cleanup should stay best-effort.
     });
     return;
   }

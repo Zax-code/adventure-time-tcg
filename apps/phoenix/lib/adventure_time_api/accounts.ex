@@ -451,6 +451,28 @@ defmodule AdventureTimeApi.Accounts do
     end
   end
 
+  def update_notification_preferences(user_id, preferences) when is_map(preferences) do
+    with %User{} = user <- Repo.get(User, user_id),
+         attrs <- %{
+           notify_daily_reset:
+             Map.get(preferences, "dailyReset", Map.get(preferences, :dailyReset)),
+           notify_step_goal: Map.get(preferences, "stepGoal", Map.get(preferences, :stepGoal)),
+           notify_pvp_invite: Map.get(preferences, "pvpInvite", Map.get(preferences, :pvpInvite)),
+           notify_pvp_turn: Map.get(preferences, "pvpTurn", Map.get(preferences, :pvpTurn)),
+           notify_gift_received:
+             Map.get(preferences, "giftReceived", Map.get(preferences, :giftReceived))
+         },
+         {:ok, updated} <-
+           user
+           |> User.profile_changeset(attrs)
+           |> Repo.update() do
+      build_auth_user(updated)
+    else
+      nil -> {:error, :not_found}
+      {:error, %Ecto.Changeset{} = cs} -> {:error, :validation, first_error(cs)}
+    end
+  end
+
   def list_admin_users do
     User
     |> order_by([user], asc: user.email)
@@ -812,7 +834,14 @@ defmodule AdventureTimeApi.Accounts do
        isSuperAdmin: super_admin_role?(user.role),
        preferredStepSource: Atom.to_string(user.preferred_step_source),
        preferredLanguage: Atom.to_string(user.preferred_language),
-       timezone: user.timezone || @default_timezone
+       timezone: user.timezone || @default_timezone,
+       notificationPreferences: %{
+         dailyReset: user.notify_daily_reset,
+         stepGoal: user.notify_step_goal,
+         pvpInvite: user.notify_pvp_invite,
+         pvpTurn: user.notify_pvp_turn,
+         giftReceived: user.notify_gift_received
+       }
      }}
   end
 

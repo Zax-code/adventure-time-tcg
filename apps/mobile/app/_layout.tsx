@@ -36,11 +36,20 @@ import {
   useQuestResetStore,
 } from "../src/stores/quest-reset-store";
 import { useSessionStore } from "../src/stores/session-store";
+import { useStepSyncStore } from "../src/stores/step-sync-store";
 import { useLocaleStore } from "../src/stores/locale-store";
 import { useThemeStore } from "../src/stores/theme-store";
 import { THEME_COLORS, THEME_VARS } from "../src/theme/themes";
 
 SplashScreen.preventAutoHideAsync();
+
+const DEFAULT_NOTIFICATION_PREFERENCES = {
+  dailyReset: true,
+  stepGoal: true,
+  pvpInvite: true,
+  pvpTurn: true,
+  giftReceived: true,
+} as const;
 
 export default function RootLayout() {
   useBootstrap();
@@ -57,16 +66,26 @@ export default function RootLayout() {
   const sessionHydrated = useSessionStore((state) => state.hydrated);
   const bootstrapPhase = useSessionStore((state) => state.bootstrapPhase);
   const accessToken = useSessionStore((state) => state.accessToken);
-  const authUserId = useSessionStore((state) => state.user?.id ?? null);
-  const preferredStepSource = useSessionStore(
-    (state) => state.user?.preferredStepSource ?? "device_health",
+  const user = useSessionStore((state) => state.user);
+  const authUserId = user?.id ?? null;
+  const notificationPreferences =
+    user?.notificationPreferences ?? DEFAULT_NOTIFICATION_PREFERENCES;
+  const preferredLanguage = user?.preferredLanguage ?? "en";
+  const preferredStepSource = user?.preferredStepSource ?? "device_health";
+  const timezone = user?.timezone ?? "Europe/Paris";
+  const notificationPermissionStatus = useStepSyncStore(
+    (state) => state.notificationPermissionStatus,
   );
   const publishReset = useQuestResetStore((state) => state.publishReset);
   const tc = THEME_COLORS[themeName];
 
   useWidgetRefreshPushRegistration({
     accessToken,
+    notificationPermissionStatus,
+    notificationPreferences,
+    preferredLanguage,
     preferredStepSource,
+    timezone,
     userId: authUserId,
   });
 

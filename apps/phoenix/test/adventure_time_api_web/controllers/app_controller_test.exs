@@ -73,6 +73,40 @@ defmodule AdventureTimeApiWeb.AppControllerTest do
     assert status["timezone"] == "America/New_York"
   end
 
+  test "PATCH /settings/notification-preferences updates notification preferences", _context do
+    user = create_user_with_password("notify@example.com", "treasure123")
+    access_token = login_access_token(user.email, "treasure123")
+
+    response =
+      access_token
+      |> auth_conn()
+      |> patch(~p"/settings/notification-preferences", %{
+        "notificationPreferences" => %{
+          "dailyReset" => false,
+          "stepGoal" => true,
+          "pvpInvite" => false,
+          "pvpTurn" => true,
+          "giftReceived" => false
+        }
+      })
+      |> json_response(200)
+
+    assert response["notificationPreferences"] == %{
+             "dailyReset" => false,
+             "stepGoal" => true,
+             "pvpInvite" => false,
+             "pvpTurn" => true,
+             "giftReceived" => false
+           }
+
+    updated = Repo.get!(User, user.id)
+    assert updated.notify_daily_reset == false
+    assert updated.notify_step_goal == true
+    assert updated.notify_pvp_invite == false
+    assert updated.notify_pvp_turn == true
+    assert updated.notify_gift_received == false
+  end
+
   test "POST /health/steps syncs the step quest using the user's timezone", _context do
     user = create_user_with_password("steps-timezone@example.com", "treasure123")
     user = user |> Ecto.Changeset.change(timezone: "America/New_York") |> Repo.update!()

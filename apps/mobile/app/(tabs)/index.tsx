@@ -1,11 +1,25 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FlatList, Pressable, ScrollView, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import {
+  AppState,
+  FlatList,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 
 import { ApiClientError, apiClient } from "../../src/lib/api";
+import {
+  getNotificationPermissionPromptHidden,
+  getNotificationPermissionStatus,
+  setNotificationPermissionPromptHidden,
+} from "../../src/lib/app-notifications";
 import { useSessionStore } from "../../src/stores/session-store";
+import { useStepSyncStore } from "../../src/stores/step-sync-store";
 import { useThemeStore } from "../../src/stores/theme-store";
 import { useBottomTabBarContentPadding } from "../../src/theme/layout";
 import { THEME_COLORS } from "../../src/theme/themes";
@@ -19,7 +33,11 @@ export default function HomeScreen() {
   const queryClient = useQueryClient();
   const router = useRouter();
   const accessToken = useSessionStore((state) => state.accessToken);
+  const user = useSessionStore((state) => state.user);
   const patchUser = useSessionStore((state) => state.patchUser);
+  const notificationPermissionStatus = useStepSyncStore(
+    (state) => state.notificationPermissionStatus,
+  );
   const { t } = useTranslation();
   const tc = THEME_COLORS[useThemeStore((s) => s.themeName)];
   const bottomTabPadding = useBottomTabBarContentPadding();
@@ -61,12 +79,56 @@ export default function HomeScreen() {
   });
 
   const canClaim = dailyClaimQuery.data?.canClaim ?? false;
+  const wantsNotifications = Boolean(
+    user?.notificationPreferences.dailyReset ||
+      user?.notificationPreferences.stepGoal ||
+      user?.notificationPreferences.pvpInvite ||
+      user?.notificationPreferences.pvpTurn ||
+      user?.notificationPreferences.giftReceived,
+  );
 
   const [liveTime, setLiveTime] = useState(0);
+  const [notificationPromptIgnored, setNotificationPromptIgnored] =
+    useState(false);
+  const [notificationPromptHidden, setNotificationPromptHidden] =
+    useState(false);
 
   useEffect(() => {
     setLiveTime(dailyClaimQuery.data?.timeUntilNextClaim ?? 0);
   }, [dailyClaimQuery.data]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    setNotificationPromptIgnored(false);
+
+    if (!user?.id) {
+      setNotificationPromptHidden(false);
+      return;
+    }
+
+    const syncNotificationPromptState = async () => {
+      const hidden = await getNotificationPermissionPromptHidden(user.id);
+      if (!cancelled) {
+        setNotificationPromptHidden(hidden);
+      }
+    };
+
+    void getNotificationPermissionStatus();
+    void syncNotificationPromptState();
+
+    const subscription = AppState.addEventListener("change", (nextState) => {
+      if (nextState === "active") {
+        void getNotificationPermissionStatus();
+        void syncNotificationPromptState();
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      subscription.remove();
+    };
+  }, [user?.id]);
 
   useEffect(() => {
     if (liveTime <= 0 || canClaim) return;
@@ -81,6 +143,14 @@ export default function HomeScreen() {
     }, 1000);
     return () => clearInterval(id);
   }, [liveTime, canClaim, queryClient]);
+
+  const shouldShowNotificationPrompt =
+    Boolean(user?.id) &&
+    wantsNotifications &&
+    !notificationPromptIgnored &&
+    !notificationPromptHidden &&
+    (notificationPermissionStatus === "not_requested" ||
+      notificationPermissionStatus === "denied");
 
   function formatTimeRemaining(ms: number) {
     const h = Math.floor(ms / 3600000);
@@ -129,6 +199,76 @@ export default function HomeScreen() {
       className="flex-1 bg-bg"
       contentContainerStyle={{ gap: 24, paddingBottom: bottomTabPadding }}
     >
+      {shouldShowNotificationPrompt ? (
+        <View className="mx-5 rounded-3xl border border-primaryBorder bg-surface px-4 py-4">
+          <View className="flex-row items-start gap-3">
+            <View
+              className="h-11 w-11 items-center justify-center rounded-2xl"
+              style={{ backgroundColor: tc.primaryTint }}
+            >
+              <Ionicons
+                name="notifications-outline"
+                size={20}
+                color={tc.primaryText}
+              />
+            </View>
+            <View className="flex-1 gap-1 pr-1">
+              <Text className="font-nunito-bold text-lg text-fg">
+                {t("home.notificationsPromptTitle")}
+              </Text>
+              <Text className="font-nunito text-sm leading-5 text-fgMuted">
+                {t("home.notificationsPromptBody")}
+              </Text>
+            </View>
+          </View>
+
+          <View className="mt-4 gap-2">
+            <PrimaryButton
+              onPress={() => {
+                router.push({
+                  pathname: "/settings",
+                  params: { section: "notifications" },
+                });
+              }}
+            >
+              {t("home.notificationsPromptSettings")}
+            </PrimaryButton>
+
+            <View className="flex-row gap-2">
+              <Pressable
+                className="flex-1 rounded-full border border-primaryBorder bg-surfaceMuted px-4 py-3"
+                onPress={() => {
+                  setNotificationPromptIgnored(true);
+                }}
+              >
+                <Text className="text-center font-nunito-semibold text-sm text-fgMuted">
+                  {t("home.notificationsPromptIgnore")}
+                </Text>
+              </Pressable>
+
+              <Pressable
+                className="flex-1 rounded-full border border-primaryBorder bg-surfaceMuted px-4 py-3"
+                onPress={() => {
+                  if (!user?.id) {
+                    return;
+                  }
+
+                  void setNotificationPermissionPromptHidden(user.id, true).then(
+                    () => {
+                      setNotificationPromptHidden(true);
+                    },
+                  );
+                }}
+              >
+                <Text className="text-center font-nunito-semibold text-sm text-fgMuted">
+                  {t("home.notificationsPromptHide")}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      ) : null}
+
       {/* Daily Claim */}
       <View className="mx-5 rounded-2xl border border-secondaryBorder bg-secondaryTint px-4 py-4">
         <View className="flex-row items-center justify-between">

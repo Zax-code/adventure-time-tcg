@@ -335,6 +335,13 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
              "dust" => 0,
              "isAdmin" => true,
              "isSuperAdmin" => true,
+             "notificationPreferences" => %{
+               "dailyReset" => true,
+               "stepGoal" => true,
+               "pvpInvite" => true,
+               "pvpTurn" => true,
+               "giftReceived" => true
+             },
              "preferredStepSource" => "device_health",
              "preferredLanguage" => "en",
              "timezone" => "Europe/Paris"

@@ -38,6 +38,11 @@ import {
 } from "../stores/step-sync-store";
 import { useLocaleStore } from "../stores/locale-store";
 import { useSessionStore } from "../stores/session-store";
+import {
+  configureAppNotifications,
+  ensureAppNotificationPermission,
+  STEP_NOTIFICATION_CHANNEL_ID,
+} from "./app-notifications";
 
 const IOS_STEP_TYPE = "HKQuantityTypeIdentifierStepCount";
 const STEP_GOAL = 10_000;
@@ -46,9 +51,6 @@ const FOREGROUND_SYNC_DEBOUNCE_MS = 15_000;
 const HEALTH_PERMISSION_PROMPT_KEY = "step-sync-health-permission-prompted-v1";
 const PEDOMETER_PERMISSION_PROMPT_KEY =
   "step-sync-pedometer-permission-prompted-v1";
-const NOTIFICATION_PERMISSION_PROMPT_KEY =
-  "step-sync-notification-permission-prompted-v1";
-const STEP_NOTIFICATION_CHANNEL_ID = "step-goals";
 const STEP_SYNC_BACKGROUND_TASK = "step-sync-background-task";
 const BACKGROUND_STEP_SYNC_INTERVAL_MINUTES = 15;
 
@@ -119,48 +121,22 @@ function clearScheduledForegroundSync() {
   }
 }
 
-async function ensureNotificationPermission(interactive: boolean) {
-  const current = await Notifications.getPermissionsAsync();
-
-  if (current.granted || current.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL) {
-    setStore({ notificationPermissionStatus: "granted" });
-    return true;
-  }
-
-  setStore({
-    notificationPermissionStatus:
-      current.canAskAgain || !current.status ? "not_requested" : "denied",
-  });
-
-  if (!interactive || !current.canAskAgain) {
-    return false;
-  }
-
-  const next = await Notifications.requestPermissionsAsync();
-  await markPrompted(NOTIFICATION_PERMISSION_PROMPT_KEY);
-
-  const granted =
-    next.granted || next.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL;
-
-  setStore({
-    notificationPermissionStatus: granted ? "granted" : "denied",
-  });
-
-  return granted;
-}
-
 async function notifyStepGoalReached(userId: string, recordedFor: string) {
   const key = notificationKeyForDate(userId, recordedFor);
   if (await SecureStore.getItemAsync(key)) {
     return;
   }
 
-  const notificationsGranted = await ensureNotificationPermission(false);
-  if (!notificationsGranted) {
+  const user = await getStepSyncUser();
+  if (!user?.notificationPreferences.stepGoal) {
     return;
   }
 
-  const user = await getStepSyncUser();
+  const notificationsGranted = await ensureAppNotificationPermission(false);
+  if (!notificationsGranted || !user) {
+    return;
+  }
+
   const locale =
     user?.preferredLanguage ?? useLocaleStore.getState().locale;
 
@@ -492,22 +468,7 @@ function scheduleForegroundSync() {
 }
 
 export async function configureStepNotifications() {
-  Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowBanner: true,
-      shouldShowList: true,
-      shouldPlaySound: true,
-      shouldSetBadge: false,
-    }),
-  });
-
-  if (Platform.OS === "android") {
-    await Notifications.setNotificationChannelAsync(STEP_NOTIFICATION_CHANNEL_ID, {
-      name: "Step goals",
-      importance: Notifications.AndroidImportance.DEFAULT,
-      vibrationPattern: [0, 250, 250, 250],
-    });
-  }
+  await configureAppNotifications();
 }
 
 async function backgroundTaskAvailable() {
@@ -638,7 +599,7 @@ export async function syncDeviceStepsNow({
       }
 
       if (source === "manual") {
-        await ensureNotificationPermission(false);
+        await ensureAppNotificationPermission(false);
         void startForegroundStepTracking();
         void startIosHealthSubscription();
       }

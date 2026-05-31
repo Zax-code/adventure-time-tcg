@@ -27,6 +27,7 @@ import {
   pvpSpectateDetailResponseSchema,
   updateDisplayNameSchema,
   updateLanguageSchema,
+  updateNotificationPreferencesSchema,
   updateTimezoneSchema,
   adminCoinAdjustSchema,
   adminAllowedEmailSchema,
@@ -142,6 +143,7 @@ import {
   type SyncStepsInput,
   type UpdateStepSourceInput,
   type UpdateLanguageInput,
+  type UpdateNotificationPreferencesInput,
   type UpdateTimezoneInput,
   type VerifyEmailInput,
   type VerifyEmailResponse,
@@ -936,6 +938,15 @@ export class ApiClient {
     const body = updateTimezoneSchema.parse(input);
     return this.request(
       "/settings/timezone",
+      { method: "PATCH", body: JSON.stringify(body) },
+      (data) => authUserSchema.parse(data),
+    );
+  }
+
+  async updateNotificationPreferences(input: UpdateNotificationPreferencesInput) {
+    const body = updateNotificationPreferencesSchema.parse(input);
+    return this.request(
+      "/settings/notification-preferences",
       { method: "PATCH", body: JSON.stringify(body) },
       (data) => authUserSchema.parse(data),
     );

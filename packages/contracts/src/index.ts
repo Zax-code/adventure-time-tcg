@@ -2,6 +2,13 @@ import { z } from "zod";
 
 export const stepSourceSchema = z.enum(["device_health", "fitbit"]);
 export const localeSchema = z.enum(["en", "fr"]);
+export const notificationPreferencesSchema = z.object({
+  dailyReset: z.boolean(),
+  stepGoal: z.boolean(),
+  pvpInvite: z.boolean(),
+  pvpTurn: z.boolean(),
+  giftReceived: z.boolean(),
+});
 
 export const authUserSchema = z.object({
   id: z.string(),
@@ -15,9 +22,11 @@ export const authUserSchema = z.object({
   preferredStepSource: stepSourceSchema,
   preferredLanguage: localeSchema,
   timezone: z.string().min(1),
+  notificationPreferences: notificationPreferencesSchema,
 });
 
 export type AuthUser = z.infer<typeof authUserSchema>;
+export type NotificationPreferences = z.infer<typeof notificationPreferencesSchema>;
 
 export const authTokensSchema = z.object({
   accessToken: z.string(),
@@ -1123,6 +1132,10 @@ export const updateTimezoneSchema = z.object({
   timezone: z.string().min(1),
 });
 
+export const updateNotificationPreferencesSchema = z.object({
+  notificationPreferences: notificationPreferencesSchema,
+});
+
 export const notificationPlatformSchema = z.enum(["ios", "android"]);
 
 export const registerNotificationDeviceSchema = z.object({
@@ -1211,6 +1224,9 @@ export type SyncStepsInput = z.infer<typeof syncStepsSchema>;
 export type UpdateStepSourceInput = z.infer<typeof updateStepSourceSchema>;
 export type UpdateLanguageInput = z.infer<typeof updateLanguageSchema>;
 export type UpdateTimezoneInput = z.infer<typeof updateTimezoneSchema>;
+export type UpdateNotificationPreferencesInput = z.infer<
+  typeof updateNotificationPreferencesSchema
+>;
 export type RegisterNotificationDeviceInput = z.infer<
   typeof registerNotificationDeviceSchema
 >;

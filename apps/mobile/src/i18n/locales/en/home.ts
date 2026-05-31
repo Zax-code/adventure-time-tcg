@@ -10,6 +10,12 @@ const home = {
   myCards: "My cards",
   featuredCards: "Featured cards",
   dropRates: "Drop rates",
+  notificationsPromptTitle: "Turn on notifications",
+  notificationsPromptBody:
+    "Stay on top of daily resets, step goals, gifts, and PvP turns.",
+  notificationsPromptSettings: "Go to settings",
+  notificationsPromptIgnore: "Ignore",
+  notificationsPromptHide: "Don't show again",
   logout: "Logout",
   homeUnavailable: "Home is unavailable.",
 };
