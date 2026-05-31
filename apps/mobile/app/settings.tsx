@@ -390,8 +390,8 @@ export default function SettingsScreen() {
                       </View>
                     </View>
 
-                    <View className="flex-row flex-wrap gap-2">
-                      <StatusPill
+                    <View className="flex-row flex-wrap gap-3 pt-1">
+                      <SummaryChip
                         label={t("settings.language")}
                         value={
                           currentLanguage === "fr"
@@ -401,13 +401,13 @@ export default function SettingsScreen() {
                         tone="neutral"
                         tc={tc}
                       />
-                      <StatusPill
+                      <SummaryChip
                         label={t("settings.theme")}
                         value={t(`settings.themeNames.${themeName}`)}
                         tone="primary"
                         tc={tc}
                       />
-                      <StatusPill
+                      <SummaryChip
                         label={t("settings.stepSource")}
                         value={t(`settings.stepSources.${currentStepSource}`)}
                         tone="neutral"
@@ -616,7 +616,7 @@ export default function SettingsScreen() {
                           }}
                           tc={tc}
                         >
-                          <View className="gap-3">
+                          <View className="gap-2">
                             <View className="flex-row items-start justify-between gap-3">
                               <View className="flex-1 gap-1">
                                 <Text
@@ -642,24 +642,6 @@ export default function SettingsScreen() {
                                 />
                               ) : null}
                             </View>
-
-                            <View className="flex-row flex-wrap gap-2">
-                              {isFitbitSource ? (
-                                <StatusPill
-                                  label={t("settings.fitbitStatus")}
-                                  value={fitbitStatusLabel}
-                                  tone={fitbitConnected ? "success" : "neutral"}
-                                  tc={tc}
-                                />
-                              ) : (
-                                <StatusPill
-                                  label={t("settings.healthSystem")}
-                                  value={healthSystemLabel}
-                                  tone="neutral"
-                                  tc={tc}
-                                />
-                              )}
-                            </View>
                           </View>
                         </ChoiceCard>
                       );
@@ -669,7 +651,7 @@ export default function SettingsScreen() {
               </SurfaceCard>
 
               <SurfaceCard tc={tc}>
-                <View className="gap-4">
+                <View className="gap-5">
                   <View className="gap-1">
                     <Text className="font-nunito-bold text-lg text-fg">
                       {t("settings.syncOverview")}
@@ -697,7 +679,7 @@ export default function SettingsScreen() {
                     </View>
                   </ToneBanner>
 
-                  <View className="gap-3">
+                  <View className="gap-3 rounded-[26px] bg-surfaceMuted p-3">
                     <View className="flex-row gap-3">
                       <StatTile
                         label={t("settings.latestSyncedLabel")}
@@ -732,7 +714,7 @@ export default function SettingsScreen() {
                     </View>
                   </View>
 
-                  <View className="flex-row flex-wrap gap-2">
+                  <View className="flex-row flex-wrap gap-3">
                     <StatusPill
                       label={t("settings.sourceLabel")}
                       value={t(`settings.stepSources.${latestStepSource}`)}
@@ -938,6 +920,40 @@ function StatusPill({
       </Text>
       <Text
         className="font-nunito-bold text-sm"
+        style={{ color: colors.text }}
+        numberOfLines={1}
+      >
+        {value}
+      </Text>
+    </View>
+  );
+}
+
+function SummaryChip({
+  label,
+  tc,
+  tone,
+  value,
+}: {
+  label: string;
+  tc: (typeof THEME_COLORS)[ThemeName];
+  tone: ToneName;
+  value: string;
+}) {
+  const colors = toneColors(tc, tone);
+
+  return (
+    <View
+      className="min-w-[104px] rounded-2xl px-4 py-3"
+      style={{
+        backgroundColor: colors.bg,
+        borderWidth: 1,
+        borderColor: colors.border,
+      }}
+    >
+      <Text className="font-nunito-semibold text-xs text-fgMuted">{label}</Text>
+      <Text
+        className="mt-1 font-nunito-bold text-sm"
         style={{ color: colors.text }}
         numberOfLines={1}
       >
