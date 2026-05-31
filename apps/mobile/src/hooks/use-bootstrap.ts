@@ -15,6 +15,7 @@ export function useBootstrap() {
   );
   const setBootstrapPhase = useSessionStore((state) => state.setBootstrapPhase);
   const setSession = useSessionStore((state) => state.setSession);
+  const setUser = useSessionStore((state) => state.setUser);
 
   useEffect(() => {
     let cancelled = false;
@@ -38,7 +39,8 @@ export function useBootstrap() {
       try {
         const me = await apiClient.me();
         if (!cancelled) {
-          await setSession({ user: me, accessToken, refreshToken });
+          // `/me` may have already rotated tokens via the API client's auto-refresh path.
+          await setUser(me);
         }
         return;
       } catch (error) {
@@ -75,5 +77,5 @@ export function useBootstrap() {
     return () => {
       cancelled = true;
     };
-  }, [hydrateFromStorage, setBootstrapPhase, setSession]);
+  }, [hydrateFromStorage, setBootstrapPhase, setSession, setUser]);
 }

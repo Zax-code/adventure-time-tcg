@@ -25,9 +25,8 @@ export default function SettingsScreen() {
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
   const user = useSessionStore((state) => state.user);
-  const setSession = useSessionStore((state) => state.setSession);
+  const setUser = useSessionStore((state) => state.setUser);
   const accessToken = useSessionStore((state) => state.accessToken);
-  const refreshToken = useSessionStore((state) => state.refreshToken);
   const { locale, t } = useTranslation();
 
   const themeName = useThemeStore((state) => state.themeName);
@@ -50,9 +49,7 @@ export default function SettingsScreen() {
     mutationFn: (preferredStepSource: "device_health" | "fitbit") =>
       apiClient.updateStepSource({ preferredStepSource }),
     onSuccess: async (nextUser) => {
-      if (accessToken && refreshToken) {
-        await setSession({ user: nextUser, accessToken, refreshToken });
-      }
+      await setUser(nextUser);
       await queryClient.invalidateQueries({ queryKey: ["home"] });
       await queryClient.invalidateQueries({ queryKey: ["health-steps"] });
     },
@@ -62,9 +59,7 @@ export default function SettingsScreen() {
     mutationFn: (displayName: string) =>
       apiClient.updateDisplayName(displayName),
     onSuccess: async (nextUser) => {
-      if (accessToken && refreshToken) {
-        await setSession({ user: nextUser, accessToken, refreshToken });
-      }
+      await setUser(nextUser);
       await queryClient.invalidateQueries({ queryKey: ["home"] });
       setEditing(false);
     },
@@ -74,9 +69,7 @@ export default function SettingsScreen() {
     mutationFn: (preferredLanguage: "en" | "fr") =>
       apiClient.updateLanguage({ preferredLanguage }),
     onSuccess: async (nextUser) => {
-      if (accessToken && refreshToken) {
-        await setSession({ user: nextUser, accessToken, refreshToken });
-      }
+      await setUser(nextUser);
       await queryClient.invalidateQueries({ queryKey: ["home"] });
     },
   });

@@ -20,6 +20,7 @@ interface SessionState {
     accessToken: string;
     refreshToken: string;
   }) => Promise<void>;
+  setUser: (user: AuthUser) => Promise<void>;
   patchUser: (updates: Partial<AuthUser>) => Promise<void>;
   clearSession: () => Promise<void>;
   hydrateFromStorage: () => Promise<void>;
@@ -53,6 +54,12 @@ export const useSessionStore = create<SessionState>((set) => ({
       hydrated: true,
       bootstrapPhase: "ready",
     });
+  },
+  async setUser(user) {
+    await SecureStore.setItemAsync("user", JSON.stringify(user));
+    await useLocaleStore.getState().setLocale(user.preferredLanguage);
+
+    set({ user, hydrated: true, bootstrapPhase: "ready" });
   },
   async patchUser(updates) {
     const currentUser = useSessionStore.getState().user;
