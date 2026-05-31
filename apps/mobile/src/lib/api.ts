@@ -17,36 +17,39 @@ import { useSessionStore } from "../stores/session-store";
 export { API_BASE_URL };
 
 let refreshPromise: Promise<string | null> | null = null;
+const SESSION_CLEARABLE_403_CODES = new Set([
+  "ACCESS_REQUEST_PENDING",
+  "EMAIL_VERIFICATION_REQUIRED",
+]);
+
+async function getSecureStoreValue(key: "accessToken" | "refreshToken" | "user") {
+  return SecureStore.getItemAsync(key);
+}
 
 export async function getAccessToken() {
   return (
-    useSessionStore.getState().accessToken ??
-    (await SecureStore.getItemAsync("accessToken"))
+    (await getSecureStoreValue("accessToken")) ??
+    useSessionStore.getState().accessToken
   );
 }
 
 async function getRefreshToken() {
   return (
-    useSessionStore.getState().refreshToken ??
-    (await SecureStore.getItemAsync("refreshToken"))
+    (await getSecureStoreValue("refreshToken")) ??
+    useSessionStore.getState().refreshToken
   );
 }
 
 export async function getStoredUser() {
-  const inMemoryUser = useSessionStore.getState().user;
-  if (inMemoryUser) {
-    return inMemoryUser;
-  }
-
-  const userJson = await SecureStore.getItemAsync("user");
+  const userJson = await getSecureStoreValue("user");
   if (!userJson) {
-    return null;
+    return useSessionStore.getState().user;
   }
 
   try {
     return JSON.parse(userJson) as AuthUser;
   } catch {
-    return null;
+    return useSessionStore.getState().user;
   }
 }
 
@@ -60,7 +63,10 @@ export async function clearAppSession() {
 export function shouldClearSessionForAuthError(error: unknown) {
   return (
     error instanceof ApiClientError &&
-    (error.status === 401 || error.status === 403)
+    (error.status === 401 ||
+      (error.status === 403 &&
+        error.code != null &&
+        SESSION_CLEARABLE_403_CODES.has(error.code)))
   );
 }
 
