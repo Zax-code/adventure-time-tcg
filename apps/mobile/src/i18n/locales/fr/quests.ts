@@ -21,10 +21,6 @@ const quests = {
     "Active Apple Health ou Health Connect une fois pour que cette quête puisse compter tes pas.",
   stepSyncPromptSetupBody:
     "Termine d'abord la configuration de Health Connect pour que cette quête puisse compter tes pas.",
-  stepSyncRefreshTitle: "Actualise les pas pour cette quête",
-  stepSyncRefreshBody:
-    "Le suivi des pas est actif. Utilise ces actions si la progression du jour semble bloquée.",
-  stepSyncPromptRefresh: "Forcer l'actualisation",
   widgetRemainingSteps: "{count} pas restants",
   widgetReadyToClaim: "Récompense prête : {reward} pièces",
   widgetClaimedToday: "Récupérée pour aujourd'hui",

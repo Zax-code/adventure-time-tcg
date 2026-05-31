@@ -218,8 +218,6 @@ export default function QuestsScreen() {
     user?.preferredStepSource === "device_health" &&
     (stepSync.availability === "setup_required" ||
       stepSync.healthPermissionStatus !== "granted");
-  const showStepQuestSyncControls =
-    user?.preferredStepSource === "device_health";
   const stepActionLabel =
     stepSync.availability === "setup_required"
       ? t("settings.openHealthConnect")
@@ -550,10 +548,11 @@ export default function QuestsScreen() {
               isStepQuest(quest.type) &&
               status === "active" &&
               showStepQuestActivationPrompt;
-            const shouldShowStepSyncControls =
+            const shouldShowDiscreteSyncButton =
               isStepQuest(quest.type) &&
               status === "active" &&
-              showStepQuestSyncControls;
+              user?.preferredStepSource === "device_health" &&
+              !shouldShowActivationPrompt;
 
             let statusIcon;
             if (status === "completed") {
@@ -649,22 +648,18 @@ export default function QuestsScreen() {
                 </View>
 
                 <View style={{ marginTop: 16 }}>
-                  {shouldShowStepSyncControls ? (
+                  {shouldShowActivationPrompt ? (
                     <View
                       className="rounded-2xl border border-primaryBorder bg-primaryTint p-3"
                       style={{ marginBottom: 16 }}
                     >
                       <Text className="font-nunito-bold text-sm text-primaryStrong">
-                        {shouldShowActivationPrompt
-                          ? t("quests.stepSyncPromptTitle")
-                          : t("quests.stepSyncRefreshTitle")}
+                        {t("quests.stepSyncPromptTitle")}
                       </Text>
                       <Text className="font-nunito text-sm text-primaryStrong mt-1">
-                        {shouldShowActivationPrompt
-                          ? stepSync.availability === "setup_required"
-                            ? t("quests.stepSyncPromptSetupBody")
-                            : t("quests.stepSyncPromptBody")
-                          : t("quests.stepSyncRefreshBody")}
+                        {stepSync.availability === "setup_required"
+                          ? t("quests.stepSyncPromptSetupBody")
+                          : t("quests.stepSyncPromptBody")}
                       </Text>
                       {stepSync.lastError ? (
                         <Text className="font-nunito text-sm text-dangerDark mt-2">
@@ -696,18 +691,6 @@ export default function QuestsScreen() {
                                 : stepActionLabel}
                             </Text>
                           </LinearGradient>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          onPress={() => {
-                            void handleForceRefresh();
-                          }}
-                          disabled={stepSync.isSyncing || isForceRefreshingStepQuest}
-                        >
-                          <Text className="font-nunito-bold text-sm text-primaryText">
-                            {isForceRefreshingStepQuest
-                              ? t("settings.syncing")
-                              : t("quests.stepSyncPromptRefresh")}
-                          </Text>
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -785,6 +768,30 @@ export default function QuestsScreen() {
                         total: quest.maxRuns ?? quest.target,
                       })}
                     </Text>
+                  ) : null}
+                  {shouldShowDiscreteSyncButton || stepSync.lastError ? (
+                    <View className="mt-2 items-end">
+                      {shouldShowDiscreteSyncButton ? (
+                        <TouchableOpacity
+                          onPress={() => {
+                            void handleForceRefresh();
+                          }}
+                          disabled={stepSync.isSyncing || isForceRefreshingStepQuest}
+                          hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+                        >
+                          <Text className="font-nunito-semibold text-xs text-primaryText">
+                            {stepSync.isSyncing || isForceRefreshingStepQuest
+                              ? t("settings.syncing")
+                              : t("settings.syncNow")}
+                          </Text>
+                        </TouchableOpacity>
+                      ) : null}
+                      {stepSync.lastError ? (
+                        <Text className="font-nunito text-xs text-dangerDark mt-1 text-right">
+                          {stepSync.lastError}
+                        </Text>
+                      ) : null}
+                    </View>
                   ) : null}
                 </View>
 
