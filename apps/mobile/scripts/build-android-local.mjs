@@ -4,6 +4,7 @@ import path from "node:path";
 import { spawn } from "node:child_process";
 import { parseArgs } from "node:util";
 
+const PRODUCTION_API_BASE_URL = "https://app.leaetzak.love";
 const DEFAULT_PROFILE = "production";
 const DEFAULT_OUTPUT_PATH = path.resolve(
   import.meta.dirname,
@@ -68,6 +69,7 @@ async function main() {
   process.env.NODE_ENV ??= "production";
   process.env.EAS_NO_VCS ??= "1";
   process.env.EAS_BUILD_DISABLE_EXPO_DOCTOR_STEP ??= "1";
+  process.env.EXPO_PUBLIC_API_BASE_URL = PRODUCTION_API_BASE_URL;
 
   const options = parseCliOptions();
   await mkdir(path.dirname(options.outputPath), { recursive: true });

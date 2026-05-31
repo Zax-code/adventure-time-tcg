@@ -2,7 +2,7 @@
   "expo": {
     "name": "Adventure Time",
     "slug": "adventure-time-tcg",
-    "version": "0.3.1",
+    "version": "0.3.2",
     "owner": "zax-code",
     "scheme": [
       "adventure-time",

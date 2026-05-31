@@ -3,6 +3,9 @@ import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import { parseArgs } from "node:util";
 import { buildIosLocally } from "./ios-local-build.mjs";
+
+const PRODUCTION_API_BASE_URL = "https://app.leaetzak.love";
+
 const DEFAULT_OUTPUT_PATH = path.resolve(
   import.meta.dirname,
   "../local-build/ios-production.ipa",
@@ -36,6 +39,7 @@ function parseCliOptions() {
 async function main() {
   const mobileRoot = path.resolve(import.meta.dirname, "..");
   process.env.NODE_ENV ??= "production";
+  process.env.EXPO_PUBLIC_API_BASE_URL = PRODUCTION_API_BASE_URL;
 
   const options = parseCliOptions();
   await mkdir(path.dirname(options.outputPath), { recursive: true });
