@@ -151,6 +151,30 @@ export default function AdminAbilitiesScreen() {
       },
     ],
   };
+  const heroActionStyle = {
+    opacity: isAbilitiesTab
+      ? tabTransition
+      : tabTransition.interpolate({
+          inputRange: [0, 1],
+          outputRange: [1, 0],
+        }),
+    transform: [
+      {
+        translateX: tabTransition.interpolate({
+          inputRange: [0, 1],
+          outputRange: isAbilitiesTab
+            ? [tabDirection.current * 16, 0]
+            : [0, tabDirection.current * 16],
+        }),
+      },
+      {
+        scale: tabTransition.interpolate({
+          inputRange: [0, 1],
+          outputRange: isAbilitiesTab ? [0.96, 1] : [1, 0.96],
+        }),
+      },
+    ],
+  };
 
   function handleTabChange(nextTab: "abilities" | "assignments") {
     if (nextTab === activeTab) {
@@ -169,7 +193,10 @@ export default function AdminAbilitiesScreen() {
           title={t("admin.abilities.title")}
           subtitle={t("admin.abilities.subtitle")}
           actions={
-            activeTab === "abilities" ? (
+            <Animated.View
+              pointerEvents={isAbilitiesTab ? "auto" : "none"}
+              style={heroActionStyle}
+            >
               <AdminButton
                 label={t("admin.abilities.createAbility")}
                 icon="add"
@@ -179,8 +206,9 @@ export default function AdminAbilitiesScreen() {
                     params: { mode: "create" },
                   } as any)
                 }
+                disabled={!isAbilitiesTab}
               />
-            ) : undefined
+            </Animated.View>
           }
         >
           <View className="flex-row flex-wrap gap-3">
