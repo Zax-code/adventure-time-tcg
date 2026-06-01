@@ -51,6 +51,8 @@ const quests = {
     solvedQuest: "Puzzle solved. Quest completed!",
     failed: "No attempts left today. Try again tomorrow.",
     revealedWord: "The word was: {word}",
+    hideLetters: "Hide letters for screenshot",
+    showLetters: "Show letters again",
     resetTitle: "Too late, it reset!",
     resetBody:
       "The daily Wordle just switched to a new word. Your current grid has been reset.",

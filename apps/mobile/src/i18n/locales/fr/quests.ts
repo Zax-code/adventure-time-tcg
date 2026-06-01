@@ -51,6 +51,8 @@ const quests = {
     solvedQuest: "Énigme résolue. Quête terminée !",
     failed: "Tu n'as plus d'essais aujourd'hui. Réessaie demain.",
     revealedWord: "Le mot était : {word}",
+    hideLetters: "Masquer les lettres pour la capture",
+    showLetters: "Réafficher les lettres",
     resetTitle: "Trop tard, le mot a changé !",
     resetBody:
       "Le Wordle quotidien vient de passer à un nouveau mot. Ta grille en cours a été réinitialisée.",
