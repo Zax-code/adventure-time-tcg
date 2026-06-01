@@ -7,7 +7,8 @@ import { THEME_COLORS } from "../../../theme/themes";
 
 type HudCardProps = {
   activeRun: NonNullable<SpeedRunState["activeRun"]> | null;
-  state: SpeedRunState;
+  runDurationSeconds: number;
+  sessionLabel: string;
   remainingSeconds: number;
   pauseRemainingSeconds: number;
   displayedCorrectAnswers: number;
@@ -18,7 +19,8 @@ type HudCardProps = {
 
 export function HudCard({
   activeRun,
-  state,
+  runDurationSeconds,
+  sessionLabel,
   remainingSeconds,
   pauseRemainingSeconds,
   displayedCorrectAnswers,
@@ -30,7 +32,7 @@ export function HudCard({
   const tc = THEME_COLORS[useThemeStore((s) => s.themeName)];
 
   // ── Timer urgency ─────────────────────────────────────────────────
-  const maxSeconds = state.runDurationSeconds ?? 30;
+  const maxSeconds = runDurationSeconds;
   const timerIsLow = remainingSeconds <= Math.floor(maxSeconds * 0.33);
   const timerIsCritical = remainingSeconds <= 5;
   const timerColor = timerIsCritical ? tc.dangerDark : timerIsLow ? tc.secondaryDark : tc.primaryDark;
@@ -61,7 +63,7 @@ export function HudCard({
             <Text className="text-base" style={{ color: timerColor }}>s</Text>
           </Text>
           <Text className="text-[10px] font-nunito-bold uppercase tracking-[2.5px] text-primaryDark/50 -mt-0.5">
-            {t("quests.speedCalculusRunLabel", { run: activeRun?.runNumber ?? 1, total: state.maxRuns ?? 3 })}
+            {sessionLabel}
           </Text>
         </View>
 

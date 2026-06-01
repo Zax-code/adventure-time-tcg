@@ -124,6 +124,14 @@ defmodule AdventureTimeApiWeb.QuestsController do
     end)
   end
 
+  # POST /quests/speed-calculus/training/start
+  def start_speed_calculus_training(conn, _params) do
+    timed_action(conn, "start_speed_calculus_training", fn conn, user_id ->
+      {:ok, payload} = Quests.start_speed_calculus_training(user_id)
+      json(conn, payload)
+    end)
+  end
+
   # POST /quests/speed-calculus/answer
   def answer_speed_calculus(conn, %{"runId" => run_id, "answer" => answer}) do
     answer_int = parse_int(answer)

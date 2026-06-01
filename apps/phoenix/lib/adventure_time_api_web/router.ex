@@ -97,6 +97,13 @@ defmodule AdventureTimeApiWeb.Router do
     post("/quests/claim", QuestsController, :claim_quest)
     get("/quests/speed-calculus", QuestsController, :speed_calculus_state)
     post("/quests/speed-calculus/start", QuestsController, :start_speed_calculus_run)
+
+    post(
+      "/quests/speed-calculus/training/start",
+      QuestsController,
+      :start_speed_calculus_training
+    )
+
     post("/quests/speed-calculus/answer", QuestsController, :answer_speed_calculus)
     post("/quests/speed-calculus/pause", QuestsController, :pause_speed_calculus)
     post("/quests/speed-calculus/resume", QuestsController, :resume_speed_calculus)

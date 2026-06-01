@@ -584,6 +584,24 @@ defmodule AdventureTimeApi.Quests do
     end
   end
 
+  @doc "Start a stateless Speed Calculus training run with a fresh random seed."
+  def start_speed_calculus_training(_user_id) do
+    seed = Ecto.UUID.generate()
+
+    questions =
+      seed |> SpeedCalculusEngine.build_questions() |> SpeedCalculusEngine.to_public_questions()
+
+    {:ok,
+     %{
+       runId: seed,
+       seed: seed,
+       questions: questions,
+       runDurationSeconds: SpeedCalculusEngine.run_duration_seconds(),
+       pauseDurationSeconds: SpeedCalculusEngine.resume_pause_seconds(),
+       rewardPerAnswer: SpeedCalculusEngine.reward_per_answer()
+     }}
+  end
+
   @doc "Record a user answer for the active run."
   def answer_speed_calculus(user_id, run_id, answer, expected_quest_version \\ nil) do
     date = current_reset_date_for_user(user_id)

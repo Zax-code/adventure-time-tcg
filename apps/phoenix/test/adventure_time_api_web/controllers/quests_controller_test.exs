@@ -577,6 +577,43 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
     assert claimed_error == %{"error" => "Quest already locked", "code" => "QUEST_ALREADY_LOCKED"}
   end
 
+  test "speed calculus training starts a stateless practice run without persisting attempts",
+       _context do
+    user = create_user_with_password("speed-training@example.com", "password123")
+    access_token = login_access_token(user.email, "password123")
+
+    before_count = Repo.aggregate(SpeedCalculusDailyRun, :count, :id)
+
+    first_run =
+      access_token
+      |> auth_conn()
+      |> post(~p"/quests/speed-calculus/training/start", %{})
+      |> json_response(200)
+
+    second_run =
+      access_token
+      |> auth_conn()
+      |> post(~p"/quests/speed-calculus/training/start", %{})
+      |> json_response(200)
+
+    assert is_binary(first_run["runId"])
+    assert first_run["seed"] == first_run["runId"]
+    assert first_run["runDurationSeconds"] == 30
+    assert first_run["pauseDurationSeconds"] == 5
+    assert first_run["rewardPerAnswer"] == 4
+    assert length(first_run["questions"]) == 120
+    first_question = hd(first_run["questions"])
+    assert first_question["index"] == 0
+    assert is_integer(first_question["left"])
+    assert is_integer(first_question["right"])
+    assert first_question["operator"] in ["+", "-"]
+    refute Map.has_key?(first_question, "answer")
+    refute first_run["seed"] == second_run["seed"]
+
+    after_count = Repo.aggregate(SpeedCalculusDailyRun, :count, :id)
+    assert after_count == before_count
+  end
+
   test "speed calculus rejects active-run and empty-history cashout cases", _context do
     user = create_user_with_password("speed-errors@example.com", "password123")
     access_token = login_access_token(user.email, "password123")

@@ -122,6 +122,23 @@ const quests = {
     "Resume when you're ready. The usual 5-second countdown starts next.",
   speedCalculusPauseError: "Failed to pause the speed calculus run.",
   speedCalculusResumeError: "Failed to resume the speed calculus run.",
+  speedCalculusTrainingTitle: "Training mode",
+  speedCalculusTrainingBody:
+    "Unlimited practice with fresh random seeds. Training never uses daily attempts, rewards, or quest history.",
+  speedCalculusTrainingOpen: "Open training mode",
+  speedCalculusTrainingScreenSubtitle:
+    "Practice the same timer and question rules as the daily quest, with no impact on today's result.",
+  speedCalculusTrainingStart: "Start training run",
+  speedCalculusTrainingResume: "Resume training run",
+  speedCalculusTrainingStartError: "Failed to start a training run.",
+  speedCalculusTrainingFinish:
+    "Training run finished: {score} correct answers.",
+  speedCalculusTrainingSessionLabel: "Training run",
+  speedCalculusTrainingBack: "Back to training",
+  speedCalculusTrainingLastRun: "Last training run",
+  speedCalculusTrainingNoRunsYet: "No training run finished yet.",
+  speedCalculusTrainingSummary:
+    "{score} correct answers across {answered} submitted answers.",
 };
 
 export default quests;

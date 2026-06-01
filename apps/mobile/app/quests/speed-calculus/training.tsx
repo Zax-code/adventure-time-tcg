@@ -1,0 +1,695 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import * as Haptics from "expo-haptics";
+import {
+  Animated,
+  LayoutAnimation,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  UIManager,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { router } from "expo-router";
+
+import type { SpeedRunState, SpeedTrainingRun } from "@adventure-time/api-client";
+
+import { apiClient } from "../../../src/lib/api";
+import { useTranslation } from "../../../src/i18n";
+import { ActiveRunPanel } from "../../../src/features/quests/speed-calculus/active-run-panel";
+import {
+  appendDigit,
+  canSubmitAnswer,
+  deleteDigit,
+  toggleSign,
+  type FeedbackType,
+  type ToastType,
+} from "../../../src/features/quests/speed-calculus/constants";
+import { TrainingHistoryCard } from "../../../src/features/quests/speed-calculus/training-history-card";
+import { TrainingSummaryCard } from "../../../src/features/quests/speed-calculus/training-summary-card";
+
+const DEFAULT_RUN_DURATION_SECONDS = 30;
+const DEFAULT_PAUSE_DURATION_SECONDS = 5;
+
+type TrainingActiveRun = NonNullable<SpeedRunState["activeRun"]>;
+type TrainingHistoryRun = SpeedRunState["history"][number];
+
+if (
+  Platform.OS === "android" &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
+function buildTrainingActiveRun(session: SpeedTrainingRun): TrainingActiveRun {
+  const startedAt = new Date();
+  const pauseExpiresAt = new Date(
+    startedAt.getTime() + session.pauseDurationSeconds * 1000,
+  );
+
+  return {
+    runId: session.runId,
+    runNumber: 1,
+    seed: session.seed,
+    questionIndex: 0,
+    questions: session.questions,
+    answers: [],
+    correctAnswers: 0,
+    remainingSeconds: session.runDurationSeconds,
+    pauseRemainingSeconds: session.pauseDurationSeconds,
+    isManuallyPaused: false,
+    durationSeconds: session.runDurationSeconds,
+    pauseExpiresAt: pauseExpiresAt.toISOString(),
+    startedAt: startedAt.toISOString(),
+  };
+}
+
+function buildTrainingHistory(run: TrainingActiveRun): TrainingHistoryRun {
+  const history = run.answers.map((userAnswer, index) => {
+    const question = run.questions[index];
+    const correctAnswer =
+      question.operator === "+"
+        ? question.left + question.right
+        : question.left - question.right;
+    const isCorrect = userAnswer === correctAnswer;
+
+    return {
+      index: question.index,
+      left: question.left,
+      right: question.right,
+      operator: question.operator,
+      userAnswer,
+      wasAnswered: true,
+      isCorrect,
+      correctAnswer: isCorrect ? null : correctAnswer,
+    };
+  });
+
+  return {
+    runId: run.runId,
+    runNumber: 1,
+    status: "completed",
+    score: run.correctAnswers,
+    reward: 0,
+    totalAnswered: run.answers.length,
+    correctAnswers: run.correctAnswers,
+    history,
+  };
+}
+
+export default function SpeedCalculusTrainingScreen() {
+  const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
+
+  const [activeRun, setActiveRun] = useState<TrainingActiveRun | null>(null);
+  const [lastRun, setLastRun] = useState<TrainingHistoryRun | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [answer, setAnswer] = useState("");
+  const [remainingSeconds, setRemainingSeconds] = useState(0);
+  const [pauseRemainingSeconds, setPauseRemainingSeconds] = useState(0);
+  const [toast, setToast] = useState<ToastType>(null);
+  const [feedback, setFeedback] = useState<FeedbackType>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [roundOverScore, setRoundOverScore] = useState(0);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [showRoundOver, setShowRoundOver] = useState(false);
+  const [runDurationSeconds, setRunDurationSeconds] = useState(
+    DEFAULT_RUN_DURATION_SECONDS,
+  );
+  const [pauseDurationSeconds, setPauseDurationSeconds] = useState(
+    DEFAULT_PAUSE_DURATION_SECONDS,
+  );
+
+  const playDeadlineRef = useRef<number | null>(null);
+  const pauseDeadlineRef = useRef<number | null>(null);
+  const finishRequestedRef = useRef(false);
+  const feedbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const answerRef = useRef("");
+  const shakeAnim = useRef(new Animated.Value(0)).current;
+  const feedbackSlide = useRef(new Animated.Value(-20)).current;
+  const feedbackOpacity = useRef(new Animated.Value(0)).current;
+
+  const currentQuestion = useMemo(() => {
+    if (!activeRun) {
+      return null;
+    }
+
+    return activeRun.questions[activeRun.questionIndex] ?? null;
+  }, [activeRun]);
+
+  const isManuallyPaused = activeRun?.isManuallyPaused ?? false;
+  const keypadLocked =
+    !currentQuestion || submitting || pauseRemainingSeconds > 0 || isManuallyPaused;
+  const submitDisabled = keypadLocked || !canSubmitAnswer(answer);
+  const displayedCorrectAnswers =
+    activeRun?.correctAnswers ?? (showRoundOver ? roundOverScore : 0);
+
+  const applyActiveRun = useCallback((next: TrainingActiveRun | null) => {
+    setActiveRun(next);
+
+    if (!next) {
+      playDeadlineRef.current = null;
+      pauseDeadlineRef.current = null;
+      setRemainingSeconds(0);
+      setPauseRemainingSeconds(0);
+      answerRef.current = "";
+      setAnswer("");
+      setFeedback(null);
+      return;
+    }
+
+    const now = Date.now();
+
+    if (next.pauseRemainingSeconds > 0) {
+      pauseDeadlineRef.current = now + next.pauseRemainingSeconds * 1000;
+      playDeadlineRef.current =
+        pauseDeadlineRef.current + next.remainingSeconds * 1000;
+    } else {
+      pauseDeadlineRef.current = null;
+      playDeadlineRef.current = now + next.remainingSeconds * 1000;
+    }
+
+    setPauseRemainingSeconds(next.pauseRemainingSeconds);
+    setRemainingSeconds(next.remainingSeconds);
+    answerRef.current = "";
+    setAnswer("");
+  }, []);
+
+  const finishRun = useCallback(
+    (runSnapshot?: TrainingActiveRun | null) => {
+      const runToFinish = runSnapshot ?? activeRun;
+
+      if (finishRequestedRef.current || !runToFinish) {
+        return;
+      }
+
+      finishRequestedRef.current = true;
+      setSubmitting(true);
+
+      try {
+        setLastRun(buildTrainingHistory(runToFinish));
+        setHistoryOpen(true);
+        setRoundOverScore(runToFinish.correctAnswers);
+        applyActiveRun(null);
+        setModalVisible(true);
+        setShowRoundOver(true);
+        setToast({
+          type: "success",
+          message: t("quests.speedCalculusTrainingFinish", {
+            score: runToFinish.correctAnswers,
+          }),
+        });
+      } finally {
+        finishRequestedRef.current = false;
+        setSubmitting(false);
+      }
+    },
+    [activeRun, applyActiveRun, t],
+  );
+
+  useEffect(() => {
+    if (!toast) {
+      return;
+    }
+
+    const timer = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
+  useEffect(() => {
+    return () => {
+      if (feedbackTimeoutRef.current) {
+        clearTimeout(feedbackTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (activeRun && !activeRun.isManuallyPaused && !modalVisible) {
+      setModalVisible(true);
+      setShowRoundOver(false);
+    }
+  }, [activeRun, modalVisible]);
+
+  useEffect(() => {
+    if (!activeRun) {
+      return;
+    }
+
+    if (isManuallyPaused) {
+      pauseDeadlineRef.current = null;
+      return;
+    }
+
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const nextPause = pauseDeadlineRef.current
+        ? Math.max(0, Math.ceil((pauseDeadlineRef.current - now) / 1000))
+        : 0;
+
+      if (nextPause > 0) {
+        setPauseRemainingSeconds(nextPause);
+        return;
+      }
+
+      if (pauseDeadlineRef.current) {
+        pauseDeadlineRef.current = null;
+        setPauseRemainingSeconds(0);
+      }
+
+      const nextRemaining = playDeadlineRef.current
+        ? Math.max(0, Math.ceil((playDeadlineRef.current - now) / 1000))
+        : 0;
+
+      setRemainingSeconds(nextRemaining);
+
+      if (nextRemaining === 0) {
+        clearInterval(interval);
+        finishRun();
+      }
+    }, 250);
+
+    return () => clearInterval(interval);
+  }, [activeRun, finishRun, isManuallyPaused]);
+
+  useEffect(() => {
+    if (!activeRun || pauseRemainingSeconds > 0 || isManuallyPaused) {
+      return;
+    }
+
+    if (activeRun.questionIndex >= activeRun.questions.length) {
+      finishRun();
+    }
+  }, [activeRun, finishRun, isManuallyPaused, pauseRemainingSeconds]);
+
+  const triggerShake = useCallback(() => {
+    shakeAnim.setValue(0);
+    Animated.sequence([
+      Animated.timing(shakeAnim, {
+        toValue: 7,
+        duration: 68,
+        useNativeDriver: true,
+      }),
+      Animated.timing(shakeAnim, {
+        toValue: -7,
+        duration: 68,
+        useNativeDriver: true,
+      }),
+      Animated.timing(shakeAnim, {
+        toValue: 5,
+        duration: 68,
+        useNativeDriver: true,
+      }),
+      Animated.timing(shakeAnim, {
+        toValue: -5,
+        duration: 68,
+        useNativeDriver: true,
+      }),
+      Animated.timing(shakeAnim, {
+        toValue: 0,
+        duration: 68,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [shakeAnim]);
+
+  const showFeedback = useCallback(
+    (nextFeedback: FeedbackType) => {
+      if (feedbackTimeoutRef.current) {
+        clearTimeout(feedbackTimeoutRef.current);
+      }
+
+      setFeedback(nextFeedback);
+      feedbackSlide.setValue(-20);
+      feedbackOpacity.setValue(0);
+
+      Animated.parallel([
+        Animated.timing(feedbackSlide, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(feedbackOpacity, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
+
+      feedbackTimeoutRef.current = setTimeout(() => {
+        setFeedback(null);
+        feedbackTimeoutRef.current = null;
+      }, 1600);
+    },
+    [feedbackOpacity, feedbackSlide],
+  );
+
+  const startRun = useCallback(async () => {
+    if (submitting) {
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      const session = await apiClient.startSpeedCalculusTraining();
+      setRunDurationSeconds(session.runDurationSeconds);
+      setPauseDurationSeconds(session.pauseDurationSeconds);
+      setShowRoundOver(false);
+      setRoundOverScore(0);
+      applyActiveRun(buildTrainingActiveRun(session));
+      setModalVisible(true);
+    } catch (error) {
+      setToast({
+        type: "error",
+        message:
+          error instanceof Error
+            ? error.message
+            : t("quests.speedCalculusTrainingStartError"),
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  }, [applyActiveRun, submitting, t]);
+
+  const pauseRun = useCallback(() => {
+    if (!activeRun || pauseRemainingSeconds > 0 || isManuallyPaused || submitting) {
+      return;
+    }
+
+    playDeadlineRef.current = null;
+    pauseDeadlineRef.current = null;
+    setPauseRemainingSeconds(0);
+
+    setActiveRun((current) =>
+      current
+        ? {
+            ...current,
+            isManuallyPaused: true,
+            remainingSeconds,
+            pauseRemainingSeconds: 0,
+            pauseExpiresAt: null,
+          }
+        : current,
+    );
+  }, [activeRun, isManuallyPaused, pauseRemainingSeconds, remainingSeconds, submitting]);
+
+  const resumeRun = useCallback(() => {
+    if (!activeRun || !isManuallyPaused || submitting) {
+      return;
+    }
+
+    const now = Date.now();
+    const nextPauseDeadline = now + pauseDurationSeconds * 1000;
+
+    pauseDeadlineRef.current = nextPauseDeadline;
+    playDeadlineRef.current = nextPauseDeadline + remainingSeconds * 1000;
+    setPauseRemainingSeconds(pauseDurationSeconds);
+
+    setActiveRun((current) =>
+      current
+        ? {
+            ...current,
+            isManuallyPaused: false,
+            pauseRemainingSeconds: pauseDurationSeconds,
+            remainingSeconds,
+            pauseExpiresAt: new Date(nextPauseDeadline).toISOString(),
+          }
+        : current,
+    );
+  }, [
+    activeRun,
+    isManuallyPaused,
+    pauseDurationSeconds,
+    remainingSeconds,
+    submitting,
+  ]);
+
+  const handleDigit = useCallback(
+    (digit: string) => {
+      if (keypadLocked) {
+        return;
+      }
+
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      const nextAnswer = appendDigit(answerRef.current, digit);
+      answerRef.current = nextAnswer;
+      setAnswer(nextAnswer);
+    },
+    [keypadLocked],
+  );
+
+  const handleDelete = useCallback(() => {
+    if (keypadLocked) {
+      return;
+    }
+
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const nextAnswer = deleteDigit(answerRef.current);
+    answerRef.current = nextAnswer;
+    setAnswer(nextAnswer);
+  }, [keypadLocked]);
+
+  const handleClear = useCallback(() => {
+    if (keypadLocked) {
+      return;
+    }
+
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    answerRef.current = "";
+    setAnswer("");
+  }, [keypadLocked]);
+
+  const handleToggleSign = useCallback(() => {
+    if (keypadLocked) {
+      return;
+    }
+
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const nextAnswer = toggleSign(answerRef.current);
+    answerRef.current = nextAnswer;
+    setAnswer(nextAnswer);
+  }, [keypadLocked]);
+
+  const handleSubmit = useCallback(() => {
+    if (!activeRun || !currentQuestion || submitting || pauseRemainingSeconds > 0 || isManuallyPaused) {
+      return;
+    }
+
+    const trimmed = answerRef.current.trim();
+
+    if (!canSubmitAnswer(trimmed)) {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      triggerShake();
+      return;
+    }
+
+    const expectedAnswer =
+      currentQuestion.operator === "+"
+        ? currentQuestion.left + currentQuestion.right
+        : currentQuestion.left - currentQuestion.right;
+    const parsed = parseInt(trimmed, 10);
+    const nextAnswers = [...activeRun.answers, parsed];
+    const nextCorrectAnswers =
+      activeRun.correctAnswers + (parsed === expectedAnswer ? 1 : 0);
+    const isLastQuestion =
+      activeRun.questionIndex + 1 >= activeRun.questions.length;
+
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    if (parsed === expectedAnswer) {
+      showFeedback({
+        kind: "correct",
+        message: t("quests.speedCalculusCorrectFeedback"),
+      });
+    } else {
+      showFeedback({
+        kind: "incorrect",
+        message: t("quests.speedCalculusWrongFeedback", {
+          answer: expectedAnswer,
+        }),
+        questionLabel: `${currentQuestion.left} ${currentQuestion.operator} ${currentQuestion.right}`,
+        correctAnswer: expectedAnswer,
+      });
+      triggerShake();
+    }
+
+    answerRef.current = "";
+    setAnswer("");
+
+    if (isLastQuestion) {
+      finishRun({
+        ...activeRun,
+        answers: nextAnswers,
+        correctAnswers: nextCorrectAnswers,
+        remainingSeconds,
+        pauseRemainingSeconds,
+      });
+      return;
+    }
+
+    setActiveRun((current) =>
+      current && current.runId === activeRun.runId
+        ? {
+            ...current,
+            answers: nextAnswers,
+            questionIndex: current.questionIndex + 1,
+            correctAnswers: nextCorrectAnswers,
+            remainingSeconds,
+            pauseRemainingSeconds,
+          }
+        : current,
+    );
+  }, [
+    activeRun,
+    currentQuestion,
+    finishRun,
+    isManuallyPaused,
+    pauseRemainingSeconds,
+    remainingSeconds,
+    showFeedback,
+    submitting,
+    t,
+    triggerShake,
+  ]);
+
+  const toggleHistory = useCallback(() => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setHistoryOpen((current) => !current);
+  }, []);
+
+  const handleRoundOverDismiss = useCallback(() => {
+    setShowRoundOver(false);
+    setModalVisible(false);
+  }, []);
+
+  const answerBoxBg =
+    feedback?.kind === "correct"
+      ? "#CCFBF1"
+      : feedback?.kind === "incorrect"
+        ? "#FFE4E6"
+        : "#FFFFFF";
+  const answerBoxBorder =
+    feedback?.kind === "correct"
+      ? "rgba(20,184,166,0.3)"
+      : feedback?.kind === "incorrect"
+        ? "#FECDD3"
+        : "#FCE7F3";
+  const answerBoxText =
+    feedback?.kind === "correct"
+      ? "#005F5A"
+      : feedback?.kind === "incorrect"
+        ? "#A50036"
+        : "#EC4899";
+
+  return (
+    <View className="flex-1 bg-primaryBg">
+      {toast ? (
+        <View
+          className={`absolute left-4 right-4 z-[100] rounded-xl p-4 ${toast.type === "success" ? "bg-successDark" : "bg-dangerDark"}`}
+          style={{
+            top: insets.top + 8,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.15,
+            shadowRadius: 8,
+            elevation: 8,
+          }}
+        >
+          <Text className="font-nunito-semibold text-sm text-white">
+            {toast.message}
+          </Text>
+        </View>
+      ) : null}
+
+      <ScrollView
+        contentContainerStyle={{
+          paddingHorizontal: 16,
+          paddingTop: insets.top + 16,
+          paddingBottom: insets.bottom + 32,
+          gap: 16,
+        }}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View className="items-center gap-2">
+          <Text
+            className="text-[28px] font-nunito-extrabold text-primaryDark"
+            style={{
+              shadowColor: "#14B8A6",
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: 0.18,
+              shadowRadius: 4,
+            }}
+          >
+            {t("quests.speedCalculusTrainingTitle")}
+          </Text>
+          <Text className="max-w-[340px] text-center text-sm font-nunito text-primaryDark/80">
+            {t("quests.speedCalculusTrainingBody")}
+          </Text>
+          <Pressable
+            onPress={() => router.back()}
+            className="w-full rounded-xl overflow-hidden"
+            style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
+          >
+            <View className="items-center rounded-xl bg-primary py-2">
+              <Text className="font-nunito-semibold text-sm text-primaryBg">
+                {t("quests.speedCalculusBackToMain")}
+              </Text>
+            </View>
+          </Pressable>
+        </View>
+
+        <TrainingSummaryCard
+          activeRun={activeRun}
+          submitting={submitting}
+          lastRunScore={lastRun?.score ?? null}
+          onStartRun={() => void startRun()}
+          onResumeRun={resumeRun}
+        />
+
+        <TrainingHistoryCard
+          lastRun={lastRun}
+          isOpen={historyOpen}
+          onToggle={toggleHistory}
+        />
+      </ScrollView>
+
+      <ActiveRunPanel
+        visible={modalVisible}
+        showRoundOver={showRoundOver}
+        activeRun={activeRun}
+        roundOverScore={roundOverScore}
+        sessionLabel={t("quests.speedCalculusTrainingSessionLabel")}
+        roundOverBackLabel={t("quests.speedCalculusTrainingBack")}
+        pausedBackLabel={t("quests.speedCalculusTrainingBack")}
+        runDurationSeconds={runDurationSeconds}
+        remainingSeconds={remainingSeconds}
+        pauseRemainingSeconds={pauseRemainingSeconds}
+        displayedCorrectAnswers={displayedCorrectAnswers}
+        isManuallyPaused={isManuallyPaused}
+        feedback={feedback}
+        feedbackSlide={feedbackSlide}
+        feedbackOpacity={feedbackOpacity}
+        answer={answer}
+        shakeAnim={shakeAnim}
+        answerBoxBg={answerBoxBg}
+        answerBoxBorder={answerBoxBorder}
+        answerBoxText={answerBoxText}
+        submitting={submitting}
+        keypadLocked={keypadLocked}
+        submitDisabled={submitDisabled}
+        currentQuestion={currentQuestion}
+        onPause={pauseRun}
+        onResume={resumeRun}
+        onLeavePaused={() => setModalVisible(false)}
+        onDigit={handleDigit}
+        onDelete={handleDelete}
+        onClear={handleClear}
+        onToggleSign={handleToggleSign}
+        onSubmit={handleSubmit}
+        onDismiss={handleRoundOverDismiss}
+      />
+    </View>
+  );
+}
