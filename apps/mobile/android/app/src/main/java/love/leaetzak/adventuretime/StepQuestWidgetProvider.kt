@@ -1,5 +1,6 @@
 package love.leaetzak.adventuretime
 
+import android.app.AlarmManager
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
@@ -20,6 +21,7 @@ import android.view.View
 import android.widget.RemoteViews
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Locale
 import java.util.Date
 import kotlin.math.floor
@@ -29,6 +31,9 @@ private const val DEFAULT_WIDGET_DEEP_LINK = "adventure-time://widget-quests?foc
 private const val DEFAULT_WIDGET_THEME_NAME = "candy"
 private const val REWARD_TEXT_COLOR = 0xFF8A4A00.toInt()
 private const val RING_FILL_COLOR = 0x8CFFFFFF.toInt()
+private const val ACTION_STEP_QUEST_WIDGET_MIDNIGHT_REFRESH =
+  "love.leaetzak.adventuretime.action.STEP_QUEST_WIDGET_MIDNIGHT_REFRESH"
+private const val MIDNIGHT_REFRESH_REQUEST_CODE = 10_001
 
 private enum class WidgetLayout(
   val layoutRes: Int,
@@ -59,6 +64,20 @@ private data class WidgetPalette(
 }
 
 class StepQuestWidgetProvider : AppWidgetProvider() {
+  override fun onReceive(context: Context, intent: Intent) {
+    super.onReceive(context, intent)
+
+    when (intent.action) {
+      ACTION_STEP_QUEST_WIDGET_MIDNIGHT_REFRESH,
+      Intent.ACTION_DATE_CHANGED,
+      Intent.ACTION_TIME_CHANGED,
+      Intent.ACTION_TIMEZONE_CHANGED,
+      Intent.ACTION_BOOT_COMPLETED -> {
+        updateAllWidgets(context)
+      }
+    }
+  }
+
   override fun onUpdate(
     context: Context,
     appWidgetManager: AppWidgetManager,
@@ -67,6 +86,18 @@ class StepQuestWidgetProvider : AppWidgetProvider() {
     appWidgetIds.forEach { appWidgetId ->
       updateAppWidget(context, appWidgetManager, appWidgetId)
     }
+
+    scheduleNextMidnightRefresh(context)
+  }
+
+  override fun onEnabled(context: Context) {
+    super.onEnabled(context)
+    scheduleNextMidnightRefresh(context)
+  }
+
+  override fun onDisabled(context: Context) {
+    super.onDisabled(context)
+    cancelNextMidnightRefresh(context)
   }
 
   override fun onAppWidgetOptionsChanged(
@@ -77,6 +108,7 @@ class StepQuestWidgetProvider : AppWidgetProvider() {
   ) {
     super.onAppWidgetOptionsChanged(context, appWidgetManager, appWidgetId, newOptions)
     updateAppWidget(context, appWidgetManager, appWidgetId)
+    scheduleNextMidnightRefresh(context)
   }
 
   companion object {
@@ -85,9 +117,16 @@ class StepQuestWidgetProvider : AppWidgetProvider() {
       val componentName = ComponentName(context, StepQuestWidgetProvider::class.java)
       val appWidgetIds = appWidgetManager.getAppWidgetIds(componentName)
 
+      if (appWidgetIds.isEmpty()) {
+        cancelNextMidnightRefresh(context)
+        return
+      }
+
       appWidgetIds.forEach { appWidgetId ->
         updateAppWidget(context, appWidgetManager, appWidgetId)
       }
+
+      scheduleNextMidnightRefresh(context)
     }
 
     private fun updateAppWidget(
@@ -235,8 +274,7 @@ class StepQuestWidgetProvider : AppWidgetProvider() {
       localeTag: String,
       snapshot: StepQuestWidgetSnapshot,
     ): StepQuestWidgetSnapshot {
-      val recordedFor = snapshot.recordedFor
-      if (recordedFor == null || recordedFor == currentLocalDateString()) {
+      if (snapshot.recordedFor == currentLocalDateString()) {
         return snapshot
       }
 
@@ -256,6 +294,32 @@ class StepQuestWidgetProvider : AppWidgetProvider() {
     private fun currentLocalDateString(): String {
       val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.US)
       return formatter.format(Date())
+    }
+
+    private fun nextLocalMidnight(): Long {
+      val calendar = Calendar.getInstance().apply {
+        add(Calendar.DAY_OF_YEAR, 1)
+        set(Calendar.HOUR_OF_DAY, 0)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+      }
+
+      return calendar.timeInMillis
+    }
+
+    private fun scheduleNextMidnightRefresh(context: Context) {
+      val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return
+      alarmManager.setAndAllowWhileIdle(
+        AlarmManager.RTC_WAKEUP,
+        nextLocalMidnight(),
+        createMidnightRefreshPendingIntent(context),
+      )
+    }
+
+    private fun cancelNextMidnightRefresh(context: Context) {
+      val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return
+      alarmManager.cancel(createMidnightRefreshPendingIntent(context))
     }
 
     private fun resolveLayout(options: Bundle): WidgetLayout {
@@ -658,6 +722,19 @@ class StepQuestWidgetProvider : AppWidgetProvider() {
       return PendingIntent.getActivity(
         context,
         0,
+        intent,
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+      )
+    }
+
+    private fun createMidnightRefreshPendingIntent(context: Context): PendingIntent {
+      val intent = Intent(context, StepQuestWidgetProvider::class.java).apply {
+        action = ACTION_STEP_QUEST_WIDGET_MIDNIGHT_REFRESH
+      }
+
+      return PendingIntent.getBroadcast(
+        context,
+        MIDNIGHT_REFRESH_REQUEST_CODE,
         intent,
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
       )

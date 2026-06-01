@@ -264,28 +264,50 @@ private struct StepQuestProvider: TimelineProvider {
   }
 
   func getTimeline(in context: Context, completion: @escaping (Timeline<StepQuestEntry>) -> Void) {
-    let entry = loadEntry()
-    let refreshDate = Calendar.current.date(byAdding: .minute, value: 15, to: Date()) ?? Date().addingTimeInterval(900)
-    completion(Timeline(entries: [entry], policy: .after(refreshDate)))
+    let now = Date()
+    let entry = loadEntry(for: now)
+    var entries = [entry]
+
+    if let rolloverEntry = makeMidnightRolloverEntry(from: entry, after: now) {
+      entries.append(rolloverEntry)
+    }
+
+    let refreshBaseDate = entries.last?.date ?? now
+    let refreshDate = Calendar.current.date(byAdding: .minute, value: 15, to: refreshBaseDate)
+      ?? refreshBaseDate.addingTimeInterval(900)
+    completion(Timeline(entries: entries, policy: .after(refreshDate)))
   }
 
-  private func loadEntry() -> StepQuestEntry {
+  private func loadEntry(for date: Date = Date()) -> StepQuestEntry {
     let defaults = UserDefaults(suiteName: appGroupId)
     let snapshotJson = defaults?.string(forKey: snapshotKey)
     let snapshot = snapshotJson
       .flatMap { $0.data(using: .utf8) }
       .flatMap { try? JSONDecoder().decode(StepQuestSnapshot.self, from: $0) }
-      .map(normalizeSnapshotForToday)
+      .map { normalizeSnapshot($0, for: formatLocalDate(date)) }
 
     let resolvedThemeName = normalizeThemeName(snapshot?.themeName) ?? loadStoredThemeName() ?? "candy"
 
-    return StepQuestEntry(date: Date(), snapshot: snapshot, themeName: resolvedThemeName)
+    return StepQuestEntry(date: date, snapshot: snapshot, themeName: resolvedThemeName)
+  }
+
+  private func makeMidnightRolloverEntry(from entry: StepQuestEntry, after date: Date) -> StepQuestEntry? {
+    guard let snapshot = entry.snapshot else {
+      return nil
+    }
+
+    let nextMidnight = startOfNextLocalDay(after: date)
+    let rolloverSnapshot = normalizeSnapshot(snapshot, for: formatLocalDate(nextMidnight))
+    return StepQuestEntry(date: nextMidnight, snapshot: rolloverSnapshot, themeName: entry.themeName)
   }
 }
 
 private func normalizeSnapshotForToday(_ snapshot: StepQuestSnapshot) -> StepQuestSnapshot {
-  let today = currentLocalDateString()
-  guard let recordedFor = snapshot.recordedFor, recordedFor != today else {
+  normalizeSnapshot(snapshot, for: currentLocalDateString())
+}
+
+private func normalizeSnapshot(_ snapshot: StepQuestSnapshot, for localDateString: String) -> StepQuestSnapshot {
+  guard snapshot.recordedFor != localDateString else {
     return snapshot
   }
 
@@ -299,7 +321,7 @@ private func normalizeSnapshotForToday(_ snapshot: StepQuestSnapshot) -> StepQue
     target: target,
     reward: snapshot.reward,
     status: "active",
-    recordedFor: today,
+    recordedFor: localDateString,
     deepLink: snapshot.deepLink,
     updatedAt: ISO8601DateFormatter().string(from: Date()),
     progressLabel: progressLabel,
@@ -340,11 +362,20 @@ private func normalizeLocaleCode(_ localeCode: String?) -> String? {
 }
 
 private func currentLocalDateString() -> String {
-  let components = Calendar.current.dateComponents([.year, .month, .day], from: Date())
+  formatLocalDate(Date())
+}
+
+private func formatLocalDate(_ date: Date) -> String {
+  let components = Calendar.current.dateComponents([.year, .month, .day], from: date)
   let year = components.year ?? 0
   let month = components.month ?? 0
   let day = components.day ?? 0
   return String(format: "%04d-%02d-%02d", year, month, day)
+}
+
+private func startOfNextLocalDay(after date: Date) -> Date {
+  let startOfToday = Calendar.current.startOfDay(for: date)
+  return Calendar.current.date(byAdding: .day, value: 1, to: startOfToday) ?? date.addingTimeInterval(86_400)
 }
 
 private func formatNumber(_ value: Int) -> String {
