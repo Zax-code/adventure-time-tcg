@@ -50,9 +50,9 @@
 
   <item
     android:drawable="@drawable/step_quest_widget_sparkle"
-    android:gravity="top|right"
+    android:gravity="bottom|left"
     android:height="16dp"
-    android:right="30dp"
-    android:top="18dp"
+    android:bottom="42dp"
+    android:left="112dp"
     android:width="16dp" />
 </layer-list>
