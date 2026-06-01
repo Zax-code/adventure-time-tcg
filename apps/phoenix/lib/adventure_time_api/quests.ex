@@ -25,7 +25,8 @@ defmodule AdventureTimeApi.Quests do
   @daily_reward 100
   @reset_timezone "Europe/Paris"
   @wordle_max_attempts 6
-  @wordle_locale "fr"
+  @default_wordle_locale "fr"
+  @wordle_locales ["fr", "en"]
   @slow_wordle_ms 150
   @slow_speed_state_ms 150
 
@@ -36,30 +37,30 @@ defmodule AdventureTimeApi.Quests do
   ]
 
   # ── Wordle Cache (persistent_term for fast in-memory lookups) ───────────────
-  @wordle_cache_key {:wordle_candidates, "fr"}
-  @wordle_words_set_key {:wordle_words_set, "fr"}
+  defp wordle_cache_key(locale), do: {:wordle_candidates, locale}
+  defp wordle_words_set_key(locale), do: {:wordle_words_set, locale}
 
-  defp wordle_candidates_from_db do
+  defp wordle_candidates_from_db(locale) do
     WordleDictionaryWord
-    |> where([w], w.locale == ^@wordle_locale and w.is_solution_candidate == true)
+    |> where([w], w.locale == ^locale and w.is_solution_candidate == true)
     |> order_by([w], asc: w.word)
     |> select([w], w.word)
     |> Repo.all()
   end
 
-  defp wordle_words_set_from_db do
+  defp wordle_words_set_from_db(locale) do
     WordleDictionaryWord
-    |> where([w], w.locale == ^@wordle_locale and w.is_allowed_guess == true)
+    |> where([w], w.locale == ^locale and w.is_allowed_guess == true)
     |> select([w], w.word)
     |> Repo.all()
     |> MapSet.new()
   end
 
-  defp get_wordle_candidates do
-    case :persistent_term.get(@wordle_cache_key, :undefined) do
+  defp get_wordle_candidates(locale) do
+    case :persistent_term.get(wordle_cache_key(locale), :undefined) do
       :undefined ->
-        candidates = wordle_candidates_from_db()
-        :persistent_term.put(@wordle_cache_key, candidates)
+        candidates = wordle_candidates_from_db(locale)
+        :persistent_term.put(wordle_cache_key(locale), candidates)
         candidates
 
       candidates ->
@@ -67,11 +68,11 @@ defmodule AdventureTimeApi.Quests do
     end
   end
 
-  defp get_wordle_words_set do
-    case :persistent_term.get(@wordle_words_set_key, :undefined) do
+  defp get_wordle_words_set(locale) do
+    case :persistent_term.get(wordle_words_set_key(locale), :undefined) do
       :undefined ->
-        words_set = wordle_words_set_from_db()
-        :persistent_term.put(@wordle_words_set_key, words_set)
+        words_set = wordle_words_set_from_db(locale)
+        :persistent_term.put(wordle_words_set_key(locale), words_set)
         words_set
 
       words_set ->
@@ -80,8 +81,11 @@ defmodule AdventureTimeApi.Quests do
   end
 
   def wordle_cache_warm do
-    get_wordle_candidates()
-    get_wordle_words_set()
+    Enum.each(@wordle_locales, fn locale ->
+      get_wordle_candidates(locale)
+      get_wordle_words_set(locale)
+    end)
+
     :ok
   end
 
@@ -257,10 +261,7 @@ defmodule AdventureTimeApi.Quests do
       |> where([q], q.user_id == ^user_id and q.date == ^date)
       |> Repo.all()
 
-    attempts_count =
-      WordleDailyAttempt
-      |> where([a], a.user_id == ^user_id and a.date == ^date)
-      |> Repo.aggregate(:count, :id)
+    wordle_summary = build_wordle_summary(user_id, date)
 
     speed_state = build_speed_calculus_summary(user_id, date)
 
@@ -270,7 +271,7 @@ defmodule AdventureTimeApi.Quests do
         quest = Enum.find(quests, &(&1.quest_type == def.quest_type))
 
         if quest do
-          build_quest_entry(quest, def, attempts_count, speed_state)
+          build_quest_entry(quest, def, wordle_summary, speed_state)
         end
       end)
       |> Enum.reject(&is_nil/1)
@@ -358,175 +359,189 @@ defmodule AdventureTimeApi.Quests do
   # ── Wordle ───────────────────────────────────────────────────────────────────
 
   @doc "Return the current Wordle game state for a user."
-  def wordle_state(user_id) do
-    {payload, duration_ms} =
-      timed(fn ->
-        timezone = reset_timezone_for_user(user_id)
-        date = current_reset_date(timezone)
-        attempts = load_wordle_attempts(user_id, date)
-        solved = Enum.any?(attempts, & &1.solved)
-        game_over = solved || length(attempts) >= @wordle_max_attempts
+  def wordle_state(user_id, locale \\ nil) do
+    with {:ok, locale} <- normalize_wordle_locale(locale) do
+      {payload, duration_ms} =
+        timed(fn ->
+          timezone = reset_timezone_for_user(user_id)
+          date = current_reset_date(timezone)
+          attempts = load_wordle_attempts(user_id, date, locale)
+          solved = Enum.any?(attempts, & &1.solved)
+          game_over = solved || length(attempts) >= @wordle_max_attempts
 
-        target_word =
-          if game_over && !solved do
-            get_daily_word(date)
-          end
+          target_word =
+            if game_over && !solved do
+              get_daily_word(date, locale)
+            end
 
-        quest =
-          DailyQuest
-          |> where(
-            [q],
-            q.user_id == ^user_id and q.date == ^date and q.quest_type == "wordle_daily"
-          )
-          |> Repo.one()
+          quest =
+            DailyQuest
+            |> where(
+              [q],
+              q.user_id == ^user_id and q.date == ^date and q.quest_type == "wordle_daily"
+            )
+            |> Repo.one()
 
-        %{
-          date: Date.to_iso8601(date),
-          resetTimezone: timezone,
-          guesses: Enum.map(attempts, fn a -> %{guess: a.guess, evaluation: a.evaluation} end),
-          solved: solved,
-          questVersion: if(quest, do: quest.id, else: nil),
-          resetByName: reset_by_name(quest),
-          targetWord: target_word
-        }
-      end)
+          %{
+            locale: locale,
+            availableLocales: @wordle_locales,
+            date: Date.to_iso8601(date),
+            resetTimezone: timezone,
+            guesses: Enum.map(attempts, fn a -> %{guess: a.guess, evaluation: a.evaluation} end),
+            solved: solved,
+            questVersion: if(quest, do: quest.id, else: nil),
+            resetByName: reset_by_name(quest),
+            targetWord: target_word
+          }
+        end)
 
-    maybe_log_slow(
-      duration_ms,
-      @slow_wordle_ms,
-      "wordle_state_slow",
-      user_id: user_id,
-      guesses: length(payload.guesses),
-      solved: payload.solved
-    )
+      maybe_log_slow(
+        duration_ms,
+        @slow_wordle_ms,
+        "wordle_state_slow",
+        user_id: user_id,
+        locale: locale,
+        guesses: length(payload.guesses),
+        solved: payload.solved
+      )
 
-    {:ok, payload}
+      {:ok, payload}
+    end
   end
 
   @doc "Submit a Wordle guess. Returns evaluation or an error tuple with a code."
   def submit_wordle_guess(
         user_id,
         raw_guess,
+        locale \\ nil,
         expected_date_str \\ nil,
         expected_quest_version \\ nil
       ) do
-    {{result, breakdown}, duration_ms} =
-      timed(fn ->
-        date = current_reset_date_for_user(user_id)
-        guess = WordleEngine.normalize(raw_guess)
+    with {:ok, locale} <- normalize_wordle_locale(locale) do
+      {{result, breakdown}, duration_ms} =
+        timed(fn ->
+          date = current_reset_date_for_user(user_id)
+          guess = WordleEngine.normalize(raw_guess)
 
-        {validation_result, validation_ms} =
-          timed(fn ->
-            with :ok <- validate_expected_date(expected_date_str, date),
-                 :ok <- validate_wordle_version(user_id, date, expected_quest_version),
-                 :ok <- validate_guess_format(guess),
-                 :ok <- validate_french_word(guess) do
-              :ok
-            end
-          end)
-
-        with :ok <- validation_result do
-          {attempts_result, attempts_ms} =
+          {validation_result, validation_ms} =
             timed(fn ->
-              attempts = load_wordle_attempts(user_id, date)
-
-              with :ok <- validate_not_already_solved(attempts),
-                   :ok <- validate_attempts_remaining(attempts) do
-                {:ok, attempts}
+              with :ok <- validate_expected_date(expected_date_str, date),
+                   :ok <- validate_wordle_version(user_id, date, expected_quest_version),
+                   :ok <- validate_guess_format(guess),
+                   :ok <- validate_wordle_word(guess, locale) do
+                :ok
               end
             end)
 
-          with {:ok, attempts} <- attempts_result do
-            {target, target_ms} = timed(fn -> get_daily_word(date) end)
-
-            {write_result, write_ms} =
+          with :ok <- validation_result do
+            {attempts_result, attempts_ms} =
               timed(fn ->
-                evaluation = WordleEngine.evaluate_guess(guess, target)
-                evaluation_strings = WordleEngine.evaluation_to_strings(evaluation)
-                solved = guess == target
+                attempts = load_wordle_attempts(user_id, date, locale)
 
-                %WordleDailyAttempt{}
-                |> WordleDailyAttempt.changeset(%{
-                  user_id: user_id,
-                  date: date,
-                  attempt: length(attempts) + 1,
-                  guess: guess,
-                  evaluation: evaluation_strings,
-                  solved: solved
-                })
-                |> Repo.insert!()
-
-                quest_just_completed =
-                  if solved do
-                    complete_wordle_quest(user_id, date)
-                  else
-                    false
-                  end
-
-                target_word =
-                  if !solved && length(attempts) + 1 >= @wordle_max_attempts do
-                    target
-                  end
-
-                {:ok,
-                 %{
-                   evaluation: evaluation_strings,
-                   solved: solved,
-                   date: Date.to_iso8601(date),
-                   questJustCompleted: quest_just_completed,
-                   targetWord: target_word
-                 }}
+                with :ok <- validate_not_already_solved(attempts),
+                     :ok <- validate_attempts_remaining(attempts) do
+                  {:ok, attempts}
+                end
               end)
 
-            {write_result,
-             %{
-               validation_ms: validation_ms,
-               attempts_ms: attempts_ms,
-               target_ms: target_ms,
-               write_ms: write_ms,
-               attempts_used: length(attempts) + 1,
-               solved: match?({:ok, %{solved: true}}, write_result)
-             }}
+            with {:ok, attempts} <- attempts_result do
+              {target, target_ms} = timed(fn -> get_daily_word(date, locale) end)
+
+              {write_result, write_ms} =
+                timed(fn ->
+                  evaluation = WordleEngine.evaluate_guess(guess, target)
+                  evaluation_strings = WordleEngine.evaluation_to_strings(evaluation)
+                  solved = guess == target
+
+                  %WordleDailyAttempt{}
+                  |> WordleDailyAttempt.changeset(%{
+                    user_id: user_id,
+                    date: date,
+                    locale: locale,
+                    attempt: length(attempts) + 1,
+                    guess: guess,
+                    evaluation: evaluation_strings,
+                    solved: solved
+                  })
+                  |> Repo.insert!()
+
+                  quest_just_completed =
+                    if solved do
+                      complete_wordle_quest(user_id, date)
+                    else
+                      false
+                    end
+
+                  target_word =
+                    if !solved && length(attempts) + 1 >= @wordle_max_attempts do
+                      target
+                    end
+
+                  {:ok,
+                   %{
+                     locale: locale,
+                     evaluation: evaluation_strings,
+                     solved: solved,
+                     date: Date.to_iso8601(date),
+                     questJustCompleted: quest_just_completed,
+                     targetWord: target_word
+                   }}
+                end)
+
+              {write_result,
+               %{
+                 locale: locale,
+                 validation_ms: validation_ms,
+                 attempts_ms: attempts_ms,
+                 target_ms: target_ms,
+                 write_ms: write_ms,
+                 attempts_used: length(attempts) + 1,
+                 solved: match?({:ok, %{solved: true}}, write_result)
+               }}
+            else
+              error ->
+                {error,
+                 %{
+                   locale: locale,
+                   validation_ms: validation_ms,
+                   attempts_ms: attempts_ms,
+                   target_ms: 0,
+                   write_ms: 0,
+                   attempts_used: 0,
+                   solved: false
+                 }}
+            end
           else
             error ->
               {error,
                %{
+                 locale: locale,
                  validation_ms: validation_ms,
-                 attempts_ms: attempts_ms,
+                 attempts_ms: 0,
                  target_ms: 0,
                  write_ms: 0,
                  attempts_used: 0,
                  solved: false
                }}
           end
-        else
-          error ->
-            {error,
-             %{
-               validation_ms: validation_ms,
-               attempts_ms: 0,
-               target_ms: 0,
-               write_ms: 0,
-               attempts_used: 0,
-               solved: false
-             }}
-        end
-      end)
+        end)
 
-    maybe_log_slow(
-      duration_ms,
-      @slow_wordle_ms,
-      "wordle_submit_slow",
-      user_id: user_id,
-      validation_ms: breakdown.validation_ms,
-      attempts_ms: breakdown.attempts_ms,
-      target_ms: breakdown.target_ms,
-      write_ms: breakdown.write_ms,
-      attempts_used: breakdown.attempts_used,
-      solved: breakdown.solved
-    )
+      maybe_log_slow(
+        duration_ms,
+        @slow_wordle_ms,
+        "wordle_submit_slow",
+        user_id: user_id,
+        locale: breakdown.locale,
+        validation_ms: breakdown.validation_ms,
+        attempts_ms: breakdown.attempts_ms,
+        target_ms: breakdown.target_ms,
+        write_ms: breakdown.write_ms,
+        attempts_used: breakdown.attempts_used,
+        solved: breakdown.solved
+      )
 
-    result
+      result
+    end
   end
 
   # ── Speed Calculus ───────────────────────────────────────────────────────────
@@ -811,8 +826,8 @@ defmodule AdventureTimeApi.Quests do
 
   # ── Private Helpers ──────────────────────────────────────────────────────────
 
-  defp get_daily_word(date) do
-    candidates = get_wordle_candidates()
+  defp get_daily_word(date, locale) do
+    candidates = get_wordle_candidates(locale)
 
     if candidates == [] do
       nil
@@ -821,15 +836,66 @@ defmodule AdventureTimeApi.Quests do
     end
   end
 
-  defp is_valid_french_word?(word) do
-    MapSet.member?(get_wordle_words_set(), word)
+  defp is_valid_wordle_word?(word, locale) do
+    MapSet.member?(get_wordle_words_set(locale), word)
   end
 
-  defp load_wordle_attempts(user_id, date) do
+  defp load_wordle_attempts(user_id, date, locale) do
     WordleDailyAttempt
-    |> where([a], a.user_id == ^user_id and a.date == ^date)
+    |> where([a], a.user_id == ^user_id and a.date == ^date and a.locale == ^locale)
     |> order_by([a], asc: a.attempt)
     |> Repo.all()
+  end
+
+  defp build_wordle_summary(user_id, date) do
+    attempts =
+      WordleDailyAttempt
+      |> where([a], a.user_id == ^user_id and a.date == ^date)
+      |> order_by([a], asc: a.attempt)
+      |> Repo.all()
+
+    attempts_by_locale = Enum.group_by(attempts, & &1.locale)
+
+    counts_by_locale =
+      Map.new(@wordle_locales, fn locale ->
+        {locale, attempts_by_locale |> Map.get(locale, []) |> length()}
+      end)
+
+    solved_attempts_by_locale =
+      Map.new(@wordle_locales, fn locale ->
+        solved_attempt =
+          attempts_by_locale
+          |> Map.get(locale, [])
+          |> Enum.find(& &1.solved)
+          |> case do
+            nil -> nil
+            attempt -> attempt.attempt
+          end
+
+        {locale, solved_attempt}
+      end)
+
+    solved_attempts =
+      solved_attempts_by_locale
+      |> Map.values()
+      |> Enum.reject(&is_nil/1)
+
+    max_attempts_used = counts_by_locale |> Map.values() |> Enum.max(fn -> 0 end)
+    solved_any? = solved_attempts != []
+    all_exhausted? = Enum.all?(Map.values(counts_by_locale), &(&1 >= @wordle_max_attempts))
+
+    %{
+      countsByLocale: counts_by_locale,
+      solvedAttemptsByLocale: solved_attempts_by_locale,
+      solvedAny: solved_any?,
+      allExhausted: all_exhausted?,
+      attemptsUsed:
+        cond do
+          solved_any? -> Enum.min(solved_attempts)
+          max_attempts_used > 0 -> max_attempts_used
+          true -> nil
+        end
+    }
   end
 
   defp delete_daily_quests_for_reset(user_id, date, nil) do
@@ -956,6 +1022,7 @@ defmodule AdventureTimeApi.Quests do
   defp complete_wordle_quest(user_id, date) do
     now = now_utc()
     wordle_def = Enum.find(@quest_definitions, &(&1.quest_type == "wordle_daily"))
+    existing_quest = get_daily_quest(user_id, date, "wordle_daily")
 
     %DailyQuest{}
     |> DailyQuest.changeset(%{
@@ -973,7 +1040,7 @@ defmodule AdventureTimeApi.Quests do
       conflict_target: [:user_id, :date, :quest_type]
     )
 
-    true
+    existing_quest == nil || !existing_quest.completed
   end
 
   defp settle_expired_runs(user_id, date) do
@@ -1225,7 +1292,7 @@ defmodule AdventureTimeApi.Quests do
     }
   end
 
-  defp build_quest_entry(quest, def, wordle_attempts_count, speed_state) do
+  defp build_quest_entry(quest, def, wordle_summary, speed_state) do
     base = %{
       id: quest.id,
       version: quest.id,
@@ -1254,13 +1321,13 @@ defmodule AdventureTimeApi.Quests do
       resetByName: reset_by_name(quest),
       failed:
         quest.quest_type == "wordle_daily" && !quest.completed &&
-          wordle_attempts_count >= @wordle_max_attempts
+          wordle_summary.allExhausted
     }
 
     case quest.quest_type do
       "wordle_daily" ->
-        if wordle_attempts_count > 0 do
-          Map.put(base, :attemptsUsed, wordle_attempts_count)
+        if is_integer(wordle_summary.attemptsUsed) and wordle_summary.attemptsUsed > 0 do
+          Map.put(base, :attemptsUsed, wordle_summary.attemptsUsed)
         else
           base
         end
@@ -1282,6 +1349,23 @@ defmodule AdventureTimeApi.Quests do
   defp quest_action_path("wordle_daily"), do: "/quests/wordle"
   defp quest_action_path("speed_calculus_daily"), do: "/quests/speed-calculus"
   defp quest_action_path(_), do: nil
+
+  defp normalize_wordle_locale(nil), do: {:ok, @default_wordle_locale}
+
+  defp normalize_wordle_locale(locale) when is_binary(locale) do
+    normalized =
+      locale
+      |> String.trim()
+      |> String.downcase()
+
+    if normalized in @wordle_locales do
+      {:ok, normalized}
+    else
+      {:error, :invalid_wordle_locale}
+    end
+  end
+
+  defp normalize_wordle_locale(_locale), do: {:error, :invalid_wordle_locale}
 
   defp is_paused?(run) do
     manually_paused?(run) || paused_countdown_active?(run)
@@ -1320,8 +1404,8 @@ defmodule AdventureTimeApi.Quests do
     end
   end
 
-  defp validate_french_word(guess) do
-    if is_valid_french_word?(guess) do
+  defp validate_wordle_word(guess, locale) do
+    if is_valid_wordle_word?(guess, locale) do
       :ok
     else
       {:error, :word_not_found}

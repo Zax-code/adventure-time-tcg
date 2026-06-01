@@ -452,6 +452,7 @@ defmodule AdventureTimeApi.PwaImport do
           id: map_id(:wordle_attempt, row.id),
           user_id: user_map[row.user_id],
           date: parse_date!(row.date),
+          locale: "fr",
           attempt: row.attempt,
           guess: row.guess,
           evaluation: decode_json_list(row.evaluation),

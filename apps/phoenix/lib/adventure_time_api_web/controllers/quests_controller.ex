@@ -46,22 +46,49 @@ defmodule AdventureTimeApiWeb.QuestsController do
   end
 
   # GET /wordle
-  def wordle_state(conn, _params) do
+  def wordle_state(conn, params) do
+    locale = Map.get(params, "locale")
+
     timed_action(conn, "wordle_state", fn conn, user_id ->
-      {:ok, payload} = Quests.wordle_state(user_id)
-      json(conn, payload)
+      case Quests.wordle_state(user_id, locale) do
+        {:ok, payload} ->
+          json(conn, payload)
+
+        {:error, :invalid_wordle_locale} ->
+          conn
+          |> put_status(400)
+          |> json(%{
+            error: "Unsupported Wordle language",
+            code: "INVALID_WORDLE_LANGUAGE"
+          })
+      end
     end)
   end
 
   # POST /wordle
   def submit_wordle_guess(conn, %{"guess" => guess} = params) do
+    locale = Map.get(params, "locale")
     expected_date = Map.get(params, "expectedDate", Map.get(params, "date"))
     expected_quest_version = Map.get(params, "questVersion")
 
     timed_action(conn, "submit_wordle_guess", fn conn, user_id ->
-      case Quests.submit_wordle_guess(user_id, guess, expected_date, expected_quest_version) do
+      case Quests.submit_wordle_guess(
+             user_id,
+             guess,
+             locale,
+             expected_date,
+             expected_quest_version
+           ) do
         {:ok, payload} ->
           json(conn, payload)
+
+        {:error, :invalid_wordle_locale} ->
+          conn
+          |> put_status(400)
+          |> json(%{
+            error: "Unsupported Wordle language",
+            code: "INVALID_WORDLE_LANGUAGE"
+          })
 
         {:error, :wordle_reset} ->
           conn

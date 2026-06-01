@@ -41,6 +41,9 @@ const quests = {
     title: "Wordle quotidien",
     subtitle: "Résous l'énigme pour terminer la quête du jour.",
     backToQuests: "Retour aux quêtes",
+    languageLabel: "Langue du Wordle",
+    frenchWords: "Mots français",
+    englishWords: "Mots anglais",
     attempts: "Essais restants",
     attemptsUsed: "Résolu en",
     submit: "Valider",
@@ -51,7 +54,7 @@ const quests = {
     solvedQuest: "Énigme résolue. Quête terminée !",
     failed: "Tu n'as plus d'essais aujourd'hui. Réessaie demain.",
     revealedWord: "Le mot était : {word}",
-    hideLetters: "Masquer les lettres pour la capture",
+    hideLetters: "Masquer les lettres pour screenshot",
     showLetters: "Réafficher les lettres",
     resetTitle: "Trop tard, le mot a changé !",
     resetBody:

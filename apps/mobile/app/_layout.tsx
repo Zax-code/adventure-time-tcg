@@ -186,11 +186,13 @@ export default function RootLayout() {
         );
 
         if (!resetPayload.questType || resetPayload.questType === "wordle_daily") {
-          queryClient.setQueryData(
-            ["wordle"],
+          queryClient.setQueriesData(
+            { queryKey: ["wordle"] },
             (
               current:
                 | {
+                    locale?: string;
+                    availableLocales?: string[];
                     date: string;
                     resetTimezone: string;
                     guesses: Array<Record<string, unknown>>;

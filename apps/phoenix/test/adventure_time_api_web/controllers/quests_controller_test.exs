@@ -18,6 +18,8 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
   setup do
     :persistent_term.erase({:wordle_candidates, "fr"})
     :persistent_term.erase({:wordle_words_set, "fr"})
+    :persistent_term.erase({:wordle_candidates, "en"})
+    :persistent_term.erase({:wordle_words_set, "en"})
 
     Repo.delete_all(WordleDictionaryWord)
 
@@ -25,6 +27,17 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
       Repo.insert!(
         WordleDictionaryWord.changeset(%WordleDictionaryWord{}, %{
           locale: "fr",
+          word: word,
+          is_allowed_guess: true,
+          is_solution_candidate: true
+        })
+      )
+    end
+
+    for word <- ["APPLE", "BANJO", "CRANE", "GHOST", "HOUSE", "LIGHT", "ZEBRA"] do
+      Repo.insert!(
+        WordleDictionaryWord.changeset(%WordleDictionaryWord{}, %{
+          locale: "en",
           word: word,
           is_allowed_guess: true,
           is_solution_candidate: true
@@ -191,6 +204,8 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
     wrong_guess = Enum.find(sorted_words(), &(&1 != target))
 
     initial = access_token |> auth_conn() |> get(~p"/wordle") |> json_response(200)
+    assert initial["locale"] == "fr"
+    assert Enum.sort(initial["availableLocales"]) == ["en", "fr"]
     assert initial["guesses"] == []
     assert initial["solved"] == false
     assert initial["targetWord"] == nil
@@ -216,6 +231,7 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
       |> json_response(200)
 
     assert solved == %{
+             "locale" => "fr",
              "evaluation" => ["correct", "correct", "correct", "correct", "correct"],
              "solved" => true,
              "date" => Date.to_iso8601(date),
@@ -309,6 +325,136 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
 
     finished_state = access_token |> auth_conn() |> get(~p"/wordle") |> json_response(200)
     assert finished_state["targetWord"] == target
+  end
+
+  test "wordle keeps language boards separate and awards the quest only once", _context do
+    user = create_user_with_password("wordle-bilingual@example.com", "password123")
+    access_token = login_access_token(user.email, "password123")
+    date = Quests.current_reset_date()
+    french_target = WordleEngine.select_word_for_date(sorted_words("fr"), date)
+    english_target = WordleEngine.select_word_for_date(sorted_words("en"), date)
+
+    initial_english =
+      access_token
+      |> auth_conn()
+      |> get(~p"/wordle?locale=en")
+      |> json_response(200)
+
+    assert initial_english["locale"] == "en"
+    assert initial_english["guesses"] == []
+    assert initial_english["solved"] == false
+
+    solved_french =
+      access_token
+      |> auth_conn()
+      |> post(~p"/wordle", %{"locale" => "fr", "guess" => String.downcase(french_target)})
+      |> json_response(200)
+
+    assert solved_french["locale"] == "fr"
+    assert solved_french["solved"] == true
+    assert solved_french["questJustCompleted"] == true
+
+    quests_after_french = access_token |> auth_conn() |> get(~p"/quests") |> json_response(200)
+
+    wordle_quest_after_french =
+      Enum.find(quests_after_french["quests"], &(&1["type"] == "wordle_daily"))
+
+    assert wordle_quest_after_french["completed"] == true
+    assert wordle_quest_after_french["claimed"] == false
+    assert wordle_quest_after_french["attemptsUsed"] == 1
+
+    english_still_open =
+      access_token
+      |> auth_conn()
+      |> get(~p"/wordle?locale=en")
+      |> json_response(200)
+
+    assert english_still_open["locale"] == "en"
+    assert english_still_open["guesses"] == []
+    assert english_still_open["solved"] == false
+
+    solved_english =
+      access_token
+      |> auth_conn()
+      |> post(~p"/wordle", %{"locale" => "en", "guess" => String.downcase(english_target)})
+      |> json_response(200)
+
+    assert solved_english["locale"] == "en"
+    assert solved_english["solved"] == true
+    assert solved_english["questJustCompleted"] == false
+
+    claimed_quest =
+      Repo.get_by!(DailyQuest, user_id: user.id, date: date, quest_type: "wordle_daily")
+
+    claimed =
+      access_token
+      |> auth_conn()
+      |> post(~p"/quests/claim", %{"questId" => claimed_quest.id})
+      |> json_response(200)
+
+    assert claimed["success"] == true
+    assert claimed["reward"] == claimed_quest.reward
+
+    already_claimed =
+      access_token
+      |> auth_conn()
+      |> post(~p"/quests/claim", %{"questId" => claimed_quest.id})
+      |> json_response(409)
+
+    assert already_claimed == %{
+             "error" => "Quest already claimed",
+             "code" => "QUEST_ALREADY_CLAIMED"
+           }
+  end
+
+  test "wordle quest fails only after both language boards are exhausted", _context do
+    user = create_user_with_password("wordle-two-boards@example.com", "password123")
+    access_token = login_access_token(user.email, "password123")
+    date = Quests.current_reset_date()
+    french_target = WordleEngine.select_word_for_date(sorted_words("fr"), date)
+    english_target = WordleEngine.select_word_for_date(sorted_words("en"), date)
+
+    french_wrong_guesses =
+      sorted_words("fr")
+      |> Enum.reject(&(&1 == french_target))
+      |> Enum.take(6)
+
+    english_wrong_guesses =
+      sorted_words("en")
+      |> Enum.reject(&(&1 == english_target))
+      |> Enum.take(6)
+
+    Enum.each(french_wrong_guesses, fn guess ->
+      access_token
+      |> auth_conn()
+      |> post(~p"/wordle", %{"locale" => "fr", "guess" => guess})
+      |> json_response(200)
+    end)
+
+    quests_after_french =
+      access_token |> auth_conn() |> get(~p"/quests") |> json_response(200)
+
+    wordle_quest_after_french =
+      Enum.find(quests_after_french["quests"], &(&1["type"] == "wordle_daily"))
+
+    assert wordle_quest_after_french["failed"] == false
+    assert wordle_quest_after_french["attemptsUsed"] == 6
+
+    Enum.each(english_wrong_guesses, fn guess ->
+      access_token
+      |> auth_conn()
+      |> post(~p"/wordle", %{"locale" => "en", "guess" => guess})
+      |> json_response(200)
+    end)
+
+    quests_after_both =
+      access_token |> auth_conn() |> get(~p"/quests") |> json_response(200)
+
+    wordle_quest_after_both =
+      Enum.find(quests_after_both["quests"], &(&1["type"] == "wordle_daily"))
+
+    assert wordle_quest_after_both["failed"] == true
+    assert wordle_quest_after_both["attemptsUsed"] == 6
   end
 
   test "wordle returns reset metadata and detects admin reset version mismatch", _context do
@@ -683,7 +829,11 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
            }
   end
 
-  defp sorted_words, do: ["AMOUR", "AVION", "BANJO", "CHIEN", "FLEUR", "GLACE", "NUAGE"]
+  defp sorted_words(locale \\ "fr")
+
+  defp sorted_words("fr"), do: ["AMOUR", "AVION", "BANJO", "CHIEN", "FLEUR", "GLACE", "NUAGE"]
+
+  defp sorted_words("en"), do: ["APPLE", "BANJO", "CRANE", "GHOST", "HOUSE", "LIGHT", "ZEBRA"]
 
   defp create_user_with_password(email, password, display_name \\ "Tester", opts \\ []) do
     role = Keyword.get(opts, :role, :user)

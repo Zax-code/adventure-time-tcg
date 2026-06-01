@@ -842,6 +842,7 @@ defmodule AdventureTimeApiWeb.AdminControllerTest do
       WordleDailyAttempt.changeset(%WordleDailyAttempt{}, %{
         user_id: user.id,
         date: date,
+        locale: "fr",
         attempt: 1,
         guess: "amour",
         evaluation: ["present", "absent", "absent", "absent", "absent"],
@@ -951,6 +952,7 @@ defmodule AdventureTimeApiWeb.AdminControllerTest do
       WordleDailyAttempt.changeset(%WordleDailyAttempt{}, %{
         user_id: user.id,
         date: date,
+        locale: "fr",
         attempt: 1,
         guess: "amour",
         evaluation: ["present", "absent", "absent", "absent", "absent"],
@@ -1070,6 +1072,7 @@ defmodule AdventureTimeApiWeb.AdminControllerTest do
       WordleDailyAttempt.changeset(%WordleDailyAttempt{}, %{
         user_id: user.id,
         date: date,
+        locale: "fr",
         attempt: 1,
         guess: "amour",
         evaluation: ["absent", "absent", "absent", "absent", "absent"],

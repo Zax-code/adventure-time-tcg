@@ -41,6 +41,9 @@ const quests = {
     title: "Daily Wordle",
     subtitle: "Solve the puzzle to complete today's quest.",
     backToQuests: "Back to quests",
+    languageLabel: "Wordle language",
+    frenchWords: "French words",
+    englishWords: "English words",
     attempts: "Attempts left",
     attemptsUsed: "Solved in",
     submit: "Guess",
@@ -51,7 +54,7 @@ const quests = {
     solvedQuest: "Puzzle solved. Quest completed!",
     failed: "No attempts left today. Try again tomorrow.",
     revealedWord: "The word was: {word}",
-    hideLetters: "Hide letters for screenshot",
+    hideLetters: "Hide letters for a screenshot",
     showLetters: "Show letters again",
     resetTitle: "Too late, it reset!",
     resetBody:

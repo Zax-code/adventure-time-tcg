@@ -618,12 +618,15 @@ export const claimQuestResponseSchema = z.object({
 });
 
 export const wordleLetterStateSchema = z.enum(["correct", "present", "absent"]);
+export const wordleLocaleSchema = z.enum(["fr", "en"]);
 export const wordleGuessSchema = z.object({
   guess: z.string(),
   evaluation: z.array(wordleLetterStateSchema),
 });
 
 export const wordleStateResponseSchema = z.object({
+  locale: wordleLocaleSchema,
+  availableLocales: z.array(wordleLocaleSchema),
   date: z.string(),
   resetTimezone: z.string(),
   guesses: z.array(wordleGuessSchema),
@@ -634,12 +637,14 @@ export const wordleStateResponseSchema = z.object({
 });
 
 export const wordleSubmitSchema = z.object({
+  locale: wordleLocaleSchema.optional(),
   guess: z.string().min(1),
   expectedDate: z.string().optional(),
   questVersion: z.string().optional(),
 });
 
 export const wordleSubmitResponseSchema = z.object({
+  locale: wordleLocaleSchema,
   evaluation: z.array(wordleLetterStateSchema),
   solved: z.boolean(),
   date: z.string(),
@@ -1186,6 +1191,7 @@ export type FitbitDisconnectResponse = z.infer<
 export type ClaimQuestInput = z.infer<typeof claimQuestSchema>;
 export type ClaimQuestResponse = z.infer<typeof claimQuestResponseSchema>;
 export type WordleStateResponse = z.infer<typeof wordleStateResponseSchema>;
+export type WordleLocale = z.infer<typeof wordleLocaleSchema>;
 export type WordleSubmitInput = z.infer<typeof wordleSubmitSchema>;
 export type WordleSubmitResponse = z.infer<typeof wordleSubmitResponseSchema>;
 export type SpeedRunState = z.infer<typeof speedRunStateSchema>;

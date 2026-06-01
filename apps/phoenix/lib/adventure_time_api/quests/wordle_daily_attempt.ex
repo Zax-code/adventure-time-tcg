@@ -8,6 +8,7 @@ defmodule AdventureTimeApi.Quests.WordleDailyAttempt do
   schema "wordle_daily_attempts" do
     field(:user_id, :binary_id)
     field(:date, :date)
+    field(:locale, :string)
     field(:attempt, :integer)
     field(:guess, :string)
     field(:evaluation, {:array, :string})
@@ -18,11 +19,12 @@ defmodule AdventureTimeApi.Quests.WordleDailyAttempt do
 
   def changeset(attempt, attrs) do
     attempt
-    |> cast(attrs, [:user_id, :date, :attempt, :guess, :evaluation, :solved])
-    |> validate_required([:user_id, :date, :attempt, :guess, :evaluation, :solved])
+    |> cast(attrs, [:user_id, :date, :locale, :attempt, :guess, :evaluation, :solved])
+    |> validate_required([:user_id, :date, :locale, :attempt, :guess, :evaluation, :solved])
     |> validate_number(:attempt, greater_than_or_equal_to: 1, less_than_or_equal_to: 6)
-    |> unique_constraint([:user_id, :date, :attempt],
-      name: :wordle_daily_attempts_user_id_date_attempt_key
+    |> validate_inclusion(:locale, ["fr", "en"])
+    |> unique_constraint([:user_id, :date, :locale, :attempt],
+      name: :wordle_daily_attempts_user_id_date_locale_attempt_key
     )
   end
 end

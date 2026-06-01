@@ -520,8 +520,9 @@ export class ApiClient {
     );
   }
 
-  async wordleState(): Promise<WordleStateResponse> {
-    return this.request("/wordle", { method: "GET" }, (data) =>
+  async wordleState(locale?: "fr" | "en"): Promise<WordleStateResponse> {
+    const query = locale ? `?locale=${encodeURIComponent(locale)}` : "";
+    return this.request(`/wordle${query}`, { method: "GET" }, (data) =>
       wordleStateResponseSchema.parse(data),
     );
   }
