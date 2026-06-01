@@ -12,25 +12,31 @@ import { useRouter } from "expo-router";
 
 import type { AdminCardsResponse } from "@adventure-time/api-client";
 
-import { apiClient } from "../../src/lib/api";
-import { prefetchCardImages } from "../../src/lib/card-images";
 import { AdminCardTile } from "../../src/components/admin/admin-card-tile";
 import {
   AdminButton,
+  AdminChip,
+  AdminEmptyState,
+  AdminHero,
   AdminLoadingState,
   AdminModal,
+  AdminNotice,
   AdminPanel,
   AdminSearchInput,
+  AdminSectionTitle,
+  AdminStat,
 } from "../../src/components/admin/admin-ui";
 import { KEYBOARD_AWARE_SCROLL_PROPS } from "../../src/components/keyboard-screen-view";
 import { useTranslation } from "../../src/i18n";
+import { prefetchCardImages } from "../../src/lib/card-images";
+import { apiClient } from "../../src/lib/api";
 import { useThemeStore } from "../../src/stores/theme-store";
 import { THEME_COLORS } from "../../src/theme/themes";
 
 const GRID_GAP = 12;
 const SCREEN_SIDE_PADDING = 16;
 const COLLECTION_SIDE_PADDING = 12;
-const CONTENT_BOTTOM_PADDING = 128;
+const CONTENT_BOTTOM_PADDING = 132;
 
 type AdminCard = AdminCardsResponse["cards"][number];
 
@@ -51,6 +57,7 @@ const keyExtractor = (item: CardsListItem) => item.id;
 function getTwoColumnWidth(screenWidth: number) {
   const availableWidth =
     screenWidth - SCREEN_SIDE_PADDING * 2 - COLLECTION_SIDE_PADDING * 2;
+
   return Math.floor((availableWidth - GRID_GAP) / 2);
 }
 
@@ -68,18 +75,48 @@ function chunkCards(cards: AdminCard[]) {
   return rows;
 }
 
+function SectionHeader({
+  title,
+  subtitle,
+  open,
+  onPress,
+  tint = "default",
+}: {
+  title: string;
+  subtitle: string;
+  open: boolean;
+  onPress: () => void;
+  tint?: "default" | "secondary" | "accent";
+}) {
+  return (
+    <AdminPanel tint={tint}>
+      <Pressable onPress={onPress} className="gap-3">
+        <View className="flex-row items-center justify-between gap-3">
+          <AdminSectionTitle title={title} subtitle={subtitle} />
+          <Ionicons
+            name="chevron-down"
+            size={20}
+            style={{
+              transform: [{ rotate: open ? "180deg" : "0deg" }],
+            }}
+          />
+        </View>
+      </Pressable>
+    </AdminPanel>
+  );
+}
+
 export default function AdminCardsScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { width } = useWindowDimensions();
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedArchivedCardId, setSelectedArchivedCardId] = useState<
     string | null
   >(null);
   const [isActiveCardsOpen, setIsActiveCardsOpen] = useState(true);
-  const [isArchivedCardsOpen, setIsArchivedCardsOpen] = useState(true);
-  const { t } = useTranslation();
-
+  const [isArchivedCardsOpen, setIsArchivedCardsOpen] = useState(false);
   const { themeName } = useThemeStore();
   const tc = THEME_COLORS[themeName];
 
@@ -94,13 +131,11 @@ export default function AdminCardsScreen() {
   const featureMutation = useMutation({
     mutationFn: ({
       cardId,
-      isFeatured,
       isArchived,
     }: {
       cardId: string;
-      isFeatured?: boolean;
-      isArchived?: boolean;
-    }) => apiClient.updateAdminCard(cardId, { isFeatured, isArchived }),
+      isArchived: boolean;
+    }) => apiClient.updateAdminCard(cardId, { isArchived }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["admin-cards"] });
     },
@@ -146,6 +181,8 @@ export default function AdminCardsScreen() {
       archivedCards: archived,
       allActiveCount: cards.filter((card) => !card.isArchived).length,
       allArchivedCount: cards.filter((card) => card.isArchived).length,
+      featuredCount: cards.filter((card) => card.isFeatured && !card.isArchived)
+        .length,
       rarityCounts,
       cardById,
     };
@@ -155,16 +192,16 @@ export default function AdminCardsScreen() {
     ? (derived.cardById.get(selectedArchivedCardId) ?? null)
     : null;
 
-  // Stabilize prefetch — key on a joined string of asset IDs, not the array reference
   const prefetchKey = useMemo(
     () =>
       cards
         .slice(0, 48)
-        .map((c) => c.imageAssetId)
+        .map((card) => card.imageAssetId)
         .filter(Boolean)
         .join(","),
     [cards],
   );
+
   useEffect(() => {
     if (prefetchKey) {
       void prefetchCardImages(prefetchKey.split(","));
@@ -213,7 +250,7 @@ export default function AdminCardsScreen() {
       <View className="mt-3 flex-row justify-between gap-3 px-3">
         <View
           className="items-center"
-          style={{ width: tileWidth, opacity: archived ? 0.6 : 1 }}
+          style={{ width: tileWidth, opacity: archived ? 0.7 : 1 }}
         >
           <AdminCardTile
             card={row.left}
@@ -228,7 +265,7 @@ export default function AdminCardsScreen() {
         {row.right ? (
           <View
             className="items-center"
-            style={{ width: tileWidth, opacity: archived ? 0.6 : 1 }}
+            style={{ width: tileWidth, opacity: archived ? 0.7 : 1 }}
           >
             <AdminCardTile
               card={row.right}
@@ -251,126 +288,30 @@ export default function AdminCardsScreen() {
   const renderItem = useCallback(
     ({ item }: { item: CardsListItem }) => {
       if (item.type === "active-header") {
-        const activeCountLabel = isCardsLoading
-          ? "..."
-          : String(derived.activeCards.length);
-        const activeTotalLabel = isCardsLoading
-          ? "..."
-          : String(derived.allActiveCount);
-
         return (
-          <View className="mt-2">
-            <Pressable
-              className="flex-row items-center justify-between px-4 py-[14] rounded-2xl bg-primaryTint"
-              onPress={() => setIsActiveCardsOpen((current) => !current)}
-            >
-              <Text className="font-nunito-extrabold text-[18px] text-primaryText">
-                {searchQuery
-                  ? t("admin.cards.activeTitleWithTotal", {
-                      count: activeCountLabel,
-                      total: activeTotalLabel,
-                    })
-                  : t("admin.cards.activeTitle", { count: activeCountLabel })}
-              </Text>
-              <Ionicons
-                name="chevron-down"
-                size={20}
-                color={tc.primaryStrong}
-                style={
-                  isActiveCardsOpen
-                    ? { transform: [{ rotate: "180deg" }] }
-                    : { transform: [{ rotate: "0deg" }] }
-                }
-              />
-            </Pressable>
-            {isActiveCardsOpen ? (
-              <View className="items-center px-3 pt-[14] pb-1">
-                {isCardsLoading ? (
-                  <AdminLoadingState
-                    title={t("admin.cards.loading")}
-                    body={t("common.loadingStates.adminBody")}
-                    icon="albums"
-                  />
-                ) : cardsError ? (
-                  <Text className="font-nunito-bold text-[13px] text-dangerText text-center">
-                    {cardsError}
-                  </Text>
-                ) : derived.activeCards.length ? (
-                  <Text className="mb-3 font-nunito-semibold text-xs text-fgMuted">
-                    {t("admin.cards.tapToEdit")}
-                  </Text>
-                ) : (
-                  <Text className="font-nunito-semibold text-sm text-fgMuted text-center">
-                    {t("admin.cards.noActiveBody")}
-                  </Text>
-                )}
-              </View>
-            ) : null}
-          </View>
+          <SectionHeader
+            title={t("admin.cards.activeTitle", {
+              count: String(derived.activeCards.length),
+            })}
+            subtitle={t("admin.cards.activeSubtitle")}
+            open={isActiveCardsOpen}
+            onPress={() => setIsActiveCardsOpen((current) => !current)}
+            tint="accent"
+          />
         );
       }
 
       if (item.type === "archived-header") {
-        const archivedCountLabel = isCardsLoading
-          ? "..."
-          : String(derived.archivedCards.length);
-        const archivedTotalLabel = isCardsLoading
-          ? "..."
-          : String(derived.allArchivedCount);
-
         return (
-          <View className="mt-2">
-            <Pressable
-              className="flex-row items-center justify-between px-4 py-[14] rounded-2xl bg-dangerTint"
-              onPress={() => setIsArchivedCardsOpen((current) => !current)}
-            >
-              <Text className="font-nunito-extrabold text-[18px] text-dangerText">
-                {searchQuery
-                  ? t("admin.cards.archivedTitleWithTotal", {
-                      count: archivedCountLabel,
-                      total: archivedTotalLabel,
-                    })
-                  : t("admin.cards.archivedTitle", {
-                      count: archivedCountLabel,
-                    })}
-              </Text>
-              <Ionicons
-                name="chevron-down"
-                size={20}
-                color={tc.dangerText}
-                style={
-                  isArchivedCardsOpen
-                    ? { transform: [{ rotate: "180deg" }] }
-                    : { transform: [{ rotate: "0deg" }] }
-                }
-              />
-            </Pressable>
-            {isArchivedCardsOpen ? (
-              <View className="items-center px-3 pt-[14] pb-1">
-                {isCardsLoading ? (
-                  <AdminLoadingState
-                    title={t("admin.cards.loading")}
-                    body={t("common.loadingStates.adminBody")}
-                    icon="archive"
-                  />
-                ) : cardsError ? (
-                  <Text className="font-nunito-bold text-[13px] text-dangerText text-center">
-                    {cardsError}
-                  </Text>
-                ) : derived.archivedCards.length ? (
-                  <Text className="mb-3 font-nunito-semibold text-xs text-fgMuted">
-                    {t("admin.cards.tapToManage")}
-                  </Text>
-                ) : (
-                  <Text className="font-nunito-semibold text-sm text-fgMuted text-center">
-                    {searchQuery
-                      ? t("admin.cards.noArchivedSearchBody")
-                      : t("admin.cards.noArchivedBody")}
-                  </Text>
-                )}
-              </View>
-            ) : null}
-          </View>
+          <SectionHeader
+            title={t("admin.cards.archivedTitle", {
+              count: String(derived.archivedCards.length),
+            })}
+            subtitle={t("admin.cards.archivedSubtitle")}
+            open={isArchivedCardsOpen}
+            onPress={() => setIsArchivedCardsOpen((current) => !current)}
+            tint="secondary"
+          />
         );
       }
 
@@ -381,90 +322,166 @@ export default function AdminCardsScreen() {
       return renderCardRow(item.row, true);
     },
     [
-      cardsError,
       derived.activeCards.length,
-      derived.allActiveCount,
-      derived.allArchivedCount,
       derived.archivedCards.length,
       isActiveCardsOpen,
       isArchivedCardsOpen,
-      isCardsLoading,
       renderCardRow,
-      searchQuery,
-      tc,
+      t,
     ],
   );
 
   const listHeader = useMemo(
     () => (
-      <>
-        <View className="items-center pt-1">
-          <Text className="font-nunito-extrabold text-[28px] text-primaryStrong">
-            {t("admin.cards.title")}
-          </Text>
-        </View>
-
-        <View className="mt-4">
-          <AdminButton
-            label={t("admin.cards.createCard")}
-            icon="add"
-            onPress={() => openCardEditor("create")}
-          />
-        </View>
-
-        <AdminPanel style={{ marginTop: 16, paddingBottom: 18 }}>
-          <Text className="font-nunito-extrabold text-[20px] text-primaryText mb-3">
-            {t("admin.cards.stats")}
-          </Text>
-          {isCardsLoading ? (
-            <AdminLoadingState
-              title={t("admin.cards.loading")}
-              body={t("common.loadingStates.adminBody")}
-              icon="stats-chart"
+      <View className="gap-4">
+        <AdminHero
+          badge={t("admin.shell.nav.cards")}
+          title={t("admin.cards.title")}
+          subtitle={t("admin.cards.subtitle")}
+          actions={
+            <AdminButton
+              label={t("admin.cards.createCard")}
+              icon="add"
+              onPress={() => openCardEditor("create")}
             />
-          ) : cardsError ? (
-            <Text className="font-nunito-bold text-[13px] text-dangerText text-center">
-              {cardsError}
-            </Text>
-          ) : (
-            <View className="flex-row flex-wrap justify-between gap-[10]">
-              {raritiesQuery.data?.rarities.map((rarity) => (
-                <View
-                  key={rarity.id}
-                  className="w-[48%] rounded-2xl py-[14] px-[10] items-center bg-surface/60"
-                >
-                  <Text
-                    className="font-nunito-extrabold text-[26px]"
-                    style={{ color: rarity.color || tc.primaryText }}
-                  >
-                    {derived.rarityCounts.get(rarity.id) ?? 0}
-                  </Text>
-                  <Text className="mt-[3] font-nunito-bold text-[13px] text-fgMuted">
-                    {rarity.name}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          )}
-        </AdminPanel>
-
-        <View className="mt-4">
+          }
+        >
+          <View className="flex-row flex-wrap gap-3">
+            <AdminStat
+              label={t("admin.cards.activeLabel")}
+              value={String(derived.allActiveCount)}
+              tone="accent"
+            />
+            <AdminStat
+              label={t("admin.cards.archivedLabel")}
+              value={String(derived.allArchivedCount)}
+              tone="warning"
+            />
+          </View>
+          <View className="flex-row flex-wrap gap-3">
+            <AdminStat
+              label={t("admin.cards.featuredLabel")}
+              value={String(derived.featuredCount)}
+              tone="info"
+            />
+            <AdminStat
+              label={t("admin.cards.resultsLabel")}
+              value={String(
+                derived.activeCards.length + derived.archivedCards.length,
+              )}
+              helper={
+                searchQuery
+                  ? t("admin.cards.filteredResults")
+                  : t("admin.cards.totalCatalog")
+              }
+            />
+          </View>
           <AdminSearchInput
             value={searchQuery}
             onChangeText={setSearchQuery}
             placeholder={t("admin.cards.searchPlaceholder")}
           />
-        </View>
-      </>
+        </AdminHero>
+
+        {cardsError ? (
+          <AdminPanel>
+            <Text className="font-nunito-bold text-[13px] text-dangerText">
+              {cardsError}
+            </Text>
+          </AdminPanel>
+        ) : isCardsLoading ? (
+          <AdminPanel>
+            <AdminLoadingState
+              title={t("admin.cards.loading")}
+              body={t("common.loadingStates.adminBody")}
+              icon="albums"
+            />
+          </AdminPanel>
+        ) : (
+          <>
+            <AdminPanel>
+              <AdminSectionTitle
+                title={t("admin.cards.rarityBreakdown")}
+                subtitle={t("admin.cards.rarityBreakdownSubtitle")}
+              />
+              <View className="mt-3 flex-row flex-wrap gap-2">
+                {(raritiesQuery.data?.rarities ?? []).map((rarity) => (
+                  <AdminChip
+                    key={rarity.id}
+                    label={`${rarity.name}: ${derived.rarityCounts.get(rarity.id) ?? 0}`}
+                    tone="default"
+                  />
+                ))}
+              </View>
+            </AdminPanel>
+            <AdminNotice
+              title={t("admin.cards.activeHintTitle")}
+              body={t("admin.cards.activeHintBody")}
+              tone="info"
+              icon="create-outline"
+            />
+          </>
+        )}
+
+        {!isCardsLoading &&
+        !cardsError &&
+        !derived.activeCards.length &&
+        !derived.archivedCards.length ? (
+          <AdminPanel>
+            <AdminEmptyState
+              icon="albums"
+              title={t("admin.cards.emptyTitle")}
+              body={t("admin.cards.noActiveBody")}
+            />
+          </AdminPanel>
+        ) : null}
+
+        {!isCardsLoading &&
+        !cardsError &&
+        isActiveCardsOpen &&
+        !derived.activeCards.length ? (
+          <AdminPanel>
+            <AdminEmptyState
+              icon="albums"
+              title={t("admin.cards.noActiveTitle")}
+              body={t("admin.cards.noActiveBody")}
+            />
+          </AdminPanel>
+        ) : null}
+
+        {!isCardsLoading &&
+        !cardsError &&
+        isArchivedCardsOpen &&
+        !derived.archivedCards.length ? (
+          <AdminPanel>
+            <AdminEmptyState
+              icon="archive"
+              title={t("admin.cards.noArchivedTitle")}
+              body={
+                searchQuery
+                  ? t("admin.cards.noArchivedSearchBody")
+                  : t("admin.cards.noArchivedBody")
+              }
+            />
+          </AdminPanel>
+        ) : null}
+      </View>
     ),
     [
-      searchQuery,
-      isCardsLoading,
       cardsError,
-      raritiesQuery.data?.rarities,
+      derived.activeCards.length,
+      derived.allActiveCount,
+      derived.allArchivedCount,
+      derived.archivedCards.length,
+      derived.featuredCount,
       derived.rarityCounts,
+      isActiveCardsOpen,
+      isArchivedCardsOpen,
+      isCardsLoading,
       openCardEditor,
-      tc,
+      raritiesQuery.data?.rarities,
+      searchQuery,
+      t,
     ],
   );
 
@@ -499,7 +516,7 @@ export default function AdminCardsScreen() {
           <View className="items-center mb-4">
             <AdminCardTile card={selectedArchivedCard} size="large" />
           </View>
-          <Text className="text-center font-nunito-bold text-[16px] text-primaryText mb-[18]">
+          <Text className="mb-[18] text-center font-nunito-bold text-[16px] text-primaryText">
             {selectedArchivedCard.name}
           </Text>
           <View className="gap-[10]">

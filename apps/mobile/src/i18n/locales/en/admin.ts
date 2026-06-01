@@ -2,6 +2,8 @@ const admin = {
   saving: "Saving...",
   shell: {
     backToGame: "Back to game",
+    consoleLabel: "Admin area",
+    consoleTitle: "Operations console",
     nav: {
       cards: "Cards",
       packs: "Packs",
@@ -37,8 +39,17 @@ const admin = {
     subtitle:
       "Browse player accounts and open the full-screen detail sheet for coins, quests, permissions, and super-admin actions.",
     searchPlaceholder: "Search by email or display name",
+    loadingUsers: "Loading users...",
+    loadingRequests: "Loading access requests...",
+    guidanceTitle: "Review with context",
+    guidanceBody:
+      "Open any account to adjust coins, inspect quest progress, or review access without losing your place in the list.",
+    guidanceBodySuperAdmin:
+      "Open any account to adjust coins, inspect quest progress, or review access. Access requests stay separated below for fast moderation.",
     requestsCount: "{count} requests",
     usersCount: "{count} users",
+    usersLabel: "Visible users",
+    requestsLabel: "Pending requests",
     sort: {
       email: "Email",
       coins: "Coins",
@@ -119,10 +130,17 @@ const admin = {
     title: "Packs",
     subtitle:
       "Manage shop availability and pack economics without the unused image URL baggage.",
+    guidanceTitle: "Shape the store deliberately",
+    guidanceBody:
+      "Keep active packs focused and use inactive packs as drafts or seasonal rotations instead of cluttering the live shop.",
     create: "Create",
     searchPlaceholder: "Search packs",
+    activeLabel: "Active now",
+    inactiveLabel: "Inactive",
     activeTitle: "Active packs ({count})",
+    activeSubtitle: "Store-ready packs players can currently buy.",
     inactiveTitle: "Inactive packs ({count})",
+    inactiveSubtitle: "Draft, retired, or seasonal packs waiting off-shelf.",
     loading: "Loading packs...",
     noActiveTitle: "No active packs",
     noActiveBody: "Create a pack or reactivate one from the inactive list.",
@@ -156,7 +174,14 @@ const admin = {
     title: "Image Assets",
     subtitle:
       "Reusable catalog artwork library for future admin tooling and content flows.",
+    guidanceTitle: "Upload once, reuse everywhere",
+    guidanceBody:
+      "Treat this as the shared art shelf for cards and future content. Tap any asset ID when you need the backend reference.",
+    totalLabel: "Catalog total",
+    recentLabel: "Shown here",
     recentUploads: "Recent uploads ({count})",
+    recentSubtitle:
+      "Most recent catalog assets, ready to reference in card editing flows.",
     loading: "Loading assets...",
     emptyTitle: "No uploaded assets",
     emptyBody:
@@ -167,15 +192,23 @@ const admin = {
     subtitle:
       "Highlight the showcase roster exactly like the PWA carousel selection flow.",
     searchPlaceholder: "Search featured candidates",
+    selectedLabel: "Selected",
+    slotsLeftLabel: "Slots left",
     featuredCount: "{count} / 5 featured",
     waitingCount: "{count} waiting",
+    guidanceTitle: "Curate the showcase",
+    guidanceBody:
+      "Promote cards that represent the current season, recent additions, or packs you want players to notice first.",
+    limitTitle: "Showcase is full",
     maxReached:
       "Maximum of five featured cards reached. Remove one above before adding another.",
     currentTitle: "Currently featured ({count})",
+    currentSubtitle: "These cards are in the storefront spotlight right now.",
     loading: "Loading cards...",
     noFeaturedTitle: "No featured cards",
     noFeaturedBody: "Tap any card below to promote it into the featured set.",
     allCardsTitle: "All cards ({count})",
+    allCardsSubtitle: "Eligible active cards that can be promoted next.",
     noMatchesTitle: "No cards match",
     noMatchesBody: "Clear the search or add more cards on the cards tab.",
   },
@@ -189,12 +222,21 @@ const admin = {
     title: "Abilities",
     subtitle:
       "Use the same two-mode management flow as the PWA: ability library and card assignments.",
+    libraryLabel: "Abilities",
+    assignmentLabel: "Assignments",
     tabAbilities: "Abilities",
     tabAssignments: "Assignments",
     searchAbilities: "Search abilities",
     searchCards: "Search cards",
+    libraryGuidanceTitle: "Keep reusable abilities clean",
+    libraryGuidanceBody:
+      "Treat abilities as shared building blocks. Edit names and payloads carefully so assignment screens stay understandable.",
+    assignmentGuidanceTitle: "Assign with intent",
+    assignmentGuidanceBody:
+      "Use defaults when a card should inherit engine behavior, and override only when a card needs a specific passive, skill, or ultimate.",
     createAbility: "Create ability",
     libraryTitle: "Ability library ({count})",
+    librarySubtitle: "Search, filter, and edit reusable combat behaviors.",
     loadingAbilities: "Loading abilities...",
     noAbilitiesTitle: "No abilities",
     noAbilitiesBody:
@@ -203,6 +245,8 @@ const admin = {
     cooldownLabel: "CD {count}",
     oncePerMatchShort: "Once / match",
     assignmentsTitle: "Card assignments ({count})",
+    assignmentsSubtitle:
+      "Review per-card overrides without leaving the admin flow.",
     loadingAssignments: "Loading card assignments...",
     passiveLabel: "Passive: {name}",
     skillLabel: "Skill: {name}",
@@ -210,23 +254,45 @@ const admin = {
     noCardsTitle: "No cards",
     noCardsBody: "Cards appear here once the admin catalog has content.",
     assignTitle: "Assign abilities",
+    assignmentModalExisting: "Adjust the selected ability slots for this card.",
+    assignmentModalNew:
+      "This card is still using defaults. Pick only the overrides you want to save.",
     saveAssignments: "Save assignments",
   },
   cards: {
     title: "Card Admin",
+    subtitle:
+      "Create, refine, archive, and restore cards without losing sight of the live catalog.",
     stats: "Card stats",
+    activeLabel: "Active catalog",
+    archivedLabel: "Archived",
+    featuredLabel: "Featured live",
+    resultsLabel: "Visible results",
+    filteredResults: "Filtered by your current search.",
+    totalCatalog: "Everything currently in the card catalog.",
+    rarityBreakdown: "Rarity breakdown",
+    rarityBreakdownSubtitle:
+      "Quick count by rarity across the full card catalog.",
+    activeHintTitle: "Work from the live catalog first",
+    activeHintBody:
+      "Tap any active card to edit it immediately. Archived cards stay separated so the day-to-day list is easier to scan.",
+    activeSubtitle: "Live cards you can edit right away.",
+    archivedSubtitle: "Retired cards kept out of the live catalog.",
     tapToEdit: "Tap a card to edit it.",
     tapToManage: "Tap a card to manage it.",
     searchPlaceholder: "Search by name or character",
-    activeTitle: "All cards ({count})",
+    activeTitle: "Active cards ({count})",
     activeTitleWithTotal: "All cards ({count}) / {total}",
     archivedTitle: "Archived cards ({count})",
     archivedTitleWithTotal: "Archived cards ({count}) / {total}",
     loading: "Loading cards...",
+    noActiveTitle: "No active cards found",
     noActiveBody: "Try a different search or create a new card.",
+    noArchivedTitle: "No archived cards found",
     noArchivedBody: "Archived cards will appear here.",
     noArchivedSearchBody: "No archived cards match your search.",
     createCard: "Create new card",
+    emptyTitle: "Card catalog is empty",
     archivedCardTitle: "Archived card",
     restoreCard: "Restore card",
   },
@@ -334,7 +400,8 @@ const admin = {
     payloadObjectError: "Payload JSON must be an object.",
     fixRawPayload: "Fix the raw payload JSON before saving.",
     statusDurationError: "Status durations must be positive whole numbers.",
-    auraDurationError: "Adjacent aura duration must be a positive whole number.",
+    auraDurationError:
+      "Adjacent aura duration must be a positive whole number.",
     conditionalInvalid: "Conditional JSON is invalid. {error}",
     fieldLabels: {
       chance: "Chance",
