@@ -873,6 +873,35 @@ export default function SpeedCalculusScreen() {
           onCashOut={() => void cashOut()}
         />
 
+        <View
+          className="rounded-3xl border-2 border-secondary/20 bg-white/90 p-5"
+          style={{
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.1,
+            shadowRadius: 12,
+            elevation: 4,
+          }}
+        >
+          <Text className="text-xs font-nunito-bold uppercase tracking-[3.5px] text-secondaryText/80">
+            {t("quests.speedCalculusTrainingTitle")}
+          </Text>
+          <Text className="mt-2 text-sm font-nunito leading-5 text-primaryDark/80">
+            {t("quests.speedCalculusTrainingBody")}
+          </Text>
+          <Pressable
+            onPress={() => router.push("/quests/speed-calculus/training")}
+            className="mt-4 rounded-2xl overflow-hidden"
+            style={({ pressed }) => ({ opacity: pressed ? 0.9 : 1 })}
+          >
+            <View className="items-center rounded-2xl bg-secondary px-5 py-4">
+              <Text className="font-nunito-bold text-[15px] text-white">
+                {t("quests.speedCalculusTrainingOpen")}
+              </Text>
+            </View>
+          </Pressable>
+        </View>
+
         {/* ── Run History ──────────────────────────────────────────── */}
         <RunHistoryCard
           state={state}
@@ -886,8 +915,13 @@ export default function SpeedCalculusScreen() {
         showRoundOver={showRoundOver}
         activeRun={activeRun}
         roundOverScore={roundOverScore}
-        roundOverRunNumber={roundOverRunNumber}
-        state={state!}
+        sessionLabel={t("quests.speedCalculusRunLabel", {
+          run: activeRun?.runNumber ?? roundOverRunNumber,
+          total: state?.maxRuns ?? 3,
+        })}
+        roundOverBackLabel={t("quests.speedCalculusBackToMain")}
+        pausedBackLabel={t("quests.speedCalculusBackToMain")}
+        runDurationSeconds={state?.runDurationSeconds ?? 30}
         remainingSeconds={remainingSeconds}
         pauseRemainingSeconds={pauseRemainingSeconds}
         displayedCorrectAnswers={displayedCorrectAnswers}

@@ -1,7 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Animated, Pressable, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import type { SpeedRunState } from "@adventure-time/api-client";
 
 import { useTranslation } from "../../../i18n";
 import { useThemeStore } from "../../../stores/theme-store";
@@ -10,16 +9,16 @@ import { THEME_COLORS } from "../../../theme/themes";
 type RoundOverOverlayProps = {
   showRoundOver: boolean;
   roundOverScore: number;
-  roundOverRunNumber: number;
-  state: SpeedRunState;
+  sessionLabel: string;
+  backLabel: string;
   onDismiss: () => void;
 };
 
 export function RoundOverOverlay({
   showRoundOver,
   roundOverScore,
-  roundOverRunNumber,
-  state,
+  sessionLabel,
+  backLabel,
   onDismiss,
 }: RoundOverOverlayProps) {
   const { t } = useTranslation();
@@ -84,7 +83,7 @@ export function RoundOverOverlay({
           {/* ── Content ────────────────────────────────────────── */}
           <View className="items-center px-6 pt-8 pb-7 gap-5">
             <Text className="font-nunito-bold text-[11px] uppercase tracking-[3px] text-white/50">
-              {t("quests.speedCalculusRunLabel", { run: roundOverRunNumber, total: state.maxRuns ?? 3 })}
+              {sessionLabel}
             </Text>
 
             <View className="items-center gap-1">
@@ -114,7 +113,7 @@ export function RoundOverOverlay({
                 style={{ paddingVertical: 16, alignItems: "center", borderRadius: 999 }}
               >
                 <Text className="font-nunito-extrabold text-center text-[13px] text-primaryTint uppercase tracking-[2.5px]">
-                  {t("quests.speedCalculusBackToMain")}
+                  {backLabel}
                 </Text>
               </LinearGradient>
             </Pressable>

@@ -127,6 +127,25 @@ const quests = {
     "Impossible de mettre en pause la partie de calcul rapide.",
   speedCalculusResumeError:
     "Impossible de reprendre la partie de calcul rapide.",
+  speedCalculusTrainingTitle: "Mode entraînement",
+  speedCalculusTrainingBody:
+    "Entraîne-toi sans limite avec des graines aléatoires inédites. L'entraînement n'utilise ni essais quotidiens, ni récompenses, ni historique de quête.",
+  speedCalculusTrainingOpen: "Ouvrir l'entraînement",
+  speedCalculusTrainingScreenSubtitle:
+    "Entraîne-toi avec les mêmes règles de temps et de questions que la quête quotidienne, sans effet sur le résultat du jour.",
+  speedCalculusTrainingStart: "Lancer un entraînement",
+  speedCalculusTrainingResume: "Reprendre l'entraînement",
+  speedCalculusTrainingStartError:
+    "Impossible de lancer un entraînement.",
+  speedCalculusTrainingFinish:
+    "Entraînement terminé : {score} bonnes réponses.",
+  speedCalculusTrainingSessionLabel: "Entraînement",
+  speedCalculusTrainingBack: "Retour à l'entraînement",
+  speedCalculusTrainingLastRun: "Dernier entraînement",
+  speedCalculusTrainingNoRunsYet:
+    "Aucun entraînement terminé pour le moment.",
+  speedCalculusTrainingSummary:
+    "{score} bonnes réponses sur {answered} réponses envoyées.",
 };
 
 export default quests;

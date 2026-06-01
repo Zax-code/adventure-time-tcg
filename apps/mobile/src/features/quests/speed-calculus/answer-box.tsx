@@ -1,4 +1,4 @@
-import { Animated, Text } from "react-native";
+import { Animated, Text, View } from "react-native";
 
 import { useTranslation } from "../../../i18n";
 
@@ -15,7 +15,7 @@ export function AnswerBox({ answer, shakeAnim, answerBoxBg, answerBoxBorder, ans
 
   return (
     <Animated.View
-      className="mx-4 rounded-2xl border-2 px-5 items-center justify-center h-20"
+      className="mx-4 rounded-2xl border-2 px-5 items-center h-20"
       style={{
         borderColor: answerBoxBorder,
         backgroundColor: answerBoxBg,
@@ -27,20 +27,22 @@ export function AnswerBox({ answer, shakeAnim, answerBoxBg, answerBoxBorder, ans
         elevation: 4,
       }}
     >
-      <Text
-        className="text-[10px] font-nunito-bold uppercase tracking-[4px] mb-1 opacity-[0.55]"
-        style={{ color: answerBoxText }}
-      >
-        {t("quests.speedCalculusAnswerPlaceholder")}
-      </Text>
-      <Text
-        className="font-nunito-extrabold text-center text-[40px] leading-[46px]"
-        style={{
-          color: answer ? answerBoxText : "rgba(236,72,153,0.22)",
-        }}
-      >
-        {answer || "\u2014"}
-      </Text>
+      <View className="flex-1 items-center justify-center pt-2">
+        <Text
+          className="text-[10px] font-nunito-bold uppercase tracking-[4px] mb-1 opacity-[0.55]"
+          style={{ color: answerBoxText }}
+        >
+          {t("quests.speedCalculusAnswerPlaceholder")}
+        </Text>
+        <Text
+          className="font-nunito-extrabold text-center text-[40px] leading-[46px]"
+          style={{
+            color: answer ? answerBoxText : "rgba(236,72,153,0.22)",
+          }}
+        >
+          {answer || "\u2014"}
+        </Text>
+      </View>
     </Animated.View>
   );
 }

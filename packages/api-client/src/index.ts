@@ -78,6 +78,7 @@ import {
   speedAnswerSchema,
   speedAnswerResponseSchema,
   speedFinishSchema,
+  speedTrainingRunSchema,
   speedRunStateSchema,
   syncStepsSchema,
   updateStepSourceSchema,
@@ -140,6 +141,7 @@ import {
   type ResendVerificationInput,
   type SpeedRunAnswerResponse,
   type SpeedRunState,
+  type SpeedTrainingRun,
   type SyncStepsInput,
   type UpdateStepSourceInput,
   type UpdateLanguageInput,
@@ -546,6 +548,14 @@ export class ApiClient {
       "/quests/speed-calculus/start",
       { method: "POST", body: JSON.stringify({}) },
       (data) => speedRunStateSchema.parse(data),
+    );
+  }
+
+  async startSpeedCalculusTraining(): Promise<SpeedTrainingRun> {
+    return this.request(
+      "/quests/speed-calculus/training/start",
+      { method: "POST", body: JSON.stringify({}) },
+      (data) => speedTrainingRunSchema.parse(data),
     );
   }
 

@@ -732,6 +732,15 @@ export const speedAnswerResponseSchema = z.object({
     .nullable(),
 });
 
+export const speedTrainingRunSchema = z.object({
+  runId: z.string(),
+  seed: z.string(),
+  questions: z.array(speedQuestionSchema),
+  runDurationSeconds: z.number().int().positive(),
+  pauseDurationSeconds: z.number().int().nonnegative(),
+  rewardPerAnswer: z.number().int().positive(),
+});
+
 export const speedFinishSchema = z.object({
   runId: z.string(),
   questVersion: z.string().optional(),
@@ -1190,6 +1199,7 @@ export type WordleSubmitInput = z.infer<typeof wordleSubmitSchema>;
 export type WordleSubmitResponse = z.infer<typeof wordleSubmitResponseSchema>;
 export type SpeedRunState = z.infer<typeof speedRunStateSchema>;
 export type SpeedRunAnswerResponse = z.infer<typeof speedAnswerResponseSchema>;
+export type SpeedTrainingRun = z.infer<typeof speedTrainingRunSchema>;
 export type SpeedRunHistoryEntry = z.infer<typeof speedRunHistoryEntrySchema>;
 export type PvpAction = z.infer<typeof pvpActionSchema>;
 export type PvpEndTurnInput = z.infer<typeof pvpEndTurnSchema>;

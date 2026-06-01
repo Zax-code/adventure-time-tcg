@@ -1,4 +1,5 @@
-import { Pressable, Text, View, type DimensionValue } from "react-native";
+import { useEffect, useRef } from "react";
+import { Animated, Easing, Pressable, Text, View } from "react-native";
 import type { SpeedRunState } from "@adventure-time/api-client";
 
 import { useTranslation } from "../../../i18n";
@@ -7,7 +8,8 @@ import { THEME_COLORS } from "../../../theme/themes";
 
 type HudCardProps = {
   activeRun: NonNullable<SpeedRunState["activeRun"]> | null;
-  state: SpeedRunState;
+  runDurationSeconds: number;
+  sessionLabel: string;
   remainingSeconds: number;
   pauseRemainingSeconds: number;
   displayedCorrectAnswers: number;
@@ -18,7 +20,8 @@ type HudCardProps = {
 
 export function HudCard({
   activeRun,
-  state,
+  runDurationSeconds,
+  sessionLabel,
   remainingSeconds,
   pauseRemainingSeconds,
   displayedCorrectAnswers,
@@ -28,16 +31,49 @@ export function HudCard({
 }: HudCardProps) {
   const { t } = useTranslation();
   const tc = THEME_COLORS[useThemeStore((s) => s.themeName)];
+  const progressAnim = useRef(new Animated.Value(1)).current;
 
   // ── Timer urgency ─────────────────────────────────────────────────
-  const maxSeconds = state.runDurationSeconds ?? 30;
+  const maxSeconds = runDurationSeconds;
   const timerIsLow = remainingSeconds <= Math.floor(maxSeconds * 0.33);
   const timerIsCritical = remainingSeconds <= 5;
   const timerColor = timerIsCritical ? tc.dangerDark : timerIsLow ? tc.secondaryDark : tc.primaryDark;
-  const timerProgress: DimensionValue =
+  const timerProgress =
     activeRun && maxSeconds > 0
-      ? `${Math.max(0, Math.min(100, (remainingSeconds / maxSeconds) * 100))}%`
-      : "100%";
+      ? Math.max(0, Math.min(1, remainingSeconds / maxSeconds))
+      : 1;
+
+  useEffect(() => {
+    if (!activeRun) {
+      progressAnim.stopAnimation();
+      progressAnim.setValue(1);
+      return;
+    }
+
+    progressAnim.stopAnimation();
+    progressAnim.setValue(timerProgress);
+
+    if (pauseRemainingSeconds > 0 || isManuallyPaused || remainingSeconds <= 0) {
+      return;
+    }
+
+    Animated.timing(progressAnim, {
+      toValue: 0,
+      duration: remainingSeconds * 1000,
+      easing: Easing.linear,
+      useNativeDriver: false,
+    }).start();
+  }, [
+    activeRun?.runId,
+    isManuallyPaused,
+    pauseRemainingSeconds,
+    progressAnim,
+  ]);
+
+  const progressWidth = progressAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0%", "100%"],
+  });
 
   return (
     <View
@@ -61,7 +97,7 @@ export function HudCard({
             <Text className="text-base" style={{ color: timerColor }}>s</Text>
           </Text>
           <Text className="text-[10px] font-nunito-bold uppercase tracking-[2.5px] text-primaryDark/50 -mt-0.5">
-            {t("quests.speedCalculusRunLabel", { run: activeRun?.runNumber ?? 1, total: state.maxRuns ?? 3 })}
+            {sessionLabel}
           </Text>
         </View>
 
@@ -98,10 +134,10 @@ export function HudCard({
 
       {/* Timer progress bar — smooth continuous drain */}
       <View className="mt-2.5 mb-0.5 h-[5px] rounded-full overflow-hidden bg-primaryTint">
-        <View
+        <Animated.View
           className="h-full rounded-full"
           style={{
-            width: timerProgress,
+            width: progressWidth,
             backgroundColor: timerColor,
           }}
         />

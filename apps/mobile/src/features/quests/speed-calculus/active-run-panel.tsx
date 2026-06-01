@@ -19,8 +19,10 @@ type ActiveRunPanelProps = {
   showRoundOver: boolean;
   activeRun: NonNullable<SpeedRunState["activeRun"]> | null;
   roundOverScore: number;
-  roundOverRunNumber: number;
-  state: SpeedRunState;
+  sessionLabel: string;
+  roundOverBackLabel: string;
+  pausedBackLabel: string;
+  runDurationSeconds: number;
   remainingSeconds: number;
   pauseRemainingSeconds: number;
   displayedCorrectAnswers: number;
@@ -53,8 +55,10 @@ export function ActiveRunPanel({
   showRoundOver,
   activeRun,
   roundOverScore,
-  roundOverRunNumber,
-  state,
+  sessionLabel,
+  roundOverBackLabel,
+  pausedBackLabel,
+  runDurationSeconds,
   remainingSeconds,
   pauseRemainingSeconds,
   displayedCorrectAnswers,
@@ -99,7 +103,8 @@ export function ActiveRunPanel({
         >
           <HudCard
             activeRun={activeRun}
-            state={state}
+            runDurationSeconds={runDurationSeconds}
+            sessionLabel={sessionLabel}
             remainingSeconds={remainingSeconds}
             pauseRemainingSeconds={pauseRemainingSeconds}
             displayedCorrectAnswers={displayedCorrectAnswers}
@@ -146,8 +151,8 @@ export function ActiveRunPanel({
             <RoundOverOverlay
               showRoundOver={showRoundOver}
               roundOverScore={roundOverScore}
-              roundOverRunNumber={roundOverRunNumber}
-              state={state}
+              sessionLabel={sessionLabel}
+              backLabel={roundOverBackLabel}
               onDismiss={onDismiss}
             />
           )}
@@ -181,7 +186,7 @@ export function ActiveRunPanel({
                   style={({ pressed }) => ({ opacity: pressed ? 0.75 : 1 })}
                 >
                   <Text className="font-nunito-semibold text-sm text-primaryDark/70">
-                    {t("quests.wordle.backToQuests")}
+                    {pausedBackLabel}
                   </Text>
                 </Pressable>
               </View>
