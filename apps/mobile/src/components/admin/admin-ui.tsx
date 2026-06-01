@@ -484,9 +484,9 @@ export function AdminSearchInput({
 function getButtonPalette(tc: ThemeColors) {
   return {
     primary: {
-      bg: tc.primaryText,
-      text: pickReadableTextColor(tc.primaryText, tc.fg, tc.surface),
-      border: tc.primaryText,
+      bg: tc.primary,
+      text: pickReadableTextColor(tc.primary, tc.fg, tc.surface),
+      border: tc.primaryDark,
     },
     secondary: {
       bg: tc.secondaryTint,
