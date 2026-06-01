@@ -8,6 +8,7 @@ import {
 } from "react";
 import {
   Animated,
+  type GestureResponderEvent,
   Modal,
   ScrollView,
   Text,
@@ -16,8 +17,6 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import { runOnJS, useSharedValue } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
@@ -133,10 +132,8 @@ export default function WordleScreen() {
   const keyRefs = useRef<
     Partial<Record<string, ElementRef<typeof View> | null>>
   >({});
-  const containerRef = useRef<View>(null);
   const activeTouchesRef = useRef<Record<number, string>>({});
   const touchStartYRef = useRef<Record<number, number>>({});
-  const touchCountSV = useSharedValue(0);
 
   // Stable refs for async closures
   const guessesRef = useRef(guesses);
@@ -702,13 +699,11 @@ export default function WordleScreen() {
 
   const updateKeyLayout = useCallback((keyId: string) => {
     const keyRef = keyRefs.current[keyId];
-    if (!keyRef || !containerRef.current) return;
-    keyRef.measureLayout(
-      containerRef.current,
+    if (!keyRef) return;
+    keyRef.measureInWindow(
       (x, y, width, height) => {
         keyLayoutsRef.current[keyId] = { x, y, width, height };
       },
-      () => {},
     );
   }, []);
 
@@ -832,59 +827,14 @@ export default function WordleScreen() {
     [releaseTouches],
   );
 
-  const keyboardGesture = useMemo(
-    () =>
-      Gesture.Manual()
-        .shouldCancelWhenOutside(false)
-        .onTouchesDown((event, manager) => {
-          "worklet";
-          if (touchCountSV.value === 0) manager.activate();
-          touchCountSV.value += event.changedTouches.length;
-          runOnJS(handleTouchesDown)(
-            event.changedTouches.map((t) => ({ id: t.id, x: t.x, y: t.y })),
-          );
-        })
-        .onTouchesMove((event) => {
-          "worklet";
-          runOnJS(handleTouchesMove)(
-            event.changedTouches.map((t) => ({ id: t.id, x: t.x, y: t.y })),
-          );
-        })
-        .onTouchesUp((event, manager) => {
-          "worklet";
-          touchCountSV.value = Math.max(
-            0,
-            touchCountSV.value - event.changedTouches.length,
-          );
-          runOnJS(handleTouchesUp)(
-            event.changedTouches.map((t) => ({ id: t.id })),
-          );
-          if (touchCountSV.value === 0) manager.end();
-        })
-        .onTouchesCancelled((event, manager) => {
-          "worklet";
-          touchCountSV.value = Math.max(
-            0,
-            touchCountSV.value - event.changedTouches.length,
-          );
-          runOnJS(handleTouchesCancel)(
-            event.changedTouches.map((t) => ({ id: t.id })),
-          );
-          if (touchCountSV.value === 0) manager.end();
-        })
-        .onFinalize(() => {
-          "worklet";
-          touchCountSV.value = 0;
-          runOnJS(clearActiveTouches)();
-        }),
-    [
-      handleTouchesDown,
-      handleTouchesMove,
-      handleTouchesUp,
-      handleTouchesCancel,
-      clearActiveTouches,
-      touchCountSV,
-    ],
+  const getChangedTouches = useCallback(
+    (event: GestureResponderEvent) =>
+      Array.from(event.nativeEvent.changedTouches).map((touch) => ({
+        id: Number(touch.identifier),
+        x: touch.pageX,
+        y: touch.pageY,
+      })),
+    [],
   );
 
   // ── Tile helpers ─────────────────────────────────────────────────────────
@@ -1115,143 +1065,155 @@ export default function WordleScreen() {
 
       {/* ── Keyboard card ───────────────────────────────────────────────── */}
       {shareMaskActive ? null : (
-        <GestureDetector gesture={keyboardGesture}>
+        <View
+          className="rounded-[28px] border-2 border-primaryTint bg-surface p-3 shadow shadow-black/10"
+          onTouchStart={(event) => {
+            handleTouchesDown(getChangedTouches(event));
+          }}
+          onTouchMove={(event) => {
+            handleTouchesMove(getChangedTouches(event));
+          }}
+          onTouchEnd={(event) => {
+            handleTouchesUp(
+              getChangedTouches(event).map((touch) => ({ id: touch.id })),
+            );
+          }}
+          onTouchCancel={(event) => {
+            handleTouchesCancel(
+              getChangedTouches(event).map((touch) => ({ id: touch.id })),
+            );
+            clearActiveTouches();
+          }}
+        >
           <View
-            ref={containerRef}
-            className="rounded-[28px] border-2 border-primaryTint bg-surface p-3 shadow shadow-black/10"
+            onLayout={(e) => setRowContainerWidth(e.nativeEvent.layout.width)}
+            className="gap-2"
           >
-            <View
-              onLayout={(e) => setRowContainerWidth(e.nativeEvent.layout.width)}
-              className="gap-2"
-            >
-              {(() => {
-                const KEY_GAP = 6;
-                const maxRowKeys = Math.max(...keyboardRows.map((r) => r.length));
-                const keyWidth =
-                  rowContainerWidth > 0
-                    ? Math.floor(
-                        (rowContainerWidth - (maxRowKeys - 1) * KEY_GAP) /
-                          maxRowKeys,
-                      )
-                    : 0;
+            {(() => {
+              const KEY_GAP = 6;
+              const maxRowKeys = Math.max(...keyboardRows.map((r) => r.length));
+              const keyWidth =
+                rowContainerWidth > 0
+                  ? Math.floor(
+                      (rowContainerWidth - (maxRowKeys - 1) * KEY_GAP) /
+                        maxRowKeys,
+                    )
+                  : 0;
 
-                return keyboardRows.map((row, rowIdx) => (
-                  <View key={row} className={rowIdx > 0 ? "mt-1" : undefined}>
-                    <View className="flex-row justify-center gap-1.5">
-                      {row.split("").map((letter) => {
-                        const kState = keyboardState[letter];
-                        const pressed =
-                          activeKeys.includes(letter) && !inputLocked;
-                        const keyCls = keyBgBorderClass(kState);
-                        return (
-                          <View
-                            key={letter}
-                            ref={(node) => {
-                              keyRefs.current[letter] = node;
-                            }}
-                            onLayout={() => {
-                              requestAnimationFrame(() =>
-                                updateKeyLayout(letter),
-                              );
-                            }}
-                            className={`h-[56px] rounded-2xl border-2 items-center justify-center shadow shadow-black/10 ${keyCls}`}
-                            pointerEvents="none"
-                            style={{
-                              width: keyWidth || undefined,
-                              opacity: inputLocked ? 0.45 : pressed ? 0.82 : 1,
-                              transform: [{ scale: pressed ? 0.96 : 1 }],
-                            }}
+              return keyboardRows.map((row, rowIdx) => (
+                <View key={row} className={rowIdx > 0 ? "mt-1" : undefined}>
+                  <View className="flex-row justify-center gap-1.5">
+                    {row.split("").map((letter) => {
+                      const kState = keyboardState[letter];
+                      const pressed =
+                        activeKeys.includes(letter) && !inputLocked;
+                      const keyCls = keyBgBorderClass(kState);
+                      return (
+                        <View
+                          key={letter}
+                          ref={(node) => {
+                            keyRefs.current[letter] = node;
+                          }}
+                          onLayout={() => {
+                            requestAnimationFrame(() => updateKeyLayout(letter));
+                          }}
+                          className={`h-[56px] rounded-2xl border-2 items-center justify-center shadow shadow-black/10 ${keyCls}`}
+                          pointerEvents="none"
+                          style={{
+                            width: keyWidth || undefined,
+                            opacity: inputLocked ? 0.45 : pressed ? 0.82 : 1,
+                            transform: [{ scale: pressed ? 0.96 : 1 }],
+                          }}
+                        >
+                          <Text
+                            className={`text-sm font-nunito-extrabold ${keyLetterClass(kState)}`}
                           >
-                            <Text
-                              className={`text-sm font-nunito-extrabold ${keyLetterClass(kState)}`}
-                            >
-                              {letter}
-                            </Text>
-                          </View>
-                        );
-                      })}
-                    </View>
+                            {letter}
+                          </Text>
+                        </View>
+                      );
+                    })}
                   </View>
-                ));
-              })()}
+                </View>
+              ));
+            })()}
+          </View>
+
+          <View className="mt-3 h-px bg-primaryTint" />
+          {/* Clear + Submit row */}
+          <View className="mt-3 flex-row gap-2">
+            <View
+              ref={(node) => {
+                keyRefs.current["CLEAR"] = node;
+              }}
+              onLayout={() => {
+                requestAnimationFrame(() => updateKeyLayout("CLEAR"));
+              }}
+              pointerEvents="none"
+              className="flex-1 h-[56px] rounded-2xl border-2 border-primaryTint bg-surfaceMuted items-center justify-center shadow shadow-black/10"
+              style={{
+                opacity: rowClearDisabled
+                  ? 0.4
+                  : activeKeys.includes("CLEAR")
+                    ? 0.82
+                    : 1,
+                transform: [
+                  {
+                    scale:
+                      activeKeys.includes("CLEAR") && !rowClearDisabled
+                        ? 0.96
+                        : 1,
+                  },
+                ],
+              }}
+            >
+              <Text className="text-xs font-nunito-extrabold text-primaryStrong">
+                {t("quests.wordle.clear")}
+              </Text>
             </View>
 
-            <View className="mt-3 h-px bg-primaryTint" />
-            {/* Clear + Submit row */}
-            <View className="mt-3 flex-row gap-2">
-              <View
-                ref={(node) => {
-                  keyRefs.current["CLEAR"] = node;
-                }}
-                onLayout={() => {
-                  requestAnimationFrame(() => updateKeyLayout("CLEAR"));
-                }}
-                pointerEvents="none"
-                className="flex-1 h-[56px] rounded-2xl border-2 border-primaryTint bg-surfaceMuted items-center justify-center shadow shadow-black/10"
+            <View
+              ref={(node) => {
+                keyRefs.current["SUBMIT"] = node;
+              }}
+              onLayout={() => {
+                requestAnimationFrame(() => updateKeyLayout("SUBMIT"));
+              }}
+              pointerEvents="none"
+              className="flex-1 h-[56px] rounded-2xl overflow-hidden shadow shadow-black/10"
+              style={{
+                opacity: submitLocked
+                  ? 0.4
+                  : activeKeys.includes("SUBMIT")
+                    ? 0.88
+                    : 1,
+                transform: [
+                  {
+                    scale:
+                      activeKeys.includes("SUBMIT") && !submitLocked
+                        ? 0.96
+                        : 1,
+                  },
+                ],
+              }}
+            >
+              <LinearGradient
+                colors={[tc.primary, tc.primaryDark]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
                 style={{
-                  opacity: rowClearDisabled
-                    ? 0.4
-                    : activeKeys.includes("CLEAR")
-                      ? 0.82
-                      : 1,
-                  transform: [
-                    {
-                      scale:
-                        activeKeys.includes("CLEAR") && !rowClearDisabled
-                          ? 0.96
-                          : 1,
-                    },
-                  ],
+                  flex: 1,
+                  alignItems: "center",
+                  justifyContent: "center",
                 }}
               >
-                <Text className="text-xs font-nunito-extrabold text-primaryStrong">
-                  {t("quests.wordle.clear")}
+                <Text className="text-xs font-nunito-extrabold text-white">
+                  {submitting ? "…" : t("quests.wordle.submit")}
                 </Text>
-              </View>
-
-              <View
-                ref={(node) => {
-                  keyRefs.current["SUBMIT"] = node;
-                }}
-                onLayout={() => {
-                  requestAnimationFrame(() => updateKeyLayout("SUBMIT"));
-                }}
-                pointerEvents="none"
-                className="flex-1 h-[56px] rounded-2xl overflow-hidden shadow shadow-black/10"
-                style={{
-                  opacity: submitLocked
-                    ? 0.4
-                    : activeKeys.includes("SUBMIT")
-                      ? 0.88
-                      : 1,
-                  transform: [
-                    {
-                      scale:
-                        activeKeys.includes("SUBMIT") && !submitLocked
-                          ? 0.96
-                          : 1,
-                    },
-                  ],
-                }}
-              >
-                <LinearGradient
-                  colors={[tc.primary, tc.primaryDark]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={{
-                    flex: 1,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Text className="text-xs font-nunito-extrabold text-white">
-                    {submitting ? "…" : t("quests.wordle.submit")}
-                  </Text>
-                </LinearGradient>
-              </View>
+              </LinearGradient>
             </View>
           </View>
-        </GestureDetector>
+        </View>
       )}
 
       {/* ── Reset modal ─────────────────────────────────────────────────── */}
