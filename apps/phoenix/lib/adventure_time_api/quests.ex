@@ -15,7 +15,6 @@ defmodule AdventureTimeApi.Quests do
     DailyQuest,
     SpeedCalculusDailyRun,
     SpeedCalculusEngine,
-    WordleDefinition,
     WordleDailyAttempt,
     WordleDictionaryWord,
     WordleEngine
@@ -416,7 +415,7 @@ defmodule AdventureTimeApi.Quests do
       date = current_reset_date_for_user(user_id)
       word = get_daily_word(date, locale)
 
-      with {:ok, definition} <- get_or_fetch_wordle_definition(locale, word) do
+      with {:ok, definition} <- get_stored_wordle_definition(locale, word) do
         {:ok,
          %{
            locale: locale,
@@ -565,7 +564,7 @@ defmodule AdventureTimeApi.Quests do
     end
   end
 
-  defp get_or_fetch_wordle_definition(locale, word) do
+  defp get_stored_wordle_definition(locale, word) do
     case Repo.get_by(WordleDictionaryWord, locale: locale, word: word) do
       %WordleDictionaryWord{definition: definition} = entry
       when is_binary(definition) and definition != "" ->
@@ -577,37 +576,22 @@ defmodule AdventureTimeApi.Quests do
            source_url: entry.definition_source_url || default_definition_source_url(locale, word)
          }}
 
-      %WordleDictionaryWord{} = entry ->
-        with {:ok, definition} <- WordleDefinition.fetch(locale, word) do
-          entry
-          |> Ecto.Changeset.change(%{
-            definition: definition.definition,
-            definition_part_of_speech: definition.part_of_speech,
-            definition_source_name: definition.source_name,
-            definition_source_url: definition.source_url,
-            definition_fetched_at: DateTime.utc_now() |> DateTime.truncate(:microsecond)
-          })
-          |> Repo.update!()
-
-          {:ok, definition}
-        end
+      %WordleDictionaryWord{} ->
+        {:error, :definition_not_found}
 
       nil ->
         {:error, :definition_not_found}
     end
   end
 
-  defp default_definition_source_name("en"), do: "English Wiktionary"
-  defp default_definition_source_name("fr"), do: "Wiktionnaire"
+  defp default_definition_source_name("en"), do: "Open English WordNet"
+  defp default_definition_source_name("fr"), do: "DBnary / Wiktionnaire"
 
   defp default_definition_source_url(locale, word) do
-    language_anchor =
-      case locale do
-        "en" -> "English"
-        "fr" -> "Français"
-      end
-
-    "https://#{locale}.wiktionary.org/wiki/#{URI.encode(String.downcase(word))}##{URI.encode(language_anchor)}"
+    case locale do
+      "en" -> "https://en-word.net/"
+      "fr" -> "https://fr.wiktionary.org/wiki/#{URI.encode(String.downcase(word))}#Fran%C3%A7ais"
+    end
   end
 
   # ── Speed Calculus ───────────────────────────────────────────────────────────

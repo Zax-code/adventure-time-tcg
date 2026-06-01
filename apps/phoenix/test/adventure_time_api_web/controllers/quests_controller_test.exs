@@ -5,7 +5,6 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
   alias AdventureTimeApi.Fitbit.Account
   alias AdventureTimeApi.Health.StepSnapshot
   alias AdventureTimeApi.Quests
-  alias AdventureTimeApi.Quests.WordleDefinition
 
   alias AdventureTimeApi.Quests.{
     DailyQuest,
@@ -17,12 +16,6 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
   alias AdventureTimeApi.Repo
 
   setup do
-    definition_config = Application.get_env(:adventure_time_api, WordleDefinition, [])
-
-    on_exit(fn ->
-      Application.put_env(:adventure_time_api, WordleDefinition, definition_config)
-    end)
-
     :persistent_term.erase({:wordle_candidates, "fr"})
     :persistent_term.erase({:wordle_words_set, "fr"})
     :persistent_term.erase({:wordle_candidates, "en"})
@@ -334,47 +327,33 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
     assert finished_state["targetWord"] == target
   end
 
-  test "GET /wordle/definition returns localized definitions and caches them", _context do
-    bypass = Bypass.open()
-    {:ok, fr_counter} = Agent.start_link(fn -> 0 end)
-    {:ok, en_counter} = Agent.start_link(fn -> 0 end)
-
-    Application.put_env(
-      :adventure_time_api,
-      WordleDefinition,
-      base_urls: %{
-        "en" => "http://127.0.0.1:#{bypass.port}/en",
-        "fr" => "http://127.0.0.1:#{bypass.port}/fr"
-      }
-    )
-
+  test "GET /wordle/definition returns localized definitions stored in the DB", _context do
     user = create_user_with_password("wordle-definition@example.com", "password123")
     access_token = login_access_token(user.email, "password123")
     date = Quests.current_reset_date()
     french_target = WordleEngine.select_word_for_date(sorted_words("fr"), date)
     english_target = WordleEngine.select_word_for_date(sorted_words("en"), date)
 
-    expect_wordle_definition_requests(
-      bypass,
-      "/fr/w/api.php",
-      fr_counter,
-      "fr",
-      String.downcase(french_target),
-      "<span>Français</span>",
-      "3",
-      "<div><ol><li><span class=\"term\"><i>(<span class=\"texte\">Psychologie</span>)</i></span> Sentiment intense et agréable qui incite les êtres à s’unir.<ul><li>Exemple</li></ul></li></ol></div>"
-    )
+    Repo.get_by!(WordleDictionaryWord, locale: "fr", word: french_target)
+    |> Ecto.Changeset.change(%{
+      definition: "(Psychologie) Sentiment intense et agréable qui incite les êtres à s’unir.",
+      definition_part_of_speech: "Nom commun",
+      definition_source_name: "DBnary / Wiktionnaire",
+      definition_source_url:
+        "https://fr.wiktionary.org/wiki/#{String.downcase(french_target)}#Fran%C3%A7ais",
+      definition_fetched_at: DateTime.utc_now() |> DateTime.truncate(:microsecond)
+    })
+    |> Repo.update!()
 
-    expect_wordle_definition_requests(
-      bypass,
-      "/en/w/api.php",
-      en_counter,
-      "en",
-      String.downcase(english_target),
-      "English",
-      "4",
-      "<div><ol><li>A common, firm, round fruit produced by a tree of the genus <i>Malus</i>.<dl><dd>Hypernym</dd></dl></li></ol></div>"
-    )
+    Repo.get_by!(WordleDictionaryWord, locale: "en", word: english_target)
+    |> Ecto.Changeset.change(%{
+      definition: "A common, firm, round fruit produced by a tree of the genus Malus.",
+      definition_part_of_speech: "Noun",
+      definition_source_name: "Open English WordNet",
+      definition_source_url: "https://en-word.net/",
+      definition_fetched_at: DateTime.utc_now() |> DateTime.truncate(:microsecond)
+    })
+    |> Repo.update!()
 
     french_definition =
       access_token
@@ -388,7 +367,7 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
              "definition" =>
                "(Psychologie) Sentiment intense et agréable qui incite les êtres à s’unir.",
              "partOfSpeech" => "Nom commun",
-             "sourceName" => "Wiktionnaire",
+             "sourceName" => "DBnary / Wiktionnaire",
              "sourceUrl" =>
                "https://fr.wiktionary.org/wiki/#{String.downcase(french_target)}#Fran%C3%A7ais"
            }
@@ -404,9 +383,8 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
              "word" => english_target,
              "definition" => "A common, firm, round fruit produced by a tree of the genus Malus.",
              "partOfSpeech" => "Noun",
-             "sourceName" => "English Wiktionary",
-             "sourceUrl" =>
-               "https://en.wiktionary.org/wiki/#{String.downcase(english_target)}#English"
+             "sourceName" => "Open English WordNet",
+             "sourceUrl" => "https://en-word.net/"
            }
 
     cached_french =
@@ -427,9 +405,22 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
     assert english_row.definition == english_definition["definition"]
     assert english_row.definition_part_of_speech == "Noun"
     assert is_struct(english_row.definition_fetched_at, DateTime)
+  end
 
-    assert Agent.get(fr_counter, & &1) == 2
-    assert Agent.get(en_counter, & &1) == 2
+  test "GET /wordle/definition returns 404 when the DB has no stored definition", _context do
+    user = create_user_with_password("wordle-definition-missing@example.com", "password123")
+    access_token = login_access_token(user.email, "password123")
+
+    response =
+      access_token
+      |> auth_conn()
+      |> get(~p"/wordle/definition?locale=fr")
+      |> json_response(404)
+
+    assert response == %{
+             "error" => "Definition not found for today's Wordle word",
+             "code" => "WORDLE_DEFINITION_NOT_FOUND"
+           }
   end
 
   test "wordle keeps language boards separate and awards the quest only once", _context do
@@ -1010,59 +1001,5 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
   defp auth_conn(access_token) do
     build_conn()
     |> put_req_header("authorization", "Bearer #{access_token}")
-  end
-
-  defp expect_wordle_definition_requests(
-         bypass,
-         path,
-         counter,
-         locale,
-         page,
-         language_section_title,
-         section_index,
-         section_html
-       ) do
-    Bypass.expect(bypass, "GET", path, fn conn ->
-      conn = Plug.Conn.fetch_query_params(conn)
-      _ = Agent.update(counter, &(&1 + 1))
-
-      assert conn.query_params["action"] == "parse"
-      assert conn.query_params["format"] == "json"
-      assert conn.query_params["formatversion"] == "2"
-      assert conn.query_params["page"] == page
-
-      body =
-        case conn.query_params["prop"] do
-          "sections" ->
-            %{
-              "parse" => %{
-                "sections" => [
-                  %{"level" => "2", "line" => language_section_title, "number" => "1"},
-                  %{
-                    "level" => "3",
-                    "line" =>
-                      if(locale == "fr", do: "<span>Étymologie</span>", else: "Etymology"),
-                    "number" => "1.1",
-                    "index" => "2"
-                  },
-                  %{
-                    "level" => "3",
-                    "line" => if(locale == "fr", do: "<span>Nom commun</span>", else: "Noun"),
-                    "number" => if(locale == "fr", do: "1.2", else: "1.3"),
-                    "index" => section_index
-                  }
-                ]
-              }
-            }
-
-          "text" ->
-            assert conn.query_params["section"] == section_index
-            %{"parse" => %{"text" => section_html}}
-        end
-
-      conn
-      |> Plug.Conn.put_resp_content_type("application/json")
-      |> Plug.Conn.resp(200, Jason.encode!(body))
-    end)
   end
 end

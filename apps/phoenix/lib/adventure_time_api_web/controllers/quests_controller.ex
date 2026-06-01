@@ -89,14 +89,6 @@ defmodule AdventureTimeApiWeb.QuestsController do
             error: "Definition not found for today's Wordle word",
             code: "WORDLE_DEFINITION_NOT_FOUND"
           })
-
-        {:error, :definition_fetch_failed} ->
-          conn
-          |> put_status(502)
-          |> json(%{
-            error: "Definition lookup failed",
-            code: "WORDLE_DEFINITION_FETCH_FAILED"
-          })
       end
     end)
   end
