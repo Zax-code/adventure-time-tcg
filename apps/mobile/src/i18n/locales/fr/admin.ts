@@ -2,6 +2,8 @@ const admin = {
   saving: "Enregistrement...",
   shell: {
     backToGame: "Retour au jeu",
+    consoleLabel: "Zone admin",
+    consoleTitle: "Console d'opérations",
     nav: {
       cards: "Cartes",
       packs: "Packs",
@@ -37,15 +39,25 @@ const admin = {
     subtitle:
       "Parcours les comptes joueurs et ouvre leur fiche détaillée pour gérer pièces, quêtes, permissions et actions de super admin.",
     searchPlaceholder: "Rechercher par e-mail ou nom d'affichage",
+    loadingUsers: "Chargement des utilisateurs...",
+    loadingRequests: "Chargement des demandes d'accès...",
+    guidanceTitle: "Décider avec du contexte",
+    guidanceBody:
+      "Ouvre un compte pour ajuster les pièces, vérifier les quêtes ou revoir l'accès sans perdre ta place dans la liste.",
+    guidanceBodySuperAdmin:
+      "Ouvre un compte pour ajuster les pièces, vérifier les quêtes ou revoir l'accès. Les demandes d'accès restent séparées ci-dessous pour une modération rapide.",
     requestsCount: "{count} demandes",
     usersCount: "{count} utilisateurs",
+    usersLabel: "Utilisateurs visibles",
+    requestsLabel: "Demandes en attente",
     sort: {
       email: "E-mail",
       coins: "Pièces",
       createdAt: "Inscrit",
     },
     accountsTitle: "Comptes utilisateurs",
-    accountsSubtitle: "Appuie sur un utilisateur pour ouvrir sa fiche complète.",
+    accountsSubtitle:
+      "Appuie sur un utilisateur pour ouvrir sa fiche complète.",
     noUsersTitle: "Aucun utilisateur trouvé",
     noUsersBody: "Essaie un autre terme de recherche.",
     accessRequestsTitle: "Demandes d'accès",
@@ -117,17 +129,24 @@ const admin = {
   },
   packs: {
     title: "Packs",
-    subtitle:
-      "Gère la disponibilité de la boutique et l'économie des packs.",
+    subtitle: "Gère la disponibilité de la boutique et l'économie des packs.",
+    guidanceTitle: "Construis la boutique avec intention",
+    guidanceBody:
+      "Garde les packs actifs concentrés et utilise les packs inactifs comme brouillons ou rotations saisonnières au lieu de charger la boutique.",
     create: "Créer",
     searchPlaceholder: "Rechercher des packs",
+    activeLabel: "Actifs",
+    inactiveLabel: "Inactifs",
     activeTitle: "Packs actifs ({count})",
+    activeSubtitle: "Packs actuellement disponibles dans la boutique.",
     inactiveTitle: "Packs inactifs ({count})",
+    inactiveSubtitle: "Brouillons, packs retirés ou saisonniers hors boutique.",
     loading: "Chargement des packs...",
     noActiveTitle: "Aucun pack actif",
     noActiveBody: "Crée un pack ou réactive-en un depuis la liste inactive.",
     noInactiveTitle: "Aucun pack inactif",
-    noInactiveBody: "Les packs inactifs resteront ici jusqu'à leur remise en boutique.",
+    noInactiveBody:
+      "Les packs inactifs resteront ici jusqu'à leur remise en boutique.",
     guaranteed: "Garanti {rarity}",
     editPack: "Modifier le pack",
     createPack: "Créer le pack",
@@ -155,7 +174,14 @@ const admin = {
     title: "Visuels",
     subtitle:
       "Bibliothèque réutilisable d'illustrations pour les outils admin.",
+    guidanceTitle: "Téléverse une fois, réutilise partout",
+    guidanceBody:
+      "Considère cet espace comme l'étagère partagée des visuels pour les cartes et futurs contenus. Appuie sur un ID pour récupérer la référence backend.",
+    totalLabel: "Total catalogue",
+    recentLabel: "Affichés ici",
     recentUploads: "Téléversements récents ({count})",
+    recentSubtitle:
+      "Les derniers visuels du catalogue, prêts à être réutilisés dans l'édition des cartes.",
     loading: "Chargement des visuels...",
     emptyTitle: "Aucun visuel téléversé",
     emptyBody:
@@ -166,20 +192,32 @@ const admin = {
     subtitle:
       "Mets en avant la sélection vitrine comme dans le carrousel du PWA.",
     searchPlaceholder: "Rechercher des candidates à la une",
+    selectedLabel: "Sélectionnées",
+    slotsLeftLabel: "Places restantes",
     featuredCount: "{count} / 5 à la une",
     waitingCount: "{count} en attente",
+    guidanceTitle: "Compose la vitrine",
+    guidanceBody:
+      "Mets en avant les cartes qui représentent la saison en cours, les nouveautés ou les packs que tu veux faire remarquer en premier.",
+    limitTitle: "La vitrine est pleine",
     maxReached:
       "Maximum de cinq cartes à la une atteint. Retire-en une avant d'en ajouter une autre.",
     currentTitle: "Actuellement à la une ({count})",
+    currentSubtitle:
+      "Ces cartes occupent la vitrine de la boutique en ce moment.",
     loading: "Chargement des cartes...",
     noFeaturedTitle: "Aucune carte à la une",
-    noFeaturedBody: "Appuie sur une carte ci-dessous pour l'ajouter à la sélection.",
+    noFeaturedBody:
+      "Appuie sur une carte ci-dessous pour l'ajouter à la sélection.",
     allCardsTitle: "Toutes les cartes ({count})",
+    allCardsSubtitle: "Cartes actives éligibles à promouvoir ensuite.",
     noMatchesTitle: "Aucune carte ne correspond",
-    noMatchesBody: "Efface la recherche ou ajoute d'autres cartes dans l'onglet cartes.",
+    noMatchesBody:
+      "Efface la recherche ou ajoute d'autres cartes dans l'onglet cartes.",
   },
   abilities: {
-    invalidApiData: "Les données de capacités de l'API sont invalides. {details}",
+    invalidApiData:
+      "Les données de capacités de l'API sont invalides. {details}",
     type: {
       PASSIVE: "Passif",
       SKILL: "Compétence",
@@ -188,12 +226,22 @@ const admin = {
     title: "Capacités",
     subtitle:
       "Utilise le même flux que le PWA : bibliothèque de capacités et attributions aux cartes.",
+    libraryLabel: "Capacités",
+    assignmentLabel: "Attributions",
     tabAbilities: "Capacités",
     tabAssignments: "Attributions",
     searchAbilities: "Rechercher des capacités",
     searchCards: "Rechercher des cartes",
+    libraryGuidanceTitle: "Garde des capacités réutilisables claires",
+    libraryGuidanceBody:
+      "Traite les capacités comme des briques partagées. Modifie noms et payloads avec soin pour que l'écran d'attribution reste lisible.",
+    assignmentGuidanceTitle: "Attribue avec intention",
+    assignmentGuidanceBody:
+      "Utilise les valeurs par défaut quand une carte doit hériter du moteur, et n'ajoute une capacité spécifique que si c'est nécessaire.",
     createAbility: "Créer une capacité",
     libraryTitle: "Bibliothèque de capacités ({count})",
+    librarySubtitle:
+      "Recherche, filtre et modifie des comportements de combat réutilisables.",
     loadingAbilities: "Chargement des capacités...",
     noAbilitiesTitle: "Aucune capacité",
     noAbilitiesBody:
@@ -202,30 +250,57 @@ const admin = {
     cooldownLabel: "CD {count}",
     oncePerMatchShort: "Une fois / match",
     assignmentsTitle: "Attributions de cartes ({count})",
+    assignmentsSubtitle:
+      "Vérifie les surcharges carte par carte sans quitter le flux admin.",
     loadingAssignments: "Chargement des attributions...",
     passiveLabel: "Passif : {name}",
     skillLabel: "Compétence : {name}",
     ultimateLabel: "Ultime : {name}",
     noCardsTitle: "Aucune carte",
-    noCardsBody: "Les cartes apparaîtront ici quand le catalogue contiendra des données.",
+    noCardsBody:
+      "Les cartes apparaîtront ici quand le catalogue contiendra des données.",
     assignTitle: "Attribuer des capacités",
+    assignmentModalExisting:
+      "Ajuste les emplacements de capacités sélectionnés pour cette carte.",
+    assignmentModalNew:
+      "Cette carte utilise encore les valeurs par défaut. Choisis seulement les surcharges à enregistrer.",
     saveAssignments: "Enregistrer les attributions",
   },
   cards: {
     title: "Admin cartes",
+    subtitle:
+      "Crée, ajuste, archive et restaure les cartes sans perdre de vue le catalogue actif.",
     stats: "Stats des cartes",
+    activeLabel: "Catalogue actif",
+    archivedLabel: "Archivées",
+    featuredLabel: "À la une",
+    resultsLabel: "Résultats visibles",
+    filteredResults: "Filtré par la recherche actuelle.",
+    totalCatalog: "Tout le catalogue de cartes actuel.",
+    rarityBreakdown: "Répartition par rareté",
+    rarityBreakdownSubtitle:
+      "Compte rapide par rareté sur l'ensemble du catalogue.",
+    activeHintTitle: "Travaille d'abord depuis le catalogue actif",
+    activeHintBody:
+      "Appuie sur une carte active pour la modifier immédiatement. Les cartes archivées restent séparées pour alléger la liste du quotidien.",
+    activeSubtitle: "Cartes en ligne que tu peux modifier tout de suite.",
+    archivedSubtitle:
+      "Cartes retirées du catalogue actif mais toujours conservées.",
     tapToEdit: "Appuie sur une carte pour la modifier.",
     tapToManage: "Appuie sur une carte pour la gérer.",
     searchPlaceholder: "Rechercher par nom ou personnage",
-    activeTitle: "Toutes les cartes ({count})",
+    activeTitle: "Cartes actives ({count})",
     activeTitleWithTotal: "Toutes les cartes ({count}) / {total}",
     archivedTitle: "Cartes archivées ({count})",
     archivedTitleWithTotal: "Cartes archivées ({count}) / {total}",
     loading: "Chargement des cartes...",
+    noActiveTitle: "Aucune carte active trouvée",
     noActiveBody: "Essaie une autre recherche ou crée une nouvelle carte.",
+    noArchivedTitle: "Aucune carte archivée trouvée",
     noArchivedBody: "Les cartes archivées apparaîtront ici.",
     noArchivedSearchBody: "Aucune carte archivée ne correspond à la recherche.",
     createCard: "Créer une carte",
+    emptyTitle: "Le catalogue de cartes est vide",
     archivedCardTitle: "Carte archivée",
     restoreCard: "Restaurer la carte",
   },
@@ -238,7 +313,8 @@ const admin = {
     updateFailedBody: "Impossible de mettre à jour cette carte.",
     uploadFailed: "Échec du téléversement",
     uploadFailedBody: "Impossible d'envoyer l'image de cette carte.",
-    missingCardId: "La carte est enregistrée, mais aucun identifiant n'a été renvoyé.",
+    missingCardId:
+      "La carte est enregistrée, mais aucun identifiant n'a été renvoyé.",
     saveBeforeUpload: "Enregistre la carte avant d'envoyer l'illustration.",
     cardNotLoaded: "Cette carte n'est pas encore chargée.",
     loading: "Chargement de l'éditeur de carte...",
@@ -278,7 +354,8 @@ const admin = {
     editTitle: "Modifier la capacité",
     loading: "Chargement de la capacité...",
     notFound: "Cette capacité est introuvable.",
-    invalidApiData: "Les données de capacités de l'API sont invalides. {details}",
+    invalidApiData:
+      "Les données de capacités de l'API sont invalides. {details}",
     genericError: "Quelque chose s'est mal passé.",
     deleteAbilityTitle: "Supprimer la capacité",
     deleteAbilityBody: "Supprimer {name} ?",
@@ -293,7 +370,8 @@ const admin = {
     cost: "Coût",
     cooldown: "Recharge",
     oncePerMatch: "Une fois par match",
-    ultimatesOncePerMatch: "Les ultimes sont enregistrés comme une fois par match.",
+    ultimatesOncePerMatch:
+      "Les ultimes sont enregistrés comme une fois par match.",
     target: "Cible",
     targetSelector: "Sélection de cible",
     passiveTrigger: "Déclencheur passif",
@@ -332,8 +410,10 @@ const admin = {
     requiredFields: "La clé, le nom et la description sont requis.",
     payloadObjectError: "Le JSON du payload doit être un objet.",
     fixRawPayload: "Corrige le JSON brut avant d'enregistrer.",
-    statusDurationError: "Les durées de statut doivent être des nombres entiers positifs.",
-    auraDurationError: "La durée de l'aura adjacente doit être un entier positif.",
+    statusDurationError:
+      "Les durées de statut doivent être des nombres entiers positifs.",
+    auraDurationError:
+      "La durée de l'aura adjacente doit être un entier positif.",
     conditionalInvalid: "Le JSON conditionnel est invalide. {error}",
     fieldLabels: {
       chance: "Chance",

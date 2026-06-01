@@ -15,21 +15,55 @@ import { AdminBackground } from "./admin-ui";
 
 type ThemeColorKey = keyof (typeof THEME_COLORS)["candy"];
 
-const NAV_ITEMS: { path: string; labelKey: string; icon: "albums" | "cube" | "images" | "star" | "flash" | "people"; tintKey: ThemeColorKey }[] = [
-  { path: "/admin/cards", labelKey: "admin.shell.nav.cards", icon: "albums", tintKey: "primaryText" },
-  { path: "/admin/packs", labelKey: "admin.shell.nav.packs", icon: "cube", tintKey: "secondaryText" },
-  { path: "/admin/image-assets", labelKey: "admin.shell.nav.assets", icon: "images", tintKey: "infoText" },
-  { path: "/admin/featured", labelKey: "admin.shell.nav.featured", icon: "star", tintKey: "secondaryText" },
-  { path: "/admin/abilities", labelKey: "admin.shell.nav.abilities", icon: "flash", tintKey: "accentText" },
-  { path: "/admin/users", labelKey: "admin.shell.nav.users", icon: "people", tintKey: "accentStrong" },
+const NAV_ITEMS: {
+  path: string;
+  labelKey: string;
+  icon: "albums" | "cube" | "images" | "star" | "flash" | "people";
+  tintKey: ThemeColorKey;
+}[] = [
+  {
+    path: "/admin/cards",
+    labelKey: "admin.shell.nav.cards",
+    icon: "albums",
+    tintKey: "primaryText",
+  },
+  {
+    path: "/admin/packs",
+    labelKey: "admin.shell.nav.packs",
+    icon: "cube",
+    tintKey: "secondaryText",
+  },
+  {
+    path: "/admin/image-assets",
+    labelKey: "admin.shell.nav.assets",
+    icon: "images",
+    tintKey: "infoText",
+  },
+  {
+    path: "/admin/featured",
+    labelKey: "admin.shell.nav.featured",
+    icon: "star",
+    tintKey: "secondaryText",
+  },
+  {
+    path: "/admin/abilities",
+    labelKey: "admin.shell.nav.abilities",
+    icon: "flash",
+    tintKey: "accentText",
+  },
+  {
+    path: "/admin/users",
+    labelKey: "admin.shell.nav.users",
+    icon: "people",
+    tintKey: "accentStrong",
+  },
 ];
 
-// Isolated coin display — subscribes to Zustand independently so coin
-// updates never re-render the shell or its children.
 const CoinPill = memo(function CoinPill() {
   const coins = useSessionStore((state) => state.user?.coins ?? 0);
   const { themeName } = useThemeStore();
   const tc = THEME_COLORS[themeName];
+
   return (
     <LinearGradient
       colors={[tc.secondary, tc.secondaryDark]}
@@ -41,16 +75,18 @@ const CoinPill = memo(function CoinPill() {
         gap: 8,
         borderRadius: 999,
         paddingHorizontal: 16,
-        paddingVertical: 7,
-        shadowColor: "rgba(120,53,15,0.25)",
-        shadowOpacity: 1,
+        paddingVertical: 8,
+        shadowColor: "#000000",
+        shadowOpacity: 0.12,
         shadowRadius: 8,
-        shadowOffset: { width: 0, height: 3 },
+        shadowOffset: { width: 0, height: 4 },
         elevation: 4,
       }}
     >
       <CoinIcon size={20} />
-      <Text className="font-nunito-extrabold text-sm text-secondaryText">{coins.toLocaleString()}</Text>
+      <Text className="font-nunito-extrabold text-sm text-secondaryText">
+        {coins.toLocaleString()}
+      </Text>
     </LinearGradient>
   );
 });
@@ -63,68 +99,116 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const tc = THEME_COLORS[themeName];
   const { t } = useTranslation();
 
+  const currentItem =
+    NAV_ITEMS.find((item) => pathname === item.path) ?? NAV_ITEMS[0];
+
   return (
-    <View className="flex-1">
-      <AdminBackground>
-        <View
-          className="flex-row items-center justify-between px-4 pb-[10]"
-          style={{ paddingTop: insets.top + 12 }}
-        >
-          <CoinPill />
+    <AdminBackground>
+      <View className="flex-1">
+        <View className="px-4 pb-3" style={{ paddingTop: insets.top + 10 }}>
+          <View className="flex-row items-start justify-between gap-3">
+            <View className="flex-1 gap-2">
+              <View
+                className="self-start rounded-full border px-3 py-[6]"
+                style={{
+                  backgroundColor: `${tc.primaryTint}D9`,
+                  borderColor: `${tc.primaryBorder}73`,
+                }}
+              >
+                <Text className="font-nunito-extrabold text-[11px] uppercase tracking-[0.8px] text-primaryStrong">
+                  {t("admin.shell.consoleLabel")}
+                </Text>
+              </View>
+              <View>
+                <Text className="font-nunito-extrabold text-[24px] text-fg">
+                  {t("admin.shell.consoleTitle")}
+                </Text>
+                <Text className="font-nunito-semibold text-[13px] leading-[19px] text-fgMuted">
+                  {t(currentItem.labelKey)}
+                </Text>
+              </View>
+            </View>
+            <CoinPill />
+          </View>
 
           <Pressable
             onPress={() => router.replace("/(tabs)" as any)}
-            className="flex-row items-center gap-2 rounded-full px-[14] py-[10]"
+            className="mt-4 flex-row items-center justify-center gap-2 self-start rounded-full border px-[14] py-[10]"
             style={{
-              backgroundColor: tc.primaryText,
-              shadowColor: tc.primaryStrong,
-              shadowOpacity: 0.25,
-              shadowRadius: 8,
-              shadowOffset: { width: 0, height: 3 },
-              elevation: 4,
+              backgroundColor: tc.surface,
+              borderColor: `${tc.primaryBorder}73`,
             }}
           >
-            <HomeIcon size={18} color="#FFFFFF" />
-            <Text className="text-white font-nunito-bold text-[13px]">{t("admin.shell.backToGame")}</Text>
+            <HomeIcon size={18} color={tc.primaryStrong} />
+            <Text className="font-nunito-bold text-[13px] text-primaryStrong">
+              {t("admin.shell.backToGame")}
+            </Text>
           </Pressable>
         </View>
 
         <View className="flex-1">{children}</View>
 
         <View
-          className="flex-row border-t border-primaryBorder/22 bg-primaryTint/94 pt-2 px-1"
-          style={{ paddingBottom: Math.max(insets.bottom, 10) }}
+          className="px-4"
+          style={{ paddingBottom: Math.max(insets.bottom, 12) }}
         >
-          {NAV_ITEMS.map((item) => {
-            const active = pathname === item.path || (pathname === "/admin" && item.path === "/admin/cards");
-            const tint = tc[item.tintKey];
-            return (
-              <Pressable
-                key={item.path}
-                onPress={() => router.replace(item.path as any)}
-                className="flex-1 items-center justify-center gap-1"
-              >
-                <View
-                  className="w-[34] h-[28] rounded-[10] items-center justify-center"
-                  style={active ? { backgroundColor: "rgba(255,255,255,0.46)" } : undefined}
+          <View
+            className="flex-row rounded-[30] border p-2"
+            style={{
+              backgroundColor: tc.surface,
+              borderColor: `${tc.primaryBorder}73`,
+              shadowColor: "#000000",
+              shadowOpacity: themeName === "nightosphere" ? 0.22 : 0.08,
+              shadowRadius: 12,
+              shadowOffset: { width: 0, height: 6 },
+              elevation: 5,
+            }}
+          >
+            {NAV_ITEMS.map((item) => {
+              const active =
+                pathname === item.path ||
+                (pathname === "/admin" && item.path === "/admin/cards");
+              const tint = tc[item.tintKey];
+
+              return (
+                <Pressable
+                  key={item.path}
+                  onPress={() => router.replace(item.path as any)}
+                  className="flex-1 items-center justify-center gap-1 rounded-[22] px-1 py-2"
+                  style={{
+                    backgroundColor: active
+                      ? `${tc.primaryTint}E8`
+                      : "transparent",
+                  }}
                 >
-                  {item.path === "/admin/cards" ? (
-                    <CardsIcon size={20} color={active ? tint : tc.muted} />
-                  ) : (
-                    <Ionicons name={item.icon} size={20} color={active ? tint : tc.muted} />
-                  )}
-                </View>
-                <Text
-                  className="font-nunito-extrabold text-[10px]"
-                  style={{ color: active ? tint : tc.fgMuted }}
-                >
-                  {t(item.labelKey)}
-                </Text>
-              </Pressable>
-            );
-          })}
+                  <View
+                    className="h-[34] w-[34] items-center justify-center rounded-[12]"
+                    style={{
+                      backgroundColor: active ? tc.surface : "transparent",
+                    }}
+                  >
+                    {item.path === "/admin/cards" ? (
+                      <CardsIcon size={20} color={active ? tint : tc.fgMuted} />
+                    ) : (
+                      <Ionicons
+                        name={item.icon}
+                        size={20}
+                        color={active ? tint : tc.fgMuted}
+                      />
+                    )}
+                  </View>
+                  <Text
+                    className="font-nunito-extrabold text-[10px]"
+                    style={{ color: active ? tint : tc.fgMuted }}
+                  >
+                    {t(item.labelKey)}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
         </View>
-      </AdminBackground>
-    </View>
+      </View>
+    </AdminBackground>
   );
 }
