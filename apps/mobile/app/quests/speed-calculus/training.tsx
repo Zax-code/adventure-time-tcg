@@ -13,10 +13,15 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 
-import type { SpeedRunState, SpeedTrainingRun } from "@adventure-time/api-client";
+import type {
+  SpeedRunState,
+  SpeedTrainingRun,
+} from "@adventure-time/api-client";
 
 import { apiClient } from "../../../src/lib/api";
 import { useTranslation } from "../../../src/i18n";
+import { useThemeStore } from "../../../src/stores/theme-store";
+import { THEME_COLORS } from "../../../src/theme/themes";
 import { ActiveRunPanel } from "../../../src/features/quests/speed-calculus/active-run-panel";
 import {
   appendDigit,
@@ -26,6 +31,10 @@ import {
   type FeedbackType,
   type ToastType,
 } from "../../../src/features/quests/speed-calculus/constants";
+import {
+  getAnswerBoxPalette,
+  withAlpha,
+} from "../../../src/features/quests/speed-calculus/palette";
 import { TrainingHistoryCard } from "../../../src/features/quests/speed-calculus/training-history-card";
 import { TrainingSummaryCard } from "../../../src/features/quests/speed-calculus/training-summary-card";
 
@@ -101,6 +110,7 @@ function buildTrainingHistory(run: TrainingActiveRun): TrainingHistoryRun {
 export default function SpeedCalculusTrainingScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const tc = THEME_COLORS[useThemeStore((state) => state.themeName)];
 
   const [activeRun, setActiveRun] = useState<TrainingActiveRun | null>(null);
   const [lastRun, setLastRun] = useState<TrainingHistoryRun | null>(null);
@@ -140,7 +150,10 @@ export default function SpeedCalculusTrainingScreen() {
 
   const isManuallyPaused = activeRun?.isManuallyPaused ?? false;
   const keypadLocked =
-    !currentQuestion || submitting || pauseRemainingSeconds > 0 || isManuallyPaused;
+    !currentQuestion ||
+    submitting ||
+    pauseRemainingSeconds > 0 ||
+    isManuallyPaused;
   const submitDisabled = keypadLocked || !canSubmitAnswer(answer);
   const displayedCorrectAnswers =
     activeRun?.correctAnswers ?? (showRoundOver ? roundOverScore : 0);
@@ -374,7 +387,12 @@ export default function SpeedCalculusTrainingScreen() {
   }, [applyActiveRun, submitting, t]);
 
   const pauseRun = useCallback(() => {
-    if (!activeRun || pauseRemainingSeconds > 0 || isManuallyPaused || submitting) {
+    if (
+      !activeRun ||
+      pauseRemainingSeconds > 0 ||
+      isManuallyPaused ||
+      submitting
+    ) {
       return;
     }
 
@@ -393,7 +411,13 @@ export default function SpeedCalculusTrainingScreen() {
           }
         : current,
     );
-  }, [activeRun, isManuallyPaused, pauseRemainingSeconds, remainingSeconds, submitting]);
+  }, [
+    activeRun,
+    isManuallyPaused,
+    pauseRemainingSeconds,
+    remainingSeconds,
+    submitting,
+  ]);
 
   const resumeRun = useCallback(() => {
     if (!activeRun || !isManuallyPaused || submitting) {
@@ -473,7 +497,13 @@ export default function SpeedCalculusTrainingScreen() {
   }, [keypadLocked]);
 
   const handleSubmit = useCallback(() => {
-    if (!activeRun || !currentQuestion || submitting || pauseRemainingSeconds > 0 || isManuallyPaused) {
+    if (
+      !activeRun ||
+      !currentQuestion ||
+      submitting ||
+      pauseRemainingSeconds > 0 ||
+      isManuallyPaused
+    ) {
       return;
     }
 
@@ -564,24 +594,7 @@ export default function SpeedCalculusTrainingScreen() {
     setModalVisible(false);
   }, []);
 
-  const answerBoxBg =
-    feedback?.kind === "correct"
-      ? "#CCFBF1"
-      : feedback?.kind === "incorrect"
-        ? "#FFE4E6"
-        : "#FFFFFF";
-  const answerBoxBorder =
-    feedback?.kind === "correct"
-      ? "rgba(20,184,166,0.3)"
-      : feedback?.kind === "incorrect"
-        ? "#FECDD3"
-        : "#FCE7F3";
-  const answerBoxText =
-    feedback?.kind === "correct"
-      ? "#005F5A"
-      : feedback?.kind === "incorrect"
-        ? "#A50036"
-        : "#EC4899";
+  const answerBoxPalette = getAnswerBoxPalette(tc, feedback?.kind);
 
   return (
     <View className="flex-1 bg-primaryBg">
@@ -590,14 +603,22 @@ export default function SpeedCalculusTrainingScreen() {
           className={`absolute left-4 right-4 z-[100] rounded-xl p-4 ${toast.type === "success" ? "bg-successDark" : "bg-dangerDark"}`}
           style={{
             top: insets.top + 8,
-            shadowColor: "#000",
+            shadowColor: withAlpha(
+              toast.type === "success" ? tc.successDark : tc.dangerDark,
+              "2E",
+            ),
             shadowOffset: { width: 0, height: 4 },
             shadowOpacity: 0.15,
             shadowRadius: 8,
             elevation: 8,
           }}
         >
-          <Text className="font-nunito-semibold text-sm text-white">
+          <Text
+            className="font-nunito-semibold text-sm"
+            style={{
+              color: toast.type === "success" ? tc.successTint : tc.dangerTint,
+            }}
+          >
             {toast.message}
           </Text>
         </View>
@@ -616,7 +637,7 @@ export default function SpeedCalculusTrainingScreen() {
           <Text
             className="text-[28px] font-nunito-extrabold text-primaryDark"
             style={{
-              shadowColor: "#14B8A6",
+              shadowColor: withAlpha(tc.successDark, "2E"),
               shadowOffset: { width: 0, height: 1 },
               shadowOpacity: 0.18,
               shadowRadius: 4,
@@ -673,9 +694,10 @@ export default function SpeedCalculusTrainingScreen() {
         feedbackOpacity={feedbackOpacity}
         answer={answer}
         shakeAnim={shakeAnim}
-        answerBoxBg={answerBoxBg}
-        answerBoxBorder={answerBoxBorder}
-        answerBoxText={answerBoxText}
+        answerBoxBg={answerBoxPalette.background}
+        answerBoxBorder={answerBoxPalette.border}
+        answerBoxText={answerBoxPalette.text}
+        answerPlaceholderText={answerBoxPalette.placeholder}
         submitting={submitting}
         keypadLocked={keypadLocked}
         submitDisabled={submitDisabled}

@@ -4,6 +4,9 @@ import type { SpeedRunState } from "@adventure-time/api-client";
 
 import { useTranslation } from "../../../i18n";
 import { CoinIcon } from "../../../components/icons";
+import { useThemeStore } from "../../../stores/theme-store";
+import { THEME_COLORS } from "../../../theme/themes";
+import { withAlpha } from "./palette";
 
 type SummaryCardProps = {
   state: SpeedRunState | null;
@@ -23,11 +26,14 @@ export function SummaryCard({
   onCashOut,
 }: SummaryCardProps) {
   const { t } = useTranslation();
+  const tc = THEME_COLORS[useThemeStore((s) => s.themeName)];
   return (
     <View
-      className="rounded-3xl border-2 p-5 gap-3 border-secondary/30 bg-white/90"
+      className="rounded-3xl border-2 p-5 gap-3"
       style={{
-        shadowColor: "#000",
+        borderColor: tc.secondaryBorder,
+        backgroundColor: tc.surface,
+        shadowColor: withAlpha(tc.secondaryDark, "24"),
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.1,
         shadowRadius: 12,
@@ -61,15 +67,24 @@ export function SummaryCard({
           onPress={onResumeRun}
           disabled={submitting}
           className="rounded-2xl overflow-hidden mt-2"
-          style={({ pressed }) => ({ opacity: submitting ? 0.5 : pressed ? 0.9 : 1 })}
+          style={({ pressed }) => ({
+            opacity: submitting ? 0.5 : pressed ? 0.9 : 1,
+          })}
         >
           <LinearGradient
-            colors={["#F59E0B", "#EF4444"]}
+            colors={[tc.secondary, tc.secondaryDark]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
-            style={{ paddingVertical: 14, alignItems: "center", borderRadius: 16 }}
+            style={{
+              paddingVertical: 14,
+              alignItems: "center",
+              borderRadius: 16,
+            }}
           >
-            <Text className="font-nunito-bold text-white text-[15px]">
+            <Text
+              className="font-nunito-bold text-[15px]"
+              style={{ color: tc.secondaryText }}
+            >
               {submitting ? "..." : t("quests.speedCalculusResume")}
             </Text>
           </LinearGradient>
@@ -81,16 +96,29 @@ export function SummaryCard({
           onPress={onStartRun}
           disabled={submitting}
           className="rounded-2xl overflow-hidden mt-2"
-          style={({ pressed }) => ({ opacity: submitting ? 0.5 : pressed ? 0.9 : 1 })}
+          style={({ pressed }) => ({
+            opacity: submitting ? 0.5 : pressed ? 0.9 : 1,
+          })}
         >
           <LinearGradient
-            colors={["#F472B6", "#EC4899"]}
+            colors={[tc.primary, tc.primaryDark]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
-            style={{ paddingVertical: 14, alignItems: "center", borderRadius: 16 }}
+            style={{
+              paddingVertical: 14,
+              alignItems: "center",
+              borderRadius: 16,
+            }}
           >
-            <Text className="font-nunito-bold text-white text-[15px]">
-              {submitting ? "..." : t("quests.speedCalculusStartRun", { run: (state?.runsUsed ?? 0) + 1 })}
+            <Text
+              className="font-nunito-bold text-[15px]"
+              style={{ color: tc.primaryBg }}
+            >
+              {submitting
+                ? "..."
+                : t("quests.speedCalculusStartRun", {
+                    run: (state?.runsUsed ?? 0) + 1,
+                  })}
             </Text>
           </LinearGradient>
         </Pressable>
@@ -101,16 +129,29 @@ export function SummaryCard({
           onPress={onCashOut}
           disabled={submitting}
           className="rounded-2xl overflow-hidden"
-          style={({ pressed }) => ({ opacity: submitting ? 0.5 : pressed ? 0.9 : 1 })}
+          style={({ pressed }) => ({
+            opacity: submitting ? 0.5 : pressed ? 0.9 : 1,
+          })}
         >
           <LinearGradient
-            colors={["#2DD4BF", "#14B8A6"]}
+            colors={[tc.success, tc.successDark]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
-            style={{ paddingVertical: 14, alignItems: "center", borderRadius: 16 }}
+            style={{
+              paddingVertical: 14,
+              alignItems: "center",
+              borderRadius: 16,
+            }}
           >
-            <Text className="font-nunito-bold text-white text-[15px]">
-              {submitting ? "..." : t("quests.speedCalculusCashOut", { reward: state?.rewardPreview ?? 0 })}
+            <Text
+              className="font-nunito-bold text-[15px]"
+              style={{ color: tc.successText }}
+            >
+              {submitting
+                ? "..."
+                : t("quests.speedCalculusCashOut", {
+                    reward: state?.rewardPreview ?? 0,
+                  })}
             </Text>
           </LinearGradient>
         </Pressable>
@@ -121,10 +162,12 @@ export function SummaryCard({
           <Text className="font-nunito-bold text-successText text-sm">
             {state.claimed
               ? t("quests.speedCalculusClaimed")
-              : t("quests.speedCalculusLocked", { reward: state.rewardPreview })}
+              : t("quests.speedCalculusLocked", {
+                  reward: state.rewardPreview,
+                })}
           </Text>
           {!state.claimed && (
-            <Text className="font-nunito text-successText text-[13px] mt-1 opacity-80">
+            <Text className="font-nunito text-successText text-[13px] mt-1">
               {t("quests.speedCalculusClaimReminder")}
             </Text>
           )}

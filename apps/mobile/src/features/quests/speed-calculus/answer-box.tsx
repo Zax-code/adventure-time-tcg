@@ -8,9 +8,17 @@ type AnswerBoxProps = {
   answerBoxBg: string;
   answerBoxBorder: string;
   answerBoxText: string;
+  answerPlaceholderText: string;
 };
 
-export function AnswerBox({ answer, shakeAnim, answerBoxBg, answerBoxBorder, answerBoxText }: AnswerBoxProps) {
+export function AnswerBox({
+  answer,
+  shakeAnim,
+  answerBoxBg,
+  answerBoxBorder,
+  answerBoxText,
+  answerPlaceholderText,
+}: AnswerBoxProps) {
   const { t } = useTranslation();
 
   return (
@@ -37,7 +45,7 @@ export function AnswerBox({ answer, shakeAnim, answerBoxBg, answerBoxBorder, ans
         <Text
           className="font-nunito-extrabold text-center text-[40px] leading-[46px]"
           style={{
-            color: answer ? answerBoxText : "rgba(236,72,153,0.22)",
+            color: answer ? answerBoxText : answerPlaceholderText,
           }}
         >
           {answer || "\u2014"}
