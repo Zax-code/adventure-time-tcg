@@ -376,6 +376,8 @@ defmodule AdventureTimeApi.Quests.WordleDefinitionImporter do
   defp collect_pending_entry(state, nil, _line), do: state
 
   defp collect_pending_entry(state, current_subject, line) do
+    new_sense_subjects = extract_sense_subjects(line)
+
     part_of_speech =
       extract_fr_dbnary_part_of_speech(line) ||
         extract_fr_lexinfo_part_of_speech(line)
@@ -386,12 +388,21 @@ defmodule AdventureTimeApi.Quests.WordleDefinitionImporter do
       pending_entry
       |> maybe_put(:form_subject, extract_form_subject(line))
       |> maybe_put(:part_of_speech, part_of_speech)
-      |> update_senses(extract_sense_subjects(line))
+      |> update_senses(new_sense_subjects)
 
     form_to_entry =
       case pending_entry[:form_subject] do
         nil -> state.form_to_entry
         form_subject -> Map.put(state.form_to_entry, form_subject, current_subject)
+      end
+
+    sense_to_entry =
+      if Map.has_key?(state.relevant_entries, current_subject) do
+        Enum.reduce(new_sense_subjects, state.sense_to_entry, fn sense_subject, acc ->
+          Map.put(acc, sense_subject, current_subject)
+        end)
+      else
+        state.sense_to_entry
       end
 
     pending_entries =
@@ -401,7 +412,22 @@ defmodule AdventureTimeApi.Quests.WordleDefinitionImporter do
         Map.put(state.pending_entries, current_subject, pending_entry)
       end
 
-    %{state | pending_entries: pending_entries, form_to_entry: form_to_entry}
+    relevant_entries =
+      case {Map.get(state.relevant_entries, current_subject), part_of_speech} do
+        {%{part_of_speech: nil} = entry, value} when is_binary(value) ->
+          Map.put(state.relevant_entries, current_subject, %{entry | part_of_speech: value})
+
+        _ ->
+          state.relevant_entries
+      end
+
+    %{
+      state
+      | pending_entries: pending_entries,
+        form_to_entry: form_to_entry,
+        sense_to_entry: sense_to_entry,
+        relevant_entries: relevant_entries
+    }
   end
 
   defp collect_written_rep(state, nil, _line), do: state
@@ -436,7 +462,12 @@ defmodule AdventureTimeApi.Quests.WordleDefinitionImporter do
         %{
           state
           | form_to_entry: Map.delete(state.form_to_entry, current_subject),
-            pending_entries: Map.delete(state.pending_entries, entry_subject)
+            pending_entries:
+              if MapSet.member?(state.targets, normalized_word) do
+                Map.put(state.pending_entries, entry_subject, pending_entry)
+              else
+                Map.delete(state.pending_entries, entry_subject)
+              end
         }
 
       _ ->
@@ -745,7 +776,9 @@ defmodule AdventureTimeApi.Quests.WordleDefinitionImporter do
         display_word ->
           normalized_word = WordleEngine.normalize(display_word)
 
-          if String.length(normalized_word) == 5 and MapSet.member?(target_set, normalized_word) do
+          if WordleEngine.letter_only_source_word?(display_word) and
+               String.length(normalized_word) == 5 and
+               MapSet.member?(target_set, normalized_word) do
             Map.update(
               acc,
               normalized_word,

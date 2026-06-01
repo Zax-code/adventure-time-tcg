@@ -67,6 +67,7 @@ defmodule AdventureTimeApi.Quests.WordleDictionaryImporter do
         |> File.stream!()
         |> Stream.map(&String.trim/1)
         |> Stream.reject(&(&1 == ""))
+        |> Stream.filter(&WordleEngine.letter_only_source_word?/1)
         |> Stream.map(&WordleEngine.normalize/1)
         |> Stream.filter(&WordleEngine.valid_length_and_format?/1)
         |> Enum.uniq()
