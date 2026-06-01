@@ -38,6 +38,7 @@ import {
 } from "../stores/step-sync-store";
 import { useLocaleStore } from "../stores/locale-store";
 import { useSessionStore } from "../stores/session-store";
+import { useThemeStore } from "../stores/theme-store";
 import {
   configureAppNotifications,
   ensureAppNotificationPermission,
@@ -596,6 +597,7 @@ export async function syncDeviceStepsNow({
       await syncStepQuestWidgetSnapshot(
         questsResponse,
         user.preferredLanguage ?? useLocaleStore.getState().locale,
+        useThemeStore.getState().themeName,
       );
 
       if (steps >= STEP_GOAL) {

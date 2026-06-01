@@ -4,6 +4,7 @@ import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
+import org.json.JSONObject
 
 class WidgetSnapshotBridgeModule(
   reactContext: ReactApplicationContext,
@@ -24,7 +25,17 @@ class WidgetSnapshotBridgeModule(
 
   @ReactMethod
   fun setStepQuestSyncContext(contextJson: String, promise: Promise) {
-    promise.resolve(null)
+    try {
+      val json = JSONObject(contextJson)
+      StepQuestWidgetStore.writeThemeName(
+        reactApplicationContext,
+        json.optString("themeName", "candy"),
+      )
+      StepQuestWidgetProvider.updateAllWidgets(reactApplicationContext)
+      promise.resolve(null)
+    } catch (error: Exception) {
+      promise.reject("WIDGET_SYNC_CONTEXT_WRITE_FAILED", error)
+    }
   }
 
   @ReactMethod

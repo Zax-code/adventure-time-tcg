@@ -25,6 +25,7 @@ import kotlin.math.floor
 import kotlin.math.roundToInt
 
 private const val DEFAULT_WIDGET_DEEP_LINK = "adventure-time://widget-quests?focus=steps"
+private const val DEFAULT_WIDGET_THEME_NAME = "candy"
 private const val REWARD_TEXT_COLOR = 0xFF8A4A00.toInt()
 private const val RING_FILL_COLOR = 0x8CFFFFFF.toInt()
 
@@ -97,7 +98,8 @@ class StepQuestWidgetProvider : AppWidgetProvider() {
       val snapshot = StepQuestWidgetStore
         .readSnapshot(context)
         ?.let { normalizeSnapshotForToday(context, it) }
-      val palette = paletteForStatus(snapshot?.status)
+      val themeName = normalizeThemeName(snapshot?.themeName ?: StepQuestWidgetStore.readThemeName(context))
+      val palette = paletteForThemeAndStatus(themeName, snapshot?.status)
       val views = RemoteViews(context.packageName, layout.layoutRes)
 
       applyBaseStyling(context, views, layout, palette)
@@ -174,8 +176,9 @@ class StepQuestWidgetProvider : AppWidgetProvider() {
       layout: WidgetLayout,
       palette: WidgetPalette,
     ) {
-      val progress = snapshot.progress.coerceIn(0, snapshot.target.coerceAtLeast(1))
-      val progressRatio = progress.toFloat() / snapshot.target.coerceAtLeast(1).toFloat()
+      val progress = snapshot.progress.coerceAtLeast(0)
+      val progressRatio = progress.coerceAtMost(snapshot.target.coerceAtLeast(1)).toFloat() /
+        snapshot.target.coerceAtLeast(1).toFloat()
 
       views.setTextViewText(R.id.widget_title, titleText(context, layout))
       views.setTextViewText(R.id.widget_reward, formatNumber(snapshot.reward))
@@ -184,10 +187,7 @@ class StepQuestWidgetProvider : AppWidgetProvider() {
       views.setViewVisibility(R.id.widget_status_pill, View.VISIBLE)
       views.setViewVisibility(R.id.widget_fallback_body, View.GONE)
 
-      val secondaryRingLabel = when (layout) {
-        WidgetLayout.SMALL -> compactRingProgressLabel(snapshot)
-        WidgetLayout.MEDIUM -> context.getString(R.string.step_quest_widget_ring_goal)
-      }
+      val secondaryRingLabel = compactRingProgressLabel(snapshot)
 
       views.setImageViewBitmap(
         R.id.widget_ring,
@@ -257,12 +257,20 @@ class StepQuestWidgetProvider : AppWidgetProvider() {
       }
     }
 
-    private fun paletteForStatus(status: String?): WidgetPalette {
+    private fun paletteForThemeAndStatus(themeName: String, status: String?): WidgetPalette {
+      return when (themeName) {
+        "ice" -> icePaletteForStatus(status)
+        "nightosphere" -> nightospherePaletteForStatus(status)
+        else -> candyPaletteForStatus(status)
+      }
+    }
+
+    private fun candyPaletteForStatus(status: String?): WidgetPalette {
       return when (status) {
         "completed" -> WidgetPalette(
-          backgroundSmallRes = R.drawable.step_quest_widget_background_small_completed,
-          backgroundMediumRes = R.drawable.step_quest_widget_background_medium_completed,
-          statusBackgroundRes = R.drawable.step_quest_widget_status_completed,
+          backgroundSmallRes = R.drawable.step_quest_widget_background_small_ice_completed,
+          backgroundMediumRes = R.drawable.step_quest_widget_background_medium_ice_completed,
+          statusBackgroundRes = R.drawable.step_quest_widget_status_ice_completed,
           statusTextColor = Color.parseColor("#025F48"),
           titleColor = Color.parseColor("#353D33"),
           bodyColor = Color.parseColor("#476359"),
@@ -273,9 +281,9 @@ class StepQuestWidgetProvider : AppWidgetProvider() {
         )
 
         "claimed" -> WidgetPalette(
-          backgroundSmallRes = R.drawable.step_quest_widget_background_small_claimed,
-          backgroundMediumRes = R.drawable.step_quest_widget_background_medium_claimed,
-          statusBackgroundRes = R.drawable.step_quest_widget_status_claimed,
+          backgroundSmallRes = R.drawable.step_quest_widget_background_small_ice_claimed,
+          backgroundMediumRes = R.drawable.step_quest_widget_background_medium_ice_claimed,
+          statusBackgroundRes = R.drawable.step_quest_widget_status_ice_claimed,
           statusTextColor = Color.parseColor("#6B389E"),
           titleColor = Color.parseColor("#47334F"),
           bodyColor = Color.parseColor("#6E5B7A"),
@@ -286,9 +294,9 @@ class StepQuestWidgetProvider : AppWidgetProvider() {
         )
 
         "failed" -> WidgetPalette(
-          backgroundSmallRes = R.drawable.step_quest_widget_background_small_failed,
-          backgroundMediumRes = R.drawable.step_quest_widget_background_medium_failed,
-          statusBackgroundRes = R.drawable.step_quest_widget_status_failed,
+          backgroundSmallRes = R.drawable.step_quest_widget_background_small_ice_failed,
+          backgroundMediumRes = R.drawable.step_quest_widget_background_medium_ice_failed,
+          statusBackgroundRes = R.drawable.step_quest_widget_status_ice_failed,
           statusTextColor = Color.parseColor("#AD1D2E"),
           titleColor = Color.parseColor("#592B2D"),
           bodyColor = Color.parseColor("#754740"),
@@ -299,9 +307,9 @@ class StepQuestWidgetProvider : AppWidgetProvider() {
         )
 
         else -> WidgetPalette(
-          backgroundSmallRes = R.drawable.step_quest_widget_background_small,
-          backgroundMediumRes = R.drawable.step_quest_widget_background_medium,
-          statusBackgroundRes = R.drawable.step_quest_widget_status_active,
+          backgroundSmallRes = R.drawable.step_quest_widget_background_small_ice,
+          backgroundMediumRes = R.drawable.step_quest_widget_background_medium_ice,
+          statusBackgroundRes = R.drawable.step_quest_widget_status_ice_active,
           statusTextColor = Color.parseColor("#BF1569"),
           titleColor = Color.parseColor("#4A3728"),
           bodyColor = Color.parseColor("#614E3C"),
@@ -310,6 +318,125 @@ class StepQuestWidgetProvider : AppWidgetProvider() {
           progressTrackColor = Color.parseColor("#F8D4E5"),
           glowSecondaryColor = Color.parseColor("#FDD229"),
         )
+      }
+    }
+
+    private fun icePaletteForStatus(status: String?): WidgetPalette {
+      return when (status) {
+        "completed" -> WidgetPalette(
+          backgroundSmallRes = R.drawable.step_quest_widget_background_small_nightosphere_completed,
+          backgroundMediumRes = R.drawable.step_quest_widget_background_medium_nightosphere_completed,
+          statusBackgroundRes = R.drawable.step_quest_widget_status_nightosphere_completed,
+          statusTextColor = Color.parseColor("#0F766E"),
+          titleColor = Color.parseColor("#164E63"),
+          bodyColor = Color.parseColor("#155E75"),
+          mutedColor = Color.parseColor("#4B6B7C"),
+          progressColor = Color.parseColor("#14B8A6"),
+          progressTrackColor = Color.parseColor("#CCFBF1"),
+          glowSecondaryColor = Color.parseColor("#7DD3FC"),
+        )
+
+        "claimed" -> WidgetPalette(
+          backgroundSmallRes = R.drawable.step_quest_widget_background_small_nightosphere_claimed,
+          backgroundMediumRes = R.drawable.step_quest_widget_background_medium_nightosphere_claimed,
+          statusBackgroundRes = R.drawable.step_quest_widget_status_nightosphere_claimed,
+          statusTextColor = Color.parseColor("#4338CA"),
+          titleColor = Color.parseColor("#1E3A8A"),
+          bodyColor = Color.parseColor("#334155"),
+          mutedColor = Color.parseColor("#64748B"),
+          progressColor = Color.parseColor("#818CF8"),
+          progressTrackColor = Color.parseColor("#E0E7FF"),
+          glowSecondaryColor = Color.parseColor("#67E8F9"),
+        )
+
+        "failed" -> WidgetPalette(
+          backgroundSmallRes = R.drawable.step_quest_widget_background_small_nightosphere_failed,
+          backgroundMediumRes = R.drawable.step_quest_widget_background_medium_nightosphere_failed,
+          statusBackgroundRes = R.drawable.step_quest_widget_status_nightosphere_failed,
+          statusTextColor = Color.parseColor("#B91C1C"),
+          titleColor = Color.parseColor("#7C2D12"),
+          bodyColor = Color.parseColor("#9A3412"),
+          mutedColor = Color.parseColor("#A16207"),
+          progressColor = Color.parseColor("#F97316"),
+          progressTrackColor = Color.parseColor("#FFEDD5"),
+          glowSecondaryColor = Color.parseColor("#F87171"),
+        )
+
+        else -> WidgetPalette(
+          backgroundSmallRes = R.drawable.step_quest_widget_background_small_nightosphere,
+          backgroundMediumRes = R.drawable.step_quest_widget_background_medium_nightosphere,
+          statusBackgroundRes = R.drawable.step_quest_widget_status_nightosphere_active,
+          statusTextColor = Color.parseColor("#1D4ED8"),
+          titleColor = Color.parseColor("#1E3A8A"),
+          bodyColor = Color.parseColor("#1D4ED8"),
+          mutedColor = Color.parseColor("#64748B"),
+          progressColor = Color.parseColor("#38BDF8"),
+          progressTrackColor = Color.parseColor("#DBEAFE"),
+          glowSecondaryColor = Color.parseColor("#67E8F9"),
+        )
+      }
+    }
+
+    private fun nightospherePaletteForStatus(status: String?): WidgetPalette {
+      return when (status) {
+        "completed" -> WidgetPalette(
+          backgroundSmallRes = R.drawable.step_quest_widget_background_small_completed,
+          backgroundMediumRes = R.drawable.step_quest_widget_background_medium_completed,
+          statusBackgroundRes = R.drawable.step_quest_widget_status_completed,
+          statusTextColor = Color.parseColor("#FDE68A"),
+          titleColor = Color.parseColor("#FECACA"),
+          bodyColor = Color.parseColor("#FCA5A5"),
+          mutedColor = Color.parseColor("#FDBA74"),
+          progressColor = Color.parseColor("#F97316"),
+          progressTrackColor = Color.parseColor("#4A1D12"),
+          glowSecondaryColor = Color.parseColor("#C084FC"),
+        )
+
+        "claimed" -> WidgetPalette(
+          backgroundSmallRes = R.drawable.step_quest_widget_background_small_claimed,
+          backgroundMediumRes = R.drawable.step_quest_widget_background_medium_claimed,
+          statusBackgroundRes = R.drawable.step_quest_widget_status_claimed,
+          statusTextColor = Color.parseColor("#E9D5FF"),
+          titleColor = Color.parseColor("#F5D0FE"),
+          bodyColor = Color.parseColor("#E9D5FF"),
+          mutedColor = Color.parseColor("#C4B5FD"),
+          progressColor = Color.parseColor("#C084FC"),
+          progressTrackColor = Color.parseColor("#3B124F"),
+          glowSecondaryColor = Color.parseColor("#FB7185"),
+        )
+
+        "failed" -> WidgetPalette(
+          backgroundSmallRes = R.drawable.step_quest_widget_background_small_failed,
+          backgroundMediumRes = R.drawable.step_quest_widget_background_medium_failed,
+          statusBackgroundRes = R.drawable.step_quest_widget_status_failed,
+          statusTextColor = Color.parseColor("#FCA5A5"),
+          titleColor = Color.parseColor("#FECACA"),
+          bodyColor = Color.parseColor("#FCA5A5"),
+          mutedColor = Color.parseColor("#FDBA74"),
+          progressColor = Color.parseColor("#EF4444"),
+          progressTrackColor = Color.parseColor("#3F0B12"),
+          glowSecondaryColor = Color.parseColor("#F97316"),
+        )
+
+        else -> WidgetPalette(
+          backgroundSmallRes = R.drawable.step_quest_widget_background_small,
+          backgroundMediumRes = R.drawable.step_quest_widget_background_medium,
+          statusBackgroundRes = R.drawable.step_quest_widget_status_active,
+          statusTextColor = Color.parseColor("#F9A8D4"),
+          titleColor = Color.parseColor("#F5D0FE"),
+          bodyColor = Color.parseColor("#FBCFE8"),
+          mutedColor = Color.parseColor("#C4B5FD"),
+          progressColor = Color.parseColor("#FB7185"),
+          progressTrackColor = Color.parseColor("#341124"),
+          glowSecondaryColor = Color.parseColor("#C084FC"),
+        )
+      }
+    }
+
+    private fun normalizeThemeName(themeName: String?): String {
+      return when (themeName) {
+        "ice", "nightosphere" -> themeName
+        else -> DEFAULT_WIDGET_THEME_NAME
       }
     }
 

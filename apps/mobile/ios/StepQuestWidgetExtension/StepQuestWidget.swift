@@ -5,8 +5,10 @@ private let appGroupId = "group.love.leaetzak.adventuretime"
 private let snapshotKey = "stepQuestWidgetSnapshot"
 private let widgetKind = "StepQuestWidget"
 private let defaultDeepLink = "adventure-time://widget-quests?focus=steps"
+private let themeNameKey = "stepQuestWidgetThemeName"
 
 private struct StepQuestSnapshot: Decodable {
+  let themeName: String?
   let title: String
   let progress: Int
   let target: Int
@@ -23,6 +25,7 @@ private struct StepQuestSnapshot: Decodable {
 private struct StepQuestEntry: TimelineEntry {
   let date: Date
   let snapshot: StepQuestSnapshot?
+  let themeName: String
 }
 
 private struct StepQuestPalette {
@@ -38,7 +41,18 @@ private struct StepQuestPalette {
   let statusText: Color
   let statusBackground: Color
 
-  static func forStatus(_ status: String) -> StepQuestPalette {
+  static func forTheme(_ themeName: String, status: String) -> StepQuestPalette {
+    switch themeName {
+    case "ice":
+      return StepQuestPalette.ice(status: status)
+    case "nightosphere":
+      return StepQuestPalette.nightosphere(status: status)
+    default:
+      return StepQuestPalette.candy(status: status)
+    }
+  }
+
+  private static func candy(status: String) -> StepQuestPalette {
     switch status {
     case "completed":
       return StepQuestPalette(
@@ -98,6 +112,128 @@ private struct StepQuestPalette {
       )
     }
   }
+
+  private static func ice(status: String) -> StepQuestPalette {
+    switch status {
+    case "completed":
+      return StepQuestPalette(
+        backgroundTop: Color(red: 0.90, green: 0.98, blue: 0.98),
+        backgroundBottom: Color(red: 0.93, green: 0.99, blue: 1.0),
+        glowPrimary: Color(red: 0.11, green: 0.77, blue: 0.74),
+        glowSecondary: Color(red: 0.49, green: 0.83, blue: 1.0),
+        title: Color(red: 0.09, green: 0.31, blue: 0.39),
+        body: Color(red: 0.08, green: 0.37, blue: 0.46),
+        muted: Color(red: 0.29, green: 0.42, blue: 0.49),
+        progress: Color(red: 0.08, green: 0.72, blue: 0.65),
+        progressTrack: Color(red: 0.80, green: 0.98, blue: 0.95),
+        statusText: Color(red: 0.06, green: 0.46, blue: 0.43),
+        statusBackground: Color(red: 0.82, green: 0.98, blue: 0.94)
+      )
+    case "claimed":
+      return StepQuestPalette(
+        backgroundTop: Color(red: 0.93, green: 0.96, blue: 1.0),
+        backgroundBottom: Color(red: 0.95, green: 0.98, blue: 1.0),
+        glowPrimary: Color(red: 0.51, green: 0.55, blue: 0.97),
+        glowSecondary: Color(red: 0.40, green: 0.91, blue: 0.98),
+        title: Color(red: 0.12, green: 0.23, blue: 0.54),
+        body: Color(red: 0.20, green: 0.29, blue: 0.33),
+        muted: Color(red: 0.39, green: 0.45, blue: 0.55),
+        progress: Color(red: 0.51, green: 0.55, blue: 0.97),
+        progressTrack: Color(red: 0.88, green: 0.91, blue: 1.0),
+        statusText: Color(red: 0.26, green: 0.22, blue: 0.79),
+        statusBackground: Color(red: 0.89, green: 0.92, blue: 1.0)
+      )
+    case "failed":
+      return StepQuestPalette(
+        backgroundTop: Color(red: 1.0, green: 0.96, blue: 0.93),
+        backgroundBottom: Color(red: 0.99, green: 0.98, blue: 0.95),
+        glowPrimary: Color(red: 0.98, green: 0.45, blue: 0.16),
+        glowSecondary: Color(red: 0.97, green: 0.44, blue: 0.44),
+        title: Color(red: 0.49, green: 0.18, blue: 0.07),
+        body: Color(red: 0.60, green: 0.20, blue: 0.07),
+        muted: Color(red: 0.63, green: 0.38, blue: 0.03),
+        progress: Color(red: 0.98, green: 0.45, blue: 0.16),
+        progressTrack: Color(red: 1.0, green: 0.93, blue: 0.84),
+        statusText: Color(red: 0.73, green: 0.11, blue: 0.11),
+        statusBackground: Color(red: 1.0, green: 0.89, blue: 0.89)
+      )
+    default:
+      return StepQuestPalette(
+        backgroundTop: Color(red: 0.92, green: 0.97, blue: 1.0),
+        backgroundBottom: Color(red: 0.95, green: 0.99, blue: 1.0),
+        glowPrimary: Color(red: 0.22, green: 0.74, blue: 0.97),
+        glowSecondary: Color(red: 0.40, green: 0.91, blue: 0.98),
+        title: Color(red: 0.12, green: 0.23, blue: 0.54),
+        body: Color(red: 0.11, green: 0.31, blue: 0.85),
+        muted: Color(red: 0.39, green: 0.45, blue: 0.55),
+        progress: Color(red: 0.22, green: 0.74, blue: 0.97),
+        progressTrack: Color(red: 0.86, green: 0.92, blue: 0.98),
+        statusText: Color(red: 0.11, green: 0.31, blue: 0.85),
+        statusBackground: Color(red: 0.86, green: 0.92, blue: 0.99)
+      )
+    }
+  }
+
+  private static func nightosphere(status: String) -> StepQuestPalette {
+    switch status {
+    case "completed":
+      return StepQuestPalette(
+        backgroundTop: Color(red: 0.14, green: 0.05, blue: 0.08),
+        backgroundBottom: Color(red: 0.08, green: 0.02, blue: 0.05),
+        glowPrimary: Color(red: 0.98, green: 0.45, blue: 0.09),
+        glowSecondary: Color(red: 0.75, green: 0.52, blue: 0.99),
+        title: Color(red: 1.0, green: 0.81, blue: 0.80),
+        body: Color(red: 0.99, green: 0.65, blue: 0.65),
+        muted: Color(red: 0.99, green: 0.73, blue: 0.45),
+        progress: Color(red: 0.98, green: 0.45, blue: 0.09),
+        progressTrack: Color(red: 0.29, green: 0.11, blue: 0.07),
+        statusText: Color(red: 0.99, green: 0.89, blue: 0.54),
+        statusBackground: Color(red: 0.34, green: 0.16, blue: 0.04)
+      )
+    case "claimed":
+      return StepQuestPalette(
+        backgroundTop: Color(red: 0.11, green: 0.03, blue: 0.16),
+        backgroundBottom: Color(red: 0.05, green: 0.00, blue: 0.09),
+        glowPrimary: Color(red: 0.75, green: 0.52, blue: 0.99),
+        glowSecondary: Color(red: 0.98, green: 0.44, blue: 0.52),
+        title: Color(red: 0.96, green: 0.82, blue: 0.99),
+        body: Color(red: 0.91, green: 0.84, blue: 1.0),
+        muted: Color(red: 0.77, green: 0.71, blue: 0.99),
+        progress: Color(red: 0.75, green: 0.52, blue: 0.99),
+        progressTrack: Color(red: 0.23, green: 0.07, blue: 0.31),
+        statusText: Color(red: 0.91, green: 0.84, blue: 1.0),
+        statusBackground: Color(red: 0.28, green: 0.11, blue: 0.39)
+      )
+    case "failed":
+      return StepQuestPalette(
+        backgroundTop: Color(red: 0.15, green: 0.03, blue: 0.07),
+        backgroundBottom: Color(red: 0.08, green: 0.01, blue: 0.03),
+        glowPrimary: Color(red: 0.94, green: 0.27, blue: 0.27),
+        glowSecondary: Color(red: 0.98, green: 0.45, blue: 0.09),
+        title: Color(red: 1.0, green: 0.81, blue: 0.80),
+        body: Color(red: 0.99, green: 0.65, blue: 0.65),
+        muted: Color(red: 0.99, green: 0.73, blue: 0.45),
+        progress: Color(red: 0.94, green: 0.27, blue: 0.27),
+        progressTrack: Color(red: 0.25, green: 0.04, blue: 0.07),
+        statusText: Color(red: 0.99, green: 0.65, blue: 0.65),
+        statusBackground: Color(red: 0.34, green: 0.07, blue: 0.10)
+      )
+    default:
+      return StepQuestPalette(
+        backgroundTop: Color(red: 0.10, green: 0.02, blue: 0.08),
+        backgroundBottom: Color(red: 0.05, green: 0.00, blue: 0.06),
+        glowPrimary: Color(red: 0.98, green: 0.44, blue: 0.52),
+        glowSecondary: Color(red: 0.75, green: 0.52, blue: 0.99),
+        title: Color(red: 0.96, green: 0.82, blue: 0.99),
+        body: Color(red: 0.98, green: 0.81, blue: 0.91),
+        muted: Color(red: 0.77, green: 0.71, blue: 0.99),
+        progress: Color(red: 0.98, green: 0.44, blue: 0.52),
+        progressTrack: Color(red: 0.20, green: 0.07, blue: 0.14),
+        statusText: Color(red: 0.98, green: 0.66, blue: 0.83),
+        statusBackground: Color(red: 0.28, green: 0.07, blue: 0.17)
+      )
+    }
+  }
 }
 
 private struct StepQuestProvider: TimelineProvider {
@@ -105,6 +241,7 @@ private struct StepQuestProvider: TimelineProvider {
     StepQuestEntry(
       date: Date(),
       snapshot: StepQuestSnapshot(
+        themeName: "candy",
         title: localized(en: "Walk 10,000 steps", fr: "Marcher 10 000 pas"),
         progress: 7421,
         target: 10_000,
@@ -116,7 +253,8 @@ private struct StepQuestProvider: TimelineProvider {
         progressLabel: "7,421 / 10,000",
         statusLabel: localized(en: "Progress", fr: "Progression"),
         subtitle: localized(en: "2,579 steps left", fr: "2 579 pas restants")
-      )
+      ),
+      themeName: "candy"
     )
   }
 
@@ -138,7 +276,9 @@ private struct StepQuestProvider: TimelineProvider {
       .flatMap { try? JSONDecoder().decode(StepQuestSnapshot.self, from: $0) }
       .map(normalizeSnapshotForToday)
 
-    return StepQuestEntry(date: Date(), snapshot: snapshot)
+    let resolvedThemeName = normalizeThemeName(snapshot?.themeName) ?? loadStoredThemeName() ?? "candy"
+
+    return StepQuestEntry(date: Date(), snapshot: snapshot, themeName: resolvedThemeName)
   }
 }
 
@@ -152,6 +292,7 @@ private func normalizeSnapshotForToday(_ snapshot: StepQuestSnapshot) -> StepQue
   let progressLabel = "0 / \(formatNumber(target))"
 
   return StepQuestSnapshot(
+    themeName: normalizeThemeName(snapshot.themeName) ?? "candy",
     title: snapshot.title,
     progress: 0,
     target: target,
@@ -167,6 +308,20 @@ private func normalizeSnapshotForToday(_ snapshot: StepQuestSnapshot) -> StepQue
       fr: "\(formatNumber(target)) pas restants"
     )
   )
+}
+
+private func loadStoredThemeName() -> String? {
+  let defaults = UserDefaults(suiteName: appGroupId)
+  return normalizeThemeName(defaults?.string(forKey: themeNameKey))
+}
+
+private func normalizeThemeName(_ themeName: String?) -> String? {
+  switch themeName {
+  case "candy", "ice", "nightosphere":
+    return themeName
+  default:
+    return nil
+  }
 }
 
 private func currentLocalDateString() -> String {
@@ -195,8 +350,8 @@ private extension StepQuestWidget {
     let configuration = StaticConfiguration(kind: widgetKind, provider: StepQuestProvider()) { entry in
       StepQuestWidgetView(entry: entry)
     }
-    .configurationDisplayName(localized(en: "Step Quest", fr: "Quete de pas"))
-    .description(localized(en: "Follow your daily step quest progress.", fr: "Suis la progression de ta quete de pas."))
+    .configurationDisplayName(localized(en: "Step Quest", fr: "Quête de pas"))
+    .description(localized(en: "Follow your daily step quest progress.", fr: "Suis la progression de ta quête de pas."))
     .supportedFamilies([.systemSmall, .systemMedium])
 
     if #available(iOSApplicationExtension 17.0, *) {
@@ -213,7 +368,8 @@ private struct StepQuestWidgetView: View {
   let entry: StepQuestEntry
 
   private var palette: StepQuestPalette {
-    StepQuestPalette.forStatus(entry.snapshot?.status ?? "active")
+    let themeName = entry.snapshot.flatMap { normalizeThemeName($0.themeName) } ?? entry.themeName
+    return StepQuestPalette.forTheme(themeName, status: entry.snapshot?.status ?? "active")
   }
 
   var body: some View {
@@ -327,7 +483,7 @@ private struct StepQuestMediumLayout: View {
           progress: progressRatio,
           palette: palette,
           primaryLabel: percentText(for: snapshot),
-          secondaryLabel: localized(en: "goal", fr: "objectif")
+          secondaryLabel: compactRingProgressLabel(for: snapshot)
         )
         .frame(width: 68, height: 68)
 
@@ -382,7 +538,7 @@ private struct StepQuestFallbackLayout: View {
       ProgressBar(progress: 0.24, palette: palette)
         .frame(height: family == .systemSmall ? 10 : 12)
 
-      Text(localized(en: "Tap to sync your daily quest.", fr: "Ouvre l'app pour synchroniser ta quete."))
+      Text(localized(en: "Tap to sync your daily quest.", fr: "Ouvre l'app pour synchroniser ta quête."))
         .font(.system(size: 11, weight: .semibold, design: .rounded))
         .foregroundStyle(palette.muted)
         .lineLimit(1)
@@ -679,9 +835,9 @@ private func percentText(for snapshot: StepQuestSnapshot) -> String {
 private func compactSubtitle(for snapshot: StepQuestSnapshot) -> String {
   switch snapshot.status {
   case "completed":
-    return localized(en: "Reward ready", fr: "Recompense prete")
+    return localized(en: "Reward ready", fr: "Récompense prête")
   case "claimed":
-    return localized(en: "Claimed today", fr: "Recuperee")
+    return localized(en: "Claimed today", fr: "Récupérée")
   case "failed":
     return localized(en: "Back tomorrow", fr: "Retour demain")
   default:
@@ -728,22 +884,25 @@ private func trimmedSingleDecimal(_ value: Double) -> String {
 private func progressFootnote(for snapshot: StepQuestSnapshot) -> String {
   switch snapshot.status {
   case "completed":
-    return localized(en: "Reward is ready to claim.", fr: "La recompense est prete.")
+    return localized(en: "Reward is ready to claim.", fr: "La récompense est prête.")
   case "claimed":
-    return localized(en: "You already grabbed today's reward.", fr: "Recompense deja prise.")
+    return localized(en: "You already grabbed today's reward.", fr: "Récompense déjà récupérée.")
   case "failed":
-    return localized(en: "A fresh quest will appear tomorrow.", fr: "Nouvelle quete demain.")
+    return localized(en: "A fresh quest will appear tomorrow.", fr: "Nouvelle quête demain.")
   default:
-    return localized(en: "Keep walking to finish today's quest.", fr: "Continue a marcher pour finir.")
+    return localized(
+      en: "Keep walking to finish today's quest.",
+      fr: "Continue à marcher pour terminer la quête du jour."
+    )
   }
 }
 
 private func statusHeadline(for status: String) -> String {
   switch status {
   case "completed":
-    return localized(en: "Claim now", fr: "A reclamer")
+    return localized(en: "Claim now", fr: "À réclamer")
   case "claimed":
-    return localized(en: "Claimed", fr: "Recuperee")
+    return localized(en: "Claimed", fr: "Récupérée")
   case "failed":
     return localized(en: "Tomorrow", fr: "Demain")
   default:
