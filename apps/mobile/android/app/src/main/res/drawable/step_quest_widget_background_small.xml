@@ -12,25 +12,47 @@
 
   <item
     android:gravity="top|right"
-    android:right="-14dp"
-    android:top="-18dp">
+    android:right="-18dp"
+    android:top="-20dp">
     <shape android:shape="oval">
       <size
-        android:width="120dp"
-        android:height="120dp" />
-      <solid android:color="#45F472B6" />
+        android:width="130dp"
+        android:height="130dp" />
+      <gradient
+  android:centerColor="#11F472B6"
+  android:centerX="0.5"
+  android:centerY="0.5"
+  android:endColor="#00F472B6"
+  android:gradientRadius="92dp"
+  android:startColor="#26F472B6"
+  android:type="radial" />
     </shape>
   </item>
 
   <item
-    android:bottom="-24dp"
+    android:bottom="-26dp"
     android:gravity="bottom|left"
-    android:left="-16dp">
+    android:left="-18dp">
     <shape android:shape="oval">
       <size
-        android:width="96dp"
-        android:height="96dp" />
-      <solid android:color="#40FDE047" />
+        android:width="104dp"
+        android:height="104dp" />
+      <gradient
+  android:centerColor="#0FFDE047"
+  android:centerX="0.5"
+  android:centerY="0.5"
+  android:endColor="#00FDE047"
+  android:gradientRadius="76dp"
+  android:startColor="#23FDE047"
+  android:type="radial" />
     </shape>
   </item>
+
+  <item
+    android:drawable="@drawable/step_quest_widget_sparkle"
+    android:gravity="top|right"
+    android:height="14dp"
+    android:right="26dp"
+    android:top="16dp"
+    android:width="14dp" />
 </layer-list>

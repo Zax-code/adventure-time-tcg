@@ -3,7 +3,7 @@
   <item>
     <shape android:shape="rectangle">
       <gradient
-        android:angle="330"
+        android:angle="315"
         android:endColor="#FFF9F1"
         android:startColor="#FFF5EE" />
       <corners android:radius="28dp" />
@@ -12,25 +12,47 @@
 
   <item
     android:gravity="top|right"
-    android:right="-22dp"
-    android:top="-24dp">
+    android:right="-24dp"
+    android:top="-26dp">
     <shape android:shape="oval">
       <size
-        android:width="150dp"
-        android:height="150dp" />
-      <solid android:color="#47F97316" />
+        android:width="160dp"
+        android:height="160dp" />
+      <gradient
+  android:centerColor="#11F97316"
+  android:centerX="0.5"
+  android:centerY="0.5"
+  android:endColor="#00F97316"
+  android:gradientRadius="112dp"
+  android:startColor="#27F97316"
+  android:type="radial" />
     </shape>
   </item>
 
   <item
-    android:bottom="-30dp"
+    android:bottom="-32dp"
     android:gravity="bottom|left"
-    android:left="-20dp">
+    android:left="-22dp">
     <shape android:shape="oval">
       <size
-        android:width="120dp"
-        android:height="120dp" />
-      <solid android:color="#3DF87171" />
+        android:width="128dp"
+        android:height="128dp" />
+      <gradient
+  android:centerColor="#0FF87171"
+  android:centerX="0.5"
+  android:centerY="0.5"
+  android:endColor="#00F87171"
+  android:gradientRadius="90dp"
+  android:startColor="#22F87171"
+  android:type="radial" />
     </shape>
   </item>
+
+  <item
+    android:drawable="@drawable/step_quest_widget_sparkle"
+    android:gravity="bottom|left"
+    android:height="16dp"
+    android:bottom="42dp"
+    android:left="112dp"
+    android:width="16dp" />
 </layer-list>
