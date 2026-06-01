@@ -195,8 +195,8 @@ private extension StepQuestWidget {
     let configuration = StaticConfiguration(kind: widgetKind, provider: StepQuestProvider()) { entry in
       StepQuestWidgetView(entry: entry)
     }
-    .configurationDisplayName(localized(en: "Step Quest", fr: "Quete de pas"))
-    .description(localized(en: "Follow your daily step quest progress.", fr: "Suis la progression de ta quete de pas."))
+    .configurationDisplayName(localized(en: "Step Quest", fr: "Quête de pas"))
+    .description(localized(en: "Follow your daily step quest progress.", fr: "Suis la progression de ta quête de pas."))
     .supportedFamilies([.systemSmall, .systemMedium])
 
     if #available(iOSApplicationExtension 17.0, *) {
@@ -327,7 +327,7 @@ private struct StepQuestMediumLayout: View {
           progress: progressRatio,
           palette: palette,
           primaryLabel: percentText(for: snapshot),
-          secondaryLabel: localized(en: "goal", fr: "objectif")
+          secondaryLabel: compactRingProgressLabel(for: snapshot)
         )
         .frame(width: 68, height: 68)
 
@@ -382,7 +382,7 @@ private struct StepQuestFallbackLayout: View {
       ProgressBar(progress: 0.24, palette: palette)
         .frame(height: family == .systemSmall ? 10 : 12)
 
-      Text(localized(en: "Tap to sync your daily quest.", fr: "Ouvre l'app pour synchroniser ta quete."))
+      Text(localized(en: "Tap to sync your daily quest.", fr: "Ouvre l'app pour synchroniser ta quête."))
         .font(.system(size: 11, weight: .semibold, design: .rounded))
         .foregroundStyle(palette.muted)
         .lineLimit(1)
@@ -679,9 +679,9 @@ private func percentText(for snapshot: StepQuestSnapshot) -> String {
 private func compactSubtitle(for snapshot: StepQuestSnapshot) -> String {
   switch snapshot.status {
   case "completed":
-    return localized(en: "Reward ready", fr: "Recompense prete")
+    return localized(en: "Reward ready", fr: "Récompense prête")
   case "claimed":
-    return localized(en: "Claimed today", fr: "Recuperee")
+    return localized(en: "Claimed today", fr: "Récupérée")
   case "failed":
     return localized(en: "Back tomorrow", fr: "Retour demain")
   default:
@@ -728,22 +728,25 @@ private func trimmedSingleDecimal(_ value: Double) -> String {
 private func progressFootnote(for snapshot: StepQuestSnapshot) -> String {
   switch snapshot.status {
   case "completed":
-    return localized(en: "Reward is ready to claim.", fr: "La recompense est prete.")
+    return localized(en: "Reward is ready to claim.", fr: "La récompense est prête.")
   case "claimed":
-    return localized(en: "You already grabbed today's reward.", fr: "Recompense deja prise.")
+    return localized(en: "You already grabbed today's reward.", fr: "Récompense déjà récupérée.")
   case "failed":
-    return localized(en: "A fresh quest will appear tomorrow.", fr: "Nouvelle quete demain.")
+    return localized(en: "A fresh quest will appear tomorrow.", fr: "Nouvelle quête demain.")
   default:
-    return localized(en: "Keep walking to finish today's quest.", fr: "Continue a marcher pour finir.")
+    return localized(
+      en: "Keep walking to finish today's quest.",
+      fr: "Continue à marcher pour terminer la quête du jour."
+    )
   }
 }
 
 private func statusHeadline(for status: String) -> String {
   switch status {
   case "completed":
-    return localized(en: "Claim now", fr: "A reclamer")
+    return localized(en: "Claim now", fr: "À réclamer")
   case "claimed":
-    return localized(en: "Claimed", fr: "Recuperee")
+    return localized(en: "Claimed", fr: "Récupérée")
   case "failed":
     return localized(en: "Tomorrow", fr: "Demain")
   default:

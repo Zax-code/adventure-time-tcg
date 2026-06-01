@@ -174,8 +174,9 @@ class StepQuestWidgetProvider : AppWidgetProvider() {
       layout: WidgetLayout,
       palette: WidgetPalette,
     ) {
-      val progress = snapshot.progress.coerceIn(0, snapshot.target.coerceAtLeast(1))
-      val progressRatio = progress.toFloat() / snapshot.target.coerceAtLeast(1).toFloat()
+      val progress = snapshot.progress.coerceAtLeast(0)
+      val progressRatio = progress.coerceAtMost(snapshot.target.coerceAtLeast(1)).toFloat() /
+        snapshot.target.coerceAtLeast(1).toFloat()
 
       views.setTextViewText(R.id.widget_title, titleText(context, layout))
       views.setTextViewText(R.id.widget_reward, formatNumber(snapshot.reward))
@@ -184,10 +185,7 @@ class StepQuestWidgetProvider : AppWidgetProvider() {
       views.setViewVisibility(R.id.widget_status_pill, View.VISIBLE)
       views.setViewVisibility(R.id.widget_fallback_body, View.GONE)
 
-      val secondaryRingLabel = when (layout) {
-        WidgetLayout.SMALL -> compactRingProgressLabel(snapshot)
-        WidgetLayout.MEDIUM -> context.getString(R.string.step_quest_widget_ring_goal)
-      }
+      val secondaryRingLabel = compactRingProgressLabel(snapshot)
 
       views.setImageViewBitmap(
         R.id.widget_ring,

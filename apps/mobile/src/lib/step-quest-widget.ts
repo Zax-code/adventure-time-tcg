@@ -93,7 +93,7 @@ export function buildStepQuestWidgetSnapshot(
   }
 
   const status = getQuestStatus(quest);
-  const progress = Math.min(quest.progress, quest.target);
+  const progress = Math.max(quest.progress, 0);
   const remaining = Math.max(0, quest.target - progress);
   const rewardLabel = formatNumber(quest.reward, locale);
 

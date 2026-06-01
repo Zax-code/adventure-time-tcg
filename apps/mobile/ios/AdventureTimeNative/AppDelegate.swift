@@ -475,7 +475,7 @@ private func buildSnapshotFromQuests(
     completed: quest.completed,
     failed: quest.failed
   )
-  let progress = min(max(quest.progress, 0), max(quest.target, 1))
+  let progress = max(quest.progress, 0)
   let rewardLabel = formatNumber(quest.reward, locale: locale)
 
   return NativeStepQuestWidgetSnapshot(
@@ -515,7 +515,7 @@ private func buildLocalSnapshot(
 
   let target = max(baseSnapshot?.target ?? atStepQuestDefaultTarget, 1)
   let reward = max(baseSnapshot?.reward ?? atStepQuestDefaultReward, 0)
-  let progress = min(max(stepCount, 0), target)
+  let progress = max(stepCount, 0)
 
   let status: String
   if baseSnapshot?.status == "claimed" {
