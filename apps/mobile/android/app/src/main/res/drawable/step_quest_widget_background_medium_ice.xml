@@ -3,7 +3,7 @@
   <item>
     <shape android:shape="rectangle">
       <gradient
-        android:angle="330"
+        android:angle="315"
         android:endColor="#F2FCFF"
         android:startColor="#ECF8FF" />
       <corners android:radius="28dp" />
@@ -12,25 +12,33 @@
 
   <item
     android:gravity="top|right"
-    android:right="-22dp"
-    android:top="-24dp">
+    android:right="-24dp"
+    android:top="-26dp">
     <shape android:shape="oval">
       <size
-        android:width="150dp"
-        android:height="150dp" />
+        android:width="160dp"
+        android:height="160dp" />
       <solid android:color="#4238BDF8" />
     </shape>
   </item>
 
   <item
-    android:bottom="-30dp"
+    android:bottom="-32dp"
     android:gravity="bottom|left"
-    android:left="-20dp">
+    android:left="-22dp">
     <shape android:shape="oval">
       <size
-        android:width="120dp"
-        android:height="120dp" />
+        android:width="128dp"
+        android:height="128dp" />
       <solid android:color="#3867E8F9" />
     </shape>
   </item>
+
+  <item
+    android:drawable="@drawable/step_quest_widget_sparkle"
+    android:gravity="top|right"
+    android:height="16dp"
+    android:right="30dp"
+    android:top="18dp"
+    android:width="16dp" />
 </layer-list>

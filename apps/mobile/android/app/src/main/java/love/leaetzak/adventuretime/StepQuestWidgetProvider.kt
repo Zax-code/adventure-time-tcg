@@ -344,9 +344,9 @@ class StepQuestWidgetProvider : AppWidgetProvider() {
     private fun candyPaletteForStatus(status: String?): WidgetPalette {
       return when (status) {
         "completed" -> WidgetPalette(
-          backgroundSmallRes = R.drawable.step_quest_widget_background_small_ice_completed,
-          backgroundMediumRes = R.drawable.step_quest_widget_background_medium_ice_completed,
-          statusBackgroundRes = R.drawable.step_quest_widget_status_ice_completed,
+          backgroundSmallRes = R.drawable.step_quest_widget_background_small_completed,
+          backgroundMediumRes = R.drawable.step_quest_widget_background_medium_completed,
+          statusBackgroundRes = R.drawable.step_quest_widget_status_completed,
           statusTextColor = Color.parseColor("#025F48"),
           titleColor = Color.parseColor("#353D33"),
           bodyColor = Color.parseColor("#476359"),
@@ -357,9 +357,9 @@ class StepQuestWidgetProvider : AppWidgetProvider() {
         )
 
         "claimed" -> WidgetPalette(
-          backgroundSmallRes = R.drawable.step_quest_widget_background_small_ice_claimed,
-          backgroundMediumRes = R.drawable.step_quest_widget_background_medium_ice_claimed,
-          statusBackgroundRes = R.drawable.step_quest_widget_status_ice_claimed,
+          backgroundSmallRes = R.drawable.step_quest_widget_background_small_claimed,
+          backgroundMediumRes = R.drawable.step_quest_widget_background_medium_claimed,
+          statusBackgroundRes = R.drawable.step_quest_widget_status_claimed,
           statusTextColor = Color.parseColor("#6B389E"),
           titleColor = Color.parseColor("#47334F"),
           bodyColor = Color.parseColor("#6E5B7A"),
@@ -370,9 +370,9 @@ class StepQuestWidgetProvider : AppWidgetProvider() {
         )
 
         "failed" -> WidgetPalette(
-          backgroundSmallRes = R.drawable.step_quest_widget_background_small_ice_failed,
-          backgroundMediumRes = R.drawable.step_quest_widget_background_medium_ice_failed,
-          statusBackgroundRes = R.drawable.step_quest_widget_status_ice_failed,
+          backgroundSmallRes = R.drawable.step_quest_widget_background_small_failed,
+          backgroundMediumRes = R.drawable.step_quest_widget_background_medium_failed,
+          statusBackgroundRes = R.drawable.step_quest_widget_status_failed,
           statusTextColor = Color.parseColor("#AD1D2E"),
           titleColor = Color.parseColor("#592B2D"),
           bodyColor = Color.parseColor("#754740"),
@@ -383,9 +383,9 @@ class StepQuestWidgetProvider : AppWidgetProvider() {
         )
 
         else -> WidgetPalette(
-          backgroundSmallRes = R.drawable.step_quest_widget_background_small_ice,
-          backgroundMediumRes = R.drawable.step_quest_widget_background_medium_ice,
-          statusBackgroundRes = R.drawable.step_quest_widget_status_ice_active,
+          backgroundSmallRes = R.drawable.step_quest_widget_background_small,
+          backgroundMediumRes = R.drawable.step_quest_widget_background_medium,
+          statusBackgroundRes = R.drawable.step_quest_widget_status_active,
           statusTextColor = Color.parseColor("#BF1569"),
           titleColor = Color.parseColor("#4A3728"),
           bodyColor = Color.parseColor("#614E3C"),
@@ -400,9 +400,9 @@ class StepQuestWidgetProvider : AppWidgetProvider() {
     private fun icePaletteForStatus(status: String?): WidgetPalette {
       return when (status) {
         "completed" -> WidgetPalette(
-          backgroundSmallRes = R.drawable.step_quest_widget_background_small_nightosphere_completed,
-          backgroundMediumRes = R.drawable.step_quest_widget_background_medium_nightosphere_completed,
-          statusBackgroundRes = R.drawable.step_quest_widget_status_nightosphere_completed,
+          backgroundSmallRes = R.drawable.step_quest_widget_background_small_ice_completed,
+          backgroundMediumRes = R.drawable.step_quest_widget_background_medium_ice_completed,
+          statusBackgroundRes = R.drawable.step_quest_widget_status_ice_completed,
           statusTextColor = Color.parseColor("#0F766E"),
           titleColor = Color.parseColor("#164E63"),
           bodyColor = Color.parseColor("#155E75"),
@@ -413,9 +413,9 @@ class StepQuestWidgetProvider : AppWidgetProvider() {
         )
 
         "claimed" -> WidgetPalette(
-          backgroundSmallRes = R.drawable.step_quest_widget_background_small_nightosphere_claimed,
-          backgroundMediumRes = R.drawable.step_quest_widget_background_medium_nightosphere_claimed,
-          statusBackgroundRes = R.drawable.step_quest_widget_status_nightosphere_claimed,
+          backgroundSmallRes = R.drawable.step_quest_widget_background_small_ice_claimed,
+          backgroundMediumRes = R.drawable.step_quest_widget_background_medium_ice_claimed,
+          statusBackgroundRes = R.drawable.step_quest_widget_status_ice_claimed,
           statusTextColor = Color.parseColor("#4338CA"),
           titleColor = Color.parseColor("#1E3A8A"),
           bodyColor = Color.parseColor("#334155"),
@@ -426,9 +426,9 @@ class StepQuestWidgetProvider : AppWidgetProvider() {
         )
 
         "failed" -> WidgetPalette(
-          backgroundSmallRes = R.drawable.step_quest_widget_background_small_nightosphere_failed,
-          backgroundMediumRes = R.drawable.step_quest_widget_background_medium_nightosphere_failed,
-          statusBackgroundRes = R.drawable.step_quest_widget_status_nightosphere_failed,
+          backgroundSmallRes = R.drawable.step_quest_widget_background_small_ice_failed,
+          backgroundMediumRes = R.drawable.step_quest_widget_background_medium_ice_failed,
+          statusBackgroundRes = R.drawable.step_quest_widget_status_ice_failed,
           statusTextColor = Color.parseColor("#B91C1C"),
           titleColor = Color.parseColor("#7C2D12"),
           bodyColor = Color.parseColor("#9A3412"),
@@ -439,9 +439,9 @@ class StepQuestWidgetProvider : AppWidgetProvider() {
         )
 
         else -> WidgetPalette(
-          backgroundSmallRes = R.drawable.step_quest_widget_background_small_nightosphere,
-          backgroundMediumRes = R.drawable.step_quest_widget_background_medium_nightosphere,
-          statusBackgroundRes = R.drawable.step_quest_widget_status_nightosphere_active,
+          backgroundSmallRes = R.drawable.step_quest_widget_background_small_ice,
+          backgroundMediumRes = R.drawable.step_quest_widget_background_medium_ice,
+          statusBackgroundRes = R.drawable.step_quest_widget_status_ice_active,
           statusTextColor = Color.parseColor("#1D4ED8"),
           titleColor = Color.parseColor("#1E3A8A"),
           bodyColor = Color.parseColor("#1D4ED8"),
@@ -456,9 +456,9 @@ class StepQuestWidgetProvider : AppWidgetProvider() {
     private fun nightospherePaletteForStatus(status: String?): WidgetPalette {
       return when (status) {
         "completed" -> WidgetPalette(
-          backgroundSmallRes = R.drawable.step_quest_widget_background_small_completed,
-          backgroundMediumRes = R.drawable.step_quest_widget_background_medium_completed,
-          statusBackgroundRes = R.drawable.step_quest_widget_status_completed,
+          backgroundSmallRes = R.drawable.step_quest_widget_background_small_nightosphere_completed,
+          backgroundMediumRes = R.drawable.step_quest_widget_background_medium_nightosphere_completed,
+          statusBackgroundRes = R.drawable.step_quest_widget_status_nightosphere_completed,
           statusTextColor = Color.parseColor("#FDE68A"),
           titleColor = Color.parseColor("#FECACA"),
           bodyColor = Color.parseColor("#FCA5A5"),
@@ -469,9 +469,9 @@ class StepQuestWidgetProvider : AppWidgetProvider() {
         )
 
         "claimed" -> WidgetPalette(
-          backgroundSmallRes = R.drawable.step_quest_widget_background_small_claimed,
-          backgroundMediumRes = R.drawable.step_quest_widget_background_medium_claimed,
-          statusBackgroundRes = R.drawable.step_quest_widget_status_claimed,
+          backgroundSmallRes = R.drawable.step_quest_widget_background_small_nightosphere_claimed,
+          backgroundMediumRes = R.drawable.step_quest_widget_background_medium_nightosphere_claimed,
+          statusBackgroundRes = R.drawable.step_quest_widget_status_nightosphere_claimed,
           statusTextColor = Color.parseColor("#E9D5FF"),
           titleColor = Color.parseColor("#F5D0FE"),
           bodyColor = Color.parseColor("#E9D5FF"),
@@ -482,9 +482,9 @@ class StepQuestWidgetProvider : AppWidgetProvider() {
         )
 
         "failed" -> WidgetPalette(
-          backgroundSmallRes = R.drawable.step_quest_widget_background_small_failed,
-          backgroundMediumRes = R.drawable.step_quest_widget_background_medium_failed,
-          statusBackgroundRes = R.drawable.step_quest_widget_status_failed,
+          backgroundSmallRes = R.drawable.step_quest_widget_background_small_nightosphere_failed,
+          backgroundMediumRes = R.drawable.step_quest_widget_background_medium_nightosphere_failed,
+          statusBackgroundRes = R.drawable.step_quest_widget_status_nightosphere_failed,
           statusTextColor = Color.parseColor("#FCA5A5"),
           titleColor = Color.parseColor("#FECACA"),
           bodyColor = Color.parseColor("#FCA5A5"),
@@ -495,9 +495,9 @@ class StepQuestWidgetProvider : AppWidgetProvider() {
         )
 
         else -> WidgetPalette(
-          backgroundSmallRes = R.drawable.step_quest_widget_background_small,
-          backgroundMediumRes = R.drawable.step_quest_widget_background_medium,
-          statusBackgroundRes = R.drawable.step_quest_widget_status_active,
+          backgroundSmallRes = R.drawable.step_quest_widget_background_small_nightosphere,
+          backgroundMediumRes = R.drawable.step_quest_widget_background_medium_nightosphere,
+          statusBackgroundRes = R.drawable.step_quest_widget_status_nightosphere_active,
           statusTextColor = Color.parseColor("#F9A8D4"),
           titleColor = Color.parseColor("#F5D0FE"),
           bodyColor = Color.parseColor("#FBCFE8"),
