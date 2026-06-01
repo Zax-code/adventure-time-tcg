@@ -56,6 +56,13 @@ const quests = {
     revealedWord: "The word was: {word}",
     hideLetters: "Hide letters for a screenshot",
     showLetters: "Show letters again",
+    showDefinition: "Show definition",
+    definitionTitle: "Definition of today's word",
+    definitionLoading: "Loading the definition...",
+    definitionError: "Could not load the definition right now.",
+    definitionWordLabel: "Today's word",
+    definitionSource: "Source: {source}",
+    definitionClose: "Close",
     resetTitle: "Too late, it reset!",
     resetBody:
       "The daily Wordle just switched to a new word. Your current grid has been reset.",

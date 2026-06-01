@@ -112,6 +112,7 @@ export default function WordleScreen() {
     null | "rollover" | "admin"
   >(null);
   const [shareMaskEnabled, setShareMaskEnabled] = useState(false);
+  const [definitionModalVisible, setDefinitionModalVisible] = useState(false);
   const [removingCellIndex, setRemovingCellIndex] = useState<number | null>(
     null,
   );
@@ -205,6 +206,18 @@ export default function WordleScreen() {
     queryFn: () => apiClient.wordleState(wordleLanguage),
     enabled: wordleLanguageHydrated,
     staleTime: 30_000,
+  });
+
+  const definitionQuery = useQuery({
+    queryKey: [
+      "wordleDefinition",
+      wordleLanguage,
+      stateQuery.data?.date ?? activeDateKey ?? null,
+    ],
+    queryFn: () => apiClient.wordleDefinition(wordleLanguage),
+    enabled: definitionModalVisible && wordleLanguageHydrated,
+    staleTime: Infinity,
+    retry: 1,
   });
 
   useEffect(() => {
@@ -686,6 +699,7 @@ export default function WordleScreen() {
       setMessage(null);
       setTargetWord(null);
       setShareMaskEnabled(false);
+      setDefinitionModalVisible(false);
       setResetModalKind(null);
       setActiveDateKey(null);
       questVersionRef.current = null;
@@ -1111,6 +1125,16 @@ export default function WordleScreen() {
             </Text>
           </TouchableOpacity>
         ) : null}
+
+        <TouchableOpacity
+          onPress={() => setDefinitionModalVisible(true)}
+          activeOpacity={0.8}
+          className="items-center rounded-xl border-2 border-primaryTint bg-bg px-4 py-3"
+        >
+          <Text className="text-sm font-nunito-bold text-primaryStrong">
+            {t("quests.wordle.showDefinition")}
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {/* ── Keyboard card ───────────────────────────────────────────────── */}
@@ -1253,6 +1277,85 @@ export default function WordleScreen() {
           </View>
         </GestureDetector>
       )}
+
+      <Modal
+        visible={definitionModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setDefinitionModalVisible(false)}
+      >
+        <View className="flex-1 bg-black/45 items-center justify-center p-4">
+          <View className="bg-surface rounded-2xl border-2 border-primaryTint p-5 w-full max-w-[360px] shadow shadow-black/20">
+            <Text className="text-lg font-nunito-extrabold text-primaryStrong">
+              {t("quests.wordle.definitionTitle")}
+            </Text>
+
+            {definitionQuery.isLoading && !definitionQuery.data ? (
+              <Text className="mt-3 text-sm leading-5 font-nunito text-primaryStrong">
+                {t("quests.wordle.definitionLoading")}
+              </Text>
+            ) : null}
+
+            {definitionQuery.error && !definitionQuery.data ? (
+              <Text className="mt-3 text-sm leading-5 font-nunito text-dangerDark">
+                {t("quests.wordle.definitionError")}
+              </Text>
+            ) : null}
+
+            {definitionQuery.data ? (
+              <ScrollView
+                className="mt-3 max-h-[320px]"
+                contentContainerStyle={{ gap: 10 }}
+              >
+                <View className="rounded-2xl border border-primaryTint bg-bg px-3 py-2">
+                  <Text className="text-xs font-nunito-bold uppercase tracking-[1px] text-fgMuted">
+                    {t("quests.wordle.definitionWordLabel")}
+                  </Text>
+                  <Text className="mt-1 text-base font-nunito-extrabold text-primaryStrong">
+                    {definitionQuery.data.word}
+                  </Text>
+                  {definitionQuery.data.partOfSpeech ? (
+                    <Text className="mt-1 text-sm font-nunito text-fgMuted">
+                      {definitionQuery.data.partOfSpeech}
+                    </Text>
+                  ) : null}
+                </View>
+
+                <Text className="text-sm leading-6 font-nunito text-primaryStrong">
+                  {definitionQuery.data.definition}
+                </Text>
+
+                <Text className="text-xs leading-5 font-nunito text-fgMuted">
+                  {t("quests.wordle.definitionSource", {
+                    source: definitionQuery.data.sourceName,
+                  })}
+                </Text>
+              </ScrollView>
+            ) : null}
+
+            <TouchableOpacity
+              onPress={() => setDefinitionModalVisible(false)}
+              activeOpacity={0.8}
+              className="mt-5 h-11 rounded-xl overflow-hidden"
+            >
+              <LinearGradient
+                colors={[tc.primary, tc.primaryDark]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={{
+                  flex: 1,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Text className="text-sm font-nunito-bold text-white">
+                  {t("quests.wordle.definitionClose")}
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* ── Reset modal ─────────────────────────────────────────────────── */}
       <Modal

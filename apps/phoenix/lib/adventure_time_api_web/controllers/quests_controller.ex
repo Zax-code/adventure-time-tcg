@@ -65,6 +65,42 @@ defmodule AdventureTimeApiWeb.QuestsController do
     end)
   end
 
+  # GET /wordle/definition
+  def wordle_definition(conn, params) do
+    locale = Map.get(params, "locale")
+
+    timed_action(conn, "wordle_definition", fn conn, user_id ->
+      case Quests.wordle_definition(user_id, locale) do
+        {:ok, payload} ->
+          json(conn, payload)
+
+        {:error, :invalid_wordle_locale} ->
+          conn
+          |> put_status(400)
+          |> json(%{
+            error: "Unsupported Wordle language",
+            code: "INVALID_WORDLE_LANGUAGE"
+          })
+
+        {:error, :definition_not_found} ->
+          conn
+          |> put_status(404)
+          |> json(%{
+            error: "Definition not found for today's Wordle word",
+            code: "WORDLE_DEFINITION_NOT_FOUND"
+          })
+
+        {:error, :definition_fetch_failed} ->
+          conn
+          |> put_status(502)
+          |> json(%{
+            error: "Definition lookup failed",
+            code: "WORDLE_DEFINITION_FETCH_FAILED"
+          })
+      end
+    end)
+  end
+
   # POST /wordle
   def submit_wordle_guess(conn, %{"guess" => guess} = params) do
     locale = Map.get(params, "locale")

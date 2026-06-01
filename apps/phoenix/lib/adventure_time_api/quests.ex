@@ -15,6 +15,7 @@ defmodule AdventureTimeApi.Quests do
     DailyQuest,
     SpeedCalculusDailyRun,
     SpeedCalculusEngine,
+    WordleDefinition,
     WordleDailyAttempt,
     WordleDictionaryWord,
     WordleEngine
@@ -409,6 +410,26 @@ defmodule AdventureTimeApi.Quests do
     end
   end
 
+  @doc "Return today's Wordle answer definition for the selected locale."
+  def wordle_definition(user_id, locale \\ nil) do
+    with {:ok, locale} <- normalize_wordle_locale(locale) do
+      date = current_reset_date_for_user(user_id)
+      word = get_daily_word(date, locale)
+
+      with {:ok, definition} <- get_or_fetch_wordle_definition(locale, word) do
+        {:ok,
+         %{
+           locale: locale,
+           word: word,
+           definition: definition.definition,
+           partOfSpeech: definition.part_of_speech,
+           sourceName: definition.source_name,
+           sourceUrl: definition.source_url
+         }}
+      end
+    end
+  end
+
   @doc "Submit a Wordle guess. Returns evaluation or an error tuple with a code."
   def submit_wordle_guess(
         user_id,
@@ -542,6 +563,51 @@ defmodule AdventureTimeApi.Quests do
 
       result
     end
+  end
+
+  defp get_or_fetch_wordle_definition(locale, word) do
+    case Repo.get_by(WordleDictionaryWord, locale: locale, word: word) do
+      %WordleDictionaryWord{definition: definition} = entry
+      when is_binary(definition) and definition != "" ->
+        {:ok,
+         %{
+           definition: definition,
+           part_of_speech: entry.definition_part_of_speech,
+           source_name: entry.definition_source_name || default_definition_source_name(locale),
+           source_url: entry.definition_source_url || default_definition_source_url(locale, word)
+         }}
+
+      %WordleDictionaryWord{} = entry ->
+        with {:ok, definition} <- WordleDefinition.fetch(locale, word) do
+          entry
+          |> Ecto.Changeset.change(%{
+            definition: definition.definition,
+            definition_part_of_speech: definition.part_of_speech,
+            definition_source_name: definition.source_name,
+            definition_source_url: definition.source_url,
+            definition_fetched_at: DateTime.utc_now() |> DateTime.truncate(:microsecond)
+          })
+          |> Repo.update!()
+
+          {:ok, definition}
+        end
+
+      nil ->
+        {:error, :definition_not_found}
+    end
+  end
+
+  defp default_definition_source_name("en"), do: "English Wiktionary"
+  defp default_definition_source_name("fr"), do: "Wiktionnaire"
+
+  defp default_definition_source_url(locale, word) do
+    language_anchor =
+      case locale do
+        "en" -> "English"
+        "fr" -> "Français"
+      end
+
+    "https://#{locale}.wiktionary.org/wiki/#{URI.encode(String.downcase(word))}##{URI.encode(language_anchor)}"
   end
 
   # ── Speed Calculus ───────────────────────────────────────────────────────────
