@@ -13,6 +13,10 @@ import type { AdminCardsResponse } from "@adventure-time/api-client";
 
 import { AdminCardTile } from "../../src/components/admin/admin-card-tile";
 import {
+  pickReadableTextColor,
+  withAlpha,
+} from "../../src/components/admin/admin-palette";
+import {
   AdminChip,
   AdminEmptyState,
   AdminHero,
@@ -182,10 +186,14 @@ export default function AdminFeaturedScreen() {
               disabled={!featured && maxReached}
               className="absolute -top-2 -right-2 h-8 w-8 items-center justify-center rounded-full"
               style={{
+                borderWidth: 1,
+                borderColor: featured
+                  ? withAlpha(tc.secondaryDark, "80")
+                  : withAlpha(tc.primaryBorder, "73"),
                 backgroundColor: featured
                   ? tc.secondaryText
                   : maxReached
-                    ? "rgba(209,213,219,0.9)"
+                    ? withAlpha(tc.muted, "E6")
                     : tc.surfaceMuted,
               }}
               onPress={() =>
@@ -200,9 +208,13 @@ export default function AdminFeaturedScreen() {
                 size={16}
                 color={
                   featured
-                    ? "#FFFFFF"
+                    ? pickReadableTextColor(tc.secondaryText, tc.fg, tc.surface)
                     : maxReached
-                      ? tc.fgMuted
+                      ? pickReadableTextColor(
+                          withAlpha(tc.muted, "E6"),
+                          tc.fg,
+                          tc.surface,
+                        )
                       : tc.secondaryText
                 }
               />
@@ -226,10 +238,14 @@ export default function AdminFeaturedScreen() {
                 disabled={!featured && maxReached}
                 className="absolute -top-2 -right-2 h-8 w-8 items-center justify-center rounded-full"
                 style={{
+                  borderWidth: 1,
+                  borderColor: featured
+                    ? withAlpha(tc.secondaryDark, "80")
+                    : withAlpha(tc.primaryBorder, "73"),
                   backgroundColor: featured
                     ? tc.secondaryText
                     : maxReached
-                      ? "rgba(209,213,219,0.9)"
+                      ? withAlpha(tc.muted, "E6")
                       : tc.surfaceMuted,
                 }}
                 onPress={() =>
@@ -244,9 +260,17 @@ export default function AdminFeaturedScreen() {
                   size={16}
                   color={
                     featured
-                      ? "#FFFFFF"
+                      ? pickReadableTextColor(
+                          tc.secondaryText,
+                          tc.fg,
+                          tc.surface,
+                        )
                       : maxReached
-                        ? tc.fgMuted
+                        ? pickReadableTextColor(
+                            withAlpha(tc.muted, "E6"),
+                            tc.fg,
+                            tc.surface,
+                          )
                         : tc.secondaryText
                   }
                 />

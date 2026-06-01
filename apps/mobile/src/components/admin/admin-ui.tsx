@@ -20,7 +20,12 @@ import {
   KEYBOARD_AWARE_SCROLL_PROPS,
   KeyboardScreenView,
 } from "../keyboard-screen-view";
-import { ADMIN_TYPE_COLORS } from "./admin-theme";
+import {
+  getAbilityTypePalette,
+  pickReadableTextColor,
+  type ThemeColors,
+  withAlpha,
+} from "./admin-palette";
 import { useTranslation } from "../../i18n";
 import { useThemeStore } from "../../stores/theme-store";
 import { THEME_COLORS, THEME_VARS } from "../../theme/themes";
@@ -33,61 +38,12 @@ const absoluteFill = {
   left: 0,
 };
 
-type ThemeColors = (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
-
-function alpha(color: string, suffix: string) {
-  const opacity = parseInt(suffix, 16) / 255;
-
-  if (color.startsWith("#")) {
-    return `${color}${suffix}`;
-  }
-
-  const rgbaMatch = color.match(/^rgba?\(([^)]+)\)$/);
-  if (!rgbaMatch) {
-    return color;
-  }
-
-  const [r, g, b] = rgbaMatch[1]
-    .split(",")
-    .slice(0, 3)
-    .map((part) => part.trim());
-
-  return `rgba(${r}, ${g}, ${b}, ${opacity})`;
-}
-
 export function AdminBackground({ children }: { children: ReactNode }) {
   const { themeName } = useThemeStore();
-  const tc = THEME_COLORS[themeName];
 
   return (
     <View style={[{ flex: 1 }, THEME_VARS[themeName] as never]}>
-      <View className="flex-1 overflow-hidden bg-bg">
-        <LinearGradient
-          colors={[alpha(tc.primaryTint, "CC"), alpha(tc.bg, "00")]}
-          start={{ x: 0.2, y: 0 }}
-          end={{ x: 0.8, y: 1 }}
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 220,
-          }}
-        />
-        <View
-          className="absolute -top-16 -right-10 h-[220] w-[220] rounded-full"
-          style={{ backgroundColor: alpha(tc.primary, "14") }}
-        />
-        <View
-          className="absolute top-[180] -left-16 h-[180] w-[180] rounded-full"
-          style={{ backgroundColor: alpha(tc.secondary, "18") }}
-        />
-        <View
-          className="absolute bottom-[120] right-[18] h-[150] w-[150] rounded-full"
-          style={{ backgroundColor: alpha(tc.accent, "12") }}
-        />
-        {children}
-      </View>
+      <View className="flex-1 bg-bg">{children}</View>
     </View>
   );
 }
@@ -105,9 +61,9 @@ export function AdminPanel({
   const tc = THEME_COLORS[themeName];
   const backgrounds: Record<typeof tint, string> = {
     default: tc.surface,
-    primary: alpha(tc.primaryTint, "D9"),
-    secondary: alpha(tc.secondaryTint, "D9"),
-    accent: alpha(tc.accentTint, "D9"),
+    primary: withAlpha(tc.primaryTint, "D9"),
+    secondary: withAlpha(tc.secondaryTint, "D9"),
+    accent: withAlpha(tc.accentTint, "D9"),
   };
 
   return (
@@ -116,8 +72,8 @@ export function AdminPanel({
       style={[
         {
           backgroundColor: backgrounds[tint],
-          borderColor: alpha(tc.primaryBorder, "6B"),
-          shadowColor: "#000000",
+          borderColor: withAlpha(tc.primaryBorder, "6B"),
+          shadowColor: tc.fg,
           shadowOpacity: themeName === "nightosphere" ? 0.24 : 0.08,
           shadowRadius: 16,
           shadowOffset: { width: 0, height: 8 },
@@ -150,7 +106,7 @@ export function AdminHero({
   return (
     <AdminPanel style={{ paddingHorizontal: 20, paddingVertical: 20 }}>
       <LinearGradient
-        colors={[alpha(tc.primaryTint, "CC"), alpha(tc.surface, "00")]}
+        colors={[withAlpha(tc.primaryTint, "CC"), withAlpha(tc.surface, "00")]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={{
@@ -168,8 +124,8 @@ export function AdminHero({
               <View
                 className="self-start rounded-full border px-3 py-[6]"
                 style={{
-                  backgroundColor: alpha(tc.primaryTint, "DD"),
-                  borderColor: alpha(tc.primaryBorder, "80"),
+                  backgroundColor: withAlpha(tc.primaryTint, "DD"),
+                  borderColor: withAlpha(tc.primaryBorder, "80"),
                 }}
               >
                 <Text className="font-nunito-extrabold text-[11px] uppercase tracking-[0.8px] text-primaryStrong">
@@ -200,32 +156,32 @@ function getStatPalette(
 ) {
   return {
     default: {
-      bg: alpha(tc.surfaceMuted, "F0"),
-      border: alpha(tc.primaryBorder, "66"),
+      bg: withAlpha(tc.surfaceMuted, "F0"),
+      border: withAlpha(tc.primaryBorder, "66"),
       value: tc.primaryStrong,
       label: tc.fgMuted,
     },
     info: {
-      bg: alpha(tc.infoTint, "EB"),
-      border: alpha(tc.infoBorder, "99"),
+      bg: withAlpha(tc.infoTint, "EB"),
+      border: withAlpha(tc.infoBorder, "99"),
       value: tc.infoText,
       label: tc.infoText,
     },
     success: {
-      bg: alpha(tc.successTint, "EB"),
-      border: alpha(tc.successBorder, "99"),
+      bg: withAlpha(tc.successTint, "EB"),
+      border: withAlpha(tc.successBorder, "99"),
       value: tc.successText,
       label: tc.successText,
     },
     warning: {
-      bg: alpha(tc.secondaryTint, "EB"),
-      border: alpha(tc.secondaryBorder, "99"),
+      bg: withAlpha(tc.secondaryTint, "EB"),
+      border: withAlpha(tc.secondaryBorder, "99"),
       value: tc.secondaryText,
       label: tc.secondaryText,
     },
     accent: {
-      bg: alpha(tc.accentTint, "EB"),
-      border: alpha(tc.accentBorder, "99"),
+      bg: withAlpha(tc.accentTint, "EB"),
+      border: withAlpha(tc.accentBorder, "99"),
       value: tc.accentText,
       label: tc.accentText,
     },
@@ -306,13 +262,13 @@ export function AdminNotice({
     <View
       className="flex-row items-start gap-3 rounded-[22] border px-4 py-4"
       style={{
-        backgroundColor: alpha(palette.bg, "D9"),
+        backgroundColor: withAlpha(palette.bg, "D9"),
         borderColor: palette.border,
       }}
     >
       <View
         className="mt-[2] h-9 w-9 items-center justify-center rounded-2xl"
-        style={{ backgroundColor: alpha(palette.text, "1C") }}
+        style={{ backgroundColor: withAlpha(palette.text, "1C") }}
       >
         <Ionicons name={icon} size={18} color={palette.text} />
       </View>
@@ -420,8 +376,8 @@ export function AdminSegmentedControl<T extends string>({
     <View
       className="flex-row gap-2 rounded-[22] border p-2"
       style={{
-        backgroundColor: alpha(tc.surfaceMuted, "E6"),
-        borderColor: alpha(tc.primaryBorder, "5C"),
+        backgroundColor: withAlpha(tc.surfaceMuted, "E6"),
+        borderColor: withAlpha(tc.primaryBorder, "5C"),
       }}
     >
       {options.map((option) => {
@@ -438,7 +394,11 @@ export function AdminSegmentedControl<T extends string>({
           >
             <Text
               className="font-nunito-extrabold text-[13px]"
-              style={{ color: active ? "#FFFFFF" : tc.primaryStrong }}
+              style={{
+                color: active
+                  ? pickReadableTextColor(tc.primaryText, tc.fg, tc.surface)
+                  : tc.primaryStrong,
+              }}
             >
               {option.label}
             </Text>
@@ -467,11 +427,11 @@ export function AdminFilterChip({
       onPress={onPress}
       style={{
         backgroundColor: selected
-          ? alpha(tc.primaryTint, "F0")
-          : alpha(tc.surface, "D9"),
+          ? withAlpha(tc.primaryTint, "F0")
+          : withAlpha(tc.surface, "D9"),
         borderColor: selected
           ? tc.primaryBorder
-          : alpha(tc.primaryBorder, "47"),
+          : withAlpha(tc.primaryBorder, "47"),
       }}
     >
       <Text
@@ -500,8 +460,8 @@ export function AdminSearchInput({
     <View
       className="flex-row items-center gap-2 rounded-[20] border px-3 h-[50]"
       style={{
-        backgroundColor: alpha(tc.surface, "E8"),
-        borderColor: alpha(tc.primaryBorder, "66"),
+        backgroundColor: withAlpha(tc.surface, "E8"),
+        borderColor: withAlpha(tc.primaryBorder, "66"),
       }}
     >
       <Ionicons name="search" size={16} color={tc.muted} />
@@ -523,17 +483,25 @@ export function AdminSearchInput({
 
 function getButtonPalette(tc: ThemeColors) {
   return {
-    primary: { bg: tc.primaryText, text: "#FFFFFF", border: tc.primaryText },
+    primary: {
+      bg: tc.primaryText,
+      text: pickReadableTextColor(tc.primaryText, tc.fg, tc.surface),
+      border: tc.primaryText,
+    },
     secondary: {
       bg: tc.secondaryTint,
       text: tc.secondaryText,
       border: tc.secondaryBorder,
     },
-    danger: { bg: tc.dangerDark, text: "#FFFFFF", border: tc.dangerDark },
+    danger: {
+      bg: tc.dangerDark,
+      text: pickReadableTextColor(tc.dangerDark, tc.fg, tc.surface),
+      border: tc.dangerDark,
+    },
     ghost: {
-      bg: alpha(tc.surfaceMuted, "F5"),
+      bg: withAlpha(tc.surfaceMuted, "F5"),
       text: tc.primaryStrong,
-      border: alpha(tc.primaryBorder, "73"),
+      border: withAlpha(tc.primaryBorder, "73"),
     },
     warning: {
       bg: tc.accentTint,
@@ -634,7 +602,9 @@ export function AbilityTypeChip({
 }: {
   type: "PASSIVE" | "SKILL" | "ULTIMATE";
 }) {
-  const palette = ADMIN_TYPE_COLORS[type];
+  const { themeName } = useThemeStore();
+  const tc = THEME_COLORS[themeName];
+  const palette = getAbilityTypePalette(tc, type);
   const { t } = useTranslation();
 
   return (
@@ -711,13 +681,16 @@ export function AdminModal({
       <KeyboardScreenView>
         <View
           className="flex-1 justify-center p-4"
-          style={{ backgroundColor: alpha(tc.primaryStrong, "54") }}
+          style={{ backgroundColor: withAlpha(tc.primaryStrong, "54") }}
         >
           <Pressable style={absoluteFill} onPress={onClose} />
           <View className="max-h-[90%] overflow-hidden rounded-[30]">
             <AdminPanel style={{ paddingHorizontal: 0, paddingVertical: 0 }}>
               <LinearGradient
-                colors={[alpha(tc.primaryTint, "E8"), alpha(tc.surface, "F5")]}
+                colors={[
+                  withAlpha(tc.primaryTint, "E8"),
+                  withAlpha(tc.surface, "F5"),
+                ]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={{
@@ -726,7 +699,7 @@ export function AdminModal({
                   justifyContent: "center",
                   alignItems: "center",
                   borderBottomWidth: 1,
-                  borderBottomColor: alpha(tc.primaryBorder, "47"),
+                  borderBottomColor: withAlpha(tc.primaryBorder, "47"),
                 }}
               >
                 <Text className="font-nunito-extrabold text-[18px] text-fg">
@@ -735,7 +708,7 @@ export function AdminModal({
                 <Pressable
                   onPress={onClose}
                   className="absolute right-[14] top-3 w-8 h-8 rounded-full items-center justify-center"
-                  style={{ backgroundColor: alpha(tc.surface, "CC") }}
+                  style={{ backgroundColor: withAlpha(tc.surface, "CC") }}
                 >
                   <Ionicons name="close" size={18} color={tc.primaryStrong} />
                 </Pressable>
@@ -806,7 +779,7 @@ export function AdminSheet({
         }
       }}
       detents={[0, "content"]}
-      scrimColor={alpha(tc.primaryStrong, "54")}
+      scrimColor={withAlpha(tc.primaryStrong, "54")}
       surface={
         <View
           style={[
@@ -831,7 +804,10 @@ export function AdminSheet({
             style={{ flex: 1, paddingHorizontal: 0, paddingVertical: 0 }}
           >
             <LinearGradient
-              colors={[alpha(tc.primaryTint, "E8"), alpha(tc.surface, "F5")]}
+              colors={[
+                withAlpha(tc.primaryTint, "E8"),
+                withAlpha(tc.surface, "F5"),
+              ]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={{
@@ -841,13 +817,13 @@ export function AdminSheet({
                 justifyContent: "center",
                 alignItems: "center",
                 borderBottomWidth: 1,
-                borderBottomColor: alpha(tc.primaryBorder, "47"),
+                borderBottomColor: withAlpha(tc.primaryBorder, "47"),
               }}
             >
               <View className="w-full items-center pb-2">
                 <View
                   className="w-[54] h-[5] rounded-full"
-                  style={{ backgroundColor: alpha(tc.primaryStrong, "2B") }}
+                  style={{ backgroundColor: withAlpha(tc.primaryStrong, "2B") }}
                 />
               </View>
               <Text className="font-nunito-extrabold text-[18px] text-fg">
@@ -856,7 +832,7 @@ export function AdminSheet({
               <Pressable
                 onPress={onClose}
                 className="absolute right-[14] top-3 w-8 h-8 rounded-full items-center justify-center"
-                style={{ backgroundColor: alpha(tc.surface, "CC") }}
+                style={{ backgroundColor: withAlpha(tc.surface, "CC") }}
               >
                 <Ionicons name="close" size={18} color={tc.primaryStrong} />
               </Pressable>
@@ -876,7 +852,7 @@ export function AdminSheet({
               <View
                 className="border-t px-4 pt-3 pb-4"
                 style={{
-                  borderTopColor: alpha(tc.primaryBorder, "47"),
+                  borderTopColor: withAlpha(tc.primaryBorder, "47"),
                   backgroundColor: tc.surface,
                 }}
               >
@@ -906,7 +882,7 @@ export function AdminEmptyState({
     <View className="items-center gap-2 py-6">
       <View
         className="h-12 w-12 items-center justify-center rounded-[18]"
-        style={{ backgroundColor: alpha(tc.primaryTint, "CC") }}
+        style={{ backgroundColor: withAlpha(tc.primaryTint, "CC") }}
       >
         <Ionicons name={icon} size={24} color={tc.primaryText} />
       </View>

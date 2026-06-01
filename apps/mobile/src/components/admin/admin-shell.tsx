@@ -11,6 +11,7 @@ import { useTranslation } from "../../i18n";
 import { useSessionStore } from "../../stores/session-store";
 import { useThemeStore } from "../../stores/theme-store";
 import { THEME_COLORS } from "../../theme/themes";
+import { withAlpha } from "./admin-palette";
 import { AdminBackground } from "./admin-ui";
 
 type ThemeColorKey = keyof (typeof THEME_COLORS)["candy"];
@@ -76,7 +77,7 @@ const CoinPill = memo(function CoinPill() {
         borderRadius: 999,
         paddingHorizontal: 16,
         paddingVertical: 8,
-        shadowColor: "#000000",
+        shadowColor: tc.fg,
         shadowOpacity: 0.12,
         shadowRadius: 8,
         shadowOffset: { width: 0, height: 4 },
@@ -111,8 +112,8 @@ export function AdminShell({ children }: { children: ReactNode }) {
               <View
                 className="self-start rounded-full border px-3 py-[6]"
                 style={{
-                  backgroundColor: `${tc.primaryTint}D9`,
-                  borderColor: `${tc.primaryBorder}73`,
+                  backgroundColor: withAlpha(tc.primaryTint, "D9"),
+                  borderColor: withAlpha(tc.primaryBorder, "73"),
                 }}
               >
                 <Text className="font-nunito-extrabold text-[11px] uppercase tracking-[0.8px] text-primaryStrong">
@@ -136,7 +137,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
             className="mt-4 flex-row items-center justify-center gap-2 self-start rounded-full border px-[14] py-[10]"
             style={{
               backgroundColor: tc.surface,
-              borderColor: `${tc.primaryBorder}73`,
+              borderColor: withAlpha(tc.primaryBorder, "73"),
             }}
           >
             <HomeIcon size={18} color={tc.primaryStrong} />
@@ -156,8 +157,8 @@ export function AdminShell({ children }: { children: ReactNode }) {
             className="flex-row rounded-[30] border p-2"
             style={{
               backgroundColor: tc.surface,
-              borderColor: `${tc.primaryBorder}73`,
-              shadowColor: "#000000",
+              borderColor: withAlpha(tc.primaryBorder, "73"),
+              shadowColor: tc.fg,
               shadowOpacity: themeName === "nightosphere" ? 0.22 : 0.08,
               shadowRadius: 12,
               shadowOffset: { width: 0, height: 6 },
@@ -177,7 +178,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
                   className="flex-1 items-center justify-center gap-1 rounded-[22] px-1 py-2"
                   style={{
                     backgroundColor: active
-                      ? `${tc.primaryTint}E8`
+                      ? withAlpha(tc.primaryTint, "E8")
                       : "transparent",
                   }}
                 >

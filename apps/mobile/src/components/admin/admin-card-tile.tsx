@@ -12,7 +12,15 @@ import { getCardImageCacheKey, getCardImageUrl } from "../../lib/card-images";
 import { useThemeStore } from "../../stores/theme-store";
 import { THEME_COLORS } from "../../theme/themes";
 import { HPIcon, RarityIcon, SpeedIcon } from "../icons";
-import { CARD_TYPE_COLORS, RARITY_COLORS, SECONDARY_TINT } from "../theme";
+import {
+  CARD_TYPE_COLORS,
+  CARD_TYPE_COLORS_ICE,
+  CARD_TYPE_COLORS_NIGHTOSPHERE,
+  RARITY_COLORS,
+  RARITY_COLORS_ICE,
+  RARITY_COLORS_NIGHTOSPHERE,
+} from "../theme";
+import { pickReadableTextColor, withAlpha } from "./admin-palette";
 
 type AdminCard = AdminCardsResponse["cards"][number] | AdminCardDetail;
 
@@ -94,11 +102,14 @@ const COMPACT_LABELS: Record<string, string> = {
 function RarityCrest({
   rarityName,
   cfg,
+  textColor,
+  rarity,
 }: {
   rarityName: string;
   cfg: (typeof SIZE_CONFIG)[keyof typeof SIZE_CONFIG];
+  textColor: string;
+  rarity: { from: string; to: string; ring: string };
 }) {
-  const rarity = RARITY_COLORS[rarityName] ?? RARITY_COLORS.Common;
   const label =
     COMPACT_LABELS[rarityName] ?? rarityName.slice(0, 3).toUpperCase();
 
@@ -113,11 +124,11 @@ function RarityCrest({
       <RarityIcon
         rarityName={rarityName}
         size={cfg.rarityFontSize + 3}
-        color="#fff"
+        color={textColor}
       />
       <Text
-        className="font-nunito-extrabold text-white"
-        style={{ fontSize: cfg.rarityFontSize }}
+        className="font-nunito-extrabold"
+        style={{ color: textColor, fontSize: cfg.rarityFontSize }}
       >
         {label}
       </Text>
@@ -138,17 +149,49 @@ export const AdminCardTile = memo(
     fitContainer?: boolean;
   }) {
     const cfg = SIZE_CONFIG[size];
-    const tc = THEME_COLORS[useThemeStore((state) => state.themeName)];
-    const typeColor = CARD_TYPE_COLORS[card.type] ?? {
-      frame: "#9CA3AF",
-      light: "#F3F4F6",
-      dark: "#374151",
+    const themeName = useThemeStore((state) => state.themeName);
+    const tc = THEME_COLORS[themeName];
+    const typePalette =
+      themeName === "ice"
+        ? CARD_TYPE_COLORS_ICE
+        : themeName === "nightosphere"
+          ? CARD_TYPE_COLORS_NIGHTOSPHERE
+          : CARD_TYPE_COLORS;
+    const rarityPalette =
+      themeName === "ice"
+        ? RARITY_COLORS_ICE
+        : themeName === "nightosphere"
+          ? RARITY_COLORS_NIGHTOSPHERE
+          : RARITY_COLORS;
+    const typeColor = typePalette[card.type] ?? {
+      frame: tc.muted,
+      light: tc.surfaceMuted,
+      dark: tc.fg,
     };
-    const rarityColor = RARITY_COLORS[card.rarityName] ?? {
-      from: "#9CA3AF",
-      to: "#6B7280",
-      ring: "#9CA3AF",
+    const rarityColor = rarityPalette[card.rarityName] ?? {
+      from: tc.muted,
+      to: tc.fgMuted,
+      ring: tc.muted,
     };
+    const frameTextColor = pickReadableTextColor(
+      typeColor.frame,
+      tc.fg,
+      tc.surface,
+    );
+    const typeBadgeTextColor = pickReadableTextColor(
+      typeColor.dark,
+      tc.fg,
+      tc.surface,
+    );
+    const rarityTextColor = pickReadableTextColor(
+      rarityColor.to,
+      tc.fg,
+      tc.surface,
+    );
+    const descriptionBg = withAlpha(
+      tc.secondary,
+      themeName === "nightosphere" ? "30" : "24",
+    );
 
     const isLegendary = card.rarityName === "Legendary";
     const isEpic = card.rarityName === "Epic";
@@ -175,11 +218,11 @@ export const AdminCardTile = memo(
     }, [hasShimmer, isLegendary, shimmerAnim]);
 
     const shimmerColorPeak = isLegendary
-      ? "rgba(239, 217, 72, 0.18)"
-      : "rgba(174, 82, 255, 0.16)";
+      ? withAlpha(tc.secondary, "2E")
+      : withAlpha(tc.accent, "29");
     const shimmerColorEdge = isLegendary
-      ? "rgba(239, 217, 72, 0)"
-      : "rgba(174, 82, 255, 0)";
+      ? withAlpha(tc.secondary, "00")
+      : withAlpha(tc.accent, "00");
     const shimmerTranslate = shimmerAnim.interpolate({
       inputRange: [0, 1],
       outputRange: [-cfg.width * 3, cfg.width],
@@ -210,7 +253,7 @@ export const AdminCardTile = memo(
               borderRadius: cfg.borderRadius,
               borderWidth: 1,
               borderColor: card.isArchived
-                ? "rgba(148, 163, 184, 0.65)"
+                ? withAlpha(tc.muted, "A6")
                 : rarityColor.ring,
             }}
           />
@@ -238,7 +281,16 @@ export const AdminCardTile = memo(
 
           {card.isArchived ? (
             <View className="absolute right-2 top-2 z-20 rounded-full bg-dangerDark/90 px-2 py-1">
-              <Text className="font-nunito-extrabold text-[10px] text-white">
+              <Text
+                className="font-nunito-extrabold text-[10px]"
+                style={{
+                  color: pickReadableTextColor(
+                    tc.dangerDark,
+                    tc.fg,
+                    tc.surface,
+                  ),
+                }}
+              >
                 Archived
               </Text>
             </View>
@@ -257,8 +309,8 @@ export const AdminCardTile = memo(
               style={{ height: cfg.headerHeight }}
             >
               <Text
-                className="flex-1 text-center font-nunito-extrabold text-white"
-                style={{ fontSize: cfg.headerFontSize }}
+                className="flex-1 text-center font-nunito-extrabold"
+                style={{ color: frameTextColor, fontSize: cfg.headerFontSize }}
               >
                 {card.attack} ATK
               </Text>
@@ -274,8 +326,8 @@ export const AdminCardTile = memo(
                 <HPIcon size={cfg.hpIconSize} hpVal={card.hp} />
               </View>
               <Text
-                className="flex-1 text-center font-nunito-bold text-white"
-                style={{ fontSize: cfg.headerFontSize }}
+                className="flex-1 text-center font-nunito-bold"
+                style={{ color: frameTextColor, fontSize: cfg.headerFontSize }}
               >
                 {card.defense} DEF
               </Text>
@@ -326,8 +378,11 @@ export const AdminCardTile = memo(
                 }}
               >
                 <Text
-                  className="font-nunito-bold text-white"
-                  style={{ fontSize: cfg.typeFontSize }}
+                  className="font-nunito-bold"
+                  style={{
+                    color: typeBadgeTextColor,
+                    fontSize: cfg.typeFontSize,
+                  }}
                 >
                   {card.type}
                 </Text>
@@ -337,7 +392,12 @@ export const AdminCardTile = memo(
                 className="absolute bottom-0 left-0 overflow-hidden"
                 style={{ borderTopRightRadius: cfg.rarityBadgeRadius / 2 }}
               >
-                <RarityCrest rarityName={card.rarityName} cfg={cfg} />
+                <RarityCrest
+                  rarity={rarityColor}
+                  rarityName={card.rarityName}
+                  cfg={cfg}
+                  textColor={rarityTextColor}
+                />
               </View>
             </View>
 
@@ -346,15 +406,18 @@ export const AdminCardTile = memo(
               style={{ marginTop: cfg.nameMarginTop, gap: cfg.nameGap }}
             >
               <Text
-                className="font-nunito-bold text-white"
-                style={{ fontSize: cfg.nameFontSize }}
+                className="font-nunito-bold"
+                style={{ color: frameTextColor, fontSize: cfg.nameFontSize }}
                 numberOfLines={1}
               >
                 {card.name}
               </Text>
               <Text
-                className="font-nunito-semibold italic text-white"
-                style={{ fontSize: cfg.charFontSize }}
+                className="font-nunito-semibold italic"
+                style={{
+                  color: withAlpha(frameTextColor, "DB"),
+                  fontSize: cfg.charFontSize,
+                }}
                 numberOfLines={1}
               >
                 {card.character}
@@ -363,7 +426,7 @@ export const AdminCardTile = memo(
 
             <View
               style={{
-                backgroundColor: SECONDARY_TINT,
+                backgroundColor: descriptionBg,
                 borderRadius: cfg.rarityBadgeRadius / 2,
                 padding: cfg.descPadding,
                 marginTop: cfg.descMarginTop,
