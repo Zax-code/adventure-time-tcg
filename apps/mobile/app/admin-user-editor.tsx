@@ -16,11 +16,12 @@ import {
   KeyboardScreenView,
 } from "../src/components/keyboard-screen-view";
 import { LoadingPanel } from "../src/components/loading-state";
+import { ModalSheetRoute } from "../src/components/modal-sheet-route";
 import { useTranslation } from "../src/i18n";
 import { apiClient } from "../src/lib/api";
 import { useSessionStore } from "../src/stores/session-store";
 import { useThemeStore } from "../src/stores/theme-store";
-import { THEME_VARS } from "../src/theme/themes";
+import { THEME_COLORS, THEME_VARS } from "../src/theme/themes";
 
 function formatDate(value: string) {
   return new Date(value).toLocaleDateString();
@@ -49,6 +50,7 @@ export default function AdminUserEditorScreen() {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const themeName = useThemeStore((state) => state.themeName);
+  const tc = THEME_COLORS[themeName];
   const sessionUser = useSessionStore((state) => state.user);
   const sessionHydrated = useSessionStore((state) => state.hydrated);
   const { userId } = useLocalSearchParams<{ userId?: string }>();
@@ -189,55 +191,60 @@ export default function AdminUserEditorScreen() {
   };
 
   return (
-    <KeyboardScreenView style={THEME_VARS[themeName]}>
-      <View className="flex-1 bg-primaryBg">
-        <View className="w-9 h-1 rounded-full bg-[#D1D5DB] self-center mt-2 mb-[6]" />
-        <View className="items-center px-5 pb-[14] border-b border-primaryBorder/16 pt-[6]">
-          <Text className="self-center font-nunito-extrabold text-[24px] text-primaryStrong">
-            {t("admin.userEditor.title")}
-          </Text>
-          <Pressable
-            className="absolute right-4 top-1 rounded-full px-3 py-2"
-            onPress={closeEditor}
-          >
-            <Text className="font-nunito-bold text-sm text-primaryStrong">
-              {t("admin.common.close")}
+    <ModalSheetRoute
+      onClose={closeEditor}
+      sheetBackgroundColor={tc.primaryBg}
+      handleColor="#D1D5DB"
+      sheetStyle={THEME_VARS[themeName]}
+    >
+      <KeyboardScreenView style={THEME_VARS[themeName]}>
+        <View className="flex-1 bg-primaryBg">
+          <View className="items-center px-5 pb-[14] border-b border-primaryBorder/16 pt-[6]">
+            <Text className="self-center font-nunito-extrabold text-[24px] text-primaryStrong">
+              {t("admin.userEditor.title")}
             </Text>
-          </Pressable>
-        </View>
+            <Pressable
+              className="absolute right-4 top-1 rounded-full px-3 py-2"
+              onPress={closeEditor}
+            >
+              <Text className="font-nunito-bold text-sm text-primaryStrong">
+                {t("admin.common.close")}
+              </Text>
+            </Pressable>
+          </View>
 
-        {!userId ? (
-          <View className="flex-1 items-center justify-center px-6">
-            <Text className="font-nunito-bold text-[15px] text-dangerText text-center">
-              {t("admin.userEditor.missingUserId")}
-            </Text>
-          </View>
-        ) : detailQuery.isLoading ? (
-          <View className="flex-1 items-center justify-center px-6">
-            <LoadingPanel
-              title={t("admin.userEditor.loadingUser")}
-              message={t("common.loadingStates.adminBody")}
-              icon="person"
-            />
-          </View>
-        ) : detailQuery.error ? (
-          <View className="flex-1 items-center justify-center px-6">
-            <Text className="font-nunito-bold text-[15px] text-dangerText text-center">
-              {detailQuery.error instanceof Error
-                ? detailQuery.error.message
-                : t("admin.userEditor.loadFailed")}
-            </Text>
-          </View>
-        ) : !detail ? (
-          <View className="flex-1 items-center justify-center px-6">
-            <Text className="font-nunito-bold text-[15px] text-dangerText text-center">
-              {t("admin.userEditor.notFound")}
-            </Text>
-          </View>
-        ) : (
-          <ScrollView
-            {...KEYBOARD_AWARE_SCROLL_PROPS}
-            className="flex-1"
+          {!userId ? (
+            <View className="flex-1 items-center justify-center px-6">
+              <Text className="font-nunito-bold text-[15px] text-dangerText text-center">
+                {t("admin.userEditor.missingUserId")}
+              </Text>
+            </View>
+          ) : detailQuery.isLoading ? (
+            <View className="flex-1 items-center justify-center px-6">
+              <LoadingPanel
+                title={t("admin.userEditor.loadingUser")}
+                message={t("common.loadingStates.adminBody")}
+                icon="person"
+              />
+            </View>
+          ) : detailQuery.error ? (
+            <View className="flex-1 items-center justify-center px-6">
+              <Text className="font-nunito-bold text-[15px] text-dangerText text-center">
+                {detailQuery.error instanceof Error
+                  ? detailQuery.error.message
+                  : t("admin.userEditor.loadFailed")}
+              </Text>
+            </View>
+          ) : !detail ? (
+            <View className="flex-1 items-center justify-center px-6">
+              <Text className="font-nunito-bold text-[15px] text-dangerText text-center">
+                {t("admin.userEditor.notFound")}
+              </Text>
+            </View>
+          ) : (
+            <ScrollView
+              {...KEYBOARD_AWARE_SCROLL_PROPS}
+              className="flex-1"
             contentContainerStyle={{
               gap: 14,
               paddingHorizontal: 16,
@@ -545,9 +552,10 @@ export default function AdminUserEditorScreen() {
                 </View>
               </AdminPanel>
             ) : null}
-          </ScrollView>
-        )}
-      </View>
-    </KeyboardScreenView>
+            </ScrollView>
+          )}
+        </View>
+      </KeyboardScreenView>
+    </ModalSheetRoute>
   );
 }

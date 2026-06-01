@@ -252,35 +252,75 @@ export default function RootLayout() {
               <Stack screenOptions={{ headerShown: false }}>
                 <Stack.Screen
                   name="admin-card-editor"
-                  options={{ presentation: "modal", headerShown: false }}
+                  options={{
+                    presentation: "transparentModal",
+                    animation: "slide_from_bottom",
+                    contentStyle: { backgroundColor: "transparent" },
+                    headerShown: false,
+                  }}
                 />
                 <Stack.Screen
                   name="admin-ability-editor"
-                  options={{ presentation: "modal", headerShown: false }}
+                  options={{
+                    presentation: "transparentModal",
+                    animation: "slide_from_bottom",
+                    contentStyle: { backgroundColor: "transparent" },
+                    headerShown: false,
+                  }}
                 />
                 <Stack.Screen
                   name="admin-user-editor"
-                  options={{ presentation: "modal", headerShown: false }}
+                  options={{
+                    presentation: "transparentModal",
+                    animation: "slide_from_bottom",
+                    contentStyle: { backgroundColor: "transparent" },
+                    headerShown: false,
+                  }}
                 />
                 <Stack.Screen
                   name="settings"
-                  options={{ presentation: "modal", headerShown: false }}
+                  options={{
+                    presentation: "transparentModal",
+                    animation: "slide_from_bottom",
+                    contentStyle: { backgroundColor: "transparent" },
+                    headerShown: false,
+                  }}
                 />
                 <Stack.Screen
                   name="pvp-mechanics"
-                  options={{ presentation: "modal", headerShown: false }}
+                  options={{
+                    presentation: "transparentModal",
+                    animation: "slide_from_bottom",
+                    contentStyle: { backgroundColor: "transparent" },
+                    headerShown: false,
+                  }}
                 />
                 <Stack.Screen
                   name="pvp-reference"
-                  options={{ presentation: "modal", headerShown: false }}
+                  options={{
+                    presentation: "transparentModal",
+                    animation: "slide_from_bottom",
+                    contentStyle: { backgroundColor: "transparent" },
+                    headerShown: false,
+                  }}
                 />
                 <Stack.Screen
                   name="pvp-card-details"
-                  options={{ presentation: "modal", headerShown: false }}
+                  options={{
+                    presentation: "transparentModal",
+                    animation: "slide_from_bottom",
+                    contentStyle: { backgroundColor: "transparent" },
+                    headerShown: false,
+                  }}
                 />
                 <Stack.Screen
                   name="collection-card-detail"
-                  options={{ presentation: "modal", headerShown: false }}
+                  options={{
+                    presentation: "transparentModal",
+                    animation: "slide_from_bottom",
+                    contentStyle: { backgroundColor: "transparent" },
+                    headerShown: false,
+                  }}
                 />
               </Stack>
             )}

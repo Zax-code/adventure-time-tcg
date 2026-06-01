@@ -7,11 +7,13 @@ import {
   ScrollView,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
   ViewStyle,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { LoadingPanel } from "../loading-state";
 import {
@@ -378,8 +380,11 @@ export function AdminSheet({
 }) {
   const { themeName } = useThemeStore();
   const tc = THEME_COLORS[themeName];
+  const insets = useSafeAreaInsets();
+  const { height } = useWindowDimensions();
   const translateY = useRef(new Animated.Value(0)).current;
   const closingRef = useRef(false);
+  const topGap = Math.max(insets.top + 16, 56);
 
   const closeAnimated = () => {
     if (closingRef.current) {
@@ -445,6 +450,7 @@ export function AdminSheet({
       transparent
       animationType="fade"
       onRequestClose={closeAnimated}
+      statusBarTranslucent
     >
       <KeyboardScreenView>
         <View
@@ -453,9 +459,14 @@ export function AdminSheet({
         >
           <Pressable style={absoluteFill} onPress={closeAnimated} />
           <Animated.View
-            className="min-h-[88%] max-h-[96%] rounded-tl-[30] rounded-tr-[30] overflow-hidden"
+            className="rounded-tl-[30] rounded-tr-[30] overflow-hidden"
             style={[
-              { backgroundColor: tc.surface, transform: [{ translateY }] },
+              {
+                backgroundColor: tc.surface,
+                maxHeight: height - topGap,
+                minHeight: Math.min(height - topGap, height * 0.72),
+                transform: [{ translateY }],
+              },
             ]}
           >
             <LinearGradient

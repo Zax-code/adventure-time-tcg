@@ -6,6 +6,7 @@ import {
   Pressable,
   ScrollView,
   Text,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -30,7 +31,9 @@ export function BattleFullScreenSheet({
   scrollable = true,
 }: BattleFullScreenSheetProps) {
   const insets = useSafeAreaInsets();
+  const { height } = useWindowDimensions();
   const translateY = useRef(new Animated.Value(900)).current;
+  const topGap = Math.max(insets.top + 16, 56);
 
   useEffect(() => {
     if (!visible) {
@@ -109,11 +112,15 @@ export function BattleFullScreenSheet({
     <View className="absolute inset-0 z-[90] bg-black/65">
       <Pressable className="absolute inset-0" onPress={closeSheet} />
       <Animated.View
-        className="absolute inset-x-0 bottom-0 top-0 overflow-hidden bg-bg"
-        style={{ paddingTop: Math.max(insets.top, 12), transform: [{ translateY }] }}
+        className="absolute inset-x-0 bottom-0 overflow-hidden rounded-t-[30px] bg-bg"
+        style={{
+          maxHeight: height - topGap,
+          minHeight: Math.min(height - topGap, height * 0.68),
+          transform: [{ translateY }],
+        }}
       >
         <View {...panResponder.panHandlers}>
-          <View className="h-1 w-9 self-center rounded-full bg-muted" style={{ marginBottom: 8 }} />
+          <View className="h-1 w-9 self-center rounded-full bg-muted" style={{ marginBottom: 8, marginTop: 12 }} />
 
           <View className="flex-row items-center border-b border-primaryTint px-5 pb-4">
             <View className="flex-1 items-center">
