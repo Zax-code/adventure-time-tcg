@@ -1,10 +1,10 @@
-import { ReactNode, useEffect, useMemo, useRef } from "react";
+import { ReactNode, useEffect, useState } from "react";
+import { ModalBottomSheet } from "@swmansion/react-native-bottom-sheet";
 import {
-  Animated,
   Modal,
-  PanResponder,
   Pressable,
   ScrollView,
+  StyleSheet,
   Text,
   TextInput,
   useWindowDimensions,
@@ -382,93 +382,61 @@ export function AdminSheet({
   const tc = THEME_COLORS[themeName];
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
-  const translateY = useRef(new Animated.Value(0)).current;
-  const closingRef = useRef(false);
+  const [index, setIndex] = useState(visible ? 1 : 0);
+  const [mounted, setMounted] = useState(visible);
   const topGap = Math.max(insets.top + 16, 56);
 
-  const closeAnimated = () => {
-    if (closingRef.current) {
+  useEffect(() => {
+    if (visible) {
+      setMounted(true);
+      setIndex(1);
       return;
     }
 
-    closingRef.current = true;
-    Animated.timing(translateY, {
-      toValue: 720,
-      duration: 220,
-      useNativeDriver: true,
-    }).start(() => {
-      closingRef.current = false;
-      translateY.setValue(0);
-      onClose();
-    });
-  };
+    setIndex(0);
+  }, [visible]);
 
   useEffect(() => {
-    if (!visible) {
-      translateY.setValue(0);
-      closingRef.current = false;
+    if (!visible && index === 0) {
+      setMounted(false);
     }
-  }, [translateY, visible]);
+  }, [index, visible]);
 
-  const panResponder = useMemo(
-    () =>
-      PanResponder.create({
-        onMoveShouldSetPanResponder: (_, gestureState) =>
-          gestureState.dy > 8 &&
-          Math.abs(gestureState.dy) > Math.abs(gestureState.dx),
-        onPanResponderMove: (_, gestureState) => {
-          if (gestureState.dy > 0) {
-            translateY.setValue(gestureState.dy);
-          }
-        },
-        onPanResponderRelease: (_, gestureState) => {
-          if (gestureState.dy > 140 || gestureState.vy > 1.1) {
-            closeAnimated();
-            return;
-          }
-
-          Animated.spring(translateY, {
-            toValue: 0,
-            useNativeDriver: true,
-            bounciness: 0,
-          }).start();
-        },
-        onPanResponderTerminate: () => {
-          Animated.spring(translateY, {
-            toValue: 0,
-            useNativeDriver: true,
-            bounciness: 0,
-          }).start();
-        },
-      }),
-    [translateY],
-  );
+  if (!mounted) {
+    return null;
+  }
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={closeAnimated}
-      statusBarTranslucent
-    >
-      <KeyboardScreenView>
+    <ModalBottomSheet
+      index={index}
+      onIndexChange={setIndex}
+      onSettle={(nextIndex) => {
+        if (nextIndex === 0 && visible) {
+          onClose();
+        }
+      }}
+      detents={[0, "content"]}
+      scrimColor={tc.primaryStrong + "47"}
+      surface={
         <View
-          className="flex-1 justify-end"
-          style={{ backgroundColor: tc.primaryStrong + "47" }}
+          style={[
+            StyleSheet.absoluteFill,
+            {
+              backgroundColor: tc.surface,
+              borderTopLeftRadius: 30,
+              borderTopRightRadius: 30,
+            },
+          ]}
+        />
+      }
+    >
+      <KeyboardScreenView fill={false}>
+        <View
+          style={{
+            maxHeight: height - topGap,
+            minHeight: Math.min(height - topGap, height * 0.72),
+          }}
         >
-          <Pressable style={absoluteFill} onPress={closeAnimated} />
-          <Animated.View
-            className="rounded-tl-[30] rounded-tr-[30] overflow-hidden"
-            style={[
-              {
-                backgroundColor: tc.surface,
-                maxHeight: height - topGap,
-                minHeight: Math.min(height - topGap, height * 0.72),
-                transform: [{ translateY }],
-              },
-            ]}
-          >
             <LinearGradient
               colors={[tc.primary, tc.primaryText]}
               style={{
@@ -479,10 +447,7 @@ export function AdminSheet({
                 alignItems: "center",
               }}
             >
-              <View
-                {...panResponder.panHandlers}
-                className="w-full items-center pb-2"
-              >
+              <View className="w-full items-center pb-2">
                 <View
                   className="w-[54] h-[5] rounded-full"
                   style={{ backgroundColor: "rgba(255,255,255,0.6)" }}
@@ -492,7 +457,7 @@ export function AdminSheet({
                 {title}
               </Text>
               <Pressable
-                onPress={closeAnimated}
+                onPress={onClose}
                 className="absolute right-[14] top-3 w-8 h-8 rounded-full items-center justify-center"
                 style={{ backgroundColor: "rgba(255,255,255,0.16)" }}
               >
@@ -521,10 +486,9 @@ export function AdminSheet({
                 {footer}
               </View>
             ) : null}
-          </Animated.View>
         </View>
       </KeyboardScreenView>
-    </Modal>
+    </ModalBottomSheet>
   );
 }
 

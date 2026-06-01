@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Animated, Modal, Pressable, ScrollView, Text, View } from "react-native";
+import { Animated, Pressable, ScrollView, Text, View } from "react-native";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { ApiClientError } from "@adventure-time/api-client";
 
+import { BattleFullScreenSheet } from "../../src/features/pvp/battle-full-screen-sheet";
 import { ToastBanner } from "../../src/components/toast-banner";
 import { LoadingPanel } from "../../src/components/loading-state";
 import {
@@ -754,163 +755,168 @@ export default function PvpScreen() {
         ) : null}
       </ScrollView>
 
-      <Modal
-        animationType="slide"
-        transparent
+      <BattleFullScreenSheet
         visible={showInviteModal}
-        onRequestClose={() => setShowInviteModal(false)}
-      >
-        <View className="flex-1 justify-end" style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
-          <View className="gap-5 rounded-t-3xl bg-surface p-6">
-            <View className="flex-row items-center justify-between">
-              <Text className="font-nunito-bold text-xl text-primaryText">
-                {t("pvp.sendChallenge")}
+        title={t("pvp.sendChallenge")}
+        onClose={() => setShowInviteModal(false)}
+        scrollable={false}
+        footer={
+          <View className="flex-row gap-3">
+            <Pressable
+              className="flex-1 items-center rounded-xl bg-surfaceMuted py-3"
+              onPress={() => setShowInviteModal(false)}
+            >
+              <Text className="font-nunito-bold text-fgMuted">
+                {t("common.cancel")}
               </Text>
-              <Pressable onPress={() => setShowInviteModal(false)} className="p-1">
-                <XIcon size={22} color={tc.dangerDark} />
-              </Pressable>
-            </View>
-
-            {validLoadouts.length > 0 ? (
-              <View className="gap-2">
-                <Text className="font-nunito-semibold text-sm text-primaryDark">
-                  {t("pvp.selectLoadoutLabel")}
+            </Pressable>
+            <Pressable
+              disabled={
+                !selectedInviteLoadoutId ||
+                !selectedOpponentId ||
+                createMutation.isPending ||
+                !hasValidLoadout
+              }
+              style={{
+                flex: 1,
+                borderRadius: 12,
+                overflow: "hidden",
+                opacity:
+                  selectedInviteLoadoutId &&
+                  selectedOpponentId &&
+                  !createMutation.isPending &&
+                  hasValidLoadout
+                    ? 1
+                    : 0.5,
+              }}
+              onPress={() => void createMutation.mutateAsync()}
+            >
+              <LinearGradient
+                colors={[tc.primary, tc.primaryDark]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{
+                  alignItems: "center",
+                  paddingHorizontal: 16,
+                  paddingVertical: 12,
+                }}
+              >
+                <Text className="font-nunito-bold text-white">
+                  {createMutation.isPending
+                    ? t("pvp.sending")
+                    : t("pvp.sendChallenge")}
                 </Text>
-                <View className="gap-2">
-                  {validLoadouts.map((loadout) => (
-                    <Pressable
-                      key={loadout.id}
-                      onPress={() => setSelectedInviteLoadoutId(loadout.id)}
-                      className={`rounded-xl border-2 px-4 py-3 ${
-                        selectedInviteLoadoutId === loadout.id
-                          ? "border-primary bg-primaryBg"
-                          : "border-primaryTint bg-surface"
-                      }`}
-                    >
-                      <Text className="font-nunito-semibold text-fg">{loadout.name}</Text>
-                    </Pressable>
-                  ))}
-                </View>
-              </View>
-            ) : (loadoutsQuery.data?.loadouts.length ?? 0) > 0 ? (
-              <View className="rounded-xl border border-secondaryBorder bg-secondaryTint p-3">
-                <Text className="font-nunito text-sm text-secondaryText">
-                  {t("pvp.allLoadoutsInvalid")}
-                </Text>
-              </View>
-            ) : (
-              <View className="rounded-xl border border-secondaryBorder bg-secondaryTint p-3">
-                <Text className="font-nunito text-sm text-secondaryText">
-                  {t("pvp.createLoadoutToAccept")}
-                </Text>
-              </View>
-            )}
-
+              </LinearGradient>
+            </Pressable>
+          </View>
+        }
+      >
+        <View className="gap-5 px-6 pb-6 pt-5">
+          {validLoadouts.length > 0 ? (
             <View className="gap-2">
               <Text className="font-nunito-semibold text-sm text-primaryDark">
-                {t("pvp.chooseOpponent")}
+                {t("pvp.selectLoadoutLabel")}
               </Text>
-              <ScrollView style={{ maxHeight: 240 }} showsVerticalScrollIndicator={false}>
-                <View className="gap-2">
-                  {usersQuery.isLoading ? (
-                    <LoadingPanel
-                      title={t("pvp.chooseOpponent")}
-                      message={t("common.loadingStates.rosterBody")}
-                      icon="people"
-                    />
-                  ) : (usersQuery.data?.users.length ?? 0) === 0 ? (
-                    <View className="rounded-xl border border-primaryTint bg-surfaceMuted px-4 py-3">
-                      <Text className="font-nunito text-fgMuted">{t("pvp.noPlayersAvailable")}</Text>
-                    </View>
-                  ) : (
-                    usersQuery.data!.users.map((user) => {
-                      const interaction = interactionMap[user.id];
-                      const hasInteraction = interaction != null;
-                      const isSelected = selectedOpponentId === user.id;
+              <View className="gap-2">
+                {validLoadouts.map((loadout) => (
+                  <Pressable
+                    key={loadout.id}
+                    onPress={() => setSelectedInviteLoadoutId(loadout.id)}
+                    className={`rounded-xl border-2 px-4 py-3 ${
+                      selectedInviteLoadoutId === loadout.id
+                        ? "border-primary bg-primaryBg"
+                        : "border-primaryTint bg-surface"
+                    }`}
+                  >
+                    <Text className="font-nunito-semibold text-fg">
+                      {loadout.name}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          ) : (loadoutsQuery.data?.loadouts.length ?? 0) > 0 ? (
+            <View className="rounded-xl border border-secondaryBorder bg-secondaryTint p-3">
+              <Text className="font-nunito text-sm text-secondaryText">
+                {t("pvp.allLoadoutsInvalid")}
+              </Text>
+            </View>
+          ) : (
+            <View className="rounded-xl border border-secondaryBorder bg-secondaryTint p-3">
+              <Text className="font-nunito text-sm text-secondaryText">
+                {t("pvp.createLoadoutToAccept")}
+              </Text>
+            </View>
+          )}
 
-                      return (
-                        <Pressable
-                          key={user.id}
-                          disabled={hasInteraction}
-                          onPress={() => setSelectedOpponentId(user.id)}
-                          className={`rounded-xl border-2 px-4 py-3 ${
-                            hasInteraction
-                              ? "border-primaryTint bg-surfaceMuted opacity-50"
-                              : isSelected
-                                ? "border-primary bg-primaryBg"
-                                : "border-primaryTint bg-surface"
-                          }`}
-                        >
-                          <View className="flex-row items-center gap-3">
-                            <View className="h-10 w-10 items-center justify-center rounded-full bg-primaryTint">
-                              <Text className="font-nunito-bold text-primaryDark">
-                                {user.displayName.charAt(0).toUpperCase()}
-                              </Text>
-                            </View>
-                            <Text className="flex-1 font-nunito-semibold text-fg">
-                              {user.displayName}
+          <View className="gap-2">
+            <Text className="font-nunito-semibold text-sm text-primaryDark">
+              {t("pvp.chooseOpponent")}
+            </Text>
+            <ScrollView
+              style={{ maxHeight: 240 }}
+              showsVerticalScrollIndicator={false}
+            >
+              <View className="gap-2">
+                {usersQuery.isLoading ? (
+                  <LoadingPanel
+                    title={t("pvp.chooseOpponent")}
+                    message={t("common.loadingStates.rosterBody")}
+                    icon="people"
+                  />
+                ) : (usersQuery.data?.users.length ?? 0) === 0 ? (
+                  <View className="rounded-xl border border-primaryTint bg-surfaceMuted px-4 py-3">
+                    <Text className="font-nunito text-fgMuted">
+                      {t("pvp.noPlayersAvailable")}
+                    </Text>
+                  </View>
+                ) : (
+                  usersQuery.data!.users.map((user) => {
+                    const interaction = interactionMap[user.id];
+                    const hasInteraction = interaction != null;
+                    const isSelected = selectedOpponentId === user.id;
+
+                    return (
+                      <Pressable
+                        key={user.id}
+                        disabled={hasInteraction}
+                        onPress={() => setSelectedOpponentId(user.id)}
+                        className={`rounded-xl border-2 px-4 py-3 ${
+                          hasInteraction
+                            ? "border-primaryTint bg-surfaceMuted opacity-50"
+                            : isSelected
+                              ? "border-primary bg-primaryBg"
+                              : "border-primaryTint bg-surface"
+                        }`}
+                      >
+                        <View className="flex-row items-center gap-3">
+                          <View className="h-10 w-10 items-center justify-center rounded-full bg-primaryTint">
+                            <Text className="font-nunito-bold text-primaryDark">
+                              {user.displayName.charAt(0).toUpperCase()}
                             </Text>
-                            {hasInteraction ? (
-                              <Text className="font-nunito text-xs text-fgMuted">
-                                {interaction === "active"
-                                  ? t("pvp.activeMatchExists")
-                                  : t("pvp.pendingInviteExists")}
-                              </Text>
-                            ) : isSelected ? (
-                              <CheckIcon size={18} color={tc.primaryDark} />
-                            ) : null}
                           </View>
-                        </Pressable>
-                      );
-                    })
-                  )}
-                </View>
-              </ScrollView>
-            </View>
-
-            <View className="flex-row gap-3">
-              <Pressable
-                className="flex-1 items-center rounded-xl bg-surfaceMuted py-3"
-                onPress={() => setShowInviteModal(false)}
-              >
-                <Text className="font-nunito-bold text-fgMuted">{t("common.cancel")}</Text>
-              </Pressable>
-              <Pressable
-                disabled={
-                  !selectedInviteLoadoutId ||
-                  !selectedOpponentId ||
-                  createMutation.isPending ||
-                  !hasValidLoadout
-                }
-                style={{
-                  flex: 1,
-                  borderRadius: 12,
-                  overflow: "hidden",
-                  opacity:
-                    selectedInviteLoadoutId &&
-                    selectedOpponentId &&
-                    !createMutation.isPending &&
-                    hasValidLoadout
-                      ? 1
-                      : 0.5,
-                }}
-                onPress={() => void createMutation.mutateAsync()}
-              >
-                <LinearGradient
-                  colors={[tc.primary, tc.primaryDark]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={{ alignItems: "center", paddingVertical: 12, paddingHorizontal: 16 }}
-                >
-                  <Text className="font-nunito-bold text-white">
-                    {createMutation.isPending ? t("pvp.sending") : t("pvp.sendChallenge")}
-                  </Text>
-                </LinearGradient>
-              </Pressable>
-            </View>
+                          <Text className="flex-1 font-nunito-semibold text-fg">
+                            {user.displayName}
+                          </Text>
+                          {hasInteraction ? (
+                            <Text className="font-nunito text-xs text-fgMuted">
+                              {interaction === "active"
+                                ? t("pvp.activeMatchExists")
+                                : t("pvp.pendingInviteExists")}
+                            </Text>
+                          ) : isSelected ? (
+                            <CheckIcon size={18} color={tc.primaryDark} />
+                          ) : null}
+                        </View>
+                      </Pressable>
+                    );
+                  })
+                )}
+              </View>
+            </ScrollView>
           </View>
         </View>
-      </Modal>
+      </BattleFullScreenSheet>
     </View>
   );
 }
