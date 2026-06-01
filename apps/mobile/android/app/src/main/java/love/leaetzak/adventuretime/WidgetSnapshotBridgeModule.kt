@@ -31,6 +31,10 @@ class WidgetSnapshotBridgeModule(
         reactApplicationContext,
         json.optString("themeName", "candy"),
       )
+      StepQuestWidgetStore.writeLocale(
+        reactApplicationContext,
+        json.optString("locale", "en"),
+      )
       StepQuestWidgetProvider.updateAllWidgets(reactApplicationContext)
       promise.resolve(null)
     } catch (error: Exception) {

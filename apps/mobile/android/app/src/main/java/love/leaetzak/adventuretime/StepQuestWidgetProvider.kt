@@ -6,6 +6,7 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
@@ -94,20 +95,22 @@ class StepQuestWidgetProvider : AppWidgetProvider() {
       appWidgetManager: AppWidgetManager,
       appWidgetId: Int,
     ) {
+      val localeTag = StepQuestWidgetStore.readLocale(context)
+      val localizedContext = localizedContext(context, localeTag)
       val layout = resolveLayout(appWidgetManager.getAppWidgetOptions(appWidgetId))
       val snapshot = StepQuestWidgetStore
         .readSnapshot(context)
-        ?.let { normalizeSnapshotForToday(context, it) }
+        ?.let { normalizeSnapshotForToday(localizedContext, localeTag, it) }
       val themeName = normalizeThemeName(snapshot?.themeName ?: StepQuestWidgetStore.readThemeName(context))
       val palette = paletteForThemeAndStatus(themeName, snapshot?.status)
-      val views = RemoteViews(context.packageName, layout.layoutRes)
+      val views = RemoteViews(localizedContext.packageName, layout.layoutRes)
 
-      applyBaseStyling(context, views, layout, palette)
+      applyBaseStyling(localizedContext, views, layout, palette)
 
       if (snapshot == null) {
-        bindFallback(context, views, layout, palette)
+        bindFallback(localizedContext, localeTag, views, layout, palette)
       } else {
-        bindSnapshot(context, views, snapshot, layout, palette)
+        bindSnapshot(localizedContext, localeTag, views, snapshot, layout, palette)
       }
 
       views.setOnClickPendingIntent(
@@ -142,6 +145,7 @@ class StepQuestWidgetProvider : AppWidgetProvider() {
 
     private fun bindFallback(
       context: Context,
+      localeTag: String,
       views: RemoteViews,
       layout: WidgetLayout,
       palette: WidgetPalette,
@@ -160,17 +164,23 @@ class StepQuestWidgetProvider : AppWidgetProvider() {
         R.id.widget_ring,
         buildRingBitmap(
           context = context,
+          localeTag = localeTag,
           sizeDp = layout.ringSizeDp,
           progress = 0.24f,
           palette = palette,
           primaryLabel = "--",
-          secondaryLabel = context.getString(R.string.step_quest_widget_sync_short),
+          secondaryLabel = if (layout == WidgetLayout.SMALL) {
+            context.getString(R.string.step_quest_widget_sync_short)
+          } else {
+            null
+          },
         ),
       )
     }
 
     private fun bindSnapshot(
       context: Context,
+      localeTag: String,
       views: RemoteViews,
       snapshot: StepQuestWidgetSnapshot,
       layout: WidgetLayout,
@@ -181,23 +191,24 @@ class StepQuestWidgetProvider : AppWidgetProvider() {
         snapshot.target.coerceAtLeast(1).toFloat()
 
       views.setTextViewText(R.id.widget_title, titleText(context, layout))
-      views.setTextViewText(R.id.widget_reward, formatNumber(snapshot.reward))
+      views.setTextViewText(R.id.widget_reward, formatNumber(snapshot.reward, localeTag))
       views.setTextViewText(R.id.widget_status_pill, statusHeadline(context, snapshot.status))
       views.setViewVisibility(R.id.widget_reward_chip, View.VISIBLE)
       views.setViewVisibility(R.id.widget_status_pill, View.VISIBLE)
       views.setViewVisibility(R.id.widget_fallback_body, View.GONE)
 
-      val secondaryRingLabel = compactRingProgressLabel(snapshot)
+      val secondaryRingLabel = compactRingProgressLabel(snapshot, localeTag)
 
       views.setImageViewBitmap(
         R.id.widget_ring,
         buildRingBitmap(
           context = context,
+          localeTag = localeTag,
           sizeDp = layout.ringSizeDp,
           progress = progressRatio,
           palette = palette,
           primaryLabel = percentText(snapshot),
-          secondaryLabel = secondaryRingLabel,
+          secondaryLabel = if (layout == WidgetLayout.SMALL) secondaryRingLabel else null,
         ),
       )
 
@@ -212,7 +223,7 @@ class StepQuestWidgetProvider : AppWidgetProvider() {
           views.setViewVisibility(R.id.widget_detail_body, View.VISIBLE)
           views.setTextViewText(
             R.id.widget_detail_label,
-            snapshot.progressLabel.ifBlank { fullProgressLabel(snapshot) },
+            snapshot.progressLabel.ifBlank { fullProgressLabel(snapshot, localeTag) },
           )
           views.setTextViewText(R.id.widget_detail_body, progressFootnote(context, snapshot.status))
         }
@@ -221,6 +232,7 @@ class StepQuestWidgetProvider : AppWidgetProvider() {
 
     private fun normalizeSnapshotForToday(
       context: Context,
+      localeTag: String,
       snapshot: StepQuestWidgetSnapshot,
     ): StepQuestWidgetSnapshot {
       val recordedFor = snapshot.recordedFor
@@ -229,7 +241,7 @@ class StepQuestWidgetProvider : AppWidgetProvider() {
       }
 
       val target = snapshot.target.coerceAtLeast(1)
-      val targetLabel = formatNumber(target)
+      val targetLabel = formatNumber(target, localeTag)
 
       return snapshot.copy(
         progress = 0,
@@ -440,6 +452,12 @@ class StepQuestWidgetProvider : AppWidgetProvider() {
       }
     }
 
+    private fun localizedContext(context: Context, localeTag: String): Context {
+      val configuration = Configuration(context.resources.configuration)
+      configuration.setLocale(Locale.forLanguageTag(localeTag))
+      return context.createConfigurationContext(configuration)
+    }
+
     private fun badgeText(context: Context, layout: WidgetLayout): String {
       return when (layout) {
         WidgetLayout.SMALL -> context.getString(R.string.step_quest_widget_badge_small)
@@ -478,15 +496,15 @@ class StepQuestWidgetProvider : AppWidgetProvider() {
       return "${percent.coerceIn(0, 100)}%"
     }
 
-    private fun fullProgressLabel(snapshot: StepQuestWidgetSnapshot): String {
-      return "${formatNumber(snapshot.progress)} / ${formatNumber(snapshot.target)}"
+    private fun fullProgressLabel(snapshot: StepQuestWidgetSnapshot, localeTag: String): String {
+      return "${formatNumber(snapshot.progress, localeTag)} / ${formatNumber(snapshot.target, localeTag)}"
     }
 
-    private fun compactRingProgressLabel(snapshot: StepQuestWidgetSnapshot): String {
-      return "${abbreviatedStepCount(snapshot.progress)} / ${abbreviatedStepCount(snapshot.target)}"
+    private fun compactRingProgressLabel(snapshot: StepQuestWidgetSnapshot, localeTag: String): String {
+      return "${abbreviatedStepCount(snapshot.progress, localeTag)} / ${abbreviatedStepCount(snapshot.target, localeTag)}"
     }
 
-    private fun abbreviatedStepCount(value: Int): String {
+    private fun abbreviatedStepCount(value: Int, localeTag: String): String {
       if (value >= 10_000) {
         val rounded = value / 1_000.0
         return if (value % 1_000 == 0) {
@@ -500,7 +518,7 @@ class StepQuestWidgetProvider : AppWidgetProvider() {
         return "${trimmedSingleDecimal(value / 1_000.0)}K"
       }
 
-      return formatNumber(value)
+      return formatNumber(value, localeTag)
     }
 
     private fun trimmedSingleDecimal(value: Double): String {
@@ -512,17 +530,19 @@ class StepQuestWidgetProvider : AppWidgetProvider() {
       }
     }
 
-    private fun formatNumber(value: Int): String {
-      return NumberFormat.getIntegerInstance().format(value)
+    private fun formatNumber(value: Int, localeTag: String?): String {
+      val locale = if (localeTag.isNullOrBlank()) Locale.getDefault() else Locale.forLanguageTag(localeTag)
+      return NumberFormat.getIntegerInstance(locale).format(value)
     }
 
     private fun buildRingBitmap(
       context: Context,
+      localeTag: String,
       sizeDp: Float,
       progress: Float,
       palette: WidgetPalette,
       primaryLabel: String,
-      secondaryLabel: String,
+      secondaryLabel: String?,
     ): Bitmap {
       val density = context.resources.displayMetrics.density
       val sizePx = (sizeDp * density).roundToInt()
@@ -587,7 +607,7 @@ class StepQuestWidgetProvider : AppWidgetProvider() {
         centerX = center,
         centerY = center,
         primaryText = primaryLabel,
-        secondaryText = secondaryLabel.uppercase(Locale.getDefault()),
+        secondaryText = secondaryLabel?.uppercase(Locale.forLanguageTag(localeTag)),
         primaryPaint = primaryPaint,
         secondaryPaint = secondaryPaint,
         spacing = density,
@@ -601,14 +621,20 @@ class StepQuestWidgetProvider : AppWidgetProvider() {
       centerX: Float,
       centerY: Float,
       primaryText: String,
-      secondaryText: String,
+      secondaryText: String?,
       primaryPaint: Paint,
       secondaryPaint: Paint,
       spacing: Float,
     ) {
       val primaryMetrics = primaryPaint.fontMetrics
-      val secondaryMetrics = secondaryPaint.fontMetrics
       val primaryHeight = primaryMetrics.bottom - primaryMetrics.top
+      if (secondaryText.isNullOrBlank()) {
+        val primaryBaseline = centerY - (primaryMetrics.top + primaryMetrics.bottom) / 2f
+        canvas.drawText(primaryText, centerX, primaryBaseline, primaryPaint)
+        return
+      }
+
+      val secondaryMetrics = secondaryPaint.fontMetrics
       val secondaryHeight = secondaryMetrics.bottom - secondaryMetrics.top
       val totalHeight = primaryHeight + spacing + secondaryHeight
 

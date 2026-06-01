@@ -77,6 +77,7 @@ private let atStepQuestWidgetSnapshotKey = "stepQuestWidgetSnapshot"
 private let atStepQuestWidgetKind = "StepQuestWidget"
 private let atStepQuestWidgetApiBaseUrlKey = "stepQuestWidgetApiBaseUrl"
 private let atStepQuestWidgetThemeNameKey = "stepQuestWidgetThemeName"
+private let atStepQuestWidgetLocaleKey = "stepQuestWidgetLocale"
 private let atStepQuestSecureStorePrimaryService = "app:no-auth"
 private let atStepQuestSecureStoreLegacyService = "app"
 private let atStepQuestDefaultApiBaseUrl = "https://app.leaetzak.love"
@@ -220,7 +221,7 @@ actor StepQuestBackgroundSyncService {
     let now = Date()
     let recordedFor = formatLocalDate(now)
     let storedUser = loadStoredAuthUser()
-    let locale = storedUser?.preferredLanguage ?? "en"
+    let locale = loadStoredWidgetLocale() ?? storedUser?.preferredLanguage ?? "en"
     let existingSnapshot = loadStoredSnapshot()
 
     guard let stepCount = await readTodayStepCount(now: now) else {
@@ -447,6 +448,14 @@ private func loadStoredSnapshot() -> NativeStepQuestWidgetSnapshot? {
   return try? JSONDecoder().decode(NativeStepQuestWidgetSnapshot.self, from: data)
 }
 
+private func loadStoredWidgetLocale() -> String? {
+  guard let defaults = UserDefaults(suiteName: atStepQuestWidgetAppGroup) else {
+    return nil
+  }
+
+  return normalizeWidgetLocale(defaults.string(forKey: atStepQuestWidgetLocaleKey))
+}
+
 private func saveSnapshot(_ snapshot: NativeStepQuestWidgetSnapshot) {
   guard let defaults = UserDefaults(suiteName: atStepQuestWidgetAppGroup),
         let data = try? JSONEncoder().encode(snapshot),
@@ -631,6 +640,15 @@ private func normalizeWidgetThemeName(_ themeName: String?) -> String? {
   switch themeName {
   case "candy", "ice", "nightosphere":
     return themeName
+  default:
+    return nil
+  }
+}
+
+private func normalizeWidgetLocale(_ locale: String?) -> String? {
+  switch locale {
+  case "en", "fr":
+    return locale
   default:
     return nil
   }

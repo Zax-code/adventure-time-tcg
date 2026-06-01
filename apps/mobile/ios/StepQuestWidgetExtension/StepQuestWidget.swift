@@ -6,6 +6,7 @@ private let snapshotKey = "stepQuestWidgetSnapshot"
 private let widgetKind = "StepQuestWidget"
 private let defaultDeepLink = "adventure-time://widget-quests?focus=steps"
 private let themeNameKey = "stepQuestWidgetThemeName"
+private let localeKey = "stepQuestWidgetLocale"
 
 private struct StepQuestSnapshot: Decodable {
   let themeName: String?
@@ -289,7 +290,7 @@ private func normalizeSnapshotForToday(_ snapshot: StepQuestSnapshot) -> StepQue
   }
 
   let target = max(snapshot.target, 1)
-  let progressLabel = "0 / \(formatNumber(target))"
+  let progressLabel = "0 / \(localizedNumber(target))"
 
   return StepQuestSnapshot(
     themeName: normalizeThemeName(snapshot.themeName) ?? "candy",
@@ -315,10 +316,24 @@ private func loadStoredThemeName() -> String? {
   return normalizeThemeName(defaults?.string(forKey: themeNameKey))
 }
 
+private func loadStoredLocaleCode() -> String? {
+  let defaults = UserDefaults(suiteName: appGroupId)
+  return normalizeLocaleCode(defaults?.string(forKey: localeKey))
+}
+
 private func normalizeThemeName(_ themeName: String?) -> String? {
   switch themeName {
   case "candy", "ice", "nightosphere":
     return themeName
+  default:
+    return nil
+  }
+}
+
+private func normalizeLocaleCode(_ localeCode: String?) -> String? {
+  switch localeCode {
+  case "en", "fr":
+    return localeCode
   default:
     return nil
   }
@@ -334,7 +349,7 @@ private func currentLocalDateString() -> String {
 
 private func formatNumber(_ value: Int) -> String {
   let formatter = NumberFormatter()
-  formatter.locale = Locale.autoupdatingCurrent
+  formatter.locale = widgetLocale()
   formatter.numberStyle = .decimal
   return formatter.string(from: NSNumber(value: value)) ?? "\(value)"
 }
@@ -483,7 +498,7 @@ private struct StepQuestMediumLayout: View {
           progress: progressRatio,
           palette: palette,
           primaryLabel: percentText(for: snapshot),
-          secondaryLabel: compactRingProgressLabel(for: snapshot)
+          secondaryLabel: nil
         )
         .frame(width: 68, height: 68)
 
@@ -644,7 +659,7 @@ private struct ProgressRing: View {
   let progress: Double
   let palette: StepQuestPalette
   let primaryLabel: String
-  let secondaryLabel: String
+  let secondaryLabel: String?
 
   var body: some View {
     ZStack {
@@ -670,9 +685,11 @@ private struct ProgressRing: View {
           .font(.system(size: 16, weight: .black, design: .rounded))
           .foregroundStyle(palette.title)
 
-        Text(secondaryLabel.uppercased())
-          .font(.system(size: 7, weight: .bold, design: .rounded))
-          .foregroundStyle(palette.muted)
+        if let secondaryLabel, !secondaryLabel.isEmpty {
+          Text(secondaryLabel.uppercased(with: widgetLocale()))
+            .font(.system(size: 7, weight: .bold, design: .rounded))
+            .foregroundStyle(palette.muted)
+        }
       }
     }
   }
@@ -911,10 +928,17 @@ private func statusHeadline(for status: String) -> String {
 }
 
 private func localizedNumber(_ value: Int) -> String {
-  NumberFormatter.localizedString(from: NSNumber(value: value), number: .decimal)
+  formatNumber(value)
 }
 
 private func localized(en: String, fr: String) -> String {
-  let preferredLanguage = Locale.preferredLanguages.first ?? "en"
-  return preferredLanguage.hasPrefix("fr") ? fr : en
+  widgetLocaleCode() == "fr" ? fr : en
+}
+
+private func widgetLocaleCode() -> String {
+  loadStoredLocaleCode() ?? "en"
+}
+
+private func widgetLocale() -> Locale {
+  Locale(identifier: widgetLocaleCode())
 }
