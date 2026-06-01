@@ -947,7 +947,7 @@ export default function WordleScreen() {
           activeOpacity={0.8}
         >
           <View className="bg-primary py-2 items-center">
-            <Text className="text-primaryText font-nunito-semibold text-sm">
+            <Text className="text-white font-nunito-semibold text-sm">
               {t("quests.wordle.backToQuests")}
             </Text>
           </View>
