@@ -1,17 +1,19 @@
-import { ReactNode, useEffect, useMemo, useRef } from "react";
+import { ReactNode, useEffect, useState } from "react";
+import { ModalBottomSheet } from "@swmansion/react-native-bottom-sheet";
 import {
-  Animated,
   Modal,
-  PanResponder,
   Pressable,
   ScrollView,
+  StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
   ViewStyle,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { LoadingPanel } from "../loading-state";
 import {
@@ -768,148 +770,123 @@ export function AdminSheet({
 }) {
   const { themeName } = useThemeStore();
   const tc = THEME_COLORS[themeName];
-  const translateY = useRef(new Animated.Value(0)).current;
-  const closingRef = useRef(false);
+  const insets = useSafeAreaInsets();
+  const { height } = useWindowDimensions();
+  const [index, setIndex] = useState(visible ? 1 : 0);
+  const [mounted, setMounted] = useState(visible);
+  const topGap = Math.max(insets.top + 16, 56);
 
-  const closeAnimated = () => {
-    if (closingRef.current) {
+  useEffect(() => {
+    if (visible) {
+      setMounted(true);
+      setIndex(1);
       return;
     }
 
-    closingRef.current = true;
-    Animated.timing(translateY, {
-      toValue: 720,
-      duration: 220,
-      useNativeDriver: true,
-    }).start(() => {
-      closingRef.current = false;
-      translateY.setValue(0);
-      onClose();
-    });
-  };
+    setIndex(0);
+  }, [visible]);
 
   useEffect(() => {
-    if (!visible) {
-      translateY.setValue(0);
-      closingRef.current = false;
+    if (!visible && index === 0) {
+      setMounted(false);
     }
-  }, [translateY, visible]);
+  }, [index, visible]);
 
-  const panResponder = useMemo(
-    () =>
-      PanResponder.create({
-        onMoveShouldSetPanResponder: (_, gestureState) =>
-          gestureState.dy > 8 &&
-          Math.abs(gestureState.dy) > Math.abs(gestureState.dx),
-        onPanResponderMove: (_, gestureState) => {
-          if (gestureState.dy > 0) {
-            translateY.setValue(gestureState.dy);
-          }
-        },
-        onPanResponderRelease: (_, gestureState) => {
-          if (gestureState.dy > 140 || gestureState.vy > 1.1) {
-            closeAnimated();
-            return;
-          }
-
-          Animated.spring(translateY, {
-            toValue: 0,
-            useNativeDriver: true,
-            bounciness: 0,
-          }).start();
-        },
-        onPanResponderTerminate: () => {
-          Animated.spring(translateY, {
-            toValue: 0,
-            useNativeDriver: true,
-            bounciness: 0,
-          }).start();
-        },
-      }),
-    [translateY],
-  );
+  if (!mounted) {
+    return null;
+  }
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={closeAnimated}
-    >
-      <KeyboardScreenView>
+    <ModalBottomSheet
+      index={index}
+      onIndexChange={setIndex}
+      onSettle={(nextIndex) => {
+        if (nextIndex === 0 && visible) {
+          onClose();
+        }
+      }}
+      detents={[0, "content"]}
+      scrimColor={alpha(tc.primaryStrong, "54")}
+      surface={
         <View
-          className="flex-1 justify-end"
-          style={{ backgroundColor: alpha(tc.primaryStrong, "54") }}
+          style={[
+            StyleSheet.absoluteFill,
+            {
+              backgroundColor: tc.surface,
+              borderTopLeftRadius: 30,
+              borderTopRightRadius: 30,
+            },
+          ]}
+        />
+      }
+    >
+      <KeyboardScreenView fill={false}>
+        <View
+          style={{
+            maxHeight: height - topGap,
+            minHeight: Math.min(height - topGap, height * 0.72),
+          }}
         >
-          <Pressable style={absoluteFill} onPress={closeAnimated} />
-          <Animated.View
-            className="min-h-[88%] max-h-[96%] overflow-hidden rounded-tl-[30] rounded-tr-[30]"
-            style={[{ transform: [{ translateY }] }]}
+          <AdminPanel
+            style={{ flex: 1, paddingHorizontal: 0, paddingVertical: 0 }}
           >
-            <AdminPanel
-              style={{ flex: 1, paddingHorizontal: 0, paddingVertical: 0 }}
+            <LinearGradient
+              colors={[alpha(tc.primaryTint, "E8"), alpha(tc.surface, "F5")]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{
+                paddingHorizontal: 18,
+                paddingBottom: 14,
+                paddingTop: 8,
+                justifyContent: "center",
+                alignItems: "center",
+                borderBottomWidth: 1,
+                borderBottomColor: alpha(tc.primaryBorder, "47"),
+              }}
             >
-              <LinearGradient
-                colors={[alpha(tc.primaryTint, "E8"), alpha(tc.surface, "F5")]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
+              <View className="w-full items-center pb-2">
+                <View
+                  className="w-[54] h-[5] rounded-full"
+                  style={{ backgroundColor: alpha(tc.primaryStrong, "2B") }}
+                />
+              </View>
+              <Text className="font-nunito-extrabold text-[18px] text-fg">
+                {title}
+              </Text>
+              <Pressable
+                onPress={onClose}
+                className="absolute right-[14] top-3 w-8 h-8 rounded-full items-center justify-center"
+                style={{ backgroundColor: alpha(tc.surface, "CC") }}
+              >
+                <Ionicons name="close" size={18} color={tc.primaryStrong} />
+              </Pressable>
+            </LinearGradient>
+            <ScrollView
+              {...KEYBOARD_AWARE_SCROLL_PROPS}
+              contentContainerStyle={{
+                padding: 16,
+                paddingBottom: 28,
+                gap: 14,
+              }}
+              showsVerticalScrollIndicator={false}
+            >
+              {children}
+            </ScrollView>
+            {footer ? (
+              <View
+                className="border-t px-4 pt-3 pb-4"
                 style={{
-                  paddingHorizontal: 18,
-                  paddingBottom: 14,
-                  paddingTop: 8,
-                  justifyContent: "center",
-                  alignItems: "center",
-                  borderBottomWidth: 1,
-                  borderBottomColor: alpha(tc.primaryBorder, "47"),
+                  borderTopColor: alpha(tc.primaryBorder, "47"),
+                  backgroundColor: tc.surface,
                 }}
               >
-                <View
-                  {...panResponder.panHandlers}
-                  className="w-full items-center pb-2"
-                >
-                  <View
-                    className="w-[54] h-[5] rounded-full"
-                    style={{ backgroundColor: alpha(tc.primaryStrong, "2B") }}
-                  />
-                </View>
-                <Text className="font-nunito-extrabold text-[18px] text-fg">
-                  {title}
-                </Text>
-                <Pressable
-                  onPress={closeAnimated}
-                  className="absolute right-[14] top-3 w-8 h-8 rounded-full items-center justify-center"
-                  style={{ backgroundColor: alpha(tc.surface, "CC") }}
-                >
-                  <Ionicons name="close" size={18} color={tc.primaryStrong} />
-                </Pressable>
-              </LinearGradient>
-              <ScrollView
-                {...KEYBOARD_AWARE_SCROLL_PROPS}
-                contentContainerStyle={{
-                  padding: 16,
-                  paddingBottom: 28,
-                  gap: 14,
-                }}
-                showsVerticalScrollIndicator={false}
-              >
-                {children}
-              </ScrollView>
-              {footer ? (
-                <View
-                  className="border-t px-4 pt-3 pb-4"
-                  style={{
-                    borderTopColor: alpha(tc.primaryBorder, "47"),
-                    backgroundColor: tc.surface,
-                  }}
-                >
-                  {footer}
-                </View>
-              ) : null}
-            </AdminPanel>
-          </Animated.View>
+                {footer}
+              </View>
+            ) : null}
+          </AdminPanel>
         </View>
       </KeyboardScreenView>
-    </Modal>
+    </ModalBottomSheet>
   );
 }
 

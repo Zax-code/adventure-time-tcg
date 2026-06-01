@@ -23,6 +23,7 @@ import {
   KEYBOARD_AWARE_SCROLL_PROPS,
   KeyboardScreenView,
 } from "../src/components/keyboard-screen-view";
+import { ModalSheetRoute } from "../src/components/modal-sheet-route";
 import { useTranslation } from "../src/i18n";
 import { apiClient, API_BASE_URL, clearAppSession } from "../src/lib/api";
 import {
@@ -381,45 +382,50 @@ export default function SettingsScreen() {
   };
 
   return (
-    <KeyboardScreenView style={THEME_VARS[themeName]}>
-      <View className="flex-1 bg-bg">
-        <View className="mt-2 h-1.5 w-10 self-center rounded-full bg-primaryBorder" />
+    <ModalSheetRoute
+      onClose={() => router.back()}
+      sheetBackgroundColor={tc.bg}
+      handleColor={tc.primaryBorder}
+      sheetStyle={THEME_VARS[themeName]}
+    >
+      <KeyboardScreenView style={THEME_VARS[themeName]}>
+        <View className="flex-1 bg-bg">
 
-        <ScrollView
-          ref={scrollViewRef}
-          {...KEYBOARD_AWARE_SCROLL_PROPS}
-          className="flex-1"
-          contentContainerStyle={{
-            paddingTop: 20,
-            paddingHorizontal: 20,
-            paddingBottom: insets.bottom + 32,
-          }}
-        >
-          <View className="gap-6">
-            <View className="gap-4">
-              <View className="flex-row items-start justify-between gap-4 px-1">
-                <View className="flex-1 gap-1">
-                  <Text className="font-nunito-extrabold text-3xl text-fg">
-                    {t("settings.title")}
-                  </Text>
-                  <Text className="font-nunito text-sm leading-5 text-fgMuted">
-                    {t("settings.subtitle")}
-                  </Text>
+          <ScrollView
+            ref={scrollViewRef}
+            {...KEYBOARD_AWARE_SCROLL_PROPS}
+            className="flex-1"
+            contentContainerStyle={{
+              paddingTop: 20,
+              paddingHorizontal: 20,
+              paddingBottom: insets.bottom + 32,
+            }}
+          >
+            <View className="gap-6">
+              <View className="gap-4">
+                <View className="flex-row items-start justify-between gap-4 px-1">
+                  <View className="flex-1 gap-1">
+                    <Text className="font-nunito-extrabold text-3xl text-fg">
+                      {t("settings.title")}
+                    </Text>
+                    <Text className="font-nunito text-sm leading-5 text-fgMuted">
+                      {t("settings.subtitle")}
+                    </Text>
+                  </View>
                 </View>
-              </View>
 
-              <View
-                className="rounded-3xl border border-primaryBorder px-5 py-5"
-                style={{
-                  backgroundColor: tc.surface,
-                  shadowColor: "#000",
-                  shadowOpacity: 0.04,
-                  shadowRadius: 8,
-                  shadowOffset: { width: 0, height: 3 },
-                  elevation: 2,
-                }}
-              >
-                <View className="gap-4">
+                <View
+                  className="rounded-3xl border border-primaryBorder px-5 py-5"
+                  style={{
+                    backgroundColor: tc.surface,
+                    shadowColor: "#000",
+                    shadowOpacity: 0.04,
+                    shadowRadius: 8,
+                    shadowOffset: { width: 0, height: 3 },
+                    elevation: 2,
+                  }}
+                >
+                  <View className="gap-4">
                     <View className="flex-row items-center gap-4">
                       <Pressable
                         onPress={() =>
@@ -575,9 +581,9 @@ export default function SettingsScreen() {
                         />
                       </View>
                     </View>
+                  </View>
                 </View>
               </View>
-            </View>
 
             <View className="gap-4">
               <SectionHeader
@@ -1035,9 +1041,10 @@ export default function SettingsScreen() {
               </SurfaceCard>
             </View>
           </View>
-        </ScrollView>
-      </View>
-    </KeyboardScreenView>
+          </ScrollView>
+        </View>
+      </KeyboardScreenView>
+    </ModalSheetRoute>
   );
 }
 

@@ -19,9 +19,12 @@ import {
   KeyboardScreenView,
 } from "../src/components/keyboard-screen-view";
 import { LoadingPanel } from "../src/components/loading-state";
+import { ModalSheetRoute } from "../src/components/modal-sheet-route";
 import { apiClient } from "../src/lib/api";
 import { useTranslation } from "../src/i18n";
 import { useSessionStore } from "../src/stores/session-store";
+import { useThemeStore } from "../src/stores/theme-store";
+import { THEME_COLORS, THEME_VARS } from "../src/theme/themes";
 
 const EMPTY_ASSIGNMENT_DRAFT: AssignmentDraft = {
   passiveId: "",
@@ -39,6 +42,8 @@ export default function AdminCardEditorScreen() {
   const insets = useSafeAreaInsets();
   const sessionHydrated = useSessionStore((state) => state.hydrated);
   const isAdmin = useSessionStore((state) => state.user?.isAdmin ?? false);
+  const themeName = useThemeStore((state) => state.themeName);
+  const tc = THEME_COLORS[themeName];
   const { t } = useTranslation();
   const { mode, cardId } = useLocalSearchParams<{
     mode?: string;
@@ -240,97 +245,104 @@ export default function AdminCardEditorScreen() {
   const error = cardQuery.error || raritiesQuery.error || abilitiesQuery.error;
 
   return (
-    <KeyboardScreenView>
-      <AdminBackground>
-        <View className="flex-1">
-          <View className="items-center px-4 pt-2">
-            <View className="h-1 w-9 rounded-full bg-primaryBorder" />
-          </View>
+    <ModalSheetRoute
+      onClose={closeEditor}
+      sheetBackgroundColor={tc.bg}
+      handleColor={tc.primaryBorder}
+      sheetStyle={THEME_VARS[themeName]}
+    >
+      <KeyboardScreenView>
+        <AdminBackground>
+          <View className="flex-1">
+            <View className="items-center px-4 pt-2">
+              <View className="h-1 w-9 rounded-full bg-primaryBorder" />
+            </View>
 
-          <View className="px-4">
-            <AdminTopBar
-              title={
-                isCreateMode
-                  ? t("admin.cardEditor.createTitle")
-                  : t("admin.cardEditor.editTitle")
-              }
-              subtitle={t("admin.cards.subtitle")}
-              right={
-                <Pressable
-                  className="rounded-full px-3 py-2"
-                  onPress={closeEditor}
-                >
-                  <Text className="font-nunito-bold text-sm text-primaryStrong">
-                    {t("admin.common.close")}
-                  </Text>
-                </Pressable>
-              }
-            />
-          </View>
-
-          {loading ? (
-            <View className="flex-1 items-center justify-center px-6">
-              <LoadingPanel
-                title={t("admin.cardEditor.loading")}
-                message={t("common.loadingStates.adminBody")}
-                icon="albums"
-              />
-            </View>
-          ) : error ? (
-            <View className="flex-1 items-center justify-center px-6">
-              <Text className="font-nunito-bold text-[15px] text-dangerText text-center">
-                {getErrorMessage(error, t("admin.cardEditor.loadFailed"))}
-              </Text>
-            </View>
-          ) : !isCreateMode && !cardQuery.data ? (
-            <View className="flex-1 items-center justify-center px-6">
-              <Text className="font-nunito-bold text-[15px] text-dangerText text-center">
-                {t("admin.cardEditor.notFound")}
-              </Text>
-            </View>
-          ) : (
-            <ScrollView
-              {...KEYBOARD_AWARE_SCROLL_PROPS}
-              className="flex-1"
-              contentContainerStyle={{
-                paddingHorizontal: 16,
-                paddingTop: 14,
-                paddingBottom: insets.bottom + 24,
-                gap: 16,
-              }}
-              showsVerticalScrollIndicator={false}
-            >
-              <CardEditorSheet
-                mode={isCreateMode ? "create" : "edit"}
-                card={cardQuery.data ?? null}
-                draft={draft}
-                rarities={raritiesQuery.data?.rarities ?? []}
-                abilities={abilitiesQuery.data?.abilities ?? []}
-                assignmentDraft={assignmentDraft}
-                savePending={saveMutation.isPending}
-                archivePending={archiveMutation.isPending}
-                uploadPending={uploadMutation.isPending}
-                onClose={closeEditor}
-                onSubmit={() => saveMutation.mutate()}
-                onUploadImage={() => uploadMutation.mutate()}
-                onToggleArchive={() => archiveMutation.mutate()}
-                onDraftChange={(key, value) => {
-                  setDraft((current) => ({ ...current, [key]: value }));
-                }}
-                onAssignmentChange={(role, value) => {
-                  setAssignmentDraft(
-                    (current) =>
-                      ({ ...current, [`${role}Id`]: value }) as AssignmentDraft,
-                  );
-                }}
-                onAssignmentClear={() =>
-                  setAssignmentDraft(EMPTY_ASSIGNMENT_DRAFT)
+            <View className="px-4">
+              <AdminTopBar
+                title={
+                  isCreateMode
+                    ? t("admin.cardEditor.createTitle")
+                    : t("admin.cardEditor.editTitle")
+                }
+                subtitle={t("admin.cards.subtitle")}
+                right={
+                  <Pressable
+                    className="rounded-full px-3 py-2"
+                    onPress={closeEditor}
+                  >
+                    <Text className="font-nunito-bold text-sm text-primaryStrong">
+                      {t("admin.common.close")}
+                    </Text>
+                  </Pressable>
                 }
               />
-            </ScrollView>
-          )}
-        </View>
-      </AdminBackground>
-    </KeyboardScreenView>
+            </View>
+
+            {loading ? (
+              <View className="flex-1 items-center justify-center px-6">
+                <LoadingPanel
+                  title={t("admin.cardEditor.loading")}
+                  message={t("common.loadingStates.adminBody")}
+                  icon="albums"
+                />
+              </View>
+            ) : error ? (
+              <View className="flex-1 items-center justify-center px-6">
+                <Text className="font-nunito-bold text-[15px] text-dangerText text-center">
+                  {getErrorMessage(error, t("admin.cardEditor.loadFailed"))}
+                </Text>
+              </View>
+            ) : !isCreateMode && !cardQuery.data ? (
+              <View className="flex-1 items-center justify-center px-6">
+                <Text className="font-nunito-bold text-[15px] text-dangerText text-center">
+                  {t("admin.cardEditor.notFound")}
+                </Text>
+              </View>
+            ) : (
+              <ScrollView
+                {...KEYBOARD_AWARE_SCROLL_PROPS}
+                className="flex-1"
+                contentContainerStyle={{
+                  paddingHorizontal: 16,
+                  paddingTop: 14,
+                  paddingBottom: insets.bottom + 24,
+                  gap: 16,
+                }}
+                showsVerticalScrollIndicator={false}
+              >
+                <CardEditorSheet
+                  mode={isCreateMode ? "create" : "edit"}
+                  card={cardQuery.data ?? null}
+                  draft={draft}
+                  rarities={raritiesQuery.data?.rarities ?? []}
+                  abilities={abilitiesQuery.data?.abilities ?? []}
+                  assignmentDraft={assignmentDraft}
+                  savePending={saveMutation.isPending}
+                  archivePending={archiveMutation.isPending}
+                  uploadPending={uploadMutation.isPending}
+                  onClose={closeEditor}
+                  onSubmit={() => saveMutation.mutate()}
+                  onUploadImage={() => uploadMutation.mutate()}
+                  onToggleArchive={() => archiveMutation.mutate()}
+                  onDraftChange={(key, value) => {
+                    setDraft((current) => ({ ...current, [key]: value }));
+                  }}
+                  onAssignmentChange={(role, value) => {
+                    setAssignmentDraft(
+                      (current) =>
+                        ({ ...current, [`${role}Id`]: value }) as AssignmentDraft,
+                    );
+                  }}
+                  onAssignmentClear={() =>
+                    setAssignmentDraft(EMPTY_ASSIGNMENT_DRAFT)
+                  }
+                />
+              </ScrollView>
+            )}
+          </View>
+        </AdminBackground>
+      </KeyboardScreenView>
+    </ModalSheetRoute>
   );
 }

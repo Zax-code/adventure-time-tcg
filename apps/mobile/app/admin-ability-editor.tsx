@@ -11,9 +11,12 @@ import {
   KeyboardScreenView,
 } from "../src/components/keyboard-screen-view";
 import { LoadingPanel } from "../src/components/loading-state";
+import { ModalSheetRoute } from "../src/components/modal-sheet-route";
 import { useTranslation } from "../src/i18n";
 import { apiClient } from "../src/lib/api";
 import { useSessionStore } from "../src/stores/session-store";
+import { useThemeStore } from "../src/stores/theme-store";
+import { THEME_COLORS, THEME_VARS } from "../src/theme/themes";
 
 function formatAbilitiesError(error: unknown, invalidDataLabel: string) {
   if (error instanceof ZodError) {
@@ -45,6 +48,8 @@ export default function AdminAbilityEditorScreen() {
   }>();
   const sessionHydrated = useSessionStore((state) => state.hydrated);
   const isAdmin = useSessionStore((state) => state.user?.isAdmin ?? false);
+  const themeName = useThemeStore((state) => state.themeName);
+  const tc = THEME_COLORS[themeName];
   const { t } = useTranslation();
 
   const isCreateMode = mode !== "edit";
@@ -122,79 +127,86 @@ export default function AdminAbilityEditorScreen() {
   );
 
   return (
-    <KeyboardScreenView>
-      <AdminBackground>
-        <View className="flex-1">
-          <View className="w-9 h-1 self-center mt-2 mb-[6] rounded-full bg-primaryBorder" />
-          <View className="px-4">
-            <AdminTopBar
-              title={
-                isCreateMode
-                  ? t("admin.abilityEditor.createTitle")
-                  : t("admin.abilityEditor.editTitle")
-              }
-              subtitle={t("admin.abilities.subtitle")}
-            />
-          </View>
-
-          {abilitiesQuery.isLoading && !isCreateMode ? (
-            <View className="flex-1 items-center justify-center px-6">
-              <LoadingPanel
-                title={t("admin.abilityEditor.loading")}
-                message={t("common.loadingStates.adminBody")}
-                icon="flash"
-              />
-            </View>
-          ) : queryError ? (
-            <View className="flex-1 items-center justify-center px-6">
-              <Text className="font-nunito-bold text-[15px] text-dangerText text-center">
-                {queryError}
-              </Text>
-            </View>
-          ) : !isCreateMode && !selectedAbility ? (
-            <View className="flex-1 items-center justify-center px-6">
-              <Text className="font-nunito-bold text-[15px] text-dangerText text-center">
-                {t("admin.abilityEditor.notFound")}
-              </Text>
-            </View>
-          ) : (
-            <ScrollView
-              {...KEYBOARD_AWARE_SCROLL_PROPS}
-              className="flex-1"
-              contentContainerStyle={{
-                gap: 14,
-                paddingHorizontal: 16,
-                paddingTop: 8,
-                paddingBottom: insets.bottom + 20,
-              }}
-              showsVerticalScrollIndicator={false}
-            >
-              <AbilityEditorForm
-                ability={selectedAbility}
-                saving={
-                  createMutation.isPending ||
-                  updateMutation.isPending ||
-                  deleteMutation.isPending
+    <ModalSheetRoute
+      onClose={closeEditor}
+      sheetBackgroundColor={tc.bg}
+      handleColor={tc.primaryBorder}
+      sheetStyle={THEME_VARS[themeName]}
+    >
+      <KeyboardScreenView>
+        <AdminBackground>
+          <View className="flex-1">
+            <View className="w-9 h-1 self-center mt-2 mb-[6] rounded-full bg-primaryBorder" />
+            <View className="px-4">
+              <AdminTopBar
+                title={
+                  isCreateMode
+                    ? t("admin.abilityEditor.createTitle")
+                    : t("admin.abilityEditor.editTitle")
                 }
-                onDelete={async (id) => {
-                  await deleteMutation.mutateAsync(id);
-                }}
-                onSubmit={async (input) => {
-                  if (selectedAbility) {
-                    await updateMutation.mutateAsync({
-                      id: selectedAbility.id,
-                      input,
-                    });
-                    return;
-                  }
-
-                  await createMutation.mutateAsync(input);
-                }}
+                subtitle={t("admin.abilities.subtitle")}
               />
-            </ScrollView>
-          )}
-        </View>
-      </AdminBackground>
-    </KeyboardScreenView>
+            </View>
+
+            {abilitiesQuery.isLoading && !isCreateMode ? (
+              <View className="flex-1 items-center justify-center px-6">
+                <LoadingPanel
+                  title={t("admin.abilityEditor.loading")}
+                  message={t("common.loadingStates.adminBody")}
+                  icon="flash"
+                />
+              </View>
+            ) : queryError ? (
+              <View className="flex-1 items-center justify-center px-6">
+                <Text className="font-nunito-bold text-[15px] text-dangerText text-center">
+                  {queryError}
+                </Text>
+              </View>
+            ) : !isCreateMode && !selectedAbility ? (
+              <View className="flex-1 items-center justify-center px-6">
+                <Text className="font-nunito-bold text-[15px] text-dangerText text-center">
+                  {t("admin.abilityEditor.notFound")}
+                </Text>
+              </View>
+            ) : (
+              <ScrollView
+                {...KEYBOARD_AWARE_SCROLL_PROPS}
+                className="flex-1"
+                contentContainerStyle={{
+                  gap: 14,
+                  paddingHorizontal: 16,
+                  paddingTop: 8,
+                  paddingBottom: insets.bottom + 20,
+                }}
+                showsVerticalScrollIndicator={false}
+              >
+                <AbilityEditorForm
+                  ability={selectedAbility}
+                  saving={
+                    createMutation.isPending ||
+                    updateMutation.isPending ||
+                    deleteMutation.isPending
+                  }
+                  onDelete={async (id) => {
+                    await deleteMutation.mutateAsync(id);
+                  }}
+                  onSubmit={async (input) => {
+                    if (selectedAbility) {
+                      await updateMutation.mutateAsync({
+                        id: selectedAbility.id,
+                        input,
+                      });
+                      return;
+                    }
+
+                    await createMutation.mutateAsync(input);
+                  }}
+                />
+              </ScrollView>
+            )}
+          </View>
+        </AdminBackground>
+      </KeyboardScreenView>
+    </ModalSheetRoute>
   );
 }

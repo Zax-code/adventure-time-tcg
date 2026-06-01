@@ -3,6 +3,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { ModalSheetRoute } from "../src/components/modal-sheet-route";
 import { useThemeStore } from "../src/stores/theme-store";
 import { THEME_COLORS, THEME_VARS } from "../src/theme/themes";
 import { useTranslation } from "../src/i18n";
@@ -15,12 +16,13 @@ export default function PvpMechanicsScreen() {
   const { t } = useTranslation();
 
   return (
-    <View style={[{ flex: 1 }, THEME_VARS[themeName]]}>
+    <ModalSheetRoute
+      onClose={() => router.back()}
+      sheetBackgroundColor={tc.bg}
+      handleColor={tc.muted}
+      sheetStyle={THEME_VARS[themeName]}
+    >
       <View className="flex-1 bg-bg">
-        {/* Drag handle */}
-        <View className="w-9 h-1 rounded-full bg-muted self-center mt-2 mb-1" />
-
-        {/* Header */}
         <LinearGradient
           colors={[tc.primaryDark, tc.primary]}
           start={{ x: 0, y: 0 }}
@@ -124,6 +126,6 @@ export default function PvpMechanicsScreen() {
           </View>
         </ScrollView>
       </View>
-    </View>
+    </ModalSheetRoute>
   );
 }

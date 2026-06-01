@@ -7,6 +7,7 @@ import { useThemeStore } from "../src/stores/theme-store";
 import { THEME_COLORS, THEME_VARS } from "../src/theme/themes";
 import { useTranslation } from "../src/i18n";
 import { localizeRarityName, localizeStatusName, localizeTypeName } from "../src/lib/combat-i18n";
+import { ModalSheetRoute } from "../src/components/modal-sheet-route";
 
 const STATUS_ENTRIES = [
   { name: "Burn",              colorClass: "text-dangerDark" },
@@ -72,12 +73,13 @@ export default function PvpReferenceScreen() {
   const { t } = useTranslation();
 
   return (
-    <View style={[{ flex: 1 }, THEME_VARS[themeName]]}>
+    <ModalSheetRoute
+      onClose={() => router.back()}
+      sheetBackgroundColor={tc.bg}
+      handleColor={tc.muted}
+      sheetStyle={THEME_VARS[themeName]}
+    >
       <View className="flex-1 bg-bg">
-        {/* Drag handle */}
-        <View className="w-9 h-1 rounded-full bg-muted self-center mt-2 mb-1" />
-
-        {/* Header */}
         <LinearGradient
           colors={[tc.infoDark, tc.info]}
           start={{ x: 0, y: 0 }}
@@ -213,6 +215,6 @@ export default function PvpReferenceScreen() {
           </View>
         </ScrollView>
       </View>
-    </View>
+    </ModalSheetRoute>
   );
 }
