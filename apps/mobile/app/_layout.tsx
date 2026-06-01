@@ -186,7 +186,10 @@ export default function RootLayout() {
           },
         );
 
-        if (!resetPayload.questType || resetPayload.questType === "wordle_daily") {
+        if (
+          !resetPayload.questType ||
+          resetPayload.questType === "wordle_daily"
+        ) {
           queryClient.setQueriesData(
             { queryKey: ["wordle"] },
             (
@@ -283,7 +286,7 @@ export default function RootLayout() {
                     name="settings"
                     options={{
                       presentation: "transparentModal",
-                      animation: "slide_from_bottom",
+                      animation: "none",
                       contentStyle: { backgroundColor: "transparent" },
                       headerShown: false,
                     }}

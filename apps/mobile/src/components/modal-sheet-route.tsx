@@ -1,7 +1,8 @@
-import { useRef, useState, type ReactNode } from "react";
-import { ModalBottomSheet } from "@swmansion/react-native-bottom-sheet";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
-  StyleSheet,
+  Animated,
+  PanResponder,
+  Pressable,
   View,
   useWindowDimensions,
   type StyleProp,
@@ -27,52 +28,131 @@ export function ModalSheetRoute({
 }) {
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
-  const [index, setIndex] = useState(1);
-  const closingRef = useRef(false);
   const topGap = Math.max(insets.top + TOP_PADDING, MIN_TOP_GAP);
-  const maxSheetHeight = Math.max(0, height - topGap);
+  const openHeight = Math.max(0, height - topGap);
+  const translateY = useRef(new Animated.Value(openHeight)).current;
+  const backdropOpacity = useRef(new Animated.Value(0)).current;
+  const closingRef = useRef(false);
+  const [dragEnabled, setDragEnabled] = useState(true);
 
-  return (
-    <View className="flex-1" pointerEvents="box-none">
-      <ModalBottomSheet
-        index={index}
-        onIndexChange={setIndex}
-        onSettle={(nextIndex) => {
-          if (nextIndex !== 0 || closingRef.current) {
+  useEffect(() => {
+    Animated.parallel([
+      Animated.spring(translateY, {
+        toValue: 0,
+        useNativeDriver: true,
+        bounciness: 0,
+        speed: 18,
+      }),
+      Animated.timing(backdropOpacity, {
+        toValue: 1,
+        duration: 180,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [backdropOpacity, translateY]);
+
+  const resetToOpen = () => {
+    Animated.spring(translateY, {
+      toValue: 0,
+      useNativeDriver: true,
+      bounciness: 0,
+      speed: 20,
+    }).start();
+  };
+
+  const closeAnimated = () => {
+    if (closingRef.current) {
+      return;
+    }
+
+    closingRef.current = true;
+    Animated.parallel([
+      Animated.timing(translateY, {
+        toValue: openHeight,
+        duration: 220,
+        useNativeDriver: true,
+      }),
+      Animated.timing(backdropOpacity, {
+        toValue: 0,
+        duration: 160,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      onClose();
+    });
+  };
+
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponder: (_, gestureState) =>
+          dragEnabled &&
+          gestureState.dy > 8 &&
+          Math.abs(gestureState.dy) > Math.abs(gestureState.dx),
+        onPanResponderMove: (_, gestureState) => {
+          if (gestureState.dy > 0) {
+            translateY.setValue(gestureState.dy);
+          }
+        },
+        onPanResponderRelease: (_, gestureState) => {
+          if (gestureState.dy > 140 || gestureState.vy > 1.1) {
+            closeAnimated();
             return;
           }
 
-          closingRef.current = true;
-          onClose();
-        }}
-        detents={[0, "content"]}
-        scrimColor="rgba(0,0,0,0.4)"
-        surface={
-          <View
-            style={[
-              StyleSheet.absoluteFill,
-              {
-                backgroundColor: sheetBackgroundColor,
-                borderTopLeftRadius: 32,
-                borderTopRightRadius: 32,
-              },
-            ]}
-          />
-        }
+          resetToOpen();
+        },
+        onPanResponderTerminate: () => {
+          resetToOpen();
+        },
+      }),
+    [dragEnabled, openHeight, translateY],
+  );
+
+  return (
+    <View className="flex-1 justify-end" pointerEvents="box-none">
+      <Animated.View
+        className="absolute inset-0"
+        pointerEvents="box-none"
+        style={{ opacity: backdropOpacity }}
       >
-        <View style={[{ maxHeight: maxSheetHeight }, sheetStyle]}>
+        <Pressable
+          className="absolute inset-0"
+          style={{ backgroundColor: "rgba(0,0,0,0.4)" }}
+          onPress={closeAnimated}
+        />
+      </Animated.View>
+
+      <Animated.View
+        className="overflow-hidden rounded-t-[32]"
+        style={[
+          {
+            height: openHeight,
+            backgroundColor: sheetBackgroundColor,
+            transform: [{ translateY }],
+          },
+          sheetStyle,
+        ]}
+      >
+        <View
+          {...panResponder.panHandlers}
+          className="items-center pb-2 pt-3"
+          style={{ backgroundColor: sheetBackgroundColor }}
+        >
           <View
-            className="items-center pb-1 pt-2"
-            style={{ backgroundColor: sheetBackgroundColor }}
-          >
-            <View
-              className="h-1.5 w-10 rounded-full"
-              style={{ backgroundColor: handleColor }}
-            />
-          </View>
+            className="h-1.5 w-10 rounded-full"
+            style={{ backgroundColor: handleColor }}
+          />
+        </View>
+
+        <View
+          className="flex-1"
+          onStartShouldSetResponderCapture={() => false}
+          onMoveShouldSetResponderCapture={() => false}
+        >
           {children}
         </View>
-      </ModalBottomSheet>
+      </Animated.View>
     </View>
   );
 }
