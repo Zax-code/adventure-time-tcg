@@ -18,7 +18,14 @@
       <size
         android:width="160dp"
         android:height="160dp" />
-      <solid android:color="#47F97316" />
+      <gradient
+  android:centerColor="#11F97316"
+  android:centerX="0.5"
+  android:centerY="0.5"
+  android:endColor="#00F97316"
+  android:gradientRadius="112dp"
+  android:startColor="#27F97316"
+  android:type="radial" />
     </shape>
   </item>
 
@@ -30,7 +37,14 @@
       <size
         android:width="128dp"
         android:height="128dp" />
-      <solid android:color="#3DF87171" />
+      <gradient
+  android:centerColor="#0FF87171"
+  android:centerX="0.5"
+  android:centerY="0.5"
+  android:endColor="#00F87171"
+  android:gradientRadius="90dp"
+  android:startColor="#22F87171"
+  android:type="radial" />
     </shape>
   </item>
 

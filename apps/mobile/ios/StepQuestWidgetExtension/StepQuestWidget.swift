@@ -34,6 +34,7 @@ private struct StepQuestPalette {
   let backgroundBottom: Color
   let glowPrimary: Color
   let glowSecondary: Color
+  let ringFill: Color
   let title: Color
   let body: Color
   let muted: Color
@@ -61,6 +62,7 @@ private struct StepQuestPalette {
         backgroundBottom: Color(red: 1.0, green: 0.98, blue: 0.82),
         glowPrimary: Color(red: 0.18, green: 0.83, blue: 0.75),
         glowSecondary: Color(red: 0.98, green: 0.86, blue: 0.35),
+        ringFill: Color.white.opacity(0.55),
         title: Color(red: 0.21, green: 0.24, blue: 0.20),
         body: Color(red: 0.28, green: 0.39, blue: 0.34),
         muted: Color(red: 0.42, green: 0.50, blue: 0.47),
@@ -75,6 +77,7 @@ private struct StepQuestPalette {
         backgroundBottom: Color(red: 1.0, green: 0.94, blue: 0.98),
         glowPrimary: Color(red: 0.75, green: 0.52, blue: 0.99),
         glowSecondary: Color(red: 0.96, green: 0.45, blue: 0.71),
+        ringFill: Color.white.opacity(0.55),
         title: Color(red: 0.28, green: 0.20, blue: 0.31),
         body: Color(red: 0.43, green: 0.36, blue: 0.48),
         muted: Color(red: 0.55, green: 0.48, blue: 0.60),
@@ -89,6 +92,7 @@ private struct StepQuestPalette {
         backgroundBottom: Color(red: 1.0, green: 0.96, blue: 0.90),
         glowPrimary: Color(red: 0.98, green: 0.44, blue: 0.52),
         glowSecondary: Color(red: 0.98, green: 0.60, blue: 0.20),
+        ringFill: Color.white.opacity(0.55),
         title: Color(red: 0.35, green: 0.17, blue: 0.18),
         body: Color(red: 0.46, green: 0.28, blue: 0.25),
         muted: Color(red: 0.62, green: 0.42, blue: 0.37),
@@ -103,6 +107,7 @@ private struct StepQuestPalette {
         backgroundBottom: Color(red: 1.0, green: 0.98, blue: 0.86),
         glowPrimary: Color(red: 0.96, green: 0.45, blue: 0.71),
         glowSecondary: Color(red: 0.99, green: 0.82, blue: 0.16),
+        ringFill: Color.white.opacity(0.55),
         title: Color(red: 0.29, green: 0.22, blue: 0.16),
         body: Color(red: 0.38, green: 0.31, blue: 0.24),
         muted: Color(red: 0.47, green: 0.39, blue: 0.33),
@@ -122,6 +127,7 @@ private struct StepQuestPalette {
         backgroundBottom: Color(red: 0.93, green: 0.99, blue: 1.0),
         glowPrimary: Color(red: 0.11, green: 0.77, blue: 0.74),
         glowSecondary: Color(red: 0.49, green: 0.83, blue: 1.0),
+        ringFill: Color.white.opacity(0.55),
         title: Color(red: 0.09, green: 0.31, blue: 0.39),
         body: Color(red: 0.08, green: 0.37, blue: 0.46),
         muted: Color(red: 0.29, green: 0.42, blue: 0.49),
@@ -136,6 +142,7 @@ private struct StepQuestPalette {
         backgroundBottom: Color(red: 0.95, green: 0.98, blue: 1.0),
         glowPrimary: Color(red: 0.51, green: 0.55, blue: 0.97),
         glowSecondary: Color(red: 0.40, green: 0.91, blue: 0.98),
+        ringFill: Color.white.opacity(0.55),
         title: Color(red: 0.12, green: 0.23, blue: 0.54),
         body: Color(red: 0.20, green: 0.29, blue: 0.33),
         muted: Color(red: 0.39, green: 0.45, blue: 0.55),
@@ -150,6 +157,7 @@ private struct StepQuestPalette {
         backgroundBottom: Color(red: 0.99, green: 0.98, blue: 0.95),
         glowPrimary: Color(red: 0.98, green: 0.45, blue: 0.16),
         glowSecondary: Color(red: 0.97, green: 0.44, blue: 0.44),
+        ringFill: Color.white.opacity(0.55),
         title: Color(red: 0.49, green: 0.18, blue: 0.07),
         body: Color(red: 0.60, green: 0.20, blue: 0.07),
         muted: Color(red: 0.63, green: 0.38, blue: 0.03),
@@ -164,6 +172,7 @@ private struct StepQuestPalette {
         backgroundBottom: Color(red: 0.95, green: 0.99, blue: 1.0),
         glowPrimary: Color(red: 0.22, green: 0.74, blue: 0.97),
         glowSecondary: Color(red: 0.40, green: 0.91, blue: 0.98),
+        ringFill: Color.white.opacity(0.55),
         title: Color(red: 0.12, green: 0.23, blue: 0.54),
         body: Color(red: 0.11, green: 0.31, blue: 0.85),
         muted: Color(red: 0.39, green: 0.45, blue: 0.55),
@@ -183,6 +192,7 @@ private struct StepQuestPalette {
         backgroundBottom: Color(red: 0.08, green: 0.02, blue: 0.05),
         glowPrimary: Color(red: 0.98, green: 0.45, blue: 0.09),
         glowSecondary: Color(red: 0.75, green: 0.52, blue: 0.99),
+        ringFill: Color.white.opacity(0.78),
         title: Color(red: 1.0, green: 0.81, blue: 0.80),
         body: Color(red: 0.99, green: 0.65, blue: 0.65),
         muted: Color(red: 0.99, green: 0.73, blue: 0.45),
@@ -197,6 +207,7 @@ private struct StepQuestPalette {
         backgroundBottom: Color(red: 0.05, green: 0.00, blue: 0.09),
         glowPrimary: Color(red: 0.75, green: 0.52, blue: 0.99),
         glowSecondary: Color(red: 0.98, green: 0.44, blue: 0.52),
+        ringFill: Color.white.opacity(0.78),
         title: Color(red: 0.96, green: 0.82, blue: 0.99),
         body: Color(red: 0.91, green: 0.84, blue: 1.0),
         muted: Color(red: 0.77, green: 0.71, blue: 0.99),
@@ -211,6 +222,7 @@ private struct StepQuestPalette {
         backgroundBottom: Color(red: 0.08, green: 0.01, blue: 0.03),
         glowPrimary: Color(red: 0.94, green: 0.27, blue: 0.27),
         glowSecondary: Color(red: 0.98, green: 0.45, blue: 0.09),
+        ringFill: Color.white.opacity(0.78),
         title: Color(red: 1.0, green: 0.81, blue: 0.80),
         body: Color(red: 0.99, green: 0.65, blue: 0.65),
         muted: Color(red: 0.99, green: 0.73, blue: 0.45),
@@ -225,6 +237,7 @@ private struct StepQuestPalette {
         backgroundBottom: Color(red: 0.05, green: 0.00, blue: 0.06),
         glowPrimary: Color(red: 0.98, green: 0.44, blue: 0.52),
         glowSecondary: Color(red: 0.75, green: 0.52, blue: 0.99),
+        ringFill: Color.white.opacity(0.78),
         title: Color(red: 0.96, green: 0.82, blue: 0.99),
         body: Color(red: 0.98, green: 0.81, blue: 0.91),
         muted: Color(red: 0.77, green: 0.71, blue: 0.99),
@@ -695,7 +708,7 @@ private struct ProgressRing: View {
   var body: some View {
     ZStack {
       Circle()
-        .fill(Color.white.opacity(0.55))
+        .fill(palette.ringFill)
 
       Circle()
         .stroke(palette.progressTrack, style: StrokeStyle(lineWidth: 8, lineCap: .round))
