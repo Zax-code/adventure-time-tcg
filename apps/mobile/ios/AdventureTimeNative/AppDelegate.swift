@@ -76,6 +76,7 @@ private let atStepQuestWidgetAppGroup = "group.love.leaetzak.adventuretime"
 private let atStepQuestWidgetSnapshotKey = "stepQuestWidgetSnapshot"
 private let atStepQuestWidgetKind = "StepQuestWidget"
 private let atStepQuestWidgetApiBaseUrlKey = "stepQuestWidgetApiBaseUrl"
+private let atStepQuestWidgetThemeNameKey = "stepQuestWidgetThemeName"
 private let atStepQuestSecureStorePrimaryService = "app:no-auth"
 private let atStepQuestSecureStoreLegacyService = "app"
 private let atStepQuestDefaultApiBaseUrl = "https://app.leaetzak.love"
@@ -123,6 +124,7 @@ private struct NativeQuestsResponse: Decodable {
 }
 
 private struct NativeStepQuestWidgetSnapshot: Codable {
+  let themeName: String?
   let title: String
   let progress: Int
   let target: Int
@@ -479,6 +481,7 @@ private func buildSnapshotFromQuests(
   let rewardLabel = formatNumber(quest.reward, locale: locale)
 
   return NativeStepQuestWidgetSnapshot(
+    themeName: resolveWidgetThemeName(existingSnapshot: existingSnapshot),
     title: localizedQuestTitle(locale: locale, titleKey: quest.title),
     progress: progress,
     target: max(quest.target, 1),
@@ -531,6 +534,7 @@ private func buildLocalSnapshot(
   let rewardLabel = formatNumber(reward, locale: locale)
 
   return NativeStepQuestWidgetSnapshot(
+    themeName: resolveWidgetThemeName(existingSnapshot: baseSnapshot),
     title: baseSnapshot?.title ?? localizedQuestTitle(locale: locale, titleKey: "steps_10k"),
     progress: progress,
     target: target,
@@ -556,6 +560,7 @@ private func resetSnapshotForToday(
   recordedFor: String
 ) -> NativeStepQuestWidgetSnapshot {
   NativeStepQuestWidgetSnapshot(
+    themeName: resolveWidgetThemeName(existingSnapshot: snapshot),
     title: snapshot.title,
     progress: 0,
     target: max(snapshot.target, 1),
@@ -604,6 +609,31 @@ private func localizedQuestTitle(locale: String, titleKey: String) -> String {
   }
 
   return titleKey
+}
+
+private func resolveWidgetThemeName(existingSnapshot: NativeStepQuestWidgetSnapshot?) -> String {
+  if let themeName = normalizeWidgetThemeName(existingSnapshot?.themeName) {
+    return themeName
+  }
+
+  return loadStoredWidgetThemeName() ?? "candy"
+}
+
+private func loadStoredWidgetThemeName() -> String? {
+  guard let defaults = UserDefaults(suiteName: atStepQuestWidgetAppGroup) else {
+    return nil
+  }
+
+  return normalizeWidgetThemeName(defaults.string(forKey: atStepQuestWidgetThemeNameKey))
+}
+
+private func normalizeWidgetThemeName(_ themeName: String?) -> String? {
+  switch themeName {
+  case "candy", "ice", "nightosphere":
+    return themeName
+  default:
+    return nil
+  }
 }
 
 private func localizedStatusLabel(status: String, locale: String) -> String {

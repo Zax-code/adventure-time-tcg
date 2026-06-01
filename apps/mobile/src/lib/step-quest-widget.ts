@@ -4,6 +4,7 @@ import type { QuestsResponse } from "@adventure-time/api-client";
 
 import { getTranslation } from "../i18n";
 import type { Locale } from "../i18n/types";
+import type { ThemeName } from "../theme/themes";
 
 export type StepQuestWidgetStatus =
   | "active"
@@ -13,6 +14,7 @@ export type StepQuestWidgetStatus =
 
 export interface StepQuestWidgetSnapshot {
   questType: "steps_10k";
+  themeName: ThemeName;
   title: string;
   progress: number;
   target: number;
@@ -34,6 +36,7 @@ interface WidgetSnapshotBridgeModule {
 
 interface StepQuestWidgetSyncContext {
   apiBaseUrl: string;
+  themeName: ThemeName;
 }
 
 const widgetSnapshotBridge = NativeModules
@@ -85,6 +88,7 @@ function getQuestTitle(locale: Locale, titleKey: string) {
 export function buildStepQuestWidgetSnapshot(
   questsResponse: QuestsResponse,
   locale: Locale,
+  themeName: ThemeName,
 ): StepQuestWidgetSnapshot | null {
   const quest = questsResponse.quests.find((entry) => entry.type === "steps_10k");
 
@@ -116,6 +120,7 @@ export function buildStepQuestWidgetSnapshot(
 
   return {
     questType: "steps_10k",
+    themeName,
     title: getQuestTitle(locale, quest.title),
     progress,
     target: quest.target,
@@ -164,8 +169,9 @@ export async function setStepQuestWidgetSyncContext(
 export async function syncStepQuestWidgetSnapshot(
   questsResponse: QuestsResponse,
   locale: Locale,
+  themeName: ThemeName,
 ) {
-  const snapshot = buildStepQuestWidgetSnapshot(questsResponse, locale);
+  const snapshot = buildStepQuestWidgetSnapshot(questsResponse, locale, themeName);
 
   if (!snapshot) {
     await clearStepQuestWidgetSnapshot();

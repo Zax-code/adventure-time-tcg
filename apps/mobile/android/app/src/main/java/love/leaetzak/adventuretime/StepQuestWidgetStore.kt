@@ -5,9 +5,12 @@ import org.json.JSONObject
 
 private const val STEP_QUEST_WIDGET_PREFS = "step_quest_widget"
 private const val STEP_QUEST_WIDGET_SNAPSHOT_KEY = "stepQuestWidgetSnapshot"
+private const val STEP_QUEST_WIDGET_THEME_KEY = "stepQuestWidgetThemeName"
 private const val DEFAULT_WIDGET_DEEP_LINK = "adventure-time://widget-quests?focus=steps"
+private const val DEFAULT_WIDGET_THEME_NAME = "candy"
 
 data class StepQuestWidgetSnapshot(
+  val themeName: String?,
   val title: String,
   val progress: Int,
   val target: Int,
@@ -24,6 +27,7 @@ data class StepQuestWidgetSnapshot(
       val json = JSONObject(snapshotJson)
 
       return StepQuestWidgetSnapshot(
+        themeName = json.optString("themeName").ifBlank { null },
         title = json.optString("title"),
         progress = json.optInt("progress", 0),
         target = json.optInt("target", 10_000),
@@ -40,6 +44,14 @@ data class StepQuestWidgetSnapshot(
 }
 
 object StepQuestWidgetStore {
+  fun readThemeName(context: Context): String {
+    val storedThemeName = context
+      .getSharedPreferences(STEP_QUEST_WIDGET_PREFS, Context.MODE_PRIVATE)
+      .getString(STEP_QUEST_WIDGET_THEME_KEY, null)
+
+    return normalizeThemeName(storedThemeName)
+  }
+
   fun readSnapshot(context: Context): StepQuestWidgetSnapshot? {
     val snapshotJson = context
       .getSharedPreferences(STEP_QUEST_WIDGET_PREFS, Context.MODE_PRIVATE)
@@ -57,11 +69,26 @@ object StepQuestWidgetStore {
       .apply()
   }
 
+  fun writeThemeName(context: Context, themeName: String) {
+    context
+      .getSharedPreferences(STEP_QUEST_WIDGET_PREFS, Context.MODE_PRIVATE)
+      .edit()
+      .putString(STEP_QUEST_WIDGET_THEME_KEY, normalizeThemeName(themeName))
+      .apply()
+  }
+
   fun clearSnapshot(context: Context) {
     context
       .getSharedPreferences(STEP_QUEST_WIDGET_PREFS, Context.MODE_PRIVATE)
       .edit()
       .remove(STEP_QUEST_WIDGET_SNAPSHOT_KEY)
       .apply()
+  }
+
+  private fun normalizeThemeName(themeName: String?): String {
+    return when (themeName) {
+      "ice", "nightosphere" -> themeName
+      else -> DEFAULT_WIDGET_THEME_NAME
+    }
   }
 }

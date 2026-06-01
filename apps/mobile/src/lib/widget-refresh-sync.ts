@@ -1,5 +1,6 @@
 import { apiClient, getStoredUser } from "./api";
 import { syncStepQuestWidgetSnapshot } from "./step-quest-widget";
+import { getStoredThemeName } from "../stores/theme-store";
 
 export async function refreshWidgetSnapshotFromServer() {
   const user = await getStoredUser();
@@ -8,6 +9,7 @@ export async function refreshWidgetSnapshotFromServer() {
   }
 
   const quests = await apiClient.quests();
-  await syncStepQuestWidgetSnapshot(quests, user.preferredLanguage);
+  const themeName = await getStoredThemeName();
+  await syncStepQuestWidgetSnapshot(quests, user.preferredLanguage, themeName);
   return true;
 }

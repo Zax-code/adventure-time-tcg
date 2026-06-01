@@ -6,6 +6,7 @@ private let atStepQuestWidgetAppGroup = "group.love.leaetzak.adventuretime"
 private let atStepQuestWidgetSnapshotKey = "stepQuestWidgetSnapshot"
 private let atStepQuestWidgetKind = "StepQuestWidget"
 private let atStepQuestWidgetApiBaseUrlKey = "stepQuestWidgetApiBaseUrl"
+private let atStepQuestWidgetThemeNameKey = "stepQuestWidgetThemeName"
 
 @objc(WidgetSnapshotBridge)
 final class WidgetSnapshotBridge: NSObject {
@@ -50,7 +51,10 @@ final class WidgetSnapshotBridge: NSObject {
       return
     }
 
+    let themeName = (json["themeName"] as? String) ?? "candy"
     defaults.set(apiBaseUrl, forKey: atStepQuestWidgetApiBaseUrlKey)
+    defaults.set(themeName, forKey: atStepQuestWidgetThemeNameKey)
+    reloadWidgetTimeline()
     resolve(nil)
   }
 

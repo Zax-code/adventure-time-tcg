@@ -12,12 +12,14 @@ import {
 } from "../lib/step-quest-widget";
 import { useLocaleStore } from "../stores/locale-store";
 import { useSessionStore } from "../stores/session-store";
+import { useThemeStore } from "../stores/theme-store";
 
 export function useStepQuestWidgetSync() {
   const accessToken = useSessionStore((state) => state.accessToken);
   const userId = useSessionStore((state) => state.user?.id ?? null);
   const userLocale = useSessionStore((state) => state.user?.preferredLanguage);
   const guestLocale = useLocaleStore((state) => state.locale);
+  const themeName = useThemeStore((state) => state.themeName);
   const locale = userLocale ?? guestLocale;
 
   useEffect(() => {
@@ -27,6 +29,7 @@ export function useStepQuestWidgetSync() {
 
     void setStepQuestWidgetSyncContext({
       apiBaseUrl: API_BASE_URL,
+      themeName,
     }).catch(() => {
       // Keep the last known native sync configuration if this write fails.
     });
@@ -47,6 +50,7 @@ export function useStepQuestWidgetSync() {
       const stepQuest = data.quests.find((quest) => quest.type === "steps_10k");
       const snapshotVersion = JSON.stringify({
         locale,
+        themeName,
         fitbitConnected: data.fitbitConnected,
         stepQuest,
       });
@@ -56,7 +60,7 @@ export function useStepQuestWidgetSync() {
       }
 
       lastSnapshotVersion = snapshotVersion;
-      await syncStepQuestWidgetSnapshot(data, locale);
+      await syncStepQuestWidgetSnapshot(data, locale, themeName);
     };
 
     const currentData = queryClient.getQueryData<QuestsResponse>(["quests"]);
@@ -71,5 +75,5 @@ export function useStepQuestWidgetSync() {
       cancelled = true;
       unsubscribe();
     };
-  }, [accessToken, locale, userId]);
+  }, [accessToken, locale, themeName, userId]);
 }
