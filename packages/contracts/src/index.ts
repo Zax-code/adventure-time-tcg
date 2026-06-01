@@ -636,13 +636,23 @@ export const wordleStateResponseSchema = z.object({
   resetByName: z.string().nullable().optional(),
 });
 
-export const wordleDefinitionResponseSchema = z.object({
-  locale: wordleLocaleSchema,
-  word: z.string(),
+export const wordleDefinitionVariantSchema = z.object({
+  displayWord: z.string(),
   definition: z.string(),
   partOfSpeech: z.string().nullable().optional(),
   sourceName: z.string(),
   sourceUrl: z.string().url(),
+});
+
+export const wordleDefinitionResponseSchema = z.object({
+  locale: wordleLocaleSchema,
+  word: z.string(),
+  displayWord: z.string(),
+  definition: z.string(),
+  partOfSpeech: z.string().nullable().optional(),
+  sourceName: z.string(),
+  sourceUrl: z.string().url(),
+  variants: z.array(wordleDefinitionVariantSchema).min(1),
 });
 
 export const wordleSubmitSchema = z.object({
@@ -1209,6 +1219,9 @@ export type FitbitDisconnectResponse = z.infer<
 export type ClaimQuestInput = z.infer<typeof claimQuestSchema>;
 export type ClaimQuestResponse = z.infer<typeof claimQuestResponseSchema>;
 export type WordleStateResponse = z.infer<typeof wordleStateResponseSchema>;
+export type WordleDefinitionVariant = z.infer<
+  typeof wordleDefinitionVariantSchema
+>;
 export type WordleDefinitionResponse = z.infer<
   typeof wordleDefinitionResponseSchema
 >;

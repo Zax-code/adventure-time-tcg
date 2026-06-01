@@ -10,6 +10,7 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
     DailyQuest,
     SpeedCalculusDailyRun,
     WordleDictionaryWord,
+    WordleDictionaryWordDefinition,
     WordleEngine
   }
 
@@ -336,6 +337,7 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
 
     Repo.get_by!(WordleDictionaryWord, locale: "fr", word: french_target)
     |> Ecto.Changeset.change(%{
+      display_word: String.downcase(french_target),
       definition: "(Psychologie) Sentiment intense et agréable qui incite les êtres à s’unir.",
       definition_part_of_speech: "Nom commun",
       definition_source_name: "DBnary / Wiktionnaire",
@@ -347,6 +349,7 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
 
     Repo.get_by!(WordleDictionaryWord, locale: "en", word: english_target)
     |> Ecto.Changeset.change(%{
+      display_word: String.downcase(english_target),
       definition: "A common, firm, round fruit produced by a tree of the genus Malus.",
       definition_part_of_speech: "Noun",
       definition_source_name: "Open English WordNet",
@@ -354,6 +357,34 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
       definition_fetched_at: DateTime.utc_now() |> DateTime.truncate(:microsecond)
     })
     |> Repo.update!()
+
+    french_row = Repo.get_by!(WordleDictionaryWord, locale: "fr", word: french_target)
+    english_row = Repo.get_by!(WordleDictionaryWord, locale: "en", word: english_target)
+
+    Repo.insert!(
+      WordleDictionaryWordDefinition.changeset(%WordleDictionaryWordDefinition{}, %{
+        wordle_dictionary_word_id: french_row.id,
+        display_word: String.downcase(french_target),
+        definition: "(Psychologie) Sentiment intense et agréable qui incite les êtres à s’unir.",
+        part_of_speech: "Nom commun",
+        source_name: "DBnary / Wiktionnaire",
+        source_url:
+          "https://fr.wiktionary.org/wiki/#{String.downcase(french_target)}#Fran%C3%A7ais",
+        fetched_at: DateTime.utc_now() |> DateTime.truncate(:microsecond)
+      })
+    )
+
+    Repo.insert!(
+      WordleDictionaryWordDefinition.changeset(%WordleDictionaryWordDefinition{}, %{
+        wordle_dictionary_word_id: english_row.id,
+        display_word: String.downcase(english_target),
+        definition: "A common, firm, round fruit produced by a tree of the genus Malus.",
+        part_of_speech: "Noun",
+        source_name: "Open English WordNet",
+        source_url: "https://en-word.net/",
+        fetched_at: DateTime.utc_now() |> DateTime.truncate(:microsecond)
+      })
+    )
 
     french_definition =
       access_token
@@ -364,12 +395,24 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
     assert french_definition == %{
              "locale" => "fr",
              "word" => french_target,
+             "displayWord" => String.downcase(french_target),
              "definition" =>
                "(Psychologie) Sentiment intense et agréable qui incite les êtres à s’unir.",
              "partOfSpeech" => "Nom commun",
              "sourceName" => "DBnary / Wiktionnaire",
              "sourceUrl" =>
-               "https://fr.wiktionary.org/wiki/#{String.downcase(french_target)}#Fran%C3%A7ais"
+               "https://fr.wiktionary.org/wiki/#{String.downcase(french_target)}#Fran%C3%A7ais",
+             "variants" => [
+               %{
+                 "displayWord" => String.downcase(french_target),
+                 "definition" =>
+                   "(Psychologie) Sentiment intense et agréable qui incite les êtres à s’unir.",
+                 "partOfSpeech" => "Nom commun",
+                 "sourceName" => "DBnary / Wiktionnaire",
+                 "sourceUrl" =>
+                   "https://fr.wiktionary.org/wiki/#{String.downcase(french_target)}#Fran%C3%A7ais"
+               }
+             ]
            }
 
     english_definition =
@@ -381,10 +424,21 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
     assert english_definition == %{
              "locale" => "en",
              "word" => english_target,
+             "displayWord" => String.downcase(english_target),
              "definition" => "A common, firm, round fruit produced by a tree of the genus Malus.",
              "partOfSpeech" => "Noun",
              "sourceName" => "Open English WordNet",
-             "sourceUrl" => "https://en-word.net/"
+             "sourceUrl" => "https://en-word.net/",
+             "variants" => [
+               %{
+                 "displayWord" => String.downcase(english_target),
+                 "definition" =>
+                   "A common, firm, round fruit produced by a tree of the genus Malus.",
+                 "partOfSpeech" => "Noun",
+                 "sourceName" => "Open English WordNet",
+                 "sourceUrl" => "https://en-word.net/"
+               }
+             ]
            }
 
     cached_french =
@@ -394,9 +448,6 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
       |> json_response(200)
 
     assert cached_french == french_definition
-
-    french_row = Repo.get_by!(WordleDictionaryWord, locale: "fr", word: french_target)
-    english_row = Repo.get_by!(WordleDictionaryWord, locale: "en", word: english_target)
 
     assert french_row.definition == french_definition["definition"]
     assert french_row.definition_part_of_speech == "Nom commun"

@@ -113,6 +113,9 @@ export default function WordleScreen() {
   >(null);
   const [shareMaskEnabled, setShareMaskEnabled] = useState(false);
   const [definitionModalVisible, setDefinitionModalVisible] = useState(false);
+  const [expandedDefinitionWord, setExpandedDefinitionWord] = useState<
+    string | null
+  >(null);
   const [removingCellIndex, setRemovingCellIndex] = useState<number | null>(
     null,
   );
@@ -684,6 +687,28 @@ export default function WordleScreen() {
     }
   }, [clearActiveTouches, shareMaskActive]);
 
+  useEffect(() => {
+    if (!definitionModalVisible) {
+      setExpandedDefinitionWord(null);
+    }
+  }, [definitionModalVisible]);
+
+  useEffect(() => {
+    const variants = definitionQuery.data?.variants ?? [];
+
+    if (variants.length === 0) {
+      return;
+    }
+
+    setExpandedDefinitionWord((previous) => {
+      if (previous && variants.some((variant) => variant.displayWord === previous)) {
+        return previous;
+      }
+
+      return variants[0]?.displayWord ?? null;
+    });
+  }, [definitionQuery.data]);
+
   const handleWordleLanguageChange = useCallback(
     (nextLanguage: WordleLocale) => {
       if (nextLanguage === wordleLanguage) {
@@ -700,6 +725,7 @@ export default function WordleScreen() {
       setTargetWord(null);
       setShareMaskEnabled(false);
       setDefinitionModalVisible(false);
+      setExpandedDefinitionWord(null);
       setResetModalKind(null);
       setActiveDateKey(null);
       questVersionRef.current = null;
@@ -1314,22 +1340,73 @@ export default function WordleScreen() {
                   <Text className="mt-1 text-base font-nunito-extrabold text-primaryStrong">
                     {definitionQuery.data.word}
                   </Text>
-                  {definitionQuery.data.partOfSpeech ? (
-                    <Text className="mt-1 text-sm font-nunito text-fgMuted">
-                      {definitionQuery.data.partOfSpeech}
-                    </Text>
-                  ) : null}
                 </View>
 
-                <Text className="text-sm leading-6 font-nunito text-primaryStrong">
-                  {definitionQuery.data.definition}
-                </Text>
+                {definitionQuery.data.variants.length > 1 ? (
+                  <Text className="text-xs font-nunito-bold uppercase tracking-[1px] text-fgMuted">
+                    {t("quests.wordle.definitionChoicesLabel")}
+                  </Text>
+                ) : null}
 
-                <Text className="text-xs leading-5 font-nunito text-fgMuted">
-                  {t("quests.wordle.definitionSource", {
-                    source: definitionQuery.data.sourceName,
-                  })}
-                </Text>
+                {definitionQuery.data.variants.map((variant) => {
+                  const expandable = definitionQuery.data.variants.length > 1;
+                  const expanded =
+                    !expandable || expandedDefinitionWord === variant.displayWord;
+
+                  return (
+                    <View
+                      key={variant.displayWord}
+                      className="rounded-2xl border border-primaryTint bg-bg px-3 py-2"
+                    >
+                      <TouchableOpacity
+                        activeOpacity={expandable ? 0.8 : 1}
+                        onPress={() => {
+                          if (!expandable) {
+                            return;
+                          }
+
+                          setExpandedDefinitionWord((previous) =>
+                            previous === variant.displayWord
+                              ? null
+                              : variant.displayWord,
+                          );
+                        }}
+                        className="flex-row items-start justify-between gap-3"
+                      >
+                        <View className="flex-1">
+                          <Text className="text-base font-nunito-extrabold text-primaryStrong">
+                            {variant.displayWord}
+                          </Text>
+                          {variant.partOfSpeech ? (
+                            <Text className="mt-1 text-sm font-nunito text-fgMuted">
+                              {variant.partOfSpeech}
+                            </Text>
+                          ) : null}
+                        </View>
+
+                        {expandable ? (
+                          <Text className="text-lg font-nunito-extrabold text-primaryStrong">
+                            {expanded ? "-" : "+"}
+                          </Text>
+                        ) : null}
+                      </TouchableOpacity>
+
+                      {expanded ? (
+                        <View className="mt-3 gap-2">
+                          <Text className="text-sm leading-6 font-nunito text-primaryStrong">
+                            {variant.definition}
+                          </Text>
+
+                          <Text className="text-xs leading-5 font-nunito text-fgMuted">
+                            {t("quests.wordle.definitionSource", {
+                              source: variant.sourceName,
+                            })}
+                          </Text>
+                        </View>
+                      ) : null}
+                    </View>
+                  );
+                })}
               </ScrollView>
             ) : null}
 

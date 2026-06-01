@@ -16,6 +16,7 @@ defmodule AdventureTimeApi.Quests do
     SpeedCalculusDailyRun,
     SpeedCalculusEngine,
     WordleDailyAttempt,
+    WordleDictionaryWordDefinition,
     WordleDictionaryWord,
     WordleEngine
   }
@@ -420,10 +421,12 @@ defmodule AdventureTimeApi.Quests do
          %{
            locale: locale,
            word: word,
+           displayWord: definition.display_word,
            definition: definition.definition,
            partOfSpeech: definition.part_of_speech,
            sourceName: definition.source_name,
-           sourceUrl: definition.source_url
+           sourceUrl: definition.source_url,
+           variants: definition.variants
          }}
       end
     end
@@ -566,26 +569,74 @@ defmodule AdventureTimeApi.Quests do
 
   defp get_stored_wordle_definition(locale, word) do
     case Repo.get_by(WordleDictionaryWord, locale: locale, word: word) do
-      %WordleDictionaryWord{definition: definition} = entry
-      when is_binary(definition) and definition != "" ->
-        {:ok,
-         %{
-           definition: definition,
-           part_of_speech: entry.definition_part_of_speech,
-           source_name: entry.definition_source_name || default_definition_source_name(locale),
-           source_url: entry.definition_source_url || default_definition_source_url(locale, word)
-         }}
+      %WordleDictionaryWord{} = entry ->
+        variants = load_wordle_definition_variants(entry, locale, word)
 
-      %WordleDictionaryWord{} ->
-        {:error, :definition_not_found}
+        case variants do
+          [primary_variant | _rest] ->
+            {:ok,
+             %{
+               display_word: primary_variant.displayWord,
+               definition: primary_variant.definition,
+               part_of_speech: primary_variant.partOfSpeech,
+               source_name: primary_variant.sourceName,
+               source_url: primary_variant.sourceUrl,
+               variants: variants
+             }}
+
+          [] ->
+            {:error, :definition_not_found}
+        end
 
       nil ->
         {:error, :definition_not_found}
     end
   end
 
+  defp load_wordle_definition_variants(entry, locale, word) do
+    child_variants =
+      WordleDictionaryWordDefinition
+      |> where([d], d.wordle_dictionary_word_id == ^entry.id)
+      |> order_by([d], asc: d.display_word)
+      |> Repo.all()
+      |> Enum.map(fn variant ->
+        %{
+          displayWord: variant.display_word,
+          definition: variant.definition,
+          partOfSpeech: variant.part_of_speech,
+          sourceName: variant.source_name,
+          sourceUrl: variant.source_url
+        }
+      end)
+
+    case child_variants do
+      [] ->
+        if is_binary(entry.definition) and entry.definition != "" do
+          [
+            %{
+              displayWord: entry.display_word || default_definition_display_word(locale, word),
+              definition: entry.definition,
+              partOfSpeech: entry.definition_part_of_speech,
+              sourceName: entry.definition_source_name || default_definition_source_name(locale),
+              sourceUrl:
+                entry.definition_source_url ||
+                  default_definition_source_url(locale, entry.display_word || word)
+            }
+          ]
+        else
+          []
+        end
+
+      variants ->
+        variants
+    end
+  end
+
   defp default_definition_source_name("en"), do: "Open English WordNet"
   defp default_definition_source_name("fr"), do: "DBnary / Wiktionnaire"
+
+  defp default_definition_display_word("fr", word), do: String.downcase(word)
+  defp default_definition_display_word(_locale, word), do: word
 
   defp default_definition_source_url(locale, word) do
     case locale do
