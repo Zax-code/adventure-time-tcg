@@ -29,6 +29,7 @@ export function useStepQuestWidgetSync() {
 
     void setStepQuestWidgetSyncContext({
       apiBaseUrl: API_BASE_URL,
+      locale,
       themeName,
     }).catch(() => {
       // Keep the last known native sync configuration if this write fails.

@@ -3,7 +3,17 @@ import { create } from "zustand";
 
 import type { Locale } from "../i18n/types";
 
-const LOCALES: Locale[] = ["en", "fr"];
+const LOCALE_STORAGE_KEY = "locale";
+export const VALID_LOCALES = ["en", "fr"] as const;
+
+export function normalizeLocale(value: string | null | undefined): Locale {
+  return VALID_LOCALES.includes(value as Locale) ? (value as Locale) : "en";
+}
+
+export async function getStoredLocale() {
+  const stored = await SecureStore.getItemAsync(LOCALE_STORAGE_KEY);
+  return normalizeLocale(stored);
+}
 
 interface LocaleState {
   locale: Locale;
@@ -16,13 +26,11 @@ export const useLocaleStore = create<LocaleState>((set) => ({
   locale: "en",
   hydrated: false,
   async setLocale(locale) {
-    await SecureStore.setItemAsync("locale", locale);
+    await SecureStore.setItemAsync(LOCALE_STORAGE_KEY, locale);
     set({ locale });
   },
   async hydrateFromStorage() {
-    const stored = await SecureStore.getItemAsync("locale");
-    const locale: Locale =
-      stored && LOCALES.includes(stored as Locale) ? (stored as Locale) : "en";
+    const locale = await getStoredLocale();
     set({ locale, hydrated: true });
   },
 }));

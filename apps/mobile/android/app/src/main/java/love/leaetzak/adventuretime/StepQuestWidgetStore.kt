@@ -6,8 +6,10 @@ import org.json.JSONObject
 private const val STEP_QUEST_WIDGET_PREFS = "step_quest_widget"
 private const val STEP_QUEST_WIDGET_SNAPSHOT_KEY = "stepQuestWidgetSnapshot"
 private const val STEP_QUEST_WIDGET_THEME_KEY = "stepQuestWidgetThemeName"
+private const val STEP_QUEST_WIDGET_LOCALE_KEY = "stepQuestWidgetLocale"
 private const val DEFAULT_WIDGET_DEEP_LINK = "adventure-time://widget-quests?focus=steps"
 private const val DEFAULT_WIDGET_THEME_NAME = "candy"
+private const val DEFAULT_WIDGET_LOCALE = "en"
 
 data class StepQuestWidgetSnapshot(
   val themeName: String?,
@@ -44,6 +46,14 @@ data class StepQuestWidgetSnapshot(
 }
 
 object StepQuestWidgetStore {
+  fun readLocale(context: Context): String {
+    val storedLocale = context
+      .getSharedPreferences(STEP_QUEST_WIDGET_PREFS, Context.MODE_PRIVATE)
+      .getString(STEP_QUEST_WIDGET_LOCALE_KEY, null)
+
+    return normalizeLocale(storedLocale)
+  }
+
   fun readThemeName(context: Context): String {
     val storedThemeName = context
       .getSharedPreferences(STEP_QUEST_WIDGET_PREFS, Context.MODE_PRIVATE)
@@ -77,6 +87,14 @@ object StepQuestWidgetStore {
       .apply()
   }
 
+  fun writeLocale(context: Context, locale: String) {
+    context
+      .getSharedPreferences(STEP_QUEST_WIDGET_PREFS, Context.MODE_PRIVATE)
+      .edit()
+      .putString(STEP_QUEST_WIDGET_LOCALE_KEY, normalizeLocale(locale))
+      .apply()
+  }
+
   fun clearSnapshot(context: Context) {
     context
       .getSharedPreferences(STEP_QUEST_WIDGET_PREFS, Context.MODE_PRIVATE)
@@ -89,6 +107,13 @@ object StepQuestWidgetStore {
     return when (themeName) {
       "ice", "nightosphere" -> themeName
       else -> DEFAULT_WIDGET_THEME_NAME
+    }
+  }
+
+  private fun normalizeLocale(locale: String?): String {
+    return when (locale) {
+      "fr" -> locale
+      else -> DEFAULT_WIDGET_LOCALE
     }
   }
 }

@@ -36,6 +36,7 @@ interface WidgetSnapshotBridgeModule {
 
 interface StepQuestWidgetSyncContext {
   apiBaseUrl: string;
+  locale: Locale;
   themeName: ThemeName;
 }
 

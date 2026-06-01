@@ -7,6 +7,7 @@ private let atStepQuestWidgetSnapshotKey = "stepQuestWidgetSnapshot"
 private let atStepQuestWidgetKind = "StepQuestWidget"
 private let atStepQuestWidgetApiBaseUrlKey = "stepQuestWidgetApiBaseUrl"
 private let atStepQuestWidgetThemeNameKey = "stepQuestWidgetThemeName"
+private let atStepQuestWidgetLocaleKey = "stepQuestWidgetLocale"
 
 @objc(WidgetSnapshotBridge)
 final class WidgetSnapshotBridge: NSObject {
@@ -52,8 +53,10 @@ final class WidgetSnapshotBridge: NSObject {
     }
 
     let themeName = (json["themeName"] as? String) ?? "candy"
+    let locale = normalizeWidgetLocale((json["locale"] as? String) ?? "en")
     defaults.set(apiBaseUrl, forKey: atStepQuestWidgetApiBaseUrlKey)
     defaults.set(themeName, forKey: atStepQuestWidgetThemeNameKey)
+    defaults.set(locale, forKey: atStepQuestWidgetLocaleKey)
     reloadWidgetTimeline()
     resolve(nil)
   }
@@ -76,6 +79,15 @@ final class WidgetSnapshotBridge: NSObject {
   private func reloadWidgetTimeline() {
     if #available(iOS 14.0, *) {
       WidgetCenter.shared.reloadTimelines(ofKind: atStepQuestWidgetKind)
+    }
+  }
+
+  private func normalizeWidgetLocale(_ locale: String) -> String {
+    switch locale {
+    case "fr":
+      return "fr"
+    default:
+      return "en"
     }
   }
 }
