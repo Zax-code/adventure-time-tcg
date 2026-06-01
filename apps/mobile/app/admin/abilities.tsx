@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Animated, Easing, Pressable, Text, View } from "react-native";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { ZodError } from "zod";
@@ -61,6 +61,8 @@ export default function AdminAbilitiesScreen() {
     skillId: "",
     ultimateId: "",
   });
+  const tabTransition = useRef(new Animated.Value(1)).current;
+  const tabDirection = useRef(1);
 
   const abilitiesQuery = useQuery({
     queryKey: ["admin-abilities"],
@@ -126,6 +128,38 @@ export default function AdminAbilitiesScreen() {
   const selectedAssignment = abilitiesQuery.data?.cardAbilities.find(
     (entry) => entry.cardId === assigningCardId,
   );
+  const isAbilitiesTab = activeTab === "abilities";
+
+  useEffect(() => {
+    tabTransition.setValue(0);
+    Animated.timing(tabTransition, {
+      toValue: 1,
+      duration: 260,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [activeTab, tabTransition]);
+
+  const tabTransitionStyle = {
+    opacity: tabTransition,
+    transform: [
+      {
+        translateX: tabTransition.interpolate({
+          inputRange: [0, 1],
+          outputRange: [tabDirection.current * 28, 0],
+        }),
+      },
+    ],
+  };
+
+  function handleTabChange(nextTab: "abilities" | "assignments") {
+    if (nextTab === activeTab) {
+      return;
+    }
+
+    tabDirection.current = nextTab === "assignments" ? 1 : -1;
+    setActiveTab(nextTab);
+  }
 
   return (
     <>
@@ -170,247 +204,254 @@ export default function AdminAbilitiesScreen() {
                 value: "assignments",
               },
             ]}
-            onChange={setActiveTab}
+            onChange={handleTabChange}
           />
-          <AdminSearchInput
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholder={
-              activeTab === "abilities"
-                ? t("admin.abilities.searchAbilities")
-                : t("admin.abilities.searchCards")
-            }
-          />
-          {activeTab === "abilities" ? (
-            <View className="flex-row flex-wrap gap-2">
-              {(["all", "PASSIVE", "SKILL", "ULTIMATE"] as const).map(
-                (type) => (
-                  <AdminFilterChip
-                    key={type}
-                    label={
-                      type === "all"
-                        ? t("collection.all")
-                        : t(`admin.abilities.type.${type}`)
-                    }
-                    selected={typeFilter === type}
-                    onPress={() => setTypeFilter(type)}
-                  />
-                ),
-              )}
+          <Animated.View style={tabTransitionStyle}>
+            <View className="gap-3">
+              <AdminSearchInput
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholder={
+                  isAbilitiesTab
+                    ? t("admin.abilities.searchAbilities")
+                    : t("admin.abilities.searchCards")
+                }
+              />
+              {isAbilitiesTab ? (
+                <View className="flex-row flex-wrap gap-2">
+                  {(["all", "PASSIVE", "SKILL", "ULTIMATE"] as const).map(
+                    (type) => (
+                      <AdminFilterChip
+                        key={type}
+                        label={
+                          type === "all"
+                            ? t("collection.all")
+                            : t(`admin.abilities.type.${type}`)
+                        }
+                        selected={typeFilter === type}
+                        onPress={() => setTypeFilter(type)}
+                      />
+                    ),
+                  )}
+                </View>
+              ) : null}
             </View>
-          ) : null}
+          </Animated.View>
         </AdminHero>
 
-        {abilitiesError ? (
-          <AdminPanel>
-            <Text className="font-nunito-bold text-[13px] text-dangerText">
-              {abilitiesError}
-            </Text>
-          </AdminPanel>
-        ) : isAbilitiesLoading ? (
-          <AdminPanel>
-            <AdminLoadingState
-              title={
-                activeTab === "abilities"
-                  ? t("admin.abilities.loadingAbilities")
-                  : t("admin.abilities.loadingAssignments")
-              }
-              body={t("common.loadingStates.adminBody")}
-              icon={activeTab === "abilities" ? "flash" : "git-network"}
-            />
-          </AdminPanel>
-        ) : (
-          <AdminNotice
-            title={
-              activeTab === "abilities"
-                ? t("admin.abilities.libraryGuidanceTitle")
-                : t("admin.abilities.assignmentGuidanceTitle")
-            }
-            body={
-              activeTab === "abilities"
-                ? t("admin.abilities.libraryGuidanceBody")
-                : t("admin.abilities.assignmentGuidanceBody")
-            }
-            tone="info"
-            icon={
-              activeTab === "abilities"
-                ? "flash-outline"
-                : "git-network-outline"
-            }
-          />
-        )}
+        <Animated.View style={tabTransitionStyle}>
+          <View className="gap-4">
+            {abilitiesError ? (
+              <AdminPanel>
+                <Text className="font-nunito-bold text-[13px] text-dangerText">
+                  {abilitiesError}
+                </Text>
+              </AdminPanel>
+            ) : isAbilitiesLoading ? (
+              <AdminPanel>
+                <AdminLoadingState
+                  title={
+                    isAbilitiesTab
+                      ? t("admin.abilities.loadingAbilities")
+                      : t("admin.abilities.loadingAssignments")
+                  }
+                  body={t("common.loadingStates.adminBody")}
+                  icon={isAbilitiesTab ? "flash" : "git-network"}
+                />
+              </AdminPanel>
+            ) : (
+              <AdminNotice
+                title={
+                  isAbilitiesTab
+                    ? t("admin.abilities.libraryGuidanceTitle")
+                    : t("admin.abilities.assignmentGuidanceTitle")
+                }
+                body={
+                  isAbilitiesTab
+                    ? t("admin.abilities.libraryGuidanceBody")
+                    : t("admin.abilities.assignmentGuidanceBody")
+                }
+                tone="info"
+                icon={isAbilitiesTab ? "flash-outline" : "git-network-outline"}
+              />
+            )}
 
-        {activeTab === "abilities" ? (
-          <AdminPanel>
-            <AdminSectionTitle
-              title={t("admin.abilities.libraryTitle", {
-                count: filteredAbilities.length,
-              })}
-              subtitle={t("admin.abilities.librarySubtitle")}
-            />
-            <View className="mt-3 gap-3">
-              {abilitiesError ||
-              isAbilitiesLoading ? null : filteredAbilities.length ? (
-                filteredAbilities.map((ability) => (
-                  <Pressable
-                    key={ability.id}
-                    className="gap-[10] rounded-[22] border border-primaryBorder/20 bg-surfaceMuted p-[14]"
-                    onPress={() =>
-                      router.push({
-                        pathname: "/admin-ability-editor",
-                        params: { mode: "edit", abilityId: ability.id },
-                      } as any)
-                    }
-                  >
-                    <View className="flex-row items-center justify-between gap-2">
-                      <Text className="flex-1 font-nunito-extrabold text-[15px] text-fg">
-                        {ability.name}
-                      </Text>
-                      <AbilityTypeChip type={ability.type} />
-                    </View>
-                    <View className="flex-row flex-wrap gap-2">
-                      <AdminChip label={ability.key} tone="accent" />
-                      <AdminChip
-                        label={t("admin.abilities.costLabel", {
-                          cost: ability.cost,
-                        })}
-                        tone="info"
-                      />
-                      {ability.cooldown ? (
-                        <AdminChip
-                          label={t("admin.abilities.cooldownLabel", {
-                            count: ability.cooldown,
-                          })}
-                          tone="warning"
-                        />
-                      ) : null}
-                      {ability.oncePerMatch ? (
-                        <AdminChip
-                          label={t("admin.abilities.oncePerMatchShort")}
-                          tone="success"
-                        />
-                      ) : null}
-                    </View>
-                    <Text className="font-nunito-semibold text-[13px] leading-[19px] text-fgMuted">
-                      {ability.description}
-                    </Text>
-                    <View className="flex-row gap-2">
-                      <AdminButton
-                        label={t("admin.common.edit")}
-                        variant="ghost"
+            {isAbilitiesTab ? (
+              <AdminPanel>
+                <AdminSectionTitle
+                  title={t("admin.abilities.libraryTitle", {
+                    count: filteredAbilities.length,
+                  })}
+                  subtitle={t("admin.abilities.librarySubtitle")}
+                />
+                <View className="mt-3 gap-3">
+                  {abilitiesError ||
+                  isAbilitiesLoading ? null : filteredAbilities.length ? (
+                    filteredAbilities.map((ability) => (
+                      <Pressable
+                        key={ability.id}
+                        className="gap-[10] rounded-[22] border border-primaryBorder/20 bg-surfaceMuted p-[14]"
                         onPress={() =>
                           router.push({
                             pathname: "/admin-ability-editor",
                             params: { mode: "edit", abilityId: ability.id },
                           } as any)
                         }
-                      />
-                      <AdminButton
-                        label={t("admin.common.delete")}
-                        variant="danger"
-                        onPress={() => deleteMutation.mutate(ability.id)}
-                      />
-                    </View>
-                  </Pressable>
-                ))
-              ) : (
-                <AdminEmptyState
-                  icon="flash"
-                  title={t("admin.abilities.noAbilitiesTitle")}
-                  body={t("admin.abilities.noAbilitiesBody")}
+                      >
+                        <View className="flex-row items-center justify-between gap-2">
+                          <Text className="flex-1 font-nunito-extrabold text-[15px] text-fg">
+                            {ability.name}
+                          </Text>
+                          <AbilityTypeChip type={ability.type} />
+                        </View>
+                        <View className="flex-row flex-wrap gap-2">
+                          <AdminChip label={ability.key} tone="accent" />
+                          <AdminChip
+                            label={t("admin.abilities.costLabel", {
+                              cost: ability.cost,
+                            })}
+                            tone="info"
+                          />
+                          {ability.cooldown ? (
+                            <AdminChip
+                              label={t("admin.abilities.cooldownLabel", {
+                                count: ability.cooldown,
+                              })}
+                              tone="warning"
+                            />
+                          ) : null}
+                          {ability.oncePerMatch ? (
+                            <AdminChip
+                              label={t("admin.abilities.oncePerMatchShort")}
+                              tone="success"
+                            />
+                          ) : null}
+                        </View>
+                        <Text className="font-nunito-semibold text-[13px] leading-[19px] text-fgMuted">
+                          {ability.description}
+                        </Text>
+                        <View className="flex-row gap-2">
+                          <AdminButton
+                            label={t("admin.common.edit")}
+                            variant="ghost"
+                            onPress={() =>
+                              router.push({
+                                pathname: "/admin-ability-editor",
+                                params: { mode: "edit", abilityId: ability.id },
+                              } as any)
+                            }
+                          />
+                          <AdminButton
+                            label={t("admin.common.delete")}
+                            variant="danger"
+                            onPress={() => deleteMutation.mutate(ability.id)}
+                          />
+                        </View>
+                      </Pressable>
+                    ))
+                  ) : (
+                    <AdminEmptyState
+                      icon="flash"
+                      title={t("admin.abilities.noAbilitiesTitle")}
+                      body={t("admin.abilities.noAbilitiesBody")}
+                    />
+                  )}
+                </View>
+              </AdminPanel>
+            ) : (
+              <AdminPanel>
+                <AdminSectionTitle
+                  title={t("admin.abilities.assignmentsTitle", {
+                    count: filteredCards.length,
+                  })}
+                  subtitle={t("admin.abilities.assignmentsSubtitle")}
                 />
-              )}
-            </View>
-          </AdminPanel>
-        ) : (
-          <AdminPanel>
-            <AdminSectionTitle
-              title={t("admin.abilities.assignmentsTitle", {
-                count: filteredCards.length,
-              })}
-              subtitle={t("admin.abilities.assignmentsSubtitle")}
-            />
-            <View className="mt-3 gap-3">
-              {abilitiesError ||
-              isAbilitiesLoading ? null : filteredCards.length ? (
-                filteredCards.map((card) => {
-                  const assignment = abilitiesQuery.data?.cardAbilities.find(
-                    (entry) => entry.cardId === card.id,
-                  );
-                  const passive = abilitiesQuery.data?.abilities.find(
-                    (ability) => ability.id === assignment?.passiveId,
-                  );
-                  const skill = abilitiesQuery.data?.abilities.find(
-                    (ability) => ability.id === assignment?.skillId,
-                  );
-                  const ultimate = abilitiesQuery.data?.abilities.find(
-                    (ability) => ability.id === assignment?.ultimateId,
-                  );
+                <View className="mt-3 gap-3">
+                  {abilitiesError ||
+                  isAbilitiesLoading ? null : filteredCards.length ? (
+                    filteredCards.map((card) => {
+                      const assignment =
+                        abilitiesQuery.data?.cardAbilities.find(
+                          (entry) => entry.cardId === card.id,
+                        );
+                      const passive = abilitiesQuery.data?.abilities.find(
+                        (ability) => ability.id === assignment?.passiveId,
+                      );
+                      const skill = abilitiesQuery.data?.abilities.find(
+                        (ability) => ability.id === assignment?.skillId,
+                      );
+                      const ultimate = abilitiesQuery.data?.abilities.find(
+                        (ability) => ability.id === assignment?.ultimateId,
+                      );
 
-                  return (
-                    <Pressable
-                      key={card.id}
-                      className="gap-[10] rounded-[22] border border-primaryBorder/20 bg-surfaceMuted p-[14]"
-                      onPress={() => {
-                        setAssigningCardId(card.id);
-                        setAssignmentDraft({
-                          passiveId: assignment?.passiveId ?? "",
-                          skillId: assignment?.skillId ?? "",
-                          ultimateId: assignment?.ultimateId ?? "",
-                        });
-                      }}
-                    >
-                      <Text className="flex-1 font-nunito-extrabold text-[15px] text-fg">
-                        {card.name}
-                      </Text>
-                      <Text className="font-nunito-semibold text-xs text-muted">
-                        {card.character} - {card.type}
-                      </Text>
-                      <View className="flex-row flex-wrap gap-2">
-                        <AdminChip
-                          label={t("admin.abilities.passiveLabel", {
-                            name: passive?.name ?? t("admin.common.default"),
-                          })}
-                          tone="success"
-                        />
-                        <AdminChip
-                          label={t("admin.abilities.skillLabel", {
-                            name: skill?.name ?? t("admin.common.default"),
-                          })}
-                          tone="info"
-                        />
-                        <AdminChip
-                          label={t("admin.abilities.ultimateLabel", {
-                            name: ultimate?.name ?? t("admin.common.default"),
-                          })}
-                          tone="warning"
-                        />
-                      </View>
-                      <AdminButton
-                        label={t("admin.common.manage")}
-                        variant="ghost"
-                        onPress={() => {
-                          setAssigningCardId(card.id);
-                          setAssignmentDraft({
-                            passiveId: assignment?.passiveId ?? "",
-                            skillId: assignment?.skillId ?? "",
-                            ultimateId: assignment?.ultimateId ?? "",
-                          });
-                        }}
-                      />
-                    </Pressable>
-                  );
-                })
-              ) : (
-                <AdminEmptyState
-                  icon="people"
-                  title={t("admin.abilities.noCardsTitle")}
-                  body={t("admin.abilities.noCardsBody")}
-                />
-              )}
-            </View>
-          </AdminPanel>
-        )}
+                      return (
+                        <Pressable
+                          key={card.id}
+                          className="gap-[10] rounded-[22] border border-primaryBorder/20 bg-surfaceMuted p-[14]"
+                          onPress={() => {
+                            setAssigningCardId(card.id);
+                            setAssignmentDraft({
+                              passiveId: assignment?.passiveId ?? "",
+                              skillId: assignment?.skillId ?? "",
+                              ultimateId: assignment?.ultimateId ?? "",
+                            });
+                          }}
+                        >
+                          <Text className="flex-1 font-nunito-extrabold text-[15px] text-fg">
+                            {card.name}
+                          </Text>
+                          <Text className="font-nunito-semibold text-xs text-muted">
+                            {card.character} - {card.type}
+                          </Text>
+                          <View className="flex-row flex-wrap gap-2">
+                            <AdminChip
+                              label={t("admin.abilities.passiveLabel", {
+                                name:
+                                  passive?.name ?? t("admin.common.default"),
+                              })}
+                              tone="success"
+                            />
+                            <AdminChip
+                              label={t("admin.abilities.skillLabel", {
+                                name: skill?.name ?? t("admin.common.default"),
+                              })}
+                              tone="info"
+                            />
+                            <AdminChip
+                              label={t("admin.abilities.ultimateLabel", {
+                                name:
+                                  ultimate?.name ?? t("admin.common.default"),
+                              })}
+                              tone="warning"
+                            />
+                          </View>
+                          <AdminButton
+                            label={t("admin.common.manage")}
+                            variant="ghost"
+                            onPress={() => {
+                              setAssigningCardId(card.id);
+                              setAssignmentDraft({
+                                passiveId: assignment?.passiveId ?? "",
+                                skillId: assignment?.skillId ?? "",
+                                ultimateId: assignment?.ultimateId ?? "",
+                              });
+                            }}
+                          />
+                        </Pressable>
+                      );
+                    })
+                  ) : (
+                    <AdminEmptyState
+                      icon="people"
+                      title={t("admin.abilities.noCardsTitle")}
+                      body={t("admin.abilities.noCardsBody")}
+                    />
+                  )}
+                </View>
+              </AdminPanel>
+            )}
+          </View>
+        </Animated.View>
       </AdminPageScroll>
 
       <AdminModal

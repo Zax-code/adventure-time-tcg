@@ -1,6 +1,7 @@
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import { ModalBottomSheet } from "@swmansion/react-native-bottom-sheet";
 import {
+  Animated,
   Modal,
   Pressable,
   ScrollView,
@@ -37,6 +38,9 @@ const absoluteFill = {
   bottom: 0,
   left: 0,
 };
+
+const SEGMENTED_CONTROL_PADDING = 8;
+const SEGMENTED_CONTROL_GAP = 8;
 
 export function AdminBackground({ children }: { children: ReactNode }) {
   const { themeName } = useThemeStore();
@@ -136,14 +140,14 @@ export function AdminHero({
             <Text className="font-nunito-extrabold text-[30px] leading-[34px] text-fg">
               {title}
             </Text>
-            <Text className="font-nunito-semibold text-[14px] leading-[21px] text-fgMuted">
-              {subtitle}
-            </Text>
           </View>
-          {actions ? (
-            <View className="min-w-[116] max-w-[148]">{actions}</View>
-          ) : null}
+          <View className="min-h-[44] min-w-[116] max-w-[148] items-stretch justify-start">
+            {actions ? actions : <View className="min-h-[44] opacity-0" />}
+          </View>
         </View>
+        <Text className="font-nunito-semibold text-[14px] leading-[21px] text-fgMuted">
+          {subtitle}
+        </Text>
         {children ? <View className="gap-3">{children}</View> : null}
       </View>
     </AdminPanel>
@@ -371,15 +375,59 @@ export function AdminSegmentedControl<T extends string>({
 }) {
   const { themeName } = useThemeStore();
   const tc = THEME_COLORS[themeName];
+  const activeIndex = Math.max(
+    0,
+    options.findIndex((option) => option.value === value),
+  );
+  const [containerWidth, setContainerWidth] = useState(0);
+  const indicatorTranslateX = useRef(new Animated.Value(0)).current;
+  const segmentWidth =
+    containerWidth > 0
+      ? (containerWidth -
+          SEGMENTED_CONTROL_PADDING * 2 -
+          SEGMENTED_CONTROL_GAP * (options.length - 1)) /
+        options.length
+      : 0;
+
+  useEffect(() => {
+    if (!segmentWidth) {
+      return;
+    }
+
+    Animated.spring(indicatorTranslateX, {
+      toValue: activeIndex * (segmentWidth + SEGMENTED_CONTROL_GAP),
+      useNativeDriver: true,
+      damping: 18,
+      stiffness: 210,
+      mass: 0.9,
+    }).start();
+  }, [activeIndex, indicatorTranslateX, segmentWidth]);
 
   return (
     <View
       className="flex-row gap-2 rounded-[22] border p-2"
+      onLayout={(event) => setContainerWidth(event.nativeEvent.layout.width)}
       style={{
         backgroundColor: withAlpha(tc.surfaceMuted, "E6"),
         borderColor: withAlpha(tc.primaryBorder, "5C"),
       }}
     >
+      {segmentWidth ? (
+        <Animated.View
+          pointerEvents="none"
+          className="absolute rounded-[16]"
+          style={{
+            top: SEGMENTED_CONTROL_PADDING,
+            left: SEGMENTED_CONTROL_PADDING,
+            bottom: SEGMENTED_CONTROL_PADDING,
+            width: segmentWidth,
+            backgroundColor: tc.primaryText,
+            borderWidth: 1,
+            borderColor: tc.primaryDark,
+            transform: [{ translateX: indicatorTranslateX }],
+          }}
+        />
+      ) : null}
       {options.map((option) => {
         const active = option.value === value;
 
@@ -388,9 +436,6 @@ export function AdminSegmentedControl<T extends string>({
             key={option.value}
             onPress={() => onChange(option.value)}
             className="flex-1 items-center rounded-[16] px-3 py-[11]"
-            style={{
-              backgroundColor: active ? tc.primaryText : "transparent",
-            }}
           >
             <Text
               className="font-nunito-extrabold text-[13px]"
