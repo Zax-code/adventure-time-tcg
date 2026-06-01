@@ -46,7 +46,7 @@ export function QuestionZone({ pauseRemainingSeconds, currentQuestion, activeRun
   return (
     <View className="flex-1 items-center justify-center px-6">
       {pauseRemainingSeconds > 0 ? (
-        <View className="flex flex-col items-center justify-center">
+        <View className="flex flex-col items-center justify-center" style={{ transform: [{ translateY: -20 }] }}>
           <Text className="text-[10px] font-nunito-bold uppercase tracking-[4px] text-primary/50 mb-5">
             {t("quests.speedCalculusResumeCountdownTitle")}
           </Text>
@@ -69,7 +69,9 @@ export function QuestionZone({ pauseRemainingSeconds, currentQuestion, activeRun
                 transform="rotate(-90, 64, 64)"
               />
             </Svg>
-            <Text className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-center align-middle font-nunito-extrabold text-primaryDark text-[56px]">
+            <Text
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-center align-middle font-nunito-extrabold text-primaryDark text-[56px]"
+            >
                   {pauseRemainingSeconds}
             </Text>
           </View>
@@ -78,7 +80,7 @@ export function QuestionZone({ pauseRemainingSeconds, currentQuestion, activeRun
           </Text>
         </View>
       ) : currentQuestion ? (
-        <View className="items-center w-full">
+        <View className="items-center w-full" style={{ transform: [{ translateY: -20 }] }}>
           <Text className="text-[10px] font-nunito-bold uppercase tracking-[4px] text-primary/40">
             {t("quests.speedCalculusQuestionNumber", { current: (activeRun?.questionIndex ?? 0) + 1 })}
           </Text>
@@ -87,6 +89,7 @@ export function QuestionZone({ pauseRemainingSeconds, currentQuestion, activeRun
             className="font-nunito-extrabold text-primaryDark text-center text-[62px] leading-[70px]"
             adjustsFontSizeToFit
             numberOfLines={1}
+            style={{ transform: [{ translateY: -3 }] }}
           >
             {currentQuestion.left} {currentQuestion.operator} {currentQuestion.right}
           </Text>
