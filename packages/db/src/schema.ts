@@ -268,6 +268,7 @@ export const wordleDailyAttempts = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade", onUpdate: "cascade" }),
     date: text("date").notNull(),
+    locale: text("locale").notNull().default("fr"),
     attempt: integer("attempt").notNull(),
     guess: text("guess").notNull(),
     evaluation: text("evaluation").notNull(),
@@ -277,9 +278,10 @@ export const wordleDailyAttempts = pgTable(
       .notNull(),
   },
   (table) => [
-    uniqueIndex("wordle_attempts_user_date_attempt_key").on(
+    uniqueIndex("wordle_attempts_user_date_locale_attempt_key").on(
       table.userId,
       table.date,
+      table.locale,
       table.attempt,
     ),
   ],
