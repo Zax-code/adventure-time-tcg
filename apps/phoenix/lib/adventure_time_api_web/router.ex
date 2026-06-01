@@ -109,6 +109,7 @@ defmodule AdventureTimeApiWeb.Router do
     post("/quests/speed-calculus/resume", QuestsController, :resume_speed_calculus)
     post("/quests/speed-calculus/finish", QuestsController, :finish_speed_calculus)
     post("/quests/speed-calculus/cashout", QuestsController, :cashout_speed_calculus)
+    get("/wordle/definition", QuestsController, :wordle_definition)
     get("/wordle", QuestsController, :wordle_state)
     post("/wordle", QuestsController, :submit_wordle_guess)
 

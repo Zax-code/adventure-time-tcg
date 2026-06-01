@@ -636,6 +636,15 @@ export const wordleStateResponseSchema = z.object({
   resetByName: z.string().nullable().optional(),
 });
 
+export const wordleDefinitionResponseSchema = z.object({
+  locale: wordleLocaleSchema,
+  word: z.string(),
+  definition: z.string(),
+  partOfSpeech: z.string().nullable().optional(),
+  sourceName: z.string(),
+  sourceUrl: z.string().url(),
+});
+
 export const wordleSubmitSchema = z.object({
   locale: wordleLocaleSchema.optional(),
   guess: z.string().min(1),
@@ -1200,6 +1209,9 @@ export type FitbitDisconnectResponse = z.infer<
 export type ClaimQuestInput = z.infer<typeof claimQuestSchema>;
 export type ClaimQuestResponse = z.infer<typeof claimQuestResponseSchema>;
 export type WordleStateResponse = z.infer<typeof wordleStateResponseSchema>;
+export type WordleDefinitionResponse = z.infer<
+  typeof wordleDefinitionResponseSchema
+>;
 export type WordleLocale = z.infer<typeof wordleLocaleSchema>;
 export type WordleSubmitInput = z.infer<typeof wordleSubmitSchema>;
 export type WordleSubmitResponse = z.infer<typeof wordleSubmitResponseSchema>;

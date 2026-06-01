@@ -56,6 +56,13 @@ const quests = {
     revealedWord: "Le mot était : {word}",
     hideLetters: "Masquer les lettres pour screenshot",
     showLetters: "Réafficher les lettres",
+    showDefinition: "Voir la définition",
+    definitionTitle: "Définition du mot du jour",
+    definitionLoading: "Chargement de la définition...",
+    definitionError: "Impossible de charger la définition pour le moment.",
+    definitionWordLabel: "Mot du jour",
+    definitionSource: "Source : {source}",
+    definitionClose: "Fermer",
     resetTitle: "Trop tard, le mot a changé !",
     resetBody:
       "Le Wordle quotidien vient de passer à un nouveau mot. Ta grille en cours a été réinitialisée.",

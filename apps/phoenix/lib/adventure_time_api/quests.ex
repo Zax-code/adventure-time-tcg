@@ -409,6 +409,26 @@ defmodule AdventureTimeApi.Quests do
     end
   end
 
+  @doc "Return today's Wordle answer definition for the selected locale."
+  def wordle_definition(user_id, locale \\ nil) do
+    with {:ok, locale} <- normalize_wordle_locale(locale) do
+      date = current_reset_date_for_user(user_id)
+      word = get_daily_word(date, locale)
+
+      with {:ok, definition} <- get_stored_wordle_definition(locale, word) do
+        {:ok,
+         %{
+           locale: locale,
+           word: word,
+           definition: definition.definition,
+           partOfSpeech: definition.part_of_speech,
+           sourceName: definition.source_name,
+           sourceUrl: definition.source_url
+         }}
+      end
+    end
+  end
+
   @doc "Submit a Wordle guess. Returns evaluation or an error tuple with a code."
   def submit_wordle_guess(
         user_id,
@@ -541,6 +561,36 @@ defmodule AdventureTimeApi.Quests do
       )
 
       result
+    end
+  end
+
+  defp get_stored_wordle_definition(locale, word) do
+    case Repo.get_by(WordleDictionaryWord, locale: locale, word: word) do
+      %WordleDictionaryWord{definition: definition} = entry
+      when is_binary(definition) and definition != "" ->
+        {:ok,
+         %{
+           definition: definition,
+           part_of_speech: entry.definition_part_of_speech,
+           source_name: entry.definition_source_name || default_definition_source_name(locale),
+           source_url: entry.definition_source_url || default_definition_source_url(locale, word)
+         }}
+
+      %WordleDictionaryWord{} ->
+        {:error, :definition_not_found}
+
+      nil ->
+        {:error, :definition_not_found}
+    end
+  end
+
+  defp default_definition_source_name("en"), do: "Open English WordNet"
+  defp default_definition_source_name("fr"), do: "DBnary / Wiktionnaire"
+
+  defp default_definition_source_url(locale, word) do
+    case locale do
+      "en" -> "https://en-word.net/"
+      "fr" -> "https://fr.wiktionary.org/wiki/#{URI.encode(String.downcase(word))}#Fran%C3%A7ais"
     end
   end
 

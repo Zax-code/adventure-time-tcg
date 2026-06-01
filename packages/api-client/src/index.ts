@@ -85,6 +85,7 @@ import {
   usersResponseSchema,
   verifyEmailResponseSchema,
   verifyEmailSchema,
+  wordleDefinitionResponseSchema,
   wordleStateResponseSchema,
   wordleSubmitResponseSchema,
   wordleSubmitSchema,
@@ -149,6 +150,7 @@ import {
   type UpdateTimezoneInput,
   type VerifyEmailInput,
   type VerifyEmailResponse,
+  type WordleDefinitionResponse,
   type WordleStateResponse,
   type WordleSubmitInput,
   type WordleSubmitResponse,
@@ -526,6 +528,15 @@ export class ApiClient {
     const query = locale ? `?locale=${encodeURIComponent(locale)}` : "";
     return this.request(`/wordle${query}`, { method: "GET" }, (data) =>
       wordleStateResponseSchema.parse(data),
+    );
+  }
+
+  async wordleDefinition(
+    locale?: "fr" | "en",
+  ): Promise<WordleDefinitionResponse> {
+    const query = locale ? `?locale=${encodeURIComponent(locale)}` : "";
+    return this.request(`/wordle/definition${query}`, { method: "GET" }, (data) =>
+      wordleDefinitionResponseSchema.parse(data),
     );
   }
 

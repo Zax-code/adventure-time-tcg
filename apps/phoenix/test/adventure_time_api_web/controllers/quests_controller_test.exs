@@ -327,6 +327,102 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
     assert finished_state["targetWord"] == target
   end
 
+  test "GET /wordle/definition returns localized definitions stored in the DB", _context do
+    user = create_user_with_password("wordle-definition@example.com", "password123")
+    access_token = login_access_token(user.email, "password123")
+    date = Quests.current_reset_date()
+    french_target = WordleEngine.select_word_for_date(sorted_words("fr"), date)
+    english_target = WordleEngine.select_word_for_date(sorted_words("en"), date)
+
+    Repo.get_by!(WordleDictionaryWord, locale: "fr", word: french_target)
+    |> Ecto.Changeset.change(%{
+      definition: "(Psychologie) Sentiment intense et agréable qui incite les êtres à s’unir.",
+      definition_part_of_speech: "Nom commun",
+      definition_source_name: "DBnary / Wiktionnaire",
+      definition_source_url:
+        "https://fr.wiktionary.org/wiki/#{String.downcase(french_target)}#Fran%C3%A7ais",
+      definition_fetched_at: DateTime.utc_now() |> DateTime.truncate(:microsecond)
+    })
+    |> Repo.update!()
+
+    Repo.get_by!(WordleDictionaryWord, locale: "en", word: english_target)
+    |> Ecto.Changeset.change(%{
+      definition: "A common, firm, round fruit produced by a tree of the genus Malus.",
+      definition_part_of_speech: "Noun",
+      definition_source_name: "Open English WordNet",
+      definition_source_url: "https://en-word.net/",
+      definition_fetched_at: DateTime.utc_now() |> DateTime.truncate(:microsecond)
+    })
+    |> Repo.update!()
+
+    french_definition =
+      access_token
+      |> auth_conn()
+      |> get(~p"/wordle/definition?locale=fr")
+      |> json_response(200)
+
+    assert french_definition == %{
+             "locale" => "fr",
+             "word" => french_target,
+             "definition" =>
+               "(Psychologie) Sentiment intense et agréable qui incite les êtres à s’unir.",
+             "partOfSpeech" => "Nom commun",
+             "sourceName" => "DBnary / Wiktionnaire",
+             "sourceUrl" =>
+               "https://fr.wiktionary.org/wiki/#{String.downcase(french_target)}#Fran%C3%A7ais"
+           }
+
+    english_definition =
+      access_token
+      |> auth_conn()
+      |> get(~p"/wordle/definition?locale=en")
+      |> json_response(200)
+
+    assert english_definition == %{
+             "locale" => "en",
+             "word" => english_target,
+             "definition" => "A common, firm, round fruit produced by a tree of the genus Malus.",
+             "partOfSpeech" => "Noun",
+             "sourceName" => "Open English WordNet",
+             "sourceUrl" => "https://en-word.net/"
+           }
+
+    cached_french =
+      access_token
+      |> auth_conn()
+      |> get(~p"/wordle/definition?locale=fr")
+      |> json_response(200)
+
+    assert cached_french == french_definition
+
+    french_row = Repo.get_by!(WordleDictionaryWord, locale: "fr", word: french_target)
+    english_row = Repo.get_by!(WordleDictionaryWord, locale: "en", word: english_target)
+
+    assert french_row.definition == french_definition["definition"]
+    assert french_row.definition_part_of_speech == "Nom commun"
+    assert is_struct(french_row.definition_fetched_at, DateTime)
+
+    assert english_row.definition == english_definition["definition"]
+    assert english_row.definition_part_of_speech == "Noun"
+    assert is_struct(english_row.definition_fetched_at, DateTime)
+  end
+
+  test "GET /wordle/definition returns 404 when the DB has no stored definition", _context do
+    user = create_user_with_password("wordle-definition-missing@example.com", "password123")
+    access_token = login_access_token(user.email, "password123")
+
+    response =
+      access_token
+      |> auth_conn()
+      |> get(~p"/wordle/definition?locale=fr")
+      |> json_response(404)
+
+    assert response == %{
+             "error" => "Definition not found for today's Wordle word",
+             "code" => "WORDLE_DEFINITION_NOT_FOUND"
+           }
+  end
+
   test "wordle keeps language boards separate and awards the quest only once", _context do
     user = create_user_with_password("wordle-bilingual@example.com", "password123")
     access_token = login_access_token(user.email, "password123")
