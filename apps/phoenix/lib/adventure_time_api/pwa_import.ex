@@ -17,7 +17,9 @@ defmodule AdventureTimeApi.PwaImport do
   alias AdventureTimeApi.Quests.{
     DailyQuest,
     SpeedCalculusDailyRun,
+    WordleDefinitionImporter,
     WordleDailyAttempt,
+    WordleEngine,
     WordleDictionaryWord
   }
 
@@ -482,8 +484,15 @@ defmodule AdventureTimeApi.PwaImport do
         }
       end)
 
+    valid_french_word_set = load_valid_french_word_set()
+
     wordle_dictionary_words =
-      Enum.map(data.wordle_dictionary_words, fn row ->
+      data.wordle_dictionary_words
+      |> Enum.filter(fn row ->
+        row.locale != "fr" or is_nil(valid_french_word_set) or
+          MapSet.member?(valid_french_word_set, row.word)
+      end)
+      |> Enum.map(fn row ->
         %{
           id: map_id(:wordle_dictionary_word, row.id),
           locale: row.locale,
@@ -1642,6 +1651,23 @@ defmodule AdventureTimeApi.PwaImport do
   defp present_string(value) when is_binary(value) do
     trimmed = String.trim(value)
     if trimmed == "", do: nil, else: trimmed
+  end
+
+  defp load_valid_french_word_set do
+    case WordleDefinitionImporter.default_sources()[:fr_word_list] do
+      nil ->
+        nil
+
+      source_path ->
+        source_path
+        |> File.stream!()
+        |> Stream.map(&String.trim/1)
+        |> Stream.reject(&(&1 == ""))
+        |> Stream.filter(&WordleEngine.letter_only_source_word?/1)
+        |> Stream.map(&WordleEngine.normalize/1)
+        |> Stream.filter(&WordleEngine.valid_length_and_format?/1)
+        |> Enum.into(MapSet.new())
+    end
   end
 
   defp write_report!(report, report_dir, suffix) do

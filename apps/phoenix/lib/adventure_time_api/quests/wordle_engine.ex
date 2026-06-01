@@ -18,6 +18,19 @@ defmodule AdventureTimeApi.Quests.WordleEngine do
     |> String.upcase()
   end
 
+  @doc """
+  Returns true when the raw source word is a single token made only of letters.
+  This rejects punctuation compounds before normalization can collapse them into
+  fake 5-letter Wordle entries.
+  """
+  def letter_only_source_word?(word) when is_binary(word) do
+    word
+    |> String.trim()
+    |> String.match?(~r/^\p{L}+$/u)
+  end
+
+  def letter_only_source_word?(_word), do: false
+
   @doc "Returns true if the word is exactly #{@target_length} uppercase ASCII letters."
   def valid_length_and_format?(word) do
     String.match?(word, ~r/^[A-Z]{#{@target_length}}$/)

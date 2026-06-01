@@ -95,6 +95,46 @@ defmodule AdventureTimeApi.Quests.WordleDefinitionImporterTest do
            }
   end
 
+  test "load_french_definitions_from_lines keeps target entries when senses arrive after the form" do
+    lines = [
+      "fra:bilee__verb__1  rdf:type  ontolex:Word , ontolex:LexicalEntry;",
+      "        dbnary:partOfSpeech    \"-verb-\";",
+      "        ontolex:canonicalForm  fra:__cf_bilee__verb__1;",
+      "",
+      "fra:__cf_bilee__verb__1",
+      "        rdf:type             ontolex:Form;",
+      "        ontolex:writtenRep   \"bilée\"@fr .",
+      "",
+      "fra:bilee__verb__1",
+      "        ontolex:sense          fra:__ws_1_bilee__verb__1 .",
+      "",
+      "fra:__ws_1_bilee__verb__1",
+      "        rdf:type            ontolex:LexicalSense;",
+      "        skos:definition     [ rdf:value  \"Participe passe feminin singulier du verbe biler.\"@fr ] ."
+    ]
+
+    assert WordleDefinitionImporter.load_french_definitions_from_lines(lines, ["BILEE"]) == %{
+             "BILEE" => [
+               %{
+                 display_word: "bilée",
+                 definition: "Participe passe feminin singulier du verbe biler.",
+                 part_of_speech: "Verbe",
+                 source_name: "DBnary / Wiktionnaire",
+                 source_url: "https://fr.wiktionary.org/wiki/bil%C3%A9e#Fran%C3%A7ais"
+               }
+             ]
+           }
+  end
+
+  test "load_french_display_variants_from_lines ignores punctuation compounds" do
+    assert WordleDefinitionImporter.load_french_display_variants_from_lines(
+             ["abîme", "abîmé", "fût-ce", "mis fin"],
+             ["ABIME", "FUTCE", "MIFIN"]
+           ) == %{
+             "ABIME" => MapSet.new(["abîme", "abîmé"])
+           }
+  end
+
   test "load_english_oewn_from_dir resolves definitions through entries and synsets" do
     tmp_dir =
       Path.join(
