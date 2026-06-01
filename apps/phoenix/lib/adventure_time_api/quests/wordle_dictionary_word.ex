@@ -7,6 +7,7 @@ defmodule AdventureTimeApi.Quests.WordleDictionaryWord do
   schema "wordle_dictionary_words" do
     field(:locale, :string)
     field(:word, :string)
+    field(:display_word, :string)
     field(:is_allowed_guess, :boolean, default: true)
     field(:is_solution_candidate, :boolean, default: true)
     field(:definition, :string)
@@ -23,6 +24,7 @@ defmodule AdventureTimeApi.Quests.WordleDictionaryWord do
     |> cast(attrs, [
       :locale,
       :word,
+      :display_word,
       :is_allowed_guess,
       :is_solution_candidate,
       :definition,

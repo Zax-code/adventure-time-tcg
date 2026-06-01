@@ -15,6 +15,8 @@ defmodule Mix.Tasks.Wordle.ImportDefinitions do
           locale: :string,
           scope: :string,
           fr_dbnary: :string,
+          fr_wiktextract: :string,
+          fr_word_list: :string,
           en_oewn: :string,
           en_wiktextract: :string
         ]

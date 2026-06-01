@@ -3,19 +3,32 @@ defmodule AdventureTimeApi.Quests.WordleDefinitionImporter do
 
   import Ecto.Query, only: [from: 2]
 
-  alias AdventureTimeApi.Quests.{WordleDictionaryWord, WordleEngine}
+  alias AdventureTimeApi.Quests.{
+    WordleDictionaryWord,
+    WordleDictionaryWordDefinition,
+    WordleEngine
+  }
+
   alias AdventureTimeApi.Repo
 
   @supported_locales ["fr", "en"]
   @supported_scopes ["solutions", "all"]
 
   @fr_source_name "DBnary / Wiktionnaire"
+  @fr_wiktextract_source_name "Wiktextract / Wiktionnaire"
   @en_oewn_source_name "Open English WordNet"
   @en_wiktextract_source_name "Wiktextract / English Wiktionary"
 
   @default_fr_dbnary_url "https://kaiko.getalp.org/static/ontolex/latest/fr_dbnary_ontolex.ttl.bz2"
+  @default_wiktextract_url "https://kaikki.org/dictionary/raw-wiktextract-data.jsonl.gz"
   @default_en_oewn_url "https://en-word.net/static/english-wordnet-2025-json.zip"
-  @default_en_wiktextract_url "https://kaikki.org/dictionary/raw-wiktextract-data.jsonl.gz"
+  @default_en_wiktextract_url @default_wiktextract_url
+
+  @default_fr_word_list_candidates [
+    "/home/zax/adventure-time-tcg-pwa/wordle-french-word-list.txt",
+    "~/adventure-time-tcg-pwa/wordle-french-word-list.txt",
+    "~/Develop/adventure-time-tcg-pwa/wordle-french-word-list.txt"
+  ]
 
   @fr_pos_labels %{
     "-adj-" => "Adjectif",
@@ -71,6 +84,8 @@ defmodule AdventureTimeApi.Quests.WordleDefinitionImporter do
   def default_sources do
     %{
       fr_dbnary: @default_fr_dbnary_url,
+      fr_wiktextract: @default_wiktextract_url,
+      fr_word_list: default_french_word_list_source(),
       en_oewn: @default_en_oewn_url,
       en_wiktextract: @default_en_wiktextract_url
     }
@@ -99,15 +114,55 @@ defmodule AdventureTimeApi.Quests.WordleDefinitionImporter do
 
   defp import_locale("fr", scope, opts, temp_dir) do
     target_words = target_words("fr", scope)
+    display_variants_by_word = load_french_display_variants(target_words, opts)
     source = opts[:fr_dbnary] || @default_fr_dbnary_url
 
     with {:ok, source_path} <- ensure_source_file(source, temp_dir, "fr_dbnary_ontolex.ttl.bz2") do
-      definitions =
+      dbnary_definitions =
         source_path
         |> decompressed_line_stream()
-        |> load_french_definitions_from_lines(target_words)
+        |> load_french_definitions_from_lines(target_words, display_variants_by_word)
 
-      build_result("fr", target_words, definitions, persist_definitions("fr", definitions))
+      missing_words =
+        MapSet.difference(MapSet.new(target_words), Map.keys(dbnary_definitions) |> MapSet.new())
+        |> MapSet.to_list()
+        |> Enum.sort()
+
+      wiktextract_definitions =
+        if missing_words == [] do
+          %{}
+        else
+          wiktextract_source = opts[:fr_wiktextract] || @default_wiktextract_url
+
+          with {:ok, wiktextract_path} <-
+                 ensure_source_file(wiktextract_source, temp_dir, "raw-wiktextract-data.jsonl.gz") do
+            wiktextract_path
+            |> decompressed_line_stream()
+            |> load_french_wiktextract_from_lines(missing_words, display_variants_by_word)
+          end
+        end
+
+      definitions =
+        case wiktextract_definitions do
+          %{} = fallback_definitions ->
+            merge_word_variant_maps(dbnary_definitions, fallback_definitions)
+
+          {:error, _reason} = error ->
+            error
+        end
+
+      case definitions do
+        %{} = resolved_definitions ->
+          build_result(
+            "fr",
+            target_words,
+            resolved_definitions,
+            persist_definitions("fr", resolved_definitions, display_variants_by_word)
+          )
+
+        {:error, _reason} = error ->
+          error
+      end
     end
   end
 
@@ -143,8 +198,11 @@ defmodule AdventureTimeApi.Quests.WordleDefinitionImporter do
 
       definitions =
         case wiktextract_definitions do
-          %{} = fallback_definitions -> Map.merge(oewn_definitions, fallback_definitions)
-          {:error, _reason} = error -> error
+          %{} = fallback_definitions ->
+            merge_word_variant_maps(oewn_definitions, fallback_definitions)
+
+          {:error, _reason} = error ->
+            error
         end
 
       case definitions do
@@ -194,27 +252,75 @@ defmodule AdventureTimeApi.Quests.WordleDefinitionImporter do
     |> Enum.sort()
   end
 
-  defp persist_definitions(locale, definitions) do
+  defp persist_definitions(locale, definitions_by_word, display_variants_by_word \\ %{}) do
     now = DateTime.utc_now() |> DateTime.truncate(:microsecond)
+    words = Map.keys(definitions_by_word)
 
     Repo.transaction(fn ->
-      Enum.reduce(definitions, 0, fn {word, definition}, updated_count ->
-        {count, _rows} =
-          from(
-            w in WordleDictionaryWord,
-            where: w.locale == ^locale and w.word == ^word
-          )
-          |> Repo.update_all(
-            set: [
-              definition: definition.definition,
-              definition_part_of_speech: definition.part_of_speech,
-              definition_source_name: definition.source_name,
-              definition_source_url: definition.source_url,
-              definition_fetched_at: now
-            ]
-          )
+      word_rows =
+        from(
+          w in WordleDictionaryWord,
+          where: w.locale == ^locale and w.word in ^words,
+          select: {w.word, w.id}
+        )
+        |> Repo.all()
+        |> Map.new()
 
-        updated_count + count
+      Enum.reduce(definitions_by_word, 0, fn {word, variants}, updated_count ->
+        case Map.get(word_rows, word) do
+          nil ->
+            updated_count
+
+          word_id ->
+            resolved_variants =
+              display_variants_by_word
+              |> Map.get(word, MapSet.new())
+              |> normalize_display_variant_set()
+              |> then(&prepare_variants(locale, word, variants, &1, now))
+
+            from(d in WordleDictionaryWordDefinition,
+              where: d.wordle_dictionary_word_id == ^word_id
+            )
+            |> Repo.delete_all()
+
+            if resolved_variants != [] do
+              Repo.insert_all(
+                WordleDictionaryWordDefinition,
+                Enum.map(resolved_variants, fn variant ->
+                  %{
+                    id: Ecto.UUID.generate(),
+                    wordle_dictionary_word_id: word_id,
+                    display_word: variant.display_word,
+                    definition: variant.definition,
+                    part_of_speech: variant.part_of_speech,
+                    source_name: variant.source_name,
+                    source_url: variant.source_url,
+                    fetched_at: now,
+                    inserted_at: now
+                  }
+                end)
+              )
+
+              primary_variant = List.first(resolved_variants)
+
+              from(
+                w in WordleDictionaryWord,
+                where: w.id == ^word_id
+              )
+              |> Repo.update_all(
+                set: [
+                  display_word: primary_variant.display_word,
+                  definition: primary_variant.definition,
+                  definition_part_of_speech: primary_variant.part_of_speech,
+                  definition_source_name: primary_variant.source_name,
+                  definition_source_url: primary_variant.source_url,
+                  definition_fetched_at: now
+                ]
+              )
+            end
+
+            updated_count + 1
+        end
       end)
     end)
     |> case do
@@ -224,7 +330,7 @@ defmodule AdventureTimeApi.Quests.WordleDefinitionImporter do
   end
 
   @doc false
-  def load_french_definitions_from_lines(lines, target_words) do
+  def load_french_definitions_from_lines(lines, target_words, display_variants_by_word \\ %{}) do
     normalized_targets = target_words |> Enum.map(&WordleEngine.normalize/1) |> MapSet.new()
 
     initial_state = %{
@@ -250,12 +356,17 @@ defmodule AdventureTimeApi.Quests.WordleDefinitionImporter do
 
     Enum.reduce(final_state.relevant_entries, %{}, fn {_entry_subject, entry}, acc ->
       if is_binary(entry.word) and is_binary(entry.definition) and entry.definition != "" do
-        Map.put(acc, entry.word, %{
-          definition: entry.definition,
-          part_of_speech: entry.part_of_speech,
-          source_name: @fr_source_name,
-          source_url: french_source_url(entry.word)
-        })
+        put_word_variant(
+          acc,
+          entry.word,
+          %{
+            display_word: resolve_french_display_word(entry, display_variants_by_word),
+            definition: entry.definition,
+            part_of_speech: entry.part_of_speech,
+            source_name: @fr_source_name,
+            source_url: french_source_url(entry.raw_word || entry.word)
+          }
+        )
       else
         acc
       end
@@ -306,6 +417,7 @@ defmodule AdventureTimeApi.Quests.WordleDefinitionImporter do
             relevant_entries =
               Map.put(state.relevant_entries, entry_subject, %{
                 word: normalized_word,
+                raw_word: normalize_display_word(raw_word),
                 definition: nil,
                 part_of_speech: pending_entry[:part_of_speech]
               })
@@ -396,12 +508,17 @@ defmodule AdventureTimeApi.Quests.WordleDefinitionImporter do
           acc
 
         definition ->
-          Map.put(acc, word, %{
-            definition: definition,
-            part_of_speech: candidate.part_of_speech,
-            source_name: @en_oewn_source_name,
-            source_url: "https://en-word.net/"
-          })
+          put_word_variant(
+            acc,
+            word,
+            %{
+              display_word: String.downcase(word),
+              definition: definition,
+              part_of_speech: candidate.part_of_speech,
+              source_name: @en_oewn_source_name,
+              source_url: "https://en-word.net/"
+            }
+          )
       end
     end)
   end
@@ -507,6 +624,7 @@ defmodule AdventureTimeApi.Quests.WordleDefinitionImporter do
 
                       definition ->
                         record = %{
+                          display_word: normalize_display_word(word),
                           definition: definition.definition,
                           part_of_speech: definition.part_of_speech,
                           source_name: @en_wiktextract_source_name,
@@ -514,7 +632,7 @@ defmodule AdventureTimeApi.Quests.WordleDefinitionImporter do
                         }
 
                         {:cont,
-                         {Map.put(definitions, normalized_word, record),
+                         {put_word_variant(definitions, normalized_word, record),
                           MapSet.delete(pending_words, normalized_word)}}
                     end
                 end
@@ -527,6 +645,118 @@ defmodule AdventureTimeApi.Quests.WordleDefinitionImporter do
       end)
 
     definitions
+  end
+
+  @doc false
+  def load_french_wiktextract_from_lines(lines, target_words, display_variants_by_word \\ %{}) do
+    pending_words = target_words |> Enum.map(&WordleEngine.normalize/1) |> MapSet.new()
+
+    {definitions, _pending_words} =
+      Enum.reduce_while(lines, {%{}, pending_words}, fn raw_line, {definitions, pending_words} ->
+        if MapSet.size(pending_words) == 0 do
+          {:halt, {definitions, pending_words}}
+        else
+          line = String.trim(raw_line)
+
+          if line == "" do
+            {:cont, {definitions, pending_words}}
+          else
+            case Jason.decode(line) do
+              {:ok, entry} ->
+                word = entry["word"]
+                lang_code = entry["lang_code"]
+                normalized_word = if is_binary(word), do: WordleEngine.normalize(word), else: nil
+
+                cond do
+                  lang_code != "fr" or not is_binary(normalized_word) ->
+                    {:cont, {definitions, pending_words}}
+
+                  not MapSet.member?(pending_words, normalized_word) ->
+                    {:cont, {definitions, pending_words}}
+
+                  not allowed_french_display_variant?(
+                    normalized_word,
+                    normalize_display_word(word),
+                    display_variants_by_word
+                  ) ->
+                    {:cont, {definitions, pending_words}}
+
+                  true ->
+                    case extract_wiktextract_definition(entry) do
+                      nil ->
+                        {:cont, {definitions, pending_words}}
+
+                      definition ->
+                        record = %{
+                          display_word:
+                            resolve_french_display_word(
+                              %{
+                                word: normalized_word,
+                                raw_word: normalize_display_word(word)
+                              },
+                              display_variants_by_word
+                            ),
+                          definition: definition.definition,
+                          part_of_speech: definition.part_of_speech,
+                          source_name: @fr_wiktextract_source_name,
+                          source_url: french_source_url(word)
+                        }
+
+                        updated_definitions =
+                          put_word_variant(definitions, normalized_word, record)
+
+                        updated_pending_words =
+                          if has_all_french_variants?(
+                               normalized_word,
+                               updated_definitions,
+                               display_variants_by_word
+                             ) do
+                            MapSet.delete(pending_words, normalized_word)
+                          else
+                            pending_words
+                          end
+
+                        {:cont, {updated_definitions, updated_pending_words}}
+                    end
+                end
+
+              _ ->
+                {:cont, {definitions, pending_words}}
+            end
+          end
+        end
+      end)
+
+    definitions
+  end
+
+  @doc false
+  def load_french_display_variants_from_lines(lines, target_words) do
+    target_set = target_words |> MapSet.new()
+
+    Enum.reduce(lines, %{}, fn raw_line, acc ->
+      raw_line
+      |> String.trim()
+      |> normalize_display_word()
+      |> case do
+        "" ->
+          acc
+
+        display_word ->
+          normalized_word = WordleEngine.normalize(display_word)
+
+          if String.length(normalized_word) == 5 and MapSet.member?(target_set, normalized_word) do
+            Map.update(
+              acc,
+              normalized_word,
+              MapSet.new([display_word]),
+              &MapSet.put(&1, display_word)
+            )
+          else
+            acc
+          end
+      end
+    end)
   end
 
   defp extract_wiktextract_definition(entry) do
@@ -555,6 +785,158 @@ defmodule AdventureTimeApi.Quests.WordleDefinitionImporter do
   end
 
   defp format_wiktextract_pos(_pos), do: nil
+
+  defp merge_word_variant_maps(left, right) do
+    Map.merge(left, right, fn _word, left_variants, right_variants ->
+      dedupe_variants(left_variants ++ right_variants)
+    end)
+  end
+
+  defp put_word_variant(acc, word, variant) do
+    Map.update(acc, word, [variant], fn variants ->
+      dedupe_variants(variants ++ [variant])
+    end)
+  end
+
+  defp dedupe_variants(variants) do
+    variants
+    |> Enum.reduce(%{}, fn variant, acc ->
+      key =
+        variant.display_word
+        |> normalize_display_word()
+        |> String.downcase()
+
+      Map.put_new(acc, key, variant)
+    end)
+    |> Map.values()
+    |> Enum.sort_by(fn variant -> String.downcase(variant.display_word) end)
+  end
+
+  defp prepare_variants(locale, word, variants, display_variants, _now) do
+    variants
+    |> Enum.map(&resolve_variant(locale, word, &1, display_variants))
+    |> Enum.reject(&is_nil/1)
+    |> dedupe_variants()
+  end
+
+  defp resolve_variant("fr", word, variant, display_variants) do
+    display_word =
+      variant
+      |> Map.put(:word, word)
+      |> resolve_french_display_word(display_variants)
+
+    if valid_definition?(variant.definition) and valid_definition?(display_word) do
+      %{variant | display_word: display_word, source_url: french_source_url(display_word)}
+    end
+  end
+
+  defp resolve_variant(_locale, _word, variant, _display_variants) do
+    display_word = normalize_display_word(variant.display_word || "")
+
+    if valid_definition?(variant.definition) and valid_definition?(display_word) do
+      %{variant | display_word: display_word}
+    end
+  end
+
+  defp resolve_french_display_word(entry, display_variants_by_word) do
+    normalized_word = entry.word
+    raw_word = normalize_display_word(entry[:raw_word] || "")
+    allowed_variants = Map.get(display_variants_by_word, normalized_word, MapSet.new())
+    allowed_list = allowed_variants |> Enum.to_list() |> Enum.sort()
+
+    resolved =
+      cond do
+        raw_word != "" and MapSet.size(allowed_variants) == 0 ->
+          raw_word
+
+        raw_word != "" ->
+          Enum.find(allowed_list, &(String.downcase(&1) == String.downcase(raw_word)))
+
+        MapSet.size(allowed_variants) == 1 ->
+          hd(allowed_list)
+
+        true ->
+          List.first(allowed_list)
+      end
+
+    cond do
+      is_binary(resolved) and resolved != "" -> resolved
+      allowed_list != [] -> hd(allowed_list)
+      raw_word != "" -> raw_word
+      true -> String.downcase(normalized_word)
+    end
+  end
+
+  defp allowed_french_display_variant?(normalized_word, display_word, display_variants_by_word) do
+    allowed_variants = Map.get(display_variants_by_word, normalized_word, MapSet.new())
+    display_word = normalize_display_word(display_word)
+
+    MapSet.size(allowed_variants) == 0 or
+      MapSet.member?(allowed_variants, display_word) or
+      Enum.any?(allowed_variants, &(String.downcase(&1) == String.downcase(display_word)))
+  end
+
+  defp has_all_french_variants?(normalized_word, definitions, display_variants_by_word) do
+    expected_variants = Map.get(display_variants_by_word, normalized_word, MapSet.new())
+
+    if MapSet.size(expected_variants) == 0 do
+      Map.has_key?(definitions, normalized_word)
+    else
+      found_variants =
+        definitions
+        |> Map.get(normalized_word, [])
+        |> Enum.map(&normalize_display_word(&1.display_word))
+        |> MapSet.new()
+
+      MapSet.subset?(expected_variants, found_variants)
+    end
+  end
+
+  defp normalize_display_variant_set(%MapSet{} = display_variants), do: display_variants
+  defp normalize_display_variant_set(_), do: MapSet.new()
+
+  defp load_french_display_variants(target_words, opts) do
+    case opts[:fr_word_list] || default_french_word_list_source() do
+      nil ->
+        %{}
+
+      source ->
+        case ensure_optional_source_file(source) do
+          {:ok, source_path} ->
+            source_path
+            |> decompressed_line_stream()
+            |> load_french_display_variants_from_lines(target_words)
+
+          {:error, {:file_not_found, _path}} ->
+            %{}
+        end
+    end
+  end
+
+  defp default_french_word_list_source do
+    Enum.find_value(@default_fr_word_list_candidates, fn candidate ->
+      expanded = Path.expand(candidate)
+      if File.exists?(expanded), do: expanded
+    end)
+  end
+
+  defp ensure_optional_source_file(source) when is_binary(source) do
+    expanded = Path.expand(source)
+
+    if File.exists?(expanded) do
+      {:ok, expanded}
+    else
+      {:error, {:file_not_found, expanded}}
+    end
+  end
+
+  defp normalize_display_word(word) when is_binary(word) do
+    word
+    |> String.trim()
+    |> :unicode.characters_to_nfc_binary()
+  end
+
+  defp normalize_display_word(_word), do: ""
 
   defp normalize_definition(definition) when is_binary(definition) do
     definition
@@ -687,7 +1069,7 @@ defmodule AdventureTimeApi.Quests.WordleDefinitionImporter do
   end
 
   defp extract_form_subject(line) do
-    case Regex.run(~r/ontolex:canonicalForm\s+(\S+)/, line) do
+    case Regex.run(~r/ontolex:(?:canonicalForm|otherForm)\s+(\S+)/, line) do
       [_, subject] -> clean_ttl_identifier(subject)
       _ -> nil
     end
@@ -771,10 +1153,12 @@ defmodule AdventureTimeApi.Quests.WordleDefinitionImporter do
   end
 
   defp french_source_url(word) do
-    "https://fr.wiktionary.org/wiki/#{URI.encode(String.downcase(word))}#Fran%C3%A7ais"
+    encoded_word = word |> normalize_display_word() |> String.downcase() |> URI.encode()
+    "https://fr.wiktionary.org/wiki/#{encoded_word}#Fran%C3%A7ais"
   end
 
   defp english_wiktionary_source_url(word) do
-    "https://en.wiktionary.org/wiki/#{URI.encode(String.downcase(word))}#English"
+    encoded_word = word |> normalize_display_word() |> String.downcase() |> URI.encode()
+    "https://en.wiktionary.org/wiki/#{encoded_word}#English"
   end
 end

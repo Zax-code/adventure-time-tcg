@@ -61,6 +61,7 @@ const quests = {
     definitionLoading: "Chargement de la définition...",
     definitionError: "Impossible de charger la définition pour le moment.",
     definitionWordLabel: "Mot du jour",
+    definitionChoicesLabel: "Mots accentués possibles",
     definitionSource: "Source : {source}",
     definitionClose: "Fermer",
     resetTitle: "Trop tard, le mot a changé !",

@@ -61,6 +61,7 @@ const quests = {
     definitionLoading: "Loading the definition...",
     definitionError: "Could not load the definition right now.",
     definitionWordLabel: "Today's word",
+    definitionChoicesLabel: "Possible accented words",
     definitionSource: "Source: {source}",
     definitionClose: "Close",
     resetTitle: "Too late, it reset!",
