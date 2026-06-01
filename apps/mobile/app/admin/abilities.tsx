@@ -62,6 +62,7 @@ export default function AdminAbilitiesScreen() {
     ultimateId: "",
   });
   const tabTransition = useRef(new Animated.Value(1)).current;
+  const heroActionProgress = useRef(new Animated.Value(1)).current;
   const tabDirection = useRef(1);
 
   const abilitiesQuery = useQuery({
@@ -140,6 +141,15 @@ export default function AdminAbilitiesScreen() {
     }).start();
   }, [activeTab, tabTransition]);
 
+  useEffect(() => {
+    Animated.timing(heroActionProgress, {
+      toValue: isAbilitiesTab ? 1 : 0,
+      duration: 220,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [heroActionProgress, isAbilitiesTab]);
+
   const tabTransitionStyle = {
     opacity: tabTransition,
     transform: [
@@ -152,25 +162,18 @@ export default function AdminAbilitiesScreen() {
     ],
   };
   const heroActionStyle = {
-    opacity: isAbilitiesTab
-      ? tabTransition
-      : tabTransition.interpolate({
-          inputRange: [0, 1],
-          outputRange: [1, 0],
-        }),
+    opacity: heroActionProgress,
     transform: [
       {
-        translateX: tabTransition.interpolate({
+        translateX: heroActionProgress.interpolate({
           inputRange: [0, 1],
-          outputRange: isAbilitiesTab
-            ? [tabDirection.current * 16, 0]
-            : [0, tabDirection.current * 16],
+          outputRange: [12, 0],
         }),
       },
       {
-        scale: tabTransition.interpolate({
+        scale: heroActionProgress.interpolate({
           inputRange: [0, 1],
-          outputRange: isAbilitiesTab ? [0.96, 1] : [1, 0.96],
+          outputRange: [0.98, 1],
         }),
       },
     ],

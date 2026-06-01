@@ -415,12 +415,13 @@ export function AdminSegmentedControl<T extends string>({
       {segmentWidth ? (
         <Animated.View
           pointerEvents="none"
-          className="absolute rounded-[16]"
           style={{
+            position: "absolute",
             top: SEGMENTED_CONTROL_PADDING,
             left: SEGMENTED_CONTROL_PADDING,
             bottom: SEGMENTED_CONTROL_PADDING,
             width: segmentWidth,
+            borderRadius: 16,
             backgroundColor: tc.primaryText,
             borderWidth: 1,
             borderColor: tc.primaryDark,
