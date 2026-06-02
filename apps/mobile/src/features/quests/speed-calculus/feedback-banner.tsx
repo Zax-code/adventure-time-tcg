@@ -27,13 +27,18 @@ export function FeedbackBanner({
           className={`rounded-2xl border py-2.5 px-4 items-center ${
             feedback.kind === "incorrect"
               ? "border-dangerBorder bg-dangerTint"
-              : "border-successDark/30 bg-successTint"
+              : "border-successBorder bg-successTint"
           }`}
-          style={{ transform: [{ translateY: feedbackSlide }], opacity: feedbackOpacity }}
+          style={{
+            transform: [{ translateY: feedbackSlide }],
+            opacity: feedbackOpacity,
+          }}
         >
           <Text
             className={`font-nunito-bold text-sm text-center ${
-              feedback.kind === "incorrect" ? "text-dangerDark" : "text-successDark"
+              feedback.kind === "incorrect"
+                ? "text-dangerDark"
+                : "text-successDark"
             }`}
           >
             {feedback.message}

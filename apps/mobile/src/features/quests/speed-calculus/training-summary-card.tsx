@@ -3,6 +3,9 @@ import { LinearGradient } from "expo-linear-gradient";
 import type { SpeedRunState } from "@adventure-time/api-client";
 
 import { useTranslation } from "../../../i18n";
+import { useThemeStore } from "../../../stores/theme-store";
+import { THEME_COLORS } from "../../../theme/themes";
+import { withAlpha } from "./palette";
 
 type TrainingSummaryCardProps = {
   activeRun: NonNullable<SpeedRunState["activeRun"]> | null;
@@ -20,12 +23,15 @@ export function TrainingSummaryCard({
   onResumeRun,
 }: TrainingSummaryCardProps) {
   const { t } = useTranslation();
+  const tc = THEME_COLORS[useThemeStore((s) => s.themeName)];
 
   return (
     <View
-      className="rounded-3xl border-2 border-secondary/30 bg-white/90 p-5 gap-4"
+      className="rounded-3xl border-2 p-5 gap-4"
       style={{
-        shadowColor: "#000",
+        borderColor: tc.secondaryBorder,
+        backgroundColor: tc.surface,
+        shadowColor: withAlpha(tc.secondaryDark, "24"),
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.1,
         shadowRadius: 12,
@@ -41,7 +47,10 @@ export function TrainingSummaryCard({
             {t("quests.speedCalculusTrainingScreenSubtitle")}
           </Text>
         </View>
-        <View className="items-end rounded-2xl bg-secondary/10 px-4 py-3">
+        <View
+          className="items-end rounded-2xl px-4 py-3"
+          style={{ backgroundColor: tc.secondaryTint }}
+        >
           <Text className="text-xs font-nunito-semibold text-primaryDark/70">
             {t("quests.speedCalculusLatestScore")}
           </Text>
@@ -55,15 +64,32 @@ export function TrainingSummaryCard({
         onPress={activeRun?.isManuallyPaused ? onResumeRun : onStartRun}
         disabled={submitting}
         className="rounded-2xl overflow-hidden"
-        style={({ pressed }) => ({ opacity: submitting ? 0.5 : pressed ? 0.9 : 1 })}
+        style={({ pressed }) => ({
+          opacity: submitting ? 0.5 : pressed ? 0.9 : 1,
+        })}
       >
         <LinearGradient
-          colors={activeRun?.isManuallyPaused ? ["#F59E0B", "#EF4444"] : ["#0F766E", "#14B8A6"]}
+          colors={
+            activeRun?.isManuallyPaused
+              ? [tc.secondary, tc.secondaryDark]
+              : [tc.success, tc.successDark]
+          }
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
-          style={{ paddingVertical: 14, alignItems: "center", borderRadius: 16 }}
+          style={{
+            paddingVertical: 14,
+            alignItems: "center",
+            borderRadius: 16,
+          }}
         >
-          <Text className="font-nunito-bold text-[15px] text-white">
+          <Text
+            className="font-nunito-bold text-[15px]"
+            style={{
+              color: activeRun?.isManuallyPaused
+                ? tc.secondaryText
+                : tc.successText,
+            }}
+          >
             {submitting
               ? "..."
               : activeRun?.isManuallyPaused

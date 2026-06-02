@@ -15,12 +15,17 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
 
-import type { SpeedRunAnswerResponse, SpeedRunState } from "@adventure-time/api-client";
+import type {
+  SpeedRunAnswerResponse,
+  SpeedRunState,
+} from "@adventure-time/api-client";
 
 import { ApiClientError, apiClient } from "../../../src/lib/api";
 import { useTranslation } from "../../../src/i18n";
 import { PageLoadingState } from "../../../src/components/loading-state";
 import { useQuestResetStore } from "../../../src/stores/quest-reset-store";
+import { useThemeStore } from "../../../src/stores/theme-store";
+import { THEME_COLORS } from "../../../src/theme/themes";
 
 import { ActiveRunPanel } from "../../../src/features/quests/speed-calculus/active-run-panel";
 import { RunHistoryCard } from "../../../src/features/quests/speed-calculus/run-history";
@@ -33,6 +38,10 @@ import {
   type ToastType,
   type FeedbackType,
 } from "../../../src/features/quests/speed-calculus/constants";
+import {
+  getAnswerBoxPalette,
+  withAlpha,
+} from "../../../src/features/quests/speed-calculus/palette";
 
 if (
   Platform.OS === "android" &&
@@ -46,6 +55,7 @@ export default function SpeedCalculusScreen() {
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const lastQuestResetAt = useQuestResetStore((state) => state.lastResetAt);
+  const tc = THEME_COLORS[useThemeStore((state) => state.themeName)];
 
   // ── Core state ───────────────────────────────────────────────────
   const [state, setState] = useState<SpeedRunState | null>(null);
@@ -79,7 +89,10 @@ export default function SpeedCalculusScreen() {
   }, [activeRun]);
   const isManuallyPaused = activeRun?.isManuallyPaused ?? false;
   const keypadLocked =
-    !currentQuestion || submitting || pauseRemainingSeconds > 0 || isManuallyPaused;
+    !currentQuestion ||
+    submitting ||
+    pauseRemainingSeconds > 0 ||
+    isManuallyPaused;
   const submitDisabled = keypadLocked || !canSubmitAnswer(answer);
 
   // ── Apply state from API ─────────────────────────────────────────
@@ -148,41 +161,38 @@ export default function SpeedCalculusScreen() {
   );
 
   // ── Load state ───────────────────────────────────────────────────
-  const loadState = useCallback(
-    async () => {
-      const requestEpoch = mutationEpochRef.current;
+  const loadState = useCallback(async () => {
+    const requestEpoch = mutationEpochRef.current;
 
-      try {
-        const data = await apiClient.speedCalculusState();
-        if (requestEpoch !== mutationEpochRef.current) {
-          return;
-        }
-
-        syncLoadedState(data);
-      } catch (error) {
-        if (requestEpoch !== mutationEpochRef.current) {
-          return;
-        }
-
-        if (__DEV__) {
-          console.warn("[speed-calculus] failed to load state", error);
-        }
-
-        setToast({
-          type: "error",
-          message:
-            error instanceof Error
-              ? error.message
-              : t("quests.speedCalculusLoadError"),
-        });
-      } finally {
-        if (requestEpoch === mutationEpochRef.current) {
-          setLoading(false);
-        }
+    try {
+      const data = await apiClient.speedCalculusState();
+      if (requestEpoch !== mutationEpochRef.current) {
+        return;
       }
-    },
-    [syncLoadedState, t],
-  );
+
+      syncLoadedState(data);
+    } catch (error) {
+      if (requestEpoch !== mutationEpochRef.current) {
+        return;
+      }
+
+      if (__DEV__) {
+        console.warn("[speed-calculus] failed to load state", error);
+      }
+
+      setToast({
+        type: "error",
+        message:
+          error instanceof Error
+            ? error.message
+            : t("quests.speedCalculusLoadError"),
+      });
+    } finally {
+      if (requestEpoch === mutationEpochRef.current) {
+        setLoading(false);
+      }
+    }
+  }, [syncLoadedState, t]);
 
   const applyAnswerUpdate = useCallback(
     (next: SpeedRunAnswerResponse) => {
@@ -200,7 +210,10 @@ export default function SpeedCalculusScreen() {
       }
 
       setState((prev) => {
-        if (!prev?.activeRun || prev.activeRun.runId !== next.activeRun?.runId) {
+        if (
+          !prev?.activeRun ||
+          prev.activeRun.runId !== next.activeRun?.runId
+        ) {
           return prev;
         }
 
@@ -227,7 +240,8 @@ export default function SpeedCalculusScreen() {
       const now = Date.now();
 
       if (next.activeRun.pauseRemainingSeconds > 0) {
-        pauseDeadlineRef.current = now + next.activeRun.pauseRemainingSeconds * 1000;
+        pauseDeadlineRef.current =
+          now + next.activeRun.pauseRemainingSeconds * 1000;
         playDeadlineRef.current =
           pauseDeadlineRef.current + next.activeRun.remainingSeconds * 1000;
       } else {
@@ -343,7 +357,7 @@ export default function SpeedCalculusScreen() {
         type: "error",
         message: t("quests.speedCalculusFinishError"),
       });
-        await loadState();
+      await loadState();
     } finally {
       finishRequestedRef.current = false;
       setSubmitting(false);
@@ -497,7 +511,13 @@ export default function SpeedCalculusScreen() {
 
   // ── Submit answer ────────────────────────────────────────────────
   const handleSubmit = useCallback(async () => {
-    if (!currentQuestion || submitting || pauseRemainingSeconds > 0 || isManuallyPaused) return;
+    if (
+      !currentQuestion ||
+      submitting ||
+      pauseRemainingSeconds > 0 ||
+      isManuallyPaused
+    )
+      return;
     const trimmed = answerRef.current.trim();
     if (!canSubmitAnswer(trimmed)) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -611,7 +631,7 @@ export default function SpeedCalculusScreen() {
     setSubmitting(true);
     try {
       const data = await apiClient.startSpeedCalculus();
-       syncLoadedState(data);
+      syncLoadedState(data);
       void queryClient.invalidateQueries({ queryKey: ["quests"] });
     } catch (error) {
       setToast({
@@ -654,7 +674,12 @@ export default function SpeedCalculusScreen() {
   }, [queryClient, syncLoadedState, t]);
 
   const pauseRun = useCallback(() => {
-    if (!activeRun || pauseRemainingSeconds > 0 || isManuallyPaused || submitting) {
+    if (
+      !activeRun ||
+      pauseRemainingSeconds > 0 ||
+      isManuallyPaused ||
+      submitting
+    ) {
       return;
     }
 
@@ -682,7 +707,15 @@ export default function SpeedCalculusScreen() {
       .finally(() => {
         setSubmitting(false);
       });
-  }, [activeRun, handleSpeedResetError, isManuallyPaused, pauseRemainingSeconds, submitting, syncLoadedState, t]);
+  }, [
+    activeRun,
+    handleSpeedResetError,
+    isManuallyPaused,
+    pauseRemainingSeconds,
+    submitting,
+    syncLoadedState,
+    t,
+  ]);
 
   const resumeRun = useCallback(async () => {
     if (!activeRun || !isManuallyPaused || submitting) {
@@ -710,7 +743,14 @@ export default function SpeedCalculusScreen() {
     } finally {
       setSubmitting(false);
     }
-  }, [activeRun, handleSpeedResetError, isManuallyPaused, submitting, syncLoadedState, t]);
+  }, [
+    activeRun,
+    handleSpeedResetError,
+    isManuallyPaused,
+    submitting,
+    syncLoadedState,
+    t,
+  ]);
 
   // ── Toggle run history accordion ─────────────────────────────────
   const toggleRunHistory = useCallback((runNumber: number) => {
@@ -737,24 +777,7 @@ export default function SpeedCalculusScreen() {
   }, []);
 
   // ── Answer box colors (tristate: correct / incorrect / default) ──
-  const answerBoxBg =
-    feedback?.kind === "correct"
-      ? "#CCFBF1"
-      : feedback?.kind === "incorrect"
-        ? "#FFE4E6"
-        : "#FFFFFF";
-  const answerBoxBorder =
-    feedback?.kind === "correct"
-      ? "rgba(20,184,166,0.3)"
-      : feedback?.kind === "incorrect"
-        ? "#FECDD3"
-        : "#FCE7F3";
-  const answerBoxText =
-    feedback?.kind === "correct"
-      ? "#005F5A"
-      : feedback?.kind === "incorrect"
-        ? "#A50036"
-        : "#EC4899";
+  const answerBoxPalette = getAnswerBoxPalette(tc, feedback?.kind);
 
   // ── Loading state ────────────────────────────────────────────────
   if (loading) {
@@ -776,14 +799,22 @@ export default function SpeedCalculusScreen() {
           className={`absolute left-4 right-4 z-[100] rounded-xl p-4 ${toast.type === "success" ? "bg-successDark" : "bg-dangerDark"}`}
           style={{
             top: insets.top + 8,
-            shadowColor: "#000",
+            shadowColor: withAlpha(
+              toast.type === "success" ? tc.successDark : tc.dangerDark,
+              "2E",
+            ),
             shadowOffset: { width: 0, height: 4 },
             shadowOpacity: 0.15,
             shadowRadius: 8,
             elevation: 8,
           }}
         >
-          <Text className="text-white font-nunito-semibold text-sm">
+          <Text
+            className="font-nunito-semibold text-sm"
+            style={{
+              color: toast.type === "success" ? tc.successTint : tc.dangerTint,
+            }}
+          >
             {toast.message}
           </Text>
         </View>
@@ -803,7 +834,7 @@ export default function SpeedCalculusScreen() {
           <Text
             className="text-[28px] font-nunito-extrabold text-primaryDark"
             style={{
-              shadowColor: "#EC4899",
+              shadowColor: withAlpha(tc.primaryDark, "2E"),
               shadowOffset: { width: 0, height: 1 },
               shadowOpacity: 0.18,
               shadowRadius: 4,
@@ -831,9 +862,10 @@ export default function SpeedCalculusScreen() {
 
         {/* ── Rules Card ──────────────────────────────────────────── */}
         <View
-          className="rounded-3xl border-2 border-primaryTint p-5 bg-white/85"
+          className="rounded-3xl border-2 border-primaryTint p-5"
           style={{
-            shadowColor: "#000",
+            backgroundColor: tc.surfaceMuted,
+            shadowColor: withAlpha(tc.primaryDark, "24"),
             shadowOffset: { width: 0, height: 4 },
             shadowOpacity: 0.1,
             shadowRadius: 12,
@@ -852,7 +884,10 @@ export default function SpeedCalculusScreen() {
                 })}
               </Text>
             </View>
-            <View className="rounded-2xl bg-primaryTint px-4 py-3 items-center">
+            <View
+              className="rounded-2xl px-4 py-3 items-center"
+              style={{ backgroundColor: tc.primaryTint }}
+            >
               <Text className="text-xs font-nunito-semibold text-primaryDark/70">
                 {t("quests.speedCalculusRunsLeft")}
               </Text>
@@ -874,9 +909,11 @@ export default function SpeedCalculusScreen() {
         />
 
         <View
-          className="rounded-3xl border-2 border-secondary/20 bg-white/90 p-5"
+          className="rounded-3xl border-2 p-5"
           style={{
-            shadowColor: "#000",
+            borderColor: tc.secondaryBorder,
+            backgroundColor: tc.surface,
+            shadowColor: withAlpha(tc.secondaryDark, "24"),
             shadowOffset: { width: 0, height: 4 },
             shadowOpacity: 0.1,
             shadowRadius: 12,
@@ -894,8 +931,11 @@ export default function SpeedCalculusScreen() {
             className="mt-4 rounded-2xl overflow-hidden"
             style={({ pressed }) => ({ opacity: pressed ? 0.9 : 1 })}
           >
-            <View className="items-center rounded-2xl bg-secondary px-5 py-4">
-              <Text className="font-nunito-bold text-[15px] text-white">
+            <View
+              className="items-center rounded-2xl px-5 py-4"
+              style={{ backgroundColor: tc.secondary }}
+            >
+              <Text className="font-nunito-bold text-[15px] text-secondaryText">
                 {t("quests.speedCalculusTrainingOpen")}
               </Text>
             </View>
@@ -931,9 +971,10 @@ export default function SpeedCalculusScreen() {
         feedbackOpacity={feedbackOpacity}
         answer={answer}
         shakeAnim={shakeAnim}
-        answerBoxBg={answerBoxBg}
-        answerBoxBorder={answerBoxBorder}
-        answerBoxText={answerBoxText}
+        answerBoxBg={answerBoxPalette.background}
+        answerBoxBorder={answerBoxPalette.border}
+        answerBoxText={answerBoxPalette.text}
+        answerPlaceholderText={answerBoxPalette.placeholder}
         submitting={submitting}
         keypadLocked={keypadLocked}
         submitDisabled={submitDisabled}

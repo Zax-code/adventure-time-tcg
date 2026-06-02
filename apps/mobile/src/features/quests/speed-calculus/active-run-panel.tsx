@@ -35,6 +35,7 @@ type ActiveRunPanelProps = {
   answerBoxBg: string;
   answerBoxBorder: string;
   answerBoxText: string;
+  answerPlaceholderText: string;
   submitting: boolean;
   keypadLocked: boolean;
   submitDisabled: boolean;
@@ -71,6 +72,7 @@ export function ActiveRunPanel({
   answerBoxBg,
   answerBoxBorder,
   answerBoxText,
+  answerPlaceholderText,
   submitting,
   keypadLocked,
   submitDisabled,
@@ -93,7 +95,13 @@ export function ActiveRunPanel({
       visible={visible}
       transparent={false}
       animationType="slide"
-      onRequestClose={isManuallyPaused ? onLeavePaused : () => {/* no-op during active run */}}
+      onRequestClose={
+        isManuallyPaused
+          ? onLeavePaused
+          : () => {
+              /* no-op during active run */
+            }
+      }
       statusBarTranslucent
     >
       <GestureHandlerRootView style={{ flex: 1 }}>
@@ -110,7 +118,12 @@ export function ActiveRunPanel({
             displayedCorrectAnswers={displayedCorrectAnswers}
             isManuallyPaused={isManuallyPaused}
             onPause={onPause}
-            pauseDisabled={!activeRun || pauseRemainingSeconds > 0 || isManuallyPaused || submitting}
+            pauseDisabled={
+              !activeRun ||
+              pauseRemainingSeconds > 0 ||
+              isManuallyPaused ||
+              submitting
+            }
           />
 
           <FeedbackBanner
@@ -133,6 +146,7 @@ export function ActiveRunPanel({
             answerBoxBg={answerBoxBg}
             answerBoxBorder={answerBoxBorder}
             answerBoxText={answerBoxText}
+            answerPlaceholderText={answerPlaceholderText}
           />
 
           <Keypad
