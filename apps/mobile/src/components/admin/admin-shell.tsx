@@ -108,17 +108,32 @@ export function AdminShell({ children }: { children: ReactNode }) {
       <View className="flex-1">
         <View className="px-4 pb-3" style={{ paddingTop: insets.top + 10 }}>
           <View className="flex-row items-start justify-between gap-3">
-            <View className="flex-1 gap-2">
-              <View
-                className="self-start rounded-full border px-3 py-[6]"
-                style={{
-                  backgroundColor: withAlpha(tc.primaryTint, "D9"),
-                  borderColor: withAlpha(tc.primaryBorder, "73"),
-                }}
-              >
-                <Text className="font-nunito-extrabold text-[11px] uppercase tracking-[0.8px] text-primaryStrong">
-                  {t("admin.shell.consoleLabel")}
-                </Text>
+            <View className="flex-1 gap-3">
+              <View className="flex-row items-center justify-between gap-3">
+                <View
+                  className="self-start rounded-full border px-3 py-[6]"
+                  style={{
+                    backgroundColor: withAlpha(tc.primaryTint, "D9"),
+                    borderColor: withAlpha(tc.primaryBorder, "73"),
+                  }}
+                >
+                  <Text className="font-nunito-extrabold text-[11px] uppercase tracking-[0.8px] text-primaryStrong">
+                    {t("admin.shell.consoleLabel")}
+                  </Text>
+                </View>
+                <Pressable
+                  onPress={() => router.replace("/(tabs)" as any)}
+                  className="flex-row items-center justify-center gap-2 self-start rounded-full border px-[14] py-[10]"
+                  style={{
+                    backgroundColor: tc.surface,
+                    borderColor: withAlpha(tc.primaryBorder, "73"),
+                  }}
+                >
+                  <HomeIcon size={18} color={tc.primaryStrong} />
+                  <Text className="font-nunito-bold text-[13px] text-primaryStrong">
+                    {t("admin.shell.backToGame")}
+                  </Text>
+                </Pressable>
               </View>
               <View>
                 <Text className="font-nunito-extrabold text-[24px] text-fg">
@@ -131,20 +146,6 @@ export function AdminShell({ children }: { children: ReactNode }) {
             </View>
             <CoinPill />
           </View>
-
-          <Pressable
-            onPress={() => router.replace("/(tabs)" as any)}
-            className="mt-4 flex-row items-center justify-center gap-2 self-start rounded-full border px-[14] py-[10]"
-            style={{
-              backgroundColor: tc.surface,
-              borderColor: withAlpha(tc.primaryBorder, "73"),
-            }}
-          >
-            <HomeIcon size={18} color={tc.primaryStrong} />
-            <Text className="font-nunito-bold text-[13px] text-primaryStrong">
-              {t("admin.shell.backToGame")}
-            </Text>
-          </Pressable>
         </View>
 
         <View className="flex-1">{children}</View>
