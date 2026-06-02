@@ -16,6 +16,7 @@ import {
   Platform,
   Pressable,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -510,6 +511,7 @@ function AuthFormInner({ prefill }: { prefill?: AuthFormPrefill }) {
   const [info, setInfo] = useState<string | null>(initialState.info);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const passwordInputRef = useRef<TextInput>(null);
   const googleAuthConfigured = hasGoogleAuthConfig();
   const autoVerifyTriggeredRef = useRef(false);
   const submitAutoVerify = useEffectEvent(() => {
@@ -873,9 +875,12 @@ function AuthFormInner({ prefill }: { prefill?: AuthFormPrefill }) {
               onChangeText={setEmail}
               autoCapitalize="none"
               keyboardType="email-address"
+              testID="auth-email-input"
               placeholder={t("auth.fields.email")}
               editable={stage !== "pendingApproval"}
               autoComplete="email"
+              returnKeyType="next"
+              onSubmitEditing={() => passwordInputRef.current?.focus()}
               hostStyle={{ width: "100%" }}
               style={{
                 backgroundColor: tc.primaryBg,
@@ -1006,7 +1011,9 @@ function AuthFormInner({ prefill }: { prefill?: AuthFormPrefill }) {
                 <ThemedExpoTextInput
                   value={password}
                   onChangeText={setPassword}
+                  inputRef={passwordInputRef}
                   secureTextEntry
+                  testID="auth-password-input"
                   placeholder={
                     mode === "register"
                       ? t("auth.fields.passwordMin")
@@ -1015,6 +1022,12 @@ function AuthFormInner({ prefill }: { prefill?: AuthFormPrefill }) {
                   autoComplete={
                     mode === "register" ? "new-password" : "current-password"
                   }
+                  returnKeyType={mode === "login" ? "go" : "next"}
+                  onSubmitEditing={() => {
+                    if (mode === "login") {
+                      void submit();
+                    }
+                  }}
                   hostStyle={{ width: "100%" }}
                   style={{
                     backgroundColor: tc.primaryBg,
@@ -1081,7 +1094,11 @@ function AuthFormInner({ prefill }: { prefill?: AuthFormPrefill }) {
           </View>
         ) : null}
 
-        <PrimaryButton onPress={() => void submit()} loading={loading}>
+        <PrimaryButton
+          onPress={() => void submit()}
+          loading={loading}
+          testID="auth-submit-button"
+        >
           {stage === "pendingApproval"
             ? t("auth.actions.backToSignIn")
             : stage === "verify"

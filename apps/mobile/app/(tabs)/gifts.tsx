@@ -286,6 +286,7 @@ export default function GiftsScreen() {
                   key={option.key}
                   preferFallback
                   fallbackLayout="stretch"
+                  testID={`gifts-filter-${option.key}`}
                   variant="ghost"
                   fallbackAppearance={{
                     backgroundColor: selected ? tc.primaryTint : tc.surface,

@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Animated, Text, View } from "react-native";
+import { Animated, Pressable, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { getTypeMultiplier } from "@adventure-time/game-engine";
 
-import { ThemedExpoButton } from "../../components/expo-ui/themed-button";
 import { XCircleIcon } from "../../components/icons";
 import { useTranslation } from "../../i18n";
 import { FloatingNumber } from "./floating-number";
@@ -15,6 +14,7 @@ import type { FloatingEvent, PvpUnitState } from "./types";
 
 interface UnitCardProps {
   unit: PvpUnitState;
+  testID?: string;
   isSelected?: boolean;
   isValidTarget?: boolean;
   attackerType?: string;
@@ -39,6 +39,7 @@ const TYPE_BADGE_COLORS: Record<string, string> = {
 
 export function UnitCard({
   unit,
+  testID,
   isSelected,
   isValidTarget,
   attackerType,
@@ -122,24 +123,18 @@ export function UnitCard({
         </View>
       ) : null}
 
-      <ThemedExpoButton
+      <Pressable
+        accessibilityRole="button"
+        accessible
         onPress={onPress}
         onLongPress={onLongPress}
         delayLongPress={400}
-        preferFallback
-        preserveChildLayout
-        variant="ghost"
-        fallbackAppearance={{
-          backgroundColor: "transparent",
-          borderColor: "transparent",
-          borderWidth: 0,
+        testID={testID}
+        style={({ pressed }) => ({
+          aspectRatio: 1.82,
           borderRadius: 12,
-          gradientColors: null,
-          minHeight: 0,
-          paddingHorizontal: 0,
-          paddingVertical: 0,
-        }}
-        style={{ aspectRatio: 1.82 }}
+          opacity: pressed ? 0.96 : 1,
+        })}
       >
         <View className="h-full w-full overflow-hidden rounded-xl bg-slate-900 shadow-lg">
           {imageUrl ? (
@@ -254,7 +249,7 @@ export function UnitCard({
             />
           ) : null}
         </View>
-      </ThemedExpoButton>
+      </Pressable>
     </View>
   );
 }

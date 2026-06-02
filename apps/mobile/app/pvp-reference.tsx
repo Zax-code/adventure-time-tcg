@@ -80,7 +80,7 @@ export default function PvpReferenceScreen() {
       handleColor={tc.muted}
       sheetStyle={THEME_VARS[themeName]}
     >
-      <View className="flex-1 bg-bg">
+      <View className="flex-1 bg-bg" testID="pvp-reference-screen">
         <LinearGradient
           colors={[tc.infoDark, tc.info]}
           start={{ x: 0, y: 0 }}
@@ -102,6 +102,7 @@ export default function PvpReferenceScreen() {
             onPress={() => router.back()}
             label="✕"
             preferFallback
+            testID="pvp-reference-close-button"
             variant="ghost"
             fallbackAppearance={{
               backgroundColor: "rgba(255,255,255,0.2)",

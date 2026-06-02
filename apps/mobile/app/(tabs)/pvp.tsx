@@ -287,6 +287,7 @@ export default function PvpScreen() {
             <ThemedExpoButton
               onPress={() => router.push("/pvp-mechanics")}
               preferFallback
+              testID="pvp-open-mechanics-button"
               variant="danger"
               fallbackAppearance={{
                 backgroundColor: tc.dangerTint,
@@ -308,6 +309,7 @@ export default function PvpScreen() {
             <ThemedExpoButton
               onPress={() => router.push("/pvp-reference")}
               preferFallback
+              testID="pvp-open-reference-button"
               variant="secondary"
               fallbackAppearance={{
                 backgroundColor: tc.infoTint,
@@ -651,7 +653,7 @@ export default function PvpScreen() {
                 {t("pvp.activeBattles", { count: activeMatches.length })}
               </Text>
             </View>
-            {activeMatches.map((match) => {
+            {activeMatches.map((match, index) => {
               const opponentId =
                 match.inviterId === currentUserId ? match.inviteeId : match.inviterId;
               const opponentName =
@@ -661,6 +663,7 @@ export default function PvpScreen() {
                 <ThemedExpoButton
                   key={match.id}
                   onPress={() => router.push(`/pvp-match?id=${match.id}`)}
+                  testID={`pvp-active-match-card-${index}`}
                   preferFallback
                   variant="primary"
                   fallbackLayout="stretch"
@@ -722,6 +725,7 @@ export default function PvpScreen() {
                 <ThemedExpoButton
                   disabled={cancelInviteMutation.isPending}
                   onPress={() => void cancelInviteMutation.mutateAsync(invite.id)}
+                  testID={`pvp-cancel-invite-${invite.id}`}
                   variant="ghost"
                   fallbackAppearance={{
                     backgroundColor: "transparent",
@@ -751,6 +755,7 @@ export default function PvpScreen() {
               </Text>
               <ThemedExpoButton
                 onPress={() => router.push("/pvp-history" as never)}
+                testID="pvp-history-button"
                 preferFallback
                 variant="ghost"
                 fallbackAppearance={{

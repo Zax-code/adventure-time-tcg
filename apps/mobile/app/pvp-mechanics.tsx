@@ -23,7 +23,7 @@ export default function PvpMechanicsScreen() {
       handleColor={tc.muted}
       sheetStyle={THEME_VARS[themeName]}
     >
-      <View className="flex-1 bg-bg">
+      <View className="flex-1 bg-bg" testID="pvp-mechanics-screen">
         <LinearGradient
           colors={[tc.primaryDark, tc.primary]}
           start={{ x: 0, y: 0 }}
@@ -45,6 +45,7 @@ export default function PvpMechanicsScreen() {
             onPress={() => router.back()}
             label="✕"
             preferFallback
+            testID="pvp-mechanics-close-button"
             variant="ghost"
             fallbackAppearance={{
               backgroundColor: "rgba(255,255,255,0.2)",

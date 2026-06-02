@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, type RefObject } from "react";
 import {
   Host,
   TextInput as ExpoTextInput,
@@ -7,7 +7,15 @@ import {
   type UniversalStyle,
   type UniversalTextStyle,
 } from "@expo/ui";
-import type { StyleProp, ViewStyle } from "react-native";
+import {
+  StyleSheet,
+  TextInput as ReactNativeTextInput,
+  View,
+  type StyleProp,
+  type TextInputProps as ReactNativeTextInputProps,
+  type TextStyle,
+  type ViewStyle,
+} from "react-native";
 
 import { useThemeStore } from "../../stores/theme-store";
 import {
@@ -18,10 +26,11 @@ import {
 
 type ThemedExpoTextInputProps = Omit<
   ExpoTextInputProps,
-  "value" | "style" | "textStyle" | "placeholderTextColor"
+  "ref" | "value" | "style" | "textStyle" | "placeholderTextColor"
 > & {
   value: string;
   onChangeText: (value: string) => void;
+  inputRef?: RefObject<ReactNativeTextInput | null>;
   hostStyle?: StyleProp<ViewStyle>;
   style?: UniversalStyle;
   textStyle?: UniversalTextStyle;
@@ -32,6 +41,7 @@ type ThemedExpoTextInputProps = Omit<
 export function ThemedExpoTextInput({
   value,
   onChangeText,
+  inputRef,
   hostStyle,
   style,
   textStyle,
@@ -43,12 +53,69 @@ export function ThemedExpoTextInput({
   const themeName = explicitThemeName ?? storedThemeName;
   const tc = THEME_COLORS[themeName];
   const textState = useNativeState(value);
+  const shouldUseFallback = typeof props.testID === "string" && props.testID.length > 0;
 
   useEffect(() => {
     if (textState.value !== value) {
       textState.value = value;
     }
   }, [textState, value]);
+
+  if (shouldUseFallback) {
+    const fallbackProps: ReactNativeTextInputProps = {
+      autoCapitalize: props.autoCapitalize,
+      autoComplete: props.autoComplete,
+      autoCorrect: props.autoCorrect,
+      autoFocus: props.autoFocus,
+      editable: props.editable,
+      keyboardType: props.keyboardType,
+      maxLength: props.maxLength,
+      multiline: props.multiline,
+      numberOfLines: props.numberOfLines,
+      onBlur: props.onBlur
+        ? (event) => {
+            void event;
+            props.onBlur?.();
+          }
+        : undefined,
+      onFocus: props.onFocus
+        ? (event) => {
+            void event;
+            props.onFocus?.();
+          }
+        : undefined,
+      onSubmitEditing: props.onSubmitEditing
+        ? (event) => {
+            const submitHandler = props.onSubmitEditing as
+              | ((value: unknown) => void)
+              | undefined;
+            submitHandler?.(event);
+          }
+        : undefined,
+      placeholder: props.placeholder,
+      returnKeyType: props.returnKeyType,
+      secureTextEntry: props.secureTextEntry,
+      selectTextOnFocus: props.selectTextOnFocus,
+      testID: props.testID,
+    };
+    const fallbackInputStyle = StyleSheet.flatten([
+      style as TextStyle | undefined,
+      textStyle as TextStyle | undefined,
+    ]);
+
+    return (
+      <View style={hostStyle}>
+        <ReactNativeTextInput
+          {...fallbackProps}
+          ref={inputRef}
+          value={value}
+          onChangeText={onChangeText}
+          placeholderTextColor={placeholderTextColor ?? tc.muted}
+          style={fallbackInputStyle}
+        />
+      </View>
+    );
+  }
 
   return (
     <Host colorScheme={getExpoUIColorScheme(themeName)} style={hostStyle}>

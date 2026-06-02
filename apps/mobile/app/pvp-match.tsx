@@ -233,6 +233,8 @@ export default function PvpMatchScreen() {
         title={t("pvp.match.endTurnTitle")}
         body={t("pvp.match.endTurnBody", { energy: matchView.myPlayer.energy })}
         confirmLabel={t("pvp.match.endTurnConfirm")}
+        testID="pvp-end-turn-confirm-sheet"
+        confirmButtonTestID="pvp-end-turn-confirm-button"
         onCancel={() => setShowEndTurnConfirm(false)}
         onConfirm={() => {
           setShowEndTurnConfirm(false);
@@ -245,6 +247,8 @@ export default function PvpMatchScreen() {
         title={t("pvp.match.concedeTitle")}
         body={t("pvp.match.concedeBody")}
         confirmLabel={t("pvp.match.concedeConfirm")}
+        testID="pvp-concede-confirm-sheet"
+        confirmButtonTestID="pvp-concede-confirm-button"
         danger
         onCancel={() => setShowConcedeConfirm(false)}
         onConfirm={() => {
@@ -262,6 +266,8 @@ function ConfirmSheet({
   title,
   body,
   confirmLabel,
+  testID,
+  confirmButtonTestID,
   onCancel,
   onConfirm,
   danger = false,
@@ -270,6 +276,8 @@ function ConfirmSheet({
   title: string;
   body: string;
   confirmLabel: string;
+  testID: string;
+  confirmButtonTestID: string;
   onCancel: () => void;
   onConfirm: () => void;
   danger?: boolean;
@@ -282,10 +290,12 @@ function ConfirmSheet({
       visible={visible}
       title={title}
       onClose={onCancel}
+      testID={testID}
       footer={
         <View className="flex-row gap-3">
           <ThemedExpoButton
             onPress={onCancel}
+            testID={`${testID}-cancel-button`}
             fallbackAppearance={{
               backgroundColor: tc.surfaceMuted,
               borderColor: "transparent",
@@ -306,6 +316,7 @@ function ConfirmSheet({
           </ThemedExpoButton>
           <ThemedExpoButton
             onPress={onConfirm}
+            testID={confirmButtonTestID}
             fallbackAppearance={{
               backgroundColor: danger ? tc.dangerDark : tc.primaryDark,
               borderColor: "transparent",

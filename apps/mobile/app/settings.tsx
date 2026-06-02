@@ -626,6 +626,7 @@ export default function SettingsScreen() {
                           key={language}
                           selected={selected}
                           disabled={updateLanguageMutation.isPending}
+                          testID={`settings-language-${language}`}
                           onPress={() =>
                             void updateLanguageMutation.mutateAsync(language)
                           }
@@ -678,6 +679,7 @@ export default function SettingsScreen() {
                         <ChoiceCard
                           key={name}
                           selected={selected}
+                          testID={`settings-theme-${name}`}
                           onPress={() => void setTheme(name)}
                           tc={tc}
                         >
@@ -1115,18 +1117,21 @@ function ChoiceCard({
   disabled,
   onPress,
   selected,
+  testID,
   tc,
 }: {
   children: ReactNode;
   disabled?: boolean;
   onPress: () => void;
   selected: boolean;
+  testID?: string;
   tc: (typeof THEME_COLORS)[ThemeName];
 }) {
   return (
     <ThemedExpoButton
       onPress={onPress}
       disabled={disabled}
+      testID={testID}
       fallbackAppearance={{
         backgroundColor: selected ? tc.primaryBg : tc.surface,
         borderColor: tc.primaryBorder,

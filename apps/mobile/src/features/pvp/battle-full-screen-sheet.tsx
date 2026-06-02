@@ -21,6 +21,8 @@ interface BattleFullScreenSheetProps {
   children: ReactNode;
   footer?: ReactNode;
   scrollable?: boolean;
+  testID?: string;
+  closeButtonTestID?: string;
 }
 
 export function BattleFullScreenSheet({
@@ -30,6 +32,8 @@ export function BattleFullScreenSheet({
   children,
   footer,
   scrollable = true,
+  testID,
+  closeButtonTestID,
 }: BattleFullScreenSheetProps) {
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
@@ -103,6 +107,7 @@ export function BattleFullScreenSheet({
           maxHeight: maxSheetHeight,
           minHeight: Math.min(maxSheetHeight, height * 0.68),
         }}
+        testID={testID}
       >
         <View>
           <View
@@ -118,6 +123,7 @@ export function BattleFullScreenSheet({
             </View>
             <ThemedExpoButton
               onPress={onClose}
+              testID={closeButtonTestID}
               variant="ghost"
               fallbackAppearance={{
                 backgroundColor: tc.surfaceMuted,

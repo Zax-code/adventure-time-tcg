@@ -1,12 +1,12 @@
-import { Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { Image } from "expo-image";
 
-import { ThemedExpoButton } from "../../components/expo-ui/themed-button";
 import { resolveBattleImageUrl } from "./image-url";
 import type { PvpUnitState } from "./types";
 
 interface BenchCardProps {
   unit: PvpUnitState;
+  testID?: string;
   isSelected?: boolean;
   isSwapTarget?: boolean;
   isValidTarget?: boolean;
@@ -16,6 +16,7 @@ interface BenchCardProps {
 
 export function BenchCard({
   unit,
+  testID,
   isSelected,
   isSwapTarget,
   isValidTarget,
@@ -30,29 +31,23 @@ export function BenchCard({
   const imageUrl = resolveBattleImageUrl(unit.imageUrl);
 
   return (
-    <ThemedExpoButton
+    <Pressable
+      accessibilityRole="button"
+      accessible
       onPress={onPress}
       onLongPress={onLongPress}
       delayLongPress={400}
-      preferFallback
-      preserveChildLayout
-      variant="ghost"
-      fallbackAppearance={{
+      testID={testID}
+      style={({ pressed }) => ({
+        height: "100%",
+        aspectRatio: 5 / 3,
+        overflow: "hidden",
+        opacity: pressed ? opacity * 0.92 : opacity,
         backgroundColor: isDead ? "rgba(15,23,42,0.55)" : "rgba(226,232,240,0.55)",
         borderColor,
         borderWidth: 2,
         borderRadius: 10,
-        gradientColors: null,
-        minHeight: 0,
-        paddingHorizontal: 0,
-        paddingVertical: 0,
-      }}
-      style={{
-        height: "100%",
-        aspectRatio: 5 / 3,
-        overflow: "hidden",
-        opacity,
-      }}
+      })}
     >
       {imageUrl ? (
         <Image source={{ uri: imageUrl }} style={{ width: "100%", height: "100%" }} contentFit="cover" />
@@ -77,6 +72,6 @@ export function BenchCard({
           }}
         />
       </View>
-    </ThemedExpoButton>
+    </Pressable>
   );
 }

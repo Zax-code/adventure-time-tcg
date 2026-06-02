@@ -51,6 +51,7 @@ export function ActionButtons({
         <ThemedExpoButton
           onPress={swapDisabled ? undefined : onSwapToggle}
           disabled={swapDisabled}
+          testID="pvp-action-swap-button"
           fallbackAppearance={{
             backgroundColor: isSwapMode
               ? "rgba(251,191,36,0.95)"
@@ -77,6 +78,7 @@ export function ActionButtons({
         {showCancel && (
           <ThemedExpoButton
             onPress={onCancel}
+            testID="pvp-action-cancel-button"
             fallbackAppearance={{
               backgroundColor: "#f43f5e",
               borderColor: "transparent",
@@ -102,6 +104,7 @@ export function ActionButtons({
         <ThemedExpoButton
           onPress={endDisabled ? undefined : onEndTurn}
           disabled={endDisabled}
+          testID="pvp-action-end-turn-button"
           fallbackAppearance={{
             backgroundColor: "rgba(255,255,255,0.9)",
             borderColor: "transparent",

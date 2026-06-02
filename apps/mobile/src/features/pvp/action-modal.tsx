@@ -169,7 +169,12 @@ export function ActionModal({
   }
 
   return (
-    <BattleFullScreenSheet visible={visible} title={t("pvp.action.title")} onClose={onClose}>
+    <BattleFullScreenSheet
+      visible={visible}
+      title={t("pvp.action.title")}
+      onClose={onClose}
+      testID="pvp-action-modal"
+    >
       <View className="px-4 pb-4 pt-4">
         <View className="overflow-hidden rounded-[28px] border border-primaryTint bg-white shadow-sm">
           <View className="flex-row">
@@ -236,6 +241,7 @@ export function ActionModal({
               <View className="mb-1 flex-row justify-end">
                 <ThemedExpoButton
                   onPress={onClose}
+                  testID="pvp-action-modal-close-button"
                   variant="ghost"
                   fallbackAppearance={{
                     backgroundColor: tc.surfaceMuted,
@@ -258,6 +264,7 @@ export function ActionModal({
                 key={card.key}
                 disabled={card.disabled}
                 onPress={() => handleAction(card.key)}
+                testID={`pvp-action-${card.key}-button`}
                 variant={
                   card.key === "ultimate"
                     ? "warning"
@@ -317,6 +324,7 @@ export function ActionModal({
                 onSubmitAction({ kind: "pass" });
                 onClose();
               }}
+              testID="pvp-action-pass-button"
               variant="secondary"
               fallbackAppearance={{
                 backgroundColor: "#475569",

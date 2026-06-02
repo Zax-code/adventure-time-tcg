@@ -1,0 +1,25 @@
+appId: love.leaetzak.adventuretime
+---
+- scrollUntilVisible:
+    element:
+      id: auth-email-input
+    direction: DOWN
+    timeout: 40000
+    centerElement: true
+- assertVisible:
+    id: auth-email-input
+- tapOn:
+    id: auth-email-input
+- eraseText
+- inputText: ${TEST_EMAIL}
+- pressKey: Enter
+- assertVisible:
+    id: auth-password-input
+- tapOn:
+    id: auth-password-input
+- eraseText
+- inputText: ${TEST_PASSWORD}
+- tapOn:
+    id: auth-submit-button
+- assertVisible:
+    id: tab-home

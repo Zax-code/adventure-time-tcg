@@ -44,6 +44,7 @@ export default function TabLayout() {
           name="index"
           options={{
             title: t("nav.home"),
+            tabBarButtonTestID: "tab-home",
           }}
         />
         <Tabs.Screen
@@ -57,24 +58,28 @@ export default function TabLayout() {
           name="quests"
           options={{
             title: t("nav.quests"),
+            tabBarButtonTestID: "tab-quests",
           }}
         />
         <Tabs.Screen
           name="pvp"
           options={{
             title: t("nav.pvp"),
+            tabBarButtonTestID: "tab-pvp",
           }}
         />
         <Tabs.Screen
           name="gifts"
           options={{
             title: t("nav.gifts"),
+            tabBarButtonTestID: "tab-gifts",
           }}
         />
         <Tabs.Screen
           name="collection"
           options={{
             title: t("nav.collection"),
+            tabBarButtonTestID: "tab-collection",
           }}
         />
       </Tabs>

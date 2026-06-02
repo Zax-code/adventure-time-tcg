@@ -82,7 +82,11 @@ export function AppHeader() {
             </Pressable>
           ) : null}
 
-          <Pressable onPress={() => router.push("/settings")} hitSlop={8}>
+          <Pressable
+            onPress={() => router.push("/settings")}
+            hitSlop={8}
+            testID="app-header-settings-button"
+          >
             <View
               style={{
                 width: 40,

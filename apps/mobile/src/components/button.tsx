@@ -8,15 +8,24 @@ interface ButtonProps {
   loading?: boolean;
   children: React.ReactNode;
   style?: ViewStyle;
+  testID?: string;
 }
 
-export function PrimaryButton({ onPress, disabled, loading, children, style }: ButtonProps) {
+export function PrimaryButton({
+  onPress,
+  disabled,
+  loading,
+  children,
+  style,
+  testID,
+}: ButtonProps) {
   return (
     <ThemedExpoButton
       onPress={onPress}
       disabled={disabled}
       loading={loading}
       style={style}
+      testID={testID}
       variant="primary"
     >
       {children}
@@ -24,13 +33,21 @@ export function PrimaryButton({ onPress, disabled, loading, children, style }: B
   );
 }
 
-export function SecondaryButton({ onPress, disabled, loading, children, style }: ButtonProps) {
+export function SecondaryButton({
+  onPress,
+  disabled,
+  loading,
+  children,
+  style,
+  testID,
+}: ButtonProps) {
   return (
     <ThemedExpoButton
       onPress={onPress}
       disabled={disabled}
       loading={loading}
       style={style}
+      testID={testID}
       variant="secondary"
     >
       {children}
@@ -38,13 +55,21 @@ export function SecondaryButton({ onPress, disabled, loading, children, style }:
   );
 }
 
-export function GhostButton({ onPress, disabled, loading, children, style }: ButtonProps) {
+export function GhostButton({
+  onPress,
+  disabled,
+  loading,
+  children,
+  style,
+  testID,
+}: ButtonProps) {
   return (
     <ThemedExpoButton
       onPress={onPress}
       disabled={disabled}
       loading={loading}
       style={style}
+      testID={testID}
       variant="ghost"
     >
       {children}

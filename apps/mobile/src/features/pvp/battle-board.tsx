@@ -1,5 +1,6 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import type { PvpAction, PvpEndTurnInput } from "@adventure-time/api-client";
 
@@ -45,11 +46,11 @@ function sortByPosition<T extends { position?: number | null }>(items: T[]) {
 }
 
 const overlayButtonStyle = {
-  width: 36,
-  height: 36,
-  minWidth: 36,
-  minHeight: 36,
-  borderRadius: 8,
+  width: 52,
+  height: 52,
+  minWidth: 52,
+  minHeight: 52,
+  borderRadius: 12,
   alignItems: "center" as const,
   justifyContent: "center" as const,
   backgroundColor: "rgba(255,255,255,0.85)",
@@ -63,10 +64,10 @@ const overlayButtonStyle = {
 const overlayButtonAppearance = {
   backgroundColor: "rgba(255,255,255,0.85)",
   borderColor: "rgba(255,255,255,0.85)",
-  borderRadius: 8,
+  borderRadius: 12,
   foregroundColor: "#334155",
   gradientColors: null,
-  minHeight: 36,
+  minHeight: 52,
   paddingHorizontal: 0,
   paddingVertical: 0,
   textStyle: {
@@ -74,6 +75,40 @@ const overlayButtonAppearance = {
     fontSize: 14,
   },
 } as const;
+
+interface OverlayIconButtonProps {
+  onPress: () => void;
+  testID: string;
+  accessibilityLabel: string;
+  children: ReactNode;
+}
+
+function OverlayIconButton({
+  onPress,
+  testID,
+  accessibilityLabel,
+  children,
+}: OverlayIconButtonProps) {
+  return (
+    <Pressable
+      accessibilityLabel={accessibilityLabel}
+      accessibilityRole="button"
+      accessible
+      onPress={onPress}
+      style={({ pressed }) => [
+        overlayButtonStyle,
+        {
+          borderColor: overlayButtonAppearance.borderColor,
+          borderWidth: 1,
+          opacity: pressed ? 0.85 : 1,
+        },
+      ]}
+      testID={testID}
+    >
+      {children}
+    </Pressable>
+  );
+}
 
 export function BattleBoard({
   matchView,
@@ -98,7 +133,10 @@ export function BattleBoard({
   bottomOverlay,
 }: BattleBoardProps) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const { myPlayer, opponentPlayer, isMyTurn, turn, phase, winnerId, myUserId, abilityDefinitions } = matchView;
+  const horizontalPadding = Math.max(48, Math.max(insets.left, insets.right) + 12);
+  const verticalPadding = Math.max(8, Math.max(insets.top, insets.bottom) + 4);
 
   const [showActionModal, setShowActionModal] = useState(false);
   const [selectedActorId, setSelectedActorId] = useState<string | null>(null);
@@ -225,7 +263,16 @@ export function BattleBoard({
   };
 
   return (
-    <View className="flex-1 bg-bg px-12 py-2">
+    <View
+      className="flex-1 bg-bg"
+      style={{
+        paddingLeft: horizontalPadding,
+        paddingRight: horizontalPadding,
+        paddingTop: verticalPadding,
+        paddingBottom: verticalPadding,
+      }}
+      testID="pvp-battle-board"
+    >
       <View className="relative z-10 flex-1 justify-center" style={{ gap: 2 }}>
         <View
           className="relative min-h-0 flex-1 rounded-xl bg-danger px-1.5 py-1.5"
@@ -237,41 +284,35 @@ export function BattleBoard({
             elevation: 8,
           }}
         >
-          <View className="absolute left-1 right-1 top-1 z-20 flex-row items-center justify-between">
-            <ThemedExpoButton
+          <View className="absolute left-2 top-2 z-20">
+            <OverlayIconButton
+              accessibilityLabel={t("pvp.match.goBack")}
               onPress={onBack}
-              preferFallback
-              variant="ghost"
-              fallbackAppearance={overlayButtonAppearance}
-              style={overlayButtonStyle}
+              testID="pvp-battle-back-button"
             >
               <View style={{ transform: [{ rotate: "180deg" }] }}>
                 <ChevronRightIcon size={16} color="#7f1d1d" />
               </View>
-            </ThemedExpoButton>
+            </OverlayIconButton>
+          </View>
 
-            <View className="flex-row" style={{ gap: 6 }}>
-              <ThemedExpoButton
-                onPress={() => setShowLogModal(true)}
-                preferFallback
-                variant="ghost"
-                fallbackAppearance={overlayButtonAppearance}
-                style={overlayButtonStyle}
+          <View className="absolute right-2 top-2 z-20 flex-row" style={{ gap: 6 }}>
+            <OverlayIconButton
+              accessibilityLabel={t("pvp.combatLog.title")}
+              onPress={() => setShowLogModal(true)}
+              testID="pvp-battle-log-button"
+            >
+              <ClockIcon size={15} color="#334155" />
+            </OverlayIconButton>
+            {!readOnly ? (
+              <OverlayIconButton
+                accessibilityLabel={t("pvp.match.concedeConfirm")}
+                onPress={onConcede}
+                testID="pvp-battle-concede-button"
               >
-                <ClockIcon size={15} color="#334155" />
-              </ThemedExpoButton>
-              {!readOnly ? (
-                <ThemedExpoButton
-                  onPress={onConcede}
-                  preferFallback
-                  variant="ghost"
-                  fallbackAppearance={overlayButtonAppearance}
-                  style={overlayButtonStyle}
-                >
-                  <XCircleIcon size={15} color="#e11d48" />
-                </ThemedExpoButton>
-              ) : null}
-            </View>
+                <XCircleIcon size={15} color="#e11d48" />
+              </OverlayIconButton>
+            ) : null}
           </View>
 
           <View className="absolute bottom-0 left-1 right-1 z-20 flex-row items-center justify-between">
@@ -288,10 +329,11 @@ export function BattleBoard({
               <Text style={{ color: "rgba(127,29,29,0.8)", fontSize: 11, fontFamily: "Nunito_700Bold", letterSpacing: 1.4 }}>
                 {t("pvp.board.bench")}
               </Text>
-              {opponentPlayer.bench.map((unit) => (
+              {opponentPlayer.bench.map((unit, index) => (
                 <View key={unit.instanceId} style={{ height: "100%", width: 64 }}>
                   <BenchCard
                     unit={unit}
+                    testID={`pvp-opponent-bench-${index}`}
                     onPress={() => handleOppUnitPress(unit.instanceId)}
                     onLongPress={() => handleLongPress(unit.instanceId)}
                   />
@@ -300,10 +342,11 @@ export function BattleBoard({
             </View>
 
             <View className="flex-row items-center justify-between" style={{ gap: 6, height: 76 }}>
-              {sortedOpponentUnits.map((unit) => (
+              {sortedOpponentUnits.map((unit, index) => (
                 <View key={unit.instanceId} style={{ width: "29.75%" }}>
                   <UnitCard
                     unit={unit}
+                    testID={`pvp-opponent-unit-${index}`}
                     isValidTarget={targeting?.validTargetIds.includes(unit.instanceId) ?? false}
                     attackerType={actorType}
                     onPress={() => handleOppUnitPress(unit.instanceId)}
@@ -354,10 +397,11 @@ export function BattleBoard({
 
           <View className="h-full justify-between">
             <View className="flex-row items-center justify-between" style={{ gap: 6, height: 76, marginTop: 18 }}>
-              {sortedMyUnits.map((unit) => (
+              {sortedMyUnits.map((unit, index) => (
                 <View key={unit.instanceId} style={{ width: "29.75%" }}>
                   <UnitCard
                     unit={unit}
+                    testID={`pvp-my-unit-${index}`}
                     isSelected={selectedActorId === unit.instanceId && showActionModal}
                     isValidTarget={targeting?.validTargetIds.includes(unit.instanceId) ?? false}
                     canSelectAsActor={isMyTurn && !targeting && !isSwapMode && unit.hp > 0}
@@ -370,10 +414,11 @@ export function BattleBoard({
             </View>
 
             <View className="h-[46px] flex-row items-center justify-end px-1" style={{ gap: 10 }}>
-              {myPlayer.bench.map((unit) => (
+              {myPlayer.bench.map((unit, index) => (
                 <View key={unit.instanceId} style={{ height: "100%", width: 64 }}>
                   <BenchCard
                     unit={unit}
+                    testID={`pvp-my-bench-${index}`}
                     isSelected={pendingSwap?.activeInstanceId === unit.instanceId}
                     isSwapTarget={isSwapMode}
                     isValidTarget={targeting?.validTargetIds.includes(unit.instanceId) ?? false}

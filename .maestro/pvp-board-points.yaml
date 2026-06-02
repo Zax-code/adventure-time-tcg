@@ -1,0 +1,53 @@
+appId: love.leaetzak.adventuretime
+name: Adventure Time PvP board point smoke
+tags:
+  - smoke
+  - pvp
+  - board
+  - points
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- openLink:
+    link: adventure-time://e2e-auth?redirect=%2Fpvp&fixture=${TEST_MATCH_ID}&accessToken=${TEST_ACCESS_TOKEN}&refreshToken=${TEST_REFRESH_TOKEN}&user=${TEST_USER}
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- assertVisible:
+    id: pvp-open-mechanics-button
+- assertVisible:
+    id: pvp-active-match-card-0
+- tapOn:
+    id: pvp-active-match-card-0
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible:
+      id: pvp-battle-board
+    timeout: 10000
+- extendedWaitUntil:
+    notVisible:
+      text: Tap a card for actions
+    timeout: 5000
+- longPressOn:
+    id: pvp-battle-board
+    point: "21%,70%"
+- assertVisible:
+    id: pvp-card-info-modal
+- tapOn:
+    id: pvp-card-info-close-button
+- assertNotVisible:
+    id: pvp-card-info-modal
+- tapOn:
+    id: pvp-battle-board
+    point: "21%,70%"
+    retryTapIfNoChange: true
+- assertVisible:
+    id: pvp-action-modal
+- tapOn:
+    id: pvp-action-basic-button
+    retryTapIfNoChange: true
+- tapOn:
+    id: pvp-battle-board
+    point: "21%,35%"
+    retryTapIfNoChange: true
+- assertVisible:
+    id: pvp-battle-board

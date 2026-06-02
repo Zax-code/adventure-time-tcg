@@ -9,7 +9,10 @@ coverage/
 .expo/
 .expo-shared/
 .agents/
+.maestro/.maestro-flow.*
+.maestro/test-output/
 *.log
+report.xml
 .DS_Store
 .vscode/
 **/.migration-reports/
