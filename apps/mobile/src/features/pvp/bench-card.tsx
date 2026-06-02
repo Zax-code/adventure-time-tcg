@@ -1,6 +1,7 @@
-import { Pressable, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import { Image } from "expo-image";
 
+import { ThemedExpoButton } from "../../components/expo-ui/themed-button";
 import { resolveBattleImageUrl } from "./image-url";
 import type { PvpUnitState } from "./types";
 
@@ -29,19 +30,28 @@ export function BenchCard({
   const imageUrl = resolveBattleImageUrl(unit.imageUrl);
 
   return (
-    <Pressable
+    <ThemedExpoButton
       onPress={onPress}
       onLongPress={onLongPress}
       delayLongPress={400}
+      preferFallback
+      preserveChildLayout
+      variant="ghost"
+      fallbackAppearance={{
+        backgroundColor: isDead ? "rgba(15,23,42,0.55)" : "rgba(226,232,240,0.55)",
+        borderColor,
+        borderWidth: 2,
+        borderRadius: 10,
+        gradientColors: null,
+        minHeight: 0,
+        paddingHorizontal: 0,
+        paddingVertical: 0,
+      }}
       style={{
         height: "100%",
         aspectRatio: 5 / 3,
-        borderRadius: 10,
         overflow: "hidden",
-        borderWidth: 2,
-        borderColor,
         opacity,
-        backgroundColor: isDead ? "rgba(15,23,42,0.55)" : "rgba(226,232,240,0.55)",
       }}
     >
       {imageUrl ? (
@@ -67,6 +77,6 @@ export function BenchCard({
           }}
         />
       </View>
-    </Pressable>
+    </ThemedExpoButton>
   );
 }

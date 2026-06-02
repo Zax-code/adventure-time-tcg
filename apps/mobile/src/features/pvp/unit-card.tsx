@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Animated, Pressable, Text, View } from "react-native";
+import { Animated, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { getTypeMultiplier } from "@adventure-time/game-engine";
 
+import { ThemedExpoButton } from "../../components/expo-ui/themed-button";
 import { XCircleIcon } from "../../components/icons";
 import { useTranslation } from "../../i18n";
 import { FloatingNumber } from "./floating-number";
@@ -121,13 +122,26 @@ export function UnitCard({
         </View>
       ) : null}
 
-      <Pressable
+      <ThemedExpoButton
         onPress={onPress}
         onLongPress={onLongPress}
         delayLongPress={400}
+        preferFallback
+        preserveChildLayout
+        variant="ghost"
+        fallbackAppearance={{
+          backgroundColor: "transparent",
+          borderColor: "transparent",
+          borderWidth: 0,
+          borderRadius: 12,
+          gradientColors: null,
+          minHeight: 0,
+          paddingHorizontal: 0,
+          paddingVertical: 0,
+        }}
         style={{ aspectRatio: 1.82 }}
       >
-        <View className="h-full overflow-hidden rounded-xl bg-slate-900 shadow-lg">
+        <View className="h-full w-full overflow-hidden rounded-xl bg-slate-900 shadow-lg">
           {imageUrl ? (
             <Image
               source={{ uri: imageUrl }}
@@ -240,7 +254,7 @@ export function UnitCard({
             />
           ) : null}
         </View>
-      </Pressable>
+      </ThemedExpoButton>
     </View>
   );
 }

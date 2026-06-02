@@ -35,6 +35,7 @@ type ThemedButtonVariant =
 type ThemedButtonFallbackAppearance = {
   backgroundColor?: string;
   borderColor?: string;
+  borderWidth?: number;
   foregroundColor?: string;
   borderRadius?: number;
   paddingHorizontal?: number;
@@ -49,9 +50,12 @@ type ThemedButtonFallbackAppearance = {
 
 type ThemedExpoButtonProps = {
   onPress?: () => void;
+  onLongPress?: () => void;
+  delayLongPress?: number;
   disabled?: boolean;
   loading?: boolean;
   preferFallback?: boolean;
+  preserveChildLayout?: boolean;
   children?: ReactNode;
   label?: string;
   leadingAccessory?: ReactNode;
@@ -131,9 +135,19 @@ function shouldUseFallbackButton(
   label: string | null,
   loading: boolean | undefined,
   leadingAccessory: ReactNode | undefined,
+  onLongPress: (() => void) | undefined,
+  preserveChildLayout: boolean | undefined,
   style: ViewStyle | undefined,
 ) {
-  if (preferFallback || Platform.OS === "web" || loading || !label || leadingAccessory) {
+  if (
+    preferFallback ||
+    Platform.OS === "web" ||
+    loading ||
+    !label ||
+    leadingAccessory ||
+    onLongPress ||
+    preserveChildLayout
+  ) {
     return true;
   }
 
@@ -163,9 +177,7 @@ function getDefaultFallbackAppearance(
   palette: ReturnType<typeof getButtonPalette>,
   nativeKind: ReturnType<typeof getNativeButtonKind>,
   variant: ThemedButtonVariant,
-): Required<Omit<ThemedButtonFallbackAppearance, "textStyle">> & {
-  textStyle: NonNullable<ThemedButtonFallbackAppearance["textStyle"]>;
-} {
+) {
   return {
     backgroundColor:
       nativeKind === "ghost"
@@ -175,6 +187,7 @@ function getDefaultFallbackAppearance(
           : palette.filledBackground,
     borderColor:
       nativeKind === "ghost" ? tc.primaryBorder : palette.outlineBorder,
+    borderWidth: undefined,
     foregroundColor:
       nativeKind === "tonal"
         ? palette.tonalForeground
@@ -205,8 +218,11 @@ function getDefaultFallbackAppearance(
 
 function FallbackButton({
   onPress,
+  onLongPress,
+  delayLongPress,
   disabled,
   loading,
+  preserveChildLayout,
   children,
   label: explicitLabel,
   leadingAccessory,
@@ -236,6 +252,8 @@ function FallbackButton({
   const foregroundColor = appearance.foregroundColor;
   const content = loading ? (
     <ActivityIndicator color={foregroundColor} />
+  ) : preserveChildLayout && !leadingAccessory && !label && children ? (
+    children
   ) : (
     <View
       style={{
@@ -266,6 +284,8 @@ function FallbackButton({
   return (
     <Pressable
       onPress={onPress}
+      onLongPress={onLongPress}
+      delayLongPress={delayLongPress}
       disabled={disabled || loading}
       style={[
         {
@@ -289,7 +309,9 @@ function FallbackButton({
           alignItems: fallbackLayout === "stretch" ? "stretch" : "center",
           justifyContent:
             fallbackLayout === "stretch" ? "flex-start" : "center",
-          borderWidth: appearance.gradientColors == null ? 1 : 0,
+          borderWidth:
+            appearance.borderWidth ??
+            (appearance.gradientColors == null ? 1 : 0),
           borderColor:
             appearance.gradientColors == null
               ? appearance.borderColor
@@ -329,11 +351,13 @@ export function ThemedExpoButton(props: ThemedExpoButtonProps) {
     style,
     loading,
     preferFallback,
+    preserveChildLayout,
     children,
     label: explicitLabel,
     leadingAccessory,
     disabled,
     onPress,
+    onLongPress,
     variant,
   } = props;
   const themeName = useThemeStore((state) => state.themeName);
@@ -343,7 +367,17 @@ export function ThemedExpoButton(props: ThemedExpoButtonProps) {
   const palette = getButtonPalette(tc, variant);
   const nativeKind = getNativeButtonKind(variant);
 
-  if (shouldUseFallbackButton(preferFallback, label, loading, leadingAccessory, style)) {
+  if (
+    shouldUseFallbackButton(
+      preferFallback,
+      label,
+      loading,
+      leadingAccessory,
+      onLongPress,
+      preserveChildLayout,
+      style,
+    )
+  ) {
     return <FallbackButton {...props} />;
   }
 
