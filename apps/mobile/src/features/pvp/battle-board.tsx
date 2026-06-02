@@ -1,9 +1,10 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Text, View } from "react-native";
 
 import type { PvpAction, PvpEndTurnInput } from "@adventure-time/api-client";
 
 import { ChevronRightIcon, ClockIcon, XCircleIcon } from "../../components/icons";
+import { ThemedExpoButton } from "../../components/expo-ui/themed-button";
 import { useTranslation } from "../../i18n";
 import { ActionButtons } from "./action-buttons";
 import { ActionModal } from "./action-modal";
@@ -42,6 +43,37 @@ interface BattleBoardProps {
 function sortByPosition<T extends { position?: number | null }>(items: T[]) {
   return [...items].sort((a, b) => (a.position ?? 99) - (b.position ?? 99));
 }
+
+const overlayButtonStyle = {
+  width: 36,
+  height: 36,
+  minWidth: 36,
+  minHeight: 36,
+  borderRadius: 8,
+  alignItems: "center" as const,
+  justifyContent: "center" as const,
+  backgroundColor: "rgba(255,255,255,0.85)",
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 1 },
+  shadowOpacity: 0.12,
+  shadowRadius: 2,
+  elevation: 2,
+};
+
+const overlayButtonAppearance = {
+  backgroundColor: "rgba(255,255,255,0.85)",
+  borderColor: "rgba(255,255,255,0.85)",
+  borderRadius: 8,
+  foregroundColor: "#334155",
+  gradientColors: null,
+  minHeight: 36,
+  paddingHorizontal: 0,
+  paddingVertical: 0,
+  textStyle: {
+    fontFamily: "Nunito_700Bold",
+    fontSize: 14,
+  },
+} as const;
 
 export function BattleBoard({
   matchView,
@@ -127,22 +159,6 @@ export function BattleBoard({
         : t("pvp.board.hint.actions")
     : t("pvp.board.hint.waiting");
 
-  const overlayButtonStyle = {
-    width: 36,
-    height: 36,
-    minWidth: 36,
-    minHeight: 36,
-    borderRadius: 8,
-    alignItems: "center" as const,
-    justifyContent: "center" as const,
-    backgroundColor: "rgba(255,255,255,0.85)",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.12,
-    shadowRadius: 2,
-    elevation: 2,
-  };
-
   const isOverlayOpen = showActionModal || showLogModal || longPressUnit !== null;
 
   const handleUnitPress = (instanceId: string) => {
@@ -222,20 +238,38 @@ export function BattleBoard({
           }}
         >
           <View className="absolute left-1 right-1 top-1 z-20 flex-row items-center justify-between">
-            <Pressable onPress={onBack} style={overlayButtonStyle}>
+            <ThemedExpoButton
+              onPress={onBack}
+              preferFallback
+              variant="ghost"
+              fallbackAppearance={overlayButtonAppearance}
+              style={overlayButtonStyle}
+            >
               <View style={{ transform: [{ rotate: "180deg" }] }}>
                 <ChevronRightIcon size={16} color="#7f1d1d" />
               </View>
-            </Pressable>
+            </ThemedExpoButton>
 
             <View className="flex-row" style={{ gap: 6 }}>
-              <Pressable onPress={() => setShowLogModal(true)} style={overlayButtonStyle}>
+              <ThemedExpoButton
+                onPress={() => setShowLogModal(true)}
+                preferFallback
+                variant="ghost"
+                fallbackAppearance={overlayButtonAppearance}
+                style={overlayButtonStyle}
+              >
                 <ClockIcon size={15} color="#334155" />
-              </Pressable>
+              </ThemedExpoButton>
               {!readOnly ? (
-                <Pressable onPress={onConcede} style={overlayButtonStyle}>
+                <ThemedExpoButton
+                  onPress={onConcede}
+                  preferFallback
+                  variant="ghost"
+                  fallbackAppearance={overlayButtonAppearance}
+                  style={overlayButtonStyle}
+                >
                   <XCircleIcon size={15} color="#e11d48" />
-                </Pressable>
+                </ThemedExpoButton>
               ) : null}
             </View>
           </View>

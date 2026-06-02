@@ -2,12 +2,13 @@ import { useState } from "react";
 import { useRouter } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { ScrollView, Text, View } from "react-native";
 
 import type { GiftsResponse } from "@adventure-time/api-client";
 
 import { PrimaryButton } from "../../src/components/button";
 import { PageErrorState } from "../../src/components/error-state";
+import { ThemedExpoButton } from "../../src/components/expo-ui/themed-button";
 import {
   BoxIcon,
   CheckCircleIcon,
@@ -281,12 +282,27 @@ export default function GiftsScreen() {
             {filterOptions.map((option) => {
               const selected = option.key === activeFilter;
               return (
-                <Pressable
+                <ThemedExpoButton
                   key={option.key}
-                  className="flex-1 rounded-2xl border px-3 py-3"
-                  style={{
+                  preferFallback
+                  fallbackLayout="stretch"
+                  variant="ghost"
+                  fallbackAppearance={{
                     backgroundColor: selected ? tc.primaryTint : tc.surface,
                     borderColor: selected ? tc.primaryBorder : tc.primaryTint,
+                    borderRadius: 16,
+                    foregroundColor: selected ? tc.primaryText : tc.fg,
+                    gradientColors: null,
+                    minHeight: 0,
+                    paddingHorizontal: 12,
+                    paddingVertical: 12,
+                    textStyle: {
+                      fontFamily: "Nunito_700Bold",
+                      fontSize: 14,
+                    },
+                  }}
+                  style={{
+                    flex: 1,
                   }}
                   onPress={() => setActiveFilter(option.key)}
                 >
@@ -302,7 +318,7 @@ export default function GiftsScreen() {
                   >
                     {t("gifts.filterCount", { count: option.count })}
                   </Text>
-                </Pressable>
+                </ThemedExpoButton>
               );
             })}
           </View>
@@ -620,32 +636,58 @@ function GiftCard({
 
         {canAct ? (
           <View className="flex-row gap-3">
-            <Pressable
-              className="flex-1 items-center rounded-2xl px-4 py-3"
-              style={{
+            <ThemedExpoButton
+              preferFallback
+              variant="primary"
+              fallbackAppearance={{
                 backgroundColor: tc.successDark,
+                borderColor: tc.successDark,
+                borderRadius: 16,
+                foregroundColor: "#FFFFFF",
+                gradientColors: null,
+                minHeight: 0,
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                textStyle: {
+                  fontFamily: "Nunito_700Bold",
+                  fontSize: 14,
+                },
+              }}
+              style={{
+                flex: 1,
                 opacity: activeDecision ? 0.65 : 1,
               }}
               disabled={Boolean(activeDecision)}
               onPress={() => onDecision("accept")}
             >
-              <Text className="font-nunito-bold text-white">
-                {isAccepting ? t("gifts.accepting") : t("gifts.accept")}
-              </Text>
-            </Pressable>
-            <Pressable
-              className="flex-1 items-center rounded-2xl px-4 py-3"
-              style={{
+              {isAccepting ? t("gifts.accepting") : t("gifts.accept")}
+            </ThemedExpoButton>
+            <ThemedExpoButton
+              preferFallback
+              variant="danger"
+              fallbackAppearance={{
                 backgroundColor: tc.dangerDark,
+                borderColor: tc.dangerDark,
+                borderRadius: 16,
+                foregroundColor: "#FFFFFF",
+                gradientColors: null,
+                minHeight: 0,
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                textStyle: {
+                  fontFamily: "Nunito_700Bold",
+                  fontSize: 14,
+                },
+              }}
+              style={{
+                flex: 1,
                 opacity: activeDecision ? 0.65 : 1,
               }}
               disabled={Boolean(activeDecision)}
               onPress={() => onDecision("reject")}
             >
-              <Text className="font-nunito-bold text-white">
-                {isRejecting ? t("gifts.rejecting") : t("gifts.reject")}
-              </Text>
-            </Pressable>
+              {isRejecting ? t("gifts.rejecting") : t("gifts.reject")}
+            </ThemedExpoButton>
           </View>
         ) : null}
       </View>
