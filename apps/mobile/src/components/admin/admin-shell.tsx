@@ -150,13 +150,13 @@ export function AdminShell({ children }: { children: ReactNode }) {
         <View className="flex-1">{children}</View>
 
         <View
-          className="px-3"
+          className="px-1"
           style={{ paddingBottom: Math.max(insets.bottom, 12) }}
         >
           <View
             className="flex-row rounded-[30] border p-2"
             style={{
-              backgroundColor: tc.surface,
+              backgroundColor: "transparent",
               borderColor: withAlpha(tc.primaryBorder, "73"),
               shadowColor: tc.fg,
               shadowOpacity: themeName === "nightosphere" ? 0.22 : 0.08,
@@ -175,7 +175,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
                 <Pressable
                   key={item.path}
                   onPress={() => router.replace(item.path as any)}
-                  className="flex-1 items-center justify-center gap-1 rounded-[22] px-1 py-2"
+                  className="flex-1 items-center justify-center gap-1 rounded-[22] px-0 py-2"
                   style={{
                     backgroundColor: active
                       ? withAlpha(tc.primaryTint, "E8")
@@ -199,7 +199,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
                     )}
                   </View>
                   <Text
-                    className="font-nunito-extrabold text-[10px]"
+                    className="font-nunito-extrabold text-[9px]"
                     numberOfLines={1}
                     style={{ color: active ? tint : tc.fgMuted }}
                   >
