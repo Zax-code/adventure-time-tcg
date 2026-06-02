@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 
-import { CoinIcon, CardsIcon, HomeIcon } from "../icons";
+import { CoinIcon, CardsIcon, HomeIcon, SettingsIcon } from "../icons";
 import { useTranslation } from "../../i18n";
 import { useSessionStore } from "../../stores/session-store";
 import { useThemeStore } from "../../stores/theme-store";
@@ -107,35 +107,57 @@ export function AdminShell({ children }: { children: ReactNode }) {
     <AdminBackground>
       <View className="flex-1">
         <View className="px-4 pb-3" style={{ paddingTop: insets.top + 10 }}>
-          <View className="flex-row items-start justify-between gap-3">
-            <View className="flex-1 gap-3">
-              <View className="flex-row items-center justify-between gap-3">
-                <View
-                  className="self-start rounded-full border px-3 py-[6]"
-                  style={{
-                    backgroundColor: withAlpha(tc.primaryTint, "D9"),
-                    borderColor: withAlpha(tc.primaryBorder, "73"),
-                  }}
-                >
-                  <Text className="font-nunito-extrabold text-[11px] uppercase tracking-[0.8px] text-primaryStrong">
-                    {t("admin.shell.consoleLabel")}
-                  </Text>
-                </View>
+          <View className="gap-3">
+            <View className="flex-row items-center justify-between">
+              <CoinPill />
+              <View className="flex-row items-center" style={{ columnGap: 16 }}>
                 <Pressable
                   onPress={() => router.replace("/(tabs)" as any)}
-                  className="flex-row items-center justify-center gap-2 self-start rounded-full border px-[14] py-[10]"
-                  style={{
-                    backgroundColor: tc.surface,
-                    borderColor: withAlpha(tc.primaryBorder, "73"),
-                  }}
+                  hitSlop={8}
                 >
-                  <HomeIcon size={18} color={tc.primaryStrong} />
-                  <Text className="font-nunito-bold text-[13px] text-primaryStrong">
-                    {t("admin.shell.backToGame")}
-                  </Text>
+                  <LinearGradient
+                    colors={[tc.accent, tc.accentDark, tc.accentText]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 999,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      shadowColor: "#000",
+                      shadowOpacity: 0.15,
+                      shadowRadius: 8,
+                      shadowOffset: { width: 0, height: 3 },
+                      elevation: 3,
+                    }}
+                  >
+                    <HomeIcon size={22} color="#FFFFFF" />
+                  </LinearGradient>
+                </Pressable>
+                <Pressable onPress={() => router.push("/settings")} hitSlop={8}>
+                  <View
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 999,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      backgroundColor: tc.surfaceMuted,
+                      shadowColor: "#000",
+                      shadowOpacity: 0.1,
+                      shadowRadius: 4,
+                      shadowOffset: { width: 0, height: 2 },
+                      elevation: 2,
+                    }}
+                  >
+                    <SettingsIcon size={24} color={tc.primaryDark} />
+                  </View>
                 </Pressable>
               </View>
-              <View>
+            </View>
+            <View className="flex-row items-start justify-between gap-3">
+              <View className="flex-1">
                 <Text className="font-nunito-extrabold text-[24px] text-fg">
                   {t("admin.shell.consoleTitle")}
                 </Text>
@@ -144,7 +166,6 @@ export function AdminShell({ children }: { children: ReactNode }) {
                 </Text>
               </View>
             </View>
-            <CoinPill />
           </View>
         </View>
 
