@@ -26,6 +26,7 @@ import { THEME_COLORS } from "../../src/theme/themes";
 import { PrimaryButton, SecondaryButton } from "../../src/components/button";
 import { CardTile } from "../../src/components/card-tile";
 import { PageErrorState } from "../../src/components/error-state";
+import { ThemedExpoButton } from "../../src/components/expo-ui/themed-button";
 import { PageLoadingState } from "../../src/components/loading-state";
 import { useTranslation } from "../../src/i18n";
 
@@ -235,19 +236,30 @@ export default function HomeScreen() {
             </PrimaryButton>
 
             <View className="flex-row gap-2">
-              <Pressable
-                className="flex-1 rounded-full border border-primaryBorder bg-surfaceMuted px-4 py-3"
+              <ThemedExpoButton
                 onPress={() => {
                   setNotificationPromptIgnored(true);
                 }}
+                fallbackAppearance={{
+                  backgroundColor: tc.surfaceMuted,
+                  borderColor: tc.primaryBorder,
+                  borderRadius: 999,
+                  paddingHorizontal: 16,
+                  paddingVertical: 12,
+                  gradientColors: null,
+                  foregroundColor: tc.fgMuted,
+                  textStyle: {
+                    fontFamily: "Nunito_600SemiBold",
+                    fontSize: 14,
+                  },
+                }}
+                style={{ flex: 1 }}
+                variant="ghost"
               >
-                <Text className="text-center font-nunito-semibold text-sm text-fgMuted">
-                  {t("home.notificationsPromptIgnore")}
-                </Text>
-              </Pressable>
+                {t("home.notificationsPromptIgnore")}
+              </ThemedExpoButton>
 
-              <Pressable
-                className="flex-1 rounded-full border border-primaryBorder bg-surfaceMuted px-4 py-3"
+              <ThemedExpoButton
                 onPress={() => {
                   if (!user?.id) {
                     return;
@@ -259,11 +271,24 @@ export default function HomeScreen() {
                     },
                   );
                 }}
+                fallbackAppearance={{
+                  backgroundColor: tc.surfaceMuted,
+                  borderColor: tc.primaryBorder,
+                  borderRadius: 999,
+                  paddingHorizontal: 16,
+                  paddingVertical: 12,
+                  gradientColors: null,
+                  foregroundColor: tc.fgMuted,
+                  textStyle: {
+                    fontFamily: "Nunito_600SemiBold",
+                    fontSize: 14,
+                  },
+                }}
+                style={{ flex: 1 }}
+                variant="ghost"
               >
-                <Text className="text-center font-nunito-semibold text-sm text-fgMuted">
-                  {t("home.notificationsPromptHide")}
-                </Text>
-              </Pressable>
+                {t("home.notificationsPromptHide")}
+              </ThemedExpoButton>
             </View>
           </View>
         </View>
@@ -287,25 +312,25 @@ export default function HomeScreen() {
             </Text>
           </View>
           {canClaim ? (
-            <Pressable
+            <ThemedExpoButton
               onPress={() => claimMutation.mutate()}
               disabled={claimMutation.isPending}
+              loading={claimMutation.isPending}
+              fallbackAppearance={{
+                borderRadius: 999,
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+                gradientColors: [tc.secondary, tc.secondaryDark] as const,
+                foregroundColor: tc.secondaryText,
+                textStyle: {
+                  fontFamily: "Nunito_700Bold",
+                  fontSize: 14,
+                },
+              }}
+              variant="secondary"
             >
-              <LinearGradient
-                colors={[tc.secondary, tc.secondaryDark]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={{
-                  borderRadius: 999,
-                  paddingVertical: 8,
-                  paddingHorizontal: 16,
-                }}
-              >
-                <Text className="font-nunito-bold text-sm text-secondaryText">
-                  {claimMutation.isPending ? "..." : t("home.claim")}
-                </Text>
-              </LinearGradient>
-            </Pressable>
+              {t("home.claim")}
+            </ThemedExpoButton>
           ) : (
             <View
               className="rounded-full px-4 py-2"
