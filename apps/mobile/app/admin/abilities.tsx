@@ -168,13 +168,13 @@ export default function AdminAbilitiesScreen() {
       {
         translateX: heroActionProgress.interpolate({
           inputRange: [0, 1],
-          outputRange: [12, 0],
+          outputRange: [8, 0],
         }),
       },
       {
         scale: heroActionProgress.interpolate({
           inputRange: [0, 1],
-          outputRange: [0.98, 1],
+          outputRange: [0.985, 1],
         }),
       },
     ],
@@ -199,7 +199,15 @@ export default function AdminAbilitiesScreen() {
           actions={
             <Animated.View
               pointerEvents={isAbilitiesTab ? "auto" : "none"}
-              style={heroActionStyle}
+              style={[
+                heroActionStyle,
+                {
+                  opacity: heroActionProgress.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.35, 1],
+                  }),
+                },
+              ]}
             >
               <AdminButton
                 label={t("admin.abilities.createAbility")}
