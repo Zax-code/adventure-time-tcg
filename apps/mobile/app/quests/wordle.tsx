@@ -124,6 +124,7 @@ export default function WordleScreen() {
   const attemptsUsed = guesses.length;
   const attemptsLeft = Math.max(0, MAX_ATTEMPTS - attemptsUsed);
   const gameOver = solved || attemptsUsed >= MAX_ATTEMPTS;
+  const canShowDefinition = gameOver;
   const shareMaskActive = gameOver && shareMaskEnabled;
   const inputLocked = gameOver || submitting;
   const submitLocked =
@@ -215,7 +216,8 @@ export default function WordleScreen() {
       stateQuery.data?.date ?? activeDateKey ?? null,
     ],
     queryFn: () => apiClient.wordleDefinition(wordleLanguage),
-    enabled: definitionModalVisible && wordleLanguageHydrated,
+    enabled:
+      definitionModalVisible && canShowDefinition && wordleLanguageHydrated,
     staleTime: Infinity,
     retry: 1,
   });
@@ -691,6 +693,12 @@ export default function WordleScreen() {
   }, [definitionModalVisible]);
 
   useEffect(() => {
+    if (!canShowDefinition && definitionModalVisible) {
+      setDefinitionModalVisible(false);
+    }
+  }, [canShowDefinition, definitionModalVisible]);
+
+  useEffect(() => {
     const variants = definitionQuery.data?.variants ?? [];
 
     if (variants.length === 0) {
@@ -1102,15 +1110,17 @@ export default function WordleScreen() {
           </TouchableOpacity>
         ) : null}
 
-        <TouchableOpacity
-          onPress={() => setDefinitionModalVisible(true)}
-          activeOpacity={0.8}
-          className="items-center rounded-xl border-2 border-primaryTint bg-bg px-4 py-3"
-        >
-          <Text className="text-sm font-nunito-bold text-primaryStrong">
-            {t("quests.wordle.showDefinition")}
-          </Text>
-        </TouchableOpacity>
+        {canShowDefinition ? (
+          <TouchableOpacity
+            onPress={() => setDefinitionModalVisible(true)}
+            activeOpacity={0.8}
+            className="items-center rounded-xl border-2 border-primaryTint bg-bg px-4 py-3"
+          >
+            <Text className="text-sm font-nunito-bold text-primaryStrong">
+              {t("quests.wordle.showDefinition")}
+            </Text>
+          </TouchableOpacity>
+        ) : null}
       </View>
 
       {/* ── Keyboard card ───────────────────────────────────────────────── */}
