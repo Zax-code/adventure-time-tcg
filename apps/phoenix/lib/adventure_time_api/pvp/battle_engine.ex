@@ -1688,6 +1688,7 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
       "players" => [
         %{
           "userId" => inviter_data.user_id,
+          "name" => inviter_data.display_name,
           "displayName" => inviter_data.display_name,
           "energy" => 1,
           "initiative" => inviter_initiative,
@@ -1697,6 +1698,7 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
         },
         %{
           "userId" => invitee_data.user_id,
+          "name" => invitee_data.display_name,
           "displayName" => invitee_data.display_name,
           "energy" => 1,
           "initiative" => invitee_initiative,
@@ -2979,6 +2981,7 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
     Map.update!(state, "players", fn players ->
       Enum.map(players, fn player ->
         player
+        |> normalize_player_name()
         |> Map.update!("units", fn units ->
           Enum.map(units, fn unit ->
             Map.update!(unit, "type", fn type -> CardType.canonicalize!(type) end)
@@ -2991,6 +2994,20 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
         end)
       end)
     end)
+  end
+
+  defp normalize_player_name(player) do
+    case Map.get(player, "name") do
+      name when is_binary(name) and name != "" ->
+        player
+
+      _ ->
+        display_name = Map.get(player, "displayName") || Map.get(player, "userId")
+
+        player
+        |> Map.put("name", display_name)
+        |> Map.put_new("displayName", display_name)
+    end
   end
 
   # ── Private Helpers ───────────────────────────────────────────────────────

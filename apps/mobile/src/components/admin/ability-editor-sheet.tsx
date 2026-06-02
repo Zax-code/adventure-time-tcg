@@ -5,8 +5,8 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { Alert, Pressable, Text, TextInput, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { Alert, Pressable, Text, View } from "react-native";
+import Ionicons from "@react-native-vector-icons/ionicons";
 
 import {
   ABILITY_TARGET_SELECTORS,
@@ -23,6 +23,7 @@ import {
   type TypeName,
 } from "./ability-payload";
 import { AdminButton, AdminField } from "./admin-ui";
+import { ThemedExpoTextInput } from "../expo-ui/themed-text-input";
 import { useTranslation } from "../../i18n";
 import { useThemeStore } from "../../stores/theme-store";
 import { THEME_COLORS } from "../../theme/themes";
@@ -155,27 +156,6 @@ export function AbilityEditorForm({
   const [rawPayloadError, setRawPayloadError] = useState("");
   const [formError, setFormError] = useState("");
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
-
-  useEffect(() => {
-    const nextState = getInitialEditorState(ability);
-
-    setFormKey(nextState.formKey);
-    setFormName(nextState.formName);
-    setFormDescription(nextState.formDescription);
-    setFormType(nextState.formType);
-    setFormCost(nextState.formCost);
-    setFormCooldown(nextState.formCooldown);
-    setFormOncePerMatch(nextState.formOncePerMatch);
-    setFormPayload(nextState.formPayload);
-    setExtraPayloadKeys(nextState.extraPayloadKeys);
-    setRawPayloadText(nextState.rawPayloadText);
-
-    setShowRawJson(false);
-    setOpenDropdownId(null);
-    setRawPayloadTouched(false);
-    setRawPayloadError("");
-    setFormError("");
-  }, [ability]);
 
   useEffect(() => {
     if (rawPayloadTouched) {
@@ -369,6 +349,7 @@ export function AbilityEditorForm({
     onSubmit,
     rawPayloadText,
     rawPayloadTouched,
+    t,
   ]);
 
   const footer = (
@@ -1724,17 +1705,25 @@ function JsonField({
   return (
     <View className="gap-2">
       <Text className="font-nunito-bold text-xs text-primaryText">{label}</Text>
-      <TextInput
+      <ThemedExpoTextInput
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor={tc.muted}
         multiline
-        textAlignVertical="top"
         autoCapitalize="none"
         autoCorrect={false}
-        className="min-h-[170] rounded-2xl border-2 border-primaryBorder bg-surface/95 px-[14] py-3 text-fg"
-        style={{ fontFamily: "monospace", fontSize: 13 }}
+        hostStyle={{ minHeight: 170, width: "100%" }}
+        style={{
+          backgroundColor: tc.surface,
+          borderColor: tc.primaryBorder,
+          borderRadius: 16,
+          borderWidth: 2,
+          paddingHorizontal: 14,
+          paddingVertical: 12,
+          width: "100%",
+        }}
+        textStyle={{ color: tc.fg, fontFamily: "monospace", fontSize: 13 }}
+        numberOfLines={8}
       />
     </View>
   );

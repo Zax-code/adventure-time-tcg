@@ -13,8 +13,9 @@ import type { PvpAction } from "@adventure-time/api-client";
 
 import { PageLoadingState } from "../src/components/loading-state";
 import { PageErrorState } from "../src/components/error-state";
+import { ThemedExpoButton } from "../src/components/expo-ui/themed-button";
 import { useThemeStore } from "../src/stores/theme-store";
-import { THEME_VARS } from "../src/theme/themes";
+import { THEME_COLORS, THEME_VARS } from "../src/theme/themes";
 import { BattleBoard } from "../src/features/pvp/battle-board";
 import { BattleFullScreenSheet } from "../src/features/pvp/battle-full-screen-sheet";
 import { useMatch } from "../src/features/pvp/use-match";
@@ -232,6 +233,8 @@ export default function PvpMatchScreen() {
         title={t("pvp.match.endTurnTitle")}
         body={t("pvp.match.endTurnBody", { energy: matchView.myPlayer.energy })}
         confirmLabel={t("pvp.match.endTurnConfirm")}
+        testID="pvp-end-turn-confirm-sheet"
+        confirmButtonTestID="pvp-end-turn-confirm-button"
         onCancel={() => setShowEndTurnConfirm(false)}
         onConfirm={() => {
           setShowEndTurnConfirm(false);
@@ -244,6 +247,8 @@ export default function PvpMatchScreen() {
         title={t("pvp.match.concedeTitle")}
         body={t("pvp.match.concedeBody")}
         confirmLabel={t("pvp.match.concedeConfirm")}
+        testID="pvp-concede-confirm-sheet"
+        confirmButtonTestID="pvp-concede-confirm-button"
         danger
         onCancel={() => setShowConcedeConfirm(false)}
         onConfirm={() => {
@@ -261,6 +266,8 @@ function ConfirmSheet({
   title,
   body,
   confirmLabel,
+  testID,
+  confirmButtonTestID,
   onCancel,
   onConfirm,
   danger = false,
@@ -269,24 +276,65 @@ function ConfirmSheet({
   title: string;
   body: string;
   confirmLabel: string;
+  testID: string;
+  confirmButtonTestID: string;
   onCancel: () => void;
   onConfirm: () => void;
   danger?: boolean;
 }) {
   const { t } = useTranslation();
+  const themeName = useThemeStore((state) => state.themeName);
+  const tc = THEME_COLORS[themeName];
   return (
     <BattleFullScreenSheet
       visible={visible}
       title={title}
       onClose={onCancel}
+      testID={testID}
       footer={
         <View className="flex-row gap-3">
-          <Pressable onPress={onCancel} className="flex-1 rounded-2xl bg-surfaceMuted px-4 py-3">
-            <Text className="text-center font-nunito-bold text-fgMuted">{t("common.cancel")}</Text>
-          </Pressable>
-          <Pressable onPress={onConfirm} className={`flex-1 rounded-2xl px-4 py-3 ${danger ? "bg-dangerDark" : "bg-primaryDark"}`}>
-            <Text className="text-center font-nunito-bold text-white">{confirmLabel}</Text>
-          </Pressable>
+          <ThemedExpoButton
+            onPress={onCancel}
+            testID={`${testID}-cancel-button`}
+            fallbackAppearance={{
+              backgroundColor: tc.surfaceMuted,
+              borderColor: "transparent",
+              borderRadius: 16,
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              gradientColors: null,
+              foregroundColor: tc.fgMuted,
+              textStyle: {
+                fontFamily: "Nunito_700Bold",
+                fontSize: 14,
+              },
+            }}
+            style={{ flex: 1 }}
+            variant="ghost"
+          >
+            {t("common.cancel")}
+          </ThemedExpoButton>
+          <ThemedExpoButton
+            onPress={onConfirm}
+            testID={confirmButtonTestID}
+            fallbackAppearance={{
+              backgroundColor: danger ? tc.dangerDark : tc.primaryDark,
+              borderColor: "transparent",
+              borderRadius: 16,
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              gradientColors: null,
+              foregroundColor: "#FFFFFF",
+              textStyle: {
+                fontFamily: "Nunito_700Bold",
+                fontSize: 14,
+              },
+            }}
+            style={{ flex: 1 }}
+            variant={danger ? "danger" : "primary"}
+          >
+            {confirmLabel}
+          </ThemedExpoButton>
         </View>
       }
     >

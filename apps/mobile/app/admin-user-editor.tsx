@@ -58,55 +58,60 @@ export default function AdminUserEditorScreen() {
   const { userId } = useLocalSearchParams<{ userId?: string }>();
   const [coinDelta, setCoinDelta] = useState("100");
   const closeEditor = () => router.dismissTo("/admin/users" as any);
-
-  if (!sessionHydrated) {
-    return null;
-  }
-
-  if (!sessionUser?.isAdmin) {
-    return <Redirect href="/(tabs)" />;
-  }
+  const canAccessAdmin = sessionHydrated && Boolean(sessionUser?.isAdmin);
 
   const detailQuery = useQuery({
     queryKey: ["admin-user", userId],
     queryFn: () => apiClient.adminUserDetail(userId!),
-    enabled: Boolean(userId),
+    enabled: canAccessAdmin && Boolean(userId),
   });
-
-  const invalidateAdminQueries = async () => {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["admin-user", userId] }),
-      queryClient.invalidateQueries({ queryKey: ["admin-users"] }),
-      queryClient.invalidateQueries({ queryKey: ["admin-email-requests"] }),
-    ]);
-  };
 
   const adjustCoinsMutation = useMutation({
     mutationFn: (delta: number) =>
       apiClient.adjustAdminUserCoins(userId!, delta),
     onSuccess: async () => {
       setCoinDelta("100");
-      await invalidateAdminQueries();
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["admin-user", userId] }),
+        queryClient.invalidateQueries({ queryKey: ["admin-users"] }),
+        queryClient.invalidateQueries({ queryKey: ["admin-email-requests"] }),
+      ]);
     },
   });
 
   const roleMutation = useMutation({
     mutationFn: (isAdmin: boolean) =>
       apiClient.updateAdminUserRole(userId!, { isAdmin }),
-    onSuccess: invalidateAdminQueries,
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["admin-user", userId] }),
+        queryClient.invalidateQueries({ queryKey: ["admin-users"] }),
+        queryClient.invalidateQueries({ queryKey: ["admin-email-requests"] }),
+      ]);
+    },
   });
 
   const resetMutation = useMutation({
     mutationFn: (
       input: { mode: "all" } | { mode: "single"; questType: string },
     ) => apiClient.resetAdminUserDailyQuests(userId!, input),
-    onSuccess: invalidateAdminQueries,
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["admin-user", userId] }),
+        queryClient.invalidateQueries({ queryKey: ["admin-users"] }),
+        queryClient.invalidateQueries({ queryKey: ["admin-email-requests"] }),
+      ]);
+    },
   });
 
   const deleteMutation = useMutation({
     mutationFn: () => apiClient.deleteAdminUser(userId!),
     onSuccess: async () => {
-      await invalidateAdminQueries();
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["admin-user", userId] }),
+        queryClient.invalidateQueries({ queryKey: ["admin-users"] }),
+        queryClient.invalidateQueries({ queryKey: ["admin-email-requests"] }),
+      ]);
       closeEditor();
     },
   });
@@ -191,6 +196,14 @@ export default function AdminUserEditorScreen() {
       ],
     );
   };
+
+  if (!sessionHydrated) {
+    return null;
+  }
+
+  if (!sessionUser?.isAdmin) {
+    return <Redirect href="/(tabs)" />;
+  }
 
   return (
     <ModalSheetRoute

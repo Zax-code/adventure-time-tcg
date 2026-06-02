@@ -1,0 +1,12 @@
+appId: love.leaetzak.adventuretime
+---
+- runFlow:
+    when:
+      visible: Open
+    commands:
+      - tapOn: Open
+- runFlow:
+    when:
+      visible: Ouvrir
+    commands:
+      - tapOn: Ouvrir

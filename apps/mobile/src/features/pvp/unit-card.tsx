@@ -14,6 +14,7 @@ import type { FloatingEvent, PvpUnitState } from "./types";
 
 interface UnitCardProps {
   unit: PvpUnitState;
+  testID?: string;
   isSelected?: boolean;
   isValidTarget?: boolean;
   attackerType?: string;
@@ -38,6 +39,7 @@ const TYPE_BADGE_COLORS: Record<string, string> = {
 
 export function UnitCard({
   unit,
+  testID,
   isSelected,
   isValidTarget,
   attackerType,
@@ -122,12 +124,19 @@ export function UnitCard({
       ) : null}
 
       <Pressable
+        accessibilityRole="button"
+        accessible
         onPress={onPress}
         onLongPress={onLongPress}
         delayLongPress={400}
-        style={{ aspectRatio: 1.82 }}
+        testID={testID}
+        style={({ pressed }) => ({
+          aspectRatio: 1.82,
+          borderRadius: 12,
+          opacity: pressed ? 0.96 : 1,
+        })}
       >
-        <View className="h-full overflow-hidden rounded-xl bg-slate-900 shadow-lg">
+        <View className="h-full w-full overflow-hidden rounded-xl bg-slate-900 shadow-lg">
           {imageUrl ? (
             <Image
               source={{ uri: imageUrl }}

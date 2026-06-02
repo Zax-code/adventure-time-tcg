@@ -1,8 +1,9 @@
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { ScrollView, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { ThemedExpoButton } from "../src/components/expo-ui/themed-button";
 import { useThemeStore } from "../src/stores/theme-store";
 import { THEME_COLORS, THEME_VARS } from "../src/theme/themes";
 import { useTranslation } from "../src/i18n";
@@ -79,7 +80,7 @@ export default function PvpReferenceScreen() {
       handleColor={tc.muted}
       sheetStyle={THEME_VARS[themeName]}
     >
-      <View className="flex-1 bg-bg">
+      <View className="flex-1 bg-bg" testID="pvp-reference-screen">
         <LinearGradient
           colors={[tc.infoDark, tc.info]}
           start={{ x: 0, y: 0 }}
@@ -97,9 +98,27 @@ export default function PvpReferenceScreen() {
           >
             {t("pvp.reference.title")}
           </Text>
-          <Pressable onPress={() => router.back()} className="px-3 py-1 rounded-full bg-white/20">
-            <Text style={{ fontFamily: "Nunito_700Bold", fontSize: 14, color: "#fff" }}>✕</Text>
-          </Pressable>
+          <ThemedExpoButton
+            onPress={() => router.back()}
+            label="✕"
+            preferFallback
+            testID="pvp-reference-close-button"
+            variant="ghost"
+            fallbackAppearance={{
+              backgroundColor: "rgba(255,255,255,0.2)",
+              borderColor: "rgba(255,255,255,0.2)",
+              borderRadius: 999,
+              foregroundColor: "#FFFFFF",
+              gradientColors: null,
+              minHeight: 0,
+              paddingHorizontal: 12,
+              paddingVertical: 4,
+              textStyle: {
+                fontFamily: "Nunito_700Bold",
+                fontSize: 14,
+              },
+            }}
+          />
         </LinearGradient>
 
         <ScrollView

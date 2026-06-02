@@ -41,7 +41,13 @@ export function CardInfoModal({ visible, unit, abilityDefinitions, onClose }: Ca
   const passiveDefs = unit.passives.map((key) => abilityDefinitions?.[key]).filter(Boolean);
 
   return (
-    <BattleFullScreenSheet visible={visible} title={t("pvp.cardDetailsTitle")} onClose={onClose}>
+    <BattleFullScreenSheet
+      visible={visible}
+      title={t("pvp.cardDetailsTitle")}
+      onClose={onClose}
+      testID="pvp-card-info-modal"
+      closeButtonTestID="pvp-card-info-close-button"
+    >
       <View className="pb-4">
         <View className="mx-4 overflow-hidden rounded-[28px] bg-white shadow-sm">
           <View className="flex-row">

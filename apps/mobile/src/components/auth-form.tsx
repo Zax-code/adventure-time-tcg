@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useEffectEvent, useRef, useState } from "react";
 import {
   GoogleSignin,
   isCancelledResponse,
@@ -28,6 +28,7 @@ import { useSessionStore } from "../stores/session-store";
 import { useThemeStore } from "../stores/theme-store";
 import { THEME_COLORS } from "../theme/themes";
 import { PrimaryButton } from "./button";
+import { ThemedExpoTextInput } from "./expo-ui/themed-text-input";
 import { CardsIcon, PackIcon, QuestIcon } from "./icons";
 import { KeyboardScreenView } from "./keyboard-screen-view";
 
@@ -61,7 +62,43 @@ type AuthErrorOptions = {
   onRetry?: () => void;
 };
 
+type AuthFormInitialState = {
+  email: string;
+  verificationCode: string;
+  mode: AuthMode;
+  stage: AuthStage;
+  info: string | null;
+};
+
 let nativeGoogleConfigured = false;
+
+function buildAuthFormInitialState(
+  prefill: AuthFormPrefill | undefined,
+  t: (key: string) => string,
+): AuthFormInitialState {
+  let mode: AuthMode = "login";
+  let stage: AuthStage = "credentials";
+  let info: string | null = null;
+
+  if (prefill?.mode === "verify") {
+    mode = "register";
+    stage = "verify";
+    info = t("auth.status.deepLinkReady");
+  } else if (prefill?.mode === "reset-password") {
+    stage = "resetPassword";
+    info = t("auth.status.deepLinkResetReady");
+  } else if (prefill?.mode === "login" && prefill.email) {
+    info = t("auth.status.emailVerifiedCanSignIn");
+  }
+
+  return {
+    email: prefill?.email ?? "finn@example.com",
+    verificationCode: prefill?.code ?? "",
+    mode,
+    stage,
+    info,
+  };
+}
 
 function hasGoogleAuthConfig() {
   if (Constants.executionEnvironment === ExecutionEnvironment.StoreClient) {
@@ -175,6 +212,22 @@ function BrowserGoogleAuthSection({
   const router = useRouter();
   const isExpoGo =
     Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+  const retryGoogleAuth = useEffectEvent(
+    async (idToken?: string, accessToken?: string) => {
+      const authResult = await apiClient.googleAuth({
+        idToken,
+        accessToken,
+        preferredLanguage,
+      });
+
+      await setSession({
+        user: authResult.user,
+        accessToken: authResult.tokens.accessToken,
+        refreshToken: authResult.tokens.refreshToken,
+      });
+      router.replace("/(tabs)");
+    },
+  );
   const [request, response, promptAsync] = Google.useAuthRequest(
     isExpoGo
       ? {
@@ -217,29 +270,18 @@ function BrowserGoogleAuthSection({
 
     async function finishGoogleAuth() {
       try {
-        const authResult = await apiClient.googleAuth({
-          idToken,
-          accessToken,
-          preferredLanguage,
-        });
-
         if (cancelled) {
           return;
         }
 
-        await setSession({
-          user: authResult.user,
-          accessToken: authResult.tokens.accessToken,
-          refreshToken: authResult.tokens.refreshToken,
-        });
-        router.replace("/(tabs)");
+        await retryGoogleAuth(idToken, accessToken);
       } catch (submitError) {
         if (!cancelled) {
           setError(
             submitError instanceof Error ? submitError.message : t("auth.errors.failed"),
             {
               cause: submitError,
-              onRetry: () => void submitGoogle(),
+              onRetry: () => void finishGoogleAuth(),
             },
           );
         }
@@ -432,28 +474,49 @@ function NativeGoogleAuthSection({
 }
 
 export function AuthForm({ prefill }: { prefill?: AuthFormPrefill }) {
+  const preferredLanguage = useLocaleStore((state) => state.locale);
+  const setPreferredLanguage = useLocaleStore((state) => state.setLocale);
+
+  useEffect(() => {
+    if (prefill?.locale && prefill.locale !== preferredLanguage) {
+      void setPreferredLanguage(prefill.locale);
+    }
+  }, [prefill?.locale, preferredLanguage, setPreferredLanguage]);
+
+  const prefillKey = JSON.stringify(prefill ?? {});
+
+  return <AuthFormInner key={prefillKey} prefill={prefill} />;
+}
+
+function AuthFormInner({ prefill }: { prefill?: AuthFormPrefill }) {
   const router = useRouter();
   const setSession = useSessionStore((state) => state.setSession);
   const preferredLanguage = useLocaleStore((state) => state.locale);
   const setPreferredLanguage = useLocaleStore((state) => state.setLocale);
   const { t } = useTranslation();
   const tc = THEME_COLORS[useThemeStore((s) => s.themeName)];
+  const initialState = buildAuthFormInitialState(prefill, t);
   const [displayName, setDisplayName] = useState("Finn Fan");
-  const [email, setEmail] = useState("finn@example.com");
+  const [email, setEmail] = useState(initialState.email);
   const [password, setPassword] = useState("password123");
-  const [verificationCode, setVerificationCode] = useState("");
+  const [verificationCode, setVerificationCode] = useState(
+    initialState.verificationCode,
+  );
   const [resetPassword, setResetPassword] = useState("");
-  const [mode, setMode] = useState<AuthMode>("login");
-  const [stage, setStage] = useState<AuthStage>("credentials");
+  const [mode, setMode] = useState<AuthMode>(initialState.mode);
+  const [stage, setStage] = useState<AuthStage>(initialState.stage);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [errorCause, setErrorCause] = useState<unknown>(null);
   const [errorRetry, setErrorRetry] = useState<(() => void) | null>(null);
-  const [info, setInfo] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(initialState.info);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const passwordInputRef = useRef<TextInput>(null);
   const googleAuthConfigured = hasGoogleAuthConfig();
-  const appliedPrefillRef = useRef(false);
   const autoVerifyTriggeredRef = useRef(false);
+  const submitAutoVerify = useEffectEvent(() => {
+    void submit();
+  });
 
   function setError(value: string | null, options?: AuthErrorOptions) {
     if (!value) {
@@ -537,42 +600,6 @@ export function AuthForm({ prefill }: { prefill?: AuthFormPrefill }) {
   }
 
   useEffect(() => {
-    if (!prefill || appliedPrefillRef.current) {
-      return;
-    }
-
-    appliedPrefillRef.current = true;
-
-    if (prefill.locale && prefill.locale !== preferredLanguage) {
-      void setPreferredLanguage(prefill.locale);
-    }
-
-    if (prefill.email) {
-      setEmail(prefill.email);
-    }
-
-    if (prefill.code) {
-      setVerificationCode(prefill.code);
-    }
-
-    if (prefill.mode === "verify") {
-      enterVerificationStage(t("auth.status.deepLinkReady"), { preserveCode: true });
-      return;
-    }
-
-    if (prefill.mode === "reset-password") {
-      enterResetPasswordStage(t("auth.status.deepLinkResetReady"), {
-        preserveCode: true,
-      });
-      return;
-    }
-
-    if (prefill.mode === "login" && prefill.email) {
-      returnToSignIn(t("auth.status.emailVerifiedCanSignIn"));
-    }
-  }, [prefill, preferredLanguage, setPreferredLanguage, t]);
-
-  useEffect(() => {
     if (
       !prefill?.autoVerify ||
       autoVerifyTriggeredRef.current ||
@@ -585,7 +612,7 @@ export function AuthForm({ prefill }: { prefill?: AuthFormPrefill }) {
 
     autoVerifyTriggeredRef.current = true;
     setInfo(t("auth.status.deepLinkVerifying"));
-    void submit();
+    submitAutoVerify();
   }, [email, prefill?.autoVerify, stage, t, verificationCode]);
 
   function getFriendlyError(submitError: unknown) {
@@ -843,15 +870,32 @@ export function AuthForm({ prefill }: { prefill?: AuthFormPrefill }) {
 
         <KeyboardScreenView fill={false}>
           <View className="gap-3">
-            <TextInput
+            <ThemedExpoTextInput
               value={email}
               onChangeText={setEmail}
               autoCapitalize="none"
               keyboardType="email-address"
+              testID="auth-email-input"
               placeholder={t("auth.fields.email")}
-              placeholderTextColor={tc.muted}
               editable={stage !== "pendingApproval"}
-              className="rounded-2xl border border-primaryBorder bg-primaryBg px-4 py-3 font-nunito text-fg"
+              autoComplete="email"
+              returnKeyType="next"
+              onSubmitEditing={() => passwordInputRef.current?.focus()}
+              hostStyle={{ width: "100%" }}
+              style={{
+                backgroundColor: tc.primaryBg,
+                borderColor: tc.primaryBorder,
+                borderRadius: 16,
+                borderWidth: 1,
+                height: 50,
+                paddingHorizontal: 16,
+                width: "100%",
+              }}
+              textStyle={{
+                color: tc.fg,
+                fontFamily: "Nunito_400Regular",
+                fontSize: 16,
+              }}
             />
 
             {stage === "verify" ? (
@@ -884,33 +928,73 @@ export function AuthForm({ prefill }: { prefill?: AuthFormPrefill }) {
             ) : null}
 
             {stage === "verify" ? (
-              <TextInput
+              <ThemedExpoTextInput
                 value={verificationCode}
                 onChangeText={setVerificationCode}
                 keyboardType="number-pad"
                 maxLength={6}
                 placeholder={t("auth.fields.verificationCode")}
-                placeholderTextColor={tc.muted}
-                className="rounded-2xl border border-primaryBorder bg-primaryBg px-4 py-3 font-nunito text-fg"
+                hostStyle={{ width: "100%" }}
+                style={{
+                  backgroundColor: tc.primaryBg,
+                  borderColor: tc.primaryBorder,
+                  borderRadius: 16,
+                  borderWidth: 1,
+                  height: 50,
+                  paddingHorizontal: 16,
+                  width: "100%",
+                }}
+                textStyle={{
+                  color: tc.fg,
+                  fontFamily: "Nunito_400Regular",
+                  fontSize: 16,
+                }}
               />
             ) : stage === "resetPassword" ? (
               <>
-                <TextInput
+                <ThemedExpoTextInput
                   value={verificationCode}
                   onChangeText={setVerificationCode}
                   keyboardType="number-pad"
                   maxLength={6}
                   placeholder={t("auth.fields.verificationCode")}
-                  placeholderTextColor={tc.muted}
-                  className="rounded-2xl border border-primaryBorder bg-primaryBg px-4 py-3 font-nunito text-fg"
+                  hostStyle={{ width: "100%" }}
+                  style={{
+                    backgroundColor: tc.primaryBg,
+                    borderColor: tc.primaryBorder,
+                    borderRadius: 16,
+                    borderWidth: 1,
+                    height: 50,
+                    paddingHorizontal: 16,
+                    width: "100%",
+                  }}
+                  textStyle={{
+                    color: tc.fg,
+                    fontFamily: "Nunito_400Regular",
+                    fontSize: 16,
+                  }}
                 />
-                <TextInput
+                <ThemedExpoTextInput
                   value={resetPassword}
                   onChangeText={setResetPassword}
                   secureTextEntry
                   placeholder={t("auth.fields.newPassword")}
-                  placeholderTextColor={tc.muted}
-                  className="rounded-2xl border border-primaryBorder bg-primaryBg px-4 py-3 font-nunito text-fg"
+                  autoComplete="new-password"
+                  hostStyle={{ width: "100%" }}
+                  style={{
+                    backgroundColor: tc.primaryBg,
+                    borderColor: tc.primaryBorder,
+                    borderRadius: 16,
+                    borderWidth: 1,
+                    height: 50,
+                    paddingHorizontal: 16,
+                    width: "100%",
+                  }}
+                  textStyle={{
+                    color: tc.fg,
+                    fontFamily: "Nunito_400Regular",
+                    fontSize: 16,
+                  }}
                 />
               </>
             ) : stage === "pendingApproval" ? (
@@ -924,25 +1008,62 @@ export function AuthForm({ prefill }: { prefill?: AuthFormPrefill }) {
               </View>
             ) : stage === "resetRequest" ? null : (
               <>
-                <TextInput
+                <ThemedExpoTextInput
                   value={password}
                   onChangeText={setPassword}
+                  inputRef={passwordInputRef}
                   secureTextEntry
+                  testID="auth-password-input"
                   placeholder={
                     mode === "register"
                       ? t("auth.fields.passwordMin")
                       : t("auth.fields.password")
                   }
-                  placeholderTextColor={tc.muted}
-                  className="rounded-2xl border border-primaryBorder bg-primaryBg px-4 py-3 font-nunito text-fg"
+                  autoComplete={
+                    mode === "register" ? "new-password" : "current-password"
+                  }
+                  returnKeyType={mode === "login" ? "go" : "next"}
+                  onSubmitEditing={() => {
+                    if (mode === "login") {
+                      void submit();
+                    }
+                  }}
+                  hostStyle={{ width: "100%" }}
+                  style={{
+                    backgroundColor: tc.primaryBg,
+                    borderColor: tc.primaryBorder,
+                    borderRadius: 16,
+                    borderWidth: 1,
+                    height: 50,
+                    paddingHorizontal: 16,
+                    width: "100%",
+                  }}
+                  textStyle={{
+                    color: tc.fg,
+                    fontFamily: "Nunito_400Regular",
+                    fontSize: 16,
+                  }}
                 />
                 {mode === "register" ? (
-                  <TextInput
+                  <ThemedExpoTextInput
                     value={displayName}
                     onChangeText={setDisplayName}
                     placeholder={t("auth.fields.displayNameOptional")}
-                    placeholderTextColor={tc.muted}
-                    className="rounded-2xl border border-primaryBorder bg-primaryBg px-4 py-3 font-nunito text-fg"
+                    hostStyle={{ width: "100%" }}
+                    style={{
+                      backgroundColor: tc.primaryBg,
+                      borderColor: tc.primaryBorder,
+                      borderRadius: 16,
+                      borderWidth: 1,
+                      height: 50,
+                      paddingHorizontal: 16,
+                      width: "100%",
+                    }}
+                    textStyle={{
+                      color: tc.fg,
+                      fontFamily: "Nunito_400Regular",
+                      fontSize: 16,
+                    }}
                   />
                 ) : null}
               </>
@@ -973,7 +1094,11 @@ export function AuthForm({ prefill }: { prefill?: AuthFormPrefill }) {
           </View>
         ) : null}
 
-        <PrimaryButton onPress={() => void submit()} loading={loading}>
+        <PrimaryButton
+          onPress={() => void submit()}
+          loading={loading}
+          testID="auth-submit-button"
+        >
           {stage === "pendingApproval"
             ? t("auth.actions.backToSignIn")
             : stage === "verify"

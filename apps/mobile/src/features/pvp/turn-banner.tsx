@@ -31,6 +31,7 @@ export function TurnBanner({ isMyTurn, onDone }: TurnBannerProps) {
 
   return (
     <Animated.View
+      testID="pvp-turn-banner"
       pointerEvents="none"
       style={[
         {

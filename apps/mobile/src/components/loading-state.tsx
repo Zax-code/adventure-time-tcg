@@ -1,8 +1,9 @@
 import { useEffect, useRef } from "react";
 import { Animated, Text, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@react-native-vector-icons/ionicons";
 import { LinearGradient } from "expo-linear-gradient";
 
+import type { IoniconName } from "../lib/ionicons";
 import { useThemeStore } from "../stores/theme-store";
 import { THEME_COLORS } from "../theme/themes";
 
@@ -75,7 +76,7 @@ export function LoadingPanel({
 }: {
   title: string;
   message?: string;
-  icon?: keyof typeof Ionicons.glyphMap;
+  icon?: IoniconName;
   variant?: LoadingVariant;
 }) {
   const themeName = useThemeStore((state) => state.themeName);
@@ -165,7 +166,7 @@ export function PageLoadingState({
 }: {
   title: string;
   message?: string;
-  icon?: keyof typeof Ionicons.glyphMap;
+  icon?: IoniconName;
 }) {
   const themeName = useThemeStore((state) => state.themeName);
   const tc = THEME_COLORS[themeName];

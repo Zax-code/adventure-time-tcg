@@ -1,6 +1,7 @@
 import { Platform } from "react-native";
 
 const PRODUCTION_API_BASE_URL = "https://app.leaetzak.love";
+const allowEmbeddedLocalApi = process.env.EXPO_PUBLIC_E2E_AUTH === "1";
 
 function resolveApiBaseUrl(rawBaseUrl: string) {
   let normalizedBaseUrl = rawBaseUrl;
@@ -10,11 +11,11 @@ function resolveApiBaseUrl(rawBaseUrl: string) {
     const isLocalhostHost =
       url.hostname === "127.0.0.1" || url.hostname === "localhost";
 
-    if (isLocalhostHost && !__DEV__) {
+    if (isLocalhostHost && !__DEV__ && !allowEmbeddedLocalApi) {
       return PRODUCTION_API_BASE_URL;
     }
   } catch {
-    if (!__DEV__) {
+    if (!__DEV__ && !allowEmbeddedLocalApi) {
       return PRODUCTION_API_BASE_URL;
     }
   }

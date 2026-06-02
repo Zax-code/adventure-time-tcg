@@ -160,6 +160,7 @@ defmodule AdventureTimeApiWeb.PvpControllerTest do
     assert battle_state["turn"] == 1
     assert battle_state["myUserId"] == invitee.id
     assert length(battle_state["players"]) == 2
+    assert Enum.map(battle_state["players"], & &1["name"]) == ["Inviter", "Invitee"]
     assert Enum.all?(battle_state["players"], &(length(&1["units"]) == 3))
     assert Enum.all?(battle_state["players"], &(length(&1["bench"]) == 3))
 
@@ -195,6 +196,7 @@ defmodule AdventureTimeApiWeb.PvpControllerTest do
 
     get_match_conn = acting_token |> auth_conn() |> get(~p"/pvp/matches/#{match_id}")
     get_match_response = json_response(get_match_conn, 200)
+    assert Enum.map(get_match_response["battleState"]["players"], & &1["name"]) == ["Inviter", "Invitee"]
     persisted_target = find_unit(get_match_response["battleState"], target["instanceId"])
     assert persisted_target["hp"] == updated_target["hp"]
     assert length(get_match_response["battleState"]["log"]) >= length(action_state["log"])

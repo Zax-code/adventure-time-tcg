@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -7,9 +7,12 @@ import { getStrongAgainst, getWeakAgainst } from "@adventure-time/game-engine";
 import type { PvpAction } from "@adventure-time/api-client";
 import type { ComponentType } from "react";
 
+import { ThemedExpoButton } from "../../components/expo-ui/themed-button";
 import { XIcon, ZapIcon, SwordsIcon, SparklesIcon } from "../../components/icons";
 import { useTranslation } from "../../i18n";
 import { localizeRarityName, localizeTypeName } from "../../lib/combat-i18n";
+import { useThemeStore } from "../../stores/theme-store";
+import { THEME_COLORS } from "../../theme/themes";
 import { BattleFullScreenSheet } from "./battle-full-screen-sheet";
 import { resolveBattleImageUrl } from "./image-url";
 import { prepareBattleAction, type MyMatchView, type PvpUnitState, type TargetingMode } from "./types";
@@ -32,84 +35,102 @@ export function ActionModal({
   onSubmitAction,
 }: ActionModalProps) {
   const { t } = useTranslation();
+  const themeName = useThemeStore((state) => state.themeName);
+  const tc = THEME_COLORS[themeName];
   const { myPlayer, opponentPlayer, abilityDefinitions, battleState } = matchView;
-
-  if (!unit) {
-    return null;
-  }
-
-  const skillKey = unit.skill ?? undefined;
-  const ultimateKey = unit.ultimate ?? undefined;
+  const skillKey = unit?.skill ?? undefined;
+  const ultimateKey = unit?.ultimate ?? undefined;
   const energy = myPlayer.energy;
   const skillDef = skillKey ? abilityDefinitions?.[skillKey] : undefined;
   const ultimateDef = ultimateKey ? abilityDefinitions?.[ultimateKey] : undefined;
-  const isSilenced = unit.statuses.some((status) => status.name === "Silence");
-  const skillCd = skillKey ? (unit.cooldowns[skillKey] ?? 0) : 0;
-  const ultimateCd = ultimateKey ? (unit.cooldowns[ultimateKey] ?? 0) : 0;
-  const strongTypes = getStrongAgainst(unit.type as never);
-  const weakTypes = getWeakAgainst(unit.type as never);
+  const isSilenced = unit?.statuses.some((status) => status.name === "Silence") ?? false;
+  const skillCd = skillKey && unit ? (unit.cooldowns[skillKey] ?? 0) : 0;
+  const ultimateCd = ultimateKey && unit ? (unit.cooldowns[ultimateKey] ?? 0) : 0;
+  const strongTypes = unit ? getStrongAgainst(unit.type as never) : [];
+  const weakTypes = unit ? getWeakAgainst(unit.type as never) : [];
 
-  const imageUrl = resolveBattleImageUrl(unit.imageUrl);
+  const imageUrl = resolveBattleImageUrl(unit?.imageUrl);
 
   const actionCards = useMemo(
-    () => [
-      {
-        key: "basic" as const,
-        label: t("pvp.action.basic"),
-        subtitle: t("pvp.action.basicSubtitle"),
-        Icon: SwordsIcon as ComponentType<{ size?: number; color?: string }>,
-        iconColor: "#4B5563",
-        tint: "bg-slate-100",
-        border: "border-slate-200",
-        text: "text-slate-700",
-        cost: 1,
-        disabled: energy < 1,
-        note: energy < 1 ? t("pvp.action.notEnoughEnergy") : null,
-      },
-      {
-        key: "skill" as const,
-        label: skillDef?.name ?? t("pvp.action.skillFallback"),
-        subtitle: skillDef?.description ?? "",
-        Icon: ZapIcon as ComponentType<{ size?: number; color?: string }>,
-        iconColor: "#1D4ED8",
-        tint: "bg-infoTint",
-        border: "border-infoBorder",
-        text: "text-infoDark",
-        cost: skillDef?.cost ?? 0,
-        disabled: !skillDef || energy < (skillDef?.cost ?? 0) || skillCd > 0 || isSilenced,
-        note: skillCd > 0 ? t("pvp.action.cooldown", { count: skillCd }) : isSilenced ? t("pvp.action.silenced") : energy < (skillDef?.cost ?? 0) ? t("pvp.action.notEnoughEnergy") : null,
-      },
-      {
-        key: "ultimate" as const,
-        label: ultimateDef?.name ?? t("pvp.action.ultimateFallback"),
-        subtitle: ultimateDef?.description ?? "",
-        Icon: SparklesIcon as ComponentType<{ size?: number; color?: string }>,
-        iconColor: "#BE185D",
-        tint: "bg-accentTint",
-        border: "border-accent",
-        text: "text-accentText",
-        cost: ultimateDef?.cost ?? 0,
-        disabled:
-          !ultimateDef ||
-          energy < (ultimateDef?.cost ?? 0) ||
-          ultimateCd > 0 ||
-          isSilenced ||
-          unit.usedUltimate,
-        note: unit.usedUltimate
-          ? t("pvp.action.usedAlready")
-          : ultimateCd > 0
-            ? t("pvp.action.cooldown", { count: ultimateCd })
-            : isSilenced
-              ? t("pvp.action.silenced")
-              : energy < (ultimateDef?.cost ?? 0)
-                ? t("pvp.action.notEnoughEnergy")
-                : null,
-      },
-    ],
-    [energy, isSilenced, skillCd, skillDef, t, ultimateCd, ultimateDef, unit.usedUltimate],
+    () => {
+      if (!unit) {
+        return [];
+      }
+
+      return [
+        {
+          key: "basic" as const,
+          label: t("pvp.action.basic"),
+          subtitle: t("pvp.action.basicSubtitle"),
+          Icon: SwordsIcon as ComponentType<{ size?: number; color?: string }>,
+          iconColor: "#4B5563",
+          tint: "bg-slate-100",
+          border: "border-slate-200",
+          text: "text-slate-700",
+          cost: 1,
+          disabled: energy < 1,
+          note: energy < 1 ? t("pvp.action.notEnoughEnergy") : null,
+        },
+        {
+          key: "skill" as const,
+          label: skillDef?.name ?? t("pvp.action.skillFallback"),
+          subtitle: skillDef?.description ?? "",
+          Icon: ZapIcon as ComponentType<{ size?: number; color?: string }>,
+          iconColor: "#1D4ED8",
+          tint: "bg-infoTint",
+          border: "border-infoBorder",
+          text: "text-infoDark",
+          cost: skillDef?.cost ?? 0,
+          disabled:
+            !skillDef ||
+            energy < (skillDef?.cost ?? 0) ||
+            skillCd > 0 ||
+            isSilenced,
+          note:
+            skillCd > 0
+              ? t("pvp.action.cooldown", { count: skillCd })
+              : isSilenced
+                ? t("pvp.action.silenced")
+                : energy < (skillDef?.cost ?? 0)
+                  ? t("pvp.action.notEnoughEnergy")
+                  : null,
+        },
+        {
+          key: "ultimate" as const,
+          label: ultimateDef?.name ?? t("pvp.action.ultimateFallback"),
+          subtitle: ultimateDef?.description ?? "",
+          Icon: SparklesIcon as ComponentType<{ size?: number; color?: string }>,
+          iconColor: "#BE185D",
+          tint: "bg-accentTint",
+          border: "border-accent",
+          text: "text-accentText",
+          cost: ultimateDef?.cost ?? 0,
+          disabled:
+            !ultimateDef ||
+            energy < (ultimateDef?.cost ?? 0) ||
+            ultimateCd > 0 ||
+            isSilenced ||
+            unit.usedUltimate,
+          note: unit.usedUltimate
+            ? t("pvp.action.usedAlready")
+            : ultimateCd > 0
+              ? t("pvp.action.cooldown", { count: ultimateCd })
+              : isSilenced
+                ? t("pvp.action.silenced")
+                : energy < (ultimateDef?.cost ?? 0)
+                  ? t("pvp.action.notEnoughEnergy")
+                  : null,
+        },
+      ];
+    },
+    [energy, isSilenced, skillCd, skillDef, t, ultimateCd, ultimateDef, unit],
   );
 
   const handleAction = (actionKey: "basic" | "skill" | "ultimate") => {
+    if (!unit) {
+      return;
+    }
+
     const abilityKey = actionKey === "skill" ? skillKey : actionKey === "ultimate" ? ultimateKey : undefined;
     const prepared = prepareBattleAction(battleState, unit.instanceId, actionKey, abilityKey);
     if (!prepared) {
@@ -143,8 +164,17 @@ export function ActionModal({
     onClose();
   };
 
+  if (!unit) {
+    return null;
+  }
+
   return (
-    <BattleFullScreenSheet visible={visible} title={t("pvp.action.title")} onClose={onClose}>
+    <BattleFullScreenSheet
+      visible={visible}
+      title={t("pvp.action.title")}
+      onClose={onClose}
+      testID="pvp-action-modal"
+    >
       <View className="px-4 pb-4 pt-4">
         <View className="overflow-hidden rounded-[28px] border border-primaryTint bg-white shadow-sm">
           <View className="flex-row">
@@ -209,17 +239,65 @@ export function ActionModal({
 
             <View className="w-1/2 gap-3 px-4 py-4">
               <View className="mb-1 flex-row justify-end">
-                <Pressable onPress={onClose} className="rounded-full bg-surfaceMuted p-2">
+                <ThemedExpoButton
+                  onPress={onClose}
+                  testID="pvp-action-modal-close-button"
+                  variant="ghost"
+                  fallbackAppearance={{
+                    backgroundColor: tc.surfaceMuted,
+                    borderColor: tc.surfaceMuted,
+                    borderRadius: 999,
+                    foregroundColor: tc.fgMuted,
+                    gradientColors: null,
+                    minHeight: 32,
+                    paddingHorizontal: 8,
+                    paddingVertical: 8,
+                  }}
+                  style={{ minHeight: 32, minWidth: 32 }}
+                >
                   <XIcon size={16} color="#475569" />
-                </Pressable>
+                </ThemedExpoButton>
               </View>
 
             {actionCards.map((card) => (
-              <Pressable
+              <ThemedExpoButton
                 key={card.key}
                 disabled={card.disabled}
                 onPress={() => handleAction(card.key)}
-                className={`rounded-2xl border-2 px-4 py-4 ${card.tint} ${card.border} ${card.disabled ? "opacity-45" : ""}`}
+                testID={`pvp-action-${card.key}-button`}
+                variant={
+                  card.key === "ultimate"
+                    ? "warning"
+                    : card.key === "skill"
+                      ? "secondary"
+                      : "ghost"
+                }
+                fallbackLayout="stretch"
+                fallbackAppearance={{
+                  backgroundColor:
+                    card.key === "ultimate"
+                      ? "#FDF2F8"
+                      : card.key === "skill"
+                        ? tc.infoTint
+                        : "#F1F5F9",
+                  borderColor:
+                    card.key === "ultimate"
+                      ? tc.accent
+                      : card.key === "skill"
+                        ? tc.infoBorder
+                        : "#CBD5E1",
+                  borderRadius: 16,
+                  foregroundColor:
+                    card.key === "ultimate"
+                      ? tc.accentText
+                      : card.key === "skill"
+                        ? tc.infoDark
+                        : "#334155",
+                  gradientColors: null,
+                  minHeight: 0,
+                  paddingHorizontal: 16,
+                  paddingVertical: 16,
+                }}
               >
                 <View className="flex-row items-start justify-between gap-3">
                   <View className="flex-1 flex-row gap-3">
@@ -238,18 +316,33 @@ export function ActionModal({
                     <Text className="font-nunito-bold text-secondaryText">{card.cost} EN</Text>
                   </View>
                 </View>
-              </Pressable>
+              </ThemedExpoButton>
             ))}
 
-            <Pressable
+            <ThemedExpoButton
               onPress={() => {
                 onSubmitAction({ kind: "pass" });
                 onClose();
               }}
-              className="rounded-2xl bg-slate-600 px-4 py-4"
+              testID="pvp-action-pass-button"
+              variant="secondary"
+              fallbackAppearance={{
+                backgroundColor: "#475569",
+                borderColor: "#475569",
+                borderRadius: 16,
+                foregroundColor: "#FFFFFF",
+                gradientColors: null,
+                minHeight: 0,
+                paddingHorizontal: 16,
+                paddingVertical: 16,
+                textStyle: {
+                  fontFamily: "Nunito_700Bold",
+                  fontSize: 14,
+                },
+              }}
             >
-              <Text className="text-center font-nunito-bold text-white">{t("pvp.action.pass")}</Text>
-            </Pressable>
+              {t("pvp.action.pass")}
+            </ThemedExpoButton>
             </View>
           </View>
         </View>

@@ -2,6 +2,10 @@ import { vars } from "nativewind";
 
 export type ThemeName = "candy" | "ice" | "nightosphere";
 
+export function getExpoUIColorScheme(themeName: ThemeName): "light" | "dark" {
+  return themeName === "nightosphere" ? "dark" : "light";
+}
+
 // ---------------------------------------------------------------------------
 // Raw color objects — for LinearGradient, placeholderTextColor, tab bar, etc.
 // ---------------------------------------------------------------------------

@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@react-native-vector-icons/ionicons";
 import {
   ActivityIndicator,
   AppState,
@@ -11,14 +11,15 @@ import {
   Platform,
   Pressable,
   ScrollView,
-  Switch,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { GhostButton, PrimaryButton } from "../src/components/button";
+import { ThemedExpoButton } from "../src/components/expo-ui/themed-button";
+import { ThemedExpoSwitch } from "../src/components/expo-ui/themed-switch";
+import { ThemedExpoTextInput } from "../src/components/expo-ui/themed-text-input";
 import {
   KEYBOARD_AWARE_SCROLL_PROPS,
   KeyboardScreenView,
@@ -31,6 +32,7 @@ import {
   getNotificationPermissionStatus,
 } from "../src/lib/app-notifications";
 import { connectFitbit } from "../src/lib/fitbit";
+import type { IoniconName } from "../src/lib/ionicons";
 import {
   openDeviceHealthSetup,
   syncDeviceStepsNow,
@@ -504,13 +506,26 @@ export default function SettingsScreen() {
 
                     {editing ? (
                       <View className="gap-3">
-                        <TextInput
+                        <ThemedExpoTextInput
                           value={displayNameInput}
                           onChangeText={setDisplayNameInput}
                           placeholder={t("settings.displayNamePlaceholder")}
-                          placeholderTextColor={tc.muted}
                           autoFocus
-                          className="rounded-2xl border border-primaryBorder bg-surface px-4 py-3 font-nunito-semibold text-base text-fg"
+                          hostStyle={{ width: "100%" }}
+                          style={{
+                            backgroundColor: tc.surface,
+                            borderColor: tc.primaryBorder,
+                            borderRadius: 16,
+                            borderWidth: 1,
+                            height: 52,
+                            paddingHorizontal: 16,
+                            width: "100%",
+                          }}
+                          textStyle={{
+                            color: tc.fg,
+                            fontFamily: "Nunito-SemiBold",
+                            fontSize: 16,
+                          }}
                         />
                         <View className="flex-row gap-3">
                           <View className="flex-1">
@@ -611,6 +626,7 @@ export default function SettingsScreen() {
                           key={language}
                           selected={selected}
                           disabled={updateLanguageMutation.isPending}
+                          testID={`settings-language-${language}`}
                           onPress={() =>
                             void updateLanguageMutation.mutateAsync(language)
                           }
@@ -663,6 +679,7 @@ export default function SettingsScreen() {
                         <ChoiceCard
                           key={name}
                           selected={selected}
+                          testID={`settings-theme-${name}`}
                           onPress={() => void setTheme(name)}
                           tc={tc}
                         >
@@ -1055,7 +1072,7 @@ function SectionHeader({
   title,
 }: {
   description: string;
-  icon: keyof typeof Ionicons.glyphMap;
+  icon: IoniconName;
   tc: (typeof THEME_COLORS)[ThemeName];
   title: string;
 }) {
@@ -1100,27 +1117,38 @@ function ChoiceCard({
   disabled,
   onPress,
   selected,
+  testID,
   tc,
 }: {
   children: ReactNode;
   disabled?: boolean;
   onPress: () => void;
   selected: boolean;
+  testID?: string;
   tc: (typeof THEME_COLORS)[ThemeName];
 }) {
   return (
-    <Pressable
+    <ThemedExpoButton
       onPress={onPress}
       disabled={disabled}
-      className="flex-1 rounded-3xl border p-4"
-      style={{
+      testID={testID}
+      fallbackAppearance={{
         backgroundColor: selected ? tc.primaryBg : tc.surface,
-        borderColor: selected ? tc.primaryBorder : tc.primaryBorder,
+        borderColor: tc.primaryBorder,
+        borderRadius: 24,
+        paddingHorizontal: 16,
+        paddingVertical: 16,
+        gradientColors: null,
+      }}
+      fallbackLayout="stretch"
+      style={{
+        flex: 1,
         opacity: disabled ? 0.65 : 1,
       }}
+      variant="ghost"
     >
       {children}
-    </Pressable>
+    </ThemedExpoButton>
   );
 }
 
@@ -1195,11 +1223,20 @@ function SettingsToggleRow({
   value: boolean;
 }) {
   return (
-    <Pressable
-      className="rounded-3xl border border-primaryBorder bg-surfaceMuted p-4"
-      disabled={disabled}
+    <ThemedExpoButton
       onPress={() => onToggle(!value)}
+      disabled={disabled}
+      fallbackAppearance={{
+        backgroundColor: tc.surfaceMuted,
+        borderColor: tc.primaryBorder,
+        borderRadius: 24,
+        paddingHorizontal: 16,
+        paddingVertical: 16,
+        gradientColors: null,
+      }}
+      fallbackLayout="stretch"
       style={{ opacity: disabled ? 0.65 : 1 }}
+      variant="ghost"
     >
       <View className="flex-row items-start gap-4">
         <View className="flex-1 gap-1">
@@ -1208,19 +1245,13 @@ function SettingsToggleRow({
             {description}
           </Text>
         </View>
-        <Switch
+        <ThemedExpoSwitch
           disabled={disabled}
-          ios_backgroundColor={tc.primaryBorder}
           onValueChange={onToggle}
-          thumbColor={value ? "#fff" : "#fff"}
-          trackColor={{
-            false: tc.primaryBorder,
-            true: tc.primary,
-          }}
           value={value}
         />
       </View>
-    </Pressable>
+    </ThemedExpoButton>
   );
 }
 

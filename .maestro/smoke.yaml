@@ -1,0 +1,45 @@
+appId: love.leaetzak.adventuretime
+name: Adventure Time mobile smoke
+tags:
+  - smoke
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- openLink:
+    link: adventure-time://e2e-auth?redirect=%2Fpvp&accessToken=${TEST_ACCESS_TOKEN}&refreshToken=${TEST_REFRESH_TOKEN}&user=${TEST_USER}
+- assertVisible:
+    id: pvp-open-mechanics-button
+- tapOn:
+    id: tab-gifts
+- assertVisible:
+    id: gifts-filter-all
+- tapOn:
+    id: gifts-filter-all
+- tapOn:
+    id: gifts-filter-sent
+- tapOn:
+    id: gifts-filter-received
+- tapOn:
+    id: tab-pvp
+- assertVisible:
+    id: pvp-open-mechanics-button
+- tapOn:
+    id: pvp-open-mechanics-button
+- assertVisible:
+    id: pvp-mechanics-screen
+- tapOn:
+    id: pvp-mechanics-close-button
+- assertVisible:
+    id: pvp-open-reference-button
+- tapOn:
+    id: pvp-open-reference-button
+- assertVisible:
+    id: pvp-reference-screen
+- tapOn:
+    id: pvp-reference-close-button
+- openLink:
+    link: adventure-time://settings
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- assertVisible:
+    id: settings-language-en

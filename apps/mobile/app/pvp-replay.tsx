@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { Pressable, StatusBar, Text, View } from "react-native";
+import { StatusBar, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import * as ScreenOrientation from "expo-screen-orientation";
 
 import { PageLoadingState } from "../src/components/loading-state";
+import { ThemedExpoButton } from "../src/components/expo-ui/themed-button";
 import { PageErrorState } from "../src/components/error-state";
 import type { FloatingEvent } from "../src/features/pvp/types";
 import { BattleBoard } from "../src/features/pvp/battle-board";
@@ -22,7 +23,7 @@ import { useTranslation } from "../src/i18n";
 import { apiClient } from "../src/lib/api";
 import { useSessionStore } from "../src/stores/session-store";
 import { useThemeStore } from "../src/stores/theme-store";
-import { THEME_VARS } from "../src/theme/themes";
+import { THEME_COLORS, THEME_VARS } from "../src/theme/themes";
 
 function buildFloatingEvents(events: ReplayTurnView["events"]): FloatingEvent[] {
   const next: FloatingEvent[] = [];
@@ -66,6 +67,7 @@ export default function PvpReplayScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const themeName = useThemeStore((state) => state.themeName);
+  const tc = THEME_COLORS[themeName];
   const currentUserId = useSessionStore((state) => state.user?.id ?? "");
   const { t } = useTranslation();
 
@@ -155,9 +157,27 @@ export default function PvpReplayScreen() {
     return (
       <View style={[styles.loading, THEME_VARS[themeName] as never]}>
         <Text style={styles.loadingText}>{t("pvp.replayNotAvailable")}</Text>
-        <Text style={styles.linkText} onPress={() => router.push("/pvp-history" as never)}>
+        <ThemedExpoButton
+          onPress={() => router.push("/pvp-history" as never)}
+          preferFallback
+          variant="ghost"
+          fallbackAppearance={{
+            backgroundColor: "rgba(255,255,255,0.1)",
+            borderColor: "rgba(255,255,255,0.1)",
+            borderRadius: 12,
+            foregroundColor: "#FFFFFF",
+            gradientColors: null,
+            minHeight: 0,
+            paddingHorizontal: 16,
+            paddingVertical: 10,
+            textStyle: {
+              fontFamily: "Nunito_700Bold",
+              fontSize: 16,
+            },
+          }}
+        >
           {t("pvp.backToPvp")}
-        </Text>
+        </ThemedExpoButton>
       </View>
     );
   }
@@ -200,40 +220,95 @@ export default function PvpReplayScreen() {
               {t("pvp.replay")} · T{currentTurnView.turn} / {turnViews.length}
             </Text>
             <View className="mt-3 flex-row items-center justify-center gap-3">
-              <Pressable
+              <ThemedExpoButton
                 onPress={() => {
                   setIsPlaying(false);
                   setCurrentTurnIndex((current) => Math.max(0, current - 1));
                 }}
-                className="rounded-xl bg-white/10 px-4 py-2"
+                preferFallback
+                variant="ghost"
+                fallbackAppearance={{
+                  backgroundColor: "rgba(255,255,255,0.1)",
+                  borderColor: "rgba(255,255,255,0.1)",
+                  borderRadius: 12,
+                  foregroundColor: "#FFFFFF",
+                  gradientColors: null,
+                  minHeight: 0,
+                  paddingHorizontal: 16,
+                  paddingVertical: 8,
+                  textStyle: {
+                    fontFamily: "Nunito_700Bold",
+                    fontSize: 14,
+                  },
+                }}
               >
-                <Text className="font-nunito-bold text-white">{t("pvp.replayPrevious")}</Text>
-              </Pressable>
-              <Pressable
+                {t("pvp.replayPrevious")}
+              </ThemedExpoButton>
+              <ThemedExpoButton
                 onPress={handleTogglePlayback}
-                className="rounded-xl bg-primary px-5 py-2"
+                preferFallback
+                variant="primary"
+                fallbackAppearance={{
+                  backgroundColor: tc.primary,
+                  borderColor: tc.primary,
+                  borderRadius: 12,
+                  foregroundColor: "#FFFFFF",
+                  gradientColors: null,
+                  minHeight: 0,
+                  paddingHorizontal: 20,
+                  paddingVertical: 8,
+                  textStyle: {
+                    fontFamily: "Nunito_700Bold",
+                    fontSize: 14,
+                  },
+                }}
               >
-                <Text className="font-nunito-bold text-white">
-                  {isPlaying ? t("pvp.replayPause") : t("pvp.replayPlay")}
-                </Text>
-              </Pressable>
-              <Pressable
+                {isPlaying ? t("pvp.replayPause") : t("pvp.replayPlay")}
+              </ThemedExpoButton>
+              <ThemedExpoButton
                 onPress={() => {
                   setIsPlaying(false);
                   setCurrentTurnIndex((current) => Math.min(turnViews.length - 1, current + 1));
                 }}
-                className="rounded-xl bg-white/10 px-4 py-2"
+                preferFallback
+                variant="ghost"
+                fallbackAppearance={{
+                  backgroundColor: "rgba(255,255,255,0.1)",
+                  borderColor: "rgba(255,255,255,0.1)",
+                  borderRadius: 12,
+                  foregroundColor: "#FFFFFF",
+                  gradientColors: null,
+                  minHeight: 0,
+                  paddingHorizontal: 16,
+                  paddingVertical: 8,
+                  textStyle: {
+                    fontFamily: "Nunito_700Bold",
+                    fontSize: 14,
+                  },
+                }}
               >
-                <Text className="font-nunito-bold text-white">{t("pvp.replayNext")}</Text>
-              </Pressable>
-              <Pressable
+                {t("pvp.replayNext")}
+              </ThemedExpoButton>
+              <ThemedExpoButton
                 onPress={() => setPlaybackSpeed((current) => (current === 1 ? 2 : 1))}
-                className="rounded-xl bg-white/10 px-4 py-2"
-              >
-                <Text className="font-nunito-bold text-white">
-                  {playbackSpeed}x
-                </Text>
-              </Pressable>
+                label={`${playbackSpeed}x`}
+                preferFallback
+                variant="ghost"
+                fallbackAppearance={{
+                  backgroundColor: "rgba(255,255,255,0.1)",
+                  borderColor: "rgba(255,255,255,0.1)",
+                  borderRadius: 12,
+                  foregroundColor: "#FFFFFF",
+                  gradientColors: null,
+                  minHeight: 0,
+                  paddingHorizontal: 16,
+                  paddingVertical: 8,
+                  textStyle: {
+                    fontFamily: "Nunito_700Bold",
+                    fontSize: 14,
+                  },
+                }}
+              />
             </View>
           </View>
         }
@@ -258,10 +333,5 @@ const styles = {
     fontSize: 18,
     fontFamily: "Nunito_700Bold",
     textAlign: "center" as const,
-  },
-  linkText: {
-    color: "#fff",
-    fontSize: 16,
-    fontFamily: "Nunito_700Bold",
   },
 };

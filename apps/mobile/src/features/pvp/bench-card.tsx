@@ -6,6 +6,7 @@ import type { PvpUnitState } from "./types";
 
 interface BenchCardProps {
   unit: PvpUnitState;
+  testID?: string;
   isSelected?: boolean;
   isSwapTarget?: boolean;
   isValidTarget?: boolean;
@@ -15,6 +16,7 @@ interface BenchCardProps {
 
 export function BenchCard({
   unit,
+  testID,
   isSelected,
   isSwapTarget,
   isValidTarget,
@@ -30,19 +32,22 @@ export function BenchCard({
 
   return (
     <Pressable
+      accessibilityRole="button"
+      accessible
       onPress={onPress}
       onLongPress={onLongPress}
       delayLongPress={400}
-      style={{
+      testID={testID}
+      style={({ pressed }) => ({
         height: "100%",
         aspectRatio: 5 / 3,
-        borderRadius: 10,
         overflow: "hidden",
-        borderWidth: 2,
-        borderColor,
-        opacity,
+        opacity: pressed ? opacity * 0.92 : opacity,
         backgroundColor: isDead ? "rgba(15,23,42,0.55)" : "rgba(226,232,240,0.55)",
-      }}
+        borderColor,
+        borderWidth: 2,
+        borderRadius: 10,
+      })}
     >
       {imageUrl ? (
         <Image source={{ uri: imageUrl }} style={{ width: "100%", height: "100%" }} contentFit="cover" />
