@@ -120,6 +120,41 @@ PWA import:
 - `cd apps/phoenix && set -a && source .env && set +a && MIX_ENV=dev mix pwa_import apply`
 - `cd apps/phoenix && set -a && source .env && set +a && MIX_ENV=dev mix pwa_import verify`
 
+## Maestro E2E
+
+Use Maestro for mobile smoke tests and targeted interaction validation, especially for Expo development-client and PvP regressions.
+
+Main project files:
+- `.maestro/` - shared Maestro flows and subflows committed to the repo
+- `scripts/maestro.sh` - wrapper that injects auth/session state and fixture ids into flows
+- `apps/mobile/app/e2e-auth.tsx` - in-app test auth bridge used by deep links
+- `apps/phoenix/scripts/ensure-mobile-test-pvp-fixture.sh` - deterministic PvP fixture creator for mobile E2E runs
+
+Core commands:
+- `npm run build:mobile:e2e:ios` - build the local iOS E2E app artifact
+- `npm run install:mobile:e2e:ios` - install the local iOS E2E app on the booted simulator
+- `npm run build:mobile:e2e:android` - build the local Android E2E app artifact
+- `npm run install:mobile:e2e:android` - install the local Android E2E app on the connected emulator/device
+- `npm run test:mobile:e2e:ios` - run the general iOS Maestro smoke flow
+- `npm run test:mobile:e2e:android` - run the general Android Maestro smoke flow
+- `npm run test:mobile:e2e:pvp:ios` - run the iOS PvP smoke flow
+- `npm run test:mobile:e2e:pvp:android` - run the Android PvP smoke flow
+- `MOBILE_TEST_PASSWORD='<password>' ./scripts/maestro.sh test --platform ios .maestro/<flow>.yaml` - run a specific iOS flow directly through the project wrapper
+- `MOBILE_TEST_PASSWORD='<password>' ./scripts/maestro.sh test --platform android .maestro/<flow>.yaml` - run a specific Android flow directly through the project wrapper
+
+Project rules:
+- always run Maestro through `scripts/maestro.sh` or the npm scripts that call it; do not call raw `maestro test` for this repo unless you intentionally want to bypass auth/fixture injection
+- set `MOBILE_TEST_PASSWORD` before Maestro runs; the wrapper uses it both for backend login and for the Phoenix test-user/fixture scripts
+- prefer the committed flows in `.maestro/` and add new reusable flows there when they are generally useful
+- do not commit generated `.maestro/.maestro-flow.*` files; they are temporary token-injected copies created by the wrapper and are gitignored
+- keep Maestro screenshots, logs, and local build artifacts out of commits unless the user explicitly asks for them
+
+PvP-specific workflow:
+- for battle validation, prefer the fixture-backed PvP flows or the Phoenix fixture script so the match state is deterministic
+- if you need to exercise a specific match route, use the E2E auth deep link first to establish session state, then open the target route; two-step navigation is often more reliable than a single query-heavy redirect
+- when validating live combat interactions, favor stable assertions on `pvp-battle-board`, `pvp-action-modal`, `pvp-card-info-modal`, `pvp-battle-log-button`, and the `pvp-my-unit-*` / `pvp-opponent-unit-*` test ids
+- if a Maestro run fails, inspect the debug artifacts under `~/.maestro/tests/<timestamp>/` before changing app code; the screenshot usually tells you whether the failure is splash/login/navigation/board interaction
+
 ## Mobile Build And Release Policy
 
 Production mobile build and release work is initiated from this Mac, not from GitHub Actions.
@@ -184,6 +219,8 @@ For mobile/shared changes:
 - run `cd apps/mobile && npx expo-doctor`
 - treat any new Expo Doctor warning or failure as a regression to fix before finishing, not as background noise
 - when `ios/` and `android/` are checked in, the non-CNG sync warning about native config fields may remain; only accept it if it is unchanged and the only Expo Doctor finding, and explicitly call it out in the handoff
+- when mobile behavior or interaction code changes, run the narrowest relevant Maestro flow if a stable flow exists for that surface
+- if Maestro coverage is missing for the changed surface and the area is high-risk, add or update a focused flow in `.maestro/` instead of relying only on manual reasoning
 - run targeted workspace typechecks or builds as needed
 
 ## Environment
