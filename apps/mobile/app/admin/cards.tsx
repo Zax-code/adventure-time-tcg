@@ -335,7 +335,6 @@ export default function AdminCardsScreen() {
     () => (
       <View className="gap-4">
         <AdminHero
-          badge={t("admin.shell.nav.cards")}
           title={t("admin.cards.title")}
           subtitle={t("admin.cards.subtitle")}
           actions={

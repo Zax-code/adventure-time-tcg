@@ -212,7 +212,6 @@ export default function AdminPacksScreen() {
     <>
       <AdminPageScroll>
         <AdminHero
-          badge={t("admin.shell.nav.packs")}
           title={t("admin.packs.title")}
           subtitle={t("admin.packs.subtitle")}
           actions={

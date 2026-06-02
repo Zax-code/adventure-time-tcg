@@ -211,7 +211,6 @@ export default function AdminAbilitiesScreen() {
     <>
       <AdminPageScroll>
         <AdminHero
-          badge={t("admin.shell.nav.abilities")}
           title={t("admin.abilities.title")}
           subtitle={t("admin.abilities.subtitle")}
           actions={

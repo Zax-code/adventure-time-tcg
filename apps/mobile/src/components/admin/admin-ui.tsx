@@ -94,13 +94,11 @@ export function AdminPanel({
 export function AdminHero({
   title,
   subtitle,
-  badge,
   actions,
   children,
 }: {
   title: string;
   subtitle: string;
-  badge?: string;
   actions?: ReactNode;
   children?: ReactNode;
 }) {
@@ -113,37 +111,20 @@ export function AdminHero({
         colors={[withAlpha(tc.primaryTint, "CC"), withAlpha(tc.surface, "00")]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          height: 120,
-        }}
+        style={absoluteFill}
       />
       <View className="gap-4">
-        <View className="flex-row items-start justify-between gap-4">
+        <View className="flex-row items-start gap-4">
           <View className="flex-1 gap-2">
-            {badge ? (
-              <View
-                className="self-start rounded-full border px-3 py-[6]"
-                style={{
-                  backgroundColor: withAlpha(tc.primaryTint, "DD"),
-                  borderColor: withAlpha(tc.primaryBorder, "80"),
-                }}
-              >
-                <Text className="font-nunito-extrabold text-[11px] uppercase tracking-[0.8px] text-primaryStrong">
-                  {badge}
-                </Text>
-              </View>
-            ) : null}
             <Text className="font-nunito-extrabold text-[30px] leading-[34px] text-fg">
               {title}
             </Text>
           </View>
-          <View className="min-h-[44] min-w-[116] max-w-[148] items-stretch justify-start">
-            {actions ? actions : <View className="min-h-[44] opacity-0" />}
-          </View>
+          {actions ? (
+            <View className="min-h-[44] min-w-[116] max-w-[148] items-stretch justify-start">
+              {actions}
+            </View>
+          ) : null}
         </View>
         <Text className="font-nunito-semibold text-[14px] leading-[21px] text-fgMuted">
           {subtitle}
