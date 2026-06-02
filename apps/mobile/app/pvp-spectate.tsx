@@ -1,9 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { ScrollView, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { apiClient } from "../src/lib/api";
+import { ThemedExpoButton } from "../src/components/expo-ui/themed-button";
 import { SectionErrorState } from "../src/components/error-state";
 import { LoadingPanel } from "../src/components/loading-state";
 import { useTranslation } from "../src/i18n";
@@ -46,11 +47,25 @@ export default function PvpSpectateScreen() {
         style={{ paddingTop: insets.top + 8 }}
       >
         <View className="flex-row items-center gap-3">
-          <Pressable onPress={() => router.push("/(tabs)/pvp")} className="rounded-xl p-2">
+          <ThemedExpoButton
+            onPress={() => router.push("/(tabs)/pvp")}
+            variant="ghost"
+            fallbackAppearance={{
+              backgroundColor: "transparent",
+              borderColor: "transparent",
+              borderRadius: 12,
+              foregroundColor: tc.fgMuted,
+              gradientColors: null,
+              minHeight: 36,
+              paddingHorizontal: 8,
+              paddingVertical: 8,
+            }}
+            style={{ minHeight: 36, minWidth: 36 }}
+          >
             <View style={{ transform: [{ rotate: "180deg" }] }}>
               <ChevronRightIcon size={20} color={tc.fgMuted} />
             </View>
-          </Pressable>
+          </ThemedExpoButton>
           <View>
             <Text className="font-nunito-extrabold text-2xl text-infoDark">
               {t("pvp.spectateTitle")}
@@ -87,10 +102,22 @@ export default function PvpSpectateScreen() {
         ) : (
           <View className="gap-3">
             {spectateQuery.data!.matches.map((match) => (
-              <Pressable
+              <ThemedExpoButton
                 key={match.id}
                 onPress={() => router.push(`/pvp-spectate-match?id=${match.id}` as never)}
-                className="rounded-2xl border-2 border-infoBorder bg-surface p-4"
+                preferFallback
+                variant="secondary"
+                fallbackLayout="stretch"
+                fallbackAppearance={{
+                  backgroundColor: tc.surface,
+                  borderColor: tc.infoBorder,
+                  borderRadius: 16,
+                  foregroundColor: tc.fg,
+                  gradientColors: null,
+                  minHeight: 0,
+                  paddingHorizontal: 16,
+                  paddingVertical: 16,
+                }}
               >
                 <View className="flex-row items-center gap-4">
                   <View className="items-center gap-1.5">
@@ -124,7 +151,7 @@ export default function PvpSpectateScreen() {
                     {t("pvp.spectateNow")}
                   </Text>
                 </View>
-              </Pressable>
+              </ThemedExpoButton>
             ))}
           </View>
         )}

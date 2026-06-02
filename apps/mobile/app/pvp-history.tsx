@@ -1,10 +1,11 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { ScrollView, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { apiClient } from "../src/lib/api";
+import { ThemedExpoButton } from "../src/components/expo-ui/themed-button";
 import { SectionErrorState } from "../src/components/error-state";
 import { LoadingPanel } from "../src/components/loading-state";
 import { useTranslation } from "../src/i18n";
@@ -64,11 +65,25 @@ export default function PvpHistoryScreen() {
         style={{ paddingTop: insets.top + 8 }}
       >
         <View className="flex-row items-center gap-3">
-          <Pressable onPress={() => router.push("/(tabs)/pvp")} className="rounded-xl p-2">
+          <ThemedExpoButton
+            onPress={() => router.push("/(tabs)/pvp")}
+            variant="ghost"
+            fallbackAppearance={{
+              backgroundColor: "transparent",
+              borderColor: "transparent",
+              borderRadius: 12,
+              foregroundColor: tc.fgMuted,
+              gradientColors: null,
+              minHeight: 36,
+              paddingHorizontal: 8,
+              paddingVertical: 8,
+            }}
+            style={{ minHeight: 36, minWidth: 36 }}
+          >
             <View style={{ transform: [{ rotate: "180deg" }] }}>
               <ChevronRightIcon size={20} color={tc.fgMuted} />
             </View>
-          </Pressable>
+          </ThemedExpoButton>
           <View>
             <Text className="font-nunito-extrabold text-2xl text-primaryDark">
               {t("pvp.matchHistory")}
@@ -129,12 +144,28 @@ export default function PvpHistoryScreen() {
             <Text className="mt-2 text-center font-nunito text-sm text-fgMuted">
               {t("pvp.noCompletedMatchesHint")}
             </Text>
-            <Pressable
+            <ThemedExpoButton
               onPress={() => router.push("/(tabs)/pvp")}
-              className="mt-4 rounded-xl bg-primaryDark px-6 py-3"
+              preferFallback
+              variant="primary"
+              fallbackAppearance={{
+                backgroundColor: tc.primaryDark,
+                borderColor: tc.primaryDark,
+                borderRadius: 12,
+                foregroundColor: "#FFFFFF",
+                gradientColors: null,
+                minHeight: 0,
+                paddingHorizontal: 24,
+                paddingVertical: 12,
+                textStyle: {
+                  fontFamily: "Nunito_700Bold",
+                  fontSize: 14,
+                },
+              }}
+              style={{ marginTop: 16 }}
             >
-              <Text className="font-nunito-bold text-white">{t("pvp.findBattle")}</Text>
-            </Pressable>
+              {t("pvp.findBattle")}
+            </ThemedExpoButton>
           </View>
         ) : (
           <View className="gap-3">
@@ -147,7 +178,7 @@ export default function PvpHistoryScreen() {
               const won = match.winnerId === currentUserId;
 
               return (
-                <Pressable
+                <ThemedExpoButton
                   key={match.id}
                   onPress={() => {
                     if (match.hasReplayData) {
@@ -155,9 +186,19 @@ export default function PvpHistoryScreen() {
                     }
                   }}
                   disabled={!match.hasReplayData}
-                  className={`rounded-2xl border-2 bg-surface p-4 ${
-                    won ? "border-successBorder" : "border-dangerBorder"
-                  } ${match.hasReplayData ? "" : "opacity-70"}`}
+                  preferFallback
+                  variant={won ? "primary" : "danger"}
+                  fallbackLayout="stretch"
+                  fallbackAppearance={{
+                    backgroundColor: tc.surface,
+                    borderColor: won ? tc.successBorder : tc.dangerBorder,
+                    borderRadius: 16,
+                    foregroundColor: tc.fg,
+                    gradientColors: null,
+                    minHeight: 0,
+                    paddingHorizontal: 16,
+                    paddingVertical: 16,
+                  }}
                 >
                   <View className="flex-row items-center gap-4">
                     <View
@@ -196,7 +237,7 @@ export default function PvpHistoryScreen() {
                       </Text>
                     )}
                   </View>
-                </Pressable>
+                </ThemedExpoButton>
               );
             })}
           </View>

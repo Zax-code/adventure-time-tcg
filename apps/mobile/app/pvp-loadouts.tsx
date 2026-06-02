@@ -371,11 +371,25 @@ export default function PvpLoadoutsScreen() {
           style={{ paddingTop: insets.top + 8 }}
         >
           <View className="flex-row items-center gap-2">
-            <Pressable onPress={() => router.back()} className="rounded-xl p-2">
+            <ThemedExpoButton
+              onPress={() => router.back()}
+              variant="ghost"
+              fallbackAppearance={{
+                backgroundColor: "transparent",
+                borderColor: "transparent",
+                borderRadius: 12,
+                foregroundColor: tc.fgMuted,
+                gradientColors: null,
+                minHeight: 36,
+                paddingHorizontal: 8,
+                paddingVertical: 8,
+              }}
+              style={{ minHeight: 36, minWidth: 36 }}
+            >
               <View style={{ transform: [{ rotate: "180deg" }] }}>
                 <ChevronRightIcon size={20} color={tc.fgMuted} />
               </View>
-            </Pressable>
+            </ThemedExpoButton>
             <View className="flex-1 flex-row items-center gap-2">
               <SwordsIcon size={22} color={tc.primaryText} />
               <Text className="font-nunito-bold text-xl text-primaryText">
@@ -403,29 +417,54 @@ export default function PvpLoadoutsScreen() {
                 {loadouts.map((loadout) => {
                   const active = editingLoadoutId === loadout.id;
                   return (
-                    <Pressable
+                    <ThemedExpoButton
                       key={loadout.id}
                       onPress={() => editLoadout(loadout.id)}
-                      className={`rounded-xl px-4 py-2 ${active ? "bg-accentDark" : "bg-accentTint"}`}
+                      preferFallback
+                      variant={active ? "warning" : "ghost"}
+                      fallbackAppearance={{
+                        backgroundColor: active ? tc.accentText : tc.accentTint,
+                        borderColor: active ? tc.accentText : tc.accentTint,
+                        borderRadius: 12,
+                        foregroundColor: active ? "#FFFFFF" : tc.accentText,
+                        gradientColors: null,
+                        minHeight: 0,
+                        paddingHorizontal: 16,
+                        paddingVertical: 8,
+                        textStyle: {
+                          fontFamily: "Nunito_600SemiBold",
+                          fontSize: 14,
+                        },
+                      }}
                     >
-                      <Text
-                        className={`font-nunito-semibold text-sm ${active ? "text-white" : "text-accentText"}`}
-                      >
-                        {loadout.name}
-                      </Text>
-                    </Pressable>
+                      {loadout.name}
+                    </ThemedExpoButton>
                   );
                 })}
               </ScrollView>
               {editingLoadout ? (
-                <Pressable
+                <ThemedExpoButton
                   onPress={createNewLoadout}
-                  className="mt-4 rounded-xl bg-primaryDark px-4 py-2.5"
+                  preferFallback
+                  variant="primary"
+                  fallbackAppearance={{
+                    backgroundColor: tc.primaryDark,
+                    borderColor: tc.primaryDark,
+                    borderRadius: 12,
+                    foregroundColor: "#FFFFFF",
+                    gradientColors: null,
+                    minHeight: 0,
+                    paddingHorizontal: 16,
+                    paddingVertical: 10,
+                    textStyle: {
+                      fontFamily: "Nunito_700Bold",
+                      fontSize: 12,
+                    },
+                  }}
+                  style={{ marginTop: 16 }}
                 >
-                  <Text className="text-center font-nunito-bold text-xs text-white">
-                    {t("pvp.createLoadout")}
-                  </Text>
-                </Pressable>
+                  {t("pvp.createLoadout")}
+                </ThemedExpoButton>
               ) : null}
             </View>
           ) : null}
@@ -731,19 +770,28 @@ export default function PvpLoadoutsScreen() {
               {LOADOUT_TYPES.map((type) => {
                 const active = filter === type;
                 return (
-                  <Pressable
+                  <ThemedExpoButton
                     key={type}
                     onPress={() => setFilter(type)}
-                    className={`rounded-full px-3 py-1.5 ${active ? "bg-primaryDark" : "bg-white"}`}
+                    preferFallback
+                    variant={active ? "primary" : "ghost"}
+                    fallbackAppearance={{
+                      backgroundColor: active ? tc.primaryDark : "#FFFFFF",
+                      borderColor: active ? tc.primaryDark : "transparent",
+                      borderRadius: 999,
+                      foregroundColor: active ? "#FFFFFF" : tc.fgMuted,
+                      gradientColors: null,
+                      minHeight: 0,
+                      paddingHorizontal: 12,
+                      paddingVertical: 6,
+                      textStyle: {
+                        fontFamily: "Nunito_600SemiBold",
+                        fontSize: 14,
+                      },
+                    }}
                   >
-                    <Text
-                      className={`font-nunito-semibold text-sm ${active ? "text-white" : "text-fgMuted"}`}
-                    >
-                      {type === "all"
-                        ? t("pvp.all")
-                        : localizeTypeName(type, t)}
-                    </Text>
-                  </Pressable>
+                    {type === "all" ? t("pvp.all") : localizeTypeName(type, t)}
+                  </ThemedExpoButton>
                 );
               })}
             </ScrollView>

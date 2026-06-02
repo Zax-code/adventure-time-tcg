@@ -51,6 +51,7 @@ type ThemedExpoButtonProps = {
   onPress?: () => void;
   disabled?: boolean;
   loading?: boolean;
+  preferFallback?: boolean;
   children?: ReactNode;
   label?: string;
   leadingAccessory?: ReactNode;
@@ -126,12 +127,13 @@ function getLabelText(label: string | undefined, children: ReactNode | undefined
 }
 
 function shouldUseFallbackButton(
+  preferFallback: boolean | undefined,
   label: string | null,
   loading: boolean | undefined,
   leadingAccessory: ReactNode | undefined,
   style: ViewStyle | undefined,
 ) {
-  if (Platform.OS === "web" || loading || !label || leadingAccessory) {
+  if (preferFallback || Platform.OS === "web" || loading || !label || leadingAccessory) {
     return true;
   }
 
@@ -326,6 +328,7 @@ export function ThemedExpoButton(props: ThemedExpoButtonProps) {
   const {
     style,
     loading,
+    preferFallback,
     children,
     label: explicitLabel,
     leadingAccessory,
@@ -340,7 +343,7 @@ export function ThemedExpoButton(props: ThemedExpoButtonProps) {
   const palette = getButtonPalette(tc, variant);
   const nativeKind = getNativeButtonKind(variant);
 
-  if (shouldUseFallbackButton(label, loading, leadingAccessory, style)) {
+  if (shouldUseFallbackButton(preferFallback, label, loading, leadingAccessory, style)) {
     return <FallbackButton {...props} />;
   }
 
