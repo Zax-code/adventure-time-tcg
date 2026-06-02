@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Animated, Pressable, ScrollView, Text, View } from "react-native";
+import { Animated, ScrollView, Text, View } from "react-native";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { ApiClientError } from "@adventure-time/api-client";
 
+import { ThemedExpoButton } from "../../src/components/expo-ui/themed-button";
 import { BattleFullScreenSheet } from "../../src/features/pvp/battle-full-screen-sheet";
 import { ToastBanner } from "../../src/components/toast-banner";
 import { LoadingPanel } from "../../src/components/loading-state";
@@ -283,82 +284,127 @@ export default function PvpScreen() {
             {t("pvp.lobby.subtitle")}
           </Text>
           <View className="mt-1 flex-row gap-3">
-            <Pressable
+            <ThemedExpoButton
               onPress={() => router.push("/pvp-mechanics")}
-              className="rounded-xl border border-dangerBorder bg-dangerTint px-4 py-2"
+              preferFallback
+              variant="danger"
+              fallbackAppearance={{
+                backgroundColor: tc.dangerTint,
+                borderColor: tc.dangerBorder,
+                borderRadius: 12,
+                foregroundColor: tc.dangerText,
+                gradientColors: null,
+                minHeight: 0,
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+                textStyle: {
+                  fontFamily: "Nunito_700Bold",
+                  fontSize: 14,
+                },
+              }}
             >
-              <Text className="font-nunito-bold text-sm text-dangerText">
-                {t("pvp.mechanics.open")}
-              </Text>
-            </Pressable>
-            <Pressable
+              {t("pvp.mechanics.open")}
+            </ThemedExpoButton>
+            <ThemedExpoButton
               onPress={() => router.push("/pvp-reference")}
-              className="rounded-xl border border-infoBorder bg-infoTint px-4 py-2"
+              preferFallback
+              variant="secondary"
+              fallbackAppearance={{
+                backgroundColor: tc.infoTint,
+                borderColor: tc.infoBorder,
+                borderRadius: 12,
+                foregroundColor: tc.infoDark,
+                gradientColors: null,
+                minHeight: 0,
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+                textStyle: {
+                  fontFamily: "Nunito_700Bold",
+                  fontSize: 14,
+                },
+              }}
             >
-              <Text className="font-nunito-bold text-sm text-infoDark">
-                {t("pvp.reference.open")}
-              </Text>
-            </Pressable>
+              {t("pvp.reference.open")}
+            </ThemedExpoButton>
           </View>
         </View>
 
         <View className="flex-row gap-3">
-          <Pressable
+          <ThemedExpoButton
             disabled={!hasValidLoadout}
-            style={{
-              flex: 1,
-              borderRadius: 16,
-              overflow: "hidden",
-              opacity: hasValidLoadout ? 1 : 0.5,
-            }}
             onPress={() => setShowInviteModal(true)}
+            preferFallback
+            style={{ flex: 1 }}
+            variant="primary"
+            fallbackLayout="stretch"
+            fallbackAppearance={{
+              backgroundColor: tc.primary,
+              borderColor: tc.primary,
+              borderRadius: 16,
+              foregroundColor: "#FFFFFF",
+              gradientColors: [tc.primary, tc.primaryDark],
+              minHeight: 0,
+              paddingHorizontal: 12,
+              paddingVertical: 16,
+            }}
           >
-            <LinearGradient
-              colors={[tc.primary, tc.primaryDark]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={{ alignItems: "center", paddingVertical: 16, paddingHorizontal: 12, gap: 4 }}
-            >
+            <View style={{ alignItems: "center", gap: 4 }}>
               <UserPlusIcon size={22} color="white" />
               <Text className="text-center font-nunito-bold text-xs text-white">
                 {t("pvp.sendInvite")}
               </Text>
-            </LinearGradient>
-          </Pressable>
-          <Pressable
-            style={{ flex: 1, borderRadius: 16, overflow: "hidden" }}
+            </View>
+          </ThemedExpoButton>
+          <ThemedExpoButton
             onPress={() => router.push("/pvp-loadouts")}
+            preferFallback
+            style={{ flex: 1 }}
+            variant="warning"
+            fallbackLayout="stretch"
+            fallbackAppearance={{
+              backgroundColor: tc.accent,
+              borderColor: tc.accent,
+              borderRadius: 16,
+              foregroundColor: "#FFFFFF",
+              gradientColors: [tc.accent, tc.accentDark],
+              minHeight: 0,
+              paddingHorizontal: 12,
+              paddingVertical: 16,
+            }}
           >
-            <LinearGradient
-              colors={[tc.accent, tc.accentDark]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={{ alignItems: "center", paddingVertical: 16, paddingHorizontal: 12, gap: 4 }}
-            >
+            <View style={{ alignItems: "center", gap: 4 }}>
               <SwordsIcon size={22} color="white" />
               <Text className="text-center font-nunito-bold text-xs text-white">
                 {(loadoutsQuery.data?.loadouts.length ?? 0) > 0
                   ? t("pvp.editLoadouts")
                   : t("pvp.createLoadout")}
               </Text>
-            </LinearGradient>
-          </Pressable>
-          <Pressable
-            style={{ flex: 1, borderRadius: 16, overflow: "hidden" }}
+            </View>
+          </ThemedExpoButton>
+          <ThemedExpoButton
             onPress={() => router.push("/pvp-spectate" as never)}
+            preferFallback
+            style={{ flex: 1 }}
+            variant="secondary"
+            fallbackLayout="stretch"
+            fallbackAppearance={{
+              backgroundColor: tc.info,
+              borderColor: tc.info,
+              borderRadius: 16,
+              foregroundColor: "#FFFFFF",
+              gradientColors: [tc.info, tc.infoDark],
+              minHeight: 0,
+              paddingHorizontal: 12,
+              paddingVertical: 16,
+            }}
           >
-            <LinearGradient
-              colors={[tc.info, tc.infoDark]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={{ alignItems: "center", paddingVertical: 16, paddingHorizontal: 12, gap: 4 }}
-            >
+            <View style={{ alignItems: "center", gap: 4 }}>
               <SwordsIcon size={22} color="white" />
               <Text className="text-center font-nunito-bold text-xs text-white">
                 {t("pvp.spectateOpen")}
               </Text>
-            </LinearGradient>
-          </Pressable>
+            </View>
+          </ThemedExpoButton>
         </View>
 
         {pendingReceivedInvites.length > 0 ? (
@@ -425,7 +471,7 @@ export default function PvpScreen() {
                         </Text>
                         <View className="gap-2">
                           {validLoadouts.map((loadout) => (
-                            <Pressable
+                            <ThemedExpoButton
                               key={loadout.id}
                               onPress={() =>
                                 setAcceptLoadoutMap((current) => ({
@@ -433,27 +479,36 @@ export default function PvpScreen() {
                                   [invite.id]: loadout.id,
                                 }))
                               }
-                              className={`rounded-xl border-2 px-3 py-2 ${
-                                selectedLoadoutId === loadout.id
-                                  ? "border-primary bg-primaryBg"
-                                  : "border-primaryTint bg-surface"
-                              }`}
+                              preferFallback
+                              variant="ghost"
+                              fallbackAppearance={{
+                                backgroundColor:
+                                  selectedLoadoutId === loadout.id
+                                    ? tc.primaryBg
+                                    : tc.surface,
+                                borderColor:
+                                  selectedLoadoutId === loadout.id
+                                    ? tc.primary
+                                    : tc.primaryBorder,
+                                borderRadius: 12,
+                                foregroundColor: tc.fg,
+                                gradientColors: null,
+                                minHeight: 0,
+                                paddingHorizontal: 12,
+                                paddingVertical: 8,
+                                textStyle: {
+                                  fontFamily: "Nunito_600SemiBold",
+                                  fontSize: 14,
+                                },
+                              }}
                             >
-                              <Text className="font-nunito-semibold text-fg">
-                                {loadout.name}
-                              </Text>
-                            </Pressable>
+                              {loadout.name}
+                            </ThemedExpoButton>
                           ))}
                         </View>
                         <View className="flex-row gap-2">
-                          <Pressable
+                          <ThemedExpoButton
                             disabled={!selectedLoadoutId || acceptMutation.isPending}
-                            style={{
-                              flex: 1,
-                              borderRadius: 12,
-                              overflow: "hidden",
-                              opacity: selectedLoadoutId && !acceptMutation.isPending ? 1 : 0.5,
-                            }}
                             onPress={() => {
                               const selectedLoadout = validLoadouts.find(
                                 (loadout) => loadout.id === selectedLoadoutId,
@@ -468,37 +523,60 @@ export default function PvpScreen() {
                                 cardIds: selectedLoadout.cardIds,
                               });
                             }}
+                            preferFallback
+                            style={{ flex: 1 }}
+                            variant="primary"
+                            loading={acceptMutation.isPending}
+                            fallbackLayout="stretch"
+                            fallbackAppearance={{
+                              backgroundColor: tc.success,
+                              borderColor: tc.success,
+                              borderRadius: 12,
+                              foregroundColor: "#FFFFFF",
+                              gradientColors: [tc.success, tc.successDark],
+                              minHeight: 0,
+                              paddingHorizontal: 16,
+                              paddingVertical: 12,
+                            }}
                           >
-                            <LinearGradient
-                              colors={[tc.success, tc.successDark]}
-                              start={{ x: 0, y: 0 }}
-                              end={{ x: 1, y: 1 }}
+                            <View
                               style={{
                                 flexDirection: "row",
                                 alignItems: "center",
                                 justifyContent: "center",
-                                paddingVertical: 12,
-                                paddingHorizontal: 16,
                                 gap: 6,
                               }}
                             >
                               <CheckIcon size={16} color="white" />
                               <Text className="font-nunito-bold text-white">
-                                {acceptMutation.isPending
-                                  ? t("pvp.accepting")
-                                  : t("pvp.acceptBattle")}
+                                {t("pvp.acceptBattle")}
                               </Text>
-                            </LinearGradient>
-                          </Pressable>
-                          <Pressable
-                            className="flex-1 flex-row items-center justify-center gap-2 rounded-xl bg-surfaceMuted px-4 py-3"
+                            </View>
+                          </ThemedExpoButton>
+                          <ThemedExpoButton
                             onPress={() => void declineMutation.mutateAsync(invite.id)}
+                            preferFallback
+                            style={{ flex: 1 }}
+                            variant="ghost"
+                            fallbackLayout="stretch"
+                            fallbackAppearance={{
+                              backgroundColor: tc.surfaceMuted,
+                              borderColor: tc.surfaceMuted,
+                              borderRadius: 12,
+                              foregroundColor: tc.dangerDark,
+                              gradientColors: null,
+                              minHeight: 0,
+                              paddingHorizontal: 16,
+                              paddingVertical: 12,
+                            }}
                           >
-                            <XIcon size={16} color={tc.dangerDark} />
-                            <Text className="font-nunito-bold text-dangerDark">
-                              {t("pvp.lobby.decline")}
-                            </Text>
-                          </Pressable>
+                            <View className="flex-row items-center justify-center gap-2">
+                              <XIcon size={16} color={tc.dangerDark} />
+                              <Text className="font-nunito-bold text-dangerDark">
+                                {t("pvp.lobby.decline")}
+                              </Text>
+                            </View>
+                          </ThemedExpoButton>
                         </View>
                       </>
                     ) : (loadoutsQuery.data?.loadouts.length ?? 0) > 0 ? (
@@ -506,22 +584,56 @@ export default function PvpScreen() {
                         <Text className="font-nunito text-sm text-secondaryText">
                           {t("pvp.allLoadoutsInvalid")}
                         </Text>
-                        <Pressable onPress={() => router.push("/pvp-loadouts")} className="mt-2">
-                          <Text className="font-nunito-semibold text-sm text-secondaryText">
-                            {t("pvp.editLoadouts")}
-                          </Text>
-                        </Pressable>
+                        <ThemedExpoButton
+                          onPress={() => router.push("/pvp-loadouts")}
+                          preferFallback
+                          variant="ghost"
+                          fallbackAppearance={{
+                            backgroundColor: "transparent",
+                            borderColor: "transparent",
+                            borderRadius: 8,
+                            foregroundColor: tc.secondaryText,
+                            gradientColors: null,
+                            minHeight: 0,
+                            paddingHorizontal: 0,
+                            paddingVertical: 0,
+                            textStyle: {
+                              fontFamily: "Nunito_600SemiBold",
+                              fontSize: 14,
+                            },
+                          }}
+                          style={{ alignSelf: "flex-start", marginTop: 8 }}
+                        >
+                          {t("pvp.editLoadouts")}
+                        </ThemedExpoButton>
                       </View>
                     ) : (
                       <View className="rounded-xl border border-secondaryBorder bg-secondaryTint p-3">
                         <Text className="font-nunito text-sm text-secondaryText">
                           {t("pvp.createLoadoutToAccept")}
                         </Text>
-                        <Pressable onPress={() => router.push("/pvp-loadouts")} className="mt-2">
-                          <Text className="font-nunito-semibold text-sm text-secondaryText">
-                            {t("pvp.createLoadout")}
-                          </Text>
-                        </Pressable>
+                        <ThemedExpoButton
+                          onPress={() => router.push("/pvp-loadouts")}
+                          preferFallback
+                          variant="ghost"
+                          fallbackAppearance={{
+                            backgroundColor: "transparent",
+                            borderColor: "transparent",
+                            borderRadius: 8,
+                            foregroundColor: tc.secondaryText,
+                            gradientColors: null,
+                            minHeight: 0,
+                            paddingHorizontal: 0,
+                            paddingVertical: 0,
+                            textStyle: {
+                              fontFamily: "Nunito_600SemiBold",
+                              fontSize: 14,
+                            },
+                          }}
+                          style={{ alignSelf: "flex-start", marginTop: 8 }}
+                        >
+                          {t("pvp.createLoadout")}
+                        </ThemedExpoButton>
                       </View>
                     )}
                   </View>
@@ -546,10 +658,22 @@ export default function PvpScreen() {
                 match.inviterId === currentUserId ? match.inviteeName : match.inviterName;
 
               return (
-                <Pressable
+                <ThemedExpoButton
                   key={match.id}
-                  className="flex-row items-center gap-3 rounded-2xl border-2 border-successBorder bg-surface p-4"
                   onPress={() => router.push(`/pvp-match?id=${match.id}`)}
+                  preferFallback
+                  variant="primary"
+                  fallbackLayout="stretch"
+                  fallbackAppearance={{
+                    backgroundColor: tc.surface,
+                    borderColor: tc.successBorder,
+                    borderRadius: 16,
+                    foregroundColor: tc.fg,
+                    gradientColors: null,
+                    minHeight: 0,
+                    paddingHorizontal: 16,
+                    paddingVertical: 16,
+                  }}
                 >
                   <View className="h-10 w-10 items-center justify-center rounded-full bg-successTint">
                     <SwordsIcon size={20} color={tc.successDark} />
@@ -565,7 +689,7 @@ export default function PvpScreen() {
                   <Text className="font-nunito-bold text-success">
                     {t("pvp.continueArrow")}
                   </Text>
-                </Pressable>
+                </ThemedExpoButton>
               );
             })}
           </View>
@@ -595,13 +719,24 @@ export default function PvpScreen() {
                     {t("pvp.waitingResponse")}
                   </Text>
                 </View>
-                <Pressable
+                <ThemedExpoButton
                   disabled={cancelInviteMutation.isPending}
                   onPress={() => void cancelInviteMutation.mutateAsync(invite.id)}
-                  className="p-2"
+                  variant="ghost"
+                  fallbackAppearance={{
+                    backgroundColor: "transparent",
+                    borderColor: "transparent",
+                    borderRadius: 12,
+                    foregroundColor: tc.dangerDark,
+                    gradientColors: null,
+                    minHeight: 36,
+                    paddingHorizontal: 8,
+                    paddingVertical: 8,
+                  }}
+                  style={{ minHeight: 36, minWidth: 36 }}
                 >
                   <XIcon size={20} color={tc.dangerDark} />
-                </Pressable>
+                </ThemedExpoButton>
               </View>
             ))}
           </View>
@@ -614,11 +749,27 @@ export default function PvpScreen() {
               <Text className="flex-1 font-nunito-bold text-lg text-fg">
                 {t("pvp.recentBattles")}
               </Text>
-              <Pressable onPress={() => router.push("/pvp-history" as never)}>
-                <Text className="font-nunito-bold text-sm text-accentText">
-                  {t("pvp.viewAllArrow")}
-                </Text>
-              </Pressable>
+              <ThemedExpoButton
+                onPress={() => router.push("/pvp-history" as never)}
+                preferFallback
+                variant="ghost"
+                fallbackAppearance={{
+                  backgroundColor: "transparent",
+                  borderColor: "transparent",
+                  borderRadius: 8,
+                  foregroundColor: tc.accentText,
+                  gradientColors: null,
+                  minHeight: 0,
+                  paddingHorizontal: 0,
+                  paddingVertical: 0,
+                  textStyle: {
+                    fontFamily: "Nunito_700Bold",
+                    fontSize: 14,
+                  },
+                }}
+              >
+                {t("pvp.viewAllArrow")}
+              </ThemedExpoButton>
             </View>
             {completedMatches.map((match) => {
               const won = match.winnerId === currentUserId;
@@ -628,16 +779,26 @@ export default function PvpScreen() {
                 match.inviterId === currentUserId ? match.inviteeName : match.inviterName;
 
               return (
-                <Pressable
+                <ThemedExpoButton
                   key={match.id}
                   disabled={!match.hasReplayData}
-                  className={`flex-row items-center gap-3 rounded-xl border bg-surface p-3 ${
-                    won ? "border-successBorder" : "border-dangerBorder"
-                  } ${match.hasReplayData ? "" : "opacity-70"}`}
                   onPress={() => {
                     if (match.hasReplayData) {
                       router.push(`/pvp-replay?id=${match.id}` as never);
                     }
+                  }}
+                  preferFallback
+                  variant={won ? "primary" : "danger"}
+                  fallbackLayout="stretch"
+                  fallbackAppearance={{
+                    backgroundColor: tc.surface,
+                    borderColor: won ? tc.successBorder : tc.dangerBorder,
+                    borderRadius: 12,
+                    foregroundColor: tc.fg,
+                    gradientColors: null,
+                    minHeight: 0,
+                    paddingHorizontal: 12,
+                    paddingVertical: 12,
                   }}
                 >
                   <Text
@@ -653,7 +814,7 @@ export default function PvpScreen() {
                   <Text className="font-nunito-bold text-xs text-accent">
                     {match.hasReplayData ? t("pvp.replayArrow") : t("pvp.noReplay")}
                   </Text>
-                </Pressable>
+                </ThemedExpoButton>
               );
             })}
           </View>
@@ -762,52 +923,58 @@ export default function PvpScreen() {
         scrollable={false}
         footer={
           <View className="flex-row gap-3">
-            <Pressable
-              className="flex-1 items-center rounded-xl bg-surfaceMuted py-3"
+            <ThemedExpoButton
               onPress={() => setShowInviteModal(false)}
+              preferFallback
+              style={{ flex: 1 }}
+              variant="ghost"
+              fallbackAppearance={{
+                backgroundColor: tc.surfaceMuted,
+                borderColor: tc.surfaceMuted,
+                borderRadius: 12,
+                foregroundColor: tc.fgMuted,
+                gradientColors: null,
+                minHeight: 0,
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                textStyle: {
+                  fontFamily: "Nunito_700Bold",
+                  fontSize: 14,
+                },
+              }}
             >
-              <Text className="font-nunito-bold text-fgMuted">
-                {t("common.cancel")}
-              </Text>
-            </Pressable>
-            <Pressable
+              {t("common.cancel")}
+            </ThemedExpoButton>
+            <ThemedExpoButton
               disabled={
                 !selectedInviteLoadoutId ||
                 !selectedOpponentId ||
                 createMutation.isPending ||
                 !hasValidLoadout
               }
-              style={{
-                flex: 1,
-                borderRadius: 12,
-                overflow: "hidden",
-                opacity:
-                  selectedInviteLoadoutId &&
-                  selectedOpponentId &&
-                  !createMutation.isPending &&
-                  hasValidLoadout
-                    ? 1
-                    : 0.5,
-              }}
               onPress={() => void createMutation.mutateAsync()}
+              loading={createMutation.isPending}
+              label={t("pvp.sendChallenge")}
+              preferFallback
+              style={{ flex: 1 }}
+              variant="primary"
+              fallbackAppearance={{
+                backgroundColor: tc.primary,
+                borderColor: tc.primary,
+                borderRadius: 12,
+                foregroundColor: "#FFFFFF",
+                gradientColors: [tc.primary, tc.primaryDark],
+                minHeight: 0,
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                textStyle: {
+                  fontFamily: "Nunito_700Bold",
+                  fontSize: 14,
+                },
+              }}
             >
-              <LinearGradient
-                colors={[tc.primary, tc.primaryDark]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={{
-                  alignItems: "center",
-                  paddingHorizontal: 16,
-                  paddingVertical: 12,
-                }}
-              >
-                <Text className="font-nunito-bold text-white">
-                  {createMutation.isPending
-                    ? t("pvp.sending")
-                    : t("pvp.sendChallenge")}
-                </Text>
-              </LinearGradient>
-            </Pressable>
+              {t("pvp.sending")}
+            </ThemedExpoButton>
           </View>
         }
       >
@@ -819,19 +986,34 @@ export default function PvpScreen() {
               </Text>
               <View className="gap-2">
                 {validLoadouts.map((loadout) => (
-                  <Pressable
+                  <ThemedExpoButton
                     key={loadout.id}
                     onPress={() => setSelectedInviteLoadoutId(loadout.id)}
-                    className={`rounded-xl border-2 px-4 py-3 ${
-                      selectedInviteLoadoutId === loadout.id
-                        ? "border-primary bg-primaryBg"
-                        : "border-primaryTint bg-surface"
-                    }`}
+                    preferFallback
+                    variant="ghost"
+                    fallbackAppearance={{
+                      backgroundColor:
+                        selectedInviteLoadoutId === loadout.id
+                          ? tc.primaryBg
+                          : tc.surface,
+                      borderColor:
+                        selectedInviteLoadoutId === loadout.id
+                          ? tc.primary
+                          : tc.primaryBorder,
+                      borderRadius: 12,
+                      foregroundColor: tc.fg,
+                      gradientColors: null,
+                      minHeight: 0,
+                      paddingHorizontal: 16,
+                      paddingVertical: 12,
+                      textStyle: {
+                        fontFamily: "Nunito_600SemiBold",
+                        fontSize: 14,
+                      },
+                    }}
                   >
-                    <Text className="font-nunito-semibold text-fg">
-                      {loadout.name}
-                    </Text>
-                  </Pressable>
+                    {loadout.name}
+                  </ThemedExpoButton>
                 ))}
               </View>
             </View>
@@ -877,17 +1059,31 @@ export default function PvpScreen() {
                     const isSelected = selectedOpponentId === user.id;
 
                     return (
-                      <Pressable
+                      <ThemedExpoButton
                         key={user.id}
                         disabled={hasInteraction}
                         onPress={() => setSelectedOpponentId(user.id)}
-                        className={`rounded-xl border-2 px-4 py-3 ${
-                          hasInteraction
-                            ? "border-primaryTint bg-surfaceMuted opacity-50"
+                        preferFallback
+                        variant="ghost"
+                        fallbackLayout="stretch"
+                        fallbackAppearance={{
+                          backgroundColor: hasInteraction
+                            ? tc.surfaceMuted
                             : isSelected
-                              ? "border-primary bg-primaryBg"
-                              : "border-primaryTint bg-surface"
-                        }`}
+                              ? tc.primaryBg
+                              : tc.surface,
+                          borderColor: hasInteraction
+                            ? tc.primaryBorder
+                            : isSelected
+                              ? tc.primary
+                              : tc.primaryBorder,
+                          borderRadius: 12,
+                          foregroundColor: tc.fg,
+                          gradientColors: null,
+                          minHeight: 0,
+                          paddingHorizontal: 16,
+                          paddingVertical: 12,
+                        }}
                       >
                         <View className="flex-row items-center gap-3">
                           <View className="h-10 w-10 items-center justify-center rounded-full bg-primaryTint">
@@ -908,7 +1104,7 @@ export default function PvpScreen() {
                             <CheckIcon size={18} color={tc.primaryDark} />
                           ) : null}
                         </View>
-                      </Pressable>
+                      </ThemedExpoButton>
                     );
                   })
                 )}
