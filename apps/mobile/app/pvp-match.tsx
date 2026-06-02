@@ -13,8 +13,9 @@ import type { PvpAction } from "@adventure-time/api-client";
 
 import { PageLoadingState } from "../src/components/loading-state";
 import { PageErrorState } from "../src/components/error-state";
+import { ThemedExpoButton } from "../src/components/expo-ui/themed-button";
 import { useThemeStore } from "../src/stores/theme-store";
-import { THEME_VARS } from "../src/theme/themes";
+import { THEME_COLORS, THEME_VARS } from "../src/theme/themes";
 import { BattleBoard } from "../src/features/pvp/battle-board";
 import { BattleFullScreenSheet } from "../src/features/pvp/battle-full-screen-sheet";
 import { useMatch } from "../src/features/pvp/use-match";
@@ -274,6 +275,8 @@ function ConfirmSheet({
   danger?: boolean;
 }) {
   const { t } = useTranslation();
+  const themeName = useThemeStore((state) => state.themeName);
+  const tc = THEME_COLORS[themeName];
   return (
     <BattleFullScreenSheet
       visible={visible}
@@ -281,12 +284,46 @@ function ConfirmSheet({
       onClose={onCancel}
       footer={
         <View className="flex-row gap-3">
-          <Pressable onPress={onCancel} className="flex-1 rounded-2xl bg-surfaceMuted px-4 py-3">
-            <Text className="text-center font-nunito-bold text-fgMuted">{t("common.cancel")}</Text>
-          </Pressable>
-          <Pressable onPress={onConfirm} className={`flex-1 rounded-2xl px-4 py-3 ${danger ? "bg-dangerDark" : "bg-primaryDark"}`}>
-            <Text className="text-center font-nunito-bold text-white">{confirmLabel}</Text>
-          </Pressable>
+          <ThemedExpoButton
+            onPress={onCancel}
+            fallbackAppearance={{
+              backgroundColor: tc.surfaceMuted,
+              borderColor: "transparent",
+              borderRadius: 16,
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              gradientColors: null,
+              foregroundColor: tc.fgMuted,
+              textStyle: {
+                fontFamily: "Nunito_700Bold",
+                fontSize: 14,
+              },
+            }}
+            style={{ flex: 1 }}
+            variant="ghost"
+          >
+            {t("common.cancel")}
+          </ThemedExpoButton>
+          <ThemedExpoButton
+            onPress={onConfirm}
+            fallbackAppearance={{
+              backgroundColor: danger ? tc.dangerDark : tc.primaryDark,
+              borderColor: "transparent",
+              borderRadius: 16,
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              gradientColors: null,
+              foregroundColor: "#FFFFFF",
+              textStyle: {
+                fontFamily: "Nunito_700Bold",
+                fontSize: 14,
+              },
+            }}
+            style={{ flex: 1 }}
+            variant={danger ? "danger" : "primary"}
+          >
+            {confirmLabel}
+          </ThemedExpoButton>
         </View>
       }
     >

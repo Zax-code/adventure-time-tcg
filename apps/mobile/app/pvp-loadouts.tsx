@@ -21,6 +21,7 @@ import {
   KEYBOARD_AWARE_SCROLL_PROPS,
   KeyboardScreenView,
 } from "../src/components/keyboard-screen-view";
+import { ThemedExpoButton } from "../src/components/expo-ui/themed-button";
 import { ThemedExpoTextInput } from "../src/components/expo-ui/themed-text-input";
 import { useTranslation } from "../src/i18n";
 import { useThemeStore } from "../src/stores/theme-store";
@@ -648,47 +649,76 @@ export default function PvpLoadoutsScreen() {
 
             <View className="mt-4 flex-row gap-3">
               {editingLoadout ? (
-                <Pressable
+                <ThemedExpoButton
                   onPress={() => deleteMutation.mutate(editingLoadout.id)}
-                  className="rounded-2xl bg-dangerTint px-4 py-3"
+                  variant="danger"
+                  fallbackAppearance={{
+                    backgroundColor: tc.dangerTint,
+                    borderColor: tc.dangerTint,
+                    borderRadius: 16,
+                    foregroundColor: tc.dangerDark,
+                    gradientColors: null,
+                    minHeight: 0,
+                    paddingHorizontal: 16,
+                    paddingVertical: 12,
+                    textStyle: {
+                      fontFamily: "Nunito_700Bold",
+                      fontSize: 14,
+                    },
+                  }}
                 >
-                  <Text className="font-nunito-bold text-dangerDark">
-                    {t("common.delete")}
-                  </Text>
-                </Pressable>
+                  {t("common.delete")}
+                </ThemedExpoButton>
               ) : null}
-              <Pressable
+              <ThemedExpoButton
                 onPress={() => setSelectedCardIds([])}
-                className="flex-1 rounded-2xl bg-surfaceMuted px-4 py-3"
+                style={{ flex: 1 }}
+                variant="ghost"
+                fallbackAppearance={{
+                  backgroundColor: tc.surfaceMuted,
+                  borderColor: tc.surfaceMuted,
+                  borderRadius: 16,
+                  foregroundColor: tc.fgMuted,
+                  gradientColors: null,
+                  minHeight: 0,
+                  paddingHorizontal: 16,
+                  paddingVertical: 12,
+                  textStyle: {
+                    fontFamily: "Nunito_700Bold",
+                    fontSize: 14,
+                  },
+                }}
               >
-                <Text className="text-center font-nunito-bold text-fgMuted">
-                  {t("common.clear")}
-                </Text>
-              </Pressable>
-              <Pressable
+                {t("common.clear")}
+              </ThemedExpoButton>
+              <ThemedExpoButton
                 disabled={
                   selectedCardIds.length !== 6 ||
                   !loadoutName.trim() ||
                   saveMutation.isPending
                 }
                 onPress={saveLoadout}
-                className="flex-1 overflow-hidden rounded-2xl"
+                loading={saveMutation.isPending}
+                label={editingLoadout ? t("pvp.update") : t("pvp.create")}
+                style={{ flex: 1 }}
+                variant="primary"
+                fallbackAppearance={{
+                  backgroundColor: tc.primary,
+                  borderColor: tc.primary,
+                  borderRadius: 16,
+                  foregroundColor: "#FFFFFF",
+                  gradientColors: [tc.primary, tc.primaryDark],
+                  minHeight: 0,
+                  paddingHorizontal: 16,
+                  paddingVertical: 12,
+                  textStyle: {
+                    fontFamily: "Nunito_700Bold",
+                    fontSize: 14,
+                  },
+                }}
               >
-                <LinearGradient
-                  colors={[tc.primary, tc.primaryDark]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={{ paddingHorizontal: 16, paddingVertical: 12 }}
-                >
-                  <Text className="text-center font-nunito-bold text-white">
-                    {saveMutation.isPending
-                      ? t("admin.saving")
-                      : editingLoadout
-                        ? t("pvp.update")
-                        : t("pvp.create")}
-                  </Text>
-                </LinearGradient>
-              </Pressable>
+                  {t("admin.saving")}
+              </ThemedExpoButton>
             </View>
           </View>
 

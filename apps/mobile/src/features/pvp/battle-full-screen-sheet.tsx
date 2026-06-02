@@ -1,7 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { ModalBottomSheet } from "@swmansion/react-native-bottom-sheet";
 import {
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -10,6 +9,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { ThemedExpoButton } from "../../components/expo-ui/themed-button";
 import { XIcon } from "../../components/icons";
 import { useThemeStore } from "../../stores/theme-store";
 import { THEME_COLORS } from "../../theme/themes";
@@ -116,12 +116,29 @@ export function BattleFullScreenSheet({
                 {title}
               </Text>
             </View>
-            <Pressable
+            <ThemedExpoButton
               onPress={onClose}
-              className="absolute right-5 top-0 rounded-full bg-surfaceMuted p-2"
+              variant="ghost"
+              fallbackAppearance={{
+                backgroundColor: tc.surfaceMuted,
+                borderColor: tc.surfaceMuted,
+                borderRadius: 999,
+                foregroundColor: tc.fgMuted,
+                gradientColors: null,
+                minHeight: 34,
+                paddingHorizontal: 8,
+                paddingVertical: 8,
+              }}
+              style={{
+                minHeight: 34,
+                minWidth: 34,
+                position: "absolute",
+                right: 20,
+                top: 0,
+              }}
             >
               <XIcon size={18} color={tc.fgMuted} />
-            </Pressable>
+            </ThemedExpoButton>
           </View>
         </View>
 
