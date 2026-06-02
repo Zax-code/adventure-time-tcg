@@ -1,5 +1,6 @@
 import "react-native-reanimated";
 import { useEffect } from "react";
+import { BottomSheetProvider } from "@swmansion/react-native-bottom-sheet";
 import { ActivityIndicator, View } from "react-native";
 import { Stack } from "expo-router";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -185,7 +186,10 @@ export default function RootLayout() {
           },
         );
 
-        if (!resetPayload.questType || resetPayload.questType === "wordle_daily") {
+        if (
+          !resetPayload.questType ||
+          resetPayload.questType === "wordle_daily"
+        ) {
           queryClient.setQueriesData(
             { queryKey: ["wordle"] },
             (
@@ -244,47 +248,89 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
-          <View style={[{ flex: 1 }, THEME_VARS[themeName]]}>
-            <StatusBar style="dark" />
-            {bootstrapPhase !== "ready" ? (
-              <AppLaunchScreen phase={bootstrapPhase} />
-            ) : (
-              <Stack screenOptions={{ headerShown: false }}>
-                <Stack.Screen
-                  name="admin-card-editor"
-                  options={{ presentation: "modal", headerShown: false }}
-                />
-                <Stack.Screen
-                  name="admin-ability-editor"
-                  options={{ presentation: "modal", headerShown: false }}
-                />
-                <Stack.Screen
-                  name="admin-user-editor"
-                  options={{ presentation: "modal", headerShown: false }}
-                />
-                <Stack.Screen
-                  name="settings"
-                  options={{ presentation: "modal", headerShown: false }}
-                />
-                <Stack.Screen
-                  name="pvp-mechanics"
-                  options={{ presentation: "modal", headerShown: false }}
-                />
-                <Stack.Screen
-                  name="pvp-reference"
-                  options={{ presentation: "modal", headerShown: false }}
-                />
-                <Stack.Screen
-                  name="pvp-card-details"
-                  options={{ presentation: "modal", headerShown: false }}
-                />
-                <Stack.Screen
-                  name="collection-card-detail"
-                  options={{ presentation: "modal", headerShown: false }}
-                />
-              </Stack>
-            )}
-          </View>
+          <BottomSheetProvider>
+            <View style={[{ flex: 1 }, THEME_VARS[themeName]]}>
+              <StatusBar style="dark" />
+              {bootstrapPhase !== "ready" ? (
+                <AppLaunchScreen phase={bootstrapPhase} />
+              ) : (
+                <Stack screenOptions={{ headerShown: false }}>
+                  <Stack.Screen
+                    name="admin-card-editor"
+                    options={{
+                      presentation: "transparentModal",
+                      animation: "slide_from_bottom",
+                      contentStyle: { backgroundColor: "transparent" },
+                      headerShown: false,
+                    }}
+                  />
+                  <Stack.Screen
+                    name="admin-ability-editor"
+                    options={{
+                      presentation: "transparentModal",
+                      animation: "slide_from_bottom",
+                      contentStyle: { backgroundColor: "transparent" },
+                      headerShown: false,
+                    }}
+                  />
+                  <Stack.Screen
+                    name="admin-user-editor"
+                    options={{
+                      presentation: "transparentModal",
+                      animation: "slide_from_bottom",
+                      contentStyle: { backgroundColor: "transparent" },
+                      headerShown: false,
+                    }}
+                  />
+                  <Stack.Screen
+                    name="settings"
+                    options={{
+                      presentation: "transparentModal",
+                      animation: "none",
+                      contentStyle: { backgroundColor: "transparent" },
+                      headerShown: false,
+                    }}
+                  />
+                  <Stack.Screen
+                    name="pvp-mechanics"
+                    options={{
+                      presentation: "transparentModal",
+                      animation: "slide_from_bottom",
+                      contentStyle: { backgroundColor: "transparent" },
+                      headerShown: false,
+                    }}
+                  />
+                  <Stack.Screen
+                    name="pvp-reference"
+                    options={{
+                      presentation: "transparentModal",
+                      animation: "slide_from_bottom",
+                      contentStyle: { backgroundColor: "transparent" },
+                      headerShown: false,
+                    }}
+                  />
+                  <Stack.Screen
+                    name="pvp-card-details"
+                    options={{
+                      presentation: "transparentModal",
+                      animation: "slide_from_bottom",
+                      contentStyle: { backgroundColor: "transparent" },
+                      headerShown: false,
+                    }}
+                  />
+                  <Stack.Screen
+                    name="collection-card-detail"
+                    options={{
+                      presentation: "transparentModal",
+                      animation: "slide_from_bottom",
+                      contentStyle: { backgroundColor: "transparent" },
+                      headerShown: false,
+                    }}
+                  />
+                </Stack>
+              )}
+            </View>
+          </BottomSheetProvider>
         </QueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

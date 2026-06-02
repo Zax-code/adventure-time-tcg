@@ -11,10 +11,13 @@ import {
   AdminButton,
   AdminChip,
   AdminEmptyState,
+  AdminHero,
   AdminLoadingState,
+  AdminNotice,
   AdminPageScroll,
   AdminPanel,
   AdminSectionTitle,
+  AdminStat,
 } from "../../src/components/admin/admin-ui";
 import { useTranslation } from "../../src/i18n";
 
@@ -66,14 +69,11 @@ export default function AdminImageAssetsScreen() {
       const asset = result.assets[0];
       const filename = asset.fileName ?? `catalog-${Date.now()}.jpg`;
       const formData = new FormData();
-      formData.append(
-        "file",
-        {
-          uri: asset.uri,
-          name: filename,
-          type: asset.mimeType ?? "image/jpeg",
-        } as never,
-      );
+      formData.append("file", {
+        uri: asset.uri,
+        name: filename,
+        type: asset.mimeType ?? "image/jpeg",
+      } as never);
 
       return apiClient.uploadAdminImageAsset(formData);
     },
@@ -94,7 +94,9 @@ export default function AdminImageAssetsScreen() {
 
   const imageAssets = imageAssetsQuery.data?.imageAssets ?? [];
   const imageAssetsError =
-    imageAssetsQuery.error instanceof Error ? imageAssetsQuery.error.message : null;
+    imageAssetsQuery.error instanceof Error
+      ? imageAssetsQuery.error.message
+      : null;
 
   const recentAssets = useMemo(() => imageAssets.slice(0, 24), [imageAssets]);
 
@@ -102,7 +104,7 @@ export default function AdminImageAssetsScreen() {
     return (
       <View
         key={asset.id}
-        className="gap-3 rounded-[22] border border-primaryBorder/20 bg-surfaceMuted p-[14]"
+        className="gap-3 rounded-[24] border border-primaryBorder/20 bg-surfaceMuted p-[14]"
       >
         <View className="overflow-hidden rounded-[18] border border-primaryBorder/20 bg-primaryTint/35">
           <Image
@@ -121,7 +123,11 @@ export default function AdminImageAssetsScreen() {
               date: formatUploadedAt(asset.insertedAt),
             })}
           </Text>
-          <Pressable onPress={() => Alert.alert(t("admin.imageAssets.assetIdTitle"), asset.id)}>
+          <Pressable
+            onPress={() =>
+              Alert.alert(t("admin.imageAssets.assetIdTitle"), asset.id)
+            }
+          >
             <Text className="font-nunito-extrabold text-[12px] text-primaryStrong">
               {asset.id}
             </Text>
@@ -133,23 +139,53 @@ export default function AdminImageAssetsScreen() {
 
   return (
     <AdminPageScroll>
-      <AdminPanel>
-        <AdminSectionTitle
-          title={t("admin.imageAssets.title")}
-          subtitle={t("admin.imageAssets.subtitle")}
-          right={
-            <AdminButton
-              label={uploadMutation.isPending ? t("admin.common.uploading") : t("admin.common.upload")}
-              icon="cloud-upload"
-              onPress={() => uploadMutation.mutate()}
-              disabled={uploadMutation.isPending}
-            />
-          }
+      <AdminHero
+        badge={t("admin.shell.nav.assets")}
+        title={t("admin.imageAssets.title")}
+        subtitle={t("admin.imageAssets.subtitle")}
+        actions={
+          <AdminButton
+            label={
+              uploadMutation.isPending
+                ? t("admin.common.uploading")
+                : t("admin.common.upload")
+            }
+            icon="cloud-upload"
+            onPress={() => uploadMutation.mutate()}
+            disabled={uploadMutation.isPending}
+          />
+        }
+      >
+        <View className="flex-row flex-wrap gap-3">
+          <AdminStat
+            label={t("admin.imageAssets.totalLabel")}
+            value={String(imageAssets.length)}
+            tone="info"
+          />
+          <AdminStat
+            label={t("admin.imageAssets.recentLabel")}
+            value={String(recentAssets.length)}
+            tone="accent"
+          />
+        </View>
+      </AdminHero>
+
+      {!imageAssetsQuery.isLoading && !imageAssetsError ? (
+        <AdminNotice
+          title={t("admin.imageAssets.guidanceTitle")}
+          body={t("admin.imageAssets.guidanceBody")}
+          tone="info"
+          icon="images-outline"
         />
-      </AdminPanel>
+      ) : null}
 
       <AdminPanel>
-        <AdminSectionTitle title={t("admin.imageAssets.recentUploads", { count: imageAssets.length })} />
+        <AdminSectionTitle
+          title={t("admin.imageAssets.recentUploads", {
+            count: imageAssets.length,
+          })}
+          subtitle={t("admin.imageAssets.recentSubtitle")}
+        />
         <View className="mt-3 gap-3">
           {imageAssetsQuery.isLoading ? (
             <AdminLoadingState
@@ -158,7 +194,9 @@ export default function AdminImageAssetsScreen() {
               icon="images"
             />
           ) : imageAssetsError ? (
-            <Text className="font-nunito-bold text-[13px] text-dangerText">{imageAssetsError}</Text>
+            <Text className="font-nunito-bold text-[13px] text-dangerText">
+              {imageAssetsError}
+            </Text>
           ) : recentAssets.length ? (
             recentAssets.map(renderAssetCard)
           ) : (

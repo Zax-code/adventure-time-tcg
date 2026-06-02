@@ -1,16 +1,18 @@
-import { useEffect, useMemo, useRef } from "react";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { ModalBottomSheet } from "@swmansion/react-native-bottom-sheet";
 import {
-  Animated,
-  PanResponder,
   Pressable,
   ScrollView,
+  StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { XIcon } from "../../components/icons";
+import { useThemeStore } from "../../stores/theme-store";
+import { THEME_COLORS } from "../../theme/themes";
 
 interface BattleFullScreenSheetProps {
   visible: boolean;
@@ -30,65 +32,31 @@ export function BattleFullScreenSheet({
   scrollable = true,
 }: BattleFullScreenSheetProps) {
   const insets = useSafeAreaInsets();
-  const translateY = useRef(new Animated.Value(900)).current;
+  const { height } = useWindowDimensions();
+  const themeName = useThemeStore((state) => state.themeName);
+  const tc = THEME_COLORS[themeName];
+  const [index, setIndex] = useState(visible ? 1 : 0);
+  const [mounted, setMounted] = useState(visible);
+  const topGap = Math.max(insets.top + 16, 56);
+  const maxSheetHeight = Math.max(0, height - topGap);
 
   useEffect(() => {
-    if (!visible) {
-      translateY.setValue(900);
+    if (visible) {
+      setMounted(true);
+      setIndex(1);
       return;
     }
 
-    Animated.spring(translateY, {
-      toValue: 0,
-      useNativeDriver: true,
-      bounciness: 0,
-    }).start();
-  }, [translateY, visible]);
+    setIndex(0);
+  }, [visible]);
 
-  const closeSheet = () => {
-    Animated.timing(translateY, {
-      toValue: 900,
-      duration: 180,
-      useNativeDriver: true,
-    }).start(({ finished }) => {
-      if (finished) {
-        onClose();
-      }
-    });
-  };
+  useEffect(() => {
+    if (!visible && index === 0) {
+      setMounted(false);
+    }
+  }, [index, visible]);
 
-  const panResponder = useMemo(
-    () =>
-      PanResponder.create({
-        onMoveShouldSetPanResponder: (_, gestureState) =>
-          gestureState.dy > 8 && Math.abs(gestureState.dy) > Math.abs(gestureState.dx),
-        onPanResponderMove: (_, gestureState) => {
-          translateY.setValue(Math.max(0, gestureState.dy));
-        },
-        onPanResponderRelease: (_, gestureState) => {
-          if (gestureState.dy > 120 || gestureState.vy > 0.9) {
-            closeSheet();
-            return;
-          }
-
-          Animated.spring(translateY, {
-            toValue: 0,
-            useNativeDriver: true,
-            bounciness: 0,
-          }).start();
-        },
-        onPanResponderTerminate: () => {
-          Animated.spring(translateY, {
-            toValue: 0,
-            useNativeDriver: true,
-            bounciness: 0,
-          }).start();
-        },
-      }),
-    [translateY],
-  );
-
-  if (!visible) {
+  if (!mounted) {
     return null;
   }
 
@@ -106,21 +74,53 @@ export function BattleFullScreenSheet({
   );
 
   return (
-    <View className="absolute inset-0 z-[90] bg-black/65">
-      <Pressable className="absolute inset-0" onPress={closeSheet} />
-      <Animated.View
-        className="absolute inset-x-0 bottom-0 top-0 overflow-hidden bg-bg"
-        style={{ paddingTop: Math.max(insets.top, 12), transform: [{ translateY }] }}
+    <ModalBottomSheet
+      index={index}
+      onIndexChange={setIndex}
+      onSettle={(nextIndex) => {
+        if (nextIndex === 0 && visible) {
+          onClose();
+        }
+      }}
+      detents={[0, "content"]}
+      scrimColor="rgba(0,0,0,0.65)"
+      surface={
+        <View
+          className="bg-bg"
+          style={[
+            StyleSheet.absoluteFill,
+            {
+              borderTopLeftRadius: 30,
+              borderTopRightRadius: 30,
+            },
+          ]}
+        />
+      }
+    >
+      <View
+        className="bg-bg"
+        style={{
+          maxHeight: maxSheetHeight,
+          minHeight: Math.min(maxSheetHeight, height * 0.68),
+        }}
       >
-        <View {...panResponder.panHandlers}>
-          <View className="h-1 w-9 self-center rounded-full bg-muted" style={{ marginBottom: 8 }} />
+        <View>
+          <View
+            className="h-1 w-9 self-center rounded-full bg-muted"
+            style={{ marginBottom: 8, marginTop: 12 }}
+          />
 
           <View className="flex-row items-center border-b border-primaryTint px-5 pb-4">
             <View className="flex-1 items-center">
-              <Text className="font-nunito-extrabold text-2xl text-fg">{title}</Text>
+              <Text className="font-nunito-extrabold text-2xl text-fg">
+                {title}
+              </Text>
             </View>
-            <Pressable onPress={closeSheet} className="absolute right-5 top-0 rounded-full bg-surfaceMuted p-2">
-              <XIcon size={18} color="#475569" />
+            <Pressable
+              onPress={onClose}
+              className="absolute right-5 top-0 rounded-full bg-surfaceMuted p-2"
+            >
+              <XIcon size={18} color={tc.fgMuted} />
             </Pressable>
           </View>
         </View>
@@ -129,7 +129,7 @@ export function BattleFullScreenSheet({
 
         {footer ? (
           <View
-            className="border-t border-primaryTint bg-white/95 px-4 pt-4"
+            className="border-t border-primaryTint bg-surface px-4 pt-4"
             style={{ paddingBottom: Math.max(insets.bottom, 12) }}
           >
             {footer}
@@ -137,7 +137,7 @@ export function BattleFullScreenSheet({
         ) : (
           <View style={{ height: Math.max(insets.bottom, 12) }} />
         )}
-      </Animated.View>
-    </View>
+      </View>
+    </ModalBottomSheet>
   );
 }

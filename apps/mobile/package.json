@@ -27,6 +27,7 @@
     "@expo/vector-icons": "^15.0.3",
     "@kingstinct/react-native-healthkit": "^14.0.1",
     "@react-native-google-signin/google-signin": "^16.1.2",
+    "@swmansion/react-native-bottom-sheet": "^0.12.0",
     "@tanstack/react-query": "^5.66.8",
     "expo": "~54.0.34",
     "expo-auth-session": "~7.0.11",

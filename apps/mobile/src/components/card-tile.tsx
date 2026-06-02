@@ -26,13 +26,22 @@ interface CardTileProps {
 
 const sizeConfig = {
   small: {
-    width: 152, height: 240,
-    paddingH: 6, paddingT: 4, paddingB: 2,
-    headerFontSize: 8, hpIconSize: 30,
-    nameFontSize: 9, charFontSize: 8,
-    descFontSize: 7, descPadding: 4, descLineHeight: 10,
-    speedHeight: 16, speedIconSize: 30,
-    typeFontSize: 6, rarityFontSize: 5,
+    width: 152,
+    height: 240,
+    paddingH: 6,
+    paddingT: 4,
+    paddingB: 2,
+    headerFontSize: 8,
+    hpIconSize: 30,
+    nameFontSize: 9,
+    charFontSize: 8,
+    descFontSize: 7,
+    descPadding: 4,
+    descLineHeight: 10,
+    speedHeight: 16,
+    speedIconSize: 30,
+    typeFontSize: 6,
+    rarityFontSize: 5,
     borderRadius: 12,
     imageAspect: 152 / 96,
     headerHeight: 18,
@@ -44,17 +53,27 @@ const sizeConfig = {
     nameGap: 1,
     speedMarginTop: 2,
     speedIconTop: -12,
-    typePaddingH: 6, typePaddingV: 2,
+    typePaddingH: 6,
+    typePaddingV: 2,
     rarityBadgeRadius: 4,
   },
   large: {
-    width: 320, height: 480,
-    paddingH: 16, paddingT: 8, paddingB: 4,
-    headerFontSize: 16, hpIconSize: 60,
-    nameFontSize: 18, charFontSize: 16,
-    descFontSize: 12, descPadding: 16, descLineHeight: 20,
-    speedHeight: 40, speedIconSize: 60,
-    typeFontSize: 10, rarityFontSize: 9,
+    width: 320,
+    height: 480,
+    paddingH: 16,
+    paddingT: 8,
+    paddingB: 4,
+    headerFontSize: 16,
+    hpIconSize: 60,
+    nameFontSize: 18,
+    charFontSize: 16,
+    descFontSize: 12,
+    descPadding: 16,
+    descLineHeight: 20,
+    speedHeight: 40,
+    speedIconSize: 60,
+    typeFontSize: 10,
+    rarityFontSize: 9,
     borderRadius: 16,
     imageAspect: 320 / 192,
     headerHeight: 36,
@@ -66,7 +85,8 @@ const sizeConfig = {
     nameGap: 2,
     speedMarginTop: 4,
     speedIconTop: -24,
-    typePaddingH: 12, typePaddingV: 4,
+    typePaddingH: 12,
+    typePaddingV: 4,
     rarityBadgeRadius: 8,
   },
 };
@@ -79,9 +99,16 @@ const COMPACT_LABELS: Record<string, string> = {
   Legendary: "LGD",
 };
 
-function RarityCrest({ rarityName, cfg }: { rarityName: string; cfg: typeof sizeConfig.small }) {
+function RarityCrest({
+  rarityName,
+  cfg,
+}: {
+  rarityName: string;
+  cfg: typeof sizeConfig.small;
+}) {
   const rarity = RARITY_COLORS[rarityName] ?? RARITY_COLORS.Common;
-  const label = COMPACT_LABELS[rarityName] ?? rarityName.slice(0, 3).toUpperCase();
+  const label =
+    COMPACT_LABELS[rarityName] ?? rarityName.slice(0, 3).toUpperCase();
   return (
     <LinearGradient
       colors={[rarity.from, rarity.to]}
@@ -90,8 +117,15 @@ function RarityCrest({ rarityName, cfg }: { rarityName: string; cfg: typeof size
       style={{ gap: 2, paddingHorizontal: 4, paddingVertical: 1 }}
       className="flex-row items-center"
     >
-      <RarityIcon rarityName={rarityName} size={cfg.rarityFontSize + 3} color="#fff" />
-      <Text className="text-white font-nunito-extrabold" style={{ fontSize: cfg.rarityFontSize }}>
+      <RarityIcon
+        rarityName={rarityName}
+        size={cfg.rarityFontSize + 3}
+        color="#fff"
+      />
+      <Text
+        className="text-white font-nunito-extrabold"
+        style={{ fontSize: cfg.rarityFontSize }}
+      >
         {label}
       </Text>
     </LinearGradient>
@@ -111,8 +145,16 @@ export const CardTile = memo(function CardTile({
   const { card, quantity } = entry;
   const cfg = sizeConfig[size];
   const tc = THEME_COLORS[useThemeStore((s) => s.themeName)];
-  const typeColor = CARD_TYPE_COLORS[card.type] ?? { frame: "#9CA3AF", light: "#F3F4F6", dark: "#374151" };
-  const rarityColor = RARITY_COLORS[card.rarity.name] ?? { from: "#9CA3AF", to: "#6B7280", ring: "#9CA3AF" };
+  const typeColor = CARD_TYPE_COLORS[card.type] ?? {
+    frame: "#9CA3AF",
+    light: "#F3F4F6",
+    dark: "#374151",
+  };
+  const rarityColor = RARITY_COLORS[card.rarity.name] ?? {
+    from: "#9CA3AF",
+    to: "#6B7280",
+    ring: "#9CA3AF",
+  };
 
   const isLegendary = card.rarity.name === "Legendary";
   const isEpic = card.rarity.name === "Epic";
@@ -123,8 +165,18 @@ export const CardTile = memo(function CardTile({
     if (size !== "small" || quantity <= 1) return;
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(bounceAnim, { toValue: -5, duration: 400, useNativeDriver: true, easing: Easing.out(Easing.quad) }),
-        Animated.timing(bounceAnim, { toValue: 0, duration: 400, useNativeDriver: true, easing: Easing.in(Easing.quad) }),
+        Animated.timing(bounceAnim, {
+          toValue: -5,
+          duration: 400,
+          useNativeDriver: true,
+          easing: Easing.out(Easing.quad),
+        }),
+        Animated.timing(bounceAnim, {
+          toValue: 0,
+          duration: 400,
+          useNativeDriver: true,
+          easing: Easing.in(Easing.quad),
+        }),
       ]),
     );
     loop.start();
@@ -147,8 +199,12 @@ export const CardTile = memo(function CardTile({
     return () => loop.stop();
   }, [hasShimmer, isLegendary]);
 
-  const shimmerColorPeak = isLegendary ? "rgba(239, 217, 72, 0.18)" : "rgba(174, 82, 255, 0.16)";
-  const shimmerColorEdge = isLegendary ? "rgba(239, 217, 72, 0)"    : "rgba(174, 82, 255, 0)";
+  const shimmerColorPeak = isLegendary
+    ? "rgba(239, 217, 72, 0.18)"
+    : "rgba(174, 82, 255, 0.16)";
+  const shimmerColorEdge = isLegendary
+    ? "rgba(239, 217, 72, 0)"
+    : "rgba(174, 82, 255, 0)";
   const shimmerTranslate = shimmerAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [-cfg.width * 3, cfg.width],
@@ -211,22 +267,39 @@ export const CardTile = memo(function CardTile({
         {/* Inner content */}
         <View
           className="flex-1"
-          style={{ paddingHorizontal: cfg.paddingH, paddingTop: cfg.paddingT, paddingBottom: cfg.paddingB }}
+          style={{
+            paddingHorizontal: cfg.paddingH,
+            paddingTop: cfg.paddingT,
+            paddingBottom: cfg.paddingB,
+          }}
         >
-
           {/* === HEADER: ATK / HP / DEF === */}
           <View
             className="flex-row items-center relative"
             style={{ marginBottom: 2, height: cfg.headerHeight }}
           >
-            <Text className="flex-1 text-center text-white font-nunito-extrabold" style={{ fontSize: cfg.headerFontSize }}>
+            <Text
+              className="flex-1 text-center text-white font-nunito-extrabold"
+              style={{ fontSize: cfg.headerFontSize }}
+            >
               {card.attack} ATK
             </Text>
             {/* HP floats center, slightly overlapping down */}
-            <View style={{ position: "absolute", left: "50%", transform: [{ translateX: cfg.headerHpOffset }], top: cfg.headerHpTop, zIndex: 5 }}>
+            <View
+              style={{
+                position: "absolute",
+                left: "50%",
+                transform: [{ translateX: cfg.headerHpOffset }],
+                top: cfg.headerHpTop,
+                zIndex: 5,
+              }}
+            >
               <HPIcon size={cfg.hpIconSize} hpVal={card.hp} />
             </View>
-            <Text className="flex-1 text-center text-white font-nunito-bold" style={{ fontSize: cfg.headerFontSize }}>
+            <Text
+              className="flex-1 text-center text-white font-nunito-bold"
+              style={{ fontSize: cfg.headerFontSize }}
+            >
               {card.defense} DEF
             </Text>
           </View>
@@ -234,7 +307,10 @@ export const CardTile = memo(function CardTile({
           {/* === IMAGE SECTION === */}
           <View
             className="overflow-hidden relative"
-            style={{ aspectRatio: cfg.imageAspect, borderRadius: cfg.rarityBadgeRadius }}
+            style={{
+              aspectRatio: cfg.imageAspect,
+              borderRadius: cfg.rarityBadgeRadius,
+            }}
           >
             {card.imageAssetId ? (
               <Image
@@ -248,8 +324,17 @@ export const CardTile = memo(function CardTile({
                 cachePolicy="memory-disk"
               />
             ) : (
-              <View className="flex-1 items-center justify-center" style={{ backgroundColor: typeColor.light }}>
-                <Text className="font-nunito-extrabold" style={{ color: typeColor.dark, fontSize: cfg.nameFontSize * 2 }}>
+              <View
+                className="flex-1 items-center justify-center"
+                style={{ backgroundColor: typeColor.light }}
+              >
+                <Text
+                  className="font-nunito-extrabold"
+                  style={{
+                    color: typeColor.dark,
+                    fontSize: cfg.nameFontSize * 2,
+                  }}
+                >
                   {(card.character || card.name || "?").charAt(0)}
                 </Text>
               </View>
@@ -265,7 +350,10 @@ export const CardTile = memo(function CardTile({
                 borderTopLeftRadius: cfg.rarityBadgeRadius / 2,
               }}
             >
-              <Text className="text-white font-nunito-bold" style={{ fontSize: cfg.typeFontSize }}>
+              <Text
+                className="text-white font-nunito-bold"
+                style={{ fontSize: cfg.typeFontSize }}
+              >
                 {card.type}
               </Text>
             </View>
@@ -277,11 +365,13 @@ export const CardTile = memo(function CardTile({
             >
               <RarityCrest rarityName={card.rarity.name} cfg={cfg} />
             </View>
-
           </View>
 
           {/* === NAME & CHARACTER === */}
-          <View className="items-center" style={{ marginTop: cfg.nameMarginTop, gap: cfg.nameGap }}>
+          <View
+            className="items-center"
+            style={{ marginTop: cfg.nameMarginTop, gap: cfg.nameGap }}
+          >
             <Text
               className="text-white font-nunito-bold"
               style={{ fontSize: cfg.nameFontSize }}
@@ -311,7 +401,11 @@ export const CardTile = memo(function CardTile({
           >
             <Text
               className="font-nunito"
-              style={{ color: tc.primaryText, fontSize: cfg.descFontSize, lineHeight: cfg.descLineHeight }}
+              style={{
+                color: tc.primaryText,
+                fontSize: cfg.descFontSize,
+                lineHeight: cfg.descLineHeight,
+              }}
               numberOfLines={size === "large" ? 6 : 4}
             >
               {card.description}
@@ -331,9 +425,15 @@ export const CardTile = memo(function CardTile({
       </View>
 
       {/* Quantity badge below card — only for small size */}
-      {size === "small" && (
-        quantity > 1 ? (
-          <Animated.View className="items-center mt-1" style={{ transform: [{ translateY: bounceAnim }] }}>
+      {size === "small" &&
+        (quantity > 1 ? (
+          <Animated.View
+            style={{
+              alignItems: "center",
+              marginTop: 4,
+              transform: [{ translateY: bounceAnim }],
+            }}
+          >
             <View
               className="rounded-full items-center"
               style={{
@@ -343,16 +443,20 @@ export const CardTile = memo(function CardTile({
                 width: 50,
               }}
             >
-              <Text className="text-white font-nunito-bold" style={{ fontSize: 11 }}>x{quantity}</Text>
+              <Text
+                className="text-white font-nunito-bold"
+                style={{ fontSize: 11 }}
+              >
+                x{quantity}
+              </Text>
             </View>
           </Animated.View>
         ) : (
           <View className="h-5" />
-        )
-      )}
+        ))}
 
       {/* Action buttons below card */}
-      {(onRecycle || onCraft) ? (
+      {onRecycle || onCraft ? (
         <View className="flex-row gap-1 mt-1">
           {onRecycle ? (
             <Pressable
@@ -360,7 +464,10 @@ export const CardTile = memo(function CardTile({
               className="flex-1 items-center border rounded-lg border-primaryBorder"
               style={{ paddingVertical: 4 }}
             >
-              <Text className="font-nunito-semibold text-primaryText" style={{ fontSize: 10 }}>
+              <Text
+                className="font-nunito-semibold text-primaryText"
+                style={{ fontSize: 10 }}
+              >
                 Recycle
               </Text>
             </Pressable>
@@ -371,7 +478,10 @@ export const CardTile = memo(function CardTile({
               className="flex-1 items-center border rounded-lg border-primaryBorder"
               style={{ paddingVertical: 4 }}
             >
-              <Text className="font-nunito-semibold text-primaryText" style={{ fontSize: 10 }}>
+              <Text
+                className="font-nunito-semibold text-primaryText"
+                style={{ fontSize: 10 }}
+              >
                 Craft
               </Text>
             </Pressable>

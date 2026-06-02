@@ -22,6 +22,7 @@ import {
   KEYBOARD_AWARE_SCROLL_PROPS,
   KeyboardScreenView,
 } from "../src/components/keyboard-screen-view";
+import { ModalSheetRoute } from "../src/components/modal-sheet-route";
 import {
   LoadingPanel,
   PageLoadingState,
@@ -363,28 +364,32 @@ export default function CollectionCardDetailScreen() {
   );
 
   return (
-    <KeyboardScreenView>
-      <View className="flex-1 bg-bg">
-        {toast ? (
-          <ToastBanner
-            message={toast.message}
-            type={toast.type}
-            translateY={toastAnim}
-            successColor={tc.successDark}
-            errorColor={tc.dangerDark}
-          />
-        ) : null}
+    <ModalSheetRoute
+      onClose={() => {
+        if (!isBusy) {
+          router.back();
+        }
+      }}
+      sheetBackgroundColor={tc.bg}
+      handleColor={tc.muted}
+    >
+      <KeyboardScreenView>
+        <View className="flex-1 bg-bg">
+          {toast ? (
+            <ToastBanner
+              message={toast.message}
+              type={toast.type}
+              translateY={toastAnim}
+              successColor={tc.successDark}
+              errorColor={tc.dangerDark}
+            />
+          ) : null}
 
-        <View
-          className="h-1 w-9 self-center rounded-full bg-muted"
-          style={{ marginTop: 8, marginBottom: 4 }}
-        />
-
-        <View className="items-center border-b border-primaryTint px-6 py-4">
-          <Text className="font-nunito-extrabold text-2xl text-fg">
-            {t("pvp.cardDetailsTitle")}
-          </Text>
-        </View>
+          <View className="items-center border-b border-primaryTint px-6 py-4">
+            <Text className="font-nunito-extrabold text-2xl text-fg">
+              {t("pvp.cardDetailsTitle")}
+            </Text>
+          </View>
 
         {collectionQuery.isLoading ? (
           <PageLoadingState
@@ -1083,7 +1088,8 @@ export default function CollectionCardDetailScreen() {
             </Pressable>
           </ScrollView>
         )}
-      </View>
-    </KeyboardScreenView>
+        </View>
+      </KeyboardScreenView>
+    </ModalSheetRoute>
   );
 }

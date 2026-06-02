@@ -1,7 +1,14 @@
 import { useMemo, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 
-import { cardTypeValues, type AdminAbilitiesResponse, type AdminCardDetail, type AdminCardsResponse, type CardType, type RaritiesResponse } from "@adventure-time/api-client";
+import {
+  cardTypeValues,
+  type AdminAbilitiesResponse,
+  type AdminCardDetail,
+  type AdminCardsResponse,
+  type CardType,
+  type RaritiesResponse,
+} from "@adventure-time/api-client";
 
 import { AdminCardTile } from "./admin-card-tile";
 import {
@@ -13,6 +20,9 @@ import {
   AdminPanel,
 } from "./admin-ui";
 import { useTranslation } from "../../i18n";
+import { useThemeStore } from "../../stores/theme-store";
+import { THEME_COLORS } from "../../theme/themes";
+import { pickReadableTextColor, withAlpha } from "./admin-palette";
 
 type EditableCard = AdminCardsResponse["cards"][number] | AdminCardDetail;
 type Ability = AdminAbilitiesResponse["abilities"][number];
@@ -120,7 +130,8 @@ function getPreviewCard(
   },
 ) {
   const fallbackRarity = rarities[0];
-  const selectedRarity = rarities.find((rarity) => rarity.id === draft.rarityId) ?? fallbackRarity;
+  const selectedRarity =
+    rarities.find((rarity) => rarity.id === draft.rarityId) ?? fallbackRarity;
 
   return {
     id: card?.id ?? "preview",
@@ -149,13 +160,24 @@ function SelectionChip({
   active: boolean;
   onPress: () => void;
 }) {
+  const themeName = useThemeStore((state) => state.themeName);
+  const tc = THEME_COLORS[themeName];
   return (
     <Pressable
       onPress={onPress}
-      className={`rounded-xl border px-3 py-2 ${active ? "border-primary bg-primaryText" : "border-primaryBorder/30 bg-white"}`}
+      className="rounded-xl border px-3 py-2"
+      style={{
+        borderColor: active ? tc.primary : withAlpha(tc.primaryBorder, "4D"),
+        backgroundColor: active ? tc.primaryText : tc.surface,
+      }}
     >
       <Text
-        className={`font-nunito-extrabold text-xs ${active ? "text-white" : "text-primaryStrong"}`}
+        className="font-nunito-extrabold text-xs"
+        style={{
+          color: active
+            ? pickReadableTextColor(tc.primaryText, tc.fg, tc.surface)
+            : tc.primaryStrong,
+        }}
       >
         {label}
       </Text>
@@ -181,11 +203,14 @@ export function CardEditorSheet({
   onAssignmentChange,
   onAssignmentClear,
 }: CardEditorSheetProps) {
+  const themeName = useThemeStore((state) => state.themeName);
+  const tc = THEME_COLORS[themeName];
   const [showAbilitiesSection, setShowAbilitiesSection] = useState(false);
   const [pickerRole, setPickerRole] = useState<PickerRole | null>(null);
   const { t } = useTranslation();
-  const statLabel = (key: keyof Pick<CardDraft, "hp" | "attack" | "defense" | "speed">) =>
-    t(`admin.cardEditor.${key}`);
+  const statLabel = (
+    key: keyof Pick<CardDraft, "hp" | "attack" | "defense" | "speed">,
+  ) => t(`admin.cardEditor.${key}`);
 
   const previewCard = useMemo(
     () =>
@@ -197,25 +222,33 @@ export function CardEditorSheet({
     [card, draft, rarities, t],
   );
   const defaultSkill = useMemo(
-    () => abilities.find((ability) => ability.key === "default.focusedStrike") ?? null,
+    () =>
+      abilities.find((ability) => ability.key === "default.focusedStrike") ??
+      null,
     [abilities],
   );
   const defaultUltimate = useMemo(
-    () => abilities.find((ability) => ability.key === "default.battleCry") ?? null,
+    () =>
+      abilities.find((ability) => ability.key === "default.battleCry") ?? null,
     [abilities],
   );
 
   const currentPassive = assignmentDraft.passiveId
-    ? abilities.find((ability) => ability.id === assignmentDraft.passiveId) ?? null
+    ? (abilities.find((ability) => ability.id === assignmentDraft.passiveId) ??
+      null)
     : null;
   const currentSkill = assignmentDraft.skillId
-    ? abilities.find((ability) => ability.id === assignmentDraft.skillId) ?? null
+    ? (abilities.find((ability) => ability.id === assignmentDraft.skillId) ??
+      null)
     : defaultSkill;
   const currentUltimate = assignmentDraft.ultimateId
-    ? abilities.find((ability) => ability.id === assignmentDraft.ultimateId) ?? null
+    ? (abilities.find((ability) => ability.id === assignmentDraft.ultimateId) ??
+      null)
     : defaultUltimate;
   const hasCustomAssignments = Boolean(
-    assignmentDraft.passiveId || assignmentDraft.skillId || assignmentDraft.ultimateId,
+    assignmentDraft.passiveId ||
+    assignmentDraft.skillId ||
+    assignmentDraft.ultimateId,
   );
 
   const pickerOptions = useMemo(() => {
@@ -223,7 +256,9 @@ export function CardEditorSheet({
       return [] as Ability[];
     }
 
-    return abilities.filter((ability) => ability.type === pickerRole.toUpperCase());
+    return abilities.filter(
+      (ability) => ability.type === pickerRole.toUpperCase(),
+    );
   }, [abilities, pickerRole]);
 
   return (
@@ -231,13 +266,17 @@ export function CardEditorSheet({
       <View className="gap-4">
         <AdminPanel>
           <View className="items-center gap-3">
-            <Text className="font-nunito-extrabold text-lg text-primaryStrong">{t("admin.cardEditor.livePreview")}</Text>
+            <Text className="font-nunito-extrabold text-lg text-primaryStrong">
+              {t("admin.cardEditor.livePreview")}
+            </Text>
             <AdminCardTile card={previewCard} size="large" />
           </View>
         </AdminPanel>
 
         <AdminPanel>
-          <Text className="font-nunito-extrabold text-[20px] text-primaryStrong">{t("admin.cardEditor.basics")}</Text>
+          <Text className="font-nunito-extrabold text-[20px] text-primaryStrong">
+            {t("admin.cardEditor.basics")}
+          </Text>
           <View className="mt-4 gap-4">
             <View className="flex-row gap-3">
               <View className="flex-1">
@@ -270,7 +309,9 @@ export function CardEditorSheet({
               {STAT_FIELDS.map((field) => (
                 <View key={field.key} className="w-[48%]">
                   <AdminField
-                    label={statLabel(field.key as "hp" | "attack" | "defense" | "speed")}
+                    label={statLabel(
+                      field.key as "hp" | "attack" | "defense" | "speed",
+                    )}
                     value={draft[field.key]}
                     onChangeText={(value) => onDraftChange(field.key, value)}
                     keyboardType={field.keyboardType}
@@ -282,38 +323,81 @@ export function CardEditorSheet({
         </AdminPanel>
 
         <AdminPanel>
-          <Text className="font-nunito-extrabold text-[20px] text-primaryStrong">{t("admin.cardEditor.image")}</Text>
+          <Text className="font-nunito-extrabold text-[20px] text-primaryStrong">
+            {t("admin.cardEditor.image")}
+          </Text>
           <View className="mt-4 gap-3">
             <AdminButton
-              label={uploadPending ? t("admin.common.uploading") : card ? t("admin.cardEditor.uploadImage") : t("admin.cardEditor.saveBeforeUpload")}
+              label={
+                uploadPending
+                  ? t("admin.common.uploading")
+                  : card
+                    ? t("admin.cardEditor.uploadImage")
+                    : t("admin.cardEditor.saveBeforeUpload")
+              }
               variant="secondary"
               onPress={onUploadImage}
               disabled={uploadPending || !card}
             />
             <Text className="font-nunito-semibold text-xs text-fgMuted">
               {card
-                  ? t("admin.cardEditor.uploadImage")
-                  : t("admin.cardEditor.saveBeforeUpload")}
+                ? t("admin.cardEditor.uploadImage")
+                : t("admin.cardEditor.saveBeforeUpload")}
             </Text>
           </View>
         </AdminPanel>
 
         <AdminPanel>
-          <Text className="font-nunito-extrabold text-[20px] text-primaryStrong">{t("admin.cardEditor.rarity")}</Text>
+          <Text className="font-nunito-extrabold text-[20px] text-primaryStrong">
+            {t("admin.cardEditor.rarity")}
+          </Text>
           <View className="mt-4 flex-row flex-wrap gap-3">
             {rarities.map((rarity) => (
               <Pressable
                 key={rarity.id}
                 onPress={() => onDraftChange("rarityId", rarity.id)}
-                className={`min-w-[102px] rounded-xl border px-3 py-2 ${draft.rarityId === rarity.id ? "border-primary bg-primaryText" : "border-primaryBorder/30 bg-white"}`}
+                className="min-w-[102px] rounded-xl border px-3 py-2"
+                style={{
+                  borderColor:
+                    draft.rarityId === rarity.id
+                      ? tc.primary
+                      : withAlpha(tc.primaryBorder, "4D"),
+                  backgroundColor:
+                    draft.rarityId === rarity.id ? tc.primaryText : tc.surface,
+                }}
               >
                 <Text
-                  className={`font-nunito-extrabold text-xs ${draft.rarityId === rarity.id ? "text-white" : "text-primaryStrong"}`}
-                  style={draft.rarityId === rarity.id ? undefined : { color: rarity.color }}
+                  className="font-nunito-extrabold text-xs"
+                  style={
+                    draft.rarityId === rarity.id
+                      ? {
+                          color: pickReadableTextColor(
+                            tc.primaryText,
+                            tc.fg,
+                            tc.surface,
+                          ),
+                        }
+                      : { color: rarity.color }
+                  }
                 >
                   {rarity.name}
                 </Text>
-                <Text className={`mt-1 font-nunito-bold text-[11px] ${draft.rarityId === rarity.id ? "text-white/80" : "text-fgMuted"}`}>
+                <Text
+                  className="mt-1 font-nunito-bold text-[11px]"
+                  style={{
+                    color:
+                      draft.rarityId === rarity.id
+                        ? withAlpha(
+                            pickReadableTextColor(
+                              tc.primaryText,
+                              tc.fg,
+                              tc.surface,
+                            ),
+                            "CC",
+                          )
+                        : tc.fgMuted,
+                  }}
+                >
                   {rarity.dropRate}%
                 </Text>
               </Pressable>
@@ -322,7 +406,9 @@ export function CardEditorSheet({
         </AdminPanel>
 
         <AdminPanel>
-          <Text className="font-nunito-extrabold text-[20px] text-primaryStrong">{t("admin.cardEditor.type")}</Text>
+          <Text className="font-nunito-extrabold text-[20px] text-primaryStrong">
+            {t("admin.cardEditor.type")}
+          </Text>
           <View className="mt-4 flex-row flex-wrap gap-3">
             {CARD_TYPES.map((type) => (
               <SelectionChip
@@ -342,22 +428,45 @@ export function CardEditorSheet({
           >
             <View className="flex-row items-center justify-between gap-3">
               <View className="flex-1 flex-row items-center gap-2">
-                <Text className="font-nunito-extrabold text-base text-accentText">{t("admin.cardEditor.abilitiesTitle")}</Text>
-                {hasCustomAssignments ? <AdminChip label={t("admin.abilities.title")} tone="accent" /> : null}
+                <Text className="font-nunito-extrabold text-base text-accentText">
+                  {t("admin.cardEditor.abilitiesTitle")}
+                </Text>
+                {hasCustomAssignments ? (
+                  <AdminChip label={t("admin.abilities.title")} tone="accent" />
+                ) : null}
               </View>
               <Text className="font-nunito-bold text-xs text-accentText">
-                {showAbilitiesSection ? t("admin.cardEditor.hideAbilities") : t("admin.common.manage")}
+                {showAbilitiesSection
+                  ? t("admin.cardEditor.hideAbilities")
+                  : t("admin.common.manage")}
               </Text>
             </View>
           </Pressable>
 
           {!showAbilitiesSection ? (
             <View className="mt-3 flex-row flex-wrap gap-2">
-              {currentPassive ? <AdminChip label={`${t("admin.cardEditor.passive")}: ${currentPassive.name}`} tone="success" /> : null}
-              {currentSkill ? <AdminChip label={`${t("admin.cardEditor.skill")}: ${currentSkill.name}`} tone="info" /> : null}
-              {currentUltimate ? <AdminChip label={`${t("admin.cardEditor.ultimate")}: ${currentUltimate.name}`} tone="warning" /> : null}
+              {currentPassive ? (
+                <AdminChip
+                  label={`${t("admin.cardEditor.passive")}: ${currentPassive.name}`}
+                  tone="success"
+                />
+              ) : null}
+              {currentSkill ? (
+                <AdminChip
+                  label={`${t("admin.cardEditor.skill")}: ${currentSkill.name}`}
+                  tone="info"
+                />
+              ) : null}
+              {currentUltimate ? (
+                <AdminChip
+                  label={`${t("admin.cardEditor.ultimate")}: ${currentUltimate.name}`}
+                  tone="warning"
+                />
+              ) : null}
               {!currentPassive && !currentSkill && !currentUltimate ? (
-                <Text className="font-nunito-semibold text-xs italic text-fgMuted">{t("admin.common.useDefault")}</Text>
+                <Text className="font-nunito-semibold text-xs italic text-fgMuted">
+                  {t("admin.common.useDefault")}
+                </Text>
               ) : null}
             </View>
           ) : (
@@ -365,15 +474,21 @@ export function CardEditorSheet({
               <Text className="font-nunito-semibold text-xs text-fgMuted">
                 {t("admin.common.useDefault")}
               </Text>
-              {([
-                ["passive", t("admin.cardEditor.passive"), currentPassive],
-                ["skill", t("admin.cardEditor.skill"), currentSkill],
-                ["ultimate", t("admin.cardEditor.ultimate"), currentUltimate],
-              ] as const).map(([role, label, selected]) => (
+              {(
+                [
+                  ["passive", t("admin.cardEditor.passive"), currentPassive],
+                  ["skill", t("admin.cardEditor.skill"), currentSkill],
+                  ["ultimate", t("admin.cardEditor.ultimate"), currentUltimate],
+                ] as const
+              ).map(([role, label, selected]) => (
                 <Pressable
                   key={role}
                   onPress={() => setPickerRole(role)}
-                  className="rounded-2xl border border-primaryBorder/20 bg-white px-4 py-4"
+                  className="rounded-2xl border px-4 py-4"
+                  style={{
+                    borderColor: withAlpha(tc.primaryBorder, "33"),
+                    backgroundColor: tc.surface,
+                  }}
                 >
                   <View className="flex-row items-center justify-between gap-3">
                     <View className="flex-1 gap-2">
@@ -381,23 +496,38 @@ export function CardEditorSheet({
                         {label}
                       </Text>
                       <Text className="font-nunito-extrabold text-sm text-fg">
-                        {selected?.name ?? `${t("admin.common.manage")} ${label.toLowerCase()}`}
+                        {selected?.name ??
+                          `${t("admin.common.manage")} ${label.toLowerCase()}`}
                       </Text>
                       {selected ? (
                         <View className="flex-row flex-wrap gap-2">
                           <AbilityTypeChip type={selected.type} />
-                          <AdminChip label={`${t("admin.abilityEditor.cost")} ${selected.cost}`} tone="info" />
-                          {selected.cooldown ? <AdminChip label={`${t("admin.abilityEditor.cooldown")} ${selected.cooldown}`} tone="warning" /> : null}
+                          <AdminChip
+                            label={`${t("admin.abilityEditor.cost")} ${selected.cost}`}
+                            tone="info"
+                          />
+                          {selected.cooldown ? (
+                            <AdminChip
+                              label={`${t("admin.abilityEditor.cooldown")} ${selected.cooldown}`}
+                              tone="warning"
+                            />
+                          ) : null}
                         </View>
                       ) : null}
                     </View>
-                    <Text className="font-nunito-extrabold text-xs text-primaryStrong">{t("admin.common.edit")}</Text>
+                    <Text className="font-nunito-extrabold text-xs text-primaryStrong">
+                      {t("admin.common.edit")}
+                    </Text>
                   </View>
                 </Pressable>
               ))}
 
               {hasCustomAssignments ? (
-                <AdminButton label={t("admin.cardEditor.clearAssignments")} variant="ghost" onPress={onAssignmentClear} />
+                <AdminButton
+                  label={t("admin.cardEditor.clearAssignments")}
+                  variant="ghost"
+                  onPress={onAssignmentClear}
+                />
               ) : null}
             </View>
           )}
@@ -407,11 +537,21 @@ export function CardEditorSheet({
           <View className="gap-3">
             <View className="flex-row gap-3">
               <View className="flex-1">
-                <AdminButton label={t("common.cancel")} variant="ghost" onPress={onClose} />
+                <AdminButton
+                  label={t("common.cancel")}
+                  variant="ghost"
+                  onPress={onClose}
+                />
               </View>
               <View className="flex-1">
                 <AdminButton
-                  label={savePending ? t("admin.common.saving") : mode === "create" ? t("admin.cards.createCard") : t("admin.cardEditor.saveCard")}
+                  label={
+                    savePending
+                      ? t("admin.common.saving")
+                      : mode === "create"
+                        ? t("admin.cards.createCard")
+                        : t("admin.cardEditor.saveCard")
+                  }
                   onPress={onSubmit}
                   disabled={savePending || !draft.rarityId}
                 />
@@ -420,7 +560,13 @@ export function CardEditorSheet({
 
             {mode === "edit" && card ? (
               <AdminButton
-                label={archivePending ? t("admin.common.saving") : card.isArchived ? t("admin.cardEditor.restoreCard") : t("admin.cardEditor.archiveCard")}
+                label={
+                  archivePending
+                    ? t("admin.common.saving")
+                    : card.isArchived
+                      ? t("admin.cardEditor.restoreCard")
+                      : t("admin.cardEditor.archiveCard")
+                }
                 variant="danger"
                 onPress={onToggleArchive}
                 disabled={archivePending}
@@ -431,7 +577,11 @@ export function CardEditorSheet({
       </View>
 
       {pickerRole ? (
-        <AdminModal visible title={t("admin.abilities.assignTitle")} onClose={() => setPickerRole(null)}>
+        <AdminModal
+          visible
+          title={t("admin.abilities.assignTitle")}
+          onClose={() => setPickerRole(null)}
+        >
           <AdminButton
             label={t("admin.common.useDefault")}
             variant="ghost"
@@ -450,14 +600,26 @@ export function CardEditorSheet({
               className="gap-2 rounded-[18px] border border-primaryBorder/18 bg-surfaceMuted p-[14px]"
             >
               <View className="flex-row items-center justify-between gap-2">
-                <Text className="flex-1 font-nunito-extrabold text-sm text-fg">{ability.name}</Text>
+                <Text className="flex-1 font-nunito-extrabold text-sm text-fg">
+                  {ability.name}
+                </Text>
                 <AbilityTypeChip type={ability.type} />
               </View>
-              <Text className="font-nunito-semibold text-[13px] text-fgMuted">{ability.description}</Text>
+              <Text className="font-nunito-semibold text-[13px] text-fgMuted">
+                {ability.description}
+              </Text>
               <View className="flex-row flex-wrap gap-2">
                 <AdminChip label={ability.key} tone="accent" />
-                <AdminChip label={`${t("admin.abilityEditor.cost")} ${ability.cost}`} tone="info" />
-                {ability.cooldown ? <AdminChip label={`${t("admin.abilityEditor.cooldown")} ${ability.cooldown}`} tone="warning" /> : null}
+                <AdminChip
+                  label={`${t("admin.abilityEditor.cost")} ${ability.cost}`}
+                  tone="info"
+                />
+                {ability.cooldown ? (
+                  <AdminChip
+                    label={`${t("admin.abilityEditor.cooldown")} ${ability.cooldown}`}
+                    tone="warning"
+                  />
+                ) : null}
               </View>
             </Pressable>
           ))}

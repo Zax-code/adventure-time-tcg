@@ -1,27 +1,35 @@
-import { ReactNode, useEffect, useMemo, useRef } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
+import { ModalBottomSheet } from "@swmansion/react-native-bottom-sheet";
 import {
   Animated,
   Modal,
-  PanResponder,
   Pressable,
   ScrollView,
+  StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
   ViewStyle,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { LoadingPanel } from "../loading-state";
 import {
   KEYBOARD_AWARE_SCROLL_PROPS,
   KeyboardScreenView,
 } from "../keyboard-screen-view";
-import { ADMIN_TYPE_COLORS } from "./admin-theme";
+import {
+  getAbilityTypePalette,
+  pickReadableTextColor,
+  type ThemeColors,
+  withAlpha,
+} from "./admin-palette";
 import { useTranslation } from "../../i18n";
 import { useThemeStore } from "../../stores/theme-store";
-import { THEME_COLORS } from "../../theme/themes";
+import { THEME_COLORS, THEME_VARS } from "../../theme/themes";
 
 const absoluteFill = {
   position: "absolute" as const,
@@ -31,47 +39,285 @@ const absoluteFill = {
   left: 0,
 };
 
+const SEGMENTED_CONTROL_PADDING = 8;
+const SEGMENTED_CONTROL_GAP = 8;
+
 export function AdminBackground({ children }: { children: ReactNode }) {
   const { themeName } = useThemeStore();
-  const tc = THEME_COLORS[themeName];
+
   return (
-    <LinearGradient
-      colors={[tc.primaryTint, tc.secondaryTint]}
-      style={absoluteFill}
-    >
-      <View className="absolute top-20 -left-10 w-[180] h-[180] rounded-full bg-white/35" />
-      <View className="absolute top-[180] -right-[30] w-[140] h-[140] rounded-full bg-secondary/18" />
-      <View className="absolute bottom-[140] left-[60] w-[120] h-[120] rounded-full bg-primary/12" />
-      {children}
-    </LinearGradient>
+    <View style={[{ flex: 1 }, THEME_VARS[themeName] as never]}>
+      <View className="flex-1 bg-bg">{children}</View>
+    </View>
   );
 }
 
 export function AdminPanel({
   children,
   style,
+  tint = "default",
 }: {
   children: ReactNode;
   style?: ViewStyle;
+  tint?: "default" | "primary" | "secondary" | "accent";
 }) {
   const { themeName } = useThemeStore();
   const tc = THEME_COLORS[themeName];
+  const backgrounds: Record<typeof tint, string> = {
+    default: tc.surface,
+    primary: withAlpha(tc.primaryTint, "D9"),
+    secondary: withAlpha(tc.secondaryTint, "D9"),
+    accent: withAlpha(tc.accentTint, "D9"),
+  };
+
   return (
     <View
-      className="bg-surfaceMuted rounded-3xl border border-primaryBorder/30 p-4"
+      className="overflow-hidden rounded-[28] border px-4 py-4"
       style={[
         {
-          shadowColor: tc.primaryStrong,
-          shadowOpacity: 0.18,
-          shadowRadius: 14,
+          backgroundColor: backgrounds[tint],
+          borderColor: withAlpha(tc.primaryBorder, "6B"),
+          shadowColor: tc.fg,
+          shadowOpacity: themeName === "nightosphere" ? 0.24 : 0.08,
+          shadowRadius: 16,
           shadowOffset: { width: 0, height: 8 },
-          elevation: 8,
+          elevation: 5,
         },
         style,
       ]}
     >
       {children}
     </View>
+  );
+}
+
+export function AdminHero({
+  title,
+  subtitle,
+  badge,
+  actions,
+  children,
+}: {
+  title: string;
+  subtitle: string;
+  badge?: string;
+  actions?: ReactNode;
+  children?: ReactNode;
+}) {
+  const { themeName } = useThemeStore();
+  const tc = THEME_COLORS[themeName];
+
+  return (
+    <AdminPanel style={{ paddingHorizontal: 20, paddingVertical: 20 }}>
+      <LinearGradient
+        colors={[withAlpha(tc.primaryTint, "CC"), withAlpha(tc.surface, "00")]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 120,
+        }}
+      />
+      <View className="gap-4">
+        <View className="flex-row items-start justify-between gap-4">
+          <View className="flex-1 gap-2">
+            {badge ? (
+              <View
+                className="self-start rounded-full border px-3 py-[6]"
+                style={{
+                  backgroundColor: withAlpha(tc.primaryTint, "DD"),
+                  borderColor: withAlpha(tc.primaryBorder, "80"),
+                }}
+              >
+                <Text className="font-nunito-extrabold text-[11px] uppercase tracking-[0.8px] text-primaryStrong">
+                  {badge}
+                </Text>
+              </View>
+            ) : null}
+            <Text className="font-nunito-extrabold text-[30px] leading-[34px] text-fg">
+              {title}
+            </Text>
+          </View>
+          <View className="min-h-[44] min-w-[116] max-w-[148] items-stretch justify-start">
+            {actions ? actions : <View className="min-h-[44] opacity-0" />}
+          </View>
+        </View>
+        <Text className="font-nunito-semibold text-[14px] leading-[21px] text-fgMuted">
+          {subtitle}
+        </Text>
+        {children ? <View className="gap-3">{children}</View> : null}
+      </View>
+    </AdminPanel>
+  );
+}
+
+function getStatPalette(
+  tc: ThemeColors,
+  tone: "default" | "info" | "success" | "warning" | "accent",
+) {
+  return {
+    default: {
+      bg: withAlpha(tc.surfaceMuted, "F0"),
+      border: withAlpha(tc.primaryBorder, "66"),
+      value: tc.primaryStrong,
+      label: tc.fgMuted,
+    },
+    info: {
+      bg: withAlpha(tc.infoTint, "EB"),
+      border: withAlpha(tc.infoBorder, "99"),
+      value: tc.infoText,
+      label: tc.infoText,
+    },
+    success: {
+      bg: withAlpha(tc.successTint, "EB"),
+      border: withAlpha(tc.successBorder, "99"),
+      value: tc.successText,
+      label: tc.successText,
+    },
+    warning: {
+      bg: withAlpha(tc.secondaryTint, "EB"),
+      border: withAlpha(tc.secondaryBorder, "99"),
+      value: tc.secondaryText,
+      label: tc.secondaryText,
+    },
+    accent: {
+      bg: withAlpha(tc.accentTint, "EB"),
+      border: withAlpha(tc.accentBorder, "99"),
+      value: tc.accentText,
+      label: tc.accentText,
+    },
+  }[tone];
+}
+
+export function AdminStat({
+  label,
+  value,
+  helper,
+  tone = "default",
+}: {
+  label: string;
+  value: string;
+  helper?: string;
+  tone?: "default" | "info" | "success" | "warning" | "accent";
+}) {
+  const { themeName } = useThemeStore();
+  const tc = THEME_COLORS[themeName];
+  const palette = getStatPalette(tc, tone);
+
+  return (
+    <View
+      className="min-h-[92] flex-1 rounded-[22] border px-4 py-3"
+      style={{ backgroundColor: palette.bg, borderColor: palette.border }}
+    >
+      <Text
+        className="font-nunito-extrabold text-[24px]"
+        style={{ color: palette.value }}
+        numberOfLines={1}
+      >
+        {value}
+      </Text>
+      <Text
+        className="mt-1 font-nunito-bold text-[12px] uppercase tracking-[0.6px]"
+        style={{ color: palette.label }}
+      >
+        {label}
+      </Text>
+      {helper ? (
+        <Text className="mt-2 font-nunito-semibold text-[12px] leading-[18px] text-fgMuted">
+          {helper}
+        </Text>
+      ) : null}
+    </View>
+  );
+}
+
+export function AdminNotice({
+  title,
+  body,
+  tone = "info",
+  icon = "sparkles",
+}: {
+  title: string;
+  body: string;
+  tone?: "info" | "warning" | "danger" | "success";
+  icon?: keyof typeof Ionicons.glyphMap;
+}) {
+  const { themeName } = useThemeStore();
+  const tc = THEME_COLORS[themeName];
+  const palette = {
+    info: { bg: tc.infoTint, border: tc.infoBorder, text: tc.infoText },
+    warning: {
+      bg: tc.secondaryTint,
+      border: tc.secondaryBorder,
+      text: tc.secondaryText,
+    },
+    danger: { bg: tc.dangerTint, border: tc.dangerBorder, text: tc.dangerText },
+    success: {
+      bg: tc.successTint,
+      border: tc.successBorder,
+      text: tc.successText,
+    },
+  }[tone];
+
+  return (
+    <View
+      className="flex-row items-start gap-3 rounded-[22] border px-4 py-4"
+      style={{
+        backgroundColor: withAlpha(palette.bg, "D9"),
+        borderColor: palette.border,
+      }}
+    >
+      <View
+        className="mt-[2] h-9 w-9 items-center justify-center rounded-2xl"
+        style={{ backgroundColor: withAlpha(palette.text, "1C") }}
+      >
+        <Ionicons name={icon} size={18} color={palette.text} />
+      </View>
+      <View className="flex-1 gap-1">
+        <Text
+          className="font-nunito-extrabold text-[14px]"
+          style={{ color: palette.text }}
+        >
+          {title}
+        </Text>
+        <Text className="font-nunito-semibold text-[13px] leading-[19px] text-fgMuted">
+          {body}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+export function AdminTopBar({
+  title,
+  subtitle,
+  right,
+}: {
+  title: string;
+  subtitle?: string;
+  right?: ReactNode;
+}) {
+  return (
+    <AdminPanel
+      style={{ marginTop: 8, paddingHorizontal: 18, paddingVertical: 16 }}
+    >
+      <View className="flex-row items-start justify-between gap-4">
+        <View className="flex-1 gap-1">
+          <Text className="font-nunito-extrabold text-[24px] text-fg">
+            {title}
+          </Text>
+          {subtitle ? (
+            <Text className="font-nunito-semibold text-[13px] leading-[19px] text-fgMuted">
+              {subtitle}
+            </Text>
+          ) : null}
+        </View>
+        {right}
+      </View>
+    </AdminPanel>
   );
 }
 
@@ -87,11 +333,11 @@ export function AdminSectionTitle({
   return (
     <View className="flex-row items-center gap-3">
       <View className="flex-1">
-        <Text className="font-nunito-extrabold text-[22px] text-primaryStrong">
+        <Text className="font-nunito-extrabold text-[22px] text-fg">
           {title}
         </Text>
         {subtitle ? (
-          <Text className="mt-[3] font-nunito-semibold text-xs text-fgMuted">
+          <Text className="mt-[3] font-nunito-semibold text-xs leading-[18px] text-fgMuted">
             {subtitle}
           </Text>
         ) : null}
@@ -108,13 +354,139 @@ export function AdminPageScroll({ children }: { children: ReactNode }) {
       contentContainerStyle={{
         paddingHorizontal: 16,
         paddingTop: 8,
-        paddingBottom: 128,
+        paddingBottom: 132,
         gap: 16,
       }}
       showsVerticalScrollIndicator={false}
     >
       {children}
     </ScrollView>
+  );
+}
+
+export function AdminSegmentedControl<T extends string>({
+  value,
+  options,
+  onChange,
+}: {
+  value: T;
+  options: { label: string; value: T }[];
+  onChange: (value: T) => void;
+}) {
+  const { themeName } = useThemeStore();
+  const tc = THEME_COLORS[themeName];
+  const activeIndex = Math.max(
+    0,
+    options.findIndex((option) => option.value === value),
+  );
+  const [containerWidth, setContainerWidth] = useState(0);
+  const indicatorTranslateX = useRef(new Animated.Value(0)).current;
+  const segmentWidth =
+    containerWidth > 0
+      ? (containerWidth -
+          SEGMENTED_CONTROL_PADDING * 2 -
+          SEGMENTED_CONTROL_GAP * (options.length - 1)) /
+        options.length
+      : 0;
+
+  useEffect(() => {
+    if (!segmentWidth) {
+      return;
+    }
+
+    Animated.spring(indicatorTranslateX, {
+      toValue: activeIndex * (segmentWidth + SEGMENTED_CONTROL_GAP),
+      useNativeDriver: true,
+      damping: 18,
+      stiffness: 210,
+      mass: 0.9,
+    }).start();
+  }, [activeIndex, indicatorTranslateX, segmentWidth]);
+
+  return (
+    <View
+      className="flex-row gap-2 rounded-[22] border p-2"
+      onLayout={(event) => setContainerWidth(event.nativeEvent.layout.width)}
+      style={{
+        backgroundColor: withAlpha(tc.surfaceMuted, "E6"),
+        borderColor: withAlpha(tc.primaryBorder, "5C"),
+      }}
+    >
+      {segmentWidth ? (
+        <Animated.View
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            top: SEGMENTED_CONTROL_PADDING,
+            left: SEGMENTED_CONTROL_PADDING,
+            bottom: SEGMENTED_CONTROL_PADDING,
+            width: segmentWidth,
+            borderRadius: 16,
+            backgroundColor: tc.primaryText,
+            borderWidth: 1,
+            borderColor: tc.primaryDark,
+            transform: [{ translateX: indicatorTranslateX }],
+          }}
+        />
+      ) : null}
+      {options.map((option) => {
+        const active = option.value === value;
+
+        return (
+          <Pressable
+            key={option.value}
+            onPress={() => onChange(option.value)}
+            className="flex-1 items-center rounded-[16] px-3 py-[11]"
+          >
+            <Text
+              className="font-nunito-extrabold text-[13px]"
+              style={{
+                color: active
+                  ? pickReadableTextColor(tc.primaryText, tc.fg, tc.surface)
+                  : tc.primaryStrong,
+              }}
+            >
+              {option.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+export function AdminFilterChip({
+  label,
+  selected,
+  onPress,
+}: {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  const { themeName } = useThemeStore();
+  const tc = THEME_COLORS[themeName];
+
+  return (
+    <Pressable
+      className="rounded-full border px-3 py-[9]"
+      onPress={onPress}
+      style={{
+        backgroundColor: selected
+          ? withAlpha(tc.primaryTint, "F0")
+          : withAlpha(tc.surface, "D9"),
+        borderColor: selected
+          ? tc.primaryBorder
+          : withAlpha(tc.primaryBorder, "47"),
+      }}
+    >
+      <Text
+        className="font-nunito-bold text-xs"
+        style={{ color: selected ? tc.primaryStrong : tc.fgMuted }}
+      >
+        {label}
+      </Text>
+    </Pressable>
   );
 }
 
@@ -129,8 +501,15 @@ export function AdminSearchInput({
 }) {
   const { themeName } = useThemeStore();
   const tc = THEME_COLORS[themeName];
+
   return (
-    <View className="flex-row items-center gap-2 rounded-full border border-primaryBorder/30 bg-surface/85 px-3 h-[46]">
+    <View
+      className="flex-row items-center gap-2 rounded-[20] border px-3 h-[50]"
+      style={{
+        backgroundColor: withAlpha(tc.surface, "E8"),
+        borderColor: withAlpha(tc.primaryBorder, "66"),
+      }}
+    >
       <Ionicons name="search" size={16} color={tc.muted} />
       <TextInput
         value={value}
@@ -148,15 +527,33 @@ export function AdminSearchInput({
   );
 }
 
-function getButtonPalette(
-  tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS],
-) {
+function getButtonPalette(tc: ThemeColors) {
   return {
-    primary: { bg: tc.primaryText, text: "#FFFFFF" },
-    secondary: { bg: tc.secondaryTint, text: tc.secondaryText },
-    danger: { bg: tc.dangerDark, text: "#FFFFFF" },
-    ghost: { bg: tc.surfaceMuted, text: tc.primaryStrong },
-    warning: { bg: tc.secondaryDark, text: tc.secondaryText },
+    primary: {
+      bg: tc.primary,
+      text: pickReadableTextColor(tc.primary, tc.fg, tc.surface),
+      border: tc.primaryDark,
+    },
+    secondary: {
+      bg: tc.secondaryTint,
+      text: tc.secondaryText,
+      border: tc.secondaryBorder,
+    },
+    danger: {
+      bg: tc.dangerDark,
+      text: pickReadableTextColor(tc.dangerDark, tc.fg, tc.surface),
+      border: tc.dangerDark,
+    },
+    ghost: {
+      bg: withAlpha(tc.surfaceMuted, "F5"),
+      text: tc.primaryStrong,
+      border: withAlpha(tc.primaryBorder, "73"),
+    },
+    warning: {
+      bg: tc.accentTint,
+      text: tc.accentText,
+      border: tc.accentBorder,
+    },
   };
 }
 
@@ -176,14 +573,16 @@ export function AdminButton({
   const { themeName } = useThemeStore();
   const tc = THEME_COLORS[themeName];
   const palette = getButtonPalette(tc)[variant];
+
   return (
     <Pressable
       onPress={onPress}
       disabled={disabled}
-      className="min-h-[42] rounded-[14] px-[14] flex-row items-center justify-center gap-2"
+      className="min-h-[44] rounded-[16] border px-[14] flex-row items-center justify-center gap-2"
       style={({ pressed }) => [
         {
           backgroundColor: palette.bg,
+          borderColor: palette.border,
           opacity: disabled ? 0.55 : pressed ? 0.88 : 1,
         },
       ]}
@@ -199,7 +598,7 @@ export function AdminButton({
   );
 }
 
-function getChipPalette(tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS]) {
+function getChipPalette(tc: ThemeColors) {
   return {
     default: { bg: tc.surfaceMuted, border: tc.primaryBorder, text: tc.fg },
     success: {
@@ -228,6 +627,7 @@ export function AdminChip({
   const { themeName } = useThemeStore();
   const tc = THEME_COLORS[themeName];
   const palette = getChipPalette(tc)[tone];
+
   return (
     <View
       className="px-[10] py-[5] rounded-full border"
@@ -248,8 +648,11 @@ export function AbilityTypeChip({
 }: {
   type: "PASSIVE" | "SKILL" | "ULTIMATE";
 }) {
-  const palette = ADMIN_TYPE_COLORS[type];
+  const { themeName } = useThemeStore();
+  const tc = THEME_COLORS[themeName];
+  const palette = getAbilityTypePalette(tc, type);
   const { t } = useTranslation();
+
   return (
     <View
       className="px-[10] py-[5] rounded-full border"
@@ -282,6 +685,7 @@ export function AdminField({
 }) {
   const { themeName } = useThemeStore();
   const tc = THEME_COLORS[themeName];
+
   return (
     <View className="gap-[6]">
       <Text className="font-nunito-bold text-xs text-primaryText">{label}</Text>
@@ -312,6 +716,7 @@ export function AdminModal({
 }) {
   const { themeName } = useThemeStore();
   const tc = THEME_COLORS[themeName];
+
   return (
     <Modal
       visible={visible}
@@ -322,40 +727,46 @@ export function AdminModal({
       <KeyboardScreenView>
         <View
           className="flex-1 justify-center p-4"
-          style={{ backgroundColor: tc.primaryStrong + "47" }}
+          style={{ backgroundColor: withAlpha(tc.primaryStrong, "54") }}
         >
           <Pressable style={absoluteFill} onPress={onClose} />
-          <View
-            className="max-h-[90%] rounded-[28] overflow-hidden"
-            style={{ backgroundColor: tc.surface }}
-          >
-            <LinearGradient
-              colors={[tc.primary, tc.primaryText]}
-              style={{
-                paddingHorizontal: 18,
-                paddingVertical: 16,
-                justifyContent: "center",
-                alignItems: "center",
-              }}
-            >
-              <Text className="text-white font-nunito-extrabold text-[18px]">
-                {title}
-              </Text>
-              <Pressable
-                onPress={onClose}
-                className="absolute right-[14] top-3 w-8 h-8 rounded-full items-center justify-center"
-                style={{ backgroundColor: "rgba(255,255,255,0.16)" }}
+          <View className="max-h-[90%] overflow-hidden rounded-[30]">
+            <AdminPanel style={{ paddingHorizontal: 0, paddingVertical: 0 }}>
+              <LinearGradient
+                colors={[
+                  withAlpha(tc.primaryTint, "E8"),
+                  withAlpha(tc.surface, "F5"),
+                ]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{
+                  paddingHorizontal: 18,
+                  paddingVertical: 16,
+                  justifyContent: "center",
+                  alignItems: "center",
+                  borderBottomWidth: 1,
+                  borderBottomColor: withAlpha(tc.primaryBorder, "47"),
+                }}
               >
-                <Ionicons name="close" size={20} color="#FFFFFF" />
-              </Pressable>
-            </LinearGradient>
-            <ScrollView
-              {...KEYBOARD_AWARE_SCROLL_PROPS}
-              contentContainerStyle={{ padding: 16, gap: 14 }}
-              showsVerticalScrollIndicator={false}
-            >
-              {children}
-            </ScrollView>
+                <Text className="font-nunito-extrabold text-[18px] text-fg">
+                  {title}
+                </Text>
+                <Pressable
+                  onPress={onClose}
+                  className="absolute right-[14] top-3 w-8 h-8 rounded-full items-center justify-center"
+                  style={{ backgroundColor: withAlpha(tc.surface, "CC") }}
+                >
+                  <Ionicons name="close" size={18} color={tc.primaryStrong} />
+                </Pressable>
+              </LinearGradient>
+              <ScrollView
+                {...KEYBOARD_AWARE_SCROLL_PROPS}
+                contentContainerStyle={{ padding: 16, gap: 14 }}
+                showsVerticalScrollIndicator={false}
+              >
+                {children}
+              </ScrollView>
+            </AdminPanel>
           </View>
         </View>
       </KeyboardScreenView>
@@ -378,114 +789,98 @@ export function AdminSheet({
 }) {
   const { themeName } = useThemeStore();
   const tc = THEME_COLORS[themeName];
-  const translateY = useRef(new Animated.Value(0)).current;
-  const closingRef = useRef(false);
+  const insets = useSafeAreaInsets();
+  const { height } = useWindowDimensions();
+  const [index, setIndex] = useState(visible ? 1 : 0);
+  const [mounted, setMounted] = useState(visible);
+  const topGap = Math.max(insets.top + 16, 56);
 
-  const closeAnimated = () => {
-    if (closingRef.current) {
+  useEffect(() => {
+    if (visible) {
+      setMounted(true);
+      setIndex(1);
       return;
     }
 
-    closingRef.current = true;
-    Animated.timing(translateY, {
-      toValue: 720,
-      duration: 220,
-      useNativeDriver: true,
-    }).start(() => {
-      closingRef.current = false;
-      translateY.setValue(0);
-      onClose();
-    });
-  };
+    setIndex(0);
+  }, [visible]);
 
   useEffect(() => {
-    if (!visible) {
-      translateY.setValue(0);
-      closingRef.current = false;
+    if (!visible && index === 0) {
+      setMounted(false);
     }
-  }, [translateY, visible]);
+  }, [index, visible]);
 
-  const panResponder = useMemo(
-    () =>
-      PanResponder.create({
-        onMoveShouldSetPanResponder: (_, gestureState) =>
-          gestureState.dy > 8 &&
-          Math.abs(gestureState.dy) > Math.abs(gestureState.dx),
-        onPanResponderMove: (_, gestureState) => {
-          if (gestureState.dy > 0) {
-            translateY.setValue(gestureState.dy);
-          }
-        },
-        onPanResponderRelease: (_, gestureState) => {
-          if (gestureState.dy > 140 || gestureState.vy > 1.1) {
-            closeAnimated();
-            return;
-          }
-
-          Animated.spring(translateY, {
-            toValue: 0,
-            useNativeDriver: true,
-            bounciness: 0,
-          }).start();
-        },
-        onPanResponderTerminate: () => {
-          Animated.spring(translateY, {
-            toValue: 0,
-            useNativeDriver: true,
-            bounciness: 0,
-          }).start();
-        },
-      }),
-    [translateY],
-  );
+  if (!mounted) {
+    return null;
+  }
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={closeAnimated}
-    >
-      <KeyboardScreenView>
+    <ModalBottomSheet
+      index={index}
+      onIndexChange={setIndex}
+      onSettle={(nextIndex) => {
+        if (nextIndex === 0 && visible) {
+          onClose();
+        }
+      }}
+      detents={[0, "content"]}
+      scrimColor={withAlpha(tc.primaryStrong, "54")}
+      surface={
         <View
-          className="flex-1 justify-end"
-          style={{ backgroundColor: tc.primaryStrong + "47" }}
+          style={[
+            StyleSheet.absoluteFill,
+            {
+              backgroundColor: tc.surface,
+              borderTopLeftRadius: 30,
+              borderTopRightRadius: 30,
+            },
+          ]}
+        />
+      }
+    >
+      <KeyboardScreenView fill={false}>
+        <View
+          style={{
+            maxHeight: height - topGap,
+            minHeight: Math.min(height - topGap, height * 0.72),
+          }}
         >
-          <Pressable style={absoluteFill} onPress={closeAnimated} />
-          <Animated.View
-            className="min-h-[88%] max-h-[96%] rounded-tl-[30] rounded-tr-[30] overflow-hidden"
-            style={[
-              { backgroundColor: tc.surface, transform: [{ translateY }] },
-            ]}
+          <AdminPanel
+            style={{ flex: 1, paddingHorizontal: 0, paddingVertical: 0 }}
           >
             <LinearGradient
-              colors={[tc.primary, tc.primaryText]}
+              colors={[
+                withAlpha(tc.primaryTint, "E8"),
+                withAlpha(tc.surface, "F5"),
+              ]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
               style={{
                 paddingHorizontal: 18,
                 paddingBottom: 14,
                 paddingTop: 8,
                 justifyContent: "center",
                 alignItems: "center",
+                borderBottomWidth: 1,
+                borderBottomColor: withAlpha(tc.primaryBorder, "47"),
               }}
             >
-              <View
-                {...panResponder.panHandlers}
-                className="w-full items-center pb-2"
-              >
+              <View className="w-full items-center pb-2">
                 <View
                   className="w-[54] h-[5] rounded-full"
-                  style={{ backgroundColor: "rgba(255,255,255,0.6)" }}
+                  style={{ backgroundColor: withAlpha(tc.primaryStrong, "2B") }}
                 />
               </View>
-              <Text className="text-white font-nunito-extrabold text-[18px]">
+              <Text className="font-nunito-extrabold text-[18px] text-fg">
                 {title}
               </Text>
               <Pressable
-                onPress={closeAnimated}
+                onPress={onClose}
                 className="absolute right-[14] top-3 w-8 h-8 rounded-full items-center justify-center"
-                style={{ backgroundColor: "rgba(255,255,255,0.16)" }}
+                style={{ backgroundColor: withAlpha(tc.surface, "CC") }}
               >
-                <Ionicons name="close" size={20} color="#FFFFFF" />
+                <Ionicons name="close" size={18} color={tc.primaryStrong} />
               </Pressable>
             </LinearGradient>
             <ScrollView
@@ -501,19 +896,19 @@ export function AdminSheet({
             </ScrollView>
             {footer ? (
               <View
-                className="px-4 pt-3 pb-4 border-t"
+                className="border-t px-4 pt-3 pb-4"
                 style={{
-                  borderTopColor: tc.primaryBorder + "24",
+                  borderTopColor: withAlpha(tc.primaryBorder, "47"),
                   backgroundColor: tc.surface,
                 }}
               >
                 {footer}
               </View>
             ) : null}
-          </Animated.View>
+          </AdminPanel>
         </View>
       </KeyboardScreenView>
-    </Modal>
+    </ModalBottomSheet>
   );
 }
 
@@ -528,13 +923,17 @@ export function AdminEmptyState({
 }) {
   const { themeName } = useThemeStore();
   const tc = THEME_COLORS[themeName];
+
   return (
     <View className="items-center gap-2 py-6">
-      <Ionicons name={icon} size={28} color={tc.primaryText} />
-      <Text className="font-nunito-extrabold text-[16px] text-primaryStrong">
-        {title}
-      </Text>
-      <Text className="font-nunito-semibold text-[13px] text-fgMuted text-center">
+      <View
+        className="h-12 w-12 items-center justify-center rounded-[18]"
+        style={{ backgroundColor: withAlpha(tc.primaryTint, "CC") }}
+      >
+        <Ionicons name={icon} size={24} color={tc.primaryText} />
+      </View>
+      <Text className="font-nunito-extrabold text-[16px] text-fg">{title}</Text>
+      <Text className="font-nunito-semibold text-[13px] leading-[19px] text-fgMuted text-center">
         {body}
       </Text>
     </View>
