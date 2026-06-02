@@ -150,64 +150,78 @@ export function AdminShell({ children }: { children: ReactNode }) {
         <View className="flex-1">{children}</View>
 
         <View
-          className="px-1"
-          style={{ paddingBottom: Math.max(insets.bottom, 12) }}
+          pointerEvents="box-none"
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 40,
+          }}
         >
           <View
-            className="flex-row rounded-[30] border p-2"
-            style={{
-              backgroundColor: tc.surface,
-              borderColor: withAlpha(tc.primaryBorder, "73"),
-              shadowColor: tc.fg,
-              shadowOpacity: themeName === "nightosphere" ? 0.22 : 0.08,
-              shadowRadius: 12,
-              shadowOffset: { width: 0, height: 6 },
-              elevation: 5,
-            }}
+            className="px-1"
+            style={{ paddingBottom: Math.max(insets.bottom, 12) }}
           >
-            {NAV_ITEMS.map((item) => {
-              const active =
-                pathname === item.path ||
-                (pathname === "/admin" && item.path === "/admin/cards");
-              const tint = tc[item.tintKey];
+            <View
+              className="flex-row rounded-[30] border p-2"
+              style={{
+                backgroundColor: tc.surface,
+                borderColor: withAlpha(tc.primaryBorder, "73"),
+                shadowColor: tc.fg,
+                shadowOpacity: themeName === "nightosphere" ? 0.22 : 0.08,
+                shadowRadius: 12,
+                shadowOffset: { width: 0, height: 6 },
+                elevation: 5,
+              }}
+            >
+              {NAV_ITEMS.map((item) => {
+                const active =
+                  pathname === item.path ||
+                  (pathname === "/admin" && item.path === "/admin/cards");
+                const tint = tc[item.tintKey];
 
-              return (
-                <Pressable
-                  key={item.path}
-                  onPress={() => router.replace(item.path as any)}
-                  className="flex-1 items-center justify-center gap-1 rounded-[22] px-0 py-2"
-                  style={{
-                    backgroundColor: active
-                      ? withAlpha(tc.primaryTint, "E8")
-                      : "transparent",
-                  }}
-                >
-                  <View
-                    className="h-[34] w-[34] items-center justify-center rounded-[12]"
+                return (
+                  <Pressable
+                    key={item.path}
+                    onPress={() => router.replace(item.path as any)}
+                    className="flex-1 items-center justify-center gap-1 rounded-[22] px-0 py-2"
                     style={{
-                      backgroundColor: active ? tc.surface : "transparent",
+                      backgroundColor: active
+                        ? withAlpha(tc.primaryTint, "E8")
+                        : "transparent",
                     }}
                   >
-                    {item.path === "/admin/cards" ? (
-                      <CardsIcon size={20} color={active ? tint : tc.fgMuted} />
-                    ) : (
-                      <Ionicons
-                        name={item.icon}
-                        size={20}
-                        color={active ? tint : tc.fgMuted}
-                      />
-                    )}
-                  </View>
-                  <Text
-                    className="font-nunito-extrabold text-[9px]"
-                    numberOfLines={1}
-                    style={{ color: active ? tint : tc.fgMuted }}
-                  >
-                    {t(item.labelKey)}
-                  </Text>
-                </Pressable>
-              );
-            })}
+                    <View
+                      className="h-[34] w-[34] items-center justify-center rounded-[12]"
+                      style={{
+                        backgroundColor: active ? tc.surface : "transparent",
+                      }}
+                    >
+                      {item.path === "/admin/cards" ? (
+                        <CardsIcon
+                          size={20}
+                          color={active ? tint : tc.fgMuted}
+                        />
+                      ) : (
+                        <Ionicons
+                          name={item.icon}
+                          size={20}
+                          color={active ? tint : tc.fgMuted}
+                        />
+                      )}
+                    </View>
+                    <Text
+                      className="font-nunito-extrabold text-[9px]"
+                      numberOfLines={1}
+                      style={{ color: active ? tint : tc.fgMuted }}
+                    >
+                      {t(item.labelKey)}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
           </View>
         </View>
       </View>
