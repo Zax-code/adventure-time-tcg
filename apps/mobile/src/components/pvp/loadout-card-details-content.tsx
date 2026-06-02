@@ -1,9 +1,10 @@
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { ScrollView, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 
 import type { CollectionResponse } from "@adventure-time/api-client";
 
+import { ThemedExpoButton } from "../expo-ui/themed-button";
 import { useTranslation } from "../../i18n";
 import {
   localizeAbilityText,
@@ -11,6 +12,8 @@ import {
   localizeTypeName,
 } from "../../lib/combat-i18n";
 import { getCardImageCacheKey, getCardImageUrl } from "../../lib/card-images";
+import { useThemeStore } from "../../stores/theme-store";
+import { THEME_COLORS } from "../../theme/themes";
 import { CARD_TYPE_COLORS } from "../theme";
 import { SwordsIcon } from "../icons";
 
@@ -91,6 +94,7 @@ export function LoadoutCardDetailsContent({
   onClose,
 }: LoadoutCardDetailsContentProps) {
   const { t, locale } = useTranslation();
+  const tc = THEME_COLORS[useThemeStore((state) => state.themeName)];
   const typeColor = CARD_TYPE_COLORS[card.type] ?? CARD_TYPE_COLORS.Hero;
   const hpPct = 100;
   const abilities = [
@@ -272,12 +276,28 @@ export function LoadoutCardDetailsContent({
         </View>
 
         {onClose ? (
-          <Pressable
+          <ThemedExpoButton
             onPress={onClose}
-            className="mt-2 items-center justify-center rounded-2xl bg-primaryDark px-4 py-3"
+            preferFallback
+            variant="primary"
+            fallbackAppearance={{
+              backgroundColor: tc.primaryDark,
+              borderColor: tc.primaryDark,
+              borderRadius: 16,
+              foregroundColor: "#FFFFFF",
+              gradientColors: null,
+              minHeight: 0,
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              textStyle: {
+                fontFamily: "Nunito_700Bold",
+                fontSize: 14,
+              },
+            }}
+            style={{ marginTop: 8 }}
           >
-            <Text className="font-nunito-bold text-white">{t("common.close")}</Text>
-          </Pressable>
+            {t("common.close")}
+          </ThemedExpoButton>
         ) : null}
       </View>
     </ScrollView>

@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
-  Pressable,
   ScrollView,
   Text,
   View,
@@ -26,6 +25,7 @@ import {
   LoadingPanel,
   PageLoadingState,
 } from "../src/components/loading-state";
+import { ThemedExpoButton } from "../src/components/expo-ui/themed-button";
 import { ThemedExpoTextInput } from "../src/components/expo-ui/themed-text-input";
 import { RARITY_COLORS } from "../src/components/theme";
 import { THEME_COLORS } from "../src/theme/themes";
@@ -495,15 +495,25 @@ export default function CollectionCardDetailScreen() {
                 overflow: "hidden",
               }}
             >
-              <Pressable
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
+              <ThemedExpoButton
+                onPress={() => setStatsExpanded(!statsExpanded)}
+                preferFallback
+                fallbackLayout="stretch"
+                fallbackAppearance={{
+                  backgroundColor: "transparent",
+                  borderColor: "transparent",
+                  borderRadius: 0,
+                  foregroundColor: "#1F2937",
+                  gradientColors: null,
+                  minHeight: 0,
                   paddingHorizontal: 16,
                   paddingVertical: 12,
-                  gap: 8,
+                  textStyle: {
+                    fontFamily: "Nunito_700Bold",
+                    fontSize: 14,
+                  },
                 }}
-                onPress={() => setStatsExpanded(!statsExpanded)}
+                variant="ghost"
               >
                 <SwordsIcon size={18} color="#1F2937" />
                 <Text
@@ -523,7 +533,7 @@ export default function CollectionCardDetailScreen() {
                 >
                   <ChevronDownIcon size={18} color="#DB2777" />
                 </View>
-              </Pressable>
+              </ThemedExpoButton>
               {statsExpanded && (
                 <View
                   style={{
@@ -596,14 +606,25 @@ export default function CollectionCardDetailScreen() {
                 overflow: "hidden",
               }}
             >
-              <Pressable
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  padding: 12,
-                  gap: 8,
-                }}
+              <ThemedExpoButton
                 onPress={() => setRecycleExpanded(!recycleExpanded)}
+                preferFallback
+                fallbackLayout="stretch"
+                fallbackAppearance={{
+                  backgroundColor: "transparent",
+                  borderColor: "transparent",
+                  borderRadius: 0,
+                  foregroundColor: "#065F46",
+                  gradientColors: null,
+                  minHeight: 0,
+                  paddingHorizontal: 12,
+                  paddingVertical: 12,
+                  textStyle: {
+                    fontFamily: "Nunito_700Bold",
+                    fontSize: 14,
+                  },
+                }}
+                variant="ghost"
               >
                 <RecycleIcon size={18} color="#065F46" />
                 <Text
@@ -647,7 +668,7 @@ export default function CollectionCardDetailScreen() {
                 >
                   <ChevronDownIcon size={18} color="#065F46" />
                 </View>
-              </Pressable>
+              </ThemedExpoButton>
               {recycleExpanded && (
                 <View style={{ paddingHorizontal: 12, paddingBottom: 12 }}>
                   {entry.quantity > 1 && (
@@ -660,29 +681,32 @@ export default function CollectionCardDetailScreen() {
                         justifyContent: "center",
                       }}
                     >
-                      <Pressable
+                      <ThemedExpoButton
                         onPress={() =>
                           setRecycleQuantity(Math.max(1, recycleQuantity - 1))
                         }
+                        label="−"
+                        preferFallback
+                        fallbackAppearance={{
+                          backgroundColor: "#D1FAE5",
+                          borderColor: "#D1FAE5",
+                          borderRadius: 16,
+                          foregroundColor: "#065F46",
+                          gradientColors: null,
+                          minHeight: 32,
+                          paddingHorizontal: 0,
+                          paddingVertical: 0,
+                          textStyle: {
+                            fontFamily: "Nunito_700Bold",
+                            fontSize: 18,
+                          },
+                        }}
                         style={{
                           width: 32,
                           height: 32,
-                          borderRadius: 16,
-                          backgroundColor: "#D1FAE5",
-                          alignItems: "center",
-                          justifyContent: "center",
                         }}
-                      >
-                        <Text
-                          style={{
-                            color: "#065F46",
-                            fontFamily: "Nunito_700Bold",
-                            fontSize: 18,
-                          }}
-                        >
-                          −
-                        </Text>
-                      </Pressable>
+                        variant="ghost"
+                      />
                       <Text
                         style={{
                           fontSize: 15,
@@ -694,43 +718,59 @@ export default function CollectionCardDetailScreen() {
                       >
                         {recycleQuantity}
                       </Text>
-                      <Pressable
+                      <ThemedExpoButton
                         onPress={() =>
                           setRecycleQuantity(
                             Math.min(entry.quantity, recycleQuantity + 1),
                           )
                         }
+                        label="+"
+                        preferFallback
+                        fallbackAppearance={{
+                          backgroundColor: "#D1FAE5",
+                          borderColor: "#D1FAE5",
+                          borderRadius: 16,
+                          foregroundColor: "#065F46",
+                          gradientColors: null,
+                          minHeight: 32,
+                          paddingHorizontal: 0,
+                          paddingVertical: 0,
+                          textStyle: {
+                            fontFamily: "Nunito_700Bold",
+                            fontSize: 18,
+                          },
+                        }}
                         style={{
                           width: 32,
                           height: 32,
-                          borderRadius: 16,
-                          backgroundColor: "#D1FAE5",
-                          alignItems: "center",
-                          justifyContent: "center",
                         }}
-                      >
-                        <Text
-                          style={{
-                            color: "#065F46",
-                            fontFamily: "Nunito_700Bold",
-                            fontSize: 18,
-                          }}
-                        >
-                          +
-                        </Text>
-                      </Pressable>
+                        variant="ghost"
+                      />
                     </View>
                   )}
-                  <Pressable
+                  <ThemedExpoButton
                     onPress={() => void handleRecycle()}
                     disabled={isBusy}
-                    style={{
+                    preferFallback
+                    fallbackAppearance={{
                       backgroundColor: "#059669",
+                      borderColor: "#059669",
                       borderRadius: 8,
+                      foregroundColor: "#FFFFFF",
+                      gradientColors: null,
+                      minHeight: 0,
+                      paddingHorizontal: 16,
                       paddingVertical: 10,
-                      alignItems: "center",
+                      textStyle: {
+                        fontFamily: "Nunito_700Bold",
+                        fontSize: 14,
+                      },
+                    }}
+                    fallbackLayout="stretch"
+                    style={{
                       opacity: isBusy ? 0.6 : 1,
                     }}
+                    variant="primary"
                   >
                     {isBusy ? (
                       <Text
@@ -766,33 +806,41 @@ export default function CollectionCardDetailScreen() {
                         <DustIcon size={14} color="#fff" />
                       </View>
                     )}
-                  </Pressable>
+                  </ThemedExpoButton>
                 </View>
               )}
             </View>
 
             {/* Craft button */}
-            <Pressable
+            <ThemedExpoButton
               onPress={() => void handleCraft()}
               disabled={
                 isBusy || dust < getDustCraftCost(entry.card.rarity.name)
               }
+              preferFallback
+              fallbackLayout="stretch"
+              fallbackAppearance={{
+                backgroundColor: "#FEF9C3",
+                borderColor: "#FDE047",
+                borderRadius: 12,
+                foregroundColor: "#92400E",
+                gradientColors: null,
+                minHeight: 0,
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                textStyle: {
+                  fontFamily: "Nunito_700Bold",
+                  fontSize: 14,
+                },
+              }}
               style={{
                 width: "100%",
-                backgroundColor: "#FEF9C3",
-                borderRadius: 12,
-                paddingVertical: 12,
-                paddingHorizontal: 16,
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 8,
-                borderWidth: 1,
-                borderColor: "#FDE047",
                 opacity:
                   isBusy || dust < getDustCraftCost(entry.card.rarity.name)
                     ? 0.5
                     : 1,
               }}
+              variant="warning"
             >
               <CraftIcon size={18} color="#92400E" />
               <Text
@@ -825,9 +873,9 @@ export default function CollectionCardDetailScreen() {
                 >
                   −{getDustCraftCost(entry.card.rarity.name)}
                 </Text>
-                <DustIcon size={12} color="#92400E" />
-              </View>
-            </Pressable>
+                  <DustIcon size={12} color="#92400E" />
+                </View>
+            </ThemedExpoButton>
 
             {/* Gift section */}
             <View
@@ -843,14 +891,25 @@ export default function CollectionCardDetailScreen() {
                 overflow: "hidden",
               }}
             >
-              <Pressable
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  padding: 12,
-                  gap: 8,
-                }}
+              <ThemedExpoButton
                 onPress={() => setGiftExpanded(!giftExpanded)}
+                preferFallback
+                fallbackLayout="stretch"
+                fallbackAppearance={{
+                  backgroundColor: "transparent",
+                  borderColor: "transparent",
+                  borderRadius: 0,
+                  foregroundColor: "#1D4ED8",
+                  gradientColors: null,
+                  minHeight: 0,
+                  paddingHorizontal: 12,
+                  paddingVertical: 12,
+                  textStyle: {
+                    fontFamily: "Nunito_700Bold",
+                    fontSize: 14,
+                  },
+                }}
+                variant="ghost"
               >
                 <GiftHeartIcon size={18} color="#1D4ED8" />
                 <Text
@@ -870,7 +929,7 @@ export default function CollectionCardDetailScreen() {
                 >
                   <ChevronDownIcon size={18} color="#1D4ED8" />
                 </View>
-              </Pressable>
+              </ThemedExpoButton>
               {giftExpanded && (
                 <View
                   style={{ paddingHorizontal: 12, paddingBottom: 12, gap: 10 }}
@@ -952,25 +1011,35 @@ export default function CollectionCardDetailScreen() {
                                 .includes(userSearch.toLowerCase()),
                             )
                             .map((u) => (
-                              <Pressable
+                              <ThemedExpoButton
                                 key={u.id}
                                 onPress={() => setSelectedUserId(u.id)}
-                                style={{
-                                  flexDirection: "row",
-                                  alignItems: "center",
-                                  paddingVertical: 10,
-                                  paddingHorizontal: 12,
-                                  borderRadius: 8,
-                                  borderWidth: 2,
+                                preferFallback
+                                fallbackLayout="stretch"
+                                fallbackAppearance={{
                                   backgroundColor:
                                     selectedUserId === u.id
                                       ? "#DBEAFE"
-                                      : "#fff",
+                                      : "#FFFFFF",
                                   borderColor:
                                     selectedUserId === u.id
                                       ? "#3B82F6"
                                       : "transparent",
+                                  borderRadius: 8,
+                                  foregroundColor: "#1E3A8A",
+                                  gradientColors: null,
+                                  minHeight: 0,
+                                  paddingHorizontal: 12,
+                                  paddingVertical: 10,
+                                  textStyle: {
+                                    fontFamily:
+                                      selectedUserId === u.id
+                                        ? "Nunito_700Bold"
+                                        : "Nunito_600SemiBold",
+                                    fontSize: 14,
+                                  },
                                 }}
+                                variant="ghost"
                               >
                                 <Text
                                   style={{
@@ -996,7 +1065,7 @@ export default function CollectionCardDetailScreen() {
                                     ✓
                                   </Text>
                                 )}
-                              </Pressable>
+                              </ThemedExpoButton>
                             ))}
                         </View>
                       )}
@@ -1024,16 +1093,28 @@ export default function CollectionCardDetailScreen() {
                       fontSize: 14,
                     }}
                   />
-                  <Pressable
+                  <ThemedExpoButton
                     onPress={() => void handleSendGift()}
                     disabled={isBusy || !selectedUserId}
-                    style={{
+                    preferFallback
+                    fallbackAppearance={{
                       backgroundColor: "#2563EB",
+                      borderColor: "#2563EB",
                       borderRadius: 8,
+                      foregroundColor: "#FFFFFF",
+                      gradientColors: null,
+                      minHeight: 0,
+                      paddingHorizontal: 16,
                       paddingVertical: 10,
-                      alignItems: "center",
+                      textStyle: {
+                        fontFamily: "Nunito_700Bold",
+                        fontSize: 14,
+                      },
+                    }}
+                    style={{
                       opacity: isBusy || !selectedUserId ? 0.5 : 1,
                     }}
+                    variant="secondary"
                   >
                     <Text
                       style={{
@@ -1046,7 +1127,7 @@ export default function CollectionCardDetailScreen() {
                         ? t("collection.gift.sending")
                         : t("gifts.sendGiftButton")}
                     </Text>
-                  </Pressable>
+                  </ThemedExpoButton>
                 </View>
               )}
             </View>
@@ -1066,32 +1147,37 @@ export default function CollectionCardDetailScreen() {
             ) : null}
 
             {/* Close button */}
-            <Pressable
+            <ThemedExpoButton
               onPress={() => {
                 if (!isBusy) router.back();
               }}
+              disabled={isBusy}
+              preferFallback
+              fallbackAppearance={{
+                backgroundColor: "#FFFFFF",
+                borderColor: "#FFFFFF",
+                borderRadius: 12,
+                foregroundColor: "#DB2777",
+                gradientColors: null,
+                minHeight: 0,
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                textStyle: {
+                  fontFamily: "Nunito_600SemiBold",
+                  fontSize: 14,
+                },
+              }}
               style={{
                 width: "100%",
-                borderRadius: 12,
-                paddingVertical: 12,
-                alignItems: "center",
-                backgroundColor: "#fff",
                 shadowColor: "#000",
                 shadowOpacity: 0.08,
                 shadowRadius: 6,
                 marginBottom: 8,
               }}
+              variant="ghost"
             >
-              <Text
-                style={{
-                  fontFamily: "Nunito_600SemiBold",
-                  color: "#DB2777",
-                  fontSize: 14,
-                }}
-              >
-                {t("common.close")}
-              </Text>
-            </Pressable>
+              {t("common.close")}
+            </ThemedExpoButton>
           </ScrollView>
         )}
         </View>
