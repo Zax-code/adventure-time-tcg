@@ -150,7 +150,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
         <View className="flex-1">{children}</View>
 
         <View
-          className="px-4"
+          className="px-3"
           style={{ paddingBottom: Math.max(insets.bottom, 12) }}
         >
           <View
@@ -200,6 +200,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
                   </View>
                   <Text
                     className="font-nunito-extrabold text-[10px]"
+                    numberOfLines={1}
                     style={{ color: active ? tint : tc.fgMuted }}
                   >
                     {t(item.labelKey)}
