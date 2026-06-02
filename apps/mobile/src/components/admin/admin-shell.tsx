@@ -156,7 +156,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
           <View
             className="flex-row rounded-[30] border p-2"
             style={{
-              backgroundColor: "transparent",
+              backgroundColor: tc.surface,
               borderColor: withAlpha(tc.primaryBorder, "73"),
               shadowColor: tc.fg,
               shadowOpacity: themeName === "nightosphere" ? 0.22 : 0.08,

@@ -101,7 +101,7 @@ export function BottomTabBar({
           className="rounded-[30px] border"
           style={{
             borderColor: withAlpha(tc.primaryBorder, "73"),
-            backgroundColor: "transparent",
+            backgroundColor: withAlpha(tc.surface, "F2"),
           }}
         >
           <View className="flex-row items-center px-[6px] pt-[6px]">
