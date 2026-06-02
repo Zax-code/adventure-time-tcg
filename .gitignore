@@ -8,6 +8,7 @@ coverage/
 !.env.example
 .expo/
 .expo-shared/
+.agents/
 *.log
 .DS_Store
 .vscode/
