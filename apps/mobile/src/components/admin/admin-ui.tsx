@@ -27,6 +27,7 @@ import {
   withAlpha,
 } from "./admin-palette";
 import { ThemedExpoSegmentedControl } from "../expo-ui/themed-segmented-control";
+import { ThemedExpoButton } from "../expo-ui/themed-button";
 import { ThemedExpoTextInput } from "../expo-ui/themed-text-input";
 import { useTranslation } from "../../i18n";
 import type { IoniconName } from "../../lib/ionicons";
@@ -488,6 +489,19 @@ export function AdminButton({
   const { themeName } = useThemeStore();
   const tc = THEME_COLORS[themeName];
   const palette = getButtonPalette(tc)[variant];
+
+  if (!icon) {
+    return (
+      <ThemedExpoButton
+        onPress={onPress}
+        disabled={disabled}
+        style={{ minHeight: 44 }}
+        variant={variant}
+      >
+        {label}
+      </ThemedExpoButton>
+    );
+  }
 
   return (
     <Pressable

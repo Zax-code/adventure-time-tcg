@@ -1,5 +1,5 @@
 import { type ReactNode } from "react";
-import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, type ViewStyle } from "react-native";
+import { ActivityIndicator, Platform, Pressable, Text, type ViewStyle } from "react-native";
 import { Button as ComposeButton, FilledTonalButton, Host as ComposeHost, Text as ComposeText, TextButton } from "@expo/ui/jetpack-compose";
 import { Button as SwiftButton, Host as SwiftHost, Text as SwiftText } from "@expo/ui/swift-ui";
 import {
@@ -18,7 +18,12 @@ import {
   THEME_COLORS,
 } from "../../theme/themes";
 
-type ThemedButtonVariant = "primary" | "secondary" | "ghost";
+type ThemedButtonVariant =
+  | "primary"
+  | "secondary"
+  | "danger"
+  | "ghost"
+  | "warning";
 
 type ThemedExpoButtonProps = {
   onPress?: () => void;
@@ -34,6 +39,15 @@ function getButtonPalette(
   variant: ThemedButtonVariant,
 ) {
   switch (variant) {
+    case "danger":
+      return {
+        filledBackground: tc.dangerDark,
+        filledForeground: "#FFFFFF",
+        tonalBackground: tc.dangerTint,
+        tonalForeground: tc.dangerText,
+        outlineForeground: tc.dangerText,
+        outlineBorder: tc.dangerBorder,
+      };
     case "secondary":
       return {
         filledBackground: tc.secondary,
@@ -51,6 +65,15 @@ function getButtonPalette(
         tonalForeground: tc.primaryText,
         outlineForeground: tc.primaryText,
         outlineBorder: tc.primaryBorder,
+      };
+    case "warning":
+      return {
+        filledBackground: tc.accentText,
+        filledForeground: "#FFFFFF",
+        tonalBackground: tc.accentTint,
+        tonalForeground: tc.accentText,
+        outlineForeground: tc.accentText,
+        outlineBorder: tc.accentBorder,
       };
     default:
       return {
@@ -90,6 +113,18 @@ function shouldUseFallbackButton(
   );
 }
 
+function getNativeButtonKind(variant: ThemedButtonVariant) {
+  if (variant === "ghost") {
+    return "ghost";
+  }
+
+  if (variant === "secondary" || variant === "warning") {
+    return "tonal";
+  }
+
+  return "filled";
+}
+
 function FallbackButton({
   onPress,
   disabled,
@@ -100,19 +135,26 @@ function FallbackButton({
 }: ThemedExpoButtonProps) {
   const tc = THEME_COLORS[useThemeStore((state) => state.themeName)];
   const palette = getButtonPalette(tc, variant);
+  const nativeKind = getNativeButtonKind(variant);
   const content = loading ? (
     <ActivityIndicator
-      color={variant === "secondary" ? tc.primaryStrong : variant === "ghost" ? tc.primaryText : "#FFFFFF"}
+      color={
+        nativeKind === "tonal"
+          ? palette.tonalForeground
+          : nativeKind === "ghost"
+            ? palette.outlineForeground
+            : palette.filledForeground
+      }
     />
   ) : (
     <Text
       style={{
         color:
-          variant === "secondary"
-            ? tc.primaryStrong
-            : variant === "ghost"
-              ? tc.primaryText
-              : "#FFFFFF",
+          nativeKind === "tonal"
+            ? palette.tonalForeground
+            : nativeKind === "ghost"
+              ? palette.outlineForeground
+              : palette.filledForeground,
         fontFamily:
           variant === "ghost" ? "Nunito_600SemiBold" : "Nunito_700Bold",
         fontSize: variant === "ghost" ? 14 : 15,
@@ -122,7 +164,7 @@ function FallbackButton({
     </Text>
   );
 
-  if (variant === "ghost") {
+  if (nativeKind === "ghost") {
     return (
       <Pressable
         onPress={onPress}
@@ -148,7 +190,11 @@ function FallbackButton({
   const gradientColors =
     variant === "secondary"
       ? ([tc.secondary, tc.secondaryDark] as const)
-      : ([tc.primary, tc.primaryDark] as const);
+      : variant === "danger"
+        ? ([tc.dangerDark, tc.dangerDark] as const)
+        : variant === "warning"
+          ? ([tc.accentText, tc.accentText] as const)
+          : ([tc.primary, tc.primaryDark] as const);
 
   return (
     <Pressable onPress={onPress} disabled={disabled || loading} style={style}>
@@ -177,6 +223,7 @@ export function ThemedExpoButton(props: ThemedExpoButtonProps) {
   const colorScheme = getExpoUIColorScheme(themeName);
   const label = getLabelText(children);
   const palette = getButtonPalette(tc, variant);
+  const nativeKind = getNativeButtonKind(variant);
 
   if (shouldUseFallbackButton(label, loading, style)) {
     return <FallbackButton {...props} />;
@@ -184,9 +231,9 @@ export function ThemedExpoButton(props: ThemedExpoButtonProps) {
 
   if (Platform.OS === "ios") {
     const iosButtonStyle =
-      variant === "ghost"
+      nativeKind === "ghost"
         ? "bordered"
-        : variant === "secondary"
+        : nativeKind === "tonal"
           ? "bordered"
           : "borderedProminent";
 
@@ -198,7 +245,9 @@ export function ThemedExpoButton(props: ThemedExpoButtonProps) {
             buttonStyle(iosButtonStyle),
             controlSize("large"),
             tint(
-              variant === "secondary" ? palette.tonalBackground : palette.filledBackground,
+              nativeKind === "tonal"
+                ? palette.tonalBackground
+                : palette.filledBackground,
             ),
             swiftDisabled(disabled),
           ]}
@@ -210,9 +259,9 @@ export function ThemedExpoButton(props: ThemedExpoButtonProps) {
                 size: variant === "ghost" ? 14 : 15,
               }),
               foregroundStyle(
-                variant === "secondary"
+                nativeKind === "tonal"
                   ? palette.tonalForeground
-                  : variant === "ghost"
+                  : nativeKind === "ghost"
                     ? palette.outlineForeground
                     : palette.filledForeground,
               ),
@@ -227,9 +276,9 @@ export function ThemedExpoButton(props: ThemedExpoButtonProps) {
 
   if (Platform.OS === "android") {
     const ButtonComponent =
-      variant === "ghost"
+      nativeKind === "ghost"
         ? TextButton
-        : variant === "secondary"
+        : nativeKind === "tonal"
           ? FilledTonalButton
           : ComposeButton;
 
@@ -240,17 +289,28 @@ export function ThemedExpoButton(props: ThemedExpoButtonProps) {
           enabled={!disabled}
           colors={{
             containerColor:
-              variant === "secondary" ? palette.tonalBackground : palette.filledBackground,
+              nativeKind === "tonal"
+                ? palette.tonalBackground
+                : palette.filledBackground,
             contentColor:
-              variant === "secondary" ? palette.tonalForeground : palette.filledForeground,
+              nativeKind === "tonal"
+                ? palette.tonalForeground
+                : nativeKind === "ghost"
+                  ? palette.outlineForeground
+                  : palette.filledForeground,
             disabledContainerColor: tc.primaryBorder,
-            disabledContentColor: variant === "primary" ? "#FFFFFF" : tc.fgMuted,
+            disabledContentColor:
+              nativeKind === "filled" ? "#FFFFFF" : tc.fgMuted,
           }}
           contentPadding={{ start: 24, end: 24, top: 12, bottom: 12 }}
         >
           <ComposeText
             color={
-              variant === "secondary" ? palette.tonalForeground : palette.filledForeground
+              nativeKind === "tonal"
+                ? palette.tonalForeground
+                : nativeKind === "ghost"
+                  ? palette.outlineForeground
+                  : palette.filledForeground
             }
             style={{
               fontFamily:
