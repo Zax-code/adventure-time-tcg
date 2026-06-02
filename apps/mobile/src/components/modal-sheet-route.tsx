@@ -112,9 +112,15 @@ export function ModalSheetRoute({
   return (
     <View className="flex-1 justify-end" pointerEvents="box-none">
       <Animated.View
-        className="absolute inset-0"
         pointerEvents="box-none"
-        style={{ opacity: backdropOpacity }}
+        style={{
+          position: "absolute",
+          top: 0,
+          right: 0,
+          bottom: 0,
+          left: 0,
+          opacity: backdropOpacity,
+        }}
       >
         <Pressable
           className="absolute inset-0"
@@ -124,10 +130,12 @@ export function ModalSheetRoute({
       </Animated.View>
 
       <Animated.View
-        className="overflow-hidden rounded-t-[32]"
         style={[
           {
             height: openHeight,
+            overflow: "hidden",
+            borderTopLeftRadius: 32,
+            borderTopRightRadius: 32,
             backgroundColor: sheetBackgroundColor,
             transform: [{ translateY }],
           },

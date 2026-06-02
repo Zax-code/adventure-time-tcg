@@ -15,13 +15,7 @@ const LAUNCH_GRADIENTS: Record<ThemeName, [string, string, string]> = {
 
 const PHASE_DOT_DELAYS = [0, 180, 360] as const;
 
-function PulseDot({
-  delay,
-  color,
-}: {
-  delay: number;
-  color: string;
-}) {
+function PulseDot({ delay, color }: { delay: number; color: string }) {
   const anim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -50,8 +44,10 @@ function PulseDot({
 
   return (
     <Animated.View
-      className="h-2.5 w-2.5 rounded-full"
       style={{
+        width: 10,
+        height: 10,
+        borderRadius: 999,
         backgroundColor: color,
         opacity: anim.interpolate({
           inputRange: [0, 1],
@@ -169,7 +165,10 @@ export function AppLaunchScreen({
             </LinearGradient>
           </View>
 
-          <View className="mt-8 w-full items-center gap-4" style={{ maxWidth: 360 }}>
+          <View
+            className="mt-8 w-full items-center gap-4"
+            style={{ maxWidth: 360 }}
+          >
             <View
               className="rounded-full border bg-white/15 px-4 py-2"
               style={{ borderColor: "rgba(255,255,255,0.35)" }}
@@ -200,7 +199,11 @@ export function AppLaunchScreen({
             >
               <View className="flex-row items-center justify-center gap-2">
                 {PHASE_DOT_DELAYS.map((delay) => (
-                  <PulseDot key={delay} delay={delay} color={tc.secondaryDark} />
+                  <PulseDot
+                    key={delay}
+                    delay={delay}
+                    color={tc.secondaryDark}
+                  />
                 ))}
               </View>
               <Text className="mt-3 text-center font-nunito-semibold text-sm text-white">

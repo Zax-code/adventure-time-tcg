@@ -33,8 +33,10 @@ function LoadingDots({ color }: { color: string }) {
       {[0, 1, 2].map((index) => (
         <Animated.View
           key={index}
-          className="h-2.5 w-2.5 rounded-full"
           style={{
+            width: 10,
+            height: 10,
+            borderRadius: 999,
             backgroundColor: color,
             opacity: anim.interpolate({
               inputRange: [0, 0.25, 0.5, 0.75, 1],
