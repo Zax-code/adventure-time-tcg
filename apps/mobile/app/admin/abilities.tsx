@@ -61,6 +61,7 @@ export default function AdminAbilitiesScreen() {
     skillId: "",
     ultimateId: "",
   });
+  const [showHeroAction, setShowHeroAction] = useState(true);
   const tabTransition = useRef(new Animated.Value(1)).current;
   const heroActionProgress = useRef(new Animated.Value(1)).current;
   const tabDirection = useRef(1);
@@ -143,12 +144,29 @@ export default function AdminAbilitiesScreen() {
 
   useEffect(() => {
     heroActionProgress.stopAnimation();
+
+    if (isAbilitiesTab) {
+      setShowHeroAction(true);
+      heroActionProgress.setValue(0);
+      Animated.timing(heroActionProgress, {
+        toValue: 1,
+        duration: 220,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+      return;
+    }
+
     Animated.timing(heroActionProgress, {
-      toValue: isAbilitiesTab ? 1 : 0,
-      duration: 220,
+      toValue: 0,
+      duration: 180,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
-    }).start();
+    }).start(({ finished }) => {
+      if (finished) {
+        setShowHeroAction(false);
+      }
+    });
   }, [heroActionProgress, isAbilitiesTab]);
 
   const tabTransitionStyle = {
@@ -168,13 +186,13 @@ export default function AdminAbilitiesScreen() {
       {
         translateX: heroActionProgress.interpolate({
           inputRange: [0, 1],
-          outputRange: [8, 0],
+          outputRange: [12, 0],
         }),
       },
       {
         scale: heroActionProgress.interpolate({
           inputRange: [0, 1],
-          outputRange: [0.985, 1],
+          outputRange: [0.98, 1],
         }),
       },
     ],
@@ -197,33 +215,20 @@ export default function AdminAbilitiesScreen() {
           title={t("admin.abilities.title")}
           subtitle={t("admin.abilities.subtitle")}
           actions={
-            <Animated.View
-              pointerEvents={isAbilitiesTab ? "auto" : "none"}
-              style={[
-                heroActionStyle,
-                {
-                  opacity: heroActionProgress.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0.35, 1],
-                  }),
-                },
-              ]}
-            >
-              <AdminButton
-                label={t("admin.abilities.createAbility")}
-                icon="add"
-                onPress={() => {
-                  if (!isAbilitiesTab) {
-                    return;
+            showHeroAction ? (
+              <Animated.View style={heroActionStyle}>
+                <AdminButton
+                  label={t("admin.abilities.createAbility")}
+                  icon="add"
+                  onPress={() =>
+                    router.push({
+                      pathname: "/admin-ability-editor",
+                      params: { mode: "create" },
+                    } as any)
                   }
-
-                  router.push({
-                    pathname: "/admin-ability-editor",
-                    params: { mode: "create" },
-                  } as any);
-                }}
-              />
-            </Animated.View>
+                />
+              </Animated.View>
+            ) : undefined
           }
         >
           <View className="flex-row flex-wrap gap-3">

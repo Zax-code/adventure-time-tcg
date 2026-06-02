@@ -2072,6 +2072,28 @@ PODS:
     - React-perflogger (= 0.81.5)
     - React-utils (= 0.81.5)
     - ReactNativeDependencies
+  - ReactNativeBottomSheet (0.12.0):
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
   - ReactNativeDependencies (0.81.5)
   - ReactNativeHealthkit (14.0.1):
     - hermes-engine
@@ -2495,6 +2517,7 @@ DEPENDENCIES:
   - ReactAppDependencyProvider (from `build/generated/ios`)
   - ReactCodegen (from `build/generated/ios`)
   - ReactCommon/turbomodule/core (from `../../../node_modules/react-native/ReactCommon`)
+  - "ReactNativeBottomSheet (from `../../../node_modules/@swmansion/react-native-bottom-sheet`)"
   - ReactNativeDependencies (from `../../../node_modules/react-native/third-party-podspecs/ReactNativeDependencies.podspec`)
   - "ReactNativeHealthkit (from `../../../node_modules/@kingstinct/react-native-healthkit`)"
   - RNGestureHandler (from `../../../node_modules/react-native-gesture-handler`)
@@ -2725,6 +2748,8 @@ EXTERNAL SOURCES:
     :path: build/generated/ios
   ReactCommon:
     :path: "../../../node_modules/react-native/ReactCommon"
+  ReactNativeBottomSheet:
+    :path: "../../../node_modules/@swmansion/react-native-bottom-sheet"
   ReactNativeDependencies:
     :podspec: "../../../node_modules/react-native/third-party-podspecs/ReactNativeDependencies.podspec"
   ReactNativeHealthkit:
@@ -2857,6 +2882,7 @@ SPEC CHECKSUMS:
   ReactAppDependencyProvider: 1bcd3527ac0390a1c898c114f81ff954be35ed79
   ReactCodegen: c1acc47016bcb83d3c70e6094d13a79ac7ebe270
   ReactCommon: 08810150b1206cc44aecf5f6ae19af32f29151a8
+  ReactNativeBottomSheet: 434b3c15f6a5df135e246f8d1878633f40bc75f2
   ReactNativeDependencies: 71ce9c28beb282aa720ea7b46980fff9669f428a
   ReactNativeHealthkit: 4da6bd0d0658286767194a30e4e14c6430548966
   RNGestureHandler: 2914750df066d89bf9d8f48a10ad5f0051108ac3
