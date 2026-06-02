@@ -4,12 +4,11 @@ import {
   useMemo,
   useRef,
   useState,
-  type ElementRef,
 } from "react";
 import {
   Animated,
-  type GestureResponderEvent,
   Modal,
+  Pressable,
   ScrollView,
   Text,
   TouchableOpacity,
@@ -48,8 +47,6 @@ const LETTER_PRIORITY: Record<string, number> = {
 
 type LetterState = "correct" | "present" | "absent";
 type GuessResult = { guess: string; evaluation: LetterState[] };
-
-type KeyLayout = { x: number; y: number; width: number; height: number };
 
 function tileBgBorderClass(state?: LetterState): string {
   if (state === "correct") return "bg-successDark border-successDark";
@@ -131,14 +128,7 @@ export default function WordleScreen() {
     inputLocked || currentGuess.every((letter) => letter === null);
   const rowClearDisabled = currentGuess.every((l) => l === null) || inputLocked;
 
-  const [activeKeys, setActiveKeys] = useState<string[]>([]);
   const [rowContainerWidth, setRowContainerWidth] = useState(0);
-  const keyLayoutsRef = useRef<Partial<Record<string, KeyLayout>>>({});
-  const keyRefs = useRef<
-    Partial<Record<string, ElementRef<typeof View> | null>>
-  >({});
-  const activeTouchesRef = useRef<Record<number, string>>({});
-  const touchStartYRef = useRef<Record<number, number>>({});
 
   // Stable refs for async closures
   const guessesRef = useRef(guesses);
@@ -668,24 +658,6 @@ export default function WordleScreen() {
     patchWordleCaches,
   ]);
 
-  // ── Keyboard gesture helpers ─────────────────────────────────────────────
-
-  const syncActiveKeys = useCallback(() => {
-    setActiveKeys(Array.from(new Set(Object.values(activeTouchesRef.current))));
-  }, []);
-
-  const clearActiveTouches = useCallback(() => {
-    activeTouchesRef.current = {};
-    touchStartYRef.current = {};
-    setActiveKeys([]);
-  }, []);
-
-  useEffect(() => {
-    if (shareMaskActive) {
-      clearActiveTouches();
-    }
-  }, [clearActiveTouches, shareMaskActive]);
-
   useEffect(() => {
     if (!definitionModalVisible) {
       setExpandedDefinitionWord(null);
@@ -721,7 +693,6 @@ export default function WordleScreen() {
       }
 
       clearRevealAnimations();
-      clearActiveTouches();
       setGuesses([]);
       setSolved(false);
       setSubmitting(false);
@@ -738,38 +709,11 @@ export default function WordleScreen() {
       void setWordleLanguage(nextLanguage);
     },
     [
-      clearActiveTouches,
       clearRevealAnimations,
       setWordleLanguage,
       wordleLanguage,
     ],
   );
-
-  const updateKeyLayout = useCallback((keyId: string) => {
-    const keyRef = keyRefs.current[keyId];
-    if (!keyRef) return;
-    keyRef.measureInWindow(
-      (x, y, width, height) => {
-        keyLayoutsRef.current[keyId] = { x, y, width, height };
-      },
-    );
-  }, []);
-
-  const findKeyAtPoint = useCallback((x: number, y: number) => {
-    const layoutEntries = Object.entries(keyLayoutsRef.current) as Array<
-      [string, KeyLayout]
-    >;
-    return (
-      layoutEntries.find(([, layout]) => {
-        return (
-          x >= layout.x &&
-          x <= layout.x + layout.width &&
-          y >= layout.y &&
-          y <= layout.y + layout.height
-        );
-      })?.[0] ?? null
-    );
-  }, []);
 
   const activateKey = useCallback(
     (keyId: string) => {
@@ -795,94 +739,6 @@ export default function WordleScreen() {
       submitGuess,
       addLetter,
     ],
-  );
-
-  const releaseTouches = useCallback(
-    (
-      touches: Array<{ id: number; x?: number; y?: number }>,
-      activate = false,
-    ) => {
-      let changed = false;
-      touches.forEach((touch) => {
-        const keyId = activeTouchesRef.current[touch.id];
-        if (keyId) {
-          if (activate) activateKey(keyId);
-          delete activeTouchesRef.current[touch.id];
-          delete touchStartYRef.current[touch.id];
-          changed = true;
-        }
-      });
-      if (changed) syncActiveKeys();
-    },
-    [activateKey, syncActiveKeys],
-  );
-
-  const handleTouchesDown = useCallback(
-    (touches: Array<{ id: number; x: number; y: number }>) => {
-      let changed = false;
-      touches.forEach((touch) => {
-        if (activeTouchesRef.current[touch.id]) return;
-        const keyId = findKeyAtPoint(touch.x, touch.y);
-        if (!keyId) return;
-        activeTouchesRef.current[touch.id] = keyId;
-        touchStartYRef.current[touch.id] = touch.y;
-        changed = true;
-      });
-      if (changed) syncActiveKeys();
-    },
-    [findKeyAtPoint, syncActiveKeys],
-  );
-
-  const handleTouchesMove = useCallback(
-    (touches: Array<{ id: number; x: number; y: number }>) => {
-      const SCROLL_THRESHOLD = 8;
-      let changed = false;
-      touches.forEach((touch) => {
-        const activeKeyId = activeTouchesRef.current[touch.id];
-        if (!activeKeyId) return;
-        const startY = touchStartYRef.current[touch.id];
-        if (
-          startY !== undefined &&
-          Math.abs(touch.y - startY) > SCROLL_THRESHOLD
-        ) {
-          delete activeTouchesRef.current[touch.id];
-          delete touchStartYRef.current[touch.id];
-          changed = true;
-          return;
-        }
-        const currentKeyId = findKeyAtPoint(touch.x, touch.y);
-        if (currentKeyId === activeKeyId) return;
-        delete activeTouchesRef.current[touch.id];
-        delete touchStartYRef.current[touch.id];
-        changed = true;
-      });
-      if (changed) syncActiveKeys();
-    },
-    [findKeyAtPoint, syncActiveKeys],
-  );
-
-  const handleTouchesUp = useCallback(
-    (touches: Array<{ id: number }>) => {
-      releaseTouches(touches, true);
-    },
-    [releaseTouches],
-  );
-
-  const handleTouchesCancel = useCallback(
-    (touches: Array<{ id: number }>) => {
-      releaseTouches(touches, false);
-    },
-    [releaseTouches],
-  );
-
-  const getChangedTouches = useCallback(
-    (event: GestureResponderEvent) =>
-      Array.from(event.nativeEvent.changedTouches).map((touch) => ({
-        id: Number(touch.identifier),
-        x: touch.pageX,
-        y: touch.pageY,
-      })),
-    [],
   );
 
   // ── Tile helpers ─────────────────────────────────────────────────────────
@@ -1125,26 +981,7 @@ export default function WordleScreen() {
 
       {/* ── Keyboard card ───────────────────────────────────────────────── */}
       {shareMaskActive ? null : (
-        <View
-          className="rounded-[28px] border-2 border-primaryTint bg-surface p-3 shadow shadow-black/10"
-          onTouchStart={(event) => {
-            handleTouchesDown(getChangedTouches(event));
-          }}
-          onTouchMove={(event) => {
-            handleTouchesMove(getChangedTouches(event));
-          }}
-          onTouchEnd={(event) => {
-            handleTouchesUp(
-              getChangedTouches(event).map((touch) => ({ id: touch.id })),
-            );
-          }}
-          onTouchCancel={(event) => {
-            handleTouchesCancel(
-              getChangedTouches(event).map((touch) => ({ id: touch.id })),
-            );
-            clearActiveTouches();
-          }}
-        >
+        <View className="rounded-[28px] border-2 border-primaryTint bg-surface p-3 shadow shadow-black/10">
           <View
             onLayout={(e) => setRowContainerWidth(e.nativeEvent.layout.width)}
             className="gap-2"
@@ -1165,32 +1002,27 @@ export default function WordleScreen() {
                   <View className="flex-row justify-center gap-1.5">
                     {row.split("").map((letter) => {
                       const kState = keyboardState[letter];
-                      const pressed =
-                        activeKeys.includes(letter) && !inputLocked;
                       const keyCls = keyBgBorderClass(kState);
                       return (
-                        <View
+                        <Pressable
                           key={letter}
-                          ref={(node) => {
-                            keyRefs.current[letter] = node;
-                          }}
-                          onLayout={() => {
-                            requestAnimationFrame(() => updateKeyLayout(letter));
-                          }}
+                          onPress={() => activateKey(letter)}
+                          disabled={inputLocked}
                           className={`h-[56px] rounded-2xl border-2 items-center justify-center shadow shadow-black/10 ${keyCls}`}
-                          pointerEvents="none"
-                          style={{
+                          style={({ pressed }) => ({
                             width: keyWidth || undefined,
                             opacity: inputLocked ? 0.45 : pressed ? 0.82 : 1,
-                            transform: [{ scale: pressed ? 0.96 : 1 }],
-                          }}
+                            transform: [
+                              { scale: pressed && !inputLocked ? 0.96 : 1 },
+                            ],
+                          })}
                         >
                           <Text
                             className={`text-sm font-nunito-extrabold ${keyLetterClass(kState)}`}
                           >
                             {letter}
                           </Text>
-                        </View>
+                        </Pressable>
                       );
                     })}
                   </View>
@@ -1202,60 +1034,28 @@ export default function WordleScreen() {
           <View className="mt-3 h-px bg-primaryTint" />
           {/* Clear + Submit row */}
           <View className="mt-3 flex-row gap-2">
-            <View
-              ref={(node) => {
-                keyRefs.current["CLEAR"] = node;
-              }}
-              onLayout={() => {
-                requestAnimationFrame(() => updateKeyLayout("CLEAR"));
-              }}
-              pointerEvents="none"
+            <Pressable
+              onPress={() => activateKey("CLEAR")}
+              disabled={rowClearDisabled}
               className="flex-1 h-[56px] rounded-2xl border-2 border-primaryTint bg-surfaceMuted items-center justify-center shadow shadow-black/10"
-              style={{
-                opacity: rowClearDisabled
-                  ? 0.4
-                  : activeKeys.includes("CLEAR")
-                    ? 0.82
-                    : 1,
-                transform: [
-                  {
-                    scale:
-                      activeKeys.includes("CLEAR") && !rowClearDisabled
-                        ? 0.96
-                        : 1,
-                  },
-                ],
-              }}
+              style={({ pressed }) => ({
+                opacity: rowClearDisabled ? 0.4 : pressed ? 0.82 : 1,
+                transform: [{ scale: pressed && !rowClearDisabled ? 0.96 : 1 }],
+              })}
             >
               <Text className="text-xs font-nunito-extrabold text-primaryStrong">
                 {t("quests.wordle.clear")}
               </Text>
-            </View>
+            </Pressable>
 
-            <View
-              ref={(node) => {
-                keyRefs.current["SUBMIT"] = node;
-              }}
-              onLayout={() => {
-                requestAnimationFrame(() => updateKeyLayout("SUBMIT"));
-              }}
-              pointerEvents="none"
+            <Pressable
+              onPress={() => activateKey("SUBMIT")}
+              disabled={submitLocked}
               className="flex-1 h-[56px] rounded-2xl overflow-hidden shadow shadow-black/10"
-              style={{
-                opacity: submitLocked
-                  ? 0.4
-                  : activeKeys.includes("SUBMIT")
-                    ? 0.88
-                    : 1,
-                transform: [
-                  {
-                    scale:
-                      activeKeys.includes("SUBMIT") && !submitLocked
-                        ? 0.96
-                        : 1,
-                  },
-                ],
-              }}
+              style={({ pressed }) => ({
+                opacity: submitLocked ? 0.4 : pressed ? 0.88 : 1,
+                transform: [{ scale: pressed && !submitLocked ? 0.96 : 1 }],
+              })}
             >
               <LinearGradient
                 colors={[tc.primary, tc.primaryDark]}
@@ -1271,7 +1071,7 @@ export default function WordleScreen() {
                   {submitting ? "…" : t("quests.wordle.submit")}
                 </Text>
               </LinearGradient>
-            </View>
+            </Pressable>
           </View>
         </View>
       )}
