@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent } from "react";
+import { useEffect } from "react";
 import {
   Host,
   TextInput as ExpoTextInput,
@@ -43,9 +43,6 @@ export function ThemedExpoTextInput({
   const themeName = explicitThemeName ?? storedThemeName;
   const tc = THEME_COLORS[themeName];
   const textState = useNativeState(value);
-  const handleChangeText = useEffectEvent((nextValue: string) => {
-    onChangeText(nextValue);
-  });
 
   useEffect(() => {
     if (textState.value !== value) {
@@ -58,7 +55,7 @@ export function ThemedExpoTextInput({
       <ExpoTextInput
         {...props}
         value={textState}
-        onChangeText={handleChangeText}
+        onChangeText={onChangeText}
         placeholderTextColor={placeholderTextColor ?? tc.muted}
         style={style}
         textStyle={textStyle}
