@@ -4,7 +4,6 @@ import {
   Pressable,
   ScrollView,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -27,6 +26,7 @@ import {
   LoadingPanel,
   PageLoadingState,
 } from "../src/components/loading-state";
+import { ThemedExpoTextInput } from "../src/components/expo-ui/themed-text-input";
 import { RARITY_COLORS } from "../src/components/theme";
 import { THEME_COLORS } from "../src/theme/themes";
 import {
@@ -886,23 +886,26 @@ export default function CollectionCardDetailScreen() {
                     >
                       {t("gifts.giftTo")}
                     </Text>
-                    <TextInput
+                    <ThemedExpoTextInput
                       value={userSearch}
                       onChangeText={setUserSearch}
                       placeholder={t(
                         "collection.gift.searchPlayersPlaceholder",
                       )}
-                      placeholderTextColor="#93C5FD"
+                      hostStyle={{ width: "100%" }}
                       style={{
                         backgroundColor: "#fff",
                         borderRadius: 8,
                         borderWidth: 1,
                         borderColor: "#BFDBFE",
+                        height: 42,
                         paddingHorizontal: 12,
-                        paddingVertical: 8,
+                        width: "100%",
+                      }}
+                      textStyle={{
+                        color: "#1E3A8A",
                         fontFamily: "Nunito_400Regular",
                         fontSize: 14,
-                        color: "#1E3A8A",
                       }}
                     />
                     <ScrollView
@@ -999,23 +1002,26 @@ export default function CollectionCardDetailScreen() {
                       )}
                     </ScrollView>
                   </View>
-                  <TextInput
+                  <ThemedExpoTextInput
                     value={giftMessage}
                     onChangeText={setGiftMessage}
                     placeholder={t(
                       "collection.gift.messageOptionalPlaceholder",
                     )}
-                    placeholderTextColor="#93C5FD"
+                    hostStyle={{ width: "100%" }}
                     style={{
                       backgroundColor: "#fff",
                       borderRadius: 8,
                       borderWidth: 1,
                       borderColor: "#BFDBFE",
+                      height: 42,
                       paddingHorizontal: 12,
-                      paddingVertical: 8,
+                      width: "100%",
+                    }}
+                    textStyle={{
+                      color: "#1E3A8A",
                       fontFamily: "Nunito_400Regular",
                       fontSize: 14,
-                      color: "#1E3A8A",
                     }}
                   />
                   <Pressable

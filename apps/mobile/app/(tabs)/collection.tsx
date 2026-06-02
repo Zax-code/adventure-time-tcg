@@ -8,7 +8,6 @@ import {
   Pressable,
   ScrollView,
   Text,
-  TextInput,
   View,
 } from "react-native";
 
@@ -27,6 +26,7 @@ import {
 } from "../../src/components/icons";
 import { PageErrorState } from "../../src/components/error-state";
 import { PageLoadingState } from "../../src/components/loading-state";
+import { ThemedExpoTextInput } from "../../src/components/expo-ui/themed-text-input";
 import { ToastBanner } from "../../src/components/toast-banner";
 import { useTranslation } from "../../src/i18n";
 import { KEYBOARD_AWARE_SCROLL_PROPS } from "../../src/components/keyboard-screen-view";
@@ -313,18 +313,18 @@ export default function CollectionScreen() {
         <Text style={{ fontSize: 14, marginRight: 6, color: tc.muted }}>
           🔍
         </Text>
-        <TextInput
-          style={{
-            flex: 1,
-            fontFamily: "Nunito_400Regular",
-            fontSize: 14,
-            color: tc.fg,
-          }}
+        <ThemedExpoTextInput
           placeholder={t("collection.searchByNameOrCharacter")}
-          placeholderTextColor={tc.muted}
           value={searchQuery}
           onChangeText={setSearchQuery}
           returnKeyType="search"
+          hostStyle={{ flex: 1 }}
+          style={{ backgroundColor: "transparent", height: 20, width: "100%" }}
+          textStyle={{
+            color: tc.fg,
+            fontFamily: "Nunito_400Regular",
+            fontSize: 14,
+          }}
         />
         {searchQuery ? (
           <Pressable onPress={() => setSearchQuery("")} hitSlop={8}>

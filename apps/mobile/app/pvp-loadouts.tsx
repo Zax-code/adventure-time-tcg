@@ -3,7 +3,6 @@ import {
   Pressable,
   ScrollView,
   Text,
-  TextInput,
   View,
   type ViewStyle,
 } from "react-native";
@@ -22,6 +21,7 @@ import {
   KEYBOARD_AWARE_SCROLL_PROPS,
   KeyboardScreenView,
 } from "../src/components/keyboard-screen-view";
+import { ThemedExpoTextInput } from "../src/components/expo-ui/themed-text-input";
 import { useTranslation } from "../src/i18n";
 import { useThemeStore } from "../src/stores/theme-store";
 import { THEME_COLORS } from "../src/theme/themes";
@@ -431,12 +431,25 @@ export default function PvpLoadoutsScreen() {
 
           <View className="border-b border-primaryTint bg-white/80 px-4 py-4">
             <View className="flex-row items-center gap-2">
-              <TextInput
+              <ThemedExpoTextInput
                 value={loadoutName}
                 onChangeText={setLoadoutName}
                 placeholder={t("pvp.loadoutNamePlaceholder")}
-                placeholderTextColor={tc.muted}
-                className="flex-1 rounded-xl border border-primaryTint bg-white px-3 py-2 font-nunito text-fg"
+                hostStyle={{ flex: 1 }}
+                style={{
+                  backgroundColor: "#FFFFFF",
+                  borderColor: tc.primary,
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  height: 42,
+                  paddingHorizontal: 12,
+                  width: "100%",
+                }}
+                textStyle={{
+                  color: tc.fg,
+                  fontFamily: "Nunito_400Regular",
+                  fontSize: 14,
+                }}
               />
               <Text className="font-nunito-semibold text-sm text-fgMuted">
                 {selectedCards.length}/6

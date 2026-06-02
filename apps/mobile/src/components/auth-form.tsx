@@ -16,7 +16,6 @@ import {
   Platform,
   Pressable,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -28,6 +27,7 @@ import { useSessionStore } from "../stores/session-store";
 import { useThemeStore } from "../stores/theme-store";
 import { THEME_COLORS } from "../theme/themes";
 import { PrimaryButton } from "./button";
+import { ThemedExpoTextInput } from "./expo-ui/themed-text-input";
 import { CardsIcon, PackIcon, QuestIcon } from "./icons";
 import { KeyboardScreenView } from "./keyboard-screen-view";
 
@@ -868,15 +868,29 @@ function AuthFormInner({ prefill }: { prefill?: AuthFormPrefill }) {
 
         <KeyboardScreenView fill={false}>
           <View className="gap-3">
-            <TextInput
+            <ThemedExpoTextInput
               value={email}
               onChangeText={setEmail}
               autoCapitalize="none"
               keyboardType="email-address"
               placeholder={t("auth.fields.email")}
-              placeholderTextColor={tc.muted}
               editable={stage !== "pendingApproval"}
-              className="rounded-2xl border border-primaryBorder bg-primaryBg px-4 py-3 font-nunito text-fg"
+              autoComplete="email"
+              hostStyle={{ width: "100%" }}
+              style={{
+                backgroundColor: tc.primaryBg,
+                borderColor: tc.primaryBorder,
+                borderRadius: 16,
+                borderWidth: 1,
+                height: 50,
+                paddingHorizontal: 16,
+                width: "100%",
+              }}
+              textStyle={{
+                color: tc.fg,
+                fontFamily: "Nunito_400Regular",
+                fontSize: 16,
+              }}
             />
 
             {stage === "verify" ? (
@@ -909,33 +923,73 @@ function AuthFormInner({ prefill }: { prefill?: AuthFormPrefill }) {
             ) : null}
 
             {stage === "verify" ? (
-              <TextInput
+              <ThemedExpoTextInput
                 value={verificationCode}
                 onChangeText={setVerificationCode}
                 keyboardType="number-pad"
                 maxLength={6}
                 placeholder={t("auth.fields.verificationCode")}
-                placeholderTextColor={tc.muted}
-                className="rounded-2xl border border-primaryBorder bg-primaryBg px-4 py-3 font-nunito text-fg"
+                hostStyle={{ width: "100%" }}
+                style={{
+                  backgroundColor: tc.primaryBg,
+                  borderColor: tc.primaryBorder,
+                  borderRadius: 16,
+                  borderWidth: 1,
+                  height: 50,
+                  paddingHorizontal: 16,
+                  width: "100%",
+                }}
+                textStyle={{
+                  color: tc.fg,
+                  fontFamily: "Nunito_400Regular",
+                  fontSize: 16,
+                }}
               />
             ) : stage === "resetPassword" ? (
               <>
-                <TextInput
+                <ThemedExpoTextInput
                   value={verificationCode}
                   onChangeText={setVerificationCode}
                   keyboardType="number-pad"
                   maxLength={6}
                   placeholder={t("auth.fields.verificationCode")}
-                  placeholderTextColor={tc.muted}
-                  className="rounded-2xl border border-primaryBorder bg-primaryBg px-4 py-3 font-nunito text-fg"
+                  hostStyle={{ width: "100%" }}
+                  style={{
+                    backgroundColor: tc.primaryBg,
+                    borderColor: tc.primaryBorder,
+                    borderRadius: 16,
+                    borderWidth: 1,
+                    height: 50,
+                    paddingHorizontal: 16,
+                    width: "100%",
+                  }}
+                  textStyle={{
+                    color: tc.fg,
+                    fontFamily: "Nunito_400Regular",
+                    fontSize: 16,
+                  }}
                 />
-                <TextInput
+                <ThemedExpoTextInput
                   value={resetPassword}
                   onChangeText={setResetPassword}
                   secureTextEntry
                   placeholder={t("auth.fields.newPassword")}
-                  placeholderTextColor={tc.muted}
-                  className="rounded-2xl border border-primaryBorder bg-primaryBg px-4 py-3 font-nunito text-fg"
+                  autoComplete="new-password"
+                  hostStyle={{ width: "100%" }}
+                  style={{
+                    backgroundColor: tc.primaryBg,
+                    borderColor: tc.primaryBorder,
+                    borderRadius: 16,
+                    borderWidth: 1,
+                    height: 50,
+                    paddingHorizontal: 16,
+                    width: "100%",
+                  }}
+                  textStyle={{
+                    color: tc.fg,
+                    fontFamily: "Nunito_400Regular",
+                    fontSize: 16,
+                  }}
                 />
               </>
             ) : stage === "pendingApproval" ? (
@@ -949,7 +1003,7 @@ function AuthFormInner({ prefill }: { prefill?: AuthFormPrefill }) {
               </View>
             ) : stage === "resetRequest" ? null : (
               <>
-                <TextInput
+                <ThemedExpoTextInput
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry
@@ -958,16 +1012,45 @@ function AuthFormInner({ prefill }: { prefill?: AuthFormPrefill }) {
                       ? t("auth.fields.passwordMin")
                       : t("auth.fields.password")
                   }
-                  placeholderTextColor={tc.muted}
-                  className="rounded-2xl border border-primaryBorder bg-primaryBg px-4 py-3 font-nunito text-fg"
+                  autoComplete={
+                    mode === "register" ? "new-password" : "current-password"
+                  }
+                  hostStyle={{ width: "100%" }}
+                  style={{
+                    backgroundColor: tc.primaryBg,
+                    borderColor: tc.primaryBorder,
+                    borderRadius: 16,
+                    borderWidth: 1,
+                    height: 50,
+                    paddingHorizontal: 16,
+                    width: "100%",
+                  }}
+                  textStyle={{
+                    color: tc.fg,
+                    fontFamily: "Nunito_400Regular",
+                    fontSize: 16,
+                  }}
                 />
                 {mode === "register" ? (
-                  <TextInput
+                  <ThemedExpoTextInput
                     value={displayName}
                     onChangeText={setDisplayName}
                     placeholder={t("auth.fields.displayNameOptional")}
-                    placeholderTextColor={tc.muted}
-                    className="rounded-2xl border border-primaryBorder bg-primaryBg px-4 py-3 font-nunito text-fg"
+                    hostStyle={{ width: "100%" }}
+                    style={{
+                      backgroundColor: tc.primaryBg,
+                      borderColor: tc.primaryBorder,
+                      borderRadius: 16,
+                      borderWidth: 1,
+                      height: 50,
+                      paddingHorizontal: 16,
+                      width: "100%",
+                    }}
+                    textStyle={{
+                      color: tc.fg,
+                      fontFamily: "Nunito_400Regular",
+                      fontSize: 16,
+                    }}
                   />
                 ) : null}
               </>
