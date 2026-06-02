@@ -134,7 +134,6 @@ export default function AdminUsersScreen() {
   return (
     <AdminPageScroll>
       <AdminHero
-        badge={t("admin.shell.nav.users")}
         title={t("admin.users.title")}
         subtitle={t("admin.users.subtitle")}
       >

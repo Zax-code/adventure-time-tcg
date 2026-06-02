@@ -267,7 +267,7 @@ const admin = {
     saveAssignments: "Enregistrer les attributions",
   },
   cards: {
-    title: "Admin cartes",
+    title: "Cartes",
     subtitle:
       "Crée, ajuste, archive et restaure les cartes sans perdre de vue le catalogue actif.",
     stats: "Stats des cartes",

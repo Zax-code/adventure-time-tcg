@@ -94,13 +94,11 @@ export function AdminPanel({
 export function AdminHero({
   title,
   subtitle,
-  badge,
   actions,
   children,
 }: {
   title: string;
   subtitle: string;
-  badge?: string;
   actions?: ReactNode;
   children?: ReactNode;
 }) {
@@ -118,19 +116,6 @@ export function AdminHero({
       <View className="gap-4">
         <View className="flex-row items-start gap-4">
           <View className="flex-1 gap-2">
-            {badge ? (
-              <View
-                className="self-start rounded-full border px-3 py-[6]"
-                style={{
-                  backgroundColor: withAlpha(tc.primaryTint, "DD"),
-                  borderColor: withAlpha(tc.primaryBorder, "80"),
-                }}
-              >
-                <Text className="font-nunito-extrabold text-[11px] uppercase tracking-[0.8px] text-primaryStrong">
-                  {badge}
-                </Text>
-              </View>
-            ) : null}
             <Text className="font-nunito-extrabold text-[30px] leading-[34px] text-fg">
               {title}
             </Text>

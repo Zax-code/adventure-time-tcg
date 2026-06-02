@@ -140,7 +140,6 @@ export default function AdminImageAssetsScreen() {
   return (
     <AdminPageScroll>
       <AdminHero
-        badge={t("admin.shell.nav.assets")}
         title={t("admin.imageAssets.title")}
         subtitle={t("admin.imageAssets.subtitle")}
         actions={

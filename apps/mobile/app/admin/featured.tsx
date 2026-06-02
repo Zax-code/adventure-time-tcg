@@ -349,7 +349,6 @@ export default function AdminFeaturedScreen() {
     () => (
       <View className="gap-4">
         <AdminHero
-          badge={t("admin.shell.nav.featured")}
           title={t("admin.featured.title")}
           subtitle={t("admin.featured.subtitle")}
         >

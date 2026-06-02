@@ -260,7 +260,7 @@ const admin = {
     saveAssignments: "Save assignments",
   },
   cards: {
-    title: "Card Admin",
+    title: "Cards",
     subtitle:
       "Create, refine, archive, and restore cards without losing sight of the live catalog.",
     stats: "Card stats",
