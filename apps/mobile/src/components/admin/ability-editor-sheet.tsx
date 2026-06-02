@@ -157,27 +157,6 @@ export function AbilityEditorForm({
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
 
   useEffect(() => {
-    const nextState = getInitialEditorState(ability);
-
-    setFormKey(nextState.formKey);
-    setFormName(nextState.formName);
-    setFormDescription(nextState.formDescription);
-    setFormType(nextState.formType);
-    setFormCost(nextState.formCost);
-    setFormCooldown(nextState.formCooldown);
-    setFormOncePerMatch(nextState.formOncePerMatch);
-    setFormPayload(nextState.formPayload);
-    setExtraPayloadKeys(nextState.extraPayloadKeys);
-    setRawPayloadText(nextState.rawPayloadText);
-
-    setShowRawJson(false);
-    setOpenDropdownId(null);
-    setRawPayloadTouched(false);
-    setRawPayloadError("");
-    setFormError("");
-  }, [ability]);
-
-  useEffect(() => {
     if (rawPayloadTouched) {
       return;
     }
@@ -369,6 +348,7 @@ export function AbilityEditorForm({
     onSubmit,
     rawPayloadText,
     rawPayloadTouched,
+    t,
   ]);
 
   const footer = (

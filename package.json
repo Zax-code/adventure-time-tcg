@@ -1,47 +1,49 @@
 {
-    "name": "adventure-time-tcg",
-    "private": true,
-    "version": "0.1.0",
-    "workspaces": [
-        "apps/mobile",
-        "packages/*"
-    ],
-    "scripts": {
-        "dev:api": "cd apps/phoenix && /bin/bash -lc 'set -a && source .env && set +a && mix phx.server'",
-        "dev:phoenix": "cd apps/phoenix && /bin/bash -lc 'set -a && source .env && set +a && mix phx.server'",
-        "dev:api:container": "docker compose up api",
-        "dev:stack": "docker compose up",
-        "dev:mobile": "npm run dev -w @adventure-time/mobile",
-        "dev:mobile:android": "npm run android:local -w @adventure-time/mobile",
-        "dev:mobile:ios": "npm run ios:local -w @adventure-time/mobile",
-        "dev:mobile:tunnel": "npm run dev:tunnel -w @adventure-time/mobile",
-        "build:mobile:dev:android": "npm run build:android:dev -w @adventure-time/mobile --",
-        "build:mobile:dev:ios": "npm run build:ios:dev -w @adventure-time/mobile --",
-        "build:mobile:dev:ios:simulator": "npm run build:ios:dev:simulator -w @adventure-time/mobile --",
-        "build:mobile:local": "node ./scripts/build-mobile.mjs",
-        "build:mobile:android:local": "npm run build:android:local -w @adventure-time/mobile --",
-        "build:mobile:ios:local": "npm run build:ios:local -w @adventure-time/mobile --",
-        "release:mobile": "node ./scripts/release-mobile.mjs",
-        "release:mobile:android": "npm run release:android -w @adventure-time/mobile --",
-        "release:mobile:ios": "npm run release:ios -w @adventure-time/mobile --",
-        "build": "npm run build --workspaces --if-present",
-        "typecheck": "npm run typecheck --workspaces --if-present",
-        "lint": "npm run lint --workspaces --if-present",
-        "db:generate": "npm run db:generate -w @adventure-time/db",
-        "db:migrate": "npm run db:migrate -w @adventure-time/db"
-    },
-    "dependencies": {
-        "react-native-svg": "15.15.4",
-        "react-native-worklets": "0.8.3"
-    },
-    "devDependencies": {
-        "@types/react": "~19.2.14"
-    },
-    "overrides": {
-        "nativewind": "4.2.3",
-        "react": "19.2.3",
-        "react-dom": "19.2.3",
-        "react-native-css-interop": "0.2.3",
-        "react-native-worklets": "0.8.3"
-    }
+  "name": "adventure-time-tcg",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/mobile",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:api": "cd apps/phoenix && /bin/bash -lc 'set -a && source .env && set +a && mix phx.server'",
+    "dev:phoenix": "cd apps/phoenix && /bin/bash -lc 'set -a && source .env && set +a && mix phx.server'",
+    "dev:api:container": "docker compose up api",
+    "dev:stack": "docker compose up",
+    "dev:mobile": "npm run dev -w @adventure-time/mobile",
+    "dev:mobile:android": "npm run android:local -w @adventure-time/mobile",
+    "dev:mobile:ios": "npm run ios:local -w @adventure-time/mobile",
+    "dev:mobile:tunnel": "npm run dev:tunnel -w @adventure-time/mobile",
+    "build:mobile:dev:android": "npm run build:android:dev -w @adventure-time/mobile --",
+    "build:mobile:dev:ios": "npm run build:ios:dev -w @adventure-time/mobile --",
+    "build:mobile:dev:ios:simulator": "npm run build:ios:dev:simulator -w @adventure-time/mobile --",
+    "build:mobile:local": "node ./scripts/build-mobile.mjs",
+    "build:mobile:android:local": "npm run build:android:local -w @adventure-time/mobile --",
+    "build:mobile:ios:local": "npm run build:ios:local -w @adventure-time/mobile --",
+    "release:mobile": "node ./scripts/release-mobile.mjs",
+    "release:mobile:android": "npm run release:android -w @adventure-time/mobile --",
+    "release:mobile:ios": "npm run release:ios -w @adventure-time/mobile --",
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "db:generate": "npm run db:generate -w @adventure-time/db",
+    "db:migrate": "npm run db:migrate -w @adventure-time/db",
+    "doctor": "react-doctor"
+  },
+  "dependencies": {
+    "react-native-svg": "15.15.4",
+    "react-native-worklets": "0.8.3"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.14",
+    "react-doctor": "^0.2.16"
+  },
+  "overrides": {
+    "nativewind": "4.2.3",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native-css-interop": "0.2.3",
+    "react-native-worklets": "0.8.3"
+  }
 }

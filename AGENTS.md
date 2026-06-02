@@ -90,6 +90,7 @@ Root:
 - `npm run dev:mobile:ios` - install/run the local iOS development build
 - `npm run dev:mobile:android` - install/run the local Android development build
 - `npm run dev:mobile:tunnel` - start the Expo dev server for development builds with tunnel mode
+- `cd apps/mobile && npx expo-doctor` - validate Expo dependency, config, and checked-native-project health; add `--verbose` when investigating a failure
 - `npm run build:mobile:dev:android` - create an Android EAS development build
 - `npm run build:mobile:dev:ios` - create a device-ready iOS development build; prefer local iOS builds unless the user explicitly asks for remote EAS builds
 - `npm run build:mobile:dev:ios:simulator` - create an iOS simulator EAS development build
@@ -179,6 +180,9 @@ Before finishing backend work:
 
 For mobile/shared changes:
 - run `npm run typecheck`
+- run `cd apps/mobile && npx expo-doctor`
+- treat any new Expo Doctor warning or failure as a regression to fix before finishing, not as background noise
+- when `ios/` and `android/` are checked in, the non-CNG sync warning about native config fields may remain; only accept it if it is unchanged and the only Expo Doctor finding, and explicitly call it out in the handoff
 - run targeted workspace typechecks or builds as needed
 
 ## Environment

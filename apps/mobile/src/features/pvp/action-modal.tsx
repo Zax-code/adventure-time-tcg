@@ -33,83 +33,99 @@ export function ActionModal({
 }: ActionModalProps) {
   const { t } = useTranslation();
   const { myPlayer, opponentPlayer, abilityDefinitions, battleState } = matchView;
-
-  if (!unit) {
-    return null;
-  }
-
-  const skillKey = unit.skill ?? undefined;
-  const ultimateKey = unit.ultimate ?? undefined;
+  const skillKey = unit?.skill ?? undefined;
+  const ultimateKey = unit?.ultimate ?? undefined;
   const energy = myPlayer.energy;
   const skillDef = skillKey ? abilityDefinitions?.[skillKey] : undefined;
   const ultimateDef = ultimateKey ? abilityDefinitions?.[ultimateKey] : undefined;
-  const isSilenced = unit.statuses.some((status) => status.name === "Silence");
-  const skillCd = skillKey ? (unit.cooldowns[skillKey] ?? 0) : 0;
-  const ultimateCd = ultimateKey ? (unit.cooldowns[ultimateKey] ?? 0) : 0;
-  const strongTypes = getStrongAgainst(unit.type as never);
-  const weakTypes = getWeakAgainst(unit.type as never);
+  const isSilenced = unit?.statuses.some((status) => status.name === "Silence") ?? false;
+  const skillCd = skillKey && unit ? (unit.cooldowns[skillKey] ?? 0) : 0;
+  const ultimateCd = ultimateKey && unit ? (unit.cooldowns[ultimateKey] ?? 0) : 0;
+  const strongTypes = unit ? getStrongAgainst(unit.type as never) : [];
+  const weakTypes = unit ? getWeakAgainst(unit.type as never) : [];
 
-  const imageUrl = resolveBattleImageUrl(unit.imageUrl);
+  const imageUrl = resolveBattleImageUrl(unit?.imageUrl);
 
   const actionCards = useMemo(
-    () => [
-      {
-        key: "basic" as const,
-        label: t("pvp.action.basic"),
-        subtitle: t("pvp.action.basicSubtitle"),
-        Icon: SwordsIcon as ComponentType<{ size?: number; color?: string }>,
-        iconColor: "#4B5563",
-        tint: "bg-slate-100",
-        border: "border-slate-200",
-        text: "text-slate-700",
-        cost: 1,
-        disabled: energy < 1,
-        note: energy < 1 ? t("pvp.action.notEnoughEnergy") : null,
-      },
-      {
-        key: "skill" as const,
-        label: skillDef?.name ?? t("pvp.action.skillFallback"),
-        subtitle: skillDef?.description ?? "",
-        Icon: ZapIcon as ComponentType<{ size?: number; color?: string }>,
-        iconColor: "#1D4ED8",
-        tint: "bg-infoTint",
-        border: "border-infoBorder",
-        text: "text-infoDark",
-        cost: skillDef?.cost ?? 0,
-        disabled: !skillDef || energy < (skillDef?.cost ?? 0) || skillCd > 0 || isSilenced,
-        note: skillCd > 0 ? t("pvp.action.cooldown", { count: skillCd }) : isSilenced ? t("pvp.action.silenced") : energy < (skillDef?.cost ?? 0) ? t("pvp.action.notEnoughEnergy") : null,
-      },
-      {
-        key: "ultimate" as const,
-        label: ultimateDef?.name ?? t("pvp.action.ultimateFallback"),
-        subtitle: ultimateDef?.description ?? "",
-        Icon: SparklesIcon as ComponentType<{ size?: number; color?: string }>,
-        iconColor: "#BE185D",
-        tint: "bg-accentTint",
-        border: "border-accent",
-        text: "text-accentText",
-        cost: ultimateDef?.cost ?? 0,
-        disabled:
-          !ultimateDef ||
-          energy < (ultimateDef?.cost ?? 0) ||
-          ultimateCd > 0 ||
-          isSilenced ||
-          unit.usedUltimate,
-        note: unit.usedUltimate
-          ? t("pvp.action.usedAlready")
-          : ultimateCd > 0
-            ? t("pvp.action.cooldown", { count: ultimateCd })
-            : isSilenced
-              ? t("pvp.action.silenced")
-              : energy < (ultimateDef?.cost ?? 0)
-                ? t("pvp.action.notEnoughEnergy")
-                : null,
-      },
-    ],
-    [energy, isSilenced, skillCd, skillDef, t, ultimateCd, ultimateDef, unit.usedUltimate],
+    () => {
+      if (!unit) {
+        return [];
+      }
+
+      return [
+        {
+          key: "basic" as const,
+          label: t("pvp.action.basic"),
+          subtitle: t("pvp.action.basicSubtitle"),
+          Icon: SwordsIcon as ComponentType<{ size?: number; color?: string }>,
+          iconColor: "#4B5563",
+          tint: "bg-slate-100",
+          border: "border-slate-200",
+          text: "text-slate-700",
+          cost: 1,
+          disabled: energy < 1,
+          note: energy < 1 ? t("pvp.action.notEnoughEnergy") : null,
+        },
+        {
+          key: "skill" as const,
+          label: skillDef?.name ?? t("pvp.action.skillFallback"),
+          subtitle: skillDef?.description ?? "",
+          Icon: ZapIcon as ComponentType<{ size?: number; color?: string }>,
+          iconColor: "#1D4ED8",
+          tint: "bg-infoTint",
+          border: "border-infoBorder",
+          text: "text-infoDark",
+          cost: skillDef?.cost ?? 0,
+          disabled:
+            !skillDef ||
+            energy < (skillDef?.cost ?? 0) ||
+            skillCd > 0 ||
+            isSilenced,
+          note:
+            skillCd > 0
+              ? t("pvp.action.cooldown", { count: skillCd })
+              : isSilenced
+                ? t("pvp.action.silenced")
+                : energy < (skillDef?.cost ?? 0)
+                  ? t("pvp.action.notEnoughEnergy")
+                  : null,
+        },
+        {
+          key: "ultimate" as const,
+          label: ultimateDef?.name ?? t("pvp.action.ultimateFallback"),
+          subtitle: ultimateDef?.description ?? "",
+          Icon: SparklesIcon as ComponentType<{ size?: number; color?: string }>,
+          iconColor: "#BE185D",
+          tint: "bg-accentTint",
+          border: "border-accent",
+          text: "text-accentText",
+          cost: ultimateDef?.cost ?? 0,
+          disabled:
+            !ultimateDef ||
+            energy < (ultimateDef?.cost ?? 0) ||
+            ultimateCd > 0 ||
+            isSilenced ||
+            unit.usedUltimate,
+          note: unit.usedUltimate
+            ? t("pvp.action.usedAlready")
+            : ultimateCd > 0
+              ? t("pvp.action.cooldown", { count: ultimateCd })
+              : isSilenced
+                ? t("pvp.action.silenced")
+                : energy < (ultimateDef?.cost ?? 0)
+                  ? t("pvp.action.notEnoughEnergy")
+                  : null,
+        },
+      ];
+    },
+    [energy, isSilenced, skillCd, skillDef, t, ultimateCd, ultimateDef, unit],
   );
 
   const handleAction = (actionKey: "basic" | "skill" | "ultimate") => {
+    if (!unit) {
+      return;
+    }
+
     const abilityKey = actionKey === "skill" ? skillKey : actionKey === "ultimate" ? ultimateKey : undefined;
     const prepared = prepareBattleAction(battleState, unit.instanceId, actionKey, abilityKey);
     if (!prepared) {
@@ -142,6 +158,10 @@ export function ActionModal({
     });
     onClose();
   };
+
+  if (!unit) {
+    return null;
+  }
 
   return (
     <BattleFullScreenSheet visible={visible} title={t("pvp.action.title")} onClose={onClose}>

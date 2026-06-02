@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Pressable, Text, View } from "react-native";
 
 import type { PvpAction, PvpEndTurnInput } from "@adventure-time/api-client";
@@ -72,17 +72,19 @@ export function BattleBoard({
   const [selectedActorId, setSelectedActorId] = useState<string | null>(null);
   const [showLogModal, setShowLogModal] = useState(false);
   const [longPressUnitId, setLongPressUnitId] = useState<string | null>(null);
-  const [showTurnBanner, setShowTurnBanner] = useState(true);
-  const prevTurnRef = useRef(turn);
-  const [bannerKey, setBannerKey] = useState(0);
+  const [turnBannerState, setTurnBannerState] = useState(() => ({
+    turn,
+    bannerKey: 0,
+    visible: true,
+  }));
 
-  useEffect(() => {
-    if (prevTurnRef.current !== turn) {
-      prevTurnRef.current = turn;
-      setBannerKey((current) => current + 1);
-      setShowTurnBanner(true);
-    }
-  }, [turn]);
+  if (turnBannerState.turn !== turn) {
+    setTurnBannerState((current) => ({
+      turn,
+      bannerKey: current.bannerKey + 1,
+      visible: true,
+    }));
+  }
 
   const floatingByUnit = useMemo(() => {
     const next: Record<string, FloatingEvent[]> = {};
@@ -369,7 +371,15 @@ export function BattleBoard({
 
       {!readOnly ? <TargetSelectionHint targeting={targeting} /> : null}
 
-      {!readOnly && showTurnBanner ? <TurnBanner key={bannerKey} isMyTurn={isMyTurn} onDone={() => setShowTurnBanner(false)} /> : null}
+      {!readOnly && turnBannerState.visible ? (
+        <TurnBanner
+          key={turnBannerState.bannerKey}
+          isMyTurn={isMyTurn}
+          onDone={() =>
+            setTurnBannerState((current) => ({ ...current, visible: false }))
+          }
+        />
+      ) : null}
 
       {!readOnly ? (
         <ResultsScreen

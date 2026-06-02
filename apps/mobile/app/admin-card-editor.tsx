@@ -50,6 +50,8 @@ export default function AdminCardEditorScreen() {
     cardId?: string;
   }>();
   const isCreateMode = mode !== "edit";
+  const canAccessAdmin = sessionHydrated && isAdmin;
+  const canLoadCard = canAccessAdmin && !isCreateMode && Boolean(cardId);
 
   const [draft, setDraft] = useState<CardDraft>(BLANK_CARD_DRAFT);
   const [assignmentDraft, setAssignmentDraft] = useState<AssignmentDraft>(
@@ -59,26 +61,20 @@ export default function AdminCardEditorScreen() {
   const initializedCreateRef = useRef(false);
   const closeEditor = () => router.dismissTo("/admin/cards" as any);
 
-  if (!sessionHydrated) {
-    return null;
-  }
-
-  if (!isAdmin) {
-    return <Redirect href="/(tabs)" />;
-  }
-
   const cardQuery = useQuery({
     queryKey: ["admin-card", cardId],
     queryFn: () => apiClient.adminCard(cardId!),
-    enabled: !isCreateMode && Boolean(cardId),
+    enabled: canLoadCard,
   });
   const raritiesQuery = useQuery({
     queryKey: ["admin-rarities"],
     queryFn: () => apiClient.rarities(),
+    enabled: canAccessAdmin,
   });
   const abilitiesQuery = useQuery({
     queryKey: ["admin-abilities"],
     queryFn: () => apiClient.adminAbilities(),
+    enabled: canAccessAdmin,
   });
 
   useEffect(() => {
@@ -243,6 +239,14 @@ export default function AdminCardEditorScreen() {
     raritiesQuery.isLoading ||
     abilitiesQuery.isLoading;
   const error = cardQuery.error || raritiesQuery.error || abilitiesQuery.error;
+
+  if (!sessionHydrated) {
+    return null;
+  }
+
+  if (!isAdmin) {
+    return <Redirect href="/(tabs)" />;
+  }
 
   return (
     <ModalSheetRoute

@@ -54,18 +54,12 @@ export default function AdminAbilityEditorScreen() {
 
   const isCreateMode = mode !== "edit";
   const closeEditor = () => router.dismissTo("/admin/abilities" as any);
-
-  if (!sessionHydrated) {
-    return null;
-  }
-
-  if (!isAdmin) {
-    return <Redirect href="/(tabs)" />;
-  }
+  const canAccessAdmin = sessionHydrated && isAdmin;
 
   const abilitiesQuery = useQuery({
     queryKey: ["admin-abilities"],
     queryFn: () => apiClient.adminAbilities(),
+    enabled: canAccessAdmin,
   });
 
   const createMutation = useMutation({
@@ -126,6 +120,14 @@ export default function AdminAbilityEditorScreen() {
     t("admin.abilityEditor.invalidApiData", { details: "{details}" }),
   );
 
+  if (!sessionHydrated) {
+    return null;
+  }
+
+  if (!isAdmin) {
+    return <Redirect href="/(tabs)" />;
+  }
+
   return (
     <ModalSheetRoute
       onClose={closeEditor}
@@ -181,6 +183,7 @@ export default function AdminAbilityEditorScreen() {
                 showsVerticalScrollIndicator={false}
               >
                 <AbilityEditorForm
+                  key={selectedAbility?.id ?? "create"}
                   ability={selectedAbility}
                   saving={
                     createMutation.isPending ||
