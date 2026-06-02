@@ -13,7 +13,7 @@ import {
   ViewStyle,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@react-native-vector-icons/ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { LoadingPanel } from "../loading-state";
@@ -28,6 +28,7 @@ import {
   withAlpha,
 } from "./admin-palette";
 import { useTranslation } from "../../i18n";
+import type { IoniconName } from "../../lib/ionicons";
 import { useThemeStore } from "../../stores/theme-store";
 import { THEME_COLORS, THEME_VARS } from "../../theme/themes";
 
@@ -224,7 +225,7 @@ export function AdminNotice({
   title: string;
   body: string;
   tone?: "info" | "warning" | "danger" | "success";
-  icon?: keyof typeof Ionicons.glyphMap;
+  icon?: IoniconName;
 }) {
   const { themeName } = useThemeStore();
   const tc = THEME_COLORS[themeName];
@@ -548,7 +549,7 @@ export function AdminButton({
   label: string;
   onPress: () => void;
   variant?: "primary" | "secondary" | "danger" | "ghost" | "warning";
-  icon?: keyof typeof Ionicons.glyphMap;
+  icon?: IoniconName;
   disabled?: boolean;
 }) {
   const { themeName } = useThemeStore();
@@ -898,7 +899,7 @@ export function AdminEmptyState({
   title,
   body,
 }: {
-  icon: keyof typeof Ionicons.glyphMap;
+  icon: IoniconName;
   title: string;
   body: string;
 }) {
@@ -928,7 +929,7 @@ export function AdminLoadingState({
 }: {
   title: string;
   body: string;
-  icon?: keyof typeof Ionicons.glyphMap;
+  icon?: IoniconName;
 }) {
   return <LoadingPanel title={title} message={body} icon={icon} />;
 }

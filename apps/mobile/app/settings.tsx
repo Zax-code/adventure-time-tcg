@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@react-native-vector-icons/ionicons";
 import {
   ActivityIndicator,
   AppState,
@@ -31,6 +31,7 @@ import {
   getNotificationPermissionStatus,
 } from "../src/lib/app-notifications";
 import { connectFitbit } from "../src/lib/fitbit";
+import type { IoniconName } from "../src/lib/ionicons";
 import {
   openDeviceHealthSetup,
   syncDeviceStepsNow,
@@ -1055,7 +1056,7 @@ function SectionHeader({
   title,
 }: {
   description: string;
-  icon: keyof typeof Ionicons.glyphMap;
+  icon: IoniconName;
   tc: (typeof THEME_COLORS)[ThemeName];
   title: string;
 }) {

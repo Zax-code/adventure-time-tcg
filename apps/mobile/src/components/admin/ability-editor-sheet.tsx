@@ -6,7 +6,7 @@ import {
   type ReactNode,
 } from "react";
 import { Alert, Pressable, Text, TextInput, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@react-native-vector-icons/ionicons";
 
 import {
   ABILITY_TARGET_SELECTORS,

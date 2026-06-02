@@ -6,7 +6,7 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@react-native-vector-icons/ionicons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type { AdminCardsResponse } from "@adventure-time/api-client";

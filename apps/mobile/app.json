@@ -48,6 +48,9 @@
       [
         "expo-build-properties",
         {
+          "ios": {
+            "buildReactNativeFromSource": true
+          },
           "android": {
             "compileSdkVersion": 36,
             "targetSdkVersion": 36,
@@ -72,20 +75,18 @@
           "iosUrlScheme": "com.googleusercontent.apps.831806850937-udqpted9icstf3m5q3li3elhkgironf0"
         }
       ],
-      "expo-background-task"
+      "expo-background-task",
+      "expo-image",
+      "expo-status-bar"
     ],
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#FF4AA2"
-    },
     "experiments": {
       "typedRoutes": true
     },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "love.leaetzak.adventuretime",
-      "icon": "./assets/ios-icon.png"
+      "icon": "./assets/ios-icon.png",
+      "deploymentTarget": "16.4"
     },
     "android": {
       "package": "love.leaetzak.adventuretime",

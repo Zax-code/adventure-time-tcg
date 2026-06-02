@@ -4,7 +4,7 @@ import { Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { usePathname, useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@react-native-vector-icons/ionicons";
 
 import { CoinIcon, CardsIcon, HomeIcon, SettingsIcon } from "../icons";
 import { useTranslation } from "../../i18n";
