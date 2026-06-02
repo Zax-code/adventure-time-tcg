@@ -11,14 +11,14 @@ import {
   Platform,
   Pressable,
   ScrollView,
-  Switch,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { GhostButton, PrimaryButton } from "../src/components/button";
+import { ThemedExpoSwitch } from "../src/components/expo-ui/themed-switch";
+import { ThemedExpoTextInput } from "../src/components/expo-ui/themed-text-input";
 import {
   KEYBOARD_AWARE_SCROLL_PROPS,
   KeyboardScreenView,
@@ -505,13 +505,26 @@ export default function SettingsScreen() {
 
                     {editing ? (
                       <View className="gap-3">
-                        <TextInput
+                        <ThemedExpoTextInput
                           value={displayNameInput}
                           onChangeText={setDisplayNameInput}
                           placeholder={t("settings.displayNamePlaceholder")}
-                          placeholderTextColor={tc.muted}
                           autoFocus
-                          className="rounded-2xl border border-primaryBorder bg-surface px-4 py-3 font-nunito-semibold text-base text-fg"
+                          hostStyle={{ width: "100%" }}
+                          style={{
+                            backgroundColor: tc.surface,
+                            borderColor: tc.primaryBorder,
+                            borderRadius: 16,
+                            borderWidth: 1,
+                            height: 52,
+                            paddingHorizontal: 16,
+                            width: "100%",
+                          }}
+                          textStyle={{
+                            color: tc.fg,
+                            fontFamily: "Nunito-SemiBold",
+                            fontSize: 16,
+                          }}
                         />
                         <View className="flex-row gap-3">
                           <View className="flex-1">
@@ -1209,15 +1222,9 @@ function SettingsToggleRow({
             {description}
           </Text>
         </View>
-        <Switch
+        <ThemedExpoSwitch
           disabled={disabled}
-          ios_backgroundColor={tc.primaryBorder}
           onValueChange={onToggle}
-          thumbColor={value ? "#fff" : "#fff"}
-          trackColor={{
-            false: tc.primaryBorder,
-            true: tc.primary,
-          }}
           value={value}
         />
       </View>

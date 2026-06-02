@@ -7,7 +7,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   useWindowDimensions,
   View,
   ViewStyle,
@@ -27,6 +26,8 @@ import {
   type ThemeColors,
   withAlpha,
 } from "./admin-palette";
+import { ThemedExpoSegmentedControl } from "../expo-ui/themed-segmented-control";
+import { ThemedExpoTextInput } from "../expo-ui/themed-text-input";
 import { useTranslation } from "../../i18n";
 import type { IoniconName } from "../../lib/ionicons";
 import { useThemeStore } from "../../stores/theme-store";
@@ -39,9 +40,6 @@ const absoluteFill = {
   bottom: 0,
   left: 0,
 };
-
-const SEGMENTED_CONTROL_PADDING = 8;
-const SEGMENTED_CONTROL_GAP = 8;
 
 export function AdminBackground({ children }: { children: ReactNode }) {
   const { themeName } = useThemeStore();
@@ -350,90 +348,20 @@ export function AdminSegmentedControl<T extends string>({
   value,
   options,
   onChange,
+  disabled,
 }: {
   value: T;
   options: { label: string; value: T }[];
   onChange: (value: T) => void;
+  disabled?: boolean;
 }) {
-  const { themeName } = useThemeStore();
-  const tc = THEME_COLORS[themeName];
-  const activeIndex = Math.max(
-    0,
-    options.findIndex((option) => option.value === value),
-  );
-  const [containerWidth, setContainerWidth] = useState(0);
-  const indicatorTranslateX = useRef(new Animated.Value(0)).current;
-  const segmentWidth =
-    containerWidth > 0
-      ? (containerWidth -
-          SEGMENTED_CONTROL_PADDING * 2 -
-          SEGMENTED_CONTROL_GAP * (options.length - 1)) /
-        options.length
-      : 0;
-
-  useEffect(() => {
-    if (!segmentWidth) {
-      return;
-    }
-
-    Animated.spring(indicatorTranslateX, {
-      toValue: activeIndex * (segmentWidth + SEGMENTED_CONTROL_GAP),
-      useNativeDriver: true,
-      damping: 18,
-      stiffness: 210,
-      mass: 0.9,
-    }).start();
-  }, [activeIndex, indicatorTranslateX, segmentWidth]);
-
   return (
-    <View
-      className="flex-row gap-2 rounded-[22] border p-2"
-      onLayout={(event) => setContainerWidth(event.nativeEvent.layout.width)}
-      style={{
-        backgroundColor: withAlpha(tc.surfaceMuted, "E6"),
-        borderColor: withAlpha(tc.primaryBorder, "5C"),
-      }}
-    >
-      {segmentWidth ? (
-        <Animated.View
-          pointerEvents="none"
-          style={{
-            position: "absolute",
-            top: SEGMENTED_CONTROL_PADDING,
-            left: SEGMENTED_CONTROL_PADDING,
-            bottom: SEGMENTED_CONTROL_PADDING,
-            width: segmentWidth,
-            borderRadius: 16,
-            backgroundColor: tc.primaryText,
-            borderWidth: 1,
-            borderColor: tc.primaryDark,
-            transform: [{ translateX: indicatorTranslateX }],
-          }}
-        />
-      ) : null}
-      {options.map((option) => {
-        const active = option.value === value;
-
-        return (
-          <Pressable
-            key={option.value}
-            onPress={() => onChange(option.value)}
-            className="flex-1 items-center rounded-[16] px-3 py-[11]"
-          >
-            <Text
-              className="font-nunito-extrabold text-[13px]"
-              style={{
-                color: active
-                  ? pickReadableTextColor(tc.primaryText, tc.fg, tc.surface)
-                  : tc.primaryStrong,
-              }}
-            >
-              {option.label}
-            </Text>
-          </Pressable>
-        );
-      })}
-    </View>
+    <ThemedExpoSegmentedControl
+      value={value}
+      options={options}
+      onChange={onChange}
+      disabled={disabled}
+    />
   );
 }
 
@@ -493,12 +421,17 @@ export function AdminSearchInput({
       }}
     >
       <Ionicons name="search" size={16} color={tc.muted} />
-      <TextInput
+      <ThemedExpoTextInput
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor={tc.muted}
-        className="flex-1 font-nunito-semibold text-fg text-sm"
+        hostStyle={{ flex: 1 }}
+        style={{ backgroundColor: "transparent", height: 22, width: "100%" }}
+        textStyle={{
+          color: tc.fg,
+          fontFamily: "Nunito-SemiBold",
+          fontSize: 14,
+        }}
       />
       {value ? (
         <Pressable onPress={() => onChangeText("")}>
@@ -671,15 +604,34 @@ export function AdminField({
   return (
     <View className="gap-[6]">
       <Text className="font-nunito-bold text-xs text-primaryText">{label}</Text>
-      <TextInput
+      <ThemedExpoTextInput
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor={tc.muted}
         keyboardType={keyboardType}
         multiline={multiline}
-        textAlignVertical={multiline ? "top" : "center"}
-        className={`rounded-2xl border-2 border-primaryBorder bg-surface px-[14] text-fg font-nunito-semibold text-sm${multiline ? " min-h-[100] pt-3" : " min-h-[46]"}`}
+        hostStyle={{
+          minHeight: multiline ? 100 : 46,
+          width: "100%",
+        }}
+        style={{
+          backgroundColor: tc.surface,
+          borderColor: tc.primaryBorder,
+          borderRadius: 16,
+          borderWidth: 2,
+          height: multiline ? undefined : 46,
+          paddingHorizontal: 14,
+          paddingTop: multiline ? 12 : 0,
+          paddingBottom: multiline ? 12 : 0,
+          width: "100%",
+        }}
+        textStyle={{
+          color: tc.fg,
+          fontFamily: "Nunito-SemiBold",
+          fontSize: 14,
+          lineHeight: multiline ? 20 : 18,
+        }}
+        numberOfLines={multiline ? 4 : undefined}
       />
     </View>
   );
