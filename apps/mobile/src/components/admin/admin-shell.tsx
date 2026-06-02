@@ -100,9 +100,6 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const tc = THEME_COLORS[themeName];
   const { t } = useTranslation();
 
-  const currentItem =
-    NAV_ITEMS.find((item) => pathname === item.path) ?? NAV_ITEMS[0];
-
   return (
     <AdminBackground>
       <View className="flex-1">
@@ -162,9 +159,6 @@ export function AdminShell({ children }: { children: ReactNode }) {
               <View className="flex-1">
                 <Text className="font-nunito-extrabold text-[24px] text-fg">
                   {t("admin.shell.consoleTitle")}
-                </Text>
-                <Text className="font-nunito-semibold text-[13px] leading-[19px] text-fgMuted">
-                  {t(currentItem.labelKey)}
                 </Text>
               </View>
             </View>
