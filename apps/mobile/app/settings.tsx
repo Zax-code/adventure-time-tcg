@@ -17,6 +17,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { GhostButton, PrimaryButton } from "../src/components/button";
+import { ThemedExpoButton } from "../src/components/expo-ui/themed-button";
 import { ThemedExpoSwitch } from "../src/components/expo-ui/themed-switch";
 import { ThemedExpoTextInput } from "../src/components/expo-ui/themed-text-input";
 import {
@@ -1123,18 +1124,26 @@ function ChoiceCard({
   tc: (typeof THEME_COLORS)[ThemeName];
 }) {
   return (
-    <Pressable
+    <ThemedExpoButton
       onPress={onPress}
       disabled={disabled}
-      className="flex-1 rounded-3xl border p-4"
-      style={{
+      fallbackAppearance={{
         backgroundColor: selected ? tc.primaryBg : tc.surface,
-        borderColor: selected ? tc.primaryBorder : tc.primaryBorder,
+        borderColor: tc.primaryBorder,
+        borderRadius: 24,
+        paddingHorizontal: 16,
+        paddingVertical: 16,
+        gradientColors: null,
+      }}
+      fallbackLayout="stretch"
+      style={{
+        flex: 1,
         opacity: disabled ? 0.65 : 1,
       }}
+      variant="ghost"
     >
       {children}
-    </Pressable>
+    </ThemedExpoButton>
   );
 }
 
@@ -1209,11 +1218,20 @@ function SettingsToggleRow({
   value: boolean;
 }) {
   return (
-    <Pressable
-      className="rounded-3xl border border-primaryBorder bg-surfaceMuted p-4"
-      disabled={disabled}
+    <ThemedExpoButton
       onPress={() => onToggle(!value)}
+      disabled={disabled}
+      fallbackAppearance={{
+        backgroundColor: tc.surfaceMuted,
+        borderColor: tc.primaryBorder,
+        borderRadius: 24,
+        paddingHorizontal: 16,
+        paddingVertical: 16,
+        gradientColors: null,
+      }}
+      fallbackLayout="stretch"
       style={{ opacity: disabled ? 0.65 : 1 }}
+      variant="ghost"
     >
       <View className="flex-row items-start gap-4">
         <View className="flex-1 gap-1">
@@ -1228,7 +1246,7 @@ function SettingsToggleRow({
           value={value}
         />
       </View>
-    </Pressable>
+    </ThemedExpoButton>
   );
 }
 

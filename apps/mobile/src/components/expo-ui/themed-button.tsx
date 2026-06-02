@@ -55,6 +55,7 @@ type ThemedExpoButtonProps = {
   label?: string;
   leadingAccessory?: ReactNode;
   fallbackAppearance?: ThemedButtonFallbackAppearance;
+  fallbackLayout?: "center" | "stretch";
   style?: ViewStyle;
   variant: ThemedButtonVariant;
 };
@@ -208,6 +209,7 @@ function FallbackButton({
   label: explicitLabel,
   leadingAccessory,
   fallbackAppearance,
+  fallbackLayout = "center",
   style,
   variant,
 }: ThemedExpoButtonProps) {
@@ -236,9 +238,10 @@ function FallbackButton({
     <View
       style={{
         flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
+        alignItems: fallbackLayout === "stretch" ? "stretch" : "center",
+        justifyContent: fallbackLayout === "stretch" ? "flex-start" : "center",
         gap: leadingAccessory ? 8 : 0,
+        width: fallbackLayout === "stretch" ? "100%" : undefined,
       }}
     >
       {leadingAccessory}
@@ -252,6 +255,8 @@ function FallbackButton({
         >
           {label}
         </Text>
+      ) : children ? (
+        children
       ) : null}
     </View>
   );
@@ -279,8 +284,9 @@ function FallbackButton({
             appearance.gradientColors == null
               ? appearance.backgroundColor
               : undefined,
-          alignItems: "center",
-          justifyContent: "center",
+          alignItems: fallbackLayout === "stretch" ? "stretch" : "center",
+          justifyContent:
+            fallbackLayout === "stretch" ? "flex-start" : "center",
           borderWidth: appearance.gradientColors == null ? 1 : 0,
           borderColor:
             appearance.gradientColors == null
@@ -301,8 +307,9 @@ function FallbackButton({
             paddingVertical: appearance.paddingVertical,
             paddingHorizontal: appearance.paddingHorizontal,
             minHeight: appearance.minHeight || undefined,
-            alignItems: "center",
-            justifyContent: "center",
+            alignItems: fallbackLayout === "stretch" ? "stretch" : "center",
+            justifyContent:
+              fallbackLayout === "stretch" ? "flex-start" : "center",
             width: "100%",
           }}
         >
