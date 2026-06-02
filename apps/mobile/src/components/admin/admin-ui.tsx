@@ -490,40 +490,37 @@ export function AdminButton({
   const tc = THEME_COLORS[themeName];
   const palette = getButtonPalette(tc)[variant];
 
-  if (!icon) {
-    return (
-      <ThemedExpoButton
-        onPress={onPress}
-        disabled={disabled}
-        style={{ minHeight: 44 }}
-        variant={variant}
-      >
-        {label}
-      </ThemedExpoButton>
-    );
-  }
-
   return (
-    <Pressable
+    <ThemedExpoButton
       onPress={onPress}
       disabled={disabled}
-      className="min-h-[44] rounded-[16] border px-[14] flex-row items-center justify-center gap-2"
-      style={({ pressed }) => [
-        {
-          backgroundColor: palette.bg,
-          borderColor: palette.border,
-          opacity: disabled ? 0.55 : pressed ? 0.88 : 1,
-        },
-      ]}
+      label={label}
+      leadingAccessory={
+        icon ? <Ionicons name={icon} size={16} color={palette.text} /> : undefined
+      }
+      fallbackAppearance={
+        icon
+          ? {
+              backgroundColor: palette.bg,
+              borderColor: palette.border,
+              foregroundColor: palette.text,
+              borderRadius: 16,
+              paddingHorizontal: 14,
+              paddingVertical: 10,
+              minHeight: 44,
+              gradientColors: null,
+              textStyle: {
+                fontFamily: "Nunito_800ExtraBold",
+                fontSize: 13,
+              },
+            }
+          : undefined
+      }
+      style={{ minHeight: 44 }}
+      variant={variant}
     >
-      {icon ? <Ionicons name={icon} size={16} color={palette.text} /> : null}
-      <Text
-        className="font-nunito-extrabold text-[13px]"
-        style={{ color: palette.text }}
-      >
-        {label}
-      </Text>
-    </Pressable>
+      {label}
+    </ThemedExpoButton>
   );
 }
 

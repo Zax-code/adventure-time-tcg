@@ -1,5 +1,12 @@
 import { type ReactNode } from "react";
-import { ActivityIndicator, Platform, Pressable, Text, type ViewStyle } from "react-native";
+import {
+  ActivityIndicator,
+  Platform,
+  Pressable,
+  Text,
+  View,
+  type ViewStyle,
+} from "react-native";
 import { Button as ComposeButton, FilledTonalButton, Host as ComposeHost, Text as ComposeText, TextButton } from "@expo/ui/jetpack-compose";
 import { Button as SwiftButton, Host as SwiftHost, Text as SwiftText } from "@expo/ui/swift-ui";
 import {
@@ -25,11 +32,29 @@ type ThemedButtonVariant =
   | "ghost"
   | "warning";
 
+type ThemedButtonFallbackAppearance = {
+  backgroundColor?: string;
+  borderColor?: string;
+  foregroundColor?: string;
+  borderRadius?: number;
+  paddingHorizontal?: number;
+  paddingVertical?: number;
+  minHeight?: number;
+  gradientColors?: readonly [string, string] | null;
+  textStyle?: {
+    fontFamily?: string;
+    fontSize?: number;
+  };
+};
+
 type ThemedExpoButtonProps = {
   onPress?: () => void;
   disabled?: boolean;
   loading?: boolean;
-  children: ReactNode;
+  children?: ReactNode;
+  label?: string;
+  leadingAccessory?: ReactNode;
+  fallbackAppearance?: ThemedButtonFallbackAppearance;
   style?: ViewStyle;
   variant: ThemedButtonVariant;
 };
@@ -87,7 +112,11 @@ function getButtonPalette(
   }
 }
 
-function getLabelText(children: ReactNode) {
+function getLabelText(label: string | undefined, children: ReactNode | undefined) {
+  if (label) {
+    return label;
+  }
+
   if (typeof children === "string" || typeof children === "number") {
     return String(children);
   }
@@ -98,9 +127,10 @@ function getLabelText(children: ReactNode) {
 function shouldUseFallbackButton(
   label: string | null,
   loading: boolean | undefined,
+  leadingAccessory: ReactNode | undefined,
   style: ViewStyle | undefined,
 ) {
-  if (Platform.OS === "web" || loading || !label) {
+  if (Platform.OS === "web" || loading || !label || leadingAccessory) {
     return true;
   }
 
@@ -125,107 +155,185 @@ function getNativeButtonKind(variant: ThemedButtonVariant) {
   return "filled";
 }
 
+function getDefaultFallbackAppearance(
+  tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS],
+  palette: ReturnType<typeof getButtonPalette>,
+  nativeKind: ReturnType<typeof getNativeButtonKind>,
+  variant: ThemedButtonVariant,
+): Required<Omit<ThemedButtonFallbackAppearance, "textStyle">> & {
+  textStyle: NonNullable<ThemedButtonFallbackAppearance["textStyle"]>;
+} {
+  return {
+    backgroundColor:
+      nativeKind === "ghost"
+        ? "transparent"
+        : nativeKind === "tonal"
+          ? palette.tonalBackground
+          : palette.filledBackground,
+    borderColor:
+      nativeKind === "ghost" ? tc.primaryBorder : palette.outlineBorder,
+    foregroundColor:
+      nativeKind === "tonal"
+        ? palette.tonalForeground
+        : nativeKind === "ghost"
+          ? palette.outlineForeground
+          : palette.filledForeground,
+    borderRadius: 999,
+    paddingHorizontal: nativeKind === "ghost" ? 20 : 24,
+    paddingVertical: nativeKind === "ghost" ? 10 : 12,
+    minHeight: 0,
+    gradientColors:
+      nativeKind === "ghost"
+        ? null
+        : variant === "secondary"
+          ? ([tc.secondary, tc.secondaryDark] as const)
+          : variant === "danger"
+            ? ([tc.dangerDark, tc.dangerDark] as const)
+            : variant === "warning"
+              ? ([tc.accentText, tc.accentText] as const)
+              : ([tc.primary, tc.primaryDark] as const),
+    textStyle: {
+      fontFamily:
+        variant === "ghost" ? "Nunito_600SemiBold" : "Nunito_700Bold",
+      fontSize: variant === "ghost" ? 14 : 15,
+    },
+  };
+}
+
 function FallbackButton({
   onPress,
   disabled,
   loading,
   children,
+  label: explicitLabel,
+  leadingAccessory,
+  fallbackAppearance,
   style,
   variant,
 }: ThemedExpoButtonProps) {
   const tc = THEME_COLORS[useThemeStore((state) => state.themeName)];
   const palette = getButtonPalette(tc, variant);
   const nativeKind = getNativeButtonKind(variant);
+  const label = getLabelText(explicitLabel, children);
+  const defaultAppearance = getDefaultFallbackAppearance(
+    tc,
+    palette,
+    nativeKind,
+    variant,
+  );
+  const appearance = {
+    ...defaultAppearance,
+    ...fallbackAppearance,
+    textStyle: {
+      ...defaultAppearance.textStyle,
+      ...fallbackAppearance?.textStyle,
+    },
+  };
+  const foregroundColor = appearance.foregroundColor;
   const content = loading ? (
-    <ActivityIndicator
-      color={
-        nativeKind === "tonal"
-          ? palette.tonalForeground
-          : nativeKind === "ghost"
-            ? palette.outlineForeground
-            : palette.filledForeground
-      }
-    />
+    <ActivityIndicator color={foregroundColor} />
   ) : (
-    <Text
+    <View
       style={{
-        color:
-          nativeKind === "tonal"
-            ? palette.tonalForeground
-            : nativeKind === "ghost"
-              ? palette.outlineForeground
-              : palette.filledForeground,
-        fontFamily:
-          variant === "ghost" ? "Nunito_600SemiBold" : "Nunito_700Bold",
-        fontSize: variant === "ghost" ? 14 : 15,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: leadingAccessory ? 8 : 0,
       }}
     >
-      {children}
-    </Text>
+      {leadingAccessory}
+      {label ? (
+        <Text
+          style={{
+            color: foregroundColor,
+            fontFamily: appearance.textStyle.fontFamily,
+            fontSize: appearance.textStyle.fontSize,
+          }}
+        >
+          {label}
+        </Text>
+      ) : null}
+    </View>
   );
 
-  if (nativeKind === "ghost") {
-    return (
-      <Pressable
-        onPress={onPress}
-        disabled={disabled || loading}
-        style={[
-          {
-            borderRadius: 999,
-            paddingVertical: 10,
-            paddingHorizontal: 20,
-            alignItems: "center",
-            borderWidth: 1,
-            borderColor: tc.primaryBorder,
-            opacity: disabled || loading ? 0.6 : 1,
-          },
-          style,
-        ]}
-      >
-        {content}
-      </Pressable>
-    );
-  }
-
-  const gradientColors =
-    variant === "secondary"
-      ? ([tc.secondary, tc.secondaryDark] as const)
-      : variant === "danger"
-        ? ([tc.dangerDark, tc.dangerDark] as const)
-        : variant === "warning"
-          ? ([tc.accentText, tc.accentText] as const)
-          : ([tc.primary, tc.primaryDark] as const);
-
   return (
-    <Pressable onPress={onPress} disabled={disabled || loading} style={style}>
-      <LinearGradient
-        colors={gradientColors}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={{
-          borderRadius: 999,
-          paddingVertical: 12,
-          paddingHorizontal: 24,
+    <Pressable
+      onPress={onPress}
+      disabled={disabled || loading}
+      style={[
+        {
+          borderRadius: appearance.borderRadius,
+          paddingVertical:
+            appearance.gradientColors == null
+              ? appearance.paddingVertical
+              : undefined,
+          paddingHorizontal:
+            appearance.gradientColors == null
+              ? appearance.paddingHorizontal
+              : undefined,
+          minHeight:
+            appearance.gradientColors == null
+              ? appearance.minHeight || undefined
+              : undefined,
+          backgroundColor:
+            appearance.gradientColors == null
+              ? appearance.backgroundColor
+              : undefined,
           alignItems: "center",
+          justifyContent: "center",
+          borderWidth: appearance.gradientColors == null ? 1 : 0,
+          borderColor:
+            appearance.gradientColors == null
+              ? appearance.borderColor
+              : undefined,
           opacity: disabled || loading ? 0.6 : 1,
-        }}
-      >
-        {content}
-      </LinearGradient>
+        },
+        style,
+      ]}
+    >
+      {appearance.gradientColors ? (
+        <LinearGradient
+          colors={appearance.gradientColors}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={{
+            borderRadius: appearance.borderRadius,
+            paddingVertical: appearance.paddingVertical,
+            paddingHorizontal: appearance.paddingHorizontal,
+            minHeight: appearance.minHeight || undefined,
+            alignItems: "center",
+            justifyContent: "center",
+            width: "100%",
+          }}
+        >
+          {content}
+        </LinearGradient>
+      ) : (
+        content
+      )}
     </Pressable>
   );
 }
 
 export function ThemedExpoButton(props: ThemedExpoButtonProps) {
-  const { style, loading, children, disabled, onPress, variant } = props;
+  const {
+    style,
+    loading,
+    children,
+    label: explicitLabel,
+    leadingAccessory,
+    disabled,
+    onPress,
+    variant,
+  } = props;
   const themeName = useThemeStore((state) => state.themeName);
   const tc = THEME_COLORS[themeName];
   const colorScheme = getExpoUIColorScheme(themeName);
-  const label = getLabelText(children);
+  const label = getLabelText(explicitLabel, children);
   const palette = getButtonPalette(tc, variant);
   const nativeKind = getNativeButtonKind(variant);
 
-  if (shouldUseFallbackButton(label, loading, style)) {
+  if (shouldUseFallbackButton(label, loading, leadingAccessory, style)) {
     return <FallbackButton {...props} />;
   }
 
