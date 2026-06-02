@@ -132,7 +132,9 @@ export function AdminShell({ children }: { children: ReactNode }) {
                       elevation: 3,
                     }}
                   >
-                    <HomeIcon size={22} color="#FFFFFF" />
+                    <View style={{ transform: [{ translateY: -1.5 }] }}>
+                      <HomeIcon size={22} color="#FFFFFF" />
+                    </View>
                   </LinearGradient>
                 </Pressable>
                 <Pressable onPress={() => router.push("/settings")} hitSlop={8}>
