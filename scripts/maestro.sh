@@ -82,6 +82,17 @@ NODE
   test_access_token="$(sed -n '1p' "$session_file")"
   test_refresh_token="$(sed -n '2p' "$session_file")"
   test_user="$(sed -n '3p' "$session_file")"
+  test_email_uri="$(node -p 'encodeURIComponent(process.argv[1])' "$test_email")"
+  test_password_uri="$(node -p 'encodeURIComponent(process.argv[1])' "$test_password")"
+
+  export TEST_EMAIL="$test_email"
+  export TEST_PASSWORD="$test_password"
+  export TEST_EMAIL_URI="$test_email_uri"
+  export TEST_PASSWORD_URI="$test_password_uri"
+  export TEST_ACCESS_TOKEN="$test_access_token"
+  export TEST_REFRESH_TOKEN="$test_refresh_token"
+  export TEST_USER="$test_user"
+  export TEST_MATCH_ID="$test_match_id"
 
   if [[ "${#args[@]}" -ge 4 && -f "${args[3]}" ]]; then
     flow_dir="$(dirname "${args[3]}")"
@@ -89,6 +100,8 @@ NODE
     temp_flow="${temp_flow}.yaml"
     TEST_EMAIL_VALUE="$test_email" \
     TEST_PASSWORD_VALUE="$test_password" \
+    TEST_EMAIL_URI_VALUE="$test_email_uri" \
+    TEST_PASSWORD_URI_VALUE="$test_password_uri" \
     TEST_ACCESS_TOKEN_VALUE="$test_access_token" \
     TEST_REFRESH_TOKEN_VALUE="$test_refresh_token" \
     TEST_USER_VALUE="$test_user" \
@@ -99,6 +112,8 @@ NODE
         const replacements = {
           "${TEST_EMAIL}": process.env.TEST_EMAIL_VALUE ?? "",
           "${TEST_PASSWORD}": process.env.TEST_PASSWORD_VALUE ?? "",
+          "${TEST_EMAIL_URI}": process.env.TEST_EMAIL_URI_VALUE ?? "",
+          "${TEST_PASSWORD_URI}": process.env.TEST_PASSWORD_URI_VALUE ?? "",
           "${TEST_ACCESS_TOKEN}": process.env.TEST_ACCESS_TOKEN_VALUE ?? "",
           "${TEST_REFRESH_TOKEN}": process.env.TEST_REFRESH_TOKEN_VALUE ?? "",
           "${TEST_USER}": process.env.TEST_USER_VALUE ?? "",

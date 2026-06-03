@@ -10,7 +10,7 @@ tags:
     clearState: true
     clearKeychain: true
 - openLink:
-    link: adventure-time://e2e-auth?redirect=%2Fpvp&fixture=${TEST_MATCH_ID}&accessToken=${TEST_ACCESS_TOKEN}&refreshToken=${TEST_REFRESH_TOKEN}&user=${TEST_USER}
+    link: adventure-time:///e2e-auth?redirect=%2Fpvp%3Ffixture%3D${TEST_MATCH_ID}&email=${TEST_EMAIL_URI}&password=${TEST_PASSWORD_URI}
 - runFlow: subflows/confirm-open-link-if-needed.yaml
 - assertVisible:
     id: pvp-open-mechanics-button
