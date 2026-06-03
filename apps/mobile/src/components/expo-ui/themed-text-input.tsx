@@ -53,7 +53,26 @@ export function ThemedExpoTextInput({
   const themeName = explicitThemeName ?? storedThemeName;
   const tc = THEME_COLORS[themeName];
   const textState = useNativeState(value);
-  const shouldUseFallback = typeof props.testID === "string" && props.testID.length > 0;
+  // Decorated inputs currently render more reliably through React Native than
+  // Expo UI when we need bordered, padded, full-width fields across screens.
+  const hasStyledContainer =
+    style != null &&
+    (style.backgroundColor != null ||
+      style.borderColor != null ||
+      style.borderRadius != null ||
+      style.borderWidth != null ||
+      style.padding != null ||
+      style.paddingHorizontal != null ||
+      style.paddingVertical != null ||
+      style.paddingTop != null ||
+      style.paddingBottom != null ||
+      style.paddingLeft != null ||
+      style.paddingRight != null ||
+      typeof style.width === "string" ||
+      typeof style.height === "string");
+  const shouldUseFallback =
+    hasStyledContainer ||
+    (typeof props.testID === "string" && props.testID.length > 0);
 
   useEffect(() => {
     if (textState.value !== value) {
