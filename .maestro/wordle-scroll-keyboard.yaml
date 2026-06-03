@@ -1,0 +1,120 @@
+appId: love.leaetzak.adventuretime
+name: Wordle keyboard works after scroll
+tags:
+  - smoke
+  - wordle
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- openLink:
+    link: adventure-time://e2e-auth?redirect=%2Fquests%2Fwordle&accessToken=${TEST_ACCESS_TOKEN}&refreshToken=${TEST_REFRESH_TOKEN}&user=${TEST_USER}
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- assertVisible:
+    text: Daily Wordle
+- swipe:
+    start: "50%,82%"
+    end: "50%,24%"
+    duration: 600
+- assertVisible:
+    id: wordle-key-CLEAR
+- assertVisible:
+    id: wordle-key-SUBMIT
+
+- tapOn:
+    id: wordle-key-Q
+- tapOn:
+    id: wordle-key-W
+- tapOn:
+    id: wordle-key-E
+- tapOn:
+    id: wordle-key-R
+- tapOn:
+    id: wordle-key-T
+- waitForAnimationToEnd
+- takeScreenshot: wordle-qwert-after-scroll
+- tapOn:
+    id: wordle-key-CLEAR
+
+- tapOn:
+    id: wordle-key-Y
+- tapOn:
+    id: wordle-key-U
+- tapOn:
+    id: wordle-key-I
+    point: "50%,50%"
+- tapOn:
+    id: wordle-key-O
+- tapOn:
+    id: wordle-key-P
+- waitForAnimationToEnd
+- takeScreenshot: wordle-yuiop-after-scroll
+- tapOn:
+    id: wordle-key-CLEAR
+
+- tapOn:
+    id: wordle-key-A
+- tapOn:
+    id: wordle-key-S
+- tapOn:
+    id: wordle-key-D
+- tapOn:
+    id: wordle-key-F
+- tapOn:
+    id: wordle-key-G
+- waitForAnimationToEnd
+- takeScreenshot: wordle-asdfg-after-scroll
+- tapOn:
+    id: wordle-key-CLEAR
+
+- tapOn:
+    id: wordle-key-H
+- tapOn:
+    id: wordle-key-J
+- tapOn:
+    id: wordle-key-K
+- tapOn:
+    id: wordle-key-L
+- tapOn:
+    id: wordle-key-Z
+- waitForAnimationToEnd
+- takeScreenshot: wordle-hjklz-after-scroll
+- tapOn:
+    id: wordle-key-CLEAR
+
+- tapOn:
+    id: wordle-key-X
+- tapOn:
+    id: wordle-key-C
+- tapOn:
+    id: wordle-key-V
+- tapOn:
+    id: wordle-key-B
+- tapOn:
+    id: wordle-key-N
+- waitForAnimationToEnd
+- takeScreenshot: wordle-xcvbn-after-scroll
+- tapOn:
+    id: wordle-key-CLEAR
+
+- tapOn:
+    id: wordle-key-M
+- waitForAnimationToEnd
+- takeScreenshot: wordle-m-after-scroll
+- tapOn:
+    id: wordle-key-CLEAR
+
+- tapOn:
+    id: wordle-key-A
+- tapOn:
+    id: wordle-key-B
+- tapOn:
+    id: wordle-key-O
+- tapOn:
+    id: wordle-key-U
+- tapOn:
+    id: wordle-key-T
+- waitForAnimationToEnd
+- tapOn:
+    id: wordle-key-SUBMIT
+- takeScreenshot: wordle-submit-after-scroll

@@ -20,7 +20,7 @@ const IOS_BUNDLE_ID = "love.leaetzak.adventuretime";
 
 function printHelp() {
   process.stdout.write(
-    `Usage: npm run install:mobile:e2e:ios -- [options]\n\nOptions:\n  --archive <path>   Path to local E2E archive or .app bundle (default: prefers ${DEFAULT_UNPACKED_APP_PATH} when present, otherwise ${DEFAULT_ARCHIVE_PATH})\n  --help             Show this help\n`,
+    `Usage: npm run install:mobile:e2e:ios -- [options]\n\nOptions:\n  --archive <path>   Path to local E2E archive or .app bundle (default: prefers fresh archive ${DEFAULT_ARCHIVE_PATH}, otherwise ${DEFAULT_UNPACKED_APP_PATH})\n  --help             Show this help\n`,
   );
 }
 
@@ -40,9 +40,9 @@ function parseCliOptions() {
 
   const archivePath =
     values.archive?.trim() ||
-    (existsSync(DEFAULT_UNPACKED_APP_PATH)
-      ? DEFAULT_UNPACKED_APP_PATH
-      : DEFAULT_ARCHIVE_PATH);
+    (existsSync(DEFAULT_ARCHIVE_PATH)
+      ? DEFAULT_ARCHIVE_PATH
+      : DEFAULT_UNPACKED_APP_PATH);
 
   return {
     archivePath,

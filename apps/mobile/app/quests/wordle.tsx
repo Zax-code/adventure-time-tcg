@@ -10,6 +10,7 @@ import {
   Animated,
   type GestureResponderEvent,
   Modal,
+  Pressable,
   ScrollView,
   Text,
   TouchableOpacity,
@@ -40,6 +41,7 @@ const WORD_LENGTH = 5;
 const QWERTY_ROWS = ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"];
 const AZERTY_ROWS = ["AZERTYUIOP", "QSDFGHJKLM", "WXCVBN"];
 const WORDLE_LANGUAGE_OPTIONS: WordleLocale[] = ["fr", "en"];
+const e2eKeyOverlayEnabled = process.env.EXPO_PUBLIC_E2E_AUTH === "1";
 const LETTER_PRIORITY: Record<string, number> = {
   absent: 0,
   present: 1,
@@ -133,6 +135,8 @@ export default function WordleScreen() {
 
   const [activeKeys, setActiveKeys] = useState<string[]>([]);
   const [rowContainerWidth, setRowContainerWidth] = useState(0);
+  const keyboardContainerRef = useRef<ElementRef<typeof View> | null>(null);
+  const keyboardContainerFrameRef = useRef<KeyLayout | null>(null);
   const keyLayoutsRef = useRef<Partial<Record<string, KeyLayout>>>({});
   const keyRefs = useRef<
     Partial<Record<string, ElementRef<typeof View> | null>>
@@ -169,6 +173,15 @@ export default function WordleScreen() {
     scale: new Animated.Value(1),
     opacity: new Animated.Value(1),
   }).current;
+
+  const replaceCurrentGuess = useCallback((next: (string | null)[]) => {
+    currentGuessRef.current = next;
+    setCurrentGuess(next);
+  }, []);
+
+  const clearCurrentGuess = useCallback(() => {
+    replaceCurrentGuess(Array(WORD_LENGTH).fill(null));
+  }, [replaceCurrentGuess]);
 
   const clearRevealAnimations = useCallback(() => {
     Object.values(revealTimersRef.current).forEach((timers) => {
@@ -235,7 +248,7 @@ export default function WordleScreen() {
         clearRevealAnimations();
         setGuesses(data.guesses as GuessResult[]);
         setSolved(data.solved);
-        setCurrentGuess(Array(WORD_LENGTH).fill(null));
+        clearCurrentGuess();
         setMessage(null);
         setShareMaskEnabled(false);
         setTargetWord(data.targetWord ?? null);
@@ -250,7 +263,7 @@ export default function WordleScreen() {
         clearRevealAnimations();
         setGuesses(data.guesses as GuessResult[]);
         setSolved(data.solved);
-        setCurrentGuess(Array(WORD_LENGTH).fill(null));
+        clearCurrentGuess();
         setMessage(null);
         setShareMaskEnabled(false);
         setTargetWord(data.targetWord ?? null);
@@ -274,7 +287,7 @@ export default function WordleScreen() {
         clearRevealAnimations();
         setGuesses(data.guesses as GuessResult[]);
         setSolved(data.solved);
-        setCurrentGuess(Array(WORD_LENGTH).fill(null));
+        clearCurrentGuess();
         setMessage(null);
         setShareMaskEnabled(false);
         setTargetWord(data.targetWord ?? null);
@@ -321,20 +334,20 @@ export default function WordleScreen() {
 
       return prevDate;
     });
-  }, [clearRevealAnimations, lastQuestResetAt, stateQuery.data]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [clearCurrentGuess, clearRevealAnimations, lastQuestResetAt, stateQuery.data]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Actions ──────────────────────────────────────────────────────────────
 
   const resetBoardForNewDay = useCallback(() => {
     clearRevealAnimations();
     setGuesses([]);
-    setCurrentGuess(Array(WORD_LENGTH).fill(null));
+    clearCurrentGuess();
     setSolved(false);
     setShareMaskEnabled(false);
     setMessage(null);
     setTargetWord(null);
     setResetModalKind("rollover");
-  }, [clearRevealAnimations]);
+  }, [clearCurrentGuess, clearRevealAnimations]);
 
   const applyImmediateAdminReset = useCallback(
     (resetByName?: string | null) => {
@@ -342,7 +355,7 @@ export default function WordleScreen() {
 
       clearRevealAnimations();
       setGuesses([]);
-      setCurrentGuess(Array(WORD_LENGTH).fill(null));
+      clearCurrentGuess();
       setSolved(false);
       setShareMaskEnabled(false);
       setSubmitting(false);
@@ -355,7 +368,7 @@ export default function WordleScreen() {
         setResetModalKind("admin");
       }
     },
-    [clearRevealAnimations],
+    [clearCurrentGuess, clearRevealAnimations],
   );
 
   useEffect(() => {
@@ -441,23 +454,21 @@ export default function WordleScreen() {
         bounciness: 8,
       }).start();
 
-      setCurrentGuess(next);
+      replaceCurrentGuess(next);
     },
-    [inputLocked, popAnims],
+    [inputLocked, popAnims, replaceCurrentGuess],
   );
 
   const handleRemoveAnimationEnd = useCallback(
     (colIndex: number) => {
-      setCurrentGuess((prev) => {
-        const next = [...prev];
-        next[colIndex] = null;
-        return next;
-      });
+      const next = [...currentGuessRef.current];
+      next[colIndex] = null;
+      replaceCurrentGuess(next);
       setRemovingCellIndex(null);
       removeAnim.scale.setValue(1);
       removeAnim.opacity.setValue(1);
     },
-    [removeAnim],
+    [removeAnim, replaceCurrentGuess],
   );
 
   const removeLetter = useCallback(
@@ -504,9 +515,9 @@ export default function WordleScreen() {
 
   const clearRow = useCallback(() => {
     if (inputLocked) return;
-    setCurrentGuess(Array(WORD_LENGTH).fill(null));
+    clearCurrentGuess();
     triggerShake();
-  }, [inputLocked, triggerShake]);
+  }, [clearCurrentGuess, inputLocked, triggerShake]);
 
   const getRowFlipAnims = useCallback((rowIndex: number) => {
     if (!rowFlipAnimsRef.current[rowIndex]) {
@@ -581,7 +592,7 @@ export default function WordleScreen() {
       patchWordleCaches(result, nextGuesses);
 
       setGuesses(nextGuesses);
-      setCurrentGuess(Array(WORD_LENGTH).fill(null));
+      clearCurrentGuess();
       setActiveDateKey(result.date);
       setAnimatingRows((prev) => new Set(prev).add(rowIndex));
       const rowFlipAnims = getRowFlipAnims(rowIndex);
@@ -656,9 +667,9 @@ export default function WordleScreen() {
       }
     }
   }, [
-    submitLocked,
-    currentGuess,
     activeDateKey,
+    clearCurrentGuess,
+    currentGuess,
     guesses,
     getRowFlipAnims,
     wordleLanguage,
@@ -725,7 +736,7 @@ export default function WordleScreen() {
       setGuesses([]);
       setSolved(false);
       setSubmitting(false);
-      setCurrentGuess(Array(WORD_LENGTH).fill(null));
+      clearCurrentGuess();
       setMessage(null);
       setTargetWord(null);
       setShareMaskEnabled(false);
@@ -739,6 +750,7 @@ export default function WordleScreen() {
     },
     [
       clearActiveTouches,
+      clearCurrentGuess,
       clearRevealAnimations,
       setWordleLanguage,
       wordleLanguage,
@@ -746,13 +758,26 @@ export default function WordleScreen() {
   );
 
   const updateKeyLayout = useCallback((keyId: string) => {
+    const keyboardContainer = keyboardContainerRef.current;
     const keyRef = keyRefs.current[keyId];
-    if (!keyRef) return;
-    keyRef.measureInWindow(
+    if (!keyboardContainer || !keyRef) return;
+    keyRef.measureLayout(
+      keyboardContainer,
       (x, y, width, height) => {
         keyLayoutsRef.current[keyId] = { x, y, width, height };
       },
+      () => {
+        delete keyLayoutsRef.current[keyId];
+      },
     );
+  }, []);
+
+  const updateKeyboardContainerFrame = useCallback(() => {
+    const keyboardContainer = keyboardContainerRef.current;
+    if (!keyboardContainer) return;
+    keyboardContainer.measureInWindow((x, y, width, height) => {
+      keyboardContainerFrameRef.current = { x, y, width, height };
+    });
   }, []);
 
   const findKeyAtPoint = useCallback((x: number, y: number) => {
@@ -795,6 +820,34 @@ export default function WordleScreen() {
       submitGuess,
       addLetter,
     ],
+  );
+
+  const setE2EKeyPressed = useCallback((keyId: string, pressed: boolean) => {
+    if (!e2eKeyOverlayEnabled) {
+      return;
+    }
+
+    setActiveKeys((previous) => {
+      const next = new Set(previous);
+      if (pressed) {
+        next.add(keyId);
+      } else {
+        next.delete(keyId);
+      }
+      return Array.from(next);
+    });
+  }, []);
+
+  const handleE2EKeyPressIn = useCallback(
+    (keyId: string) => {
+      if (!e2eKeyOverlayEnabled) {
+        return;
+      }
+
+      setE2EKeyPressed(keyId, true);
+      activateKey(keyId);
+    },
+    [activateKey, setE2EKeyPressed],
   );
 
   const releaseTouches = useCallback(
@@ -877,11 +930,15 @@ export default function WordleScreen() {
 
   const getChangedTouches = useCallback(
     (event: GestureResponderEvent) =>
-      Array.from(event.nativeEvent.changedTouches).map((touch) => ({
-        id: Number(touch.identifier),
-        x: touch.pageX,
-        y: touch.pageY,
-      })),
+      Array.from(event.nativeEvent.changedTouches).map((touch) => {
+        const frame = keyboardContainerFrameRef.current;
+
+        return {
+          id: Number(touch.identifier),
+          x: frame ? touch.pageX - frame.x : touch.locationX,
+          y: frame ? touch.pageY - frame.y : touch.locationY,
+        };
+      }),
     [],
   );
 
@@ -930,6 +987,10 @@ export default function WordleScreen() {
         gap: 16,
       }}
       keyboardShouldPersistTaps="handled"
+      onScroll={() => {
+        updateKeyboardContainerFrame();
+      }}
+      scrollEventThrottle={16}
     >
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <View className="items-center gap-2 mb-1">
@@ -1126,19 +1187,35 @@ export default function WordleScreen() {
       {/* ── Keyboard card ───────────────────────────────────────────────── */}
       {shareMaskActive ? null : (
         <View
+          ref={keyboardContainerRef}
           className="rounded-[28px] border-2 border-primaryTint bg-surface p-3 shadow shadow-black/10"
+          onLayout={() => {
+            updateKeyboardContainerFrame();
+          }}
           onTouchStart={(event) => {
+            if (e2eKeyOverlayEnabled) {
+              return;
+            }
             handleTouchesDown(getChangedTouches(event));
           }}
           onTouchMove={(event) => {
+            if (e2eKeyOverlayEnabled) {
+              return;
+            }
             handleTouchesMove(getChangedTouches(event));
           }}
           onTouchEnd={(event) => {
+            if (e2eKeyOverlayEnabled) {
+              return;
+            }
             handleTouchesUp(
               getChangedTouches(event).map((touch) => ({ id: touch.id })),
             );
           }}
           onTouchCancel={(event) => {
+            if (e2eKeyOverlayEnabled) {
+              return;
+            }
             handleTouchesCancel(
               getChangedTouches(event).map((touch) => ({ id: touch.id })),
             );
@@ -1168,6 +1245,44 @@ export default function WordleScreen() {
                       const pressed =
                         activeKeys.includes(letter) && !inputLocked;
                       const keyCls = keyBgBorderClass(kState);
+                      const keyStyle = {
+                        width: keyWidth || undefined,
+                        opacity: inputLocked ? 0.45 : pressed ? 0.82 : 1,
+                        transform: [{ scale: pressed ? 0.96 : 1 }],
+                      };
+
+                      if (e2eKeyOverlayEnabled) {
+                        return (
+                          <Pressable
+                            key={letter}
+                            ref={(node) => {
+                              keyRefs.current[letter] = node;
+                            }}
+                            accessibilityLabel={`wordle-key-${letter}`}
+                            accessibilityRole="button"
+                            className={`h-[56px] rounded-2xl border-2 items-center justify-center shadow shadow-black/10 ${keyCls}`}
+                            disabled={inputLocked}
+                            onLayout={() => {
+                              requestAnimationFrame(() => updateKeyLayout(letter));
+                            }}
+                            onPressIn={() => {
+                              handleE2EKeyPressIn(letter);
+                            }}
+                            onPressOut={() => {
+                              setE2EKeyPressed(letter, false);
+                            }}
+                            style={keyStyle}
+                            testID={`wordle-key-${letter}`}
+                          >
+                            <Text
+                              className={`text-sm font-nunito-extrabold ${keyLetterClass(kState)}`}
+                            >
+                              {letter}
+                            </Text>
+                          </Pressable>
+                        );
+                      }
+
                       return (
                         <View
                           key={letter}
@@ -1178,12 +1293,7 @@ export default function WordleScreen() {
                             requestAnimationFrame(() => updateKeyLayout(letter));
                           }}
                           className={`h-[56px] rounded-2xl border-2 items-center justify-center shadow shadow-black/10 ${keyCls}`}
-                          pointerEvents="none"
-                          style={{
-                            width: keyWidth || undefined,
-                            opacity: inputLocked ? 0.45 : pressed ? 0.82 : 1,
-                            transform: [{ scale: pressed ? 0.96 : 1 }],
-                          }}
+                          style={keyStyle}
                         >
                           <Text
                             className={`text-sm font-nunito-extrabold ${keyLetterClass(kState)}`}
@@ -1202,76 +1312,167 @@ export default function WordleScreen() {
           <View className="mt-3 h-px bg-primaryTint" />
           {/* Clear + Submit row */}
           <View className="mt-3 flex-row gap-2">
-            <View
-              ref={(node) => {
-                keyRefs.current["CLEAR"] = node;
-              }}
-              onLayout={() => {
-                requestAnimationFrame(() => updateKeyLayout("CLEAR"));
-              }}
-              pointerEvents="none"
-              className="flex-1 h-[56px] rounded-2xl border-2 border-primaryTint bg-surfaceMuted items-center justify-center shadow shadow-black/10"
-              style={{
-                opacity: rowClearDisabled
-                  ? 0.4
-                  : activeKeys.includes("CLEAR")
-                    ? 0.82
-                    : 1,
-                transform: [
-                  {
-                    scale:
-                      activeKeys.includes("CLEAR") && !rowClearDisabled
-                        ? 0.96
-                        : 1,
-                  },
-                ],
-              }}
-            >
-              <Text className="text-xs font-nunito-extrabold text-primaryStrong">
-                {t("quests.wordle.clear")}
-              </Text>
-            </View>
-
-            <View
-              ref={(node) => {
-                keyRefs.current["SUBMIT"] = node;
-              }}
-              onLayout={() => {
-                requestAnimationFrame(() => updateKeyLayout("SUBMIT"));
-              }}
-              pointerEvents="none"
-              className="flex-1 h-[56px] rounded-2xl overflow-hidden shadow shadow-black/10"
-              style={{
-                opacity: submitLocked
-                  ? 0.4
-                  : activeKeys.includes("SUBMIT")
-                    ? 0.88
-                    : 1,
-                transform: [
-                  {
-                    scale:
-                      activeKeys.includes("SUBMIT") && !submitLocked
-                        ? 0.96
-                        : 1,
-                  },
-                ],
-              }}
-            >
-              <LinearGradient
-                colors={[tc.primary, tc.primaryDark]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
+            {e2eKeyOverlayEnabled ? (
+              <Pressable
+                ref={(node) => {
+                  keyRefs.current["CLEAR"] = node;
+                }}
+                accessibilityLabel="wordle-key-CLEAR"
+                accessibilityRole="button"
+                className="flex-1 h-[56px] rounded-2xl border-2 border-primaryTint bg-surfaceMuted items-center justify-center shadow shadow-black/10"
+                disabled={rowClearDisabled}
+                onLayout={() => {
+                  requestAnimationFrame(() => updateKeyLayout("CLEAR"));
+                }}
+                onPressIn={() => {
+                  handleE2EKeyPressIn("CLEAR");
+                }}
+                onPressOut={() => {
+                  setE2EKeyPressed("CLEAR", false);
+                }}
                 style={{
-                  flex: 1,
-                  alignItems: "center",
-                  justifyContent: "center",
+                  opacity: rowClearDisabled
+                    ? 0.4
+                    : activeKeys.includes("CLEAR")
+                      ? 0.82
+                      : 1,
+                  transform: [
+                    {
+                      scale:
+                        activeKeys.includes("CLEAR") && !rowClearDisabled
+                          ? 0.96
+                          : 1,
+                    },
+                  ],
+                }}
+                testID="wordle-key-CLEAR"
+              >
+                <Text className="text-xs font-nunito-extrabold text-primaryStrong">
+                  {t("quests.wordle.clear")}
+                </Text>
+              </Pressable>
+            ) : (
+              <View
+                ref={(node) => {
+                  keyRefs.current["CLEAR"] = node;
+                }}
+                onLayout={() => {
+                  requestAnimationFrame(() => updateKeyLayout("CLEAR"));
+                }}
+                className="flex-1 h-[56px] rounded-2xl border-2 border-primaryTint bg-surfaceMuted items-center justify-center shadow shadow-black/10"
+                style={{
+                  opacity: rowClearDisabled
+                    ? 0.4
+                    : activeKeys.includes("CLEAR")
+                      ? 0.82
+                      : 1,
+                  transform: [
+                    {
+                      scale:
+                        activeKeys.includes("CLEAR") && !rowClearDisabled
+                          ? 0.96
+                          : 1,
+                    },
+                  ],
                 }}
               >
-                <Text className="text-xs font-nunito-extrabold text-white">
-                  {submitting ? "…" : t("quests.wordle.submit")}
+                <Text className="text-xs font-nunito-extrabold text-primaryStrong">
+                  {t("quests.wordle.clear")}
                 </Text>
-              </LinearGradient>
-            </View>
+              </View>
+            )}
+
+            {e2eKeyOverlayEnabled ? (
+              <Pressable
+                ref={(node) => {
+                  keyRefs.current["SUBMIT"] = node;
+                }}
+                accessibilityLabel="wordle-key-SUBMIT"
+                accessibilityRole="button"
+                className="flex-1 h-[56px] rounded-2xl overflow-hidden shadow shadow-black/10"
+                disabled={submitLocked}
+                onLayout={() => {
+                  requestAnimationFrame(() => updateKeyLayout("SUBMIT"));
+                }}
+                onPressIn={() => {
+                  handleE2EKeyPressIn("SUBMIT");
+                }}
+                onPressOut={() => {
+                  setE2EKeyPressed("SUBMIT", false);
+                }}
+                style={{
+                  opacity: submitLocked
+                    ? 0.4
+                    : activeKeys.includes("SUBMIT")
+                      ? 0.88
+                      : 1,
+                  transform: [
+                    {
+                      scale:
+                        activeKeys.includes("SUBMIT") && !submitLocked
+                          ? 0.96
+                          : 1,
+                    },
+                  ],
+                }}
+                testID="wordle-key-SUBMIT"
+              >
+                <LinearGradient
+                  colors={[tc.primary, tc.primaryDark]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={{
+                    flex: 1,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Text className="text-xs font-nunito-extrabold text-white">
+                    {submitting ? "…" : t("quests.wordle.submit")}
+                  </Text>
+                </LinearGradient>
+              </Pressable>
+            ) : (
+              <View
+                ref={(node) => {
+                  keyRefs.current["SUBMIT"] = node;
+                }}
+                onLayout={() => {
+                  requestAnimationFrame(() => updateKeyLayout("SUBMIT"));
+                }}
+                className="flex-1 h-[56px] rounded-2xl overflow-hidden shadow shadow-black/10"
+                style={{
+                  opacity: submitLocked
+                    ? 0.4
+                    : activeKeys.includes("SUBMIT")
+                      ? 0.88
+                      : 1,
+                  transform: [
+                    {
+                      scale:
+                        activeKeys.includes("SUBMIT") && !submitLocked
+                          ? 0.96
+                          : 1,
+                    },
+                  ],
+                }}
+              >
+                <LinearGradient
+                  colors={[tc.primary, tc.primaryDark]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={{
+                    flex: 1,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Text className="text-xs font-nunito-extrabold text-white">
+                    {submitting ? "…" : t("quests.wordle.submit")}
+                  </Text>
+                </LinearGradient>
+              </View>
+            )}
           </View>
         </View>
       )}

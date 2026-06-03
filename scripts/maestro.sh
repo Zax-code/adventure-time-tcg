@@ -31,6 +31,13 @@ if [[ "${1:-}" == "test" ]]; then
     exit 1
   fi
 
+  (
+    cd /Users/zax/Develop/adventure-time-tcg/apps/phoenix
+    MOBILE_TEST_EMAIL="$test_email" \
+    MOBILE_TEST_PASSWORD="$test_password" \
+      ./scripts/ensure-mobile-test-user.sh >/dev/null
+  )
+
   if [[ "${#args[@]}" -ge 4 && -f "${args[3]}" ]] && grep -q '\${TEST_MATCH_ID}' "${args[3]}"; then
     test_match_id="$(
       cd /Users/zax/Develop/adventure-time-tcg/apps/phoenix
