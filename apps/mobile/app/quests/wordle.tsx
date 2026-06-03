@@ -42,6 +42,19 @@ const QWERTY_ROWS = ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"];
 const AZERTY_ROWS = ["AZERTYUIOP", "QSDFGHJKLM", "WXCVBN"];
 const WORDLE_LANGUAGE_OPTIONS: WordleLocale[] = ["fr", "en"];
 const e2eKeyOverlayEnabled = process.env.EXPO_PUBLIC_E2E_AUTH === "1";
+const KEY_TOUCH_PADDING_X = 3;
+const KEY_TOUCH_PADDING_Y = 4;
+const KEY_HIT_SLOP = {
+  top: KEY_TOUCH_PADDING_Y,
+  bottom: KEY_TOUCH_PADDING_Y,
+  left: KEY_TOUCH_PADDING_X,
+  right: KEY_TOUCH_PADDING_X,
+} as const;
+const NARROW_TILE_LETTER_STYLE = {
+  minWidth: 12,
+  textAlign: "center" as const,
+  transform: [{ scaleX: 1.7 }],
+};
 const LETTER_PRIORITY: Record<string, number> = {
   absent: 0,
   present: 1,
@@ -764,7 +777,12 @@ export default function WordleScreen() {
     keyRef.measureLayout(
       keyboardContainer,
       (x, y, width, height) => {
-        keyLayoutsRef.current[keyId] = { x, y, width, height };
+        keyLayoutsRef.current[keyId] = {
+          x: x - KEY_TOUCH_PADDING_X,
+          y: y - KEY_TOUCH_PADDING_Y,
+          width: width + KEY_TOUCH_PADDING_X * 2,
+          height: height + KEY_TOUCH_PADDING_Y * 2,
+        };
       },
       () => {
         delete keyLayoutsRef.current[keyId];
@@ -1100,6 +1118,9 @@ export default function WordleScreen() {
                   const letterEl = (
                     <Text
                       className={`text-xl font-nunito-extrabold ${letterCls}`}
+                      style={
+                        letter === "I" ? NARROW_TILE_LETTER_STYLE : undefined
+                      }
                     >
                       {letter}
                     </Text>
@@ -1271,6 +1292,7 @@ export default function WordleScreen() {
                             onPressOut={() => {
                               setE2EKeyPressed(letter, false);
                             }}
+                            hitSlop={KEY_HIT_SLOP}
                             style={keyStyle}
                             testID={`wordle-key-${letter}`}
                           >
@@ -1330,6 +1352,7 @@ export default function WordleScreen() {
                 onPressOut={() => {
                   setE2EKeyPressed("CLEAR", false);
                 }}
+                hitSlop={KEY_HIT_SLOP}
                 style={{
                   opacity: rowClearDisabled
                     ? 0.4
@@ -1400,6 +1423,7 @@ export default function WordleScreen() {
                 onPressOut={() => {
                   setE2EKeyPressed("SUBMIT", false);
                 }}
+                hitSlop={KEY_HIT_SLOP}
                 style={{
                   opacity: submitLocked
                     ? 0.4
