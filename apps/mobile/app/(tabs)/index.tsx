@@ -334,6 +334,7 @@ export default function HomeScreen() {
               fallbackAppearance={{
                 borderColor: tc.secondaryDark,
                 borderRadius: 999,
+                minHeight: 32,
                 paddingHorizontal: 16,
                 paddingVertical: 8,
                 gradientColors: [tc.secondary, tc.secondaryDark] as const,
@@ -343,14 +344,15 @@ export default function HomeScreen() {
                   fontSize: 14,
                 },
               }}
+              style={{ minWidth: 92 }}
               variant="secondary"
             >
               {t("home.claim")}
             </ThemedExpoButton>
           ) : (
             <View
-              className="rounded-full px-4 py-2"
-              style={{ backgroundColor: tc.infoTint + "99" }}
+              className="min-w-[92px] items-center justify-center rounded-full px-4 py-2"
+              style={{ backgroundColor: tc.infoTint + "99", minHeight: 32 }}
             >
               <Text
                 className="font-nunito-bold text-sm"
