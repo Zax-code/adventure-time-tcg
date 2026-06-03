@@ -240,14 +240,21 @@ export default function HomeScreen() {
                 onPress={() => {
                   setNotificationPromptIgnored(true);
                 }}
+                leadingAccessory={
+                  <Ionicons
+                    name="close-circle-outline"
+                    size={16}
+                    color={tc.primaryStrong}
+                  />
+                }
                 fallbackAppearance={{
-                  backgroundColor: tc.surfaceMuted,
+                  backgroundColor: tc.primaryBg,
                   borderColor: tc.primaryBorder,
                   borderRadius: 999,
                   paddingHorizontal: 16,
                   paddingVertical: 12,
                   gradientColors: null,
-                  foregroundColor: tc.fgMuted,
+                  foregroundColor: tc.primaryStrong,
                   textStyle: {
                     fontFamily: "Nunito_600SemiBold",
                     fontSize: 14,
@@ -271,14 +278,21 @@ export default function HomeScreen() {
                     },
                   );
                 }}
+                leadingAccessory={
+                  <Ionicons
+                    name="eye-off-outline"
+                    size={16}
+                    color={tc.dangerText}
+                  />
+                }
                 fallbackAppearance={{
-                  backgroundColor: tc.surfaceMuted,
-                  borderColor: tc.primaryBorder,
+                  backgroundColor: tc.dangerTint,
+                  borderColor: tc.dangerBorder,
                   borderRadius: 999,
                   paddingHorizontal: 16,
                   paddingVertical: 12,
                   gradientColors: null,
-                  foregroundColor: tc.fgMuted,
+                  foregroundColor: tc.dangerText,
                   textStyle: {
                     fontFamily: "Nunito_600SemiBold",
                     fontSize: 14,
@@ -316,8 +330,11 @@ export default function HomeScreen() {
               onPress={() => claimMutation.mutate()}
               disabled={claimMutation.isPending}
               loading={claimMutation.isPending}
+              preferFallback
               fallbackAppearance={{
+                borderColor: tc.secondaryDark,
                 borderRadius: 999,
+                minHeight: 32,
                 paddingHorizontal: 16,
                 paddingVertical: 8,
                 gradientColors: [tc.secondary, tc.secondaryDark] as const,
@@ -327,14 +344,15 @@ export default function HomeScreen() {
                   fontSize: 14,
                 },
               }}
+              style={{ minWidth: 92 }}
               variant="secondary"
             >
               {t("home.claim")}
             </ThemedExpoButton>
           ) : (
             <View
-              className="rounded-full px-4 py-2"
-              style={{ backgroundColor: tc.infoTint + "99" }}
+              className="min-w-[92px] items-center justify-center rounded-full px-4 py-2"
+              style={{ backgroundColor: tc.infoTint + "99", minHeight: 32 }}
             >
               <Text
                 className="font-nunito-bold text-sm"
