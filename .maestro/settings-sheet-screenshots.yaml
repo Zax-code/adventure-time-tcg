@@ -1,0 +1,35 @@
+appId: love.leaetzak.adventuretime
+name: Settings sheet focused screenshots
+tags:
+  - settings
+  - screenshots
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- openLink:
+    link: adventure-time://e2e-auth?redirect=%2Fsettings&accessToken=${TEST_ACCESS_TOKEN}&refreshToken=${TEST_REFRESH_TOKEN}&user=${TEST_USER}
+- assertVisible:
+    id: settings-profile-edit
+- takeScreenshot: tmp-settings-shots/01-profile
+- scrollUntilVisible:
+    element:
+      id: settings-step-source-device_health
+    direction: DOWN
+    timeout: 40000
+    centerElement: true
+- takeScreenshot: tmp-settings-shots/02-step-source
+- scrollUntilVisible:
+    element:
+      id: settings-step-sync-action
+    direction: DOWN
+    timeout: 40000
+    centerElement: true
+- takeScreenshot: tmp-settings-shots/03-step-sync
+- scrollUntilVisible:
+    element:
+      id: settings-logout-action
+    direction: DOWN
+    timeout: 40000
+    centerElement: true
+- takeScreenshot: tmp-settings-shots/04-session

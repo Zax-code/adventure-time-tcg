@@ -1,6 +1,4 @@
 import { Host as ComposeHost, Switch as ComposeSwitch } from "@expo/ui/jetpack-compose";
-import { Host as SwiftHost, Toggle } from "@expo/ui/swift-ui";
-import { disabled as swiftDisabled, tint } from "@expo/ui/swift-ui/modifiers";
 import { Platform, Switch as RNSwitch } from "react-native";
 
 import { useThemeStore } from "../../stores/theme-store";
@@ -29,19 +27,6 @@ export function ThemedExpoSwitch({
   const themeName = explicitThemeName ?? storedThemeName;
   const tc = THEME_COLORS[themeName];
   const colorScheme = getExpoUIColorScheme(themeName);
-
-  if (Platform.OS === "ios") {
-    return (
-      <SwiftHost colorScheme={colorScheme} matchContents>
-        <Toggle
-          isOn={value}
-          onIsOnChange={onValueChange}
-          testID={testID}
-          modifiers={[tint(tc.primary), swiftDisabled(disabled)]}
-        />
-      </SwiftHost>
-    );
-  }
 
   if (Platform.OS === "android") {
     return (

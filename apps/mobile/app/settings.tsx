@@ -16,7 +16,6 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { GhostButton, PrimaryButton } from "../src/components/button";
 import { ThemedExpoButton } from "../src/components/expo-ui/themed-button";
 import { ThemedExpoSwitch } from "../src/components/expo-ui/themed-switch";
 import { ThemedExpoTextInput } from "../src/components/expo-ui/themed-text-input";
@@ -46,6 +45,7 @@ import { THEME_COLORS, THEME_VARS } from "../src/theme/themes";
 const LANGUAGE_OPTIONS = ["en", "fr"] as const;
 const STEP_SOURCE_OPTIONS = ["device_health", "fitbit"] as const;
 const THEME_OPTIONS: ThemeName[] = ["candy", "ice", "nightosphere"];
+const SETTINGS_SYNC_RAIL_WIDTH = 308;
 
 type ToneName = "primary" | "success" | "danger" | "neutral";
 type NotificationPreferenceKey =
@@ -529,17 +529,23 @@ export default function SettingsScreen() {
                         />
                         <View className="flex-row gap-3">
                           <View className="flex-1">
-                            <GhostButton
-                              onPress={() => {
-                                setEditing(false);
-                                setDisplayNameInput(user?.displayName ?? "");
+                        <SettingsActionButton
+                          compact
+                          testID="settings-profile-cancel-edit"
+                          onPress={() => {
+                            setEditing(false);
+                            setDisplayNameInput(user?.displayName ?? "");
                               }}
+                              tc={tc}
+                              variant="secondary"
                             >
                               {t("settings.cancelEdit")}
-                            </GhostButton>
+                            </SettingsActionButton>
                           </View>
                           <View className="flex-1">
-                            <PrimaryButton
+                            <SettingsActionButton
+                              compact
+                              testID="settings-profile-save-display-name"
                               onPress={() =>
                                 void updateDisplayNameMutation.mutateAsync(
                                   displayNameValue,
@@ -547,22 +553,28 @@ export default function SettingsScreen() {
                               }
                               disabled={!canSaveDisplayName}
                               loading={updateDisplayNameMutation.isPending}
+                              tc={tc}
+                              variant="primary"
                             >
                               {t("settings.saveDisplayName")}
-                            </PrimaryButton>
+                            </SettingsActionButton>
                           </View>
                         </View>
                       </View>
                     ) : (
                       <View className="w-full pt-1">
-                        <GhostButton
+                        <SettingsActionButton
+                          compact
+                          testID="settings-profile-edit"
                           onPress={() => {
                             setDisplayNameInput(user?.displayName ?? "");
                             setEditing(true);
                           }}
+                          tc={tc}
+                          variant="secondary"
                         >
                           {t("settings.edit")}
-                        </GhostButton>
+                        </SettingsActionButton>
                       </View>
                     )}
 
@@ -690,10 +702,14 @@ export default function SettingsScreen() {
                                 className={`font-nunito-bold text-base ${
                                   selected ? "text-primaryStrong" : "text-fg"
                                 }`}
+                                testID={`settings-theme-${name}-label`}
                               >
                                 {t(`settings.themeNames.${name}`)}
                               </Text>
-                              <Text className="font-nunito text-sm text-fgMuted">
+                              <Text
+                                className="font-nunito text-sm text-fgMuted"
+                                testID={`settings-theme-${name}-preview`}
+                              >
                                 {t("settings.themePreview")}
                               </Text>
                             </View>
@@ -740,6 +756,7 @@ export default function SettingsScreen() {
                           key={source}
                           selected={selected}
                           disabled={updateSourceMutation.isPending}
+                          testID={`settings-step-source-${source}`}
                           onPress={() => {
                             if (isFitbitSource) {
                               void handleChooseFitbit();
@@ -752,7 +769,7 @@ export default function SettingsScreen() {
                           tc={tc}
                         >
                           <View className="gap-2">
-                            <View className="flex-row items-start justify-between gap-3">
+                            <View className="flex-row items-center justify-between gap-3">
                               <View className="flex-1 gap-1">
                                 <Text
                                   className="font-nunito-bold text-base text-fg"
@@ -770,11 +787,13 @@ export default function SettingsScreen() {
                                 </Text>
                               </View>
                               {selected ? (
-                                <Ionicons
-                                  name="checkmark-circle"
-                                  size={20}
-                                  color={tc.primaryText}
-                                />
+                                <View className="self-stretch items-center justify-center">
+                                  <Ionicons
+                                    name="checkmark-circle"
+                                    size={20}
+                                    color={tc.primaryText}
+                                  />
+                                </View>
                               ) : null}
                             </View>
                           </View>
@@ -796,23 +815,28 @@ export default function SettingsScreen() {
                     </Text>
                   </View>
 
-                  <ToneBanner tone={syncTone} tc={tc}>
-                    <View className="flex-row items-center justify-between gap-3">
-                      <View className="flex-1 gap-1">
-                        <Text className="font-nunito-semibold text-xs uppercase text-fgMuted">
-                          {syncStatusLabel}
-                        </Text>
-                        <Text className="font-nunito-extrabold text-xl text-fg">
-                          {syncStatusValue}
-                        </Text>
+                  <View
+                    className="self-center w-full"
+                    style={{ maxWidth: SETTINGS_SYNC_RAIL_WIDTH }}
+                  >
+                    <ToneBanner tone={syncTone} tc={tc}>
+                      <View className="flex-row items-center justify-between gap-3">
+                        <View className="flex-1 gap-1">
+                          <Text className="font-nunito-semibold text-xs uppercase text-fgMuted">
+                            {syncStatusLabel}
+                          </Text>
+                          <Text className="font-nunito-extrabold text-xl text-fg">
+                            {syncStatusValue}
+                          </Text>
+                        </View>
+                        <Ionicons
+                          name={syncTone === "success" ? "checkmark-circle" : "pulse"}
+                          size={24}
+                          color={toneColors(tc, syncTone).text}
+                        />
                       </View>
-                      <Ionicons
-                        name={syncTone === "success" ? "checkmark-circle" : "pulse"}
-                        size={24}
-                        color={toneColors(tc, syncTone).text}
-                      />
-                    </View>
-                  </ToneBanner>
+                    </ToneBanner>
+                  </View>
 
                   <View className="gap-3 rounded-[26px] bg-surfaceMuted p-3">
                     <View className="flex-row gap-3">
@@ -849,8 +873,11 @@ export default function SettingsScreen() {
                     </View>
                   </View>
 
-                  <View className="flex-row justify-center gap-3 px-4">
-                    <View className="w-[148px]">
+                  <View
+                    className="self-center w-full flex-row gap-3"
+                    style={{ maxWidth: SETTINGS_SYNC_RAIL_WIDTH }}
+                  >
+                    <View className="flex-1">
                       <SummaryChip
                         label={t("settings.sourceLabel")}
                         value={t(`settings.stepSources.${latestStepSource}`)}
@@ -858,7 +885,7 @@ export default function SettingsScreen() {
                         tc={tc}
                       />
                     </View>
-                    <View className="w-[148px]">
+                    <View className="flex-1">
                       <SummaryChip
                         label={t("settings.goalNotificationsLabel")}
                         value={notificationStatusLabel}
@@ -884,14 +911,23 @@ export default function SettingsScreen() {
                     </ToneBanner>
                   ) : null}
 
-                  <PrimaryButton
-                    onPress={() => {
-                      void handleStepAction();
-                    }}
-                    loading={stepSync.isSyncing || isConnectingFitbit}
+                  <View
+                    className="self-center w-full"
+                    style={{ maxWidth: SETTINGS_SYNC_RAIL_WIDTH }}
                   >
-                    {stepActionLabel}
-                  </PrimaryButton>
+                    <SettingsActionButton
+                      compact
+                      testID="settings-step-sync-action"
+                      onPress={() => {
+                        void handleStepAction();
+                      }}
+                      loading={stepSync.isSyncing || isConnectingFitbit}
+                      tc={tc}
+                      variant="surface"
+                    >
+                      {stepActionLabel}
+                    </SettingsActionButton>
+                  </View>
                 </View>
               </SurfaceCard>
             </View>
@@ -943,9 +979,16 @@ export default function SettingsScreen() {
 
                       {stepSync.notificationPermissionStatus !== "granted" ? (
                         <View className="self-start">
-                          <GhostButton onPress={() => void handleNotificationPermissionAction()}>
+                          <SettingsActionButton
+                            compact
+                            fullWidth={false}
+                            testID="settings-notification-permission-action"
+                            onPress={() => void handleNotificationPermissionAction()}
+                            tc={tc}
+                            variant="secondary"
+                          >
                             {notificationPermissionCta}
-                          </GhostButton>
+                          </SettingsActionButton>
                         </View>
                       ) : null}
                     </View>
@@ -957,6 +1000,7 @@ export default function SettingsScreen() {
                       description={t(
                         "settings.notificationOptions.dailyReset.description",
                       )}
+                      testIDPrefix="settings-notification-dailyReset"
                       value={notificationPreferences.dailyReset}
                       disabled={updateNotificationPreferencesMutation.isPending}
                       onToggle={(value) => {
@@ -969,6 +1013,7 @@ export default function SettingsScreen() {
                       description={t(
                         "settings.notificationOptions.stepGoal.description",
                       )}
+                      testIDPrefix="settings-notification-stepGoal"
                       value={notificationPreferences.stepGoal}
                       disabled={updateNotificationPreferencesMutation.isPending}
                       onToggle={(value) => {
@@ -981,6 +1026,7 @@ export default function SettingsScreen() {
                       description={t(
                         "settings.notificationOptions.pvpInvite.description",
                       )}
+                      testIDPrefix="settings-notification-pvpInvite"
                       value={notificationPreferences.pvpInvite}
                       disabled={updateNotificationPreferencesMutation.isPending}
                       onToggle={(value) => {
@@ -993,6 +1039,7 @@ export default function SettingsScreen() {
                       description={t(
                         "settings.notificationOptions.pvpTurn.description",
                       )}
+                      testIDPrefix="settings-notification-pvpTurn"
                       value={notificationPreferences.pvpTurn}
                       disabled={updateNotificationPreferencesMutation.isPending}
                       onToggle={(value) => {
@@ -1005,6 +1052,7 @@ export default function SettingsScreen() {
                       description={t(
                         "settings.notificationOptions.giftReceived.description",
                       )}
+                      testIDPrefix="settings-notification-giftReceived"
                       value={notificationPreferences.giftReceived}
                       disabled={updateNotificationPreferencesMutation.isPending}
                       onToggle={(value) => {
@@ -1037,23 +1085,39 @@ export default function SettingsScreen() {
                   <Text className="font-nunito text-sm leading-5 text-fgMuted">
                     {t("settings.sessionHelp")}
                   </Text>
-                  <Pressable
-                    className="items-center rounded-full border border-primaryBorder bg-surfaceMuted px-5 py-4"
+                  <SettingsActionButton
+                    compact
+                    testID="settings-logout-action"
                     onPress={() =>
                       void clearAppSession().then(() => router.replace("/login"))
                     }
+                    tc={tc}
+                    variant="danger"
                   >
-                    <View className="flex-row items-center gap-2">
-                      <Ionicons
-                        name="log-out-outline"
-                        size={20}
-                        color={tc.primaryText}
-                      />
-                      <Text className="font-nunito-bold text-base text-primaryText">
+                    <View
+                      className="h-[15px] flex-row items-center justify-center"
+                      style={{ gap: 8 }}
+                    >
+                      <View className="size-[15px] items-center justify-center">
+                        <Ionicons
+                          name="log-out"
+                          size={14}
+                          color="#FFFFFF"
+                          style={{ transform: [{ translateY: -2 }] }}
+                        />
+                      </View>
+                      <Text
+                        style={{
+                          color: "#FFFFFF",
+                          fontFamily: "Nunito_700Bold",
+                          fontSize: 13,
+                          lineHeight: 15,
+                        }}
+                      >
                         {t("home.logout")}
                       </Text>
                     </View>
-                  </Pressable>
+                  </SettingsActionButton>
                 </View>
               </SurfaceCard>
             </View>
@@ -1141,6 +1205,7 @@ function ChoiceCard({
         gradientColors: null,
       }}
       fallbackLayout="stretch"
+      preserveChildLayout
       style={{
         flex: 1,
         opacity: disabled ? 0.65 : 1,
@@ -1211,6 +1276,7 @@ function SettingsToggleRow({
   description,
   disabled,
   onToggle,
+  testIDPrefix,
   tc,
   title,
   value,
@@ -1218,6 +1284,7 @@ function SettingsToggleRow({
   description: string;
   disabled?: boolean;
   onToggle: (nextValue: boolean) => void;
+  testIDPrefix?: string;
   tc: (typeof THEME_COLORS)[ThemeName];
   title: string;
   value: boolean;
@@ -1235,21 +1302,32 @@ function SettingsToggleRow({
         gradientColors: null,
       }}
       fallbackLayout="stretch"
+      preserveChildLayout
       style={{ opacity: disabled ? 0.65 : 1 }}
       variant="ghost"
     >
-      <View className="flex-row items-start gap-4">
-        <View className="flex-1 gap-1">
-          <Text className="font-nunito-bold text-base text-fg">{title}</Text>
-          <Text className="font-nunito text-sm leading-5 text-fgMuted">
+      <View className="relative min-h-[60px] justify-center">
+        <View className="gap-1 pr-24">
+          <Text
+            className="font-nunito-bold text-base text-fg"
+            testID={testIDPrefix ? `${testIDPrefix}-title` : undefined}
+          >
+            {title}
+          </Text>
+          <Text
+            className="font-nunito text-sm leading-5 text-fgMuted"
+            testID={testIDPrefix ? `${testIDPrefix}-description` : undefined}
+          >
             {description}
           </Text>
         </View>
-        <ThemedExpoSwitch
-          disabled={disabled}
-          onValueChange={onToggle}
-          value={value}
-        />
+        <View className="absolute inset-y-0 right-0 justify-center">
+          <ThemedExpoSwitch
+            disabled={disabled}
+            onValueChange={onToggle}
+            value={value}
+          />
+        </View>
       </View>
     </ThemedExpoButton>
   );
@@ -1313,6 +1391,79 @@ function ToneBanner({
     >
       {children}
     </View>
+  );
+}
+
+function SettingsActionButton({
+  children,
+  compact,
+  disabled,
+  fullWidth = true,
+  leadingAccessory,
+  loading,
+  onPress,
+  testID,
+  tc,
+  variant,
+}: {
+  children: ReactNode;
+  compact?: boolean;
+  disabled?: boolean;
+  fullWidth?: boolean;
+  leadingAccessory?: ReactNode;
+  loading?: boolean;
+  onPress: () => void;
+  testID?: string;
+  tc: (typeof THEME_COLORS)[ThemeName];
+  variant: "primary" | "secondary" | "surface" | "danger";
+}) {
+  const isPrimary = variant === "primary";
+  const isSurface = variant === "surface";
+  const isDanger = variant === "danger";
+
+  return (
+    <ThemedExpoButton
+      onPress={onPress}
+      disabled={disabled}
+      loading={loading}
+      leadingAccessory={leadingAccessory}
+      preferFallback
+      testID={testID}
+      variant={isDanger ? "danger" : isPrimary ? "primary" : "ghost"}
+      fallbackAppearance={{
+        backgroundColor: isDanger
+          ? tc.dangerDark
+          : isPrimary
+          ? tc.primary
+          : isSurface
+            ? tc.surfaceMuted
+            : tc.primaryBg,
+        borderColor: isDanger
+          ? tc.dangerDark
+          : isPrimary
+            ? tc.primaryDark
+            : tc.primaryBorder,
+        borderRadius: compact ? 14 : 14,
+        height: compact ? 33 : 30,
+        paddingHorizontal: compact ? 16 : 14,
+        paddingVertical: 0,
+        minHeight: compact ? 33 : 30,
+        gradientColors: isDanger
+          ? ([tc.dangerDark, tc.danger] as const)
+          : isPrimary
+          ? ([tc.primary, tc.primaryDark] as const)
+          : null,
+        foregroundColor: isPrimary || isDanger ? "#FFFFFF" : tc.primaryStrong,
+        textStyle: {
+          fontFamily: "Nunito_700Bold",
+          fontSize: compact ? 13 : 12,
+          lineHeight: compact ? 15 : 14,
+        },
+      }}
+      style={fullWidth ? { width: "100%" } : undefined}
+    >
+      {children}
+    </ThemedExpoButton>
   );
 }
 
