@@ -39,6 +39,7 @@ type ThemedButtonFallbackAppearance = {
   borderWidth?: number;
   foregroundColor?: string;
   borderRadius?: number;
+  height?: number;
   paddingHorizontal?: number;
   paddingVertical?: number;
   minHeight?: number;
@@ -46,6 +47,7 @@ type ThemedButtonFallbackAppearance = {
   textStyle?: {
     fontFamily?: string;
     fontSize?: number;
+    lineHeight?: number;
   };
 };
 
@@ -261,9 +263,14 @@ function FallbackButton({
     },
   };
   const foregroundColor = appearance.foregroundColor;
+  const shouldRenderChildrenDirectly =
+    !leadingAccessory &&
+    !label &&
+    children &&
+    (preserveChildLayout || fallbackLayout === "stretch");
   const content = loading ? (
     <ActivityIndicator color={foregroundColor} />
-  ) : preserveChildLayout && !leadingAccessory && !label && children ? (
+  ) : shouldRenderChildrenDirectly ? (
     children
   ) : (
     <View
@@ -282,6 +289,7 @@ function FallbackButton({
             color: foregroundColor,
             fontFamily: appearance.textStyle.fontFamily,
             fontSize: appearance.textStyle.fontSize,
+            lineHeight: appearance.textStyle.lineHeight,
           }}
         >
           {label}
@@ -307,6 +315,7 @@ function FallbackButton({
       style={[
         {
           borderRadius: appearance.borderRadius,
+          height: appearance.height,
           paddingVertical:
             appearance.gradientColors == null
               ? appearance.paddingVertical
@@ -345,6 +354,7 @@ function FallbackButton({
           end={{ x: 1, y: 0 }}
           style={{
             borderRadius: appearance.borderRadius,
+            height: appearance.height,
             paddingVertical: appearance.paddingVertical,
             paddingHorizontal: appearance.paddingHorizontal,
             minHeight: appearance.minHeight || undefined,
