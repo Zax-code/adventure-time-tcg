@@ -177,12 +177,15 @@ Artifacts and troubleshooting:
 
 Screenshot capture workflow:
 - when a UI task depends on screenshots, rebuild and reinstall the E2E app before the Maestro run if the surface uses bundled native code or an embedded JS bundle, then run the narrowest focused Maestro flow through `scripts/maestro.sh`
+- on Android, confirm the local E2E APK can still talk to Phoenix before trusting any screenshot run; if `e2e-auth` fails, check for cleartext/network-security regressions against `http://10.0.2.2:4200` first
+- on Android, prefer `adventure-time:///...` deep links when bootstrapping routes from `adb`; if Maestro `openLink` proves flaky for that surface, use `adb shell am start -W -a android.intent.action.VIEW -d 'adventure-time:///e2e-auth?redirect=%2Fsettings' love.leaetzak.adventuretime` to establish the screen, then use Maestro only for assertions and captures
 - keep stable `takeScreenshot` names inside the committed Maestro flow when that keeps the flow simple, but never share those raw filenames with the user because chat clients may cache them aggressively
 - after each Maestro run, immediately export the screenshots into a fresh timestamped directory such as `tmp-settings-shots/$(date +%Y%m%d-%H%M%S)/`
 - the exported filenames themselves must also include the timestamp, for example `20260603-150137-step-sync.png` rather than only placing `step-sync.png` inside a timestamped folder
 - preserve every timestamped screenshot directory for the whole user session so current and prior passes can be compared side by side; do not delete earlier timestamped captures mid-session unless the user asks
 - if the user says a visual change is not visible, compare the new timestamped screenshots against the previous timestamped screenshots before assuming the build failed; the issue may be subtle sizing or cached previews
 - inspect the exported timestamped screenshots directly before reporting success, and use tighter focused screenshots or crops when the visual delta is too small to judge from a full-screen capture
+- if Android accessibility ids stop cooperating deep in a sheet even though the UI is visibly correct, fall back to `adb shell input swipe ...` plus `adb shell screencap -p ...` for the remaining captures instead of burning time on brittle selector debugging
 - when replying to the user, link only the timestamped exported files, not the raw `takeScreenshot` outputs
 - a reliable shell pattern is `ts=$(date +%Y%m%d-%H%M%S) && mkdir -p tmp-settings-shots/$ts && cp tmp-settings-shots/03-step-sync.png tmp-settings-shots/$ts/${ts}-step-sync.png`
 
