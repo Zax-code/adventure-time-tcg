@@ -330,7 +330,9 @@ export default function HomeScreen() {
               onPress={() => claimMutation.mutate()}
               disabled={claimMutation.isPending}
               loading={claimMutation.isPending}
+              preferFallback
               fallbackAppearance={{
+                borderColor: tc.secondaryDark,
                 borderRadius: 999,
                 paddingHorizontal: 16,
                 paddingVertical: 8,
