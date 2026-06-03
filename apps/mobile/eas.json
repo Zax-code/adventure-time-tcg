@@ -38,6 +38,7 @@
         "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "831806850937-64l1nt24a0m4b6joisv18kis4m2up18k.apps.googleusercontent.com"
       },
       "ios": {
+        "buildConfiguration": "Release",
         "simulator": true,
         "resourceClass": "m-medium"
       }

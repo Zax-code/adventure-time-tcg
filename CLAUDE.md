@@ -19,9 +19,8 @@ Assume local environment setup, systemd work, Caddy work, PostgreSQL access, Min
 
 Use this order when behavior is unclear:
 1. the current Phoenix implementation in this repo
-2. the legacy PWA production data and codebase at `~/adventure-time-tcg`
+2. the legacy PWA production data and codebase at `~/adventure-time-tcg-pwa` or `~/Develop/adventure-time-tcg-pwa`
 3. the legacy Fastify implementation in `apps/api`
-4. the backup repo copy at `/home/zax/adventure-time-tcg-backup-pre-phoenix-20260324-123939`
 
 ## Repo Shape
 
@@ -120,6 +119,73 @@ PWA import:
 - `cd apps/phoenix && set -a && source .env && set +a && MIX_ENV=dev mix pwa_import apply`
 - `cd apps/phoenix && set -a && source .env && set +a && MIX_ENV=dev mix pwa_import verify`
 
+## Maestro E2E
+
+Use Maestro for mobile smoke tests and targeted interaction validation, especially for Expo development-client and PvP regressions.
+
+Main project files:
+- `.maestro/` - shared Maestro flows and subflows committed to the repo
+- `scripts/maestro.sh` - wrapper that injects auth/session state and fixture ids into flows
+- `apps/mobile/app/e2e-auth.tsx` - in-app test auth bridge used by deep links
+- `apps/phoenix/scripts/ensure-mobile-test-pvp-fixture.sh` - deterministic PvP fixture creator for mobile E2E runs
+
+Prerequisites:
+- install Maestro CLI if needed with `curl -fsSL https://get.maestro.mobile.dev | bash`
+- start the Phoenix backend before running flows with `npm run dev:api`
+- the iOS E2E build and simulator flows expect Phoenix at `http://127.0.0.1:4200`
+- the Android E2E build and emulator flows expect Phoenix at `http://10.0.2.2:4200`
+- export `MOBILE_TEST_PASSWORD='<password>'` before running the wrapper; set `MOBILE_TEST_EMAIL` too only if you intentionally need a non-default test user
+
+Core commands:
+- `npm run build:mobile:e2e:ios` - build the local iOS E2E app artifact
+- `npm run install:mobile:e2e:ios` - install the local iOS E2E app on the booted simulator
+- `npm run build:mobile:e2e:android` - build the local Android E2E app artifact
+- `npm run install:mobile:e2e:android` - install the local Android E2E app on the connected emulator/device
+- `npm run test:mobile:e2e:ios` - run the general iOS Maestro smoke flow
+- `npm run test:mobile:e2e:android` - run the general Android Maestro smoke flow
+- `npm run test:mobile:e2e:pvp:ios` - run the iOS PvP smoke flow
+- `npm run test:mobile:e2e:pvp:android` - run the Android PvP smoke flow
+- `MOBILE_TEST_PASSWORD='<password>' ./scripts/maestro.sh test --platform ios .maestro/<flow>.yaml` - run a specific iOS flow directly through the project wrapper
+- `MOBILE_TEST_PASSWORD='<password>' ./scripts/maestro.sh test --platform android .maestro/<flow>.yaml` - run a specific Android flow directly through the project wrapper
+
+Recommended iOS loop:
+- `MOBILE_TEST_PASSWORD='<password>' npm run build:mobile:e2e:ios`
+- `npm run install:mobile:e2e:ios`
+- `MOBILE_TEST_PASSWORD='<password>' ./scripts/maestro.sh test --platform ios .maestro/<flow>.yaml`
+
+What the wrapper actually does:
+- `scripts/maestro.sh` first runs `apps/phoenix/scripts/ensure-mobile-test-user.sh` so the requested `MOBILE_TEST_EMAIL` exists with the supplied password before login
+- `scripts/maestro.sh` logs the mobile test user into Phoenix at `http://127.0.0.1:4200/auth/login`
+- it injects `${TEST_EMAIL}`, `${TEST_PASSWORD}`, `${TEST_ACCESS_TOKEN}`, `${TEST_REFRESH_TOKEN}`, and `${TEST_USER}` into a temporary `.maestro/.maestro-flow.*.yaml` copy before invoking Maestro
+- if the target flow contains `${TEST_MATCH_ID}`, the wrapper first runs `apps/phoenix/scripts/ensure-mobile-test-pvp-fixture.sh` and injects the returned match id too
+- use the wrapper or the npm scripts that call it unless you deliberately want to bypass auth and fixture injection
+
+Project rules:
+- always run Maestro through `scripts/maestro.sh` or the npm scripts that call it; do not call raw `maestro test` for this repo unless you intentionally want to bypass auth/fixture injection
+- set `MOBILE_TEST_PASSWORD` before Maestro runs; the wrapper uses it both for backend login and for the Phoenix test-user/fixture scripts
+- prefer the committed flows in `.maestro/` and add new reusable flows there when they are generally useful
+- do not commit generated `.maestro/.maestro-flow.*` files; they are temporary token-injected copies created by the wrapper and are gitignored
+- keep Maestro screenshots, logs, and local build artifacts out of commits unless the user explicitly asks for them
+
+Artifacts and troubleshooting:
+- inspect Maestro run logs, hierarchy dumps, and failure screenshots under `~/.maestro/tests/<timestamp>/`
+- `takeScreenshot` outputs land in the current working directory, so run flows from the repo root if you want predictable screenshot locations
+- `npm run install:mobile:e2e:ios` now prefers the fresh archive at `apps/mobile/local-build/ios-e2e.tar.gz`; pass `--archive <path>` only when you intentionally want a different artifact
+- the iOS `e2e-ios` profile is a `Release` simulator build and must boot from the embedded `main.jsbundle`; if the app opens the dev client or references Metro on port `8097`, rebuild with `npm run build:mobile:e2e:ios` and reinstall
+- when a flow reaches the right screen but behavior still seems wrong, inspect the saved screenshots before changing app code; that is how the Wordle scroll-keyboard hit-testing bug was isolated
+- for persistent server-side quest state like Wordle, prefer a fresh `MOBILE_TEST_EMAIL` for each validation pass, for example `MOBILE_TEST_EMAIL=wordle-e2e-$(date +%s)@leaetzak.love`
+
+Focused flows:
+- `.maestro/wordle-scroll-keyboard.yaml` - verifies the Wordle keyboard still accepts taps after the screen is scrolled and is the first flow to rerun for Wordle touch regressions
+- on iOS, that flow still reproduces a stubborn `I`-key miss after scroll; use a fresh `MOBILE_TEST_EMAIL`, inspect `wordle-yuiop-after-scroll.png`, and treat the `I` key as the first place to look if the flow fails
+- prefer adding similar focused flows for high-risk interaction bugs instead of relying only on the generic smoke flow
+
+PvP-specific workflow:
+- for battle validation, prefer the fixture-backed PvP flows or the Phoenix fixture script so the match state is deterministic
+- if you need to exercise a specific match route, use the E2E auth deep link first to establish session state, then open the target route; two-step navigation is often more reliable than a single query-heavy redirect
+- when validating live combat interactions, favor stable assertions on `pvp-battle-board`, `pvp-action-modal`, `pvp-card-info-modal`, `pvp-battle-log-button`, and the `pvp-my-unit-*` / `pvp-opponent-unit-*` test ids
+- if a Maestro run fails, inspect the debug artifacts under `~/.maestro/tests/<timestamp>/` before changing app code; the screenshot usually tells you whether the failure is splash/login/navigation/board interaction
+
 ## Mobile Build And Release Policy
 
 Production mobile build and release work is initiated from this Mac, not from GitHub Actions.
@@ -184,6 +250,8 @@ For mobile/shared changes:
 - run `cd apps/mobile && npx expo-doctor`
 - treat any new Expo Doctor warning or failure as a regression to fix before finishing, not as background noise
 - when `ios/` and `android/` are checked in, the non-CNG sync warning about native config fields may remain; only accept it if it is unchanged and the only Expo Doctor finding, and explicitly call it out in the handoff
+- when mobile behavior or interaction code changes, run the narrowest relevant Maestro flow if a stable flow exists for that surface
+- if Maestro coverage is missing for the changed surface and the area is high-risk, add or update a focused flow in `.maestro/` instead of relying only on manual reasoning
 - run targeted workspace typechecks or builds as needed
 
 ## Environment
