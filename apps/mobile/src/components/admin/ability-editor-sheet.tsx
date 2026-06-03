@@ -23,11 +23,12 @@ import {
   type TypeName,
 } from "./ability-payload";
 import { AdminButton, AdminField } from "./admin-ui";
+import { ThemedExpoSwitch } from "../expo-ui/themed-switch";
 import { ThemedExpoTextInput } from "../expo-ui/themed-text-input";
 import { useTranslation } from "../../i18n";
 import { useThemeStore } from "../../stores/theme-store";
 import { THEME_COLORS } from "../../theme/themes";
-import { pickReadableTextColor, withAlpha } from "./admin-palette";
+import { withAlpha } from "./admin-palette";
 
 type AbilityType = "PASSIVE" | "SKILL" | "ULTIMATE";
 
@@ -1360,35 +1361,39 @@ function ToggleRow({
   const tc = THEME_COLORS[themeName];
   return (
     <Pressable
-      className="rounded-2xl border px-[14] py-3 flex-row items-center justify-between"
+      accessibilityRole="switch"
+      accessibilityState={{ checked: value }}
+      className="min-h-[58] rounded-[22] border px-[14] py-3 flex-row items-center gap-3"
       style={{
-        backgroundColor: value ? tc.primaryBg : withAlpha(tc.surface, "EB"),
-        borderColor: value ? tc.primary : withAlpha(tc.primaryBorder, "2E"),
+        backgroundColor: value
+          ? withAlpha(tc.primaryTint, "99")
+          : withAlpha(tc.surface, "EB"),
+        borderColor: value
+          ? withAlpha(tc.primary, "8A")
+          : withAlpha(tc.primaryBorder, "45"),
       }}
       onPress={() => onChange(!value)}
     >
-      <Text
-        className="flex-1 font-nunito-bold text-[13px]"
-        style={{ color: value ? tc.primaryStrong : tc.primaryText }}
-      >
-        {label}
-      </Text>
-      <View
-        className="rounded-full px-[10] py-[5]"
-        style={{
-          backgroundColor: value ? tc.primaryText : tc.surfaceMuted,
-        }}
-      >
+      <View className="flex-1 gap-1">
         <Text
-          className="font-nunito-extrabold text-[11px]"
-          style={{
-            color: value
-              ? pickReadableTextColor(tc.primaryText, tc.fg, tc.surface)
-              : tc.fgMuted,
-          }}
+          className="font-nunito-bold text-[13px]"
+          style={{ color: value ? tc.primaryStrong : tc.primaryText }}
+        >
+          {label}
+        </Text>
+        <Text
+          className="font-nunito-semibold text-[12px]"
+          style={{ color: value ? tc.primaryText : tc.fgMuted }}
         >
           {value ? t("admin.abilityEditor.on") : t("admin.abilityEditor.off")}
         </Text>
+      </View>
+      <View pointerEvents="none">
+        <ThemedExpoSwitch
+          value={value}
+          onValueChange={onChange}
+          themeName={themeName}
+        />
       </View>
     </Pressable>
   );

@@ -1,0 +1,23 @@
+appId: love.leaetzak.adventuretime
+name: Admin ability toggle focused screenshots
+tags:
+  - admin
+  - abilities
+  - screenshots
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- openLink:
+    link: adventure-time://e2e-auth?redirect=%2Fadmin-ability-editor%3Fmode%3Dcreate&accessToken=${TEST_ACCESS_TOKEN}&refreshToken=${TEST_REFRESH_TOKEN}&user=${TEST_USER}
+- assertVisible: "Create ability"
+- waitForAnimationToEnd
+- takeScreenshot: tmp-ability-toggle-shots/01-toggle-off
+- tapOn:
+    point: "83%,84%"
+- waitForAnimationToEnd
+- takeScreenshot: tmp-ability-toggle-shots/02-toggle-on
+- tapOn:
+    point: "83%,84%"
+- waitForAnimationToEnd
+- takeScreenshot: tmp-ability-toggle-shots/03-toggle-off-restored
