@@ -26,7 +26,6 @@ import {
   type ThemeColors,
   withAlpha,
 } from "./admin-palette";
-import { ThemedExpoSegmentedControl } from "../expo-ui/themed-segmented-control";
 import { ThemedExpoButton } from "../expo-ui/themed-button";
 import { ThemedExpoTextInput } from "../expo-ui/themed-text-input";
 import { useTranslation } from "../../i18n";
@@ -356,13 +355,53 @@ export function AdminSegmentedControl<T extends string>({
   onChange: (value: T) => void;
   disabled?: boolean;
 }) {
+  const { themeName } = useThemeStore();
+  const tc = THEME_COLORS[themeName];
+
   return (
-    <ThemedExpoSegmentedControl
-      value={value}
-      options={options}
-      onChange={onChange}
-      disabled={disabled}
-    />
+    <View
+      className="flex-row gap-2 rounded-[22] border p-2"
+      style={{
+        backgroundColor: withAlpha(tc.surfaceMuted, "E6"),
+        borderColor: withAlpha(tc.primaryBorder, "5C"),
+        opacity: disabled ? 0.6 : 1,
+      }}
+    >
+      {options.map((option) => {
+        const active = option.value === value;
+
+        return (
+          <Pressable
+            key={option.value}
+            testID={`admin-segment-${option.value}`}
+            onPress={() => {
+              if (disabled) {
+                return;
+              }
+
+              onChange(option.value);
+            }}
+            accessibilityRole="button"
+            accessibilityState={{ selected: active, disabled }}
+            className="flex-1 items-center rounded-[16] px-3 py-[11]"
+            style={{
+              backgroundColor: active ? tc.primaryText : tc.surface,
+            }}
+          >
+            <Text
+              className="font-nunito-extrabold text-[13px]"
+              style={{
+                color: active
+                  ? pickReadableTextColor(tc.primaryText, tc.fg, tc.surface)
+                  : tc.primaryStrong,
+              }}
+            >
+              {option.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
   );
 }
 
