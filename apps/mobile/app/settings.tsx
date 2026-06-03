@@ -1413,11 +1413,11 @@ function SettingsActionButton({
           : isPrimary
             ? tc.primaryDark
             : tc.primaryBorder,
-        borderRadius: compact ? 10 : 14,
-        height: compact ? 22 : 30,
-        paddingHorizontal: compact ? 12 : 14,
+        borderRadius: compact ? 12 : 14,
+        height: compact ? 28 : 30,
+        paddingHorizontal: compact ? 14 : 14,
         paddingVertical: 0,
-        minHeight: compact ? 22 : 30,
+        minHeight: compact ? 28 : 30,
         gradientColors: isDanger
           ? ([tc.dangerDark, tc.danger] as const)
           : isPrimary
@@ -1426,8 +1426,8 @@ function SettingsActionButton({
         foregroundColor: isPrimary || isDanger ? "#FFFFFF" : tc.primaryStrong,
         textStyle: {
           fontFamily: "Nunito_700Bold",
-          fontSize: compact ? 11 : 12,
-          lineHeight: compact ? 12 : 14,
+          fontSize: compact ? 12 : 12,
+          lineHeight: compact ? 14 : 14,
         },
       }}
       style={fullWidth ? { width: "100%" } : undefined}
