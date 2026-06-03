@@ -157,6 +157,7 @@ What the wrapper actually does:
 - `scripts/maestro.sh` first runs `apps/phoenix/scripts/ensure-mobile-test-user.sh` so the requested `MOBILE_TEST_EMAIL` exists with the supplied password before login
 - `scripts/maestro.sh` logs the mobile test user into Phoenix at `http://127.0.0.1:4200/auth/login`
 - it injects `${TEST_EMAIL}`, `${TEST_PASSWORD}`, `${TEST_ACCESS_TOKEN}`, `${TEST_REFRESH_TOKEN}`, and `${TEST_USER}` into a temporary `.maestro/.maestro-flow.*.yaml` copy before invoking Maestro
+- it also exports those `TEST_*` values, plus `${TEST_EMAIL_URI}` and `${TEST_PASSWORD_URI}`, into the Maestro process environment so committed flows and nested subflows can reference them directly
 - if the target flow contains `${TEST_MATCH_ID}`, the wrapper first runs `apps/phoenix/scripts/ensure-mobile-test-pvp-fixture.sh` and injects the returned match id too
 - use the wrapper or the npm scripts that call it unless you deliberately want to bypass auth and fixture injection
 
@@ -172,6 +173,8 @@ Artifacts and troubleshooting:
 - `takeScreenshot` outputs land in the current working directory, so run flows from the repo root if you want predictable screenshot locations
 - `npm run install:mobile:e2e:ios` now prefers the fresh archive at `apps/mobile/local-build/ios-e2e.tar.gz`; pass `--archive <path>` only when you intentionally want a different artifact
 - the iOS `e2e-ios` profile is a `Release` simulator build and must boot from the embedded `main.jsbundle`; if the app opens the dev client or references Metro on port `8097`, rebuild with `npm run build:mobile:e2e:ios` and reinstall
+- the Android E2E app is also a local release build; if it cannot reach Phoenix on the emulator, inspect the packaged manifest/network-security config and verify scoped cleartext access to `10.0.2.2`, `127.0.0.1`, and `localhost` instead of assuming a debug-only override will apply
+- if `npm run build:mobile:e2e:android` fails before packaging, first inspect `apps/mobile/android/app/build.gradle` for the Hermes compiler path and the debug keystore fallback because both are required on this Mac for local Android E2E builds
 - when a flow reaches the right screen but behavior still seems wrong, inspect the saved screenshots before changing app code; that is how the Wordle scroll-keyboard hit-testing bug was isolated
 - for persistent server-side quest state like Wordle, prefer a fresh `MOBILE_TEST_EMAIL` for each validation pass, for example `MOBILE_TEST_EMAIL=wordle-e2e-$(date +%s)@leaetzak.love`
 
@@ -179,6 +182,8 @@ Screenshot capture workflow:
 - when a UI task depends on screenshots, rebuild and reinstall the E2E app before the Maestro run if the surface uses bundled native code or an embedded JS bundle, then run the narrowest focused Maestro flow through `scripts/maestro.sh`
 - on Android, confirm the local E2E APK can still talk to Phoenix before trusting any screenshot run; if `e2e-auth` fails, check for cleartext/network-security regressions against `http://10.0.2.2:4200` first
 - on Android, prefer `adventure-time:///...` deep links when bootstrapping routes from `adb`; if Maestro `openLink` proves flaky for that surface, use `adb shell am start -W -a android.intent.action.VIEW -d 'adventure-time:///e2e-auth?redirect=%2Fsettings' love.leaetzak.adventuretime` to establish the screen, then use Maestro only for assertions and captures
+- for Android focused screenshot flows, prefer a committed manual-login path when route bootstrap through `openLink` or `e2e-auth` is unreliable; `.maestro/settings-sheet-screenshots.yaml` is the reference pattern because it proved more deterministic than deep-link auth on the emulator
+- on Android auth screens, if the submit button tap is flaky with the keyboard still open, prefer `pressKey: Enter` after filling the password field before assuming the app login is broken
 - keep stable `takeScreenshot` names inside the committed Maestro flow when that keeps the flow simple, but never share those raw filenames with the user because chat clients may cache them aggressively
 - after each Maestro run, immediately export the screenshots into a fresh timestamped directory such as `tmp-settings-shots/$(date +%Y%m%d-%H%M%S)/`
 - the exported filenames themselves must also include the timestamp, for example `20260603-150137-step-sync.png` rather than only placing `step-sync.png` inside a timestamped folder
