@@ -129,7 +129,7 @@ wait_for_boot() {
 
   for _ in $(seq 1 180); do
     if [[ "$(adb -s "$serial" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" == "1" ]]; then
-      echo "Android emulator is ready: $serial"
+      echo "Android emulator is ready: $serial" >&2
       printf '%s\n' "$serial"
       return 0
     fi

@@ -7,8 +7,30 @@ tags:
 - launchApp:
     clearState: true
     clearKeychain: true
-- openLink:
-    link: adventure-time://e2e-auth?redirect=%2Fsettings&accessToken=${TEST_ACCESS_TOKEN}&refreshToken=${TEST_REFRESH_TOKEN}&user=${TEST_USER}
+- scrollUntilVisible:
+    element:
+      id: auth-email-input
+    direction: DOWN
+    timeout: 40000
+    centerElement: true
+- assertVisible:
+    id: auth-email-input
+- tapOn:
+    id: auth-email-input
+- eraseText
+- inputText: ${TEST_EMAIL}
+- pressKey: Enter
+- assertVisible:
+    id: auth-password-input
+- tapOn:
+    id: auth-password-input
+- eraseText
+- inputText: ${TEST_PASSWORD}
+- pressKey: Enter
+- assertVisible:
+    id: tab-home
+- tapOn:
+    id: app-header-settings-button
 - assertVisible:
     id: settings-profile-edit
 - takeScreenshot: tmp-settings-shots/01-profile
