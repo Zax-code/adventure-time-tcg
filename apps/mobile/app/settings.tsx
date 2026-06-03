@@ -1103,7 +1103,7 @@ export default function SettingsScreen() {
                         style={{
                           width: 16,
                           height: 16,
-                          transform: [{ translateY: -0.5 }],
+                          transform: [{ translateY: -1 }],
                         }}
                       >
                         <Ionicons name="log-out" size={16} color="#FFFFFF" />
@@ -1114,7 +1114,6 @@ export default function SettingsScreen() {
                           fontFamily: "Nunito_700Bold",
                           fontSize: 13,
                           lineHeight: 13,
-                          transform: [{ translateY: 0.5 }],
                         }}
                       >
                         {t("home.logout")}
@@ -1324,7 +1323,10 @@ function SettingsToggleRow({
             {description}
           </Text>
         </View>
-        <View className="self-center">
+        <View
+          className="self-center"
+          style={{ transform: [{ translateY: 2 }] }}
+        >
           <ThemedExpoSwitch
             disabled={disabled}
             onValueChange={onToggle}
