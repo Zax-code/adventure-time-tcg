@@ -1077,18 +1077,25 @@ export default function SettingsScreen() {
                     onPress={() =>
                       void clearAppSession().then(() => router.replace("/login"))
                     }
-                    leadingAccessory={
-                      <View
-                        className="items-center justify-center"
-                        style={{ width: 16, height: 16 }}
-                      >
-                        <Ionicons name="log-out" size={16} color="#FFFFFF" />
-                      </View>
-                    }
                     tc={tc}
                     variant="danger"
                   >
-                    {t("home.logout")}
+                    <View
+                      className="flex-row items-center justify-center"
+                      style={{ gap: 8 }}
+                    >
+                      <Ionicons name="log-out" size={16} color="#FFFFFF" />
+                      <Text
+                        style={{
+                          color: "#FFFFFF",
+                          fontFamily: "Nunito_700Bold",
+                          fontSize: 13,
+                          lineHeight: 13,
+                        }}
+                      >
+                        {t("home.logout")}
+                      </Text>
+                    </View>
                   </SettingsActionButton>
                 </View>
               </SurfaceCard>
