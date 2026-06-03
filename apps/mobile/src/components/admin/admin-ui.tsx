@@ -386,10 +386,6 @@ export function AdminSegmentedControl<T extends string>({
             className="flex-1 items-center rounded-[16] px-3 py-[11]"
             style={{
               backgroundColor: active ? tc.primaryText : tc.surface,
-              borderColor: active
-                ? tc.primaryDark
-                : withAlpha(tc.primaryBorder, "52"),
-              borderWidth: 1,
             }}
           >
             <Text
