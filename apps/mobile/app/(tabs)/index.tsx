@@ -240,14 +240,21 @@ export default function HomeScreen() {
                 onPress={() => {
                   setNotificationPromptIgnored(true);
                 }}
+                leadingAccessory={
+                  <Ionicons
+                    name="close-circle-outline"
+                    size={16}
+                    color={tc.primaryStrong}
+                  />
+                }
                 fallbackAppearance={{
-                  backgroundColor: tc.surfaceMuted,
+                  backgroundColor: tc.primaryBg,
                   borderColor: tc.primaryBorder,
                   borderRadius: 999,
                   paddingHorizontal: 16,
                   paddingVertical: 12,
                   gradientColors: null,
-                  foregroundColor: tc.fgMuted,
+                  foregroundColor: tc.primaryStrong,
                   textStyle: {
                     fontFamily: "Nunito_600SemiBold",
                     fontSize: 14,
@@ -271,14 +278,21 @@ export default function HomeScreen() {
                     },
                   );
                 }}
+                leadingAccessory={
+                  <Ionicons
+                    name="eye-off-outline"
+                    size={16}
+                    color={tc.dangerText}
+                  />
+                }
                 fallbackAppearance={{
-                  backgroundColor: tc.surfaceMuted,
-                  borderColor: tc.primaryBorder,
+                  backgroundColor: tc.dangerTint,
+                  borderColor: tc.dangerBorder,
                   borderRadius: 999,
                   paddingHorizontal: 16,
                   paddingVertical: 12,
                   gradientColors: null,
-                  foregroundColor: tc.fgMuted,
+                  foregroundColor: tc.dangerText,
                   textStyle: {
                     fontFamily: "Nunito_600SemiBold",
                     fontSize: 14,
