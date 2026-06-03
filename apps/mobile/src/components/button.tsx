@@ -24,6 +24,7 @@ export function PrimaryButton({
       onPress={onPress}
       disabled={disabled}
       loading={loading}
+      preferFallback
       style={style}
       testID={testID}
       variant="primary"
@@ -46,6 +47,7 @@ export function SecondaryButton({
       onPress={onPress}
       disabled={disabled}
       loading={loading}
+      preferFallback
       style={style}
       testID={testID}
       variant="secondary"
@@ -68,6 +70,7 @@ export function GhostButton({
       onPress={onPress}
       disabled={disabled}
       loading={loading}
+      preferFallback
       style={style}
       testID={testID}
       variant="ghost"
