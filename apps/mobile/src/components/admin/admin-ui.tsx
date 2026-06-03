@@ -41,9 +41,6 @@ const absoluteFill = {
   left: 0,
 };
 
-const SEGMENTED_CONTROL_PADDING = 8;
-const SEGMENTED_CONTROL_GAP = 8;
-
 export function AdminBackground({ children }: { children: ReactNode }) {
   const { themeName } = useThemeStore();
 
@@ -360,67 +357,23 @@ export function AdminSegmentedControl<T extends string>({
 }) {
   const { themeName } = useThemeStore();
   const tc = THEME_COLORS[themeName];
-  const activeIndex = Math.max(
-    0,
-    options.findIndex((option) => option.value === value),
-  );
-  const [containerWidth, setContainerWidth] = useState(0);
-  const indicatorTranslateX = useRef(new Animated.Value(0)).current;
-  const segmentWidth =
-    containerWidth > 0
-      ? (containerWidth -
-          SEGMENTED_CONTROL_PADDING * 2 -
-          SEGMENTED_CONTROL_GAP * (options.length - 1)) /
-        options.length
-      : 0;
-
-  useEffect(() => {
-    if (!segmentWidth) {
-      return;
-    }
-
-    Animated.spring(indicatorTranslateX, {
-      toValue: activeIndex * (segmentWidth + SEGMENTED_CONTROL_GAP),
-      useNativeDriver: true,
-      damping: 18,
-      stiffness: 210,
-      mass: 0.9,
-    }).start();
-  }, [activeIndex, indicatorTranslateX, segmentWidth]);
 
   return (
     <View
       className="flex-row gap-2 rounded-[22] border p-2"
-      onLayout={(event) => setContainerWidth(event.nativeEvent.layout.width)}
       style={{
         backgroundColor: withAlpha(tc.surfaceMuted, "E6"),
         borderColor: withAlpha(tc.primaryBorder, "5C"),
         opacity: disabled ? 0.6 : 1,
       }}
     >
-      {segmentWidth ? (
-        <Animated.View
-          pointerEvents="none"
-          style={{
-            position: "absolute",
-            top: SEGMENTED_CONTROL_PADDING,
-            left: SEGMENTED_CONTROL_PADDING,
-            bottom: SEGMENTED_CONTROL_PADDING,
-            width: segmentWidth,
-            borderRadius: 16,
-            backgroundColor: tc.primaryText,
-            borderWidth: 1,
-            borderColor: tc.primaryDark,
-            transform: [{ translateX: indicatorTranslateX }],
-          }}
-        />
-      ) : null}
       {options.map((option) => {
         const active = option.value === value;
 
         return (
           <Pressable
             key={option.value}
+            testID={`admin-segment-${option.value}`}
             onPress={() => {
               if (disabled) {
                 return;
@@ -428,7 +381,16 @@ export function AdminSegmentedControl<T extends string>({
 
               onChange(option.value);
             }}
+            accessibilityRole="button"
+            accessibilityState={{ selected: active, disabled }}
             className="flex-1 items-center rounded-[16] px-3 py-[11]"
+            style={{
+              backgroundColor: active ? tc.primaryText : tc.surface,
+              borderColor: active
+                ? tc.primaryDark
+                : withAlpha(tc.primaryBorder, "52"),
+              borderWidth: 1,
+            }}
           >
             <Text
               className="font-nunito-extrabold text-[13px]"

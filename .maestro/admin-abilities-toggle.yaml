@@ -1,0 +1,27 @@
+appId: love.leaetzak.adventuretime
+name: Admin abilities toggle
+tags:
+  - admin
+  - abilities
+  - screenshots
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- openLink:
+    link: adventure-time:///e2e-auth?redirect=%2Fadmin%2Fabilities&accessToken=${TEST_ACCESS_TOKEN}&refreshToken=${TEST_REFRESH_TOKEN}&user=${TEST_USER}
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- assertVisible: Create ability
+- assertVisible: Ability library \([0-9]+\)
+- takeScreenshot: tmp-ability-toggle-shots/01-abilities-tab
+- tapOn:
+    id: admin-segment-assignments
+- takeScreenshot: tmp-ability-toggle-shots/02-after-assignments-tap
+- assertVisible: Card assignments \([0-9]+\)
+- assertNotVisible: Create ability
+- takeScreenshot: tmp-ability-toggle-shots/03-assignments-tab
+- tapOn:
+    id: admin-segment-abilities
+- assertVisible: Create ability
+- assertVisible: Ability library \([0-9]+\)
+- takeScreenshot: tmp-ability-toggle-shots/04-abilities-tab-return
