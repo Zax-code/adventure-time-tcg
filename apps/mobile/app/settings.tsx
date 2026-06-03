@@ -45,6 +45,7 @@ import { THEME_COLORS, THEME_VARS } from "../src/theme/themes";
 const LANGUAGE_OPTIONS = ["en", "fr"] as const;
 const STEP_SOURCE_OPTIONS = ["device_health", "fitbit"] as const;
 const THEME_OPTIONS: ThemeName[] = ["candy", "ice", "nightosphere"];
+const SETTINGS_SYNC_RAIL_WIDTH = 308;
 
 type ToneName = "primary" | "success" | "danger" | "neutral";
 type NotificationPreferenceKey =
@@ -814,23 +815,28 @@ export default function SettingsScreen() {
                     </Text>
                   </View>
 
-                  <ToneBanner tone={syncTone} tc={tc}>
-                    <View className="flex-row items-center justify-between gap-3">
-                      <View className="flex-1 gap-1">
-                        <Text className="font-nunito-semibold text-xs uppercase text-fgMuted">
-                          {syncStatusLabel}
-                        </Text>
-                        <Text className="font-nunito-extrabold text-xl text-fg">
-                          {syncStatusValue}
-                        </Text>
+                  <View
+                    className="self-center w-full"
+                    style={{ maxWidth: SETTINGS_SYNC_RAIL_WIDTH }}
+                  >
+                    <ToneBanner tone={syncTone} tc={tc}>
+                      <View className="flex-row items-center justify-between gap-3">
+                        <View className="flex-1 gap-1">
+                          <Text className="font-nunito-semibold text-xs uppercase text-fgMuted">
+                            {syncStatusLabel}
+                          </Text>
+                          <Text className="font-nunito-extrabold text-xl text-fg">
+                            {syncStatusValue}
+                          </Text>
+                        </View>
+                        <Ionicons
+                          name={syncTone === "success" ? "checkmark-circle" : "pulse"}
+                          size={24}
+                          color={toneColors(tc, syncTone).text}
+                        />
                       </View>
-                      <Ionicons
-                        name={syncTone === "success" ? "checkmark-circle" : "pulse"}
-                        size={24}
-                        color={toneColors(tc, syncTone).text}
-                      />
-                    </View>
-                  </ToneBanner>
+                    </ToneBanner>
+                  </View>
 
                   <View className="gap-3 rounded-[26px] bg-surfaceMuted p-3">
                     <View className="flex-row gap-3">
@@ -867,8 +873,11 @@ export default function SettingsScreen() {
                     </View>
                   </View>
 
-                  <View className="flex-row justify-center gap-3 px-4">
-                    <View className="w-[148px]">
+                  <View
+                    className="self-center w-full flex-row gap-3"
+                    style={{ maxWidth: SETTINGS_SYNC_RAIL_WIDTH }}
+                  >
+                    <View className="flex-1">
                       <SummaryChip
                         label={t("settings.sourceLabel")}
                         value={t(`settings.stepSources.${latestStepSource}`)}
@@ -876,7 +885,7 @@ export default function SettingsScreen() {
                         tc={tc}
                       />
                     </View>
-                    <View className="w-[148px]">
+                    <View className="flex-1">
                       <SummaryChip
                         label={t("settings.goalNotificationsLabel")}
                         value={notificationStatusLabel}
@@ -902,18 +911,23 @@ export default function SettingsScreen() {
                     </ToneBanner>
                   ) : null}
 
-                  <SettingsActionButton
-                    compact
-                    testID="settings-step-sync-action"
-                    onPress={() => {
-                      void handleStepAction();
-                    }}
-                    loading={stepSync.isSyncing || isConnectingFitbit}
-                    tc={tc}
-                    variant="surface"
+                  <View
+                    className="self-center w-full"
+                    style={{ maxWidth: SETTINGS_SYNC_RAIL_WIDTH }}
                   >
-                    {stepActionLabel}
-                  </SettingsActionButton>
+                    <SettingsActionButton
+                      compact
+                      testID="settings-step-sync-action"
+                      onPress={() => {
+                        void handleStepAction();
+                      }}
+                      loading={stepSync.isSyncing || isConnectingFitbit}
+                      tc={tc}
+                      variant="surface"
+                    >
+                      {stepActionLabel}
+                    </SettingsActionButton>
+                  </View>
                 </View>
               </SurfaceCard>
             </View>
@@ -1086,7 +1100,11 @@ export default function SettingsScreen() {
                     >
                       <View
                         className="items-center justify-center"
-                        style={{ width: 16, height: 16 }}
+                        style={{
+                          width: 16,
+                          height: 16,
+                          transform: [{ translateY: -0.5 }],
+                        }}
                       >
                         <Ionicons name="log-out" size={16} color="#FFFFFF" />
                       </View>
@@ -1096,7 +1114,7 @@ export default function SettingsScreen() {
                           fontFamily: "Nunito_700Bold",
                           fontSize: 13,
                           lineHeight: 13,
-                          transform: [{ translateY: 1 }],
+                          transform: [{ translateY: 0.5 }],
                         }}
                       >
                         {t("home.logout")}
@@ -1291,7 +1309,7 @@ function SettingsToggleRow({
       style={{ opacity: disabled ? 0.65 : 1 }}
       variant="ghost"
     >
-      <View className="flex-row items-start gap-4">
+      <View className="flex-row items-center gap-4">
         <View className="flex-1 gap-1">
           <Text
             className="font-nunito-bold text-base text-fg"
@@ -1306,11 +1324,13 @@ function SettingsToggleRow({
             {description}
           </Text>
         </View>
-        <ThemedExpoSwitch
-          disabled={disabled}
-          onValueChange={onToggle}
-          value={value}
-        />
+        <View className="self-center">
+          <ThemedExpoSwitch
+            disabled={disabled}
+            onValueChange={onToggle}
+            value={value}
+          />
+        </View>
       </View>
     </ThemedExpoButton>
   );
@@ -1427,10 +1447,10 @@ function SettingsActionButton({
             ? tc.primaryDark
             : tc.primaryBorder,
         borderRadius: compact ? 14 : 14,
-        height: compact ? 34 : 30,
+        height: compact ? 33 : 30,
         paddingHorizontal: compact ? 16 : 14,
         paddingVertical: 0,
-        minHeight: compact ? 34 : 30,
+        minHeight: compact ? 33 : 30,
         gradientColors: isDanger
           ? ([tc.dangerDark, tc.danger] as const)
           : isPrimary
@@ -1440,7 +1460,7 @@ function SettingsActionButton({
         textStyle: {
           fontFamily: "Nunito_700Bold",
           fontSize: compact ? 13 : 12,
-          lineHeight: compact ? 16 : 14,
+          lineHeight: compact ? 15 : 14,
         },
       }}
       style={fullWidth ? { width: "100%" } : undefined}
