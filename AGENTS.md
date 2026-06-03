@@ -175,6 +175,17 @@ Artifacts and troubleshooting:
 - when a flow reaches the right screen but behavior still seems wrong, inspect the saved screenshots before changing app code; that is how the Wordle scroll-keyboard hit-testing bug was isolated
 - for persistent server-side quest state like Wordle, prefer a fresh `MOBILE_TEST_EMAIL` for each validation pass, for example `MOBILE_TEST_EMAIL=wordle-e2e-$(date +%s)@leaetzak.love`
 
+Screenshot capture workflow:
+- when a UI task depends on screenshots, rebuild and reinstall the E2E app before the Maestro run if the surface uses bundled native code or an embedded JS bundle, then run the narrowest focused Maestro flow through `scripts/maestro.sh`
+- keep stable `takeScreenshot` names inside the committed Maestro flow when that keeps the flow simple, but never share those raw filenames with the user because chat clients may cache them aggressively
+- after each Maestro run, immediately export the screenshots into a fresh timestamped directory such as `tmp-settings-shots/$(date +%Y%m%d-%H%M%S)/`
+- the exported filenames themselves must also include the timestamp, for example `20260603-150137-step-sync.png` rather than only placing `step-sync.png` inside a timestamped folder
+- preserve every timestamped screenshot directory for the whole user session so current and prior passes can be compared side by side; do not delete earlier timestamped captures mid-session unless the user asks
+- if the user says a visual change is not visible, compare the new timestamped screenshots against the previous timestamped screenshots before assuming the build failed; the issue may be subtle sizing or cached previews
+- inspect the exported timestamped screenshots directly before reporting success, and use tighter focused screenshots or crops when the visual delta is too small to judge from a full-screen capture
+- when replying to the user, link only the timestamped exported files, not the raw `takeScreenshot` outputs
+- a reliable shell pattern is `ts=$(date +%Y%m%d-%H%M%S) && mkdir -p tmp-settings-shots/$ts && cp tmp-settings-shots/03-step-sync.png tmp-settings-shots/$ts/${ts}-step-sync.png`
+
 Focused flows:
 - `.maestro/wordle-scroll-keyboard.yaml` - verifies the Wordle keyboard still accepts taps after the screen is scrolled and is the first flow to rerun for Wordle touch regressions
 - on iOS, that flow still reproduces a stubborn `I`-key miss after scroll; use a fresh `MOBILE_TEST_EMAIL`, inspect `wordle-yuiop-after-scroll.png`, and treat the `I` key as the first place to look if the flow fails
