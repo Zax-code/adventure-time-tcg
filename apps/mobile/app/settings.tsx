@@ -1095,25 +1095,23 @@ export default function SettingsScreen() {
                     variant="danger"
                   >
                     <View
-                      className="flex-row items-center justify-center"
+                      className="h-[15px] flex-row items-center justify-center"
                       style={{ gap: 8 }}
                     >
-                      <View
-                        className="items-center justify-center"
-                        style={{
-                          width: 16,
-                          height: 16,
-                          transform: [{ translateY: -1 }],
-                        }}
-                      >
-                        <Ionicons name="log-out" size={16} color="#FFFFFF" />
+                      <View className="size-[15px] items-center justify-center">
+                        <Ionicons
+                          name="log-out"
+                          size={14}
+                          color="#FFFFFF"
+                          style={{ transform: [{ translateY: -2 }] }}
+                        />
                       </View>
                       <Text
                         style={{
                           color: "#FFFFFF",
                           fontFamily: "Nunito_700Bold",
                           fontSize: 13,
-                          lineHeight: 13,
+                          lineHeight: 15,
                         }}
                       >
                         {t("home.logout")}
@@ -1308,8 +1306,8 @@ function SettingsToggleRow({
       style={{ opacity: disabled ? 0.65 : 1 }}
       variant="ghost"
     >
-      <View className="flex-row items-center gap-4">
-        <View className="flex-1 gap-1">
+      <View className="relative min-h-[60px] justify-center">
+        <View className="gap-1 pr-24">
           <Text
             className="font-nunito-bold text-base text-fg"
             testID={testIDPrefix ? `${testIDPrefix}-title` : undefined}
@@ -1323,10 +1321,7 @@ function SettingsToggleRow({
             {description}
           </Text>
         </View>
-        <View
-          className="self-center"
-          style={{ transform: [{ translateY: 2 }] }}
-        >
+        <View className="absolute inset-y-0 right-0 justify-center">
           <ThemedExpoSwitch
             disabled={disabled}
             onValueChange={onToggle}
