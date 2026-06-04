@@ -1,17 +1,37 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import {
-  Animated,
-  PanResponder,
-  Pressable,
-  View,
-  useWindowDimensions,
-  type StyleProp,
-  type ViewStyle,
-} from "react-native";
+import { useEffect, useRef, type ReactNode } from "react";
+import { Pressable, View, useWindowDimensions, type StyleProp, type ViewStyle } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Animated, {
+  Easing,
+  cancelAnimation,
+  runOnJS,
+  runOnUI,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const MIN_TOP_GAP = 56;
 const TOP_PADDING = 16;
+const CLOSE_DISTANCE = 140;
+const CLOSE_VELOCITY = 900;
+const OPEN_BACKDROP_DURATION = 220;
+const CLOSE_BACKDROP_DURATION = 180;
+const CLOSE_SHEET_DURATION = 280;
+const OPEN_SPRING_CONFIG = {
+  damping: 24,
+  mass: 1,
+  overshootClamping: true,
+  stiffness: 180,
+};
+const RESET_SPRING_CONFIG = {
+  damping: 26,
+  mass: 1,
+  overshootClamping: true,
+  stiffness: 220,
+};
 
 export function ModalSheetRoute({
   children,
@@ -30,102 +50,137 @@ export function ModalSheetRoute({
   const { height } = useWindowDimensions();
   const topGap = Math.max(insets.top + TOP_PADDING, MIN_TOP_GAP);
   const openHeight = Math.max(0, height - topGap);
-  const translateY = useRef(new Animated.Value(openHeight)).current;
-  const backdropOpacity = useRef(new Animated.Value(0)).current;
-  const closingRef = useRef(false);
-  const [dragEnabled, setDragEnabled] = useState(true);
+  const hasAnimatedInRef = useRef(false);
+  const translateY = useSharedValue(openHeight);
+  const backdropOpacity = useSharedValue(0);
+  const maxTranslateY = useSharedValue(openHeight);
+  const isClosing = useSharedValue(0);
 
-  useEffect(() => {
-    Animated.parallel([
-      Animated.spring(translateY, {
-        toValue: 0,
-        useNativeDriver: true,
-        bounciness: 0,
-        speed: 18,
-      }),
-      Animated.timing(backdropOpacity, {
-        toValue: 1,
-        duration: 180,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [backdropOpacity, translateY]);
+  const animateOpen = (nextOpenHeight: number, isInitialMount: boolean) => {
+    "worklet";
 
-  const resetToOpen = () => {
-    Animated.spring(translateY, {
-      toValue: 0,
-      useNativeDriver: true,
-      bounciness: 0,
-      speed: 20,
-    }).start();
-  };
+    maxTranslateY.value = nextOpenHeight;
 
-  const closeAnimated = () => {
-    if (closingRef.current) {
+    if (isInitialMount) {
+      isClosing.value = 0;
+      cancelAnimation(translateY);
+      cancelAnimation(backdropOpacity);
+      translateY.value = nextOpenHeight;
+      backdropOpacity.value = 0;
+      translateY.value = withSpring(0, OPEN_SPRING_CONFIG);
+      backdropOpacity.value = withTiming(1, {
+        duration: OPEN_BACKDROP_DURATION,
+        easing: Easing.out(Easing.quad),
+      });
       return;
     }
 
-    closingRef.current = true;
-    Animated.parallel([
-      Animated.timing(translateY, {
-        toValue: openHeight,
-        duration: 220,
-        useNativeDriver: true,
-      }),
-      Animated.timing(backdropOpacity, {
-        toValue: 0,
-        duration: 160,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      onClose();
+    if (!isClosing.value) {
+      translateY.value = Math.min(translateY.value, nextOpenHeight);
+    }
+  };
+
+  const animateReset = () => {
+    "worklet";
+
+    if (isClosing.value) {
+      return;
+    }
+
+    cancelAnimation(translateY);
+    translateY.value = withSpring(0, RESET_SPRING_CONFIG);
+  };
+
+  const animateClose = () => {
+    "worklet";
+
+    if (isClosing.value) {
+      return;
+    }
+
+    isClosing.value = 1;
+    cancelAnimation(translateY);
+    cancelAnimation(backdropOpacity);
+    backdropOpacity.value = withTiming(0, {
+      duration: CLOSE_BACKDROP_DURATION,
+      easing: Easing.inOut(Easing.quad),
+    });
+    translateY.value = withTiming(maxTranslateY.value, {
+      duration: CLOSE_SHEET_DURATION,
+      easing: Easing.out(Easing.cubic),
+    }, (finished) => {
+      if (finished) {
+        runOnJS(onClose)();
+      }
     });
   };
 
-  const panResponder = useMemo(
-    () =>
-      PanResponder.create({
-        onMoveShouldSetPanResponder: (_, gestureState) =>
-          dragEnabled &&
-          gestureState.dy > 8 &&
-          Math.abs(gestureState.dy) > Math.abs(gestureState.dx),
-        onPanResponderMove: (_, gestureState) => {
-          if (gestureState.dy > 0) {
-            translateY.setValue(gestureState.dy);
-          }
-        },
-        onPanResponderRelease: (_, gestureState) => {
-          if (gestureState.dy > 140 || gestureState.vy > 1.1) {
-            closeAnimated();
-            return;
-          }
+  useEffect(() => {
+    const isInitialMount = !hasAnimatedInRef.current;
+    hasAnimatedInRef.current = true;
+    runOnUI(animateOpen)(openHeight, isInitialMount);
+  }, [openHeight]);
 
-          resetToOpen();
-        },
-        onPanResponderTerminate: () => {
-          resetToOpen();
-        },
-      }),
-    [dragEnabled, openHeight, translateY],
-  );
+  const panGesture = Gesture.Pan()
+    .activeOffsetY(8)
+    .failOffsetX([-12, 12])
+    .onUpdate((event) => {
+      if (isClosing.value) {
+        return;
+      }
+
+      translateY.value = Math.min(
+        maxTranslateY.value,
+        Math.max(0, event.translationY),
+      );
+    })
+    .onEnd((event) => {
+      if (
+        event.translationY > CLOSE_DISTANCE ||
+        event.velocityY > CLOSE_VELOCITY
+      ) {
+        animateClose();
+        return;
+      }
+
+      animateReset();
+    })
+    .onFinalize(() => {
+      if (!isClosing.value && translateY.value > 0) {
+        animateReset();
+      }
+    });
+
+  const handleBackdropPress = () => {
+    runOnUI(animateClose)();
+  };
+
+  const backdropStyle = useAnimatedStyle(() => ({
+    opacity: backdropOpacity.value,
+  }));
+
+  const sheetAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+  }));
 
   return (
     <View className="flex-1 justify-end" pointerEvents="box-none">
       <Animated.View
-        pointerEvents="box-none"
-        style={{
-          position: "absolute",
-          top: 0,
-          right: 0,
-          bottom: 0,
-          left: 0,
-          opacity: backdropOpacity,
-        }}
+        style={[
+          {
+            position: "absolute",
+            top: 0,
+            right: 0,
+            bottom: 0,
+            left: 0,
+          },
+          backdropStyle,
+        ]}
       >
         <Pressable
           className="absolute inset-0"
           style={{ backgroundColor: "rgba(0,0,0,0.4)" }}
-          onPress={closeAnimated}
+          onPress={handleBackdropPress}
         />
       </Animated.View>
 
@@ -137,21 +192,22 @@ export function ModalSheetRoute({
             borderTopLeftRadius: 32,
             borderTopRightRadius: 32,
             backgroundColor: sheetBackgroundColor,
-            transform: [{ translateY }],
           },
+          sheetAnimatedStyle,
           sheetStyle,
         ]}
       >
-        <View
-          {...panResponder.panHandlers}
-          className="items-center pb-2 pt-3"
-          style={{ backgroundColor: sheetBackgroundColor }}
-        >
+        <GestureDetector gesture={panGesture}>
           <View
-            className="h-1.5 w-10 rounded-full"
-            style={{ backgroundColor: handleColor }}
-          />
-        </View>
+            className="items-center pb-2 pt-3"
+            style={{ backgroundColor: sheetBackgroundColor }}
+          >
+            <View
+              className="h-1.5 w-10 rounded-full"
+              style={{ backgroundColor: handleColor }}
+            />
+          </View>
+        </GestureDetector>
 
         <View
           className="flex-1"

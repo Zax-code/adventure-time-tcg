@@ -259,7 +259,7 @@ export default function RootLayout() {
                     name="admin-card-editor"
                     options={{
                       presentation: "transparentModal",
-                      animation: "slide_from_bottom",
+                      animation: "none",
                       contentStyle: { backgroundColor: "transparent" },
                       headerShown: false,
                     }}
@@ -268,7 +268,7 @@ export default function RootLayout() {
                     name="admin-ability-editor"
                     options={{
                       presentation: "transparentModal",
-                      animation: "slide_from_bottom",
+                      animation: "none",
                       contentStyle: { backgroundColor: "transparent" },
                       headerShown: false,
                     }}
@@ -277,7 +277,7 @@ export default function RootLayout() {
                     name="admin-user-editor"
                     options={{
                       presentation: "transparentModal",
-                      animation: "slide_from_bottom",
+                      animation: "none",
                       contentStyle: { backgroundColor: "transparent" },
                       headerShown: false,
                     }}
@@ -295,7 +295,7 @@ export default function RootLayout() {
                     name="pvp-mechanics"
                     options={{
                       presentation: "transparentModal",
-                      animation: "slide_from_bottom",
+                      animation: "none",
                       contentStyle: { backgroundColor: "transparent" },
                       headerShown: false,
                     }}
@@ -304,7 +304,7 @@ export default function RootLayout() {
                     name="pvp-reference"
                     options={{
                       presentation: "transparentModal",
-                      animation: "slide_from_bottom",
+                      animation: "none",
                       contentStyle: { backgroundColor: "transparent" },
                       headerShown: false,
                     }}
@@ -313,7 +313,7 @@ export default function RootLayout() {
                     name="pvp-card-details"
                     options={{
                       presentation: "transparentModal",
-                      animation: "slide_from_bottom",
+                      animation: "none",
                       contentStyle: { backgroundColor: "transparent" },
                       headerShown: false,
                     }}
@@ -322,7 +322,7 @@ export default function RootLayout() {
                     name="collection-card-detail"
                     options={{
                       presentation: "transparentModal",
-                      animation: "slide_from_bottom",
+                      animation: "none",
                       contentStyle: { backgroundColor: "transparent" },
                       headerShown: false,
                     }}
