@@ -215,8 +215,7 @@ export default function AdminUserEditorScreen() {
       <KeyboardScreenView>
         <AdminBackground>
           <View className="flex-1">
-            <View className="w-9 h-1 self-center mt-2 mb-[6] rounded-full bg-primaryBorder" />
-            <View className="px-4">
+            <View className="px-4 pt-2">
               <AdminTopBar
                 title={t("admin.userEditor.title")}
                 subtitle={t("admin.users.subtitle")}
