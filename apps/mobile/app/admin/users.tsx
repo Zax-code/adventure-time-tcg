@@ -120,7 +120,7 @@ function AdminUserRow({
   return (
     <Pressable
       onPress={onPress}
-      className="overflow-hidden rounded-[22px]"
+      className="overflow-hidden rounded-[16px]"
       style={{
         backgroundColor: withAlpha(accentShell, themeName === "nightosphere" ? "47" : "2B"),
         boxShadow: `0px 10px 18px ${withAlpha(
@@ -130,11 +130,11 @@ function AdminUserRow({
       }}
     >
       <View
-        className="relative gap-4 rounded-[21px] px-4 py-4"
+        className="relative gap-4 rounded-[15px] px-4 py-4"
         style={{ backgroundColor: cardFill }}
       >
         <View
-          className="absolute bottom-0 left-0 top-0 w-[6px] rounded-l-[21px]"
+          className="absolute bottom-0 left-0 top-0 w-[6px] rounded-l-[15px]"
           style={{ backgroundColor: railColor }}
         />
         <View className="flex-row items-start gap-3 pl-2">
