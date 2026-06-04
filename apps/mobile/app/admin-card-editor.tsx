@@ -56,6 +56,8 @@ export default function AdminCardEditorScreen() {
   const isCreateMode = mode !== "edit";
   const canAccessAdmin = sessionHydrated && isAdmin;
   const canLoadCard = canAccessAdmin && !isCreateMode && Boolean(cardId);
+  const footerBottomPadding = insets.bottom + 16;
+  const scrollBottomPadding = footerBottomPadding + (isCreateMode ? 84 : 140);
 
   const [draft, setDraft] = useState<CardDraft>(BLANK_CARD_DRAFT);
   const [assignmentDraft, setAssignmentDraft] = useState<AssignmentDraft>(
@@ -319,7 +321,7 @@ export default function AdminCardEditorScreen() {
                   contentContainerStyle={{
                     paddingHorizontal: 16,
                     paddingTop: 14,
-                    paddingBottom: 24,
+                    paddingBottom: scrollBottomPadding,
                     gap: 16,
                   }}
                   showsVerticalScrollIndicator={false}
@@ -351,8 +353,8 @@ export default function AdminCardEditorScreen() {
                 </ScrollView>
 
                 <View
-                  className="px-4 pt-3"
-                  style={{ paddingBottom: insets.bottom + 16 }}
+                  className="absolute inset-x-0 bottom-0 px-4 pt-3"
+                  style={{ paddingBottom: footerBottomPadding }}
                 >
                   <View className="gap-3">
                     <AdminButton
