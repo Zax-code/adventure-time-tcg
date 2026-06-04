@@ -50,23 +50,6 @@ function getQuestTone(quest: {
   return "default" as const;
 }
 
-function getQuestSurfaceTone(quest: {
-  completed: boolean;
-  claimed: boolean;
-  failed: boolean;
-}) {
-  if (quest.claimed) {
-    return "success" as const;
-  }
-  if (quest.completed) {
-    return "accent" as const;
-  }
-  if (quest.failed) {
-    return "danger" as const;
-  }
-  return "info" as const;
-}
-
 function UserEditorSection({
   title,
   subtitle,
@@ -116,9 +99,11 @@ function UserEditorDivider() {
 function UserEditorInsetCard({
   children,
   tone = "default",
+  rail = true,
 }: {
   children: ReactNode;
   tone?: "default" | "info" | "warning" | "accent" | "success" | "danger";
+  rail?: boolean;
 }) {
   const themeName = useThemeStore((state) => state.themeName);
   const tc = THEME_COLORS[themeName];
@@ -155,7 +140,7 @@ function UserEditorInsetCard({
       style={{ backgroundColor: palette.bg }}
     >
       <View className="flex-row">
-        <View style={{ backgroundColor: palette.rail, width: 4 }} />
+        {rail ? <View style={{ backgroundColor: palette.rail, width: 4 }} /> : null}
         <View className="flex-1 gap-3 px-4 py-4">{children}</View>
       </View>
     </View>
@@ -455,7 +440,7 @@ export default function AdminUserEditorScreen() {
                       title={t("admin.userEditor.coinsTitle")}
                       subtitle={t("admin.userEditor.coinsSubtitle")}
                     >
-                      <UserEditorInsetCard tone="warning">
+                      <UserEditorInsetCard rail={false} tone="warning">
                         <Text className="font-nunito-bold text-xs uppercase tracking-[0.7px] text-secondaryText">
                           {t("admin.userEditor.currentBalance")}
                         </Text>
@@ -671,7 +656,8 @@ export default function AdminUserEditorScreen() {
                         return (
                           <UserEditorInsetCard
                             key={quest.id}
-                            tone={getQuestSurfaceTone(quest)}
+                            rail={false}
+                            tone="default"
                           >
                             <View className="flex-row items-start justify-between gap-3">
                               <View className="flex-1 gap-1">
