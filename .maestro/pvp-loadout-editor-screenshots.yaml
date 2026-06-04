@@ -15,7 +15,7 @@ tags:
     id: pvp-loadout-summary-card
 - takeScreenshot: tmp-loadout-editor-shots/01-create-top
 - tapOn:
-    text: "E2E PvP Fast Loadout"
+    id: "pvp-loadout-saved-.*"
 - waitForAnimationToEnd
 - takeScreenshot: tmp-loadout-editor-shots/02-edit-top
 - scrollUntilVisible:

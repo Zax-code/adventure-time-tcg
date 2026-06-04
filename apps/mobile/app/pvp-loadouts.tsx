@@ -54,21 +54,6 @@ const LOADOUT_TYPES = [
   "Cosmic",
 ] as const;
 
-function getRarityBorderClass(rarity: string) {
-  switch (rarity) {
-    case "Legendary":
-      return "border-secondaryDark";
-    case "Epic":
-      return "border-accent";
-    case "Rare":
-      return "border-info";
-    case "Uncommon":
-      return "border-success";
-    default:
-      return "border-primaryBorder";
-  }
-}
-
 function BuilderCardPressable({
   className,
   onPress,
@@ -140,6 +125,38 @@ function InfoPill({
     >
       <Text
         className="font-nunito-bold text-xs"
+        style={{ color: textColor }}
+      >
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+function CompactStat({
+  label,
+  value,
+  backgroundColor,
+  textColor,
+}: {
+  label: string;
+  value: number;
+  backgroundColor: string;
+  textColor: string;
+}) {
+  return (
+    <View
+      className="flex-1 rounded-2xl px-2 py-2"
+      style={{ backgroundColor }}
+    >
+      <Text
+        className="text-center font-nunito-extrabold text-sm"
+        style={{ color: textColor, fontVariant: ["tabular-nums"] }}
+      >
+        {value}
+      </Text>
+      <Text
+        className="mt-0.5 text-center font-nunito-bold text-[10px]"
         style={{ color: textColor }}
       >
         {label}
@@ -940,17 +957,21 @@ export default function PvpLoadoutsScreen() {
                       key={entry.id}
                       onPress={() => toggleCardSelection(card)}
                       onLongPress={() => openCardDetails(card.id)}
-                      className={`relative mb-0 overflow-hidden rounded-[22px] border-2 ${
-                        isSelected
-                          ? "border-primaryDark bg-white"
-                          : `${getRarityBorderClass(card.rarity.name)} bg-white`
-                      }`}
-                      style={{ width: "31.5%" }}
+                      className="relative mb-0 overflow-hidden rounded-[24px] bg-white"
+                      style={{
+                        width: "48.5%",
+                        borderColor: isSelected ? tc.primaryDark : rarity.ring,
+                        borderWidth: isSelected ? 2.5 : 2,
+                        backgroundColor: isSelected ? tc.primaryBg : "#FFFFFF",
+                      }}
                       testID={`pvp-loadout-card-${card.id}`}
                     >
                       <View
-                        className="overflow-hidden"
-                        style={{ aspectRatio: 3 / 4 }}
+                        className="relative overflow-hidden"
+                        style={{
+                          aspectRatio: 1.08,
+                          backgroundColor: typeColor.light,
+                        }}
                       >
                         {card.imageAssetId ? (
                           <Image
@@ -975,62 +996,127 @@ export default function PvpLoadoutsScreen() {
                             </Text>
                           </View>
                         )}
+
+                        <LinearGradient
+                          colors={["rgba(255,255,255,0.04)", "rgba(0,0,0,0.18)"]}
+                          start={{ x: 0.5, y: 0 }}
+                          end={{ x: 0.5, y: 1 }}
+                          style={{
+                            position: "absolute",
+                            left: 0,
+                            right: 0,
+                            top: 0,
+                            bottom: 0,
+                          }}
+                        />
+
+                        <View className="absolute left-2 right-2 top-2 flex-row items-start justify-between gap-2">
+                          <View
+                            className="rounded-full px-2.5 py-1"
+                            style={{ backgroundColor: `${typeColor.dark}E6` }}
+                          >
+                            <Text className="font-nunito-bold text-[10px] text-white">
+                              {localizeTypeName(card.type, t)}
+                            </Text>
+                          </View>
+
+                          {isSelected ? (
+                            <View
+                              className="flex-row items-center gap-1 rounded-full px-2.5 py-1"
+                              style={{ backgroundColor: tc.primaryDark }}
+                            >
+                              <CheckIcon size={10} color="#FFFFFF" />
+                              <Text className="font-nunito-bold text-[10px] text-white">
+                                #{selectedIndex + 1}
+                              </Text>
+                            </View>
+                          ) : null}
+                        </View>
                       </View>
 
                       <LinearGradient
-                        colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.86)"]}
-                        start={{ x: 0.5, y: 0 }}
-                        end={{ x: 0.5, y: 1 }}
+                        colors={[rarity.from, rarity.to]}
+                        start={{ x: 0, y: 0.5 }}
+                        end={{ x: 1, y: 0.5 }}
+                        style={{ height: 4 }}
+                      />
+
+                      <View
+                        className="gap-3 px-3 pb-3 pt-3"
                         style={{
-                          position: "absolute",
-                          left: 0,
-                          right: 0,
-                          bottom: 0,
-                          paddingHorizontal: 8,
-                          paddingVertical: 8,
+                          backgroundColor: isSelected ? tc.primaryTint : "#FFFFFF",
                         }}
                       >
-                        <Text
-                          className="font-nunito-bold text-xs text-white"
-                          numberOfLines={2}
-                        >
-                          {card.name}
-                        </Text>
-                        <Text className="mt-1 font-nunito text-[10px] text-white/80">
-                          {t("pvp.hp")}:{card.hp} {t("pvp.atk")}:{card.attack}{" "}
-                          {t("pvp.def")}:{card.defense}
-                        </Text>
-                      </LinearGradient>
-
-                      {isSelected ? (
-                        <View className="absolute right-2 top-2 rounded-full bg-primaryDark px-2 py-1">
-                          <Text className="font-nunito-bold text-[10px] text-white">
-                            #{selectedIndex + 1}
+                        <View className="gap-1">
+                          <Text
+                            className="font-nunito-bold text-sm text-fg"
+                            numberOfLines={2}
+                          >
+                            {card.name}
+                          </Text>
+                          <Text
+                            className="font-nunito text-xs text-fgMuted"
+                            numberOfLines={1}
+                          >
+                            {card.character || localizeTypeName(card.type, t)}
                           </Text>
                         </View>
-                      ) : null}
 
-                      {entry.quantity > 1 ? (
-                        <View className="absolute left-2 top-2 rounded-full bg-black/60 px-2 py-1">
-                          <Text className="font-nunito-bold text-[10px] text-white">
-                            x{entry.quantity}
-                          </Text>
+                        <View className="flex-row flex-wrap gap-1.5">
+                          <View
+                            className="rounded-full border px-2.5 py-1"
+                            style={{
+                              backgroundColor: `${rarity.from}20`,
+                              borderColor: `${rarity.ring}55`,
+                            }}
+                          >
+                            <Text
+                              className="font-nunito-bold text-[10px]"
+                              style={{ color: rarity.to }}
+                            >
+                              {card.rarity.name}
+                            </Text>
+                          </View>
+
+                          {entry.quantity > 1 ? (
+                            <View
+                              className="rounded-full border px-2.5 py-1"
+                              style={{
+                                backgroundColor: tc.surfaceMuted,
+                                borderColor: tc.primaryBorder,
+                              }}
+                            >
+                              <Text
+                                className="font-nunito-bold text-[10px]"
+                                style={{ color: tc.fgMuted }}
+                              >
+                                x{entry.quantity}
+                              </Text>
+                            </View>
+                          ) : null}
                         </View>
-                      ) : null}
 
-                      {isSelected ? (
-                        <View
-                          className="absolute inset-0 border-2"
-                          style={{ borderColor: tc.primaryDark }}
-                          pointerEvents="none"
-                        />
-                      ) : (
-                        <View
-                          className="absolute inset-0 border"
-                          style={{ borderColor: rarity.ring }}
-                          pointerEvents="none"
-                        />
-                      )}
+                        <View className="flex-row gap-1.5">
+                          <CompactStat
+                            label={t("pvp.hp")}
+                            value={card.hp}
+                            backgroundColor={`${typeColor.light}CC`}
+                            textColor={typeColor.dark}
+                          />
+                          <CompactStat
+                            label={t("pvp.atk")}
+                            value={card.attack}
+                            backgroundColor={tc.dangerTint}
+                            textColor={tc.dangerDark}
+                          />
+                          <CompactStat
+                            label={t("pvp.def")}
+                            value={card.defense}
+                            backgroundColor={tc.infoTint}
+                            textColor={tc.infoDark}
+                          />
+                        </View>
+                      </View>
                     </BuilderCardPressable>
                   );
                 })}
