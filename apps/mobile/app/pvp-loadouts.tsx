@@ -28,6 +28,7 @@ import { useThemeStore } from "../src/stores/theme-store";
 import { THEME_COLORS } from "../src/theme/themes";
 import { CARD_TYPE_COLORS, RARITY_COLORS } from "../src/components/theme";
 import {
+  CardsIcon,
   CheckIcon,
   ChevronRightIcon,
   SwordsIcon,
@@ -53,32 +54,19 @@ const LOADOUT_TYPES = [
   "Cosmic",
 ] as const;
 
-function getRarityBorderClass(rarity: string) {
-  switch (rarity) {
-    case "Legendary":
-      return "border-secondaryDark";
-    case "Epic":
-      return "border-accent";
-    case "Rare":
-      return "border-info";
-    case "Uncommon":
-      return "border-success";
-    default:
-      return "border-primaryBorder";
-  }
-}
-
 function BuilderCardPressable({
   className,
   onPress,
   onLongPress,
   style,
+  testID,
   children,
 }: {
   className?: string;
   onPress?: () => void;
   onLongPress?: () => void;
   style?: ViewStyle;
+  testID?: string;
   children: ReactNode;
 }) {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -93,6 +81,7 @@ function BuilderCardPressable({
 
   return (
     <Pressable
+      testID={testID}
       className={className}
       style={style}
       onPressIn={() => {
@@ -115,6 +104,219 @@ function BuilderCardPressable({
     >
       {children}
     </Pressable>
+  );
+}
+
+function InfoPill({
+  label,
+  backgroundColor,
+  borderColor,
+  textColor,
+}: {
+  label: string;
+  backgroundColor: string;
+  borderColor: string;
+  textColor: string;
+}) {
+  return (
+    <View
+      className="rounded-full border px-3 py-2"
+      style={{ backgroundColor, borderColor }}
+    >
+      <Text
+        className="font-nunito-bold text-xs"
+        style={{ color: textColor }}
+      >
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+function CompactStat({
+  label,
+  value,
+  backgroundColor,
+  textColor,
+}: {
+  label: string;
+  value: number;
+  backgroundColor: string;
+  textColor: string;
+}) {
+  return (
+    <View
+      className="flex-1 rounded-2xl p-2"
+      style={{ backgroundColor }}
+    >
+      <Text
+        className="text-center font-nunito-extrabold text-sm"
+        style={{ color: textColor, fontVariant: ["tabular-nums"] }}
+      >
+        {value}
+      </Text>
+      <Text
+        className="mt-0.5 text-center font-nunito-bold text-[10px]"
+        style={{ color: textColor }}
+      >
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+function LoadoutSlotCard({
+  card,
+  index,
+  label,
+  borderColor,
+  emptyBackgroundColor,
+  emptyBorderColor,
+  emptyTextColor,
+  badgeColor,
+  onLongPress,
+  onMoveBack,
+  onMoveForward,
+  onRemove,
+  canMoveBack,
+  canMoveForward,
+}: {
+  card?: BuilderCard;
+  index: number;
+  label: string;
+  borderColor: string;
+  emptyBackgroundColor: string;
+  emptyBorderColor: string;
+  emptyTextColor: string;
+  badgeColor: string;
+  onLongPress: () => void;
+  onMoveBack: () => void;
+  onMoveForward: () => void;
+  onRemove: () => void;
+  canMoveBack: boolean;
+  canMoveForward: boolean;
+}) {
+  return (
+    <View
+      testID={`pvp-loadout-slot-${index}`}
+      className="gap-2"
+      style={{ width: "31.5%" }}
+    >
+      <Text
+        className="font-nunito-bold text-xs"
+        style={{ color: badgeColor }}
+        numberOfLines={1}
+      >
+        {label}
+      </Text>
+
+      <View
+        className="relative overflow-hidden rounded-[22px] border-2"
+        style={{
+          aspectRatio: 0.72,
+          backgroundColor: card ? "#FFFFFF" : emptyBackgroundColor,
+          borderColor: card ? borderColor : emptyBorderColor,
+        }}
+      >
+        {card ? (
+          <>
+            <BuilderCardPressable
+              className="h-full w-full"
+              onLongPress={onLongPress}
+            >
+              {card.imageAssetId ? (
+                <Image
+                  source={{
+                    uri: getCardImageUrl(card.imageAssetId),
+                    cacheKey: getCardImageCacheKey(card.imageAssetId),
+                  }}
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
+                  style={{ width: "100%", height: "100%" }}
+                />
+              ) : (
+                <View className="h-full w-full items-center justify-center bg-primaryTint">
+                  <Text className="font-nunito-extrabold text-4xl text-primaryDark">
+                    {(card.character || card.name || "?").charAt(0)}
+                  </Text>
+                </View>
+              )}
+            </BuilderCardPressable>
+
+            <View className="absolute left-2 top-2 rounded-full px-2 py-1">
+              <View
+                className="rounded-full px-2 py-1"
+                style={{ backgroundColor: badgeColor }}
+              >
+                <Text className="font-nunito-bold text-[10px] text-white">
+                  #{index + 1}
+                </Text>
+              </View>
+            </View>
+
+            <Pressable
+              onPress={onRemove}
+              className="absolute right-2 top-2 size-7 items-center justify-center rounded-full bg-black/45"
+            >
+              <XIcon size={12} color="#FFFFFF" />
+            </Pressable>
+
+            <LinearGradient
+              colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.88)"]}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+              style={{
+                position: "absolute",
+                left: 0,
+                right: 0,
+                bottom: 0,
+                paddingHorizontal: 8,
+                paddingBottom: 8,
+                paddingTop: 24,
+              }}
+            >
+              <Text
+                className="font-nunito-bold text-[11px] text-white"
+                numberOfLines={2}
+              >
+                {card.name}
+              </Text>
+              <View className="mt-2 flex-row items-center justify-between">
+                <Pressable
+                  onPress={onMoveBack}
+                  disabled={!canMoveBack}
+                  className="rounded-full border border-white/30 bg-black/25 px-2 py-1"
+                  style={{ opacity: canMoveBack ? 1 : 0.35 }}
+                >
+                  <Text className="font-nunito-bold text-[10px] text-white">
+                    {"<"}
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={onMoveForward}
+                  disabled={!canMoveForward}
+                  className="rounded-full border border-white/30 bg-black/25 px-2 py-1"
+                  style={{ opacity: canMoveForward ? 1 : 0.35 }}
+                >
+                  <Text className="font-nunito-bold text-[10px] text-white">
+                    {">"}
+                  </Text>
+                </Pressable>
+              </View>
+            </LinearGradient>
+          </>
+        ) : (
+          <View className="flex-1 items-center justify-center px-3">
+            <Text
+              className="text-center font-nunito-bold text-sm"
+              style={{ color: emptyTextColor }}
+            >
+              {label}
+            </Text>
+          </View>
+        )}
+      </View>
+    </View>
   );
 }
 
@@ -165,10 +367,15 @@ export default function PvpLoadoutsScreen() {
 
   const selectedCards = useMemo(
     () =>
-      selectedCardIds
-        .map((id) => cardMap.get(id))
-        .filter(Boolean) as BuilderCard[],
+      selectedCardIds.flatMap((id) => {
+        const card = cardMap.get(id);
+        return card ? [card] : [];
+      }),
     [cardMap, selectedCardIds],
+  );
+  const selectedCardIndexMap = useMemo(
+    () => new Map(selectedCardIds.map((cardId, index) => [cardId, index])),
+    [selectedCardIds],
   );
 
   const rarityCounts = selectedCards.reduce(
@@ -181,13 +388,32 @@ export default function PvpLoadoutsScreen() {
   );
 
   const filteredCollection = useMemo(() => {
-    return ownedCards.filter((entry) => {
+    const filtered = ownedCards.filter((entry) => {
       if (filter === "all") {
         return true;
       }
       return entry.card.type === filter;
     });
-  }, [filter, ownedCards]);
+
+    return [...filtered].sort((left, right) => {
+      const leftIndex = selectedCardIndexMap.get(left.card.id);
+      const rightIndex = selectedCardIndexMap.get(right.card.id);
+
+      if (leftIndex != null && rightIndex != null) {
+        return leftIndex - rightIndex;
+      }
+
+      if (leftIndex != null) {
+        return -1;
+      }
+
+      if (rightIndex != null) {
+        return 1;
+      }
+
+      return left.card.name.localeCompare(right.card.name);
+    });
+  }, [filter, ownedCards, selectedCardIndexMap]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -319,6 +545,7 @@ export default function PvpLoadoutsScreen() {
       params: { cardId },
     });
   };
+  const remainingSlots = Math.max(0, 6 - selectedCards.length);
 
   if (collectionQuery.isLoading || loadoutsQuery.isLoading) {
     return (
@@ -402,508 +629,617 @@ export default function PvpLoadoutsScreen() {
         <ScrollView
           {...KEYBOARD_AWARE_SCROLL_PROPS}
           className="flex-1"
-          contentContainerStyle={{ paddingBottom: 32 }}
+          contentContainerStyle={{ paddingBottom: 180 }}
         >
-          {loadouts.length > 0 ? (
-            <View className="border-b border-primaryTint bg-white/60 px-4 py-4">
-              <Text className="mb-2 font-nunito-semibold text-sm text-fgMuted">
-                {t("pvp.yourLoadouts")}
-              </Text>
+          <View className="gap-4 p-4">
+            {loadouts.length > 0 ? (
+              <View
+                testID="pvp-loadout-saved-section"
+                className="rounded-[28px] border border-primaryBorder/50 bg-surface/95 p-4"
+              >
+                <Text className="font-nunito-bold text-base text-fg">
+                  {t("pvp.yourLoadouts")}
+                </Text>
+                <Text className="mt-1 font-nunito text-sm text-fgMuted">
+                  {t("pvp.savedLoadoutsHint")}
+                </Text>
+
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ gap: 12, paddingRight: 4, paddingTop: 12 }}
+                >
+                  {loadouts.map((loadout) => {
+                    const active = editingLoadoutId === loadout.id;
+                    const isValid = loadout.invalidCardIds.length === 0;
+
+                    return (
+                      <Pressable
+                        key={loadout.id}
+                        testID={`pvp-loadout-saved-${loadout.id}`}
+                        onPress={() => editLoadout(loadout.id)}
+                        className={`rounded-[24px] border p-4 ${
+                          active
+                            ? "border-accentDark bg-accentTint"
+                            : "border-primaryBorder/40 bg-surfaceMuted"
+                        }`}
+                        style={{ width: 208 }}
+                      >
+                        <View className="flex-row items-start justify-between gap-3">
+                          <Text
+                            className={`flex-1 font-nunito-bold text-base ${
+                              active ? "text-accentStrong" : "text-fg"
+                            }`}
+                            numberOfLines={2}
+                          >
+                            {loadout.name}
+                          </Text>
+                          {active ? (
+                            <View className="rounded-full bg-accentDark px-2 py-1">
+                              <Text className="font-nunito-bold text-[10px] text-white">
+                                {t("pvp.editing")}
+                              </Text>
+                            </View>
+                          ) : null}
+                        </View>
+
+                        <Text className="mt-3 font-nunito-semibold text-xs text-fgMuted">
+                          {loadout.cardIds.length}/6
+                        </Text>
+                        <Text
+                          className={`mt-1 font-nunito text-xs ${
+                            isValid ? "text-fgMuted" : "text-dangerDark"
+                          }`}
+                        >
+                          {isValid
+                            ? t("pvp.firstThreeActive")
+                            : t("pvp.invalidLoadout", {
+                                count: loadout.invalidCardIds.length,
+                              })}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+
+                {editingLoadout ? (
+                  <ThemedExpoButton
+                    testID="pvp-loadout-new-button"
+                    onPress={createNewLoadout}
+                    preferFallback
+                    variant="secondary"
+                    fallbackAppearance={{
+                      backgroundColor: tc.secondaryTint,
+                      borderColor: tc.secondaryBorder,
+                      borderRadius: 16,
+                      foregroundColor: tc.secondaryText,
+                      gradientColors: null,
+                      minHeight: 0,
+                      paddingHorizontal: 16,
+                      paddingVertical: 12,
+                      textStyle: {
+                        fontFamily: "Nunito_700Bold",
+                        fontSize: 14,
+                      },
+                    }}
+                    style={{ marginTop: 12 }}
+                  >
+                    {t("pvp.newLoadout")}
+                  </ThemedExpoButton>
+                ) : null}
+              </View>
+            ) : null}
+
+            <View
+              testID="pvp-loadout-summary-card"
+              className="rounded-[28px] border border-primaryBorder/50 bg-surface/95 p-4"
+            >
+              <View className="rounded-[24px] border border-primaryBorder/40 bg-primaryBg p-4">
+                <View className="flex-row items-start justify-between gap-3">
+                  <View className="flex-1">
+                    <Text className="font-nunito-bold text-base text-primaryStrong">
+                      {t("pvp.loadoutDetails")}
+                    </Text>
+                    <Text className="mt-1 font-nunito text-sm text-fgMuted">
+                      {t("pvp.loadoutDetailsHint")}
+                    </Text>
+                  </View>
+                  <View className="items-end">
+                    <Text className="font-nunito-extrabold text-3xl text-primaryStrong">
+                      {selectedCards.length}
+                    </Text>
+                    <Text className="font-nunito-semibold text-xs text-primaryText">
+                      / 6
+                    </Text>
+                  </View>
+                </View>
+
+                <ThemedExpoTextInput
+                  testID="pvp-loadout-name-input"
+                  value={loadoutName}
+                  onChangeText={setLoadoutName}
+                  placeholder={t("pvp.loadoutNamePlaceholder")}
+                  hostStyle={{ marginTop: 14 }}
+                  style={{
+                    backgroundColor: "#FFFFFF",
+                    borderColor: tc.primaryBorder,
+                    borderRadius: 16,
+                    borderWidth: 1,
+                    height: 48,
+                    paddingHorizontal: 14,
+                    width: "100%",
+                  }}
+                  textStyle={{
+                    color: tc.fg,
+                    fontFamily: "Nunito_600SemiBold",
+                    fontSize: 15,
+                  }}
+                />
+
+                <View className="mt-3 flex-row flex-wrap gap-2">
+                  <InfoPill
+                    label={`${selectedCards.length}/6 ${t("pvp.cardsSelected")}`}
+                    backgroundColor={
+                      selectedCards.length === 6 ? tc.successTint : tc.surface
+                    }
+                    borderColor={
+                      selectedCards.length === 6
+                        ? tc.successBorder
+                        : tc.primaryBorder
+                    }
+                    textColor={
+                      selectedCards.length === 6
+                        ? tc.successText
+                        : tc.primaryStrong
+                    }
+                  />
+                  <InfoPill
+                    label={t("pvp.rarityCapLegendary", {
+                      count: rarityCounts.legendary,
+                    })}
+                    backgroundColor={tc.secondaryTint}
+                    borderColor={tc.secondaryBorder}
+                    textColor={tc.secondaryText}
+                  />
+                  <InfoPill
+                    label={t("pvp.rarityCapEpic", { count: rarityCounts.epic })}
+                    backgroundColor={tc.accentTint}
+                    borderColor={tc.accentBorder}
+                    textColor={tc.accentText}
+                  />
+                </View>
+              </View>
+
+              <View className="mt-4 gap-3">
+                <View className="rounded-[24px] border border-successBorder bg-successTint/70 p-4">
+                  <Text className="font-nunito-bold text-base text-successText">
+                    {t("pvp.activeTeam")}
+                  </Text>
+                  <Text className="mt-1 font-nunito text-xs text-successText">
+                    {t("pvp.activeTeamHint")}
+                  </Text>
+
+                  <View className="mt-4 flex-row justify-between">
+                    {[0, 1, 2].map((index) => (
+                      <LoadoutSlotCard
+                        key={index}
+                        card={selectedCards[index]}
+                        index={index}
+                        label={t("pvp.activeSlot", { index: index + 1 })}
+                        borderColor={tc.successDark}
+                        emptyBackgroundColor={tc.successTint}
+                        emptyBorderColor={tc.successBorder}
+                        emptyTextColor={tc.successText}
+                        badgeColor={tc.successDark}
+                        onLongPress={() => {
+                          const card = selectedCards[index];
+                          if (card) {
+                            openCardDetails(card.id);
+                          }
+                        }}
+                        onMoveBack={() => moveCard(index, "up")}
+                        onMoveForward={() => moveCard(index, "down")}
+                        onRemove={() => removeCard(index)}
+                        canMoveBack={index > 0}
+                        canMoveForward={index < selectedCards.length - 1}
+                      />
+                    ))}
+                  </View>
+                </View>
+
+                <View className="rounded-[24px] border border-accentBorder bg-accentTint/75 p-4">
+                  <Text className="font-nunito-bold text-base text-accentStrong">
+                    {t("pvp.benchTeam")}
+                  </Text>
+                  <Text className="mt-1 font-nunito text-xs text-accentText">
+                    {t("pvp.benchTeamHint")}
+                  </Text>
+
+                  <View className="mt-4 flex-row justify-between">
+                    {[3, 4, 5].map((index) => (
+                      <LoadoutSlotCard
+                        key={index}
+                        card={selectedCards[index]}
+                        index={index}
+                        label={t("pvp.benchSlot", { index: index - 2 })}
+                        borderColor={tc.accentDark}
+                        emptyBackgroundColor={tc.accentTint}
+                        emptyBorderColor={tc.accentBorder}
+                        emptyTextColor={tc.accentText}
+                        badgeColor={tc.accentDark}
+                        onLongPress={() => {
+                          const card = selectedCards[index];
+                          if (card) {
+                            openCardDetails(card.id);
+                          }
+                        }}
+                        onMoveBack={() => moveCard(index, "up")}
+                        onMoveForward={() => moveCard(index, "down")}
+                        onRemove={() => removeCard(index)}
+                        canMoveBack={index > 0}
+                        canMoveForward={index < selectedCards.length - 1}
+                      />
+                    ))}
+                  </View>
+                </View>
+              </View>
+            </View>
+
+            <View
+              testID="pvp-loadout-collection"
+              className="rounded-[28px] border border-primaryBorder/50 bg-surface/95 p-4"
+            >
+              <View className="flex-row items-start justify-between gap-3">
+                <View className="flex-1">
+                  <View className="flex-row items-center gap-2">
+                    <CardsIcon size={18} color={tc.primaryText} />
+                    <Text className="font-nunito-bold text-base text-fg">
+                      {t("pvp.browseCards")}
+                    </Text>
+                  </View>
+                  <Text className="mt-1 font-nunito text-sm text-fgMuted">
+                    {t("pvp.browseCardsHint")}
+                  </Text>
+                </View>
+                <View className="rounded-full border border-primaryBorder bg-primaryBg px-3 py-1.5">
+                  <Text className="font-nunito-bold text-xs text-primaryStrong">
+                    {filteredCollection.length}
+                  </Text>
+                </View>
+              </View>
+
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ gap: 8, paddingRight: 16 }}
+                contentContainerStyle={{ gap: 8, paddingRight: 4, paddingTop: 14 }}
               >
-                {loadouts.map((loadout) => {
-                  const active = editingLoadoutId === loadout.id;
+                {LOADOUT_TYPES.map((type) => {
+                  const active = filter === type;
                   return (
                     <ThemedExpoButton
-                      key={loadout.id}
-                      onPress={() => editLoadout(loadout.id)}
+                      key={type}
+                      testID={`pvp-loadout-filter-${type}`}
+                      onPress={() => setFilter(type)}
                       preferFallback
-                      variant={active ? "warning" : "ghost"}
+                      variant={active ? "primary" : "ghost"}
                       fallbackAppearance={{
-                        backgroundColor: active ? tc.accentText : tc.accentTint,
-                        borderColor: active ? tc.accentText : tc.accentTint,
-                        borderRadius: 12,
-                        foregroundColor: active ? "#FFFFFF" : tc.accentText,
+                        backgroundColor: active ? tc.primaryDark : "#FFFFFF",
+                        borderColor: active ? tc.primaryDark : tc.primaryBorder,
+                        borderRadius: 999,
+                        foregroundColor: active ? "#FFFFFF" : tc.fgMuted,
                         gradientColors: null,
                         minHeight: 0,
-                        paddingHorizontal: 16,
-                        paddingVertical: 8,
+                        paddingHorizontal: 12,
+                        paddingVertical: 7,
                         textStyle: {
                           fontFamily: "Nunito_600SemiBold",
                           fontSize: 14,
                         },
                       }}
                     >
-                      {loadout.name}
+                      {type === "all" ? t("pvp.all") : localizeTypeName(type, t)}
                     </ThemedExpoButton>
                   );
                 })}
               </ScrollView>
-              {editingLoadout ? (
-                <ThemedExpoButton
-                  onPress={createNewLoadout}
-                  preferFallback
-                  variant="primary"
-                  fallbackAppearance={{
-                    backgroundColor: tc.primaryDark,
-                    borderColor: tc.primaryDark,
-                    borderRadius: 12,
-                    foregroundColor: "#FFFFFF",
-                    gradientColors: null,
-                    minHeight: 0,
-                    paddingHorizontal: 16,
-                    paddingVertical: 10,
-                    textStyle: {
-                      fontFamily: "Nunito_700Bold",
-                      fontSize: 12,
-                    },
-                  }}
-                  style={{ marginTop: 16 }}
-                >
-                  {t("pvp.createLoadout")}
-                </ThemedExpoButton>
+
+              <View className="mt-4 flex-row flex-wrap justify-between gap-y-3">
+                {filteredCollection.map((entry) => {
+                  const card = entry.card;
+                  const selectedIndex = selectedCardIndexMap.get(card.id);
+                  const isSelected = selectedIndex != null;
+                  const rarity =
+                    RARITY_COLORS[card.rarity.name] ?? RARITY_COLORS.Common;
+                  const typeColor =
+                    CARD_TYPE_COLORS[card.type] ?? CARD_TYPE_COLORS.Hero;
+
+                  return (
+                    <BuilderCardPressable
+                      key={entry.id}
+                      onPress={() => toggleCardSelection(card)}
+                      onLongPress={() => openCardDetails(card.id)}
+                      className="relative mb-0 overflow-hidden rounded-[24px] bg-white"
+                      style={{
+                        width: "48.5%",
+                        borderColor: isSelected ? tc.primaryDark : rarity.ring,
+                        borderWidth: isSelected ? 2.5 : 2,
+                        backgroundColor: isSelected ? tc.primaryBg : "#FFFFFF",
+                      }}
+                      testID={`pvp-loadout-card-${card.id}`}
+                    >
+                      <View
+                        className="relative overflow-hidden"
+                        style={{
+                          aspectRatio: 1.08,
+                          backgroundColor: typeColor.light,
+                        }}
+                      >
+                        {card.imageAssetId ? (
+                          <Image
+                            source={{
+                              uri: getCardImageUrl(card.imageAssetId),
+                              cacheKey: getCardImageCacheKey(card.imageAssetId),
+                            }}
+                            contentFit="cover"
+                            cachePolicy="memory-disk"
+                            style={{ width: "100%", height: "100%" }}
+                          />
+                        ) : (
+                          <View
+                            className="h-full w-full items-center justify-center"
+                            style={{ backgroundColor: typeColor.light }}
+                          >
+                            <Text
+                              className="font-nunito-extrabold text-4xl"
+                              style={{ color: typeColor.dark }}
+                            >
+                              {(card.character || card.name || "?").charAt(0)}
+                            </Text>
+                          </View>
+                        )}
+
+                        <LinearGradient
+                          colors={["rgba(255,255,255,0.04)", "rgba(0,0,0,0.18)"]}
+                          start={{ x: 0.5, y: 0 }}
+                          end={{ x: 0.5, y: 1 }}
+                          style={{
+                            position: "absolute",
+                            left: 0,
+                            right: 0,
+                            top: 0,
+                            bottom: 0,
+                          }}
+                        />
+
+                        <View className="absolute left-2 right-2 top-2 flex-row items-start justify-between gap-2">
+                          <View
+                            className="rounded-full px-2.5 py-1"
+                            style={{ backgroundColor: `${typeColor.dark}E6` }}
+                          >
+                            <Text className="font-nunito-bold text-[10px] text-white">
+                              {localizeTypeName(card.type, t)}
+                            </Text>
+                          </View>
+
+                          {isSelected ? (
+                            <View
+                              className="flex-row items-center gap-1 rounded-full px-2.5 py-1"
+                              style={{ backgroundColor: tc.primaryDark }}
+                            >
+                              <CheckIcon size={10} color="#FFFFFF" />
+                              <Text className="font-nunito-bold text-[10px] text-white">
+                                #{selectedIndex + 1}
+                              </Text>
+                            </View>
+                          ) : null}
+                        </View>
+                      </View>
+
+                      <LinearGradient
+                        colors={[rarity.from, rarity.to]}
+                        start={{ x: 0, y: 0.5 }}
+                        end={{ x: 1, y: 0.5 }}
+                        style={{ height: 4 }}
+                      />
+
+                      <View
+                        className="gap-3 px-3 pb-3 pt-3"
+                        style={{
+                          backgroundColor: isSelected ? tc.primaryTint : "#FFFFFF",
+                        }}
+                      >
+                        <View className="gap-1">
+                          <Text
+                            className="font-nunito-bold text-sm text-fg"
+                            numberOfLines={2}
+                          >
+                            {card.name}
+                          </Text>
+                          <Text
+                            className="font-nunito text-xs text-fgMuted"
+                            numberOfLines={1}
+                          >
+                            {card.character || localizeTypeName(card.type, t)}
+                          </Text>
+                        </View>
+
+                        <View className="flex-row flex-wrap gap-1.5">
+                          <View
+                            className="rounded-full border px-2.5 py-1"
+                            style={{
+                              backgroundColor: `${rarity.from}20`,
+                              borderColor: `${rarity.ring}55`,
+                            }}
+                          >
+                            <Text
+                              className="font-nunito-bold text-[10px]"
+                              style={{ color: rarity.to }}
+                            >
+                              {card.rarity.name}
+                            </Text>
+                          </View>
+
+                          {entry.quantity > 1 ? (
+                            <View
+                              className="rounded-full border px-2.5 py-1"
+                              style={{
+                                backgroundColor: tc.surfaceMuted,
+                                borderColor: tc.primaryBorder,
+                              }}
+                            >
+                              <Text
+                                className="font-nunito-bold text-[10px]"
+                                style={{ color: tc.fgMuted }}
+                              >
+                                x{entry.quantity}
+                              </Text>
+                            </View>
+                          ) : null}
+                        </View>
+
+                        <View className="flex-row gap-1.5">
+                          <CompactStat
+                            label={t("pvp.hp")}
+                            value={card.hp}
+                            backgroundColor={`${typeColor.light}CC`}
+                            textColor={typeColor.dark}
+                          />
+                          <CompactStat
+                            label={t("pvp.atk")}
+                            value={card.attack}
+                            backgroundColor={tc.dangerTint}
+                            textColor={tc.dangerDark}
+                          />
+                          <CompactStat
+                            label={t("pvp.def")}
+                            value={card.defense}
+                            backgroundColor={tc.infoTint}
+                            textColor={tc.infoDark}
+                          />
+                        </View>
+                      </View>
+                    </BuilderCardPressable>
+                  );
+                })}
+              </View>
+
+              {filteredCollection.length === 0 ? (
+                <View className="items-center px-6 py-12">
+                  <Text className="text-center font-nunito text-fgMuted">
+                    {t("pvp.noCardsFound")}
+                  </Text>
+                </View>
               ) : null}
             </View>
-          ) : null}
+          </View>
+        </ScrollView>
 
-          <View className="border-b border-primaryTint bg-white/80 px-4 py-4">
-            <View className="flex-row items-center gap-2">
-              <ThemedExpoTextInput
-                value={loadoutName}
-                onChangeText={setLoadoutName}
-                placeholder={t("pvp.loadoutNamePlaceholder")}
-                hostStyle={{ flex: 1 }}
-                style={{
-                  backgroundColor: "#FFFFFF",
-                  borderColor: tc.primary,
-                  borderRadius: 12,
-                  borderWidth: 1,
-                  height: 42,
-                  paddingHorizontal: 12,
-                  width: "100%",
-                }}
-                textStyle={{
-                  color: tc.fg,
-                  fontFamily: "Nunito_400Regular",
-                  fontSize: 14,
-                }}
-              />
-              <Text className="font-nunito-semibold text-sm text-fgMuted">
-                {selectedCards.length}/6
+        <View
+          className="border-t border-primaryTint bg-white/95 px-4 pt-3"
+          style={{ paddingBottom: Math.max(insets.bottom, 16) }}
+        >
+          <View className="mb-3 flex-row items-center justify-between gap-3">
+            <View className="flex-1">
+              <Text className="font-nunito-bold text-sm text-fg">
+                {selectedCards.length}/6 {t("pvp.cardsSelected")}
+              </Text>
+              <Text className="mt-1 font-nunito text-xs text-fgMuted">
+                {selectedCards.length === 6
+                  ? t("pvp.readyToSave")
+                  : t("pvp.slotsRemaining", { count: remainingSlots })}
               </Text>
             </View>
-            <Text className="mt-2 font-nunito text-xs text-fgMuted">
-              {t("pvp.rarityCapLegendary", { count: rarityCounts.legendary })},{" "}
-              {t("pvp.rarityCapEpic", { count: rarityCounts.epic })}
-            </Text>
-
-            <View className="gap-6 px-2 py-4">
-              <View className="flex-row items-center justify-center gap-8">
-                {[0, 1, 2].map((index) => {
-                  const card = selectedCards[index];
-                  return (
-                    <View
-                      key={index}
-                      className={`relative h-28 w-20 overflow-hidden rounded-xl border-2 ${card ? `${getRarityBorderClass(card.rarity.name)} bg-white border-success` : "border-dashed border-success bg-white/60"}`}
-                    >
-                      {card ? (
-                        <>
-                          <BuilderCardPressable
-                            className="h-full w-full"
-                            onLongPress={() => openCardDetails(card.id)}
-                          >
-                            {card.imageAssetId ? (
-                              <Image
-                                source={{
-                                  uri: getCardImageUrl(card.imageAssetId),
-                                  cacheKey: getCardImageCacheKey(
-                                    card.imageAssetId,
-                                  ),
-                                }}
-                                contentFit="cover"
-                                cachePolicy="memory-disk"
-                                style={{ width: "100%", height: "100%" }}
-                              />
-                            ) : (
-                              <View className="h-full w-full items-center justify-center bg-primaryTint">
-                                <Text className="font-nunito-extrabold text-3xl text-primaryDark">
-                                  {(card.character || card.name || "?").charAt(
-                                    0,
-                                  )}
-                                </Text>
-                              </View>
-                            )}
-                          </BuilderCardPressable>
-
-                          <Pressable
-                            onPress={() => removeCard(index)}
-                            className="absolute -right-2 -top-2 rounded-full bg-dangerDark p-1"
-                          >
-                            <XIcon size={12} color="#fff" />
-                          </Pressable>
-
-                          <View className="absolute left-0 right-0 top-1 flex-row justify-between px-1">
-                            {index > 0 ? (
-                              <Pressable
-                                onPress={() => moveCard(index, "up")}
-                                className="rounded bg-black/50 px-1 py-0.5"
-                              >
-                                <Text className="font-nunito-bold text-[10px] text-white">
-                                  {"<"}
-                                </Text>
-                              </Pressable>
-                            ) : (
-                              <View />
-                            )}
-                            {index < selectedCards.length - 1 ? (
-                              <Pressable
-                                onPress={() => moveCard(index, "down")}
-                                className="rounded bg-black/50 px-1 py-0.5"
-                              >
-                                <Text className="font-nunito-bold text-[10px] text-white">
-                                  {">"}
-                                </Text>
-                              </Pressable>
-                            ) : null}
-                          </View>
-
-                          <View className="absolute bottom-0 left-0 right-0 bg-black/60 px-1 py-1">
-                            <Text
-                              className="font-nunito text-[10px] text-white"
-                              numberOfLines={1}
-                            >
-                              {card.name}
-                            </Text>
-                          </View>
-                        </>
-                      ) : (
-                        <View className="flex-1 items-center justify-center px-2">
-                          <Text className="text-center font-nunito text-xs text-fgMuted">
-                            {t("pvp.activeSlot", { index: index + 1 })}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                  );
-                })}
-              </View>
-
-              <View className="flex-row items-center justify-center gap-8">
-                {[3, 4, 5].map((index) => {
-                  const card = selectedCards[index];
-                  return (
-                    <View
-                      key={index}
-                      className={`relative h-28 w-20 overflow-hidden rounded-xl border-2 ${card ? `${getRarityBorderClass(card.rarity.name)} bg-white` : "border-dashed border-primaryBorder bg-white/60"}`}
-                    >
-                      {card ? (
-                        <>
-                          <BuilderCardPressable
-                            className="h-full w-full"
-                            onLongPress={() => openCardDetails(card.id)}
-                          >
-                            {card.imageAssetId ? (
-                              <Image
-                                source={{
-                                  uri: getCardImageUrl(card.imageAssetId),
-                                  cacheKey: getCardImageCacheKey(
-                                    card.imageAssetId,
-                                  ),
-                                }}
-                                contentFit="cover"
-                                cachePolicy="memory-disk"
-                                style={{ width: "100%", height: "100%" }}
-                              />
-                            ) : (
-                              <View className="h-full w-full items-center justify-center bg-primaryTint">
-                                <Text className="font-nunito-extrabold text-3xl text-primaryDark">
-                                  {(card.character || card.name || "?").charAt(
-                                    0,
-                                  )}
-                                </Text>
-                              </View>
-                            )}
-                          </BuilderCardPressable>
-
-                          <Pressable
-                            onPress={() => removeCard(index)}
-                            className="absolute -right-2 -top-2 rounded-full bg-dangerDark p-1"
-                          >
-                            <XIcon size={12} color="#fff" />
-                          </Pressable>
-
-                          <View className="absolute left-0 right-0 top-1 flex-row justify-between px-1">
-                            {index > 0 ? (
-                              <Pressable
-                                onPress={() => moveCard(index, "up")}
-                                className="rounded bg-black/50 px-1 py-0.5"
-                              >
-                                <Text className="font-nunito-bold text-[10px] text-white">
-                                  {"<"}
-                                </Text>
-                              </Pressable>
-                            ) : (
-                              <View />
-                            )}
-                            {index < selectedCards.length - 1 ? (
-                              <Pressable
-                                onPress={() => moveCard(index, "down")}
-                                className="rounded bg-black/50 px-1 py-0.5"
-                              >
-                                <Text className="font-nunito-bold text-[10px] text-white">
-                                  {">"}
-                                </Text>
-                              </Pressable>
-                            ) : null}
-                          </View>
-
-                          <View className="absolute bottom-0 left-0 right-0 bg-black/60 px-1 py-1">
-                            <Text
-                              className="font-nunito text-[10px] text-white"
-                              numberOfLines={1}
-                            >
-                              {card.name}
-                            </Text>
-                          </View>
-                        </>
-                      ) : (
-                        <View className="flex-1 items-center justify-center px-2">
-                          <Text className="text-center font-nunito text-xs text-fgMuted">
-                            {t("pvp.benchSlot", { index: index - 2 })}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                  );
-                })}
-              </View>
-            </View>
-
-            <Text className="font-nunito text-xs text-fgMuted">
-              {t("pvp.activeBenchHint")}
-            </Text>
-
-            <View className="mt-4 flex-row gap-3">
-              {editingLoadout ? (
-                <ThemedExpoButton
-                  onPress={() => deleteMutation.mutate(editingLoadout.id)}
-                  variant="danger"
-                  fallbackAppearance={{
-                    backgroundColor: tc.dangerTint,
-                    borderColor: tc.dangerTint,
-                    borderRadius: 16,
-                    foregroundColor: tc.dangerDark,
-                    gradientColors: null,
-                    minHeight: 0,
-                    paddingHorizontal: 16,
-                    paddingVertical: 12,
-                    textStyle: {
-                      fontFamily: "Nunito_700Bold",
-                      fontSize: 14,
-                    },
-                  }}
-                >
-                  {t("common.delete")}
-                </ThemedExpoButton>
-              ) : null}
-              <ThemedExpoButton
-                onPress={() => setSelectedCardIds([])}
-                style={{ flex: 1 }}
-                variant="ghost"
-                fallbackAppearance={{
-                  backgroundColor: tc.surfaceMuted,
-                  borderColor: tc.surfaceMuted,
-                  borderRadius: 16,
-                  foregroundColor: tc.fgMuted,
-                  gradientColors: null,
-                  minHeight: 0,
-                  paddingHorizontal: 16,
-                  paddingVertical: 12,
-                  textStyle: {
-                    fontFamily: "Nunito_700Bold",
-                    fontSize: 14,
-                  },
-                }}
-              >
-                {t("common.clear")}
-              </ThemedExpoButton>
-              <ThemedExpoButton
-                disabled={
-                  selectedCardIds.length !== 6 ||
-                  !loadoutName.trim() ||
-                  saveMutation.isPending
-                }
-                onPress={saveLoadout}
-                loading={saveMutation.isPending}
-                label={editingLoadout ? t("pvp.update") : t("pvp.create")}
-                style={{ flex: 1 }}
-                variant="primary"
-                fallbackAppearance={{
-                  backgroundColor: tc.primary,
-                  borderColor: tc.primary,
-                  borderRadius: 16,
-                  foregroundColor: "#FFFFFF",
-                  gradientColors: [tc.primary, tc.primaryDark],
-                  minHeight: 0,
-                  paddingHorizontal: 16,
-                  paddingVertical: 12,
-                  textStyle: {
-                    fontFamily: "Nunito_700Bold",
-                    fontSize: 14,
-                  },
-                }}
-              >
-                  {t("admin.saving")}
-              </ThemedExpoButton>
-            </View>
-          </View>
-
-          <View className="px-4 py-3">
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ gap: 8, paddingRight: 16 }}
-            >
-              {LOADOUT_TYPES.map((type) => {
-                const active = filter === type;
-                return (
-                  <ThemedExpoButton
-                    key={type}
-                    onPress={() => setFilter(type)}
-                    preferFallback
-                    variant={active ? "primary" : "ghost"}
-                    fallbackAppearance={{
-                      backgroundColor: active ? tc.primaryDark : "#FFFFFF",
-                      borderColor: active ? tc.primaryDark : "transparent",
-                      borderRadius: 999,
-                      foregroundColor: active ? "#FFFFFF" : tc.fgMuted,
-                      gradientColors: null,
-                      minHeight: 0,
-                      paddingHorizontal: 12,
-                      paddingVertical: 6,
-                      textStyle: {
-                        fontFamily: "Nunito_600SemiBold",
-                        fontSize: 14,
-                      },
-                    }}
-                  >
-                    {type === "all" ? t("pvp.all") : localizeTypeName(type, t)}
-                  </ThemedExpoButton>
-                );
-              })}
-            </ScrollView>
-          </View>
-
-          <View className="px-4 pb-4">
-            <View className="flex-row flex-wrap justify-between gap-y-3">
-              {filteredCollection.map((entry) => {
-                const card = entry.card;
-                const isSelected = selectedCardIds.includes(card.id);
-                const rarity =
-                  RARITY_COLORS[card.rarity.name] ?? RARITY_COLORS.Common;
-                const typeColor =
-                  CARD_TYPE_COLORS[card.type] ?? CARD_TYPE_COLORS.Hero;
-
-                return (
-                  <BuilderCardPressable
-                    key={entry.id}
-                    onPress={() => toggleCardSelection(card)}
-                    onLongPress={() => openCardDetails(card.id)}
-                    className={`relative mb-0 overflow-hidden rounded-xl border-2 ${isSelected ? "border-primaryDark bg-primaryDark" : `${getRarityBorderClass(card.rarity.name)} bg-white`}`}
-                    style={{ width: "31.5%" }}
-                  >
-                    <View
-                      className="overflow-hidden"
-                      style={{ aspectRatio: 3 / 4 }}
-                    >
-                      {card.imageAssetId ? (
-                        <Image
-                          source={{
-                            uri: getCardImageUrl(card.imageAssetId),
-                            cacheKey: getCardImageCacheKey(card.imageAssetId),
-                          }}
-                          contentFit="cover"
-                          cachePolicy="memory-disk"
-                          style={{ width: "100%", height: "100%" }}
-                        />
-                      ) : (
-                        <View
-                          className="h-full w-full items-center justify-center"
-                          style={{ backgroundColor: typeColor.light }}
-                        >
-                          <Text
-                            className="font-nunito-extrabold text-4xl"
-                            style={{ color: typeColor.dark }}
-                          >
-                            {(card.character || card.name || "?").charAt(0)}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-
-                    <LinearGradient
-                      colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.85)"]}
-                      start={{ x: 0.5, y: 0 }}
-                      end={{ x: 0.5, y: 1 }}
-                      style={{
-                        position: "absolute",
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        paddingHorizontal: 8,
-                        paddingVertical: 8,
-                      }}
-                    >
-                      <Text
-                        className="font-nunito text-xs text-white"
-                        numberOfLines={1}
-                      >
-                        {card.name}
-                      </Text>
-                      <Text className="font-nunito text-[10px] text-white/80">
-                        {t("pvp.hp")}:{card.hp} {t("pvp.atk")}:{card.attack}{" "}
-                        {t("pvp.def")}:{card.defense}
-                      </Text>
-                    </LinearGradient>
-
-                    {isSelected ? (
-                      <View className="absolute right-2 top-2 rounded-full bg-primaryDark p-1.5">
-                        <CheckIcon size={12} color="#fff" />
-                      </View>
-                    ) : null}
-
-                    {entry.quantity > 1 ? (
-                      <View className="absolute left-2 top-2 rounded bg-black/60 px-1.5 py-0.5">
-                        <Text className="font-nunito-bold text-[10px] text-white">
-                          x{entry.quantity}
-                        </Text>
-                      </View>
-                    ) : null}
-
-                    {!isSelected ? (
-                      <View
-                        className="absolute inset-0 border"
-                        style={{ borderColor: rarity.ring }}
-                        pointerEvents="none"
-                      />
-                    ) : null}
-                  </BuilderCardPressable>
-                );
-              })}
-            </View>
-
-            {filteredCollection.length === 0 ? (
-              <View className="items-center px-6 py-12">
-                <Text className="text-center font-nunito text-fgMuted">
-                  {t("pvp.noCardsFound")}
+            {editingLoadout ? (
+              <View className="rounded-full bg-accentTint px-3 py-1.5">
+                <Text className="font-nunito-bold text-xs text-accentText">
+                  {t("pvp.editing")}
                 </Text>
               </View>
             ) : null}
           </View>
-        </ScrollView>
+
+          <View className="flex-row gap-3">
+            {editingLoadout ? (
+              <ThemedExpoButton
+                testID="pvp-loadout-delete-button"
+                onPress={() => deleteMutation.mutate(editingLoadout.id)}
+                variant="danger"
+                fallbackAppearance={{
+                  backgroundColor: tc.dangerTint,
+                  borderColor: tc.dangerTint,
+                  borderRadius: 18,
+                  foregroundColor: tc.dangerDark,
+                  gradientColors: null,
+                  minHeight: 0,
+                  paddingHorizontal: 16,
+                  paddingVertical: 14,
+                  textStyle: {
+                    fontFamily: "Nunito_700Bold",
+                    fontSize: 14,
+                  },
+                }}
+              >
+                {t("common.delete")}
+              </ThemedExpoButton>
+            ) : null}
+
+            <ThemedExpoButton
+              testID="pvp-loadout-clear-button"
+              onPress={() => setSelectedCardIds([])}
+              style={{ flex: 1 }}
+              variant="ghost"
+              fallbackAppearance={{
+                backgroundColor: tc.surfaceMuted,
+                borderColor: tc.primaryBorder,
+                borderRadius: 18,
+                foregroundColor: tc.fgMuted,
+                gradientColors: null,
+                minHeight: 0,
+                paddingHorizontal: 16,
+                paddingVertical: 14,
+                textStyle: {
+                  fontFamily: "Nunito_700Bold",
+                  fontSize: 14,
+                },
+              }}
+            >
+              {t("common.clear")}
+            </ThemedExpoButton>
+
+            <ThemedExpoButton
+              testID="pvp-loadout-save-button"
+              disabled={
+                selectedCardIds.length !== 6 ||
+                !loadoutName.trim() ||
+                saveMutation.isPending
+              }
+              onPress={saveLoadout}
+              loading={saveMutation.isPending}
+              style={{ flex: 1 }}
+              variant="primary"
+              fallbackAppearance={{
+                backgroundColor: tc.primary,
+                borderColor: tc.primary,
+                borderRadius: 18,
+                foregroundColor: "#FFFFFF",
+                gradientColors: [tc.primary, tc.primaryDark],
+                minHeight: 0,
+                paddingHorizontal: 16,
+                paddingVertical: 14,
+                textStyle: {
+                  fontFamily: "Nunito_700Bold",
+                  fontSize: 14,
+                },
+              }}
+            >
+              {saveMutation.isPending
+                ? t("admin.saving")
+                : editingLoadout
+                  ? t("pvp.update")
+                  : t("pvp.create")}
+            </ThemedExpoButton>
+          </View>
+        </View>
       </KeyboardScreenView>
     </LinearGradient>
   );
