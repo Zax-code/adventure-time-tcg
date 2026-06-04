@@ -356,6 +356,18 @@ const pvp = {
   chooseLoadoutAccept: "Choisis ta composition pour accepter :",
   chooseOpponent: "Choisis un joueur :",
   availableOpponents: "{count} adversaires disponibles",
+  searchLoadoutsPlaceholder: "Rechercher une composition...",
+  searchPlayersPlaceholder: "Rechercher un joueur par nom ou e-mail...",
+  noLoadoutMatches: "Aucune composition ne correspond à cette recherche.",
+  noPlayerMatches: "Aucun joueur disponible ne correspond à cette recherche.",
+  showBusyPlayers: "Voir les joueurs occupés ({count})",
+  hideBusyPlayers: "Masquer les joueurs occupés",
+  showBusyPlayersAction: "Voir",
+  hideBusyPlayersAction: "Masquer",
+  busyPlayersHint:
+    "Ces joueurs ont déjà un combat ou une invitation en cours.",
+  noBusyPlayerMatches:
+    "Aucun joueur occupé ne correspond à cette recherche.",
   noPlayersAvailable: "Aucun joueur disponible pour le moment.",
   activeMatchExists: "Combat actif",
   pendingInviteExists: "Invitation en attente",

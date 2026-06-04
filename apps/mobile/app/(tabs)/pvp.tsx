@@ -7,6 +7,7 @@ import { useRouter } from "expo-router";
 import { ApiClientError } from "@adventure-time/api-client";
 
 import { ThemedExpoButton } from "../../src/components/expo-ui/themed-button";
+import { ThemedExpoTextInput } from "../../src/components/expo-ui/themed-text-input";
 import { BattleFullScreenSheet } from "../../src/features/pvp/battle-full-screen-sheet";
 import { ToastBanner } from "../../src/components/toast-banner";
 import { LoadingPanel } from "../../src/components/loading-state";
@@ -97,6 +98,9 @@ export default function PvpScreen() {
   const [selectedInviteLoadoutId, setSelectedInviteLoadoutId] = useState<string | null>(null);
   const [selectedOpponentId, setSelectedOpponentId] = useState<string | null>(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [loadoutSearchQuery, setLoadoutSearchQuery] = useState("");
+  const [opponentSearchQuery, setOpponentSearchQuery] = useState("");
+  const [showUnavailablePlayers, setShowUnavailablePlayers] = useState(false);
   const [acceptLoadoutMap, setAcceptLoadoutMap] = useState<Record<string, string>>({});
   const [toast, setToast] = useState<ToastState | null>(null);
   const toastAnim = useRef(new Animated.Value(-96)).current;
@@ -216,6 +220,67 @@ export default function PvpScreen() {
     () => sortedOpponentUsers.filter((user) => !interactionMap[user.id]),
     [interactionMap, sortedOpponentUsers],
   );
+  const unavailableOpponentUsers = useMemo(
+    () => sortedOpponentUsers.filter((user) => interactionMap[user.id]),
+    [interactionMap, sortedOpponentUsers],
+  );
+  const normalizedLoadoutSearch = loadoutSearchQuery.trim().toLowerCase();
+  const normalizedOpponentSearch = opponentSearchQuery.trim().toLowerCase();
+  const filteredLoadouts = useMemo(() => {
+    const filtered = validLoadouts.filter((loadout) =>
+      normalizedLoadoutSearch.length === 0
+        ? true
+        : loadout.name.toLowerCase().includes(normalizedLoadoutSearch),
+    );
+
+    return [...filtered].sort((left, right) => {
+      if (left.id === selectedInviteLoadoutId) {
+        return -1;
+      }
+
+      if (right.id === selectedInviteLoadoutId) {
+        return 1;
+      }
+
+      return left.name.localeCompare(right.name);
+    });
+  }, [normalizedLoadoutSearch, selectedInviteLoadoutId, validLoadouts]);
+  const filteredAvailableOpponents = useMemo(() => {
+    const filtered = challengeableUsers.filter((user) => {
+      if (normalizedOpponentSearch.length === 0) {
+        return true;
+      }
+
+      const haystack = `${user.displayName} ${user.email}`.toLowerCase();
+
+      return haystack.includes(normalizedOpponentSearch);
+    });
+
+    return [...filtered].sort((left, right) => {
+      if (left.id === selectedOpponentId) {
+        return -1;
+      }
+
+      if (right.id === selectedOpponentId) {
+        return 1;
+      }
+
+      return left.displayName.localeCompare(right.displayName);
+    });
+  }, [challengeableUsers, normalizedOpponentSearch, selectedOpponentId]);
+  const filteredUnavailableOpponents = useMemo(
+    () =>
+      unavailableOpponentUsers.filter((user) => {
+        if (normalizedOpponentSearch.length === 0) {
+          return true;
+        }
+
+        const haystack = `${user.displayName} ${user.email}`.toLowerCase();
+
+        return haystack.includes(normalizedOpponentSearch);
+      }),
+    [normalizedOpponentSearch, unavailableOpponentUsers],
+  );
 
   useEffect(() => {
     if (!toast) {
@@ -241,6 +306,16 @@ export default function PvpScreen() {
       }
     });
   }, [toast, toastAnim]);
+
+  useEffect(() => {
+    if (showInviteModal) {
+      return;
+    }
+
+    setLoadoutSearchQuery("");
+    setOpponentSearchQuery("");
+    setShowUnavailablePlayers(false);
+  }, [showInviteModal]);
 
   const refreshAll = async () => {
     await Promise.all([
@@ -1138,10 +1213,10 @@ export default function PvpScreen() {
               style={{ flex: 1 }}
               variant="ghost"
               fallbackAppearance={{
-                backgroundColor: tc.surfaceMuted,
-                borderColor: tc.surfaceMuted,
+                backgroundColor: tc.surface,
+                borderColor: tc.primaryBorder,
                 borderRadius: 12,
-                foregroundColor: tc.fgMuted,
+                foregroundColor: tc.fg,
                 gradientColors: null,
                 minHeight: 0,
                 paddingHorizontal: 16,
@@ -1263,7 +1338,7 @@ export default function PvpScreen() {
                       {t("pvp.selectLoadoutLabel")}
                     </Text>
                     <Text className="font-nunito text-xs text-fgMuted">
-                      {validLoadouts.length} {t("pvp.loadoutReady").toLowerCase()}
+                      {filteredLoadouts.length} {t("pvp.loadoutReady").toLowerCase()}
                     </Text>
                   </View>
                 </View>
@@ -1275,8 +1350,37 @@ export default function PvpScreen() {
                   </View>
                 ) : null}
               </View>
+              <ThemedExpoTextInput
+                value={loadoutSearchQuery}
+                onChangeText={setLoadoutSearchQuery}
+                placeholder={t("pvp.searchLoadoutsPlaceholder")}
+                returnKeyType="search"
+                hostStyle={{ width: "100%" }}
+                style={{
+                  backgroundColor: tc.surface,
+                  borderRadius: 16,
+                  borderWidth: 1,
+                  borderColor: tc.primaryBorder,
+                  height: 46,
+                  paddingHorizontal: 12,
+                  width: "100%",
+                }}
+                textStyle={{
+                  color: tc.fg,
+                  fontFamily: "Nunito_400Regular",
+                  fontSize: 14,
+                }}
+                placeholderTextColor={tc.muted}
+              />
               <View className="gap-2">
-                {validLoadouts.map((loadout) => (
+                {filteredLoadouts.length === 0 ? (
+                  <View className="rounded-2xl border border-primaryBorder bg-primaryBg px-4 py-4">
+                    <Text className="font-nunito text-sm text-fgMuted">
+                      {t("pvp.noLoadoutMatches")}
+                    </Text>
+                  </View>
+                ) : null}
+                {filteredLoadouts.map((loadout) => (
                   <ThemedExpoButton
                     key={loadout.id}
                     onPress={() => setSelectedInviteLoadoutId(loadout.id)}
@@ -1318,20 +1422,59 @@ export default function PvpScreen() {
                           }
                         />
                       </View>
-                      <View className="flex-1 gap-1">
-                        <Text className="font-nunito-bold text-sm text-fg">
-                          {loadout.name}
-                        </Text>
-                        <View className="flex-row items-center gap-2">
-                          <View className="rounded-full bg-successTint px-2.5 py-1">
-                            <Text className="font-nunito-bold text-[11px] text-successDark">
-                              {t("pvp.loadoutReady")}
+                      <View className="flex-1 gap-2">
+                        <View className="gap-1">
+                          <Text className="font-nunito-bold text-sm text-fg">
+                            {loadout.name}
+                          </Text>
+                          <View className="flex-row items-center gap-2">
+                            <View className="rounded-full bg-successTint px-2.5 py-1">
+                              <Text className="font-nunito-bold text-[11px] text-successDark">
+                                {t("pvp.loadoutReady")}
+                              </Text>
+                            </View>
+                            <Text className="font-nunito text-xs text-fgMuted">
+                              {loadout.cardIds.length}/6
                             </Text>
                           </View>
-                          <Text className="font-nunito text-xs text-fgMuted">
-                            {loadout.cardIds.length}/6
-                          </Text>
                         </View>
+                        <ScrollView
+                          horizontal
+                          showsHorizontalScrollIndicator={false}
+                          contentContainerStyle={{ gap: 6 }}
+                        >
+                          {loadout.cardIds.slice(0, 4).map((cardId, index) => {
+                            const card = loadout.cards.find((entry) => entry.id === cardId);
+
+                            return (
+                              <View
+                                key={`${loadout.id}-${cardId}-${index}`}
+                                className="h-10 w-8 overflow-hidden rounded-lg border border-primaryTint bg-surfaceMuted"
+                              >
+                                {card?.imageAssetId ? (
+                                  <Image
+                                    source={{
+                                      uri: getCardImageUrl(card.imageAssetId),
+                                      cacheKey: getCardImageCacheKey(card.imageAssetId),
+                                    }}
+                                    contentFit="cover"
+                                    cachePolicy="memory-disk"
+                                    className="h-full w-full"
+                                  />
+                                ) : (
+                                  <View className="h-full w-full items-center justify-center px-1">
+                                    <Text
+                                      className="text-center font-nunito-bold text-[8px] text-fgMuted"
+                                      numberOfLines={2}
+                                    >
+                                      {card?.name ?? "?"}
+                                    </Text>
+                                  </View>
+                                )}
+                              </View>
+                            );
+                          })}
+                        </ScrollView>
                       </View>
                       {selectedInviteLoadoutId === loadout.id ? (
                         <CheckIcon size={18} color={tc.primaryDark} />
@@ -1378,6 +1521,28 @@ export default function PvpScreen() {
                 </View>
               ) : null}
             </View>
+            <ThemedExpoTextInput
+              value={opponentSearchQuery}
+              onChangeText={setOpponentSearchQuery}
+              placeholder={t("pvp.searchPlayersPlaceholder")}
+              returnKeyType="search"
+              hostStyle={{ width: "100%" }}
+              style={{
+                backgroundColor: tc.surface,
+                borderRadius: 16,
+                borderWidth: 1,
+                borderColor: tc.accentBorder,
+                height: 46,
+                paddingHorizontal: 12,
+                width: "100%",
+              }}
+              textStyle={{
+                color: tc.fg,
+                fontFamily: "Nunito_400Regular",
+                fontSize: 14,
+              }}
+              placeholderTextColor={tc.muted}
+            />
             <View className="gap-2">
               {usersQuery.isLoading ? (
                 <LoadingPanel
@@ -1392,30 +1557,72 @@ export default function PvpScreen() {
                   </Text>
                 </View>
               ) : (
-                sortedOpponentUsers.map((user) => {
-                  const interaction = interactionMap[user.id];
-                  const hasInteraction = interaction != null;
-                  const isSelected = selectedOpponentId === user.id;
+                <>
+                  {filteredAvailableOpponents.length === 0 ? (
+                    <View className="rounded-2xl border border-accentBorder bg-accentTint px-4 py-4">
+                      <Text className="font-nunito text-sm text-fgMuted">
+                        {t("pvp.noPlayerMatches")}
+                      </Text>
+                    </View>
+                  ) : null}
+                  {filteredAvailableOpponents.map((user) => {
+                    const isSelected = selectedOpponentId === user.id;
 
-                  return (
+                    return (
+                      <ThemedExpoButton
+                        key={user.id}
+                        onPress={() => setSelectedOpponentId(user.id)}
+                        preferFallback
+                        variant="ghost"
+                        fallbackLayout="stretch"
+                        fallbackAppearance={{
+                          backgroundColor: isSelected ? tc.primaryBg : tc.surface,
+                          borderColor: isSelected ? tc.primary : tc.primaryBorder,
+                          borderRadius: 12,
+                          foregroundColor: tc.fg,
+                          gradientColors: null,
+                          minHeight: 0,
+                          paddingHorizontal: 16,
+                          paddingVertical: 12,
+                        }}
+                        preserveChildLayout
+                      >
+                        <View className="flex-row items-center gap-3">
+                          <View
+                            className={`h-11 w-11 items-center justify-center rounded-2xl ${
+                              isSelected ? "bg-primaryTint" : "bg-accentTint"
+                            }`}
+                          >
+                            <Text
+                              className={`font-nunito-bold ${
+                                isSelected ? "text-primaryDark" : "text-accentText"
+                              }`}
+                            >
+                              {user.displayName.charAt(0).toUpperCase()}
+                            </Text>
+                          </View>
+                          <View className="flex-1 gap-1">
+                            <Text className="font-nunito-bold text-sm text-fg">
+                              {user.displayName}
+                            </Text>
+                            <Text className="font-nunito text-xs text-fgMuted">
+                              {user.email}
+                            </Text>
+                          </View>
+                          {isSelected ? <CheckIcon size={18} color={tc.primaryDark} /> : null}
+                        </View>
+                      </ThemedExpoButton>
+                    );
+                  })}
+                  {unavailableOpponentUsers.length > 0 ? (
                     <ThemedExpoButton
-                      key={user.id}
-                      disabled={hasInteraction}
-                      onPress={() => setSelectedOpponentId(user.id)}
+                      onPress={() => setShowUnavailablePlayers((current) => !current)}
                       preferFallback
                       variant="ghost"
                       fallbackLayout="stretch"
                       fallbackAppearance={{
-                        backgroundColor: hasInteraction
-                          ? tc.surfaceMuted
-                          : isSelected
-                            ? tc.primaryBg
-                            : tc.surface,
-                        borderColor: hasInteraction
-                          ? tc.primaryBorder
-                          : isSelected
-                            ? tc.primary
-                            : tc.primaryBorder,
+                        backgroundColor: tc.surface,
+                        borderColor: tc.accentBorder,
                         borderRadius: 12,
                         foregroundColor: tc.fg,
                         gradientColors: null,
@@ -1425,59 +1632,84 @@ export default function PvpScreen() {
                       }}
                       preserveChildLayout
                     >
-                      <View className="flex-row items-center gap-3">
-                        <View
-                          className={`h-11 w-11 items-center justify-center rounded-2xl ${
-                            hasInteraction
-                              ? "bg-surface"
-                              : isSelected
-                                ? "bg-primaryTint"
-                                : "bg-accentTint"
-                          }`}
-                        >
-                          <Text
-                            className={`font-nunito-bold ${
-                              hasInteraction
-                                ? "text-fgMuted"
-                                : isSelected
-                                  ? "text-primaryDark"
-                                  : "text-accentText"
-                            }`}
-                          >
-                            {user.displayName.charAt(0).toUpperCase()}
-                          </Text>
-                        </View>
+                      <View className="flex-row items-center justify-between gap-3">
                         <View className="flex-1 gap-1">
                           <Text className="font-nunito-bold text-sm text-fg">
-                            {user.displayName}
+                            {showUnavailablePlayers
+                              ? t("pvp.hideBusyPlayers")
+                              : t("pvp.showBusyPlayers", {
+                                  count: filteredUnavailableOpponents.length,
+                                })}
                           </Text>
-                          {hasInteraction ? (
-                            <Text className="font-nunito text-xs text-fgMuted">
-                              {interaction === "active"
-                                ? t("pvp.activeMatchExists")
-                                : t("pvp.pendingInviteExists")}
-                            </Text>
-                          ) : (
-                            <Text className="font-nunito text-xs text-fgMuted">
-                              {user.email}
-                            </Text>
-                          )}
+                          <Text className="font-nunito text-xs text-fgMuted">
+                            {t("pvp.busyPlayersHint")}
+                          </Text>
                         </View>
-                        {hasInteraction ? (
-                          <View className="rounded-full bg-surface px-3 py-1.5">
-                            <Text className="font-nunito-bold text-[11px] text-fgMuted">
-                              {interaction === "active"
-                                ? t("pvp.activeMatchExists")
-                                : t("pvp.pendingInviteExists")}
-                            </Text>
-                          </View>
-                        ) : isSelected ? (
-                          <CheckIcon size={18} color={tc.primaryDark} />
-                        ) : null}
+                        <Text className="font-nunito-bold text-sm text-accentText">
+                          {showUnavailablePlayers
+                            ? t("pvp.hideBusyPlayersAction")
+                            : t("pvp.showBusyPlayersAction")}
+                        </Text>
                       </View>
                     </ThemedExpoButton>
-                  );
-                })
+                  ) : null}
+                  {showUnavailablePlayers
+                    ? filteredUnavailableOpponents.map((user) => {
+                        const interaction = interactionMap[user.id];
+
+                        return (
+                          <ThemedExpoButton
+                            key={user.id}
+                            disabled
+                            preferFallback
+                            variant="ghost"
+                            fallbackLayout="stretch"
+                            fallbackAppearance={{
+                              backgroundColor: tc.surfaceMuted,
+                              borderColor: tc.primaryBorder,
+                              borderRadius: 12,
+                              foregroundColor: tc.fg,
+                              gradientColors: null,
+                              minHeight: 0,
+                              paddingHorizontal: 16,
+                              paddingVertical: 12,
+                            }}
+                            preserveChildLayout
+                          >
+                            <View className="flex-row items-center gap-3">
+                              <View className="h-11 w-11 items-center justify-center rounded-2xl bg-surface">
+                                <Text className="font-nunito-bold text-fgMuted">
+                                  {user.displayName.charAt(0).toUpperCase()}
+                                </Text>
+                              </View>
+                              <View className="flex-1 gap-1">
+                                <Text className="font-nunito-bold text-sm text-fg">
+                                  {user.displayName}
+                                </Text>
+                                <Text className="font-nunito text-xs text-fgMuted">
+                                  {user.email}
+                                </Text>
+                              </View>
+                              <View className="rounded-full bg-surface px-3 py-1.5">
+                                <Text className="font-nunito-bold text-[11px] text-fgMuted">
+                                  {interaction === "active"
+                                    ? t("pvp.activeMatchExists")
+                                    : t("pvp.pendingInviteExists")}
+                                </Text>
+                              </View>
+                            </View>
+                          </ThemedExpoButton>
+                        );
+                      })
+                    : null}
+                  {showUnavailablePlayers && filteredUnavailableOpponents.length === 0 ? (
+                    <View className="rounded-2xl border border-primaryBorder bg-surfaceMuted px-4 py-4">
+                      <Text className="font-nunito text-sm text-fgMuted">
+                        {t("pvp.noBusyPlayerMatches")}
+                      </Text>
+                    </View>
+                  ) : null}
+                </>
               )}
             </View>
           </View>
