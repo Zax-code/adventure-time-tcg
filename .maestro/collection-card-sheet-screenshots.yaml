@@ -1,0 +1,31 @@
+appId: love.leaetzak.adventuretime
+name: Collection card sheet focused screenshots
+tags:
+  - collection
+  - screenshots
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- openLink:
+    link: adventure-time:///e2e-auth?redirect=%2Fcollection&email=${TEST_EMAIL_URI}&password=${TEST_PASSWORD_URI}
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- assertVisible:
+    id: collection-card-tile-0
+- tapOn:
+    id: collection-card-tile-0
+- assertVisible:
+    id: collection-card-detail-sheet
+- takeScreenshot: tmp-collection-card-sheet/01-overview
+- swipe:
+    start: "50%,78%"
+    end: "50%,24%"
+    duration: 900
+- waitForAnimationToEnd
+- takeScreenshot: tmp-collection-card-sheet/02-actions
+- swipe:
+    start: "50%,78%"
+    end: "50%,24%"
+    duration: 900
+- waitForAnimationToEnd
+- takeScreenshot: tmp-collection-card-sheet/03-gift

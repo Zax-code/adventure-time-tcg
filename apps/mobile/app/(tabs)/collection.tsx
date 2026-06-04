@@ -480,10 +480,11 @@ export default function CollectionScreen() {
             </Text>
           </View>
         }
-        renderItem={({ item }: { item: CollectionEntry }) => (
+        renderItem={({ item, index }: { item: CollectionEntry; index: number }) => (
           <CardTile
             entry={item}
             accessToken={accessToken}
+            testID={`collection-card-tile-${index}`}
             onPress={() =>
               router.push({
                 pathname: "/collection-card-detail",
