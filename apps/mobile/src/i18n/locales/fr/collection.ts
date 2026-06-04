@@ -30,7 +30,7 @@ const collection = {
     recycling: "Recyclage...",
     confirmRecycle: "Confirmer le recyclage : +{amount}",
     recycleHint: "Choisis combien de copies transformer en poussiere.",
-    availableToRecycle: "Disponibles : {count}",
+    recycleCount: "Copies recyclees",
     craft: "Créer",
     craftReadyHint: "Tu as assez de poussiere pour creer une copie de plus.",
     craftNeedMoreDust:

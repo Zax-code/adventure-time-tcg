@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
-  Pressable,
   ScrollView,
   Text,
   View,
@@ -37,7 +36,6 @@ import {
   DustIcon,
   GiftHeartIcon,
   RecycleIcon,
-  XIcon,
 } from "../src/components/icons";
 import { ToastBanner } from "../src/components/toast-banner";
 import { getDustSacrificeValue, getDustCraftCost } from "../src/lib/dust";
@@ -421,39 +419,30 @@ export default function CollectionCardDetailScreen() {
           ) : null}
 
           <View
-            className="flex-row items-center justify-between border-b border-primaryTint px-6 py-4"
+            className="border-b border-primaryTint px-6 py-4"
             testID="collection-card-detail-header"
           >
-            <View className="flex-1 pr-4">
-              <Text className="font-nunito-extrabold text-2xl text-fg">
+            <View style={{ gap: 4 }}>
+              <Text
+                style={{
+                  fontSize: 24,
+                  fontFamily: "Nunito_800ExtraBold",
+                  color: tc.fg,
+                }}
+              >
                 {t("pvp.cardDetailsTitle")}
               </Text>
-              <Text className="mt-1 font-nunito text-sm text-fgMuted">
+              <Text
+                style={{
+                  fontSize: 14,
+                  lineHeight: 20,
+                  fontFamily: "Nunito_400Regular",
+                  color: tc.fgMuted,
+                }}
+              >
                 {t("collection.detail.manageCard")}
               </Text>
             </View>
-            <Pressable
-              onPress={() => {
-                if (!isBusy) {
-                  router.back();
-                }
-              }}
-              disabled={isBusy}
-              testID="collection-card-detail-close"
-              style={{
-                height: 40,
-                width: 40,
-                borderRadius: 20,
-                alignItems: "center",
-                justifyContent: "center",
-                backgroundColor: tc.surfaceMuted,
-                borderWidth: 1,
-                borderColor: tc.primaryBorder,
-                opacity: isBusy ? 0.5 : 1,
-              }}
-            >
-              <XIcon size={18} color={tc.primaryText} />
-            </Pressable>
           </View>
 
           {!entry ? (
@@ -901,126 +890,195 @@ export default function CollectionCardDetailScreen() {
                 {recycleExpanded ? (
                   <View style={{ paddingHorizontal: 16, paddingBottom: 16, gap: 12 }}>
                     <View
-                      className="flex-row items-center justify-between"
                       style={{
-                        borderRadius: 16,
-                        backgroundColor: tc.surface,
-                        borderWidth: 1,
-                        borderColor: tc.successBorder,
-                        paddingHorizontal: 14,
-                        paddingVertical: 10,
+                        flexDirection: "row",
+                        gap: 10,
                       }}
                     >
-                      <Text
-                        style={{
-                          fontSize: 13,
-                          fontFamily: "Nunito_600SemiBold",
-                          color: tc.fgMuted,
-                        }}
-                      >
-                        {t("collection.detail.availableToRecycle", {
-                          count: entry.quantity,
-                        })}
-                      </Text>
-                      <Text
-                        style={{
-                          fontSize: 13,
-                          fontFamily: "Nunito_700Bold",
-                          color: tc.successText,
-                        }}
-                      >
-                        +{recycleValue * recycleQuantity}
-                      </Text>
-                    </View>
-
-                    {entry.quantity > 1 ? (
                       <View
-                        className="flex-row items-center justify-center"
-                        style={{ gap: 12 }}
+                        style={{
+                          flex: 1,
+                          borderRadius: 16,
+                          backgroundColor: tc.surface,
+                          borderWidth: 1,
+                          borderColor: tc.successBorder,
+                          paddingHorizontal: 14,
+                          paddingVertical: 10,
+                          gap: 2,
+                        }}
                       >
-                        <ThemedExpoButton
-                          onPress={() =>
-                            setRecycleQuantity(Math.max(1, recycleQuantity - 1))
-                          }
-                          label="−"
-                          preferFallback
-                          fallbackAppearance={{
-                            backgroundColor: tc.surface,
-                            borderColor: tc.successBorder,
-                            borderRadius: 18,
-                            foregroundColor: tc.successText,
-                            gradientColors: null,
-                            minHeight: 0,
-                            paddingHorizontal: 0,
-                            paddingVertical: 0,
-                            textStyle: {
-                              fontFamily: "Nunito_800ExtraBold",
-                              fontSize: 22,
-                            },
+                        <Text
+                          style={{
+                            fontSize: 12,
+                            fontFamily: "Nunito_600SemiBold",
+                            color: tc.fgMuted,
                           }}
-                          style={{ width: 42, height: 42 }}
-                          testID="collection-card-detail-recycle-minus"
-                          variant="ghost"
-                        />
+                        >
+                          {t("collection.detail.ownedCopies")}
+                        </Text>
+                        <Text
+                          style={{
+                            fontSize: 16,
+                            fontFamily: "Nunito_800ExtraBold",
+                            color: tc.successText,
+                          }}
+                        >
+                          {entry.quantity}
+                        </Text>
+                      </View>
+                      <View
+                        style={{
+                          flex: 1,
+                          borderRadius: 16,
+                          backgroundColor: tc.surface,
+                          borderWidth: 1,
+                          borderColor: tc.successBorder,
+                          paddingHorizontal: 14,
+                          paddingVertical: 10,
+                          gap: 2,
+                        }}
+                      >
+                        <Text
+                          style={{
+                            fontSize: 12,
+                            fontFamily: "Nunito_600SemiBold",
+                            color: tc.fgMuted,
+                          }}
+                        >
+                          {t("collection.detail.recycleValue")}
+                        </Text>
                         <View
                           style={{
-                            minWidth: 110,
-                            borderRadius: 18,
-                            backgroundColor: tc.surface,
-                            borderWidth: 1,
-                            borderColor: tc.successBorder,
-                            paddingHorizontal: 16,
-                            paddingVertical: 10,
+                            flexDirection: "row",
                             alignItems: "center",
+                            gap: 4,
                           }}
                         >
                           <Text
                             style={{
-                              fontSize: 12,
-                              fontFamily: "Nunito_600SemiBold",
-                              color: tc.fgMuted,
-                            }}
-                          >
-                            {t("collection.detail.ownedCopies")}
-                          </Text>
-                          <Text
-                            style={{
-                              fontSize: 18,
+                              fontSize: 16,
                               fontFamily: "Nunito_800ExtraBold",
                               color: tc.successText,
                             }}
                           >
-                            {recycleQuantity}
+                            +{recycleValue * recycleQuantity}
                           </Text>
+                          <DustIcon size={13} color={tc.successText} />
                         </View>
-                        <ThemedExpoButton
-                          onPress={() =>
-                            setRecycleQuantity(
-                              Math.min(entry.quantity, recycleQuantity + 1),
-                            )
-                          }
-                          label="+"
-                          preferFallback
-                          fallbackAppearance={{
-                            backgroundColor: tc.surface,
-                            borderColor: tc.successBorder,
-                            borderRadius: 18,
-                            foregroundColor: tc.successText,
-                            gradientColors: null,
-                            minHeight: 0,
-                            paddingHorizontal: 0,
-                            paddingVertical: 0,
-                            textStyle: {
-                              fontFamily: "Nunito_800ExtraBold",
-                              fontSize: 22,
-                            },
-                          }}
-                          style={{ width: 42, height: 42 }}
-                          testID="collection-card-detail-recycle-plus"
-                          variant="ghost"
-                        />
                       </View>
-                    ) : null}
+                    </View>
+
+                    <View
+                      style={{
+                        borderRadius: 18,
+                        backgroundColor: tc.surface,
+                        borderWidth: 1,
+                        borderColor: tc.successBorder,
+                        paddingHorizontal: 16,
+                        paddingVertical: 12,
+                        gap: 8,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          fontFamily: "Nunito_600SemiBold",
+                          color: tc.fgMuted,
+                        }}
+                      >
+                        {t("collection.detail.recycleCount")}
+                      </Text>
+                      {entry.quantity > 1 ? (
+                        <View
+                          className="flex-row items-center justify-center"
+                          style={{ gap: 12 }}
+                        >
+                          <ThemedExpoButton
+                            onPress={() =>
+                              setRecycleQuantity(Math.max(1, recycleQuantity - 1))
+                            }
+                            label="−"
+                            preferFallback
+                            fallbackAppearance={{
+                              backgroundColor: tc.surface,
+                              borderColor: tc.successBorder,
+                              borderRadius: 18,
+                              foregroundColor: tc.successText,
+                              gradientColors: null,
+                              minHeight: 0,
+                              paddingHorizontal: 0,
+                              paddingVertical: 0,
+                              textStyle: {
+                                fontFamily: "Nunito_800ExtraBold",
+                                fontSize: 22,
+                              },
+                            }}
+                            style={{ width: 42, height: 42 }}
+                            testID="collection-card-detail-recycle-minus"
+                            variant="ghost"
+                          />
+                          <View
+                            style={{
+                              minWidth: 110,
+                              borderRadius: 18,
+                              backgroundColor: tc.successTint,
+                              borderWidth: 1,
+                              borderColor: tc.successBorder,
+                              paddingHorizontal: 16,
+                              paddingVertical: 10,
+                              alignItems: "center",
+                            }}
+                          >
+                            <Text
+                              style={{
+                                fontSize: 18,
+                                fontFamily: "Nunito_800ExtraBold",
+                                color: tc.successText,
+                              }}
+                            >
+                              {recycleQuantity}
+                            </Text>
+                          </View>
+                          <ThemedExpoButton
+                            onPress={() =>
+                              setRecycleQuantity(
+                                Math.min(entry.quantity, recycleQuantity + 1),
+                              )
+                            }
+                            label="+"
+                            preferFallback
+                            fallbackAppearance={{
+                              backgroundColor: tc.surface,
+                              borderColor: tc.successBorder,
+                              borderRadius: 18,
+                              foregroundColor: tc.successText,
+                              gradientColors: null,
+                              minHeight: 0,
+                              paddingHorizontal: 0,
+                              paddingVertical: 0,
+                              textStyle: {
+                                fontFamily: "Nunito_800ExtraBold",
+                                fontSize: 22,
+                              },
+                            }}
+                            style={{ width: 42, height: 42 }}
+                            testID="collection-card-detail-recycle-plus"
+                            variant="ghost"
+                          />
+                        </View>
+                      ) : (
+                        <Text
+                          style={{
+                            fontSize: 18,
+                            fontFamily: "Nunito_800ExtraBold",
+                            color: tc.successText,
+                            textAlign: "center",
+                          }}
+                        >
+                          1
+                        </Text>
+                      )}
+                    </View>
 
                     <ThemedExpoButton
                       onPress={() => void handleRecycle()}

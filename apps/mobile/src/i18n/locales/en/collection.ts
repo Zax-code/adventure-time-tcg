@@ -29,7 +29,7 @@ const collection = {
     recycling: "Recycling...",
     confirmRecycle: "Confirm Recycle: +{amount}",
     recycleHint: "Choose how many copies to turn into dust.",
-    availableToRecycle: "Available: {count}",
+    recycleCount: "Recycle count",
     craft: "Craft",
     craftReadyHint: "You have enough dust to craft one more copy.",
     craftNeedMoreDust: "Need {amount} more dust to craft this card.",
