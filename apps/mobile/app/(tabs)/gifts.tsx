@@ -156,7 +156,7 @@ export default function GiftsScreen() {
       <View className="gap-5">
         <View className="overflow-hidden rounded-[32px] border border-primaryBorder bg-surface">
           <LinearGradient
-            colors={[tc.primaryTint, tc.secondaryTint, tc.surface]}
+            colors={[tc.surfaceMuted, tc.surface, tc.primaryBg]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={{ padding: 20 }}
