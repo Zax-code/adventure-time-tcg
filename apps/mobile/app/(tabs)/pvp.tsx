@@ -36,6 +36,12 @@ type ToastState = {
   type: "success" | "error";
 };
 
+type SearchableUser = {
+  id: string;
+  displayName: string;
+  email: string;
+};
+
 function SectionHeading({
   title,
   toneColor,
@@ -87,6 +93,63 @@ function getErrorMessage(
   return fallback;
 }
 
+function getFuzzyTextScore(query: string, candidate: string) {
+  const normalizedQuery = query.trim().toLowerCase();
+  const normalizedCandidate = candidate.trim().toLowerCase();
+
+  if (!normalizedQuery || !normalizedCandidate) {
+    return null;
+  }
+
+  if (normalizedCandidate === normalizedQuery) {
+    return 1_000;
+  }
+
+  if (normalizedCandidate.startsWith(normalizedQuery)) {
+    return 900 - (normalizedCandidate.length - normalizedQuery.length);
+  }
+
+  const includesIndex = normalizedCandidate.indexOf(normalizedQuery);
+
+  if (includesIndex >= 0) {
+    return 800 - includesIndex;
+  }
+
+  let queryIndex = 0;
+  let lastMatchIndex = -1;
+  let gaps = 0;
+
+  for (let candidateIndex = 0; candidateIndex < normalizedCandidate.length; candidateIndex += 1) {
+    if (normalizedCandidate[candidateIndex] !== normalizedQuery[queryIndex]) {
+      continue;
+    }
+
+    if (lastMatchIndex >= 0) {
+      gaps += candidateIndex - lastMatchIndex - 1;
+    }
+
+    lastMatchIndex = candidateIndex;
+    queryIndex += 1;
+
+    if (queryIndex === normalizedQuery.length) {
+      return 500 - gaps - (normalizedCandidate.length - normalizedQuery.length);
+    }
+  }
+
+  return null;
+}
+
+function getUserSearchScore(
+  query: string,
+  user: SearchableUser,
+) {
+  return Math.max(
+    getFuzzyTextScore(query, user.displayName) ?? Number.NEGATIVE_INFINITY,
+    getFuzzyTextScore(query, user.email) ?? Number.NEGATIVE_INFINITY,
+    getFuzzyTextScore(query, `${user.displayName} ${user.email}`) ?? Number.NEGATIVE_INFINITY,
+  );
+}
+
 export default function PvpScreen() {
   const queryClient = useQueryClient();
   const router = useRouter();
@@ -100,7 +163,6 @@ export default function PvpScreen() {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [loadoutSearchQuery, setLoadoutSearchQuery] = useState("");
   const [opponentSearchQuery, setOpponentSearchQuery] = useState("");
-  const [showUnavailablePlayers, setShowUnavailablePlayers] = useState(false);
   const [acceptLoadoutMap, setAcceptLoadoutMap] = useState<Record<string, string>>({});
   const [toast, setToast] = useState<ToastState | null>(null);
   const toastAnim = useRef(new Animated.Value(-96)).current;
@@ -149,13 +211,12 @@ export default function PvpScreen() {
   const pendingSentInvites =
     invitesQuery.data?.invites.filter((invite) => invite.inviterId === currentUserId) ?? [];
   const activeMatches = matchesQuery.data?.matches ?? [];
+  const historyMatches = historyQuery.data?.matches ?? [];
   const allLoadouts = loadoutsQuery.data?.loadouts ?? [];
   const completedMatches = useMemo(
     () =>
-      (historyQuery.data?.matches ?? [])
-        .filter((match) => match.status === "COMPLETED")
-        .slice(0, 5),
-    [historyQuery.data?.matches],
+      historyMatches.filter((match) => match.status === "COMPLETED").slice(0, 5),
+    [historyMatches],
   );
   const sortedLoadouts = useMemo(
     () =>
@@ -220,10 +281,6 @@ export default function PvpScreen() {
     () => sortedOpponentUsers.filter((user) => !interactionMap[user.id]),
     [interactionMap, sortedOpponentUsers],
   );
-  const unavailableOpponentUsers = useMemo(
-    () => sortedOpponentUsers.filter((user) => interactionMap[user.id]),
-    [interactionMap, sortedOpponentUsers],
-  );
   const normalizedLoadoutSearch = loadoutSearchQuery.trim().toLowerCase();
   const normalizedOpponentSearch = opponentSearchQuery.trim().toLowerCase();
   const filteredLoadouts = useMemo(() => {
@@ -245,42 +302,125 @@ export default function PvpScreen() {
       return left.name.localeCompare(right.name);
     });
   }, [normalizedLoadoutSearch, selectedInviteLoadoutId, validLoadouts]);
-  const filteredAvailableOpponents = useMemo(() => {
-    const filtered = challengeableUsers.filter((user) => {
-      if (normalizedOpponentSearch.length === 0) {
-        return true;
+  const recentOpponentIds = useMemo(() => {
+    const timestamps = new Map<string, number>();
+
+    const pushRecentOpponent = (
+      userId: string | null | undefined,
+      timestampValue: string | null | undefined,
+    ) => {
+      if (!userId) {
+        return;
       }
 
-      const haystack = `${user.displayName} ${user.email}`.toLowerCase();
+      const timestamp = Date.parse(timestampValue ?? "");
 
-      return haystack.includes(normalizedOpponentSearch);
+      if (!Number.isFinite(timestamp)) {
+        return;
+      }
+
+      const currentTimestamp = timestamps.get(userId) ?? 0;
+
+      if (timestamp > currentTimestamp) {
+        timestamps.set(userId, timestamp);
+      }
+    };
+
+    historyMatches.forEach((match) => {
+      const otherUserId =
+        match.inviterId === currentUserId ? match.inviteeId : match.inviterId;
+
+      pushRecentOpponent(otherUserId, match.updatedAt || match.createdAt);
     });
 
-    return [...filtered].sort((left, right) => {
-      if (left.id === selectedOpponentId) {
-        return -1;
-      }
+    activeMatches.forEach((match) => {
+      const otherUserId =
+        match.inviterId === currentUserId ? match.inviteeId : match.inviterId;
 
-      if (right.id === selectedOpponentId) {
-        return 1;
-      }
-
-      return left.displayName.localeCompare(right.displayName);
+      pushRecentOpponent(otherUserId, match.updatedAt || match.createdAt);
     });
-  }, [challengeableUsers, normalizedOpponentSearch, selectedOpponentId]);
-  const filteredUnavailableOpponents = useMemo(
-    () =>
-      unavailableOpponentUsers.filter((user) => {
-        if (normalizedOpponentSearch.length === 0) {
-          return true;
+
+    pendingSentInvites.forEach((invite) => {
+      pushRecentOpponent(invite.inviteeId, invite.updatedAt || invite.createdAt);
+    });
+
+    pendingReceivedInvites.forEach((invite) => {
+      pushRecentOpponent(invite.inviterId, invite.updatedAt || invite.createdAt);
+    });
+
+    return [...timestamps.entries()]
+      .sort((left, right) => right[1] - left[1])
+      .map(([userId]) => userId);
+  }, [
+    activeMatches,
+    currentUserId,
+    historyMatches,
+    pendingReceivedInvites,
+    pendingSentInvites,
+  ]);
+  const recentOpponentUsers = useMemo(() => {
+    const challengeableUserMap = new Map(challengeableUsers.map((user) => [user.id, user]));
+    const recentUsers: SearchableUser[] = [];
+    const seen = new Set<string>();
+
+    if (selectedOpponentId) {
+      const selectedUser = challengeableUserMap.get(selectedOpponentId);
+
+      if (selectedUser) {
+        recentUsers.push(selectedUser);
+        seen.add(selectedUser.id);
+      }
+    }
+
+    recentOpponentIds.forEach((userId) => {
+      const user = challengeableUserMap.get(userId);
+
+      if (!user || seen.has(user.id) || recentUsers.length >= 5) {
+        return;
+      }
+
+      recentUsers.push(user);
+      seen.add(user.id);
+    });
+
+    return recentUsers.slice(0, 5);
+  }, [challengeableUsers, recentOpponentIds, selectedOpponentId]);
+  const searchedOpponentUsers = useMemo(() => {
+    if (normalizedOpponentSearch.length === 0) {
+      return [];
+    }
+
+    return sortedOpponentUsers
+      .map((user) => ({
+        user,
+        score: getUserSearchScore(normalizedOpponentSearch, user),
+      }))
+      .filter((entry) => Number.isFinite(entry.score))
+      .sort((left, right) => {
+        if (left.user.id === selectedOpponentId) {
+          return -1;
         }
 
-        const haystack = `${user.displayName} ${user.email}`.toLowerCase();
+        if (right.user.id === selectedOpponentId) {
+          return 1;
+        }
 
-        return haystack.includes(normalizedOpponentSearch);
-      }),
-    [normalizedOpponentSearch, unavailableOpponentUsers],
-  );
+        const leftBlocked = interactionMap[left.user.id] ? 1 : 0;
+        const rightBlocked = interactionMap[right.user.id] ? 1 : 0;
+
+        if (leftBlocked !== rightBlocked) {
+          return leftBlocked - rightBlocked;
+        }
+
+        if (left.score !== right.score) {
+          return right.score - left.score;
+        }
+
+        return left.user.displayName.localeCompare(right.user.displayName);
+      })
+      .slice(0, 12)
+      .map((entry) => entry.user);
+  }, [interactionMap, normalizedOpponentSearch, selectedOpponentId, sortedOpponentUsers]);
 
   useEffect(() => {
     if (!toast) {
@@ -310,7 +450,6 @@ export default function PvpScreen() {
   const resetInviteSheetFilters = () => {
     setLoadoutSearchQuery("");
     setOpponentSearchQuery("");
-    setShowUnavailablePlayers(false);
   };
 
   const openInviteSheet = () => {
@@ -1179,7 +1318,7 @@ export default function PvpScreen() {
                                 }}
                                 contentFit="cover"
                                 cachePolicy="memory-disk"
-                                className="h-full w-full"
+                                style={{ width: "100%", height: "100%" }}
                               />
                             ) : (
                               <View className="h-full w-full items-center justify-center bg-surfaceMuted px-1">
@@ -1461,7 +1600,7 @@ export default function PvpScreen() {
                                     }}
                                     contentFit="cover"
                                     cachePolicy="memory-disk"
-                                    className="h-full w-full"
+                                    style={{ width: "100%", height: "100%" }}
                                   />
                                 ) : (
                                   <View className="h-full w-full items-center justify-center px-1">
@@ -1511,7 +1650,9 @@ export default function PvpScreen() {
                     {t("pvp.chooseOpponent").replace(":", "")}
                   </Text>
                   <Text className="font-nunito text-xs text-fgMuted">
-                    {t("pvp.availableOpponents", { count: challengeableUsers.length })}
+                    {normalizedOpponentSearch.length > 0
+                      ? t("pvp.searchResults", { count: searchedOpponentUsers.length })
+                      : t("pvp.recentOpponents", { count: recentOpponentUsers.length })}
                   </Text>
                 </View>
               </View>
@@ -1545,6 +1686,13 @@ export default function PvpScreen() {
               }}
               placeholderTextColor={tc.muted}
             />
+            <View className="rounded-2xl border border-accentBorder bg-accentTint px-4 py-3">
+              <Text className="font-nunito text-sm leading-5 text-fgMuted">
+                {normalizedOpponentSearch.length > 0
+                  ? t("pvp.searchPlayersHint")
+                  : t("pvp.recentOpponentsHint")}
+              </Text>
+            </View>
             <View className="gap-2">
               {usersQuery.isLoading ? (
                 <LoadingPanel
@@ -1558,16 +1706,15 @@ export default function PvpScreen() {
                     {t("pvp.noPlayersAvailable")}
                   </Text>
                 </View>
-              ) : (
-                <>
-                  {filteredAvailableOpponents.length === 0 ? (
-                    <View className="rounded-2xl border border-accentBorder bg-accentTint px-4 py-4">
-                      <Text className="font-nunito text-sm text-fgMuted">
-                        {t("pvp.noPlayerMatches")}
-                      </Text>
-                    </View>
-                  ) : null}
-                  {filteredAvailableOpponents.map((user) => {
+              ) : normalizedOpponentSearch.length === 0 ? (
+                recentOpponentUsers.length === 0 ? (
+                  <View className="rounded-2xl border border-accentBorder bg-accentTint px-4 py-4">
+                    <Text className="font-nunito text-sm text-fgMuted">
+                      {t("pvp.noRecentOpponents")}
+                    </Text>
+                  </View>
+                ) : (
+                  recentOpponentUsers.map((user) => {
                     const isSelected = selectedOpponentId === user.id;
 
                     return (
@@ -1615,102 +1762,95 @@ export default function PvpScreen() {
                         </View>
                       </ThemedExpoButton>
                     );
-                  })}
-                  {unavailableOpponentUsers.length > 0 ? (
-                    <ThemedExpoButton
-                      onPress={() => setShowUnavailablePlayers((current) => !current)}
-                      preferFallback
-                      variant="ghost"
-                      fallbackLayout="stretch"
-                      fallbackAppearance={{
-                        backgroundColor: tc.surface,
-                        borderColor: tc.accentBorder,
-                        borderRadius: 12,
-                        foregroundColor: tc.fg,
-                        gradientColors: null,
-                        minHeight: 0,
-                        paddingHorizontal: 16,
-                        paddingVertical: 12,
-                      }}
-                      preserveChildLayout
-                    >
-                      <View className="flex-row items-center justify-between gap-3">
-                        <View className="flex-1 gap-1">
-                          <Text className="font-nunito-bold text-sm text-fg">
-                            {showUnavailablePlayers
-                              ? t("pvp.hideBusyPlayers")
-                              : t("pvp.showBusyPlayers", {
-                                  count: filteredUnavailableOpponents.length,
-                                })}
-                          </Text>
-                          <Text className="font-nunito text-xs text-fgMuted">
-                            {t("pvp.busyPlayersHint")}
-                          </Text>
-                        </View>
-                        <Text className="font-nunito-bold text-sm text-accentText">
-                          {showUnavailablePlayers
-                            ? t("pvp.hideBusyPlayersAction")
-                            : t("pvp.showBusyPlayersAction")}
-                        </Text>
-                      </View>
-                    </ThemedExpoButton>
-                  ) : null}
-                  {showUnavailablePlayers
-                    ? filteredUnavailableOpponents.map((user) => {
-                        const interaction = interactionMap[user.id];
-
-                        return (
-                          <ThemedExpoButton
-                            key={user.id}
-                            disabled
-                            preferFallback
-                            variant="ghost"
-                            fallbackLayout="stretch"
-                            fallbackAppearance={{
-                              backgroundColor: tc.surfaceMuted,
-                              borderColor: tc.primaryBorder,
-                              borderRadius: 12,
-                              foregroundColor: tc.fg,
-                              gradientColors: null,
-                              minHeight: 0,
-                              paddingHorizontal: 16,
-                              paddingVertical: 12,
-                            }}
-                            preserveChildLayout
-                          >
-                            <View className="flex-row items-center gap-3">
-                              <View className="h-11 w-11 items-center justify-center rounded-2xl bg-surface">
-                                <Text className="font-nunito-bold text-fgMuted">
-                                  {user.displayName.charAt(0).toUpperCase()}
-                                </Text>
-                              </View>
-                              <View className="flex-1 gap-1">
-                                <Text className="font-nunito-bold text-sm text-fg">
-                                  {user.displayName}
-                                </Text>
-                                <Text className="font-nunito text-xs text-fgMuted">
-                                  {user.email}
-                                </Text>
-                              </View>
-                              <View className="rounded-full bg-surface px-3 py-1.5">
-                                <Text className="font-nunito-bold text-[11px] text-fgMuted">
-                                  {interaction === "active"
-                                    ? t("pvp.activeMatchExists")
-                                    : t("pvp.pendingInviteExists")}
-                                </Text>
-                              </View>
-                            </View>
-                          </ThemedExpoButton>
-                        );
-                      })
-                    : null}
-                  {showUnavailablePlayers && filteredUnavailableOpponents.length === 0 ? (
-                    <View className="rounded-2xl border border-primaryBorder bg-surfaceMuted px-4 py-4">
+                  })
+                )
+              ) : (
+                <>
+                  {searchedOpponentUsers.length === 0 ? (
+                    <View className="rounded-2xl border border-accentBorder bg-accentTint px-4 py-4">
                       <Text className="font-nunito text-sm text-fgMuted">
-                        {t("pvp.noBusyPlayerMatches")}
+                        {t("pvp.noPlayerMatches")}
                       </Text>
                     </View>
                   ) : null}
+                  {searchedOpponentUsers.map((user) => {
+                    const isSelected = selectedOpponentId === user.id;
+                    const interaction = interactionMap[user.id];
+                    const isUnavailable = Boolean(interaction);
+
+                    return (
+                      <ThemedExpoButton
+                        key={user.id}
+                        disabled={isUnavailable}
+                        onPress={() => setSelectedOpponentId(user.id)}
+                        preferFallback
+                        variant="ghost"
+                        fallbackLayout="stretch"
+                        fallbackAppearance={{
+                          backgroundColor: isUnavailable
+                            ? tc.surfaceMuted
+                            : isSelected
+                              ? tc.primaryBg
+                              : tc.surface,
+                          borderColor: isUnavailable
+                            ? tc.primaryBorder
+                            : isSelected
+                              ? tc.primary
+                              : tc.primaryBorder,
+                          borderRadius: 12,
+                          foregroundColor: tc.fg,
+                          gradientColors: null,
+                          minHeight: 0,
+                          paddingHorizontal: 16,
+                          paddingVertical: 12,
+                        }}
+                        preserveChildLayout
+                      >
+                        <View className="flex-row items-center gap-3">
+                          <View
+                            className={`h-11 w-11 items-center justify-center rounded-2xl ${
+                              isUnavailable
+                                ? "bg-surface"
+                                : isSelected
+                                  ? "bg-primaryTint"
+                                  : "bg-accentTint"
+                            }`}
+                          >
+                            <Text
+                              className={`font-nunito-bold ${
+                                isUnavailable
+                                  ? "text-fgMuted"
+                                  : isSelected
+                                    ? "text-primaryDark"
+                                    : "text-accentText"
+                              }`}
+                            >
+                              {user.displayName.charAt(0).toUpperCase()}
+                            </Text>
+                          </View>
+                          <View className="flex-1 gap-1">
+                            <Text className="font-nunito-bold text-sm text-fg">
+                              {user.displayName}
+                            </Text>
+                            <Text className="font-nunito text-xs text-fgMuted">
+                              {user.email}
+                            </Text>
+                          </View>
+                          {isUnavailable ? (
+                            <View className="rounded-full bg-surface px-3 py-1.5">
+                              <Text className="font-nunito-bold text-[11px] text-fgMuted">
+                                {interaction === "active"
+                                  ? t("pvp.activeMatchExists")
+                                  : t("pvp.pendingInviteExists")}
+                              </Text>
+                            </View>
+                          ) : isSelected ? (
+                            <CheckIcon size={18} color={tc.primaryDark} />
+                          ) : null}
+                        </View>
+                      </ThemedExpoButton>
+                    );
+                  })}
                 </>
               )}
             </View>

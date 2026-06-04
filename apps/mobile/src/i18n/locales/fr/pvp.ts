@@ -300,7 +300,7 @@ const pvp = {
   readyForBattleHint: "Crée une composition et défie un ami pour commencer !",
   challengeReadyHint: "Choisis une composition prête et lance un défi en un geste.",
   challengeSheetIntro:
-    "Recherche vite, choisis une composition prête, puis un joueur disponible.",
+    "Choisis une composition prête, repars de tes derniers adversaires ou recherche quelqu'un de précis.",
   createLoadoutHint:
     "Construis d'abord une équipe valide de 6 cartes avant d'envoyer un défi.",
   manageLoadoutsHint:
@@ -355,19 +355,18 @@ const pvp = {
   acceptBattle: "Accepter le combat",
   chooseLoadoutAccept: "Choisis ta composition pour accepter :",
   chooseOpponent: "Choisis un joueur :",
-  availableOpponents: "{count} adversaires disponibles",
+  recentOpponents: "{count} adversaires récents",
+  recentOpponentsHint:
+    "Commence par les joueurs de tes derniers matchs et invitations, ou recherche n'importe qui d'autre.",
+  searchResults: "{count} joueurs correspondants",
+  searchPlayersHint:
+    "Recherche par nom ou e-mail avec une correspondance partielle ou floue pour trouver vite le bon joueur.",
   searchLoadoutsPlaceholder: "Rechercher une composition...",
   searchPlayersPlaceholder: "Rechercher un joueur par nom ou e-mail...",
   noLoadoutMatches: "Aucune composition ne correspond à cette recherche.",
   noPlayerMatches: "Aucun joueur disponible ne correspond à cette recherche.",
-  showBusyPlayers: "Voir les joueurs occupés ({count})",
-  hideBusyPlayers: "Masquer les joueurs occupés",
-  showBusyPlayersAction: "Voir",
-  hideBusyPlayersAction: "Masquer",
-  busyPlayersHint:
-    "Ces joueurs ont déjà un combat ou une invitation en cours.",
-  noBusyPlayerMatches:
-    "Aucun joueur occupé ne correspond à cette recherche.",
+  noRecentOpponents:
+    "Aucun adversaire récent pour l'instant. Utilise la recherche pour trouver un joueur précis.",
   noPlayersAvailable: "Aucun joueur disponible pour le moment.",
   activeMatchExists: "Combat actif",
   pendingInviteExists: "Invitation en attente",
