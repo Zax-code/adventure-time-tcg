@@ -146,7 +146,7 @@ function CompactStat({
 }) {
   return (
     <View
-      className="flex-1 rounded-2xl px-2 py-2"
+      className="flex-1 rounded-2xl p-2"
       style={{ backgroundColor }}
     >
       <Text
@@ -256,7 +256,7 @@ function LoadoutSlotCard({
 
             <Pressable
               onPress={onRemove}
-              className="absolute right-2 top-2 h-7 w-7 items-center justify-center rounded-full bg-black/45"
+              className="absolute right-2 top-2 size-7 items-center justify-center rounded-full bg-black/45"
             >
               <XIcon size={12} color="#FFFFFF" />
             </Pressable>
@@ -367,9 +367,10 @@ export default function PvpLoadoutsScreen() {
 
   const selectedCards = useMemo(
     () =>
-      selectedCardIds
-        .map((id) => cardMap.get(id))
-        .filter(Boolean) as BuilderCard[],
+      selectedCardIds.flatMap((id) => {
+        const card = cardMap.get(id);
+        return card ? [card] : [];
+      }),
     [cardMap, selectedCardIds],
   );
   const selectedCardIndexMap = useMemo(
@@ -630,7 +631,7 @@ export default function PvpLoadoutsScreen() {
           className="flex-1"
           contentContainerStyle={{ paddingBottom: 180 }}
         >
-          <View className="gap-4 px-4 py-4">
+          <View className="gap-4 p-4">
             {loadouts.length > 0 ? (
               <View
                 testID="pvp-loadout-saved-section"
