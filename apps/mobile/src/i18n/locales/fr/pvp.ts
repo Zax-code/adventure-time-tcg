@@ -300,7 +300,7 @@ const pvp = {
   readyForBattleHint: "Crée une composition et défie un ami pour commencer !",
   challengeReadyHint: "Choisis une composition prête et lance un défi en un geste.",
   challengeSheetIntro:
-    "Choisis une composition prête et un joueur disponible pour envoyer une invitation au combat.",
+    "Recherche vite, choisis une composition prête, puis un joueur disponible.",
   createLoadoutHint:
     "Construis d'abord une équipe valide de 6 cartes avant d'envoyer un défi.",
   manageLoadoutsHint:

@@ -307,15 +307,21 @@ export default function PvpScreen() {
     });
   }, [toast, toastAnim]);
 
-  useEffect(() => {
-    if (showInviteModal) {
-      return;
-    }
-
+  const resetInviteSheetFilters = () => {
     setLoadoutSearchQuery("");
     setOpponentSearchQuery("");
     setShowUnavailablePlayers(false);
-  }, [showInviteModal]);
+  };
+
+  const openInviteSheet = () => {
+    resetInviteSheetFilters();
+    setShowInviteModal(true);
+  };
+
+  const closeInviteSheet = () => {
+    resetInviteSheetFilters();
+    setShowInviteModal(false);
+  };
 
   const refreshAll = async () => {
     await Promise.all([
@@ -341,7 +347,7 @@ export default function PvpScreen() {
       setToast({ message: t("pvp.inviteSent"), type: "success" });
       setSelectedInviteLoadoutId(null);
       setSelectedOpponentId(null);
-      setShowInviteModal(false);
+      closeInviteSheet();
       await refreshAll();
     },
     onError: (error) => {
@@ -541,7 +547,7 @@ export default function PvpScreen() {
           <ThemedExpoButton
             onPress={() => {
               if (hasValidLoadout) {
-                setShowInviteModal(true);
+                openInviteSheet();
                 return;
               }
 
@@ -1203,12 +1209,12 @@ export default function PvpScreen() {
       <BattleFullScreenSheet
         visible={showInviteModal}
         title={t("pvp.sendChallenge")}
-        onClose={() => setShowInviteModal(false)}
+        onClose={closeInviteSheet}
         showCloseButton={false}
         footer={
           <View className="flex-row gap-3">
             <ThemedExpoButton
-              onPress={() => setShowInviteModal(false)}
+              onPress={closeInviteSheet}
               preferFallback
               style={{ flex: 1 }}
               variant="ghost"
@@ -1263,7 +1269,7 @@ export default function PvpScreen() {
         }
       >
         <View className="gap-5 px-5 pb-6 pt-5">
-          <View className="gap-3 rounded-[28px] border border-primaryBorder bg-primaryBg px-4 py-4">
+          <View className="gap-3 rounded-[28px] border border-primaryBorder bg-primaryBg p-4">
             <View className="gap-1">
               <Text className="font-nunito-bold text-base text-primaryDark">
                 {t("pvp.challengeReadyHint")}
@@ -1274,7 +1280,7 @@ export default function PvpScreen() {
             </View>
 
             <View className="gap-3">
-              <View className="flex-row items-center gap-3 rounded-2xl border border-primaryBorder bg-surface px-3 py-3">
+              <View className="flex-row items-center gap-3 rounded-2xl border border-primaryBorder bg-surface p-3">
                 <View className="h-11 w-11 items-center justify-center rounded-2xl bg-primaryTint">
                   <CardsIcon size={20} color={tc.primaryDark} />
                 </View>
@@ -1300,7 +1306,7 @@ export default function PvpScreen() {
                 ) : null}
               </View>
 
-              <View className="flex-row items-center gap-3 rounded-2xl border border-primaryBorder bg-surface px-3 py-3">
+              <View className="flex-row items-center gap-3 rounded-2xl border border-primaryBorder bg-surface p-3">
                 <View className="h-11 w-11 items-center justify-center rounded-2xl bg-accentTint">
                   <UserPlusIcon size={20} color={tc.accentText} />
                 </View>
@@ -1438,11 +1444,7 @@ export default function PvpScreen() {
                             </Text>
                           </View>
                         </View>
-                        <ScrollView
-                          horizontal
-                          showsHorizontalScrollIndicator={false}
-                          contentContainerStyle={{ gap: 6 }}
-                        >
+                        <View className="flex-row gap-1.5">
                           {loadout.cardIds.slice(0, 4).map((cardId, index) => {
                             const card = loadout.cards.find((entry) => entry.id === cardId);
 
@@ -1474,7 +1476,7 @@ export default function PvpScreen() {
                               </View>
                             );
                           })}
-                        </ScrollView>
+                        </View>
                       </View>
                       {selectedInviteLoadoutId === loadout.id ? (
                         <CheckIcon size={18} color={tc.primaryDark} />
