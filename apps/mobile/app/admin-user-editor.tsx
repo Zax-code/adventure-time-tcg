@@ -529,6 +529,7 @@ export default function AdminUserEditorScreen() {
                       subtitle={t("admin.userEditor.permissionsSubtitle")}
                     >
                       <UserEditorInsetCard
+                        rail={false}
                         tone={detail.isAdmin ? "accent" : "default"}
                       >
                         <View className="flex-row flex-wrap gap-2">
@@ -623,7 +624,7 @@ export default function AdminUserEditorScreen() {
                   </View>
                 </AdminPanel>
 
-                <AdminPanel chrome="soft" tint="secondary">
+                <AdminPanel chrome="soft" tint="info">
                   <UserEditorSection
                     title={t("admin.userEditor.questsTitle")}
                     subtitle={t("admin.userEditor.questsSubtitle")}

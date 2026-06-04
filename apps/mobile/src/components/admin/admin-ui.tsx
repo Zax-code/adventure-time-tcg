@@ -59,7 +59,7 @@ export function AdminPanel({
 }: {
   children: ReactNode;
   style?: ViewStyle;
-  tint?: "default" | "primary" | "secondary" | "accent";
+  tint?: "default" | "primary" | "secondary" | "accent" | "info";
   chrome?: "default" | "soft";
 }) {
   const { themeName } = useThemeStore();
@@ -69,6 +69,7 @@ export function AdminPanel({
     primary: withAlpha(tc.primaryTint, "D9"),
     secondary: withAlpha(tc.secondaryTint, "D9"),
     accent: withAlpha(tc.accentTint, "D9"),
+    info: withAlpha(tc.infoTint, "D9"),
   };
 
   return (
