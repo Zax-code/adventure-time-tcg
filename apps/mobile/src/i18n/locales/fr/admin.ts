@@ -38,6 +38,10 @@ const admin = {
     title: "Utilisateurs",
     subtitle:
       "Parcours les comptes joueurs et ouvre leur fiche détaillée pour gérer pièces, quêtes, permissions et actions de super admin.",
+    heroSubtitle:
+      "Garde le support fluide avec des groupes de comptes plus clairs et un accès direct à la fiche complète.",
+    heroSubtitleSuperAdmin:
+      "Commence par les nouvelles validations d'accès, puis navigue dans les comptes admin et joueurs sans perdre le contexte.",
     searchPlaceholder: "Rechercher par e-mail ou nom d'affichage",
     loadingUsers: "Chargement des utilisateurs...",
     loadingRequests: "Chargement des demandes d'accès...",
@@ -49,7 +53,20 @@ const admin = {
     requestsCount: "{count} demandes",
     usersCount: "{count} utilisateurs",
     usersLabel: "Utilisateurs visibles",
+    staffLabel: "Comptes admin",
+    playersLabel: "Joueurs",
     requestsLabel: "Demandes en attente",
+    workspaceTitle: "Trouver le bon compte",
+    workspaceSubtitle:
+      "Recherche une fois, puis affine par rôle ou tri avant d'ouvrir la fiche complète.",
+    focusLabel: "Focus",
+    sortLabel: "Tri",
+    filters: {
+      all: "Tous",
+      staff: "Admins",
+      players: "Joueurs",
+      me: "Toi",
+    },
     sort: {
       email: "E-mail",
       coins: "Pièces",
@@ -57,7 +74,19 @@ const admin = {
     },
     accountsTitle: "Comptes utilisateurs",
     accountsSubtitle:
-      "Appuie sur un utilisateur pour ouvrir sa fiche complète.",
+      "L'admin connecté reste épinglé, puis les admins et les joueurs sont séparés plus bas.",
+    yourAccountTitle: "Ton compte admin",
+    yourAccountSubtitle:
+      "Épinglé séparément pour vérifier d'un coup d'oeil ton accès et ton solde.",
+    staffSectionTitle: "Admins avec accès console",
+    staffSectionSubtitle:
+      "Admins et super admins qui peuvent entrer dans la console d'opérations.",
+    playersSectionTitle: "Comptes joueurs",
+    playersSectionSubtitle:
+      "Comptes joueurs approuvés prêts pour le support, les quêtes et les ajustements de solde.",
+    moderationTitle: "File de modération",
+    moderationSubtitle:
+      "Les nouvelles validations de connexion restent en haut pour être traitées rapidement.",
     noUsersTitle: "Aucun utilisateur trouvé",
     noUsersBody: "Essaie un autre terme de recherche.",
     accessRequestsTitle: "Demandes d'accès",
@@ -72,6 +101,9 @@ const admin = {
     reject: "Rejeter",
     noRequestsTitle: "Aucune demande en attente",
     noRequestsBody: "Les nouvelles demandes d'accès apparaîtront ici.",
+    noPendingTitle: "Aucune demande en attente",
+    noPendingBody:
+      "Les nouvelles demandes de connexion apparaîtront ici dès qu'elles auront besoin d'être traitées.",
   },
   userEditor: {
     title: "Gérer l'utilisateur",
