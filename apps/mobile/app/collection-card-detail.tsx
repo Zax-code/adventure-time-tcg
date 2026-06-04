@@ -467,109 +467,90 @@ export default function CollectionCardDetailScreen() {
             >
               <View
                 style={{
-                  borderRadius: 24,
-                  overflow: "hidden",
-                  borderWidth: 1,
-                  borderColor: tc.primaryBorder,
-                  backgroundColor: tc.surface,
-                  shadowColor: "#000",
-                  shadowOpacity: 0.08,
-                  shadowRadius: 12,
+                  gap: 16,
                 }}
                 testID="collection-card-detail-overview"
               >
-                <LinearGradient
-                  colors={[tc.surface, tc.primaryBg]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
+                <View className="items-center">
+                  <CardTile
+                    entry={entry}
+                    size="large"
+                    accessToken={accessToken}
+                    testID="collection-card-detail-card"
+                  />
+                </View>
+
+                <View
                   style={{
-                    paddingHorizontal: 16,
-                    paddingTop: 18,
-                    paddingBottom: 16,
-                    gap: 16,
+                    flexDirection: "row",
+                    flexWrap: "wrap",
+                    gap: 10,
                   }}
                 >
-                  <View className="items-center">
-                    <CardTile
-                      entry={entry}
-                      size="large"
-                      accessToken={accessToken}
-                      testID="collection-card-detail-card"
-                    />
-                  </View>
-
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      flexWrap: "wrap",
-                      gap: 10,
-                    }}
-                  >
-                    {[
-                      {
-                        label: t("collection.detail.ownedCopies"),
-                        value: String(entry.quantity),
-                        textColor: tc.primaryStrong,
-                        backgroundColor: tc.surface,
-                        borderColor: tc.primaryBorder,
-                      },
-                      {
-                        label: t("collection.detail.dustBalance"),
-                        value: String(dust),
-                        textColor: tc.secondaryText,
-                        backgroundColor: tc.secondaryTint,
-                        borderColor: tc.secondaryBorder,
-                      },
-                      {
-                        label: t("collection.detail.recycleValue"),
-                        value: `+${recycleValue}`,
-                        textColor: tc.successText,
-                        backgroundColor: tc.successTint,
-                        borderColor: tc.successBorder,
-                      },
-                      {
-                        label: t("collection.detail.craftCost"),
-                        value: `-${craftCost}`,
-                        textColor: tc.infoText,
-                        backgroundColor: tc.infoTint,
-                        borderColor: tc.infoBorder,
-                      },
-                    ].map((metric) => (
-                      <View
-                        key={metric.label}
+                  {[
+                    {
+                      label: t("collection.detail.ownedCopies"),
+                      value: String(entry.quantity),
+                      textColor: tc.primaryStrong,
+                      backgroundColor: tc.surface,
+                      borderColor: tc.primaryBorder,
+                    },
+                    {
+                      label: t("collection.detail.dustBalance"),
+                      value: String(dust),
+                      textColor: tc.secondaryText,
+                      backgroundColor: tc.secondaryTint,
+                      borderColor: tc.secondaryBorder,
+                    },
+                    {
+                      label: t("collection.detail.recycleValue"),
+                      value: `+${recycleValue}`,
+                      textColor: tc.successText,
+                      backgroundColor: tc.successTint,
+                      borderColor: tc.successBorder,
+                    },
+                    {
+                      label: t("collection.detail.craftCost"),
+                      value: `-${craftCost}`,
+                      textColor: tc.infoText,
+                      backgroundColor: tc.infoTint,
+                      borderColor: tc.infoBorder,
+                    },
+                  ].map((metric) => (
+                    <View
+                      key={metric.label}
+                      style={{
+                        width: "47.5%",
+                        borderRadius: 18,
+                        borderWidth: 1,
+                        borderColor: metric.borderColor,
+                        backgroundColor: metric.backgroundColor,
+                        paddingHorizontal: 14,
+                        paddingVertical: 12,
+                        gap: 4,
+                      }}
+                    >
+                      <Text
                         style={{
-                          width: "47.5%",
-                          borderRadius: 18,
-                          borderWidth: 1,
-                          borderColor: metric.borderColor,
-                          backgroundColor: metric.backgroundColor,
-                          paddingHorizontal: 14,
-                          paddingVertical: 12,
-                          gap: 4,
+                          fontFamily: "Nunito_600SemiBold",
+                          fontSize: 12,
+                          color: tc.fgMuted,
                         }}
                       >
-                        <Text
-                          style={{
-                            fontFamily: "Nunito_600SemiBold",
-                            fontSize: 12,
-                            color: tc.fgMuted,
-                          }}
-                        >
-                          {metric.label}
-                        </Text>
-                        <Text
-                          style={{
-                            fontFamily: "Nunito_800ExtraBold",
-                            fontSize: 20,
-                            color: metric.textColor,
-                          }}
-                        >
-                          {metric.value}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                </LinearGradient>
+                        {metric.label}
+                      </Text>
+                      <Text
+                        style={{
+                          fontFamily: "Nunito_800ExtraBold",
+                          fontSize: 20,
+                          color: metric.textColor,
+                        }}
+                      >
+                        {metric.value}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
               </View>
 
               <View
@@ -1178,54 +1159,81 @@ export default function CollectionCardDetailScreen() {
                   testID="collection-card-detail-gift-toggle"
                   variant="ghost"
                 >
-                  <GiftHeartIcon size={18} color={tc.infoText} />
-                  <View className="flex-1">
-                    <Text
-                      style={{
-                        fontSize: 16,
-                        fontFamily: "Nunito_800ExtraBold",
-                        color: tc.infoText,
-                      }}
-                    >
-                      {t("gifts.sendGift")}
-                    </Text>
-                    <Text
-                      style={{
-                        marginTop: 2,
-                        fontSize: 12,
-                        fontFamily: "Nunito_400Regular",
-                        color: tc.infoText,
-                      }}
-                    >
-                      {selectedUser
-                        ? t("collection.detail.selectedRecipient", {
-                            name: selectedUser.displayName,
-                          })
-                        : t("collection.detail.giftHint")}
-                    </Text>
-                  </View>
-                  {selectedUser ? (
-                    <View
-                      style={{
-                        height: 24,
-                        width: 24,
-                        borderRadius: 12,
-                        alignItems: "center",
-                        justifyContent: "center",
-                        backgroundColor: tc.surface,
-                        borderWidth: 1,
-                        borderColor: tc.infoBorder,
-                      }}
-                    >
-                      <CheckIcon size={14} color={tc.infoText} />
-                    </View>
-                  ) : null}
                   <View
                     style={{
-                      transform: [{ rotate: giftExpanded ? "180deg" : "0deg" }],
+                      width: "100%",
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 12,
                     }}
                   >
-                    <ChevronDownIcon size={18} color={tc.infoText} />
+                    <View
+                      style={{
+                        flex: 1,
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 10,
+                      }}
+                    >
+                      <GiftHeartIcon size={18} color={tc.infoText} />
+                      <View style={{ flex: 1 }}>
+                        <Text
+                          style={{
+                            fontSize: 16,
+                            fontFamily: "Nunito_800ExtraBold",
+                            color: tc.infoText,
+                          }}
+                        >
+                          {t("gifts.sendGift")}
+                        </Text>
+                        <Text
+                          style={{
+                            marginTop: 2,
+                            fontSize: 12,
+                            fontFamily: "Nunito_400Regular",
+                            color: tc.infoText,
+                          }}
+                        >
+                          {selectedUser
+                            ? t("collection.detail.selectedRecipient", {
+                                name: selectedUser.displayName,
+                              })
+                            : t("collection.detail.giftHint")}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 8,
+                      }}
+                    >
+                      {selectedUser ? (
+                        <View
+                          style={{
+                            height: 24,
+                            width: 24,
+                            borderRadius: 12,
+                            alignItems: "center",
+                            justifyContent: "center",
+                            backgroundColor: tc.surface,
+                            borderWidth: 1,
+                            borderColor: tc.infoBorder,
+                          }}
+                        >
+                          <CheckIcon size={14} color={tc.infoText} />
+                        </View>
+                      ) : null}
+                      <View
+                        style={{
+                          transform: [{ rotate: giftExpanded ? "180deg" : "0deg" }],
+                        }}
+                      >
+                        <ChevronDownIcon size={18} color={tc.infoText} />
+                      </View>
+                    </View>
                   </View>
                 </ThemedExpoButton>
 
