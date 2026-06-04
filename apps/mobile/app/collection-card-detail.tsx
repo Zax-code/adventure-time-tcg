@@ -465,112 +465,101 @@ export default function CollectionCardDetailScreen() {
               showsVerticalScrollIndicator={false}
               testID="collection-card-detail-sheet"
             >
-              <View
+              <LinearGradient
+                colors={[tc.surface, tc.primaryBg]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
                 style={{
                   borderRadius: 24,
                   overflow: "hidden",
-                  borderWidth: 1,
-                  borderColor: tc.primaryBorder,
-                  backgroundColor: tc.surface,
-                  shadowColor: "#000",
-                  shadowOpacity: 0.08,
-                  shadowRadius: 12,
+                  paddingHorizontal: 16,
+                  paddingTop: 18,
+                  paddingBottom: 16,
+                  gap: 16,
                 }}
                 testID="collection-card-detail-overview"
               >
-                <LinearGradient
-                  colors={[tc.surface, tc.primaryBg]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
+                <View className="items-center">
+                  <CardTile
+                    entry={entry}
+                    size="large"
+                    accessToken={accessToken}
+                    testID="collection-card-detail-card"
+                  />
+                </View>
+
+                <View
                   style={{
-                    paddingHorizontal: 16,
-                    paddingTop: 18,
-                    paddingBottom: 16,
-                    gap: 16,
+                    flexDirection: "row",
+                    flexWrap: "wrap",
+                    gap: 10,
                   }}
                 >
-                  <View className="items-center">
-                    <CardTile
-                      entry={entry}
-                      size="large"
-                      accessToken={accessToken}
-                      testID="collection-card-detail-card"
-                    />
-                  </View>
-
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      flexWrap: "wrap",
-                      gap: 10,
-                    }}
-                  >
-                    {[
-                      {
-                        label: t("collection.detail.ownedCopies"),
-                        value: String(entry.quantity),
-                        textColor: tc.primaryStrong,
-                        backgroundColor: tc.surface,
-                        borderColor: tc.primaryBorder,
-                      },
-                      {
-                        label: t("collection.detail.dustBalance"),
-                        value: String(dust),
-                        textColor: tc.secondaryText,
-                        backgroundColor: tc.secondaryTint,
-                        borderColor: tc.secondaryBorder,
-                      },
-                      {
-                        label: t("collection.detail.recycleValue"),
-                        value: `+${recycleValue}`,
-                        textColor: tc.successText,
-                        backgroundColor: tc.successTint,
-                        borderColor: tc.successBorder,
-                      },
-                      {
-                        label: t("collection.detail.craftCost"),
-                        value: `-${craftCost}`,
-                        textColor: tc.infoText,
-                        backgroundColor: tc.infoTint,
-                        borderColor: tc.infoBorder,
-                      },
-                    ].map((metric) => (
-                      <View
-                        key={metric.label}
+                  {[
+                    {
+                      label: t("collection.detail.ownedCopies"),
+                      value: String(entry.quantity),
+                      textColor: tc.primaryStrong,
+                      backgroundColor: tc.surface,
+                      borderColor: tc.primaryBorder,
+                    },
+                    {
+                      label: t("collection.detail.dustBalance"),
+                      value: String(dust),
+                      textColor: tc.secondaryText,
+                      backgroundColor: tc.secondaryTint,
+                      borderColor: tc.secondaryBorder,
+                    },
+                    {
+                      label: t("collection.detail.recycleValue"),
+                      value: `+${recycleValue}`,
+                      textColor: tc.successText,
+                      backgroundColor: tc.successTint,
+                      borderColor: tc.successBorder,
+                    },
+                    {
+                      label: t("collection.detail.craftCost"),
+                      value: `-${craftCost}`,
+                      textColor: tc.infoText,
+                      backgroundColor: tc.infoTint,
+                      borderColor: tc.infoBorder,
+                    },
+                  ].map((metric) => (
+                    <View
+                      key={metric.label}
+                      style={{
+                        width: "47.5%",
+                        borderRadius: 18,
+                        borderWidth: 1,
+                        borderColor: metric.borderColor,
+                        backgroundColor: metric.backgroundColor,
+                        paddingHorizontal: 14,
+                        paddingVertical: 12,
+                        gap: 4,
+                      }}
+                    >
+                      <Text
                         style={{
-                          width: "47.5%",
-                          borderRadius: 18,
-                          borderWidth: 1,
-                          borderColor: metric.borderColor,
-                          backgroundColor: metric.backgroundColor,
-                          paddingHorizontal: 14,
-                          paddingVertical: 12,
-                          gap: 4,
+                          fontFamily: "Nunito_600SemiBold",
+                          fontSize: 12,
+                          color: tc.fgMuted,
                         }}
                       >
-                        <Text
-                          style={{
-                            fontFamily: "Nunito_600SemiBold",
-                            fontSize: 12,
-                            color: tc.fgMuted,
-                          }}
-                        >
-                          {metric.label}
-                        </Text>
-                        <Text
-                          style={{
-                            fontFamily: "Nunito_800ExtraBold",
-                            fontSize: 20,
-                            color: metric.textColor,
-                          }}
-                        >
-                          {metric.value}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                </LinearGradient>
-              </View>
+                        {metric.label}
+                      </Text>
+                      <Text
+                        style={{
+                          fontFamily: "Nunito_800ExtraBold",
+                          fontSize: 20,
+                          color: metric.textColor,
+                        }}
+                      >
+                        {metric.value}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </LinearGradient>
 
               <View
                 style={{
