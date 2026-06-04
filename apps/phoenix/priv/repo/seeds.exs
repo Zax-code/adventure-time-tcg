@@ -24,6 +24,21 @@ defmodule AdventureTimeApi.Seeds.PvpCatalog do
   }
 
   @placeholder_ability_keys ["default.focused_strike", "default.battle_cry"]
+  @legacy_seed_card_ids [
+    "4ed9e794-0bc6-4897-99a4-fd94f51d569e",
+    "6ae49754-57ad-4847-b256-e427fdfd8d2f",
+    "76a7469a-f982-484f-a7be-582ae345e335",
+    "95fb3bf2-9fa1-474d-9178-7699f42a8dd9",
+    "abb55b67-d427-4d70-8865-f238f76e39e7",
+    "65894b66-f196-4bd1-b0e5-9ab2cf498f84",
+    "150deb14-40f6-4cd1-848e-07f48c78d0f8",
+    "7cd3fc67-dc0a-4787-83c6-6386f29bcf5b",
+    "2b08616b-c070-41c8-9b31-7f51bd07005e",
+    "165b7f16-6df8-41b7-bfcc-848681218f57",
+    "b6c0aeeb-0805-4cee-b066-d6f5c10240ab",
+    "2632c5c5-fa12-4efa-af62-0acd2a7af34e"
+  ]
+  @e2e_card_name_prefix "E2E "
 
   @placeholder_cards [
     %{
@@ -61,7 +76,8 @@ defmodule AdventureTimeApi.Seeds.PvpCatalog do
   def run! do
     catalog = load_seed_catalog!()
 
-    cleanup_placeholder_seed!()
+    cleanup_placeholder_seed!(catalog)
+    ensure_seed_bucket!()
 
     rarity_ids = upsert_rarities!(catalog["rarities"] || [])
 
@@ -82,7 +98,7 @@ defmodule AdventureTimeApi.Seeds.PvpCatalog do
     |> Jason.decode!()
   end
 
-  defp cleanup_placeholder_seed! do
+  defp cleanup_placeholder_seed!(catalog) do
     placeholder_card_ids =
       Enum.flat_map(@placeholder_cards, fn attrs ->
         Card
@@ -97,41 +113,22 @@ defmodule AdventureTimeApi.Seeds.PvpCatalog do
       end)
       |> Enum.uniq()
 
-    if placeholder_card_ids != [] do
-      loadout_ids =
-        Loadout
-        |> Repo.all()
-        |> Enum.filter(&overlap?(&1.card_ids, placeholder_card_ids))
-        |> Enum.map(& &1.id)
+    current_seed_card_ids =
+      catalog["cards"]
+      |> Enum.map(&get_in(&1, ["card", "id"]))
+      |> Enum.reject(&is_nil/1)
 
-      if loadout_ids != [] do
-        from(loadout in Loadout, where: loadout.id in ^loadout_ids)
-        |> Repo.delete_all()
-      end
+    e2e_card_ids =
+      Card
+      |> where([card], like(card.name, ^"#{@e2e_card_name_prefix}%"))
+      |> Repo.all()
+      |> Enum.map(& &1.id)
 
-      match_ids =
-        Match
-        |> Repo.all()
-        |> Enum.filter(fn match ->
-          overlap?(match.inviter_card_ids, placeholder_card_ids) or
-            overlap?(match.invitee_card_ids, placeholder_card_ids)
-        end)
-        |> Enum.map(& &1.id)
-
-      if match_ids != [] do
-        from(match in Match, where: match.id in ^match_ids)
-        |> Repo.delete_all()
-      end
-
-      from(owned_card in OwnedCard, where: owned_card.card_id in ^placeholder_card_ids)
-      |> Repo.delete_all()
-
-      from(card_ability in CardAbility, where: card_ability.card_id in ^placeholder_card_ids)
-      |> Repo.delete_all()
-
-      from(card in Card, where: card.id in ^placeholder_card_ids)
-      |> Repo.delete_all()
-    end
+    cleanup_cards!(
+      Enum.uniq(
+        placeholder_card_ids ++ @legacy_seed_card_ids ++ current_seed_card_ids ++ e2e_card_ids
+      )
+    )
 
     from(pack in Pack,
       where:
@@ -142,6 +139,55 @@ defmodule AdventureTimeApi.Seeds.PvpCatalog do
 
     from(ability_def in AbilityDef, where: ability_def.key in ^@placeholder_ability_keys)
     |> Repo.delete_all()
+  end
+
+  defp cleanup_cards!([]), do: :ok
+
+  defp cleanup_cards!(card_ids) do
+    image_asset_ids =
+      Card
+      |> where([card], card.id in ^card_ids and not is_nil(card.image_asset_id))
+      |> Repo.all()
+      |> Enum.map(& &1.image_asset_id)
+      |> Enum.uniq()
+
+    loadout_ids =
+      Loadout
+      |> Repo.all()
+      |> Enum.filter(&overlap?(&1.card_ids, card_ids))
+      |> Enum.map(& &1.id)
+
+    if loadout_ids != [] do
+      from(loadout in Loadout, where: loadout.id in ^loadout_ids)
+      |> Repo.delete_all()
+    end
+
+    match_ids =
+      Match
+      |> Repo.all()
+      |> Enum.filter(fn match ->
+        overlap?(match.inviter_card_ids, card_ids) or overlap?(match.invitee_card_ids, card_ids)
+      end)
+      |> Enum.map(& &1.id)
+
+    if match_ids != [] do
+      from(match in Match, where: match.id in ^match_ids)
+      |> Repo.delete_all()
+    end
+
+    from(owned_card in OwnedCard, where: owned_card.card_id in ^card_ids)
+    |> Repo.delete_all()
+
+    from(card_ability in CardAbility, where: card_ability.card_id in ^card_ids)
+    |> Repo.delete_all()
+
+    from(card in Card, where: card.id in ^card_ids)
+    |> Repo.delete_all()
+
+    if image_asset_ids != [] do
+      from(image_asset in ImageAsset, where: image_asset.id in ^image_asset_ids)
+      |> Repo.delete_all()
+    end
   end
 
   defp overlap?(nil, _card_ids), do: false
@@ -366,6 +412,24 @@ defmodule AdventureTimeApi.Seeds.PvpCatalog do
 
       {:error, reason} ->
         raise "seed image upload failed: #{inspect(reason)}"
+    end
+  end
+
+  defp ensure_seed_bucket! do
+    %{base_url: base_url, bucket: bucket, access_key: access_key, secret_key: secret_key} =
+      object_storage_config()
+
+    bucket_url = String.trim_trailing(base_url, "/") <> "/" <> bucket
+
+    case signed_request(:put, bucket_url, "", access_key, secret_key, []) do
+      {:ok, %{status: status}} when status in [200, 201, 204, 409] ->
+        :ok
+
+      {:ok, %{status: status, body: body}} ->
+        raise "seed bucket creation failed with status #{status}: #{inspect(body)}"
+
+      {:error, reason} ->
+        raise "seed bucket creation failed: #{inspect(reason)}"
     end
   end
 
