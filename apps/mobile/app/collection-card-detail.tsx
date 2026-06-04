@@ -465,16 +465,8 @@ export default function CollectionCardDetailScreen() {
               showsVerticalScrollIndicator={false}
               testID="collection-card-detail-sheet"
             >
-              <LinearGradient
-                colors={[tc.surface, tc.primaryBg]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
+              <View
                 style={{
-                  borderRadius: 24,
-                  overflow: "hidden",
-                  paddingHorizontal: 16,
-                  paddingTop: 18,
-                  paddingBottom: 16,
                   gap: 16,
                 }}
                 testID="collection-card-detail-overview"
@@ -559,7 +551,7 @@ export default function CollectionCardDetailScreen() {
                     </View>
                   ))}
                 </View>
-              </LinearGradient>
+              </View>
 
               <View
                 style={{
