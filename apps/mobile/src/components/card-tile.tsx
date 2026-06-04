@@ -22,6 +22,7 @@ interface CardTileProps {
   size?: "small" | "large";
   fitContainer?: boolean;
   containerStyle?: StyleProp<ViewStyle>;
+  testID?: string;
 }
 
 const sizeConfig = {
@@ -141,6 +142,7 @@ export const CardTile = memo(function CardTile({
   size = "small",
   fitContainer = false,
   containerStyle,
+  testID,
 }: CardTileProps) {
   const { card, quantity } = entry;
   const cfg = sizeConfig[size];
@@ -213,6 +215,7 @@ export const CardTile = memo(function CardTile({
   return (
     <Pressable
       onPress={onPress}
+      testID={testID}
       style={[
         {
           width: fitContainer ? "100%" : cfg.width,
