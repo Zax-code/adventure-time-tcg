@@ -542,6 +542,7 @@ export function AdminButton({
   variant = "primary",
   icon,
   disabled,
+  borderRadius,
   style,
 }: {
   label: string;
@@ -549,11 +550,30 @@ export function AdminButton({
   variant?: "primary" | "secondary" | "danger" | "ghost" | "warning";
   icon?: IoniconName;
   disabled?: boolean;
+  borderRadius?: number;
   style?: ViewStyle;
 }) {
   const { themeName } = useThemeStore();
   const tc = THEME_COLORS[themeName];
   const palette = getButtonPalette(tc)[variant];
+  const fallbackAppearance = icon
+    ? {
+        backgroundColor: palette.bg,
+        borderColor: palette.border,
+        foregroundColor: palette.text,
+        borderRadius: borderRadius ?? 16,
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        minHeight: 44,
+        gradientColors: null,
+        textStyle: {
+          fontFamily: "Nunito_800ExtraBold",
+          fontSize: 13,
+        },
+      }
+    : borderRadius != null
+      ? { borderRadius }
+      : undefined;
 
   return (
     <ThemedExpoButton
@@ -565,24 +585,7 @@ export function AdminButton({
           <Ionicons name={icon} size={16} color={palette.text} />
         ) : undefined
       }
-      fallbackAppearance={
-        icon
-          ? {
-              backgroundColor: palette.bg,
-              borderColor: palette.border,
-              foregroundColor: palette.text,
-              borderRadius: 16,
-              paddingHorizontal: 14,
-              paddingVertical: 10,
-              minHeight: 44,
-              gradientColors: null,
-              textStyle: {
-                fontFamily: "Nunito_800ExtraBold",
-                fontSize: 13,
-              },
-            }
-          : undefined
-      }
+      fallbackAppearance={fallbackAppearance}
       style={style ? { minHeight: 44, ...style } : { minHeight: 44 }}
       variant={variant}
     >
