@@ -1159,54 +1159,81 @@ export default function CollectionCardDetailScreen() {
                   testID="collection-card-detail-gift-toggle"
                   variant="ghost"
                 >
-                  <GiftHeartIcon size={18} color={tc.infoText} />
-                  <View className="flex-1">
-                    <Text
-                      style={{
-                        fontSize: 16,
-                        fontFamily: "Nunito_800ExtraBold",
-                        color: tc.infoText,
-                      }}
-                    >
-                      {t("gifts.sendGift")}
-                    </Text>
-                    <Text
-                      style={{
-                        marginTop: 2,
-                        fontSize: 12,
-                        fontFamily: "Nunito_400Regular",
-                        color: tc.infoText,
-                      }}
-                    >
-                      {selectedUser
-                        ? t("collection.detail.selectedRecipient", {
-                            name: selectedUser.displayName,
-                          })
-                        : t("collection.detail.giftHint")}
-                    </Text>
-                  </View>
-                  {selectedUser ? (
-                    <View
-                      style={{
-                        height: 24,
-                        width: 24,
-                        borderRadius: 12,
-                        alignItems: "center",
-                        justifyContent: "center",
-                        backgroundColor: tc.surface,
-                        borderWidth: 1,
-                        borderColor: tc.infoBorder,
-                      }}
-                    >
-                      <CheckIcon size={14} color={tc.infoText} />
-                    </View>
-                  ) : null}
                   <View
                     style={{
-                      transform: [{ rotate: giftExpanded ? "180deg" : "0deg" }],
+                      width: "100%",
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 12,
                     }}
                   >
-                    <ChevronDownIcon size={18} color={tc.infoText} />
+                    <View
+                      style={{
+                        flex: 1,
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 10,
+                      }}
+                    >
+                      <GiftHeartIcon size={18} color={tc.infoText} />
+                      <View style={{ flex: 1 }}>
+                        <Text
+                          style={{
+                            fontSize: 16,
+                            fontFamily: "Nunito_800ExtraBold",
+                            color: tc.infoText,
+                          }}
+                        >
+                          {t("gifts.sendGift")}
+                        </Text>
+                        <Text
+                          style={{
+                            marginTop: 2,
+                            fontSize: 12,
+                            fontFamily: "Nunito_400Regular",
+                            color: tc.infoText,
+                          }}
+                        >
+                          {selectedUser
+                            ? t("collection.detail.selectedRecipient", {
+                                name: selectedUser.displayName,
+                              })
+                            : t("collection.detail.giftHint")}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 8,
+                      }}
+                    >
+                      {selectedUser ? (
+                        <View
+                          style={{
+                            height: 24,
+                            width: 24,
+                            borderRadius: 12,
+                            alignItems: "center",
+                            justifyContent: "center",
+                            backgroundColor: tc.surface,
+                            borderWidth: 1,
+                            borderColor: tc.infoBorder,
+                          }}
+                        >
+                          <CheckIcon size={14} color={tc.infoText} />
+                        </View>
+                      ) : null}
+                      <View
+                        style={{
+                          transform: [{ rotate: giftExpanded ? "180deg" : "0deg" }],
+                        }}
+                      >
+                        <ChevronDownIcon size={18} color={tc.infoText} />
+                      </View>
+                    </View>
                   </View>
                 </ThemedExpoButton>
 
