@@ -319,6 +319,7 @@ const admin = {
     uploadFailedBody: "Impossible d'envoyer l'image de cette carte.",
     missingCardId:
       "La carte est enregistrée, mais aucun identifiant n'a été renvoyé.",
+    saveBeforeUploadTitle: "Enregistre d'abord",
     saveBeforeUpload: "Enregistre la carte avant d'envoyer l'illustration.",
     cardNotLoaded: "Cette carte n'est pas encore chargée.",
     loading: "Chargement de l'éditeur de carte...",

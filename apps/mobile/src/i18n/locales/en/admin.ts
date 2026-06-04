@@ -310,6 +310,7 @@ const admin = {
     uploadFailed: "Upload failed",
     uploadFailedBody: "Could not upload the card image.",
     missingCardId: "Card saved, but the editor did not receive a card id back.",
+    saveBeforeUploadTitle: "Save first",
     saveBeforeUpload: "Save the card before uploading artwork.",
     cardNotLoaded: "This card is not loaded yet.",
     loading: "Loading card editor...",

@@ -445,27 +445,35 @@ export function CardEditorSheet({
             title={t("admin.cardEditor.image")}
             subtitle={t("admin.cardEditor.imageDescription")}
           />
-          <View className="mt-4 gap-3">
-            <AdminButton
-              label={
-                uploadPending
-                  ? t("admin.common.uploading")
-                  : card
-                    ? t("admin.cardEditor.uploadImage")
-                    : t("admin.cardEditor.saveBeforeUpload")
-              }
-              variant="secondary"
-              onPress={onUploadImage}
-              disabled={uploadPending || !card}
-            />
-            <Text className="font-nunito-semibold text-xs text-fgMuted">
-              {card
-                ? card.imageAssetId
+          {card ? (
+            <View className="mt-5 gap-3">
+              <AdminButton
+                label={
+                  uploadPending
+                    ? t("admin.common.uploading")
+                    : t("admin.cardEditor.uploadImage")
+                }
+                variant="secondary"
+                onPress={onUploadImage}
+                disabled={uploadPending}
+                style={{ alignSelf: "flex-start" }}
+              />
+              <Text className="font-nunito-semibold text-xs text-fgMuted">
+                {card.imageAssetId
                   ? t("admin.cardEditor.artworkReady")
-                  : t("admin.cardEditor.artworkMissing")
-                : t("admin.cardEditor.saveBeforeUpload")}
-            </Text>
-          </View>
+                  : t("admin.cardEditor.artworkMissing")}
+              </Text>
+            </View>
+          ) : (
+            <View className="mt-5">
+              <AdminNotice
+                title={t("admin.cardEditor.saveBeforeUploadTitle")}
+                body={t("admin.cardEditor.saveBeforeUpload")}
+                tone="warning"
+                icon="alert-circle-outline"
+              />
+            </View>
+          )}
         </AdminPanel>
 
         <AdminPanel tint="accent">
