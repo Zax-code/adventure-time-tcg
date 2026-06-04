@@ -1,0 +1,29 @@
+appId: love.leaetzak.adventuretime
+name: Admin ability editor review screenshots
+tags:
+  - admin
+  - abilities
+  - screenshots
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- openLink:
+    link: adventure-time:///e2e-auth?redirect=%2Fadmin-ability-editor%3Fmode%3Dcreate&accessToken=${TEST_ACCESS_TOKEN}&refreshToken=${TEST_REFRESH_TOKEN}&user=${TEST_USER}
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- assertVisible: "Create ability"
+- assertVisible: "Recommended flow"
+- waitForAnimationToEnd
+- takeScreenshot: tmp-ability-editor-shots/01-overview
+- swipe:
+    start: "50%,80%"
+    end: "50%,34%"
+    duration: 800
+- waitForAnimationToEnd
+- takeScreenshot: tmp-ability-editor-shots/02-middle-sections
+- swipe:
+    start: "50%,80%"
+    end: "50%,28%"
+    duration: 900
+- waitForAnimationToEnd
+- takeScreenshot: tmp-ability-editor-shots/03-advanced-section
