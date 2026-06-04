@@ -3,7 +3,6 @@ import { ScrollView, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { ThemedExpoButton } from "../src/components/expo-ui/themed-button";
 import {
   CardsIcon,
   CheckIcon,
@@ -106,31 +105,15 @@ export default function PvpMechanicsScreen() {
           className="flex-1"
           contentContainerStyle={{ gap: 16, padding: 20, paddingBottom: insets.bottom + 24 }}
         >
-          <View className="flex-row items-center justify-between gap-4">
-            <Text className="flex-1 font-nunito-extrabold text-[28px] leading-[34px] text-fg">
+          <View>
+            <Text
+              className="font-nunito-extrabold text-[28px] leading-[34px] text-fg"
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.85}
+            >
               {t("pvp.mechanics.title")}
             </Text>
-            <ThemedExpoButton
-              onPress={() => router.back()}
-              label="Close"
-              preferFallback
-              testID="pvp-mechanics-close-button"
-              variant="ghost"
-              fallbackAppearance={{
-                backgroundColor: "transparent",
-                borderColor: tc.primaryBorder,
-                borderRadius: 999,
-                foregroundColor: tc.primaryDark,
-                gradientColors: null,
-                minHeight: 0,
-                paddingHorizontal: 14,
-                paddingVertical: 6,
-                textStyle: {
-                  fontFamily: "Nunito_700Bold",
-                  fontSize: 13,
-                },
-              }}
-            />
           </View>
 
           <View
@@ -141,7 +124,7 @@ export default function PvpMechanicsScreen() {
               {t("pvp.mechanics.intro")}
             </Text>
 
-            <View className="rounded-[24px] border border-primaryBorder bg-primaryTint/70 p-4">
+            <View className="rounded-[24px] bg-primaryTint/70 p-4">
               <View className="flex-row items-center gap-3">
                 <View className="h-11 w-11 items-center justify-center rounded-2xl bg-surface">
                   <TrophyIcon size={20} color={tc.primaryDark} />

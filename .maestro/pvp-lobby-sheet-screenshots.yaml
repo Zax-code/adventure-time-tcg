@@ -27,12 +27,15 @@ tags:
 - takeScreenshot: tmp-pvp-shots/03-mechanics-rules
 - scrollUntilVisible:
     element:
-      id: pvp-mechanics-close-button
+      id: pvp-mechanics-overview-card
     direction: UP
     timeout: 20000
     centerElement: true
-- tapOn:
-    id: pvp-mechanics-close-button
+- swipe:
+    start: "50%,10%"
+    end: "50%,88%"
+    duration: 700
+- waitForAnimationToEnd
 - assertVisible:
     id: pvp-open-reference-button
 - tapOn:

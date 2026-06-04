@@ -3,7 +3,6 @@ import { ScrollView, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { ThemedExpoButton } from "../src/components/expo-ui/themed-button";
 import {
   CheckIcon,
   ClockIcon,
@@ -146,31 +145,15 @@ export default function PvpReferenceScreen() {
           className="flex-1"
           contentContainerStyle={{ gap: 16, padding: 20, paddingBottom: insets.bottom + 24 }}
         >
-          <View className="flex-row items-center justify-between gap-4">
-            <Text className="flex-1 font-nunito-extrabold text-[28px] leading-[34px] text-fg">
+          <View>
+            <Text
+              className="font-nunito-extrabold text-[28px] leading-[34px] text-fg"
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.8}
+            >
               {t("pvp.reference.title")}
             </Text>
-            <ThemedExpoButton
-              onPress={() => router.back()}
-              label="Close"
-              preferFallback
-              testID="pvp-reference-close-button"
-              variant="ghost"
-              fallbackAppearance={{
-                backgroundColor: "transparent",
-                borderColor: tc.infoBorder,
-                borderRadius: 999,
-                foregroundColor: tc.infoDark,
-                gradientColors: null,
-                minHeight: 0,
-                paddingHorizontal: 14,
-                paddingVertical: 6,
-                textStyle: {
-                  fontFamily: "Nunito_700Bold",
-                  fontSize: 13,
-                },
-              }}
-            />
           </View>
 
           <View

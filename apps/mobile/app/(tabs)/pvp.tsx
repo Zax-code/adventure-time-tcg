@@ -15,6 +15,7 @@ import {
   ChevronRightIcon,
   CheckIcon,
   ClockIcon,
+  EyeIcon,
   SwordsIcon,
   TrophyIcon,
   UserPlusIcon,
@@ -552,7 +553,7 @@ export default function PvpScreen() {
               <View className="gap-3">
                 <View className="flex-row items-center justify-between gap-2">
                   <View className="h-11 w-11 items-center justify-center rounded-2xl bg-infoTint">
-                    <ZapIcon size={22} color={tc.infoDark} />
+                    <EyeIcon size={22} color={tc.infoDark} />
                   </View>
                   <ChevronRightIcon size={18} color={tc.infoDark} />
                 </View>
