@@ -41,7 +41,7 @@ const admin = {
     heroSubtitle:
       "Garde le support fluide avec des groupes de comptes plus clairs et un accès direct à la fiche complète.",
     heroSubtitleSuperAdmin:
-      "Commence par les nouvelles validations d'accès, puis navigue dans les comptes staff et joueurs sans perdre le contexte.",
+      "Commence par les nouvelles validations d'accès, puis navigue dans les comptes admin et joueurs sans perdre le contexte.",
     searchPlaceholder: "Rechercher par e-mail ou nom d'affichage",
     loadingUsers: "Chargement des utilisateurs...",
     loadingRequests: "Chargement des demandes d'accès...",
@@ -53,7 +53,7 @@ const admin = {
     requestsCount: "{count} demandes",
     usersCount: "{count} utilisateurs",
     usersLabel: "Utilisateurs visibles",
-    staffLabel: "Comptes staff",
+    staffLabel: "Comptes admin",
     playersLabel: "Joueurs",
     requestsLabel: "Demandes en attente",
     workspaceTitle: "Trouver le bon compte",
@@ -63,7 +63,7 @@ const admin = {
     sortLabel: "Tri",
     filters: {
       all: "Tous",
-      staff: "Staff",
+      staff: "Admins",
       players: "Joueurs",
       me: "Toi",
     },
@@ -74,11 +74,11 @@ const admin = {
     },
     accountsTitle: "Comptes utilisateurs",
     accountsSubtitle:
-      "L'admin connecté reste épinglé, puis le staff et les joueurs sont séparés plus bas.",
+      "L'admin connecté reste épinglé, puis les admins et les joueurs sont séparés plus bas.",
     yourAccountTitle: "Ton compte admin",
     yourAccountSubtitle:
       "Épinglé séparément pour vérifier d'un coup d'oeil ton accès et ton solde.",
-    staffSectionTitle: "Staff avec accès console",
+    staffSectionTitle: "Admins avec accès console",
     staffSectionSubtitle:
       "Admins et super admins qui peuvent entrer dans la console d'opérations.",
     playersSectionTitle: "Comptes joueurs",

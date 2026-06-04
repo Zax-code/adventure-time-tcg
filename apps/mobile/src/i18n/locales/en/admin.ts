@@ -41,7 +41,7 @@ const admin = {
     heroSubtitle:
       "Keep player support fast with clearer account groupings and one-tap access to the full editor.",
     heroSubtitleSuperAdmin:
-      "Clear new access approvals first, then move through staff and player accounts without losing context.",
+      "Clear new access approvals first, then move through admin and player accounts without losing context.",
     searchPlaceholder: "Search by email or display name",
     loadingUsers: "Loading users...",
     loadingRequests: "Loading access requests...",
@@ -53,7 +53,7 @@ const admin = {
     requestsCount: "{count} requests",
     usersCount: "{count} users",
     usersLabel: "Visible users",
-    staffLabel: "Staff accounts",
+    staffLabel: "Admin accounts",
     playersLabel: "Players",
     requestsLabel: "Pending requests",
     workspaceTitle: "Find the right account",
@@ -63,7 +63,7 @@ const admin = {
     sortLabel: "Sort",
     filters: {
       all: "All",
-      staff: "Staff",
+      staff: "Admins",
       players: "Players",
       me: "You",
     },
@@ -74,11 +74,11 @@ const admin = {
     },
     accountsTitle: "User accounts",
     accountsSubtitle:
-      "The signed-in admin stays pinned, with staff and players grouped separately below.",
+      "The signed-in admin stays pinned, with admins and players grouped separately below.",
     yourAccountTitle: "Your admin account",
     yourAccountSubtitle:
       "Pinned separately so you can verify your own access and balance at a glance.",
-    staffSectionTitle: "Staff with console access",
+    staffSectionTitle: "Admins with console access",
     staffSectionSubtitle:
       "Admins and super admins who can enter the operations console.",
     playersSectionTitle: "Player accounts",

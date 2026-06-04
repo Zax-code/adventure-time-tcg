@@ -115,13 +115,12 @@ function AdminUserRow({
     : user.isAdmin
       ? withAlpha(tc.accentTint, themeName === "nightosphere" ? "52" : "D9")
       : withAlpha(tc.primaryBg, themeName === "nightosphere" ? "78" : "F0");
-  const metaFill = withAlpha(tc.surface, themeName === "nightosphere" ? "C4" : "EB");
   const railColor = withAlpha(tint, themeName === "nightosphere" ? "AD" : "70");
 
   return (
     <Pressable
       onPress={onPress}
-      className="overflow-hidden rounded-[28px]"
+      className="overflow-hidden rounded-[22px]"
       style={{
         backgroundColor: withAlpha(accentShell, themeName === "nightosphere" ? "47" : "2B"),
         shadowColor: tint,
@@ -131,11 +130,11 @@ function AdminUserRow({
       }}
     >
       <View
-        className="relative gap-4 rounded-[27px] px-4 py-4"
+        className="relative gap-4 rounded-[21px] px-4 py-4"
         style={{ backgroundColor: cardFill }}
       >
         <View
-          className="absolute bottom-0 left-0 top-0 w-[6px] rounded-l-[27px]"
+          className="absolute bottom-0 left-0 top-0 w-[6px] rounded-l-[21px]"
           style={{ backgroundColor: railColor }}
         />
         <View className="flex-row items-start gap-3 pl-2">
@@ -164,10 +163,7 @@ function AdminUserRow({
           </View>
         </View>
 
-        <View
-          className="ml-2 gap-3 rounded-[20px] px-3 py-3"
-          style={{ backgroundColor: metaFill }}
-        >
+        <View className="ml-2 gap-3 px-1 pb-1">
           <View className="flex-row flex-wrap gap-2">
             {isCurrentUser ? (
               <AdminChip label={currentUserLabel} tone="success" />
