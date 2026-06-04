@@ -105,45 +105,69 @@ function AdminUserRow({
     : user.isAdmin
       ? tc.accentText
       : tc.infoText;
-  const borderColor = user.isSuperAdmin
+  const accentShell = user.isSuperAdmin
     ? withAlpha(tc.successBorder, "CC")
     : user.isAdmin
       ? withAlpha(tc.accentBorder, "CC")
       : withAlpha(tc.primaryBorder, "85");
+  const cardFill = user.isSuperAdmin
+    ? withAlpha(tc.successTint, themeName === "nightosphere" ? "55" : "D9")
+    : user.isAdmin
+      ? withAlpha(tc.accentTint, themeName === "nightosphere" ? "52" : "D9")
+      : withAlpha(tc.primaryBg, themeName === "nightosphere" ? "78" : "F0");
+  const metaFill = withAlpha(tc.surface, themeName === "nightosphere" ? "C4" : "EB");
+  const railColor = withAlpha(tint, themeName === "nightosphere" ? "AD" : "70");
 
   return (
     <Pressable
       onPress={onPress}
-      className="rounded-[24px] border px-4 py-4"
+      className="overflow-hidden rounded-[28px]"
       style={{
-        backgroundColor: withAlpha(tc.surface, "F6"),
-        borderColor,
+        backgroundColor: withAlpha(accentShell, themeName === "nightosphere" ? "47" : "2B"),
+        shadowColor: tint,
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: themeName === "nightosphere" ? 0.18 : 0.1,
+        shadowRadius: 18,
       }}
     >
-      <View className="flex-row items-start gap-3">
+      <View
+        className="relative gap-4 rounded-[27px] px-4 py-4"
+        style={{ backgroundColor: cardFill }}
+      >
         <View
-          className="h-12 w-12 items-center justify-center rounded-[18]"
-          style={{ backgroundColor: withAlpha(tint, "18") }}
-        >
-          <Ionicons name={iconName} size={22} color={tint} />
-        </View>
-        <View className="flex-1 gap-3">
-          <View className="flex-row items-start gap-3">
-            <View className="flex-1 gap-1">
-              <Text className="font-nunito-extrabold text-[16px] text-fg">
-                {title}
-              </Text>
-              <Text className="font-nunito-semibold text-[13px] text-fgMuted">
-                {subtitle}
-              </Text>
-            </View>
-            <Ionicons
-              name="chevron-forward"
-              size={18}
-              color={withAlpha(tc.fgMuted, "C7")}
-            />
+          className="absolute bottom-0 left-0 top-0 w-[6px] rounded-l-[27px]"
+          style={{ backgroundColor: railColor }}
+        />
+        <View className="flex-row items-start gap-3 pl-2">
+          <View
+            className="h-12 w-12 items-center justify-center rounded-[18]"
+            style={{ backgroundColor: withAlpha(tint, "18") }}
+          >
+            <Ionicons name={iconName} size={22} color={tint} />
           </View>
+          <View className="flex-1 gap-3">
+            <View className="flex-row items-start gap-3">
+              <View className="flex-1 gap-1">
+                <Text className="font-nunito-extrabold text-[16px] text-fg">
+                  {title}
+                </Text>
+                <Text className="font-nunito-semibold text-[13px] text-fgMuted">
+                  {subtitle}
+                </Text>
+              </View>
+              <Ionicons
+                name="chevron-forward"
+                size={18}
+                color={withAlpha(tc.fgMuted, "C7")}
+              />
+            </View>
+          </View>
+        </View>
 
+        <View
+          className="ml-2 gap-3 rounded-[20px] px-3 py-3"
+          style={{ backgroundColor: metaFill }}
+        >
           <View className="flex-row flex-wrap gap-2">
             {isCurrentUser ? (
               <AdminChip label={currentUserLabel} tone="success" />
