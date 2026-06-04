@@ -351,7 +351,7 @@ export default function AdminCardEditorScreen() {
                 </ScrollView>
 
                 <View
-                  className="px-4 pt-3"
+                  className="border-t border-primaryBorder bg-surface px-4 pt-3"
                   style={{ paddingBottom: insets.bottom + 16 }}
                 >
                   <View className="gap-3">
@@ -365,6 +365,7 @@ export default function AdminCardEditorScreen() {
                       }
                       onPress={() => saveMutation.mutate()}
                       disabled={saveMutation.isPending || !draft.rarityId}
+                      style={{ width: "100%" }}
                     />
                     {!isCreateMode && cardQuery.data ? (
                       <AdminButton
@@ -378,6 +379,7 @@ export default function AdminCardEditorScreen() {
                         variant="danger"
                         onPress={() => archiveMutation.mutate()}
                         disabled={archiveMutation.isPending}
+                        style={{ width: "100%" }}
                       />
                     ) : null}
                   </View>
