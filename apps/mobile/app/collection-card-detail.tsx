@@ -830,60 +830,86 @@ export default function CollectionCardDetailScreen() {
                   testID="collection-card-detail-recycle-toggle"
                   variant="ghost"
                 >
-                  <RecycleIcon size={18} color={tc.successText} />
-                  <View className="flex-1">
-                    <Text
-                      style={{
-                        fontSize: 16,
-                        fontFamily: "Nunito_800ExtraBold",
-                        color: tc.successText,
-                      }}
-                    >
-                      {t("collection.detail.recycle")}
-                    </Text>
-                    <Text
-                      style={{
-                        marginTop: 2,
-                        fontSize: 12,
-                        fontFamily: "Nunito_400Regular",
-                        color: tc.successText,
-                      }}
-                    >
-                      {t("collection.detail.recycleHint")}
-                    </Text>
-                  </View>
                   <View
                     style={{
-                      borderRadius: 999,
-                      paddingHorizontal: 10,
-                      paddingVertical: 5,
-                      backgroundColor: tc.surface,
-                      borderWidth: 1,
-                      borderColor: tc.successBorder,
+                      width: "100%",
                       flexDirection: "row",
                       alignItems: "center",
-                      gap: 4,
+                      gap: 12,
                     }}
                   >
-                    <Text
+                    <View
                       style={{
-                        fontSize: 12,
-                        fontFamily: "Nunito_700Bold",
-                        color: tc.successText,
+                        flex: 1,
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 10,
                       }}
                     >
-                      +{recycleValue}
-                    </Text>
-                    <DustIcon size={12} color={tc.successText} />
-                  </View>
-                  <View
-                    style={{
-                      transform: [
-                        { rotate: recycleExpanded ? "180deg" : "0deg" },
-                      ],
-                    }}
-                  >
-                    <ChevronDownIcon size={18} color={tc.successText} />
+                      <RecycleIcon size={18} color={tc.successText} />
+                      <View style={{ flex: 1 }}>
+                        <Text
+                          style={{
+                            fontSize: 16,
+                            fontFamily: "Nunito_800ExtraBold",
+                            color: tc.successText,
+                          }}
+                        >
+                          {t("collection.detail.recycle")}
+                        </Text>
+                        <Text
+                          style={{
+                            marginTop: 2,
+                            fontSize: 12,
+                            fontFamily: "Nunito_400Regular",
+                            color: tc.successText,
+                          }}
+                        >
+                          {t("collection.detail.recycleHint")}
+                        </Text>
+                      </View>
+                    </View>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 8,
+                      }}
+                    >
+                      <View
+                        style={{
+                          borderRadius: 999,
+                          paddingHorizontal: 10,
+                          paddingVertical: 5,
+                          backgroundColor: tc.surface,
+                          borderWidth: 1,
+                          borderColor: tc.successBorder,
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 4,
+                        }}
+                      >
+                        <Text
+                          style={{
+                            fontSize: 12,
+                            fontFamily: "Nunito_700Bold",
+                            color: tc.successText,
+                          }}
+                        >
+                          +{recycleValue}
+                        </Text>
+                        <DustIcon size={12} color={tc.successText} />
+                      </View>
+                      <View
+                        style={{
+                          transform: [
+                            { rotate: recycleExpanded ? "180deg" : "0deg" },
+                          ],
+                        }}
+                      >
+                        <ChevronDownIcon size={18} color={tc.successText} />
+                      </View>
+                    </View>
                   </View>
                 </ThemedExpoButton>
 
