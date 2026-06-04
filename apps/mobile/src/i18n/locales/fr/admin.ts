@@ -306,7 +306,11 @@ const admin = {
   },
   cardEditor: {
     createTitle: "Créer une carte",
+    createSubtitle:
+      "Commence par l'identité, puis ajuste les stats, l'illustration et seulement les surcharges de capacités vraiment utiles à cette carte.",
     editTitle: "Modifier la carte",
+    editSubtitle:
+      "Affîne la carte en direct tout en gardant l'aperçu, l'illustration et les capacités personnalisées faciles à relire d'un coup d'oeil.",
     saveFailed: "Échec de l'enregistrement",
     saveFailedBody: "Impossible d'enregistrer cette carte.",
     updateFailed: "Échec de la mise à jour",
@@ -315,13 +319,27 @@ const admin = {
     uploadFailedBody: "Impossible d'envoyer l'image de cette carte.",
     missingCardId:
       "La carte est enregistrée, mais aucun identifiant n'a été renvoyé.",
+    saveBeforeUploadTitle: "Enregistre d'abord",
     saveBeforeUpload: "Enregistre la carte avant d'envoyer l'illustration.",
     cardNotLoaded: "Cette carte n'est pas encore chargée.",
     loading: "Chargement de l'éditeur de carte...",
     loadFailed: "Impossible de charger cette carte.",
     notFound: "Cette carte est introuvable.",
+    workflowTitle: "Flux recommandé",
+    workflowBody:
+      "Définis d'abord les bases de la carte, puis son rôle et sa rareté, ajuste les stats et termine avec l'illustration ou les surcharges de capacités si besoin.",
     livePreview: "Aperçu en direct",
+    previewPanelDescription:
+      "Garde le rendu final sous les yeux pendant que tu construis le brouillon.",
     basics: "Informations de base",
+    basicsDescription:
+      "Donne un nom clair à la carte et ajoute le court texte d'ambiance ou de gameplay que les joueurs liront.",
+    setupTitle: "Configuration de la carte",
+    setupDescription:
+      "Choisis le rôle de combat et la rareté avant de peaufiner le reste de la présentation.",
+    statsTitle: "Stats de combat",
+    statsDescription:
+      "Utilise des nombres entiers et regarde l'aperçu réagir pendant que tu ajustes la fiche.",
     name: "Nom",
     character: "Personnage",
     description: "Description",
@@ -335,12 +353,20 @@ const admin = {
     type: "Type",
     rarity: "Rareté",
     image: "Image de carte",
+    imageDescription:
+      "L'illustration peut attendre pendant le brouillon, mais il faut enregistrer la carte avant de la téléverser.",
     uploadImage: "Téléverser une image",
+    artworkReady: "Illustration attachée",
+    artworkMissing: "Pas encore d'illustration",
     abilitiesTitle: "Attributions de capacités",
+    abilitiesDescription:
+      "Laisse les emplacements sur les valeurs héritées tant que cette carte n'a pas besoin d'une surcharge précise.",
     hideAbilities: "Masquer les attributions",
     passive: "Passif",
     skill: "Compétence",
     ultimate: "Ultime",
+    inheritedDefault: "Valeurs héritées",
+    customOverride: "Surcharge personnalisée",
     clearAssignments: "Utiliser les défauts",
     saveCard: "Enregistrer la carte",
     archiveCard: "Archiver la carte",

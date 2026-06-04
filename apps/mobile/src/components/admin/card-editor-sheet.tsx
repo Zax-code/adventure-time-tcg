@@ -17,7 +17,9 @@ import {
   AdminChip,
   AdminField,
   AdminModal,
+  AdminNotice,
   AdminPanel,
+  AdminSectionTitle,
 } from "./admin-ui";
 import { useTranslation } from "../../i18n";
 import { useThemeStore } from "../../stores/theme-store";
@@ -49,19 +51,13 @@ export type AssignmentDraft = {
 type PickerRole = "passive" | "skill" | "ultimate";
 
 type CardEditorSheetProps = {
-  mode: "create" | "edit";
   card: EditableCard | null;
   draft: CardDraft;
   rarities: Rarity[];
   abilities: Ability[];
   assignmentDraft: AssignmentDraft;
-  savePending: boolean;
-  archivePending: boolean;
   uploadPending: boolean;
-  onClose: () => void;
-  onSubmit: () => void;
   onUploadImage: () => void;
-  onToggleArchive: () => void;
   onDraftChange: (key: keyof CardDraft, value: string) => void;
   onAssignmentChange: (role: PickerRole, value: string) => void;
   onAssignmentClear: () => void;
@@ -162,6 +158,7 @@ function SelectionChip({
 }) {
   const themeName = useThemeStore((state) => state.themeName);
   const tc = THEME_COLORS[themeName];
+
   return (
     <Pressable
       onPress={onPress}
@@ -186,26 +183,19 @@ function SelectionChip({
 }
 
 export function CardEditorSheet({
-  mode,
   card,
   draft,
   rarities,
   abilities,
   assignmentDraft,
-  savePending,
-  archivePending,
   uploadPending,
-  onClose,
-  onSubmit,
   onUploadImage,
-  onToggleArchive,
   onDraftChange,
   onAssignmentChange,
   onAssignmentClear,
 }: CardEditorSheetProps) {
   const themeName = useThemeStore((state) => state.themeName);
   const tc = THEME_COLORS[themeName];
-  const [showAbilitiesSection, setShowAbilitiesSection] = useState(false);
   const [pickerRole, setPickerRole] = useState<PickerRole | null>(null);
   const { t } = useTranslation();
   const statLabel = (
@@ -221,6 +211,8 @@ export function CardEditorSheet({
       }),
     [card, draft, rarities, t],
   );
+  const selectedRarity =
+    rarities.find((rarity) => rarity.id === previewCard.rarityId) ?? null;
   const defaultSkill = useMemo(
     () =>
       abilities.find((ability) => ability.key === "default.focusedStrike") ??
@@ -264,19 +256,55 @@ export function CardEditorSheet({
   return (
     <>
       <View className="gap-4">
-        <AdminPanel>
-          <View className="items-center gap-3">
-            <Text className="font-nunito-extrabold text-lg text-primaryStrong">
-              {t("admin.cardEditor.livePreview")}
-            </Text>
-            <AdminCardTile card={previewCard} size="large" />
+        <AdminNotice
+          title={t("admin.cardEditor.workflowTitle")}
+          body={t("admin.cardEditor.workflowBody")}
+          icon="sparkles"
+        />
+
+        <AdminPanel tint="primary">
+          <AdminSectionTitle
+            title={t("admin.cardEditor.livePreview")}
+            subtitle={t("admin.cardEditor.previewPanelDescription")}
+          />
+          <View className="mt-4 items-center gap-4">
+            <AdminCardTile card={previewCard} size="medium" />
+            <View className="flex-row flex-wrap justify-center gap-2">
+              <AdminChip
+                label={`${t("admin.cardEditor.type")}: ${draft.type}`}
+                tone="accent"
+              />
+              {selectedRarity ? (
+                <AdminChip
+                  label={`${t("admin.cardEditor.rarity")}: ${selectedRarity.name}`}
+                  tone="warning"
+                />
+              ) : null}
+              <AdminChip
+                label={
+                  card?.imageAssetId
+                    ? t("admin.cardEditor.artworkReady")
+                    : t("admin.cardEditor.artworkMissing")
+                }
+                tone={card?.imageAssetId ? "success" : "info"}
+              />
+              <AdminChip
+                label={
+                  hasCustomAssignments
+                    ? t("admin.cardEditor.customOverride")
+                    : t("admin.cardEditor.inheritedDefault")
+                }
+                tone={hasCustomAssignments ? "accent" : "info"}
+              />
+            </View>
           </View>
         </AdminPanel>
 
         <AdminPanel>
-          <Text className="font-nunito-extrabold text-[20px] text-primaryStrong">
-            {t("admin.cardEditor.basics")}
-          </Text>
+          <AdminSectionTitle
+            title={t("admin.cardEditor.basics")}
+            subtitle={t("admin.cardEditor.basicsDescription")}
+          />
           <View className="mt-4 gap-4">
             <View className="flex-row gap-3">
               <View className="flex-1">
@@ -304,183 +332,181 @@ export function CardEditorSheet({
               placeholder={t("admin.cardEditor.descriptionPlaceholder")}
               multiline
             />
-
-            <View className="flex-row flex-wrap gap-3">
-              {STAT_FIELDS.map((field) => (
-                <View key={field.key} className="w-[48%]">
-                  <AdminField
-                    label={statLabel(
-                      field.key as "hp" | "attack" | "defense" | "speed",
-                    )}
-                    value={draft[field.key]}
-                    onChangeText={(value) => onDraftChange(field.key, value)}
-                    keyboardType={field.keyboardType}
-                  />
-                </View>
-              ))}
-            </View>
           </View>
         </AdminPanel>
 
         <AdminPanel>
-          <Text className="font-nunito-extrabold text-[20px] text-primaryStrong">
-            {t("admin.cardEditor.image")}
-          </Text>
-          <View className="mt-4 gap-3">
-            <AdminButton
-              label={
-                uploadPending
-                  ? t("admin.common.uploading")
-                  : card
-                    ? t("admin.cardEditor.uploadImage")
-                    : t("admin.cardEditor.saveBeforeUpload")
-              }
-              variant="secondary"
-              onPress={onUploadImage}
-              disabled={uploadPending || !card}
-            />
-            <Text className="font-nunito-semibold text-xs text-fgMuted">
-              {card
-                ? t("admin.cardEditor.uploadImage")
-                : t("admin.cardEditor.saveBeforeUpload")}
-            </Text>
-          </View>
-        </AdminPanel>
-
-        <AdminPanel>
-          <Text className="font-nunito-extrabold text-[20px] text-primaryStrong">
-            {t("admin.cardEditor.rarity")}
-          </Text>
-          <View className="mt-4 flex-row flex-wrap gap-3">
-            {rarities.map((rarity) => (
-              <Pressable
-                key={rarity.id}
-                onPress={() => onDraftChange("rarityId", rarity.id)}
-                className="min-w-[102px] rounded-xl border px-3 py-2"
-                style={{
-                  borderColor:
-                    draft.rarityId === rarity.id
-                      ? tc.primary
-                      : withAlpha(tc.primaryBorder, "4D"),
-                  backgroundColor:
-                    draft.rarityId === rarity.id ? tc.primaryText : tc.surface,
-                }}
-              >
-                <Text
-                  className="font-nunito-extrabold text-xs"
-                  style={
-                    draft.rarityId === rarity.id
-                      ? {
-                          color: pickReadableTextColor(
-                            tc.primaryText,
-                            tc.fg,
-                            tc.surface,
-                          ),
-                        }
-                      : { color: rarity.color }
-                  }
-                >
-                  {rarity.name}
-                </Text>
-                <Text
-                  className="mt-1 font-nunito-bold text-[11px]"
-                  style={{
-                    color:
-                      draft.rarityId === rarity.id
-                        ? withAlpha(
-                            pickReadableTextColor(
-                              tc.primaryText,
-                              tc.fg,
-                              tc.surface,
-                            ),
-                            "CC",
-                          )
-                        : tc.fgMuted,
-                  }}
-                >
-                  {rarity.dropRate}%
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        </AdminPanel>
-
-        <AdminPanel>
-          <Text className="font-nunito-extrabold text-[20px] text-primaryStrong">
-            {t("admin.cardEditor.type")}
-          </Text>
-          <View className="mt-4 flex-row flex-wrap gap-3">
-            {CARD_TYPES.map((type) => (
-              <SelectionChip
-                key={type}
-                label={type}
-                active={draft.type === type}
-                onPress={() => onDraftChange("type", type)}
-              />
-            ))}
-          </View>
-        </AdminPanel>
-
-        <AdminPanel>
-          <Pressable
-            onPress={() => setShowAbilitiesSection((current) => !current)}
-            className="rounded-2xl bg-accentTint px-4 py-3"
-          >
-            <View className="flex-row items-center justify-between gap-3">
-              <View className="flex-1 flex-row items-center gap-2">
-                <Text className="font-nunito-extrabold text-base text-accentText">
-                  {t("admin.cardEditor.abilitiesTitle")}
-                </Text>
-                {hasCustomAssignments ? (
-                  <AdminChip label={t("admin.abilities.title")} tone="accent" />
-                ) : null}
-              </View>
-              <Text className="font-nunito-bold text-xs text-accentText">
-                {showAbilitiesSection
-                  ? t("admin.cardEditor.hideAbilities")
-                  : t("admin.common.manage")}
+          <AdminSectionTitle
+            title={t("admin.cardEditor.setupTitle")}
+            subtitle={t("admin.cardEditor.setupDescription")}
+          />
+          <View className="mt-4 gap-4">
+            <View className="gap-3">
+              <Text className="font-nunito-bold text-xs text-primaryText">
+                {t("admin.cardEditor.type")}
               </Text>
+              <View className="flex-row flex-wrap gap-3">
+                {CARD_TYPES.map((type) => (
+                  <SelectionChip
+                    key={type}
+                    label={type}
+                    active={draft.type === type}
+                    onPress={() => onDraftChange("type", type)}
+                  />
+                ))}
+              </View>
             </View>
-          </Pressable>
 
-          {!showAbilitiesSection ? (
-            <View className="mt-3 flex-row flex-wrap gap-2">
-              {currentPassive ? (
-                <AdminChip
-                  label={`${t("admin.cardEditor.passive")}: ${currentPassive.name}`}
-                  tone="success"
+            <View className="gap-3">
+              <Text className="font-nunito-bold text-xs text-primaryText">
+                {t("admin.cardEditor.rarity")}
+              </Text>
+              <View className="flex-row flex-wrap gap-3">
+                {rarities.map((rarity) => (
+                  <Pressable
+                    key={rarity.id}
+                    onPress={() => onDraftChange("rarityId", rarity.id)}
+                    className="min-w-[102px] rounded-xl border px-3 py-2"
+                    style={{
+                      borderColor:
+                        draft.rarityId === rarity.id
+                          ? tc.primary
+                          : withAlpha(tc.primaryBorder, "4D"),
+                      backgroundColor:
+                        draft.rarityId === rarity.id
+                          ? tc.primaryText
+                          : tc.surface,
+                    }}
+                  >
+                    <Text
+                      className="font-nunito-extrabold text-xs"
+                      style={
+                        draft.rarityId === rarity.id
+                          ? {
+                              color: pickReadableTextColor(
+                                tc.primaryText,
+                                tc.fg,
+                                tc.surface,
+                              ),
+                            }
+                          : { color: rarity.color }
+                      }
+                    >
+                      {rarity.name}
+                    </Text>
+                    <Text
+                      className="mt-1 font-nunito-bold text-[11px]"
+                      style={{
+                        color:
+                          draft.rarityId === rarity.id
+                            ? withAlpha(
+                                pickReadableTextColor(
+                                  tc.primaryText,
+                                  tc.fg,
+                                  tc.surface,
+                                ),
+                                "CC",
+                              )
+                            : tc.fgMuted,
+                      }}
+                    >
+                      {rarity.dropRate}%
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          </View>
+        </AdminPanel>
+
+        <AdminPanel tint="secondary">
+          <AdminSectionTitle
+            title={t("admin.cardEditor.statsTitle")}
+            subtitle={t("admin.cardEditor.statsDescription")}
+          />
+          <View className="mt-4 flex-row flex-wrap gap-3">
+            {STAT_FIELDS.map((field) => (
+              <View key={field.key} className="w-[48%]">
+                <AdminField
+                  label={statLabel(
+                    field.key as "hp" | "attack" | "defense" | "speed",
+                  )}
+                  value={draft[field.key]}
+                  onChangeText={(value) => onDraftChange(field.key, value)}
+                  keyboardType={field.keyboardType}
                 />
-              ) : null}
-              {currentSkill ? (
-                <AdminChip
-                  label={`${t("admin.cardEditor.skill")}: ${currentSkill.name}`}
-                  tone="info"
-                />
-              ) : null}
-              {currentUltimate ? (
-                <AdminChip
-                  label={`${t("admin.cardEditor.ultimate")}: ${currentUltimate.name}`}
-                  tone="warning"
-                />
-              ) : null}
-              {!currentPassive && !currentSkill && !currentUltimate ? (
-                <Text className="font-nunito-semibold text-xs italic text-fgMuted">
-                  {t("admin.common.useDefault")}
-                </Text>
-              ) : null}
+              </View>
+            ))}
+          </View>
+        </AdminPanel>
+
+        <AdminPanel>
+          <AdminSectionTitle
+            title={t("admin.cardEditor.image")}
+            subtitle={t("admin.cardEditor.imageDescription")}
+          />
+          {card ? (
+            <View className="mt-5 gap-3">
+              <AdminButton
+                label={
+                  uploadPending
+                    ? t("admin.common.uploading")
+                    : t("admin.cardEditor.uploadImage")
+                }
+                variant="secondary"
+                onPress={onUploadImage}
+                disabled={uploadPending}
+                style={{ alignSelf: "flex-start" }}
+              />
+              <Text className="font-nunito-semibold text-xs text-fgMuted">
+                {card.imageAssetId
+                  ? t("admin.cardEditor.artworkReady")
+                  : t("admin.cardEditor.artworkMissing")}
+              </Text>
             </View>
           ) : (
-            <View className="mt-4 gap-3 rounded-2xl bg-surface/70 p-4">
-              <Text className="font-nunito-semibold text-xs text-fgMuted">
-                {t("admin.common.useDefault")}
-              </Text>
-              {(
-                [
-                  ["passive", t("admin.cardEditor.passive"), currentPassive],
-                  ["skill", t("admin.cardEditor.skill"), currentSkill],
-                  ["ultimate", t("admin.cardEditor.ultimate"), currentUltimate],
-                ] as const
-              ).map(([role, label, selected]) => (
+            <View className="mt-5">
+              <AdminNotice
+                title={t("admin.cardEditor.saveBeforeUploadTitle")}
+                body={t("admin.cardEditor.saveBeforeUpload")}
+                tone="warning"
+                icon="alert-circle-outline"
+              />
+            </View>
+          )}
+        </AdminPanel>
+
+        <AdminPanel tint="accent">
+          <AdminSectionTitle
+            title={t("admin.cardEditor.abilitiesTitle")}
+            subtitle={t("admin.cardEditor.abilitiesDescription")}
+            right={
+              <AdminChip
+                label={
+                  hasCustomAssignments
+                    ? t("admin.cardEditor.customOverride")
+                    : t("admin.cardEditor.inheritedDefault")
+                }
+                tone={hasCustomAssignments ? "accent" : "info"}
+              />
+            }
+          />
+          <View className="mt-4 gap-3">
+            {(
+              [
+                ["passive", t("admin.cardEditor.passive"), currentPassive],
+                ["skill", t("admin.cardEditor.skill"), currentSkill],
+                ["ultimate", t("admin.cardEditor.ultimate"), currentUltimate],
+              ] as const
+            ).map(([role, label, selected]) => {
+              const isCustom =
+                role === "passive"
+                  ? Boolean(assignmentDraft.passiveId)
+                  : role === "skill"
+                    ? Boolean(assignmentDraft.skillId)
+                    : Boolean(assignmentDraft.ultimateId);
+
+              return (
                 <Pressable
                   key={role}
                   onPress={() => setPickerRole(role)}
@@ -491,85 +517,51 @@ export function CardEditorSheet({
                   }}
                 >
                   <View className="flex-row items-center justify-between gap-3">
-                    <View className="flex-1 gap-2">
-                      <Text className="font-nunito-bold text-[11px] uppercase tracking-[0.8px] text-fgMuted">
-                        {label}
-                      </Text>
-                      <Text className="font-nunito-extrabold text-sm text-fg">
-                        {selected?.name ??
-                          `${t("admin.common.manage")} ${label.toLowerCase()}`}
-                      </Text>
-                      {selected ? (
-                        <View className="flex-row flex-wrap gap-2">
-                          <AbilityTypeChip type={selected.type} />
-                          <AdminChip
-                            label={`${t("admin.abilityEditor.cost")} ${selected.cost}`}
-                            tone="info"
-                          />
-                          {selected.cooldown ? (
-                            <AdminChip
-                              label={`${t("admin.abilityEditor.cooldown")} ${selected.cooldown}`}
-                              tone="warning"
-                            />
-                          ) : null}
-                        </View>
+                    <Text className="font-nunito-bold text-[11px] uppercase tracking-[0.8px] text-fgMuted">
+                      {label}
+                    </Text>
+                    <AdminChip
+                      label={
+                        isCustom
+                          ? t("admin.cardEditor.customOverride")
+                          : t("admin.cardEditor.inheritedDefault")
+                      }
+                      tone={isCustom ? "accent" : "info"}
+                    />
+                  </View>
+                  <Text className="mt-2 font-nunito-extrabold text-sm text-fg">
+                    {selected?.name ?? t("admin.common.useDefault")}
+                  </Text>
+                  <Text className="mt-1 font-nunito-semibold text-[13px] leading-[19px] text-fgMuted">
+                    {selected?.description ?? t("admin.common.useDefault")}
+                  </Text>
+                  {selected ? (
+                    <View className="mt-3 flex-row flex-wrap gap-2">
+                      <AbilityTypeChip type={selected.type} />
+                      <AdminChip
+                        label={`${t("admin.abilityEditor.cost")} ${selected.cost}`}
+                        tone="info"
+                      />
+                      {selected.cooldown ? (
+                        <AdminChip
+                          label={`${t("admin.abilityEditor.cooldown")} ${selected.cooldown}`}
+                          tone="warning"
+                        />
                       ) : null}
                     </View>
-                    <Text className="font-nunito-extrabold text-xs text-primaryStrong">
-                      {t("admin.common.edit")}
-                    </Text>
-                  </View>
+                  ) : null}
+                  <Text className="mt-3 font-nunito-extrabold text-xs text-primaryStrong">
+                    {t("admin.common.manage")}
+                  </Text>
                 </Pressable>
-              ))}
+              );
+            })}
 
-              {hasCustomAssignments ? (
-                <AdminButton
-                  label={t("admin.cardEditor.clearAssignments")}
-                  variant="ghost"
-                  onPress={onAssignmentClear}
-                />
-              ) : null}
-            </View>
-          )}
-        </AdminPanel>
-
-        <AdminPanel>
-          <View className="gap-3">
-            <View className="flex-row gap-3">
-              <View className="flex-1">
-                <AdminButton
-                  label={t("common.cancel")}
-                  variant="ghost"
-                  onPress={onClose}
-                />
-              </View>
-              <View className="flex-1">
-                <AdminButton
-                  label={
-                    savePending
-                      ? t("admin.common.saving")
-                      : mode === "create"
-                        ? t("admin.cards.createCard")
-                        : t("admin.cardEditor.saveCard")
-                  }
-                  onPress={onSubmit}
-                  disabled={savePending || !draft.rarityId}
-                />
-              </View>
-            </View>
-
-            {mode === "edit" && card ? (
+            {hasCustomAssignments ? (
               <AdminButton
-                label={
-                  archivePending
-                    ? t("admin.common.saving")
-                    : card.isArchived
-                      ? t("admin.cardEditor.restoreCard")
-                      : t("admin.cardEditor.archiveCard")
-                }
-                variant="danger"
-                onPress={onToggleArchive}
-                disabled={archivePending}
+                label={t("admin.cardEditor.clearAssignments")}
+                variant="ghost"
+                onPress={onAssignmentClear}
               />
             ) : null}
           </View>

@@ -518,12 +518,14 @@ export function AdminButton({
   variant = "primary",
   icon,
   disabled,
+  style,
 }: {
   label: string;
   onPress: () => void;
   variant?: "primary" | "secondary" | "danger" | "ghost" | "warning";
   icon?: IoniconName;
   disabled?: boolean;
+  style?: ViewStyle;
 }) {
   const { themeName } = useThemeStore();
   const tc = THEME_COLORS[themeName];
@@ -535,7 +537,9 @@ export function AdminButton({
       disabled={disabled}
       label={label}
       leadingAccessory={
-        icon ? <Ionicons name={icon} size={16} color={palette.text} /> : undefined
+        icon ? (
+          <Ionicons name={icon} size={16} color={palette.text} />
+        ) : undefined
       }
       fallbackAppearance={
         icon
@@ -555,7 +559,7 @@ export function AdminButton({
             }
           : undefined
       }
-      style={{ minHeight: 44 }}
+      style={style ? { minHeight: 44, ...style } : { minHeight: 44 }}
       variant={variant}
     >
       {label}

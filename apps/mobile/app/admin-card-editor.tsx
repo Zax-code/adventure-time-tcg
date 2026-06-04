@@ -13,7 +13,11 @@ import {
   toCardDraft,
   toCardSavePayload,
 } from "../src/components/admin/card-editor-sheet";
-import { AdminBackground, AdminTopBar } from "../src/components/admin/admin-ui";
+import {
+  AdminBackground,
+  AdminButton,
+  AdminTopBar,
+} from "../src/components/admin/admin-ui";
 import {
   KEYBOARD_AWARE_SCROLL_PROPS,
   KeyboardScreenView,
@@ -52,6 +56,8 @@ export default function AdminCardEditorScreen() {
   const isCreateMode = mode !== "edit";
   const canAccessAdmin = sessionHydrated && isAdmin;
   const canLoadCard = canAccessAdmin && !isCreateMode && Boolean(cardId);
+  const footerBottomPadding = insets.bottom + 16;
+  const scrollBottomPadding = footerBottomPadding + (isCreateMode ? 84 : 140);
 
   const [draft, setDraft] = useState<CardDraft>(BLANK_CARD_DRAFT);
   const [assignmentDraft, setAssignmentDraft] = useState<AssignmentDraft>(
@@ -269,7 +275,11 @@ export default function AdminCardEditorScreen() {
                     ? t("admin.cardEditor.createTitle")
                     : t("admin.cardEditor.editTitle")
                 }
-                subtitle={t("admin.cards.subtitle")}
+                subtitle={
+                  isCreateMode
+                    ? t("admin.cardEditor.createSubtitle")
+                    : t("admin.cardEditor.editSubtitle")
+                }
                 right={
                   <Pressable
                     className="rounded-full px-3 py-2"
@@ -304,45 +314,79 @@ export default function AdminCardEditorScreen() {
                 </Text>
               </View>
             ) : (
-              <ScrollView
-                {...KEYBOARD_AWARE_SCROLL_PROPS}
-                className="flex-1"
-                contentContainerStyle={{
-                  paddingHorizontal: 16,
-                  paddingTop: 14,
-                  paddingBottom: insets.bottom + 24,
-                  gap: 16,
-                }}
-                showsVerticalScrollIndicator={false}
-              >
-                <CardEditorSheet
-                  mode={isCreateMode ? "create" : "edit"}
-                  card={cardQuery.data ?? null}
-                  draft={draft}
-                  rarities={raritiesQuery.data?.rarities ?? []}
-                  abilities={abilitiesQuery.data?.abilities ?? []}
-                  assignmentDraft={assignmentDraft}
-                  savePending={saveMutation.isPending}
-                  archivePending={archiveMutation.isPending}
-                  uploadPending={uploadMutation.isPending}
-                  onClose={closeEditor}
-                  onSubmit={() => saveMutation.mutate()}
-                  onUploadImage={() => uploadMutation.mutate()}
-                  onToggleArchive={() => archiveMutation.mutate()}
-                  onDraftChange={(key, value) => {
-                    setDraft((current) => ({ ...current, [key]: value }));
+              <View className="flex-1">
+                <ScrollView
+                  {...KEYBOARD_AWARE_SCROLL_PROPS}
+                  className="flex-1"
+                  contentContainerStyle={{
+                    paddingHorizontal: 16,
+                    paddingTop: 14,
+                    paddingBottom: scrollBottomPadding,
+                    gap: 16,
                   }}
-                  onAssignmentChange={(role, value) => {
-                    setAssignmentDraft(
-                      (current) =>
-                        ({ ...current, [`${role}Id`]: value }) as AssignmentDraft,
-                    );
-                  }}
-                  onAssignmentClear={() =>
-                    setAssignmentDraft(EMPTY_ASSIGNMENT_DRAFT)
-                  }
-                />
-              </ScrollView>
+                  showsVerticalScrollIndicator={false}
+                >
+                  <CardEditorSheet
+                    card={cardQuery.data ?? null}
+                    draft={draft}
+                    rarities={raritiesQuery.data?.rarities ?? []}
+                    abilities={abilitiesQuery.data?.abilities ?? []}
+                    assignmentDraft={assignmentDraft}
+                    uploadPending={uploadMutation.isPending}
+                    onUploadImage={() => uploadMutation.mutate()}
+                    onDraftChange={(key, value) => {
+                      setDraft((current) => ({ ...current, [key]: value }));
+                    }}
+                    onAssignmentChange={(role, value) => {
+                      setAssignmentDraft(
+                        (current) =>
+                          ({
+                            ...current,
+                            [`${role}Id`]: value,
+                          }) as AssignmentDraft,
+                      );
+                    }}
+                    onAssignmentClear={() =>
+                      setAssignmentDraft(EMPTY_ASSIGNMENT_DRAFT)
+                    }
+                  />
+                </ScrollView>
+
+                <View
+                  className="absolute inset-x-0 bottom-0 px-4 pt-3"
+                  style={{ paddingBottom: footerBottomPadding }}
+                >
+                  <View className="gap-3">
+                    <AdminButton
+                      label={
+                        saveMutation.isPending
+                          ? t("admin.common.saving")
+                          : isCreateMode
+                            ? t("admin.cards.createCard")
+                            : t("admin.cardEditor.saveCard")
+                      }
+                      onPress={() => saveMutation.mutate()}
+                      disabled={saveMutation.isPending || !draft.rarityId}
+                      style={{ width: "100%" }}
+                    />
+                    {!isCreateMode && cardQuery.data ? (
+                      <AdminButton
+                        label={
+                          archiveMutation.isPending
+                            ? t("admin.common.saving")
+                            : cardQuery.data.isArchived
+                              ? t("admin.cardEditor.restoreCard")
+                              : t("admin.cardEditor.archiveCard")
+                        }
+                        variant="danger"
+                        onPress={() => archiveMutation.mutate()}
+                        disabled={archiveMutation.isPending}
+                        style={{ width: "100%" }}
+                      />
+                    ) : null}
+                  </View>
+                </View>
+              </View>
             )}
           </View>
         </AdminBackground>

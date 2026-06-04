@@ -57,6 +57,38 @@ const SIZE_CONFIG = {
     typePaddingV: 2,
     rarityBadgeRadius: 4,
   },
+  medium: {
+    width: 184,
+    height: 290,
+    paddingH: 7,
+    paddingT: 5,
+    paddingB: 3,
+    headerFontSize: 10,
+    hpIconSize: 36,
+    nameFontSize: 11,
+    charFontSize: 9,
+    descFontSize: 8,
+    descPadding: 5,
+    descLineHeight: 11,
+    speedHeight: 19,
+    speedIconSize: 36,
+    typeFontSize: 7,
+    rarityFontSize: 6,
+    borderRadius: 13,
+    imageAspect: 184 / 116,
+    headerHeight: 21,
+    headerHpOffset: -18,
+    headerHpTop: -3,
+    descMarginTop: 4,
+    descMinHeight: 34,
+    nameMarginTop: 3,
+    nameGap: 1,
+    speedMarginTop: 2,
+    speedIconTop: -14,
+    typePaddingH: 7,
+    typePaddingV: 2,
+    rarityBadgeRadius: 5,
+  },
   large: {
     width: 320,
     height: 480,
@@ -145,7 +177,7 @@ export const AdminCardTile = memo(
   }: {
     card: AdminCard;
     onPress?: () => void;
-    size?: "small" | "large";
+    size?: "small" | "medium" | "large";
     fitContainer?: boolean;
   }) {
     const cfg = SIZE_CONFIG[size];
@@ -441,7 +473,7 @@ export const AdminCardTile = memo(
                   fontSize: cfg.descFontSize,
                   lineHeight: cfg.descLineHeight,
                 }}
-                numberOfLines={size === "large" ? 6 : 4}
+                numberOfLines={size === "large" ? 6 : size === "medium" ? 5 : 4}
               >
                 {card.description}
               </Text>
