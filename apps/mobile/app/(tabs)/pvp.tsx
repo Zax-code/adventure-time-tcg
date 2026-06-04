@@ -637,13 +637,18 @@ export default function PvpScreen() {
                     paddingVertical: 14,
                   }}
                 >
-                  <View className="gap-2">
+                  <View className="gap-3">
                     <View className="flex-row items-center justify-between gap-2">
-                      <Text className="font-nunito-bold text-sm text-fg">
-                        {t("pvp.mechanics.open")}
-                      </Text>
-                      <ChevronRightIcon size={18} color={tc.primaryDark} />
+                      <View className="h-10 w-10 items-center justify-center rounded-2xl bg-primaryTint">
+                        <SwordsIcon size={18} color={tc.primaryDark} />
+                      </View>
+                      <View className="rounded-full bg-primaryTint px-2.5 py-2">
+                        <ChevronRightIcon size={16} color={tc.primaryDark} />
+                      </View>
                     </View>
+                    <Text className="font-nunito-bold text-sm leading-5 text-fg">
+                      {t("pvp.mechanics.open")}
+                    </Text>
                     <Text className="font-nunito text-xs leading-5 text-fgMuted">
                       {t("pvp.mechanics.intro")}
                     </Text>
@@ -667,13 +672,18 @@ export default function PvpScreen() {
                     paddingVertical: 14,
                   }}
                 >
-                  <View className="gap-2">
+                  <View className="gap-3">
                     <View className="flex-row items-center justify-between gap-2">
-                      <Text className="font-nunito-bold text-sm text-fg">
-                        {t("pvp.reference.open")}
-                      </Text>
-                      <ChevronRightIcon size={18} color={tc.accentText} />
+                      <View className="h-10 w-10 items-center justify-center rounded-2xl bg-accentTint">
+                        <EyeIcon size={18} color={tc.accentText} />
+                      </View>
+                      <View className="rounded-full bg-accentTint px-2.5 py-2">
+                        <ChevronRightIcon size={16} color={tc.accentText} />
+                      </View>
                     </View>
+                    <Text className="font-nunito-bold text-sm leading-5 text-fg">
+                      {t("pvp.reference.open")}
+                    </Text>
                     <Text className="font-nunito text-xs leading-5 text-fgMuted">
                       {t("pvp.reference.intro")}
                     </Text>
