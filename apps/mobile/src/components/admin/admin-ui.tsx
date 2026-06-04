@@ -55,10 +55,12 @@ export function AdminPanel({
   children,
   style,
   tint = "default",
+  chrome = "default",
 }: {
   children: ReactNode;
   style?: ViewStyle;
-  tint?: "default" | "primary" | "secondary" | "accent";
+  tint?: "default" | "primary" | "secondary" | "accent" | "info";
+  chrome?: "default" | "soft";
 }) {
   const { themeName } = useThemeStore();
   const tc = THEME_COLORS[themeName];
@@ -67,20 +69,34 @@ export function AdminPanel({
     primary: withAlpha(tc.primaryTint, "D9"),
     secondary: withAlpha(tc.secondaryTint, "D9"),
     accent: withAlpha(tc.accentTint, "D9"),
+    info: withAlpha(tc.infoTint, "D9"),
   };
 
   return (
     <View
-      className="overflow-hidden rounded-[28] border px-4 py-4"
+      className={
+        chrome === "soft"
+          ? "overflow-hidden rounded-[28] px-4 py-4"
+          : "overflow-hidden rounded-[28] border px-4 py-4"
+      }
       style={[
         {
           backgroundColor: backgrounds[tint],
-          borderColor: withAlpha(tc.primaryBorder, "6B"),
-          shadowColor: tc.fg,
-          shadowOpacity: themeName === "nightosphere" ? 0.24 : 0.08,
-          shadowRadius: 16,
-          shadowOffset: { width: 0, height: 8 },
-          elevation: 5,
+          borderColor:
+            chrome === "soft"
+              ? withAlpha(tc.primaryBorder, themeName === "nightosphere" ? "24" : "1F")
+              : withAlpha(tc.primaryBorder, "6B"),
+          borderWidth: chrome === "soft" ? StyleSheet.hairlineWidth : undefined,
+          boxShadow:
+            chrome === "soft"
+              ? `0px 10px 24px ${withAlpha(
+                  tc.primaryStrong,
+                  themeName === "nightosphere" ? "24" : "14",
+                )}`
+              : `0px 8px 20px ${withAlpha(
+                  tc.primaryStrong,
+                  themeName === "nightosphere" ? "38" : "1F",
+                )}`,
         },
         style,
       ]}
@@ -95,17 +111,22 @@ export function AdminHero({
   subtitle,
   actions,
   children,
+  chrome = "default",
 }: {
   title: string;
   subtitle: string;
   actions?: ReactNode;
   children?: ReactNode;
+  chrome?: "default" | "soft";
 }) {
   const { themeName } = useThemeStore();
   const tc = THEME_COLORS[themeName];
 
   return (
-    <AdminPanel style={{ paddingHorizontal: 20, paddingVertical: 20 }}>
+    <AdminPanel
+      chrome={chrome}
+      style={{ paddingHorizontal: 20, paddingVertical: 20 }}
+    >
       <LinearGradient
         colors={[withAlpha(tc.primaryTint, "CC"), withAlpha(tc.surface, "00")]}
         start={{ x: 0, y: 0 }}
@@ -275,13 +296,16 @@ export function AdminTopBar({
   title,
   subtitle,
   right,
+  chrome = "default",
 }: {
   title: string;
   subtitle?: string;
   right?: ReactNode;
+  chrome?: "default" | "soft";
 }) {
   return (
     <AdminPanel
+      chrome={chrome}
       style={{ marginTop: 8, paddingHorizontal: 18, paddingVertical: 16 }}
     >
       <View className="flex-row items-start justify-between gap-4">

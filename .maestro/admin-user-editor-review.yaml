@@ -24,7 +24,7 @@ tags:
     duration: 400
 - waitForAnimationToEnd
 - tapOn:
-    point: "52%,52%"
+    point: "50%,58%"
 - waitForAnimationToEnd
 - assertVisible: Manage user
 - takeScreenshot: tmp-admin-user-editor-shots/01-overview
@@ -34,3 +34,9 @@ tags:
     duration: 800
 - waitForAnimationToEnd
 - takeScreenshot: tmp-admin-user-editor-shots/02-middle-sections
+- swipe:
+    start: "50%,82%"
+    end: "50%,34%"
+    duration: 800
+- waitForAnimationToEnd
+- takeScreenshot: tmp-admin-user-editor-shots/03-lower-sections
