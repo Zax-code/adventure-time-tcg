@@ -34,3 +34,9 @@ tags:
     duration: 800
 - waitForAnimationToEnd
 - takeScreenshot: tmp-admin-user-editor-shots/02-middle-sections
+- swipe:
+    start: "50%,82%"
+    end: "50%,34%"
+    duration: 800
+- waitForAnimationToEnd
+- takeScreenshot: tmp-admin-user-editor-shots/03-lower-sections
