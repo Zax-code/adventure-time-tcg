@@ -14,32 +14,32 @@ import { useTranslation } from "../src/i18n";
 import { localizeRarityName, localizeStatusName, localizeTypeName } from "../src/lib/combat-i18n";
 import { ModalSheetRoute } from "../src/components/modal-sheet-route";
 import { useThemeStore } from "../src/stores/theme-store";
-import { THEME_COLORS, THEME_VARS } from "../src/theme/themes";
+import { THEME_COLORS, THEME_VARS, type ThemeName } from "../src/theme/themes";
 
 const STATUS_ENTRIES = [
-  { name: "Burn", colorClass: "text-dangerDark" },
-  { name: "Freeze", colorClass: "text-accentText" },
-  { name: "Shield", colorClass: "text-successDark" },
-  { name: "GuardUp", colorClass: "text-successDark" },
-  { name: "Vulnerable", colorClass: "text-accentText" },
-  { name: "Weakened", colorClass: "text-accentText" },
-  { name: "Haste", colorClass: "text-successDark" },
-  { name: "Taunt", colorClass: "text-infoDark" },
-  { name: "Regeneration", colorClass: "text-successDark" },
-  { name: "Regen", colorClass: "text-successDark" },
-  { name: "Silence", colorClass: "text-accentText" },
-  { name: "Cleanse", colorClass: "text-infoDark" },
-  { name: "SummoningSickness", colorClass: "text-infoDark" },
-  { name: "Cover", colorClass: "text-infoDark" },
-  { name: "Stunned", colorClass: "text-accentText" },
-  { name: "Poison", colorClass: "text-accentText" },
-  { name: "Thorns", colorClass: "text-accentText" },
-  { name: "Stealth", colorClass: "text-infoDark" },
-  { name: "Empower", colorClass: "text-successDark" },
-  { name: "Counter", colorClass: "text-successDark" },
-  { name: "Mark", colorClass: "text-accentText" },
-  { name: "Barrier", colorClass: "text-successDark" },
-  { name: "Doom", colorClass: "text-dangerDark" },
+  { name: "Burn", hue: 10 },
+  { name: "Freeze", hue: 220 },
+  { name: "Shield", hue: 195 },
+  { name: "GuardUp", hue: 150 },
+  { name: "Vulnerable", hue: 315 },
+  { name: "Weakened", hue: 36 },
+  { name: "Haste", hue: 48 },
+  { name: "Taunt", hue: 345 },
+  { name: "Regeneration", hue: 128 },
+  { name: "Regen", hue: 140 },
+  { name: "Silence", hue: 260 },
+  { name: "Cleanse", hue: 170 },
+  { name: "SummoningSickness", hue: 24 },
+  { name: "Cover", hue: 204 },
+  { name: "Stunned", hue: 280 },
+  { name: "Poison", hue: 100 },
+  { name: "Thorns", hue: 116 },
+  { name: "Stealth", hue: 232 },
+  { name: "Empower", hue: 30 },
+  { name: "Counter", hue: 248 },
+  { name: "Mark", hue: 332 },
+  { name: "Barrier", hue: 186 },
+  { name: "Doom", hue: 350 },
 ] as const;
 
 const CORE_ITEMS = [
@@ -71,6 +71,19 @@ const RARITY_ROWS = [
   { name: "Epic", hpBonus: "+4%", atkBonus: "+2%", extraPassive: false },
   { name: "Legendary", hpBonus: "+5%", atkBonus: "+3%", extraPassive: true },
 ] as const;
+
+function getStatusAppearance(
+  hue: number,
+  themeName: ThemeName,
+) {
+  const isDark = themeName === "nightosphere";
+
+  return {
+    backgroundColor: isDark ? `hsla(${hue}, 62%, 17%, 0.9)` : `hsla(${hue}, 92%, 96%, 1)`,
+    borderColor: isDark ? `hsla(${hue}, 68%, 32%, 1)` : `hsla(${hue}, 78%, 82%, 1)`,
+    titleColor: isDark ? `hsla(${hue}, 88%, 76%, 1)` : `hsla(${hue}, 72%, 42%, 1)`,
+  };
+}
 
 function SectionCard({
   title,
@@ -190,19 +203,33 @@ export default function PvpReferenceScreen() {
             testID="pvp-reference-status-heading"
           >
             <View className="gap-3" testID="pvp-reference-status-grid">
-              {STATUS_ENTRIES.map((entry) => (
-                <View
-                  key={entry.name}
-                  className="rounded-[20px] border border-infoBorder bg-surface p-3"
-                >
-                  <Text className={`font-nunito-bold text-sm ${entry.colorClass}`}>
-                    {localizeStatusName(entry.name, t)}
-                  </Text>
-                  <Text className="mt-1 font-nunito text-xs leading-5 text-fgMuted">
-                    {t(`pvp.reference.statusDesc.${entry.name}`)}
-                  </Text>
-                </View>
-              ))}
+              {STATUS_ENTRIES.map((entry) => {
+                const appearance = getStatusAppearance(entry.hue, themeName);
+
+                return (
+                  <View
+                    key={entry.name}
+                    className="rounded-[20px] border p-3"
+                    style={{
+                      backgroundColor: appearance.backgroundColor,
+                      borderColor: appearance.borderColor,
+                    }}
+                  >
+                    <Text
+                      className="font-nunito-bold text-sm"
+                      style={{ color: appearance.titleColor }}
+                    >
+                      {localizeStatusName(entry.name, t)}
+                    </Text>
+                    <Text
+                      className="mt-1 font-nunito text-xs leading-5"
+                      style={{ color: themeName === "nightosphere" ? tc.fg : tc.fgMuted }}
+                    >
+                      {t(`pvp.reference.statusDesc.${entry.name}`)}
+                    </Text>
+                  </View>
+                );
+              })}
             </View>
           </SectionCard>
 

@@ -307,11 +307,9 @@ export default function PvpScreen() {
         contentContainerStyle={{ gap: 20, padding: 20, paddingBottom: bottomTabPadding }}
       >
         <View className="gap-4" testID="pvp-lobby-hero">
-          <LinearGradient
-            colors={[tc.surface, tc.primaryTint, tc.accentTint]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
+          <View
             style={{
+              backgroundColor: tc.surfaceMuted,
               borderRadius: 28,
               overflow: "hidden",
               borderWidth: 1,
@@ -433,7 +431,7 @@ export default function PvpScreen() {
                 </ThemedExpoButton>
               </View>
             </View>
-          </LinearGradient>
+          </View>
 
           <ThemedExpoButton
             onPress={() => {
@@ -450,11 +448,11 @@ export default function PvpScreen() {
             variant="primary"
             fallbackLayout="stretch"
             fallbackAppearance={{
-              backgroundColor: tc.surface,
+              backgroundColor: tc.primaryBg,
               borderColor: tc.primaryBorder,
               borderRadius: 26,
               foregroundColor: tc.fg,
-              gradientColors: [tc.surface, tc.primaryTint],
+              gradientColors: null,
               minHeight: 0,
               paddingHorizontal: 18,
               paddingVertical: 20,
