@@ -299,6 +299,8 @@ const pvp = {
   readyForBattle: "Prêt pour le combat ?",
   readyForBattleHint: "Crée une composition et défie un ami pour commencer !",
   challengeReadyHint: "Choisis une composition prête et lance un défi en un geste.",
+  challengeSheetIntro:
+    "Choisis une composition prête et un joueur disponible pour envoyer une invitation au combat.",
   createLoadoutHint:
     "Construis d'abord une équipe valide de 6 cartes avant d'envoyer un défi.",
   manageLoadoutsHint:
@@ -353,6 +355,7 @@ const pvp = {
   acceptBattle: "Accepter le combat",
   chooseLoadoutAccept: "Choisis ta composition pour accepter :",
   chooseOpponent: "Choisis un joueur :",
+  availableOpponents: "{count} adversaires disponibles",
   noPlayersAvailable: "Aucun joueur disponible pour le moment.",
   activeMatchExists: "Combat actif",
   pendingInviteExists: "Invitation en attente",
