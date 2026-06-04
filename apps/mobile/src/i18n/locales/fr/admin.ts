@@ -432,6 +432,7 @@ const admin = {
     rawPayloadNoticeTitle: "Modification avancée",
     rawPayloadNoticeBody:
       "Passe au JSON brut seulement si tu as besoin d'une structure non prise en charge. Après modification directe du JSON, tu es responsable de sa structure.",
+    resetRawPayload: "Revenir au payload synchronisé",
     sectionBadges: {
       required: "Requis",
       guided: "Guidé",

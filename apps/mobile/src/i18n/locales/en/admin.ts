@@ -421,6 +421,7 @@ const admin = {
     rawPayloadNoticeTitle: "Advanced editing",
     rawPayloadNoticeBody:
       "Switch to raw JSON only when you need an unsupported shape. Once you edit JSON directly, you are responsible for its structure.",
+    resetRawPayload: "Reset to synced payload",
     sectionBadges: {
       required: "Required",
       guided: "Guided",

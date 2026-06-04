@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -169,22 +170,42 @@ export function AbilityEditorForm({
   const [rawPayloadText, setRawPayloadText] = useState(
     initialState.rawPayloadText,
   );
-  const [rawPayloadTouched, setRawPayloadTouched] = useState(false);
+  const rawPayloadTouchedRef = useRef(false);
   const [rawPayloadError, setRawPayloadError] = useState("");
   const [formError, setFormError] = useState("");
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (rawPayloadTouched) {
-      return;
-    }
+  const syncedRawPayloadText = useMemo(
+    () =>
+      JSON.stringify(
+        {
+          ...extraPayloadKeys,
+          ...formToPayload(formPayload),
+        },
+        null,
+        2,
+      ),
+    [extraPayloadKeys, formPayload],
+  );
+  const activeRawPayloadText = rawPayloadTouchedRef.current
+    ? rawPayloadText
+    : syncedRawPayloadText;
 
-    const merged = {
-      ...extraPayloadKeys,
-      ...formToPayload(formPayload),
-    };
-    setRawPayloadText(JSON.stringify(merged, null, 2));
-  }, [extraPayloadKeys, formPayload, rawPayloadTouched]);
+  useEffect(() => {
+    if (!rawPayloadTouchedRef.current) {
+      setRawPayloadText(syncedRawPayloadText);
+    }
+  }, [syncedRawPayloadText]);
+
+  const resetRawPayloadEditor = useCallback(() => {
+    rawPayloadTouchedRef.current = false;
+    setRawPayloadText(syncedRawPayloadText);
+  }, [syncedRawPayloadText]);
+
+  const markRawPayloadTouched = useCallback((value: string) => {
+    rawPayloadTouchedRef.current = true;
+    setRawPayloadText(value);
+  }, []);
 
   const sectionDefaults = useMemo(
     () => ({
@@ -268,9 +289,9 @@ export function AbilityEditorForm({
 
     let payload: Record<string, unknown>;
 
-    if (rawPayloadTouched) {
+    if (rawPayloadTouchedRef.current) {
       try {
-        const parsed = JSON.parse(rawPayloadText);
+        const parsed = JSON.parse(activeRawPayloadText);
         if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
           throw new Error(t("admin.abilityEditor.payloadObjectError"));
         }
@@ -364,8 +385,7 @@ export function AbilityEditorForm({
     formPayload,
     formType,
     onSubmit,
-    rawPayloadText,
-    rawPayloadTouched,
+    activeRawPayloadText,
     t,
   ]);
 
@@ -1367,11 +1387,8 @@ export function AbilityEditorForm({
           <>
             <JsonField
               label={t("admin.abilityEditor.payloadJson")}
-              value={rawPayloadText}
-              onChangeText={(value) => {
-                setRawPayloadTouched(true);
-                setRawPayloadText(value);
-              }}
+              value={activeRawPayloadText}
+              onChangeText={markRawPayloadTouched}
               placeholder="{}"
             />
             {rawPayloadError ? (
@@ -1385,6 +1402,13 @@ export function AbilityEditorForm({
             {t("admin.abilityEditor.rawPayloadSyncHint")}
           </Text>
         )}
+        {showRawJson ? (
+          <AdminButton
+            label={t("admin.abilityEditor.resetRawPayload")}
+            variant="ghost"
+            onPress={resetRawPayloadEditor}
+          />
+        ) : null}
       </Section>
 
       {formError ? (
@@ -1432,7 +1456,7 @@ function Section({
         onPress={() => setOpen((current) => !current)}
       >
         <View
-          className="h-10 w-10 items-center justify-center rounded-2xl"
+          className="size-10 items-center justify-center rounded-2xl"
           style={{ backgroundColor: withAlpha(tc.primaryStrong, "12") }}
         >
           <Ionicons name={icon} size={18} color={tc.primaryStrong} />
@@ -1524,7 +1548,7 @@ function AbilityTypeSelector({
               onPress={() => onChange(option.value)}
             >
               <View
-                className="h-11 w-11 items-center justify-center rounded-2xl"
+                className="size-11 items-center justify-center rounded-2xl"
                 style={{
                   backgroundColor: selected
                     ? withAlpha(tc.primaryStrong, "18")

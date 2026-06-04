@@ -178,11 +178,13 @@ export default function AdminAbilityEditorScreen() {
               <ScrollView
                 {...KEYBOARD_AWARE_SCROLL_PROPS}
                 className="flex-1"
+                contentInset={{ bottom: insets.bottom + 20 }}
+                scrollIndicatorInsets={{ bottom: insets.bottom + 20 }}
                 contentContainerStyle={{
                   gap: 14,
                   paddingHorizontal: 16,
                   paddingTop: 8,
-                  paddingBottom: insets.bottom + 20,
+                  paddingBottom: 20,
                 }}
                 showsVerticalScrollIndicator={false}
               >
