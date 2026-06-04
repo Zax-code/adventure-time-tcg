@@ -38,6 +38,10 @@ const admin = {
     title: "Users",
     subtitle:
       "Browse player accounts and open the full-screen detail sheet for coins, quests, permissions, and super-admin actions.",
+    heroSubtitle:
+      "Keep player support fast with clearer account groupings and one-tap access to the full editor.",
+    heroSubtitleSuperAdmin:
+      "Clear new access approvals first, then move through staff and player accounts without losing context.",
     searchPlaceholder: "Search by email or display name",
     loadingUsers: "Loading users...",
     loadingRequests: "Loading access requests...",
@@ -49,14 +53,40 @@ const admin = {
     requestsCount: "{count} requests",
     usersCount: "{count} users",
     usersLabel: "Visible users",
+    staffLabel: "Staff accounts",
+    playersLabel: "Players",
     requestsLabel: "Pending requests",
+    workspaceTitle: "Find the right account",
+    workspaceSubtitle:
+      "Search once, then narrow by role or sort order before opening the full editor.",
+    focusLabel: "Focus",
+    sortLabel: "Sort",
+    filters: {
+      all: "All",
+      staff: "Staff",
+      players: "Players",
+      me: "You",
+    },
     sort: {
       email: "Email",
       coins: "Coins",
       createdAt: "Joined",
     },
     accountsTitle: "User accounts",
-    accountsSubtitle: "Tap any user to open the full-screen editor.",
+    accountsSubtitle:
+      "The signed-in admin stays pinned, with staff and players grouped separately below.",
+    yourAccountTitle: "Your admin account",
+    yourAccountSubtitle:
+      "Pinned separately so you can verify your own access and balance at a glance.",
+    staffSectionTitle: "Staff with console access",
+    staffSectionSubtitle:
+      "Admins and super admins who can enter the operations console.",
+    playersSectionTitle: "Player accounts",
+    playersSectionSubtitle:
+      "Approved player accounts ready for support, quest review, and balance changes.",
+    moderationTitle: "Moderation queue",
+    moderationSubtitle:
+      "New sign-in approvals stay at the top so you can clear them quickly.",
     noUsersTitle: "No users found",
     noUsersBody: "Try a different search term.",
     accessRequestsTitle: "Access requests",
@@ -71,6 +101,9 @@ const admin = {
     reject: "Reject",
     noRequestsTitle: "No requests waiting",
     noRequestsBody: "New access requests will appear here.",
+    noPendingTitle: "No requests waiting",
+    noPendingBody:
+      "New sign-in requests will appear here as soon as they need review.",
   },
   userEditor: {
     title: "Manage user",
