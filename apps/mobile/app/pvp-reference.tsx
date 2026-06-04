@@ -1,39 +1,47 @@
-import { ScrollView, Text, View } from "react-native";
+import type { ReactNode } from "react";
+import { ScrollView, Text, View, useWindowDimensions } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedExpoButton } from "../src/components/expo-ui/themed-button";
-import { useThemeStore } from "../src/stores/theme-store";
-import { THEME_COLORS, THEME_VARS } from "../src/theme/themes";
+import {
+  CheckIcon,
+  ClockIcon,
+  SwordsIcon,
+  TrophyIcon,
+  ZapIcon,
+} from "../src/components/icons";
 import { useTranslation } from "../src/i18n";
 import { localizeRarityName, localizeStatusName, localizeTypeName } from "../src/lib/combat-i18n";
 import { ModalSheetRoute } from "../src/components/modal-sheet-route";
+import { useThemeStore } from "../src/stores/theme-store";
+import { THEME_COLORS, THEME_VARS } from "../src/theme/themes";
 
 const STATUS_ENTRIES = [
-  { name: "Burn",              colorClass: "text-dangerDark" },
-  { name: "Freeze",            colorClass: "text-accentText" },
-  { name: "Shield",            colorClass: "text-successDark" },
-  { name: "GuardUp",           colorClass: "text-successDark" },
-  { name: "Vulnerable",        colorClass: "text-accentText" },
-  { name: "Weakened",          colorClass: "text-accentText" },
-  { name: "Haste",             colorClass: "text-successDark" },
-  { name: "Taunt",             colorClass: "text-infoDark" },
-  { name: "Regeneration",      colorClass: "text-successDark" },
-  { name: "Regen",             colorClass: "text-successDark" },
-  { name: "Silence",           colorClass: "text-accentText" },
-  { name: "Cleanse",           colorClass: "text-infoDark" },
+  { name: "Burn", colorClass: "text-dangerDark" },
+  { name: "Freeze", colorClass: "text-accentText" },
+  { name: "Shield", colorClass: "text-successDark" },
+  { name: "GuardUp", colorClass: "text-successDark" },
+  { name: "Vulnerable", colorClass: "text-accentText" },
+  { name: "Weakened", colorClass: "text-accentText" },
+  { name: "Haste", colorClass: "text-successDark" },
+  { name: "Taunt", colorClass: "text-infoDark" },
+  { name: "Regeneration", colorClass: "text-successDark" },
+  { name: "Regen", colorClass: "text-successDark" },
+  { name: "Silence", colorClass: "text-accentText" },
+  { name: "Cleanse", colorClass: "text-infoDark" },
   { name: "SummoningSickness", colorClass: "text-infoDark" },
-  { name: "Cover",             colorClass: "text-infoDark" },
-  { name: "Stunned",           colorClass: "text-accentText" },
-  { name: "Poison",            colorClass: "text-accentText" },
-  { name: "Thorns",            colorClass: "text-accentText" },
-  { name: "Stealth",           colorClass: "text-infoDark" },
-  { name: "Empower",           colorClass: "text-successDark" },
-  { name: "Counter",           colorClass: "text-successDark" },
-  { name: "Mark",              colorClass: "text-accentText" },
-  { name: "Barrier",           colorClass: "text-successDark" },
-  { name: "Doom",              colorClass: "text-dangerDark" },
+  { name: "Cover", colorClass: "text-infoDark" },
+  { name: "Stunned", colorClass: "text-accentText" },
+  { name: "Poison", colorClass: "text-accentText" },
+  { name: "Thorns", colorClass: "text-accentText" },
+  { name: "Stealth", colorClass: "text-infoDark" },
+  { name: "Empower", colorClass: "text-successDark" },
+  { name: "Counter", colorClass: "text-successDark" },
+  { name: "Mark", colorClass: "text-accentText" },
+  { name: "Barrier", colorClass: "text-successDark" },
+  { name: "Doom", colorClass: "text-dangerDark" },
 ] as const;
 
 const CORE_ITEMS = [
@@ -59,19 +67,75 @@ const TYPE_ROWS = [
 ] as const;
 
 const RARITY_ROWS = [
-  { name: "Common",    hpBonus: "+0%", atkBonus: "+0%", extraPassive: false },
-  { name: "Uncommon",  hpBonus: "+2%", atkBonus: "+0%", extraPassive: false },
-  { name: "Rare",      hpBonus: "+2%", atkBonus: "+1%", extraPassive: false },
-  { name: "Epic",      hpBonus: "+4%", atkBonus: "+2%", extraPassive: false },
-  { name: "Legendary", hpBonus: "+5%", atkBonus: "+3%", extraPassive: true  },
+  { name: "Common", hpBonus: "+0%", atkBonus: "+0%", extraPassive: false },
+  { name: "Uncommon", hpBonus: "+2%", atkBonus: "+0%", extraPassive: false },
+  { name: "Rare", hpBonus: "+2%", atkBonus: "+1%", extraPassive: false },
+  { name: "Epic", hpBonus: "+4%", atkBonus: "+2%", extraPassive: false },
+  { name: "Legendary", hpBonus: "+5%", atkBonus: "+3%", extraPassive: true },
 ] as const;
+
+function SectionCard({
+  title,
+  intro,
+  icon,
+  tone,
+  testID,
+  children,
+}: {
+  title: string;
+  intro?: string;
+  icon: ReactNode;
+  tone: "primary" | "accent" | "info" | "success";
+  testID?: string;
+  children: ReactNode;
+}) {
+  const toneClasses =
+    tone === "accent"
+      ? {
+          border: "border-accentBorder",
+          bg: "bg-accentTint/80",
+          text: "text-accentText",
+        }
+      : tone === "info"
+        ? {
+            border: "border-infoBorder",
+            bg: "bg-infoTint/80",
+            text: "text-infoDark",
+          }
+        : tone === "success"
+          ? {
+              border: "border-successBorder",
+              bg: "bg-successTint/80",
+              text: "text-successDark",
+            }
+          : {
+              border: "border-primaryBorder",
+              bg: "bg-primaryTint/80",
+              text: "text-primaryDark",
+            };
+
+  return (
+    <View className={`gap-3 rounded-[24px] border p-4 ${toneClasses.border} ${toneClasses.bg}`}>
+      <View className="flex-row items-center gap-3" testID={testID}>
+        <View className="h-11 w-11 items-center justify-center rounded-2xl bg-surface">
+          {icon}
+        </View>
+        <Text className={`flex-1 font-nunito-bold text-base ${toneClasses.text}`}>{title}</Text>
+      </View>
+      {intro ? <Text className="font-nunito text-xs leading-5 text-fgMuted">{intro}</Text> : null}
+      {children}
+    </View>
+  );
+}
 
 export default function PvpReferenceScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
   const themeName = useThemeStore((s) => s.themeName);
   const tc = THEME_COLORS[themeName];
   const { t } = useTranslation();
+  const statusCardWidth = Math.max(148, Math.min(240, (width - 56) / 2));
 
   return (
     <ModalSheetRoute
@@ -93,9 +157,7 @@ export default function PvpReferenceScreen() {
             paddingVertical: 16,
           }}
         >
-          <Text
-            style={{ fontFamily: "Nunito_800ExtraBold", fontSize: 20, color: "#fff" }}
-          >
+          <Text style={{ fontFamily: "Nunito_800ExtraBold", fontSize: 20, color: "#fff" }}>
             {t("pvp.reference.title")}
           </Text>
           <ThemedExpoButton
@@ -125,113 +187,177 @@ export default function PvpReferenceScreen() {
           className="flex-1"
           contentContainerStyle={{ gap: 16, padding: 20, paddingBottom: insets.bottom + 24 }}
         >
-          {/* Intro */}
-          <Text className="font-nunito text-sm text-fgMuted">
-            {t("pvp.reference.intro")}
-          </Text>
+          <View
+            className="gap-4 rounded-[28px] border border-infoBorder bg-surface p-4"
+            testID="pvp-reference-overview-card"
+          >
+            <Text className="font-nunito text-sm leading-5 text-fgMuted">
+              {t("pvp.reference.intro")}
+            </Text>
+            <View className="flex-row flex-wrap gap-2">
+              <View className="rounded-full bg-infoTint px-3 py-1.5">
+                <Text className="font-nunito-bold text-xs text-infoDark">
+                  {t("pvp.reference.statusTitle")}
+                </Text>
+              </View>
+              <View className="rounded-full bg-accentTint px-3 py-1.5">
+                <Text className="font-nunito-bold text-xs text-accentText">
+                  {t("pvp.reference.typeTitle")}
+                </Text>
+              </View>
+              <View className="rounded-full bg-secondaryTint px-3 py-1.5">
+                <Text className="font-nunito-bold text-xs text-secondaryText">
+                  {t("pvp.reference.rarityTitle")}
+                </Text>
+              </View>
+            </View>
+          </View>
 
-          {/* Status Effects */}
-          <View className="gap-3 rounded-2xl border border-infoBorder bg-infoTint p-4">
-            <Text className="font-nunito-bold text-base text-infoDark">
-              {t("pvp.reference.statusTitle")}
-            </Text>
-            <Text className="font-nunito text-xs text-fgMuted">
-              {t("pvp.reference.statusIntro")}
-            </Text>
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+          <SectionCard
+            title={t("pvp.reference.statusTitle")}
+            intro={t("pvp.reference.statusIntro")}
+            icon={<ZapIcon size={20} color={tc.infoDark} />}
+            tone="info"
+            testID="pvp-reference-status-heading"
+          >
+            <View className="flex-row flex-wrap gap-3" testID="pvp-reference-status-grid">
               {STATUS_ENTRIES.map((entry) => (
                 <View
                   key={entry.name}
-                  className="rounded-xl border border-infoBorder bg-surface p-3"
-                  style={{ width: "47%" }}
+                  className="rounded-[20px] border border-infoBorder bg-surface p-3"
+                  style={{ width: statusCardWidth }}
                 >
                   <Text className={`font-nunito-bold text-sm ${entry.colorClass}`}>
                     {localizeStatusName(entry.name, t)}
                   </Text>
-                  <Text className="font-nunito text-xs text-fgMuted mt-1">
+                  <Text className="mt-1 font-nunito text-xs leading-5 text-fgMuted">
                     {t(`pvp.reference.statusDesc.${entry.name}`)}
                   </Text>
                 </View>
               ))}
             </View>
-          </View>
+          </SectionCard>
 
-          {/* Core Combat Effects */}
-          <View className="gap-3 rounded-2xl border border-successBorder bg-successTint p-4">
-            <Text className="font-nunito-bold text-base text-successDark">
-              {t("pvp.reference.coreTitle")}
-            </Text>
-            <Text className="font-nunito text-xs text-fgMuted">
-              {t("pvp.reference.coreIntro")}
-            </Text>
-            {CORE_ITEMS.map((key) => (
-              <View key={key} className="flex-row gap-2">
-                <Text className="font-nunito text-sm text-successDark">•</Text>
-                <Text className="font-nunito flex-1 text-sm text-fg">
-                  {t(`pvp.reference.coreItems.${key}`)}
-                </Text>
-              </View>
-            ))}
-          </View>
-
-          {/* Type Chart */}
-          <View className="gap-3 rounded-2xl border border-accentBorder bg-accentTint p-4">
-            <Text className="font-nunito-bold text-base text-accentText">
-              {t("pvp.reference.typeTitle")}
-            </Text>
-            <Text className="font-nunito text-xs text-fgMuted">
-              {t("pvp.reference.typeIntro")}
-            </Text>
-            {TYPE_ROWS.map((row) => (
-              <View key={row.type} className="gap-1 rounded-xl border border-accentBorder bg-surface p-3">
-                <Text className="font-nunito-bold text-sm text-fg">{localizeTypeName(row.type, t)}</Text>
-                <Text className="font-nunito text-xs text-successDark">
-                  {t("pvp.reference.strongAgainst")}: {row.strong.length > 0 ? row.strong.map((type) => localizeTypeName(type, t)).join(", ") : t("pvp.reference.typeSpecialNone")}
-                </Text>
-                <Text className="font-nunito text-xs text-dangerDark">
-                  {t("pvp.reference.weakAgainst")}: {row.weak.length > 0 ? row.weak.map((type) => localizeTypeName(type, t)).join(", ") : t("pvp.reference.typeSpecialNone")}
-                </Text>
-                {row.hasSpecial && (
-                  <Text className="font-nunito text-xs text-fgMuted mt-0.5">{t(`pvp.reference.typeSpecial.${row.type}`)}</Text>
-                )}
-              </View>
-            ))}
-          </View>
-
-          {/* Rarity Differences */}
-          <View className="gap-3 rounded-2xl border border-secondaryBorder bg-secondaryTint p-4">
-            <Text className="font-nunito-bold text-base text-secondaryText">
-              {t("pvp.reference.rarityTitle")}
-            </Text>
-            <Text className="font-nunito text-xs text-fgMuted">
-              {t("pvp.reference.rarityIntro")}
-            </Text>
-            {/* Header row */}
-            <View className="flex-row gap-1 border-b border-secondaryBorder pb-2">
-              <Text className="font-nunito-bold flex-1 text-xs text-secondaryText">
-                {t("pvp.reference.rarityColRarity")}
-              </Text>
-              <Text className="font-nunito-bold w-16 text-center text-xs text-secondaryText">
-                {t("pvp.reference.rarityColHp")}
-              </Text>
-              <Text className="font-nunito-bold w-16 text-center text-xs text-secondaryText">
-                {t("pvp.reference.rarityColAtk")}
-              </Text>
-              <Text className="font-nunito-bold w-20 text-center text-xs text-secondaryText">
-                {t("pvp.reference.rarityColPassive")}
-              </Text>
+          <SectionCard
+            title={t("pvp.reference.coreTitle")}
+            intro={t("pvp.reference.coreIntro")}
+            icon={<ClockIcon size={20} color={tc.successDark} />}
+            tone="success"
+            testID="pvp-reference-core-heading"
+          >
+            <View className="gap-3">
+              {CORE_ITEMS.map((key) => (
+                <View key={key} className="flex-row gap-3 rounded-[20px] border border-successBorder bg-surface px-3 py-3">
+                  <View className="mt-0.5 h-5 w-5 items-center justify-center rounded-full bg-successTint">
+                    <CheckIcon size={12} color={tc.successDark} />
+                  </View>
+                  <Text className="flex-1 font-nunito text-sm leading-5 text-fg">
+                    {t(`pvp.reference.coreItems.${key}`)}
+                  </Text>
+                </View>
+              ))}
             </View>
-            {RARITY_ROWS.map((row) => (
-              <View key={row.name} className="flex-row gap-1 items-center border-b border-secondaryBorder py-1.5">
-                 <Text className="font-nunito-semibold flex-1 text-sm text-fg">{localizeRarityName(row.name, t)}</Text>
-                <Text className="font-nunito w-16 text-center text-sm text-fgMuted">{row.hpBonus}</Text>
-                <Text className="font-nunito w-16 text-center text-sm text-fgMuted">{row.atkBonus}</Text>
-                <Text className={`font-nunito-semibold w-20 text-center text-xs ${row.extraPassive ? "text-successDark" : "text-fgMuted"}`}>
-                  {row.extraPassive ? t("pvp.reference.rarityYes") : t("pvp.reference.rarityNo")}
-                </Text>
-              </View>
-            ))}
-          </View>
+          </SectionCard>
+
+          <SectionCard
+            title={t("pvp.reference.typeTitle")}
+            intro={t("pvp.reference.typeIntro")}
+            icon={<SwordsIcon size={20} color={tc.accentText} />}
+            tone="accent"
+            testID="pvp-reference-type-heading"
+          >
+            <View className="gap-3">
+              {TYPE_ROWS.map((row) => (
+                <View key={row.type} className="gap-2 rounded-[20px] border border-accentBorder bg-surface p-3">
+                  <Text className="font-nunito-bold text-sm text-fg">
+                    {localizeTypeName(row.type, t)}
+                  </Text>
+                  <View className="rounded-2xl bg-successTint px-3 py-2">
+                    <Text className="font-nunito-bold text-xs text-successDark">
+                      {t("pvp.reference.strongAgainst")}
+                    </Text>
+                    <Text className="mt-1 font-nunito text-xs leading-5 text-fg">
+                      {row.strong.length > 0
+                        ? row.strong.map((type) => localizeTypeName(type, t)).join(", ")
+                        : t("pvp.reference.typeSpecialNone")}
+                    </Text>
+                  </View>
+                  <View className="rounded-2xl bg-dangerTint px-3 py-2">
+                    <Text className="font-nunito-bold text-xs text-dangerDark">
+                      {t("pvp.reference.weakAgainst")}
+                    </Text>
+                    <Text className="mt-1 font-nunito text-xs leading-5 text-fg">
+                      {row.weak.length > 0
+                        ? row.weak.map((type) => localizeTypeName(type, t)).join(", ")
+                        : t("pvp.reference.typeSpecialNone")}
+                    </Text>
+                  </View>
+                  {row.hasSpecial ? (
+                    <View className="rounded-2xl bg-accentTint px-3 py-2">
+                      <Text className="font-nunito text-xs leading-5 text-fg">
+                        {t(`pvp.reference.typeSpecial.${row.type}`)}
+                      </Text>
+                    </View>
+                  ) : null}
+                </View>
+              ))}
+            </View>
+          </SectionCard>
+
+          <SectionCard
+            title={t("pvp.reference.rarityTitle")}
+            intro={t("pvp.reference.rarityIntro")}
+            icon={<TrophyIcon size={20} color={tc.secondaryText} />}
+            tone="primary"
+            testID="pvp-reference-rarity-heading"
+          >
+            <View className="gap-3">
+              {RARITY_ROWS.map((row) => (
+                <View key={row.name} className="gap-3 rounded-[20px] border border-secondaryBorder bg-surface p-3">
+                  <View className="flex-row items-center justify-between gap-3">
+                    <Text className="flex-1 font-nunito-bold text-sm text-fg">
+                      {localizeRarityName(row.name, t)}
+                    </Text>
+                    <View
+                      className={`rounded-full px-3 py-1 ${
+                        row.extraPassive ? "bg-successTint" : "bg-surfaceMuted"
+                      }`}
+                    >
+                      <Text
+                        className={`font-nunito-bold text-xs ${
+                          row.extraPassive ? "text-successDark" : "text-fgMuted"
+                        }`}
+                      >
+                        {row.extraPassive ? t("pvp.reference.rarityYes") : t("pvp.reference.rarityNo")}
+                      </Text>
+                    </View>
+                  </View>
+                  <View className="flex-row gap-2">
+                    <View className="flex-1 rounded-2xl bg-primaryTint px-3 py-2">
+                      <Text className="font-nunito-bold text-[11px] text-primaryDark">
+                        {t("pvp.reference.rarityColHp")}
+                      </Text>
+                      <Text className="mt-1 font-nunito text-sm text-fg">{row.hpBonus}</Text>
+                    </View>
+                    <View className="flex-1 rounded-2xl bg-dangerTint px-3 py-2">
+                      <Text className="font-nunito-bold text-[11px] text-dangerDark">
+                        {t("pvp.reference.rarityColAtk")}
+                      </Text>
+                      <Text className="mt-1 font-nunito text-sm text-fg">{row.atkBonus}</Text>
+                    </View>
+                    <View className="flex-1 rounded-2xl bg-secondaryTint px-3 py-2">
+                      <Text className="font-nunito-bold text-[11px] text-secondaryText">
+                        {t("pvp.reference.rarityColPassive")}
+                      </Text>
+                      <Text className="mt-1 font-nunito text-sm text-fg">
+                        {row.extraPassive ? t("pvp.reference.rarityYes") : t("pvp.reference.rarityNo")}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </SectionCard>
         </ScrollView>
       </View>
     </ModalSheetRoute>

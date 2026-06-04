@@ -1,0 +1,83 @@
+appId: love.leaetzak.adventuretime
+name: PvP lobby and sheet focused screenshots
+tags:
+  - pvp
+  - screenshots
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- openLink:
+    link: adventure-time:///e2e-auth?redirect=%2Fpvp%3Ffixture%3D${TEST_MATCH_ID}&email=${TEST_EMAIL_URI}&password=${TEST_PASSWORD_URI}
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- assertVisible:
+    id: pvp-lobby-hero
+- takeScreenshot: tmp-pvp-shots/01-lobby
+- tapOn:
+    id: pvp-open-mechanics-button
+- assertVisible:
+    id: pvp-mechanics-overview-card
+- takeScreenshot: tmp-pvp-shots/02-mechanics-overview
+- scrollUntilVisible:
+    element:
+      id: pvp-mechanics-status-card
+    direction: DOWN
+    timeout: 20000
+    centerElement: true
+- takeScreenshot: tmp-pvp-shots/03-mechanics-rules
+- tapOn:
+    id: pvp-mechanics-close-button
+- assertVisible:
+    id: pvp-open-reference-button
+- tapOn:
+    id: pvp-open-reference-button
+- assertVisible:
+    id: pvp-reference-overview-card
+- takeScreenshot: tmp-pvp-shots/04-reference-overview
+- swipe:
+    start: "50%,78%"
+    end: "50%,24%"
+    duration: 900
+- waitForAnimationToEnd
+- swipe:
+    start: "50%,78%"
+    end: "50%,24%"
+    duration: 900
+- waitForAnimationToEnd
+- swipe:
+    start: "50%,78%"
+    end: "50%,24%"
+    duration: 900
+- waitForAnimationToEnd
+- swipe:
+    start: "50%,78%"
+    end: "50%,24%"
+    duration: 900
+- waitForAnimationToEnd
+- swipe:
+    start: "50%,78%"
+    end: "50%,24%"
+    duration: 900
+- waitForAnimationToEnd
+- swipe:
+    start: "50%,78%"
+    end: "50%,24%"
+    duration: 900
+- waitForAnimationToEnd
+- takeScreenshot: tmp-pvp-shots/05-reference-types
+- swipe:
+    start: "50%,78%"
+    end: "50%,24%"
+    duration: 900
+- waitForAnimationToEnd
+- swipe:
+    start: "50%,78%"
+    end: "50%,24%"
+    duration: 900
+- waitForAnimationToEnd
+- swipe:
+    start: "50%,78%"
+    end: "50%,24%"
+    duration: 900
+- waitForAnimationToEnd
+- takeScreenshot: tmp-pvp-shots/06-reference-rarity
