@@ -123,10 +123,10 @@ function AdminUserRow({
       className="overflow-hidden rounded-[22px]"
       style={{
         backgroundColor: withAlpha(accentShell, themeName === "nightosphere" ? "47" : "2B"),
-        shadowColor: tint,
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: themeName === "nightosphere" ? 0.18 : 0.1,
-        shadowRadius: 18,
+        boxShadow: `0px 10px 18px ${withAlpha(
+          tint,
+          themeName === "nightosphere" ? "2E" : "1A",
+        )}`,
       }}
     >
       <View
