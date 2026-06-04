@@ -16,7 +16,6 @@ import {
 import {
   AdminBackground,
   AdminButton,
-  AdminPanel,
   AdminTopBar,
 } from "../src/components/admin/admin-ui";
 import {
@@ -355,37 +354,33 @@ export default function AdminCardEditorScreen() {
                   className="px-4 pt-3"
                   style={{ paddingBottom: insets.bottom + 16 }}
                 >
-                  <AdminPanel
-                    style={{ paddingHorizontal: 16, paddingVertical: 16 }}
-                  >
-                    <View className="gap-3">
+                  <View className="gap-3">
+                    <AdminButton
+                      label={
+                        saveMutation.isPending
+                          ? t("admin.common.saving")
+                          : isCreateMode
+                            ? t("admin.cards.createCard")
+                            : t("admin.cardEditor.saveCard")
+                      }
+                      onPress={() => saveMutation.mutate()}
+                      disabled={saveMutation.isPending || !draft.rarityId}
+                    />
+                    {!isCreateMode && cardQuery.data ? (
                       <AdminButton
                         label={
-                          saveMutation.isPending
+                          archiveMutation.isPending
                             ? t("admin.common.saving")
-                            : isCreateMode
-                              ? t("admin.cards.createCard")
-                              : t("admin.cardEditor.saveCard")
+                            : cardQuery.data.isArchived
+                              ? t("admin.cardEditor.restoreCard")
+                              : t("admin.cardEditor.archiveCard")
                         }
-                        onPress={() => saveMutation.mutate()}
-                        disabled={saveMutation.isPending || !draft.rarityId}
+                        variant="danger"
+                        onPress={() => archiveMutation.mutate()}
+                        disabled={archiveMutation.isPending}
                       />
-                      {!isCreateMode && cardQuery.data ? (
-                        <AdminButton
-                          label={
-                            archiveMutation.isPending
-                              ? t("admin.common.saving")
-                              : cardQuery.data.isArchived
-                                ? t("admin.cardEditor.restoreCard")
-                                : t("admin.cardEditor.archiveCard")
-                          }
-                          variant="danger"
-                          onPress={() => archiveMutation.mutate()}
-                          disabled={archiveMutation.isPending}
-                        />
-                      ) : null}
-                    </View>
-                  </AdminPanel>
+                    ) : null}
+                  </View>
                 </View>
               </View>
             )}
