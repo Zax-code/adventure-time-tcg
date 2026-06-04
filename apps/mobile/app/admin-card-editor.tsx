@@ -13,7 +13,12 @@ import {
   toCardDraft,
   toCardSavePayload,
 } from "../src/components/admin/card-editor-sheet";
-import { AdminBackground, AdminTopBar } from "../src/components/admin/admin-ui";
+import {
+  AdminBackground,
+  AdminButton,
+  AdminPanel,
+  AdminTopBar,
+} from "../src/components/admin/admin-ui";
 import {
   KEYBOARD_AWARE_SCROLL_PROPS,
   KeyboardScreenView,
@@ -269,7 +274,11 @@ export default function AdminCardEditorScreen() {
                     ? t("admin.cardEditor.createTitle")
                     : t("admin.cardEditor.editTitle")
                 }
-                subtitle={t("admin.cards.subtitle")}
+                subtitle={
+                  isCreateMode
+                    ? t("admin.cardEditor.createSubtitle")
+                    : t("admin.cardEditor.editSubtitle")
+                }
                 right={
                   <Pressable
                     className="rounded-full px-3 py-2"
@@ -304,45 +313,81 @@ export default function AdminCardEditorScreen() {
                 </Text>
               </View>
             ) : (
-              <ScrollView
-                {...KEYBOARD_AWARE_SCROLL_PROPS}
-                className="flex-1"
-                contentContainerStyle={{
-                  paddingHorizontal: 16,
-                  paddingTop: 14,
-                  paddingBottom: insets.bottom + 24,
-                  gap: 16,
-                }}
-                showsVerticalScrollIndicator={false}
-              >
-                <CardEditorSheet
-                  mode={isCreateMode ? "create" : "edit"}
-                  card={cardQuery.data ?? null}
-                  draft={draft}
-                  rarities={raritiesQuery.data?.rarities ?? []}
-                  abilities={abilitiesQuery.data?.abilities ?? []}
-                  assignmentDraft={assignmentDraft}
-                  savePending={saveMutation.isPending}
-                  archivePending={archiveMutation.isPending}
-                  uploadPending={uploadMutation.isPending}
-                  onClose={closeEditor}
-                  onSubmit={() => saveMutation.mutate()}
-                  onUploadImage={() => uploadMutation.mutate()}
-                  onToggleArchive={() => archiveMutation.mutate()}
-                  onDraftChange={(key, value) => {
-                    setDraft((current) => ({ ...current, [key]: value }));
+              <View className="flex-1">
+                <ScrollView
+                  {...KEYBOARD_AWARE_SCROLL_PROPS}
+                  className="flex-1"
+                  contentContainerStyle={{
+                    paddingHorizontal: 16,
+                    paddingTop: 14,
+                    paddingBottom: 24,
+                    gap: 16,
                   }}
-                  onAssignmentChange={(role, value) => {
-                    setAssignmentDraft(
-                      (current) =>
-                        ({ ...current, [`${role}Id`]: value }) as AssignmentDraft,
-                    );
-                  }}
-                  onAssignmentClear={() =>
-                    setAssignmentDraft(EMPTY_ASSIGNMENT_DRAFT)
-                  }
-                />
-              </ScrollView>
+                  showsVerticalScrollIndicator={false}
+                >
+                  <CardEditorSheet
+                    card={cardQuery.data ?? null}
+                    draft={draft}
+                    rarities={raritiesQuery.data?.rarities ?? []}
+                    abilities={abilitiesQuery.data?.abilities ?? []}
+                    assignmentDraft={assignmentDraft}
+                    uploadPending={uploadMutation.isPending}
+                    onUploadImage={() => uploadMutation.mutate()}
+                    onDraftChange={(key, value) => {
+                      setDraft((current) => ({ ...current, [key]: value }));
+                    }}
+                    onAssignmentChange={(role, value) => {
+                      setAssignmentDraft(
+                        (current) =>
+                          ({
+                            ...current,
+                            [`${role}Id`]: value,
+                          }) as AssignmentDraft,
+                      );
+                    }}
+                    onAssignmentClear={() =>
+                      setAssignmentDraft(EMPTY_ASSIGNMENT_DRAFT)
+                    }
+                  />
+                </ScrollView>
+
+                <View
+                  className="px-4 pt-3"
+                  style={{ paddingBottom: insets.bottom + 16 }}
+                >
+                  <AdminPanel
+                    style={{ paddingHorizontal: 16, paddingVertical: 16 }}
+                  >
+                    <View className="gap-3">
+                      <AdminButton
+                        label={
+                          saveMutation.isPending
+                            ? t("admin.common.saving")
+                            : isCreateMode
+                              ? t("admin.cards.createCard")
+                              : t("admin.cardEditor.saveCard")
+                        }
+                        onPress={() => saveMutation.mutate()}
+                        disabled={saveMutation.isPending || !draft.rarityId}
+                      />
+                      {!isCreateMode && cardQuery.data ? (
+                        <AdminButton
+                          label={
+                            archiveMutation.isPending
+                              ? t("admin.common.saving")
+                              : cardQuery.data.isArchived
+                                ? t("admin.cardEditor.restoreCard")
+                                : t("admin.cardEditor.archiveCard")
+                          }
+                          variant="danger"
+                          onPress={() => archiveMutation.mutate()}
+                          disabled={archiveMutation.isPending}
+                        />
+                      ) : null}
+                    </View>
+                  </AdminPanel>
+                </View>
+              </View>
             )}
           </View>
         </AdminBackground>

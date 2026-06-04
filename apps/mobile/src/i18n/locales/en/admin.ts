@@ -298,7 +298,11 @@ const admin = {
   },
   cardEditor: {
     createTitle: "Create new card",
+    createSubtitle:
+      "Start with the identity, then tune stats, artwork, and only the ability overrides this card truly needs.",
     editTitle: "Edit card",
+    editSubtitle:
+      "Refine the live card while keeping its preview, artwork, and custom ability slots easy to review at a glance.",
     saveFailed: "Save failed",
     saveFailedBody: "Could not save this card.",
     updateFailed: "Update failed",
@@ -311,8 +315,21 @@ const admin = {
     loading: "Loading card editor...",
     loadFailed: "Failed to load this card.",
     notFound: "That card could not be found.",
+    workflowTitle: "Recommended flow",
+    workflowBody:
+      "Lock in the card basics first, then set the role and rarity, tune the stat line, and finish with artwork or optional ability overrides.",
     livePreview: "Live preview",
+    previewPanelDescription:
+      "Keep the final card feel in view while you shape the draft.",
     basics: "Card basics",
+    basicsDescription:
+      "Name the card clearly and add the short flavor or gameplay text players should read.",
+    setupTitle: "Card setup",
+    setupDescription:
+      "Choose the combat role and rarity before polishing the rest of the presentation.",
+    statsTitle: "Battle stats",
+    statsDescription:
+      "Use whole numbers and watch the preview react as you tune the stat line.",
     name: "Name",
     character: "Character",
     description: "Description",
@@ -326,12 +343,20 @@ const admin = {
     type: "Type",
     rarity: "Rarity",
     image: "Card image",
+    imageDescription:
+      "Artwork is optional while drafting, but saving unlocks image upload for final polish.",
     uploadImage: "Upload image",
+    artworkReady: "Artwork attached",
+    artworkMissing: "No artwork yet",
     abilitiesTitle: "Ability assignments",
+    abilitiesDescription:
+      "Leave slots on inherited defaults unless this card needs a custom behavior override.",
     hideAbilities: "Hide assignments",
     passive: "Passive",
     skill: "Skill",
     ultimate: "Ultimate",
+    inheritedDefault: "Inherited defaults",
+    customOverride: "Custom override",
     clearAssignments: "Use defaults",
     saveCard: "Save card",
     archiveCard: "Archive card",
