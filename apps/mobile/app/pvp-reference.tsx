@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
-import { ScrollView, Text, View, useWindowDimensions } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import { ScrollView, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -131,11 +130,9 @@ function SectionCard({
 export default function PvpReferenceScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
   const themeName = useThemeStore((s) => s.themeName);
   const tc = THEME_COLORS[themeName];
   const { t } = useTranslation();
-  const statusCardWidth = Math.max(148, Math.min(240, (width - 56) / 2));
 
   return (
     <ModalSheetRoute
@@ -145,48 +142,37 @@ export default function PvpReferenceScreen() {
       sheetStyle={THEME_VARS[themeName]}
     >
       <View className="flex-1 bg-bg" testID="pvp-reference-screen">
-        <LinearGradient
-          colors={[tc.infoDark, tc.info]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-            paddingHorizontal: 20,
-            paddingVertical: 16,
-          }}
-        >
-          <Text style={{ fontFamily: "Nunito_800ExtraBold", fontSize: 20, color: "#fff" }}>
-            {t("pvp.reference.title")}
-          </Text>
-          <ThemedExpoButton
-            onPress={() => router.back()}
-            label="✕"
-            preferFallback
-            testID="pvp-reference-close-button"
-            variant="ghost"
-            fallbackAppearance={{
-              backgroundColor: "rgba(255,255,255,0.2)",
-              borderColor: "rgba(255,255,255,0.2)",
-              borderRadius: 999,
-              foregroundColor: "#FFFFFF",
-              gradientColors: null,
-              minHeight: 0,
-              paddingHorizontal: 12,
-              paddingVertical: 4,
-              textStyle: {
-                fontFamily: "Nunito_700Bold",
-                fontSize: 14,
-              },
-            }}
-          />
-        </LinearGradient>
-
         <ScrollView
           className="flex-1"
           contentContainerStyle={{ gap: 16, padding: 20, paddingBottom: insets.bottom + 24 }}
         >
+          <View className="flex-row items-center justify-between gap-4">
+            <Text className="flex-1 font-nunito-extrabold text-[28px] leading-[34px] text-fg">
+              {t("pvp.reference.title")}
+            </Text>
+            <ThemedExpoButton
+              onPress={() => router.back()}
+              label="Close"
+              preferFallback
+              testID="pvp-reference-close-button"
+              variant="ghost"
+              fallbackAppearance={{
+                backgroundColor: "transparent",
+                borderColor: tc.infoBorder,
+                borderRadius: 999,
+                foregroundColor: tc.infoDark,
+                gradientColors: null,
+                minHeight: 0,
+                paddingHorizontal: 14,
+                paddingVertical: 6,
+                textStyle: {
+                  fontFamily: "Nunito_700Bold",
+                  fontSize: 13,
+                },
+              }}
+            />
+          </View>
+
           <View
             className="gap-4 rounded-[28px] border border-infoBorder bg-surface p-4"
             testID="pvp-reference-overview-card"
@@ -220,12 +206,11 @@ export default function PvpReferenceScreen() {
             tone="info"
             testID="pvp-reference-status-heading"
           >
-            <View className="flex-row flex-wrap gap-3" testID="pvp-reference-status-grid">
+            <View className="gap-3" testID="pvp-reference-status-grid">
               {STATUS_ENTRIES.map((entry) => (
                 <View
                   key={entry.name}
                   className="rounded-[20px] border border-infoBorder bg-surface p-3"
-                  style={{ width: statusCardWidth }}
                 >
                   <Text className={`font-nunito-bold text-sm ${entry.colorClass}`}>
                     {localizeStatusName(entry.name, t)}

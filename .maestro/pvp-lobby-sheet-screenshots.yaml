@@ -25,6 +25,12 @@ tags:
     timeout: 20000
     centerElement: true
 - takeScreenshot: tmp-pvp-shots/03-mechanics-rules
+- scrollUntilVisible:
+    element:
+      id: pvp-mechanics-close-button
+    direction: UP
+    timeout: 20000
+    centerElement: true
 - tapOn:
     id: pvp-mechanics-close-button
 - assertVisible:
@@ -34,6 +40,20 @@ tags:
 - assertVisible:
     id: pvp-reference-overview-card
 - takeScreenshot: tmp-pvp-shots/04-reference-overview
+- scrollUntilVisible:
+    element:
+      id: pvp-reference-status-heading
+    direction: DOWN
+    timeout: 20000
+    centerElement: true
+- takeScreenshot: tmp-pvp-shots/05-reference-status
+- scrollUntilVisible:
+    element:
+      id: pvp-reference-type-heading
+    direction: DOWN
+    timeout: 20000
+    centerElement: true
+- takeScreenshot: tmp-pvp-shots/06-reference-types
 - swipe:
     start: "50%,78%"
     end: "50%,24%"
@@ -49,35 +69,4 @@ tags:
     end: "50%,24%"
     duration: 900
 - waitForAnimationToEnd
-- swipe:
-    start: "50%,78%"
-    end: "50%,24%"
-    duration: 900
-- waitForAnimationToEnd
-- swipe:
-    start: "50%,78%"
-    end: "50%,24%"
-    duration: 900
-- waitForAnimationToEnd
-- swipe:
-    start: "50%,78%"
-    end: "50%,24%"
-    duration: 900
-- waitForAnimationToEnd
-- takeScreenshot: tmp-pvp-shots/05-reference-types
-- swipe:
-    start: "50%,78%"
-    end: "50%,24%"
-    duration: 900
-- waitForAnimationToEnd
-- swipe:
-    start: "50%,78%"
-    end: "50%,24%"
-    duration: 900
-- waitForAnimationToEnd
-- swipe:
-    start: "50%,78%"
-    end: "50%,24%"
-    duration: 900
-- waitForAnimationToEnd
-- takeScreenshot: tmp-pvp-shots/06-reference-rarity
+- takeScreenshot: tmp-pvp-shots/07-reference-rarity

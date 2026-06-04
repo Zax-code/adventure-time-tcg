@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { ScrollView, Text, View } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -103,57 +102,46 @@ export default function PvpMechanicsScreen() {
       sheetStyle={THEME_VARS[themeName]}
     >
       <View className="flex-1 bg-bg" testID="pvp-mechanics-screen">
-        <LinearGradient
-          colors={[tc.primaryDark, tc.primary]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-            paddingHorizontal: 20,
-            paddingVertical: 16,
-          }}
-        >
-          <Text style={{ fontFamily: "Nunito_800ExtraBold", fontSize: 20, color: "#fff" }}>
-            {t("pvp.mechanics.title")}
-          </Text>
-          <ThemedExpoButton
-            onPress={() => router.back()}
-            label="✕"
-            preferFallback
-            testID="pvp-mechanics-close-button"
-            variant="ghost"
-            fallbackAppearance={{
-              backgroundColor: "rgba(255,255,255,0.2)",
-              borderColor: "rgba(255,255,255,0.2)",
-              borderRadius: 999,
-              foregroundColor: "#FFFFFF",
-              gradientColors: null,
-              minHeight: 0,
-              paddingHorizontal: 12,
-              paddingVertical: 4,
-              textStyle: {
-                fontFamily: "Nunito_700Bold",
-                fontSize: 14,
-              },
-            }}
-          />
-        </LinearGradient>
-
         <ScrollView
           className="flex-1"
           contentContainerStyle={{ gap: 16, padding: 20, paddingBottom: insets.bottom + 24 }}
         >
+          <View className="flex-row items-center justify-between gap-4">
+            <Text className="flex-1 font-nunito-extrabold text-[28px] leading-[34px] text-fg">
+              {t("pvp.mechanics.title")}
+            </Text>
+            <ThemedExpoButton
+              onPress={() => router.back()}
+              label="Close"
+              preferFallback
+              testID="pvp-mechanics-close-button"
+              variant="ghost"
+              fallbackAppearance={{
+                backgroundColor: "transparent",
+                borderColor: tc.primaryBorder,
+                borderRadius: 999,
+                foregroundColor: tc.primaryDark,
+                gradientColors: null,
+                minHeight: 0,
+                paddingHorizontal: 14,
+                paddingVertical: 6,
+                textStyle: {
+                  fontFamily: "Nunito_700Bold",
+                  fontSize: 13,
+                },
+              }}
+            />
+          </View>
+
           <View
-            className="gap-4 rounded-[28px] border border-primaryBorder bg-surface p-4"
+            className="gap-4 rounded-[28px] bg-surface p-4"
             testID="pvp-mechanics-overview-card"
           >
             <Text className="font-nunito text-sm leading-5 text-primaryStrong">
               {t("pvp.mechanics.intro")}
             </Text>
 
-            <View className="rounded-[24px] border border-primaryBorder bg-primaryTint/80 p-4">
+            <View className="rounded-[24px] border border-primaryBorder bg-primaryTint/70 p-4">
               <View className="flex-row items-center gap-3">
                 <View className="h-11 w-11 items-center justify-center rounded-2xl bg-surface">
                   <TrophyIcon size={20} color={tc.primaryDark} />

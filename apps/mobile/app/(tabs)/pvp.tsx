@@ -307,57 +307,62 @@ export default function PvpScreen() {
       >
         <View className="gap-4" testID="pvp-lobby-hero">
           <LinearGradient
-            colors={[tc.primaryDark, tc.primary, tc.accentDark]}
+            colors={[tc.surface, tc.primaryTint, tc.accentTint]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={{ borderRadius: 28, overflow: "hidden" }}
+            style={{
+              borderRadius: 28,
+              overflow: "hidden",
+              borderWidth: 1,
+              borderColor: tc.primaryBorder,
+            }}
           >
-            <View className="gap-5 px-5 py-5">
+            <View className="gap-5 px-5 py-6">
               <View className="flex-row items-start justify-between gap-3">
                 <View className="flex-1 gap-3">
                   <View className="flex-row items-center gap-3">
-                    <View className="h-14 w-14 items-center justify-center rounded-3xl bg-white/15">
-                      <SwordsIcon size={28} color="#FFFFFF" />
+                    <View className="h-14 w-14 items-center justify-center rounded-3xl bg-primaryTint">
+                      <SwordsIcon size={28} color={tc.primaryDark} />
                     </View>
                     <View className="flex-1 gap-1">
-                      <Text className="font-nunito-extrabold text-[30px] leading-8 text-white">
+                      <Text className="font-nunito-extrabold text-[28px] leading-[34px] text-fg">
                         {t("pvp.lobby.title")}
                       </Text>
-                      <Text className="font-nunito text-sm text-white/85">
+                      <Text className="font-nunito text-sm leading-5 text-fgMuted">
                         {t("pvp.lobby.subtitle")}
                       </Text>
                     </View>
                   </View>
                   <View className="flex-row gap-3" testID="pvp-lobby-overview">
-                    <View className="flex-1 rounded-2xl bg-white/14 px-3 py-3">
-                      <Text className="font-nunito-extrabold text-2xl text-white">
+                    <View className="flex-1 rounded-2xl bg-surface px-3 py-3">
+                      <Text className="font-nunito-extrabold text-2xl text-fg">
                         {activeMatches.length}
                       </Text>
-                      <Text className="font-nunito-semibold text-xs text-white/80">
+                      <Text className="font-nunito-semibold text-xs text-fgMuted">
                         {t("pvp.liveMatches")}
                       </Text>
                     </View>
-                    <View className="flex-1 rounded-2xl bg-white/14 px-3 py-3">
-                      <Text className="font-nunito-extrabold text-2xl text-white">
+                    <View className="flex-1 rounded-2xl bg-surface px-3 py-3">
+                      <Text className="font-nunito-extrabold text-2xl text-fg">
                         {pendingReceivedInvites.length}
                       </Text>
-                      <Text className="font-nunito-semibold text-xs text-white/80">
+                      <Text className="font-nunito-semibold text-xs text-fgMuted">
                         {t("pvp.incomingChallenges")}
                       </Text>
                     </View>
-                    <View className="flex-1 rounded-2xl bg-white/14 px-3 py-3">
-                      <Text className="font-nunito-extrabold text-2xl text-white">
+                    <View className="flex-1 rounded-2xl bg-surface px-3 py-3">
+                      <Text className="font-nunito-extrabold text-2xl text-fg">
                         {validLoadouts.length}
                       </Text>
-                      <Text className="font-nunito-semibold text-xs text-white/80">
+                      <Text className="font-nunito-semibold text-xs text-fgMuted">
                         {t("pvp.myLoadouts")}
                       </Text>
                     </View>
                   </View>
                 </View>
                 {pendingReceivedInvites.length > 0 ? (
-                  <View className="rounded-full bg-dangerDark px-3 py-1.5">
-                    <Text className="font-nunito-bold text-xs text-white">
+                  <View className="rounded-full bg-dangerTint px-3 py-1.5">
+                    <Text className="font-nunito-bold text-xs text-dangerDark">
                       {pendingReceivedInvites.length}
                     </Text>
                   </View>
@@ -373,10 +378,10 @@ export default function PvpScreen() {
                   variant="danger"
                   fallbackLayout="stretch"
                   fallbackAppearance={{
-                    backgroundColor: "rgba(255,255,255,0.14)",
-                    borderColor: "rgba(255,255,255,0.22)",
+                    backgroundColor: tc.surface,
+                    borderColor: tc.primaryBorder,
                     borderRadius: 20,
-                    foregroundColor: "#FFFFFF",
+                    foregroundColor: tc.fg,
                     gradientColors: null,
                     minHeight: 0,
                     paddingHorizontal: 14,
@@ -385,12 +390,12 @@ export default function PvpScreen() {
                 >
                   <View className="gap-2">
                     <View className="flex-row items-center justify-between gap-2">
-                      <Text className="font-nunito-bold text-sm text-white">
+                      <Text className="font-nunito-bold text-sm text-fg">
                         {t("pvp.mechanics.open")}
                       </Text>
-                      <ChevronRightIcon size={18} color="#FFFFFF" />
+                      <ChevronRightIcon size={18} color={tc.primaryDark} />
                     </View>
-                    <Text className="font-nunito text-xs text-white/80">
+                    <Text className="font-nunito text-xs leading-5 text-fgMuted">
                       {t("pvp.mechanics.intro")}
                     </Text>
                   </View>
@@ -403,10 +408,10 @@ export default function PvpScreen() {
                   variant="secondary"
                   fallbackLayout="stretch"
                   fallbackAppearance={{
-                    backgroundColor: "rgba(255,255,255,0.14)",
-                    borderColor: "rgba(255,255,255,0.22)",
+                    backgroundColor: tc.surface,
+                    borderColor: tc.accentBorder,
                     borderRadius: 20,
-                    foregroundColor: "#FFFFFF",
+                    foregroundColor: tc.fg,
                     gradientColors: null,
                     minHeight: 0,
                     paddingHorizontal: 14,
@@ -415,12 +420,12 @@ export default function PvpScreen() {
                 >
                   <View className="gap-2">
                     <View className="flex-row items-center justify-between gap-2">
-                      <Text className="font-nunito-bold text-sm text-white">
+                      <Text className="font-nunito-bold text-sm text-fg">
                         {t("pvp.reference.open")}
                       </Text>
-                      <ChevronRightIcon size={18} color="#FFFFFF" />
+                      <ChevronRightIcon size={18} color={tc.accentText} />
                     </View>
-                    <Text className="font-nunito text-xs text-white/80">
+                    <Text className="font-nunito text-xs leading-5 text-fgMuted">
                       {t("pvp.reference.intro")}
                     </Text>
                   </View>
@@ -444,46 +449,46 @@ export default function PvpScreen() {
             variant="primary"
             fallbackLayout="stretch"
             fallbackAppearance={{
-              backgroundColor: tc.primary,
-              borderColor: tc.primary,
+              backgroundColor: tc.surface,
+              borderColor: tc.primaryBorder,
               borderRadius: 26,
-              foregroundColor: "#FFFFFF",
-              gradientColors: [tc.primary, tc.primaryDark],
+              foregroundColor: tc.fg,
+              gradientColors: [tc.surface, tc.primaryTint],
               minHeight: 0,
               paddingHorizontal: 18,
-              paddingVertical: 18,
+              paddingVertical: 20,
             }}
           >
             <View className="gap-4">
               <View className="flex-row items-start justify-between gap-3">
                 <View className="flex-1 gap-2">
-                  <View className="h-12 w-12 items-center justify-center rounded-2xl bg-white/16">
+                  <View className="h-12 w-12 items-center justify-center rounded-2xl bg-primaryTint">
                     {hasValidLoadout ? (
-                      <UserPlusIcon size={24} color="#FFFFFF" />
+                      <UserPlusIcon size={24} color={tc.primaryDark} />
                     ) : (
-                      <CardsIcon size={24} color="#FFFFFF" />
+                      <CardsIcon size={24} color={tc.primaryDark} />
                     )}
                   </View>
-                  <Text className="font-nunito-extrabold text-2xl text-white">
+                  <Text className="font-nunito-extrabold text-[28px] leading-[34px] text-fg">
                     {hasValidLoadout ? t("pvp.sendChallenge") : t("pvp.createLoadout")}
                   </Text>
-                  <Text className="font-nunito text-sm text-white/85">
+                  <Text className="font-nunito text-sm leading-5 text-fgMuted">
                     {hasValidLoadout
                       ? t("pvp.challengeReadyHint")
                       : t("pvp.createLoadoutHint")}
                   </Text>
                 </View>
-                <ChevronRightIcon size={22} color="#FFFFFF" />
+                <ChevronRightIcon size={22} color={tc.primaryDark} />
               </View>
               <View className="flex-row flex-wrap gap-2">
-                <View className="rounded-full bg-white/15 px-3 py-1.5">
-                  <Text className="font-nunito-semibold text-xs text-white/90">
+                <View className="rounded-full bg-primaryTint px-3 py-1.5">
+                  <Text className="font-nunito-semibold text-xs text-primaryDark">
                     {hasLoadouts ? validLoadouts.length : 0} {t("pvp.loadoutReady").toLowerCase()}
                   </Text>
                 </View>
                 {pendingChallengeCount > 0 ? (
-                  <View className="rounded-full bg-white/15 px-3 py-1.5">
-                    <Text className="font-nunito-semibold text-xs text-white/90">
+                  <View className="rounded-full bg-accentTint px-3 py-1.5">
+                    <Text className="font-nunito-semibold text-xs text-accentText">
                       {pendingChallengeCount} {t("pvp.openChallenges").toLowerCase()}
                     </Text>
                   </View>
