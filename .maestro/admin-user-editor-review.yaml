@@ -1,0 +1,36 @@
+appId: love.leaetzak.adventuretime
+name: Admin user editor review screenshots
+tags:
+  - admin
+  - users
+  - screenshots
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- openLink:
+    link: adventure-time:///e2e-auth?redirect=%2Fadmin%2Fusers&accessToken=${TEST_ACCESS_TOKEN}&refreshToken=${TEST_REFRESH_TOKEN}&user=${TEST_USER}
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- assertVisible: Users
+- assertVisible: Find the right account
+- swipe:
+    start: "50%,82%"
+    end: "50%,44%"
+    duration: 800
+- waitForAnimationToEnd
+- swipe:
+    start: "50%,78%"
+    end: "50%,58%"
+    duration: 400
+- waitForAnimationToEnd
+- tapOn:
+    point: "52%,52%"
+- waitForAnimationToEnd
+- assertVisible: Manage user
+- takeScreenshot: tmp-admin-user-editor-shots/01-overview
+- swipe:
+    start: "50%,82%"
+    end: "50%,36%"
+    duration: 800
+- waitForAnimationToEnd
+- takeScreenshot: tmp-admin-user-editor-shots/02-middle-sections

@@ -264,11 +264,7 @@ export default function AdminCardEditorScreen() {
       <KeyboardScreenView>
         <AdminBackground>
           <View className="flex-1">
-            <View className="items-center px-4 pt-2">
-              <View className="h-1 w-9 rounded-full bg-primaryBorder" />
-            </View>
-
-            <View className="px-4">
+            <View className="px-4 pt-2">
               <AdminTopBar
                 title={
                   isCreateMode
