@@ -58,6 +58,7 @@ export default function AdminCardEditorScreen() {
   const canLoadCard = canAccessAdmin && !isCreateMode && Boolean(cardId);
   const footerBottomPadding = insets.bottom + 16;
   const scrollBottomPadding = footerBottomPadding + (isCreateMode ? 84 : 140);
+  const footerButtonRadius = 12;
 
   const [draft, setDraft] = useState<CardDraft>(BLANK_CARD_DRAFT);
   const [assignmentDraft, setAssignmentDraft] = useState<AssignmentDraft>(
@@ -352,7 +353,7 @@ export default function AdminCardEditorScreen() {
                   className="absolute inset-x-0 bottom-0 px-4 pt-3"
                   style={{ paddingBottom: footerBottomPadding }}
                 >
-                  <View className="gap-3">
+                  <View className={isCreateMode ? "gap-3" : "flex-row gap-3"}>
                     <AdminButton
                       label={
                         saveMutation.isPending
@@ -363,7 +364,8 @@ export default function AdminCardEditorScreen() {
                       }
                       onPress={() => saveMutation.mutate()}
                       disabled={saveMutation.isPending || !draft.rarityId}
-                      style={{ width: "100%" }}
+                      borderRadius={footerButtonRadius}
+                      style={isCreateMode ? { width: "100%" } : { flex: 1 }}
                     />
                     {!isCreateMode && cardQuery.data ? (
                       <AdminButton
@@ -377,7 +379,8 @@ export default function AdminCardEditorScreen() {
                         variant="danger"
                         onPress={() => archiveMutation.mutate()}
                         disabled={archiveMutation.isPending}
-                        style={{ width: "100%" }}
+                        borderRadius={footerButtonRadius}
+                        style={{ flex: 1 }}
                       />
                     ) : null}
                   </View>
