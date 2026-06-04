@@ -268,7 +268,7 @@ export function CardEditorSheet({
             subtitle={t("admin.cardEditor.previewPanelDescription")}
           />
           <View className="mt-4 items-center gap-4">
-            <AdminCardTile card={previewCard} size="small" />
+            <AdminCardTile card={previewCard} size="medium" />
             <View className="flex-row flex-wrap justify-center gap-2">
               <AdminChip
                 label={`${t("admin.cardEditor.type")}: ${draft.type}`}
