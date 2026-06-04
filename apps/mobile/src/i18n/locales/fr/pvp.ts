@@ -298,10 +298,20 @@ const pvp = {
   loss: "DÉFAITE",
   readyForBattle: "Prêt pour le combat ?",
   readyForBattleHint: "Crée une composition et défie un ami pour commencer !",
+  challengeReadyHint: "Choisis une composition prête et lance un défi en un geste.",
+  createLoadoutHint:
+    "Construis d'abord une équipe valide de 6 cartes avant d'envoyer un défi.",
+  manageLoadoutsHint:
+    "Crée, corrige et réorganise les équipes que tu utilises en PvP.",
+  spectateHint:
+    "Observe des matchs en direct pour apprendre les compositions et les matchups.",
   friendEmail: "E-mail de ton ami",
   invalidLoadout: "{count} carte(s) invalide(s) - composition inutilisable",
   needValidLoadout:
     "Tu as besoin d'une composition valide pour accepter ce défi.",
+  loadoutReady: "Prête",
+  loadoutNeedsFixes: "À corriger",
+  openChallenges: "Défis ouverts",
   liveMatches: "Matchs en direct",
   stopWatching: "Arrêter de regarder",
   live: "Direct",

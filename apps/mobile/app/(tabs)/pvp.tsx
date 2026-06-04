@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Animated, ScrollView, Text, View } from "react-native";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
@@ -11,12 +11,16 @@ import { BattleFullScreenSheet } from "../../src/features/pvp/battle-full-screen
 import { ToastBanner } from "../../src/components/toast-banner";
 import { LoadingPanel } from "../../src/components/loading-state";
 import {
+  CardsIcon,
+  ChevronRightIcon,
   CheckIcon,
   ClockIcon,
+  EyeIcon,
   SwordsIcon,
   TrophyIcon,
   UserPlusIcon,
   XIcon,
+  ZapIcon,
 } from "../../src/components/icons";
 import { useTranslation } from "../../src/i18n";
 import { apiClient } from "../../src/lib/api";
@@ -30,6 +34,30 @@ type ToastState = {
   message: string;
   type: "success" | "error";
 };
+
+function SectionHeading({
+  title,
+  toneColor,
+  icon,
+  action,
+}: {
+  title: string;
+  toneColor: string;
+  icon: ReactNode;
+  action?: ReactNode;
+}) {
+  return (
+    <View className="flex-row items-center gap-3">
+      <View className="h-11 w-11 items-center justify-center rounded-2xl bg-surface shadow-lg">
+        {icon}
+      </View>
+      <Text className="flex-1 font-nunito-bold text-lg" style={{ color: toneColor }}>
+        {title}
+      </Text>
+      {action}
+    </View>
+  );
+}
 
 function getTimeAgo(
   dateStr: string,
@@ -107,6 +135,7 @@ export default function PvpScreen() {
   const pendingSentInvites =
     invitesQuery.data?.invites.filter((invite) => invite.inviterId === currentUserId) ?? [];
   const activeMatches = matchesQuery.data?.matches ?? [];
+  const allLoadouts = loadoutsQuery.data?.loadouts ?? [];
   const completedMatches = useMemo(
     () =>
       (historyQuery.data?.matches ?? [])
@@ -114,9 +143,25 @@ export default function PvpScreen() {
         .slice(0, 5),
     [historyQuery.data?.matches],
   );
+  const sortedLoadouts = useMemo(
+    () =>
+      [...allLoadouts].sort((left, right) => {
+        const leftOrder = left.invalidCardIds.length === 0 ? 0 : 1;
+        const rightOrder = right.invalidCardIds.length === 0 ? 0 : 1;
+
+        if (leftOrder !== rightOrder) {
+          return leftOrder - rightOrder;
+        }
+
+        return left.name.localeCompare(right.name);
+      }),
+    [allLoadouts],
+  );
   const hasValidLoadout = validLoadouts.length > 0;
+  const hasLoadouts = allLoadouts.length > 0;
+  const pendingChallengeCount = pendingReceivedInvites.length + pendingSentInvites.length;
   const hasAnyData =
-    (loadoutsQuery.data?.loadouts.length ?? 0) > 0 ||
+    hasLoadouts ||
     (invitesQuery.data?.invites.length ?? 0) > 0 ||
     (matchesQuery.data?.matches.length ?? 0) > 0 ||
     completedMatches.length > 0;
@@ -261,189 +306,290 @@ export default function PvpScreen() {
         className="flex-1 bg-bg"
         contentContainerStyle={{ gap: 20, padding: 20, paddingBottom: bottomTabPadding }}
       >
-        <View className="mb-1 items-center gap-2">
-          <View style={{ position: "relative", alignItems: "center" }}>
-            <View className="flex-row items-center gap-2">
-              <SwordsIcon size={32} color={tc.primaryDark} />
-              <Text className="font-nunito-extrabold text-3xl text-primaryDark">
-                {t("pvp.lobby.title")}
-              </Text>
-            </View>
-            {pendingReceivedInvites.length > 0 ? (
-              <View
-                style={{ position: "absolute", top: -6, right: -32 }}
-                className="min-w-5 items-center justify-center rounded-full bg-dangerDark px-1.5 py-0.5"
-              >
-                <Text className="font-nunito-bold text-xs text-white">
-                  {pendingReceivedInvites.length}
-                </Text>
+        <View className="gap-4" testID="pvp-lobby-hero">
+          <View
+            style={{
+              backgroundColor: tc.surfaceMuted,
+              borderRadius: 28,
+              overflow: "hidden",
+              borderWidth: 1,
+              borderColor: tc.primaryBorder,
+            }}
+          >
+            <View className="gap-5 px-5 py-6">
+              <View className="flex-row items-start justify-between gap-3">
+                <View className="flex-1 gap-3">
+                  <View className="flex-row items-center gap-3">
+                    <View className="h-14 w-14 items-center justify-center rounded-3xl bg-primaryTint">
+                      <SwordsIcon size={28} color={tc.primaryDark} />
+                    </View>
+                    <View className="flex-1 gap-1">
+                      <Text className="font-nunito-extrabold text-[28px] leading-[34px] text-fg">
+                        {t("pvp.lobby.title")}
+                      </Text>
+                      <Text className="font-nunito text-sm leading-5 text-fgMuted">
+                        {t("pvp.lobby.subtitle")}
+                      </Text>
+                    </View>
+                  </View>
+                  <View className="flex-row gap-3" testID="pvp-lobby-overview">
+                    <View className="flex-1 rounded-2xl bg-surface px-3 py-3">
+                      <Text className="font-nunito-extrabold text-2xl text-fg">
+                        {activeMatches.length}
+                      </Text>
+                      <Text className="font-nunito-semibold text-xs text-fgMuted">
+                        {t("pvp.liveMatches")}
+                      </Text>
+                    </View>
+                    <View className="flex-1 rounded-2xl bg-surface px-3 py-3">
+                      <Text className="font-nunito-extrabold text-2xl text-fg">
+                        {pendingReceivedInvites.length}
+                      </Text>
+                      <Text className="font-nunito-semibold text-xs text-fgMuted">
+                        {t("pvp.incomingChallenges")}
+                      </Text>
+                    </View>
+                    <View className="flex-1 rounded-2xl bg-surface px-3 py-3">
+                      <Text className="font-nunito-extrabold text-2xl text-fg">
+                        {validLoadouts.length}
+                      </Text>
+                      <Text className="font-nunito-semibold text-xs text-fgMuted">
+                        {t("pvp.myLoadouts")}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+                {pendingReceivedInvites.length > 0 ? (
+                  <View className="rounded-full bg-dangerTint px-3 py-1.5">
+                    <Text className="font-nunito-bold text-xs text-dangerDark">
+                      {pendingReceivedInvites.length}
+                    </Text>
+                  </View>
+                ) : null}
               </View>
-            ) : null}
-          </View>
-          <Text className="text-center font-nunito-semibold text-sm text-primary">
-            {t("pvp.lobby.subtitle")}
-          </Text>
-          <View className="mt-1 flex-row gap-3">
-            <ThemedExpoButton
-              onPress={() => router.push("/pvp-mechanics")}
-              preferFallback
-              testID="pvp-open-mechanics-button"
-              variant="danger"
-              fallbackAppearance={{
-                backgroundColor: tc.dangerTint,
-                borderColor: tc.dangerBorder,
-                borderRadius: 12,
-                foregroundColor: tc.dangerText,
-                gradientColors: null,
-                minHeight: 0,
-                paddingHorizontal: 16,
-                paddingVertical: 8,
-                textStyle: {
-                  fontFamily: "Nunito_700Bold",
-                  fontSize: 14,
-                },
-              }}
-            >
-              {t("pvp.mechanics.open")}
-            </ThemedExpoButton>
-            <ThemedExpoButton
-              onPress={() => router.push("/pvp-reference")}
-              preferFallback
-              testID="pvp-open-reference-button"
-              variant="secondary"
-              fallbackAppearance={{
-                backgroundColor: tc.infoTint,
-                borderColor: tc.infoBorder,
-                borderRadius: 12,
-                foregroundColor: tc.infoDark,
-                gradientColors: null,
-                minHeight: 0,
-                paddingHorizontal: 16,
-                paddingVertical: 8,
-                textStyle: {
-                  fontFamily: "Nunito_700Bold",
-                  fontSize: 14,
-                },
-              }}
-            >
-              {t("pvp.reference.open")}
-            </ThemedExpoButton>
-          </View>
-        </View>
 
-        <View className="flex-row gap-3">
+              <View className="flex-row gap-3">
+                <ThemedExpoButton
+                  onPress={() => router.push("/pvp-mechanics")}
+                  preferFallback
+                  style={{ flex: 1 }}
+                  testID="pvp-open-mechanics-button"
+                  variant="danger"
+                  fallbackLayout="stretch"
+                  fallbackAppearance={{
+                    backgroundColor: tc.surface,
+                    borderColor: tc.primaryBorder,
+                    borderRadius: 20,
+                    foregroundColor: tc.fg,
+                    gradientColors: null,
+                    minHeight: 0,
+                    paddingHorizontal: 14,
+                    paddingVertical: 14,
+                  }}
+                >
+                  <View className="gap-2">
+                    <View className="flex-row items-center justify-between gap-2">
+                      <Text className="font-nunito-bold text-sm text-fg">
+                        {t("pvp.mechanics.open")}
+                      </Text>
+                      <ChevronRightIcon size={18} color={tc.primaryDark} />
+                    </View>
+                    <Text className="font-nunito text-xs leading-5 text-fgMuted">
+                      {t("pvp.mechanics.intro")}
+                    </Text>
+                  </View>
+                </ThemedExpoButton>
+                <ThemedExpoButton
+                  onPress={() => router.push("/pvp-reference")}
+                  preferFallback
+                  style={{ flex: 1 }}
+                  testID="pvp-open-reference-button"
+                  variant="secondary"
+                  fallbackLayout="stretch"
+                  fallbackAppearance={{
+                    backgroundColor: tc.surface,
+                    borderColor: tc.accentBorder,
+                    borderRadius: 20,
+                    foregroundColor: tc.fg,
+                    gradientColors: null,
+                    minHeight: 0,
+                    paddingHorizontal: 14,
+                    paddingVertical: 14,
+                  }}
+                >
+                  <View className="gap-2">
+                    <View className="flex-row items-center justify-between gap-2">
+                      <Text className="font-nunito-bold text-sm text-fg">
+                        {t("pvp.reference.open")}
+                      </Text>
+                      <ChevronRightIcon size={18} color={tc.accentText} />
+                    </View>
+                    <Text className="font-nunito text-xs leading-5 text-fgMuted">
+                      {t("pvp.reference.intro")}
+                    </Text>
+                  </View>
+                </ThemedExpoButton>
+              </View>
+            </View>
+          </View>
+
           <ThemedExpoButton
-            disabled={!hasValidLoadout}
-            onPress={() => setShowInviteModal(true)}
+            onPress={() => {
+              if (hasValidLoadout) {
+                setShowInviteModal(true);
+                return;
+              }
+
+              router.push("/pvp-loadouts");
+            }}
             preferFallback
-            style={{ flex: 1 }}
+            style={{ width: "100%" }}
+            testID="pvp-primary-action-card"
             variant="primary"
             fallbackLayout="stretch"
             fallbackAppearance={{
-              backgroundColor: tc.primary,
-              borderColor: tc.primary,
-              borderRadius: 16,
-              foregroundColor: "#FFFFFF",
-              gradientColors: [tc.primary, tc.primaryDark],
+              backgroundColor: tc.primaryBg,
+              borderColor: tc.primaryBorder,
+              borderRadius: 26,
+              foregroundColor: tc.fg,
+              gradientColors: null,
               minHeight: 0,
-              paddingHorizontal: 12,
-              paddingVertical: 16,
+              paddingHorizontal: 18,
+              paddingVertical: 20,
             }}
           >
-            <View style={{ alignItems: "center", gap: 4 }}>
-              <UserPlusIcon size={22} color="white" />
-              <Text className="text-center font-nunito-bold text-xs text-white">
-                {t("pvp.sendInvite")}
-              </Text>
+            <View className="gap-4">
+              <View className="flex-row items-start justify-between gap-3">
+                <View className="flex-1 gap-2">
+                  <View className="h-12 w-12 items-center justify-center rounded-2xl bg-primaryTint">
+                    {hasValidLoadout ? (
+                      <UserPlusIcon size={24} color={tc.primaryDark} />
+                    ) : (
+                      <CardsIcon size={24} color={tc.primaryDark} />
+                    )}
+                  </View>
+                  <Text className="font-nunito-extrabold text-[28px] leading-[34px] text-fg">
+                    {hasValidLoadout ? t("pvp.sendChallenge") : t("pvp.createLoadout")}
+                  </Text>
+                  <Text className="font-nunito text-sm leading-5 text-fgMuted">
+                    {hasValidLoadout
+                      ? t("pvp.challengeReadyHint")
+                      : t("pvp.createLoadoutHint")}
+                  </Text>
+                </View>
+                <ChevronRightIcon size={22} color={tc.primaryDark} />
+              </View>
+              <View className="flex-row flex-wrap gap-2">
+                <View className="rounded-full bg-primaryTint px-3 py-1.5">
+                  <Text className="font-nunito-semibold text-xs text-primaryDark">
+                    {hasLoadouts ? validLoadouts.length : 0} {t("pvp.loadoutReady").toLowerCase()}
+                  </Text>
+                </View>
+                {pendingChallengeCount > 0 ? (
+                  <View className="rounded-full bg-accentTint px-3 py-1.5">
+                    <Text className="font-nunito-semibold text-xs text-accentText">
+                      {pendingChallengeCount} {t("pvp.openChallenges").toLowerCase()}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
             </View>
           </ThemedExpoButton>
-          <ThemedExpoButton
-            onPress={() => router.push("/pvp-loadouts")}
-            preferFallback
-            style={{ flex: 1 }}
-            variant="warning"
-            fallbackLayout="stretch"
-            fallbackAppearance={{
-              backgroundColor: tc.accent,
-              borderColor: tc.accent,
-              borderRadius: 16,
-              foregroundColor: "#FFFFFF",
-              gradientColors: [tc.accent, tc.accentDark],
-              minHeight: 0,
-              paddingHorizontal: 12,
-              paddingVertical: 16,
-            }}
-          >
-            <View style={{ alignItems: "center", gap: 4 }}>
-              <SwordsIcon size={22} color="white" />
-              <Text className="text-center font-nunito-bold text-xs text-white">
-                {(loadoutsQuery.data?.loadouts.length ?? 0) > 0
-                  ? t("pvp.editLoadouts")
-                  : t("pvp.createLoadout")}
-              </Text>
-            </View>
-          </ThemedExpoButton>
-          <ThemedExpoButton
-            onPress={() => router.push("/pvp-spectate" as never)}
-            preferFallback
-            style={{ flex: 1 }}
-            variant="secondary"
-            fallbackLayout="stretch"
-            fallbackAppearance={{
-              backgroundColor: tc.info,
-              borderColor: tc.info,
-              borderRadius: 16,
-              foregroundColor: "#FFFFFF",
-              gradientColors: [tc.info, tc.infoDark],
-              minHeight: 0,
-              paddingHorizontal: 12,
-              paddingVertical: 16,
-            }}
-          >
-            <View style={{ alignItems: "center", gap: 4 }}>
-              <SwordsIcon size={22} color="white" />
-              <Text className="text-center font-nunito-bold text-xs text-white">
-                {t("pvp.spectateOpen")}
-              </Text>
-            </View>
-          </ThemedExpoButton>
+
+          <View className="flex-row gap-3">
+            <ThemedExpoButton
+              onPress={() => router.push("/pvp-loadouts")}
+              preferFallback
+              style={{ flex: 1 }}
+              variant="warning"
+              fallbackLayout="stretch"
+              fallbackAppearance={{
+                backgroundColor: tc.surface,
+                borderColor: tc.accentBorder,
+                borderRadius: 24,
+                foregroundColor: tc.fg,
+                gradientColors: null,
+                minHeight: 0,
+                paddingHorizontal: 16,
+                paddingVertical: 16,
+              }}
+            >
+              <View className="gap-3">
+                <View className="flex-row items-center justify-between gap-2">
+                  <View className="h-11 w-11 items-center justify-center rounded-2xl bg-accentTint">
+                    <CardsIcon size={22} color={tc.accentText} />
+                  </View>
+                  <ChevronRightIcon size={18} color={tc.accentText} />
+                </View>
+                <View className="gap-1">
+                  <Text className="font-nunito-bold text-base text-fg">
+                    {hasLoadouts ? t("pvp.editLoadouts") : t("pvp.createLoadout")}
+                  </Text>
+                  <Text className="font-nunito text-xs text-fgMuted">
+                    {t("pvp.manageLoadoutsHint")}
+                  </Text>
+                </View>
+              </View>
+            </ThemedExpoButton>
+            <ThemedExpoButton
+              onPress={() => router.push("/pvp-spectate" as never)}
+              preferFallback
+              style={{ flex: 1 }}
+              variant="secondary"
+              fallbackLayout="stretch"
+              fallbackAppearance={{
+                backgroundColor: tc.surface,
+                borderColor: tc.infoBorder,
+                borderRadius: 24,
+                foregroundColor: tc.fg,
+                gradientColors: null,
+                minHeight: 0,
+                paddingHorizontal: 16,
+                paddingVertical: 16,
+              }}
+            >
+              <View className="gap-3">
+                <View className="flex-row items-center justify-between gap-2">
+                  <View className="h-11 w-11 items-center justify-center rounded-2xl bg-infoTint">
+                    <EyeIcon size={22} color={tc.infoDark} />
+                  </View>
+                  <ChevronRightIcon size={18} color={tc.infoDark} />
+                </View>
+                <View className="gap-1">
+                  <Text className="font-nunito-bold text-base text-fg">
+                    {t("pvp.spectateOpen")}
+                  </Text>
+                  <Text className="font-nunito text-xs text-fgMuted">
+                    {t("pvp.spectateHint")}
+                  </Text>
+                </View>
+              </View>
+            </ThemedExpoButton>
+          </View>
         </View>
 
         {pendingReceivedInvites.length > 0 ? (
-          <View>
-            <LinearGradient
-              colors={[tc.danger, tc.dangerDark]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={{
-                borderTopLeftRadius: 16,
-                borderTopRightRadius: 16,
-                paddingHorizontal: 16,
-                paddingVertical: 10,
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 8,
-              }}
-            >
-              <SwordsIcon size={20} color="white" />
-              <Text className="flex-1 font-nunito-bold text-white">
-                {t("pvp.incomingChallenges")}
-              </Text>
-              <View className="items-center justify-center rounded-full bg-surface px-2 py-0.5">
-                <Text className="font-nunito-bold text-xs text-dangerDark">
-                  {pendingReceivedInvites.length}
-                </Text>
-              </View>
-            </LinearGradient>
-
-            <View className="gap-4 rounded-b-2xl border-2 border-t-0 border-dangerBorder bg-dangerTint p-4">
+          <View className="gap-3">
+            <SectionHeading
+              title={t("pvp.incomingChallenges")}
+              toneColor={tc.dangerDark}
+              icon={<SwordsIcon size={20} color={tc.dangerDark} />}
+              action={
+                <View className="rounded-full bg-dangerTint px-3 py-1">
+                  <Text className="font-nunito-bold text-xs text-dangerDark">
+                    {pendingReceivedInvites.length}
+                  </Text>
+                </View>
+              }
+            />
+            <View className="gap-4 rounded-[28px] border border-dangerBorder bg-dangerTint/80 p-4">
               {pendingReceivedInvites.map((invite) => {
                 const selectedLoadoutId = acceptLoadoutMap[invite.id] ?? null;
 
                 return (
                   <View
                     key={invite.id}
-                    className="gap-3 rounded-xl border-2 border-dangerBorder bg-surface p-4"
+                    className="gap-3 rounded-[24px] border-2 border-dangerBorder bg-surface p-4"
                   >
                     <View className="flex-row items-center gap-3">
                       <View style={{ borderRadius: 20, overflow: "hidden", width: 40, height: 40 }}>
@@ -456,7 +602,7 @@ export default function PvpScreen() {
                           <SwordsIcon size={20} color="white" />
                         </LinearGradient>
                       </View>
-                      <View className="flex-1">
+                      <View className="flex-1 gap-0.5">
                         <Text className="font-nunito-bold text-fg">
                           {invite.inviterName ?? `${invite.inviterId.slice(0, 12)}…`}
                         </Text>
@@ -647,12 +793,11 @@ export default function PvpScreen() {
 
         {activeMatches.length > 0 ? (
           <View className="gap-3">
-            <View className="flex-row items-center gap-2">
-              <SwordsIcon size={20} color={tc.successDark} />
-              <Text className="font-nunito-bold text-lg text-successDark">
-                {t("pvp.activeBattles", { count: activeMatches.length })}
-              </Text>
-            </View>
+            <SectionHeading
+              title={t("pvp.activeBattles", { count: activeMatches.length })}
+              toneColor={tc.successDark}
+              icon={<ZapIcon size={20} color={tc.successDark} />}
+            />
             {activeMatches.map((match, index) => {
               const opponentId =
                 match.inviterId === currentUserId ? match.inviteeId : match.inviterId;
@@ -670,7 +815,7 @@ export default function PvpScreen() {
                   fallbackAppearance={{
                     backgroundColor: tc.surface,
                     borderColor: tc.successBorder,
-                    borderRadius: 16,
+                    borderRadius: 24,
                     foregroundColor: tc.fg,
                     gradientColors: null,
                     minHeight: 0,
@@ -678,10 +823,10 @@ export default function PvpScreen() {
                     paddingVertical: 16,
                   }}
                 >
-                  <View className="h-10 w-10 items-center justify-center rounded-full bg-successTint">
+                  <View className="h-11 w-11 items-center justify-center rounded-2xl bg-successTint">
                     <SwordsIcon size={20} color={tc.successDark} />
                   </View>
-                  <View className="flex-1">
+                  <View className="flex-1 gap-1">
                     <Text className="font-nunito-bold text-fg">
                       vs {opponentName ?? `${opponentId.slice(0, 10)}…`}
                     </Text>
@@ -689,9 +834,11 @@ export default function PvpScreen() {
                       {t("pvp.lobby.turn", { count: match.currentTurn ?? 1 })}
                     </Text>
                   </View>
-                  <Text className="font-nunito-bold text-success">
-                    {t("pvp.continueArrow")}
-                  </Text>
+                  <View className="rounded-full bg-successTint px-3 py-1.5">
+                    <Text className="font-nunito-bold text-xs text-successDark">
+                      {t("pvp.continueArrow")}
+                    </Text>
+                  </View>
                 </ThemedExpoButton>
               );
             })}
@@ -700,18 +847,17 @@ export default function PvpScreen() {
 
         {pendingSentInvites.length > 0 ? (
           <View className="gap-3">
-            <View className="flex-row items-center gap-2">
-              <ClockIcon size={20} color={tc.infoDark} />
-              <Text className="font-nunito-bold text-lg text-infoDark">
-                {t("pvp.sentInvites", { count: pendingSentInvites.length })}
-              </Text>
-            </View>
+            <SectionHeading
+              title={t("pvp.sentInvites", { count: pendingSentInvites.length })}
+              toneColor={tc.infoDark}
+              icon={<ClockIcon size={20} color={tc.infoDark} />}
+            />
             {pendingSentInvites.map((invite) => (
               <View
                 key={invite.id}
-                className="flex-row items-center gap-3 rounded-2xl border-2 border-infoBorder bg-surface p-4"
+                className="flex-row items-center gap-3 rounded-[24px] border border-infoBorder bg-surface p-4"
               >
-                <View className="h-10 w-10 items-center justify-center rounded-full bg-infoTint">
+                <View className="h-11 w-11 items-center justify-center rounded-2xl bg-infoTint">
                   <ClockIcon size={20} color={tc.info} />
                 </View>
                 <View className="flex-1">
@@ -748,34 +894,35 @@ export default function PvpScreen() {
 
         {completedMatches.length > 0 ? (
           <View className="gap-3">
-            <View className="flex-row items-center gap-2">
-              <TrophyIcon size={20} color={tc.primary} />
-              <Text className="flex-1 font-nunito-bold text-lg text-fg">
-                {t("pvp.recentBattles")}
-              </Text>
-              <ThemedExpoButton
-                onPress={() => router.push("/pvp-history" as never)}
-                testID="pvp-history-button"
-                preferFallback
-                variant="ghost"
-                fallbackAppearance={{
-                  backgroundColor: "transparent",
-                  borderColor: "transparent",
-                  borderRadius: 8,
-                  foregroundColor: tc.accentText,
-                  gradientColors: null,
-                  minHeight: 0,
-                  paddingHorizontal: 0,
-                  paddingVertical: 0,
-                  textStyle: {
-                    fontFamily: "Nunito_700Bold",
-                    fontSize: 14,
-                  },
-                }}
-              >
-                {t("pvp.viewAllArrow")}
-              </ThemedExpoButton>
-            </View>
+            <SectionHeading
+              title={t("pvp.recentBattles")}
+              toneColor={tc.accentText}
+              icon={<TrophyIcon size={20} color={tc.accentText} />}
+              action={
+                <ThemedExpoButton
+                  onPress={() => router.push("/pvp-history" as never)}
+                  testID="pvp-history-button"
+                  preferFallback
+                  variant="ghost"
+                  fallbackAppearance={{
+                    backgroundColor: "transparent",
+                    borderColor: "transparent",
+                    borderRadius: 8,
+                    foregroundColor: tc.accentText,
+                    gradientColors: null,
+                    minHeight: 0,
+                    paddingHorizontal: 0,
+                    paddingVertical: 0,
+                    textStyle: {
+                      fontFamily: "Nunito_700Bold",
+                      fontSize: 14,
+                    },
+                  }}
+                >
+                  {t("pvp.viewAllArrow")}
+                </ThemedExpoButton>
+              }
+            />
             {completedMatches.map((match) => {
               const won = match.winnerId === currentUserId;
               const opponentId =
@@ -798,7 +945,7 @@ export default function PvpScreen() {
                   fallbackAppearance={{
                     backgroundColor: tc.surface,
                     borderColor: won ? tc.successBorder : tc.dangerBorder,
-                    borderRadius: 12,
+                    borderRadius: 20,
                     foregroundColor: tc.fg,
                     gradientColors: null,
                     minHeight: 0,
@@ -826,34 +973,62 @@ export default function PvpScreen() {
         ) : null}
 
         {!hasAnyData ? (
-          <View className="items-center gap-3 rounded-2xl border border-primaryTint bg-surface p-8">
-            <SwordsIcon size={48} color={tc.primaryBorder} />
-            <Text className="text-center font-nunito-bold text-lg text-fg">
-              {t("pvp.readyForBattle")}
-            </Text>
-            <Text className="text-center font-nunito text-sm text-fgMuted">
-              {t("pvp.readyForBattleHint")}
-            </Text>
+          <View className="overflow-hidden rounded-[28px] border border-primaryTint">
+            <LinearGradient
+              colors={[tc.primaryBg, tc.surface]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <View className="items-center gap-3 px-6 py-8">
+                <View className="h-16 w-16 items-center justify-center rounded-3xl bg-primaryTint">
+                  <SwordsIcon size={34} color={tc.primaryDark} />
+                </View>
+                <Text className="text-center font-nunito-bold text-lg text-fg">
+                  {t("pvp.readyForBattle")}
+                </Text>
+                <Text className="text-center font-nunito text-sm text-fgMuted">
+                  {t("pvp.readyForBattleHint")}
+                </Text>
+              </View>
+            </LinearGradient>
           </View>
         ) : null}
 
-        {(loadoutsQuery.data?.loadouts.length ?? 0) > 0 ? (
+        {hasLoadouts ? (
           <View className="gap-3">
-            <Text className="font-nunito-bold text-lg text-accentText">
-              {t("pvp.myLoadouts")}
-            </Text>
-            {loadoutsQuery.data!.loadouts.map((loadout) => {
+            <SectionHeading
+              title={t("pvp.myLoadouts")}
+              toneColor={tc.accentText}
+              icon={<CardsIcon size={20} color={tc.accentText} />}
+            />
+            {sortedLoadouts.map((loadout) => {
               const isValid = loadout.invalidCardIds.length === 0;
 
               return (
                 <View
                   key={loadout.id}
-                  className={`rounded-2xl border-2 bg-surface/90 p-4 shadow-lg ${
+                  className={`rounded-[24px] border bg-surface/95 p-4 shadow-lg ${
                     isValid ? "border-accentBorder" : "border-dangerBorder"
                   }`}
                 >
+                  <View className="mb-3 flex-row items-center justify-between gap-3">
+                    <Text className="flex-1 font-nunito-bold text-fg">{loadout.name}</Text>
+                    <View
+                      className={`rounded-full px-3 py-1 ${
+                        isValid ? "bg-successTint" : "bg-dangerTint"
+                      }`}
+                    >
+                      <Text
+                        className={`font-nunito-bold text-xs ${
+                          isValid ? "text-successDark" : "text-dangerDark"
+                        }`}
+                      >
+                        {isValid ? t("pvp.loadoutReady") : t("pvp.loadoutNeedsFixes")}
+                      </Text>
+                    </View>
+                  </View>
                   {!isValid ? (
-                    <View className="mb-3 flex-row items-center gap-2 rounded-lg border border-dangerBorder bg-dangerTint px-3 py-2">
+                    <View className="mb-3 flex-row items-center gap-2 rounded-2xl border border-dangerBorder bg-dangerTint px-3 py-2">
                       <Text className="font-nunito-bold text-sm text-dangerDark">
                         {t("pvp.invalidLoadout", {
                           count: loadout.invalidCardIds.length,
@@ -861,7 +1036,6 @@ export default function PvpScreen() {
                       </Text>
                     </View>
                   ) : null}
-                  <Text className="mb-2 font-nunito-bold text-fg">{loadout.name}</Text>
                   <ScrollView
                     horizontal
                     showsHorizontalScrollIndicator={false}
@@ -911,8 +1085,8 @@ export default function PvpScreen() {
                       })}
                     </View>
                   </ScrollView>
-                  <Text className="mt-1 font-nunito text-xs text-fgMuted">
-                    {t("pvp.firstThreeActive")}
+                  <Text className="mt-2 font-nunito text-xs text-fgMuted">
+                    {isValid ? t("pvp.manageLoadoutsHint") : t("pvp.firstThreeActive")}
                   </Text>
                 </View>
               );

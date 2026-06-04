@@ -28,16 +28,22 @@ tags:
     id: pvp-open-mechanics-button
 - assertVisible:
     id: pvp-mechanics-screen
-- tapOn:
-    id: pvp-mechanics-close-button
+- swipe:
+    start: "50%,10%"
+    end: "50%,88%"
+    duration: 700
+- waitForAnimationToEnd
 - assertVisible:
     id: pvp-open-reference-button
 - tapOn:
     id: pvp-open-reference-button
 - assertVisible:
     id: pvp-reference-screen
-- tapOn:
-    id: pvp-reference-close-button
+- swipe:
+    start: "50%,10%"
+    end: "50%,88%"
+    duration: 700
+- waitForAnimationToEnd
 - openLink:
     link: adventure-time:///settings
 - runFlow: subflows/confirm-open-link-if-needed.yaml
