@@ -146,7 +146,11 @@ export default function AdminAbilityEditorScreen() {
                     ? t("admin.abilityEditor.createTitle")
                     : t("admin.abilityEditor.editTitle")
                 }
-                subtitle={t("admin.abilities.subtitle")}
+                subtitle={
+                  isCreateMode
+                    ? t("admin.abilityEditor.createSubtitle")
+                    : t("admin.abilityEditor.editSubtitle")
+                }
               />
             </View>
 

@@ -342,7 +342,11 @@ const admin = {
   },
   abilityEditor: {
     createTitle: "Create ability",
+    createSubtitle:
+      "Set the role first, then fill in only the behavior this reusable ability actually needs.",
     editTitle: "Edit ability",
+    editSubtitle:
+      "Refine the shared definition carefully so every assigned card stays understandable.",
     loading: "Loading ability...",
     notFound: "That ability could not be found.",
     invalidApiData: "Ability data from the API is invalid. {details}",
@@ -350,6 +354,11 @@ const admin = {
     deleteAbilityTitle: "Delete ability",
     deleteAbilityBody: "Delete {name}?",
     basicInfo: "Basic info",
+    basicInfoDescription:
+      "Define the identity and role of this ability before tuning combat behavior.",
+    battleRules: "Battle rules",
+    battleRulesDescription:
+      "Set cost, timing, and targeting so the engine knows when and where this ability fires.",
     key: "Key",
     keyPlaceholder: "ability_key",
     name: "Name",
@@ -376,6 +385,50 @@ const admin = {
     conditional: "Conditional",
     payloadJson: "Payload JSON",
     useRawPayloadEditor: "Use raw payload editor",
+    workflowTitle: "Recommended flow",
+    workflowBody:
+      "Choose the ability type first, complete the essentials, then open only the behavior sections this design actually uses.",
+    typeSelectorHint:
+      "Pick the role that best matches when this ability should fire in combat.",
+    typeDescriptions: {
+      PASSIVE:
+        "Always-on or trigger-based behavior. Passives do not spend energy or cooldown.",
+      SKILL:
+        "Repeatable activated behavior. Skills usually need cost, cooldown, and targeting.",
+      ULTIMATE:
+        "Big match-defining action. Ultimates always save as once per match.",
+    },
+    passiveRulesHint:
+      "Passive abilities skip cost and cooldown. Focus on trigger conditions and any passive-only bonuses.",
+    passiveTriggerDescription:
+      "Describe when a passive should trigger and any gating values it needs.",
+    damageDescription:
+      "Add only the damage modifiers needed for this ability instead of filling every field.",
+    healingAndShieldDescription:
+      "Configure sustain, shielding, or lifesteal effects when this ability protects allies.",
+    statusesAndBuffsDescription:
+      "Apply buffs, debuffs, or status packages here when the ability changes state over time.",
+    utilityDescription:
+      "Use this section for cleanup, revive, cooldown, or specialty rules that do not fit core damage.",
+    statBonusesDescription:
+      "Passive stat auras and ally-type restrictions live here.",
+    copyAbilityDescription:
+      "For active abilities that borrow another unit's skill or ultimate.",
+    conditionalJsonDescription:
+      "Use conditional JSON only when the structured controls cannot express the rule cleanly.",
+    rawPayloadJsonDescription:
+      "Advanced mode for hand-editing the final payload object sent to the API.",
+    rawPayloadNoticeTitle: "Advanced editing",
+    rawPayloadNoticeBody:
+      "Switch to raw JSON only when you need an unsupported shape. Once you edit JSON directly, you are responsible for its structure.",
+    sectionBadges: {
+      required: "Required",
+      guided: "Guided",
+      optional: "Optional",
+      configured: "Configured",
+      advanced: "Advanced",
+      selected: "Selected",
+    },
     rawPayloadSyncHint:
       "Structured fields stay in sync here until you start editing raw JSON directly.",
     show: "Show",

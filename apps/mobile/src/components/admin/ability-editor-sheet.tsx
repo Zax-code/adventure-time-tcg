@@ -22,10 +22,17 @@ import {
   type StatusName,
   type TypeName,
 } from "./ability-payload";
-import { AdminButton, AdminField } from "./admin-ui";
+import {
+  AbilityTypeChip,
+  AdminButton,
+  AdminChip,
+  AdminField,
+  AdminNotice,
+} from "./admin-ui";
 import { ThemedExpoSwitch } from "../expo-ui/themed-switch";
 import { ThemedExpoTextInput } from "../expo-ui/themed-text-input";
 import { useTranslation } from "../../i18n";
+import type { IoniconName } from "../../lib/ionicons";
 import { useThemeStore } from "../../stores/theme-store";
 import { THEME_COLORS } from "../../theme/themes";
 import { withAlpha } from "./admin-palette";
@@ -61,6 +68,15 @@ type AbilityEditorFormProps = {
   onSubmit: (input: AbilitySubmitInput) => Promise<void> | void;
   onDelete: (abilityId: string) => Promise<void> | void;
 };
+
+const ABILITY_TYPE_OPTIONS: Array<{
+  value: AbilityType;
+  icon: IoniconName;
+}> = [
+  { value: "PASSIVE", icon: "sparkles-outline" },
+  { value: "SKILL", icon: "flash-outline" },
+  { value: "ULTIMATE", icon: "flame-outline" },
+];
 
 function formatError(error: unknown, fallback: string) {
   if (error instanceof Error) {
@@ -392,7 +408,26 @@ export function AbilityEditorForm({
 
   return (
     <>
-      <Section title={t("admin.abilityEditor.basicInfo")} defaultOpen>
+      <AdminNotice
+        title={t("admin.abilityEditor.workflowTitle")}
+        body={t("admin.abilityEditor.workflowBody")}
+        tone="info"
+        icon="sparkles"
+      />
+
+      <Section
+        title={t("admin.abilityEditor.basicInfo")}
+        subtitle={t("admin.abilityEditor.basicInfoDescription")}
+        badgeLabel={t("admin.abilityEditor.sectionBadges.required")}
+        badgeTone="accent"
+        icon="create-outline"
+        defaultOpen
+      >
+        <AbilityTypeSelector value={formType} onChange={setFormType} />
+        <InfoPill
+          tone="info"
+          text={t(`admin.abilityEditor.typeDescriptions.${formType}`)}
+        />
         <AdminField
           label={t("admin.abilityEditor.key")}
           value={formKey}
@@ -412,40 +447,35 @@ export function AbilityEditorForm({
           placeholder={t("admin.abilityEditor.descriptionPlaceholder")}
           multiline
         />
-        <SelectField
-          id="type"
-          label={t("admin.abilityEditor.type")}
-          options={[
-            { label: t("admin.abilities.type.PASSIVE"), value: "PASSIVE" },
-            { label: t("admin.abilities.type.SKILL"), value: "SKILL" },
-            { label: t("admin.abilities.type.ULTIMATE"), value: "ULTIMATE" },
-          ]}
-          value={formType}
-          onChange={(value) => setFormType(value as AbilityType)}
-          openDropdownId={openDropdownId}
-          setOpenDropdownId={setOpenDropdownId}
-        />
+      </Section>
+
+      <Section
+        title={t("admin.abilityEditor.battleRules")}
+        subtitle={t("admin.abilityEditor.battleRulesDescription")}
+        badgeLabel={t("admin.abilityEditor.sectionBadges.guided")}
+        badgeTone="warning"
+        icon="options-outline"
+        defaultOpen
+      >
         {formType !== "PASSIVE" ? (
-          <View className="flex-row gap-[10]">
-            <View className="flex-1">
-              <AdminField
-                label={t("admin.abilityEditor.cost")}
-                value={formCost}
-                onChangeText={setFormCost}
-                keyboardType="numeric"
-              />
-            </View>
-            {formType === "SKILL" ? (
-              <View className="flex-1">
-                <AdminField
-                  label={t("admin.abilityEditor.cooldown")}
-                  value={formCooldown}
-                  onChangeText={setFormCooldown}
-                  keyboardType="numeric"
-                />
-              </View>
-            ) : null}
-          </View>
+          <GridFields
+            fields={[
+              {
+                label: t("admin.abilityEditor.cost"),
+                value: formCost,
+                onChangeText: setFormCost,
+              },
+              ...(formType === "SKILL"
+                ? [
+                    {
+                      label: t("admin.abilityEditor.cooldown"),
+                      value: formCooldown,
+                      onChangeText: setFormCooldown,
+                    },
+                  ]
+                : []),
+            ]}
+          />
         ) : null}
         {formType === "SKILL" ? (
           <ToggleRow
@@ -453,8 +483,16 @@ export function AbilityEditorForm({
             value={formOncePerMatch}
             onChange={setFormOncePerMatch}
           />
+        ) : formType === "PASSIVE" ? (
+          <InfoPill
+            tone="accent"
+            text={t("admin.abilityEditor.passiveRulesHint")}
+          />
         ) : formType === "ULTIMATE" ? (
-          <InfoPill text={t("admin.abilityEditor.ultimatesOncePerMatch")} />
+          <InfoPill
+            tone="accent"
+            text={t("admin.abilityEditor.ultimatesOncePerMatch")}
+          />
         ) : null}
         <SelectField
           id="target"
@@ -498,6 +536,14 @@ export function AbilityEditorForm({
       {formType === "PASSIVE" ? (
         <Section
           title={t("admin.abilityEditor.passiveTrigger")}
+          subtitle={t("admin.abilityEditor.passiveTriggerDescription")}
+          badgeLabel={
+            sectionDefaults.passiveTrigger
+              ? t("admin.abilityEditor.sectionBadges.configured")
+              : t("admin.abilityEditor.sectionBadges.optional")
+          }
+          badgeTone={sectionDefaults.passiveTrigger ? "success" : "default"}
+          icon="sparkles-outline"
           defaultOpen={sectionDefaults.passiveTrigger}
         >
           <SelectField
@@ -627,6 +673,14 @@ export function AbilityEditorForm({
 
       <Section
         title={t("admin.abilityEditor.damage")}
+        subtitle={t("admin.abilityEditor.damageDescription")}
+        badgeLabel={
+          sectionDefaults.damage
+            ? t("admin.abilityEditor.sectionBadges.configured")
+            : t("admin.abilityEditor.sectionBadges.optional")
+        }
+        badgeTone={sectionDefaults.damage ? "success" : "default"}
+        icon="flash-outline"
         defaultOpen={sectionDefaults.damage}
       >
         <GridFields
@@ -743,6 +797,14 @@ export function AbilityEditorForm({
 
       <Section
         title={t("admin.abilityEditor.healingAndShield")}
+        subtitle={t("admin.abilityEditor.healingAndShieldDescription")}
+        badgeLabel={
+          sectionDefaults.healing
+            ? t("admin.abilityEditor.sectionBadges.configured")
+            : t("admin.abilityEditor.sectionBadges.optional")
+        }
+        badgeTone={sectionDefaults.healing ? "success" : "default"}
+        icon="medkit-outline"
         defaultOpen={sectionDefaults.healing}
       >
         <SelectField
@@ -826,6 +888,14 @@ export function AbilityEditorForm({
 
       <Section
         title={t("admin.abilityEditor.statusesAndBuffs")}
+        subtitle={t("admin.abilityEditor.statusesAndBuffsDescription")}
+        badgeLabel={
+          sectionDefaults.statuses
+            ? t("admin.abilityEditor.sectionBadges.configured")
+            : t("admin.abilityEditor.sectionBadges.optional")
+        }
+        badgeTone={sectionDefaults.statuses ? "success" : "default"}
+        icon="pulse-outline"
         defaultOpen={sectionDefaults.statuses}
       >
         <StatusArrayEditor
@@ -897,6 +967,14 @@ export function AbilityEditorForm({
 
       <Section
         title={t("admin.abilityEditor.utility")}
+        subtitle={t("admin.abilityEditor.utilityDescription")}
+        badgeLabel={
+          sectionDefaults.utility
+            ? t("admin.abilityEditor.sectionBadges.configured")
+            : t("admin.abilityEditor.sectionBadges.optional")
+        }
+        badgeTone={sectionDefaults.utility ? "success" : "default"}
+        icon="construct-outline"
         defaultOpen={sectionDefaults.utility}
       >
         <SelectField
@@ -1043,6 +1121,14 @@ export function AbilityEditorForm({
       {formType === "PASSIVE" ? (
         <Section
           title={t("admin.abilityEditor.statBonuses")}
+          subtitle={t("admin.abilityEditor.statBonusesDescription")}
+          badgeLabel={
+            sectionDefaults.statBonuses
+              ? t("admin.abilityEditor.sectionBadges.configured")
+              : t("admin.abilityEditor.sectionBadges.optional")
+          }
+          badgeTone={sectionDefaults.statBonuses ? "success" : "default"}
+          icon="barbell-outline"
           defaultOpen={sectionDefaults.statBonuses}
         >
           <SelectField
@@ -1185,6 +1271,14 @@ export function AbilityEditorForm({
       ) : (
         <Section
           title={t("admin.abilityEditor.copyAbility")}
+          subtitle={t("admin.abilityEditor.copyAbilityDescription")}
+          badgeLabel={
+            sectionDefaults.copyAbility
+              ? t("admin.abilityEditor.sectionBadges.configured")
+              : t("admin.abilityEditor.sectionBadges.optional")
+          }
+          badgeTone={sectionDefaults.copyAbility ? "success" : "default"}
+          icon="copy-outline"
           defaultOpen={sectionDefaults.copyAbility}
         >
           <SelectField
@@ -1230,6 +1324,14 @@ export function AbilityEditorForm({
 
       <Section
         title={t("admin.abilityEditor.conditionalJson")}
+        subtitle={t("admin.abilityEditor.conditionalJsonDescription")}
+        badgeLabel={
+          sectionDefaults.conditional
+            ? t("admin.abilityEditor.sectionBadges.configured")
+            : t("admin.abilityEditor.sectionBadges.optional")
+        }
+        badgeTone={sectionDefaults.conditional ? "success" : "default"}
+        icon="git-branch-outline"
         defaultOpen={sectionDefaults.conditional}
       >
         <JsonField
@@ -1244,8 +1346,18 @@ export function AbilityEditorForm({
 
       <Section
         title={t("admin.abilityEditor.rawPayloadJson")}
+        subtitle={t("admin.abilityEditor.rawPayloadJsonDescription")}
+        badgeLabel={t("admin.abilityEditor.sectionBadges.advanced")}
+        badgeTone="warning"
+        icon="code-slash-outline"
         defaultOpen={showRawJson}
       >
+        <AdminNotice
+          title={t("admin.abilityEditor.rawPayloadNoticeTitle")}
+          body={t("admin.abilityEditor.rawPayloadNoticeBody")}
+          tone="warning"
+          icon="code-slash"
+        />
         <ToggleRow
           label={t("admin.abilityEditor.useRawPayloadEditor")}
           value={showRawJson}
@@ -1293,25 +1405,51 @@ function toggleListValue<T extends string>(values: T[], value: T) {
 
 function Section({
   title,
+  subtitle,
+  badgeLabel,
+  badgeTone = "default",
+  icon = "albums-outline",
   defaultOpen = false,
   children,
 }: {
   title: string;
+  subtitle?: string;
+  badgeLabel?: string;
+  badgeTone?: "default" | "success" | "info" | "accent" | "danger" | "warning";
+  icon?: IoniconName;
   defaultOpen?: boolean;
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(defaultOpen);
+  const { themeName } = useThemeStore();
+  const tc = THEME_COLORS[themeName];
   const { t } = useTranslation();
 
   return (
     <View className="rounded-[22] overflow-hidden border border-primaryBorder/18 bg-surfaceMuted">
       <Pressable
-        className="px-4 py-[14] flex-row items-center justify-between bg-primaryTint/95"
+        className="px-4 py-[14] flex-row items-center gap-3 bg-primaryTint/95"
         onPress={() => setOpen((current) => !current)}
       >
-        <Text className="font-nunito-extrabold text-[15px] text-primaryStrong">
-          {title}
-        </Text>
+        <View
+          className="h-10 w-10 items-center justify-center rounded-2xl"
+          style={{ backgroundColor: withAlpha(tc.primaryStrong, "12") }}
+        >
+          <Ionicons name={icon} size={18} color={tc.primaryStrong} />
+        </View>
+        <View className="flex-1 gap-1">
+          <View className="flex-row items-center gap-2 flex-wrap">
+            <Text className="font-nunito-extrabold text-[15px] text-primaryStrong">
+              {title}
+            </Text>
+            {badgeLabel ? <AdminChip label={badgeLabel} tone={badgeTone} /> : null}
+          </View>
+          {subtitle ? (
+            <Text className="font-nunito-semibold text-[12px] leading-[18px] text-fgMuted">
+              {subtitle}
+            </Text>
+          ) : null}
+        </View>
         <Text className="font-nunito-bold text-xs text-primaryStrong">
           {open ? t("admin.abilityEditor.hide") : t("admin.abilityEditor.show")}
         </Text>
@@ -1330,11 +1468,10 @@ function GridFields({
     onChangeText: (value: string) => void;
   }>;
 }) {
-  const { t } = useTranslation();
   return (
     <View className="flex-row flex-wrap gap-[10]">
       {fields.map((field) => (
-        <View key={field.label} className="w-[48%]">
+        <View key={field.label} className="min-w-[48%] flex-1">
           <AdminField
             label={field.label}
             value={field.value}
@@ -1343,6 +1480,86 @@ function GridFields({
           />
         </View>
       ))}
+    </View>
+  );
+}
+
+function AbilityTypeSelector({
+  value,
+  onChange,
+}: {
+  value: AbilityType;
+  onChange: (value: AbilityType) => void;
+}) {
+  const { themeName } = useThemeStore();
+  const tc = THEME_COLORS[themeName];
+  const { t } = useTranslation();
+
+  return (
+    <View className="gap-3">
+      <View className="gap-1">
+        <Text className="font-nunito-bold text-xs text-primaryText">
+          {t("admin.abilityEditor.type")}
+        </Text>
+        <Text className="font-nunito-semibold text-xs leading-[18px] text-fgMuted">
+          {t("admin.abilityEditor.typeSelectorHint")}
+        </Text>
+      </View>
+      <View className="gap-2">
+        {ABILITY_TYPE_OPTIONS.map((option) => {
+          const selected = option.value === value;
+
+          return (
+            <Pressable
+              key={option.value}
+              className="rounded-[20] border px-4 py-3 flex-row items-center gap-3"
+              style={{
+                backgroundColor: selected
+                  ? withAlpha(tc.primaryTint, "9C")
+                  : withAlpha(tc.surface, "F0"),
+                borderColor: selected
+                  ? withAlpha(tc.primaryStrong, "6B")
+                  : withAlpha(tc.primaryBorder, "45"),
+              }}
+              onPress={() => onChange(option.value)}
+            >
+              <View
+                className="h-11 w-11 items-center justify-center rounded-2xl"
+                style={{
+                  backgroundColor: selected
+                    ? withAlpha(tc.primaryStrong, "18")
+                    : withAlpha(tc.surfaceMuted, "E6"),
+                }}
+              >
+                <Ionicons
+                  name={option.icon}
+                  size={20}
+                  color={selected ? tc.primaryStrong : tc.primaryText}
+                />
+              </View>
+              <View className="flex-1 gap-1">
+                <View className="flex-row items-center gap-2 flex-wrap">
+                  <AbilityTypeChip type={option.value} />
+                  {selected ? (
+                    <AdminChip
+                      label={t("admin.abilityEditor.sectionBadges.selected")}
+                      tone="accent"
+                    />
+                  ) : null}
+                </View>
+                <Text className="font-nunito-semibold text-[12px] leading-[18px] text-fgMuted">
+                  {t(`admin.abilityEditor.typeDescriptions.${option.value}`)}
+                </Text>
+              </View>
+              <Ionicons
+                name={selected ? "checkmark-circle" : "ellipse-outline"}
+                size={20}
+                color={selected ? tc.primaryStrong : tc.primaryBorder}
+              />
+            </Pressable>
+          );
+        })}
+      </View>
     </View>
   );
 }
@@ -1734,10 +1951,36 @@ function JsonField({
   );
 }
 
-function InfoPill({ text }: { text: string }) {
+function InfoPill({
+  text,
+  tone = "warning",
+}: {
+  text: string;
+  tone?: "info" | "warning" | "accent";
+}) {
+  const themeName = useThemeStore((state) => state.themeName);
+  const tc = THEME_COLORS[themeName];
+  const palette = {
+    info: {
+      bg: withAlpha(tc.infoTint, "D9"),
+      text: tc.infoText,
+    },
+    warning: {
+      bg: withAlpha(tc.secondaryTint, "D9"),
+      text: tc.secondaryText,
+    },
+    accent: {
+      bg: withAlpha(tc.accentTint, "D9"),
+      text: tc.accentText,
+    },
+  }[tone];
+
   return (
-    <View className="rounded-[14] bg-secondaryTint px-3 py-[10]">
-      <Text className="font-nunito-bold text-xs text-secondaryText">
+    <View
+      className="rounded-[16] px-3 py-[10]"
+      style={{ backgroundColor: palette.bg }}
+    >
+      <Text className="font-nunito-bold text-xs" style={{ color: palette.text }}>
         {text}
       </Text>
     </View>

@@ -351,7 +351,11 @@ const admin = {
   },
   abilityEditor: {
     createTitle: "Créer une capacité",
+    createSubtitle:
+      "Choisis d'abord le rôle, puis ne remplis que le comportement réellement nécessaire à cette capacité réutilisable.",
     editTitle: "Modifier la capacité",
+    editSubtitle:
+      "Ajuste la définition partagée avec soin pour que chaque carte liée reste claire à comprendre.",
     loading: "Chargement de la capacité...",
     notFound: "Cette capacité est introuvable.",
     invalidApiData:
@@ -360,6 +364,11 @@ const admin = {
     deleteAbilityTitle: "Supprimer la capacité",
     deleteAbilityBody: "Supprimer {name} ?",
     basicInfo: "Informations de base",
+    basicInfoDescription:
+      "Définis l'identité et le rôle de cette capacité avant d'affiner son comportement en combat.",
+    battleRules: "Règles de combat",
+    battleRulesDescription:
+      "Règle le coût, le timing et le ciblage pour indiquer au moteur quand et où la capacité s'active.",
     key: "Clé",
     keyPlaceholder: "ability_key",
     name: "Nom",
@@ -387,6 +396,50 @@ const admin = {
     conditional: "Conditionnel",
     payloadJson: "JSON du payload",
     useRawPayloadEditor: "Utiliser l'éditeur JSON brut",
+    workflowTitle: "Flux recommandé",
+    workflowBody:
+      "Choisis d'abord le type de capacité, complète l'essentiel, puis n'ouvre que les sections de comportement réellement utilisées par ce design.",
+    typeSelectorHint:
+      "Choisis le rôle qui correspond le mieux au moment où la capacité doit se déclencher en combat.",
+    typeDescriptions: {
+      PASSIVE:
+        "Comportement permanent ou déclenché. Les passifs ne dépensent ni énergie ni recharge.",
+      SKILL:
+        "Comportement activé répétable. Les compétences ont généralement besoin d'un coût, d'une recharge et d'un ciblage.",
+      ULTIMATE:
+        "Action décisive pour le match. Les ultimes sont toujours enregistrés comme une fois par match.",
+    },
+    passiveRulesHint:
+      "Les capacités passives n'utilisent ni coût ni recharge. Concentre-toi sur les déclencheurs et bonus passifs.",
+    passiveTriggerDescription:
+      "Décris quand un passif doit se déclencher et les valeurs de seuil dont il a besoin.",
+    damageDescription:
+      "Ajoute seulement les modificateurs de dégâts utiles à cette capacité au lieu de remplir tous les champs.",
+    healingAndShieldDescription:
+      "Configure ici les soins, boucliers ou vol de vie quand la capacité protège des alliés.",
+    statusesAndBuffsDescription:
+      "Applique ici les buffs, debuffs ou statuts quand la capacité modifie un état dans le temps.",
+    utilityDescription:
+      "Utilise cette section pour les nettoyages, résurrections, recharges ou règles spéciales hors dégâts principaux.",
+    statBonusesDescription:
+      "Les auras passives de stats et les restrictions par type d'allié se règlent ici.",
+    copyAbilityDescription:
+      "Pour les capacités actives qui empruntent la compétence ou l'ultime d'une autre unité.",
+    conditionalJsonDescription:
+      "Utilise le JSON conditionnel seulement si les contrôles structurés ne suffisent pas à exprimer la règle.",
+    rawPayloadJsonDescription:
+      "Mode avancé pour modifier à la main l'objet payload final envoyé à l'API.",
+    rawPayloadNoticeTitle: "Modification avancée",
+    rawPayloadNoticeBody:
+      "Passe au JSON brut seulement si tu as besoin d'une structure non prise en charge. Après modification directe du JSON, tu es responsable de sa structure.",
+    sectionBadges: {
+      required: "Requis",
+      guided: "Guidé",
+      optional: "Optionnel",
+      configured: "Configuré",
+      advanced: "Avancé",
+      selected: "Sélectionné",
+    },
     rawPayloadSyncHint:
       "Les champs structurés restent synchronisés ici jusqu'à ce que tu modifies directement le JSON brut.",
     show: "Afficher",
