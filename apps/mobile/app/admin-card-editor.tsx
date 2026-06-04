@@ -351,7 +351,7 @@ export default function AdminCardEditorScreen() {
                 </ScrollView>
 
                 <View
-                  className="border-t border-primaryBorder bg-surface px-4 pt-3"
+                  className="px-4 pt-3"
                   style={{ paddingBottom: insets.bottom + 16 }}
                 >
                   <View className="gap-3">
