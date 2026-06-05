@@ -211,11 +211,12 @@ function LoadoutSlotCard({
       </Text>
 
       <View
-        className="relative overflow-hidden rounded-[22px] border-2"
+        className="relative overflow-hidden rounded-[22px] border"
         style={{
           aspectRatio: 0.72,
           backgroundColor: card ? "#FFFFFF" : emptyBackgroundColor,
           borderColor: card ? borderColor : emptyBorderColor,
+          borderWidth: card ? 1.5 : 1,
         }}
       >
         {card ? (
@@ -243,22 +244,21 @@ function LoadoutSlotCard({
               )}
             </BuilderCardPressable>
 
-            <View className="absolute left-2 top-2 rounded-full px-2 py-1">
-              <View
-                className="rounded-full px-2 py-1"
-                style={{ backgroundColor: badgeColor }}
-              >
-                <Text className="font-nunito-bold text-[10px] text-white">
-                  #{index + 1}
-                </Text>
-              </View>
+            <View
+              className="absolute left-2 top-2 rounded-full px-2 py-1"
+              style={{ backgroundColor: `${badgeColor}E6` }}
+            >
+              <Text className="font-nunito-bold text-[10px] text-white">
+                #{index + 1}
+              </Text>
             </View>
 
             <Pressable
               onPress={onRemove}
-              className="absolute right-2 top-2 size-7 items-center justify-center rounded-full bg-black/45"
+              className="absolute right-2 top-2 size-7 items-center justify-center rounded-full"
+              style={{ backgroundColor: "rgba(255,255,255,0.88)" }}
             >
-              <XIcon size={12} color="#FFFFFF" />
+              <XIcon size={12} color={badgeColor} />
             </Pressable>
 
             <LinearGradient
@@ -285,20 +285,36 @@ function LoadoutSlotCard({
                 <Pressable
                   onPress={onMoveBack}
                   disabled={!canMoveBack}
-                  className="rounded-full border border-white/30 bg-black/25 px-2 py-1"
-                  style={{ opacity: canMoveBack ? 1 : 0.35 }}
+                  className="rounded-full px-2.5 py-1"
+                  style={{
+                    backgroundColor: "rgba(255,255,255,0.9)",
+                    opacity: canMoveBack ? 1 : 0.35,
+                  }}
+                  hitSlop={6}
+                  accessibilityLabel={`${label} move left`}
                 >
-                  <Text className="font-nunito-bold text-[10px] text-white">
+                  <Text
+                    className="font-nunito-bold text-[10px]"
+                    style={{ color: badgeColor }}
+                  >
                     {"<"}
                   </Text>
                 </Pressable>
                 <Pressable
                   onPress={onMoveForward}
                   disabled={!canMoveForward}
-                  className="rounded-full border border-white/30 bg-black/25 px-2 py-1"
-                  style={{ opacity: canMoveForward ? 1 : 0.35 }}
+                  className="rounded-full px-2.5 py-1"
+                  style={{
+                    backgroundColor: "rgba(255,255,255,0.9)",
+                    opacity: canMoveForward ? 1 : 0.35,
+                  }}
+                  hitSlop={6}
+                  accessibilityLabel={`${label} move right`}
                 >
-                  <Text className="font-nunito-bold text-[10px] text-white">
+                  <Text
+                    className="font-nunito-bold text-[10px]"
+                    style={{ color: badgeColor }}
+                  >
                     {">"}
                   </Text>
                 </Pressable>
@@ -734,7 +750,10 @@ export default function PvpLoadoutsScreen() {
               testID="pvp-loadout-summary-card"
               className="rounded-[28px] border border-primaryBorder/50 bg-surface/95 p-4"
             >
-              <View className="rounded-[24px] border border-primaryBorder/40 bg-primaryBg p-4">
+              <View
+                className="rounded-[24px] p-4"
+                style={{ backgroundColor: tc.primaryBg }}
+              >
                 <View className="flex-row items-start justify-between gap-3">
                   <View className="flex-1">
                     <Text className="font-nunito-bold text-base text-primaryStrong">
@@ -811,7 +830,10 @@ export default function PvpLoadoutsScreen() {
               </View>
 
               <View className="mt-4 gap-3">
-                <View className="rounded-[24px] border border-successBorder bg-successTint/70 p-4">
+                <View
+                  className="rounded-[24px] p-4"
+                  style={{ backgroundColor: tc.successTint }}
+                >
                   <Text className="font-nunito-bold text-base text-successText">
                     {t("pvp.activeTeam")}
                   </Text>
@@ -826,9 +848,9 @@ export default function PvpLoadoutsScreen() {
                         card={selectedCards[index]}
                         index={index}
                         label={t("pvp.activeSlot", { index: index + 1 })}
-                        borderColor={tc.successDark}
+                        borderColor={`${tc.successDark}B3`}
                         emptyBackgroundColor={tc.successTint}
-                        emptyBorderColor={tc.successBorder}
+                        emptyBorderColor={`${tc.successBorder}CC`}
                         emptyTextColor={tc.successText}
                         badgeColor={tc.successDark}
                         onLongPress={() => {
@@ -847,7 +869,10 @@ export default function PvpLoadoutsScreen() {
                   </View>
                 </View>
 
-                <View className="rounded-[24px] border border-accentBorder bg-accentTint/75 p-4">
+                <View
+                  className="rounded-[24px] p-4"
+                  style={{ backgroundColor: tc.accentTint }}
+                >
                   <Text className="font-nunito-bold text-base text-accentStrong">
                     {t("pvp.benchTeam")}
                   </Text>
@@ -862,9 +887,9 @@ export default function PvpLoadoutsScreen() {
                         card={selectedCards[index]}
                         index={index}
                         label={t("pvp.benchSlot", { index: index - 2 })}
-                        borderColor={tc.accentDark}
+                        borderColor={`${tc.accentDark}B3`}
                         emptyBackgroundColor={tc.accentTint}
-                        emptyBorderColor={tc.accentBorder}
+                        emptyBorderColor={`${tc.accentBorder}CC`}
                         emptyTextColor={tc.accentText}
                         badgeColor={tc.accentDark}
                         onLongPress={() => {
@@ -901,7 +926,7 @@ export default function PvpLoadoutsScreen() {
                     {t("pvp.browseCardsHint")}
                   </Text>
                 </View>
-                <View className="rounded-full border border-primaryBorder bg-primaryBg px-3 py-1.5">
+                <View className="rounded-full bg-primaryBg px-3 py-1.5">
                   <Text className="font-nunito-bold text-xs text-primaryStrong">
                     {filteredCollection.length}
                   </Text>
@@ -961,8 +986,10 @@ export default function PvpLoadoutsScreen() {
                       className="relative mb-0 overflow-hidden rounded-[24px] bg-white"
                       style={{
                         width: "48.5%",
-                        borderColor: isSelected ? tc.primaryDark : rarity.ring,
-                        borderWidth: isSelected ? 2.5 : 2,
+                        borderColor: isSelected
+                          ? tc.primaryDark
+                          : `${rarity.ring}66`,
+                        borderWidth: isSelected ? 2 : 1,
                         backgroundColor: isSelected ? tc.primaryBg : "#FFFFFF",
                       }}
                       testID={`pvp-loadout-card-${card.id}`}
@@ -1065,10 +1092,9 @@ export default function PvpLoadoutsScreen() {
 
                         <View className="flex-row flex-wrap gap-1.5">
                           <View
-                            className="rounded-full border px-2.5 py-1"
+                            className="rounded-full px-2.5 py-1"
                             style={{
                               backgroundColor: `${rarity.from}20`,
-                              borderColor: `${rarity.ring}55`,
                             }}
                           >
                             <Text
@@ -1081,10 +1107,9 @@ export default function PvpLoadoutsScreen() {
 
                           {entry.quantity > 1 ? (
                             <View
-                              className="rounded-full border px-2.5 py-1"
+                              className="rounded-full px-2.5 py-1"
                               style={{
                                 backgroundColor: tc.surfaceMuted,
-                                borderColor: tc.primaryBorder,
                               }}
                             >
                               <Text
