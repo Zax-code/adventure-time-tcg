@@ -22,6 +22,25 @@ require_command() {
   fi
 }
 
+ensure_pods_in_sync() {
+  local ios_root="$MOBILE_ROOT/ios"
+  local podfile_lock="$ios_root/Podfile.lock"
+  local manifest_lock="$ios_root/Pods/Manifest.lock"
+
+  if [[ ! -f "$podfile_lock" ]]; then
+    echo "Missing iOS Podfile.lock at $podfile_lock"
+    exit 1
+  fi
+
+  if [[ ! -f "$manifest_lock" ]] || ! cmp -s "$podfile_lock" "$manifest_lock"; then
+    echo "Syncing CocoaPods sandbox for this worktree"
+    (
+      cd "$ios_root"
+      pod install --repo-update --ansi
+    )
+  fi
+}
+
 list_available_simulators() {
   xcrun simctl list devices available | awk -F'[()]' '/iPhone/ {gsub(/^ +| +$/, "", $1); print $1}'
 }
@@ -70,12 +89,13 @@ boot_simulator() {
   exit 1
 }
 
-for command_name in npx xcrun open rg; do
+for command_name in cmp npx pod xcrun open rg; do
   require_command "$command_name"
 done
 
 require_command node
 node "$MOBILE_ROOT/scripts/ensure-worktree-node-modules.mjs"
+ensure_pods_in_sync
 
 IOS_SIMULATOR_NAME="$(resolve_simulator_name "$@")"
 
