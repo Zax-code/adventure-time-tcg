@@ -3,6 +3,7 @@ import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { parseArgs } from "node:util";
+import { ensureWorktreeNodeModules } from "./ensure-worktree-node-modules.mjs";
 
 const PRODUCTION_API_BASE_URL = "https://app.leaetzak.love";
 const DEFAULT_PROFILE = "production";
@@ -66,6 +67,7 @@ function runCommand(command, args, { cwd }) {
 
 async function main() {
   const mobileRoot = path.resolve(import.meta.dirname, "..");
+  ensureWorktreeNodeModules({ mobileRoot });
   process.env.NODE_ENV ??= "production";
   process.env.EAS_NO_VCS ??= "1";
   process.env.EAS_BUILD_DISABLE_EXPO_DOCTOR_STEP ??= "1";

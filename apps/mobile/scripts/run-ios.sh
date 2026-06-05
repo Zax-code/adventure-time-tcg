@@ -74,6 +74,9 @@ for command_name in npx xcrun open rg; do
   require_command "$command_name"
 done
 
+require_command node
+node "$MOBILE_ROOT/scripts/ensure-worktree-node-modules.mjs"
+
 IOS_SIMULATOR_NAME="$(resolve_simulator_name "$@")"
 
 if [[ -z "$IOS_SIMULATOR_NAME" ]]; then

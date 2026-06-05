@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import { parseArgs } from "node:util";
+import { ensureWorktreeNodeModules } from "./ensure-worktree-node-modules.mjs";
 import { buildIosLocally } from "./ios-local-build.mjs";
 
 const PRODUCTION_API_BASE_URL = "https://app.leaetzak.love";
@@ -38,6 +39,7 @@ function parseCliOptions() {
 
 async function main() {
   const mobileRoot = path.resolve(import.meta.dirname, "..");
+  ensureWorktreeNodeModules({ mobileRoot });
   process.env.NODE_ENV ??= "production";
   process.env.EXPO_PUBLIC_API_BASE_URL = PRODUCTION_API_BASE_URL;
 
