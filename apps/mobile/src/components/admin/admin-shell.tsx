@@ -231,19 +231,23 @@ export function AdminShell({ children }: { children: ReactNode }) {
               <View
                 className="relative p-[6px]"
                 onLayout={(event) => {
-                  setBarWidth(event.nativeEvent.layout.width);
+                  const nextWidth = Math.round(event.nativeEvent.layout.width);
+                  setBarWidth((currentWidth) =>
+                    currentWidth === nextWidth ? currentWidth : nextWidth,
+                  );
                 }}
               >
                 {selectorWidth ? (
                   <Animated.View
                     pointerEvents="none"
-                    className="absolute rounded-[22px]"
                     style={[
                       {
+                        position: "absolute",
                         top: selectorInset,
                         bottom: selectorInset,
                         left: selectorInset,
                         width: selectorWidth,
+                        borderRadius: 22,
                         backgroundColor: withAlpha(tc.primaryTint, "E8"),
                         borderWidth: 1,
                         borderColor: withAlpha(tc.primaryBorder, "4D"),
