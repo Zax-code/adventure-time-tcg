@@ -281,6 +281,7 @@ const pvp = {
   benchSlot: "Banc {index}",
   firstThreeActive:
     "Les 3 premières cartes sont actives, les 3 dernières sont sur le banc",
+  clearSelection: "Vider",
   cardMissingTitle: "Carte non possédée",
   update: "Mettre à jour",
   create: "Créer",

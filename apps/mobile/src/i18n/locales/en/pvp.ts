@@ -267,6 +267,7 @@ const pvp = {
   activeSlot: "Active {index}",
   benchSlot: "Bench {index}",
   firstThreeActive: "First 3 cards are active, last 3 are bench",
+  clearSelection: "Clear",
   cardMissingTitle: "Card no longer owned",
   update: "Update",
   create: "Create",
