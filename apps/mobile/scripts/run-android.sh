@@ -176,8 +176,6 @@ for command_name in adb emulator keytool npx node rg; do
   require_command "$command_name"
 done
 
-node "$MOBILE_ROOT/scripts/ensure-worktree-node-modules.mjs"
-
 ensure_directory "$JAVA_HOME"
 ensure_directory "$ANDROID_HOME"
 ensure_debug_keystore

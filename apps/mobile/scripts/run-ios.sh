@@ -94,7 +94,6 @@ for command_name in cmp npx pod xcrun open rg; do
 done
 
 require_command node
-node "$MOBILE_ROOT/scripts/ensure-worktree-node-modules.mjs"
 ensure_pods_in_sync
 
 IOS_SIMULATOR_NAME="$(resolve_simulator_name "$@")"
