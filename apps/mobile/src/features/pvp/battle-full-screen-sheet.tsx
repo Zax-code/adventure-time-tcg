@@ -21,6 +21,7 @@ interface BattleFullScreenSheetProps {
   children: ReactNode;
   footer?: ReactNode;
   scrollable?: boolean;
+  showCloseButton?: boolean;
   testID?: string;
   closeButtonTestID?: string;
 }
@@ -32,6 +33,7 @@ export function BattleFullScreenSheet({
   children,
   footer,
   scrollable = true,
+  showCloseButton = true,
   testID,
   closeButtonTestID,
 }: BattleFullScreenSheetProps) {
@@ -115,36 +117,38 @@ export function BattleFullScreenSheet({
             style={{ marginBottom: 8, marginTop: 12 }}
           />
 
-          <View className="flex-row items-center border-b border-primaryTint px-5 pb-4">
+          <View className="flex-row items-center justify-center border-b border-primaryTint px-5 pb-4">
             <View className="flex-1 items-center">
               <Text className="font-nunito-extrabold text-2xl text-fg">
                 {title}
               </Text>
             </View>
-            <ThemedExpoButton
-              onPress={onClose}
-              testID={closeButtonTestID}
-              variant="ghost"
-              fallbackAppearance={{
-                backgroundColor: tc.surfaceMuted,
-                borderColor: tc.surfaceMuted,
-                borderRadius: 999,
-                foregroundColor: tc.fgMuted,
-                gradientColors: null,
-                minHeight: 34,
-                paddingHorizontal: 8,
-                paddingVertical: 8,
-              }}
-              style={{
-                minHeight: 34,
-                minWidth: 34,
-                position: "absolute",
-                right: 20,
-                top: 0,
-              }}
-            >
-              <XIcon size={18} color={tc.fgMuted} />
-            </ThemedExpoButton>
+            {showCloseButton ? (
+              <ThemedExpoButton
+                onPress={onClose}
+                testID={closeButtonTestID}
+                variant="ghost"
+                fallbackAppearance={{
+                  backgroundColor: tc.surfaceMuted,
+                  borderColor: tc.surfaceMuted,
+                  borderRadius: 999,
+                  foregroundColor: tc.fgMuted,
+                  gradientColors: null,
+                  minHeight: 34,
+                  paddingHorizontal: 8,
+                  paddingVertical: 8,
+                }}
+                style={{
+                  minHeight: 34,
+                  minWidth: 34,
+                  position: "absolute",
+                  right: 20,
+                  top: 0,
+                }}
+              >
+                <XIcon size={18} color={tc.fgMuted} />
+              </ThemedExpoButton>
+            ) : null}
           </View>
         </View>
 

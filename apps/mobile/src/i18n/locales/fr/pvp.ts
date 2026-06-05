@@ -299,12 +299,14 @@ const pvp = {
   readyForBattle: "Prêt pour le combat ?",
   readyForBattleHint: "Crée une composition et défie un ami pour commencer !",
   challengeReadyHint: "Choisis une composition prête et lance un défi en un geste.",
+  challengeSheetIntro:
+    "Choisis une composition prête, commence avec tes derniers adversaires ou cherche un joueur précis.",
   createLoadoutHint:
     "Construis d'abord une équipe valide de 6 cartes avant d'envoyer un défi.",
   manageLoadoutsHint:
     "Crée, corrige et réorganise les équipes que tu utilises en PvP.",
   spectateHint:
-    "Observe des matchs en direct pour apprendre les compositions et les matchups.",
+    "Observe des matchs en direct pour mieux comprendre les compositions et les affrontements.",
   friendEmail: "E-mail de ton ami",
   invalidLoadout: "{count} carte(s) invalide(s) - composition inutilisable",
   needValidLoadout:
@@ -353,6 +355,18 @@ const pvp = {
   acceptBattle: "Accepter le combat",
   chooseLoadoutAccept: "Choisis ta composition pour accepter :",
   chooseOpponent: "Choisis un joueur :",
+  recentOpponents: "{count} adversaires récents",
+  recentOpponentsHint:
+    "Commence par les joueurs de tes derniers matchs et invitations, ou utilise la recherche pour trouver quelqu'un d'autre.",
+  searchResults: "{count} joueurs correspondants",
+  searchPlayersHint:
+    "Recherche par nom ou e-mail, même avec une saisie partielle, pour trouver rapidement le bon joueur.",
+  searchLoadoutsPlaceholder: "Rechercher une composition...",
+  searchPlayersPlaceholder: "Rechercher un joueur par nom ou e-mail...",
+  noLoadoutMatches: "Aucune composition ne correspond à cette recherche.",
+  noPlayerMatches: "Aucun joueur disponible ne correspond à cette recherche.",
+  noRecentOpponents:
+    "Aucun adversaire récent pour le moment. Utilise la recherche pour trouver un joueur précis.",
   noPlayersAvailable: "Aucun joueur disponible pour le moment.",
   activeMatchExists: "Combat actif",
   pendingInviteExists: "Invitation en attente",
@@ -360,7 +374,7 @@ const pvp = {
     "Toutes tes compositions ont des cartes manquantes. Modifie-les pour jouer.",
   createLoadoutToAccept:
     "Crée d'abord une composition pour accepter les combats !",
-  challengeBy: "T'a défié {time}",
+  challengeBy: "T’a défié {time}",
   cardDetailsTitle: "Détails de la carte",
   activeEffects: "Effets actifs",
   oncePerMatch: "Une fois par match",

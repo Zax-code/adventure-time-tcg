@@ -286,6 +286,8 @@ const pvp = {
   readyForBattleHint:
     "Create a loadout and challenge a friend to get started!",
   challengeReadyHint: "Pick a ready loadout and challenge a friend in one step.",
+  challengeSheetIntro:
+    "Pick a ready loadout, start from recent opponents, or search for someone specific.",
   createLoadoutHint: "Build a legal 6-card team before sending battle invites.",
   manageLoadoutsHint: "Create, fix, and reorder the teams you use in PvP.",
   spectateHint: "Watch live matches to learn lineups, pacing, and matchups.",
@@ -336,6 +338,18 @@ const pvp = {
   acceptBattle: "Accept Battle",
   chooseLoadoutAccept: "Choose your loadout to accept:",
   chooseOpponent: "Choose a player:",
+  recentOpponents: "{count} recent opponents",
+  recentOpponentsHint:
+    "Start with players from your latest battles and invites, or search for anyone else.",
+  searchResults: "{count} matching players",
+  searchPlayersHint:
+    "Search by name or email with partial or fuzzy matching to jump straight to the right player.",
+  searchLoadoutsPlaceholder: "Search loadouts...",
+  searchPlayersPlaceholder: "Search players by name or email...",
+  noLoadoutMatches: "No loadouts match this search.",
+  noPlayerMatches: "No available players match this search.",
+  noRecentOpponents:
+    "No recent opponents yet. Use search to find a specific player.",
   noPlayersAvailable: "No players available right now.",
   activeMatchExists: "Active battle",
   pendingInviteExists: "Invite pending",
