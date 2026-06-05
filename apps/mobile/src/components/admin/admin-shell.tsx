@@ -1,10 +1,15 @@
 import type { ReactNode } from "react";
-import { memo } from "react";
+import { memo, useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { usePathname, useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import Ionicons from "@react-native-vector-icons/ionicons";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from "react-native-reanimated";
 
 import { CoinIcon, CardsIcon, HomeIcon, SettingsIcon } from "../icons";
 import { useTranslation } from "../../i18n";
@@ -99,6 +104,36 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const { themeName } = useThemeStore();
   const tc = THEME_COLORS[themeName];
   const { t } = useTranslation();
+  const [barWidth, setBarWidth] = useState(0);
+  const selectorOffset = useSharedValue(0);
+  const selectorInset = 6;
+  const activeTabIndex = Math.max(
+    NAV_ITEMS.findIndex(
+      (item) =>
+        pathname === item.path ||
+        (pathname === "/admin" && item.path === "/admin/cards"),
+    ),
+    0,
+  );
+  const selectorWidth =
+    barWidth > selectorInset * 2
+      ? (barWidth - selectorInset * 2) / NAV_ITEMS.length
+      : 0;
+  const selectorStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: selectorOffset.value }],
+  }));
+
+  useEffect(() => {
+    if (!selectorWidth) {
+      return;
+    }
+
+    selectorOffset.value = withSpring(selectorWidth * activeTabIndex, {
+      damping: 20,
+      mass: 0.9,
+      stiffness: 240,
+    });
+  }, [activeTabIndex, selectorOffset, selectorWidth]);
 
   return (
     <AdminBackground>
@@ -182,7 +217,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
             style={{ paddingBottom: Math.max(insets.bottom, 12) }}
           >
             <View
-              className="flex-row rounded-[30] border p-2"
+              className="rounded-[30] border"
               style={{
                 backgroundColor: tc.surface,
                 borderColor: withAlpha(tc.primaryBorder, "73"),
@@ -193,52 +228,72 @@ export function AdminShell({ children }: { children: ReactNode }) {
                 elevation: 5,
               }}
             >
-              {NAV_ITEMS.map((item) => {
-                const active =
-                  pathname === item.path ||
-                  (pathname === "/admin" && item.path === "/admin/cards");
-                const tint = tc[item.tintKey];
+              <View
+                className="relative p-[6px]"
+                onLayout={(event) => {
+                  setBarWidth(event.nativeEvent.layout.width);
+                }}
+              >
+                {selectorWidth ? (
+                  <Animated.View
+                    pointerEvents="none"
+                    className="absolute rounded-[22px]"
+                    style={[
+                      {
+                        top: selectorInset,
+                        bottom: selectorInset,
+                        left: selectorInset,
+                        width: selectorWidth,
+                        backgroundColor: withAlpha(tc.primaryTint, "E8"),
+                        borderWidth: 1,
+                        borderColor: withAlpha(tc.primaryBorder, "4D"),
+                      },
+                      selectorStyle,
+                    ]}
+                  />
+                ) : null}
+                <View className="flex-row">
+                  {NAV_ITEMS.map((item) => {
+                    const active =
+                      pathname === item.path ||
+                      (pathname === "/admin" &&
+                        item.path === "/admin/cards");
+                    const tint = tc[item.tintKey];
 
-                return (
-                  <Pressable
-                    key={item.path}
-                    onPress={() => router.replace(item.path as any)}
-                    className="flex-1 items-center justify-center gap-1 rounded-[22] px-0 py-2"
-                    style={{
-                      backgroundColor: active
-                        ? withAlpha(tc.primaryTint, "E8")
-                        : "transparent",
-                    }}
-                  >
-                    <View
-                      className="h-[34] w-[34] items-center justify-center rounded-[12]"
-                      style={{
-                        backgroundColor: active ? tc.surface : "transparent",
-                      }}
-                    >
-                      {item.path === "/admin/cards" ? (
-                        <CardsIcon
-                          size={20}
-                          color={active ? tint : tc.fgMuted}
-                        />
-                      ) : (
-                        <Ionicons
-                          name={item.icon}
-                          size={20}
-                          color={active ? tint : tc.fgMuted}
-                        />
-                      )}
-                    </View>
-                    <Text
-                      className="font-nunito-extrabold text-[9px]"
-                      numberOfLines={1}
-                      style={{ color: active ? tint : tc.fgMuted }}
-                    >
-                      {t(item.labelKey)}
-                    </Text>
-                  </Pressable>
-                );
-              })}
+                    return (
+                      <Pressable
+                        key={item.path}
+                        onPress={() => router.replace(item.path as any)}
+                        className="flex-1 items-center justify-center gap-1 rounded-[22] px-0 py-2"
+                        style={{ minWidth: 0 }}
+                      >
+                        {item.path === "/admin/cards" ? (
+                          <CardsIcon
+                            size={20}
+                            color={active ? tint : tc.fgMuted}
+                          />
+                        ) : (
+                          <Ionicons
+                            name={item.icon}
+                            size={20}
+                            color={active ? tint : tc.fgMuted}
+                          />
+                        )}
+                        <Text
+                          className="font-nunito-extrabold text-[9px]"
+                          numberOfLines={1}
+                          style={{
+                            color: active ? tint : tc.fgMuted,
+                            flexShrink: 1,
+                          }}
+                        >
+                          {t(item.labelKey)}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
             </View>
           </View>
         </View>
