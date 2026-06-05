@@ -51,7 +51,7 @@ export default function TabLayout() {
           name="packs"
           options={{
             title: t("nav.pack"),
-            href: null,
+            tabBarButtonTestID: "tab-packs",
           }}
         />
         <Tabs.Screen
