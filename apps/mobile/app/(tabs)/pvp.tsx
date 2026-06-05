@@ -17,6 +17,8 @@ import {
   CheckIcon,
   ClockIcon,
   EyeIcon,
+  HelpCircleIcon,
+  QuestIcon,
   SwordsIcon,
   TrophyIcon,
   UserPlusIcon,
@@ -640,7 +642,7 @@ export default function PvpScreen() {
                   <View className="gap-3">
                     <View className="flex-row items-center justify-between gap-2">
                       <View className="h-10 w-10 items-center justify-center rounded-2xl bg-primaryTint">
-                        <SwordsIcon size={18} color={tc.primaryDark} />
+                        <HelpCircleIcon size={18} color={tc.primaryDark} />
                       </View>
                       <View className="rounded-full bg-primaryTint px-2.5 py-2">
                         <ChevronRightIcon size={16} color={tc.primaryDark} />
@@ -675,7 +677,7 @@ export default function PvpScreen() {
                   <View className="gap-3">
                     <View className="flex-row items-center justify-between gap-2">
                       <View className="h-10 w-10 items-center justify-center rounded-2xl bg-accentTint">
-                        <EyeIcon size={18} color={tc.accentText} />
+                        <QuestIcon size={18} color={tc.accentText} />
                       </View>
                       <View className="rounded-full bg-accentTint px-2.5 py-2">
                         <ChevronRightIcon size={16} color={tc.accentText} />
