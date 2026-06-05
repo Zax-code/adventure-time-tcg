@@ -1211,7 +1211,7 @@ export default function PvpLoadoutsScreen() {
             <ThemedExpoButton
               testID="pvp-loadout-clear-button"
               onPress={() => setSelectedCardIds([])}
-              style={{ flex: 1 }}
+              style={{ flexGrow: 0, flexShrink: 0 }}
               variant="ghost"
               fallbackAppearance={{
                 backgroundColor: tc.surfaceMuted,
@@ -1220,14 +1220,14 @@ export default function PvpLoadoutsScreen() {
                 foregroundColor: tc.fgMuted,
                 gradientColors: null,
                 minHeight: 0,
-                paddingHorizontal: 16,
+                paddingHorizontal: 14,
                 paddingVertical: 14,
                 textStyle: {
                   fontFamily: "Nunito_700Bold",
                   fontSize: 14,
                 },
-                }}
-              >
+              }}
+            >
               {t("pvp.clearSelection")}
             </ThemedExpoButton>
 
@@ -1240,7 +1240,7 @@ export default function PvpLoadoutsScreen() {
               }
               onPress={saveLoadout}
               loading={saveMutation.isPending}
-              style={{ flex: 1 }}
+              style={{ flex: 1, minWidth: 0 }}
               variant="primary"
               fallbackAppearance={{
                 backgroundColor: tc.primary,
