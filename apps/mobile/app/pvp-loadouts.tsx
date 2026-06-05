@@ -1226,9 +1226,9 @@ export default function PvpLoadoutsScreen() {
                   fontFamily: "Nunito_700Bold",
                   fontSize: 14,
                 },
-              }}
-            >
-              {t("common.clear")}
+                }}
+              >
+              {t("pvp.clearSelection")}
             </ThemedExpoButton>
 
             <ThemedExpoButton
