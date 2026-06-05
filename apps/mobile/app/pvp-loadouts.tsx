@@ -674,12 +674,13 @@ export default function PvpLoadoutsScreen() {
                         key={loadout.id}
                         testID={`pvp-loadout-saved-${loadout.id}`}
                         onPress={() => editLoadout(loadout.id)}
-                        className={`rounded-[24px] border p-4 ${
-                          active
-                            ? "border-accentDark bg-accentTint"
-                            : "border-primaryBorder/40 bg-surfaceMuted"
-                        }`}
-                        style={{ width: 208 }}
+                        className="rounded-[24px] p-4"
+                        style={{
+                          width: 208,
+                          borderWidth: 1,
+                          borderColor: active ? tc.accentDark : `${tc.primaryBorder}88`,
+                          backgroundColor: active ? tc.accentTint : tc.surfaceMuted,
+                        }}
                       >
                         <View className="flex-row items-start justify-between gap-3">
                           <Text
