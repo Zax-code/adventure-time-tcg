@@ -70,6 +70,7 @@ type BurstCrack = {
   delay: number;
 };
 type BurstParticle = {
+  id: string;
   travelX: number;
   travelY: number;
   size: number;
@@ -77,6 +78,7 @@ type BurstParticle = {
   color: string;
 };
 type BurstShard = {
+  id: string;
   travelX: number;
   travelY: number;
   width: number;
@@ -123,6 +125,16 @@ const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function useAnimatedValue(initialValue: number) {
+  const ref = useRef<Animated.Value | null>(null);
+
+  if (ref.current === null) {
+    ref.current = new Animated.Value(initialValue);
+  }
+
+  return ref.current;
 }
 
 function slugifyPackName(name: string) {
@@ -306,10 +318,11 @@ function createBurstPattern(width: number, height: number): PackBurstPattern {
     };
   });
 
-  const particles = Array.from({ length: 82 }, () => {
+  const particles = Array.from({ length: 82 }, (_, index) => {
     const angle = randomBetween(0, Math.PI * 2);
     const distance = randomBetween(140, 390);
     return {
+      id: `particle-${index}`,
       travelX: Math.cos(angle) * distance,
       travelY: Math.sin(angle) * distance,
       size: randomBetween(4, 13),
@@ -321,10 +334,11 @@ function createBurstPattern(width: number, height: number): PackBurstPattern {
     };
   });
 
-  const shards = Array.from({ length: 18 }, () => {
+  const shards = Array.from({ length: 18 }, (_, index) => {
     const angle = randomBetween(0, Math.PI * 2);
     const distance = randomBetween(120, 330);
     return {
+      id: `shard-${index}`,
       travelX: Math.cos(angle) * distance,
       travelY: Math.sin(angle) * distance,
       width: randomBetween(18, 28),
@@ -1219,10 +1233,10 @@ function CrackedPackPreview({
           transform: [{ scale: shockwaveScale }],
         }}
       />
-      {resolvedPattern.particles.map((particle, index) => {
+      {resolvedPattern.particles.map((particle) => {
         return (
           <Animated.View
-            key={`particle-${index}`}
+            key={particle.id}
             pointerEvents="none"
             style={{
               position: "absolute",
@@ -1268,10 +1282,10 @@ function CrackedPackPreview({
           />
         );
       })}
-      {resolvedPattern.shards.map((shard, index) => {
+      {resolvedPattern.shards.map((shard) => {
         return (
           <Animated.View
-            key={`shard-${index}`}
+            key={shard.id}
             pointerEvents="none"
             style={{
               position: "absolute",
@@ -1420,7 +1434,7 @@ export default function PacksScreen() {
   const loadingDeckWidth = revealCardWidth;
 
   const chargeAnim = useRef(new Animated.Value(0)).current;
-  const sheenAnim = useRef(new Animated.Value(0)).current;
+  const sheenAnim = useAnimatedValue(0);
   const burstFlashAnim = useRef(new Animated.Value(0)).current;
   const loadingIdleAnim = useRef(new Animated.Value(0)).current;
   const loadingProgressAnim = useRef(new Animated.Value(0)).current;
