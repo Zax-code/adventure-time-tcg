@@ -130,6 +130,9 @@ const BURST_PARTICLE_COLORS = [
   "#FF3B16",
   "#7BD6FF",
 ];
+const PACK_OPENING_DOM_CARD_WIDTH = 230;
+const PACK_OPENING_DOM_CARD_HEIGHT = 330;
+const PACK_OPENING_GEM_CENTER_Y = 0.47;
 const TREASURE_RAY_SPECS = [
   { angle: 16, spread: 6, inner: 0.18, outer: 0.48, color: "rgba(255, 242, 168, 0.52)" },
   { angle: 52, spread: 7, inner: 0.2, outer: 0.44, color: "rgba(255, 194, 70, 0.42)" },
@@ -624,6 +627,195 @@ function PackPreviewCard({
           />
         </Animated.View>
       ) : null}
+    </Animated.View>
+  );
+}
+
+function PackOpeningChargeCover({
+  accentColor,
+  chargeAnim,
+  sheenAnim,
+  width,
+}: {
+  accentColor: string;
+  chargeAnim: Animated.Value;
+  sheenAnim: Animated.Value;
+  width: number;
+}) {
+  const scale = width / PACK_OPENING_DOM_CARD_WIDTH;
+  const height = PACK_OPENING_DOM_CARD_HEIGHT * scale;
+  const auraSize = 390 * scale;
+  const auraTop = height * PACK_OPENING_GEM_CENTER_Y - auraSize / 2;
+  const innerInset = 17 * scale;
+  const innerRadius = 13 * scale;
+  const gemSize = 70 * scale;
+  const gemTop = height * PACK_OPENING_GEM_CENTER_Y - gemSize / 2;
+
+  return (
+    <Animated.View
+      style={{
+        width,
+        height,
+        transform: [
+          {
+            translateY: chargeAnim.interpolate({
+              inputRange: [0, 0.5, 1],
+              outputRange: [6, -8, 6],
+            }),
+          },
+          {
+            rotateX: chargeAnim.interpolate({
+              inputRange: [0, 0.5, 1],
+              outputRange: ["0deg", "6deg", "0deg"],
+            }),
+          },
+          {
+            rotateZ: chargeAnim.interpolate({
+              inputRange: [0, 0.5, 1],
+              outputRange: ["-1deg", "1deg", "-1deg"],
+            }),
+          },
+          {
+            scale: chargeAnim.interpolate({
+              inputRange: [0, 0.5, 1],
+              outputRange: [1, 1.015, 1],
+            }),
+          },
+        ],
+      }}
+    >
+      <View
+        pointerEvents="none"
+        style={{
+          position: "absolute",
+          left: (width - auraSize) / 2,
+          top: auraTop,
+          width: auraSize,
+          height: auraSize,
+          borderRadius: 999,
+          backgroundColor: "rgba(255, 184, 44, 0.14)",
+          boxShadow: "0 0 54px rgba(255, 184, 44, 0.36)",
+        }}
+      />
+      <Animated.View
+        style={{
+          width,
+          height,
+          borderRadius: 18 * scale,
+          overflow: "hidden",
+          boxShadow:
+            "0 0 0 5px #2A1407, 0 0 0 9px #D9902C, 0 22px 55px rgba(0, 0, 0, 0.72), 0 0 42px rgba(255, 166, 42, 0.42)",
+          backgroundColor: "#5E2B10",
+        }}
+      >
+        <LinearGradient
+          colors={["#FFE0A0", "#9F4A17", "#281005", "#5E2B10", "#F9B64A"]}
+          locations={[0, 0.12, 0.18, 0.65, 1]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{ flex: 1 }}
+        />
+        <View
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            left: innerInset,
+            right: innerInset,
+            top: innerInset,
+            bottom: innerInset,
+            borderRadius: innerRadius,
+            overflow: "hidden",
+            backgroundColor: "#351504",
+            borderWidth: 4 * scale,
+            borderColor: "#1D0D04",
+          }}
+        >
+          <LinearGradient
+            colors={[
+              withAlpha(accentColor, "2E"),
+              withAlpha(accentColor, "66"),
+              withAlpha("#FFD771", "CC"),
+              withAlpha(accentColor, "80"),
+              "#351504",
+            ]}
+            locations={[0, 0.24, 0.46, 0.7, 1]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{ flex: 1 }}
+          />
+          <View
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              left: "50%",
+              top: "44%",
+              width: 44 * scale,
+              height: 44 * scale,
+              borderRadius: 999,
+              backgroundColor: "rgba(255, 238, 166, 0.22)",
+              transform: [{ translateX: -22 * scale }, { translateY: -22 * scale }],
+            }}
+          />
+          <View
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              inset: 0,
+              borderRadius: innerRadius,
+              boxShadow: "inset 0 0 32px rgba(0, 0, 0, 0.65)",
+            }}
+          />
+        </View>
+        <View
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            left: width / 2 - gemSize / 2,
+            top: gemTop,
+            width: gemSize,
+            height: gemSize,
+            borderRadius: 13 * scale,
+            backgroundColor: "#FF9E2A",
+            boxShadow:
+              "inset 0 0 10px rgba(255, 255, 255, 0.75), 0 0 32px rgba(255, 174, 45, 0.9)",
+            transform: [{ rotate: "45deg" }],
+          }}
+        >
+          <LinearGradient
+            colors={["#FFF7CB", "#FFCF54", "#F77620", "#7A1607"]}
+            locations={[0, 0.28, 0.62, 1]}
+            start={{ x: 0.28, y: 0.24 }}
+            end={{ x: 0.82, y: 0.92 }}
+            style={{ flex: 1, borderRadius: 13 * scale }}
+          />
+        </View>
+        <Animated.View
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            top: -height * 0.08,
+            bottom: -height * 0.08,
+            width: width * 0.54,
+            opacity: 0.36,
+            transform: [
+              {
+                translateX: sheenAnim.interpolate({
+                  inputRange: [0, 0.45, 0.7, 1],
+                  outputRange: [-width * 1.2, -width * 1.2, width * 1.2, width * 1.2],
+                }),
+              },
+              { rotate: "16deg" },
+            ],
+          }}
+        >
+          <LinearGradient
+            colors={["rgba(255,255,255,0)", "rgba(255,255,255,0.35)", "rgba(255,255,255,0)"]}
+            start={{ x: 0, y: 0.2 }}
+            end={{ x: 1, y: 0.8 }}
+            style={{ flex: 1 }}
+          />
+        </Animated.View>
+      </Animated.View>
     </Animated.View>
   );
 }
@@ -2165,10 +2357,9 @@ export default function PacksScreen() {
               />
               {isChargePhase ? (
                 <View className="absolute inset-0 items-center justify-center">
-                  <PackPreviewCard
-                    pack={selectedPack}
+                  <PackOpeningChargeCover
+                    accentColor={openingAccent}
                     width={chargePreviewWidth}
-                    tc={tc}
                     chargeAnim={chargeAnim}
                     sheenAnim={sheenAnim}
                   />
