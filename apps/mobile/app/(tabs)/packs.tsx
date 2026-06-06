@@ -45,6 +45,7 @@ import {
   ZapIcon,
 } from "../../src/components/icons";
 import { PageLoadingState } from "../../src/components/loading-state";
+import PackOpeningSequenceDom from "../../src/components/pack-opening-sequence-dom";
 import {
   RARITY_COLORS,
   RARITY_COLORS_ICE,
@@ -1717,13 +1718,11 @@ export default function PacksScreen() {
   const [revealedIndex, setRevealedIndex] = useState(-1);
   const [newBalance, setNewBalance] = useState<number | null>(null);
   const [isOpening, setIsOpening] = useState(false);
+  const [openingRunId, setOpeningRunId] = useState(0);
   const [openError, setOpenError] = useState<string | null>(null);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [burstPattern, setBurstPattern] = useState<PackBurstPattern>(() =>
     createBurstPattern(320, 320 / PACK_CARD_RATIO),
-  );
-  const [loadingSparkles, setLoadingSparkles] = useState<LoadingSparkle[]>(() =>
-    createLoadingSparkles(320),
   );
   const shouldHideTabBar = phase !== "selecting" && phase !== "complete";
   const openingBottomPadding = shouldHideTabBar
@@ -1930,6 +1929,7 @@ export default function PacksScreen() {
     stackSpreadAnim.setValue(0);
     setNewBalance(null);
     setIsOpening(true);
+    setOpeningRunId((value) => value + 1);
 
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(
       () => null,
@@ -1945,7 +1945,6 @@ export default function PacksScreen() {
     startBurstAnimation();
 
     await delay(PACK_OPEN_BURST_MS);
-    setLoadingSparkles(createLoadingSparkles(loadingDeckWidth));
     setPhase("loading");
 
     try {
@@ -2110,205 +2109,118 @@ export default function PacksScreen() {
     .slice(0, 3)
     .map((card) => toRarityName(card.rarity?.name));
 
-  if ((phase === "shaking" || phase === "bursting") && selectedPack) {
+  if (
+    (phase === "shaking" || phase === "bursting" || phase === "loading") &&
+    selectedPack
+  ) {
+    const isLoadingPhase = phase === "loading";
+    const openingAccent = selectedPack.color || "#D58524";
+
     return (
-      <View testID="pack-opening-shaking" className="flex-1 bg-bg">
-        <BackgroundOrbs
-          primary={tc.primaryTint}
-          secondary={tc.secondaryTint}
-          accent={tc.accentTint}
-        />
+      <View
+        testID={isLoadingPhase ? "pack-opening-loading" : "pack-opening-shaking"}
+        className="flex-1"
+        style={{ backgroundColor: "#070302" }}
+      >
         <View
-          className="flex-1 px-4 pt-6"
+          className="flex-1 px-4 pt-4"
           style={{ paddingBottom: openingBottomPadding }}
         >
-          <View className="w-full items-center gap-3">
-            <Text className="text-center font-nunito-extrabold text-[28px] leading-[34px] text-fg">
-              {t("packs.opening.chargeTitle")}
-            </Text>
-            <Text className="max-w-[320px] text-center font-nunito text-sm leading-6 text-fgMuted">
-              {t("packs.opening.chargeBody")}
-            </Text>
-          </View>
-
-          <View className="flex-1 items-center justify-center py-5">
-            <Animated.View
-              pointerEvents="none"
-              style={{
-                position: "absolute",
-                width: stageCardWidth * 1.7,
-                height: stageCardWidth * 1.6,
-                opacity:
-                  phase === "bursting"
-                    ? burstOpenAnim.interpolate({
-                        inputRange: [0, 0.28, 0.7, 1],
-                        outputRange: [0.5, 0.7, 0.9, 0],
-                        extrapolate: "clamp",
-                      })
-                    : chargeAnim.interpolate({
-                        inputRange: [0, 0.5, 1],
-                        outputRange: [0.45, 0.72, 0.45],
-                        extrapolate: "clamp",
-                      }),
-                transform: [
-                  {
-                    scale:
-                      phase === "bursting"
-                        ? burstOpenAnim.interpolate({
-                            inputRange: [0, 0.68, 1],
-                            outputRange: [0.74, 0.94, 1.08],
-                            extrapolate: "clamp",
-                          })
-                        : chargeAnim.interpolate({
-                            inputRange: [0, 0.5, 1],
-                            outputRange: [0.74, 0.94, 0.74],
-                            extrapolate: "clamp",
-                          }),
-                  },
-                ],
-              }}
-            >
-              <PackOpeningAura
-                width={stageCardWidth * 1.7}
-                height={stageCardWidth * 1.6}
-                gradientId={`pack-opening-aura-${slugifyPackName(selectedPack.name)}`}
-              />
-            </Animated.View>
-            <Animated.View
-              pointerEvents="none"
-              style={{
-                position: "absolute",
-                width: stageCardWidth + 52,
-                height: stageCardWidth / PACK_CARD_RATIO + 52,
-                borderRadius: 44,
-                backgroundColor: selectedPack.color || tc.primary,
-                opacity:
-                  phase === "bursting"
-                    ? burstFlashAnim.interpolate({
-                        inputRange: [0, 0.35, 1],
-                        outputRange: [0.18, 0.34, 0],
-                      })
-                    : chargeAnim.interpolate({
-                        inputRange: [0, 0.5, 1],
-                        outputRange: [0.12, 0.22, 0.12],
-                      }),
-                transform: [
-                  {
-                    scale:
-                      phase === "bursting"
-                        ? burstFlashAnim.interpolate({
-                            inputRange: [0, 0.35, 1],
-                            outputRange: [0.96, 1.08, 1.16],
-                          })
-                        : chargeAnim.interpolate({
-                            inputRange: [0, 0.5, 1],
-                            outputRange: [0.96, 1.04, 0.96],
-                          }),
-                  },
-                ],
-              }}
-            />
-            {phase === "bursting" ? (
-              <Animated.View
-                pointerEvents="none"
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  backgroundColor: tc.surface,
-                  opacity: burstFlashAnim.interpolate({
-                    inputRange: [0, 0.18, 1],
-                    outputRange: [0, 0.2, 0],
-                  }),
-                }}
-              />
-            ) : null}
-
-            {phase === "bursting" ? (
-              <CrackedPackPreview
-                pack={selectedPack}
-                width={stageCardWidth}
-                tc={tc}
-                openAnim={burstOpenAnim}
-                burstPattern={burstPattern}
-              />
-            ) : (
-              <PackPreviewCard
-                pack={selectedPack}
-                width={stageCardWidth}
-                tc={tc}
-                chargeAnim={chargeAnim}
-                sheenAnim={sheenAnim}
-              />
-            )}
-          </View>
-
-          <View className="items-center gap-4 pb-2">
-            <OpeningProgress tc={tc} activeStep={openingStep} />
-            <Text className="font-nunito-bold text-sm text-primaryText">
-              {t("packs.opening.packOpened", { name: selectedPack.name })}
-            </Text>
-          </View>
-        </View>
-      </View>
-    );
-  }
-
-  if (phase === "loading" && selectedPack) {
-    return (
-      <View testID="pack-opening-loading" className="flex-1 bg-bg">
-        <BackgroundOrbs
-          primary={tc.primaryTint}
-          secondary={tc.secondaryTint}
-          accent={tc.infoTint}
-        />
-        <View
-          className="flex-1 px-4 pt-6"
-          style={{ paddingBottom: openingBottomPadding }}
-        >
-          <View className="w-full items-center gap-3">
-            <Text className="text-center font-nunito-extrabold text-[28px] leading-[34px] text-fg">
-              {t("packs.opening.sortingTitle")}
-            </Text>
-            <Text className="max-w-[330px] text-center font-nunito text-sm leading-6 text-fgMuted">
-              {t("packs.opening.sortingBody")}
-            </Text>
-          </View>
-
-          <View className="flex-1 items-center justify-center py-5">
-            <PackLoadingGlow
-              width={loadingDeckWidth}
-              anim={loadingIdleAnim}
-              sparkles={loadingSparkles}
-            />
-          </View>
-
-          <View className="w-full max-w-[340px] self-center gap-4 pb-2">
-            <OpeningProgress tc={tc} activeStep={openingStep} />
-            <SectionBadge
-              icon={<EyeIcon size={12} color={tc.primaryText} />}
-              label={t("packs.opening.syncingProgress")}
-              backgroundColor={tc.primaryTint}
-              textColor={tc.primaryText}
-            />
+          <View className="flex-1 justify-center">
             <View
-              className="overflow-hidden rounded-full"
-              style={{ backgroundColor: tc.surfaceMuted, height: 12 }}
+              className="self-center overflow-hidden rounded-[28px]"
+              style={{
+                width: "100%",
+                maxWidth: 520,
+                height: Math.min(Math.max(height * 0.62, 420), 620),
+              }}
             >
-              <Animated.View
-                style={{
-                  width: loadingProgressAnim.interpolate({
-                    inputRange: [0, 100],
-                    outputRange: ["0%", "100%"],
+              <PackOpeningSequenceDom
+                key={openingRunId}
+                mode={isLoadingPhase ? "loading" : "burst"}
+                playKey={openingRunId}
+                pack={{
+                  cardCountLabel: t("packs.cardsCount", {
+                    count: selectedPack.cardCount,
                   }),
-                  height: "100%",
-                  borderRadius: 999,
-                  backgroundColor: tc.primaryDark,
+                  color: selectedPack.color || "#C96A24",
+                  name: selectedPack.name,
+                }}
+                dom={{
+                  contentInsetAdjustmentBehavior: "never",
+                  scrollEnabled: false,
+                  style: {
+                    backgroundColor: "transparent",
+                    flex: 1,
+                  },
                 }}
               />
             </View>
-            <Text className="text-center font-nunito text-sm text-fgMuted">
-              {loadingProgress}%
-            </Text>
+          </View>
+
+          <View className="w-full max-w-[340px] self-center gap-3 pb-2">
+            {isLoadingPhase ? (
+              <>
+                <SectionBadge
+                  icon={<EyeIcon size={12} color="#FFE8AD" />}
+                  label={t("packs.opening.syncingProgress")}
+                  backgroundColor="rgba(255, 214, 110, 0.12)"
+                  textColor="#FFE8AD"
+                />
+                <Text
+                  className="text-center font-nunito text-sm"
+                  style={{ color: "rgba(255, 232, 173, 0.78)" }}
+                >
+                  {t("packs.opening.sortingBody")}
+                </Text>
+                <View
+                  className="overflow-hidden rounded-full"
+                  style={{
+                    backgroundColor: "rgba(255,255,255,0.1)",
+                    height: 12,
+                  }}
+                >
+                  <Animated.View
+                    style={{
+                      width: loadingProgressAnim.interpolate({
+                        inputRange: [0, 100],
+                        outputRange: ["0%", "100%"],
+                      }),
+                      height: "100%",
+                      borderRadius: 999,
+                      backgroundColor: openingAccent,
+                    }}
+                  />
+                </View>
+                <Text
+                  className="text-center font-nunito text-sm"
+                  style={{ color: "rgba(255, 232, 173, 0.78)" }}
+                >
+                  {loadingProgress}%
+                </Text>
+              </>
+            ) : (
+              <Text
+                className="text-center font-nunito-bold text-sm"
+                style={{ color: "rgba(255, 232, 173, 0.88)" }}
+              >
+                {t("packs.opening.packOpened", { name: selectedPack.name })}
+              </Text>
+            )}
+
+            <View
+              className="self-center rounded-full px-4 py-1.5"
+              style={{ backgroundColor: "rgba(255,255,255,0.06)" }}
+            >
+              <Text
+                className="font-nunito-bold text-[12px]"
+                style={{ color: "rgba(255, 232, 173, 0.9)" }}
+              >
+                {isLoadingPhase
+                  ? t("packs.opening.sortingTitle")
+                  : t("packs.opening.chargeTitle")}
+              </Text>
+            </View>
           </View>
         </View>
       </View>
