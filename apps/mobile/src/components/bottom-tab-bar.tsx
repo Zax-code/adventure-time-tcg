@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import type { BottomTabBarProps } from "expo-router/js-tabs";
 import { useEffect, useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View, type ViewStyle } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -115,7 +115,16 @@ export function BottomTabBar({
     });
   }, [activeTabIndex, selectorOffset, selectorWidth]);
 
+  const activeDescriptor = descriptors[state.routes[state.index]?.key];
+  const activeTabBarStyle = StyleSheet.flatten(
+    activeDescriptor?.options.tabBarStyle,
+  ) as ViewStyle | undefined;
+
   if (keyboardVisible) {
+    return null;
+  }
+
+  if (activeTabBarStyle?.display === "none") {
     return null;
   }
 
