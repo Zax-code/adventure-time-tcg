@@ -9,12 +9,11 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
-    "baseUrl": ".",
     "paths": {
-      "@adventure-time/db": ["packages/db/src/index.ts"],
-      "@adventure-time/contracts": ["packages/contracts/src/index.ts"],
-      "@adventure-time/game-engine": ["packages/game-engine/src/index.ts"],
-      "@adventure-time/api-client": ["packages/api-client/src/index.ts"]
+      "@adventure-time/db": ["./packages/db/src/index.ts"],
+      "@adventure-time/contracts": ["./packages/contracts/src/index.ts"],
+      "@adventure-time/game-engine": ["./packages/game-engine/src/index.ts"],
+      "@adventure-time/api-client": ["./packages/api-client/src/index.ts"]
     }
   }
 }

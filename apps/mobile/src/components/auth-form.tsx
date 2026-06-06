@@ -20,6 +20,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { ZodError, type ZodIssue } from "zod";
 import { SectionErrorState } from "./error-state";
 import { ApiClientError, apiClient, isNetworkError } from "../lib/api";
 import { useTranslation } from "../i18n";
@@ -71,6 +72,186 @@ type AuthFormInitialState = {
 };
 
 let nativeGoogleConfigured = false;
+type AuthTranslate = (key: string) => string;
+type ParsedAuthIssue = {
+  message?: unknown;
+  path?: unknown;
+};
+
+function uniqueMessages(messages: Array<string | null | undefined>) {
+  return [...new Set(messages.filter((message): message is string => Boolean(message)))];
+}
+
+function getKnownAuthErrorMessage(message: string, t: AuthTranslate) {
+  const normalized = message.trim();
+
+  if (!normalized) {
+    return null;
+  }
+
+  if (/invalid email address|email has invalid format|email (is required|can't be blank)/i.test(normalized)) {
+    return t("auth.errors.invalidEmail");
+  }
+
+  if (
+    /password (should have at least|must be at least|is required)|too_small/i.test(
+      normalized,
+    )
+  ) {
+    return t("auth.errors.passwordTooShort");
+  }
+
+  if (
+    /verification code must be 6 digits|invalid string: must match pattern/i.test(
+      normalized,
+    )
+  ) {
+    return t("auth.errors.verificationCodeInvalid");
+  }
+
+  if (/display.?name/i.test(normalized)) {
+    return t("auth.errors.displayNameInvalid");
+  }
+
+  if (
+    /either idtoken or accesstoken is required|google did not return a usable token/i.test(
+      normalized,
+    )
+  ) {
+    return t("auth.errors.googleTokenMissing");
+  }
+
+  return null;
+}
+
+function formatAuthIssue(
+  issue: ZodIssue | ParsedAuthIssue,
+  t: AuthTranslate,
+): string | null {
+  const firstPathSegment = Array.isArray(issue.path)
+    ? issue.path.find((segment): segment is string => typeof segment === "string") ?? null
+    : null;
+
+  switch (firstPathSegment) {
+    case "email":
+      return t("auth.errors.invalidEmail");
+    case "password":
+      return t("auth.errors.passwordTooShort");
+    case "code":
+      return t("auth.errors.verificationCodeInvalid");
+    case "displayName":
+      return t("auth.errors.displayNameInvalid");
+    default:
+      break;
+  }
+
+  if (typeof issue.message === "string") {
+    return getKnownAuthErrorMessage(issue.message, t) ?? issue.message;
+  }
+
+  return null;
+}
+
+function extractAuthMessages(value: unknown, t: AuthTranslate): string[] {
+  if (!value) {
+    return [];
+  }
+
+  if (value instanceof ZodError) {
+    return uniqueMessages(value.issues.map((issue) => formatAuthIssue(issue, t)));
+  }
+
+  if (typeof value === "string") {
+    const knownMessage = getKnownAuthErrorMessage(value, t);
+    if (knownMessage) {
+      return [knownMessage];
+    }
+
+    const trimmedValue = value.trim();
+
+    if (trimmedValue.startsWith("{") || trimmedValue.startsWith("[")) {
+      try {
+        return extractAuthMessages(JSON.parse(trimmedValue), t);
+      } catch {
+        return trimmedValue ? [trimmedValue] : [];
+      }
+    }
+
+    return trimmedValue ? [trimmedValue] : [];
+  }
+
+  if (Array.isArray(value)) {
+    return uniqueMessages(
+      value.flatMap((entry) => {
+        if (typeof entry === "string") {
+          return extractAuthMessages(entry, t);
+        }
+
+        if (entry && typeof entry === "object") {
+          const formatted = formatAuthIssue(entry as ParsedAuthIssue, t);
+          return formatted ? [formatted] : [];
+        }
+
+        return [];
+      }),
+    );
+  }
+
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+
+    if (Array.isArray(record.issues)) {
+      const issueMessages = extractAuthMessages(record.issues, t);
+      if (issueMessages.length > 0) {
+        return issueMessages;
+      }
+    }
+
+    if (typeof record.error === "string") {
+      const errorMessages = extractAuthMessages(record.error, t);
+      if (errorMessages.length > 0) {
+        return errorMessages;
+      }
+    }
+
+    if (typeof record.message === "string") {
+      const messageValues = extractAuthMessages(record.message, t);
+      if (messageValues.length > 0) {
+        return messageValues;
+      }
+    }
+  }
+
+  return [];
+}
+
+function formatAuthErrorMessage(
+  error: unknown,
+  t: AuthTranslate,
+  fallback: string,
+) {
+  if (isNetworkError(error)) {
+    return t("auth.errors.networkFallback");
+  }
+
+  if (error instanceof ApiClientError) {
+    const detailMessages = extractAuthMessages(error.details, t);
+    if (detailMessages.length > 0) {
+      return detailMessages.join("\n");
+    }
+  }
+
+  const extractedMessages = extractAuthMessages(error, t);
+  if (extractedMessages.length > 0) {
+    return extractedMessages.join("\n");
+  }
+
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return fallback;
+}
 
 function buildAuthFormInitialState(
   prefill: AuthFormPrefill | undefined,
@@ -278,7 +459,7 @@ function BrowserGoogleAuthSection({
       } catch (submitError) {
         if (!cancelled) {
           setError(
-            submitError instanceof Error ? submitError.message : t("auth.errors.failed"),
+            formatAuthErrorMessage(submitError, t, t("auth.errors.failed")),
             {
               cause: submitError,
               onRetry: () => void finishGoogleAuth(),
@@ -350,13 +531,10 @@ function BrowserGoogleAuthSection({
         return;
       }
     } catch (submitError) {
-      setError(
-        submitError instanceof Error ? submitError.message : t("auth.errors.failed"),
-        {
-          cause: submitError,
-          onRetry: () => void submitGoogle(),
-        },
-      );
+      setError(formatAuthErrorMessage(submitError, t, t("auth.errors.failed")), {
+        cause: submitError,
+        onRetry: () => void submitGoogle(),
+      });
       setGoogleLoading(false);
     }
   }
@@ -450,13 +628,10 @@ function NativeGoogleAuthSection({
       ) {
         setError(submitError.message);
       } else {
-        setError(
-          submitError instanceof Error ? submitError.message : t("auth.errors.failed"),
-          {
-            cause: submitError,
-            onRetry: () => void submitGoogle(),
-          },
-        );
+        setError(formatAuthErrorMessage(submitError, t, t("auth.errors.failed")), {
+          cause: submitError,
+          onRetry: () => void submitGoogle(),
+        });
       }
     } finally {
       setGoogleLoading(false);
@@ -634,15 +809,7 @@ function AuthFormInner({ prefill }: { prefill?: AuthFormPrefill }) {
       }
     }
 
-    if (isNetworkError(submitError)) {
-      return t("auth.errors.networkFallback");
-    }
-
-    if (submitError instanceof Error) {
-      return submitError.message;
-    }
-
-    return t("auth.errors.failed");
+    return formatAuthErrorMessage(submitError, t, t("auth.errors.failed"));
   }
 
   async function submit() {
