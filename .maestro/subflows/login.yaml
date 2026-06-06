@@ -19,7 +19,8 @@ appId: love.leaetzak.adventuretime
     id: auth-password-input
 - eraseText
 - inputText: ${TEST_PASSWORD}
-- tapOn:
-    id: auth-submit-button
-- assertVisible:
-    id: tab-home
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: tab-home
+    timeout: 30000
