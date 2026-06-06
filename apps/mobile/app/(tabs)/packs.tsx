@@ -90,6 +90,14 @@ type PackBurstPattern = {
   particles: BurstParticle[];
   shards: BurstShard[];
 };
+type LoadingSparkle = {
+  id: string;
+  travelX: number;
+  travelY: number;
+  size: number;
+  delay: number;
+  rotation: number;
+};
 type OpeningPhase =
   | "selecting"
   | "shaking"
@@ -120,6 +128,16 @@ const BURST_PARTICLE_COLORS = [
   "#FF7622",
   "#FF3B16",
   "#7BD6FF",
+];
+const TREASURE_RAY_SPECS = [
+  { angle: 16, spread: 6, inner: 0.18, outer: 0.48, color: "rgba(255, 242, 168, 0.52)" },
+  { angle: 52, spread: 7, inner: 0.2, outer: 0.44, color: "rgba(255, 194, 70, 0.42)" },
+  { angle: 88, spread: 6, inner: 0.18, outer: 0.46, color: "rgba(255, 255, 210, 0.5)" },
+  { angle: 124, spread: 7, inner: 0.2, outer: 0.42, color: "rgba(255, 202, 88, 0.38)" },
+  { angle: 164, spread: 8, inner: 0.22, outer: 0.46, color: "rgba(255, 244, 180, 0.5)" },
+  { angle: 214, spread: 7, inner: 0.2, outer: 0.42, color: "rgba(255, 177, 54, 0.38)" },
+  { angle: 258, spread: 6, inner: 0.19, outer: 0.45, color: "rgba(255, 255, 218, 0.48)" },
+  { angle: 304, spread: 7, inner: 0.2, outer: 0.43, color: "rgba(255, 203, 80, 0.42)" },
 ];
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
@@ -348,6 +366,47 @@ function createBurstPattern(width: number, height: number): PackBurstPattern {
   });
 
   return { cracks, particles, shards };
+}
+
+function createLoadingSparkles(baseSize: number) {
+  const maxDistance = baseSize * 0.92;
+  const minDistance = baseSize * 0.19;
+
+  return Array.from({ length: 36 }, (_, index) => {
+    const angle = randomBetween(0, Math.PI * 2);
+    const distance = randomBetween(minDistance, maxDistance);
+
+    return {
+      id: `sparkle-${index}`,
+      travelX: Math.cos(angle) * distance,
+      travelY: Math.sin(angle) * distance,
+      size: randomBetween(baseSize * 0.028, baseSize * 0.074),
+      delay: randomBetween(0, 0.18),
+      rotation: randomBetween(0, 80),
+    };
+  });
+}
+
+function getTreasureRayPath(
+  centerX: number,
+  centerY: number,
+  angleDeg: number,
+  innerRadius: number,
+  outerRadius: number,
+  spreadDeg: number,
+) {
+  const startAngle = ((angleDeg - spreadDeg) * Math.PI) / 180;
+  const endAngle = ((angleDeg + spreadDeg) * Math.PI) / 180;
+  const tipAngle = (angleDeg * Math.PI) / 180;
+
+  const startX = centerX + Math.cos(startAngle) * innerRadius;
+  const startY = centerY + Math.sin(startAngle) * innerRadius;
+  const endX = centerX + Math.cos(endAngle) * innerRadius;
+  const endY = centerY + Math.sin(endAngle) * innerRadius;
+  const tipX = centerX + Math.cos(tipAngle) * outerRadius;
+  const tipY = centerY + Math.sin(tipAngle) * outerRadius;
+
+  return `M ${startX.toFixed(1)} ${startY.toFixed(1)} L ${tipX.toFixed(1)} ${tipY.toFixed(1)} L ${endX.toFixed(1)} ${endY.toFixed(1)} Z`;
 }
 
 function withAlpha(hex: string, alpha: string) {
@@ -620,6 +679,249 @@ function PackOpeningAura({
       </Defs>
       <Circle cx={width / 2} cy={height * 0.44} r={Math.min(width, height) * 0.38} fill={`url(#${gradientId})`} />
     </Svg>
+  );
+}
+
+function PackLoadingGlow({
+  width,
+  anim,
+  sparkles,
+}: {
+  width: number;
+  anim: Animated.Value;
+  sparkles: LoadingSparkle[];
+}) {
+  const size = width * 1.58;
+  const centerX = size / 2;
+  const centerY = size * 0.47;
+  const glowOpacity = anim.interpolate({
+    inputRange: [0, 0.2, 0.55, 1],
+    outputRange: [0, 0.82, 0.74, 0.38],
+    extrapolate: "clamp",
+  });
+  const glowScale = anim.interpolate({
+    inputRange: [0, 0.2, 0.55, 1],
+    outputRange: [0.12, 0.95, 1.2, 1.35],
+    extrapolate: "clamp",
+  });
+  const glowBlurScale = anim.interpolate({
+    inputRange: [0, 0.2, 0.55, 1],
+    outputRange: [0.18, 1.02, 1.28, 1.48],
+    extrapolate: "clamp",
+  });
+  const raysOpacity = anim.interpolate({
+    inputRange: [0, 0.22, 1],
+    outputRange: [0, 0.86, 0.42],
+    extrapolate: "clamp",
+  });
+  const raysScale = anim.interpolate({
+    inputRange: [0, 0.22, 1],
+    outputRange: [0.15, 0.95, 1.18],
+    extrapolate: "clamp",
+  });
+  const raysRotate = anim.interpolate({
+    inputRange: [0, 0.22, 1],
+    outputRange: ["0deg", "12deg", "36deg"],
+    extrapolate: "clamp",
+  });
+
+  return (
+    <View
+      pointerEvents="none"
+      style={{
+        width: size,
+        height: size,
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <Animated.View
+        style={{
+          position: "absolute",
+          width: size * 0.98,
+          height: size * 0.98,
+          opacity: glowOpacity.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0, 0.34],
+          }),
+          transform: [{ scale: glowBlurScale }],
+        }}
+      >
+        <Svg width="100%" height="100%" viewBox={`0 0 ${size} ${size}`}>
+          <Defs>
+            <SvgRadialGradient id="pack-loading-glow-blur" cx="50%" cy="50%" r="50%">
+              <Stop offset="0%" stopColor="rgba(255,255,235,0.34)" />
+              <Stop offset="24%" stopColor="rgba(255,228,126,0.16)" />
+              <Stop offset="54%" stopColor="rgba(255,172,45,0.05)" />
+              <Stop offset="100%" stopColor="rgba(255,116,22,0)" />
+            </SvgRadialGradient>
+          </Defs>
+          <Circle
+            cx={centerX}
+            cy={centerY}
+            r={size * 0.49}
+            fill="url(#pack-loading-glow-blur)"
+          />
+        </Svg>
+      </Animated.View>
+
+      <Animated.View
+        style={{
+          position: "absolute",
+          width: size,
+          height: size,
+          opacity: raysOpacity,
+          transform: [{ scale: raysScale }, { rotate: raysRotate }],
+        }}
+      >
+        <Svg width="100%" height="100%" viewBox={`0 0 ${size} ${size}`}>
+          {TREASURE_RAY_SPECS.map((ray) => (
+            <Path
+              key={`treasure-ray-${ray.angle}`}
+              d={getTreasureRayPath(
+                centerX,
+                centerY,
+                ray.angle,
+                size * ray.inner,
+                size * ray.outer,
+                ray.spread,
+              )}
+              fill={ray.color}
+            />
+          ))}
+        </Svg>
+      </Animated.View>
+
+      <Animated.View
+        style={{
+          position: "absolute",
+          width: size * 0.86,
+          height: size * 0.86,
+          opacity: glowOpacity,
+          transform: [{ scale: glowScale }],
+        }}
+      >
+        <Svg width="100%" height="100%" viewBox={`0 0 ${size} ${size}`}>
+          <Defs>
+            <SvgRadialGradient id="pack-loading-glow-core" cx="50%" cy="50%" r="50%">
+              <Stop offset="0%" stopColor="rgba(255,255,235,0.98)" />
+              <Stop offset="8%" stopColor="rgba(255,255,235,0.98)" />
+              <Stop offset="16%" stopColor="rgba(255,228,126,0.76)" />
+              <Stop offset="35%" stopColor="rgba(255,172,45,0.24)" />
+              <Stop offset="58%" stopColor="rgba(255,116,22,0.08)" />
+              <Stop offset="73%" stopColor="rgba(255,116,22,0)" />
+              <Stop offset="100%" stopColor="rgba(255,116,22,0)" />
+            </SvgRadialGradient>
+          </Defs>
+          <Circle
+            cx={centerX}
+            cy={centerY}
+            r={size * 0.43}
+            fill="url(#pack-loading-glow-core)"
+          />
+        </Svg>
+      </Animated.View>
+
+      {sparkles.map((sparkle) => {
+        const rise = Math.max(20, width * 0.18);
+        const appearAt = sparkle.delay;
+        const settleAt = Math.min(1, appearAt + 0.18);
+        const driftAt = Math.min(1, appearAt + 0.55);
+        const vanishAt = Math.min(1, appearAt + 0.86);
+
+        return (
+          <Animated.View
+            key={sparkle.id}
+            style={{
+              position: "absolute",
+              left: centerX - sparkle.size / 2,
+              top: centerY - sparkle.size / 2,
+              width: sparkle.size,
+              height: sparkle.size,
+              opacity: anim.interpolate({
+                inputRange: [0, appearAt, settleAt, driftAt, vanishAt, 1],
+                outputRange: [0, 0, 1, 0.95, 0, 0],
+                extrapolate: "clamp",
+              }),
+              transform: [
+                {
+                  translateX: anim.interpolate({
+                    inputRange: [0, appearAt, settleAt, driftAt, vanishAt, 1],
+                    outputRange: [
+                      0,
+                      0,
+                      sparkle.travelX * 0.82,
+                      sparkle.travelX,
+                      sparkle.travelX * 1.12,
+                      sparkle.travelX * 1.12,
+                    ],
+                    extrapolate: "clamp",
+                  }),
+                },
+                {
+                  translateY: anim.interpolate({
+                    inputRange: [0, appearAt, settleAt, driftAt, vanishAt, 1],
+                    outputRange: [
+                      0,
+                      0,
+                      sparkle.travelY * 0.82,
+                      sparkle.travelY,
+                      sparkle.travelY * 1.12 - rise,
+                      sparkle.travelY * 1.12 - rise,
+                    ],
+                    extrapolate: "clamp",
+                  }),
+                },
+                {
+                  scale: anim.interpolate({
+                    inputRange: [0, appearAt, settleAt, driftAt, vanishAt, 1],
+                    outputRange: [0.15, 0.15, 1, 0.65, 0.1, 0.1],
+                    extrapolate: "clamp",
+                  }),
+                },
+                {
+                  rotate: anim.interpolate({
+                    inputRange: [0, appearAt, settleAt, driftAt, vanishAt, 1],
+                    outputRange: [
+                      `${sparkle.rotation}deg`,
+                      `${sparkle.rotation}deg`,
+                      `${sparkle.rotation + 70}deg`,
+                      `${sparkle.rotation + 145}deg`,
+                      `${sparkle.rotation + 250}deg`,
+                      `${sparkle.rotation + 250}deg`,
+                    ],
+                    extrapolate: "clamp",
+                  }),
+                },
+              ],
+            }}
+          >
+            <View
+              style={{
+                position: "absolute",
+                left: sparkle.size * 0.4,
+                top: 0,
+                width: sparkle.size * 0.2,
+                height: sparkle.size,
+                borderRadius: 999,
+                backgroundColor: "#FFF9D8",
+              }}
+            />
+            <View
+              style={{
+                position: "absolute",
+                left: 0,
+                top: sparkle.size * 0.4,
+                width: sparkle.size,
+                height: sparkle.size * 0.2,
+                borderRadius: 999,
+                backgroundColor: "#FFF9D8",
+              }}
+            />
+          </Animated.View>
+        );
+      })}
+    </View>
   );
 }
 
@@ -1420,6 +1722,9 @@ export default function PacksScreen() {
   const [burstPattern, setBurstPattern] = useState<PackBurstPattern>(() =>
     createBurstPattern(320, 320 / PACK_CARD_RATIO),
   );
+  const [loadingSparkles, setLoadingSparkles] = useState<LoadingSparkle[]>(() =>
+    createLoadingSparkles(320),
+  );
   const shouldHideTabBar = phase !== "selecting" && phase !== "complete";
   const openingBottomPadding = shouldHideTabBar
     ? Math.max(safeAreaBottom + 16, 24)
@@ -1508,20 +1813,12 @@ export default function PacksScreen() {
 
     loadingIdleAnim.setValue(0);
     loadingLoopRef.current = Animated.loop(
-      Animated.sequence([
-        Animated.timing(loadingIdleAnim, {
-          toValue: 1,
-          duration: 1650,
-          easing: Easing.inOut(Easing.quad),
-          useNativeDriver: true,
-        }),
-        Animated.timing(loadingIdleAnim, {
-          toValue: 0,
-          duration: 1650,
-          easing: Easing.inOut(Easing.quad),
-          useNativeDriver: true,
-        }),
-      ]),
+      Animated.timing(loadingIdleAnim, {
+        toValue: 1,
+        duration: 2450,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      }),
     );
     loadingLoopRef.current.start();
 
@@ -1648,6 +1945,7 @@ export default function PacksScreen() {
     startBurstAnimation();
 
     await delay(PACK_OPEN_BURST_MS);
+    setLoadingSparkles(createLoadingSparkles(loadingDeckWidth));
     setPhase("loading");
 
     try {
@@ -1977,92 +2275,10 @@ export default function PacksScreen() {
           </View>
 
           <View className="flex-1 items-center justify-center py-5">
-            <Animated.View
-              pointerEvents="none"
-              style={{
-                position: "absolute",
-                width: loadingDeckWidth + 168,
-                height: loadingDeckWidth / PACK_CARD_RATIO + 168,
-                borderRadius: 999,
-                backgroundColor: tc.surface,
-                opacity: loadingIdleAnim.interpolate({
-                  inputRange: [0, 0.5, 1],
-                  outputRange: [0.16, 0.26, 0.16],
-                }),
-                transform: [
-                  {
-                    scale: loadingIdleAnim.interpolate({
-                      inputRange: [0, 0.5, 1],
-                      outputRange: [0.98, 1.04, 0.98],
-                    }),
-                  },
-                ],
-              }}
-            />
-            <Animated.View
-              pointerEvents="none"
-              style={{
-                position: "absolute",
-                width: loadingDeckWidth + 104,
-                height: loadingDeckWidth / PACK_CARD_RATIO + 104,
-                borderRadius: 999,
-                backgroundColor: selectedPack.color || tc.primary,
-                opacity: loadingIdleAnim.interpolate({
-                  inputRange: [0, 0.5, 1],
-                  outputRange: [0.08, 0.16, 0.08],
-                }),
-                transform: [
-                  {
-                    scale: loadingIdleAnim.interpolate({
-                      inputRange: [0, 0.5, 1],
-                      outputRange: [0.97, 1.03, 0.97],
-                    }),
-                  },
-                ],
-              }}
-            />
-            <Animated.View
-              pointerEvents="none"
-              style={{
-                width: loadingDeckWidth * 0.86,
-                height: loadingDeckWidth * 0.86,
-                borderRadius: 999,
-                backgroundColor: tc.surface,
-                opacity: loadingIdleAnim.interpolate({
-                  inputRange: [0, 0.5, 1],
-                  outputRange: [0.2, 0.34, 0.2],
-                }),
-                transform: [
-                  {
-                    scale: loadingIdleAnim.interpolate({
-                      inputRange: [0, 0.5, 1],
-                      outputRange: [0.96, 1.05, 0.96],
-                    }),
-                  },
-                ],
-              }}
-            />
-            <Animated.View
-              pointerEvents="none"
-              style={{
-                position: "absolute",
-                width: loadingDeckWidth * 0.44,
-                height: loadingDeckWidth * 0.44,
-                borderRadius: 999,
-                backgroundColor: tc.surface,
-                opacity: loadingIdleAnim.interpolate({
-                  inputRange: [0, 0.5, 1],
-                  outputRange: [0.26, 0.42, 0.26],
-                }),
-                transform: [
-                  {
-                    scale: loadingIdleAnim.interpolate({
-                      inputRange: [0, 0.5, 1],
-                      outputRange: [0.94, 1.08, 0.94],
-                    }),
-                  },
-                ],
-              }}
+            <PackLoadingGlow
+              width={loadingDeckWidth}
+              anim={loadingIdleAnim}
+              sparkles={loadingSparkles}
             />
           </View>
 
