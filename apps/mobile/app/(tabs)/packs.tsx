@@ -2114,7 +2114,9 @@ export default function PacksScreen() {
     selectedPack
   ) {
     const isLoadingPhase = phase === "loading";
+    const isChargePhase = phase === "shaking";
     const openingAccent = selectedPack.color || "#D58524";
+    const chargePreviewWidth = Math.min(stageCardWidth, 230);
 
     return (
       <View
@@ -2136,7 +2138,7 @@ export default function PacksScreen() {
               }}
             >
               <PackOpeningSequenceDom
-                key={`${openingRunId}-${phase}`}
+                key={`${openingRunId}`}
                 mode={
                   isLoadingPhase
                     ? "loading"
@@ -2157,9 +2159,21 @@ export default function PacksScreen() {
                   style: {
                     backgroundColor: "transparent",
                     flex: 1,
+                    opacity: isChargePhase ? 0 : 1,
                   },
                 }}
               />
+              {isChargePhase ? (
+                <View className="absolute inset-0 items-center justify-center">
+                  <PackPreviewCard
+                    pack={selectedPack}
+                    width={chargePreviewWidth}
+                    tc={tc}
+                    chargeAnim={chargeAnim}
+                    sheenAnim={sheenAnim}
+                  />
+                </View>
+              ) : null}
             </View>
           </View>
 
