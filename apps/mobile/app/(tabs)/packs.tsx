@@ -13,6 +13,13 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
+import Svg, {
+  Circle,
+  Defs,
+  Path,
+  RadialGradient as SvgRadialGradient,
+  Stop,
+} from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import type {
@@ -58,28 +65,28 @@ type CardTileEntry = CollectionResponse["cards"][number];
 type AbsolutePosition = Pick<ViewStyle, "top" | "right" | "bottom" | "left">;
 type RarityName = "Common" | "Uncommon" | "Rare" | "Epic" | "Legendary";
 type BurstCrack = {
-  angle: number;
-  lengths: [number, number, number];
-  bends: [number, number];
-  thickness: number;
-  branchAt: number;
-  branchAngleOffset: number;
-  branchLength: number;
+  path: string;
+  dashLength: number;
+  delay: number;
 };
-type BurstDebris = {
-  angle: number;
-  originDistance: number;
-  distance: number;
-  crossOffset: number;
+type BurstParticle = {
+  travelX: number;
+  travelY: number;
   size: number;
-  stretch: number;
-  rotate: string;
-  scale: number;
-  zIndex: number;
+  spin: string;
+  color: string;
+};
+type BurstShard = {
+  travelX: number;
+  travelY: number;
+  width: number;
+  height: number;
+  spin: string;
 };
 type PackBurstPattern = {
   cracks: BurstCrack[];
-  debris: BurstDebris[];
+  particles: BurstParticle[];
+  shards: BurstShard[];
 };
 type OpeningPhase =
   | "selecting"
@@ -105,6 +112,14 @@ const PACK_OPEN_PROGRESS_MS = IS_E2E_BUILD
       second: 420,
       final: 220,
     };
+const BURST_PARTICLE_COLORS = [
+  "#FFF2A8",
+  "#FFC247",
+  "#FF7622",
+  "#FF3B16",
+  "#7BD6FF",
+];
+const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -169,92 +184,156 @@ function getThemeRarityPalette(themeName: ThemeName, rarityName: RarityName) {
   return paletteMap[rarityName] ?? paletteMap.Common;
 }
 
-function polarOffset(angle: number, distance: number) {
-  const radians = (angle * Math.PI) / 180;
-  return {
-    x: Math.cos(radians) * distance,
-    y: Math.sin(radians) * distance,
-  };
+function randomBetween(min: number, max: number) {
+  return Math.random() * (max - min) + min;
 }
 
-function distanceToRectEdge(
-  originX: number,
-  originY: number,
+function shuffleArray<T>(items: T[]) {
+  return items
+    .map((item) => ({ item, sort: Math.random() }))
+    .sort((left, right) => left.sort - right.sort)
+    .map(({ item }) => item);
+}
+
+function getPathLength(points: Array<{ x: number; y: number }>) {
+  let length = 0;
+
+  for (let index = 1; index < points.length; index += 1) {
+    const previous = points[index - 1];
+    const current = points[index];
+    length += Math.hypot(current.x - previous.x, current.y - previous.y);
+  }
+
+  return length;
+}
+
+function getRayToPackEdge(
+  centerX: number,
+  centerY: number,
   angle: number,
   width: number,
   height: number,
-  inset = 0,
 ) {
-  const radians = (angle * Math.PI) / 180;
-  const dx = Math.cos(radians);
-  const dy = Math.sin(radians);
-  const minX = inset;
-  const maxX = width - inset;
-  const minY = inset;
-  const maxY = height - inset;
+  const dx = Math.cos(angle);
+  const dy = Math.sin(angle);
   const candidates: number[] = [];
 
-  if (Math.abs(dx) > 0.0001) {
-    const tx = dx > 0 ? (maxX - originX) / dx : (minX - originX) / dx;
-    if (tx > 0) {
-      candidates.push(tx);
-    }
+  if (dx > 0) {
+    candidates.push((width - centerX) / dx);
+  } else if (dx < 0) {
+    candidates.push((0 - centerX) / dx);
   }
 
-  if (Math.abs(dy) > 0.0001) {
-    const ty = dy > 0 ? (maxY - originY) / dy : (minY - originY) / dy;
-    if (ty > 0) {
-      candidates.push(ty);
-    }
+  if (dy > 0) {
+    candidates.push((height - centerY) / dy);
+  } else if (dy < 0) {
+    candidates.push((0 - centerY) / dy);
   }
 
-  return candidates.length > 0 ? Math.min(...candidates) : 0;
+  const distance = Math.min(...candidates.filter((candidate) => candidate > 0));
+
+  return {
+    x: centerX + dx * distance,
+    y: centerY + dy * distance,
+    dx,
+    dy,
+    distance,
+  };
 }
 
-function createBurstPattern(): PackBurstPattern {
-  const baseAngles = [
-    -150 + Math.random() * 26,
-    -58 + Math.random() * 28,
-    26 + Math.random() * 30,
-    126 + Math.random() * 24,
-  ];
+function createLightningCrackPath(
+  centerX: number,
+  centerY: number,
+  angle: number,
+  width: number,
+  height: number,
+) {
+  const edge = getRayToPackEdge(centerX, centerY, angle, width, height);
+  const normalX = -edge.dy;
+  const normalY = edge.dx;
+  const points = [{ x: centerX, y: centerY }];
+  const segments = Math.floor(randomBetween(5, 8));
 
-  const cracks: BurstCrack[] = baseAngles.map((angle, index) => ({
-    angle,
-    lengths: [
-      32 + Math.round(Math.random() * 8),
-      24 + Math.round(Math.random() * 10),
-      10 + Math.round(Math.random() * 6),
-    ],
-    bends: [
-      (index % 2 === 0 ? 1 : -1) * (6 + Math.round(Math.random() * 6)),
-      (index % 3 === 0 ? -1 : 1) * (5 + Math.round(Math.random() * 7)),
-    ],
-    thickness: 2.8 + Math.random() * 1.1,
-    branchAt: 28 + Math.round(Math.random() * 12),
-    branchAngleOffset:
-      (index % 2 === 0 ? -1 : 1) * (14 + Math.round(Math.random() * 8)),
-    branchLength: 8 + Math.round(Math.random() * 5),
-  }));
+  for (let index = 1; index < segments; index += 1) {
+    const progress = index / segments;
+    const baseX = centerX + edge.dx * edge.distance * progress;
+    const baseY = centerY + edge.dy * edge.distance * progress;
+    const amplitude =
+      Math.min(width * 0.1, edge.distance * 0.11) *
+      Math.sin(Math.PI * progress);
+    const offset = randomBetween(-amplitude, amplitude);
 
-  const debris: BurstDebris[] = cracks.flatMap((crack, crackIndex) =>
-    [0, 1, 2].map((pieceIndex) => ({
-      angle:
-        crack.angle +
-        (pieceIndex - 1) * (8 + Math.random() * 8) +
-        (Math.random() * 6 - 3),
-      originDistance: 34 + pieceIndex * 18 + Math.random() * 14,
-      distance: 72 + pieceIndex * 18 + Math.random() * 26,
-      crossOffset: (pieceIndex - 1) * (7 + Math.random() * 5),
-      size: 12 + Math.round(Math.random() * 7),
-      stretch: 1 + Math.random() * 0.7,
-      rotate: `${Math.round(Math.random() * 90 - 45)}deg`,
-      scale: 1 + Math.random() * 0.22,
-      zIndex: 20 - crackIndex * 3 - pieceIndex,
-    })),
-  );
+    points.push({
+      x: baseX + normalX * offset,
+      y: baseY + normalY * offset,
+    });
+  }
 
-  return { cracks, debris };
+  points.push({ x: edge.x, y: edge.y });
+
+  return {
+    path: points
+      .map((point, index) =>
+        `${index === 0 ? "M" : "L"} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`,
+      )
+      .join(" "),
+    dashLength: Math.ceil(getPathLength(points)),
+  };
+}
+
+function createBurstPattern(width: number, height: number): PackBurstPattern {
+  const centerX = width * 0.5;
+  const centerY = height * 0.47;
+  const crackCount = 9;
+  const startAngle = randomBetween(0, Math.PI * 2);
+  const crackAngles = Array.from({ length: crackCount }, (_, index) => {
+    const evenlySpaced = startAngle + (Math.PI * 2 * index) / crackCount;
+    return evenlySpaced + randomBetween(-0.24, 0.24);
+  });
+
+  const cracks = shuffleArray(crackAngles).map((angle, index) => {
+    const crackPath = createLightningCrackPath(
+      centerX,
+      centerY,
+      angle,
+      width,
+      height,
+    );
+
+    return {
+      ...crackPath,
+      delay: index * 0.05 + randomBetween(0, 0.03),
+    };
+  });
+
+  const particles = Array.from({ length: 82 }, () => {
+    const angle = randomBetween(0, Math.PI * 2);
+    const distance = randomBetween(140, 390);
+    return {
+      travelX: Math.cos(angle) * distance,
+      travelY: Math.sin(angle) * distance,
+      size: randomBetween(4, 13),
+      spin: `${Math.round(randomBetween(-540, 540))}deg`,
+      color:
+        BURST_PARTICLE_COLORS[
+          Math.floor(randomBetween(0, BURST_PARTICLE_COLORS.length))
+        ] ?? BURST_PARTICLE_COLORS[0],
+    };
+  });
+
+  const shards = Array.from({ length: 18 }, () => {
+    const angle = randomBetween(0, Math.PI * 2);
+    const distance = randomBetween(120, 330);
+    return {
+      travelX: Math.cos(angle) * distance,
+      travelY: Math.sin(angle) * distance,
+      width: randomBetween(18, 28),
+      height: randomBetween(30, 48),
+      spin: `${Math.round(randomBetween(-760, 760))}deg`,
+    };
+  });
+
+  return { cracks, particles, shards };
 }
 
 function withAlpha(hex: string, alpha: string) {
@@ -367,7 +446,7 @@ function PackPreviewCard({
   compact = false,
   pulseAnim,
   chargeAnim,
-  burstScaleAnim,
+  sheenAnim,
 }: {
   pack: Pack;
   width: number;
@@ -375,7 +454,7 @@ function PackPreviewCard({
   compact?: boolean;
   pulseAnim?: Animated.Value;
   chargeAnim?: Animated.Value;
-  burstScaleAnim?: Animated.Value;
+  sheenAnim?: Animated.Value;
 }) {
   const height = width / PACK_CARD_RATIO;
   const accentColor = pack.color || tc.primary;
@@ -390,9 +469,20 @@ function PackPreviewCard({
               outputRange: [6, -8, 6],
             }),
           },
+          {
+            rotateX: chargeAnim.interpolate({
+              inputRange: [0, 0.5, 1],
+              outputRange: ["0deg", "6deg", "0deg"],
+            }),
+          },
+          {
+            rotateZ: chargeAnim.interpolate({
+              inputRange: [0, 0.5, 1],
+              outputRange: ["-1deg", "1deg", "-1deg"],
+            }),
+          },
         ]
       : []),
-    ...(burstScaleAnim ? [{ scale: burstScaleAnim }] : []),
     ...(pulseAnim
       ? [
           {
@@ -425,10 +515,41 @@ function PackPreviewCard({
         borderWidth: compact ? 1.5 : 2,
         borderColor: withAlpha(accentColor, compact ? "52" : "66"),
         backgroundColor: packSurfaceColor,
+        boxShadow: compact
+          ? `0 18px 38px ${withAlpha("#000000", "52")}`
+          : `0 22px 55px ${withAlpha("#000000", "72")}`,
         transform: animatedTransforms,
       }}
     >
       <PackFaceInterior pack={pack} tc={tc} compact={compact} />
+      {sheenAnim ? (
+        <Animated.View
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            top: -height * 0.08,
+            bottom: -height * 0.08,
+            width: width * 0.54,
+            opacity: 0.42,
+            transform: [
+              {
+                translateX: sheenAnim.interpolate({
+                  inputRange: [0, 0.45, 0.7, 1],
+                  outputRange: [-width * 1.2, -width * 1.2, width * 1.2, width * 1.2],
+                }),
+              },
+              { rotate: "16deg" },
+            ],
+          }}
+        >
+          <LinearGradient
+            colors={["rgba(255,255,255,0)", "rgba(255,255,255,0.35)", "rgba(255,255,255,0)"]}
+            start={{ x: 0, y: 0.2 }}
+            end={{ x: 1, y: 0.8 }}
+            style={{ flex: 1 }}
+          />
+        </Animated.View>
+      ) : null}
     </Animated.View>
   );
 }
@@ -461,6 +582,30 @@ function PackFaceCanvas({
     >
       <PackFaceInterior pack={pack} tc={tc} />
     </View>
+  );
+}
+
+function PackOpeningAura({
+  width,
+  height,
+  gradientId,
+}: {
+  width: number;
+  height: number;
+  gradientId: string;
+}) {
+  return (
+    <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
+      <Defs>
+        <SvgRadialGradient id={gradientId} cx="50%" cy="44%" r="58%">
+          <Stop offset="0%" stopColor="rgba(255,226,128,0.5)" />
+          <Stop offset="35%" stopColor="rgba(255,115,19,0.16)" />
+          <Stop offset="68%" stopColor="rgba(255,115,19,0)" />
+          <Stop offset="100%" stopColor="rgba(255,115,19,0)" />
+        </SvgRadialGradient>
+      </Defs>
+      <Circle cx={width / 2} cy={height * 0.44} r={Math.min(width, height) * 0.38} fill={`url(#${gradientId})`} />
+    </Svg>
   );
 }
 
@@ -890,208 +1035,298 @@ function CrackedPackPreview({
   burstPattern?: PackBurstPattern;
 }) {
   const height = width / PACK_CARD_RATIO;
-  const crackGlowWidth = Math.max(22, width * 0.1);
-  const resolvedPattern = burstPattern ?? createBurstPattern();
+  const resolvedPattern = burstPattern ?? createBurstPattern(width, height);
   const centerX = width / 2;
-  const centerY = height / 2;
+  const centerY = height * 0.47;
+  const accentColor = pack.color || tc.primary;
+  const packOpacity = openAnim.interpolate({
+    inputRange: [0, 0.45, 0.72, 1],
+    outputRange: [1, 1, 1, 0],
+    extrapolate: "clamp",
+  });
+  const flareOpacity = openAnim.interpolate({
+    inputRange: [0, 0.38, 0.68, 1],
+    outputRange: [0, 0, 1, 0],
+    extrapolate: "clamp",
+  });
+  const flareScale = openAnim.interpolate({
+    inputRange: [0, 0.38, 0.68, 0.82, 1],
+    outputRange: [0.2, 0.2, 3.5, 14, 14],
+    extrapolate: "clamp",
+  });
+  const shockwaveOpacity = openAnim.interpolate({
+    inputRange: [0, 0.62, 0.72, 1],
+    outputRange: [0, 0, 0.95, 0],
+    extrapolate: "clamp",
+  });
+  const shockwaveScale = openAnim.interpolate({
+    inputRange: [0, 0.62, 1],
+    outputRange: [0.2, 0.2, 5.5],
+    extrapolate: "clamp",
+  });
 
   return (
-    <View style={{ width, height, alignItems: "center", justifyContent: "center" }}>
+    <Animated.View
+      style={{
+        width,
+        height,
+        alignItems: "center",
+        justifyContent: "center",
+        opacity: packOpacity,
+        transform: [
+          {
+            translateX: openAnim.interpolate({
+              inputRange: [0, 0.18, 0.34, 0.52, 0.72, 0.94, 1],
+              outputRange: [0, -2, 2, -3, 4, 3, 0],
+              extrapolate: "clamp",
+            }),
+          },
+          {
+            translateY: openAnim.interpolate({
+              inputRange: [0, 0.18, 0.34, 0.52, 0.72, 0.94, 1],
+              outputRange: [0, 1, -2, -1, 2, -3, 0],
+              extrapolate: "clamp",
+            }),
+          },
+          {
+            rotateZ: openAnim.interpolate({
+              inputRange: [0, 0.18, 0.34, 0.52, 0.72, 0.94, 1],
+              outputRange: ["0deg", "-1deg", "1.1deg", "-1.4deg", "1.9deg", "2.4deg", "25deg"],
+              extrapolate: "clamp",
+            }),
+          },
+          {
+            scale: openAnim.interpolate({
+              inputRange: [0, 0.45, 0.72, 1],
+              outputRange: [1, 1.06, 1.2, 0.42],
+              extrapolate: "clamp",
+            }),
+          },
+        ],
+      }}
+    >
       <PackFaceCanvas pack={pack} width={width} height={height} tc={tc} />
       <Animated.View
         pointerEvents="none"
         style={{
           position: "absolute",
-          width: crackGlowWidth,
+          left: centerX - Math.max(18, width * 0.065),
+          top: 24,
+          width: Math.max(36, width * 0.16),
           height: height - 46,
           borderRadius: 999,
-          backgroundColor: tc.surface,
+          backgroundColor: "rgba(255, 242, 170, 0.92)",
           opacity: openAnim.interpolate({
-            inputRange: [0, 0.25, 1],
-            outputRange: [0, 0.85, 0],
+            inputRange: [0, 0.18, 0.62, 1],
+            outputRange: [0, 0.85, 0, 0],
+            extrapolate: "clamp",
           }),
           transform: [
             {
               scaleY: openAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0.5, 1.18],
+                inputRange: [0, 0.62, 1],
+                outputRange: [0.5, 1.18, 1.18],
+                extrapolate: "clamp",
               }),
             },
             {
               scaleX: openAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0.6, 1.7],
+                inputRange: [0, 0.62, 1],
+                outputRange: [0.6, 1.7, 1.7],
+                extrapolate: "clamp",
               }),
             },
           ],
         }}
       />
-      {resolvedPattern.cracks.map((crack, crackIndex) => {
-        const first = polarOffset(crack.angle, crack.lengths[0] / 2);
-        const secondStart = polarOffset(crack.angle, crack.lengths[0]);
-        const secondAngle = crack.angle + crack.bends[0];
-        const secondCenter = polarOffset(
-          secondAngle,
-          crack.lengths[1] / 2,
-        );
-        const thirdStart = {
-          x: secondStart.x + polarOffset(secondAngle, crack.lengths[1]).x,
-          y: secondStart.y + polarOffset(secondAngle, crack.lengths[1]).y,
-        };
-        const thirdAngle = secondAngle + crack.bends[1];
-        const thirdCenter = polarOffset(thirdAngle, crack.lengths[2] / 2);
-        const mainCrackOriginX = centerX + thirdStart.x;
-        const mainCrackOriginY = centerY + thirdStart.y;
-        const finalLength = Math.max(
-          28,
-          distanceToRectEdge(
-            mainCrackOriginX,
-            mainCrackOriginY,
-            thirdAngle,
-            width,
-            height,
-            6,
-          ) + 2,
-        );
-        const finalCenter = polarOffset(thirdAngle, finalLength / 2);
-        const branchStart = polarOffset(crack.angle, crack.branchAt);
-        const branchAngle = crack.angle + crack.branchAngleOffset;
-        const branchCenter = polarOffset(branchAngle, crack.branchLength / 2);
+      <Svg
+        pointerEvents="none"
+        width={width}
+        height={height}
+        viewBox={`0 0 ${width} ${height}`}
+        style={{ position: "absolute", left: 0, top: 0 }}
+      >
+        {resolvedPattern.cracks.flatMap((crack, crackIndex) => {
+          const crackDrawEnd = Math.min(0.72, crack.delay + 0.24);
+          const crackFadeStart = Math.min(0.82, crackDrawEnd + 0.18);
+          const crackDashOffset = openAnim.interpolate({
+            inputRange: [0, crack.delay, crackDrawEnd, 1],
+            outputRange: [crack.dashLength, crack.dashLength, 0, 0],
+            extrapolate: "clamp",
+          });
+          const crackOpacity = openAnim.interpolate({
+            inputRange: [0, crack.delay, crackDrawEnd, crackFadeStart, 1],
+            outputRange: [0, 0, 1, 0.8, 0],
+            extrapolate: "clamp",
+          });
 
-        const segments = [
-          {
-            key: `${crackIndex}-a`,
-            left: centerX + first.x - crack.thickness / 2,
-            top: centerY + first.y - crack.lengths[0] / 2,
-            length: crack.lengths[0],
-            rotate: `${crack.angle + 90}deg`,
-            thickness: crack.thickness,
-          },
-          {
-            key: `${crackIndex}-b`,
-            left: centerX + secondStart.x + secondCenter.x - crack.thickness / 2,
-            top: centerY + secondStart.y + secondCenter.y - crack.lengths[1] / 2,
-            length: crack.lengths[1],
-            rotate: `${secondAngle + 90}deg`,
-            thickness: Math.max(1.6, crack.thickness - 0.3),
-          },
-          {
-            key: `${crackIndex}-edge`,
-            left:
-              centerX + thirdStart.x + finalCenter.x - crack.thickness / 2,
-            top:
-              centerY + thirdStart.y + finalCenter.y - finalLength / 2,
-            length: finalLength,
-            rotate: `${thirdAngle + 90}deg`,
-            thickness: Math.max(1.6, crack.thickness - 0.55),
-          },
-          ...(crackIndex % 2 === 0
-            ? [{
-            key: `${crackIndex}-d`,
-            left: centerX + branchStart.x + branchCenter.x - crack.thickness / 2,
-            top: centerY + branchStart.y + branchCenter.y - crack.branchLength / 2,
-            length: crack.branchLength,
-            rotate: `${branchAngle + 90}deg`,
-            thickness: Math.max(1.2, crack.thickness - 0.95),
-          }]
-            : []),
-        ];
-
-        return segments.map((segment) => (
-          <Animated.View
-            key={segment.key}
-            pointerEvents="none"
-            style={{
-              position: "absolute",
-              left: segment.left,
-              top: segment.top,
-              width: segment.thickness,
-              height: segment.length,
-              borderRadius: 999,
-              backgroundColor: tc.surface,
-              opacity: openAnim.interpolate({
-                inputRange: [0, 0.05, 0.82, 1],
-                outputRange: [0, 1, 0.68, 0],
-              }),
-              transform: [
-                {
-                  scaleY: openAnim.interpolate({
-                    inputRange: [0, 0.2, 1],
-                    outputRange: [0.1, 1, 1.03],
-                  }),
-                },
-                {
-                  rotate: segment.rotate,
-                },
-              ],
-            }}
-          />
-        ));
-      })}
-      {resolvedPattern.debris.map((piece, index) => {
-        const origin = polarOffset(piece.angle, piece.originDistance);
-        const travel = polarOffset(piece.angle, piece.distance);
-        const perpendicular = polarOffset(piece.angle + 90, piece.crossOffset);
-        const pieceLeft = centerX + origin.x + perpendicular.x - piece.size / 2;
-        const pieceTop = centerY + origin.y + perpendicular.y - piece.size / 2;
-        const pieceWidth = piece.size * piece.stretch;
+          return [
+            <AnimatedPath
+              key={`crack-glow-${crackIndex}`}
+              d={crack.path}
+              fill="none"
+              stroke="rgba(255, 116, 24, 0.85)"
+              strokeWidth={9}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeDasharray={crack.dashLength}
+              strokeDashoffset={crackDashOffset}
+              opacity={crackOpacity}
+            />,
+            <AnimatedPath
+              key={`crack-core-${crackIndex}`}
+              d={crack.path}
+              fill="none"
+              stroke="#FFF8BF"
+              strokeWidth={3.2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeDasharray={crack.dashLength}
+              strokeDashoffset={crackDashOffset}
+              opacity={crackOpacity}
+            />,
+          ];
+        })}
+      </Svg>
+      <Animated.View
+        pointerEvents="none"
+        style={{
+          position: "absolute",
+          left: centerX - 15,
+          top: centerY - 15,
+          width: 30,
+          height: 30,
+          borderRadius: 999,
+          backgroundColor: "#FFF2AA",
+          opacity: flareOpacity,
+          boxShadow:
+            "0 0 18px rgba(255, 242, 170, 0.95), 0 0 42px rgba(255, 156, 37, 0.8), 0 0 80px rgba(255, 91, 18, 0.6)",
+          transform: [{ scale: flareScale }],
+        }}
+      />
+      <Animated.View
+        pointerEvents="none"
+        style={{
+          position: "absolute",
+          left: centerX - 60,
+          top: centerY - 60,
+          width: 120,
+          height: 120,
+          borderRadius: 999,
+          borderWidth: 3,
+          borderColor: "rgba(255, 228, 130, 0.9)",
+          opacity: shockwaveOpacity,
+          transform: [{ scale: shockwaveScale }],
+        }}
+      />
+      {resolvedPattern.particles.map((particle, index) => {
         return (
           <Animated.View
-            key={`debris-${index}`}
+            key={`particle-${index}`}
             pointerEvents="none"
             style={{
               position: "absolute",
-              left: pieceLeft,
-              top: pieceTop,
-              width: pieceWidth,
-              height: piece.size,
-              borderRadius: 4,
-              overflow: "hidden",
-              borderWidth: 1,
-              borderColor: withAlpha(pack.color || tc.primaryDark, "B8"),
-              zIndex: piece.zIndex,
+              left: centerX - particle.size / 2,
+              top: centerY - particle.size / 2,
+              width: particle.size,
+              height: particle.size,
+              borderRadius: 999,
+              backgroundColor: particle.color,
+              boxShadow: `0 0 14px ${particle.color}`,
               opacity: openAnim.interpolate({
-                inputRange: [0, 0.14, 0.84, 1],
-                outputRange: [0, 1, 0.74, 0],
+                inputRange: [0, 0.62, 0.68, 1],
+                outputRange: [0, 0, 1, 0],
+                extrapolate: "clamp",
               }),
               transform: [
                 {
                   translateX: openAnim.interpolate({
-                    inputRange: [0, 0.34, 1],
-                    outputRange: [0, travel.x * 0.16, travel.x],
+                    inputRange: [0, 0.62, 0.76, 1],
+                    outputRange: [0, 0, particle.travelX * 0.16, particle.travelX],
+                    extrapolate: "clamp",
                   }),
                 },
                 {
                   translateY: openAnim.interpolate({
-                    inputRange: [0, 0.34, 1],
-                    outputRange: [0, travel.y * 0.16, travel.y],
+                    inputRange: [0, 0.62, 0.76, 1],
+                    outputRange: [0, 0, particle.travelY * 0.16, particle.travelY],
+                    extrapolate: "clamp",
                   }),
                 },
                 {
-                  rotate: piece.rotate,
+                  rotate: particle.spin,
                 },
                 {
                   scale: openAnim.interpolate({
-                    inputRange: [0, 0.26, 1],
-                    outputRange: [0.35, 0.9, piece.scale],
+                    inputRange: [0, 0.62, 0.74, 1],
+                    outputRange: [0.5, 0.5, 1, 0],
+                    extrapolate: "clamp",
+                  }),
+                },
+              ],
+            }}
+          />
+        );
+      })}
+      {resolvedPattern.shards.map((shard, index) => {
+        return (
+          <Animated.View
+            key={`shard-${index}`}
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              left: centerX - shard.width / 2,
+              top: centerY - shard.height / 2,
+              width: shard.width,
+              height: shard.height,
+              opacity: openAnim.interpolate({
+                inputRange: [0, 0.62, 0.68, 1],
+                outputRange: [0, 0, 1, 0],
+                extrapolate: "clamp",
+              }),
+              transform: [
+                {
+                  translateX: openAnim.interpolate({
+                    inputRange: [0, 0.62, 0.76, 1],
+                    outputRange: [0, 0, shard.travelX * 0.16, shard.travelX],
+                    extrapolate: "clamp",
+                  }),
+                },
+                {
+                  translateY: openAnim.interpolate({
+                    inputRange: [0, 0.62, 0.76, 1],
+                    outputRange: [0, 0, shard.travelY * 0.16, shard.travelY],
+                    extrapolate: "clamp",
+                  }),
+                },
+                { rotate: shard.spin },
+                {
+                  scale: openAnim.interpolate({
+                    inputRange: [0, 0.62, 0.74, 1],
+                    outputRange: [0.8, 0.8, 1, 1.25],
+                    extrapolate: "clamp",
                   }),
                 },
               ],
             }}
           >
-            <View
+            <LinearGradient
+              colors={["rgba(255,225,121,0.95)", "rgba(137,54,12,0.95)"]}
+              start={{ x: 0.2, y: 0 }}
+              end={{ x: 0.8, y: 1 }}
               style={{
-                position: "absolute",
-                left: -pieceLeft,
-                top: -pieceTop,
+                flex: 1,
+                borderRadius: 10,
+                borderWidth: 1,
+                borderColor: withAlpha(accentColor, "88"),
+                boxShadow: "0 0 14px rgba(255, 168, 42, 0.6)",
+                transform: [{ rotate: "18deg" }],
               }}
-            >
-              <PackFaceCanvas pack={pack} width={width} height={height} tc={tc} />
-            </View>
+            />
           </Animated.View>
         );
       })}
-    </View>
+    </Animated.View>
   );
 }
 
@@ -1169,7 +1404,7 @@ export default function PacksScreen() {
   const [openError, setOpenError] = useState<string | null>(null);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [burstPattern, setBurstPattern] = useState<PackBurstPattern>(() =>
-    createBurstPattern(),
+    createBurstPattern(320, 320 / PACK_CARD_RATIO),
   );
   const shouldHideTabBar = phase !== "selecting" && phase !== "complete";
   const openingBottomPadding = shouldHideTabBar
@@ -1185,7 +1420,7 @@ export default function PacksScreen() {
   const loadingDeckWidth = revealCardWidth;
 
   const chargeAnim = useRef(new Animated.Value(0)).current;
-  const burstScaleAnim = useRef(new Animated.Value(1)).current;
+  const sheenAnim = useRef(new Animated.Value(0)).current;
   const burstFlashAnim = useRef(new Animated.Value(0)).current;
   const loadingIdleAnim = useRef(new Animated.Value(0)).current;
   const loadingProgressAnim = useRef(new Animated.Value(0)).current;
@@ -1195,6 +1430,7 @@ export default function PacksScreen() {
   const flipAnim = useRef(new Animated.Value(0)).current;
   const burstOpenAnim = useRef(new Animated.Value(0)).current;
   const chargeLoopRef = useRef<Animated.CompositeAnimation | null>(null);
+  const sheenLoopRef = useRef<Animated.CompositeAnimation | null>(null);
   const loadingLoopRef = useRef<Animated.CompositeAnimation | null>(null);
 
   useEffect(() => {
@@ -1284,11 +1520,14 @@ export default function PacksScreen() {
   function stopChargeAnimations() {
     chargeLoopRef.current?.stop();
     chargeLoopRef.current = null;
+    sheenLoopRef.current?.stop();
+    sheenLoopRef.current = null;
   }
 
   function startChargeAnimation() {
     stopChargeAnimations();
     chargeAnim.setValue(0);
+    sheenAnim.setValue(0);
 
     chargeLoopRef.current = Animated.loop(
       Animated.sequence([
@@ -1307,30 +1546,25 @@ export default function PacksScreen() {
       ]),
     );
     chargeLoopRef.current.start();
+
+    sheenLoopRef.current = Animated.loop(
+      Animated.timing(sheenAnim, {
+        toValue: 1,
+        duration: 3400,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      }),
+    );
+    sheenLoopRef.current.start();
   }
 
   function startBurstAnimation() {
     stopChargeAnimations();
-    burstScaleAnim.setValue(1);
     burstFlashAnim.setValue(0);
     burstOpenAnim.setValue(0);
-    setBurstPattern(createBurstPattern());
+    setBurstPattern(createBurstPattern(stageCardWidth, stageCardWidth / PACK_CARD_RATIO));
 
     Animated.parallel([
-      Animated.sequence([
-        Animated.timing(burstScaleAnim, {
-          toValue: 1.04,
-          duration: Math.round(PACK_OPEN_BURST_MS * 0.45),
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-        Animated.timing(burstScaleAnim, {
-          toValue: 1,
-          duration: Math.round(PACK_OPEN_BURST_MS * 0.55),
-          easing: Easing.inOut(Easing.quad),
-          useNativeDriver: true,
-        }),
-      ]),
       Animated.sequence([
         Animated.timing(burstFlashAnim, {
           toValue: 1,
@@ -1481,7 +1715,7 @@ export default function PacksScreen() {
     setIsOpening(false);
     stopChargeAnimations();
     chargeAnim.setValue(0);
-    burstScaleAnim.setValue(1);
+    sheenAnim.setValue(0);
     burstFlashAnim.setValue(0);
     loadingIdleAnim.setValue(0);
     loadingProgressAnim.setValue(0);
@@ -1590,6 +1824,48 @@ export default function PacksScreen() {
               pointerEvents="none"
               style={{
                 position: "absolute",
+                width: stageCardWidth * 1.7,
+                height: stageCardWidth * 1.6,
+                opacity:
+                  phase === "bursting"
+                    ? burstOpenAnim.interpolate({
+                        inputRange: [0, 0.28, 0.7, 1],
+                        outputRange: [0.5, 0.7, 0.9, 0],
+                        extrapolate: "clamp",
+                      })
+                    : chargeAnim.interpolate({
+                        inputRange: [0, 0.5, 1],
+                        outputRange: [0.45, 0.72, 0.45],
+                        extrapolate: "clamp",
+                      }),
+                transform: [
+                  {
+                    scale:
+                      phase === "bursting"
+                        ? burstOpenAnim.interpolate({
+                            inputRange: [0, 0.68, 1],
+                            outputRange: [0.74, 0.94, 1.08],
+                            extrapolate: "clamp",
+                          })
+                        : chargeAnim.interpolate({
+                            inputRange: [0, 0.5, 1],
+                            outputRange: [0.74, 0.94, 0.74],
+                            extrapolate: "clamp",
+                          }),
+                  },
+                ],
+              }}
+            >
+              <PackOpeningAura
+                width={stageCardWidth * 1.7}
+                height={stageCardWidth * 1.6}
+                gradientId={`pack-opening-aura-${slugifyPackName(selectedPack.name)}`}
+              />
+            </Animated.View>
+            <Animated.View
+              pointerEvents="none"
+              style={{
+                position: "absolute",
                 width: stageCardWidth + 52,
                 height: stageCardWidth / PACK_CARD_RATIO + 52,
                 borderRadius: 44,
@@ -1636,25 +1912,20 @@ export default function PacksScreen() {
             ) : null}
 
             {phase === "bursting" ? (
-              <Animated.View
-                style={{
-                  transform: [{ scale: burstScaleAnim }],
-                }}
-              >
-                <CrackedPackPreview
-                  pack={selectedPack}
-                  width={stageCardWidth}
-                  tc={tc}
-                  openAnim={burstOpenAnim}
-                  burstPattern={burstPattern}
-                />
-              </Animated.View>
+              <CrackedPackPreview
+                pack={selectedPack}
+                width={stageCardWidth}
+                tc={tc}
+                openAnim={burstOpenAnim}
+                burstPattern={burstPattern}
+              />
             ) : (
               <PackPreviewCard
                 pack={selectedPack}
                 width={stageCardWidth}
                 tc={tc}
                 chargeAnim={chargeAnim}
+                sheenAnim={sheenAnim}
               />
             )}
           </View>
