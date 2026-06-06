@@ -1,6 +1,6 @@
 "use dom";
 
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useState, type CSSProperties } from "react";
 
 type PackAnimationData = {
   cardCountLabel: string;
@@ -8,7 +8,7 @@ type PackAnimationData = {
   name: string;
 };
 
-type PackOpeningSequenceMode = "burst" | "loading";
+type PackOpeningSequenceMode = "burst" | "charge" | "loading";
 
 type Crack = {
   dashLength: number;
@@ -79,17 +79,20 @@ const CSS = `
     position: absolute;
     left: 50%;
     top: 50%;
-    width: 680px;
-    height: 620px;
+    width: min(92vw, 680px);
+    height: min(92vh, 620px);
+    max-width: 100%;
+    max-height: 100%;
     display: grid;
     place-items: center;
+    transform: translate(-50%, -50%);
     transform-origin: center;
   }
 
   .pack-opening-stage {
     position: relative;
-    width: 680px;
-    height: 620px;
+    width: 100%;
+    height: 100%;
     display: grid;
     place-items: center;
     perspective: 1000px;
@@ -186,63 +189,39 @@ const CSS = `
     mix-blend-mode: screen;
   }
 
-  .pack-opening-frame {
+  .pack-opening-card::before {
+    content: "";
     position: absolute;
     inset: 17px;
     border-radius: 13px;
+    background:
+      radial-gradient(circle at 50% 44%, rgba(255, 238, 166, .96), transparent 8%),
+      conic-gradient(
+        from 0deg,
+        color-mix(in srgb, var(--pack-color) 18%, #522206 82%),
+        color-mix(in srgb, var(--pack-color) 40%, #d58524 60%),
+        color-mix(in srgb, var(--pack-color) 24%, #ffd771 76%),
+        color-mix(in srgb, var(--pack-color) 52%, #7b320d 48%),
+        #351504,
+        color-mix(in srgb, var(--pack-color) 18%, #522206 82%)
+      );
     box-shadow:
       inset 0 0 0 4px #1d0d04,
       inset 0 0 0 9px rgba(255, 212, 102, .45),
-      inset 0 0 32px rgba(0, 0, 0, .45);
-    background:
-      radial-gradient(circle at 50% 42%, rgba(255,255,255,.18), transparent 18%),
-      linear-gradient(165deg, color-mix(in srgb, var(--pack-color) 92%, white 8%), color-mix(in srgb, var(--pack-color) 58%, #341306 42%));
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    gap: 16px;
-    padding: 24px 18px;
-    text-align: center;
+      inset 0 0 32px rgba(0, 0, 0, .65);
   }
 
-  .pack-opening-glyph-wrap {
-    width: 78px;
-    height: 78px;
-    border-radius: 999px;
-    display: grid;
-    place-items: center;
-    background: rgba(255, 248, 220, .18);
-    box-shadow:
-      inset 0 0 0 1px rgba(255,255,255,.14),
-      0 0 22px rgba(255, 209, 97, .18);
-  }
-
-  .pack-opening-glyph {
-    font-size: 42px;
-    line-height: 1;
-    color: #fff4c7;
-    text-shadow: 0 0 14px rgba(255, 214, 110, .4);
-  }
-
-  .pack-opening-title {
-    margin: 0;
-    font-size: 30px;
-    line-height: 1.08;
-    font-weight: 900;
-    color: #fff0c4;
-    text-shadow: 0 2px 12px rgba(0,0,0,.32);
-  }
-
-  .pack-opening-chip {
-    padding: 8px 16px;
-    border-radius: 999px;
-    background: rgba(27, 12, 4, .48);
-    color: rgba(255, 236, 188, .88);
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: .02em;
-    box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
+  .pack-opening-gem {
+    position: absolute;
+    left: 50%;
+    top: 47%;
+    width: 70px;
+    height: 70px;
+    transform: translate(-50%, -50%) rotate(45deg);
+    border-radius: 13px;
+    background: radial-gradient(circle at 28% 24%, #fff7cb, #ffcf54 28%, #f77620 62%, #7a1607 100%);
+    box-shadow: inset 0 0 10px rgba(255,255,255,.75), 0 0 32px rgba(255,174,45,.9);
+    z-index: 8;
   }
 
   .pack-opening-crack-layer {
@@ -407,6 +386,15 @@ const CSS = `
     transform: translate(-50%, -50%) scale(.78) rotate(24deg);
   }
 
+  .pack-opening-stage.loading-active .pack-opening-card,
+  .pack-opening-stage.loading-active .pack-opening-crack-layer,
+  .pack-opening-stage.loading-active .pack-opening-center-flare,
+  .pack-opening-stage.loading-active .pack-opening-shockwave,
+  .pack-opening-stage.loading-active .pack-opening-particle,
+  .pack-opening-stage.loading-active .pack-opening-shard {
+    opacity: 0;
+  }
+
   .pack-opening-stage.loading-active .pack-opening-sparkle {
     opacity: 1;
     animation: pack-sparkle-drift 3.4s ease-in-out calc(var(--loading-delay) * -1) infinite;
@@ -536,22 +524,6 @@ function shuffleArray<T>(items: T[]) {
     .map((item) => ({ item, sort: Math.random() }))
     .sort((left, right) => left.sort - right.sort)
     .map(({ item }) => item);
-}
-
-function getPackGlyph(packName: string) {
-  if (packName.includes("Legendary")) {
-    return "♛";
-  }
-  if (packName.includes("Epic")) {
-    return "◆";
-  }
-  if (packName.includes("Premium")) {
-    return "✦";
-  }
-  if (packName.includes("Standard")) {
-    return "◈";
-  }
-  return "✷";
 }
 
 function getRayToCardEdge(angle: number) {
@@ -695,91 +667,33 @@ function cssVarStyle(vars: Record<string, number | string>) {
   return vars as CSSProperties;
 }
 
+function createBurstPattern() {
+  const burst = buildBurstElements();
+
+  return {
+    cracks: buildCracks(),
+    particles: burst.particles,
+    shards: burst.shards,
+    sparkles: buildSparkles(),
+  };
+}
+
 export default function PackOpeningSequenceDom({
   mode,
   pack,
-  playKey,
 }: {
   dom?: import("expo/dom").DOMProps;
   mode: PackOpeningSequenceMode;
   pack: PackAnimationData;
-  playKey: number;
 }) {
-  const [cracks, setCracks] = useState<Crack[]>([]);
-  const [particles, setParticles] = useState<Particle[]>([]);
-  const [shards, setShards] = useState<Shard[]>([]);
-  const [sparkles, setSparkles] = useState<Sparkle[]>([]);
-  const [isExploding, setIsExploding] = useState(false);
-  const rootRef = useRef<HTMLDivElement | null>(null);
-  const [viewportSize, setViewportSize] = useState({
-    height: 620,
-    width: 680,
-  });
-
-  useEffect(() => {
-    const burst = buildBurstElements();
-    setCracks(buildCracks());
-    setParticles(burst.particles);
-    setShards(burst.shards);
-    setSparkles(buildSparkles());
-    setIsExploding(false);
-
-    const timer = window.setTimeout(() => {
-      setIsExploding(true);
-    }, 500);
-
-    return () => {
-      window.clearTimeout(timer);
-    };
-  }, [playKey]);
-
-  useEffect(() => {
-    const rootElement = rootRef.current;
-    if (!rootElement) {
-      return undefined;
-    }
-
-    function updateViewportSize(width: number, height: number) {
-      const safeWidth = Math.max(width, 1);
-      const safeHeight =
-        height > 80 ? height : Math.max(safeWidth * (620 / 680), 320);
-
-      setViewportSize({
-        height: safeHeight,
-        width: safeWidth,
-      });
-    }
-
-    updateViewportSize(rootElement.clientWidth, rootElement.clientHeight);
-
-    const resizeObserver = new ResizeObserver((entries) => {
-      const entry = entries[0];
-      if (!entry) {
-        return;
-      }
-
-      updateViewportSize(entry.contentRect.width, entry.contentRect.height);
-    });
-
-    resizeObserver.observe(rootElement);
-
-    return () => {
-      resizeObserver.disconnect();
-    };
-  }, []);
-
-  const stageScale =
-    Math.min(viewportSize.width / 680, viewportSize.height / 620, 1) * 0.96;
+  const [{ cracks, particles, shards, sparkles }] = useState(createBurstPattern);
 
   return (
-    <div ref={rootRef} className="pack-opening-root">
+    <div className="pack-opening-root">
       <style>{CSS}</style>
-      <div
-        className="pack-opening-stage-shell"
-        style={{ transform: `translate(-50%, -50%) scale(${stageScale})` }}
-      >
+      <div className="pack-opening-stage-shell">
         <div
-          className={`pack-opening-stage ${isExploding ? "exploding" : ""} ${mode === "loading" ? "loading-active" : ""}`}
+          className={`pack-opening-stage ${mode === "burst" ? "exploding" : ""} ${mode === "loading" ? "loading-active" : ""}`}
         >
           <div className="pack-opening-aura" />
           <div className="pack-opening-rays" />
@@ -789,13 +703,11 @@ export default function PackOpeningSequenceDom({
             className="pack-opening-card"
             style={cssVarStyle({ "--pack-color": pack.color })}
           >
-            <div className="pack-opening-frame">
-              <div className="pack-opening-glyph-wrap">
-                <div className="pack-opening-glyph">{getPackGlyph(pack.name)}</div>
-              </div>
-              <h1 className="pack-opening-title">{pack.name}</h1>
-              <div className="pack-opening-chip">{pack.cardCountLabel}</div>
-            </div>
+            <div
+              className="pack-opening-gem"
+              aria-label={`${pack.name} ${pack.cardCountLabel}`}
+              title={`${pack.name} ${pack.cardCountLabel}`}
+            />
             <svg
               className="pack-opening-crack-layer"
               viewBox={`0 0 ${CARD_W} ${CARD_H}`}

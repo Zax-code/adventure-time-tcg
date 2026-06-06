@@ -111,7 +111,7 @@ type OpeningPhase =
 const PACK_CARD_RATIO = 320 / 460;
 const IS_E2E_BUILD = process.env.EXPO_PUBLIC_E2E_AUTH === "1";
 const PACK_OPEN_SHAKE_MS = IS_E2E_BUILD ? 3200 : 950;
-const PACK_OPEN_BURST_MS = IS_E2E_BUILD ? 2100 : 1100;
+const PACK_OPEN_BURST_MS = IS_E2E_BUILD ? 2400 : 2200;
 const PACK_OPEN_PROGRESS_MS = IS_E2E_BUILD
   ? {
       first: 1400,
@@ -2136,9 +2136,14 @@ export default function PacksScreen() {
               }}
             >
               <PackOpeningSequenceDom
-                key={openingRunId}
-                mode={isLoadingPhase ? "loading" : "burst"}
-                playKey={openingRunId}
+                key={`${openingRunId}-${phase}`}
+                mode={
+                  isLoadingPhase
+                    ? "loading"
+                    : phase === "bursting"
+                      ? "burst"
+                      : "charge"
+                }
                 pack={{
                   cardCountLabel: t("packs.cardsCount", {
                     count: selectedPack.cardCount,
