@@ -80,6 +80,11 @@ const auth = {
   },
   errors: {
     failed: "Authentication failed",
+    invalidEmail: "Enter a valid email address.",
+    passwordTooShort: "Password must be at least 8 characters.",
+    verificationCodeInvalid: "Enter the 6-digit code from your email.",
+    displayNameInvalid: "Display name must be between 1 and 64 characters.",
+    googleTokenMissing: "Google sign-in did not finish correctly. Please try again.",
     networkFallback: "We couldn't reach the server. Please try again.",
     networkTitle: "We couldn't connect to the game server.",
     networkBody:

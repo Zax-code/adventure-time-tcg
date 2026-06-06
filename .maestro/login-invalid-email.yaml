@@ -1,0 +1,26 @@
+appId: love.leaetzak.adventuretime
+name: Login invalid email shows friendly error
+tags:
+  - auth
+  - smoke
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- assertVisible:
+    id: auth-email-input
+- tapOn:
+    id: auth-email-input
+- eraseText
+- inputText: invalid-email
+- pressKey: Enter
+- assertVisible:
+    id: auth-password-input
+- tapOn:
+    id: auth-password-input
+- eraseText
+- inputText: password123
+- tapOn:
+    id: auth-submit-button
+- assertVisible:
+    text: Enter a valid email address.

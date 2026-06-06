@@ -82,6 +82,12 @@ const auth = {
   },
   errors: {
     failed: "Échec de l'authentification",
+    invalidEmail: "Entre une adresse e-mail valide.",
+    passwordTooShort: "Le mot de passe doit contenir au moins 8 caractères.",
+    verificationCodeInvalid: "Entre le code à 6 chiffres reçu par e-mail.",
+    displayNameInvalid: "Le pseudo doit contenir entre 1 et 64 caractères.",
+    googleTokenMissing:
+      "La connexion Google ne s'est pas terminée correctement. Réessaie.",
     networkFallback: "Impossible de joindre le serveur. Réessaie.",
     networkTitle: "Impossible de se connecter au serveur du jeu.",
     networkBody:
