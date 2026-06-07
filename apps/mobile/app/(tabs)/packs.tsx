@@ -2309,6 +2309,11 @@ export default function PacksScreen() {
     const isChargePhase = phase === "shaking";
     const openingAccent = selectedPack.color || "#D58524";
     const chargePreviewWidth = Math.min(stageCardWidth, 230);
+    const openingStageHeight = Math.min(Math.max(height * 0.62, 420), 620);
+    const openingFooterReserve = Math.min(
+      Math.max(height * 0.24, 196),
+      252,
+    );
 
     return (
       <View
@@ -2326,7 +2331,7 @@ export default function PacksScreen() {
               style={{
                 width: "100%",
                 maxWidth: 520,
-                height: Math.min(Math.max(height * 0.62, 420), 620),
+                height: openingStageHeight,
               }}
             >
               <PackOpeningSequenceDom
@@ -2368,7 +2373,10 @@ export default function PacksScreen() {
             </View>
           </View>
 
-          <View className="w-full max-w-[340px] self-center gap-3 pb-2">
+          <View
+            className="w-full max-w-[340px] self-center gap-3 pb-2"
+            style={{ minHeight: openingFooterReserve }}
+          >
             {isLoadingPhase ? (
               <>
                 <SectionBadge
