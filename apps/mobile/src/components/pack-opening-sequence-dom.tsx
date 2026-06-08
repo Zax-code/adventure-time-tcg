@@ -109,6 +109,10 @@ const CSS = `
     animation: pack-aura-pulse 3.2s ease-in-out infinite;
   }
 
+  .pack-opening-stage.exploding .pack-opening-aura {
+    animation: pack-burst-aura 1.58s cubic-bezier(.16,.82,.22,1) forwards;
+  }
+
   .pack-opening-light {
     position: absolute;
     left: 50%;
@@ -378,6 +382,12 @@ const CSS = `
     animation: pack-loading-glow 3.4s ease-in-out infinite;
   }
 
+  .pack-opening-stage.loading-active .pack-opening-aura {
+    opacity: .34;
+    transform: scale(.9);
+    filter: blur(16px);
+  }
+
   .pack-opening-stage.loading-active .pack-opening-rays {
     opacity: .38;
     animation: pack-loading-rays 7.2s linear infinite;
@@ -405,6 +415,29 @@ const CSS = `
   @keyframes pack-aura-pulse {
     0%, 100% { transform: scale(.74); opacity: .45; }
     50% { transform: scale(.94); opacity: .72; }
+  }
+
+  @keyframes pack-burst-aura {
+    0% {
+      opacity: .72;
+      transform: scale(.9);
+      filter: blur(13px);
+    }
+    42% {
+      opacity: .92;
+      transform: scale(1);
+      filter: blur(16px);
+    }
+    72% {
+      opacity: .84;
+      transform: scale(1.08);
+      filter: blur(18px);
+    }
+    100% {
+      opacity: .38;
+      transform: scale(1.2);
+      filter: blur(22px);
+    }
   }
 
   @keyframes pack-sheen {
