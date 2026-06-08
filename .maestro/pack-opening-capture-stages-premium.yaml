@@ -1,0 +1,48 @@
+appId: love.leaetzak.adventuretime
+name: Pack opening capture stages premium
+tags:
+  - packs
+  - screenshots
+---
+- scrollUntilVisible:
+    element:
+      id: pack-card-premium-pack
+    direction: DOWN
+    timeout: 20000
+    centerElement: true
+- tapOn:
+    id: pack-card-premium-pack
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible:
+      id: pack-opening-shaking
+    timeout: 6000
+- extendedWaitUntil:
+    visible:
+      id: pack-opening-capture-charge
+    timeout: 4000
+- takeScreenshot: tmp-pack-opening-shots/01-charge.png
+- extendedWaitUntil:
+    visible:
+      id: pack-opening-capture-burst-flash
+    timeout: 4000
+- takeScreenshot: tmp-pack-opening-shots/02-burst-flash.png
+- extendedWaitUntil:
+    visible:
+      id: pack-opening-capture-burst-fracture
+    timeout: 4000
+- takeScreenshot: tmp-pack-opening-shots/03-burst-fracture.png
+- extendedWaitUntil:
+    visible:
+      id: pack-opening-loading
+    timeout: 4000
+- extendedWaitUntil:
+    visible:
+      id: pack-opening-capture-loading
+    timeout: 4000
+- takeScreenshot: tmp-pack-opening-shots/04-loading.png
+- extendedWaitUntil:
+    visible:
+      id: pack-opening-ready
+    timeout: 15000
+- takeScreenshot: tmp-pack-opening-shots/05-ready.png
