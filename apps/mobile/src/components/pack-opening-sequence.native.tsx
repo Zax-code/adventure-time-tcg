@@ -712,6 +712,7 @@ function PackCard({
     return {
       opacity: 1,
       transform: [
+        { perspective: 1000 },
         {
           translateY: interpolate(chargeProgress.value, [0, 0.5, 1], [0, -8, 0]),
         },
@@ -750,12 +751,18 @@ function PackCard({
           width,
           height,
           borderRadius: outerRadius,
-          overflow: "hidden",
           boxShadow: getCardShadow(palette.base),
         },
         animatedStyle,
       ]}
     >
+      <View
+        style={{
+          flex: 1,
+          borderRadius: outerRadius,
+          overflow: "hidden",
+        }}
+      >
       <View
         style={{
           flex: 1,
@@ -939,6 +946,7 @@ function PackCard({
             ) : null}
           </LinearGradient>
         </View>
+      </View>
       </View>
     </Animated.View>
   );
