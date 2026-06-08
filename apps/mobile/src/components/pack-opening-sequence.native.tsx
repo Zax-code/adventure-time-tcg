@@ -712,12 +712,11 @@ function PackCard({
     return {
       opacity: 1,
       transform: [
-        { perspective: 1000 },
         {
           translateY: interpolate(chargeProgress.value, [0, 0.5, 1], [0, -8, 0]),
         },
         {
-          rotateX: `${interpolate(chargeProgress.value, [0, 0.5, 1], [0, 6, 0])}deg`,
+          scale: interpolate(chargeProgress.value, [0, 0.5, 1], [1, 1.012, 1]),
         },
         {
           rotateZ: `${interpolate(chargeProgress.value, [0, 0.5, 1], [-1, 1, -1])}deg`,
