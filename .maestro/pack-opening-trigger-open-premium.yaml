@@ -1,0 +1,15 @@
+appId: love.leaetzak.adventuretime
+name: Pack opening trigger open premium
+tags:
+  - packs
+  - screenshots
+---
+- scrollUntilVisible:
+    element:
+      id: pack-card-premium-pack
+    direction: DOWN
+    timeout: 20000
+    centerElement: true
+- tapOn:
+    id: pack-card-premium-pack
+    retryTapIfNoChange: true
