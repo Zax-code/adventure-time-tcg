@@ -46,7 +46,7 @@ import {
 } from "../../src/components/icons";
 import { PageLoadingState } from "../../src/components/loading-state";
 import { getPackOpeningVisualProfile } from "../../src/components/pack-opening-visuals";
-import PackOpeningSequenceDom from "../../src/components/pack-opening-sequence-dom";
+import PackOpeningSequence from "../../src/components/pack-opening-sequence";
 import {
   RARITY_COLORS,
   RARITY_COLORS_ICE,
@@ -145,16 +145,6 @@ const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function useAnimatedValue(initialValue: number) {
-  const ref = useRef<Animated.Value | null>(null);
-
-  if (ref.current === null) {
-    ref.current = new Animated.Value(initialValue);
-  }
-
-  return ref.current;
 }
 
 function slugifyPackName(name: string) {
@@ -1726,9 +1716,6 @@ export default function PacksScreen() {
   const [openingRunId, setOpeningRunId] = useState(0);
   const [openError, setOpenError] = useState<string | null>(null);
   const [loadingProgress, setLoadingProgress] = useState(0);
-  const [burstPattern, setBurstPattern] = useState<PackBurstPattern>(() =>
-    createBurstPattern(320, 320 / PACK_CARD_RATIO),
-  );
   const shouldHideTabBar = phase !== "selecting" && phase !== "complete";
   const openingBottomPadding = shouldHideTabBar
     ? Math.max(safeAreaBottom + 16, 24)
@@ -1740,21 +1727,11 @@ export default function PacksScreen() {
     Math.max(244, height - openingBottomPadding - 352) * PACK_CARD_RATIO,
   );
   const stageCardWidth = revealCardWidth;
-  const loadingDeckWidth = revealCardWidth;
-
-  const chargeAnim = useRef(new Animated.Value(0)).current;
-  const sheenAnim = useAnimatedValue(0);
-  const burstFlashAnim = useRef(new Animated.Value(0)).current;
-  const loadingIdleAnim = useRef(new Animated.Value(0)).current;
   const loadingProgressAnim = useRef(new Animated.Value(0)).current;
   const stackSpreadAnim = useRef(new Animated.Value(0)).current;
   const readyRevealAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const flipAnim = useRef(new Animated.Value(0)).current;
-  const burstOpenAnim = useRef(new Animated.Value(0)).current;
-  const chargeLoopRef = useRef<Animated.CompositeAnimation | null>(null);
-  const sheenLoopRef = useRef<Animated.CompositeAnimation | null>(null);
-  const loadingLoopRef = useRef<Animated.CompositeAnimation | null>(null);
 
   useEffect(() => {
     navigation.setOptions({
@@ -1807,102 +1784,6 @@ export default function PacksScreen() {
     return () => pulseLoop?.stop();
   }, [phase, pulseAnim, readyRevealAnim, stackSpreadAnim]);
 
-  useEffect(() => {
-    if (phase !== "loading") {
-      loadingLoopRef.current?.stop();
-      loadingLoopRef.current = null;
-      loadingIdleAnim.setValue(0);
-      return;
-    }
-
-    loadingIdleAnim.setValue(0);
-    loadingLoopRef.current = Animated.loop(
-      Animated.timing(loadingIdleAnim, {
-        toValue: 1,
-        duration: 2450,
-        easing: Easing.linear,
-        useNativeDriver: true,
-      }),
-    );
-    loadingLoopRef.current.start();
-
-    return () => {
-      loadingLoopRef.current?.stop();
-      loadingLoopRef.current = null;
-    };
-  }, [loadingIdleAnim, phase]);
-
-  function stopChargeAnimations() {
-    chargeLoopRef.current?.stop();
-    chargeLoopRef.current = null;
-    sheenLoopRef.current?.stop();
-    sheenLoopRef.current = null;
-  }
-
-  function startChargeAnimation() {
-    stopChargeAnimations();
-    chargeAnim.setValue(0);
-    sheenAnim.setValue(0);
-
-    chargeLoopRef.current = Animated.loop(
-      Animated.sequence([
-        Animated.timing(chargeAnim, {
-          toValue: 1,
-          duration: 920,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-        Animated.timing(chargeAnim, {
-          toValue: 0,
-          duration: 920,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-      ]),
-    );
-    chargeLoopRef.current.start();
-
-    sheenLoopRef.current = Animated.loop(
-      Animated.timing(sheenAnim, {
-        toValue: 1,
-        duration: 3400,
-        easing: Easing.linear,
-        useNativeDriver: true,
-      }),
-    );
-    sheenLoopRef.current.start();
-  }
-
-  function startBurstAnimation() {
-    stopChargeAnimations();
-    burstFlashAnim.setValue(0);
-    burstOpenAnim.setValue(0);
-    setBurstPattern(createBurstPattern(stageCardWidth, stageCardWidth / PACK_CARD_RATIO));
-
-    Animated.parallel([
-      Animated.sequence([
-        Animated.timing(burstFlashAnim, {
-          toValue: 1,
-          duration: Math.round(PACK_OPEN_BURST_MS * 0.3),
-          easing: Easing.out(Easing.quad),
-          useNativeDriver: true,
-        }),
-        Animated.timing(burstFlashAnim, {
-          toValue: 0,
-          duration: Math.round(PACK_OPEN_BURST_MS * 0.7),
-          easing: Easing.in(Easing.quad),
-          useNativeDriver: true,
-        }),
-      ]),
-      Animated.timing(burstOpenAnim, {
-        toValue: 1,
-        duration: PACK_OPEN_BURST_MS,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }
-
   function animateLoadingProgress(from: number, to: number, duration: number) {
     setLoadingProgress(Math.round(to));
     loadingProgressAnim.setValue(from);
@@ -1941,13 +1822,11 @@ export default function PacksScreen() {
     );
 
     setPhase("shaking");
-    startChargeAnimation();
 
     const apiCallPromise = apiClient.openPack({ packId: pack.id });
 
     await delay(PACK_OPEN_SHAKE_MS);
     setPhase("bursting");
-    startBurstAnimation();
 
     await delay(PACK_OPEN_BURST_MS);
     setPhase("loading");
@@ -2029,17 +1908,11 @@ export default function PacksScreen() {
     setLoadingProgress(0);
     setOpenError(null);
     setIsOpening(false);
-    stopChargeAnimations();
-    chargeAnim.setValue(0);
-    sheenAnim.setValue(0);
-    burstFlashAnim.setValue(0);
-    loadingIdleAnim.setValue(0);
     loadingProgressAnim.setValue(0);
     stackSpreadAnim.setValue(0);
     readyRevealAnim.setValue(0);
     pulseAnim.setValue(1);
     flipAnim.setValue(0);
-    burstOpenAnim.setValue(0);
   }
 
   const packsQuery = useQuery({
@@ -2119,9 +1992,7 @@ export default function PacksScreen() {
     selectedPack
   ) {
     const isLoadingPhase = phase === "loading";
-    const isChargePhase = phase === "shaking";
     const openingAccent = selectedPack.color || "#D58524";
-    const chargePreviewWidth = Math.min(stageCardWidth, 230);
     const openingStageHeight = Math.min(Math.max(height * 0.62, 420), 620);
     const openingFooterReserve = Math.min(
       Math.max(height * 0.24, 196),
@@ -2158,8 +2029,9 @@ export default function PacksScreen() {
                 height: openingStageHeight,
               }}
             >
-              <PackOpeningSequenceDom
+              <PackOpeningSequence
                 key={`${openingRunId}`}
+                burstDurationMs={PACK_OPEN_BURST_MS}
                 mode={
                   isLoadingPhase
                     ? "loading"
@@ -2176,27 +2048,7 @@ export default function PacksScreen() {
                   guaranteedRarity: selectedPack.guaranteedRarity,
                   name: selectedPack.name,
                 }}
-                dom={{
-                  contentInsetAdjustmentBehavior: "never",
-                  scrollEnabled: false,
-                  style: {
-                    backgroundColor: "transparent",
-                    flex: 1,
-                    opacity: isChargePhase ? 0 : 1,
-                  },
-                }}
               />
-              {isChargePhase ? (
-                <View className="absolute inset-0 items-center justify-center">
-                  <PackPreviewCard
-                    pack={selectedPack}
-                    width={chargePreviewWidth}
-                    tc={tc}
-                    chargeAnim={chargeAnim}
-                    sheenAnim={sheenAnim}
-                  />
-                </View>
-              ) : null}
             </View>
           </View>
 
