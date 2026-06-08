@@ -66,14 +66,82 @@ type CaptureMarker =
   | "pack-opening-capture-burst-fracture"
   | "pack-opening-capture-loading";
 
-type CaptureMarkersState = Record<NonNullable<CaptureMarker>, boolean>;
+function CaptureMarker({
+  delayMs,
+  testID,
+}: {
+  delayMs: number;
+  testID: NonNullable<CaptureMarker>;
+}) {
+  const [visible, setVisible] = useState(delayMs === 0);
 
-const EMPTY_CAPTURE_MARKERS: CaptureMarkersState = {
-  "pack-opening-capture-burst-flash": false,
-  "pack-opening-capture-burst-fracture": false,
-  "pack-opening-capture-charge": false,
-  "pack-opening-capture-loading": false,
-};
+  useEffect(() => {
+    if (delayMs === 0) {
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      setVisible(true);
+    }, delayMs);
+
+    return () => clearTimeout(timeout);
+  }, [delayMs]);
+
+  if (!visible) {
+    return null;
+  }
+
+  return (
+    <View
+      pointerEvents="none"
+      testID={testID}
+      style={styles.captureMarker}
+    />
+  );
+}
+
+function CaptureMarkersOverlay({
+  burstDurationMs,
+  mode,
+}: {
+  burstDurationMs: number;
+  mode: PackOpeningSequenceProps["mode"];
+}) {
+  if (mode === "charge") {
+    return (
+      <CaptureMarker
+        delayMs={CHARGE_CAPTURE_DELAY_MS}
+        testID="pack-opening-capture-charge"
+      />
+    );
+  }
+
+  if (mode === "burst") {
+    return (
+      <>
+        <CaptureMarker
+          delayMs={Math.min(BURST_FLASH_CAPTURE_DELAY_MS, burstDurationMs)}
+          testID="pack-opening-capture-burst-flash"
+        />
+        <CaptureMarker
+          delayMs={Math.min(BURST_FRACTURE_CAPTURE_DELAY_MS, burstDurationMs)}
+          testID="pack-opening-capture-burst-fracture"
+        />
+      </>
+    );
+  }
+
+  if (mode === "loading") {
+    return (
+      <CaptureMarker
+        delayMs={LOADING_CAPTURE_DELAY_MS}
+        testID="pack-opening-capture-loading"
+      />
+    );
+  }
+
+  return null;
+}
 
 function getCardShadow(packColor: string) {
   return `0 22px 55px rgba(0,0,0,0.72), 0 0 42px ${withAlpha(packColor, "6B")}`;
@@ -884,8 +952,6 @@ export default function PackOpeningSequence({
   const [{ iconColor, iconKind }] = useState(() => getPackOpeningIconProps(pack));
   const [pattern] = useState(() => createPackOpeningPattern(pack));
   const [layout, setLayout] = useState({ height: 0, width: 0 });
-  const [captureMarkers, setCaptureMarkers] =
-    useState<CaptureMarkersState>(EMPTY_CAPTURE_MARKERS);
   const palette = createPackOpeningPalette(pack, iconColor);
 
   const chargeProgress = useSharedValue(0);
@@ -983,50 +1049,6 @@ export default function PackOpeningSequence({
     mode,
     sheenProgress,
   ]);
-
-  useEffect(() => {
-    setCaptureMarkers(EMPTY_CAPTURE_MARKERS);
-
-    if (mode === "charge") {
-      const timeout = setTimeout(() => {
-        setCaptureMarkers((current) => ({
-          ...current,
-          "pack-opening-capture-charge": true,
-        }));
-      }, CHARGE_CAPTURE_DELAY_MS);
-
-      return () => clearTimeout(timeout);
-    }
-
-    if (mode === "burst") {
-      const flashTimeout = setTimeout(() => {
-        setCaptureMarkers((current) => ({
-          ...current,
-          "pack-opening-capture-burst-flash": true,
-        }));
-      }, Math.min(BURST_FLASH_CAPTURE_DELAY_MS, burstDurationMs));
-      const fractureTimeout = setTimeout(() => {
-        setCaptureMarkers((current) => ({
-          ...current,
-          "pack-opening-capture-burst-fracture": true,
-        }));
-      }, Math.min(BURST_FRACTURE_CAPTURE_DELAY_MS, burstDurationMs));
-
-      return () => {
-        clearTimeout(flashTimeout);
-        clearTimeout(fractureTimeout);
-      };
-    }
-
-    const timeout = setTimeout(() => {
-      setCaptureMarkers((current) => ({
-        ...current,
-        "pack-opening-capture-loading": true,
-      }));
-    }, LOADING_CAPTURE_DELAY_MS);
-
-    return () => clearTimeout(timeout);
-  }, [burstDurationMs, mode]);
 
   const onLayout = (event: LayoutChangeEvent) => {
     const { height, width } = event.nativeEvent.layout;
@@ -1281,34 +1303,10 @@ export default function PackOpeningSequence({
         { overflow: "hidden", backgroundColor: pack.backgroundColor },
       ]}
     >
-      {captureMarkers["pack-opening-capture-charge"] ? (
-        <View
-          pointerEvents="none"
-          testID="pack-opening-capture-charge"
-          style={styles.captureMarker}
-        />
-      ) : null}
-      {captureMarkers["pack-opening-capture-burst-flash"] ? (
-        <View
-          pointerEvents="none"
-          testID="pack-opening-capture-burst-flash"
-          style={styles.captureMarker}
-        />
-      ) : null}
-      {captureMarkers["pack-opening-capture-burst-fracture"] ? (
-        <View
-          pointerEvents="none"
-          testID="pack-opening-capture-burst-fracture"
-          style={styles.captureMarker}
-        />
-      ) : null}
-      {captureMarkers["pack-opening-capture-loading"] ? (
-        <View
-          pointerEvents="none"
-          testID="pack-opening-capture-loading"
-          style={styles.captureMarker}
-        />
-      ) : null}
+      <CaptureMarkersOverlay
+        burstDurationMs={burstDurationMs}
+        mode={mode}
+      />
       {stageWidth > 0 && stageHeight > 0 ? (
         <>
           <StageBackdrop
