@@ -2,9 +2,16 @@
 
 import { useState, type CSSProperties } from "react";
 
+import {
+  getPackOpeningVisualProfile,
+  type PackVisualIconKind,
+} from "./pack-opening-visuals";
+
 type PackAnimationData = {
+  backgroundColor: string;
   cardCountLabel: string;
   color: string;
+  guaranteedRarity?: string | null;
   name: string;
 };
 
@@ -45,7 +52,6 @@ type Sparkle = {
 const CARD_W = 230;
 const CARD_H = 330;
 const CENTER = { x: CARD_W * 0.5, y: CARD_H * 0.47 };
-const PARTICLE_COLORS = ["#FFF2A8", "#FFC247", "#FF7622", "#FF3B16", "#7BD6FF"];
 
 const CSS = `
   html, body {
@@ -53,7 +59,7 @@ const CSS = `
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background: #070302;
+    background: var(--app-bg);
   }
 
   body > div {
@@ -70,8 +76,10 @@ const CSS = `
     place-items: center;
     position: relative;
     background:
-      radial-gradient(circle at 50% 42%, rgba(255, 197, 71, .18), transparent 28%),
-      radial-gradient(circle at 50% 62%, #351707, #070302 72%);
+      radial-gradient(circle at 50% 36%, rgba(var(--pack-highlight-rgb), .18), transparent 26%),
+      radial-gradient(circle at 50% 54%, rgba(var(--pack-rgb), .12), transparent 34%),
+      radial-gradient(circle at 50% 68%, rgba(var(--pack-shadow-rgb), .14), transparent 48%),
+      var(--app-bg);
     font-family: system-ui, sans-serif;
   }
 
@@ -104,7 +112,7 @@ const CSS = `
     width: 390px;
     height: 390px;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(255, 226, 128, .5), rgba(255, 115, 19, .16) 35%, transparent 68%);
+    background: radial-gradient(circle, rgba(var(--pack-highlight-rgb), .5), rgba(var(--pack-rgb), .18) 35%, transparent 68%);
     filter: blur(14px);
     animation: pack-aura-pulse 3.2s ease-in-out infinite;
   }
@@ -125,7 +133,7 @@ const CSS = `
     z-index: 35;
     pointer-events: none;
     background:
-      radial-gradient(circle, rgba(255, 255, 235, .98) 0 8%, rgba(255, 228, 126, .86) 16%, rgba(255, 172, 45, .42) 35%, rgba(255, 116, 22, .14) 58%, transparent 73%);
+      radial-gradient(circle, rgba(255, 255, 245, .98) 0 8%, rgba(var(--pack-highlight-rgb), .86) 16%, rgba(var(--pack-rgb), .42) 35%, rgba(var(--pack-shadow-rgb), .14) 58%, transparent 73%);
     filter: blur(6px);
     mix-blend-mode: screen;
   }
@@ -145,21 +153,21 @@ const CSS = `
       conic-gradient(
         from 8deg,
         transparent 0deg 13deg,
-        rgba(255, 242, 168, .52) 14deg 20deg,
+        rgba(var(--pack-highlight-rgb), .56) 14deg 20deg,
         transparent 21deg 40deg,
-        rgba(255, 194, 70, .42) 41deg 48deg,
+        rgba(var(--pack-soft-rgb), .42) 41deg 48deg,
         transparent 49deg 76deg,
-        rgba(255, 255, 210, .5) 77deg 84deg,
+        rgba(255, 255, 255, .5) 77deg 84deg,
         transparent 85deg 116deg,
-        rgba(255, 202, 88, .38) 117deg 124deg,
+        rgba(var(--pack-rgb), .38) 117deg 124deg,
         transparent 125deg 160deg,
-        rgba(255, 244, 180, .5) 161deg 169deg,
+        rgba(var(--pack-highlight-rgb), .5) 161deg 169deg,
         transparent 170deg 210deg,
-        rgba(255, 177, 54, .38) 211deg 218deg,
+        rgba(var(--pack-rgb), .38) 211deg 218deg,
         transparent 219deg 254deg,
-        rgba(255, 255, 218, .48) 255deg 262deg,
+        rgba(255, 255, 255, .48) 255deg 262deg,
         transparent 263deg 302deg,
-        rgba(255, 203, 80, .42) 303deg 310deg,
+        rgba(var(--pack-soft-rgb), .42) 303deg 310deg,
         transparent 311deg 360deg
       );
     mask-image: radial-gradient(circle, transparent 0 10%, black 18% 58%, transparent 74%);
@@ -175,12 +183,12 @@ const CSS = `
     overflow: hidden;
     box-shadow:
       0 0 0 5px #2a1407,
-      0 0 0 9px #d9902c,
+      0 0 0 9px var(--pack-border),
       0 22px 55px rgba(0, 0, 0, .72),
-      0 0 42px rgba(255, 166, 42, .42);
+      0 0 42px rgba(var(--pack-rgb), .42);
     animation: pack-card-idle 2.6s ease-in-out infinite;
     background:
-      linear-gradient(135deg, #ffe0a0 0%, #9f4a17 12%, #281005 18%, #5e2b10 65%, #f9b64a 100%);
+      linear-gradient(140deg, var(--pack-soft) 0%, var(--pack-base) 16%, var(--pack-deep) 34%, var(--pack-dark) 72%, var(--pack-bright) 100%);
   }
 
   .pack-opening-card::after {
@@ -199,33 +207,74 @@ const CSS = `
     inset: 17px;
     border-radius: 13px;
     background:
-      radial-gradient(circle at 50% 44%, rgba(255, 238, 166, .96), transparent 8%),
-      conic-gradient(
-        from 0deg,
-        color-mix(in srgb, var(--pack-color) 18%, #522206 82%),
-        color-mix(in srgb, var(--pack-color) 40%, #d58524 60%),
-        color-mix(in srgb, var(--pack-color) 24%, #ffd771 76%),
-        color-mix(in srgb, var(--pack-color) 52%, #7b320d 48%),
-        #351504,
-        color-mix(in srgb, var(--pack-color) 18%, #522206 82%)
-      );
+      radial-gradient(circle at 50% 18%, rgba(255, 255, 255, .28), transparent 20%),
+      linear-gradient(165deg, var(--pack-surface) 0%, rgba(var(--pack-soft-rgb), .94) 24%, rgba(var(--pack-rgb), .96) 52%, var(--pack-dark) 100%);
     box-shadow:
       inset 0 0 0 4px #1d0d04,
-      inset 0 0 0 9px rgba(255, 212, 102, .45),
+      inset 0 0 0 9px rgba(var(--pack-highlight-rgb), .34),
       inset 0 0 32px rgba(0, 0, 0, .65);
   }
 
-  .pack-opening-gem {
+  .pack-opening-card-face {
     position: absolute;
-    left: 50%;
-    top: 47%;
-    width: 70px;
-    height: 70px;
-    transform: translate(-50%, -50%) rotate(45deg);
-    border-radius: 13px;
-    background: radial-gradient(circle at 28% 24%, #fff7cb, #ffcf54 28%, #f77620 62%, #7a1607 100%);
-    box-shadow: inset 0 0 10px rgba(255,255,255,.75), 0 0 32px rgba(255,174,45,.9);
+    inset: 17px;
     z-index: 8;
+    border-radius: 13px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    padding: 30px 18px 24px;
+  }
+
+  .pack-opening-icon-frame {
+    width: 108px;
+    height: 108px;
+    border-radius: 28px;
+    display: grid;
+    place-items: center;
+    background: rgba(255, 255, 255, .16);
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, .22),
+      0 18px 34px rgba(var(--pack-shadow-rgb), .22);
+    backdrop-filter: blur(10px);
+  }
+
+  .pack-opening-icon {
+    width: 68px;
+    height: 68px;
+    color: var(--pack-icon-color);
+    filter: drop-shadow(0 0 14px rgba(var(--pack-highlight-rgb), .42));
+  }
+
+  .pack-opening-card-copy {
+    margin-top: auto;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .pack-opening-card-title {
+    color: #fff8f0;
+    font-size: 28px;
+    line-height: 1.05;
+    font-weight: 800;
+    letter-spacing: .02em;
+    text-align: center;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, .3);
+  }
+
+  .pack-opening-card-count {
+    padding: 8px 14px;
+    border-radius: 999px;
+    color: rgba(255, 255, 255, .92);
+    font-size: 13px;
+    font-weight: 700;
+    background: rgba(255, 255, 255, .16);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .18);
   }
 
   .pack-opening-crack-layer {
@@ -245,18 +294,18 @@ const CSS = `
   }
 
   .pack-opening-crack-glow {
-    stroke: rgba(255, 116, 24, .85);
+    stroke: rgba(var(--pack-rgb), .85);
     stroke-width: 9;
     filter: blur(4px);
   }
 
   .pack-opening-crack-core {
-    stroke: #fff8bf;
+    stroke: rgba(var(--pack-highlight-rgb), .98);
     stroke-width: 3.2;
     filter:
-      drop-shadow(0 0 5px #ffe16e)
-      drop-shadow(0 0 13px #ff771b)
-      drop-shadow(0 0 22px rgba(255, 55, 15, .75));
+      drop-shadow(0 0 5px rgba(var(--pack-highlight-rgb), .88))
+      drop-shadow(0 0 13px rgba(var(--pack-rgb), .82))
+      drop-shadow(0 0 22px rgba(var(--pack-shadow-rgb), .75));
   }
 
   .pack-opening-center-flare {
@@ -267,8 +316,11 @@ const CSS = `
     height: 30px;
     border-radius: 50%;
     transform: translate(-50%, -50%);
-    background: #fff2aa;
-    box-shadow: 0 0 18px #fff2aa, 0 0 42px #ff9c25, 0 0 80px #ff5b12;
+    background: rgb(var(--pack-highlight-rgb));
+    box-shadow:
+      0 0 18px rgba(var(--pack-highlight-rgb), .92),
+      0 0 42px rgba(var(--pack-rgb), .82),
+      0 0 80px rgba(var(--pack-shadow-rgb), .68);
     opacity: 0;
     z-index: 42;
   }
@@ -279,7 +331,7 @@ const CSS = `
     top: calc(47% - 60px);
     width: 120px;
     height: 120px;
-    border: 3px solid rgba(255, 228, 130, .9);
+    border: 3px solid rgba(var(--pack-highlight-rgb), .9);
     border-radius: 50%;
     opacity: 0;
     pointer-events: none;
@@ -307,16 +359,16 @@ const CSS = `
   .pack-opening-shard {
     width: 36px;
     height: 56px;
-    background: linear-gradient(135deg, rgba(255, 225, 121, .95), rgba(137, 54, 12, .95));
+    background: linear-gradient(135deg, rgba(var(--pack-highlight-rgb), .95), rgba(var(--pack-shadow-rgb), .95));
     clip-path: polygon(50% 0, 100% 72%, 40% 100%, 0 45%);
-    box-shadow: 0 0 14px rgba(255, 168, 42, .6);
+    box-shadow: 0 0 14px rgba(var(--pack-rgb), .6);
   }
 
   .pack-opening-sparkle {
     width: var(--size);
     height: var(--size);
     transform: translate(-50%, -50%);
-    filter: drop-shadow(0 0 8px #fff4b8) drop-shadow(0 0 18px #ffb733);
+    filter: drop-shadow(0 0 8px rgba(var(--pack-highlight-rgb), .78)) drop-shadow(0 0 18px rgba(var(--pack-rgb), .72));
   }
 
   .pack-opening-sparkle::before,
@@ -324,7 +376,7 @@ const CSS = `
     content: "";
     position: absolute;
     inset: 0;
-    background: #fff9d8;
+    background: rgba(255, 255, 255, .96);
     border-radius: 99px;
   }
 
@@ -573,6 +625,43 @@ const CSS = `
   }
 `;
 
+function clampChannel(value: number) {
+  return Math.max(0, Math.min(255, Math.round(value)));
+}
+
+function hexToRgb(hex: string) {
+  const normalized = /^#[0-9a-fA-F]{6}$/.test(hex) ? hex : "#C96A24";
+  return {
+    b: Number.parseInt(normalized.slice(5, 7), 16),
+    g: Number.parseInt(normalized.slice(3, 5), 16),
+    r: Number.parseInt(normalized.slice(1, 3), 16),
+  };
+}
+
+function mixHex(baseHex: string, targetHex: string, amount: number) {
+  const base = hexToRgb(baseHex);
+  const target = hexToRgb(targetHex);
+  const channels: Array<keyof typeof base> = ["r", "g", "b"];
+
+  return `#${channels
+    .map((channel) =>
+      clampChannel(
+        base[channel as keyof typeof base] +
+          (target[channel as keyof typeof target] -
+            base[channel as keyof typeof base]) *
+            amount,
+      )
+        .toString(16)
+        .padStart(2, "0"),
+    )
+    .join("")}`;
+}
+
+function toRgbTriplet(hex: string) {
+  const { r, g, b } = hexToRgb(hex);
+  return `${r}, ${g}, ${b}`;
+}
+
 function randomBetween(min: number, max: number) {
   return Math.random() * (max - min) + min;
 }
@@ -675,15 +764,27 @@ function buildCracks(): Crack[] {
   });
 }
 
-function buildBurstElements() {
+function buildParticlePalette(packColor: string, iconColor: string) {
+  return [
+    mixHex(packColor, "#FFFFFF", 0.74),
+    mixHex(packColor, "#FFFFFF", 0.46),
+    packColor,
+    iconColor,
+    mixHex(packColor, "#140707", 0.34),
+  ];
+}
+
+function buildBurstElements(pack: PackAnimationData) {
+  const profile = getPackOpeningVisualProfile(pack);
+  const particlePalette = buildParticlePalette(pack.color, profile.iconColor);
   const particles = Array.from({ length: 82 }, (_, index) => {
     const angle = randomBetween(0, Math.PI * 2);
     const distance = randomBetween(140, 390);
     return {
       color:
-        PARTICLE_COLORS[
-          Math.floor(randomBetween(0, PARTICLE_COLORS.length))
-        ] ?? PARTICLE_COLORS[0],
+        particlePalette[
+          Math.floor(randomBetween(0, particlePalette.length))
+        ] ?? particlePalette[0],
       id: `particle-${index}`,
       size: randomBetween(4, 13),
       spin: randomBetween(-540, 540),
@@ -706,8 +807,8 @@ function buildBurstElements() {
   return { particles, shards };
 }
 
-function buildSparkles(): Sparkle[] {
-  return Array.from({ length: 36 }, (_, index) => {
+function buildSparkles(count: number): Sparkle[] {
+  return Array.from({ length: count }, (_, index) => {
     const angle = randomBetween(0, Math.PI * 2);
     const distance = randomBetween(44, 215);
     return {
@@ -725,15 +826,120 @@ function cssVarStyle(vars: Record<string, number | string>) {
   return vars as CSSProperties;
 }
 
-function createBurstPattern() {
-  const burst = buildBurstElements();
+function createBurstPattern(pack: PackAnimationData) {
+  const visualProfile = getPackOpeningVisualProfile(pack);
+  const burst = buildBurstElements(pack);
 
   return {
     cracks: buildCracks(),
     particles: burst.particles,
     shards: burst.shards,
-    sparkles: buildSparkles(),
+    sparkles: buildSparkles(visualProfile.sparkCount),
   };
+}
+
+function PackOpeningIcon({ iconKind }: { iconKind: PackVisualIconKind }) {
+  switch (iconKind) {
+    case "crown":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path
+            d="M3 18L5 7L9.2 11.2L12 5L14.8 11.2L19 7L21 18"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M4 18H20"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+          />
+        </svg>
+      );
+    case "diamond":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path
+            d="M12 3L20 9L12 21L4 9L12 3Z"
+            fill="currentColor"
+            fillOpacity=".2"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M4 9H20M12 3L8 9M12 3L16 9M8 9L12 21M16 9L12 21"
+            stroke="currentColor"
+            strokeWidth="1.35"
+            strokeLinejoin="round"
+          />
+        </svg>
+      );
+    case "sparkle":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path
+            d="M12 1C12.4 5.5 13 10 12 12C14 11 18.5 11.6 23 12C18.5 12.4 14 13 12 12C13 14 12.4 18.5 12 23C11.6 18.5 11 14 12 12C10 13 5.5 12.4 1 12C5.5 11.6 10 11 12 12C11 10 11.6 5.5 12 1Z"
+            fill="currentColor"
+          />
+          <path
+            d="M19 2C19.15 3.2 19.4 4.4 19 5C20 4.6 20.8 4.85 22 5C20.8 5.15 20 5.4 19 5C19.4 6 19.15 6.8 19 8C18.85 6.8 18.6 6 19 5C18 5.4 17.2 5.15 16 5C17.2 4.85 18 4.6 19 5C18.6 4 18.85 3.2 19 2Z"
+            fill="currentColor"
+            fillOpacity=".6"
+          />
+        </svg>
+      );
+    case "gift-box":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect
+            x="4"
+            y="9"
+            width="16"
+            height="12"
+            rx="2"
+            fill="currentColor"
+            fillOpacity=".2"
+            stroke="currentColor"
+            strokeWidth="1.8"
+          />
+          <rect
+            x="3"
+            y="6"
+            width="18"
+            height="4"
+            rx="1"
+            fill="currentColor"
+            fillOpacity=".3"
+            stroke="currentColor"
+            strokeWidth="1.8"
+          />
+          <path d="M12 6V21" stroke="currentColor" strokeWidth="1.8" />
+          <path d="M4 13H20" stroke="currentColor" strokeWidth="1.35" />
+        </svg>
+      );
+    default:
+      return (
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path
+            d="M4 8L12 4L20 8V16L12 20L4 16V8Z"
+            fill="currentColor"
+            fillOpacity=".15"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M12 4V20M4 8L12 12L20 8"
+            stroke="currentColor"
+            strokeWidth="1.35"
+            strokeLinejoin="round"
+          />
+        </svg>
+      );
+  }
 }
 
 export default function PackOpeningSequenceDom({
@@ -744,10 +950,37 @@ export default function PackOpeningSequenceDom({
   mode: PackOpeningSequenceMode;
   pack: PackAnimationData;
 }) {
-  const [{ cracks, particles, shards, sparkles }] = useState(createBurstPattern);
+  const visualProfile = getPackOpeningVisualProfile(pack);
+  const [{ cracks, particles, shards, sparkles }] = useState(() =>
+    createBurstPattern(pack),
+  );
+  const packBright = mixHex(pack.color, "#FFF7DF", 0.52);
+  const packSoft = mixHex(pack.color, "#FFF4EC", 0.28);
+  const packSurface = mixHex(pack.color, "#FFF7F3", 0.48);
+  const packDark = mixHex(pack.color, "#2A1407", 0.56);
+  const packDeep = mixHex(pack.color, "#130907", 0.74);
+  const packBorder = mixHex(pack.color, "#F3C55E", 0.38);
+  const packHighlight = mixHex(pack.color, "#FFF6C5", 0.72);
+  const packShadow = mixHex(pack.color, "#331007", 0.72);
+  const cssVars = cssVarStyle({
+    "--app-bg": pack.backgroundColor,
+    "--pack-base": pack.color,
+    "--pack-border": packBorder,
+    "--pack-bright": packBright,
+    "--pack-color": pack.color,
+    "--pack-dark": packDark,
+    "--pack-deep": packDeep,
+    "--pack-highlight-rgb": toRgbTriplet(packHighlight),
+    "--pack-icon-color": visualProfile.iconColor,
+    "--pack-rgb": toRgbTriplet(pack.color),
+    "--pack-shadow-rgb": toRgbTriplet(packShadow),
+    "--pack-soft": packSoft,
+    "--pack-soft-rgb": toRgbTriplet(packSoft),
+    "--pack-surface": packSurface,
+  });
 
   return (
-    <div className="pack-opening-root">
+    <div className="pack-opening-root" style={cssVars}>
       <style>{CSS}</style>
       <div className="pack-opening-stage-shell">
         <div
@@ -761,11 +994,21 @@ export default function PackOpeningSequenceDom({
             className="pack-opening-card"
             style={cssVarStyle({ "--pack-color": pack.color })}
           >
-            <div
-              className="pack-opening-gem"
-              aria-label={`${pack.name} ${pack.cardCountLabel}`}
-              title={`${pack.name} ${pack.cardCountLabel}`}
-            />
+            <div className="pack-opening-card-face">
+              <div
+                className="pack-opening-icon-frame"
+                aria-label={`${pack.name} ${pack.cardCountLabel}`}
+                title={`${pack.name} ${pack.cardCountLabel}`}
+              >
+                <div className="pack-opening-icon">
+                  <PackOpeningIcon iconKind={visualProfile.iconKind} />
+                </div>
+              </div>
+              <div className="pack-opening-card-copy">
+                <div className="pack-opening-card-title">{pack.name}</div>
+                <div className="pack-opening-card-count">{pack.cardCountLabel}</div>
+              </div>
+            </div>
             <svg
               className="pack-opening-crack-layer"
               viewBox={`0 0 ${CARD_W} ${CARD_H}`}

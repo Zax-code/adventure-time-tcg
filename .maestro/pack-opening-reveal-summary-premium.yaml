@@ -1,0 +1,38 @@
+appId: love.leaetzak.adventuretime
+name: Pack opening reveal summary premium
+tags:
+  - packs
+  - screenshots
+---
+- tapOn:
+    id: pack-opening-ready
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible:
+      id: pack-opening-reveal
+    timeout: 10000
+- takeScreenshot: tmp-pack-opening-shots/08-reveal-first.png
+- tapOn:
+    id: pack-opening-reveal
+    retryTapIfNoChange: true
+- waitForAnimationToEnd
+- tapOn:
+    id: pack-opening-reveal
+    retryTapIfNoChange: true
+- waitForAnimationToEnd
+- tapOn:
+    id: pack-opening-reveal
+    retryTapIfNoChange: true
+- waitForAnimationToEnd
+- tapOn:
+    id: pack-opening-reveal
+    retryTapIfNoChange: true
+- waitForAnimationToEnd
+- tapOn:
+    id: pack-opening-reveal
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible:
+      id: pack-opening-summary
+    timeout: 10000
+- takeScreenshot: tmp-pack-opening-shots/09-summary.png

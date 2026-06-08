@@ -1,0 +1,51 @@
+appId: love.leaetzak.adventuretime
+name: Pack opening finish screenshots
+tags:
+  - packs
+  - screenshots
+---
+- extendedWaitUntil:
+    visible:
+      id: pack-opening-ready
+    timeout: 10000
+- takeScreenshot: tmp-pack-opening-shots/07-ready
+- tapOn:
+    id: pack-opening-ready
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible:
+      id: pack-opening-reveal
+    timeout: 10000
+- takeScreenshot: tmp-pack-opening-shots/08-reveal-first
+- tapOn:
+    id: pack-opening-reveal
+    retryTapIfNoChange: true
+- waitForAnimationToEnd
+- tapOn:
+    id: pack-opening-reveal
+    retryTapIfNoChange: true
+- waitForAnimationToEnd
+- tapOn:
+    id: pack-opening-reveal
+    retryTapIfNoChange: true
+- waitForAnimationToEnd
+- tapOn:
+    id: pack-opening-reveal
+    retryTapIfNoChange: true
+- waitForAnimationToEnd
+- tapOn:
+    id: pack-opening-reveal
+    retryTapIfNoChange: true
+- waitForAnimationToEnd
+- tapOn:
+    id: pack-opening-reveal
+    retryTapIfNoChange: true
+- waitForAnimationToEnd
+- tapOn:
+    id: pack-opening-reveal
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible:
+      id: pack-opening-summary
+    timeout: 10000
+- takeScreenshot: tmp-pack-opening-shots/09-summary

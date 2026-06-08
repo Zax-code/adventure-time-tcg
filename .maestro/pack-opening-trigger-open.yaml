@@ -1,0 +1,9 @@
+appId: love.leaetzak.adventuretime
+name: Pack opening trigger open
+tags:
+  - packs
+  - screenshots
+---
+- tapOn:
+    text: Legendary Pack, Tap to open, 1000
+    retryTapIfNoChange: true
