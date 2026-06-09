@@ -1,0 +1,27 @@
+appId: love.leaetzak.adventuretime
+name: Pack opening sequence smoke
+tags:
+  - packs
+  - smoke
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- openLink:
+    link: adventure-time:///e2e-auth?redirect=%2Fpacks&email=${TEST_EMAIL_URI}&password=${TEST_PASSWORD_URI}
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- extendedWaitUntil:
+    visible:
+      id: pack-storefront
+    timeout: 10000
+- tapOn:
+    text: Legendary Pack, Tap to open, 1000
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible:
+      id: pack-opening-loading
+    timeout: 10000
+- extendedWaitUntil:
+    visible:
+      id: pack-opening-ready
+    timeout: 10000
