@@ -76,9 +76,9 @@ const CSS = `
     place-items: center;
     position: relative;
     background:
-      radial-gradient(circle at 50% 36%, rgba(var(--pack-highlight-rgb), .18), transparent 26%),
-      radial-gradient(circle at 50% 54%, rgba(var(--pack-rgb), .12), transparent 34%),
-      radial-gradient(circle at 50% 68%, rgba(var(--pack-shadow-rgb), .14), transparent 48%),
+      radial-gradient(circle at 50% 38%, rgba(var(--pack-highlight-rgb), .14), transparent 24%),
+      radial-gradient(circle at 50% 56%, rgba(var(--pack-rgb), .1), transparent 30%),
+      radial-gradient(circle at 50% 68%, rgba(var(--pack-shadow-rgb), .1), transparent 42%),
       var(--app-bg);
     font-family: system-ui, sans-serif;
   }
@@ -98,6 +98,20 @@ const CSS = `
   }
 
   .pack-opening-stage {
+    --settled-aura-blur: 10px;
+    --settled-aura-opacity: .4;
+    --settled-aura-scale: .95;
+    --settled-light-blur: 7px;
+    --settled-light-opacity: .58;
+    --settled-light-scale: .9;
+    --settled-rays-opacity: .34;
+    --settled-rays-rotate: 20deg;
+    --settled-rays-scale: .8;
+    --settled-sparkle-opacity: .24;
+    --settled-sparkle-rotate: 0deg;
+    --settled-sparkle-scale: .48;
+    --settled-sparkle-x: .88;
+    --settled-sparkle-y: .9;
     position: relative;
     width: 100%;
     height: 100%;
@@ -109,11 +123,11 @@ const CSS = `
 
   .pack-opening-aura {
     position: absolute;
-    width: 390px;
-    height: 390px;
+    width: 350px;
+    height: 350px;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(var(--pack-highlight-rgb), .5), rgba(var(--pack-rgb), .18) 35%, transparent 68%);
-    filter: blur(14px);
+    background: radial-gradient(circle, rgba(var(--pack-highlight-rgb), .42), rgba(var(--pack-rgb), .14) 36%, transparent 66%);
+    filter: blur(9px);
     animation: pack-aura-pulse 3.2s ease-in-out infinite;
   }
 
@@ -134,7 +148,7 @@ const CSS = `
     pointer-events: none;
     background:
       radial-gradient(circle, rgba(255, 255, 245, .98) 0 8%, rgba(var(--pack-highlight-rgb), .86) 16%, rgba(var(--pack-rgb), .42) 35%, rgba(var(--pack-shadow-rgb), .14) 58%, transparent 73%);
-    filter: blur(6px);
+    filter: blur(3px);
     mix-blend-mode: screen;
   }
 
@@ -171,7 +185,7 @@ const CSS = `
         transparent 311deg 360deg
       );
     mask-image: radial-gradient(circle, transparent 0 10%, black 18% 58%, transparent 74%);
-    filter: blur(2px);
+    filter: blur(1px);
     mix-blend-mode: screen;
   }
 
@@ -184,8 +198,8 @@ const CSS = `
     box-shadow:
       0 0 0 5px #2a1407,
       0 0 0 9px var(--pack-border),
-      0 22px 55px rgba(0, 0, 0, .72),
-      0 0 42px rgba(var(--pack-rgb), .42);
+      0 18px 38px rgba(0, 0, 0, .62),
+      0 0 24px rgba(var(--pack-rgb), .28);
     animation: pack-card-idle 2.6s ease-in-out infinite;
     background:
       linear-gradient(140deg, var(--pack-soft) 0%, var(--pack-base) 16%, var(--pack-deep) 34%, var(--pack-dark) 72%, var(--pack-bright) 100%);
@@ -237,15 +251,14 @@ const CSS = `
     background: rgba(255, 255, 255, .16);
     box-shadow:
       inset 0 0 0 1px rgba(255, 255, 255, .22),
-      0 18px 34px rgba(var(--pack-shadow-rgb), .22);
-    backdrop-filter: blur(10px);
+      0 10px 18px rgba(var(--pack-shadow-rgb), .16);
   }
 
   .pack-opening-icon {
     width: 68px;
     height: 68px;
     color: var(--pack-icon-color);
-    filter: drop-shadow(0 0 14px rgba(var(--pack-highlight-rgb), .42));
+    filter: drop-shadow(0 0 8px rgba(var(--pack-highlight-rgb), .3));
   }
 
   .pack-opening-card-copy {
@@ -296,16 +309,15 @@ const CSS = `
   .pack-opening-crack-glow {
     stroke: rgba(var(--pack-rgb), .85);
     stroke-width: 9;
-    filter: blur(4px);
+    filter: blur(2px);
   }
 
   .pack-opening-crack-core {
     stroke: rgba(var(--pack-highlight-rgb), .98);
     stroke-width: 3.2;
     filter:
-      drop-shadow(0 0 5px rgba(var(--pack-highlight-rgb), .88))
-      drop-shadow(0 0 13px rgba(var(--pack-rgb), .82))
-      drop-shadow(0 0 22px rgba(var(--pack-shadow-rgb), .75));
+      drop-shadow(0 0 4px rgba(var(--pack-highlight-rgb), .82))
+      drop-shadow(0 0 9px rgba(var(--pack-rgb), .68));
   }
 
   .pack-opening-center-flare {
@@ -318,9 +330,8 @@ const CSS = `
     transform: translate(-50%, -50%);
     background: rgb(var(--pack-highlight-rgb));
     box-shadow:
-      0 0 18px rgba(var(--pack-highlight-rgb), .92),
-      0 0 42px rgba(var(--pack-rgb), .82),
-      0 0 80px rgba(var(--pack-shadow-rgb), .68);
+      0 0 16px rgba(var(--pack-highlight-rgb), .88),
+      0 0 30px rgba(var(--pack-rgb), .64);
     opacity: 0;
     z-index: 42;
   }
@@ -346,14 +357,14 @@ const CSS = `
     opacity: 0;
     z-index: 60;
     pointer-events: none;
+    will-change: transform, opacity;
   }
 
   .pack-opening-particle {
     width: var(--size);
     height: var(--size);
     border-radius: 50%;
-    background: var(--color);
-    box-shadow: 0 0 14px var(--color);
+    background: radial-gradient(circle, rgba(255, 255, 255, .9), var(--color) 62%, transparent 100%);
   }
 
   .pack-opening-shard {
@@ -361,14 +372,12 @@ const CSS = `
     height: 56px;
     background: linear-gradient(135deg, rgba(var(--pack-highlight-rgb), .95), rgba(var(--pack-shadow-rgb), .95));
     clip-path: polygon(50% 0, 100% 72%, 40% 100%, 0 45%);
-    box-shadow: 0 0 14px rgba(var(--pack-rgb), .6);
   }
 
   .pack-opening-sparkle {
     width: var(--size);
     height: var(--size);
     transform: translate(-50%, -50%);
-    filter: drop-shadow(0 0 8px rgba(var(--pack-highlight-rgb), .78)) drop-shadow(0 0 18px rgba(var(--pack-rgb), .72));
   }
 
   .pack-opening-sparkle::before,
@@ -376,7 +385,7 @@ const CSS = `
     content: "";
     position: absolute;
     inset: 0;
-    background: rgba(255, 255, 255, .96);
+    background: rgba(255, 250, 232, .92);
     border-radius: 99px;
   }
 
@@ -430,18 +439,20 @@ const CSS = `
   }
 
   .pack-opening-stage.loading-active .pack-opening-light {
-    opacity: .58;
+    opacity: var(--settled-light-opacity);
     animation: pack-loading-glow 3.4s ease-in-out infinite;
   }
 
   .pack-opening-stage.loading-active .pack-opening-aura {
-    opacity: .34;
-    transform: scale(.9);
-    filter: blur(16px);
+    opacity: var(--settled-aura-opacity);
+    transform: scale(var(--settled-aura-scale));
+    filter: blur(var(--settled-aura-blur));
+    animation: pack-loading-aura 3.6s ease-in-out infinite;
   }
 
   .pack-opening-stage.loading-active .pack-opening-rays {
-    opacity: .38;
+    opacity: var(--settled-rays-opacity);
+    transform: translate(-50%, -50%) scale(var(--settled-rays-scale)) rotate(var(--settled-rays-rotate));
     animation: pack-loading-rays 7.2s linear infinite;
   }
 
@@ -456,7 +467,14 @@ const CSS = `
 
   .pack-opening-stage.loading-active .pack-opening-sparkle {
     opacity: 1;
-    animation: pack-sparkle-drift 2.9s ease-in-out calc(var(--loading-delay) * -1) infinite;
+    transform:
+      translate(
+        calc(-50% + var(--x) * var(--settled-sparkle-x)),
+        calc(-50% + var(--y) * var(--settled-sparkle-y))
+      )
+      scale(var(--settled-sparkle-scale))
+      rotate(var(--settled-sparkle-rotate));
+    animation: pack-sparkle-drift 2.9s ease-in-out infinite;
   }
 
   @keyframes pack-card-idle {
@@ -473,22 +491,35 @@ const CSS = `
     0% {
       opacity: .72;
       transform: scale(.9);
-      filter: blur(13px);
+      filter: blur(9px);
     }
     42% {
       opacity: .92;
       transform: scale(1);
-      filter: blur(16px);
+      filter: blur(11px);
     }
     72% {
       opacity: .84;
       transform: scale(1.08);
-      filter: blur(18px);
+      filter: blur(13px);
     }
     100% {
-      opacity: .38;
-      transform: scale(1.2);
-      filter: blur(22px);
+      opacity: var(--settled-aura-opacity);
+      transform: scale(var(--settled-aura-scale));
+      filter: blur(var(--settled-aura-blur));
+    }
+  }
+
+  @keyframes pack-loading-aura {
+    0%, 100% {
+      opacity: var(--settled-aura-opacity);
+      transform: scale(var(--settled-aura-scale));
+      filter: blur(var(--settled-aura-blur));
+    }
+    50% {
+      opacity: .5;
+      transform: scale(1.02);
+      filter: blur(11px);
     }
   }
 
@@ -517,7 +548,7 @@ const CSS = `
   @keyframes pack-card-burst {
     0% { opacity: 1; transform: scale(1.06); filter: brightness(2.5); }
     28% { opacity: 1; transform: scale(1.2) rotateZ(2deg); filter: brightness(4); }
-    100% { opacity: 0; transform: scale(.42) rotateZ(25deg); filter: brightness(6) blur(8px); }
+    100% { opacity: 0; transform: scale(.42) rotateZ(25deg); filter: brightness(5) blur(4px); }
   }
 
   @keyframes pack-flare-build {
@@ -536,16 +567,23 @@ const CSS = `
   }
 
   @keyframes pack-treasure-glow {
-    0% { opacity: 0; transform: translate(-50%, -50%) scale(.12); filter: blur(14px); }
-    20% { opacity: .95; transform: translate(-50%, -50%) scale(.95); filter: blur(8px); }
-    55% { opacity: .82; transform: translate(-50%, -50%) scale(1.2); filter: blur(12px); }
-    100% { opacity: .48; transform: translate(-50%, -50%) scale(1.35); filter: blur(18px); }
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(.12); filter: blur(8px); }
+    20% { opacity: .95; transform: translate(-50%, -50%) scale(.95); filter: blur(5px); }
+    55% { opacity: .82; transform: translate(-50%, -50%) scale(1.2); filter: blur(8px); }
+    100% {
+      opacity: var(--settled-light-opacity);
+      transform: translate(-50%, -50%) scale(var(--settled-light-scale));
+      filter: blur(var(--settled-light-blur));
+    }
   }
 
   @keyframes pack-treasure-rays {
     0% { opacity: 0; transform: translate(-50%, -50%) scale(.15) rotate(0deg); }
     22% { opacity: .72; transform: translate(-50%, -50%) scale(.95) rotate(12deg); }
-    100% { opacity: .28; transform: translate(-50%, -50%) scale(1.18) rotate(36deg); }
+    100% {
+      opacity: var(--settled-rays-opacity);
+      transform: translate(-50%, -50%) scale(var(--settled-rays-scale)) rotate(var(--settled-rays-rotate));
+    }
   }
 
   @keyframes pack-particle-fly {
@@ -572,15 +610,27 @@ const CSS = `
       transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y))) scale(.65) rotate(145deg);
     }
     100% {
-      opacity: 0;
-      transform: translate(calc(-50% + var(--x) * 1.12), calc(-50% + var(--y) * 1.12 - 42px)) scale(.1) rotate(250deg);
+      opacity: var(--settled-sparkle-opacity);
+      transform:
+        translate(
+          calc(-50% + var(--x) * var(--settled-sparkle-x)),
+          calc(-50% + var(--y) * var(--settled-sparkle-y))
+        )
+        scale(var(--settled-sparkle-scale))
+        rotate(var(--settled-sparkle-rotate));
     }
   }
 
   @keyframes pack-sparkle-drift {
     0% {
-      opacity: .24;
-      transform: translate(calc(-50% + var(--x) * .88), calc(-50% + var(--y) * .9)) scale(.48) rotate(0deg);
+      opacity: var(--settled-sparkle-opacity);
+      transform:
+        translate(
+          calc(-50% + var(--x) * var(--settled-sparkle-x)),
+          calc(-50% + var(--y) * var(--settled-sparkle-y))
+        )
+        scale(var(--settled-sparkle-scale))
+        rotate(var(--settled-sparkle-rotate));
     }
     20% {
       opacity: 1;
@@ -598,29 +648,29 @@ const CSS = `
 
   @keyframes pack-loading-glow {
     0%, 100% {
-      opacity: .5;
-      transform: translate(-50%, -50%) scale(.82);
-      filter: blur(14px);
+      opacity: var(--settled-light-opacity);
+      transform: translate(-50%, -50%) scale(var(--settled-light-scale));
+      filter: blur(var(--settled-light-blur));
     }
     50% {
-      opacity: .68;
-      transform: translate(-50%, -50%) scale(.94);
-      filter: blur(10px);
+      opacity: .74;
+      transform: translate(-50%, -50%) scale(1);
+      filter: blur(5px);
     }
   }
 
   @keyframes pack-loading-rays {
     0% {
-      opacity: .28;
-      transform: translate(-50%, -50%) scale(.76) rotate(20deg);
+      opacity: var(--settled-rays-opacity);
+      transform: translate(-50%, -50%) scale(var(--settled-rays-scale)) rotate(var(--settled-rays-rotate));
     }
     50% {
-      opacity: .42;
-      transform: translate(-50%, -50%) scale(.84) rotate(34deg);
+      opacity: .46;
+      transform: translate(-50%, -50%) scale(.88) rotate(34deg);
     }
     100% {
-      opacity: .3;
-      transform: translate(-50%, -50%) scale(.78) rotate(48deg);
+      opacity: .36;
+      transform: translate(-50%, -50%) scale(.82) rotate(48deg);
     }
   }
 `;
@@ -747,7 +797,7 @@ function createLightningCrackPath(angle: number) {
 }
 
 function buildCracks(): Crack[] {
-  const count = 9;
+  const count = 7;
   const start = randomBetween(0, Math.PI * 2);
   const angles = Array.from({ length: count }, (_, index) => {
     const evenlySpaced = start + (Math.PI * 2 * index) / count;
@@ -777,28 +827,28 @@ function buildParticlePalette(packColor: string, iconColor: string) {
 function buildBurstElements(pack: PackAnimationData) {
   const profile = getPackOpeningVisualProfile(pack);
   const particlePalette = buildParticlePalette(pack.color, profile.iconColor);
-  const particles = Array.from({ length: 82 }, (_, index) => {
+  const particles = Array.from({ length: 18 }, (_, index) => {
     const angle = randomBetween(0, Math.PI * 2);
-    const distance = randomBetween(140, 390);
+    const distance = randomBetween(135, 290);
     return {
       color:
         particlePalette[
           Math.floor(randomBetween(0, particlePalette.length))
         ] ?? particlePalette[0],
       id: `particle-${index}`,
-      size: randomBetween(4, 13),
-      spin: randomBetween(-540, 540),
+      size: randomBetween(5, 11),
+      spin: randomBetween(-360, 360),
       x: Math.cos(angle) * distance,
       y: Math.sin(angle) * distance,
     };
   });
 
-  const shards = Array.from({ length: 18 }, (_, index) => {
+  const shards = Array.from({ length: 6 }, (_, index) => {
     const angle = randomBetween(0, Math.PI * 2);
-    const distance = randomBetween(120, 330);
+    const distance = randomBetween(110, 240);
     return {
       id: `shard-${index}`,
-      spin: randomBetween(-760, 760),
+      spin: randomBetween(-520, 520),
       x: Math.cos(angle) * distance,
       y: Math.sin(angle) * distance,
     };
@@ -810,12 +860,12 @@ function buildBurstElements(pack: PackAnimationData) {
 function buildSparkles(count: number): Sparkle[] {
   return Array.from({ length: count }, (_, index) => {
     const angle = randomBetween(0, Math.PI * 2);
-    const distance = randomBetween(44, 215);
+    const distance = randomBetween(52, 190);
     return {
       delay: 1.54 + randomBetween(0, 0.55),
       id: `sparkle-${index}`,
       loadingDelay: randomBetween(0, 3.4),
-      size: randomBetween(7, 19),
+      size: randomBetween(7, 15),
       x: Math.cos(angle) * distance,
       y: Math.sin(angle) * distance,
     };
@@ -1037,43 +1087,49 @@ export default function PackOpeningSequenceDom({
             </svg>
           </div>
           <div className="pack-opening-center-flare" />
-          {particles.map((particle) => (
-            <i
-              key={particle.id}
-              className="pack-opening-particle"
-              style={cssVarStyle({
-                "--color": particle.color,
-                "--size": `${particle.size}px`,
-                "--spin": `${particle.spin}deg`,
-                "--x": `${particle.x}px`,
-                "--y": `${particle.y}px`,
-              })}
-            />
-          ))}
-          {shards.map((shard) => (
-            <i
-              key={shard.id}
-              className="pack-opening-shard"
-              style={cssVarStyle({
-                "--spin": `${shard.spin}deg`,
-                "--x": `${shard.x}px`,
-                "--y": `${shard.y}px`,
-              })}
-            />
-          ))}
-          {sparkles.map((sparkle) => (
-            <i
-              key={sparkle.id}
-              className="pack-opening-sparkle"
-              style={cssVarStyle({
-                "--delay": `${sparkle.delay}s`,
-                "--loading-delay": `${sparkle.loadingDelay}s`,
-                "--size": `${sparkle.size}px`,
-                "--x": `${sparkle.x}px`,
-                "--y": `${sparkle.y}px`,
-              })}
-            />
-          ))}
+          {mode === "burst"
+            ? particles.map((particle) => (
+                <i
+                  key={particle.id}
+                  className="pack-opening-particle"
+                  style={cssVarStyle({
+                    "--color": particle.color,
+                    "--size": `${particle.size}px`,
+                    "--spin": `${particle.spin}deg`,
+                    "--x": `${particle.x}px`,
+                    "--y": `${particle.y}px`,
+                  })}
+                />
+              ))
+            : null}
+          {mode === "burst"
+            ? shards.map((shard) => (
+                <i
+                  key={shard.id}
+                  className="pack-opening-shard"
+                  style={cssVarStyle({
+                    "--spin": `${shard.spin}deg`,
+                    "--x": `${shard.x}px`,
+                    "--y": `${shard.y}px`,
+                  })}
+                />
+              ))
+            : null}
+          {mode !== "charge"
+            ? sparkles.map((sparkle) => (
+                <i
+                  key={sparkle.id}
+                  className="pack-opening-sparkle"
+                  style={cssVarStyle({
+                    "--delay": `${sparkle.delay}s`,
+                    "--loading-delay": `${sparkle.loadingDelay}s`,
+                    "--size": `${sparkle.size}px`,
+                    "--x": `${sparkle.x}px`,
+                    "--y": `${sparkle.y}px`,
+                  })}
+                />
+              ))
+            : null}
         </div>
       </div>
     </div>

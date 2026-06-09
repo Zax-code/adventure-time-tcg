@@ -43,7 +43,7 @@ export function getPackOpeningVisualProfile({
       iconColor: "#D97706",
       iconKind: "crown",
       rarityRank: 4,
-      sparkCount: 58,
+      sparkCount: 24,
     };
   }
 
@@ -52,7 +52,7 @@ export function getPackOpeningVisualProfile({
       iconColor: "#7C3AED",
       iconKind: "diamond",
       rarityRank: 3,
-      sparkCount: 48,
+      sparkCount: 20,
     };
   }
 
@@ -61,7 +61,7 @@ export function getPackOpeningVisualProfile({
       iconColor: "#8B5CF6",
       iconKind: "sparkle",
       rarityRank: 2,
-      sparkCount: 40,
+      sparkCount: 18,
     };
   }
 
@@ -70,7 +70,7 @@ export function getPackOpeningVisualProfile({
       iconColor: "#2563EB",
       iconKind: "gift-box",
       rarityRank: 0,
-      sparkCount: 30,
+      sparkCount: 14,
     };
   }
 
@@ -78,6 +78,6 @@ export function getPackOpeningVisualProfile({
     iconColor: "#6B7280",
     iconKind: "box",
     rarityRank: 0,
-    sparkCount: 28,
+    sparkCount: 12,
   };
 }
