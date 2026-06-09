@@ -2,6 +2,10 @@
 
 set -euo pipefail
 
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+REPO_ROOT=$(cd -- "$SCRIPT_DIR/.." && pwd)
+source "$SCRIPT_DIR/resolve-mobile-test-password.sh"
+
 args=("$@")
 temp_flow=""
 session_file=""
@@ -20,19 +24,21 @@ trap cleanup EXIT
 
 if [[ "${1:-}" == "test" ]]; then
   test_email="${MOBILE_TEST_EMAIL:-mobile-test@leaetzak.love}"
-  test_password="${MOBILE_TEST_PASSWORD:-}"
+  test_password=""
   test_access_token=""
   test_refresh_token=""
   test_user=""
   test_match_id=""
 
-  if [[ -z "$test_password" ]]; then
-    echo "MOBILE_TEST_PASSWORD is required for Maestro smoke tests." >&2
+  if ! test_password="$(resolve_mobile_test_password "$test_email")"; then
+    print_mobile_test_password_help "$test_email"
     exit 1
   fi
 
+  export MOBILE_TEST_PASSWORD="$test_password"
+
   (
-    cd /Users/zax/Develop/adventure-time-tcg/apps/phoenix
+    cd "$REPO_ROOT/apps/phoenix"
     MOBILE_TEST_EMAIL="$test_email" \
     MOBILE_TEST_PASSWORD="$test_password" \
       ./scripts/ensure-mobile-test-user.sh >/dev/null
@@ -40,7 +46,7 @@ if [[ "${1:-}" == "test" ]]; then
 
   if [[ "${#args[@]}" -ge 4 && -f "${args[3]}" ]] && grep -q '\${TEST_MATCH_ID}' "${args[3]}"; then
     test_match_id="$(
-      cd /Users/zax/Develop/adventure-time-tcg/apps/phoenix
+      cd "$REPO_ROOT/apps/phoenix"
       MOBILE_TEST_EMAIL="$test_email" \
       MOBILE_TEST_PASSWORD="$test_password" \
       ./scripts/ensure-mobile-test-pvp-fixture.sh

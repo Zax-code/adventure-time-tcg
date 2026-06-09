@@ -10,6 +10,7 @@ coverage/
 .expo-shared/
 .agents/
 .maestro/.maestro-flow.*
+.maestro/.env.local
 .maestro/test-output/
 *.log
 report.xml

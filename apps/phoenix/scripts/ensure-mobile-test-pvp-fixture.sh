@@ -3,6 +3,8 @@ set -euo pipefail
 
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 APP_DIR=$(cd -- "$SCRIPT_DIR/.." && pwd)
+REPO_ROOT=$(cd -- "$APP_DIR/../.." && pwd)
+source "$REPO_ROOT/scripts/resolve-mobile-test-password.sh"
 
 : "${MOBILE_TEST_EMAIL:=mobile-test@leaetzak.love}"
 : "${MOBILE_TEST_DISPLAY_NAME:=Mobile Test User}"
@@ -11,10 +13,11 @@ APP_DIR=$(cd -- "$SCRIPT_DIR/.." && pwd)
 : "${MOBILE_TEST_MIN_COINS:=100}"
 
 if [[ -z "${MOBILE_TEST_PASSWORD:-}" ]]; then
-  echo "MOBILE_TEST_PASSWORD is required" >&2
-  echo "Example:" >&2
-  echo "  MOBILE_TEST_PASSWORD='your-password' $0" >&2
-  exit 1
+  if ! MOBILE_TEST_PASSWORD="$(resolve_mobile_test_password "$MOBILE_TEST_EMAIL")"; then
+    print_mobile_test_password_help "$MOBILE_TEST_EMAIL"
+    exit 1
+  fi
+  export MOBILE_TEST_PASSWORD
 fi
 
 cd "$APP_DIR"
