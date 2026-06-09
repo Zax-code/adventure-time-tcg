@@ -45,6 +45,7 @@ import {
   ZapIcon,
 } from "../../src/components/icons";
 import { PageLoadingState } from "../../src/components/loading-state";
+import PackOpeningSequenceNative from "../../src/components/pack-opening-sequence-native";
 import { getPackOpeningVisualProfile } from "../../src/components/pack-opening-visuals";
 import {
   RARITY_COLORS,
@@ -1916,12 +1917,6 @@ export default function PacksScreen() {
   const [openingRunId, setOpeningRunId] = useState(0);
   const [openError, setOpenError] = useState<string | null>(null);
   const [loadingProgress, setLoadingProgress] = useState(0);
-  const [burstPattern, setBurstPattern] = useState<PackBurstPattern>(() =>
-    createBurstPattern(320, 320 / PACK_CARD_RATIO),
-  );
-  const [loadingSparkles, setLoadingSparkles] = useState<LoadingSparkle[]>(
-    () => createLoadingSparkles(320 * 1.58),
-  );
   const shouldHideTabBar = phase !== "selecting" && phase !== "complete";
   const openingBottomPadding = shouldHideTabBar
     ? Math.max(safeAreaBottom + 16, 24)
@@ -1936,7 +1931,6 @@ export default function PacksScreen() {
 
   const chargeAnim = useRef(new Animated.Value(0)).current;
   const sheenAnim = useAnimatedValue(0);
-  const burstFlashAnim = useRef(new Animated.Value(0)).current;
   const loadingIdleAnim = useRef(new Animated.Value(0)).current;
   const loadingProgressAnim = useRef(new Animated.Value(0)).current;
   const stackSpreadAnim = useRef(new Animated.Value(0)).current;
@@ -2067,32 +2061,13 @@ export default function PacksScreen() {
 
   function startBurstAnimation() {
     stopChargeAnimations();
-    burstFlashAnim.setValue(0);
     burstOpenAnim.setValue(0);
-    setBurstPattern(createBurstPattern(stageCardWidth, stageCardWidth / PACK_CARD_RATIO));
-
-    Animated.parallel([
-      Animated.sequence([
-        Animated.timing(burstFlashAnim, {
-          toValue: 1,
-          duration: Math.round(PACK_OPEN_BURST_MS * 0.3),
-          easing: Easing.out(Easing.quad),
-          useNativeDriver: true,
-        }),
-        Animated.timing(burstFlashAnim, {
-          toValue: 0,
-          duration: Math.round(PACK_OPEN_BURST_MS * 0.7),
-          easing: Easing.in(Easing.quad),
-          useNativeDriver: true,
-        }),
-      ]),
-      Animated.timing(burstOpenAnim, {
-        toValue: 1,
-        duration: PACK_OPEN_BURST_MS,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-    ]).start();
+    Animated.timing(burstOpenAnim, {
+      toValue: 1,
+      duration: PACK_OPEN_BURST_MS,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
   }
 
   function animateLoadingProgress(from: number, to: number, duration: number) {
@@ -2127,7 +2102,6 @@ export default function PacksScreen() {
     setNewBalance(null);
     setIsOpening(true);
     setOpeningRunId((value) => value + 1);
-    setLoadingSparkles(createLoadingSparkles(stageCardWidth * 1.58));
 
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(
       () => null,
@@ -2225,7 +2199,6 @@ export default function PacksScreen() {
     stopChargeAnimations();
     chargeAnim.setValue(0);
     sheenAnim.setValue(0);
-    burstFlashAnim.setValue(0);
     loadingIdleAnim.setValue(0);
     loadingProgressAnim.setValue(0);
     stackSpreadAnim.setValue(0);
@@ -2350,8 +2323,11 @@ export default function PacksScreen() {
                 height: openingStageHeight,
               }}
             >
-              <PackOpeningStage
+              <PackOpeningSequenceNative
                 key={`${openingRunId}`}
+                burstAnim={burstOpenAnim}
+                chargeAnim={chargeAnim}
+                loadingAnim={loadingIdleAnim}
                 mode={
                   isLoadingPhase
                     ? "loading"
@@ -2359,16 +2335,17 @@ export default function PacksScreen() {
                       ? "burst"
                       : "charge"
                 }
-                pack={selectedPack}
-                width={chargePreviewWidth}
-                tc={tc}
-                chargeAnim={chargeAnim}
+                pack={{
+                  backgroundColor: tc.bg,
+                  cardCountLabel: t("packs.cardsCount", {
+                    count: selectedPack.cardCount,
+                  }),
+                  color: selectedPack.color || "#C96A24",
+                  guaranteedRarity: selectedPack.guaranteedRarity,
+                  name: selectedPack.name,
+                }}
                 sheenAnim={sheenAnim}
-                burstAnim={burstOpenAnim}
-                burstFlashAnim={burstFlashAnim}
-                loadingAnim={loadingIdleAnim}
-                burstPattern={burstPattern}
-                loadingSparkles={loadingSparkles}
+                width={chargePreviewWidth}
               />
             </View>
           </View>
