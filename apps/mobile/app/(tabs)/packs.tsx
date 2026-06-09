@@ -46,7 +46,6 @@ import {
 } from "../../src/components/icons";
 import { PageLoadingState } from "../../src/components/loading-state";
 import { getPackOpeningVisualProfile } from "../../src/components/pack-opening-visuals";
-import PackOpeningSequenceDom from "../../src/components/pack-opening-sequence-dom";
 import {
   RARITY_COLORS,
   RARITY_COLORS_ICE,
@@ -1652,6 +1651,197 @@ function CrackedPackPreview({
   );
 }
 
+function PackOpeningStage({
+  mode,
+  pack,
+  width,
+  tc,
+  chargeAnim,
+  sheenAnim,
+  burstAnim,
+  burstFlashAnim,
+  loadingAnim,
+  burstPattern,
+  loadingSparkles,
+}: {
+  mode: "charge" | "burst" | "loading";
+  pack: Pack;
+  width: number;
+  tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
+  chargeAnim: Animated.Value;
+  sheenAnim: Animated.Value;
+  burstAnim: Animated.Value;
+  burstFlashAnim: Animated.Value;
+  loadingAnim: Animated.Value;
+  burstPattern: PackBurstPattern;
+  loadingSparkles: LoadingSparkle[];
+}) {
+  const stageHeight = width / PACK_CARD_RATIO;
+  const auraWidth = Math.min(width * 2.25, 560);
+  const auraHeight = Math.min(stageHeight * 1.9, 640);
+  const flashSize = Math.max(width * 1.85, 300);
+
+  const auraStyle =
+    mode === "charge"
+      ? {
+          opacity: chargeAnim.interpolate({
+            inputRange: [0, 0.5, 1],
+            outputRange: [0.34, 0.7, 0.34],
+            extrapolate: "clamp",
+          }),
+          transform: [
+            {
+              scale: chargeAnim.interpolate({
+                inputRange: [0, 0.5, 1],
+                outputRange: [0.76, 0.98, 0.76],
+                extrapolate: "clamp",
+              }),
+            },
+          ],
+        }
+      : mode === "burst"
+        ? {
+            opacity: burstAnim.interpolate({
+              inputRange: [0, 0.36, 0.72, 1],
+              outputRange: [0.4, 0.76, 0.62, 0.18],
+              extrapolate: "clamp",
+            }),
+            transform: [
+              {
+                scale: burstAnim.interpolate({
+                  inputRange: [0, 0.36, 0.72, 1],
+                  outputRange: [0.84, 0.98, 1.08, 1.14],
+                  extrapolate: "clamp",
+                }),
+              },
+            ],
+          }
+        : {
+            opacity: loadingAnim.interpolate({
+              inputRange: [0, 0.22, 0.58, 1],
+              outputRange: [0.24, 0.54, 0.46, 0.32],
+              extrapolate: "clamp",
+            }),
+            transform: [
+              {
+                scale: loadingAnim.interpolate({
+                  inputRange: [0, 0.22, 0.58, 1],
+                  outputRange: [0.8, 0.96, 1.02, 0.9],
+                  extrapolate: "clamp",
+                }),
+              },
+            ],
+          };
+
+  const loadingHaloStyle = {
+    opacity: loadingAnim.interpolate({
+      inputRange: [0, 0.2, 0.55, 1],
+      outputRange: [0.12, 0.34, 0.28, 0.16],
+      extrapolate: "clamp",
+    }),
+    transform: [
+      {
+        scale: loadingAnim.interpolate({
+          inputRange: [0, 0.2, 0.55, 1],
+          outputRange: [0.6, 0.96, 1.08, 0.86],
+          extrapolate: "clamp",
+        }),
+      },
+    ],
+  };
+
+  return (
+    <View
+      pointerEvents="none"
+      className="absolute inset-0 items-center justify-center"
+    >
+      <Animated.View
+        style={[
+          {
+            position: "absolute",
+            width: auraWidth,
+            height: auraHeight,
+          },
+          auraStyle,
+        ]}
+      >
+        <PackOpeningAura
+          width={auraWidth}
+          height={auraHeight}
+          gradientId={`pack-opening-aura-${mode}-${Math.round(width)}`}
+        />
+      </Animated.View>
+
+      {mode === "charge" ? (
+        <PackPreviewCard
+          pack={pack}
+          width={width}
+          tc={tc}
+          chargeAnim={chargeAnim}
+          sheenAnim={sheenAnim}
+        />
+      ) : null}
+
+      {mode === "burst" ? (
+        <>
+          <CrackedPackPreview
+            pack={pack}
+            width={width}
+            tc={tc}
+            openAnim={burstAnim}
+            burstPattern={burstPattern}
+          />
+          <Animated.View
+            style={{
+              position: "absolute",
+              width: flashSize,
+              height: flashSize,
+              borderRadius: 999,
+              backgroundColor: "#FFF7D6",
+              opacity: burstFlashAnim.interpolate({
+                inputRange: [0, 0.26, 1],
+                outputRange: [0, 0.58, 0],
+                extrapolate: "clamp",
+              }),
+              transform: [
+                {
+                  scale: burstFlashAnim.interpolate({
+                    inputRange: [0, 0.34, 1],
+                    outputRange: [0.78, 1.06, 1.38],
+                    extrapolate: "clamp",
+                  }),
+                },
+              ],
+            }}
+          />
+        </>
+      ) : null}
+
+      {mode === "loading" ? (
+        <>
+          <Animated.View
+            style={[
+              {
+                position: "absolute",
+                width: flashSize * 0.96,
+                height: flashSize * 0.96,
+                borderRadius: 999,
+                backgroundColor: withAlpha(tc.surface, "E0"),
+              },
+              loadingHaloStyle,
+            ]}
+          />
+          <PackLoadingGlow
+            width={width}
+            anim={loadingAnim}
+            sparkles={loadingSparkles}
+          />
+        </>
+      ) : null}
+    </View>
+  );
+}
+
 function OpeningProgress({
   tc,
   activeStep,
@@ -1729,6 +1919,9 @@ export default function PacksScreen() {
   const [burstPattern, setBurstPattern] = useState<PackBurstPattern>(() =>
     createBurstPattern(320, 320 / PACK_CARD_RATIO),
   );
+  const [loadingSparkles, setLoadingSparkles] = useState<LoadingSparkle[]>(
+    () => createLoadingSparkles(320 * 1.58),
+  );
   const shouldHideTabBar = phase !== "selecting" && phase !== "complete";
   const openingBottomPadding = shouldHideTabBar
     ? Math.max(safeAreaBottom + 16, 24)
@@ -1740,7 +1933,6 @@ export default function PacksScreen() {
     Math.max(244, height - openingBottomPadding - 352) * PACK_CARD_RATIO,
   );
   const stageCardWidth = revealCardWidth;
-  const loadingDeckWidth = revealCardWidth;
 
   const chargeAnim = useRef(new Animated.Value(0)).current;
   const sheenAnim = useAnimatedValue(0);
@@ -1935,6 +2127,7 @@ export default function PacksScreen() {
     setNewBalance(null);
     setIsOpening(true);
     setOpeningRunId((value) => value + 1);
+    setLoadingSparkles(createLoadingSparkles(stageCardWidth * 1.58));
 
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(
       () => null,
@@ -2119,7 +2312,6 @@ export default function PacksScreen() {
     selectedPack
   ) {
     const isLoadingPhase = phase === "loading";
-    const isChargePhase = phase === "shaking";
     const openingAccent = selectedPack.color || "#D58524";
     const chargePreviewWidth = Math.min(stageCardWidth, 230);
     const openingStageHeight = Math.min(Math.max(height * 0.62, 420), 620);
@@ -2151,14 +2343,14 @@ export default function PacksScreen() {
         >
           <View className="flex-1 justify-center">
             <View
-              className="self-center overflow-hidden rounded-[28px]"
+              className="self-center"
               style={{
                 width: "100%",
                 maxWidth: 520,
                 height: openingStageHeight,
               }}
             >
-              <PackOpeningSequenceDom
+              <PackOpeningStage
                 key={`${openingRunId}`}
                 mode={
                   isLoadingPhase
@@ -2167,36 +2359,17 @@ export default function PacksScreen() {
                       ? "burst"
                       : "charge"
                 }
-                pack={{
-                  backgroundColor: tc.bg,
-                  cardCountLabel: t("packs.cardsCount", {
-                    count: selectedPack.cardCount,
-                  }),
-                  color: selectedPack.color || "#C96A24",
-                  guaranteedRarity: selectedPack.guaranteedRarity,
-                  name: selectedPack.name,
-                }}
-                dom={{
-                  contentInsetAdjustmentBehavior: "never",
-                  scrollEnabled: false,
-                  style: {
-                    backgroundColor: "transparent",
-                    flex: 1,
-                    opacity: isChargePhase ? 0 : 1,
-                  },
-                }}
+                pack={selectedPack}
+                width={chargePreviewWidth}
+                tc={tc}
+                chargeAnim={chargeAnim}
+                sheenAnim={sheenAnim}
+                burstAnim={burstOpenAnim}
+                burstFlashAnim={burstFlashAnim}
+                loadingAnim={loadingIdleAnim}
+                burstPattern={burstPattern}
+                loadingSparkles={loadingSparkles}
               />
-              {isChargePhase ? (
-                <View className="absolute inset-0 items-center justify-center">
-                  <PackPreviewCard
-                    pack={selectedPack}
-                    width={chargePreviewWidth}
-                    tc={tc}
-                    chargeAnim={chargeAnim}
-                    sheenAnim={sheenAnim}
-                  />
-                </View>
-              ) : null}
             </View>
           </View>
 
