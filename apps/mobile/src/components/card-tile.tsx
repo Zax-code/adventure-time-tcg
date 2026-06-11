@@ -190,15 +190,12 @@ function StatChip({
 }) {
   return (
     <View
+      className="flex-1 items-center justify-center border"
       style={{
-        flex: 1,
         borderRadius: cfg.statRadius,
         paddingVertical: cfg.statPaddingY,
         paddingHorizontal: cfg.statPaddingX,
-        alignItems: "center",
-        justifyContent: "center",
         backgroundColor: withAlpha(colors[0], 0.13),
-        borderWidth: 1,
         borderColor: withAlpha(colors[1], 0.2),
       }}
     >
