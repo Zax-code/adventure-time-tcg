@@ -5,12 +5,20 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 
 import type { CollectionResponse } from "@adventure-time/api-client";
+
 import { CARD_ART_RATIO } from "./card-back-cover-art";
+import { RarityIcon } from "./icons";
 import { getCardImageCacheKey, getCardImageUrl } from "../lib/card-images";
-import { CARD_TYPE_COLORS, RARITY_COLORS, SECONDARY_TINT } from "./theme";
-import { HPIcon, SpeedIcon, RarityIcon } from "./icons";
 import { useThemeStore } from "../stores/theme-store";
 import { THEME_COLORS } from "../theme/themes";
+import {
+  CARD_TYPE_COLORS,
+  CARD_TYPE_COLORS_ICE,
+  CARD_TYPE_COLORS_NIGHTOSPHERE,
+  RARITY_COLORS,
+  RARITY_COLORS_ICE,
+  RARITY_COLORS_NIGHTOSPHERE,
+} from "./theme";
 
 type CollectionEntry = CollectionResponse["cards"][number];
 
@@ -30,68 +38,62 @@ const sizeConfig = {
   small: {
     width: 152,
     height: 228,
-    paddingH: 6,
-    paddingT: 4,
-    paddingB: 2,
-    headerFontSize: 8,
-    hpIconSize: 30,
-    nameFontSize: 9,
-    charFontSize: 8,
-    descFontSize: 7,
-    descPadding: 4,
-    descLineHeight: 10,
-    speedHeight: 16,
-    speedIconSize: 30,
-    typeFontSize: 6,
-    rarityFontSize: 5,
-    borderRadius: 12,
-    imageAspect: 5 / 3,
-    headerHeight: 18,
-    headerHpOffset: -15,
-    headerHpTop: -2,
-    descMarginTop: 3,
-    descMinHeight: 28,
-    nameMarginTop: 2,
-    nameGap: 1,
-    speedMarginTop: 2,
-    speedIconTop: -12,
-    typePaddingH: 6,
-    typePaddingV: 2,
-    rarityBadgeRadius: 4,
+    outerPadding: 5,
+    innerPadding: 7,
+    borderRadius: 16,
+    innerRadius: 13,
+    artRadius: 11,
+    badgeFontSize: 6,
+    badgeIconSize: 8,
+    badgePaddingH: 7,
+    badgePaddingV: 4,
+    nameFontSize: 11,
+    characterFontSize: 7,
+    statValueFontSize: 12,
+    statLabelFontSize: 5,
+    statRadius: 10,
+    statPaddingY: 5,
+    statGap: 4,
+    descriptionFontSize: 7,
+    descriptionLineHeight: 10,
+    descriptionPadding: 7,
+    descriptionLines: 4,
+    quantityFontSize: 9,
+    quantityPaddingH: 8,
+    quantityPaddingV: 4,
+    metaGap: 7,
+    titleBottomPadding: 8,
   },
   large: {
     width: 320,
     height: 480,
-    paddingH: 16,
-    paddingT: 8,
-    paddingB: 4,
-    headerFontSize: 16,
-    hpIconSize: 60,
-    nameFontSize: 18,
-    charFontSize: 16,
-    descFontSize: 12,
-    descPadding: 16,
-    descLineHeight: 20,
-    speedHeight: 40,
-    speedIconSize: 60,
-    typeFontSize: 10,
-    rarityFontSize: 9,
-    borderRadius: 16,
-    imageAspect: 320 / 192,
-    headerHeight: 36,
-    headerHpOffset: -30,
-    headerHpTop: -4,
-    descMarginTop: 6,
-    descMinHeight: 56,
-    nameMarginTop: 4,
-    nameGap: 2,
-    speedMarginTop: 4,
-    speedIconTop: -24,
-    typePaddingH: 12,
-    typePaddingV: 4,
-    rarityBadgeRadius: 8,
+    outerPadding: 9,
+    innerPadding: 14,
+    borderRadius: 24,
+    innerRadius: 20,
+    artRadius: 16,
+    badgeFontSize: 10,
+    badgeIconSize: 12,
+    badgePaddingH: 12,
+    badgePaddingV: 6,
+    nameFontSize: 21,
+    characterFontSize: 12,
+    statValueFontSize: 20,
+    statLabelFontSize: 8,
+    statRadius: 16,
+    statPaddingY: 10,
+    statGap: 8,
+    descriptionFontSize: 13,
+    descriptionLineHeight: 18,
+    descriptionPadding: 14,
+    descriptionLines: 6,
+    quantityFontSize: 13,
+    quantityPaddingH: 12,
+    quantityPaddingV: 6,
+    metaGap: 12,
+    titleBottomPadding: 12,
   },
-};
+} as const;
 
 const COMPACT_LABELS: Record<string, string> = {
   Common: "COM",
@@ -101,34 +103,101 @@ const COMPACT_LABELS: Record<string, string> = {
   Legendary: "LGD",
 };
 
-function RarityCrest({
+function withAlpha(color: string, opacity: number) {
+  if (color.startsWith("#") && color.length === 7) {
+    const alpha = Math.max(0, Math.min(255, Math.round(opacity * 255)))
+      .toString(16)
+      .padStart(2, "0");
+    return `${color}${alpha}`;
+  }
+
+  return color;
+}
+
+function RarityRibbon({
   rarityName,
+  rarity,
+  compact,
   cfg,
 }: {
   rarityName: string;
-  cfg: typeof sizeConfig.small;
+  rarity: { from: string; to: string; ring: string };
+  compact: boolean;
+  cfg: (typeof sizeConfig)[keyof typeof sizeConfig];
 }) {
-  const rarity = RARITY_COLORS[rarityName] ?? RARITY_COLORS.Common;
-  const label =
-    COMPACT_LABELS[rarityName] ?? rarityName.slice(0, 3).toUpperCase();
+  const label = compact
+    ? (COMPACT_LABELS[rarityName] ?? rarityName.slice(0, 3).toUpperCase())
+    : rarityName;
+
   return (
     <LinearGradient
       colors={[rarity.from, rarity.to]}
       start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 0 }}
-      style={{ gap: 2, paddingHorizontal: 4, paddingVertical: 1 }}
-      className="flex-row items-center"
+      end={{ x: 1, y: 1 }}
+      style={{
+        borderRadius: 999,
+        paddingHorizontal: cfg.badgePaddingH,
+        paddingVertical: cfg.badgePaddingV,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: compact ? 4 : 6,
+      }}
     >
-      <RarityIcon
-        rarityName={rarityName}
-        size={cfg.rarityFontSize + 3}
-        color="#fff"
-      />
+      <RarityIcon rarityName={rarityName} size={cfg.badgeIconSize} color="#FFF9F2" />
       <Text
-        className="text-white font-nunito-extrabold"
-        style={{ fontSize: cfg.rarityFontSize }}
+        className="font-nunito-extrabold text-white"
+        style={{ fontSize: cfg.badgeFontSize }}
+        numberOfLines={1}
       >
         {label}
+      </Text>
+    </LinearGradient>
+  );
+}
+
+function StatChip({
+  label,
+  value,
+  colors,
+  cfg,
+}: {
+  label: string;
+  value: string | number;
+  colors: [string, string];
+  cfg: (typeof sizeConfig)[keyof typeof sizeConfig];
+}) {
+  return (
+    <LinearGradient
+      colors={colors}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={{
+        flex: 1,
+        borderRadius: cfg.statRadius,
+        paddingVertical: cfg.statPaddingY,
+        paddingHorizontal: 6,
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <Text
+        className="font-nunito-extrabold text-white"
+        style={{
+          fontSize: cfg.statLabelFontSize,
+          letterSpacing: 0.6,
+          marginBottom: 2,
+        }}
+      >
+        {label}
+      </Text>
+      <Text
+        className="font-nunito-extrabold text-white"
+        style={{
+          fontSize: cfg.statValueFontSize,
+          lineHeight: cfg.statValueFontSize + 1,
+        }}
+      >
+        {value}
       </Text>
     </LinearGradient>
   );
@@ -147,36 +216,67 @@ export const CardTile = memo(function CardTile({
 }: CardTileProps) {
   const { card, quantity } = entry;
   const cfg = sizeConfig[size];
-  const tc = THEME_COLORS[useThemeStore((s) => s.themeName)];
-  const typeColor = CARD_TYPE_COLORS[card.type] ?? {
-    frame: "#9CA3AF",
-    light: "#F3F4F6",
-    dark: "#374151",
+  const themeName = useThemeStore((state) => state.themeName);
+  const tc = THEME_COLORS[themeName];
+  const typePalette =
+    themeName === "ice"
+      ? CARD_TYPE_COLORS_ICE
+      : themeName === "nightosphere"
+        ? CARD_TYPE_COLORS_NIGHTOSPHERE
+        : CARD_TYPE_COLORS;
+  const rarityPalette =
+    themeName === "ice"
+      ? RARITY_COLORS_ICE
+      : themeName === "nightosphere"
+        ? RARITY_COLORS_NIGHTOSPHERE
+        : RARITY_COLORS;
+  const typeColor = typePalette[card.type] ?? {
+    frame: tc.primary,
+    light: tc.primaryTint,
+    dark: tc.primaryText,
   };
-  const rarityColor = RARITY_COLORS[card.rarity.name] ?? {
-    from: "#9CA3AF",
-    to: "#6B7280",
-    ring: "#9CA3AF",
-  };
-
+  const rarityColor = rarityPalette[card.rarity.name] ?? rarityPalette.Common;
+  const cardAspectRatio = CARD_ART_RATIO;
   const isLegendary = card.rarity.name === "Legendary";
   const isEpic = card.rarity.name === "Epic";
   const hasShimmer = isLegendary || isEpic;
+  const panelColor =
+    themeName === "nightosphere"
+      ? withAlpha(tc.surface, 0.94)
+      : withAlpha("#FFF8F0", 0.94);
+  const descriptionColor =
+    themeName === "nightosphere"
+      ? withAlpha(typeColor.light, 0.44)
+      : withAlpha(typeColor.light, 0.76);
+  const statPalettes: Array<{
+    label: string;
+    value: string | number;
+    colors: [string, string];
+  }> = [
+    { label: "ATK", value: card.attack, colors: [tc.secondaryDark, tc.danger] },
+    { label: "HP", value: card.hp, colors: [tc.danger, tc.dangerDark] },
+    { label: "DEF", value: card.defense, colors: [tc.info, tc.infoDark] },
+    { label: "SPD", value: card.speed, colors: [tc.success, tc.successDark] },
+  ];
 
   const bounceAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    if (size !== "small" || quantity <= 1) return;
+    if (size !== "small" || quantity <= 1) {
+      bounceAnim.setValue(0);
+      return;
+    }
+
     const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(bounceAnim, {
-          toValue: -5,
-          duration: 400,
+          toValue: -4,
+          duration: 420,
           useNativeDriver: true,
           easing: Easing.out(Easing.quad),
         }),
         Animated.timing(bounceAnim, {
           toValue: 0,
-          duration: 400,
+          duration: 420,
           useNativeDriver: true,
           easing: Easing.in(Easing.quad),
         }),
@@ -184,11 +284,15 @@ export const CardTile = memo(function CardTile({
     );
     loop.start();
     return () => loop.stop();
-  }, [quantity, size]);
+  }, [bounceAnim, quantity, size]);
 
   const shimmerAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    if (!hasShimmer) return;
+    if (!hasShimmer) {
+      shimmerAnim.setValue(0);
+      return;
+    }
+
     const duration = isLegendary ? 2600 : 3100;
     const loop = Animated.loop(
       Animated.timing(shimmerAnim, {
@@ -200,121 +304,113 @@ export const CardTile = memo(function CardTile({
     );
     loop.start();
     return () => loop.stop();
-  }, [hasShimmer, isLegendary]);
+  }, [hasShimmer, isLegendary, shimmerAnim]);
 
-  const shimmerColorPeak = isLegendary
-    ? "rgba(239, 217, 72, 0.18)"
-    : "rgba(174, 82, 255, 0.16)";
-  const shimmerColorEdge = isLegendary
-    ? "rgba(239, 217, 72, 0)"
-    : "rgba(174, 82, 255, 0)";
   const shimmerTranslate = shimmerAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [-cfg.width * 3, cfg.width],
   });
-  const cardAspectRatio = CARD_ART_RATIO;
 
   return (
     <Pressable
       onPress={onPress}
+      disabled={!onPress}
       testID={testID}
       style={[
         {
           width: fitContainer ? "100%" : cfg.width,
           margin: fitContainer ? 0 : size === "small" ? 4 : 0,
+          opacity: onPress ? 1 : 0.98,
         },
         containerStyle,
       ]}
     >
-      {/* Outer card: type-colored frame background */}
       <View
         className="overflow-hidden"
         style={{
           borderRadius: cfg.borderRadius,
-          backgroundColor: typeColor.frame,
+          backgroundColor: rarityColor.ring,
           height: fitContainer ? undefined : cfg.height,
           aspectRatio: fitContainer ? cardAspectRatio : undefined,
+          boxShadow:
+            size === "large"
+              ? `0px 18px 42px ${withAlpha(rarityColor.to, 0.22)}`
+              : `0px 10px 24px ${withAlpha(rarityColor.to, 0.18)}`,
         }}
       >
-        {/* Rarity ring overlay */}
+        <LinearGradient
+          colors={[rarityColor.from, typeColor.frame, rarityColor.to]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{ position: "absolute", inset: 0 }}
+        />
+
         <View
           pointerEvents="none"
-          className="absolute inset-0 z-10"
           style={{
-            borderRadius: cfg.borderRadius,
-            borderWidth: 1,
-            borderColor: rarityColor.ring,
+            position: "absolute",
+            top: -cfg.width * 0.12,
+            right: -cfg.width * 0.05,
+            width: cfg.width * 0.5,
+            height: cfg.width * 0.5,
+            borderRadius: 999,
+            backgroundColor: withAlpha("#FFFFFF", themeName === "nightosphere" ? 0.05 : 0.16),
+          }}
+        />
+        <View
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            bottom: -cfg.width * 0.18,
+            left: -cfg.width * 0.08,
+            width: cfg.width * 0.45,
+            height: cfg.width * 0.45,
+            borderRadius: 999,
+            backgroundColor: withAlpha(typeColor.light, themeName === "nightosphere" ? 0.12 : 0.32),
           }}
         />
 
-        {/* Rarity shimmer sweep (Legendary / Epic) */}
-        {hasShimmer && (
+        {hasShimmer ? (
           <Animated.View
             pointerEvents="none"
             style={{
               position: "absolute",
               top: 0,
-              height: cfg.height,
+              height: fitContainer ? "100%" : cfg.height,
               width: cfg.width * 3,
               transform: [{ translateX: shimmerTranslate }],
-              zIndex: 15,
             }}
           >
             <LinearGradient
-              colors={[shimmerColorEdge, shimmerColorPeak, shimmerColorEdge]}
+              colors={[
+                withAlpha("#FFFFFF", 0),
+                withAlpha(isLegendary ? tc.secondary : tc.accent, isLegendary ? 0.18 : 0.16),
+                withAlpha("#FFFFFF", 0),
+              ]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={{ flex: 1 }}
             />
           </Animated.View>
-        )}
+        ) : null}
 
-        {/* Inner content */}
         <View
-          className="flex-1"
           style={{
-            paddingHorizontal: cfg.paddingH,
-            paddingTop: cfg.paddingT,
-            paddingBottom: cfg.paddingB,
+            flex: 1,
+            margin: cfg.outerPadding,
+            borderRadius: cfg.innerRadius,
+            padding: cfg.innerPadding,
+            backgroundColor: panelColor,
+            borderWidth: 1,
+            borderColor: withAlpha("#FFFFFF", themeName === "nightosphere" ? 0.1 : 0.42),
           }}
         >
-          {/* === HEADER: ATK / HP / DEF === */}
           <View
-            className="flex-row items-center relative"
-            style={{ marginBottom: 2, height: cfg.headerHeight }}
-          >
-            <Text
-              className="flex-1 text-center text-white font-nunito-extrabold"
-              style={{ fontSize: cfg.headerFontSize }}
-            >
-              {card.attack} ATK
-            </Text>
-            {/* HP floats center, slightly overlapping down */}
-            <View
-              style={{
-                position: "absolute",
-                left: "50%",
-                transform: [{ translateX: cfg.headerHpOffset }],
-                top: cfg.headerHpTop,
-                zIndex: 5,
-              }}
-            >
-              <HPIcon size={cfg.hpIconSize} hpVal={card.hp} />
-            </View>
-            <Text
-              className="flex-1 text-center text-white font-nunito-bold"
-              style={{ fontSize: cfg.headerFontSize }}
-            >
-              {card.defense} DEF
-            </Text>
-          </View>
-
-          {/* === IMAGE SECTION === */}
-          <View
-            className="overflow-hidden relative"
+            className="overflow-hidden"
             style={{
-              aspectRatio: cfg.imageAspect,
-              borderRadius: cfg.rarityBadgeRadius,
+              flex: 1,
+              borderRadius: cfg.artRadius,
+              backgroundColor: typeColor.light,
             }}
           >
             {card.imageAssetId ? (
@@ -337,7 +433,7 @@ export const CardTile = memo(function CardTile({
                   className="font-nunito-extrabold"
                   style={{
                     color: typeColor.dark,
-                    fontSize: cfg.nameFontSize * 2,
+                    fontSize: cfg.nameFontSize * 2.4,
                   }}
                 >
                   {(card.character || card.name || "?").charAt(0)}
@@ -345,150 +441,213 @@ export const CardTile = memo(function CardTile({
               </View>
             )}
 
-            {/* Type badge — bottom right */}
+            <LinearGradient
+              colors={[
+                withAlpha("#120914", 0),
+                withAlpha("#120914", 0.22),
+                withAlpha("#120914", 0.88),
+              ]}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+              style={{ position: "absolute", inset: 0 }}
+            />
+
             <View
-              className="absolute bottom-0 right-0"
               style={{
-                backgroundColor: typeColor.dark,
-                paddingHorizontal: cfg.typePaddingH,
-                paddingVertical: cfg.typePaddingV,
-                borderTopLeftRadius: cfg.rarityBadgeRadius / 2,
+                position: "absolute",
+                top: cfg.innerPadding,
+                left: cfg.innerPadding,
+                right: cfg.innerPadding,
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+              }}
+            >
+              <View
+                style={{
+                  borderRadius: 999,
+                  paddingHorizontal: cfg.badgePaddingH,
+                  paddingVertical: cfg.badgePaddingV,
+                  backgroundColor: withAlpha(typeColor.dark, themeName === "nightosphere" ? 0.9 : 0.84),
+                  maxWidth: "54%",
+                }}
+              >
+                <Text
+                  className="font-nunito-extrabold text-white"
+                  style={{ fontSize: cfg.badgeFontSize }}
+                  numberOfLines={1}
+                >
+                  {card.type}
+                </Text>
+              </View>
+
+              <RarityRibbon
+                rarityName={card.rarity.name}
+                rarity={rarityColor}
+                compact={size === "small"}
+                cfg={cfg}
+              />
+            </View>
+
+            {size === "small" && quantity > 1 ? (
+              <Animated.View
+                style={{
+                  position: "absolute",
+                  top: cfg.innerPadding + 22,
+                  right: cfg.innerPadding,
+                  transform: [{ translateY: bounceAnim }],
+                }}
+              >
+                <LinearGradient
+                  colors={[tc.secondary, tc.secondaryDark]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={{
+                    borderRadius: 999,
+                    paddingHorizontal: cfg.quantityPaddingH,
+                    paddingVertical: cfg.quantityPaddingV,
+                  }}
+                >
+                  <Text
+                    className="font-nunito-extrabold"
+                    style={{ color: tc.secondaryText, fontSize: cfg.quantityFontSize }}
+                  >
+                    x{quantity}
+                  </Text>
+                </LinearGradient>
+              </Animated.View>
+            ) : null}
+
+            <View
+              style={{
+                position: "absolute",
+                left: cfg.innerPadding,
+                right: cfg.innerPadding,
+                bottom: cfg.titleBottomPadding,
+                gap: 2,
               }}
             >
               <Text
-                className="text-white font-nunito-bold"
-                style={{ fontSize: cfg.typeFontSize }}
+                className="font-nunito-extrabold text-white"
+                style={{
+                  fontSize: cfg.nameFontSize,
+                  textShadowColor: withAlpha("#120914", 0.6),
+                  textShadowOffset: { width: 0, height: 2 },
+                  textShadowRadius: 5,
+                }}
+                numberOfLines={2}
               >
-                {card.type}
+                {card.name}
               </Text>
-            </View>
-
-            {/* Rarity crest — bottom left */}
-            <View
-              className="absolute bottom-0 left-0 overflow-hidden"
-              style={{ borderTopRightRadius: cfg.rarityBadgeRadius / 2 }}
-            >
-              <RarityCrest rarityName={card.rarity.name} cfg={cfg} />
+              {card.character ? (
+                <Text
+                  className="font-nunito-bold text-white/85"
+                  style={{
+                    fontSize: cfg.characterFontSize,
+                    letterSpacing: 0.4,
+                  }}
+                  numberOfLines={1}
+                >
+                  {card.character}
+                </Text>
+              ) : null}
             </View>
           </View>
 
-          {/* === NAME & CHARACTER === */}
-          <View
-            className="items-center"
-            style={{ marginTop: cfg.nameMarginTop, gap: cfg.nameGap }}
-          >
-            <Text
-              className="text-white font-nunito-bold"
-              style={{ fontSize: cfg.nameFontSize }}
-              numberOfLines={1}
-            >
-              {card.name}
-            </Text>
-            <Text
-              className="text-white font-nunito-semibold italic"
-              style={{ fontSize: cfg.charFontSize }}
-              numberOfLines={1}
-            >
-              {card.character}
-            </Text>
-          </View>
-
-          {/* === DESCRIPTION === */}
           <View
             style={{
-              backgroundColor: SECONDARY_TINT,
-              borderRadius: cfg.rarityBadgeRadius / 2,
-              padding: cfg.descPadding,
-              marginTop: cfg.descMarginTop,
+              marginTop: cfg.metaGap,
+              flexDirection: "row",
+              gap: cfg.statGap,
+            }}
+          >
+            {statPalettes.map((stat) => (
+              <StatChip
+                key={stat.label}
+                label={stat.label}
+                value={stat.value}
+                colors={stat.colors}
+                cfg={cfg}
+              />
+            ))}
+          </View>
+
+          <View
+            style={{
+              marginTop: cfg.metaGap,
               flex: 1,
-              minHeight: cfg.descMinHeight,
+              borderRadius: cfg.artRadius,
+              padding: cfg.descriptionPadding,
+              backgroundColor: descriptionColor,
+              borderWidth: 1,
+              borderColor: withAlpha(rarityColor.ring, themeName === "nightosphere" ? 0.32 : 0.22),
             }}
           >
             <Text
               className="font-nunito"
               style={{
-                color: tc.primaryText,
-                fontSize: cfg.descFontSize,
-                lineHeight: cfg.descLineHeight,
+                color: tc.fg,
+                fontSize: cfg.descriptionFontSize,
+                lineHeight: cfg.descriptionLineHeight,
               }}
-              numberOfLines={size === "large" ? 6 : 4}
+              numberOfLines={cfg.descriptionLines}
             >
               {card.description}
             </Text>
           </View>
-
-          {/* === SPEED SECTION === */}
-          <View
-            className="items-center justify-center relative"
-            style={{ height: cfg.speedHeight, marginTop: cfg.speedMarginTop }}
-          >
-            <View style={{ position: "absolute", top: cfg.speedIconTop }}>
-              <SpeedIcon size={cfg.speedIconSize} speedVal={card.speed} />
-            </View>
-          </View>
         </View>
       </View>
 
-      {/* Quantity badge below card — only for small size */}
-      {size === "small" &&
-        (quantity > 1 ? (
-          <Animated.View
+      {size === "large" && quantity > 1 ? (
+        <View className="items-center pt-3">
+          <LinearGradient
+            colors={[tc.secondary, tc.secondaryDark]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
             style={{
-              alignItems: "center",
-              marginTop: 4,
-              transform: [{ translateY: bounceAnim }],
+              borderRadius: 999,
+              paddingHorizontal: cfg.quantityPaddingH + 4,
+              paddingVertical: cfg.quantityPaddingV,
             }}
           >
-            <View
-              className="rounded-full items-center"
-              style={{
-                backgroundColor: rarityColor.ring,
-                paddingHorizontal: 10,
-                paddingVertical: 2,
-                width: 50,
-              }}
+            <Text
+              className="font-nunito-extrabold"
+              style={{ color: tc.secondaryText, fontSize: cfg.quantityFontSize }}
             >
-              <Text
-                className="text-white font-nunito-bold"
-                style={{ fontSize: 11 }}
-              >
-                x{quantity}
-              </Text>
-            </View>
-          </Animated.View>
-        ) : (
-          <View className="h-5" />
-        ))}
+              x{quantity}
+            </Text>
+          </LinearGradient>
+        </View>
+      ) : null}
 
-      {/* Action buttons below card */}
       {onRecycle || onCraft ? (
-        <View className="flex-row gap-1 mt-1">
+        <View className="mt-2 flex-row gap-2">
           {onRecycle ? (
             <Pressable
               onPress={onRecycle}
-              className="flex-1 items-center border rounded-lg border-primaryBorder"
-              style={{ paddingVertical: 4 }}
+              className="flex-1 items-center rounded-full"
+              style={{
+                backgroundColor: tc.surface,
+                borderWidth: 1,
+                borderColor: tc.primaryBorder,
+                paddingVertical: 8,
+              }}
             >
-              <Text
-                className="font-nunito-semibold text-primaryText"
-                style={{ fontSize: 10 }}
-              >
-                Recycle
-              </Text>
+              <Text className="font-nunito-bold text-primaryText">Recycle</Text>
             </Pressable>
           ) : null}
           {onCraft ? (
             <Pressable
               onPress={onCraft}
-              className="flex-1 items-center border rounded-lg border-primaryBorder"
-              style={{ paddingVertical: 4 }}
+              className="flex-1 items-center rounded-full"
+              style={{
+                backgroundColor: tc.primaryTint,
+                borderWidth: 1,
+                borderColor: tc.primaryBorder,
+                paddingVertical: 8,
+              }}
             >
-              <Text
-                className="font-nunito-semibold text-primaryText"
-                style={{ fontSize: 10 }}
-              >
-                Craft
-              </Text>
+              <Text className="font-nunito-bold text-primaryText">Craft</Text>
             </Pressable>
           ) : null}
         </View>
