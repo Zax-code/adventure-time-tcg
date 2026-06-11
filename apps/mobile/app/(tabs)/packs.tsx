@@ -2194,7 +2194,7 @@ export default function PacksScreen() {
           </View>
 
           <View
-            className="w-full max-w-[360px] self-center gap-3 pb-2"
+            className="w-full max-w-[360px] self-center items-center gap-4 pb-2"
             style={{ minHeight: openingFooterReserve }}
           >
             {isLoadingPhase ? (
@@ -2206,13 +2206,13 @@ export default function PacksScreen() {
                   textColor={openingAccent}
                 />
                 <Text
-                  className="text-center font-nunito text-sm"
+                  className="max-w-[330px] text-center font-nunito text-sm"
                   style={{ color: tc.fgMuted }}
                 >
                   {t("packs.opening.sortingBody")}
                 </Text>
                 <View
-                  className="overflow-hidden rounded-full"
+                  className="w-full overflow-hidden rounded-full"
                   style={{
                     backgroundColor: progressTrackColor,
                     height: 12,
@@ -2239,7 +2239,7 @@ export default function PacksScreen() {
               </>
             ) : (
               <Text
-                className="text-center font-nunito-bold text-sm"
+                className="max-w-[330px] text-center font-nunito-bold text-sm"
                 style={{ color: tc.fg }}
               >
                 {t("packs.opening.packOpened", { name: selectedPack.name })}
