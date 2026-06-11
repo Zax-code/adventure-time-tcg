@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import {
@@ -164,6 +164,23 @@ export default function CollectionScreen() {
         return result;
     }
   }, [rawCards, searchQuery, filterRarity, sortBy]);
+
+  const renderCollectionItem = useCallback(
+    ({ item, index }: { item: CollectionEntry; index: number }) => (
+      <CardTile
+        entry={item}
+        accessToken={accessToken}
+        testID={`collection-card-tile-${index}`}
+        onPress={() =>
+          router.push({
+            pathname: "/collection-card-detail",
+            params: { cardId: item.cardId },
+          })
+        }
+      />
+    ),
+    [accessToken, router],
+  );
 
   if (collectionQuery.isLoading) {
     return (
@@ -463,15 +480,14 @@ export default function CollectionScreen() {
       <FlatList
         {...KEYBOARD_AWARE_SCROLL_PROPS}
         style={{ flex: 1 }}
-        contentContainerStyle={{
-          paddingTop: headerHeight,
-          paddingBottom: bottomTabPadding,
-        }}
+        contentContainerStyle={{ paddingBottom: bottomTabPadding }}
         numColumns={2}
         columnWrapperStyle={{ justifyContent: "space-evenly" }}
         data={filteredCards}
         keyExtractor={(entry: CollectionEntry) => entry.id}
-        ListHeaderComponent={listHeader}
+        ListHeaderComponent={
+          <View style={{ paddingTop: headerHeight }}>{listHeader}</View>
+        }
         ListEmptyComponent={
           <View style={{ padding: 32, alignItems: "center" }}>
             <Text
@@ -488,19 +504,7 @@ export default function CollectionScreen() {
             </Text>
           </View>
         }
-        renderItem={({ item, index }: { item: CollectionEntry; index: number }) => (
-          <CardTile
-            entry={item}
-            accessToken={accessToken}
-            testID={`collection-card-tile-${index}`}
-            onPress={() =>
-              router.push({
-                pathname: "/collection-card-detail",
-                params: { cardId: item.cardId },
-              })
-            }
-          />
-        )}
+        renderItem={renderCollectionItem}
       />
 
       {/* Stats Modal */}

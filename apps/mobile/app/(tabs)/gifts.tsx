@@ -19,9 +19,7 @@ import {
   UserPlusIcon,
   XCircleIcon,
 } from "../../src/components/icons";
-import {
-  PageLoadingState,
-} from "../../src/components/loading-state";
+import { PageLoadingState } from "../../src/components/loading-state";
 import { useTranslation } from "../../src/i18n";
 import { apiClient } from "../../src/lib/api";
 import { useSessionStore } from "../../src/stores/session-store";
@@ -104,12 +102,17 @@ export default function GiftsScreen() {
   }
 
   const allGifts = [...giftsQuery.data.gifts].sort(
-    (a, b) =>
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
-  const receivedGifts = allGifts.filter((gift) => gift.toUser.id === currentUserId);
-  const sentGifts = allGifts.filter((gift) => gift.fromUser.id === currentUserId);
-  const pendingIncoming = receivedGifts.filter((gift) => gift.status === "pending");
+  const receivedGifts = allGifts.filter(
+    (gift) => gift.toUser.id === currentUserId,
+  );
+  const sentGifts = allGifts.filter(
+    (gift) => gift.fromUser.id === currentUserId,
+  );
+  const pendingIncoming = receivedGifts.filter(
+    (gift) => gift.status === "pending",
+  );
   const pendingIncomingIds = new Set(pendingIncoming.map((gift) => gift.id));
 
   const activityGifts =
@@ -146,7 +149,8 @@ export default function GiftsScreen() {
     },
   ];
 
-  const showPendingSection = activeFilter !== "sent" && pendingIncoming.length > 0;
+  const showPendingSection =
+    activeFilter !== "sent" && pendingIncoming.length > 0;
 
   return (
     <ScrollView
@@ -154,11 +158,10 @@ export default function GiftsScreen() {
       className="flex-1 bg-bg"
       contentContainerStyle={{
         padding: 20,
-        paddingTop: headerHeight + 20,
         paddingBottom: bottomTabPadding,
       }}
     >
-      <View className="gap-5">
+      <View className="gap-5" style={{ paddingTop: headerHeight }}>
         <View className="overflow-hidden rounded-[32px] border border-primaryBorder bg-surface">
           <LinearGradient
             colors={[tc.surfaceMuted, tc.surface, tc.primaryBg]}
@@ -188,7 +191,9 @@ export default function GiftsScreen() {
                 className="self-start rounded-full border px-4 py-2"
                 style={{
                   backgroundColor:
-                    pendingIncoming.length > 0 ? tc.secondaryTint : tc.successTint,
+                    pendingIncoming.length > 0
+                      ? tc.secondaryTint
+                      : tc.successTint,
                   borderColor:
                     pendingIncoming.length > 0
                       ? tc.secondaryBorder

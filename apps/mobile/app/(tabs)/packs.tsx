@@ -135,14 +135,62 @@ const BURST_PARTICLE_COLORS = [
   "#7BD6FF",
 ];
 const TREASURE_RAY_SPECS = [
-  { angle: 16, spread: 6, inner: 0.18, outer: 0.48, color: "rgba(255, 242, 168, 0.52)" },
-  { angle: 52, spread: 7, inner: 0.2, outer: 0.44, color: "rgba(255, 194, 70, 0.42)" },
-  { angle: 88, spread: 6, inner: 0.18, outer: 0.46, color: "rgba(255, 255, 210, 0.5)" },
-  { angle: 124, spread: 7, inner: 0.2, outer: 0.42, color: "rgba(255, 202, 88, 0.38)" },
-  { angle: 164, spread: 8, inner: 0.22, outer: 0.46, color: "rgba(255, 244, 180, 0.5)" },
-  { angle: 214, spread: 7, inner: 0.2, outer: 0.42, color: "rgba(255, 177, 54, 0.38)" },
-  { angle: 258, spread: 6, inner: 0.19, outer: 0.45, color: "rgba(255, 255, 218, 0.48)" },
-  { angle: 304, spread: 7, inner: 0.2, outer: 0.43, color: "rgba(255, 203, 80, 0.42)" },
+  {
+    angle: 16,
+    spread: 6,
+    inner: 0.18,
+    outer: 0.48,
+    color: "rgba(255, 242, 168, 0.52)",
+  },
+  {
+    angle: 52,
+    spread: 7,
+    inner: 0.2,
+    outer: 0.44,
+    color: "rgba(255, 194, 70, 0.42)",
+  },
+  {
+    angle: 88,
+    spread: 6,
+    inner: 0.18,
+    outer: 0.46,
+    color: "rgba(255, 255, 210, 0.5)",
+  },
+  {
+    angle: 124,
+    spread: 7,
+    inner: 0.2,
+    outer: 0.42,
+    color: "rgba(255, 202, 88, 0.38)",
+  },
+  {
+    angle: 164,
+    spread: 8,
+    inner: 0.22,
+    outer: 0.46,
+    color: "rgba(255, 244, 180, 0.5)",
+  },
+  {
+    angle: 214,
+    spread: 7,
+    inner: 0.2,
+    outer: 0.42,
+    color: "rgba(255, 177, 54, 0.38)",
+  },
+  {
+    angle: 258,
+    spread: 6,
+    inner: 0.19,
+    outer: 0.45,
+    color: "rgba(255, 255, 218, 0.48)",
+  },
+  {
+    angle: 304,
+    spread: 7,
+    inner: 0.2,
+    outer: 0.43,
+    color: "rgba(255, 203, 80, 0.42)",
+  },
 ];
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
@@ -312,8 +360,9 @@ function createLightningCrackPath(
 
   return {
     path: points
-      .map((point, index) =>
-        `${index === 0 ? "M" : "L"} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`,
+      .map(
+        (point, index) =>
+          `${index === 0 ? "M" : "L"} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`,
       )
       .join(" "),
     dashLength: Math.ceil(getPathLength(points)),
@@ -617,7 +666,12 @@ function PackPreviewCard({
               {
                 translateX: sheenAnim.interpolate({
                   inputRange: [0, 0.45, 0.7, 1],
-                  outputRange: [-width * 1.2, -width * 1.2, width * 1.2, width * 1.2],
+                  outputRange: [
+                    -width * 1.2,
+                    -width * 1.2,
+                    width * 1.2,
+                    width * 1.2,
+                  ],
                 }),
               },
               { rotate: "16deg" },
@@ -625,7 +679,11 @@ function PackPreviewCard({
           }}
         >
           <LinearGradient
-            colors={["rgba(255,255,255,0)", "rgba(255,255,255,0.35)", "rgba(255,255,255,0)"]}
+            colors={[
+              "rgba(255,255,255,0)",
+              "rgba(255,255,255,0.35)",
+              "rgba(255,255,255,0)",
+            ]}
             start={{ x: 0, y: 0.2 }}
             end={{ x: 1, y: 0.8 }}
             style={{ flex: 1 }}
@@ -686,7 +744,12 @@ function PackOpeningAura({
           <Stop offset="100%" stopColor="rgba(255,115,19,0)" />
         </SvgRadialGradient>
       </Defs>
-      <Circle cx={width / 2} cy={height * 0.44} r={Math.min(width, height) * 0.38} fill={`url(#${gradientId})`} />
+      <Circle
+        cx={width / 2}
+        cy={height * 0.44}
+        r={Math.min(width, height) * 0.38}
+        fill={`url(#${gradientId})`}
+      />
     </Svg>
   );
 }
@@ -758,7 +821,12 @@ function PackLoadingGlow({
       >
         <Svg width="100%" height="100%" viewBox={`0 0 ${size} ${size}`}>
           <Defs>
-            <SvgRadialGradient id="pack-loading-glow-blur" cx="50%" cy="50%" r="50%">
+            <SvgRadialGradient
+              id="pack-loading-glow-blur"
+              cx="50%"
+              cy="50%"
+              r="50%"
+            >
               <Stop offset="0%" stopColor="rgba(255,255,235,0.34)" />
               <Stop offset="24%" stopColor="rgba(255,228,126,0.16)" />
               <Stop offset="54%" stopColor="rgba(255,172,45,0.05)" />
@@ -812,7 +880,12 @@ function PackLoadingGlow({
       >
         <Svg width="100%" height="100%" viewBox={`0 0 ${size} ${size}`}>
           <Defs>
-            <SvgRadialGradient id="pack-loading-glow-core" cx="50%" cy="50%" r="50%">
+            <SvgRadialGradient
+              id="pack-loading-glow-core"
+              cx="50%"
+              cy="50%"
+              r="50%"
+            >
               <Stop offset="0%" stopColor="rgba(255,255,235,0.98)" />
               <Stop offset="8%" stopColor="rgba(255,255,235,0.98)" />
               <Stop offset="16%" stopColor="rgba(255,228,126,0.76)" />
@@ -1264,36 +1337,36 @@ function CardBackStack({
       }}
     >
       {[
-          {
-            key: "left",
-            rarityName: stackRarities[0],
-            finalX: -30,
-            finalY: 12,
-            finalRotate: "-8deg",
+        {
+          key: "left",
+          rarityName: stackRarities[0],
+          finalX: -30,
+          finalY: 12,
+          finalRotate: "-8deg",
           collapsedX: -6,
           collapsedY: 5,
           collapsedRotate: "-2deg",
           scale: 0.96,
           zIndex: 1,
         },
-          {
-            key: "right",
-            rarityName: stackRarities[1],
-            finalX: 30,
-            finalY: 12,
-            finalRotate: "8deg",
+        {
+          key: "right",
+          rarityName: stackRarities[1],
+          finalX: 30,
+          finalY: 12,
+          finalRotate: "8deg",
           collapsedX: 6,
           collapsedY: 5,
           collapsedRotate: "2deg",
           scale: 0.96,
           zIndex: 2,
         },
-          {
-            key: "center",
-            rarityName: stackRarities[2],
-            finalX: 0,
-            finalY: -10,
-            finalRotate: "0deg",
+        {
+          key: "center",
+          rarityName: stackRarities[2],
+          finalX: 0,
+          finalY: -10,
+          finalRotate: "0deg",
           collapsedX: 0,
           collapsedY: 0,
           collapsedRotate: "0deg",
@@ -1416,7 +1489,15 @@ function CrackedPackPreview({
           {
             rotateZ: openAnim.interpolate({
               inputRange: [0, 0.18, 0.34, 0.52, 0.72, 0.94, 1],
-              outputRange: ["0deg", "-1deg", "1.1deg", "-1.4deg", "1.9deg", "2.4deg", "25deg"],
+              outputRange: [
+                "0deg",
+                "-1deg",
+                "1.1deg",
+                "-1.4deg",
+                "1.9deg",
+                "2.4deg",
+                "25deg",
+              ],
               extrapolate: "clamp",
             }),
           },
@@ -1567,14 +1648,24 @@ function CrackedPackPreview({
                 {
                   translateX: openAnim.interpolate({
                     inputRange: [0, 0.62, 0.76, 1],
-                    outputRange: [0, 0, particle.travelX * 0.16, particle.travelX],
+                    outputRange: [
+                      0,
+                      0,
+                      particle.travelX * 0.16,
+                      particle.travelX,
+                    ],
                     extrapolate: "clamp",
                   }),
                 },
                 {
                   translateY: openAnim.interpolate({
                     inputRange: [0, 0.62, 0.76, 1],
-                    outputRange: [0, 0, particle.travelY * 0.16, particle.travelY],
+                    outputRange: [
+                      0,
+                      0,
+                      particle.travelY * 0.16,
+                      particle.travelY,
+                    ],
                     extrapolate: "clamp",
                   }),
                 },
@@ -1700,7 +1791,10 @@ function SectionBadge({
       style={{ backgroundColor }}
     >
       {icon}
-      <Text className="font-nunito-bold text-[11px]" style={{ color: textColor }}>
+      <Text
+        className="font-nunito-bold text-[11px]"
+        style={{ color: textColor }}
+      >
         {label}
       </Text>
     </View>
@@ -1881,7 +1975,9 @@ export default function PacksScreen() {
     stopChargeAnimations();
     burstFlashAnim.setValue(0);
     burstOpenAnim.setValue(0);
-    setBurstPattern(createBurstPattern(stageCardWidth, stageCardWidth / PACK_CARD_RATIO));
+    setBurstPattern(
+      createBurstPattern(stageCardWidth, stageCardWidth / PACK_CARD_RATIO),
+    );
 
     Animated.parallel([
       Animated.sequence([
@@ -1972,8 +2068,9 @@ export default function PacksScreen() {
       ]);
       await animateLoadingProgress(82, 100, PACK_OPEN_PROGRESS_MS.final);
 
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
-        .catch(() => null);
+      void Haptics.notificationAsync(
+        Haptics.NotificationFeedbackType.Success,
+      ).catch(() => null);
       setPhase("readyToReveal");
       setRevealedIndex(-1);
     } catch (error) {
@@ -1986,8 +2083,9 @@ export default function PacksScreen() {
       setRevealedIndex(-1);
       setLoadingProgress(0);
       setNewBalance(null);
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
-        .catch(() => null);
+      void Haptics.notificationAsync(
+        Haptics.NotificationFeedbackType.Error,
+      ).catch(() => null);
     } finally {
       setIsOpening(false);
     }
@@ -1998,8 +2096,9 @@ export default function PacksScreen() {
 
     if (nextIndex >= openedCards.length) {
       setPhase("complete");
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
-        .catch(() => null);
+      void Haptics.notificationAsync(
+        Haptics.NotificationFeedbackType.Success,
+      ).catch(() => null);
       return;
     }
 
@@ -2067,14 +2166,10 @@ export default function PacksScreen() {
         error={packsQuery.error}
         title={packsQuery.error ? undefined : t("packs.unavailable")}
         body={
-          packsQuery.error
-            ? undefined
-            : t("common.errorStates.generic.body")
+          packsQuery.error ? undefined : t("common.errorStates.generic.body")
         }
         detail={
-          packsQuery.error
-            ? undefined
-            : t("common.errorStates.generic.detail")
+          packsQuery.error ? undefined : t("common.errorStates.generic.detail")
         }
         onRetry={() => {
           void packsQuery.refetch();
@@ -2085,17 +2180,20 @@ export default function PacksScreen() {
 
   const packs = packsQuery.data.packs;
   const affordablePacks = packs.filter((pack) => pack.cost <= coins);
-  const cheapestLockedPack = packs.reduce<Pack | undefined>((cheapest, pack) => {
-    if (pack.cost <= coins) {
+  const cheapestLockedPack = packs.reduce<Pack | undefined>(
+    (cheapest, pack) => {
+      if (pack.cost <= coins) {
+        return cheapest;
+      }
+
+      if (!cheapest || pack.cost < cheapest.cost) {
+        return pack;
+      }
+
       return cheapest;
-    }
-
-    if (!cheapest || pack.cost < cheapest.cost) {
-      return pack;
-    }
-
-    return cheapest;
-  }, undefined);
+    },
+    undefined,
+  );
   const featuredPack =
     affordablePacks.reduce<Pack | undefined>((best, pack) => {
       if (!best || pack.cardCount > best.cardCount) {
@@ -2127,10 +2225,7 @@ export default function PacksScreen() {
     const openingAccent = selectedPack.color || "#D58524";
     const chargePreviewWidth = Math.min(stageCardWidth, 230);
     const openingStageHeight = Math.min(Math.max(height * 0.62, 420), 620);
-    const openingFooterReserve = Math.min(
-      Math.max(height * 0.24, 196),
-      252,
-    );
+    const openingFooterReserve = Math.min(Math.max(height * 0.24, 196), 252);
     const badgeBackgroundColor = withAlpha(
       openingAccent,
       themeName === "nightosphere" ? "26" : "1F",
@@ -2146,7 +2241,9 @@ export default function PacksScreen() {
 
     return (
       <View
-        testID={isLoadingPhase ? "pack-opening-loading" : "pack-opening-shaking"}
+        testID={
+          isLoadingPhase ? "pack-opening-loading" : "pack-opening-shaking"
+        }
         className="flex-1 bg-bg"
       >
         <View
@@ -2424,7 +2521,10 @@ export default function PacksScreen() {
         >
           <View className="w-full max-w-[360px] self-center gap-3">
             <View className="flex-row items-center justify-between">
-              <Text className="font-nunito-bold text-base" style={{ color: rarityRing }}>
+              <Text
+                className="font-nunito-bold text-base"
+                style={{ color: rarityRing }}
+              >
                 {rarityName}
               </Text>
               <Text className="font-nunito-bold text-sm text-fgMuted">
@@ -2465,7 +2565,11 @@ export default function PacksScreen() {
                 <View className="absolute right-3 top-3 z-30">
                   <LinearGradient
                     colors={[tc.success, tc.successDark]}
-                    style={{ borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 }}
+                    style={{
+                      borderRadius: 999,
+                      paddingHorizontal: 10,
+                      paddingVertical: 5,
+                    }}
                   >
                     <Text className="font-nunito-extrabold text-[10px] text-white">
                       {t("packs.openResult.newBadge")}
@@ -2542,11 +2646,11 @@ export default function PacksScreen() {
         contentInsetAdjustmentBehavior="never"
         contentContainerStyle={{
           paddingHorizontal: 20,
-          paddingTop: headerHeight + 18,
           paddingBottom: bottomTabPadding,
           gap: 18,
         }}
       >
+        <View style={{ height: headerHeight }} />
         <BackgroundOrbs
           primary={tc.primaryTint}
           secondary={tc.secondaryTint}
@@ -2752,7 +2856,10 @@ export default function PacksScreen() {
           <Pressable testID="pack-summary-browse" onPress={reset}>
             <View
               className="flex-row items-center justify-center gap-2 rounded-[22px] border px-5 py-4"
-              style={{ backgroundColor: tc.surface, borderColor: tc.primaryBorder }}
+              style={{
+                backgroundColor: tc.surface,
+                borderColor: tc.primaryBorder,
+              }}
             >
               <Text className="font-nunito-bold text-base text-primaryStrong">
                 {t("packs.summary.browsePacks")}
@@ -2778,11 +2885,11 @@ export default function PacksScreen() {
         contentInsetAdjustmentBehavior="never"
         contentContainerStyle={{
           paddingHorizontal: 20,
-          paddingTop: headerHeight + 18,
           paddingBottom: bottomTabPadding,
           gap: 18,
         }}
       >
+        <View style={{ height: headerHeight }} />
         <View
           style={{
             borderRadius: 30,
@@ -2817,21 +2924,27 @@ export default function PacksScreen() {
           <View className="mt-5 gap-3">
             <SectionBadge
               icon={<CheckIcon size={12} color={tc.successText} />}
-              label={t("packs.affordableCount", { count: affordablePacks.length })}
+              label={t("packs.affordableCount", {
+                count: affordablePacks.length,
+              })}
               backgroundColor={tc.successTint}
               textColor={tc.successText}
             />
 
             {heroPack ? (
               <Pressable
-                onPress={() => !isOpening && heroCanAfford && void openPack(heroPack)}
+                onPress={() =>
+                  !isOpening && heroCanAfford && void openPack(heroPack)
+                }
                 disabled={isOpening || !heroCanAfford}
                 style={{ opacity: heroCanAfford ? 1 : 0.82 }}
               >
                 <View
                   className="flex-row items-center justify-between rounded-[24px] px-5 py-4"
                   style={{
-                    backgroundColor: heroCanAfford ? tc.primaryStrong : tc.surfaceMuted,
+                    backgroundColor: heroCanAfford
+                      ? tc.primaryStrong
+                      : tc.surfaceMuted,
                   }}
                 >
                   <View className="flex-1 gap-1 pr-3">
@@ -2843,7 +2956,11 @@ export default function PacksScreen() {
                     </Text>
                     <Text
                       className="font-nunito text-sm"
-                      style={{ color: heroCanAfford ? "rgba(255,255,255,0.82)" : tc.fgMuted }}
+                      style={{
+                        color: heroCanAfford
+                          ? "rgba(255,255,255,0.82)"
+                          : tc.fgMuted,
+                      }}
                     >
                       {heroCanAfford
                         ? t("packs.tapToOpen")
@@ -2859,7 +2976,9 @@ export default function PacksScreen() {
                     <CoinIcon size={16} />
                     <Text
                       className="font-nunito-extrabold text-lg"
-                      style={{ color: heroCanAfford ? "#FFFFFF" : tc.primaryStrong }}
+                      style={{
+                        color: heroCanAfford ? "#FFFFFF" : tc.primaryStrong,
+                      }}
                     >
                       {heroPack.cost}
                     </Text>
@@ -2931,7 +3050,9 @@ export default function PacksScreen() {
                         </View>
                         {isFeatured ? (
                           <SectionBadge
-                            icon={<SparklesIcon size={11} color={tc.accentText} />}
+                            icon={
+                              <SparklesIcon size={11} color={tc.accentText} />
+                            }
                             label={t("packs.recommended")}
                             backgroundColor={tc.accentTint}
                             textColor={tc.accentText}
@@ -2965,7 +3086,9 @@ export default function PacksScreen() {
                         <Text
                           testID={`pack-open-cta-${slug}`}
                           className="font-nunito-bold text-sm"
-                          style={{ color: canAfford ? tc.primaryText : tc.fgMuted }}
+                          style={{
+                            color: canAfford ? tc.primaryText : tc.fgMuted,
+                          }}
                         >
                           {t("packs.tapToOpen")}
                         </Text>

@@ -466,519 +466,524 @@ export default function QuestsScreen() {
       <ScrollView
         className="flex-1"
         contentContainerStyle={{
-          paddingTop: headerHeight + 16,
           paddingBottom: bottomTabPadding,
           paddingHorizontal: 16,
         }}
       >
-        <View className="items-center mb-6" style={{ gap: 8 }}>
-          <Text
-            className="font-nunito-extrabold text-3xl text-primaryDark"
-            style={{
-              textShadowColor: "rgba(0,0,0,0.15)",
-              textShadowOffset: { width: 0, height: 2 },
-              textShadowRadius: 4,
-            }}
-          >
-            {t("quests.title")}
-          </Text>
-          <Text
-            className="font-nunito-medium text-sm px-4"
-            style={{
-              color: tc.primaryDark,
-              textAlign: "center",
-            }}
-          >
-            {t("quests.subtitle")}
-          </Text>
-        </View>
-
-        {showFitbitConnectCta ? (
-          <View
-            className="bg-successTint border border-successBorder"
-            style={{
-              borderRadius: 16,
-              padding: 16,
-              marginTop: 16,
-              marginBottom: 16,
-              shadowColor: "#000",
-              shadowOpacity: 0.08,
-              shadowRadius: 4,
-              shadowOffset: { width: 0, height: 2 },
-              elevation: 2,
-            }}
-          >
-            <View
+        <View style={{ paddingTop: headerHeight + 16 }}>
+          <View className="items-center mb-6" style={{ gap: 8 }}>
+            <Text
+              className="font-nunito-extrabold text-3xl text-primaryDark"
               style={{
-                flexDirection: "row",
-                alignItems: "flex-start",
-                gap: 12,
+                textShadowColor: "rgba(0,0,0,0.15)",
+                textShadowOffset: { width: 0, height: 2 },
+                textShadowRadius: 4,
               }}
             >
-              <WalkingIcon size={32} color={tc.successDark} />
-              <View style={{ flex: 1 }}>
-                <Text className="font-nunito-bold text-base text-successDark">
-                  {t("settings.connectFitbit")}
-                </Text>
-                <Text className="font-nunito text-sm mt-1 text-successDark">
-                  {t("quests.connectFitbitDesc")}
-                </Text>
-                <View
-                  style={{
-                    marginTop: 12,
-                    alignSelf: "flex-start",
-                    shadowColor: "#000",
-                    shadowOpacity: 0.15,
-                    shadowRadius: 6,
-                    shadowOffset: { width: 0, height: 3 },
-                    elevation: 4,
-                    borderRadius: 8,
-                  }}
-                >
-                  <TouchableOpacity
-                    onPress={() => {
-                      void handleConnectFitbit();
-                    }}
-                    style={{ borderRadius: 8, overflow: "hidden" }}
-                  >
-                    <LinearGradient
-                      colors={[tc.success, tc.successDark]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                      style={{ paddingHorizontal: 16, paddingVertical: 8 }}
-                    >
-                      <Text className="font-nunito text-white text-sm">
-                        {isConnectingFitbit
-                          ? t("settings.connectingFitbit")
-                          : t("settings.connectFitbit")}
-                      </Text>
-                    </LinearGradient>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
+              {t("quests.title")}
+            </Text>
+            <Text
+              className="font-nunito-medium text-sm px-4"
+              style={{
+                color: tc.primaryDark,
+                textAlign: "center",
+              }}
+            >
+              {t("quests.subtitle")}
+            </Text>
           </View>
-        ) : null}
 
-        {questsQuery.data.quests.length === 0 ? (
-          <View
-            className="bg-surfaceMuted border border-primaryBorder"
-            style={{
-              borderRadius: 16,
-              padding: 32,
-              alignItems: "center",
-            }}
-          >
-            {!showFitbitConnectCta ? (
-              <>
-                <SparklesIcon size={48} color={tc.primaryBorder} />
-                <Text className="font-nunito-bold text-base text-fgMuted mt-4">
-                  {t("quests.noQuests")}
-                </Text>
-                <Text className="font-nunito text-sm text-fgMuted mt-2 text-center">
-                  {t("quests.checkBackLater")}
-                </Text>
-              </>
-            ) : (
-              <>
-                <WalkingIcon size={48} color={tc.primaryBorder} />
-                <Text className="font-nunito-bold text-base text-fgMuted mt-4">
-                  {t("settings.connectFitbit")}
-                </Text>
-                <Text className="font-nunito text-sm text-fgMuted mt-2 text-center">
-                  {t("quests.connectFitbitDesc")}
-                </Text>
-                <TouchableOpacity
-                  className="mt-4"
-                  onPress={() => {
-                    void handleConnectFitbit();
-                  }}
-                  disabled={isConnectingFitbit}
-                >
-                  <Text className="font-nunito-bold text-primaryText">
-                    {isConnectingFitbit
-                      ? t("settings.connectingFitbit")
-                      : t("settings.connectFitbit")}
-                  </Text>
-                </TouchableOpacity>
-              </>
-            )}
-          </View>
-        ) : (
-          questsQuery.data.quests.map((quest, index) => {
-            const status = getQuestStatus(quest);
-            const colors = STATUS_COLORS[status];
-            const progressDisplay = getQuestProgressDisplay(quest);
-            const isClaimLoading =
-              claimQuestMutation.isPending &&
-              claimQuestMutation.variables === quest.id;
-            const QuestIcon =
-              quest.icon === "walking" ? WalkingIcon : SparklesIcon;
-            const title = getQuestTitle(quest.title, t);
-            const actionLabel =
-              status === "active"
-                ? t("quests.playQuest")
-                : t("quests.seeResults");
-            const shouldShowActivationPrompt =
-              isStepQuest(quest.type) &&
-              status === "active" &&
-              showStepQuestActivationPrompt;
-            const shouldShowDiscreteSyncButton =
-              isStepQuest(quest.type) &&
-              status === "active" &&
-              user?.preferredStepSource === "device_health" &&
-              !shouldShowActivationPrompt;
-
-            let statusIcon;
-            if (status === "completed") {
-              statusIcon = (
-                <CheckCircleIcon size={28} color={colors.iconColor} />
-              );
-            } else if (status === "claimed") {
-              statusIcon = <ClaimedIcon size={28} color={colors.iconColor} />;
-            } else if (status === "failed") {
-              statusIcon = <XCircleIcon size={28} color={colors.iconColor} />;
-            } else {
-              statusIcon = <QuestIcon size={28} color={colors.iconColor} />;
-            }
-
-            return (
+          {showFitbitConnectCta ? (
+            <View
+              className="bg-successTint border border-successBorder"
+              style={{
+                borderRadius: 16,
+                padding: 16,
+                marginTop: 16,
+                marginBottom: 16,
+                shadowColor: "#000",
+                shadowOpacity: 0.08,
+                shadowRadius: 4,
+                shadowOffset: { width: 0, height: 2 },
+                elevation: 2,
+              }}
+            >
               <View
-                key={quest.id}
-                className="rounded-2xl p-4"
                 style={{
-                  backgroundColor: tc.surface,
-                  borderWidth: 2,
-                  borderColor: colors.border,
-                  opacity: status === "claimed" ? 0.6 : 1,
-                  shadowColor: "#000",
-                  shadowOpacity: 0.1,
-                  shadowRadius: 8,
-                  shadowOffset: { width: 0, height: 2 },
-                  elevation: 2,
-                  marginBottom:
-                    index === questsQuery.data.quests.length - 1 ? 0 : 12,
+                  flexDirection: "row",
+                  alignItems: "flex-start",
+                  gap: 12,
                 }}
               >
-                <TouchableOpacity
-                  style={{
-                    position: "absolute",
-                    top: -8,
-                    right: -8,
-                    zIndex: 1,
-                  }}
-                  onPress={() => setShowDescriptionFor(quest)}
-                  hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
-                >
+                <WalkingIcon size={32} color={tc.successDark} />
+                <View style={{ flex: 1 }}>
+                  <Text className="font-nunito-bold text-base text-successDark">
+                    {t("settings.connectFitbit")}
+                  </Text>
+                  <Text className="font-nunito text-sm mt-1 text-successDark">
+                    {t("quests.connectFitbitDesc")}
+                  </Text>
                   <View
                     style={{
-                      backgroundColor: tc.surface,
-                      borderRadius: 999,
-                      borderWidth: 2,
-                      borderColor: colors.border,
+                      marginTop: 12,
+                      alignSelf: "flex-start",
                       shadowColor: "#000",
                       shadowOpacity: 0.15,
-                      shadowRadius: 4,
-                      shadowOffset: { width: 0, height: 2 },
-                      elevation: 2,
+                      shadowRadius: 6,
+                      shadowOffset: { width: 0, height: 3 },
+                      elevation: 4,
+                      borderRadius: 8,
                     }}
                   >
-                    <HelpCircleIcon size={20} color={colors.border} noCircle />
-                  </View>
-                </TouchableOpacity>
-
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "flex-start",
-                    gap: 16,
-                    paddingRight: 24,
-                  }}
-                >
-                  <View
-                    style={{
-                      backgroundColor: colors.iconBg,
-                      padding: 12,
-                      borderRadius: 12,
-                    }}
-                  >
-                    {statusIcon}
-                  </View>
-
-                  <View style={{ flex: 1 }}>
-                    <Text className="font-nunito-bold text-base text-fg">
-                      {title}
-                    </Text>
-                  </View>
-
-                  <View className="flex-row items-center gap-1">
-                    <CoinIcon size={18} />
-                    <Text
-                      style={{ color: tc.secondaryDark }}
-                      className="font-nunito-bold text-base"
-                    >
-                      {quest.reward}
-                    </Text>
-                  </View>
-                </View>
-
-                <View style={{ marginTop: 16 }}>
-                  {shouldShowActivationPrompt ? (
-                    <View
-                      className="rounded-2xl border border-primaryBorder bg-primaryTint p-3"
-                      style={{ marginBottom: 16 }}
-                    >
-                      <Text className="font-nunito-bold text-sm text-primaryStrong">
-                        {t("quests.stepSyncPromptTitle")}
-                      </Text>
-                      <Text className="font-nunito text-sm text-primaryStrong mt-1">
-                        {stepSync.availability === "setup_required"
-                          ? t("quests.stepSyncPromptSetupBody", {
-                              healthSystem: healthSystemLabel,
-                            })
-                          : t("quests.stepSyncPromptBody", {
-                              healthSystem: healthSystemLabel,
-                            })}
-                      </Text>
-                      {stepSync.lastError ? (
-                        <Text className="font-nunito text-sm text-dangerDark mt-2">
-                          {stepSync.lastError}
-                        </Text>
-                      ) : null}
-                      <View className="flex-row flex-wrap items-center gap-3 mt-3">
-                        <TouchableOpacity
-                          onPress={() => {
-                            void handleStepAction();
-                          }}
-                          disabled={stepSync.isSyncing}
-                          style={{ borderRadius: 10, overflow: "hidden" }}
-                        >
-                          <LinearGradient
-                            colors={[colors.gradStart, colors.gradEnd]}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 0 }}
-                            style={{
-                              minHeight: 40,
-                              paddingHorizontal: 14,
-                              alignItems: "center",
-                              justifyContent: "center",
-                            }}
-                          >
-                            <Text className="font-nunito-bold text-white">
-                              {stepSync.isSyncing
-                                ? t("settings.syncing")
-                                : stepActionLabel}
-                            </Text>
-                          </LinearGradient>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  ) : null}
-
-                  <View className="flex-row justify-between mb-1">
-                    <Text className="font-nunito text-xs text-fgMuted">
-                      {t("quests.progress")}
-                    </Text>
-                    <Text
-                      className="font-nunito-bold text-xs"
-                      style={{ color: getProgressColor(status, tc) }}
-                    >
-                      {formatProgress(
-                        progressDisplay.progress,
-                        progressDisplay.target,
-                      )}
-                    </Text>
-                  </View>
-                  <View className="h-3 rounded-full overflow-hidden bg-primaryTint">
-                    {status === "claimed" ? (
-                      <View
-                        style={{
-                          width: `${progressDisplay.progressPct}%`,
-                          backgroundColor: tc.muted,
-                          height: "100%",
-                        }}
-                      />
-                    ) : (
-                      <LinearGradient
-                        colors={[colors.gradStart, colors.gradEnd]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
-                        style={{
-                          width: `${progressDisplay.progressPct}%`,
-                          height: "100%",
-                        }}
-                      />
-                    )}
-                  </View>
-                  {isWordleQuest(quest.type) && quest.attemptsUsed != null ? (
-                    <Text
-                      className="font-nunito-bold text-xs text-center mt-1"
-                      style={{
-                        color:
-                          status === "claimed"
-                            ? tc.muted
-                            : status === "failed"
-                              ? tc.dangerDark
-                              : status === "completed"
-                                ? tc.successDark
-                                : getMetaColor(status, tc),
+                    <TouchableOpacity
+                      onPress={() => {
+                        void handleConnectFitbit();
                       }}
-                    >
-                      {quest.completed
-                        ? t("quests.wordleSolvedIn", {
-                            used: quest.attemptsUsed,
-                            total: 6,
-                          })
-                        : t("quests.wordleAttemptsUsed", {
-                            used: quest.attemptsUsed,
-                            total: 6,
-                          })}
-                    </Text>
-                  ) : null}
-                  {isSpeedCalculusQuest(quest.type) ? (
-                    <Text
-                      className="font-nunito-bold text-xs text-center mt-1"
-                      style={{ color: getMetaColor(status, tc) }}
-                    >
-                      {t("quests.speedCalculusQuestCardMeta", {
-                        score: quest.latestScore ?? 0,
-                        reward: quest.rewardPreview ?? quest.reward,
-                        runs: quest.runsUsed ?? quest.progress,
-                        total: quest.maxRuns ?? quest.target,
-                      })}
-                    </Text>
-                  ) : null}
-                  {shouldShowDiscreteSyncButton || stepSync.lastError ? (
-                    <View className="mt-2 items-end">
-                      {shouldShowDiscreteSyncButton ? (
-                        <TouchableOpacity
-                          onPress={() => {
-                            void handleForceRefresh();
-                          }}
-                          disabled={
-                            stepSync.isSyncing || isForceRefreshingStepQuest
-                          }
-                          hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
-                        >
-                          <Text className="font-nunito-semibold text-xs text-primaryText">
-                            {stepSync.isSyncing || isForceRefreshingStepQuest
-                              ? t("settings.syncing")
-                              : t("settings.syncNow")}
-                          </Text>
-                        </TouchableOpacity>
-                      ) : null}
-                      {stepSync.lastError ? (
-                        <Text className="font-nunito text-xs text-dangerDark mt-1 text-right">
-                          {stepSync.lastError}
-                        </Text>
-                      ) : null}
-                    </View>
-                  ) : null}
-                </View>
-
-                {quest.actionPath ? (
-                  <View
-                    style={{
-                      marginTop: 16,
-                      borderRadius: 12,
-                    }}
-                  >
-                    <TouchableOpacity
-                      onPress={() => void openQuest(quest)}
-                      style={{ borderRadius: 12, overflow: "hidden" }}
-                    >
-                      {status === "claimed" ? (
-                        <View
-                          style={{
-                            backgroundColor: tc.muted,
-                            minHeight: 44,
-                            paddingHorizontal: 16,
-                            flexDirection: "row",
-                            alignItems: "center",
-                            justifyContent: "center",
-                          }}
-                          className="items-center justify-center"
-                        >
-                          <Text
-                            className="font-nunito-bold text-white"
-                            style={{ textAlign: "center", lineHeight: 20 }}
-                          >
-                            {actionLabel}
-                          </Text>
-                        </View>
-                      ) : (
-                        <LinearGradient
-                          colors={[colors.gradStart, colors.gradEnd]}
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 1, y: 0 }}
-                          className="items-center justify-center"
-                          style={{
-                            minHeight: 44,
-                            paddingHorizontal: 16,
-                            flexDirection: "row",
-                            alignItems: "center",
-                            justifyContent: "center",
-                          }}
-                        >
-                          <Text
-                            className="font-nunito-bold text-white"
-                            style={{ textAlign: "center", lineHeight: 20 }}
-                          >
-                            {actionLabel}
-                          </Text>
-                        </LinearGradient>
-                      )}
-                    </TouchableOpacity>
-                  </View>
-                ) : null}
-
-                {quest.completed && !quest.claimed ? (
-                  <View
-                    style={{
-                      marginTop: 16,
-                      borderRadius: 12,
-                    }}
-                  >
-                    <TouchableOpacity
-                      onPress={() =>
-                        void claimQuestMutation.mutateAsync(quest.id)
-                      }
-                      disabled={isClaimLoading}
-                      style={{ borderRadius: 12, overflow: "hidden" }}
+                      style={{ borderRadius: 8, overflow: "hidden" }}
                     >
                       <LinearGradient
                         colors={[tc.success, tc.successDark]}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 0 }}
-                        className="items-center flex-row justify-center gap-2"
+                        style={{ paddingHorizontal: 16, paddingVertical: 8 }}
+                      >
+                        <Text className="font-nunito text-white text-sm">
+                          {isConnectingFitbit
+                            ? t("settings.connectingFitbit")
+                            : t("settings.connectFitbit")}
+                        </Text>
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            </View>
+          ) : null}
+
+          {questsQuery.data.quests.length === 0 ? (
+            <View
+              className="bg-surfaceMuted border border-primaryBorder"
+              style={{
+                borderRadius: 16,
+                padding: 32,
+                alignItems: "center",
+              }}
+            >
+              {!showFitbitConnectCta ? (
+                <>
+                  <SparklesIcon size={48} color={tc.primaryBorder} />
+                  <Text className="font-nunito-bold text-base text-fgMuted mt-4">
+                    {t("quests.noQuests")}
+                  </Text>
+                  <Text className="font-nunito text-sm text-fgMuted mt-2 text-center">
+                    {t("quests.checkBackLater")}
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <WalkingIcon size={48} color={tc.primaryBorder} />
+                  <Text className="font-nunito-bold text-base text-fgMuted mt-4">
+                    {t("settings.connectFitbit")}
+                  </Text>
+                  <Text className="font-nunito text-sm text-fgMuted mt-2 text-center">
+                    {t("quests.connectFitbitDesc")}
+                  </Text>
+                  <TouchableOpacity
+                    className="mt-4"
+                    onPress={() => {
+                      void handleConnectFitbit();
+                    }}
+                    disabled={isConnectingFitbit}
+                  >
+                    <Text className="font-nunito-bold text-primaryText">
+                      {isConnectingFitbit
+                        ? t("settings.connectingFitbit")
+                        : t("settings.connectFitbit")}
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
+          ) : (
+            questsQuery.data.quests.map((quest, index) => {
+              const status = getQuestStatus(quest);
+              const colors = STATUS_COLORS[status];
+              const progressDisplay = getQuestProgressDisplay(quest);
+              const isClaimLoading =
+                claimQuestMutation.isPending &&
+                claimQuestMutation.variables === quest.id;
+              const QuestIcon =
+                quest.icon === "walking" ? WalkingIcon : SparklesIcon;
+              const title = getQuestTitle(quest.title, t);
+              const actionLabel =
+                status === "active"
+                  ? t("quests.playQuest")
+                  : t("quests.seeResults");
+              const shouldShowActivationPrompt =
+                isStepQuest(quest.type) &&
+                status === "active" &&
+                showStepQuestActivationPrompt;
+              const shouldShowDiscreteSyncButton =
+                isStepQuest(quest.type) &&
+                status === "active" &&
+                user?.preferredStepSource === "device_health" &&
+                !shouldShowActivationPrompt;
+
+              let statusIcon;
+              if (status === "completed") {
+                statusIcon = (
+                  <CheckCircleIcon size={28} color={colors.iconColor} />
+                );
+              } else if (status === "claimed") {
+                statusIcon = <ClaimedIcon size={28} color={colors.iconColor} />;
+              } else if (status === "failed") {
+                statusIcon = <XCircleIcon size={28} color={colors.iconColor} />;
+              } else {
+                statusIcon = <QuestIcon size={28} color={colors.iconColor} />;
+              }
+
+              return (
+                <View
+                  key={quest.id}
+                  className="rounded-2xl p-4"
+                  style={{
+                    backgroundColor: tc.surface,
+                    borderWidth: 2,
+                    borderColor: colors.border,
+                    opacity: status === "claimed" ? 0.6 : 1,
+                    shadowColor: "#000",
+                    shadowOpacity: 0.1,
+                    shadowRadius: 8,
+                    shadowOffset: { width: 0, height: 2 },
+                    elevation: 2,
+                    marginBottom:
+                      index === questsQuery.data.quests.length - 1 ? 0 : 12,
+                  }}
+                >
+                  <TouchableOpacity
+                    style={{
+                      position: "absolute",
+                      top: -8,
+                      right: -8,
+                      zIndex: 1,
+                    }}
+                    onPress={() => setShowDescriptionFor(quest)}
+                    hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+                  >
+                    <View
+                      style={{
+                        backgroundColor: tc.surface,
+                        borderRadius: 999,
+                        borderWidth: 2,
+                        borderColor: colors.border,
+                        shadowColor: "#000",
+                        shadowOpacity: 0.15,
+                        shadowRadius: 4,
+                        shadowOffset: { width: 0, height: 2 },
+                        elevation: 2,
+                      }}
+                    >
+                      <HelpCircleIcon
+                        size={20}
+                        color={colors.border}
+                        noCircle
+                      />
+                    </View>
+                  </TouchableOpacity>
+
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "flex-start",
+                      gap: 16,
+                      paddingRight: 24,
+                    }}
+                  >
+                    <View
+                      style={{
+                        backgroundColor: colors.iconBg,
+                        padding: 12,
+                        borderRadius: 12,
+                      }}
+                    >
+                      {statusIcon}
+                    </View>
+
+                    <View style={{ flex: 1 }}>
+                      <Text className="font-nunito-bold text-base text-fg">
+                        {title}
+                      </Text>
+                    </View>
+
+                    <View className="flex-row items-center gap-1">
+                      <CoinIcon size={18} />
+                      <Text
+                        style={{ color: tc.secondaryDark }}
+                        className="font-nunito-bold text-base"
+                      >
+                        {quest.reward}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={{ marginTop: 16 }}>
+                    {shouldShowActivationPrompt ? (
+                      <View
+                        className="rounded-2xl border border-primaryBorder bg-primaryTint p-3"
+                        style={{ marginBottom: 16 }}
+                      >
+                        <Text className="font-nunito-bold text-sm text-primaryStrong">
+                          {t("quests.stepSyncPromptTitle")}
+                        </Text>
+                        <Text className="font-nunito text-sm text-primaryStrong mt-1">
+                          {stepSync.availability === "setup_required"
+                            ? t("quests.stepSyncPromptSetupBody", {
+                                healthSystem: healthSystemLabel,
+                              })
+                            : t("quests.stepSyncPromptBody", {
+                                healthSystem: healthSystemLabel,
+                              })}
+                        </Text>
+                        {stepSync.lastError ? (
+                          <Text className="font-nunito text-sm text-dangerDark mt-2">
+                            {stepSync.lastError}
+                          </Text>
+                        ) : null}
+                        <View className="flex-row flex-wrap items-center gap-3 mt-3">
+                          <TouchableOpacity
+                            onPress={() => {
+                              void handleStepAction();
+                            }}
+                            disabled={stepSync.isSyncing}
+                            style={{ borderRadius: 10, overflow: "hidden" }}
+                          >
+                            <LinearGradient
+                              colors={[colors.gradStart, colors.gradEnd]}
+                              start={{ x: 0, y: 0 }}
+                              end={{ x: 1, y: 0 }}
+                              style={{
+                                minHeight: 40,
+                                paddingHorizontal: 14,
+                                alignItems: "center",
+                                justifyContent: "center",
+                              }}
+                            >
+                              <Text className="font-nunito-bold text-white">
+                                {stepSync.isSyncing
+                                  ? t("settings.syncing")
+                                  : stepActionLabel}
+                              </Text>
+                            </LinearGradient>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    ) : null}
+
+                    <View className="flex-row justify-between mb-1">
+                      <Text className="font-nunito text-xs text-fgMuted">
+                        {t("quests.progress")}
+                      </Text>
+                      <Text
+                        className="font-nunito-bold text-xs"
+                        style={{ color: getProgressColor(status, tc) }}
+                      >
+                        {formatProgress(
+                          progressDisplay.progress,
+                          progressDisplay.target,
+                        )}
+                      </Text>
+                    </View>
+                    <View className="h-3 rounded-full overflow-hidden bg-primaryTint">
+                      {status === "claimed" ? (
+                        <View
+                          style={{
+                            width: `${progressDisplay.progressPct}%`,
+                            backgroundColor: tc.muted,
+                            height: "100%",
+                          }}
+                        />
+                      ) : (
+                        <LinearGradient
+                          colors={[colors.gradStart, colors.gradEnd]}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 0 }}
+                          style={{
+                            width: `${progressDisplay.progressPct}%`,
+                            height: "100%",
+                          }}
+                        />
+                      )}
+                    </View>
+                    {isWordleQuest(quest.type) && quest.attemptsUsed != null ? (
+                      <Text
+                        className="font-nunito-bold text-xs text-center mt-1"
                         style={{
-                          minHeight: 44,
-                          paddingHorizontal: 16,
-                          alignItems: "center",
-                          justifyContent: "center",
+                          color:
+                            status === "claimed"
+                              ? tc.muted
+                              : status === "failed"
+                                ? tc.dangerDark
+                                : status === "completed"
+                                  ? tc.successDark
+                                  : getMetaColor(status, tc),
                         }}
                       >
-                        {isClaimLoading ? (
-                          <ActivityIndicator color="white" size="small" />
-                        ) : (
-                          <>
-                            <SparklesIcon size={20} color="white" />
+                        {quest.completed
+                          ? t("quests.wordleSolvedIn", {
+                              used: quest.attemptsUsed,
+                              total: 6,
+                            })
+                          : t("quests.wordleAttemptsUsed", {
+                              used: quest.attemptsUsed,
+                              total: 6,
+                            })}
+                      </Text>
+                    ) : null}
+                    {isSpeedCalculusQuest(quest.type) ? (
+                      <Text
+                        className="font-nunito-bold text-xs text-center mt-1"
+                        style={{ color: getMetaColor(status, tc) }}
+                      >
+                        {t("quests.speedCalculusQuestCardMeta", {
+                          score: quest.latestScore ?? 0,
+                          reward: quest.rewardPreview ?? quest.reward,
+                          runs: quest.runsUsed ?? quest.progress,
+                          total: quest.maxRuns ?? quest.target,
+                        })}
+                      </Text>
+                    ) : null}
+                    {shouldShowDiscreteSyncButton || stepSync.lastError ? (
+                      <View className="mt-2 items-end">
+                        {shouldShowDiscreteSyncButton ? (
+                          <TouchableOpacity
+                            onPress={() => {
+                              void handleForceRefresh();
+                            }}
+                            disabled={
+                              stepSync.isSyncing || isForceRefreshingStepQuest
+                            }
+                            hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+                          >
+                            <Text className="font-nunito-semibold text-xs text-primaryText">
+                              {stepSync.isSyncing || isForceRefreshingStepQuest
+                                ? t("settings.syncing")
+                                : t("settings.syncNow")}
+                            </Text>
+                          </TouchableOpacity>
+                        ) : null}
+                        {stepSync.lastError ? (
+                          <Text className="font-nunito text-xs text-dangerDark mt-1 text-right">
+                            {stepSync.lastError}
+                          </Text>
+                        ) : null}
+                      </View>
+                    ) : null}
+                  </View>
+
+                  {quest.actionPath ? (
+                    <View
+                      style={{
+                        marginTop: 16,
+                        borderRadius: 12,
+                      }}
+                    >
+                      <TouchableOpacity
+                        onPress={() => void openQuest(quest)}
+                        style={{ borderRadius: 12, overflow: "hidden" }}
+                      >
+                        {status === "claimed" ? (
+                          <View
+                            style={{
+                              backgroundColor: tc.muted,
+                              minHeight: 44,
+                              paddingHorizontal: 16,
+                              flexDirection: "row",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                            className="items-center justify-center"
+                          >
                             <Text
                               className="font-nunito-bold text-white"
                               style={{ textAlign: "center", lineHeight: 20 }}
                             >
-                              {t("quests.claim")}
+                              {actionLabel}
                             </Text>
-                          </>
+                          </View>
+                        ) : (
+                          <LinearGradient
+                            colors={[colors.gradStart, colors.gradEnd]}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                            className="items-center justify-center"
+                            style={{
+                              minHeight: 44,
+                              paddingHorizontal: 16,
+                              flexDirection: "row",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            <Text
+                              className="font-nunito-bold text-white"
+                              style={{ textAlign: "center", lineHeight: 20 }}
+                            >
+                              {actionLabel}
+                            </Text>
+                          </LinearGradient>
                         )}
-                      </LinearGradient>
-                    </TouchableOpacity>
-                  </View>
-                ) : null}
-              </View>
-            );
-          })
-        )}
+                      </TouchableOpacity>
+                    </View>
+                  ) : null}
+
+                  {quest.completed && !quest.claimed ? (
+                    <View
+                      style={{
+                        marginTop: 16,
+                        borderRadius: 12,
+                      }}
+                    >
+                      <TouchableOpacity
+                        onPress={() =>
+                          void claimQuestMutation.mutateAsync(quest.id)
+                        }
+                        disabled={isClaimLoading}
+                        style={{ borderRadius: 12, overflow: "hidden" }}
+                      >
+                        <LinearGradient
+                          colors={[tc.success, tc.successDark]}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 0 }}
+                          className="items-center flex-row justify-center gap-2"
+                          style={{
+                            minHeight: 44,
+                            paddingHorizontal: 16,
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          {isClaimLoading ? (
+                            <ActivityIndicator color="white" size="small" />
+                          ) : (
+                            <>
+                              <SparklesIcon size={20} color="white" />
+                              <Text
+                                className="font-nunito-bold text-white"
+                                style={{ textAlign: "center", lineHeight: 20 }}
+                              >
+                                {t("quests.claim")}
+                              </Text>
+                            </>
+                          )}
+                        </LinearGradient>
+                      </TouchableOpacity>
+                    </View>
+                  ) : null}
+                </View>
+              );
+            })
+          )}
+        </View>
       </ScrollView>
 
       <Modal

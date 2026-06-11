@@ -27,7 +27,10 @@ import {
 } from "../../src/components/icons";
 import { useTranslation } from "../../src/i18n";
 import { apiClient } from "../../src/lib/api";
-import { getCardImageCacheKey, getCardImageUrl } from "../../src/lib/card-images";
+import {
+  getCardImageCacheKey,
+  getCardImageUrl,
+} from "../../src/lib/card-images";
 import { useSessionStore } from "../../src/stores/session-store";
 import { useThemeStore } from "../../src/stores/theme-store";
 import {
@@ -63,7 +66,10 @@ function SectionHeading({
       <View className="h-11 w-11 items-center justify-center rounded-2xl border border-primaryTint bg-surface">
         {icon}
       </View>
-      <Text className="flex-1 font-nunito-bold text-lg" style={{ color: toneColor }}>
+      <Text
+        className="flex-1 font-nunito-bold text-lg"
+        style={{ color: toneColor }}
+      >
         {title}
       </Text>
       {action}
@@ -75,7 +81,9 @@ function getTimeAgo(
   dateStr: string,
   t: (key: string, params?: Record<string, string | number>) => string,
 ): string {
-  const diffMins = Math.floor((Date.now() - new Date(dateStr).getTime()) / 60000);
+  const diffMins = Math.floor(
+    (Date.now() - new Date(dateStr).getTime()) / 60000,
+  );
   if (diffMins < 1) return t("time.justNow");
   if (diffMins < 60) return t("time.minutesAgo", { count: diffMins });
   const diffHours = Math.floor(diffMins / 60);
@@ -83,10 +91,7 @@ function getTimeAgo(
   return t("time.daysAgo", { count: Math.floor(diffHours / 24) });
 }
 
-function getErrorMessage(
-  error: unknown,
-  fallback: string,
-) {
+function getErrorMessage(error: unknown, fallback: string) {
   if (error instanceof ApiClientError) {
     return error.message || fallback;
   }
@@ -124,7 +129,11 @@ function getFuzzyTextScore(query: string, candidate: string) {
   let lastMatchIndex = -1;
   let gaps = 0;
 
-  for (let candidateIndex = 0; candidateIndex < normalizedCandidate.length; candidateIndex += 1) {
+  for (
+    let candidateIndex = 0;
+    candidateIndex < normalizedCandidate.length;
+    candidateIndex += 1
+  ) {
     if (normalizedCandidate[candidateIndex] !== normalizedQuery[queryIndex]) {
       continue;
     }
@@ -144,14 +153,12 @@ function getFuzzyTextScore(query: string, candidate: string) {
   return null;
 }
 
-function getUserSearchScore(
-  query: string,
-  user: SearchableUser,
-) {
+function getUserSearchScore(query: string, user: SearchableUser) {
   return Math.max(
     getFuzzyTextScore(query, user.displayName) ?? Number.NEGATIVE_INFINITY,
     getFuzzyTextScore(query, user.email) ?? Number.NEGATIVE_INFINITY,
-    getFuzzyTextScore(query, `${user.displayName} ${user.email}`) ?? Number.NEGATIVE_INFINITY,
+    getFuzzyTextScore(query, `${user.displayName} ${user.email}`) ??
+      Number.NEGATIVE_INFINITY,
   );
 }
 
@@ -164,12 +171,18 @@ export default function PvpScreen() {
   const headerHeight = useAppHeaderHeight();
   const bottomTabPadding = useBottomTabBarContentPadding();
 
-  const [selectedInviteLoadoutId, setSelectedInviteLoadoutId] = useState<string | null>(null);
-  const [selectedOpponentId, setSelectedOpponentId] = useState<string | null>(null);
+  const [selectedInviteLoadoutId, setSelectedInviteLoadoutId] = useState<
+    string | null
+  >(null);
+  const [selectedOpponentId, setSelectedOpponentId] = useState<string | null>(
+    null,
+  );
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [loadoutSearchQuery, setLoadoutSearchQuery] = useState("");
   const [opponentSearchQuery, setOpponentSearchQuery] = useState("");
-  const [acceptLoadoutMap, setAcceptLoadoutMap] = useState<Record<string, string>>({});
+  const [acceptLoadoutMap, setAcceptLoadoutMap] = useState<
+    Record<string, string>
+  >({});
   const [toast, setToast] = useState<ToastState | null>(null);
   const toastAnim = useRef(new Animated.Value(-96)).current;
 
@@ -203,25 +216,45 @@ export default function PvpScreen() {
   );
   const selectedInviteLoadout = useMemo(
     () =>
-      validLoadouts.find((loadout) => loadout.id === selectedInviteLoadoutId) ?? null,
+      validLoadouts.find((loadout) => loadout.id === selectedInviteLoadoutId) ??
+      null,
     [selectedInviteLoadoutId, validLoadouts],
   );
   const selectedOpponent = useMemo(
     () =>
-      usersQuery.data?.users.find((user) => user.id === selectedOpponentId) ?? null,
+      usersQuery.data?.users.find((user) => user.id === selectedOpponentId) ??
+      null,
     [selectedOpponentId, usersQuery.data?.users],
   );
 
-  const pendingReceivedInvites =
-    invitesQuery.data?.invites.filter((invite) => invite.inviteeId === currentUserId) ?? [];
-  const pendingSentInvites =
-    invitesQuery.data?.invites.filter((invite) => invite.inviterId === currentUserId) ?? [];
-  const activeMatches = matchesQuery.data?.matches ?? [];
-  const historyMatches = historyQuery.data?.matches ?? [];
+  const pendingReceivedInvites = useMemo(
+    () =>
+      invitesQuery.data?.invites.filter(
+        (invite) => invite.inviteeId === currentUserId,
+      ) ?? [],
+    [currentUserId, invitesQuery.data?.invites],
+  );
+  const pendingSentInvites = useMemo(
+    () =>
+      invitesQuery.data?.invites.filter(
+        (invite) => invite.inviterId === currentUserId,
+      ) ?? [],
+    [currentUserId, invitesQuery.data?.invites],
+  );
+  const activeMatches = useMemo(
+    () => matchesQuery.data?.matches ?? [],
+    [matchesQuery.data?.matches],
+  );
+  const historyMatches = useMemo(
+    () => historyQuery.data?.matches ?? [],
+    [historyQuery.data?.matches],
+  );
   const allLoadouts = loadoutsQuery.data?.loadouts ?? [];
   const completedMatches = useMemo(
     () =>
-      historyMatches.filter((match) => match.status === "COMPLETED").slice(0, 5),
+      historyMatches
+        .filter((match) => match.status === "COMPLETED")
+        .slice(0, 5),
     [historyMatches],
   );
   const sortedLoadouts = useMemo(
@@ -240,7 +273,8 @@ export default function PvpScreen() {
   );
   const hasValidLoadout = validLoadouts.length > 0;
   const hasLoadouts = allLoadouts.length > 0;
-  const pendingChallengeCount = pendingReceivedInvites.length + pendingSentInvites.length;
+  const pendingChallengeCount =
+    pendingReceivedInvites.length + pendingSentInvites.length;
   const hasAnyData =
     hasLoadouts ||
     (invitesQuery.data?.invites.length ?? 0) > 0 ||
@@ -258,7 +292,9 @@ export default function PvpScreen() {
 
     [...pendingSentInvites, ...pendingReceivedInvites].forEach((invite) => {
       const otherUserId =
-        invite.inviterId === currentUserId ? invite.inviteeId : invite.inviterId;
+        invite.inviterId === currentUserId
+          ? invite.inviteeId
+          : invite.inviterId;
 
       if (!next[otherUserId]) {
         next[otherUserId] = "pending";
@@ -266,7 +302,12 @@ export default function PvpScreen() {
     });
 
     return next;
-  }, [activeMatches, currentUserId, pendingReceivedInvites, pendingSentInvites]);
+  }, [
+    activeMatches,
+    currentUserId,
+    pendingReceivedInvites,
+    pendingSentInvites,
+  ]);
   const sortedOpponentUsers = useMemo(
     () =>
       [...(usersQuery.data?.users ?? [])]
@@ -347,11 +388,17 @@ export default function PvpScreen() {
     });
 
     pendingSentInvites.forEach((invite) => {
-      pushRecentOpponent(invite.inviteeId, invite.updatedAt || invite.createdAt);
+      pushRecentOpponent(
+        invite.inviteeId,
+        invite.updatedAt || invite.createdAt,
+      );
     });
 
     pendingReceivedInvites.forEach((invite) => {
-      pushRecentOpponent(invite.inviterId, invite.updatedAt || invite.createdAt);
+      pushRecentOpponent(
+        invite.inviterId,
+        invite.updatedAt || invite.createdAt,
+      );
     });
 
     return [...timestamps.entries()]
@@ -365,7 +412,9 @@ export default function PvpScreen() {
     pendingSentInvites,
   ]);
   const recentOpponentUsers = useMemo(() => {
-    const challengeableUserMap = new Map(challengeableUsers.map((user) => [user.id, user]));
+    const challengeableUserMap = new Map(
+      challengeableUsers.map((user) => [user.id, user]),
+    );
     const recentUsers: SearchableUser[] = [];
     const seen = new Set<string>();
 
@@ -426,7 +475,12 @@ export default function PvpScreen() {
       })
       .slice(0, 12)
       .map((entry) => entry.user);
-  }, [interactionMap, normalizedOpponentSearch, selectedOpponentId, sortedOpponentUsers]);
+  }, [
+    interactionMap,
+    normalizedOpponentSearch,
+    selectedOpponentId,
+    sortedOpponentUsers,
+  ]);
 
   useEffect(() => {
     if (!toast) {
@@ -561,14 +615,13 @@ export default function PvpScreen() {
 
       <ScrollView
         className="flex-1 bg-bg"
-        contentContainerStyle={{
-          gap: 20,
-          padding: 20,
-          paddingTop: headerHeight + 20,
-          paddingBottom: bottomTabPadding,
-        }}
+        contentContainerStyle={{ padding: 20 }}
       >
-        <View className="gap-4" testID="pvp-lobby-hero">
+        <View
+          className="gap-4"
+          testID="pvp-lobby-hero"
+          style={{ paddingTop: headerHeight, paddingBottom: bottomTabPadding }}
+        >
           <View
             style={{
               backgroundColor: tc.surfaceMuted,
@@ -741,7 +794,9 @@ export default function PvpScreen() {
                     )}
                   </View>
                   <Text className="font-nunito-extrabold text-[28px] leading-[34px] text-fg">
-                    {hasValidLoadout ? t("pvp.sendChallenge") : t("pvp.createLoadout")}
+                    {hasValidLoadout
+                      ? t("pvp.sendChallenge")
+                      : t("pvp.createLoadout")}
                   </Text>
                   <Text className="font-nunito text-sm leading-5 text-fgMuted">
                     {hasValidLoadout
@@ -754,13 +809,15 @@ export default function PvpScreen() {
               <View className="flex-row flex-wrap gap-2">
                 <View className="rounded-full bg-primaryTint px-3 py-1.5">
                   <Text className="font-nunito-semibold text-xs text-primaryDark">
-                    {hasLoadouts ? validLoadouts.length : 0} {t("pvp.loadoutReady").toLowerCase()}
+                    {hasLoadouts ? validLoadouts.length : 0}{" "}
+                    {t("pvp.loadoutReady").toLowerCase()}
                   </Text>
                 </View>
                 {pendingChallengeCount > 0 ? (
                   <View className="rounded-full bg-accentTint px-3 py-1.5">
                     <Text className="font-nunito-semibold text-xs text-accentText">
-                      {pendingChallengeCount} {t("pvp.openChallenges").toLowerCase()}
+                      {pendingChallengeCount}{" "}
+                      {t("pvp.openChallenges").toLowerCase()}
                     </Text>
                   </View>
                 ) : null}
@@ -795,7 +852,9 @@ export default function PvpScreen() {
                 </View>
                 <View className="gap-1">
                   <Text className="font-nunito-bold text-base text-fg">
-                    {hasLoadouts ? t("pvp.editLoadouts") : t("pvp.createLoadout")}
+                    {hasLoadouts
+                      ? t("pvp.editLoadouts")
+                      : t("pvp.createLoadout")}
                   </Text>
                   <Text className="font-nunito text-xs text-fgMuted">
                     {t("pvp.manageLoadoutsHint")}
@@ -864,22 +923,36 @@ export default function PvpScreen() {
                     className="gap-3 rounded-[24px] border-2 border-dangerBorder bg-surface p-4"
                   >
                     <View className="flex-row items-center gap-3">
-                      <View style={{ borderRadius: 20, overflow: "hidden", width: 40, height: 40 }}>
+                      <View
+                        style={{
+                          borderRadius: 20,
+                          overflow: "hidden",
+                          width: 40,
+                          height: 40,
+                        }}
+                      >
                         <LinearGradient
                           colors={[tc.danger, tc.dangerDark]}
                           start={{ x: 0, y: 0 }}
                           end={{ x: 1, y: 1 }}
-                          style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+                          style={{
+                            flex: 1,
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
                         >
                           <SwordsIcon size={20} color="white" />
                         </LinearGradient>
                       </View>
                       <View className="flex-1 gap-0.5">
                         <Text className="font-nunito-bold text-fg">
-                          {invite.inviterName ?? `${invite.inviterId.slice(0, 12)}…`}
+                          {invite.inviterName ??
+                            `${invite.inviterId.slice(0, 12)}…`}
                         </Text>
                         <Text className="font-nunito text-xs text-fgMuted">
-                          {t("pvp.challengeBy", { time: getTimeAgo(invite.createdAt, t) })}
+                          {t("pvp.challengeBy", {
+                            time: getTimeAgo(invite.createdAt, t),
+                          })}
                         </Text>
                       </View>
                     </View>
@@ -928,7 +1001,9 @@ export default function PvpScreen() {
                         </View>
                         <View className="flex-row gap-2">
                           <ThemedExpoButton
-                            disabled={!selectedLoadoutId || acceptMutation.isPending}
+                            disabled={
+                              !selectedLoadoutId || acceptMutation.isPending
+                            }
                             onPress={() => {
                               const selectedLoadout = validLoadouts.find(
                                 (loadout) => loadout.id === selectedLoadoutId,
@@ -974,7 +1049,9 @@ export default function PvpScreen() {
                             </View>
                           </ThemedExpoButton>
                           <ThemedExpoButton
-                            onPress={() => void declineMutation.mutateAsync(invite.id)}
+                            onPress={() =>
+                              void declineMutation.mutateAsync(invite.id)
+                            }
                             preferFallback
                             style={{ flex: 1 }}
                             variant="ghost"
@@ -1072,9 +1149,13 @@ export default function PvpScreen() {
             />
             {activeMatches.map((match, index) => {
               const opponentId =
-                match.inviterId === currentUserId ? match.inviteeId : match.inviterId;
+                match.inviterId === currentUserId
+                  ? match.inviteeId
+                  : match.inviterId;
               const opponentName =
-                match.inviterId === currentUserId ? match.inviteeName : match.inviterName;
+                match.inviterId === currentUserId
+                  ? match.inviteeName
+                  : match.inviterName;
 
               return (
                 <ThemedExpoButton
@@ -1142,7 +1223,9 @@ export default function PvpScreen() {
                 </View>
                 <ThemedExpoButton
                   disabled={cancelInviteMutation.isPending}
-                  onPress={() => void cancelInviteMutation.mutateAsync(invite.id)}
+                  onPress={() =>
+                    void cancelInviteMutation.mutateAsync(invite.id)
+                  }
                   testID={`pvp-cancel-invite-${invite.id}`}
                   variant="ghost"
                   fallbackAppearance={{
@@ -1198,9 +1281,13 @@ export default function PvpScreen() {
             {completedMatches.map((match) => {
               const won = match.winnerId === currentUserId;
               const opponentId =
-                match.inviterId === currentUserId ? match.inviteeId : match.inviterId;
+                match.inviterId === currentUserId
+                  ? match.inviteeId
+                  : match.inviterId;
               const opponentName =
-                match.inviterId === currentUserId ? match.inviteeName : match.inviterName;
+                match.inviterId === currentUserId
+                  ? match.inviteeName
+                  : match.inviterName;
 
               return (
                 <ThemedExpoButton
@@ -1236,7 +1323,9 @@ export default function PvpScreen() {
                     vs {opponentName ?? `${opponentId.slice(0, 10)}…`}
                   </Text>
                   <Text className="font-nunito-bold text-xs text-accent">
-                    {match.hasReplayData ? t("pvp.replayArrow") : t("pvp.noReplay")}
+                    {match.hasReplayData
+                      ? t("pvp.replayArrow")
+                      : t("pvp.noReplay")}
                   </Text>
                 </ThemedExpoButton>
               );
@@ -1284,7 +1373,9 @@ export default function PvpScreen() {
                   }`}
                 >
                   <View className="mb-3 flex-row items-center justify-between gap-3">
-                    <Text className="flex-1 font-nunito-bold text-fg">{loadout.name}</Text>
+                    <Text className="flex-1 font-nunito-bold text-fg">
+                      {loadout.name}
+                    </Text>
                     <View
                       className={`rounded-full px-3 py-1 ${
                         isValid ? "bg-successTint" : "bg-dangerTint"
@@ -1295,7 +1386,9 @@ export default function PvpScreen() {
                           isValid ? "text-successDark" : "text-dangerDark"
                         }`}
                       >
-                        {isValid ? t("pvp.loadoutReady") : t("pvp.loadoutNeedsFixes")}
+                        {isValid
+                          ? t("pvp.loadoutReady")
+                          : t("pvp.loadoutNeedsFixes")}
                       </Text>
                     </View>
                   </View>
@@ -1315,28 +1408,37 @@ export default function PvpScreen() {
                   >
                     <View className="flex-row gap-1">
                       {loadout.cardIds.map((cardId, index) => {
-                        const isInvalid = loadout.invalidCardIds.includes(cardId);
-                        const card = loadout.cards.find((entry) => entry.id === cardId);
+                        const isInvalid =
+                          loadout.invalidCardIds.includes(cardId);
+                        const card = loadout.cards.find(
+                          (entry) => entry.id === cardId,
+                        );
 
                         return isInvalid ? (
                           <View
                             key={`${loadout.id}-${cardId}-${index}`}
                             className="h-16 w-12 shrink-0 items-center justify-center rounded-lg border-2 border-dangerBorder bg-dangerTint"
                           >
-                            <Text className="font-nunito-bold text-lg text-danger">?</Text>
+                            <Text className="font-nunito-bold text-lg text-danger">
+                              ?
+                            </Text>
                           </View>
                         ) : (
                           <View
                             key={`${loadout.id}-${cardId}-${index}`}
                             className={`h-16 w-12 shrink-0 overflow-hidden rounded-lg border-2 ${
-                              index < 3 ? "border-success" : "border-primaryTint"
+                              index < 3
+                                ? "border-success"
+                                : "border-primaryTint"
                             }`}
                           >
                             {card?.imageAssetId ? (
                               <Image
                                 source={{
                                   uri: getCardImageUrl(card.imageAssetId),
-                                  cacheKey: getCardImageCacheKey(card.imageAssetId),
+                                  cacheKey: getCardImageCacheKey(
+                                    card.imageAssetId,
+                                  ),
                                 }}
                                 contentFit="cover"
                                 cachePolicy="memory-disk"
@@ -1358,7 +1460,9 @@ export default function PvpScreen() {
                     </View>
                   </ScrollView>
                   <Text className="mt-2 font-nunito text-xs text-fgMuted">
-                    {isValid ? t("pvp.manageLoadoutsHint") : t("pvp.firstThreeActive")}
+                    {isValid
+                      ? t("pvp.manageLoadoutsHint")
+                      : t("pvp.firstThreeActive")}
                   </Text>
                 </View>
               );
@@ -1406,7 +1510,9 @@ export default function PvpScreen() {
               onPress={() => void createMutation.mutateAsync()}
               loading={createMutation.isPending}
               label={
-                createMutation.isPending ? t("pvp.sending") : t("pvp.sendChallenge")
+                createMutation.isPending
+                  ? t("pvp.sending")
+                  : t("pvp.sendChallenge")
               }
               preferFallback
               style={{ flex: 1 }}
@@ -1481,7 +1587,8 @@ export default function PvpScreen() {
                     }`}
                     numberOfLines={1}
                   >
-                    {selectedOpponent?.displayName ?? t("pvp.chooseOpponent").replace(":", "")}
+                    {selectedOpponent?.displayName ??
+                      t("pvp.chooseOpponent").replace(":", "")}
                   </Text>
                 </View>
                 <View className="rounded-full bg-accentTint px-3 py-1.5">
@@ -1505,7 +1612,8 @@ export default function PvpScreen() {
                       {t("pvp.selectLoadoutLabel")}
                     </Text>
                     <Text className="font-nunito text-xs text-fgMuted">
-                      {filteredLoadouts.length} {t("pvp.loadoutReady").toLowerCase()}
+                      {filteredLoadouts.length}{" "}
+                      {t("pvp.loadoutReady").toLowerCase()}
                     </Text>
                   </View>
                 </View>
@@ -1607,7 +1715,9 @@ export default function PvpScreen() {
                         </View>
                         <View className="flex-row gap-1.5">
                           {loadout.cardIds.slice(0, 4).map((cardId, index) => {
-                            const card = loadout.cards.find((entry) => entry.id === cardId);
+                            const card = loadout.cards.find(
+                              (entry) => entry.id === cardId,
+                            );
 
                             return (
                               <View
@@ -1618,7 +1728,9 @@ export default function PvpScreen() {
                                   <Image
                                     source={{
                                       uri: getCardImageUrl(card.imageAssetId),
-                                      cacheKey: getCardImageCacheKey(card.imageAssetId),
+                                      cacheKey: getCardImageCacheKey(
+                                        card.imageAssetId,
+                                      ),
                                     }}
                                     contentFit="cover"
                                     cachePolicy="memory-disk"
@@ -1673,8 +1785,12 @@ export default function PvpScreen() {
                   </Text>
                   <Text className="font-nunito text-xs text-fgMuted">
                     {normalizedOpponentSearch.length > 0
-                      ? t("pvp.searchResults", { count: searchedOpponentUsers.length })
-                      : t("pvp.recentOpponents", { count: recentOpponentUsers.length })}
+                      ? t("pvp.searchResults", {
+                          count: searchedOpponentUsers.length,
+                        })
+                      : t("pvp.recentOpponents", {
+                          count: recentOpponentUsers.length,
+                        })}
                   </Text>
                 </View>
               </View>
@@ -1747,8 +1863,12 @@ export default function PvpScreen() {
                         variant="ghost"
                         fallbackLayout="stretch"
                         fallbackAppearance={{
-                          backgroundColor: isSelected ? tc.primaryBg : tc.surface,
-                          borderColor: isSelected ? tc.primary : tc.primaryBorder,
+                          backgroundColor: isSelected
+                            ? tc.primaryBg
+                            : tc.surface,
+                          borderColor: isSelected
+                            ? tc.primary
+                            : tc.primaryBorder,
                           borderRadius: 12,
                           foregroundColor: tc.fg,
                           gradientColors: null,
@@ -1766,7 +1886,9 @@ export default function PvpScreen() {
                           >
                             <Text
                               className={`font-nunito-bold ${
-                                isSelected ? "text-primaryDark" : "text-accentText"
+                                isSelected
+                                  ? "text-primaryDark"
+                                  : "text-accentText"
                               }`}
                             >
                               {user.displayName.charAt(0).toUpperCase()}
@@ -1780,7 +1902,9 @@ export default function PvpScreen() {
                               {user.email}
                             </Text>
                           </View>
-                          {isSelected ? <CheckIcon size={18} color={tc.primaryDark} /> : null}
+                          {isSelected ? (
+                            <CheckIcon size={18} color={tc.primaryDark} />
+                          ) : null}
                         </View>
                       </ThemedExpoButton>
                     );
