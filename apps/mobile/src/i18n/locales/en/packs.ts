@@ -47,7 +47,6 @@ const packs = {
     subtitle: "Everything that came out of the pack, lined up and easy to scan.",
     newCards: "New cards",
     totalCards: "Cards opened",
-    remainingCoins: "Coins left",
     rarityBreakdown: "Rarity spread",
     allCards: "All cards",
     openSamePack: "Open this pack again",

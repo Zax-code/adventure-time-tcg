@@ -5,6 +5,7 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 
 import type { CollectionResponse } from "@adventure-time/api-client";
+import { CARD_ART_RATIO } from "./card-back-cover-art";
 import { getCardImageCacheKey, getCardImageUrl } from "../lib/card-images";
 import { CARD_TYPE_COLORS, RARITY_COLORS, SECONDARY_TINT } from "./theme";
 import { HPIcon, SpeedIcon, RarityIcon } from "./icons";
@@ -28,7 +29,7 @@ interface CardTileProps {
 const sizeConfig = {
   small: {
     width: 152,
-    height: 240,
+    height: 228,
     paddingH: 6,
     paddingT: 4,
     paddingB: 2,
@@ -44,7 +45,7 @@ const sizeConfig = {
     typeFontSize: 6,
     rarityFontSize: 5,
     borderRadius: 12,
-    imageAspect: 152 / 96,
+    imageAspect: 5 / 3,
     headerHeight: 18,
     headerHpOffset: -15,
     headerHpTop: -2,
@@ -211,6 +212,7 @@ export const CardTile = memo(function CardTile({
     inputRange: [0, 1],
     outputRange: [-cfg.width * 3, cfg.width],
   });
+  const cardAspectRatio = CARD_ART_RATIO;
 
   return (
     <Pressable
@@ -231,7 +233,7 @@ export const CardTile = memo(function CardTile({
           borderRadius: cfg.borderRadius,
           backgroundColor: typeColor.frame,
           height: fitContainer ? undefined : cfg.height,
-          aspectRatio: fitContainer ? cfg.width / cfg.height : undefined,
+          aspectRatio: fitContainer ? cardAspectRatio : undefined,
         }}
       >
         {/* Rarity ring overlay */}

@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Image } from "expo-image";
 import { useNavigation } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
@@ -6,6 +7,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   Animated,
   Easing,
+  Modal,
   Pressable,
   ScrollView,
   Text,
@@ -27,12 +29,17 @@ import type {
   OpenPackResponse,
   PacksResponse,
 } from "@adventure-time/api-client";
+import { PrimaryButton, SecondaryButton } from "../../src/components/button";
 import { CardTile } from "../../src/components/card-tile";
+import {
+  CARD_ART_RATIO,
+  CARD_BACKCOVER_RATIO,
+  getCardBackcoverSource,
+} from "../../src/components/card-back-cover-art";
 import { PageErrorState } from "../../src/components/error-state";
 import {
   BoxIcon,
   CheckIcon,
-  ChevronRightIcon,
   ClockIcon,
   CoinIcon,
   CrownIcon,
@@ -45,6 +52,7 @@ import {
   ZapIcon,
 } from "../../src/components/icons";
 import { PageLoadingState } from "../../src/components/loading-state";
+import { getPackOpeningArtSource } from "../../src/components/pack-opening-art";
 import { getPackOpeningVisualProfile } from "../../src/components/pack-opening-visuals";
 import PackOpeningSequenceDom from "../../src/components/pack-opening-sequence-dom";
 import {
@@ -588,8 +596,11 @@ function PackPreviewCard({
   sheenAnim?: Animated.Value;
 }) {
   const height = width / PACK_CARD_RATIO;
-  const accentColor = pack.color || tc.primary;
-  const packSurfaceColor = pack.color || tc.surfaceMuted;
+  const packArtSource = getPackOpeningArtSource({
+    guaranteedRarity: pack.guaranteedRarity,
+    name: pack.name,
+  });
+  void sheenAnim;
 
   const animatedTransforms = [
     ...(chargeAnim
@@ -641,18 +652,33 @@ function PackPreviewCard({
       style={{
         width,
         height,
-        borderRadius: compact ? 24 : 32,
-        overflow: "hidden",
-        borderWidth: compact ? 1.5 : 2,
-        borderColor: withAlpha(accentColor, compact ? "52" : "66"),
-        backgroundColor: packSurfaceColor,
-        boxShadow: compact
-          ? `0 18px 38px ${withAlpha("#000000", "52")}`
-          : `0 22px 55px ${withAlpha("#000000", "72")}`,
+        overflow: "visible",
+        backgroundColor: "transparent",
         transform: animatedTransforms,
       }}
     >
-      <PackFaceInterior pack={pack} tc={tc} compact={compact} />
+      <Image
+        source={packArtSource}
+        style={{
+          position: "absolute",
+          width: "100%",
+          height: "100%",
+          opacity: compact ? 0.14 : 0.18,
+          transform: [
+            { translateY: compact ? 10 : 14 },
+            { scale: 0.96 },
+          ],
+        }}
+        contentFit="contain"
+        transition={0}
+        blurRadius={compact ? 12 : 18}
+      />
+      <Image
+        source={packArtSource}
+        style={{ width: "100%", height: "100%" }}
+        contentFit="contain"
+        transition={0}
+      />
       {sheenAnim ? (
         <Animated.View
           pointerEvents="none"
@@ -1089,6 +1115,7 @@ function CardBackFace({
   const height = width / PACK_CARD_RATIO;
   const themePalette = getCardBackPalette(themeName, tc);
   const rarityPalette = getThemeRarityPalette(themeName, rarityName);
+  const backcoverSource = getCardBackcoverSource(themeName, rarityName);
   const emblemSize = Math.max(84, width * 0.29);
   const stripeWidth = width * 0.58;
 
@@ -1104,6 +1131,18 @@ function CardBackFace({
         backgroundColor: withAlpha(rarityPalette.from, "E2"),
       }}
     >
+      <Image
+        source={backcoverSource}
+        contentFit="cover"
+        style={{
+          position: "absolute",
+          top: -1,
+          right: -1,
+          bottom: -1,
+          left: -1,
+          transform: [{ scale: 1.01 }],
+        }}
+      />
       <View
         pointerEvents="none"
         style={{
@@ -1812,14 +1851,16 @@ export default function PacksScreen() {
   const { t } = useTranslation();
   const headerHeight = useAppHeaderHeight();
   const bottomTabPadding = useBottomTabBarContentPadding();
-  const { bottom: safeAreaBottom } = useSafeAreaInsets();
+  const { top: safeAreaTop, bottom: safeAreaBottom } = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
 
   const [phase, setPhase] = useState<OpeningPhase>("selecting");
   const [selectedPack, setSelectedPack] = useState<Pack | null>(null);
   const [openedCards, setOpenedCards] = useState<OpenedCard[]>([]);
   const [revealedIndex, setRevealedIndex] = useState(-1);
+  const [isRevealSettled, setIsRevealSettled] = useState(false);
   const [newBalance, setNewBalance] = useState<number | null>(null);
+  const [previewedCard, setPreviewedCard] = useState<OpenedCard | null>(null);
   const [isOpening, setIsOpening] = useState(false);
   const [openingRunId, setOpeningRunId] = useState(0);
   const [openError, setOpenError] = useState<string | null>(null);
@@ -1827,15 +1868,25 @@ export default function PacksScreen() {
   const [burstPattern, setBurstPattern] = useState<PackBurstPattern>(() =>
     createBurstPattern(320, 320 / PACK_CARD_RATIO),
   );
-  const shouldHideTabBar = phase !== "selecting" && phase !== "complete";
+  const isCardPreviewVisible = previewedCard !== null;
+  const shouldHideTabBar =
+    (phase !== "selecting" && phase !== "complete") || isCardPreviewVisible;
   const openingBottomPadding = shouldHideTabBar
     ? Math.max(safeAreaBottom + 16, 24)
     : bottomTabPadding;
+  const previewCardWidth = Math.min(
+    width - 32,
+    420,
+    Math.max(
+      240,
+      (height - safeAreaTop - safeAreaBottom - 72) * CARD_ART_RATIO,
+    ),
+  );
 
   const revealCardWidth = Math.min(
-    width - 28,
-    356,
-    Math.max(244, height - openingBottomPadding - 352) * PACK_CARD_RATIO,
+    width - 36,
+    344,
+    Math.max(236, height - openingBottomPadding - 364) * CARD_ART_RATIO,
   );
   const stageCardWidth = revealCardWidth;
   const loadingDeckWidth = revealCardWidth;
@@ -1849,10 +1900,13 @@ export default function PacksScreen() {
   const readyRevealAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const flipAnim = useRef(new Animated.Value(0)).current;
+  const revealOutlineAnim = useAnimatedValue(0);
   const burstOpenAnim = useRef(new Animated.Value(0)).current;
   const chargeLoopRef = useRef<Animated.CompositeAnimation | null>(null);
   const sheenLoopRef = useRef<Animated.CompositeAnimation | null>(null);
   const loadingLoopRef = useRef<Animated.CompositeAnimation | null>(null);
+  const revealAnimationRef = useRef<Animated.CompositeAnimation | null>(null);
+  const isRevealAnimatingRef = useRef(false);
 
   useEffect(() => {
     navigation.setOptions({
@@ -2029,6 +2083,7 @@ export default function PacksScreen() {
     setSelectedPack(pack);
     setOpenedCards([]);
     setRevealedIndex(-1);
+    setPreviewedCard(null);
     setLoadingProgress(0);
     loadingProgressAnim.setValue(0);
     stackSpreadAnim.setValue(0);
@@ -2081,6 +2136,7 @@ export default function PacksScreen() {
       setSelectedPack(null);
       setOpenedCards([]);
       setRevealedIndex(-1);
+      setPreviewedCard(null);
       setLoadingProgress(0);
       setNewBalance(null);
       void Haptics.notificationAsync(
@@ -2092,6 +2148,10 @@ export default function PacksScreen() {
   }
 
   function revealNext() {
+    if (isRevealAnimatingRef.current) {
+      return;
+    }
+
     const nextIndex = revealedIndex + 1;
 
     if (nextIndex >= openedCards.length) {
@@ -2105,16 +2165,33 @@ export default function PacksScreen() {
     const nextCard = openedCards[nextIndex];
     const hapticType = getHapticForCard(nextCard);
 
-    flipAnim.setValue(0);
-    Animated.spring(flipAnim, {
-      toValue: 1,
-      friction: 7,
-      tension: 82,
-      useNativeDriver: true,
-    }).start();
-
+    isRevealAnimatingRef.current = true;
+    setIsRevealSettled(false);
     setRevealedIndex(nextIndex);
     setPhase("revealing");
+    flipAnim.setValue(0);
+    revealOutlineAnim.setValue(0);
+    revealAnimationRef.current?.stop();
+    revealAnimationRef.current = Animated.sequence([
+      Animated.delay(IS_E2E_BUILD ? 200 : 420),
+      Animated.timing(flipAnim, {
+        toValue: 1,
+        duration: IS_E2E_BUILD ? 520 : 1120,
+        useNativeDriver: true,
+        easing: Easing.bezier(0.22, 0.61, 0.36, 1),
+      }),
+      Animated.timing(revealOutlineAnim, {
+        toValue: 1,
+        duration: IS_E2E_BUILD ? 120 : 220,
+        useNativeDriver: true,
+        easing: Easing.out(Easing.quad),
+      }),
+    ]);
+    revealAnimationRef.current.start(() => {
+      revealAnimationRef.current = null;
+      isRevealAnimatingRef.current = false;
+      setIsRevealSettled(true);
+    });
 
     if (hapticType) {
       void Haptics.notificationAsync(hapticType).catch(() => null);
@@ -2123,16 +2200,39 @@ export default function PacksScreen() {
     }
   }
 
+  function finishRevealAnimation() {
+    revealAnimationRef.current?.stop();
+    revealAnimationRef.current = null;
+    flipAnim.setValue(1);
+    revealOutlineAnim.setValue(1);
+    isRevealAnimatingRef.current = false;
+    setIsRevealSettled(true);
+  }
+
+  function handleRevealTap() {
+    if (isRevealAnimatingRef.current) {
+      finishRevealAnimation();
+      return;
+    }
+
+    revealNext();
+  }
+
   function reset() {
     setPhase("selecting");
     setSelectedPack(null);
     setOpenedCards([]);
     setRevealedIndex(-1);
+    setPreviewedCard(null);
+    isRevealAnimatingRef.current = false;
+    setIsRevealSettled(false);
     setNewBalance(null);
     setLoadingProgress(0);
     setOpenError(null);
     setIsOpening(false);
     stopChargeAnimations();
+    revealAnimationRef.current?.stop();
+    revealAnimationRef.current = null;
     chargeAnim.setValue(0);
     sheenAnim.setValue(0);
     burstFlashAnim.setValue(0);
@@ -2142,6 +2242,7 @@ export default function PacksScreen() {
     readyRevealAnim.setValue(0);
     pulseAnim.setValue(1);
     flipAnim.setValue(0);
+    revealOutlineAnim.setValue(0);
     burstOpenAnim.setValue(0);
   }
 
@@ -2223,9 +2324,14 @@ export default function PacksScreen() {
     const isLoadingPhase = phase === "loading";
     const isChargePhase = phase === "shaking";
     const openingAccent = selectedPack.color || "#D58524";
-    const chargePreviewWidth = Math.min(stageCardWidth, 230);
+    const chargePreviewWidth = Math.min(stageCardWidth * 1.4, 320);
     const openingStageHeight = Math.min(Math.max(height * 0.62, 420), 620);
-    const openingFooterReserve = Math.min(Math.max(height * 0.24, 196), 252);
+    const openingStageTranslateY = 10;
+    const loadingFooterTranslateY = 56;
+    const openingFooterReserve = Math.min(
+      Math.max(height * 0.24, 196),
+      252,
+    );
     const badgeBackgroundColor = withAlpha(
       openingAccent,
       themeName === "nightosphere" ? "26" : "1F",
@@ -2260,6 +2366,7 @@ export default function PacksScreen() {
                 width: "100%",
                 maxWidth: 520,
                 height: openingStageHeight,
+                transform: [{ translateY: openingStageTranslateY }],
               }}
             >
               <PackOpeningSequenceDom
@@ -2280,6 +2387,7 @@ export default function PacksScreen() {
                   guaranteedRarity: selectedPack.guaranteedRarity,
                   name: selectedPack.name,
                 }}
+                stageOffsetY={openingStageTranslateY}
                 dom={{
                   contentInsetAdjustmentBehavior: "never",
                   scrollEnabled: false,
@@ -2305,8 +2413,13 @@ export default function PacksScreen() {
           </View>
 
           <View
-            className="w-full max-w-[340px] self-center gap-3 pb-2"
-            style={{ minHeight: openingFooterReserve }}
+            className="w-full max-w-[360px] self-center items-center gap-4 pb-2"
+            style={{
+              minHeight: isLoadingPhase ? openingFooterReserve : undefined,
+              transform: isLoadingPhase
+                ? [{ translateY: loadingFooterTranslateY }]
+                : undefined,
+            }}
           >
             {isLoadingPhase ? (
               <>
@@ -2317,13 +2430,13 @@ export default function PacksScreen() {
                   textColor={openingAccent}
                 />
                 <Text
-                  className="text-center font-nunito text-sm"
+                  className="max-w-[330px] text-center font-nunito text-sm"
                   style={{ color: tc.fgMuted }}
                 >
                   {t("packs.opening.sortingBody")}
                 </Text>
                 <View
-                  className="overflow-hidden rounded-full"
+                  className="w-full overflow-hidden rounded-full"
                   style={{
                     backgroundColor: progressTrackColor,
                     height: 12,
@@ -2350,7 +2463,7 @@ export default function PacksScreen() {
               </>
             ) : (
               <Text
-                className="text-center font-nunito-bold text-sm"
+                className="max-w-[330px] text-center font-nunito-bold text-sm"
                 style={{ color: tc.fg }}
               >
                 {t("packs.opening.packOpened", { name: selectedPack.name })}
@@ -2481,21 +2594,42 @@ export default function PacksScreen() {
     revealedIndex < openedCards.length
   ) {
     const card = openedCards[revealedIndex];
-    const rarityName = card.rarity?.name ?? "Common";
+    const rarityName = toRarityName(card.rarity?.name);
     const rarityRing = RARITY_COLORS[rarityName]?.ring ?? tc.primaryDark;
     const glowColor = getRarityGlowColor(rarityName);
     const isHighRarity = ["Legendary", "Epic", "Rare"].includes(rarityName);
     const isLastCard = revealedIndex === openedCards.length - 1;
+    const revealOutlineInset = 4;
+    const revealOutlineRadius = 16 + revealOutlineInset;
     const cardScale = flipAnim.interpolate({
       inputRange: [0, 1],
-      outputRange: [0.78, 1],
+      outputRange: [0.94, 1],
     });
+    const backRotateY = flipAnim.interpolate({
+      inputRange: [0, 1],
+      outputRange: ["0deg", "180deg"],
+    });
+    const frontRotateY = flipAnim.interpolate({
+      inputRange: [0, 1],
+      outputRange: ["180deg", "360deg"],
+    });
+    const backOpacity = flipAnim.interpolate({
+      inputRange: [0, 0.42, 0.58, 1],
+      outputRange: [1, 1, 0, 0],
+      extrapolate: "clamp",
+    });
+    const frontOpacity = flipAnim.interpolate({
+      inputRange: [0, 0.42, 0.58, 1],
+      outputRange: [0, 0, 1, 1],
+      extrapolate: "clamp",
+    });
+    const revealOutlineOpacity = revealOutlineAnim;
 
     return (
       <TouchableOpacity
         testID="pack-opening-reveal"
         activeOpacity={0.92}
-        onPress={revealNext}
+        onPress={handleRevealTap}
         className="flex-1 bg-bg"
       >
         <View
@@ -2541,28 +2675,73 @@ export default function PacksScreen() {
             <Animated.View
               style={{
                 width: revealCardWidth,
+                aspectRatio: CARD_ART_RATIO,
                 transform: [{ scale: cardScale }],
               }}
             >
-              <View
+              <Animated.View
+                pointerEvents="none"
                 style={{
                   position: "absolute",
-                  inset: -4,
-                  borderRadius: 22,
+                  top: -revealOutlineInset,
+                  right: -revealOutlineInset,
+                  bottom: -revealOutlineInset,
+                  left: -revealOutlineInset,
+                  borderRadius: revealOutlineRadius,
                   borderWidth: 3,
                   borderColor: rarityRing,
+                  opacity: revealOutlineOpacity,
                   zIndex: 20,
                 }}
               />
-              <CardTile
-                entry={toCardTileEntry(card)}
-                size="large"
-                fitContainer
-                accessToken={accessToken}
-              />
+              <Animated.View
+                pointerEvents="none"
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  zIndex: 5,
+                  opacity: backOpacity,
+                  transform: [
+                    { perspective: 1400 },
+                    { rotateY: backRotateY },
+                  ],
+                  backfaceVisibility: "hidden",
+                }}
+              >
+                <CardBackFace
+                  width={revealCardWidth}
+                  tc={tc}
+                  themeName={themeName}
+                  rarityName={rarityName}
+                />
+              </Animated.View>
+              <Animated.View
+                pointerEvents="none"
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  zIndex: 10,
+                  opacity: frontOpacity,
+                  transform: [
+                    { perspective: 1400 },
+                    { rotateY: frontRotateY },
+                  ],
+                  backfaceVisibility: "hidden",
+                }}
+              >
+                <CardTile
+                  entry={toCardTileEntry(card)}
+                  size="large"
+                  fitContainer
+                  accessToken={accessToken}
+                />
+              </Animated.View>
 
               {card.isNewForUser ? (
-                <View className="absolute right-3 top-3 z-30">
+                <Animated.View
+                  className="absolute right-3 top-3 z-30"
+                  style={{ opacity: isRevealSettled ? 1 : 0 }}
+                >
                   <LinearGradient
                     colors={[tc.success, tc.successDark]}
                     style={{
@@ -2575,7 +2754,7 @@ export default function PacksScreen() {
                       {t("packs.openResult.newBadge")}
                     </Text>
                   </LinearGradient>
-                </View>
+                </Animated.View>
               ) : null}
             </Animated.View>
           </View>
@@ -2625,6 +2804,7 @@ export default function PacksScreen() {
     const duplicateCards = openedCards.filter((card) => !card.isNewForUser);
     const nextBalance = newBalance ?? coins;
     const canReopenSelected = nextBalance >= selectedPack.cost;
+    const summaryCards = [...newCards, ...duplicateCards];
     const rarityBreakdown = openedCards.reduce<
       Record<string, { total: number; newCount: number }>
     >((accumulator, card) => {
@@ -2640,235 +2820,247 @@ export default function PacksScreen() {
     }, {});
 
     return (
-      <ScrollView
-        testID="pack-opening-summary"
-        className="flex-1 bg-bg"
-        contentInsetAdjustmentBehavior="never"
-        contentContainerStyle={{
-          paddingHorizontal: 20,
-          paddingBottom: bottomTabPadding,
-          gap: 18,
-        }}
-      >
-        <View style={{ height: headerHeight }} />
-        <BackgroundOrbs
-          primary={tc.primaryTint}
-          secondary={tc.secondaryTint}
-          accent={tc.accentTint}
-        />
-
-        <View
-          style={{
-            borderRadius: 30,
-            padding: 22,
-            borderWidth: 1,
-            borderColor: tc.primaryBorder,
-            backgroundColor: tc.surface,
+      <>
+        <ScrollView
+          testID="pack-opening-summary"
+          className="flex-1 bg-bg"
+          contentInsetAdjustmentBehavior="never"
+          contentContainerStyle={{
+            paddingHorizontal: 20,
+            paddingBottom: bottomTabPadding,
+            gap: 18,
           }}
         >
-          <View className="flex-row items-start justify-between gap-4">
-            <View className="flex-1 gap-2">
+          <View style={{ height: headerHeight }} />
+          <BackgroundOrbs
+            primary={tc.primaryTint}
+            secondary={tc.secondaryTint}
+            accent={tc.accentTint}
+          />
+
+          <View
+            className="gap-5"
+            style={{
+              borderRadius: 30,
+              padding: 22,
+              borderWidth: 1,
+              borderColor: tc.primaryBorder,
+              backgroundColor: tc.surface,
+            }}
+          >
+            <View className="gap-3">
               <SectionBadge
                 icon={<SparklesIcon size={14} color={tc.primaryText} />}
                 label={t("packs.summary.title")}
                 backgroundColor={tc.primaryTint}
                 textColor={tc.primaryText}
               />
-              <Text className="font-nunito-extrabold text-[28px] leading-[34px] text-fg">
-                {selectedPack.name}
-              </Text>
-              <Text className="font-nunito text-sm leading-6 text-fgMuted">
-                {t("packs.summary.subtitle")}
-              </Text>
+              <View className="gap-2">
+                <Text className="font-nunito-extrabold text-[28px] leading-[34px] text-fg">
+                  {selectedPack.name}
+                </Text>
+                <Text className="font-nunito text-sm leading-6 text-fgMuted">
+                  {t("packs.summary.subtitle")}
+                </Text>
+              </View>
             </View>
-            <View
-              className="items-center rounded-[24px] px-4 py-3"
-              style={{ backgroundColor: tc.primaryTint }}
-            >
-              <CoinIcon size={18} />
-              <Text className="mt-2 font-nunito-extrabold text-[22px] text-fg">
-                {nextBalance}
-              </Text>
-              <Text className="font-nunito text-[11px] text-fgMuted">
-                {t("packs.summary.remainingCoins")}
-              </Text>
+
+            <View className="flex-row gap-3">
+              <View
+                className="flex-1 rounded-[22px] p-4"
+                style={{ backgroundColor: tc.surfaceMuted }}
+              >
+                <Text className="font-nunito text-[11px] uppercase tracking-[0.7px] text-fgMuted">
+                  {t("packs.summary.totalCards")}
+                </Text>
+                <Text className="mt-2 font-nunito-extrabold text-[26px] text-fg">
+                  {openedCards.length}
+                </Text>
+              </View>
+              <View
+                className="flex-1 rounded-[22px] p-4"
+                style={{ backgroundColor: tc.surfaceMuted }}
+              >
+                <Text className="font-nunito text-[11px] uppercase tracking-[0.7px] text-fgMuted">
+                  {t("packs.summary.newCards")}
+                </Text>
+                <Text className="mt-2 font-nunito-extrabold text-[26px] text-fg">
+                  {newCards.length}
+                </Text>
+              </View>
             </View>
           </View>
 
-          <View className="mt-6 flex-row gap-3">
-            <View
-              className="flex-1 rounded-[22px] p-4"
-              style={{ backgroundColor: tc.surfaceMuted }}
-            >
-              <Text className="font-nunito text-[11px] uppercase tracking-[0.7px] text-fgMuted">
-                {t("packs.summary.totalCards")}
-              </Text>
-              <Text className="mt-2 font-nunito-extrabold text-[26px] text-fg">
-                {openedCards.length}
-              </Text>
+          <View
+            className="gap-4 rounded-[28px] border p-5"
+            style={{ backgroundColor: tc.surface, borderColor: tc.primaryBorder }}
+          >
+            <View className="flex-row items-center gap-3">
+              <View
+                className="items-center justify-center rounded-[18px] p-3"
+                style={{ backgroundColor: tc.primaryTint }}
+              >
+                <PackIcon size={20} color={tc.primaryText} />
+              </View>
+              <View className="flex-1">
+                <Text className="font-nunito-bold text-base text-fg">
+                  {t("packs.summary.rarityBreakdown")}
+                </Text>
+                <Text className="mt-1 font-nunito text-xs text-fgMuted">
+                  {selectedPack.guaranteedRarity
+                    ? t("packs.guaranteed", {
+                        rarity: selectedPack.guaranteedRarity,
+                      })
+                    : t("packs.standardOdds")}
+                </Text>
+              </View>
             </View>
-            <View
-              className="flex-1 rounded-[22px] p-4"
-              style={{ backgroundColor: tc.surfaceMuted }}
-            >
-              <Text className="font-nunito text-[11px] uppercase tracking-[0.7px] text-fgMuted">
+
+            <View className="flex-row flex-wrap gap-2">
+              {(["Legendary", "Epic", "Rare", "Uncommon", "Common"] as const).map(
+                (rarityName) => {
+                  const info = rarityBreakdown[rarityName];
+                  if (!info) {
+                    return null;
+                  }
+
+                  const rarityColors =
+                    RARITY_COLORS[rarityName] ?? RARITY_COLORS.Common;
+
+                  return (
+                    <View
+                      key={rarityName}
+                      className="rounded-full px-3 py-2"
+                      style={{ backgroundColor: rarityColors.ring + "22" }}
+                    >
+                      <Text
+                        className="font-nunito-bold text-[12px]"
+                        style={{ color: rarityColors.to }}
+                      >
+                        {rarityName} x{info.total}
+                        {info.newCount > 0
+                          ? ` ${t("packs.openResult.newCount", {
+                              count: info.newCount,
+                            })}`
+                          : ""}
+                      </Text>
+                    </View>
+                  );
+                },
+              )}
+            </View>
+          </View>
+
+          {newCards.length > 0 ? (
+            <View className="gap-3">
+              <Text className="font-nunito-bold text-lg text-fg">
                 {t("packs.summary.newCards")}
               </Text>
-              <Text className="mt-2 font-nunito-extrabold text-[26px] text-fg">
-                {newCards.length}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        <View
-          className="gap-4 rounded-[28px] border p-5"
-          style={{ backgroundColor: tc.surface, borderColor: tc.primaryBorder }}
-        >
-          <View className="flex-row items-center gap-3">
-            <View
-              className="items-center justify-center rounded-[18px] p-3"
-              style={{ backgroundColor: tc.primaryTint }}
-            >
-              <PackIcon size={20} color={tc.primaryText} />
-            </View>
-            <View className="flex-1">
-              <Text className="font-nunito-bold text-base text-fg">
-                {t("packs.summary.rarityBreakdown")}
-              </Text>
-              <Text className="mt-1 font-nunito text-xs text-fgMuted">
-                {selectedPack.guaranteedRarity
-                  ? t("packs.guaranteed", {
-                      rarity: selectedPack.guaranteedRarity,
-                    })
-                  : t("packs.standardOdds")}
-              </Text>
-            </View>
-          </View>
-
-          <View className="flex-row flex-wrap gap-2">
-            {(["Legendary", "Epic", "Rare", "Uncommon", "Common"] as const).map(
-              (rarityName) => {
-                const info = rarityBreakdown[rarityName];
-                if (!info) {
-                  return null;
-                }
-
-                const rarityColors =
-                  RARITY_COLORS[rarityName] ?? RARITY_COLORS.Common;
-
-                return (
+              <View className="flex-row flex-wrap">
+                {newCards.map((card, index) => (
                   <View
-                    key={rarityName}
-                    className="rounded-full px-3 py-2"
-                    style={{ backgroundColor: rarityColors.ring + "22" }}
+                    key={`${card.id}-${index}`}
+                    className="w-1/2 px-1.5 pb-3"
                   >
-                    <Text
-                      className="font-nunito-bold text-[12px]"
-                      style={{ color: rarityColors.to }}
-                    >
-                      {rarityName} x{info.total}
-                      {info.newCount > 0
-                        ? ` ${t("packs.openResult.newCount", {
-                            count: info.newCount,
-                          })}`
-                        : ""}
-                    </Text>
+                    <CardTile
+                      testID={`pack-summary-card-new-${index}`}
+                      onPress={() => setPreviewedCard(card)}
+                      entry={toCardTileEntry(card)}
+                      accessToken={accessToken}
+                      fitContainer
+                    />
+                    <View className="mt-2 items-center">
+                      <LinearGradient
+                        colors={[tc.success, tc.successDark]}
+                        style={{
+                          borderRadius: 999,
+                          paddingHorizontal: 10,
+                          paddingVertical: 5,
+                        }}
+                      >
+                        <Text className="font-nunito-extrabold text-[10px] text-white">
+                          {t("packs.openResult.newBadge")}
+                        </Text>
+                      </LinearGradient>
+                    </View>
                   </View>
-                );
-              },
-            )}
-          </View>
-        </View>
+                ))}
+              </View>
+            </View>
+          ) : null}
 
-        {newCards.length > 0 ? (
           <View className="gap-3">
             <Text className="font-nunito-bold text-lg text-fg">
-              {t("packs.summary.newCards")}
+              {t("packs.summary.allCards")}
             </Text>
             <View className="flex-row flex-wrap">
-              {newCards.map((card, index) => (
+              {summaryCards.map((card, index) => (
                 <View key={`${card.id}-${index}`} className="w-1/2 px-1.5 pb-3">
                   <CardTile
+                    testID={`pack-summary-card-all-${index}`}
+                    onPress={() => setPreviewedCard(card)}
                     entry={toCardTileEntry(card)}
                     accessToken={accessToken}
                     fitContainer
                   />
-                  <View className="mt-2 items-center">
-                    <LinearGradient
-                      colors={[tc.success, tc.successDark]}
-                      style={{
-                        borderRadius: 999,
-                        paddingHorizontal: 10,
-                        paddingVertical: 5,
-                      }}
-                    >
-                      <Text className="font-nunito-extrabold text-[10px] text-white">
-                        {t("packs.openResult.newBadge")}
-                      </Text>
-                    </LinearGradient>
-                  </View>
                 </View>
               ))}
             </View>
           </View>
-        ) : null}
 
-        <View className="gap-3">
-          <Text className="font-nunito-bold text-lg text-fg">
-            {t("packs.summary.allCards")}
-          </Text>
-          <View className="flex-row flex-wrap">
-            {[...newCards, ...duplicateCards].map((card, index) => (
-              <View key={`${card.id}-${index}`} className="w-1/2 px-1.5 pb-3">
+          <View className="gap-3 pb-4">
+            {canReopenSelected ? (
+              <PrimaryButton
+                testID={`pack-summary-open-again-${slugifyPackName(selectedPack.name)}`}
+                onPress={() => void openPack(selectedPack)}
+                disabled={isOpening}
+                style={{ width: "100%" }}
+              >
+                {t("packs.summary.openSamePack")}
+              </PrimaryButton>
+            ) : null}
+
+            <SecondaryButton
+              testID="pack-summary-browse"
+              onPress={reset}
+              style={{ width: "100%" }}
+            >
+              {t("packs.summary.browsePacks")}
+            </SecondaryButton>
+          </View>
+        </ScrollView>
+
+        <Modal
+          visible={isCardPreviewVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setPreviewedCard(null)}
+        >
+          <Pressable
+            testID="pack-summary-card-preview-overlay"
+            onPress={() => setPreviewedCard(null)}
+            className="flex-1 items-center justify-center px-4"
+            style={{ backgroundColor: "rgba(10, 14, 20, 0.92)" }}
+          >
+            {previewedCard ? (
+              <Pressable
+                testID="pack-summary-card-preview"
+                onPress={(event) => {
+                  event.stopPropagation();
+                }}
+                style={{ width: previewCardWidth }}
+              >
                 <CardTile
-                  entry={toCardTileEntry(card)}
+                  entry={toCardTileEntry(previewedCard)}
                   accessToken={accessToken}
+                  size="large"
                   fitContainer
                 />
-              </View>
-            ))}
-          </View>
-        </View>
-
-        <View className="gap-3 pb-4">
-          {canReopenSelected ? (
-            <Pressable
-              testID={`pack-summary-open-again-${slugifyPackName(selectedPack.name)}`}
-              onPress={() => void openPack(selectedPack)}
-              disabled={isOpening}
-            >
-              <LinearGradient
-                colors={[tc.primary, tc.primaryDark]}
-                style={{
-                  borderRadius: 22,
-                  paddingVertical: 16,
-                  alignItems: "center",
-                }}
-              >
-                <Text className="font-nunito-extrabold text-base text-white">
-                  {t("packs.summary.openSamePack")}
-                </Text>
-              </LinearGradient>
-            </Pressable>
-          ) : null}
-
-          <Pressable testID="pack-summary-browse" onPress={reset}>
-            <View
-              className="flex-row items-center justify-center gap-2 rounded-[22px] border px-5 py-4"
-              style={{
-                backgroundColor: tc.surface,
-                borderColor: tc.primaryBorder,
-              }}
-            >
-              <Text className="font-nunito-bold text-base text-primaryStrong">
-                {t("packs.summary.browsePacks")}
-              </Text>
-              <ChevronRightIcon size={16} color={tc.primaryStrong} />
-            </View>
+              </Pressable>
+            ) : null}
           </Pressable>
-        </View>
-      </ScrollView>
+        </Modal>
+      </>
     );
   }
 

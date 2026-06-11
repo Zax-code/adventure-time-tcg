@@ -8,6 +8,7 @@ import type {
   AdminCardsResponse,
 } from "@adventure-time/api-client";
 
+import { CARD_ART_RATIO } from "../card-back-cover-art";
 import { getCardImageCacheKey, getCardImageUrl } from "../../lib/card-images";
 import { useThemeStore } from "../../stores/theme-store";
 import { THEME_COLORS } from "../../theme/themes";
@@ -27,7 +28,7 @@ type AdminCard = AdminCardsResponse["cards"][number] | AdminCardDetail;
 const SIZE_CONFIG = {
   small: {
     width: 152,
-    height: 240,
+    height: 228,
     paddingH: 6,
     paddingT: 4,
     paddingB: 2,
@@ -43,7 +44,7 @@ const SIZE_CONFIG = {
     typeFontSize: 6,
     rarityFontSize: 5,
     borderRadius: 12,
-    imageAspect: 152 / 96,
+    imageAspect: 5 / 3,
     headerHeight: 18,
     headerHpOffset: -15,
     headerHpTop: -2,
@@ -59,7 +60,7 @@ const SIZE_CONFIG = {
   },
   medium: {
     width: 184,
-    height: 290,
+    height: 276,
     paddingH: 7,
     paddingT: 5,
     paddingB: 3,
@@ -75,7 +76,7 @@ const SIZE_CONFIG = {
     typeFontSize: 7,
     rarityFontSize: 6,
     borderRadius: 13,
-    imageAspect: 184 / 116,
+    imageAspect: 5 / 3,
     headerHeight: 21,
     headerHpOffset: -18,
     headerHpTop: -3,
@@ -259,6 +260,7 @@ export const AdminCardTile = memo(
       inputRange: [0, 1],
       outputRange: [-cfg.width * 3, cfg.width],
     });
+    const cardAspectRatio = CARD_ART_RATIO;
 
     return (
       <Pressable
@@ -275,7 +277,7 @@ export const AdminCardTile = memo(
             borderRadius: cfg.borderRadius,
             backgroundColor: typeColor.frame,
             height: fitContainer ? undefined : cfg.height,
-            aspectRatio: fitContainer ? cfg.width / cfg.height : undefined,
+            aspectRatio: fitContainer ? cardAspectRatio : undefined,
           }}
         >
           <View
