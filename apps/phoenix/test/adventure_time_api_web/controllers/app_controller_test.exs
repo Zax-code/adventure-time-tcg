@@ -325,6 +325,21 @@ defmodule AdventureTimeApiWeb.AppControllerTest do
       )
 
     Repo.insert!(
+      Card.changeset(%Card{}, %{
+        name: "Archived Lady",
+        character: "Lady Rainicorn",
+        description: "An archived variant.",
+        hp: 14,
+        attack: 6,
+        defense: 4,
+        speed: 55,
+        type: "Hero",
+        rarity_id: rarity.id,
+        is_archived: true
+      })
+    )
+
+    Repo.insert!(
       OwnedCard.changeset(%OwnedCard{}, %{
         quantity: 2,
         obtained_at: DateTime.utc_now() |> DateTime.truncate(:second)
@@ -353,7 +368,7 @@ defmodule AdventureTimeApiWeb.AppControllerTest do
     assert home["user"]["email"] == "lady@example.com"
 
     assert home["collectionStats"] == %{
-             "totalCards" => 2,
+             "totalCards" => 1,
              "uniqueOwned" => 1,
              "completionPercentage" => 100
            }
