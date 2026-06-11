@@ -52,7 +52,6 @@ const packs = {
       "Tout ce qui est sorti du pack, présenté clairement et facile à parcourir.",
     newCards: "Nouvelles cartes",
     totalCards: "Cartes ouvertes",
-    remainingCoins: "Pièces restantes",
     rarityBreakdown: "Répartition des raretés",
     allCards: "Toutes les cartes",
     openSamePack: "Ouvrir ce pack à nouveau",

@@ -84,7 +84,7 @@ const CSS = `
   .pack-opening-stage-shell {
     position: absolute;
     left: 50%;
-    top: calc(50% + 20px);
+    top: calc(50% + var(--pack-stage-offset));
     width: min(92vw, 680px);
     height: min(92vh, 620px);
     max-width: 100%;
@@ -368,11 +368,13 @@ const CSS = `
   }
 
   .pack-opening-stage.loading-active .pack-opening-light {
+    --settled-light-scale: 1.08;
     opacity: var(--settled-light-opacity);
     animation: pack-loading-glow 3.4s ease-in-out infinite;
   }
 
   .pack-opening-stage.loading-active .pack-opening-aura {
+    --settled-aura-scale: 1.08;
     opacity: var(--settled-aura-opacity);
     transform: scale(var(--settled-aura-scale));
     filter: blur(var(--settled-aura-blur));
@@ -380,6 +382,7 @@ const CSS = `
   }
 
   .pack-opening-stage.loading-active .pack-opening-rays {
+    --settled-rays-scale: 1.02;
     opacity: var(--settled-rays-opacity);
     transform: translate(-50%, -50%) scale(var(--settled-rays-scale)) rotate(var(--settled-rays-rotate));
     animation: pack-loading-rays 7.2s linear infinite;
@@ -395,6 +398,9 @@ const CSS = `
   }
 
   .pack-opening-stage.loading-active .pack-opening-sparkle {
+    --settled-sparkle-scale: .64;
+    --settled-sparkle-x: 1;
+    --settled-sparkle-y: 1;
     opacity: 1;
     transform:
       translate(
@@ -820,10 +826,12 @@ function createBurstPattern(pack: PackAnimationData) {
 export default function PackOpeningSequenceDom({
   mode,
   pack,
+  stageOffsetY = 20,
 }: {
   dom?: import("expo/dom").DOMProps;
   mode: PackOpeningSequenceMode;
   pack: PackAnimationData;
+  stageOffsetY?: number;
 }) {
   const visualProfile = getPackOpeningVisualProfile(pack);
   const packArtSrc = getPackOpeningArtSource(pack) as string;
@@ -850,6 +858,7 @@ export default function PackOpeningSequenceDom({
     "--pack-icon-color": visualProfile.iconColor,
     "--pack-rgb": toRgbTriplet(pack.color),
     "--pack-shadow-rgb": toRgbTriplet(packShadow),
+    "--pack-stage-offset": `${stageOffsetY}px`,
     "--pack-soft": packSoft,
     "--pack-soft-rgb": toRgbTriplet(packSoft),
     "--pack-surface": packSurface,
