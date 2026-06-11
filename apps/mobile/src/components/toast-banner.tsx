@@ -8,18 +8,20 @@ export function ToastBanner({
   translateY,
   successColor,
   errorColor,
+  topOffset = 16,
 }: {
   message: string;
   type: ToastType;
   translateY: Animated.Value;
   successColor: string;
   errorColor: string;
+  topOffset?: number;
 }) {
   return (
     <Animated.View
       style={{
         position: "absolute",
-        top: 16,
+        top: topOffset,
         left: 16,
         right: 16,
         zIndex: 50,
