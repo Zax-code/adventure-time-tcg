@@ -1,7 +1,7 @@
-import basicPackArt from "../../assets/pack-opening/basic-pack.jpeg";
-import epicPackArt from "../../assets/pack-opening/epic-pack.jpeg";
+import basicPackArt from "../../assets/pack-opening/basic-pack.png";
+import epicPackArt from "../../assets/pack-opening/epic-pack.png";
 import legendaryPackArt from "../../assets/pack-opening/legendary-pack.png";
-import premiumPackArt from "../../assets/pack-opening/premium-pack.jpeg";
+import premiumPackArt from "../../assets/pack-opening/premium-pack.png";
 import standardPackArt from "../../assets/pack-opening/standard-pack.png";
 
 import {

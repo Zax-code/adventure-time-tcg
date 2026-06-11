@@ -538,8 +538,6 @@ function PackPreviewCard({
   sheenAnim?: Animated.Value;
 }) {
   const height = width / PACK_CARD_RATIO;
-  const accentColor = pack.color || tc.primary;
-  const packSurfaceColor = pack.color || tc.surfaceMuted;
   const packArtSource = getPackOpeningArtSource({
     guaranteedRarity: pack.guaranteedRarity,
     name: pack.name,
@@ -595,21 +593,18 @@ function PackPreviewCard({
       style={{
         width,
         height,
-        borderRadius: compact ? 24 : 32,
-        overflow: "hidden",
-        borderWidth: compact ? 1.5 : 2,
-        borderColor: withAlpha(accentColor, compact ? "52" : "66"),
-        backgroundColor: packSurfaceColor,
+        overflow: "visible",
+        backgroundColor: "transparent",
         boxShadow: compact
-          ? `0 18px 38px ${withAlpha("#000000", "52")}`
-          : `0 22px 55px ${withAlpha("#000000", "72")}`,
+          ? `0 18px 32px ${withAlpha("#000000", "30")}`
+          : `0 22px 46px ${withAlpha("#000000", "40")}`,
         transform: animatedTransforms,
       }}
     >
       <Image
         source={packArtSource}
         style={{ width: "100%", height: "100%" }}
-        contentFit="cover"
+        contentFit="contain"
         transition={0}
       />
       {sheenAnim ? (

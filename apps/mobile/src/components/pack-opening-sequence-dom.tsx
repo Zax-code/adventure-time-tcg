@@ -191,16 +191,11 @@ const CSS = `
     position: relative;
     width: 230px;
     height: 330px;
-    border-radius: 18px;
-    overflow: hidden;
+    overflow: visible;
     box-shadow:
-      0 0 0 5px #2a1407,
-      0 0 0 9px var(--pack-border),
-      0 18px 38px rgba(0, 0, 0, .62),
-      0 0 24px rgba(var(--pack-rgb), .28);
+      0 18px 42px rgba(0, 0, 0, .4);
     animation: pack-card-idle 2.6s ease-in-out infinite;
-    background:
-      linear-gradient(140deg, var(--pack-soft) 0%, var(--pack-base) 16%, var(--pack-deep) 34%, var(--pack-dark) 72%, var(--pack-bright) 100%);
+    background: transparent;
   }
 
   .pack-opening-card::after {
@@ -221,15 +216,14 @@ const CSS = `
     position: absolute;
     inset: 0;
     z-index: 8;
-    border-radius: 18px;
-    overflow: hidden;
+    overflow: visible;
   }
 
   .pack-opening-pack-art {
     width: 100%;
     height: 100%;
     display: block;
-    object-fit: cover;
+    object-fit: contain;
   }
 
   .pack-opening-crack-layer {
