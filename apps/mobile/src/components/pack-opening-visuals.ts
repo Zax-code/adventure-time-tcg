@@ -4,6 +4,12 @@ export type PackVisualIconKind =
   | "sparkle"
   | "diamond"
   | "crown";
+export type PackArtKind =
+  | "basic"
+  | "standard"
+  | "premium"
+  | "epic"
+  | "legendary";
 
 type PackVisualInput = {
   guaranteedRarity?: string | null;
@@ -11,6 +17,7 @@ type PackVisualInput = {
 };
 
 type PackVisualProfile = {
+  artKind: PackArtKind;
   iconColor: string;
   iconKind: PackVisualIconKind;
   rarityRank: number;
@@ -37,9 +44,11 @@ export function getPackOpeningVisualProfile({
   name,
 }: PackVisualInput): PackVisualProfile {
   const rarityRank = getRarityRank(guaranteedRarity);
+  const normalizedName = name.toLowerCase();
 
-  if (name.includes("Legendary") || rarityRank >= 4) {
+  if (normalizedName.includes("legendary") || rarityRank >= 4) {
     return {
+      artKind: "legendary",
       iconColor: "#D97706",
       iconKind: "crown",
       rarityRank: 4,
@@ -47,8 +56,9 @@ export function getPackOpeningVisualProfile({
     };
   }
 
-  if (name.includes("Epic") || rarityRank >= 3) {
+  if (normalizedName.includes("epic") || rarityRank >= 3) {
     return {
+      artKind: "epic",
       iconColor: "#7C3AED",
       iconKind: "diamond",
       rarityRank: 3,
@@ -56,8 +66,9 @@ export function getPackOpeningVisualProfile({
     };
   }
 
-  if (name.includes("Premium") || rarityRank >= 2) {
+  if (normalizedName.includes("premium") || rarityRank >= 2) {
     return {
+      artKind: "premium",
       iconColor: "#8B5CF6",
       iconKind: "sparkle",
       rarityRank: 2,
@@ -65,8 +76,9 @@ export function getPackOpeningVisualProfile({
     };
   }
 
-  if (name.includes("Standard")) {
+  if (normalizedName.includes("standard")) {
     return {
+      artKind: "standard",
       iconColor: "#2563EB",
       iconKind: "gift-box",
       rarityRank: 0,
@@ -75,6 +87,7 @@ export function getPackOpeningVisualProfile({
   }
 
   return {
+    artKind: "basic",
     iconColor: "#6B7280",
     iconKind: "box",
     rarityRank: 0,

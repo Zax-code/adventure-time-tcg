@@ -2,10 +2,8 @@
 
 import { useState, type CSSProperties } from "react";
 
-import {
-  getPackOpeningVisualProfile,
-  type PackVisualIconKind,
-} from "./pack-opening-visuals";
+import { getPackOpeningArtSource } from "./pack-opening-art";
+import { getPackOpeningVisualProfile } from "./pack-opening-visuals";
 
 type PackAnimationData = {
   backgroundColor: string;
@@ -216,78 +214,22 @@ const CSS = `
   }
 
   .pack-opening-card::before {
-    content: "";
-    position: absolute;
-    inset: 17px;
-    border-radius: 13px;
-    background:
-      radial-gradient(circle at 50% 18%, rgba(255, 255, 255, .28), transparent 20%),
-      linear-gradient(165deg, var(--pack-surface) 0%, rgba(var(--pack-soft-rgb), .94) 24%, rgba(var(--pack-rgb), .96) 52%, var(--pack-dark) 100%);
-    box-shadow:
-      inset 0 0 0 4px #1d0d04,
-      inset 0 0 0 9px rgba(var(--pack-highlight-rgb), .34),
-      inset 0 0 32px rgba(0, 0, 0, .65);
+    display: none;
   }
 
   .pack-opening-card-face {
     position: absolute;
-    inset: 17px;
+    inset: 0;
     z-index: 8;
-    border-radius: 13px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 18px;
-    padding: 30px 18px 24px;
+    border-radius: 18px;
+    overflow: hidden;
   }
 
-  .pack-opening-icon-frame {
-    width: 108px;
-    height: 108px;
-    border-radius: 28px;
-    display: grid;
-    place-items: center;
-    background: rgba(255, 255, 255, .16);
-    box-shadow:
-      inset 0 0 0 1px rgba(255, 255, 255, .22),
-      0 10px 18px rgba(var(--pack-shadow-rgb), .16);
-  }
-
-  .pack-opening-icon {
-    width: 68px;
-    height: 68px;
-    color: var(--pack-icon-color);
-    filter: drop-shadow(0 0 8px rgba(var(--pack-highlight-rgb), .3));
-  }
-
-  .pack-opening-card-copy {
-    margin-top: auto;
+  .pack-opening-pack-art {
     width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .pack-opening-card-title {
-    color: #fff8f0;
-    font-size: 28px;
-    line-height: 1.05;
-    font-weight: 800;
-    letter-spacing: .02em;
-    text-align: center;
-    text-shadow: 0 2px 12px rgba(0, 0, 0, .3);
-  }
-
-  .pack-opening-card-count {
-    padding: 8px 14px;
-    border-radius: 999px;
-    color: rgba(255, 255, 255, .92);
-    font-size: 13px;
-    font-weight: 700;
-    background: rgba(255, 255, 255, .16);
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .18);
+    height: 100%;
+    display: block;
+    object-fit: cover;
   }
 
   .pack-opening-crack-layer {
@@ -888,110 +830,6 @@ function createBurstPattern(pack: PackAnimationData) {
   };
 }
 
-function PackOpeningIcon({ iconKind }: { iconKind: PackVisualIconKind }) {
-  switch (iconKind) {
-    case "crown":
-      return (
-        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path
-            d="M3 18L5 7L9.2 11.2L12 5L14.8 11.2L19 7L21 18"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <path
-            d="M4 18H20"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-          />
-        </svg>
-      );
-    case "diamond":
-      return (
-        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path
-            d="M12 3L20 9L12 21L4 9L12 3Z"
-            fill="currentColor"
-            fillOpacity=".2"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinejoin="round"
-          />
-          <path
-            d="M4 9H20M12 3L8 9M12 3L16 9M8 9L12 21M16 9L12 21"
-            stroke="currentColor"
-            strokeWidth="1.35"
-            strokeLinejoin="round"
-          />
-        </svg>
-      );
-    case "sparkle":
-      return (
-        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path
-            d="M12 1C12.4 5.5 13 10 12 12C14 11 18.5 11.6 23 12C18.5 12.4 14 13 12 12C13 14 12.4 18.5 12 23C11.6 18.5 11 14 12 12C10 13 5.5 12.4 1 12C5.5 11.6 10 11 12 12C11 10 11.6 5.5 12 1Z"
-            fill="currentColor"
-          />
-          <path
-            d="M19 2C19.15 3.2 19.4 4.4 19 5C20 4.6 20.8 4.85 22 5C20.8 5.15 20 5.4 19 5C19.4 6 19.15 6.8 19 8C18.85 6.8 18.6 6 19 5C18 5.4 17.2 5.15 16 5C17.2 4.85 18 4.6 19 5C18.6 4 18.85 3.2 19 2Z"
-            fill="currentColor"
-            fillOpacity=".6"
-          />
-        </svg>
-      );
-    case "gift-box":
-      return (
-        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <rect
-            x="4"
-            y="9"
-            width="16"
-            height="12"
-            rx="2"
-            fill="currentColor"
-            fillOpacity=".2"
-            stroke="currentColor"
-            strokeWidth="1.8"
-          />
-          <rect
-            x="3"
-            y="6"
-            width="18"
-            height="4"
-            rx="1"
-            fill="currentColor"
-            fillOpacity=".3"
-            stroke="currentColor"
-            strokeWidth="1.8"
-          />
-          <path d="M12 6V21" stroke="currentColor" strokeWidth="1.8" />
-          <path d="M4 13H20" stroke="currentColor" strokeWidth="1.35" />
-        </svg>
-      );
-    default:
-      return (
-        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path
-            d="M4 8L12 4L20 8V16L12 20L4 16V8Z"
-            fill="currentColor"
-            fillOpacity=".15"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinejoin="round"
-          />
-          <path
-            d="M12 4V20M4 8L12 12L20 8"
-            stroke="currentColor"
-            strokeWidth="1.35"
-            strokeLinejoin="round"
-          />
-        </svg>
-      );
-  }
-}
-
 export default function PackOpeningSequenceDom({
   mode,
   pack,
@@ -1001,6 +839,7 @@ export default function PackOpeningSequenceDom({
   pack: PackAnimationData;
 }) {
   const visualProfile = getPackOpeningVisualProfile(pack);
+  const packArtSrc = getPackOpeningArtSource(pack) as string;
   const [{ cracks, particles, shards, sparkles }] = useState(() =>
     createBurstPattern(pack),
   );
@@ -1045,19 +884,11 @@ export default function PackOpeningSequenceDom({
             style={cssVarStyle({ "--pack-color": pack.color })}
           >
             <div className="pack-opening-card-face">
-              <div
-                className="pack-opening-icon-frame"
-                aria-label={`${pack.name} ${pack.cardCountLabel}`}
-                title={`${pack.name} ${pack.cardCountLabel}`}
-              >
-                <div className="pack-opening-icon">
-                  <PackOpeningIcon iconKind={visualProfile.iconKind} />
-                </div>
-              </div>
-              <div className="pack-opening-card-copy">
-                <div className="pack-opening-card-title">{pack.name}</div>
-                <div className="pack-opening-card-count">{pack.cardCountLabel}</div>
-              </div>
+              <img
+                className="pack-opening-pack-art"
+                src={packArtSrc}
+                alt={`${pack.name} ${pack.cardCountLabel}`}
+              />
             </div>
             <svg
               className="pack-opening-crack-layer"

@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Image } from "expo-image";
 import { useNavigation } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
@@ -45,6 +46,7 @@ import {
   ZapIcon,
 } from "../../src/components/icons";
 import { PageLoadingState } from "../../src/components/loading-state";
+import { getPackOpeningArtSource } from "../../src/components/pack-opening-art";
 import { getPackOpeningVisualProfile } from "../../src/components/pack-opening-visuals";
 import PackOpeningSequenceDom from "../../src/components/pack-opening-sequence-dom";
 import {
@@ -538,6 +540,10 @@ function PackPreviewCard({
   const height = width / PACK_CARD_RATIO;
   const accentColor = pack.color || tc.primary;
   const packSurfaceColor = pack.color || tc.surfaceMuted;
+  const packArtSource = getPackOpeningArtSource({
+    guaranteedRarity: pack.guaranteedRarity,
+    name: pack.name,
+  });
 
   const animatedTransforms = [
     ...(chargeAnim
@@ -600,7 +606,12 @@ function PackPreviewCard({
         transform: animatedTransforms,
       }}
     >
-      <PackFaceInterior pack={pack} tc={tc} compact={compact} />
+      <Image
+        source={packArtSource}
+        style={{ width: "100%", height: "100%" }}
+        contentFit="cover"
+        transition={0}
+      />
       {sheenAnim ? (
         <Animated.View
           pointerEvents="none"
