@@ -48,7 +48,16 @@
     "react-doctor": "^0.2.16"
   },
   "overrides": {
+    "@expo/fingerprint": "0.19.4",
+    "@expo/log-box": "56.0.13",
     "nativewind": "4.2.3",
+    "expo": "56.0.11",
+    "expo-asset": "56.0.17",
+    "expo-constants": "56.0.18",
+    "expo-file-system": "56.0.8",
+    "expo-font": "56.0.6",
+    "expo-modules-core": "56.0.16",
+    "expo-modules-jsi": "56.0.9",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native-css-interop": "0.2.3",
