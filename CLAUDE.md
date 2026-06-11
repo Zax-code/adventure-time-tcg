@@ -351,6 +351,19 @@ Other rules:
 - keep files ASCII unless Unicode is already justified
 - avoid `any`; prefer narrower types and validation
 
+## Worktrees
+
+Repo worktree roles:
+- primary worktree: `/Users/zax/Develop/adventure-time-tcg`
+- secondary agent worktree: `/Users/zax/Develop/adventure-time-tcg-agent-secondary`
+
+Worktree rules:
+- when the user explicitly asks to use the secondary worktree, operate from `/Users/zax/Develop/adventure-time-tcg-agent-secondary`
+- keep the secondary worktree as a clean agent checkout that tracks the latest `main` content on branch `codex/agent-secondary`
+- before starting work in the secondary worktree, refresh it from `main` with `git fetch origin --prune` and `git merge --ff-only origin/main`
+- when one worktree is busy or dirty with unrelated work, use the other worktree instead of stashing or overwriting changes
+- for actual feature work in either worktree, create a fresh branch from `main` unless the user explicitly asks for direct work on `main`
+
 ## Working Style
 
 Before editing:
