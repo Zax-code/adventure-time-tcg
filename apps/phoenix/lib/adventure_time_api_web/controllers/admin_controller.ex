@@ -66,6 +66,29 @@ defmodule AdventureTimeApiWeb.AdminController do
     end
   end
 
+  def list_card_back_visuals(conn, _params) do
+    with :ok <- require_admin(conn) do
+      json(conn, %{cardBackVisuals: Catalog.list_admin_card_back_visuals()})
+    else
+      {:error, %Plug.Conn{} = conn} -> conn
+    end
+  end
+
+  def upsert_card_back_visual(conn, params) do
+    with :ok <- require_admin(conn) do
+      case Catalog.upsert_admin_card_back_visual(params) do
+        {:ok, visual} ->
+          json(conn, visual)
+
+        {:error, changeset} ->
+          errors = format_changeset_errors(changeset)
+          conn |> put_status(400) |> json(%{error: "Invalid card back visual", details: errors})
+      end
+    else
+      {:error, %Plug.Conn{} = conn} -> conn
+    end
+  end
+
   def create_image_asset(conn, _params) do
     with :ok <- require_admin(conn),
          {:ok, upload} <- fetch_upload(conn),

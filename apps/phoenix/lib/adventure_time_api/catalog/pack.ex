@@ -15,6 +15,8 @@ defmodule AdventureTimeApi.Catalog.Pack do
     field(:is_active, :boolean, default: true)
     field(:guaranteed_rarity, :string)
 
+    belongs_to(:pack_art_asset, AdventureTimeApi.Catalog.ImageAsset)
+
     timestamps(type: :utc_datetime, updated_at: false)
   end
 
@@ -27,7 +29,8 @@ defmodule AdventureTimeApi.Catalog.Pack do
       :cost,
       :color,
       :is_active,
-      :guaranteed_rarity
+      :guaranteed_rarity,
+      :pack_art_asset_id
     ])
     |> validate_required([:name, :description, :card_count, :cost, :color])
     |> validate_number(:card_count, greater_than: 0)

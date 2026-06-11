@@ -7,7 +7,7 @@ defmodule AdventureTimeApi.Catalog do
   alias Ecto.Changeset
 
   alias AdventureTimeApi.Repo
-  alias AdventureTimeApi.Catalog.{Card, CardType, ImageAsset, Pack, Rarity}
+  alias AdventureTimeApi.Catalog.{Card, CardBackVisual, CardType, ImageAsset, Pack, Rarity}
   alias AdventureTimeApi.Media
 
   @dust_sacrifice_by_rarity %{
@@ -46,9 +46,32 @@ defmodule AdventureTimeApi.Catalog do
     |> Enum.map(&to_pack_response/1)
   end
 
+  def list_card_back_visuals do
+    existing_visuals =
+      CardBackVisual
+      |> Repo.all()
+      |> Map.new(fn visual ->
+        {{visual.theme_name, visual.rarity_name}, visual.image_asset_id}
+      end)
+
+    for theme_name <- CardBackVisual.theme_names(),
+        rarity_name <- CardBackVisual.rarity_names() do
+      %{
+        themeName: theme_name,
+        rarityName: rarity_name,
+        imageAssetId: Map.get(existing_visuals, {theme_name, rarity_name})
+      }
+    end
+  end
+
+  def list_admin_card_back_visuals, do: list_card_back_visuals()
+
   def create_admin_pack(attrs) do
+    attrs = normalize_admin_pack_attrs(attrs)
+
     %Pack{}
-    |> Pack.changeset(normalize_admin_pack_attrs(attrs))
+    |> Pack.changeset(attrs)
+    |> validate_catalog_asset_id(attrs, :pack_art_asset_id)
     |> Repo.insert()
     |> case do
       {:ok, pack} -> {:ok, to_pack_response(pack)}
@@ -59,8 +82,11 @@ defmodule AdventureTimeApi.Catalog do
   def patch_admin_pack(pack_id, attrs) do
     case Repo.get(Pack, pack_id) do
       %Pack{} = pack ->
+        attrs = normalize_admin_pack_patch_attrs(attrs)
+
         pack
-        |> Pack.changeset(normalize_admin_pack_patch_attrs(attrs))
+        |> Pack.changeset(attrs)
+        |> validate_catalog_asset_id(attrs, :pack_art_asset_id)
         |> Repo.update()
         |> case do
           {:ok, updated} -> {:ok, to_pack_response(updated)}
@@ -69,6 +95,23 @@ defmodule AdventureTimeApi.Catalog do
 
       nil ->
         {:error, :not_found}
+    end
+  end
+
+  def upsert_admin_card_back_visual(attrs) do
+    normalized_attrs = normalize_admin_card_back_visual_attrs(attrs)
+
+    base_changeset =
+      %CardBackVisual{}
+      |> CardBackVisual.changeset(%{
+        theme_name: normalized_attrs.theme_name,
+        rarity_name: normalized_attrs.rarity_name,
+        image_asset_id: normalized_attrs.image_asset_id || Ecto.UUID.generate()
+      })
+      |> validate_catalog_asset_id(normalized_attrs, :image_asset_id)
+
+    with true <- base_changeset.valid? || {:error, base_changeset} do
+      persist_admin_card_back_visual(normalized_attrs)
     end
   end
 
@@ -179,7 +222,8 @@ defmodule AdventureTimeApi.Catalog do
       cost: pack.cost,
       color: pack.color,
       isActive: pack.is_active,
-      guaranteedRarity: pack.guaranteed_rarity
+      guaranteedRarity: pack.guaranteed_rarity,
+      packArtAssetId: pack.pack_art_asset_id
     }
   end
 
@@ -192,7 +236,8 @@ defmodule AdventureTimeApi.Catalog do
       "cost",
       "color",
       "isActive",
-      "guaranteedRarity"
+      "guaranteedRarity",
+      "packArtAssetId"
     ])
     |> Enum.reduce(%{}, fn
       {"cardCount", value}, acc ->
@@ -203,6 +248,9 @@ defmodule AdventureTimeApi.Catalog do
 
       {"guaranteedRarity", value}, acc ->
         Map.put(acc, :guaranteed_rarity, normalize_blank_string(value))
+
+      {"packArtAssetId", value}, acc ->
+        Map.put(acc, :pack_art_asset_id, normalize_blank_string(value))
 
       {key, value}, acc ->
         Map.put(acc, String.to_existing_atom(key), value)
@@ -218,7 +266,8 @@ defmodule AdventureTimeApi.Catalog do
       "cost",
       "color",
       "isActive",
-      "guaranteedRarity"
+      "guaranteedRarity",
+      "packArtAssetId"
     ])
     |> Enum.reduce(%{}, fn
       {"cardCount", value}, acc ->
@@ -230,13 +279,125 @@ defmodule AdventureTimeApi.Catalog do
       {"guaranteedRarity", value}, acc ->
         Map.put(acc, :guaranteed_rarity, normalize_blank_string(value))
 
+      {"packArtAssetId", value}, acc ->
+        Map.put(acc, :pack_art_asset_id, normalize_blank_string(value))
+
       {key, value}, acc ->
         Map.put(acc, String.to_existing_atom(key), value)
     end)
   end
 
+  defp normalize_admin_card_back_visual_attrs(attrs) do
+    %{
+      theme_name:
+        attrs
+        |> Map.get("themeName", Map.get(attrs, :theme_name))
+        |> normalize_blank_string(),
+      rarity_name:
+        attrs
+        |> Map.get("rarityName", Map.get(attrs, :rarity_name))
+        |> normalize_blank_string(),
+      image_asset_id:
+        attrs
+        |> Map.get("imageAssetId", Map.get(attrs, :image_asset_id))
+        |> normalize_blank_string()
+    }
+  end
+
   defp normalize_blank_string(value) when value in [nil, ""], do: nil
   defp normalize_blank_string(value), do: value
+
+  defp validate_catalog_asset_id(changeset, attrs, field) do
+    if Map.has_key?(attrs, field) do
+      case Map.get(attrs, field) do
+        nil ->
+          changeset
+
+        asset_id ->
+          case Repo.get(ImageAsset, asset_id) do
+            %ImageAsset{kind: :catalog} ->
+              changeset
+
+            _ ->
+              Changeset.add_error(changeset, field, "must reference a catalog image asset")
+          end
+      end
+    else
+      changeset
+    end
+  end
+
+  defp persist_admin_card_back_visual(%{
+         theme_name: theme_name,
+         rarity_name: rarity_name,
+         image_asset_id: image_asset_id
+       }) do
+    existing_visual =
+      CardBackVisual
+      |> where(
+        [visual],
+        visual.theme_name == ^theme_name and visual.rarity_name == ^rarity_name
+      )
+      |> Repo.one()
+
+    case {existing_visual, image_asset_id} do
+      {%CardBackVisual{} = visual, nil} ->
+        case Repo.delete(visual) do
+          {:ok, _deleted} ->
+            {:ok,
+             %{
+               themeName: theme_name,
+               rarityName: rarity_name,
+               imageAssetId: nil
+             }}
+
+          {:error, changeset} ->
+            {:error, changeset}
+        end
+
+      {nil, nil} ->
+        {:ok,
+         %{
+           themeName: theme_name,
+           rarityName: rarity_name,
+           imageAssetId: nil
+         }}
+
+      {%CardBackVisual{} = visual, _asset_id} ->
+        visual
+        |> CardBackVisual.changeset(%{
+          theme_name: theme_name,
+          rarity_name: rarity_name,
+          image_asset_id: image_asset_id
+        })
+        |> Repo.update()
+        |> case do
+          {:ok, updated_visual} -> {:ok, to_card_back_visual_response(updated_visual)}
+          {:error, changeset} -> {:error, changeset}
+        end
+
+      {nil, _asset_id} ->
+        %CardBackVisual{}
+        |> CardBackVisual.changeset(%{
+          theme_name: theme_name,
+          rarity_name: rarity_name,
+          image_asset_id: image_asset_id
+        })
+        |> Repo.insert()
+        |> case do
+          {:ok, inserted_visual} -> {:ok, to_card_back_visual_response(inserted_visual)}
+          {:error, changeset} -> {:error, changeset}
+        end
+    end
+  end
+
+  defp to_card_back_visual_response(visual) do
+    %{
+      themeName: visual.theme_name,
+      rarityName: visual.rarity_name,
+      imageAssetId: visual.image_asset_id
+    }
+  end
 
   defp to_featured_collection_entry(card) do
     now = DateTime.utc_now() |> DateTime.truncate(:second) |> DateTime.to_iso8601()
