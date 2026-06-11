@@ -47,8 +47,8 @@ type Sparkle = {
   y: number;
 };
 
-const CARD_W = 290;
-const CARD_H = 417;
+const CARD_W = 320;
+const CARD_H = 460;
 const CENTER = { x: CARD_W * 0.5, y: CARD_H * 0.47 };
 
 const CSS = `
@@ -84,7 +84,7 @@ const CSS = `
   .pack-opening-stage-shell {
     position: absolute;
     left: 50%;
-    top: 50%;
+    top: calc(50% + 20px);
     width: min(92vw, 680px);
     height: min(92vh, 620px);
     max-width: 100%;
@@ -189,8 +189,8 @@ const CSS = `
 
   .pack-opening-card {
     position: relative;
-    width: 290px;
-    height: 417px;
+    width: 320px;
+    height: 460px;
     overflow: visible;
     animation: pack-card-idle 2.6s ease-in-out infinite;
     background: transparent;
