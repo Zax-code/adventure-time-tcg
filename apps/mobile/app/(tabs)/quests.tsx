@@ -38,7 +38,10 @@ import { useQuestResetStore } from "../../src/stores/quest-reset-store";
 import { useSessionStore } from "../../src/stores/session-store";
 import { useStepSyncStore } from "../../src/stores/step-sync-store";
 import { useThemeStore } from "../../src/stores/theme-store";
-import { useBottomTabBarContentPadding } from "../../src/theme/layout";
+import {
+  useAppHeaderHeight,
+  useBottomTabBarContentPadding,
+} from "../../src/theme/layout";
 import { THEME_COLORS } from "../../src/theme/themes";
 
 type QuestStatus = "active" | "completed" | "claimed" | "failed";
@@ -136,6 +139,7 @@ export default function QuestsScreen() {
   const user = useSessionStore((state) => state.user);
   const stepSync = useStepSyncStore();
   const { t } = useTranslation();
+  const headerHeight = useAppHeaderHeight();
   const bottomTabPadding = useBottomTabBarContentPadding();
   const lastQuestResetAt = useQuestResetStore((state) => state.lastResetAt);
   const lastQuestResetPayload = useQuestResetStore(
@@ -455,13 +459,14 @@ export default function QuestsScreen() {
           translateY={toastAnim}
           successColor={tc.successDark}
           errorColor={tc.dangerDark}
+          topOffset={headerHeight + 16}
         />
       ) : null}
 
       <ScrollView
         className="flex-1"
         contentContainerStyle={{
-          paddingTop: 16,
+          paddingTop: headerHeight + 16,
           paddingBottom: bottomTabPadding,
           paddingHorizontal: 16,
         }}

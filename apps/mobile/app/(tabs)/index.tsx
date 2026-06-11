@@ -21,7 +21,10 @@ import {
 import { useSessionStore } from "../../src/stores/session-store";
 import { useStepSyncStore } from "../../src/stores/step-sync-store";
 import { useThemeStore } from "../../src/stores/theme-store";
-import { useBottomTabBarContentPadding } from "../../src/theme/layout";
+import {
+  useAppHeaderHeight,
+  useBottomTabBarContentPadding,
+} from "../../src/theme/layout";
 import { THEME_COLORS } from "../../src/theme/themes";
 import { PrimaryButton, SecondaryButton } from "../../src/components/button";
 import { CardTile } from "../../src/components/card-tile";
@@ -41,6 +44,7 @@ export default function HomeScreen() {
   );
   const { t } = useTranslation();
   const tc = THEME_COLORS[useThemeStore((s) => s.themeName)];
+  const headerHeight = useAppHeaderHeight();
   const bottomTabPadding = useBottomTabBarContentPadding();
 
   const homeQuery = useQuery({
@@ -198,7 +202,11 @@ export default function HomeScreen() {
   return (
     <ScrollView
       className="flex-1 bg-bg"
-      contentContainerStyle={{ gap: 24, paddingBottom: bottomTabPadding }}
+      contentContainerStyle={{
+        gap: 24,
+        paddingTop: headerHeight,
+        paddingBottom: bottomTabPadding,
+      }}
     >
       {shouldShowNotificationPrompt ? (
         <View className="mx-5 rounded-3xl border border-primaryBorder bg-surface px-4 py-4">

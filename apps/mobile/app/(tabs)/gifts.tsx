@@ -27,7 +27,10 @@ import { apiClient } from "../../src/lib/api";
 import { useSessionStore } from "../../src/stores/session-store";
 import { useThemeStore } from "../../src/stores/theme-store";
 import { KEYBOARD_AWARE_SCROLL_PROPS } from "../../src/components/keyboard-screen-view";
-import { useBottomTabBarContentPadding } from "../../src/theme/layout";
+import {
+  useAppHeaderHeight,
+  useBottomTabBarContentPadding,
+} from "../../src/theme/layout";
 import { THEME_COLORS } from "../../src/theme/themes";
 
 type GiftFilter = "received" | "sent" | "all";
@@ -39,6 +42,7 @@ export default function GiftsScreen() {
   const router = useRouter();
   const themeName = useThemeStore((state) => state.themeName);
   const tc = THEME_COLORS[themeName];
+  const headerHeight = useAppHeaderHeight();
   const bottomTabPadding = useBottomTabBarContentPadding();
   const currentUserId = useSessionStore((state) => state.user?.id ?? "");
   const { t, locale } = useTranslation();
@@ -150,6 +154,7 @@ export default function GiftsScreen() {
       className="flex-1 bg-bg"
       contentContainerStyle={{
         padding: 20,
+        paddingTop: headerHeight + 20,
         paddingBottom: bottomTabPadding,
       }}
     >

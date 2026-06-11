@@ -32,7 +32,10 @@ import { useTranslation } from "../../src/i18n";
 import { KEYBOARD_AWARE_SCROLL_PROPS } from "../../src/components/keyboard-screen-view";
 import { useCollectionFeedbackStore } from "../../src/stores/collection-feedback-store";
 import { useThemeStore } from "../../src/stores/theme-store";
-import { useBottomTabBarContentPadding } from "../../src/theme/layout";
+import {
+  useAppHeaderHeight,
+  useBottomTabBarContentPadding,
+} from "../../src/theme/layout";
 import { THEME_COLORS } from "../../src/theme/themes";
 
 type CollectionEntry = CollectionResponse["cards"][number];
@@ -57,6 +60,7 @@ export default function CollectionScreen() {
   const accessToken = useSessionStore((state) => state.accessToken);
   const { t } = useTranslation();
   const tc = THEME_COLORS[useThemeStore((s) => s.themeName)];
+  const headerHeight = useAppHeaderHeight();
   const bottomTabPadding = useBottomTabBarContentPadding();
   const collectionFeedbackMessage = useCollectionFeedbackStore(
     (state) => state.message,
@@ -452,13 +456,17 @@ export default function CollectionScreen() {
           translateY={toastAnim}
           successColor={tc.successDark}
           errorColor={tc.dangerDark}
+          topOffset={headerHeight + 16}
         />
       ) : null}
 
       <FlatList
         {...KEYBOARD_AWARE_SCROLL_PROPS}
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: bottomTabPadding }}
+        contentContainerStyle={{
+          paddingTop: headerHeight,
+          paddingBottom: bottomTabPadding,
+        }}
         numColumns={2}
         columnWrapperStyle={{ justifyContent: "space-evenly" }}
         data={filteredCards}

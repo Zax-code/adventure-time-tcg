@@ -30,7 +30,10 @@ import { apiClient } from "../../src/lib/api";
 import { getCardImageCacheKey, getCardImageUrl } from "../../src/lib/card-images";
 import { useSessionStore } from "../../src/stores/session-store";
 import { useThemeStore } from "../../src/stores/theme-store";
-import { useBottomTabBarContentPadding } from "../../src/theme/layout";
+import {
+  useAppHeaderHeight,
+  useBottomTabBarContentPadding,
+} from "../../src/theme/layout";
 import { THEME_COLORS } from "../../src/theme/themes";
 
 type ToastState = {
@@ -158,6 +161,7 @@ export default function PvpScreen() {
   const tc = THEME_COLORS[useThemeStore((state) => state.themeName)];
   const currentUserId = useSessionStore((state) => state.user?.id);
   const { t } = useTranslation();
+  const headerHeight = useAppHeaderHeight();
   const bottomTabPadding = useBottomTabBarContentPadding();
 
   const [selectedInviteLoadoutId, setSelectedInviteLoadoutId] = useState<string | null>(null);
@@ -551,12 +555,18 @@ export default function PvpScreen() {
           translateY={toastAnim}
           successColor={tc.successDark}
           errorColor={tc.dangerDark}
+          topOffset={headerHeight + 16}
         />
       ) : null}
 
       <ScrollView
         className="flex-1 bg-bg"
-        contentContainerStyle={{ gap: 20, padding: 20, paddingBottom: bottomTabPadding }}
+        contentContainerStyle={{
+          gap: 20,
+          padding: 20,
+          paddingTop: headerHeight + 20,
+          paddingBottom: bottomTabPadding,
+        }}
       >
         <View className="gap-4" testID="pvp-lobby-hero">
           <View

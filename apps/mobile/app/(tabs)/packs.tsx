@@ -56,7 +56,10 @@ import { useTranslation } from "../../src/i18n";
 import { apiClient } from "../../src/lib/api";
 import { useSessionStore } from "../../src/stores/session-store";
 import { useThemeStore } from "../../src/stores/theme-store";
-import { useBottomTabBarContentPadding } from "../../src/theme/layout";
+import {
+  useAppHeaderHeight,
+  useBottomTabBarContentPadding,
+} from "../../src/theme/layout";
 import { THEME_COLORS, type ThemeName } from "../../src/theme/themes";
 
 import type { ViewStyle } from "react-native";
@@ -1713,6 +1716,7 @@ export default function PacksScreen() {
   const themeName = useThemeStore((state) => state.themeName);
   const tc = THEME_COLORS[themeName];
   const { t } = useTranslation();
+  const headerHeight = useAppHeaderHeight();
   const bottomTabPadding = useBottomTabBarContentPadding();
   const { bottom: safeAreaBottom } = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
@@ -2146,8 +2150,11 @@ export default function PacksScreen() {
         className="flex-1 bg-bg"
       >
         <View
-          className="flex-1 px-4 pt-4"
-          style={{ paddingBottom: openingBottomPadding }}
+          className="flex-1 px-4"
+          style={{
+            paddingTop: headerHeight + 16,
+            paddingBottom: openingBottomPadding,
+          }}
         >
           <View className="flex-1 justify-center">
             <View
@@ -2286,8 +2293,11 @@ export default function PacksScreen() {
           accent={tc.accentTint}
         />
         <View
-          className="flex-1 px-4 pt-6"
-          style={{ paddingBottom: openingBottomPadding }}
+          className="flex-1 px-4"
+          style={{
+            paddingTop: headerHeight + 24,
+            paddingBottom: openingBottomPadding,
+          }}
         >
           <View className="w-full items-center gap-3">
             <Text className="text-center font-nunito-extrabold text-[28px] leading-[34px] text-fg">
@@ -2406,8 +2416,11 @@ export default function PacksScreen() {
         />
 
         <View
-          className="flex-1 px-4 pt-5"
-          style={{ paddingBottom: openingBottomPadding }}
+          className="flex-1 px-4"
+          style={{
+            paddingTop: headerHeight + 20,
+            paddingBottom: openingBottomPadding,
+          }}
         >
           <View className="w-full max-w-[360px] self-center gap-3">
             <View className="flex-row items-center justify-between">
@@ -2526,10 +2539,10 @@ export default function PacksScreen() {
       <ScrollView
         testID="pack-opening-summary"
         className="flex-1 bg-bg"
-        contentInsetAdjustmentBehavior="automatic"
+        contentInsetAdjustmentBehavior="never"
         contentContainerStyle={{
           paddingHorizontal: 20,
-          paddingTop: 18,
+          paddingTop: headerHeight + 18,
           paddingBottom: bottomTabPadding,
           gap: 18,
         }}
@@ -2762,10 +2775,10 @@ export default function PacksScreen() {
 
       <ScrollView
         className="flex-1"
-        contentInsetAdjustmentBehavior="automatic"
+        contentInsetAdjustmentBehavior="never"
         contentContainerStyle={{
           paddingHorizontal: 20,
-          paddingTop: 18,
+          paddingTop: headerHeight + 18,
           paddingBottom: bottomTabPadding,
           gap: 18,
         }}
