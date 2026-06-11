@@ -2194,7 +2194,7 @@ export default function PacksScreen() {
           </View>
 
           <View
-            className="w-full max-w-[340px] self-center gap-3 pb-2"
+            className="w-full max-w-[360px] self-center gap-3 pb-2"
             style={{ minHeight: openingFooterReserve }}
           >
             {isLoadingPhase ? (
