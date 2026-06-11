@@ -56,15 +56,15 @@ const sizeConfig = {
     badgePaddingV: 4,
     nameFontSize: 11,
     characterFontSize: 7,
-    statValueFontSize: 12,
-    statLabelFontSize: 5,
+    statValueFontSize: 11,
+    statLabelFontSize: 4.5,
     statRadius: 10,
     statPaddingY: 6,
     statPaddingX: 6,
     statGap: 4,
     statIconSize: 16,
     statOrbSize: 24,
-    statValueLineHeight: 13,
+    statValueLineHeight: 12,
     descriptionFontSize: 7,
     descriptionLineHeight: 10,
     descriptionPadding: 6,
@@ -91,15 +91,15 @@ const sizeConfig = {
     badgePaddingV: 6,
     nameFontSize: 21,
     characterFontSize: 12,
-    statValueFontSize: 20,
-    statLabelFontSize: 8,
+    statValueFontSize: 18,
+    statLabelFontSize: 7,
     statRadius: 16,
     statPaddingY: 10,
     statPaddingX: 10,
     statGap: 8,
     statIconSize: 26,
     statOrbSize: 38,
-    statValueLineHeight: 21,
+    statValueLineHeight: 19,
     descriptionFontSize: 13,
     descriptionLineHeight: 18,
     descriptionPadding: 10,
@@ -189,14 +189,8 @@ function StatChip({
 }) {
   return (
     <View
-      className="flex-1 items-center justify-center border"
-      style={{
-        borderRadius: cfg.statRadius,
-        paddingVertical: cfg.statPaddingY,
-        paddingHorizontal: cfg.statPaddingX,
-        backgroundColor: withAlpha(colors[0], 0.13),
-        borderColor: withAlpha(colors[1], 0.2),
-      }}
+      className="flex-1 items-center justify-center"
+      style={{ paddingVertical: cfg.statPaddingY, paddingHorizontal: cfg.statPaddingX }}
     >
       <LinearGradient
         colors={[withAlpha(colors[0], 0.22), withAlpha(colors[1], 0.38)]}
@@ -228,7 +222,7 @@ function StatChip({
         style={{
           fontSize: cfg.statLabelFontSize,
           letterSpacing: 0.7,
-          marginTop: 2,
+          marginTop: 1,
           color: withAlpha(colors[1], 0.84),
         }}
       >
@@ -617,30 +611,20 @@ export const CardTile = memo(function CardTile({
           <View
             style={{
               marginTop: cfg.metaGap,
-              borderRadius: cfg.artRadius,
-              padding: cfg.bodyGap,
-              backgroundColor: withAlpha("#FFFFFF", themeName === "nightosphere" ? 0.08 : 0.62),
-              borderWidth: 1,
-              borderColor: withAlpha(rarityColor.ring, themeName === "nightosphere" ? 0.24 : 0.18),
+              flexDirection: "row",
+              gap: cfg.statGap,
             }}
           >
-            <View
-              style={{
-                flexDirection: "row",
-                gap: cfg.statGap,
-              }}
-            >
-              {statPalettes.map((stat) => (
-                <StatChip
-                  key={stat.label}
-                  label={stat.label}
-                  value={stat.value}
-                  colors={stat.colors}
-                  Icon={stat.Icon}
-                  cfg={cfg}
-                />
-              ))}
-            </View>
+            {statPalettes.map((stat) => (
+              <StatChip
+                key={stat.label}
+                label={stat.label}
+                value={stat.value}
+                colors={stat.colors}
+                Icon={stat.Icon}
+                cfg={cfg}
+              />
+            ))}
           </View>
         </View>
       </View>
