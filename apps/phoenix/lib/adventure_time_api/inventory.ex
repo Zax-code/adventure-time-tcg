@@ -241,21 +241,18 @@ defmodule AdventureTimeApi.Inventory do
   end
 
   def collection_stats_for_user(user_id) do
-    total_cards =
-      OwnedCard
-      |> where([owned_card], owned_card.user_id == ^user_id)
-      |> select([owned_card], coalesce(sum(owned_card.quantity), 0))
-      |> Repo.one()
-      |> Kernel.||(0)
-
     unique_owned =
       OwnedCard
-      |> where([owned_card], owned_card.user_id == ^user_id)
+      |> join(:inner, [owned_card], card in Card, on: owned_card.card_id == card.id)
+      |> where(
+        [owned_card, card],
+        owned_card.user_id == ^user_id and card.is_archived == false
+      )
       |> select([owned_card], count(owned_card.id))
       |> Repo.one()
       |> Kernel.||(0)
 
-    total_catalog_cards = Repo.aggregate(AdventureTimeApi.Catalog.Card, :count, :id)
+    total_catalog_cards = total_collectible_catalog_cards()
 
     completion_percentage =
       if total_catalog_cards == 0 do
@@ -265,7 +262,7 @@ defmodule AdventureTimeApi.Inventory do
       end
 
     %{
-      totalCards: total_cards,
+      totalCards: total_catalog_cards,
       uniqueOwned: unique_owned,
       completionPercentage: completion_percentage
     }
@@ -379,7 +376,7 @@ defmodule AdventureTimeApi.Inventory do
   defp collection_stats_for_entries(entries) do
     total_cards = Enum.reduce(entries, 0, fn entry, sum -> sum + entry.quantity end)
     unique_owned = length(entries)
-    total_catalog_cards = Repo.aggregate(AdventureTimeApi.Catalog.Card, :count, :id)
+    total_catalog_cards = total_collectible_catalog_cards()
 
     completion_percentage =
       if total_catalog_cards == 0 do
@@ -393,6 +390,12 @@ defmodule AdventureTimeApi.Inventory do
       uniqueOwned: unique_owned,
       completionPercentage: completion_percentage
     }
+  end
+
+  defp total_collectible_catalog_cards do
+    Card
+    |> where([card], card.is_archived == false)
+    |> Repo.aggregate(:count, :id)
   end
 
   defp user_dust(user_id) do
