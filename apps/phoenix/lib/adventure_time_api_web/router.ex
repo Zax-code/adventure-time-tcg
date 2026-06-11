@@ -151,6 +151,8 @@ defmodule AdventureTimeApiWeb.Router do
 
     get("/admin/image-assets", AdminController, :list_image_assets)
     post("/admin/image-assets", AdminController, :create_image_asset)
+    get("/admin/card-back-visuals", AdminController, :list_card_back_visuals)
+    put("/admin/card-back-visuals", AdminController, :upsert_card_back_visual)
 
     get("/admin/abilities", AdminController, :list_abilities)
     post("/admin/abilities", AdminController, :create_ability)

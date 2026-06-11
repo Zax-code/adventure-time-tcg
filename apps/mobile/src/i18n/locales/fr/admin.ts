@@ -7,6 +7,7 @@ const admin = {
     nav: {
       cards: "Cartes",
       packs: "Packs",
+      cardBacks: "Dos",
       assets: "Visuels",
       featured: "À la une",
       abilities: "Capacités",
@@ -161,10 +162,11 @@ const admin = {
   },
   packs: {
     title: "Packs",
-    subtitle: "Gère la disponibilité de la boutique et l'économie des packs.",
+    subtitle:
+      "Gère la disponibilité de la boutique, l'économie et les visuels distants d'ouverture.",
     guidanceTitle: "Construis la boutique avec intention",
     guidanceBody:
-      "Garde les packs actifs concentrés et utilise les packs inactifs comme brouillons ou rotations saisonnières au lieu de charger la boutique.",
+      "Garde les packs actifs concentrés, utilise les packs inactifs comme brouillons ou rotations saisonnières, et assigne des visuels distants sans reconstruire l'app.",
     create: "Créer",
     searchPlaceholder: "Rechercher des packs",
     activeLabel: "Actifs",
@@ -192,10 +194,45 @@ const admin = {
     cost: "Coût",
     accentColor: "Couleur d'accent",
     guaranteedRarity: "Rareté garantie",
+    packArtAssetId: "ID du visuel de pack",
+    packArtPlaceholder:
+      "Laisse vide pour utiliser le visuel intégré de secours",
+    packArtAssigned: "Visuel distant assigné",
+    packArtUnassigned: "Visuel intégré de secours utilisé",
+    recentArtShelf: "Bibliothèque récente",
+    recentArtSubtitle:
+      "Appuie sur un visuel du catalogue pour l'attacher à cette ouverture de pack.",
     blankRarity: "Laisser vide pour aucune",
     availability: "Disponibilité",
     savePack: "Enregistrer le pack",
     couldNotSave: "Impossible d'enregistrer ce pack.",
+  },
+  cardBackVisuals: {
+    title: "Dos des cartes",
+    subtitle:
+      "Associe des visuels du catalogue à chaque thème et rareté pour gérer les dos côté backend.",
+    guidanceTitle: "Complète toute la matrice",
+    guidanceBody:
+      "Chaque paire thème + rareté peut pointer vers un visuel du catalogue. Laisse un emplacement vide pour garder le secours intégré.",
+    mappedLabel: "Assignés",
+    totalLabel: "Emplacements",
+    sectionSubtitle:
+      "Appuie sur une rareté pour assigner ou retirer le visuel distant du dos.",
+    loading: "Chargement des dos de cartes...",
+    emptyTitle: "Aucun emplacement de dos",
+    emptyBody:
+      "La matrice thème + rareté apparaîtra ici dès que l'API répondra.",
+    assigned: "Visuel distant assigné",
+    usingDefault: "Visuel intégré de secours utilisé",
+    modalTitle: "{theme} {rarity}",
+    assetId: "ID du visuel",
+    assetPlaceholder:
+      "Laisse vide pour utiliser le visuel intégré de secours",
+    recentArtShelf: "Bibliothèque récente",
+    recentArtSubtitle:
+      "Appuie sur un visuel du catalogue pour l'assigner à cette paire thème + rareté.",
+    save: "Enregistrer le mapping",
+    couldNotSave: "Impossible d'enregistrer ce dos de carte.",
   },
   imageAssets: {
     uploadFailed: "Échec du téléversement",

@@ -498,10 +498,18 @@ export const packSchema = z.object({
   color: z.string(),
   isActive: z.boolean(),
   guaranteedRarity: z.string().nullable(),
+  packArtAssetId: z.string().nullable(),
+});
+
+export const cardBackVisualSchema = z.object({
+  themeName: z.enum(["candy", "ice", "nightosphere"]),
+  rarityName: z.enum(["Common", "Uncommon", "Rare", "Epic", "Legendary"]),
+  imageAssetId: z.string().nullable(),
 });
 
 export const packsResponseSchema = z.object({
   packs: z.array(packSchema),
+  cardBackVisuals: z.array(cardBackVisualSchema),
 });
 
 export const adminPackSchema = packSchema;
@@ -518,6 +526,7 @@ export const adminPackEditSchema = z.object({
   color: z.string().min(1),
   isActive: z.boolean().optional(),
   guaranteedRarity: z.string().nullable().optional(),
+  packArtAssetId: z.string().nullable().optional(),
 });
 
 export const openedCardSchema = cardSchema.extend({
@@ -1022,6 +1031,18 @@ export const adminImageAssetsResponseSchema = z.object({
   imageAssets: z.array(adminImageAssetSchema),
 });
 
+export const adminCardBackVisualSchema = cardBackVisualSchema;
+
+export const adminCardBackVisualsResponseSchema = z.object({
+  cardBackVisuals: z.array(adminCardBackVisualSchema),
+});
+
+export const adminCardBackVisualEditSchema = z.object({
+  themeName: z.enum(["candy", "ice", "nightosphere"]),
+  rarityName: z.enum(["Common", "Uncommon", "Rare", "Epic", "Legendary"]),
+  imageAssetId: z.string().nullable(),
+});
+
 export const adminCardEditSchema = z.object({
   name: z.string().min(1),
   character: z.string().min(1),
@@ -1196,12 +1217,20 @@ export type CollectionResponse = z.infer<typeof collectionResponseSchema>;
 export type UsersResponse = z.infer<typeof usersResponseSchema>;
 export type HomeResponse = z.infer<typeof homeResponseSchema>;
 export type PacksResponse = z.infer<typeof packsResponseSchema>;
+export type CardBackVisual = z.infer<typeof cardBackVisualSchema>;
 export type AdminPacksResponse = z.infer<typeof adminPacksResponseSchema>;
 export type AdminPackDetail = z.infer<typeof adminPackDetailSchema>;
 export type AdminImageAssetsResponse = z.infer<
   typeof adminImageAssetsResponseSchema
 >;
 export type AdminImageAsset = z.infer<typeof adminImageAssetSchema>;
+export type AdminCardBackVisualsResponse = z.infer<
+  typeof adminCardBackVisualsResponseSchema
+>;
+export type AdminCardBackVisual = z.infer<typeof adminCardBackVisualSchema>;
+export type AdminCardBackVisualEditInput = z.infer<
+  typeof adminCardBackVisualEditSchema
+>;
 export type OpenPackInput = z.infer<typeof openPackSchema>;
 export type OpenPackResponse = z.infer<typeof openPackResponseSchema>;
 export type DailyClaimStatus = z.infer<typeof dailyClaimStatusSchema>;

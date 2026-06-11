@@ -3,7 +3,7 @@ import { Image } from "expo-image";
 import { useNavigation } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   Animated,
   Easing,
@@ -62,6 +62,8 @@ import {
 } from "../../src/components/theme";
 import { useTranslation } from "../../src/i18n";
 import { apiClient } from "../../src/lib/api";
+import { prefetchCatalogImages } from "../../src/lib/catalog-images";
+import { prefetchCardImages } from "../../src/lib/card-images";
 import { useSessionStore } from "../../src/stores/session-store";
 import { useThemeStore } from "../../src/stores/theme-store";
 import {
@@ -73,10 +75,12 @@ import { THEME_COLORS, type ThemeName } from "../../src/theme/themes";
 import type { ViewStyle } from "react-native";
 
 type Pack = PacksResponse["packs"][number];
+type CardBackVisual = PacksResponse["cardBackVisuals"][number];
 type OpenedCard = OpenPackResponse["cards"][number];
 type CardTileEntry = CollectionResponse["cards"][number];
 type AbsolutePosition = Pick<ViewStyle, "top" | "right" | "bottom" | "left">;
 type RarityName = "Common" | "Uncommon" | "Rare" | "Epic" | "Legendary";
+type CardBackVisualMap = Map<string, string>;
 type BurstCrack = {
   path: string;
   dashLength: number;
@@ -525,6 +529,20 @@ function toRarityName(value: string | undefined): RarityName {
   return "Common";
 }
 
+function getCardBackVisualKey(themeName: ThemeName, rarityName: RarityName) {
+  return `${themeName}:${rarityName}`;
+}
+
+function buildCardBackVisualMap(visuals: CardBackVisual[]): CardBackVisualMap {
+  return new Map(
+    visuals.flatMap((visual) =>
+      visual.imageAssetId
+        ? [[getCardBackVisualKey(visual.themeName, visual.rarityName), visual.imageAssetId]]
+        : [],
+    ),
+  );
+}
+
 function BackgroundOrbs({
   primary,
   secondary,
@@ -599,6 +617,7 @@ function PackPreviewCard({
   const packArtSource = getPackOpeningArtSource({
     guaranteedRarity: pack.guaranteedRarity,
     name: pack.name,
+    packArtAssetId: pack.packArtAssetId,
   });
   void sheenAnim;
 
@@ -1106,16 +1125,22 @@ function CardBackFace({
   tc,
   themeName,
   rarityName,
+  cardBackVisualMap,
 }: {
   width: number;
   tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
   themeName: ThemeName;
   rarityName: RarityName;
+  cardBackVisualMap: CardBackVisualMap;
 }) {
   const height = width / PACK_CARD_RATIO;
   const themePalette = getCardBackPalette(themeName, tc);
   const rarityPalette = getThemeRarityPalette(themeName, rarityName);
-  const backcoverSource = getCardBackcoverSource(themeName, rarityName);
+  const backcoverSource = getCardBackcoverSource(
+    themeName,
+    rarityName,
+    cardBackVisualMap.get(getCardBackVisualKey(themeName, rarityName)),
+  );
   const emblemSize = Math.max(84, width * 0.29);
   const stripeWidth = width * 0.58;
 
@@ -1316,6 +1341,7 @@ function CardBackStack({
   width,
   tc,
   themeName,
+  cardBackVisualMap,
   rarityNames,
   spreadAnim,
   idleAnim,
@@ -1324,6 +1350,7 @@ function CardBackStack({
   width: number;
   tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
   themeName: ThemeName;
+  cardBackVisualMap: CardBackVisualMap;
   rarityNames?: RarityName[];
   spreadAnim: Animated.Value;
   idleAnim?: Animated.Value;
@@ -1451,6 +1478,7 @@ function CardBackStack({
             tc={tc}
             themeName={themeName}
             rarityName={card.rarityName}
+            cardBackVisualMap={cardBackVisualMap}
           />
         </Animated.View>
       ))}
@@ -2114,6 +2142,14 @@ export default function PacksScreen() {
       setOpenedCards(result.cards);
       setNewBalance(result.newBalance);
 
+      await Promise.all([
+        prefetchCardImages(result.cards.map((card) => card.imageAssetId)),
+        prefetchCatalogImages([
+          result.pack.packArtAssetId,
+          ...(packsQuery.data?.cardBackVisuals.map((visual) => visual.imageAssetId) ?? []),
+        ]),
+      ]);
+
       await animateLoadingProgress(44, 82, PACK_OPEN_PROGRESS_MS.second);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["collection"] }),
@@ -2251,6 +2287,33 @@ export default function PacksScreen() {
     queryFn: () => apiClient.packs(),
   });
 
+  const cardBackVisualMap = useMemo(
+    () => buildCardBackVisualMap(packsQuery.data?.cardBackVisuals ?? []),
+    [packsQuery.data?.cardBackVisuals],
+  );
+
+  const packVisualPrefetchKey = useMemo(() => {
+    if (!packsQuery.data) {
+      return "";
+    }
+
+    return [
+      ...packsQuery.data.packs.map((pack) => pack.packArtAssetId ?? ""),
+      ...packsQuery.data.cardBackVisuals.map((visual) => visual.imageAssetId ?? ""),
+    ].join(",");
+  }, [packsQuery.data]);
+
+  useEffect(() => {
+    if (!packsQuery.data || !packVisualPrefetchKey) {
+      return;
+    }
+
+    void prefetchCatalogImages([
+      ...packsQuery.data.packs.map((pack) => pack.packArtAssetId),
+      ...packsQuery.data.cardBackVisuals.map((visual) => visual.imageAssetId),
+    ]);
+  }, [packVisualPrefetchKey, packsQuery.data]);
+
   if (packsQuery.isLoading) {
     return (
       <PageLoadingState
@@ -2386,6 +2449,7 @@ export default function PacksScreen() {
                   color: selectedPack.color || "#C96A24",
                   guaranteedRarity: selectedPack.guaranteedRarity,
                   name: selectedPack.name,
+                  packArtAssetId: selectedPack.packArtAssetId,
                 }}
                 stageOffsetY={openingStageTranslateY}
                 dom={{
@@ -2561,6 +2625,7 @@ export default function PacksScreen() {
                 width={stageCardWidth}
                 tc={tc}
                 themeName={themeName}
+                cardBackVisualMap={cardBackVisualMap}
                 rarityNames={openingStackRarities}
                 spreadAnim={stackSpreadAnim}
                 pulseAnim={pulseAnim}
@@ -2713,6 +2778,7 @@ export default function PacksScreen() {
                   tc={tc}
                   themeName={themeName}
                   rarityName={rarityName}
+                  cardBackVisualMap={cardBackVisualMap}
                 />
               </Animated.View>
               <Animated.View

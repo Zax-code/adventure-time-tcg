@@ -24,7 +24,7 @@ type ThemeColorKey = keyof (typeof THEME_COLORS)["candy"];
 const NAV_ITEMS: {
   path: string;
   labelKey: string;
-  icon: "albums" | "cube" | "images" | "star" | "flash" | "people";
+  icon: "albums" | "copy" | "cube" | "images" | "star" | "flash" | "people";
   tintKey: ThemeColorKey;
 }[] = [
   {
@@ -38,6 +38,12 @@ const NAV_ITEMS: {
     labelKey: "admin.shell.nav.packs",
     icon: "cube",
     tintKey: "secondaryText",
+  },
+  {
+    path: "/admin/card-back-visuals",
+    labelKey: "admin.shell.nav.cardBacks",
+    icon: "copy",
+    tintKey: "accentText",
   },
   {
     path: "/admin/image-assets",
