@@ -26,6 +26,8 @@ import {
 import { useTranslation } from "../../src/i18n";
 
 type AdminPack = AdminPacksResponse["packs"][number];
+const EMPTY_PACKS: AdminPack[] = [];
+const EMPTY_IMAGE_ASSETS: AdminImageAssetsResponse["imageAssets"] = [];
 
 type PackDraft = {
   name: string;
@@ -101,12 +103,16 @@ export default function AdminPacksScreen() {
   const [draft, setDraft] = useState<PackDraft>(BLANK_DRAFT);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const packsQuery = useQuery({
+  const {
+    data: packsData,
+    error: packsQueryError,
+    isLoading: isLoadingPacks,
+  } = useQuery({
     queryKey: ["admin-packs"],
     queryFn: () => apiClient.adminPacks(),
   });
 
-  const imageAssetsQuery = useQuery({
+  const { data: imageAssetsData } = useQuery({
     queryKey: ["admin-image-assets"],
     queryFn: () => apiClient.adminImageAssets(),
   });
@@ -130,11 +136,11 @@ export default function AdminPacksScreen() {
     },
   });
 
-  const packs = packsQuery.data?.packs ?? [];
-  const imageAssets = imageAssetsQuery.data?.imageAssets ?? [];
+  const packs = packsData?.packs ?? EMPTY_PACKS;
+  const imageAssets = imageAssetsData?.imageAssets ?? EMPTY_IMAGE_ASSETS;
   const packsError =
-    packsQuery.error instanceof Error ? packsQuery.error.message : null;
-  const recentAssets = useMemo(() => imageAssets.slice(0, 12), [imageAssets]);
+    packsQueryError instanceof Error ? packsQueryError.message : null;
+  const recentAssets = imageAssets.slice(0, 12);
 
   const filteredPacks = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -276,7 +282,7 @@ export default function AdminPacksScreen() {
           />
         </AdminHero>
 
-        {!packsError && !packsQuery.isLoading ? (
+        {!packsError && !isLoadingPacks ? (
           <AdminNotice
             title={t("admin.packs.guidanceTitle")}
             body={t("admin.packs.guidanceBody")}
@@ -291,7 +297,7 @@ export default function AdminPacksScreen() {
             subtitle={t("admin.packs.activeSubtitle")}
           />
           <View className="mt-3 gap-3">
-            {packsQuery.isLoading ? (
+            {isLoadingPacks ? (
               <AdminLoadingState
                 title={t("admin.packs.loading")}
                 body={t("common.loadingStates.adminBody")}
@@ -321,7 +327,7 @@ export default function AdminPacksScreen() {
             subtitle={t("admin.packs.inactiveSubtitle")}
           />
           <View className="mt-3 gap-3">
-            {packsQuery.isLoading ? (
+            {isLoadingPacks ? (
               <AdminLoadingState
                 title={t("admin.packs.loading")}
                 body={t("common.loadingStates.adminBody")}

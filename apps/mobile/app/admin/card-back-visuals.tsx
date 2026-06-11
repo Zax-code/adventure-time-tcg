@@ -27,6 +27,8 @@ import { useTranslation } from "../../src/i18n";
 
 const THEME_ORDER = ["candy", "ice", "nightosphere"] as const;
 const RARITY_ORDER = ["Common", "Uncommon", "Rare", "Epic", "Legendary"] as const;
+const EMPTY_VISUALS: AdminCardBackVisual[] = [];
+const EMPTY_IMAGE_ASSETS: AdminImageAssetsResponse["imageAssets"] = [];
 
 type ThemeName = (typeof THEME_ORDER)[number];
 type RarityName = (typeof RARITY_ORDER)[number];
@@ -56,19 +58,19 @@ export default function AdminCardBackVisualsScreen() {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const visualsQuery = useQuery({
+  const { data: visualsData, isLoading: isLoadingVisuals } = useQuery({
     queryKey: ["admin-card-back-visuals"],
     queryFn: () => apiClient.adminCardBackVisuals(),
   });
 
-  const imageAssetsQuery = useQuery({
+  const { data: imageAssetsData } = useQuery({
     queryKey: ["admin-image-assets"],
     queryFn: () => apiClient.adminImageAssets(),
   });
 
-  const visuals = visualsQuery.data?.cardBackVisuals ?? [];
-  const imageAssets = imageAssetsQuery.data?.imageAssets ?? [];
-  const recentAssets = useMemo(() => imageAssets.slice(0, 15), [imageAssets]);
+  const visuals = visualsData?.cardBackVisuals ?? EMPTY_VISUALS;
+  const imageAssets = imageAssetsData?.imageAssets ?? EMPTY_IMAGE_ASSETS;
+  const recentAssets = imageAssets.slice(0, 15);
   const assignedCount = visuals.filter((visual) => visual.imageAssetId).length;
 
   const visualsByTheme = useMemo(
@@ -144,7 +146,7 @@ export default function AdminCardBackVisualsScreen() {
           </View>
         </AdminHero>
 
-        {!visualsQuery.isLoading ? (
+        {!isLoadingVisuals ? (
           <AdminNotice
             title={t("admin.cardBackVisuals.guidanceTitle")}
             body={t("admin.cardBackVisuals.guidanceBody")}
@@ -153,7 +155,7 @@ export default function AdminCardBackVisualsScreen() {
           />
         ) : null}
 
-        {visualsQuery.isLoading ? (
+        {isLoadingVisuals ? (
           <AdminPanel>
             <AdminLoadingState
               title={t("admin.cardBackVisuals.loading")}

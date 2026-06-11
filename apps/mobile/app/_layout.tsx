@@ -23,8 +23,8 @@ import { useRetryFailedQueriesOnAppActive } from "../src/hooks/use-retry-failed-
 import { useStepQuestWidgetSync } from "../src/hooks/use-step-quest-widget-sync";
 import { useUserTimezoneSync } from "../src/hooks/use-user-timezone-sync";
 import { useWidgetRefreshPushRegistration } from "../src/hooks/use-widget-refresh-push-registration";
+import { useWarmPackVisuals } from "../src/hooks/use-warm-pack-visuals";
 import { AppLaunchScreen } from "../src/components/app-launch-screen";
-import { prefetchCatalogImages } from "../src/lib/catalog-images";
 import { queryClient } from "../src/lib/query-client";
 import { useBootstrap } from "../src/hooks/use-bootstrap";
 import { apiClient } from "../src/lib/api";
@@ -90,6 +90,7 @@ export default function RootLayout() {
     timezone,
     userId: authUserId,
   });
+  useWarmPackVisuals(accessToken, bootstrapPhase);
 
   const [fontsLoaded] = useFonts({
     Nunito_400Regular,
@@ -231,41 +232,6 @@ export default function RootLayout() {
       },
     });
   }, [accessToken, authUserId, publishReset]);
-
-  useEffect(() => {
-    if (!accessToken || bootstrapPhase !== "ready") {
-      return;
-    }
-
-    let cancelled = false;
-
-    async function warmPackVisuals() {
-      try {
-        const response = await queryClient.fetchQuery({
-          queryKey: ["packs"],
-          queryFn: () => apiClient.packs(),
-          staleTime: 5 * 60 * 1000,
-        });
-
-        if (cancelled) {
-          return;
-        }
-
-        await prefetchCatalogImages([
-          ...response.packs.map((pack) => pack.packArtAssetId),
-          ...response.cardBackVisuals.map((visual) => visual.imageAssetId),
-        ]);
-      } catch {
-        // Background visual warmup is best-effort only.
-      }
-    }
-
-    void warmPackVisuals();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [accessToken, bootstrapPhase]);
 
   if (!localBootReady) {
     return (
