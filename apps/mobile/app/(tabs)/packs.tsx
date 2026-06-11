@@ -2148,16 +2148,15 @@ export default function PacksScreen() {
           result.pack.packArtAssetId,
           ...(packsQuery.data?.cardBackVisuals.map((visual) => visual.imageAssetId) ?? []),
         ]),
+        animateLoadingProgress(44, 82, PACK_OPEN_PROGRESS_MS.second),
       ]);
-
-      await animateLoadingProgress(44, 82, PACK_OPEN_PROGRESS_MS.second);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["collection"] }),
         queryClient.invalidateQueries({ queryKey: ["home"] }),
         queryClient.invalidateQueries({ queryKey: ["daily-claim"] }),
         patchUser({ coins: result.newBalance }),
+        animateLoadingProgress(82, 100, PACK_OPEN_PROGRESS_MS.final),
       ]);
-      await animateLoadingProgress(82, 100, PACK_OPEN_PROGRESS_MS.final);
 
       void Haptics.notificationAsync(
         Haptics.NotificationFeedbackType.Success,
