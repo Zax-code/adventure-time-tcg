@@ -2,8 +2,6 @@ import { View } from "react-native";
 import { Tabs, Redirect } from "expo-router";
 
 import { useSessionStore } from "../../src/stores/session-store";
-import { useThemeStore } from "../../src/stores/theme-store";
-import { THEME_COLORS } from "../../src/theme/themes";
 import { AppHeader } from "../../src/components/app-header";
 import { BottomTabBar } from "../../src/components/bottom-tab-bar";
 import { useTranslation } from "../../src/i18n";
@@ -12,8 +10,6 @@ export default function TabLayout() {
   const hydrated = useSessionStore((state) => state.hydrated);
   const user = useSessionStore((state) => state.user);
   const { t } = useTranslation();
-  const themeName = useThemeStore((state) => state.themeName);
-  const tc = THEME_COLORS[themeName];
 
   if (!hydrated) {
     return null;
@@ -24,8 +20,7 @@ export default function TabLayout() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: tc.primaryBg }}>
-      <AppHeader />
+    <View style={{ flex: 1 }}>
       <Tabs
         screenOptions={{
           headerShown: false,
@@ -83,6 +78,18 @@ export default function TabLayout() {
           }}
         />
       </Tabs>
+      <View
+        pointerEvents="box-none"
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 20,
+        }}
+      >
+        <AppHeader />
+      </View>
     </View>
   );
 }

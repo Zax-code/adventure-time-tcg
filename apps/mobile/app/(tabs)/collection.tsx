@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import {
@@ -32,7 +32,10 @@ import { useTranslation } from "../../src/i18n";
 import { KEYBOARD_AWARE_SCROLL_PROPS } from "../../src/components/keyboard-screen-view";
 import { useCollectionFeedbackStore } from "../../src/stores/collection-feedback-store";
 import { useThemeStore } from "../../src/stores/theme-store";
-import { useBottomTabBarContentPadding } from "../../src/theme/layout";
+import {
+  useAppHeaderHeight,
+  useBottomTabBarContentPadding,
+} from "../../src/theme/layout";
 import { THEME_COLORS } from "../../src/theme/themes";
 
 type CollectionEntry = CollectionResponse["cards"][number];
@@ -57,6 +60,7 @@ export default function CollectionScreen() {
   const accessToken = useSessionStore((state) => state.accessToken);
   const { t } = useTranslation();
   const tc = THEME_COLORS[useThemeStore((s) => s.themeName)];
+  const headerHeight = useAppHeaderHeight();
   const bottomTabPadding = useBottomTabBarContentPadding();
   const collectionFeedbackMessage = useCollectionFeedbackStore(
     (state) => state.message,
@@ -160,6 +164,23 @@ export default function CollectionScreen() {
         return result;
     }
   }, [rawCards, searchQuery, filterRarity, sortBy]);
+
+  const renderCollectionItem = useCallback(
+    ({ item, index }: { item: CollectionEntry; index: number }) => (
+      <CardTile
+        entry={item}
+        accessToken={accessToken}
+        testID={`collection-card-tile-${index}`}
+        onPress={() =>
+          router.push({
+            pathname: "/collection-card-detail",
+            params: { cardId: item.cardId },
+          })
+        }
+      />
+    ),
+    [accessToken, router],
+  );
 
   if (collectionQuery.isLoading) {
     return (
@@ -452,6 +473,7 @@ export default function CollectionScreen() {
           translateY={toastAnim}
           successColor={tc.successDark}
           errorColor={tc.dangerDark}
+          topOffset={headerHeight + 16}
         />
       ) : null}
 
@@ -463,7 +485,9 @@ export default function CollectionScreen() {
         columnWrapperStyle={{ justifyContent: "space-evenly" }}
         data={filteredCards}
         keyExtractor={(entry: CollectionEntry) => entry.id}
-        ListHeaderComponent={listHeader}
+        ListHeaderComponent={
+          <View style={{ paddingTop: headerHeight }}>{listHeader}</View>
+        }
         ListEmptyComponent={
           <View style={{ padding: 32, alignItems: "center" }}>
             <Text
@@ -480,19 +504,7 @@ export default function CollectionScreen() {
             </Text>
           </View>
         }
-        renderItem={({ item, index }: { item: CollectionEntry; index: number }) => (
-          <CardTile
-            entry={item}
-            accessToken={accessToken}
-            testID={`collection-card-tile-${index}`}
-            onPress={() =>
-              router.push({
-                pathname: "/collection-card-detail",
-                params: { cardId: item.cardId },
-              })
-            }
-          />
-        )}
+        renderItem={renderCollectionItem}
       />
 
       {/* Stats Modal */}
