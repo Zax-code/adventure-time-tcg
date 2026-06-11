@@ -595,12 +595,25 @@ function PackPreviewCard({
         height,
         overflow: "visible",
         backgroundColor: "transparent",
-        boxShadow: compact
-          ? `0 18px 32px ${withAlpha("#000000", "30")}`
-          : `0 22px 46px ${withAlpha("#000000", "40")}`,
         transform: animatedTransforms,
       }}
     >
+      <Image
+        source={packArtSource}
+        style={{
+          position: "absolute",
+          width: "100%",
+          height: "100%",
+          opacity: compact ? 0.14 : 0.18,
+          transform: [
+            { translateY: compact ? 10 : 14 },
+            { scale: 0.96 },
+          ],
+        }}
+        contentFit="contain"
+        transition={0}
+        blurRadius={compact ? 12 : 18}
+      />
       <Image
         source={packArtSource}
         style={{ width: "100%", height: "100%" }}

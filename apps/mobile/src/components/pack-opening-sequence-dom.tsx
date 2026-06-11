@@ -192,8 +192,6 @@ const CSS = `
     width: 230px;
     height: 330px;
     overflow: visible;
-    box-shadow:
-      0 18px 42px rgba(0, 0, 0, .4);
     animation: pack-card-idle 2.6s ease-in-out infinite;
     background: transparent;
   }
@@ -224,6 +222,7 @@ const CSS = `
     height: 100%;
     display: block;
     object-fit: contain;
+    filter: drop-shadow(0 18px 22px rgba(0, 0, 0, .28));
   }
 
   .pack-opening-crack-layer {
