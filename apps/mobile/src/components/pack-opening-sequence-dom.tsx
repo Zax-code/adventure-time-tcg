@@ -47,8 +47,8 @@ type Sparkle = {
   y: number;
 };
 
-const CARD_W = 230;
-const CARD_H = 330;
+const CARD_W = 250;
+const CARD_H = 358;
 const CENTER = { x: CARD_W * 0.5, y: CARD_H * 0.47 };
 
 const CSS = `
@@ -189,21 +189,15 @@ const CSS = `
 
   .pack-opening-card {
     position: relative;
-    width: 230px;
-    height: 330px;
+    width: 250px;
+    height: 358px;
     overflow: visible;
     animation: pack-card-idle 2.6s ease-in-out infinite;
     background: transparent;
   }
 
   .pack-opening-card::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(115deg, transparent 20%, rgba(255,255,255,.35) 38%, transparent 52%);
-    transform: translateX(-120%);
-    animation: pack-sheen 3.4s ease-in-out infinite;
-    mix-blend-mode: screen;
+    display: none;
   }
 
   .pack-opening-card::before {
@@ -222,7 +216,7 @@ const CSS = `
     height: 100%;
     display: block;
     object-fit: contain;
-    filter: drop-shadow(0 18px 22px rgba(0, 0, 0, .28));
+    filter: drop-shadow(0 14px 16px rgba(0, 0, 0, .22));
   }
 
   .pack-opening-crack-layer {

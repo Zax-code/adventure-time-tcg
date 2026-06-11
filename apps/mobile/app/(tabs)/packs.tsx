@@ -542,6 +542,7 @@ function PackPreviewCard({
     guaranteedRarity: pack.guaranteedRarity,
     name: pack.name,
   });
+  void sheenAnim;
 
   const animatedTransforms = [
     ...(chargeAnim
@@ -620,34 +621,6 @@ function PackPreviewCard({
         contentFit="contain"
         transition={0}
       />
-      {sheenAnim ? (
-        <Animated.View
-          pointerEvents="none"
-          style={{
-            position: "absolute",
-            top: -height * 0.08,
-            bottom: -height * 0.08,
-            width: width * 0.54,
-            opacity: 0.42,
-            transform: [
-              {
-                translateX: sheenAnim.interpolate({
-                  inputRange: [0, 0.45, 0.7, 1],
-                  outputRange: [-width * 1.2, -width * 1.2, width * 1.2, width * 1.2],
-                }),
-              },
-              { rotate: "16deg" },
-            ],
-          }}
-        >
-          <LinearGradient
-            colors={["rgba(255,255,255,0)", "rgba(255,255,255,0.35)", "rgba(255,255,255,0)"]}
-            start={{ x: 0, y: 0.2 }}
-            end={{ x: 1, y: 0.8 }}
-            style={{ flex: 1 }}
-          />
-        </Animated.View>
-      ) : null}
     </Animated.View>
   );
 }
@@ -2140,7 +2113,7 @@ export default function PacksScreen() {
     const isLoadingPhase = phase === "loading";
     const isChargePhase = phase === "shaking";
     const openingAccent = selectedPack.color || "#D58524";
-    const chargePreviewWidth = Math.min(stageCardWidth, 230);
+    const chargePreviewWidth = Math.min(stageCardWidth * 1.1, 260);
     const openingStageHeight = Math.min(Math.max(height * 0.62, 420), 620);
     const openingFooterReserve = Math.min(
       Math.max(height * 0.24, 196),
