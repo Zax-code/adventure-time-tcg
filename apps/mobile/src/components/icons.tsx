@@ -374,43 +374,49 @@ export function AttackStatIcon({ size = 24 }: { size?: number }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 64 64" fill="none">
       <Defs>
-        <LinearGradient id="atkBlade" x1="14" y1="54" x2="50" y2="18" gradientUnits="userSpaceOnUse">
-          <Stop offset="0%" stopColor="#FFF4B8" />
-          <Stop offset="55%" stopColor="#FFC54D" />
-          <Stop offset="100%" stopColor="#FF8B3D" />
+        <LinearGradient id="atkBlade" x1="32" y1="8" x2="32" y2="52" gradientUnits="userSpaceOnUse">
+          <Stop offset="0%" stopColor="#FFF4C2" />
+          <Stop offset="52%" stopColor="#FFC85A" />
+          <Stop offset="100%" stopColor="#F28A2A" />
         </LinearGradient>
-        <LinearGradient id="atkGuard" x1="18" y1="46" x2="44" y2="46" gradientUnits="userSpaceOnUse">
-          <Stop offset="0%" stopColor="#B85A19" />
-          <Stop offset="100%" stopColor="#7D2E11" />
+        <LinearGradient id="atkHilt" x1="24" y1="40" x2="40" y2="58" gradientUnits="userSpaceOnUse">
+          <Stop offset="0%" stopColor="#C56B22" />
+          <Stop offset="100%" stopColor="#7A3515" />
         </LinearGradient>
       </Defs>
       <Path
-        d="M18 46L42 22C44.4 19.6 47.9 18.8 51.1 19.7L44.3 26.5L47.9 30.1L54.7 23.3C55.6 26.5 54.8 30 52.4 32.4L28.4 56.4C27.6 57.2 26.4 57.2 25.6 56.4L18 48.8C17.2 48 17.2 46.8 18 46Z"
+        d="M32 8L39 18L34.8 39H29.2L25 18L32 8Z"
         fill="url(#atkBlade)"
-        stroke="#743017"
+        stroke="#7A3515"
         strokeWidth="2.2"
         strokeLinejoin="round"
       />
       <Path
-        d="M14 50L22 42L29 49L21 57C19.3 58.7 16.7 58.7 15 57L14 56C12.3 54.3 12.3 51.7 14 50Z"
-        fill="#5C3219"
-        stroke="#3B1E0E"
-        strokeWidth="2.2"
-        strokeLinejoin="round"
-      />
-      <Path
-        d="M20 43L26 37L33 44L27 50L20 43Z"
-        fill="url(#atkGuard)"
-        stroke="#3B1E0E"
-        strokeWidth="2.2"
-        strokeLinejoin="round"
-      />
-      <Path
-        d="M45 17L47.5 10L50 17L57 19.5L50 22L47.5 29L45 22L38 19.5L45 17Z"
-        fill="#FFF6CE"
-        stroke="#D76A27"
+        d="M23 19.5L32 15L41 19.5L32 24L23 19.5Z"
+        fill="#FFE6A3"
+        stroke="#C46A1D"
         strokeWidth="2"
         strokeLinejoin="round"
+      />
+      <Path
+        d="M21 39H43L37.5 45H26.5L21 39Z"
+        fill="#FFD087"
+        stroke="#A94D1A"
+        strokeWidth="2.2"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M28 45H36V56C36 57.1 35.1 58 34 58H30C28.9 58 28 57.1 28 56V45Z"
+        fill="url(#atkHilt)"
+        stroke="#59240F"
+        strokeWidth="2.2"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M32 24V39"
+        stroke="#FFF8D8"
+        strokeWidth="1.8"
+        strokeLinecap="round"
       />
     </Svg>
   );
@@ -489,33 +495,43 @@ export function SpeedStatIcon({ size = 24 }: { size?: number }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 64 64" fill="none">
       <Defs>
-        <LinearGradient id="spdBoot" x1="16" y1="22" x2="48" y2="52" gradientUnits="userSpaceOnUse">
-          <Stop offset="0%" stopColor="#BFF9EE" />
-          <Stop offset="50%" stopColor="#41D8C0" />
-          <Stop offset="100%" stopColor="#0D9F92" />
+        <LinearGradient id="spdWing" x1="12" y1="18" x2="51" y2="45" gradientUnits="userSpaceOnUse">
+          <Stop offset="0%" stopColor="#D5FFF8" />
+          <Stop offset="56%" stopColor="#55E2CF" />
+          <Stop offset="100%" stopColor="#119B92" />
         </LinearGradient>
-        <LinearGradient id="spdWing" x1="10" y1="18" x2="30" y2="30" gradientUnits="userSpaceOnUse">
-          <Stop offset="0%" stopColor="#F6FFFE" />
-          <Stop offset="100%" stopColor="#C8FFF5" />
+        <LinearGradient id="spdSpark" x1="26" y1="12" x2="42" y2="24" gradientUnits="userSpaceOnUse">
+          <Stop offset="0%" stopColor="#F7FFFF" />
+          <Stop offset="100%" stopColor="#D4FFF8" />
         </LinearGradient>
       </Defs>
       <Path
-        d="M21 18C24.7 18 27.7 21 27.7 24.7V29.7C27.7 31 28.7 32 30 32H36.5C39.2 32 41.8 33.1 43.7 35L49.8 41.1C50.7 42 50.9 43.5 50.2 44.6L46.8 50.1C46.4 50.8 45.6 51.2 44.8 51.2H26.1C24.7 51.2 23.3 50.7 22.2 49.9L14.4 44.3C13.3 43.5 12.9 42 13.4 40.8L16.3 33.4C17.1 31.3 18.5 29.5 20.4 28.5L21 28.2V18Z"
-        fill="url(#spdBoot)"
+        d="M13 37C20.5 29.1 28.8 25 38 24.7C34.6 22.2 29.9 20.7 24.4 20.5C30 16.3 37.7 15.3 46 17.8C42.1 19 38.8 21.1 36.1 24.1C41 24.7 45.7 26.8 50 30.4C40.5 31.1 31.8 34 24 39.1L13 37Z"
+        fill="url(#spdWing)"
         stroke="#0A6B68"
         strokeWidth="2.4"
-        strokeLinejoin="round"
-      />
-      <Path
-        d="M22 19C19.8 15.8 16.4 14 12.4 14C13.8 17.6 16.4 20.6 20 22C16.4 22.4 13 24.2 10.6 27.1C14.4 28 18.4 27.4 21.7 25.4"
-        fill="url(#spdWing)"
-        stroke="#0EA99A"
-        strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <Path d="M33 23L39 17" stroke="#E8FFFD" strokeWidth="2.2" strokeLinecap="round" />
-      <Path d="M37 26L45 18" stroke="#E8FFFD" strokeWidth="2.2" strokeLinecap="round" />
+      <Path
+        d="M19 43C25.6 39.3 32.2 37.1 38.8 36.6"
+        stroke="#17BCAE"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+      />
+      <Path
+        d="M23 48C28.3 45.7 33.2 44.5 37.8 44.2"
+        stroke="#17BCAE"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+      />
+      <Path
+        d="M39 13L40.8 17.2L45 19L40.8 20.8L39 25L37.2 20.8L33 19L37.2 17.2L39 13Z"
+        fill="url(#spdSpark)"
+        stroke="#1AA89B"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
     </Svg>
   );
 }
