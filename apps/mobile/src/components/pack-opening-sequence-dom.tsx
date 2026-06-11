@@ -47,8 +47,8 @@ type Sparkle = {
   y: number;
 };
 
-const CARD_W = 250;
-const CARD_H = 358;
+const CARD_W = 290;
+const CARD_H = 417;
 const CENTER = { x: CARD_W * 0.5, y: CARD_H * 0.47 };
 
 const CSS = `
@@ -189,8 +189,8 @@ const CSS = `
 
   .pack-opening-card {
     position: relative;
-    width: 250px;
-    height: 358px;
+    width: 290px;
+    height: 417px;
     overflow: visible;
     animation: pack-card-idle 2.6s ease-in-out infinite;
     background: transparent;
@@ -216,7 +216,7 @@ const CSS = `
     height: 100%;
     display: block;
     object-fit: contain;
-    filter: drop-shadow(0 14px 16px rgba(0, 0, 0, .22));
+    filter: drop-shadow(0 14px 16px rgba(0, 0, 0, .2));
   }
 
   .pack-opening-crack-layer {
@@ -881,6 +881,16 @@ export default function PackOpeningSequenceDom({
               className="pack-opening-crack-layer"
               viewBox={`0 0 ${CARD_W} ${CARD_H}`}
               preserveAspectRatio="none"
+              style={cssVarStyle({
+                WebkitMaskImage: `url(${packArtSrc})`,
+                WebkitMaskPosition: "center",
+                WebkitMaskRepeat: "no-repeat",
+                WebkitMaskSize: "contain",
+                maskImage: `url(${packArtSrc})`,
+                maskPosition: "center",
+                maskRepeat: "no-repeat",
+                maskSize: "contain",
+              })}
             >
               {cracks.map((crack) => (
                 <g key={crack.id}>

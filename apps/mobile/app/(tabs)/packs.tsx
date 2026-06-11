@@ -2113,7 +2113,7 @@ export default function PacksScreen() {
     const isLoadingPhase = phase === "loading";
     const isChargePhase = phase === "shaking";
     const openingAccent = selectedPack.color || "#D58524";
-    const chargePreviewWidth = Math.min(stageCardWidth * 1.1, 260);
+    const chargePreviewWidth = Math.min(stageCardWidth * 1.26, 292);
     const openingStageHeight = Math.min(Math.max(height * 0.62, 420), 620);
     const openingFooterReserve = Math.min(
       Math.max(height * 0.24, 196),
