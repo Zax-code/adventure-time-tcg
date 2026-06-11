@@ -1,4 +1,5 @@
 import { memo, useEffect, useRef } from "react";
+import type { ComponentType } from "react";
 import type { StyleProp, ViewStyle } from "react-native";
 import { Animated, Easing, Pressable, Text, View } from "react-native";
 import { Image } from "expo-image";
@@ -7,7 +8,13 @@ import { LinearGradient } from "expo-linear-gradient";
 import type { CollectionResponse } from "@adventure-time/api-client";
 
 import { CARD_ART_RATIO } from "./card-back-cover-art";
-import { RarityIcon } from "./icons";
+import {
+  AttackStatIcon,
+  DefenseStatIcon,
+  HealthStatIcon,
+  RarityIcon,
+  SpeedStatIcon,
+} from "./icons";
 import { getCardImageCacheKey, getCardImageUrl } from "../lib/card-images";
 import { useThemeStore } from "../stores/theme-store";
 import { THEME_COLORS } from "../theme/themes";
@@ -53,17 +60,23 @@ const sizeConfig = {
     statValueFontSize: 12,
     statLabelFontSize: 5,
     statRadius: 10,
-    statPaddingY: 5,
+    statPaddingY: 6,
+    statPaddingX: 6,
     statGap: 4,
+    statIconSize: 16,
+    statOrbSize: 24,
+    statValueLineHeight: 13,
     descriptionFontSize: 7,
     descriptionLineHeight: 10,
-    descriptionPadding: 7,
-    descriptionLines: 4,
+    descriptionPadding: 6,
+    descriptionLines: 3,
+    descriptionHeight: 46,
     quantityFontSize: 9,
     quantityPaddingH: 8,
     quantityPaddingV: 4,
     metaGap: 7,
     titleBottomPadding: 8,
+    bodyGap: 6,
   },
   large: {
     width: 320,
@@ -83,16 +96,22 @@ const sizeConfig = {
     statLabelFontSize: 8,
     statRadius: 16,
     statPaddingY: 10,
+    statPaddingX: 10,
     statGap: 8,
+    statIconSize: 26,
+    statOrbSize: 38,
+    statValueLineHeight: 21,
     descriptionFontSize: 13,
     descriptionLineHeight: 18,
-    descriptionPadding: 14,
-    descriptionLines: 6,
+    descriptionPadding: 10,
+    descriptionLines: 4,
+    descriptionHeight: 96,
     quantityFontSize: 13,
     quantityPaddingH: 12,
     quantityPaddingV: 6,
     metaGap: 12,
     titleBottomPadding: 12,
+    bodyGap: 10,
   },
 } as const;
 
@@ -160,47 +179,66 @@ function StatChip({
   label,
   value,
   colors,
+  Icon,
   cfg,
 }: {
   label: string;
   value: string | number;
   colors: [string, string];
+  Icon: ComponentType<{ size?: number }>;
   cfg: (typeof sizeConfig)[keyof typeof sizeConfig];
 }) {
   return (
-    <LinearGradient
-      colors={colors}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
+    <View
       style={{
         flex: 1,
         borderRadius: cfg.statRadius,
         paddingVertical: cfg.statPaddingY,
-        paddingHorizontal: 6,
+        paddingHorizontal: cfg.statPaddingX,
         alignItems: "center",
         justifyContent: "center",
+        backgroundColor: withAlpha(colors[0], 0.13),
+        borderWidth: 1,
+        borderColor: withAlpha(colors[1], 0.2),
       }}
     >
-      <Text
-        className="font-nunito-extrabold text-white"
+      <LinearGradient
+        colors={[withAlpha(colors[0], 0.22), withAlpha(colors[1], 0.38)]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
         style={{
-          fontSize: cfg.statLabelFontSize,
-          letterSpacing: 0.6,
-          marginBottom: 2,
+          width: cfg.statOrbSize,
+          height: cfg.statOrbSize,
+          borderRadius: 999,
+          alignItems: "center",
+          justifyContent: "center",
+          marginBottom: 4,
         }}
       >
-        {label}
-      </Text>
+        <Icon size={cfg.statIconSize} />
+      </LinearGradient>
       <Text
-        className="font-nunito-extrabold text-white"
+        className="font-nunito-extrabold"
         style={{
           fontSize: cfg.statValueFontSize,
-          lineHeight: cfg.statValueFontSize + 1,
+          lineHeight: cfg.statValueLineHeight,
+          color: colors[1],
         }}
       >
         {value}
       </Text>
-    </LinearGradient>
+      <Text
+        className="font-nunito-extrabold"
+        style={{
+          fontSize: cfg.statLabelFontSize,
+          letterSpacing: 0.7,
+          marginTop: 2,
+          color: withAlpha(colors[1], 0.84),
+        }}
+      >
+        {label}
+      </Text>
+    </View>
   );
 }
 
@@ -254,11 +292,12 @@ export const CardTile = memo(function CardTile({
     label: string;
     value: string | number;
     colors: [string, string];
+    Icon: ComponentType<{ size?: number }>;
   }> = [
-    { label: "ATK", value: card.attack, colors: [tc.secondaryDark, tc.danger] },
-    { label: "HP", value: card.hp, colors: [tc.danger, tc.dangerDark] },
-    { label: "DEF", value: card.defense, colors: [tc.info, tc.infoDark] },
-    { label: "SPD", value: card.speed, colors: [tc.success, tc.successDark] },
+    { label: "ATK", value: card.attack, colors: [tc.secondaryDark, tc.danger], Icon: AttackStatIcon },
+    { label: "HP", value: card.hp, colors: [tc.danger, tc.dangerDark], Icon: HealthStatIcon },
+    { label: "DEF", value: card.defense, colors: [tc.info, tc.infoDark], Icon: DefenseStatIcon },
+    { label: "SPD", value: card.speed, colors: [tc.success, tc.successDark], Icon: SpeedStatIcon },
   ];
 
   const bounceAnim = useRef(new Animated.Value(0)).current;
@@ -416,7 +455,7 @@ export const CardTile = memo(function CardTile({
           <View
             className="overflow-hidden"
             style={{
-              flex: 1,
+              flex: size === "large" ? 1.55 : 1.38,
               borderRadius: cfg.artRadius,
               backgroundColor: typeColor.light,
             }}
@@ -565,25 +604,7 @@ export const CardTile = memo(function CardTile({
           <View
             style={{
               marginTop: cfg.metaGap,
-              flexDirection: "row",
-              gap: cfg.statGap,
-            }}
-          >
-            {statPalettes.map((stat) => (
-              <StatChip
-                key={stat.label}
-                label={stat.label}
-                value={stat.value}
-                colors={stat.colors}
-                cfg={cfg}
-              />
-            ))}
-          </View>
-
-          <View
-            style={{
-              marginTop: cfg.metaGap,
-              flex: 1,
+              height: cfg.descriptionHeight,
               borderRadius: cfg.artRadius,
               padding: cfg.descriptionPadding,
               backgroundColor: descriptionColor,
@@ -602,6 +623,35 @@ export const CardTile = memo(function CardTile({
             >
               {card.description}
             </Text>
+          </View>
+
+          <View
+            style={{
+              marginTop: cfg.metaGap,
+              borderRadius: cfg.artRadius,
+              padding: cfg.bodyGap,
+              backgroundColor: withAlpha("#FFFFFF", themeName === "nightosphere" ? 0.08 : 0.62),
+              borderWidth: 1,
+              borderColor: withAlpha(rarityColor.ring, themeName === "nightosphere" ? 0.24 : 0.18),
+            }}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                gap: cfg.statGap,
+              }}
+            >
+              {statPalettes.map((stat) => (
+                <StatChip
+                  key={stat.label}
+                  label={stat.label}
+                  value={stat.value}
+                  colors={stat.colors}
+                  Icon={stat.Icon}
+                  cfg={cfg}
+                />
+              ))}
+            </View>
           </View>
         </View>
       </View>

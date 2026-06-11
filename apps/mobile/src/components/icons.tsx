@@ -370,6 +370,156 @@ export function DustIcon({ size = 24, color = "#DB2777" }: IconProps) {
 // CARD STAT ICONS
 // ============================================
 
+export function AttackStatIcon({ size = 24 }: { size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 64 64" fill="none">
+      <Defs>
+        <LinearGradient id="atkBlade" x1="14" y1="54" x2="50" y2="18" gradientUnits="userSpaceOnUse">
+          <Stop offset="0%" stopColor="#FFF4B8" />
+          <Stop offset="55%" stopColor="#FFC54D" />
+          <Stop offset="100%" stopColor="#FF8B3D" />
+        </LinearGradient>
+        <LinearGradient id="atkGuard" x1="18" y1="46" x2="44" y2="46" gradientUnits="userSpaceOnUse">
+          <Stop offset="0%" stopColor="#B85A19" />
+          <Stop offset="100%" stopColor="#7D2E11" />
+        </LinearGradient>
+      </Defs>
+      <Path
+        d="M18 46L42 22C44.4 19.6 47.9 18.8 51.1 19.7L44.3 26.5L47.9 30.1L54.7 23.3C55.6 26.5 54.8 30 52.4 32.4L28.4 56.4C27.6 57.2 26.4 57.2 25.6 56.4L18 48.8C17.2 48 17.2 46.8 18 46Z"
+        fill="url(#atkBlade)"
+        stroke="#743017"
+        strokeWidth="2.2"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M14 50L22 42L29 49L21 57C19.3 58.7 16.7 58.7 15 57L14 56C12.3 54.3 12.3 51.7 14 50Z"
+        fill="#5C3219"
+        stroke="#3B1E0E"
+        strokeWidth="2.2"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M20 43L26 37L33 44L27 50L20 43Z"
+        fill="url(#atkGuard)"
+        stroke="#3B1E0E"
+        strokeWidth="2.2"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M45 17L47.5 10L50 17L57 19.5L50 22L47.5 29L45 22L38 19.5L45 17Z"
+        fill="#FFF6CE"
+        stroke="#D76A27"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+export function HealthStatIcon({ size = 24 }: { size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 64 64" fill="none">
+      <Defs>
+        <LinearGradient id="hpHeart" x1="14" y1="16" x2="49" y2="50" gradientUnits="userSpaceOnUse">
+          <Stop offset="0%" stopColor="#FFB0C4" />
+          <Stop offset="50%" stopColor="#FF6C8E" />
+          <Stop offset="100%" stopColor="#E93D67" />
+        </LinearGradient>
+        <LinearGradient id="hpCross" x1="24" y1="24" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+          <Stop offset="0%" stopColor="#FFFDF5" />
+          <Stop offset="100%" stopColor="#FFE7EE" />
+        </LinearGradient>
+      </Defs>
+      <Path
+        d="M32 54C31.3 54 30.7 53.8 30.2 53.3L13.4 37C8.5 32.3 8.1 24.5 12.4 19.4C16.5 14.6 23.6 13.8 28.7 17.6L32 20.1L35.3 17.6C40.4 13.8 47.5 14.6 51.6 19.4C55.9 24.5 55.5 32.3 50.6 37L33.8 53.3C33.3 53.8 32.7 54 32 54Z"
+        fill="url(#hpHeart)"
+        stroke="#8C1D3C"
+        strokeWidth="2.4"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M29 24.5C29 23.7 29.7 23 30.5 23H33.5C34.3 23 35 23.7 35 24.5V28H38.5C39.3 28 40 28.7 40 29.5V32.5C40 33.3 39.3 34 38.5 34H35V37.5C35 38.3 34.3 39 33.5 39H30.5C29.7 39 29 38.3 29 37.5V34H25.5C24.7 34 24 33.3 24 32.5V29.5C24 28.7 24.7 28 25.5 28H29V24.5Z"
+        fill="url(#hpCross)"
+      />
+      <Path
+        d="M21 18.5C18.8 18.5 16.8 19.4 15.3 21.1"
+        stroke="#FFD9E4"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
+
+export function DefenseStatIcon({ size = 24 }: { size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 64 64" fill="none">
+      <Defs>
+        <LinearGradient id="defShield" x1="32" y1="10" x2="32" y2="54" gradientUnits="userSpaceOnUse">
+          <Stop offset="0%" stopColor="#DDE3FF" />
+          <Stop offset="48%" stopColor="#909BFF" />
+          <Stop offset="100%" stopColor="#5767E8" />
+        </LinearGradient>
+        <LinearGradient id="defGem" x1="24" y1="25" x2="40" y2="39" gradientUnits="userSpaceOnUse">
+          <Stop offset="0%" stopColor="#FFFFFF" />
+          <Stop offset="100%" stopColor="#D9E4FF" />
+        </LinearGradient>
+      </Defs>
+      <Path
+        d="M32 55C31.6 55 31.2 54.9 30.8 54.7C19.6 49.8 13 39.9 13 28.2V14.7C13 13.8 13.6 13 14.4 12.7L31.2 7.2C31.7 7 32.3 7 32.8 7.2L49.6 12.7C50.4 13 51 13.8 51 14.7V28.2C51 39.9 44.4 49.8 33.2 54.7C32.8 54.9 32.4 55 32 55Z"
+        fill="url(#defShield)"
+        stroke="#3342A8"
+        strokeWidth="2.4"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M32 17L23.5 24V34.5L32 42L40.5 34.5V24L32 17Z"
+        fill="url(#defGem)"
+        stroke="#4153D8"
+        strokeWidth="2.2"
+        strokeLinejoin="round"
+      />
+      <Path d="M32 17V42" stroke="#C8D3FF" strokeWidth="1.8" />
+      <Path d="M23.5 24H40.5" stroke="#C8D3FF" strokeWidth="1.8" />
+    </Svg>
+  );
+}
+
+export function SpeedStatIcon({ size = 24 }: { size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 64 64" fill="none">
+      <Defs>
+        <LinearGradient id="spdBoot" x1="16" y1="22" x2="48" y2="52" gradientUnits="userSpaceOnUse">
+          <Stop offset="0%" stopColor="#BFF9EE" />
+          <Stop offset="50%" stopColor="#41D8C0" />
+          <Stop offset="100%" stopColor="#0D9F92" />
+        </LinearGradient>
+        <LinearGradient id="spdWing" x1="10" y1="18" x2="30" y2="30" gradientUnits="userSpaceOnUse">
+          <Stop offset="0%" stopColor="#F6FFFE" />
+          <Stop offset="100%" stopColor="#C8FFF5" />
+        </LinearGradient>
+      </Defs>
+      <Path
+        d="M21 18C24.7 18 27.7 21 27.7 24.7V29.7C27.7 31 28.7 32 30 32H36.5C39.2 32 41.8 33.1 43.7 35L49.8 41.1C50.7 42 50.9 43.5 50.2 44.6L46.8 50.1C46.4 50.8 45.6 51.2 44.8 51.2H26.1C24.7 51.2 23.3 50.7 22.2 49.9L14.4 44.3C13.3 43.5 12.9 42 13.4 40.8L16.3 33.4C17.1 31.3 18.5 29.5 20.4 28.5L21 28.2V18Z"
+        fill="url(#spdBoot)"
+        stroke="#0A6B68"
+        strokeWidth="2.4"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M22 19C19.8 15.8 16.4 14 12.4 14C13.8 17.6 16.4 20.6 20 22C16.4 22.4 13 24.2 10.6 27.1C14.4 28 18.4 27.4 21.7 25.4"
+        fill="url(#spdWing)"
+        stroke="#0EA99A"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path d="M33 23L39 17" stroke="#E8FFFD" strokeWidth="2.2" strokeLinecap="round" />
+      <Path d="M37 26L45 18" stroke="#E8FFFD" strokeWidth="2.2" strokeLinecap="round" />
+    </Svg>
+  );
+}
+
 export function HPIcon({ size = 24, hpVal = 0 }: { size?: number; hpVal?: string | number }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
