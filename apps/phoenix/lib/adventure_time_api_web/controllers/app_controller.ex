@@ -31,7 +31,10 @@ defmodule AdventureTimeApiWeb.AppController do
   end
 
   def packs(conn, _params) do
-    json(conn, %{packs: Catalog.list_active_packs()})
+    json(conn, %{
+      packs: Catalog.list_active_packs(),
+      cardBackVisuals: Catalog.list_card_back_visuals()
+    })
   end
 
   def open_pack(conn, %{"packId" => pack_id}) do

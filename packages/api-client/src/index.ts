@@ -2,6 +2,9 @@ import {
   adminAbilitySchema,
   adminAbilitiesResponseSchema,
   adminAbilityEditSchema,
+  adminCardBackVisualEditSchema,
+  adminCardBackVisualSchema,
+  adminCardBackVisualsResponseSchema,
   adminImageAssetSchema,
   adminImageAssetsResponseSchema,
   adminPackDetailSchema,
@@ -90,6 +93,9 @@ import {
   wordleSubmitResponseSchema,
   wordleSubmitSchema,
   type AdminAbilitiesResponse,
+  type AdminCardBackVisual,
+  type AdminCardBackVisualEditInput,
+  type AdminCardBackVisualsResponse,
   type AdminCardsResponse,
   type AdminImageAsset,
   type AdminImageAssetsResponse,
@@ -811,9 +817,26 @@ export class ApiClient {
     );
   }
 
+  async adminCardBackVisuals(): Promise<AdminCardBackVisualsResponse> {
+    return this.request("/admin/card-back-visuals", { method: "GET" }, (data) =>
+      adminCardBackVisualsResponseSchema.parse(data),
+    );
+  }
+
   async uploadAdminImageAsset(formData: FormData): Promise<AdminImageAsset> {
     return this.upload("/admin/image-assets", formData, (data) =>
       adminImageAssetSchema.parse(data),
+    );
+  }
+
+  async upsertAdminCardBackVisual(
+    input: AdminCardBackVisualEditInput,
+  ): Promise<AdminCardBackVisual> {
+    const body = adminCardBackVisualEditSchema.parse(input);
+    return this.request(
+      "/admin/card-back-visuals",
+      { method: "PUT", body: JSON.stringify(body) },
+      (data) => adminCardBackVisualSchema.parse(data),
     );
   }
 

@@ -1,10 +1,12 @@
 import { useMemo, useState } from "react";
 import { Pressable, Text, View } from "react-native";
+import { Image } from "expo-image";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import type { AdminPacksResponse } from "@adventure-time/api-client";
+import type { AdminImageAssetsResponse, AdminPacksResponse } from "@adventure-time/api-client";
 
 import { apiClient } from "../../src/lib/api";
+import { getCatalogImageUrl } from "../../src/lib/catalog-images";
 import {
   AdminButton,
   AdminChip,
@@ -24,6 +26,8 @@ import {
 import { useTranslation } from "../../src/i18n";
 
 type AdminPack = AdminPacksResponse["packs"][number];
+const EMPTY_PACKS: AdminPack[] = [];
+const EMPTY_IMAGE_ASSETS: AdminImageAssetsResponse["imageAssets"] = [];
 
 type PackDraft = {
   name: string;
@@ -32,6 +36,7 @@ type PackDraft = {
   cost: string;
   color: string;
   guaranteedRarity: string;
+  packArtAssetId: string;
   isActive: boolean;
 };
 
@@ -42,6 +47,7 @@ const BLANK_DRAFT: PackDraft = {
   cost: "100",
   color: "#F59E0B",
   guaranteedRarity: "",
+  packArtAssetId: "",
   isActive: true,
 };
 
@@ -53,6 +59,7 @@ function toDraft(pack: AdminPack): PackDraft {
     cost: String(pack.cost),
     color: pack.color,
     guaranteedRarity: pack.guaranteedRarity ?? "",
+    packArtAssetId: pack.packArtAssetId ?? "",
     isActive: pack.isActive,
   };
 }
@@ -73,8 +80,18 @@ function toPayload(draft: PackDraft) {
     cost: Number(draft.cost),
     color: draft.color.trim(),
     guaranteedRarity: draft.guaranteedRarity.trim() || null,
+    packArtAssetId: draft.packArtAssetId.trim() || null,
     isActive: draft.isActive,
   };
+}
+
+function getPackArtStatusLabel(
+  t: (key: string) => string,
+  packArtAssetId: string | null,
+) {
+  return packArtAssetId
+    ? t("admin.packs.packArtAssigned")
+    : t("admin.packs.packArtUnassigned");
 }
 
 export default function AdminPacksScreen() {
@@ -86,9 +103,18 @@ export default function AdminPacksScreen() {
   const [draft, setDraft] = useState<PackDraft>(BLANK_DRAFT);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const packsQuery = useQuery({
+  const {
+    data: packsData,
+    error: packsQueryError,
+    isLoading: isLoadingPacks,
+  } = useQuery({
     queryKey: ["admin-packs"],
     queryFn: () => apiClient.adminPacks(),
+  });
+
+  const { data: imageAssetsData } = useQuery({
+    queryKey: ["admin-image-assets"],
+    queryFn: () => apiClient.adminImageAssets(),
   });
 
   const saveMutation = useMutation({
@@ -110,9 +136,11 @@ export default function AdminPacksScreen() {
     },
   });
 
-  const packs = packsQuery.data?.packs ?? [];
+  const packs = packsData?.packs ?? EMPTY_PACKS;
+  const imageAssets = imageAssetsData?.imageAssets ?? EMPTY_IMAGE_ASSETS;
   const packsError =
-    packsQuery.error instanceof Error ? packsQuery.error.message : null;
+    packsQueryError instanceof Error ? packsQueryError.message : null;
+  const recentAssets = imageAssets.slice(0, 12);
 
   const filteredPacks = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -159,6 +187,15 @@ export default function AdminPacksScreen() {
         className="gap-3 rounded-[24] border border-primaryBorder/20 bg-surfaceMuted p-[16]"
         onPress={() => openEditModal(pack)}
       >
+        {pack.packArtAssetId ? (
+          <View className="overflow-hidden rounded-[22] border border-primaryBorder/20 bg-primaryTint/25">
+            <Image
+              source={{ uri: getCatalogImageUrl(pack.packArtAssetId) }}
+              style={{ width: "100%", aspectRatio: 320 / 460 }}
+              contentFit="contain"
+            />
+          </View>
+        ) : null}
         <View className="flex-row items-start justify-between gap-3">
           <View className="flex-1 gap-1">
             <Text className="font-nunito-extrabold text-[16px] text-fg">
@@ -198,6 +235,10 @@ export default function AdminPacksScreen() {
               tone="accent"
             />
           ) : null}
+          <AdminChip
+            label={getPackArtStatusLabel(t, pack.packArtAssetId)}
+            tone={pack.packArtAssetId ? "info" : "default"}
+          />
         </View>
         <AdminButton
           label={t("admin.packs.editPack")}
@@ -241,7 +282,7 @@ export default function AdminPacksScreen() {
           />
         </AdminHero>
 
-        {!packsError && !packsQuery.isLoading ? (
+        {!packsError && !isLoadingPacks ? (
           <AdminNotice
             title={t("admin.packs.guidanceTitle")}
             body={t("admin.packs.guidanceBody")}
@@ -256,7 +297,7 @@ export default function AdminPacksScreen() {
             subtitle={t("admin.packs.activeSubtitle")}
           />
           <View className="mt-3 gap-3">
-            {packsQuery.isLoading ? (
+            {isLoadingPacks ? (
               <AdminLoadingState
                 title={t("admin.packs.loading")}
                 body={t("common.loadingStates.adminBody")}
@@ -286,7 +327,7 @@ export default function AdminPacksScreen() {
             subtitle={t("admin.packs.inactiveSubtitle")}
           />
           <View className="mt-3 gap-3">
-            {packsQuery.isLoading ? (
+            {isLoadingPacks ? (
               <AdminLoadingState
                 title={t("admin.packs.loading")}
                 body={t("common.loadingStates.adminBody")}
@@ -373,6 +414,75 @@ export default function AdminPacksScreen() {
           }
           placeholder={t("admin.packs.blankRarity")}
         />
+        <AdminField
+          label={t("admin.packs.packArtAssetId")}
+          value={draft.packArtAssetId}
+          onChangeText={(value) =>
+            setDraft((current) => ({ ...current, packArtAssetId: value }))
+          }
+          placeholder={t("admin.packs.packArtPlaceholder")}
+        />
+        <View className="gap-3 rounded-[24] border border-primaryBorder/20 bg-surfaceMuted p-[14]">
+          <Text className="font-nunito-bold text-xs text-primaryText">
+            {getPackArtStatusLabel(t, draft.packArtAssetId || null)}
+          </Text>
+          {draft.packArtAssetId ? (
+            <View className="overflow-hidden rounded-[18] border border-primaryBorder/20 bg-primaryTint/25">
+              <Image
+                source={{ uri: getCatalogImageUrl(draft.packArtAssetId) }}
+                style={{ width: "100%", aspectRatio: 320 / 460 }}
+                contentFit="contain"
+              />
+            </View>
+          ) : null}
+          <View className="flex-row flex-wrap gap-2">
+            <AdminButton
+              label={t("admin.common.useDefault")}
+              variant="ghost"
+              onPress={() =>
+                setDraft((current) => ({ ...current, packArtAssetId: "" }))
+              }
+            />
+          </View>
+        </View>
+        <View className="gap-3 rounded-[24] border border-primaryBorder/20 bg-surfaceMuted p-[14]">
+          <View className="gap-1">
+            <Text className="font-nunito-bold text-xs text-primaryText">
+              {t("admin.packs.recentArtShelf")}
+            </Text>
+            <Text className="font-nunito-semibold text-[12px] leading-[18px] text-fgMuted">
+              {t("admin.packs.recentArtSubtitle")}
+            </Text>
+          </View>
+          <View className="flex-row flex-wrap gap-3">
+            {recentAssets.map((asset: AdminImageAssetsResponse["imageAssets"][number]) => (
+              <Pressable
+                key={asset.id}
+                className="w-[88px] gap-2"
+                onPress={() =>
+                  setDraft((current) => ({
+                    ...current,
+                    packArtAssetId: asset.id,
+                  }))
+                }
+              >
+                <View className="overflow-hidden rounded-[16] border border-primaryBorder/20 bg-primaryTint/25">
+                  <Image
+                    source={{ uri: getCatalogImageUrl(asset.id) }}
+                    style={{ width: "100%", aspectRatio: 320 / 460 }}
+                    contentFit="contain"
+                  />
+                </View>
+                <Text
+                  className="font-nunito-bold text-[10px] text-primaryStrong"
+                  numberOfLines={2}
+                >
+                  {asset.id}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
         <View className="gap-[6]">
           <Text className="font-nunito-bold text-xs text-primaryText">
             {t("admin.packs.availability")}

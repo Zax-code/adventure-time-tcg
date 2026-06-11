@@ -2,7 +2,7 @@ defmodule AdventureTimeApiWeb.AppControllerTest do
   use AdventureTimeApiWeb.ConnCase, async: true
 
   alias AdventureTimeApi.Accounts.{EmailCredential, User}
-  alias AdventureTimeApi.Catalog.{Card, Pack, Rarity}
+  alias AdventureTimeApi.Catalog.{Card, CardBackVisual, ImageAsset, Pack, Rarity}
   alias AdventureTimeApi.Inventory.OwnedCard
   alias AdventureTimeApi.Pvp.Match
   alias AdventureTimeApi.Quests
@@ -205,6 +205,71 @@ defmodule AdventureTimeApiWeb.AppControllerTest do
     assert Enum.all?(response["cards"], fn card ->
              Map.has_key?(card, "isNewForUser") and Map.has_key?(card, "rarity")
            end)
+  end
+
+  test "GET /packs returns pack art ids and card back visual mappings", _context do
+    user = create_user_with_password("pack-list@example.com", "rainicorn")
+    access_token = login_access_token(user.email, "rainicorn")
+
+    pack_art_asset =
+      Repo.insert!(
+        ImageAsset.changeset(%ImageAsset{}, %{
+          kind: :catalog,
+          mime_type: "image/png",
+          object_key: "catalog/pack-art"
+        })
+      )
+
+    back_asset =
+      Repo.insert!(
+        ImageAsset.changeset(%ImageAsset{}, %{
+          kind: :catalog,
+          mime_type: "image/png",
+          object_key: "catalog/back-art"
+        })
+      )
+
+    Repo.insert!(
+      CardBackVisual.changeset(%CardBackVisual{}, %{
+        theme_name: "candy",
+        rarity_name: "Rare",
+        image_asset_id: back_asset.id
+      })
+    )
+
+    pack =
+      Repo.insert!(
+        Pack.changeset(%Pack{}, %{
+          name: "Remote Art Pack",
+          description: "Shows explicit media ids.",
+          card_count: 5,
+          cost: 120,
+          color: "#F59E0B",
+          is_active: true,
+          guaranteed_rarity: "Rare",
+          pack_art_asset_id: pack_art_asset.id
+        })
+      )
+
+    response =
+      access_token
+      |> auth_conn()
+      |> get(~p"/packs")
+      |> json_response(200)
+
+    assert Enum.any?(
+             response["packs"],
+             &(&1["id"] == pack.id and &1["packArtAssetId"] == pack_art_asset.id)
+           )
+
+    assert length(response["cardBackVisuals"]) == 15
+
+    assert Enum.any?(
+             response["cardBackVisuals"],
+             &(&1["themeName"] == "candy" and
+                 &1["rarityName"] == "Rare" and
+                 &1["imageAssetId"] == back_asset.id)
+           )
   end
 
   test "POST /packs/open returns preserved errors", _context do

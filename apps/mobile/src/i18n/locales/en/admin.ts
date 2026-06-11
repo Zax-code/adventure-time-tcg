@@ -7,6 +7,7 @@ const admin = {
     nav: {
       cards: "Cards",
       packs: "Packs",
+      cardBacks: "Backs",
       assets: "Assets",
       featured: "Featured",
       abilities: "Abilities",
@@ -162,10 +163,10 @@ const admin = {
   packs: {
     title: "Packs",
     subtitle:
-      "Manage shop availability and pack economics without the unused image URL baggage.",
+      "Manage shop availability, economy, and remote pack-opening art from one place.",
     guidanceTitle: "Shape the store deliberately",
     guidanceBody:
-      "Keep active packs focused and use inactive packs as drafts or seasonal rotations instead of cluttering the live shop.",
+      "Keep active packs focused, use inactive packs as drafts or seasonal rotations, and assign remote art so pack opening can change without a new app build.",
     create: "Create",
     searchPlaceholder: "Search packs",
     activeLabel: "Active now",
@@ -193,10 +194,41 @@ const admin = {
     cost: "Cost",
     accentColor: "Accent color",
     guaranteedRarity: "Guaranteed rarity",
+    packArtAssetId: "Pack art asset ID",
+    packArtPlaceholder: "Leave blank to use the built-in fallback art",
+    packArtAssigned: "Remote art assigned",
+    packArtUnassigned: "Using built-in fallback art",
+    recentArtShelf: "Recent art shelf",
+    recentArtSubtitle:
+      "Tap a catalog image to attach it to this pack opening visual.",
     blankRarity: "Leave blank for none",
     availability: "Availability",
     savePack: "Save pack",
     couldNotSave: "Could not save this pack.",
+  },
+  cardBackVisuals: {
+    title: "Card backs",
+    subtitle:
+      "Map catalog artwork to each theme and rarity so reveal backs are backend-managed.",
+    guidanceTitle: "Fill the full matrix",
+    guidanceBody:
+      "Each theme and rarity pair can point at one catalog asset. Leave a slot empty to keep the built-in fallback.",
+    mappedLabel: "Mapped",
+    totalLabel: "Total slots",
+    sectionSubtitle: "Tap any rarity to assign or clear the remote back-cover art.",
+    loading: "Loading card back visuals...",
+    emptyTitle: "No card back slots",
+    emptyBody: "The theme and rarity matrix will appear here once the API responds.",
+    assigned: "Remote art assigned",
+    usingDefault: "Using built-in fallback art",
+    modalTitle: "{theme} {rarity}",
+    assetId: "Asset ID",
+    assetPlaceholder: "Leave blank to use the built-in fallback art",
+    recentArtShelf: "Recent art shelf",
+    recentArtSubtitle:
+      "Tap a catalog image to assign it to this theme and rarity pair.",
+    save: "Save mapping",
+    couldNotSave: "Could not save this card back visual.",
   },
   imageAssets: {
     uploadFailed: "Upload failed",

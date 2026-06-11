@@ -8,7 +8,7 @@ defmodule AdventureTimeApiWeb.AdminControllerTest do
     User
   }
 
-  alias AdventureTimeApi.Catalog.{Card, ImageAsset, Pack, Rarity}
+  alias AdventureTimeApi.Catalog.{Card, CardBackVisual, ImageAsset, Pack, Rarity}
   alias AdventureTimeApi.Health.StepSnapshot
   alias AdventureTimeApi.Inventory.OwnedCard
   alias AdventureTimeApi.Pvp.{AbilityDef, CardAbility, Loadout, Match, MatchEvent, MatchSnapshot}
@@ -389,6 +389,15 @@ defmodule AdventureTimeApiWeb.AdminControllerTest do
         role: :admin
       )
 
+    pack_art_asset =
+      Repo.insert!(
+        ImageAsset.changeset(%ImageAsset{}, %{
+          kind: :catalog,
+          mime_type: "image/png",
+          object_key: "catalog/pack-art"
+        })
+      )
+
     active_pack =
       Repo.insert!(
         Pack.changeset(%Pack{}, %{
@@ -398,7 +407,8 @@ defmodule AdventureTimeApiWeb.AdminControllerTest do
           cost: 100,
           color: "#F59E0B",
           is_active: true,
-          guaranteed_rarity: "Rare"
+          guaranteed_rarity: "Rare",
+          pack_art_asset_id: pack_art_asset.id
         })
       )
 
@@ -427,6 +437,11 @@ defmodule AdventureTimeApiWeb.AdminControllerTest do
     assert Enum.any?(packs, &(&1["id"] == inactive_pack.id and &1["isActive"] == false))
     assert Enum.all?(packs, &(not Map.has_key?(&1, "imageUrl")))
 
+    assert Enum.any?(
+             packs,
+             &(&1["id"] == active_pack.id and &1["packArtAssetId"] == pack_art_asset.id)
+           )
+
     create_conn =
       build_conn()
       |> put_req_header("authorization", "Bearer #{access_token}")
@@ -437,7 +452,8 @@ defmodule AdventureTimeApiWeb.AdminControllerTest do
         "cost" => 150,
         "color" => "#22C55E",
         "isActive" => true,
-        "guaranteedRarity" => "Epic"
+        "guaranteedRarity" => "Epic",
+        "packArtAssetId" => pack_art_asset.id
       })
 
     created = json_response(create_conn, 201)
@@ -446,6 +462,7 @@ defmodule AdventureTimeApiWeb.AdminControllerTest do
     assert created["color"] == "#22C55E"
     assert created["isActive"] == true
     assert created["guaranteedRarity"] == "Epic"
+    assert created["packArtAssetId"] == pack_art_asset.id
     refute Map.has_key?(created, "imageUrl")
 
     patch_conn =
@@ -454,7 +471,8 @@ defmodule AdventureTimeApiWeb.AdminControllerTest do
       |> patch(~p"/admin/packs/#{active_pack.id}", %{
         "cost" => 125,
         "isActive" => false,
-        "guaranteedRarity" => ""
+        "guaranteedRarity" => "",
+        "packArtAssetId" => ""
       })
 
     patched = json_response(patch_conn, 200)
@@ -462,6 +480,7 @@ defmodule AdventureTimeApiWeb.AdminControllerTest do
     assert patched["cost"] == 125
     assert patched["isActive"] == false
     assert is_nil(patched["guaranteedRarity"])
+    assert is_nil(patched["packArtAssetId"])
   end
 
   test "admin pack routes require admin and validate payloads", %{conn: conn} do
@@ -493,6 +512,15 @@ defmodule AdventureTimeApiWeb.AdminControllerTest do
 
     admin_token = login_access_token(admin.email, "password123")
 
+    profile_asset =
+      Repo.insert!(
+        ImageAsset.changeset(%ImageAsset{}, %{
+          kind: :profile,
+          mime_type: "image/png",
+          object_key: "profile/not-allowed"
+        })
+      )
+
     invalid_create_conn =
       build_conn()
       |> put_req_header("authorization", "Bearer #{admin_token}")
@@ -501,7 +529,8 @@ defmodule AdventureTimeApiWeb.AdminControllerTest do
         "description" => "Missing count.",
         "cardCount" => 0,
         "cost" => -5,
-        "color" => "#EF4444"
+        "color" => "#EF4444",
+        "packArtAssetId" => profile_asset.id
       })
 
     invalid_create = json_response(invalid_create_conn, 400)
@@ -509,12 +538,132 @@ defmodule AdventureTimeApiWeb.AdminControllerTest do
     assert invalid_create["details"]["card_count"] == ["must be greater than 0"]
     assert invalid_create["details"]["cost"] == ["must be greater than or equal to 0"]
 
+    assert invalid_create["details"]["pack_art_asset_id"] == [
+             "must reference a catalog image asset"
+           ]
+
     missing_conn =
       build_conn()
       |> put_req_header("authorization", "Bearer #{admin_token}")
       |> patch(~p"/admin/packs/#{Ecto.UUID.generate()}", %{"cost" => 50})
 
     assert json_response(missing_conn, 404) == %{"error" => "Pack not found"}
+  end
+
+  test "admin can list, assign, and clear card back visuals", _context do
+    admin =
+      create_user_with_password("card-backs-admin@example.com", "password123", "Card Backs Admin",
+        verified?: true,
+        access_status: :approved,
+        role: :admin
+      )
+
+    back_asset =
+      Repo.insert!(
+        ImageAsset.changeset(%ImageAsset{}, %{
+          kind: :catalog,
+          mime_type: "image/png",
+          object_key: "catalog/card-back"
+        })
+      )
+
+    access_token = login_access_token(admin.email, "password123")
+
+    list_conn =
+      build_conn()
+      |> put_req_header("authorization", "Bearer #{access_token}")
+      |> get(~p"/admin/card-back-visuals")
+
+    assert %{"cardBackVisuals" => visuals} = json_response(list_conn, 200)
+    assert length(visuals) == 15
+    assert Enum.any?(visuals, &(&1["themeName"] == "candy" and &1["rarityName"] == "Common"))
+
+    put_conn =
+      build_conn()
+      |> put_req_header("authorization", "Bearer #{access_token}")
+      |> put(~p"/admin/card-back-visuals", %{
+        "themeName" => "ice",
+        "rarityName" => "Epic",
+        "imageAssetId" => back_asset.id
+      })
+
+    assigned = json_response(put_conn, 200)
+    assert assigned["themeName"] == "ice"
+    assert assigned["rarityName"] == "Epic"
+    assert assigned["imageAssetId"] == back_asset.id
+
+    assert %CardBackVisual{image_asset_id: image_asset_id} =
+             Repo.get_by!(CardBackVisual, theme_name: "ice", rarity_name: "Epic")
+
+    assert image_asset_id == back_asset.id
+
+    clear_conn =
+      build_conn()
+      |> put_req_header("authorization", "Bearer #{access_token}")
+      |> put(~p"/admin/card-back-visuals", %{
+        "themeName" => "ice",
+        "rarityName" => "Epic",
+        "imageAssetId" => nil
+      })
+
+    cleared = json_response(clear_conn, 200)
+    assert cleared["imageAssetId"] == nil
+    refute Repo.get_by(CardBackVisual, theme_name: "ice", rarity_name: "Epic")
+  end
+
+  test "admin card back visuals require admin and validate catalog assets", %{conn: conn} do
+    user =
+      create_user_with_password("card-backs-user@example.com", "password123", "Card Backs User",
+        verified?: true,
+        access_status: :approved,
+        role: :user
+      )
+
+    access_token = login_access_token(user.email, "password123")
+
+    forbidden_conn =
+      conn
+      |> put_req_header("authorization", "Bearer #{access_token}")
+      |> get(~p"/admin/card-back-visuals")
+
+    assert json_response(forbidden_conn, 403) == %{
+             "error" => "Admin access required",
+             "code" => "ADMIN_REQUIRED"
+           }
+
+    admin =
+      create_user_with_password(
+        "card-backs-validator@example.com",
+        "password123",
+        "Card Backs Validator",
+        verified?: true,
+        access_status: :approved,
+        role: :admin
+      )
+
+    admin_token = login_access_token(admin.email, "password123")
+
+    profile_asset =
+      Repo.insert!(
+        ImageAsset.changeset(%ImageAsset{}, %{
+          kind: :profile,
+          mime_type: "image/png",
+          object_key: "profile/not-allowed"
+        })
+      )
+
+    invalid_conn =
+      build_conn()
+      |> put_req_header("authorization", "Bearer #{admin_token}")
+      |> put(~p"/admin/card-back-visuals", %{
+        "themeName" => "candy",
+        "rarityName" => "Rare",
+        "imageAssetId" => profile_asset.id
+      })
+
+    invalid = json_response(invalid_conn, 400)
+    assert invalid["error"] == "Invalid card back visual"
+    assert invalid["details"]["image_asset_id"] == ["must reference a catalog image asset"]
   end
 
   test "admin can create, update, patch, and fetch cards", _context do

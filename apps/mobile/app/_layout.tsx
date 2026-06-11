@@ -23,6 +23,7 @@ import { useRetryFailedQueriesOnAppActive } from "../src/hooks/use-retry-failed-
 import { useStepQuestWidgetSync } from "../src/hooks/use-step-quest-widget-sync";
 import { useUserTimezoneSync } from "../src/hooks/use-user-timezone-sync";
 import { useWidgetRefreshPushRegistration } from "../src/hooks/use-widget-refresh-push-registration";
+import { useWarmPackVisuals } from "../src/hooks/use-warm-pack-visuals";
 import { AppLaunchScreen } from "../src/components/app-launch-screen";
 import { queryClient } from "../src/lib/query-client";
 import { useBootstrap } from "../src/hooks/use-bootstrap";
@@ -89,6 +90,7 @@ export default function RootLayout() {
     timezone,
     userId: authUserId,
   });
+  useWarmPackVisuals(accessToken, bootstrapPhase);
 
   const [fontsLoaded] = useFonts({
     Nunito_400Regular,

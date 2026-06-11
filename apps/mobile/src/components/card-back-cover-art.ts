@@ -14,6 +14,7 @@ import backcoverNightosphereLegendary from "../../assets/backcovers/backcover-ni
 import backcoverNightosphereRare from "../../assets/backcovers/backcover-nightosphere-rare.png";
 import backcoverNightosphereUncommon from "../../assets/backcovers/backcover-nightosphere-uncommon.png";
 
+import { getCatalogImageUrl } from "../lib/catalog-images";
 import type { ThemeName } from "../theme/themes";
 
 export type CardBackcoverRarityName =
@@ -58,6 +59,11 @@ const CARD_BACKCOVER_SOURCE: Record<
 export function getCardBackcoverSource(
   themeName: ThemeName,
   rarityName: CardBackcoverRarityName,
+  imageAssetId?: string | null,
 ) {
+  if (imageAssetId) {
+    return getCatalogImageUrl(imageAssetId);
+  }
+
   return CARD_BACKCOVER_SOURCE[themeName][rarityName];
 }

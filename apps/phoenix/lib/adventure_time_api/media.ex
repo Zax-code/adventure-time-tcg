@@ -131,6 +131,38 @@ defmodule AdventureTimeApi.Media do
     end
   end
 
+  def ensure_catalog_image(object_key, binary_data, mime_type) do
+    if mime_type in @catalog_mime_types do
+      ImageAsset
+      |> where(
+        [image_asset],
+        image_asset.kind == :catalog and image_asset.object_key == ^object_key
+      )
+      |> Repo.one()
+      |> case do
+        %ImageAsset{} = asset ->
+          {:ok, asset}
+
+        nil ->
+          case put_object(object_key, binary_data, mime_type) do
+            :ok ->
+              %ImageAsset{}
+              |> ImageAsset.changeset(%{
+                kind: :catalog,
+                mime_type: mime_type,
+                object_key: object_key
+              })
+              |> Repo.insert()
+
+            {:error, reason} ->
+              {:error, reason}
+          end
+      end
+    else
+      {:error, :unsupported_mime_type}
+    end
+  end
+
   def card_cache_control, do: "public, max-age=31536000, immutable"
   def catalog_cache_control, do: "public, max-age=31536000, immutable"
   def profile_cache_control, do: "private, max-age=3600"
