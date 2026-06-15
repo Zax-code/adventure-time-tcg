@@ -48,6 +48,7 @@ import { PageLoadingState } from "../src/components/loading-state";
 
 type CollectionEntry = CollectionResponse["cards"][number];
 type BuilderCard = CollectionEntry["card"];
+type PvpLoadout = Awaited<ReturnType<typeof apiClient.pvpLoadouts>>["loadouts"][number];
 
 const LOADOUT_TYPES = [
   "all",
@@ -62,6 +63,9 @@ const LOADOUT_TYPES = [
   "Demon",
   "Cosmic",
 ] as const;
+
+const EMPTY_COLLECTION: CollectionResponse["cards"] = [];
+const EMPTY_LOADOUTS: PvpLoadout[] = [];
 
 function BuilderCardPressable({
   className,
@@ -503,8 +507,8 @@ export default function PvpLoadoutsScreen() {
     return () => clearTimeout(timer);
   }, [toast]);
 
-  const ownedCards = collectionQuery.data?.cards ?? [];
-  const loadouts = loadoutsQuery.data?.loadouts ?? [];
+  const ownedCards = collectionQuery.data?.cards ?? EMPTY_COLLECTION;
+  const loadouts = loadoutsQuery.data?.loadouts ?? EMPTY_LOADOUTS;
 
   const cardMap = useMemo(() => {
     return new Map(ownedCards.map((entry) => [entry.cardId, entry.card]));
