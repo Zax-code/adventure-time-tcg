@@ -39,6 +39,7 @@ import {
 import { THEME_COLORS } from "../../src/theme/themes";
 
 type CollectionEntry = CollectionResponse["cards"][number];
+type OwnershipFilter = "all" | "owned" | "not-owned";
 
 const SORT_LABELS: Record<string, string> = {
   rarity: "Rarity",
@@ -71,6 +72,7 @@ export default function CollectionScreen() {
   );
 
   const [filterRarity, setFilterRarity] = useState<string>("all");
+  const [ownershipFilter, setOwnershipFilter] = useState<OwnershipFilter>("all");
   const [sortBy, setSortBy] = useState<
     "rarity" | "name" | "quantity" | "newest"
   >("rarity");
@@ -114,11 +116,15 @@ export default function CollectionScreen() {
   });
 
   // Derived data — computed before early returns to satisfy Rules of Hooks
-  const rawCards = collectionQuery.data?.cards ?? [];
+  const rawCards = collectionQuery.data?.cards;
+  const ownedCards = useMemo(
+    () => (rawCards ?? []).filter((entry) => entry.quantity > 0),
+    [rawCards],
+  );
 
   const rarityGroups = useMemo(() => {
     const groups = new Map<string, { count: number; dropRate: number }>();
-    for (const entry of rawCards) {
+    for (const entry of rawCards ?? []) {
       const { name, dropRate } = entry.card.rarity;
       const existing = groups.get(name);
       if (existing) {
@@ -132,8 +138,24 @@ export default function CollectionScreen() {
       .map(([name, data]) => ({ name, ...data }));
   }, [rawCards]);
 
+  const ownedRarityGroups = useMemo(() => {
+    const groups = new Map<string, { count: number; dropRate: number }>();
+    for (const entry of ownedCards) {
+      const { name, dropRate } = entry.card.rarity;
+      const existing = groups.get(name);
+      if (existing) {
+        existing.count++;
+      } else {
+        groups.set(name, { count: 1, dropRate });
+      }
+    }
+    return Array.from(groups.entries())
+      .sort(([, a], [, b]) => a.dropRate - b.dropRate)
+      .map(([name, data]) => ({ name, ...data }));
+  }, [ownedCards]);
+
   const filteredCards = useMemo((): CollectionEntry[] => {
-    let result = rawCards;
+    let result = rawCards ?? [];
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       result = result.filter(
@@ -141,6 +163,12 @@ export default function CollectionScreen() {
           e.card.name.toLowerCase().includes(q) ||
           e.card.character.toLowerCase().includes(q),
       );
+    }
+    if (ownershipFilter === "owned") {
+      result = result.filter((entry) => entry.quantity > 0);
+    }
+    if (ownershipFilter === "not-owned") {
+      result = result.filter((entry) => entry.quantity === 0);
     }
     if (filterRarity !== "all") {
       result = result.filter((e) => e.card.rarity.name === filterRarity);
@@ -159,12 +187,13 @@ export default function CollectionScreen() {
       case "newest":
         return [...result].sort(
           (a, b) =>
-            new Date(b.obtainedAt).getTime() - new Date(a.obtainedAt).getTime(),
+            (b.obtainedAt ? new Date(b.obtainedAt).getTime() : -Infinity) -
+            (a.obtainedAt ? new Date(a.obtainedAt).getTime() : -Infinity),
         );
       default:
         return result;
     }
-  }, [rawCards, searchQuery, filterRarity, sortBy]);
+  }, [rawCards, searchQuery, ownershipFilter, filterRarity, sortBy]);
 
   const dustModalStyles = useMemo(
     () => ({
@@ -222,12 +251,25 @@ export default function CollectionScreen() {
     }),
     [tc],
   );
+  const sortOptionBaseStyle = useMemo(
+    () => ({
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      borderRadius: 12,
+      borderWidth: 2,
+    } as const),
+    [],
+  );
 
   const renderCollectionItem = useCallback(
     ({ item, index }: { item: CollectionEntry; index: number }) => (
       <CardTile
         entry={item}
         accessToken={accessToken}
+        muted={item.quantity === 0}
         testID={`collection-card-tile-${index}`}
         onPress={() =>
           router.push({
@@ -275,6 +317,9 @@ export default function CollectionScreen() {
   const craftableDustRows = DUST_TABLE.filter((row) => collection.dust >= row.craft);
   const nextDustGoal =
     DUST_TABLE.find((row) => collection.dust < row.craft) ?? null;
+  const allCards = rawCards ?? [];
+  const ownedCount = ownedCards.length;
+  const notOwnedCount = Math.max(allCards.length - ownedCount, 0);
   const dustModalBackdrop =
     themeName === "nightosphere"
       ? "rgba(6, 1, 10, 0.84)"
@@ -420,6 +465,73 @@ export default function CollectionScreen() {
         ) : null}
       </View>
 
+      <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
+        {([
+          {
+            key: "all" as const,
+            label: t("collection.ownershipFilters.all"),
+            count: allCards.length,
+          },
+          {
+            key: "owned" as const,
+            label: t("collection.ownershipFilters.owned"),
+            count: ownedCount,
+          },
+          {
+            key: "not-owned" as const,
+            label: t("collection.ownershipFilters.notOwned"),
+            count: notOwnedCount,
+          },
+        ] satisfies Array<{
+          key: OwnershipFilter;
+          label: string;
+          count: number;
+        }>).map((option) => {
+          const isActive = ownershipFilter === option.key;
+
+          return (
+            <Pressable
+              key={option.key}
+              onPress={() => setOwnershipFilter(option.key)}
+              style={{
+                flex: 1,
+                borderRadius: 14,
+                borderWidth: 1,
+                borderColor: isActive ? tc.primaryBorder : tc.accentBorder,
+                backgroundColor: isActive ? tc.primaryTint : tc.surfaceMuted,
+                paddingHorizontal: 10,
+                paddingVertical: 10,
+                alignItems: "center",
+                gap: 2,
+              }}
+              testID={`collection-ownership-filter-${option.key}`}
+            >
+              <Text
+                style={{
+                  fontFamily: isActive
+                    ? "Nunito_800ExtraBold"
+                    : "Nunito_700Bold",
+                  fontSize: 13,
+                  color: isActive ? tc.primaryText : tc.fg,
+                }}
+              >
+                {option.label}
+              </Text>
+              <Text
+                style={{
+                  fontFamily: "Nunito_700Bold",
+                  fontSize: 12,
+                  color: isActive ? tc.primaryStrong : tc.fgMuted,
+                  fontVariant: ["tabular-nums"],
+                }}
+              >
+                {option.count}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
       {/* Rarity pills */}
       <ScrollView
         horizontal
@@ -452,7 +564,7 @@ export default function CollectionScreen() {
                 color: filterRarity === "all" ? tc.accentTint : tc.accentText,
               }}
             >
-              {t("collection.all")} ({collection.cards.length})
+              {t("collection.all")} ({allCards.length})
             </Text>
           </Pressable>
           {rarityGroups.map(({ name, count }) => (
@@ -564,7 +676,7 @@ export default function CollectionScreen() {
                 textAlign: "center",
               }}
             >
-              {searchQuery || filterRarity !== "all"
+              {allCards.length > 0
                 ? t("collection.noFilterMatches")
                 : t("collection.empty")}
             </Text>
@@ -623,43 +735,67 @@ export default function CollectionScreen() {
                 marginTop: 4,
               }}
             >
-              {rarityGroups.map(({ name, count }) => {
-                const rc = RARITY_COLORS[name] ?? RARITY_COLORS.Common;
-                return (
-                  <View
-                    key={name}
+              {ownedRarityGroups.length > 0 ? (
+                ownedRarityGroups.map(({ name, count }) => {
+                  const rc = RARITY_COLORS[name] ?? RARITY_COLORS.Common;
+                  return (
+                    <View
+                      key={name}
+                      style={{
+                        backgroundColor: tc.surfaceMuted,
+                        borderRadius: 12,
+                        paddingVertical: 12,
+                        paddingHorizontal: 12,
+                        flexGrow: 1,
+                        flexBasis: "30%",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 24,
+                          fontFamily: "Nunito_700Bold",
+                          color: rc.from,
+                        }}
+                      >
+                        {count}
+                      </Text>
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          fontFamily: "Nunito_600SemiBold",
+                          color: tc.fgMuted,
+                          marginTop: 2,
+                        }}
+                      >
+                        {name}
+                      </Text>
+                    </View>
+                  );
+                })
+              ) : (
+                <View
+                  style={{
+                    width: "100%",
+                    borderRadius: 14,
+                    backgroundColor: tc.surfaceMuted,
+                    paddingVertical: 18,
+                    paddingHorizontal: 16,
+                  }}
+                >
+                  <Text
                     style={{
-                      backgroundColor: tc.surfaceMuted,
-                      borderRadius: 12,
-                      paddingVertical: 12,
-                      paddingHorizontal: 12,
-                      flexGrow: 1,
-                      flexBasis: "30%",
-                      alignItems: "center",
+                      fontSize: 13,
+                      lineHeight: 19,
+                      fontFamily: "Nunito_600SemiBold",
+                      color: tc.fgMuted,
+                      textAlign: "center",
                     }}
                   >
-                    <Text
-                      style={{
-                        fontSize: 24,
-                        fontFamily: "Nunito_700Bold",
-                        color: rc.from,
-                      }}
-                    >
-                      {count}
-                    </Text>
-                    <Text
-                      style={{
-                        fontSize: 12,
-                        fontFamily: "Nunito_600SemiBold",
-                        color: tc.fgMuted,
-                        marginTop: 2,
-                      }}
-                    >
-                      {name}
-                    </Text>
-                  </View>
-                );
-              })}
+                    {t("collection.empty")}
+                  </Text>
+                </View>
+              )}
             </View>
             <Pressable
               onPress={() => setShowStatsModal(false)}
@@ -739,21 +875,17 @@ export default function CollectionScreen() {
                         setSortBy(option);
                         setShowSortModal(false);
                       }}
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        paddingVertical: 12,
-                        paddingHorizontal: 16,
-                        borderRadius: 12,
-                        borderWidth: 2,
+                      style={[
+                        sortOptionBaseStyle,
+                        {
                         backgroundColor: isActive
                           ? tc.primaryTint
                           : tc.surfaceMuted,
                         borderColor: isActive
                           ? tc.primaryBorder
                           : "transparent",
-                      }}
+                        },
+                      ]}
                     >
                       <Text
                         style={{

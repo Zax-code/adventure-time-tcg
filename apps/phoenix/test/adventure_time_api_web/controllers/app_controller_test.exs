@@ -389,6 +389,21 @@ defmodule AdventureTimeApiWeb.AppControllerTest do
         })
       )
 
+    unowned_card =
+      Repo.insert!(
+        Card.changeset(%Card{}, %{
+          name: "Jake Suit",
+          character: "Jake",
+          description: "A stretchy defender.",
+          hp: 11,
+          attack: 4,
+          defense: 7,
+          speed: 42,
+          type: "Hero",
+          rarity_id: rarity.id
+        })
+      )
+
     Repo.insert!(
       Card.changeset(%Card{}, %{
         name: "Archived Lady",
@@ -433,9 +448,9 @@ defmodule AdventureTimeApiWeb.AppControllerTest do
     assert home["user"]["email"] == "lady@example.com"
 
     assert home["collectionStats"] == %{
-             "totalCards" => 1,
+             "totalCards" => 2,
              "uniqueOwned" => 1,
-             "completionPercentage" => 100
+             "completionPercentage" => 50
            }
 
     assert collection["dust"] == 0
@@ -443,12 +458,25 @@ defmodule AdventureTimeApiWeb.AppControllerTest do
     assert collection["stats"] == %{
              "totalCards" => 2,
              "uniqueOwned" => 1,
-             "completionPercentage" => 100
+             "completionPercentage" => 50
            }
 
-    assert [collection_entry] = collection["cards"]
+    assert 2 == length(collection["cards"])
+
+    collection_entry =
+      Enum.find(collection["cards"], fn entry -> entry["cardId"] == card.id end)
+
+    unowned_collection_entry =
+      Enum.find(collection["cards"], fn entry -> entry["cardId"] == unowned_card.id end)
+
     assert collection_entry["quantity"] == 2
     assert collection_entry["card"]["rarity"]["name"] == "Rare"
+    assert is_binary(collection_entry["obtainedAt"])
+
+    assert unowned_collection_entry["quantity"] == 0
+    assert unowned_collection_entry["obtainedAt"] == nil
+    assert unowned_collection_entry["id"] == "catalog:#{unowned_card.id}"
+    assert unowned_collection_entry["card"]["name"] == "Jake Suit"
 
     assert %{"packs" => [pack]} = packs
     assert pack["name"] == "Starter Pack"

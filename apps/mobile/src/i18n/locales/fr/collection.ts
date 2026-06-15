@@ -5,10 +5,17 @@ const collection = {
   dust: "Poussière",
   searchByNameOrCharacter: "Rechercher par nom ou personnage...",
   all: "Toutes",
+  owned: "Possedees",
+  notOwned: "Non possedees",
+  ownershipFilters: {
+    all: "Toutes",
+    owned: "Possedees",
+    notOwned: "Non possedees",
+  },
   sortBy: "Trier par",
   sortTitle: "Trier par",
   noFilterMatches: "Aucune carte ne correspond à tes filtres.",
-  empty: "Ta collection est vide. Ouvre des packs !",
+  empty: "Ta collection est vide. Ouvre des packs ou cree ta premiere carte !",
   dustModal: {
     title: "Guide de la poussiere",
     description:
@@ -62,6 +69,8 @@ const collection = {
       "Il te manque encore {amount} poussiere pour creer cette carte.",
     selectedRecipient: "Envoi a {name}.",
     giftHint: "Choisis un joueur et ajoute un message si tu veux.",
+    craftFirstHint:
+      "Cree d'abord une premiere copie pour debloquer le recyclage et l'envoi.",
   },
   gift: {
     searchPlayersPlaceholder: "Rechercher des joueurs...",

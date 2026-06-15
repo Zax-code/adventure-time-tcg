@@ -5,10 +5,17 @@ const collection = {
   dust: "Dust",
   searchByNameOrCharacter: "Search by name or character...",
   all: "All",
+  owned: "Owned",
+  notOwned: "Not owned",
+  ownershipFilters: {
+    all: "All cards",
+    owned: "Owned",
+    notOwned: "Not owned",
+  },
   sortBy: "Sort by",
   sortTitle: "Sort By",
   noFilterMatches: "No cards match your filters.",
-  empty: "Your collection is empty. Open some packs!",
+  empty: "Your collection is empty. Open packs or craft your first card!",
   dustModal: {
     title: "Dust guide",
     description:
@@ -57,6 +64,7 @@ const collection = {
     craftNeedMoreDust: "Need {amount} more dust to craft this card.",
     selectedRecipient: "Sending to {name}.",
     giftHint: "Pick a player and optionally add a message.",
+    craftFirstHint: "Craft your first copy to unlock recycling and gifting.",
   },
   gift: {
     searchPlayersPlaceholder: "Search players...",

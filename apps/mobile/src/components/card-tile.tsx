@@ -9,6 +9,7 @@ import { CARD_ART_RATIO } from "./card-back-cover-art";
 import { getCardImageCacheKey, getCardImageUrl } from "../lib/card-images";
 import { CARD_TYPE_COLORS, RARITY_COLORS, SECONDARY_TINT } from "./theme";
 import { HPIcon, SpeedIcon, RarityIcon } from "./icons";
+import { useTranslation } from "../i18n";
 import { useThemeStore } from "../stores/theme-store";
 import { THEME_COLORS } from "../theme/themes";
 
@@ -20,6 +21,7 @@ interface CardTileProps {
   onPress?: () => void;
   onRecycle?: () => void;
   onCraft?: () => void;
+  muted?: boolean;
   size?: "small" | "large";
   fitContainer?: boolean;
   containerStyle?: StyleProp<ViewStyle>;
@@ -140,6 +142,7 @@ export const CardTile = memo(function CardTile({
   onPress,
   onRecycle,
   onCraft,
+  muted = false,
   size = "small",
   fitContainer = false,
   containerStyle,
@@ -147,6 +150,7 @@ export const CardTile = memo(function CardTile({
 }: CardTileProps) {
   const { card, quantity } = entry;
   const cfg = sizeConfig[size];
+  const { t } = useTranslation();
   const tc = THEME_COLORS[useThemeStore((s) => s.themeName)];
   const typeColor = CARD_TYPE_COLORS[card.type] ?? {
     frame: "#9CA3AF",
@@ -213,6 +217,11 @@ export const CardTile = memo(function CardTile({
     outputRange: [-cfg.width * 3, cfg.width],
   });
   const cardAspectRatio = CARD_ART_RATIO;
+  const cardContentOpacity = muted
+    ? tc.bg === "#0D0010"
+      ? 0.46
+      : 0.58
+    : 1;
 
   return (
     <Pressable
@@ -276,6 +285,7 @@ export const CardTile = memo(function CardTile({
             paddingHorizontal: cfg.paddingH,
             paddingTop: cfg.paddingT,
             paddingBottom: cfg.paddingB,
+            opacity: cardContentOpacity,
           }}
         >
           {/* === HEADER: ATK / HP / DEF === */}
@@ -456,6 +466,27 @@ export const CardTile = memo(function CardTile({
               </Text>
             </View>
           </Animated.View>
+        ) : muted ? (
+          <View className="items-center" style={{ marginTop: 4 }}>
+            <View
+              className="rounded-full items-center"
+              style={{
+                backgroundColor: tc.surfaceMuted,
+                borderWidth: 1,
+                borderColor: tc.primaryBorder,
+                paddingHorizontal: 10,
+                paddingVertical: 2,
+                minWidth: 76,
+              }}
+            >
+              <Text
+                className="font-nunito-bold"
+                style={{ fontSize: 12, color: tc.fgMuted }}
+              >
+                {t("collection.notOwned")}
+              </Text>
+            </View>
+          </View>
         ) : (
           <View className="h-5" />
         ))}

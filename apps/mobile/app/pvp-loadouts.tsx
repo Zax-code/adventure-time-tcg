@@ -369,7 +369,8 @@ export default function PvpLoadoutsScreen() {
     return () => clearTimeout(timer);
   }, [toast]);
 
-  const ownedCards = collectionQuery.data?.cards ?? [];
+  const ownedCards =
+    collectionQuery.data?.cards.filter((entry) => entry.quantity > 0) ?? [];
   const loadouts = loadoutsQuery.data?.loadouts ?? [];
 
   const cardMap = useMemo(() => {
