@@ -5,10 +5,19 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 
 import type { CollectionResponse } from "@adventure-time/api-client";
-import { CARD_ART_RATIO } from "./card-back-cover-art";
+
+import {
+  CARD_TYPE_COLORS,
+  CARD_TYPE_COLORS_ICE,
+  CARD_TYPE_COLORS_NIGHTOSPHERE,
+  RARITY_COLORS,
+  RARITY_COLORS_ICE,
+  RARITY_COLORS_NIGHTOSPHERE,
+} from "./theme";
+import { CARD_ART_RATIO, type CardBackcoverRarityName } from "./card-back-cover-art";
+import { CARD_OUTLINE_SAFE_AREA, getCardOutlineSource } from "./card-outline-frame";
+import { RarityIcon } from "./icons";
 import { getCardImageCacheKey, getCardImageUrl } from "../lib/card-images";
-import { CARD_TYPE_COLORS, RARITY_COLORS, SECONDARY_TINT } from "./theme";
-import { HPIcon, SpeedIcon, RarityIcon } from "./icons";
 import { useThemeStore } from "../stores/theme-store";
 import { THEME_COLORS } from "../theme/themes";
 
@@ -30,68 +39,62 @@ const sizeConfig = {
   small: {
     width: 152,
     height: 228,
-    paddingH: 6,
-    paddingT: 4,
-    paddingB: 2,
-    headerFontSize: 8,
-    hpIconSize: 30,
-    nameFontSize: 9,
-    charFontSize: 8,
-    descFontSize: 7,
-    descPadding: 4,
-    descLineHeight: 10,
-    speedHeight: 16,
-    speedIconSize: 30,
-    typeFontSize: 6,
-    rarityFontSize: 5,
-    borderRadius: 12,
-    imageAspect: 5 / 3,
-    headerHeight: 18,
-    headerHpOffset: -15,
-    headerHpTop: -2,
-    descMarginTop: 3,
-    descMinHeight: 28,
-    nameMarginTop: 2,
-    nameGap: 1,
-    speedMarginTop: 2,
-    speedIconTop: -12,
-    typePaddingH: 6,
-    typePaddingV: 2,
-    rarityBadgeRadius: 4,
+    borderRadius: 16,
+    typeFontSize: 6.5,
+    typePaddingH: 8,
+    typePaddingV: 4,
+    rarityFontSize: 5.5,
+    rarityPaddingH: 6,
+    rarityPaddingV: 4,
+    quantityFontSize: 8.5,
+    quantityPaddingH: 8,
+    quantityPaddingV: 3,
+    contentPaddingX: 6,
+    contentPaddingTop: 6,
+    contentPaddingBottom: 6,
+    panelRadius: 10,
+    panelPadding: 6,
+    topGap: 5,
+    bodyGap: 6,
+    nameFontSize: 10,
+    charFontSize: 6.5,
+    descFontSize: 6.2,
+    descLineHeight: 8.5,
+    descLines: 3,
+    statGap: 5,
+    statLabelFontSize: 4.8,
+    statValueFontSize: 9.8,
   },
   large: {
     width: 320,
     height: 480,
-    paddingH: 16,
-    paddingT: 8,
-    paddingB: 4,
-    headerFontSize: 16,
-    hpIconSize: 60,
-    nameFontSize: 18,
-    charFontSize: 16,
-    descFontSize: 12,
-    descPadding: 16,
-    descLineHeight: 20,
-    speedHeight: 40,
-    speedIconSize: 60,
+    borderRadius: 28,
     typeFontSize: 10,
-    rarityFontSize: 9,
-    borderRadius: 16,
-    imageAspect: 320 / 192,
-    headerHeight: 36,
-    headerHpOffset: -30,
-    headerHpTop: -4,
-    descMarginTop: 6,
-    descMinHeight: 56,
-    nameMarginTop: 4,
-    nameGap: 2,
-    speedMarginTop: 4,
-    speedIconTop: -24,
     typePaddingH: 12,
-    typePaddingV: 4,
-    rarityBadgeRadius: 8,
+    typePaddingV: 6,
+    rarityFontSize: 9,
+    rarityPaddingH: 10,
+    rarityPaddingV: 6,
+    quantityFontSize: 13,
+    quantityPaddingH: 12,
+    quantityPaddingV: 6,
+    contentPaddingX: 12,
+    contentPaddingTop: 12,
+    contentPaddingBottom: 12,
+    panelRadius: 18,
+    panelPadding: 10,
+    topGap: 8,
+    bodyGap: 10,
+    nameFontSize: 18,
+    charFontSize: 10.5,
+    descFontSize: 11.5,
+    descLineHeight: 15.5,
+    descLines: 4,
+    statGap: 8,
+    statLabelFontSize: 7,
+    statValueFontSize: 16,
   },
-};
+} as const;
 
 const COMPACT_LABELS: Record<string, string> = {
   Common: "COM",
@@ -101,36 +104,101 @@ const COMPACT_LABELS: Record<string, string> = {
   Legendary: "LGD",
 };
 
+function withAlpha(color: string, opacity: number) {
+  if (color.startsWith("#") && color.length === 7) {
+    const alpha = Math.max(0, Math.min(255, Math.round(opacity * 255)))
+      .toString(16)
+      .padStart(2, "0");
+    return `${color}${alpha}`;
+  }
+
+  return color;
+}
+
 function RarityCrest({
   rarityName,
+  rarity,
   cfg,
 }: {
   rarityName: string;
-  cfg: typeof sizeConfig.small;
+  rarity: { from: string; to: string };
+  cfg: (typeof sizeConfig)[keyof typeof sizeConfig];
 }) {
-  const rarity = RARITY_COLORS[rarityName] ?? RARITY_COLORS.Common;
   const label =
     COMPACT_LABELS[rarityName] ?? rarityName.slice(0, 3).toUpperCase();
+
   return (
     <LinearGradient
       colors={[rarity.from, rarity.to]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 0 }}
-      style={{ gap: 2, paddingHorizontal: 4, paddingVertical: 1 }}
-      className="flex-row items-center"
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 4,
+        borderRadius: 999,
+        paddingHorizontal: cfg.rarityPaddingH,
+        paddingVertical: cfg.rarityPaddingV,
+      }}
     >
       <RarityIcon
         rarityName={rarityName}
-        size={cfg.rarityFontSize + 3}
-        color="#fff"
+        size={cfg.rarityFontSize + 4}
+        color="#FFF9F2"
       />
       <Text
-        className="text-white font-nunito-extrabold"
+        className="font-nunito-extrabold text-white"
         style={{ fontSize: cfg.rarityFontSize }}
+        numberOfLines={1}
       >
         {label}
       </Text>
     </LinearGradient>
+  );
+}
+
+function StatPill({
+  label,
+  value,
+  bg,
+  border,
+  cfg,
+}: {
+  label: string;
+  value: string | number;
+  bg: string;
+  border: string;
+  cfg: (typeof sizeConfig)[keyof typeof sizeConfig];
+}) {
+  return (
+    <View
+      style={{
+        width: "48%",
+        borderRadius: cfg.panelRadius,
+        paddingHorizontal: cfg.panelPadding,
+        paddingVertical: Math.max(4, cfg.panelPadding - 2),
+        backgroundColor: bg,
+        borderWidth: 1,
+        borderColor: border,
+      }}
+    >
+      <Text
+        className="font-nunito-extrabold text-white/80"
+        style={{
+          fontSize: cfg.statLabelFontSize,
+          letterSpacing: 0.7,
+        }}
+      >
+        {label}
+      </Text>
+      <Text
+        className="font-nunito-extrabold text-white"
+        style={{ fontSize: cfg.statValueFontSize }}
+        numberOfLines={1}
+      >
+        {value}
+      </Text>
+    </View>
   );
 }
 
@@ -147,36 +215,53 @@ export const CardTile = memo(function CardTile({
 }: CardTileProps) {
   const { card, quantity } = entry;
   const cfg = sizeConfig[size];
-  const tc = THEME_COLORS[useThemeStore((s) => s.themeName)];
-  const typeColor = CARD_TYPE_COLORS[card.type] ?? {
-    frame: "#9CA3AF",
-    light: "#F3F4F6",
-    dark: "#374151",
+  const themeName = useThemeStore((state) => state.themeName);
+  const tc = THEME_COLORS[themeName];
+  const typePalette =
+    themeName === "ice"
+      ? CARD_TYPE_COLORS_ICE
+      : themeName === "nightosphere"
+        ? CARD_TYPE_COLORS_NIGHTOSPHERE
+        : CARD_TYPE_COLORS;
+  const rarityPalette =
+    themeName === "ice"
+      ? RARITY_COLORS_ICE
+      : themeName === "nightosphere"
+        ? RARITY_COLORS_NIGHTOSPHERE
+        : RARITY_COLORS;
+  const typeColor = typePalette[card.type] ?? {
+    frame: tc.primary,
+    light: tc.primaryTint,
+    dark: tc.primaryText,
   };
-  const rarityColor = RARITY_COLORS[card.rarity.name] ?? {
-    from: "#9CA3AF",
-    to: "#6B7280",
-    ring: "#9CA3AF",
-  };
-
+  const rarityColor = rarityPalette[card.rarity.name] ?? rarityPalette.Common;
+  const outlineSource = getCardOutlineSource(
+    themeName,
+    card.rarity.name as CardBackcoverRarityName,
+  );
   const isLegendary = card.rarity.name === "Legendary";
   const isEpic = card.rarity.name === "Epic";
   const hasShimmer = isLegendary || isEpic;
+  const cardAspectRatio = CARD_ART_RATIO;
 
   const bounceAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    if (size !== "small" || quantity <= 1) return;
+    if (size !== "small" || quantity <= 1) {
+      bounceAnim.setValue(0);
+      return;
+    }
+
     const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(bounceAnim, {
-          toValue: -5,
-          duration: 400,
+          toValue: -4,
+          duration: 420,
           useNativeDriver: true,
           easing: Easing.out(Easing.quad),
         }),
         Animated.timing(bounceAnim, {
           toValue: 0,
-          duration: 400,
+          duration: 420,
           useNativeDriver: true,
           easing: Easing.in(Easing.quad),
         }),
@@ -184,11 +269,15 @@ export const CardTile = memo(function CardTile({
     );
     loop.start();
     return () => loop.stop();
-  }, [quantity, size]);
+  }, [bounceAnim, quantity, size]);
 
   const shimmerAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    if (!hasShimmer) return;
+    if (!hasShimmer) {
+      shimmerAnim.setValue(0);
+      return;
+    }
+
     const duration = isLegendary ? 2600 : 3100;
     const loop = Animated.loop(
       Animated.timing(shimmerAnim, {
@@ -200,295 +289,316 @@ export const CardTile = memo(function CardTile({
     );
     loop.start();
     return () => loop.stop();
-  }, [hasShimmer, isLegendary]);
+  }, [hasShimmer, isLegendary, shimmerAnim]);
 
-  const shimmerColorPeak = isLegendary
-    ? "rgba(239, 217, 72, 0.18)"
-    : "rgba(174, 82, 255, 0.16)";
-  const shimmerColorEdge = isLegendary
-    ? "rgba(239, 217, 72, 0)"
-    : "rgba(174, 82, 255, 0)";
   const shimmerTranslate = shimmerAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [-cfg.width * 3, cfg.width],
   });
-  const cardAspectRatio = CARD_ART_RATIO;
+  const contentFrameStyle = {
+    position: "absolute" as const,
+    left: CARD_OUTLINE_SAFE_AREA.left,
+    right: CARD_OUTLINE_SAFE_AREA.right,
+    top: CARD_OUTLINE_SAFE_AREA.top,
+    bottom: CARD_OUTLINE_SAFE_AREA.bottom,
+    paddingHorizontal: cfg.contentPaddingX,
+    paddingTop: cfg.contentPaddingTop,
+    paddingBottom: cfg.contentPaddingBottom,
+    justifyContent: "space-between" as const,
+  };
 
   return (
     <Pressable
       onPress={onPress}
+      disabled={!onPress}
       testID={testID}
       style={[
         {
           width: fitContainer ? "100%" : cfg.width,
           margin: fitContainer ? 0 : size === "small" ? 4 : 0,
+          opacity: onPress ? 1 : 0.98,
         },
         containerStyle,
       ]}
     >
-      {/* Outer card: type-colored frame background */}
       <View
         className="overflow-hidden"
         style={{
           borderRadius: cfg.borderRadius,
-          backgroundColor: typeColor.frame,
+          backgroundColor: withAlpha(typeColor.frame, 0.2),
           height: fitContainer ? undefined : cfg.height,
           aspectRatio: fitContainer ? cardAspectRatio : undefined,
+          boxShadow:
+            size === "large"
+              ? `0px 18px 42px ${withAlpha(rarityColor.to, 0.22)}`
+              : `0px 10px 24px ${withAlpha(rarityColor.to, 0.18)}`,
         }}
       >
-        {/* Rarity ring overlay */}
-        <View
-          pointerEvents="none"
-          className="absolute inset-0 z-10"
-          style={{
-            borderRadius: cfg.borderRadius,
-            borderWidth: 1,
-            borderColor: rarityColor.ring,
-          }}
+        {card.imageAssetId ? (
+          <Image
+            source={{
+              uri: getCardImageUrl(card.imageAssetId),
+              cacheKey: getCardImageCacheKey(card.imageAssetId),
+            }}
+            placeholder={{ blurhash: "LKO2?U%2Tw=w]~RBVZRi};RPxuwH" }}
+            style={{ position: "absolute", inset: 0 }}
+            contentFit="cover"
+            cachePolicy="memory-disk"
+          />
+        ) : (
+          <View
+            className="absolute inset-0 items-center justify-center"
+            style={{ backgroundColor: typeColor.light }}
+          >
+            <Text
+              className="font-nunito-extrabold"
+              style={{
+                color: typeColor.dark,
+                fontSize: cfg.nameFontSize * 4,
+              }}
+            >
+              {(card.character || card.name || "?").charAt(0)}
+            </Text>
+          </View>
+        )}
+
+        <LinearGradient
+          colors={[
+            withAlpha("#120914", themeName === "nightosphere" ? 0.14 : 0.05),
+            withAlpha("#120914", themeName === "nightosphere" ? 0.2 : 0.12),
+            withAlpha("#120914", 0.78),
+          ]}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={{ position: "absolute", inset: 0 }}
         />
 
-        {/* Rarity shimmer sweep (Legendary / Epic) */}
-        {hasShimmer && (
+        {hasShimmer ? (
           <Animated.View
             pointerEvents="none"
             style={{
               position: "absolute",
               top: 0,
-              height: cfg.height,
+              height: fitContainer ? "100%" : cfg.height,
               width: cfg.width * 3,
               transform: [{ translateX: shimmerTranslate }],
-              zIndex: 15,
             }}
           >
             <LinearGradient
-              colors={[shimmerColorEdge, shimmerColorPeak, shimmerColorEdge]}
+              colors={[
+                withAlpha("#FFFFFF", 0),
+                withAlpha(isLegendary ? tc.secondary : tc.accent, isLegendary ? 0.2 : 0.16),
+                withAlpha("#FFFFFF", 0),
+              ]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={{ flex: 1 }}
             />
           </Animated.View>
-        )}
+        ) : null}
 
-        {/* Inner content */}
-        <View
-          className="flex-1"
-          style={{
-            paddingHorizontal: cfg.paddingH,
-            paddingTop: cfg.paddingT,
-            paddingBottom: cfg.paddingB,
-          }}
-        >
-          {/* === HEADER: ATK / HP / DEF === */}
-          <View
-            className="flex-row items-center relative"
-            style={{ marginBottom: 2, height: cfg.headerHeight }}
-          >
-            <Text
-              className="flex-1 text-center text-white font-nunito-extrabold"
-              style={{ fontSize: cfg.headerFontSize }}
-            >
-              {card.attack} ATK
-            </Text>
-            {/* HP floats center, slightly overlapping down */}
+        <Image
+          pointerEvents="none"
+          source={outlineSource}
+          style={{ position: "absolute", inset: 0 }}
+          contentFit="fill"
+        />
+
+        <View style={contentFrameStyle}>
+          <View style={{ gap: cfg.topGap }}>
             <View
               style={{
-                position: "absolute",
-                left: "50%",
-                transform: [{ translateX: cfg.headerHpOffset }],
-                top: cfg.headerHpTop,
-                zIndex: 5,
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+                gap: cfg.topGap,
               }}
             >
-              <HPIcon size={cfg.hpIconSize} hpVal={card.hp} />
-            </View>
-            <Text
-              className="flex-1 text-center text-white font-nunito-bold"
-              style={{ fontSize: cfg.headerFontSize }}
-            >
-              {card.defense} DEF
-            </Text>
-          </View>
-
-          {/* === IMAGE SECTION === */}
-          <View
-            className="overflow-hidden relative"
-            style={{
-              aspectRatio: cfg.imageAspect,
-              borderRadius: cfg.rarityBadgeRadius,
-            }}
-          >
-            {card.imageAssetId ? (
-              <Image
-                source={{
-                  uri: getCardImageUrl(card.imageAssetId),
-                  cacheKey: getCardImageCacheKey(card.imageAssetId),
-                }}
-                placeholder={{ blurhash: "LKO2?U%2Tw=w]~RBVZRi};RPxuwH" }}
-                style={{ width: "100%", height: "100%" }}
-                contentFit="cover"
-                cachePolicy="memory-disk"
-              />
-            ) : (
               <View
-                className="flex-1 items-center justify-center"
-                style={{ backgroundColor: typeColor.light }}
+                style={{
+                  maxWidth: "52%",
+                  borderRadius: 999,
+                  paddingHorizontal: cfg.typePaddingH,
+                  paddingVertical: cfg.typePaddingV,
+                  backgroundColor: withAlpha(typeColor.dark, themeName === "nightosphere" ? 0.72 : 0.64),
+                  borderWidth: 1,
+                  borderColor: withAlpha("#FFFFFF", themeName === "nightosphere" ? 0.1 : 0.18),
+                }}
               >
                 <Text
-                  className="font-nunito-extrabold"
-                  style={{
-                    color: typeColor.dark,
-                    fontSize: cfg.nameFontSize * 2,
-                  }}
+                  className="font-nunito-extrabold text-white"
+                  style={{ fontSize: cfg.typeFontSize }}
+                  numberOfLines={1}
                 >
-                  {(card.character || card.name || "?").charAt(0)}
+                  {card.type}
                 </Text>
               </View>
-            )}
 
-            {/* Type badge — bottom right */}
+              <RarityCrest
+                rarityName={card.rarity.name}
+                rarity={rarityColor}
+                cfg={cfg}
+              />
+            </View>
+
+            {quantity > 1 ? (
+              <Animated.View
+                style={{
+                  alignSelf: "flex-end",
+                  transform: size === "small" ? [{ translateY: bounceAnim }] : undefined,
+                }}
+              >
+                <LinearGradient
+                  colors={[tc.secondary, tc.secondaryDark]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={{
+                    borderRadius: 999,
+                    paddingHorizontal: cfg.quantityPaddingH,
+                    paddingVertical: cfg.quantityPaddingV,
+                  }}
+                >
+                  <Text
+                    className="font-nunito-extrabold"
+                    style={{ color: tc.secondaryText, fontSize: cfg.quantityFontSize }}
+                  >
+                    x{quantity}
+                  </Text>
+                </LinearGradient>
+              </Animated.View>
+            ) : null}
+          </View>
+
+          <View style={{ gap: cfg.bodyGap }}>
             <View
-              className="absolute bottom-0 right-0"
               style={{
-                backgroundColor: typeColor.dark,
-                paddingHorizontal: cfg.typePaddingH,
-                paddingVertical: cfg.typePaddingV,
-                borderTopLeftRadius: cfg.rarityBadgeRadius / 2,
+                borderRadius: cfg.panelRadius,
+                paddingHorizontal: cfg.panelPadding,
+                paddingVertical: cfg.panelPadding,
+                backgroundColor:
+                  themeName === "nightosphere"
+                    ? withAlpha("#08020A", 0.78)
+                    : withAlpha("#120914", 0.5),
+                borderWidth: 1,
+                borderColor: withAlpha("#FFFFFF", themeName === "nightosphere" ? 0.08 : 0.14),
               }}
             >
               <Text
-                className="text-white font-nunito-bold"
-                style={{ fontSize: cfg.typeFontSize }}
+                className="font-nunito-extrabold text-white"
+                style={{ fontSize: cfg.nameFontSize }}
+                numberOfLines={2}
               >
-                {card.type}
+                {card.name}
+              </Text>
+              {card.character ? (
+                <Text
+                  className="font-nunito-bold text-white/85"
+                  style={{
+                    fontSize: cfg.charFontSize,
+                    letterSpacing: 0.4,
+                    marginTop: 2,
+                  }}
+                  numberOfLines={1}
+                >
+                  {card.character}
+                </Text>
+              ) : null}
+            </View>
+
+            <View
+              style={{
+                borderRadius: cfg.panelRadius,
+                padding: cfg.panelPadding,
+                backgroundColor:
+                  themeName === "nightosphere"
+                    ? withAlpha("#070109", 0.84)
+                    : withAlpha("#FFF9F2", 0.8),
+                borderWidth: 1,
+                borderColor: withAlpha(rarityColor.ring, themeName === "nightosphere" ? 0.24 : 0.18),
+              }}
+            >
+              <Text
+                className="font-nunito"
+                style={{
+                  color: tc.fg,
+                  fontSize: cfg.descFontSize,
+                  lineHeight: cfg.descLineHeight,
+                }}
+                numberOfLines={cfg.descLines}
+              >
+                {card.description}
               </Text>
             </View>
 
-            {/* Rarity crest — bottom left */}
             <View
-              className="absolute bottom-0 left-0 overflow-hidden"
-              style={{ borderTopRightRadius: cfg.rarityBadgeRadius / 2 }}
-            >
-              <RarityCrest rarityName={card.rarity.name} cfg={cfg} />
-            </View>
-          </View>
-
-          {/* === NAME & CHARACTER === */}
-          <View
-            className="items-center"
-            style={{ marginTop: cfg.nameMarginTop, gap: cfg.nameGap }}
-          >
-            <Text
-              className="text-white font-nunito-bold"
-              style={{ fontSize: cfg.nameFontSize }}
-              numberOfLines={1}
-            >
-              {card.name}
-            </Text>
-            <Text
-              className="text-white font-nunito-semibold italic"
-              style={{ fontSize: cfg.charFontSize }}
-              numberOfLines={1}
-            >
-              {card.character}
-            </Text>
-          </View>
-
-          {/* === DESCRIPTION === */}
-          <View
-            style={{
-              backgroundColor: SECONDARY_TINT,
-              borderRadius: cfg.rarityBadgeRadius / 2,
-              padding: cfg.descPadding,
-              marginTop: cfg.descMarginTop,
-              flex: 1,
-              minHeight: cfg.descMinHeight,
-            }}
-          >
-            <Text
-              className="font-nunito"
               style={{
-                color: tc.primaryText,
-                fontSize: cfg.descFontSize,
-                lineHeight: cfg.descLineHeight,
+                flexDirection: "row",
+                flexWrap: "wrap",
+                justifyContent: "space-between",
+                rowGap: cfg.statGap,
               }}
-              numberOfLines={size === "large" ? 6 : 4}
             >
-              {card.description}
-            </Text>
-          </View>
-
-          {/* === SPEED SECTION === */}
-          <View
-            className="items-center justify-center relative"
-            style={{ height: cfg.speedHeight, marginTop: cfg.speedMarginTop }}
-          >
-            <View style={{ position: "absolute", top: cfg.speedIconTop }}>
-              <SpeedIcon size={cfg.speedIconSize} speedVal={card.speed} />
+              <StatPill
+                label="ATK"
+                value={card.attack}
+                bg={withAlpha(tc.dangerDark, themeName === "nightosphere" ? 0.34 : 0.7)}
+                border={withAlpha(tc.danger, themeName === "nightosphere" ? 0.26 : 0.3)}
+                cfg={cfg}
+              />
+              <StatPill
+                label="HP"
+                value={card.hp}
+                bg={withAlpha(rarityColor.to, themeName === "nightosphere" ? 0.34 : 0.68)}
+                border={withAlpha(rarityColor.from, themeName === "nightosphere" ? 0.28 : 0.3)}
+                cfg={cfg}
+              />
+              <StatPill
+                label="DEF"
+                value={card.defense}
+                bg={withAlpha(tc.infoDark, themeName === "nightosphere" ? 0.34 : 0.68)}
+                border={withAlpha(tc.info, themeName === "nightosphere" ? 0.28 : 0.3)}
+                cfg={cfg}
+              />
+              <StatPill
+                label="SPD"
+                value={card.speed}
+                bg={withAlpha(tc.successDark, themeName === "nightosphere" ? 0.34 : 0.68)}
+                border={withAlpha(tc.success, themeName === "nightosphere" ? 0.28 : 0.3)}
+                cfg={cfg}
+              />
             </View>
           </View>
         </View>
       </View>
 
-      {/* Quantity badge below card — only for small size */}
-      {size === "small" &&
-        (quantity > 1 ? (
-          <Animated.View
-            style={{
-              alignItems: "center",
-              marginTop: 4,
-              transform: [{ translateY: bounceAnim }],
-            }}
-          >
-            <View
-              className="rounded-full items-center"
-              style={{
-                backgroundColor: rarityColor.ring,
-                paddingHorizontal: 10,
-                paddingVertical: 2,
-                width: 50,
-              }}
-            >
-              <Text
-                className="text-white font-nunito-bold"
-                style={{ fontSize: 11 }}
-              >
-                x{quantity}
-              </Text>
-            </View>
-          </Animated.View>
-        ) : (
-          <View className="h-5" />
-        ))}
-
-      {/* Action buttons below card */}
       {onRecycle || onCraft ? (
-        <View className="flex-row gap-1 mt-1">
+        <View className="mt-2 flex-row gap-2">
           {onRecycle ? (
             <Pressable
               onPress={onRecycle}
-              className="flex-1 items-center border rounded-lg border-primaryBorder"
-              style={{ paddingVertical: 4 }}
+              className="flex-1 items-center rounded-full"
+              style={{
+                backgroundColor: tc.surface,
+                borderWidth: 1,
+                borderColor: tc.primaryBorder,
+                paddingVertical: 8,
+              }}
             >
-              <Text
-                className="font-nunito-semibold text-primaryText"
-                style={{ fontSize: 10 }}
-              >
-                Recycle
-              </Text>
+              <Text className="font-nunito-bold text-primaryText">Recycle</Text>
             </Pressable>
           ) : null}
           {onCraft ? (
             <Pressable
               onPress={onCraft}
-              className="flex-1 items-center border rounded-lg border-primaryBorder"
-              style={{ paddingVertical: 4 }}
+              className="flex-1 items-center rounded-full"
+              style={{
+                backgroundColor: tc.primaryTint,
+                borderWidth: 1,
+                borderColor: tc.primaryBorder,
+                paddingVertical: 8,
+              }}
             >
-              <Text
-                className="font-nunito-semibold text-primaryText"
-                style={{ fontSize: 10 }}
-              >
-                Craft
-              </Text>
+              <Text className="font-nunito-bold text-primaryText">Craft</Text>
             </Pressable>
           ) : null}
         </View>
