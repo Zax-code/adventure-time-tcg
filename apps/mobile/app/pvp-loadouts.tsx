@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import {
   Pressable,
   ScrollView,
@@ -6,6 +13,7 @@ import {
   View,
   type ViewStyle,
 } from "react-native";
+import Ionicons from "@react-native-vector-icons/ionicons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
@@ -31,6 +39,7 @@ import {
   CardsIcon,
   CheckIcon,
   ChevronRightIcon,
+  SparklesIcon,
   SwordsIcon,
   XIcon,
 } from "../src/components/icons";
@@ -161,6 +170,129 @@ function CompactStat({
       >
         {label}
       </Text>
+    </View>
+  );
+}
+
+function SummaryStat({
+  label,
+  value,
+  backgroundColor,
+  textColor,
+}: {
+  label: string;
+  value: string;
+  backgroundColor: string;
+  textColor: string;
+}) {
+  return (
+    <View
+      className="flex-1 rounded-[20px] px-3 py-3"
+      style={{ backgroundColor }}
+    >
+      <Text
+        className="font-nunito-extrabold text-lg"
+        style={{ color: textColor, fontVariant: ["tabular-nums"] }}
+      >
+        {value}
+      </Text>
+      <Text
+        className="mt-1 font-nunito-semibold text-[11px]"
+        style={{ color: textColor }}
+      >
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+function SavedLoadoutPreview({
+  cardIds,
+  invalidCardIds,
+  cardMap,
+  activeColor,
+  benchColor,
+  emptyColor,
+  invalidColor,
+}: {
+  cardIds: string[];
+  invalidCardIds: string[];
+  cardMap: Map<string, BuilderCard>;
+  activeColor: string;
+  benchColor: string;
+  emptyColor: string;
+  invalidColor: string;
+}) {
+  return (
+    <View className="mt-4 flex-row flex-wrap gap-2">
+      {Array.from({ length: 6 }, (_, index) => {
+        const cardId = cardIds[index];
+        const card = cardId ? cardMap.get(cardId) : undefined;
+        const slotColor = index < 3 ? activeColor : benchColor;
+        const isInvalid = cardId ? invalidCardIds.includes(cardId) : false;
+
+        return (
+          <View
+            key={`${cardId ?? "empty"}-${index}`}
+            className="relative overflow-hidden rounded-2xl border"
+            style={{
+              width: "30%",
+              aspectRatio: 0.78,
+              backgroundColor: card ? "#FFFFFF" : emptyColor,
+              borderColor: isInvalid ? invalidColor : `${slotColor}99`,
+              borderWidth: card ? 1.5 : 1,
+            }}
+          >
+            {card ? (
+              <>
+                {card.imageAssetId ? (
+                  <Image
+                    source={{
+                      uri: getCardImageUrl(card.imageAssetId),
+                      cacheKey: getCardImageCacheKey(card.imageAssetId),
+                    }}
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
+                    style={{ width: "100%", height: "100%" }}
+                  />
+                ) : (
+                  <View
+                    className="h-full w-full items-center justify-center"
+                    style={{ backgroundColor: emptyColor }}
+                  >
+                    <Text
+                      className="font-nunito-extrabold text-base"
+                      style={{ color: slotColor }}
+                    >
+                      {(card.character || card.name || "?").charAt(0)}
+                    </Text>
+                  </View>
+                )}
+
+                <View
+                  className="absolute left-1.5 top-1.5 rounded-full px-1.5 py-1"
+                  style={{
+                    backgroundColor: isInvalid ? invalidColor : `${slotColor}E6`,
+                  }}
+                >
+                  <Text className="font-nunito-bold text-[9px] text-white">
+                    #{index + 1}
+                  </Text>
+                </View>
+              </>
+            ) : (
+              <View className="flex-1 items-center justify-center">
+                <Text
+                  className="font-nunito-bold text-[11px]"
+                  style={{ color: slotColor }}
+                >
+                  #{index + 1}
+                </Text>
+              </View>
+            )}
+          </View>
+        );
+      })}
     </View>
   );
 }
@@ -347,6 +479,8 @@ export default function PvpLoadoutsScreen() {
   const [selectedCardIds, setSelectedCardIds] = useState<string[]>([]);
   const [editingLoadoutId, setEditingLoadoutId] = useState<string | null>(null);
   const [filter, setFilter] = useState<(typeof LOADOUT_TYPES)[number]>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const deferredSearchQuery = useDeferredValue(searchQuery);
   const [toast, setToast] = useState<{
     message: string;
     type: "success" | "error";
@@ -403,12 +537,37 @@ export default function PvpLoadoutsScreen() {
     { legendary: 0, epic: 0 },
   );
 
+  const normalizedSearchQuery = deferredSearchQuery.trim().toLowerCase();
+  const trimmedLoadoutName = loadoutName.trim();
+  const activeCount = Math.min(selectedCards.length, 3);
+  const benchCount = Math.max(0, selectedCards.length - 3);
+  const remainingSlots = Math.max(0, 6 - selectedCards.length);
+  const isSelectionComplete = selectedCards.length === 6;
+  const isReadyToSave = isSelectionComplete && trimmedLoadoutName.length > 0;
+  const progressPercent = Math.round((selectedCards.length / 6) * 100);
+
   const filteredCollection = useMemo(() => {
     const filtered = ownedCards.filter((entry) => {
-      if (filter === "all") {
+      if (filter !== "all" && entry.card.type !== filter) {
+        return false;
+      }
+
+      if (!normalizedSearchQuery) {
         return true;
       }
-      return entry.card.type === filter;
+
+      const searchableText = [
+        entry.card.name,
+        entry.card.character,
+        entry.card.type,
+        localizeTypeName(entry.card.type, t),
+        entry.card.rarity.name,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return searchableText.includes(normalizedSearchQuery);
     });
 
     return [...filtered].sort((left, right) => {
@@ -429,7 +588,7 @@ export default function PvpLoadoutsScreen() {
 
       return left.card.name.localeCompare(right.card.name);
     });
-  }, [filter, ownedCards, selectedCardIndexMap]);
+  }, [filter, normalizedSearchQuery, ownedCards, selectedCardIndexMap, t]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -490,12 +649,14 @@ export default function PvpLoadoutsScreen() {
     setEditingLoadoutId(loadout.id);
     setLoadoutName(loadout.name);
     setSelectedCardIds(loadout.cardIds.filter((cardId) => cardMap.has(cardId)));
+    setSearchQuery("");
   };
 
   const createNewLoadout = () => {
     setEditingLoadoutId(null);
     setLoadoutName("");
     setSelectedCardIds([]);
+    setSearchQuery("");
   };
 
   const toggleCardSelection = (card: BuilderCard) => {
@@ -561,7 +722,6 @@ export default function PvpLoadoutsScreen() {
       params: { cardId },
     });
   };
-  const remainingSlots = Math.max(0, 6 - selectedCards.length);
 
   if (collectionQuery.isLoading || loadoutsQuery.isLoading) {
     return (
@@ -653,17 +813,34 @@ export default function PvpLoadoutsScreen() {
                 testID="pvp-loadout-saved-section"
                 className="rounded-[28px] border border-primaryBorder/50 bg-surface/95 p-4"
               >
-                <Text className="font-nunito-bold text-base text-fg">
-                  {t("pvp.yourLoadouts")}
-                </Text>
-                <Text className="mt-1 font-nunito text-sm text-fgMuted">
-                  {t("pvp.savedLoadoutsHint")}
-                </Text>
+                <View className="flex-row items-start justify-between gap-3">
+                  <View className="flex-1">
+                    <Text className="font-nunito-bold text-base text-fg">
+                      {t("pvp.yourLoadouts")}
+                    </Text>
+                    <Text className="mt-1 font-nunito text-sm text-fgMuted">
+                      {t("pvp.savedLoadoutsHint")}
+                    </Text>
+                  </View>
+
+                  <View
+                    className="rounded-full px-3 py-1.5"
+                    style={{ backgroundColor: tc.primaryBg }}
+                  >
+                    <Text className="font-nunito-bold text-xs text-primaryStrong">
+                      {loadouts.length}
+                    </Text>
+                  </View>
+                </View>
 
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={{ gap: 12, paddingRight: 4, paddingTop: 12 }}
+                  contentContainerStyle={{
+                    gap: 12,
+                    paddingRight: 4,
+                    paddingTop: 14,
+                  }}
                 >
                   {loadouts.map((loadout) => {
                     const active = editingLoadoutId === loadout.id;
@@ -674,37 +851,70 @@ export default function PvpLoadoutsScreen() {
                         key={loadout.id}
                         testID={`pvp-loadout-saved-${loadout.id}`}
                         onPress={() => editLoadout(loadout.id)}
-                        className="rounded-[24px] p-4"
+                        className="rounded-[26px] p-4"
                         style={{
-                          width: 208,
-                          borderWidth: 1,
-                          borderColor: active ? tc.accentDark : `${tc.primaryBorder}88`,
-                          backgroundColor: active ? tc.accentTint : tc.surfaceMuted,
+                          width: 232,
+                          borderWidth: 1.5,
+                          borderColor: active ? tc.accentDark : tc.primaryBorder,
+                          backgroundColor: active ? tc.primaryBg : tc.surfaceMuted,
                         }}
                       >
                         <View className="flex-row items-start justify-between gap-3">
-                          <Text
-                            className={`flex-1 font-nunito-bold text-base ${
-                              active ? "text-accentStrong" : "text-fg"
-                            }`}
-                            numberOfLines={2}
+                          <View className="flex-1">
+                            <Text
+                              className={`font-nunito-bold text-base ${
+                                active ? "text-accentStrong" : "text-fg"
+                              }`}
+                              numberOfLines={2}
+                            >
+                              {loadout.name}
+                            </Text>
+                            <Text className="mt-1 font-nunito-semibold text-xs text-fgMuted">
+                              {loadout.cardIds.length}/6
+                            </Text>
+                          </View>
+
+                          <View
+                            className="rounded-full px-2.5 py-1"
+                            style={{
+                              backgroundColor: active
+                                ? tc.accentDark
+                                : isValid
+                                  ? tc.successTint
+                                  : tc.dangerTint,
+                            }}
                           >
-                            {loadout.name}
-                          </Text>
-                          {active ? (
-                            <View className="rounded-full bg-accentDark px-2 py-1">
-                              <Text className="font-nunito-bold text-[10px] text-white">
-                                {t("pvp.editing")}
-                              </Text>
-                            </View>
-                          ) : null}
+                            <Text
+                              className="font-nunito-bold text-[10px]"
+                              style={{
+                                color: active
+                                  ? "#FFFFFF"
+                                  : isValid
+                                    ? tc.successText
+                                    : tc.dangerDark,
+                              }}
+                            >
+                              {active
+                                ? t("pvp.editing")
+                                : isValid
+                                  ? t("pvp.loadoutReady")
+                                  : t("pvp.loadoutNeedsFixes")}
+                            </Text>
+                          </View>
                         </View>
 
-                        <Text className="mt-3 font-nunito-semibold text-xs text-fgMuted">
-                          {loadout.cardIds.length}/6
-                        </Text>
+                        <SavedLoadoutPreview
+                          cardIds={loadout.cardIds}
+                          invalidCardIds={loadout.invalidCardIds}
+                          cardMap={cardMap}
+                          activeColor={tc.successDark}
+                          benchColor={tc.accentDark}
+                          emptyColor={tc.primaryTint}
+                          invalidColor={tc.dangerDark}
+                        />
+
                         <Text
-                          className={`mt-1 font-nunito text-xs ${
+                          className={`mt-4 font-nunito text-xs ${
                             isValid ? "text-fgMuted" : "text-dangerDark"
                           }`}
                         >
@@ -745,27 +955,69 @@ export default function PvpLoadoutsScreen() {
                   </ThemedExpoButton>
                 ) : null}
               </View>
-            ) : null}
+            ) : (
+              <View className="rounded-[28px] border border-primaryBorder/40 bg-surface/90 p-4">
+                <View
+                  className="rounded-[24px] border px-4 py-4"
+                  style={{
+                    backgroundColor: tc.primaryBg,
+                    borderColor: `${tc.primaryBorder}B3`,
+                  }}
+                >
+                  <View className="flex-row items-start gap-3">
+                    <View
+                      className="size-11 items-center justify-center rounded-2xl"
+                      style={{ backgroundColor: tc.primaryTint }}
+                    >
+                      <SparklesIcon size={20} color={tc.primaryStrong} />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="font-nunito-bold text-base text-primaryStrong">
+                        {t("pvp.createLoadout")}
+                      </Text>
+                      <Text className="mt-1 font-nunito text-sm text-fgMuted">
+                        {t("pvp.savedLoadoutsHint")}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            )}
 
             <View
               testID="pvp-loadout-summary-card"
-              className="rounded-[28px] border border-primaryBorder/50 bg-surface/95 p-4"
+              className="overflow-hidden rounded-[30px] border border-primaryBorder/50 bg-surface/95"
             >
-              <View
-                className="rounded-[24px] p-4"
-                style={{ backgroundColor: tc.primaryBg }}
+              <LinearGradient
+                colors={[tc.primaryBg, "rgba(255,255,255,0.9)"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{ padding: 20 }}
               >
-                <View className="flex-row items-start justify-between gap-3">
+                <View className="flex-row items-start justify-between gap-4">
                   <View className="flex-1">
-                    <Text className="font-nunito-bold text-base text-primaryStrong">
+                    <View className="flex-row items-center gap-2">
+                      <View
+                        className="rounded-full px-3 py-1.5"
+                        style={{ backgroundColor: tc.secondaryTint }}
+                      >
+                        <Text className="font-nunito-bold text-[11px] text-secondaryText">
+                          {editingLoadout
+                            ? t("pvp.editing")
+                            : t("pvp.createLoadout")}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text className="mt-3 font-nunito-bold text-xl text-primaryStrong">
                       {t("pvp.loadoutDetails")}
                     </Text>
                     <Text className="mt-1 font-nunito text-sm text-fgMuted">
                       {t("pvp.loadoutDetailsHint")}
                     </Text>
                   </View>
+
                   <View className="items-end">
-                    <Text className="font-nunito-extrabold text-3xl text-primaryStrong">
+                    <Text className="font-nunito-extrabold text-4xl text-primaryStrong">
                       {selectedCards.length}
                     </Text>
                     <Text className="font-nunito-semibold text-xs text-primaryText">
@@ -774,19 +1026,49 @@ export default function PvpLoadoutsScreen() {
                   </View>
                 </View>
 
+                <View className="mt-5 gap-2">
+                  <View className="flex-row items-center justify-between">
+                    <Text className="font-nunito-bold text-xs uppercase tracking-[0.6px] text-primaryText">
+                      {isReadyToSave
+                        ? t("pvp.readyToSave")
+                        : trimmedLoadoutName
+                          ? t("pvp.slotsRemaining", { count: remainingSlots })
+                          : t("pvp.enterLoadoutName")}
+                    </Text>
+                    <Text className="font-nunito-bold text-xs text-primaryText">
+                      {progressPercent}%
+                    </Text>
+                  </View>
+
+                  <View
+                    className="h-3 overflow-hidden rounded-full"
+                    style={{ backgroundColor: tc.primaryTint }}
+                  >
+                    <View
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${progressPercent}%`,
+                        backgroundColor: isReadyToSave
+                          ? tc.successDark
+                          : tc.primaryDark,
+                      }}
+                    />
+                  </View>
+                </View>
+
                 <ThemedExpoTextInput
                   testID="pvp-loadout-name-input"
                   value={loadoutName}
                   onChangeText={setLoadoutName}
                   placeholder={t("pvp.loadoutNamePlaceholder")}
-                  hostStyle={{ marginTop: 14 }}
+                  hostStyle={{ marginTop: 16 }}
                   style={{
                     backgroundColor: "#FFFFFF",
                     borderColor: tc.primaryBorder,
-                    borderRadius: 16,
+                    borderRadius: 18,
                     borderWidth: 1,
-                    height: 48,
-                    paddingHorizontal: 14,
+                    height: 52,
+                    paddingHorizontal: 16,
                     width: "100%",
                   }}
                   textStyle={{
@@ -796,22 +1078,33 @@ export default function PvpLoadoutsScreen() {
                   }}
                 />
 
-                <View className="mt-3 flex-row flex-wrap gap-2">
+                <View className="mt-4 flex-row gap-3">
+                  <SummaryStat
+                    label={t("pvp.activeTeam")}
+                    value={`${activeCount}/3`}
+                    backgroundColor={tc.successTint}
+                    textColor={tc.successText}
+                  />
+                  <SummaryStat
+                    label={t("pvp.benchTeam")}
+                    value={`${benchCount}/3`}
+                    backgroundColor={tc.accentTint}
+                    textColor={tc.accentText}
+                  />
+                  <SummaryStat
+                    label={t("pvp.cardsSelected")}
+                    value={`${selectedCards.length}/6`}
+                    backgroundColor={tc.secondaryTint}
+                    textColor={tc.secondaryText}
+                  />
+                </View>
+
+                <View className="mt-4 flex-row flex-wrap gap-2">
                   <InfoPill
-                    label={`${selectedCards.length}/6 ${t("pvp.cardsSelected")}`}
-                    backgroundColor={
-                      selectedCards.length === 6 ? tc.successTint : tc.surface
-                    }
-                    borderColor={
-                      selectedCards.length === 6
-                        ? tc.successBorder
-                        : tc.primaryBorder
-                    }
-                    textColor={
-                      selectedCards.length === 6
-                        ? tc.successText
-                        : tc.primaryStrong
-                    }
+                    label={t("pvp.activeBenchHint")}
+                    backgroundColor={tc.surface}
+                    borderColor={tc.primaryBorder}
+                    textColor={tc.primaryStrong}
                   />
                   <InfoPill
                     label={t("pvp.rarityCapLegendary", {
@@ -828,19 +1121,31 @@ export default function PvpLoadoutsScreen() {
                     textColor={tc.accentText}
                   />
                 </View>
-              </View>
+              </LinearGradient>
 
-              <View className="mt-4 gap-3">
+              <View className="gap-3 px-4 pb-4 pt-1">
                 <View
-                  className="rounded-[24px] p-4"
+                  className="rounded-[26px] p-4"
                   style={{ backgroundColor: tc.successTint }}
                 >
-                  <Text className="font-nunito-bold text-base text-successText">
-                    {t("pvp.activeTeam")}
-                  </Text>
-                  <Text className="mt-1 font-nunito text-xs text-successText">
-                    {t("pvp.activeTeamHint")}
-                  </Text>
+                  <View className="flex-row items-start justify-between gap-3">
+                    <View className="flex-1">
+                      <Text className="font-nunito-bold text-base text-successText">
+                        {t("pvp.activeTeam")}
+                      </Text>
+                      <Text className="mt-1 font-nunito text-xs text-successText">
+                        {t("pvp.activeTeamHint")}
+                      </Text>
+                    </View>
+                    <View
+                      className="rounded-full px-3 py-1.5"
+                      style={{ backgroundColor: "rgba(255,255,255,0.72)" }}
+                    >
+                      <Text className="font-nunito-bold text-xs text-successText">
+                        {activeCount}/3
+                      </Text>
+                    </View>
+                  </View>
 
                   <View className="mt-4 flex-row justify-between">
                     {[0, 1, 2].map((index) => (
@@ -871,15 +1176,27 @@ export default function PvpLoadoutsScreen() {
                 </View>
 
                 <View
-                  className="rounded-[24px] p-4"
+                  className="rounded-[26px] p-4"
                   style={{ backgroundColor: tc.accentTint }}
                 >
-                  <Text className="font-nunito-bold text-base text-accentStrong">
-                    {t("pvp.benchTeam")}
-                  </Text>
-                  <Text className="mt-1 font-nunito text-xs text-accentText">
-                    {t("pvp.benchTeamHint")}
-                  </Text>
+                  <View className="flex-row items-start justify-between gap-3">
+                    <View className="flex-1">
+                      <Text className="font-nunito-bold text-base text-accentStrong">
+                        {t("pvp.benchTeam")}
+                      </Text>
+                      <Text className="mt-1 font-nunito text-xs text-accentText">
+                        {t("pvp.benchTeamHint")}
+                      </Text>
+                    </View>
+                    <View
+                      className="rounded-full px-3 py-1.5"
+                      style={{ backgroundColor: "rgba(255,255,255,0.72)" }}
+                    >
+                      <Text className="font-nunito-bold text-xs text-accentText">
+                        {benchCount}/3
+                      </Text>
+                    </View>
+                  </View>
 
                   <View className="mt-4 flex-row justify-between">
                     {[3, 4, 5].map((index) => (
@@ -934,10 +1251,51 @@ export default function PvpLoadoutsScreen() {
                 </View>
               </View>
 
+              <View
+                className="mt-4 flex-row items-center rounded-[20px] border bg-white px-3"
+                style={{
+                  borderColor: tc.primaryBorder,
+                }}
+              >
+                <Ionicons name="search" size={16} color={tc.muted} />
+                <ThemedExpoTextInput
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  placeholder={t("pvp.searchCardsPlaceholder")}
+                  hostStyle={{ flex: 1 }}
+                  style={{
+                    backgroundColor: "transparent",
+                    borderColor: "transparent",
+                    borderWidth: 0,
+                    height: 46,
+                    paddingHorizontal: 10,
+                    width: "100%",
+                  }}
+                  textStyle={{
+                    color: tc.fg,
+                    fontFamily: "Nunito_600SemiBold",
+                    fontSize: 14,
+                  }}
+                />
+                {searchQuery ? (
+                  <Pressable
+                    onPress={() => setSearchQuery("")}
+                    className="size-8 items-center justify-center rounded-full"
+                    hitSlop={6}
+                  >
+                    <XIcon size={14} color={tc.fgMuted} />
+                  </Pressable>
+                ) : null}
+              </View>
+
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ gap: 8, paddingRight: 4, paddingTop: 14 }}
+                contentContainerStyle={{
+                  gap: 8,
+                  paddingRight: 4,
+                  paddingTop: 14,
+                }}
               >
                 {LOADOUT_TYPES.map((type) => {
                   const active = filter === type;
@@ -1170,18 +1528,40 @@ export default function PvpLoadoutsScreen() {
                 {selectedCards.length}/6 {t("pvp.cardsSelected")}
               </Text>
               <Text className="mt-1 font-nunito text-xs text-fgMuted">
-                {selectedCards.length === 6
+                {isReadyToSave
                   ? t("pvp.readyToSave")
-                  : t("pvp.slotsRemaining", { count: remainingSlots })}
+                  : selectedCards.length === 6
+                    ? t("pvp.enterLoadoutName")
+                    : t("pvp.slotsRemaining", { count: remainingSlots })}
               </Text>
             </View>
-            {editingLoadout ? (
-              <View className="rounded-full bg-accentTint px-3 py-1.5">
-                <Text className="font-nunito-bold text-xs text-accentText">
-                  {t("pvp.editing")}
-                </Text>
-              </View>
-            ) : null}
+            <View
+              className="rounded-full px-3 py-1.5"
+              style={{
+                backgroundColor: editingLoadout
+                  ? tc.accentTint
+                  : isReadyToSave
+                    ? tc.successTint
+                    : tc.primaryBg,
+              }}
+            >
+              <Text
+                className="font-nunito-bold text-xs"
+                style={{
+                  color: editingLoadout
+                    ? tc.accentText
+                    : isReadyToSave
+                      ? tc.successText
+                      : tc.primaryText,
+                }}
+              >
+                {editingLoadout
+                  ? t("pvp.editing")
+                  : isReadyToSave
+                    ? t("pvp.loadoutReady")
+                    : `${progressPercent}%`}
+              </Text>
+            </View>
           </View>
 
           <View className="flex-row gap-3">

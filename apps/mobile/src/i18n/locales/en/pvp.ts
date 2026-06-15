@@ -250,6 +250,7 @@ const pvp = {
   readyToSave: "Ready to save this loadout.",
   slotsRemaining: "{count} slot(s) left to fill.",
   loadoutNamePlaceholder: "Loadout name...",
+  searchCardsPlaceholder: "Search cards, characters, or types...",
   selectLoadout: "Select your loadout:",
   selectLoadoutLabel: "Select loadout",
   maxCards: "Maximum 6 cards allowed",

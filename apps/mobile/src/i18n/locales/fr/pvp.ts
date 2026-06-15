@@ -261,6 +261,7 @@ const pvp = {
   readyToSave: "La composition est prête à être enregistrée.",
   slotsRemaining: "Il reste {count} emplacement(s) à remplir.",
   loadoutNamePlaceholder: "Nom de la composition...",
+  searchCardsPlaceholder: "Cherche des cartes, personnages ou types...",
   selectLoadout: "Choisis ta composition :",
   selectLoadoutLabel: "Choisir une composition",
   maxCards: "Maximum 6 cartes autorisées",
