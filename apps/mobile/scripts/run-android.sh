@@ -23,6 +23,17 @@ API_BASE_URL="${EXPO_PUBLIC_API_BASE_URL:-http://10.0.2.2:4200}"
 SDKMANAGER_BIN="${ANDROID_CMDLINE_TOOLS_ROOT}/bin/sdkmanager"
 AVDMANAGER_BIN="${ANDROID_CMDLINE_TOOLS_ROOT}/bin/avdmanager"
 
+prepend_node_path() {
+  local workspace_node_modules="$1"
+
+  case ":${NODE_PATH:-}:" in
+    *":$workspace_node_modules:"*) ;;
+    *)
+      export NODE_PATH="$workspace_node_modules${NODE_PATH:+:$NODE_PATH}"
+      ;;
+  esac
+}
+
 if [[ -s "$NVM_DIR/nvm.sh" ]]; then
   # shellcheck disable=SC1090
   source "$NVM_DIR/nvm.sh"
@@ -189,6 +200,7 @@ ensure_sdk_package "$PLATFORM_PACKAGE" "$ANDROID_HOME/platforms/android-36"
 ensure_sdk_package "$BUILD_TOOLS_PACKAGE" "$ANDROID_HOME/build-tools/36.0.0"
 ensure_sdk_package "$NDK_PACKAGE" "$ANDROID_HOME/ndk/27.1.12297006" "$ANDROID_HOME/ndk/27.1.12297006/source.properties"
 ensure_sdk_package "$SYSTEM_IMAGE" "$ANDROID_HOME/system-images/android-36/google_apis/arm64-v8a"
+prepend_node_path "$MOBILE_ROOT/node_modules"
 
 ensure_avd
 start_emulator_if_needed

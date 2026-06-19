@@ -7,6 +7,17 @@ MOBILE_ROOT="$WORKSPACE_ROOT/apps/mobile"
 NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
 API_BASE_URL="${EXPO_PUBLIC_API_BASE_URL:-http://127.0.0.1:4200}"
 
+prepend_node_path() {
+  local workspace_node_modules="$1"
+
+  case ":${NODE_PATH:-}:" in
+    *":$workspace_node_modules:"*) ;;
+    *)
+      export NODE_PATH="$workspace_node_modules${NODE_PATH:+:$NODE_PATH}"
+      ;;
+  esac
+}
+
 if [[ -s "$NVM_DIR/nvm.sh" ]]; then
   # shellcheck disable=SC1090
   source "$NVM_DIR/nvm.sh"
@@ -95,6 +106,7 @@ done
 
 require_command node
 ensure_pods_in_sync
+prepend_node_path "$MOBILE_ROOT/node_modules"
 
 IOS_SIMULATOR_NAME="$(resolve_simulator_name "$@")"
 
