@@ -41,6 +41,8 @@ import {
   claimQuestResponseSchema,
   claimQuestSchema,
   collectionResponseSchema,
+  dailyNumbersStateResponseSchema,
+  dailyNumbersSubmitSchema,
   craftRecycleResponseSchema,
   dailyClaimResponseSchema,
   dailyClaimStatusSchema,
@@ -118,6 +120,9 @@ import {
   type ClaimQuestInput,
   type ClaimQuestResponse,
   type CollectionResponse,
+  type DailyNumbersMode,
+  type DailyNumbersStateResponse,
+  type DailyNumbersSubmitInput,
   type DailyClaimResponse,
   type DailyClaimStatus,
   type FitbitAuthorizeInput,
@@ -527,6 +532,24 @@ export class ApiClient {
       "/quests/claim",
       { method: "POST", body: JSON.stringify(body) },
       (data) => claimQuestResponseSchema.parse(data),
+    );
+  }
+
+  async dailyNumbersState(mode: DailyNumbersMode): Promise<DailyNumbersStateResponse> {
+    const query = `?mode=${encodeURIComponent(mode)}`;
+    return this.request(`/quests/daily-numbers${query}`, { method: "GET" }, (data) =>
+      dailyNumbersStateResponseSchema.parse(data),
+    );
+  }
+
+  async submitDailyNumbers(
+    input: DailyNumbersSubmitInput,
+  ): Promise<DailyNumbersStateResponse> {
+    const body = dailyNumbersSubmitSchema.parse(input);
+    return this.request(
+      "/quests/daily-numbers/submit",
+      { method: "POST", body: JSON.stringify(body) },
+      (data) => dailyNumbersStateResponseSchema.parse(data),
     );
   }
 

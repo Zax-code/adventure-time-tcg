@@ -109,6 +109,12 @@ function isSpeedCalculusQuest(questType: string) {
   return questType === "speed_calculus_daily";
 }
 
+function isDailyNumbersQuest(questType: string) {
+  return (
+    questType === "daily_numbers_classic" || questType === "daily_numbers_expert"
+  );
+}
+
 function isStepQuest(questType: string) {
   return questType === "steps_10k";
 }
@@ -850,6 +856,32 @@ export default function QuestsScreen() {
                           runs: quest.runsUsed ?? quest.progress,
                           total: quest.maxRuns ?? quest.target,
                         })}
+                      </Text>
+                    ) : null}
+                    {isDailyNumbersQuest(quest.type) &&
+                    quest.score != null &&
+                    quest.distance != null &&
+                    quest.finalValue != null ? (
+                      <Text
+                        className="font-nunito-bold text-xs text-center mt-1"
+                        style={{
+                          color:
+                            status === "failed"
+                              ? tc.dangerDark
+                              : status === "completed"
+                                ? tc.successDark
+                                : getMetaColor(status, tc),
+                        }}
+                      >
+                        {quest.distance === 0
+                          ? t("quests.dailyNumbersQuestCardExact", {
+                              score: quest.score,
+                            })
+                          : t("quests.dailyNumbersQuestCardMeta", {
+                              value: quest.finalValue,
+                              distance: quest.distance,
+                              score: quest.score,
+                            })}
                       </Text>
                     ) : null}
                     {shouldShowDiscreteSyncButton || stepSync.lastError ? (

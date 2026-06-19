@@ -1,0 +1,35 @@
+appId: love.leaetzak.adventuretime
+name: Daily Numbers smoke
+tags:
+  - smoke
+  - quests
+  - daily-numbers
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- openLink:
+    link: adventure-time:///e2e-auth?redirect=%2Fquests%2Fdaily-numbers%3Fmode%3Dclassic&email=${TEST_EMAIL_URI}&password=${TEST_PASSWORD_URI}
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- assertVisible:
+    text: Daily Numbers
+- assertVisible:
+    id: daily-numbers-mode-classic
+- assertVisible:
+    id: daily-numbers-submit
+- assertVisible:
+    id: daily-numbers-tile-n0
+- assertVisible:
+    id: daily-numbers-tile-n1
+- tapOn:
+    id: daily-numbers-tile-n0
+- tapOn:
+    id: daily-numbers-operator-plus
+- tapOn:
+    id: daily-numbers-tile-n1
+- tapOn:
+    id: daily-numbers-apply-step
+- assertVisible:
+    id: daily-numbers-undo
+- assertVisible:
+    id: daily-numbers-reset

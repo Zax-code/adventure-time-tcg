@@ -28,6 +28,9 @@ const quests = {
   widgetFailedToday: "Try again tomorrow",
   wordleAttemptsUsed: "{used} / {total} attempts used",
   wordleSolvedIn: "Solved in {used}/{total} attempts!",
+  dailyNumbersQuestCardMeta:
+    "Closest: {value} ({distance} away), {score} pts.",
+  dailyNumbersQuestCardExact: "Exact hit for {score} pts.",
   steps_10k: "Walk 10,000 steps",
   steps_10k_desc: "Walk 10,000 steps today to earn coins",
   daily_login: "Daily login",
@@ -37,6 +40,12 @@ const quests = {
   speed_calculus_daily: "Speed calculus sprint",
   speed_calculus_daily_desc:
     "Solve as many addition and subtraction problems as you can",
+  daily_numbers_classic: "Daily Numbers: Classic",
+  daily_numbers_classic_desc:
+    "Use 1 large and 5 small numbers to get as close as possible",
+  daily_numbers_expert: "Daily Numbers: Expert",
+  daily_numbers_expert_desc:
+    "Use 3 large and 3 small numbers to get as close as possible",
   wordle: {
     title: "Daily Wordle",
     subtitle: "Solve the puzzle to complete today's quest.",
@@ -152,6 +161,60 @@ const quests = {
   speedCalculusTrainingNoRunsYet: "No training run finished yet.",
   speedCalculusTrainingSummary:
     "{score} correct answers across {answered} submitted answers.",
+  dailyNumbers: {
+    title: "Daily Numbers",
+    subtitle:
+      "Tap two numbers and an operator to build a result. Get within 10 to complete the quest.",
+    backToQuests: "Back to quests",
+    classic: "Classic",
+    expert: "Expert",
+    target: "Target",
+    reward: "Reward",
+    bestDistance: "Best distance",
+    availableNumbers: "Available numbers",
+    usedNumbers: "Used numbers",
+    operators: "Operators",
+    selection: "Current selection",
+    pickLeft: "Pick a number",
+    pickOperator: "Pick an operator",
+    pickRight: "Pick another number",
+    applyStep: "Make result",
+    undo: "Undo last step",
+    reset: "Reset board",
+    submit: "Submit result",
+    revealSolution: "Reveal official solution",
+    hideSolution: "Hide official solution",
+    exactResult: "Exact hit! {score} points and the quest is complete.",
+    closeResult:
+      "Closest result: {value}, {distance} away for {score} points.",
+    rewardReminder:
+      "Head back to daily quests and claim {reward} coins when you're ready.",
+    alreadyClaimed: "Reward already claimed for this mode.",
+    notSubmitted: "Build your best result, then submit when you're satisfied.",
+    resultCardTitle: "Today's result",
+    officialSolutionTitle: "Official solution",
+    officialSolutionBody:
+      "One exact route the backend solver found for today's puzzle.",
+    resetNotice:
+      "Daily Numbers reset while you were playing. Loading the new puzzle.",
+    adminResetNotice:
+      "Daily Numbers was reset by {name}. Loading the fresh puzzle.",
+    loadError: "Failed to load Daily Numbers.",
+    submitError: "Failed to submit Daily Numbers.",
+    invalidDivision: "Division must be exact",
+    invalidPositive: "Result must be positive",
+    invalidDifferentNumbers: "Choose two different available numbers",
+    invalidSelection: "Choose two numbers and an operator",
+    noUndo: "Nothing to undo yet.",
+    noReset: "The board is already fresh.",
+    stepSummary:
+      "{leftValue} {operator} {rightValue} = {resultValue}",
+    finalResult: "Final result",
+    distanceLabel: "Distance",
+    scoreLabel: "Score",
+    completedLabel: "Quest completed",
+    incompleteLabel: "Quest not completed",
+  },
 };
 
 export default quests;

@@ -1248,7 +1248,13 @@ defmodule AdventureTimeApi.Accounts do
   end
 
   defp validate_resettable_quest_type(quest_type)
-       when quest_type in ["steps_10k", "wordle_daily", "speed_calculus_daily"],
+       when quest_type in [
+              "steps_10k",
+              "wordle_daily",
+              "speed_calculus_daily",
+              "daily_numbers_classic",
+              "daily_numbers_expert"
+            ],
        do: :ok
 
   defp validate_resettable_quest_type(_quest_type), do: {:error, "Unknown quest type"}

@@ -28,6 +28,9 @@ const quests = {
   widgetFailedToday: "Réessaie demain",
   wordleAttemptsUsed: "{used} / {total} essais utilisés",
   wordleSolvedIn: "Résolu en {used}/{total} essais !",
+  dailyNumbersQuestCardMeta:
+    "Plus proche : {value} ({distance} d'écart), {score} pts.",
+  dailyNumbersQuestCardExact: "Cible exacte pour {score} pts.",
   steps_10k: "Marcher 10 000 pas",
   steps_10k_desc: "Marche 10 000 pas aujourd'hui pour gagner des pièces",
   daily_login: "Connexion quotidienne",
@@ -37,6 +40,12 @@ const quests = {
   speed_calculus_daily: "Sprint de calcul mental",
   speed_calculus_daily_desc:
     "Résous un maximum d'additions et de soustractions",
+  daily_numbers_classic: "Nombres du jour : Classique",
+  daily_numbers_classic_desc:
+    "Utilise 1 grand et 5 petits nombres pour t'approcher au maximum",
+  daily_numbers_expert: "Nombres du jour : Expert",
+  daily_numbers_expert_desc:
+    "Utilise 3 grands et 3 petits nombres pour t'approcher au maximum",
   wordle: {
     title: "Wordle quotidien",
     subtitle: "Résous l'énigme pour terminer la quête du jour.",
@@ -159,6 +168,62 @@ const quests = {
     "Aucun entraînement terminé pour le moment.",
   speedCalculusTrainingSummary:
     "{score} bonnes réponses sur {answered} réponses envoyées.",
+  dailyNumbers: {
+    title: "Nombres du jour",
+    subtitle:
+      "Tape deux nombres et un opérateur pour créer un résultat. Arrive à 10 ou moins pour terminer la quête.",
+    backToQuests: "Retour aux quêtes",
+    classic: "Classique",
+    expert: "Expert",
+    target: "Cible",
+    reward: "Récompense",
+    bestDistance: "Meilleur écart",
+    availableNumbers: "Nombres disponibles",
+    usedNumbers: "Nombres utilisés",
+    operators: "Opérateurs",
+    selection: "Sélection en cours",
+    pickLeft: "Choisis un nombre",
+    pickOperator: "Choisis un opérateur",
+    pickRight: "Choisis un autre nombre",
+    applyStep: "Créer le résultat",
+    undo: "Annuler la dernière étape",
+    reset: "Réinitialiser",
+    submit: "Envoyer le résultat",
+    revealSolution: "Afficher la solution officielle",
+    hideSolution: "Masquer la solution officielle",
+    exactResult: "Cible exacte ! {score} points et la quête est terminée.",
+    closeResult:
+      "Résultat le plus proche : {value}, à {distance} d'écart pour {score} points.",
+    rewardReminder:
+      "Retourne aux quêtes quotidiennes pour récupérer {reward} pièces quand tu veux.",
+    alreadyClaimed: "Récompense déjà récupérée pour ce mode.",
+    notSubmitted:
+      "Construis ton meilleur résultat, puis envoie-le quand tu es prêt.",
+    resultCardTitle: "Résultat du jour",
+    officialSolutionTitle: "Solution officielle",
+    officialSolutionBody:
+      "Une route exacte trouvée par le solveur backend pour l'énigme du jour.",
+    resetNotice:
+      "Nombres du jour a été réinitialisé pendant ta partie. Chargement de la nouvelle énigme.",
+    adminResetNotice:
+      "Nombres du jour a été réinitialisé par {name}. Chargement d'une nouvelle énigme.",
+    loadError: "Impossible de charger Nombres du jour.",
+    submitError: "Impossible d'envoyer Nombres du jour.",
+    invalidDivision: "La division doit être exacte",
+    invalidPositive: "Le résultat doit rester positif",
+    invalidDifferentNumbers:
+      "Choisis deux nombres disponibles différents",
+    invalidSelection: "Choisis deux nombres et un opérateur",
+    noUndo: "Rien à annuler pour l'instant.",
+    noReset: "Le plateau est déjà remis à zéro.",
+    stepSummary:
+      "{leftValue} {operator} {rightValue} = {resultValue}",
+    finalResult: "Résultat final",
+    distanceLabel: "Écart",
+    scoreLabel: "Score",
+    completedLabel: "Quête terminée",
+    incompleteLabel: "Quête non terminée",
+  },
 };
 
 export default quests;

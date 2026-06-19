@@ -7,6 +7,7 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
   alias AdventureTimeApi.Quests
 
   alias AdventureTimeApi.Quests.{
+    DailyNumbersEngine,
     DailyQuest,
     SpeedCalculusDailyRun,
     WordleDictionaryWord,
@@ -59,9 +60,11 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
 
     response = access_token |> auth_conn() |> get(~p"/quests") |> json_response(200)
     assert response["fitbitConnected"] == false
-    assert length(response["quests"]) == 3
+    assert length(response["quests"]) == 5
 
     assert Enum.sort(Enum.map(response["quests"], & &1["type"])) == [
+             "daily_numbers_classic",
+             "daily_numbers_expert",
              "speed_calculus_daily",
              "steps_10k",
              "wordle_daily"
@@ -195,6 +198,85 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
       |> json_response(404)
 
     assert foreign == %{"error" => "Quest not found"}
+  end
+
+  test "GET /quests/daily-numbers and POST /quests/daily-numbers/submit preserve deterministic puzzle and completion contracts",
+       _context do
+    user = create_user_with_password("daily-numbers@example.com", "password123")
+    other_user = create_user_with_password("daily-numbers-two@example.com", "password123")
+    access_token = login_access_token(user.email, "password123")
+    other_access_token = login_access_token(other_user.email, "password123")
+    date = Quests.current_reset_date()
+    {:ok, puzzle} = DailyNumbersEngine.generate_puzzle("classic", date)
+
+    state =
+      access_token
+      |> auth_conn()
+      |> get(~p"/quests/daily-numbers?mode=classic")
+      |> json_response(200)
+
+    other_state =
+      other_access_token
+      |> auth_conn()
+      |> get(~p"/quests/daily-numbers?mode=classic")
+      |> json_response(200)
+
+    assert state["mode"] == "classic"
+    assert state["target"] == other_state["target"]
+    assert state["numbers"] == other_state["numbers"]
+    assert state["generationAttempt"] == other_state["generationAttempt"]
+    assert state["date"] == Date.to_iso8601(date)
+    assert state["submitted"] == false
+
+    solution_steps =
+      Enum.map(puzzle.solution, fn step ->
+        %{
+          "leftId" => step.leftId,
+          "operator" => step.operator,
+          "rightId" => step.rightId,
+          "resultId" => step.resultId
+        }
+      end)
+
+    submitted =
+      access_token
+      |> auth_conn()
+      |> post(~p"/quests/daily-numbers/submit", %{
+        "mode" => "classic",
+        "dateKey" => state["date"],
+        "questVersion" => state["questVersion"],
+        "steps" => solution_steps
+      })
+      |> json_response(200)
+
+    assert submitted["submitted"] == true
+    assert submitted["completed"] == true
+    assert submitted["submission"]["distance"] == 0
+    assert submitted["submission"]["score"] == 1000
+    assert submitted["submission"]["officialSolutionUnlocked"] == true
+    assert length(submitted["submission"]["officialSolutionSteps"]) > 0
+
+    quest =
+      Repo.get_by!(DailyQuest, user_id: user.id, date: date, quest_type: "daily_numbers_classic")
+
+    assert quest.progress == 1
+    assert quest.completed == true
+
+    already_submitted =
+      access_token
+      |> auth_conn()
+      |> post(~p"/quests/daily-numbers/submit", %{
+        "mode" => "classic",
+        "dateKey" => state["date"],
+        "questVersion" => state["questVersion"],
+        "steps" => []
+      })
+      |> json_response(409)
+
+    assert already_submitted == %{
+             "error" => "Daily Numbers already submitted for today",
+             "code" => "DAILY_NUMBERS_ALREADY_SUBMITTED"
+           }
   end
 
   test "GET /wordle and POST /wordle preserve guess, solve, and reset contracts", _context do

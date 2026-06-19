@@ -584,6 +584,10 @@ export const questSchema = z.object({
   latestScore: z.number().int().nonnegative().optional(),
   rewardPreview: z.number().int().nonnegative().optional(),
   locked: z.boolean().optional(),
+  mode: z.enum(["classic", "expert"]).optional(),
+  score: z.number().int().nonnegative().optional(),
+  distance: z.number().int().nonnegative().optional(),
+  finalValue: z.number().int().positive().optional(),
   resetByName: z.string().nullable().optional(),
 });
 
@@ -678,6 +682,65 @@ export const wordleSubmitResponseSchema = z.object({
   date: z.string(),
   questJustCompleted: z.boolean(),
   targetWord: z.string().nullable().optional(),
+});
+
+export const dailyNumbersModeSchema = z.enum(["classic", "expert"]);
+export const dailyNumbersOperatorSchema = z.enum(["+", "-", "*", "/"]);
+
+export const dailyNumbersTileSchema = z.object({
+  id: z.string(),
+  value: z.number().int().positive(),
+  source: z.enum(["initial", "derived"]),
+  status: z.enum(["available", "used"]),
+});
+
+export const dailyNumbersStepInputSchema = z.object({
+  leftId: z.string().min(1),
+  operator: dailyNumbersOperatorSchema,
+  rightId: z.string().min(1),
+  resultId: z.string().min(1),
+});
+
+export const dailyNumbersStepSchema = dailyNumbersStepInputSchema.extend({
+  leftValue: z.number().int().positive(),
+  rightValue: z.number().int().positive(),
+  resultValue: z.number().int().positive(),
+});
+
+export const dailyNumbersSubmissionSchema = z.object({
+  finalValue: z.number().int().positive(),
+  distance: z.number().int().nonnegative(),
+  exact: z.boolean(),
+  score: z.number().int().nonnegative(),
+  completed: z.boolean(),
+  steps: z.array(dailyNumbersStepSchema),
+  officialSolutionUnlocked: z.boolean(),
+  officialSolutionSteps: z.array(dailyNumbersStepSchema),
+});
+
+export const dailyNumbersStateResponseSchema = z.object({
+  mode: dailyNumbersModeSchema,
+  date: z.string(),
+  resetTimezone: z.string(),
+  target: z.number().int().min(101).max(999),
+  numbers: z.array(dailyNumbersTileSchema).length(6),
+  generationAttempt: z.number().int().positive(),
+  bestValue: z.number().int().positive(),
+  bestDistance: z.number().int().nonnegative(),
+  questVersion: z.string().nullable().optional(),
+  resetByName: z.string().nullable().optional(),
+  reward: z.number().int().nonnegative(),
+  claimed: z.boolean(),
+  completed: z.boolean(),
+  submitted: z.boolean(),
+  submission: dailyNumbersSubmissionSchema.nullable(),
+});
+
+export const dailyNumbersSubmitSchema = z.object({
+  mode: dailyNumbersModeSchema,
+  dateKey: z.string().min(1),
+  questVersion: z.string().optional(),
+  steps: z.array(dailyNumbersStepInputSchema),
 });
 
 export const speedQuestionSchema = z.object({
@@ -1248,6 +1311,15 @@ export type FitbitDisconnectResponse = z.infer<
 export type ClaimQuestInput = z.infer<typeof claimQuestSchema>;
 export type ClaimQuestResponse = z.infer<typeof claimQuestResponseSchema>;
 export type WordleStateResponse = z.infer<typeof wordleStateResponseSchema>;
+export type DailyNumbersMode = z.infer<typeof dailyNumbersModeSchema>;
+export type DailyNumbersTile = z.infer<typeof dailyNumbersTileSchema>;
+export type DailyNumbersStepInput = z.infer<typeof dailyNumbersStepInputSchema>;
+export type DailyNumbersStep = z.infer<typeof dailyNumbersStepSchema>;
+export type DailyNumbersSubmission = z.infer<typeof dailyNumbersSubmissionSchema>;
+export type DailyNumbersStateResponse = z.infer<
+  typeof dailyNumbersStateResponseSchema
+>;
+export type DailyNumbersSubmitInput = z.infer<typeof dailyNumbersSubmitSchema>;
 export type WordleDefinitionVariant = z.infer<
   typeof wordleDefinitionVariantSchema
 >;
