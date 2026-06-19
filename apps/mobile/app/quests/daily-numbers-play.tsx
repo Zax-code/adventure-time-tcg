@@ -127,7 +127,7 @@ type LivePlayProps = {
 };
 
 const OPERATORS: Operator[] = ["+", "-", "*", "/"];
-const EXACT_HIT_SCORE = 1000;
+const EXACT_HIT_PERCENT = 100;
 
 function sortTiles(a: BoardTile, b: BoardTile) {
   if (a.status !== b.status) {
@@ -205,6 +205,13 @@ function chooseClosestTile(tiles: BoardTile[], target: number) {
 
     return candidate.id.localeCompare(best.id) < 0 ? candidate : best;
   });
+}
+
+function getDefaultDistance(
+  numbers: DailyNumbersStateResponse["numbers"],
+  target: number,
+) {
+  return Math.abs(chooseClosestTile(numbers, target).value - target);
 }
 
 function applyOperation(leftValue: number, operator: Operator, rightValue: number) {
@@ -554,18 +561,27 @@ function MetricsSection({
   t: TranslateFn;
 }) {
   return (
-    <View className="flex-row flex-wrap gap-2">
-      <StatCard compact={compact} label={t("quests.dailyNumbers.target")} value={state.target} />
-      <StatCard
-        compact={compact}
-        label={t("quests.dailyNumbers.bestResult")}
-        value={currentBestTile?.value ?? "—"}
-      />
-      <StatCard
-        compact={compact}
-        label={t("quests.dailyNumbers.bestDistance")}
-        value={currentDistance ?? state.bestDistance}
-      />
+    <View className="gap-2">
+      <View className="flex-row flex-wrap gap-2">
+        <StatCard
+          compact={compact}
+          label={t("quests.dailyNumbers.bestResult")}
+          value={currentBestTile?.value ?? "—"}
+        />
+        <StatCard
+          compact={compact}
+          label={t("quests.dailyNumbers.bestDistance")}
+          value={currentDistance ?? state.bestDistance}
+        />
+      </View>
+      <View className="rounded-2xl bg-primaryBg px-4 py-3">
+        <Text className="font-nunito-semibold text-[10px] uppercase tracking-[1px] text-fgMuted">
+          {t("quests.dailyNumbers.target")}
+        </Text>
+        <Text className={`font-nunito-extrabold ${compact ? "text-[28px]" : "text-[32px]"} text-fg`}>
+          {state.target}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -727,7 +743,7 @@ function FinishStatePanel({
             {t("quests.dailyNumbers.scoreLabel")}
           </Text>
           <Text className="font-nunito-extrabold text-2xl text-fg">
-            {finishScore ?? "—"}
+            {finishScore != null ? `${finishScore}%` : "—"}
           </Text>
         </View>
         <View className="min-w-[96px] flex-1 rounded-2xl border border-primaryBorder bg-surface px-3 py-3">
@@ -1182,6 +1198,10 @@ function useDailyNumbersBoardController({
     currentBestTile !== null
       ? Math.abs(currentBestTile.value - state.target)
       : state.bestDistance;
+  const defaultDistance = useMemo(
+    () => getDefaultDistance(state.numbers, state.target),
+    [state.numbers, state.target],
+  );
   const exactHitReached =
     state.submitted !== true &&
     interaction.steps.length > 0 &&
@@ -1189,7 +1209,7 @@ function useDailyNumbersBoardController({
   const completionReached =
     state.submitted !== true &&
     interaction.steps.length > 0 &&
-    currentDistance <= 10;
+    currentDistance < defaultDistance;
   const successState = state.submission?.completed === true || completionReached;
   const exactHitState = state.submission?.exact === true || exactHitReached;
   const finishScreenState = exactHitState || state.submitted === true;
@@ -1519,7 +1539,7 @@ function useDailyNumbersBoardController({
   const submissionSummary = state.submission
     ? buildSubmissionSummary(t, state.submission)
     : null;
-  const exactHitScore = state.submission?.score ?? (exactHitState ? EXACT_HIT_SCORE : null);
+  const exactHitScore = state.submission?.score ?? (exactHitState ? EXACT_HIT_PERCENT : null);
   const exactHitSummary =
     exactHitScore === null
       ? null
@@ -1531,7 +1551,7 @@ function useDailyNumbersBoardController({
     state.submission?.finalValue ?? (finishScreenState ? currentBestTile?.value ?? null : null);
   const finishDistance =
     state.submission?.distance ?? (finishScreenState ? currentDistance : null);
-  const finishScore = state.submission?.score ?? (exactHitState ? EXACT_HIT_SCORE : null);
+  const finishScore = state.submission?.score ?? (exactHitState ? EXACT_HIT_PERCENT : null);
   const submittedSolutionSteps =
     state.submission?.steps ?? (exactHitState ? interaction.steps : []);
   const claimable =

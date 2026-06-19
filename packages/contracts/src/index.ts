@@ -709,6 +709,7 @@ export const dailyNumbersStepSchema = dailyNumbersStepInputSchema.extend({
 
 export const dailyNumbersSubmissionSchema = z.object({
   finalValue: z.number().int().positive(),
+  defaultDistance: z.number().int().positive(),
   distance: z.number().int().nonnegative(),
   exact: z.boolean(),
   score: z.number().int().nonnegative(),

@@ -51,6 +51,11 @@ defmodule AdventureTimeApi.Quests.DailyNumbersEngine do
         validated_steps: []
       }
 
+      default_distance =
+        initial_tiles
+        |> choose_best_available_tile(state.target)
+        |> then(&abs(&1.value - state.target))
+
       with {:ok, next_state} <-
              Enum.reduce_while(Enum.with_index(steps), {:ok, state}, &apply_step/2) do
         available_tiles =
@@ -60,12 +65,13 @@ defmodule AdventureTimeApi.Quests.DailyNumbersEngine do
         final_tile = choose_best_available_tile(available_tiles, next_state.target)
         distance = abs(final_tile.value - next_state.target)
         exact = distance == 0
-        score = submission_score(distance)
-        completed = distance <= 10
+        score = submission_score(default_distance, distance)
+        completed = score > 0
 
         {:ok,
          %{
            finalValue: final_tile.value,
+           defaultDistance: default_distance,
            distance: distance,
            exact: exact,
            score: score,
@@ -439,10 +445,18 @@ defmodule AdventureTimeApi.Quests.DailyNumbersEngine do
     end)
   end
 
-  defp submission_score(0), do: 1000
-  defp submission_score(distance) when distance <= 5, do: 700
-  defp submission_score(distance) when distance <= 10, do: 400
-  defp submission_score(_distance), do: 100
+  defp submission_score(default_distance, distance)
+       when is_integer(default_distance) and default_distance > 0 and is_integer(distance) do
+    default_distance
+    |> Kernel.-(distance)
+    |> Kernel./(default_distance)
+    |> Kernel.*(100)
+    |> round()
+    |> max(0)
+    |> min(100)
+  end
+
+  defp submission_score(_default_distance, _distance), do: 0
 
   defp deterministic_shuffle(items, state), do: do_shuffle(items, state, [])
 

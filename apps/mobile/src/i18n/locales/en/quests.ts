@@ -29,8 +29,8 @@ const quests = {
   wordleAttemptsUsed: "{used} / {total} attempts used",
   wordleSolvedIn: "Solved in {used}/{total} attempts!",
   dailyNumbersQuestCardMeta:
-    "Closest: {value} ({distance} away), {score} pts.",
-  dailyNumbersQuestCardExact: "Exact hit for {score} pts.",
+    "Closest: {value} ({distance} away), {score}% unlocked.",
+  dailyNumbersQuestCardExact: "Exact hit, {score}% unlocked.",
   dailyNumbersLevelsCleared: "{completed} / {total} levels cleared",
   dailyNumbersGroupDesc:
     "Classic and Expert live together here. Pick a level, play both from one page, and claim each reward separately.",
@@ -167,7 +167,7 @@ const quests = {
   dailyNumbers: {
     title: "Daily Numbers",
     subtitle:
-      "Tap two numbers and an operator to build a result. Get within 10 to complete the quest.",
+      "Tap two numbers and an operator to build a result. The more you improve on the starting board, the more of the reward you unlock.",
     backToQuests: "Back to quests",
     backToOverview: "Back to overview",
     chooseLevel: "Choose your level",
@@ -183,7 +183,7 @@ const quests = {
     submittedLabel: "Submitted",
     claimedLabel: "Claimed",
     helperLine:
-      "Get within 10 to clear the quest. Exact hits lock in automatically.",
+      "The untouched board starts at 0%. Every improvement increases the reward percentage, and exact hits auto-submit at 100%.",
     target: "Target",
     targetValue: "Target: {target}",
     reward: "Reward",
@@ -212,19 +212,19 @@ const quests = {
     submit: "Submit result",
     submitConfirmTitle: "Lock this result?",
     submitConfirmBody:
-      "This result will be submitted as your final attempt even though it does not complete the quest.",
+      "This result will be submitted as your final attempt even though it keeps your reward at 0% for today.",
     submitConfirmAction: "Submit anyway",
     stepHistoryTitle: "Your steps",
     noStepsYet: "No steps yet. Start by combining two numbers.",
     revealSolution: "Reveal official solution",
     hideSolution: "Hide official solution",
-    exactResult: "Exact hit! {score} points and the quest is complete.",
+    exactResult: "Exact hit! {score}% unlocked and the quest is complete.",
     closeResult:
-      "Closest result: {value}, {distance} away for {score} points.",
+      "Closest result: {value}, {distance} away with {score}% unlocked.",
     autoSubmittingSuccess: "Exact hit found. Submitting it now...",
     clearReached:
-      "Quest clear reached. Submit now or keep playing for a better score.",
-    lockedSuccess: "Quest complete. Your result is locked in.",
+      "Reward unlocked. Submit now or keep playing for a better percentage.",
+    lockedSuccess: "Reward unlocked. Your result is locked in.",
     rewardReminder:
       "Head back to daily quests and claim {reward} coins when you're ready.",
     alreadyClaimed: "Reward already claimed for this mode.",
@@ -262,8 +262,8 @@ const quests = {
     finalResult: "Final result",
     distanceLabel: "Distance",
     scoreLabel: "Score",
-    completedLabel: "Quest completed",
-    incompleteLabel: "Quest not completed",
+    completedLabel: "Reward unlocked",
+    incompleteLabel: "No reward unlocked",
   },
 };
 

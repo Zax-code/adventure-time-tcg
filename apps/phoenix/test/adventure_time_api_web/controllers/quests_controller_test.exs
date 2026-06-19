@@ -200,7 +200,7 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
     assert foreign == %{"error" => "Quest not found"}
   end
 
-  test "GET /quests/daily-numbers and POST /quests/daily-numbers/submit preserve deterministic puzzle and completion contracts",
+  test "GET /quests/daily-numbers and POST /quests/daily-numbers/submit preserve deterministic puzzle and percentage reward contracts",
        _context do
     user = create_user_with_password("daily-numbers@example.com", "password123")
     other_user = create_user_with_password("daily-numbers-two@example.com", "password123")
@@ -252,7 +252,7 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
     assert submitted["submitted"] == true
     assert submitted["completed"] == true
     assert submitted["submission"]["distance"] == 0
-    assert submitted["submission"]["score"] == 1000
+    assert submitted["submission"]["score"] == 100
     assert submitted["submission"]["officialSolutionUnlocked"] == true
     assert length(submitted["submission"]["officialSolutionSteps"]) > 0
 
@@ -261,6 +261,7 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
 
     assert quest.progress == 1
     assert quest.completed == true
+    assert quest.reward == 120
 
     already_submitted =
       access_token
@@ -276,6 +277,53 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
     assert already_submitted == %{
              "error" => "Daily Numbers already submitted for today",
              "code" => "DAILY_NUMBERS_ALREADY_SUBMITTED"
+           }
+  end
+
+  test "POST /quests/daily-numbers/submit keeps the quest failed at 0 percent when the result does not improve",
+       _context do
+    user = create_user_with_password("daily-numbers-zero@example.com", "password123")
+    access_token = login_access_token(user.email, "password123")
+    date = Quests.current_reset_date()
+
+    state =
+      access_token
+      |> auth_conn()
+      |> get(~p"/quests/daily-numbers?mode=classic")
+      |> json_response(200)
+
+    submitted =
+      access_token
+      |> auth_conn()
+      |> post(~p"/quests/daily-numbers/submit", %{
+        "mode" => "classic",
+        "dateKey" => state["date"],
+        "questVersion" => state["questVersion"],
+        "steps" => []
+      })
+      |> json_response(200)
+
+    assert submitted["submitted"] == true
+    assert submitted["completed"] == false
+    assert submitted["reward"] == 0
+    assert submitted["submission"]["score"] == 0
+
+    quest =
+      Repo.get_by!(DailyQuest, user_id: user.id, date: date, quest_type: "daily_numbers_classic")
+
+    assert quest.progress == 1
+    assert quest.completed == false
+    assert quest.reward == 0
+
+    not_completed =
+      access_token
+      |> auth_conn()
+      |> post(~p"/quests/claim", %{"questId" => quest.id})
+      |> json_response(400)
+
+    assert not_completed == %{
+             "error" => "Quest not completed",
+             "code" => "QUEST_NOT_COMPLETED"
            }
   end
 

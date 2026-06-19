@@ -400,6 +400,12 @@ defmodule AdventureTimeApi.Quests do
                  DailyNumbersEngine.validate_submission(puzzle, steps) do
             now = now_utc()
 
+            earned_reward =
+              quest.reward
+              |> Kernel.*(validated_submission.score)
+              |> Kernel./(100)
+              |> round()
+
             submission_attrs = %{
               user_id: user_id,
               date: date,
@@ -414,6 +420,7 @@ defmodule AdventureTimeApi.Quests do
 
             quest_updates = [
               progress: 1,
+              reward: earned_reward,
               completed: validated_submission.completed,
               updated_at: now
             ]

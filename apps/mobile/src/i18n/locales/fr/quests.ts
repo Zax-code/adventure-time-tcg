@@ -29,8 +29,8 @@ const quests = {
   wordleAttemptsUsed: "{used} / {total} essais utilisés",
   wordleSolvedIn: "Résolu en {used}/{total} essais !",
   dailyNumbersQuestCardMeta:
-    "Plus proche : {value} ({distance} d'écart), {score} pts.",
-  dailyNumbersQuestCardExact: "Cible exacte pour {score} pts.",
+    "Plus proche : {value} ({distance} d'écart), {score} % débloqués.",
+  dailyNumbersQuestCardExact: "Cible exacte, {score} % débloqués.",
   dailyNumbersLevelsCleared: "{completed} / {total} niveaux validés",
   dailyNumbersGroupDesc:
     "Les modes Classique et Expert sont réunis ici. Choisis un niveau, joue les deux sur la même page et récupère chaque récompense séparément.",
@@ -174,7 +174,7 @@ const quests = {
   dailyNumbers: {
     title: "Nombres du jour",
     subtitle:
-      "Tape deux nombres et un opérateur pour créer un résultat. Arrive à 10 ou moins pour terminer la quête.",
+      "Tape deux nombres et un opérateur pour créer un résultat. Plus tu améliores le plateau de départ, plus tu débloques la récompense.",
     backToQuests: "Retour aux quêtes",
     backToOverview: "Retour à l'aperçu",
     chooseLevel: "Choisis ton niveau",
@@ -190,7 +190,7 @@ const quests = {
     submittedLabel: "Partie envoyée",
     claimedLabel: "Récompense récupérée",
     helperLine:
-      "Arrive à 10 ou moins pour valider la quête. Un résultat exact se verrouille automatiquement.",
+      "Le plateau de départ vaut 0 %. Chaque amélioration augmente le pourcentage de récompense, et une cible exacte s'envoie automatiquement à 100 %.",
     target: "Cible",
     targetValue: "Cible : {target}",
     reward: "Récompense",
@@ -219,20 +219,20 @@ const quests = {
     submit: "Envoyer le résultat",
     submitConfirmTitle: "Verrouiller ce résultat ?",
     submitConfirmBody:
-      "Ce résultat sera envoyé comme tentative finale même s'il ne termine pas la quête.",
+      "Ce résultat sera envoyé comme tentative finale même s'il laisse ta récompense à 0 % aujourd'hui.",
     submitConfirmAction: "Envoyer quand même",
     stepHistoryTitle: "Tes étapes",
     noStepsYet: "Aucune étape pour l'instant. Commence par combiner deux nombres.",
     revealSolution: "Afficher la solution officielle",
     hideSolution: "Masquer la solution officielle",
-    exactResult: "Cible exacte ! {score} points et la quête est terminée.",
+    exactResult: "Cible exacte ! {score} % débloqués et la quête est terminée.",
     closeResult:
-      "Résultat le plus proche : {value}, à {distance} d'écart pour {score} points.",
+      "Résultat le plus proche : {value}, à {distance} d'écart avec {score} % débloqués.",
     autoSubmittingSuccess:
       "Résultat exact trouvé. Envoi automatique en cours...",
     clearReached:
-      "La quête est validée. Envoie maintenant ou continue pour un meilleur score.",
-    lockedSuccess: "Quête terminée. Ton résultat est désormais verrouillé.",
+      "Récompense débloquée. Envoie maintenant ou continue pour un meilleur pourcentage.",
+    lockedSuccess: "Récompense débloquée. Ton résultat est désormais verrouillé.",
     rewardReminder:
       "Retourne aux quêtes quotidiennes pour récupérer {reward} pièces quand tu veux.",
     alreadyClaimed: "Récompense déjà récupérée pour ce mode.",
@@ -272,8 +272,8 @@ const quests = {
     finalResult: "Résultat final",
     distanceLabel: "Écart",
     scoreLabel: "Score",
-    completedLabel: "Quête terminée",
-    incompleteLabel: "Quête non terminée",
+    completedLabel: "Récompense débloquée",
+    incompleteLabel: "Aucune récompense débloquée",
   },
 };
 

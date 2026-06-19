@@ -3,6 +3,13 @@
   "version": "0.3.5",
   "private": true,
   "main": "./index.js",
+  "expo": {
+    "doctor": {
+      "appConfigFieldsNotSyncedCheck": {
+        "enabled": false
+      }
+    }
+  },
   "scripts": {
     "dev": "../../infra/scripts/expo-dev-client.sh",
     "dev:tunnel": "../../infra/scripts/expo-dev-client.sh --host tunnel --clear",

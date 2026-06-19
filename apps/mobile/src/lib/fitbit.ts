@@ -6,13 +6,17 @@ import { queryClient } from "./query-client";
 
 WebBrowser.maybeCompleteAuthSession();
 
+const APP_SCHEME = "adventure-time";
+
 type FitbitConnectResult =
   | { type: "success" }
   | { type: "cancel" | "dismiss" }
   | { type: "error"; reason: string };
 
 export async function connectFitbit(redirectPath = "/settings"): Promise<FitbitConnectResult> {
-  const redirectUri = Linking.createURL(redirectPath);
+  const redirectUri = Linking.createURL(redirectPath, {
+    scheme: APP_SCHEME,
+  });
   const { authorizeUrl } = await apiClient.createFitbitAuthorizeUrl({
     redirectUri,
   });

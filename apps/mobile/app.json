@@ -4,97 +4,9 @@
     "slug": "adventure-time-tcg",
     "version": "0.3.5",
     "owner": "zax-code",
-    "scheme": [
-      "adventure-time",
-      "love.leaetzak.adventuretime"
-    ],
-    "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
-    "plugins": [
-      "expo-dev-client",
-      "expo-router",
-      [
-        "expo-notifications",
-        {
-          "enableBackgroundRemoteNotifications": true
-        }
-      ],
-      [
-        "expo-splash-screen",
-        {
-          "backgroundColor": "#FF4AA2",
-          "resizeMode": "contain",
-          "ios": {
-            "backgroundColor": "#FF4AA2",
-            "image": "./assets/splash-icon.png",
-            "imageWidth": 470,
-            "resizeMode": "contain"
-          },
-          "android": {
-            "backgroundColor": "#FF4AA2",
-            "image": "./assets/adaptive-icon.png",
-            "imageWidth": 220,
-            "resizeMode": "contain"
-          }
-        }
-      ],
-      "expo-secure-store",
-      [
-        "expo-sensors",
-        {
-          "motionPermission": "Adventure Time uses motion activity to show live step progress while the app is open."
-        }
-      ],
-      [
-        "expo-build-properties",
-        {
-          "ios": {
-            "buildReactNativeFromSource": true
-          },
-          "android": {
-            "compileSdkVersion": 36,
-            "targetSdkVersion": 36,
-            "minSdkVersion": 26
-          }
-        }
-      ],
-      "expo-health-connect",
-      "expo-font",
-      "expo-web-browser",
-      [
-        "@kingstinct/react-native-healthkit",
-        {
-          "NSHealthShareUsageDescription": "Adventure Time reads your daily step count to keep step quests synced.",
-          "NSHealthUpdateUsageDescription": "Adventure Time uses HealthKit background delivery to keep step quests up to date.",
-          "background": true
-        }
-      ],
-      [
-        "@react-native-google-signin/google-signin",
-        {
-          "iosUrlScheme": "com.googleusercontent.apps.831806850937-udqpted9icstf3m5q3li3elhkgironf0"
-        }
-      ],
-      "expo-background-task",
-      "expo-image",
-      "expo-status-bar"
-    ],
     "experiments": {
       "typedRoutes": true
-    },
-    "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "love.leaetzak.adventuretime",
-      "icon": "./assets/ios-icon.png",
-      "deploymentTarget": "16.4"
-    },
-    "android": {
-      "package": "love.leaetzak.adventuretime",
-      "icon": "./assets/icon.png",
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#FF4AA2"
-      }
     },
     "web": {
       "bundler": "metro",
