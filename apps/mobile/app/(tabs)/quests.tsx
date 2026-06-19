@@ -869,8 +869,8 @@ export default function QuestsScreen() {
                           claimQuestMutation.variables === quest.id;
                         const actionLabel =
                           modeStatus === "active"
-                            ? t("quests.playQuest")
-                            : t("quests.seeResults");
+                            ? t("quests.dailyNumbers.playAction")
+                            : t("quests.dailyNumbers.viewResult");
 
                         return (
                           <View
@@ -957,7 +957,7 @@ export default function QuestsScreen() {
                               <TouchableOpacity
                                 onPress={() =>
                                   router.push(
-                                    `/quests/daily-numbers?mode=${mode}` as never,
+                                    `/quests/daily-numbers-play?mode=${mode}` as never,
                                   )
                                 }
                                 style={{ flex: 1, borderRadius: 12, overflow: "hidden" }}

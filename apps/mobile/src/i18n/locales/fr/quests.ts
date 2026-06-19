@@ -178,7 +178,9 @@ const quests = {
     backToQuests: "Retour aux quêtes",
     backToOverview: "Retour à l'aperçu",
     chooseLevel: "Choisis ton niveau",
-    openGame: "Ouvrir le jeu en plein écran",
+    openGame: "Jouer",
+    playAction: "Jouer",
+    viewResult: "Voir le résultat",
     classic: "Classique",
     expert: "Expert",
     classicMix: "1 grand + 5 petits",
@@ -187,8 +189,12 @@ const quests = {
     freshLabel: "Plateau neuf",
     submittedLabel: "Partie envoyée",
     claimedLabel: "Récompense récupérée",
+    helperLine:
+      "Arrive à 10 ou moins pour valider la quête. Un résultat exact se verrouille automatiquement.",
     target: "Cible",
+    targetValue: "Cible : {target}",
     reward: "Récompense",
+    bestResult: "Meilleur résultat",
     bestDistance: "Meilleur écart",
     howToPlayTitle: "Comment ça marche",
     howToPlayStepOne: "Choisis deux nombres disponibles",
@@ -223,11 +229,15 @@ const quests = {
     closeResult:
       "Résultat le plus proche : {value}, à {distance} d'écart pour {score} points.",
     autoSubmittingSuccess:
-      "Résultat gagnant trouvé. Envoi automatique en cours...",
+      "Résultat exact trouvé. Envoi automatique en cours...",
+    clearReached:
+      "La quête est validée. Envoie maintenant ou continue pour un meilleur score.",
     lockedSuccess: "Quête terminée. Ton résultat est désormais verrouillé.",
     rewardReminder:
       "Retourne aux quêtes quotidiennes pour récupérer {reward} pièces quand tu veux.",
     alreadyClaimed: "Récompense déjà récupérée pour ce mode.",
+    claimReward: "Récupérer {reward} pièces",
+    resultLockedNote: "Ce résultat est verrouillé pour aujourd'hui.",
     notSubmitted:
       "Construis ton meilleur résultat, puis envoie-le quand tu es prêt.",
     resultCardTitle: "Résultat du jour",
@@ -236,6 +246,8 @@ const quests = {
     officialSolutionTitle: "Solution officielle",
     officialSolutionBody:
       "Une route exacte trouvée par le solveur backend pour l'énigme du jour.",
+    exactHitLabel: "Résultat exact",
+    resultLockedLabel: "Résultat verrouillé",
     resetNotice:
       "Nombres du jour a été réinitialisé pendant ta partie. Chargement de la nouvelle énigme.",
     adminResetNotice:
@@ -249,6 +261,12 @@ const quests = {
     invalidSelection: "Choisis deux nombres et un opérateur",
     noUndo: "Rien à annuler pour l'instant.",
     noReset: "Le plateau est déjà remis à zéro.",
+    selectedLeftValue: "Premier nombre sélectionné : {value}",
+    selectedOperatorValue: "Opérateur sélectionné : {operator}",
+    selectedRightValue: "Deuxième nombre sélectionné : {value}",
+    tileValue: "Tuile nombre {value}",
+    operatorValue: "Opérateur {operator}",
+    stepNumber: "Étape {step}",
     stepSummary:
       "{leftValue} {operator} {rightValue} = {resultValue}",
     finalResult: "Résultat final",
