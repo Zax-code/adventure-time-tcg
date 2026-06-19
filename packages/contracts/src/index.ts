@@ -414,7 +414,7 @@ export const collectionEntrySchema = z.object({
   id: z.string(),
   cardId: z.string(),
   quantity: z.number().int().nonnegative(),
-  obtainedAt: z.string(),
+  obtainedAt: z.string().nullable(),
   card: cardSchema,
 });
 

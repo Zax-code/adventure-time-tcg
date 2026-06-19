@@ -1,0 +1,23 @@
+appId: love.leaetzak.adventuretime
+name: Collection ownership filters
+tags:
+  - collection
+  - filters
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- openLink:
+    link: adventure-time:///e2e-auth?redirect=%2Fcollection&email=${TEST_EMAIL_URI}&password=${TEST_PASSWORD_URI}
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- assertVisible:
+    id: collection-ownership-filter-all
+- assertVisible:
+    id: collection-card-tile-0
+- tapOn:
+    id: collection-ownership-filter-owned
+- assertVisible: No cards match your filters.
+- tapOn:
+    id: collection-ownership-filter-not-owned
+- assertVisible:
+    id: collection-card-tile-0

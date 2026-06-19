@@ -5,13 +5,45 @@ const collection = {
   dust: "Poussière",
   searchByNameOrCharacter: "Rechercher par nom ou personnage...",
   all: "Toutes",
+  owned: "Possedees",
+  notOwned: "Non possedees",
+  ownershipFilters: {
+    all: "Toutes",
+    owned: "Possedees",
+    notOwned: "Non possedees",
+  },
   sortBy: "Trier par",
   sortTitle: "Trier par",
   noFilterMatches: "Aucune carte ne correspond à tes filtres.",
-  empty: "Ta collection est vide. Ouvre des packs !",
+  empty: "Ta collection est vide. Ouvre des packs ou cree ta premiere carte !",
   dustModal: {
+    title: "Guide de la poussiere",
     description:
-      "La poussière est une monnaie que tu gagnes en recyclant des cartes en double. Dépense-la pour créer n'importe quelle carte de ton choix.",
+      "Recycle tes copies en trop en poussiere, puis depense-la pour creer la carte exacte que tu veux.",
+    balanceLabel: "Ta reserve",
+    balanceReady: "Tu as assez de poussiere pour creer des cartes des maintenant.",
+    balanceNeedMore:
+      "Encore {amount} poussiere pour pouvoir creer ta premiere carte.",
+    availableNow: "Creable maintenant",
+    nextTarget: "Prochaine cible",
+    craftRule: "Le cout de creation vaut toujours 5x la valeur de recyclage.",
+    stepsTitle: "Comment l'utiliser",
+    stepRecycleTitle: "Recycle les doublons",
+    stepRecycleBody:
+      "Ouvre une carte et transforme tes copies en trop en poussiere.",
+    stepTrackTitle: "Verifie le cout",
+    stepTrackBody:
+      "Chaque rarete a une valeur de recyclage et un cout fixes.",
+    stepCraftTitle: "Cree ce qu'il te manque",
+    stepCraftBody:
+      "Depense ta poussiere sur la carte exacte que tu veux au lieu d'attendre les packs aleatoires.",
+    valuesTitle: "Valeurs par rarete",
+    valuesDescription:
+      "Les raretes plus elevees donnent plus de poussiere et coutent plus cher a creer.",
+    readyNow: "Pret",
+    needMore: "Encore {amount}",
+    openCardHint:
+      "Astuce : ouvre une carte pour recycler des copies en trop ou en creer une manquante.",
   },
   detail: {
     manageCard:
@@ -37,6 +69,8 @@ const collection = {
       "Il te manque encore {amount} poussiere pour creer cette carte.",
     selectedRecipient: "Envoi a {name}.",
     giftHint: "Choisis un joueur et ajoute un message si tu veux.",
+    craftFirstHint:
+      "Cree d'abord une premiere copie pour debloquer le recyclage et l'envoi.",
   },
   gift: {
     searchPlayersPlaceholder: "Rechercher des joueurs...",

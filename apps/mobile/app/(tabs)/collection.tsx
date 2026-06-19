@@ -39,6 +39,7 @@ import {
 import { THEME_COLORS } from "../../src/theme/themes";
 
 type CollectionEntry = CollectionResponse["cards"][number];
+type OwnershipFilter = "all" | "owned" | "not-owned";
 
 const SORT_LABELS: Record<string, string> = {
   rarity: "Rarity",
@@ -59,7 +60,8 @@ export default function CollectionScreen() {
   const router = useRouter();
   const accessToken = useSessionStore((state) => state.accessToken);
   const { t } = useTranslation();
-  const tc = THEME_COLORS[useThemeStore((s) => s.themeName)];
+  const themeName = useThemeStore((state) => state.themeName);
+  const tc = THEME_COLORS[themeName];
   const headerHeight = useAppHeaderHeight();
   const bottomTabPadding = useBottomTabBarContentPadding();
   const collectionFeedbackMessage = useCollectionFeedbackStore(
@@ -70,6 +72,7 @@ export default function CollectionScreen() {
   );
 
   const [filterRarity, setFilterRarity] = useState<string>("all");
+  const [ownershipFilter, setOwnershipFilter] = useState<OwnershipFilter>("all");
   const [sortBy, setSortBy] = useState<
     "rarity" | "name" | "quantity" | "newest"
   >("rarity");
@@ -113,11 +116,15 @@ export default function CollectionScreen() {
   });
 
   // Derived data — computed before early returns to satisfy Rules of Hooks
-  const rawCards = collectionQuery.data?.cards ?? [];
+  const rawCards = collectionQuery.data?.cards;
+  const ownedCards = useMemo(
+    () => (rawCards ?? []).filter((entry) => entry.quantity > 0),
+    [rawCards],
+  );
 
   const rarityGroups = useMemo(() => {
     const groups = new Map<string, { count: number; dropRate: number }>();
-    for (const entry of rawCards) {
+    for (const entry of rawCards ?? []) {
       const { name, dropRate } = entry.card.rarity;
       const existing = groups.get(name);
       if (existing) {
@@ -131,8 +138,24 @@ export default function CollectionScreen() {
       .map(([name, data]) => ({ name, ...data }));
   }, [rawCards]);
 
+  const ownedRarityGroups = useMemo(() => {
+    const groups = new Map<string, { count: number; dropRate: number }>();
+    for (const entry of ownedCards) {
+      const { name, dropRate } = entry.card.rarity;
+      const existing = groups.get(name);
+      if (existing) {
+        existing.count++;
+      } else {
+        groups.set(name, { count: 1, dropRate });
+      }
+    }
+    return Array.from(groups.entries())
+      .sort(([, a], [, b]) => a.dropRate - b.dropRate)
+      .map(([name, data]) => ({ name, ...data }));
+  }, [ownedCards]);
+
   const filteredCards = useMemo((): CollectionEntry[] => {
-    let result = rawCards;
+    let result = rawCards ?? [];
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       result = result.filter(
@@ -140,6 +163,12 @@ export default function CollectionScreen() {
           e.card.name.toLowerCase().includes(q) ||
           e.card.character.toLowerCase().includes(q),
       );
+    }
+    if (ownershipFilter === "owned") {
+      result = result.filter((entry) => entry.quantity > 0);
+    }
+    if (ownershipFilter === "not-owned") {
+      result = result.filter((entry) => entry.quantity === 0);
     }
     if (filterRarity !== "all") {
       result = result.filter((e) => e.card.rarity.name === filterRarity);
@@ -158,18 +187,113 @@ export default function CollectionScreen() {
       case "newest":
         return [...result].sort(
           (a, b) =>
-            new Date(b.obtainedAt).getTime() - new Date(a.obtainedAt).getTime(),
+            (b.obtainedAt ? new Date(b.obtainedAt).getTime() : -Infinity) -
+            (a.obtainedAt ? new Date(a.obtainedAt).getTime() : -Infinity),
         );
       default:
         return result;
     }
-  }, [rawCards, searchQuery, filterRarity, sortBy]);
+  }, [rawCards, searchQuery, ownershipFilter, filterRarity, sortBy]);
+
+  const dustModalStyles = useMemo(
+    () => ({
+      craftRulePill: {
+        flexShrink: 1,
+        maxWidth: "58%",
+        borderRadius: 999,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        backgroundColor: tc.secondaryTint,
+        borderWidth: 1,
+        borderColor: tc.secondaryBorder,
+      } as const,
+      rarityChip: {
+        borderRadius: 999,
+        paddingHorizontal: 12,
+        paddingVertical: 7,
+        backgroundColor: tc.surfaceMuted,
+        borderWidth: 1,
+        borderColor: tc.primaryBorder,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+      } as const,
+      recycleCard: {
+        flex: 1,
+        borderRadius: 18,
+        borderWidth: 1,
+        borderColor: tc.successBorder,
+        backgroundColor: tc.successTint,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        gap: 5,
+      } as const,
+      craftCard: {
+        flex: 1,
+        borderRadius: 18,
+        borderWidth: 1,
+        borderColor: tc.primaryBorder,
+        backgroundColor: tc.primaryTint,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        gap: 5,
+      } as const,
+      hintCard: {
+        borderRadius: 18,
+        borderWidth: 1,
+        borderColor: tc.secondaryBorder,
+        backgroundColor: tc.secondaryTint,
+        padding: 14,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+      } as const,
+      closePill: {
+        borderRadius: 999,
+        borderWidth: 1,
+        borderColor: tc.secondaryBorder,
+        backgroundColor: tc.surface,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 5,
+      } as const,
+      heroCard: {
+        borderRadius: 22,
+        borderWidth: 1,
+        borderColor: tc.secondaryBorder,
+        backgroundColor: tc.surface,
+        padding: 14,
+        gap: 10,
+        width: "100%",
+        boxShadow:
+          themeName === "nightosphere"
+            ? "0 10px 24px rgba(0, 0, 0, 0.26)"
+            : "0 10px 24px rgba(122, 86, 24, 0.12)",
+      } as const,
+    }),
+    [tc, themeName],
+  );
+  const sortOptionBaseStyle = useMemo(
+    () => ({
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      borderRadius: 12,
+      borderWidth: 2,
+    } as const),
+    [],
+  );
 
   const renderCollectionItem = useCallback(
     ({ item, index }: { item: CollectionEntry; index: number }) => (
       <CardTile
         entry={item}
         accessToken={accessToken}
+        muted={item.quantity === 0}
         testID={`collection-card-tile-${index}`}
         onPress={() =>
           router.push({
@@ -213,6 +337,17 @@ export default function CollectionScreen() {
       </View>
     );
   }
+
+  const craftableDustRows = DUST_TABLE.filter((row) => collection.dust >= row.craft);
+  const nextDustGoal =
+    DUST_TABLE.find((row) => collection.dust < row.craft) ?? null;
+  const allCards = rawCards ?? [];
+  const ownedCount = ownedCards.length;
+  const notOwnedCount = Math.max(allCards.length - ownedCount, 0);
+  const dustModalBackdrop =
+    themeName === "nightosphere"
+      ? "rgba(6, 1, 10, 0.84)"
+      : "rgba(74, 34, 50, 0.44)";
 
   const listHeader = (
     <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 }}>
@@ -354,6 +489,73 @@ export default function CollectionScreen() {
         ) : null}
       </View>
 
+      <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
+        {([
+          {
+            key: "all" as const,
+            label: t("collection.ownershipFilters.all"),
+            count: allCards.length,
+          },
+          {
+            key: "owned" as const,
+            label: t("collection.ownershipFilters.owned"),
+            count: ownedCount,
+          },
+          {
+            key: "not-owned" as const,
+            label: t("collection.ownershipFilters.notOwned"),
+            count: notOwnedCount,
+          },
+        ] satisfies Array<{
+          key: OwnershipFilter;
+          label: string;
+          count: number;
+        }>).map((option) => {
+          const isActive = ownershipFilter === option.key;
+
+          return (
+            <Pressable
+              key={option.key}
+              onPress={() => setOwnershipFilter(option.key)}
+              style={{
+                flex: 1,
+                borderRadius: 14,
+                borderWidth: 1,
+                borderColor: isActive ? tc.primaryBorder : tc.accentBorder,
+                backgroundColor: isActive ? tc.primaryTint : tc.surfaceMuted,
+                paddingHorizontal: 10,
+                paddingVertical: 10,
+                alignItems: "center",
+                gap: 2,
+              }}
+              testID={`collection-ownership-filter-${option.key}`}
+            >
+              <Text
+                style={{
+                  fontFamily: isActive
+                    ? "Nunito_800ExtraBold"
+                    : "Nunito_700Bold",
+                  fontSize: 13,
+                  color: isActive ? tc.primaryText : tc.fg,
+                }}
+              >
+                {option.label}
+              </Text>
+              <Text
+                style={{
+                  fontFamily: "Nunito_700Bold",
+                  fontSize: 12,
+                  color: isActive ? tc.primaryStrong : tc.fgMuted,
+                  fontVariant: ["tabular-nums"],
+                }}
+              >
+                {option.count}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
       {/* Rarity pills */}
       <ScrollView
         horizontal
@@ -386,7 +588,7 @@ export default function CollectionScreen() {
                 color: filterRarity === "all" ? tc.accentTint : tc.accentText,
               }}
             >
-              {t("collection.all")} ({collection.cards.length})
+              {t("collection.all")} ({allCards.length})
             </Text>
           </Pressable>
           {rarityGroups.map(({ name, count }) => (
@@ -498,7 +700,7 @@ export default function CollectionScreen() {
                 textAlign: "center",
               }}
             >
-              {searchQuery || filterRarity !== "all"
+              {allCards.length > 0
                 ? t("collection.noFilterMatches")
                 : t("collection.empty")}
             </Text>
@@ -557,43 +759,67 @@ export default function CollectionScreen() {
                 marginTop: 4,
               }}
             >
-              {rarityGroups.map(({ name, count }) => {
-                const rc = RARITY_COLORS[name] ?? RARITY_COLORS.Common;
-                return (
-                  <View
-                    key={name}
+              {ownedRarityGroups.length > 0 ? (
+                ownedRarityGroups.map(({ name, count }) => {
+                  const rc = RARITY_COLORS[name] ?? RARITY_COLORS.Common;
+                  return (
+                    <View
+                      key={name}
+                      style={{
+                        backgroundColor: tc.surfaceMuted,
+                        borderRadius: 12,
+                        paddingVertical: 12,
+                        paddingHorizontal: 12,
+                        flexGrow: 1,
+                        flexBasis: "30%",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 24,
+                          fontFamily: "Nunito_700Bold",
+                          color: rc.from,
+                        }}
+                      >
+                        {count}
+                      </Text>
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          fontFamily: "Nunito_600SemiBold",
+                          color: tc.fgMuted,
+                          marginTop: 2,
+                        }}
+                      >
+                        {name}
+                      </Text>
+                    </View>
+                  );
+                })
+              ) : (
+                <View
+                  style={{
+                    width: "100%",
+                    borderRadius: 14,
+                    backgroundColor: tc.surfaceMuted,
+                    paddingVertical: 18,
+                    paddingHorizontal: 16,
+                  }}
+                >
+                  <Text
                     style={{
-                      backgroundColor: tc.surfaceMuted,
-                      borderRadius: 12,
-                      paddingVertical: 12,
-                      paddingHorizontal: 12,
-                      flexGrow: 1,
-                      flexBasis: "30%",
-                      alignItems: "center",
+                      fontSize: 13,
+                      lineHeight: 19,
+                      fontFamily: "Nunito_600SemiBold",
+                      color: tc.fgMuted,
+                      textAlign: "center",
                     }}
                   >
-                    <Text
-                      style={{
-                        fontSize: 24,
-                        fontFamily: "Nunito_700Bold",
-                        color: rc.from,
-                      }}
-                    >
-                      {count}
-                    </Text>
-                    <Text
-                      style={{
-                        fontSize: 12,
-                        fontFamily: "Nunito_600SemiBold",
-                        color: tc.fgMuted,
-                        marginTop: 2,
-                      }}
-                    >
-                      {name}
-                    </Text>
-                  </View>
-                );
-              })}
+                    {t("collection.empty")}
+                  </Text>
+                </View>
+              )}
             </View>
             <Pressable
               onPress={() => setShowStatsModal(false)}
@@ -673,21 +899,17 @@ export default function CollectionScreen() {
                         setSortBy(option);
                         setShowSortModal(false);
                       }}
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        paddingVertical: 12,
-                        paddingHorizontal: 16,
-                        borderRadius: 12,
-                        borderWidth: 2,
+                      style={[
+                        sortOptionBaseStyle,
+                        {
                         backgroundColor: isActive
                           ? tc.primaryTint
                           : tc.surfaceMuted,
                         borderColor: isActive
                           ? tc.primaryBorder
                           : "transparent",
-                      }}
+                        },
+                      ]}
                     >
                       <Text
                         style={{
@@ -748,203 +970,600 @@ export default function CollectionScreen() {
         animationType="fade"
         onRequestClose={() => setShowDustModal(false)}
       >
-        <Pressable
+        <View
           style={{
             flex: 1,
-            backgroundColor: "rgba(0,0,0,0.5)",
             justifyContent: "center",
             padding: 24,
           }}
-          onPress={() => setShowDustModal(false)}
         >
+          <Pressable
+            style={{
+              position: "absolute",
+              top: 0,
+              right: 0,
+              bottom: 0,
+              left: 0,
+              backgroundColor: dustModalBackdrop,
+            }}
+            onPress={() => setShowDustModal(false)}
+          />
           <View
             style={{
               backgroundColor: tc.surface,
-              borderRadius: 16,
-              padding: 20,
-              shadowColor: "#000",
-              shadowOpacity: 0.15,
-              shadowRadius: 12,
-              elevation: 8,
+              borderRadius: 28,
+              borderWidth: 1,
+              borderColor: tc.secondaryBorder,
+              overflow: "hidden",
+              maxHeight: "88%",
+              boxShadow:
+                themeName === "nightosphere"
+                  ? "0 24px 56px rgba(0, 0, 0, 0.5)"
+                  : "0 22px 52px rgba(73, 36, 54, 0.18)",
             }}
-            onStartShouldSetResponder={() => true}
           >
-            {/* Header */}
-            <View
+            <LinearGradient
+              colors={[tc.secondaryTint, tc.primaryBg]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
               style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 8,
-                marginBottom: 10,
+                paddingHorizontal: 20,
+                paddingTop: 12,
+                paddingBottom: 14,
+                gap: 12,
               }}
             >
-              <DustIcon size={22} color={tc.secondaryText} />
-              <Text
-                className="text-secondaryText"
-                style={{
-                  flex: 1,
-                  fontSize: 18,
-                  fontFamily: "Nunito_800ExtraBold",
-                }}
-              >
-                {t("collection.dust")}
-              </Text>
-              <Pressable onPress={() => setShowDustModal(false)} hitSlop={8}>
-                <Text style={{ fontSize: 18, color: tc.muted }}>✕</Text>
-              </Pressable>
-            </View>
-
-            <Text
-              style={{
-                fontSize: 13,
-                color: tc.fgMuted,
-                fontFamily: "Nunito_400Regular",
-                marginBottom: 20,
-                lineHeight: 20,
-              }}
-            >
-              {t("collection.dustModal.description")}
-            </Text>
-
-            {/* Table */}
-            <View
-              style={{
-                borderRadius: 12,
-                overflow: "hidden",
-                shadowColor: "#000",
-                shadowOpacity: 0.12,
-                shadowRadius: 8,
-              }}
-            >
-              {/* Header row */}
               <View
                 style={{
-                  flexDirection: "row",
-                  backgroundColor: "rgba(253,224,71,0.15)",
-                  paddingVertical: 8,
-                  paddingHorizontal: 12,
+                  alignItems: "center",
+                  gap: 10,
                 }}
               >
-                <Text
-                  style={{
-                    flex: 2,
-                    fontFamily: "Nunito_700Bold",
-                    color: tc.secondaryText,
-                    fontSize: 12,
-                  }}
-                >
-                  {t("collection.detail.rarity")}
-                </Text>
                 <View
                   style={{
-                    flex: 1,
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "flex-end",
-                    gap: 3,
+                    width: 40,
+                    height: 4,
+                    borderRadius: 999,
+                    backgroundColor: tc.secondaryBorder,
                   }}
-                >
-                  <RecycleIcon size={14} color={tc.successText} />
-                  <Text
-                    style={{
-                      fontFamily: "Nunito_700Bold",
-                      color: tc.successText,
-                      fontSize: 12,
-                    }}
-                  >
-                    {t("collection.detail.recycle")}
-                  </Text>
-                </View>
+                />
                 <View
                   style={{
-                    flex: 1,
+                    width: "100%",
                     flexDirection: "row",
                     alignItems: "center",
-                    justifyContent: "flex-end",
-                    gap: 3,
+                    justifyContent: "space-between",
+                    gap: 12,
                   }}
                 >
-                  <CraftIcon size={14} color={tc.primaryText} />
-                  <Text
-                    style={{
-                      fontFamily: "Nunito_700Bold",
-                      color: tc.primaryText,
-                      fontSize: 12,
-                    }}
-                  >
-                    {t("collection.detail.craft")}
-                  </Text>
-                </View>
-              </View>
-              {DUST_TABLE.map((row, idx) => {
-                const rc = RARITY_COLORS[row.rarity] ?? RARITY_COLORS.Common;
-                return (
                   <View
-                    key={row.rarity}
                     style={{
                       flexDirection: "row",
-                      paddingVertical: 10,
-                      paddingHorizontal: 12,
-                      backgroundColor:
-                        idx % 2 === 0 ? tc.surface : tc.surfaceMuted,
+                      alignItems: "center",
+                      gap: 10,
+                      flex: 1,
                     }}
                   >
-                    <Text
-                      style={{
-                        flex: 2,
-                        fontFamily: "Nunito_600SemiBold",
-                        color: rc.from,
-                        fontSize: 14,
-                      }}
-                    >
-                      {row.rarity}
-                    </Text>
                     <View
                       style={{
-                        flex: 1,
-                        flexDirection: "row",
+                        width: 38,
+                        height: 38,
+                        borderRadius: 19,
                         alignItems: "center",
-                        justifyContent: "flex-end",
-                        gap: 3,
+                        justifyContent: "center",
+                        backgroundColor: tc.secondary,
                       }}
                     >
-                      <DustIcon size={12} color={tc.successDark} />
-                      <Text
-                        style={{
-                          fontFamily: "Nunito_700Bold",
-                          color: tc.successDark,
-                          fontSize: 14,
-                        }}
-                      >
-                        {row.recycle}
-                      </Text>
+                      <DustIcon size={20} color={tc.secondaryText} />
                     </View>
-                    <View
-                      style={{
-                        flex: 1,
-                        flexDirection: "row",
-                        alignItems: "center",
-                        justifyContent: "flex-end",
-                        gap: 3,
-                      }}
-                    >
-                      <DustIcon size={12} color={tc.primaryText} />
+                    <View style={{ flex: 1, gap: 2 }}>
                       <Text
+                        className="text-secondaryText"
                         style={{
-                          fontFamily: "Nunito_700Bold",
-                          color: tc.primaryText,
-                          fontSize: 14,
+                          fontSize: 18,
+                          fontFamily: "Nunito_800ExtraBold",
                         }}
                       >
-                        {row.craft}
+                        {t("collection.dustModal.title")}
+                      </Text>
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          lineHeight: 17,
+                          color: tc.fgMuted,
+                          fontFamily: "Nunito_400Regular",
+                        }}
+                      >
+                        {t("collection.dustModal.description")}
                       </Text>
                     </View>
                   </View>
-                );
-              })}
-            </View>
+                  <Pressable
+                    onPress={() => setShowDustModal(false)}
+                    hitSlop={10}
+                    style={dustModalStyles.closePill}
+                    accessibilityRole="button"
+                    accessibilityLabel={t("common.close")}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        fontFamily: "Nunito_700Bold",
+                        color: tc.secondaryText,
+                      }}
+                    >
+                      {t("common.close")}
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: 15,
+                        fontFamily: "Nunito_800ExtraBold",
+                        color: tc.secondaryText,
+                        lineHeight: 15,
+                      }}
+                    >
+                      ×
+                    </Text>
+                  </Pressable>
+                </View>
+              </View>
+
+              <View
+                style={{
+                  alignItems: "center",
+                  gap: 12,
+                }}
+              >
+                <View
+                  style={dustModalStyles.heroCard}
+                >
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "flex-start",
+                      justifyContent: "space-between",
+                      gap: 12,
+                    }}
+                  >
+                    <View style={{ gap: 4 }}>
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          fontFamily: "Nunito_700Bold",
+                          color: tc.fgMuted,
+                          textTransform: "uppercase",
+                          letterSpacing: 0.6,
+                        }}
+                      >
+                        {t("collection.dustModal.balanceLabel")}
+                      </Text>
+                      <Text
+                        style={{
+                          fontSize: 28,
+                          fontFamily: "Nunito_800ExtraBold",
+                          color: tc.secondaryText,
+                          fontVariant: ["tabular-nums"],
+                        }}
+                      >
+                        {collection.dust}
+                      </Text>
+                    </View>
+                    <View style={dustModalStyles.craftRulePill}>
+                      <Text
+                        style={{
+                          fontSize: 11,
+                          fontFamily: "Nunito_700Bold",
+                          color: tc.secondaryText,
+                          textAlign: "right",
+                        }}
+                      >
+                        {t("collection.dustModal.craftRule")}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      lineHeight: 18,
+                      fontFamily: "Nunito_600SemiBold",
+                      color: tc.fg,
+                    }}
+                  >
+                    {craftableDustRows.length > 0
+                      ? t("collection.dustModal.balanceReady")
+                      : t("collection.dustModal.balanceNeedMore", {
+                          amount:
+                            (nextDustGoal?.craft ?? DUST_TABLE[0].craft) -
+                            collection.dust,
+                        })}
+                  </Text>
+
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      flexWrap: "wrap",
+                      gap: 8,
+                    }}
+                  >
+                    <View
+                      style={{
+                        borderRadius: 999,
+                        paddingHorizontal: 12,
+                        paddingVertical: 7,
+                        backgroundColor:
+                          craftableDustRows.length > 0
+                            ? tc.successTint
+                            : tc.infoTint,
+                        borderWidth: 1,
+                        borderColor:
+                          craftableDustRows.length > 0
+                            ? tc.successBorder
+                            : tc.infoBorder,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          fontFamily: "Nunito_700Bold",
+                          color:
+                            craftableDustRows.length > 0
+                              ? tc.successText
+                              : tc.infoText,
+                        }}
+                      >
+                        {craftableDustRows.length > 0
+                          ? t("collection.dustModal.availableNow")
+                          : t("collection.dustModal.nextTarget")}
+                      </Text>
+                    </View>
+                    {(craftableDustRows.length > 0
+                      ? craftableDustRows
+                      : nextDustGoal
+                        ? [nextDustGoal]
+                        : []
+                    ).map((row) => (
+                      <View key={row.rarity} style={dustModalStyles.rarityChip}>
+                        <Text
+                          style={{
+                            fontSize: 12,
+                            fontFamily: "Nunito_700Bold",
+                            color: tc.fg,
+                          }}
+                        >
+                          {row.rarity}
+                        </Text>
+                        <Text
+                          style={{
+                            fontSize: 12,
+                            fontFamily: "Nunito_700Bold",
+                            color: tc.fgMuted,
+                            fontVariant: ["tabular-nums"],
+                          }}
+                        >
+                          {row.craft}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              </View>
+            </LinearGradient>
+
+            <ScrollView
+              contentInsetAdjustmentBehavior="automatic"
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{
+                paddingHorizontal: 20,
+                paddingTop: 18,
+                paddingBottom: 20,
+                gap: 16,
+              }}
+            >
+              <View style={{ gap: 10 }}>
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontFamily: "Nunito_800ExtraBold",
+                    color: tc.fg,
+                  }}
+                >
+                  {t("collection.dustModal.stepsTitle")}
+                </Text>
+                {[
+                  {
+                    key: "recycle",
+                    title: t("collection.dustModal.stepRecycleTitle"),
+                    body: t("collection.dustModal.stepRecycleBody"),
+                    backgroundColor: tc.successTint,
+                    borderColor: tc.successBorder,
+                    badgeColor: tc.successText,
+                  },
+                  {
+                    key: "track",
+                    title: t("collection.dustModal.stepTrackTitle"),
+                    body: t("collection.dustModal.stepTrackBody"),
+                    backgroundColor: tc.infoTint,
+                    borderColor: tc.infoBorder,
+                    badgeColor: tc.infoText,
+                  },
+                  {
+                    key: "craft",
+                    title: t("collection.dustModal.stepCraftTitle"),
+                    body: t("collection.dustModal.stepCraftBody"),
+                    backgroundColor: tc.primaryTint,
+                    borderColor: tc.primaryBorder,
+                    badgeColor: tc.primaryText,
+                  },
+                ].map((step, index) => (
+                  <View
+                    key={step.key}
+                    style={{
+                      flexDirection: "row",
+                      gap: 12,
+                      borderRadius: 20,
+                      borderWidth: 1,
+                      borderColor: step.borderColor,
+                      backgroundColor: step.backgroundColor,
+                      padding: 14,
+                    }}
+                  >
+                    <View
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 16,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        backgroundColor: tc.surface,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 14,
+                          fontFamily: "Nunito_800ExtraBold",
+                          color: step.badgeColor,
+                        }}
+                      >
+                        {index + 1}
+                      </Text>
+                    </View>
+                    <View style={{ flex: 1, gap: 4 }}>
+                      <Text
+                        style={{
+                          fontSize: 14,
+                          fontFamily: "Nunito_800ExtraBold",
+                          color: tc.fg,
+                        }}
+                      >
+                        {step.title}
+                      </Text>
+                      <Text
+                        style={{
+                          fontSize: 13,
+                          lineHeight: 19,
+                          fontFamily: "Nunito_400Regular",
+                          color: tc.fgMuted,
+                        }}
+                      >
+                        {step.body}
+                      </Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+
+              <View style={{ gap: 8 }}>
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontFamily: "Nunito_800ExtraBold",
+                    color: tc.fg,
+                  }}
+                >
+                  {t("collection.dustModal.valuesTitle")}
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 13,
+                    lineHeight: 19,
+                    fontFamily: "Nunito_400Regular",
+                    color: tc.fgMuted,
+                  }}
+                >
+                  {t("collection.dustModal.valuesDescription")}
+                </Text>
+                <View style={{ gap: 10 }}>
+                  {DUST_TABLE.map((row) => {
+                    const rc = RARITY_COLORS[row.rarity] ?? RARITY_COLORS.Common;
+                    const isReady = collection.dust >= row.craft;
+                    const missingDust = Math.max(row.craft - collection.dust, 0);
+
+                    return (
+                      <View
+                        key={row.rarity}
+                        style={{
+                          borderRadius: 22,
+                          borderWidth: 1,
+                          borderColor: tc.primaryBorder,
+                          backgroundColor: tc.surfaceMuted,
+                          padding: 14,
+                          gap: 12,
+                        }}
+                      >
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            gap: 12,
+                          }}
+                        >
+                          <LinearGradient
+                            colors={[rc.from, rc.to]}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                            style={{
+                              borderRadius: 999,
+                              paddingHorizontal: 12,
+                              paddingVertical: 7,
+                            }}
+                          >
+                            <Text
+                              style={{
+                                fontSize: 12,
+                                fontFamily: "Nunito_800ExtraBold",
+                                color: "#FFFFFF",
+                              }}
+                            >
+                              {row.rarity.toUpperCase()}
+                            </Text>
+                          </LinearGradient>
+                          <View
+                            style={{
+                              borderRadius: 999,
+                              paddingHorizontal: 12,
+                              paddingVertical: 7,
+                              backgroundColor: isReady
+                                ? tc.successTint
+                                : tc.infoTint,
+                              borderWidth: 1,
+                              borderColor: isReady
+                                ? tc.successBorder
+                                : tc.infoBorder,
+                            }}
+                          >
+                            <Text
+                              style={{
+                                fontSize: 12,
+                                fontFamily: "Nunito_700Bold",
+                                color: isReady ? tc.successText : tc.infoText,
+                                fontVariant: ["tabular-nums"],
+                              }}
+                            >
+                              {isReady
+                                ? t("collection.dustModal.readyNow")
+                                : t("collection.dustModal.needMore", {
+                                    amount: missingDust,
+                                  })}
+                            </Text>
+                          </View>
+                        </View>
+
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            gap: 10,
+                          }}
+                        >
+                          <View style={dustModalStyles.recycleCard}>
+                            <View
+                              style={{
+                                flexDirection: "row",
+                                alignItems: "center",
+                                gap: 6,
+                              }}
+                            >
+                              <RecycleIcon size={15} color={tc.successText} />
+                              <Text
+                                style={{
+                                  fontSize: 12,
+                                  fontFamily: "Nunito_700Bold",
+                                  color: tc.successText,
+                                }}
+                              >
+                                {t("collection.detail.recycle")}
+                              </Text>
+                            </View>
+                            <Text
+                              style={{
+                                fontSize: 20,
+                                fontFamily: "Nunito_800ExtraBold",
+                                color: tc.successText,
+                                fontVariant: ["tabular-nums"],
+                              }}
+                            >
+                              +{row.recycle}
+                            </Text>
+                          </View>
+
+                          <View style={dustModalStyles.craftCard}>
+                            <View
+                              style={{
+                                flexDirection: "row",
+                                alignItems: "center",
+                                gap: 6,
+                              }}
+                            >
+                              <CraftIcon size={15} color={tc.primaryText} />
+                              <Text
+                                style={{
+                                  fontSize: 12,
+                                  fontFamily: "Nunito_700Bold",
+                                  color: tc.primaryText,
+                                }}
+                              >
+                                {t("collection.detail.craft")}
+                              </Text>
+                            </View>
+                            <Text
+                              style={{
+                                fontSize: 20,
+                                fontFamily: "Nunito_800ExtraBold",
+                                color: tc.primaryText,
+                                fontVariant: ["tabular-nums"],
+                              }}
+                            >
+                              -{row.craft}
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
+              </View>
+
+              <View style={dustModalStyles.hintCard}>
+                <CraftIcon size={18} color={tc.secondaryText} />
+                <Text
+                  style={{
+                    flex: 1,
+                    fontSize: 13,
+                    lineHeight: 19,
+                    fontFamily: "Nunito_600SemiBold",
+                    color: tc.secondaryText,
+                  }}
+                >
+                  {t("collection.dustModal.openCardHint")}
+                </Text>
+              </View>
+
+              <Pressable
+                onPress={() => setShowDustModal(false)}
+                style={{ borderRadius: 16, overflow: "hidden" }}
+              >
+                <LinearGradient
+                  colors={[tc.primary, tc.primaryDark]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={{ paddingVertical: 13, alignItems: "center" }}
+                >
+                  <Text
+                    style={{
+                      fontFamily: "Nunito_800ExtraBold",
+                      color: tc.surface,
+                      fontSize: 14,
+                    }}
+                  >
+                    {t("common.close")}
+                  </Text>
+                </LinearGradient>
+              </Pressable>
+            </ScrollView>
           </View>
-        </Pressable>
+        </View>
       </Modal>
     </View>
   );

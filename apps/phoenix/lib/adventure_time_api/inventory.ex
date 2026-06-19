@@ -225,13 +225,22 @@ defmodule AdventureTimeApi.Inventory do
   end
 
   def collection_for_user(user_id) do
-    cards =
+    owned_cards_by_card_id =
       OwnedCard
       |> where([owned_card], owned_card.user_id == ^user_id)
       |> preload(card: [:rarity])
-      |> order_by([owned_card], asc: owned_card.inserted_at)
       |> Repo.all()
-      |> Enum.map(&to_collection_entry/1)
+      |> Map.new(&{&1.card_id, &1})
+
+    cards =
+      Card
+      |> where([card], card.is_archived == false)
+      |> preload([:rarity])
+      |> order_by([card], asc: card.name, asc: card.id)
+      |> Repo.all()
+      |> Enum.map(fn card ->
+        to_collection_entry(card, Map.get(owned_cards_by_card_id, card.id))
+      end)
 
     %{
       cards: cards,
@@ -268,13 +277,23 @@ defmodule AdventureTimeApi.Inventory do
     }
   end
 
-  defp to_collection_entry(owned_card) do
+  defp to_collection_entry(card, nil) do
+    %{
+      id: "catalog:" <> card.id,
+      cardId: card.id,
+      quantity: 0,
+      obtainedAt: nil,
+      card: to_card_payload(card)
+    }
+  end
+
+  defp to_collection_entry(card, owned_card) do
     %{
       id: owned_card.id,
-      cardId: owned_card.card_id,
+      cardId: card.id,
       quantity: owned_card.quantity,
       obtainedAt: DateTime.to_iso8601(owned_card.obtained_at),
-      card: to_card_payload(owned_card.card)
+      card: to_card_payload(card)
     }
   end
 
@@ -375,7 +394,7 @@ defmodule AdventureTimeApi.Inventory do
 
   defp collection_stats_for_entries(entries) do
     total_cards = Enum.reduce(entries, 0, fn entry, sum -> sum + entry.quantity end)
-    unique_owned = length(entries)
+    unique_owned = Enum.count(entries, &(&1.quantity > 0))
     total_catalog_cards = total_collectible_catalog_cards()
 
     completion_percentage =

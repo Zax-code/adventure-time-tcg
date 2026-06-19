@@ -5,13 +5,42 @@ const collection = {
   dust: "Dust",
   searchByNameOrCharacter: "Search by name or character...",
   all: "All",
+  owned: "Owned",
+  notOwned: "Not owned",
+  ownershipFilters: {
+    all: "All cards",
+    owned: "Owned",
+    notOwned: "Not owned",
+  },
   sortBy: "Sort by",
   sortTitle: "Sort By",
   noFilterMatches: "No cards match your filters.",
-  empty: "Your collection is empty. Open some packs!",
+  empty: "Your collection is empty. Open packs or craft your first card!",
   dustModal: {
+    title: "Dust guide",
     description:
-      "Dust is a currency you earn by recycling duplicate cards. Spend it to craft any specific card you want.",
+      "Recycle extra copies into dust, then spend it to craft the exact card you want.",
+    balanceLabel: "Your balance",
+    balanceReady: "You have enough dust to craft cards right now.",
+    balanceNeedMore: "Save {amount} more dust to craft your first card.",
+    availableNow: "Can craft now",
+    nextTarget: "Next target",
+    craftRule: "Crafting always costs 5x the recycle value.",
+    stepsTitle: "How to use dust",
+    stepRecycleTitle: "Recycle duplicates",
+    stepRecycleBody: "Open a card and turn extra copies into dust.",
+    stepTrackTitle: "Check the cost",
+    stepTrackBody: "Each rarity has a fixed recycle value and craft cost.",
+    stepCraftTitle: "Craft what you need",
+    stepCraftBody:
+      "Spend dust on the exact card you want instead of waiting on random packs.",
+    valuesTitle: "Rarity values",
+    valuesDescription:
+      "Higher rarities give more dust when recycled and cost more to craft.",
+    readyNow: "Ready now",
+    needMore: "Need {amount} more",
+    openCardHint:
+      "Tip: open any card to recycle extras or craft a missing copy.",
   },
   detail: {
     manageCard: "Review the card, its value, and its actions in one place.",
@@ -35,6 +64,7 @@ const collection = {
     craftNeedMoreDust: "Need {amount} more dust to craft this card.",
     selectedRecipient: "Sending to {name}.",
     giftHint: "Pick a player and optionally add a message.",
+    craftFirstHint: "Craft your first copy to unlock recycling and gifting.",
   },
   gift: {
     searchPlayersPlaceholder: "Search players...",
