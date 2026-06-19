@@ -1,6 +1,6 @@
 defmodule AdventureTimeApi.Quests do
   @moduledoc """
-  Quest boundary: daily claim, quest materialization, Wordle, and Speed Calculus.
+  Quest boundary: daily claim, Daily Numbers, Wordle, and Speed Calculus.
   """
 
   import Ecto.Query
@@ -12,6 +12,8 @@ defmodule AdventureTimeApi.Quests do
   alias AdventureTimeApi.Health
 
   alias AdventureTimeApi.Quests.{
+    DailyNumbersDailyAttempt,
+    DailyNumbersEngine,
     DailyQuest,
     SpeedCalculusDailyRun,
     SpeedCalculusEngine,
@@ -30,11 +32,14 @@ defmodule AdventureTimeApi.Quests do
   @wordle_locales ["fr", "en"]
   @slow_wordle_ms 150
   @slow_speed_state_ms 150
+  @slow_daily_numbers_ms 150
 
   @quest_definitions [
     %{quest_type: "steps_10k", icon: "walking", target: 10_000, reward: 150},
     %{quest_type: "wordle_daily", icon: "wordle", target: 1, reward: 120},
-    %{quest_type: "speed_calculus_daily", icon: "sparkles", target: 3, reward: 0}
+    %{quest_type: "speed_calculus_daily", icon: "sparkles", target: 3, reward: 0},
+    %{quest_type: "daily_numbers_classic", icon: "sparkles", target: 1, reward: 120},
+    %{quest_type: "daily_numbers_expert", icon: "sparkles", target: 1, reward: 160}
   ]
 
   # ── Wordle Cache (persistent_term for fast in-memory lookups) ───────────────
@@ -265,6 +270,7 @@ defmodule AdventureTimeApi.Quests do
     wordle_summary = build_wordle_summary(user_id, date)
 
     speed_state = build_speed_calculus_summary(user_id, date)
+    daily_numbers_attempts = load_daily_numbers_attempts(user_id, date)
 
     quest_list =
       @quest_definitions
@@ -272,7 +278,7 @@ defmodule AdventureTimeApi.Quests do
         quest = Enum.find(quests, &(&1.quest_type == def.quest_type))
 
         if quest do
-          build_quest_entry(quest, def, wordle_summary, speed_state)
+          build_quest_entry(quest, def, wordle_summary, speed_state, daily_numbers_attempts)
         end
       end)
       |> Enum.reject(&is_nil/1)
@@ -289,6 +295,7 @@ defmodule AdventureTimeApi.Quests do
            delete_daily_quests_for_reset(user_id, date, quest_type)
            delete_wordle_attempts_for_reset(user_id, date, quest_type)
            delete_speed_runs_for_reset(user_id, date, quest_type)
+           delete_daily_numbers_attempts_for_reset(user_id, date, quest_type)
            materialize_daily_quests(user_id, date)
            maybe_set_reset_actor(user_id, date, quest_type, admin_id)
 
@@ -354,6 +361,101 @@ defmodule AdventureTimeApi.Quests do
     else
       nil -> {:error, :not_found}
       {:error, reason} -> {:error, reason}
+    end
+  end
+
+  # ── Daily Numbers ───────────────────────────────────────────────────────────
+
+  def daily_numbers_state(user_id, mode) do
+    with {:ok, normalized_mode} <- normalize_daily_numbers_mode(mode) do
+      date = current_reset_date_for_user(user_id)
+      materialize_daily_quests(user_id, date)
+
+      {:ok, build_daily_numbers_state(user_id, date, normalized_mode)}
+    end
+  end
+
+  def submit_daily_numbers(user_id, mode, expected_date_key, steps, expected_quest_version \\ nil) do
+    with {:ok, normalized_mode} <- normalize_daily_numbers_mode(mode),
+         date = current_reset_date_for_user(user_id),
+         :ok <- validate_daily_numbers_date(date, expected_date_key) do
+      materialize_daily_quests(user_id, date)
+
+      with :ok <-
+             validate_daily_numbers_version(
+               user_id,
+               date,
+               normalized_mode,
+               expected_quest_version
+             ) do
+        quest_type = daily_numbers_quest_type(normalized_mode)
+        quest = get_daily_quest(user_id, date, quest_type)
+
+        if get_daily_numbers_attempt(user_id, date, normalized_mode) do
+          {:error, :daily_numbers_already_submitted}
+        else
+          {:ok, puzzle} = DailyNumbersEngine.generate_puzzle(normalized_mode, date)
+
+          with {:ok, validated_submission} <-
+                 DailyNumbersEngine.validate_submission(puzzle, steps) do
+            now = now_utc()
+
+            earned_reward =
+              quest.reward
+              |> Kernel.*(validated_submission.score)
+              |> Kernel./(100)
+              |> round()
+
+            submission_attrs = %{
+              user_id: user_id,
+              date: date,
+              mode: normalized_mode,
+              submitted_steps: validated_submission.steps,
+              final_value: validated_submission.finalValue,
+              distance: validated_submission.distance,
+              score: validated_submission.score,
+              exact: validated_submission.exact,
+              completed: validated_submission.completed
+            }
+
+            quest_updates = [
+              progress: 1,
+              reward: earned_reward,
+              completed: validated_submission.completed,
+              updated_at: now
+            ]
+
+            quest_updates =
+              if validated_submission.completed and is_nil(quest.completed_at) do
+                Keyword.put(quest_updates, :completed_at, now)
+              else
+                quest_updates
+              end
+
+            Ecto.Multi.new()
+            |> Ecto.Multi.insert(
+              :daily_numbers_attempt,
+              DailyNumbersDailyAttempt.changeset(%DailyNumbersDailyAttempt{}, submission_attrs)
+            )
+            |> Ecto.Multi.run(:update_quest, fn repo, _changes ->
+              {1, _} =
+                DailyQuest
+                |> where([q], q.id == ^quest.id)
+                |> repo.update_all(set: quest_updates)
+
+              {:ok, :updated}
+            end)
+            |> Repo.transaction()
+            |> case do
+              {:ok, _changes} ->
+                {:ok, build_daily_numbers_state(user_id, date, normalized_mode)}
+
+              {:error, _step, reason, _changes} ->
+                {:error, reason}
+            end
+          end
+        end
+      end
     end
   end
 
@@ -1051,6 +1153,27 @@ defmodule AdventureTimeApi.Quests do
     |> Repo.delete_all()
   end
 
+  defp delete_daily_numbers_attempts_for_reset(_user_id, _date, quest_type)
+       when quest_type not in [nil, "daily_numbers_classic", "daily_numbers_expert"] do
+    {0, nil}
+  end
+
+  defp delete_daily_numbers_attempts_for_reset(user_id, date, nil) do
+    DailyNumbersDailyAttempt
+    |> where([a], a.user_id == ^user_id and a.date == ^date)
+    |> Repo.delete_all()
+  end
+
+  defp delete_daily_numbers_attempts_for_reset(user_id, date, quest_type) do
+    DailyNumbersDailyAttempt
+    |> where(
+      [a],
+      a.user_id == ^user_id and a.date == ^date and
+        a.mode == ^daily_numbers_mode_for_quest_type(quest_type)
+    )
+    |> Repo.delete_all()
+  end
+
   defp maybe_set_reset_actor(_user_id, _date, _quest_type, nil), do: {0, nil}
 
   defp maybe_set_reset_actor(user_id, date, nil, admin_id) do
@@ -1107,6 +1230,28 @@ defmodule AdventureTimeApi.Quests do
       :ok
     else
       {:error, :wordle_reset}
+    end
+  end
+
+  defp validate_daily_numbers_version(_user_id, _date, _mode, nil), do: :ok
+
+  defp validate_daily_numbers_version(user_id, date, mode, expected_quest_version) do
+    quest = get_daily_quest(user_id, date, daily_numbers_quest_type(mode))
+
+    if quest && quest.id == expected_quest_version do
+      :ok
+    else
+      {:error, :daily_numbers_reset}
+    end
+  end
+
+  defp validate_daily_numbers_date(_date, nil), do: :ok
+
+  defp validate_daily_numbers_date(date, expected_date_key) do
+    if Date.to_iso8601(date) == expected_date_key do
+      :ok
+    else
+      {:error, :daily_numbers_reset}
     end
   end
 
@@ -1321,6 +1466,95 @@ defmodule AdventureTimeApi.Quests do
     |> Repo.all()
   end
 
+  defp build_daily_numbers_state(user_id, date, mode) do
+    {{quest, attempt, puzzle}, duration_ms} =
+      timed(fn ->
+        {
+          get_daily_quest(user_id, date, daily_numbers_quest_type(mode)),
+          get_daily_numbers_attempt(user_id, date, mode),
+          DailyNumbersEngine.generate_puzzle(mode, date)
+        }
+      end)
+
+    {:ok, puzzle_payload} = puzzle
+
+    maybe_log_slow(
+      duration_ms,
+      @slow_daily_numbers_ms,
+      "daily_numbers_state_slow",
+      user_id: user_id,
+      mode: mode
+    )
+
+    %{
+      mode: mode,
+      date: Date.to_iso8601(date),
+      resetTimezone: reset_timezone_for_user(user_id),
+      target: puzzle_payload.target,
+      numbers: puzzle_payload.numbers,
+      generationAttempt: puzzle_payload.generationAttempt,
+      bestValue: puzzle_payload.bestValue,
+      bestDistance: puzzle_payload.distance,
+      questVersion: if(quest, do: quest.id, else: nil),
+      resetByName: maybe_reset_by_name(quest),
+      reward: if(quest, do: quest.reward, else: 0),
+      claimed: if(quest, do: quest.claimed, else: false),
+      completed: if(quest, do: quest.completed, else: false),
+      submitted: not is_nil(attempt),
+      submission: build_daily_numbers_submission_payload(attempt, puzzle_payload)
+    }
+  end
+
+  defp build_daily_numbers_submission_payload(nil, _puzzle), do: nil
+
+  defp build_daily_numbers_submission_payload(%DailyNumbersDailyAttempt{} = attempt, puzzle) do
+    %{
+      finalValue: attempt.final_value,
+      distance: attempt.distance,
+      exact: attempt.exact,
+      score: attempt.score,
+      completed: attempt.completed,
+      steps: attempt.submitted_steps,
+      officialSolutionUnlocked: true,
+      officialSolutionSteps: puzzle.solution
+    }
+  end
+
+  defp load_daily_numbers_attempts(user_id, date) do
+    DailyNumbersDailyAttempt
+    |> where([a], a.user_id == ^user_id and a.date == ^date)
+    |> Repo.all()
+    |> Map.new(&{&1.mode, &1})
+  end
+
+  defp get_daily_numbers_attempt(user_id, date, mode) do
+    DailyNumbersDailyAttempt
+    |> where([a], a.user_id == ^user_id and a.date == ^date and a.mode == ^mode)
+    |> Repo.one()
+  end
+
+  defp normalize_daily_numbers_mode(mode) when is_binary(mode) do
+    normalized =
+      mode
+      |> String.trim()
+      |> String.downcase()
+
+    if DailyNumbersEngine.valid_mode?(normalized) do
+      {:ok, normalized}
+    else
+      {:error, :invalid_daily_numbers_mode}
+    end
+  end
+
+  defp normalize_daily_numbers_mode(_mode), do: {:error, :invalid_daily_numbers_mode}
+
+  defp daily_numbers_quest_type("classic"), do: "daily_numbers_classic"
+  defp daily_numbers_quest_type("expert"), do: "daily_numbers_expert"
+
+  defp daily_numbers_mode_for_quest_type("daily_numbers_classic"), do: "classic"
+  defp daily_numbers_mode_for_quest_type("daily_numbers_expert"), do: "expert"
+  defp daily_numbers_mode_for_quest_type(_quest_type), do: nil
+
   defp serialize_answer_active_run(run, answers) do
     questions = SpeedCalculusEngine.build_questions(run.seed)
 
@@ -1411,7 +1645,14 @@ defmodule AdventureTimeApi.Quests do
     }
   end
 
-  defp build_quest_entry(quest, def, wordle_summary, speed_state) do
+  defp build_quest_entry(quest, def, wordle_summary, speed_state, daily_numbers_attempts) do
+    daily_numbers_attempt =
+      if String.starts_with?(quest.quest_type, "daily_numbers_") do
+        Map.get(daily_numbers_attempts, daily_numbers_mode_for_quest_type(quest.quest_type))
+      else
+        nil
+      end
+
     base = %{
       id: quest.id,
       version: quest.id,
@@ -1439,8 +1680,9 @@ defmodule AdventureTimeApi.Quests do
       actionPath: quest_action_path(quest.quest_type),
       resetByName: reset_by_name(quest),
       failed:
-        quest.quest_type == "wordle_daily" && !quest.completed &&
-          wordle_summary.allExhausted
+        (quest.quest_type == "wordle_daily" && !quest.completed && wordle_summary.allExhausted) ||
+          (String.starts_with?(quest.quest_type, "daily_numbers_") && !quest.completed &&
+             not is_nil(daily_numbers_attempt))
     }
 
     case quest.quest_type do
@@ -1460,6 +1702,12 @@ defmodule AdventureTimeApi.Quests do
           locked: speed_state.locked
         })
 
+      "daily_numbers_classic" ->
+        merge_daily_numbers_quest_entry(base, daily_numbers_attempt, "classic")
+
+      "daily_numbers_expert" ->
+        merge_daily_numbers_quest_entry(base, daily_numbers_attempt, "expert")
+
       _ ->
         base
     end
@@ -1467,7 +1715,26 @@ defmodule AdventureTimeApi.Quests do
 
   defp quest_action_path("wordle_daily"), do: "/quests/wordle"
   defp quest_action_path("speed_calculus_daily"), do: "/quests/speed-calculus"
+  defp quest_action_path("daily_numbers_classic"), do: "/quests/daily-numbers?mode=classic"
+  defp quest_action_path("daily_numbers_expert"), do: "/quests/daily-numbers?mode=expert"
   defp quest_action_path(_), do: nil
+
+  defp merge_daily_numbers_quest_entry(base, nil, mode) do
+    Map.merge(base, %{
+      mode: mode,
+      progress: 0
+    })
+  end
+
+  defp merge_daily_numbers_quest_entry(base, %DailyNumbersDailyAttempt{} = attempt, mode) do
+    Map.merge(base, %{
+      mode: mode,
+      progress: 1,
+      score: attempt.score,
+      distance: attempt.distance,
+      finalValue: attempt.final_value
+    })
+  end
 
   defp normalize_wordle_locale(nil), do: {:ok, @default_wordle_locale}
 

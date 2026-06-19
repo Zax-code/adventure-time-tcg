@@ -45,6 +45,78 @@ defmodule AdventureTimeApiWeb.QuestsController do
     conn |> put_status(400) |> json(%{error: "questId is required"})
   end
 
+  # GET /quests/daily-numbers
+  def daily_numbers_state(conn, %{"mode" => mode}) do
+    timed_action(conn, "daily_numbers_state", fn conn, user_id ->
+      case Quests.daily_numbers_state(user_id, mode) do
+        {:ok, payload} ->
+          json(conn, payload)
+
+        {:error, :invalid_daily_numbers_mode} ->
+          conn
+          |> put_status(400)
+          |> json(%{
+            error: "Unsupported Daily Numbers mode",
+            code: "INVALID_DAILY_NUMBERS_MODE"
+          })
+      end
+    end)
+  end
+
+  def daily_numbers_state(conn, _params) do
+    conn |> put_status(400) |> json(%{error: "mode is required"})
+  end
+
+  # POST /quests/daily-numbers/submit
+  def submit_daily_numbers(conn, %{"mode" => mode, "dateKey" => date_key, "steps" => steps}) do
+    expected_quest_version = Map.get(conn.body_params, "questVersion")
+
+    timed_action(conn, "submit_daily_numbers", fn conn, user_id ->
+      case Quests.submit_daily_numbers(user_id, mode, date_key, steps, expected_quest_version) do
+        {:ok, payload} ->
+          json(conn, payload)
+
+        {:error, :invalid_daily_numbers_mode} ->
+          conn
+          |> put_status(400)
+          |> json(%{
+            error: "Unsupported Daily Numbers mode",
+            code: "INVALID_DAILY_NUMBERS_MODE"
+          })
+
+        {:error, :daily_numbers_reset} ->
+          conn
+          |> put_status(409)
+          |> json(%{
+            error: "Daily Numbers reset while this puzzle was open",
+            code: "DAILY_NUMBERS_RESET"
+          })
+
+        {:error, :daily_numbers_already_submitted} ->
+          conn
+          |> put_status(409)
+          |> json(%{
+            error: "Daily Numbers already submitted for today",
+            code: "DAILY_NUMBERS_ALREADY_SUBMITTED"
+          })
+
+        {:error, message} when is_binary(message) ->
+          conn
+          |> put_status(400)
+          |> json(%{error: message, code: "INVALID_DAILY_NUMBERS_SUBMISSION"})
+
+        {:error, _reason} ->
+          conn |> put_status(500) |> json(%{error: "Internal error"})
+      end
+    end)
+  end
+
+  def submit_daily_numbers(conn, _params) do
+    conn
+    |> put_status(400)
+    |> json(%{error: "mode, dateKey, and steps are required"})
+  end
+
   # GET /wordle
   def wordle_state(conn, params) do
     locale = Map.get(params, "locale")

@@ -28,6 +28,12 @@ const quests = {
   widgetFailedToday: "Réessaie demain",
   wordleAttemptsUsed: "{used} / {total} essais utilisés",
   wordleSolvedIn: "Résolu en {used}/{total} essais !",
+  dailyNumbersQuestCardMeta:
+    "Plus proche : {value} ({distance} d'écart), {score} % débloqués.",
+  dailyNumbersQuestCardExact: "Cible exacte, {score} % débloqués.",
+  dailyNumbersLevelsCleared: "{completed} / {total} niveaux validés",
+  dailyNumbersGroupDesc:
+    "Les modes Classique et Expert sont réunis ici. Choisis un niveau, joue les deux sur la même page et récupère chaque récompense séparément.",
   steps_10k: "Marcher 10 000 pas",
   steps_10k_desc: "Marche 10 000 pas aujourd'hui pour gagner des pièces",
   daily_login: "Connexion quotidienne",
@@ -37,6 +43,12 @@ const quests = {
   speed_calculus_daily: "Sprint de calcul mental",
   speed_calculus_daily_desc:
     "Résous un maximum d'additions et de soustractions",
+  daily_numbers_classic: "Nombres du jour : Classique",
+  daily_numbers_classic_desc:
+    "Utilise 1 grand et 5 petits nombres pour t'approcher au maximum",
+  daily_numbers_expert: "Nombres du jour : Expert",
+  daily_numbers_expert_desc:
+    "Utilise 3 grands et 3 petits nombres pour t'approcher au maximum",
   wordle: {
     title: "Wordle quotidien",
     subtitle: "Résous l'énigme pour terminer la quête du jour.",
@@ -159,6 +171,110 @@ const quests = {
     "Aucun entraînement terminé pour le moment.",
   speedCalculusTrainingSummary:
     "{score} bonnes réponses sur {answered} réponses envoyées.",
+  dailyNumbers: {
+    title: "Nombres du jour",
+    subtitle:
+      "Tape deux nombres et un opérateur pour créer un résultat. Plus tu améliores le plateau de départ, plus tu débloques la récompense.",
+    backToQuests: "Retour aux quêtes",
+    backToOverview: "Retour à l'aperçu",
+    chooseLevel: "Choisis ton niveau",
+    openGame: "Jouer",
+    playAction: "Jouer",
+    viewResult: "Voir le résultat",
+    classic: "Classique",
+    expert: "Expert",
+    classicMix: "1 grand + 5 petits",
+    expertMix: "3 grands + 3 petits",
+    currentMode: "Niveau actif",
+    freshLabel: "Plateau neuf",
+    submittedLabel: "Partie envoyée",
+    claimedLabel: "Récompense récupérée",
+    helperLine:
+      "Le plateau de départ vaut 0 %. Chaque amélioration augmente le pourcentage de récompense, et une cible exacte s'envoie automatiquement à 100 %.",
+    target: "Cible",
+    targetValue: "Cible : {target}",
+    reward: "Récompense",
+    bestResult: "Meilleur résultat",
+    bestDistance: "Meilleur écart",
+    howToPlayTitle: "Comment ça marche",
+    howToPlayStepOne: "Choisis deux nombres disponibles",
+    howToPlayStepTwo: "Ajoute +, -, × ou ÷",
+    howToPlayStepThree: "Crée un résultat et recommence",
+    boardTitle: "Plateau",
+    boardHint:
+      "Approche-toi de la cible. Chaque coup met à jour ton meilleur résultat avant l'envoi.",
+    availableNumbers: "Nombres disponibles",
+    usedNumbers: "Nombres utilisés",
+    operators: "Opérateurs",
+    selection: "Sélection en cours",
+    pickNumber: "Nombre",
+    nextResult: "Prochain résultat",
+    noPreview: "Termine ta sélection pour prévisualiser le prochain nombre.",
+    pickLeft: "Choisis un nombre",
+    pickOperator: "Choisis un opérateur",
+    pickRight: "Choisis un autre nombre",
+    applyStep: "Créer le résultat",
+    undo: "Annuler la dernière étape",
+    reset: "Réinitialiser",
+    submit: "Envoyer le résultat",
+    submitConfirmTitle: "Verrouiller ce résultat ?",
+    submitConfirmBody:
+      "Ce résultat sera envoyé comme tentative finale même s'il laisse ta récompense à 0 % aujourd'hui.",
+    submitConfirmAction: "Envoyer quand même",
+    stepHistoryTitle: "Tes étapes",
+    noStepsYet: "Aucune étape pour l'instant. Commence par combiner deux nombres.",
+    revealSolution: "Afficher la solution officielle",
+    hideSolution: "Masquer la solution officielle",
+    exactResult: "Cible exacte ! {score} % débloqués et la quête est terminée.",
+    closeResult:
+      "Résultat le plus proche : {value}, à {distance} d'écart avec {score} % débloqués.",
+    autoSubmittingSuccess:
+      "Résultat exact trouvé. Envoi automatique en cours...",
+    clearReached:
+      "Récompense débloquée. Envoie maintenant ou continue pour un meilleur pourcentage.",
+    lockedSuccess: "Récompense débloquée. Ton résultat est désormais verrouillé.",
+    rewardReminder:
+      "Retourne aux quêtes quotidiennes pour récupérer {reward} pièces quand tu veux.",
+    alreadyClaimed: "Récompense déjà récupérée pour ce mode.",
+    claimReward: "Récupérer {reward} pièces",
+    resultLockedNote: "Ce résultat est verrouillé pour aujourd'hui.",
+    notSubmitted:
+      "Construis ton meilleur résultat, puis envoie-le quand tu es prêt.",
+    resultCardTitle: "Résultat du jour",
+    startingNumbersTitle: "Nombres de départ",
+    solutionUsedTitle: "Ta solution",
+    officialSolutionTitle: "Solution officielle",
+    officialSolutionBody:
+      "Une route exacte trouvée par le solveur backend pour l'énigme du jour.",
+    exactHitLabel: "Résultat exact",
+    resultLockedLabel: "Résultat verrouillé",
+    resetNotice:
+      "Nombres du jour a été réinitialisé pendant ta partie. Chargement de la nouvelle énigme.",
+    adminResetNotice:
+      "Nombres du jour a été réinitialisé par {name}. Chargement d'une nouvelle énigme.",
+    loadError: "Impossible de charger Nombres du jour.",
+    submitError: "Impossible d'envoyer Nombres du jour.",
+    invalidDivision: "La division doit être exacte",
+    invalidPositive: "Le résultat doit rester positif",
+    invalidDifferentNumbers:
+      "Choisis deux nombres disponibles différents",
+    invalidSelection: "Choisis deux nombres et un opérateur",
+    noUndo: "Rien à annuler pour l'instant.",
+    noReset: "Le plateau est déjà remis à zéro.",
+    selectedLeftValue: "Premier nombre sélectionné : {value}",
+    selectedOperatorValue: "Opérateur sélectionné : {operator}",
+    selectedRightValue: "Deuxième nombre sélectionné : {value}",
+    tileValue: "Tuile nombre {value}",
+    operatorValue: "Opérateur {operator}",
+    stepNumber: "Étape {step}",
+    stepSummary:
+      "{leftValue} {operator} {rightValue} = {resultValue}",
+    finalResult: "Résultat final",
+    distanceLabel: "Écart",
+    scoreLabel: "Score",
+    completedLabel: "Récompense débloquée",
+    incompleteLabel: "Aucune récompense débloquée",
+  },
 };
 
 export default quests;

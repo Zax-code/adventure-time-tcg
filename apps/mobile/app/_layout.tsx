@@ -178,6 +178,18 @@ export default function RootLayout() {
                 };
               }
 
+              if (
+                questType === "daily_numbers_classic" ||
+                questType === "daily_numbers_expert"
+              ) {
+                return {
+                  ...nextQuest,
+                  score: undefined,
+                  distance: undefined,
+                  finalValue: undefined,
+                };
+              }
+
               return nextQuest;
             });
 
@@ -229,6 +241,7 @@ export default function RootLayout() {
           staleTime: 0,
         });
         void queryClient.invalidateQueries({ queryKey: ["speed-calculus"] });
+        void queryClient.invalidateQueries({ queryKey: ["daily-numbers"] });
       },
     });
   }, [accessToken, authUserId, publishReset]);

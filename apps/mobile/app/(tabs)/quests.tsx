@@ -13,7 +13,7 @@ import {
   View,
 } from "react-native";
 
-import type { QuestsResponse } from "@adventure-time/api-client";
+import type { DailyNumbersMode, QuestsResponse } from "@adventure-time/api-client";
 
 import {
   CheckCircleIcon,
@@ -46,6 +46,19 @@ import { THEME_COLORS } from "../../src/theme/themes";
 
 type QuestStatus = "active" | "completed" | "claimed" | "failed";
 type Quest = QuestsResponse["quests"][number];
+type QuestCardItem =
+  | { kind: "quest"; quest: Quest }
+  | {
+      kind: "dailyNumbers";
+      quests: Partial<Record<DailyNumbersMode, Quest>>;
+    };
+type DescriptionModalState = {
+  title: string;
+  description: string;
+  status: QuestStatus;
+} | null;
+
+const DAILY_NUMBERS_MODES: DailyNumbersMode[] = ["classic", "expert"];
 
 function formatProgress(progress: number, target: number) {
   if (target >= 10000) {
@@ -109,8 +122,106 @@ function isSpeedCalculusQuest(questType: string) {
   return questType === "speed_calculus_daily";
 }
 
+function isDailyNumbersQuest(questType: string) {
+  return (
+    questType === "daily_numbers_classic" || questType === "daily_numbers_expert"
+  );
+}
+
 function isStepQuest(questType: string) {
   return questType === "steps_10k";
+}
+
+function getDailyNumbersModeFromQuestType(
+  questType: string,
+): DailyNumbersMode | null {
+  if (questType === "daily_numbers_classic") {
+    return "classic";
+  }
+
+  if (questType === "daily_numbers_expert") {
+    return "expert";
+  }
+
+  return null;
+}
+
+function getDailyNumbersGroupStatus(
+  quests: Partial<Record<DailyNumbersMode, Quest>>,
+): QuestStatus {
+  const entries = DAILY_NUMBERS_MODES.flatMap((mode) => {
+    const quest = quests[mode];
+    return quest ? [quest] : [];
+  });
+
+  if (entries.length === 0) {
+    return "active";
+  }
+
+  if (entries.every((quest) => quest.claimed)) {
+    return "claimed";
+  }
+
+  if (entries.every((quest) => quest.completed || quest.claimed)) {
+    return "completed";
+  }
+
+  if (entries.every((quest) => quest.failed)) {
+    return "failed";
+  }
+
+  return "active";
+}
+
+function buildQuestCardItems(quests: Quest[]): QuestCardItem[] {
+  const dailyNumbersQuests: Partial<Record<DailyNumbersMode, Quest>> = {};
+
+  for (const quest of quests) {
+    const mode = getDailyNumbersModeFromQuestType(quest.type);
+    if (mode) {
+      dailyNumbersQuests[mode] = quest;
+    }
+  }
+
+  const items: QuestCardItem[] = [];
+  let dailyNumbersInserted = false;
+
+  for (const quest of quests) {
+    if (isDailyNumbersQuest(quest.type)) {
+      if (!dailyNumbersInserted) {
+        items.push({
+          kind: "dailyNumbers",
+          quests: dailyNumbersQuests,
+        });
+        dailyNumbersInserted = true;
+      }
+
+      continue;
+    }
+
+    items.push({ kind: "quest", quest });
+  }
+
+  return items;
+}
+
+function getDailyNumbersModeStatusLabel(
+  quest: Quest,
+  t: (key: string, params?: Record<string, string | number>) => string,
+) {
+  if (quest.claimed) {
+    return t("quests.dailyNumbers.claimedLabel");
+  }
+
+  if (quest.completed) {
+    return t("quests.dailyNumbers.completedLabel");
+  }
+
+  if (quest.score != null) {
+    return t("quests.dailyNumbers.submittedLabel");
+  }
+
+  return t("quests.dailyNumbers.freshLabel");
 }
 
 function getQuestProgressDisplay(quest: Quest) {
@@ -146,9 +257,8 @@ export default function QuestsScreen() {
     (state) => state.lastPayload,
   );
 
-  const [showDescriptionFor, setShowDescriptionFor] = useState<Quest | null>(
-    null,
-  );
+  const [showDescriptionFor, setShowDescriptionFor] =
+    useState<DescriptionModalState>(null);
   const [toast, setToast] = useState<{
     message: string;
     type: "success" | "error";
@@ -450,6 +560,8 @@ export default function QuestsScreen() {
     );
   }
 
+  const questCardItems = buildQuestCardItems(questsQuery.data.quests);
+
   return (
     <View className="flex-1 bg-bg">
       {toast ? (
@@ -605,7 +717,317 @@ export default function QuestsScreen() {
               )}
             </View>
           ) : (
-            questsQuery.data.quests.map((quest, index) => {
+            questCardItems.map((item, index) => {
+              if (item.kind === "dailyNumbers") {
+                const groupStatus = getDailyNumbersGroupStatus(item.quests);
+                const colors = STATUS_COLORS[groupStatus];
+                const availableModes = DAILY_NUMBERS_MODES.filter(
+                  (mode) => item.quests[mode],
+                );
+                const completedModes = availableModes.filter((mode) => {
+                  const quest = item.quests[mode];
+                  return quest?.completed || quest?.claimed;
+                }).length;
+                const totalReward = availableModes.reduce((sum, mode) => {
+                  return sum + (item.quests[mode]?.reward ?? 0);
+                }, 0);
+                const progressPct =
+                  availableModes.length === 0
+                    ? 0
+                    : (completedModes / availableModes.length) * 100;
+
+                return (
+                  <View
+                    key="daily-numbers-group"
+                    className="rounded-2xl p-4"
+                    style={{
+                      backgroundColor: tc.surface,
+                      borderWidth: 2,
+                      borderColor: colors.border,
+                      opacity: groupStatus === "claimed" ? 0.6 : 1,
+                      shadowColor: "#000",
+                      shadowOpacity: 0.1,
+                      shadowRadius: 8,
+                      shadowOffset: { width: 0, height: 2 },
+                      elevation: 2,
+                      marginBottom:
+                        index === questCardItems.length - 1 ? 0 : 12,
+                    }}
+                  >
+                    <TouchableOpacity
+                      style={{
+                        position: "absolute",
+                        top: -8,
+                        right: -8,
+                        zIndex: 1,
+                      }}
+                      onPress={() =>
+                        setShowDescriptionFor({
+                          title: t("quests.dailyNumbers.title"),
+                          description: t("quests.dailyNumbersGroupDesc"),
+                          status: groupStatus,
+                        })
+                      }
+                      hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+                    >
+                      <View
+                        style={{
+                          backgroundColor: tc.surface,
+                          borderRadius: 999,
+                          borderWidth: 2,
+                          borderColor: colors.border,
+                          shadowColor: "#000",
+                          shadowOpacity: 0.15,
+                          shadowRadius: 4,
+                          shadowOffset: { width: 0, height: 2 },
+                          elevation: 2,
+                        }}
+                      >
+                        <HelpCircleIcon
+                          size={20}
+                          color={colors.border}
+                          noCircle
+                        />
+                      </View>
+                    </TouchableOpacity>
+
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "flex-start",
+                        gap: 16,
+                        paddingRight: 24,
+                      }}
+                    >
+                      <View
+                        style={{
+                          backgroundColor: colors.iconBg,
+                          padding: 12,
+                          borderRadius: 12,
+                        }}
+                      >
+                        <SparklesIcon size={28} color={colors.iconColor} />
+                      </View>
+
+                      <View style={{ flex: 1, gap: 4 }}>
+                        <Text className="font-nunito-bold text-base text-fg">
+                          {t("quests.dailyNumbers.title")}
+                        </Text>
+                        <Text className="font-nunito text-sm text-fgMuted">
+                          {t("quests.dailyNumbersGroupDesc")}
+                        </Text>
+                      </View>
+
+                      <View className="flex-row items-center gap-1">
+                        <CoinIcon size={18} />
+                        <Text
+                          style={{ color: tc.secondaryDark }}
+                          className="font-nunito-bold text-base"
+                        >
+                          {totalReward}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View style={{ marginTop: 16 }}>
+                      <View className="flex-row justify-between mb-1">
+                        <Text className="font-nunito text-xs text-fgMuted">
+                          {t("quests.progress")}
+                        </Text>
+                        <Text
+                          className="font-nunito-bold text-xs"
+                          style={{ color: getProgressColor(groupStatus, tc) }}
+                        >
+                          {t("quests.dailyNumbersLevelsCleared", {
+                            completed: completedModes,
+                            total: availableModes.length,
+                          })}
+                        </Text>
+                      </View>
+                      <View className="h-3 rounded-full overflow-hidden bg-primaryTint">
+                        <View
+                          style={{
+                            width: `${progressPct}%`,
+                            height: "100%",
+                            backgroundColor: colors.iconColor,
+                          }}
+                        />
+                      </View>
+                    </View>
+
+                    <View className="mt-4 gap-3">
+                      {DAILY_NUMBERS_MODES.map((mode) => {
+                        const quest = item.quests[mode];
+                        if (!quest) {
+                          return null;
+                        }
+
+                        const modeStatus = getQuestStatus(quest);
+                        const modeColors = STATUS_COLORS[modeStatus];
+                        const isClaimLoading =
+                          claimQuestMutation.isPending &&
+                          claimQuestMutation.variables === quest.id;
+                        const actionLabel =
+                          modeStatus === "active"
+                            ? t("quests.dailyNumbers.playAction")
+                            : t("quests.dailyNumbers.viewResult");
+
+                        return (
+                          <View
+                            key={mode}
+                            className="rounded-2xl border p-3"
+                            style={{
+                              borderColor: modeColors.border,
+                              backgroundColor:
+                                modeStatus === "claimed"
+                                  ? tc.surfaceMuted
+                                  : tc.primaryBg,
+                            }}
+                          >
+                            <View className="flex-row items-start gap-3">
+                              <View className="flex-1 gap-2">
+                                <View className="flex-row items-center gap-2">
+                                  <Text className="font-nunito-bold text-base text-fg">
+                                    {t(
+                                      mode === "classic"
+                                        ? "quests.dailyNumbers.classic"
+                                        : "quests.dailyNumbers.expert",
+                                    )}
+                                  </Text>
+                                  <View
+                                    className="rounded-full px-2 py-1"
+                                    style={{
+                                      backgroundColor: modeColors.iconBg,
+                                    }}
+                                  >
+                                    <Text
+                                      className="font-nunito-bold text-[11px]"
+                                      style={{ color: modeColors.iconColor }}
+                                    >
+                                      {getDailyNumbersModeStatusLabel(quest, t)}
+                                    </Text>
+                                  </View>
+                                </View>
+
+                                <Text className="font-nunito text-sm text-fgMuted">
+                                  {getQuestDesc(quest.description, t)}
+                                </Text>
+
+                                {quest.score != null &&
+                                quest.distance != null &&
+                                quest.finalValue != null ? (
+                                  <Text
+                                    className="font-nunito-bold text-xs"
+                                    style={{
+                                      color:
+                                        modeStatus === "failed"
+                                          ? tc.dangerDark
+                                          : modeStatus === "completed"
+                                            ? tc.successDark
+                                            : getMetaColor(modeStatus, tc),
+                                    }}
+                                  >
+                                    {quest.distance === 0
+                                      ? t("quests.dailyNumbersQuestCardExact", {
+                                          score: quest.score,
+                                        })
+                                      : t("quests.dailyNumbersQuestCardMeta", {
+                                          value: quest.finalValue,
+                                          distance: quest.distance,
+                                          score: quest.score,
+                                        })}
+                                  </Text>
+                                ) : null}
+                              </View>
+
+                              <View className="items-end gap-2">
+                                <View className="flex-row items-center gap-1">
+                                  <CoinIcon size={16} />
+                                  <Text
+                                    className="font-nunito-bold text-sm"
+                                    style={{ color: tc.secondaryDark }}
+                                  >
+                                    {quest.reward}
+                                  </Text>
+                                </View>
+                              </View>
+                            </View>
+
+                            <View className="mt-3 flex-row gap-3">
+                              <TouchableOpacity
+                                onPress={() =>
+                                  router.push(
+                                    `/quests/daily-numbers-play?mode=${mode}` as never,
+                                  )
+                                }
+                                style={{ flex: 1, borderRadius: 12, overflow: "hidden" }}
+                              >
+                                <View
+                                  style={{
+                                    minHeight: 42,
+                                    paddingHorizontal: 14,
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    backgroundColor: modeColors.iconColor,
+                                  }}
+                                >
+                                  <Text className="font-nunito-bold text-white">
+                                    {actionLabel}
+                                  </Text>
+                                </View>
+                              </TouchableOpacity>
+
+                              {quest.completed && !quest.claimed ? (
+                                <TouchableOpacity
+                                  onPress={() =>
+                                    void claimQuestMutation.mutateAsync(quest.id)
+                                  }
+                                  disabled={isClaimLoading}
+                                  style={{
+                                    borderRadius: 12,
+                                    overflow: "hidden",
+                                    minWidth: 108,
+                                  }}
+                                >
+                                  <View
+                                    className="items-center flex-row justify-center gap-2"
+                                    style={{
+                                      minHeight: 42,
+                                      paddingHorizontal: 14,
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      backgroundColor: tc.successDark,
+                                    }}
+                                  >
+                                    {isClaimLoading ? (
+                                      <ActivityIndicator
+                                        color="white"
+                                        size="small"
+                                      />
+                                    ) : (
+                                      <>
+                                        <SparklesIcon
+                                          size={18}
+                                          color="white"
+                                        />
+                                        <Text className="font-nunito-bold text-white">
+                                          {t("quests.claim")}
+                                        </Text>
+                                      </>
+                                    )}
+                                  </View>
+                                </TouchableOpacity>
+                              ) : null}
+                            </View>
+                          </View>
+                        );
+                      })}
+                    </View>
+                  </View>
+                );
+              }
+
+              const quest = item.quest;
               const status = getQuestStatus(quest);
               const colors = STATUS_COLORS[status];
               const progressDisplay = getQuestProgressDisplay(quest);
@@ -657,7 +1079,7 @@ export default function QuestsScreen() {
                     shadowOffset: { width: 0, height: 2 },
                     elevation: 2,
                     marginBottom:
-                      index === questsQuery.data.quests.length - 1 ? 0 : 12,
+                      index === questCardItems.length - 1 ? 0 : 12,
                   }}
                 >
                   <TouchableOpacity
@@ -667,7 +1089,13 @@ export default function QuestsScreen() {
                       right: -8,
                       zIndex: 1,
                     }}
-                    onPress={() => setShowDescriptionFor(quest)}
+                    onPress={() =>
+                      setShowDescriptionFor({
+                        title: getQuestTitle(quest.title, t),
+                        description: getQuestDesc(quest.description, t),
+                        status,
+                      })
+                    }
                     hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
                   >
                     <View
@@ -676,11 +1104,7 @@ export default function QuestsScreen() {
                         borderRadius: 999,
                         borderWidth: 2,
                         borderColor: colors.border,
-                        shadowColor: "#000",
-                        shadowOpacity: 0.15,
-                        shadowRadius: 4,
-                        shadowOffset: { width: 0, height: 2 },
-                        elevation: 2,
+                        boxShadow: "0 2px 6px rgba(0, 0, 0, 0.15)",
                       }}
                     >
                       <HelpCircleIcon
@@ -852,6 +1276,32 @@ export default function QuestsScreen() {
                         })}
                       </Text>
                     ) : null}
+                    {isDailyNumbersQuest(quest.type) &&
+                    quest.score != null &&
+                    quest.distance != null &&
+                    quest.finalValue != null ? (
+                      <Text
+                        className="font-nunito-bold text-xs text-center mt-1"
+                        style={{
+                          color:
+                            status === "failed"
+                              ? tc.dangerDark
+                              : status === "completed"
+                                ? tc.successDark
+                                : getMetaColor(status, tc),
+                        }}
+                      >
+                        {quest.distance === 0
+                          ? t("quests.dailyNumbersQuestCardExact", {
+                              score: quest.score,
+                            })
+                          : t("quests.dailyNumbersQuestCardMeta", {
+                              value: quest.finalValue,
+                              distance: quest.distance,
+                              score: quest.score,
+                            })}
+                      </Text>
+                    ) : null}
                     {shouldShowDiscreteSyncButton || stepSync.lastError ? (
                       <View className="mt-2 items-end">
                         {shouldShowDiscreteSyncButton ? (
@@ -1002,7 +1452,7 @@ export default function QuestsScreen() {
         >
           {showDescriptionFor
             ? (() => {
-                const status = getQuestStatus(showDescriptionFor);
+                const status = showDescriptionFor.status;
                 const colors = STATUS_COLORS[status];
 
                 return (
@@ -1026,11 +1476,7 @@ export default function QuestsScreen() {
                         borderWidth: 3,
                         borderColor: colors.border,
                         padding: 4,
-                        shadowColor: "#000",
-                        shadowOpacity: 0.15,
-                        shadowRadius: 4,
-                        shadowOffset: { width: 0, height: 2 },
-                        elevation: 2,
+                        boxShadow: "0 2px 6px rgba(0, 0, 0, 0.15)",
                       }}
                     >
                       <HelpCircleIcon
@@ -1047,10 +1493,10 @@ export default function QuestsScreen() {
                         paddingBottom: 12,
                       }}
                     >
-                      {getQuestTitle(showDescriptionFor.title, t)}
+                      {showDescriptionFor.title}
                     </Text>
                     <Text className="font-nunito text-sm text-fgMuted">
-                      {getQuestDesc(showDescriptionFor.description, t)}
+                      {showDescriptionFor.description}
                     </Text>
                     <TouchableOpacity
                       onPress={() => setShowDescriptionFor(null)}

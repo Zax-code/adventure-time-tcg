@@ -5,6 +5,17 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
 
+prepend_node_path() {
+  local workspace_node_modules="$1"
+
+  case ":${NODE_PATH:-}:" in
+    *":$workspace_node_modules:"*) ;;
+    *)
+      export NODE_PATH="$workspace_node_modules${NODE_PATH:+:$NODE_PATH}"
+      ;;
+  esac
+}
+
 if [[ -s "$NVM_DIR/nvm.sh" ]]; then
   # Expo CLI is not stable on Node 25 on this host; use the repo-pinned runtime.
   # shellcheck disable=SC1090
@@ -19,6 +30,7 @@ if [[ ! -d "$GLOBAL_NODE_MODULES/@expo/ngrok" ]]; then
 fi
 
 cd "$REPO_ROOT/apps/mobile"
+prepend_node_path "$REPO_ROOT/apps/mobile/node_modules"
 
 mapfile -t stale_ngrok_pids < <(pgrep -u "$USER" -f '@expo/ngrok-bin-linux-x64/ngrok start --none' || true)
 if (( ${#stale_ngrok_pids[@]} > 0 )); then

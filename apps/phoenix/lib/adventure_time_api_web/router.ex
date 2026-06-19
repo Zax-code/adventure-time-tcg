@@ -95,6 +95,8 @@ defmodule AdventureTimeApiWeb.Router do
 
     get("/quests", QuestsController, :list_quests)
     post("/quests/claim", QuestsController, :claim_quest)
+    get("/quests/daily-numbers", QuestsController, :daily_numbers_state)
+    post("/quests/daily-numbers/submit", QuestsController, :submit_daily_numbers)
     get("/quests/speed-calculus", QuestsController, :speed_calculus_state)
     post("/quests/speed-calculus/start", QuestsController, :start_speed_calculus_run)
 
