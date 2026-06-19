@@ -137,6 +137,14 @@ defmodule AdventureTimeApiWeb.AppControllerTest do
     user = create_user_with_password("packs@example.com", "rainicorn")
     user = user |> Ecto.Changeset.change(coins: 250) |> Repo.update!()
     access_token = login_access_token(user.email, "rainicorn")
+    pack_art_asset =
+      Repo.insert!(
+        ImageAsset.changeset(%ImageAsset{}, %{
+          kind: :catalog,
+          mime_type: "image/png",
+          object_key: "catalog/open-pack-art"
+        })
+      )
 
     common =
       Repo.insert!(
@@ -186,7 +194,8 @@ defmodule AdventureTimeApiWeb.AppControllerTest do
           cost: 100,
           color: "#F59E0B",
           is_active: true,
-          guaranteed_rarity: "Rare"
+          guaranteed_rarity: "Rare",
+          pack_art_asset_id: pack_art_asset.id
         })
       )
 
@@ -199,13 +208,62 @@ defmodule AdventureTimeApiWeb.AppControllerTest do
     assert response["newBalance"] == 150
     assert response["pack"]["id"] == pack.id
     assert response["pack"]["guaranteedRarity"] == "Rare"
-    assert Map.has_key?(response["pack"], "packArtAssetId")
+    assert response["pack"]["packArtAssetId"] == pack_art_asset.id
     assert length(response["cards"]) == 3
     assert Enum.any?(response["cards"], &(&1["id"] == rare_card.id))
 
     assert Enum.all?(response["cards"], fn card ->
              Map.has_key?(card, "isNewForUser") and Map.has_key?(card, "rarity")
            end)
+  end
+
+  test "POST /packs/open returns null pack art id when no pack art is assigned", _context do
+    user = create_user_with_password("packs-null-art@example.com", "rainicorn")
+    user = user |> Ecto.Changeset.change(coins: 250) |> Repo.update!()
+    access_token = login_access_token(user.email, "rainicorn")
+
+    common =
+      Repo.insert!(
+        Rarity.changeset(%Rarity{}, %{name: "Common", drop_rate: 60.0, color: "#9CA3AF"})
+      )
+
+    Repo.insert!(
+      Card.changeset(%Card{}, %{
+        name: "Jake",
+        character: "Jake",
+        description: "Stretchy hero.",
+        hp: 19,
+        attack: 7,
+        defense: 6,
+        speed: 49,
+        type: "Hero",
+        rarity_id: common.id
+      })
+    )
+
+    pack =
+      Repo.insert!(
+        Pack.changeset(%Pack{}, %{
+          name: "Basic Pack",
+          description: "A simple pack.",
+          card_count: 1,
+          cost: 100,
+          color: "#F59E0B",
+          is_active: true,
+          guaranteed_rarity: nil,
+          pack_art_asset_id: nil
+        })
+      )
+
+    response =
+      access_token
+      |> auth_conn()
+      |> post(~p"/packs/open", %{packId: pack.id})
+      |> json_response(200)
+
+    assert response["pack"]["id"] == pack.id
+    assert Map.has_key?(response["pack"], "packArtAssetId")
+    assert is_nil(response["pack"]["packArtAssetId"])
   end
 
   test "GET /packs returns pack art ids and card back visual mappings", _context do

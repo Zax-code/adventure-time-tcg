@@ -9,6 +9,10 @@ import type { CollectionResponse } from "@adventure-time/api-client";
 
 import { CARD_ART_RATIO } from "./card-back-cover-art";
 import {
+  CARD_OUTLINE_SAFE_AREA,
+  getCardOutlineSource,
+} from "./card-outline-art";
+import {
   AttackStatIcon,
   DefenseStatIcon,
   HealthStatIcon,
@@ -42,7 +46,43 @@ interface CardTileProps {
   testID?: string;
 }
 
-const sizeConfig = {
+type CardTileMetrics = {
+  width: number;
+  height: number;
+  outerPadding: number;
+  innerPadding: number;
+  borderRadius: number;
+  innerRadius: number;
+  artRadius: number;
+  badgeFontSize: number;
+  badgeIconSize: number;
+  badgePaddingH: number;
+  badgePaddingV: number;
+  nameFontSize: number;
+  characterFontSize: number;
+  statValueFontSize: number;
+  statLabelFontSize: number;
+  statRadius: number;
+  statPaddingY: number;
+  statPaddingX: number;
+  statGap: number;
+  statIconSize: number;
+  statOrbSize: number;
+  statValueLineHeight: number;
+  descriptionFontSize: number;
+  descriptionLineHeight: number;
+  descriptionPadding: number;
+  descriptionLines: number;
+  descriptionHeight: number;
+  quantityFontSize: number;
+  quantityPaddingH: number;
+  quantityPaddingV: number;
+  metaGap: number;
+  titleBottomPadding: number;
+  bodyGap: number;
+};
+
+const sizeConfig: Record<NonNullable<CardTileProps["size"]>, CardTileMetrics> = {
   small: {
     width: 152,
     height: 228,
@@ -143,7 +183,7 @@ function RarityRibbon({
   rarityName: string;
   rarity: { from: string; to: string; ring: string };
   compact: boolean;
-  cfg: (typeof sizeConfig)[keyof typeof sizeConfig];
+  cfg: CardTileMetrics;
 }) {
   const label = compact
     ? (COMPACT_LABELS[rarityName] ?? rarityName.slice(0, 3).toUpperCase())
@@ -186,7 +226,7 @@ function StatChip({
   value: string | number;
   colors: [string, string];
   Icon: ComponentType<{ size?: number }>;
-  cfg: (typeof sizeConfig)[keyof typeof sizeConfig];
+  cfg: CardTileMetrics;
 }) {
   return (
     <View
@@ -268,6 +308,9 @@ export const CardTile = memo(function CardTile({
   };
   const rarityColor = rarityPalette[card.rarity.name] ?? rarityPalette.Common;
   const cardAspectRatio = CARD_ART_RATIO;
+  const outlineSource = getCardOutlineSource(themeName, card.rarity.name);
+  const hasOutline = outlineSource != null;
+  const bodyCfg = cfg;
   const isLegendary = card.rarity.name === "Legendary";
   const isEpic = card.rarity.name === "Epic";
   const hasShimmer = isLegendary || isEpic;
@@ -342,11 +385,252 @@ export const CardTile = memo(function CardTile({
     inputRange: [0, 1],
     outputRange: [-cfg.width * 3, cfg.width],
   });
+  const outlineSafeAreaStyle: ViewStyle = {
+    position: "absolute",
+    top: `${CARD_OUTLINE_SAFE_AREA.top * 100}%`,
+    bottom: `${CARD_OUTLINE_SAFE_AREA.bottom * 100}%`,
+    borderRadius: bodyCfg.innerRadius,
+  };
+  const outlinedBodyInset = size === "large" ? 6 : 3;
   const cardContentOpacity = muted
     ? themeName === "nightosphere"
       ? 0.46
       : 0.58
     : 1;
+
+  const cardPanel = (
+    <View
+      style={{
+        flex: 1,
+        borderRadius: bodyCfg.innerRadius,
+        backgroundColor: hasOutline ? "transparent" : panelColor,
+        borderWidth: 0,
+        borderColor: hasOutline
+          ? "transparent"
+          : withAlpha("#FFFFFF", themeName === "nightosphere" ? 0.1 : 0.42),
+        opacity: cardContentOpacity,
+      }}
+    >
+      <View
+        className="overflow-hidden"
+        style={{
+          flex: size === "large" ? 1.55 : 1.38,
+          borderRadius: bodyCfg.artRadius,
+          backgroundColor: typeColor.light,
+        }}
+      >
+        {card.imageAssetId ? (
+          <Image
+            source={{
+              uri: getCardImageUrl(card.imageAssetId),
+              cacheKey: getCardImageCacheKey(card.imageAssetId),
+            }}
+            placeholder={{ blurhash: "LKO2?U%2Tw=w]~RBVZRi};RPxuwH" }}
+            style={{ width: "100%", height: "100%" }}
+            contentFit="cover"
+            cachePolicy="memory-disk"
+          />
+        ) : (
+          <View
+            className="flex-1 items-center justify-center"
+            style={{ backgroundColor: typeColor.light }}
+          >
+            <Text
+              className="font-nunito-extrabold"
+              style={{
+                color: typeColor.dark,
+                fontSize: bodyCfg.nameFontSize * 2.4,
+              }}
+            >
+              {(card.character || card.name || "?").charAt(0)}
+            </Text>
+          </View>
+        )}
+
+        <LinearGradient
+          colors={[
+            withAlpha("#120914", 0),
+            withAlpha("#120914", 0.22),
+            withAlpha("#120914", 0.88),
+          ]}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={{ position: "absolute", inset: 0 }}
+        />
+
+        {!hasOutline ? (
+          <View
+            style={{
+              position: "absolute",
+              top: bodyCfg.innerPadding,
+              left: bodyCfg.innerPadding,
+              right: bodyCfg.innerPadding,
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "flex-start",
+            }}
+          >
+            <View
+              style={{
+                borderRadius: 999,
+                paddingHorizontal: bodyCfg.badgePaddingH,
+                paddingVertical: bodyCfg.badgePaddingV,
+                backgroundColor: withAlpha(typeColor.dark, themeName === "nightosphere" ? 0.9 : 0.84),
+                maxWidth: "54%",
+              }}
+            >
+              <Text
+                className="font-nunito-extrabold text-white"
+                style={{ fontSize: bodyCfg.badgeFontSize }}
+                numberOfLines={1}
+              >
+                {card.type}
+              </Text>
+            </View>
+
+            <RarityRibbon
+              rarityName={card.rarity.name}
+              rarity={rarityColor}
+              compact={size === "small"}
+              cfg={bodyCfg}
+            />
+          </View>
+        ) : (
+          <View
+            style={{
+              position: "absolute",
+              right: outlinedBodyInset,
+              bottom: outlinedBodyInset,
+              borderRadius: 999,
+              paddingHorizontal: bodyCfg.badgePaddingH,
+              paddingVertical: bodyCfg.badgePaddingV,
+              backgroundColor: withAlpha(typeColor.dark, themeName === "nightosphere" ? 0.9 : 0.84),
+              maxWidth: "42%",
+            }}
+          >
+            <Text
+              className="font-nunito-extrabold text-white"
+              style={{ fontSize: bodyCfg.badgeFontSize }}
+              numberOfLines={1}
+            >
+              {card.type}
+            </Text>
+          </View>
+        )}
+
+        {size === "small" && quantity > 1 ? (
+          <Animated.View
+            style={{
+              position: "absolute",
+              top: bodyCfg.innerPadding + bodyCfg.badgeFontSize * 3.5,
+              right: hasOutline ? outlinedBodyInset : bodyCfg.innerPadding,
+              transform: [{ translateY: bounceAnim }],
+            }}
+          >
+            <LinearGradient
+              colors={[tc.secondary, tc.secondaryDark]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{
+                borderRadius: 999,
+                paddingHorizontal: bodyCfg.quantityPaddingH,
+                paddingVertical: bodyCfg.quantityPaddingV,
+              }}
+            >
+              <Text
+                className="font-nunito-extrabold"
+                style={{ color: tc.secondaryText, fontSize: bodyCfg.quantityFontSize }}
+              >
+                x{quantity}
+              </Text>
+            </LinearGradient>
+          </Animated.View>
+        ) : null}
+
+        <View
+            style={{
+              position: "absolute",
+              left: hasOutline ? outlinedBodyInset : bodyCfg.innerPadding,
+              right: hasOutline ? outlinedBodyInset + 86 : bodyCfg.innerPadding,
+              bottom: bodyCfg.titleBottomPadding,
+              gap: 2,
+            }}
+        >
+          <Text
+            className="font-nunito-extrabold text-white"
+            style={{
+              fontSize: bodyCfg.nameFontSize,
+              textShadowColor: withAlpha("#120914", 0.6),
+              textShadowOffset: { width: 0, height: 2 },
+              textShadowRadius: 5,
+            }}
+            numberOfLines={2}
+          >
+            {card.name}
+          </Text>
+          {card.character ? (
+            <Text
+              className="font-nunito-bold text-white/85"
+              style={{
+                fontSize: bodyCfg.characterFontSize,
+                letterSpacing: 0.4,
+              }}
+              numberOfLines={1}
+            >
+              {card.character}
+            </Text>
+          ) : null}
+        </View>
+      </View>
+
+      <View
+        style={{
+          marginTop: hasOutline ? bodyCfg.metaGap * 0.72 : bodyCfg.metaGap,
+          height: bodyCfg.descriptionHeight,
+          borderRadius: bodyCfg.artRadius,
+          padding: bodyCfg.descriptionPadding,
+          backgroundColor: descriptionColor,
+          borderWidth: hasOutline ? 0 : 1,
+          borderColor: hasOutline
+            ? "transparent"
+            : withAlpha(rarityColor.ring, themeName === "nightosphere" ? 0.32 : 0.22),
+          marginHorizontal: hasOutline ? outlinedBodyInset : 0,
+        }}
+      >
+        <Text
+          className="font-nunito"
+          style={{
+            color: tc.fg,
+            fontSize: bodyCfg.descriptionFontSize,
+            lineHeight: bodyCfg.descriptionLineHeight,
+          }}
+          numberOfLines={bodyCfg.descriptionLines}
+        >
+          {card.description}
+        </Text>
+      </View>
+
+      <View
+        style={{
+          marginTop: hasOutline ? bodyCfg.metaGap * 0.72 : bodyCfg.metaGap,
+          flexDirection: "row",
+          gap: bodyCfg.statGap,
+          marginHorizontal: hasOutline ? outlinedBodyInset : 0,
+        }}
+      >
+        {statPalettes.map((stat) => (
+          <StatChip
+            key={stat.label}
+            label={stat.label}
+            value={stat.value}
+            colors={stat.colors}
+            Icon={stat.Icon}
+            cfg={bodyCfg}
+          />
+        ))}
+      </View>
+    </View>
+  );
 
   return (
     <Pressable
@@ -366,48 +650,54 @@ export const CardTile = memo(function CardTile({
         className="overflow-hidden"
         style={{
           borderRadius: cfg.borderRadius,
-          backgroundColor: rarityColor.ring,
+          backgroundColor: hasOutline ? "transparent" : rarityColor.ring,
           height: fitContainer ? undefined : cfg.height,
           aspectRatio: fitContainer ? cardAspectRatio : undefined,
           boxShadow:
-            size === "large"
+            hasOutline
+              ? "none"
+              : size === "large"
               ? `0px 18px 42px ${withAlpha(rarityColor.to, 0.22)}`
               : `0px 10px 24px ${withAlpha(rarityColor.to, 0.18)}`,
         }}
       >
-        <LinearGradient
-          colors={[rarityColor.from, typeColor.frame, rarityColor.to]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{ position: "absolute", inset: 0 }}
-        />
+        {!hasOutline ? (
+          <>
+            <LinearGradient
+              colors={[rarityColor.from, typeColor.frame, rarityColor.to]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{ position: "absolute", inset: 0 }}
+            />
 
-        <View
-          pointerEvents="none"
-          style={{
-            position: "absolute",
-            top: -cfg.width * 0.12,
-            right: -cfg.width * 0.05,
-            width: cfg.width * 0.5,
-            height: cfg.width * 0.5,
-            borderRadius: 999,
-            backgroundColor: withAlpha("#FFFFFF", themeName === "nightosphere" ? 0.05 : 0.16),
-          }}
-        />
-        <View
-          pointerEvents="none"
-          style={{
-            position: "absolute",
-            bottom: -cfg.width * 0.18,
-            left: -cfg.width * 0.08,
-            width: cfg.width * 0.45,
-            height: cfg.width * 0.45,
-            borderRadius: 999,
-            backgroundColor: withAlpha(typeColor.light, themeName === "nightosphere" ? 0.12 : 0.32),
-          }}
-        />
+            <View
+              pointerEvents="none"
+              style={{
+                position: "absolute",
+                top: -cfg.width * 0.12,
+                right: -cfg.width * 0.05,
+                width: cfg.width * 0.5,
+                height: cfg.width * 0.5,
+                borderRadius: 999,
+                backgroundColor: withAlpha("#FFFFFF", themeName === "nightosphere" ? 0.05 : 0.16),
+              }}
+            />
+            <View
+              pointerEvents="none"
+              style={{
+                position: "absolute",
+                bottom: -cfg.width * 0.18,
+                left: -cfg.width * 0.08,
+                width: cfg.width * 0.45,
+                height: cfg.width * 0.45,
+                borderRadius: 999,
+                backgroundColor: withAlpha(typeColor.light, themeName === "nightosphere" ? 0.12 : 0.32),
+              }}
+            />
+          </>
+        ) : null}
 
-        {hasShimmer ? (
+        {hasShimmer && !hasOutline ? (
           <Animated.View
             pointerEvents="none"
             style={{
@@ -431,210 +721,67 @@ export const CardTile = memo(function CardTile({
           </Animated.View>
         ) : null}
 
-        <View
-          style={{
-            flex: 1,
-            margin: cfg.outerPadding,
-            borderRadius: cfg.innerRadius,
-            padding: cfg.innerPadding,
-            backgroundColor: panelColor,
-            borderWidth: 1,
-            borderColor: withAlpha("#FFFFFF", themeName === "nightosphere" ? 0.1 : 0.42),
-            opacity: cardContentOpacity,
-          }}
-        >
-          <View
-            className="overflow-hidden"
-            style={{
-              flex: size === "large" ? 1.55 : 1.38,
-              borderRadius: cfg.artRadius,
-              backgroundColor: typeColor.light,
-            }}
-          >
-            {card.imageAssetId ? (
-              <Image
-                source={{
-                  uri: getCardImageUrl(card.imageAssetId),
-                  cacheKey: getCardImageCacheKey(card.imageAssetId),
-                }}
-                placeholder={{ blurhash: "LKO2?U%2Tw=w]~RBVZRi};RPxuwH" }}
-                style={{ width: "100%", height: "100%" }}
-                contentFit="cover"
-                cachePolicy="memory-disk"
-              />
-            ) : (
-              <View
-                className="flex-1 items-center justify-center"
-                style={{ backgroundColor: typeColor.light }}
-              >
-                <Text
-                  className="font-nunito-extrabold"
-                  style={{
-                    color: typeColor.dark,
-                    fontSize: cfg.nameFontSize * 2.4,
-                  }}
-                >
-                  {(card.character || card.name || "?").charAt(0)}
-                </Text>
-              </View>
-            )}
-
-            <LinearGradient
-              colors={[
-                withAlpha("#120914", 0),
-                withAlpha("#120914", 0.22),
-                withAlpha("#120914", 0.88),
-              ]}
-              start={{ x: 0.5, y: 0 }}
-              end={{ x: 0.5, y: 1 }}
-              style={{ position: "absolute", inset: 0 }}
-            />
-
+        {hasOutline ? (
+          <>
             <View
               style={{
-                position: "absolute",
-                top: cfg.innerPadding,
-                left: cfg.innerPadding,
-                right: cfg.innerPadding,
-                flexDirection: "row",
-                justifyContent: "space-between",
-                alignItems: "flex-start",
+                ...outlineSafeAreaStyle,
+                overflow: "hidden",
               }}
             >
-              <View
-                style={{
-                  borderRadius: 999,
-                  paddingHorizontal: cfg.badgePaddingH,
-                  paddingVertical: cfg.badgePaddingV,
-                  backgroundColor: withAlpha(typeColor.dark, themeName === "nightosphere" ? 0.9 : 0.84),
-                  maxWidth: "54%",
-                }}
-              >
-                <Text
-                  className="font-nunito-extrabold text-white"
-                  style={{ fontSize: cfg.badgeFontSize }}
-                  numberOfLines={1}
-                >
-                  {card.type}
-                </Text>
-              </View>
-
-              <RarityRibbon
-                rarityName={card.rarity.name}
-                rarity={rarityColor}
-                compact={size === "small"}
-                cfg={cfg}
-              />
-            </View>
-
-            {size === "small" && quantity > 1 ? (
-              <Animated.View
-                style={{
-                  position: "absolute",
-                  top: cfg.innerPadding + 22,
-                  right: cfg.innerPadding,
-                  transform: [{ translateY: bounceAnim }],
-                }}
-              >
-                <LinearGradient
-                  colors={[tc.secondary, tc.secondaryDark]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
+              {cardPanel}
+              {hasShimmer ? (
+                <Animated.View
+                  pointerEvents="none"
                   style={{
-                    borderRadius: 999,
-                    paddingHorizontal: cfg.quantityPaddingH,
-                    paddingVertical: cfg.quantityPaddingV,
+                    position: "absolute",
+                    top: 0,
+                    bottom: 0,
+                    width: cfg.width * 3,
+                    transform: [{ translateX: shimmerTranslate }],
                   }}
                 >
-                  <Text
-                    className="font-nunito-extrabold"
-                    style={{ color: tc.secondaryText, fontSize: cfg.quantityFontSize }}
-                  >
-                    x{quantity}
-                  </Text>
-                </LinearGradient>
-              </Animated.View>
-            ) : null}
-
-            <View
-              style={{
-                position: "absolute",
-                left: cfg.innerPadding,
-                right: cfg.innerPadding,
-                bottom: cfg.titleBottomPadding,
-                gap: 2,
-              }}
-            >
-              <Text
-                className="font-nunito-extrabold text-white"
-                style={{
-                  fontSize: cfg.nameFontSize,
-                  textShadowColor: withAlpha("#120914", 0.6),
-                  textShadowOffset: { width: 0, height: 2 },
-                  textShadowRadius: 5,
-                }}
-                numberOfLines={2}
-              >
-                {card.name}
-              </Text>
-              {card.character ? (
-                <Text
-                  className="font-nunito-bold text-white/85"
-                  style={{
-                    fontSize: cfg.characterFontSize,
-                    letterSpacing: 0.4,
-                  }}
-                  numberOfLines={1}
-                >
-                  {card.character}
-                </Text>
+                  <LinearGradient
+                    colors={[
+                      withAlpha("#FFFFFF", 0),
+                      withAlpha(isLegendary ? tc.secondary : tc.accent, isLegendary ? 0.18 : 0.16),
+                      withAlpha("#FFFFFF", 0),
+                    ]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={{ flex: 1 }}
+                  />
+                </Animated.View>
               ) : null}
             </View>
-          </View>
-
-          <View
-            style={{
-              marginTop: cfg.metaGap,
-              height: cfg.descriptionHeight,
-              borderRadius: cfg.artRadius,
-              padding: cfg.descriptionPadding,
-              backgroundColor: descriptionColor,
-              borderWidth: 1,
-              borderColor: withAlpha(rarityColor.ring, themeName === "nightosphere" ? 0.32 : 0.22),
-            }}
-          >
-            <Text
-              className="font-nunito"
+            <View
+              pointerEvents="none"
               style={{
-                color: tc.fg,
-                fontSize: cfg.descriptionFontSize,
-                lineHeight: cfg.descriptionLineHeight,
+                position: "absolute",
+                inset: 0,
+                boxShadow:
+                  size === "large"
+                    ? `0px 18px 42px ${withAlpha(rarityColor.to, 0.22)}`
+                    : `0px 10px 24px ${withAlpha(rarityColor.to, 0.18)}`,
               }}
-              numberOfLines={cfg.descriptionLines}
             >
-              {card.description}
-            </Text>
-          </View>
-
+              <Image
+                source={outlineSource}
+                style={{ position: "absolute", inset: 0 }}
+                contentFit="fill"
+              />
+            </View>
+          </>
+        ) : (
           <View
             style={{
-              marginTop: cfg.metaGap,
-              flexDirection: "row",
-              gap: cfg.statGap,
+              flex: 1,
+              margin: cfg.outerPadding,
             }}
           >
-            {statPalettes.map((stat) => (
-              <StatChip
-                key={stat.label}
-                label={stat.label}
-                value={stat.value}
-                colors={stat.colors}
-                Icon={stat.Icon}
-                cfg={cfg}
-              />
-            ))}
+            {cardPanel}
           </View>
-        </View>
+        )}
       </View>
 
       {size === "large" && quantity > 1 ? (
