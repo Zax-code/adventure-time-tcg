@@ -767,13 +767,17 @@ export default function DailyNumbersPlayScreen() {
     <ScrollView
       className="flex-1 bg-bg"
       contentContainerStyle={{
-        paddingTop: insets.top + 10,
-        paddingBottom: insets.bottom + 10,
-        paddingHorizontal: compact ? 10 : 14,
         flexGrow: 1,
       }}
       keyboardShouldPersistTaps="handled"
     >
+      <View
+        style={{
+          paddingTop: insets.top + 10,
+          paddingBottom: insets.bottom + 10,
+          paddingHorizontal: compact ? 10 : 14,
+        }}
+      >
       <View className="mb-2 flex-row items-center">
         <Pressable
           onPress={() => router.back()}
@@ -1372,6 +1376,7 @@ export default function DailyNumbersPlayScreen() {
             </View>
           </>
         )}
+      </View>
       </View>
     </ScrollView>
   );
