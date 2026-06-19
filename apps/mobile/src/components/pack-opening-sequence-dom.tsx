@@ -891,16 +891,6 @@ export default function PackOpeningSequenceDom({
               className="pack-opening-crack-layer"
               viewBox={`0 0 ${CARD_W} ${CARD_H}`}
               preserveAspectRatio="none"
-              style={cssVarStyle({
-                WebkitMaskImage: `url(${packArtSrc})`,
-                WebkitMaskPosition: "center",
-                WebkitMaskRepeat: "no-repeat",
-                WebkitMaskSize: "contain",
-                maskImage: `url(${packArtSrc})`,
-                maskPosition: "center",
-                maskRepeat: "no-repeat",
-                maskSize: "contain",
-              })}
             >
               {cracks.map((crack) => (
                 <g key={crack.id}>

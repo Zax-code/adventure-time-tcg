@@ -367,7 +367,8 @@ defmodule AdventureTimeApi.Inventory do
       cost: pack.cost,
       color: pack.color,
       isActive: pack.is_active,
-      guaranteedRarity: pack.guaranteed_rarity
+      guaranteedRarity: pack.guaranteed_rarity,
+      packArtAssetId: pack.pack_art_asset_id
     }
   end
 
