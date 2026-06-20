@@ -90,11 +90,9 @@ export function LoadingPanel({
         maxWidth: isPage ? 380 : undefined,
         borderRadius: isPage ? 32 : 24,
         borderColor: tc.primaryBorder + "55",
-        shadowColor: tc.primaryStrong,
-        shadowOpacity: isPage ? 0.22 : 0.14,
-        shadowRadius: isPage ? 18 : 12,
-        shadowOffset: { width: 0, height: isPage ? 10 : 6 },
-        elevation: isPage ? 10 : 5,
+        boxShadow: isPage
+          ? `0px 10px 18px ${tc.primaryStrong}26`
+          : `0px 6px 12px ${tc.primaryStrong}1F`,
       }}
     >
       <LinearGradient
@@ -168,44 +166,8 @@ export function PageLoadingState({
   message?: string;
   icon?: IoniconName;
 }) {
-  const themeName = useThemeStore((state) => state.themeName);
-  const tc = THEME_COLORS[themeName];
-
   return (
     <View className="flex-1 items-center justify-center overflow-hidden bg-bg px-6">
-      <View
-        className="absolute rounded-full"
-        style={{
-          top: 96,
-          left: -48,
-          width: 168,
-          height: 168,
-          backgroundColor: tc.secondaryTint,
-          opacity: 0.55,
-        }}
-      />
-      <View
-        className="absolute rounded-full"
-        style={{
-          top: 180,
-          right: -26,
-          width: 118,
-          height: 118,
-          backgroundColor: tc.accentTint,
-          opacity: 0.48,
-        }}
-      />
-      <View
-        className="absolute rounded-full"
-        style={{
-          bottom: 92,
-          right: 24,
-          width: 148,
-          height: 148,
-          backgroundColor: tc.primaryTint,
-          opacity: 0.5,
-        }}
-      />
       <LoadingPanel
         title={title}
         message={message}
