@@ -1361,7 +1361,7 @@ export default function PvpScreen() {
         ) : null}
 
         {hasLoadouts ? (
-          <View className="gap-3">
+          <View className="mt-4 gap-3">
             <SectionHeading
               title={t("pvp.myLoadouts")}
               toneColor={tc.accentText}

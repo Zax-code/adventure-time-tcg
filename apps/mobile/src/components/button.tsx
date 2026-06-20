@@ -1,12 +1,16 @@
+import type { ComponentProps } from "react";
 import type { ViewStyle } from "react-native";
 
 import { ThemedExpoButton } from "./expo-ui/themed-button";
+
+type ThemedExpoButtonProps = ComponentProps<typeof ThemedExpoButton>;
 
 interface ButtonProps {
   onPress?: () => void;
   disabled?: boolean;
   loading?: boolean;
   children: React.ReactNode;
+  fallbackAppearance?: ThemedExpoButtonProps["fallbackAppearance"];
   style?: ViewStyle;
   testID?: string;
 }
@@ -16,6 +20,7 @@ export function PrimaryButton({
   disabled,
   loading,
   children,
+  fallbackAppearance,
   style,
   testID,
 }: ButtonProps) {
@@ -24,6 +29,7 @@ export function PrimaryButton({
       onPress={onPress}
       disabled={disabled}
       loading={loading}
+      fallbackAppearance={fallbackAppearance}
       preferFallback
       style={style}
       testID={testID}
@@ -39,6 +45,7 @@ export function SecondaryButton({
   disabled,
   loading,
   children,
+  fallbackAppearance,
   style,
   testID,
 }: ButtonProps) {
@@ -47,6 +54,7 @@ export function SecondaryButton({
       onPress={onPress}
       disabled={disabled}
       loading={loading}
+      fallbackAppearance={fallbackAppearance}
       preferFallback
       style={style}
       testID={testID}
@@ -62,6 +70,7 @@ export function GhostButton({
   disabled,
   loading,
   children,
+  fallbackAppearance,
   style,
   testID,
 }: ButtonProps) {
@@ -70,6 +79,7 @@ export function GhostButton({
       onPress={onPress}
       disabled={disabled}
       loading={loading}
+      fallbackAppearance={fallbackAppearance}
       preferFallback
       style={style}
       testID={testID}

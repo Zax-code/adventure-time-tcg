@@ -6,10 +6,10 @@ import {
   FlatList,
   Pressable,
   ScrollView,
+  StyleSheet,
   Text,
   View,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 
 import { ApiClientError, apiClient } from "../../src/lib/api";
@@ -26,12 +26,25 @@ import {
   useBottomTabBarContentPadding,
 } from "../../src/theme/layout";
 import { THEME_COLORS } from "../../src/theme/themes";
-import { PrimaryButton, SecondaryButton } from "../../src/components/button";
+import { PrimaryButton } from "../../src/components/button";
 import { CardTile } from "../../src/components/card-tile";
+import {
+  CardsIcon,
+  ChevronRightIcon,
+  ClockIcon,
+  PackIcon,
+  SparklesIcon,
+} from "../../src/components/icons";
 import { PageErrorState } from "../../src/components/error-state";
 import { ThemedExpoButton } from "../../src/components/expo-ui/themed-button";
 import { PageLoadingState } from "../../src/components/loading-state";
 import { useTranslation } from "../../src/i18n";
+
+const styles = StyleSheet.create({
+  featuredCardFrame: {
+    width: 144,
+  },
+});
 
 export default function HomeScreen() {
   const queryClient = useQueryClient();
@@ -164,6 +177,19 @@ export default function HomeScreen() {
     return `${h}h ${m}m ${s}s`;
   }
 
+  function formatDropRatePercentage(dropRate: number) {
+    if (totalDropRate <= 0) {
+      return "0%";
+    }
+
+    const percentage = (dropRate / totalDropRate) * 100;
+    if (percentage > 0 && percentage < 1) {
+      return "<1%";
+    }
+
+    return `${Math.round(percentage)}%`;
+  }
+
   if (homeQuery.isLoading) {
     return (
       <PageLoadingState
@@ -196,17 +222,28 @@ export default function HomeScreen() {
     );
   }
 
+  const collectionPercent = Math.min(
+    100,
+    Math.max(0, home.collectionStats.completionPercentage),
+  );
+  const cardsRemaining = Math.max(
+    0,
+    home.collectionStats.totalCards - home.collectionStats.uniqueOwned,
+  );
+  const featuredCards = featuredQuery.data?.cards ?? [];
   const rarities = raritiesQuery.data?.rarities ?? [];
-  const totalDropRate = rarities.reduce((s, r) => s + r.dropRate, 0);
+  const totalDropRate = rarities.reduce((sum, rarity) => {
+    return sum + rarity.dropRate;
+  }, 0);
 
   return (
     <ScrollView className="flex-1 bg-bg">
-      <View className="gap-6" style={{ paddingTop: headerHeight }}>
+      <View className="gap-5 px-5" style={{ paddingTop: headerHeight }}>
         {shouldShowNotificationPrompt ? (
-          <View className="mx-5 rounded-3xl border border-primaryBorder bg-surface px-4 py-4">
-            <View className="flex-row items-start gap-3">
+          <View className="rounded-2xl border border-primaryBorder bg-surface px-4 py-4">
+            <View className="flex-row items-center gap-3">
               <View
-                className="h-11 w-11 items-center justify-center rounded-2xl"
+                className="h-10 w-10 items-center justify-center rounded-2xl"
                 style={{ backgroundColor: tc.primaryTint }}
               >
                 <Ionicons
@@ -216,7 +253,7 @@ export default function HomeScreen() {
                 />
               </View>
               <View className="flex-1 gap-1 pr-1">
-                <Text className="font-nunito-bold text-lg text-fg">
+                <Text className="font-nunito-bold text-base text-fg">
                   {t("home.notificationsPromptTitle")}
                 </Text>
                 <Text className="font-nunito text-sm leading-5 text-fgMuted">
@@ -225,258 +262,343 @@ export default function HomeScreen() {
               </View>
             </View>
 
-            <View className="mt-4 gap-2">
-              <PrimaryButton
+            <View className="mt-3 flex-row gap-2">
+              <ThemedExpoButton
                 onPress={() => {
                   router.push({
                     pathname: "/settings",
                     params: { section: "notifications" },
                   });
                 }}
+                leadingAccessory={
+                  <Ionicons
+                    name="settings-outline"
+                    size={16}
+                    color={tc.primaryStrong}
+                  />
+                }
+                fallbackAppearance={{
+                  backgroundColor: tc.primaryTint,
+                  borderColor: tc.primaryBorder,
+                  borderRadius: 999,
+                  gradientColors: null,
+                  foregroundColor: tc.primaryStrong,
+                  paddingHorizontal: 14,
+                  paddingVertical: 10,
+                  textStyle: {
+                    fontFamily: "Nunito_700Bold",
+                    fontSize: 13,
+                  },
+                }}
+                style={{ flex: 1 }}
+                variant="ghost"
               >
                 {t("home.notificationsPromptSettings")}
-              </PrimaryButton>
+              </ThemedExpoButton>
 
-              <View className="flex-row gap-2">
-                <ThemedExpoButton
-                  onPress={() => {
-                    setNotificationPromptIgnored(true);
-                  }}
-                  leadingAccessory={
-                    <Ionicons
-                      name="close-circle-outline"
-                      size={16}
-                      color={tc.primaryStrong}
-                    />
-                  }
-                  fallbackAppearance={{
-                    backgroundColor: tc.primaryBg,
-                    borderColor: tc.primaryBorder,
-                    borderRadius: 999,
-                    paddingHorizontal: 16,
-                    paddingVertical: 12,
-                    gradientColors: null,
-                    foregroundColor: tc.primaryStrong,
-                    textStyle: {
-                      fontFamily: "Nunito_600SemiBold",
-                      fontSize: 14,
-                    },
-                  }}
-                  style={{ flex: 1 }}
-                  variant="ghost"
-                >
-                  {t("home.notificationsPromptIgnore")}
-                </ThemedExpoButton>
+              <ThemedExpoButton
+                onPress={() => {
+                  setNotificationPromptIgnored(true);
+                }}
+                fallbackAppearance={{
+                  backgroundColor: tc.surfaceMuted,
+                  borderColor: tc.primaryBorder,
+                  borderRadius: 999,
+                  gradientColors: null,
+                  foregroundColor: tc.primaryStrong,
+                  paddingHorizontal: 12,
+                  paddingVertical: 10,
+                  textStyle: {
+                    fontFamily: "Nunito_600SemiBold",
+                    fontSize: 13,
+                  },
+                }}
+                variant="ghost"
+              >
+                {t("home.notificationsPromptIgnore")}
+              </ThemedExpoButton>
+            </View>
 
-                <ThemedExpoButton
-                  onPress={() => {
-                    if (!user?.id) {
-                      return;
-                    }
+            <Pressable
+              onPress={() => {
+                if (!user?.id) {
+                  return;
+                }
 
-                    void setNotificationPermissionPromptHidden(
-                      user.id,
-                      true,
-                    ).then(() => {
-                      setNotificationPromptHidden(true);
-                    });
-                  }}
-                  leadingAccessory={
-                    <Ionicons
-                      name="eye-off-outline"
-                      size={16}
-                      color={tc.dangerText}
-                    />
-                  }
-                  fallbackAppearance={{
-                    backgroundColor: tc.dangerTint,
-                    borderColor: tc.dangerBorder,
-                    borderRadius: 999,
-                    paddingHorizontal: 16,
-                    paddingVertical: 12,
-                    gradientColors: null,
-                    foregroundColor: tc.dangerText,
-                    textStyle: {
-                      fontFamily: "Nunito_600SemiBold",
-                      fontSize: 14,
-                    },
-                  }}
-                  style={{ flex: 1 }}
-                  variant="ghost"
-                >
-                  {t("home.notificationsPromptHide")}
-                </ThemedExpoButton>
+                void setNotificationPermissionPromptHidden(user.id, true).then(
+                  () => {
+                    setNotificationPromptHidden(true);
+                  },
+                );
+              }}
+              className="mt-3 self-start"
+              hitSlop={8}
+            >
+              <Text className="font-nunito-semibold text-xs text-fgMuted">
+                {t("home.notificationsPromptHide")}
+              </Text>
+            </Pressable>
+          </View>
+        ) : null}
+
+        <View
+          style={{
+            backgroundColor: tc.surface,
+            borderColor: tc.primaryBorder,
+            borderRadius: 24,
+            borderWidth: 1,
+          }}
+        >
+          <View className="gap-4 px-5 py-5">
+            <View className="flex-row items-start justify-between gap-4">
+              <View className="flex-1 gap-1">
+                <Text className="font-nunito-semibold text-sm uppercase text-primaryText">
+                  {t("home.todayStatus")}
+                </Text>
+                <Text className="font-nunito-extrabold text-2xl leading-8 text-fg">
+                  {canClaim ? t("home.rewardReady") : t("home.rewardClaimed")}
+                </Text>
+                <Text className="font-nunito text-sm leading-5 text-fgMuted">
+                  {canClaim
+                    ? t("home.claimCoins", {
+                        amount: dailyClaimQuery.data?.dailyReward ?? 100,
+                      })
+                    : t("home.nextClaim", {
+                        time: formatTimeRemaining(liveTime),
+                      })}
+                </Text>
               </View>
+
+              <View
+                className="h-14 w-14 items-center justify-center rounded-3xl border"
+                style={{
+                  backgroundColor: canClaim ? tc.secondaryTint : tc.infoTint,
+                  borderColor: canClaim ? tc.secondaryBorder : tc.infoBorder,
+                }}
+              >
+                {canClaim ? (
+                  <SparklesIcon size={28} color={tc.secondaryText} />
+                ) : (
+                  <ClockIcon size={28} color={tc.infoText} />
+                )}
+              </View>
+            </View>
+
+            <PrimaryButton
+              onPress={() => claimMutation.mutate()}
+              disabled={!canClaim || claimMutation.isPending}
+              loading={claimMutation.isPending}
+              fallbackAppearance={{
+                backgroundColor: tc.primaryDark,
+                borderColor: tc.primaryDark,
+                borderRadius: 999,
+                gradientColors: null,
+                foregroundColor: "#FFFFFF",
+                paddingHorizontal: 18,
+                paddingVertical: 12,
+                textStyle: {
+                  fontFamily: "Nunito_700Bold",
+                  fontSize: 15,
+                },
+              }}
+              style={{ alignSelf: "stretch" }}
+            >
+              {canClaim ? t("home.claim") : t("home.claimed")}
+            </PrimaryButton>
+          </View>
+        </View>
+
+        <View className="rounded-3xl border border-primaryBorder bg-surface px-5 py-5">
+          <View className="flex-row items-start justify-between gap-4">
+            <View className="flex-1 gap-1">
+              <Text className="font-nunito-bold text-lg text-fg">
+                {t("home.collectionProgress")}
+              </Text>
+              <Text className="font-nunito text-sm leading-5 text-fgMuted">
+                {t("home.cardsCollected", {
+                  owned: home.collectionStats.uniqueOwned,
+                  total: home.collectionStats.totalCards,
+                })}
+              </Text>
+            </View>
+
+            <View
+              className="rounded-2xl px-3 py-2"
+              style={{ backgroundColor: tc.primaryTint }}
+            >
+              <Text className="font-nunito-extrabold text-lg text-primaryStrong">
+                {collectionPercent}%
+              </Text>
+            </View>
+          </View>
+
+          <View className="mt-4 h-3 overflow-hidden rounded-full bg-primaryTint">
+            <View
+              style={{
+                backgroundColor: tc.primaryDark,
+                width: `${collectionPercent}%`,
+                height: "100%",
+                borderRadius: 999,
+              }}
+            />
+          </View>
+
+          <View className="mt-4 flex-row gap-3">
+            <View
+              className="flex-1 rounded-2xl border px-4 py-3"
+              style={{
+                backgroundColor: tc.secondaryTint,
+                borderColor: tc.secondaryBorder,
+              }}
+            >
+              <Text className="font-nunito-extrabold text-xl text-secondaryText">
+                {home.collectionStats.uniqueOwned}
+              </Text>
+              <Text className="font-nunito text-xs text-secondaryText">
+                {t("home.uniqueCards")}
+              </Text>
+            </View>
+            <View
+              className="flex-1 rounded-2xl border px-4 py-3"
+              style={{
+                backgroundColor: tc.accentTint,
+                borderColor: tc.accentBorder,
+              }}
+            >
+              <Text className="font-nunito-extrabold text-xl text-accentText">
+                {cardsRemaining}
+              </Text>
+              <Text className="font-nunito text-xs text-accentText">
+                {t("home.cardsRemaining")}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        <View className="gap-3">
+          <Text className="font-nunito-bold text-lg text-fg">
+            {t("home.quickActions")}
+          </Text>
+
+          <Pressable
+            onPress={() => router.push("/(tabs)/packs")}
+            className="rounded-3xl border border-secondaryBorder bg-surface px-4 py-4"
+          >
+            <View className="flex-row items-center gap-3">
+              <View
+                className="h-12 w-12 items-center justify-center rounded-2xl"
+                style={{ backgroundColor: tc.secondaryTint }}
+              >
+                <PackIcon size={26} color={tc.secondaryText} />
+              </View>
+              <View className="flex-1 gap-1">
+                <Text className="font-nunito-bold text-base text-fg">
+                  {t("home.openPack")}
+                </Text>
+                <Text className="font-nunito text-sm leading-5 text-fgMuted">
+                  {t("home.openPackHint")}
+                </Text>
+              </View>
+              <ChevronRightIcon size={22} color={tc.primaryText} />
+            </View>
+          </Pressable>
+
+          <Pressable
+            onPress={() => router.push("/(tabs)/collection")}
+            className="rounded-3xl border border-primaryBorder bg-surface px-4 py-4"
+          >
+            <View className="flex-row items-center gap-3">
+              <View
+                className="h-12 w-12 items-center justify-center rounded-2xl"
+                style={{ backgroundColor: tc.primaryTint }}
+              >
+                <CardsIcon size={26} color={tc.primaryText} />
+              </View>
+              <View className="flex-1 gap-1">
+                <Text className="font-nunito-bold text-base text-fg">
+                  {t("home.myCards")}
+                </Text>
+                <Text className="font-nunito text-sm leading-5 text-fgMuted">
+                  {t("home.myCardsHint")}
+                </Text>
+              </View>
+              <ChevronRightIcon size={22} color={tc.primaryText} />
+            </View>
+          </Pressable>
+        </View>
+
+        {rarities.length > 0 ? (
+          <View className="gap-3 rounded-3xl border border-primaryBorder bg-surface px-5 py-5">
+            <View className="gap-1">
+              <Text className="font-nunito-bold text-lg text-fg">
+                {t("home.dropRates")}
+              </Text>
+              <Text className="font-nunito text-sm leading-5 text-fgMuted">
+                {t("home.dropRatesHint")}
+              </Text>
+            </View>
+
+            <View className="flex-row flex-wrap gap-2">
+              {rarities.map((rarity) => (
+                <View
+                  key={rarity.id}
+                  className="rounded-2xl border px-3 py-2"
+                  style={{
+                    backgroundColor: tc.surfaceMuted,
+                    borderColor: rarity.color,
+                    minHeight: 56,
+                    width: "48%",
+                  }}
+                >
+                  <View className="flex-row items-center justify-between gap-2">
+                    <Text
+                      className="flex-1 font-nunito-extrabold text-sm"
+                      style={{ color: rarity.color }}
+                      numberOfLines={1}
+                    >
+                      {rarity.name}
+                    </Text>
+                    <Text className="font-nunito-bold text-xs text-fgMuted">
+                      {formatDropRatePercentage(rarity.dropRate)}
+                    </Text>
+                  </View>
+                </View>
+              ))}
             </View>
           </View>
         ) : null}
 
-        {/* Daily Claim */}
-        <View className="mx-5 rounded-2xl border border-secondaryBorder bg-secondaryTint px-4 py-4">
-          <View className="flex-row items-center justify-between">
-            <View className="flex-1 pr-4">
-              <Text className="font-nunito-bold text-lg text-secondaryText">
-                {t("home.dailyReward")}
+        {featuredCards.length > 0 ? (
+          <View className="gap-3">
+            <View className="gap-1">
+              <Text className="font-nunito-bold text-lg text-fg">
+                {t("home.featuredCards")}
               </Text>
-              <Text className="font-nunito text-sm text-secondaryText">
-                {canClaim
-                  ? t("home.claimCoins", {
-                      amount: dailyClaimQuery.data?.dailyReward ?? 100,
-                    })
-                  : t("home.nextClaim", {
-                      time: formatTimeRemaining(liveTime),
-                    })}
+              <Text className="font-nunito text-sm leading-5 text-fgMuted">
+                {t("home.featuredHint")}
               </Text>
             </View>
-            {canClaim ? (
-              <ThemedExpoButton
-                onPress={() => claimMutation.mutate()}
-                disabled={claimMutation.isPending}
-                loading={claimMutation.isPending}
-                preferFallback
-                fallbackAppearance={{
-                  borderColor: tc.secondaryDark,
-                  borderRadius: 999,
-                  minHeight: 32,
-                  paddingHorizontal: 16,
-                  paddingVertical: 8,
-                  gradientColors: [tc.secondary, tc.secondaryDark] as const,
-                  foregroundColor: tc.secondaryText,
-                  textStyle: {
-                    fontFamily: "Nunito_700Bold",
-                    fontSize: 14,
-                  },
-                }}
-                style={{ minWidth: 92 }}
-                variant="secondary"
-              >
-                {t("home.claim")}
-              </ThemedExpoButton>
-            ) : (
-              <View
-                className="min-w-[92px] items-center justify-center rounded-full px-4 py-2"
-                style={{ backgroundColor: tc.infoTint + "99", minHeight: 32 }}
-              >
-                <Text
-                  className="font-nunito-bold text-sm"
-                  style={{ color: tc.infoDark + "99" }}
-                >
-                  {t("home.claimed")}
-                </Text>
-              </View>
-            )}
-          </View>
-        </View>
 
-        {/* Collection Progress */}
-        <View
-          className="mx-5 rounded-2xl border border-secondaryBorder p-4"
-          style={{ backgroundColor: tc.secondaryTint + "99" }}
-        >
-          <Text className="mb-2 font-nunito-bold text-lg text-primaryText">
-            {t("home.collectionProgress")}
-          </Text>
-          <View className="flex-row items-center gap-4">
-            <View className="h-4 flex-1 overflow-hidden rounded-full bg-primaryTint">
-              <LinearGradient
-                colors={[tc.primary, tc.primaryDark]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={{
-                  width: `${home.collectionStats.completionPercentage}%`,
-                  height: "100%",
-                  borderRadius: 999,
-                }}
-              />
-            </View>
-            <Text className="font-nunito-bold text-primaryStrong">
-              {home.collectionStats.uniqueOwned}/
-              {home.collectionStats.totalCards}
-            </Text>
-          </View>
-          <Text
-            className="mt-2 font-nunito text-sm"
-            style={{ color: tc.primaryDark + "b3" }}
-          >
-            {t("home.complete", {
-              percent: home.collectionStats.completionPercentage,
-            })}
-          </Text>
-        </View>
-
-        {/* Quick Actions */}
-        <View className="mx-5 flex-row gap-4">
-          <PrimaryButton
-            onPress={() => router.push("/(tabs)/packs")}
-            style={{ flex: 1 }}
-          >
-            {t("home.openPack")}
-          </PrimaryButton>
-          <SecondaryButton
-            onPress={() => router.push("/(tabs)/collection")}
-            style={{ flex: 1 }}
-          >
-            {t("home.myCards")}
-          </SecondaryButton>
-        </View>
-
-        {/* Featured Cards */}
-        {(featuredQuery.data?.cards.length ?? 0) > 0 && (
-          <View className="gap-2" style={{ marginTop: -16 }}>
-            <Text className="px-5 font-nunito-bold text-xl text-primaryText">
-              {t("home.featuredCards")}
-            </Text>
             <FlatList
               horizontal
-              data={featuredQuery.data?.cards ?? []}
+              data={featuredCards}
               keyExtractor={(item) => item.card.id}
               renderItem={({ item }) => (
-                <View style={{ width: 160, marginHorizontal: 12 }}>
+                <View style={styles.featuredCardFrame}>
                   <CardTile entry={item} accessToken={accessToken} />
                 </View>
               )}
               contentContainerStyle={{
-                paddingHorizontal: 16,
-                paddingVertical: 32,
+                gap: 12,
+                paddingBottom: 4,
+                paddingRight: 8,
               }}
               showsHorizontalScrollIndicator={false}
             />
           </View>
-        )}
+        ) : null}
 
-        {/* Drop Rates */}
-        {rarities.length > 0 && (
-          <View
-            className="mx-5 rounded-2xl border border-secondaryBorder p-4"
-            style={{ marginTop: -40, backgroundColor: tc.secondaryTint + "99" }}
-          >
-            <Text className="mb-3 font-nunito-bold text-lg text-secondaryText">
-              {t("home.dropRates")}
-            </Text>
-            {rarities.map((rarity) => {
-              const pct =
-                totalDropRate > 0
-                  ? Math.round((rarity.dropRate / totalDropRate) * 100)
-                  : 0;
-              return (
-                <View key={rarity.id} className="flex-row justify-between">
-                  <Text
-                    style={{ color: rarity.color }}
-                    className="font-nunito-semibold"
-                  >
-                    {rarity.name}
-                  </Text>
-                  <Text
-                    style={{ color: rarity.color }}
-                    className="font-nunito-bold"
-                  >
-                    ×{rarity.dropRate} (≈{pct}%)
-                  </Text>
-                </View>
-              );
-            })}
-          </View>
-        )}
+        <View style={{ height: bottomTabPadding }} />
       </View>
     </ScrollView>
   );
