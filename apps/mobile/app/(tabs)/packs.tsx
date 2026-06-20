@@ -2168,6 +2168,7 @@ export default function PacksScreen() {
   ) {
     const isLoadingPhase = phase === "loading";
     const isChargePhase = phase === "shaking";
+    const prewarmDomOpacity = 0.001;
     const openingAccent = selectedPack.color || "#D58524";
     const chargePreviewWidth = Math.min(stageCardWidth * 1.4, 320);
     const openingStageHeight = Math.min(Math.max(height * 0.62, 420), 620);
@@ -2241,7 +2242,7 @@ export default function PacksScreen() {
                   style: {
                     backgroundColor: "transparent",
                     flex: 1,
-                    opacity: isChargePhase ? 0 : 1,
+                    opacity: isChargePhase ? prewarmDomOpacity : 1,
                   },
                 }}
               />

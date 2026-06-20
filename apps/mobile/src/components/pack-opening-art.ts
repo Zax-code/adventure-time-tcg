@@ -50,6 +50,10 @@ export function getPackOpeningArtSource(pack: PackArtInput) {
   return PACK_OPENING_ART_SOURCE[getPackOpeningVisualProfile(pack).artKind];
 }
 
+export function getBundledPackOpeningArtSource(pack: PackArtInput) {
+  return PACK_OPENING_ART_SOURCE[getPackOpeningVisualProfile(pack).artKind];
+}
+
 export function getPackOpeningArtDimensions(pack: PackArtInput) {
   return PACK_OPENING_ART_DIMENSIONS[getPackOpeningVisualProfile(pack).artKind];
 }
