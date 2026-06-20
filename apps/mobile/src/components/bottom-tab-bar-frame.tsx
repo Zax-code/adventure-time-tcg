@@ -64,7 +64,6 @@ export function BottomTabBarFrame({
         styles.root,
         {
           minHeight: BOTTOM_TAB_BAR_OVERLAY_HEIGHT + bottom,
-          boxShadow: `0px -4px 16px ${withAlpha(tc.primaryStrong, "2E")}`,
         },
       ]}
     >
@@ -74,6 +73,7 @@ export function BottomTabBarFrame({
           style={{
             borderColor: withAlpha(tc.primaryBorder, "73"),
             backgroundColor: withAlpha(tc.surface, "F2"),
+            boxShadow: `0px -4px 16px ${withAlpha(tc.primaryStrong, "2E")}`,
           }}
         >
           <View
