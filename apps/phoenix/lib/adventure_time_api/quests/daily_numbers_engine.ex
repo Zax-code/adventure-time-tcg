@@ -447,12 +447,12 @@ defmodule AdventureTimeApi.Quests.DailyNumbersEngine do
 
   defp submission_score(default_distance, distance)
        when is_integer(default_distance) and default_distance > 0 and is_integer(distance) do
-    default_distance
-    |> Kernel.-(distance)
+    improvement = max(default_distance - distance, 0)
+
+    improvement
     |> Kernel./(default_distance)
     |> Kernel.*(100)
     |> round()
-    |> max(0)
     |> min(100)
   end
 
