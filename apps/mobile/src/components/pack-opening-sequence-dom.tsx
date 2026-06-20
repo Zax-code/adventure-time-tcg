@@ -3,6 +3,7 @@
 import { useState, type CSSProperties } from "react";
 
 import {
+  getBundledPackOpeningArtSource,
   getContainedPackOpeningArtLayout,
   getPackOpeningArtDimensions,
   getPackOpeningArtSource,
@@ -218,11 +219,30 @@ const CSS = `
   }
 
   .pack-opening-pack-art {
+    position: absolute;
+    inset: 0;
     width: 100%;
     height: 100%;
     display: block;
     object-fit: contain;
     filter: drop-shadow(0 14px 16px rgba(0, 0, 0, .2));
+  }
+
+  .pack-opening-pack-art-remote,
+  .pack-opening-pack-art-fallback {
+    transition: opacity .16s ease-out;
+  }
+
+  .pack-opening-pack-art-remote {
+    opacity: 0;
+  }
+
+  .pack-opening-pack-art-remote.is-ready {
+    opacity: 1;
+  }
+
+  .pack-opening-pack-art-fallback.is-hidden {
+    opacity: 0;
   }
 
   .pack-opening-crack-layer {
@@ -863,9 +883,38 @@ export default function PackOpeningSequenceDom({
 }) {
   const visualProfile = getPackOpeningVisualProfile(pack);
   const packArtSrc = getPackOpeningArtSource(pack) as string;
+  const bundledPackArtSrc = getBundledPackOpeningArtSource(pack) as string;
+  const hasRemotePackArt = Boolean(pack.packArtUrl);
+  const [loadedRemotePackArtSrc, setLoadedRemotePackArtSrc] = useState<
+    string | null
+  >(null);
+  const [failedRemotePackArtSrc, setFailedRemotePackArtSrc] = useState<
+    string | null
+  >(null);
   const [{ cracks, particles, shards, sparkles }] = useState(() =>
     createBurstPattern(pack),
   );
+  const isRemotePackArtReady =
+    !hasRemotePackArt || loadedRemotePackArtSrc === packArtSrc;
+  const didRemotePackArtFail =
+    hasRemotePackArt && failedRemotePackArtSrc === packArtSrc;
+  const shouldShowPrimaryArt = !hasRemotePackArt || isRemotePackArtReady;
+  const shouldShowFallbackArt =
+    hasRemotePackArt && (!isRemotePackArtReady || didRemotePackArtFail);
+  const fallbackArtClassName = [
+    "pack-opening-pack-art",
+    "pack-opening-pack-art-fallback",
+    shouldShowFallbackArt ? "" : "is-hidden",
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const primaryArtClassName = [
+    "pack-opening-pack-art",
+    hasRemotePackArt ? "pack-opening-pack-art-remote" : "",
+    shouldShowPrimaryArt && !didRemotePackArtFail ? "is-ready" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
   const packBright = mixHex(pack.color, "#FFF7DF", 0.52);
   const packSoft = mixHex(pack.color, "#FFF4EC", 0.28);
   const packSurface = mixHex(pack.color, "#FFF7F3", 0.48);
@@ -908,10 +957,24 @@ export default function PackOpeningSequenceDom({
             style={cssVarStyle({ "--pack-color": pack.color })}
           >
             <div className="pack-opening-card-face">
+              {hasRemotePackArt ? (
+                <img
+                  className={fallbackArtClassName}
+                  src={bundledPackArtSrc}
+                  alt=""
+                  aria-hidden="true"
+                />
+              ) : null}
               <img
-                className="pack-opening-pack-art"
+                className={primaryArtClassName}
                 src={packArtSrc}
                 alt={`${pack.name} ${pack.cardCountLabel}`}
+                onLoad={() => {
+                  setLoadedRemotePackArtSrc(packArtSrc);
+                }}
+                onError={() => {
+                  setFailedRemotePackArtSrc(packArtSrc);
+                }}
               />
             </div>
             <svg
