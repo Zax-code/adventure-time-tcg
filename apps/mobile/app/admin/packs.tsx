@@ -3,7 +3,10 @@ import { Pressable, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import type { AdminImageAssetsResponse, AdminPacksResponse } from "@adventure-time/api-client";
+import type {
+  AdminImageAssetsResponse,
+  AdminPacksResponse,
+} from "@adventure-time/api-client";
 
 import { apiClient } from "../../src/lib/api";
 import { getCatalogImageUrl } from "../../src/lib/catalog-images";
@@ -115,6 +118,7 @@ export default function AdminPacksScreen() {
   const { data: imageAssetsData } = useQuery({
     queryKey: ["admin-image-assets"],
     queryFn: () => apiClient.adminImageAssets(),
+    enabled: modalMode !== null,
   });
 
   const saveMutation = useMutation({
@@ -140,24 +144,35 @@ export default function AdminPacksScreen() {
   const imageAssets = imageAssetsData?.imageAssets ?? EMPTY_IMAGE_ASSETS;
   const packsError =
     packsQueryError instanceof Error ? packsQueryError.message : null;
-  const recentAssets = imageAssets.slice(0, 12);
+  const recentAssets = useMemo(() => imageAssets.slice(0, 12), [imageAssets]);
 
-  const filteredPacks = useMemo(() => {
+  const packGroups = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
+    const active: AdminPack[] = [];
+    const inactive: AdminPack[] = [];
 
-    return packs.filter((pack) => {
-      if (!query) {
-        return true;
+    for (const pack of packs) {
+      const matchesSearch =
+        !query ||
+        `${pack.name} ${pack.description} ${pack.guaranteedRarity ?? ""}`
+          .toLowerCase()
+          .includes(query);
+
+      if (!matchesSearch) {
+        continue;
       }
 
-      return `${pack.name} ${pack.description} ${pack.guaranteedRarity ?? ""}`
-        .toLowerCase()
-        .includes(query);
-    });
+      if (pack.isActive) {
+        active.push(pack);
+      } else {
+        inactive.push(pack);
+      }
+    }
+
+    return { activePacks: active, inactivePacks: inactive };
   }, [packs, searchQuery]);
 
-  const activePacks = filteredPacks.filter((pack) => pack.isActive);
-  const inactivePacks = filteredPacks.filter((pack) => !pack.isActive);
+  const { activePacks, inactivePacks } = packGroups;
 
   function closeModal() {
     setModalMode(null);
@@ -350,186 +365,190 @@ export default function AdminPacksScreen() {
         </AdminPanel>
       </AdminPageScroll>
 
-      <AdminModal
-        visible={modalMode !== null}
-        title={
-          modalMode === "edit"
-            ? t("admin.packs.modalTitleEdit")
-            : t("admin.packs.modalTitleCreate")
-        }
-        onClose={closeModal}
-      >
-        <AdminField
-          label={t("admin.packs.name")}
-          value={draft.name}
-          onChangeText={(value) =>
-            setDraft((current) => ({ ...current, name: value }))
+      {modalMode !== null ? (
+        <AdminModal
+          visible
+          title={
+            modalMode === "edit"
+              ? t("admin.packs.modalTitleEdit")
+              : t("admin.packs.modalTitleCreate")
           }
-          placeholder={t("admin.packs.namePlaceholder")}
-        />
-        <AdminField
-          label={t("admin.packs.description")}
-          value={draft.description}
-          onChangeText={(value) =>
-            setDraft((current) => ({ ...current, description: value }))
-          }
-          placeholder={t("admin.packs.descriptionPlaceholder")}
-          multiline
-        />
-        <View className="flex-row gap-3">
-          <View className="flex-1">
-            <AdminField
-              label={t("admin.packs.cardCount")}
-              value={draft.cardCount}
-              onChangeText={(value) =>
-                setDraft((current) => ({ ...current, cardCount: value }))
-              }
-              keyboardType="numeric"
-            />
-          </View>
-          <View className="flex-1">
-            <AdminField
-              label={t("admin.packs.cost")}
-              value={draft.cost}
-              onChangeText={(value) =>
-                setDraft((current) => ({ ...current, cost: value }))
-              }
-              keyboardType="numeric"
-            />
-          </View>
-        </View>
-        <AdminField
-          label={t("admin.packs.accentColor")}
-          value={draft.color}
-          onChangeText={(value) =>
-            setDraft((current) => ({ ...current, color: value }))
-          }
-          placeholder="#F59E0B"
-        />
-        <AdminField
-          label={t("admin.packs.guaranteedRarity")}
-          value={draft.guaranteedRarity}
-          onChangeText={(value) =>
-            setDraft((current) => ({ ...current, guaranteedRarity: value }))
-          }
-          placeholder={t("admin.packs.blankRarity")}
-        />
-        <AdminField
-          label={t("admin.packs.packArtAssetId")}
-          value={draft.packArtAssetId}
-          onChangeText={(value) =>
-            setDraft((current) => ({ ...current, packArtAssetId: value }))
-          }
-          placeholder={t("admin.packs.packArtPlaceholder")}
-        />
-        <View className="gap-3 rounded-[24] border border-primaryBorder/20 bg-surfaceMuted p-[14]">
-          <Text className="font-nunito-bold text-xs text-primaryText">
-            {getPackArtStatusLabel(t, draft.packArtAssetId || null)}
-          </Text>
-          {draft.packArtAssetId ? (
-            <View className="overflow-hidden rounded-[18] border border-primaryBorder/20 bg-primaryTint/25">
-              <Image
-                source={{ uri: getCatalogImageUrl(draft.packArtAssetId) }}
-                style={{ width: "100%", aspectRatio: 320 / 460 }}
-                contentFit="contain"
+          onClose={closeModal}
+        >
+          <AdminField
+            label={t("admin.packs.name")}
+            value={draft.name}
+            onChangeText={(value) =>
+              setDraft((current) => ({ ...current, name: value }))
+            }
+            placeholder={t("admin.packs.namePlaceholder")}
+          />
+          <AdminField
+            label={t("admin.packs.description")}
+            value={draft.description}
+            onChangeText={(value) =>
+              setDraft((current) => ({ ...current, description: value }))
+            }
+            placeholder={t("admin.packs.descriptionPlaceholder")}
+            multiline
+          />
+          <View className="flex-row gap-3">
+            <View className="flex-1">
+              <AdminField
+                label={t("admin.packs.cardCount")}
+                value={draft.cardCount}
+                onChangeText={(value) =>
+                  setDraft((current) => ({ ...current, cardCount: value }))
+                }
+                keyboardType="numeric"
               />
             </View>
-          ) : null}
-          <View className="flex-row flex-wrap gap-2">
-            <AdminButton
-              label={t("admin.common.useDefault")}
-              variant="ghost"
-              onPress={() =>
-                setDraft((current) => ({ ...current, packArtAssetId: "" }))
-              }
-            />
-          </View>
-        </View>
-        <View className="gap-3 rounded-[24] border border-primaryBorder/20 bg-surfaceMuted p-[14]">
-          <View className="gap-1">
-            <Text className="font-nunito-bold text-xs text-primaryText">
-              {t("admin.packs.recentArtShelf")}
-            </Text>
-            <Text className="font-nunito-semibold text-[12px] leading-[18px] text-fgMuted">
-              {t("admin.packs.recentArtSubtitle")}
-            </Text>
-          </View>
-          <View className="flex-row flex-wrap gap-3">
-            {recentAssets.map((asset: AdminImageAssetsResponse["imageAssets"][number]) => (
-              <Pressable
-                key={asset.id}
-                className="w-[88px] gap-2"
-                onPress={() =>
-                  setDraft((current) => ({
-                    ...current,
-                    packArtAssetId: asset.id,
-                  }))
+            <View className="flex-1">
+              <AdminField
+                label={t("admin.packs.cost")}
+                value={draft.cost}
+                onChangeText={(value) =>
+                  setDraft((current) => ({ ...current, cost: value }))
                 }
-              >
-                <View className="overflow-hidden rounded-[16] border border-primaryBorder/20 bg-primaryTint/25">
-                  <Image
-                    source={{ uri: getCatalogImageUrl(asset.id) }}
-                    style={{ width: "100%", aspectRatio: 320 / 460 }}
-                    contentFit="contain"
-                  />
-                </View>
-                <Text
-                  className="font-nunito-bold text-[10px] text-primaryStrong"
-                  numberOfLines={2}
-                >
-                  {asset.id}
-                </Text>
-              </Pressable>
-            ))}
+                keyboardType="numeric"
+              />
+            </View>
           </View>
-        </View>
-        <View className="gap-[6]">
-          <Text className="font-nunito-bold text-xs text-primaryText">
-            {t("admin.packs.availability")}
-          </Text>
-          <AdminSegmentedControl
-            value={draft.isActive ? "active" : "inactive"}
-            options={[
-              { label: t("admin.common.active"), value: "active" },
-              { label: t("admin.common.inactive"), value: "inactive" },
-            ]}
-            onChange={(value) =>
-              setDraft((current) => ({
-                ...current,
-                isActive: value === "active",
-              }))
+          <AdminField
+            label={t("admin.packs.accentColor")}
+            value={draft.color}
+            onChangeText={(value) =>
+              setDraft((current) => ({ ...current, color: value }))
             }
+            placeholder="#F59E0B"
           />
-        </View>
-        {submitError ? (
-          <Text className="font-nunito-bold text-[13px] text-dangerText">
-            {submitError}
-          </Text>
-        ) : null}
-        <View className="flex-row gap-3">
-          <View className="flex-1">
-            <AdminButton
-              label={t("common.cancel")}
-              variant="ghost"
-              onPress={closeModal}
-            />
+          <AdminField
+            label={t("admin.packs.guaranteedRarity")}
+            value={draft.guaranteedRarity}
+            onChangeText={(value) =>
+              setDraft((current) => ({ ...current, guaranteedRarity: value }))
+            }
+            placeholder={t("admin.packs.blankRarity")}
+          />
+          <AdminField
+            label={t("admin.packs.packArtAssetId")}
+            value={draft.packArtAssetId}
+            onChangeText={(value) =>
+              setDraft((current) => ({ ...current, packArtAssetId: value }))
+            }
+            placeholder={t("admin.packs.packArtPlaceholder")}
+          />
+          <View className="gap-3 rounded-[24] border border-primaryBorder/20 bg-surfaceMuted p-[14]">
+            <Text className="font-nunito-bold text-xs text-primaryText">
+              {getPackArtStatusLabel(t, draft.packArtAssetId || null)}
+            </Text>
+            {draft.packArtAssetId ? (
+              <View className="overflow-hidden rounded-[18] border border-primaryBorder/20 bg-primaryTint/25">
+                <Image
+                  source={{ uri: getCatalogImageUrl(draft.packArtAssetId) }}
+                  style={{ width: "100%", aspectRatio: 320 / 460 }}
+                  contentFit="contain"
+                />
+              </View>
+            ) : null}
+            <View className="flex-row flex-wrap gap-2">
+              <AdminButton
+                label={t("admin.common.useDefault")}
+                variant="ghost"
+                onPress={() =>
+                  setDraft((current) => ({ ...current, packArtAssetId: "" }))
+                }
+              />
+            </View>
           </View>
-          <View className="flex-1">
-            <AdminButton
-              label={
-                saveMutation.isPending
-                  ? t("admin.common.saving")
-                  : modalMode === "edit"
-                    ? t("admin.packs.savePack")
-                    : t("admin.packs.createPack")
+          <View className="gap-3 rounded-[24] border border-primaryBorder/20 bg-surfaceMuted p-[14]">
+            <View className="gap-1">
+              <Text className="font-nunito-bold text-xs text-primaryText">
+                {t("admin.packs.recentArtShelf")}
+              </Text>
+              <Text className="font-nunito-semibold text-[12px] leading-[18px] text-fgMuted">
+                {t("admin.packs.recentArtSubtitle")}
+              </Text>
+            </View>
+            <View className="flex-row flex-wrap gap-3">
+              {recentAssets.map(
+                (asset: AdminImageAssetsResponse["imageAssets"][number]) => (
+                  <Pressable
+                    key={asset.id}
+                    className="w-[88px] gap-2"
+                    onPress={() =>
+                      setDraft((current) => ({
+                        ...current,
+                        packArtAssetId: asset.id,
+                      }))
+                    }
+                  >
+                    <View className="overflow-hidden rounded-[16] border border-primaryBorder/20 bg-primaryTint/25">
+                      <Image
+                        source={{ uri: getCatalogImageUrl(asset.id) }}
+                        style={{ width: "100%", aspectRatio: 320 / 460 }}
+                        contentFit="contain"
+                      />
+                    </View>
+                    <Text
+                      className="font-nunito-bold text-[10px] text-primaryStrong"
+                      numberOfLines={2}
+                    >
+                      {asset.id}
+                    </Text>
+                  </Pressable>
+                ),
+              )}
+            </View>
+          </View>
+          <View className="gap-[6]">
+            <Text className="font-nunito-bold text-xs text-primaryText">
+              {t("admin.packs.availability")}
+            </Text>
+            <AdminSegmentedControl
+              value={draft.isActive ? "active" : "inactive"}
+              options={[
+                { label: t("admin.common.active"), value: "active" },
+                { label: t("admin.common.inactive"), value: "inactive" },
+              ]}
+              onChange={(value) =>
+                setDraft((current) => ({
+                  ...current,
+                  isActive: value === "active",
+                }))
               }
-              icon={modalMode === "edit" ? "save" : "add"}
-              onPress={() => saveMutation.mutate()}
-              disabled={saveMutation.isPending}
             />
           </View>
-        </View>
-      </AdminModal>
+          {submitError ? (
+            <Text className="font-nunito-bold text-[13px] text-dangerText">
+              {submitError}
+            </Text>
+          ) : null}
+          <View className="flex-row gap-3">
+            <View className="flex-1">
+              <AdminButton
+                label={t("common.cancel")}
+                variant="ghost"
+                onPress={closeModal}
+              />
+            </View>
+            <View className="flex-1">
+              <AdminButton
+                label={
+                  saveMutation.isPending
+                    ? t("admin.common.saving")
+                    : modalMode === "edit"
+                      ? t("admin.packs.savePack")
+                      : t("admin.packs.createPack")
+                }
+                icon={modalMode === "edit" ? "save" : "add"}
+                onPress={() => saveMutation.mutate()}
+                disabled={saveMutation.isPending}
+              />
+            </View>
+          </View>
+        </AdminModal>
+      ) : null}
     </>
   );
 }

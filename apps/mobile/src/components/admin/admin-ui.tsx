@@ -84,7 +84,10 @@ export function AdminPanel({
           backgroundColor: backgrounds[tint],
           borderColor:
             chrome === "soft"
-              ? withAlpha(tc.primaryBorder, themeName === "nightosphere" ? "24" : "1F")
+              ? withAlpha(
+                  tc.primaryBorder,
+                  themeName === "nightosphere" ? "24" : "1F",
+                )
               : withAlpha(tc.primaryBorder, "6B"),
           borderWidth: chrome === "soft" ? StyleSheet.hairlineWidth : undefined,
           boxShadow:
@@ -731,6 +734,10 @@ export function AdminModal({
 }) {
   const { themeName } = useThemeStore();
   const tc = THEME_COLORS[themeName];
+
+  if (!visible) {
+    return null;
+  }
 
   return (
     <Modal

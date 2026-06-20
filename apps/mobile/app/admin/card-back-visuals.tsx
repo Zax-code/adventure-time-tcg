@@ -26,7 +26,13 @@ import {
 import { useTranslation } from "../../src/i18n";
 
 const THEME_ORDER = ["candy", "ice", "nightosphere"] as const;
-const RARITY_ORDER = ["Common", "Uncommon", "Rare", "Epic", "Legendary"] as const;
+const RARITY_ORDER = [
+  "Common",
+  "Uncommon",
+  "Rare",
+  "Epic",
+  "Legendary",
+] as const;
 const EMPTY_VISUALS: AdminCardBackVisual[] = [];
 const EMPTY_IMAGE_ASSETS: AdminImageAssetsResponse["imageAssets"] = [];
 
@@ -51,10 +57,138 @@ function toDraft(visual: AdminCardBackVisual): Draft {
   };
 }
 
+function CardBackVisualEditorModal({
+  draft,
+  recentAssets,
+  submitError,
+  saving,
+  onChangeDraft,
+  onClose,
+  onSave,
+}: {
+  draft: Draft;
+  recentAssets: AdminImageAssetsResponse["imageAssets"];
+  submitError: string | null;
+  saving: boolean;
+  onChangeDraft: (updater: (current: Draft) => Draft) => void;
+  onClose: () => void;
+  onSave: () => void;
+}) {
+  const { t } = useTranslation();
+
+  return (
+    <AdminModal
+      visible
+      title={t("admin.cardBackVisuals.modalTitle", {
+        theme: t(`settings.themeNames.${draft.themeName}`),
+        rarity: draft.rarityName,
+      })}
+      onClose={onClose}
+    >
+      <AdminField
+        label={t("admin.cardBackVisuals.assetId")}
+        value={draft.imageAssetId}
+        onChangeText={(value) =>
+          onChangeDraft((current) => ({ ...current, imageAssetId: value }))
+        }
+        placeholder={t("admin.cardBackVisuals.assetPlaceholder")}
+      />
+      <View className="gap-3 rounded-[24] border border-primaryBorder/20 bg-surfaceMuted p-[14]">
+        <Text className="font-nunito-bold text-xs text-primaryText">
+          {draft.imageAssetId
+            ? t("admin.cardBackVisuals.assigned")
+            : t("admin.cardBackVisuals.usingDefault")}
+        </Text>
+        {draft.imageAssetId ? (
+          <View className="overflow-hidden rounded-[18] border border-primaryBorder/20 bg-primaryTint/25">
+            <Image
+              source={{ uri: getCatalogImageUrl(draft.imageAssetId) }}
+              style={{ width: "100%", aspectRatio: 1024 / 1536 }}
+              contentFit="cover"
+            />
+          </View>
+        ) : null}
+        <AdminButton
+          label={t("admin.common.useDefault")}
+          variant="ghost"
+          onPress={() =>
+            onChangeDraft((current) => ({ ...current, imageAssetId: "" }))
+          }
+        />
+      </View>
+      <View className="gap-3 rounded-[24] border border-primaryBorder/20 bg-surfaceMuted p-[14]">
+        <View className="gap-1">
+          <Text className="font-nunito-bold text-xs text-primaryText">
+            {t("admin.cardBackVisuals.recentArtShelf")}
+          </Text>
+          <Text className="font-nunito-semibold text-[12px] leading-[18px] text-fgMuted">
+            {t("admin.cardBackVisuals.recentArtSubtitle")}
+          </Text>
+        </View>
+        <View className="flex-row flex-wrap gap-3">
+          {recentAssets.map((asset) => (
+            <Pressable
+              key={asset.id}
+              className="w-[88px] gap-2"
+              onPress={() =>
+                onChangeDraft((current) => ({
+                  ...current,
+                  imageAssetId: asset.id,
+                }))
+              }
+            >
+              <View className="overflow-hidden rounded-[16] border border-primaryBorder/20 bg-primaryTint/25">
+                <Image
+                  source={{ uri: getCatalogImageUrl(asset.id) }}
+                  style={{ width: "100%", aspectRatio: 1024 / 1536 }}
+                  contentFit="cover"
+                />
+              </View>
+              <Text
+                className="font-nunito-bold text-[10px] text-primaryStrong"
+                numberOfLines={2}
+              >
+                {asset.id}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      </View>
+      {submitError ? (
+        <Text className="font-nunito-bold text-[13px] text-dangerText">
+          {submitError}
+        </Text>
+      ) : null}
+      <View className="flex-row gap-3">
+        <View className="flex-1">
+          <AdminButton
+            label={t("common.cancel")}
+            variant="ghost"
+            onPress={onClose}
+          />
+        </View>
+        <View className="flex-1">
+          <AdminButton
+            label={
+              saving
+                ? t("admin.common.saving")
+                : t("admin.cardBackVisuals.save")
+            }
+            icon="save"
+            onPress={onSave}
+            disabled={saving}
+          />
+        </View>
+      </View>
+    </AdminModal>
+  );
+}
+
 export default function AdminCardBackVisualsScreen() {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
-  const [editingVisual, setEditingVisual] = useState<AdminCardBackVisual | null>(null);
+  const [editingVisual, setEditingVisual] =
+    useState<AdminCardBackVisual | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -66,12 +200,16 @@ export default function AdminCardBackVisualsScreen() {
   const { data: imageAssetsData } = useQuery({
     queryKey: ["admin-image-assets"],
     queryFn: () => apiClient.adminImageAssets(),
+    enabled: draft !== null,
   });
 
   const visuals = visualsData?.cardBackVisuals ?? EMPTY_VISUALS;
   const imageAssets = imageAssetsData?.imageAssets ?? EMPTY_IMAGE_ASSETS;
-  const recentAssets = imageAssets.slice(0, 15);
-  const assignedCount = visuals.filter((visual) => visual.imageAssetId).length;
+  const recentAssets = useMemo(() => imageAssets.slice(0, 15), [imageAssets]);
+  const assignedCount = useMemo(
+    () => visuals.filter((visual) => visual.imageAssetId).length,
+    [visuals],
+  );
 
   const visualsByTheme = useMemo(
     () =>
@@ -81,7 +219,8 @@ export default function AdminCardBackVisualsScreen() {
           (rarityName) =>
             visuals.find(
               (visual) =>
-                visual.themeName === themeName && visual.rarityName === rarityName,
+                visual.themeName === themeName &&
+                visual.rarityName === rarityName,
             ) ?? {
               themeName,
               rarityName,
@@ -105,11 +244,15 @@ export default function AdminCardBackVisualsScreen() {
       });
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["admin-card-back-visuals"] });
+      await queryClient.invalidateQueries({
+        queryKey: ["admin-card-back-visuals"],
+      });
       closeModal();
     },
     onError: (error) => {
-      setSubmitError(parseError(error, t("admin.cardBackVisuals.couldNotSave")));
+      setSubmitError(
+        parseError(error, t("admin.cardBackVisuals.couldNotSave")),
+      );
     },
   });
 
@@ -123,6 +266,10 @@ export default function AdminCardBackVisualsScreen() {
     setEditingVisual(visual);
     setDraft(toDraft(visual));
     setSubmitError(null);
+  }
+
+  function updateDraft(updater: (current: Draft) => Draft) {
+    setDraft((current) => (current ? updater(current) : current));
   }
 
   return (
@@ -188,7 +335,9 @@ export default function AdminCardBackVisualsScreen() {
                     {visual.imageAssetId ? (
                       <View className="overflow-hidden rounded-[18] border border-primaryBorder/20 bg-primaryTint/25">
                         <Image
-                          source={{ uri: getCatalogImageUrl(visual.imageAssetId) }}
+                          source={{
+                            uri: getCatalogImageUrl(visual.imageAssetId),
+                          }}
                           style={{ width: "100%", aspectRatio: 1024 / 1536 }}
                           contentFit="cover"
                         />
@@ -219,121 +368,17 @@ export default function AdminCardBackVisualsScreen() {
         )}
       </AdminPageScroll>
 
-      <AdminModal
-        visible={draft !== null && editingVisual !== null}
-        title={
-          draft
-            ? t("admin.cardBackVisuals.modalTitle", {
-                theme: t(`settings.themeNames.${draft.themeName}`),
-                rarity: draft.rarityName,
-              })
-            : t("admin.cardBackVisuals.title")
-        }
-        onClose={closeModal}
-      >
-        {draft ? (
-          <>
-            <AdminField
-              label={t("admin.cardBackVisuals.assetId")}
-              value={draft.imageAssetId}
-              onChangeText={(value) =>
-                setDraft((current) =>
-                  current ? { ...current, imageAssetId: value } : current,
-                )
-              }
-              placeholder={t("admin.cardBackVisuals.assetPlaceholder")}
-            />
-            <View className="gap-3 rounded-[24] border border-primaryBorder/20 bg-surfaceMuted p-[14]">
-              <Text className="font-nunito-bold text-xs text-primaryText">
-                {draft.imageAssetId
-                  ? t("admin.cardBackVisuals.assigned")
-                  : t("admin.cardBackVisuals.usingDefault")}
-              </Text>
-              {draft.imageAssetId ? (
-                <View className="overflow-hidden rounded-[18] border border-primaryBorder/20 bg-primaryTint/25">
-                  <Image
-                    source={{ uri: getCatalogImageUrl(draft.imageAssetId) }}
-                    style={{ width: "100%", aspectRatio: 1024 / 1536 }}
-                    contentFit="cover"
-                  />
-                </View>
-              ) : null}
-              <AdminButton
-                label={t("admin.common.useDefault")}
-                variant="ghost"
-                onPress={() =>
-                  setDraft((current) =>
-                    current ? { ...current, imageAssetId: "" } : current,
-                  )
-                }
-              />
-            </View>
-            <View className="gap-3 rounded-[24] border border-primaryBorder/20 bg-surfaceMuted p-[14]">
-              <View className="gap-1">
-                <Text className="font-nunito-bold text-xs text-primaryText">
-                  {t("admin.cardBackVisuals.recentArtShelf")}
-                </Text>
-                <Text className="font-nunito-semibold text-[12px] leading-[18px] text-fgMuted">
-                  {t("admin.cardBackVisuals.recentArtSubtitle")}
-                </Text>
-              </View>
-              <View className="flex-row flex-wrap gap-3">
-                {recentAssets.map((asset: AdminImageAssetsResponse["imageAssets"][number]) => (
-                  <Pressable
-                    key={asset.id}
-                    className="w-[88px] gap-2"
-                    onPress={() =>
-                      setDraft((current) =>
-                        current ? { ...current, imageAssetId: asset.id } : current,
-                      )
-                    }
-                  >
-                    <View className="overflow-hidden rounded-[16] border border-primaryBorder/20 bg-primaryTint/25">
-                      <Image
-                        source={{ uri: getCatalogImageUrl(asset.id) }}
-                        style={{ width: "100%", aspectRatio: 1024 / 1536 }}
-                        contentFit="cover"
-                      />
-                    </View>
-                    <Text
-                      className="font-nunito-bold text-[10px] text-primaryStrong"
-                      numberOfLines={2}
-                    >
-                      {asset.id}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-            </View>
-            {submitError ? (
-              <Text className="font-nunito-bold text-[13px] text-dangerText">
-                {submitError}
-              </Text>
-            ) : null}
-            <View className="flex-row gap-3">
-              <View className="flex-1">
-                <AdminButton
-                  label={t("common.cancel")}
-                  variant="ghost"
-                  onPress={closeModal}
-                />
-              </View>
-              <View className="flex-1">
-                <AdminButton
-                  label={
-                    saveMutation.isPending
-                      ? t("admin.common.saving")
-                      : t("admin.cardBackVisuals.save")
-                  }
-                  icon="save"
-                  onPress={() => saveMutation.mutate()}
-                  disabled={saveMutation.isPending}
-                />
-              </View>
-            </View>
-          </>
-        ) : null}
-      </AdminModal>
+      {draft !== null && editingVisual !== null ? (
+        <CardBackVisualEditorModal
+          draft={draft}
+          recentAssets={recentAssets}
+          submitError={submitError}
+          saving={saveMutation.isPending}
+          onChangeDraft={updateDraft}
+          onClose={closeModal}
+          onSave={() => saveMutation.mutate()}
+        />
+      ) : null}
     </>
   );
 }

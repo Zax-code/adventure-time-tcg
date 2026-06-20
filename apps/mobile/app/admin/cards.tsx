@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   FlatList,
+  InteractionManager,
   Pressable,
   Text,
   View,
@@ -153,6 +154,9 @@ export default function AdminCardsScreen() {
     const archived: AdminCard[] = [];
     const rarityCounts = new Map<string, number>();
     const cardById = new Map<string, AdminCard>();
+    let allActiveCount = 0;
+    let allArchivedCount = 0;
+    let featuredCount = 0;
 
     for (const card of cards) {
       cardById.set(card.id, card);
@@ -160,6 +164,16 @@ export default function AdminCardsScreen() {
         card.rarityId,
         (rarityCounts.get(card.rarityId) ?? 0) + 1,
       );
+
+      if (card.isArchived) {
+        allArchivedCount += 1;
+      } else {
+        allActiveCount += 1;
+
+        if (card.isFeatured) {
+          featuredCount += 1;
+        }
+      }
 
       const matchesSearch =
         !query ||
@@ -179,10 +193,9 @@ export default function AdminCardsScreen() {
     return {
       activeCards: active,
       archivedCards: archived,
-      allActiveCount: cards.filter((card) => !card.isArchived).length,
-      allArchivedCount: cards.filter((card) => card.isArchived).length,
-      featuredCount: cards.filter((card) => card.isFeatured && !card.isArchived)
-        .length,
+      allActiveCount,
+      allArchivedCount,
+      featuredCount,
       rarityCounts,
       cardById,
     };
@@ -203,9 +216,15 @@ export default function AdminCardsScreen() {
   );
 
   useEffect(() => {
-    if (prefetchKey) {
-      void prefetchCardImages(prefetchKey.split(","));
+    if (!prefetchKey) {
+      return undefined;
     }
+
+    const handle = InteractionManager.runAfterInteractions(() => {
+      void prefetchCardImages(prefetchKey.split(","));
+    });
+
+    return () => handle.cancel();
   }, [prefetchKey]);
 
   const listData = useMemo(() => {
