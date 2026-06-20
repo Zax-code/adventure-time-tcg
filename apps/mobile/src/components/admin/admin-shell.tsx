@@ -1,6 +1,12 @@
 import type { ReactNode } from "react";
-import { memo } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { memo, useEffect } from "react";
+import {
+  InteractionManager,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { usePathname, useRouter } from "expo-router";
 // oxlint-disable-next-line react-doctor/rn-no-legacy-expo-packages -- False positive: the rule docs only identify expo-av and expo-permissions as legacy packages.
@@ -10,6 +16,8 @@ import Ionicons from "@react-native-vector-icons/ionicons";
 import { BottomTabBarFrame, type ThemeColorKey } from "../bottom-tab-bar-frame";
 import { CoinIcon, CardsIcon, HomeIcon, SettingsIcon } from "../icons";
 import { useTranslation } from "../../i18n";
+import { apiClient } from "../../lib/api";
+import { queryClient } from "../../lib/query-client";
 import { useSessionStore } from "../../stores/session-store";
 import { useThemeStore } from "../../stores/theme-store";
 import { THEME_COLORS } from "../../theme/themes";
@@ -66,6 +74,8 @@ const NAV_ITEMS: {
   },
 ];
 
+const ADMIN_PREFETCH_STALE_TIME = 5 * 60 * 1000;
+
 const CoinPill = memo(function CoinPill() {
   const coins = useSessionStore((state) => state.user?.coins ?? 0);
   const { themeName } = useThemeStore();
@@ -93,6 +103,9 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const pathname = usePathname();
+  const isSuperAdmin = useSessionStore(
+    (state) => state.user?.isSuperAdmin ?? false,
+  );
   const { themeName } = useThemeStore();
   const tc = THEME_COLORS[themeName];
   const { t } = useTranslation();
@@ -104,6 +117,87 @@ export function AdminShell({ children }: { children: ReactNode }) {
     ),
     0,
   );
+
+  useEffect(() => {
+    let cancelled = false;
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    const handle = InteractionManager.runAfterInteractions(() => {
+      if (cancelled) {
+        return;
+      }
+
+      const warmups = [
+        () =>
+          queryClient.prefetchQuery({
+            queryKey: ["admin-cards"],
+            queryFn: () => apiClient.adminCards(),
+            staleTime: ADMIN_PREFETCH_STALE_TIME,
+          }),
+        () =>
+          queryClient.prefetchQuery({
+            queryKey: ["admin-rarities"],
+            queryFn: () => apiClient.rarities(),
+            staleTime: ADMIN_PREFETCH_STALE_TIME,
+          }),
+        () =>
+          queryClient.prefetchQuery({
+            queryKey: ["admin-packs"],
+            queryFn: () => apiClient.adminPacks(),
+            staleTime: ADMIN_PREFETCH_STALE_TIME,
+          }),
+        () =>
+          queryClient.prefetchQuery({
+            queryKey: ["admin-card-back-visuals"],
+            queryFn: () => apiClient.adminCardBackVisuals(),
+            staleTime: ADMIN_PREFETCH_STALE_TIME,
+          }),
+        () =>
+          queryClient.prefetchQuery({
+            queryKey: ["admin-abilities"],
+            queryFn: () => apiClient.adminAbilities(),
+            staleTime: ADMIN_PREFETCH_STALE_TIME,
+          }),
+        () =>
+          queryClient.prefetchQuery({
+            queryKey: ["admin-users"],
+            queryFn: () => apiClient.adminUsers(),
+            staleTime: ADMIN_PREFETCH_STALE_TIME,
+          }),
+        () =>
+          queryClient.prefetchQuery({
+            queryKey: ["admin-image-assets"],
+            queryFn: () => apiClient.adminImageAssets(),
+            staleTime: ADMIN_PREFETCH_STALE_TIME,
+          }),
+        ...(isSuperAdmin
+          ? [
+              () =>
+                queryClient.prefetchQuery({
+                  queryKey: ["admin-email-requests"],
+                  queryFn: () => apiClient.adminEmailRequests(),
+                  staleTime: ADMIN_PREFETCH_STALE_TIME,
+                }),
+            ]
+          : []),
+      ];
+
+      warmups.forEach((warmup, index) => {
+        timers.push(
+          setTimeout(() => {
+            if (!cancelled) {
+              void warmup();
+            }
+          }, index * 120),
+        );
+      });
+    });
+
+    return () => {
+      cancelled = true;
+      handle.cancel();
+      timers.forEach(clearTimeout);
+    };
+  }, [isSuperAdmin]);
 
   return (
     <AdminBackground>

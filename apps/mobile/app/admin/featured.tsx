@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   FlatList,
+  InteractionManager,
   Pressable,
   Text,
   View,
@@ -121,9 +122,15 @@ export default function AdminFeaturedScreen() {
   );
 
   useEffect(() => {
-    if (prefetchKey) {
-      void prefetchCardImages(prefetchKey.split(","));
+    if (!prefetchKey) {
+      return undefined;
     }
+
+    const handle = InteractionManager.runAfterInteractions(() => {
+      void prefetchCardImages(prefetchKey.split(","));
+    });
+
+    return () => handle.cancel();
   }, [prefetchKey]);
 
   const derived = useMemo(() => {
