@@ -1,16 +1,13 @@
 import type { ReactNode } from "react";
-import { memo, useEffect, useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { memo } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { usePathname, useRouter } from "expo-router";
+// oxlint-disable-next-line react-doctor/rn-no-legacy-expo-packages -- False positive: the rule docs only identify expo-av and expo-permissions as legacy packages.
 import { LinearGradient } from "expo-linear-gradient";
 import Ionicons from "@react-native-vector-icons/ionicons";
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from "react-native-reanimated";
 
+import { BottomTabBarFrame, type ThemeColorKey } from "../bottom-tab-bar-frame";
 import { CoinIcon, CardsIcon, HomeIcon, SettingsIcon } from "../icons";
 import { useTranslation } from "../../i18n";
 import { useSessionStore } from "../../stores/session-store";
@@ -18,8 +15,6 @@ import { useThemeStore } from "../../stores/theme-store";
 import { THEME_COLORS } from "../../theme/themes";
 import { withAlpha } from "./admin-palette";
 import { AdminBackground } from "./admin-ui";
-
-type ThemeColorKey = keyof (typeof THEME_COLORS)["candy"];
 
 const NAV_ITEMS: {
   path: string;
@@ -81,19 +76,10 @@ const CoinPill = memo(function CoinPill() {
       colors={[tc.secondary, tc.secondaryDark]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 0 }}
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 8,
-        borderRadius: 999,
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        shadowColor: tc.fg,
-        shadowOpacity: 0.12,
-        shadowRadius: 8,
-        shadowOffset: { width: 0, height: 4 },
-        elevation: 4,
-      }}
+      style={[
+        styles.coinPill,
+        { boxShadow: `0px 4px 8px ${withAlpha(tc.fg, "1F")}` },
+      ]}
     >
       <CoinIcon size={20} />
       <Text className="font-nunito-extrabold text-sm text-secondaryText">
@@ -110,9 +96,6 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const { themeName } = useThemeStore();
   const tc = THEME_COLORS[themeName];
   const { t } = useTranslation();
-  const [barWidth, setBarWidth] = useState(0);
-  const selectorOffset = useSharedValue(0);
-  const selectorInset = 6;
   const activeTabIndex = Math.max(
     NAV_ITEMS.findIndex(
       (item) =>
@@ -121,25 +104,6 @@ export function AdminShell({ children }: { children: ReactNode }) {
     ),
     0,
   );
-  const selectorWidth =
-    barWidth > selectorInset * 2
-      ? (barWidth - selectorInset * 2) / NAV_ITEMS.length
-      : 0;
-  const selectorStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: selectorOffset.value }],
-  }));
-
-  useEffect(() => {
-    if (!selectorWidth) {
-      return;
-    }
-
-    selectorOffset.value = withSpring(selectorWidth * activeTabIndex, {
-      damping: 20,
-      mass: 0.9,
-      stiffness: 240,
-    });
-  }, [activeTabIndex, selectorOffset, selectorWidth]);
 
   return (
     <AdminBackground>
@@ -157,18 +121,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
                     colors={[tc.accent, tc.accentDark, tc.accentText]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 999,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      shadowColor: "#000",
-                      shadowOpacity: 0.15,
-                      shadowRadius: 8,
-                      shadowOffset: { width: 0, height: 3 },
-                      elevation: 3,
-                    }}
+                    style={styles.headerGradientButton}
                   >
                     <View style={{ transform: [{ translateY: -1.5 }] }}>
                       <HomeIcon size={22} color="#FFFFFF" />
@@ -177,19 +130,10 @@ export function AdminShell({ children }: { children: ReactNode }) {
                 </Pressable>
                 <Pressable onPress={() => router.push("/settings")} hitSlop={8}>
                   <View
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 999,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      backgroundColor: tc.surfaceMuted,
-                      shadowColor: "#000",
-                      shadowOpacity: 0.1,
-                      shadowRadius: 4,
-                      shadowOffset: { width: 0, height: 2 },
-                      elevation: 2,
-                    }}
+                    style={[
+                      styles.headerSurfaceButton,
+                      { backgroundColor: tc.surfaceMuted },
+                    ]}
                   >
                     <SettingsIcon size={24} color={tc.primaryDark} />
                   </View>
@@ -208,106 +152,73 @@ export function AdminShell({ children }: { children: ReactNode }) {
 
         <View className="flex-1">{children}</View>
 
-        <View
-          pointerEvents="box-none"
-          style={{
-            position: "absolute",
-            left: 0,
-            right: 0,
-            bottom: 0,
-            zIndex: 40,
-          }}
+        <BottomTabBarFrame
+          activeIndex={activeTabIndex}
+          itemCount={NAV_ITEMS.length}
         >
-          <View
-            className="px-1"
-            style={{ paddingBottom: Math.max(insets.bottom, 12) }}
-          >
-            <View
-              className="rounded-[30] border"
-              style={{
-                backgroundColor: tc.surface,
-                borderColor: withAlpha(tc.primaryBorder, "73"),
-                shadowColor: tc.fg,
-                shadowOpacity: themeName === "nightosphere" ? 0.22 : 0.08,
-                shadowRadius: 12,
-                shadowOffset: { width: 0, height: 6 },
-                elevation: 5,
-              }}
-            >
-              <View
-                className="relative p-[6px]"
-                onLayout={(event) => {
-                  const nextWidth = Math.round(event.nativeEvent.layout.width);
-                  setBarWidth((currentWidth) =>
-                    currentWidth === nextWidth ? currentWidth : nextWidth,
-                  );
-                }}
-              >
-                {selectorWidth ? (
-                  <Animated.View
-                    pointerEvents="none"
-                    style={[
-                      {
-                        position: "absolute",
-                        top: selectorInset,
-                        bottom: selectorInset,
-                        left: selectorInset,
-                        width: selectorWidth,
-                        borderRadius: 22,
-                        backgroundColor: withAlpha(tc.primaryTint, "E8"),
-                        borderWidth: 1,
-                        borderColor: withAlpha(tc.primaryBorder, "4D"),
-                      },
-                      selectorStyle,
-                    ]}
-                  />
-                ) : null}
-                <View className="flex-row">
-                  {NAV_ITEMS.map((item) => {
-                    const active =
-                      pathname === item.path ||
-                      (pathname === "/admin" &&
-                        item.path === "/admin/cards");
-                    const tint = tc[item.tintKey];
+          <View className="flex-row items-center">
+            {NAV_ITEMS.map((item) => {
+              const active =
+                pathname === item.path ||
+                (pathname === "/admin" && item.path === "/admin/cards");
+              const tint = tc[item.tintKey];
+              const color = active ? tint : tc.fgMuted;
 
-                    return (
-                      <Pressable
-                        key={item.path}
-                        onPress={() => router.replace(item.path as any)}
-                        className="flex-1 items-center justify-center gap-1 rounded-[22] px-0 py-2"
-                        style={{ minWidth: 0 }}
-                      >
-                        {item.path === "/admin/cards" ? (
-                          <CardsIcon
-                            size={20}
-                            color={active ? tint : tc.fgMuted}
-                          />
-                        ) : (
-                          <Ionicons
-                            name={item.icon}
-                            size={20}
-                            color={active ? tint : tc.fgMuted}
-                          />
-                        )}
-                        <Text
-                          className="font-nunito-extrabold text-[9px]"
-                          numberOfLines={1}
-                          style={{
-                            color: active ? tint : tc.fgMuted,
-                            flexShrink: 1,
-                          }}
-                        >
-                          {t(item.labelKey)}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              </View>
-            </View>
+              return (
+                <Pressable
+                  key={item.path}
+                  onPress={() => router.replace(item.path as any)}
+                  className="flex-1 items-center justify-center gap-1 rounded-[22px] px-0 py-2"
+                  style={{ minWidth: 0 }}
+                >
+                  {item.path === "/admin/cards" ? (
+                    <CardsIcon size={24} color={color} />
+                  ) : (
+                    <Ionicons name={item.icon} size={24} color={color} />
+                  )}
+                  <Text
+                    className="text-center text-[9px] font-nunito-extrabold"
+                    numberOfLines={1}
+                    style={{
+                      color,
+                      flexShrink: 1,
+                    }}
+                  >
+                    {t(item.labelKey)}
+                  </Text>
+                </Pressable>
+              );
+            })}
           </View>
-        </View>
+        </BottomTabBarFrame>
       </View>
     </AdminBackground>
   );
 }
+
+const styles = StyleSheet.create({
+  coinPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderRadius: 999,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  headerGradientButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    boxShadow: "0px 3px 8px rgba(0, 0, 0, 0.15)",
+  },
+  headerSurfaceButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.1)",
+  },
+});
