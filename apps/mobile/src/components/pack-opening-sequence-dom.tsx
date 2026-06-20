@@ -2,7 +2,12 @@
 
 import { useState, type CSSProperties } from "react";
 
-import { getPackOpeningArtSource } from "./pack-opening-art";
+import {
+  getContainedPackOpeningArtLayout,
+  getPackOpeningArtDimensions,
+  getPackOpeningArtSource,
+  type PackOpeningArtLayout,
+} from "./pack-opening-art";
 import { getPackOpeningVisualProfile } from "./pack-opening-visuals";
 
 type PackAnimationData = {
@@ -50,7 +55,6 @@ type Sparkle = {
 
 const CARD_W = 320;
 const CARD_H = 460;
-const CENTER = { x: CARD_W * 0.5, y: CARD_H * 0.47 };
 
 const CSS = `
   html, body {
@@ -659,48 +663,63 @@ function shuffleArray<T>(items: T[]) {
     .map(({ item }) => item);
 }
 
-function getRayToCardEdge(angle: number) {
+function getRayToArtEdge(
+  centerX: number,
+  centerY: number,
+  angle: number,
+  artLayout: PackOpeningArtLayout,
+) {
   const dx = Math.cos(angle);
   const dy = Math.sin(angle);
   const candidates: number[] = [];
+  const left = artLayout.x;
+  const right = artLayout.x + artLayout.width;
+  const top = artLayout.y;
+  const bottom = artLayout.y + artLayout.height;
 
   if (dx > 0) {
-    candidates.push((CARD_W - CENTER.x) / dx);
+    candidates.push((right - centerX) / dx);
   }
   if (dx < 0) {
-    candidates.push((0 - CENTER.x) / dx);
+    candidates.push((left - centerX) / dx);
   }
   if (dy > 0) {
-    candidates.push((CARD_H - CENTER.y) / dy);
+    candidates.push((bottom - centerY) / dy);
   }
   if (dy < 0) {
-    candidates.push((0 - CENTER.y) / dy);
+    candidates.push((top - centerY) / dy);
   }
 
   const distance = Math.min(...candidates.filter((candidate) => candidate > 0));
 
   return {
-    x: CENTER.x + dx * distance,
-    y: CENTER.y + dy * distance,
+    x: centerX + dx * distance,
+    y: centerY + dy * distance,
     dx,
     dy,
     distance,
   };
 }
 
-function createLightningCrackPath(angle: number) {
-  const edge = getRayToCardEdge(angle);
+function createLightningCrackPath(
+  angle: number,
+  centerX: number,
+  centerY: number,
+  artLayout: PackOpeningArtLayout,
+) {
+  const edge = getRayToArtEdge(centerX, centerY, angle, artLayout);
   const normalX = -edge.dy;
   const normalY = edge.dx;
-  const points = [CENTER];
+  const points = [{ x: centerX, y: centerY }];
   const segments = Math.floor(randomBetween(5, 8));
 
   for (let index = 1; index < segments; index += 1) {
     const progress = index / segments;
-    const baseX = CENTER.x + edge.dx * edge.distance * progress;
-    const baseY = CENTER.y + edge.dy * edge.distance * progress;
+    const baseX = centerX + edge.dx * edge.distance * progress;
+    const baseY = centerY + edge.dy * edge.distance * progress;
     const amplitude =
-      Math.min(22, edge.distance * 0.11) * Math.sin(Math.PI * progress);
+      Math.min(artLayout.width * 0.1, edge.distance * 0.11) *
+      Math.sin(Math.PI * progress);
     const offset = randomBetween(-amplitude, amplitude);
 
     points.push({
@@ -732,7 +751,14 @@ function createLightningCrackPath(angle: number) {
   };
 }
 
-function buildCracks(): Crack[] {
+function buildCracks(pack: PackAnimationData): Crack[] {
+  const artLayout = getContainedPackOpeningArtLayout(
+    CARD_W,
+    CARD_H,
+    getPackOpeningArtDimensions(pack),
+  );
+  const centerX = artLayout.x + artLayout.width * 0.5;
+  const centerY = artLayout.y + artLayout.height * 0.47;
   const count = 7;
   const start = randomBetween(0, Math.PI * 2);
   const angles = Array.from({ length: count }, (_, index) => {
@@ -741,7 +767,7 @@ function buildCracks(): Crack[] {
   });
 
   return shuffleArray(angles).map((angle, index) => {
-    const path = createLightningCrackPath(angle);
+    const path = createLightningCrackPath(angle, centerX, centerY, artLayout);
     return {
       ...path,
       delay: index * 0.075 + randomBetween(0, 0.045),
@@ -817,7 +843,7 @@ function createBurstPattern(pack: PackAnimationData) {
   const burst = buildBurstElements(pack);
 
   return {
-    cracks: buildCracks(),
+    cracks: buildCracks(pack),
     particles: burst.particles,
     shards: burst.shards,
     sparkles: buildSparkles(visualProfile.sparkCount),
@@ -891,16 +917,6 @@ export default function PackOpeningSequenceDom({
               className="pack-opening-crack-layer"
               viewBox={`0 0 ${CARD_W} ${CARD_H}`}
               preserveAspectRatio="none"
-              style={cssVarStyle({
-                WebkitMaskImage: `url(${packArtSrc})`,
-                WebkitMaskPosition: "center",
-                WebkitMaskRepeat: "no-repeat",
-                WebkitMaskSize: "contain",
-                maskImage: `url(${packArtSrc})`,
-                maskPosition: "center",
-                maskRepeat: "no-repeat",
-                maskSize: "contain",
-              })}
             >
               {cracks.map((crack) => (
                 <g key={crack.id}>

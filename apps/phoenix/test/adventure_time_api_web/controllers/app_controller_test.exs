@@ -199,6 +199,7 @@ defmodule AdventureTimeApiWeb.AppControllerTest do
     assert response["newBalance"] == 150
     assert response["pack"]["id"] == pack.id
     assert response["pack"]["guaranteedRarity"] == "Rare"
+    assert Map.has_key?(response["pack"], "packArtAssetId")
     assert length(response["cards"]) == 3
     assert Enum.any?(response["cards"], &(&1["id"] == rare_card.id))
 

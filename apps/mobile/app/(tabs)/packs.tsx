@@ -52,7 +52,12 @@ import {
   ZapIcon,
 } from "../../src/components/icons";
 import { PageLoadingState } from "../../src/components/loading-state";
-import { getPackOpeningArtSource } from "../../src/components/pack-opening-art";
+import {
+  getContainedPackOpeningArtLayout,
+  getPackOpeningArtDimensions,
+  getPackOpeningArtSource,
+  type PackOpeningArtLayout,
+} from "../../src/components/pack-opening-art";
 import { getPackOpeningVisualProfile } from "../../src/components/pack-opening-visuals";
 import PackOpeningSequenceDom from "../../src/components/pack-opening-sequence-dom";
 import {
@@ -310,23 +315,26 @@ function getRayToPackEdge(
   centerX: number,
   centerY: number,
   angle: number,
-  width: number,
-  height: number,
+  artLayout: PackOpeningArtLayout,
 ) {
   const dx = Math.cos(angle);
   const dy = Math.sin(angle);
   const candidates: number[] = [];
+  const left = artLayout.x;
+  const right = artLayout.x + artLayout.width;
+  const top = artLayout.y;
+  const bottom = artLayout.y + artLayout.height;
 
   if (dx > 0) {
-    candidates.push((width - centerX) / dx);
+    candidates.push((right - centerX) / dx);
   } else if (dx < 0) {
-    candidates.push((0 - centerX) / dx);
+    candidates.push((left - centerX) / dx);
   }
 
   if (dy > 0) {
-    candidates.push((height - centerY) / dy);
+    candidates.push((bottom - centerY) / dy);
   } else if (dy < 0) {
-    candidates.push((0 - centerY) / dy);
+    candidates.push((top - centerY) / dy);
   }
 
   const distance = Math.min(...candidates.filter((candidate) => candidate > 0));
@@ -344,10 +352,9 @@ function createLightningCrackPath(
   centerX: number,
   centerY: number,
   angle: number,
-  width: number,
-  height: number,
+  artLayout: PackOpeningArtLayout,
 ) {
-  const edge = getRayToPackEdge(centerX, centerY, angle, width, height);
+  const edge = getRayToPackEdge(centerX, centerY, angle, artLayout);
   const normalX = -edge.dy;
   const normalY = edge.dx;
   const points = [{ x: centerX, y: centerY }];
@@ -358,7 +365,7 @@ function createLightningCrackPath(
     const baseX = centerX + edge.dx * edge.distance * progress;
     const baseY = centerY + edge.dy * edge.distance * progress;
     const amplitude =
-      Math.min(width * 0.1, edge.distance * 0.11) *
+      Math.min(artLayout.width * 0.1, edge.distance * 0.11) *
       Math.sin(Math.PI * progress);
     const offset = randomBetween(-amplitude, amplitude);
 
@@ -381,9 +388,21 @@ function createLightningCrackPath(
   };
 }
 
-function createBurstPattern(width: number, height: number): PackBurstPattern {
-  const centerX = width * 0.5;
-  const centerY = height * 0.47;
+function createBurstPattern(
+  width: number,
+  height: number,
+  pack?: Pick<Pack, "guaranteedRarity" | "name" | "packArtAssetId">,
+): PackBurstPattern {
+  const artDimensions = pack
+    ? getPackOpeningArtDimensions(pack)
+    : getPackOpeningArtDimensions({ name: "" });
+  const artLayout = getContainedPackOpeningArtLayout(
+    width,
+    height,
+    artDimensions,
+  );
+  const centerX = artLayout.x + artLayout.width * 0.5;
+  const centerY = artLayout.y + artLayout.height * 0.47;
   const crackCount = 9;
   const startAngle = randomBetween(0, Math.PI * 2);
   const crackAngles = Array.from({ length: crackCount }, (_, index) => {
@@ -396,8 +415,7 @@ function createBurstPattern(width: number, height: number): PackBurstPattern {
       centerX,
       centerY,
       angle,
-      width,
-      height,
+      artLayout,
     );
 
     return {
@@ -1052,97 +1070,23 @@ function PackLoadingGlow({
   );
 }
 
-function getCardBackPalette(
-  themeName: ThemeName,
-  tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS],
-) {
-  switch (themeName) {
-    case "ice":
-      return {
-        base: tc.infoTint,
-        border: tc.infoBorder,
-        frame: tc.surface,
-        emblemBg: tc.secondaryTint,
-        emblemBorder: tc.secondaryBorder,
-        emblemIcon: tc.infoDark,
-        stripe: tc.infoDark,
-        pip: tc.secondaryDark,
-        chipBg: tc.surface,
-        chipText: tc.infoText,
-      };
-    case "nightosphere":
-      return {
-        base: tc.surface,
-        border: tc.primaryBorder,
-        frame: tc.surfaceMuted,
-        emblemBg: tc.accentTint,
-        emblemBorder: tc.accentBorder,
-        emblemIcon: tc.primaryDark,
-        stripe: tc.primaryText,
-        pip: tc.accentText,
-        chipBg: tc.surfaceMuted,
-        chipText: tc.accentText,
-      };
-    case "candy":
-    default:
-      return {
-        base: tc.primaryTint,
-        border: tc.primaryBorder,
-        frame: tc.surface,
-        emblemBg: tc.secondaryTint,
-        emblemBorder: tc.secondaryBorder,
-        emblemIcon: tc.primaryStrong,
-        stripe: tc.accentDark,
-        pip: tc.primaryDark,
-        chipBg: tc.surface,
-        chipText: tc.primaryText,
-      };
-  }
-}
-
-function ThemeCardBackGlyph({
-  themeName,
-  size,
-  color,
-}: {
-  themeName: ThemeName;
-  size: number;
-  color: string;
-}) {
-  if (themeName === "ice") {
-    return <DiamondIcon size={size} color={color} />;
-  }
-
-  if (themeName === "nightosphere") {
-    return <EyeIcon size={size} color={color} />;
-  }
-
-  return <SparklesIcon size={size} color={color} />;
-}
-
 function CardBackFace({
   width,
-  tc,
   themeName,
   rarityName,
   cardBackVisualMap,
 }: {
   width: number;
-  tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
   themeName: ThemeName;
   rarityName: RarityName;
   cardBackVisualMap: CardBackVisualMap;
 }) {
   const height = width / PACK_CARD_RATIO;
-  const themePalette = getCardBackPalette(themeName, tc);
-  const rarityPalette = getThemeRarityPalette(themeName, rarityName);
   const backcoverSource = getCardBackcoverSource(
     themeName,
     rarityName,
     cardBackVisualMap.get(getCardBackVisualKey(themeName, rarityName)),
   );
-  const emblemSize = Math.max(84, width * 0.29);
-  const stripeWidth = width * 0.58;
 
   return (
     <View
@@ -1151,188 +1095,16 @@ function CardBackFace({
         height,
         borderRadius: 32,
         overflow: "hidden",
-        borderWidth: 1.5,
-        borderColor: withAlpha(rarityPalette.ring, "88"),
-        backgroundColor: withAlpha(rarityPalette.from, "E2"),
       }}
     >
       <Image
         source={backcoverSource}
         contentFit="cover"
         style={{
-          position: "absolute",
-          top: -1,
-          right: -1,
-          bottom: -1,
-          left: -1,
-          transform: [{ scale: 1.01 }],
+          width: "100%",
+          height: "100%",
         }}
       />
-      <View
-        pointerEvents="none"
-        style={{
-          position: "absolute",
-          top: 18,
-          right: 18,
-          bottom: 18,
-          left: 18,
-          borderRadius: 24,
-          borderWidth: 1,
-          borderColor: withAlpha(rarityPalette.ring, "42"),
-          backgroundColor: withAlpha(rarityPalette.to, "7A"),
-        }}
-      />
-      <View
-        pointerEvents="none"
-        style={{
-          position: "absolute",
-          top: 58,
-          left: 28,
-          right: 28,
-          height: 8,
-          borderRadius: 999,
-          backgroundColor: withAlpha(themePalette.stripe, "2E"),
-        }}
-      />
-      <View
-        pointerEvents="none"
-        style={{
-          position: "absolute",
-          bottom: 58,
-          left: 28,
-          right: 28,
-          height: 8,
-          borderRadius: 999,
-          backgroundColor: withAlpha(themePalette.stripe, "2E"),
-        }}
-      />
-      <View
-        pointerEvents="none"
-        style={{
-          position: "absolute",
-          top: 84,
-          bottom: 84,
-          left: 34,
-          width: 16,
-          borderRadius: 999,
-          backgroundColor: withAlpha(themePalette.emblemBg, "24"),
-        }}
-      />
-      <View
-        pointerEvents="none"
-        style={{
-          position: "absolute",
-          top: 84,
-          bottom: 84,
-          right: 34,
-          width: 16,
-          borderRadius: 999,
-          backgroundColor: withAlpha(themePalette.emblemBg, "24"),
-        }}
-      />
-      <View
-        pointerEvents="none"
-        style={{
-          position: "absolute",
-          top: 118,
-          left: 72,
-          right: 72,
-          height: 2,
-          backgroundColor: withAlpha(rarityPalette.ring, "36"),
-        }}
-      />
-      <View
-        pointerEvents="none"
-        style={{
-          position: "absolute",
-          bottom: 118,
-          left: 72,
-          right: 72,
-          height: 2,
-          backgroundColor: withAlpha(rarityPalette.ring, "36"),
-        }}
-      />
-
-      <View className="flex-1 items-center justify-between px-7 py-7">
-        <View
-          className="rounded-full px-3 py-1.5"
-          style={{ backgroundColor: withAlpha(rarityPalette.to, "7A") }}
-        >
-          <Text
-            className="font-nunito-extrabold text-[11px]"
-            style={{ color: withAlpha(tc.fg, "D4"), letterSpacing: 1.1 }}
-          >
-            ATCG
-          </Text>
-        </View>
-
-        <View className="items-center gap-5">
-          <View
-            className="items-center justify-center rounded-full"
-            style={{
-              width: emblemSize,
-              height: emblemSize,
-              borderWidth: 2,
-              borderColor: withAlpha(rarityPalette.ring, "80"),
-              backgroundColor: withAlpha(themePalette.emblemBg, "76"),
-            }}
-          >
-            <View
-              pointerEvents="none"
-              style={{
-                position: "absolute",
-                width: emblemSize * 0.74,
-                height: emblemSize * 0.74,
-                borderRadius: 999,
-                borderWidth: 1.5,
-                borderColor: withAlpha(rarityPalette.ring, "44"),
-                backgroundColor: withAlpha(rarityPalette.to, "4E"),
-              }}
-            />
-            <ThemeCardBackGlyph
-              themeName={themeName}
-              size={Math.max(36, emblemSize * 0.44)}
-              color={withAlpha(tc.fg, "CC")}
-            />
-          </View>
-
-          <View className="items-center gap-2">
-            <View
-              style={{
-                width: stripeWidth,
-                height: 8,
-                borderRadius: 999,
-                backgroundColor: withAlpha(rarityPalette.ring, "5E"),
-              }}
-            />
-            <View
-              style={{
-                width: stripeWidth * 0.72,
-                height: 8,
-                borderRadius: 999,
-                backgroundColor: withAlpha(themePalette.stripe, "42"),
-              }}
-            />
-          </View>
-        </View>
-
-        <View className="flex-row items-center gap-2">
-          {[0, 1, 2, 3, 4].map((pip) => (
-            <View
-              key={pip}
-              style={{
-                width: 10,
-                height: 10,
-                borderRadius: 999,
-                backgroundColor: withAlpha(
-                  pip === 2 ? rarityPalette.ring : themePalette.pip,
-                  pip === 2 ? "B6" : "64",
-                ),
-              }}
-            />
-          ))}
-        </View>
-      </View>
     </View>
   );
 }
@@ -1475,7 +1247,6 @@ function CardBackStack({
         >
           <CardBackFace
             width={width}
-            tc={tc}
             themeName={themeName}
             rarityName={card.rarityName}
             cardBackVisualMap={cardBackVisualMap}
@@ -1500,7 +1271,7 @@ function CrackedPackPreview({
   burstPattern?: PackBurstPattern;
 }) {
   const height = width / PACK_CARD_RATIO;
-  const resolvedPattern = burstPattern ?? createBurstPattern(width, height);
+  const resolvedPattern = burstPattern ?? createBurstPattern(width, height, pack);
   const centerX = width / 2;
   const centerY = height * 0.47;
   const accentColor = pack.color || tc.primary;
@@ -2058,7 +1829,11 @@ export default function PacksScreen() {
     burstFlashAnim.setValue(0);
     burstOpenAnim.setValue(0);
     setBurstPattern(
-      createBurstPattern(stageCardWidth, stageCardWidth / PACK_CARD_RATIO),
+      createBurstPattern(
+        stageCardWidth,
+        stageCardWidth / PACK_CARD_RATIO,
+        selectedPack ?? undefined,
+      ),
     );
 
     Animated.parallel([
@@ -2774,7 +2549,6 @@ export default function PacksScreen() {
               >
                 <CardBackFace
                   width={revealCardWidth}
-                  tc={tc}
                   themeName={themeName}
                   rarityName={rarityName}
                   cardBackVisualMap={cardBackVisualMap}
@@ -3136,6 +2910,43 @@ export default function PacksScreen() {
         secondary={tc.secondaryTint}
         accent={tc.accentTint}
       />
+      {heroPack ? (
+        <View
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: 1,
+            height: 1,
+            opacity: 0,
+            overflow: "hidden",
+          }}
+        >
+          <PackOpeningSequenceDom
+            mode="charge"
+            pack={{
+              backgroundColor: tc.bg,
+              cardCountLabel: t("packs.cardsCount", {
+                count: heroPack.cardCount,
+              }),
+              color: heroPack.color || "#C96A24",
+              guaranteedRarity: heroPack.guaranteedRarity,
+              name: heroPack.name,
+              packArtAssetId: heroPack.packArtAssetId,
+            }}
+            stageOffsetY={0}
+            dom={{
+              contentInsetAdjustmentBehavior: "never",
+              scrollEnabled: false,
+              style: {
+                backgroundColor: "transparent",
+                flex: 1,
+              },
+            }}
+          />
+        </View>
+      ) : null}
 
       <ScrollView
         className="flex-1"
