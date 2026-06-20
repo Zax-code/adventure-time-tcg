@@ -135,6 +135,81 @@ defmodule AdventureTimeApi.Quests.WordleDefinitionImporterTest do
            }
   end
 
+  test "load_snapshot_definitions_from_lines keeps locale variants and display fallbacks" do
+    lines = [
+      Jason.encode!(%{
+        "locale" => "fr",
+        "word" => "ABIME",
+        "displayWord" => "abîme",
+        "definition" => "(Géographie) Gouffre très profond.",
+        "partOfSpeech" => "Nom commun",
+        "sourceName" => "Wiktionnaire",
+        "sourceUrl" => "https://fr.wiktionary.org/wiki/ab%C3%AEme#Fran%C3%A7ais",
+        "variants" => [
+          %{
+            "displayWord" => "abîme",
+            "definition" => "(Géographie) Gouffre très profond.",
+            "partOfSpeech" => "Nom commun",
+            "sourceName" => "Wiktionnaire",
+            "sourceUrl" => "https://fr.wiktionary.org/wiki/ab%C3%AEme#Fran%C3%A7ais"
+          },
+          %{
+            "displayWord" => "abîmé",
+            "definition" => "Participe passé masculin singulier de abîmer.",
+            "partOfSpeech" => "Forme de verbe",
+            "sourceName" => "Wiktionnaire",
+            "sourceUrl" => "https://fr.wiktionary.org/wiki/ab%C3%AEm%C3%A9#Fran%C3%A7ais"
+          }
+        ]
+      }),
+      Jason.encode!(%{
+        "locale" => "en",
+        "word" => "APPLE",
+        "displayWord" => nil,
+        "definition" => "A common fruit grown on trees.",
+        "partOfSpeech" => "Noun",
+        "sourceName" => "Open English WordNet",
+        "sourceUrl" => "https://en-word.net/",
+        "variants" => []
+      })
+    ]
+
+    assert WordleDefinitionImporter.load_snapshot_definitions_from_lines(lines, "fr", [
+             "ABIME"
+           ]) == %{
+             "ABIME" => [
+               %{
+                 display_word: "abîme",
+                 definition: "(Géographie) Gouffre très profond.",
+                 part_of_speech: "Nom commun",
+                 source_name: "Wiktionnaire",
+                 source_url: "https://fr.wiktionary.org/wiki/ab%C3%AEme#Fran%C3%A7ais"
+               },
+               %{
+                 display_word: "abîmé",
+                 definition: "Participe passé masculin singulier de abîmer.",
+                 part_of_speech: "Forme de verbe",
+                 source_name: "Wiktionnaire",
+                 source_url: "https://fr.wiktionary.org/wiki/ab%C3%AEm%C3%A9#Fran%C3%A7ais"
+               }
+             ]
+           }
+
+    assert WordleDefinitionImporter.load_snapshot_definitions_from_lines(lines, "en", [
+             "APPLE"
+           ]) == %{
+             "APPLE" => [
+               %{
+                 display_word: "apple",
+                 definition: "A common fruit grown on trees.",
+                 part_of_speech: "Noun",
+                 source_name: "Open English WordNet",
+                 source_url: "https://en-word.net/"
+               }
+             ]
+           }
+  end
+
   test "load_english_oewn_from_dir resolves definitions through entries and synsets" do
     tmp_dir =
       Path.join(
