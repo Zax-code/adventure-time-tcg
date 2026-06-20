@@ -52,6 +52,20 @@ ensure_pods_in_sync() {
   fi
 }
 
+clear_metro_cache_if_needed() {
+  if [[ "${EXPO_SKIP_METRO_CLEAR:-0}" == "1" ]]; then
+    return 0
+  fi
+
+  local tmp_dir="${TMPDIR:-/tmp}"
+  local metro_cache="$tmp_dir/metro-cache"
+
+  if [[ -d "$metro_cache" ]]; then
+    echo "Clearing Metro cache at $metro_cache"
+    rm -rf "$metro_cache"
+  fi
+}
+
 list_available_simulators() {
   xcrun simctl list devices available | awk -F'[()]' '/iPhone/ {gsub(/^ +| +$/, "", $1); print $1}'
 }
@@ -107,6 +121,7 @@ done
 require_command node
 ensure_pods_in_sync
 prepend_node_path "$MOBILE_ROOT/node_modules"
+clear_metro_cache_if_needed
 
 IOS_SIMULATOR_NAME="$(resolve_simulator_name "$@")"
 

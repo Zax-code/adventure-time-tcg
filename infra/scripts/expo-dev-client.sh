@@ -32,6 +32,15 @@ fi
 cd "$REPO_ROOT/apps/mobile"
 prepend_node_path "$REPO_ROOT/apps/mobile/node_modules"
 
+if [[ "${EXPO_SKIP_METRO_CLEAR:-0}" != "1" ]]; then
+  case " $* " in
+    *" --clear "*|*" -c "*|*" --reset-cache "*) ;;
+    *)
+      set -- --clear "$@"
+      ;;
+  esac
+fi
+
 mapfile -t stale_ngrok_pids < <(pgrep -u "$USER" -f '@expo/ngrok-bin-linux-x64/ngrok start --none' || true)
 if (( ${#stale_ngrok_pids[@]} > 0 )); then
   echo "Stopping stale ngrok tunnel process(es): ${stale_ngrok_pids[*]}"

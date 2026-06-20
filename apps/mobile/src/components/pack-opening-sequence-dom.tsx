@@ -17,6 +17,7 @@ type PackAnimationData = {
   guaranteedRarity?: string | null;
   name: string;
   packArtAssetId?: string | null;
+  packArtUrl?: string | null;
 };
 
 type PackOpeningSequenceMode = "burst" | "charge" | "loading";

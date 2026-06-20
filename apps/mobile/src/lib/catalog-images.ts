@@ -1,6 +1,6 @@
 import { Image } from "expo-image";
 
-import { API_BASE_URL } from "./api";
+import { API_BASE_URL } from "./api-config";
 
 const prefetchedCatalogImages = new Set<string>();
 
