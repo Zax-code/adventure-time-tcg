@@ -9,6 +9,10 @@ import type {
 } from "@adventure-time/api-client";
 
 import { CARD_ART_RATIO } from "../card-back-cover-art";
+import {
+  CARD_OUTLINE_RATIO,
+  getCardOutlineSource,
+} from "../card-outline-art";
 import { getCardImageCacheKey, getCardImageUrl } from "../../lib/card-images";
 import { useThemeStore } from "../../stores/theme-store";
 import { THEME_COLORS } from "../../theme/themes";
@@ -260,7 +264,8 @@ export const AdminCardTile = memo(
       inputRange: [0, 1],
       outputRange: [-cfg.width * 3, cfg.width],
     });
-    const cardAspectRatio = CARD_ART_RATIO;
+    const cardAspectRatio = fitContainer ? CARD_OUTLINE_RATIO : CARD_ART_RATIO;
+    const outlineSource = getCardOutlineSource(themeName, card.rarityName);
 
     return (
       <Pressable
@@ -280,28 +285,17 @@ export const AdminCardTile = memo(
             aspectRatio: fitContainer ? cardAspectRatio : undefined,
           }}
         >
-          <View
-            pointerEvents="none"
-            className="absolute inset-0 z-10"
-            style={{
-              borderRadius: cfg.borderRadius,
-              borderWidth: 1,
-              borderColor: card.isArchived
-                ? withAlpha(tc.muted, "A6")
-                : rarityColor.ring,
-            }}
-          />
-
           {hasShimmer ? (
             <Animated.View
               pointerEvents="none"
               style={{
                 position: "absolute",
                 top: 0,
-                height: cfg.height,
+                bottom: 0,
+                left: 0,
                 width: cfg.width * 3,
                 transform: [{ translateX: shimmerTranslate }],
-                zIndex: 15,
+                zIndex: 25,
               }}
             >
               <LinearGradient
@@ -314,7 +308,7 @@ export const AdminCardTile = memo(
           ) : null}
 
           {card.isArchived ? (
-            <View className="absolute right-2 top-2 z-20 rounded-full bg-dangerDark/90 px-2 py-1">
+            <View className="absolute right-2 top-2 z-30 rounded-full bg-dangerDark/90 px-2 py-1">
               <Text
                 className="font-nunito-extrabold text-[10px]"
                 style={{
@@ -493,6 +487,26 @@ export const AdminCardTile = memo(
               </View>
             </View>
           </View>
+
+          {/* === OUTLINE FRAME OVERLAY === */}
+          {/* The outline PNG encodes the theme + rarity frame. It sits on top of
+              the content so its decorative border masks the inner content edges,
+              while the inner cutout reveals the art/stats/description. */}
+          <Image
+            source={outlineSource}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              width: "100%",
+              height: "100%",
+              zIndex: 20,
+            }}
+            contentFit="fill"
+            pointerEvents="none"
+          />
         </View>
       </Pressable>
     );

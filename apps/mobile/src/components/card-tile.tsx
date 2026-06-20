@@ -6,8 +6,18 @@ import { LinearGradient } from "expo-linear-gradient";
 
 import type { CollectionResponse } from "@adventure-time/api-client";
 import { CARD_ART_RATIO } from "./card-back-cover-art";
+import {
+  CARD_OUTLINE_RATIO,
+  getCardOutlineSource,
+} from "./card-outline-art";
 import { getCardImageCacheKey, getCardImageUrl } from "../lib/card-images";
-import { CARD_TYPE_COLORS, RARITY_COLORS, SECONDARY_TINT } from "./theme";
+import {
+  CARD_TYPE_COLORS,
+  CARD_TYPE_COLORS_ICE,
+  CARD_TYPE_COLORS_NIGHTOSPHERE,
+  RARITY_COLORS,
+  SECONDARY_TINT,
+} from "./theme";
 import { HPIcon, SpeedIcon, RarityIcon } from "./icons";
 import { useTranslation } from "../i18n";
 import { useThemeStore } from "../stores/theme-store";
@@ -136,6 +146,17 @@ function RarityCrest({
   );
 }
 
+function useTypePalette() {
+  const themeName = useThemeStore((state) => state.themeName);
+  if (themeName === "ice") {
+    return CARD_TYPE_COLORS_ICE;
+  }
+  if (themeName === "nightosphere") {
+    return CARD_TYPE_COLORS_NIGHTOSPHERE;
+  }
+  return CARD_TYPE_COLORS;
+}
+
 export const CardTile = memo(function CardTile({
   entry,
   accessToken: _accessToken,
@@ -151,8 +172,10 @@ export const CardTile = memo(function CardTile({
   const { card, quantity } = entry;
   const cfg = sizeConfig[size];
   const { t } = useTranslation();
-  const tc = THEME_COLORS[useThemeStore((s) => s.themeName)];
-  const typeColor = CARD_TYPE_COLORS[card.type] ?? {
+  const themeName = useThemeStore((state) => state.themeName);
+  const tc = THEME_COLORS[themeName];
+  const typePalette = useTypePalette();
+  const typeColor = typePalette[card.type] ?? {
     frame: "#9CA3AF",
     light: "#F3F4F6",
     dark: "#374151",
@@ -166,6 +189,8 @@ export const CardTile = memo(function CardTile({
   const isLegendary = card.rarity.name === "Legendary";
   const isEpic = card.rarity.name === "Epic";
   const hasShimmer = isLegendary || isEpic;
+
+  const outlineSource = getCardOutlineSource(themeName, card.rarity.name);
 
   const bounceAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -216,12 +241,8 @@ export const CardTile = memo(function CardTile({
     inputRange: [0, 1],
     outputRange: [-cfg.width * 3, cfg.width],
   });
-  const cardAspectRatio = CARD_ART_RATIO;
-  const cardContentOpacity = muted
-    ? tc.bg === "#0D0010"
-      ? 0.46
-      : 0.58
-    : 1;
+  const cardAspectRatio = fitContainer ? CARD_OUTLINE_RATIO : CARD_ART_RATIO;
+  const cardContentOpacity = muted ? (tc.bg === "#0D0010" ? 0.46 : 0.58) : 1;
 
   return (
     <Pressable
@@ -235,7 +256,7 @@ export const CardTile = memo(function CardTile({
         containerStyle,
       ]}
     >
-      {/* Outer card: type-colored frame background */}
+      {/* Outer card box: type-colored base for non-art regions */}
       <View
         className="overflow-hidden"
         style={{
@@ -245,17 +266,6 @@ export const CardTile = memo(function CardTile({
           aspectRatio: fitContainer ? cardAspectRatio : undefined,
         }}
       >
-        {/* Rarity ring overlay */}
-        <View
-          pointerEvents="none"
-          className="absolute inset-0 z-10"
-          style={{
-            borderRadius: cfg.borderRadius,
-            borderWidth: 1,
-            borderColor: rarityColor.ring,
-          }}
-        />
-
         {/* Rarity shimmer sweep (Legendary / Epic) */}
         {hasShimmer && (
           <Animated.View
@@ -263,10 +273,11 @@ export const CardTile = memo(function CardTile({
             style={{
               position: "absolute",
               top: 0,
-              height: cfg.height,
+              bottom: 0,
+              left: 0,
               width: cfg.width * 3,
               transform: [{ translateX: shimmerTranslate }],
-              zIndex: 15,
+              zIndex: 25,
             }}
           >
             <LinearGradient
@@ -278,7 +289,7 @@ export const CardTile = memo(function CardTile({
           </Animated.View>
         )}
 
-        {/* Inner content */}
+        {/* Inner content (sits behind the outline frame) */}
         <View
           className="flex-1"
           style={{
@@ -437,6 +448,26 @@ export const CardTile = memo(function CardTile({
             </View>
           </View>
         </View>
+
+        {/* === OUTLINE FRAME OVERLAY === */}
+        {/* The outline PNG encodes the theme + rarity frame. It sits on top of
+            the content so its decorative border masks the inner content edges,
+            while the inner cutout reveals the art/stats/description. */}
+        <Image
+          source={outlineSource}
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            width: "100%",
+            height: "100%",
+            zIndex: 20,
+          }}
+          contentFit="fill"
+          pointerEvents="none"
+        />
       </View>
 
       {/* Quantity badge below card — only for small size */}
