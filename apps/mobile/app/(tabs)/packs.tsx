@@ -52,7 +52,12 @@ import {
   ZapIcon,
 } from "../../src/components/icons";
 import { PageLoadingState } from "../../src/components/loading-state";
-import { getPackOpeningArtSource } from "../../src/components/pack-opening-art";
+import {
+  getContainedPackOpeningArtLayout,
+  getPackOpeningArtDimensions,
+  getPackOpeningArtSource,
+  type PackOpeningArtLayout,
+} from "../../src/components/pack-opening-art";
 import { getPackOpeningVisualProfile } from "../../src/components/pack-opening-visuals";
 import PackOpeningSequenceDom from "../../src/components/pack-opening-sequence-dom";
 import {
@@ -310,23 +315,26 @@ function getRayToPackEdge(
   centerX: number,
   centerY: number,
   angle: number,
-  width: number,
-  height: number,
+  artLayout: PackOpeningArtLayout,
 ) {
   const dx = Math.cos(angle);
   const dy = Math.sin(angle);
   const candidates: number[] = [];
+  const left = artLayout.x;
+  const right = artLayout.x + artLayout.width;
+  const top = artLayout.y;
+  const bottom = artLayout.y + artLayout.height;
 
   if (dx > 0) {
-    candidates.push((width - centerX) / dx);
+    candidates.push((right - centerX) / dx);
   } else if (dx < 0) {
-    candidates.push((0 - centerX) / dx);
+    candidates.push((left - centerX) / dx);
   }
 
   if (dy > 0) {
-    candidates.push((height - centerY) / dy);
+    candidates.push((bottom - centerY) / dy);
   } else if (dy < 0) {
-    candidates.push((0 - centerY) / dy);
+    candidates.push((top - centerY) / dy);
   }
 
   const distance = Math.min(...candidates.filter((candidate) => candidate > 0));
@@ -344,10 +352,9 @@ function createLightningCrackPath(
   centerX: number,
   centerY: number,
   angle: number,
-  width: number,
-  height: number,
+  artLayout: PackOpeningArtLayout,
 ) {
-  const edge = getRayToPackEdge(centerX, centerY, angle, width, height);
+  const edge = getRayToPackEdge(centerX, centerY, angle, artLayout);
   const normalX = -edge.dy;
   const normalY = edge.dx;
   const points = [{ x: centerX, y: centerY }];
@@ -358,7 +365,7 @@ function createLightningCrackPath(
     const baseX = centerX + edge.dx * edge.distance * progress;
     const baseY = centerY + edge.dy * edge.distance * progress;
     const amplitude =
-      Math.min(width * 0.1, edge.distance * 0.11) *
+      Math.min(artLayout.width * 0.1, edge.distance * 0.11) *
       Math.sin(Math.PI * progress);
     const offset = randomBetween(-amplitude, amplitude);
 
@@ -381,9 +388,21 @@ function createLightningCrackPath(
   };
 }
 
-function createBurstPattern(width: number, height: number): PackBurstPattern {
-  const centerX = width * 0.5;
-  const centerY = height * 0.47;
+function createBurstPattern(
+  width: number,
+  height: number,
+  pack?: Pick<Pack, "guaranteedRarity" | "name" | "packArtAssetId">,
+): PackBurstPattern {
+  const artDimensions = pack
+    ? getPackOpeningArtDimensions(pack)
+    : getPackOpeningArtDimensions({ name: "" });
+  const artLayout = getContainedPackOpeningArtLayout(
+    width,
+    height,
+    artDimensions,
+  );
+  const centerX = artLayout.x + artLayout.width * 0.5;
+  const centerY = artLayout.y + artLayout.height * 0.47;
   const crackCount = 9;
   const startAngle = randomBetween(0, Math.PI * 2);
   const crackAngles = Array.from({ length: crackCount }, (_, index) => {
@@ -396,8 +415,7 @@ function createBurstPattern(width: number, height: number): PackBurstPattern {
       centerX,
       centerY,
       angle,
-      width,
-      height,
+      artLayout,
     );
 
     return {
@@ -1253,7 +1271,7 @@ function CrackedPackPreview({
   burstPattern?: PackBurstPattern;
 }) {
   const height = width / PACK_CARD_RATIO;
-  const resolvedPattern = burstPattern ?? createBurstPattern(width, height);
+  const resolvedPattern = burstPattern ?? createBurstPattern(width, height, pack);
   const centerX = width / 2;
   const centerY = height * 0.47;
   const accentColor = pack.color || tc.primary;
@@ -1811,7 +1829,11 @@ export default function PacksScreen() {
     burstFlashAnim.setValue(0);
     burstOpenAnim.setValue(0);
     setBurstPattern(
-      createBurstPattern(stageCardWidth, stageCardWidth / PACK_CARD_RATIO),
+      createBurstPattern(
+        stageCardWidth,
+        stageCardWidth / PACK_CARD_RATIO,
+        selectedPack ?? undefined,
+      ),
     );
 
     Animated.parallel([
