@@ -68,11 +68,9 @@ function ErrorPanel({
         maxWidth: isPage ? 420 : undefined,
         borderRadius: isPage ? 34 : 28,
         borderColor: tc.primaryBorder + "66",
-        shadowColor: networkFailure ? tc.infoDark : tc.dangerDark,
-        shadowOpacity: isPage ? 0.24 : 0.14,
-        shadowRadius: isPage ? 22 : 14,
-        shadowOffset: { width: 0, height: isPage ? 12 : 8 },
-        elevation: isPage ? 10 : 5,
+        boxShadow: isPage
+          ? `0px 12px 22px ${networkFailure ? tc.infoDark : tc.dangerDark}2B`
+          : `0px 8px 14px ${networkFailure ? tc.infoDark : tc.dangerDark}21`,
       }}
     >
       <LinearGradient
@@ -113,11 +111,7 @@ function ErrorPanel({
                 justifyContent: "center",
               }}
             >
-              <Ionicons
-                name={iconName}
-                size={isPage ? 34 : 28}
-                color="#fff"
-              />
+              <Ionicons name={iconName} size={isPage ? 34 : 28} color="#fff" />
             </LinearGradient>
           </View>
 
@@ -206,43 +200,8 @@ function ErrorPanel({
 }
 
 export function PageErrorState(props: ErrorStateProps) {
-  const tc = THEME_COLORS[useThemeStore((state) => state.themeName)];
-
   return (
     <View className="flex-1 items-center justify-center overflow-hidden bg-bg px-6">
-      <View
-        className="absolute rounded-full"
-        style={{
-          top: 92,
-          left: -44,
-          width: 164,
-          height: 164,
-          backgroundColor: tc.secondaryTint,
-          opacity: 0.55,
-        }}
-      />
-      <View
-        className="absolute rounded-full"
-        style={{
-          top: 174,
-          right: -28,
-          width: 124,
-          height: 124,
-          backgroundColor: tc.infoTint,
-          opacity: 0.4,
-        }}
-      />
-      <View
-        className="absolute rounded-full"
-        style={{
-          bottom: 84,
-          right: 20,
-          width: 156,
-          height: 156,
-          backgroundColor: tc.primaryTint,
-          opacity: 0.48,
-        }}
-      />
       <ErrorPanel {...props} variant="page" />
     </View>
   );

@@ -28,9 +28,8 @@ The audit found a coherent core system:
 - dedicated admin component layer
 - domain-specific card, pack, quest, and PvP game components
 
-The main inconsistencies are:
+The main remaining inconsistencies are:
 
-- hard-coded candy-only or white/slate colors on screens that should theme
 - raw `Modal` implementations instead of shared sheet/modal primitives
 - older React Native shadow/elevation props mixed with `boxShadow`
 - one-off gradient buttons instead of `ThemedExpoButton`
@@ -40,57 +39,6 @@ The main inconsistencies are:
 
 ## Registry
 
-### O-001: Login Is Candy-Only
-
-Status: `migrate`
-Priority: `P2`
-
-Files:
-
-- `apps/mobile/app/login.tsx`
-
-Observed:
-
-- The route uses hard-coded gradient colors `#fce7f3`, `#fdf2f8`, `#f9a8d4`.
-- Floating particles use hard-coded `#F472B6`.
-- The screen does not read from `THEME_COLORS` or `THEME_VARS`.
-
-Why it matters:
-
-- Login is the first impression and currently ignores `ice` and `nightosphere`.
-- It can feel disconnected from the selected theme after logout/session expiry.
-
-Recommended normalization:
-
-- Apply `THEME_VARS[themeName]` at the root.
-- Replace gradient stops with `tc.primaryTint`, `tc.primaryBg`, and `tc.primaryBorder` or a per-theme auth gradient map.
-- Keep floating particles only if they are tokenized and subtle.
-
-### O-002: Loading and Error Pages Use Decorative Orbs
-
-Status: `migrate`
-Priority: `P2`
-
-Files:
-
-- `apps/mobile/src/components/loading-state.tsx`
-- `apps/mobile/src/components/error-state.tsx`
-
-Observed:
-
-- Full-page loading/error states render absolute rounded background blobs.
-- The current design guidance prefers richer but purposeful surfaces over discrete decorative orbs.
-
-Why it matters:
-
-- These components are shared across the app, so the decoration appears in many contexts.
-- The panel itself is strong enough; the extra shapes add visual noise.
-
-Recommended normalization:
-
-- Remove the absolute decorative circles.
-- If visual depth is needed, use a subtle full-panel gradient or a single background band.
-
 ### O-003: Legacy Shadow Props Are Widespread
 
 Status: `migrate`
@@ -99,8 +47,6 @@ Priority: `P2`
 Files include:
 
 - `apps/mobile/src/components/app-header.tsx`
-- `apps/mobile/src/components/loading-state.tsx`
-- `apps/mobile/src/components/error-state.tsx`
 - `apps/mobile/app/settings.tsx`
 - `apps/mobile/app/(tabs)/collection.tsx`
 - `apps/mobile/app/(tabs)/quests.tsx`
@@ -138,7 +84,7 @@ Files include:
 
 Observed:
 
-- Collection stats/sort/dust modals use raw `Modal`.
+- Collection dust modal uses raw `Modal`.
 - Quest description modal uses raw `Modal`.
 - Wordle definition/reset modals use raw `Modal`.
 - Admin has both `AdminModal` and `AdminSheet`, which is acceptable, but raw modal structure exists inside the admin UI layer.
@@ -153,31 +99,6 @@ Recommended normalization:
 - Use `ModalSheetRoute` for route-level sheets.
 - Use a new shared `ThemedModal` for centered confirmations/info dialogs if center modal behavior is desired.
 - Keep `AdminModal` only as the admin-specific centered dialog primitive.
-
-### O-005: Collection Stats and Sort Modals Use Older Inline Styling
-
-Status: `migrate`
-Priority: `P2`
-
-Files:
-
-- `apps/mobile/app/(tabs)/collection.tsx`
-
-Observed:
-
-- Stats and sort modals use inline style-only layout, 16px radius, hard-coded black scrim, and old shadow props.
-- Close buttons are local gradient `Pressable` controls instead of `ThemedExpoButton`.
-
-Why it matters:
-
-- These modals feel older than the rest of collection and settings.
-- They are one of the clearest departures from the sheet/panel language.
-
-Recommended normalization:
-
-- Replace centered raw modals with a shared themed modal or `ModalSheetRoute`.
-- Use `rounded-[28px]`, token borders, and `ThemedExpoButton`.
-- Localize sort labels instead of using the static `SORT_LABELS` map.
 
 ### O-006: Quest List Uses One-Off Gradient Touchable Buttons
 
@@ -460,29 +381,6 @@ Recommended guardrail:
 - Gameplay and user-facing feature surfaces should prefer `icons.tsx`.
 - Admin/settings may use Ionicons for operational utility icons.
 - Repeated domain icons should be added to `icons.tsx`.
-
-### O-017: Static English Sort Labels in Collection
-
-Status: `fix`
-Priority: `P2`
-
-Files:
-
-- `apps/mobile/app/(tabs)/collection.tsx`
-
-Observed:
-
-- `SORT_LABELS` contains static English labels: `Rarity`, `Name`, `Quantity`, `Newest`.
-
-Why it matters:
-
-- The app supports English and French.
-- UI copy should live in `apps/mobile/src/i18n/`.
-
-Recommended normalization:
-
-- Replace `SORT_LABELS` with translation keys under `collection.sortOptions.*`.
-- Add matching English and French keys.
 
 ### O-018: CardTile Action Labels Are Hard-Coded
 
@@ -834,4 +732,3 @@ Add a new entry with:
 - recommended normalization or guardrail
 
 If an outlier is intentional, explain the boundary so it does not spread into normal app UI.
-

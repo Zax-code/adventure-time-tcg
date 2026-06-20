@@ -6,6 +6,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AuthForm } from "../src/components/auth-form";
 import { KEYBOARD_AWARE_SCROLL_PROPS } from "../src/components/keyboard-screen-view";
+import { useThemeStore } from "../src/stores/theme-store";
+import { THEME_COLORS, THEME_VARS } from "../src/theme/themes";
 
 const PARTICLES = [
   { left: "8%", top: "12%", size: 14, delay: 0, duration: 3200 },
@@ -28,7 +30,8 @@ function FloatingHeart({
   size,
   delay,
   duration,
-}: (typeof PARTICLES)[number]) {
+  color,
+}: (typeof PARTICLES)[number] & { color: string }) {
   const anim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -65,7 +68,7 @@ function FloatingHeart({
         width: size,
         height: size,
         borderRadius: size / 2,
-        backgroundColor: "#F472B6",
+        backgroundColor: color,
         transform: [{ translateY }],
         opacity,
       }}
@@ -75,6 +78,8 @@ function FloatingHeart({
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
+  const themeName = useThemeStore((state) => state.themeName);
+  const tc = THEME_COLORS[themeName];
   const params = useLocalSearchParams<{
     email?: string;
     code?: string;
@@ -85,11 +90,15 @@ export default function LoginScreen() {
 
   return (
     <LinearGradient
-      colors={["#fce7f3", "#fdf2f8", "#f9a8d4"]}
-      style={{ flex: 1 }}
+      colors={[tc.bg, tc.primaryBg, tc.primaryTint]}
+      style={[{ flex: 1 }, THEME_VARS[themeName] as never]}
     >
-      {PARTICLES.map((p, i) => (
-        <FloatingHeart key={i} {...p} />
+      {PARTICLES.map((p) => (
+        <FloatingHeart
+          key={`${p.left}-${p.top}-${p.size}`}
+          {...p}
+          color={tc.primary}
+        />
       ))}
       <ScrollView
         {...KEYBOARD_AWARE_SCROLL_PROPS}

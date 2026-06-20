@@ -14,6 +14,12 @@ const collection = {
   },
   sortBy: "Sort by",
   sortTitle: "Sort By",
+  sortOptions: {
+    rarity: "Rarity",
+    name: "Name",
+    quantity: "Quantity",
+    newest: "Newest",
+  },
   noFilterMatches: "No cards match your filters.",
   empty: "Your collection is empty. Open packs or craft your first card!",
   dustModal: {
