@@ -1490,11 +1490,6 @@ function useDailyNumbersBoardController({
       return;
     }
 
-    if (completionReached && !exactHitReached) {
-      void submitBoard(interaction.steps);
-      return;
-    }
-
     Alert.alert(
       t("quests.dailyNumbers.submitConfirmTitle"),
       t("quests.dailyNumbers.submitConfirmBody"),
@@ -1510,8 +1505,6 @@ function useDailyNumbersBoardController({
       ],
     );
   }, [
-    completionReached,
-    exactHitReached,
     interaction.steps,
     interaction.submitting,
     state.submitted,

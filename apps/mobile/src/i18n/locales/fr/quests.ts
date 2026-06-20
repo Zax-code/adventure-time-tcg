@@ -219,8 +219,8 @@ const quests = {
     submit: "Envoyer le résultat",
     submitConfirmTitle: "Verrouiller ce résultat ?",
     submitConfirmBody:
-      "Ce résultat sera envoyé comme tentative finale même s'il laisse ta récompense à 0 % aujourd'hui.",
-    submitConfirmAction: "Envoyer quand même",
+      "Ce résultat sera envoyé comme tentative finale du jour. Les cibles exactes s'envoient automatiquement.",
+    submitConfirmAction: "Verrouiller le résultat",
     stepHistoryTitle: "Tes étapes",
     noStepsYet: "Aucune étape pour l'instant. Commence par combiner deux nombres.",
     revealSolution: "Afficher la solution officielle",
