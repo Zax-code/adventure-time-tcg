@@ -25,10 +25,13 @@ type CardOutlineThemeMap = Partial<
 >;
 
 export const CARD_OUTLINE_SAFE_AREA = {
-  left: 0.124,
-  right: 0.126,
-  top: 0.1,
-  bottom: 0.069,
+  // The selected outline assets have thick ornamental side rails plus a large
+  // crown/header ornament. Keep the live content inside the real transparent
+  // window instead of merely inside the image's outer transparent bounds.
+  left: 0.185,
+  right: 0.185,
+  top: 0.205,
+  bottom: 0.11,
 } as const;
 
 const CARD_OUTLINE_SOURCE: CardOutlineThemeMap = {

@@ -392,6 +392,8 @@ export const AdminCardTile = memo(
     });
     const outlineSafeAreaStyle: ViewStyle = {
       position: "absolute",
+      left: `${CARD_OUTLINE_SAFE_AREA.left * 100}%`,
+      right: `${CARD_OUTLINE_SAFE_AREA.right * 100}%`,
       top: `${CARD_OUTLINE_SAFE_AREA.top * 100}%`,
       bottom: `${CARD_OUTLINE_SAFE_AREA.bottom * 100}%`,
       borderRadius: bodyCfg.innerRadius,
