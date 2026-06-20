@@ -1,0 +1,52 @@
+# Cline ignore file for generated, heavy, local, and sensitive project data.
+
+# Dependencies and build output
+node_modules/
+**/node_modules/
+apps/mobile/.expo/
+apps/mobile/dist/
+apps/mobile/web-build/
+apps/mobile/local-build/
+apps/mobile/ios/build/
+apps/mobile/android/app/build/
+apps/mobile/android/.gradle/
+apps/phoenix/_build/
+apps/phoenix/deps/
+
+# Environment and credentials
+.env
+**/.env
+**/.env.*
+!**/.env.example
+apps/mobile/credentials.json
+**/*service-account*.json
+**/*AuthKey*.p8
+**/*.mobileprovision
+**/*.p12
+
+# Generated reports, captures, and temporary files
+.migration-reports/
+**/.migration-reports/
+.maestro/.maestro-flow.*
+tmp/
+tmp-*/
+report.xml
+*.log
+
+# Large media/build artifacts
+*.ipa
+*.aab
+*.apk
+*.tar.gz
+*.zip
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.gif
+*.mp4
+
+# Local editor/system files
+.DS_Store
+.vscode/
+.idea/
