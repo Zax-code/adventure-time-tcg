@@ -94,21 +94,56 @@ defmodule AdventureTimeApi.Quests.WordleDefinitionImporter do
   def import(opts \\ []) do
     with {:ok, locales} <- normalize_locales(opts[:locale] || "all"),
          {:ok, scope} <- normalize_scope(opts[:scope] || "solutions") do
-      temp_dir =
-        Path.join(System.tmp_dir!(), "wordle-definition-import-#{System.system_time(:second)}")
-
-      File.mkdir_p!(temp_dir)
-
-      try do
-        Enum.reduce_while(locales, {:ok, []}, fn locale, {:ok, results} ->
-          case import_locale(locale, scope, opts, temp_dir) do
-            {:error, _reason} = error -> {:halt, error}
-            result -> {:cont, {:ok, results ++ [result]}}
-          end
-        end)
-      after
-        File.rm_rf(temp_dir)
+      if opts[:snapshot] do
+        import_snapshot(locales, scope, opts[:snapshot])
+      else
+        import_sources(locales, scope, opts)
       end
+    end
+  end
+
+  defp import_snapshot(locales, scope, snapshot_path) do
+    expanded_path = Path.expand(snapshot_path)
+
+    if File.exists?(expanded_path) do
+      Enum.reduce_while(locales, {:ok, []}, fn locale, {:ok, results} ->
+        target_words = target_words(locale, scope)
+
+        definitions =
+          expanded_path
+          |> File.stream!()
+          |> load_snapshot_definitions_from_lines(locale, target_words)
+
+        result =
+          build_result(
+            locale,
+            target_words,
+            definitions,
+            persist_definitions(locale, definitions)
+          )
+
+        {:cont, {:ok, results ++ [result]}}
+      end)
+    else
+      {:error, {:file_not_found, expanded_path}}
+    end
+  end
+
+  defp import_sources(locales, scope, opts) do
+    temp_dir =
+      Path.join(System.tmp_dir!(), "wordle-definition-import-#{System.system_time(:second)}")
+
+    File.mkdir_p!(temp_dir)
+
+    try do
+      Enum.reduce_while(locales, {:ok, []}, fn locale, {:ok, results} ->
+        case import_locale(locale, scope, opts, temp_dir) do
+          {:error, _reason} = error -> {:halt, error}
+          result -> {:cont, {:ok, results ++ [result]}}
+        end
+      end)
+    after
+      File.rm_rf(temp_dir)
     end
   end
 
@@ -327,6 +362,41 @@ defmodule AdventureTimeApi.Quests.WordleDefinitionImporter do
       {:ok, updated_count} -> updated_count
       {:error, reason} -> raise "Failed to persist Wordle definitions: #{inspect(reason)}"
     end
+  end
+
+  @doc false
+  def load_snapshot_definitions_from_lines(lines, locale, target_words) do
+    target_set = target_words |> Enum.map(&WordleEngine.normalize/1) |> MapSet.new()
+
+    Enum.reduce(lines, %{}, fn raw_line, acc ->
+      line = String.trim(raw_line)
+
+      if line == "" do
+        acc
+      else
+        case Jason.decode(line) do
+          {:ok, %{"locale" => ^locale, "word" => word} = row} when is_binary(word) ->
+            normalized_word = WordleEngine.normalize(word)
+
+            if MapSet.member?(target_set, normalized_word) do
+              variants =
+                row
+                |> snapshot_variants()
+                |> Enum.filter(&valid_snapshot_variant?/1)
+
+              case variants do
+                [] -> acc
+                _ -> Map.put(acc, normalized_word, variants)
+              end
+            else
+              acc
+            end
+
+          _ ->
+            acc
+        end
+      end
+    end)
   end
 
   @doc false
@@ -856,6 +926,7 @@ defmodule AdventureTimeApi.Quests.WordleDefinitionImporter do
     display_word =
       variant
       |> Map.put(:word, word)
+      |> Map.put_new(:raw_word, variant.display_word)
       |> resolve_french_display_word(display_variants)
 
     if valid_definition?(variant.definition) and valid_definition?(display_word) do
@@ -981,6 +1052,35 @@ defmodule AdventureTimeApi.Quests.WordleDefinitionImporter do
   end
 
   defp normalize_definition(_definition), do: nil
+
+  defp snapshot_variants(%{"variants" => variants} = row) when is_list(variants) do
+    variants
+    |> Enum.map(&snapshot_variant(&1, row["word"]))
+    |> case do
+      [] -> [snapshot_variant(row, row["word"])]
+      resolved_variants -> resolved_variants
+    end
+  end
+
+  defp snapshot_variants(row), do: [snapshot_variant(row, row["word"])]
+
+  defp snapshot_variant(row, fallback_word) do
+    %{
+      display_word:
+        normalize_display_word(row["displayWord"] || String.downcase(fallback_word || "")),
+      definition: normalize_definition(row["definition"]),
+      part_of_speech: normalize_definition(row["partOfSpeech"]),
+      source_name: normalize_definition(row["sourceName"]),
+      source_url: normalize_definition(row["sourceUrl"])
+    }
+  end
+
+  defp valid_snapshot_variant?(variant) do
+    valid_definition?(variant.display_word) and
+      valid_definition?(variant.definition) and
+      valid_definition?(variant.source_name) and
+      valid_definition?(variant.source_url)
+  end
 
   defp valid_definition?(value), do: is_binary(value) and String.trim(value) != ""
 

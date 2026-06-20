@@ -18,9 +18,13 @@ defmodule Mix.Tasks.Wordle.ImportDefinitions do
           fr_wiktextract: :string,
           fr_word_list: :string,
           en_oewn: :string,
-          en_wiktextract: :string
+          en_wiktextract: :string,
+          snapshot: :string,
+          refresh_sources: :boolean
         ]
       )
+
+    opts = maybe_use_default_snapshot(opts)
 
     case WordleDefinitionImporter.import(opts) do
       {:ok, results} ->
@@ -48,5 +52,25 @@ defmodule Mix.Tasks.Wordle.ImportDefinitions do
       {:error, {:download_failed, source, reason}} ->
         Mix.raise("Failed to download #{source}: #{inspect(reason)}")
     end
+  end
+
+  defp maybe_use_default_snapshot(opts) do
+    cond do
+      opts[:snapshot] ->
+        opts
+
+      opts[:refresh_sources] ->
+        opts
+
+      File.exists?(default_snapshot_path()) ->
+        Keyword.put(opts, :snapshot, default_snapshot_path())
+
+      true ->
+        opts
+    end
+  end
+
+  defp default_snapshot_path do
+    Path.expand("priv/repo/seed_data/wordle_definitions_snapshot.jsonl", File.cwd!())
   end
 end
