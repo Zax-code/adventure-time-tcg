@@ -170,6 +170,7 @@ export default function PvpScreen() {
   const { t } = useTranslation();
   const headerHeight = useAppHeaderHeight();
   const bottomTabPadding = useBottomTabBarContentPadding();
+  const bottomContentPadding = bottomTabPadding + 14;
 
   const [selectedInviteLoadoutId, setSelectedInviteLoadoutId] = useState<
     string | null
@@ -615,12 +616,16 @@ export default function PvpScreen() {
 
       <ScrollView
         className="flex-1 bg-bg"
-        contentContainerStyle={{ padding: 20 }}
+        contentContainerStyle={{
+          paddingHorizontal: 16,
+          paddingTop: 16,
+          paddingBottom: 0,
+        }}
       >
         <View
-          className="gap-4"
+          className="gap-2"
           testID="pvp-lobby-hero"
-          style={{ paddingTop: headerHeight, paddingBottom: bottomTabPadding }}
+          style={{ paddingTop: headerHeight }}
         >
           <View
             style={{
@@ -631,12 +636,12 @@ export default function PvpScreen() {
               borderColor: tc.primaryBorder,
             }}
           >
-            <View className="gap-5 px-5 py-6">
+            <View className="gap-4 px-4 py-5">
               <View className="flex-row items-start justify-between gap-3">
                 <View className="flex-1 gap-3">
                   <View className="flex-row items-center gap-3">
-                    <View className="h-14 w-14 items-center justify-center rounded-3xl bg-primaryTint">
-                      <SwordsIcon size={28} color={tc.primaryDark} />
+                    <View className="h-12 w-12 items-center justify-center rounded-3xl bg-primaryTint">
+                      <SwordsIcon size={26} color={tc.primaryDark} />
                     </View>
                     <View className="flex-1 gap-1">
                       <Text className="font-nunito-extrabold text-[28px] leading-[34px] text-fg">
@@ -647,8 +652,8 @@ export default function PvpScreen() {
                       </Text>
                     </View>
                   </View>
-                  <View className="flex-row gap-3" testID="pvp-lobby-overview">
-                    <View className="flex-1 rounded-2xl bg-surface px-3 py-3">
+                  <View className="flex-row gap-2" testID="pvp-lobby-overview">
+                    <View className="flex-1 rounded-2xl bg-surface px-3 py-2.5">
                       <Text className="font-nunito-extrabold text-2xl text-fg">
                         {activeMatches.length}
                       </Text>
@@ -656,7 +661,7 @@ export default function PvpScreen() {
                         {t("pvp.liveMatches")}
                       </Text>
                     </View>
-                    <View className="flex-1 rounded-2xl bg-surface px-3 py-3">
+                    <View className="flex-1 rounded-2xl bg-surface px-3 py-2.5">
                       <Text className="font-nunito-extrabold text-2xl text-fg">
                         {pendingReceivedInvites.length}
                       </Text>
@@ -664,7 +669,7 @@ export default function PvpScreen() {
                         {t("pvp.incomingChallenges")}
                       </Text>
                     </View>
-                    <View className="flex-1 rounded-2xl bg-surface px-3 py-3">
+                    <View className="flex-1 rounded-2xl bg-surface px-3 py-2.5">
                       <Text className="font-nunito-extrabold text-2xl text-fg">
                         {validLoadouts.length}
                       </Text>
@@ -683,7 +688,7 @@ export default function PvpScreen() {
                 ) : null}
               </View>
 
-              <View className="flex-row gap-3">
+              <View className="flex-row gap-2">
                 <ThemedExpoButton
                   onPress={() => router.push("/pvp-mechanics")}
                   preferFallback
@@ -699,10 +704,10 @@ export default function PvpScreen() {
                     gradientColors: null,
                     minHeight: 0,
                     paddingHorizontal: 14,
-                    paddingVertical: 14,
+                    paddingVertical: 12,
                   }}
                 >
-                  <View className="gap-3">
+                  <View className="gap-2">
                     <View className="flex-row items-center justify-between gap-2">
                       <View className="h-10 w-10 items-center justify-center rounded-2xl bg-primaryTint">
                         <HelpCircleIcon size={18} color={tc.primaryDark} />
@@ -734,10 +739,10 @@ export default function PvpScreen() {
                     gradientColors: null,
                     minHeight: 0,
                     paddingHorizontal: 14,
-                    paddingVertical: 14,
+                    paddingVertical: 12,
                   }}
                 >
-                  <View className="gap-3">
+                  <View className="gap-2">
                     <View className="flex-row items-center justify-between gap-2">
                       <View className="h-10 w-10 items-center justify-center rounded-2xl bg-accentTint">
                         <QuestIcon size={18} color={tc.accentText} />
@@ -780,10 +785,10 @@ export default function PvpScreen() {
               gradientColors: null,
               minHeight: 0,
               paddingHorizontal: 18,
-              paddingVertical: 20,
+              paddingVertical: 16,
             }}
           >
-            <View className="gap-4">
+            <View className="gap-3">
               <View className="flex-row items-start justify-between gap-3">
                 <View className="flex-1 gap-2">
                   <View className="h-12 w-12 items-center justify-center rounded-2xl bg-primaryTint">
@@ -793,7 +798,7 @@ export default function PvpScreen() {
                       <CardsIcon size={24} color={tc.primaryDark} />
                     )}
                   </View>
-                  <Text className="font-nunito-extrabold text-[28px] leading-[34px] text-fg">
+                  <Text className="font-nunito-extrabold text-xl leading-7 text-fg">
                     {hasValidLoadout
                       ? t("pvp.sendChallenge")
                       : t("pvp.createLoadout")}
@@ -825,7 +830,7 @@ export default function PvpScreen() {
             </View>
           </ThemedExpoButton>
 
-          <View className="flex-row gap-3">
+          <View className="flex-row gap-2">
             <ThemedExpoButton
               onPress={() => router.push("/pvp-loadouts")}
               preferFallback
@@ -840,10 +845,10 @@ export default function PvpScreen() {
                 gradientColors: null,
                 minHeight: 0,
                 paddingHorizontal: 16,
-                paddingVertical: 16,
+                paddingVertical: 14,
               }}
             >
-              <View className="gap-3">
+              <View className="gap-2">
                 <View className="flex-row items-center justify-between gap-2">
                   <View className="h-11 w-11 items-center justify-center rounded-2xl bg-accentTint">
                     <CardsIcon size={22} color={tc.accentText} />
@@ -876,10 +881,10 @@ export default function PvpScreen() {
                 gradientColors: null,
                 minHeight: 0,
                 paddingHorizontal: 16,
-                paddingVertical: 16,
+                paddingVertical: 14,
               }}
             >
-              <View className="gap-3">
+              <View className="gap-2">
                 <View className="flex-row items-center justify-between gap-2">
                   <View className="h-11 w-11 items-center justify-center rounded-2xl bg-infoTint">
                     <EyeIcon size={22} color={tc.infoDark} />
@@ -1469,6 +1474,7 @@ export default function PvpScreen() {
             })}
           </View>
         ) : null}
+        <View style={{ height: bottomContentPadding }} />
       </ScrollView>
 
       <BattleFullScreenSheet
