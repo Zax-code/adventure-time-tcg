@@ -212,8 +212,8 @@ const quests = {
     submit: "Submit result",
     submitConfirmTitle: "Lock this result?",
     submitConfirmBody:
-      "This result will be submitted as your final attempt even though it keeps your reward at 0% for today.",
-    submitConfirmAction: "Submit anyway",
+      "This result will be submitted as your final attempt for today. Exact hits submit automatically.",
+    submitConfirmAction: "Lock result",
     stepHistoryTitle: "Your steps",
     noStepsYet: "No steps yet. Start by combining two numbers.",
     revealSolution: "Reveal official solution",

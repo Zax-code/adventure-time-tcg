@@ -251,6 +251,7 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
 
     assert submitted["submitted"] == true
     assert submitted["completed"] == true
+    assert submitted["submission"]["defaultDistance"] == state["bestDistance"]
     assert submitted["submission"]["distance"] == 0
     assert submitted["submission"]["score"] == 100
     assert submitted["submission"]["officialSolutionUnlocked"] == true
@@ -306,6 +307,7 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
     assert submitted["submitted"] == true
     assert submitted["completed"] == false
     assert submitted["reward"] == 0
+    assert submitted["submission"]["defaultDistance"] == state["bestDistance"]
     assert submitted["submission"]["score"] == 0
 
     quest =

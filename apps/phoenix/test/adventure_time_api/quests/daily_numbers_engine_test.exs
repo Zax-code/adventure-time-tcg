@@ -45,6 +45,24 @@ defmodule AdventureTimeApi.Quests.DailyNumbersEngineTest do
     assert submission.exact == false
   end
 
+  test "validate_submission clamps worse-than-start results to 0 percent" do
+    assert {:ok, submission} =
+             DailyNumbersEngine.validate_submission(puzzle(850), [
+               %{
+                 "leftId" => "n0",
+                 "operator" => "/",
+                 "rightId" => "n5",
+                 "resultId" => "r0"
+               }
+             ])
+
+    assert submission.defaultDistance == 750
+    assert submission.finalValue == 50
+    assert submission.distance == 800
+    assert submission.score == 0
+    assert submission.completed == false
+  end
+
   test "validate_submission returns 100 percent for exact results" do
     assert {:ok, submission} =
              DailyNumbersEngine.validate_submission(puzzle(1000), [
