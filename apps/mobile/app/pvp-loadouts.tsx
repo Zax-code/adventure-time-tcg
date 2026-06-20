@@ -563,6 +563,7 @@ export default function PvpLoadoutsScreen() {
     });
   };
   const remainingSlots = Math.max(0, 6 - selectedCards.length);
+  const footerBottomPadding = Math.max(insets.bottom + 8, 20);
 
   if (collectionQuery.isLoading || loadoutsQuery.isLoading) {
     return (
@@ -646,13 +647,13 @@ export default function PvpLoadoutsScreen() {
         <ScrollView
           {...KEYBOARD_AWARE_SCROLL_PROPS}
           className="flex-1"
-          contentContainerStyle={{ paddingBottom: 180 }}
+          contentContainerStyle={{ paddingBottom: 24 }}
         >
-          <View className="gap-4 p-4">
+          <View className="gap-3 p-4">
             {loadouts.length > 0 ? (
               <View
                 testID="pvp-loadout-saved-section"
-                className="rounded-[28px] border border-primaryBorder/50 bg-surface/95 p-4"
+                className="rounded-[28px] border border-primaryBorder/50 bg-surface/95 p-3"
               >
                 <Text className="font-nunito-bold text-base text-fg">
                   {t("pvp.yourLoadouts")}
@@ -750,10 +751,10 @@ export default function PvpLoadoutsScreen() {
 
             <View
               testID="pvp-loadout-summary-card"
-              className="rounded-[28px] border border-primaryBorder/50 bg-surface/95 p-4"
+              className="rounded-[28px] border border-primaryBorder/50 bg-surface/95 p-3"
             >
               <View
-                className="rounded-[24px] p-4"
+                className="rounded-[24px] p-3"
                 style={{ backgroundColor: tc.primaryBg }}
               >
                 <View className="flex-row items-start justify-between gap-3">
@@ -831,9 +832,9 @@ export default function PvpLoadoutsScreen() {
                 </View>
               </View>
 
-              <View className="mt-4 gap-3">
+              <View className="mt-3 gap-3">
                 <View
-                  className="rounded-[24px] p-4"
+                  className="rounded-[24px] p-3"
                   style={{ backgroundColor: tc.successTint }}
                 >
                   <Text className="font-nunito-bold text-base text-successText">
@@ -843,7 +844,7 @@ export default function PvpLoadoutsScreen() {
                     {t("pvp.activeTeamHint")}
                   </Text>
 
-                  <View className="mt-4 flex-row justify-between">
+                  <View className="mt-3 flex-row justify-between">
                     {[0, 1, 2].map((index) => (
                       <LoadoutSlotCard
                         key={index}
@@ -872,7 +873,7 @@ export default function PvpLoadoutsScreen() {
                 </View>
 
                 <View
-                  className="rounded-[24px] p-4"
+                  className="rounded-[24px] p-3"
                   style={{ backgroundColor: tc.accentTint }}
                 >
                   <Text className="font-nunito-bold text-base text-accentStrong">
@@ -882,7 +883,7 @@ export default function PvpLoadoutsScreen() {
                     {t("pvp.benchTeamHint")}
                   </Text>
 
-                  <View className="mt-4 flex-row justify-between">
+                  <View className="mt-3 flex-row justify-between">
                     {[3, 4, 5].map((index) => (
                       <LoadoutSlotCard
                         key={index}
@@ -914,7 +915,7 @@ export default function PvpLoadoutsScreen() {
 
             <View
               testID="pvp-loadout-collection"
-              className="rounded-[28px] border border-primaryBorder/50 bg-surface/95 p-4"
+              className="rounded-[28px] border border-primaryBorder/50 bg-surface/95 p-3"
             >
               <View className="flex-row items-start justify-between gap-3">
                 <View className="flex-1">
@@ -970,7 +971,7 @@ export default function PvpLoadoutsScreen() {
                 })}
               </ScrollView>
 
-              <View className="mt-4 flex-row flex-wrap justify-between gap-y-3">
+              <View className="mt-3 flex-row flex-wrap justify-between gap-y-3">
                 {filteredCollection.map((entry) => {
                   const card = entry.card;
                   const selectedIndex = selectedCardIndexMap.get(card.id);
@@ -1163,7 +1164,7 @@ export default function PvpLoadoutsScreen() {
 
         <View
           className="border-t border-primaryTint bg-white/95 px-4 pt-3"
-          style={{ paddingBottom: Math.max(insets.bottom, 16) }}
+          style={{ paddingBottom: footerBottomPadding }}
         >
           <View className="mb-3 flex-row items-center justify-between gap-3">
             <View className="flex-1">
