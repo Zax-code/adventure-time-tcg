@@ -53,7 +53,6 @@ const KEY_HIT_SLOP = {
 const NARROW_TILE_LETTER_STYLE = {
   minWidth: 12,
   textAlign: "center" as const,
-  transform: [{ scaleX: 1.7 }],
 };
 const LETTER_PRIORITY: Record<string, number> = {
   absent: 0,
