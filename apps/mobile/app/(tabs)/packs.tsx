@@ -3136,6 +3136,43 @@ export default function PacksScreen() {
         secondary={tc.secondaryTint}
         accent={tc.accentTint}
       />
+      {heroPack ? (
+        <View
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: 1,
+            height: 1,
+            opacity: 0,
+            overflow: "hidden",
+          }}
+        >
+          <PackOpeningSequenceDom
+            mode="charge"
+            pack={{
+              backgroundColor: tc.bg,
+              cardCountLabel: t("packs.cardsCount", {
+                count: heroPack.cardCount,
+              }),
+              color: heroPack.color || "#C96A24",
+              guaranteedRarity: heroPack.guaranteedRarity,
+              name: heroPack.name,
+              packArtAssetId: heroPack.packArtAssetId,
+            }}
+            stageOffsetY={0}
+            dom={{
+              contentInsetAdjustmentBehavior: "never",
+              scrollEnabled: false,
+              style: {
+                backgroundColor: "transparent",
+                flex: 1,
+              },
+            }}
+          />
+        </View>
+      ) : null}
 
       <ScrollView
         className="flex-1"
