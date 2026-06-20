@@ -67,7 +67,10 @@ import {
 } from "../../src/components/theme";
 import { useTranslation } from "../../src/i18n";
 import { apiClient } from "../../src/lib/api";
-import { prefetchCatalogImages } from "../../src/lib/catalog-images";
+import {
+  getCatalogImageUrl,
+  prefetchCatalogImages,
+} from "../../src/lib/catalog-images";
 import { prefetchCardImages } from "../../src/lib/card-images";
 import { useSessionStore } from "../../src/stores/session-store";
 import { useThemeStore } from "../../src/stores/theme-store";
@@ -456,6 +459,10 @@ function createBurstPattern(
   return { cracks, particles, shards };
 }
 
+function getPackArtUrl(pack: Pick<Pack, "packArtAssetId">) {
+  return pack.packArtAssetId ? getCatalogImageUrl(pack.packArtAssetId) : null;
+}
+
 function createLoadingSparkles(baseSize: number) {
   const maxDistance = baseSize * 0.92;
   const minDistance = baseSize * 0.19;
@@ -636,6 +643,7 @@ function PackPreviewCard({
     guaranteedRarity: pack.guaranteedRarity,
     name: pack.name,
     packArtAssetId: pack.packArtAssetId,
+    packArtUrl: getPackArtUrl(pack),
   });
   void sheenAnim;
 
@@ -2224,6 +2232,7 @@ export default function PacksScreen() {
                   guaranteedRarity: selectedPack.guaranteedRarity,
                   name: selectedPack.name,
                   packArtAssetId: selectedPack.packArtAssetId,
+                  packArtUrl: getPackArtUrl(selectedPack),
                 }}
                 stageOffsetY={openingStageTranslateY}
                 dom={{
@@ -2934,6 +2943,7 @@ export default function PacksScreen() {
               guaranteedRarity: heroPack.guaranteedRarity,
               name: heroPack.name,
               packArtAssetId: heroPack.packArtAssetId,
+              packArtUrl: getPackArtUrl(heroPack),
             }}
             stageOffsetY={0}
             dom={{

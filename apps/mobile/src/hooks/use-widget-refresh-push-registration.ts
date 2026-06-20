@@ -30,7 +30,9 @@ export function useWidgetRefreshPushRegistration(params: {
 
   useEffect(() => {
     if (!userId) {
-      void syncLocalNotificationSchedules(null);
+      void syncLocalNotificationSchedules(null).catch(() => {
+        // Local reminders are best-effort and should not surface during app startup.
+      });
       return;
     }
 
@@ -38,6 +40,8 @@ export function useWidgetRefreshPushRegistration(params: {
       notificationPreferences,
       preferredLanguage,
       timezone,
+    }).catch(() => {
+      // Local reminders are best-effort and should not surface during app startup.
     });
   }, [notificationPreferences, preferredLanguage, timezone, userId]);
 

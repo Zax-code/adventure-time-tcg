@@ -51,6 +51,27 @@ function setNotificationPermissionStatus(status: StepSyncPermissionStatus) {
     .setPartial({ notificationPermissionStatus: status });
 }
 
+function dailyResetNotificationTrigger(
+  timezone: string,
+): Notifications.NotificationTriggerInput {
+  if (Platform.OS === "android") {
+    return {
+      type: Notifications.SchedulableTriggerInputTypes.DAILY,
+      hour: 0,
+      minute: 0,
+      channelId: GENERAL_NOTIFICATION_CHANNEL_ID,
+    };
+  }
+
+  return {
+    type: Notifications.SchedulableTriggerInputTypes.CALENDAR,
+    hour: 0,
+    minute: 0,
+    repeats: true,
+    timezone,
+  };
+}
+
 async function cancelDailyResetNotification() {
   const notificationId = await SecureStore.getItemAsync(
     DAILY_RESET_NOTIFICATION_ID_KEY,
@@ -166,16 +187,7 @@ export async function syncLocalNotificationSchedules(
         ? { channelId: GENERAL_NOTIFICATION_CHANNEL_ID }
         : {}),
     },
-    trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.CALENDAR,
-      hour: 0,
-      minute: 0,
-      repeats: true,
-      timezone: user.timezone,
-      ...(Platform.OS === "android"
-        ? { channelId: GENERAL_NOTIFICATION_CHANNEL_ID }
-        : {}),
-    },
+    trigger: dailyResetNotificationTrigger(user.timezone),
   });
 
   await SecureStore.setItemAsync(
