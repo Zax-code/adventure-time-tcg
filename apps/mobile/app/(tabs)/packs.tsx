@@ -1052,97 +1052,23 @@ function PackLoadingGlow({
   );
 }
 
-function getCardBackPalette(
-  themeName: ThemeName,
-  tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS],
-) {
-  switch (themeName) {
-    case "ice":
-      return {
-        base: tc.infoTint,
-        border: tc.infoBorder,
-        frame: tc.surface,
-        emblemBg: tc.secondaryTint,
-        emblemBorder: tc.secondaryBorder,
-        emblemIcon: tc.infoDark,
-        stripe: tc.infoDark,
-        pip: tc.secondaryDark,
-        chipBg: tc.surface,
-        chipText: tc.infoText,
-      };
-    case "nightosphere":
-      return {
-        base: tc.surface,
-        border: tc.primaryBorder,
-        frame: tc.surfaceMuted,
-        emblemBg: tc.accentTint,
-        emblemBorder: tc.accentBorder,
-        emblemIcon: tc.primaryDark,
-        stripe: tc.primaryText,
-        pip: tc.accentText,
-        chipBg: tc.surfaceMuted,
-        chipText: tc.accentText,
-      };
-    case "candy":
-    default:
-      return {
-        base: tc.primaryTint,
-        border: tc.primaryBorder,
-        frame: tc.surface,
-        emblemBg: tc.secondaryTint,
-        emblemBorder: tc.secondaryBorder,
-        emblemIcon: tc.primaryStrong,
-        stripe: tc.accentDark,
-        pip: tc.primaryDark,
-        chipBg: tc.surface,
-        chipText: tc.primaryText,
-      };
-  }
-}
-
-function ThemeCardBackGlyph({
-  themeName,
-  size,
-  color,
-}: {
-  themeName: ThemeName;
-  size: number;
-  color: string;
-}) {
-  if (themeName === "ice") {
-    return <DiamondIcon size={size} color={color} />;
-  }
-
-  if (themeName === "nightosphere") {
-    return <EyeIcon size={size} color={color} />;
-  }
-
-  return <SparklesIcon size={size} color={color} />;
-}
-
 function CardBackFace({
   width,
-  tc,
   themeName,
   rarityName,
   cardBackVisualMap,
 }: {
   width: number;
-  tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
   themeName: ThemeName;
   rarityName: RarityName;
   cardBackVisualMap: CardBackVisualMap;
 }) {
   const height = width / PACK_CARD_RATIO;
-  const themePalette = getCardBackPalette(themeName, tc);
-  const rarityPalette = getThemeRarityPalette(themeName, rarityName);
   const backcoverSource = getCardBackcoverSource(
     themeName,
     rarityName,
     cardBackVisualMap.get(getCardBackVisualKey(themeName, rarityName)),
   );
-  const emblemSize = Math.max(84, width * 0.29);
-  const stripeWidth = width * 0.58;
 
   return (
     <View
@@ -1151,188 +1077,16 @@ function CardBackFace({
         height,
         borderRadius: 32,
         overflow: "hidden",
-        borderWidth: 1.5,
-        borderColor: withAlpha(rarityPalette.ring, "88"),
-        backgroundColor: withAlpha(rarityPalette.from, "E2"),
       }}
     >
       <Image
         source={backcoverSource}
         contentFit="cover"
         style={{
-          position: "absolute",
-          top: -1,
-          right: -1,
-          bottom: -1,
-          left: -1,
-          transform: [{ scale: 1.01 }],
+          width: "100%",
+          height: "100%",
         }}
       />
-      <View
-        pointerEvents="none"
-        style={{
-          position: "absolute",
-          top: 18,
-          right: 18,
-          bottom: 18,
-          left: 18,
-          borderRadius: 24,
-          borderWidth: 1,
-          borderColor: withAlpha(rarityPalette.ring, "42"),
-          backgroundColor: withAlpha(rarityPalette.to, "7A"),
-        }}
-      />
-      <View
-        pointerEvents="none"
-        style={{
-          position: "absolute",
-          top: 58,
-          left: 28,
-          right: 28,
-          height: 8,
-          borderRadius: 999,
-          backgroundColor: withAlpha(themePalette.stripe, "2E"),
-        }}
-      />
-      <View
-        pointerEvents="none"
-        style={{
-          position: "absolute",
-          bottom: 58,
-          left: 28,
-          right: 28,
-          height: 8,
-          borderRadius: 999,
-          backgroundColor: withAlpha(themePalette.stripe, "2E"),
-        }}
-      />
-      <View
-        pointerEvents="none"
-        style={{
-          position: "absolute",
-          top: 84,
-          bottom: 84,
-          left: 34,
-          width: 16,
-          borderRadius: 999,
-          backgroundColor: withAlpha(themePalette.emblemBg, "24"),
-        }}
-      />
-      <View
-        pointerEvents="none"
-        style={{
-          position: "absolute",
-          top: 84,
-          bottom: 84,
-          right: 34,
-          width: 16,
-          borderRadius: 999,
-          backgroundColor: withAlpha(themePalette.emblemBg, "24"),
-        }}
-      />
-      <View
-        pointerEvents="none"
-        style={{
-          position: "absolute",
-          top: 118,
-          left: 72,
-          right: 72,
-          height: 2,
-          backgroundColor: withAlpha(rarityPalette.ring, "36"),
-        }}
-      />
-      <View
-        pointerEvents="none"
-        style={{
-          position: "absolute",
-          bottom: 118,
-          left: 72,
-          right: 72,
-          height: 2,
-          backgroundColor: withAlpha(rarityPalette.ring, "36"),
-        }}
-      />
-
-      <View className="flex-1 items-center justify-between px-7 py-7">
-        <View
-          className="rounded-full px-3 py-1.5"
-          style={{ backgroundColor: withAlpha(rarityPalette.to, "7A") }}
-        >
-          <Text
-            className="font-nunito-extrabold text-[11px]"
-            style={{ color: withAlpha(tc.fg, "D4"), letterSpacing: 1.1 }}
-          >
-            ATCG
-          </Text>
-        </View>
-
-        <View className="items-center gap-5">
-          <View
-            className="items-center justify-center rounded-full"
-            style={{
-              width: emblemSize,
-              height: emblemSize,
-              borderWidth: 2,
-              borderColor: withAlpha(rarityPalette.ring, "80"),
-              backgroundColor: withAlpha(themePalette.emblemBg, "76"),
-            }}
-          >
-            <View
-              pointerEvents="none"
-              style={{
-                position: "absolute",
-                width: emblemSize * 0.74,
-                height: emblemSize * 0.74,
-                borderRadius: 999,
-                borderWidth: 1.5,
-                borderColor: withAlpha(rarityPalette.ring, "44"),
-                backgroundColor: withAlpha(rarityPalette.to, "4E"),
-              }}
-            />
-            <ThemeCardBackGlyph
-              themeName={themeName}
-              size={Math.max(36, emblemSize * 0.44)}
-              color={withAlpha(tc.fg, "CC")}
-            />
-          </View>
-
-          <View className="items-center gap-2">
-            <View
-              style={{
-                width: stripeWidth,
-                height: 8,
-                borderRadius: 999,
-                backgroundColor: withAlpha(rarityPalette.ring, "5E"),
-              }}
-            />
-            <View
-              style={{
-                width: stripeWidth * 0.72,
-                height: 8,
-                borderRadius: 999,
-                backgroundColor: withAlpha(themePalette.stripe, "42"),
-              }}
-            />
-          </View>
-        </View>
-
-        <View className="flex-row items-center gap-2">
-          {[0, 1, 2, 3, 4].map((pip) => (
-            <View
-              key={pip}
-              style={{
-                width: 10,
-                height: 10,
-                borderRadius: 999,
-                backgroundColor: withAlpha(
-                  pip === 2 ? rarityPalette.ring : themePalette.pip,
-                  pip === 2 ? "B6" : "64",
-                ),
-              }}
-            />
-          ))}
-        </View>
-      </View>
     </View>
   );
 }
@@ -1475,7 +1229,6 @@ function CardBackStack({
         >
           <CardBackFace
             width={width}
-            tc={tc}
             themeName={themeName}
             rarityName={card.rarityName}
             cardBackVisualMap={cardBackVisualMap}
@@ -2774,7 +2527,6 @@ export default function PacksScreen() {
               >
                 <CardBackFace
                   width={revealCardWidth}
-                  tc={tc}
                   themeName={themeName}
                   rarityName={rarityName}
                   cardBackVisualMap={cardBackVisualMap}
