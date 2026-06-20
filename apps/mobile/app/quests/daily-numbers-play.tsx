@@ -455,16 +455,19 @@ function BackButton({
   onPress: () => void;
 }) {
   return (
-    <View className="mb-2 flex-row items-center">
-      <Pressable
-        onPress={onPress}
-        className="rounded-full border border-primaryBorder bg-surface px-4 py-2"
-        accessibilityRole="button"
-        accessibilityLabel={label}
-      >
-        <Text className="font-nunito-bold text-sm text-primaryText">{label}</Text>
-      </Pressable>
-    </View>
+    <Pressable
+      onPress={onPress}
+      className="w-full overflow-hidden rounded-xl"
+      style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+    >
+      <View className="items-center rounded-xl bg-primary py-2">
+        <Text className="font-nunito-semibold text-sm text-primaryBg">
+          {label}
+        </Text>
+      </View>
+    </Pressable>
   );
 }
 
@@ -553,15 +556,34 @@ function MetricsSection({
   currentDistance,
   state,
   t,
+  tc,
 }: {
   compact: boolean;
   currentBestTile: BoardTile | null;
   currentDistance: number | undefined;
   state: DailyNumbersStateResponse;
   t: TranslateFn;
+  tc: ThemeColors;
 }) {
   return (
     <View className="gap-2">
+      <View
+        className="rounded-2xl border px-4 py-3"
+        style={{ backgroundColor: tc.infoTint, borderColor: tc.infoBorder }}
+      >
+        <Text
+          className="font-nunito-semibold text-[10px] uppercase tracking-[1px]"
+          style={{ color: tc.infoText }}
+        >
+          {t("quests.dailyNumbers.target")}
+        </Text>
+        <Text
+          className={`font-nunito-extrabold ${compact ? "text-[32px]" : "text-[38px]"}`}
+          style={{ color: tc.infoText }}
+        >
+          {state.target}
+        </Text>
+      </View>
       <View className="flex-row flex-wrap gap-2">
         <StatCard
           compact={compact}
@@ -573,14 +595,6 @@ function MetricsSection({
           label={t("quests.dailyNumbers.bestDistance")}
           value={currentDistance ?? state.bestDistance}
         />
-      </View>
-      <View className="rounded-2xl bg-primaryBg px-4 py-3">
-        <Text className="font-nunito-semibold text-[10px] uppercase tracking-[1px] text-fgMuted">
-          {t("quests.dailyNumbers.target")}
-        </Text>
-        <Text className={`font-nunito-extrabold ${compact ? "text-[28px]" : "text-[32px]"} text-fg`}>
-          {state.target}
-        </Text>
       </View>
     </View>
   );
@@ -1661,6 +1675,7 @@ function DailyNumbersBoard({
             currentDistance={controller.currentDistance}
             state={controller.state}
             t={controller.t}
+            tc={controller.tc}
           />
         ) : null}
 
@@ -1917,10 +1932,18 @@ export default function DailyNumbersPlayScreen() {
           paddingHorizontal: compact ? 10 : 14,
         }}
       >
-        <BackButton
-          label={t("quests.dailyNumbers.backToQuests")}
-          onPress={() => router.back()}
-        />
+        <View className="mb-3 items-center gap-2">
+          <Text className="text-center font-nunito-extrabold text-[28px] text-primaryDark">
+            {t("quests.dailyNumbers.title")}
+          </Text>
+          <Text className="max-w-[340px] text-center font-nunito text-sm text-primaryDark/80">
+            {t("quests.dailyNumbers.subtitle")}
+          </Text>
+          <BackButton
+            label={t("quests.dailyNumbers.backToQuests")}
+            onPress={() => router.back()}
+          />
+        </View>
 
         <ModeTabs
           activeMode={activeMode}

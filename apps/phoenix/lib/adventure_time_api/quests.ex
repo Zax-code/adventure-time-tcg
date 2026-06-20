@@ -1510,6 +1510,7 @@ defmodule AdventureTimeApi.Quests do
   defp build_daily_numbers_submission_payload(%DailyNumbersDailyAttempt{} = attempt, puzzle) do
     %{
       finalValue: attempt.final_value,
+      defaultDistance: puzzle.distance,
       distance: attempt.distance,
       exact: attempt.exact,
       score: attempt.score,
