@@ -1,0 +1,4 @@
+interface:
+  display_name: "Generate Card"
+  short_description: "Create balanced Adventure Time TCG cards"
+  default_prompt: "Use $generate-card to create a balanced local Adventure Time TCG card from my illustration and character name."
