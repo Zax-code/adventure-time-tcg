@@ -43,3 +43,7 @@ _Avoid_: Hidden log events, private passive triggers, private cooldown ticks
 **PvP Bench Visibility**:
 Opponent bench card details are public battle information before those cards enter the active row. Players should be able to inspect bench HP, statuses, assigned abilities, cooldowns, used-ultimate state, and passives during battle.
 _Avoid_: Hidden bench cards, concealed bench abilities
+
+**PvP Swap Intent**:
+A player's queued swap choice is private until it resolves at end turn. The resolved swap is public through battle state changes and the combat log.
+_Avoid_: Revealing pending swaps, opponent-visible queued swap intent
