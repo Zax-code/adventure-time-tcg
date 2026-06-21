@@ -18,7 +18,7 @@ _Avoid_: Cleanse status
 
 **Regeneration**:
 A PvP status that heals its unit at the start of that unit owner's turn.
-_Avoid_: Regen
+_Avoid_: Short status aliases, legacy status aliases
 
 **PvP Type Matchup**:
 A relationship between an attacking unit's type and a defending unit's type that changes damage dealt in PvP.
