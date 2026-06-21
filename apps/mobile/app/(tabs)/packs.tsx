@@ -1134,9 +1134,13 @@ function RevealCardHalo({
 }) {
   const height = width / REVEAL_CARD_RATIO;
   const haloShapeSource = getCardOutlineSource(themeName, rarityName);
+  const haloOpacity = opacityAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 0.22],
+  });
   const haloScale = opacityAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [0.98, 1.1],
+    outputRange: [0.995, 1.025],
   });
 
   return (
@@ -1148,7 +1152,7 @@ function RevealCardHalo({
         top: 0,
         width,
         height,
-        opacity: opacityAnim,
+        opacity: haloOpacity,
         zIndex: 0,
         transform: [{ scale: haloScale }],
       }}
@@ -1157,15 +1161,14 @@ function RevealCardHalo({
         pointerEvents="none"
         source={haloShapeSource}
         contentFit="fill"
-        blurRadius={18}
+        blurRadius={7}
         tintColor={color}
         style={{
           position: "absolute",
-          top: -14,
-          right: -14,
-          bottom: -14,
-          left: -14,
-          opacity: 0.82,
+          top: -4,
+          right: -4,
+          bottom: -4,
+          left: -4,
         }}
       />
     </Animated.View>
