@@ -218,10 +218,6 @@ const pvp = {
     strongAgainst: "Fort contre",
     weakAgainst: "Faible contre",
     typeSpecialNone: "-",
-    typeSpecial: {
-      Hero: "Subit 5 % de dégâts en moins de tous les types",
-      Candy: "Subit moins de dégâts du Feu (-15 %) et de la Magie (-15 %)",
-    },
     rarityTitle: "Différences de rareté",
     rarityIntro:
       "La rareté modifie les statistiques de base au début du combat.",

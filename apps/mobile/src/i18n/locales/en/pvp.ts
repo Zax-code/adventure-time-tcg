@@ -207,14 +207,10 @@ const pvp = {
     },
     typeTitle: "Type Strengths and Weaknesses",
     typeIntro:
-      "Strong matchups deal more damage, weak matchups deal less. Some types also have special defensive modifiers.",
+      "Strong matchups deal more damage, weak matchups deal less.",
     strongAgainst: "Strong vs",
     weakAgainst: "Weak vs",
     typeSpecialNone: "-",
-    typeSpecial: {
-      Hero: "Takes 5% less incoming damage from all types",
-      Candy: "Takes reduced incoming damage from Fire (-15%), Magic (-15%)",
-    },
     rarityTitle: "Rarity Differences",
     rarityIntro:
       "Rarity modifies base combat stats at battle start. Legendary also enables an extra passive slot.",
