@@ -12,7 +12,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type { AdminCardsResponse } from "@adventure-time/api-client";
 
-import { AdminCardTile } from "../../src/components/admin/admin-card-tile";
+import { CardTile } from "../../src/components/card-tile";
 import {
   pickReadableTextColor,
   withAlpha,
@@ -188,7 +188,7 @@ export default function AdminFeaturedScreen() {
             className={featured ? "rounded-[18] border-2" : "relative"}
             style={featured ? { borderColor: tc.secondaryDark } : undefined}
           >
-            <AdminCardTile card={row.left} fitContainer />
+            <CardTile card={row.left} fitContainer />
             <Pressable
               disabled={!featured && maxReached}
               className="absolute -top-2 -right-2 h-8 w-8 items-center justify-center rounded-full"
@@ -240,7 +240,7 @@ export default function AdminFeaturedScreen() {
               className={featured ? "rounded-[18] border-2" : "relative"}
               style={featured ? { borderColor: tc.secondaryDark } : undefined}
             >
-              <AdminCardTile card={row.right} fitContainer />
+              <CardTile card={row.right} fitContainer />
               <Pressable
                 disabled={!featured && maxReached}
                 className="absolute -top-2 -right-2 h-8 w-8 items-center justify-center rounded-full"
