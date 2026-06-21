@@ -22,6 +22,13 @@ const collection = {
   },
   noFilterMatches: "Aucune carte ne correspond à tes filtres.",
   empty: "Ta collection est vide. Ouvre des packs ou cree ta premiere carte !",
+  locked: {
+    illustration: "Illustration cachee",
+    description:
+      "Cree ou debloque cette carte pour reveler son histoire et ses pouvoirs.",
+    statsHint:
+      "Cree ou debloque cette carte pour reveler ses statistiques de combat.",
+  },
   dustModal: {
     title: "Guide de la poussiere",
     description:

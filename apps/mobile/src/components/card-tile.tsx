@@ -152,6 +152,7 @@ export const CardTile = memo(function CardTile({
   const cfg = sizeConfig[size];
   const { t } = useTranslation();
   const tc = THEME_COLORS[useThemeStore((s) => s.themeName)];
+  const isLocked = quantity <= 0;
   const typeColor = CARD_TYPE_COLORS[card.type] ?? {
     frame: "#9CA3AF",
     light: "#F3F4F6",
@@ -222,6 +223,7 @@ export const CardTile = memo(function CardTile({
       ? 0.46
       : 0.58
     : 1;
+  const concealedStat = size === "large" ? "??" : "?";
 
   return (
     <Pressable
@@ -297,7 +299,7 @@ export const CardTile = memo(function CardTile({
               className="flex-1 text-center text-white font-nunito-extrabold"
               style={{ fontSize: cfg.headerFontSize }}
             >
-              {card.attack} ATK
+              {isLocked ? concealedStat : card.attack} ATK
             </Text>
             {/* HP floats center, slightly overlapping down */}
             <View
@@ -309,13 +311,36 @@ export const CardTile = memo(function CardTile({
                 zIndex: 5,
               }}
             >
-              <HPIcon size={cfg.hpIconSize} hpVal={card.hp} />
+              {isLocked ? (
+                <View
+                  className="items-center justify-center border-2"
+                  style={{
+                    width: cfg.hpIconSize,
+                    height: cfg.hpIconSize,
+                    borderRadius: cfg.hpIconSize / 2,
+                    backgroundColor: tc.surface,
+                    borderColor: rarityColor.ring,
+                  }}
+                >
+                  <Text
+                    className="font-nunito-extrabold"
+                    style={{
+                      color: tc.primaryText,
+                      fontSize: cfg.headerFontSize,
+                    }}
+                  >
+                    {concealedStat}
+                  </Text>
+                </View>
+              ) : (
+                <HPIcon size={cfg.hpIconSize} hpVal={card.hp} />
+              )}
             </View>
             <Text
               className="flex-1 text-center text-white font-nunito-bold"
               style={{ fontSize: cfg.headerFontSize }}
             >
-              {card.defense} DEF
+              {isLocked ? concealedStat : card.defense} DEF
             </Text>
           </View>
 
@@ -327,7 +352,33 @@ export const CardTile = memo(function CardTile({
               borderRadius: cfg.rarityBadgeRadius,
             }}
           >
-            {card.imageAssetId ? (
+            {isLocked ? (
+              <LinearGradient
+                colors={[typeColor.dark, rarityColor.ring, typeColor.frame]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 4,
+                }}
+              >
+                <Text
+                  className="text-white font-nunito-extrabold"
+                  style={{ fontSize: cfg.nameFontSize * 2.6 }}
+                >
+                  ?
+                </Text>
+                <Text
+                  className="text-white font-nunito-bold"
+                  style={{ fontSize: cfg.typeFontSize }}
+                >
+                  {t("collection.locked.illustration")}
+                </Text>
+              </LinearGradient>
+            ) : card.imageAssetId ? (
               <Image
                 source={{
                   uri: getCardImageUrl(card.imageAssetId),
@@ -423,7 +474,9 @@ export const CardTile = memo(function CardTile({
               }}
               numberOfLines={size === "large" ? 6 : 4}
             >
-              {card.description}
+              {isLocked
+                ? t("collection.locked.description")
+                : card.description}
             </Text>
           </View>
 
@@ -432,9 +485,33 @@ export const CardTile = memo(function CardTile({
             className="items-center justify-center relative"
             style={{ height: cfg.speedHeight, marginTop: cfg.speedMarginTop }}
           >
-            <View style={{ position: "absolute", top: cfg.speedIconTop }}>
-              <SpeedIcon size={cfg.speedIconSize} speedVal={card.speed} />
-            </View>
+            {isLocked ? (
+              <View
+                className="absolute items-center justify-center border-2"
+                style={{
+                  top: cfg.speedIconTop,
+                  width: cfg.speedIconSize,
+                  height: cfg.speedIconSize,
+                  borderRadius: cfg.speedIconSize / 2,
+                  backgroundColor: tc.surface,
+                  borderColor: rarityColor.ring,
+                }}
+              >
+                <Text
+                  className="font-nunito-extrabold"
+                  style={{
+                    color: tc.primaryText,
+                    fontSize: cfg.headerFontSize,
+                  }}
+                >
+                  {concealedStat}
+                </Text>
+              </View>
+            ) : (
+              <View style={{ position: "absolute", top: cfg.speedIconTop }}>
+                <SpeedIcon size={cfg.speedIconSize} speedVal={card.speed} />
+              </View>
+            )}
           </View>
         </View>
       </View>
@@ -466,7 +543,7 @@ export const CardTile = memo(function CardTile({
               </Text>
             </View>
           </Animated.View>
-        ) : muted ? (
+        ) : muted || isLocked ? (
           <View className="items-center" style={{ marginTop: 4 }}>
             <View
               className="rounded-full items-center"
