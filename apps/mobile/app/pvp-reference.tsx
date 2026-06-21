@@ -26,9 +26,7 @@ const STATUS_ENTRIES = [
   { name: "Haste", hue: 48 },
   { name: "Taunt", hue: 345 },
   { name: "Regeneration", hue: 128 },
-  { name: "Regen", hue: 140 },
   { name: "Silence", hue: 260 },
-  { name: "Cleanse", hue: 170 },
   { name: "SummoningSickness", hue: 24 },
   { name: "Cover", hue: 204 },
   { name: "Stunned", hue: 280 },
@@ -49,19 +47,20 @@ const CORE_ITEMS = [
   "slotLimits",
   "mitigation",
   "retaliation",
+  "cleanse",
 ] as const;
 
 const TYPE_ROWS = [
-  { type: "Hero", strong: [] as string[], weak: [] as string[], hasSpecial: true },
-  { type: "Tech", strong: ["Royalty", "Candy"], weak: ["Magic"], hasSpecial: false },
-  { type: "Royalty", strong: ["Undead", "Demon"], weak: ["Tech"], hasSpecial: false },
-  { type: "Candy", strong: [] as string[], weak: [] as string[], hasSpecial: true },
-  { type: "Undead", strong: ["Candy"], weak: ["Royalty", "Fire"], hasSpecial: false },
-  { type: "Ice", strong: ["Magic", "Demon"], weak: ["Undead", "Fire"], hasSpecial: false },
-  { type: "Fire", strong: ["Undead", "Ice"], weak: ["Magic"], hasSpecial: false },
-  { type: "Magic", strong: ["Tech", "Fire"], weak: ["Ice", "Cosmic"], hasSpecial: false },
-  { type: "Demon", strong: ["Cosmic"], weak: ["Royalty", "Ice"], hasSpecial: false },
-  { type: "Cosmic", strong: ["Magic"], weak: ["Demon"], hasSpecial: false },
+  { type: "Hero", strong: ["Undead"], weak: ["Ice"] },
+  { type: "Tech", strong: ["Fire"], weak: ["Cosmic"] },
+  { type: "Royalty", strong: ["Demon"], weak: ["Magic"] },
+  { type: "Candy", strong: ["Hero"], weak: ["Tech"] },
+  { type: "Undead", strong: ["Magic"], weak: ["Hero"] },
+  { type: "Ice", strong: ["Fire"], weak: ["Undead"] },
+  { type: "Fire", strong: ["Ice"], weak: ["Tech"] },
+  { type: "Magic", strong: ["Royalty"], weak: ["Undead"] },
+  { type: "Demon", strong: ["Hero"], weak: ["Royalty"] },
+  { type: "Cosmic", strong: ["Demon"], weak: ["Candy"] },
 ] as const;
 
 const RARITY_ROWS = [
@@ -287,13 +286,6 @@ export default function PvpReferenceScreen() {
                         : t("pvp.reference.typeSpecialNone")}
                     </Text>
                   </View>
-                  {row.hasSpecial ? (
-                    <View className="rounded-2xl bg-accentTint px-3 py-2">
-                      <Text className="font-nunito text-xs leading-5 text-fg">
-                        {t(`pvp.reference.typeSpecial.${row.type}`)}
-                      </Text>
-                    </View>
-                  ) : null}
                 </View>
               ))}
             </View>

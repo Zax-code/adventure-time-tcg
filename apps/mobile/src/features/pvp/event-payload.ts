@@ -29,10 +29,7 @@ function pickNumber(
   return null;
 }
 
-function pickBoolean(
-  payload: CombatEventPayload,
-  keys: string[],
-): boolean {
+function pickBoolean(payload: CombatEventPayload, keys: string[]): boolean {
   return keys.some((key) => payload[key] === true);
 }
 
@@ -41,7 +38,52 @@ export function getEventTargetInstanceId(event: CombatEvent): string | null {
 }
 
 export function getEventAmount(event: CombatEvent): number | null {
-  return pickNumber(event.payload, ["amount", "actualDamage", "damage", "absorbed"]);
+  return pickNumber(event.payload, [
+    "amount",
+    "actualDamage",
+    "damage",
+    "absorbed",
+  ]);
+}
+
+export function getEventRemaining(event: CombatEvent): number | null {
+  return pickNumber(event.payload, ["remaining"]);
+}
+
+export function getEventRoll(event: CombatEvent): number | null {
+  return pickNumber(event.payload, ["roll", "initiativeTieRoll"]);
+}
+
+export function getEventChance(event: CombatEvent): number | null {
+  return pickNumber(event.payload, ["chance", "initiativeTieChance"]);
+}
+
+export function getEventMissRoll(event: CombatEvent): number | null {
+  return pickNumber(event.payload, ["missRoll"]);
+}
+
+export function getEventMissChance(event: CombatEvent): number | null {
+  return pickNumber(event.payload, ["missChance"]);
+}
+
+export function getEventCritRoll(event: CombatEvent): number | null {
+  return pickNumber(event.payload, ["critRoll"]);
+}
+
+export function getEventCritChance(event: CombatEvent): number | null {
+  return pickNumber(event.payload, ["critChance"]);
+}
+
+export function getEventSelectedIndex(event: CombatEvent): number | null {
+  return pickNumber(event.payload, ["selectedIndex"]);
+}
+
+export function getEventOptionCount(event: CombatEvent): number | null {
+  return pickNumber(event.payload, ["optionCount"]);
+}
+
+export function didEventRollPass(event: CombatEvent): boolean {
+  return pickBoolean(event.payload, ["passed"]);
 }
 
 export function isMissEvent(event: CombatEvent): boolean {
@@ -58,16 +100,31 @@ export function getEventActorName(event: CombatEvent): string | null {
     "attackerName",
     "sourceName",
     "playerName",
+    "actorId",
+    "playerId",
+    "sourceId",
+    "unitId",
     "userId",
   ]);
 }
 
 export function getEventTargetName(event: CombatEvent): string | null {
-  return pickString(event.payload, ["targetName", "unitName"]);
+  return pickString(event.payload, [
+    "targetName",
+    "unitName",
+    "targetId",
+    "unitId",
+  ]);
 }
 
 export function getEventAbilityLabel(event: CombatEvent): string | null {
-  return pickString(event.payload, ["abilityName", "abilityKey", "copiedKey", "copyKey"]);
+  return pickString(event.payload, [
+    "abilityName",
+    "abilityKey",
+    "passiveKey",
+    "copiedKey",
+    "copyKey",
+  ]);
 }
 
 export function getEventStatusName(event: CombatEvent): string | null {
@@ -76,4 +133,28 @@ export function getEventStatusName(event: CombatEvent): string | null {
 
 export function getEventWinnerLabel(event: CombatEvent): string | null {
   return pickString(event.payload, ["winnerName", "winnerId"]);
+}
+
+export function isDrawEvent(event: CombatEvent): boolean {
+  return event.payload.result === "draw" || event.payload.winnerId === null;
+}
+
+export function getEventSourceName(event: CombatEvent): string | null {
+  return pickString(event.payload, [
+    "sourceName",
+    "sourceId",
+    "fromName",
+    "fromId",
+    "originalTargetId",
+  ]);
+}
+
+export function getEventDestinationName(event: CombatEvent): string | null {
+  return pickString(event.payload, [
+    "destinationName",
+    "redirectedToName",
+    "redirectedToId",
+    "toName",
+    "toId",
+  ]);
 }

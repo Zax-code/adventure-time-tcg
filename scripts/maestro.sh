@@ -20,11 +20,12 @@ trap cleanup EXIT
 
 if [[ "${1:-}" == "test" ]]; then
   test_email="${MOBILE_TEST_EMAIL:-mobile-test@leaetzak.love}"
+  test_opponent_email="${MOBILE_TEST_OPPONENT_EMAIL:-mobile-opponent@leaetzak.love}"
   test_password="${MOBILE_TEST_PASSWORD:-}"
   test_access_token=""
   test_refresh_token=""
   test_user=""
-  test_match_id=""
+  test_match_id="${MOBILE_TEST_MATCH_ID:-${TEST_MATCH_ID:-}}"
 
   if [[ -z "$test_password" ]]; then
     echo "MOBILE_TEST_PASSWORD is required for Maestro smoke tests." >&2
@@ -38,7 +39,7 @@ if [[ "${1:-}" == "test" ]]; then
       ./scripts/ensure-mobile-test-user.sh >/dev/null
   )
 
-  if [[ "${#args[@]}" -ge 4 && -f "${args[3]}" ]] && grep -q '\${TEST_MATCH_ID}' "${args[3]}"; then
+  if [[ "${#args[@]}" -ge 4 && -f "${args[3]}" ]] && grep -q '\${TEST_MATCH_ID}' "${args[3]}" && [[ -z "$test_match_id" ]]; then
     test_match_id="$(
       cd /Users/zax/Develop/adventure-time-tcg/apps/phoenix
       MOBILE_TEST_EMAIL="$test_email" \
@@ -83,11 +84,14 @@ NODE
   test_refresh_token="$(sed -n '2p' "$session_file")"
   test_user="$(sed -n '3p' "$session_file")"
   test_email_uri="$(node -p 'encodeURIComponent(process.argv[1])' "$test_email")"
+  test_opponent_email_uri="$(node -p 'encodeURIComponent(process.argv[1])' "$test_opponent_email")"
   test_password_uri="$(node -p 'encodeURIComponent(process.argv[1])' "$test_password")"
 
   export TEST_EMAIL="$test_email"
+  export TEST_OPPONENT_EMAIL="$test_opponent_email"
   export TEST_PASSWORD="$test_password"
   export TEST_EMAIL_URI="$test_email_uri"
+  export TEST_OPPONENT_EMAIL_URI="$test_opponent_email_uri"
   export TEST_PASSWORD_URI="$test_password_uri"
   export TEST_ACCESS_TOKEN="$test_access_token"
   export TEST_REFRESH_TOKEN="$test_refresh_token"
@@ -99,8 +103,10 @@ NODE
     temp_flow="$(mktemp "${flow_dir}/.maestro-flow.XXXXXX")"
     temp_flow="${temp_flow}.yaml"
     TEST_EMAIL_VALUE="$test_email" \
+    TEST_OPPONENT_EMAIL_VALUE="$test_opponent_email" \
     TEST_PASSWORD_VALUE="$test_password" \
     TEST_EMAIL_URI_VALUE="$test_email_uri" \
+    TEST_OPPONENT_EMAIL_URI_VALUE="$test_opponent_email_uri" \
     TEST_PASSWORD_URI_VALUE="$test_password_uri" \
     TEST_ACCESS_TOKEN_VALUE="$test_access_token" \
     TEST_REFRESH_TOKEN_VALUE="$test_refresh_token" \
@@ -111,8 +117,10 @@ NODE
         const [source, target] = process.argv.slice(1);
         const replacements = {
           "${TEST_EMAIL}": process.env.TEST_EMAIL_VALUE ?? "",
+          "${TEST_OPPONENT_EMAIL}": process.env.TEST_OPPONENT_EMAIL_VALUE ?? "",
           "${TEST_PASSWORD}": process.env.TEST_PASSWORD_VALUE ?? "",
           "${TEST_EMAIL_URI}": process.env.TEST_EMAIL_URI_VALUE ?? "",
+          "${TEST_OPPONENT_EMAIL_URI}": process.env.TEST_OPPONENT_EMAIL_URI_VALUE ?? "",
           "${TEST_PASSWORD_URI}": process.env.TEST_PASSWORD_URI_VALUE ?? "",
           "${TEST_ACCESS_TOKEN}": process.env.TEST_ACCESS_TOKEN_VALUE ?? "",
           "${TEST_REFRESH_TOKEN}": process.env.TEST_REFRESH_TOKEN_VALUE ?? "",

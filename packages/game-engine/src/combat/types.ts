@@ -26,7 +26,6 @@ export type StatusName =
   | "Haste"
   | "Taunt"
   | "Regeneration"
-  | "Regen" // Alias for Regeneration, heals 5% max HP per turn
   | "Silence"
   | "SummoningSickness"
   | "Cover"
@@ -369,6 +368,7 @@ export type CombatEventType =
   | "ko"
   | "swap"
   | "formation"
+  | "passiveRoll"
   | "passiveTrigger"
   | "cooldownTick"
   | "gameOver"
@@ -377,10 +377,13 @@ export type CombatEventType =
   | "revive"
   | "pass"
   | "concede"
+  | "timeout"
   | "coverRedirect"
   | "thorns"
   | "counter"
   | "preventDeath"
+  | "statusRoll"
+  | "randomStatusRoll"
   | "statusSteal"
   | "swapHp";
 

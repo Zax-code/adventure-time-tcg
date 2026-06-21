@@ -120,7 +120,6 @@ export const pvpStatusNameValues = [
   "Haste",
   "Taunt",
   "Regeneration",
-  "Regen",
   "Silence",
   "SummoningSickness",
   "Cover",
@@ -201,6 +200,7 @@ export const pvpCombatEventTypeValues = [
   "ko",
   "swap",
   "formation",
+  "passiveRoll",
   "passiveTrigger",
   "cooldownTick",
   "gameOver",
@@ -209,10 +209,13 @@ export const pvpCombatEventTypeValues = [
   "revive",
   "pass",
   "concede",
+  "timeout",
   "coverRedirect",
   "thorns",
   "counter",
   "preventDeath",
+  "statusRoll",
+  "randomStatusRoll",
   "statusSteal",
   "swapHp",
 ] as const;
@@ -885,7 +888,9 @@ export const pvpMatchSchema = z.object({
   inviterLoadout: z.array(z.string()),
   inviteeLoadout: z.array(z.string()),
   winnerId: z.string().nullable(),
+  completionReason: z.enum(["KO", "DRAW", "CONCEDE", "TIMEOUT"]).optional(),
   currentTurn: z.number().int().positive().optional(),
+  turnExpiresAt: z.string().optional(),
   hasReplayData: z.boolean().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
@@ -1053,6 +1058,7 @@ export const pvpHistoryResponseSchema = z.object({
     .object({
       wins: z.number().int().nonnegative(),
       losses: z.number().int().nonnegative(),
+      draws: z.number().int().nonnegative(),
       winRate: z.number().int().nonnegative(),
     })
     .optional(),
@@ -1152,6 +1158,7 @@ export const adminAbilitiesResponseSchema = z.object({
       name: z.string(),
       character: z.string(),
       type: z.string(),
+      rarityName: rarityNameSchema.nullable(),
     }),
   ),
 });
@@ -1494,6 +1501,7 @@ export const pvpSpectateMatchSchema = z.object({
     .enum(["PENDING", "IN_PROGRESS", "COMPLETED", "DECLINED", "EXPIRED"])
     .optional(),
   currentTurn: z.number().int().positive(),
+  turnExpiresAt: z.string().optional(),
   createdAt: z.string(),
   updatedAt: z.string().optional(),
 });

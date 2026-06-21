@@ -60,9 +60,9 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
     {value, {new_state, index + 1}}
   end
 
-  defp rng_next_bool({state, index}, probability \\ 0.5) do
-    {value, rng} = rng_next({state, index})
-    {value < probability, rng}
+  defp rng_next_bool_with_roll(rng, probability) do
+    {value, next_rng} = rng_next(rng)
+    {value < probability, value, next_rng}
   end
 
   # ── Speed ─────────────────────────────────────────────────────────────────
@@ -144,7 +144,6 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
     "Shield" => %{is_buff: true, is_debuff: false, ticks: false, stackable: :magnitude},
     "GuardUp" => %{is_buff: true, is_debuff: false, ticks: true, stackable: false},
     "Regeneration" => %{is_buff: true, is_debuff: false, ticks: true, stackable: false},
-    "Regen" => %{is_buff: true, is_debuff: false, ticks: true, stackable: false},
     "Vulnerable" => %{is_buff: false, is_debuff: true, ticks: true, stackable: false},
     "Weakened" => %{is_buff: false, is_debuff: true, ticks: true, stackable: false},
     "Haste" => %{is_buff: true, is_debuff: false, ticks: true, stackable: false},
@@ -541,15 +540,15 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
 
             {append_log(acc_state, [evt]), dmg + tick_dmg, heal}
 
-          n when n in ["Regeneration", "Regen"] ->
+          "Regeneration" ->
             tick_heal = floor(unit["maxHp"] * 0.08)
 
             evt =
               new_event(acc_state, "statusTick", %{
                 "targetId" => unit_id,
                 "unitId" => unit_id,
-                "statusName" => n,
-                "status" => n,
+                "statusName" => "Regeneration",
+                "status" => "Regeneration",
                 "amount" => tick_heal,
                 "healing" => tick_heal
               })
@@ -850,12 +849,33 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
     end)
   end
 
-  defp maybe_roll_passive_chance(state, nil), do: {true, state}
+  defp maybe_roll_passive_chance(state, nil), do: {true, state, nil}
 
   defp maybe_roll_passive_chance(state, chance) do
     rng = make_rng(state["seed"], state["rngIndex"])
-    {passed?, {_, new_rng_index}} = rng_next_bool(rng, chance)
-    {passed?, Map.put(state, "rngIndex", new_rng_index)}
+    {passed?, roll, {_, new_rng_index}} = rng_next_bool_with_roll(rng, chance)
+
+    {passed?, Map.put(state, "rngIndex", new_rng_index),
+     %{"roll" => roll, "chance" => chance, "passed" => passed?}}
+  end
+
+  defp append_passive_roll_event(state, _unit, _passive_key, _trigger, nil), do: state
+
+  defp append_passive_roll_event(state, unit, passive_key, trigger, roll_payload) do
+    append_log(state, [
+      new_event(
+        state,
+        "passiveRoll",
+        Map.merge(
+          %{
+            "unitId" => unit["instanceId"],
+            "passiveKey" => passive_key,
+            "trigger" => trigger
+          },
+          roll_payload
+        )
+      )
+    ])
   end
 
   defp apply_passive_stat_bonus(state, unit_id, stat_bonus) when is_map(stat_bonus) do
@@ -902,7 +922,8 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
         state
 
       true ->
-        {passed?, state} = maybe_roll_passive_chance(state, payload["chance"])
+        {passed?, state, roll_payload} = maybe_roll_passive_chance(state, payload["chance"])
+        state = append_passive_roll_event(state, unit, passive_key, trigger, roll_payload)
 
         if not passed? do
           state
@@ -1038,7 +1059,17 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
               {:cont, {acc_state2, nil}}
 
             true ->
-              {passed?, acc_state2} = maybe_roll_passive_chance(acc_state2, payload["chance"])
+              {passed?, acc_state2, roll_payload} =
+                maybe_roll_passive_chance(acc_state2, payload["chance"])
+
+              acc_state2 =
+                append_passive_roll_event(
+                  acc_state2,
+                  ally,
+                  passive_key,
+                  "onAllyFatalDamage",
+                  roll_payload
+                )
 
               if not passed? do
                 {:cont, {acc_state2, nil}}
@@ -1143,14 +1174,27 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
   defp apply_status_list_with_chance(state, unit_id, specs, chance) when is_list(specs) do
     Enum.reduce(specs, state, fn spec, acc_state ->
       rng = make_rng(acc_state["seed"], acc_state["rngIndex"])
-      {should_apply, {_, new_rng_index}} = rng_next_bool(rng, chance)
+      {should_apply, roll, {_, new_rng_index}} = rng_next_bool_with_roll(rng, chance)
       acc_state = Map.put(acc_state, "rngIndex", new_rng_index)
+      name = spec["name"]
+      source = spec["sourceInstanceId"]
+
+      acc_state =
+        append_log(acc_state, [
+          new_event(acc_state, "statusRoll", %{
+            "targetId" => unit_id,
+            "status" => name,
+            "statusName" => name,
+            "sourceId" => source,
+            "roll" => roll,
+            "chance" => chance,
+            "passed" => should_apply
+          })
+        ])
 
       if should_apply do
-        name = spec["name"]
         duration = spec["duration"] || 1
         magnitude = spec["magnitude"]
-        source = spec["sourceInstanceId"]
 
         {new_state, _} =
           apply_status(acc_state, unit_id, name, duration,
@@ -1182,6 +1226,19 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
     name = spec["name"]
     duration = spec["duration"] || 1
     magnitude = spec["magnitude"]
+
+    state =
+      append_log(state, [
+        new_event(state, "randomStatusRoll", %{
+          "targetId" => unit_id,
+          "status" => name,
+          "statusName" => name,
+          "roll" => val,
+          "selectedIndex" => index,
+          "optionCount" => length(specs)
+        })
+      ])
+
     {new_state, _} = apply_status(state, unit_id, name, duration, magnitude: magnitude)
     new_state
   end
@@ -1543,8 +1600,14 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
     base_damage = max(1, floor(atk * atk * base_damage_scalar / denom))
     type_mul = type_multiplier(attacker["type"], target["type"])
 
-    {is_miss, rng1} = rng_next_bool(rng, miss_chance)
-    {is_crit, rng2} = if is_miss, do: {false, rng1}, else: rng_next_bool(rng1, crit_chance)
+    {is_miss, miss_roll, rng1} = rng_next_bool_with_roll(rng, miss_chance)
+
+    {is_crit, crit_roll, rng2} =
+      if is_miss do
+        {false, nil, rng1}
+      else
+        rng_next_bool_with_roll(rng1, crit_chance)
+      end
 
     crit_mul = if is_crit, do: crit_multiplier, else: 1.0
 
@@ -1574,9 +1637,22 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
        final_damage: final_damage,
        is_miss: is_miss,
        is_crit: is_crit,
+       miss_roll: miss_roll,
+       miss_chance: miss_chance,
+       crit_roll: crit_roll,
+       crit_chance: crit_chance,
        type_multiplier: type_mul,
        base_damage: base_damage
      }, rng2}
+  end
+
+  defp attack_roll_payload(dmg_ctx) do
+    %{
+      "missRoll" => dmg_ctx.miss_roll,
+      "missChance" => dmg_ctx.miss_chance,
+      "critRoll" => dmg_ctx.crit_roll,
+      "critChance" => dmg_ctx.crit_chance
+    }
   end
 
   # ── Unit Building ─────────────────────────────────────────────────────────
@@ -1661,21 +1737,40 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
     inviter_initiative = calculate_initiative(Enum.map(inviter_units, & &1["speed"]))
     invitee_initiative = calculate_initiative(Enum.map(invitee_units, & &1["speed"]))
 
-    {inviter_goes_first, rng2} =
+    {inviter_goes_first, initiative_tie_roll, rng2} =
       cond do
         inviter_initiative > invitee_initiative ->
-          {true, rng}
+          {true, nil, rng}
 
         invitee_initiative > inviter_initiative ->
-          {false, rng}
+          {false, nil, rng}
 
         true ->
-          {coin, r} = rng_next_bool(rng)
-          {coin, r}
+          {coin, roll, r} = rng_next_bool_with_roll(rng, 0.5)
+          {coin, roll, r}
       end
 
     {_, rng_index} = rng2
     first_player_id = if inviter_goes_first, do: inviter_data.user_id, else: invitee_data.user_id
+
+    match_start_payload =
+      %{
+        "player1Id" => inviter_data.user_id,
+        "player2Id" => invitee_data.user_id,
+        "firstMoverId" => first_player_id,
+        "seed" => seed
+      }
+      |> then(fn payload ->
+        if is_number(initiative_tie_roll) do
+          Map.merge(payload, %{
+            "initiativeTieRoll" => initiative_tie_roll,
+            "initiativeTieChance" => 0.5,
+            "initiativeTieWinnerId" => first_player_id
+          })
+        else
+          payload
+        end
+      end)
 
     state = %{
       "id" => match_id,
@@ -1712,12 +1807,7 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
           "seq" => 0,
           "turn" => 0,
           "type" => "matchStart",
-          "payload" => %{
-            "player1Id" => inviter_data.user_id,
-            "player2Id" => invitee_data.user_id,
-            "firstMoverId" => first_player_id,
-            "seed" => seed
-          }
+          "payload" => match_start_payload
         }
       ],
       "actionsThisTurn" => []
@@ -2136,19 +2226,26 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
           acc_state3 = acc_state2
 
           damage_evt =
-            new_event(acc_state3, "damage", %{
-              "actorId" => actor_id,
-              "attackerId" => actor_id,
-              "targetId" => target_id,
-              "amount" => effective_damage,
-              "damage" => effective_damage,
-              "hpBefore" => hp_before,
-              "hpAfter" => hp_after,
-              "isMiss" => dmg_ctx.is_miss,
-              "isCrit" => dmg_ctx.is_crit,
-              "typeMultiplier" => dmg_ctx.type_multiplier,
-              "damageReductionPct" => reduction_pct
-            })
+            new_event(
+              acc_state3,
+              "damage",
+              Map.merge(
+                %{
+                  "actorId" => actor_id,
+                  "attackerId" => actor_id,
+                  "targetId" => target_id,
+                  "amount" => effective_damage,
+                  "damage" => effective_damage,
+                  "hpBefore" => hp_before,
+                  "hpAfter" => hp_after,
+                  "isMiss" => dmg_ctx.is_miss,
+                  "isCrit" => dmg_ctx.is_crit,
+                  "typeMultiplier" => dmg_ctx.type_multiplier,
+                  "damageReductionPct" => reduction_pct
+                },
+                attack_roll_payload(dmg_ctx)
+              )
+            )
 
           acc_state4 =
             acc_state3
@@ -2278,20 +2375,27 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
                       is_ko = hp_after <= 0
 
                       splash_evt =
-                        new_event(acc_state, "damage", %{
-                          "actorId" => actor_id,
-                          "attackerId" => actor_id,
-                          "targetId" => splash_target["instanceId"],
-                          "amount" => splash_damage,
-                          "damage" => splash_damage,
-                          "hpBefore" => hp_before,
-                          "hpAfter" => hp_after,
-                          "isMiss" => dmg_ctx.is_miss,
-                          "isCrit" => dmg_ctx.is_crit,
-                          "typeMultiplier" => dmg_ctx.type_multiplier,
-                          "damageReductionPct" => reduction_pct,
-                          "splash" => true
-                        })
+                        new_event(
+                          acc_state,
+                          "damage",
+                          Map.merge(
+                            %{
+                              "actorId" => actor_id,
+                              "attackerId" => actor_id,
+                              "targetId" => splash_target["instanceId"],
+                              "amount" => splash_damage,
+                              "damage" => splash_damage,
+                              "hpBefore" => hp_before,
+                              "hpAfter" => hp_after,
+                              "isMiss" => dmg_ctx.is_miss,
+                              "isCrit" => dmg_ctx.is_crit,
+                              "typeMultiplier" => dmg_ctx.type_multiplier,
+                              "damageReductionPct" => reduction_pct,
+                              "splash" => true
+                            },
+                            attack_roll_payload(dmg_ctx)
+                          )
+                        )
 
                       acc_state2 =
                         acc_state
@@ -2566,18 +2670,25 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
       state =
         if dmg_ctx.is_miss do
           evt =
-            new_event(state, "damage", %{
-              "actorId" => actor_id,
-              "attackerId" => actor_id,
-              "targetId" => effective_target_id,
-              "amount" => 0,
-              "damage" => 0,
-              "hpBefore" => eff_target["hp"],
-              "hpAfter" => eff_target["hp"],
-              "isMiss" => true,
-              "isCrit" => false,
-              "typeMultiplier" => dmg_ctx.type_multiplier
-            })
+            new_event(
+              state,
+              "damage",
+              Map.merge(
+                %{
+                  "actorId" => actor_id,
+                  "attackerId" => actor_id,
+                  "targetId" => effective_target_id,
+                  "amount" => 0,
+                  "damage" => 0,
+                  "hpBefore" => eff_target["hp"],
+                  "hpAfter" => eff_target["hp"],
+                  "isMiss" => true,
+                  "isCrit" => false,
+                  "typeMultiplier" => dmg_ctx.type_multiplier
+                },
+                attack_roll_payload(dmg_ctx)
+              )
+            )
 
           append_log(state, [evt])
         else
@@ -2593,7 +2704,9 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
                 new_event(state, "crit", %{
                   "actorId" => actor_id,
                   "attackerId" => actor_id,
-                  "targetId" => effective_target_id
+                  "targetId" => effective_target_id,
+                  "critRoll" => dmg_ctx.crit_roll,
+                  "critChance" => dmg_ctx.crit_chance
                 })
 
               append_log(state, [evt])
@@ -2633,19 +2746,26 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
           is_ko = hp_after <= 0
 
           damage_evt =
-            new_event(state, "damage", %{
-              "actorId" => actor_id,
-              "attackerId" => actor_id,
-              "targetId" => effective_target_id,
-              "amount" => effective_damage,
-              "damage" => effective_damage,
-              "hpBefore" => hp_before,
-              "hpAfter" => hp_after,
-              "isMiss" => false,
-              "isCrit" => dmg_ctx.is_crit,
-              "typeMultiplier" => dmg_ctx.type_multiplier,
-              "damageReductionPct" => reduction_pct
-            })
+            new_event(
+              state,
+              "damage",
+              Map.merge(
+                %{
+                  "actorId" => actor_id,
+                  "attackerId" => actor_id,
+                  "targetId" => effective_target_id,
+                  "amount" => effective_damage,
+                  "damage" => effective_damage,
+                  "hpBefore" => hp_before,
+                  "hpAfter" => hp_after,
+                  "isMiss" => false,
+                  "isCrit" => dmg_ctx.is_crit,
+                  "typeMultiplier" => dmg_ctx.type_multiplier,
+                  "damageReductionPct" => reduction_pct
+                },
+                attack_roll_payload(dmg_ctx)
+              )
+            )
 
           state =
             state
@@ -2928,6 +3048,35 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
   end
 
   @doc """
+  Simulate a turn timeout. The player whose turn timed out loses the match.
+  Returns {new_state, events}.
+  """
+  def simulate_timeout(state, timed_out_user_id) do
+    events_before = length(state["log"])
+    winner_id = other_player(state, timed_out_user_id)
+
+    timeout_event = new_event(state, "timeout", %{"playerId" => timed_out_user_id})
+
+    state =
+      state
+      |> append_log([timeout_event])
+      |> Map.put("phase", "ended")
+      |> Map.put("winnerId", winner_id)
+
+    state =
+      append_log(state, [
+        new_event(state, "gameOver", %{
+          "winnerId" => winner_id,
+          "result" => "timeout",
+          "loserId" => timed_out_user_id
+        })
+      ])
+
+    new_events = state["log"] |> Enum.drop(events_before)
+    {state, new_events}
+  end
+
+  @doc """
   Check if the game is over. Returns {:over, winner_id} or :ongoing.
   """
   def check_game_over(state) do
@@ -2947,10 +3096,17 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
   defp maybe_end_game(state) do
     case check_game_over(state) do
       {:over, winner_id} ->
+        game_over_payload =
+          if is_nil(winner_id) do
+            %{"winnerId" => nil, "result" => "draw"}
+          else
+            %{"winnerId" => winner_id, "result" => "win"}
+          end
+
         state
         |> Map.put("phase", "ended")
         |> Map.put("winnerId", winner_id)
-        |> append_log([new_event(state, "gameOver", %{"winnerId" => winner_id})])
+        |> append_log([new_event(state, "gameOver", game_over_payload)])
 
       :ongoing ->
         state

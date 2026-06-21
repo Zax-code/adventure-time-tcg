@@ -119,31 +119,12 @@
       },
       "cardAbility": {
         "id": "f111cdd2-d6a7-5eee-b61d-93037947f726",
-        "passiveId": "aa25812b-200c-5759-ae49-7e66f9376669",
+        "passiveId": null,
         "skillId": "34d1001a-0424-546c-a020-bbd68d060e22",
         "ultimateId": "d3939942-f061-51f7-9c19-b9d5932e4ab4"
       },
       "abilities": {
-        "passive": {
-          "id": "aa25812b-200c-5759-ae49-7e66f9376669",
-          "key": "orgalorg.catalystPressure",
-          "name": "Catalyst Pressure",
-          "nameFr": "Au début du combat, tous les ennemis perdent 8% de Défense.",
-          "description": "At battle start, all enemies lose 8% Defense.",
-          "descriptionFr": "Au début du combat, tous les ennemis perdent 8% de Défense.",
-          "type": "PASSIVE",
-          "cost": 0,
-          "cooldown": null,
-          "oncePerMatch": false,
-          "payload": {
-            "trigger": "onBattleInit",
-            "statBonusTarget": "allEnemies",
-            "statBonus": {
-              "defense": -8
-            },
-            "target": "self"
-          }
-        },
+        "passive": null,
         "skill": {
           "id": "34d1001a-0424-546c-a020-bbd68d060e22",
           "key": "orgalorg.worldshellRupture",

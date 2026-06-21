@@ -38,6 +38,11 @@ import {
   useBottomTabBarContentPadding,
 } from "../../src/theme/layout";
 import { THEME_COLORS } from "../../src/theme/themes";
+import {
+  formatTurnTimeout,
+  useMinuteNow,
+} from "../../src/features/pvp/turn-timeout";
+import { getPvpMatchResultView } from "../../src/features/pvp/match-result";
 
 type ToastState = {
   message: string;
@@ -246,6 +251,7 @@ export default function PvpScreen() {
     () => matchesQuery.data?.matches ?? [],
     [matchesQuery.data?.matches],
   );
+  const now = useMinuteNow(activeMatches.length > 0);
   const historyMatches = useMemo(
     () => historyQuery.data?.matches ?? [],
     [historyQuery.data?.matches],
@@ -1153,6 +1159,7 @@ export default function PvpScreen() {
               icon={<ZapIcon size={20} color={tc.successDark} />}
             />
             {activeMatches.map((match, index) => {
+              const timeoutLabel = formatTurnTimeout(match.turnExpiresAt, t, now);
               const opponentId =
                 match.inviterId === currentUserId
                   ? match.inviteeId
@@ -1191,6 +1198,11 @@ export default function PvpScreen() {
                     <Text className="font-nunito text-xs text-successDark">
                       {t("pvp.lobby.turn", { count: match.currentTurn ?? 1 })}
                     </Text>
+                    {timeoutLabel ? (
+                      <Text className="font-nunito-semibold text-[11px] text-fgMuted">
+                        {timeoutLabel.fullLabel}
+                      </Text>
+                    ) : null}
                   </View>
                   <View className="rounded-full bg-successTint px-3 py-1.5">
                     <Text className="font-nunito-bold text-xs text-successDark">
@@ -1284,7 +1296,7 @@ export default function PvpScreen() {
               }
             />
             {completedMatches.map((match) => {
-              const won = match.winnerId === currentUserId;
+              const result = getPvpMatchResultView(match, currentUserId);
               const opponentId =
                 match.inviterId === currentUserId
                   ? match.inviteeId
@@ -1304,11 +1316,22 @@ export default function PvpScreen() {
                     }
                   }}
                   preferFallback
-                  variant={won ? "primary" : "danger"}
+                  variant={
+                    result.tone === "draw"
+                      ? "secondary"
+                      : result.tone === "win"
+                        ? "primary"
+                        : "danger"
+                  }
                   fallbackLayout="stretch"
                   fallbackAppearance={{
                     backgroundColor: tc.surface,
-                    borderColor: won ? tc.successBorder : tc.dangerBorder,
+                    borderColor:
+                      result.tone === "draw"
+                        ? tc.infoBorder
+                        : result.tone === "win"
+                          ? tc.successBorder
+                          : tc.dangerBorder,
                     borderRadius: 20,
                     foregroundColor: tc.fg,
                     gradientColors: null,
@@ -1319,10 +1342,14 @@ export default function PvpScreen() {
                 >
                   <Text
                     className={`font-nunito-bold text-sm ${
-                      won ? "text-successDark" : "text-dangerDark"
+                      result.tone === "draw"
+                        ? "text-infoDark"
+                        : result.tone === "win"
+                          ? "text-successDark"
+                          : "text-dangerDark"
                     }`}
                   >
-                    {won ? t("pvp.win") : t("pvp.loss")}
+                    {t(result.labelKey)}
                   </Text>
                   <Text className="flex-1 font-nunito text-sm text-fgMuted">
                     vs {opponentName ?? `${opponentId.slice(0, 10)}…`}

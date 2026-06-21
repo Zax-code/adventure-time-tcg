@@ -974,10 +974,16 @@ defmodule AdventureTimeApi.Pvp.BattleEnginePayloadsTest do
         }
       }
 
-      {:ok, new_state, _} = state |> with_p1_skill(ability) |> fire_skill()
+      {:ok, new_state, events} = state |> with_p1_skill(ability) |> fire_skill()
 
       p2_unit = get_unit(new_state, "p2u1")
       assert has_status(p2_unit, "Burn")
+
+      roll_event = Enum.find(events, &(&1["type"] == "statusRoll"))
+      assert roll_event["payload"]["status"] == "Burn"
+      assert roll_event["payload"]["chance"] == 1.0
+      assert roll_event["payload"]["passed"] == true
+      assert is_number(roll_event["payload"]["roll"])
     end
 
     test "status not applied when chance is 0.0" do
@@ -995,10 +1001,16 @@ defmodule AdventureTimeApi.Pvp.BattleEnginePayloadsTest do
         }
       }
 
-      {:ok, new_state, _} = state |> with_p1_skill(ability) |> fire_skill()
+      {:ok, new_state, events} = state |> with_p1_skill(ability) |> fire_skill()
 
       p2_unit = get_unit(new_state, "p2u1")
       refute has_status(p2_unit, "Burn")
+
+      roll_event = Enum.find(events, &(&1["type"] == "statusRoll"))
+      assert roll_event["payload"]["status"] == "Burn"
+      assert roll_event["payload"]["chance"] == 0.0
+      assert roll_event["payload"]["passed"] == false
+      assert is_number(roll_event["payload"]["roll"])
     end
   end
 
@@ -1023,7 +1035,7 @@ defmodule AdventureTimeApi.Pvp.BattleEnginePayloadsTest do
         }
       }
 
-      {:ok, new_state, _} = state |> with_p1_skill(ability) |> fire_skill()
+      {:ok, new_state, events} = state |> with_p1_skill(ability) |> fire_skill()
 
       p2_unit = get_unit(new_state, "p2u1")
       applied_statuses = Enum.map(p2_unit["statuses"] || [], & &1["name"])
@@ -1036,6 +1048,12 @@ defmodule AdventureTimeApi.Pvp.BattleEnginePayloadsTest do
       # Exactly one should be applied
       matching_count = Enum.count(applied_statuses, &(&1 in possible))
       assert matching_count == 1
+
+      roll_event = Enum.find(events, &(&1["type"] == "randomStatusRoll"))
+      assert roll_event["payload"]["status"] in possible
+      assert roll_event["payload"]["optionCount"] == 3
+      assert is_integer(roll_event["payload"]["selectedIndex"])
+      assert is_number(roll_event["payload"]["roll"])
     end
   end
 

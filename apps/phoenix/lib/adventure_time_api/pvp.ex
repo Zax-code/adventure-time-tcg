@@ -23,6 +23,8 @@ defmodule AdventureTimeApi.Pvp do
   alias AdventureTimeApi.Repo
   alias AdventureTimeApi.Workers.ExpirePendingInviteWorker
 
+  @turn_timeout_hours 24
+
   # ── Loadouts ───────────────────────────────────────────────────────────────
 
   def list_loadouts(user_id) do
@@ -170,6 +172,8 @@ defmodule AdventureTimeApi.Pvp do
   end
 
   def list_matches(user_id) do
+    expire_due_in_progress_matches(user_id)
+
     matches =
       Match
       |> where(
@@ -184,6 +188,7 @@ defmodule AdventureTimeApi.Pvp do
 
   def list_history(user_id) do
     expire_due_pending_invites(user_id)
+    expire_due_in_progress_matches(user_id)
 
     matches =
       Match
@@ -198,12 +203,14 @@ defmodule AdventureTimeApi.Pvp do
     completed_matches = Enum.filter(matches, &(&1.status == "completed"))
     wins = Enum.count(completed_matches, &(&1.winner_id == user_id))
     losses = Enum.count(completed_matches, &(&1.winner_id && &1.winner_id != user_id))
+    draws = Enum.count(completed_matches, &is_nil(&1.winner_id))
     display_names = user_display_map(matches)
+    completion_reasons = completion_reason_map(matches)
 
     serialized_matches =
       Enum.map(matches, fn match ->
         match
-        |> serialize_match(display_names)
+        |> serialize_match(display_names, completion_reasons)
         |> maybe_put_replay_flag(match)
       end)
 
@@ -215,6 +222,7 @@ defmodule AdventureTimeApi.Pvp do
        stats: %{
          wins: wins,
          losses: losses,
+         draws: draws,
          winRate: if(wins + losses > 0, do: round(wins / (wins + losses) * 100), else: 0)
        }
      }}
@@ -344,6 +352,7 @@ defmodule AdventureTimeApi.Pvp do
 
   def concede_match(user_id, match_id) do
     with %Match{} = match <- Repo.get(Match, match_id),
+         match <- maybe_expire_match_if_due(match),
          :ok <- verify_participant(match, user_id),
          :ok <- guard_status(match, "in_progress"),
          {:ok, state} <- reconstruct_state(match.id) do
@@ -383,6 +392,7 @@ defmodule AdventureTimeApi.Pvp do
 
   def perform_action(user_id, match_id, action) do
     with %Match{} = match <- Repo.get(Match, match_id),
+         match <- maybe_expire_match_if_due(match),
          :ok <- verify_participant(match, user_id),
          :ok <- guard_status(match, "in_progress"),
          {:ok, state} <- reconstruct_state(match.id),
@@ -452,6 +462,7 @@ defmodule AdventureTimeApi.Pvp do
 
   def end_turn(user_id, match_id, swap_opt) do
     with %Match{} = match <- Repo.get(Match, match_id),
+         match <- maybe_expire_match_if_due(match),
          :ok <- verify_participant(match, user_id),
          :ok <- guard_status(match, "in_progress"),
          {:ok, state} <- reconstruct_state(match.id),
@@ -514,6 +525,8 @@ defmodule AdventureTimeApi.Pvp do
   end
 
   def list_spectatable do
+    expire_due_in_progress_matches(nil)
+
     matches =
       Match
       |> where([m], m.status == "in_progress")
@@ -531,6 +544,8 @@ defmodule AdventureTimeApi.Pvp do
         {:error, :not_found}
 
       %Match{} = match ->
+        match = maybe_expire_match_if_due(match)
+
         case build_battle_state_for_spectate(match) do
           {:ok, battle_state} ->
             {:ok, %{match: serialize_match(match), battleState: battle_state}}
@@ -567,6 +582,8 @@ defmodule AdventureTimeApi.Pvp do
   # ── active_card_ids_for_user/1 (used by Inventory recycle guard) ──────────
 
   def active_card_ids_for_user(user_id) do
+    expire_due_in_progress_matches(user_id)
+
     inviter_ids =
       Match
       |> where([m], m.inviter_id == ^user_id and m.status == "in_progress")
@@ -605,14 +622,17 @@ defmodule AdventureTimeApi.Pvp do
 
     cards =
       Card
+      |> join(:left, [c], r in Rarity, on: r.id == c.rarity_id)
       |> order_by([c], asc: c.name)
+      |> select([c, r], {c, r})
       |> Repo.all()
-      |> Enum.map(fn card ->
+      |> Enum.map(fn {card, rarity} ->
         %{
           id: card.id,
           name: card.name,
           character: card.character,
-          type: CardType.canonicalize!(card.type)
+          type: CardType.canonicalize!(card.type),
+          rarityName: rarity && rarity.name
         }
       end)
 
@@ -653,22 +673,24 @@ defmodule AdventureTimeApi.Pvp do
   end
 
   def assign_card_ability(card_id, attrs) do
-    row =
-      case Repo.get_by(CardAbility, card_id: card_id) do
-        nil -> %CardAbility{card_id: card_id}
-        existing -> existing
+    with :ok <- validate_passive_rarity(card_id, attrs) do
+      row =
+        case Repo.get_by(CardAbility, card_id: card_id) do
+          nil -> %CardAbility{card_id: card_id}
+          existing -> existing
+        end
+
+      row
+      |> CardAbility.changeset(attrs)
+      |> Repo.insert_or_update()
+      |> case do
+        {:ok, ca} ->
+          ca = Repo.preload(ca, [:passive, :skill, :ultimate], force: true)
+          {:ok, serialize_admin_card_ability(ca)}
+
+        {:error, changeset} ->
+          {:error, changeset}
       end
-
-    row
-    |> CardAbility.changeset(attrs)
-    |> Repo.insert_or_update()
-    |> case do
-      {:ok, ca} ->
-        ca = Repo.preload(ca, [:passive, :skill, :ultimate], force: true)
-        {:ok, serialize_admin_card_ability(ca)}
-
-      {:error, changeset} ->
-        {:error, changeset}
     end
   end
 
@@ -712,10 +734,10 @@ defmodule AdventureTimeApi.Pvp do
   # ── Private Helpers ────────────────────────────────────────────────────────
 
   defp serialize_match(match) do
-    serialize_match(match, user_display_map([match]))
+    serialize_match(match, user_display_map([match]), completion_reason_map([match]))
   end
 
-  defp serialize_match(match, display_names) do
+  defp serialize_match(match, display_names, completion_reasons) do
     invitee_loadout = match.invitee_card_ids || []
 
     %{
@@ -733,12 +755,41 @@ defmodule AdventureTimeApi.Pvp do
       updatedAt: iso8601(match.updated_at)
     }
     |> maybe_put_current_turn(match.current_turn)
+    |> maybe_put_turn_expires_at(match)
+    |> maybe_put_completion_reason(match, completion_reasons)
   end
 
   defp maybe_put_current_turn(payload, turn) when is_integer(turn) and turn > 0,
     do: Map.put(payload, :currentTurn, turn)
 
   defp maybe_put_current_turn(payload, _turn), do: payload
+
+  defp maybe_put_turn_expires_at(
+         payload,
+         %Match{status: "in_progress", turn_started_at: %DateTime{} = turn_started_at}
+       ) do
+    Map.put(payload, :turnExpiresAt, iso8601(turn_timeout_expires_at(turn_started_at)))
+  end
+
+  defp maybe_put_turn_expires_at(payload, _match), do: payload
+
+  defp maybe_put_completion_reason(payload, %Match{status: "completed"} = match, reasons) do
+    Map.put(
+      payload,
+      :completionReason,
+      Map.get(reasons, match.id, default_completion_reason(match))
+    )
+  end
+
+  defp maybe_put_completion_reason(payload, _match, _reasons), do: payload
+
+  defp turn_timeout_expires_at(%DateTime{} = turn_started_at) do
+    timeout_hours =
+      Application.get_env(:adventure_time_api, __MODULE__, [])
+      |> Keyword.get(:turn_timeout_hours, @turn_timeout_hours)
+
+    DateTime.add(turn_started_at, timeout_hours * 60 * 60, :second)
+  end
 
   defp api_match_status("pending"), do: "PENDING"
   defp api_match_status("in_progress"), do: "IN_PROGRESS"
@@ -778,8 +829,44 @@ defmodule AdventureTimeApi.Pvp do
 
   defp serialize_matches(matches) do
     display_names = user_display_map(matches)
-    Enum.map(matches, &serialize_match(&1, display_names))
+    completion_reasons = completion_reason_map(matches)
+
+    Enum.map(matches, &serialize_match(&1, display_names, completion_reasons))
   end
+
+  defp completion_reason_map(matches) do
+    match_ids =
+      matches
+      |> Enum.filter(&(&1.status == "completed"))
+      |> Enum.map(& &1.id)
+
+    if match_ids == [] do
+      %{}
+    else
+      latest_events =
+        MatchEvent
+        |> where([e], e.match_id in ^match_ids)
+        |> distinct([e], e.match_id)
+        |> order_by([e], asc: e.match_id, desc: e.seq)
+        |> select([e], {e.match_id, e.type})
+        |> Repo.all()
+        |> Map.new()
+
+      matches
+      |> Enum.filter(&(&1.status == "completed"))
+      |> Map.new(fn match ->
+        {match.id, completion_reason_from_event(match, Map.get(latest_events, match.id))}
+      end)
+    end
+  end
+
+  defp completion_reason_from_event(_match, "match_conceded"), do: "CONCEDE"
+  defp completion_reason_from_event(_match, "match_timed_out"), do: "TIMEOUT"
+  defp completion_reason_from_event(%Match{winner_id: nil}, _event_type), do: "DRAW"
+  defp completion_reason_from_event(_match, _event_type), do: "KO"
+
+  defp default_completion_reason(%Match{winner_id: nil}), do: "DRAW"
+  defp default_completion_reason(_match), do: "KO"
 
   defp maybe_put_replay_flag(payload, %Match{status: "completed", initial_state: initial_state})
        when is_map(initial_state) do
@@ -896,6 +983,11 @@ defmodule AdventureTimeApi.Pvp do
     {:ok, next_state}
   end
 
+  defp replay_match_event(state, %MatchEvent{type: "match_timed_out", payload: payload}) do
+    {next_state, _events} = BattleEngine.simulate_timeout(state, payload["playerId"])
+    {:ok, next_state}
+  end
+
   defp replay_match_event(_state, %MatchEvent{type: type}) do
     {:error, {:unsupported_match_event, type}}
   end
@@ -983,6 +1075,7 @@ defmodule AdventureTimeApi.Pvp do
 
   defp guard_no_active_interaction(user_a, user_b) do
     expire_due_pending_invites_for_pair(user_a, user_b)
+    expire_due_in_progress_matches_for_pair(user_a, user_b)
 
     now = DateTime.utc_now() |> DateTime.truncate(:second)
 
@@ -1098,13 +1191,22 @@ defmodule AdventureTimeApi.Pvp do
   end
 
   defp maybe_expire_match_if_due(%Match{} = match) do
-    if pending_match_expired?(match) do
-      case expire_match_invite(match.id) do
-        {:ok, _} -> Repo.get!(Match, match.id)
-        {:error, _} -> match
-      end
-    else
-      match
+    cond do
+      pending_match_expired?(match) ->
+        case expire_match_invite(match.id) do
+          {:ok, _} -> Repo.get!(Match, match.id)
+          {:error, _} -> match
+        end
+
+      in_progress_match_timed_out?(match) ->
+        case timeout_match_if_due(match.id) do
+          {:ok, {:timed_out, updated_match}} -> updated_match
+          {:ok, :noop} -> Repo.get!(Match, match.id)
+          {:error, _} -> match
+        end
+
+      true ->
+        match
     end
   end
 
@@ -1113,6 +1215,119 @@ defmodule AdventureTimeApi.Pvp do
   end
 
   defp pending_match_expired?(_match), do: false
+
+  defp in_progress_match_timed_out?(%Match{
+         status: "in_progress",
+         turn_started_at: %DateTime{} = turn_started_at
+       }) do
+    DateTime.compare(turn_started_at, turn_timeout_cutoff()) != :gt
+  end
+
+  defp in_progress_match_timed_out?(_match), do: false
+
+  defp turn_timeout_cutoff do
+    timeout_seconds =
+      Application.get_env(:adventure_time_api, __MODULE__, [])
+      |> Keyword.get(:turn_timeout_hours, @turn_timeout_hours)
+      |> Kernel.*(60 * 60)
+
+    DateTime.utc_now()
+    |> DateTime.truncate(:second)
+    |> DateTime.add(-timeout_seconds, :second)
+  end
+
+  defp expire_due_in_progress_matches(nil) do
+    due_in_progress_matches_query()
+    |> Repo.all()
+    |> Enum.each(&timeout_match_if_due(&1.id))
+
+    :ok
+  end
+
+  defp expire_due_in_progress_matches(user_id) do
+    due_in_progress_matches_query()
+    |> where([m], m.inviter_id == ^user_id or m.invitee_id == ^user_id)
+    |> Repo.all()
+    |> Enum.each(&timeout_match_if_due(&1.id))
+
+    :ok
+  end
+
+  defp expire_due_in_progress_matches_for_pair(user_a, user_b) do
+    due_in_progress_matches_query()
+    |> where(
+      [m],
+      (m.inviter_id == ^user_a and m.invitee_id == ^user_b) or
+        (m.inviter_id == ^user_b and m.invitee_id == ^user_a)
+    )
+    |> Repo.all()
+    |> Enum.each(&timeout_match_if_due(&1.id))
+
+    :ok
+  end
+
+  defp due_in_progress_matches_query do
+    cutoff = turn_timeout_cutoff()
+
+    from(m in Match,
+      where:
+        m.status == "in_progress" and not is_nil(m.turn_started_at) and
+          m.turn_started_at <= ^cutoff
+    )
+  end
+
+  defp timeout_match_if_due(match_id) do
+    Repo.transaction(fn ->
+      case Repo.one(from(m in Match, where: m.id == ^match_id, lock: "FOR UPDATE")) do
+        nil ->
+          Repo.rollback(:not_found)
+
+        %Match{} = match ->
+          cond do
+            match.status != "in_progress" ->
+              :noop
+
+            not in_progress_match_timed_out?(match) ->
+              :noop
+
+            true ->
+              case reconstruct_state(match.id) do
+                {:ok, state} ->
+                  timed_out_user_id = state["currentPlayerId"]
+                  {new_state, _events} = BattleEngine.simulate_timeout(state, timed_out_user_id)
+                  winner_id = new_state["winnerId"]
+
+                  seq =
+                    append_match_event!(match.id, "match_timed_out", new_state, %{
+                      "playerId" => timed_out_user_id,
+                      "winnerId" => winner_id
+                    })
+
+                  maybe_write_snapshot(match.id, seq, new_state, :match_timed_out)
+
+                  updated_match =
+                    match
+                    |> Match.changeset(%{
+                      status: "completed",
+                      winner_id: winner_id,
+                      current_turn: new_state["turn"]
+                    })
+                    |> Repo.update!()
+
+                  {:timed_out, updated_match}
+
+                {:error, reason} ->
+                  Repo.rollback(reason)
+              end
+          end
+      end
+    end)
+    |> case do
+      {:ok, result} -> {:ok, result}
+      {:error, :not_found} -> {:error, :not_found}
+      {:error, reason} -> {:error, reason}
+    end
+  end
 
   defp validate_loadout(user_id, card_ids) do
     cond do
@@ -1225,11 +1440,46 @@ defmodule AdventureTimeApi.Pvp do
         unit
 
       %{passive_keys: passive_keys, skill_key: skill_key, ultimate_key: ultimate_key} ->
+        passive_keys =
+          if unit["rarity"] == "Legendary" do
+            passive_keys || []
+          else
+            []
+          end
+
         unit
-        |> Map.put("passives", passive_keys || [])
+        |> Map.put("passives", passive_keys)
         |> Map.put("passiveTriggered", %{})
         |> Map.put("skill", skill_key)
         |> Map.put("ultimate", ultimate_key)
+    end
+  end
+
+  defp validate_passive_rarity(_card_id, %{passive_id: passive_id})
+       when passive_id in [nil, ""],
+       do: :ok
+
+  defp validate_passive_rarity(card_id, attrs) do
+    case Repo.get(Card, card_id) do
+      nil ->
+        :ok
+
+      %Card{} = card ->
+        case Repo.preload(card, :rarity) do
+          %Card{rarity: %Rarity{name: "Legendary"}} ->
+            :ok
+
+          _card ->
+            changeset =
+              %CardAbility{card_id: card_id}
+              |> CardAbility.changeset(attrs)
+              |> Ecto.Changeset.add_error(
+                :passive_id,
+                "can only be assigned to Legendary cards"
+              )
+
+            {:error, changeset}
+        end
     end
   end
 

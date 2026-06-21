@@ -207,6 +207,7 @@ export default function PvpMatchScreen() {
       <BattleBoard
         matchView={matchView}
         newEvents={newEvents}
+        turnExpiresAt={rawMatch?.turnExpiresAt ?? null}
         isActing={isActing}
         pendingSwap={pendingSwap}
         isSwapMode={isSwapMode}

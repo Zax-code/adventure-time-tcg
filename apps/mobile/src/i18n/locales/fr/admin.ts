@@ -226,8 +226,7 @@ const admin = {
     usingDefault: "Visuel intégré de secours utilisé",
     modalTitle: "{theme} {rarity}",
     assetId: "ID du visuel",
-    assetPlaceholder:
-      "Laisse vide pour utiliser le visuel intégré de secours",
+    assetPlaceholder: "Laisse vide pour utiliser le visuel intégré de secours",
     recentArtShelf: "Bibliothèque récente",
     recentArtSubtitle:
       "Appuie sur un visuel du catalogue pour l'assigner à cette paire thème + rareté.",
@@ -323,6 +322,8 @@ const admin = {
       "Vérifie les surcharges carte par carte sans quitter le flux admin.",
     loadingAssignments: "Chargement des attributions...",
     passiveLabel: "Passif : {name}",
+    passiveLegendaryOnly: "Légendaire seulement",
+    passiveUnavailable: "Aucun emplacement passif",
     skillLabel: "Compétence : {name}",
     ultimateLabel: "Ultime : {name}",
     noCardsTitle: "Aucune carte",
@@ -432,6 +433,8 @@ const admin = {
       "Laisse les emplacements sur les valeurs héritées tant que cette carte n'a pas besoin d'une surcharge précise.",
     hideAbilities: "Masquer les attributions",
     passive: "Passif",
+    passiveLegendaryOnly: "Légendaire seulement",
+    passiveUnavailable: "Aucun emplacement passif",
     skill: "Compétence",
     ultimate: "Ultime",
     inheritedDefault: "Valeurs héritées",

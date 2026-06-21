@@ -213,6 +213,7 @@ export function CardEditorSheet({
   );
   const selectedRarity =
     rarities.find((rarity) => rarity.id === previewCard.rarityId) ?? null;
+  const allowsPassiveSlot = selectedRarity?.name === "Legendary";
   const defaultSkill = useMemo(
     () =>
       abilities.find((ability) => ability.key === "default.focusedStrike") ??
@@ -225,9 +226,10 @@ export function CardEditorSheet({
     [abilities],
   );
 
-  const currentPassive = assignmentDraft.passiveId
-    ? (abilities.find((ability) => ability.id === assignmentDraft.passiveId) ??
-      null)
+  const activePassiveId = allowsPassiveSlot ? assignmentDraft.passiveId : "";
+
+  const currentPassive = activePassiveId
+    ? (abilities.find((ability) => ability.id === activePassiveId) ?? null)
     : null;
   const currentSkill = assignmentDraft.skillId
     ? (abilities.find((ability) => ability.id === assignmentDraft.skillId) ??
@@ -238,9 +240,7 @@ export function CardEditorSheet({
       null)
     : defaultUltimate;
   const hasCustomAssignments = Boolean(
-    assignmentDraft.passiveId ||
-    assignmentDraft.skillId ||
-    assignmentDraft.ultimateId,
+    activePassiveId || assignmentDraft.skillId || assignmentDraft.ultimateId,
   );
 
   const pickerOptions = useMemo(() => {
@@ -248,10 +248,14 @@ export function CardEditorSheet({
       return [] as Ability[];
     }
 
+    if (pickerRole === "passive" && !allowsPassiveSlot) {
+      return [] as Ability[];
+    }
+
     return abilities.filter(
       (ability) => ability.type === pickerRole.toUpperCase(),
     );
-  }, [abilities, pickerRole]);
+  }, [abilities, allowsPassiveSlot, pickerRole]);
 
   return (
     <>
@@ -499,9 +503,10 @@ export function CardEditorSheet({
                 ["ultimate", t("admin.cardEditor.ultimate"), currentUltimate],
               ] as const
             ).map(([role, label, selected]) => {
+              const passiveDisabled = role === "passive" && !allowsPassiveSlot;
               const isCustom =
                 role === "passive"
-                  ? Boolean(assignmentDraft.passiveId)
+                  ? Boolean(activePassiveId)
                   : role === "skill"
                     ? Boolean(assignmentDraft.skillId)
                     : Boolean(assignmentDraft.ultimateId);
@@ -509,11 +514,15 @@ export function CardEditorSheet({
               return (
                 <Pressable
                   key={role}
+                  disabled={passiveDisabled}
                   onPress={() => setPickerRole(role)}
                   className="rounded-2xl border px-4 py-4"
                   style={{
                     borderColor: withAlpha(tc.primaryBorder, "33"),
-                    backgroundColor: tc.surface,
+                    backgroundColor: passiveDisabled
+                      ? tc.surfaceMuted
+                      : tc.surface,
+                    opacity: passiveDisabled ? 0.72 : 1,
                   }}
                 >
                   <View className="flex-row items-center justify-between gap-3">
@@ -522,18 +531,32 @@ export function CardEditorSheet({
                     </Text>
                     <AdminChip
                       label={
-                        isCustom
-                          ? t("admin.cardEditor.customOverride")
-                          : t("admin.cardEditor.inheritedDefault")
+                        passiveDisabled
+                          ? t("admin.cardEditor.passiveLegendaryOnly")
+                          : isCustom
+                            ? t("admin.cardEditor.customOverride")
+                            : t("admin.cardEditor.inheritedDefault")
                       }
-                      tone={isCustom ? "accent" : "info"}
+                      tone={
+                        passiveDisabled
+                          ? "warning"
+                          : isCustom
+                            ? "accent"
+                            : "info"
+                      }
                     />
                   </View>
                   <Text className="mt-2 font-nunito-extrabold text-sm text-fg">
-                    {selected?.name ?? t("admin.common.useDefault")}
+                    {selected?.name ??
+                      (passiveDisabled
+                        ? t("admin.cardEditor.passiveUnavailable")
+                        : t("admin.common.useDefault"))}
                   </Text>
                   <Text className="mt-1 font-nunito-semibold text-[13px] leading-[19px] text-fgMuted">
-                    {selected?.description ?? t("admin.common.useDefault")}
+                    {selected?.description ??
+                      (passiveDisabled
+                        ? t("admin.cardEditor.passiveLegendaryOnly")
+                        : t("admin.common.useDefault"))}
                   </Text>
                   {selected ? (
                     <View className="mt-3 flex-row flex-wrap gap-2">

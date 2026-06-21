@@ -9,7 +9,6 @@ const PROTECTED_EFFECT_TERMS = [
   { source: "Guard Up", target: "Garde renforcée" },
   { source: "GuardUp", target: "Garde renforcée" },
   { source: "Regeneration", target: "Régénération" },
-  { source: "Regen", target: "Régénération" },
   { source: "Burning", target: "Brûlure" },
   { source: "Burn", target: "Brûlure" },
   { source: "Weaken", target: "Affaibli" },

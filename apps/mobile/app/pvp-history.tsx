@@ -8,6 +8,7 @@ import { apiClient } from "../src/lib/api";
 import { ThemedExpoButton } from "../src/components/expo-ui/themed-button";
 import { SectionErrorState } from "../src/components/error-state";
 import { LoadingPanel } from "../src/components/loading-state";
+import { getPvpMatchResultView } from "../src/features/pvp/match-result";
 import { useTranslation } from "../src/i18n";
 import { useThemeStore } from "../src/stores/theme-store";
 import { THEME_COLORS } from "../src/theme/themes";
@@ -114,6 +115,12 @@ export default function PvpHistoryScreen() {
             </View>
             <View className="items-center">
               <Text className="font-nunito-extrabold text-3xl text-white">
+                {historyQuery.data?.stats?.draws ?? 0}
+              </Text>
+              <Text className="font-nunito text-sm text-white/80">{t("pvp.draws")}</Text>
+            </View>
+            <View className="items-center">
+              <Text className="font-nunito-extrabold text-3xl text-white">
                 {historyQuery.data?.stats?.winRate ?? 0}%
               </Text>
               <Text className="font-nunito text-sm text-white/80">{t("pvp.winRate")}</Text>
@@ -175,7 +182,7 @@ export default function PvpHistoryScreen() {
                 match.inviterId === currentUserId
                   ? match.inviteeName ?? match.inviteeId.slice(0, 8)
                   : match.inviterName ?? match.inviterId.slice(0, 8);
-              const won = match.winnerId === currentUserId;
+              const result = getPvpMatchResultView(match, currentUserId);
 
               return (
                 <ThemedExpoButton
@@ -187,11 +194,22 @@ export default function PvpHistoryScreen() {
                   }}
                   disabled={!match.hasReplayData}
                   preferFallback
-                  variant={won ? "primary" : "danger"}
+                  variant={
+                    result.tone === "draw"
+                      ? "secondary"
+                      : result.tone === "win"
+                        ? "primary"
+                        : "danger"
+                  }
                   fallbackLayout="stretch"
                   fallbackAppearance={{
                     backgroundColor: tc.surface,
-                    borderColor: won ? tc.successBorder : tc.dangerBorder,
+                    borderColor:
+                      result.tone === "draw"
+                        ? tc.infoBorder
+                        : result.tone === "win"
+                          ? tc.successBorder
+                          : tc.dangerBorder,
                     borderRadius: 16,
                     foregroundColor: tc.fg,
                     gradientColors: null,
@@ -203,11 +221,15 @@ export default function PvpHistoryScreen() {
                   <View className="flex-row items-center gap-4">
                     <View
                       className={`h-14 w-14 items-center justify-center rounded-xl ${
-                        won ? "bg-successDark" : "bg-dangerDark"
+                        result.tone === "draw"
+                          ? "bg-info"
+                          : result.tone === "win"
+                            ? "bg-successDark"
+                            : "bg-dangerDark"
                       }`}
                     >
                       <Text className="font-nunito-extrabold text-lg text-white">
-                        {won ? "W" : "L"}
+                        {result.badge}
                       </Text>
                       <Text className="font-nunito text-[10px] text-white/80">
                         T{match.currentTurn ?? 1}
@@ -222,6 +244,17 @@ export default function PvpHistoryScreen() {
                           {formatDate(match.updatedAt, t)}
                         </Text>
                       </View>
+                      <Text
+                        className={`mt-1 font-nunito-bold text-xs ${
+                          result.tone === "draw"
+                            ? "text-infoDark"
+                            : result.tone === "win"
+                              ? "text-successDark"
+                              : "text-dangerDark"
+                        }`}
+                      >
+                        {t(result.labelKey)}
+                      </Text>
                     </View>
 
                     {match.hasReplayData ? (

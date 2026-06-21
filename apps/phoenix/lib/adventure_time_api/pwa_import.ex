@@ -227,6 +227,8 @@ defmodule AdventureTimeApi.PwaImport do
     user_map = Map.new(data.users, &{&1.id, map_id(:user, &1.id)})
     pack_map = Map.new(data.packs, &{&1.id, map_id(:pack, &1.id)})
     ability_map = Map.new(data.abilities, &{&1.id, map_id(:ability, &1.id)})
+    source_rarity_names = Map.new(data.rarities, &{&1.id, &1.name})
+    rarity_name_by_card_id = Map.new(data.cards, &{&1.id, source_rarity_names[&1.rarity_id]})
 
     users =
       Enum.map(data.users, fn row ->
@@ -379,10 +381,17 @@ defmodule AdventureTimeApi.PwaImport do
 
     card_abilities =
       Enum.map(data.card_abilities, fn row ->
+        passive_id =
+          if rarity_name_by_card_id[row.card_id] == "Legendary" do
+            maybe_mapped_id(row.passive_id, ability_map)
+          else
+            nil
+          end
+
         %{
           id: map_id(:card_ability, row.id),
           card_id: card_map[row.card_id],
-          passive_id: maybe_mapped_id(row.passive_id, ability_map),
+          passive_id: passive_id,
           skill_id: maybe_mapped_id(row.skill_id, ability_map),
           ultimate_id: maybe_mapped_id(row.ultimate_id, ability_map),
           inserted_at: datetime_to_naive(row.created_at),

@@ -1139,7 +1139,7 @@ export function startTurn(state: BattleState, rng: SeededRng): void {
       }
     }
 
-    // Apply healing from regen
+    // Apply healing from regeneration
     if (tickResult.healing > 0 && unit.hp > 0) {
       const oldHp = unit.hp;
       unit.hp = Math.min(unit.maxHp, unit.hp + tickResult.healing);

@@ -20,7 +20,6 @@ const STATUS_LABELS: Record<string, string> = {
   Haste: "⚡",
   Taunt: "T",
   Regeneration: "♻",
-  Regen: "♻",
   Silence: "🔇",
   SummoningSickness: "Z",
   Cover: "C",

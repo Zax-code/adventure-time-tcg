@@ -11,6 +11,10 @@ import { useTranslation } from "../src/i18n";
 import { useThemeStore } from "../src/stores/theme-store";
 import { THEME_COLORS } from "../src/theme/themes";
 import { ChevronRightIcon, ClockIcon, SwordsIcon } from "../src/components/icons";
+import {
+  formatTurnTimeout,
+  useMinuteNow,
+} from "../src/features/pvp/turn-timeout";
 
 function formatDate(
   dateStr: string,
@@ -39,6 +43,7 @@ export default function PvpSpectateScreen() {
     queryFn: () => apiClient.pvpSpectate(),
     refetchInterval: 10_000,
   });
+  const now = useMinuteNow((spectateQuery.data?.matches.length ?? 0) > 0);
 
   return (
     <ScrollView className="flex-1 bg-bg" contentContainerStyle={{ paddingBottom: 32 }}>
@@ -101,58 +106,63 @@ export default function PvpSpectateScreen() {
           </View>
         ) : (
           <View className="gap-3">
-            {spectateQuery.data!.matches.map((match) => (
-              <ThemedExpoButton
-                key={match.id}
-                onPress={() => router.push(`/pvp-spectate-match?id=${match.id}` as never)}
-                preferFallback
-                variant="secondary"
-                fallbackLayout="stretch"
-                fallbackAppearance={{
-                  backgroundColor: tc.surface,
-                  borderColor: tc.infoBorder,
-                  borderRadius: 16,
-                  foregroundColor: tc.fg,
-                  gradientColors: null,
-                  minHeight: 0,
-                  paddingHorizontal: 16,
-                  paddingVertical: 16,
-                }}
-              >
-                <View className="flex-row items-center gap-4">
-                  <View className="items-center gap-1.5">
-                    <View className="flex-row items-center gap-1 rounded-full bg-infoTint px-2 py-1">
-                      <View className="h-1.5 w-1.5 rounded-full bg-info" />
-                      <Text className="font-nunito-extrabold text-[10px] uppercase text-infoDark">
-                        {t("pvp.live")}
-                      </Text>
-                    </View>
-                    <View className="rounded-md bg-info px-2 py-1">
-                      <Text className="font-nunito-bold text-[10px] text-white">
-                        T{match.currentTurn}
-                      </Text>
-                    </View>
-                  </View>
+            {spectateQuery.data!.matches.map((match) => {
+              const timeoutLabel = formatTurnTimeout(match.turnExpiresAt, t, now);
 
-                  <View className="flex-1">
-                    <Text className="font-nunito-bold text-fg">
-                      {(match.inviterName ?? match.inviterId.slice(0, 8))} vs{" "}
-                      {(match.inviteeName ?? match.inviteeId.slice(0, 8))}
+              return (
+                <ThemedExpoButton
+                  key={match.id}
+                  onPress={() => router.push(`/pvp-spectate-match?id=${match.id}` as never)}
+                  preferFallback
+                  variant="secondary"
+                  fallbackLayout="stretch"
+                  fallbackAppearance={{
+                    backgroundColor: tc.surface,
+                    borderColor: tc.infoBorder,
+                    borderRadius: 16,
+                    foregroundColor: tc.fg,
+                    gradientColors: null,
+                    minHeight: 0,
+                    paddingHorizontal: 16,
+                    paddingVertical: 16,
+                  }}
+                >
+                  <View className="flex-row items-center gap-4">
+                    <View className="items-center gap-1.5">
+                      <View className="flex-row items-center gap-1 rounded-full bg-infoTint px-2 py-1">
+                        <View className="h-1.5 w-1.5 rounded-full bg-info" />
+                        <Text className="font-nunito-extrabold text-[10px] uppercase text-infoDark">
+                          {t("pvp.live")}
+                        </Text>
+                      </View>
+                      <View className="rounded-md bg-info px-2 py-1">
+                        <Text className="font-nunito-bold text-[10px] text-white">
+                          T{match.currentTurn}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View className="flex-1">
+                      <Text className="font-nunito-bold text-fg">
+                        {(match.inviterName ?? match.inviterId.slice(0, 8))} vs{" "}
+                        {(match.inviteeName ?? match.inviteeId.slice(0, 8))}
+                      </Text>
+                      <View className="mt-1 flex-row items-center gap-2">
+                        <ClockIcon size={14} color={tc.fgMuted} />
+                        <Text className="font-nunito text-sm text-fgMuted">
+                          {timeoutLabel?.fullLabel ??
+                            formatDate(match.updatedAt ?? match.createdAt, t)}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <Text className="font-nunito-semibold text-infoDark">
+                      {t("pvp.spectateNow")}
                     </Text>
-                    <View className="mt-1 flex-row items-center gap-2">
-                      <ClockIcon size={14} color={tc.fgMuted} />
-                      <Text className="font-nunito text-sm text-fgMuted">
-                        {formatDate(match.updatedAt ?? match.createdAt, t)}
-                      </Text>
-                    </View>
                   </View>
-
-                  <Text className="font-nunito-semibold text-infoDark">
-                    {t("pvp.spectateNow")}
-                  </Text>
-                </View>
-              </ThemedExpoButton>
-            ))}
+                </ThemedExpoButton>
+              );
+            })}
           </View>
         )}
       </View>

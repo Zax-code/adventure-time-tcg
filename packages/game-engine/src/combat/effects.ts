@@ -86,14 +86,6 @@ const STATUS_DEFINITIONS: Record<StatusName, StatusDefinition> = {
     stackable: false,
     ticksAtStartOfTurn: true,
   },
-  Regen: {
-    name: "Regen",
-    maxDuration: 2,
-    isBuff: true,
-    isDebuff: false,
-    stackable: false,
-    ticksAtStartOfTurn: true, // heals 5% max HP per turn
-  },
   Silence: {
     name: "Silence",
     maxDuration: 1,
@@ -494,20 +486,6 @@ export function tickStatuses(
         payload: {
           unitId: unit.instanceId,
           status: "Regeneration",
-          healing: regenHeal,
-        },
-      });
-    }
-
-    // Regen alias: 8% max HP heal
-    if (status.name === "Regen") {
-      const regenHeal = Math.floor(unit.maxHp * 0.08);
-      healing += regenHeal;
-      events.push({
-        type: "statusTick",
-        payload: {
-          unitId: unit.instanceId,
-          status: "Regen",
           healing: regenHeal,
         },
       });

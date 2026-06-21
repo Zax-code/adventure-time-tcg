@@ -42,6 +42,10 @@ const EMPTY_ABILITIES: AdminAbility[] = [];
 const EMPTY_ABILITY_CARDS: AdminAbilityCard[] = [];
 const EMPTY_CARD_ABILITIES: AdminCardAbility[] = [];
 
+function allowsPassiveSlot(card: AdminAbilityCard | undefined) {
+  return card?.rarityName === "Legendary";
+}
+
 function formatAbilitiesError(error: unknown, invalidDataLabel: string) {
   if (error instanceof ZodError) {
     const details = error.issues
@@ -182,6 +186,10 @@ export default function AdminAbilitiesScreen() {
   const selectedAssignment = assigningCardId
     ? assignmentsByCardId.get(assigningCardId)
     : undefined;
+  const selectedAssignmentCard = assigningCardId
+    ? cards.find((card) => card.id === assigningCardId)
+    : undefined;
+  const selectedCardAllowsPassive = allowsPassiveSlot(selectedAssignmentCard);
   const isAbilitiesTab = activeTab === "abilities";
 
   const handleTabChange = useCallback(
@@ -192,10 +200,12 @@ export default function AdminAbilitiesScreen() {
   );
 
   const openAssignment = useCallback(
-    (cardId: string, assignment?: AdminCardAbility) => {
-      setAssigningCardId(cardId);
+    (card: AdminAbilityCard, assignment?: AdminCardAbility) => {
+      const cardAllowsPassive = allowsPassiveSlot(card);
+
+      setAssigningCardId(card.id);
       setAssignmentDraft({
-        passiveId: assignment?.passiveId ?? "",
+        passiveId: cardAllowsPassive ? (assignment?.passiveId ?? "") : "",
         skillId: assignment?.skillId ?? "",
         ultimateId: assignment?.ultimateId ?? "",
       });
@@ -494,24 +504,28 @@ export default function AdminAbilitiesScreen() {
       const passive = abilityById.get(assignment?.passiveId ?? "");
       const skill = abilityById.get(assignment?.skillId ?? "");
       const ultimate = abilityById.get(assignment?.ultimateId ?? "");
+      const cardAllowsPassive = allowsPassiveSlot(card);
 
       return (
         <Pressable
           className="gap-[10] rounded-[22] border border-primaryBorder/20 bg-surfaceMuted p-[14]"
-          onPress={() => openAssignment(card.id, assignment)}
+          onPress={() => openAssignment(card, assignment)}
         >
           <Text className="flex-1 font-nunito-extrabold text-[15px] text-fg">
             {card.name}
           </Text>
           <Text className="font-nunito-semibold text-xs text-muted">
-            {card.character} - {card.type}
+            {card.character} - {card.type} -{" "}
+            {card.rarityName ?? t("admin.common.default")}
           </Text>
           <View className="flex-row flex-wrap gap-2">
             <AdminChip
               label={t("admin.abilities.passiveLabel", {
-                name: passive?.name ?? t("admin.common.default"),
+                name: cardAllowsPassive
+                  ? (passive?.name ?? t("admin.common.default"))
+                  : t("admin.abilities.passiveUnavailable"),
               })}
-              tone="success"
+              tone={cardAllowsPassive ? "success" : "warning"}
             />
             <AdminChip
               label={t("admin.abilities.skillLabel", {
@@ -529,7 +543,7 @@ export default function AdminAbilitiesScreen() {
           <AdminButton
             label={t("admin.common.manage")}
             variant="ghost"
-            onPress={() => openAssignment(card.id, assignment)}
+            onPress={() => openAssignment(card, assignment)}
           />
         </Pressable>
       );
@@ -584,18 +598,37 @@ export default function AdminAbilitiesScreen() {
           </View>
           {(["passive", "skill", "ultimate"] as const).map((role) => {
             const selectedId = assignmentDraft[`${role}Id` as const];
+            const passiveDisabled =
+              role === "passive" && !selectedCardAllowsPassive;
+            const roleAbilities = passiveDisabled ? [] : abilitiesByRole[role];
 
             return (
               <View
                 key={role}
-                className="gap-[10] rounded-[20] bg-surface/82 p-[14]"
+                className={`gap-[10] rounded-[20] p-[14] ${
+                  passiveDisabled ? "bg-surfaceMuted/80" : "bg-surface/82"
+                }`}
               >
-                <Text className="font-nunito-extrabold text-sm text-primaryText">
-                  {t(`admin.abilities.type.${role.toUpperCase()}`)}
-                </Text>
+                <View className="flex-row items-center justify-between gap-3">
+                  <Text className="font-nunito-extrabold text-sm text-primaryText">
+                    {t(`admin.abilities.type.${role.toUpperCase()}`)}
+                  </Text>
+                  {passiveDisabled ? (
+                    <AdminChip
+                      label={t("admin.abilities.passiveLegendaryOnly")}
+                      tone="warning"
+                    />
+                  ) : null}
+                </View>
+                {passiveDisabled ? (
+                  <Text className="font-nunito-semibold text-[13px] leading-[19px] text-fgMuted">
+                    {t("admin.abilities.passiveUnavailable")}
+                  </Text>
+                ) : null}
                 <AdminButton
                   label={t("admin.common.useDefault")}
                   variant="ghost"
+                  disabled={passiveDisabled}
                   onPress={() =>
                     setAssignmentDraft(
                       (current) =>
@@ -606,7 +639,7 @@ export default function AdminAbilitiesScreen() {
                     )
                   }
                 />
-                {abilitiesByRole[role].map((ability) => (
+                {roleAbilities.map((ability) => (
                   <Pressable
                     key={ability.id}
                     className={`gap-[6] rounded-2xl border p-3 ${
@@ -640,7 +673,9 @@ export default function AdminAbilitiesScreen() {
             onPress={() =>
               assignmentMutation.mutate({
                 cardId: assigningCardId,
-                passiveId: assignmentDraft.passiveId || null,
+                passiveId: selectedCardAllowsPassive
+                  ? assignmentDraft.passiveId || null
+                  : null,
                 skillId: assignmentDraft.skillId || null,
                 ultimateId: assignmentDraft.ultimateId || null,
               })
