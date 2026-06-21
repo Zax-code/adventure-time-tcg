@@ -65,8 +65,8 @@ const SIZE_CONFIG = {
     borderRadius: 12,
     fillLeft: "9.5%",
     fillRight: "9.5%",
-    fillTop: "11.5%",
-    fillBottom: "11.5%",
+    fillTop: "7.5%",
+    fillBottom: "7.5%",
     contentLeft: "14%",
     contentRight: "14%",
     contentTop: "16%",
@@ -94,8 +94,8 @@ const SIZE_CONFIG = {
     borderRadius: 14,
     fillLeft: "9.5%",
     fillRight: "9.5%",
-    fillTop: "11.5%",
-    fillBottom: "11.5%",
+    fillTop: "7.5%",
+    fillBottom: "7.5%",
     contentLeft: "14%",
     contentRight: "14%",
     contentTop: "16%",
@@ -123,8 +123,8 @@ const SIZE_CONFIG = {
     borderRadius: 22,
     fillLeft: "9.5%",
     fillRight: "9.5%",
-    fillTop: "11.5%",
-    fillBottom: "11.5%",
+    fillTop: "7.5%",
+    fillBottom: "7.5%",
     contentLeft: "14%",
     contentRight: "14%",
     contentTop: "17.25%",
@@ -394,10 +394,11 @@ export const CardTile = memo(function CardTile(props: CardTileProps) {
   const hasShimmer = isLegendary || isEpic;
   const cardContentOpacity = muted || isArchived ? 0.58 : 1;
   const badgeTextColor = pickReadableTextColor(typeColor.dark, tc.fg, "#FFFFFF");
-  const panelBg = themeName === "nightosphere"
-    ? withAlpha(typeColor.light, "F5")
-    : withAlpha(typeColor.light, "F0");
-  const panelTextColor = pickReadableTextColor(panelBg, tc.fg, "#FFFFFF");
+  const descriptionTextColor = pickReadableTextColor(
+    typeColor.light,
+    tc.fg,
+    "#FFFFFF",
+  );
   const frameSource = getCardOutlineSource(themeName, displayRarityName);
 
   const bounceAnim = useRef(new Animated.Value(0)).current;
@@ -459,14 +460,10 @@ export const CardTile = memo(function CardTile(props: CardTileProps) {
     () => ({
       flex: cfg.descFlex,
       minHeight: cfg.descMinHeight,
-      borderRadius: cfg.panelRadius,
-      borderWidth: 1,
-      borderColor: withAlpha(typeColor.dark, "66"),
-      backgroundColor: panelBg,
-      padding: cfg.descPadding,
-      boxShadow: `inset 0px 0px 0px 1px ${withAlpha(typeColor.frame, "44")}`,
+      paddingHorizontal: cfg.descPadding,
+      paddingVertical: Math.max(2, cfg.descPadding * 0.5),
     }),
-    [cfg, panelBg, typeColor.dark, typeColor.frame],
+    [cfg],
   );
 
   return (
@@ -634,9 +631,15 @@ export const CardTile = memo(function CardTile(props: CardTileProps) {
               className="font-nunito-semibold"
               numberOfLines={cfg.descLines}
               style={{
-                color: panelTextColor,
+                color: descriptionTextColor,
                 fontSize: cfg.descFontSize,
                 lineHeight: cfg.descLineHeight,
+                textShadowColor:
+                  themeName === "nightosphere"
+                    ? "rgba(0,0,0,0.28)"
+                    : "rgba(255,255,255,0.28)",
+                textShadowOffset: { width: 0, height: 1 },
+                textShadowRadius: 1,
               }}
             >
               {isLocked ? t("collection.locked.description") : card.description}
