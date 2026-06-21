@@ -10,7 +10,7 @@ import {
   type RaritiesResponse,
 } from "@adventure-time/api-client";
 
-import { AdminCardTile } from "./admin-card-tile";
+import { CardTile } from "../card-tile";
 import {
   AbilityTypeChip,
   AdminButton,
@@ -268,7 +268,7 @@ export function CardEditorSheet({
             subtitle={t("admin.cardEditor.previewPanelDescription")}
           />
           <View className="mt-4 items-center gap-4">
-            <AdminCardTile card={previewCard} size="medium" />
+            <CardTile card={previewCard} size="large" />
             <View className="flex-row flex-wrap justify-center gap-2">
               <AdminChip
                 label={`${t("admin.cardEditor.type")}: ${draft.type}`}

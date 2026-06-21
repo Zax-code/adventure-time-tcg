@@ -10,7 +10,9 @@ coverage/
 .expo-shared/
 .agents/
 .maestro/.maestro-flow.*
+.maestro/*-temp.yaml
 .maestro/test-output/
+tmp-*/
 *.log
 report.xml
 .DS_Store

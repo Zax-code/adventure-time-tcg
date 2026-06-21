@@ -13,7 +13,7 @@ import { useRouter } from "expo-router";
 
 import type { AdminCardsResponse } from "@adventure-time/api-client";
 
-import { AdminCardTile } from "../../src/components/admin/admin-card-tile";
+import { CardTile } from "../../src/components/card-tile";
 import {
   AdminButton,
   AdminChip,
@@ -271,7 +271,7 @@ export default function AdminCardsScreen() {
           className="items-center"
           style={{ width: tileWidth, opacity: archived ? 0.7 : 1 }}
         >
-          <AdminCardTile
+          <CardTile
             card={row.left}
             fitContainer
             onPress={() =>
@@ -286,7 +286,7 @@ export default function AdminCardsScreen() {
             className="items-center"
             style={{ width: tileWidth, opacity: archived ? 0.7 : 1 }}
           >
-            <AdminCardTile
+            <CardTile
               card={row.right}
               fitContainer
               onPress={() =>
@@ -532,7 +532,7 @@ export default function AdminCardsScreen() {
           onClose={() => setSelectedArchivedCardId(null)}
         >
           <View className="items-center mb-4">
-            <AdminCardTile card={selectedArchivedCard} size="large" />
+            <CardTile card={selectedArchivedCard} size="large" />
           </View>
           <Text className="mb-[18] text-center font-nunito-bold text-[16px] text-primaryText">
             {selectedArchivedCard.name}

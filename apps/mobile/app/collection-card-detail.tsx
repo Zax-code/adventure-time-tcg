@@ -1,21 +1,36 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
+  Platform,
   ScrollView,
   Text,
   View,
+  useWindowDimensions,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
+import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import type {
+  CollectionResponse,
+  HomeResponse,
+} from "@adventure-time/api-client";
 import { apiClient } from "../src/lib/api";
 import { useCollectionFeedbackStore } from "../src/stores/collection-feedback-store";
 import { useSessionStore } from "../src/stores/session-store";
 import { useThemeStore } from "../src/stores/theme-store";
 import { useTranslation } from "../src/i18n";
 import { CardTile } from "../src/components/card-tile";
+import {
+  CARD_DUST_ACTION_DURATION_MS,
+  type CardDustActionAnimationState,
+  type CardDustActionType,
+} from "../src/components/card-dust-action-animation-config";
+import {
+  CardDustActionFrame,
+} from "../src/components/card-dust-action-animation";
 import {
   KEYBOARD_AWARE_SCROLL_PROPS,
   KeyboardScreenView,
@@ -39,10 +54,6 @@ import {
 } from "../src/components/icons";
 import { ToastBanner } from "../src/components/toast-banner";
 import { getDustSacrificeValue, getDustCraftCost } from "../src/lib/dust";
-import type {
-  CollectionResponse,
-  HomeResponse,
-} from "@adventure-time/api-client";
 
 function estimateCatalogCount(stats: CollectionResponse["stats"]) {
   if (stats.uniqueOwned <= 0 || stats.completionPercentage <= 0) {
@@ -114,10 +125,31 @@ function patchHomeDust(
   };
 }
 
+const DUST_ACTION_SCROLL_DELAY_MS = 420;
+const DUST_ACTION_SCROLL_THRESHOLD = 48;
+
+function triggerDustActionHaptic(type: CardDustActionType) {
+  if (Platform.OS !== "ios") {
+    return;
+  }
+
+  if (type === "craft") {
+    void Haptics.notificationAsync(
+      Haptics.NotificationFeedbackType.Success,
+    ).catch(() => null);
+    return;
+  }
+
+  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(
+    () => null,
+  );
+}
+
 export default function CollectionCardDetailScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
+  const { width: viewportWidth } = useWindowDimensions();
   const { t } = useTranslation();
   const params = useLocalSearchParams<{ cardId?: string }>();
   const accessToken = useSessionStore((state) => state.accessToken);
@@ -137,11 +169,65 @@ export default function CollectionCardDetailScreen() {
   const [giftMessage, setGiftMessage] = useState("");
   const [userSearch, setUserSearch] = useState("");
   const [isBusy, setIsBusy] = useState(false);
+  const [dustActionAnimation, setDustActionAnimation] =
+    useState<CardDustActionAnimationState | null>(null);
   const [toast, setToast] = useState<{
     message: string;
     type: "success" | "error";
   } | null>(null);
   const toastAnim = useRef(new Animated.Value(-60)).current;
+  const scrollViewRef = useRef<ScrollView | null>(null);
+  const scrollOffsetYRef = useRef(0);
+  const dustActionTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  const waitForDustActionDelay = useCallback(
+    (duration: number) =>
+      new Promise<void>((resolve) => {
+        const timeout = setTimeout(() => {
+          dustActionTimeoutsRef.current =
+            dustActionTimeoutsRef.current.filter((item) => item !== timeout);
+          resolve();
+        }, duration);
+
+        dustActionTimeoutsRef.current.push(timeout);
+      }),
+    [],
+  );
+
+  const scrollCardIntoViewBeforeDustAction = useCallback(async () => {
+    if (scrollOffsetYRef.current <= DUST_ACTION_SCROLL_THRESHOLD) {
+      return;
+    }
+
+    scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+    await waitForDustActionDelay(DUST_ACTION_SCROLL_DELAY_MS);
+  }, [waitForDustActionDelay]);
+
+  const runDustActionAnimation = useCallback(
+    (animation: Omit<CardDustActionAnimationState, "id">) =>
+      new Promise<void>((resolve) => {
+        const id = Date.now();
+        const duration = CARD_DUST_ACTION_DURATION_MS[animation.type];
+        void waitForDustActionDelay(duration).then(() => {
+          setDustActionAnimation((current) =>
+            current?.id === id ? null : current,
+          );
+          resolve();
+        });
+
+        setDustActionAnimation({ ...animation, id });
+        triggerDustActionHaptic(animation.type);
+      }),
+    [waitForDustActionDelay],
+  );
+
+  useEffect(
+    () => () => {
+      dustActionTimeoutsRef.current.forEach(clearTimeout);
+      dustActionTimeoutsRef.current = [];
+    },
+    [],
+  );
 
   const collectionQuery = useQuery({
     queryKey: ["collection"],
@@ -189,6 +275,7 @@ export default function CollectionCardDetailScreen() {
     setUserSearch("");
     setIsBusy(false);
     setToast(null);
+    setDustActionAnimation(null);
   }, [params.cardId]);
 
   const recycleMutation = useMutation({
@@ -229,6 +316,20 @@ export default function CollectionCardDetailScreen() {
         cardId: entry.cardId,
         quantity: recycleQuantity,
       });
+      const recycledCount = result.quantityRecycled ?? recycleQuantity;
+      const dustGained =
+        result.dustGained ??
+        getDustSacrificeValue(entry.card.rarity.name) * recycleQuantity;
+      const successMessage = t("collection.detail.recycleSuccess", {
+        count: recycledCount,
+        dust: dustGained,
+      });
+
+      await scrollCardIntoViewBeforeDustAction();
+      await runDustActionAnimation({
+        type: "recycle",
+        disappearCard: remainingQuantity <= 0,
+      });
 
       queryClient.setQueryData(
         collectionQueryKey,
@@ -236,7 +337,7 @@ export default function CollectionCardDetailScreen() {
           patchCollectionAfterDustAction(
             current,
             result.cardId,
-            -(result.quantityRecycled ?? recycleQuantity),
+            -recycledCount,
             result.newDustBalance,
           ),
       );
@@ -247,14 +348,7 @@ export default function CollectionCardDetailScreen() {
       );
 
       if (remainingQuantity <= 0) {
-        publishCollectionFeedback(
-          t("collection.detail.recycleSuccess", {
-            count: result.quantityRecycled ?? recycleQuantity,
-            dust:
-              result.dustGained ??
-              getDustSacrificeValue(entry.card.rarity.name) * recycleQuantity,
-          }),
-        );
+        publishCollectionFeedback(successMessage);
         router.back();
       } else {
         setIsBusy(false);
@@ -262,12 +356,7 @@ export default function CollectionCardDetailScreen() {
         setRecycleQuantity(1);
         setToast({
           type: "success",
-          message: t("collection.detail.recycleSuccess", {
-            count: result.quantityRecycled ?? recycleQuantity,
-            dust:
-              result.dustGained ??
-              getDustSacrificeValue(entry.card.rarity.name) * recycleQuantity,
-          }),
+          message: successMessage,
         });
       }
 
@@ -294,7 +383,17 @@ export default function CollectionCardDetailScreen() {
     setIsBusy(true);
     setCraftError("");
     try {
+      const wasOwned = entry.quantity > 0;
       const result = await craftMutation.mutateAsync(entry.cardId);
+      const craftedCount = result.quantityCrafted ?? 1;
+      const dustSpent =
+        result.dustSpent ?? getDustCraftCost(entry.card.rarity.name);
+      const successMessage = t("collection.detail.craftSuccess", {
+        count: craftedCount,
+        dust: dustSpent,
+      });
+
+      await scrollCardIntoViewBeforeDustAction();
 
       queryClient.setQueryData(
         collectionQueryKey,
@@ -302,7 +401,7 @@ export default function CollectionCardDetailScreen() {
           patchCollectionAfterDustAction(
             current,
             result.cardId,
-            result.quantityCrafted ?? 1,
+            craftedCount,
             result.newDustBalance,
           ),
       );
@@ -312,13 +411,15 @@ export default function CollectionCardDetailScreen() {
           patchHomeDust(current, result.newDustBalance),
       );
 
+      await runDustActionAnimation({
+        type: "craft",
+        revealLockedCard: !wasOwned,
+      });
+
       setIsBusy(false);
       setToast({
         type: "success",
-        message: t("collection.detail.craftSuccess", {
-          count: result.quantityCrafted ?? 1,
-          dust: result.dustSpent ?? getDustCraftCost(entry.card.rarity.name),
-        }),
+        message: successMessage,
       });
 
       void queryClient.invalidateQueries({
@@ -359,6 +460,18 @@ export default function CollectionCardDetailScreen() {
   const filteredUsers = otherUsers.filter((u) =>
     u.displayName.toLowerCase().includes(userSearch.toLowerCase()),
   );
+  const lockedCard = useMemo(
+    () =>
+      entry ? (
+        <CardTile
+          entry={entry}
+          size="large"
+          isLocked
+          accessToken={accessToken}
+        />
+      ) : null,
+    [accessToken, entry],
+  );
 
   if (collectionQuery.isLoading) {
     return (
@@ -392,6 +505,7 @@ export default function CollectionCardDetailScreen() {
   const canCraft = dust >= craftCost;
   const isOwned = (entry?.quantity ?? 0) > 0;
   const selectedUser = otherUsers.find((user) => user.id === selectedUserId);
+  const cardStageMaxWidth = Math.max(260, viewportWidth - 32);
 
   return (
     <ModalSheetRoute
@@ -451,6 +565,7 @@ export default function CollectionCardDetailScreen() {
           ) : (
             <ScrollView
               {...KEYBOARD_AWARE_SCROLL_PROPS}
+              ref={scrollViewRef}
               style={{ flex: 1 }}
               contentInsetAdjustmentBehavior="automatic"
               contentContainerStyle={{
@@ -459,6 +574,10 @@ export default function CollectionCardDetailScreen() {
                 gap: 16,
                 paddingBottom: insets.bottom + 24,
               }}
+              onScroll={({ nativeEvent }) => {
+                scrollOffsetYRef.current = nativeEvent.contentOffset.y;
+              }}
+              scrollEventThrottle={16}
               showsVerticalScrollIndicator={false}
               testID="collection-card-detail-sheet"
             >
@@ -469,12 +588,21 @@ export default function CollectionCardDetailScreen() {
                 testID="collection-card-detail-overview"
               >
                 <View className="items-center">
-                  <CardTile
-                    entry={entry}
-                    size="large"
-                    accessToken={accessToken}
-                    testID="collection-card-detail-card"
-                  />
+                  <CardDustActionFrame
+                    animation={dustActionAnimation}
+                    craftColor={tc.secondaryDark}
+                    maxWidth={cardStageMaxWidth}
+                    recycleColor={tc.successDark}
+                    testID="collection-card-detail-card-animation"
+                    lockedCard={lockedCard}
+                  >
+                    <CardTile
+                      entry={entry}
+                      size="large"
+                      accessToken={accessToken}
+                      testID="collection-card-detail-card"
+                    />
+                  </CardDustActionFrame>
                 </View>
 
                 <View
@@ -651,7 +779,7 @@ export default function CollectionCardDetailScreen() {
                       </Text>
                       <Text
                         style={{
-                          fontSize: 11,
+                          fontSize: 12,
                           fontFamily: "Nunito_700Bold",
                           color: tc.fgMuted,
                         }}

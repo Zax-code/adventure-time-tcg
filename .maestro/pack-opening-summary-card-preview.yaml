@@ -56,10 +56,14 @@ tags:
     retryTapIfNoChange: true
 - extendedWaitUntil:
     visible:
-      id: pack-summary-card-preview
+      id: pack-summary-card-preview-sheet
     timeout: 5000
-- tapOn:
-    id: pack-summary-card-preview-overlay
-    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible:
+      id: pack-summary-card-preview-stats
+    timeout: 5000
+- swipe:
+    start: "50%,34%"
+    end: "50%,88%"
 - assertNotVisible:
-    id: pack-summary-card-preview
+    id: pack-summary-card-preview-sheet
