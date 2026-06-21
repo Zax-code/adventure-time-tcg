@@ -1119,22 +1119,24 @@ function CardBackFace({
   );
 }
 
-function RevealCardOutline({
+function RevealCardHalo({
+  color,
   opacityAnim,
   rarityName,
   themeName,
   width,
 }: {
+  color: string;
   opacityAnim: Animated.Value;
   rarityName: RarityName;
   themeName: ThemeName;
   width: number;
 }) {
   const height = width / REVEAL_CARD_RATIO;
-  const outlineSource = getCardOutlineSource(themeName, rarityName);
-  const glowScale = opacityAnim.interpolate({
+  const haloShapeSource = getCardOutlineSource(themeName, rarityName);
+  const haloScale = opacityAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [0.985, 1.025],
+    outputRange: [0.98, 1.1],
   });
 
   return (
@@ -1147,33 +1149,23 @@ function RevealCardOutline({
         width,
         height,
         opacity: opacityAnim,
-        zIndex: 20,
-        transform: [{ scale: glowScale }],
+        zIndex: 0,
+        transform: [{ scale: haloScale }],
       }}
     >
       <Image
         pointerEvents="none"
-        source={outlineSource}
+        source={haloShapeSource}
         contentFit="fill"
-        blurRadius={8}
+        blurRadius={18}
+        tintColor={color}
         style={{
           position: "absolute",
-          top: -5,
-          right: -5,
-          bottom: -5,
-          left: -5,
-          opacity: 0.7,
-        }}
-      />
-      <Image
-        pointerEvents="none"
-        source={outlineSource}
-        contentFit="fill"
-        style={{
-          position: "absolute",
-          inset: 0,
-          width: "100%",
-          height: "100%",
+          top: -14,
+          right: -14,
+          bottom: -14,
+          left: -14,
+          opacity: 0.82,
         }}
       />
     </Animated.View>
@@ -1770,7 +1762,7 @@ export default function PacksScreen() {
   const readyRevealAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const flipAnim = useRef(new Animated.Value(0)).current;
-  const revealOutlineAnim = useAnimatedValue(0);
+  const revealHaloAnim = useAnimatedValue(0);
   const burstOpenAnim = useRef(new Animated.Value(0)).current;
   const chargeLoopRef = useRef<Animated.CompositeAnimation | null>(null);
   const sheenLoopRef = useRef<Animated.CompositeAnimation | null>(null);
@@ -2051,7 +2043,7 @@ export default function PacksScreen() {
     setRevealedIndex(nextIndex);
     setPhase("revealing");
     flipAnim.setValue(0);
-    revealOutlineAnim.setValue(0);
+    revealHaloAnim.setValue(0);
     revealAnimationRef.current?.stop();
     revealAnimationRef.current = Animated.sequence([
       Animated.delay(IS_E2E_BUILD ? 200 : 420),
@@ -2061,7 +2053,7 @@ export default function PacksScreen() {
         useNativeDriver: true,
         easing: Easing.bezier(0.22, 0.61, 0.36, 1),
       }),
-      Animated.timing(revealOutlineAnim, {
+      Animated.timing(revealHaloAnim, {
         toValue: 1,
         duration: IS_E2E_BUILD ? 120 : 220,
         useNativeDriver: true,
@@ -2085,7 +2077,7 @@ export default function PacksScreen() {
     revealAnimationRef.current?.stop();
     revealAnimationRef.current = null;
     flipAnim.setValue(1);
-    revealOutlineAnim.setValue(1);
+    revealHaloAnim.setValue(1);
     isRevealAnimatingRef.current = false;
     setIsRevealSettled(true);
   }
@@ -2123,7 +2115,7 @@ export default function PacksScreen() {
     readyRevealAnim.setValue(0);
     pulseAnim.setValue(1);
     flipAnim.setValue(0);
-    revealOutlineAnim.setValue(0);
+    revealHaloAnim.setValue(0);
     burstOpenAnim.setValue(0);
   }
 
@@ -2588,8 +2580,9 @@ export default function PacksScreen() {
                 transform: [{ scale: cardScale }],
               }}
             >
-              <RevealCardOutline
-                opacityAnim={revealOutlineAnim}
+              <RevealCardHalo
+                color={rarityRing}
+                opacityAnim={revealHaloAnim}
                 rarityName={rarityName}
                 themeName={themeName}
                 width={revealCardWidth}
