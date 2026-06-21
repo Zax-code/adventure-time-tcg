@@ -1,7 +1,5 @@
 import { useEffect } from "react";
 
-import { ApiClientError } from "@adventure-time/api-client";
-
 import {
   apiClient,
   clearAppSession,
@@ -14,7 +12,6 @@ export function useBootstrap() {
     (state) => state.hydrateFromStorage,
   );
   const setBootstrapPhase = useSessionStore((state) => state.setBootstrapPhase);
-  const setSession = useSessionStore((state) => state.setSession);
   const setUser = useSessionStore((state) => state.setUser);
 
   useEffect(() => {
@@ -39,27 +36,7 @@ export function useBootstrap() {
       try {
         const me = await apiClient.me();
         if (!cancelled) {
-          // `/me` may have already rotated tokens via the API client's auto-refresh path.
           await setUser(me);
-        }
-        return;
-      } catch (error) {
-        if (!(error instanceof ApiClientError) || error.status !== 401) {
-          if (!cancelled) {
-            setBootstrapPhase("ready");
-          }
-          return;
-        }
-      }
-
-      try {
-        const refreshed = await apiClient.refresh({ refreshToken });
-        if (!cancelled) {
-          await setSession({
-            user: refreshed.user,
-            accessToken: refreshed.tokens.accessToken,
-            refreshToken: refreshed.tokens.refreshToken,
-          });
         }
       } catch (error) {
         if (!cancelled && shouldClearSessionForAuthError(error)) {
@@ -77,5 +54,5 @@ export function useBootstrap() {
     return () => {
       cancelled = true;
     };
-  }, [hydrateFromStorage, setBootstrapPhase, setSession, setUser]);
+  }, [hydrateFromStorage, setBootstrapPhase, setUser]);
 }
