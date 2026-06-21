@@ -29,6 +29,7 @@ import { queryClient } from "../src/lib/query-client";
 import { useBootstrap } from "../src/hooks/use-bootstrap";
 import { apiClient } from "../src/lib/api";
 import { API_BASE_URL } from "../src/lib/api-config";
+import { registerWidgetRefreshNotificationTask } from "../src/lib/widget-refresh-notification-task";
 import {
   connectQuestRealtime,
   disconnectQuestRealtime,
@@ -108,6 +109,10 @@ export default function RootLayout() {
   useEffect(() => {
     void hydrateLocale();
   }, [hydrateLocale]);
+
+  useEffect(() => {
+    void registerWidgetRefreshNotificationTask();
+  }, []);
 
   useEffect(() => {
     if (localBootReady) {

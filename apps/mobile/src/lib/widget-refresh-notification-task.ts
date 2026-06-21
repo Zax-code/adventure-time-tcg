@@ -8,7 +8,11 @@ import {
 import { refreshWidgetSnapshotFromServer } from "./widget-refresh-sync";
 
 function extractTaskData(payload: Notifications.NotificationTaskPayload) {
-  if (!("data" in payload) || !payload.data || typeof payload.data !== "object") {
+  if (
+    !("data" in payload) ||
+    !payload.data ||
+    typeof payload.data !== "object"
+  ) {
     return null;
   }
 
@@ -55,6 +59,10 @@ if (!TaskManager.isTaskDefined(WIDGET_REFRESH_NOTIFICATION_TASK)) {
   );
 }
 
-void Notifications.registerTaskAsync(WIDGET_REFRESH_NOTIFICATION_TASK).catch(() => {
-  // The task is unavailable in unsupported runtimes like web and should stay best-effort.
-});
+export function registerWidgetRefreshNotificationTask() {
+  return Notifications.registerTaskAsync(
+    WIDGET_REFRESH_NOTIFICATION_TASK,
+  ).catch(() => {
+    // The task is unavailable in unsupported runtimes like web and should stay best-effort.
+  });
+}
