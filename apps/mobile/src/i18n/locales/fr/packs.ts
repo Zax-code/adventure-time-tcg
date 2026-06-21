@@ -54,6 +54,8 @@ const packs = {
     totalCards: "Cartes ouvertes",
     rarityBreakdown: "Répartition des raretés",
     allCards: "Toutes les cartes",
+    cardDetails: "Détails de la carte",
+    cardDetailsSubtitle: "Carte {character}",
     openSamePack: "Ouvrir ce pack à nouveau",
     browsePacks: "Choisir un autre pack",
   },

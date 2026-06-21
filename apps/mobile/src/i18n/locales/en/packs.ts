@@ -49,6 +49,8 @@ const packs = {
     totalCards: "Cards opened",
     rarityBreakdown: "Rarity spread",
     allCards: "All cards",
+    cardDetails: "Card details",
+    cardDetailsSubtitle: "{character} card",
     openSamePack: "Open this pack again",
     browsePacks: "Choose another pack",
   },

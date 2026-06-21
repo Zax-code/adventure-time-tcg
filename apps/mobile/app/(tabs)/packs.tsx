@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ModalBottomSheet } from "@swmansion/react-native-bottom-sheet";
 import { Image } from "expo-image";
 import { useNavigation } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -7,9 +8,9 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   Animated,
   Easing,
-  Modal,
   Pressable,
   ScrollView,
+  StyleSheet,
   Text,
   TouchableOpacity,
   View,
@@ -50,6 +51,7 @@ import {
   PackIcon,
   SparkleIcon,
   SparklesIcon,
+  XIcon,
   ZapIcon,
 } from "../../src/components/icons";
 import { PageLoadingState } from "../../src/components/loading-state";
@@ -1705,6 +1707,256 @@ function SectionBadge({
   );
 }
 
+function PackSummaryCardSheet({
+  card,
+  accessToken,
+  onClose,
+}: {
+  card: OpenedCard;
+  accessToken: string | null;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  const { height, width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const themeName = useThemeStore((state) => state.themeName);
+  const tc = THEME_COLORS[themeName];
+  const [index, setIndex] = useState(1);
+  const topGap = Math.max(insets.top + 16, 56);
+  const maxSheetHeight = Math.max(0, height - topGap);
+  const cardWidth = Math.min(width - 48, 340);
+  const rarityName = card.rarity?.name ?? "Common";
+  const rarityColor = RARITY_COLORS[rarityName] ?? RARITY_COLORS.Common;
+  const sheetSurface = useMemo(
+    () => (
+      <View
+        className="bg-bg"
+        style={[
+          StyleSheet.absoluteFill,
+          {
+            borderTopLeftRadius: 30,
+            borderTopRightRadius: 30,
+          },
+        ]}
+      />
+    ),
+    [],
+  );
+
+  const requestClose = () => {
+    setIndex(0);
+  };
+
+  const stats = [
+    {
+      label: "HP",
+      value: card.hp,
+      color: tc.dangerDark,
+      backgroundColor: tc.dangerTint,
+    },
+    {
+      label: "ATK",
+      value: card.attack,
+      color: tc.secondaryText,
+      backgroundColor: tc.secondaryTint,
+    },
+    {
+      label: "DEF",
+      value: card.defense,
+      color: tc.infoText,
+      backgroundColor: tc.infoTint,
+    },
+    {
+      label: "SPD",
+      value: card.speed,
+      color: tc.successText,
+      backgroundColor: tc.successTint,
+    },
+  ];
+
+  return (
+    <ModalBottomSheet
+      index={index}
+      onIndexChange={setIndex}
+      onSettle={(nextIndex) => {
+        if (nextIndex === 0) {
+          onClose();
+        }
+      }}
+      detents={[0, "content"]}
+      scrimColor={withAlpha(tc.primaryStrong, "99")}
+      surface={sheetSurface}
+    >
+      <View
+        className="bg-bg"
+        style={{
+          maxHeight: maxSheetHeight,
+          minHeight: Math.min(maxSheetHeight, height * 0.7),
+        }}
+        testID="pack-summary-card-preview-sheet"
+      >
+        <View className="border-b border-primaryTint px-5 pb-4 pt-3">
+          <View
+            className="mb-3 h-1 w-10 self-center rounded-full"
+            style={{ backgroundColor: withAlpha(tc.primaryStrong, "33") }}
+          />
+          <View className="flex-row items-center gap-3">
+            <View className="flex-1">
+              <Text
+                className="font-nunito-extrabold text-2xl text-fg"
+                numberOfLines={1}
+              >
+                {card.name}
+              </Text>
+              <Text
+                className="mt-1 font-nunito-semibold text-sm text-fgMuted"
+                numberOfLines={1}
+              >
+                {t("packs.summary.cardDetailsSubtitle", {
+                  character: card.character,
+                })}
+              </Text>
+            </View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t("common.close")}
+              onPress={requestClose}
+              testID="pack-summary-card-preview-close"
+              className="h-9 w-9 items-center justify-center rounded-full"
+              style={{ backgroundColor: tc.surfaceMuted }}
+            >
+              <XIcon size={18} color={tc.fgMuted} />
+            </Pressable>
+          </View>
+        </View>
+
+        <ScrollView
+          contentInsetAdjustmentBehavior="automatic"
+          contentInset={{ bottom: Math.max(insets.bottom, 12) }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{
+            paddingHorizontal: 16,
+            paddingTop: 18,
+            paddingBottom: 20,
+            gap: 16,
+          }}
+        >
+          <View className="items-center">
+            <View style={{ width: cardWidth }}>
+              <CardTile
+                entry={toCardTileEntry(card)}
+                accessToken={accessToken}
+                size="large"
+                fitContainer
+              />
+            </View>
+          </View>
+
+          <View
+            className="gap-4 rounded-[24px] border p-4"
+            style={{
+              backgroundColor: tc.surface,
+              borderColor: tc.primaryBorder,
+            }}
+            testID="pack-summary-card-preview-stats"
+          >
+            <View className="flex-row items-center justify-between gap-3">
+              <View className="flex-row flex-wrap gap-2">
+                <View
+                  className="flex-row items-center gap-2 rounded-full px-3 py-1.5"
+                  style={{
+                    backgroundColor: card.isNewForUser
+                      ? tc.successTint
+                      : tc.surfaceMuted,
+                  }}
+                >
+                  {card.isNewForUser ? (
+                    <CheckIcon size={12} color={tc.successText} />
+                  ) : (
+                    <ClockIcon size={12} color={tc.fgMuted} />
+                  )}
+                  <Text
+                    className="font-nunito-bold text-[11px]"
+                    style={{
+                      color: card.isNewForUser ? tc.successText : tc.fgMuted,
+                    }}
+                  >
+                    {card.isNewForUser
+                      ? t("packs.reveal.newCard")
+                      : t("packs.reveal.duplicate")}
+                  </Text>
+                </View>
+                <View
+                  className="flex-row items-center gap-2 rounded-full px-3 py-1.5"
+                  style={{ backgroundColor: tc.primaryTint }}
+                >
+                  <ZapIcon size={12} color={tc.primaryText} />
+                  <Text
+                    className="font-nunito-bold text-[11px]"
+                    style={{ color: tc.primaryText }}
+                  >
+                    {card.type}
+                  </Text>
+                </View>
+              </View>
+              <LinearGradient
+                colors={[rarityColor.from, rarityColor.to]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={{
+                  borderRadius: 999,
+                  paddingHorizontal: 12,
+                  paddingVertical: 7,
+                }}
+              >
+                <Text className="font-nunito-extrabold text-[11px] text-white">
+                  {rarityName.toUpperCase()}
+                </Text>
+              </LinearGradient>
+            </View>
+
+            <View className="flex-row gap-2.5">
+              {stats.map((stat) => (
+                <View
+                  key={stat.label}
+                  className="flex-1 items-center gap-0.5 rounded-[18px] px-2 py-3"
+                  style={{ backgroundColor: stat.backgroundColor }}
+                >
+                  <Text
+                    className="font-nunito-extrabold text-[20px]"
+                    style={{ color: stat.color }}
+                  >
+                    {stat.value}
+                  </Text>
+                  <Text className="font-nunito-bold text-[11px] text-fgMuted">
+                    {stat.label}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          <View
+            className="gap-2 rounded-[24px] border p-4"
+            style={{
+              backgroundColor: tc.surface,
+              borderColor: withAlpha(tc.primaryBorder, "88"),
+            }}
+          >
+            <Text className="font-nunito-extrabold text-base text-fg">
+              {t("packs.summary.cardDetails")}
+            </Text>
+            <Text className="font-nunito text-sm leading-6 text-fgMuted">
+              {card.description}
+            </Text>
+          </View>
+        </ScrollView>
+      </View>
+    </ModalBottomSheet>
+  );
+}
+
 export default function PacksScreen() {
   const navigation = useNavigation();
   const queryClient = useQueryClient();
@@ -1716,7 +1968,7 @@ export default function PacksScreen() {
   const { t } = useTranslation();
   const headerHeight = useAppHeaderHeight();
   const bottomTabPadding = useBottomTabBarContentPadding();
-  const { top: safeAreaTop, bottom: safeAreaBottom } = useSafeAreaInsets();
+  const { bottom: safeAreaBottom } = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
 
   const [phase, setPhase] = useState<OpeningPhase>("selecting");
@@ -1739,14 +1991,6 @@ export default function PacksScreen() {
   const openingBottomPadding = shouldHideTabBar
     ? Math.max(safeAreaBottom + 16, 24)
     : bottomTabPadding;
-  const previewCardWidth = Math.min(
-    width - 32,
-    420,
-    Math.max(
-      240,
-      (height - safeAreaTop - safeAreaBottom - 72) * CARD_ART_RATIO,
-    ),
-  );
 
   const revealCardWidth = Math.min(
     width - 36,
@@ -2926,36 +3170,14 @@ export default function PacksScreen() {
           </View>
         </ScrollView>
 
-        <Modal
-          visible={isCardPreviewVisible}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setPreviewedCard(null)}
-        >
-          <Pressable
-            testID="pack-summary-card-preview-overlay"
-            onPress={() => setPreviewedCard(null)}
-            className="flex-1 items-center justify-center px-4"
-            style={{ backgroundColor: "rgba(10, 14, 20, 0.92)" }}
-          >
-            {previewedCard ? (
-              <Pressable
-                testID="pack-summary-card-preview"
-                onPress={(event) => {
-                  event.stopPropagation();
-                }}
-                style={{ width: previewCardWidth }}
-              >
-                <CardTile
-                  entry={toCardTileEntry(previewedCard)}
-                  accessToken={accessToken}
-                  size="large"
-                  fitContainer
-                />
-              </Pressable>
-            ) : null}
-          </Pressable>
-        </Modal>
+        {previewedCard ? (
+          <PackSummaryCardSheet
+            key={previewedCard.id}
+            card={previewedCard}
+            accessToken={accessToken}
+            onClose={() => setPreviewedCard(null)}
+          />
+        ) : null}
       </>
     );
   }
