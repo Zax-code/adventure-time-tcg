@@ -109,6 +109,23 @@ defmodule AdventureTimeApi.Notifications do
     end
   end
 
+  def send_access_request_created(email) when is_binary(email) do
+    User
+    |> where([user], user.role == :super_admin and user.access_status == :approved)
+    |> order_by([user], asc: user.inserted_at)
+    |> Repo.all()
+    |> Enum.each(fn user ->
+      send_visible_notification(user, %{
+        title: notification_title(user.preferred_language, :access_request_created),
+        body:
+          notification_body(user.preferred_language, :access_request_created, %{email: email}),
+        data: %{"eventType" => "access_request_created", "email" => email}
+      })
+    end)
+
+    :ok
+  end
+
   def send_fitbit_widget_refresh(user_id) when is_binary(user_id) do
     if fitbit_push_enabled_for_user?(user_id) do
       now = now_utc()
@@ -290,9 +307,11 @@ defmodule AdventureTimeApi.Notifications do
   defp notification_title(:fr, :gift_received), do: "Nouveau cadeau"
   defp notification_title(:fr, :pvp_invite), do: "Invitation au combat"
   defp notification_title(:fr, :pvp_turn), do: "A vous de jouer"
+  defp notification_title(:fr, :access_request_created), do: "Nouvelle demande d'accès"
   defp notification_title(_locale, :gift_received), do: "New gift"
   defp notification_title(_locale, :pvp_invite), do: "Combat invitation"
   defp notification_title(_locale, :pvp_turn), do: "Your turn to play"
+  defp notification_title(_locale, :access_request_created), do: "New access request"
 
   defp notification_body(:fr, :gift_received, %{name: name}),
     do: "#{name} vous a envoyé un cadeau."
@@ -303,6 +322,9 @@ defmodule AdventureTimeApi.Notifications do
   defp notification_body(:fr, :pvp_turn, %{name: name}),
     do: "À vous de jouer contre #{name}."
 
+  defp notification_body(:fr, :access_request_created, %{email: email}),
+    do: "#{email} attend votre approbation."
+
   defp notification_body(_locale, :gift_received, %{name: name}),
     do: "#{name} sent you a gift."
 
@@ -311,6 +333,9 @@ defmodule AdventureTimeApi.Notifications do
 
   defp notification_body(_locale, :pvp_turn, %{name: name}),
     do: "It's your turn against #{name}."
+
+  defp notification_body(_locale, :access_request_created, %{email: email}),
+    do: "#{email} is waiting for approval."
 
   defp push_headers do
     access_token = config(:access_token)

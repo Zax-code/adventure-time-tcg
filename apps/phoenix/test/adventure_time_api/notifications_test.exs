@@ -1,5 +1,5 @@
 defmodule AdventureTimeApi.NotificationsTest do
-  use AdventureTimeApi.DataCase, async: true
+  use AdventureTimeApi.DataCase, async: false
 
   alias AdventureTimeApi.Notifications
   alias AdventureTimeApi.Notifications.Device
@@ -252,12 +252,81 @@ defmodule AdventureTimeApi.NotificationsTest do
            )
   end
 
+  test "send_access_request_created only pushes approved super admins", %{bypass: bypass} do
+    super_admin =
+      create_user("request-boss@example.com",
+        role: :super_admin,
+        access_status: :approved,
+        preferred_language: :fr
+      )
+
+    admin =
+      create_user("request-admin@example.com",
+        role: :admin,
+        access_status: :approved
+      )
+
+    pending_super_admin =
+      create_user("request-pending-boss@example.com",
+        role: :super_admin,
+        access_status: :pending
+      )
+
+    insert_device(
+      super_admin.id,
+      "request-boss-installation",
+      :ios,
+      "ExponentPushToken[request-boss]"
+    )
+
+    insert_device(admin.id, "request-admin-installation", :ios, "ExponentPushToken[admin]")
+
+    insert_device(
+      pending_super_admin.id,
+      "request-pending-boss-installation",
+      :ios,
+      "ExponentPushToken[pending-boss]"
+    )
+
+    Bypass.expect_once(bypass, "POST", "/--/api/v2/push/send", fn conn ->
+      {:ok, raw_body, conn} = Plug.Conn.read_body(conn)
+      payload = Jason.decode!(raw_body)
+
+      assert [
+               %{
+                 "body" => "new-user@example.com attend votre approbation.",
+                 "channelId" => "game-updates",
+                 "data" => %{
+                   "email" => "new-user@example.com",
+                   "eventType" => "access_request_created"
+                 },
+                 "priority" => "high",
+                 "sound" => "default",
+                 "title" => "Nouvelle demande d'accès",
+                 "to" => "ExponentPushToken[request-boss]",
+                 "ttl" => 86_400
+               }
+             ] = payload
+
+      conn
+      |> Plug.Conn.put_resp_content_type("application/json")
+      |> Plug.Conn.resp(
+        200,
+        Jason.encode!(%{"data" => [%{"status" => "ok", "id" => "ticket-access-request"}]})
+      )
+    end)
+
+    assert :ok = Notifications.send_access_request_created("new-user@example.com")
+  end
+
   defp endpoint_url(bypass) do
     "http://127.0.0.1:#{bypass.port}/--/api/v2/push/send"
   end
 
   defp create_user(email, opts) do
     preferred_step_source = Keyword.get(opts, :preferred_step_source, :device_health)
+    role = Keyword.get(opts, :role, :user)
+    access_status = Keyword.get(opts, :access_status, :approved)
 
     Repo.insert!(
       User.registration_changeset(%User{}, %{email: email, display_name: "Tester"})
@@ -270,7 +339,7 @@ defmodule AdventureTimeApi.NotificationsTest do
         notify_pvp_turn: Keyword.get(opts, :notify_pvp_turn, true),
         notify_gift_received: Keyword.get(opts, :notify_gift_received, true)
       })
-      |> User.access_changeset(%{role: :user, access_status: :approved})
+      |> User.access_changeset(%{role: role, access_status: access_status})
     )
   end
 
