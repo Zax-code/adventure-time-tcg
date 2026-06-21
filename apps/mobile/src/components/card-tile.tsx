@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef } from "react";
+import { memo, useEffect, useMemo, useRef } from "react";
 import type { StyleProp, ViewStyle } from "react-native";
 import { Animated, Easing, Pressable, Text, View } from "react-native";
 import { Image } from "expo-image";
@@ -69,23 +69,22 @@ const SIZE_CONFIG = {
     fillBottom: "11.5%",
     contentLeft: "14%",
     contentRight: "14%",
-    contentTop: "14%",
-    contentBottom: "14%",
+    contentTop: "16%",
+    contentBottom: "14.5%",
     gap: 3,
     panelRadius: 6,
-    artFlex: 1.45,
-    artMinHeight: 92,
-    statHeight: 19,
-    statValueFontSize: 8,
-    statLabelFontSize: 4.8,
+    artFlex: 1,
+    artMinHeight: 78,
+    descFlex: 0.98,
+    descMinHeight: 66,
     nameFontSize: 9,
     characterFontSize: 7,
     titlePaddingH: 6,
     titlePaddingV: 5,
-    descFontSize: 6.7,
-    descLineHeight: 8.4,
-    descPadding: 5,
-    descLines: 4,
+    descFontSize: 6.8,
+    descLineHeight: 8.5,
+    descPadding: 4,
+    descLines: 7,
     quantityFontSize: 11,
     shimmerWidthMultiplier: 3,
   },
@@ -99,23 +98,22 @@ const SIZE_CONFIG = {
     fillBottom: "11.5%",
     contentLeft: "14%",
     contentRight: "14%",
-    contentTop: "14%",
-    contentBottom: "14%",
+    contentTop: "16%",
+    contentBottom: "14.5%",
     gap: 4,
     panelRadius: 8,
-    artFlex: 1.45,
-    artMinHeight: 116,
-    statHeight: 23,
-    statValueFontSize: 10,
-    statLabelFontSize: 5.8,
+    artFlex: 1,
+    artMinHeight: 96,
+    descFlex: 1,
+    descMinHeight: 82,
     nameFontSize: 11,
     characterFontSize: 8.5,
     titlePaddingH: 8,
     titlePaddingV: 6,
     descFontSize: 7.8,
-    descLineHeight: 9.8,
-    descPadding: 6,
-    descLines: 4,
+    descLineHeight: 9.6,
+    descPadding: 5,
+    descLines: 7,
     quantityFontSize: 12,
     shimmerWidthMultiplier: 3,
   },
@@ -129,23 +127,22 @@ const SIZE_CONFIG = {
     fillBottom: "11.5%",
     contentLeft: "14%",
     contentRight: "14%",
-    contentTop: "14%",
-    contentBottom: "14%",
+    contentTop: "17.25%",
+    contentBottom: "13.75%",
     gap: 8,
     panelRadius: 14,
-    artFlex: 1.45,
-    artMinHeight: 196,
-    statHeight: 42,
-    statValueFontSize: 18,
-    statLabelFontSize: 8,
+    artFlex: 0.95,
+    artMinHeight: 166,
+    descFlex: 1.15,
+    descMinHeight: 148,
     nameFontSize: 19,
     characterFontSize: 13,
     titlePaddingH: 14,
     titlePaddingV: 10,
-    descFontSize: 12,
+    descFontSize: 12.2,
     descLineHeight: 16,
-    descPadding: 12,
-    descLines: 4,
+    descPadding: 10,
+    descLines: 9,
     quantityFontSize: 13,
     shimmerWidthMultiplier: 3,
   },
@@ -316,55 +313,6 @@ function withAlpha(color: string, alpha: string) {
   return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${opacity})`;
 }
 
-function StatCell({
-  label,
-  value,
-  cfg,
-  borderColor,
-  textColor,
-  backgroundColor,
-}: {
-  label: string;
-  value: string | number;
-  cfg: (typeof SIZE_CONFIG)[CardTileSize];
-  borderColor: string;
-  textColor: string;
-  backgroundColor: string;
-}) {
-  return (
-    <View
-      className="flex-1 items-center justify-center"
-      style={{
-        height: cfg.statHeight,
-        borderRadius: cfg.panelRadius,
-        borderWidth: 1,
-        borderColor,
-        backgroundColor,
-        paddingHorizontal: 2,
-      }}
-    >
-      <Text
-        className="font-nunito-extrabold"
-        numberOfLines={1}
-        style={{ color: textColor, fontSize: cfg.statValueFontSize }}
-      >
-        {value}
-      </Text>
-      <Text
-        className="font-nunito-extrabold"
-        numberOfLines={1}
-        style={{
-          color: withAlpha(textColor, "BF"),
-          fontSize: cfg.statLabelFontSize,
-          letterSpacing: 0,
-        }}
-      >
-        {label}
-      </Text>
-    </View>
-  );
-}
-
 function LockedIllustration({
   cfg,
   typeColor,
@@ -427,7 +375,6 @@ export const CardTile = memo(function CardTile(props: CardTileProps) {
   const themeName = useThemeStore((s) => s.themeName);
   const tc = THEME_COLORS[themeName];
   const isLocked = props.isLocked ?? quantity <= 0;
-  const concealedStat = size === "large" ? "??" : "?";
   const displayRarityName = toRarityName(card.rarityName);
   const typePalette = getTypePalette(themeName);
   const rarityPalette = getRarityPalette(themeName);
@@ -446,14 +393,11 @@ export const CardTile = memo(function CardTile(props: CardTileProps) {
   const isEpic = displayRarityName === "Epic";
   const hasShimmer = isLegendary || isEpic;
   const cardContentOpacity = muted || isArchived ? 0.58 : 1;
-  const textColor = pickReadableTextColor(tc.surface, tc.fg, "#FFFFFF");
   const badgeTextColor = pickReadableTextColor(typeColor.dark, tc.fg, "#FFFFFF");
   const panelBg = themeName === "nightosphere"
-    ? withAlpha(tc.surfaceMuted, "F0")
-    : "rgba(255, 251, 235, 0.92)";
-  const statBg = themeName === "nightosphere"
-    ? withAlpha(tc.primaryBg, "E0")
-    : "rgba(255, 255, 255, 0.86)";
+    ? withAlpha(typeColor.light, "F5")
+    : withAlpha(typeColor.light, "F0");
+  const panelTextColor = pickReadableTextColor(panelBg, tc.fg, "#FFFFFF");
   const frameSource = getCardOutlineSource(themeName, displayRarityName);
 
   const bounceAnim = useRef(new Animated.Value(0)).current;
@@ -511,6 +455,19 @@ export const CardTile = memo(function CardTile(props: CardTileProps) {
     inputRange: [0, 1],
     outputRange: [-cfg.width * cfg.shimmerWidthMultiplier, cfg.width],
   });
+  const descriptionPanelStyle = useMemo<ViewStyle>(
+    () => ({
+      flex: cfg.descFlex,
+      minHeight: cfg.descMinHeight,
+      borderRadius: cfg.panelRadius,
+      borderWidth: 1,
+      borderColor: withAlpha(typeColor.dark, "66"),
+      backgroundColor: panelBg,
+      padding: cfg.descPadding,
+      boxShadow: `inset 0px 0px 0px 1px ${withAlpha(typeColor.frame, "44")}`,
+    }),
+    [cfg, panelBg, typeColor.dark, typeColor.frame],
+  );
 
   return (
     <Pressable
@@ -550,9 +507,9 @@ export const CardTile = memo(function CardTile(props: CardTileProps) {
         >
           <LinearGradient
             colors={[
+              withAlpha(typeColor.frame, "E8"),
               typeColor.light,
-              tc.surface,
-              withAlpha(rarityColor.ring, "40"),
+              withAlpha(typeColor.frame, "D9"),
             ]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
@@ -672,57 +629,12 @@ export const CardTile = memo(function CardTile(props: CardTileProps) {
             </View>
           </View>
 
-          <View className="flex-row" style={{ gap: cfg.gap }}>
-            <StatCell
-              label="ATK"
-              value={isLocked ? concealedStat : card.attack}
-              cfg={cfg}
-              borderColor={withAlpha(typeColor.dark, "80")}
-              textColor={typeColor.dark}
-              backgroundColor={statBg}
-            />
-            <StatCell
-              label="HP"
-              value={isLocked ? concealedStat : card.hp}
-              cfg={cfg}
-              borderColor={withAlpha(rarityColor.ring, "99")}
-              textColor={tc.dangerText}
-              backgroundColor={statBg}
-            />
-            <StatCell
-              label="DEF"
-              value={isLocked ? concealedStat : card.defense}
-              cfg={cfg}
-              borderColor={withAlpha(typeColor.dark, "80")}
-              textColor={typeColor.dark}
-              backgroundColor={statBg}
-            />
-            <StatCell
-              label="SPD"
-              value={isLocked ? concealedStat : card.speed}
-              cfg={cfg}
-              borderColor={withAlpha(tc.infoDark, "80")}
-              textColor={tc.infoText}
-              backgroundColor={statBg}
-            />
-          </View>
-
-          <View
-            style={{
-              flex: 0.6,
-              minHeight: size === "large" ? 66 : size === "medium" ? 42 : 34,
-              borderRadius: cfg.panelRadius,
-              borderWidth: 1,
-              borderColor: withAlpha(tc.secondaryBorder, "99"),
-              backgroundColor: panelBg,
-              padding: cfg.descPadding,
-            }}
-          >
+          <View style={descriptionPanelStyle}>
             <Text
               className="font-nunito-semibold"
               numberOfLines={cfg.descLines}
               style={{
-                color: textColor,
+                color: panelTextColor,
                 fontSize: cfg.descFontSize,
                 lineHeight: cfg.descLineHeight,
               }}
