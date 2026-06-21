@@ -120,7 +120,6 @@ export const pvpStatusNameValues = [
   "Haste",
   "Taunt",
   "Regeneration",
-  "Regen",
   "Silence",
   "SummoningSickness",
   "Cover",

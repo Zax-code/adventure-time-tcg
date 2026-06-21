@@ -33,7 +33,6 @@ const combat = {
     Haste: "Haste",
     Taunt: "Taunt",
     Regeneration: "Regeneration",
-    Regen: "Regeneration",
     Silence: "Silence",
     Cleanse: "Cleanse",
     SummoningSickness: "Summoning Sickness",

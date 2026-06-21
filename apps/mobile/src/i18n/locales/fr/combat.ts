@@ -33,7 +33,6 @@ const combat = {
     Haste: "Hâte",
     Taunt: "Provocation",
     Regeneration: "Régénération",
-    Regen: "Régénération",
     Silence: "Silence",
     Cleanse: "Purification",
     SummoningSickness: "Mal d'invocation",

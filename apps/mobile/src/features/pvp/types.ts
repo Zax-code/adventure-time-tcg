@@ -69,7 +69,6 @@ const VALID_STATUS_NAMES = new Set<StatusName>([
   "Haste",
   "Taunt",
   "Regeneration",
-  "Regen",
   "Silence",
   "SummoningSickness",
   "Cover",

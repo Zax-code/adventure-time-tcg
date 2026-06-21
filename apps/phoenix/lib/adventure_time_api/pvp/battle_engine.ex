@@ -144,7 +144,6 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
     "Shield" => %{is_buff: true, is_debuff: false, ticks: false, stackable: :magnitude},
     "GuardUp" => %{is_buff: true, is_debuff: false, ticks: true, stackable: false},
     "Regeneration" => %{is_buff: true, is_debuff: false, ticks: true, stackable: false},
-    "Regen" => %{is_buff: true, is_debuff: false, ticks: true, stackable: false},
     "Vulnerable" => %{is_buff: false, is_debuff: true, ticks: true, stackable: false},
     "Weakened" => %{is_buff: false, is_debuff: true, ticks: true, stackable: false},
     "Haste" => %{is_buff: true, is_debuff: false, ticks: true, stackable: false},
@@ -541,15 +540,15 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
 
             {append_log(acc_state, [evt]), dmg + tick_dmg, heal}
 
-          n when n in ["Regeneration", "Regen"] ->
+          "Regeneration" ->
             tick_heal = floor(unit["maxHp"] * 0.08)
 
             evt =
               new_event(acc_state, "statusTick", %{
                 "targetId" => unit_id,
                 "unitId" => unit_id,
-                "statusName" => n,
-                "status" => n,
+                "statusName" => "Regeneration",
+                "status" => "Regeneration",
                 "amount" => tick_heal,
                 "healing" => tick_heal
               })

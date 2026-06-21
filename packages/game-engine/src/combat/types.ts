@@ -26,7 +26,6 @@ export type StatusName =
   | "Haste"
   | "Taunt"
   | "Regeneration"
-  | "Regen" // Alias for Regeneration, heals 5% max HP per turn
   | "Silence"
   | "SummoningSickness"
   | "Cover"

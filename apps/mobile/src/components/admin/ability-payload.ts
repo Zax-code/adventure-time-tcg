@@ -8,7 +8,6 @@ export const STATUS_NAMES = [
   "Haste",
   "Taunt",
   "Regeneration",
-  "Regen",
   "Silence",
   "SummoningSickness",
   "Cover",

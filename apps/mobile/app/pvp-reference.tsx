@@ -26,7 +26,6 @@ const STATUS_ENTRIES = [
   { name: "Haste", hue: 48 },
   { name: "Taunt", hue: 345 },
   { name: "Regeneration", hue: 128 },
-  { name: "Regen", hue: 140 },
   { name: "Silence", hue: 260 },
   { name: "Cleanse", hue: 170 },
   { name: "SummoningSickness", hue: 24 },

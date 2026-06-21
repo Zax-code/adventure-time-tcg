@@ -173,8 +173,6 @@ const pvp = {
       Taunt:
         "Force les ennemis à cibler cette unité quand les règles de ciblage mono-cible s'appliquent.",
       Regeneration: "Rend 8 % des PV max en début de tour.",
-      Regen:
-        "Alias de Régénération ; même soin de 8 % des PV max en début de tour.",
       Silence:
         "Empêche d'utiliser la compétence et l'ultime tant qu'il est actif.",
       Cleanse:

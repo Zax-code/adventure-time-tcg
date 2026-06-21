@@ -299,7 +299,7 @@ function applyEventToState(state: BattleState, event: CombatEvent): ApplyEventRe
     }
 
     case "statusTick": {
-      // Status tick applies damage/healing from DoT/Regen effects
+      // Status tick applies damage/healing from DoT/Regeneration effects
       if (!targetId) {
         return { success: false, error: "missing unitId" };
       }

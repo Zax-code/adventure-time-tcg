@@ -168,7 +168,6 @@ const pvp = {
         "Increases speed (+20%) and can make one basic attack cost 0 energy that turn.",
       Taunt: "Enemies must target this unit when single-target rules apply.",
       Regeneration: "Heals 8% max HP at the start of turn.",
-      Regen: "Alias of Regeneration; same 8% max HP turn-start heal.",
       Silence: "Cannot use skill or ultimate while active.",
       Cleanse: "Removes one or more debuffs/status effects from the target unit(s).",
       SummoningSickness: "Cannot act until the owner's next turn starts.",
