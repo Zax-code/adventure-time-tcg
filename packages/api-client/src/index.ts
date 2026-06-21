@@ -26,6 +26,7 @@ import {
   emailAccessRequestsResponseSchema,
   featuredCardsResponseSchema,
   raritiesResponseSchema,
+  rarityNameSchema,
   pvpSpectateResponseSchema,
   pvpSpectateDetailResponseSchema,
   updateDisplayNameSchema,
@@ -179,6 +180,7 @@ const adminAbilitiesEnvelopeSchema = z.object({
       name: z.string(),
       character: z.string(),
       type: cardTypeSchema,
+      rarityName: rarityNameSchema.nullable(),
     }),
   ),
 });

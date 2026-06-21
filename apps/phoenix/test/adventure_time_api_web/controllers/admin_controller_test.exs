@@ -150,7 +150,10 @@ defmodule AdventureTimeApiWeb.AdminControllerTest do
     assert card_id == card.id
     assert skill_id == ability.id
 
-    assert Enum.any?(abilities_response["cards"], &(&1["id"] == card.id))
+    assert Enum.any?(
+             abilities_response["cards"],
+             &(&1["id"] == card.id and &1["rarityName"] == rarity.name)
+           )
   end
 
   test "admin can create, update, delete, assign, and remove abilities", _context do

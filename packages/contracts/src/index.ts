@@ -1151,6 +1151,7 @@ export const adminAbilitiesResponseSchema = z.object({
       name: z.string(),
       character: z.string(),
       type: z.string(),
+      rarityName: rarityNameSchema.nullable(),
     }),
   ),
 });

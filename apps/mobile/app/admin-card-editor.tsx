@@ -40,6 +40,15 @@ function getErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
 }
 
+function rarityAllowsPassiveSlot(
+  rarities: Array<{ id: string; name: string }>,
+  rarityId: string,
+) {
+  return (
+    rarities.find((rarity) => rarity.id === rarityId)?.name === "Legendary"
+  );
+}
+
 export default function AdminCardEditorScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -83,6 +92,10 @@ export default function AdminCardEditorScreen() {
     queryFn: () => apiClient.adminAbilities(),
     enabled: canAccessAdmin,
   });
+  const selectedRarity = raritiesQuery.data?.rarities.find(
+    (rarity) => rarity.id === draft.rarityId,
+  );
+  const allowsPassiveSlot = selectedRarity?.name === "Legendary";
 
   useEffect(() => {
     if (isCreateMode) {
@@ -117,8 +130,11 @@ export default function AdminCardEditorScreen() {
     const currentAssignment = abilitiesQuery.data?.cardAbilities.find(
       (entry) => entry.cardId === cardQuery.data?.id,
     );
+    const cardAllowsPassiveSlot = cardQuery.data.rarityName === "Legendary";
     setAssignmentDraft({
-      passiveId: currentAssignment?.passiveId ?? "",
+      passiveId: cardAllowsPassiveSlot
+        ? (currentAssignment?.passiveId ?? "")
+        : "",
       skillId: currentAssignment?.skillId ?? "",
       ultimateId: currentAssignment?.ultimateId ?? "",
     });
@@ -157,7 +173,9 @@ export default function AdminCardEditorScreen() {
       if (shouldPersistAssignments) {
         await apiClient.assignAdminCardAbility({
           cardId: savedCardId,
-          passiveId: assignmentDraft.passiveId || null,
+          passiveId: allowsPassiveSlot
+            ? assignmentDraft.passiveId || null
+            : null,
           skillId: assignmentDraft.skillId || null,
           ultimateId: assignmentDraft.ultimateId || null,
         });
@@ -333,6 +351,18 @@ export default function AdminCardEditorScreen() {
                     onUploadImage={() => uploadMutation.mutate()}
                     onDraftChange={(key, value) => {
                       setDraft((current) => ({ ...current, [key]: value }));
+                      if (
+                        key === "rarityId" &&
+                        !rarityAllowsPassiveSlot(
+                          raritiesQuery.data?.rarities ?? [],
+                          value,
+                        )
+                      ) {
+                        setAssignmentDraft((current) => ({
+                          ...current,
+                          passiveId: "",
+                        }));
+                      }
                     }}
                     onAssignmentChange={(role, value) => {
                       setAssignmentDraft(

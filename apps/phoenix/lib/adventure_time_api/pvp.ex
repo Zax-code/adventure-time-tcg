@@ -605,14 +605,17 @@ defmodule AdventureTimeApi.Pvp do
 
     cards =
       Card
+      |> join(:left, [c], r in Rarity, on: r.id == c.rarity_id)
       |> order_by([c], asc: c.name)
+      |> select([c, r], {c, r})
       |> Repo.all()
-      |> Enum.map(fn card ->
+      |> Enum.map(fn {card, rarity} ->
         %{
           id: card.id,
           name: card.name,
           character: card.character,
-          type: CardType.canonicalize!(card.type)
+          type: CardType.canonicalize!(card.type),
+          rarityName: rarity && rarity.name
         }
       end)
 
