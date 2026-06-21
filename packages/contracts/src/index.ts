@@ -200,6 +200,7 @@ export const pvpCombatEventTypeValues = [
   "ko",
   "swap",
   "formation",
+  "passiveRoll",
   "passiveTrigger",
   "cooldownTick",
   "gameOver",
@@ -212,6 +213,8 @@ export const pvpCombatEventTypeValues = [
   "thorns",
   "counter",
   "preventDeath",
+  "statusRoll",
+  "randomStatusRoll",
   "statusSteal",
   "swapHp",
 ] as const;

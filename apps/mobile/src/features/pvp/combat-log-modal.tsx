@@ -6,12 +6,21 @@ import {
   getEventAbilityLabel,
   getEventActorName,
   getEventAmount,
+  getEventChance,
+  getEventCritChance,
+  getEventCritRoll,
   getEventDestinationName,
+  getEventMissChance,
+  getEventMissRoll,
+  getEventOptionCount,
   getEventRemaining,
+  getEventRoll,
+  getEventSelectedIndex,
   getEventSourceName,
   getEventStatusName,
   getEventTargetName,
   getEventWinnerLabel,
+  didEventRollPass,
   isMissEvent,
 } from "./event-payload";
 import type { PvpBattleState } from "./types";
@@ -23,9 +32,99 @@ interface CombatLogModalProps {
   onClose: () => void;
 }
 
+type Translate = (key: string, params?: Record<string, string | number>) => string;
+
+function formatPercent(value: number): string {
+  const percent = value * 100;
+  return `${percent < 10 ? percent.toFixed(1) : percent.toFixed(0)}%`;
+}
+
+function formatAttackRollDetail(
+  event: PvpBattleState["log"][number],
+  t: Translate,
+): string {
+  const missRoll = getEventMissRoll(event);
+  const missChance = getEventMissChance(event);
+
+  if (missRoll === null || missChance === null) {
+    return "";
+  }
+
+  if (isMissEvent(event)) {
+    return t("pvp.combatLog.attackMissRollDetail", {
+      missRoll: formatPercent(missRoll),
+      missChance: formatPercent(missChance),
+    });
+  }
+
+  const critRoll = getEventCritRoll(event);
+  const critChance = getEventCritChance(event);
+
+  if (critRoll === null || critChance === null) {
+    return t("pvp.combatLog.attackMissOnlyRollDetail", {
+      missRoll: formatPercent(missRoll),
+      missChance: formatPercent(missChance),
+    });
+  }
+
+  return t("pvp.combatLog.attackHitRollDetail", {
+    missRoll: formatPercent(missRoll),
+    missChance: formatPercent(missChance),
+    critRoll: formatPercent(critRoll),
+    critChance: formatPercent(critChance),
+  });
+}
+
+function formatCritRollDetail(
+  event: PvpBattleState["log"][number],
+  t: Translate,
+): string {
+  const critRoll = getEventCritRoll(event);
+  const critChance = getEventCritChance(event);
+
+  if (critRoll === null || critChance === null) {
+    return "";
+  }
+
+  return t("pvp.combatLog.critRollDetail", {
+    critRoll: formatPercent(critRoll),
+    critChance: formatPercent(critChance),
+  });
+}
+
+function formatChanceRollDetail(event: PvpBattleState["log"][number]): string {
+  const roll = getEventRoll(event);
+  const chance = getEventChance(event);
+
+  if (roll === null || chance === null) {
+    return "";
+  }
+
+  return `${formatPercent(roll)} / ${formatPercent(chance)}`;
+}
+
+function formatRandomChoiceDetail(
+  event: PvpBattleState["log"][number],
+  t: Translate,
+): string {
+  const roll = getEventRoll(event);
+  const selectedIndex = getEventSelectedIndex(event);
+  const optionCount = getEventOptionCount(event);
+
+  if (roll === null || selectedIndex === null || optionCount === null) {
+    return "";
+  }
+
+  return t("pvp.combatLog.randomChoiceDetail", {
+    roll: formatPercent(roll),
+    selected: String(selectedIndex + 1),
+    count: String(optionCount),
+  });
+}
+
 function summarizeCombatEvent(
   event: PvpBattleState["log"][number],
-  t: (key: string, params?: Record<string, string | number>) => string,
+  t: Translate,
 ): string {
   const unit = t("pvp.combatLog.unitFallback");
   const player = t("pvp.combatLog.playerFallback");
@@ -33,7 +132,14 @@ function summarizeCombatEvent(
   const ability = t("pvp.combatLog.abilityFallback");
   switch (event.type) {
     case "matchStart":
-      return t("pvp.combatLog.matchStart");
+      return t("pvp.combatLog.matchStart", {
+        roll:
+          formatChanceRollDetail(event) === ""
+            ? ""
+            : t("pvp.combatLog.initiativeTieRollDetail", {
+                roll: formatChanceRollDetail(event),
+              }),
+      });
     case "turnStart":
       return t("pvp.combatLog.turnStart", { turn: event.turn });
     case "turnEnd":
@@ -53,16 +159,19 @@ function summarizeCombatEvent(
         return t("pvp.combatLog.miss", {
           attacker: getEventActorName(event) ?? unit,
           target: getEventTargetName(event) ?? target,
+          roll: formatAttackRollDetail(event, t),
         });
       }
       return t("pvp.combatLog.damage", {
         attacker: getEventActorName(event) ?? unit,
         amount: String(getEventAmount(event) ?? 0),
         target: getEventTargetName(event) ?? target,
+        roll: formatAttackRollDetail(event, t),
       });
     case "crit":
       return t("pvp.combatLog.crit", {
         target: getEventTargetName(event) ?? target,
+        roll: formatCritRollDetail(event, t),
       });
     case "ko":
       return t("pvp.combatLog.ko", {
@@ -116,10 +225,38 @@ function summarizeCombatEvent(
         target: getEventTargetName(event) ?? unit,
         status: localizeStatusName(getEventStatusName(event) ?? "", t),
       });
+    case "passiveRoll":
+      return t(
+        didEventRollPass(event)
+          ? "pvp.combatLog.passiveRollPass"
+          : "pvp.combatLog.passiveRollFail",
+        {
+          unit: getEventActorName(event) ?? unit,
+          ability: getEventAbilityLabel(event) ?? ability,
+          roll: formatChanceRollDetail(event),
+        },
+      );
     case "passiveTrigger":
       return t("pvp.combatLog.passiveTrigger", {
         unit: getEventActorName(event) ?? unit,
         ability: getEventAbilityLabel(event) ?? ability,
+      });
+    case "statusRoll":
+      return t(
+        didEventRollPass(event)
+          ? "pvp.combatLog.statusRollPass"
+          : "pvp.combatLog.statusRollFail",
+        {
+          target: getEventTargetName(event) ?? unit,
+          status: localizeStatusName(getEventStatusName(event) ?? "", t),
+          roll: formatChanceRollDetail(event),
+        },
+      );
+    case "randomStatusRoll":
+      return t("pvp.combatLog.randomStatusRoll", {
+        target: getEventTargetName(event) ?? unit,
+        status: localizeStatusName(getEventStatusName(event) ?? "", t),
+        roll: formatRandomChoiceDetail(event, t),
       });
     case "cooldownTick":
       return t("pvp.combatLog.cooldownTick", {
@@ -193,7 +330,10 @@ function getEventClasses(type: string) {
       return "border-successBorder bg-successTint";
     case "energyGrant":
     case "cooldownTick":
+    case "passiveRoll":
     case "passiveTrigger":
+    case "statusRoll":
+    case "randomStatusRoll":
     case "formation":
     case "swap":
     case "pass":
@@ -219,7 +359,10 @@ function getEventTextClass(type: string) {
       return "text-successDark";
     case "energyGrant":
     case "cooldownTick":
+    case "passiveRoll":
     case "passiveTrigger":
+    case "statusRoll":
+    case "randomStatusRoll":
     case "formation":
     case "swap":
     case "pass":

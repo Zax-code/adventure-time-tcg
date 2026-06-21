@@ -50,6 +50,42 @@ export function getEventRemaining(event: CombatEvent): number | null {
   return pickNumber(event.payload, ["remaining"]);
 }
 
+export function getEventRoll(event: CombatEvent): number | null {
+  return pickNumber(event.payload, ["roll", "initiativeTieRoll"]);
+}
+
+export function getEventChance(event: CombatEvent): number | null {
+  return pickNumber(event.payload, ["chance", "initiativeTieChance"]);
+}
+
+export function getEventMissRoll(event: CombatEvent): number | null {
+  return pickNumber(event.payload, ["missRoll"]);
+}
+
+export function getEventMissChance(event: CombatEvent): number | null {
+  return pickNumber(event.payload, ["missChance"]);
+}
+
+export function getEventCritRoll(event: CombatEvent): number | null {
+  return pickNumber(event.payload, ["critRoll"]);
+}
+
+export function getEventCritChance(event: CombatEvent): number | null {
+  return pickNumber(event.payload, ["critChance"]);
+}
+
+export function getEventSelectedIndex(event: CombatEvent): number | null {
+  return pickNumber(event.payload, ["selectedIndex"]);
+}
+
+export function getEventOptionCount(event: CombatEvent): number | null {
+  return pickNumber(event.payload, ["optionCount"]);
+}
+
+export function didEventRollPass(event: CombatEvent): boolean {
+  return pickBoolean(event.payload, ["passed"]);
+}
+
 export function isMissEvent(event: CombatEvent): boolean {
   return pickBoolean(event.payload, ["isMiss"]);
 }

@@ -368,6 +368,7 @@ export type CombatEventType =
   | "ko"
   | "swap"
   | "formation"
+  | "passiveRoll"
   | "passiveTrigger"
   | "cooldownTick"
   | "gameOver"
@@ -380,6 +381,8 @@ export type CombatEventType =
   | "thorns"
   | "counter"
   | "preventDeath"
+  | "statusRoll"
+  | "randomStatusRoll"
   | "statusSteal"
   | "swapHp";
 

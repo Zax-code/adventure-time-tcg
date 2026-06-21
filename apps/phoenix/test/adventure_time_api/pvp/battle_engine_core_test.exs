@@ -31,6 +31,23 @@ defmodule AdventureTimeApi.Pvp.BattleEngineCoreTest do
     )
   end
 
+  defp make_card(overrides) do
+    Map.merge(
+      %{
+        "id" => "card1",
+        "name" => "Test Card",
+        "character" => "Test Card",
+        "type" => "Hero",
+        "hp" => 100,
+        "attack" => 50,
+        "defense" => 30,
+        "speed" => 40,
+        "rarity_name" => "Common"
+      },
+      overrides
+    )
+  end
+
   defp make_state(opts \\ []) do
     p1_units = Keyword.get(opts, :p1_units, [make_unit(%{"instanceId" => "p1u1"})])
     p2_units = Keyword.get(opts, :p2_units, [make_unit(%{"instanceId" => "p2u1"})])
@@ -189,6 +206,24 @@ defmodule AdventureTimeApi.Pvp.BattleEngineCoreTest do
     assert bench["position"] == nil
   end
 
+  test "create_battle_state exposes initiative tie roll in match start payload" do
+    inviter_cards = [make_card(%{"id" => "inv-1"})]
+    invitee_cards = [make_card(%{"id" => "opp-1"})]
+
+    {state, _seed} =
+      BattleEngine.create_battle_state(
+        "match-init",
+        %{user_id: "player1", display_name: "Inviter", cards: inviter_cards},
+        %{user_id: "player2", display_name: "Invitee", cards: invitee_cards}
+      )
+
+    payload = state["log"] |> hd() |> Map.fetch!("payload")
+
+    assert payload["initiativeTieChance"] == 0.5
+    assert is_number(payload["initiativeTieRoll"])
+    assert payload["initiativeTieWinnerId"] == payload["firstMoverId"]
+  end
+
   test "basic attack reflects type advantage and disadvantage in damage events" do
     advantage_state =
       make_state(
@@ -264,8 +299,16 @@ defmodule AdventureTimeApi.Pvp.BattleEngineCoreTest do
     assert Enum.any?(crit_events, &(&1["type"] == "crit"))
     assert crit_damage["isCrit"] == true
     assert crit_damage["isMiss"] == false
+    assert is_number(crit_damage["missRoll"])
+    assert is_number(crit_damage["missChance"])
+    assert is_number(crit_damage["critRoll"])
+    assert is_number(crit_damage["critChance"])
     assert miss_damage["isMiss"] == true
     assert miss_damage["damage"] == 0
+    assert is_number(miss_damage["missRoll"])
+    assert is_number(miss_damage["missChance"])
+    assert is_nil(miss_damage["critRoll"])
+    assert is_number(miss_damage["critChance"])
   end
 
   test "skill spends energy, sets cooldown, and ultimate marks usedUltimate" do

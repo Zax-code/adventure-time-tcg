@@ -40,6 +40,10 @@ _Avoid_: Hidden opponent energy, obfuscated energy
 The full combat log is public battle information for both players. This includes passive triggers, cooldown reductions, status ticks, formation shifts, energy changes, mitigation, retaliation, and other resolved battle events.
 _Avoid_: Hidden log events, private passive triggers, private cooldown ticks
 
+**PvP Randomness Visibility**:
+Random rolls are private while an action is being chosen or resolved, then public once the result resolves. The combat log should expose roll outcomes and roll/chance or choice details for misses, crits, passive chance checks, status chance checks, and random status choices.
+_Avoid_: Hidden resolved rolls, outcome-only chance events
+
 **PvP Bench Visibility**:
 Opponent bench card details are public battle information before those cards enter the active row. Players should be able to inspect bench HP, statuses, assigned abilities, cooldowns, used-ultimate state, and passives during battle.
 _Avoid_: Hidden bench cards, concealed bench abilities

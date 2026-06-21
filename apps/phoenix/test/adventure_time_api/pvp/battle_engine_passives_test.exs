@@ -127,6 +127,31 @@ defmodule AdventureTimeApi.Pvp.BattleEnginePassivesTest do
     assert Enum.any?(new_state["log"], &(&1["type"] == "passiveTrigger"))
   end
 
+  test "chance-based passive roll is public even when it fails" do
+    state =
+      make_state()
+      |> put_ability("passive.nope", %{
+        "trigger" => "onBattleInit",
+        "chance" => 0.0,
+        "statBonus" => %{"attack" => 1.0}
+      })
+      |> assign_passive("player1", "p1u1", "passive.nope")
+
+    new_state = BattleEngine.initialize_passives(state)
+    unit = get_unit(new_state, "p1u1")
+
+    assert unit["attack"] == 50
+
+    roll_event = Enum.find(new_state["log"], &(&1["type"] == "passiveRoll"))
+    assert roll_event["payload"]["unitId"] == "p1u1"
+    assert roll_event["payload"]["passiveKey"] == "passive.nope"
+    assert roll_event["payload"]["chance"] == 0.0
+    assert roll_event["payload"]["passed"] == false
+    assert is_number(roll_event["payload"]["roll"])
+
+    refute Enum.any?(new_state["log"], &(&1["type"] == "passiveTrigger"))
+  end
+
   test "onActionStart once passive triggers only once" do
     state =
       make_state(
