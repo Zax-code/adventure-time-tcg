@@ -206,6 +206,10 @@ function summarizeCombatEvent(
       return t("pvp.combatLog.concede", {
         player: getEventActorName(event) ?? player,
       });
+    case "timeout":
+      return t("pvp.combatLog.timeout", {
+        player: getEventActorName(event) ?? player,
+      });
     case "statusApply":
       return t("pvp.combatLog.statusApply", {
         target: getEventTargetName(event) ?? unit,
@@ -342,6 +346,7 @@ function getEventClasses(type: string) {
     case "formation":
     case "swap":
     case "pass":
+    case "timeout":
       return "border-infoBorder bg-infoTint";
     default:
       return "border-primaryTint bg-white";
@@ -371,6 +376,7 @@ function getEventTextClass(type: string) {
     case "formation":
     case "swap":
     case "pass":
+    case "timeout":
       return "text-infoDark";
     default:
       return "text-fg";

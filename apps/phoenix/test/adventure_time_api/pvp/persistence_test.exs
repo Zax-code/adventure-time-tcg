@@ -86,6 +86,54 @@ defmodule AdventureTimeApi.Pvp.PersistenceTest do
     assert reconstructed_final["winnerId"] == acting_user_id
   end
 
+  test "in-progress match times out after 24 hours and current player loses" do
+    inviter = create_user_with_password("timeout-inviter@example.com", "password123", "Inviter")
+    invitee = create_user_with_password("timeout-invitee@example.com", "password123", "Invitee")
+    card_ids = create_shared_loadout_cards([inviter, invitee])
+
+    assert {:ok, %{success: true}} = Pvp.create_invite(inviter.id, invitee.email, card_ids)
+
+    match =
+      Repo.one!(
+        from(m in Match, where: m.inviter_id == ^inviter.id and m.invitee_id == ^invitee.id)
+      )
+
+    assert {:ok, %{battleState: accept_state}} = Pvp.accept_match(invitee.id, match.id, card_ids)
+
+    timed_out_user_id = accept_state["currentPlayerId"]
+    winner_id = if timed_out_user_id == inviter.id, do: invitee.id, else: inviter.id
+    stale_started_at = DateTime.add(DateTime.utc_now() |> DateTime.truncate(:second), -25, :hour)
+
+    Match
+    |> Repo.get!(match.id)
+    |> Match.changeset(%{turn_started_at: stale_started_at})
+    |> Repo.update!()
+
+    assert {:ok, %{match: timed_out_match, battleState: battle_state}} =
+             Pvp.get_match(timed_out_user_id, match.id)
+
+    assert timed_out_match.status == "COMPLETED"
+    assert timed_out_match.winnerId == winner_id
+    assert battle_state["phase"] == "ended"
+    assert battle_state["winnerId"] == winner_id
+
+    timeout_event =
+      Repo.one!(
+        from(e in MatchEvent, where: e.match_id == ^match.id and e.type == "match_timed_out")
+      )
+
+    assert timeout_event.payload["playerId"] == timed_out_user_id
+    assert timeout_event.payload["winnerId"] == winner_id
+
+    assert {:ok, reconstructed_final} = Pvp.reconstruct_state(match.id)
+    assert reconstructed_final["phase"] == "ended"
+    assert reconstructed_final["winnerId"] == winner_id
+
+    assert Enum.any?(reconstructed_final["log"], fn event ->
+             event["type"] == "gameOver" and event["payload"]["result"] == "timeout"
+           end)
+  end
+
   test "match schema no longer exposes legacy state field" do
     refute :state in Match.__schema__(:fields)
   end

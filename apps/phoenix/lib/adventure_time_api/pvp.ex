@@ -23,6 +23,8 @@ defmodule AdventureTimeApi.Pvp do
   alias AdventureTimeApi.Repo
   alias AdventureTimeApi.Workers.ExpirePendingInviteWorker
 
+  @turn_timeout_hours 24
+
   # ── Loadouts ───────────────────────────────────────────────────────────────
 
   def list_loadouts(user_id) do
@@ -170,6 +172,8 @@ defmodule AdventureTimeApi.Pvp do
   end
 
   def list_matches(user_id) do
+    expire_due_in_progress_matches(user_id)
+
     matches =
       Match
       |> where(
@@ -184,6 +188,7 @@ defmodule AdventureTimeApi.Pvp do
 
   def list_history(user_id) do
     expire_due_pending_invites(user_id)
+    expire_due_in_progress_matches(user_id)
 
     matches =
       Match
@@ -344,6 +349,7 @@ defmodule AdventureTimeApi.Pvp do
 
   def concede_match(user_id, match_id) do
     with %Match{} = match <- Repo.get(Match, match_id),
+         match <- maybe_expire_match_if_due(match),
          :ok <- verify_participant(match, user_id),
          :ok <- guard_status(match, "in_progress"),
          {:ok, state} <- reconstruct_state(match.id) do
@@ -383,6 +389,7 @@ defmodule AdventureTimeApi.Pvp do
 
   def perform_action(user_id, match_id, action) do
     with %Match{} = match <- Repo.get(Match, match_id),
+         match <- maybe_expire_match_if_due(match),
          :ok <- verify_participant(match, user_id),
          :ok <- guard_status(match, "in_progress"),
          {:ok, state} <- reconstruct_state(match.id),
@@ -452,6 +459,7 @@ defmodule AdventureTimeApi.Pvp do
 
   def end_turn(user_id, match_id, swap_opt) do
     with %Match{} = match <- Repo.get(Match, match_id),
+         match <- maybe_expire_match_if_due(match),
          :ok <- verify_participant(match, user_id),
          :ok <- guard_status(match, "in_progress"),
          {:ok, state} <- reconstruct_state(match.id),
@@ -514,6 +522,8 @@ defmodule AdventureTimeApi.Pvp do
   end
 
   def list_spectatable do
+    expire_due_in_progress_matches(nil)
+
     matches =
       Match
       |> where([m], m.status == "in_progress")
@@ -531,6 +541,8 @@ defmodule AdventureTimeApi.Pvp do
         {:error, :not_found}
 
       %Match{} = match ->
+        match = maybe_expire_match_if_due(match)
+
         case build_battle_state_for_spectate(match) do
           {:ok, battle_state} ->
             {:ok, %{match: serialize_match(match), battleState: battle_state}}
@@ -567,6 +579,8 @@ defmodule AdventureTimeApi.Pvp do
   # ── active_card_ids_for_user/1 (used by Inventory recycle guard) ──────────
 
   def active_card_ids_for_user(user_id) do
+    expire_due_in_progress_matches(user_id)
+
     inviter_ids =
       Match
       |> where([m], m.inviter_id == ^user_id and m.status == "in_progress")
@@ -901,6 +915,11 @@ defmodule AdventureTimeApi.Pvp do
     {:ok, next_state}
   end
 
+  defp replay_match_event(state, %MatchEvent{type: "match_timed_out", payload: payload}) do
+    {next_state, _events} = BattleEngine.simulate_timeout(state, payload["playerId"])
+    {:ok, next_state}
+  end
+
   defp replay_match_event(_state, %MatchEvent{type: type}) do
     {:error, {:unsupported_match_event, type}}
   end
@@ -988,6 +1007,7 @@ defmodule AdventureTimeApi.Pvp do
 
   defp guard_no_active_interaction(user_a, user_b) do
     expire_due_pending_invites_for_pair(user_a, user_b)
+    expire_due_in_progress_matches_for_pair(user_a, user_b)
 
     now = DateTime.utc_now() |> DateTime.truncate(:second)
 
@@ -1103,13 +1123,22 @@ defmodule AdventureTimeApi.Pvp do
   end
 
   defp maybe_expire_match_if_due(%Match{} = match) do
-    if pending_match_expired?(match) do
-      case expire_match_invite(match.id) do
-        {:ok, _} -> Repo.get!(Match, match.id)
-        {:error, _} -> match
-      end
-    else
-      match
+    cond do
+      pending_match_expired?(match) ->
+        case expire_match_invite(match.id) do
+          {:ok, _} -> Repo.get!(Match, match.id)
+          {:error, _} -> match
+        end
+
+      in_progress_match_timed_out?(match) ->
+        case timeout_match_if_due(match.id) do
+          {:ok, {:timed_out, updated_match}} -> updated_match
+          {:ok, :noop} -> Repo.get!(Match, match.id)
+          {:error, _} -> match
+        end
+
+      true ->
+        match
     end
   end
 
@@ -1118,6 +1147,119 @@ defmodule AdventureTimeApi.Pvp do
   end
 
   defp pending_match_expired?(_match), do: false
+
+  defp in_progress_match_timed_out?(%Match{
+         status: "in_progress",
+         turn_started_at: %DateTime{} = turn_started_at
+       }) do
+    DateTime.compare(turn_started_at, turn_timeout_cutoff()) != :gt
+  end
+
+  defp in_progress_match_timed_out?(_match), do: false
+
+  defp turn_timeout_cutoff do
+    timeout_seconds =
+      Application.get_env(:adventure_time_api, __MODULE__, [])
+      |> Keyword.get(:turn_timeout_hours, @turn_timeout_hours)
+      |> Kernel.*(60 * 60)
+
+    DateTime.utc_now()
+    |> DateTime.truncate(:second)
+    |> DateTime.add(-timeout_seconds, :second)
+  end
+
+  defp expire_due_in_progress_matches(nil) do
+    due_in_progress_matches_query()
+    |> Repo.all()
+    |> Enum.each(&timeout_match_if_due(&1.id))
+
+    :ok
+  end
+
+  defp expire_due_in_progress_matches(user_id) do
+    due_in_progress_matches_query()
+    |> where([m], m.inviter_id == ^user_id or m.invitee_id == ^user_id)
+    |> Repo.all()
+    |> Enum.each(&timeout_match_if_due(&1.id))
+
+    :ok
+  end
+
+  defp expire_due_in_progress_matches_for_pair(user_a, user_b) do
+    due_in_progress_matches_query()
+    |> where(
+      [m],
+      (m.inviter_id == ^user_a and m.invitee_id == ^user_b) or
+        (m.inviter_id == ^user_b and m.invitee_id == ^user_a)
+    )
+    |> Repo.all()
+    |> Enum.each(&timeout_match_if_due(&1.id))
+
+    :ok
+  end
+
+  defp due_in_progress_matches_query do
+    cutoff = turn_timeout_cutoff()
+
+    from(m in Match,
+      where:
+        m.status == "in_progress" and not is_nil(m.turn_started_at) and
+          m.turn_started_at <= ^cutoff
+    )
+  end
+
+  defp timeout_match_if_due(match_id) do
+    Repo.transaction(fn ->
+      case Repo.one(from(m in Match, where: m.id == ^match_id, lock: "FOR UPDATE")) do
+        nil ->
+          Repo.rollback(:not_found)
+
+        %Match{} = match ->
+          cond do
+            match.status != "in_progress" ->
+              :noop
+
+            not in_progress_match_timed_out?(match) ->
+              :noop
+
+            true ->
+              case reconstruct_state(match.id) do
+                {:ok, state} ->
+                  timed_out_user_id = state["currentPlayerId"]
+                  {new_state, _events} = BattleEngine.simulate_timeout(state, timed_out_user_id)
+                  winner_id = new_state["winnerId"]
+
+                  seq =
+                    append_match_event!(match.id, "match_timed_out", new_state, %{
+                      "playerId" => timed_out_user_id,
+                      "winnerId" => winner_id
+                    })
+
+                  maybe_write_snapshot(match.id, seq, new_state, :match_timed_out)
+
+                  updated_match =
+                    match
+                    |> Match.changeset(%{
+                      status: "completed",
+                      winner_id: winner_id,
+                      current_turn: new_state["turn"]
+                    })
+                    |> Repo.update!()
+
+                  {:timed_out, updated_match}
+
+                {:error, reason} ->
+                  Repo.rollback(reason)
+              end
+          end
+      end
+    end)
+    |> case do
+      {:ok, result} -> {:ok, result}
+      {:error, :not_found} -> {:error, :not_found}
+      {:error, reason} -> {:error, reason}
+    end
+  end
 
   defp validate_loadout(user_id, card_ids) do
     cond do

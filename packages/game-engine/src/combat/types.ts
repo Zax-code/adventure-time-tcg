@@ -377,6 +377,7 @@ export type CombatEventType =
   | "revive"
   | "pass"
   | "concede"
+  | "timeout"
   | "coverRedirect"
   | "thorns"
   | "counter"

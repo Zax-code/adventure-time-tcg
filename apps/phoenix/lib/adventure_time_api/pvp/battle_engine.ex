@@ -3048,6 +3048,35 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
   end
 
   @doc """
+  Simulate a turn timeout. The player whose turn timed out loses the match.
+  Returns {new_state, events}.
+  """
+  def simulate_timeout(state, timed_out_user_id) do
+    events_before = length(state["log"])
+    winner_id = other_player(state, timed_out_user_id)
+
+    timeout_event = new_event(state, "timeout", %{"playerId" => timed_out_user_id})
+
+    state =
+      state
+      |> append_log([timeout_event])
+      |> Map.put("phase", "ended")
+      |> Map.put("winnerId", winner_id)
+
+    state =
+      append_log(state, [
+        new_event(state, "gameOver", %{
+          "winnerId" => winner_id,
+          "result" => "timeout",
+          "loserId" => timed_out_user_id
+        })
+      ])
+
+    new_events = state["log"] |> Enum.drop(events_before)
+    {state, new_events}
+  end
+
+  @doc """
   Check if the game is over. Returns {:over, winner_id} or :ongoing.
   """
   def check_game_over(state) do

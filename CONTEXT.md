@@ -48,6 +48,10 @@ _Avoid_: Hidden resolved rolls, outcome-only chance events
 A valid PvP match result where both players reach a terminal no-living-units state in the same resolution window. The match should end with no winner instead of applying a deterministic tiebreaker.
 _Avoid_: Forced winner for simultaneous KO, arbitrary tie breaker
 
+**PvP Turn Timeout**:
+A disconnect does not by itself change match outcome. If the current player leaves the match inactive for 24 hours after their turn starts, that player loses by timeout and the opponent wins.
+_Avoid_: Disconnect-as-loss, timeout draw, sub-24-hour timeout loss
+
 **PvP Bench Visibility**:
 Opponent bench card details are public battle information before those cards enter the active row. Players should be able to inspect bench HP, statuses, assigned abilities, cooldowns, used-ultimate state, and passives during battle.
 _Avoid_: Hidden bench cards, concealed bench abilities

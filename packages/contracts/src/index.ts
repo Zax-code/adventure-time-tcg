@@ -209,6 +209,7 @@ export const pvpCombatEventTypeValues = [
   "revive",
   "pass",
   "concede",
+  "timeout",
   "coverRedirect",
   "thorns",
   "counter",

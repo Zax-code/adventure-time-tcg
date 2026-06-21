@@ -90,6 +90,7 @@ const pvp = {
     formation: "La formation se réorganise",
     pass: "{player} passe",
     concede: "{player} abandonne",
+    timeout: "{player} perd au temps",
     statusApply: "{target} gagne {status}",
     statusTick: "{target} subit {status}",
     statusExpire: "{status} expire sur {target}",

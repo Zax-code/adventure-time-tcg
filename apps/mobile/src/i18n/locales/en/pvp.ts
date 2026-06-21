@@ -89,6 +89,7 @@ const pvp = {
     formation: "Formation shifted",
     pass: "{player} passed",
     concede: "{player} conceded",
+    timeout: "{player} lost by timeout",
     statusApply: "{target} gained {status}",
     statusTick: "{target} was affected by {status}",
     statusExpire: "{status} expired on {target}",
