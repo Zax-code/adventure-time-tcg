@@ -8,6 +8,7 @@ defmodule AdventureTimeApi.Accounts do
 
   alias Ecto.Multi
   alias AdventureTimeApi.Auth
+  alias AdventureTimeApi.Notifications
   alias AdventureTimeApi.Repo
 
   alias AdventureTimeApi.Accounts.{
@@ -933,6 +934,7 @@ defmodule AdventureTimeApi.Accounts do
           status: :pending
         })
         |> Repo.insert()
+        |> notify_access_request_created()
 
       %EmailAccessRequest{status: :pending} = request ->
         request
@@ -953,8 +955,16 @@ defmodule AdventureTimeApi.Accounts do
           reviewed_at: nil
         })
         |> Repo.update()
+        |> notify_access_request_created()
     end
   end
+
+  defp notify_access_request_created({:ok, %EmailAccessRequest{email: email}} = result) do
+    _ = Notifications.send_access_request_created(email)
+    result
+  end
+
+  defp notify_access_request_created(result), do: result
 
   defp refresh_user_access_state(repo, %User{} = user) do
     next_status = next_pending_status(user.access_status)

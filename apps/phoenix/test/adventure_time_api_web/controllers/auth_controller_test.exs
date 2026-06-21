@@ -12,6 +12,7 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
   }
 
   alias AdventureTimeApi.Accounts.GoogleAuth
+  alias AdventureTimeApi.Notifications.Device
   alias AdventureTimeApi.Repo
 
   setup do
@@ -89,6 +90,95 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
 
     assert user.preferred_language == :fr
     assert request.requested_locale == :fr
+  end
+
+  test "POST /auth/register notifies super admins only for the first pending access request", %{
+    conn: conn
+  } do
+    bypass = Bypass.open()
+    original_config = Application.get_env(:adventure_time_api, AdventureTimeApi.Notifications, [])
+
+    Application.put_env(
+      :adventure_time_api,
+      AdventureTimeApi.Notifications,
+      Keyword.merge(original_config, push_api_url: bypass_url(bypass, "/--/api/v2/push/send"))
+    )
+
+    on_exit(fn ->
+      Application.put_env(
+        :adventure_time_api,
+        AdventureTimeApi.Notifications,
+        original_config
+      )
+    end)
+
+    {:ok, requests} = Agent.start_link(fn -> [] end)
+
+    Bypass.stub(bypass, "POST", "/--/api/v2/push/send", fn request_conn ->
+      {:ok, raw_body, request_conn} = Plug.Conn.read_body(request_conn)
+      payload = Jason.decode!(raw_body)
+      Agent.update(requests, &[payload | &1])
+
+      request_conn
+      |> Plug.Conn.put_resp_content_type("application/json")
+      |> Plug.Conn.resp(
+        200,
+        Jason.encode!(%{
+          "data" => Enum.map(payload, fn _ -> %{"status" => "ok", "id" => "ticket"} end)
+        })
+      )
+    end)
+
+    super_admin =
+      create_user_with_password("access-boss@example.com", "password123", "Access Boss",
+        verified?: true,
+        access_status: :approved,
+        role: :super_admin
+      )
+
+    Repo.insert!(
+      Device.changeset(%Device{}, %{
+        user_id: super_admin.id,
+        installation_id: "access-boss-installation",
+        platform: :ios,
+        expo_push_token: "ExponentPushToken[access-boss]",
+        last_registered_at: DateTime.utc_now() |> DateTime.truncate(:second)
+      })
+    )
+
+    conn =
+      post(conn, ~p"/auth/register", %{
+        email: "notify-register@example.com",
+        password: "supersecure",
+        displayName: "Notify Me",
+        preferredLanguage: "en"
+      })
+
+    assert json_response(conn, 201)["accessRequestPending"] == true
+
+    conn =
+      post(build_conn(), ~p"/auth/register", %{
+        email: "notify-register@example.com",
+        password: "supersecure",
+        displayName: "Notify Me",
+        preferredLanguage: "fr"
+      })
+
+    assert json_response(conn, 201)["accessRequestPending"] == true
+
+    assert [
+             [
+               %{
+                 "body" => "notify-register@example.com is waiting for approval.",
+                 "data" => %{
+                   "email" => "notify-register@example.com",
+                   "eventType" => "access_request_created"
+                 },
+                 "title" => "New access request",
+                 "to" => "ExponentPushToken[access-boss]"
+               }
+             ]
+           ] = Agent.get(requests, &Enum.reverse/1)
   end
 
   test "POST /auth/verify-email marks the credential verified and keeps approval pending", %{
