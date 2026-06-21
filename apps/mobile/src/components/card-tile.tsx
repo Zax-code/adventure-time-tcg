@@ -9,7 +9,6 @@ import type { CollectionResponse } from "@adventure-time/api-client";
 import { CARD_ART_RATIO } from "./card-back-cover-art";
 import type { CardBackcoverRarityName } from "./card-back-cover-art";
 import { getCardOutlineSource } from "./card-outline-frame";
-import { RarityIcon } from "./icons";
 import {
   CARD_TYPE_COLORS,
   CARD_TYPE_COLORS_ICE,
@@ -64,29 +63,29 @@ const SIZE_CONFIG = {
     width: 152,
     height: 228,
     borderRadius: 12,
-    contentLeft: "13%",
-    contentRight: "13%",
-    contentTop: "13%",
-    contentBottom: "13%",
+    fillLeft: "9.5%",
+    fillRight: "9.5%",
+    fillTop: "11.5%",
+    fillBottom: "11.5%",
+    contentLeft: "14%",
+    contentRight: "14%",
+    contentTop: "14%",
+    contentBottom: "14%",
     gap: 3,
     panelRadius: 6,
-    artFlex: 1.15,
-    artMinHeight: 74,
+    artFlex: 1.45,
+    artMinHeight: 92,
     statHeight: 19,
     statValueFontSize: 8,
     statLabelFontSize: 4.8,
     nameFontSize: 9,
     characterFontSize: 7,
-    titlePaddingH: 5,
-    titlePaddingV: 3,
+    titlePaddingH: 6,
+    titlePaddingV: 5,
     descFontSize: 6.7,
     descLineHeight: 8.4,
     descPadding: 5,
     descLines: 4,
-    badgeFontSize: 5.8,
-    badgeIconSize: 7,
-    badgePaddingH: 5,
-    badgePaddingV: 2,
     quantityFontSize: 11,
     shimmerWidthMultiplier: 3,
   },
@@ -94,29 +93,29 @@ const SIZE_CONFIG = {
     width: 184,
     height: 276,
     borderRadius: 14,
-    contentLeft: "13%",
-    contentRight: "13%",
-    contentTop: "13%",
-    contentBottom: "13%",
+    fillLeft: "9.5%",
+    fillRight: "9.5%",
+    fillTop: "11.5%",
+    fillBottom: "11.5%",
+    contentLeft: "14%",
+    contentRight: "14%",
+    contentTop: "14%",
+    contentBottom: "14%",
     gap: 4,
     panelRadius: 8,
-    artFlex: 1.18,
-    artMinHeight: 92,
+    artFlex: 1.45,
+    artMinHeight: 116,
     statHeight: 23,
     statValueFontSize: 10,
     statLabelFontSize: 5.8,
     nameFontSize: 11,
     characterFontSize: 8.5,
-    titlePaddingH: 6,
-    titlePaddingV: 4,
+    titlePaddingH: 8,
+    titlePaddingV: 6,
     descFontSize: 7.8,
     descLineHeight: 9.8,
     descPadding: 6,
     descLines: 4,
-    badgeFontSize: 6.8,
-    badgeIconSize: 8,
-    badgePaddingH: 6,
-    badgePaddingV: 2,
     quantityFontSize: 12,
     shimmerWidthMultiplier: 3,
   },
@@ -124,29 +123,29 @@ const SIZE_CONFIG = {
     width: 320,
     height: 480,
     borderRadius: 22,
-    contentLeft: "13%",
-    contentRight: "13%",
-    contentTop: "13%",
-    contentBottom: "13%",
+    fillLeft: "9.5%",
+    fillRight: "9.5%",
+    fillTop: "11.5%",
+    fillBottom: "11.5%",
+    contentLeft: "14%",
+    contentRight: "14%",
+    contentTop: "14%",
+    contentBottom: "14%",
     gap: 8,
     panelRadius: 14,
-    artFlex: 1.18,
-    artMinHeight: 156,
+    artFlex: 1.45,
+    artMinHeight: 196,
     statHeight: 42,
     statValueFontSize: 18,
     statLabelFontSize: 8,
     nameFontSize: 19,
     characterFontSize: 13,
-    titlePaddingH: 12,
-    titlePaddingV: 8,
+    titlePaddingH: 14,
+    titlePaddingV: 10,
     descFontSize: 12,
     descLineHeight: 16,
     descPadding: 12,
     descLines: 4,
-    badgeFontSize: 10,
-    badgeIconSize: 13,
-    badgePaddingH: 10,
-    badgePaddingV: 4,
     quantityFontSize: 13,
     shimmerWidthMultiplier: 3,
   },
@@ -159,14 +158,6 @@ const RARITY_NAMES: CardBackcoverRarityName[] = [
   "Epic",
   "Legendary",
 ];
-
-const COMPACT_LABELS: Record<string, string> = {
-  Common: "COM",
-  Uncommon: "UNC",
-  Rare: "RAR",
-  Epic: "EPC",
-  Legendary: "LGD",
-};
 
 type Palette = {
   frame: string;
@@ -325,49 +316,6 @@ function withAlpha(color: string, alpha: string) {
   return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${opacity})`;
 }
 
-function RarityBadge({
-  rarityName,
-  rarityColor,
-  textColor,
-  cfg,
-}: {
-  rarityName: string;
-  rarityColor: RarityPalette;
-  textColor: string;
-  cfg: (typeof SIZE_CONFIG)[CardTileSize];
-}) {
-  const label =
-    COMPACT_LABELS[rarityName] ?? rarityName.slice(0, 3).toUpperCase();
-
-  return (
-    <LinearGradient
-      colors={[rarityColor.from, rarityColor.to]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 0 }}
-      className="flex-row items-center"
-      style={{
-        gap: 3,
-        paddingHorizontal: cfg.badgePaddingH,
-        paddingVertical: cfg.badgePaddingV,
-        borderRadius: cfg.panelRadius,
-      }}
-    >
-      <RarityIcon
-        rarityName={rarityName}
-        size={cfg.badgeIconSize}
-        color={textColor}
-      />
-      <Text
-        className="font-nunito-extrabold"
-        numberOfLines={1}
-        style={{ color: textColor, fontSize: cfg.badgeFontSize }}
-      >
-        {label}
-      </Text>
-    </LinearGradient>
-  );
-}
-
 function StatCell({
   label,
   value,
@@ -447,7 +395,7 @@ function LockedIllustration({
       <Text
         className="font-nunito-bold"
         numberOfLines={1}
-        style={{ color: textColor, fontSize: cfg.badgeFontSize }}
+        style={{ color: textColor, fontSize: cfg.characterFontSize }}
       >
         {label}
       </Text>
@@ -500,10 +448,6 @@ export const CardTile = memo(function CardTile(props: CardTileProps) {
   const cardContentOpacity = muted || isArchived ? 0.58 : 1;
   const textColor = pickReadableTextColor(tc.surface, tc.fg, "#FFFFFF");
   const badgeTextColor = pickReadableTextColor(typeColor.dark, tc.fg, "#FFFFFF");
-  const rarityTextColor = pickReadableTextColor(rarityColor.to, tc.fg, "#FFFFFF");
-  const titleBg = themeName === "nightosphere"
-    ? withAlpha(tc.surface, "E8")
-    : "rgba(255, 255, 255, 0.9)";
   const panelBg = themeName === "nightosphere"
     ? withAlpha(tc.surfaceMuted, "F0")
     : "rgba(255, 251, 235, 0.92)";
@@ -585,7 +529,7 @@ export const CardTile = memo(function CardTile(props: CardTileProps) {
         className="overflow-hidden"
         style={{
           borderRadius: cfg.borderRadius,
-          backgroundColor: typeColor.frame,
+          backgroundColor: "transparent",
           height: fitContainer ? undefined : cfg.height,
           aspectRatio: fitContainer ? CARD_ART_RATIO : undefined,
           boxShadow:
@@ -594,12 +538,27 @@ export const CardTile = memo(function CardTile(props: CardTileProps) {
               : `0px 6px 14px ${withAlpha(rarityColor.ring, "24")}`,
         }}
       >
-        <LinearGradient
-          colors={[typeColor.light, tc.surface, withAlpha(rarityColor.ring, "40")]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          className="absolute inset-0"
-        />
+        <View
+          className="absolute overflow-hidden"
+          style={{
+            left: cfg.fillLeft,
+            right: cfg.fillRight,
+            top: cfg.fillTop,
+            bottom: cfg.fillBottom,
+            borderRadius: cfg.panelRadius,
+          }}
+        >
+          <LinearGradient
+            colors={[
+              typeColor.light,
+              tc.surface,
+              withAlpha(rarityColor.ring, "40"),
+            ]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{ flex: 1 }}
+          />
+        </View>
 
         <View
           className="absolute"
@@ -661,37 +620,55 @@ export const CardTile = memo(function CardTile(props: CardTileProps) {
 
             <LinearGradient
               pointerEvents="none"
-              colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.36)"]}
+              colors={[
+                "rgba(0,0,0,0)",
+                "rgba(0,0,0,0.28)",
+                "rgba(0,0,0,0.62)",
+              ]}
               className="absolute inset-x-0 bottom-0"
-              style={{ height: "42%" }}
+              style={{ height: "48%" }}
             />
 
             <View
-              className="absolute bottom-1 left-1 right-1 flex-row items-end justify-between"
-              style={{ gap: 4 }}
+              className="absolute bottom-0 left-0 right-0 items-center"
+              style={{
+                paddingHorizontal: cfg.titlePaddingH,
+                paddingBottom: cfg.titlePaddingV,
+                paddingTop: cfg.titlePaddingV * 1.4,
+              }}
             >
-              <RarityBadge
-                cfg={cfg}
-                rarityColor={rarityColor}
-                rarityName={displayRarityName}
-                textColor={rarityTextColor}
-              />
-              <View
+              <Text
+                className="font-nunito-extrabold"
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.72}
                 style={{
-                  borderRadius: cfg.panelRadius,
-                  backgroundColor: typeColor.dark,
-                  paddingHorizontal: cfg.badgePaddingH,
-                  paddingVertical: cfg.badgePaddingV,
+                  color: "#FFFFFF",
+                  fontSize: cfg.nameFontSize,
+                  textAlign: "center",
+                  textShadowColor: "rgba(0,0,0,0.55)",
+                  textShadowOffset: { width: 0, height: 1 },
+                  textShadowRadius: 3,
                 }}
               >
-                <Text
-                  className="font-nunito-extrabold"
-                  numberOfLines={1}
-                  style={{ color: badgeTextColor, fontSize: cfg.badgeFontSize }}
-                >
-                  {card.type}
-                </Text>
-              </View>
+                {isLocked ? t("collection.locked.title") : card.name}
+              </Text>
+              <Text
+                className="font-nunito-semibold italic"
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.72}
+                style={{
+                  color: "rgba(255, 255, 255, 0.86)",
+                  fontSize: cfg.characterFontSize,
+                  textAlign: "center",
+                  textShadowColor: "rgba(0,0,0,0.55)",
+                  textShadowOffset: { width: 0, height: 1 },
+                  textShadowRadius: 2,
+                }}
+              >
+                {isLocked ? displayRarityName : card.character}
+              </Text>
             </View>
           </View>
 
@@ -731,43 +708,9 @@ export const CardTile = memo(function CardTile(props: CardTileProps) {
           </View>
 
           <View
-            className="items-center"
             style={{
-              borderRadius: cfg.panelRadius,
-              borderWidth: 1,
-              borderColor: withAlpha(rarityColor.ring, "66"),
-              backgroundColor: titleBg,
-              paddingHorizontal: cfg.titlePaddingH,
-              paddingVertical: cfg.titlePaddingV,
-            }}
-          >
-            <Text
-              className="font-nunito-extrabold"
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.72}
-              style={{ color: textColor, fontSize: cfg.nameFontSize }}
-            >
-              {isLocked ? t("collection.locked.title") : card.name}
-            </Text>
-            <Text
-              className="font-nunito-semibold italic"
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.72}
-              style={{
-                color: withAlpha(textColor, "C9"),
-                fontSize: cfg.characterFontSize,
-              }}
-            >
-              {isLocked ? displayRarityName : card.character}
-            </Text>
-          </View>
-
-          <View
-            style={{
-              flex: 0.72,
-              minHeight: size === "large" ? 62 : size === "medium" ? 40 : 32,
+              flex: 0.6,
+              minHeight: size === "large" ? 66 : size === "medium" ? 42 : 34,
               borderRadius: cfg.panelRadius,
               borderWidth: 1,
               borderColor: withAlpha(tc.secondaryBorder, "99"),
