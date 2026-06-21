@@ -71,12 +71,14 @@ const SIZE_CONFIG = {
     contentRight: "14%",
     contentTop: "17.5%",
     contentBottom: "14.5%",
-    gap: 3,
+    gap: 4,
     panelRadius: 6,
     artFlex: 1.08,
     artMinHeight: 84,
     descFlex: 0.9,
     descMinHeight: 60,
+    typeIndicatorHeight: 2,
+    typeIndicatorGap: 3,
     nameFontSize: 9,
     characterFontSize: 7,
     titlePaddingH: 6,
@@ -100,12 +102,14 @@ const SIZE_CONFIG = {
     contentRight: "14%",
     contentTop: "17.5%",
     contentBottom: "14.5%",
-    gap: 4,
+    gap: 5,
     panelRadius: 8,
     artFlex: 1.08,
     artMinHeight: 104,
     descFlex: 0.92,
     descMinHeight: 74,
+    typeIndicatorHeight: 3,
+    typeIndicatorGap: 4,
     nameFontSize: 11,
     characterFontSize: 8.5,
     titlePaddingH: 8,
@@ -129,12 +133,14 @@ const SIZE_CONFIG = {
     contentRight: "14%",
     contentTop: "18.75%",
     contentBottom: "13.75%",
-    gap: 8,
+    gap: 10,
     panelRadius: 14,
     artFlex: 1.04,
     artMinHeight: 178,
     descFlex: 1.04,
     descMinHeight: 136,
+    typeIndicatorHeight: 5,
+    typeIndicatorGap: 6,
     nameFontSize: 19,
     characterFontSize: 13,
     titlePaddingH: 14,
@@ -462,6 +468,8 @@ export const CardTile = memo(function CardTile(props: CardTileProps) {
       minHeight: cfg.descMinHeight,
       paddingHorizontal: cfg.descPadding,
       paddingVertical: Math.max(2, cfg.descPadding * 0.5),
+      justifyContent: "space-between",
+      gap: cfg.typeIndicatorGap,
     }),
     [cfg],
   );
@@ -632,6 +640,7 @@ export const CardTile = memo(function CardTile(props: CardTileProps) {
               numberOfLines={cfg.descLines}
               style={{
                 color: descriptionTextColor,
+                flexShrink: 1,
                 fontSize: cfg.descFontSize,
                 lineHeight: cfg.descLineHeight,
                 textShadowColor:
@@ -644,6 +653,21 @@ export const CardTile = memo(function CardTile(props: CardTileProps) {
             >
               {isLocked ? t("collection.locked.description") : card.description}
             </Text>
+            <LinearGradient
+              pointerEvents="none"
+              colors={[
+                withAlpha(typeColor.dark, "E8"),
+                typeColor.frame,
+                withAlpha(typeColor.dark, "E8"),
+              ]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={{
+                alignSelf: "stretch",
+                borderRadius: cfg.typeIndicatorHeight,
+                height: cfg.typeIndicatorHeight,
+              }}
+            />
           </View>
         </View>
 
