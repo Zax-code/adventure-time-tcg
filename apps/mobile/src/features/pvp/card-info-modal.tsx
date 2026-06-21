@@ -57,6 +57,8 @@ export function CardInfoModal({
   }));
   const shouldShowNoPassive =
     unit.rarity === "Legendary" && passiveDefs.length === 0;
+  const skillLabel = localizeAbilityType("SKILL", t);
+  const ultimateLabel = localizeAbilityType("ULTIMATE", t);
 
   return (
     <BattleFullScreenSheet
@@ -236,26 +238,53 @@ export function CardInfoModal({
                       badgeClass="bg-infoBorder text-infoDark"
                     />
                   ) : (
-                    <MissingPassiveCard key={key} abilityKey={key} />
+                    <MissingAbilityCard
+                      key={key}
+                      label={localizeAbilityType("PASSIVE", t)}
+                      abilityKey={key}
+                      colorClass="border-infoBorder bg-infoTint"
+                      badgeClass="bg-infoBorder text-infoDark"
+                    />
                   ),
                 )}
                 {shouldShowNoPassive ? <NoPassiveCard /> : null}
                 {skillDef ? (
                   <AbilityCard
-                    label={localizeAbilityType("SKILL", t)}
+                    label={skillLabel}
                     ability={skillDef}
                     colorClass="border-successBorder bg-successTint"
                     badgeClass="bg-successBorder text-successDark"
                   />
-                ) : null}
+                ) : unit.skill ? (
+                  <MissingAbilityCard
+                    label={skillLabel}
+                    abilityKey={unit.skill}
+                    colorClass="border-successBorder bg-successTint"
+                    badgeClass="bg-successBorder text-successDark"
+                  />
+                ) : (
+                  <NoAbilityCard label={skillLabel} body={t("pvp.noSkill")} />
+                )}
                 {ultimateDef ? (
                   <AbilityCard
-                    label={localizeAbilityType("ULTIMATE", t)}
+                    label={ultimateLabel}
                     ability={ultimateDef}
                     colorClass="border-dangerBorder bg-dangerTint"
                     badgeClass="bg-dangerBorder text-dangerDark"
                   />
-                ) : null}
+                ) : unit.ultimate ? (
+                  <MissingAbilityCard
+                    label={ultimateLabel}
+                    abilityKey={unit.ultimate}
+                    colorClass="border-dangerBorder bg-dangerTint"
+                    badgeClass="bg-dangerBorder text-dangerDark"
+                  />
+                ) : (
+                  <NoAbilityCard
+                    label={ultimateLabel}
+                    body={t("pvp.noUltimate")}
+                  />
+                )}
               </View>
             </View>
           </View>
@@ -343,15 +372,25 @@ function AbilityCard({
   );
 }
 
-function MissingPassiveCard({ abilityKey }: { abilityKey: string }) {
+function MissingAbilityCard({
+  label,
+  abilityKey,
+  colorClass,
+  badgeClass,
+}: {
+  label: string;
+  abilityKey: string;
+  colorClass: string;
+  badgeClass: string;
+}) {
   const { t } = useTranslation();
 
   return (
-    <View className="rounded-2xl border border-infoBorder bg-infoTint p-3">
+    <View className={`rounded-2xl border p-3 ${colorClass}`}>
       <View className="mb-2 flex-row items-center gap-2">
-        <View className="rounded-full bg-infoBorder px-2 py-1">
-          <Text className="font-nunito-bold text-[10px] uppercase text-infoDark">
-            {localizeAbilityType("PASSIVE", t)}
+        <View className={`rounded-full px-2 py-1 ${badgeClass}`}>
+          <Text className="font-nunito-bold text-[10px] uppercase">
+            {label}
           </Text>
         </View>
         <Text className="flex-1 font-nunito-bold text-sm text-fg">
@@ -359,7 +398,7 @@ function MissingPassiveCard({ abilityKey }: { abilityKey: string }) {
         </Text>
       </View>
       <Text className="font-nunito text-sm leading-5 text-fgMuted">
-        {t("pvp.missingPassive")}
+        {t("pvp.missingAbility", { type: label })}
       </Text>
     </View>
   );
@@ -380,6 +419,21 @@ function NoPassiveCard() {
       <Text className="font-nunito text-sm leading-5 text-fgMuted">
         {t("pvp.noPassive")}
       </Text>
+    </View>
+  );
+}
+
+function NoAbilityCard({ label, body }: { label: string; body: string }) {
+  return (
+    <View className="rounded-2xl border border-primaryBorder/20 bg-surfaceMuted p-3">
+      <View className="mb-2 flex-row items-center gap-2">
+        <View className="rounded-full bg-primaryBorder/30 px-2 py-1">
+          <Text className="font-nunito-bold text-[10px] uppercase text-fgMuted">
+            {label}
+          </Text>
+        </View>
+      </View>
+      <Text className="font-nunito text-sm leading-5 text-fgMuted">{body}</Text>
     </View>
   );
 }

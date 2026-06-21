@@ -25,5 +25,9 @@ A relationship between an attacking unit's type and a defending unit's type that
 _Avoid_: Type special modifier, hidden type passive
 
 **Legendary Passive Slot**:
-The PvP ability slot that allows a Legendary card to use one passive ability in battle. Non-Legendary cards do not have a passive slot. Assigned passives are public battle information and should be visible to both players for transparency.
+The PvP ability slot that allows a Legendary card to use one passive ability in battle. Non-Legendary cards do not have a passive slot.
 _Avoid_: Passive on every rarity, extra passive for non-Legendary cards
+
+**PvP Ability Visibility**:
+Assigned skill, ultimate, and passive abilities are public battle information. Both players should be able to inspect an opponent unit's assigned abilities during battle for transparency.
+_Avoid_: Hidden opponent abilities, reveal-on-trigger passives
