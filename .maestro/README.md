@@ -15,11 +15,13 @@ MOBILE_TEST_PASSWORD=password123 npm run build:mobile:e2e:ios
 MOBILE_TEST_PASSWORD=password123 npm run install:mobile:e2e:ios
 MOBILE_TEST_PASSWORD=password123 npm run test:mobile:e2e:ios
 MOBILE_TEST_PASSWORD=password123 npm run test:mobile:e2e:pvp:ios
+MOBILE_TEST_PASSWORD=password123 npm run test:mobile:e2e:pvp:head-to-head:ios
 
 MOBILE_TEST_PASSWORD=password123 npm run build:mobile:e2e:android
 MOBILE_TEST_PASSWORD=password123 npm run install:mobile:e2e:android
 MOBILE_TEST_PASSWORD=password123 npm run test:mobile:e2e:android
 MOBILE_TEST_PASSWORD=password123 npm run test:mobile:e2e:pvp:android
+MOBILE_TEST_PASSWORD=password123 npm run test:mobile:e2e:pvp:head-to-head:android
 ```
 
 The flows expect:
@@ -40,6 +42,8 @@ Implementation note:
 - `scripts/maestro.sh` logs into the local Phoenix backend first, injects the returned tokens plus user payload into the deep link, and the `e2e-auth` screen applies that session before navigating to PvP
 - the dedicated PvP flow also provisions a deterministic local match through `apps/phoenix/scripts/ensure-mobile-test-pvp-fixture.sh` before the app launches
 - this keeps the PvP validation focused on post-auth UI behavior instead of the Expo dev-client or text-input automation path
+- the head-to-head PvP command injects a primary token session, verifies the live match board, advances the turn through Phoenix, injects an opponent token session, verifies the same match, records an opponent concede through Phoenix, and then opens the winner replay with a fresh primary token session
+- `scripts/maestro-pvp-head-to-head.sh` runs those Maestro stages while `apps/phoenix/scripts/monitor-mobile-test-pvp-match.sh` prints backend match state, snapshots, and newly persisted events to `.maestro/test-output/pvp-head-to-head/<timestamp>/`
 
 Build profile notes:
 - `e2e-ios` builds a simulator app with `EXPO_PUBLIC_API_BASE_URL=http://127.0.0.1:4200`

@@ -1,0 +1,19 @@
+appId: love.leaetzak.adventuretime
+name: Adventure Time PvP head-to-head opponent board
+tags:
+  - smoke
+  - pvp
+  - head-to-head
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- openLink:
+    link: adventure-time:///e2e-auth?redirect=%2Fpvp-match%3Fid%3D${TEST_MATCH_ID}&accessToken=${TEST_ACCESS_TOKEN}&refreshToken=${TEST_REFRESH_TOKEN}&user=${TEST_USER}
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- extendedWaitUntil:
+    visible:
+      id: pvp-battle-board
+    timeout: 30000
+- assertVisible:
+    id: pvp-battle-log-button
