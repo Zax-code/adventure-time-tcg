@@ -15,6 +15,7 @@ import { CombatLogModal } from "./combat-log-modal";
 import { ResultsScreen } from "./results-screen";
 import { TargetSelectionHint } from "./target-selection-hint";
 import { TurnBanner } from "./turn-banner";
+import { formatTurnTimeout, useMinuteNow } from "./turn-timeout";
 import { UnitCard } from "./unit-card";
 import type { FloatingEvent, MyMatchView, SwapSelection, TargetingMode } from "./types";
 
@@ -39,6 +40,7 @@ interface BattleBoardProps {
   submitEndTurn: (input?: PvpEndTurnInput) => void;
   readOnly?: boolean;
   bottomOverlay?: ReactNode;
+  turnExpiresAt?: string | null;
 }
 
 function sortByPosition<T extends { position?: number | null }>(items: T[]) {
@@ -131,10 +133,13 @@ export function BattleBoard({
   submitEndTurn,
   readOnly = false,
   bottomOverlay,
+  turnExpiresAt,
 }: BattleBoardProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { myPlayer, opponentPlayer, isMyTurn, turn, phase, winnerId, myUserId, abilityDefinitions } = matchView;
+  const now = useMinuteNow(Boolean(turnExpiresAt) && phase === "active");
+  const timeoutLabel = formatTurnTimeout(turnExpiresAt, t, now);
   const horizontalPadding = Math.max(48, Math.max(insets.left, insets.right) + 12);
   const verticalPadding = Math.max(8, Math.max(insets.top, insets.bottom) + 4);
 
@@ -362,7 +367,7 @@ export function BattleBoard({
         <View
           className="rounded-full bg-accent px-2"
           style={{
-            height: 32,
+            height: timeoutLabel ? 42 : 32,
             justifyContent: "center",
             shadowColor: "#000",
             shadowOffset: { width: 0, height: 2 },
@@ -371,8 +376,15 @@ export function BattleBoard({
             elevation: 4,
           }}
         >
-          <View className="w-full items-center justify-center px-4">
-             <Text className="font-nunito-semibold text-[11px] text-white">{t("pvp.board.turnLabel", { turn, hint })}</Text>
+          <View className="w-full items-center justify-center px-4" style={{ gap: 1 }}>
+            <Text className="font-nunito-semibold text-[11px] text-white">
+              {t("pvp.board.turnLabel", { turn, hint })}
+            </Text>
+            {timeoutLabel ? (
+              <Text className="font-nunito-bold text-[9px] text-white/85">
+                {timeoutLabel.fullLabel}
+              </Text>
+            ) : null}
           </View>
         </View>
 

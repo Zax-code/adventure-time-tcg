@@ -752,12 +752,30 @@ defmodule AdventureTimeApi.Pvp do
       updatedAt: iso8601(match.updated_at)
     }
     |> maybe_put_current_turn(match.current_turn)
+    |> maybe_put_turn_expires_at(match)
   end
 
   defp maybe_put_current_turn(payload, turn) when is_integer(turn) and turn > 0,
     do: Map.put(payload, :currentTurn, turn)
 
   defp maybe_put_current_turn(payload, _turn), do: payload
+
+  defp maybe_put_turn_expires_at(
+         payload,
+         %Match{status: "in_progress", turn_started_at: %DateTime{} = turn_started_at}
+       ) do
+    Map.put(payload, :turnExpiresAt, iso8601(turn_timeout_expires_at(turn_started_at)))
+  end
+
+  defp maybe_put_turn_expires_at(payload, _match), do: payload
+
+  defp turn_timeout_expires_at(%DateTime{} = turn_started_at) do
+    timeout_hours =
+      Application.get_env(:adventure_time_api, __MODULE__, [])
+      |> Keyword.get(:turn_timeout_hours, @turn_timeout_hours)
+
+    DateTime.add(turn_started_at, timeout_hours * 60 * 60, :second)
+  end
 
   defp api_match_status("pending"), do: "PENDING"
   defp api_match_status("in_progress"), do: "IN_PROGRESS"

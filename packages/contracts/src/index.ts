@@ -889,6 +889,7 @@ export const pvpMatchSchema = z.object({
   inviteeLoadout: z.array(z.string()),
   winnerId: z.string().nullable(),
   currentTurn: z.number().int().positive().optional(),
+  turnExpiresAt: z.string().optional(),
   hasReplayData: z.boolean().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
@@ -1498,6 +1499,7 @@ export const pvpSpectateMatchSchema = z.object({
     .enum(["PENDING", "IN_PROGRESS", "COMPLETED", "DECLINED", "EXPIRED"])
     .optional(),
   currentTurn: z.number().int().positive(),
+  turnExpiresAt: z.string().optional(),
   createdAt: z.string(),
   updatedAt: z.string().optional(),
 });

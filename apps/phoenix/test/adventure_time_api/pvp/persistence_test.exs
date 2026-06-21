@@ -24,6 +24,7 @@ defmodule AdventureTimeApi.Pvp.PersistenceTest do
              Pvp.accept_match(invitee.id, match.id, card_ids)
 
     assert accepted_match.status == "IN_PROGRESS"
+    assert is_binary(accepted_match.turnExpiresAt)
 
     snapshot = Repo.one!(from(s in MatchSnapshot, where: s.match_id == ^match.id))
     assert snapshot.seq_at == 0
@@ -53,6 +54,10 @@ defmodule AdventureTimeApi.Pvp.PersistenceTest do
              find_unit(action_state, target["instanceId"])["hp"]
 
     assert {:ok, %{battleState: end_turn_state}} = Pvp.end_turn(acting_user_id, match.id, nil)
+
+    assert {:ok, %{match: next_turn_match}} = Pvp.get_match(acting_user_id, match.id)
+    assert next_turn_match.status == "IN_PROGRESS"
+    assert is_binary(next_turn_match.turnExpiresAt)
 
     end_turn_event =
       Repo.one!(from(e in MatchEvent, where: e.match_id == ^match.id and e.seq == 2))

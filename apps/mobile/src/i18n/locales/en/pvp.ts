@@ -25,6 +25,14 @@ const pvp = {
     concedeBody: "This will count as a loss. Are you sure?",
     concedeConfirm: "Concede",
   },
+  timeout: {
+    full: "Expires {deadline} ({remaining} left)",
+    short: "{remaining} left",
+    expired: "expired",
+    minutes: "{count}m",
+    hours: "{count}h",
+    hoursMinutes: "{hours}h {minutes}m",
+  },
   board: {
     bench: "BENCH",
     turnLabel: "Turn {turn} • {hint}",
