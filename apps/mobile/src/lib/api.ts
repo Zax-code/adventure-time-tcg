@@ -17,6 +17,7 @@ import { useSessionStore } from "../stores/session-store";
 export { API_BASE_URL };
 
 let refreshPromise: Promise<string | null> | null = null;
+const REFRESH_TOKEN_RACE_RETRY_DELAY_MS = 300;
 const SESSION_CLEARABLE_403_CODES = new Set([
   "ACCESS_REQUEST_PENDING",
   "EMAIL_VERIFICATION_REQUIRED",
@@ -70,6 +71,58 @@ export function shouldClearSessionForAuthError(error: unknown) {
   );
 }
 
+function wait(ms: number) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+async function refreshSessionWithToken(refreshToken: string) {
+  const refreshClient = new ApiClient({
+    baseUrl: API_BASE_URL,
+    getAccessToken: async () => null,
+  });
+
+  const refreshed = await refreshClient.refresh({ refreshToken });
+
+  await useSessionStore.getState().setSession({
+    user: refreshed.user,
+    accessToken: refreshed.tokens.accessToken,
+    refreshToken: refreshed.tokens.refreshToken,
+  });
+
+  return refreshed.tokens.accessToken;
+}
+
+async function getChangedRefreshToken(previousRefreshToken: string) {
+  const latestRefreshToken = await getRefreshToken();
+
+  if (latestRefreshToken && latestRefreshToken !== previousRefreshToken) {
+    return latestRefreshToken;
+  }
+
+  return null;
+}
+
+async function refreshWithChangedStoredToken(previousRefreshToken: string) {
+  const immediateRefreshToken =
+    await getChangedRefreshToken(previousRefreshToken);
+
+  if (immediateRefreshToken) {
+    return refreshSessionWithToken(immediateRefreshToken);
+  }
+
+  await wait(REFRESH_TOKEN_RACE_RETRY_DELAY_MS);
+
+  const delayedRefreshToken = await getChangedRefreshToken(previousRefreshToken);
+
+  if (delayedRefreshToken) {
+    return refreshSessionWithToken(delayedRefreshToken);
+  }
+
+  return null;
+}
+
 async function refreshAccessToken() {
   if (refreshPromise) {
     return refreshPromise;
@@ -83,23 +136,23 @@ async function refreshAccessToken() {
       return null;
     }
 
-    const refreshClient = new ApiClient({
-      baseUrl: API_BASE_URL,
-      getAccessToken: async () => null,
-    });
-
     try {
-      const refreshed = await refreshClient.refresh({ refreshToken });
-
-      await useSessionStore.getState().setSession({
-        user: refreshed.user,
-        accessToken: refreshed.tokens.accessToken,
-        refreshToken: refreshed.tokens.refreshToken,
-      });
-
-      return refreshed.tokens.accessToken;
+      return await refreshSessionWithToken(refreshToken);
     } catch (error) {
       if (shouldClearSessionForAuthError(error)) {
+        try {
+          const recoveredToken =
+            await refreshWithChangedStoredToken(refreshToken);
+
+          if (recoveredToken) {
+            return recoveredToken;
+          }
+        } catch (retryError) {
+          if (!shouldClearSessionForAuthError(retryError)) {
+            throw retryError;
+          }
+        }
+
         await clearAppSession();
         return null;
       }
