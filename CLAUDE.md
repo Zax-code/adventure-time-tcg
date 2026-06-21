@@ -22,6 +22,20 @@ Use this order when behavior is unclear:
 2. the legacy PWA production data and codebase at `~/adventure-time-tcg-pwa` or `~/Develop/adventure-time-tcg-pwa`
 3. the legacy Fastify implementation in `apps/api`
 
+## Agent skills
+
+### Issue tracker
+
+Issues and PRDs are tracked in GitHub Issues; external PRs are not treated as a triage request surface. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Use the default Matt Pocock triage label vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, and `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Use a single-context domain-doc layout: root `CONTEXT.md` plus `docs/adr/` when those files exist. See `docs/agents/domain.md`.
+
 ## Repo Shape
 
 Apps:
