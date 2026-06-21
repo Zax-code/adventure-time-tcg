@@ -36,6 +36,7 @@ import {
   CARD_BACKCOVER_RATIO,
   getCardBackcoverSource,
 } from "../../src/components/card-back-cover-art";
+import { getCardOutlineSource } from "../../src/components/card-outline-frame";
 import { PageErrorState } from "../../src/components/error-state";
 import {
   BoxIcon,
@@ -133,6 +134,7 @@ type OpeningPhase =
   | "complete";
 
 const PACK_CARD_RATIO = 320 / 460;
+const REVEAL_CARD_RATIO = CARD_BACKCOVER_RATIO;
 const IS_E2E_BUILD = process.env.EXPO_PUBLIC_E2E_AUTH === "1";
 const PACK_OPEN_SHAKE_MS = IS_E2E_BUILD ? 3200 : 950;
 const PACK_OPEN_BURST_MS = IS_E2E_BUILD ? 2400 : 2200;
@@ -1089,7 +1091,7 @@ function CardBackFace({
   rarityName: RarityName;
   cardBackVisualMap: CardBackVisualMap;
 }) {
-  const height = width / PACK_CARD_RATIO;
+  const height = width / REVEAL_CARD_RATIO;
   const backcoverSource = getCardBackcoverSource(
     themeName,
     rarityName,
@@ -1117,6 +1119,67 @@ function CardBackFace({
   );
 }
 
+function RevealCardOutline({
+  opacityAnim,
+  rarityName,
+  themeName,
+  width,
+}: {
+  opacityAnim: Animated.Value;
+  rarityName: RarityName;
+  themeName: ThemeName;
+  width: number;
+}) {
+  const height = width / REVEAL_CARD_RATIO;
+  const outlineSource = getCardOutlineSource(themeName, rarityName);
+  const glowScale = opacityAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.985, 1.025],
+  });
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={{
+        position: "absolute",
+        left: 0,
+        top: 0,
+        width,
+        height,
+        opacity: opacityAnim,
+        zIndex: 20,
+        transform: [{ scale: glowScale }],
+      }}
+    >
+      <Image
+        pointerEvents="none"
+        source={outlineSource}
+        contentFit="fill"
+        blurRadius={8}
+        style={{
+          position: "absolute",
+          top: -5,
+          right: -5,
+          bottom: -5,
+          left: -5,
+          opacity: 0.7,
+        }}
+      />
+      <Image
+        pointerEvents="none"
+        source={outlineSource}
+        contentFit="fill"
+        style={{
+          position: "absolute",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+        }}
+      />
+    </Animated.View>
+  );
+}
+
 function CardBackStack({
   width,
   tc,
@@ -1136,7 +1199,7 @@ function CardBackStack({
   idleAnim?: Animated.Value;
   pulseAnim?: Animated.Value;
 }) {
-  const cardHeight = width / PACK_CARD_RATIO;
+  const cardHeight = width / REVEAL_CARD_RATIO;
   const stackHeight = cardHeight + 44;
   const stackRarities: [RarityName, RarityName, RarityName] = [
     rarityNames?.[0] ?? "Common",
@@ -2372,7 +2435,7 @@ export default function PacksScreen() {
               style={{
                 position: "absolute",
                 width: stageCardWidth + 118,
-                height: stageCardWidth / PACK_CARD_RATIO + 118,
+                height: stageCardWidth / REVEAL_CARD_RATIO + 118,
                 borderRadius: 999,
                 backgroundColor: tc.surface,
                 opacity: readyRevealAnim.interpolate({
@@ -2444,12 +2507,11 @@ export default function PacksScreen() {
   ) {
     const card = openedCards[revealedIndex];
     const rarityName = toRarityName(card.rarity?.name);
-    const rarityRing = RARITY_COLORS[rarityName]?.ring ?? tc.primaryDark;
+    const rarityRing =
+      getThemeRarityPalette(themeName, rarityName)?.ring ?? tc.primaryDark;
     const glowColor = getRarityGlowColor(rarityName);
     const isHighRarity = ["Legendary", "Epic", "Rare"].includes(rarityName);
     const isLastCard = revealedIndex === openedCards.length - 1;
-    const revealOutlineInset = 4;
-    const revealOutlineRadius = 16 + revealOutlineInset;
     const cardScale = flipAnim.interpolate({
       inputRange: [0, 1],
       outputRange: [0.94, 1],
@@ -2472,8 +2534,6 @@ export default function PacksScreen() {
       outputRange: [0, 0, 1, 1],
       extrapolate: "clamp",
     });
-    const revealOutlineOpacity = revealOutlineAnim;
-
     return (
       <TouchableOpacity
         testID="pack-opening-reveal"
@@ -2524,24 +2584,15 @@ export default function PacksScreen() {
             <Animated.View
               style={{
                 width: revealCardWidth,
-                aspectRatio: CARD_ART_RATIO,
+                aspectRatio: REVEAL_CARD_RATIO,
                 transform: [{ scale: cardScale }],
               }}
             >
-              <Animated.View
-                pointerEvents="none"
-                style={{
-                  position: "absolute",
-                  top: -revealOutlineInset,
-                  right: -revealOutlineInset,
-                  bottom: -revealOutlineInset,
-                  left: -revealOutlineInset,
-                  borderRadius: revealOutlineRadius,
-                  borderWidth: 3,
-                  borderColor: rarityRing,
-                  opacity: revealOutlineOpacity,
-                  zIndex: 20,
-                }}
+              <RevealCardOutline
+                opacityAnim={revealOutlineAnim}
+                rarityName={rarityName}
+                themeName={themeName}
+                width={revealCardWidth}
               />
               <Animated.View
                 pointerEvents="none"
