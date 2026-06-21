@@ -51,7 +51,6 @@ import {
   PackIcon,
   SparkleIcon,
   SparklesIcon,
-  XIcon,
   ZapIcon,
 } from "../../src/components/icons";
 import { PageLoadingState } from "../../src/components/loading-state";
@@ -1734,18 +1733,14 @@ function PackSummaryCardSheet({
         style={[
           StyleSheet.absoluteFill,
           {
-            borderTopLeftRadius: 30,
-            borderTopRightRadius: 30,
+            borderTopLeftRadius: 32,
+            borderTopRightRadius: 32,
           },
         ]}
       />
     ),
     [],
   );
-
-  const requestClose = () => {
-    setIndex(0);
-  };
 
   const stats = [
     {
@@ -1808,8 +1803,8 @@ function PackSummaryCardSheet({
           className="border-b border-primaryTint px-6 py-4"
           testID="pack-summary-card-preview-header"
         >
-          <View className="flex-row items-center gap-3">
-            <View className="flex-1">
+          <View>
+            <View>
               <Text
                 className="font-nunito-extrabold text-2xl text-fg"
                 numberOfLines={1}
@@ -1825,16 +1820,6 @@ function PackSummaryCardSheet({
                 })}
               </Text>
             </View>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t("common.close")}
-              onPress={requestClose}
-              testID="pack-summary-card-preview-close"
-              className="h-9 w-9 items-center justify-center rounded-full"
-              style={{ backgroundColor: tc.surfaceMuted }}
-            >
-              <XIcon size={18} color={tc.fgMuted} />
-            </Pressable>
           </View>
         </View>
 
