@@ -47,3 +47,7 @@ _Avoid_: Hidden bench cards, concealed bench abilities
 **PvP Swap Intent**:
 A player's queued swap choice is private until it resolves at end turn. The resolved swap is public through battle state changes and the combat log.
 _Avoid_: Revealing pending swaps, opponent-visible queued swap intent
+
+**PvP Targeting Intent**:
+A player's in-progress target selection does not need to be private. Showing target highlights or targeting previews to the opponent before action submission is acceptable because the opponent cannot interrupt that choice.
+_Avoid_: Treating target hover/selection preview as secret information
