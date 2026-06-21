@@ -1,6 +1,14 @@
 import { useMutation, useQueries, useQueryClient } from "@tanstack/react-query";
+import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from "react";
 import {
   Alert,
   Pressable,
@@ -47,7 +55,10 @@ type PreviewState =
   | { kind: "empty" }
   | { kind: "invalid"; reason: "division" | "positive" }
   | { kind: "ready"; result: number };
-type TranslateFn = (key: string, params?: Record<string, string | number>) => string;
+type TranslateFn = (
+  key: string,
+  params?: Record<string, string | number>,
+) => string;
 type ThemeColors = (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
 type ModeCard = {
   mode: DailyNumbersMode;
@@ -128,6 +139,22 @@ type LivePlayProps = {
 
 const OPERATORS: Operator[] = ["+", "-", "*", "/"];
 const EXACT_HIT_PERCENT = 100;
+
+function triggerSelectionHaptic() {
+  void Haptics.selectionAsync();
+}
+
+function triggerLightHaptic() {
+  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+}
+
+function triggerPrimaryHaptic() {
+  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+}
+
+function triggerErrorHaptic() {
+  void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+}
 
 function sortTiles(a: BoardTile, b: BoardTile) {
   if (a.status !== b.status) {
@@ -214,7 +241,11 @@ function getDefaultDistance(
   return Math.abs(chooseClosestTile(numbers, target).value - target);
 }
 
-function applyOperation(leftValue: number, operator: Operator, rightValue: number) {
+function applyOperation(
+  leftValue: number,
+  operator: Operator,
+  rightValue: number,
+) {
   if (operator === "+") {
     return { ok: true as const, result: leftValue + rightValue };
   }
@@ -271,7 +302,9 @@ function buildSubmissionSummary(
 }
 
 function buildBoardIdentity(state: DailyNumbersStateResponse) {
-  const numbersIdentity = state.numbers.map((tile) => `${tile.id}:${tile.value}`).join("|");
+  const numbersIdentity = state.numbers
+    .map((tile) => `${tile.id}:${tile.value}`)
+    .join("|");
   return [
     state.mode,
     state.date,
@@ -456,7 +489,10 @@ function BackButton({
 }) {
   return (
     <Pressable
-      onPress={onPress}
+      onPress={() => {
+        triggerLightHaptic();
+        onPress();
+      }}
       className="w-full overflow-hidden rounded-xl"
       style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
       accessibilityRole="button"
@@ -494,7 +530,10 @@ function ModeTabs({
         return (
           <Pressable
             key={mode}
-            onPress={() => onSelectMode(mode)}
+            onPress={() => {
+              triggerSelectionHaptic();
+              onSelectMode(mode);
+            }}
             className="flex-1 rounded-2xl border px-3 py-2"
             style={{
               borderColor: selected ? accent.text : tc.primaryBorder,
@@ -543,7 +582,9 @@ function StatCard({
       <Text className="font-nunito-semibold text-[10px] uppercase tracking-[1px] text-fgMuted">
         {label}
       </Text>
-      <Text className={`font-nunito-extrabold ${compact ? "text-[28px]" : "text-[32px]"} text-fg`}>
+      <Text
+        className={`font-nunito-extrabold ${compact ? "text-[28px]" : "text-[32px]"} text-fg`}
+      >
         {value}
       </Text>
     </View>
@@ -633,7 +674,9 @@ function StepList({
     <View className="mt-2">
       <View className="mt-2 flex-row items-center justify-between rounded-2xl bg-primaryBg px-3 py-2.5">
         <Text className="font-nunito-semibold text-sm text-fg">{title}</Text>
-        <Text className="font-nunito-bold text-sm text-fgMuted">{steps.length}</Text>
+        <Text className="font-nunito-bold text-sm text-fgMuted">
+          {steps.length}
+        </Text>
       </View>
       {steps.length > 0 ? (
         <View className="mt-2 gap-2">
@@ -659,7 +702,9 @@ function StepList({
           ))}
         </View>
       ) : emptyCopy ? (
-        <Text className="mt-2 px-1 font-nunito text-sm text-fgMuted">{emptyCopy}</Text>
+        <Text className="mt-2 px-1 font-nunito text-sm text-fgMuted">
+          {emptyCopy}
+        </Text>
       ) : null}
     </View>
   );
@@ -807,7 +852,10 @@ function FinishStatePanel({
         </Text>
         <View className="mt-2 flex-row flex-wrap gap-2">
           {state.numbers.map((tile) => (
-            <View key={tile.id} className="min-w-[56px] rounded-2xl bg-primaryBg px-3 py-2">
+            <View
+              key={tile.id}
+              className="min-w-[56px] rounded-2xl bg-primaryBg px-3 py-2"
+            >
               <Text className="text-center font-nunito-extrabold text-base text-fg">
                 {tile.value}
               </Text>
@@ -917,7 +965,10 @@ function LivePlayPanel({
     <>
       <View
         className="mt-3 rounded-2xl border px-3 py-3"
-        style={{ borderColor: modeAccent.border, backgroundColor: modeAccent.bg }}
+        style={{
+          borderColor: modeAccent.border,
+          backgroundColor: modeAccent.bg,
+        }}
       >
         <View className="flex-row items-center gap-2">
           <Pressable
@@ -953,7 +1004,7 @@ function LivePlayPanel({
             }
           >
             <Text className="text-center font-nunito-extrabold text-lg text-fg">
-              {selectedOperator === "*" ? "×" : selectedOperator ?? "?"}
+              {selectedOperator === "*" ? "×" : (selectedOperator ?? "?")}
             </Text>
           </Pressable>
           <Pressable
@@ -1001,7 +1052,9 @@ function LivePlayPanel({
           disabled={interactionLocked}
           className="mt-2 rounded-2xl px-3 py-3"
           style={{
-            backgroundColor: interactionLocked ? tc.surfaceMuted : tc.accentDark,
+            backgroundColor: interactionLocked
+              ? tc.surfaceMuted
+              : tc.accentDark,
           }}
           testID="daily-numbers-apply-step"
           accessibilityRole="button"
@@ -1024,7 +1077,8 @@ function LivePlayPanel({
         <View className="mt-2 flex-row flex-wrap justify-between gap-y-2">
           {availableTiles.map((tile) => {
             const selected =
-              tile.id === selectedLeftTile?.id || tile.id === selectedRightTile?.id;
+              tile.id === selectedLeftTile?.id ||
+              tile.id === selectedRightTile?.id;
 
             return (
               <Pressable
@@ -1194,10 +1248,10 @@ function useDailyNumbersBoardController({
   );
 
   const selectedLeftTile = interaction.selectedLeftId
-    ? availableTileMap.get(interaction.selectedLeftId) ?? null
+    ? (availableTileMap.get(interaction.selectedLeftId) ?? null)
     : null;
   const selectedRightTile = interaction.selectedRightId
-    ? availableTileMap.get(interaction.selectedRightId) ?? null
+    ? (availableTileMap.get(interaction.selectedRightId) ?? null)
     : null;
 
   const currentBestTile = useMemo(() => {
@@ -1224,13 +1278,18 @@ function useDailyNumbersBoardController({
     state.submitted !== true &&
     interaction.steps.length > 0 &&
     currentDistance < defaultDistance;
-  const successState = state.submission?.completed === true || completionReached;
+  const successState =
+    state.submission?.completed === true || completionReached;
   const exactHitState = state.submission?.exact === true || exactHitReached;
   const finishScreenState = exactHitState || state.submitted === true;
   const interactionLocked =
     interaction.submitting || state.submitted === true || exactHitReached;
   const previewState = useMemo<PreviewState>(() => {
-    if (!selectedLeftTile || !interaction.selectedOperator || !selectedRightTile) {
+    if (
+      !selectedLeftTile ||
+      !interaction.selectedOperator ||
+      !selectedRightTile
+    ) {
       return { kind: "empty" };
     }
 
@@ -1275,6 +1334,7 @@ function useDailyNumbersBoardController({
           return;
         }
 
+        triggerErrorHaptic();
         dispatch({
           type: "submitFailed",
           message: {
@@ -1303,9 +1363,22 @@ function useDailyNumbersBoardController({
         return;
       }
 
+      if (
+        tileId === interaction.selectedLeftId ||
+        tileId === interaction.selectedRightId ||
+        (interaction.selectedLeftId && interaction.selectedRightId)
+      ) {
+        return;
+      }
+
+      triggerSelectionHaptic();
       dispatch({ type: "selectTile", tileId });
     },
-    [interactionLocked],
+    [
+      interaction.selectedLeftId,
+      interaction.selectedRightId,
+      interactionLocked,
+    ],
   );
 
   const handleOperatorPress = useCallback(
@@ -1315,6 +1388,7 @@ function useDailyNumbersBoardController({
       }
 
       if (!interaction.selectedLeftId) {
+        triggerErrorHaptic();
         dispatch({
           type: "setMessage",
           message: {
@@ -1325,6 +1399,7 @@ function useDailyNumbersBoardController({
         return;
       }
 
+      triggerSelectionHaptic();
       dispatch({ type: "toggleOperator", operator });
     },
     [interaction.selectedLeftId, interactionLocked, t],
@@ -1344,6 +1419,7 @@ function useDailyNumbersBoardController({
         return;
       }
 
+      triggerLightHaptic();
       dispatch({ type: "clearSlot", slot });
     },
     [
@@ -1364,6 +1440,7 @@ function useDailyNumbersBoardController({
       !interaction.selectedOperator ||
       !interaction.selectedRightId
     ) {
+      triggerErrorHaptic();
       dispatch({
         type: "setMessage",
         message: {
@@ -1375,6 +1452,7 @@ function useDailyNumbersBoardController({
     }
 
     if (interaction.selectedLeftId === interaction.selectedRightId) {
+      triggerErrorHaptic();
       dispatch({
         type: "setMessage",
         message: {
@@ -1389,6 +1467,7 @@ function useDailyNumbersBoardController({
     const rightTile = availableTileMap.get(interaction.selectedRightId);
 
     if (!leftTile || !rightTile) {
+      triggerErrorHaptic();
       dispatch({
         type: "setMessage",
         message: {
@@ -1406,6 +1485,7 @@ function useDailyNumbersBoardController({
     );
 
     if (!operation.ok) {
+      triggerErrorHaptic();
       dispatch({
         type: "setMessage",
         message: {
@@ -1434,13 +1514,16 @@ function useDailyNumbersBoardController({
       nextBoard.availableTiles.length > 0
         ? chooseClosestTile(nextBoard.availableTiles, state.target)
         : null;
-    const exactHit = nextBestTile !== null && nextBestTile.value === state.target;
+    const exactHit =
+      nextBestTile !== null && nextBestTile.value === state.target;
 
     dispatch({
       type: "applyStep",
       step: nextStep,
       autoSubmitting: exactHit,
     });
+
+    triggerPrimaryHaptic();
 
     if (exactHit) {
       void submitBoard(nextSteps, true);
@@ -1453,6 +1536,7 @@ function useDailyNumbersBoardController({
     }
 
     if (interaction.steps.length === 0) {
+      triggerErrorHaptic();
       dispatch({
         type: "setMessage",
         message: {
@@ -1463,6 +1547,7 @@ function useDailyNumbersBoardController({
       return;
     }
 
+    triggerLightHaptic();
     dispatch({ type: "undoStep" });
   }, [interaction.steps.length, interactionLocked, t]);
 
@@ -1472,6 +1557,7 @@ function useDailyNumbersBoardController({
     }
 
     if (interaction.steps.length === 0) {
+      triggerErrorHaptic();
       dispatch({
         type: "setMessage",
         message: {
@@ -1482,6 +1568,7 @@ function useDailyNumbersBoardController({
       return;
     }
 
+    triggerLightHaptic();
     dispatch({ type: "resetBoard" });
   }, [interaction.steps.length, interactionLocked, t]);
 
@@ -1490,6 +1577,7 @@ function useDailyNumbersBoardController({
       return;
     }
 
+    triggerPrimaryHaptic();
     Alert.alert(
       t("quests.dailyNumbers.submitConfirmTitle"),
       t("quests.dailyNumbers.submitConfirmBody"),
@@ -1511,6 +1599,20 @@ function useDailyNumbersBoardController({
     submitBoard,
     t,
   ]);
+
+  const handleClaimReward = useCallback(() => {
+    if (claimPending) {
+      return;
+    }
+
+    triggerPrimaryHaptic();
+    onClaimReward();
+  }, [claimPending, onClaimReward]);
+
+  const handleToggleSolution = useCallback(() => {
+    triggerLightHaptic();
+    dispatch({ type: "toggleSolution" });
+  }, []);
 
   const finishTone: FinishTone = exactHitState
     ? {
@@ -1546,7 +1648,8 @@ function useDailyNumbersBoardController({
   const submissionSummary = state.submission
     ? buildSubmissionSummary(t, state.submission)
     : null;
-  const exactHitScore = state.submission?.score ?? (exactHitState ? EXACT_HIT_PERCENT : null);
+  const exactHitScore =
+    state.submission?.score ?? (exactHitState ? EXACT_HIT_PERCENT : null);
   const exactHitSummary =
     exactHitScore === null
       ? null
@@ -1555,10 +1658,12 @@ function useDailyNumbersBoardController({
         });
   const finishSummary = exactHitState ? exactHitSummary : submissionSummary;
   const finishValue =
-    state.submission?.finalValue ?? (finishScreenState ? currentBestTile?.value ?? null : null);
+    state.submission?.finalValue ??
+    (finishScreenState ? (currentBestTile?.value ?? null) : null);
   const finishDistance =
     state.submission?.distance ?? (finishScreenState ? currentDistance : null);
-  const finishScore = state.submission?.score ?? (exactHitState ? EXACT_HIT_PERCENT : null);
+  const finishScore =
+    state.submission?.score ?? (exactHitState ? EXACT_HIT_PERCENT : null);
   const submittedSolutionSteps =
     state.submission?.steps ?? (exactHitState ? interaction.steps : []);
   const claimable =
@@ -1588,13 +1693,13 @@ function useDailyNumbersBoardController({
     interactionLocked,
     modeAccent,
     onApplyStep: handleApplyStep,
-    onClaimReward,
+    onClaimReward: handleClaimReward,
     onClearSlot: handleClearSlot,
     onOperatorPress: handleOperatorPress,
     onResetBoard: handleResetBoard,
     onSubmitPress: handleSubmitPress,
     onTilePress: handleTilePress,
-    onToggleSolution: () => dispatch({ type: "toggleSolution" }),
+    onToggleSolution: handleToggleSolution,
     onUndoStep: handleUndoStep,
     previewState,
     selectedLeftTile,
@@ -1737,7 +1842,9 @@ export default function DailyNumbersPlayScreen() {
   const tc = THEME_COLORS[useThemeStore((state) => state.themeName)];
   const patchUser = useSessionStore((state) => state.patchUser);
   const lastQuestResetAt = useQuestResetStore((state) => state.lastResetAt);
-  const lastQuestResetPayload = useQuestResetStore((state) => state.lastPayload);
+  const lastQuestResetPayload = useQuestResetStore(
+    (state) => state.lastPayload,
+  );
   const resetNoticeKeyRef = useRef<string | null>(null);
 
   const compact = height < 820 || width < 390;
@@ -1858,7 +1965,10 @@ export default function DailyNumbersPlayScreen() {
 
   const handleResetError = useCallback(
     async (error: unknown) => {
-      if (error instanceof ApiClientError && error.code === "DAILY_NUMBERS_RESET") {
+      if (
+        error instanceof ApiClientError &&
+        error.code === "DAILY_NUMBERS_RESET"
+      ) {
         setUiMessage({
           type: "error",
           text: t("quests.dailyNumbers.resetNotice"),
