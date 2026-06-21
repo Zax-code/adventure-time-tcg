@@ -29,10 +29,7 @@ function pickNumber(
   return null;
 }
 
-function pickBoolean(
-  payload: CombatEventPayload,
-  keys: string[],
-): boolean {
+function pickBoolean(payload: CombatEventPayload, keys: string[]): boolean {
   return keys.some((key) => payload[key] === true);
 }
 
@@ -41,7 +38,16 @@ export function getEventTargetInstanceId(event: CombatEvent): string | null {
 }
 
 export function getEventAmount(event: CombatEvent): number | null {
-  return pickNumber(event.payload, ["amount", "actualDamage", "damage", "absorbed"]);
+  return pickNumber(event.payload, [
+    "amount",
+    "actualDamage",
+    "damage",
+    "absorbed",
+  ]);
+}
+
+export function getEventRemaining(event: CombatEvent): number | null {
+  return pickNumber(event.payload, ["remaining"]);
 }
 
 export function isMissEvent(event: CombatEvent): boolean {
@@ -58,16 +64,31 @@ export function getEventActorName(event: CombatEvent): string | null {
     "attackerName",
     "sourceName",
     "playerName",
+    "actorId",
+    "playerId",
+    "sourceId",
+    "unitId",
     "userId",
   ]);
 }
 
 export function getEventTargetName(event: CombatEvent): string | null {
-  return pickString(event.payload, ["targetName", "unitName"]);
+  return pickString(event.payload, [
+    "targetName",
+    "unitName",
+    "targetId",
+    "unitId",
+  ]);
 }
 
 export function getEventAbilityLabel(event: CombatEvent): string | null {
-  return pickString(event.payload, ["abilityName", "abilityKey", "copiedKey", "copyKey"]);
+  return pickString(event.payload, [
+    "abilityName",
+    "abilityKey",
+    "passiveKey",
+    "copiedKey",
+    "copyKey",
+  ]);
 }
 
 export function getEventStatusName(event: CombatEvent): string | null {
@@ -76,4 +97,24 @@ export function getEventStatusName(event: CombatEvent): string | null {
 
 export function getEventWinnerLabel(event: CombatEvent): string | null {
   return pickString(event.payload, ["winnerName", "winnerId"]);
+}
+
+export function getEventSourceName(event: CombatEvent): string | null {
+  return pickString(event.payload, [
+    "sourceName",
+    "sourceId",
+    "fromName",
+    "fromId",
+    "originalTargetId",
+  ]);
+}
+
+export function getEventDestinationName(event: CombatEvent): string | null {
+  return pickString(event.payload, [
+    "destinationName",
+    "redirectedToName",
+    "redirectedToId",
+    "toName",
+    "toId",
+  ]);
 }

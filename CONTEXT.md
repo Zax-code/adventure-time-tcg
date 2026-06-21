@@ -35,3 +35,7 @@ _Avoid_: Hidden opponent abilities, hidden cooldowns, reveal-on-trigger passives
 **PvP Energy Visibility**:
 Both players' exact current energy totals are public battle information. Energy should be visible to both sides during battle.
 _Avoid_: Hidden opponent energy, obfuscated energy
+
+**PvP Combat Log Visibility**:
+The full combat log is public battle information for both players. This includes passive triggers, cooldown reductions, status ticks, formation shifts, energy changes, mitigation, retaliation, and other resolved battle events.
+_Avoid_: Hidden log events, private passive triggers, private cooldown ticks
