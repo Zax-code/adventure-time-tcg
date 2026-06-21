@@ -8,6 +8,7 @@ Use this reference when generating an Adventure Time TCG card.
 - Use the `postgres` service in `compose.yml`: database `adventure_time_phoenix_dev`, user `postgres`.
 - Use MinIO through the running stack for card images.
 - Do not read, edit, diff against, or append to `apps/phoenix/priv/repo/seed_data/pvp_seed_catalog.json` for card creation.
+- For live deployment, the VPS Phoenix service also uses `adventure_time_phoenix_dev`; prefer the DB from the running API env/Repo over similarly named legacy databases.
 
 Useful checks from the repo root:
 
@@ -83,3 +84,13 @@ When finished, report:
 - ability payloads and why they are executable
 - verification commands/results
 - whether the card is active or archived locally
+
+## Live Deployment Checks
+
+Only use this section after explicit user approval to deploy a reviewed local draft.
+
+- SSH target: `leaetzak`; repo path: `/home/zax/adventure-time-tcg`.
+- Confirm `adventure-time-tcg-api.service`, `adventure-time-tcg-postgres.service`, `adventure-time-tcg-minio.service`, and `caddy` are active before and after the write.
+- Back up `adventure_time_phoenix_dev` with `pg_dump -U postgres -Fc` before inserting rows.
+- Use `env -u PHX_SERVER bin/adventure_time_api eval ...` for production release evals inside the API container.
+- Plain `curl` can be blocked by Caddy's security matcher. Use an app/browser-like user agent for public verification.
