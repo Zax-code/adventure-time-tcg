@@ -59,6 +59,12 @@ export function CardInfoModal({
     unit.rarity === "Legendary" && passiveDefs.length === 0;
   const skillLabel = localizeAbilityType("SKILL", t);
   const ultimateLabel = localizeAbilityType("ULTIMATE", t);
+  const skillCooldown =
+    unit.skill && unit.cooldowns[unit.skill] ? unit.cooldowns[unit.skill] : 0;
+  const ultimateCooldown =
+    unit.ultimate && unit.cooldowns[unit.ultimate]
+      ? unit.cooldowns[unit.ultimate]
+      : 0;
 
   return (
     <BattleFullScreenSheet
@@ -252,6 +258,7 @@ export function CardInfoModal({
                   <AbilityCard
                     label={skillLabel}
                     ability={skillDef}
+                    cooldownRemaining={skillCooldown}
                     colorClass="border-successBorder bg-successTint"
                     badgeClass="bg-successBorder text-successDark"
                   />
@@ -269,6 +276,8 @@ export function CardInfoModal({
                   <AbilityCard
                     label={ultimateLabel}
                     ability={ultimateDef}
+                    cooldownRemaining={ultimateCooldown}
+                    used={unit.usedUltimate}
                     colorClass="border-dangerBorder bg-dangerTint"
                     badgeClass="bg-dangerBorder text-dangerDark"
                   />
@@ -329,6 +338,8 @@ function AbilityCard({
   ability,
   colorClass,
   badgeClass,
+  cooldownRemaining = 0,
+  used = false,
 }: {
   label: string;
   ability: {
@@ -341,8 +352,12 @@ function AbilityCard({
   };
   colorClass: string;
   badgeClass: string;
+  cooldownRemaining?: number;
+  used?: boolean;
 }) {
   const { t } = useTranslation();
+  const showAvailability = cooldownRemaining > 0 || used;
+
   return (
     <View className={`rounded-2xl border p-3 ${colorClass}`}>
       <View className="mb-2 flex-row items-center gap-2">
@@ -363,6 +378,24 @@ function AbilityCard({
       <Text className="font-nunito text-sm leading-5 text-fgMuted">
         {ability.description}
       </Text>
+      {showAvailability ? (
+        <View className="mt-2 flex-row flex-wrap gap-2">
+          {cooldownRemaining > 0 ? (
+            <View className="rounded-full bg-white/55 px-2 py-1">
+              <Text className="font-nunito-semibold text-xs text-fgMuted">
+                {t("pvp.action.cooldown", { count: cooldownRemaining })}
+              </Text>
+            </View>
+          ) : null}
+          {used ? (
+            <View className="rounded-full bg-white/55 px-2 py-1">
+              <Text className="font-nunito-semibold text-xs text-fgMuted">
+                {t("pvp.action.usedAlready")}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+      ) : null}
       {ability.oncePerMatch ? (
         <Text className="mt-2 font-nunito-semibold text-xs text-primaryDark">
           {t("pvp.oncePerMatch")}
