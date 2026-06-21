@@ -52,6 +52,10 @@ _Avoid_: Forced winner for simultaneous KO, arbitrary tie breaker
 A disconnect does not by itself change match outcome. If the current player leaves the match inactive for 24 hours after their turn starts, that player loses by timeout and the opponent wins. The exact timeout deadline is public match information and should be visible before it resolves. Timeout losers keep normal access to the replay and combat log after the match.
 _Avoid_: Disconnect-as-loss, timeout draw, sub-24-hour timeout loss, hidden timeout deadline, hiding timeout replay from the loser
 
+**PvP Result Reason**:
+The match-level reason a completed PvP match ended: KO, draw, concession, or timeout. History may show a distinct player-relative label such as Win, Loss, Draw, Conceded, or Timed Out, but aggregate player stats remain normalized to wins, losses, and draws. Concession and timeout are loss reasons, not separate stats buckets.
+_Avoid_: Separate concession/timeout stats, hiding special result labels in history, deriving result labels only from replay logs
+
 **PvP Bench Visibility**:
 Opponent bench card details are public battle information before those cards enter the active row. Players should be able to inspect bench HP, statuses, assigned abilities, cooldowns, used-ultimate state, and passives during battle.
 _Avoid_: Hidden bench cards, concealed bench abilities

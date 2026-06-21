@@ -203,12 +203,14 @@ defmodule AdventureTimeApi.Pvp do
     completed_matches = Enum.filter(matches, &(&1.status == "completed"))
     wins = Enum.count(completed_matches, &(&1.winner_id == user_id))
     losses = Enum.count(completed_matches, &(&1.winner_id && &1.winner_id != user_id))
+    draws = Enum.count(completed_matches, &is_nil(&1.winner_id))
     display_names = user_display_map(matches)
+    completion_reasons = completion_reason_map(matches)
 
     serialized_matches =
       Enum.map(matches, fn match ->
         match
-        |> serialize_match(display_names)
+        |> serialize_match(display_names, completion_reasons)
         |> maybe_put_replay_flag(match)
       end)
 
@@ -220,6 +222,7 @@ defmodule AdventureTimeApi.Pvp do
        stats: %{
          wins: wins,
          losses: losses,
+         draws: draws,
          winRate: if(wins + losses > 0, do: round(wins / (wins + losses) * 100), else: 0)
        }
      }}
@@ -731,10 +734,10 @@ defmodule AdventureTimeApi.Pvp do
   # ── Private Helpers ────────────────────────────────────────────────────────
 
   defp serialize_match(match) do
-    serialize_match(match, user_display_map([match]))
+    serialize_match(match, user_display_map([match]), completion_reason_map([match]))
   end
 
-  defp serialize_match(match, display_names) do
+  defp serialize_match(match, display_names, completion_reasons) do
     invitee_loadout = match.invitee_card_ids || []
 
     %{
@@ -753,6 +756,7 @@ defmodule AdventureTimeApi.Pvp do
     }
     |> maybe_put_current_turn(match.current_turn)
     |> maybe_put_turn_expires_at(match)
+    |> maybe_put_completion_reason(match, completion_reasons)
   end
 
   defp maybe_put_current_turn(payload, turn) when is_integer(turn) and turn > 0,
@@ -768,6 +772,16 @@ defmodule AdventureTimeApi.Pvp do
   end
 
   defp maybe_put_turn_expires_at(payload, _match), do: payload
+
+  defp maybe_put_completion_reason(payload, %Match{status: "completed"} = match, reasons) do
+    Map.put(
+      payload,
+      :completionReason,
+      Map.get(reasons, match.id, default_completion_reason(match))
+    )
+  end
+
+  defp maybe_put_completion_reason(payload, _match, _reasons), do: payload
 
   defp turn_timeout_expires_at(%DateTime{} = turn_started_at) do
     timeout_hours =
@@ -815,8 +829,44 @@ defmodule AdventureTimeApi.Pvp do
 
   defp serialize_matches(matches) do
     display_names = user_display_map(matches)
-    Enum.map(matches, &serialize_match(&1, display_names))
+    completion_reasons = completion_reason_map(matches)
+
+    Enum.map(matches, &serialize_match(&1, display_names, completion_reasons))
   end
+
+  defp completion_reason_map(matches) do
+    match_ids =
+      matches
+      |> Enum.filter(&(&1.status == "completed"))
+      |> Enum.map(& &1.id)
+
+    if match_ids == [] do
+      %{}
+    else
+      latest_events =
+        MatchEvent
+        |> where([e], e.match_id in ^match_ids)
+        |> distinct([e], e.match_id)
+        |> order_by([e], asc: e.match_id, desc: e.seq)
+        |> select([e], {e.match_id, e.type})
+        |> Repo.all()
+        |> Map.new()
+
+      matches
+      |> Enum.filter(&(&1.status == "completed"))
+      |> Map.new(fn match ->
+        {match.id, completion_reason_from_event(match, Map.get(latest_events, match.id))}
+      end)
+    end
+  end
+
+  defp completion_reason_from_event(_match, "match_conceded"), do: "CONCEDE"
+  defp completion_reason_from_event(_match, "match_timed_out"), do: "TIMEOUT"
+  defp completion_reason_from_event(%Match{winner_id: nil}, _event_type), do: "DRAW"
+  defp completion_reason_from_event(_match, _event_type), do: "KO"
+
+  defp default_completion_reason(%Match{winner_id: nil}), do: "DRAW"
+  defp default_completion_reason(_match), do: "KO"
 
   defp maybe_put_replay_flag(payload, %Match{status: "completed", initial_state: initial_state})
        when is_map(initial_state) do

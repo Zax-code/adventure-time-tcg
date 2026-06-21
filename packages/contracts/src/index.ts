@@ -888,6 +888,7 @@ export const pvpMatchSchema = z.object({
   inviterLoadout: z.array(z.string()),
   inviteeLoadout: z.array(z.string()),
   winnerId: z.string().nullable(),
+  completionReason: z.enum(["KO", "DRAW", "CONCEDE", "TIMEOUT"]).optional(),
   currentTurn: z.number().int().positive().optional(),
   turnExpiresAt: z.string().optional(),
   hasReplayData: z.boolean().optional(),
@@ -1057,6 +1058,7 @@ export const pvpHistoryResponseSchema = z.object({
     .object({
       wins: z.number().int().nonnegative(),
       losses: z.number().int().nonnegative(),
+      draws: z.number().int().nonnegative(),
       winRate: z.number().int().nonnegative(),
     })
     .optional(),

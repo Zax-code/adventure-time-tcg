@@ -317,6 +317,10 @@ const pvp = {
   win: "WIN",
   loss: "LOSS",
   draw: "DRAW",
+  timeoutWin: "TIMEOUT WIN",
+  timedOut: "TIMED OUT",
+  concedeWin: "CONCEDE WIN",
+  conceded: "CONCEDED",
   readyForBattle: "Ready for Battle?",
   readyForBattleHint:
     "Create a loadout and challenge a friend to get started!",
@@ -343,6 +347,7 @@ const pvp = {
   completedMatches: "{count} completed matches",
   wins: "Wins",
   losses: "Losses",
+  draws: "Draws",
   winRate: "Win Rate",
   noCompletedMatches: "No completed matches yet",
   noCompletedMatchesHint: "Complete battles to see your history here!",

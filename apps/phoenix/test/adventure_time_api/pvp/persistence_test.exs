@@ -89,6 +89,21 @@ defmodule AdventureTimeApi.Pvp.PersistenceTest do
     assert {:ok, reconstructed_final} = Pvp.reconstruct_state(match.id)
     assert reconstructed_final["phase"] == "ended"
     assert reconstructed_final["winnerId"] == acting_user_id
+
+    assert {:ok, %{match: conceded_history_match}} =
+             Pvp.get_history_detail(next_player_id, match.id)
+
+    assert conceded_history_match.completionReason == "CONCEDE"
+
+    assert {:ok, loser_history} = Pvp.list_history(next_player_id)
+    assert loser_history.stats.wins == 0
+    assert loser_history.stats.losses == 1
+    assert loser_history.stats.draws == 0
+
+    assert {:ok, winner_history} = Pvp.list_history(acting_user_id)
+    assert winner_history.stats.wins == 1
+    assert winner_history.stats.losses == 0
+    assert winner_history.stats.draws == 0
   end
 
   test "in-progress match times out after 24 hours and current player loses" do
@@ -119,6 +134,7 @@ defmodule AdventureTimeApi.Pvp.PersistenceTest do
 
     assert timed_out_match.status == "COMPLETED"
     assert timed_out_match.winnerId == winner_id
+    assert timed_out_match.completionReason == "TIMEOUT"
     assert battle_state["phase"] == "ended"
     assert battle_state["winnerId"] == winner_id
 
@@ -143,10 +159,21 @@ defmodule AdventureTimeApi.Pvp.PersistenceTest do
 
     assert loser_history_match.status == "COMPLETED"
     assert loser_history_match.winnerId == winner_id
+    assert loser_history_match.completionReason == "TIMEOUT"
     assert loser_replay.initialState["id"] == match.id
     assert loser_replay.finalState["phase"] == "ended"
     assert loser_replay.finalState["winnerId"] == winner_id
     assert Enum.any?(loser_replay.log, &(&1["type"] == "timeout"))
+
+    assert {:ok, loser_history} = Pvp.list_history(timed_out_user_id)
+    assert loser_history.stats.wins == 0
+    assert loser_history.stats.losses == 1
+    assert loser_history.stats.draws == 0
+
+    assert {:ok, winner_history} = Pvp.list_history(winner_id)
+    assert winner_history.stats.wins == 1
+    assert winner_history.stats.losses == 0
+    assert winner_history.stats.draws == 0
   end
 
   test "match schema no longer exposes legacy state field" do

@@ -42,6 +42,7 @@ import {
   formatTurnTimeout,
   useMinuteNow,
 } from "../../src/features/pvp/turn-timeout";
+import { getPvpMatchResultView } from "../../src/features/pvp/match-result";
 
 type ToastState = {
   message: string;
@@ -1295,8 +1296,7 @@ export default function PvpScreen() {
               }
             />
             {completedMatches.map((match) => {
-              const isDraw = match.winnerId == null;
-              const won = match.winnerId === currentUserId;
+              const result = getPvpMatchResultView(match, currentUserId);
               const opponentId =
                 match.inviterId === currentUserId
                   ? match.inviteeId
@@ -1316,15 +1316,22 @@ export default function PvpScreen() {
                     }
                   }}
                   preferFallback
-                  variant={isDraw ? "secondary" : won ? "primary" : "danger"}
+                  variant={
+                    result.tone === "draw"
+                      ? "secondary"
+                      : result.tone === "win"
+                        ? "primary"
+                        : "danger"
+                  }
                   fallbackLayout="stretch"
                   fallbackAppearance={{
                     backgroundColor: tc.surface,
-                    borderColor: isDraw
-                      ? tc.infoBorder
-                      : won
-                        ? tc.successBorder
-                        : tc.dangerBorder,
+                    borderColor:
+                      result.tone === "draw"
+                        ? tc.infoBorder
+                        : result.tone === "win"
+                          ? tc.successBorder
+                          : tc.dangerBorder,
                     borderRadius: 20,
                     foregroundColor: tc.fg,
                     gradientColors: null,
@@ -1335,18 +1342,14 @@ export default function PvpScreen() {
                 >
                   <Text
                     className={`font-nunito-bold text-sm ${
-                      isDraw
+                      result.tone === "draw"
                         ? "text-infoDark"
-                        : won
+                        : result.tone === "win"
                           ? "text-successDark"
                           : "text-dangerDark"
                     }`}
                   >
-                    {isDraw
-                      ? t("pvp.draw")
-                      : won
-                        ? t("pvp.win")
-                        : t("pvp.loss")}
+                    {t(result.labelKey)}
                   </Text>
                   <Text className="flex-1 font-nunito text-sm text-fgMuted">
                     vs {opponentName ?? `${opponentId.slice(0, 10)}…`}
