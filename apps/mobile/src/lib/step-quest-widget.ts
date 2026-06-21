@@ -32,6 +32,7 @@ interface WidgetSnapshotBridgeModule {
   setStepQuestSnapshot: (snapshotJson: string) => Promise<void>;
   clearStepQuestSnapshot: () => Promise<void>;
   setStepQuestSyncContext: (contextJson: string) => Promise<void>;
+  startStepQuestBackgroundSync?: () => Promise<void>;
 }
 
 interface StepQuestWidgetSyncContext {
@@ -165,6 +166,17 @@ export async function setStepQuestWidgetSyncContext(
   }
 
   await widgetSnapshotBridge.setStepQuestSyncContext(JSON.stringify(context));
+}
+
+export async function startStepQuestWidgetBackgroundSync() {
+  if (
+    Platform.OS !== "ios" ||
+    !widgetSnapshotBridge?.startStepQuestBackgroundSync
+  ) {
+    return;
+  }
+
+  await widgetSnapshotBridge.startStepQuestBackgroundSync();
 }
 
 export async function syncStepQuestWidgetSnapshot(

@@ -32,6 +32,10 @@ class AppDelegate: ExpoAppDelegate {
       launchOptions: launchOptions)
 #endif
 
+    Task {
+      await StepQuestBackgroundSyncService.shared.configure()
+    }
+
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
   // Linking API
@@ -225,6 +229,10 @@ actor StepQuestBackgroundSyncService {
     let now = Date()
     let recordedFor = formatLocalDate(now)
     let storedUser = loadStoredAuthUser()
+    guard storedUser?.preferredStepSource == "device_health" else {
+      return
+    }
+
     let locale = loadStoredWidgetLocale() ?? storedUser?.preferredLanguage ?? "en"
     let existingSnapshot = loadStoredSnapshot()
 
@@ -239,10 +247,6 @@ actor StepQuestBackgroundSyncService {
       existingSnapshot: existingSnapshot
     )
     saveSnapshot(localSnapshot)
-
-    guard storedUser?.preferredStepSource == "device_health" else {
-      return
-    }
 
     guard let accessToken = loadSecureStoreValue(for: "accessToken") else {
       return
@@ -313,7 +317,7 @@ actor StepQuestBackgroundSyncService {
     let predicate = HKQuery.predicateForSamples(
       withStart: startOfLocalDay(now),
       end: now,
-      options: .strictStartDate
+      options: []
     )
 
     return await withCheckedContinuation { continuation in
