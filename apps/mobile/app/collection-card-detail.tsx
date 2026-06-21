@@ -779,7 +779,7 @@ export default function CollectionCardDetailScreen() {
                       </Text>
                       <Text
                         style={{
-                          fontSize: 11,
+                          fontSize: 12,
                           fontFamily: "Nunito_700Bold",
                           color: tc.fgMuted,
                         }}
