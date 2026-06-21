@@ -15,20 +15,35 @@ export function ResultsScreen({ phase, winnerId, myUserId, opponentName, onBack 
   const { t } = useTranslation();
   if (phase !== "ended") return null;
 
+  const isDraw = winnerId == null;
   const isWinner = winnerId === myUserId;
+  const titleKey = isDraw
+    ? "pvp.results.draw"
+    : isWinner
+      ? "pvp.results.victory"
+      : "pvp.results.defeat";
+  const subtitle = isDraw
+    ? t("pvp.results.drawSubtitle", { opponent: opponentName })
+    : isWinner
+      ? t("pvp.results.youDefeated", { opponent: opponentName })
+      : t("pvp.results.opponentWon", { opponent: opponentName });
+  const titleStyle = isDraw
+    ? styles.titleDraw
+    : isWinner
+      ? styles.titleWin
+      : styles.titleLose;
 
   return (
     <View style={styles.overlay}>
       <View style={styles.content}>
-        <SwordsIcon size={64} color={isWinner ? "#FACC15" : "#9CA3AF"} />
-        <Text style={[styles.title, isWinner ? styles.titleWin : styles.titleLose]}>
-          {isWinner ? t("pvp.results.victory") : t("pvp.results.defeat")}
+        <SwordsIcon
+          size={64}
+          color={isDraw ? "#93C5FD" : isWinner ? "#FACC15" : "#9CA3AF"}
+        />
+        <Text style={[styles.title, titleStyle]}>
+          {t(titleKey)}
         </Text>
-        <Text style={styles.subtitle}>
-          {isWinner
-            ? t("pvp.results.youDefeated", { opponent: opponentName })
-            : t("pvp.results.opponentWon", { opponent: opponentName })}
-        </Text>
+        <Text style={styles.subtitle}>{subtitle}</Text>
         <Pressable style={styles.backBtn} onPress={onBack}>
           <Text style={styles.backBtnText}>{t("pvp.results.back")}</Text>
         </Pressable>
@@ -64,6 +79,9 @@ const styles = StyleSheet.create({
   },
   titleLose: {
     color: "#9CA3AF",
+  },
+  titleDraw: {
+    color: "#93C5FD",
   },
   subtitle: {
     color: "#D1D5DB",

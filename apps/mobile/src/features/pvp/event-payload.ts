@@ -135,6 +135,10 @@ export function getEventWinnerLabel(event: CombatEvent): string | null {
   return pickString(event.payload, ["winnerName", "winnerId"]);
 }
 
+export function isDrawEvent(event: CombatEvent): boolean {
+  return event.payload.result === "draw" || event.payload.winnerId === null;
+}
+
 export function getEventSourceName(event: CombatEvent): string | null {
   return pickString(event.payload, [
     "sourceName",

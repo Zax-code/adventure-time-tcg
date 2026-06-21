@@ -469,6 +469,46 @@ defmodule AdventureTimeApi.Pvp.BattleEngineCoreTest do
     assert Enum.any?(new_state["log"], &(&1["type"] == "gameOver"))
   end
 
+  test "simultaneous terminal state ends the match as a draw" do
+    state =
+      make_state(
+        p1_units: [make_unit(%{"instanceId" => "p1u1", "hp" => 0, "knockedOut" => true})],
+        p2_units: [make_unit(%{"instanceId" => "p2u1", "hp" => 0, "knockedOut" => true})]
+      )
+
+    assert BattleEngine.check_game_over(state) == {:over, nil}
+
+    {new_state, _events} =
+      BattleEngine.simulate_end_turn(
+        make_state(
+          p1_units: [make_unit(%{"instanceId" => "p1u1", "hp" => 0, "knockedOut" => true})],
+          p2_units: [
+            make_unit(%{
+              "instanceId" => "p2u1",
+              "hp" => 1,
+              "maxHp" => 100,
+              "statuses" => [
+                %{
+                  "name" => "Poison",
+                  "duration" => 2,
+                  "magnitude" => 1,
+                  "sourceInstanceId" => nil,
+                  "appliedAt" => 0
+                }
+              ]
+            })
+          ]
+        )
+      )
+
+    game_over = Enum.find(new_state["log"], &(&1["type"] == "gameOver"))
+
+    assert new_state["phase"] == "ended"
+    assert new_state["winnerId"] == nil
+    assert game_over["payload"]["winnerId"] == nil
+    assert game_over["payload"]["result"] == "draw"
+  end
+
   test "end turn swap promotes a bench unit and applies SummoningSickness" do
     state =
       make_state(

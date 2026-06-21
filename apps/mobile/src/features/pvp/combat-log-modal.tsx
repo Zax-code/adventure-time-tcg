@@ -22,6 +22,7 @@ import {
   getEventWinnerLabel,
   didEventRollPass,
   isMissEvent,
+  isDrawEvent,
 } from "./event-payload";
 import type { PvpBattleState } from "./types";
 import { BattleFullScreenSheet } from "./battle-full-screen-sheet";
@@ -306,6 +307,10 @@ function summarizeCombatEvent(
         target: getEventTargetName(event) ?? target,
       });
     case "gameOver":
+      if (isDrawEvent(event)) {
+        return t("pvp.combatLog.draw");
+      }
+
       return t("pvp.combatLog.winner", {
         winner: getEventWinnerLabel(event) ?? t("pvp.combatLog.unknown"),
       });

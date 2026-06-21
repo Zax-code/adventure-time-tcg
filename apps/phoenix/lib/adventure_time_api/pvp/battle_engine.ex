@@ -3067,10 +3067,17 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
   defp maybe_end_game(state) do
     case check_game_over(state) do
       {:over, winner_id} ->
+        game_over_payload =
+          if is_nil(winner_id) do
+            %{"winnerId" => nil, "result" => "draw"}
+          else
+            %{"winnerId" => winner_id, "result" => "win"}
+          end
+
         state
         |> Map.put("phase", "ended")
         |> Map.put("winnerId", winner_id)
-        |> append_log([new_event(state, "gameOver", %{"winnerId" => winner_id})])
+        |> append_log([new_event(state, "gameOver", game_over_payload)])
 
       :ongoing ->
         state

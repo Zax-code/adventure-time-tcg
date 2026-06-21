@@ -109,6 +109,7 @@ const pvp = {
     preventDeath: "{target} was saved from KO by {ability}",
     statusSteal: "{target} stole {status} from {source}",
     swapHp: "{actor} swapped HP percentages with {target}",
+    draw: "Match ended in a draw",
     winner: "Winner: {winner}",
     unitFallback: "Unit",
     playerFallback: "Player",
@@ -120,8 +121,10 @@ const pvp = {
   results: {
     victory: "VICTORY",
     defeat: "DEFEAT",
+    draw: "DRAW",
     youDefeated: "You defeated {opponent}",
     opponentWon: "{opponent} won this match",
+    drawSubtitle: "Both teams were knocked out against {opponent}",
     back: "Back to PVP",
   },
   effectiveness: {
@@ -304,6 +307,7 @@ const pvp = {
   continueArrow: "Continue ->",
   win: "WIN",
   loss: "LOSS",
+  draw: "DRAW",
   readyForBattle: "Ready for Battle?",
   readyForBattleHint:
     "Create a loadout and challenge a friend to get started!",

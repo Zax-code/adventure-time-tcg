@@ -110,6 +110,7 @@ const pvp = {
     preventDeath: "{target} évite le K.O. grâce à {ability}",
     statusSteal: "{target} vole {status} à {source}",
     swapHp: "{actor} échange ses pourcentages de PV avec {target}",
+    draw: "Le match se termine par une égalité",
     winner: "Vainqueur : {winner}",
     unitFallback: "Unité",
     playerFallback: "Joueur",
@@ -121,8 +122,10 @@ const pvp = {
   results: {
     victory: "VICTOIRE",
     defeat: "DÉFAITE",
+    draw: "ÉGALITÉ",
     youDefeated: "Tu as vaincu {opponent}",
     opponentWon: "{opponent} a remporté ce match",
+    drawSubtitle: "Les deux équipes ont été mises K.O. contre {opponent}",
     back: "Retour au PvP",
   },
   effectiveness: {
@@ -317,6 +320,7 @@ const pvp = {
   continueArrow: "Continuer ->",
   win: "VICTOIRE",
   loss: "DÉFAITE",
+  draw: "ÉGALITÉ",
   readyForBattle: "Prêt pour le combat ?",
   readyForBattleHint: "Crée une composition et défie un ami pour commencer !",
   challengeReadyHint: "Choisis une composition prête et lance un défi en un geste.",

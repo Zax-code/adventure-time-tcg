@@ -1284,6 +1284,7 @@ export default function PvpScreen() {
               }
             />
             {completedMatches.map((match) => {
+              const isDraw = match.winnerId == null;
               const won = match.winnerId === currentUserId;
               const opponentId =
                 match.inviterId === currentUserId
@@ -1304,11 +1305,15 @@ export default function PvpScreen() {
                     }
                   }}
                   preferFallback
-                  variant={won ? "primary" : "danger"}
+                  variant={isDraw ? "secondary" : won ? "primary" : "danger"}
                   fallbackLayout="stretch"
                   fallbackAppearance={{
                     backgroundColor: tc.surface,
-                    borderColor: won ? tc.successBorder : tc.dangerBorder,
+                    borderColor: isDraw
+                      ? tc.infoBorder
+                      : won
+                        ? tc.successBorder
+                        : tc.dangerBorder,
                     borderRadius: 20,
                     foregroundColor: tc.fg,
                     gradientColors: null,
@@ -1319,10 +1324,18 @@ export default function PvpScreen() {
                 >
                   <Text
                     className={`font-nunito-bold text-sm ${
-                      won ? "text-successDark" : "text-dangerDark"
+                      isDraw
+                        ? "text-infoDark"
+                        : won
+                          ? "text-successDark"
+                          : "text-dangerDark"
                     }`}
                   >
-                    {won ? t("pvp.win") : t("pvp.loss")}
+                    {isDraw
+                      ? t("pvp.draw")
+                      : won
+                        ? t("pvp.win")
+                        : t("pvp.loss")}
                   </Text>
                   <Text className="flex-1 font-nunito text-sm text-fgMuted">
                     vs {opponentName ?? `${opponentId.slice(0, 10)}…`}

@@ -175,6 +175,7 @@ export default function PvpHistoryScreen() {
                 match.inviterId === currentUserId
                   ? match.inviteeName ?? match.inviteeId.slice(0, 8)
                   : match.inviterName ?? match.inviterId.slice(0, 8);
+              const isDraw = match.winnerId == null;
               const won = match.winnerId === currentUserId;
 
               return (
@@ -187,11 +188,15 @@ export default function PvpHistoryScreen() {
                   }}
                   disabled={!match.hasReplayData}
                   preferFallback
-                  variant={won ? "primary" : "danger"}
+                  variant={isDraw ? "secondary" : won ? "primary" : "danger"}
                   fallbackLayout="stretch"
                   fallbackAppearance={{
                     backgroundColor: tc.surface,
-                    borderColor: won ? tc.successBorder : tc.dangerBorder,
+                    borderColor: isDraw
+                      ? tc.infoBorder
+                      : won
+                        ? tc.successBorder
+                        : tc.dangerBorder,
                     borderRadius: 16,
                     foregroundColor: tc.fg,
                     gradientColors: null,
@@ -203,11 +208,15 @@ export default function PvpHistoryScreen() {
                   <View className="flex-row items-center gap-4">
                     <View
                       className={`h-14 w-14 items-center justify-center rounded-xl ${
-                        won ? "bg-successDark" : "bg-dangerDark"
+                        isDraw
+                          ? "bg-info"
+                          : won
+                            ? "bg-successDark"
+                            : "bg-dangerDark"
                       }`}
                     >
                       <Text className="font-nunito-extrabold text-lg text-white">
-                        {won ? "W" : "L"}
+                        {isDraw ? "D" : won ? "W" : "L"}
                       </Text>
                       <Text className="font-nunito text-[10px] text-white/80">
                         T{match.currentTurn ?? 1}

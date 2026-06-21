@@ -44,6 +44,10 @@ _Avoid_: Hidden log events, private passive triggers, private cooldown ticks
 Random rolls are private while an action is being chosen or resolved, then public once the result resolves. The combat log should expose roll outcomes and roll/chance or choice details for misses, crits, passive chance checks, status chance checks, and random status choices.
 _Avoid_: Hidden resolved rolls, outcome-only chance events
 
+**PvP Draw**:
+A valid PvP match result where both players reach a terminal no-living-units state in the same resolution window. The match should end with no winner instead of applying a deterministic tiebreaker.
+_Avoid_: Forced winner for simultaneous KO, arbitrary tie breaker
+
 **PvP Bench Visibility**:
 Opponent bench card details are public battle information before those cards enter the active row. Players should be able to inspect bench HP, statuses, assigned abilities, cooldowns, used-ultimate state, and passives during battle.
 _Avoid_: Hidden bench cards, concealed bench abilities
