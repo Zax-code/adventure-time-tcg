@@ -35,6 +35,7 @@ const pvp = {
   },
   board: {
     bench: "BENCH",
+    ready: "GO",
     turnLabel: "Turn {turn} • {hint}",
     hint: {
       copySource: "Tap a source unit to copy from",
@@ -44,6 +45,7 @@ const pvp = {
       highlighted: "Tap a highlighted target",
       swap: "Tap active unit then bench",
       actions: "Tap a card for actions",
+      noReady: "No ready units. End turn or inspect.",
       waiting: "Waiting for opponent",
     },
   },

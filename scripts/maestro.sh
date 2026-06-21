@@ -26,6 +26,7 @@ if [[ "${1:-}" == "test" ]]; then
   test_refresh_token=""
   test_user=""
   test_match_id="${MOBILE_TEST_MATCH_ID:-${TEST_MATCH_ID:-}}"
+  test_replay_id="${MOBILE_TEST_REPLAY_ID:-${TEST_REPLAY_ID:-}}"
 
   if [[ -z "$test_password" ]]; then
     echo "MOBILE_TEST_PASSWORD is required for Maestro smoke tests." >&2
@@ -47,6 +48,16 @@ if [[ "${1:-}" == "test" ]]; then
       ./scripts/ensure-mobile-test-pvp-fixture.sh
     )"
     test_match_id="$(printf '%s\n' "$test_match_id" | tail -n 1)"
+  fi
+
+  if [[ "${#args[@]}" -ge 4 && -f "${args[3]}" ]] && grep -q '\${TEST_REPLAY_ID}' "${args[3]}" && [[ -z "$test_replay_id" ]]; then
+    test_replay_id="$(
+      cd /Users/zax/Develop/adventure-time-tcg/apps/phoenix
+      MOBILE_TEST_EMAIL="$test_email" \
+      MOBILE_TEST_PASSWORD="$test_password" \
+        ./scripts/ensure-mobile-test-pvp-replay-fixture.sh
+    )"
+    test_replay_id="$(printf '%s\n' "$test_replay_id" | tail -n 1)"
   fi
 
   session_file="$(mktemp)"
@@ -97,6 +108,7 @@ NODE
   export TEST_REFRESH_TOKEN="$test_refresh_token"
   export TEST_USER="$test_user"
   export TEST_MATCH_ID="$test_match_id"
+  export TEST_REPLAY_ID="$test_replay_id"
 
   if [[ "${#args[@]}" -ge 4 && -f "${args[3]}" ]]; then
     flow_dir="$(dirname "${args[3]}")"
@@ -112,6 +124,7 @@ NODE
     TEST_REFRESH_TOKEN_VALUE="$test_refresh_token" \
     TEST_USER_VALUE="$test_user" \
     TEST_MATCH_ID_VALUE="$test_match_id" \
+    TEST_REPLAY_ID_VALUE="$test_replay_id" \
       node -e '
         const fs = require("node:fs");
         const [source, target] = process.argv.slice(1);
@@ -126,6 +139,7 @@ NODE
           "${TEST_REFRESH_TOKEN}": process.env.TEST_REFRESH_TOKEN_VALUE ?? "",
           "${TEST_USER}": process.env.TEST_USER_VALUE ?? "",
           "${TEST_MATCH_ID}": process.env.TEST_MATCH_ID_VALUE ?? "",
+          "${TEST_REPLAY_ID}": process.env.TEST_REPLAY_ID_VALUE ?? "",
         };
         let content = fs.readFileSync(source, "utf8");
         for (const [token, value] of Object.entries(replacements)) {

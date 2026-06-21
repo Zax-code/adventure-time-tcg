@@ -1679,6 +1679,7 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
       "character" => Map.get(card, "character", card["name"]),
       "type" => card |> Map.get("type", "Hero") |> CardType.canonicalize!(),
       "rarity" => rarity,
+      "imageUrl" => image_url_from_card(card),
       "hp" => stats.hp,
       "maxHp" => stats.hp,
       "attack" => stats.attack,
@@ -1694,6 +1695,23 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
       "skill" => nil,
       "ultimate" => nil
     }
+  end
+
+  defp image_url_from_card(card) do
+    case Map.get(card, "imageUrl") || Map.get(card, :imageUrl) || Map.get(card, :image_url) do
+      url when is_binary(url) and url != "" ->
+        url
+
+      _ ->
+        case Map.get(card, "imageAssetId") || Map.get(card, :imageAssetId) ||
+               Map.get(card, "image_asset_id") || Map.get(card, :image_asset_id) do
+          image_asset_id when is_binary(image_asset_id) and image_asset_id != "" ->
+            "/api/media/card/#{image_asset_id}"
+
+          _ ->
+            nil
+        end
+    end
   end
 
   # ── State Creation ────────────────────────────────────────────────────────

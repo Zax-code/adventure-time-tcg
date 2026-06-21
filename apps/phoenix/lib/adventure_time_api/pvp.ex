@@ -1530,7 +1530,9 @@ defmodule AdventureTimeApi.Pvp do
            "attack" => card.attack,
            "defense" => card.defense,
            "speed" => card.speed,
-           "rarity_name" => if(rarity, do: rarity.name, else: "Common")
+           "rarity_name" => if(rarity, do: rarity.name, else: "Common"),
+           "imageAssetId" => card.image_asset_id,
+           "imageUrl" => card_image_url(card.image_asset_id)
          }}
       end)
 
@@ -1548,6 +1550,10 @@ defmodule AdventureTimeApi.Pvp do
       end)
     end)
   end
+
+  defp card_image_url(nil), do: nil
+  defp card_image_url(""), do: nil
+  defp card_image_url(image_asset_id), do: "/api/media/card/#{image_asset_id}"
 
   defp normalize_unit_type(unit) do
     Map.update!(unit, "type", &CardType.canonicalize!/1)

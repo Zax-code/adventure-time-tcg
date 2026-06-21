@@ -236,6 +236,61 @@ export function CheckIcon({ size = 24, color = "#DB2777" }: IconProps) {
   );
 }
 
+export function PlayIcon({ size = 24, color = "#DB2777" }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M8 5.5V18.5L18.5 12L8 5.5Z"
+        fill={color}
+        stroke={color}
+        strokeWidth={2}
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+export function PauseIcon({ size = 24, color = "#DB2777" }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M8 5V19" stroke={color} strokeWidth={3} strokeLinecap="round" />
+      <Path d="M16 5V19" stroke={color} strokeWidth={3} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+export function SkipBackIcon({ size = 24, color = "#DB2777" }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M6 5V19" stroke={color} strokeWidth={2.5} strokeLinecap="round" />
+      <Path
+        d="M18 6L9 12L18 18V6Z"
+        fill={color}
+        fillOpacity={0.18}
+        stroke={color}
+        strokeWidth={2}
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+export function SkipForwardIcon({ size = 24, color = "#DB2777" }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M18 5V19" stroke={color} strokeWidth={2.5} strokeLinecap="round" />
+      <Path
+        d="M6 6L15 12L6 18V6Z"
+        fill={color}
+        fillOpacity={0.18}
+        stroke={color}
+        strokeWidth={2}
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
 export function ChevronRightIcon({ size = 24, color = "#DB2777" }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">

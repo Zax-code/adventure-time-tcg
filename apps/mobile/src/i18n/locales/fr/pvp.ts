@@ -36,6 +36,7 @@ const pvp = {
   },
   board: {
     bench: "BANC",
+    ready: "GO",
     turnLabel: "Tour {turn} • {hint}",
     hint: {
       copySource: "Appuie sur l'unité source à copier",
@@ -45,6 +46,7 @@ const pvp = {
       highlighted: "Appuie sur une cible en surbrillance",
       swap: "Appuie sur l'actif puis sur le banc",
       actions: "Appuie sur une carte pour agir",
+      noReady: "Aucune unité prête. Inspecte ou termine.",
       waiting: "En attente de l'adversaire",
     },
   },
