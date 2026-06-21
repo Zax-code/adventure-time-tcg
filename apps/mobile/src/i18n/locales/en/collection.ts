@@ -22,6 +22,11 @@ const collection = {
   },
   noFilterMatches: "No cards match your filters.",
   empty: "Your collection is empty. Open packs or craft your first card!",
+  locked: {
+    illustration: "Hidden art",
+    description: "Craft or unlock this card to reveal its story and powers.",
+    statsHint: "Craft or unlock this card to reveal its battle stats.",
+  },
   dustModal: {
     title: "Dust guide",
     description:

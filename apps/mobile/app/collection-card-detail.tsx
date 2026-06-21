@@ -605,25 +605,25 @@ export default function CollectionCardDetailScreen() {
                   {[
                     {
                       label: "HP",
-                      value: entry.card.hp,
+                      value: isOwned ? String(entry.card.hp) : "??",
                       color: tc.dangerDark,
                       backgroundColor: tc.dangerTint,
                     },
                     {
                       label: "ATK",
-                      value: entry.card.attack,
+                      value: isOwned ? String(entry.card.attack) : "??",
                       color: tc.secondaryText,
                       backgroundColor: tc.secondaryTint,
                     },
                     {
                       label: "DEF",
-                      value: entry.card.defense,
+                      value: isOwned ? String(entry.card.defense) : "??",
                       color: tc.infoText,
                       backgroundColor: tc.infoTint,
                     },
                     {
                       label: "SPD",
-                      value: entry.card.speed,
+                      value: isOwned ? String(entry.card.speed) : "??",
                       color: tc.successText,
                       backgroundColor: tc.successTint,
                     },
@@ -661,6 +661,20 @@ export default function CollectionCardDetailScreen() {
                     </View>
                   ))}
                 </View>
+
+                {!isOwned ? (
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      lineHeight: 19,
+                      fontFamily: "Nunito_600SemiBold",
+                      color: tc.fgMuted,
+                      textAlign: "center",
+                    }}
+                  >
+                    {t("collection.locked.statsHint")}
+                  </Text>
+                ) : null}
               </View>
 
               <View
