@@ -1784,22 +1784,30 @@ function PackSummaryCardSheet({
         }
       }}
       detents={[0, "content"]}
-      scrimColor={withAlpha(tc.primaryStrong, "99")}
+      scrimColor="rgba(0,0,0,0.4)"
       surface={sheetSurface}
     >
       <View
         className="bg-bg"
         style={{
+          borderTopLeftRadius: 32,
+          borderTopRightRadius: 32,
           maxHeight: maxSheetHeight,
           minHeight: Math.min(maxSheetHeight, height * 0.7),
+          overflow: "hidden",
         }}
         testID="pack-summary-card-preview-sheet"
       >
-        <View className="border-b border-primaryTint px-5 pb-4 pt-3">
+        <View className="items-center pb-2 pt-3">
           <View
-            className="mb-3 h-1 w-10 self-center rounded-full"
-            style={{ backgroundColor: withAlpha(tc.primaryStrong, "33") }}
+            className="h-1.5 w-10 rounded-full"
+            style={{ backgroundColor: tc.muted }}
           />
+        </View>
+        <View
+          className="border-b border-primaryTint px-6 py-4"
+          testID="pack-summary-card-preview-header"
+        >
           <View className="flex-row items-center gap-3">
             <View className="flex-1">
               <Text
@@ -1854,6 +1862,71 @@ function PackSummaryCardSheet({
           </View>
 
           <View
+            style={{
+              flexDirection: "row",
+              flexWrap: "wrap",
+              gap: 10,
+            }}
+          >
+            {[
+              {
+                label: t("packs.summary.cardRarity"),
+                value: rarityName,
+                textColor: rarityColor.to,
+                backgroundColor: withAlpha(rarityColor.ring, "22"),
+                borderColor: withAlpha(rarityColor.ring, "66"),
+              },
+              {
+                label: t("packs.summary.cardType"),
+                value: card.type,
+                textColor: tc.primaryStrong,
+                backgroundColor: tc.surface,
+                borderColor: tc.primaryBorder,
+              },
+              {
+                label: t("packs.summary.cardPull"),
+                value: card.isNewForUser
+                  ? t("packs.reveal.newCard")
+                  : t("packs.reveal.duplicate"),
+                textColor: card.isNewForUser ? tc.successText : tc.fgMuted,
+                backgroundColor: card.isNewForUser
+                  ? tc.successTint
+                  : tc.surfaceMuted,
+                borderColor: card.isNewForUser
+                  ? tc.successBorder
+                  : tc.primaryBorder,
+              },
+              {
+                label: t("packs.summary.cardCharacter"),
+                value: card.character,
+                textColor: tc.secondaryText,
+                backgroundColor: tc.secondaryTint,
+                borderColor: tc.secondaryBorder,
+              },
+            ].map((metric) => (
+              <View
+                key={metric.label}
+                className="w-[47.5%] gap-1 rounded-[18px] border px-[14px] py-3"
+                style={{
+                  borderColor: metric.borderColor,
+                  backgroundColor: metric.backgroundColor,
+                }}
+              >
+                <Text className="font-nunito-semibold text-[12px] text-fgMuted">
+                  {metric.label}
+                </Text>
+                <Text
+                  className="font-nunito-extrabold text-[18px]"
+                  numberOfLines={1}
+                  style={{ color: metric.textColor }}
+                >
+                  {metric.value}
+                </Text>
+              </View>
+            ))}
+          </View>
+
+          <View
             className="gap-4 rounded-[24px] border p-4"
             style={{
               backgroundColor: tc.surface,
@@ -1862,44 +1935,9 @@ function PackSummaryCardSheet({
             testID="pack-summary-card-preview-stats"
           >
             <View className="flex-row items-center justify-between gap-3">
-              <View className="flex-row flex-wrap gap-2">
-                <View
-                  className="flex-row items-center gap-2 rounded-full px-3 py-1.5"
-                  style={{
-                    backgroundColor: card.isNewForUser
-                      ? tc.successTint
-                      : tc.surfaceMuted,
-                  }}
-                >
-                  {card.isNewForUser ? (
-                    <CheckIcon size={12} color={tc.successText} />
-                  ) : (
-                    <ClockIcon size={12} color={tc.fgMuted} />
-                  )}
-                  <Text
-                    className="font-nunito-bold text-[11px]"
-                    style={{
-                      color: card.isNewForUser ? tc.successText : tc.fgMuted,
-                    }}
-                  >
-                    {card.isNewForUser
-                      ? t("packs.reveal.newCard")
-                      : t("packs.reveal.duplicate")}
-                  </Text>
-                </View>
-                <View
-                  className="flex-row items-center gap-2 rounded-full px-3 py-1.5"
-                  style={{ backgroundColor: tc.primaryTint }}
-                >
-                  <ZapIcon size={12} color={tc.primaryText} />
-                  <Text
-                    className="font-nunito-bold text-[11px]"
-                    style={{ color: tc.primaryText }}
-                  >
-                    {card.type}
-                  </Text>
-                </View>
-              </View>
+              <Text className="font-nunito-extrabold text-base text-fg">
+                {t("collection.detail.stats")}
+              </Text>
               <LinearGradient
                 colors={[rarityColor.from, rarityColor.to]}
                 start={{ x: 0, y: 0 }}
@@ -1935,21 +1973,6 @@ function PackSummaryCardSheet({
                 </View>
               ))}
             </View>
-          </View>
-
-          <View
-            className="gap-2 rounded-[24px] border p-4"
-            style={{
-              backgroundColor: tc.surface,
-              borderColor: withAlpha(tc.primaryBorder, "88"),
-            }}
-          >
-            <Text className="font-nunito-extrabold text-base text-fg">
-              {t("packs.summary.cardDetails")}
-            </Text>
-            <Text className="font-nunito text-sm leading-6 text-fgMuted">
-              {card.description}
-            </Text>
           </View>
         </ScrollView>
       </View>
