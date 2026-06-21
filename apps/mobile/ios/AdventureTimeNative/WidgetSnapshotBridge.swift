@@ -57,7 +57,17 @@ final class WidgetSnapshotBridge: NSObject {
     defaults.set(apiBaseUrl, forKey: atStepQuestWidgetApiBaseUrlKey)
     defaults.set(themeName, forKey: atStepQuestWidgetThemeNameKey)
     defaults.set(locale, forKey: atStepQuestWidgetLocaleKey)
+    startStepQuestBackgroundSync()
     reloadWidgetTimeline()
+    resolve(nil)
+  }
+
+  @objc(startStepQuestBackgroundSyncWithResolver:rejecter:)
+  func startStepQuestBackgroundSync(
+    withResolver resolve: RCTPromiseResolveBlock,
+    rejecter reject: RCTPromiseRejectBlock
+  ) {
+    startStepQuestBackgroundSync()
     resolve(nil)
   }
 
@@ -79,6 +89,12 @@ final class WidgetSnapshotBridge: NSObject {
   private func reloadWidgetTimeline() {
     if #available(iOS 14.0, *) {
       WidgetCenter.shared.reloadTimelines(ofKind: atStepQuestWidgetKind)
+    }
+  }
+
+  private func startStepQuestBackgroundSync() {
+    Task {
+      await StepQuestBackgroundSyncService.shared.configure()
     }
   }
 

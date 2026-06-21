@@ -30,7 +30,10 @@ import {
 import { apiClient, getStoredUser } from "./api";
 import { getTranslation } from "../i18n";
 import { queryClient } from "./query-client";
-import { syncStepQuestWidgetSnapshot } from "./step-quest-widget";
+import {
+  startStepQuestWidgetBackgroundSync,
+  syncStepQuestWidgetSnapshot,
+} from "./step-quest-widget";
 import {
   type StepSyncAvailability,
   type StepSyncPermissionStatus,
@@ -675,6 +678,10 @@ export async function startIosHealthSubscription() {
   if (!granted) {
     return;
   }
+
+  void startStepQuestWidgetBackgroundSync().catch(() => {
+    // Foreground HealthKit updates still work if the native background hook is unavailable.
+  });
 
   iosHealthSubscription?.remove();
   iosHealthSubscription = subscribeToChanges(IOS_STEP_TYPE, () => {
