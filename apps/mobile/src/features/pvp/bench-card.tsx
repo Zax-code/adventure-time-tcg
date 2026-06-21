@@ -1,6 +1,8 @@
 import { Pressable, Text, View } from "react-native";
 import { Image } from "expo-image";
 
+import { SparklesIcon } from "../../components/icons";
+import { useTranslation } from "../../i18n";
 import { resolveBattleImageUrl } from "./image-url";
 import type { PvpUnitState } from "./types";
 
@@ -23,10 +25,22 @@ export function BenchCard({
   onPress,
   onLongPress,
 }: BenchCardProps) {
+  const { t } = useTranslation();
   const isDead = unit.hp <= 0;
   const hpPct = Math.max(0, unit.hp / Math.max(1, unit.maxHp));
-  const borderColor = isSelected ? "#22D3EE" : isSwapTarget ? "#22C55E" : isValidTarget ? "#FBBF24" : "transparent";
-  const opacity = isDead ? 0.4 : isSelected || isSwapTarget || isValidTarget ? 1 : 0.6;
+  const borderColor = isSelected
+    ? "#22D3EE"
+    : isSwapTarget
+      ? "#22C55E"
+      : isValidTarget
+        ? "#FBBF24"
+        : "transparent";
+  const opacity = isDead
+    ? 0.4
+    : isSelected || isSwapTarget || isValidTarget
+      ? 1
+      : 0.6;
+  const hasPublicPassive = unit.passives.length > 0;
 
   const imageUrl = resolveBattleImageUrl(unit.imageUrl);
 
@@ -43,17 +57,25 @@ export function BenchCard({
         aspectRatio: 5 / 3,
         overflow: "hidden",
         opacity: pressed ? opacity * 0.92 : opacity,
-        backgroundColor: isDead ? "rgba(15,23,42,0.55)" : "rgba(226,232,240,0.55)",
+        backgroundColor: isDead
+          ? "rgba(15,23,42,0.55)"
+          : "rgba(226,232,240,0.55)",
         borderColor,
         borderWidth: 2,
         borderRadius: 10,
       })}
     >
       {imageUrl ? (
-        <Image source={{ uri: imageUrl }} style={{ width: "100%", height: "100%" }} contentFit="cover" />
+        <Image
+          source={{ uri: imageUrl }}
+          style={{ width: "100%", height: "100%" }}
+          contentFit="cover"
+        />
       ) : (
         <View className="h-full w-full items-center justify-center bg-slate-700">
-          <Text style={{ color: "#cbd5e1", fontSize: 10 }}>{unit.name.charAt(0)}</Text>
+          <Text style={{ color: "#cbd5e1", fontSize: 10 }}>
+            {unit.name.charAt(0)}
+          </Text>
         </View>
       )}
 
@@ -63,12 +85,22 @@ export function BenchCard({
         </View>
       ) : null}
 
+      {hasPublicPassive && !isDead ? (
+        <View
+          accessibilityLabel={t("pvp.publicPassive")}
+          className="absolute right-1 top-1 h-[18px] w-[18px] items-center justify-center rounded-full bg-amber-400/95"
+        >
+          <SparklesIcon size={10} color="#78350F" />
+        </View>
+      ) : null}
+
       <View className="absolute bottom-0 left-0 right-0 h-1 bg-black/40">
         <View
           style={{
             height: "100%",
             width: `${hpPct * 100}%`,
-            backgroundColor: hpPct > 0.5 ? "#22C55E" : hpPct > 0.25 ? "#F59E0B" : "#EF4444",
+            backgroundColor:
+              hpPct > 0.5 ? "#22C55E" : hpPct > 0.25 ? "#F59E0B" : "#EF4444",
           }}
         />
       </View>
