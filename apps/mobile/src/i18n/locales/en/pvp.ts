@@ -169,7 +169,6 @@ const pvp = {
       Taunt: "Enemies must target this unit when single-target rules apply.",
       Regeneration: "Heals 8% max HP at the start of turn.",
       Silence: "Cannot use skill or ultimate while active.",
-      Cleanse: "Removes one or more debuffs/status effects from the target unit(s).",
       SummoningSickness: "Cannot act until the owner's next turn starts.",
       Cover:
         "Redirects part of damage to the adjacent cover source while it remains valid.",
@@ -204,6 +203,7 @@ const pvp = {
         "Shields absorb damage before HP. Barrier blocks the next debuff. Cover can redirect part of incoming damage.",
       retaliation:
         "Counter can dodge and strike back. Thorns reflects a portion of received attack damage.",
+      cleanse: "Cleanse removes one or more statuses from the target unit or units.",
     },
     typeTitle: "Type Strengths and Weaknesses",
     typeIntro:

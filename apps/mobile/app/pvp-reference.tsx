@@ -27,7 +27,6 @@ const STATUS_ENTRIES = [
   { name: "Taunt", hue: 345 },
   { name: "Regeneration", hue: 128 },
   { name: "Silence", hue: 260 },
-  { name: "Cleanse", hue: 170 },
   { name: "SummoningSickness", hue: 24 },
   { name: "Cover", hue: 204 },
   { name: "Stunned", hue: 280 },
@@ -48,6 +47,7 @@ const CORE_ITEMS = [
   "slotLimits",
   "mitigation",
   "retaliation",
+  "cleanse",
 ] as const;
 
 const TYPE_ROWS = [

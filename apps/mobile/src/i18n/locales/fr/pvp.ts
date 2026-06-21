@@ -175,8 +175,6 @@ const pvp = {
       Regeneration: "Rend 8 % des PV max en début de tour.",
       Silence:
         "Empêche d'utiliser la compétence et l'ultime tant qu'il est actif.",
-      Cleanse:
-        "Retire un ou plusieurs malus ou effets de statut de l'unité cible.",
       SummoningSickness:
         "Empêche d'agir jusqu'au début du prochain tour du propriétaire.",
       Cover:
@@ -211,6 +209,8 @@ const pvp = {
       mitigation: "Les boucliers absorbent les dégâts avant les PV.",
       retaliation:
         "Contre peut esquiver puis riposter. Épines renvoie une partie des dégâts.",
+      cleanse:
+        "Purification retire un ou plusieurs statuts de l'unité ou des unités ciblées.",
     },
     typeTitle: "Forces et faiblesses des types",
     typeIntro:
