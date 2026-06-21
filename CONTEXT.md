@@ -31,3 +31,7 @@ _Avoid_: Passive on every rarity, extra passive for non-Legendary cards
 **PvP Ability Visibility**:
 Assigned skill, ultimate, and passive abilities are public battle information. Both players should be able to inspect an opponent unit's assigned abilities, cooldowns, and used-ultimate state during battle for transparency.
 _Avoid_: Hidden opponent abilities, hidden cooldowns, reveal-on-trigger passives
+
+**PvP Energy Visibility**:
+Both players' exact current energy totals are public battle information. Energy should be visible to both sides during battle.
+_Avoid_: Hidden opponent energy, obfuscated energy
