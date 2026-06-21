@@ -23,3 +23,7 @@ _Avoid_: Regen
 **PvP Type Matchup**:
 A relationship between an attacking unit's type and a defending unit's type that changes damage dealt in PvP.
 _Avoid_: Type special modifier, hidden type passive
+
+**Legendary Passive Slot**:
+The PvP ability slot that allows a Legendary card to use one passive ability in battle. Non-Legendary cards do not have a passive slot.
+_Avoid_: Passive on every rarity, extra passive for non-Legendary cards

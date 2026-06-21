@@ -220,7 +220,7 @@ const pvp = {
     typeSpecialNone: "-",
     rarityTitle: "Différences de rareté",
     rarityIntro:
-      "La rareté modifie les statistiques de base au début du combat.",
+      "La rareté modifie les statistiques de base au début du combat. Les cartes légendaires activent aussi un emplacement passif.",
     rarityColRarity: "Rareté",
     rarityColHp: "Bonus PV",
     rarityColAtk: "Bonus ATK",

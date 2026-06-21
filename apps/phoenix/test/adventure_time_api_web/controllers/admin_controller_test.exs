@@ -164,7 +164,7 @@ defmodule AdventureTimeApiWeb.AdminControllerTest do
     rarity =
       Repo.insert!(
         Rarity.changeset(%Rarity{}, %{
-          name: unique_name("Ability Rare"),
+          name: "Legendary",
           drop_rate: 10.0,
           color: "#3B82F6"
         })
@@ -372,6 +372,59 @@ defmodule AdventureTimeApiWeb.AdminControllerTest do
 
     invalid_assign = json_response(invalid_assign_conn, 400)
     assert invalid_assign["error"] == "Invalid assignment"
+
+    non_legendary_rarity =
+      Repo.insert!(
+        Rarity.changeset(%Rarity{}, %{
+          name: unique_name("Non Legendary"),
+          drop_rate: 10.0,
+          color: "#3B82F6"
+        })
+      )
+
+    non_legendary_card =
+      Repo.insert!(
+        Card.changeset(%Card{}, %{
+          name: unique_name("Non Legendary Passive Card"),
+          character: "Finn",
+          description: "Should not accept a passive.",
+          hp: 30,
+          attack: 10,
+          defense: 8,
+          speed: 50,
+          type: "Hero",
+          rarity_id: non_legendary_rarity.id
+        })
+      )
+
+    passive =
+      Repo.insert!(
+        AbilityDef.changeset(%AbilityDef{}, %{
+          key: unique_name("invalid.passive"),
+          name: "Invalid Passive",
+          description: "Passive assignment should fail.",
+          type: "PASSIVE",
+          cost: 0,
+          cooldown: nil,
+          once_per_match: false,
+          payload: %{"trigger" => "onActionStart"}
+        })
+      )
+
+    non_legendary_passive_conn =
+      build_conn()
+      |> put_req_header("authorization", "Bearer #{admin_token}")
+      |> post(~p"/admin/abilities/assign", %{
+        "cardId" => non_legendary_card.id,
+        "passiveId" => passive.id
+      })
+
+    non_legendary_passive = json_response(non_legendary_passive_conn, 400)
+    assert non_legendary_passive["error"] == "Invalid assignment"
+
+    assert non_legendary_passive["details"]["passive_id"] == [
+             "can only be assigned to Legendary cards"
+           ]
 
     missing_remove_conn =
       build_conn()

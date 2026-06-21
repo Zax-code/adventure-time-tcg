@@ -653,22 +653,24 @@ defmodule AdventureTimeApi.Pvp do
   end
 
   def assign_card_ability(card_id, attrs) do
-    row =
-      case Repo.get_by(CardAbility, card_id: card_id) do
-        nil -> %CardAbility{card_id: card_id}
-        existing -> existing
+    with :ok <- validate_passive_rarity(card_id, attrs) do
+      row =
+        case Repo.get_by(CardAbility, card_id: card_id) do
+          nil -> %CardAbility{card_id: card_id}
+          existing -> existing
+        end
+
+      row
+      |> CardAbility.changeset(attrs)
+      |> Repo.insert_or_update()
+      |> case do
+        {:ok, ca} ->
+          ca = Repo.preload(ca, [:passive, :skill, :ultimate], force: true)
+          {:ok, serialize_admin_card_ability(ca)}
+
+        {:error, changeset} ->
+          {:error, changeset}
       end
-
-    row
-    |> CardAbility.changeset(attrs)
-    |> Repo.insert_or_update()
-    |> case do
-      {:ok, ca} ->
-        ca = Repo.preload(ca, [:passive, :skill, :ultimate], force: true)
-        {:ok, serialize_admin_card_ability(ca)}
-
-      {:error, changeset} ->
-        {:error, changeset}
     end
   end
 
@@ -1225,11 +1227,46 @@ defmodule AdventureTimeApi.Pvp do
         unit
 
       %{passive_keys: passive_keys, skill_key: skill_key, ultimate_key: ultimate_key} ->
+        passive_keys =
+          if unit["rarity"] == "Legendary" do
+            passive_keys || []
+          else
+            []
+          end
+
         unit
-        |> Map.put("passives", passive_keys || [])
+        |> Map.put("passives", passive_keys)
         |> Map.put("passiveTriggered", %{})
         |> Map.put("skill", skill_key)
         |> Map.put("ultimate", ultimate_key)
+    end
+  end
+
+  defp validate_passive_rarity(_card_id, %{passive_id: passive_id})
+       when passive_id in [nil, ""],
+       do: :ok
+
+  defp validate_passive_rarity(card_id, attrs) do
+    case Repo.get(Card, card_id) do
+      nil ->
+        :ok
+
+      %Card{} = card ->
+        case Repo.preload(card, :rarity) do
+          %Card{rarity: %Rarity{name: "Legendary"}} ->
+            :ok
+
+          _card ->
+            changeset =
+              %CardAbility{card_id: card_id}
+              |> CardAbility.changeset(attrs)
+              |> Ecto.Changeset.add_error(
+                :passive_id,
+                "can only be assigned to Legendary cards"
+              )
+
+            {:error, changeset}
+        end
     end
   end
 

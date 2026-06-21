@@ -5,7 +5,7 @@ defmodule AdventureTimeApi.Pvp.PersistenceTest do
   alias AdventureTimeApi.Catalog.{Card, Rarity}
   alias AdventureTimeApi.Inventory.OwnedCard
   alias AdventureTimeApi.Pvp
-  alias AdventureTimeApi.Pvp.{Match, MatchEvent, MatchSnapshot}
+  alias AdventureTimeApi.Pvp.{AbilityDef, CardAbility, Match, MatchEvent, MatchSnapshot}
   alias AdventureTimeApi.Repo
 
   test "accept, action, end turn, and concede persist via snapshots and events" do
@@ -90,6 +90,29 @@ defmodule AdventureTimeApi.Pvp.PersistenceTest do
     refute :state in Match.__schema__(:fields)
   end
 
+  test "only Legendary cards receive assigned passives in battle state" do
+    inviter = create_user_with_password("passive-inviter@example.com", "password123", "Inviter")
+    invitee = create_user_with_password("passive-invitee@example.com", "password123", "Invitee")
+
+    %{card_ids: card_ids, legendary_id: legendary_id, epic_id: epic_id, passive_key: passive_key} =
+      create_shared_rarity_passive_loadout([inviter, invitee])
+
+    assert {:ok, %{success: true}} = Pvp.create_invite(inviter.id, invitee.email, card_ids)
+
+    match =
+      Repo.one!(
+        from(m in Match, where: m.inviter_id == ^inviter.id and m.invitee_id == ^invitee.id)
+      )
+
+    assert {:ok, %{battleState: battle_state}} = Pvp.accept_match(invitee.id, match.id, card_ids)
+
+    legendary_unit = find_unit_by_card_id(battle_state, legendary_id)
+    epic_unit = find_unit_by_card_id(battle_state, epic_id)
+
+    assert legendary_unit["passives"] == [passive_key]
+    assert epic_unit["passives"] == []
+  end
+
   defp create_shared_loadout_cards(users) do
     rarity =
       Repo.insert!(
@@ -133,10 +156,101 @@ defmodule AdventureTimeApi.Pvp.PersistenceTest do
     card_ids
   end
 
+  defp create_shared_rarity_passive_loadout(users) do
+    legendary = insert_rarity!("Legendary")
+    epic = insert_rarity!("Epic")
+    common = insert_rarity!("Common")
+
+    passive =
+      Repo.insert!(
+        AbilityDef.changeset(%AbilityDef{}, %{
+          key: "test.legendary_passive.#{System.unique_integer([:positive])}",
+          name: "Legendary Passive",
+          description: "Only Legendary cards should receive this.",
+          type: "PASSIVE",
+          cost: 0,
+          cooldown: nil,
+          once_per_match: false,
+          payload: %{"trigger" => "onActionStart"}
+        })
+      )
+
+    cards =
+      [
+        insert_card!("Legendary Passive Card", legendary),
+        insert_card!("Epic Passive Card", epic)
+      ] ++ Enum.map(1..4, &insert_card!("Common Passive Card #{&1}", common))
+
+    cards
+    |> Enum.take(2)
+    |> Enum.each(fn card ->
+      Repo.insert!(
+        CardAbility.changeset(%CardAbility{}, %{
+          card_id: card.id,
+          passive_id: passive.id
+        })
+      )
+    end)
+
+    Enum.each(users, fn user ->
+      Enum.each(cards, fn card ->
+        Repo.insert!(
+          OwnedCard.changeset(%OwnedCard{}, %{
+            quantity: 1,
+            obtained_at: DateTime.utc_now() |> DateTime.truncate(:second)
+          })
+          |> Ecto.Changeset.put_change(:user_id, user.id)
+          |> Ecto.Changeset.put_change(:card_id, card.id)
+        )
+      end)
+    end)
+
+    %{
+      card_ids: Enum.map(cards, & &1.id),
+      legendary_id: List.first(cards).id,
+      epic_id: cards |> Enum.at(1) |> Map.fetch!(:id),
+      passive_key: passive.key
+    }
+  end
+
+  defp insert_rarity!(name) do
+    Repo.insert!(
+      Rarity.changeset(%Rarity{}, %{
+        name: name,
+        drop_rate: 10.0,
+        color: "#9CA3AF"
+      })
+    )
+  end
+
+  defp insert_card!(name, rarity) do
+    unique = unique_email(name)
+
+    Repo.insert!(
+      Card.changeset(%Card{}, %{
+        name: unique,
+        character: unique,
+        description: "#{name} test card",
+        hp: 40,
+        attack: 12,
+        defense: 8,
+        speed: 45,
+        type: "Hero",
+        rarity_id: rarity.id
+      })
+    )
+  end
+
   defp find_unit(state, instance_id) do
     state["players"]
     |> Enum.flat_map(fn player -> player["units"] ++ player["bench"] end)
     |> Enum.find(&(&1["instanceId"] == instance_id))
+  end
+
+  defp find_unit_by_card_id(state, card_id) do
+    state["players"]
+    |> Enum.flat_map(fn player -> player["units"] ++ player["bench"] end)
+    |> Enum.find(&(&1["cardId"] == card_id))
   end
 
   defp create_user_with_password(email, password, display_name) do
