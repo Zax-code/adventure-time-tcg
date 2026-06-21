@@ -137,6 +137,16 @@ defmodule AdventureTimeApi.Pvp.PersistenceTest do
     assert Enum.any?(reconstructed_final["log"], fn event ->
              event["type"] == "gameOver" and event["payload"]["result"] == "timeout"
            end)
+
+    assert {:ok, %{match: loser_history_match, replay: loser_replay}} =
+             Pvp.get_history_detail(timed_out_user_id, match.id)
+
+    assert loser_history_match.status == "COMPLETED"
+    assert loser_history_match.winnerId == winner_id
+    assert loser_replay.initialState["id"] == match.id
+    assert loser_replay.finalState["phase"] == "ended"
+    assert loser_replay.finalState["winnerId"] == winner_id
+    assert Enum.any?(loser_replay.log, &(&1["type"] == "timeout"))
   end
 
   test "match schema no longer exposes legacy state field" do

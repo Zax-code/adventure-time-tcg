@@ -49,8 +49,8 @@ A valid PvP match result where both players reach a terminal no-living-units sta
 _Avoid_: Forced winner for simultaneous KO, arbitrary tie breaker
 
 **PvP Turn Timeout**:
-A disconnect does not by itself change match outcome. If the current player leaves the match inactive for 24 hours after their turn starts, that player loses by timeout and the opponent wins. The exact timeout deadline is public match information and should be visible before it resolves.
-_Avoid_: Disconnect-as-loss, timeout draw, sub-24-hour timeout loss, hidden timeout deadline
+A disconnect does not by itself change match outcome. If the current player leaves the match inactive for 24 hours after their turn starts, that player loses by timeout and the opponent wins. The exact timeout deadline is public match information and should be visible before it resolves. Timeout losers keep normal access to the replay and combat log after the match.
+_Avoid_: Disconnect-as-loss, timeout draw, sub-24-hour timeout loss, hidden timeout deadline, hiding timeout replay from the loser
 
 **PvP Bench Visibility**:
 Opponent bench card details are public battle information before those cards enter the active row. Players should be able to inspect bench HP, statuses, assigned abilities, cooldowns, used-ultimate state, and passives during battle.
