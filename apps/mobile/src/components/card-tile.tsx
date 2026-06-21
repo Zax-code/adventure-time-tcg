@@ -77,8 +77,11 @@ const SIZE_CONFIG = {
     artMinHeight: 84,
     descFlex: 0.9,
     descMinHeight: 60,
-    typeIndicatorHeight: 2,
-    typeIndicatorGap: 3,
+    typeIndicatorHeight: 8,
+    typeIndicatorBottom: "9.4%",
+    typeIndicatorFontSize: 5.1,
+    typeIndicatorPaddingH: 4,
+    typeIndicatorSide: "33%",
     nameFontSize: 9,
     characterFontSize: 7,
     titlePaddingH: 6,
@@ -108,8 +111,11 @@ const SIZE_CONFIG = {
     artMinHeight: 104,
     descFlex: 0.92,
     descMinHeight: 74,
-    typeIndicatorHeight: 3,
-    typeIndicatorGap: 4,
+    typeIndicatorHeight: 10,
+    typeIndicatorBottom: "9.4%",
+    typeIndicatorFontSize: 6.2,
+    typeIndicatorPaddingH: 5,
+    typeIndicatorSide: "33%",
     nameFontSize: 11,
     characterFontSize: 8.5,
     titlePaddingH: 8,
@@ -135,12 +141,15 @@ const SIZE_CONFIG = {
     contentBottom: "13.75%",
     gap: 10,
     panelRadius: 14,
-    artFlex: 1.04,
+    artFlex: 1.0,
     artMinHeight: 178,
-    descFlex: 1.04,
-    descMinHeight: 136,
-    typeIndicatorHeight: 5,
-    typeIndicatorGap: 6,
+    descFlex: 1.12,
+    descMinHeight: 142,
+    typeIndicatorHeight: 14,
+    typeIndicatorBottom: "9.4%",
+    typeIndicatorFontSize: 8.6,
+    typeIndicatorPaddingH: 10,
+    typeIndicatorSide: "33%",
     nameFontSize: 19,
     characterFontSize: 13,
     titlePaddingH: 14,
@@ -148,7 +157,7 @@ const SIZE_CONFIG = {
     descFontSize: 12.2,
     descLineHeight: 16,
     descPadding: 10,
-    descLines: 9,
+    descLines: 10,
     quantityFontSize: 13,
     shimmerWidthMultiplier: 3,
   },
@@ -400,6 +409,11 @@ export const CardTile = memo(function CardTile(props: CardTileProps) {
   const hasShimmer = isLegendary || isEpic;
   const cardContentOpacity = muted || isArchived ? 0.58 : 1;
   const badgeTextColor = pickReadableTextColor(typeColor.dark, tc.fg, "#FFFFFF");
+  const typeIndicatorTextColor = pickReadableTextColor(
+    typeColor.dark,
+    tc.fg,
+    "#FFFFFF",
+  );
   const descriptionTextColor = pickReadableTextColor(
     typeColor.light,
     tc.fg,
@@ -468,10 +482,25 @@ export const CardTile = memo(function CardTile(props: CardTileProps) {
       minHeight: cfg.descMinHeight,
       paddingHorizontal: cfg.descPadding,
       paddingVertical: Math.max(2, cfg.descPadding * 0.5),
-      justifyContent: "space-between",
-      gap: cfg.typeIndicatorGap,
     }),
     [cfg],
+  );
+  const typeIndicatorStyle = useMemo<ViewStyle>(
+    () => ({
+      alignItems: "center",
+      bottom: cfg.typeIndicatorBottom,
+      borderColor: withAlpha(rarityColor.ring, "D9"),
+      borderRadius: cfg.typeIndicatorHeight,
+      borderWidth: 1,
+      height: cfg.typeIndicatorHeight,
+      justifyContent: "center",
+      left: cfg.typeIndicatorSide,
+      paddingHorizontal: cfg.typeIndicatorPaddingH,
+      position: "absolute",
+      right: cfg.typeIndicatorSide,
+      zIndex: 35,
+    }),
+    [cfg, rarityColor.ring],
   );
 
   return (
@@ -653,23 +682,35 @@ export const CardTile = memo(function CardTile(props: CardTileProps) {
             >
               {isLocked ? t("collection.locked.description") : card.description}
             </Text>
-            <LinearGradient
-              pointerEvents="none"
-              colors={[
-                withAlpha(typeColor.dark, "E8"),
-                typeColor.frame,
-                withAlpha(typeColor.dark, "E8"),
-              ]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={{
-                alignSelf: "stretch",
-                borderRadius: cfg.typeIndicatorHeight,
-                height: cfg.typeIndicatorHeight,
-              }}
-            />
           </View>
         </View>
+
+        <LinearGradient
+          pointerEvents="none"
+          colors={[
+            withAlpha(typeColor.dark, "F2"),
+            typeColor.frame,
+            withAlpha(typeColor.dark, "F2"),
+          ]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          className="absolute items-center justify-center"
+          style={typeIndicatorStyle}
+        >
+          <Text
+            className="font-nunito-extrabold"
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.78}
+            style={{
+              color: typeIndicatorTextColor,
+              fontSize: cfg.typeIndicatorFontSize,
+              textAlign: "center",
+            }}
+          >
+            {card.type}
+          </Text>
+        </LinearGradient>
 
         {hasShimmer ? (
           <Animated.View
