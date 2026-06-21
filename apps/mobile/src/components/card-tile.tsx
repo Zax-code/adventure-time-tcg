@@ -1,8 +1,23 @@
-import { memo, useEffect, useMemo, useRef } from "react";
-import type { StyleProp, ViewStyle } from "react-native";
-import { Animated, Easing, Pressable, Text, View } from "react-native";
+import { memo, useEffect, useMemo, useState } from "react";
+import type {
+  ColorValue,
+  LayoutChangeEvent,
+  StyleProp,
+  ViewStyle,
+} from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
+import Animated, {
+  cancelAnimation,
+  Easing,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
 
 import type { CollectionResponse } from "@adventure-time/api-client";
 
@@ -25,7 +40,7 @@ import { THEME_COLORS } from "../theme/themes";
 
 type CollectionEntry = CollectionResponse["cards"][number];
 
-export type CardTileSize = "small" | "medium" | "large";
+export type CardTileSize = "small" | "large";
 
 export type CardTileCard = {
   id?: string;
@@ -77,11 +92,11 @@ const SIZE_CONFIG = {
     artMinHeight: 84,
     descFlex: 0.9,
     descMinHeight: 60,
-    typeIndicatorHeight: 8,
-    typeIndicatorBottom: "9.4%",
-    typeIndicatorFontSize: 5.1,
-    typeIndicatorPaddingH: 4,
-    typeIndicatorSide: "33%",
+    typeIndicatorHeight: 15,
+    typeIndicatorBottom: "6.5%",
+    typeIndicatorFontSize: 6,
+    typeIndicatorPaddingH: 5,
+    typeIndicatorSide: "10%",
     nameFontSize: 9,
     characterFontSize: 7,
     titlePaddingH: 6,
@@ -91,41 +106,6 @@ const SIZE_CONFIG = {
     descPadding: 4,
     descLines: 7,
     quantityFontSize: 11,
-    shimmerWidthMultiplier: 3,
-  },
-  medium: {
-    width: 184,
-    height: 276,
-    borderRadius: 14,
-    fillLeft: "9.5%",
-    fillRight: "9.5%",
-    fillTop: "7.5%",
-    fillBottom: "7.5%",
-    contentLeft: "14%",
-    contentRight: "14%",
-    contentTop: "17.5%",
-    contentBottom: "14.5%",
-    gap: 5,
-    panelRadius: 8,
-    artFlex: 1.08,
-    artMinHeight: 104,
-    descFlex: 0.92,
-    descMinHeight: 74,
-    typeIndicatorHeight: 10,
-    typeIndicatorBottom: "9.4%",
-    typeIndicatorFontSize: 6.2,
-    typeIndicatorPaddingH: 5,
-    typeIndicatorSide: "33%",
-    nameFontSize: 11,
-    characterFontSize: 8.5,
-    titlePaddingH: 8,
-    titlePaddingV: 6,
-    descFontSize: 7.8,
-    descLineHeight: 9.6,
-    descPadding: 5,
-    descLines: 7,
-    quantityFontSize: 12,
-    shimmerWidthMultiplier: 3,
   },
   large: {
     width: 320,
@@ -145,11 +125,11 @@ const SIZE_CONFIG = {
     artMinHeight: 178,
     descFlex: 1.12,
     descMinHeight: 142,
-    typeIndicatorHeight: 14,
-    typeIndicatorBottom: "9.4%",
-    typeIndicatorFontSize: 8.6,
+    typeIndicatorHeight: 30,
+    typeIndicatorBottom: "6.5%",
+    typeIndicatorFontSize: 12,
     typeIndicatorPaddingH: 10,
-    typeIndicatorSide: "33%",
+    typeIndicatorSide: "10%",
     nameFontSize: 19,
     characterFontSize: 13,
     titlePaddingH: 14,
@@ -159,7 +139,6 @@ const SIZE_CONFIG = {
     descPadding: 10,
     descLines: 10,
     quantityFontSize: 13,
-    shimmerWidthMultiplier: 3,
   },
 } as const;
 
@@ -184,6 +163,15 @@ type RarityPalette = {
 };
 
 type Rgb = { r: number; g: number; b: number };
+type PremiumRarityName = "Epic" | "Legendary";
+type ShimmerLayout = { width: number; height: number };
+type GradientColors = readonly [ColorValue, ColorValue, ...ColorValue[]];
+
+const DEFAULT_ART_TITLE_GRADIENT_COLORS: GradientColors = [
+  "rgba(0,0,0,0)",
+  "rgba(0,0,0,0.28)",
+  "rgba(0,0,0,0.62)",
+];
 
 function normalizeEntry(entry: CollectionEntry): CardTileCard {
   return {
@@ -328,41 +316,322 @@ function withAlpha(color: string, alpha: string) {
   return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${opacity})`;
 }
 
+const LOCKED_TYPE_PALETTE: Palette = {
+  frame: "#6B7280",
+  light: "#D1D5DB",
+  dark: "#374151",
+};
+
 function LockedIllustration({
   cfg,
-  typeColor,
-  rarityColor,
-  textColor,
-  label,
+  imageAssetId,
 }: {
   cfg: (typeof SIZE_CONFIG)[CardTileSize];
-  typeColor: Palette;
-  rarityColor: RarityPalette;
-  textColor: string;
-  label: string;
+  imageAssetId?: string | null;
 }) {
+  const blurRadius = Math.max(28, cfg.nameFontSize * 2.2);
+
   return (
-    <LinearGradient
-      colors={[typeColor.dark, rarityColor.ring, typeColor.frame]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      className="flex-1 items-center justify-center"
-      style={{ gap: 4 }}
+    <View
+      className="flex-1 items-center justify-center overflow-hidden"
+      style={{ backgroundColor: LOCKED_TYPE_PALETTE.light }}
     >
-      <Text
-        className="font-nunito-extrabold"
-        style={{ color: textColor, fontSize: cfg.nameFontSize * 2.8 }}
+      {imageAssetId ? (
+        <Image
+          source={{
+            uri: getCardImageUrl(imageAssetId),
+            cacheKey: getCardImageCacheKey(imageAssetId),
+          }}
+          blurRadius={blurRadius}
+          contentFit="cover"
+          cachePolicy="memory-disk"
+          style={{
+            bottom: -14,
+            left: -14,
+            opacity: 0.72,
+            position: "absolute",
+            right: -14,
+            top: -14,
+          }}
+        />
+      ) : (
+        <LinearGradient
+          colors={["#E5E7EB", "#9CA3AF", "#4B5563"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{ flex: 1, height: "100%", width: "100%" }}
+        />
+      )}
+      <View
+        pointerEvents="none"
+        className="absolute inset-0"
+        style={{ backgroundColor: "rgba(229, 231, 235, 0.36)" }}
+      />
+    </View>
+  );
+}
+
+function getShimmerTone(rarityName: PremiumRarityName) {
+  if (rarityName === "Legendary") {
+    return {
+      wash: "rgba(255, 174, 26, 0.22)",
+      washPeak: "rgba(255, 226, 82, 0.36)",
+      beamEdge: "rgba(255, 197, 51, 0)",
+      beamSoft: "rgba(255, 183, 36, 0.36)",
+      beamPeak: "rgba(255, 247, 153, 0.78)",
+      fleck: "rgba(255, 231, 122, 0.88)",
+    };
+  }
+
+  return {
+    wash: "rgba(124, 58, 237, 0.2)",
+    washPeak: "rgba(217, 70, 239, 0.32)",
+    beamEdge: "rgba(192, 132, 252, 0)",
+    beamSoft: "rgba(168, 85, 247, 0.34)",
+    beamPeak: "rgba(233, 181, 255, 0.72)",
+    fleck: "rgba(216, 180, 254, 0.82)",
+  };
+}
+
+function RarityShimmerOverlay({
+  cfg,
+  rarityName,
+}: {
+  cfg: (typeof SIZE_CONFIG)[CardTileSize];
+  rarityName: PremiumRarityName;
+}) {
+  const tone = getShimmerTone(rarityName);
+  const sweepAnim = useSharedValue(0);
+  const pulseAnim = useSharedValue(0);
+  const [layout, setLayout] = useState<ShimmerLayout>({
+    width: cfg.width,
+    height: cfg.height,
+  });
+
+  useEffect(() => {
+    sweepAnim.value = 0;
+    pulseAnim.value = 0;
+
+    sweepAnim.value = withRepeat(
+      withTiming(1, {
+        duration: rarityName === "Legendary" ? 2300 : 2800,
+        easing: Easing.inOut(Easing.cubic),
+      }),
+      -1,
+      false,
+    );
+    pulseAnim.value = withRepeat(
+      withSequence(
+        withTiming(1, {
+          duration: rarityName === "Legendary" ? 900 : 1200,
+          easing: Easing.out(Easing.quad),
+        }),
+        withTiming(0, {
+          duration: rarityName === "Legendary" ? 1200 : 1500,
+          easing: Easing.in(Easing.quad),
+        }),
+      ),
+      -1,
+      false,
+    );
+
+    return () => {
+      cancelAnimation(sweepAnim);
+      cancelAnimation(pulseAnim);
+    };
+  }, [pulseAnim, rarityName, sweepAnim]);
+
+  const handleLayout = ({ nativeEvent }: LayoutChangeEvent) => {
+    const { width, height } = nativeEvent.layout;
+
+    if (
+      width > 0 &&
+      height > 0 &&
+      (Math.abs(width - layout.width) > 0.5 ||
+        Math.abs(height - layout.height) > 0.5)
+    ) {
+      setLayout({ width, height });
+    }
+  };
+
+  const beamWidth = Math.max(30, layout.width * 0.24);
+  const beamHeight = layout.height * 1.55;
+  const leadPeakOpacity = rarityName === "Legendary" ? 0.82 : 0.66;
+  const trailPeakOpacity = rarityName === "Legendary" ? 0.36 : 0.26;
+  const washPeakOpacity = rarityName === "Legendary" ? 0.62 : 0.48;
+  const fleckPeakOpacity = rarityName === "Legendary" ? 0.7 : 0.44;
+  const leadBeamStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(
+      sweepAnim.value,
+      [0, 0.12, 0.48, 0.86, 1],
+      [0, 0.24, leadPeakOpacity, 0.2, 0],
+    ),
+    transform: [
+      {
+        translateX: interpolate(sweepAnim.value, [0, 1], [
+          -layout.width * 0.45 - beamWidth,
+          layout.width * 1.08,
+        ]),
+      },
+      { rotate: "-18deg" },
+    ],
+  }));
+  const trailBeamStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(
+      sweepAnim.value,
+      [0, 0.24, 0.62, 1],
+      [0, 0.18, trailPeakOpacity, 0],
+    ),
+    transform: [
+      {
+        translateX: interpolate(sweepAnim.value, [0, 1], [
+          -layout.width * 0.86 - beamWidth,
+          layout.width * 0.78,
+        ]),
+      },
+      { rotate: "-18deg" },
+    ],
+  }));
+  const washStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(pulseAnim.value, [0, 1], [0.28, washPeakOpacity]),
+  }));
+  const fleckStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(
+      pulseAnim.value,
+      [0, 0.45, 1],
+      [0.12, fleckPeakOpacity, 0.18],
+    ),
+  }));
+  const fleckGrowStyle = useAnimatedStyle(() => ({
+    transform: [
+      {
+        scale: interpolate(pulseAnim.value, [0, 1], [0.7, 1.25]),
+      },
+    ],
+  }));
+  const fleckShrinkStyle = useAnimatedStyle(() => ({
+    transform: [
+      {
+        scale: interpolate(pulseAnim.value, [0, 1], [1.15, 0.75]),
+      },
+    ],
+  }));
+  const legendaryFleckStyle = useAnimatedStyle(() => ({
+    transform: [
+      {
+        scale: interpolate(pulseAnim.value, [0, 1], [0.8, 1.35]),
+      },
+    ],
+  }));
+
+  return (
+    <View
+      pointerEvents="none"
+      onLayout={handleLayout}
+      className="absolute inset-0 overflow-hidden"
+      style={{ zIndex: 35 }}
+    >
+      <Animated.View className="absolute inset-0" style={washStyle}>
+        <LinearGradient
+          colors={[tone.wash, "rgba(255,255,255,0)", tone.washPeak]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{ flex: 1 }}
+        />
+      </Animated.View>
+
+      <Animated.View
+        style={[
+          {
+            height: beamHeight,
+            left: 0,
+            position: "absolute",
+            top: -layout.height * 0.28,
+            width: beamWidth,
+          },
+          leadBeamStyle,
+        ]}
       >
-        ?
-      </Text>
-      <Text
-        className="font-nunito-bold"
-        numberOfLines={1}
-        style={{ color: textColor, fontSize: cfg.characterFontSize }}
+        <LinearGradient
+          colors={[
+            tone.beamEdge,
+            tone.beamSoft,
+            tone.beamPeak,
+            tone.beamSoft,
+            tone.beamEdge,
+          ]}
+          locations={[0, 0.28, 0.5, 0.72, 1]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={{ flex: 1 }}
+        />
+      </Animated.View>
+
+      <Animated.View
+        style={[
+          {
+            height: beamHeight,
+            left: 0,
+            position: "absolute",
+            top: -layout.height * 0.18,
+            width: Math.max(18, beamWidth * 0.55),
+          },
+          trailBeamStyle,
+        ]}
       >
-        {label}
-      </Text>
-    </LinearGradient>
+        <LinearGradient
+          colors={[tone.beamEdge, tone.beamSoft, tone.beamEdge]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={{ flex: 1 }}
+        />
+      </Animated.View>
+
+      <Animated.View
+        className="absolute rounded-full"
+        style={[
+          {
+            backgroundColor: tone.fleck,
+            height: Math.max(2, layout.width * 0.018),
+            left: "18%",
+            top: "19%",
+            width: Math.max(2, layout.width * 0.018),
+          },
+          fleckStyle,
+          fleckGrowStyle,
+        ]}
+      />
+      <Animated.View
+        className="absolute rounded-full"
+        style={[
+          {
+            backgroundColor: tone.fleck,
+            height: Math.max(2, layout.width * 0.012),
+            right: "17%",
+            top: "52%",
+            width: Math.max(2, layout.width * 0.012),
+          },
+          fleckStyle,
+          fleckShrinkStyle,
+        ]}
+      />
+      {rarityName === "Legendary" ? (
+        <Animated.View
+          className="absolute rounded-full"
+          style={[
+            {
+              backgroundColor: tone.fleck,
+              bottom: "20%",
+              height: Math.max(2, layout.width * 0.015),
+              right: "28%",
+              width: Math.max(2, layout.width * 0.015),
+            },
+            fleckStyle,
+            legendaryFleckStyle,
+          ]}
+        />
+      ) : null}
+    </View>
   );
 }
 
@@ -393,11 +662,13 @@ export const CardTile = memo(function CardTile(props: CardTileProps) {
   const displayRarityName = toRarityName(card.rarityName);
   const typePalette = getTypePalette(themeName);
   const rarityPalette = getRarityPalette(themeName);
-  const typeColor = typePalette[card.type] ?? {
-    frame: tc.muted,
-    light: tc.surfaceMuted,
-    dark: tc.fg,
-  };
+  const typeColor = isLocked
+    ? LOCKED_TYPE_PALETTE
+    : (typePalette[card.type] ?? {
+        frame: tc.muted,
+        light: tc.surfaceMuted,
+        dark: tc.fg,
+      });
   const rarityColor = rarityPalette[card.rarityName] ?? {
     from: tc.muted,
     to: tc.fgMuted,
@@ -406,9 +677,12 @@ export const CardTile = memo(function CardTile(props: CardTileProps) {
   const isArchived = Boolean(card.isArchived);
   const isLegendary = displayRarityName === "Legendary";
   const isEpic = displayRarityName === "Epic";
-  const hasShimmer = isLegendary || isEpic;
+  const premiumRarityName: PremiumRarityName | null = isLegendary
+    ? "Legendary"
+    : isEpic
+      ? "Epic"
+      : null;
   const cardContentOpacity = muted || isArchived ? 0.58 : 1;
-  const badgeTextColor = pickReadableTextColor(typeColor.dark, tc.fg, "#FFFFFF");
   const typeIndicatorTextColor = pickReadableTextColor(
     typeColor.dark,
     tc.fg,
@@ -421,61 +695,38 @@ export const CardTile = memo(function CardTile(props: CardTileProps) {
   );
   const frameSource = getCardOutlineSource(themeName, displayRarityName);
 
-  const bounceAnim = useRef(new Animated.Value(0)).current;
+  const bounceAnim = useSharedValue(0);
   useEffect(() => {
     if (size !== "small" || quantity <= 1) {
+      cancelAnimation(bounceAnim);
+      bounceAnim.value = 0;
       return;
     }
 
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(bounceAnim, {
-          toValue: -5,
+    bounceAnim.value = withRepeat(
+      withSequence(
+        withTiming(-5, {
           duration: 400,
-          useNativeDriver: true,
           easing: Easing.out(Easing.quad),
         }),
-        Animated.timing(bounceAnim, {
-          toValue: 0,
+        withTiming(0, {
           duration: 400,
-          useNativeDriver: true,
           easing: Easing.in(Easing.quad),
         }),
-      ]),
+      ),
+      -1,
+      false,
     );
-    loop.start();
-    return () => loop.stop();
+
+    return () => {
+      cancelAnimation(bounceAnim);
+      bounceAnim.value = 0;
+    };
   }, [bounceAnim, quantity, size]);
+  const bounceStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: bounceAnim.value }],
+  }));
 
-  const shimmerAnim = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    if (!hasShimmer) {
-      return;
-    }
-
-    const duration = isLegendary ? 2600 : 3100;
-    const loop = Animated.loop(
-      Animated.timing(shimmerAnim, {
-        toValue: 1,
-        duration,
-        useNativeDriver: true,
-        easing: Easing.inOut(Easing.ease),
-      }),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [hasShimmer, isLegendary, shimmerAnim]);
-
-  const shimmerColorPeak = isLegendary
-    ? "rgba(255, 231, 122, 0.23)"
-    : "rgba(202, 132, 255, 0.2)";
-  const shimmerColorEdge = isLegendary
-    ? "rgba(255, 231, 122, 0)"
-    : "rgba(202, 132, 255, 0)";
-  const shimmerTranslate = shimmerAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [-cfg.width * cfg.shimmerWidthMultiplier, cfg.width],
-  });
   const descriptionPanelStyle = useMemo<ViewStyle>(
     () => ({
       flex: cfg.descFlex,
@@ -489,18 +740,15 @@ export const CardTile = memo(function CardTile(props: CardTileProps) {
     () => ({
       alignItems: "center",
       bottom: cfg.typeIndicatorBottom,
-      borderColor: withAlpha(rarityColor.ring, "D9"),
       borderRadius: cfg.typeIndicatorHeight,
-      borderWidth: 1,
       height: cfg.typeIndicatorHeight,
       justifyContent: "center",
       left: cfg.typeIndicatorSide,
       paddingHorizontal: cfg.typeIndicatorPaddingH,
       position: "absolute",
       right: cfg.typeIndicatorSide,
-      zIndex: 35,
     }),
-    [cfg, rarityColor.ring],
+    [cfg],
   );
 
   return (
@@ -574,13 +822,7 @@ export const CardTile = memo(function CardTile(props: CardTileProps) {
             }}
           >
             {isLocked ? (
-              <LockedIllustration
-                cfg={cfg}
-                typeColor={typeColor}
-                rarityColor={rarityColor}
-                textColor={badgeTextColor}
-                label={t("collection.locked.illustration")}
-              />
+              <LockedIllustration cfg={cfg} imageAssetId={card.imageAssetId} />
             ) : card.imageAssetId ? (
               <Image
                 source={{
@@ -609,16 +851,14 @@ export const CardTile = memo(function CardTile(props: CardTileProps) {
               </View>
             )}
 
-            <LinearGradient
-              pointerEvents="none"
-              colors={[
-                "rgba(0,0,0,0)",
-                "rgba(0,0,0,0.28)",
-                "rgba(0,0,0,0.62)",
-              ]}
-              className="absolute inset-x-0 bottom-0"
-              style={{ height: "48%" }}
-            />
+            {!isLocked ? (
+              <LinearGradient
+                pointerEvents="none"
+                colors={DEFAULT_ART_TITLE_GRADIENT_COLORS}
+                className="absolute inset-x-0 bottom-0"
+                style={{ height: "48%" }}
+              />
+            ) : null}
 
             <View
               className="absolute bottom-0 left-0 right-0 items-center"
@@ -642,7 +882,7 @@ export const CardTile = memo(function CardTile(props: CardTileProps) {
                   textShadowRadius: 3,
                 }}
               >
-                {isLocked ? t("collection.locked.title") : card.name}
+                {card.name}
               </Text>
               <Text
                 className="font-nunito-semibold italic"
@@ -658,7 +898,7 @@ export const CardTile = memo(function CardTile(props: CardTileProps) {
                   textShadowRadius: 2,
                 }}
               >
-                {isLocked ? displayRarityName : card.character}
+                {card.character}
               </Text>
             </View>
           </View>
@@ -680,7 +920,7 @@ export const CardTile = memo(function CardTile(props: CardTileProps) {
                 textShadowRadius: 1,
               }}
             >
-              {isLocked ? t("collection.locked.description") : card.description}
+              {isLocked ? "" : card.description}
             </Text>
           </View>
         </View>
@@ -708,30 +948,9 @@ export const CardTile = memo(function CardTile(props: CardTileProps) {
               textAlign: "center",
             }}
           >
-            {card.type}
+            {isLocked ? "????" : card.type}
           </Text>
         </LinearGradient>
-
-        {hasShimmer ? (
-          <Animated.View
-            pointerEvents="none"
-            style={{
-              position: "absolute",
-              top: 0,
-              height: cfg.height,
-              width: cfg.width * cfg.shimmerWidthMultiplier,
-              transform: [{ translateX: shimmerTranslate }],
-              zIndex: 20,
-            }}
-          >
-            <LinearGradient
-              colors={[shimmerColorEdge, shimmerColorPeak, shimmerColorEdge]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={{ flex: 1 }}
-            />
-          </Animated.View>
-        ) : null}
 
         <Image
           pointerEvents="none"
@@ -746,6 +965,10 @@ export const CardTile = memo(function CardTile(props: CardTileProps) {
           contentFit="fill"
         />
 
+        {premiumRarityName ? (
+          <RarityShimmerOverlay cfg={cfg} rarityName={premiumRarityName} />
+        ) : null}
+
         {isArchived ? (
           <View className="absolute right-3 top-3 z-40 rounded-full bg-dangerDark/90 px-2 py-1">
             <Text className="font-nunito-extrabold text-[10px] text-white">
@@ -758,11 +981,13 @@ export const CardTile = memo(function CardTile(props: CardTileProps) {
       {size === "small" &&
         (quantity > 1 ? (
           <Animated.View
-            style={{
-              alignItems: "center",
-              marginTop: 4,
-              transform: [{ translateY: bounceAnim }],
-            }}
+            style={[
+              {
+                alignItems: "center",
+                marginTop: 4,
+              },
+              bounceStyle,
+            ]}
           >
             <View
               className="items-center rounded-full"
