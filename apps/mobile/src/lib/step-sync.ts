@@ -27,6 +27,8 @@ import {
   requestPermission,
 } from "react-native-health-connect";
 
+import type { QuestsResponse } from "@adventure-time/api-client";
+
 import { apiClient, getStoredUser } from "./api";
 import { getTranslation } from "../i18n";
 import { queryClient } from "./query-client";
@@ -462,6 +464,71 @@ function updateLiveDeviceSteps(steps: number) {
   });
 }
 
+function buildLocalStepQuestResponse(
+  currentQuests: QuestsResponse | undefined,
+  stepCount: number,
+  recordedFor: string,
+): QuestsResponse {
+  const currentStepQuest = currentQuests?.quests.find(
+    (quest) => quest.type === "steps_10k",
+  );
+  const progress = Math.max(0, stepCount);
+  const target = Math.max(currentStepQuest?.target ?? STEP_GOAL, 1);
+  const claimed = currentStepQuest?.claimed ?? false;
+  const failed = currentStepQuest?.failed ?? false;
+  const completed = claimed
+    ? (currentStepQuest?.completed ?? true)
+    : !failed && progress >= target;
+  const stepQuest = {
+    id: currentStepQuest?.id ?? `local-steps_10k-${recordedFor}`,
+    version: `local:${recordedFor}:${progress}`,
+    type: "steps_10k",
+    title: currentStepQuest?.title ?? "steps_10k",
+    description: currentStepQuest?.description ?? "steps_10k_desc",
+    target,
+    progress,
+    completed,
+    claimed,
+    reward: currentStepQuest?.reward ?? 150,
+    icon: currentStepQuest?.icon ?? "walking",
+    actionPath: currentStepQuest?.actionPath ?? null,
+    failed,
+  };
+
+  if (!currentQuests) {
+    return {
+      quests: [stepQuest],
+      fitbitConnected: false,
+    };
+  }
+
+  return {
+    ...currentQuests,
+    quests: currentStepQuest
+      ? currentQuests.quests.map((quest) =>
+          quest.type === "steps_10k" ? { ...quest, ...stepQuest } : quest,
+        )
+      : [...currentQuests.quests, stepQuest],
+  };
+}
+
+async function syncLocalStepQuestWidgetSnapshot(
+  steps: number,
+  recordedFor: string,
+  user: Awaited<ReturnType<typeof getStepSyncUser>>,
+) {
+  if (!user || user.preferredStepSource !== "device_health") {
+    return;
+  }
+
+  const currentQuests = queryClient.getQueryData<QuestsResponse>(["quests"]);
+  await syncStepQuestWidgetSnapshot(
+    buildLocalStepQuestResponse(currentQuests, steps, recordedFor),
+    user.preferredLanguage ?? useLocaleStore.getState().locale,
+    useThemeStore.getState().themeName,
+  );
+}
+
 function scheduleForegroundSync() {
   clearScheduledForegroundSync();
   pedometerSyncTimeout = setTimeout(() => {
@@ -566,6 +633,7 @@ export async function syncDeviceStepsNow({
       const recordedFor = formatLocalDate(now);
       updateLiveDeviceSteps(steps);
       pedometerBaseSteps = steps;
+      await syncLocalStepQuestWidgetSnapshot(steps, recordedFor, user);
 
       await apiClient.syncSteps({
         source: "device_health",
