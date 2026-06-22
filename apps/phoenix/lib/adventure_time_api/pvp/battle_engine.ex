@@ -3152,7 +3152,8 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
   end
 
   defp normalize_view_types(state) do
-    Map.update!(state, "players", fn players ->
+    state
+    |> Map.update!("players", fn players ->
       Enum.map(players, fn player ->
         player
         |> normalize_player_name()
@@ -3168,6 +3169,7 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
         end)
       end)
     end)
+    |> normalize_ability_definition_payloads()
   end
 
   defp normalize_player_name(player) do
@@ -3183,6 +3185,40 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
         |> Map.put_new("displayName", display_name)
     end
   end
+
+  defp normalize_ability_definition_payloads(state) do
+    case Map.get(state, "abilityDefinitions") do
+      ability_defs when is_map(ability_defs) ->
+        normalized =
+          Map.new(ability_defs, fn
+            {key, %{} = ability_def} ->
+              {key, Map.update(ability_def, "payload", nil, &drop_nil_magnitude_keys/1)}
+
+            entry ->
+              entry
+          end)
+
+        Map.put(state, "abilityDefinitions", normalized)
+
+      _ ->
+        state
+    end
+  end
+
+  defp drop_nil_magnitude_keys(value) when is_list(value) do
+    Enum.map(value, &drop_nil_magnitude_keys/1)
+  end
+
+  defp drop_nil_magnitude_keys(value) when is_map(value) do
+    value
+    |> Enum.flat_map(fn
+      {"magnitude", nil} -> []
+      {key, nested} -> [{key, drop_nil_magnitude_keys(nested)}]
+    end)
+    |> Map.new()
+  end
+
+  defp drop_nil_magnitude_keys(value), do: value
 
   # ── Private Helpers ───────────────────────────────────────────────────────
 

@@ -1414,7 +1414,7 @@ defmodule AdventureTimeApi.Pvp do
       "cost" => ability.cost,
       "cooldown" => ability.cooldown,
       "oncePerMatch" => ability.once_per_match,
-      "payload" => ability.payload
+      "payload" => drop_nil_magnitude_keys(ability.payload)
     }
   end
 
@@ -1496,11 +1496,26 @@ defmodule AdventureTimeApi.Pvp do
       cost: ability.cost,
       cooldown: ability.cooldown,
       oncePerMatch: ability.once_per_match,
-      payload: ability.payload,
+      payload: drop_nil_magnitude_keys(ability.payload),
       createdAt: iso8601(ability.inserted_at),
       updatedAt: iso8601(ability.updated_at)
     }
   end
+
+  defp drop_nil_magnitude_keys(value) when is_list(value) do
+    Enum.map(value, &drop_nil_magnitude_keys/1)
+  end
+
+  defp drop_nil_magnitude_keys(value) when is_map(value) do
+    value
+    |> Enum.flat_map(fn
+      {"magnitude", nil} -> []
+      {key, nested} -> [{key, drop_nil_magnitude_keys(nested)}]
+    end)
+    |> Map.new()
+  end
+
+  defp drop_nil_magnitude_keys(value), do: value
 
   defp serialize_admin_card_ability(ca) do
     %{

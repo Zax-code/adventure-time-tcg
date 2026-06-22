@@ -123,6 +123,67 @@ defmodule AdventureTimeApi.Pvp.BattleEngineCoreTest do
     end)
   end
 
+  test "build_view omits nil magnitude keys from ability payload status specs" do
+    state =
+      make_state(
+        p1_units: [
+          make_unit(%{
+            "instanceId" => "p1u1",
+            "statuses" => [
+              %{
+                "name" => "SummoningSickness",
+                "duration" => 1,
+                "magnitude" => nil,
+                "appliedAt" => 0
+              }
+            ]
+          })
+        ]
+      )
+      |> put_in(["abilityDefinitions", "ash.butterflies"], %{
+        "key" => "ash.butterflies",
+        "name" => "Butterflies of Doom",
+        "description" => "Apply Poison, Vulnerable, and Mark to all enemies.",
+        "type" => "ULTIMATE",
+        "cost" => 3,
+        "cooldown" => nil,
+        "oncePerMatch" => true,
+        "payload" => %{
+          "applyStatuses" => [
+            %{
+              "name" => "Poison",
+              "duration" => 3,
+              "magnitude" => nil,
+              "target" => "allEnemies"
+            },
+            %{
+              "name" => "Vulnerable",
+              "duration" => 2,
+              "magnitude" => nil,
+              "target" => "allEnemies"
+            },
+            %{
+              "name" => "Mark",
+              "duration" => 2,
+              "magnitude" => nil,
+              "target" => "allEnemies"
+            }
+          ],
+          "target" => "allEnemies"
+        }
+      })
+
+    view = BattleEngine.build_view(state, "player1")
+    statuses = get_in(view, ["abilityDefinitions", "ash.butterflies", "payload", "applyStatuses"])
+
+    unit_status =
+      get_in(view, ["players", Access.at(0), "units", Access.at(0), "statuses", Access.at(0)])
+
+    assert Enum.all?(statuses, &(not Map.has_key?(&1, "magnitude")))
+    assert Map.has_key?(unit_status, "magnitude")
+    assert unit_status["magnitude"] == nil
+  end
+
   test "create_battle_state chooses higher initiative player and applies rarity bonuses" do
     inviter_cards = [
       %{
