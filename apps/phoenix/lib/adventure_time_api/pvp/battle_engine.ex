@@ -1000,17 +1000,26 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
     end)
   end
 
+  defp unit_alive?(unit), do: unit["hp"] > 0 and not unit["knockedOut"]
+
+  defp target_alive?(state, instance_id) do
+    case find_unit_across_players(state, instance_id) do
+      {:ok, unit} -> unit_alive?(unit)
+      {:error, _} -> false
+    end
+  end
+
   defp alive_active_unit_ids(nil), do: []
 
   defp alive_active_unit_ids(player) do
     player["units"]
-    |> Enum.filter(fn unit -> unit["hp"] > 0 and not unit["knockedOut"] end)
+    |> Enum.filter(&unit_alive?/1)
     |> Enum.map(& &1["instanceId"])
   end
 
   defp lowest_hp_unit_id(units) do
     units
-    |> Enum.filter(fn unit -> unit["hp"] > 0 and not unit["knockedOut"] end)
+    |> Enum.filter(&unit_alive?/1)
     |> Enum.min_by(fn unit -> unit["hp"] / max(1, unit["maxHp"]) end, fn -> nil end)
     |> case do
       nil -> nil
@@ -1020,6 +1029,7 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
 
   defp target_ids_for_scope(state, actor_id, selected_target_id, scope, opts \\ []) do
     selector = Keyword.get(opts, :selector)
+    allow_dead = Keyword.get(opts, :allow_dead, false)
     actor_player = get_unit_player(state, actor_id)
     enemy_player = get_enemy_player(state, actor_id)
 
@@ -1035,6 +1045,9 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
           alive_active_unit_ids(enemy_player)
 
         "allUnits" ->
+          alive_active_unit_ids(actor_player) ++ alive_active_unit_ids(enemy_player)
+
+        "all" ->
           alive_active_unit_ids(actor_player) ++ alive_active_unit_ids(enemy_player)
 
         "ally" ->
@@ -1059,6 +1072,7 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
     target_ids
     |> Enum.reject(&is_nil/1)
     |> Enum.uniq()
+    |> Enum.filter(fn target_id -> allow_dead or target_alive?(state, target_id) end)
   end
 
   defp status_default_scope(default_scope, status_name) do
