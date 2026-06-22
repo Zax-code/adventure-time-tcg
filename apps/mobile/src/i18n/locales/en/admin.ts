@@ -541,6 +541,7 @@ const admin = {
     entry: "Entry {index}",
     status: "Status",
     duration: "Duration",
+    consumedOnAction: "Consumed on action",
     magnitude: "Magnitude",
     entryTarget: "Entry target",
     entrySelector: "Entry selector",

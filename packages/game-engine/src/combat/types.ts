@@ -60,10 +60,14 @@ export type AbilityTargetSelector =
 
 export interface Status {
   name: StatusName;
-  duration: number; // turns remaining, -1 for permanent until consumed
+  duration: number; // original owner-turn duration, -1 for permanent until consumed
   magnitude?: number; // for Shield: amount remaining
   sourceInstanceId?: string; // for Cover: who is providing it
   appliedAt: number; // turn number when applied
+  appliedDuringPlayerId?: string | null;
+  targetOwnerId?: string | null;
+  expiresAt?: "afterOwnerTurnStartEffects" | "afterOwnerTurnEndEffects";
+  ownerTurnsSeen?: number;
 }
 
 // Ability Types

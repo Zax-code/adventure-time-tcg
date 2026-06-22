@@ -641,7 +641,7 @@ defmodule AdventureTimeApi.Pvp do
 
   def create_ability_def(attrs) do
     %AbilityDef{}
-    |> AbilityDef.changeset(attrs)
+    |> AbilityDef.changeset(normalize_ability_attrs(attrs))
     |> Repo.insert()
     |> case do
       {:ok, ability} -> {:ok, serialize_ability_def(ability)}
@@ -656,7 +656,7 @@ defmodule AdventureTimeApi.Pvp do
 
       %AbilityDef{} = ability ->
         ability
-        |> AbilityDef.changeset(attrs)
+        |> AbilityDef.changeset(normalize_ability_attrs(attrs))
         |> Repo.update()
         |> case do
           {:ok, updated} -> {:ok, serialize_ability_def(updated)}
@@ -664,6 +664,41 @@ defmodule AdventureTimeApi.Pvp do
         end
     end
   end
+
+  defp normalize_ability_attrs(attrs) do
+    if Map.has_key?(attrs, :payload) do
+      Map.update!(attrs, :payload, &canonicalize_consumption_only_status_durations/1)
+    else
+      attrs
+    end
+  end
+
+  defp canonicalize_consumption_only_status_durations(value) when is_list(value) do
+    Enum.map(value, &canonicalize_consumption_only_status_durations/1)
+  end
+
+  defp canonicalize_consumption_only_status_durations(value) when is_map(value) do
+    value =
+      value
+      |> Enum.map(fn {key, nested} ->
+        {key, canonicalize_consumption_only_status_durations(nested)}
+      end)
+      |> Map.new()
+
+    name = Map.get(value, "name") || Map.get(value, :name)
+
+    if name in ["Freeze", "Stunned"] do
+      cond do
+        Map.has_key?(value, "duration") -> Map.put(value, "duration", -1)
+        Map.has_key?(value, :duration) -> Map.put(value, :duration, -1)
+        true -> Map.put(value, "duration", -1)
+      end
+    else
+      value
+    end
+  end
+
+  defp canonicalize_consumption_only_status_durations(value), do: value
 
   def delete_ability_def(id) do
     case Repo.get(AbilityDef, id) do

@@ -43,6 +43,7 @@ const STATUS_ENTRIES = [
 const CORE_ITEMS = [
   "speed",
   "cooldown",
+  "statusTiming",
   "formation",
   "slotLimits",
   "mitigation",

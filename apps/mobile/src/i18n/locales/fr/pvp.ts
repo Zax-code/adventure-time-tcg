@@ -163,9 +163,9 @@ const pvp = {
       "Limites de rareté par composition : maximum 1 carte légendaire et 2 cartes épiques.",
     turnTitle: "Déroulement d'un tour",
     turnItem1:
-      "Au début du tour, le joueur actif gagne de l'énergie (2 au tour 1, puis 3 par tour).",
+      "Les deux joueurs commencent avec 1 énergie. Quand le tour passe à un joueur, son énergie augmente de 1, jusqu'à 5.",
     turnItem2:
-      "Au début de ton tour, les ticks de statut se résolvent et les recharges baissent de 1 pour tes cartes actives et de banc.",
+      "Au début de ton tour, les ticks de statut de tes cartes actives se résolvent et les recharges baissent de 1 pour tes cartes actives et de banc.",
     turnItem3:
       "Tu peux enchaîner les actions jusqu'à cliquer sur Terminer le tour ou ne plus avoir d'option utilisable.",
     actionsTitle: "Actions et coûts",
@@ -175,7 +175,7 @@ const pvp = {
     actionsItem3:
       "L'ultime coûte généralement 3 énergies et ne peut être utilisé qu'une fois par match.",
     actionsItem4:
-      "Silence empêche d'utiliser compétence et ultime. Étourdi ajoute +1 énergie à ta prochaine attaque, compétence ou ultime, puis disparaît.",
+      "Silence empêche d'utiliser compétence et ultime. Étourdi ajoute +1 énergie à ta prochaine action de combat ou copie, puis disparaît.",
     swapTitle: "Échange avec le banc",
     swapItem1:
       "L'échange coûte 1 énergie et est mis en file avec Terminer le tour.",
@@ -192,7 +192,7 @@ const pvp = {
       "Provocation force les actions ennemies mono-cible. Les ennemis camouflés ne peuvent pas être ciblés.",
     statusTitle: "Statuts et recharges",
     statusBody:
-      "Les statuts (Brûlure, Gel, Étourdi, etc.) sont appliqués par les capacités puis résolus par le moteur via les ticks de début de tour, la consommation à l'action et les expirations.",
+      "Les statuts (Brûlure, Gel, Étourdi, etc.) sont appliqués par les capacités. Les statuts à durée comptent les tours du propriétaire, tandis que Gel et Étourdi restent jusqu'à être consommés par une action de combat ou copie.",
   },
   reference: {
     open: "Référence de combat",
@@ -205,7 +205,7 @@ const pvp = {
     statusDesc: {
       Burn: "Inflige 10 % des PV max en début de tour et réduit les dégâts d'attaque infligés (-10 %).",
       Freeze:
-        "Fait passer la prochaine action quand l'unité agit et augmente les dégâts reçus (+20 %) tant qu'il est actif.",
+        "Fait passer la prochaine action de combat ou tentative de copie sans dépenser d'énergie, et augmente les dégâts reçus (+20 %) tant qu'il est actif.",
       Shield: "Absorbe les dégâts reçus avant la perte de PV.",
       GuardUp: "Augmente la défense tant que le statut est actif (+25 %).",
       Vulnerable: "Augmente les dégâts reçus (+25 %).",
@@ -222,7 +222,7 @@ const pvp = {
       Cover:
         "Redirige une partie des dégâts vers la source de couverture adjacente tant qu'elle reste valide.",
       Stunned:
-        "La prochaine action coûte +1 énergie, puis l'effet est consommé.",
+        "La prochaine action de combat ou copie coûte +1 énergie, puis l'effet est consommé.",
       Poison:
         "Inflige 5 % des PV max en dégâts de début de tour par charge et peut se cumuler.",
       Thorns: "Renvoie 15 % des dégâts d'attaque reçus vers les attaquants.",
@@ -245,6 +245,8 @@ const pvp = {
         "La vitesse pilote les chances de toucher, de rater et de critiquer.",
       cooldown:
         "Les recharges diminuent au début du tour du propriétaire, y compris pour les cartes sur le banc.",
+      statusTiming:
+        "Les statuts à durée comptent les tours du propriétaire de la cible et expirent après leur limite de début ou fin de tour. Gel et Étourdi ne diminuent pas avec les tours.",
       formation:
         "Quand une carte active est K.O., le moteur remplit automatiquement les places actives libres avec des cartes vivantes du banc.",
       slotLimits: "Une unité peut avoir au maximum 3 bonus et 3 malus.",

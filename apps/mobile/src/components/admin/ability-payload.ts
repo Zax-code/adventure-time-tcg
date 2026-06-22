@@ -22,6 +22,8 @@ export const STATUS_NAMES = [
   "Doom",
 ] as const;
 
+export const CONSUMPTION_ONLY_STATUS_NAMES = ["Freeze", "Stunned"] as const;
+
 export const TYPE_NAMES = [
   "Hero",
   "Tech",
@@ -77,6 +79,39 @@ export const ABILITY_TARGET_SELECTORS = [
 export type StatusName = (typeof STATUS_NAMES)[number];
 export type TypeName = (typeof TYPE_NAMES)[number];
 export type PassiveTrigger = (typeof PASSIVE_TRIGGERS)[number];
+
+export function isConsumptionOnlyStatus(name: StatusName | string) {
+  return CONSUMPTION_ONLY_STATUS_NAMES.includes(
+    name as (typeof CONSUMPTION_ONLY_STATUS_NAMES)[number],
+  );
+}
+
+function statusDurationFormValue(name: StatusName, duration: unknown) {
+  if (isConsumptionOnlyStatus(name)) {
+    return "";
+  }
+
+  return typeof duration === "number" ? String(duration) : "";
+}
+
+function statusSpecToPayload(status: {
+  name: StatusName;
+  duration: string;
+  magnitude: string;
+}) {
+  const next: { name: string; duration?: number; magnitude?: number } = {
+    name: status.name,
+  };
+
+  if (isConsumptionOnlyStatus(status.name)) {
+    next.duration = -1;
+  } else if (status.duration) {
+    next.duration = parseInt(status.duration, 10);
+  }
+
+  if (status.magnitude) next.magnitude = parseFloat(status.magnitude);
+  return next;
+}
 
 export interface PayloadFormState {
   damageMul: string;
@@ -266,9 +301,10 @@ export function payloadToForm(payload: Record<string, unknown>): PayloadFormStat
         target?: string;
         targetSelector?: string;
       };
+      const name = entry.name as StatusName;
       return {
-        name: entry.name as StatusName,
-        duration: entry.duration !== undefined ? String(entry.duration) : "",
+        name,
+        duration: statusDurationFormValue(name, entry.duration),
         magnitude: entry.magnitude !== undefined ? String(entry.magnitude) : "",
         target: (entry.target ?? "") as PayloadFormState["target"],
         targetSelector: (entry.targetSelector ?? "") as PayloadFormState["targetSelector"],
@@ -278,18 +314,20 @@ export function payloadToForm(payload: Record<string, unknown>): PayloadFormStat
   if (Array.isArray(payload.randomStatuses)) {
     form.randomStatuses = payload.randomStatuses.map((status) => {
       const entry = status as { name: string; duration?: number; magnitude?: number };
+      const name = entry.name as StatusName;
       return {
-        name: entry.name as StatusName,
-        duration: entry.duration !== undefined ? String(entry.duration) : "",
+        name,
+        duration: statusDurationFormValue(name, entry.duration),
         magnitude: entry.magnitude !== undefined ? String(entry.magnitude) : "",
       };
     });
   } else if (Array.isArray(payload.randomDebuffs)) {
     form.randomStatuses = payload.randomDebuffs.map((status) => {
       const entry = status as { name: string; duration?: number; magnitude?: number };
+      const name = entry.name as StatusName;
       return {
-        name: entry.name as StatusName,
-        duration: entry.duration !== undefined ? String(entry.duration) : "",
+        name,
+        duration: statusDurationFormValue(name, entry.duration),
         magnitude: entry.magnitude !== undefined ? String(entry.magnitude) : "",
       };
     });
@@ -297,9 +335,10 @@ export function payloadToForm(payload: Record<string, unknown>): PayloadFormStat
   if (Array.isArray(payload.applyStatusesToAttacker)) {
     form.applyStatusesToAttacker = payload.applyStatusesToAttacker.map((status) => {
       const entry = status as { name: string; duration?: number; magnitude?: number };
+      const name = entry.name as StatusName;
       return {
-        name: entry.name as StatusName,
-        duration: entry.duration !== undefined ? String(entry.duration) : "",
+        name,
+        duration: statusDurationFormValue(name, entry.duration),
         magnitude: entry.magnitude !== undefined ? String(entry.magnitude) : "",
       };
     });
@@ -401,29 +440,18 @@ export function formToPayload(form: PayloadFormState): Record<string, unknown> {
         magnitude?: number;
         target?: string;
         targetSelector?: string;
-      } = { name: status.name };
-      if (status.duration) next.duration = parseInt(status.duration, 10);
-      if (status.magnitude) next.magnitude = parseFloat(status.magnitude);
+      } = statusSpecToPayload(status);
       if (status.target) next.target = status.target;
       if (status.targetSelector) next.targetSelector = status.targetSelector;
       return next;
     });
   }
   if (form.randomStatuses.length > 0) {
-    payload.randomStatuses = form.randomStatuses.map((status) => {
-      const next: { name: string; duration?: number; magnitude?: number } = { name: status.name };
-      if (status.duration) next.duration = parseInt(status.duration, 10);
-      if (status.magnitude) next.magnitude = parseFloat(status.magnitude);
-      return next;
-    });
+    payload.randomStatuses = form.randomStatuses.map(statusSpecToPayload);
   }
   if (form.applyStatusesToAttacker.length > 0) {
-    payload.applyStatusesToAttacker = form.applyStatusesToAttacker.map((status) => {
-      const next: { name: string; duration?: number; magnitude?: number } = { name: status.name };
-      if (status.duration) next.duration = parseInt(status.duration, 10);
-      if (status.magnitude) next.magnitude = parseFloat(status.magnitude);
-      return next;
-    });
+    payload.applyStatusesToAttacker =
+      form.applyStatusesToAttacker.map(statusSpecToPayload);
   }
 
   if (form.shieldTarget) payload.shieldTarget = form.shieldTarget;

@@ -14,6 +14,7 @@ import {
   ABILITY_TARGETS,
   emptyPayloadForm,
   formToPayload,
+  isConsumptionOnlyStatus,
   PASSIVE_TRIGGERS,
   payloadToForm,
   STATUS_NAMES,
@@ -316,6 +317,7 @@ export function AbilityEditorForm({
       ];
       const invalidStatusDuration = allStatusEntries.find(
         (entry) =>
+          !isConsumptionOnlyStatus(entry.name) &&
           entry.duration.trim() !== "" && !isPositiveInteger(entry.duration),
       );
 
@@ -1804,132 +1806,156 @@ function StatusArrayEditor({
           {t("admin.abilityEditor.noEntriesYet")}
         </Text>
       ) : null}
-      {entries.map((entry, index) => (
-        <View
-          key={`${label}-${index}`}
-          className="rounded-[18] p-3 gap-3 bg-surface/92 border border-primaryBorder/16"
-        >
-          <View className="flex-row justify-between items-center gap-[10]">
-            <Text className="font-nunito-extrabold text-[13px] text-primaryText">
-              {t("admin.abilityEditor.entry", { index: index + 1 })}
-            </Text>
-            <AdminButton
-              label={t("admin.abilityEditor.remove")}
-              variant="ghost"
-              onPress={() =>
+      {entries.map((entry, index) => {
+        const isConsumptionOnly = isConsumptionOnlyStatus(entry.name);
+
+        return (
+          <View
+            key={`${label}-${index}`}
+            className="rounded-[18] p-3 gap-3 bg-surface/92 border border-primaryBorder/16"
+          >
+            <View className="flex-row justify-between items-center gap-[10]">
+              <Text className="font-nunito-extrabold text-[13px] text-primaryText">
+                {t("admin.abilityEditor.entry", { index: index + 1 })}
+              </Text>
+              <AdminButton
+                label={t("admin.abilityEditor.remove")}
+                variant="ghost"
+                onPress={() =>
+                  onChange(
+                    entries.filter((_, entryIndex) => entryIndex !== index),
+                  )
+                }
+              />
+            </View>
+            <SelectField
+              id={`${dropdownIdPrefix}-${index}-status`}
+              label={t("admin.abilityEditor.status")}
+              options={STATUS_NAMES.map((value) => ({ label: value, value }))}
+              value={entry.name}
+              onChange={(value) =>
                 onChange(
-                  entries.filter((_, entryIndex) => entryIndex !== index),
+                  entries.map((current, entryIndex) =>
+                    entryIndex === index
+                      ? {
+                          ...current,
+                          name: value as StatusName,
+                          duration: isConsumptionOnlyStatus(value)
+                            ? ""
+                            : current.duration,
+                        }
+                      : current,
+                  ),
                 )
               }
+              openDropdownId={openDropdownId}
+              setOpenDropdownId={setOpenDropdownId}
             />
-          </View>
-          <SelectField
-            id={`${dropdownIdPrefix}-${index}-status`}
-            label={t("admin.abilityEditor.status")}
-            options={STATUS_NAMES.map((value) => ({ label: value, value }))}
-            value={entry.name}
-            onChange={(value) =>
-              onChange(
-                entries.map((current, entryIndex) =>
-                  entryIndex === index
-                    ? { ...current, name: value as StatusName }
-                    : current,
-                ),
-              )
-            }
-            openDropdownId={openDropdownId}
-            setOpenDropdownId={setOpenDropdownId}
-          />
-          <View className="flex-row gap-[10]">
-            <View className="flex-1">
-              <AdminField
-                label={t("admin.abilityEditor.duration")}
-                value={entry.duration}
-                onChangeText={(value) =>
-                  onChange(
-                    entries.map((current, entryIndex) =>
-                      entryIndex === index
-                        ? { ...current, duration: value }
-                        : current,
-                    ),
-                  )
-                }
-                keyboardType="numeric"
-              />
+            <View className="flex-row gap-[10]">
+              {isConsumptionOnly ? (
+                <View className="flex-1 justify-center rounded-[14] border border-primaryBorder/20 bg-surfaceMuted/70 px-3 py-2">
+                  <Text className="font-nunito-bold text-[11px] text-fgMuted">
+                    {t("admin.abilityEditor.duration")}
+                  </Text>
+                  <Text className="font-nunito-semibold text-xs text-primaryText">
+                    {t("admin.abilityEditor.consumedOnAction")}
+                  </Text>
+                </View>
+              ) : (
+                <View className="flex-1">
+                  <AdminField
+                    label={t("admin.abilityEditor.duration")}
+                    value={entry.duration}
+                    onChangeText={(value) =>
+                      onChange(
+                        entries.map((current, entryIndex) =>
+                          entryIndex === index
+                            ? { ...current, duration: value }
+                            : current,
+                        ),
+                      )
+                    }
+                    keyboardType="numeric"
+                  />
+                </View>
+              )}
+              <View className="flex-1">
+                <AdminField
+                  label={t("admin.abilityEditor.magnitude")}
+                  value={entry.magnitude}
+                  onChangeText={(value) =>
+                    onChange(
+                      entries.map((current, entryIndex) =>
+                        entryIndex === index
+                          ? { ...current, magnitude: value }
+                          : current,
+                      ),
+                    )
+                  }
+                  keyboardType="numeric"
+                />
+              </View>
             </View>
-            <View className="flex-1">
-              <AdminField
-                label={t("admin.abilityEditor.magnitude")}
-                value={entry.magnitude}
-                onChangeText={(value) =>
-                  onChange(
-                    entries.map((current, entryIndex) =>
-                      entryIndex === index
-                        ? { ...current, magnitude: value }
-                        : current,
-                    ),
-                  )
-                }
-                keyboardType="numeric"
-              />
-            </View>
+            {includeTargeting ? (
+              <>
+                <SelectField
+                  id={`${dropdownIdPrefix}-${index}-target`}
+                  label={t("admin.abilityEditor.entryTarget")}
+                  options={[
+                    { label: t("admin.abilityEditor.none"), value: "" },
+                    ...ABILITY_TARGETS.map((value) => ({
+                      label: value,
+                      value,
+                    })),
+                  ]}
+                  value={entry.target ?? ""}
+                  onChange={(value) =>
+                    onChange(
+                      entries.map((current, entryIndex) =>
+                        entryIndex === index
+                          ? {
+                              ...current,
+                              target: value as PayloadFormState["target"],
+                            }
+                          : current,
+                      ),
+                    )
+                  }
+                  openDropdownId={openDropdownId}
+                  setOpenDropdownId={setOpenDropdownId}
+                />
+                <SelectField
+                  id={`${dropdownIdPrefix}-${index}-selector`}
+                  label={t("admin.abilityEditor.entrySelector")}
+                  options={[
+                    { label: t("admin.abilityEditor.none"), value: "" },
+                    ...ABILITY_TARGET_SELECTORS.map((value) => ({
+                      label: value,
+                      value,
+                    })),
+                  ]}
+                  value={entry.targetSelector ?? ""}
+                  onChange={(value) =>
+                    onChange(
+                      entries.map((current, entryIndex) =>
+                        entryIndex === index
+                          ? {
+                              ...current,
+                              targetSelector:
+                                value as PayloadFormState["targetSelector"],
+                            }
+                          : current,
+                      ),
+                    )
+                  }
+                  openDropdownId={openDropdownId}
+                  setOpenDropdownId={setOpenDropdownId}
+                />
+              </>
+            ) : null}
           </View>
-          {includeTargeting ? (
-            <>
-              <SelectField
-                id={`${dropdownIdPrefix}-${index}-target`}
-                label={t("admin.abilityEditor.entryTarget")}
-                options={[
-                  { label: t("admin.abilityEditor.none"), value: "" },
-                  ...ABILITY_TARGETS.map((value) => ({ label: value, value })),
-                ]}
-                value={entry.target ?? ""}
-                onChange={(value) =>
-                  onChange(
-                    entries.map((current, entryIndex) =>
-                      entryIndex === index
-                        ? {
-                            ...current,
-                            target: value as PayloadFormState["target"],
-                          }
-                        : current,
-                    ),
-                  )
-                }
-                openDropdownId={openDropdownId}
-                setOpenDropdownId={setOpenDropdownId}
-              />
-              <SelectField
-                id={`${dropdownIdPrefix}-${index}-selector`}
-                label={t("admin.abilityEditor.entrySelector")}
-                options={[
-                  { label: t("admin.abilityEditor.none"), value: "" },
-                  ...ABILITY_TARGET_SELECTORS.map((value) => ({
-                    label: value,
-                    value,
-                  })),
-                ]}
-                value={entry.targetSelector ?? ""}
-                onChange={(value) =>
-                  onChange(
-                    entries.map((current, entryIndex) =>
-                      entryIndex === index
-                        ? {
-                            ...current,
-                            targetSelector:
-                              value as PayloadFormState["targetSelector"],
-                          }
-                        : current,
-                    ),
-                  )
-                }
-                openDropdownId={openDropdownId}
-                setOpenDropdownId={setOpenDropdownId}
-              />
-            </>
-          ) : null}
-        </View>
-      ))}
+        );
+      })}
     </View>
   );
 }
