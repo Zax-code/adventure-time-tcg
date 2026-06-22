@@ -46,6 +46,7 @@ export type AbilityTarget =
   | "any"
   | "allAllies"
   | "allEnemies"
+  | "allUnits"
   | "all";
 
 export type AbilityTargetSelector =
@@ -158,7 +159,7 @@ export interface AbilityPayload {
   // Cleanse
   cleanse?: {
     count: number;
-    target: "self" | "ally" | "allAllies" | "allEnemies";
+    target: "self" | "ally" | "allAllies" | "allEnemies" | "allUnits" | "all";
   };
   alsoCleanseAllEnemies?: boolean;
   cleanseAllStatuses?: boolean;
@@ -216,6 +217,7 @@ export interface AbilityPayload {
       magnitude?: number;
     }>;
     damageMulDelta?: number;
+    mergePayload?: Partial<AbilityPayload>;
   }>;
 
   // Copy mechanics
