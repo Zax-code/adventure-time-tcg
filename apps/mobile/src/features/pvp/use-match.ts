@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type {
@@ -69,6 +69,7 @@ export function useMatch(matchId: string) {
   const queryClient = useQueryClient();
   const myUserId = useSessionStore((s) => s.user?.id ?? "");
   const logLengthRef = useRef(0);
+  const refreshedTerminalMatchRef = useRef<string | null>(null);
   const matchQueryKey = ["pvp-match", matchId] as const;
 
   const refreshPvpLobbyQueries = useCallback(() => {
@@ -82,7 +83,17 @@ export function useMatch(matchId: string) {
     queryKey: matchQueryKey,
     queryFn: () => apiClient.pvpMatch(matchId),
     retry: 0,
-    refetchInterval: (query) => (query.state.status === "error" ? false : 3000),
+    refetchInterval: (query) => {
+      if (query.state.status === "error") {
+        return false;
+      }
+
+      const status = query.state.data?.match.status;
+
+      return status === "COMPLETED" || status === "DECLINED" || status === "EXPIRED"
+        ? false
+        : 3000;
+    },
     enabled: Boolean(matchId),
   });
 
@@ -90,6 +101,23 @@ export function useMatch(matchId: string) {
   const matchView: MyMatchView | null = battleState
     ? deriveMyMatchView(battleState, myUserId)
     : null;
+
+  useEffect(() => {
+    const match = data?.match;
+
+    if (!match || match.status === "PENDING" || match.status === "IN_PROGRESS") {
+      return;
+    }
+
+    const terminalMatchKey = `${match.id}:${match.status}:${match.updatedAt}`;
+
+    if (refreshedTerminalMatchRef.current === terminalMatchKey) {
+      return;
+    }
+
+    refreshedTerminalMatchRef.current = terminalMatchKey;
+    refreshPvpLobbyQueries();
+  }, [data?.match, refreshPvpLobbyQueries]);
 
   const prevLogLength = logLengthRef.current;
   const newEvents: FloatingEvent[] = [];

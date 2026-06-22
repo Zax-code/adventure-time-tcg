@@ -197,18 +197,23 @@ export default function PvpScreen() {
   const invitesQuery = useQuery({
     queryKey: ["pvp-invites"],
     queryFn: () => apiClient.pvpInvites(),
+    refetchOnMount: "always",
     refetchInterval: (query) =>
       query.state.status === "error" ? false : PVP_LOBBY_REFETCH_INTERVAL_MS,
   });
   const matchesQuery = useQuery({
     queryKey: ["pvp-matches"],
     queryFn: () => apiClient.pvpMatches(),
+    refetchOnMount: "always",
     refetchInterval: (query) =>
       query.state.status === "error" ? false : PVP_LOBBY_REFETCH_INTERVAL_MS,
   });
   const historyQuery = useQuery({
     queryKey: ["pvp-history"],
     queryFn: () => apiClient.pvpHistory(),
+    refetchOnMount: "always",
+    refetchInterval: (query) =>
+      query.state.status === "error" ? false : PVP_LOBBY_REFETCH_INTERVAL_MS,
   });
   const loadoutsQuery = useQuery({
     queryKey: ["pvp-loadouts"],
