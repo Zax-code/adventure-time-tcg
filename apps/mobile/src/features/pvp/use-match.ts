@@ -1,7 +1,11 @@
 import { useCallback, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import type { PvpAction, PvpEndTurnInput } from "@adventure-time/api-client";
+import type {
+  PvpAction,
+  PvpEndTurnInput,
+  PvpMatchDetailResponse,
+} from "@adventure-time/api-client";
 
 import { apiClient } from "../../lib/api";
 import { useSessionStore } from "../../stores/session-store";
@@ -17,9 +21,10 @@ export function useMatch(matchId: string) {
   const queryClient = useQueryClient();
   const myUserId = useSessionStore((s) => s.user?.id ?? "");
   const logLengthRef = useRef(0);
+  const matchQueryKey = ["pvp-match", matchId] as const;
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["pvp-match", matchId],
+    queryKey: matchQueryKey,
     queryFn: () => apiClient.pvpMatch(matchId),
     retry: 0,
     refetchInterval: (query) => (query.state.status === "error" ? false : 3000),
@@ -70,20 +75,34 @@ export function useMatch(matchId: string) {
   const actionMutation = useMutation({
     mutationFn: (action: PvpAction) => apiClient.actPvpMatch(matchId, action),
     onMutate: async () => {
-      await queryClient.cancelQueries({ queryKey: ["pvp-match", matchId] });
+      await queryClient.cancelQueries({ queryKey: matchQueryKey });
+    },
+    onSuccess: (result) => {
+      queryClient.setQueryData<PvpMatchDetailResponse>(matchQueryKey, (current) => ({
+        ...(current ?? {}),
+        match: result.match,
+        battleState: result.battleState,
+      }));
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["pvp-match", matchId] });
+      queryClient.invalidateQueries({ queryKey: matchQueryKey });
     },
   });
 
   const endTurnMutation = useMutation({
     mutationFn: (input?: PvpEndTurnInput) => apiClient.endTurnPvpMatch(matchId, input),
     onMutate: async () => {
-      await queryClient.cancelQueries({ queryKey: ["pvp-match", matchId] });
+      await queryClient.cancelQueries({ queryKey: matchQueryKey });
+    },
+    onSuccess: (result) => {
+      queryClient.setQueryData<PvpMatchDetailResponse>(matchQueryKey, (current) => ({
+        ...(current ?? {}),
+        match: result.match,
+        battleState: result.battleState,
+      }));
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["pvp-match", matchId] });
+      queryClient.invalidateQueries({ queryKey: matchQueryKey });
     },
   });
 

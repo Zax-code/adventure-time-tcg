@@ -507,6 +507,61 @@ defmodule AdventureTimeApi.Pvp.BattleEngineCoreTest do
            }) == {:error, :not_enough_energy}
   end
 
+  test "basic attacks spend one energy and cannot repeat at zero energy" do
+    state = make_state(p1_energy: 1)
+
+    {:ok, after_basic, _events} =
+      BattleEngine.simulate_action(state, "player1", %{
+        "kind" => "basic",
+        "actorInstanceId" => "p1u1",
+        "targetInstanceId" => "p2u1"
+      })
+
+    assert get_player(after_basic, "player1")["energy"] == 0
+
+    assert BattleEngine.simulate_action(after_basic, "player1", %{
+             "kind" => "basic",
+             "actorInstanceId" => "p1u1",
+             "targetInstanceId" => "p2u1"
+           }) == {:error, :not_enough_energy}
+  end
+
+  test "haste makes the first basic attack free for the turn" do
+    state =
+      make_state(
+        p1_energy: 0,
+        p1_units: [
+          make_unit(%{
+            "instanceId" => "p1u1",
+            "statuses" => [
+              %{
+                "name" => "Haste",
+                "duration" => 1,
+                "magnitude" => nil,
+                "appliedAt" => 1
+              }
+            ]
+          })
+        ]
+      )
+
+    {:ok, after_basic, _events} =
+      BattleEngine.simulate_action(state, "player1", %{
+        "kind" => "basic",
+        "actorInstanceId" => "p1u1",
+        "targetInstanceId" => "p2u1"
+      })
+
+    assert get_player(after_basic, "player1")["energy"] == 0
+    assert get_player(after_basic, "player1")["hasUsedFreeBasic"] == true
+
+    assert BattleEngine.simulate_action(after_basic, "player1", %{
+             "kind" => "basic",
+             "actorInstanceId" => "p1u1",
+             "targetInstanceId" => "p2u1"
+           }) == {:error, :not_enough_energy}
+  end
+
   test "fatal damage ends the match and records winner" do
     state =
       make_state(

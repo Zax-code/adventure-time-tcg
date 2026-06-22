@@ -285,7 +285,7 @@ export function BattleBoard({
   const myBenchOffset = 20;
 
   const handleUnitPress = (instanceId: string) => {
-    if (readOnly) {
+    if (readOnly || isActing) {
       return;
     }
 
@@ -321,7 +321,7 @@ export function BattleBoard({
   };
 
   const handleOppUnitPress = (instanceId: string) => {
-    if (readOnly) {
+    if (readOnly || isActing) {
       return;
     }
 
@@ -331,7 +331,7 @@ export function BattleBoard({
   };
 
   const handleBenchPress = (instanceId: string) => {
-    if (readOnly) {
+    if (readOnly || isActing) {
       return;
     }
 
@@ -639,9 +639,15 @@ export function BattleBoard({
           setSelectedActorId(null);
         }}
         onSelectAction={(mode) => {
+          if (isActing) {
+            return;
+          }
           onEnterTargeting(mode);
         }}
         onSubmitAction={(action) => {
+          if (isActing) {
+            return;
+          }
           submitAction(action);
           setShowActionModal(false);
           setSelectedActorId(null);

@@ -54,6 +54,15 @@ export function ActionModal({
     : undefined;
   const isSilenced =
     unit?.statuses.some((status) => status.name === "Silence") ?? false;
+  const isStunned =
+    unit?.statuses.some((status) => status.name === "Stunned") ?? false;
+  const hasFreeHasteBasic =
+    (unit?.statuses.some((status) => status.name === "Haste") ?? false) &&
+    !myPlayer.hasUsedFreeBasic;
+  const stunEnergyTax = isStunned ? 1 : 0;
+  const basicCost = (hasFreeHasteBasic ? 0 : 1) + stunEnergyTax;
+  const skillCost = (skillDef?.cost ?? 0) + stunEnergyTax;
+  const ultimateCost = (ultimateDef?.cost ?? 0) + stunEnergyTax;
   const skillCd = skillKey && unit ? (unit.cooldowns[skillKey] ?? 0) : 0;
   const ultimateCd =
     ultimateKey && unit ? (unit.cooldowns[ultimateKey] ?? 0) : 0;
@@ -75,9 +84,9 @@ export function ActionModal({
         tint: "bg-slate-100",
         border: "border-slate-200",
         text: "text-slate-700",
-        cost: 1,
-        disabled: energy < 1,
-        note: energy < 1 ? t("pvp.action.notEnoughEnergy") : null,
+        cost: basicCost,
+        disabled: energy < basicCost,
+        note: energy < basicCost ? t("pvp.action.notEnoughEnergy") : null,
       },
       {
         key: "skill" as const,
@@ -88,10 +97,10 @@ export function ActionModal({
         tint: "bg-infoTint",
         border: "border-infoBorder",
         text: "text-infoDark",
-        cost: skillDef?.cost ?? 0,
+        cost: skillCost,
         disabled:
           !skillDef ||
-          energy < (skillDef?.cost ?? 0) ||
+          energy < skillCost ||
           skillCd > 0 ||
           isSilenced,
         note:
@@ -99,7 +108,7 @@ export function ActionModal({
             ? t("pvp.action.cooldown", { count: skillCd })
             : isSilenced
               ? t("pvp.action.silenced")
-              : energy < (skillDef?.cost ?? 0)
+              : energy < skillCost
                 ? t("pvp.action.notEnoughEnergy")
                 : null,
       },
@@ -112,10 +121,10 @@ export function ActionModal({
         tint: "bg-accentTint",
         border: "border-accent",
         text: "text-accentText",
-        cost: ultimateDef?.cost ?? 0,
+        cost: ultimateCost,
         disabled:
           !ultimateDef ||
-          energy < (ultimateDef?.cost ?? 0) ||
+          energy < ultimateCost ||
           ultimateCd > 0 ||
           isSilenced ||
           unit.usedUltimate,
@@ -125,12 +134,24 @@ export function ActionModal({
             ? t("pvp.action.cooldown", { count: ultimateCd })
             : isSilenced
               ? t("pvp.action.silenced")
-              : energy < (ultimateDef?.cost ?? 0)
+              : energy < ultimateCost
                 ? t("pvp.action.notEnoughEnergy")
                 : null,
       },
     ];
-  }, [energy, isSilenced, skillCd, skillDef, t, ultimateCd, ultimateDef, unit]);
+  }, [
+    basicCost,
+    energy,
+    isSilenced,
+    skillCd,
+    skillCost,
+    skillDef,
+    t,
+    ultimateCd,
+    ultimateCost,
+    ultimateDef,
+    unit,
+  ]);
 
   const handleAction = (actionKey: "basic" | "skill" | "ultimate") => {
     if (!unit) {

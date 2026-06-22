@@ -2637,7 +2637,10 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
          :ok <- validate_unit_alive(actor, "actor"),
          :ok <- validate_unit_alive(req_target, "target"),
          :ok <- guard_stealth_target(state, actor_id, target_id),
-         :ok <- validate_basic_energy(acting_player, stun_extra) do
+         basic_cost = basic_energy_cost(acting_player, actor, stun_extra),
+         :ok <- validate_basic_energy(acting_player, basic_cost) do
+      state = spend_basic_energy(state, acting_user_id, basic_cost, acting_player, actor)
+
       # Cover redirect: check if target is covered by an ally
       effective_target_id =
         case find_unit_across_players(state, target_id) do
@@ -2971,13 +2974,36 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
     end
   end
 
-  defp validate_basic_energy(player, extra_cost) do
-    # Basic attacks have no energy cost unless stunned (+1)
-    if extra_cost > 0 and player["energy"] < extra_cost do
+  defp basic_energy_cost(player, actor, extra_cost) do
+    base_cost =
+      cond do
+        has_status(actor, "Haste") and not (player["hasUsedFreeBasic"] || false) ->
+          0
+
+        true ->
+          1
+      end
+
+    base_cost + extra_cost
+  end
+
+  defp validate_basic_energy(player, cost) do
+    if player["energy"] < cost do
       {:error, :not_enough_energy}
     else
       :ok
     end
+  end
+
+  defp spend_basic_energy(state, acting_user_id, cost, player, actor) do
+    used_free_basic? =
+      has_status(actor, "Haste") and not (player["hasUsedFreeBasic"] || false)
+
+    update_player(state, acting_user_id, fn p ->
+      p
+      |> Map.update!("energy", &(&1 - cost))
+      |> Map.put("hasUsedFreeBasic", used_free_basic? || (p["hasUsedFreeBasic"] || false))
+    end)
   end
 
   @doc """
