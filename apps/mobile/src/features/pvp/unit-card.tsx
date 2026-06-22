@@ -292,7 +292,10 @@ export function UnitCard({
             height: "100%",
             borderRadius: 18,
             opacity: isDead ? 0.72 : pressed ? 0.96 : 1,
-            transform: [{ scale: pressed ? 0.985 : 1 }],
+            transform: [
+              { scale: pressed ? 0.985 : 1 },
+              { rotateZ: isDead ? "-4deg" : "0deg" },
+            ],
           })}
         >
           <View className="h-full w-full">

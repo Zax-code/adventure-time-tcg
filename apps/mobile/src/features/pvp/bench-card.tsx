@@ -108,6 +108,7 @@ export function BenchCard({
             isSelected || isSwapTarget || isValidTarget
               ? "0 4px 8px rgba(99,102,241,0.24)"
               : "0 3px 7px rgba(15,23,42,0.08)",
+          transform: [{ rotateZ: isDead ? "-3deg" : "0deg" }],
         })}
       >
         {imageUrl ? (

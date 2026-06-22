@@ -152,21 +152,29 @@ export function useUnitReactionAnimation({
       }
 
       if (type === "death") {
-        flash(type, 0.76);
+        flash(type, 0.76, 440);
+        const wiltRotation = compact ? -4.5 : -6;
+        const wiltDrop = compact ? 5 : 10;
         rotateZ.value = withSequence(
-          withTiming(-2.5, { duration: 70 }),
-          withTiming(2.5, { duration: 80 }),
-          withTiming(-1.2, { duration: 80 }),
-          withTiming(0, { duration: 120 }),
+          withTiming(2.5, { duration: 90, easing: Easing.out(Easing.quad) }),
+          withTiming(wiltRotation, {
+            duration: 320,
+            easing: Easing.out(Easing.cubic),
+          }),
         );
         translateY.value = withSequence(
-          withTiming(compact ? 2 : 5, { duration: 140 }),
-          withTiming(0, { duration: 170 }),
+          withTiming(-2, { duration: 90, easing: Easing.out(Easing.quad) }),
+          withTiming(wiltDrop, {
+            duration: 320,
+            easing: Easing.out(Easing.cubic),
+          }),
         );
         scale.value = withSequence(
-          withTiming(0.95, { duration: 110 }),
-          withTiming(1.025, { duration: 120 }),
-          withSpring(1, { damping: 12, stiffness: 150 }),
+          withTiming(1.02, { duration: 90, easing: Easing.out(Easing.quad) }),
+          withTiming(0.94, {
+            duration: 320,
+            easing: Easing.out(Easing.cubic),
+          }),
         );
         return;
       }
