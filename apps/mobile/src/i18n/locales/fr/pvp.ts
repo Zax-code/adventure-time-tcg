@@ -90,7 +90,8 @@ const pvp = {
     crit: "Coup critique sur {target}{roll}",
     attackMissRollDetail: " (raté {missRoll}/{missChance})",
     attackMissOnlyRollDetail: " (raté {missRoll}/{missChance})",
-    attackHitRollDetail: " (raté {missRoll}/{missChance}, critique {critRoll}/{critChance})",
+    attackHitRollDetail:
+      " (raté {missRoll}/{missChance}, critique {critRoll}/{critChance})",
     critRollDetail: " (critique {critRoll}/{critChance})",
     ko: "{target} a été mis K.O.",
     heal: "{target} récupère {amount} PV",
@@ -110,7 +111,8 @@ const pvp = {
     passiveTrigger: "Le passif {ability} de {unit} se déclenche",
     statusRollPass: "Le jet de {status} s'applique à {target} ({roll})",
     statusRollFail: "Le jet de {status} échoue sur {target} ({roll})",
-    randomStatusRoll: "Le statut aléatoire choisit {status} pour {target} ({roll})",
+    randomStatusRoll:
+      "Le statut aléatoire choisit {status} pour {target} ({roll})",
     randomChoiceDetail: "jet {roll}, option {selected}/{count}",
     cooldownTick: "La recharge de {ability} sur {target} passe à {count}",
     freezeSkip: "{target} passe son action à cause de Gel",
@@ -338,7 +340,8 @@ const pvp = {
   conceded: "ABANDON",
   readyForBattle: "Prêt pour le combat ?",
   readyForBattleHint: "Crée une composition et défie un ami pour commencer !",
-  challengeReadyHint: "Choisis une composition prête et lance un défi en un geste.",
+  challengeReadyHint:
+    "Choisis une composition prête et lance un défi en un geste.",
   challengeSheetIntro:
     "Choisis une composition prête, commence avec tes derniers adversaires ou cherche un joueur précis.",
   createLoadoutHint:
@@ -417,7 +420,8 @@ const pvp = {
     "Crée d'abord une composition pour accepter les combats !",
   challengeBy: "T’a défié {time}",
   cardDetailsTitle: "Détails de la carte",
-  activeEffects: "Effets actifs",
+  activeStatuses: "Statuts",
+  activeEffects: "Effets",
   publicPassive: "Passif public",
   missingAbility: "Détails de {type} indisponibles.",
   noPassive: "Aucun passif attribué.",
@@ -426,6 +430,8 @@ const pvp = {
   oncePerMatch: "Une fois par match",
   statusEffect: "Effet de statut",
   untilUsed: "Jusqu'à utilisation",
+  turnLeft: "1 tour restant",
+  turnsLeft: "{count} tours restants",
   hp: "PV",
   atk: "ATK",
   def: "DEF",

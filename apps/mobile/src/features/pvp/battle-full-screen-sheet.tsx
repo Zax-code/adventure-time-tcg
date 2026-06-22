@@ -9,11 +9,6 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { ThemedExpoButton } from "../../components/expo-ui/themed-button";
-import { XIcon } from "../../components/icons";
-import { useThemeStore } from "../../stores/theme-store";
-import { THEME_COLORS } from "../../theme/themes";
-
 interface BattleFullScreenSheetProps {
   visible: boolean;
   title: string;
@@ -21,9 +16,7 @@ interface BattleFullScreenSheetProps {
   children: ReactNode;
   footer?: ReactNode;
   scrollable?: boolean;
-  showCloseButton?: boolean;
   testID?: string;
-  closeButtonTestID?: string;
 }
 
 export function BattleFullScreenSheet({
@@ -33,14 +26,10 @@ export function BattleFullScreenSheet({
   children,
   footer,
   scrollable = true,
-  showCloseButton = true,
   testID,
-  closeButtonTestID,
 }: BattleFullScreenSheetProps) {
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
-  const themeName = useThemeStore((state) => state.themeName);
-  const tc = THEME_COLORS[themeName];
   const [index, setIndex] = useState(visible ? 1 : 0);
   const [mounted, setMounted] = useState(visible);
   const topGap = Math.max(insets.top + 16, 56);
@@ -106,6 +95,9 @@ export function BattleFullScreenSheet({
       <View
         className="bg-bg"
         style={{
+          borderTopLeftRadius: 30,
+          borderTopRightRadius: 30,
+          overflow: "hidden",
           maxHeight: maxSheetHeight,
           minHeight: Math.min(maxSheetHeight, height * 0.68),
         }}
@@ -123,32 +115,6 @@ export function BattleFullScreenSheet({
                 {title}
               </Text>
             </View>
-            {showCloseButton ? (
-              <ThemedExpoButton
-                onPress={onClose}
-                testID={closeButtonTestID}
-                variant="ghost"
-                fallbackAppearance={{
-                  backgroundColor: tc.surfaceMuted,
-                  borderColor: tc.surfaceMuted,
-                  borderRadius: 999,
-                  foregroundColor: tc.fgMuted,
-                  gradientColors: null,
-                  minHeight: 34,
-                  paddingHorizontal: 8,
-                  paddingVertical: 8,
-                }}
-                style={{
-                  minHeight: 34,
-                  minWidth: 34,
-                  position: "absolute",
-                  right: 20,
-                  top: 0,
-                }}
-              >
-                <XIcon size={18} color={tc.fgMuted} />
-              </ThemedExpoButton>
-            ) : null}
           </View>
         </View>
 

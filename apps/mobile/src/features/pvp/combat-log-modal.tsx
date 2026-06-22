@@ -393,7 +393,6 @@ export function CombatLogModal({ visible, log, onClose }: CombatLogModalProps) {
       title={t("pvp.combatLog.title")}
       onClose={onClose}
       testID="pvp-combat-log-modal"
-      closeButtonTestID="pvp-combat-log-close-button"
     >
       <View className="gap-3 px-4 py-4">
         {recentLog.length === 0 ? (

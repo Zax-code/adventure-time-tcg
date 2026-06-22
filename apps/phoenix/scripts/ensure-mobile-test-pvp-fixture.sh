@@ -27,7 +27,7 @@ require Logger
 alias AdventureTimeApi.Accounts.{EmailCredential, User}
 alias AdventureTimeApi.Catalog.{Card, Rarity}
 alias AdventureTimeApi.Inventory.OwnedCard
-alias AdventureTimeApi.Pvp.{Loadout, Match}
+alias AdventureTimeApi.Pvp.{Loadout, Match, MatchSnapshot}
 alias AdventureTimeApi.Pvp
 alias AdventureTimeApi.Repo
 
@@ -291,6 +291,79 @@ match =
 if battle_state["currentPlayerId"] != primary_user.id do
   raise "Expected primary E2E user to act first, got #{inspect(battle_state["currentPlayerId"])}"
 end
+
+turn = battle_state["turn"] || 1
+
+add_status = fn unit, status_name ->
+  status = %{
+    "name" => status_name,
+    "duration" => 2,
+    "magnitude" => nil,
+    "appliedAt" => turn
+  }
+
+  statuses =
+    unit
+    |> Map.get("statuses", [])
+    |> Enum.reject(&(&1["name"] == status_name))
+
+  unit
+  |> Map.put("statuses", [status | statuses])
+end
+
+put_skill_cooldown = fn unit ->
+  case unit["skill"] do
+    skill when is_binary(skill) and skill != "" ->
+      Map.put(unit, "cooldowns", Map.put(unit["cooldowns"] || %{}, skill, 2))
+
+    _ ->
+      unit
+  end
+end
+
+decorate_first_active_unit = fn player, user_id, status_name, with_cooldown ->
+  if player["userId"] == user_id do
+    units =
+      case player["units"] || [] do
+        [unit | rest] ->
+          unit = add_status.(unit, status_name)
+
+          unit =
+            if with_cooldown do
+              put_skill_cooldown.(unit)
+            else
+              unit
+            end
+
+          [unit | rest]
+
+        units ->
+          units
+      end
+
+    Map.put(player, "units", units)
+  else
+    player
+  end
+end
+
+db_match = Repo.get!(Match, accepted_match.id)
+
+screenshot_state =
+  Map.update!(db_match.initial_state, "players", fn players ->
+    players
+    |> Enum.map(&decorate_first_active_unit.(&1, primary_user.id, "Haste", true))
+    |> Enum.map(&decorate_first_active_unit.(&1, opponent_user.id, "Burn", false))
+  end)
+
+db_match
+|> Match.changeset(%{initial_state: screenshot_state})
+|> Repo.update!()
+
+from(snapshot in MatchSnapshot,
+  where: snapshot.match_id == ^accepted_match.id and snapshot.seq_at == 0
+)
+|> Repo.update_all(set: [state: screenshot_state])
 
 IO.puts(accepted_match.id)
 '

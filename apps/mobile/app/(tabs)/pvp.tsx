@@ -1159,7 +1159,11 @@ export default function PvpScreen() {
               icon={<ZapIcon size={20} color={tc.successDark} />}
             />
             {activeMatches.map((match, index) => {
-              const timeoutLabel = formatTurnTimeout(match.turnExpiresAt, t, now);
+              const timeoutLabel = formatTurnTimeout(
+                match.turnExpiresAt,
+                t,
+                now,
+              );
               const opponentId =
                 match.inviterId === currentUserId
                   ? match.inviteeId
@@ -1508,7 +1512,7 @@ export default function PvpScreen() {
         visible={showInviteModal}
         title={t("pvp.sendChallenge")}
         onClose={closeInviteSheet}
-        showCloseButton={false}
+        testID="pvp-invite-sheet"
         footer={
           <View className="flex-row gap-3">
             <ThemedExpoButton

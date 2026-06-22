@@ -89,7 +89,8 @@ const pvp = {
     crit: "Critical hit on {target}{roll}",
     attackMissRollDetail: " (miss {missRoll}/{missChance})",
     attackMissOnlyRollDetail: " (miss {missRoll}/{missChance})",
-    attackHitRollDetail: " (miss {missRoll}/{missChance}, crit {critRoll}/{critChance})",
+    attackHitRollDetail:
+      " (miss {missRoll}/{missChance}, crit {critRoll}/{critChance})",
     critRollDetail: " (crit {critRoll}/{critChance})",
     ko: "{target} was knocked out",
     heal: "{target} healed for {amount}",
@@ -223,8 +224,7 @@ const pvp = {
       Counter:
         "Dodges the next incoming attack and counterattacks, then is consumed.",
       Mark: "Makes the unit take extra incoming damage (+15%).",
-      Barrier:
-        "Blocks the next incoming debuff application, then is consumed.",
+      Barrier: "Blocks the next incoming debuff application, then is consumed.",
       Doom: "Countdown debuff that can cause fatal damage when it expires.",
     },
     coreTitle: "Core Combat Effects",
@@ -243,11 +243,11 @@ const pvp = {
         "Shields absorb damage before HP. Barrier blocks the next debuff. Cover can redirect part of incoming damage.",
       retaliation:
         "Counter can dodge and strike back. Thorns reflects a portion of received attack damage.",
-      cleanse: "Cleanse removes one or more statuses from the target unit or units.",
+      cleanse:
+        "Cleanse removes one or more statuses from the target unit or units.",
     },
     typeTitle: "Type Strengths and Weaknesses",
-    typeIntro:
-      "Strong matchups deal more damage, weak matchups deal less.",
+    typeIntro: "Strong matchups deal more damage, weak matchups deal less.",
     strongAgainst: "Strong vs",
     weakAgainst: "Weak vs",
     typeSpecialNone: "-",
@@ -324,9 +324,9 @@ const pvp = {
   concedeWin: "CONCEDE WIN",
   conceded: "CONCEDED",
   readyForBattle: "Ready for Battle?",
-  readyForBattleHint:
-    "Create a loadout and challenge a friend to get started!",
-  challengeReadyHint: "Pick a ready loadout and challenge a friend in one step.",
+  readyForBattleHint: "Create a loadout and challenge a friend to get started!",
+  challengeReadyHint:
+    "Pick a ready loadout and challenge a friend in one step.",
   challengeSheetIntro:
     "Pick a ready loadout, start from recent opponents, or search for someone specific.",
   createLoadoutHint: "Build a legal 6-card team before sending battle invites.",
@@ -395,11 +395,13 @@ const pvp = {
   noPlayersAvailable: "No players available right now.",
   activeMatchExists: "Active battle",
   pendingInviteExists: "Invite pending",
-  allLoadoutsInvalid: "All your loadouts have missing cards. Edit them to play.",
+  allLoadoutsInvalid:
+    "All your loadouts have missing cards. Edit them to play.",
   createLoadoutToAccept: "Create a loadout first to accept battles!",
   challengeBy: "Challenged you {time}",
   cardDetailsTitle: "Card Details",
-  activeEffects: "Active Effects",
+  activeStatuses: "Statuses",
+  activeEffects: "Effects",
   publicPassive: "Public passive",
   missingAbility: "{type} details unavailable.",
   noPassive: "No passive assigned.",
@@ -408,6 +410,8 @@ const pvp = {
   oncePerMatch: "Once per match",
   statusEffect: "Status effect",
   untilUsed: "Until used",
+  turnLeft: "1 turn left",
+  turnsLeft: "{count} turns left",
   hp: "HP",
   atk: "ATK",
   def: "DEF",

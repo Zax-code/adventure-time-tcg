@@ -22,15 +22,18 @@ tags:
     point: "21%,70%"
 - assertVisible:
     id: pvp-card-info-modal
-- tapOn:
-    id: pvp-card-info-close-button
+- swipe:
+    start: "50%,18%"
+    end: "50%,88%"
+    duration: 700
+- waitForAnimationToEnd
 - assertNotVisible:
     id: pvp-card-info-modal
 - tapOn:
     id: pvp-action-end-turn-button
     retryTapIfNoChange: true
 - assertVisible:
-    id: pvp-end-turn-confirm-sheet
+    id: pvp-end-turn-confirm-modal
 - tapOn:
     id: pvp-end-turn-confirm-button
     retryTapIfNoChange: true
