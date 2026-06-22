@@ -137,6 +137,7 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
   # ── Status Definitions ────────────────────────────────────────────────────
   # is_buff / is_debuff: for cap enforcement (max 3 each per unit)
   # ticks: true = duration decrements at start of owning player's turn; false = event-consumed
+  # expires_at: :owner_turn_end = duration decrements when the owning player's turn ends
   # stackable: false | :magnitude (Shield) | :count (Poison)
 
   @status_defs %{
@@ -148,7 +149,13 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
     "Weakened" => %{is_buff: false, is_debuff: true, ticks: true, stackable: false},
     "Haste" => %{is_buff: true, is_debuff: false, ticks: true, stackable: false},
     "Taunt" => %{is_buff: false, is_debuff: false, ticks: true, stackable: false},
-    "Silence" => %{is_buff: false, is_debuff: true, ticks: true, stackable: false},
+    "Silence" => %{
+      is_buff: false,
+      is_debuff: true,
+      ticks: false,
+      stackable: false,
+      expires_at: :owner_turn_end
+    },
     "SummoningSickness" => %{is_buff: false, is_debuff: false, ticks: true, stackable: false},
     "Stunned" => %{is_buff: false, is_debuff: true, ticks: false, stackable: false},
     "Cover" => %{is_buff: true, is_debuff: false, ticks: false, stackable: false},
@@ -496,6 +503,72 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
 
     new_events = Enum.drop(state["log"], events_before)
     {state, new_events}
+  end
+
+  defp expire_owner_turn_end_statuses(state, player_id) do
+    events_before = length(state["log"])
+
+    {:ok, player} = find_player(state, player_id)
+
+    state =
+      Enum.reduce(player["units"], state, fn unit, acc_state ->
+        if unit["knockedOut"] or unit["hp"] <= 0 do
+          acc_state
+        else
+          tick_owner_turn_end_statuses(acc_state, unit["instanceId"])
+        end
+      end)
+
+    new_events = Enum.drop(state["log"], events_before)
+    {state, new_events}
+  end
+
+  defp tick_owner_turn_end_statuses(state, unit_id) do
+    {:ok, unit} = find_unit_across_players(state, unit_id)
+
+    Enum.reduce(unit["statuses"] || [], state, fn status, acc_state ->
+      def_ = Map.get(@status_defs, status["name"], %{})
+
+      cond do
+        def_[:expires_at] != :owner_turn_end ->
+          acc_state
+
+        (status["duration"] || 1) < 0 ->
+          acc_state
+
+        (status["appliedAt"] || 0) >= state["turn"] ->
+          acc_state
+
+        true ->
+          new_dur = (status["duration"] || 1) - 1
+
+          if new_dur <= 0 do
+            expire_evt =
+              new_event(acc_state, "statusExpire", %{
+                "targetId" => unit_id,
+                "unitId" => unit_id,
+                "statusName" => status["name"],
+                "status" => status["name"]
+              })
+
+            acc_state =
+              update_unit(acc_state, unit_id, fn u ->
+                remove_status_from_unit(u, status["name"])
+              end)
+
+            append_log(acc_state, [expire_evt])
+          else
+            update_unit(acc_state, unit_id, fn u ->
+              new_statuses =
+                Enum.map(u["statuses"] || [], fn s ->
+                  if s["name"] == status["name"], do: Map.put(s, "duration", new_dur), else: s
+                end)
+
+              Map.put(u, "statuses", new_statuses)
+            end)
+          end
+      end
+    end)
   end
 
   defp tick_unit_statuses(state, unit_id) do
@@ -3024,6 +3097,8 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
       else
         state
       end
+
+    {state, _turn_end_status_events} = expire_owner_turn_end_statuses(state, current_player_id)
 
     other_player_id = other_player(state, current_player_id)
 

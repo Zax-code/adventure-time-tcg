@@ -11,6 +11,7 @@ interface StatusDefinition {
   isDebuff: boolean;
   stackable: boolean; // if false, refreshes duration instead
   ticksAtStartOfTurn: boolean;
+  expiresAt?: "ownerTurnEnd";
 }
 
 const STATUS_DEFINITIONS: Record<StatusName, StatusDefinition> = {
@@ -92,7 +93,8 @@ const STATUS_DEFINITIONS: Record<StatusName, StatusDefinition> = {
     isBuff: false,
     isDebuff: true,
     stackable: false,
-    ticksAtStartOfTurn: true,
+    ticksAtStartOfTurn: false,
+    expiresAt: "ownerTurnEnd",
   },
   SummoningSickness: {
     name: "SummoningSickness",
@@ -551,6 +553,35 @@ export function tickStatuses(
   }
 
   return { damage, healing, expired, events, skipAction };
+}
+
+export function tickOwnerTurnEndStatuses(
+  unit: UnitState,
+  turn: number,
+): {
+  expired: StatusName[];
+  events: Partial<CombatEvent>[];
+} {
+  const expired: StatusName[] = [];
+  const events: Partial<CombatEvent>[] = [];
+
+  for (const status of [...unit.statuses]) {
+    const def = STATUS_DEFINITIONS[status.name];
+    if (!def || def.expiresAt !== "ownerTurnEnd") continue;
+    if (status.duration < 0 || status.appliedAt >= turn) continue;
+
+    status.duration--;
+    if (status.duration <= 0) {
+      expired.push(status.name);
+    }
+  }
+
+  for (const statusName of expired) {
+    const { event } = removeStatus(unit, statusName);
+    if (event) events.push(event);
+  }
+
+  return { expired, events };
 }
 
 /**
