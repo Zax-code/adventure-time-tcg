@@ -72,6 +72,41 @@ defmodule AdventureTimeApi.Pvp.BattleEnginePayloadsTest do
     }
   end
 
+  defp make_multi_state(p1_units, p2_units) do
+    %{
+      "id" => "match1",
+      "seed" => "testseed",
+      "rngIndex" => 0,
+      "turn" => 1,
+      "phase" => "active",
+      "currentPlayerId" => "player1",
+      "winnerId" => nil,
+      "players" => [
+        %{
+          "userId" => "player1",
+          "displayName" => "P1",
+          "energy" => 5,
+          "initiative" => 40,
+          "hasUsedFreeBasic" => false,
+          "units" => p1_units,
+          "bench" => []
+        },
+        %{
+          "userId" => "player2",
+          "displayName" => "P2",
+          "energy" => 5,
+          "initiative" => 40,
+          "hasUsedFreeBasic" => false,
+          "units" => p2_units,
+          "bench" => []
+        }
+      ],
+      "log" => [],
+      "actionsThisTurn" => [],
+      "abilityDefinitions" => %{}
+    }
+  end
+
   defp get_unit(state, instance_id) do
     state["players"]
     |> Enum.flat_map(fn p -> p["units"] ++ p["bench"] end)
@@ -104,6 +139,318 @@ defmodule AdventureTimeApi.Pvp.BattleEnginePayloadsTest do
       "actorInstanceId" => "p1u1",
       "targetInstanceId" => "p2u1"
     })
+  end
+
+  describe "live DB target scopes" do
+    test "Playpen Adventure damages all enemies and buffs all allies" do
+      state =
+        make_multi_state(
+          [
+            make_unit(%{"instanceId" => "p1u1", "position" => 1, "ultimate" => "unused"}),
+            make_unit(%{"instanceId" => "p1u2", "position" => 2})
+          ],
+          [
+            make_unit(%{"instanceId" => "p2u1", "position" => 1, "defense" => 0}),
+            make_unit(%{"instanceId" => "p2u2", "position" => 2, "defense" => 0})
+          ]
+        )
+        |> with_p1_skill(%{
+          "key" => "finnjake.adventureTime",
+          "type" => "SKILL",
+          "cost" => 0,
+          "cooldown" => nil,
+          "oncePerMatch" => false,
+          "payload" => %{
+            "damageMul" => 1.2,
+            "shieldPctOfMaxHp" => 0.2,
+            "shieldTarget" => "allAllies",
+            "applyStatuses" => [
+              %{"name" => "Regeneration", "duration" => 2, "target" => "allAllies"}
+            ],
+            "target" => "allEnemies"
+          }
+        })
+
+      {:ok, new_state, events} = fire_skill(state)
+
+      assert get_unit(new_state, "p2u1")["hp"] < 100
+      assert get_unit(new_state, "p2u2")["hp"] < 100
+      assert has_status(get_unit(new_state, "p1u1"), "Shield")
+      assert has_status(get_unit(new_state, "p1u2"), "Shield")
+      assert has_status(get_unit(new_state, "p1u1"), "Regeneration")
+      assert has_status(get_unit(new_state, "p1u2"), "Regeneration")
+
+      damaged_ids =
+        events
+        |> Enum.filter(&(&1["type"] == "damage"))
+        |> Enum.map(&get_in(&1, ["payload", "targetId"]))
+
+      assert "p2u1" in damaged_ids
+      assert "p2u2" in damaged_ids
+    end
+
+    test "status specs honor their own all-enemy and self targets" do
+      state =
+        make_multi_state(
+          [make_unit(%{"instanceId" => "p1u1", "position" => 1})],
+          [
+            make_unit(%{"instanceId" => "p2u1", "position" => 1}),
+            make_unit(%{"instanceId" => "p2u2", "position" => 2})
+          ]
+        )
+        |> with_p1_skill(%{
+          "key" => "test.mixed_targets",
+          "type" => "SKILL",
+          "cost" => 0,
+          "cooldown" => nil,
+          "oncePerMatch" => false,
+          "payload" => %{
+            "applyStatuses" => [
+              %{"name" => "Poison", "duration" => 3, "target" => "allEnemies"},
+              %{"name" => "Haste", "duration" => 1, "target" => "self"}
+            ],
+            "target" => "allEnemies"
+          }
+        })
+
+      {:ok, new_state, _events} = fire_skill(state)
+
+      assert has_status(get_unit(new_state, "p1u1"), "Haste")
+      assert has_status(get_unit(new_state, "p2u1"), "Poison")
+      assert has_status(get_unit(new_state, "p2u2"), "Poison")
+      refute has_status(get_unit(new_state, "p2u1"), "Haste")
+    end
+
+    test "heal all allies heals the selected scope instead of only the actor" do
+      state =
+        make_multi_state(
+          [
+            make_unit(%{"instanceId" => "p1u1", "position" => 1, "hp" => 60, "maxHp" => 100}),
+            make_unit(%{"instanceId" => "p1u2", "position" => 2, "hp" => 50, "maxHp" => 100})
+          ],
+          [make_unit(%{"instanceId" => "p2u1", "position" => 1})]
+        )
+        |> with_p1_skill(%{
+          "key" => "Neddy.Gumroar",
+          "type" => "SKILL",
+          "cost" => 0,
+          "cooldown" => nil,
+          "oncePerMatch" => false,
+          "payload" => %{
+            "healPctOfMaxHp" => 0.25,
+            "target" => "allAllies"
+          }
+        })
+
+      {:ok, new_state, _events} = fire_skill(state)
+
+      assert get_unit(new_state, "p1u1")["hp"] == 85
+      assert get_unit(new_state, "p1u2")["hp"] == 75
+    end
+  end
+
+  describe "live DB payload normalizations" do
+    test "Scam Scheme steals a buff even though the live payload omits stealBuffCount" do
+      state =
+        make_state(
+          %{},
+          %{
+            "statuses" => [
+              %{"name" => "Empower", "duration" => 2, "magnitude" => nil, "appliedAt" => 0}
+            ]
+          }
+        )
+        |> with_p1_skill(%{
+          "key" => "kingooo.scamScheme",
+          "type" => "SKILL",
+          "cost" => 0,
+          "cooldown" => nil,
+          "oncePerMatch" => false,
+          "payload" => %{"damageMul" => 0.85, "target" => "enemy"}
+        })
+
+      {:ok, new_state, _events} = fire_skill(state)
+
+      assert has_status(get_unit(new_state, "p1u1"), "Empower")
+      refute has_status(get_unit(new_state, "p2u1"), "Empower")
+    end
+
+    test "Lumpy Space Power cleanses statuses from both teams" do
+      state =
+        make_multi_state(
+          [
+            make_unit(%{
+              "instanceId" => "p1u1",
+              "position" => 1,
+              "statuses" => [%{"name" => "Empower", "duration" => 2, "appliedAt" => 0}]
+            })
+          ],
+          [
+            make_unit(%{
+              "instanceId" => "p2u1",
+              "position" => 1,
+              "statuses" => [%{"name" => "Burn", "duration" => 2, "appliedAt" => 0}]
+            })
+          ]
+        )
+        |> with_p1_skill(%{
+          "key" => "lsp.lumpyPower",
+          "type" => "SKILL",
+          "cost" => 0,
+          "cooldown" => nil,
+          "oncePerMatch" => false,
+          "payload" => %{
+            "cleanse" => %{"count" => 99, "target" => "allAllies"},
+            "target" => "allEnemies"
+          }
+        })
+
+      {:ok, new_state, _events} = fire_skill(state)
+
+      assert get_unit(new_state, "p1u1")["statuses"] == []
+      assert get_unit(new_state, "p2u1")["statuses"] == []
+    end
+
+    test "Memory Curse increases the target's assigned cooldowns" do
+      state =
+        make_state(
+          %{},
+          %{"skill" => "target.skill", "ultimate" => "target.ultimate", "cooldowns" => %{}}
+        )
+        |> with_p1_skill(%{
+          "key" => "ash.memoryCurse",
+          "type" => "SKILL",
+          "cost" => 0,
+          "cooldown" => nil,
+          "oncePerMatch" => false,
+          "payload" => %{
+            "damageMul" => 0.95,
+            "applyStatuses" => [%{"name" => "Silence", "duration" => 1}],
+            "target" => "enemy"
+          }
+        })
+
+      {:ok, new_state, _events} = fire_skill(state)
+
+      assert get_unit(new_state, "p2u1")["cooldowns"]["target.skill"] == 1
+      assert get_unit(new_state, "p2u1")["cooldowns"]["target.ultimate"] == 1
+    end
+
+    test "Madness Embrace empowers allies and reduces enemy cooldowns" do
+      state =
+        make_multi_state(
+          [make_unit(%{"instanceId" => "p1u1", "position" => 1})],
+          [
+            make_unit(%{
+              "instanceId" => "p2u1",
+              "position" => 1,
+              "cooldowns" => %{"target.skill" => 2}
+            })
+          ]
+        )
+        |> with_p1_skill(%{
+          "key" => "betty.madnessEmbrace",
+          "type" => "SKILL",
+          "cost" => 0,
+          "cooldown" => nil,
+          "oncePerMatch" => false,
+          "payload" => %{
+            "applyStatuses" => [%{"name" => "Empower", "duration" => 1, "target" => "allAllies"}],
+            "target" => "allAllies"
+          }
+        })
+
+      {:ok, new_state, _events} = fire_skill(state)
+
+      assert has_status(get_unit(new_state, "p1u1"), "Empower")
+      assert get_unit(new_state, "p2u1")["cooldowns"]["target.skill"] == 1
+    end
+
+    test "Blood Ritual pays self-damage before damaging all enemies" do
+      state =
+        make_multi_state(
+          [make_unit(%{"instanceId" => "p1u1", "position" => 1, "hp" => 80, "maxHp" => 100})],
+          [
+            make_unit(%{"instanceId" => "p2u1", "position" => 1, "defense" => 0}),
+            make_unit(%{"instanceId" => "p2u2", "position" => 2, "defense" => 0})
+          ]
+        )
+        |> with_p1_skill(%{
+          "key" => "keeoth.bloodRitual",
+          "type" => "SKILL",
+          "cost" => 0,
+          "cooldown" => nil,
+          "oncePerMatch" => false,
+          "payload" => %{
+            "selfDamagePct" => 0.2,
+            "damageMul" => 2,
+            "applyStatuses" => [%{"name" => "Poison", "duration" => 3}],
+            "target" => "allEnemies"
+          }
+        })
+
+      {:ok, new_state, events} = fire_skill(state)
+
+      assert get_unit(new_state, "p1u1")["hp"] == 64
+      assert get_unit(new_state, "p2u1")["hp"] < 100
+      assert get_unit(new_state, "p2u2")["hp"] < 100
+      assert Enum.any?(events, &(&1["type"] == "selfDamage"))
+    end
+
+    test "Death's Kiss stores and consumes a delayed ally revive on enemy KO" do
+      state =
+        make_multi_state(
+          [
+            make_unit(%{"instanceId" => "p1u1", "position" => 1}),
+            make_unit(%{"instanceId" => "p1u2", "position" => 2, "hp" => 0, "knockedOut" => true})
+          ],
+          [make_unit(%{"instanceId" => "p2u1", "position" => 1})]
+        )
+        |> with_p1_skill(%{
+          "key" => "death.deathsKiss",
+          "type" => "SKILL",
+          "cost" => 0,
+          "cooldown" => nil,
+          "oncePerMatch" => false,
+          "payload" => %{"reviveAllyOnEnemyKoPct" => 0.3, "target" => "allEnemies"}
+        })
+
+      {:ok, marked_state, _events} = fire_skill(state)
+
+      p2_ko_state =
+        update_in(marked_state, ["players"], fn players ->
+          Enum.map(players, fn player ->
+            if player["userId"] == "player2" do
+              units =
+                Enum.map(player["units"], fn unit ->
+                  if unit["instanceId"] == "p2u1" do
+                    unit |> Map.put("hp", 1) |> Map.put("defense", 0)
+                  else
+                    unit
+                  end
+                end)
+
+              Map.put(player, "units", units)
+            else
+              player
+            end
+          end)
+        end)
+        |> with_p1_skill(%{
+          "key" => "test.finish",
+          "type" => "SKILL",
+          "cost" => 0,
+          "cooldown" => nil,
+          "oncePerMatch" => false,
+          "payload" => %{"damageMul" => 1, "target" => "enemy"}
+        })
+
+      {:ok, new_state, _events} = fire_skill(p2_ko_state)
+
+      assert get_unit(new_state, "p1u2")["hp"] == 30
+      refute get_unit(new_state, "p1u2")["knockedOut"]
+      refute Map.has_key?(get_unit(new_state, "p1u1"), "reviveAllyOnEnemyKoPct")
+    end
   end
 
   # ── ignoreDefensePct ──────────────────────────────────────────────────────
@@ -257,6 +604,97 @@ defmodule AdventureTimeApi.Pvp.BattleEnginePayloadsTest do
     end
   end
 
+  describe "instantKoIfTargetBelowHpPct" do
+    test "KO's a target that is already below the threshold" do
+      state = make_state(%{}, %{"hp" => 19, "maxHp" => 100, "defense" => 0})
+
+      ability = %{
+        "key" => "death.reapersTouch",
+        "type" => "SKILL",
+        "cost" => 0,
+        "cooldown" => nil,
+        "oncePerMatch" => false,
+        "payload" => %{
+          "damageMul" => 0.1,
+          "instantKoIfTargetBelowHpPct" => 0.2,
+          "target" => "enemy"
+        }
+      }
+
+      {:ok, new_state, events} = state |> with_p1_skill(ability) |> fire_skill()
+
+      assert get_unit(new_state, "p2u1")["hp"] == 0
+      assert get_unit(new_state, "p2u1")["knockedOut"] == true
+      assert Enum.any?(events, &(&1["type"] == "ko"))
+    end
+  end
+
+  describe "conditional" do
+    test "targetHas condition changes damage multiplier" do
+      vulnerable_state =
+        make_state(
+          %{},
+          %{
+            "statuses" => [
+              %{"name" => "Vulnerable", "duration" => 2, "magnitude" => nil, "appliedAt" => 0}
+            ]
+          }
+        )
+
+      normal_state = make_state()
+
+      ability = %{
+        "key" => "finn.swordFlourish",
+        "type" => "SKILL",
+        "cost" => 0,
+        "cooldown" => nil,
+        "oncePerMatch" => false,
+        "payload" => %{
+          "damageMul" => 1.0,
+          "conditional" => [
+            %{"when" => %{"targetHas" => "Vulnerable"}, "damageMulDelta" => 0.4}
+          ],
+          "target" => "enemy"
+        }
+      }
+
+      {:ok, vulnerable_result, _} = vulnerable_state |> with_p1_skill(ability) |> fire_skill()
+      {:ok, normal_result, _} = normal_state |> with_p1_skill(ability) |> fire_skill()
+
+      assert 100 - get_unit(vulnerable_result, "p2u1")["hp"] >
+               100 - get_unit(normal_result, "p2u1")["hp"]
+    end
+
+    test "targetBelowHpPct can add a self buff from an enemy-targeting ability" do
+      state = make_state(%{}, %{"hp" => 45, "maxHp" => 100})
+
+      ability = %{
+        "key" => "susan.powerPunch",
+        "type" => "SKILL",
+        "cost" => 0,
+        "cooldown" => nil,
+        "oncePerMatch" => false,
+        "payload" => %{
+          "damageMul" => 1.2,
+          "applyStatuses" => [%{"name" => "Vulnerable", "duration" => 2}],
+          "conditional" => [
+            %{
+              "when" => %{"targetBelowHpPct" => 0.5},
+              "addApplyStatuses" => [%{"name" => "Empower", "duration" => 2}]
+            }
+          ],
+          "target" => "enemy"
+        }
+      }
+
+      {:ok, new_state, _events} = state |> with_p1_skill(ability) |> fire_skill()
+
+      assert has_status(get_unit(new_state, "p1u1"), "Empower")
+      assert has_status(get_unit(new_state, "p2u1"), "Vulnerable")
+      refute has_status(get_unit(new_state, "p2u1"), "Empower")
+    end
+  end
+
   # ── hits ──────────────────────────────────────────────────────────────────
 
   describe "hits" do
@@ -325,6 +763,37 @@ defmodule AdventureTimeApi.Pvp.BattleEnginePayloadsTest do
         # Miss — no heal expected
         assert p1_unit["hp"] == 50
       end
+    end
+  end
+
+  describe "healLowestAllyPctOfDamage" do
+    test "heals the lowest HP ally based on damage dealt" do
+      state =
+        make_multi_state(
+          [
+            make_unit(%{"instanceId" => "p1u1", "position" => 1, "hp" => 100, "maxHp" => 100}),
+            make_unit(%{"instanceId" => "p1u2", "position" => 2, "hp" => 30, "maxHp" => 100})
+          ],
+          [make_unit(%{"instanceId" => "p2u1", "position" => 1, "defense" => 0})]
+        )
+        |> with_p1_skill(%{
+          "key" => "jakerainicorn.rainbowStretch",
+          "type" => "SKILL",
+          "cost" => 0,
+          "cooldown" => nil,
+          "oncePerMatch" => false,
+          "payload" => %{
+            "damageMul" => 1.1,
+            "healLowestAllyPctOfDamage" => 0.2,
+            "target" => "enemy"
+          }
+        })
+
+      {:ok, new_state, _events} = fire_skill(state)
+      damage_dealt = 100 - get_unit(new_state, "p2u1")["hp"]
+
+      assert get_unit(new_state, "p1u1")["hp"] == 100
+      assert get_unit(new_state, "p1u2")["hp"] == 30 + floor(damage_dealt * 0.2)
     end
   end
 
@@ -861,15 +1330,6 @@ defmodule AdventureTimeApi.Pvp.BattleEnginePayloadsTest do
           "skill" => "test.reduce_cd"
         })
 
-      ability = %{
-        "key" => "test.reduce_cd",
-        "type" => "SKILL",
-        "cost" => 0,
-        "cooldown" => nil,
-        "oncePerMatch" => false,
-        "payload" => %{"reduceCooldowns" => 1}
-      }
-
       # We can't fire the skill since it's on cooldown — call dispatch directly via basic check
       # Instead, use a second ability key that reduces cooldowns
       reduce_ability = %{
@@ -1194,6 +1654,97 @@ defmodule AdventureTimeApi.Pvp.BattleEnginePayloadsTest do
       # abilityStart event emitted
       ability_start = Enum.find(events, &(&1["type"] == "abilityStart"))
       assert ability_start != nil
+    end
+
+    test "copies source ultimate when the copy ability payload requests ULTIMATE" do
+      source_skill_key = "test.source_skill"
+      source_ultimate_key = "test.source_ultimate"
+      copy_key = "fern.imposter"
+
+      state = %{
+        "id" => "match1",
+        "seed" => "testseed",
+        "rngIndex" => 0,
+        "turn" => 1,
+        "phase" => "active",
+        "currentPlayerId" => "player1",
+        "winnerId" => nil,
+        "players" => [
+          %{
+            "userId" => "player1",
+            "displayName" => "P1",
+            "energy" => 5,
+            "initiative" => 40,
+            "hasUsedFreeBasic" => false,
+            "units" => [
+              make_unit(%{"instanceId" => "p1u1", "position" => 1, "ultimate" => copy_key})
+            ],
+            "bench" => []
+          },
+          %{
+            "userId" => "player2",
+            "displayName" => "P2",
+            "energy" => 3,
+            "initiative" => 40,
+            "hasUsedFreeBasic" => false,
+            "units" => [
+              make_unit(%{
+                "instanceId" => "p2u1",
+                "position" => 1,
+                "skill" => source_skill_key,
+                "ultimate" => source_ultimate_key
+              })
+            ],
+            "bench" => []
+          }
+        ],
+        "log" => [],
+        "actionsThisTurn" => [],
+        "abilityDefinitions" => %{
+          copy_key => %{
+            "key" => copy_key,
+            "type" => "ULTIMATE",
+            "cost" => 3,
+            "cooldown" => nil,
+            "oncePerMatch" => true,
+            "payload" => %{"copyAbilitySource" => "enemy", "copyAbilityType" => "ULTIMATE"}
+          },
+          source_skill_key => %{
+            "key" => source_skill_key,
+            "type" => "SKILL",
+            "cost" => 1,
+            "cooldown" => nil,
+            "oncePerMatch" => false,
+            "payload" => %{"applyStatuses" => [%{"name" => "Burn", "duration" => 2}]}
+          },
+          source_ultimate_key => %{
+            "key" => source_ultimate_key,
+            "type" => "ULTIMATE",
+            "cost" => 3,
+            "cooldown" => nil,
+            "oncePerMatch" => true,
+            "payload" => %{"applyStatuses" => [%{"name" => "Freeze", "duration" => -1}]}
+          }
+        }
+      }
+
+      {:ok, new_state, events} =
+        BattleEngine.simulate_action(state, "player1", %{
+          "kind" => "copy",
+          "actorInstanceId" => "p1u1",
+          "abilityKey" => copy_key,
+          "sourceInstanceId" => "p2u1",
+          "targetInstanceId" => "p2u1"
+        })
+
+      p2_unit = get_unit(new_state, "p2u1")
+      assert has_status(p2_unit, "Freeze")
+      refute has_status(p2_unit, "Burn")
+      assert get_unit(new_state, "p1u1")["usedUltimate"] == true
+
+      ability_start = Enum.find(events, &(&1["type"] == "abilityStart"))
+      assert get_in(ability_start, ["payload", "abilityKey"]) == source_ultimate_key
+      assert get_in(ability_start, ["payload", "copyKey"]) == copy_key
     end
 
     test "returns error when source has no skill assigned" do

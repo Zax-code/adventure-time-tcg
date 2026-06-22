@@ -991,6 +991,83 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
     end)
   end
 
+  defp get_enemy_player(state, actor_id) do
+    actor_player = get_unit_player(state, actor_id)
+
+    Enum.find(state["players"], fn player ->
+      actor_player != nil and player["userId"] != actor_player["userId"]
+    end)
+  end
+
+  defp alive_active_unit_ids(nil), do: []
+
+  defp alive_active_unit_ids(player) do
+    player["units"]
+    |> Enum.filter(fn unit -> unit["hp"] > 0 and not unit["knockedOut"] end)
+    |> Enum.map(& &1["instanceId"])
+  end
+
+  defp lowest_hp_unit_id(units) do
+    units
+    |> Enum.filter(fn unit -> unit["hp"] > 0 and not unit["knockedOut"] end)
+    |> Enum.min_by(fn unit -> unit["hp"] / max(1, unit["maxHp"]) end, fn -> nil end)
+    |> case do
+      nil -> nil
+      unit -> unit["instanceId"]
+    end
+  end
+
+  defp target_ids_for_scope(state, actor_id, selected_target_id, scope, opts \\ []) do
+    selector = Keyword.get(opts, :selector)
+    actor_player = get_unit_player(state, actor_id)
+    enemy_player = get_enemy_player(state, actor_id)
+
+    target_ids =
+      case scope do
+        "self" ->
+          [actor_id]
+
+        "allAllies" ->
+          alive_active_unit_ids(actor_player)
+
+        "allEnemies" ->
+          alive_active_unit_ids(enemy_player)
+
+        "allUnits" ->
+          alive_active_unit_ids(actor_player) ++ alive_active_unit_ids(enemy_player)
+
+        "ally" ->
+          case selector do
+            "lowestHp" -> [lowest_hp_unit_id(actor_player && actor_player["units"])]
+            _ -> [selected_target_id]
+          end
+
+        "enemy" ->
+          [selected_target_id]
+
+        "target" ->
+          [selected_target_id]
+
+        nil ->
+          [selected_target_id]
+
+        _ ->
+          [selected_target_id]
+      end
+
+    target_ids
+    |> Enum.reject(&is_nil/1)
+    |> Enum.uniq()
+  end
+
+  defp status_default_scope(default_scope, status_name) do
+    if default_scope in ["enemy", "allEnemies"] and status_is_buff?(status_name) do
+      "self"
+    else
+      default_scope
+    end
+  end
+
   defp get_unit_passives(unit), do: Map.get(unit, "passives", []) || []
   defp get_unit_passive_triggered(unit), do: Map.get(unit, "passiveTriggered", %{}) || %{}
 
@@ -1021,7 +1098,8 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
         context["healerId"] == unit["instanceId"]
 
       "onStatusApplied" ->
-        context["unitId"] == unit["instanceId"]
+        context["unitId"] == unit["instanceId"] or
+          context["sourceInstanceId"] == unit["instanceId"]
 
       "onActionStart" ->
         context["actorId"] == unit["instanceId"]
@@ -1099,12 +1177,16 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
     ])
   end
 
+  defp stat_bonus_rate(value) when is_number(value) and abs(value) > 1, do: value / 100
+  defp stat_bonus_rate(value) when is_number(value), do: value
+  defp stat_bonus_rate(_value), do: 0
+
   defp apply_passive_stat_bonus(state, unit_id, stat_bonus) when is_map(stat_bonus) do
     update_unit(state, unit_id, fn unit ->
-      hp_bonus = Map.get(stat_bonus, "hp", 0)
-      atk_bonus = Map.get(stat_bonus, "attack", 0)
-      def_bonus = Map.get(stat_bonus, "defense", 0)
-      speed_bonus = Map.get(stat_bonus, "speed", 0)
+      hp_bonus = stat_bonus_rate(Map.get(stat_bonus, "hp", 0))
+      atk_bonus = stat_bonus_rate(Map.get(stat_bonus, "attack", 0))
+      def_bonus = stat_bonus_rate(Map.get(stat_bonus, "defense", 0))
+      speed_bonus = stat_bonus_rate(Map.get(stat_bonus, "speed", 0))
 
       max_hp = unit["maxHp"] || 0
       attack = unit["attack"] || 0
@@ -1125,6 +1207,50 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
 
   defp apply_passive_stat_bonus(state, _unit_id, _stat_bonus), do: state
 
+  defp apply_passive_stat_bonus_targets(state, unit, payload) do
+    stat_bonus = payload["statBonus"]
+    actor_id = unit["instanceId"]
+    actor_player = get_unit_player(state, actor_id)
+    required_types = payload["requiredAnyAllyTypes"]
+    apply_to_types = payload["applyToAllyTypes"]
+
+    required_met? =
+      cond do
+        not is_list(required_types) ->
+          true
+
+        actor_player == nil ->
+          false
+
+        true ->
+          Enum.any?(actor_player["units"], fn ally -> ally["type"] in required_types end)
+      end
+
+    if required_met? do
+      state
+      |> target_ids_for_scope(
+        actor_id,
+        actor_id,
+        payload["statBonusTarget"] || payload["target"] || "self"
+      )
+      |> Enum.reduce(state, fn target_id, acc_state ->
+        case find_unit_across_players(acc_state, target_id) do
+          {:ok, target_unit} ->
+            if is_list(apply_to_types) and target_unit["type"] not in apply_to_types do
+              acc_state
+            else
+              apply_passive_stat_bonus(acc_state, target_id, stat_bonus)
+            end
+
+          {:error, _} ->
+            acc_state
+        end
+      end)
+    else
+      state
+    end
+  end
+
   defp maybe_execute_passive(state, player, unit, passive_key, passive_def, trigger, context) do
     payload = passive_def["payload"] || %{}
     once? = payload["once"] == true
@@ -1139,6 +1265,10 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
       trigger == "onBelowHp" and not passive_threshold_met?(unit, payload) ->
         state
 
+      trigger == "onStatusApplied" and is_binary(payload["requiredStatus"]) and
+          payload["requiredStatus"] != context["status"] ->
+        state
+
       once? and Map.get(get_unit_passive_triggered(unit), passive_key) == true ->
         state
 
@@ -1151,12 +1281,26 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
         else
           state =
             if trigger == "onBattleInit" and is_map(payload["statBonus"]) do
-              apply_passive_stat_bonus(state, unit["instanceId"], payload["statBonus"])
+              apply_passive_stat_bonus_targets(state, unit, payload)
             else
               state
             end
 
           target_id = passive_target_id(trigger, context, unit["instanceId"])
+
+          state =
+            if is_number(payload["reflectDamagePct"]) and is_number(context["damage"]) and
+                 not is_nil(target_id) do
+              apply_reflect_damage(
+                state,
+                unit["instanceId"],
+                target_id,
+                context["damage"],
+                payload["reflectDamagePct"]
+              )
+            else
+              state
+            end
 
           state =
             dispatch_ability_payload(
@@ -1243,6 +1387,7 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
           context = %{"koedUnitId" => koed_unit_id, "koedPlayerId" => koed_player["userId"]}
 
           state
+          |> trigger_delayed_enemy_ko_revives(koed_player["userId"])
           |> check_passives("onAnyKo", context)
           |> check_passives("onAllyKo", context)
           |> check_passives("onEnemyKo", context)
@@ -1253,6 +1398,23 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
       {:error, _} ->
         state
     end
+  end
+
+  defp trigger_delayed_enemy_ko_revives(state, koed_player_id) do
+    state["players"]
+    |> Enum.reject(&(&1["userId"] == koed_player_id))
+    |> Enum.flat_map(& &1["units"])
+    |> Enum.reduce(state, fn unit, acc_state ->
+      pct = unit["reviveAllyOnEnemyKoPct"]
+
+      if is_number(pct) and unit["hp"] > 0 and not unit["knockedOut"] do
+        acc_state
+        |> apply_revive_ally(unit["instanceId"], pct)
+        |> update_unit(unit["instanceId"], &Map.delete(&1, "reviveAllyOnEnemyKoPct"))
+      else
+        acc_state
+      end
+    end)
   end
 
   defp maybe_prevent_fatal_damage(state, target_id, attacker_id) do
@@ -1387,50 +1549,147 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
 
   defp apply_status_list(state, _unit_id, _), do: state
 
-  # Apply a list of status specs, each gated by an optional chance roll
-  defp apply_status_list_with_chance(state, unit_id, specs, nil) do
-    apply_status_list(state, unit_id, specs)
-  end
+  defp apply_status_specs(state, _actor_id, _selected_target_id, nil, _default_scope, _chance),
+    do: state
 
-  defp apply_status_list_with_chance(state, unit_id, specs, chance) when is_list(specs) do
+  defp apply_status_specs(state, _actor_id, _selected_target_id, [], _default_scope, _chance),
+    do: state
+
+  defp apply_status_specs(state, actor_id, selected_target_id, specs, default_scope, nil)
+       when is_list(specs) do
     Enum.reduce(specs, state, fn spec, acc_state ->
-      rng = make_rng(acc_state["seed"], acc_state["rngIndex"])
-      {should_apply, roll, {_, new_rng_index}} = rng_next_bool_with_roll(rng, chance)
-      acc_state = Map.put(acc_state, "rngIndex", new_rng_index)
-      name = spec["name"]
-      source = spec["sourceInstanceId"]
-
-      acc_state =
-        append_log(acc_state, [
-          new_event(acc_state, "statusRoll", %{
-            "targetId" => unit_id,
-            "status" => name,
-            "statusName" => name,
-            "sourceId" => source,
-            "roll" => roll,
-            "chance" => chance,
-            "passed" => should_apply
-          })
-        ])
-
-      if should_apply do
-        duration = spec["duration"] || 1
-        magnitude = spec["magnitude"]
-
-        {new_state, _} =
-          apply_status(acc_state, unit_id, name, duration,
-            magnitude: magnitude,
-            source_instance_id: source
-          )
-
-        new_state
-      else
-        acc_state
-      end
+      apply_status_spec(acc_state, actor_id, selected_target_id, spec, default_scope)
     end)
   end
 
-  defp apply_status_list_with_chance(state, _unit_id, _specs, _chance), do: state
+  defp apply_status_specs(state, actor_id, selected_target_id, specs, default_scope, chance)
+       when is_list(specs) do
+    Enum.reduce(specs, state, fn spec, acc_state ->
+      scope = spec["target"] || status_default_scope(default_scope, spec["name"])
+
+      target_ids =
+        target_ids_for_scope(state, actor_id, selected_target_id, scope,
+          selector: spec["targetSelector"]
+        )
+
+      Enum.reduce(target_ids, acc_state, fn target_id, target_acc ->
+        rng = make_rng(target_acc["seed"], target_acc["rngIndex"])
+        {should_apply, roll, {_, new_rng_index}} = rng_next_bool_with_roll(rng, chance)
+        target_acc = Map.put(target_acc, "rngIndex", new_rng_index)
+        name = spec["name"]
+        source = spec["sourceInstanceId"]
+
+        target_acc =
+          append_log(target_acc, [
+            new_event(target_acc, "statusRoll", %{
+              "targetId" => target_id,
+              "status" => name,
+              "statusName" => name,
+              "sourceId" => source,
+              "roll" => roll,
+              "chance" => chance,
+              "passed" => should_apply
+            })
+          ])
+
+        if should_apply do
+          apply_status_spec(target_acc, actor_id, target_id, spec, "target")
+        else
+          target_acc
+        end
+      end)
+    end)
+  end
+
+  defp apply_status_specs(state, _actor_id, _selected_target_id, _specs, _default_scope, _chance),
+    do: state
+
+  defp materialize_conditional_payload(state, actor_id, target_id, payload) do
+    conditionals = payload["conditional"]
+
+    if is_list(conditionals) do
+      Enum.reduce(conditionals, payload, fn conditional, acc_payload ->
+        if conditional_met?(state, actor_id, target_id, conditional["when"] || %{}) do
+          acc_payload
+          |> maybe_apply_damage_mul_delta(conditional)
+          |> maybe_merge_payload(conditional)
+          |> maybe_append_apply_statuses(conditional)
+        else
+          acc_payload
+        end
+      end)
+    else
+      payload
+    end
+  end
+
+  defp conditional_met?(state, _actor_id, target_id, %{"targetHas" => status_name}) do
+    case find_unit_across_players(state, target_id) do
+      {:ok, target} -> has_status(target, status_name)
+      {:error, _} -> false
+    end
+  end
+
+  defp conditional_met?(state, _actor_id, target_id, %{"targetBelowHpPct" => threshold})
+       when is_number(threshold) do
+    case find_unit_across_players(state, target_id) do
+      {:ok, target} -> target["maxHp"] > 0 and target["hp"] / target["maxHp"] <= threshold
+      {:error, _} -> false
+    end
+  end
+
+  defp conditional_met?(state, _actor_id, target_id, %{"allyType" => ally_type}) do
+    case find_unit_across_players(state, target_id) do
+      {:ok, target} -> target["type"] == ally_type
+      {:error, _} -> false
+    end
+  end
+
+  defp conditional_met?(_state, _actor_id, _target_id, _when), do: false
+
+  defp maybe_apply_damage_mul_delta(payload, %{"damageMulDelta" => delta})
+       when is_number(delta) do
+    Map.update(payload, "damageMul", delta, &(&1 + delta))
+  end
+
+  defp maybe_apply_damage_mul_delta(payload, _conditional), do: payload
+
+  defp maybe_merge_payload(payload, %{"mergePayload" => merge_payload})
+       when is_map(merge_payload) do
+    Map.merge(payload, merge_payload)
+  end
+
+  defp maybe_merge_payload(payload, _conditional), do: payload
+
+  defp maybe_append_apply_statuses(payload, %{"addApplyStatuses" => statuses})
+       when is_list(statuses) do
+    Map.update(payload, "applyStatuses", statuses, &(&1 ++ statuses))
+  end
+
+  defp maybe_append_apply_statuses(payload, _conditional), do: payload
+
+  defp apply_status_spec(state, actor_id, selected_target_id, spec, default_scope) do
+    name = spec["name"]
+    duration = spec["duration"] || 1
+    magnitude = spec["magnitude"]
+    source = spec["sourceInstanceId"] || actor_id
+    scope = spec["target"] || status_default_scope(default_scope, name)
+
+    target_ids =
+      target_ids_for_scope(state, actor_id, selected_target_id, scope,
+        selector: spec["targetSelector"]
+      )
+
+    Enum.reduce(target_ids, state, fn target_id, acc_state ->
+      {new_state, _events} =
+        apply_status(acc_state, target_id, name, duration,
+          magnitude: magnitude,
+          source_instance_id: source
+        )
+
+      new_state
+    end)
+  end
 
   # Pick one random status from specs and apply it
   defp apply_random_status(state, _unit_id, specs) when specs == [], do: state
@@ -1497,6 +1756,29 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
     end
   end
 
+  defp apply_heal_lowest_ally_amount(state, actor_id, amount) do
+    actor_player =
+      Enum.find(state["players"], fn p ->
+        all = p["units"] ++ p["bench"]
+        Enum.any?(all, &(&1["instanceId"] == actor_id))
+      end)
+
+    if actor_player do
+      alive_units =
+        Enum.filter(actor_player["units"], fn u -> not u["knockedOut"] and u["hp"] > 0 end)
+
+      if alive_units != [] do
+        lowest = Enum.min_by(alive_units, fn u -> u["hp"] / max(1, u["maxHp"]) end)
+
+        apply_ability_heal_amount(state, lowest["instanceId"], amount, healer_id: actor_id)
+      else
+        state
+      end
+    else
+      state
+    end
+  end
+
   # Revive first KO'd ally at revive_pct of maxHp
   defp apply_revive_ally(state, actor_id, revive_pct) do
     actor_player =
@@ -1537,13 +1819,17 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
   # Remove debuffs from target_id. Priority: Doom first, then oldest by appliedAt.
   defp apply_cleanse(state, target_id, cleanse_spec) do
     count = Map.get(cleanse_spec, "count", 1)
+    include_buffs? = Map.get(cleanse_spec, "includeBuffs", false)
 
     case find_unit_across_players(state, target_id) do
       {:error, _} ->
         state
 
       {:ok, target} ->
-        debuffs = Enum.filter(target["statuses"] || [], fn s -> status_is_debuff?(s["name"]) end)
+        debuffs =
+          Enum.filter(target["statuses"] || [], fn status ->
+            include_buffs? or status_is_debuff?(status["name"])
+          end)
 
         sorted =
           Enum.sort_by(debuffs, fn s ->
@@ -1603,6 +1889,81 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
     end
   end
 
+  defp apply_self_damage_pct(state, actor_id, pct) when is_number(pct) do
+    case find_unit_across_players(state, actor_id) do
+      {:ok, actor} ->
+        damage = max(1, floor(actor["hp"] * pct))
+        hp_before = actor["hp"]
+        hp_after = max(1, hp_before - damage)
+
+        event =
+          new_event(state, "selfDamage", %{
+            "actorId" => actor_id,
+            "targetId" => actor_id,
+            "unitId" => actor_id,
+            "amount" => hp_before - hp_after,
+            "damage" => hp_before - hp_after,
+            "hpBefore" => hp_before,
+            "hpAfter" => hp_after
+          })
+
+        state
+        |> update_unit(actor_id, &apply_hp_change(&1, hp_after))
+        |> append_log([event])
+
+      {:error, _} ->
+        state
+    end
+  end
+
+  defp apply_self_damage_pct(state, _actor_id, _pct), do: state
+
+  defp apply_reflect_damage(state, source_id, target_id, triggering_damage, pct) do
+    case find_unit_across_players(state, target_id) do
+      {:ok, target} ->
+        if target["hp"] <= 0 or target["knockedOut"] do
+          state
+        else
+          damage = max(1, floor(triggering_damage * pct))
+          hp_before = target["hp"]
+          hp_after = max(0, hp_before - damage)
+
+          reflect_evt =
+            new_event(state, "reflectDamage", %{
+              "sourceId" => source_id,
+              "targetId" => target_id,
+              "amount" => damage,
+              "damage" => damage,
+              "hpBefore" => hp_before,
+              "hpAfter" => hp_after
+            })
+
+          state =
+            state
+            |> update_unit(target_id, &apply_hp_change(&1, hp_after))
+            |> append_log([reflect_evt])
+
+          if hp_after <= 0 do
+            ko_evt =
+              new_event(state, "ko", %{
+                "targetId" => target_id,
+                "unitId" => target_id,
+                "killerId" => source_id
+              })
+
+            state
+            |> append_log([ko_evt])
+            |> trigger_ko_passives(target_id)
+          else
+            state
+          end
+        end
+
+      _ ->
+        state
+    end
+  end
+
   # Swap HP percentages between actor and target (floors at 1)
   defp apply_swap_hp_percentages(state, actor_id, target_id) do
     with {:ok, actor} <- find_unit_across_players(state, actor_id),
@@ -1645,8 +2006,23 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
     end)
   end
 
+  defp apply_increase_cooldowns(state, unit_id, amount) do
+    update_unit(state, unit_id, fn unit ->
+      ability_keys =
+        [unit["skill"], unit["ultimate"]]
+        |> Enum.reject(&is_nil/1)
+
+      new_cooldowns =
+        Enum.reduce(ability_keys, unit["cooldowns"] || %{}, fn ability_key, cooldowns ->
+          Map.update(cooldowns, ability_key, amount, &(&1 + amount))
+        end)
+
+      Map.put(unit, "cooldowns", new_cooldowns)
+    end)
+  end
+
   # Handle shieldTarget + shieldPctOfMaxHp payload
-  defp apply_shield_ability(state, actor_id, shield_target, shield_pct) do
+  defp apply_shield_ability(state, actor_id, shield_target, selected_target_id, shield_pct) do
     case find_unit_across_players(state, actor_id) do
       {:error, _} ->
         state
@@ -1655,26 +2031,7 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
         magnitude = floor(actor["maxHp"] * shield_pct)
 
         target_ids =
-          case shield_target do
-            "self" ->
-              [actor_id]
-
-            "allAllies" ->
-              actor_player =
-                Enum.find(state["players"], fn p ->
-                  all = p["units"] ++ p["bench"]
-                  Enum.any?(all, &(&1["instanceId"] == actor_id))
-                end)
-
-              if actor_player do
-                Enum.map(actor_player["units"], & &1["instanceId"])
-              else
-                []
-              end
-
-            _ ->
-              []
-          end
+          target_ids_for_scope(state, actor_id, selected_target_id, shield_target)
 
         Enum.reduce(target_ids, state, fn tid, acc ->
           {new_state, _} = apply_status(acc, tid, "Shield", -1, magnitude: magnitude)
@@ -2056,6 +2413,7 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
   end
 
   def initialize_passives(state) do
+    state = normalize_ability_definition_payloads(state)
     check_passives(state, "onBattleInit", %{})
   end
 
@@ -2066,6 +2424,7 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
   Returns {:ok, new_state, events} or {:error, reason}.
   """
   def simulate_action(state, acting_user_id, action) do
+    state = normalize_ability_definition_payloads(state)
     kind = Map.get(action, "kind", Map.get(action, :kind))
     actor_id = Map.get(action, "actorInstanceId", Map.get(action, :actor_instance_id))
 
@@ -2249,30 +2608,55 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
   # Called by dispatch_ability and simulate_copy_action.
   defp dispatch_ability_payload(state, _acting_user_id, actor_id, target_id, ability_def) do
     payload = ability_def["payload"] || %{}
+    default_target = payload["target"] || if(payload["trigger"], do: "self", else: "target")
 
-    # Block 1 — damage (full payload-aware: hits, ignoreDefensePct, burnBonusMul, execute, etc.)
+    # Block 0 — self-sacrifice costs paid before outgoing effects.
     state =
-      if Map.has_key?(payload, "damageMul") and not is_nil(target_id) do
-        apply_damage_effects(state, actor_id, target_id, payload)
+      if Map.has_key?(payload, "selfDamagePct") do
+        apply_self_damage_pct(state, actor_id, payload["selfDamagePct"])
       else
         state
       end
 
-    # Block 2 — heal self by pct of maxHp
+    # Block 1 — damage (full payload-aware: hits, ignoreDefensePct, burnBonusMul, execute, etc.)
+    state =
+      if Map.has_key?(payload, "damageMul") do
+        payload
+        |> Map.get("target", "target")
+        |> then(&target_ids_for_scope(state, actor_id, target_id, &1))
+        |> Enum.reduce(state, fn damage_target_id, acc_state ->
+          target_payload =
+            materialize_conditional_payload(acc_state, actor_id, damage_target_id, payload)
+
+          apply_damage_effects(acc_state, actor_id, damage_target_id, target_payload)
+        end)
+      else
+        state
+      end
+
+    # Block 2 — heal target scope by pct of maxHp
     state =
       if Map.has_key?(payload, "healPctOfMaxHp") do
-        apply_ability_heal(state, actor_id, payload["healPctOfMaxHp"])
+        state
+        |> target_ids_for_scope(actor_id, target_id, default_target)
+        |> Enum.reduce(state, fn heal_target_id, acc_state ->
+          apply_ability_heal(acc_state, actor_id, heal_target_id, payload["healPctOfMaxHp"])
+        end)
       else
         state
       end
 
     # Block 3 — applyStatuses with optional chance gate
     state =
-      if Map.has_key?(payload, "applyStatuses") and not is_nil(target_id) do
-        apply_status_list_with_chance(
+      if Map.has_key?(payload, "applyStatuses") do
+        payload = materialize_conditional_payload(state, actor_id, target_id, payload)
+
+        apply_status_specs(
           state,
+          actor_id,
           target_id,
           payload["applyStatuses"],
+          default_target,
           Map.get(payload, "applyStatusChance")
         )
       else
@@ -2289,11 +2673,12 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
 
     # Block 5 — shieldTarget + shieldPctOfMaxHp
     state =
-      if Map.has_key?(payload, "shieldTarget") and Map.has_key?(payload, "shieldPctOfMaxHp") do
+      if Map.has_key?(payload, "shieldPctOfMaxHp") do
         apply_shield_ability(
           state,
           actor_id,
-          payload["shieldTarget"],
+          payload["shieldTarget"] || default_target,
+          target_id,
           payload["shieldPctOfMaxHp"]
         )
       else
@@ -2303,11 +2688,19 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
     # Block 6 — randomDebuffs / randomStatuses
     state =
       cond do
-        Map.has_key?(payload, "randomDebuffs") and not is_nil(target_id) ->
-          apply_random_status(state, target_id, payload["randomDebuffs"])
+        Map.has_key?(payload, "randomDebuffs") ->
+          state
+          |> target_ids_for_scope(actor_id, target_id, default_target)
+          |> Enum.reduce(state, fn random_target_id, acc_state ->
+            apply_random_status(acc_state, random_target_id, payload["randomDebuffs"])
+          end)
 
-        Map.has_key?(payload, "randomStatuses") and not is_nil(target_id) ->
-          apply_random_status(state, target_id, payload["randomStatuses"])
+        Map.has_key?(payload, "randomStatuses") ->
+          state
+          |> target_ids_for_scope(actor_id, target_id, default_target)
+          |> Enum.reduce(state, fn random_target_id, acc_state ->
+            apply_random_status(acc_state, random_target_id, payload["randomStatuses"])
+          end)
 
         true ->
           state
@@ -2329,10 +2722,26 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
         state
       end
 
+    # Block 8b — remember a delayed revive if this caster later causes/sees an enemy KO.
+    state =
+      if Map.has_key?(payload, "reviveAllyOnEnemyKoPct") do
+        update_unit(state, actor_id, fn unit ->
+          Map.put(unit, "reviveAllyOnEnemyKoPct", payload["reviveAllyOnEnemyKoPct"])
+        end)
+      else
+        state
+      end
+
     # Block 9 — cleanse: remove debuffs from target
     state =
-      if Map.has_key?(payload, "cleanse") and not is_nil(target_id) do
-        apply_cleanse(state, target_id, payload["cleanse"])
+      if Map.has_key?(payload, "cleanse") do
+        cleanse_target = get_in(payload, ["cleanse", "target"]) || default_target
+
+        state
+        |> target_ids_for_scope(actor_id, target_id, cleanse_target)
+        |> Enum.reduce(state, fn cleanse_target_id, acc_state ->
+          apply_cleanse(acc_state, cleanse_target_id, payload["cleanse"])
+        end)
       else
         state
       end
@@ -2356,7 +2765,31 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
     # Block 12 — reduceCooldowns: decrement actor cooldowns by N turns
     state =
       if Map.has_key?(payload, "reduceCooldowns") do
-        apply_reduce_cooldowns(state, actor_id, payload["reduceCooldowns"])
+        cooldown_target =
+          payload["cooldownTarget"] ||
+            if(Map.has_key?(payload, "target"), do: default_target, else: "self")
+
+        state
+        |> target_ids_for_scope(actor_id, target_id, cooldown_target)
+        |> Enum.reduce(state, fn cooldown_target_id, acc_state ->
+          apply_reduce_cooldowns(acc_state, cooldown_target_id, payload["reduceCooldowns"])
+        end)
+      else
+        state
+      end
+
+    # Block 12b — increaseCooldowns: increment scoped unit cooldowns by N turns
+    state =
+      if Map.has_key?(payload, "increaseCooldowns") do
+        cooldown_target =
+          payload["cooldownTarget"] ||
+            if(Map.has_key?(payload, "target"), do: default_target, else: "self")
+
+        state
+        |> target_ids_for_scope(actor_id, target_id, cooldown_target)
+        |> Enum.reduce(state, fn cooldown_target_id, acc_state ->
+          apply_increase_cooldowns(acc_state, cooldown_target_id, payload["increaseCooldowns"])
+        end)
       else
         state
       end
@@ -2383,7 +2816,9 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
     execute_threshold = Map.get(payload, "executeThreshold")
     execute_damage_mul = Map.get(payload, "executeDamageMul", 2.0)
     heal_pct_of_damage = Map.get(payload, "healPctOfDamage")
+    heal_lowest_ally_pct_of_damage = Map.get(payload, "healLowestAllyPctOfDamage")
     heal_on_execute_pct = Map.get(payload, "healPctOfMaxHpOnExecute")
+    instant_ko_threshold = Map.get(payload, "instantKoIfTargetBelowHpPct")
     splash_pct = Map.get(payload, "splashPct")
 
     rng = make_rng(state["seed"], state["rngIndex"])
@@ -2429,7 +2864,17 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
             apply_shield_absorption(acc_state, target_id, raw_damage)
 
           hp_before = target["hp"]
-          hp_after_raw = max(0, hp_before - effective_damage)
+
+          instant_ko_fired =
+            not is_nil(instant_ko_threshold) and target["maxHp"] > 0 and
+              target["hp"] / target["maxHp"] <= instant_ko_threshold
+
+          {effective_damage, hp_after_raw} =
+            if instant_ko_fired do
+              {max(effective_damage, hp_before), 0}
+            else
+              {effective_damage, max(0, hp_before - effective_damage)}
+            end
 
           # preventDeath intercept: surviving a fatal hit
           {hp_after, prevent_death_consumed, acc_state2} =
@@ -2479,6 +2924,7 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
                   "hpAfter" => hp_after,
                   "isMiss" => dmg_ctx.is_miss,
                   "isCrit" => dmg_ctx.is_crit,
+                  "instantKo" => instant_ko_fired,
                   "typeMultiplier" => dmg_ctx.type_multiplier,
                   "damageReductionPct" => reduction_pct
                 },
@@ -2540,10 +2986,22 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
         state
       end
 
+    # Post-loop: heal lowest ally by pct of damage dealt
+    state =
+      if heal_lowest_ally_pct_of_damage && total_damage > 0 do
+        apply_heal_lowest_ally_amount(
+          state,
+          actor_id,
+          floor(total_damage * heal_lowest_ally_pct_of_damage)
+        )
+      else
+        state
+      end
+
     # Post-loop: heal on execute
     state =
       if heal_on_execute_pct && did_execute do
-        apply_ability_heal(state, actor_id, heal_on_execute_pct)
+        apply_ability_heal(state, actor_id, actor_id, heal_on_execute_pct)
       else
         state
       end
@@ -2691,15 +3149,15 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
     state
   end
 
-  defp apply_ability_heal(state, actor_id, heal_pct) do
-    {:ok, actor} = find_unit_across_players(state, actor_id)
+  defp apply_ability_heal(state, actor_id, target_id, heal_pct) do
+    {:ok, target} = find_unit_across_players(state, target_id)
 
     do_heal_unit(
       state,
-      actor_id,
-      actor["hp"],
-      actor["maxHp"],
-      floor(actor["maxHp"] * heal_pct),
+      target_id,
+      target["hp"],
+      target["maxHp"],
+      floor(target["maxHp"] * heal_pct),
       healer_id: actor_id
     )
   end
@@ -2710,9 +3168,11 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
   end
 
   defp do_heal_unit(state, unit_id, hp_before, max_hp, amount, opts) do
+    healer_id = Keyword.get(opts, :healer_id)
+    healing_bonus = if healer_id, do: get_healing_bonus_pct(state, healer_id), else: 0.0
+    amount = floor(amount * (1 + healing_bonus))
     hp_after = min(max_hp, hp_before + amount)
     actual = hp_after - hp_before
-    healer_id = Keyword.get(opts, :healer_id)
 
     if actual <= 0 do
       state
@@ -2743,11 +3203,28 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
     end
   end
 
+  defp get_healing_bonus_pct(state, healer_id) do
+    case find_unit_across_players(state, healer_id) do
+      {:ok, healer} ->
+        healer
+        |> get_unit_passives()
+        |> Enum.reduce(0.0, fn passive_key, acc ->
+          case get_in(state, ["abilityDefinitions", passive_key, "payload"]) do
+            %{"healingBonus" => bonus} when is_number(bonus) -> acc + bonus
+            _ -> acc
+          end
+        end)
+
+      {:error, _} ->
+        0.0
+    end
+  end
+
   defp simulate_copy_action(state, acting_user_id, action) do
     actor_id = Map.get(action, "actorInstanceId", Map.get(action, :actor_instance_id))
     source_id = Map.get(action, "sourceInstanceId", Map.get(action, :source_instance_id))
     target_id = Map.get(action, "targetInstanceId", Map.get(action, :target_instance_id))
-    copy_type = Map.get(action, "copyType", Map.get(action, :copy_type, "skill"))
+    requested_copy_ability_key = Map.get(action, "abilityKey", Map.get(action, :ability_key))
 
     initial_log_length = length(state["log"])
 
@@ -2760,6 +3237,22 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
          :ok <- validate_unit_alive(actor, "actor"),
          {:ok, source_unit} <- find_unit_across_players(state, source_id),
          :ok <- validate_unit_alive(source_unit, "source") do
+      ability_defs = Map.get(state, "abilityDefinitions", %{})
+      copy_ability_key = requested_copy_ability_key || actor["skill"] || actor["ultimate"]
+      copy_def = if copy_ability_key, do: Map.get(ability_defs, copy_ability_key), else: nil
+
+      copy_type =
+        cond do
+          Map.get(action, "copyType", Map.get(action, :copy_type)) in ["skill", "ultimate"] ->
+            Map.get(action, "copyType", Map.get(action, :copy_type))
+
+          get_in(copy_def || %{}, ["payload", "copyAbilityType"]) == "ULTIMATE" ->
+            "ultimate"
+
+          true ->
+            "skill"
+        end
+
       # Resolve which ability key to copy from source
       copied_key =
         case copy_type do
@@ -2770,19 +3263,15 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
       if is_nil(copied_key) do
         {:error, :source_has_no_ability}
       else
-        ability_defs = Map.get(state, "abilityDefinitions", %{})
         copied_def = Map.get(ability_defs, copied_key)
 
         if is_nil(copied_def) do
           {:error, :copied_ability_not_found}
         else
-          # Actor's own copy ability key (for cooldown tracking)
-          copy_ability_key = actor["skill"]
-
           with :ok <- validate_ability_cooldown(actor, copy_ability_key || ""),
                :ok <- validate_energy(acting_player, copied_def, stun_extra) do
             cost = (copied_def["cost"] || 0) + stun_extra
-            is_ultimate = copy_type == "ultimate"
+            copy_slot_is_ultimate = copy_def && copy_def["type"] == "ULTIMATE"
 
             # Deduct energy
             state =
@@ -2807,7 +3296,6 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
               dispatch_ability_payload(state, acting_user_id, actor_id, target_id, copied_def)
 
             # Set cooldown on the copy ability slot (not the copied ability's key)
-            copy_def = if copy_ability_key, do: Map.get(ability_defs, copy_ability_key), else: nil
             cooldown_turns = if copy_def, do: copy_def["cooldown"], else: nil
 
             state =
@@ -2821,7 +3309,7 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
 
             # usedUltimate if copy ability slot is ULTIMATE
             state =
-              if is_ultimate do
+              if copy_slot_is_ultimate do
                 update_unit(state, actor_id, fn u -> Map.put(u, "usedUltimate", true) end)
               else
                 state
@@ -3451,7 +3939,12 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
         normalized =
           Map.new(ability_defs, fn
             {key, %{} = ability_def} ->
-              {key, Map.update(ability_def, "payload", nil, &drop_nil_magnitude_keys/1)}
+              ability_def =
+                ability_def
+                |> Map.update("payload", nil, &drop_nil_magnitude_keys/1)
+                |> normalize_live_ability_payload()
+
+              {key, ability_def}
 
             entry ->
               entry
@@ -3463,6 +3956,88 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
         state
     end
   end
+
+  defp normalize_live_ability_payload(%{"key" => key, "payload" => payload} = ability_def)
+       when is_map(payload) do
+    normalized_payload =
+      case key do
+        "ash.memoryCurse" ->
+          payload
+          |> Map.put_new("increaseCooldowns", 1)
+          |> Map.put_new("cooldownTarget", "enemy")
+
+        "betty.madnessEmbrace" ->
+          payload
+          |> Map.put_new("reduceCooldowns", 1)
+          |> Map.put("cooldownTarget", "allEnemies")
+
+        "fern.thornyskin" ->
+          %{
+            "trigger" => "onDamageTaken",
+            "chance" => Map.get(payload, "chance", 0.5),
+            "reflectDamagePct" => 0.15,
+            "target" => "enemy"
+          }
+
+        "fire.infernoRift" ->
+          Map.put_new(payload, "burnBonusMul", 0.3)
+
+        "fire.emberCore" ->
+          payload
+          |> Map.put("target", "self")
+          |> Map.put("requiredStatus", "Burn")
+
+        "flame king.burningwrath" ->
+          payload
+          |> Map.put(
+            "applyStatuses",
+            payload
+            |> Map.get("applyStatuses", [])
+            |> Enum.reject(&(&1["name"] == "Empower"))
+          )
+          |> Map.put("conditional", [
+            %{
+              "when" => %{"targetHas" => "Burn"},
+              "addApplyStatuses" => [%{"name" => "Empower", "duration" => 2, "target" => "self"}]
+            }
+          ])
+
+        "flame king.firekingdom" ->
+          Map.put(payload, "conditional", [
+            %{
+              "when" => %{"targetHas" => "Burn"},
+              "damageMulDelta" => 0.4,
+              "mergePayload" => %{"splashPct" => 1 / 3}
+            }
+          ])
+
+        "jakerainicorn.rainbowStretch" ->
+          Map.put(payload, "healLowestAllyPctOfDamage", 0.2)
+
+        "jakerainicorn.familyUnite" ->
+          Map.put(payload, "healPctOfMaxHp", 0.25)
+
+        "kingooo.scamScheme" ->
+          Map.put_new(payload, "stealBuffCount", 1)
+
+        "lsp.lumpyPower" ->
+          payload
+          |> Map.put("target", "allUnits")
+          |> Map.put("cleanse", %{"count" => 99, "target" => "allUnits", "includeBuffs" => true})
+
+        "pb.scientificRegent" ->
+          payload
+          |> Map.put_new("requiredAnyAllyTypes", ["Tech", "Royalty"])
+          |> Map.put_new("statBonusTarget", "allAllies")
+
+        _ ->
+          payload
+      end
+
+    Map.put(ability_def, "payload", normalized_payload)
+  end
+
+  defp normalize_live_ability_payload(ability_def), do: ability_def
 
   defp drop_nil_magnitude_keys(value) when is_list(value) do
     Enum.map(value, &drop_nil_magnitude_keys/1)

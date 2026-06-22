@@ -75,6 +75,8 @@ defmodule AdventureTimeApi.Pvp.BattleEnginePassivesTest do
     |> Enum.find(&(&1["instanceId"] == instance_id))
   end
 
+  defp has_status(unit, name), do: Enum.any?(unit["statuses"] || [], &(&1["name"] == name))
+
   defp put_ability(state, key, payload) do
     put_in(state, ["abilityDefinitions", key], %{
       "key" => key,
@@ -125,6 +127,57 @@ defmodule AdventureTimeApi.Pvp.BattleEnginePassivesTest do
     assert unit["hp"] == 120
     assert unit["attack"] == 55
     assert Enum.any?(new_state["log"], &(&1["type"] == "passiveTrigger"))
+  end
+
+  test "onBattleInit statBonus can target all allies and uses percent values from DB payloads" do
+    state =
+      make_state(
+        p1_units: [
+          make_unit(%{
+            "instanceId" => "p1u1",
+            "type" => "Magic",
+            "passives" => ["betty.arcaneScholar"]
+          }),
+          make_unit(%{"instanceId" => "p1u2", "type" => "Hero", "position" => 2})
+        ]
+      )
+      |> put_ability("betty.arcaneScholar", %{
+        "trigger" => "onBattleInit",
+        "statBonus" => %{"attack" => 10},
+        "statBonusTarget" => "allAllies",
+        "applyToAllyTypes" => ["Magic"]
+      })
+
+    new_state = BattleEngine.initialize_passives(state)
+
+    assert get_unit(new_state, "p1u1")["attack"] == 55
+    assert get_unit(new_state, "p1u2")["attack"] == 50
+  end
+
+  test "onBattleInit statBonus can target all enemies" do
+    state =
+      make_state(
+        p1_units: [
+          make_unit(%{
+            "instanceId" => "p1u1",
+            "passives" => ["golb.axiomOfEntropy"]
+          })
+        ],
+        p2_units: [
+          make_unit(%{"instanceId" => "p2u1", "defense" => 100}),
+          make_unit(%{"instanceId" => "p2u2", "defense" => 50, "position" => 2})
+        ]
+      )
+      |> put_ability("golb.axiomOfEntropy", %{
+        "trigger" => "onBattleInit",
+        "statBonus" => %{"defense" => -8},
+        "statBonusTarget" => "allEnemies"
+      })
+
+    new_state = BattleEngine.initialize_passives(state)
+
+    assert get_unit(new_state, "p2u1")["defense"] == 92
+    assert get_unit(new_state, "p2u2")["defense"] == 46
   end
 
   test "chance-based passive roll is public even when it fails" do
@@ -242,6 +295,37 @@ defmodule AdventureTimeApi.Pvp.BattleEnginePassivesTest do
     assert get_unit(new_state, "p2u2")["passiveTriggered"]["passive.guardian"] == true
   end
 
+  test "Thorny Skin reflects damage to the attacker from the live DB payload" do
+    state =
+      make_state(
+        p1_units: [make_unit(%{"instanceId" => "p1u1", "attack" => 60, "defense" => 0})],
+        p2_units: [
+          make_unit(%{
+            "instanceId" => "p2u1",
+            "defense" => 0,
+            "passives" => ["fern.thornyskin"],
+            "passiveTriggered" => %{}
+          })
+        ]
+      )
+      |> put_ability("fern.thornyskin", %{
+        "trigger" => "onStartTurn",
+        "chance" => 1.0,
+        "applyStatuses" => [%{"name" => "Thorns", "duration" => 1, "target" => "self"}],
+        "target" => "enemy"
+      })
+
+    {:ok, new_state, events} =
+      BattleEngine.simulate_action(state, "player1", %{
+        "kind" => "basic",
+        "actorInstanceId" => "p1u1",
+        "targetInstanceId" => "p2u1"
+      })
+
+    assert get_unit(new_state, "p1u1")["hp"] < 100
+    assert Enum.any?(events, &(&1["type"] == "reflectDamage"))
+  end
+
   test "onStartTurn passive fires after end turn handoff" do
     state =
       make_state(
@@ -299,5 +383,97 @@ defmodule AdventureTimeApi.Pvp.BattleEnginePassivesTest do
 
     assert get_unit(new_state, "p2u1")["hp"] == 70
     assert Enum.any?(get_unit(new_state, "p2u1")["statuses"], &(&1["name"] == "Burn"))
+  end
+
+  test "Ember Core heals the source when it applies Burn" do
+    state =
+      make_state(p1_units: [make_unit(%{"instanceId" => "p1u1", "hp" => 50, "maxHp" => 100})])
+      |> put_ability("fire.emberCore", %{
+        "trigger" => "onStatusApplied",
+        "healPctOfMaxHp" => 0.05,
+        "target" => "ally"
+      })
+      |> put_in(["abilityDefinitions", "skill.burn"], %{
+        "key" => "skill.burn",
+        "type" => "SKILL",
+        "cost" => 0,
+        "cooldown" => nil,
+        "oncePerMatch" => false,
+        "payload" => %{
+          "applyStatuses" => [%{"name" => "Burn", "duration" => 2}],
+          "target" => "enemy"
+        }
+      })
+      |> assign_passive("player1", "p1u1", "fire.emberCore")
+      |> update_in(["players"], fn players ->
+        Enum.map(players, fn player ->
+          if player["userId"] == "player1" do
+            Map.update!(player, "units", fn units ->
+              Enum.map(units, &Map.put(&1, "skill", "skill.burn"))
+            end)
+          else
+            player
+          end
+        end)
+      end)
+
+    {:ok, new_state, _events} =
+      BattleEngine.simulate_action(state, "player1", %{
+        "kind" => "skill",
+        "actorInstanceId" => "p1u1",
+        "targetInstanceId" => "p2u1"
+      })
+
+    assert get_unit(new_state, "p1u1")["hp"] == 55
+    assert has_status(get_unit(new_state, "p2u1"), "Burn")
+  end
+
+  test "Love Power increases heals and grants Regeneration to the healed ally" do
+    state =
+      make_state(
+        p1_units: [
+          make_unit(%{"instanceId" => "p1u1", "passives" => ["jakerainicorn.lovePower"]}),
+          make_unit(%{"instanceId" => "p1u2", "hp" => 50, "maxHp" => 100, "position" => 2})
+        ]
+      )
+      |> put_ability("jakerainicorn.lovePower", %{
+        "trigger" => "onHealAlly",
+        "healingBonus" => 0.2,
+        "applyStatuses" => [%{"name" => "Regeneration", "duration" => 2}],
+        "target" => "ally"
+      })
+      |> put_in(["abilityDefinitions", "skill.heal"], %{
+        "key" => "skill.heal",
+        "type" => "SKILL",
+        "cost" => 0,
+        "cooldown" => nil,
+        "oncePerMatch" => false,
+        "payload" => %{"healPctOfMaxHp" => 0.25, "target" => "ally"}
+      })
+      |> update_in(["players"], fn players ->
+        Enum.map(players, fn player ->
+          if player["userId"] == "player1" do
+            Map.update!(player, "units", fn units ->
+              Enum.map(units, fn unit ->
+                if unit["instanceId"] == "p1u1",
+                  do: Map.put(unit, "skill", "skill.heal"),
+                  else: unit
+              end)
+            end)
+          else
+            player
+          end
+        end)
+      end)
+
+    {:ok, new_state, _events} =
+      BattleEngine.simulate_action(state, "player1", %{
+        "kind" => "skill",
+        "actorInstanceId" => "p1u1",
+        "targetInstanceId" => "p1u2"
+      })
+
+    assert get_unit(new_state, "p1u2")["hp"] == 80
+    assert has_status(get_unit(new_state, "p1u2"), "Regeneration")
   end
 end
