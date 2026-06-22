@@ -16,6 +16,7 @@ import {
   getEventDestinationName,
   getEventMissChance,
   getEventMissRoll,
+  getEventMaxEnergy,
   getEventOptionCount,
   getEventRemaining,
   getEventRoll,
@@ -207,9 +208,11 @@ function summarizeCombatEvent(
     case "turnEnd":
       return t("pvp.combatLog.turnEnd", { turn: event.turn });
     case "energyGrant":
+      const amount = getEventAmount(event) ?? 0;
+      const maxEnergy = getEventMaxEnergy(event);
       return t("pvp.combatLog.energyGrant", {
         player: actorName ?? player,
-        amount: String(getEventAmount(event) ?? 0),
+        amount: maxEnergy === null ? String(amount) : `${amount}/${maxEnergy}`,
       });
     case "abilityStart":
       return t("pvp.combatLog.abilityStart", {

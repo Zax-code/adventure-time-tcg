@@ -299,6 +299,7 @@ export interface PlayerState {
   userId: string;
   name: string;
   energy: number;
+  maxEnergy: number;
   units: UnitState[]; // active units (up to 3)
   bench: UnitState[]; // bench units (up to 3)
   initiative: number; // average of active speeds
@@ -344,7 +345,13 @@ export interface CopyAction {
   targetInstanceId?: string; // target for the copied ability (omitted for AoE)
 }
 
-export type ActionKind = "basic" | "skill" | "ultimate" | "swap" | "pass" | "copy";
+export type ActionKind =
+  | "basic"
+  | "skill"
+  | "ultimate"
+  | "swap"
+  | "pass"
+  | "copy";
 
 export type Action =
   | BasicAction
@@ -467,6 +474,7 @@ export interface PlayerStateView {
   userId: string;
   name: string;
   energy: number;
+  maxEnergy: number;
   units: UnitState[];
   bench: UnitState[];
   initiative: number;
@@ -565,6 +573,7 @@ export interface StoredPlayerState {
   userId: string;
   name: string;
   energy: number;
+  maxEnergy: number;
   units: StoredUnitState[];
   bench: StoredUnitState[];
   initiative: number;
@@ -588,7 +597,19 @@ export interface StoredBattleState {
 
 // Transient per-request context — loaded from DB, never persisted
 export interface BattleContext {
-  cardData: Record<string, { name: string; character: string; type: string; rarity: { name: string }; imageUrl: string }>;
-  cardAbilities: Record<string, { passives: string[]; skill: string; ultimate: string }>;
+  cardData: Record<
+    string,
+    {
+      name: string;
+      character: string;
+      type: string;
+      rarity: { name: string };
+      imageUrl: string;
+    }
+  >;
+  cardAbilities: Record<
+    string,
+    { passives: string[]; skill: string; ultimate: string }
+  >;
   abilityDefinitions: Record<string, AbilityDefinition>;
 }

@@ -70,7 +70,9 @@ player_summary = fn state ->
       end)
       |> Enum.join(",")
 
-    "#{player["name"] || player["userId"]} energy=#{player["energy"]} active=[#{active}]"
+    max_energy = player["maxEnergy"] || player["energy"]
+
+    "#{player["name"] || player["userId"]} energy=#{player["energy"]}/#{max_energy} active=[#{active}]"
   end)
   |> Enum.join(" | ")
 end

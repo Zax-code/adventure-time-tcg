@@ -162,7 +162,7 @@ export function getActionEnergyCost(
       baseCost = ultDef?.cost ?? 3;
       break;
     case "swap":
-      baseCost = 1;
+      baseCost = 0;
       break;
     case "pass":
       baseCost = 0;
@@ -573,11 +573,6 @@ export function validateSwap(
   // Bench unit must be alive
   if (benchUnit.hp <= 0) {
     return { valid: false, error: "Cannot swap in a KO'd unit" };
-  }
-
-  // Check energy (swap costs 1)
-  if (currentPlayer.energy < 1) {
-    return { valid: false, error: "Not enough energy for swap (need 1)" };
   }
 
   return { valid: true };

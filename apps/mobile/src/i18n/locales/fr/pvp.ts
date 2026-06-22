@@ -163,11 +163,11 @@ const pvp = {
       "Limites de rareté par composition : maximum 1 carte légendaire et 2 cartes épiques.",
     turnTitle: "Déroulement d'un tour",
     turnItem1:
-      "Les deux joueurs commencent avec 1 énergie. Quand le tour passe à un joueur, son énergie augmente de 1, jusqu'à 5.",
+      "Les deux joueurs commencent à 1/1 énergie. Quand le tour passe à un joueur, son énergie max augmente de 1 jusqu'à 4, puis son énergie actuelle revient à ce maximum.",
     turnItem2:
       "Au début de ton tour, les ticks de statut de tes cartes actives se résolvent et les recharges baissent de 1 pour tes cartes actives et de banc.",
     turnItem3:
-      "Tu peux enchaîner les actions jusqu'à cliquer sur Terminer le tour ou ne plus avoir d'option utilisable.",
+      "L'énergie non utilisée ne s'accumule pas au-delà de ta recharge, donc tu peux dépenser l'énergie du tour sans retarder tes prochains ultimes.",
     actionsTitle: "Actions et coûts",
     actionsItem1: "L'attaque de base coûte 1 énergie.",
     actionsItem2:
@@ -178,7 +178,7 @@ const pvp = {
       "Silence empêche d'utiliser compétence et ultime. Étourdi ajoute +1 énergie à ta prochaine action de combat ou copie, puis disparaît.",
     swapTitle: "Échange avec le banc",
     swapItem1:
-      "L'échange coûte 1 énergie et est mis en file avec Terminer le tour.",
+      "L'échange ne coûte pas d'énergie et est mis en file avec Terminer le tour.",
     swapItem2:
       "Tu sélectionnes 1 carte active à remplacer et 1 carte vivante du banc pour entrer.",
     swapItem3:

@@ -164,7 +164,8 @@ export function createBattleState(
   const playerState1: PlayerState = {
     userId: player1.userId,
     name: player1.name,
-    energy: 0,
+    energy: 1,
+    maxEnergy: 1,
     units: player1Units,
     bench: player1Bench,
     initiative: player1Initiative,
@@ -174,7 +175,8 @@ export function createBattleState(
   const playerState2: PlayerState = {
     userId: player2.userId,
     name: player2.name,
-    energy: 0,
+    energy: 1,
+    maxEnergy: 1,
     units: player2Units,
     bench: player2Bench,
     initiative: player2Initiative,
@@ -210,9 +212,6 @@ export function createBattleState(
 
   // Initialize passive effects
   initializePassives(state, rng);
-
-  // Start the first turn
-  startTurn(state, rng);
 
   // Save RNG index
   state.rngIndex = rng.getIndex();
@@ -422,6 +421,7 @@ export function serializeBattleState(state: BattleState): string {
         userId: state.players[0].userId,
         name: state.players[0].name,
         energy: state.players[0].energy,
+        maxEnergy: state.players[0].maxEnergy,
         initiative: state.players[0].initiative,
         hasUsedFreeBasic: state.players[0].hasUsedFreeBasic,
         units: state.players[0].units.map(deflateUnit),
@@ -431,6 +431,7 @@ export function serializeBattleState(state: BattleState): string {
         userId: state.players[1].userId,
         name: state.players[1].name,
         energy: state.players[1].energy,
+        maxEnergy: state.players[1].maxEnergy,
         initiative: state.players[1].initiative,
         hasUsedFreeBasic: state.players[1].hasUsedFreeBasic,
         units: state.players[1].units.map(deflateUnit),
@@ -463,6 +464,7 @@ export function captureTurnSnapshot(state: BattleState): StoredBattleState {
         userId: state.players[0].userId,
         name: state.players[0].name,
         energy: state.players[0].energy,
+        maxEnergy: state.players[0].maxEnergy,
         initiative: state.players[0].initiative,
         hasUsedFreeBasic: state.players[0].hasUsedFreeBasic,
         units: state.players[0].units.map(deflateUnit),
@@ -472,6 +474,7 @@ export function captureTurnSnapshot(state: BattleState): StoredBattleState {
         userId: state.players[1].userId,
         name: state.players[1].name,
         energy: state.players[1].energy,
+        maxEnergy: state.players[1].maxEnergy,
         initiative: state.players[1].initiative,
         hasUsedFreeBasic: state.players[1].hasUsedFreeBasic,
         units: state.players[1].units.map(deflateUnit),
@@ -520,6 +523,7 @@ export function createBattleStateView(
         userId: state.players[0].userId,
         name: state.players[0].name,
         energy: state.players[0].energy,
+        maxEnergy: state.players[0].maxEnergy,
         units: state.players[0].units,
         bench: state.players[0].bench,
         initiative: state.players[0].initiative,
@@ -528,6 +532,7 @@ export function createBattleStateView(
         userId: state.players[1].userId,
         name: state.players[1].name,
         energy: state.players[1].energy,
+        maxEnergy: state.players[1].maxEnergy,
         units: state.players[1].units,
         bench: state.players[1].bench,
         initiative: state.players[1].initiative,

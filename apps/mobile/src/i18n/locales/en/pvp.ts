@@ -160,11 +160,11 @@ const pvp = {
       "Loadout rarity caps: max 1 Legendary card and max 2 Epic cards.",
     turnTitle: "Turn Flow",
     turnItem1:
-      "Both players start with 1 energy. When a turn passes to a player, that player's energy increases by 1, up to 5.",
+      "Both players start at 1/1 energy. When a turn passes to a player, their max energy rises by 1 up to 4, then current energy refills to that max.",
     turnItem2:
       "At start of your turn, active-card status ticks resolve and cooldowns reduce by 1 for your active and benched cards.",
     turnItem3:
-      "You can perform actions until you choose End Turn or run out of usable options.",
+      "Unused energy does not carry over above your refill target, so you can spend this turn's energy without delaying later ultimates.",
     actionsTitle: "Actions and Costs",
     actionsItem1: "Basic Attack costs 1 energy.",
     actionsItem2: "Skill usually costs 2 energy (depends on ability data).",
@@ -173,7 +173,7 @@ const pvp = {
       "Silence blocks skill/ultimate usage. Stunned adds +1 energy to your next combat action or copy, then is consumed.",
     swapTitle: "Bench Swap",
     swapItem1:
-      "Swap costs 1 energy and is queued with End Turn (not as a separate immediate action).",
+      "Swap costs no energy and is queued with End Turn (not as a separate immediate action).",
     swapItem2:
       "You select 1 active card to swap out and 1 living bench card to swap in.",
     swapItem3:

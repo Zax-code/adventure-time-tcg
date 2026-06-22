@@ -1592,7 +1592,9 @@ defmodule AdventureTimeApi.Pvp do
   end
 
   defp normalize_reconstructed_state(state) do
-    Map.update!(state, "players", fn players ->
+    state
+    |> BattleEngine.normalize_energy_state()
+    |> Map.update!("players", fn players ->
       Enum.map(players, fn player ->
         player
         |> Map.update!("units", &Enum.map(&1, fn unit -> normalize_unit_type(unit) end))

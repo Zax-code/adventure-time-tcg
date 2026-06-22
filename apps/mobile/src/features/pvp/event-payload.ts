@@ -46,6 +46,10 @@ export function getEventAmount(event: CombatEvent): number | null {
   ]);
 }
 
+export function getEventMaxEnergy(event: CombatEvent): number | null {
+  return pickNumber(event.payload, ["maxEnergy"]);
+}
+
 export function getEventRemaining(event: CombatEvent): number | null {
   return pickNumber(event.payload, ["remaining"]);
 }

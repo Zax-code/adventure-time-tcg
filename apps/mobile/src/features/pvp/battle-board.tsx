@@ -123,15 +123,24 @@ function OverlayIconButton({
 interface PlayerPlateProps {
   name: string;
   energy: number;
+  maxEnergy: number;
   align: "left" | "right";
   tone: "opponent" | "player";
 }
 
-function PlayerPlate({ name, energy, align, tone }: PlayerPlateProps) {
+function PlayerPlate({
+  name,
+  energy,
+  maxEnergy,
+  align,
+  tone,
+}: PlayerPlateProps) {
   const isPlayer = tone === "player";
   return (
     <View className="flex-row items-center gap-4">
-      {align === "left" ? <EnergyPill energy={energy} /> : null}
+      {align === "left" ? (
+        <EnergyPill energy={energy} maxEnergy={maxEnergy} />
+      ) : null}
       <Text
         className={`font-nunito-extrabold text-[16px] ${
           isPlayer ? "text-infoText" : "text-dangerText"
@@ -141,17 +150,25 @@ function PlayerPlate({ name, energy, align, tone }: PlayerPlateProps) {
       >
         {name}
       </Text>
-      {align === "right" ? <EnergyPill energy={energy} /> : null}
+      {align === "right" ? (
+        <EnergyPill energy={energy} maxEnergy={maxEnergy} />
+      ) : null}
     </View>
   );
 }
 
-function EnergyPill({ energy }: { energy: number }) {
+function EnergyPill({
+  energy,
+  maxEnergy,
+}: {
+  energy: number;
+  maxEnergy: number;
+}) {
   return (
     <View className="h-9 min-w-[56px] flex-row items-center justify-center gap-1.5 rounded-full bg-secondaryTint px-3">
       <ZapIcon size={16} color="#B45309" />
       <Text className="font-nunito-extrabold text-[16px] text-secondaryText">
-        {energy}
+        {energy}/{maxEnergy}
       </Text>
     </View>
   );
@@ -438,6 +455,7 @@ export function BattleBoard({
               <PlayerPlate
                 name={opponentPlayer.name}
                 energy={opponentPlayer.energy}
+                maxEnergy={opponentPlayer.maxEnergy}
                 align="left"
                 tone="opponent"
               />
@@ -618,12 +636,16 @@ export function BattleBoard({
                 pointerEvents="none"
                 className="absolute bottom-[14px] right-0 z-50 items-end gap-2"
               >
-                <ActionEnergyPill energy={myPlayer.energy} />
+                <ActionEnergyPill
+                  energy={myPlayer.energy}
+                  maxEnergy={myPlayer.maxEnergy}
+                />
                 <View className="h-12" />
               </View>
             ) : (
               <ActionButtons
                 energy={myPlayer.energy}
+                maxEnergy={myPlayer.maxEnergy}
                 isSwapMode={isSwapMode}
                 isTargeting={targeting !== null}
                 hasBench={hasBench}

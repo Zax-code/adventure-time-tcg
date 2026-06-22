@@ -19,6 +19,7 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
   # ── RNG (mulberry32 — exact port of TypeScript SeededRng) ──────────────────
 
   @mask32 0xFFFFFFFF
+  @energy_cap 4
 
   defp hash_seed_to_int(seed) do
     seed
@@ -2025,6 +2026,7 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
           "name" => inviter_data.display_name,
           "displayName" => inviter_data.display_name,
           "energy" => 1,
+          "maxEnergy" => 1,
           "initiative" => inviter_initiative,
           "hasUsedFreeBasic" => false,
           "units" => inviter_units,
@@ -2035,6 +2037,7 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
           "name" => invitee_data.display_name,
           "displayName" => invitee_data.display_name,
           "energy" => 1,
+          "maxEnergy" => 1,
           "initiative" => invitee_initiative,
           "hasUsedFreeBasic" => false,
           "units" => invitee_units,
@@ -2058,6 +2061,24 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
   def initialize_passives(state) do
     check_passives(state, "onBattleInit", %{})
   end
+
+  @doc false
+  def normalize_energy_state(%{"players" => players} = state) do
+    Map.put(state, "players", Enum.map(players, &normalize_player_energy(state, &1)))
+  end
+
+  def normalize_energy_state(state), do: state
+
+  defp normalize_player_energy(_state, player) do
+    energy = Map.fetch!(player, "energy")
+    max_energy = player |> Map.fetch!("maxEnergy") |> clamp_energy_cap()
+
+    player
+    |> Map.put("maxEnergy", max_energy)
+    |> Map.put("energy", max(0, min(energy, max_energy)))
+  end
+
+  defp clamp_energy_cap(value), do: value |> max(1) |> min(@energy_cap)
 
   # ── Action Simulation ─────────────────────────────────────────────────────
 
@@ -3232,6 +3253,7 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
   Returns {new_state, events}.
   """
   def simulate_end_turn(state, swap_opt \\ nil) do
+    state = normalize_energy_state(state)
     events_before = length(state["log"])
     current_player_id = state["currentPlayerId"]
 
@@ -3267,19 +3289,26 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
     start_phase_statuses = phase_status_identities(state, other_player_id)
 
     {:ok, next_player} = find_player(state, other_player_id)
-    granted_energy = min(5, (next_player["energy"] || 0) + 1)
+    previous_energy = Map.fetch!(next_player, "energy")
+    previous_max_energy = Map.fetch!(next_player, "maxEnergy")
+    max_energy = min(@energy_cap, previous_max_energy + 1)
+    granted_energy = max_energy
 
     state =
       state
       |> update_player(other_player_id, fn p ->
         p
         |> Map.put("energy", granted_energy)
+        |> Map.put("maxEnergy", max_energy)
         |> Map.put("hasUsedFreeBasic", false)
       end)
       |> append_log([
         new_event(state, "energyGrant", %{
           "playerId" => other_player_id,
-          "amount" => granted_energy
+          "amount" => granted_energy,
+          "maxEnergy" => max_energy,
+          "previousEnergy" => previous_energy,
+          "previousMaxEnergy" => previous_max_energy
         })
       ])
 
@@ -3412,6 +3441,7 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
 
   defp normalize_view_types(state) do
     state
+    |> normalize_energy_state()
     |> Map.update!("players", fn players ->
       Enum.map(players, fn player ->
         player

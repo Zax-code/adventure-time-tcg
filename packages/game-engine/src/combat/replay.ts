@@ -201,7 +201,14 @@ function applyEventToState(state: BattleState, event: CombatEvent): ApplyEventRe
       if (!player) {
         return { success: false, error: `player ${payload.playerId} not found` };
       }
-      player.energy = (payload.amount as number) ?? 0;
+      if (typeof payload.amount !== "number" || typeof payload.maxEnergy !== "number") {
+        return {
+          success: false,
+          error: "energyGrant missing amount or maxEnergy",
+        };
+      }
+      player.energy = payload.amount;
+      player.maxEnergy = payload.maxEnergy;
       return { success: true };
     }
 
