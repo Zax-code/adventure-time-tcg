@@ -557,7 +557,9 @@ export function BattleBoard({
                       unit={unit}
                       testID={`pvp-my-unit-${index}`}
                       isSelected={
-                        selectedActorId === unit.instanceId && showActionModal
+                        (selectedActorId === unit.instanceId &&
+                          showActionModal) ||
+                        pendingSwap?.activeInstanceId === unit.instanceId
                       }
                       isValidTarget={
                         targeting?.validTargetIds.includes(unit.instanceId) ??

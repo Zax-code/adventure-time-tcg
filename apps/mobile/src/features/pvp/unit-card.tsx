@@ -153,7 +153,7 @@ export function UnitCard({
     : isValidTarget
       ? (typeEffectiveness?.border ?? tc.accentDark)
       : tc.primary;
-  const showStateOutline = Boolean(isValidTarget);
+  const showStateOutline = Boolean(isSelected || isValidTarget);
   const actionGlowColor =
     canSelectAsActor || isSelected ? tc.successDark : haloColor;
 
