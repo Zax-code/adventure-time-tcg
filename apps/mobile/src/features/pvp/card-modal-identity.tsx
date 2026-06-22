@@ -116,7 +116,7 @@ export function CardModalIdentity({
     <View className="overflow-hidden bg-slate-900">
       <View
         className="bg-slate-800"
-        style={{ width: "100%", aspectRatio: 6 }}
+        style={{ width: "100%", aspectRatio: 5 }}
       >
         {imageUrl ? (
           <Image
@@ -134,11 +134,11 @@ export function CardModalIdentity({
       </View>
 
       <View
-        className="gap-1 px-5 py-2.5"
+        className="gap-0.5 px-5 py-2"
         style={{
           backgroundColor: typeBackground,
-          borderTopColor: typeColor.frame,
-          borderTopWidth: 3,
+          borderTopColor: typeText,
+          borderTopWidth: 4,
         }}
       >
         <View className="flex-row items-center justify-between gap-3">
@@ -164,7 +164,7 @@ export function CardModalIdentity({
         </View>
 
         <Text
-          className="font-nunito-extrabold text-xl"
+          className="font-nunito-extrabold text-lg"
           numberOfLines={1}
           style={{ color: typeText }}
         >
@@ -172,7 +172,7 @@ export function CardModalIdentity({
         </Text>
         {characterLabel ? (
           <Text
-            className="font-nunito-bold text-sm"
+            className="font-nunito-bold text-xs"
             numberOfLines={1}
             style={{ color: typeText, opacity: 0.82 }}
           >
