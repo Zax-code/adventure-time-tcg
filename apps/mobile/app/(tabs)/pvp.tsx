@@ -55,6 +55,8 @@ type SearchableUser = {
   email: string;
 };
 
+const PVP_LOBBY_REFETCH_INTERVAL_MS = 5_000;
+
 function SectionHeading({
   title,
   toneColor,
@@ -195,10 +197,14 @@ export default function PvpScreen() {
   const invitesQuery = useQuery({
     queryKey: ["pvp-invites"],
     queryFn: () => apiClient.pvpInvites(),
+    refetchInterval: (query) =>
+      query.state.status === "error" ? false : PVP_LOBBY_REFETCH_INTERVAL_MS,
   });
   const matchesQuery = useQuery({
     queryKey: ["pvp-matches"],
     queryFn: () => apiClient.pvpMatches(),
+    refetchInterval: (query) =>
+      query.state.status === "error" ? false : PVP_LOBBY_REFETCH_INTERVAL_MS,
   });
   const historyQuery = useQuery({
     queryKey: ["pvp-history"],
