@@ -1,16 +1,13 @@
 import { Text, View } from "react-native";
-import { Image } from "expo-image";
-import { LinearGradient } from "expo-linear-gradient";
 
 import { BattleFullScreenSheet } from "./battle-full-screen-sheet";
 import { useTranslation } from "../../i18n";
 import {
   localizeAbilityType,
-  localizeRarityName,
   localizeStatusName,
-  localizeTypeName,
 } from "../../lib/combat-i18n";
-import { resolveBattleImageUrl } from "./image-url";
+import { useThemeStore } from "../../stores/theme-store";
+import { CardModalIdentity } from "./card-modal-identity";
 import type { PvpUnitState } from "./types";
 
 interface CardInfoModalProps {
@@ -52,11 +49,10 @@ export function CardInfoModal({
   onClose,
 }: CardInfoModalProps) {
   const { t } = useTranslation();
+  const themeName = useThemeStore((state) => state.themeName);
   if (!unit) {
     return null;
   }
-
-  const imageUrl = resolveBattleImageUrl(unit.imageUrl);
 
   const hpPct = Math.max(0, unit.hp / Math.max(1, unit.maxHp));
   const hpColor =
@@ -119,58 +115,11 @@ export function CardInfoModal({
       <View className="pb-4">
         <View className="mx-4 overflow-hidden rounded-[28px] bg-white shadow-sm">
           <View className="flex-row">
-            <View className="w-1/2 bg-slate-900 px-5 py-5">
-              <View
-                className="overflow-hidden rounded-[24px] bg-slate-800"
-                style={{ width: "100%", aspectRatio: 320 / 192 }}
-              >
-                {imageUrl ? (
-                  <Image
-                    source={{ uri: imageUrl }}
-                    style={{ width: "100%", height: "100%" }}
-                    contentFit="cover"
-                  />
-                ) : (
-                  <View className="h-full w-full items-center justify-center bg-slate-700">
-                    <Text className="font-nunito-extrabold text-7xl text-white">
-                      {unit.name.charAt(0)}
-                    </Text>
-                  </View>
-                )}
-
-                <LinearGradient
-                  colors={["rgba(0,0,0,0.05)", "rgba(0,0,0,0.85)"]}
-                  start={{ x: 0.5, y: 0 }}
-                  end={{ x: 0.5, y: 1 }}
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                  }}
-                />
-
-                <View className="absolute left-4 top-4 rounded-xl bg-black/55 px-3 py-1.5">
-                  <Text className="font-nunito-bold text-xs text-white">
-                    {localizeTypeName(unit.type, t)}
-                  </Text>
-                </View>
+            <View className="w-1/2 overflow-hidden bg-slate-900">
+              <CardModalIdentity unit={unit} themeName={themeName} />
+              <View className="px-5 pb-5 pt-4">
+                <StatusEffectsList statuses={unit.statuses} t={t} />
               </View>
-
-              <View className="mt-4 gap-1">
-                <Text className="font-nunito text-base italic text-fgMuted">
-                  {unit.name}
-                </Text>
-                <Text className="font-nunito-extrabold text-3xl text-fg">
-                  {unit.character || unit.name}
-                </Text>
-                <Text className="font-nunito-bold text-sm text-fgMuted">
-                  {localizeRarityName(unit.rarity, t)}
-                </Text>
-              </View>
-
-              <StatusEffectsList statuses={unit.statuses} t={t} />
             </View>
 
             <View className="w-1/2 gap-4 px-5 py-5">

@@ -1,7 +1,5 @@
 import { useMemo } from "react";
 import { Text, View } from "react-native";
-import { Image } from "expo-image";
-import { LinearGradient } from "expo-linear-gradient";
 
 import { getStrongAgainst, getWeakAgainst } from "@adventure-time/game-engine";
 import type { PvpAction } from "@adventure-time/api-client";
@@ -10,11 +8,11 @@ import type { ComponentType } from "react";
 import { ThemedExpoButton } from "../../components/expo-ui/themed-button";
 import { ZapIcon, SwordsIcon, SparklesIcon } from "../../components/icons";
 import { useTranslation } from "../../i18n";
-import { localizeRarityName, localizeTypeName } from "../../lib/combat-i18n";
+import { localizeTypeName } from "../../lib/combat-i18n";
 import { useThemeStore } from "../../stores/theme-store";
 import { THEME_COLORS } from "../../theme/themes";
 import { BattleFullScreenSheet } from "./battle-full-screen-sheet";
-import { resolveBattleImageUrl } from "./image-url";
+import { CardModalIdentity } from "./card-modal-identity";
 import {
   prepareBattleAction,
   type MyMatchView,
@@ -60,8 +58,6 @@ export function ActionModal({
     ultimateKey && unit ? (unit.cooldowns[ultimateKey] ?? 0) : 0;
   const strongTypes = unit ? getStrongAgainst(unit.type as never) : [];
   const weakTypes = unit ? getWeakAgainst(unit.type as never) : [];
-
-  const imageUrl = resolveBattleImageUrl(unit?.imageUrl);
 
   const actionCards = useMemo(() => {
     if (!unit) {
@@ -201,117 +197,67 @@ export function ActionModal({
       <View className="px-4 pb-4 pt-4">
         <View className="overflow-hidden rounded-[28px] border border-primaryTint bg-white shadow-sm">
           <View className="flex-row">
-            <View className="w-1/2 bg-slate-900 px-5 py-5">
-              <View
-                className="overflow-hidden rounded-[24px] bg-slate-800"
-                style={{ width: "100%", aspectRatio: 320 / 192 }}
-              >
-                {imageUrl ? (
-                  <Image
-                    source={{ uri: imageUrl }}
-                    style={{ width: "100%", height: "100%" }}
-                    contentFit="cover"
+            <View className="w-1/2 overflow-hidden bg-slate-900">
+              <CardModalIdentity unit={unit} themeName={themeName} />
+
+              <View className="px-5 pb-5 pt-4">
+                <View className="flex-row flex-wrap gap-2">
+                  <StatChip
+                    label="ATK"
+                    value={unit.attack}
+                    base={unit.baseAttack}
                   />
-                ) : (
-                  <View className="h-full w-full items-center justify-center bg-slate-700">
-                    <Text className="font-nunito-extrabold text-6xl text-white">
-                      {unit.name.charAt(0)}
+                  <StatChip
+                    label="DEF"
+                    value={unit.defense}
+                    base={unit.baseDefense}
+                  />
+                  <StatChip
+                    label="SPD"
+                    value={unit.speed}
+                    base={unit.baseSpeed}
+                  />
+                </View>
+
+                <View className="mt-5 rounded-2xl bg-primaryBg px-4 py-3">
+                  <View className="flex-row items-center justify-between">
+                    <View className="flex-row items-center gap-2 rounded-full bg-secondaryTint px-3 py-1.5">
+                      <ZapIcon size={14} color="#854D0E" />
+                      <Text className="font-nunito-bold text-secondaryText">
+                        {t("pvp.action.energy", { count: energy })}
+                      </Text>
+                    </View>
+                    <Text className="font-nunito-semibold text-xs text-fgMuted">
+                      {t("pvp.action.activeEnemies", {
+                        count: opponentPlayer.units.filter(
+                          (enemy) => enemy.hp > 0,
+                        ).length,
+                      })}
                     </Text>
                   </View>
-                )}
-                <LinearGradient
-                  colors={["rgba(0,0,0,0.05)", "rgba(0,0,0,0.85)"]}
-                  start={{ x: 0.5, y: 0 }}
-                  end={{ x: 0.5, y: 1 }}
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    right: 0,
-                    bottom: 0,
-                    left: 0,
-                  }}
-                />
-                <View className="absolute left-4 top-4 rounded-xl bg-black/55 px-3 py-1.5">
-                  <Text className="font-nunito-bold text-xs text-white">
-                    {localizeTypeName(unit.type, t)}
-                  </Text>
+                  {strongTypes.length > 0 || weakTypes.length > 0 ? (
+                    <View className="mt-3 gap-1">
+                      {strongTypes.length > 0 ? (
+                        <Text className="font-nunito text-xs text-successDark">
+                          {t("pvp.action.strongAgainst", {
+                            value: strongTypes
+                              .map((type) => localizeTypeName(type, t))
+                              .join(", "),
+                          })}
+                        </Text>
+                      ) : null}
+                      {weakTypes.length > 0 ? (
+                        <Text className="font-nunito text-xs text-dangerDark">
+                          {t("pvp.action.weakAgainst", {
+                            value: weakTypes
+                              .map((type) => localizeTypeName(type, t))
+                              .join(", "),
+                          })}
+                        </Text>
+                      ) : null}
+                    </View>
+                  ) : null}
                 </View>
-              </View>
-
-              <View className="mt-4 gap-1">
-                <Text
-                  className="font-nunito text-base italic text-fgMuted"
-                  numberOfLines={1}
-                >
-                  {unit.name}
-                </Text>
-                <Text
-                  className="font-nunito-extrabold text-3xl text-fg"
-                  numberOfLines={2}
-                >
-                  {unit.character || unit.name}
-                </Text>
-                <Text className="font-nunito-bold text-sm text-fgMuted">
-                  {localizeRarityName(unit.rarity, t)}
-                </Text>
-              </View>
-
-              <View className="mt-4 flex-row flex-wrap gap-2">
-                <StatChip
-                  label="ATK"
-                  value={unit.attack}
-                  base={unit.baseAttack}
-                />
-                <StatChip
-                  label="DEF"
-                  value={unit.defense}
-                  base={unit.baseDefense}
-                />
-                <StatChip
-                  label="SPD"
-                  value={unit.speed}
-                  base={unit.baseSpeed}
-                />
-              </View>
-
-              <View className="mt-5 rounded-2xl bg-primaryBg px-4 py-3">
-                <View className="flex-row items-center justify-between">
-                  <View className="flex-row items-center gap-2 rounded-full bg-secondaryTint px-3 py-1.5">
-                    <ZapIcon size={14} color="#854D0E" />
-                    <Text className="font-nunito-bold text-secondaryText">
-                      {t("pvp.action.energy", { count: energy })}
-                    </Text>
-                  </View>
-                  <Text className="font-nunito-semibold text-xs text-fgMuted">
-                    {t("pvp.action.activeEnemies", {
-                      count: opponentPlayer.units.filter(
-                        (enemy) => enemy.hp > 0,
-                      ).length,
-                    })}
-                  </Text>
-                </View>
-                {strongTypes.length > 0 || weakTypes.length > 0 ? (
-                  <View className="mt-3 gap-1">
-                    {strongTypes.length > 0 ? (
-                      <Text className="font-nunito text-xs text-successDark">
-                        {t("pvp.action.strongAgainst", {
-                          value: strongTypes
-                            .map((type) => localizeTypeName(type, t))
-                            .join(", "),
-                        })}
-                      </Text>
-                    ) : null}
-                    {weakTypes.length > 0 ? (
-                      <Text className="font-nunito text-xs text-dangerDark">
-                        {t("pvp.action.weakAgainst", {
-                          value: weakTypes
-                            .map((type) => localizeTypeName(type, t))
-                            .join(", "),
-                        })}
-                      </Text>
-                    ) : null}
-                  </View>
-                ) : null}
               </View>
             </View>
 
