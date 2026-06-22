@@ -417,7 +417,10 @@ export function BattleBoard({
 
         <View className="relative z-10 flex-1 justify-center gap-2">
           <View className="relative min-h-0 flex-1 px-3 pt-1">
-            <View className="mb-16 flex-row items-center justify-center pl-[54px] pr-[110px]">
+            <View
+              className="mb-8 flex-row items-center justify-center pl-[54px] pr-[110px]"
+              style={{ transform: [{ translateY: -24 }] }}
+            >
               <PlayerPlate
                 name={opponentPlayer.name}
                 energy={opponentPlayer.energy}
