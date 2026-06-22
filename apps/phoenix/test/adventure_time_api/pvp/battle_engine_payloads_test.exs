@@ -223,6 +223,43 @@ defmodule AdventureTimeApi.Pvp.BattleEnginePayloadsTest do
       refute has_status(get_unit(new_state, "p2u1"), "Haste")
     end
 
+    test "legacy all scope applies statuses only to living units" do
+      state =
+        make_multi_state(
+          [
+            make_unit(%{"instanceId" => "p1u1", "position" => 1}),
+            make_unit(%{"instanceId" => "p1u2", "position" => 2})
+          ],
+          [
+            make_unit(%{
+              "instanceId" => "p2u1",
+              "position" => 1,
+              "hp" => 0,
+              "knockedOut" => true
+            }),
+            make_unit(%{"instanceId" => "p2u2", "position" => 2})
+          ]
+        )
+        |> with_p1_skill(%{
+          "key" => "test.legacy_all_status",
+          "type" => "SKILL",
+          "cost" => 0,
+          "cooldown" => nil,
+          "oncePerMatch" => false,
+          "payload" => %{
+            "applyStatuses" => [%{"name" => "Regeneration", "duration" => 2}],
+            "target" => "all"
+          }
+        })
+
+      {:ok, new_state, _events} = fire_skill(state)
+
+      assert has_status(get_unit(new_state, "p1u1"), "Regeneration")
+      assert has_status(get_unit(new_state, "p1u2"), "Regeneration")
+      refute has_status(get_unit(new_state, "p2u1"), "Regeneration")
+      assert has_status(get_unit(new_state, "p2u2"), "Regeneration")
+    end
+
     test "heal all allies heals the selected scope instead of only the actor" do
       state =
         make_multi_state(
