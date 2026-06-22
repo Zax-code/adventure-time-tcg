@@ -3,6 +3,7 @@ import { Text, View } from "react-native";
 
 import { useTranslation } from "../../i18n";
 import { localizeStatusName } from "../../lib/combat-i18n";
+import { getCombatLogEventKey } from "./combat-log-keys";
 import {
   getEventAbilityLabel,
   getEventActorId,
@@ -450,7 +451,17 @@ export function CombatLogModal({
   onClose,
 }: CombatLogModalProps) {
   const { t } = useTranslation();
-  const recentLog = [...log].reverse().slice(0, 30);
+  const recentLog = useMemo(
+    () =>
+      log
+        .map((event, index) => ({
+          event,
+          key: getCombatLogEventKey(event, index),
+        }))
+        .reverse()
+        .slice(0, 30),
+    [log],
+  );
   const resolvers = useMemo(
     () => buildCombatLogResolvers(battleState),
     [battleState],
@@ -471,9 +482,9 @@ export function CombatLogModal({
             </Text>
           </View>
         ) : (
-          recentLog.map((event) => (
+          recentLog.map(({ event, key }) => (
             <View
-              key={event.seq}
+              key={key}
               className={`rounded-3xl border px-4 py-3 ${getEventClasses(event.type)}`}
             >
               <View className="flex-row items-start justify-between gap-3">

@@ -50,6 +50,7 @@ export interface PvpVisualEvents {
 function pushUnitAnimation(
   unitAnimationEvents: UnitAnimationEvent[],
   event: CombatEvent,
+  sourceIndex: number,
   targetInstanceId: string | null,
   type: UnitAnimationEvent["type"],
   delayMs: number,
@@ -59,6 +60,7 @@ function pushUnitAnimation(
   }
 
   unitAnimationEvents.push({
+    key: getVisualEventKey(event, sourceIndex, "unit", type, targetInstanceId),
     seq: event.seq,
     targetInstanceId,
     type,
@@ -74,12 +76,30 @@ function hasVisualEvents(events: PvpVisualEvents) {
   );
 }
 
+function getVisualEventKey(
+  event: CombatEvent,
+  sourceIndex: number,
+  channel: "float" | "unit",
+  visualType: string,
+  targetInstanceId: string,
+) {
+  return [
+    event.turn,
+    event.seq,
+    sourceIndex,
+    event.type,
+    channel,
+    visualType,
+    targetInstanceId,
+  ].join(":");
+}
+
 export function buildPvpVisualEvents(events: CombatEvent[]): PvpVisualEvents {
   const floatingEvents: FloatingEvent[] = [];
   const unitAnimationEvents: UnitAnimationEvent[] = [];
   let visualStep = 0;
 
-  for (const event of events) {
+  for (const [sourceIndex, event] of events.entries()) {
     const delayMs = visualStep * VISUAL_EVENT_STAGGER_MS;
     let emittedVisual = false;
 
@@ -88,14 +108,22 @@ export function buildPvpVisualEvents(events: CombatEvent[]): PvpVisualEvents {
       const amount = getEventAmount(event) ?? 0;
 
       if (targetInstanceId) {
+        const type = isMissEvent(event)
+          ? "miss"
+          : isCritEvent(event)
+            ? "crit"
+            : "damage";
         floatingEvents.push({
+          key: getVisualEventKey(
+            event,
+            sourceIndex,
+            "float",
+            type,
+            targetInstanceId,
+          ),
           seq: event.seq,
           targetInstanceId,
-          type: isMissEvent(event)
-            ? "miss"
-            : isCritEvent(event)
-              ? "crit"
-              : "damage",
+          type,
           amount,
           delayMs,
         });
@@ -107,6 +135,7 @@ export function buildPvpVisualEvents(events: CombatEvent[]): PvpVisualEvents {
           pushUnitAnimation(
             unitAnimationEvents,
             event,
+            sourceIndex,
             targetInstanceId,
             "damage",
             delayMs,
@@ -116,6 +145,7 @@ export function buildPvpVisualEvents(events: CombatEvent[]): PvpVisualEvents {
       emittedVisual = pushUnitAnimation(
         unitAnimationEvents,
         event,
+        sourceIndex,
         getEventTargetInstanceId(event),
         "damage",
         delayMs,
@@ -126,6 +156,13 @@ export function buildPvpVisualEvents(events: CombatEvent[]): PvpVisualEvents {
 
       if (targetInstanceId && amount > 0) {
         floatingEvents.push({
+          key: getVisualEventKey(
+            event,
+            sourceIndex,
+            "float",
+            "heal",
+            targetInstanceId,
+          ),
           seq: event.seq,
           targetInstanceId,
           type: "heal",
@@ -137,6 +174,7 @@ export function buildPvpVisualEvents(events: CombatEvent[]): PvpVisualEvents {
           pushUnitAnimation(
             unitAnimationEvents,
             event,
+            sourceIndex,
             targetInstanceId,
             "heal",
             delayMs,
@@ -146,6 +184,7 @@ export function buildPvpVisualEvents(events: CombatEvent[]): PvpVisualEvents {
       emittedVisual = pushUnitAnimation(
         unitAnimationEvents,
         event,
+        sourceIndex,
         getEventTargetInstanceId(event),
         "death",
         delayMs,
@@ -158,6 +197,7 @@ export function buildPvpVisualEvents(events: CombatEvent[]): PvpVisualEvents {
         emittedVisual = pushUnitAnimation(
           unitAnimationEvents,
           event,
+          sourceIndex,
           targetInstanceId,
           "buff",
           delayMs,
@@ -166,6 +206,7 @@ export function buildPvpVisualEvents(events: CombatEvent[]): PvpVisualEvents {
         emittedVisual = pushUnitAnimation(
           unitAnimationEvents,
           event,
+          sourceIndex,
           targetInstanceId,
           "debuff",
           delayMs,
@@ -175,6 +216,7 @@ export function buildPvpVisualEvents(events: CombatEvent[]): PvpVisualEvents {
       emittedVisual = pushUnitAnimation(
         unitAnimationEvents,
         event,
+        sourceIndex,
         getEventActiveOutId(event),
         "swap-out",
         delayMs,
@@ -183,6 +225,7 @@ export function buildPvpVisualEvents(events: CombatEvent[]): PvpVisualEvents {
         pushUnitAnimation(
           unitAnimationEvents,
           event,
+          sourceIndex,
           getEventBenchInId(event),
           "swap-in",
           delayMs,

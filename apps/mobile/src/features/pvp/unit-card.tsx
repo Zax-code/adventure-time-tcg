@@ -123,7 +123,7 @@ export function UnitCard({
     overlayColor: reactionOverlayColor,
     triggerReaction,
   } = useUnitReactionAnimation({ swapOffset: swapAnimationOffset });
-  const shownSeqsRef = useRef<Set<number> | null>(null);
+  const shownSeqsRef = useRef<Set<string> | null>(null);
   if (shownSeqsRef.current === null) {
     shownSeqsRef.current = new Set();
   }
@@ -162,10 +162,10 @@ export function UnitCard({
 
   useEffect(() => {
     const timers: ReturnType<typeof setTimeout>[] = [];
-    const newOnes = floatingEvents.filter((event) => !shownSeqs.has(event.seq));
+    const newOnes = floatingEvents.filter((event) => !shownSeqs.has(event.key));
 
     newOnes.forEach((event, index) => {
-      shownSeqs.add(event.seq);
+      shownSeqs.add(event.key);
       timers.push(
         setTimeout(
           () => {
@@ -184,12 +184,11 @@ export function UnitCard({
   useEffect(() => {
     const timers: ReturnType<typeof setTimeout>[] = [];
     const newOnes = animationEvents.filter((event) => {
-      const key = `${event.seq}:${event.type}`;
-      return !shownAnimationSeqs.has(key);
+      return !shownAnimationSeqs.has(event.key);
     });
 
     newOnes.forEach((event, index) => {
-      shownAnimationSeqs.add(`${event.seq}:${event.type}`);
+      shownAnimationSeqs.add(event.key);
       timers.push(
         setTimeout(
           () => triggerReaction(event.type),
@@ -203,8 +202,8 @@ export function UnitCard({
     };
   }, [animationEvents, shownAnimationSeqs, triggerReaction]);
 
-  const dismissFloat = (seq: number) => {
-    setVisibleFloats((current) => current.filter((event) => event.seq !== seq));
+  const dismissFloat = (key: string) => {
+    setVisibleFloats((current) => current.filter((event) => event.key !== key));
   };
 
   const typeEffectiveness = useMemo(() => {
@@ -403,10 +402,10 @@ export function UnitCard({
 
               {visibleFloats.map((event) => (
                 <FloatingNumber
-                  key={event.seq}
+                  key={event.key}
                   amount={event.amount}
                   type={event.type}
-                  onDone={() => dismissFloat(event.seq)}
+                  onDone={() => dismissFloat(event.key)}
                 />
               ))}
 

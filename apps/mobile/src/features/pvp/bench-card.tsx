@@ -80,12 +80,11 @@ export function BenchCard({
   useEffect(() => {
     const timers: ReturnType<typeof setTimeout>[] = [];
     const newOnes = animationEvents.filter((event) => {
-      const key = `${event.seq}:${event.type}`;
-      return !shownAnimationSeqs.has(key);
+      return !shownAnimationSeqs.has(event.key);
     });
 
     newOnes.forEach((event, index) => {
-      shownAnimationSeqs.add(`${event.seq}:${event.type}`);
+      shownAnimationSeqs.add(event.key);
       timers.push(
         setTimeout(
           () => triggerReaction(event.type),

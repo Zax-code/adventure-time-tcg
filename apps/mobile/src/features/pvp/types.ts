@@ -44,6 +44,7 @@ export type SwapSelection = {
 } | null;
 
 export interface FloatingEvent {
+  key: string;
   seq: number;
   targetInstanceId: string;
   type: "damage" | "crit" | "shieldCrit" | "heal" | "miss";
@@ -61,6 +62,7 @@ export type UnitAnimationEventType =
   | "swap-out";
 
 export interface UnitAnimationEvent {
+  key: string;
   seq: number;
   targetInstanceId: string;
   type: UnitAnimationEventType;
