@@ -178,11 +178,11 @@ export function UnitCard({
       pillOffset.value = withRepeat(
         withSequence(
           withTiming(-4, {
-            duration: 220,
+            duration: 420,
             easing: Easing.out(Easing.quad),
           }),
           withTiming(0, {
-            duration: 260,
+            duration: 520,
             easing: Easing.in(Easing.quad),
           }),
         ),
