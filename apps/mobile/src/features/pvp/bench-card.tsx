@@ -135,7 +135,7 @@ export function BenchCard({
         </View>
       ) : null}
 
-      <View className="mt-1 h-1.5 px-1.5">
+      <View className="mt-1 h-2 px-1.5">
         <View className="h-full overflow-hidden rounded-full bg-slate-950/60">
           <View
             style={{

@@ -423,8 +423,8 @@ export function UnitCard({
             ) : null}
           </View>
 
-          <View className="mt-1 h-[14px] items-center justify-center px-3">
-            <View className="h-[10px] w-full overflow-hidden rounded-full bg-slate-950/70">
+          <View className="mt-1 h-[16px] items-center justify-center px-3">
+            <View className="h-[12px] w-full overflow-hidden rounded-full bg-slate-950/70">
               <View
                 style={{
                   position: "absolute",
