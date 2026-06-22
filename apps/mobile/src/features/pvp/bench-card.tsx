@@ -27,6 +27,10 @@ interface BenchCardProps {
 
 const EMPTY_UNIT_ANIMATION_EVENTS: UnitAnimationEvent[] = [];
 
+function getEventDelayMs(event: UnitAnimationEvent, fallbackIndex: number) {
+  return Math.max(0, event.delayMs ?? fallbackIndex * 95);
+}
+
 export function BenchCard({
   unit,
   testID,
@@ -82,7 +86,12 @@ export function BenchCard({
 
     newOnes.forEach((event, index) => {
       shownAnimationSeqs.add(`${event.seq}:${event.type}`);
-      timers.push(setTimeout(() => triggerReaction(event.type), index * 95));
+      timers.push(
+        setTimeout(
+          () => triggerReaction(event.type),
+          getEventDelayMs(event, index),
+        ),
+      );
     });
 
     return () => {

@@ -40,6 +40,8 @@ const DEBUFF_STATUS_NAMES = new Set([
   "Doom",
 ]);
 
+const VISUAL_EVENT_STAGGER_MS = 360;
+
 export interface PvpVisualEvents {
   floatingEvents: FloatingEvent[];
   unitAnimationEvents: UnitAnimationEvent[];
@@ -50,23 +52,37 @@ function pushUnitAnimation(
   event: CombatEvent,
   targetInstanceId: string | null,
   type: UnitAnimationEvent["type"],
+  delayMs: number,
 ) {
   if (!targetInstanceId) {
-    return;
+    return false;
   }
 
   unitAnimationEvents.push({
     seq: event.seq,
     targetInstanceId,
     type,
+    delayMs,
   });
+
+  return true;
+}
+
+function hasVisualEvents(events: PvpVisualEvents) {
+  return (
+    events.floatingEvents.length > 0 || events.unitAnimationEvents.length > 0
+  );
 }
 
 export function buildPvpVisualEvents(events: CombatEvent[]): PvpVisualEvents {
   const floatingEvents: FloatingEvent[] = [];
   const unitAnimationEvents: UnitAnimationEvent[] = [];
+  let visualStep = 0;
 
   for (const event of events) {
+    const delayMs = visualStep * VISUAL_EVENT_STAGGER_MS;
+    let emittedVisual = false;
+
     if (event.type === "damage" || event.type === "crit") {
       const targetInstanceId = getEventTargetInstanceId(event);
       const amount = getEventAmount(event) ?? 0;
@@ -81,23 +97,28 @@ export function buildPvpVisualEvents(events: CombatEvent[]): PvpVisualEvents {
               ? "crit"
               : "damage",
           amount,
+          delayMs,
         });
+        emittedVisual = true;
       }
 
       if (!isMissEvent(event)) {
-        pushUnitAnimation(
-          unitAnimationEvents,
-          event,
-          targetInstanceId,
-          "damage",
-        );
+        emittedVisual =
+          pushUnitAnimation(
+            unitAnimationEvents,
+            event,
+            targetInstanceId,
+            "damage",
+            delayMs,
+          ) || emittedVisual;
       }
     } else if (event.type === "shieldAbsorb") {
-      pushUnitAnimation(
+      emittedVisual = pushUnitAnimation(
         unitAnimationEvents,
         event,
         getEventTargetInstanceId(event),
         "damage",
+        delayMs,
       );
     } else if (event.type === "heal") {
       const targetInstanceId = getEventTargetInstanceId(event);
@@ -109,45 +130,98 @@ export function buildPvpVisualEvents(events: CombatEvent[]): PvpVisualEvents {
           targetInstanceId,
           type: "heal",
           amount,
+          delayMs,
         });
-        pushUnitAnimation(unitAnimationEvents, event, targetInstanceId, "heal");
+        emittedVisual = true;
+        emittedVisual =
+          pushUnitAnimation(
+            unitAnimationEvents,
+            event,
+            targetInstanceId,
+            "heal",
+            delayMs,
+          ) || emittedVisual;
       }
     } else if (event.type === "ko") {
-      pushUnitAnimation(
+      emittedVisual = pushUnitAnimation(
         unitAnimationEvents,
         event,
         getEventTargetInstanceId(event),
         "death",
+        delayMs,
       );
     } else if (event.type === "statusApply") {
       const statusName = getEventStatusName(event);
       const targetInstanceId = getEventTargetInstanceId(event);
 
       if (statusName && BUFF_STATUS_NAMES.has(statusName)) {
-        pushUnitAnimation(unitAnimationEvents, event, targetInstanceId, "buff");
+        emittedVisual = pushUnitAnimation(
+          unitAnimationEvents,
+          event,
+          targetInstanceId,
+          "buff",
+          delayMs,
+        );
       } else if (statusName && DEBUFF_STATUS_NAMES.has(statusName)) {
-        pushUnitAnimation(
+        emittedVisual = pushUnitAnimation(
           unitAnimationEvents,
           event,
           targetInstanceId,
           "debuff",
+          delayMs,
         );
       }
     } else if (event.type === "swap") {
-      pushUnitAnimation(
+      emittedVisual = pushUnitAnimation(
         unitAnimationEvents,
         event,
         getEventActiveOutId(event),
         "swap-out",
+        delayMs,
       );
-      pushUnitAnimation(
-        unitAnimationEvents,
-        event,
-        getEventBenchInId(event),
-        "swap-in",
-      );
+      emittedVisual =
+        pushUnitAnimation(
+          unitAnimationEvents,
+          event,
+          getEventBenchInId(event),
+          "swap-in",
+          delayMs,
+        ) || emittedVisual;
+    }
+
+    if (emittedVisual) {
+      visualStep += 1;
     }
   }
 
   return { floatingEvents, unitAnimationEvents };
+}
+
+export function getLatestVisualTurnEvents(
+  events: CombatEvent[],
+): CombatEvent[] {
+  const checkedTurns = new Set<number>();
+
+  for (let index = events.length - 1; index >= 0; index -= 1) {
+    const turn = events[index].turn;
+
+    if (checkedTurns.has(turn)) {
+      continue;
+    }
+
+    checkedTurns.add(turn);
+
+    const turnEvents = events.filter((event) => event.turn === turn);
+    if (hasVisualEvents(buildPvpVisualEvents(turnEvents))) {
+      return turnEvents;
+    }
+  }
+
+  return [];
+}
+
+export function buildLatestTurnPvpVisualEvents(
+  events: CombatEvent[],
+): PvpVisualEvents {
+  return buildPvpVisualEvents(getLatestVisualTurnEvents(events));
 }

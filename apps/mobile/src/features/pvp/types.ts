@@ -48,6 +48,7 @@ export interface FloatingEvent {
   targetInstanceId: string;
   type: "damage" | "crit" | "shieldCrit" | "heal" | "miss";
   amount: number;
+  delayMs?: number;
 }
 
 export type UnitAnimationEventType =
@@ -63,6 +64,7 @@ export interface UnitAnimationEvent {
   seq: number;
   targetInstanceId: string;
   type: UnitAnimationEventType;
+  delayMs?: number;
 }
 
 export interface PreparedBattleAction {

@@ -42,6 +42,13 @@ interface UnitCardProps {
 const EMPTY_FLOATING_EVENTS: FloatingEvent[] = [];
 const EMPTY_UNIT_ANIMATION_EVENTS: UnitAnimationEvent[] = [];
 
+function getEventDelayMs(
+  event: FloatingEvent | UnitAnimationEvent,
+  fallbackIndex: number,
+) {
+  return Math.max(0, event.delayMs ?? fallbackIndex * 95);
+}
+
 const TYPE_BADGE_COLORS: Record<string, string> = {
   Hero: "#2563EB",
   Tech: "#0F766E",
@@ -154,11 +161,24 @@ export function UnitCard({
   }, [isSelected, isValidTarget, outlineOpacity]);
 
   useEffect(() => {
+    const timers: ReturnType<typeof setTimeout>[] = [];
     const newOnes = floatingEvents.filter((event) => !shownSeqs.has(event.seq));
-    if (newOnes.length > 0) {
-      newOnes.forEach((event) => shownSeqs.add(event.seq));
-      setVisibleFloats((current) => [...current, ...newOnes]);
-    }
+
+    newOnes.forEach((event, index) => {
+      shownSeqs.add(event.seq);
+      timers.push(
+        setTimeout(
+          () => {
+            setVisibleFloats((current) => [...current, event]);
+          },
+          getEventDelayMs(event, index),
+        ),
+      );
+    });
+
+    return () => {
+      timers.forEach((timer) => clearTimeout(timer));
+    };
   }, [floatingEvents, shownSeqs]);
 
   useEffect(() => {
@@ -170,7 +190,12 @@ export function UnitCard({
 
     newOnes.forEach((event, index) => {
       shownAnimationSeqs.add(`${event.seq}:${event.type}`);
-      timers.push(setTimeout(() => triggerReaction(event.type), index * 95));
+      timers.push(
+        setTimeout(
+          () => triggerReaction(event.type),
+          getEventDelayMs(event, index),
+        ),
+      );
     });
 
     return () => {

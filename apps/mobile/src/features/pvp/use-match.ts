@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type {
@@ -10,7 +10,10 @@ import type {
 
 import { apiClient } from "../../lib/api";
 import { useSessionStore } from "../../stores/session-store";
-import { buildPvpVisualEvents } from "./animation-events";
+import {
+  buildLatestTurnPvpVisualEvents,
+  type PvpVisualEvents,
+} from "./animation-events";
 import { deriveMyMatchView, type MyMatchView } from "./types";
 
 type PvpMatchesResponse = {
@@ -28,6 +31,27 @@ type PvpHistoryResponse = {
     winRate: number;
   };
 };
+
+const EMPTY_VISUAL_EVENTS: PvpVisualEvents = {
+  floatingEvents: [],
+  unitAnimationEvents: [],
+};
+const VISUAL_EVENTS_CLEAR_BUFFER_MS = 1400;
+
+function hasVisualEvents(events: PvpVisualEvents) {
+  return (
+    events.floatingEvents.length > 0 || events.unitAnimationEvents.length > 0
+  );
+}
+
+function getMaxVisualDelayMs(events: PvpVisualEvents) {
+  const delays = [
+    ...events.floatingEvents.map((event) => event.delayMs ?? 0),
+    ...events.unitAnimationEvents.map((event) => event.delayMs ?? 0),
+  ];
+
+  return Math.max(0, ...delays);
+}
 
 function getConcedeWinnerId(match: PvpMatch, concedingUserId: string) {
   if (match.inviterId === concedingUserId) {
@@ -64,7 +88,14 @@ export function useMatch(matchId: string) {
   const queryClient = useQueryClient();
   const myUserId = useSessionStore((s) => s.user?.id ?? "");
   const logLengthRef = useRef(0);
+  const hasSyncedLogRef = useRef(false);
+  const syncedMatchIdRef = useRef<string | null>(null);
   const refreshedTerminalMatchRef = useRef<string | null>(null);
+  const clearVisualEventsTimerRef = useRef<ReturnType<
+    typeof setTimeout
+  > | null>(null);
+  const [visualEvents, setVisualEvents] =
+    useState<PvpVisualEvents>(EMPTY_VISUAL_EVENTS);
   const matchQueryKey = ["pvp-match", matchId] as const;
 
   const refreshPvpLobbyQueries = useCallback(() => {
@@ -114,13 +145,62 @@ export function useMatch(matchId: string) {
     refreshPvpLobbyQueries();
   }, [data?.match, refreshPvpLobbyQueries]);
 
-  const prevLogLength = logLengthRef.current;
-  let newEvents = buildPvpVisualEvents([]);
-  if (battleState) {
-    const logSlice = battleState.log.slice(prevLogLength);
-    newEvents = buildPvpVisualEvents(logSlice);
+  useEffect(() => {
+    const clearVisualEventsTimer = () => {
+      if (clearVisualEventsTimerRef.current) {
+        clearTimeout(clearVisualEventsTimerRef.current);
+        clearVisualEventsTimerRef.current = null;
+      }
+    };
+
+    if (syncedMatchIdRef.current !== matchId) {
+      clearVisualEventsTimer();
+      syncedMatchIdRef.current = matchId;
+      logLengthRef.current = 0;
+      hasSyncedLogRef.current = false;
+      setVisualEvents(EMPTY_VISUAL_EVENTS);
+    }
+
+    if (!battleState) {
+      clearVisualEventsTimer();
+      setVisualEvents(EMPTY_VISUAL_EVENTS);
+      return;
+    }
+
+    const prevLogLength = hasSyncedLogRef.current ? logLengthRef.current : 0;
+    const logSlice = hasSyncedLogRef.current
+      ? battleState.log.slice(prevLogLength)
+      : battleState.log;
+
     logLengthRef.current = battleState.log.length;
-  }
+    hasSyncedLogRef.current = true;
+
+    if (logSlice.length === 0) {
+      return;
+    }
+
+    const nextVisualEvents = buildLatestTurnPvpVisualEvents(logSlice);
+    if (hasVisualEvents(nextVisualEvents)) {
+      clearVisualEventsTimer();
+      setVisualEvents(nextVisualEvents);
+      clearVisualEventsTimerRef.current = setTimeout(
+        () => {
+          clearVisualEventsTimerRef.current = null;
+          setVisualEvents(EMPTY_VISUAL_EVENTS);
+        },
+        getMaxVisualDelayMs(nextVisualEvents) + VISUAL_EVENTS_CLEAR_BUFFER_MS,
+      );
+    }
+  }, [battleState, matchId]);
+
+  useEffect(
+    () => () => {
+      if (clearVisualEventsTimerRef.current) {
+        clearTimeout(clearVisualEventsTimerRef.current);
+      }
+    },
+    [],
+  );
 
   const actionMutation = useMutation({
     mutationFn: (action: PvpAction) => apiClient.actPvpMatch(matchId, action),
@@ -250,8 +330,8 @@ export function useMatch(matchId: string) {
     isError,
     rawMatch: data?.match ?? null,
     isActing: actionMutation.isPending || endTurnMutation.isPending,
-    newEvents: newEvents.floatingEvents,
-    unitAnimationEvents: newEvents.unitAnimationEvents,
+    newEvents: visualEvents.floatingEvents,
+    unitAnimationEvents: visualEvents.unitAnimationEvents,
     submitAction,
     submitEndTurn,
     concede,
