@@ -536,7 +536,7 @@ export function BattleBoard({
                       unit={unit}
                       testID={`pvp-my-bench-${index}`}
                       isSelected={
-                        pendingSwap?.activeInstanceId === unit.instanceId
+                        pendingSwap?.benchInstanceId === unit.instanceId
                       }
                       isSwapTarget={isSwapMode}
                       isValidTarget={

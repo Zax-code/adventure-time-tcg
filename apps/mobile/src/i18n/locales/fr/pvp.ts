@@ -44,7 +44,7 @@ const pvp = {
       any: "Appuie sur n'importe quelle unité à cibler",
       sourceUnit: "Choisis une unité source",
       highlighted: "Appuie sur une cible en surbrillance",
-      swap: "Appuie sur l'actif puis sur le banc",
+      swap: "Choisis une unité active et une unité du banc",
       actions: "Appuie sur une carte pour agir",
       noReady: "Aucune unité prête. Inspecte ou termine.",
       waiting: "En attente de l'adversaire",

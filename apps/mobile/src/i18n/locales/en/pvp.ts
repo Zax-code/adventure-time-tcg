@@ -43,7 +43,7 @@ const pvp = {
       any: "Tap any unit to target",
       sourceUnit: "Choose a source unit",
       highlighted: "Tap a highlighted target",
-      swap: "Tap active unit then bench",
+      swap: "Tap an active unit and a bench unit",
       actions: "Tap a card for actions",
       noReady: "No ready units. End turn or inspect.",
       waiting: "Waiting for opponent",

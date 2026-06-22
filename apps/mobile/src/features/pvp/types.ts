@@ -38,7 +38,10 @@ export interface TargetingMode {
   validTargetIds: string[];
 }
 
-export type SwapSelection = { activeInstanceId: string } | null;
+export type SwapSelection = {
+  activeInstanceId?: string;
+  benchInstanceId?: string;
+} | null;
 
 export interface FloatingEvent {
   seq: number;

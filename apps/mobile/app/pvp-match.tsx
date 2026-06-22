@@ -126,9 +126,29 @@ export default function PvpMatchScreen() {
     }
   }, [initialE2EModal]);
 
-  const handleSelectUnit = (instanceId: string) => {
-    if (isSwapMode) {
-      setPendingSwap({ activeInstanceId: instanceId });
+  const submitSwapSelection = (
+    activeInstanceId: string,
+    benchInstanceId: string,
+  ) => {
+    setIsSwapMode(false);
+    setPendingSwap(null);
+    submitEndTurn({ swap: { activeInstanceId, benchInstanceId } });
+  };
+
+  const updatePendingSwap = (selection: NonNullable<SwapSelection>) => {
+    setPendingSwap((current) => ({
+      ...(current ?? {}),
+      ...selection,
+    }));
+  };
+
+  const handleSelectUnit = (activeInstanceId: string) => {
+    if (!isSwapMode) return;
+
+    if (pendingSwap?.benchInstanceId) {
+      submitSwapSelection(activeInstanceId, pendingSwap.benchInstanceId);
+    } else {
+      updatePendingSwap({ activeInstanceId });
     }
   };
 
@@ -207,14 +227,13 @@ export default function PvpMatchScreen() {
   };
 
   const handleSelectBench = (benchInstanceId: string) => {
-    if (!isSwapMode || !pendingSwap) return;
-    const swap = {
-      activeInstanceId: pendingSwap.activeInstanceId,
-      benchInstanceId,
-    };
-    setIsSwapMode(false);
-    setPendingSwap(null);
-    submitEndTurn({ swap });
+    if (!isSwapMode) return;
+
+    if (pendingSwap?.activeInstanceId) {
+      submitSwapSelection(pendingSwap.activeInstanceId, benchInstanceId);
+    } else {
+      updatePendingSwap({ benchInstanceId });
+    }
   };
 
   const handleSwapToggle = () => {
