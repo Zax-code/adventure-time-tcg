@@ -33,7 +33,7 @@ config :elixir, :time_zone_database, Tzdata.TimeZoneDatabase
 
 config :adventure_time_api, AdventureTimeApi.Auth,
   access_token_ttl_seconds: 15 * 60,
-  refresh_token_ttl_days: 30,
+  refresh_token_ttl_days: 180,
   google_client_ids: []
 
 config :adventure_time_api, AdventureTimeApi.Accounts,

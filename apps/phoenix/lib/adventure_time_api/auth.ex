@@ -25,10 +25,11 @@ defmodule AdventureTimeApi.Auth do
   end
 
   def verify_refresh_token(token) do
-    with {:ok, claims} <- verify(token, refresh_secret()),
+    with {:ok, claims} <- verify_signed(token, refresh_secret()),
          "refresh" <- claims["type"],
          true <- is_binary(claims["sub"]),
-         true <- is_binary(claims["sid"]) do
+         true <- is_binary(claims["sid"]),
+         true <- is_integer(claims["exp"]) do
       {:ok, claims}
     else
       _ -> {:error, :invalid_token}
@@ -61,10 +62,16 @@ defmodule AdventureTimeApi.Auth do
   end
 
   defp verify(token, secret) do
+    with {:ok, claims} <- verify_signed(token, secret) do
+      verify_expiration(claims)
+    end
+  end
+
+  defp verify_signed(token, secret) do
     signer = JOSE.JWK.from_oct(secret)
 
     case JOSE.JWT.verify_strict(signer, [@algorithm], token) do
-      {true, %JOSE.JWT{fields: claims}, _} -> verify_expiration(claims)
+      {true, %JOSE.JWT{fields: claims}, _} -> {:ok, claims}
       _ -> {:error, :invalid_token}
     end
   end
