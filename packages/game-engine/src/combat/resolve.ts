@@ -1060,6 +1060,9 @@ function handleKo(
  */
 export function startTurn(state: BattleState, rng: SeededRng): void {
   const currentPlayer = getCurrentPlayer(state);
+  const previousEnergy = currentPlayer.energy;
+  const previousMaxEnergy = currentPlayer.maxEnergy;
+  const maxEnergy = Math.min(4, previousMaxEnergy + 1);
 
   logEvent(
     state,
@@ -1069,17 +1072,18 @@ export function startTurn(state: BattleState, rng: SeededRng): void {
     }),
   );
 
-  // Grant energy: 2 on turn 1, 3 thereafter
-  const energyGrant = state.turn === 1 ? 2 : 3;
-  currentPlayer.energy =
-    energyGrant + (state.turn === 1 ? currentPlayer.energy : 0);
+  currentPlayer.maxEnergy = maxEnergy;
+  currentPlayer.energy = maxEnergy;
   currentPlayer.hasUsedFreeBasic = false;
 
   logEvent(
     state,
     createEvent(state, "energyGrant", {
       playerId: currentPlayer.userId,
-      amount: energyGrant,
+      amount: currentPlayer.energy,
+      maxEnergy,
+      previousEnergy,
+      previousMaxEnergy,
     }),
   );
 
@@ -1309,7 +1313,10 @@ function executePassive(
   }
 
   if (payload.battleStartEnergyBonus && payload.trigger === "onBattleInit") {
-    player.energy += payload.battleStartEnergyBonus;
+    player.energy = Math.min(
+      player.maxEnergy,
+      player.energy + payload.battleStartEnergyBonus,
+    );
   }
 
   // Healing effects (e.g., Soul Snack on KO, Ember Core on burn apply)
@@ -2934,9 +2941,6 @@ export function executeSwap(
       position,
     }),
   );
-
-  // Deduct energy
-  currentPlayer.energy -= 1;
 }
 
 /**

@@ -67,6 +67,7 @@ defmodule AdventureTimeApi.Pvp.BattleEngineCoreTest do
           "userId" => "player1",
           "displayName" => "P1",
           "energy" => Keyword.get(opts, :p1_energy, 3),
+          "maxEnergy" => Keyword.get(opts, :p1_max_energy, Keyword.get(opts, :p1_energy, 3)),
           "initiative" => 40,
           "hasUsedFreeBasic" => false,
           "units" => p1_units,
@@ -76,6 +77,7 @@ defmodule AdventureTimeApi.Pvp.BattleEngineCoreTest do
           "userId" => "player2",
           "displayName" => "P2",
           "energy" => Keyword.get(opts, :p2_energy, 3),
+          "maxEnergy" => Keyword.get(opts, :p2_max_energy, Keyword.get(opts, :p2_energy, 3)),
           "initiative" => 40,
           "hasUsedFreeBasic" => false,
           "units" => p2_units,
@@ -265,6 +267,115 @@ defmodule AdventureTimeApi.Pvp.BattleEngineCoreTest do
     assert boosted["attack"] == 51
     assert boosted["position"] == 1
     assert bench["position"] == nil
+
+    assert Enum.all?(state["players"], fn player ->
+             player["energy"] == 1 and player["maxEnergy"] == 1
+           end)
+  end
+
+  test "turn start increases max energy up to four and refills current energy" do
+    state =
+      make_state(
+        p1_energy: 0,
+        p1_max_energy: 1,
+        p2_energy: 0,
+        p2_max_energy: 1
+      )
+
+    {player2_turn, events} = BattleEngine.simulate_end_turn(state)
+    player2 = get_player(player2_turn, "player2")
+
+    assert player2["energy"] == 2
+    assert player2["maxEnergy"] == 2
+
+    energy_event = Enum.find(events, &(&1["type"] == "energyGrant"))
+    assert energy_event["payload"]["amount"] == 2
+    assert energy_event["payload"]["maxEnergy"] == 2
+    assert energy_event["payload"]["previousEnergy"] == 0
+    assert energy_event["payload"]["previousMaxEnergy"] == 1
+
+    {player1_turn, _events} = BattleEngine.simulate_end_turn(player2_turn)
+    assert get_player(player1_turn, "player1")["energy"] == 2
+    assert get_player(player1_turn, "player1")["maxEnergy"] == 2
+
+    capped_state =
+      make_state(
+        p1_energy: 2,
+        p1_max_energy: 4,
+        p2_energy: 1,
+        p2_max_energy: 4
+      )
+
+    {after_cap, _events} = BattleEngine.simulate_end_turn(capped_state)
+    assert get_player(after_cap, "player2")["energy"] == 4
+    assert get_player(after_cap, "player2")["maxEnergy"] == 4
+  end
+
+  test "unspent energy refills to max energy instead of accumulating" do
+    state =
+      make_state(
+        p1_energy: 2,
+        p1_max_energy: 3,
+        p2_energy: 2,
+        p2_max_energy: 3
+      )
+
+    {new_state, _events} = BattleEngine.simulate_end_turn(state)
+
+    assert get_player(new_state, "player1")["energy"] == 2
+    assert get_player(new_state, "player1")["maxEnergy"] == 3
+    assert get_player(new_state, "player2")["energy"] == 4
+    assert get_player(new_state, "player2")["maxEnergy"] == 4
+  end
+
+  test "three-cost ultimate unlocks at three max energy and leaves one at cap four" do
+    ultimate = %{
+      "key" => "test.energy_ultimate",
+      "type" => "ULTIMATE",
+      "cost" => 3,
+      "cooldown" => nil,
+      "oncePerMatch" => false,
+      "payload" => %{"damageMul" => 1.0}
+    }
+
+    unavailable_state =
+      make_state(p1_energy: 2, p1_max_energy: 2)
+      |> put_ability(ultimate)
+      |> assign_slot("player1", "p1u1", "ultimate", "test.energy_ultimate")
+
+    assert BattleEngine.simulate_action(unavailable_state, "player1", %{
+             "kind" => "ultimate",
+             "actorInstanceId" => "p1u1",
+             "targetInstanceId" => "p2u1"
+           }) == {:error, :not_enough_energy}
+
+    available_state =
+      make_state(p1_energy: 3, p1_max_energy: 3)
+      |> put_ability(ultimate)
+      |> assign_slot("player1", "p1u1", "ultimate", "test.energy_ultimate")
+
+    {:ok, after_ultimate, _events} =
+      BattleEngine.simulate_action(available_state, "player1", %{
+        "kind" => "ultimate",
+        "actorInstanceId" => "p1u1",
+        "targetInstanceId" => "p2u1"
+      })
+
+    assert get_player(after_ultimate, "player1")["energy"] == 0
+
+    cap_state =
+      make_state(p1_energy: 4, p1_max_energy: 4)
+      |> put_ability(ultimate)
+      |> assign_slot("player1", "p1u1", "ultimate", "test.energy_ultimate")
+
+    {:ok, after_cap_ultimate, _events} =
+      BattleEngine.simulate_action(cap_state, "player1", %{
+        "kind" => "ultimate",
+        "actorInstanceId" => "p1u1",
+        "targetInstanceId" => "p2u1"
+      })
+
+    assert get_player(after_cap_ultimate, "player1")["energy"] == 1
   end
 
   test "create_battle_state exposes initiative tie roll in match start payload" do
@@ -650,6 +761,7 @@ defmodule AdventureTimeApi.Pvp.BattleEngineCoreTest do
     assert Enum.any?(incoming["statuses"], &(&1["name"] == "SummoningSickness"))
     assert new_state["currentPlayerId"] == "player2"
     assert new_state["turn"] == 2
+    assert get_player(new_state, "player1")["energy"] == 3
 
     assert Enum.any?(events, fn event ->
              event["type"] == "swap" and

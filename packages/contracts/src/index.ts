@@ -956,6 +956,7 @@ export const pvpPlayerStateSchema = z.object({
   userId: z.string(),
   name: z.string(),
   energy: z.number().int(),
+  maxEnergy: z.number().int(),
   hasUsedFreeBasic: z.boolean(),
   units: z.array(pvpUnitStateSchema),
   bench: z.array(pvpUnitStateSchema),

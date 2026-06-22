@@ -7,6 +7,7 @@ import { THEME_COLORS } from "../../theme/themes";
 
 interface ActionButtonsProps {
   energy: number;
+  maxEnergy: number;
   isSwapMode: boolean;
   isTargeting: boolean;
   hasBench: boolean;
@@ -19,6 +20,7 @@ interface ActionButtonsProps {
 
 export function ActionButtons({
   energy,
+  maxEnergy,
   isSwapMode,
   isTargeting,
   hasBench,
@@ -36,7 +38,7 @@ export function ActionButtons({
 
   return (
     <View className="absolute bottom-2 right-0 z-50 items-end gap-2">
-      <ActionEnergyPill energy={energy} />
+      <ActionEnergyPill energy={energy} maxEnergy={maxEnergy} />
       <View
         className="flex-row gap-2"
         style={{ transform: [{ translateX: 13 }] }}
@@ -133,12 +135,18 @@ export function ActionButtons({
   );
 }
 
-export function ActionEnergyPill({ energy }: { energy: number }) {
+export function ActionEnergyPill({
+  energy,
+  maxEnergy,
+}: {
+  energy: number;
+  maxEnergy: number;
+}) {
   return (
     <View className="h-9 min-w-[78px] flex-row items-center justify-center gap-1.5 rounded-full bg-secondaryTint px-3">
       <ZapIcon size={16} color="#B45309" />
       <Text className="font-nunito-extrabold text-[16px] text-secondaryText">
-        {energy}
+        {energy}/{maxEnergy}
       </Text>
     </View>
   );

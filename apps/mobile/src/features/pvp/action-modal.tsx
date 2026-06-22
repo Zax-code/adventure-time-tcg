@@ -98,11 +98,7 @@ export function ActionModal({
         border: "border-infoBorder",
         text: "text-infoDark",
         cost: skillCost,
-        disabled:
-          !skillDef ||
-          energy < skillCost ||
-          skillCd > 0 ||
-          isSilenced,
+        disabled: !skillDef || energy < skillCost || skillCd > 0 || isSilenced,
         note:
           skillCd > 0
             ? t("pvp.action.cooldown", { count: skillCd })
@@ -251,7 +247,9 @@ export function ActionModal({
                     <View className="flex-row items-center gap-2 rounded-full bg-secondaryTint px-3 py-1.5">
                       <ZapIcon size={14} color="#854D0E" />
                       <Text className="font-nunito-bold text-secondaryText">
-                        {t("pvp.action.energy", { count: energy })}
+                        {t("pvp.action.energy", {
+                          count: `${energy}/${myPlayer.maxEnergy}`,
+                        })}
                       </Text>
                     </View>
                     <Text className="font-nunito-semibold text-xs text-fgMuted">

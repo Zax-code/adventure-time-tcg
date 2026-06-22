@@ -62,6 +62,7 @@ test("pvp match detail accepts null payload status magnitude as absent", () => {
           userId: "user-1",
           name: "A",
           energy: 0,
+          maxEnergy: 1,
           hasUsedFreeBasic: false,
           units: [makeUnit("u1")],
           bench: [],
@@ -70,6 +71,7 @@ test("pvp match detail accepts null payload status magnitude as absent", () => {
           userId: "user-2",
           name: "B",
           energy: 0,
+          maxEnergy: 1,
           hasUsedFreeBasic: false,
           units: [
             {

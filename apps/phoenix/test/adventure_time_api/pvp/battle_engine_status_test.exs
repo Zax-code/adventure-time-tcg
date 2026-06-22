@@ -52,6 +52,7 @@ defmodule AdventureTimeApi.Pvp.BattleEngineStatusTest do
           "userId" => "player1",
           "displayName" => "P1",
           "energy" => 3,
+          "maxEnergy" => 3,
           "initiative" => 40,
           "hasUsedFreeBasic" => false,
           "units" => [p1_unit],
@@ -61,6 +62,7 @@ defmodule AdventureTimeApi.Pvp.BattleEngineStatusTest do
           "userId" => "player2",
           "displayName" => "P2",
           "energy" => 3,
+          "maxEnergy" => 3,
           "initiative" => 40,
           "hasUsedFreeBasic" => false,
           "units" => [p2_unit],
@@ -302,7 +304,13 @@ defmodule AdventureTimeApi.Pvp.BattleEngineStatusTest do
       state1 =
         update_in(state1, ["players"], fn players ->
           Enum.map(players, fn p ->
-            if p["userId"] == "player1", do: Map.put(p, "energy", 5), else: p
+            if p["userId"] == "player1" do
+              p
+              |> Map.put("energy", 4)
+              |> Map.put("maxEnergy", 4)
+            else
+              p
+            end
           end)
         end)
 
@@ -1007,7 +1015,7 @@ defmodule AdventureTimeApi.Pvp.BattleEngineStatusTest do
         })
 
       refute has_status(get_unit(consumed_state, "p2u1"), "Freeze")
-      assert get_player(consumed_state, "player2")["energy"] == 5
+      assert get_player(consumed_state, "player2")["energy"] == 4
     end
 
     test "Freeze skips copied actions without spending energy" do
@@ -1116,7 +1124,13 @@ defmodule AdventureTimeApi.Pvp.BattleEngineStatusTest do
         )
         |> update_in(["players"], fn players ->
           Enum.map(players, fn player ->
-            if player["userId"] == "player1", do: Map.put(player, "energy", 4), else: player
+            if player["userId"] == "player1" do
+              player
+              |> Map.put("energy", 4)
+              |> Map.put("maxEnergy", 4)
+            else
+              player
+            end
           end)
         end)
         |> put_ability(%{
@@ -1220,7 +1234,7 @@ defmodule AdventureTimeApi.Pvp.BattleEngineStatusTest do
         })
 
       refute has_status(get_unit(consumed_state, "p2u1"), "Stunned")
-      assert get_player(consumed_state, "player2")["energy"] == 3
+      assert get_player(consumed_state, "player2")["energy"] == 2
     end
   end
 
@@ -1307,6 +1321,7 @@ defmodule AdventureTimeApi.Pvp.BattleEngineStatusTest do
             "userId" => "player1",
             "displayName" => "P1",
             "energy" => 3,
+            "maxEnergy" => 3,
             "initiative" => 40,
             "hasUsedFreeBasic" => false,
             "units" => [p1_unit],
@@ -1316,6 +1331,7 @@ defmodule AdventureTimeApi.Pvp.BattleEngineStatusTest do
             "userId" => "player2",
             "displayName" => "P2",
             "energy" => 3,
+            "maxEnergy" => 3,
             "initiative" => 40,
             "hasUsedFreeBasic" => false,
             "units" => [p2_unit1, p2_unit2],

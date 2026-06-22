@@ -51,6 +51,7 @@ defmodule AdventureTimeApi.Pvp.BattleEnginePayloadsTest do
           "userId" => "player1",
           "displayName" => "P1",
           "energy" => 3,
+          "maxEnergy" => 3,
           "initiative" => 40,
           "hasUsedFreeBasic" => false,
           "units" => [p1_unit],
@@ -60,6 +61,7 @@ defmodule AdventureTimeApi.Pvp.BattleEnginePayloadsTest do
           "userId" => "player2",
           "displayName" => "P2",
           "energy" => 3,
+          "maxEnergy" => 3,
           "initiative" => 40,
           "hasUsedFreeBasic" => false,
           "units" => [p2_unit],
@@ -881,6 +883,7 @@ defmodule AdventureTimeApi.Pvp.BattleEnginePayloadsTest do
             "userId" => "player1",
             "displayName" => "P1",
             "energy" => 3,
+            "maxEnergy" => 3,
             "initiative" => 40,
             "hasUsedFreeBasic" => false,
             "units" => [p1_unit],
@@ -890,6 +893,7 @@ defmodule AdventureTimeApi.Pvp.BattleEnginePayloadsTest do
             "userId" => "player2",
             "displayName" => "P2",
             "energy" => 3,
+            "maxEnergy" => 3,
             "initiative" => 40,
             "hasUsedFreeBasic" => false,
             "units" => [p2_unit1, p2_unit2],
@@ -964,6 +968,7 @@ defmodule AdventureTimeApi.Pvp.BattleEnginePayloadsTest do
             "userId" => "player1",
             "displayName" => "P1",
             "energy" => 3,
+            "maxEnergy" => 3,
             "initiative" => 40,
             "hasUsedFreeBasic" => false,
             "units" => [p1_unit1, p1_unit2],
@@ -973,6 +978,7 @@ defmodule AdventureTimeApi.Pvp.BattleEnginePayloadsTest do
             "userId" => "player2",
             "displayName" => "P2",
             "energy" => 3,
+            "maxEnergy" => 3,
             "initiative" => 40,
             "hasUsedFreeBasic" => false,
             "units" => [p2_unit],
@@ -1041,6 +1047,7 @@ defmodule AdventureTimeApi.Pvp.BattleEnginePayloadsTest do
             "userId" => "player1",
             "displayName" => "P1",
             "energy" => 3,
+            "maxEnergy" => 3,
             "initiative" => 40,
             "hasUsedFreeBasic" => false,
             "units" => [p1_unit1],
@@ -1050,6 +1057,7 @@ defmodule AdventureTimeApi.Pvp.BattleEnginePayloadsTest do
             "userId" => "player2",
             "displayName" => "P2",
             "energy" => 3,
+            "maxEnergy" => 3,
             "initiative" => 40,
             "hasUsedFreeBasic" => false,
             "units" => [p2_unit],
@@ -1149,6 +1157,7 @@ defmodule AdventureTimeApi.Pvp.BattleEnginePayloadsTest do
             "userId" => "player1",
             "displayName" => "P1",
             "energy" => 3,
+            "maxEnergy" => 3,
             "initiative" => 40,
             "hasUsedFreeBasic" => false,
             "units" => [p1_unit],
@@ -1158,6 +1167,7 @@ defmodule AdventureTimeApi.Pvp.BattleEnginePayloadsTest do
             "userId" => "player2",
             "displayName" => "P2",
             "energy" => 3,
+            "maxEnergy" => 3,
             "initiative" => 40,
             "hasUsedFreeBasic" => false,
             "units" => [debuffed_p2],
@@ -1236,6 +1246,7 @@ defmodule AdventureTimeApi.Pvp.BattleEnginePayloadsTest do
             "userId" => "player1",
             "displayName" => "P1",
             "energy" => 3,
+            "maxEnergy" => 3,
             "initiative" => 40,
             "hasUsedFreeBasic" => false,
             "units" => [p1_unit],
@@ -1245,6 +1256,7 @@ defmodule AdventureTimeApi.Pvp.BattleEnginePayloadsTest do
             "userId" => "player2",
             "displayName" => "P2",
             "energy" => 3,
+            "maxEnergy" => 3,
             "initiative" => 40,
             "hasUsedFreeBasic" => false,
             "units" => [buffed_p2],
@@ -1586,7 +1598,8 @@ defmodule AdventureTimeApi.Pvp.BattleEnginePayloadsTest do
           %{
             "userId" => "player1",
             "displayName" => "P1",
-            "energy" => 5,
+            "energy" => 4,
+            "maxEnergy" => 4,
             "initiative" => 40,
             "hasUsedFreeBasic" => false,
             "units" => [
@@ -1598,6 +1611,7 @@ defmodule AdventureTimeApi.Pvp.BattleEnginePayloadsTest do
             "userId" => "player2",
             "displayName" => "P2",
             "energy" => 3,
+            "maxEnergy" => 3,
             "initiative" => 40,
             "hasUsedFreeBasic" => false,
             "units" => [
@@ -1645,7 +1659,7 @@ defmodule AdventureTimeApi.Pvp.BattleEnginePayloadsTest do
 
       # Energy deducted by copied ability cost (2)
       p1_player = Enum.find(new_state["players"], &(&1["userId"] == "player1"))
-      assert p1_player["energy"] == 3
+      assert p1_player["energy"] == 2
 
       # Copy ability cooldown set on p1u1's copy key
       p1_unit = get_unit(new_state, "p1u1")
@@ -1762,7 +1776,8 @@ defmodule AdventureTimeApi.Pvp.BattleEnginePayloadsTest do
           %{
             "userId" => "player1",
             "displayName" => "P1",
-            "energy" => 5,
+            "energy" => 4,
+            "maxEnergy" => 4,
             "initiative" => 40,
             "hasUsedFreeBasic" => false,
             "units" => [
@@ -1774,6 +1789,7 @@ defmodule AdventureTimeApi.Pvp.BattleEnginePayloadsTest do
             "userId" => "player2",
             "displayName" => "P2",
             "energy" => 3,
+            "maxEnergy" => 3,
             "initiative" => 40,
             "hasUsedFreeBasic" => false,
             "units" => [
@@ -1824,7 +1840,8 @@ defmodule AdventureTimeApi.Pvp.BattleEnginePayloadsTest do
           %{
             "userId" => "player1",
             "displayName" => "P1",
-            "energy" => 5,
+            "energy" => 4,
+            "maxEnergy" => 4,
             "initiative" => 40,
             "hasUsedFreeBasic" => false,
             "units" => [
@@ -1836,6 +1853,7 @@ defmodule AdventureTimeApi.Pvp.BattleEnginePayloadsTest do
             "userId" => "player2",
             "displayName" => "P2",
             "energy" => 3,
+            "maxEnergy" => 3,
             "initiative" => 40,
             "hasUsedFreeBasic" => false,
             "units" => [

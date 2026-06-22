@@ -47,7 +47,8 @@ defmodule AdventureTimeApi.Pvp.BattleEnginePassivesTest do
         %{
           "userId" => "player1",
           "displayName" => "P1",
-          "energy" => 5,
+          "energy" => 4,
+          "maxEnergy" => 4,
           "initiative" => 40,
           "hasUsedFreeBasic" => false,
           "units" => p1_units,
@@ -56,7 +57,8 @@ defmodule AdventureTimeApi.Pvp.BattleEnginePassivesTest do
         %{
           "userId" => "player2",
           "displayName" => "P2",
-          "energy" => 5,
+          "energy" => 4,
+          "maxEnergy" => 4,
           "initiative" => 40,
           "hasUsedFreeBasic" => false,
           "units" => p2_units,
