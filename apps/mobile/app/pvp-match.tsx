@@ -1,11 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  Pressable,
-  StatusBar,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Pressable, StatusBar, StyleSheet, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as ScreenOrientation from "expo-screen-orientation";
 
@@ -17,19 +11,103 @@ import { ThemedExpoButton } from "../src/components/expo-ui/themed-button";
 import { useThemeStore } from "../src/stores/theme-store";
 import { THEME_COLORS, THEME_VARS } from "../src/theme/themes";
 import { BattleBoard } from "../src/features/pvp/battle-board";
-import { BattleFullScreenSheet } from "../src/features/pvp/battle-full-screen-sheet";
+import { ActionModal } from "../src/features/pvp/action-modal";
+import { CardInfoModal } from "../src/features/pvp/card-info-modal";
+import { CombatLogModal } from "../src/features/pvp/combat-log-modal";
 import { useMatch } from "../src/features/pvp/use-match";
-import { prepareCopyFollowUp, type TargetingMode, type SwapSelection } from "../src/features/pvp/types";
+import {
+  type MyMatchView,
+  prepareCopyFollowUp,
+  type TargetingMode,
+  type SwapSelection,
+} from "../src/features/pvp/types";
 import { useTranslation } from "../src/i18n";
 
+type E2EMatchModal =
+  | "action"
+  | "my-card-info"
+  | "opponent-card-info"
+  | "log"
+  | "end-turn"
+  | "concede";
+
+type TargetingModeInput = Omit<TargetingMode, "validTargetIds"> & {
+  validTargetIds?: string[];
+};
+
+const e2eAuthEnabled = process.env.EXPO_PUBLIC_E2E_AUTH === "1";
+
+function parseE2EModal(
+  value: string | string[] | undefined,
+): E2EMatchModal | null {
+  if (!e2eAuthEnabled || typeof value !== "string") {
+    return null;
+  }
+
+  if (
+    value === "action" ||
+    value === "my-card-info" ||
+    value === "opponent-card-info" ||
+    value === "log" ||
+    value === "end-turn" ||
+    value === "concede"
+  ) {
+    return value;
+  }
+
+  return null;
+}
+
+function parseMatchRouteId(value: string | undefined) {
+  const fallback = {
+    matchId: value ?? "",
+    e2eModal: null as E2EMatchModal | null,
+  };
+  if (!value) {
+    return fallback;
+  }
+
+  const [matchId, marker, modal] = value.split("::");
+  if (marker !== "e2e") {
+    return fallback;
+  }
+
+  return {
+    matchId,
+    e2eModal: parseE2EModal(modal),
+  };
+}
+
+function normalizeTargetingMode(mode: TargetingModeInput): TargetingMode {
+  return {
+    ...mode,
+    validTargetIds: mode.validTargetIds ?? [],
+  };
+}
+
 export default function PvpMatchScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, e2eModal } = useLocalSearchParams<{
+    id: string;
+    e2eModal?: string;
+  }>();
   const router = useRouter();
   const themeName = useThemeStore((s) => s.themeName);
   const { t } = useTranslation();
+  const routeMatch = parseMatchRouteId(id);
+  const initialE2EModal = parseE2EModal(e2eModal) ?? routeMatch.e2eModal;
 
-  const { matchView, isLoading, isError, rawMatch, isActing, newEvents, submitAction, submitEndTurn, concede } =
-    useMatch(id ?? "");
+  const {
+    matchView,
+    isLoading,
+    isError,
+    rawMatch,
+    isActing,
+    newEvents,
+    unitAnimationEvents,
+    submitAction,
+    submitEndTurn,
+    concede,
+  } = useMatch(routeMatch.matchId);
 
   const [targeting, setTargeting] = useState<TargetingMode | null>(null);
   const [pendingSwap, setPendingSwap] = useState<SwapSelection>(null);
@@ -38,15 +116,51 @@ export default function PvpMatchScreen() {
   const [showConcedeConfirm, setShowConcedeConfirm] = useState(false);
 
   useEffect(() => {
-    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE).catch(() => {});
+    ScreenOrientation.lockAsync(
+      ScreenOrientation.OrientationLock.LANDSCAPE,
+    ).catch(() => {});
     return () => {
-      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.DEFAULT).catch(() => {});
+      ScreenOrientation.lockAsync(
+        ScreenOrientation.OrientationLock.DEFAULT,
+      ).catch(() => {});
     };
   }, []);
 
-  const handleSelectUnit = (instanceId: string) => {
-    if (isSwapMode) {
-      setPendingSwap({ activeInstanceId: instanceId });
+  useEffect(() => {
+    if (!initialE2EModal) {
+      return;
+    }
+
+    if (initialE2EModal === "end-turn") {
+      setShowEndTurnConfirm(true);
+    } else if (initialE2EModal === "concede") {
+      setShowConcedeConfirm(true);
+    }
+  }, [initialE2EModal]);
+
+  const submitSwapSelection = (
+    activeInstanceId: string,
+    benchInstanceId: string,
+  ) => {
+    setIsSwapMode(false);
+    setPendingSwap(null);
+    submitEndTurn({ swap: { activeInstanceId, benchInstanceId } });
+  };
+
+  const updatePendingSwap = (selection: NonNullable<SwapSelection>) => {
+    setPendingSwap((current) => ({
+      ...(current ?? {}),
+      ...selection,
+    }));
+  };
+
+  const handleSelectUnit = (activeInstanceId: string) => {
+    if (!isSwapMode) return;
+
+    if (pendingSwap?.benchInstanceId) {
+      submitSwapSelection(activeInstanceId, pendingSwap.benchInstanceId);
+    } else {
+      updatePendingSwap({ activeInstanceId });
     }
   };
 
@@ -95,9 +209,19 @@ export default function PvpMatchScreen() {
     if (actionKind === "basic") {
       action = { kind: "basic", actorInstanceId, targetInstanceId };
     } else if (actionKind === "skill") {
-      action = { kind: "skill", actorInstanceId, abilityKey: abilityKey!, targetInstanceId };
+      action = {
+        kind: "skill",
+        actorInstanceId,
+        abilityKey: abilityKey!,
+        targetInstanceId,
+      };
     } else if (actionKind === "ultimate") {
-      action = { kind: "ultimate", actorInstanceId, abilityKey: abilityKey!, targetInstanceId };
+      action = {
+        kind: "ultimate",
+        actorInstanceId,
+        abilityKey: abilityKey!,
+        targetInstanceId,
+      };
     } else if (actionKind === "copy") {
       action = {
         kind: "copy",
@@ -115,11 +239,13 @@ export default function PvpMatchScreen() {
   };
 
   const handleSelectBench = (benchInstanceId: string) => {
-    if (!isSwapMode || !pendingSwap) return;
-    const swap = { activeInstanceId: pendingSwap.activeInstanceId, benchInstanceId };
-    setIsSwapMode(false);
-    setPendingSwap(null);
-    submitEndTurn({ swap });
+    if (!isSwapMode) return;
+
+    if (pendingSwap?.activeInstanceId) {
+      submitSwapSelection(pendingSwap.activeInstanceId, benchInstanceId);
+    } else {
+      updatePendingSwap({ benchInstanceId });
+    }
   };
 
   const handleSwapToggle = () => {
@@ -150,15 +276,8 @@ export default function PvpMatchScreen() {
     setShowConcedeConfirm(true);
   };
 
-  const handleActionSelected = (
-    mode: Omit<TargetingMode, "validTargetIds"> & { validTargetIds?: string[] },
-  ) => {
-    setTargeting({
-      actorInstanceId: mode.actorInstanceId,
-      actionKind: mode.actionKind,
-      abilityKey: mode.abilityKey,
-      validTargetIds: mode.validTargetIds ?? [],
-    });
+  const handleActionSelected = (mode: TargetingModeInput) => {
+    setTargeting(normalizeTargetingMode(mode));
   };
 
   if (isLoading) {
@@ -207,6 +326,7 @@ export default function PvpMatchScreen() {
       <BattleBoard
         matchView={matchView}
         newEvents={newEvents}
+        unitAnimationEvents={unitAnimationEvents}
         turnExpiresAt={rawMatch?.turnExpiresAt ?? null}
         isActing={isActing}
         pendingSwap={pendingSwap}
@@ -229,12 +349,17 @@ export default function PvpMatchScreen() {
         submitEndTurn={submitEndTurn}
       />
 
-      <ConfirmSheet
+      <E2EMatchModalRenderer
+        initialE2EModal={initialE2EModal}
+        matchView={matchView}
+      />
+
+      <ConfirmDialog
         visible={showEndTurnConfirm}
         title={t("pvp.match.endTurnTitle")}
         body={t("pvp.match.endTurnBody", { energy: matchView.myPlayer.energy })}
         confirmLabel={t("pvp.match.endTurnConfirm")}
-        testID="pvp-end-turn-confirm-sheet"
+        testID="pvp-end-turn-confirm-modal"
         confirmButtonTestID="pvp-end-turn-confirm-button"
         onCancel={() => setShowEndTurnConfirm(false)}
         onConfirm={() => {
@@ -243,12 +368,12 @@ export default function PvpMatchScreen() {
         }}
       />
 
-      <ConfirmSheet
+      <ConfirmDialog
         visible={showConcedeConfirm}
         title={t("pvp.match.concedeTitle")}
         body={t("pvp.match.concedeBody")}
         confirmLabel={t("pvp.match.concedeConfirm")}
-        testID="pvp-concede-confirm-sheet"
+        testID="pvp-concede-confirm-modal"
         confirmButtonTestID="pvp-concede-confirm-button"
         danger
         onCancel={() => setShowConcedeConfirm(false)}
@@ -262,7 +387,66 @@ export default function PvpMatchScreen() {
   );
 }
 
-function ConfirmSheet({
+function E2EMatchModalRenderer({
+  initialE2EModal,
+  matchView,
+}: {
+  initialE2EModal: E2EMatchModal | null;
+  matchView: MyMatchView;
+}) {
+  if (!initialE2EModal) {
+    return null;
+  }
+
+  const unit =
+    initialE2EModal === "opponent-card-info"
+      ? (matchView.opponentPlayer.units.find((candidate) => candidate.hp > 0) ??
+        null)
+      : (matchView.myPlayer.units.find((candidate) => candidate.hp > 0) ??
+        null);
+
+  if (initialE2EModal === "action") {
+    return (
+      <ActionModal
+        visible={true}
+        unit={unit}
+        matchView={matchView}
+        onClose={() => {}}
+        onSelectAction={() => {}}
+        onSubmitAction={() => {}}
+      />
+    );
+  }
+
+  if (
+    initialE2EModal === "my-card-info" ||
+    initialE2EModal === "opponent-card-info"
+  ) {
+    return (
+      <CardInfoModal
+        visible={true}
+        unit={unit}
+        abilityDefinitions={matchView.abilityDefinitions}
+        onClose={() => {}}
+      />
+    );
+  }
+
+  if (initialE2EModal === "log") {
+    return (
+      <CombatLogModal
+        visible={true}
+        log={matchView.log}
+        battleState={matchView.battleState}
+        onClose={() => {}}
+      />
+    );
+  }
+
+  return null;
+}
+
+function ConfirmDialog({
   visible,
   title,
   body,
@@ -286,14 +470,37 @@ function ConfirmSheet({
   const { t } = useTranslation();
   const themeName = useThemeStore((state) => state.themeName);
   const tc = THEME_COLORS[themeName];
+
+  if (!visible) {
+    return null;
+  }
+
   return (
-    <BattleFullScreenSheet
-      visible={visible}
-      title={title}
-      onClose={onCancel}
-      testID={testID}
-      footer={
-        <View className="flex-row gap-3">
+    <View
+      className="items-center justify-center px-5 py-8"
+      style={[StyleSheet.absoluteFill, styles.confirmBackdrop]}
+      testID={`${testID}-backdrop-container`}
+    >
+      <Pressable
+        accessibilityRole="button"
+        className="absolute inset-0"
+        onPress={onCancel}
+        testID={`${testID}-backdrop`}
+      />
+
+      <View
+        className="w-full max-w-[480px] rounded-[28px] border border-primaryTint bg-surface px-5 py-6"
+        style={styles.confirmDialog}
+        testID={testID}
+      >
+        <Text className="text-center font-nunito-extrabold text-3xl text-fg">
+          {title}
+        </Text>
+        <Text className="mt-4 text-center font-nunito text-base leading-6 text-fgMuted">
+          {body}
+        </Text>
+
+        <View className="mt-6 flex-row gap-3">
           <ThemedExpoButton
             onPress={onCancel}
             testID={`${testID}-cancel-button`}
@@ -337,15 +544,8 @@ function ConfirmSheet({
             {confirmLabel}
           </ThemedExpoButton>
         </View>
-      }
-    >
-      <View className="flex-1 items-center justify-center px-6 py-10">
-        <View className="w-full max-w-[520px] rounded-[28px] border border-primaryTint bg-white px-6 py-8">
-          <Text className="text-center font-nunito-extrabold text-3xl text-fg">{title}</Text>
-          <Text className="mt-4 text-center font-nunito text-base leading-6 text-fgMuted">{body}</Text>
-        </View>
       </View>
-    </BattleFullScreenSheet>
+    </View>
   );
 }
 
@@ -364,5 +564,11 @@ const styles = StyleSheet.create({
   loadingText: {
     color: "#9CA3AF",
     fontSize: 14,
+  },
+  confirmBackdrop: {
+    backgroundColor: "rgba(0,0,0,0.72)",
+  },
+  confirmDialog: {
+    borderCurve: "continuous",
   },
 });

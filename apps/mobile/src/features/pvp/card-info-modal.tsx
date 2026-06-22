@@ -1,16 +1,14 @@
 import { Text, View } from "react-native";
-import { Image } from "expo-image";
-import { LinearGradient } from "expo-linear-gradient";
 
 import { BattleFullScreenSheet } from "./battle-full-screen-sheet";
 import { useTranslation } from "../../i18n";
 import {
   localizeAbilityType,
-  localizeRarityName,
   localizeStatusName,
-  localizeTypeName,
 } from "../../lib/combat-i18n";
-import { resolveBattleImageUrl } from "./image-url";
+import { useThemeStore } from "../../stores/theme-store";
+import { getCardModalTypeColor } from "./card-modal-colors";
+import { CardModalIdentity } from "./card-modal-identity";
 import type { PvpUnitState } from "./types";
 
 interface CardInfoModalProps {
@@ -31,6 +29,20 @@ interface CardInfoModalProps {
   onClose: () => void;
 }
 
+type Translate = (
+  key: string,
+  params?: Record<string, string | number>,
+) => string;
+type SummaryEffect = {
+  key: string;
+  label: string;
+  detail: string;
+};
+
+function formatTurnsLeft(count: number, t: Translate) {
+  return count === 1 ? t("pvp.turnLeft") : t("pvp.turnsLeft", { count });
+}
+
 export function CardInfoModal({
   visible,
   unit,
@@ -38,11 +50,10 @@ export function CardInfoModal({
   onClose,
 }: CardInfoModalProps) {
   const { t } = useTranslation();
+  const themeName = useThemeStore((state) => state.themeName);
   if (!unit) {
     return null;
   }
-
-  const imageUrl = resolveBattleImageUrl(unit.imageUrl);
 
   const hpPct = Math.max(0, unit.hp / Math.max(1, unit.maxHp));
   const hpColor =
@@ -65,6 +76,36 @@ export function CardInfoModal({
     unit.ultimate && unit.cooldowns[unit.ultimate]
       ? unit.cooldowns[unit.ultimate]
       : 0;
+  const summaryStatuses = unit.statuses.map((status, index) => ({
+    key: `status-${status.name}-${index}`,
+    label: localizeStatusName(status.name, t),
+    detail:
+      status.duration === -1
+        ? t("pvp.untilUsed")
+        : formatTurnsLeft(status.duration, t),
+    isDebuff: isDebuffStatus(status.name),
+  }));
+  const summaryEffects = [
+    ...(skillDef && skillCooldown > 0
+      ? [
+          {
+            key: `cooldown-${skillDef.key}`,
+            label: skillDef.name,
+            detail: formatTurnsLeft(skillCooldown, t),
+          },
+        ]
+      : []),
+    ...(ultimateDef && ultimateCooldown > 0
+      ? [
+          {
+            key: `cooldown-${ultimateDef.key}`,
+            label: ultimateDef.name,
+            detail: formatTurnsLeft(ultimateCooldown, t),
+          },
+        ]
+      : []),
+  ];
+  const typeColor = getCardModalTypeColor(unit, themeName);
 
   return (
     <BattleFullScreenSheet
@@ -72,117 +113,18 @@ export function CardInfoModal({
       title={t("pvp.cardDetailsTitle")}
       onClose={onClose}
       testID="pvp-card-info-modal"
-      closeButtonTestID="pvp-card-info-close-button"
     >
       <View className="pb-4">
         <View className="mx-4 overflow-hidden rounded-[28px] bg-white shadow-sm">
           <View className="flex-row">
-            <View className="w-1/2 bg-slate-900 px-5 py-5">
-              <View
-                className="overflow-hidden rounded-[24px] bg-slate-800"
-                style={{ width: "100%", aspectRatio: 320 / 192 }}
-              >
-                {imageUrl ? (
-                  <Image
-                    source={{ uri: imageUrl }}
-                    style={{ width: "100%", height: "100%" }}
-                    contentFit="cover"
-                  />
-                ) : (
-                  <View className="h-full w-full items-center justify-center bg-slate-700">
-                    <Text className="font-nunito-extrabold text-7xl text-white">
-                      {unit.name.charAt(0)}
-                    </Text>
-                  </View>
-                )}
-
-                <LinearGradient
-                  colors={["rgba(0,0,0,0.05)", "rgba(0,0,0,0.85)"]}
-                  start={{ x: 0.5, y: 0 }}
-                  end={{ x: 0.5, y: 1 }}
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                  }}
-                />
-
-                <View className="absolute left-4 top-4 rounded-xl bg-black/55 px-3 py-1.5">
-                  <Text className="font-nunito-bold text-xs text-white">
-                    {localizeTypeName(unit.type, t)}
-                  </Text>
-                </View>
+            <View
+              className="w-1/2 overflow-hidden"
+              style={{ backgroundColor: typeColor.dark }}
+            >
+              <CardModalIdentity unit={unit} themeName={themeName} />
+              <View className="px-5 pb-5 pt-4">
+                <StatusEffectsList statuses={unit.statuses} t={t} />
               </View>
-
-              <View className="mt-4 gap-1">
-                <Text className="font-nunito text-base italic text-fgMuted">
-                  {unit.name}
-                </Text>
-                <Text className="font-nunito-extrabold text-3xl text-fg">
-                  {unit.character || unit.name}
-                </Text>
-                <Text className="font-nunito-bold text-sm text-fgMuted">
-                  {localizeRarityName(unit.rarity, t)}
-                </Text>
-              </View>
-
-              {unit.statuses.length > 0 ? (
-                <View className="mt-5 gap-2">
-                  <Text className="font-nunito-bold text-sm text-white/90">
-                    {t("pvp.activeEffects")}
-                  </Text>
-                  {unit.statuses.map((status, index) => {
-                    const isDebuff = [
-                      "Burn",
-                      "Freeze",
-                      "Vulnerable",
-                      "Weakened",
-                      "Silence",
-                      "SummoningSickness",
-                      "Stunned",
-                      "Poison",
-                      "Mark",
-                      "Doom",
-                    ].includes(status.name);
-
-                    return (
-                      <View
-                        key={`${status.name}-${index}`}
-                        className={`rounded-2xl border px-3 py-3 ${isDebuff ? "border-dangerBorder/60 bg-dangerTint" : "border-infoBorder/60 bg-infoTint"}`}
-                      >
-                        <View className="flex-row items-center justify-between gap-3">
-                          <View className="flex-1">
-                            <Text
-                              className={`font-nunito-bold text-sm ${isDebuff ? "text-dangerDark" : "text-infoDark"}`}
-                            >
-                              {localizeStatusName(status.name, t)}
-                              {status.magnitude != null
-                                ? ` (${status.magnitude})`
-                                : ""}
-                            </Text>
-                            <Text className="mt-1 font-nunito text-xs leading-4 text-fgMuted">
-                              {t(`combat.statusDescription.${status.name}`)}
-                            </Text>
-                          </View>
-                          <View
-                            className={`rounded-full px-2 py-1 ${isDebuff ? "bg-dangerBorder" : "bg-infoBorder"}`}
-                          >
-                            <Text
-                              className={`font-nunito-bold text-[10px] ${isDebuff ? "text-dangerDark" : "text-infoDark"}`}
-                            >
-                              {status.duration === -1
-                                ? t("pvp.untilUsed")
-                                : `${status.duration}T`}
-                            </Text>
-                          </View>
-                        </View>
-                      </View>
-                    );
-                  })}
-                </View>
-              ) : null}
             </View>
 
             <View className="w-1/2 gap-4 px-5 py-5">
@@ -205,6 +147,13 @@ export function CardInfoModal({
                   />
                 </View>
               </View>
+
+              <ActiveEffectsSummary
+                statuses={summaryStatuses}
+                effects={summaryEffects}
+                statusTitle={t("pvp.activeStatuses")}
+                effectTitle={t("pvp.activeEffects")}
+              />
 
               <View className="flex-row gap-3">
                 <StatCard
@@ -303,6 +252,170 @@ export function CardInfoModal({
   );
 }
 
+function StatusEffectsList({
+  statuses,
+  t,
+}: {
+  statuses: PvpUnitState["statuses"];
+  t: Translate;
+}) {
+  if (statuses.length === 0) {
+    return null;
+  }
+
+  return (
+    <View className="mt-5 gap-2">
+      <Text className="font-nunito-bold text-sm text-white/90">
+        {t("pvp.activeStatuses")}
+      </Text>
+      {statuses.map((status, index) => {
+        const isDebuff = isDebuffStatus(status.name);
+
+        return (
+          <View
+            key={`${status.name}-${index}`}
+            className={`rounded-2xl border px-3 py-3 ${isDebuff ? "border-dangerBorder/60 bg-dangerTint" : "border-infoBorder/60 bg-infoTint"}`}
+          >
+            <View className="flex-row items-center justify-between gap-3">
+              <View className="flex-1">
+                <Text
+                  className={`font-nunito-bold text-sm ${isDebuff ? "text-dangerDark" : "text-infoDark"}`}
+                >
+                  {localizeStatusName(status.name, t)}
+                  {status.magnitude != null ? ` (${status.magnitude})` : ""}
+                </Text>
+                <Text className="mt-1 font-nunito text-xs leading-4 text-fgMuted">
+                  {t(`combat.statusDescription.${status.name}`)}
+                </Text>
+              </View>
+              <View
+                className={`rounded-full px-2 py-1 ${isDebuff ? "bg-dangerBorder" : "bg-infoBorder"}`}
+              >
+                <Text
+                  className={`font-nunito-bold text-[10px] ${isDebuff ? "text-dangerDark" : "text-infoDark"}`}
+                >
+                  {status.duration === -1
+                    ? t("pvp.untilUsed")
+                    : formatTurnsLeft(status.duration, t)}
+                </Text>
+              </View>
+            </View>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
+function ActiveEffectsSummary({
+  statuses,
+  effects,
+  statusTitle,
+  effectTitle,
+}: {
+  statuses: Array<SummaryEffect & { isDebuff: boolean }>;
+  effects: SummaryEffect[];
+  statusTitle: string;
+  effectTitle: string;
+}) {
+  if (statuses.length === 0 && effects.length === 0) {
+    return null;
+  }
+
+  return (
+    <View className="gap-3">
+      {statuses.length > 0 ? (
+        <View className="gap-2 rounded-2xl border border-primaryBorder bg-surfaceMuted p-3">
+          <Text className="font-nunito-bold text-sm text-primaryDark">
+            {statusTitle}
+          </Text>
+          <View className="flex-row flex-wrap gap-2">
+            {statuses.map((status) => (
+              <StatusChip
+                key={status.key}
+                label={status.label}
+                detail={status.detail}
+                isDebuff={status.isDebuff}
+              />
+            ))}
+          </View>
+        </View>
+      ) : null}
+
+      {effects.length > 0 ? (
+        <View className="gap-2 rounded-2xl border border-successBorder bg-successTint p-3">
+          <Text className="font-nunito-bold text-sm text-successDark">
+            {effectTitle}
+          </Text>
+          <View className="flex-row flex-wrap gap-2">
+            {effects.map((effect) => (
+              <EffectChip
+                key={effect.key}
+                label={effect.label}
+                detail={effect.detail}
+              />
+            ))}
+          </View>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+function StatusChip({
+  label,
+  detail,
+  isDebuff,
+}: {
+  label: string;
+  detail: string;
+  isDebuff: boolean;
+}) {
+  const chipClass = isDebuff
+    ? "border-dangerBorder bg-dangerTint"
+    : "border-infoBorder bg-infoTint";
+  const textClass = isDebuff ? "text-dangerDark" : "text-infoDark";
+
+  return (
+    <View className={`rounded-2xl border px-3 py-2 ${chipClass}`}>
+      <Text
+        className={`font-nunito-extrabold text-[11px] uppercase ${textClass}`}
+      >
+        {label}
+      </Text>
+      <Text className={`font-nunito-bold text-xs ${textClass}`}>{detail}</Text>
+    </View>
+  );
+}
+
+function EffectChip({ label, detail }: { label: string; detail: string }) {
+  return (
+    <View className="rounded-2xl border border-successBorder bg-successTint px-3 py-2">
+      <Text className="font-nunito-extrabold text-[11px] uppercase text-successDark">
+        {label}
+      </Text>
+      <Text className="font-nunito-bold text-xs text-successDark">
+        {detail}
+      </Text>
+    </View>
+  );
+}
+
+function isDebuffStatus(name: string) {
+  return [
+    "Burn",
+    "Freeze",
+    "Vulnerable",
+    "Weakened",
+    "Silence",
+    "SummoningSickness",
+    "Stunned",
+    "Poison",
+    "Mark",
+    "Doom",
+  ].includes(name);
+}
+
 function StatCard({
   label,
   value,
@@ -384,6 +497,8 @@ function AbilityCard({
             <View className="rounded-full bg-white/55 px-2 py-1">
               <Text className="font-nunito-semibold text-xs text-fgMuted">
                 {t("pvp.action.cooldown", { count: cooldownRemaining })}
+                {" · "}
+                {formatTurnsLeft(cooldownRemaining, t)}
               </Text>
             </View>
           ) : null}

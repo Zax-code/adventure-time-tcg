@@ -106,6 +106,99 @@ defmodule AdventureTimeApi.Pvp.PersistenceTest do
     assert winner_history.stats.draws == 0
   end
 
+  test "first-turn skill energy spend survives reconstruction before the next action" do
+    inviter = create_user_with_password("energy-inviter@example.com", "password123", "Inviter")
+    invitee = create_user_with_password("energy-invitee@example.com", "password123", "Invitee")
+    card_ids = create_shared_loadout_cards([inviter, invitee])
+    skill_key = assign_reusable_skill!(List.first(card_ids))
+
+    assert {:ok, %{success: true}} = Pvp.create_invite(inviter.id, invitee.email, card_ids)
+
+    match =
+      Repo.one!(
+        from(m in Match, where: m.inviter_id == ^inviter.id and m.invitee_id == ^invitee.id)
+      )
+
+    assert {:ok, %{battleState: accepted_state}} =
+             Pvp.accept_match(invitee.id, match.id, card_ids)
+
+    acting_user_id = accepted_state["currentPlayerId"]
+    acting_player = Enum.find(accepted_state["players"], &(&1["userId"] == acting_user_id))
+    actor = List.first(acting_player["units"])
+
+    assert actor["skill"] == skill_key
+    assert acting_player["energy"] == 1
+
+    action = %{
+      "kind" => "skill",
+      "actorInstanceId" => actor["instanceId"]
+    }
+
+    assert {:ok, %{battleState: action_state}} =
+             Pvp.perform_action(acting_user_id, match.id, action)
+
+    assert action_state["players"]
+           |> Enum.find(&(&1["userId"] == acting_user_id))
+           |> Map.fetch!("energy") == 0
+
+    assert {:ok, reconstructed_state} = Pvp.reconstruct_state(match.id)
+
+    assert reconstructed_state["players"]
+           |> Enum.find(&(&1["userId"] == acting_user_id))
+           |> Map.fetch!("energy") == 0
+
+    assert Pvp.perform_action(acting_user_id, match.id, action) == {:error, :not_enough_energy}
+  end
+
+  test "first-turn basic attack energy spend survives reconstruction before the next action" do
+    inviter =
+      create_user_with_password("basic-energy-inviter@example.com", "password123", "Inviter")
+
+    invitee =
+      create_user_with_password("basic-energy-invitee@example.com", "password123", "Invitee")
+
+    card_ids = create_shared_loadout_cards([inviter, invitee])
+
+    assert {:ok, %{success: true}} = Pvp.create_invite(inviter.id, invitee.email, card_ids)
+
+    match =
+      Repo.one!(
+        from(m in Match, where: m.inviter_id == ^inviter.id and m.invitee_id == ^invitee.id)
+      )
+
+    assert {:ok, %{battleState: accepted_state}} =
+             Pvp.accept_match(invitee.id, match.id, card_ids)
+
+    acting_user_id = accepted_state["currentPlayerId"]
+    acting_player = Enum.find(accepted_state["players"], &(&1["userId"] == acting_user_id))
+    target_player = Enum.find(accepted_state["players"], &(&1["userId"] != acting_user_id))
+    actor = List.first(acting_player["units"])
+    target = List.first(target_player["units"])
+
+    assert acting_player["energy"] == 1
+
+    action = %{
+      "kind" => "basic",
+      "actorInstanceId" => actor["instanceId"],
+      "targetInstanceId" => target["instanceId"]
+    }
+
+    assert {:ok, %{battleState: action_state}} =
+             Pvp.perform_action(acting_user_id, match.id, action)
+
+    assert action_state["players"]
+           |> Enum.find(&(&1["userId"] == acting_user_id))
+           |> Map.fetch!("energy") == 0
+
+    assert {:ok, reconstructed_state} = Pvp.reconstruct_state(match.id)
+
+    assert reconstructed_state["players"]
+           |> Enum.find(&(&1["userId"] == acting_user_id))
+           |> Map.fetch!("energy") == 0
+
+    assert Pvp.perform_action(acting_user_id, match.id, action) == {:error, :not_enough_energy}
+  end
+
   test "in-progress match times out after 24 hours and current player loses" do
     inviter = create_user_with_password("timeout-inviter@example.com", "password123", "Inviter")
     invitee = create_user_with_password("timeout-invitee@example.com", "password123", "Invitee")
@@ -301,6 +394,31 @@ defmodule AdventureTimeApi.Pvp.PersistenceTest do
       epic_id: cards |> Enum.at(1) |> Map.fetch!(:id),
       passive_key: passive.key
     }
+  end
+
+  defp assign_reusable_skill!(card_id) do
+    skill =
+      Repo.insert!(
+        AbilityDef.changeset(%AbilityDef{}, %{
+          key: "test.energy_skill.#{System.unique_integer([:positive])}",
+          name: "Energy Skill",
+          description: "Costs all first-turn energy.",
+          type: "SKILL",
+          cost: 1,
+          cooldown: nil,
+          once_per_match: false,
+          payload: %{"healPctOfMaxHp" => 0.1}
+        })
+      )
+
+    Repo.insert!(
+      CardAbility.changeset(%CardAbility{}, %{
+        card_id: card_id,
+        skill_id: skill.id
+      })
+    )
+
+    skill.key
   end
 
   defp insert_rarity!(name) do

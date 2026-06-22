@@ -316,6 +316,7 @@ function toPvpPlayerState(player: BattleState["players"][number]): PvpPlayerStat
     userId: player.userId,
     name: player.name,
     energy: player.energy,
+    hasUsedFreeBasic: player.hasUsedFreeBasic,
     units: player.units.map(toPvpUnitState),
     bench: player.bench.map(toPvpUnitState),
   };

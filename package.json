@@ -14,7 +14,7 @@
     "dev:mobile": "npm run dev -w @adventure-time/mobile",
     "dev:mobile:android": "npm run android:local -w @adventure-time/mobile",
     "dev:mobile:ios": "npm run ios:local -w @adventure-time/mobile",
-    "dev:mobile:tunnel": "npm run dev:tunnel -w @adventure-time/mobile",
+    "dev:mobile:both": "npm run dev:both -w @adventure-time/mobile",
     "build:mobile:e2e:ios": "node ./apps/mobile/scripts/build-ios-e2e-local.mjs",
     "build:mobile:e2e:android": "node ./apps/mobile/scripts/build-android-e2e-local.mjs",
     "install:mobile:e2e:ios": "node ./apps/mobile/scripts/install-ios-e2e-local.mjs",

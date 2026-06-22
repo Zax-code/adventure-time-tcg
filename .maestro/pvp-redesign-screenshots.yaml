@@ -1,0 +1,28 @@
+appId: love.leaetzak.adventuretime
+name: PvP board and replay redesign screenshots
+tags:
+  - pvp
+  - screenshots
+  - board
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- openLink:
+    link: adventure-time:///e2e-auth?redirect=%2Fpvp-match%3Fid%3D${TEST_MATCH_ID}&accessToken=${TEST_ACCESS_TOKEN}&refreshToken=${TEST_REFRESH_TOKEN}&user=${TEST_USER}
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- extendedWaitUntil:
+    visible:
+      id: pvp-battle-board
+    timeout: 30000
+- waitForAnimationToEnd
+- takeScreenshot: tmp-pvp-redesign-shots/01-board
+- openLink:
+    link: adventure-time:///e2e-auth?redirect=%2Fpvp-replay%3Fid%3D${TEST_REPLAY_ID}&accessToken=${TEST_ACCESS_TOKEN}&refreshToken=${TEST_REFRESH_TOKEN}&user=${TEST_USER}
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- extendedWaitUntil:
+    visible:
+      id: pvp-battle-board
+    timeout: 30000
+- waitForAnimationToEnd
+- takeScreenshot: tmp-pvp-redesign-shots/03-replay

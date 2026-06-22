@@ -55,6 +55,8 @@ type SearchableUser = {
   email: string;
 };
 
+const PVP_LOBBY_REFETCH_INTERVAL_MS = 5_000;
+
 function SectionHeading({
   title,
   toneColor,
@@ -195,14 +197,23 @@ export default function PvpScreen() {
   const invitesQuery = useQuery({
     queryKey: ["pvp-invites"],
     queryFn: () => apiClient.pvpInvites(),
+    refetchOnMount: "always",
+    refetchInterval: (query) =>
+      query.state.status === "error" ? false : PVP_LOBBY_REFETCH_INTERVAL_MS,
   });
   const matchesQuery = useQuery({
     queryKey: ["pvp-matches"],
     queryFn: () => apiClient.pvpMatches(),
+    refetchOnMount: "always",
+    refetchInterval: (query) =>
+      query.state.status === "error" ? false : PVP_LOBBY_REFETCH_INTERVAL_MS,
   });
   const historyQuery = useQuery({
     queryKey: ["pvp-history"],
     queryFn: () => apiClient.pvpHistory(),
+    refetchOnMount: "always",
+    refetchInterval: (query) =>
+      query.state.status === "error" ? false : PVP_LOBBY_REFETCH_INTERVAL_MS,
   });
   const loadoutsQuery = useQuery({
     queryKey: ["pvp-loadouts"],
@@ -1159,7 +1170,11 @@ export default function PvpScreen() {
               icon={<ZapIcon size={20} color={tc.successDark} />}
             />
             {activeMatches.map((match, index) => {
-              const timeoutLabel = formatTurnTimeout(match.turnExpiresAt, t, now);
+              const timeoutLabel = formatTurnTimeout(
+                match.turnExpiresAt,
+                t,
+                now,
+              );
               const opponentId =
                 match.inviterId === currentUserId
                   ? match.inviteeId
@@ -1508,7 +1523,7 @@ export default function PvpScreen() {
         visible={showInviteModal}
         title={t("pvp.sendChallenge")}
         onClose={closeInviteSheet}
-        showCloseButton={false}
+        testID="pvp-invite-sheet"
         footer={
           <View className="flex-row gap-3">
             <ThemedExpoButton

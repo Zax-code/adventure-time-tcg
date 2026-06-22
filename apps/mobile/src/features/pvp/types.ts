@@ -38,13 +38,35 @@ export interface TargetingMode {
   validTargetIds: string[];
 }
 
-export type SwapSelection = { activeInstanceId: string } | null;
+export type SwapSelection = {
+  activeInstanceId?: string;
+  benchInstanceId?: string;
+} | null;
 
 export interface FloatingEvent {
+  key: string;
   seq: number;
   targetInstanceId: string;
   type: "damage" | "crit" | "shieldCrit" | "heal" | "miss";
   amount: number;
+  delayMs?: number;
+}
+
+export type UnitAnimationEventType =
+  | "damage"
+  | "heal"
+  | "death"
+  | "buff"
+  | "debuff"
+  | "swap-in"
+  | "swap-out";
+
+export interface UnitAnimationEvent {
+  key: string;
+  seq: number;
+  targetInstanceId: string;
+  type: UnitAnimationEventType;
+  delayMs?: number;
 }
 
 export interface PreparedBattleAction {

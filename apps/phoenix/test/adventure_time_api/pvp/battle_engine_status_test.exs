@@ -490,6 +490,56 @@ defmodule AdventureTimeApi.Pvp.BattleEngineStatusTest do
       assert guard["duration"] == 1
     end
 
+    test "one-turn Silence survives the afflicted player's turn start and expires after their turn" do
+      state =
+        make_state(
+          %{"skill" => "test.silence_skill"},
+          %{"skill" => "test.basic_skill"}
+        )
+        |> put_in(["abilityDefinitions", "test.silence_skill"], %{
+          "key" => "test.silence_skill",
+          "type" => "SKILL",
+          "cost" => 1,
+          "cooldown" => nil,
+          "oncePerMatch" => false,
+          "payload" => %{
+            "applyStatuses" => [%{"name" => "Silence", "duration" => 1}]
+          }
+        })
+        |> put_in(["abilityDefinitions", "test.basic_skill"], %{
+          "key" => "test.basic_skill",
+          "type" => "SKILL",
+          "cost" => 1,
+          "cooldown" => nil,
+          "oncePerMatch" => false,
+          "payload" => %{"damageMul" => 1.0}
+        })
+
+      {:ok, silenced_state, _events} =
+        BattleEngine.simulate_action(state, "player1", %{
+          "kind" => "skill",
+          "actorInstanceId" => "p1u1",
+          "targetInstanceId" => "p2u1"
+        })
+
+      {player2_turn_state, _events} = BattleEngine.simulate_end_turn(silenced_state)
+
+      p2_unit = get_unit(player2_turn_state, "p2u1")
+      assert has_status(p2_unit, "Silence")
+
+      assert {:error, :silenced} =
+               BattleEngine.simulate_action(player2_turn_state, "player2", %{
+                 "kind" => "skill",
+                 "actorInstanceId" => "p2u1",
+                 "targetInstanceId" => "p1u1"
+               })
+
+      {after_player2_turn_state, _events} = BattleEngine.simulate_end_turn(player2_turn_state)
+
+      p2_unit_after_turn = get_unit(after_player2_turn_state, "p2u1")
+      refute has_status(p2_unit_after_turn, "Silence")
+    end
+
     test "DoT KOs unit and emits ko event" do
       state =
         make_state(

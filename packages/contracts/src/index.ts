@@ -234,11 +234,16 @@ export const cardAbilityDefinitionSchema = z.object({
   oncePerMatch: z.boolean(),
 });
 
+const optionalNumberFromNullableSchema = z.preprocess(
+  (value) => (value === null ? undefined : value),
+  z.number().optional(),
+);
+
 const pvpPayloadStatusSpecSchema = z
   .object({
     name: pvpStatusNameSchema,
     duration: z.number().optional(),
-    magnitude: z.number().optional(),
+    magnitude: optionalNumberFromNullableSchema,
     target: abilityTargetSchema.optional(),
     targetSelector: abilityTargetSelectorSchema.optional(),
   })
@@ -248,7 +253,7 @@ const pvpPayloadRandomStatusSpecSchema = z
   .object({
     name: pvpStatusNameSchema,
     duration: z.number().optional(),
-    magnitude: z.number().optional(),
+    magnitude: optionalNumberFromNullableSchema,
   })
   .passthrough();
 
@@ -256,7 +261,7 @@ const pvpPayloadTeamDebuffSpecSchema = z
   .object({
     name: pvpStatusNameSchema,
     duration: z.number(),
-    magnitude: z.number().optional(),
+    magnitude: optionalNumberFromNullableSchema,
   })
   .passthrough();
 
@@ -945,6 +950,7 @@ export const pvpPlayerStateSchema = z.object({
   userId: z.string(),
   name: z.string(),
   energy: z.number().int(),
+  hasUsedFreeBasic: z.boolean(),
   units: z.array(pvpUnitStateSchema),
   bench: z.array(pvpUnitStateSchema),
 });

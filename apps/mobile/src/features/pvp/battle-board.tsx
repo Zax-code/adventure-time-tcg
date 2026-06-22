@@ -1,13 +1,20 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { Pressable, Text, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import type { PvpAction, PvpEndTurnInput } from "@adventure-time/api-client";
 
-import { ChevronRightIcon, ClockIcon, XCircleIcon } from "../../components/icons";
-import { ThemedExpoButton } from "../../components/expo-ui/themed-button";
+import {
+  ChevronRightIcon,
+  ClockIcon,
+  XCircleIcon,
+  ZapIcon,
+} from "../../components/icons";
 import { useTranslation } from "../../i18n";
-import { ActionButtons } from "./action-buttons";
+import { useThemeStore } from "../../stores/theme-store";
+import { THEME_COLORS } from "../../theme/themes";
+import { ActionButtons, ActionEnergyPill } from "./action-buttons";
 import { ActionModal } from "./action-modal";
 import { BenchCard } from "./bench-card";
 import { CardInfoModal } from "./card-info-modal";
@@ -17,11 +24,18 @@ import { TargetSelectionHint } from "./target-selection-hint";
 import { TurnBanner } from "./turn-banner";
 import { formatTurnTimeout, useMinuteNow } from "./turn-timeout";
 import { UnitCard } from "./unit-card";
-import type { FloatingEvent, MyMatchView, SwapSelection, TargetingMode } from "./types";
+import type {
+  FloatingEvent,
+  MyMatchView,
+  SwapSelection,
+  TargetingMode,
+  UnitAnimationEvent,
+} from "./types";
 
 interface BattleBoardProps {
   matchView: MyMatchView;
   newEvents: FloatingEvent[];
+  unitAnimationEvents: UnitAnimationEvent[];
   isActing: boolean;
   pendingSwap: SwapSelection;
   isSwapMode: boolean;
@@ -35,10 +49,13 @@ interface BattleBoardProps {
   onConcede: () => void;
   onBack: () => void;
   targeting: TargetingMode | null;
-  onEnterTargeting: (mode: Omit<TargetingMode, "validTargetIds"> & { validTargetIds?: string[] }) => void;
+  onEnterTargeting: (
+    mode: Omit<TargetingMode, "validTargetIds"> & { validTargetIds?: string[] },
+  ) => void;
   submitAction: (action: PvpAction) => void;
   submitEndTurn: (input?: PvpEndTurnInput) => void;
   readOnly?: boolean;
+  middleOverlay?: ReactNode;
   bottomOverlay?: ReactNode;
   turnExpiresAt?: string | null;
 }
@@ -48,40 +65,27 @@ function sortByPosition<T extends { position?: number | null }>(items: T[]) {
 }
 
 const overlayButtonStyle = {
-  width: 52,
-  height: 52,
-  minWidth: 52,
-  minHeight: 52,
-  borderRadius: 12,
   alignItems: "center" as const,
   justifyContent: "center" as const,
-  backgroundColor: "rgba(255,255,255,0.85)",
-  shadowColor: "#000",
-  shadowOffset: { width: 0, height: 1 },
-  shadowOpacity: 0.12,
-  shadowRadius: 2,
-  elevation: 2,
+  backgroundColor: "rgba(255,255,255,0.68)",
+  boxShadow: "0 6px 12px rgba(15,23,42,0.12)",
 };
 
-const overlayButtonAppearance = {
-  backgroundColor: "rgba(255,255,255,0.85)",
-  borderColor: "rgba(255,255,255,0.85)",
-  borderRadius: 12,
-  foregroundColor: "#334155",
-  gradientColors: null,
-  minHeight: 52,
-  paddingHorizontal: 0,
-  paddingVertical: 0,
-  textStyle: {
-    fontFamily: "Nunito_700Bold",
-    fontSize: 14,
-  },
-} as const;
+const activeCardSlot = {
+  width: 164,
+  height: 108,
+};
+
+const benchCardSlot = {
+  width: 68,
+  height: 50,
+};
 
 interface OverlayIconButtonProps {
   onPress: () => void;
   testID: string;
   accessibilityLabel: string;
+  size?: number;
   children: ReactNode;
 }
 
@@ -89,6 +93,7 @@ function OverlayIconButton({
   onPress,
   testID,
   accessibilityLabel,
+  size = 42,
   children,
 }: OverlayIconButtonProps) {
   return (
@@ -100,9 +105,12 @@ function OverlayIconButton({
       style={({ pressed }) => [
         overlayButtonStyle,
         {
-          borderColor: overlayButtonAppearance.borderColor,
-          borderWidth: 1,
-          opacity: pressed ? 0.85 : 1,
+          width: size,
+          height: size,
+          minWidth: size,
+          minHeight: size,
+          borderRadius: 999,
+          opacity: pressed ? 0.78 : 1,
         },
       ]}
       testID={testID}
@@ -112,9 +120,47 @@ function OverlayIconButton({
   );
 }
 
+interface PlayerPlateProps {
+  name: string;
+  energy: number;
+  align: "left" | "right";
+  tone: "opponent" | "player";
+}
+
+function PlayerPlate({ name, energy, align, tone }: PlayerPlateProps) {
+  const isPlayer = tone === "player";
+  return (
+    <View className="flex-row items-center gap-4">
+      {align === "left" ? <EnergyPill energy={energy} /> : null}
+      <Text
+        className={`font-nunito-extrabold text-[16px] ${
+          isPlayer ? "text-infoText" : "text-dangerText"
+        }`}
+        numberOfLines={1}
+        style={{ maxWidth: 260 }}
+      >
+        {name}
+      </Text>
+      {align === "right" ? <EnergyPill energy={energy} /> : null}
+    </View>
+  );
+}
+
+function EnergyPill({ energy }: { energy: number }) {
+  return (
+    <View className="h-9 min-w-[56px] flex-row items-center justify-center gap-1.5 rounded-full bg-secondaryTint px-3">
+      <ZapIcon size={16} color="#B45309" />
+      <Text className="font-nunito-extrabold text-[16px] text-secondaryText">
+        {energy}
+      </Text>
+    </View>
+  );
+}
+
 export function BattleBoard({
   matchView,
   newEvents,
+  unitAnimationEvents,
   isActing,
   pendingSwap,
   isSwapMode,
@@ -132,15 +178,30 @@ export function BattleBoard({
   submitAction,
   submitEndTurn,
   readOnly = false,
+  middleOverlay,
   bottomOverlay,
   turnExpiresAt,
 }: BattleBoardProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const { myPlayer, opponentPlayer, isMyTurn, turn, phase, winnerId, myUserId, abilityDefinitions } = matchView;
+  const themeName = useThemeStore((state) => state.themeName);
+  const tc = THEME_COLORS[themeName];
+  const {
+    myPlayer,
+    opponentPlayer,
+    isMyTurn,
+    turn,
+    phase,
+    winnerId,
+    myUserId,
+    abilityDefinitions,
+  } = matchView;
   const now = useMinuteNow(Boolean(turnExpiresAt) && phase === "active");
   const timeoutLabel = formatTurnTimeout(turnExpiresAt, t, now);
-  const horizontalPadding = Math.max(48, Math.max(insets.left, insets.right) + 12);
+  const horizontalPadding = Math.max(
+    16,
+    Math.max(insets.left, insets.right) + 10,
+  );
   const verticalPadding = Math.max(8, Math.max(insets.top, insets.bottom) + 4);
 
   const [showActionModal, setShowActionModal] = useState(false);
@@ -172,40 +233,78 @@ export function BattleBoard({
     return next;
   }, [newEvents]);
 
-  const sortedMyUnits = useMemo(() => sortByPosition(myPlayer.units), [myPlayer.units]);
-  const sortedOpponentUnits = useMemo(() => sortByPosition(opponentPlayer.units), [opponentPlayer.units]);
-  const selectedActor = selectedActorId ? sortedMyUnits.find((unit) => unit.instanceId === selectedActorId) ?? null : null;
-  const actorType = selectedActor?.type;
+  const animationsByUnit = useMemo(() => {
+    const next: Record<string, UnitAnimationEvent[]> = {};
+    for (const event of unitAnimationEvents) {
+      if (!next[event.targetInstanceId]) {
+        next[event.targetInstanceId] = [];
+      }
+      next[event.targetInstanceId].push(event);
+    }
+    return next;
+  }, [unitAnimationEvents]);
+
+  const sortedMyUnits = useMemo(
+    () => sortByPosition(myPlayer.units),
+    [myPlayer.units],
+  );
+  const sortedOpponentUnits = useMemo(
+    () => sortByPosition(opponentPlayer.units),
+    [opponentPlayer.units],
+  );
+  const selectedActor = selectedActorId
+    ? (sortedMyUnits.find((unit) => unit.instanceId === selectedActorId) ??
+      null)
+    : null;
+  const targetingActor = targeting
+    ? (sortedMyUnits.find(
+        (unit) => unit.instanceId === targeting.actorInstanceId,
+      ) ?? null)
+    : null;
+  const actorType = selectedActor?.type ?? targetingActor?.type;
   const hasBench = myPlayer.bench.some((unit) => unit.hp > 0);
+  const hasReadyActor = sortedMyUnits.some(
+    (unit) =>
+      unit.hp > 0 &&
+      !unit.statuses.some((status) => status.name === "SummoningSickness"),
+  );
 
   const longPressUnit = longPressUnitId
-    ? [...myPlayer.units, ...myPlayer.bench, ...opponentPlayer.units, ...opponentPlayer.bench].find(
-        (unit) => unit.instanceId === longPressUnitId,
-      ) ?? null
+    ? ([
+        ...myPlayer.units,
+        ...myPlayer.bench,
+        ...opponentPlayer.units,
+        ...opponentPlayer.bench,
+      ].find((unit) => unit.instanceId === longPressUnitId) ?? null)
     : null;
 
   const hint = readOnly
     ? t("pvp.board.hint.waiting")
     : isMyTurn
-    ? targeting
-      ? targeting.stage === "copy-source"
-        ? t("pvp.board.hint.copySource")
-        : targeting.targetLabel === "ally"
-          ? t("pvp.board.hint.ally")
-          : targeting.targetLabel === "any"
-            ? t("pvp.board.hint.any")
-            : targeting.targetLabel === "copy source"
-              ? t("pvp.board.hint.sourceUnit")
-              : t("pvp.board.hint.highlighted")
-      : isSwapMode
-        ? t("pvp.board.hint.swap")
-        : t("pvp.board.hint.actions")
-    : t("pvp.board.hint.waiting");
+      ? targeting
+        ? targeting.stage === "copy-source"
+          ? t("pvp.board.hint.copySource")
+          : targeting.targetLabel === "ally"
+            ? t("pvp.board.hint.ally")
+            : targeting.targetLabel === "any"
+              ? t("pvp.board.hint.any")
+              : targeting.targetLabel === "copy source"
+                ? t("pvp.board.hint.sourceUnit")
+                : t("pvp.board.hint.highlighted")
+        : isSwapMode
+          ? t("pvp.board.hint.swap")
+          : hasReadyActor
+            ? t("pvp.board.hint.actions")
+            : t("pvp.board.hint.noReady")
+      : t("pvp.board.hint.waiting");
 
-  const isOverlayOpen = showActionModal || showLogModal || longPressUnit !== null;
+  const isOverlayOpen =
+    showActionModal || showLogModal || longPressUnit !== null;
+  const opponentBenchOffset = -22;
+  const myBenchOffset = 20;
 
   const handleUnitPress = (instanceId: string) => {
-    if (readOnly) {
+    if (readOnly || isActing) {
       return;
     }
 
@@ -225,8 +324,14 @@ export function BattleBoard({
       return;
     }
 
-    const unit = myPlayer.units.find((entry) => entry.instanceId === instanceId);
-    if (!unit || unit.hp <= 0 || unit.statuses.some((status) => status.name === "SummoningSickness")) {
+    const unit = myPlayer.units.find(
+      (entry) => entry.instanceId === instanceId,
+    );
+    if (
+      !unit ||
+      unit.hp <= 0 ||
+      unit.statuses.some((status) => status.name === "SummoningSickness")
+    ) {
       return;
     }
 
@@ -235,7 +340,7 @@ export function BattleBoard({
   };
 
   const handleOppUnitPress = (instanceId: string) => {
-    if (readOnly) {
+    if (readOnly || isActing) {
       return;
     }
 
@@ -245,7 +350,7 @@ export function BattleBoard({
   };
 
   const handleBenchPress = (instanceId: string) => {
-    if (readOnly) {
+    if (readOnly || isActing) {
       return;
     }
 
@@ -269,7 +374,7 @@ export function BattleBoard({
 
   return (
     <View
-      className="flex-1 bg-bg"
+      className="flex-1 overflow-hidden bg-bg"
       style={{
         paddingLeft: horizontalPadding,
         paddingRight: horizontalPadding,
@@ -278,185 +383,258 @@ export function BattleBoard({
       }}
       testID="pvp-battle-board"
     >
-      <View className="relative z-10 flex-1 justify-center" style={{ gap: 2 }}>
-        <View
-          className="relative min-h-0 flex-1 rounded-xl bg-danger px-1.5 py-1.5"
-          style={{
-            shadowColor: "#f9a8d4",
-            shadowOffset: { width: 0, height: -4 },
-            shadowOpacity: 1,
-            shadowRadius: 10,
-            elevation: 8,
-          }}
-        >
-          <View className="absolute left-2 top-2 z-20">
-            <OverlayIconButton
-              accessibilityLabel={t("pvp.match.goBack")}
-              onPress={onBack}
-              testID="pvp-battle-back-button"
-            >
-              <View style={{ transform: [{ rotate: "180deg" }] }}>
-                <ChevronRightIcon size={16} color="#7f1d1d" />
-              </View>
-            </OverlayIconButton>
-          </View>
+      <LinearGradient
+        pointerEvents="none"
+        colors={[tc.primaryTint, tc.bg, tc.infoTint]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{
+          position: "absolute",
+          inset: 0,
+          opacity: themeName === "nightosphere" ? 0.34 : 0.86,
+        }}
+      />
 
-          <View className="absolute right-2 top-2 z-20 flex-row" style={{ gap: 6 }}>
-            <OverlayIconButton
-              accessibilityLabel={t("pvp.combatLog.title")}
-              onPress={() => setShowLogModal(true)}
-              testID="pvp-battle-log-button"
-            >
-              <ClockIcon size={15} color="#334155" />
-            </OverlayIconButton>
-            {!readOnly ? (
-              <OverlayIconButton
-                accessibilityLabel={t("pvp.match.concedeConfirm")}
-                onPress={onConcede}
-                testID="pvp-battle-concede-button"
-              >
-                <XCircleIcon size={15} color="#e11d48" />
-              </OverlayIconButton>
-            ) : null}
-          </View>
-
-          <View className="absolute bottom-0 left-1 right-1 z-20 flex-row items-center justify-between">
-            <View className="rounded-full bg-rose-900/80 px-3 py-1">
-              <Text className="font-nunito-bold text-xs text-white">{opponentPlayer.name}</Text>
+      <View className="relative z-10 flex-1">
+        <View className="absolute left-3 top-3 z-30">
+          <OverlayIconButton
+            accessibilityLabel={t("pvp.match.goBack")}
+            onPress={onBack}
+            testID="pvp-battle-back-button"
+          >
+            <View style={{ transform: [{ rotate: "180deg" }] }}>
+              <ChevronRightIcon size={18} color={tc.primaryText} />
             </View>
-            <View className="flex-row items-center rounded-full bg-secondaryBorder/90 px-4 py-1">
-              <Text className="font-nunito-bold text-xs text-secondaryText">⚡ {opponentPlayer.energy}</Text>
-            </View>
-          </View>
-
-          <View className="h-full justify-between">
-            <View className="h-[46px] flex-row items-center px-1" style={{ gap: 10 }}>
-              <Text style={{ color: "rgba(127,29,29,0.8)", fontSize: 11, fontFamily: "Nunito_700Bold", letterSpacing: 1.4 }}>
-                {t("pvp.board.bench")}
-              </Text>
-              {opponentPlayer.bench.map((unit, index) => (
-                <View key={unit.instanceId} style={{ height: "100%", width: 64 }}>
-                  <BenchCard
-                    unit={unit}
-                    testID={`pvp-opponent-bench-${index}`}
-                    onPress={() => handleOppUnitPress(unit.instanceId)}
-                    onLongPress={() => handleLongPress(unit.instanceId)}
-                  />
-                </View>
-              ))}
-            </View>
-
-            <View className="flex-row items-center justify-between" style={{ gap: 6, height: 76 }}>
-              {sortedOpponentUnits.map((unit, index) => (
-                <View key={unit.instanceId} style={{ width: "29.75%" }}>
-                  <UnitCard
-                    unit={unit}
-                    testID={`pvp-opponent-unit-${index}`}
-                    isValidTarget={targeting?.validTargetIds.includes(unit.instanceId) ?? false}
-                    attackerType={actorType}
-                    onPress={() => handleOppUnitPress(unit.instanceId)}
-                    onLongPress={() => handleLongPress(unit.instanceId)}
-                    floatingEvents={floatingByUnit[unit.instanceId] ?? []}
-                  />
-                </View>
-              ))}
-            </View>
-          </View>
+          </OverlayIconButton>
         </View>
 
-        <View
-          className="rounded-full bg-accent px-2"
-          style={{
-            height: timeoutLabel ? 42 : 32,
-            justifyContent: "center",
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.15,
-            shadowRadius: 4,
-            elevation: 4,
-          }}
-        >
-          <View className="w-full items-center justify-center px-4" style={{ gap: 1 }}>
-            <Text className="font-nunito-semibold text-[11px] text-white">
-              {t("pvp.board.turnLabel", { turn, hint })}
-            </Text>
-            {timeoutLabel ? (
-              <Text className="font-nunito-bold text-[9px] text-white/85">
-                {timeoutLabel.fullLabel}
-              </Text>
-            ) : null}
-          </View>
-        </View>
-
-        <View
-          className="relative min-h-0 flex-1 rounded-xl bg-info px-1.5 py-1.5"
-          style={{
-            shadowColor: "#1d4ed8",
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.75,
-            shadowRadius: 10,
-            elevation: 8,
-          }}
-        >
-          <View className="absolute left-1 right-1 top-0 z-20 flex-row items-center justify-between">
-            <View className="flex-row items-center rounded-full bg-secondaryBorder/90 px-4 py-1">
-              <Text className="font-nunito-bold text-xs text-secondaryText">⚡ {myPlayer.energy}</Text>
-            </View>
-            <View className="rounded-full bg-sky-900/80 px-3 py-1">
-              <Text className="font-nunito-bold text-xs text-white">{myPlayer.name}</Text>
-            </View>
-          </View>
-
-          <View className="h-full justify-between">
-            <View className="flex-row items-center justify-between" style={{ gap: 6, height: 76, marginTop: 18 }}>
-              {sortedMyUnits.map((unit, index) => (
-                <View key={unit.instanceId} style={{ width: "29.75%" }}>
-                  <UnitCard
-                    unit={unit}
-                    testID={`pvp-my-unit-${index}`}
-                    isSelected={selectedActorId === unit.instanceId && showActionModal}
-                    isValidTarget={targeting?.validTargetIds.includes(unit.instanceId) ?? false}
-                    canSelectAsActor={isMyTurn && !targeting && !isSwapMode && unit.hp > 0}
-                    onPress={() => handleUnitPress(unit.instanceId)}
-                    onLongPress={() => handleLongPress(unit.instanceId)}
-                    floatingEvents={floatingByUnit[unit.instanceId] ?? []}
-                  />
-                </View>
-              ))}
-            </View>
-
-            <View className="h-[46px] flex-row items-center justify-end px-1" style={{ gap: 10 }}>
-              {myPlayer.bench.map((unit, index) => (
-                <View key={unit.instanceId} style={{ height: "100%", width: 64 }}>
-                  <BenchCard
-                    unit={unit}
-                    testID={`pvp-my-bench-${index}`}
-                    isSelected={pendingSwap?.activeInstanceId === unit.instanceId}
-                    isSwapTarget={isSwapMode}
-                    isValidTarget={targeting?.validTargetIds.includes(unit.instanceId) ?? false}
-                    onPress={() => handleBenchPress(unit.instanceId)}
-                    onLongPress={() => handleLongPress(unit.instanceId)}
-                  />
-                </View>
-              ))}
-              <Text style={{ color: "rgba(30,64,175,0.8)", fontSize: 11, fontFamily: "Nunito_700Bold", letterSpacing: 1.4 }}>
-                {t("pvp.board.bench")}
-              </Text>
-            </View>
-          </View>
-
+        <View className="absolute right-0 top-3 z-30 flex-row gap-2">
+          <OverlayIconButton
+            accessibilityLabel={t("pvp.combatLog.title")}
+            onPress={() => setShowLogModal(true)}
+            size={50}
+            testID="pvp-battle-log-button"
+          >
+            <ClockIcon size={20} color={tc.primaryText} />
+          </OverlayIconButton>
           {!readOnly ? (
-            <ActionButtons
-              isSwapMode={isSwapMode}
-              isTargeting={targeting !== null}
-              hasBench={hasBench}
-              isMyTurn={isMyTurn}
-              isActing={isActing}
-              onSwapToggle={onSwapToggle}
-              onCancel={onCancelTargeting}
-              onEndTurn={onEndTurn}
-            />
+            <OverlayIconButton
+              accessibilityLabel={t("pvp.match.concedeConfirm")}
+              onPress={onConcede}
+              size={50}
+              testID="pvp-battle-concede-button"
+            >
+              <XCircleIcon size={20} color={tc.dangerDark} />
+            </OverlayIconButton>
           ) : null}
+        </View>
+
+        <View className="relative z-10 flex-1 justify-center gap-2">
+          <View className="relative min-h-0 flex-1 px-3 pt-1">
+            <View
+              className="mb-4 flex-row items-center justify-center pl-[54px] pr-[110px]"
+              style={{ transform: [{ translateY: -24 }] }}
+            >
+              <PlayerPlate
+                name={opponentPlayer.name}
+                energy={opponentPlayer.energy}
+                align="left"
+                tone="opponent"
+              />
+            </View>
+
+            <View className="min-h-0 flex-1 flex-row items-center justify-center gap-6 pb-4">
+              <View className="flex-row items-center justify-center gap-5">
+                {sortedOpponentUnits.map((unit, index) => (
+                  <View key={unit.instanceId} style={activeCardSlot}>
+                    <UnitCard
+                      unit={unit}
+                      testID={`pvp-opponent-unit-${index}`}
+                      isValidTarget={
+                        targeting?.validTargetIds.includes(unit.instanceId) ??
+                        false
+                      }
+                      attackerType={actorType}
+                      onPress={() => handleOppUnitPress(unit.instanceId)}
+                      onLongPress={() => handleLongPress(unit.instanceId)}
+                      floatingEvents={floatingByUnit[unit.instanceId] ?? []}
+                      animationEvents={animationsByUnit[unit.instanceId] ?? []}
+                      swapAnimationOffset={48}
+                    />
+                  </View>
+                ))}
+              </View>
+
+              <View
+                className="w-[70px] items-center gap-2"
+                style={{ transform: [{ translateY: opponentBenchOffset }] }}
+              >
+                {opponentPlayer.bench.map((unit, index) => (
+                  <View key={unit.instanceId} style={benchCardSlot}>
+                    <BenchCard
+                      unit={unit}
+                      testID={`pvp-opponent-bench-${index}`}
+                      onPress={() => handleOppUnitPress(unit.instanceId)}
+                      onLongPress={() => handleLongPress(unit.instanceId)}
+                      animationEvents={animationsByUnit[unit.instanceId] ?? []}
+                      swapAnimationOffset={-36}
+                    />
+                  </View>
+                ))}
+              </View>
+            </View>
+          </View>
+
+          <View
+            className="mx-10 h-[52px] overflow-hidden rounded-full"
+            style={{
+              backgroundColor:
+                themeName === "nightosphere"
+                  ? "rgba(26,11,21,0.86)"
+                  : "rgba(255,255,255,0.72)",
+              boxShadow: "0 8px 18px rgba(15,23,42,0.08)",
+            }}
+          >
+            {middleOverlay ? (
+              <View className="h-full justify-center px-3">
+                {middleOverlay}
+              </View>
+            ) : (
+              <View className="h-full flex-row items-center px-2.5">
+                <View
+                  className={`h-9 w-9 items-center justify-center rounded-full ${
+                    isMyTurn ? "bg-success" : "bg-slate-900/55"
+                  }`}
+                >
+                  <Text className="font-nunito-extrabold text-[12px] text-white">
+                    T{turn}
+                  </Text>
+                </View>
+                <View className="min-w-0 flex-1 px-4">
+                  <Text
+                    className="text-center font-nunito-extrabold text-[14px] text-fg"
+                    numberOfLines={1}
+                  >
+                    {hint}
+                  </Text>
+                  {timeoutLabel ? (
+                    <Text
+                      className="text-center font-nunito-bold text-[10px] text-fgMuted"
+                      numberOfLines={1}
+                    >
+                      {timeoutLabel.fullLabel}
+                    </Text>
+                  ) : null}
+                </View>
+                <View
+                  className={`h-9 w-9 items-center justify-center rounded-full ${
+                    isMyTurn ? "bg-white/78" : "bg-slate-900/45"
+                  }`}
+                >
+                  <Text
+                    className={`font-nunito-extrabold text-[10px] ${
+                      isMyTurn ? "text-successText" : "text-white"
+                    }`}
+                  >
+                    {isMyTurn ? t("pvp.board.ready") : "..."}
+                  </Text>
+                </View>
+              </View>
+            )}
+          </View>
+
+          <View className="relative min-h-0 flex-1 px-3 pb-1">
+            <View
+              className="min-h-0 flex-1 flex-row items-center justify-center gap-6"
+              style={{
+                paddingTop: 24,
+                paddingBottom: bottomOverlay ? 52 : 40,
+                paddingRight: 78,
+              }}
+            >
+              <View
+                className="w-[70px] items-center gap-2"
+                style={{ transform: [{ translateY: myBenchOffset }] }}
+              >
+                {myPlayer.bench.map((unit, index) => (
+                  <View key={unit.instanceId} style={benchCardSlot}>
+                    <BenchCard
+                      unit={unit}
+                      testID={`pvp-my-bench-${index}`}
+                      isSelected={
+                        pendingSwap?.benchInstanceId === unit.instanceId
+                      }
+                      isSwapTarget={isSwapMode}
+                      isValidTarget={
+                        targeting?.validTargetIds.includes(unit.instanceId) ??
+                        false
+                      }
+                      onPress={() => handleBenchPress(unit.instanceId)}
+                      onLongPress={() => handleLongPress(unit.instanceId)}
+                      animationEvents={animationsByUnit[unit.instanceId] ?? []}
+                      swapAnimationOffset={36}
+                    />
+                  </View>
+                ))}
+              </View>
+
+              <View className="flex-row items-center justify-center gap-5">
+                {sortedMyUnits.map((unit, index) => (
+                  <View key={unit.instanceId} style={activeCardSlot}>
+                    <UnitCard
+                      unit={unit}
+                      testID={`pvp-my-unit-${index}`}
+                      isSelected={
+                        (selectedActorId === unit.instanceId &&
+                          showActionModal) ||
+                        pendingSwap?.activeInstanceId === unit.instanceId
+                      }
+                      isValidTarget={
+                        targeting?.validTargetIds.includes(unit.instanceId) ??
+                        false
+                      }
+                      canSelectAsActor={
+                        isMyTurn &&
+                        !targeting &&
+                        !isSwapMode &&
+                        unit.hp > 0 &&
+                        !unit.statuses.some(
+                          (status) => status.name === "SummoningSickness",
+                        )
+                      }
+                      onPress={() => handleUnitPress(unit.instanceId)}
+                      onLongPress={() => handleLongPress(unit.instanceId)}
+                      floatingEvents={floatingByUnit[unit.instanceId] ?? []}
+                      animationEvents={animationsByUnit[unit.instanceId] ?? []}
+                      swapAnimationOffset={-48}
+                    />
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            {readOnly ? (
+              <View
+                pointerEvents="none"
+                className="absolute bottom-[14px] right-0 z-50 items-end gap-2"
+              >
+                <ActionEnergyPill energy={myPlayer.energy} />
+                <View className="h-12" />
+              </View>
+            ) : (
+              <ActionButtons
+                energy={myPlayer.energy}
+                isSwapMode={isSwapMode}
+                isTargeting={targeting !== null}
+                hasBench={hasBench}
+                isMyTurn={isMyTurn}
+                isActing={isActing}
+                onSwapToggle={onSwapToggle}
+                onCancel={onCancelTargeting}
+                onEndTurn={onEndTurn}
+              />
+            )}
+          </View>
         </View>
       </View>
 
@@ -491,16 +669,27 @@ export function BattleBoard({
           setSelectedActorId(null);
         }}
         onSelectAction={(mode) => {
+          if (isActing) {
+            return;
+          }
           onEnterTargeting(mode);
         }}
         onSubmitAction={(action) => {
+          if (isActing) {
+            return;
+          }
           submitAction(action);
           setShowActionModal(false);
           setSelectedActorId(null);
         }}
       />
 
-      <CombatLogModal visible={showLogModal} log={matchView.log} onClose={() => setShowLogModal(false)} />
+      <CombatLogModal
+        visible={showLogModal}
+        log={matchView.log}
+        battleState={matchView.battleState}
+        onClose={() => setShowLogModal(false)}
+      />
 
       <CardInfoModal
         visible={longPressUnit !== null && !showActionModal}
@@ -510,7 +699,10 @@ export function BattleBoard({
       />
 
       {bottomOverlay ? (
-        <View pointerEvents="box-none" className="absolute bottom-3 left-0 right-0 items-center px-6">
+        <View
+          pointerEvents="box-none"
+          className="absolute bottom-3 left-0 right-0 items-center px-6"
+        >
           {bottomOverlay}
         </View>
       ) : null}

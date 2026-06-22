@@ -19,6 +19,8 @@ import {
   TrophyIcon,
 } from "../src/components/icons";
 
+const PVP_HISTORY_REFETCH_INTERVAL_MS = 5_000;
+
 function formatDate(
   dateStr: string,
   t: (key: string, params?: Record<string, string | number>) => string,
@@ -51,6 +53,9 @@ export default function PvpHistoryScreen() {
   const historyQuery = useQuery({
     queryKey: ["pvp-history"],
     queryFn: () => apiClient.pvpHistory(),
+    refetchOnMount: "always",
+    refetchInterval: (query) =>
+      query.state.status === "error" ? false : PVP_HISTORY_REFETCH_INTERVAL_MS,
   });
 
   const completedMatches = useMemo(

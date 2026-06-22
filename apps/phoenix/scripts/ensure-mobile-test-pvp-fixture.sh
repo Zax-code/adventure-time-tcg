@@ -27,7 +27,7 @@ require Logger
 alias AdventureTimeApi.Accounts.{EmailCredential, User}
 alias AdventureTimeApi.Catalog.{Card, Rarity}
 alias AdventureTimeApi.Inventory.OwnedCard
-alias AdventureTimeApi.Pvp.{Loadout, Match}
+alias AdventureTimeApi.Pvp.{Loadout, Match, MatchSnapshot}
 alias AdventureTimeApi.Pvp
 alias AdventureTimeApi.Repo
 
@@ -145,31 +145,86 @@ ensure_card = fn name, character, description, hp, attack, defense, speed ->
   end
 end
 
-primary_cards =
-  [
-    {"E2E Finn Vanguard", "Finn", "Fast frontline striker for PvP E2E validation.", 32, 10, 5, 95},
-    {"E2E Jake Shield", "Jake", "Balanced defender for PvP E2E validation.", 34, 8, 8, 88},
-    {"E2E Marceline Tempo", "Marceline", "Fast attacker for PvP E2E validation.", 28, 11, 4, 90},
-    {"E2E Princess Bubblegum Tactics", "Princess Bubblegum", "Bench support for PvP E2E validation.", 27, 9, 6, 84},
-    {"E2E BMO Focus", "BMO", "Bench specialist for PvP E2E validation.", 25, 8, 7, 82},
-    {"E2E Lady Rainicorn Spark", "Lady Rainicorn", "Flex slot for PvP E2E validation.", 29, 9, 6, 86}
-  ]
-  |> Enum.map(fn {name, character, description, hp, attack, defense, speed} ->
-    ensure_card.(name, character, description, hp, attack, defense, speed)
-  end)
+fallback_primary_specs = [
+  {"E2E Finn Vanguard", "Finn", "Fast frontline striker for PvP E2E validation.", 32, 10, 5, 95},
+  {"E2E Jake Shield", "Jake", "Balanced defender for PvP E2E validation.", 34, 8, 8, 88},
+  {"E2E Marceline Tempo", "Marceline", "Fast attacker for PvP E2E validation.", 28, 11, 4, 90},
+  {"E2E Princess Bubblegum Tactics", "Princess Bubblegum", "Bench support for PvP E2E validation.", 27, 9, 6, 84},
+  {"E2E BMO Focus", "BMO", "Bench specialist for PvP E2E validation.", 25, 8, 7, 82},
+  {"E2E Lady Rainicorn Spark", "Lady Rainicorn", "Flex slot for PvP E2E validation.", 29, 9, 6, 86}
+]
 
-opponent_cards =
-  [
-    {"E2E Ice King Slowstorm", "Ice King", "Slower opposing lead for PvP E2E validation.", 33, 9, 7, 36},
-    {"E2E Gunter Wobble", "Gunter", "Slow opposing bruiser for PvP E2E validation.", 30, 9, 6, 34},
-    {"E2E Lich Drag", "Lich", "Slow opposing caster for PvP E2E validation.", 31, 10, 5, 32},
-    {"E2E Peppermint Butler Plot", "Peppermint Butler", "Slow opposing bench card for PvP E2E validation.", 27, 8, 6, 30},
-    {"E2E Flame Princess Ember", "Flame Princess", "Slow opposing bench threat for PvP E2E validation.", 28, 10, 4, 28},
-    {"E2E Lemongrab Shriek", "Lemongrab", "Slow opposing flex slot for PvP E2E validation.", 29, 8, 6, 26}
-  ]
-  |> Enum.map(fn {name, character, description, hp, attack, defense, speed} ->
+fallback_opponent_specs = [
+  {"E2E Ice King Slowstorm", "Ice King", "Slower opposing lead for PvP E2E validation.", 33, 9, 7, 36},
+  {"E2E Gunter Wobble", "Gunter", "Slow opposing bruiser for PvP E2E validation.", 30, 9, 6, 34},
+  {"E2E Lich Drag", "Lich", "Slow opposing caster for PvP E2E validation.", 31, 10, 5, 32},
+  {"E2E Peppermint Butler Plot", "Peppermint Butler", "Slow opposing bench card for PvP E2E validation.", 27, 8, 6, 30},
+  {"E2E Flame Princess Ember", "Flame Princess", "Slow opposing bench threat for PvP E2E validation.", 28, 10, 4, 28},
+  {"E2E Lemongrab Shriek", "Lemongrab", "Slow opposing flex slot for PvP E2E validation.", 29, 8, 6, 26}
+]
+
+build_fallback_cards = fn specs ->
+  Enum.map(specs, fn {name, character, description, hp, attack, defense, speed} ->
     ensure_card.(name, character, description, hp, attack, defense, speed)
   end)
+end
+
+illustrated_cards =
+  Repo.all(
+    from(c in Card,
+      where: not is_nil(c.image_asset_id) and c.is_archived == false,
+      order_by: [desc: c.speed, desc: c.is_featured, asc: c.name],
+      preload: [:rarity],
+      limit: 72
+    )
+  )
+
+take_valid_loadout = fn cards ->
+  cards
+  |> Enum.reduce_while({[], 0, 0}, fn card, {selected, legendary_count, epic_count} ->
+    rarity_name = if card.rarity, do: card.rarity.name, else: "Common"
+
+    cond do
+      rarity_name == "Legendary" and legendary_count >= 1 ->
+        {:cont, {selected, legendary_count, epic_count}}
+
+      rarity_name == "Epic" and epic_count >= 2 ->
+        {:cont, {selected, legendary_count, epic_count}}
+
+      true ->
+        selected = [card | selected]
+        legendary_count = legendary_count + if(rarity_name == "Legendary", do: 1, else: 0)
+        epic_count = epic_count + if(rarity_name == "Epic", do: 1, else: 0)
+
+        if length(selected) == 6 do
+          {:halt, {Enum.reverse(selected), legendary_count, epic_count}}
+        else
+          {:cont, {selected, legendary_count, epic_count}}
+        end
+    end
+  end)
+  |> elem(0)
+end
+
+{primary_cards, opponent_cards} =
+  if length(illustrated_cards) >= 12 do
+    primary_cards = take_valid_loadout.(illustrated_cards)
+    primary_card_ids = primary_cards |> Enum.map(& &1.id) |> MapSet.new()
+
+    opponent_cards =
+      illustrated_cards
+      |> Enum.reject(fn card -> MapSet.member?(primary_card_ids, card.id) end)
+      |> Enum.sort_by(fn card -> {card.speed || 0, card.name || ""} end)
+      |> take_valid_loadout.()
+
+    if length(primary_cards) == 6 and length(opponent_cards) == 6 do
+      {primary_cards, opponent_cards}
+    else
+      {build_fallback_cards.(fallback_primary_specs), build_fallback_cards.(fallback_opponent_specs)}
+    end
+  else
+    {build_fallback_cards.(fallback_primary_specs), build_fallback_cards.(fallback_opponent_specs)}
+  end
 
 ensure_owned_card = fn user_id, card_id ->
   case Repo.get_by(OwnedCard, user_id: user_id, card_id: card_id) do
@@ -236,6 +291,79 @@ match =
 if battle_state["currentPlayerId"] != primary_user.id do
   raise "Expected primary E2E user to act first, got #{inspect(battle_state["currentPlayerId"])}"
 end
+
+turn = battle_state["turn"] || 1
+
+add_status = fn unit, status_name ->
+  status = %{
+    "name" => status_name,
+    "duration" => 2,
+    "magnitude" => nil,
+    "appliedAt" => turn
+  }
+
+  statuses =
+    unit
+    |> Map.get("statuses", [])
+    |> Enum.reject(&(&1["name"] == status_name))
+
+  unit
+  |> Map.put("statuses", [status | statuses])
+end
+
+put_skill_cooldown = fn unit ->
+  case unit["skill"] do
+    skill when is_binary(skill) and skill != "" ->
+      Map.put(unit, "cooldowns", Map.put(unit["cooldowns"] || %{}, skill, 2))
+
+    _ ->
+      unit
+  end
+end
+
+decorate_first_active_unit = fn player, user_id, status_name, with_cooldown ->
+  if player["userId"] == user_id do
+    units =
+      case player["units"] || [] do
+        [unit | rest] ->
+          unit = add_status.(unit, status_name)
+
+          unit =
+            if with_cooldown do
+              put_skill_cooldown.(unit)
+            else
+              unit
+            end
+
+          [unit | rest]
+
+        units ->
+          units
+      end
+
+    Map.put(player, "units", units)
+  else
+    player
+  end
+end
+
+db_match = Repo.get!(Match, accepted_match.id)
+
+screenshot_state =
+  Map.update!(db_match.initial_state, "players", fn players ->
+    players
+    |> Enum.map(&decorate_first_active_unit.(&1, primary_user.id, "Haste", true))
+    |> Enum.map(&decorate_first_active_unit.(&1, opponent_user.id, "Burn", false))
+  end)
+
+db_match
+|> Match.changeset(%{initial_state: screenshot_state})
+|> Repo.update!()
+
+from(snapshot in MatchSnapshot,
+  where: snapshot.match_id == ^accepted_match.id and snapshot.seq_at == 0
+)
+|> Repo.update_all(set: [state: screenshot_state])
 
 IO.puts(accepted_match.id)
 '

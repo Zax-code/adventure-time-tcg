@@ -1,14 +1,18 @@
+import { useMemo } from "react";
 import { Text, View } from "react-native";
 
 import { useTranslation } from "../../i18n";
 import { localizeStatusName } from "../../lib/combat-i18n";
+import { getCombatLogEventKey } from "./combat-log-keys";
 import {
   getEventAbilityLabel,
+  getEventActorId,
   getEventActorName,
   getEventAmount,
   getEventChance,
   getEventCritChance,
   getEventCritRoll,
+  getEventDestinationId,
   getEventDestinationName,
   getEventMissChance,
   getEventMissRoll,
@@ -16,9 +20,12 @@ import {
   getEventRemaining,
   getEventRoll,
   getEventSelectedIndex,
+  getEventSourceId,
   getEventSourceName,
   getEventStatusName,
+  getEventTargetId,
   getEventTargetName,
+  getEventWinnerId,
   getEventWinnerLabel,
   didEventRollPass,
   isMissEvent,
@@ -30,10 +37,21 @@ import { BattleFullScreenSheet } from "./battle-full-screen-sheet";
 interface CombatLogModalProps {
   visible: boolean;
   log: PvpBattleState["log"];
+  battleState: PvpBattleState;
   onClose: () => void;
 }
 
-type Translate = (key: string, params?: Record<string, string | number>) => string;
+type Translate = (
+  key: string,
+  params?: Record<string, string | number>,
+) => string;
+type ResolveDisplayName = (id: string | null) => string | null;
+type ResolveAbilityName = (keyOrName: string | null) => string | null;
+
+interface CombatLogResolvers {
+  displayName: ResolveDisplayName;
+  abilityName: ResolveAbilityName;
+}
 
 function formatPercent(value: number): string {
   const percent = value * 100;
@@ -123,14 +141,57 @@ function formatRandomChoiceDetail(
   });
 }
 
+function buildCombatLogResolvers(
+  battleState: PvpBattleState,
+): CombatLogResolvers {
+  const displayNames = new Map<string, string>();
+  const abilityNames = new Map<string, string>();
+
+  for (const player of battleState.players) {
+    displayNames.set(player.userId, player.name);
+    for (const unit of [...player.units, ...player.bench]) {
+      displayNames.set(unit.instanceId, unit.name);
+      displayNames.set(unit.cardId, unit.name);
+    }
+  }
+
+  for (const [key, ability] of Object.entries(
+    battleState.abilityDefinitions ?? {},
+  )) {
+    abilityNames.set(key, ability.name);
+    abilityNames.set(ability.name, ability.name);
+  }
+
+  return {
+    displayName: (id) => (id ? (displayNames.get(id) ?? null) : null),
+    abilityName: (keyOrName) =>
+      keyOrName ? (abilityNames.get(keyOrName) ?? keyOrName) : null,
+  };
+}
+
 function summarizeCombatEvent(
   event: PvpBattleState["log"][number],
   t: Translate,
+  resolvers: CombatLogResolvers,
 ): string {
   const unit = t("pvp.combatLog.unitFallback");
   const player = t("pvp.combatLog.playerFallback");
   const target = t("pvp.combatLog.targetFallback");
   const ability = t("pvp.combatLog.abilityFallback");
+  const actorName =
+    getEventActorName(event) ?? resolvers.displayName(getEventActorId(event));
+  const targetName =
+    getEventTargetName(event) ?? resolvers.displayName(getEventTargetId(event));
+  const sourceName =
+    getEventSourceName(event) ?? resolvers.displayName(getEventSourceId(event));
+  const destinationName =
+    getEventDestinationName(event) ??
+    resolvers.displayName(getEventDestinationId(event));
+  const winnerLabel =
+    getEventWinnerLabel(event) ??
+    resolvers.displayName(getEventWinnerId(event));
+  const abilityLabel = resolvers.abilityName(getEventAbilityLabel(event));
+
   switch (event.type) {
     case "matchStart":
       return t("pvp.combatLog.matchStart", {
@@ -147,87 +208,87 @@ function summarizeCombatEvent(
       return t("pvp.combatLog.turnEnd", { turn: event.turn });
     case "energyGrant":
       return t("pvp.combatLog.energyGrant", {
-        player: getEventActorName(event) ?? player,
+        player: actorName ?? player,
         amount: String(getEventAmount(event) ?? 0),
       });
     case "abilityStart":
       return t("pvp.combatLog.abilityStart", {
-        actor: getEventActorName(event) ?? unit,
-        ability: getEventAbilityLabel(event) ?? ability,
+        actor: actorName ?? unit,
+        ability: abilityLabel ?? ability,
       });
     case "damage":
       if (isMissEvent(event)) {
         return t("pvp.combatLog.miss", {
-          attacker: getEventActorName(event) ?? unit,
-          target: getEventTargetName(event) ?? target,
+          attacker: actorName ?? unit,
+          target: targetName ?? target,
           roll: formatAttackRollDetail(event, t),
         });
       }
       return t("pvp.combatLog.damage", {
-        attacker: getEventActorName(event) ?? unit,
+        attacker: actorName ?? unit,
         amount: String(getEventAmount(event) ?? 0),
-        target: getEventTargetName(event) ?? target,
+        target: targetName ?? target,
         roll: formatAttackRollDetail(event, t),
       });
     case "crit":
       return t("pvp.combatLog.crit", {
-        target: getEventTargetName(event) ?? target,
+        target: targetName ?? target,
         roll: formatCritRollDetail(event, t),
       });
     case "ko":
       return t("pvp.combatLog.ko", {
-        target: getEventTargetName(event) ?? unit,
+        target: targetName ?? unit,
       });
     case "heal":
       return t("pvp.combatLog.heal", {
-        target: getEventTargetName(event) ?? unit,
+        target: targetName ?? unit,
         amount: String(getEventAmount(event) ?? 0),
       });
     case "revive":
       return t("pvp.combatLog.revive", {
-        target: getEventTargetName(event) ?? unit,
+        target: targetName ?? unit,
       });
     case "shieldAbsorb":
       return t("pvp.combatLog.shieldAbsorb", {
-        target: getEventTargetName(event) ?? unit,
+        target: targetName ?? unit,
         amount: String(getEventAmount(event) ?? 0),
       });
     case "swap":
       return t("pvp.combatLog.swap", {
-        player: getEventActorName(event) ?? player,
+        player: actorName ?? player,
       });
     case "formation":
       return t("pvp.combatLog.formation");
     case "pass":
       return t("pvp.combatLog.pass", {
-        player: getEventActorName(event) ?? player,
+        player: actorName ?? player,
       });
     case "concede":
       return t("pvp.combatLog.concede", {
-        player: getEventActorName(event) ?? player,
+        player: actorName ?? player,
       });
     case "timeout":
       return t("pvp.combatLog.timeout", {
-        player: getEventActorName(event) ?? player,
+        player: actorName ?? player,
       });
     case "statusApply":
       return t("pvp.combatLog.statusApply", {
-        target: getEventTargetName(event) ?? unit,
+        target: targetName ?? unit,
         status: localizeStatusName(getEventStatusName(event) ?? "", t),
       });
     case "statusTick":
       return t("pvp.combatLog.statusTick", {
-        target: getEventTargetName(event) ?? unit,
+        target: targetName ?? unit,
         status: localizeStatusName(getEventStatusName(event) ?? "", t),
       });
     case "statusExpire":
       return t("pvp.combatLog.statusExpire", {
         status: localizeStatusName(getEventStatusName(event) ?? "", t),
-        target: getEventTargetName(event) ?? unit,
+        target: targetName ?? unit,
       });
     case "statusCleanse":
       return t("pvp.combatLog.statusCleanse", {
-        target: getEventTargetName(event) ?? unit,
+        target: targetName ?? unit,
         status: localizeStatusName(getEventStatusName(event) ?? "", t),
       });
     case "passiveRoll":
@@ -236,15 +297,15 @@ function summarizeCombatEvent(
           ? "pvp.combatLog.passiveRollPass"
           : "pvp.combatLog.passiveRollFail",
         {
-          unit: getEventActorName(event) ?? unit,
-          ability: getEventAbilityLabel(event) ?? ability,
+          unit: actorName ?? unit,
+          ability: abilityLabel ?? ability,
           roll: formatChanceRollDetail(event),
         },
       );
     case "passiveTrigger":
       return t("pvp.combatLog.passiveTrigger", {
-        unit: getEventActorName(event) ?? unit,
-        ability: getEventAbilityLabel(event) ?? ability,
+        unit: actorName ?? unit,
+        ability: abilityLabel ?? ability,
       });
     case "statusRoll":
       return t(
@@ -252,63 +313,63 @@ function summarizeCombatEvent(
           ? "pvp.combatLog.statusRollPass"
           : "pvp.combatLog.statusRollFail",
         {
-          target: getEventTargetName(event) ?? unit,
+          target: targetName ?? unit,
           status: localizeStatusName(getEventStatusName(event) ?? "", t),
           roll: formatChanceRollDetail(event),
         },
       );
     case "randomStatusRoll":
       return t("pvp.combatLog.randomStatusRoll", {
-        target: getEventTargetName(event) ?? unit,
+        target: targetName ?? unit,
         status: localizeStatusName(getEventStatusName(event) ?? "", t),
         roll: formatRandomChoiceDetail(event, t),
       });
     case "cooldownTick":
       return t("pvp.combatLog.cooldownTick", {
-        target: getEventTargetName(event) ?? unit,
-        ability: getEventAbilityLabel(event) ?? ability,
+        target: targetName ?? unit,
+        ability: abilityLabel ?? ability,
         count: String(getEventRemaining(event) ?? 0),
       });
     case "freeze_skip":
       return t("pvp.combatLog.freezeSkip", {
-        target: getEventTargetName(event) ?? unit,
+        target: targetName ?? unit,
       });
     case "stun_consume":
       return t("pvp.combatLog.stunConsume", {
-        target: getEventTargetName(event) ?? unit,
+        target: targetName ?? unit,
       });
     case "coverRedirect":
       return t("pvp.combatLog.coverRedirect", {
-        source: getEventSourceName(event) ?? target,
-        target: getEventDestinationName(event) ?? unit,
+        source: sourceName ?? target,
+        target: destinationName ?? unit,
       });
     case "thorns":
       return t("pvp.combatLog.thorns", {
-        source: getEventSourceName(event) ?? unit,
-        target: getEventTargetName(event) ?? target,
+        source: sourceName ?? unit,
+        target: targetName ?? target,
         amount: String(getEventAmount(event) ?? 0),
       });
     case "counter":
       return t("pvp.combatLog.counter", {
-        source: getEventSourceName(event) ?? unit,
-        target: getEventTargetName(event) ?? target,
+        source: sourceName ?? unit,
+        target: targetName ?? target,
         amount: String(getEventAmount(event) ?? 0),
       });
     case "preventDeath":
       return t("pvp.combatLog.preventDeath", {
-        target: getEventTargetName(event) ?? unit,
-        ability: getEventAbilityLabel(event) ?? ability,
+        target: targetName ?? unit,
+        ability: abilityLabel ?? ability,
       });
     case "statusSteal":
       return t("pvp.combatLog.statusSteal", {
         status: localizeStatusName(getEventStatusName(event) ?? "", t),
-        source: getEventSourceName(event) ?? target,
-        target: getEventDestinationName(event) ?? unit,
+        source: sourceName ?? target,
+        target: destinationName ?? unit,
       });
     case "swapHp":
       return t("pvp.combatLog.swapHp", {
-        actor: getEventActorName(event) ?? unit,
-        target: getEventTargetName(event) ?? target,
+        actor: actorName ?? unit,
+        target: targetName ?? target,
       });
     case "gameOver":
       if (isDrawEvent(event)) {
@@ -316,7 +377,7 @@ function summarizeCombatEvent(
       }
 
       return t("pvp.combatLog.winner", {
-        winner: getEventWinnerLabel(event) ?? t("pvp.combatLog.unknown"),
+        winner: winnerLabel ?? t("pvp.combatLog.unknown"),
       });
     default:
       return event.type;
@@ -383,9 +444,28 @@ function getEventTextClass(type: string) {
   }
 }
 
-export function CombatLogModal({ visible, log, onClose }: CombatLogModalProps) {
+export function CombatLogModal({
+  visible,
+  log,
+  battleState,
+  onClose,
+}: CombatLogModalProps) {
   const { t } = useTranslation();
-  const recentLog = [...log].reverse().slice(0, 30);
+  const recentLog = useMemo(
+    () =>
+      log
+        .map((event, index) => ({
+          event,
+          key: getCombatLogEventKey(event, index),
+        }))
+        .reverse()
+        .slice(0, 30),
+    [log],
+  );
+  const resolvers = useMemo(
+    () => buildCombatLogResolvers(battleState),
+    [battleState],
+  );
 
   return (
     <BattleFullScreenSheet
@@ -393,7 +473,6 @@ export function CombatLogModal({ visible, log, onClose }: CombatLogModalProps) {
       title={t("pvp.combatLog.title")}
       onClose={onClose}
       testID="pvp-combat-log-modal"
-      closeButtonTestID="pvp-combat-log-close-button"
     >
       <View className="gap-3 px-4 py-4">
         {recentLog.length === 0 ? (
@@ -403,16 +482,16 @@ export function CombatLogModal({ visible, log, onClose }: CombatLogModalProps) {
             </Text>
           </View>
         ) : (
-          recentLog.map((event) => (
+          recentLog.map(({ event, key }) => (
             <View
-              key={event.seq}
+              key={key}
               className={`rounded-3xl border px-4 py-3 ${getEventClasses(event.type)}`}
             >
               <View className="flex-row items-start justify-between gap-3">
                 <Text
                   className={`flex-1 font-nunito text-sm leading-5 ${getEventTextClass(event.type)}`}
                 >
-                  {summarizeCombatEvent(event, t)}
+                  {summarizeCombatEvent(event, t, resolvers)}
                 </Text>
                 <View className="rounded-full bg-black/5 px-2 py-1">
                   <Text className="font-nunito-bold text-[10px] text-fgMuted">

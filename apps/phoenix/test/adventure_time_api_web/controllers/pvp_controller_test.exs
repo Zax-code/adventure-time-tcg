@@ -229,6 +229,9 @@ defmodule AdventureTimeApiWeb.PvpControllerTest do
 
     assert json_response(concede_conn, 200) == %{"success" => true}
 
+    active_after_concede_conn = other_token |> auth_conn() |> get(~p"/pvp/matches")
+    assert json_response(active_after_concede_conn, 200)["matches"] == []
+
     history_conn = other_token |> auth_conn() |> get(~p"/pvp/history/#{match_id}")
     history_response = json_response(history_conn, 200)
 
@@ -250,6 +253,13 @@ defmodule AdventureTimeApiWeb.PvpControllerTest do
     assert history_list_response["totalCount"] == 1
     assert history_list_response["stats"]["wins"] + history_list_response["stats"]["losses"] == 1
     assert Enum.at(history_list_response["matches"], 0)["hasReplayData"] == true
+
+    reinvite_conn =
+      inviter_token
+      |> auth_conn()
+      |> post(~p"/pvp/invites", %{inviteeEmail: invitee.email, loadout: card_ids})
+
+    assert json_response(reinvite_conn, 201) == %{"success" => true}
   end
 
   test "loadouts can be updated and deleted with validation errors", _context do

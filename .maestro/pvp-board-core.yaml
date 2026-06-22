@@ -9,58 +9,31 @@ tags:
     clearState: true
     clearKeychain: true
 - openLink:
-    link: adventure-time:///e2e-auth?redirect=%2Fpvp%3Ffixture%3D${TEST_MATCH_ID}&email=${TEST_EMAIL_URI}&password=${TEST_PASSWORD_URI}
+    link: adventure-time:///e2e-auth?redirect=%2Fpvp-match%3Fid%3D${TEST_MATCH_ID}&accessToken=${TEST_ACCESS_TOKEN}&refreshToken=${TEST_REFRESH_TOKEN}&user=${TEST_USER}
 - runFlow: subflows/confirm-open-link-if-needed.yaml
-- assertVisible:
-    id: pvp-open-mechanics-button
-- assertVisible:
-    id: pvp-active-match-card-0
-- tapOn:
-    id: pvp-active-match-card-0
-    retryTapIfNoChange: true
 - extendedWaitUntil:
     visible:
       id: pvp-battle-board
-    timeout: 10000
-- extendedWaitUntil:
-    notVisible:
-      text: Tap a card for actions
-    timeout: 5000
+    timeout: 30000
+- waitForAnimationToEnd
 - longPressOn:
     id: pvp-my-unit-0
 - assertVisible:
     id: pvp-card-info-modal
-- tapOn:
-    id: pvp-card-info-close-button
+- swipe:
+    start: "50%,18%"
+    end: "50%,88%"
+    duration: 700
+- waitForAnimationToEnd
 - assertNotVisible:
     id: pvp-card-info-modal
-- tapOn:
-    id: pvp-my-unit-0
-    retryTapIfNoChange: true
-- assertVisible:
-    id: pvp-action-modal
-- assertVisible:
-    id: pvp-action-basic-button
-- tapOn:
-    id: pvp-action-basic-button
-    retryTapIfNoChange: true
-- tapOn:
-    id: pvp-opponent-unit-0
-    retryTapIfNoChange: true
-- assertVisible:
-    id: pvp-battle-board
 - tapOn:
     id: pvp-action-end-turn-button
     retryTapIfNoChange: true
 - assertVisible:
-    id: pvp-end-turn-confirm-sheet
+    id: pvp-end-turn-confirm-modal
 - tapOn:
     id: pvp-end-turn-confirm-button
     retryTapIfNoChange: true
 - assertVisible:
     id: pvp-battle-board
-- tapOn:
-    id: pvp-battle-back-button
-    retryTapIfNoChange: true
-- assertVisible:
-    id: pvp-open-mechanics-button

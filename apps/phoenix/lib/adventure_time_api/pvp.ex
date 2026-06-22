@@ -1414,7 +1414,7 @@ defmodule AdventureTimeApi.Pvp do
       "cost" => ability.cost,
       "cooldown" => ability.cooldown,
       "oncePerMatch" => ability.once_per_match,
-      "payload" => ability.payload
+      "payload" => drop_nil_magnitude_keys(ability.payload)
     }
   end
 
@@ -1496,11 +1496,26 @@ defmodule AdventureTimeApi.Pvp do
       cost: ability.cost,
       cooldown: ability.cooldown,
       oncePerMatch: ability.once_per_match,
-      payload: ability.payload,
+      payload: drop_nil_magnitude_keys(ability.payload),
       createdAt: iso8601(ability.inserted_at),
       updatedAt: iso8601(ability.updated_at)
     }
   end
+
+  defp drop_nil_magnitude_keys(value) when is_list(value) do
+    Enum.map(value, &drop_nil_magnitude_keys/1)
+  end
+
+  defp drop_nil_magnitude_keys(value) when is_map(value) do
+    value
+    |> Enum.flat_map(fn
+      {"magnitude", nil} -> []
+      {key, nested} -> [{key, drop_nil_magnitude_keys(nested)}]
+    end)
+    |> Map.new()
+  end
+
+  defp drop_nil_magnitude_keys(value), do: value
 
   defp serialize_admin_card_ability(ca) do
     %{
@@ -1530,7 +1545,9 @@ defmodule AdventureTimeApi.Pvp do
            "attack" => card.attack,
            "defense" => card.defense,
            "speed" => card.speed,
-           "rarity_name" => if(rarity, do: rarity.name, else: "Common")
+           "rarity_name" => if(rarity, do: rarity.name, else: "Common"),
+           "imageAssetId" => card.image_asset_id,
+           "imageUrl" => card_image_url(card.image_asset_id)
          }}
       end)
 
@@ -1548,6 +1565,10 @@ defmodule AdventureTimeApi.Pvp do
       end)
     end)
   end
+
+  defp card_image_url(nil), do: nil
+  defp card_image_url(""), do: nil
+  defp card_image_url(image_asset_id), do: "/api/media/card/#{image_asset_id}"
 
   defp normalize_unit_type(unit) do
     Map.update!(unit, "type", &CardType.canonicalize!/1)

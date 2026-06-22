@@ -12,6 +12,7 @@ import {
 import { SeededRng } from "./rng";
 import {
   tickStatuses,
+  tickOwnerTurnEndStatuses,
   applyStatus,
   consumeFreeze,
   consumeStunned,
@@ -2943,6 +2944,15 @@ export function executeSwap(
  */
 export function endTurn(state: BattleState): void {
   const currentPlayer = getCurrentPlayer(state);
+
+  for (const unit of currentPlayer.units) {
+    if (unit.hp <= 0) continue;
+
+    const tickResult = tickOwnerTurnEndStatuses(unit, state.turn);
+    for (const event of tickResult.events) {
+      logEvent(state, { ...event, turn: state.turn });
+    }
+  }
 
   logEvent(
     state,

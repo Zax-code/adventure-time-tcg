@@ -137,6 +137,7 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
   # ── Status Definitions ────────────────────────────────────────────────────
   # is_buff / is_debuff: for cap enforcement (max 3 each per unit)
   # ticks: true = duration decrements at start of owning player's turn; false = event-consumed
+  # expires_at: :owner_turn_end = duration decrements when the owning player's turn ends
   # stackable: false | :magnitude (Shield) | :count (Poison)
 
   @status_defs %{
@@ -148,7 +149,13 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
     "Weakened" => %{is_buff: false, is_debuff: true, ticks: true, stackable: false},
     "Haste" => %{is_buff: true, is_debuff: false, ticks: true, stackable: false},
     "Taunt" => %{is_buff: false, is_debuff: false, ticks: true, stackable: false},
-    "Silence" => %{is_buff: false, is_debuff: true, ticks: true, stackable: false},
+    "Silence" => %{
+      is_buff: false,
+      is_debuff: true,
+      ticks: false,
+      stackable: false,
+      expires_at: :owner_turn_end
+    },
     "SummoningSickness" => %{is_buff: false, is_debuff: false, ticks: true, stackable: false},
     "Stunned" => %{is_buff: false, is_debuff: true, ticks: false, stackable: false},
     "Cover" => %{is_buff: true, is_debuff: false, ticks: false, stackable: false},
@@ -496,6 +503,72 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
 
     new_events = Enum.drop(state["log"], events_before)
     {state, new_events}
+  end
+
+  defp expire_owner_turn_end_statuses(state, player_id) do
+    events_before = length(state["log"])
+
+    {:ok, player} = find_player(state, player_id)
+
+    state =
+      Enum.reduce(player["units"], state, fn unit, acc_state ->
+        if unit["knockedOut"] or unit["hp"] <= 0 do
+          acc_state
+        else
+          tick_owner_turn_end_statuses(acc_state, unit["instanceId"])
+        end
+      end)
+
+    new_events = Enum.drop(state["log"], events_before)
+    {state, new_events}
+  end
+
+  defp tick_owner_turn_end_statuses(state, unit_id) do
+    {:ok, unit} = find_unit_across_players(state, unit_id)
+
+    Enum.reduce(unit["statuses"] || [], state, fn status, acc_state ->
+      def_ = Map.get(@status_defs, status["name"], %{})
+
+      cond do
+        def_[:expires_at] != :owner_turn_end ->
+          acc_state
+
+        (status["duration"] || 1) < 0 ->
+          acc_state
+
+        (status["appliedAt"] || 0) >= state["turn"] ->
+          acc_state
+
+        true ->
+          new_dur = (status["duration"] || 1) - 1
+
+          if new_dur <= 0 do
+            expire_evt =
+              new_event(acc_state, "statusExpire", %{
+                "targetId" => unit_id,
+                "unitId" => unit_id,
+                "statusName" => status["name"],
+                "status" => status["name"]
+              })
+
+            acc_state =
+              update_unit(acc_state, unit_id, fn u ->
+                remove_status_from_unit(u, status["name"])
+              end)
+
+            append_log(acc_state, [expire_evt])
+          else
+            update_unit(acc_state, unit_id, fn u ->
+              new_statuses =
+                Enum.map(u["statuses"] || [], fn s ->
+                  if s["name"] == status["name"], do: Map.put(s, "duration", new_dur), else: s
+                end)
+
+              Map.put(u, "statuses", new_statuses)
+            end)
+          end
+      end
+    end)
   end
 
   defp tick_unit_statuses(state, unit_id) do
@@ -1679,6 +1752,7 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
       "character" => Map.get(card, "character", card["name"]),
       "type" => card |> Map.get("type", "Hero") |> CardType.canonicalize!(),
       "rarity" => rarity,
+      "imageUrl" => image_url_from_card(card),
       "hp" => stats.hp,
       "maxHp" => stats.hp,
       "attack" => stats.attack,
@@ -1694,6 +1768,23 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
       "skill" => nil,
       "ultimate" => nil
     }
+  end
+
+  defp image_url_from_card(card) do
+    case Map.get(card, "imageUrl") || Map.get(card, :imageUrl) || Map.get(card, :image_url) do
+      url when is_binary(url) and url != "" ->
+        url
+
+      _ ->
+        case Map.get(card, "imageAssetId") || Map.get(card, :imageAssetId) ||
+               Map.get(card, "image_asset_id") || Map.get(card, :image_asset_id) do
+          image_asset_id when is_binary(image_asset_id) and image_asset_id != "" ->
+            "/api/media/card/#{image_asset_id}"
+
+          _ ->
+            nil
+        end
+    end
   end
 
   # ── State Creation ────────────────────────────────────────────────────────
@@ -2619,7 +2710,10 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
          :ok <- validate_unit_alive(actor, "actor"),
          :ok <- validate_unit_alive(req_target, "target"),
          :ok <- guard_stealth_target(state, actor_id, target_id),
-         :ok <- validate_basic_energy(acting_player, stun_extra) do
+         basic_cost = basic_energy_cost(acting_player, actor, stun_extra),
+         :ok <- validate_basic_energy(acting_player, basic_cost) do
+      state = spend_basic_energy(state, acting_user_id, basic_cost, acting_player, actor)
+
       # Cover redirect: check if target is covered by an ally
       effective_target_id =
         case find_unit_across_players(state, target_id) do
@@ -2953,13 +3047,36 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
     end
   end
 
-  defp validate_basic_energy(player, extra_cost) do
-    # Basic attacks have no energy cost unless stunned (+1)
-    if extra_cost > 0 and player["energy"] < extra_cost do
+  defp basic_energy_cost(player, actor, extra_cost) do
+    base_cost =
+      cond do
+        has_status(actor, "Haste") and not (player["hasUsedFreeBasic"] || false) ->
+          0
+
+        true ->
+          1
+      end
+
+    base_cost + extra_cost
+  end
+
+  defp validate_basic_energy(player, cost) do
+    if player["energy"] < cost do
       {:error, :not_enough_energy}
     else
       :ok
     end
+  end
+
+  defp spend_basic_energy(state, acting_user_id, cost, player, actor) do
+    used_free_basic? =
+      has_status(actor, "Haste") and not (player["hasUsedFreeBasic"] || false)
+
+    update_player(state, acting_user_id, fn p ->
+      p
+      |> Map.update!("energy", &(&1 - cost))
+      |> Map.put("hasUsedFreeBasic", used_free_basic? || (p["hasUsedFreeBasic"] || false))
+    end)
   end
 
   @doc """
@@ -2980,6 +3097,8 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
       else
         state
       end
+
+    {state, _turn_end_status_events} = expire_owner_turn_end_statuses(state, current_player_id)
 
     other_player_id = other_player(state, current_player_id)
 
@@ -3134,7 +3253,8 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
   end
 
   defp normalize_view_types(state) do
-    Map.update!(state, "players", fn players ->
+    state
+    |> Map.update!("players", fn players ->
       Enum.map(players, fn player ->
         player
         |> normalize_player_name()
@@ -3150,6 +3270,7 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
         end)
       end)
     end)
+    |> normalize_ability_definition_payloads()
   end
 
   defp normalize_player_name(player) do
@@ -3165,6 +3286,40 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
         |> Map.put_new("displayName", display_name)
     end
   end
+
+  defp normalize_ability_definition_payloads(state) do
+    case Map.get(state, "abilityDefinitions") do
+      ability_defs when is_map(ability_defs) ->
+        normalized =
+          Map.new(ability_defs, fn
+            {key, %{} = ability_def} ->
+              {key, Map.update(ability_def, "payload", nil, &drop_nil_magnitude_keys/1)}
+
+            entry ->
+              entry
+          end)
+
+        Map.put(state, "abilityDefinitions", normalized)
+
+      _ ->
+        state
+    end
+  end
+
+  defp drop_nil_magnitude_keys(value) when is_list(value) do
+    Enum.map(value, &drop_nil_magnitude_keys/1)
+  end
+
+  defp drop_nil_magnitude_keys(value) when is_map(value) do
+    value
+    |> Enum.flat_map(fn
+      {"magnitude", nil} -> []
+      {key, nested} -> [{key, drop_nil_magnitude_keys(nested)}]
+    end)
+    |> Map.new()
+  end
+
+  defp drop_nil_magnitude_keys(value), do: value
 
   # ── Private Helpers ───────────────────────────────────────────────────────
 

@@ -1,10 +1,12 @@
-import { View } from "react-native";
-import { BlurView } from "expo-blur";
+import { Text, View } from "react-native";
 
-import { CheckIcon, SwapIcon, XIcon } from "../../components/icons";
+import { CheckIcon, SwapIcon, XIcon, ZapIcon } from "../../components/icons";
 import { ThemedExpoButton } from "../../components/expo-ui/themed-button";
+import { useThemeStore } from "../../stores/theme-store";
+import { THEME_COLORS } from "../../theme/themes";
 
 interface ActionButtonsProps {
+  energy: number;
   isSwapMode: boolean;
   isTargeting: boolean;
   hasBench: boolean;
@@ -16,6 +18,7 @@ interface ActionButtonsProps {
 }
 
 export function ActionButtons({
+  energy,
   isSwapMode,
   isTargeting,
   hasBench,
@@ -25,56 +28,51 @@ export function ActionButtons({
   onCancel,
   onEndTurn,
 }: ActionButtonsProps) {
+  const themeName = useThemeStore((state) => state.themeName);
+  const tc = THEME_COLORS[themeName];
   const showCancel = isTargeting || isSwapMode;
   const swapDisabled = !hasBench || !isMyTurn;
   const endDisabled = !isMyTurn || isActing;
 
   return (
-    <View className="absolute bottom-1.5 right-1.5 z-50">
-      <BlurView
-        intensity={40}
-        style={{
-          borderRadius: 14,
-          overflow: "hidden",
-          flexDirection: "row",
-          gap: 6,
-          padding: 6,
-          backgroundColor: "rgba(255,255,255,0.55)",
-          shadowColor: "rgba(236,72,153,0.18)",
-          shadowOffset: { width: 0, height: 8 },
-          shadowOpacity: 1,
-          shadowRadius: 14,
-          elevation: 6,
-        }}
+    <View className="absolute bottom-2 right-0 z-50 items-end gap-2">
+      <ActionEnergyPill energy={energy} />
+      <View
+        className="flex-row gap-2"
+        style={{ transform: [{ translateX: 13 }] }}
       >
-        {/* Swap button */}
         <ThemedExpoButton
           onPress={swapDisabled ? undefined : onSwapToggle}
           disabled={swapDisabled}
           testID="pvp-action-swap-button"
           fallbackAppearance={{
             backgroundColor: isSwapMode
-              ? "rgba(251,191,36,0.95)"
-              : "rgba(255,255,255,0.9)",
-            borderColor: isSwapMode ? "rgba(245,158,11,0.7)" : "transparent",
-            borderRadius: 8,
+              ? tc.secondary
+              : themeName === "nightosphere"
+                ? "rgba(255,255,255,0.18)"
+                : "rgba(255,255,255,0.76)",
+            borderColor: "transparent",
+            borderRadius: 999,
             paddingHorizontal: 0,
             paddingVertical: 0,
-            minHeight: 36,
+            minHeight: 48,
             gradientColors: null,
           }}
           style={{
-            width: 36,
-            height: 36,
-            minWidth: 36,
-            minHeight: 36,
+            width: 48,
+            height: 48,
+            minWidth: 48,
+            minHeight: 48,
+            boxShadow: "0 8px 14px rgba(15,23,42,0.14)",
           }}
           variant="ghost"
         >
-          <SwapIcon size={15} color={isSwapMode ? "#854D0E" : "#334155"} />
+          <SwapIcon
+            size={20}
+            color={isSwapMode ? tc.secondaryText : tc.primaryText}
+          />
         </ThemedExpoButton>
 
-        {/* Cancel button */}
         {showCancel && (
           <ThemedExpoButton
             onPress={onCancel}
@@ -82,49 +80,66 @@ export function ActionButtons({
             fallbackAppearance={{
               backgroundColor: "#f43f5e",
               borderColor: "transparent",
-              borderRadius: 8,
+              borderRadius: 999,
               paddingHorizontal: 0,
               paddingVertical: 0,
-              minHeight: 36,
+              minHeight: 48,
               gradientColors: null,
             }}
             style={{
-              width: 36,
-              height: 36,
-              minWidth: 36,
-              minHeight: 36,
+              width: 48,
+              height: 48,
+              minWidth: 48,
+              minHeight: 48,
+              boxShadow: "0 8px 14px rgba(244,63,94,0.2)",
             }}
             variant="danger"
           >
-            <XIcon size={15} color="#fff" />
+            <XIcon size={20} color="#fff" />
           </ThemedExpoButton>
         )}
 
-        {/* End turn button */}
         <ThemedExpoButton
           onPress={endDisabled ? undefined : onEndTurn}
           disabled={endDisabled}
           testID="pvp-action-end-turn-button"
           fallbackAppearance={{
-            backgroundColor: "rgba(255,255,255,0.9)",
+            backgroundColor: endDisabled
+              ? "rgba(148,163,184,0.32)"
+              : tc.successTint,
             borderColor: "transparent",
-            borderRadius: 8,
+            borderRadius: 999,
             paddingHorizontal: 0,
             paddingVertical: 0,
-            minHeight: 36,
+            minHeight: 48,
             gradientColors: null,
           }}
           style={{
-            width: 36,
-            height: 36,
-            minWidth: 36,
-            minHeight: 36,
+            width: 48,
+            height: 48,
+            minWidth: 48,
+            minHeight: 48,
+            boxShadow: "0 8px 14px rgba(20,184,166,0.18)",
           }}
           variant="ghost"
         >
-          <CheckIcon size={15} color="#0f766e" />
+          <CheckIcon
+            size={21}
+            color={endDisabled ? tc.muted : tc.successText}
+          />
         </ThemedExpoButton>
-      </BlurView>
+      </View>
+    </View>
+  );
+}
+
+export function ActionEnergyPill({ energy }: { energy: number }) {
+  return (
+    <View className="h-9 min-w-[78px] flex-row items-center justify-center gap-1.5 rounded-full bg-secondaryTint px-3">
+      <ZapIcon size={16} color="#B45309" />
+      <Text className="font-nunito-extrabold text-[16px] text-secondaryText">
+        {energy}
+      </Text>
     </View>
   );
 }

@@ -208,4 +208,10 @@ wait_for_boot
 
 echo "Launching Adventure Time on Android with EXPO_PUBLIC_API_BASE_URL=$API_BASE_URL"
 cd "$MOBILE_ROOT"
-EXPO_PUBLIC_API_BASE_URL="$API_BASE_URL" npx expo run:android
+expo_run_args=(run:android)
+
+if [[ "${EXPO_NO_BUNDLER:-0}" == "1" ]]; then
+  expo_run_args+=(--no-bundler)
+fi
+
+EXPO_PUBLIC_API_BASE_URL="$API_BASE_URL" npx expo "${expo_run_args[@]}"

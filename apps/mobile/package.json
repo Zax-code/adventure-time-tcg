@@ -12,7 +12,7 @@
   },
   "scripts": {
     "dev": "../../infra/scripts/expo-dev-client.sh",
-    "dev:tunnel": "../../infra/scripts/expo-dev-client.sh --host tunnel --clear",
+    "dev:both": "../../infra/scripts/dev-mobile-both.sh",
     "android:local": "./scripts/run-android.sh",
     "ios:local": "./scripts/run-ios.sh",
     "typecheck": "tsc -p tsconfig.json --noEmit",
@@ -80,7 +80,6 @@
     "zustand": "^5.0.3"
   },
   "devDependencies": {
-    "@expo/ngrok": "^4.1.0",
     "@types/react": "~19.2.14",
     "connect": "^3.7.0",
     "tailwindcss": "^3.4.17",

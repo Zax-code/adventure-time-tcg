@@ -1,0 +1,87 @@
+appId: love.leaetzak.adventuretime
+name: PvP modal focused screenshots
+tags:
+  - pvp
+  - screenshots
+  - modals
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- openLink:
+    link: adventure-time:///e2e-auth?redirect=%2Fpvp-match%3Fid%3D${TEST_MATCH_ID}%3A%3Ae2e%3A%3Aaction&accessToken=${TEST_ACCESS_TOKEN}&refreshToken=${TEST_REFRESH_TOKEN}&user=${TEST_USER}
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- waitForAnimationToEnd
+- openLink:
+    link: adventure-time:///e2e-auth?redirect=%2Fpvp-match%3Fid%3D${TEST_MATCH_ID}%3A%3Ae2e%3A%3Aaction&accessToken=${TEST_ACCESS_TOKEN}&refreshToken=${TEST_REFRESH_TOKEN}&user=${TEST_USER}
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- extendedWaitUntil:
+    visible:
+      id: pvp-battle-board
+    timeout: 30000
+- extendedWaitUntil:
+    visible:
+      id: pvp-action-modal
+    timeout: 5000
+- assertVisible:
+    id: pvp-action-modal
+- takeScreenshot: tmp-pvp-modal-shots/01-action-modal
+- openLink:
+    link: adventure-time:///e2e-auth?redirect=%2Fpvp-match%3Fid%3D${TEST_MATCH_ID}%3A%3Ae2e%3A%3Amy-card-info&accessToken=${TEST_ACCESS_TOKEN}&refreshToken=${TEST_REFRESH_TOKEN}&user=${TEST_USER}
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- assertVisible:
+    id: pvp-card-info-modal
+- takeScreenshot: tmp-pvp-modal-shots/02-card-info-my-active
+- openLink:
+    link: adventure-time:///e2e-auth?redirect=%2Fpvp-match%3Fid%3D${TEST_MATCH_ID}%3A%3Ae2e%3A%3Aopponent-card-info&accessToken=${TEST_ACCESS_TOKEN}&refreshToken=${TEST_REFRESH_TOKEN}&user=${TEST_USER}
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- assertVisible:
+    id: pvp-card-info-modal
+- takeScreenshot: tmp-pvp-modal-shots/03-card-info-opponent-active
+- openLink:
+    link: adventure-time:///e2e-auth?redirect=%2Fpvp-match%3Fid%3D${TEST_MATCH_ID}%3A%3Ae2e%3A%3Alog&accessToken=${TEST_ACCESS_TOKEN}&refreshToken=${TEST_REFRESH_TOKEN}&user=${TEST_USER}
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- extendedWaitUntil:
+    visible:
+      id: pvp-combat-log-modal
+    timeout: 5000
+- takeScreenshot: tmp-pvp-modal-shots/04-combat-log-modal
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- openLink:
+    link: adventure-time:///e2e-auth?redirect=%2Fpvp-match%3Fid%3D${TEST_MATCH_ID}%3A%3Ae2e%3A%3Aend-turn&accessToken=${TEST_ACCESS_TOKEN}&refreshToken=${TEST_REFRESH_TOKEN}&user=${TEST_USER}
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- assertVisible:
+    id: pvp-end-turn-confirm-modal
+- takeScreenshot: tmp-pvp-modal-shots/05-end-turn-confirm
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- openLink:
+    link: adventure-time:///e2e-auth?redirect=%2Fpvp-match%3Fid%3D${TEST_MATCH_ID}%3A%3Ae2e%3A%3Aconcede&accessToken=${TEST_ACCESS_TOKEN}&refreshToken=${TEST_REFRESH_TOKEN}&user=${TEST_USER}
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- assertVisible:
+    id: pvp-concede-confirm-modal
+- takeScreenshot: tmp-pvp-modal-shots/06-concede-confirm
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- openLink:
+    link: adventure-time:///e2e-auth?redirect=%2Fpvp%3Ffixture%3D${TEST_MATCH_ID}&accessToken=${TEST_ACCESS_TOKEN}&refreshToken=${TEST_REFRESH_TOKEN}&user=${TEST_USER}
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- assertVisible:
+    id: pvp-lobby-hero
+- tapOn:
+    point: "50%,66%"
+    retryTapIfNoChange: true
+- assertVisible:
+    id: pvp-invite-sheet
+- takeScreenshot: tmp-pvp-modal-shots/07-invite-sheet
+- swipe:
+    start: "50%,18%"
+    end: "50%,88%"
+    duration: 700
+- waitForAnimationToEnd
+- assertNotVisible:
+    id: pvp-invite-sheet

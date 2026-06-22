@@ -1,9 +1,7 @@
 import { QueryClient } from "@tanstack/react-query";
 import { ZodError } from "zod";
 
-import { ApiClientError } from "@adventure-time/api-client";
-
-import { isNetworkError } from "./api";
+import { ApiClientError, isNetworkError } from "@adventure-time/api-client";
 
 function shouldRetry(failureCount: number, error: unknown) {
   if (error instanceof ApiClientError) {

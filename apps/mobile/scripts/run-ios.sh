@@ -134,4 +134,10 @@ boot_simulator "$IOS_SIMULATOR_NAME"
 
 echo "Launching Adventure Time on iOS with EXPO_PUBLIC_API_BASE_URL=$API_BASE_URL"
 cd "$MOBILE_ROOT"
-EXPO_PUBLIC_API_BASE_URL="$API_BASE_URL" npx expo run:ios --device "$IOS_SIMULATOR_NAME"
+expo_run_args=(run:ios --device "$IOS_SIMULATOR_NAME")
+
+if [[ "${EXPO_NO_BUNDLER:-0}" == "1" ]]; then
+  expo_run_args+=(--no-bundler)
+fi
+
+EXPO_PUBLIC_API_BASE_URL="$API_BASE_URL" npx expo "${expo_run_args[@]}"
