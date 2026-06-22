@@ -67,11 +67,14 @@ export function useUnitReactionAnimation({
   }, [overlayOpacity, rotateZ, scale, translateX, translateY]);
 
   const flash = useCallback(
-    (type: UnitAnimationEventType, peak = 0.7) => {
+    (type: UnitAnimationEventType, peak = 0.7, fadeDuration = 260) => {
       setOverlayColor(REACTION_FLASH_COLORS[type]);
       overlayOpacity.value = withSequence(
         withTiming(peak, { duration: 70, easing: Easing.out(Easing.quad) }),
-        withTiming(0, { duration: 260, easing: Easing.out(Easing.quad) }),
+        withTiming(0, {
+          duration: fadeDuration,
+          easing: Easing.out(Easing.quad),
+        }),
       );
     },
     [overlayOpacity],
@@ -82,18 +85,18 @@ export function useUnitReactionAnimation({
       reset();
 
       if (type === "damage") {
-        flash(type);
+        flash(type, 0.7, 420);
         const shake = compact ? 4 : 7;
         translateX.value = withSequence(
-          withTiming(-shake, { duration: 42 }),
-          withTiming(shake, { duration: 52 }),
-          withTiming(-shake * 0.7, { duration: 48 }),
-          withTiming(shake * 0.55, { duration: 44 }),
-          withTiming(0, { duration: 54 }),
+          withTiming(-shake, { duration: 72 }),
+          withTiming(shake, { duration: 86 }),
+          withTiming(-shake * 0.7, { duration: 80 }),
+          withTiming(shake * 0.55, { duration: 74 }),
+          withTiming(0, { duration: 92 }),
         );
         scale.value = withSequence(
-          withTiming(1.025, { duration: 64 }),
-          withTiming(1, { duration: 150 }),
+          withTiming(1.025, { duration: 120 }),
+          withTiming(1, { duration: 260 }),
         );
         return;
       }
@@ -115,15 +118,15 @@ export function useUnitReactionAnimation({
       }
 
       if (type === "buff") {
-        flash(type, 0.56);
+        flash(type, 0.56, 430);
         translateY.value = withSequence(
-          withTiming(compact ? -2 : -4, { duration: 100 }),
-          withTiming(0, { duration: 170 }),
+          withTiming(compact ? -2 : -4, { duration: 170 }),
+          withTiming(0, { duration: 260 }),
         );
         scale.value = withSequence(
-          withTiming(1.045, { duration: 110 }),
-          withTiming(0.995, { duration: 80 }),
-          withSpring(1, { damping: 9, stiffness: 170 }),
+          withTiming(1.045, { duration: 170 }),
+          withTiming(0.995, { duration: 130 }),
+          withSpring(1, { damping: 11, stiffness: 120 }),
         );
         return;
       }
