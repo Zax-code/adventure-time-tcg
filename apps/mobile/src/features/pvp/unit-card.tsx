@@ -1,7 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Animated, Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
+import Animated, {
+  cancelAnimation,
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
 
 import { getTypeMultiplier, type TypeName } from "@adventure-time/game-engine";
 
@@ -84,35 +93,41 @@ export function UnitCard({
     hpPct >= 100
       ? Math.min(shieldPctRaw, 100)
       : Math.min(shieldPctRaw, Math.max(0, 100 - hpPct));
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-  const pulseLoop = useRef<Animated.CompositeAnimation | null>(null);
+  const outlineOpacity = useSharedValue(1);
+  const pillOffset = useSharedValue(0);
+  const outlineAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: outlineOpacity.value,
+  }));
+  const pillAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: pillOffset.value }],
+  }));
   const shownSeqs = useRef<Set<number>>(new Set());
   const [visibleFloats, setVisibleFloats] = useState<FloatingEvent[]>([]);
 
   useEffect(() => {
-    if (isValidTarget) {
-      pulseLoop.current = Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, {
-            toValue: 0.35,
+    cancelAnimation(outlineOpacity);
+
+    if (isValidTarget && !isSelected) {
+      outlineOpacity.value = withRepeat(
+        withSequence(
+          withTiming(0.35, {
             duration: 600,
-            useNativeDriver: true,
+            easing: Easing.inOut(Easing.quad),
           }),
-          Animated.timing(pulseAnim, {
-            toValue: 1,
+          withTiming(1, {
             duration: 600,
-            useNativeDriver: true,
+            easing: Easing.inOut(Easing.quad),
           }),
-        ]),
+        ),
+        -1,
+        false,
       );
-      pulseLoop.current.start();
     } else {
-      pulseLoop.current?.stop();
-      pulseAnim.setValue(1);
+      outlineOpacity.value = withTiming(1, { duration: 120 });
     }
 
-    return () => pulseLoop.current?.stop();
-  }, [isValidTarget, pulseAnim]);
+    return () => cancelAnimation(outlineOpacity);
+  }, [isSelected, isValidTarget, outlineOpacity]);
 
   useEffect(() => {
     const newOnes = floatingEvents.filter(
@@ -154,6 +169,32 @@ export function UnitCard({
       ...TARGET_EFFECTIVENESS_COLORS.neutral,
     };
   }, [attackerType, isValidTarget, t, unit.type]);
+  const hasEffectivenessPill = typeEffectiveness !== null;
+
+  useEffect(() => {
+    cancelAnimation(pillOffset);
+
+    if (hasEffectivenessPill) {
+      pillOffset.value = withRepeat(
+        withSequence(
+          withTiming(-4, {
+            duration: 220,
+            easing: Easing.out(Easing.quad),
+          }),
+          withTiming(0, {
+            duration: 260,
+            easing: Easing.in(Easing.quad),
+          }),
+        ),
+        -1,
+        false,
+      );
+    } else {
+      pillOffset.value = withTiming(0, { duration: 120 });
+    }
+
+    return () => cancelAnimation(pillOffset);
+  }, [hasEffectivenessPill, pillOffset]);
 
   const imageUrl = resolveBattleImageUrl(unit.imageUrl);
   const hasPublicPassive = unit.passives.length > 0;
@@ -175,9 +216,9 @@ export function UnitCard({
   return (
     <View className="h-full w-full min-w-0">
       {typeEffectiveness ? (
-        <View
+        <Animated.View
           className="absolute left-0 right-0 z-30 items-center"
-          style={{ top: -18 }}
+          style={[{ top: -18 }, pillAnimatedStyle]}
         >
           <View
             style={{
@@ -197,7 +238,7 @@ export function UnitCard({
               {typeEffectiveness.label}
             </Text>
           </View>
-        </View>
+        </Animated.View>
       ) : null}
 
       <Pressable
@@ -365,17 +406,19 @@ export function UnitCard({
             {showStateOutline ? (
               <Animated.View
                 pointerEvents="none"
-                style={{
-                  position: "absolute",
-                  top: 2,
-                  left: 2,
-                  right: 2,
-                  bottom: 2,
-                  borderRadius: 16,
-                  borderWidth: 2,
-                  borderColor: haloColor,
-                  opacity: isSelected ? 0.9 : pulseAnim,
-                }}
+                style={[
+                  {
+                    position: "absolute",
+                    top: 2,
+                    left: 2,
+                    right: 2,
+                    bottom: 2,
+                    borderRadius: 16,
+                    borderWidth: 2,
+                    borderColor: haloColor,
+                  },
+                  isSelected ? { opacity: 0.9 } : outlineAnimatedStyle,
+                ]}
               />
             ) : null}
           </View>
