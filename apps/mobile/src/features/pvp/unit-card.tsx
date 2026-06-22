@@ -21,7 +21,8 @@ import { THEME_COLORS } from "../../theme/themes";
 import { FloatingNumber } from "./floating-number";
 import { resolveBattleImageUrl } from "./image-url";
 import { StatusIcon } from "./status-icon";
-import type { FloatingEvent, PvpUnitState } from "./types";
+import type { FloatingEvent, PvpUnitState, UnitAnimationEvent } from "./types";
+import { useUnitReactionAnimation } from "./unit-reaction-animation";
 
 interface UnitCardProps {
   unit: PvpUnitState;
@@ -33,7 +34,12 @@ interface UnitCardProps {
   onPress?: () => void;
   onLongPress?: () => void;
   floatingEvents?: FloatingEvent[];
+  animationEvents?: UnitAnimationEvent[];
+  swapAnimationOffset?: number;
 }
+
+const EMPTY_FLOATING_EVENTS: FloatingEvent[] = [];
+const EMPTY_UNIT_ANIMATION_EVENTS: UnitAnimationEvent[] = [];
 
 const TYPE_BADGE_COLORS: Record<string, string> = {
   Hero: "#2563EB",
@@ -72,7 +78,9 @@ export function UnitCard({
   canSelectAsActor,
   onPress,
   onLongPress,
-  floatingEvents = [],
+  floatingEvents = EMPTY_FLOATING_EVENTS,
+  animationEvents = EMPTY_UNIT_ANIMATION_EVENTS,
+  swapAnimationOffset = 0,
 }: UnitCardProps) {
   const { t } = useTranslation();
   const themeName = useThemeStore((state) => state.themeName);
@@ -101,7 +109,22 @@ export function UnitCard({
   const pillAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: pillOffset.value }],
   }));
-  const shownSeqs = useRef<Set<number>>(new Set());
+  const {
+    animatedStyle: reactionAnimatedStyle,
+    overlayAnimatedStyle: reactionOverlayAnimatedStyle,
+    overlayColor: reactionOverlayColor,
+    triggerReaction,
+  } = useUnitReactionAnimation({ swapOffset: swapAnimationOffset });
+  const shownSeqsRef = useRef<Set<number> | null>(null);
+  if (shownSeqsRef.current === null) {
+    shownSeqsRef.current = new Set();
+  }
+  const shownSeqs = shownSeqsRef.current;
+  const shownAnimationSeqsRef = useRef<Set<string> | null>(null);
+  if (shownAnimationSeqsRef.current === null) {
+    shownAnimationSeqsRef.current = new Set();
+  }
+  const shownAnimationSeqs = shownAnimationSeqsRef.current;
   const [visibleFloats, setVisibleFloats] = useState<FloatingEvent[]>([]);
 
   useEffect(() => {
@@ -130,14 +153,29 @@ export function UnitCard({
   }, [isSelected, isValidTarget, outlineOpacity]);
 
   useEffect(() => {
-    const newOnes = floatingEvents.filter(
-      (event) => !shownSeqs.current.has(event.seq),
-    );
+    const newOnes = floatingEvents.filter((event) => !shownSeqs.has(event.seq));
     if (newOnes.length > 0) {
-      newOnes.forEach((event) => shownSeqs.current.add(event.seq));
+      newOnes.forEach((event) => shownSeqs.add(event.seq));
       setVisibleFloats((current) => [...current, ...newOnes]);
     }
-  }, [floatingEvents]);
+  }, [floatingEvents, shownSeqs]);
+
+  useEffect(() => {
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    const newOnes = animationEvents.filter((event) => {
+      const key = `${event.seq}:${event.type}`;
+      return !shownAnimationSeqs.has(key);
+    });
+
+    newOnes.forEach((event, index) => {
+      shownAnimationSeqs.add(`${event.seq}:${event.type}`);
+      timers.push(setTimeout(() => triggerReaction(event.type), index * 95));
+    });
+
+    return () => {
+      timers.forEach((timer) => clearTimeout(timer));
+    };
+  }, [animationEvents, shownAnimationSeqs, triggerReaction]);
 
   const dismissFloat = (seq: number) => {
     setVisibleFloats((current) => current.filter((event) => event.seq !== seq));
@@ -241,36 +279,62 @@ export function UnitCard({
         </Animated.View>
       ) : null}
 
-      <Pressable
-        accessibilityRole="button"
-        accessible
-        onPress={onPress}
-        onLongPress={onLongPress}
-        delayLongPress={400}
-        testID={testID}
-        style={({ pressed }) => ({
-          width: "100%",
-          height: "100%",
-          borderRadius: 18,
-          opacity: isDead ? 0.72 : pressed ? 0.96 : 1,
-          transform: [{ scale: pressed ? 0.985 : 1 }],
-        })}
-      >
-        <View className="h-full w-full">
-          <View
-            className="min-h-0 flex-1 overflow-hidden rounded-[18px] bg-slate-950"
-            style={{
-              boxShadow:
-                isSelected || isValidTarget
-                  ? `0 12px 22px ${actionGlowColor}3f`
-                  : canSelectAsActor
-                    ? `0 10px 18px ${actionGlowColor}22`
-                    : "0 6px 12px rgba(15,23,42,0.16)",
-            }}
-          >
-            {imageUrl ? (
-              <Image
-                source={{ uri: imageUrl }}
+      <Animated.View className="h-full w-full" style={reactionAnimatedStyle}>
+        <Pressable
+          accessibilityRole="button"
+          accessible
+          onPress={onPress}
+          onLongPress={onLongPress}
+          delayLongPress={400}
+          testID={testID}
+          style={({ pressed }) => ({
+            width: "100%",
+            height: "100%",
+            borderRadius: 18,
+            opacity: isDead ? 0.72 : pressed ? 0.96 : 1,
+            transform: [{ scale: pressed ? 0.985 : 1 }],
+          })}
+        >
+          <View className="h-full w-full">
+            <View
+              className="min-h-0 flex-1 overflow-hidden rounded-[18px] bg-slate-950"
+              style={{
+                boxShadow:
+                  isSelected || isValidTarget
+                    ? `0 12px 22px ${actionGlowColor}3f`
+                    : canSelectAsActor
+                      ? `0 10px 18px ${actionGlowColor}22`
+                      : "0 6px 12px rgba(15,23,42,0.16)",
+              }}
+            >
+              {imageUrl ? (
+                <Image
+                  source={{ uri: imageUrl }}
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    right: 0,
+                    bottom: 0,
+                    left: 0,
+                  }}
+                  contentFit="cover"
+                />
+              ) : (
+                <View className="absolute inset-0 items-center justify-center bg-primaryTint">
+                  <Text className="font-nunito-extrabold text-4xl text-primaryText">
+                    {unit.name.charAt(0)}
+                  </Text>
+                </View>
+              )}
+
+              <LinearGradient
+                colors={[
+                  "rgba(0,0,0,0.05)",
+                  "rgba(0,0,0,0.18)",
+                  "rgba(0,0,0,0.9)",
+                ]}
+                start={{ x: 0.5, y: 0 }}
+                end={{ x: 0.5, y: 1 }}
                 style={{
                   position: "absolute",
                   top: 0,
@@ -278,193 +342,188 @@ export function UnitCard({
                   bottom: 0,
                   left: 0,
                 }}
-                contentFit="cover"
               />
-            ) : (
-              <View className="absolute inset-0 items-center justify-center bg-primaryTint">
-                <Text className="font-nunito-extrabold text-4xl text-primaryText">
-                  {unit.name.charAt(0)}
-                </Text>
-              </View>
-            )}
-
-            <LinearGradient
-              colors={[
-                "rgba(0,0,0,0.05)",
-                "rgba(0,0,0,0.18)",
-                "rgba(0,0,0,0.9)",
-              ]}
-              start={{ x: 0.5, y: 0 }}
-              end={{ x: 0.5, y: 1 }}
-              style={{
-                position: "absolute",
-                top: 0,
-                right: 0,
-                bottom: 0,
-                left: 0,
-              }}
-            />
-            <LinearGradient
-              pointerEvents="none"
-              colors={["rgba(255,255,255,0.26)", "rgba(255,255,255,0)"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 0.78, y: 0.52 }}
-              style={{
-                position: "absolute",
-                top: 0,
-                right: 0,
-                left: 0,
-                height: "48%",
-              }}
-            />
-
-            {visibleFloats.map((event) => (
-              <FloatingNumber
-                key={event.seq}
-                amount={event.amount}
-                type={event.type}
-                onDone={() => dismissFloat(event.seq)}
-              />
-            ))}
-
-            <View className="absolute left-2 right-2 top-1.5 flex-row items-start justify-between gap-1">
-              <View className="min-w-0 flex-1">
-                <View
-                  className="self-start rounded-full px-1.5"
-                  style={{ backgroundColor: typeBadgeColor }}
-                >
-                  <Text
-                    className="font-nunito-extrabold text-white"
-                    numberOfLines={1}
-                    style={{ fontSize: 12, lineHeight: 14 }}
-                  >
-                    {unit.type.toUpperCase()}
-                  </Text>
-                </View>
-                <Text
-                  className="font-nunito-extrabold text-white"
-                  numberOfLines={1}
-                  style={{ fontSize: 12, lineHeight: 14 }}
-                >
-                  {unit.character || t("pvp.unknown")}
-                </Text>
-              </View>
-
-              {hasPublicPassive ? (
-                <View
-                  accessibilityLabel={t("pvp.publicPassive")}
-                  className="h-5 w-5 items-center justify-center rounded-full bg-amber-300"
-                >
-                  <SparklesIcon size={10} color="#78350F" />
-                </View>
-              ) : null}
-            </View>
-
-            <View className="absolute bottom-1.5 left-2 right-2 flex-row items-end justify-between gap-1">
-              <View className="flex-row gap-0.5">
-                {unit.statuses.slice(0, 2).map((status) => (
-                  <StatusIcon
-                    key={`${status.name}-${status.appliedAt}`}
-                    name={status.name}
-                    duration={status.duration}
-                    magnitude={status.magnitude}
-                  />
-                ))}
-              </View>
-              <View className="flex-row gap-1">
-                <StatBadge label="ATK" value={unit.attack} delta={atkDelta} />
-                <StatBadge label="DEF" value={unit.defense} delta={defDelta} />
-              </View>
-            </View>
-
-            {hasSummoningSickness && !isDead ? (
-              <View className="absolute inset-0 items-center justify-center bg-sky-500/30">
-                <View className="rounded-full bg-sky-700/90 px-3 py-1">
-                  <Text className="font-nunito-extrabold text-xs text-white">
-                    Zzz
-                  </Text>
-                </View>
-              </View>
-            ) : null}
-
-            {isDead ? (
-              <View className="absolute inset-0 items-center justify-center bg-black/60">
-                <View className="rounded-full bg-rose-600 p-1.5">
-                  <XCircleIcon size={18} color="#fff" />
-                </View>
-              </View>
-            ) : null}
-
-            {isSelected ? (
-              <View
+              <LinearGradient
                 pointerEvents="none"
-                className="absolute right-2 top-2 h-3 w-3 rounded-full bg-amber-300"
-                style={{ boxShadow: "0 0 12px rgba(250,204,21,0.84)" }}
+                colors={["rgba(255,255,255,0.26)", "rgba(255,255,255,0)"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0.78, y: 0.52 }}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  right: 0,
+                  left: 0,
+                  height: "48%",
+                }}
               />
-            ) : null}
 
-            {showStateOutline ? (
               <Animated.View
                 pointerEvents="none"
                 style={[
                   {
                     position: "absolute",
-                    top: 2,
-                    left: 2,
-                    right: 2,
-                    bottom: 2,
-                    borderRadius: 16,
-                    borderWidth: 2,
-                    borderColor: haloColor,
+                    top: 0,
+                    right: 0,
+                    bottom: 0,
+                    left: 0,
+                    backgroundColor: reactionOverlayColor,
                   },
-                  isSelected ? { opacity: 0.9 } : outlineAnimatedStyle,
+                  reactionOverlayAnimatedStyle,
                 ]}
               />
-            ) : null}
-          </View>
 
-          <View className="mt-1 h-[16px] items-center justify-center px-3">
-            <View className="h-[12px] w-full overflow-hidden rounded-full bg-slate-950/70">
-              <View
-                style={{
-                  position: "absolute",
-                  left: 0,
-                  top: 0,
-                  bottom: 0,
-                  width: `${hpPct}%`,
-                  backgroundColor: hpColor,
-                }}
-              />
-              {shieldBarPct > 0 ? (
+              {visibleFloats.map((event) => (
+                <FloatingNumber
+                  key={event.seq}
+                  amount={event.amount}
+                  type={event.type}
+                  onDone={() => dismissFloat(event.seq)}
+                />
+              ))}
+
+              <View className="absolute left-2 right-2 top-1.5 flex-row items-start justify-between gap-1">
+                <View className="min-w-0 flex-1">
+                  <View
+                    className="self-start rounded-full px-1.5"
+                    style={{ backgroundColor: typeBadgeColor }}
+                  >
+                    <Text
+                      className="font-nunito-extrabold text-white"
+                      numberOfLines={1}
+                      style={{ fontSize: 12, lineHeight: 14 }}
+                    >
+                      {unit.type.toUpperCase()}
+                    </Text>
+                  </View>
+                  <Text
+                    className="font-nunito-extrabold text-white"
+                    numberOfLines={1}
+                    style={{ fontSize: 12, lineHeight: 14 }}
+                  >
+                    {unit.character || t("pvp.unknown")}
+                  </Text>
+                </View>
+
+                {hasPublicPassive ? (
+                  <View
+                    accessibilityLabel={t("pvp.publicPassive")}
+                    className="h-5 w-5 items-center justify-center rounded-full bg-amber-300"
+                  >
+                    <SparklesIcon size={10} color="#78350F" />
+                  </View>
+                ) : null}
+              </View>
+
+              <View className="absolute bottom-1.5 left-2 right-2 flex-row items-end justify-between gap-1">
+                <View className="flex-row gap-0.5">
+                  {unit.statuses.slice(0, 2).map((status) => (
+                    <StatusIcon
+                      key={`${status.name}-${status.appliedAt}`}
+                      name={status.name}
+                      duration={status.duration}
+                      magnitude={status.magnitude}
+                    />
+                  ))}
+                </View>
+                <View className="flex-row gap-1">
+                  <StatBadge label="ATK" value={unit.attack} delta={atkDelta} />
+                  <StatBadge
+                    label="DEF"
+                    value={unit.defense}
+                    delta={defDelta}
+                  />
+                </View>
+              </View>
+
+              {hasSummoningSickness && !isDead ? (
+                <View className="absolute inset-0 items-center justify-center bg-sky-500/30">
+                  <View className="rounded-full bg-sky-700/90 px-3 py-1">
+                    <Text className="font-nunito-extrabold text-xs text-white">
+                      Zzz
+                    </Text>
+                  </View>
+                </View>
+              ) : null}
+
+              {isDead ? (
+                <View className="absolute inset-0 items-center justify-center bg-black/60">
+                  <View className="rounded-full bg-rose-600 p-1.5">
+                    <XCircleIcon size={18} color="#fff" />
+                  </View>
+                </View>
+              ) : null}
+
+              {isSelected ? (
+                <View
+                  pointerEvents="none"
+                  className="absolute right-2 top-2 h-3 w-3 rounded-full bg-amber-300"
+                  style={{ boxShadow: "0 0 12px rgba(250,204,21,0.84)" }}
+                />
+              ) : null}
+
+              {showStateOutline ? (
+                <Animated.View
+                  pointerEvents="none"
+                  style={[
+                    {
+                      position: "absolute",
+                      top: 2,
+                      left: 2,
+                      right: 2,
+                      bottom: 2,
+                      borderRadius: 16,
+                      borderWidth: 2,
+                      borderColor: haloColor,
+                    },
+                    isSelected ? { opacity: 0.9 } : outlineAnimatedStyle,
+                  ]}
+                />
+              ) : null}
+            </View>
+
+            <View className="mt-1 h-[16px] items-center justify-center px-3">
+              <View className="h-[12px] w-full overflow-hidden rounded-full bg-slate-950/70">
                 <View
                   style={{
                     position: "absolute",
+                    left: 0,
                     top: 0,
                     bottom: 0,
-                    width: `${shieldBarPct}%`,
-                    backgroundColor: "#38BDF8",
-                    ...(hpPct >= 100 ? { right: 0 } : { left: `${hpPct}%` }),
+                    width: `${hpPct}%`,
+                    backgroundColor: hpColor,
                   }}
                 />
-              ) : null}
-              <View className="absolute inset-0 items-center justify-center">
-                <Text
-                  style={{
-                    color: "#fff",
-                    fontSize: 12,
-                    lineHeight: 12,
-                    fontFamily: "Nunito_700Bold",
-                  }}
-                >
-                  {shieldAmount > 0
-                    ? `${unit.hp} + ${shieldAmount} / ${unit.maxHp}`
-                    : `${unit.hp}/${unit.maxHp}`}
-                </Text>
+                {shieldBarPct > 0 ? (
+                  <View
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      bottom: 0,
+                      width: `${shieldBarPct}%`,
+                      backgroundColor: "#38BDF8",
+                      ...(hpPct >= 100 ? { right: 0 } : { left: `${hpPct}%` }),
+                    }}
+                  />
+                ) : null}
+                <View className="absolute inset-0 items-center justify-center">
+                  <Text
+                    style={{
+                      color: "#fff",
+                      fontSize: 12,
+                      lineHeight: 12,
+                      fontFamily: "Nunito_700Bold",
+                    }}
+                  >
+                    {shieldAmount > 0
+                      ? `${unit.hp} + ${shieldAmount} / ${unit.maxHp}`
+                      : `${unit.hp}/${unit.maxHp}`}
+                  </Text>
+                </View>
               </View>
             </View>
           </View>
-        </View>
-      </Pressable>
+        </Pressable>
+      </Animated.View>
     </View>
   );
 }

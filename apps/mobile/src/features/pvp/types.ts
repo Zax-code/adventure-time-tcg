@@ -50,6 +50,21 @@ export interface FloatingEvent {
   amount: number;
 }
 
+export type UnitAnimationEventType =
+  | "damage"
+  | "heal"
+  | "death"
+  | "buff"
+  | "debuff"
+  | "swap-in"
+  | "swap-out";
+
+export interface UnitAnimationEvent {
+  seq: number;
+  targetInstanceId: string;
+  type: UnitAnimationEventType;
+}
+
 export interface PreparedBattleAction {
   actionKind: "basic" | "skill" | "ultimate" | "copy";
   actorInstanceId: string;

@@ -171,3 +171,11 @@ export function getEventSourceId(event: CombatEvent): string | null {
 export function getEventDestinationId(event: CombatEvent): string | null {
   return pickString(event.payload, ["destinationId", "redirectedToId", "toId"]);
 }
+
+export function getEventActiveOutId(event: CombatEvent): string | null {
+  return pickString(event.payload, ["activeOut", "activeInstanceId"]);
+}
+
+export function getEventBenchInId(event: CombatEvent): string | null {
+  return pickString(event.payload, ["benchIn", "benchInstanceId"]);
+}

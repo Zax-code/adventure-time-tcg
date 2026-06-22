@@ -10,13 +10,8 @@ import type {
 
 import { apiClient } from "../../lib/api";
 import { useSessionStore } from "../../stores/session-store";
-import {
-  getEventAmount,
-  getEventTargetInstanceId,
-  isCritEvent,
-  isMissEvent,
-} from "./event-payload";
-import { deriveMyMatchView, type FloatingEvent, type MyMatchView } from "./types";
+import { buildPvpVisualEvents } from "./animation-events";
+import { deriveMyMatchView, type MyMatchView } from "./types";
 
 type PvpMatchesResponse = {
   matches: PvpMatch[];
@@ -120,38 +115,10 @@ export function useMatch(matchId: string) {
   }, [data?.match, refreshPvpLobbyQueries]);
 
   const prevLogLength = logLengthRef.current;
-  const newEvents: FloatingEvent[] = [];
+  let newEvents = buildPvpVisualEvents([]);
   if (battleState) {
     const logSlice = battleState.log.slice(prevLogLength);
-    for (const event of logSlice) {
-      if (event.type === "damage" || event.type === "crit") {
-        const targetInstanceId = getEventTargetInstanceId(event) ?? "";
-        const amount = getEventAmount(event) ?? 0;
-        if (targetInstanceId) {
-          newEvents.push({
-            seq: event.seq,
-            targetInstanceId,
-            type: isMissEvent(event)
-              ? "miss"
-              : isCritEvent(event)
-                ? "crit"
-                : "damage",
-            amount,
-          });
-        }
-      } else if (event.type === "heal") {
-        const targetInstanceId = getEventTargetInstanceId(event) ?? "";
-        const amount = getEventAmount(event) ?? 0;
-        if (targetInstanceId && amount > 0) {
-          newEvents.push({
-            seq: event.seq,
-            targetInstanceId,
-            type: "heal",
-            amount,
-          });
-        }
-      }
-    }
+    newEvents = buildPvpVisualEvents(logSlice);
     logLengthRef.current = battleState.log.length;
   }
 
@@ -283,7 +250,8 @@ export function useMatch(matchId: string) {
     isError,
     rawMatch: data?.match ?? null,
     isActing: actionMutation.isPending || endTurnMutation.isPending,
-    newEvents,
+    newEvents: newEvents.floatingEvents,
+    unitAnimationEvents: newEvents.unitAnimationEvents,
     submitAction,
     submitEndTurn,
     concede,

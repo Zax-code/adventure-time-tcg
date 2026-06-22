@@ -103,6 +103,7 @@ export default function PvpMatchScreen() {
     rawMatch,
     isActing,
     newEvents,
+    unitAnimationEvents,
     submitAction,
     submitEndTurn,
     concede,
@@ -325,6 +326,7 @@ export default function PvpMatchScreen() {
       <BattleBoard
         matchView={matchView}
         newEvents={newEvents}
+        unitAnimationEvents={unitAnimationEvents}
         turnExpiresAt={rawMatch?.turnExpiresAt ?? null}
         isActing={isActing}
         pendingSwap={pendingSwap}

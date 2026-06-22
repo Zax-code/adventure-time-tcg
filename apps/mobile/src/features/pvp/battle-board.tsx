@@ -29,11 +29,13 @@ import type {
   MyMatchView,
   SwapSelection,
   TargetingMode,
+  UnitAnimationEvent,
 } from "./types";
 
 interface BattleBoardProps {
   matchView: MyMatchView;
   newEvents: FloatingEvent[];
+  unitAnimationEvents: UnitAnimationEvent[];
   isActing: boolean;
   pendingSwap: SwapSelection;
   isSwapMode: boolean;
@@ -158,6 +160,7 @@ function EnergyPill({ energy }: { energy: number }) {
 export function BattleBoard({
   matchView,
   newEvents,
+  unitAnimationEvents,
   isActing,
   pendingSwap,
   isSwapMode,
@@ -229,6 +232,17 @@ export function BattleBoard({
     }
     return next;
   }, [newEvents]);
+
+  const animationsByUnit = useMemo(() => {
+    const next: Record<string, UnitAnimationEvent[]> = {};
+    for (const event of unitAnimationEvents) {
+      if (!next[event.targetInstanceId]) {
+        next[event.targetInstanceId] = [];
+      }
+      next[event.targetInstanceId].push(event);
+    }
+    return next;
+  }, [unitAnimationEvents]);
 
   const sortedMyUnits = useMemo(
     () => sortByPosition(myPlayer.units),
@@ -444,6 +458,8 @@ export function BattleBoard({
                       onPress={() => handleOppUnitPress(unit.instanceId)}
                       onLongPress={() => handleLongPress(unit.instanceId)}
                       floatingEvents={floatingByUnit[unit.instanceId] ?? []}
+                      animationEvents={animationsByUnit[unit.instanceId] ?? []}
+                      swapAnimationOffset={48}
                     />
                   </View>
                 ))}
@@ -460,6 +476,8 @@ export function BattleBoard({
                       testID={`pvp-opponent-bench-${index}`}
                       onPress={() => handleOppUnitPress(unit.instanceId)}
                       onLongPress={() => handleLongPress(unit.instanceId)}
+                      animationEvents={animationsByUnit[unit.instanceId] ?? []}
+                      swapAnimationOffset={-36}
                     />
                   </View>
                 ))}
@@ -553,6 +571,8 @@ export function BattleBoard({
                       }
                       onPress={() => handleBenchPress(unit.instanceId)}
                       onLongPress={() => handleLongPress(unit.instanceId)}
+                      animationEvents={animationsByUnit[unit.instanceId] ?? []}
+                      swapAnimationOffset={36}
                     />
                   </View>
                 ))}
@@ -585,6 +605,8 @@ export function BattleBoard({
                       onPress={() => handleUnitPress(unit.instanceId)}
                       onLongPress={() => handleLongPress(unit.instanceId)}
                       floatingEvents={floatingByUnit[unit.instanceId] ?? []}
+                      animationEvents={animationsByUnit[unit.instanceId] ?? []}
+                      swapAnimationOffset={-48}
                     />
                   </View>
                 ))}

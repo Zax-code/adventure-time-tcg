@@ -87,6 +87,7 @@ export default function PvpSpectateMatchScreen() {
       <BattleBoard
         matchView={matchView}
         newEvents={[]}
+        unitAnimationEvents={[]}
         isActing={false}
         pendingSwap={null}
         isSwapMode={false}

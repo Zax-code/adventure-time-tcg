@@ -14,63 +14,14 @@ import {
   SkipBackIcon,
   SkipForwardIcon,
 } from "../src/components/icons";
-import type { FloatingEvent } from "../src/features/pvp/types";
+import { buildPvpVisualEvents } from "../src/features/pvp/animation-events";
 import { BattleBoard } from "../src/features/pvp/battle-board";
-import {
-  buildReplayTurnViews,
-  type ReplayTurnView,
-} from "../src/features/pvp/read-only-view";
-import {
-  getEventAmount,
-  getEventTargetInstanceId,
-  isCritEvent,
-  isMissEvent,
-} from "../src/features/pvp/event-payload";
+import { buildReplayTurnViews } from "../src/features/pvp/read-only-view";
 import { useTranslation } from "../src/i18n";
 import { apiClient } from "../src/lib/api";
 import { useSessionStore } from "../src/stores/session-store";
 import { useThemeStore } from "../src/stores/theme-store";
 import { THEME_COLORS, THEME_VARS } from "../src/theme/themes";
-
-function buildFloatingEvents(
-  events: ReplayTurnView["events"],
-): FloatingEvent[] {
-  const next: FloatingEvent[] = [];
-
-  for (const event of events) {
-    if (event.type === "damage" || event.type === "crit") {
-      const targetInstanceId = getEventTargetInstanceId(event) ?? "";
-      const amount = getEventAmount(event) ?? 0;
-
-      if (targetInstanceId) {
-        next.push({
-          seq: event.seq,
-          targetInstanceId,
-          type: isMissEvent(event)
-            ? "miss"
-            : isCritEvent(event)
-              ? "crit"
-              : "damage",
-          amount,
-        });
-      }
-    } else if (event.type === "heal") {
-      const targetInstanceId = getEventTargetInstanceId(event) ?? "";
-      const amount = getEventAmount(event) ?? 0;
-
-      if (targetInstanceId && amount > 0) {
-        next.push({
-          seq: event.seq,
-          targetInstanceId,
-          type: "heal",
-          amount,
-        });
-      }
-    }
-  }
-
-  return next;
-}
 
 export default function PvpReplayScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -99,8 +50,11 @@ export default function PvpReplayScreen() {
   const currentTurnView =
     turnViews[Math.max(0, Math.min(currentTurnIndex, turnViews.length - 1))] ??
     null;
-  const floatingEvents = useMemo(
-    () => (currentTurnView ? buildFloatingEvents(currentTurnView.events) : []),
+  const visualEvents = useMemo(
+    () =>
+      currentTurnView
+        ? buildPvpVisualEvents(currentTurnView.events)
+        : buildPvpVisualEvents([]),
     [currentTurnView],
   );
 
@@ -215,7 +169,8 @@ export default function PvpReplayScreen() {
 
       <BattleBoard
         matchView={currentTurnView.matchView}
-        newEvents={floatingEvents}
+        newEvents={visualEvents.floatingEvents}
+        unitAnimationEvents={visualEvents.unitAnimationEvents}
         isActing={false}
         pendingSwap={null}
         isSwapMode={false}
