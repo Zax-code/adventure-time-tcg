@@ -14,11 +14,12 @@ import Animated, {
 
 import { getTypeMultiplier, type TypeName } from "@adventure-time/game-engine";
 
-import { SparklesIcon, XCircleIcon } from "../../components/icons";
+import { SparklesIcon } from "../../components/icons";
 import { useTranslation } from "../../i18n";
 import { useThemeStore } from "../../stores/theme-store";
 import { THEME_COLORS } from "../../theme/themes";
 import { FloatingNumber } from "./floating-number";
+import { KoSkull } from "./ko-skull";
 import { resolveBattleImageUrl } from "./image-url";
 import { StatusIcon } from "./status-icon";
 import type { FloatingEvent, PvpUnitState, UnitAnimationEvent } from "./types";
@@ -449,10 +450,15 @@ export function UnitCard({
               ) : null}
 
               {isDead ? (
-                <View className="absolute inset-0 items-center justify-center bg-black/60">
-                  <View className="rounded-full bg-rose-600 p-1.5">
-                    <XCircleIcon size={18} color="#fff" />
-                  </View>
+                <View
+                  pointerEvents="none"
+                  className="absolute inset-0 bg-slate-950/50"
+                />
+              ) : null}
+
+              {isDead ? (
+                <View className="absolute inset-0 items-center justify-center">
+                  <KoSkull size={26} color="rgba(248,250,252,0.78)" />
                 </View>
               ) : null}
 

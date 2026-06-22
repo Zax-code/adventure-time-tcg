@@ -8,6 +8,7 @@ import { SparklesIcon } from "../../components/icons";
 import { useTranslation } from "../../i18n";
 import { useThemeStore } from "../../stores/theme-store";
 import { THEME_COLORS } from "../../theme/themes";
+import { KoSkull } from "./ko-skull";
 import { resolveBattleImageUrl } from "./image-url";
 import type { PvpUnitState, UnitAnimationEvent } from "./types";
 import { useUnitReactionAnimation } from "./unit-reaction-animation";
@@ -179,8 +180,15 @@ export function BenchCard({
         />
 
         {isDead ? (
-          <View className="absolute left-0 right-0 top-0 h-10 items-center justify-center rounded-[14px] bg-black/55">
-            <Text className="font-nunito-bold text-xs text-white">KO</Text>
+          <View
+            pointerEvents="none"
+            className="absolute left-0 right-0 top-0 h-10 rounded-[14px] bg-slate-950/40"
+          />
+        ) : null}
+
+        {isDead ? (
+          <View className="absolute left-0 right-0 top-0 h-10 items-center justify-center">
+            <KoSkull size={16} color="rgba(248,250,252,0.72)" />
           </View>
         ) : null}
 
