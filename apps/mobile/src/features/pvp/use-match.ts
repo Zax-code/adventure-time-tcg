@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   PvpAction,
   PvpEndTurnInput,
+  PvpMatch,
   PvpMatchDetailResponse,
 } from "@adventure-time/api-client";
 
@@ -17,11 +18,65 @@ import {
 } from "./event-payload";
 import { deriveMyMatchView, type FloatingEvent, type MyMatchView } from "./types";
 
+type PvpMatchesResponse = {
+  matches: PvpMatch[];
+};
+
+type PvpHistoryResponse = {
+  matches: PvpMatch[];
+  totalCount?: number;
+  currentUserId?: string;
+  stats?: {
+    wins: number;
+    losses: number;
+    draws: number;
+    winRate: number;
+  };
+};
+
+function getConcedeWinnerId(match: PvpMatch, concedingUserId: string) {
+  if (match.inviterId === concedingUserId) {
+    return match.inviteeId;
+  }
+
+  if (match.inviteeId === concedingUserId) {
+    return match.inviterId;
+  }
+
+  return match.winnerId;
+}
+
+function toConcededMatch(match: PvpMatch, concedingUserId: string): PvpMatch {
+  const concededMatch: PvpMatch = {
+    ...match,
+    status: "COMPLETED",
+    winnerId: getConcedeWinnerId(match, concedingUserId),
+    completionReason: "CONCEDE",
+    hasReplayData: true,
+    updatedAt: new Date().toISOString(),
+  };
+
+  delete concededMatch.turnExpiresAt;
+
+  return concededMatch;
+}
+
+function upsertMatch(matches: PvpMatch[], match: PvpMatch) {
+  return [match, ...matches.filter((entry) => entry.id !== match.id)];
+}
+
 export function useMatch(matchId: string) {
   const queryClient = useQueryClient();
   const myUserId = useSessionStore((s) => s.user?.id ?? "");
   const logLengthRef = useRef(0);
   const matchQueryKey = ["pvp-match", matchId] as const;
+
+  const refreshPvpLobbyQueries = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["pvp-invites"] });
+    queryClient.invalidateQueries({ queryKey: ["pvp-matches"] });
+    queryClient.invalidateQueries({ queryKey: ["pvp-history"] });
+    queryClient.invalidateQueries({ queryKey: ["pvp-spectate"] });
+  }, [queryClient]);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: matchQueryKey,
@@ -86,6 +141,7 @@ export function useMatch(matchId: string) {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: matchQueryKey });
+      refreshPvpLobbyQueries();
     },
   });
 
@@ -103,13 +159,78 @@ export function useMatch(matchId: string) {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: matchQueryKey });
+      refreshPvpLobbyQueries();
     },
   });
 
   const concedeMutation = useMutation({
     mutationFn: () => apiClient.concedePvpMatch(matchId),
+    onSuccess: () => {
+      const detailMatch =
+        queryClient.getQueryData<PvpMatchDetailResponse>(matchQueryKey)?.match ??
+        null;
+      let cachedMatch = detailMatch;
+
+      queryClient.setQueryData<PvpMatchesResponse>(
+        ["pvp-matches"],
+        (current) => {
+          if (!current) {
+            return current;
+          }
+
+          const activeMatch = current.matches.find(
+            (match) => match.id === matchId,
+          );
+          cachedMatch = cachedMatch ?? activeMatch ?? null;
+
+          return {
+            ...current,
+            matches: current.matches.filter((match) => match.id !== matchId),
+          };
+        },
+      );
+
+      if (!cachedMatch) {
+        return;
+      }
+
+      const concededMatch = toConcededMatch(cachedMatch, myUserId);
+
+      queryClient.setQueryData<PvpMatchDetailResponse>(
+        matchQueryKey,
+        (current) =>
+          current
+            ? {
+                ...current,
+                match: concededMatch,
+                battleState: null,
+              }
+            : current,
+      );
+      queryClient.setQueryData<PvpHistoryResponse>(
+        ["pvp-history"],
+        (current) =>
+          current
+            ? {
+                ...current,
+                matches: upsertMatch(current.matches, concededMatch),
+              }
+            : current,
+      );
+      queryClient.setQueryData<PvpMatchesResponse>(
+        ["pvp-spectate"],
+        (current) =>
+          current
+            ? {
+                ...current,
+                matches: current.matches.filter((match) => match.id !== matchId),
+              }
+            : current,
+      );
+    },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["pvp-match", matchId] });
+      queryClient.invalidateQueries({ queryKey: matchQueryKey });
+      refreshPvpLobbyQueries();
     },
   });
 
