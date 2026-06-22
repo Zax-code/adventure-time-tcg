@@ -137,3 +137,101 @@ test("pvp match detail accepts null payload status magnitude as absent", () => {
     "afterOwnerTurnEndEffects",
   );
 });
+
+test("pvp match detail accepts sanitized all-units and conditional payloads", () => {
+  const response = {
+    match: {
+      id: "match-1",
+      inviterId: "user-1",
+      inviteeId: "user-2",
+      status: "IN_PROGRESS",
+      inviterLoadout: [],
+      inviteeLoadout: [],
+      winnerId: null,
+      currentTurn: 1,
+      createdAt: "2026-06-22T00:00:00Z",
+      updatedAt: "2026-06-22T00:00:00Z",
+    },
+    battleState: {
+      id: "match-1",
+      turn: 1,
+      phase: "active",
+      currentPlayerId: "user-1",
+      players: [
+        {
+          userId: "user-1",
+          name: "A",
+          energy: 0,
+          maxEnergy: 1,
+          hasUsedFreeBasic: false,
+          units: [makeUnit("u1")],
+          bench: [],
+        },
+        {
+          userId: "user-2",
+          name: "B",
+          energy: 0,
+          maxEnergy: 1,
+          hasUsedFreeBasic: false,
+          units: [makeUnit("u2")],
+          bench: [],
+        },
+      ],
+      log: [],
+      isMyTurn: true,
+      myUserId: "user-1",
+      abilityDefinitions: {
+        "lsp.lumpyPower": {
+          key: "lsp.lumpyPower",
+          name: "Lumpy Power",
+          description: "Cleanse everyone.",
+          type: "ULTIMATE",
+          cost: 3,
+          cooldown: null,
+          oncePerMatch: true,
+          payload: {
+            target: "allUnits",
+            cleanse: {
+              count: 99,
+              target: "allUnits",
+              includeBuffs: true,
+            },
+          },
+        },
+        "flame king.firekingdom": {
+          key: "flame king.firekingdom",
+          name: "Fire Kingdom",
+          description: "Burning targets take splash damage.",
+          type: "ULTIMATE",
+          cost: 3,
+          cooldown: null,
+          oncePerMatch: true,
+          payload: {
+            damageMul: 1.4,
+            target: "enemy",
+            conditional: [
+              {
+                when: { targetHas: "Burn" },
+                damageMulDelta: 0.4,
+                mergePayload: { splashPct: 1 / 3 },
+              },
+            ],
+          },
+        },
+      },
+    },
+  };
+
+  const parsed = pvpMatchDetailResponseSchema.parse(response);
+
+  assert.equal(
+    parsed.battleState?.abilityDefinitions?.["lsp.lumpyPower"].payload
+      ?.cleanse?.target,
+    "allUnits",
+  );
+  assert.equal(
+    parsed.battleState?.abilityDefinitions?.["flame king.firekingdom"].payload
+      ?.conditional?.[0]?.mergePayload?.splashPct,
+    1 / 3,
+  );
+});

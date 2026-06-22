@@ -163,6 +163,7 @@ export const abilityTargetValues = [
   "any",
   "allAllies",
   "allEnemies",
+  "allUnits",
   "all",
 ] as const;
 
@@ -283,7 +284,14 @@ const pvpPayloadSelfBuffSpecSchema = z
 const pvpPayloadCleanseSchema = z
   .object({
     count: z.number(),
-    target: z.enum(["self", "ally", "allAllies", "allEnemies"]),
+    target: z.enum([
+      "self",
+      "ally",
+      "allAllies",
+      "allEnemies",
+      "allUnits",
+      "all",
+    ]),
   })
   .passthrough();
 
@@ -318,6 +326,7 @@ const pvpPayloadConditionalEffectSchema = z
     when: pvpPayloadConditionSchema,
     addApplyStatuses: z.array(pvpPayloadStatusSpecSchema).optional(),
     damageMulDelta: z.number().optional(),
+    mergePayload: z.record(z.string(), z.unknown()).optional(),
   })
   .passthrough();
 

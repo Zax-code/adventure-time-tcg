@@ -16,6 +16,8 @@ export function getAbilityTarget(payload: AbilityPayload): AbilityTarget {
     const target = payload.cleanse.target;
     if (target === "allEnemies") return "allEnemies";
     if (target === "allAllies") return "allAllies";
+    if (target === "allUnits") return "allUnits";
+    if (target === "all") return "all";
     if (target === "self") return "self";
     if (target === "ally") return "ally";
   }
@@ -67,6 +69,7 @@ export function getTargetUnits(
     case "allEnemies":
       return opponent.units.filter((u) => u.hp > 0);
     case "all":
+    case "allUnits":
       return [
         ...currentPlayer.units.filter((u) => u.hp > 0),
         ...opponent.units.filter((u) => u.hp > 0),
