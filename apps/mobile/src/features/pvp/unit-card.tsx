@@ -3,7 +3,7 @@ import { Animated, Pressable, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 
-import { getTypeMultiplier } from "@adventure-time/game-engine";
+import { getTypeMultiplier, type TypeName } from "@adventure-time/game-engine";
 
 import { SparklesIcon, XCircleIcon } from "../../components/icons";
 import { useTranslation } from "../../i18n";
@@ -37,6 +37,21 @@ const TYPE_BADGE_COLORS: Record<string, string> = {
   Magic: "#8B5CF6",
   Demon: "#7F1D1D",
   Cosmic: "#4338CA",
+};
+
+const TARGET_EFFECTIVENESS_COLORS = {
+  super: {
+    bg: "#16A34A",
+    border: "#22C55E",
+  },
+  weak: {
+    bg: "#DC2626",
+    border: "#FB7185",
+  },
+  neutral: {
+    bg: "#2563EB",
+    border: "#60A5FA",
+  },
 };
 
 export function UnitCard({
@@ -118,25 +133,25 @@ export function UnitCard({
       return null;
     }
 
-    const mult = getTypeMultiplier(attackerType as never, unit.type as never);
+    const mult = getTypeMultiplier(
+      attackerType as TypeName,
+      unit.type as TypeName,
+    );
     if (mult > 1) {
       return {
         label: t("pvp.effectiveness.super"),
-        bg: "#16A34A",
-        border: "#22C55E",
+        ...TARGET_EFFECTIVENESS_COLORS.super,
       };
     }
     if (mult < 1) {
       return {
         label: t("pvp.effectiveness.weak"),
-        bg: "#DC2626",
-        border: "#FB7185",
+        ...TARGET_EFFECTIVENESS_COLORS.weak,
       };
     }
     return {
       label: t("pvp.effectiveness.neutral"),
-      bg: "#64748B",
-      border: "#94A3B8",
+      ...TARGET_EFFECTIVENESS_COLORS.neutral,
     };
   }, [attackerType, isValidTarget, t, unit.type]);
 

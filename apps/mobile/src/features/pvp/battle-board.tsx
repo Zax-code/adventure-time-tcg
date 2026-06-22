@@ -242,7 +242,12 @@ export function BattleBoard({
     ? (sortedMyUnits.find((unit) => unit.instanceId === selectedActorId) ??
       null)
     : null;
-  const actorType = selectedActor?.type;
+  const targetingActor = targeting
+    ? (sortedMyUnits.find(
+        (unit) => unit.instanceId === targeting.actorInstanceId,
+      ) ?? null)
+    : null;
+  const actorType = selectedActor?.type ?? targetingActor?.type;
   const hasBench = myPlayer.bench.some((unit) => unit.hp > 0);
   const hasReadyActor = sortedMyUnits.some(
     (unit) =>

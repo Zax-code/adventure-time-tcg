@@ -31,6 +31,10 @@ type E2EMatchModal =
   | "end-turn"
   | "concede";
 
+type TargetingModeInput = Omit<TargetingMode, "validTargetIds"> & {
+  validTargetIds?: string[];
+};
+
 const e2eAuthEnabled = process.env.EXPO_PUBLIC_E2E_AUTH === "1";
 
 function parseE2EModal(
@@ -71,6 +75,13 @@ function parseMatchRouteId(value: string | undefined) {
   return {
     matchId,
     e2eModal: parseE2EModal(modal),
+  };
+}
+
+function normalizeTargetingMode(mode: TargetingModeInput): TargetingMode {
+  return {
+    ...mode,
+    validTargetIds: mode.validTargetIds ?? [],
   };
 }
 
@@ -264,15 +275,8 @@ export default function PvpMatchScreen() {
     setShowConcedeConfirm(true);
   };
 
-  const handleActionSelected = (
-    mode: Omit<TargetingMode, "validTargetIds"> & { validTargetIds?: string[] },
-  ) => {
-    setTargeting({
-      actorInstanceId: mode.actorInstanceId,
-      actionKind: mode.actionKind,
-      abilityKey: mode.abilityKey,
-      validTargetIds: mode.validTargetIds ?? [],
-    });
+  const handleActionSelected = (mode: TargetingModeInput) => {
+    setTargeting(normalizeTargetingMode(mode));
   };
 
   if (isLoading) {
