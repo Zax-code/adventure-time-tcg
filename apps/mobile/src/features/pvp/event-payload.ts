@@ -100,21 +100,11 @@ export function getEventActorName(event: CombatEvent): string | null {
     "attackerName",
     "sourceName",
     "playerName",
-    "actorId",
-    "playerId",
-    "sourceId",
-    "unitId",
-    "userId",
   ]);
 }
 
 export function getEventTargetName(event: CombatEvent): string | null {
-  return pickString(event.payload, [
-    "targetName",
-    "unitName",
-    "targetId",
-    "unitId",
-  ]);
+  return pickString(event.payload, ["targetName", "unitName"]);
 }
 
 export function getEventAbilityLabel(event: CombatEvent): string | null {
@@ -132,7 +122,7 @@ export function getEventStatusName(event: CombatEvent): string | null {
 }
 
 export function getEventWinnerLabel(event: CombatEvent): string | null {
-  return pickString(event.payload, ["winnerName", "winnerId"]);
+  return pickString(event.payload, ["winnerName"]);
 }
 
 export function isDrawEvent(event: CombatEvent): boolean {
@@ -140,21 +130,44 @@ export function isDrawEvent(event: CombatEvent): boolean {
 }
 
 export function getEventSourceName(event: CombatEvent): string | null {
-  return pickString(event.payload, [
-    "sourceName",
-    "sourceId",
-    "fromName",
-    "fromId",
-    "originalTargetId",
-  ]);
+  return pickString(event.payload, ["sourceName", "fromName"]);
 }
 
 export function getEventDestinationName(event: CombatEvent): string | null {
   return pickString(event.payload, [
     "destinationName",
     "redirectedToName",
-    "redirectedToId",
     "toName",
-    "toId",
   ]);
+}
+
+export function getEventActorId(event: CombatEvent): string | null {
+  return pickString(event.payload, [
+    "actorId",
+    "attackerId",
+    "playerId",
+    "unitId",
+    "userId",
+  ]);
+}
+
+export function getEventTargetId(event: CombatEvent): string | null {
+  return getEventTargetInstanceId(event);
+}
+
+export function getEventWinnerId(event: CombatEvent): string | null {
+  return pickString(event.payload, ["winnerId"]);
+}
+
+export function getEventSourceId(event: CombatEvent): string | null {
+  return pickString(event.payload, [
+    "sourceId",
+    "sourceUnitId",
+    "fromId",
+    "originalTargetId",
+  ]);
+}
+
+export function getEventDestinationId(event: CombatEvent): string | null {
+  return pickString(event.payload, ["destinationId", "redirectedToId", "toId"]);
 }

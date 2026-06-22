@@ -657,6 +657,7 @@ export function BattleBoard({
       <CombatLogModal
         visible={showLogModal}
         log={matchView.log}
+        battleState={matchView.battleState}
         onClose={() => setShowLogModal(false)}
       />
 

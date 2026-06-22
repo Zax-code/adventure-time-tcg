@@ -409,7 +409,12 @@ function E2EMatchModalRenderer({
 
   if (initialE2EModal === "log") {
     return (
-      <CombatLogModal visible={true} log={matchView.log} onClose={() => {}} />
+      <CombatLogModal
+        visible={true}
+        log={matchView.log}
+        battleState={matchView.battleState}
+        onClose={() => {}}
+      />
     );
   }
 
