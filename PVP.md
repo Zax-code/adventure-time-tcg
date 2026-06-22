@@ -5,6 +5,385 @@ Phoenix is the gameplay source of truth for live matches. Shared TypeScript
 combat helpers, mobile rule references, replay views, and legacy code should be
 updated to match Phoenix when they disagree.
 
+## Proposed Energy Reform: Refill-To-Cap 4
+
+The current carry-over-only energy model can make optimal play boring. Because
+players must save energy to reach expensive abilities, a player who wants to use
+an ultimate may spend one or more turns doing nothing except ending the turn.
+
+The proposed model is:
+
+```text
+Each player has currentEnergy and maxEnergy.
+Each player starts at 1/1.
+When a player's turn starts:
+  maxEnergy = min(4, maxEnergy + 1)
+  currentEnergy = maxEnergy
+```
+
+The first active turn created by match initialization is already in progress and
+does not receive an extra turn-start increase. The turn-start increase happens
+when control passes to a player after an end-turn transition.
+
+Energy still belongs to the player, not to individual units. All ready units on
+that player's board spend from the same pool.
+
+This model is intended to make every turn playable while preserving ultimate
+timing. Players do not need to skip turns to bank energy. They naturally unlock
+bigger turns as `maxEnergy` rises.
+
+### Goals
+
+1. Remove "do nothing so I can afford my ultimate" as a normal play pattern.
+2. Keep ultimates meaningful by making them consume most, but not always all, of
+   a mature turn.
+3. Preserve simple player-facing math: spend this turn's energy, then refill on
+   your next turn.
+4. Keep late turns expressive without letting energy grow without bound.
+
+### Suggested Costs
+
+The current costs can mostly stay intact:
+
+```text
+Basic attack: 1 energy
+Skill: card-defined cost, commonly 2 energy
+Ultimate: card-defined cost, commonly 3 energy
+Energy cap: 4
+```
+
+With a cap of 4, an ultimate is available once the player reaches at least
+`3 maxEnergy`, but it no longer requires prior turns of saving. At full cap, a
+player can often pair an ultimate with a basic attack, or make two medium plays
+such as two 2-cost skills, subject to cooldowns, statuses, unit readiness, and
+targeting.
+
+### Turn Pacing Example
+
+Assume both players start at `1/1` energy and no one spends energy before their
+first turn.
+
+```text
+Match starts:
+  Player A: 1/1
+  Player B: 1/1
+
+Player A turn 1 starts:
+  Player A: 1/1
+  A can basic attack, use a 1-cost effect, or end turn.
+
+Player B turn 1 starts:
+  Player B maxEnergy rises to 2.
+  Player B refills to 2/2.
+  B can use a 2-cost skill immediately.
+
+Player A turn 2 starts:
+  Player A maxEnergy rises to 2.
+  Player A refills to 2/2.
+  A can use a 2-cost skill immediately.
+
+Player B turn 2 starts:
+  Player B maxEnergy rises to 3.
+  Player B refills to 3/3.
+  B can use a 3-cost ultimate.
+
+Player A turn 3 starts:
+  Player A maxEnergy rises to 3.
+  Player A refills to 3/3.
+  A can use a 3-cost ultimate.
+
+Later turns:
+  Each player's maxEnergy reaches 4.
+  Each turn starts at 4/4 unless a future effect changes that.
+```
+
+This keeps the second mover's current tempo advantage. If that proves too
+strong, the match initializer can instead start the first mover at `1/1` and
+the second mover at `1/1` but suppress the second mover's first max-energy
+increase. That would produce a symmetric first cycle:
+
+```text
+Player A first turn: 1/1
+Player B first turn: 1/1
+Player A second turn: 2/2
+Player B second turn: 2/2
+```
+
+The simpler default is to let the normal turn-start rule apply to everyone and
+balance around the second mover reaching each max-energy tier first.
+
+### Why Cap 4 Instead Of 5
+
+Cap 5 makes late turns much burstier. If ultimates cost 3 and skills commonly
+cost 2, then 5 energy allows `ultimate + skill` in a single turn. That can be
+exciting, but it risks making the best late-game turn simply "dump everything".
+
+Cap 4 creates a narrower but still expressive late game:
+
+```text
+4 energy can pay for:
+  ultimate + basic
+  skill + skill
+  skill + basic + basic
+  four basic attacks
+
+4 energy cannot pay for:
+  ultimate + common 2-cost skill
+  two common 3-cost ultimates
+```
+
+This makes the ultimate turn powerful without automatically crowding out the
+rest of the combat system.
+
+### Carry-Over And Passing
+
+Under the proposed model, unused energy does not create a bigger future turn by
+itself. At the start of the player's next turn, `currentEnergy` refills to
+`maxEnergy`.
+
+Example:
+
+```text
+Player A starts at 3/3.
+A spends 1 energy on a basic attack and ends at 2/3.
+A's next turn starts at 4/4, not 5/4.
+```
+
+Passing is still allowed, but it is no longer a path to an ultimate. It is only
+useful when the player strategically wants to avoid acting, preserve board
+state, or wait out some other system.
+
+### Multi-Action Turns
+
+The current engine is energy-limited rather than strictly one-action-per-turn.
+This proposal preserves that unless a later design says otherwise.
+
+Example at cap 4:
+
+```text
+Player A starts at 4/4.
+A uses a 2-cost skill with Unit 1.
+A has 2/4 energy remaining.
+A uses another 2-cost skill with Unit 2.
+A has 0/4 energy remaining.
+```
+
+This is intentional. Energy remains the main action budget. Cooldowns,
+SummoningSickness, Silence, Freeze, Stunned, Haste, target validity, and unit
+death still constrain which actions are legal.
+
+If playtests show too many same-turn actions, prefer a separate "one action per
+unit per turn" rule before lowering the energy cap. The cap controls turn size;
+unit action limits control action repetition.
+
+### Ultimate Timing
+
+With common ultimate cost at 3, ultimates become available naturally on a
+player's third personal energy tier.
+
+Example:
+
+```text
+At 2/2:
+  Ultimate cost 3 is unavailable.
+
+At 3/3:
+  Ultimate cost 3 is available and consumes the whole turn's energy.
+
+At 4/4:
+  Ultimate cost 3 leaves 1 energy for a basic attack or 1-cost effect.
+```
+
+This keeps ultimates special while removing the dead turns previously required
+to save for them.
+
+### Haste
+
+`Haste` should keep its current identity:
+
+```text
+The first basic attack by a Haste unit on that player's turn costs 0 energy.
+The player's hasUsedFreeBasic flag resets when that player's turn starts.
+```
+
+Example:
+
+```text
+Player A starts at 3/3.
+A's Haste unit uses a basic attack for 0.
+A remains at 3/3 and hasUsedFreeBasic becomes true.
+A's next basic attack costs 1 unless another rule says otherwise.
+```
+
+Because energy now refills, Haste becomes a tempo bonus rather than a way to
+save toward future ultimates. That is desirable.
+
+### Stunned
+
+`Stunned` should mean:
+
+```text
+When the stunned unit acts, consume Stunned and add +1 to that action's energy
+cost.
+```
+
+Examples:
+
+```text
+Stunned basic attack:
+  base cost 1 + stun tax 1 = 2
+
+Stunned Haste basic attack, if the free basic is unused:
+  base cost 0 + stun tax 1 = 1
+
+Stunned 2-cost skill:
+  base cost 2 + stun tax 1 = 3
+
+Stunned 3-cost ultimate:
+  base cost 3 + stun tax 1 = 4
+```
+
+Important implementation note: the current Phoenix engine validates the Stun
+tax for normal skills and ultimates, but then deducts only the base ability
+cost. Basic attacks and copied abilities deduct the full tax. That mismatch is
+a bug and should be fixed as part of any energy-system implementation.
+
+The corrected invariant should be:
+
+```text
+The cost used for validation must equal the cost deducted from currentEnergy.
+```
+
+### Freeze, Silence, And SummoningSickness
+
+These statuses do not change the energy refill rule.
+
+`Freeze`:
+
+```text
+If a frozen unit attempts to act, Freeze is consumed and the action is skipped.
+No energy should be spent for the skipped action.
+```
+
+`Silence`:
+
+```text
+Silence blocks skills and ultimates.
+Silence does not block basic attacks.
+```
+
+`SummoningSickness`:
+
+```text
+Units with SummoningSickness cannot act.
+Swapping at end turn still costs no energy.
+The incoming unit gets SummoningSickness and cannot use the newly refilled
+energy on the opponent's immediate turn because it is not that player's turn.
+```
+
+### End Turn And Swaps
+
+Ending the turn costs no energy.
+
+Optional end-turn swaps also cost no energy. Their cost is tactical:
+
+```text
+The current player gives up the rest of the action phase.
+The incoming active unit receives SummoningSickness.
+The opponent's turn begins and their energy refills.
+```
+
+No energy should be granted to the player who is ending the turn. Energy refills
+only for the player whose turn is beginning.
+
+### Cap Overflow
+
+Any effect that grants energy should define whether it can exceed the cap.
+
+Default rule:
+
+```text
+currentEnergy = min(maxEnergy, currentEnergy + grantAmount)
+```
+
+Temporary over-cap effects should be explicit and rare, for example:
+
+```text
+Gain +1 temporary energy this turn, even above maxEnergy.
+Temporary energy disappears at end of turn.
+```
+
+Without explicit wording, all grants respect the cap.
+
+### Required State Shape
+
+The battle state should store both values per player:
+
+```json
+{
+  "energy": 4,
+  "maxEnergy": 4
+}
+```
+
+`energy` remains the current spendable energy for contract compatibility. The
+new `maxEnergy` field defines the refill target and cap progression.
+
+For older snapshots or replays that do not have `maxEnergy`, reconstruction
+must choose a compatibility strategy. Reasonable options are:
+
+1. Infer `maxEnergy` from turn count and player order for live migration.
+2. Treat missing `maxEnergy` as legacy mode for old replays.
+3. Backfill snapshots when applying the migration.
+
+The chosen strategy should be documented before changing replay behavior.
+
+### Event And UI Requirements
+
+The `energyGrant` event should continue to describe the resulting current
+energy, but it should also include enough data to explain max-energy changes.
+
+Suggested payload:
+
+```json
+{
+  "playerId": "player1",
+  "amount": 4,
+  "maxEnergy": 4,
+  "previousEnergy": 0,
+  "previousMaxEnergy": 3
+}
+```
+
+The mobile UI should show both values when useful:
+
+```text
+4/4 energy
+```
+
+Action buttons should compute affordability using the corrected total action
+cost, including Stun tax and Haste discounts.
+
+### Regression Tests
+
+Any implementation should include tests for:
+
+1. Match initialization stores `energy: 1` and `maxEnergy: 1` for each player.
+2. Turn start increases `maxEnergy` by 1 up to 4 and refills `energy` to
+   `maxEnergy`.
+3. Unspent energy does not accumulate beyond the refill target.
+4. A 3-cost ultimate is unavailable at 2/2 and available at 3/3.
+5. At 4/4, a 3-cost ultimate leaves 1 energy.
+6. Basic attacks spend 1 energy.
+7. Haste makes the first basic attack of the turn cost 0 and resets on the next
+   turn start.
+8. Stunned basic, skill, ultimate, and copied actions validate and deduct the
+   same total cost.
+9. Freeze skips an action without spending energy.
+10. Silence blocks skills and ultimates without changing energy.
+11. End-turn swaps cost no energy and do not grant energy to the ending player.
+12. `energyGrant` events include current and max energy.
+
 ## Status Duration Model
 
 Status duration should be counted by the affected unit owner's turn cycle, not
