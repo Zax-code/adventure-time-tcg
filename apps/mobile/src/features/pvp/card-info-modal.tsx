@@ -7,6 +7,7 @@ import {
   localizeStatusName,
 } from "../../lib/combat-i18n";
 import { useThemeStore } from "../../stores/theme-store";
+import { getCardModalTypeColor } from "./card-modal-colors";
 import { CardModalIdentity } from "./card-modal-identity";
 import type { PvpUnitState } from "./types";
 
@@ -104,6 +105,7 @@ export function CardInfoModal({
         ]
       : []),
   ];
+  const typeColor = getCardModalTypeColor(unit, themeName);
 
   return (
     <BattleFullScreenSheet
@@ -115,7 +117,10 @@ export function CardInfoModal({
       <View className="pb-4">
         <View className="mx-4 overflow-hidden rounded-[28px] bg-white shadow-sm">
           <View className="flex-row">
-            <View className="w-1/2 overflow-hidden bg-slate-900">
+            <View
+              className="w-1/2 overflow-hidden"
+              style={{ backgroundColor: typeColor.dark }}
+            >
               <CardModalIdentity unit={unit} themeName={themeName} />
               <View className="px-5 pb-5 pt-4">
                 <StatusEffectsList statuses={unit.statuses} t={t} />

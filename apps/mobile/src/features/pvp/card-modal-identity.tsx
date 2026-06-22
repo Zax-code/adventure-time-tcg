@@ -1,10 +1,8 @@
+import { useState } from "react";
 import { Text, View } from "react-native";
 import { Image } from "expo-image";
 
 import {
-  CARD_TYPE_COLORS,
-  CARD_TYPE_COLORS_ICE,
-  CARD_TYPE_COLORS_NIGHTOSPHERE,
   RARITY_COLORS,
   RARITY_COLORS_ICE,
   RARITY_COLORS_NIGHTOSPHERE,
@@ -15,22 +13,11 @@ import {
   localizeTypeName,
 } from "../../lib/combat-i18n";
 import type { ThemeName } from "../../theme/themes";
+import { getCardModalTypeColor } from "./card-modal-colors";
 import { resolveBattleImageUrl } from "./image-url";
 import type { PvpUnitState } from "./types";
 
 type Rgb = { r: number; g: number; b: number };
-
-function getTypePalette(themeName: ThemeName) {
-  if (themeName === "ice") {
-    return CARD_TYPE_COLORS_ICE;
-  }
-
-  if (themeName === "nightosphere") {
-    return CARD_TYPE_COLORS_NIGHTOSPHERE;
-  }
-
-  return CARD_TYPE_COLORS;
-}
 
 function getRarityPalette(themeName: ThemeName) {
   if (themeName === "ice") {
@@ -100,9 +87,8 @@ export function CardModalIdentity({
   themeName,
 }: CardModalIdentityProps) {
   const { t } = useTranslation();
-  const typePalette = getTypePalette(themeName);
   const rarityPalette = getRarityPalette(themeName);
-  const typeColor = typePalette[unit.type] ?? typePalette.Hero;
+  const typeColor = getCardModalTypeColor(unit, themeName);
   const rarityColor = rarityPalette[unit.rarity] ?? rarityPalette.Common;
   const typeBackground = typeColor.dark;
   const typeText = readableTextColor(typeBackground);
@@ -113,31 +99,22 @@ export function CardModalIdentity({
     unit.character && unit.character !== unit.name ? unit.character : null;
 
   return (
-    <View className="overflow-hidden bg-slate-900">
-      <View
-        className="bg-slate-800"
-        style={{ width: "100%", aspectRatio: 5 }}
-      >
-        {imageUrl ? (
-          <Image
-            source={{ uri: imageUrl }}
-            style={{ width: "100%", height: "100%" }}
-            contentFit="cover"
-          />
-        ) : (
-          <View className="h-full w-full items-center justify-center bg-slate-700">
-            <Text className="font-nunito-extrabold text-7xl text-white">
-              {unit.name.charAt(0)}
-            </Text>
-          </View>
-        )}
-      </View>
+    <View
+      className="overflow-hidden"
+      style={{ backgroundColor: typeBackground }}
+    >
+      <CardModalArtwork
+        key={imageUrl ?? `fallback-${unit.instanceId}`}
+        imageUrl={imageUrl}
+        fallbackLabel={unit.name.charAt(0)}
+        backgroundColor={typeColor.light}
+      />
 
       <View
         className="gap-0.5 px-5 py-2"
         style={{
           backgroundColor: typeBackground,
-          borderTopColor: typeText,
+          borderTopColor: typeColor.frame,
           borderTopWidth: 4,
         }}
       >
@@ -180,6 +157,50 @@ export function CardModalIdentity({
           </Text>
         ) : null}
       </View>
+    </View>
+  );
+}
+
+function CardModalArtwork({
+  imageUrl,
+  fallbackLabel,
+  backgroundColor,
+}: {
+  imageUrl: string | null;
+  fallbackLabel: string;
+  backgroundColor: string;
+}) {
+  const [imageAspectRatio, setImageAspectRatio] = useState(1);
+
+  return (
+    <View
+      style={{
+        width: "100%",
+        aspectRatio: imageAspectRatio,
+        backgroundColor,
+      }}
+    >
+      {imageUrl ? (
+        <Image
+          source={{ uri: imageUrl }}
+          style={{ width: "100%", height: "100%" }}
+          contentFit="contain"
+          onLoad={({ source }) => {
+            if (source.width > 0 && source.height > 0) {
+              setImageAspectRatio(source.width / source.height);
+            }
+          }}
+        />
+      ) : (
+        <View
+          className="h-full w-full items-center justify-center"
+          style={{ backgroundColor }}
+        >
+          <Text className="font-nunito-extrabold text-7xl text-white">
+            {fallbackLabel}
+          </Text>
+        </View>
+      )}
     </View>
   );
 }

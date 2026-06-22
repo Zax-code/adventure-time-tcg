@@ -12,6 +12,7 @@ import { localizeTypeName } from "../../lib/combat-i18n";
 import { useThemeStore } from "../../stores/theme-store";
 import { THEME_COLORS } from "../../theme/themes";
 import { BattleFullScreenSheet } from "./battle-full-screen-sheet";
+import { getCardModalTypeColor } from "./card-modal-colors";
 import { CardModalIdentity } from "./card-modal-identity";
 import {
   prepareBattleAction,
@@ -187,6 +188,8 @@ export function ActionModal({
     return null;
   }
 
+  const typeColor = getCardModalTypeColor(unit, themeName);
+
   return (
     <BattleFullScreenSheet
       visible={visible}
@@ -197,7 +200,10 @@ export function ActionModal({
       <View className="px-4 pb-4 pt-4">
         <View className="overflow-hidden rounded-[28px] border border-primaryTint bg-white shadow-sm">
           <View className="flex-row">
-            <View className="w-1/2 overflow-hidden bg-slate-900">
+            <View
+              className="w-1/2 overflow-hidden"
+              style={{ backgroundColor: typeColor.dark }}
+            >
               <CardModalIdentity unit={unit} themeName={themeName} />
 
               <View className="px-5 pb-5 pt-4">
