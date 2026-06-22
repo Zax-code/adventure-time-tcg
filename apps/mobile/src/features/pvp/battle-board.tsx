@@ -286,7 +286,7 @@ export function BattleBoard({
 
   const isOverlayOpen =
     showActionModal || showLogModal || longPressUnit !== null;
-  const opponentBenchOffset = -20;
+  const opponentBenchOffset = -22;
   const myBenchOffset = 20;
 
   const handleUnitPress = (instanceId: string) => {
