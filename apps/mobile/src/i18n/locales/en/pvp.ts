@@ -160,9 +160,9 @@ const pvp = {
       "Loadout rarity caps: max 1 Legendary card and max 2 Epic cards.",
     turnTitle: "Turn Flow",
     turnItem1:
-      "At turn start, the active player gains energy (2 on turn 1, then 3 each turn).",
+      "Both players start with 1 energy. When a turn passes to a player, that player's energy increases by 1, up to 5.",
     turnItem2:
-      "At start of your turn, status ticks resolve and cooldowns reduce by 1 for your active and benched cards.",
+      "At start of your turn, active-card status ticks resolve and cooldowns reduce by 1 for your active and benched cards.",
     turnItem3:
       "You can perform actions until you choose End Turn or run out of usable options.",
     actionsTitle: "Actions and Costs",
@@ -170,7 +170,7 @@ const pvp = {
     actionsItem2: "Skill usually costs 2 energy (depends on ability data).",
     actionsItem3: "Ultimate usually costs 3 energy and is once per match.",
     actionsItem4:
-      "Silence blocks skill/ultimate usage. Stunned adds +1 energy to your next basic/skill/ultimate, then is consumed.",
+      "Silence blocks skill/ultimate usage. Stunned adds +1 energy to your next combat action or copy, then is consumed.",
     swapTitle: "Bench Swap",
     swapItem1:
       "Swap costs 1 energy and is queued with End Turn (not as a separate immediate action).",
@@ -187,7 +187,7 @@ const pvp = {
       "Taunt forces single-target enemy actions. Stealthed enemies cannot be targeted.",
     statusTitle: "Statuses and Cooldowns",
     statusBody:
-      "Statuses (Burn, Freeze, Stunned, etc.) are applied by abilities and resolved by the engine using turn-start ticks, action-time consumption, and expiry rules.",
+      "Statuses (Burn, Freeze, Stunned, etc.) are applied by abilities. Turn-duration statuses count owner turns, while Freeze and Stunned stay until a combat action or copy consumes them.",
   },
   reference: {
     open: "Combat Reference",
@@ -200,7 +200,7 @@ const pvp = {
     statusDesc: {
       Burn: "Takes 10% max HP damage at start of turn and deals reduced attack damage (-10%).",
       Freeze:
-        "Skips the next action when acting and takes +20% incoming damage while active.",
+        "Skips the next combat action or copy attempt without spending energy and takes +20% incoming damage while active.",
       Shield: "Absorbs incoming damage before HP is reduced.",
       GuardUp: "Increases defense while active (+25%).",
       Vulnerable: "Takes increased incoming damage (+25%).",
@@ -214,7 +214,7 @@ const pvp = {
       Cover:
         "Redirects part of damage to the adjacent cover source while it remains valid.",
       Stunned:
-        "Next basic/skill/ultimate costs +1 energy, then Stunned is consumed.",
+        "Next combat action or copy costs +1 energy, then Stunned is consumed.",
       Poison: "Deals 5% max HP start-of-turn damage per stack and can stack.",
       Thorns: "Reflects 15% of received attack damage back to attackers.",
       Stealth:
@@ -235,6 +235,8 @@ const pvp = {
         "Speed drives hit/miss and crit chances. Miss chance is bounded, and crit chance is reduced when attacking faster defenders.",
       cooldown:
         "Cooldowns tick at the start of the owner's turn, including for benched cards.",
+      statusTiming:
+        "Turn-duration statuses count the target owner's turns and expire after their configured start- or end-turn boundary. Freeze and Stunned do not count down by turns.",
       formation:
         "When an active card is KO'd, the engine auto-fills open active slots from living bench cards and applies Summoning Sickness.",
       slotLimits:

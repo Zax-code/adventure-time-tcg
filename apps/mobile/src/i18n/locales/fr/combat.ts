@@ -48,7 +48,7 @@ const combat = {
   },
   statusDescription: {
     Burn: "Subit des dégâts en début de tour",
-    Freeze: "Passe sa prochaine action et subit +20 % de dégâts",
+    Freeze: "Passe la prochaine action/copie ; subit +20 % de dégâts",
     Shield: "Absorbe les dégâts reçus",
     GuardUp: "Défense augmentée",
     Regeneration: "Se soigne en début de tour",
@@ -57,7 +57,7 @@ const combat = {
     Haste: "Vitesse augmentée, attaque de base gratuite",
     Taunt: "Les ennemis doivent cibler cette unité",
     Silence: "Ne peut pas utiliser de compétences",
-    Stunned: "La prochaine action (base/compétence/ultime) coûte +1 énergie",
+    Stunned: "La prochaine action de combat ou copie coûte +1 énergie",
     SummoningSickness: "Ne peut pas agir ce tour",
     Cover: "Protégé par une autre unité",
     Poison: "Subit des dégâts de poison à chaque tour",

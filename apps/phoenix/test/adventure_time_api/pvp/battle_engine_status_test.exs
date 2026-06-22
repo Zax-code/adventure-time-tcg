@@ -84,6 +84,14 @@ defmodule AdventureTimeApi.Pvp.BattleEngineStatusTest do
 
   defp get_status(unit, name), do: Enum.find(unit["statuses"] || [], &(&1["name"] == name))
 
+  defp get_player(state, user_id) do
+    Enum.find(state["players"], &(&1["userId"] == user_id))
+  end
+
+  defp put_ability(state, ability) do
+    put_in(state, ["abilityDefinitions", ability["key"]], ability)
+  end
+
   # ── apply_status via simulate_action with applyStatuses payload ───────────
 
   describe "apply_status via ability applyStatuses payload" do
@@ -133,6 +141,10 @@ defmodule AdventureTimeApi.Pvp.BattleEngineStatusTest do
       assert has_status(p2_unit, "Burn")
       burn = get_status(p2_unit, "Burn")
       assert burn["duration"] == 2
+      assert burn["targetOwnerId"] == "player2"
+      assert burn["appliedDuringPlayerId"] == "player1"
+      assert burn["expiresAt"] == "afterOwnerTurnEndEffects"
+      assert burn["ownerTurnsSeen"] == 0
     end
 
     test "applies applyStatusesToAttacker to the acting unit" do
@@ -171,6 +183,62 @@ defmodule AdventureTimeApi.Pvp.BattleEngineStatusTest do
 
       p1_unit = get_unit(new_state, "p1u1")
       assert has_status(p1_unit, "Empower")
+    end
+
+    test "Freeze is applied as consumption-only without turn duration" do
+      state =
+        make_state(%{"skill" => "test.freeze_skill"}, %{})
+        |> put_ability(%{
+          "key" => "test.freeze_skill",
+          "type" => "SKILL",
+          "cost" => 1,
+          "cooldown" => nil,
+          "oncePerMatch" => false,
+          "payload" => %{
+            "applyStatuses" => [%{"name" => "Freeze", "duration" => 2}]
+          }
+        })
+
+      {:ok, new_state, events} =
+        BattleEngine.simulate_action(state, "player1", %{
+          "kind" => "skill",
+          "actorInstanceId" => "p1u1",
+          "targetInstanceId" => "p2u1"
+        })
+
+      freeze = get_status(get_unit(new_state, "p2u1"), "Freeze")
+      assert freeze["duration"] == -1
+
+      apply_event = Enum.find(events, &(&1["type"] == "statusApply"))
+      assert get_in(apply_event, ["payload", "duration"]) == -1
+    end
+
+    test "Stunned is applied as consumption-only without turn duration" do
+      state =
+        make_state(%{"skill" => "test.stun_skill"}, %{})
+        |> put_ability(%{
+          "key" => "test.stun_skill",
+          "type" => "SKILL",
+          "cost" => 1,
+          "cooldown" => nil,
+          "oncePerMatch" => false,
+          "payload" => %{
+            "applyStatuses" => [%{"name" => "Stunned", "duration" => 2}]
+          }
+        })
+
+      {:ok, new_state, events} =
+        BattleEngine.simulate_action(state, "player1", %{
+          "kind" => "skill",
+          "actorInstanceId" => "p1u1",
+          "targetInstanceId" => "p2u1"
+        })
+
+      stunned = get_status(get_unit(new_state, "p2u1"), "Stunned")
+      assert stunned["duration"] == -1
+
+      apply_event = Enum.find(events, &(&1["type"] == "statusApply"))
+      assert get_in(apply_event, ["payload", "duration"]) == -1
     end
 
     test "Shield stacks magnitude on second application" do
@@ -465,7 +533,7 @@ defmodule AdventureTimeApi.Pvp.BattleEngineStatusTest do
       assert p2_unit["hp"] == 68
     end
 
-    test "status ticks reduce duration; non-expiring statuses remain" do
+    test "start-boundary lifecycle increments without mutating original duration" do
       state =
         make_state(
           %{},
@@ -487,7 +555,8 @@ defmodule AdventureTimeApi.Pvp.BattleEngineStatusTest do
       p2_unit = get_unit(new_state, "p2u1")
       guard = get_status(p2_unit, "GuardUp")
       assert guard != nil
-      assert guard["duration"] == 1
+      assert guard["duration"] == 2
+      assert guard["ownerTurnsSeen"] == 1
     end
 
     test "one-turn Silence survives the afflicted player's turn start and expires after their turn" do
@@ -538,6 +607,212 @@ defmodule AdventureTimeApi.Pvp.BattleEngineStatusTest do
 
       p2_unit_after_turn = get_unit(after_player2_turn_state, "p2u1")
       refute has_status(p2_unit_after_turn, "Silence")
+    end
+
+    test "one-turn self-applied status survives opponent turn and expires at next owner turn start" do
+      state =
+        make_state(%{"skill" => "test.guard_self"}, %{})
+        |> put_ability(%{
+          "key" => "test.guard_self",
+          "type" => "SKILL",
+          "cost" => 1,
+          "cooldown" => nil,
+          "oncePerMatch" => false,
+          "payload" => %{
+            "applyStatusesToAttacker" => [%{"name" => "GuardUp", "duration" => 1}]
+          }
+        })
+
+      {:ok, guarded_state, _events} =
+        BattleEngine.simulate_action(state, "player1", %{
+          "kind" => "skill",
+          "actorInstanceId" => "p1u1",
+          "targetInstanceId" => "p2u1"
+        })
+
+      guard = get_status(get_unit(guarded_state, "p1u1"), "GuardUp")
+      assert guard["expiresAt"] == "afterOwnerTurnStartEffects"
+      assert guard["targetOwnerId"] == "player1"
+
+      {player2_turn_state, _events} = BattleEngine.simulate_end_turn(guarded_state)
+      assert has_status(get_unit(player2_turn_state, "p1u1"), "GuardUp")
+
+      {player1_turn_state, _events} = BattleEngine.simulate_end_turn(player2_turn_state)
+      refute has_status(get_unit(player1_turn_state, "p1u1"), "GuardUp")
+    end
+
+    test "self-applied start-of-turn status triggers once before start-boundary expiration" do
+      state =
+        make_state(%{"hp" => 60, "skill" => "test.regen_self"}, %{})
+        |> put_ability(%{
+          "key" => "test.regen_self",
+          "type" => "SKILL",
+          "cost" => 1,
+          "cooldown" => nil,
+          "oncePerMatch" => false,
+          "payload" => %{
+            "applyStatusesToAttacker" => [%{"name" => "Regeneration", "duration" => 1}]
+          }
+        })
+
+      {:ok, regen_state, _events} =
+        BattleEngine.simulate_action(state, "player1", %{
+          "kind" => "skill",
+          "actorInstanceId" => "p1u1",
+          "targetInstanceId" => "p2u1"
+        })
+
+      {player2_turn_state, _events} = BattleEngine.simulate_end_turn(regen_state)
+      {player1_turn_state, events} = BattleEngine.simulate_end_turn(player2_turn_state)
+
+      p1_unit = get_unit(player1_turn_state, "p1u1")
+      assert p1_unit["hp"] == 68
+      refute has_status(p1_unit, "Regeneration")
+
+      assert Enum.any?(events, fn event ->
+               event["type"] == "statusTick" and
+                 get_in(event, ["payload", "status"]) == "Regeneration"
+             end)
+    end
+
+    test "enemy-applied two-turn status expires after second afflicted owner turn ends" do
+      state =
+        make_state(%{"skill" => "test.silence_skill"}, %{})
+        |> put_ability(%{
+          "key" => "test.silence_skill",
+          "type" => "SKILL",
+          "cost" => 1,
+          "cooldown" => nil,
+          "oncePerMatch" => false,
+          "payload" => %{
+            "applyStatuses" => [%{"name" => "Silence", "duration" => 2}]
+          }
+        })
+
+      {:ok, silenced_state, _events} =
+        BattleEngine.simulate_action(state, "player1", %{
+          "kind" => "skill",
+          "actorInstanceId" => "p1u1",
+          "targetInstanceId" => "p2u1"
+        })
+
+      {player2_first_turn, _events} = BattleEngine.simulate_end_turn(silenced_state)
+      {player1_turn, _events} = BattleEngine.simulate_end_turn(player2_first_turn)
+      first_cycle_status = get_status(get_unit(player1_turn, "p2u1"), "Silence")
+      assert first_cycle_status["ownerTurnsSeen"] == 1
+
+      {player2_second_turn, _events} = BattleEngine.simulate_end_turn(player1_turn)
+      assert has_status(get_unit(player2_second_turn, "p2u1"), "Silence")
+
+      {after_second_afflicted_turn, _events} = BattleEngine.simulate_end_turn(player2_second_turn)
+      refute has_status(get_unit(after_second_afflicted_turn, "p2u1"), "Silence")
+    end
+
+    test "reapplying a non-stackable status refreshes duration and lifecycle metadata" do
+      state =
+        make_state(%{"skill" => "test.silence_skill"}, %{})
+        |> put_ability(%{
+          "key" => "test.silence_skill",
+          "type" => "SKILL",
+          "cost" => 1,
+          "cooldown" => nil,
+          "oncePerMatch" => false,
+          "payload" => %{
+            "applyStatuses" => [%{"name" => "Silence", "duration" => 1}]
+          }
+        })
+
+      {:ok, once_silenced_state, _events} =
+        BattleEngine.simulate_action(state, "player1", %{
+          "kind" => "skill",
+          "actorInstanceId" => "p1u1",
+          "targetInstanceId" => "p2u1"
+        })
+
+      refreshed_input =
+        once_silenced_state
+        |> put_in(["abilityDefinitions", "test.silence_skill", "payload", "applyStatuses"], [
+          %{"name" => "Silence", "duration" => 2}
+        ])
+        |> update_in(["players"], fn players ->
+          Enum.map(players, fn player ->
+            if player["userId"] == "player1", do: Map.put(player, "energy", 3), else: player
+          end)
+        end)
+
+      {:ok, refreshed_state, _events} =
+        BattleEngine.simulate_action(refreshed_input, "player1", %{
+          "kind" => "skill",
+          "actorInstanceId" => "p1u1",
+          "targetInstanceId" => "p2u1"
+        })
+
+      refreshed = get_status(get_unit(refreshed_state, "p2u1"), "Silence")
+      assert refreshed["duration"] == 2
+      assert refreshed["ownerTurnsSeen"] == 0
+      assert refreshed["expiresAt"] == "afterOwnerTurnEndEffects"
+
+      {player2_first_turn, _events} = BattleEngine.simulate_end_turn(refreshed_state)
+      {player1_turn, _events} = BattleEngine.simulate_end_turn(player2_first_turn)
+      assert has_status(get_unit(player1_turn, "p2u1"), "Silence")
+    end
+
+    test "status applied by start-turn passive does not expire during the same phase" do
+      state =
+        make_state(
+          %{},
+          %{
+            "passives" => ["test.start_guard"]
+          }
+        )
+        |> put_ability(%{
+          "key" => "test.start_guard",
+          "type" => "PASSIVE",
+          "cost" => 0,
+          "cooldown" => nil,
+          "oncePerMatch" => false,
+          "payload" => %{
+            "trigger" => "onStartTurn",
+            "once" => true,
+            "applyStatusesToAttacker" => [%{"name" => "GuardUp", "duration" => 1}]
+          }
+        })
+
+      {player2_turn_state, _events} = BattleEngine.simulate_end_turn(state)
+      assert has_status(get_unit(player2_turn_state, "p2u1"), "GuardUp")
+
+      {player1_turn_state, _events} = BattleEngine.simulate_end_turn(player2_turn_state)
+      assert has_status(get_unit(player1_turn_state, "p2u1"), "GuardUp")
+
+      {player2_next_turn_state, _events} = BattleEngine.simulate_end_turn(player1_turn_state)
+      refute has_status(get_unit(player2_next_turn_state, "p2u1"), "GuardUp")
+    end
+
+    test "knocked-out units skip status effects but still advance duration expiration" do
+      state =
+        make_state(
+          %{},
+          %{
+            "hp" => 0,
+            "knockedOut" => true,
+            "statuses" => [
+              %{
+                "name" => "Burn",
+                "duration" => 1,
+                "magnitude" => nil,
+                "sourceInstanceId" => nil,
+                "appliedAt" => 0
+              }
+            ]
+          }
+        )
+
+      {new_state, events} = BattleEngine.simulate_end_turn(state)
+      p2_unit = get_unit(new_state, "p2u1")
+
+      assert p2_unit["hp"] == 0
+      refute has_status(p2_unit, "Burn")
+      refute Enum.any?(events, &(&1["type"] == "statusTick"))
     end
 
     test "DoT KOs unit and emits ko event" do
@@ -696,6 +971,256 @@ defmodule AdventureTimeApi.Pvp.BattleEngineStatusTest do
       # Target HP unchanged (action was skipped)
       p2_unit = get_unit(new_state, "p2u1")
       assert p2_unit["hp"] == 100
+    end
+
+    test "Freeze survives owner turn boundaries until an action attempt consumes it" do
+      state =
+        make_state(
+          %{},
+          %{
+            "statuses" => [
+              %{
+                "name" => "Freeze",
+                "duration" => 1,
+                "magnitude" => nil,
+                "sourceInstanceId" => nil,
+                "appliedAt" => 0
+              }
+            ]
+          }
+        )
+
+      {player2_turn_state, _events} = BattleEngine.simulate_end_turn(state)
+      freeze = get_status(get_unit(player2_turn_state, "p2u1"), "Freeze")
+      assert freeze["duration"] == -1
+
+      {player1_turn_state, _events} = BattleEngine.simulate_end_turn(player2_turn_state)
+      assert has_status(get_unit(player1_turn_state, "p2u1"), "Freeze")
+
+      {player2_turn_again_state, _events} = BattleEngine.simulate_end_turn(player1_turn_state)
+
+      {:ok, consumed_state, _events} =
+        BattleEngine.simulate_action(player2_turn_again_state, "player2", %{
+          "kind" => "basic",
+          "actorInstanceId" => "p2u1",
+          "targetInstanceId" => "p1u1"
+        })
+
+      refute has_status(get_unit(consumed_state, "p2u1"), "Freeze")
+      assert get_player(consumed_state, "player2")["energy"] == 5
+    end
+
+    test "Freeze skips copied actions without spending energy" do
+      state =
+        make_state(
+          %{
+            "skill" => "test.copy",
+            "statuses" => [
+              %{
+                "name" => "Freeze",
+                "duration" => 1,
+                "magnitude" => nil,
+                "sourceInstanceId" => nil,
+                "appliedAt" => 0
+              }
+            ]
+          },
+          %{"skill" => "test.source"}
+        )
+        |> put_ability(%{
+          "key" => "test.copy",
+          "type" => "SKILL",
+          "cost" => 0,
+          "cooldown" => nil,
+          "oncePerMatch" => false,
+          "payload" => %{}
+        })
+        |> put_ability(%{
+          "key" => "test.source",
+          "type" => "SKILL",
+          "cost" => 2,
+          "cooldown" => nil,
+          "oncePerMatch" => false,
+          "payload" => %{"damageMul" => 1.0}
+        })
+
+      {:ok, new_state, _events} =
+        BattleEngine.simulate_action(state, "player1", %{
+          "kind" => "copy",
+          "actorInstanceId" => "p1u1",
+          "sourceInstanceId" => "p2u1",
+          "targetInstanceId" => "p2u1",
+          "copyType" => "skill"
+        })
+
+      refute has_status(get_unit(new_state, "p1u1"), "Freeze")
+      assert get_player(new_state, "player1")["energy"] == 3
+      assert get_unit(new_state, "p2u1")["hp"] == 100
+    end
+  end
+
+  describe "Stunned energy tax" do
+    test "skill validation and deduction both include the stun tax" do
+      state =
+        make_state(
+          %{
+            "skill" => "test.skill",
+            "statuses" => [
+              %{
+                "name" => "Stunned",
+                "duration" => 1,
+                "magnitude" => nil,
+                "sourceInstanceId" => nil,
+                "appliedAt" => 0
+              }
+            ]
+          },
+          %{}
+        )
+        |> put_ability(%{
+          "key" => "test.skill",
+          "type" => "SKILL",
+          "cost" => 2,
+          "cooldown" => nil,
+          "oncePerMatch" => false,
+          "payload" => %{"damageMul" => 1.0}
+        })
+
+      {:ok, new_state, _events} =
+        BattleEngine.simulate_action(state, "player1", %{
+          "kind" => "skill",
+          "actorInstanceId" => "p1u1",
+          "targetInstanceId" => "p2u1"
+        })
+
+      assert get_player(new_state, "player1")["energy"] == 0
+      refute has_status(get_unit(new_state, "p1u1"), "Stunned")
+    end
+
+    test "ultimate validation and deduction both include the stun tax" do
+      state =
+        make_state(
+          %{
+            "ultimate" => "test.ultimate",
+            "statuses" => [
+              %{
+                "name" => "Stunned",
+                "duration" => 1,
+                "magnitude" => nil,
+                "sourceInstanceId" => nil,
+                "appliedAt" => 0
+              }
+            ]
+          },
+          %{}
+        )
+        |> update_in(["players"], fn players ->
+          Enum.map(players, fn player ->
+            if player["userId"] == "player1", do: Map.put(player, "energy", 4), else: player
+          end)
+        end)
+        |> put_ability(%{
+          "key" => "test.ultimate",
+          "type" => "ULTIMATE",
+          "cost" => 3,
+          "cooldown" => nil,
+          "oncePerMatch" => false,
+          "payload" => %{"damageMul" => 1.0}
+        })
+
+      {:ok, new_state, _events} =
+        BattleEngine.simulate_action(state, "player1", %{
+          "kind" => "ultimate",
+          "actorInstanceId" => "p1u1",
+          "targetInstanceId" => "p2u1"
+        })
+
+      assert get_player(new_state, "player1")["energy"] == 0
+      refute has_status(get_unit(new_state, "p1u1"), "Stunned")
+    end
+
+    test "copied action validation and deduction both include the stun tax" do
+      state =
+        make_state(
+          %{
+            "skill" => "test.copy",
+            "statuses" => [
+              %{
+                "name" => "Stunned",
+                "duration" => 1,
+                "magnitude" => nil,
+                "sourceInstanceId" => nil,
+                "appliedAt" => 0
+              }
+            ]
+          },
+          %{"skill" => "test.source"}
+        )
+        |> put_ability(%{
+          "key" => "test.copy",
+          "type" => "SKILL",
+          "cost" => 0,
+          "cooldown" => nil,
+          "oncePerMatch" => false,
+          "payload" => %{}
+        })
+        |> put_ability(%{
+          "key" => "test.source",
+          "type" => "SKILL",
+          "cost" => 2,
+          "cooldown" => nil,
+          "oncePerMatch" => false,
+          "payload" => %{"damageMul" => 1.0}
+        })
+
+      {:ok, new_state, _events} =
+        BattleEngine.simulate_action(state, "player1", %{
+          "kind" => "copy",
+          "actorInstanceId" => "p1u1",
+          "sourceInstanceId" => "p2u1",
+          "targetInstanceId" => "p2u1",
+          "copyType" => "skill"
+        })
+
+      assert get_player(new_state, "player1")["energy"] == 0
+      refute has_status(get_unit(new_state, "p1u1"), "Stunned")
+    end
+
+    test "Stunned survives owner turn boundaries until an action attempt consumes it" do
+      state =
+        make_state(
+          %{},
+          %{
+            "statuses" => [
+              %{
+                "name" => "Stunned",
+                "duration" => 1,
+                "magnitude" => nil,
+                "sourceInstanceId" => nil,
+                "appliedAt" => 0
+              }
+            ]
+          }
+        )
+
+      {player2_turn_state, _events} = BattleEngine.simulate_end_turn(state)
+      stunned = get_status(get_unit(player2_turn_state, "p2u1"), "Stunned")
+      assert stunned["duration"] == -1
+
+      {player1_turn_state, _events} = BattleEngine.simulate_end_turn(player2_turn_state)
+      assert has_status(get_unit(player1_turn_state, "p2u1"), "Stunned")
+
+      {player2_turn_again_state, _events} = BattleEngine.simulate_end_turn(player1_turn_state)
+
+      {:ok, consumed_state, _events} =
+        BattleEngine.simulate_action(player2_turn_again_state, "player2", %{
+          "kind" => "basic",
+          "actorInstanceId" => "p2u1",
+          "targetInstanceId" => "p1u1"
+        })
+
+      refute has_status(get_unit(consumed_state, "p2u1"), "Stunned")
+      assert get_player(consumed_state, "player2")["energy"] == 3
     end
   end
 

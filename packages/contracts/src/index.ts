@@ -906,6 +906,12 @@ export const pvpUnitStatusSchema = z.object({
   duration: z.number().int(),
   magnitude: z.number().optional().nullable(),
   appliedAt: z.number().int(),
+  appliedDuringPlayerId: z.string().nullable().optional(),
+  targetOwnerId: z.string().nullable().optional(),
+  expiresAt: z
+    .enum(["afterOwnerTurnStartEffects", "afterOwnerTurnEndEffects"])
+    .optional(),
+  ownerTurnsSeen: z.number().int().nonnegative().optional(),
 });
 
 export const pvpAbilityDefinitionSchema = z.object({

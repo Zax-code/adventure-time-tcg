@@ -25,6 +25,19 @@ function makeUnit(instanceId) {
   };
 }
 
+function makeStatus(name) {
+  return {
+    name,
+    duration: 1,
+    magnitude: null,
+    appliedAt: 1,
+    appliedDuringPlayerId: "user-1",
+    targetOwnerId: "user-2",
+    expiresAt: "afterOwnerTurnEndEffects",
+    ownerTurnsSeen: 0,
+  };
+}
+
 test("pvp match detail accepts null payload status magnitude as absent", () => {
   const response = {
     match: {
@@ -58,7 +71,12 @@ test("pvp match detail accepts null payload status magnitude as absent", () => {
           name: "B",
           energy: 0,
           hasUsedFreeBasic: false,
-          units: [makeUnit("u2")],
+          units: [
+            {
+              ...makeUnit("u2"),
+              statuses: [makeStatus("Silence")],
+            },
+          ],
           bench: [],
         },
       ],
@@ -110,5 +128,10 @@ test("pvp match detail accepts null payload status magnitude as absent", () => {
   assert.deepEqual(
     statuses.map((status) => status.magnitude),
     [undefined, undefined, undefined],
+  );
+
+  assert.equal(
+    parsed.battleState?.players[1].units[0].statuses[0].expiresAt,
+    "afterOwnerTurnEndEffects",
   );
 });

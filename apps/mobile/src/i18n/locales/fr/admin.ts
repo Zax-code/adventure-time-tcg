@@ -553,6 +553,7 @@ const admin = {
     entry: "Entrée {index}",
     status: "Statut",
     duration: "Durée",
+    consumedOnAction: "Consommé à l'action",
     magnitude: "Valeur",
     entryTarget: "Cible de l'entrée",
     entrySelector: "Sélecteur de l'entrée",

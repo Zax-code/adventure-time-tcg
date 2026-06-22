@@ -48,7 +48,7 @@ const combat = {
   },
   statusDescription: {
     Burn: "Takes damage at start of turn",
-    Freeze: "Skips next action and takes +20% incoming damage",
+    Freeze: "Skips next combat action/copy; takes +20% damage",
     Shield: "Absorbs incoming damage",
     GuardUp: "Increased defense",
     Regeneration: "Heals at start of turn",
@@ -57,7 +57,7 @@ const combat = {
     Haste: "Increased speed, free basic attack",
     Taunt: "Enemies must target this unit",
     Silence: "Cannot use abilities",
-    Stunned: "Next basic/skill/ultimate costs +1 energy",
+    Stunned: "Next combat action or copy costs +1 energy",
     SummoningSickness: "Cannot act this turn",
     Cover: "Protected by another unit",
     Poison: "Takes poison damage each turn",

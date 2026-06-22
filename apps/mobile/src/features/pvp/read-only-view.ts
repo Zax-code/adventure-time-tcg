@@ -55,8 +55,18 @@ function asString(value: unknown, fallback = ""): string {
   return typeof value === "string" ? value : fallback;
 }
 
+function asOptionalString(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
 function asNumber(value: unknown, fallback = 0): number {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function asOptionalNonNegativeInteger(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0
+    ? value
+    : undefined;
 }
 
 function isStatusName(value: string): value is StatusName {
@@ -84,6 +94,14 @@ function normalizeStatus(
         ? status.magnitude
         : undefined,
     appliedAt: asNumber(status.appliedAt),
+    appliedDuringPlayerId: asOptionalString(status.appliedDuringPlayerId),
+    targetOwnerId: asOptionalString(status.targetOwnerId),
+    expiresAt:
+      status.expiresAt === "afterOwnerTurnStartEffects" ||
+      status.expiresAt === "afterOwnerTurnEndEffects"
+        ? status.expiresAt
+        : undefined,
+    ownerTurnsSeen: asOptionalNonNegativeInteger(status.ownerTurnsSeen),
   };
 }
 
@@ -300,6 +318,10 @@ function toPvpUnitState(unit: BattleState["players"][number]["units"][number]): 
       duration: status.duration,
       magnitude: status.magnitude ?? null,
       appliedAt: status.appliedAt,
+      appliedDuringPlayerId: status.appliedDuringPlayerId,
+      targetOwnerId: status.targetOwnerId,
+      expiresAt: status.expiresAt,
+      ownerTurnsSeen: status.ownerTurnsSeen,
     })),
     cooldowns: unit.cooldowns,
     usedUltimate: unit.usedUltimate,

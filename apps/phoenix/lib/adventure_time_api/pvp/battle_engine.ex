@@ -211,6 +211,127 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
     end
   end
 
+  defp status_lifecycle_metadata(state, unit_id) do
+    target_owner_id =
+      case get_unit_player(state, unit_id) do
+        nil -> nil
+        player -> player["userId"]
+      end
+
+    applied_during_player_id = state["currentPlayerId"]
+
+    expires_at =
+      if applied_during_player_id == target_owner_id do
+        "afterOwnerTurnStartEffects"
+      else
+        "afterOwnerTurnEndEffects"
+      end
+
+    %{
+      "appliedDuringPlayerId" => applied_during_player_id,
+      "targetOwnerId" => target_owner_id,
+      "expiresAt" => expires_at,
+      "ownerTurnsSeen" => 0
+    }
+  end
+
+  defp put_status_lifecycle(status, lifecycle) do
+    status
+    |> Map.put("appliedDuringPlayerId", lifecycle["appliedDuringPlayerId"])
+    |> Map.put("targetOwnerId", lifecycle["targetOwnerId"])
+    |> Map.put("expiresAt", lifecycle["expiresAt"])
+    |> Map.put("ownerTurnsSeen", lifecycle["ownerTurnsSeen"])
+  end
+
+  defp status_lifecycle_event_payload(unit_id, status_or_lifecycle) do
+    %{
+      "targetId" => unit_id,
+      "unitId" => unit_id,
+      "targetOwnerId" => status_or_lifecycle["targetOwnerId"],
+      "appliedDuringPlayerId" => status_or_lifecycle["appliedDuringPlayerId"],
+      "expiresAt" => status_or_lifecycle["expiresAt"],
+      "ownerTurnsSeen" => status_or_lifecycle["ownerTurnsSeen"] || 0
+    }
+  end
+
+  defp legacy_expires_at(name) do
+    case Map.get(@status_defs, name, %{}) do
+      %{expires_at: :owner_turn_end} -> "afterOwnerTurnEndEffects"
+      _ -> "afterOwnerTurnStartEffects"
+    end
+  end
+
+  defp status_duration(name, _duration) when name in ["Freeze", "Stunned"], do: -1
+  defp status_duration(_name, duration), do: duration
+
+  defp refreshed_status_duration(name, _existing, _duration)
+       when name in ["Freeze", "Stunned"],
+       do: -1
+
+  defp refreshed_status_duration(_name, existing, duration) do
+    remaining_duration =
+      max((existing["duration"] || duration) - (existing["ownerTurnsSeen"] || 0), 0)
+
+    if duration < 0 or existing["duration"] == -1,
+      do: -1,
+      else: max(remaining_duration, duration)
+  end
+
+  defp normalize_status_lifecycle(_state, player_id, status) do
+    status
+    |> Map.put("duration", status_duration(status["name"], status["duration"] || 1))
+    |> Map.put_new("targetOwnerId", player_id)
+    |> Map.put_new("appliedDuringPlayerId", Map.get(status, "targetOwnerId", player_id))
+    |> Map.put_new("expiresAt", legacy_expires_at(status["name"]))
+    |> Map.put_new("ownerTurnsSeen", 0)
+  end
+
+  defp normalize_status_lifecycles_for_player(state, player_id) do
+    update_player(state, player_id, fn player ->
+      player
+      |> Map.update!("units", fn units ->
+        Enum.map(units, &normalize_unit_status_lifecycles(state, player_id, &1))
+      end)
+      |> Map.update!("bench", fn bench ->
+        Enum.map(bench, &normalize_unit_status_lifecycles(state, player_id, &1))
+      end)
+    end)
+  end
+
+  defp normalize_unit_status_lifecycles(state, player_id, unit) do
+    Map.update!(unit, "statuses", fn statuses ->
+      Enum.map(statuses || [], &normalize_status_lifecycle(state, player_id, &1))
+    end)
+  end
+
+  defp status_phase_identity(unit_id, status) do
+    {
+      unit_id,
+      status["name"],
+      status["duration"],
+      status["appliedAt"],
+      status["appliedDuringPlayerId"],
+      status["targetOwnerId"],
+      status["expiresAt"],
+      status["ownerTurnsSeen"] || 0
+    }
+  end
+
+  defp phase_status_identities(state, player_id) do
+    case find_player(state, player_id) do
+      {:ok, player} ->
+        player["units"]
+        |> Kernel.++(player["bench"])
+        |> Enum.flat_map(fn unit ->
+          Enum.map(unit["statuses"] || [], &status_phase_identity(unit["instanceId"], &1))
+        end)
+        |> MapSet.new()
+
+      {:error, _} ->
+        MapSet.new()
+    end
+  end
+
   # Apply a status to a unit. Returns {state, [events]}.
   # opts: [magnitude: integer | nil, source_instance_id: string | nil]
   defp apply_status(state, unit_id, name, duration, opts) do
@@ -289,27 +410,44 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
        ) do
     existing = get_status(unit, name)
     current_turn = state["turn"]
+    lifecycle = status_lifecycle_metadata(state, unit_id)
+    duration = status_duration(name, duration)
 
     cond do
       # Shield: stack magnitude
       existing != nil and def_.stackable == :magnitude ->
         new_mag = (existing["magnitude"] || 0) + (magnitude || 0)
+        new_dur = refreshed_status_duration(name, existing, duration)
 
         event =
-          new_event(state, "statusApply", %{
-            "targetId" => unit_id,
-            "unitId" => unit_id,
-            "statusName" => name,
-            "status" => name,
-            "magnitude" => new_mag,
-            "stacked" => true
-          })
+          new_event(
+            state,
+            "statusApply",
+            %{
+              "targetId" => unit_id,
+              "unitId" => unit_id,
+              "statusName" => name,
+              "status" => name,
+              "duration" => new_dur,
+              "magnitude" => new_mag,
+              "stacked" => true
+            }
+            |> Map.merge(status_lifecycle_event_payload(unit_id, lifecycle))
+          )
 
         state =
           update_unit(state, unit_id, fn u ->
             new_statuses =
               Enum.map(u["statuses"] || [], fn s ->
-                if s["name"] == name, do: Map.put(s, "magnitude", new_mag), else: s
+                if s["name"] == name do
+                  s
+                  |> Map.put("magnitude", new_mag)
+                  |> Map.put("duration", new_dur)
+                  |> Map.put("appliedAt", current_turn)
+                  |> put_status_lifecycle(lifecycle)
+                else
+                  s
+                end
               end)
 
             Map.put(u, "statuses", new_statuses)
@@ -325,17 +463,23 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
       # Poison: stack count
       existing != nil and def_.stackable == :count ->
         new_count = (existing["magnitude"] || 1) + 1
-        new_dur = max(existing["duration"] || duration, duration)
+        new_dur = refreshed_status_duration(name, existing, duration)
 
         event =
-          new_event(state, "statusApply", %{
-            "targetId" => unit_id,
-            "unitId" => unit_id,
-            "statusName" => name,
-            "status" => name,
-            "stacks" => new_count,
-            "stacked" => true
-          })
+          new_event(
+            state,
+            "statusApply",
+            %{
+              "targetId" => unit_id,
+              "unitId" => unit_id,
+              "statusName" => name,
+              "status" => name,
+              "duration" => new_dur,
+              "stacks" => new_count,
+              "stacked" => true
+            }
+            |> Map.merge(status_lifecycle_event_payload(unit_id, lifecycle))
+          )
 
         state =
           update_unit(state, unit_id, fn u ->
@@ -346,7 +490,8 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
                     s
                     |> Map.put("magnitude", new_count)
                     |> Map.put("duration", new_dur)
-                    |> Map.put("appliedAt", current_turn),
+                    |> Map.put("appliedAt", current_turn)
+                    |> put_status_lifecycle(lifecycle),
                   else: s
               end)
 
@@ -362,24 +507,33 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
 
       # Non-stackable but already exists: refresh duration
       existing != nil ->
-        new_dur = max(existing["duration"] || duration, duration)
+        new_dur = refreshed_status_duration(name, existing, duration)
 
         event =
-          new_event(state, "statusApply", %{
-            "targetId" => unit_id,
-            "unitId" => unit_id,
-            "statusName" => name,
-            "status" => name,
-            "duration" => new_dur,
-            "refreshed" => true
-          })
+          new_event(
+            state,
+            "statusApply",
+            %{
+              "targetId" => unit_id,
+              "unitId" => unit_id,
+              "statusName" => name,
+              "status" => name,
+              "duration" => new_dur,
+              "refreshed" => true
+            }
+            |> Map.merge(status_lifecycle_event_payload(unit_id, lifecycle))
+          )
 
         state =
           update_unit(state, unit_id, fn u ->
             new_statuses =
               Enum.map(u["statuses"] || [], fn s ->
                 if s["name"] == name,
-                  do: s |> Map.put("duration", new_dur) |> Map.put("appliedAt", current_turn),
+                  do:
+                    s
+                    |> Map.put("duration", new_dur)
+                    |> Map.put("appliedAt", current_turn)
+                    |> put_status_lifecycle(lifecycle),
                   else: s
               end)
 
@@ -397,23 +551,30 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
       true ->
         {state, evict_events} = maybe_evict_for_cap(state, unit_id, unit, def_)
 
-        new_entry = %{
-          "name" => name,
-          "duration" => duration,
-          "magnitude" => magnitude,
-          "sourceInstanceId" => source_id,
-          "appliedAt" => current_turn
-        }
+        new_entry =
+          %{
+            "name" => name,
+            "duration" => duration,
+            "magnitude" => magnitude,
+            "sourceInstanceId" => source_id,
+            "appliedAt" => current_turn
+          }
+          |> put_status_lifecycle(lifecycle)
 
         apply_event =
-          new_event(state, "statusApply", %{
-            "targetId" => unit_id,
-            "unitId" => unit_id,
-            "statusName" => name,
-            "status" => name,
-            "duration" => duration,
-            "magnitude" => magnitude
-          })
+          new_event(
+            state,
+            "statusApply",
+            %{
+              "targetId" => unit_id,
+              "unitId" => unit_id,
+              "statusName" => name,
+              "status" => name,
+              "duration" => duration,
+              "magnitude" => magnitude
+            }
+            |> Map.merge(status_lifecycle_event_payload(unit_id, lifecycle))
+          )
 
         state =
           update_unit(state, unit_id, fn u ->
@@ -485,9 +646,8 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
     end)
   end
 
-  # Tick statuses for all active units of a given player.
-  # Called at the start of that player's turn (in simulate_end_turn for other_player_id).
-  defp tick_statuses(state, player_id) do
+  # Resolve start-of-turn effects for statuses that existed when the phase began.
+  defp tick_statuses(state, player_id, phase_statuses) do
     events_before = length(state["log"])
 
     {:ok, player} = find_player(state, player_id)
@@ -497,7 +657,7 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
         if unit["knockedOut"] or unit["hp"] <= 0 do
           acc_state
         else
-          tick_unit_statuses(acc_state, unit["instanceId"])
+          tick_unit_statuses(acc_state, unit["instanceId"], phase_statuses)
         end
       end)
 
@@ -505,50 +665,69 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
     {state, new_events}
   end
 
-  defp expire_owner_turn_end_statuses(state, player_id) do
+  defp expire_owner_turn_start_statuses(state, player_id, phase_statuses) do
+    expire_statuses_at_boundary(
+      state,
+      player_id,
+      "afterOwnerTurnStartEffects",
+      phase_statuses
+    )
+  end
+
+  defp expire_owner_turn_end_statuses(state, player_id, phase_statuses) do
+    expire_statuses_at_boundary(
+      state,
+      player_id,
+      "afterOwnerTurnEndEffects",
+      phase_statuses
+    )
+  end
+
+  defp expire_statuses_at_boundary(state, player_id, boundary, phase_statuses) do
     events_before = length(state["log"])
 
     {:ok, player} = find_player(state, player_id)
 
     state =
-      Enum.reduce(player["units"], state, fn unit, acc_state ->
-        if unit["knockedOut"] or unit["hp"] <= 0 do
-          acc_state
-        else
-          tick_owner_turn_end_statuses(acc_state, unit["instanceId"])
-        end
+      (player["units"] ++ player["bench"])
+      |> Enum.reduce(state, fn unit, acc_state ->
+        expire_unit_statuses_at_boundary(acc_state, unit["instanceId"], boundary, phase_statuses)
       end)
 
     new_events = Enum.drop(state["log"], events_before)
     {state, new_events}
   end
 
-  defp tick_owner_turn_end_statuses(state, unit_id) do
+  defp expire_unit_statuses_at_boundary(state, unit_id, boundary, phase_statuses) do
     {:ok, unit} = find_unit_across_players(state, unit_id)
 
     Enum.reduce(unit["statuses"] || [], state, fn status, acc_state ->
-      def_ = Map.get(@status_defs, status["name"], %{})
-
       cond do
-        def_[:expires_at] != :owner_turn_end ->
-          acc_state
-
         (status["duration"] || 1) < 0 ->
           acc_state
 
-        (status["appliedAt"] || 0) >= state["turn"] ->
+        status["targetOwnerId"] != get_unit_player(acc_state, unit_id)["userId"] ->
+          acc_state
+
+        status["expiresAt"] != boundary ->
+          acc_state
+
+        not MapSet.member?(phase_statuses, status_phase_identity(unit_id, status)) ->
           acc_state
 
         true ->
-          new_dur = (status["duration"] || 1) - 1
+          owner_turns_seen = (status["ownerTurnsSeen"] || 0) + 1
+          updated_status = Map.put(status, "ownerTurnsSeen", owner_turns_seen)
 
-          if new_dur <= 0 do
+          if owner_turns_seen >= (status["duration"] || 1) do
             expire_evt =
               new_event(acc_state, "statusExpire", %{
                 "targetId" => unit_id,
                 "unitId" => unit_id,
                 "statusName" => status["name"],
-                "status" => status["name"]
+                "status" => status["name"],
+                "expiredAt" => boundary,
+                "ownerTurnsSeen" => owner_turns_seen
               })
 
             acc_state =
@@ -561,7 +740,7 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
             update_unit(acc_state, unit_id, fn u ->
               new_statuses =
                 Enum.map(u["statuses"] || [], fn s ->
-                  if s["name"] == status["name"], do: Map.put(s, "duration", new_dur), else: s
+                  if s["name"] == status["name"], do: updated_status, else: s
                 end)
 
               Map.put(u, "statuses", new_statuses)
@@ -571,9 +750,13 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
     end)
   end
 
-  defp tick_unit_statuses(state, unit_id) do
+  defp tick_unit_statuses(state, unit_id, phase_statuses) do
     {:ok, unit} = find_unit_across_players(state, unit_id)
-    statuses = unit["statuses"] || []
+
+    statuses =
+      Enum.filter(unit["statuses"] || [], fn status ->
+        MapSet.member?(phase_statuses, status_phase_identity(unit_id, status))
+      end)
 
     # Accumulate net damage and healing
     {state, net_damage, net_heal} =
@@ -698,42 +881,7 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
         state
       end
 
-    # Decrement and expire ticking statuses
-    {:ok, unit_now} = find_unit_across_players(state, unit_id)
-
-    Enum.reduce(unit_now["statuses"] || [], state, fn status, acc_state ->
-      def_ = Map.get(@status_defs, status["name"], %{ticks: false})
-
-      if def_.ticks do
-        new_dur = (status["duration"] || 1) - 1
-
-        if new_dur <= 0 do
-          expire_evt =
-            new_event(acc_state, "statusExpire", %{
-              "targetId" => unit_id,
-              "unitId" => unit_id,
-              "statusName" => status["name"],
-              "status" => status["name"]
-            })
-
-          acc_state =
-            update_unit(acc_state, unit_id, fn u -> remove_status_from_unit(u, status["name"]) end)
-
-          append_log(acc_state, [expire_evt])
-        else
-          update_unit(acc_state, unit_id, fn u ->
-            new_statuses =
-              Enum.map(u["statuses"] || [], fn s ->
-                if s["name"] == status["name"], do: Map.put(s, "duration", new_dur), else: s
-              end)
-
-            Map.put(u, "statuses", new_statuses)
-          end)
-        end
-      else
-        acc_state
-      end
-    end)
+    state
   end
 
   # Stat modifiers based on active statuses
@@ -1945,7 +2093,7 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
       :ok ->
         # Freeze check: skip action if frozen
         {freeze_result, state} =
-          if kind in ["basic", "skill", "ultimate"] and not is_nil(actor_id) do
+          if kind in ["basic", "skill", "ultimate", "copy"] and not is_nil(actor_id) do
             maybe_consume_freeze(state, actor_id)
           else
             {:proceed, state}
@@ -2021,7 +2169,7 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
           with :ok <- validate_ability_cooldown(actor, ability_key),
                :ok <- validate_once_per_match(actor, ability_def, type_filter),
                :ok <- validate_energy(acting_player, ability_def, stun_extra) do
-            dispatch_ability(state, acting_user_id, actor_id, target_id, ability_def)
+            dispatch_ability(state, acting_user_id, actor_id, target_id, ability_def, stun_extra)
           end
         end
       end
@@ -2047,9 +2195,9 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
     if player["energy"] >= cost, do: :ok, else: {:error, :not_enough_energy}
   end
 
-  defp dispatch_ability(state, acting_user_id, actor_id, target_id, ability_def) do
+  defp dispatch_ability(state, acting_user_id, actor_id, target_id, ability_def, extra_cost) do
     initial_log_length = length(state["log"])
-    cost = ability_def["cost"] || 0
+    cost = (ability_def["cost"] || 0) + extra_cost
     cooldown_turns = ability_def["cooldown"]
     ability_key = ability_def["key"]
     is_ultimate = ability_def["type"] == "ULTIMATE"
@@ -3087,6 +3235,9 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
     events_before = length(state["log"])
     current_player_id = state["currentPlayerId"]
 
+    state = normalize_status_lifecycles_for_player(state, current_player_id)
+    end_phase_statuses = phase_status_identities(state, current_player_id)
+
     state = check_passives(state, "onEndTurn", %{"playerId" => current_player_id})
 
     state =
@@ -3098,7 +3249,8 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
         state
       end
 
-    {state, _turn_end_status_events} = expire_owner_turn_end_statuses(state, current_player_id)
+    {state, _turn_end_status_events} =
+      expire_owner_turn_end_statuses(state, current_player_id, end_phase_statuses)
 
     other_player_id = other_player(state, current_player_id)
 
@@ -3110,6 +3262,9 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
       |> Map.update!("turn", &(&1 + 1))
       |> Map.put("actionsThisTurn", [])
       |> append_log([turn_end_event])
+
+    state = normalize_status_lifecycles_for_player(state, other_player_id)
+    start_phase_statuses = phase_status_identities(state, other_player_id)
 
     {:ok, next_player} = find_player(state, other_player_id)
     granted_energy = min(5, (next_player["energy"] || 0) + 1)
@@ -3130,13 +3285,16 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
 
     {state, _cooldown_events} = tick_player_cooldowns(state, other_player_id)
 
-    # Tick statuses for the player whose turn is starting
-    {state, _tick_events} = tick_statuses(state, other_player_id)
+    # Resolve start-of-turn status effects for statuses present when the phase began.
+    {state, _tick_events} = tick_statuses(state, other_player_id, start_phase_statuses)
 
     # Check if DoT ended the game
     state = maybe_end_game(state)
 
     state = check_passives(state, "onStartTurn", %{"playerId" => other_player_id})
+
+    {state, _turn_start_status_events} =
+      expire_owner_turn_start_statuses(state, other_player_id, start_phase_statuses)
 
     turn_start_event = new_event(state, "turnStart", %{"playerId" => other_player_id})
     state = append_log(state, [turn_start_event])
@@ -3469,6 +3627,8 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
   end
 
   defp apply_swap(state, player_id, active_id, bench_id) do
+    summoning_sickness_lifecycle = status_lifecycle_metadata(state, bench_id)
+
     state =
       state
       |> Map.update!("players", fn players ->
@@ -3503,13 +3663,15 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
             swapped_units =
               Enum.map(swapped_units, fn u ->
                 if u["instanceId"] == bench_id do
-                  ss_entry = %{
-                    "name" => "SummoningSickness",
-                    "duration" => 1,
-                    "magnitude" => nil,
-                    "sourceInstanceId" => nil,
-                    "appliedAt" => 0
-                  }
+                  ss_entry =
+                    %{
+                      "name" => "SummoningSickness",
+                      "duration" => 1,
+                      "magnitude" => nil,
+                      "sourceInstanceId" => nil,
+                      "appliedAt" => state["turn"]
+                    }
+                    |> put_status_lifecycle(summoning_sickness_lifecycle)
 
                   Map.update!(u, "statuses", &(&1 ++ [ss_entry]))
                 else

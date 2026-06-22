@@ -351,6 +351,55 @@ defmodule AdventureTimeApiWeb.AdminControllerTest do
     assert invalid_create["error"] == "Invalid ability"
     assert invalid_create["details"]["type"] == ["is invalid"]
 
+    create_conn =
+      build_conn()
+      |> put_req_header("authorization", "Bearer #{admin_token}")
+      |> post(~p"/admin/abilities", %{
+        "key" => unique_name("freeze.ability"),
+        "name" => "Freeze Ability",
+        "description" => "Applies Freeze and Stunned.",
+        "type" => "SKILL",
+        "cost" => 2,
+        "payload" => %{
+          "applyStatuses" => [
+            %{"name" => "Freeze", "duration" => 2},
+            %{"name" => "Stunned", "duration" => 3},
+            %{"name" => "Silence", "duration" => 2}
+          ]
+        }
+      })
+
+    created_ability = json_response(create_conn, 201)["ability"]
+    [freeze, stunned, silence] = created_ability["payload"]["applyStatuses"]
+    assert freeze["duration"] == -1
+    assert stunned["duration"] == -1
+    assert silence["duration"] == 2
+
+    update_conn =
+      build_conn()
+      |> put_req_header("authorization", "Bearer #{admin_token}")
+      |> patch(~p"/admin/abilities/#{created_ability["id"]}", %{
+        "payload" => %{
+          "conditional" => [
+            %{
+              "when" => %{"targetHas" => "Burn"},
+              "addApplyStatuses" => [%{"name" => "Stunned", "duration" => 4}]
+            }
+          ]
+        }
+      })
+
+    updated_ability = json_response(update_conn, 200)["ability"]
+
+    assert get_in(updated_ability, [
+             "payload",
+             "conditional",
+             Access.at(0),
+             "addApplyStatuses",
+             Access.at(0),
+             "duration"
+           ]) == -1
+
     missing_update_conn =
       build_conn()
       |> put_req_header("authorization", "Bearer #{admin_token}")
