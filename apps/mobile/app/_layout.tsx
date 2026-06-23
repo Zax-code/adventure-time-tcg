@@ -2,12 +2,13 @@ import "react-native-reanimated";
 import { useEffect } from "react";
 import { BottomSheetProvider } from "@swmansion/react-native-bottom-sheet";
 import { ActivityIndicator, View } from "react-native";
-import { Stack } from "expo-router";
+import { Stack, usePathname } from "expo-router";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
+import * as ScreenOrientation from "expo-screen-orientation";
 import {
   useFonts,
   Nunito_400Regular,
@@ -54,7 +55,15 @@ const DEFAULT_NOTIFICATION_PREFERENCES = {
   giftReceived: true,
 } as const;
 
+const LANDSCAPE_ORIENTATION_PATHS = new Set([
+  "/pvp-match",
+  "/pvp-replay",
+  "/pvp-spectate-match",
+]);
+
 export default function RootLayout() {
+  const pathname = usePathname();
+
   useBootstrap();
   useRetryFailedQueriesOnAppActive();
   useUserTimezoneSync();
@@ -109,6 +118,14 @@ export default function RootLayout() {
   useEffect(() => {
     void hydrateLocale();
   }, [hydrateLocale]);
+
+  useEffect(() => {
+    const orientationLock = LANDSCAPE_ORIENTATION_PATHS.has(pathname)
+      ? ScreenOrientation.OrientationLock.LANDSCAPE
+      : ScreenOrientation.OrientationLock.PORTRAIT;
+
+    ScreenOrientation.lockAsync(orientationLock).catch(() => {});
+  }, [pathname]);
 
   useEffect(() => {
     void registerWidgetRefreshNotificationTask();

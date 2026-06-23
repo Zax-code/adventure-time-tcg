@@ -3,7 +3,6 @@ import type { ReactNode } from "react";
 import { Pressable, StatusBar, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
-import * as ScreenOrientation from "expo-screen-orientation";
 
 import { PageLoadingState } from "../src/components/loading-state";
 import { ThemedExpoButton } from "../src/components/expo-ui/themed-button";
@@ -57,17 +56,6 @@ export default function PvpReplayScreen() {
         : buildPvpVisualEvents([]),
     [currentTurnView],
   );
-
-  useEffect(() => {
-    ScreenOrientation.lockAsync(
-      ScreenOrientation.OrientationLock.LANDSCAPE,
-    ).catch(() => {});
-    return () => {
-      ScreenOrientation.lockAsync(
-        ScreenOrientation.OrientationLock.DEFAULT,
-      ).catch(() => {});
-    };
-  }, []);
 
   useEffect(() => {
     if (turnViews.length === 0) {

@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Pressable, StatusBar, StyleSheet, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import * as ScreenOrientation from "expo-screen-orientation";
 
 import type { PvpAction } from "@adventure-time/api-client";
 
@@ -114,17 +113,6 @@ export default function PvpMatchScreen() {
   const [isSwapMode, setIsSwapMode] = useState(false);
   const [showEndTurnConfirm, setShowEndTurnConfirm] = useState(false);
   const [showConcedeConfirm, setShowConcedeConfirm] = useState(false);
-
-  useEffect(() => {
-    ScreenOrientation.lockAsync(
-      ScreenOrientation.OrientationLock.LANDSCAPE,
-    ).catch(() => {});
-    return () => {
-      ScreenOrientation.lockAsync(
-        ScreenOrientation.OrientationLock.DEFAULT,
-      ).catch(() => {});
-    };
-  }, []);
 
   useEffect(() => {
     if (!initialE2EModal) {
