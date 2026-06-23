@@ -8,6 +8,9 @@ private let atStepQuestWidgetKind = "StepQuestWidget"
 private let atStepQuestWidgetApiBaseUrlKey = "stepQuestWidgetApiBaseUrl"
 private let atStepQuestWidgetThemeNameKey = "stepQuestWidgetThemeName"
 private let atStepQuestWidgetLocaleKey = "stepQuestWidgetLocale"
+private let atStepQuestWidgetAccessTokenKey = "stepQuestWidgetAccessToken"
+private let atStepQuestWidgetRefreshTokenKey = "stepQuestWidgetRefreshToken"
+private let atStepQuestWidgetUserContextKey = "stepQuestWidgetUserContext"
 
 @objc(WidgetSnapshotBridge)
 final class WidgetSnapshotBridge: NSObject {
@@ -57,8 +60,37 @@ final class WidgetSnapshotBridge: NSObject {
     defaults.set(apiBaseUrl, forKey: atStepQuestWidgetApiBaseUrlKey)
     defaults.set(themeName, forKey: atStepQuestWidgetThemeNameKey)
     defaults.set(locale, forKey: atStepQuestWidgetLocaleKey)
+    defaults.set(json["accessToken"] as? String, forKey: atStepQuestWidgetAccessTokenKey)
+    defaults.set(json["refreshToken"] as? String, forKey: atStepQuestWidgetRefreshTokenKey)
+
+    if let user = json["user"] {
+      let userData = try? JSONSerialization.data(withJSONObject: user)
+      defaults.set(userData.flatMap { String(data: $0, encoding: .utf8) }, forKey: atStepQuestWidgetUserContextKey)
+    } else {
+      defaults.removeObject(forKey: atStepQuestWidgetUserContextKey)
+    }
+
     startStepQuestBackgroundSync()
     reloadWidgetTimeline()
+    resolve(nil)
+  }
+
+  @objc(clearStepQuestSyncContextWithResolver:rejecter:)
+  func clearStepQuestSyncContext(
+    withResolver resolve: RCTPromiseResolveBlock,
+    rejecter reject: RCTPromiseRejectBlock
+  ) {
+    guard let defaults = UserDefaults(suiteName: atStepQuestWidgetAppGroup) else {
+      reject("WIDGET_SYNC_CONTEXT_CLEAR_FAILED", "App group defaults are unavailable.", nil)
+      return
+    }
+
+    defaults.removeObject(forKey: atStepQuestWidgetApiBaseUrlKey)
+    defaults.removeObject(forKey: atStepQuestWidgetThemeNameKey)
+    defaults.removeObject(forKey: atStepQuestWidgetLocaleKey)
+    defaults.removeObject(forKey: atStepQuestWidgetAccessTokenKey)
+    defaults.removeObject(forKey: atStepQuestWidgetRefreshTokenKey)
+    defaults.removeObject(forKey: atStepQuestWidgetUserContextKey)
     resolve(nil)
   }
 

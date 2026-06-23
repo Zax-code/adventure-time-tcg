@@ -22,6 +22,8 @@ const quests = {
     "Active {healthSystem} une fois pour que cette quête puisse compter tes pas.",
   stepSyncPromptSetupBody:
     "Termine d'abord la configuration de {healthSystem} pour que cette quête puisse compter tes pas.",
+  stepClaimSyncPending:
+    "Tes pas sont prêts localement, mais les pièces attendent encore la confirmation du serveur. Réessaie dans un instant.",
   widgetRemainingSteps: "{count} pas restants",
   widgetReadyToClaim: "Récompense prête : {reward} pièces",
   widgetClaimedToday: "Récupérée pour aujourd'hui",

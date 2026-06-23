@@ -15,6 +15,11 @@ _RCT_EXTERN_REMAP_METHOD(clearStepQuestSnapshot,
                          rejecter:(RCTPromiseRejectBlock)reject,
                          NO)
 
+_RCT_EXTERN_REMAP_METHOD(clearStepQuestSyncContext,
+                         clearStepQuestSyncContextWithResolver:(RCTPromiseResolveBlock)resolve
+                         rejecter:(RCTPromiseRejectBlock)reject,
+                         NO)
+
 _RCT_EXTERN_REMAP_METHOD(startStepQuestBackgroundSync,
                          startStepQuestBackgroundSyncWithResolver:(RCTPromiseResolveBlock)resolve
                          rejecter:(RCTPromiseRejectBlock)reject,

@@ -88,16 +88,21 @@ class StepQuestWidgetProvider : AppWidgetProvider() {
     }
 
     scheduleNextMidnightRefresh(context)
+    StepQuestWidgetBackgroundSync.schedulePeriodic(context)
+    StepQuestWidgetBackgroundSync.enqueueOneTime(context)
   }
 
   override fun onEnabled(context: Context) {
     super.onEnabled(context)
     scheduleNextMidnightRefresh(context)
+    StepQuestWidgetBackgroundSync.schedulePeriodic(context)
+    StepQuestWidgetBackgroundSync.enqueueOneTime(context)
   }
 
   override fun onDisabled(context: Context) {
     super.onDisabled(context)
     cancelNextMidnightRefresh(context)
+    StepQuestWidgetBackgroundSync.cancel(context)
   }
 
   override fun onAppWidgetOptionsChanged(

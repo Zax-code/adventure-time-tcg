@@ -4,6 +4,7 @@ import HealthKit
 import React
 import ReactAppDependencyProvider
 import Security
+import UserNotifications
 import WidgetKit
 
 @UIApplicationMain
@@ -92,6 +93,16 @@ private let atStepQuestDefaultApiBaseUrl = "https://app.leaetzak.love"
 private let atStepQuestDefaultDeepLink = "adventure-time://widget-quests?focus=steps"
 private let atStepQuestDefaultTarget = 10_000
 private let atStepQuestDefaultReward = 150
+private let atStepQuestServerSyncThrottleSeconds: TimeInterval = 15 * 60
+private let atStepQuestServerSyncAttemptKey = "stepQuestServerSyncAttempt"
+
+private struct NativeNotificationPreferences: Codable {
+  let dailyReset: Bool?
+  let stepGoal: Bool
+  let pvpInvite: Bool?
+  let pvpTurn: Bool?
+  let giftReceived: Bool?
+}
 
 private struct NativeStoredAuthUser: Codable {
   let id: String
@@ -105,6 +116,7 @@ private struct NativeStoredAuthUser: Codable {
   let preferredStepSource: String
   let preferredLanguage: String
   let timezone: String
+  let notificationPreferences: NativeNotificationPreferences
 }
 
 private struct NativeAuthTokens: Decodable {
@@ -145,6 +157,12 @@ private struct NativeStepQuestWidgetSnapshot: Codable {
   let progressLabel: String
   let statusLabel: String
   let subtitle: String
+}
+
+private struct NativeServerSyncAttemptState: Codable {
+  let recordedFor: String
+  let lastAttemptAt: String?
+  let completionAttemptedFor: String?
 }
 
 private enum StepQuestBackgroundSyncError: Error {
@@ -247,6 +265,28 @@ actor StepQuestBackgroundSyncService {
       existingSnapshot: existingSnapshot
     )
     saveSnapshot(localSnapshot)
+    await notifyStepGoalReachedIfNeeded(
+      user: storedUser,
+      snapshot: localSnapshot,
+      recordedFor: recordedFor,
+      locale: locale
+    )
+
+    guard shouldAttemptServerSync(
+      userId: storedUser?.id,
+      recordedFor: recordedFor,
+      stepCount: localSnapshot.progress,
+      target: localSnapshot.target
+    ) else {
+      return
+    }
+
+    markServerSyncAttempt(
+      userId: storedUser?.id,
+      recordedFor: recordedFor,
+      stepCount: localSnapshot.progress,
+      target: localSnapshot.target
+    )
 
     guard let accessToken = loadSecureStoreValue(for: "accessToken") else {
       return
@@ -479,6 +519,137 @@ private func saveSnapshot(_ snapshot: NativeStepQuestWidgetSnapshot) {
   }
 }
 
+private func secureStoreKeySegment(_ value: String) -> String {
+  let allowed = CharacterSet(charactersIn: "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz._-")
+  return String(
+    value.unicodeScalars.map { scalar in
+      allowed.contains(scalar) ? Character(scalar) : "_"
+    }
+  )
+}
+
+private func notificationKeyForDate(userId: String, recordedFor: String) -> String {
+  "step-goal-notified.\(secureStoreKeySegment(userId)).\(secureStoreKeySegment(recordedFor))"
+}
+
+private func notifyStepGoalReachedIfNeeded(
+  user: NativeStoredAuthUser?,
+  snapshot: NativeStepQuestWidgetSnapshot,
+  recordedFor: String,
+  locale: String
+) async {
+  guard let user,
+        user.notificationPreferences.stepGoal,
+        snapshot.progress >= snapshot.target
+  else {
+    return
+  }
+
+  let key = notificationKeyForDate(userId: user.id, recordedFor: recordedFor)
+  if loadSecureStoreValue(for: key) == "1" {
+    return
+  }
+
+  let settings = await UNUserNotificationCenter.current().notificationSettings()
+  guard settings.authorizationStatus == .authorized ||
+        settings.authorizationStatus == .provisional
+  else {
+    return
+  }
+
+  let content = UNMutableNotificationContent()
+  content.title = locale == "fr" ? "Objectif de pas atteint" : "Step goal reached"
+  content.body = locale == "fr"
+    ? "Tu as atteint 10 000 pas. Ta quête du jour est prête à être réclamée."
+    : "You hit 10,000 steps. Your daily quest is ready to claim."
+  content.sound = .default
+  content.userInfo = ["eventType": "step_goal_reached"]
+
+  let request = UNNotificationRequest(
+    identifier: "step-goal-\(secureStoreKeySegment(user.id))-\(secureStoreKeySegment(recordedFor))",
+    content: content,
+    trigger: nil
+  )
+
+  do {
+    try await UNUserNotificationCenter.current().add(request)
+    _ = writeSecureStoreValue("1", for: key)
+  } catch {
+    return
+  }
+}
+
+private func serverSyncAttemptKey(userId: String?) -> String {
+  "\(atStepQuestServerSyncAttemptKey).\(secureStoreKeySegment(userId ?? "anonymous"))"
+}
+
+private func loadServerSyncAttemptState(userId: String?) -> NativeServerSyncAttemptState? {
+  guard let defaults = UserDefaults(suiteName: atStepQuestWidgetAppGroup),
+        let rawState = defaults.string(forKey: serverSyncAttemptKey(userId: userId)),
+        let data = rawState.data(using: .utf8)
+  else {
+    return nil
+  }
+
+  return try? JSONDecoder().decode(NativeServerSyncAttemptState.self, from: data)
+}
+
+private func saveServerSyncAttemptState(
+  userId: String?,
+  state: NativeServerSyncAttemptState
+) {
+  guard let defaults = UserDefaults(suiteName: atStepQuestWidgetAppGroup),
+        let data = try? JSONEncoder().encode(state),
+        let rawState = String(data: data, encoding: .utf8)
+  else {
+    return
+  }
+
+  defaults.set(rawState, forKey: serverSyncAttemptKey(userId: userId))
+}
+
+private func shouldAttemptServerSync(
+  userId: String?,
+  recordedFor: String,
+  stepCount: Int,
+  target: Int
+) -> Bool {
+  let state = loadServerSyncAttemptState(userId: userId)
+
+  if stepCount >= target {
+    return state?.completionAttemptedFor != recordedFor
+  }
+
+  guard let state,
+        state.recordedFor == recordedFor,
+        let lastAttemptAt = state.lastAttemptAt,
+        let lastAttemptDate = ISO8601DateFormatter().date(from: lastAttemptAt)
+  else {
+    return true
+  }
+
+  return Date().timeIntervalSince(lastAttemptDate) >= atStepQuestServerSyncThrottleSeconds
+}
+
+private func markServerSyncAttempt(
+  userId: String?,
+  recordedFor: String,
+  stepCount: Int,
+  target: Int
+) {
+  let existing = loadServerSyncAttemptState(userId: userId)
+  saveServerSyncAttemptState(
+    userId: userId,
+    state: NativeServerSyncAttemptState(
+      recordedFor: recordedFor,
+      lastAttemptAt: isoTimestamp(Date()),
+      completionAttemptedFor: stepCount >= target
+        ? recordedFor
+        : existing?.recordedFor == recordedFor ? existing?.completionAttemptedFor : nil
+    )
+  )
+}
+
 private func buildSnapshotFromQuests(
   _ response: NativeQuestsResponse,
   locale: String,
@@ -489,30 +660,34 @@ private func buildSnapshotFromQuests(
     return nil
   }
 
+  let target = max(quest.target, 1)
+  let existingProgress =
+    existingSnapshot?.recordedFor == recordedFor ? max(existingSnapshot?.progress ?? 0, 0) : 0
+  let progress =
+    quest.claimed || quest.failed ? max(quest.progress, 0) : max(max(quest.progress, 0), existingProgress)
   let status = questStatus(
     claimed: quest.claimed,
-    completed: quest.completed,
+    completed: quest.completed || progress >= target,
     failed: quest.failed
   )
-  let progress = max(quest.progress, 0)
   let rewardLabel = formatNumber(quest.reward, locale: locale)
 
   return NativeStepQuestWidgetSnapshot(
     themeName: resolveWidgetThemeName(existingSnapshot: existingSnapshot),
     title: localizedQuestTitle(locale: locale, titleKey: quest.title),
     progress: progress,
-    target: max(quest.target, 1),
+    target: target,
     reward: quest.reward,
     status: status,
     recordedFor: recordedFor,
     deepLink: existingSnapshot?.deepLink ?? atStepQuestDefaultDeepLink,
     updatedAt: isoTimestamp(Date()),
-    progressLabel: "\(formatNumber(progress, locale: locale)) / \(formatNumber(max(quest.target, 1), locale: locale))",
+    progressLabel: "\(formatNumber(progress, locale: locale)) / \(formatNumber(target, locale: locale))",
     statusLabel: localizedStatusLabel(status: status, locale: locale),
     subtitle: localizedSubtitle(
       status: status,
       locale: locale,
-      remaining: max(0, quest.target - progress),
+      remaining: max(0, target - progress),
       rewardLabel: rewardLabel
     )
   )
@@ -535,7 +710,7 @@ private func buildLocalSnapshot(
 
   let target = max(baseSnapshot?.target ?? atStepQuestDefaultTarget, 1)
   let reward = max(baseSnapshot?.reward ?? atStepQuestDefaultReward, 0)
-  let progress = max(stepCount, 0)
+  let progress = max(max(stepCount, 0), baseSnapshot?.progress ?? 0)
 
   let status: String
   if baseSnapshot?.status == "claimed" {

@@ -10,6 +10,11 @@ import {
 
 import { queryClient } from "./query-client";
 import { clearScheduledNotificationPreferencesForSession } from "./app-notifications";
+import { clearLocalStepSnapshotForUser } from "./local-step-snapshot";
+import {
+  clearStepQuestWidgetSnapshot,
+  clearStepQuestWidgetSyncContext,
+} from "./step-quest-widget";
 import { unregisterNotificationDeviceBeforeSessionClear } from "./widget-refresh-push";
 import { API_BASE_URL } from "./api-config";
 import { useSessionStore } from "../stores/session-store";
@@ -55,8 +60,16 @@ export async function getStoredUser() {
 }
 
 export async function clearAppSession() {
+  const currentUser = await getStoredUser();
   await unregisterNotificationDeviceBeforeSessionClear();
   await clearScheduledNotificationPreferencesForSession();
+  await Promise.all([
+    currentUser?.id
+      ? clearLocalStepSnapshotForUser(currentUser.id)
+      : Promise.resolve(),
+    clearStepQuestWidgetSnapshot(),
+    clearStepQuestWidgetSyncContext(),
+  ]);
   await useSessionStore.getState().clearSession();
   queryClient.clear();
 }

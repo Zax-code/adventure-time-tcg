@@ -31,8 +31,18 @@ import type { QuestsResponse } from "@adventure-time/api-client";
 
 import { apiClient, getStoredUser } from "./api";
 import { getTranslation } from "../i18n";
+import {
+  applyLocalStepSnapshotToQuests,
+  clearLocalStepSnapshotForUser,
+  formatLocalStepDate,
+  getLocalStepSnapshotForToday,
+  persistLocalStepSnapshot,
+  type LocalStepSnapshot,
+} from "./local-step-snapshot";
 import { queryClient } from "./query-client";
 import {
+  getStepQuestWidgetNotificationDelivered,
+  markStepQuestWidgetNotificationDelivered,
   startStepQuestWidgetBackgroundSync,
   syncStepQuestWidgetSnapshot,
 } from "./step-quest-widget";
@@ -54,9 +64,11 @@ const IOS_STEP_TYPE = "HKQuantityTypeIdentifierStepCount";
 const STEP_GOAL = 10_000;
 const STEP_SYNC_INTERVAL_MS = 60_000;
 const FOREGROUND_SYNC_DEBOUNCE_MS = 15_000;
+const SERVER_STEP_SYNC_THROTTLE_MS = 15 * 60_000;
 const HEALTH_PERMISSION_PROMPT_KEY = "step-sync-health-permission-prompted-v1";
 const PEDOMETER_PERMISSION_PROMPT_KEY =
   "step-sync-pedometer-permission-prompted-v1";
+const STEP_SERVER_SYNC_ATTEMPT_KEY_PREFIX = "step-server-sync-attempt-v1";
 const STEP_SYNC_BACKGROUND_TASK = "step-sync-background-task";
 const BACKGROUND_STEP_SYNC_INTERVAL_MINUTES = 15;
 
@@ -66,6 +78,7 @@ let pedometerSubscription: ReturnType<typeof Pedometer.watchStepCount> | null =
 let iosHealthSubscription: EmitterSubscription | null = null;
 let pedometerBaseSteps: number | null = null;
 let pedometerSyncTimeout: ReturnType<typeof setTimeout> | null = null;
+let pedometerCallbackCount = 0;
 
 type SyncSource =
   | "manual"
@@ -94,12 +107,104 @@ function notificationKeyForDate(userId: string, recordedFor: string) {
   return `step-goal-notified.${secureStoreKeySegment(userId)}.${secureStoreKeySegment(recordedFor)}`;
 }
 
+function serverSyncAttemptKey(userId: string) {
+  return `${STEP_SERVER_SYNC_ATTEMPT_KEY_PREFIX}.${secureStoreKeySegment(userId)}`;
+}
+
+interface ServerSyncAttemptState {
+  recordedFor: string;
+  lastAttemptAt: string | null;
+  completionAttemptedFor: string | null;
+}
+
 async function markPrompted(key: string) {
   await SecureStore.setItemAsync(key, "1");
 }
 
 async function hasPrompted(key: string) {
   return (await SecureStore.getItemAsync(key)) === "1";
+}
+
+async function readServerSyncAttemptState(userId: string) {
+  const rawState = await SecureStore.getItemAsync(serverSyncAttemptKey(userId));
+  if (!rawState) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(rawState) as ServerSyncAttemptState;
+  } catch {
+    return null;
+  }
+}
+
+async function writeServerSyncAttemptState(
+  userId: string,
+  state: ServerSyncAttemptState,
+) {
+  await SecureStore.setItemAsync(
+    serverSyncAttemptKey(userId),
+    JSON.stringify(state),
+  );
+}
+
+async function clearServerSyncAttemptState(userId: string) {
+  await SecureStore.deleteItemAsync(serverSyncAttemptKey(userId));
+}
+
+async function shouldAttemptServerStepSync({
+  force,
+  recordedFor,
+  stepCount,
+  userId,
+}: {
+  force: boolean;
+  recordedFor: string;
+  stepCount: number;
+  userId: string;
+}) {
+  if (force) {
+    return true;
+  }
+
+  const state = await readServerSyncAttemptState(userId);
+
+  if (stepCount >= STEP_GOAL) {
+    return state?.completionAttemptedFor !== recordedFor;
+  }
+
+  if (!state || state.recordedFor !== recordedFor || !state.lastAttemptAt) {
+    return true;
+  }
+
+  return (
+    Date.now() - new Date(state.lastAttemptAt).getTime() >=
+    SERVER_STEP_SYNC_THROTTLE_MS
+  );
+}
+
+async function markServerStepSyncAttempt({
+  recordedFor,
+  stepCount,
+  userId,
+}: {
+  recordedFor: string;
+  stepCount: number;
+  userId: string;
+}) {
+  const now = new Date().toISOString();
+  const existing = await readServerSyncAttemptState(userId);
+
+  await writeServerSyncAttemptState(userId, {
+    recordedFor,
+    lastAttemptAt: now,
+    completionAttemptedFor:
+      stepCount >= STEP_GOAL
+        ? recordedFor
+        : existing?.recordedFor === recordedFor
+          ? existing.completionAttemptedFor
+          : null,
+  });
 }
 
 async function getStepSyncUser() {
@@ -133,7 +238,11 @@ function clearScheduledForegroundSync() {
 
 async function notifyStepGoalReached(userId: string, recordedFor: string) {
   const key = notificationKeyForDate(userId, recordedFor);
-  if (await SecureStore.getItemAsync(key)) {
+  if (
+    (await SecureStore.getItemAsync(key)) ||
+    (await getStepQuestWidgetNotificationDelivered(userId, recordedFor))
+  ) {
+    await SecureStore.setItemAsync(key, "1");
     return;
   }
 
@@ -163,6 +272,7 @@ async function notifyStepGoalReached(userId: string, recordedFor: string) {
   });
 
   await SecureStore.setItemAsync(key, "1");
+  await markStepQuestWidgetNotificationDelivered(userId, recordedFor);
 }
 
 async function ensureIosBackgroundDeliveryConfigured() {
@@ -374,6 +484,9 @@ async function ensureAndroidHealthPermission(interactive: boolean) {
       availability: "available",
       healthPermissionStatus: "granted",
     });
+    void startStepQuestWidgetBackgroundSync().catch(() => {
+      // Foreground and JS background sync still work if the native worker cannot start.
+    });
     return true;
   }
 
@@ -391,6 +504,10 @@ async function ensureAndroidHealthPermission(interactive: boolean) {
       accessType: "read",
       recordType: "Steps",
     },
+    {
+      accessType: "read",
+      recordType: "BackgroundAccessPermission",
+    },
   ]);
   await markPrompted(HEALTH_PERMISSION_PROMPT_KEY);
 
@@ -403,6 +520,13 @@ async function ensureAndroidHealthPermission(interactive: boolean) {
     availability: "available",
     healthPermissionStatus: granted ? "granted" : "denied",
   });
+
+  if (granted) {
+    void startStepQuestWidgetBackgroundSync().catch(() => {
+      // Foreground and JS background sync still work if the native worker cannot start.
+    });
+  }
+
   return granted;
 }
 
@@ -467,57 +591,8 @@ function updateLiveDeviceSteps(steps: number) {
   });
 }
 
-function buildLocalStepQuestResponse(
-  currentQuests: QuestsResponse | undefined,
-  stepCount: number,
-  recordedFor: string,
-): QuestsResponse {
-  const currentStepQuest = currentQuests?.quests.find(
-    (quest) => quest.type === "steps_10k",
-  );
-  const progress = Math.max(0, stepCount);
-  const target = Math.max(currentStepQuest?.target ?? STEP_GOAL, 1);
-  const claimed = currentStepQuest?.claimed ?? false;
-  const failed = currentStepQuest?.failed ?? false;
-  const completed = claimed
-    ? (currentStepQuest?.completed ?? true)
-    : !failed && progress >= target;
-  const stepQuest = {
-    id: currentStepQuest?.id ?? `local-steps_10k-${recordedFor}`,
-    version: `local:${recordedFor}:${progress}`,
-    type: "steps_10k",
-    title: currentStepQuest?.title ?? "steps_10k",
-    description: currentStepQuest?.description ?? "steps_10k_desc",
-    target,
-    progress,
-    completed,
-    claimed,
-    reward: currentStepQuest?.reward ?? 150,
-    icon: currentStepQuest?.icon ?? "walking",
-    actionPath: currentStepQuest?.actionPath ?? null,
-    failed,
-  };
-
-  if (!currentQuests) {
-    return {
-      quests: [stepQuest],
-      fitbitConnected: false,
-    };
-  }
-
-  return {
-    ...currentQuests,
-    quests: currentStepQuest
-      ? currentQuests.quests.map((quest) =>
-          quest.type === "steps_10k" ? { ...quest, ...stepQuest } : quest,
-        )
-      : [...currentQuests.quests, stepQuest],
-  };
-}
-
 async function syncLocalStepQuestWidgetSnapshot(
-  steps: number,
-  recordedFor: string,
+  snapshot: LocalStepSnapshot,
   user: Awaited<ReturnType<typeof getStepSyncUser>>,
 ) {
   if (!user || user.preferredStepSource !== "device_health") {
@@ -525,11 +600,78 @@ async function syncLocalStepQuestWidgetSnapshot(
   }
 
   const currentQuests = queryClient.getQueryData<QuestsResponse>(["quests"]);
+  const localQuests = applyLocalStepSnapshotToQuests(
+    currentQuests,
+    snapshot,
+    user,
+  );
+
+  if (!localQuests) {
+    return;
+  }
+
   await syncStepQuestWidgetSnapshot(
-    buildLocalStepQuestResponse(currentQuests, steps, recordedFor),
+    localQuests,
     user.preferredLanguage ?? useLocaleStore.getState().locale,
     useThemeStore.getState().themeName,
   );
+}
+
+export function applyLocalStepProgressToQuests(
+  quests: QuestsResponse | undefined,
+  user:
+    | Pick<NonNullable<Awaited<ReturnType<typeof getStepSyncUser>>>, "preferredStepSource">
+    | null
+    | undefined,
+) {
+  const stepSync = useStepSyncStore.getState();
+
+  if (!user || stepSync.lastRecordedFor !== formatLocalStepDate()) {
+    return quests;
+  }
+
+  return applyLocalStepSnapshotToQuests(
+    quests,
+    stepSync.deviceStepCount == null
+      ? null
+      : {
+          userId: "local-store",
+          source: "device_health",
+          recordedFor: stepSync.lastRecordedFor,
+          stepCount: stepSync.deviceStepCount,
+          updatedAt: stepSync.lastSyncedAt ?? new Date().toISOString(),
+        },
+    user,
+  );
+}
+
+export async function hydrateLocalStepSyncState(userId: string) {
+  const snapshot = await getLocalStepSnapshotForToday(userId);
+
+  if (!snapshot) {
+    return;
+  }
+
+  setStore({
+    deviceStepCount: snapshot.stepCount,
+    lastRecordedFor: snapshot.recordedFor,
+    lastSyncedAt: snapshot.updatedAt,
+  });
+
+  queryClient.setQueryData<QuestsResponse | undefined>(
+    ["quests"],
+    (current) =>
+      applyLocalStepSnapshotToQuests(current, snapshot, {
+        preferredStepSource: "device_health",
+      }),
+  );
+}
+
+export async function clearLocalDeviceStepState(userId: string) {
+  await Promise.all([
+    clearLocalStepSnapshotForUser(userId),
+    clearServerSyncAttemptState(userId),
+  ]);
 }
 
 function scheduleForegroundSync() {
@@ -602,10 +744,12 @@ export async function disableBackgroundStepSync() {
 export async function syncDeviceStepsNow({
   interactive = false,
   allowPermissionPrompt = interactive,
+  forceServerSync = false,
   source = "manual",
 }: {
   interactive?: boolean;
   allowPermissionPrompt?: boolean;
+  forceServerSync?: boolean;
   source?: SyncSource;
 } = {}) {
   if (activeSyncPromise) {
@@ -634,45 +778,80 @@ export async function syncDeviceStepsNow({
 
       const now = new Date();
       const recordedFor = formatLocalDate(now);
-      updateLiveDeviceSteps(steps);
-      pedometerBaseSteps = steps;
-      await syncLocalStepQuestWidgetSnapshot(steps, recordedFor, user);
-
-      await apiClient.syncSteps({
-        source: "device_health",
-        stepCount: steps,
+      const localSnapshot = await persistLocalStepSnapshot({
+        userId: user.id,
         recordedFor,
+        stepCount: steps,
       });
+      updateLiveDeviceSteps(localSnapshot.stepCount);
+      if (!pedometerSubscription) {
+        pedometerBaseSteps = localSnapshot.stepCount;
+      }
+      await syncLocalStepQuestWidgetSnapshot(localSnapshot, user);
+
+      queryClient.setQueryData<QuestsResponse | undefined>(
+        ["quests"],
+        (current) => applyLocalStepSnapshotToQuests(current, localSnapshot, user),
+      );
 
       setStore({
         isSyncing: false,
-        deviceStepCount: steps,
-        lastSyncedCount: steps,
+        deviceStepCount: localSnapshot.stepCount,
         lastRecordedFor: recordedFor,
-        lastSyncedAt: now.toISOString(),
         lastError: null,
       });
 
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["health-steps"] }),
-        queryClient.invalidateQueries({ queryKey: ["quests"] }),
-        queryClient.invalidateQueries({ queryKey: ["home"] }),
-      ]);
+      if (localSnapshot.stepCount >= STEP_GOAL) {
+        await notifyStepGoalReached(user.id, recordedFor);
+      }
 
-      const questsResponse = await queryClient.fetchQuery({
-        queryKey: ["quests"],
-        queryFn: () => apiClient.quests(),
-        staleTime: 0,
+      const shouldSyncServer = await shouldAttemptServerStepSync({
+        force: forceServerSync || source === "manual",
+        recordedFor,
+        stepCount: localSnapshot.stepCount,
+        userId: user.id,
       });
 
-      await syncStepQuestWidgetSnapshot(
-        questsResponse,
-        user.preferredLanguage ?? useLocaleStore.getState().locale,
-        useThemeStore.getState().themeName,
-      );
+      if (shouldSyncServer) {
+        await markServerStepSyncAttempt({
+          recordedFor,
+          stepCount: localSnapshot.stepCount,
+          userId: user.id,
+        });
 
-      if (steps >= STEP_GOAL) {
-        await notifyStepGoalReached(user.id, recordedFor);
+        await apiClient.syncSteps({
+          source: "device_health",
+          stepCount: localSnapshot.stepCount,
+          recordedFor,
+        });
+
+        setStore({
+          lastSyncedCount: localSnapshot.stepCount,
+          lastSyncedAt: now.toISOString(),
+        });
+
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ["health-steps"] }),
+          queryClient.invalidateQueries({ queryKey: ["quests"] }),
+          queryClient.invalidateQueries({ queryKey: ["home"] }),
+        ]);
+
+        const questsResponse = await queryClient.fetchQuery({
+          queryKey: ["quests"],
+          queryFn: () => apiClient.quests(),
+          staleTime: 0,
+        });
+        const reconciledQuests =
+          applyLocalStepSnapshotToQuests(questsResponse, localSnapshot, user) ??
+          questsResponse;
+
+        queryClient.setQueryData(["quests"], reconciledQuests);
+
+        await syncStepQuestWidgetSnapshot(
+          reconciledQuests,
+          user.preferredLanguage ?? useLocaleStore.getState().locale,
+          useThemeStore.getState().themeName,
+        );
       }
 
       if (source === "manual") {
@@ -718,11 +897,17 @@ export async function startForegroundStepTracking() {
     pedometerSubscription.remove();
   }
 
+  pedometerCallbackCount = 0;
+  pedometerBaseSteps = useStepSyncStore.getState().deviceStepCount ?? 0;
+
   pedometerSubscription = Pedometer.watchStepCount(({ steps }) => {
     const baseSteps = pedometerBaseSteps ?? useStepSyncStore.getState().deviceStepCount ?? 0;
     const nextSteps = baseSteps + steps;
+    pedometerCallbackCount += 1;
 
-    updateLiveDeviceSteps(nextSteps);
+    if (nextSteps >= STEP_GOAL || pedometerCallbackCount % 5 === 0) {
+      updateLiveDeviceSteps(nextSteps);
+    }
 
     if (nextSteps >= STEP_GOAL) {
       clearScheduledForegroundSync();
@@ -767,6 +952,7 @@ export function stopStepTracking() {
   pedometerSubscription = null;
   iosHealthSubscription = null;
   pedometerBaseSteps = null;
+  pedometerCallbackCount = 0;
 }
 
 export function resetStepSyncState() {

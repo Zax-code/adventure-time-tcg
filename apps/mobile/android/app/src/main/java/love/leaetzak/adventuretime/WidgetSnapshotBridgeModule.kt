@@ -4,7 +4,6 @@ import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
-import org.json.JSONObject
 
 class WidgetSnapshotBridgeModule(
   reactContext: ReactApplicationContext,
@@ -26,16 +25,10 @@ class WidgetSnapshotBridgeModule(
   @ReactMethod
   fun setStepQuestSyncContext(contextJson: String, promise: Promise) {
     try {
-      val json = JSONObject(contextJson)
-      StepQuestWidgetStore.writeThemeName(
-        reactApplicationContext,
-        json.optString("themeName", "candy"),
-      )
-      StepQuestWidgetStore.writeLocale(
-        reactApplicationContext,
-        json.optString("locale", "en"),
-      )
+      StepQuestWidgetStore.writeSyncContext(reactApplicationContext, contextJson)
       StepQuestWidgetProvider.updateAllWidgets(reactApplicationContext)
+      StepQuestWidgetBackgroundSync.schedulePeriodic(reactApplicationContext)
+      StepQuestWidgetBackgroundSync.enqueueOneTime(reactApplicationContext)
       promise.resolve(null)
     } catch (error: Exception) {
       promise.reject("WIDGET_SYNC_CONTEXT_WRITE_FAILED", error)
@@ -50,6 +43,57 @@ class WidgetSnapshotBridgeModule(
       promise.resolve(null)
     } catch (error: Exception) {
       promise.reject("WIDGET_SNAPSHOT_CLEAR_FAILED", error)
+    }
+  }
+
+  @ReactMethod
+  fun clearStepQuestSyncContext(promise: Promise) {
+    try {
+      StepQuestWidgetStore.clearSyncContext(reactApplicationContext)
+      StepQuestWidgetBackgroundSync.cancel(reactApplicationContext)
+      promise.resolve(null)
+    } catch (error: Exception) {
+      promise.reject("WIDGET_SYNC_CONTEXT_CLEAR_FAILED", error)
+    }
+  }
+
+  @ReactMethod
+  fun getStepQuestNotificationDelivered(userId: String, recordedFor: String, promise: Promise) {
+    try {
+      promise.resolve(
+        StepQuestWidgetStore.notificationDelivered(
+          reactApplicationContext,
+          userId,
+          recordedFor,
+        ),
+      )
+    } catch (error: Exception) {
+      promise.reject("WIDGET_NOTIFICATION_READ_FAILED", error)
+    }
+  }
+
+  @ReactMethod
+  fun markStepQuestNotificationDelivered(userId: String, recordedFor: String, promise: Promise) {
+    try {
+      StepQuestWidgetStore.markNotificationDelivered(
+        reactApplicationContext,
+        userId,
+        recordedFor,
+      )
+      promise.resolve(null)
+    } catch (error: Exception) {
+      promise.reject("WIDGET_NOTIFICATION_WRITE_FAILED", error)
+    }
+  }
+
+  @ReactMethod
+  fun startStepQuestBackgroundSync(promise: Promise) {
+    try {
+      StepQuestWidgetBackgroundSync.schedulePeriodic(reactApplicationContext)
+      StepQuestWidgetBackgroundSync.enqueueOneTime(reactApplicationContext)
+      promise.resolve(null)
+    } catch (error: Exception) {
+      promise.reject("WIDGET_BACKGROUND_SYNC_START_FAILED", error)
     }
   }
 }
