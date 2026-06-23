@@ -814,10 +814,13 @@ defmodule AdventureTimeApi.Accounts do
   end
 
   defp active_session(session_id, user_id) do
+    now = now_utc()
+
     Session
     |> where(
       [session],
-      session.id == ^session_id and session.user_id == ^user_id and is_nil(session.revoked_at)
+      session.id == ^session_id and session.user_id == ^user_id and is_nil(session.revoked_at) and
+        session.expires_at > ^now
     )
     |> Repo.one()
   end

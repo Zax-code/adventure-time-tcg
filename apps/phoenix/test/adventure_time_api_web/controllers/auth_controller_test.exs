@@ -3,6 +3,8 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
 
   import Ecto.Query
 
+  alias AdventureTimeApi.Auth
+
   alias AdventureTimeApi.Accounts.{
     EmailAccessRequest,
     EmailCredential,
@@ -369,6 +371,90 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
              :count,
              :id
            ) == 1
+  end
+
+  test "POST /auth/login issues a long-lived refresh session", _context do
+    user =
+      create_user_with_password("long-session@example.com", "science-rules", "Long Session",
+        verified?: true,
+        access_status: :approved
+      )
+
+    issued_after = DateTime.utc_now() |> DateTime.truncate(:second)
+
+    response =
+      build_conn()
+      |> post(~p"/auth/login", %{
+        email: user.email,
+        password: "science-rules"
+      })
+      |> json_response(200)
+
+    assert get_in(response, ["tokens", "refreshToken"])
+    assert Auth.refresh_ttl_days() >= 180
+
+    session = Repo.one!(from(session in Session, where: session.user_id == ^user.id))
+
+    assert DateTime.diff(session.expires_at, issued_after, :day) >= 179
+  end
+
+  test "POST /auth/refresh accepts an old signed refresh token while its database session is active",
+       _context do
+    auth_config = Application.get_env(:adventure_time_api, Auth)
+
+    Application.put_env(
+      :adventure_time_api,
+      Auth,
+      Keyword.put(auth_config, :refresh_token_ttl_days, -1)
+    )
+
+    on_exit(fn -> Application.put_env(:adventure_time_api, Auth, auth_config) end)
+
+    user =
+      create_user_with_password("legacy-session@example.com", "science-rules", "Legacy Session",
+        verified?: true,
+        access_status: :approved
+      )
+
+    session_id = Ecto.UUID.generate()
+    {:ok, refresh_token} = Auth.sign_refresh_token(session_id, user.id)
+
+    Repo.insert!(
+      Session.changeset(%Session{}, %{
+        id: session_id,
+        refresh_token_hash: Bcrypt.hash_pwd_salt(refresh_token),
+        expires_at: DateTime.utc_now() |> DateTime.add(180 * 24 * 60 * 60, :second)
+      })
+      |> Ecto.Changeset.put_change(:user_id, user.id)
+    )
+
+    conn = post(build_conn(), ~p"/auth/refresh", %{"refreshToken" => refresh_token})
+
+    assert get_in(json_response(conn, 200), ["tokens", "refreshToken"])
+  end
+
+  test "POST /auth/refresh rejects refresh tokens whose database session expired", _context do
+    user =
+      create_user_with_password("expired-session@example.com", "science-rules", "Expired Session",
+        verified?: true,
+        access_status: :approved
+      )
+
+    session_id = Ecto.UUID.generate()
+    {:ok, refresh_token} = Auth.sign_refresh_token(session_id, user.id)
+
+    Repo.insert!(
+      Session.changeset(%Session{}, %{
+        id: session_id,
+        refresh_token_hash: Bcrypt.hash_pwd_salt(refresh_token),
+        expires_at: DateTime.utc_now() |> DateTime.add(-60, :second)
+      })
+      |> Ecto.Changeset.put_change(:user_id, user.id)
+    )
+
+    conn = post(build_conn(), ~p"/auth/refresh", %{"refreshToken" => refresh_token})
+
+    assert json_response(conn, 401) == %{"error" => "Session not found."}
   end
 
   test "POST /auth/google creates pending request when email is unknown", %{conn: conn} do
