@@ -22,6 +22,8 @@ const quests = {
     "Enable {healthSystem} once so this quest can count your steps.",
   stepSyncPromptSetupBody:
     "Finish setting up {healthSystem} first so this quest can count your steps.",
+  stepClaimSyncPending:
+    "Your steps are ready locally, but coin claiming still needs server confirmation. Try Claim again in a moment.",
   widgetRemainingSteps: "{count} steps left",
   widgetReadyToClaim: "Reward ready: {reward} coins",
   widgetClaimedToday: "Claimed for today",

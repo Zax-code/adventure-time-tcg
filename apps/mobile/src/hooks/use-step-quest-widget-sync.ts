@@ -4,6 +4,7 @@ import type { QuestsResponse } from "@adventure-time/api-client";
 
 import { API_BASE_URL } from "../lib/api-config";
 import { queryClient } from "../lib/query-client";
+import { applyLocalStepProgressToQuests } from "../lib/step-sync";
 import {
   clearStepQuestWidgetSnapshot,
   isWidgetSnapshotBridgeAvailable,
@@ -16,7 +17,12 @@ import { useThemeStore } from "../stores/theme-store";
 
 export function useStepQuestWidgetSync() {
   const accessToken = useSessionStore((state) => state.accessToken);
+  const refreshToken = useSessionStore((state) => state.refreshToken);
+  const user = useSessionStore((state) => state.user);
   const userId = useSessionStore((state) => state.user?.id ?? null);
+  const preferredStepSource = useSessionStore(
+    (state) => state.user?.preferredStepSource ?? "device_health",
+  );
   const userLocale = useSessionStore((state) => state.user?.preferredLanguage);
   const guestLocale = useLocaleStore((state) => state.locale);
   const themeName = useThemeStore((state) => state.themeName);
@@ -29,8 +35,20 @@ export function useStepQuestWidgetSync() {
 
     void setStepQuestWidgetSyncContext({
       apiBaseUrl: API_BASE_URL,
+      accessToken,
       locale,
+      refreshToken,
       themeName,
+      user: user
+        ? {
+            id: user.id,
+            notificationPreferences: {
+              stepGoal: user.notificationPreferences.stepGoal,
+            },
+            preferredLanguage: user.preferredLanguage,
+            preferredStepSource: user.preferredStepSource,
+          }
+        : null,
     }).catch(() => {
       // Keep the last known native sync configuration if this write fails.
     });
@@ -48,12 +66,16 @@ export function useStepQuestWidgetSync() {
         return;
       }
 
-      const stepQuest = data.quests.find((quest) => quest.type === "steps_10k");
+      const snapshotData =
+        applyLocalStepProgressToQuests(data, { preferredStepSource }) ?? data;
+      const snapshotStepQuest = snapshotData.quests.find(
+        (quest) => quest.type === "steps_10k",
+      );
       const snapshotVersion = JSON.stringify({
         locale,
         themeName,
-        fitbitConnected: data.fitbitConnected,
-        stepQuest,
+        fitbitConnected: snapshotData.fitbitConnected,
+        stepQuest: snapshotStepQuest,
       });
 
       if (snapshotVersion === lastSnapshotVersion) {
@@ -61,7 +83,7 @@ export function useStepQuestWidgetSync() {
       }
 
       lastSnapshotVersion = snapshotVersion;
-      await syncStepQuestWidgetSnapshot(data, locale, themeName);
+      await syncStepQuestWidgetSnapshot(snapshotData, locale, themeName);
     };
 
     const currentData = queryClient.getQueryData<QuestsResponse>(["quests"]);
@@ -76,5 +98,5 @@ export function useStepQuestWidgetSync() {
       cancelled = true;
       unsubscribe();
     };
-  }, [accessToken, locale, themeName, userId]);
+  }, [accessToken, locale, preferredStepSource, refreshToken, themeName, user, userId]);
 }

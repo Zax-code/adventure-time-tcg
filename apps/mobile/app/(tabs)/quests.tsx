@@ -31,6 +31,7 @@ import { useTranslation } from "../../src/i18n";
 import { apiClient } from "../../src/lib/api";
 import { connectFitbit } from "../../src/lib/fitbit";
 import {
+  applyLocalStepProgressToQuests,
   openDeviceHealthSetup,
   syncDeviceStepsNow,
 } from "../../src/lib/step-sync";
@@ -264,8 +265,10 @@ export default function QuestsScreen() {
     type: "success" | "error";
   } | null>(null);
   const [isConnectingFitbit, setIsConnectingFitbit] = useState(false);
-  const [isForceRefreshingStepQuest, setIsForceRefreshingStepQuest] =
-    useState(false);
+  const [stepQuestUiState, setStepQuestUiState] = useState({
+    claimSyncWarning: null as string | null,
+    isForceRefreshing: false,
+  });
   const toastAnim = useRef(new Animated.Value(-60)).current;
   const lastImmediateResetAtRef = useRef(0);
 
@@ -368,7 +371,10 @@ export default function QuestsScreen() {
   }, [stepSync.availability]);
 
   const handleForceRefresh = useCallback(async () => {
-    setIsForceRefreshingStepQuest(true);
+    setStepQuestUiState((state) => ({
+      ...state,
+      isForceRefreshing: true,
+    }));
 
     try {
       await syncDeviceStepsNow({
@@ -377,7 +383,10 @@ export default function QuestsScreen() {
       });
       await questsQuery.refetch();
     } finally {
-      setIsForceRefreshingStepQuest(false);
+      setStepQuestUiState((state) => ({
+        ...state,
+        isForceRefreshing: false,
+      }));
     }
   }, [questsQuery]);
 
@@ -417,11 +426,63 @@ export default function QuestsScreen() {
   );
 
   const claimQuestMutation = useMutation({
-    mutationFn: (questId: string) => apiClient.claimQuest({ questId }),
-    onSuccess: async (data, questId) => {
-      const quest = questsQuery.data?.quests.find(
-        (entry) => entry.id === questId,
-      );
+    mutationFn: async (quest: Quest) => {
+      if (
+        isStepQuest(quest.type) &&
+        user?.preferredStepSource === "device_health"
+      ) {
+        const syncThenGetServerStepQuest = async () => {
+          await syncDeviceStepsNow({
+            allowPermissionPrompt: false,
+            forceServerSync: true,
+            interactive: false,
+            source: "manual",
+          });
+
+          const serverQuests = await apiClient.quests();
+          return serverQuests.quests.find((entry) =>
+            isStepQuest(entry.type),
+          );
+        };
+
+        const firstServerStepQuest = await syncThenGetServerStepQuest();
+        if (firstServerStepQuest?.completed || firstServerStepQuest?.claimed) {
+          return apiClient.claimQuest({
+            questId: firstServerStepQuest.id,
+          });
+        }
+
+        const secondServerStepQuest = await syncThenGetServerStepQuest();
+        if (
+          secondServerStepQuest?.completed ||
+          secondServerStepQuest?.claimed
+        ) {
+          return apiClient.claimQuest({
+            questId: secondServerStepQuest.id,
+          });
+        }
+
+        throw new Error("STEP_CLAIM_SYNC_PENDING");
+      }
+
+      return apiClient.claimQuest({ questId: quest.id });
+    },
+    onMutate: (quest) => {
+      if (isStepQuest(quest.type)) {
+        setStepQuestUiState((state) => ({
+          ...state,
+          claimSyncWarning: null,
+        }));
+      }
+    },
+    onSuccess: async (data, quest) => {
+      if (isStepQuest(quest.type)) {
+        setStepQuestUiState((state) => ({
+          ...state,
+          claimSyncWarning: null,
+        }));
+      }
+
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["quests"] }),
         queryClient.invalidateQueries({ queryKey: ["home"] }),
@@ -430,12 +491,24 @@ export default function QuestsScreen() {
 
       setToast({
         message: t("quests.claimSuccess", {
-          amount: quest?.reward ?? 0,
+          amount: quest.reward,
         }),
         type: "success",
       });
     },
-    onError: () => {
+    onError: (error, quest) => {
+      if (
+        isStepQuest(quest.type) &&
+        error instanceof Error &&
+        error.message === "STEP_CLAIM_SYNC_PENDING"
+      ) {
+        setStepQuestUiState((state) => ({
+          ...state,
+          claimSyncWarning: t("quests.stepClaimSyncPending"),
+        }));
+        return;
+      }
+
       setToast({ message: t("quests.claimFailed"), type: "error" });
     },
   });
@@ -560,7 +633,9 @@ export default function QuestsScreen() {
     );
   }
 
-  const questCardItems = buildQuestCardItems(questsQuery.data.quests);
+  const displayedQuests =
+    applyLocalStepProgressToQuests(questsQuery.data, user) ?? questsQuery.data;
+  const questCardItems = buildQuestCardItems(displayedQuests.quests);
 
   return (
     <View className="flex-1 bg-bg">
@@ -866,7 +941,7 @@ export default function QuestsScreen() {
                         const modeColors = STATUS_COLORS[modeStatus];
                         const isClaimLoading =
                           claimQuestMutation.isPending &&
-                          claimQuestMutation.variables === quest.id;
+                          claimQuestMutation.variables?.id === quest.id;
                         const actionLabel =
                           modeStatus === "active"
                             ? t("quests.dailyNumbers.playAction")
@@ -980,7 +1055,7 @@ export default function QuestsScreen() {
                               {quest.completed && !quest.claimed ? (
                                 <TouchableOpacity
                                   onPress={() =>
-                                    void claimQuestMutation.mutateAsync(quest.id)
+                                    void claimQuestMutation.mutateAsync(quest)
                                   }
                                   disabled={isClaimLoading}
                                   style={{
@@ -1033,7 +1108,7 @@ export default function QuestsScreen() {
               const progressDisplay = getQuestProgressDisplay(quest);
               const isClaimLoading =
                 claimQuestMutation.isPending &&
-                claimQuestMutation.variables === quest.id;
+                claimQuestMutation.variables?.id === quest.id;
               const QuestIcon =
                 quest.icon === "walking" ? WalkingIcon : SparklesIcon;
               const title = getQuestTitle(quest.title, t);
@@ -1310,12 +1385,14 @@ export default function QuestsScreen() {
                               void handleForceRefresh();
                             }}
                             disabled={
-                              stepSync.isSyncing || isForceRefreshingStepQuest
+                              stepSync.isSyncing ||
+                              stepQuestUiState.isForceRefreshing
                             }
                             hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
                           >
                             <Text className="font-nunito-semibold text-xs text-primaryText">
-                              {stepSync.isSyncing || isForceRefreshingStepQuest
+                              {stepSync.isSyncing ||
+                              stepQuestUiState.isForceRefreshing
                                 ? t("settings.syncing")
                                 : t("settings.syncNow")}
                             </Text>
@@ -1393,9 +1470,15 @@ export default function QuestsScreen() {
                         borderRadius: 12,
                       }}
                     >
+                      {isStepQuest(quest.type) &&
+                      stepQuestUiState.claimSyncWarning ? (
+                        <Text className="font-nunito-semibold text-xs text-dangerDark mb-2 text-center">
+                          {stepQuestUiState.claimSyncWarning}
+                        </Text>
+                      ) : null}
                       <TouchableOpacity
                         onPress={() =>
-                          void claimQuestMutation.mutateAsync(quest.id)
+                          void claimQuestMutation.mutateAsync(quest)
                         }
                         disabled={isClaimLoading}
                         style={{ borderRadius: 12, overflow: "hidden" }}

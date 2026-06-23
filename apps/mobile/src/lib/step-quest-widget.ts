@@ -32,13 +32,32 @@ interface WidgetSnapshotBridgeModule {
   setStepQuestSnapshot: (snapshotJson: string) => Promise<void>;
   clearStepQuestSnapshot: () => Promise<void>;
   setStepQuestSyncContext: (contextJson: string) => Promise<void>;
+  clearStepQuestSyncContext?: () => Promise<void>;
+  getStepQuestNotificationDelivered?: (
+    userId: string,
+    recordedFor: string,
+  ) => Promise<boolean>;
+  markStepQuestNotificationDelivered?: (
+    userId: string,
+    recordedFor: string,
+  ) => Promise<void>;
   startStepQuestBackgroundSync?: () => Promise<void>;
 }
 
 interface StepQuestWidgetSyncContext {
   apiBaseUrl: string;
+  accessToken?: string | null;
   locale: Locale;
+  refreshToken?: string | null;
   themeName: ThemeName;
+  user?: {
+    id: string;
+    preferredLanguage: Locale;
+    preferredStepSource: "device_health" | "fitbit";
+    notificationPreferences: {
+      stepGoal: boolean;
+    };
+  } | null;
 }
 
 const widgetSnapshotBridge = NativeModules
@@ -168,15 +187,48 @@ export async function setStepQuestWidgetSyncContext(
   await widgetSnapshotBridge.setStepQuestSyncContext(JSON.stringify(context));
 }
 
+export async function clearStepQuestWidgetSyncContext() {
+  if (!widgetSnapshotBridge?.clearStepQuestSyncContext) {
+    return;
+  }
+
+  await widgetSnapshotBridge.clearStepQuestSyncContext();
+}
+
 export async function startStepQuestWidgetBackgroundSync() {
-  if (
-    Platform.OS !== "ios" ||
-    !widgetSnapshotBridge?.startStepQuestBackgroundSync
-  ) {
+  if (!widgetSnapshotBridge?.startStepQuestBackgroundSync) {
     return;
   }
 
   await widgetSnapshotBridge.startStepQuestBackgroundSync();
+}
+
+export async function getStepQuestWidgetNotificationDelivered(
+  userId: string,
+  recordedFor: string,
+) {
+  if (!widgetSnapshotBridge?.getStepQuestNotificationDelivered) {
+    return false;
+  }
+
+  return widgetSnapshotBridge.getStepQuestNotificationDelivered(
+    userId,
+    recordedFor,
+  );
+}
+
+export async function markStepQuestWidgetNotificationDelivered(
+  userId: string,
+  recordedFor: string,
+) {
+  if (!widgetSnapshotBridge?.markStepQuestNotificationDelivered) {
+    return;
+  }
+
+  await widgetSnapshotBridge.markStepQuestNotificationDelivered(
+    userId,
+    recordedFor,
+  );
 }
 
 export async function syncStepQuestWidgetSnapshot(
