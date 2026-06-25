@@ -8,6 +8,11 @@ import outlineIceEpic from "../../assets/card-outlines/card-outline-ice-epic.png
 import outlineIceLegendary from "../../assets/card-outlines/card-outline-ice-legendary.png";
 import outlineIceRare from "../../assets/card-outlines/card-outline-ice-rare.png";
 import outlineIceUncommon from "../../assets/card-outlines/card-outline-ice-uncommon.png";
+import outlineNightosphereCommon from "../../assets/card-outlines/card-outline-nightosphere-common.png";
+import outlineNightosphereEpic from "../../assets/card-outlines/card-outline-nightosphere-epic.png";
+import outlineNightosphereLegendary from "../../assets/card-outlines/card-outline-nightosphere-legendary.png";
+import outlineNightosphereRare from "../../assets/card-outlines/card-outline-nightosphere-rare.png";
+import outlineNightosphereUncommon from "../../assets/card-outlines/card-outline-nightosphere-uncommon.png";
 
 import type { CardBackcoverRarityName } from "./card-back-cover-art";
 import type { ThemeName } from "../theme/themes";
@@ -35,10 +40,27 @@ const CARD_OUTLINE_SOURCE: Record<
   },
 };
 
+const NIGHTOSPHERE_CARD_OUTLINE_SOURCE: Partial<
+  Record<CardBackcoverRarityName, CardOutlineSource>
+> = {
+  Common: outlineNightosphereCommon,
+  Uncommon: outlineNightosphereUncommon,
+  Rare: outlineNightosphereRare,
+  Epic: outlineNightosphereEpic,
+  Legendary: outlineNightosphereLegendary,
+};
+
 export function getCardOutlineSource(
   themeName: ThemeName,
   rarityName: CardBackcoverRarityName,
 ) {
+  if (themeName === "nightosphere") {
+    return (
+      NIGHTOSPHERE_CARD_OUTLINE_SOURCE[rarityName] ??
+      CARD_OUTLINE_SOURCE.candy[rarityName]
+    );
+  }
+
   const outlineThemeName: CardOutlineThemeName =
     themeName === "ice" ? "ice" : "candy";
 
