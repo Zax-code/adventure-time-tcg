@@ -33,23 +33,27 @@ export function useStepQuestWidgetSync() {
       return;
     }
 
-    void setStepQuestWidgetSyncContext({
+    const syncContext = {
       apiBaseUrl: API_BASE_URL,
       accessToken,
       locale,
       refreshToken,
       themeName,
-      user: user
+      ...(user
         ? {
-            id: user.id,
-            notificationPreferences: {
-              stepGoal: user.notificationPreferences.stepGoal,
+            user: {
+              id: user.id,
+              notificationPreferences: {
+                stepGoal: user.notificationPreferences.stepGoal,
+              },
+              preferredLanguage: user.preferredLanguage,
+              preferredStepSource: user.preferredStepSource,
             },
-            preferredLanguage: user.preferredLanguage,
-            preferredStepSource: user.preferredStepSource,
           }
-        : null,
-    }).catch(() => {
+        : {}),
+    } as const;
+
+    void setStepQuestWidgetSyncContext(syncContext).catch(() => {
       // Keep the last known native sync configuration if this write fails.
     });
 
