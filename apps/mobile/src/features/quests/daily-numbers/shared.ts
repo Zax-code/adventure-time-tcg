@@ -2,29 +2,60 @@ import type { DailyNumbersMode, DailyNumbersStateResponse } from "@adventure-tim
 
 import { THEME_COLORS } from "../../../theme/themes";
 
-export const DAILY_NUMBERS_MODES: DailyNumbersMode[] = ["classic", "expert"];
+export const DAILY_NUMBERS_MODES: DailyNumbersMode[] = ["1-5", "2-4", "3-3"];
 
 export function getQuestTypeForMode(mode: DailyNumbersMode) {
-  return mode === "classic" ? "daily_numbers_classic" : "daily_numbers_expert";
+  if (mode === "1-5") {
+    return "daily_numbers_1_5";
+  }
+
+  if (mode === "2-4") {
+    return "daily_numbers_2_4";
+  }
+
+  return "daily_numbers_3_3";
+}
+
+export function getModeLabelKey(mode: DailyNumbersMode) {
+  if (mode === "1-5") {
+    return "quests.dailyNumbers.oneFive";
+  }
+
+  if (mode === "2-4") {
+    return "quests.dailyNumbers.twoFour";
+  }
+
+  return "quests.dailyNumbers.threeThree";
 }
 
 export function getModeAccent(
   mode: DailyNumbersMode,
   tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS],
 ) {
-  return mode === "classic"
-    ? {
-        border: tc.primaryBorder,
-        bg: tc.primaryBg,
-        tint: tc.primaryTint,
-        text: tc.primaryStrong,
-      }
-    : {
-        border: tc.accentBorder,
-        bg: tc.accentTint,
-        tint: tc.surfaceMuted,
-        text: tc.accentStrong,
-      };
+  if (mode === "1-5") {
+    return {
+      border: tc.primaryBorder,
+      bg: tc.primaryBg,
+      tint: tc.primaryTint,
+      text: tc.primaryStrong,
+    };
+  }
+
+  if (mode === "2-4") {
+    return {
+      border: tc.infoBorder,
+      bg: tc.infoTint,
+      tint: tc.surfaceMuted,
+      text: tc.infoText,
+    };
+  }
+
+  return {
+    border: tc.accentBorder,
+    bg: tc.accentTint,
+    tint: tc.surfaceMuted,
+    text: tc.accentStrong,
+  };
 }
 
 export function getModeStatusLabel(

@@ -1130,7 +1130,13 @@ defmodule AdventureTimeApiWeb.AdminControllerTest do
     detail = json_response(detail_conn, 200)
     assert detail["email"] == user.email
     assert detail["todayDate"] == Date.to_iso8601(date)
-    assert length(detail["dailyQuests"]) == 5
+    assert length(detail["dailyQuests"]) == 6
+
+    assert detail["dailyQuestCompletion"] == %{
+             "completed" => 0,
+             "total" => 6,
+             "percentage" => 0
+           }
 
     assert detail["viewerPermissions"] == %{
              "canManageCoins" => false,

@@ -31,7 +31,7 @@ defmodule AdventureTimeApi.Repo.Migrations.CreateDailyNumbersDailyAttempts do
 
     create(
       constraint(:daily_numbers_daily_attempts, :daily_numbers_daily_attempts_mode_valid,
-        check: "mode IN ('classic', 'expert')"
+        check: "mode IN ('1-5', '2-4', '3-3')"
       )
     )
 

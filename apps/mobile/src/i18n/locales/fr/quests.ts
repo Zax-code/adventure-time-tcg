@@ -35,7 +35,7 @@ const quests = {
   dailyNumbersQuestCardExact: "Cible exacte, {score} % débloqués.",
   dailyNumbersLevelsCleared: "{completed} / {total} niveaux validés",
   dailyNumbersGroupDesc:
-    "Les modes Classique et Expert sont réunis ici. Choisis un niveau, joue les deux sur la même page et récupère chaque récompense séparément.",
+    "Choisis une répartition de nombres, joue chaque plateau sur la même page et récupère chaque récompense séparément.",
   steps_10k: "Marcher 10 000 pas",
   steps_10k_desc: "Marche 10 000 pas aujourd'hui pour gagner des pièces",
   daily_login: "Connexion quotidienne",
@@ -45,11 +45,14 @@ const quests = {
   speed_calculus_daily: "Sprint de calcul mental",
   speed_calculus_daily_desc:
     "Résous un maximum d'additions et de soustractions",
-  daily_numbers_classic: "Nombres du jour : Classique",
-  daily_numbers_classic_desc:
+  daily_numbers_1_5: "Nombres du jour : 1 - 5",
+  daily_numbers_1_5_desc:
     "Utilise 1 grand et 5 petits nombres pour t'approcher au maximum",
-  daily_numbers_expert: "Nombres du jour : Expert",
-  daily_numbers_expert_desc:
+  daily_numbers_2_4: "Nombres du jour : 2 - 4",
+  daily_numbers_2_4_desc:
+    "Utilise 2 grands et 4 petits nombres pour t'approcher au maximum",
+  daily_numbers_3_3: "Nombres du jour : 3 - 3",
+  daily_numbers_3_3_desc:
     "Utilise 3 grands et 3 petits nombres pour t'approcher au maximum",
   wordle: {
     title: "Wordle quotidien",
@@ -183,10 +186,12 @@ const quests = {
     openGame: "Jouer",
     playAction: "Jouer",
     viewResult: "Voir le résultat",
-    classic: "Classique",
-    expert: "Expert",
-    classicMix: "1 grand + 5 petits",
-    expertMix: "3 grands + 3 petits",
+    oneFive: "1 - 5",
+    twoFour: "2 - 4",
+    threeThree: "3 - 3",
+    oneFiveMix: "1 grand + 5 petits",
+    twoFourMix: "2 grands + 4 petits",
+    threeThreeMix: "3 grands + 3 petits",
     currentMode: "Niveau actif",
     freshLabel: "Plateau neuf",
     submittedLabel: "Partie envoyée",

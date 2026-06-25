@@ -601,7 +601,7 @@ export const questSchema = z.object({
   latestScore: z.number().int().nonnegative().optional(),
   rewardPreview: z.number().int().nonnegative().optional(),
   locked: z.boolean().optional(),
-  mode: z.enum(["classic", "expert"]).optional(),
+  mode: z.enum(["1-5", "2-4", "3-3"]).optional(),
   score: z.number().int().nonnegative().optional(),
   distance: z.number().int().nonnegative().optional(),
   finalValue: z.number().int().positive().optional(),
@@ -701,7 +701,7 @@ export const wordleSubmitResponseSchema = z.object({
   targetWord: z.string().nullable().optional(),
 });
 
-export const dailyNumbersModeSchema = z.enum(["classic", "expert"]);
+export const dailyNumbersModeSchema = z.enum(["1-5", "2-4", "3-3"]);
 export const dailyNumbersOperatorSchema = z.enum(["+", "-", "*", "/"]);
 
 export const dailyNumbersTileSchema = z.object({
@@ -1424,6 +1424,11 @@ export const adminUserSchema = z.object({
   isAdmin: z.boolean(),
   isSuperAdmin: z.boolean(),
   createdAt: z.string(),
+  dailyQuestCompletion: z.object({
+    completed: z.number().int().nonnegative(),
+    total: z.number().int().nonnegative(),
+    percentage: z.number().int().min(0).max(100),
+  }),
 });
 
 export const adminUsersResponseSchema = z.object({

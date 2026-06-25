@@ -201,8 +201,9 @@ export default function RootLayout() {
               }
 
               if (
-                questType === "daily_numbers_classic" ||
-                questType === "daily_numbers_expert"
+                questType === "daily_numbers_1_5" ||
+                questType === "daily_numbers_2_4" ||
+                questType === "daily_numbers_3_3"
               ) {
                 return {
                   ...nextQuest,

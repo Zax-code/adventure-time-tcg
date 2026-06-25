@@ -1265,8 +1265,9 @@ defmodule AdventureTimeApi.Accounts do
               "steps_10k",
               "wordle_daily",
               "speed_calculus_daily",
-              "daily_numbers_classic",
-              "daily_numbers_expert"
+              "daily_numbers_1_5",
+              "daily_numbers_2_4",
+              "daily_numbers_3_3"
             ],
        do: :ok
 
@@ -1290,6 +1291,8 @@ defmodule AdventureTimeApi.Accounts do
   defp parse_request_status(_), do: {:error, "status must be approved or rejected"}
 
   defp admin_user_payload(user) do
+    daily_quest_completion = admin_daily_quest_completion(user)
+
     %{
       "id" => user.id,
       "email" => user.email,
@@ -1299,7 +1302,41 @@ defmodule AdventureTimeApi.Accounts do
       "accessStatus" => Atom.to_string(user.access_status),
       "isAdmin" => admin_role?(user.role),
       "isSuperAdmin" => super_admin_role?(user.role),
-      "createdAt" => user.inserted_at |> DateTime.to_iso8601()
+      "createdAt" => user.inserted_at |> DateTime.to_iso8601(),
+      "dailyQuestCompletion" => daily_quest_completion
+    }
+  end
+
+  defp admin_daily_quest_completion(user) do
+    date = Quests.current_reset_date(user.timezone || @default_timezone)
+    Quests.materialize_daily_quests(user.id, date)
+
+    quests =
+      DailyQuest
+      |> where([quest], quest.user_id == ^user.id and quest.date == ^date)
+      |> Repo.all()
+
+    total = length(quests)
+
+    completed =
+      Enum.count(quests, fn quest ->
+        quest.claimed || quest.completed
+      end)
+
+    percentage =
+      if total > 0 do
+        completed
+        |> Kernel.*(100)
+        |> Kernel./(total)
+        |> round()
+      else
+        0
+      end
+
+    %{
+      "completed" => completed,
+      "total" => total,
+      "percentage" => percentage
     }
   end
 

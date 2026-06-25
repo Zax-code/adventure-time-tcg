@@ -90,6 +90,7 @@ const admin = {
       "New sign-in approvals stay at the top so you can clear them quickly.",
     noUsersTitle: "No users found",
     noUsersBody: "Try a different search term.",
+    questCompletion: "Quests {percentage}%",
     accessRequestsTitle: "Access requests",
     accessRequestsSubtitle:
       "Approve or reject new sign-in requests. Approved users stay here until they create an account.",
@@ -143,6 +144,8 @@ const admin = {
     guessesCount: "{count} guesses",
     runsCount: "{used}/{max} runs",
     scoreLabel: "Score {score}",
+    percentComplete: "{percentage}% complete",
+    completedCount: "{completed}/{total} completed",
     permissionsTitle: "Permissions",
     permissionsSubtitle:
       "Admin rights and super-admin visibility are controlled from this user's approval record. Only the super admin can change them.",

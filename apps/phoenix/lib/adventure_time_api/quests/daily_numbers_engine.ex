@@ -13,8 +13,9 @@ defmodule AdventureTimeApi.Quests.DailyNumbersEngine do
   @small_numbers [1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10]
 
   @mode_configs %{
-    "classic" => %{large_count: 1, small_count: 5, min_exact_numbers_used: 4},
-    "expert" => %{large_count: 3, small_count: 3, min_exact_numbers_used: 5}
+    "1-5" => %{large_count: 1, small_count: 5, min_exact_numbers_used: 4},
+    "2-4" => %{large_count: 2, small_count: 4, min_exact_numbers_used: 5},
+    "3-3" => %{large_count: 3, small_count: 3, min_exact_numbers_used: 5}
   }
 
   def max_attempts, do: @max_attempts

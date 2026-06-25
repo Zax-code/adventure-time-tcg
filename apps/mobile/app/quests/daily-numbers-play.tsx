@@ -32,6 +32,7 @@ import { PageLoadingState } from "../../src/components/loading-state";
 import {
   DAILY_NUMBERS_MODES,
   getModeAccent,
+  getModeLabelKey,
   getModeStatusLabel,
   getQuestTypeForMode,
 } from "../../src/features/quests/daily-numbers/shared";
@@ -139,6 +140,22 @@ type LivePlayProps = {
 
 const OPERATORS: Operator[] = ["+", "-", "*", "/"];
 const EXACT_HIT_PERCENT = 100;
+
+function normalizeDailyNumbersMode(mode: string | undefined): DailyNumbersMode {
+  if (mode === "1-5" || mode === "2-4" || mode === "3-3") {
+    return mode;
+  }
+
+  if (mode === "expert") {
+    return "3-3";
+  }
+
+  if (mode === "balanced") {
+    return "2-4";
+  }
+
+  return "1-5";
+}
 
 function triggerSelectionHaptic() {
   void Haptics.selectionAsync();
@@ -333,11 +350,20 @@ function boardReducer(
   action: BoardAction,
 ): BoardInteractionState {
   if (action.type === "selectTile") {
-    if (
-      action.tileId === state.selectedLeftId ||
-      action.tileId === state.selectedRightId
-    ) {
-      return state;
+    if (action.tileId === state.selectedLeftId) {
+      return {
+        ...state,
+        selectedLeftId: null,
+        message: null,
+      };
+    }
+
+    if (action.tileId === state.selectedRightId) {
+      return {
+        ...state,
+        selectedRightId: null,
+        message: null,
+      };
     }
 
     if (!state.selectedLeftId) {
@@ -542,18 +568,10 @@ function ModeTabs({
             testID={`daily-numbers-mode-${mode}`}
             accessibilityRole="button"
             accessibilityState={{ selected }}
-            accessibilityLabel={t(
-              mode === "classic"
-                ? "quests.dailyNumbers.classic"
-                : "quests.dailyNumbers.expert",
-            )}
+            accessibilityLabel={t(getModeLabelKey(mode))}
           >
             <Text className="text-center font-nunito-bold text-sm text-fg">
-              {t(
-                mode === "classic"
-                  ? "quests.dailyNumbers.classic"
-                  : "quests.dailyNumbers.expert",
-              )}
+              {t(getModeLabelKey(mode))}
             </Text>
             <Text
               className="mt-1 text-center font-nunito-bold text-[11px]"
@@ -1364,9 +1382,10 @@ function useDailyNumbersBoardController({
       }
 
       if (
-        tileId === interaction.selectedLeftId ||
-        tileId === interaction.selectedRightId ||
-        (interaction.selectedLeftId && interaction.selectedRightId)
+        tileId !== interaction.selectedLeftId &&
+        tileId !== interaction.selectedRightId &&
+        interaction.selectedLeftId &&
+        interaction.selectedRightId
       ) {
         return;
       }
@@ -1556,7 +1575,12 @@ function useDailyNumbersBoardController({
       return;
     }
 
-    if (interaction.steps.length === 0) {
+    if (
+      interaction.steps.length === 0 &&
+      !interaction.selectedLeftId &&
+      !interaction.selectedOperator &&
+      !interaction.selectedRightId
+    ) {
       triggerErrorHaptic();
       dispatch({
         type: "setMessage",
@@ -1570,7 +1594,14 @@ function useDailyNumbersBoardController({
 
     triggerLightHaptic();
     dispatch({ type: "resetBoard" });
-  }, [interaction.steps.length, interactionLocked, t]);
+  }, [
+    interaction.selectedLeftId,
+    interaction.selectedOperator,
+    interaction.selectedRightId,
+    interaction.steps.length,
+    interactionLocked,
+    t,
+  ]);
 
   const handleSubmitPress = useCallback(() => {
     if (interaction.submitting || state.submitted) {
@@ -1848,7 +1879,7 @@ export default function DailyNumbersPlayScreen() {
   const resetNoticeKeyRef = useRef<string | null>(null);
 
   const compact = height < 820 || width < 390;
-  const initialMode = params.mode === "expert" ? "expert" : "classic";
+  const initialMode = normalizeDailyNumbersMode(params.mode);
   const [activeMode, setActiveMode] = useState<DailyNumbersMode>(initialMode);
   const [uiMessage, setUiMessage] = useState<MessageState>(null);
 
@@ -1868,7 +1899,7 @@ export default function DailyNumbersPlayScreen() {
       })),
     [modeQueries],
   );
-  const activeQueryIndex = activeMode === "classic" ? 0 : 1;
+  const activeQueryIndex = Math.max(DAILY_NUMBERS_MODES.indexOf(activeMode), 0);
   const activeQuery = modeQueries[activeQueryIndex];
   const state = modeCards[activeQueryIndex].state;
   const modeAccent = getModeAccent(activeMode, tc);
@@ -1897,9 +1928,7 @@ export default function DailyNumbersPlayScreen() {
   }, [activeMode, lastQuestResetAt, lastQuestResetPayload, t]);
 
   useEffect(() => {
-    if (params.mode === "classic" || params.mode === "expert") {
-      setActiveMode(params.mode);
-    }
+    setActiveMode(normalizeDailyNumbersMode(params.mode));
   }, [params.mode]);
 
   useEffect(() => {

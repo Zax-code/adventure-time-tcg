@@ -38,8 +38,9 @@ defmodule AdventureTimeApi.Quests do
     %{quest_type: "steps_10k", icon: "walking", target: 10_000, reward: 150},
     %{quest_type: "wordle_daily", icon: "wordle", target: 1, reward: 120},
     %{quest_type: "speed_calculus_daily", icon: "sparkles", target: 3, reward: 0},
-    %{quest_type: "daily_numbers_classic", icon: "sparkles", target: 1, reward: 120},
-    %{quest_type: "daily_numbers_expert", icon: "sparkles", target: 1, reward: 160}
+    %{quest_type: "daily_numbers_1_5", icon: "sparkles", target: 1, reward: 120},
+    %{quest_type: "daily_numbers_2_4", icon: "sparkles", target: 1, reward: 140},
+    %{quest_type: "daily_numbers_3_3", icon: "sparkles", target: 1, reward: 160}
   ]
 
   # ── Wordle Cache (persistent_term for fast in-memory lookups) ───────────────
@@ -1154,7 +1155,12 @@ defmodule AdventureTimeApi.Quests do
   end
 
   defp delete_daily_numbers_attempts_for_reset(_user_id, _date, quest_type)
-       when quest_type not in [nil, "daily_numbers_classic", "daily_numbers_expert"] do
+       when quest_type not in [
+              nil,
+              "daily_numbers_1_5",
+              "daily_numbers_2_4",
+              "daily_numbers_3_3"
+            ] do
     {0, nil}
   end
 
@@ -1539,6 +1545,7 @@ defmodule AdventureTimeApi.Quests do
       mode
       |> String.trim()
       |> String.downcase()
+      |> daily_numbers_mode_alias()
 
     if DailyNumbersEngine.valid_mode?(normalized) do
       {:ok, normalized}
@@ -1549,11 +1556,21 @@ defmodule AdventureTimeApi.Quests do
 
   defp normalize_daily_numbers_mode(_mode), do: {:error, :invalid_daily_numbers_mode}
 
-  defp daily_numbers_quest_type("classic"), do: "daily_numbers_classic"
-  defp daily_numbers_quest_type("expert"), do: "daily_numbers_expert"
+  defp daily_numbers_mode_alias("classic"), do: "1-5"
+  defp daily_numbers_mode_alias("1_5"), do: "1-5"
+  defp daily_numbers_mode_alias("balanced"), do: "2-4"
+  defp daily_numbers_mode_alias("2_4"), do: "2-4"
+  defp daily_numbers_mode_alias("expert"), do: "3-3"
+  defp daily_numbers_mode_alias("3_3"), do: "3-3"
+  defp daily_numbers_mode_alias(mode), do: mode
 
-  defp daily_numbers_mode_for_quest_type("daily_numbers_classic"), do: "classic"
-  defp daily_numbers_mode_for_quest_type("daily_numbers_expert"), do: "expert"
+  defp daily_numbers_quest_type("1-5"), do: "daily_numbers_1_5"
+  defp daily_numbers_quest_type("2-4"), do: "daily_numbers_2_4"
+  defp daily_numbers_quest_type("3-3"), do: "daily_numbers_3_3"
+
+  defp daily_numbers_mode_for_quest_type("daily_numbers_1_5"), do: "1-5"
+  defp daily_numbers_mode_for_quest_type("daily_numbers_2_4"), do: "2-4"
+  defp daily_numbers_mode_for_quest_type("daily_numbers_3_3"), do: "3-3"
   defp daily_numbers_mode_for_quest_type(_quest_type), do: nil
 
   defp serialize_answer_active_run(run, answers) do
@@ -1703,11 +1720,14 @@ defmodule AdventureTimeApi.Quests do
           locked: speed_state.locked
         })
 
-      "daily_numbers_classic" ->
-        merge_daily_numbers_quest_entry(base, daily_numbers_attempt, "classic")
+      "daily_numbers_1_5" ->
+        merge_daily_numbers_quest_entry(base, daily_numbers_attempt, "1-5")
 
-      "daily_numbers_expert" ->
-        merge_daily_numbers_quest_entry(base, daily_numbers_attempt, "expert")
+      "daily_numbers_2_4" ->
+        merge_daily_numbers_quest_entry(base, daily_numbers_attempt, "2-4")
+
+      "daily_numbers_3_3" ->
+        merge_daily_numbers_quest_entry(base, daily_numbers_attempt, "3-3")
 
       _ ->
         base
@@ -1716,8 +1736,9 @@ defmodule AdventureTimeApi.Quests do
 
   defp quest_action_path("wordle_daily"), do: "/quests/wordle"
   defp quest_action_path("speed_calculus_daily"), do: "/quests/speed-calculus"
-  defp quest_action_path("daily_numbers_classic"), do: "/quests/daily-numbers?mode=classic"
-  defp quest_action_path("daily_numbers_expert"), do: "/quests/daily-numbers?mode=expert"
+  defp quest_action_path("daily_numbers_1_5"), do: "/quests/daily-numbers?mode=1-5"
+  defp quest_action_path("daily_numbers_2_4"), do: "/quests/daily-numbers?mode=2-4"
+  defp quest_action_path("daily_numbers_3_3"), do: "/quests/daily-numbers?mode=3-3"
   defp quest_action_path(_), do: nil
 
   defp merge_daily_numbers_quest_entry(base, nil, mode) do
