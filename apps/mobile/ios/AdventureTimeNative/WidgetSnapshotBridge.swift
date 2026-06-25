@@ -63,9 +63,17 @@ final class WidgetSnapshotBridge: NSObject {
     defaults.set(json["accessToken"] as? String, forKey: atStepQuestWidgetAccessTokenKey)
     defaults.set(json["refreshToken"] as? String, forKey: atStepQuestWidgetRefreshTokenKey)
 
-    if let user = json["user"] {
-      let userData = try? JSONSerialization.data(withJSONObject: user)
-      defaults.set(userData.flatMap { String(data: $0, encoding: .utf8) }, forKey: atStepQuestWidgetUserContextKey)
+    if let user = json["user"], !(user is NSNull) {
+      guard let userObject = user as? [String: Any],
+            JSONSerialization.isValidJSONObject(userObject),
+            let userData = try? JSONSerialization.data(withJSONObject: userObject),
+            let userJson = String(data: userData, encoding: .utf8)
+      else {
+        reject("WIDGET_SYNC_CONTEXT_INVALID", "The widget sync user context is invalid.", nil)
+        return
+      }
+
+      defaults.set(userJson, forKey: atStepQuestWidgetUserContextKey)
     } else {
       defaults.removeObject(forKey: atStepQuestWidgetUserContextKey)
     }
