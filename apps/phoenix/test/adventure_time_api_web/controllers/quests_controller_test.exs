@@ -7,6 +7,7 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
   alias AdventureTimeApi.Quests
 
   alias AdventureTimeApi.Quests.{
+    DailyNumbersDailyAttempt,
     DailyNumbersEngine,
     DailyQuest,
     SpeedCalculusDailyRun,
@@ -254,6 +255,7 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
         "mode" => "1-5",
         "dateKey" => state["date"],
         "questVersion" => state["questVersion"],
+        "elapsedMs" => 83_421,
         "steps" => solution_steps
       })
       |> json_response(200)
@@ -263,15 +265,20 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
     assert submitted["submission"]["defaultDistance"] == state["bestDistance"]
     assert submitted["submission"]["distance"] == 0
     assert submitted["submission"]["score"] == 100
+    assert submitted["submission"]["elapsedMs"] == 83_421
     assert submitted["submission"]["officialSolutionUnlocked"] == true
     assert length(submitted["submission"]["officialSolutionSteps"]) > 0
 
     quest =
       Repo.get_by!(DailyQuest, user_id: user.id, date: date, quest_type: "daily_numbers_1_5")
 
+    attempt =
+      Repo.get_by!(DailyNumbersDailyAttempt, user_id: user.id, date: date, mode: "1-5")
+
     assert quest.progress == 1
     assert quest.completed == true
     assert quest.reward == 120
+    assert attempt.elapsed_ms == 83_421
 
     already_submitted =
       access_token

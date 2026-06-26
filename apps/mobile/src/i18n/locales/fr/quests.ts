@@ -32,7 +32,11 @@ const quests = {
   wordleSolvedIn: "Résolu en {used}/{total} essais !",
   dailyNumbersQuestCardMeta:
     "Plus proche : {value} ({distance} d'écart), {score} % débloqués.",
+  dailyNumbersQuestCardMetaTimed:
+    "Plus proche : {value} ({distance} d'écart), {score} % débloqués en {time}.",
   dailyNumbersQuestCardExact: "Cible exacte, {score} % débloqués.",
+  dailyNumbersQuestCardExactTimed:
+    "Cible exacte, {score} % débloqués en {time}.",
   dailyNumbersLevelsCleared: "{completed} / {total} niveaux validés",
   dailyNumbersGroupDesc:
     "Choisis une répartition de nombres, joue chaque plateau sur la même page et récupère chaque récompense séparément.",
@@ -217,6 +221,7 @@ const quests = {
     reward: "Récompense",
     bestResult: "Meilleur résultat",
     bestDistance: "Meilleur écart",
+    solveTime: "Temps",
     howToPlayTitle: "Comment ça marche",
     howToPlayStepOne: "Choisis deux nombres disponibles",
     howToPlayStepTwo: "Ajoute +, -, × ou ÷",

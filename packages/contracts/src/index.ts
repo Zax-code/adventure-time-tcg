@@ -606,6 +606,7 @@ export const questSchema = z.object({
   score: z.number().int().nonnegative().optional(),
   distance: z.number().int().nonnegative().optional(),
   finalValue: z.number().int().positive().optional(),
+  elapsedMs: z.number().int().nonnegative().optional(),
   resetByName: z.string().nullable().optional(),
 });
 
@@ -732,6 +733,7 @@ export const dailyNumbersSubmissionSchema = z.object({
   exact: z.boolean(),
   score: z.number().int().nonnegative(),
   completed: z.boolean(),
+  elapsedMs: z.number().int().nonnegative(),
   steps: z.array(dailyNumbersStepSchema),
   officialSolutionUnlocked: z.boolean(),
   officialSolutionSteps: z.array(dailyNumbersStepSchema),
@@ -759,6 +761,7 @@ export const dailyNumbersSubmitSchema = z.object({
   mode: dailyNumbersModeSchema,
   dateKey: z.string().min(1),
   questVersion: z.string().optional(),
+  elapsedMs: z.number().int().nonnegative().optional(),
   steps: z.array(dailyNumbersStepInputSchema),
 });
 

@@ -4,6 +4,19 @@ import { THEME_COLORS } from "../../../theme/themes";
 
 export const DAILY_NUMBERS_MODES: DailyNumbersMode[] = ["1-5", "2-4", "3-3"];
 
+export function formatDailyNumbersElapsedTime(elapsedMs: number) {
+  const totalSeconds = Math.max(0, Math.floor(elapsedMs / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }
+
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
 export function getQuestTypeForMode(mode: DailyNumbersMode) {
   if (mode === "1-5") {
     return "daily_numbers_1_5";
