@@ -1223,13 +1223,6 @@ function LivePlayPanel({
         </View>
       </View>
 
-      <StepList
-        emptyCopy={t("quests.dailyNumbers.noStepsYet")}
-        steps={localSteps}
-        t={t}
-        title={t("quests.dailyNumbers.stepHistoryTitle")}
-      />
-
       <View className="mt-3 flex-row gap-2">
         <Pressable
           onPress={onSubmitPress}
@@ -1282,6 +1275,13 @@ function LivePlayPanel({
           </Text>
         </Pressable>
       </View>
+
+      <StepList
+        emptyCopy={t("quests.dailyNumbers.noStepsYet")}
+        steps={localSteps}
+        t={t}
+        title={t("quests.dailyNumbers.stepHistoryTitle")}
+      />
     </>
   );
 }
