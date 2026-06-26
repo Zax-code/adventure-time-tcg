@@ -1263,7 +1263,8 @@ defmodule AdventureTimeApi.Accounts do
   defp validate_resettable_quest_type(quest_type)
        when quest_type in [
               "steps_10k",
-              "wordle_daily",
+              "wordle_daily_fr",
+              "wordle_daily_en",
               "speed_calculus_daily",
               "daily_numbers_1_5",
               "daily_numbers_2_4",

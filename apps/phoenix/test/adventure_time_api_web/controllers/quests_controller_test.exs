@@ -60,7 +60,7 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
 
     response = access_token |> auth_conn() |> get(~p"/quests") |> json_response(200)
     assert response["fitbitConnected"] == false
-    assert length(response["quests"]) == 6
+    assert length(response["quests"]) == 7
 
     assert Enum.sort(Enum.map(response["quests"], & &1["type"])) == [
              "daily_numbers_1_5",
@@ -68,7 +68,8 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
              "daily_numbers_3_3",
              "speed_calculus_daily",
              "steps_10k",
-             "wordle_daily"
+             "wordle_daily_en",
+             "wordle_daily_fr"
            ]
 
     quest = Repo.get_by!(DailyQuest, user_id: user.id, date: date, quest_type: "steps_10k")
@@ -110,7 +111,7 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
            }
 
     incomplete_quest =
-      Repo.get_by!(DailyQuest, user_id: user.id, date: date, quest_type: "wordle_daily")
+      Repo.get_by!(DailyQuest, user_id: user.id, date: date, quest_type: "wordle_daily_fr")
 
     not_completed =
       access_token
@@ -614,7 +615,7 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
            }
   end
 
-  test "wordle keeps language boards separate and awards the quest only once", _context do
+  test "wordle keeps language boards separate and awards a quest per language", _context do
     user = create_user_with_password("wordle-bilingual@example.com", "password123")
     access_token = login_access_token(user.email, "password123")
     date = Quests.current_reset_date()
@@ -643,12 +644,18 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
 
     quests_after_french = access_token |> auth_conn() |> get(~p"/quests") |> json_response(200)
 
-    wordle_quest_after_french =
-      Enum.find(quests_after_french["quests"], &(&1["type"] == "wordle_daily"))
+    french_quest_after_french =
+      Enum.find(quests_after_french["quests"], &(&1["type"] == "wordle_daily_fr"))
 
-    assert wordle_quest_after_french["completed"] == true
-    assert wordle_quest_after_french["claimed"] == false
-    assert wordle_quest_after_french["attemptsUsed"] == 1
+    assert french_quest_after_french["completed"] == true
+    assert french_quest_after_french["claimed"] == false
+    assert french_quest_after_french["attemptsUsed"] == 1
+
+    english_quest_after_french =
+      Enum.find(quests_after_french["quests"], &(&1["type"] == "wordle_daily_en"))
+
+    assert english_quest_after_french["completed"] == false
+    assert english_quest_after_french["claimed"] == false
 
     english_still_open =
       access_token
@@ -668,24 +675,36 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
 
     assert solved_english["locale"] == "en"
     assert solved_english["solved"] == true
-    assert solved_english["questJustCompleted"] == false
+    assert solved_english["questJustCompleted"] == true
 
-    claimed_quest =
-      Repo.get_by!(DailyQuest, user_id: user.id, date: date, quest_type: "wordle_daily")
+    french_quest =
+      Repo.get_by!(DailyQuest, user_id: user.id, date: date, quest_type: "wordle_daily_fr")
 
-    claimed =
+    english_quest =
+      Repo.get_by!(DailyQuest, user_id: user.id, date: date, quest_type: "wordle_daily_en")
+
+    claimed_french =
       access_token
       |> auth_conn()
-      |> post(~p"/quests/claim", %{"questId" => claimed_quest.id})
+      |> post(~p"/quests/claim", %{"questId" => french_quest.id})
       |> json_response(200)
 
-    assert claimed["success"] == true
-    assert claimed["reward"] == claimed_quest.reward
+    assert claimed_french["success"] == true
+    assert claimed_french["reward"] == french_quest.reward
+
+    claimed_english =
+      access_token
+      |> auth_conn()
+      |> post(~p"/quests/claim", %{"questId" => english_quest.id})
+      |> json_response(200)
+
+    assert claimed_english["success"] == true
+    assert claimed_english["reward"] == english_quest.reward
 
     already_claimed =
       access_token
       |> auth_conn()
-      |> post(~p"/quests/claim", %{"questId" => claimed_quest.id})
+      |> post(~p"/quests/claim", %{"questId" => french_quest.id})
       |> json_response(409)
 
     assert already_claimed == %{
@@ -694,7 +713,7 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
            }
   end
 
-  test "wordle quest fails only after both language boards are exhausted", _context do
+  test "each wordle language quest fails once its own board is exhausted", _context do
     user = create_user_with_password("wordle-two-boards@example.com", "password123")
     access_token = login_access_token(user.email, "password123")
     date = Quests.current_reset_date()
@@ -721,11 +740,16 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
     quests_after_french =
       access_token |> auth_conn() |> get(~p"/quests") |> json_response(200)
 
-    wordle_quest_after_french =
-      Enum.find(quests_after_french["quests"], &(&1["type"] == "wordle_daily"))
+    french_quest_after_french =
+      Enum.find(quests_after_french["quests"], &(&1["type"] == "wordle_daily_fr"))
 
-    assert wordle_quest_after_french["failed"] == false
-    assert wordle_quest_after_french["attemptsUsed"] == 6
+    assert french_quest_after_french["failed"] == true
+    assert french_quest_after_french["attemptsUsed"] == 6
+
+    english_quest_after_french =
+      Enum.find(quests_after_french["quests"], &(&1["type"] == "wordle_daily_en"))
+
+    assert english_quest_after_french["failed"] == false
 
     Enum.each(english_wrong_guesses, fn guess ->
       access_token
@@ -737,11 +761,11 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
     quests_after_both =
       access_token |> auth_conn() |> get(~p"/quests") |> json_response(200)
 
-    wordle_quest_after_both =
-      Enum.find(quests_after_both["quests"], &(&1["type"] == "wordle_daily"))
+    english_quest_after_both =
+      Enum.find(quests_after_both["quests"], &(&1["type"] == "wordle_daily_en"))
 
-    assert wordle_quest_after_both["failed"] == true
-    assert wordle_quest_after_both["attemptsUsed"] == 6
+    assert english_quest_after_both["failed"] == true
+    assert english_quest_after_both["attemptsUsed"] == 6
   end
 
   test "wordle returns reset metadata and detects admin reset version mismatch", _context do
@@ -777,7 +801,7 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
     |> put_req_header("authorization", "Bearer #{admin_token}")
     |> post(~p"/admin/users/#{user.id}/reset-daily-quests", %{
       "mode" => "single",
-      "questType" => "wordle_daily"
+      "questType" => "wordle_daily_fr"
     })
     |> json_response(200)
 
