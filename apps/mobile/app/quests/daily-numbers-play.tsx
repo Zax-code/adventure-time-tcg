@@ -21,6 +21,11 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
+import Animated, {
+  FadeIn,
+  FadeOut,
+  LinearTransition,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { captureRef } from "react-native-view-shot";
 
@@ -1040,10 +1045,12 @@ function LivePlayPanel({
   t,
   tc,
 }: LivePlayProps) {
+  const pairSelected = Boolean(selectedLeftTile && selectedRightTile);
+
   return (
     <>
       <View
-        className="mt-3 rounded-2xl border px-3 py-3"
+        className="mt-3 flex-1 rounded-2xl border px-3 py-3"
         style={{
           borderColor: modeAccent.border,
           backgroundColor: modeAccent.bg,
@@ -1106,7 +1113,97 @@ function LivePlayPanel({
           </Pressable>
         </View>
 
-        <View className="mt-2 rounded-2xl border border-primaryBorder bg-surface px-3 py-2.5">
+        <Text className="mt-3 font-nunito-bold text-sm text-fg">
+          {t("quests.dailyNumbers.availableNumbers")}
+        </Text>
+        <View className="mt-2 flex-row flex-wrap justify-between gap-y-2">
+          {availableTiles.map((tile) => {
+            const selected =
+              tile.id === selectedLeftTile?.id ||
+              tile.id === selectedRightTile?.id;
+
+            return (
+              <Animated.View
+                key={tile.id}
+                entering={FadeIn.duration(180)}
+                exiting={FadeOut.duration(140)}
+                layout={LinearTransition.duration(200)}
+                style={{ width: "31.5%" }}
+              >
+                <Pressable
+                  onPress={() => onTilePress(tile.id)}
+                  disabled={interactionLocked}
+                  className="rounded-2xl border px-2 py-2.5"
+                  style={{
+                    borderColor: selected ? modeAccent.text : tc.primaryBorder,
+                    backgroundColor: selected ? tc.surface : tc.primaryBg,
+                  }}
+                  testID={`daily-numbers-tile-${tile.id}`}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected, disabled: interactionLocked }}
+                  accessibilityLabel={t("quests.dailyNumbers.tileValue", {
+                    value: tile.value,
+                  })}
+                >
+                  <Text
+                    className={`text-center font-nunito-extrabold ${compact ? "text-[20px]" : "text-[22px]"}`}
+                    style={{ color: selected ? modeAccent.text : tc.fg }}
+                  >
+                    {tile.value}
+                  </Text>
+                </Pressable>
+              </Animated.View>
+            );
+          })}
+        </View>
+
+        <Text className="mt-3 font-nunito-bold text-sm text-fg">
+          {t("quests.dailyNumbers.operators")}
+        </Text>
+        <View className="mt-2 flex-row gap-2">
+          {OPERATORS.map((operator) => {
+            const selected = selectedOperator === operator;
+            const wouldBeInvalid =
+              pairSelected && selectedLeftTile && selectedRightTile
+                ? !applyOperation(
+                    selectedLeftTile.value,
+                    operator,
+                    selectedRightTile.value,
+                  ).ok
+                : false;
+            const disabled =
+              interactionLocked || (wouldBeInvalid && !selected);
+
+            return (
+              <Pressable
+                key={operator}
+                onPress={() => onOperatorPress(operator)}
+                disabled={disabled}
+                className="flex-1 rounded-2xl border px-3 py-3"
+                style={{
+                  borderColor: selected ? tc.accentStrong : tc.primaryBorder,
+                  backgroundColor: selected ? tc.accentTint : tc.primaryBg,
+                  opacity: wouldBeInvalid && !selected ? 0.4 : 1,
+                }}
+                testID={`daily-numbers-operator-${operator === "*" ? "multiply" : operator === "/" ? "divide" : operator === "+" ? "plus" : "minus"}`}
+                accessibilityRole="button"
+                accessibilityState={{ selected, disabled }}
+                accessibilityLabel={t("quests.dailyNumbers.operatorValue", {
+                  operator: displayOperator(operator),
+                })}
+              >
+                <Text
+                  className={`text-center font-nunito-extrabold ${compact ? "text-lg" : "text-xl"}`}
+                  style={{ color: selected ? tc.accentStrong : tc.fg }}
+                >
+                  {operator === "*" ? "×" : operator}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        <View className="mt-3 rounded-2xl border border-primaryBorder bg-surface px-3 py-2.5">
           <Text
             className="font-nunito-semibold text-[10px] uppercase tracking-[1px]"
             style={{ color: modeAccent.text }}
@@ -1147,80 +1244,6 @@ function LivePlayPanel({
             {t("quests.dailyNumbers.applyStep")}
           </Text>
         </Pressable>
-      </View>
-
-      <View className="mt-2 flex-1">
-        <Text className="font-nunito-bold text-sm text-fg">
-          {t("quests.dailyNumbers.availableNumbers")}
-        </Text>
-        <View className="mt-2 flex-row flex-wrap justify-between gap-y-2">
-          {availableTiles.map((tile) => {
-            const selected =
-              tile.id === selectedLeftTile?.id ||
-              tile.id === selectedRightTile?.id;
-
-            return (
-              <Pressable
-                key={tile.id}
-                onPress={() => onTilePress(tile.id)}
-                disabled={interactionLocked}
-                className="w-[31.5%] rounded-2xl border px-2 py-2.5"
-                style={{
-                  borderColor: selected ? modeAccent.text : tc.primaryBorder,
-                  backgroundColor: selected ? modeAccent.bg : tc.primaryBg,
-                }}
-                testID={`daily-numbers-tile-${tile.id}`}
-                accessibilityRole="button"
-                accessibilityState={{ selected, disabled: interactionLocked }}
-                accessibilityLabel={t("quests.dailyNumbers.tileValue", {
-                  value: tile.value,
-                })}
-              >
-                <Text
-                  className={`text-center font-nunito-extrabold ${compact ? "text-[20px]" : "text-[22px]"}`}
-                  style={{ color: selected ? modeAccent.text : tc.fg }}
-                >
-                  {tile.value}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-
-        <Text className="mt-2 font-nunito-bold text-sm text-fg">
-          {t("quests.dailyNumbers.operators")}
-        </Text>
-        <View className="mt-2 flex-row gap-2">
-          {OPERATORS.map((operator) => {
-            const selected = selectedOperator === operator;
-
-            return (
-              <Pressable
-                key={operator}
-                onPress={() => onOperatorPress(operator)}
-                disabled={interactionLocked}
-                className="flex-1 rounded-2xl border px-3 py-3"
-                style={{
-                  borderColor: selected ? tc.accentStrong : tc.primaryBorder,
-                  backgroundColor: selected ? tc.accentTint : tc.primaryBg,
-                }}
-                testID={`daily-numbers-operator-${operator === "*" ? "multiply" : operator === "/" ? "divide" : operator === "+" ? "plus" : "minus"}`}
-                accessibilityRole="button"
-                accessibilityState={{ selected, disabled: interactionLocked }}
-                accessibilityLabel={t("quests.dailyNumbers.operatorValue", {
-                  operator: displayOperator(operator),
-                })}
-              >
-                <Text
-                  className={`text-center font-nunito-extrabold ${compact ? "text-lg" : "text-xl"}`}
-                  style={{ color: selected ? tc.accentStrong : tc.fg }}
-                >
-                  {operator === "*" ? "×" : operator}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
       </View>
 
       <View className="mt-3 flex-row gap-2">
