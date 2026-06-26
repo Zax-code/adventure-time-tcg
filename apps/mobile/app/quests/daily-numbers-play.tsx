@@ -1,6 +1,9 @@
 import { useMutation, useQueries, useQueryClient } from "@tanstack/react-query";
+import { File, Paths } from "expo-file-system";
 import * as Haptics from "expo-haptics";
+import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import * as Sharing from "expo-sharing";
 import {
   useCallback,
   useEffect,
@@ -10,6 +13,7 @@ import {
   useState,
 } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Pressable,
   ScrollView,
@@ -18,6 +22,7 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { captureRef } from "react-native-view-shot";
 
 import {
   ApiClientError,
@@ -29,6 +34,11 @@ import {
 
 import { PageErrorState } from "../../src/components/error-state";
 import { PageLoadingState } from "../../src/components/loading-state";
+import { DailyNumbersQuestShareCard } from "../../src/features/quests/daily-numbers/quest-share-card";
+import {
+  buildDailyNumbersShareFileName,
+  buildDailyNumbersShareResult,
+} from "../../src/features/quests/daily-numbers/share-result";
 import {
   DAILY_NUMBERS_MODES,
   getModeAccent,
@@ -109,7 +119,9 @@ type FinishStateProps = {
   finishTone: FinishTone;
   finishValue: number | null;
   interaction: BoardInteractionState;
+  isSharing: boolean;
   onClaimReward: () => void;
+  onShareResult: () => void;
   onToggleSolution: () => void;
   state: DailyNumbersStateResponse;
   submittedSolutionSteps: DailyNumbersStep[];
@@ -299,6 +311,22 @@ function toStepInputs(steps: DailyNumbersStep[]): DailyNumbersStepInput[] {
 
 function displayOperator(operator: Operator) {
   return operator === "*" ? "×" : operator === "/" ? "÷" : operator;
+}
+
+function formatNumbersShareDate(
+  dateKey: string | null,
+  locale: string,
+): string | undefined {
+  if (!dateKey) return undefined;
+  const [year, month, day] = dateKey.split("-").map((part) => Number(part));
+  if (!year || !month || !day) return dateKey;
+  const date = new Date(year, month - 1, day);
+  if (Number.isNaN(date.getTime())) return dateKey;
+  return date.toLocaleDateString(locale === "fr" ? "fr-FR" : "en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
 }
 
 function buildSubmissionSummary(
@@ -740,7 +768,9 @@ function FinishStatePanel({
   finishTone,
   finishValue,
   interaction,
+  isSharing,
   onClaimReward,
+  onShareResult,
   onToggleSolution,
   state,
   submittedSolutionSteps,
@@ -864,6 +894,37 @@ function FinishStatePanel({
                 : t("quests.dailyNumbers.resultLockedNote")}
         </Text>
       )}
+      <Pressable
+        onPress={onShareResult}
+        disabled={isSharing}
+        className="mt-5 h-12 overflow-hidden rounded-2xl"
+        accessibilityRole="button"
+        accessibilityLabel={t("quests.dailyNumbers.shareResult")}
+        testID="daily-numbers-share-result"
+      >
+        <LinearGradient
+          colors={[tc.primary, tc.primaryDark]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={{
+            flex: 1,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+            opacity: isSharing ? 0.7 : 1,
+          }}
+        >
+          {isSharing ? (
+            <ActivityIndicator color="#ffffff" size="small" />
+          ) : null}
+          <Text className="font-nunito-bold text-sm text-white">
+            {isSharing
+              ? t("quests.dailyNumbers.sharePreparing")
+              : t("quests.dailyNumbers.shareResult")}
+          </Text>
+        </LinearGradient>
+      </Pressable>
       <View className="mt-5 w-full rounded-2xl border border-primaryBorder bg-surface px-3 py-3">
         <Text className="font-nunito-bold text-sm text-fg">
           {t("quests.dailyNumbers.startingNumbersTitle")}
@@ -1783,6 +1844,136 @@ function DailyNumbersBoard({
     tc,
   });
 
+  const { locale } = useTranslation();
+  const [isSharing, setIsSharing] = useState(false);
+  const shareCardRef = useRef<View>(null);
+
+  // Spoiler-safe share model — only the player's outcome is surfaced, never the
+  // solution steps or the official solution.
+  const shareResult = useMemo(
+    () =>
+      buildDailyNumbersShareResult({
+        questTitle: controller.t("quests.dailyNumbers.title"),
+        modeLabel: controller.t(getModeLabelKey(controller.state.mode)),
+        mode: controller.state.mode,
+        date: controller.state.date,
+        target: controller.state.target,
+        finalValue: controller.finishValue,
+        distance: controller.finishDistance,
+        score: controller.finishScore,
+        exact: controller.exactHitState,
+        completed: controller.finishCompletedState,
+      }),
+    [
+      controller.t,
+      controller.state.mode,
+      controller.state.date,
+      controller.state.target,
+      controller.finishValue,
+      controller.finishDistance,
+      controller.finishScore,
+      controller.exactHitState,
+      controller.finishCompletedState,
+    ],
+  );
+
+  const shareStrings = useMemo(() => {
+    const resultLine = controller.exactHitState
+      ? controller.t("quests.dailyNumbers.shareExact", {
+          score: controller.finishScore ?? 100,
+        })
+      : controller.finishCompletedState
+        ? controller.t("quests.dailyNumbers.shareScore", {
+            score: controller.finishScore ?? 0,
+            distance: controller.finishDistance ?? 0,
+          })
+        : controller.t("quests.dailyNumbers.shareMissed", {
+            distance: controller.finishDistance ?? 0,
+          });
+
+    const modeLabelKey =
+      controller.state.mode === "1-5"
+        ? "quests.dailyNumbers.shareMode1_5"
+        : controller.state.mode === "2-4"
+          ? "quests.dailyNumbers.shareMode2_4"
+          : "quests.dailyNumbers.shareMode3_3";
+
+    return {
+      brand: controller.t("quests.dailyNumbers.shareBrand"),
+      modeLabel: controller.t(modeLabelKey),
+      resultLine,
+      targetLabel: controller.t("quests.dailyNumbers.target"),
+      resultValueLabel: controller.t(
+        "quests.dailyNumbers.shareResultValueLabel",
+      ),
+      distanceLabel: controller.t("quests.dailyNumbers.distanceLabel"),
+      footer: controller.t("quests.dailyNumbers.shareFooter"),
+      date: formatNumbersShareDate(controller.state.date, locale),
+    };
+  }, [
+    controller.t,
+    controller.state.mode,
+    controller.state.date,
+    controller.exactHitState,
+    controller.finishCompletedState,
+    controller.finishScore,
+    controller.finishDistance,
+    locale,
+  ]);
+
+  const handleShareResult = useCallback(async () => {
+    if (isSharing || !shareCardRef.current) {
+      return;
+    }
+
+    setIsSharing(true);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    try {
+      // Run the availability check while the offscreen card settles its layout.
+      const [canShare] = await Promise.all([
+        Sharing.isAvailableAsync(),
+        new Promise<void>((resolve) => requestAnimationFrame(() => resolve())),
+      ]);
+      if (!canShare) {
+        Alert.alert(controller.t("quests.dailyNumbers.shareUnavailable"));
+        return;
+      }
+
+      const uri = await captureRef(shareCardRef, {
+        format: "png",
+        quality: 1,
+        result: "tmpfile",
+      });
+
+      // Copy the temp capture to a readable file name so the share sheet and
+      // saved file are recognizable.
+      let shareUri = uri;
+      try {
+        const fileName = buildDailyNumbersShareFileName(shareResult);
+        const destination = new File(Paths.cache, fileName);
+        if (destination.exists) {
+          destination.delete();
+        }
+        await new File(uri).copy(destination);
+        shareUri = destination.uri;
+      } catch (copyError) {
+        console.warn("Failed to rename Daily Numbers share image", copyError);
+      }
+
+      await Sharing.shareAsync(shareUri, {
+        mimeType: "image/png",
+        dialogTitle: controller.t("quests.dailyNumbers.shareDialogTitle"),
+        UTI: "public.png",
+      });
+    } catch (error) {
+      console.warn("Failed to share Daily Numbers result", error);
+      Alert.alert(controller.t("quests.dailyNumbers.shareError"));
+    } finally {
+      setIsSharing(false);
+    }
+  }, [isSharing, controller.t, shareResult]);
+
   return (
     <>
       <MessageBanner message={controller.visibleMessage} />
@@ -1821,7 +2012,9 @@ function DailyNumbersBoard({
             finishTone={controller.finishTone}
             finishValue={controller.finishValue}
             interaction={controller.interaction}
+            isSharing={isSharing}
             onClaimReward={controller.onClaimReward}
+            onShareResult={handleShareResult}
             onToggleSolution={controller.onToggleSolution}
             state={controller.state}
             submittedSolutionSteps={controller.submittedSolutionSteps}
@@ -1852,6 +2045,24 @@ function DailyNumbersBoard({
           />
         )}
       </View>
+
+      {/* Offscreen, capture-friendly share card. Rendered (not display:none)
+          and laid out off-screen so react-native-view-shot can snapshot it. */}
+      {controller.finishScreenState ? (
+        <View
+          pointerEvents="none"
+          collapsable={false}
+          style={{ position: "absolute", left: -9999, top: 0 }}
+        >
+          <View ref={shareCardRef} collapsable={false}>
+            <DailyNumbersQuestShareCard
+              result={shareResult}
+              colors={controller.tc}
+              strings={shareStrings}
+            />
+          </View>
+        </View>
+      ) : null}
     </>
   );
 }
