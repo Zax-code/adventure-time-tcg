@@ -1130,11 +1130,11 @@ defmodule AdventureTimeApiWeb.AdminControllerTest do
     detail = json_response(detail_conn, 200)
     assert detail["email"] == user.email
     assert detail["todayDate"] == Date.to_iso8601(date)
-    assert length(detail["dailyQuests"]) == 6
+    assert length(detail["dailyQuests"]) == 7
 
     assert detail["dailyQuestCompletion"] == %{
              "completed" => 0,
-             "total" => 6,
+             "total" => 7,
              "percentage" => 0
            }
 
@@ -1234,12 +1234,12 @@ defmodule AdventureTimeApiWeb.AdminControllerTest do
       |> put_req_header("authorization", "Bearer #{access_token}")
       |> post(~p"/admin/users/#{user.id}/reset-daily-quests", %{
         "mode" => "single",
-        "questType" => "wordle_daily"
+        "questType" => "wordle_daily_fr"
       })
 
     assert json_response(reset_conn, 200) == %{
              "success" => true,
-             "questType" => "wordle_daily",
+             "questType" => "wordle_daily_fr",
              "resetDate" => Date.to_iso8601(date),
              "resetMode" => "single",
              "resetByName" => super_admin.display_name
@@ -1249,7 +1249,7 @@ defmodule AdventureTimeApiWeb.AdminControllerTest do
 
     wordle_quest =
       DailyQuest
-      |> Repo.get_by!(user_id: user.id, date: date, quest_type: "wordle_daily")
+      |> Repo.get_by!(user_id: user.id, date: date, quest_type: "wordle_daily_fr")
 
     assert wordle_quest.reset_by_user_id == super_admin.id
   end

@@ -36,7 +36,8 @@ defmodule AdventureTimeApi.Quests do
 
   @quest_definitions [
     %{quest_type: "steps_10k", icon: "walking", target: 10_000, reward: 150},
-    %{quest_type: "wordle_daily", icon: "wordle", target: 1, reward: 120},
+    %{quest_type: "wordle_daily_fr", icon: "wordle", target: 1, reward: 60},
+    %{quest_type: "wordle_daily_en", icon: "wordle", target: 1, reward: 60},
     %{quest_type: "speed_calculus_daily", icon: "sparkles", target: 3, reward: 0},
     %{quest_type: "daily_numbers_1_5", icon: "sparkles", target: 1, reward: 120},
     %{quest_type: "daily_numbers_2_4", icon: "sparkles", target: 1, reward: 140},
@@ -482,7 +483,8 @@ defmodule AdventureTimeApi.Quests do
             DailyQuest
             |> where(
               [q],
-              q.user_id == ^user_id and q.date == ^date and q.quest_type == "wordle_daily"
+              q.user_id == ^user_id and q.date == ^date and
+                q.quest_type == ^wordle_quest_type(locale)
             )
             |> Repo.one()
 
@@ -552,7 +554,7 @@ defmodule AdventureTimeApi.Quests do
           {validation_result, validation_ms} =
             timed(fn ->
               with :ok <- validate_expected_date(expected_date_str, date),
-                   :ok <- validate_wordle_version(user_id, date, expected_quest_version),
+                   :ok <- validate_wordle_version(user_id, date, locale, expected_quest_version),
                    :ok <- validate_guess_format(guess),
                    :ok <- validate_wordle_word(guess, locale) do
                 :ok
@@ -593,7 +595,7 @@ defmodule AdventureTimeApi.Quests do
 
                   quest_just_completed =
                     if solved do
-                      complete_wordle_quest(user_id, date)
+                      complete_wordle_quest(user_id, date, locale)
                     else
                       false
                     end
@@ -1078,46 +1080,36 @@ defmodule AdventureTimeApi.Quests do
 
     attempts_by_locale = Enum.group_by(attempts, & &1.locale)
 
-    counts_by_locale =
+    by_locale =
       Map.new(@wordle_locales, fn locale ->
-        {locale, attempts_by_locale |> Map.get(locale, []) |> length()}
-      end)
+        locale_attempts = Map.get(attempts_by_locale, locale, [])
+        count = length(locale_attempts)
 
-    solved_attempts_by_locale =
-      Map.new(@wordle_locales, fn locale ->
         solved_attempt =
-          attempts_by_locale
-          |> Map.get(locale, [])
+          locale_attempts
           |> Enum.find(& &1.solved)
           |> case do
             nil -> nil
             attempt -> attempt.attempt
           end
 
-        {locale, solved_attempt}
+        attempts_used =
+          cond do
+            not is_nil(solved_attempt) -> solved_attempt
+            count > 0 -> count
+            true -> nil
+          end
+
+        {locale,
+         %{
+           count: count,
+           solved: not is_nil(solved_attempt),
+           exhausted: count >= @wordle_max_attempts,
+           attemptsUsed: attempts_used
+         }}
       end)
 
-    solved_attempts =
-      solved_attempts_by_locale
-      |> Map.values()
-      |> Enum.reject(&is_nil/1)
-
-    max_attempts_used = counts_by_locale |> Map.values() |> Enum.max(fn -> 0 end)
-    solved_any? = solved_attempts != []
-    all_exhausted? = Enum.all?(Map.values(counts_by_locale), &(&1 >= @wordle_max_attempts))
-
-    %{
-      countsByLocale: counts_by_locale,
-      solvedAttemptsByLocale: solved_attempts_by_locale,
-      solvedAny: solved_any?,
-      allExhausted: all_exhausted?,
-      attemptsUsed:
-        cond do
-          solved_any? -> Enum.min(solved_attempts)
-          max_attempts_used > 0 -> max_attempts_used
-          true -> nil
-        end
-    }
+    %{byLocale: by_locale}
   end
 
   defp delete_daily_quests_for_reset(user_id, date, nil) do
@@ -1133,13 +1125,21 @@ defmodule AdventureTimeApi.Quests do
   end
 
   defp delete_wordle_attempts_for_reset(_user_id, _date, quest_type)
-       when quest_type not in [nil, "wordle_daily"] do
+       when quest_type not in [nil, "wordle_daily_fr", "wordle_daily_en"] do
     {0, nil}
   end
 
-  defp delete_wordle_attempts_for_reset(user_id, date, _quest_type) do
+  defp delete_wordle_attempts_for_reset(user_id, date, nil) do
     WordleDailyAttempt
     |> where([a], a.user_id == ^user_id and a.date == ^date)
+    |> Repo.delete_all()
+  end
+
+  defp delete_wordle_attempts_for_reset(user_id, date, quest_type) do
+    locale = wordle_locale_for_quest_type(quest_type)
+
+    WordleDailyAttempt
+    |> where([a], a.user_id == ^user_id and a.date == ^date and a.locale == ^locale)
     |> Repo.delete_all()
   end
 
@@ -1227,10 +1227,10 @@ defmodule AdventureTimeApi.Quests do
     end
   end
 
-  defp validate_wordle_version(_user_id, _date, nil), do: :ok
+  defp validate_wordle_version(_user_id, _date, _locale, nil), do: :ok
 
-  defp validate_wordle_version(user_id, date, expected_quest_version) do
-    quest = get_daily_quest(user_id, date, "wordle_daily")
+  defp validate_wordle_version(user_id, date, locale, expected_quest_version) do
+    quest = get_daily_quest(user_id, date, wordle_quest_type(locale))
 
     if quest && quest.id == expected_quest_version do
       :ok
@@ -1289,16 +1289,17 @@ defmodule AdventureTimeApi.Quests do
 
   defp reset_by_name(_quest), do: nil
 
-  defp complete_wordle_quest(user_id, date) do
+  defp complete_wordle_quest(user_id, date, locale) do
     now = now_utc()
-    wordle_def = Enum.find(@quest_definitions, &(&1.quest_type == "wordle_daily"))
-    existing_quest = get_daily_quest(user_id, date, "wordle_daily")
+    quest_type = wordle_quest_type(locale)
+    wordle_def = Enum.find(@quest_definitions, &(&1.quest_type == quest_type))
+    existing_quest = get_daily_quest(user_id, date, quest_type)
 
     %DailyQuest{}
     |> DailyQuest.changeset(%{
       user_id: user_id,
       date: date,
-      quest_type: "wordle_daily",
+      quest_type: quest_type,
       target: wordle_def.target,
       reward: wordle_def.reward,
       progress: wordle_def.target,
@@ -1312,6 +1313,13 @@ defmodule AdventureTimeApi.Quests do
 
     existing_quest == nil || !existing_quest.completed
   end
+
+  defp wordle_quest_type("fr"), do: "wordle_daily_fr"
+  defp wordle_quest_type("en"), do: "wordle_daily_en"
+
+  defp wordle_locale_for_quest_type("wordle_daily_fr"), do: "fr"
+  defp wordle_locale_for_quest_type("wordle_daily_en"), do: "en"
+  defp wordle_locale_for_quest_type(_quest_type), do: nil
 
   defp settle_expired_runs(user_id, date) do
     now = now_utc()
@@ -1698,18 +1706,21 @@ defmodule AdventureTimeApi.Quests do
       actionPath: quest_action_path(quest.quest_type),
       resetByName: reset_by_name(quest),
       failed:
-        (quest.quest_type == "wordle_daily" && !quest.completed && wordle_summary.allExhausted) ||
+        (wordle_quest?(quest.quest_type) && !quest.completed &&
+           wordle_locale_exhausted?(
+             wordle_summary,
+             wordle_locale_for_quest_type(quest.quest_type)
+           )) ||
           (String.starts_with?(quest.quest_type, "daily_numbers_") && !quest.completed &&
              not is_nil(daily_numbers_attempt))
     }
 
     case quest.quest_type do
-      "wordle_daily" ->
-        if is_integer(wordle_summary.attemptsUsed) and wordle_summary.attemptsUsed > 0 do
-          Map.put(base, :attemptsUsed, wordle_summary.attemptsUsed)
-        else
-          base
-        end
+      "wordle_daily_fr" ->
+        merge_wordle_quest_entry(base, wordle_summary, "fr")
+
+      "wordle_daily_en" ->
+        merge_wordle_quest_entry(base, wordle_summary, "en")
 
       "speed_calculus_daily" ->
         Map.merge(base, %{
@@ -1734,12 +1745,37 @@ defmodule AdventureTimeApi.Quests do
     end
   end
 
-  defp quest_action_path("wordle_daily"), do: "/quests/wordle"
+  defp quest_action_path("wordle_daily_fr"), do: "/quests/wordle?language=fr"
+  defp quest_action_path("wordle_daily_en"), do: "/quests/wordle?language=en"
   defp quest_action_path("speed_calculus_daily"), do: "/quests/speed-calculus"
   defp quest_action_path("daily_numbers_1_5"), do: "/quests/daily-numbers?mode=1-5"
   defp quest_action_path("daily_numbers_2_4"), do: "/quests/daily-numbers?mode=2-4"
   defp quest_action_path("daily_numbers_3_3"), do: "/quests/daily-numbers?mode=3-3"
   defp quest_action_path(_), do: nil
+
+  defp wordle_quest?(quest_type), do: quest_type in ["wordle_daily_fr", "wordle_daily_en"]
+
+  defp wordle_locale_exhausted?(_wordle_summary, nil), do: false
+
+  defp wordle_locale_exhausted?(wordle_summary, locale) do
+    case Map.get(wordle_summary.byLocale, locale) do
+      %{exhausted: exhausted} -> exhausted
+      _ -> false
+    end
+  end
+
+  defp merge_wordle_quest_entry(base, wordle_summary, locale) do
+    locale_summary = Map.get(wordle_summary.byLocale, locale, %{})
+    attempts_used = Map.get(locale_summary, :attemptsUsed)
+
+    base = Map.put(base, :locale, locale)
+
+    if is_integer(attempts_used) and attempts_used > 0 do
+      Map.put(base, :attemptsUsed, attempts_used)
+    else
+      base
+    end
+  end
 
   defp merge_daily_numbers_quest_entry(base, nil, mode) do
     Map.merge(base, %{

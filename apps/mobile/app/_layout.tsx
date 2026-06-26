@@ -183,7 +183,10 @@ export default function RootLayout() {
                 failed: false,
               };
 
-              if (questType === "wordle_daily") {
+              if (
+                questType === "wordle_daily_fr" ||
+                questType === "wordle_daily_en"
+              ) {
                 return {
                   ...nextQuest,
                   attemptsUsed: 0,
@@ -223,12 +226,24 @@ export default function RootLayout() {
           },
         );
 
+        const resetWordleLocale =
+          resetPayload.questType === "wordle_daily_fr"
+            ? "fr"
+            : resetPayload.questType === "wordle_daily_en"
+              ? "en"
+              : null;
+
         if (
           !resetPayload.questType ||
-          resetPayload.questType === "wordle_daily"
+          resetPayload.questType === "wordle_daily_fr" ||
+          resetPayload.questType === "wordle_daily_en"
         ) {
           queryClient.setQueriesData(
-            { queryKey: ["wordle"] },
+            {
+              queryKey: resetWordleLocale
+                ? ["wordle", resetWordleLocale]
+                : ["wordle"],
+            },
             (
               current:
                 | {

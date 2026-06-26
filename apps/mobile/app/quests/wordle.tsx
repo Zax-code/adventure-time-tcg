@@ -16,7 +16,7 @@ import * as Sharing from "expo-sharing";
 import { File, Paths } from "expo-file-system";
 import { captureRef } from "react-native-view-shot";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 
 import { ApiClientError } from "@adventure-time/api-client";
 import type {
@@ -123,6 +123,9 @@ export default function WordleScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { language: languageParam } = useLocalSearchParams<{
+    language?: string;
+  }>();
 
   const [guesses, setGuesses] = useState<GuessResult[]>([]);
   const [currentGuess, setCurrentGuess] = useState<(string | null)[]>(
@@ -175,6 +178,7 @@ export default function WordleScreen() {
   const questVersionRef = useRef<string | null>(null);
   const resetByNameRef = useRef<string | null>(null);
   const lastHandledResetAtRef = useRef(0);
+  const appliedLanguageParamRef = useRef<string | null>(null);
 
   // Animation values — initialized once, stable across renders
   const popAnims = useRef(
@@ -424,16 +428,29 @@ export default function WordleScreen() {
     if (!lastQuestResetAt || !lastQuestResetPayload) return;
     if (lastQuestResetAt === lastHandledResetAtRef.current) return;
 
-    if (
-      lastQuestResetPayload.questType &&
-      lastQuestResetPayload.questType !== "wordle_daily"
-    ) {
-      return;
+    const resetQuestType = lastQuestResetPayload.questType;
+
+    if (resetQuestType) {
+      const resetLanguage =
+        resetQuestType === "wordle_daily_fr"
+          ? "fr"
+          : resetQuestType === "wordle_daily_en"
+            ? "en"
+            : null;
+
+      if (!resetLanguage || resetLanguage !== wordleLanguage) {
+        return;
+      }
     }
 
     lastHandledResetAtRef.current = lastQuestResetAt;
     applyImmediateAdminReset(lastQuestResetPayload.resetByName);
-  }, [applyImmediateAdminReset, lastQuestResetAt, lastQuestResetPayload]);
+  }, [
+    applyImmediateAdminReset,
+    lastQuestResetAt,
+    lastQuestResetPayload,
+    wordleLanguage,
+  ]);
 
   useEffect(() => {
     return () => {
@@ -782,6 +799,27 @@ export default function WordleScreen() {
       wordleLanguage,
     ],
   );
+
+  useEffect(() => {
+    if (!wordleLanguageHydrated) {
+      return;
+    }
+
+    if (typeof languageParam !== "string") {
+      return;
+    }
+
+    if (languageParam !== "fr" && languageParam !== "en") {
+      return;
+    }
+
+    if (appliedLanguageParamRef.current === languageParam) {
+      return;
+    }
+
+    appliedLanguageParamRef.current = languageParam;
+    handleWordleLanguageChange(languageParam);
+  }, [handleWordleLanguageChange, languageParam, wordleLanguageHydrated]);
 
   const activateKey = useCallback(
     (keyId: string) => {
