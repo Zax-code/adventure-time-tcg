@@ -278,6 +278,17 @@ const quests = {
     scoreLabel: "Score",
     completedLabel: "Reward unlocked",
     incompleteLabel: "No reward unlocked",
+    shareResult: "Share result",
+    sharePreparing: "Preparing…",
+    shareBrand: "Adventure Time TCG",
+    shareFooter: "Daily Quest",
+    shareDialogTitle: "Share your quest result",
+    shareError: "Could not create the share image. Try again.",
+    shareUnavailable: "Sharing isn't available on this device.",
+    shareExact: "Exact hit! {score}%",
+    shareScore: "{score}% unlocked • {distance} away",
+    shareMissed: "{distance} away",
+    shareResultValueLabel: "Your result",
   },
 };
 

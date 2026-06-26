@@ -288,6 +288,17 @@ const quests = {
     scoreLabel: "Score",
     completedLabel: "Récompense débloquée",
     incompleteLabel: "Aucune récompense débloquée",
+    shareResult: "Partager le résultat",
+    sharePreparing: "Préparation…",
+    shareBrand: "Adventure Time TCG",
+    shareFooter: "Quête quotidienne",
+    shareDialogTitle: "Partage ton résultat de quête",
+    shareError: "Impossible de créer l'image à partager. Réessaie.",
+    shareUnavailable: "Le partage n'est pas disponible sur cet appareil.",
+    shareExact: "Cible exacte ! {score} %",
+    shareScore: "{score} % débloqués • à {distance} d'écart",
+    shareMissed: "à {distance} d'écart",
+    shareResultValueLabel: "Ton résultat",
   },
 };
 
