@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
 import type { ReactNode } from "react";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -223,12 +223,27 @@ export default function AdminUserEditorScreen() {
   const canManageCoins = detail?.viewerPermissions.canManageCoins ?? false;
   const canManageRights =
     detail?.viewerPermissions.canManageAdminRights ?? false;
-  const canResetQuests = detail?.viewerPermissions.canResetDailyQuests ?? false;
+const canResetQuests = detail?.viewerPermissions.canResetDailyQuests ?? false;
   const canDeleteUser =
     (detail?.viewerPermissions.canDeleteUser ?? false) && !isSelf;
   const completedQuestCount =
     detail?.dailyQuests.filter((quest) => quest.claimed || quest.completed)
       .length ?? 0;
+  const questCompletionPercentage =
+    detail?.dailyQuestCompletion.percentage ?? 0;
+
+  const formatQuestProgressLabel = useCallback(
+    (quest: NonNullable<typeof detail>["dailyQuests"][number]) => {
+      if (quest.type.startsWith("daily_numbers_")) {
+        return t("admin.userEditor.percentComplete", {
+          percentage: quest.score ?? 0,
+        });
+      }
+
+      return `${quest.progress}/${quest.target}`;
+    },
+    [t],
+  );
 
   const busy = useMemo(
     () =>
@@ -427,8 +442,11 @@ export default function AdminUserEditorScreen() {
                     />
                     <AdminStat
                       label={t("admin.userEditor.questsTitle")}
-                      value={`${completedQuestCount}/${detail.dailyQuests.length}`}
-                      helper={t("admin.userEditor.statusCompleted")}
+                      value={`${questCompletionPercentage}%`}
+                      helper={t("admin.userEditor.completedCount", {
+                        completed: completedQuestCount,
+                        total: detail.dailyQuests.length,
+                      })}
                       tone="info"
                     />
                   </View>
@@ -685,7 +703,7 @@ export default function AdminUserEditorScreen() {
 
                             <View className="flex-row flex-wrap gap-2">
                               <AdminChip
-                                label={`${quest.progress}/${quest.target}`}
+                                label={formatQuestProgressLabel(quest)}
                                 tone="info"
                               />
                               <AdminChip

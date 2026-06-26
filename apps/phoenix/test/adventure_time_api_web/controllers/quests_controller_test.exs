@@ -60,11 +60,12 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
 
     response = access_token |> auth_conn() |> get(~p"/quests") |> json_response(200)
     assert response["fitbitConnected"] == false
-    assert length(response["quests"]) == 5
+    assert length(response["quests"]) == 6
 
     assert Enum.sort(Enum.map(response["quests"], & &1["type"])) == [
-             "daily_numbers_classic",
-             "daily_numbers_expert",
+             "daily_numbers_1_5",
+             "daily_numbers_2_4",
+             "daily_numbers_3_3",
              "speed_calculus_daily",
              "steps_10k",
              "wordle_daily"
@@ -207,21 +208,28 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
     access_token = login_access_token(user.email, "password123")
     other_access_token = login_access_token(other_user.email, "password123")
     date = Quests.current_reset_date()
-    {:ok, puzzle} = DailyNumbersEngine.generate_puzzle("classic", date)
+    {:ok, puzzle} = DailyNumbersEngine.generate_puzzle("1-5", date)
 
     state =
       access_token
       |> auth_conn()
-      |> get(~p"/quests/daily-numbers?mode=classic")
+      |> get(~p"/quests/daily-numbers?mode=1-5")
       |> json_response(200)
 
     other_state =
       other_access_token
       |> auth_conn()
-      |> get(~p"/quests/daily-numbers?mode=classic")
+      |> get(~p"/quests/daily-numbers?mode=1-5")
       |> json_response(200)
 
-    assert state["mode"] == "classic"
+    balanced_state =
+      access_token
+      |> auth_conn()
+      |> get(~p"/quests/daily-numbers?mode=2-4")
+      |> json_response(200)
+
+    assert state["mode"] == "1-5"
+    assert balanced_state["mode"] == "2-4"
     assert state["target"] == other_state["target"]
     assert state["numbers"] == other_state["numbers"]
     assert state["generationAttempt"] == other_state["generationAttempt"]
@@ -242,7 +250,7 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
       access_token
       |> auth_conn()
       |> post(~p"/quests/daily-numbers/submit", %{
-        "mode" => "classic",
+        "mode" => "1-5",
         "dateKey" => state["date"],
         "questVersion" => state["questVersion"],
         "steps" => solution_steps
@@ -258,7 +266,7 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
     assert length(submitted["submission"]["officialSolutionSteps"]) > 0
 
     quest =
-      Repo.get_by!(DailyQuest, user_id: user.id, date: date, quest_type: "daily_numbers_classic")
+      Repo.get_by!(DailyQuest, user_id: user.id, date: date, quest_type: "daily_numbers_1_5")
 
     assert quest.progress == 1
     assert quest.completed == true
@@ -268,7 +276,7 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
       access_token
       |> auth_conn()
       |> post(~p"/quests/daily-numbers/submit", %{
-        "mode" => "classic",
+        "mode" => "1-5",
         "dateKey" => state["date"],
         "questVersion" => state["questVersion"],
         "steps" => []
@@ -290,14 +298,14 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
     state =
       access_token
       |> auth_conn()
-      |> get(~p"/quests/daily-numbers?mode=classic")
+      |> get(~p"/quests/daily-numbers?mode=1-5")
       |> json_response(200)
 
     submitted =
       access_token
       |> auth_conn()
       |> post(~p"/quests/daily-numbers/submit", %{
-        "mode" => "classic",
+        "mode" => "1-5",
         "dateKey" => state["date"],
         "questVersion" => state["questVersion"],
         "steps" => []
@@ -311,7 +319,7 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
     assert submitted["submission"]["score"] == 0
 
     quest =
-      Repo.get_by!(DailyQuest, user_id: user.id, date: date, quest_type: "daily_numbers_classic")
+      Repo.get_by!(DailyQuest, user_id: user.id, date: date, quest_type: "daily_numbers_1_5")
 
     assert quest.progress == 1
     assert quest.completed == false

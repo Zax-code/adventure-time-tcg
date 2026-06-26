@@ -102,6 +102,7 @@ const AdminUserRow = memo(function AdminUserRow({
   superAdminLabel,
   coinsLabel,
   noDisplayNameLabel,
+  questCompletionLabel,
   joinedLabel,
   onPress,
 }: {
@@ -112,6 +113,7 @@ const AdminUserRow = memo(function AdminUserRow({
   superAdminLabel: string;
   coinsLabel: string;
   noDisplayNameLabel: string;
+  questCompletionLabel: string;
   joinedLabel: string;
   onPress: () => void;
 }) {
@@ -204,6 +206,7 @@ const AdminUserRow = memo(function AdminUserRow({
               <AdminChip label={adminLabel} tone="accent" />
             ) : null}
             <AdminChip label={coinsLabel} tone="warning" />
+            <AdminChip label={questCompletionLabel} tone="info" />
           </View>
 
           <Text className="font-nunito-semibold text-[12px] text-fgMuted">
@@ -220,11 +223,13 @@ const AdminUserListRow = memo(function AdminUserListRow({
   labels,
   onOpenUser,
   coinsLabel,
+  questCompletionLabel,
 }: {
   item: UserRowItem;
   labels: UserRowLabels;
   onOpenUser: (userId: string) => void;
   coinsLabel: string;
+  questCompletionLabel: string;
 }) {
   const handlePress = useCallback(
     () => onOpenUser(item.user.id),
@@ -240,6 +245,7 @@ const AdminUserListRow = memo(function AdminUserListRow({
       superAdminLabel={labels.superAdmin}
       coinsLabel={coinsLabel}
       noDisplayNameLabel={labels.noDisplayName}
+      questCompletionLabel={questCompletionLabel}
       joinedLabel={item.joinedLabel}
       onPress={handlePress}
     />
@@ -852,6 +858,9 @@ export default function AdminUsersScreen() {
           onOpenUser={openUserEditor}
           coinsLabel={t("admin.common.coinsCount", {
             count: item.user.coins,
+          })}
+          questCompletionLabel={t("admin.users.questCompletion", {
+            percentage: item.user.dailyQuestCompletion.percentage,
           })}
         />
       );

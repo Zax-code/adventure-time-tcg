@@ -90,6 +90,7 @@ const admin = {
       "Les nouvelles validations de connexion restent en haut pour être traitées rapidement.",
     noUsersTitle: "Aucun utilisateur trouvé",
     noUsersBody: "Essaie un autre terme de recherche.",
+    questCompletion: "Quêtes {percentage} %",
     accessRequestsTitle: "Demandes d'accès",
     accessRequestsSubtitle:
       "Approuve ou rejette les nouvelles demandes de connexion.",
@@ -143,6 +144,8 @@ const admin = {
     guessesCount: "{count} essais",
     runsCount: "{used}/{max} manches",
     scoreLabel: "Score {score}",
+    percentComplete: "{percentage} % terminé",
+    completedCount: "{completed}/{total} terminées",
     permissionsTitle: "Permissions",
     permissionsSubtitle:
       "Les droits admin et super admin sont contrôlés depuis cette fiche. Seul le super admin peut les modifier.",

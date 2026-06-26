@@ -43,7 +43,7 @@ defmodule AdventureTimeApi.Quests.DailyNumbersDailyAttempt do
       :exact,
       :completed
     ])
-    |> validate_inclusion(:mode, ["classic", "expert"])
+    |> validate_inclusion(:mode, ["1-5", "2-4", "3-3"])
     |> validate_number(:final_value, greater_than: 0)
     |> validate_number(:distance, greater_than_or_equal_to: 0)
     |> validate_number(:score, greater_than_or_equal_to: 0)

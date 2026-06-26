@@ -27,6 +27,10 @@ import {
 import { PageErrorState } from "../../src/components/error-state";
 import { PageLoadingState } from "../../src/components/loading-state";
 import { ToastBanner } from "../../src/components/toast-banner";
+import {
+  DAILY_NUMBERS_MODES,
+  getModeLabelKey,
+} from "../../src/features/quests/daily-numbers/shared";
 import { useTranslation } from "../../src/i18n";
 import { apiClient } from "../../src/lib/api";
 import { connectFitbit } from "../../src/lib/fitbit";
@@ -58,8 +62,6 @@ type DescriptionModalState = {
   description: string;
   status: QuestStatus;
 } | null;
-
-const DAILY_NUMBERS_MODES: DailyNumbersMode[] = ["classic", "expert"];
 
 function formatProgress(progress: number, target: number) {
   if (target >= 10000) {
@@ -125,7 +127,9 @@ function isSpeedCalculusQuest(questType: string) {
 
 function isDailyNumbersQuest(questType: string) {
   return (
-    questType === "daily_numbers_classic" || questType === "daily_numbers_expert"
+    questType === "daily_numbers_1_5" ||
+    questType === "daily_numbers_2_4" ||
+    questType === "daily_numbers_3_3"
   );
 }
 
@@ -136,12 +140,16 @@ function isStepQuest(questType: string) {
 function getDailyNumbersModeFromQuestType(
   questType: string,
 ): DailyNumbersMode | null {
-  if (questType === "daily_numbers_classic") {
-    return "classic";
+  if (questType === "daily_numbers_1_5") {
+    return "1-5";
   }
 
-  if (questType === "daily_numbers_expert") {
-    return "expert";
+  if (questType === "daily_numbers_2_4") {
+    return "2-4";
+  }
+
+  if (questType === "daily_numbers_3_3") {
+    return "3-3";
   }
 
   return null;
@@ -963,11 +971,7 @@ export default function QuestsScreen() {
                               <View className="flex-1 gap-2">
                                 <View className="flex-row items-center gap-2">
                                   <Text className="font-nunito-bold text-base text-fg">
-                                    {t(
-                                      mode === "classic"
-                                        ? "quests.dailyNumbers.classic"
-                                        : "quests.dailyNumbers.expert",
-                                    )}
+                                    {t(getModeLabelKey(mode))}
                                   </Text>
                                   <View
                                     className="rounded-full px-2 py-1"

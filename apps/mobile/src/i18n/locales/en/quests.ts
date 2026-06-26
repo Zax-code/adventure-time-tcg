@@ -35,7 +35,7 @@ const quests = {
   dailyNumbersQuestCardExact: "Exact hit, {score}% unlocked.",
   dailyNumbersLevelsCleared: "{completed} / {total} levels cleared",
   dailyNumbersGroupDesc:
-    "Classic and Expert live together here. Pick a level, play both from one page, and claim each reward separately.",
+    "Pick a number mix, play every board from one page, and claim each reward separately.",
   steps_10k: "Walk 10,000 steps",
   steps_10k_desc: "Walk 10,000 steps today to earn coins",
   daily_login: "Daily login",
@@ -45,11 +45,14 @@ const quests = {
   speed_calculus_daily: "Speed calculus sprint",
   speed_calculus_daily_desc:
     "Solve as many addition and subtraction problems as you can",
-  daily_numbers_classic: "Daily Numbers: Classic",
-  daily_numbers_classic_desc:
+  daily_numbers_1_5: "Daily Numbers: 1 - 5",
+  daily_numbers_1_5_desc:
     "Use 1 large and 5 small numbers to get as close as possible",
-  daily_numbers_expert: "Daily Numbers: Expert",
-  daily_numbers_expert_desc:
+  daily_numbers_2_4: "Daily Numbers: 2 - 4",
+  daily_numbers_2_4_desc:
+    "Use 2 large and 4 small numbers to get as close as possible",
+  daily_numbers_3_3: "Daily Numbers: 3 - 3",
+  daily_numbers_3_3_desc:
     "Use 3 large and 3 small numbers to get as close as possible",
   wordle: {
     title: "Daily Wordle",
@@ -176,10 +179,12 @@ const quests = {
     openGame: "Play",
     playAction: "Play",
     viewResult: "View result",
-    classic: "Classic",
-    expert: "Expert",
-    classicMix: "1 large + 5 small",
-    expertMix: "3 large + 3 small",
+    oneFive: "1 - 5",
+    twoFour: "2 - 4",
+    threeThree: "3 - 3",
+    oneFiveMix: "1 large + 5 small",
+    twoFourMix: "2 large + 4 small",
+    threeThreeMix: "3 large + 3 small",
     currentMode: "Now playing",
     freshLabel: "Fresh board",
     submittedLabel: "Submitted",
