@@ -89,6 +89,15 @@ const quests = {
     adminResetBody:
       "Ta progression a été réinitialisée par {name}. Tu peux rejouer depuis le début.",
     tryAgain: "Une erreur est survenue, réessaie.",
+    shareResult: "Partager le résultat",
+    sharePreparing: "Préparation…",
+    shareBrand: "Adventure Time TCG",
+    shareSolved: "Résolu en {used}/{total}",
+    shareFailed: "Échec — {used}/{total}",
+    shareFooter: "Quête quotidienne",
+    shareDialogTitle: "Partage ton résultat de quête",
+    shareError: "Impossible de créer l'image à partager. Réessaie.",
+    shareUnavailable: "Le partage n'est pas disponible sur cet appareil.",
   },
   speedCalculusTitle: "Calcul mental rapide",
   speedCalculusSubtitle:

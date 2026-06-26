@@ -89,6 +89,15 @@ const quests = {
     adminResetBody:
       "Your progress was reset by {name}. You can play again from the start.",
     tryAgain: "Something went wrong, try again.",
+    shareResult: "Share result",
+    sharePreparing: "Preparing…",
+    shareBrand: "Adventure Time TCG",
+    shareSolved: "Solved in {used}/{total}",
+    shareFailed: "Failed — {used}/{total}",
+    shareFooter: "Daily Quest",
+    shareDialogTitle: "Share your quest result",
+    shareError: "Could not create the share image. Try again.",
+    shareUnavailable: "Sharing isn't available on this device.",
   },
   speedCalculusTitle: "Speed Calculus",
   speedCalculusSubtitle:

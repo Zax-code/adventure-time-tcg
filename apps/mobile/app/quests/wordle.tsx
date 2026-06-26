@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Animated,
   Modal,
   Pressable,
@@ -11,6 +12,8 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
+import * as Sharing from "expo-sharing";
+import { captureRef } from "react-native-view-shot";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 
@@ -22,6 +25,8 @@ import type {
 } from "@adventure-time/api-client";
 import { apiClient } from "../../src/lib/api";
 import { PageLoadingState } from "../../src/components/loading-state";
+import { WordleQuestShareCard } from "../../src/features/quests/wordle/quest-share-card";
+import { buildWordleShareResult } from "../../src/features/quests/wordle/share-result";
 import { useTranslation } from "../../src/i18n";
 import { useQuestResetStore } from "../../src/stores/quest-reset-store";
 import { useThemeStore } from "../../src/stores/theme-store";
@@ -80,6 +85,19 @@ function keyLetterClass(state?: LetterState): string {
   return "text-primaryStrong";
 }
 
+function formatShareDate(dateKey: string | null, locale: string): string | undefined {
+  if (!dateKey) return undefined;
+  const [year, month, day] = dateKey.split("-").map((part) => Number(part));
+  if (!year || !month || !day) return dateKey;
+  const date = new Date(year, month - 1, day);
+  if (Number.isNaN(date.getTime())) return dateKey;
+  return date.toLocaleDateString(locale === "fr" ? "fr-FR" : "en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
 export default function WordleScreen() {
   const { t, locale } = useTranslation();
   const themeName = useThemeStore((s) => s.themeName);
@@ -127,6 +145,8 @@ export default function WordleScreen() {
   );
   const [animatingRows, setAnimatingRows] = useState<Set<number>>(new Set());
   const [tileFaceUp, setTileFaceUp] = useState<Set<string>>(new Set());
+  const [isSharing, setIsSharing] = useState(false);
+  const shareCardRef = useRef<View>(null);
 
   const attemptsUsed = guesses.length;
   const attemptsLeft = Math.max(0, MAX_ATTEMPTS - attemptsUsed);
@@ -209,6 +229,39 @@ export default function WordleScreen() {
   }, [guesses]);
 
   const keyboardRows = locale === "fr" ? AZERTY_ROWS : QWERTY_ROWS;
+
+  // Spoiler-safe share model — only tile evaluations are passed in, never the
+  // guessed letters or the answer.
+  const wordleShareResult = useMemo(
+    () =>
+      buildWordleShareResult({
+        questTitle: t("quests.wordle.title"),
+        date: activeDateKey,
+        solved,
+        maxAttempts: MAX_ATTEMPTS,
+        wordLength: WORD_LENGTH,
+        evaluations: guesses.map((guess) => guess.evaluation),
+      }),
+    [guesses, solved, activeDateKey, t],
+  );
+
+  const wordleShareStrings = useMemo(
+    () => ({
+      brand: t("quests.wordle.shareBrand"),
+      footer: t("quests.wordle.shareFooter"),
+      date: formatShareDate(activeDateKey, locale),
+      resultLine: solved
+        ? t("quests.wordle.shareSolved", {
+            used: attemptsUsed,
+            total: MAX_ATTEMPTS,
+          })
+        : t("quests.wordle.shareFailed", {
+            used: attemptsUsed,
+            total: MAX_ATTEMPTS,
+          }),
+    }),
+    [t, locale, activeDateKey, solved, attemptsUsed],
+  );
 
   // ── API ──────────────────────────────────────────────────────────────────
 
@@ -781,6 +834,44 @@ export default function WordleScreen() {
     });
   }, []);
 
+  const handleShareResult = useCallback(async () => {
+    if (isSharing || !shareCardRef.current) {
+      return;
+    }
+
+    setIsSharing(true);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    try {
+      // Run the availability check while the offscreen card settles its layout.
+      const [canShare] = await Promise.all([
+        Sharing.isAvailableAsync(),
+        new Promise<void>((resolve) => requestAnimationFrame(() => resolve())),
+      ]);
+      if (!canShare) {
+        setMessage(t("quests.wordle.shareUnavailable"));
+        return;
+      }
+
+      const uri = await captureRef(shareCardRef, {
+        format: "png",
+        quality: 1,
+        result: "tmpfile",
+      });
+
+      await Sharing.shareAsync(uri, {
+        mimeType: "image/png",
+        dialogTitle: t("quests.wordle.shareDialogTitle"),
+        UTI: "public.png",
+      });
+    } catch (error) {
+      console.warn("Failed to share Wordle result", error);
+      setMessage(t("quests.wordle.shareError"));
+    } finally {
+      setIsSharing(false);
+    }
+  }, [isSharing, t]);
+
   // ── Tile helpers ─────────────────────────────────────────────────────────
 
   const getTileState = (
@@ -1009,6 +1100,42 @@ export default function WordleScreen() {
           </TouchableOpacity>
         ) : null}
 
+        {gameOver ? (
+          <TouchableOpacity
+            onPress={() => {
+              void handleShareResult();
+            }}
+            disabled={isSharing}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            testID="wordle-share-result"
+            className="h-12 rounded-xl overflow-hidden"
+          >
+            <LinearGradient
+              colors={[tc.primary, tc.primaryDark]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={{
+                flex: 1,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                opacity: isSharing ? 0.7 : 1,
+              }}
+            >
+              {isSharing ? (
+                <ActivityIndicator color="#ffffff" size="small" />
+              ) : null}
+              <Text className="text-sm font-nunito-bold text-white">
+                {isSharing
+                  ? t("quests.wordle.sharePreparing")
+                  : t("quests.wordle.shareResult")}
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        ) : null}
+
         {canShowDefinition ? (
           <TouchableOpacity
             onPress={() => setDefinitionModalVisible(true)}
@@ -1176,6 +1303,24 @@ export default function WordleScreen() {
           </View>
         </View>
       )}
+
+      {/* Offscreen, capture-friendly share card. Rendered (not display:none)
+          and laid out off-screen so react-native-view-shot can snapshot it. */}
+      {gameOver ? (
+        <View
+          pointerEvents="none"
+          collapsable={false}
+          style={{ position: "absolute", left: -9999, top: 0 }}
+        >
+          <View ref={shareCardRef} collapsable={false}>
+            <WordleQuestShareCard
+              result={wordleShareResult}
+              colors={tc}
+              strings={wordleShareStrings}
+            />
+          </View>
+        </View>
+      ) : null}
 
       <Modal
         visible={definitionModalVisible}
