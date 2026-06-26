@@ -1059,7 +1059,7 @@ function LivePlayPanel({
         <View className="flex-row items-center gap-2">
           <Pressable
             onPress={() => onClearSlot("left")}
-            className="flex-1 rounded-2xl border border-primaryBorder bg-surface px-3 py-3"
+            className="h-12 flex-1 items-center justify-center rounded-2xl border border-primaryBorder bg-surface px-3"
             disabled={interactionLocked}
             accessibilityRole="button"
             accessibilityState={{ disabled: interactionLocked }}
@@ -1077,7 +1077,7 @@ function LivePlayPanel({
           </Pressable>
           <Pressable
             onPress={() => onClearSlot("operator")}
-            className="w-12 rounded-2xl border border-primaryBorder bg-surfaceMuted px-2 py-3"
+            className="h-12 w-12 items-center justify-center rounded-2xl border border-primaryBorder bg-surfaceMuted px-2"
             disabled={interactionLocked}
             accessibilityRole="button"
             accessibilityState={{ disabled: interactionLocked }}
@@ -1095,7 +1095,7 @@ function LivePlayPanel({
           </Pressable>
           <Pressable
             onPress={() => onClearSlot("right")}
-            className="flex-1 rounded-2xl border border-primaryBorder bg-surface px-3 py-3"
+            className="h-12 flex-1 items-center justify-center rounded-2xl border border-primaryBorder bg-surface px-3"
             disabled={interactionLocked}
             accessibilityRole="button"
             accessibilityState={{ disabled: interactionLocked }}
@@ -1112,6 +1112,48 @@ function LivePlayPanel({
             </Text>
           </Pressable>
         </View>
+
+        <View className="mt-2 rounded-2xl border border-primaryBorder bg-surface px-3 py-2.5">
+          <Text
+            className="font-nunito-semibold text-[10px] uppercase tracking-[1px]"
+            style={{ color: modeAccent.text }}
+          >
+            {t("quests.dailyNumbers.nextResult")}
+          </Text>
+          <Text
+            className={`mt-1 font-nunito-bold text-sm ${previewState.kind === "invalid" ? "text-dangerDark" : "text-fg"}`}
+          >
+            {previewState.kind === "ready"
+              ? previewState.result
+              : previewState.kind === "invalid"
+                ? previewState.reason === "division"
+                  ? t("quests.dailyNumbers.invalidDivision")
+                  : t("quests.dailyNumbers.invalidPositive")
+                : t("quests.dailyNumbers.noPreview")}
+          </Text>
+        </View>
+
+        <Pressable
+          onPress={onApplyStep}
+          disabled={interactionLocked}
+          className="mt-2 rounded-2xl px-3 py-3"
+          style={{
+            backgroundColor: interactionLocked
+              ? tc.surfaceMuted
+              : tc.accentDark,
+          }}
+          testID="daily-numbers-apply-step"
+          accessibilityRole="button"
+          accessibilityState={{ disabled: interactionLocked }}
+          accessibilityLabel={t("quests.dailyNumbers.applyStep")}
+        >
+          <Text
+            className="text-center font-nunito-bold text-sm"
+            style={{ color: interactionLocked ? tc.fgMuted : tc.primaryBg }}
+          >
+            {t("quests.dailyNumbers.applyStep")}
+          </Text>
+        </Pressable>
 
         <Text className="mt-3 font-nunito-bold text-sm text-fg">
           {t("quests.dailyNumbers.availableNumbers")}
@@ -1202,48 +1244,6 @@ function LivePlayPanel({
             );
           })}
         </View>
-
-        <View className="mt-3 rounded-2xl border border-primaryBorder bg-surface px-3 py-2.5">
-          <Text
-            className="font-nunito-semibold text-[10px] uppercase tracking-[1px]"
-            style={{ color: modeAccent.text }}
-          >
-            {t("quests.dailyNumbers.nextResult")}
-          </Text>
-          <Text
-            className={`mt-1 font-nunito-bold text-sm ${previewState.kind === "invalid" ? "text-dangerDark" : "text-fg"}`}
-          >
-            {previewState.kind === "ready"
-              ? previewState.result
-              : previewState.kind === "invalid"
-                ? previewState.reason === "division"
-                  ? t("quests.dailyNumbers.invalidDivision")
-                  : t("quests.dailyNumbers.invalidPositive")
-                : t("quests.dailyNumbers.noPreview")}
-          </Text>
-        </View>
-
-        <Pressable
-          onPress={onApplyStep}
-          disabled={interactionLocked}
-          className="mt-2 rounded-2xl px-3 py-3"
-          style={{
-            backgroundColor: interactionLocked
-              ? tc.surfaceMuted
-              : tc.accentDark,
-          }}
-          testID="daily-numbers-apply-step"
-          accessibilityRole="button"
-          accessibilityState={{ disabled: interactionLocked }}
-          accessibilityLabel={t("quests.dailyNumbers.applyStep")}
-        >
-          <Text
-            className="text-center font-nunito-bold text-sm"
-            style={{ color: interactionLocked ? tc.fgMuted : tc.primaryBg }}
-          >
-            {t("quests.dailyNumbers.applyStep")}
-          </Text>
-        </Pressable>
       </View>
 
       <View className="mt-3 flex-row gap-2">
