@@ -275,15 +275,12 @@ export default function WordleScreen() {
     staleTime: 30_000,
   });
 
+  const wordleDefinitionDateKey = stateQuery.data?.date ?? activeDateKey;
+
   const definitionQuery = useQuery({
-    queryKey: [
-      "wordleDefinition",
-      wordleLanguage,
-      stateQuery.data?.date ?? activeDateKey ?? null,
-    ],
+    queryKey: ["wordleDefinition", wordleLanguage, wordleDefinitionDateKey],
     queryFn: () => apiClient.wordleDefinition(wordleLanguage),
-    enabled:
-      definitionModalVisible && canShowDefinition && wordleLanguageHydrated,
+    enabled: wordleLanguageHydrated && wordleDefinitionDateKey != null,
     staleTime: Infinity,
     retry: 1,
   });
