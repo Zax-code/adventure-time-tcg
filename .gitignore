@@ -12,7 +12,7 @@ coverage/
 .maestro/.maestro-flow.*
 .maestro/*-temp.yaml
 .maestro/test-output/
-tmp-*/
+tmp*/
 *.log
 report.xml
 .DS_Store
