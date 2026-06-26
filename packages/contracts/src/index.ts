@@ -602,6 +602,7 @@ export const questSchema = z.object({
   rewardPreview: z.number().int().nonnegative().optional(),
   locked: z.boolean().optional(),
   mode: z.enum(["1-5", "2-4", "3-3"]).optional(),
+  locale: z.enum(["fr", "en"]).optional(),
   score: z.number().int().nonnegative().optional(),
   distance: z.number().int().nonnegative().optional(),
   finalValue: z.number().int().positive().optional(),

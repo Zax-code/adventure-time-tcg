@@ -13,10 +13,16 @@ import {
   View,
 } from "react-native";
 
-import type { DailyNumbersMode, QuestsResponse } from "@adventure-time/api-client";
+import type {
+  DailyNumbersMode,
+  QuestsResponse,
+  WordleLocale,
+} from "@adventure-time/api-client";
 
 import {
   CheckCircleIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
   ClaimedIcon,
   CoinIcon,
   HelpCircleIcon,
@@ -53,6 +59,10 @@ type QuestStatus = "active" | "completed" | "claimed" | "failed";
 type Quest = QuestsResponse["quests"][number];
 type QuestCardItem =
   | { kind: "quest"; quest: Quest }
+  | {
+      kind: "wordle";
+      quests: Partial<Record<WordleLocale, Quest>>;
+    }
   | {
       kind: "dailyNumbers";
       quests: Partial<Record<DailyNumbersMode, Quest>>;
@@ -117,8 +127,28 @@ function getMetaColor(
   return tc.primaryStrong;
 }
 
+const WORDLE_LANGUAGES: WordleLocale[] = ["fr", "en"];
+
 function isWordleQuest(questType: string) {
-  return questType === "wordle_daily";
+  return questType === "wordle_daily_fr" || questType === "wordle_daily_en";
+}
+
+function getWordleLanguageFromQuestType(questType: string): WordleLocale | null {
+  if (questType === "wordle_daily_fr") {
+    return "fr";
+  }
+
+  if (questType === "wordle_daily_en") {
+    return "en";
+  }
+
+  return null;
+}
+
+function getWordleLanguageLabelKey(language: WordleLocale) {
+  return language === "fr"
+    ? "quests.wordle.frenchWords"
+    : "quests.wordle.englishWords";
 }
 
 function isSpeedCalculusQuest(questType: string) {
@@ -155,6 +185,33 @@ function getDailyNumbersModeFromQuestType(
   return null;
 }
 
+function getWordleGroupStatus(
+  quests: Partial<Record<WordleLocale, Quest>>,
+): QuestStatus {
+  const entries = WORDLE_LANGUAGES.flatMap((language) => {
+    const quest = quests[language];
+    return quest ? [quest] : [];
+  });
+
+  if (entries.length === 0) {
+    return "active";
+  }
+
+  if (entries.every((quest) => quest.claimed)) {
+    return "claimed";
+  }
+
+  if (entries.every((quest) => quest.completed || quest.claimed)) {
+    return "completed";
+  }
+
+  if (entries.every((quest) => quest.failed)) {
+    return "failed";
+  }
+
+  return "active";
+}
+
 function getDailyNumbersGroupStatus(
   quests: Partial<Record<DailyNumbersMode, Quest>>,
 ): QuestStatus {
@@ -183,9 +240,15 @@ function getDailyNumbersGroupStatus(
 }
 
 function buildQuestCardItems(quests: Quest[]): QuestCardItem[] {
+  const wordleQuests: Partial<Record<WordleLocale, Quest>> = {};
   const dailyNumbersQuests: Partial<Record<DailyNumbersMode, Quest>> = {};
 
   for (const quest of quests) {
+    const language = getWordleLanguageFromQuestType(quest.type);
+    if (language) {
+      wordleQuests[language] = quest;
+    }
+
     const mode = getDailyNumbersModeFromQuestType(quest.type);
     if (mode) {
       dailyNumbersQuests[mode] = quest;
@@ -193,9 +256,22 @@ function buildQuestCardItems(quests: Quest[]): QuestCardItem[] {
   }
 
   const items: QuestCardItem[] = [];
+  let wordleInserted = false;
   let dailyNumbersInserted = false;
 
   for (const quest of quests) {
+    if (isWordleQuest(quest.type)) {
+      if (!wordleInserted) {
+        items.push({
+          kind: "wordle",
+          quests: wordleQuests,
+        });
+        wordleInserted = true;
+      }
+
+      continue;
+    }
+
     if (isDailyNumbersQuest(quest.type)) {
       if (!dailyNumbersInserted) {
         items.push({
@@ -227,6 +303,29 @@ function getDailyNumbersModeStatusLabel(
   }
 
   if (quest.score != null) {
+    return t("quests.dailyNumbers.submittedLabel");
+  }
+
+  return t("quests.dailyNumbers.freshLabel");
+}
+
+function getWordleLanguageStatusLabel(
+  quest: Quest,
+  t: (key: string, params?: Record<string, string | number>) => string,
+) {
+  if (quest.claimed) {
+    return t("quests.dailyNumbers.claimedLabel");
+  }
+
+  if (quest.completed) {
+    return t("quests.dailyNumbers.completedLabel");
+  }
+
+  if (quest.failed) {
+    return t("quests.wordle.failedLabel");
+  }
+
+  if ((quest.attemptsUsed ?? 0) > 0) {
     return t("quests.dailyNumbers.submittedLabel");
   }
 
@@ -276,6 +375,10 @@ export default function QuestsScreen() {
   const [stepQuestUiState, setStepQuestUiState] = useState({
     claimSyncWarning: null as string | null,
     isForceRefreshing: false,
+  });
+  const [collapsedGroups, setCollapsedGroups] = useState({
+    wordle: false,
+    dailyNumbers: false,
   });
   const toastAnim = useRef(new Animated.Value(-60)).current;
   const lastImmediateResetAtRef = useRef(0);
@@ -801,6 +904,328 @@ export default function QuestsScreen() {
             </View>
           ) : (
             questCardItems.map((item, index) => {
+              if (item.kind === "wordle") {
+                const groupStatus = getWordleGroupStatus(item.quests);
+                const colors = STATUS_COLORS[groupStatus];
+                const availableLanguages = WORDLE_LANGUAGES.filter(
+                  (language) => item.quests[language],
+                );
+                const completedLanguages = availableLanguages.filter(
+                  (language) => {
+                    const quest = item.quests[language];
+                    return quest?.completed || quest?.claimed;
+                  },
+                ).length;
+                const totalReward = availableLanguages.reduce(
+                  (sum, language) =>
+                    sum + (item.quests[language]?.reward ?? 0),
+                  0,
+                );
+                const progressPct =
+                  availableLanguages.length === 0
+                    ? 0
+                    : (completedLanguages / availableLanguages.length) * 100;
+
+                return (
+                  <View
+                    key="wordle-group"
+                    className="rounded-2xl p-4"
+                    style={{
+                      backgroundColor: tc.surface,
+                      borderWidth: 2,
+                      borderColor: colors.border,
+                      opacity: groupStatus === "claimed" ? 0.6 : 1,
+                      boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
+                      marginBottom:
+                        index === questCardItems.length - 1 ? 0 : 12,
+                    }}
+                  >
+                    <TouchableOpacity
+                      style={{
+                        position: "absolute",
+                        top: -8,
+                        right: -8,
+                        zIndex: 1,
+                      }}
+                      onPress={() =>
+                        setShowDescriptionFor({
+                          title: t("quests.wordle.title"),
+                          description: t("quests.wordleGroupDesc"),
+                          status: groupStatus,
+                        })
+                      }
+                      hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+                    >
+                      <View
+                        style={{
+                          backgroundColor: tc.surface,
+                          borderRadius: 999,
+                          borderWidth: 2,
+                          borderColor: colors.border,
+                          boxShadow: "0 2px 4px rgba(0, 0, 0, 0.15)",
+                        }}
+                      >
+                        <HelpCircleIcon
+                          size={20}
+                          color={colors.border}
+                          noCircle
+                        />
+                      </View>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      activeOpacity={0.7}
+                      onPress={() =>
+                        setCollapsedGroups((groups) => ({
+                          ...groups,
+                          wordle: !groups.wordle,
+                        }))
+                      }
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "flex-start",
+                        gap: 16,
+                        paddingRight: 24,
+                      }}
+                    >
+                      <View
+                        style={{
+                          backgroundColor: colors.iconBg,
+                          padding: 12,
+                          borderRadius: 12,
+                        }}
+                      >
+                        <SparklesIcon size={28} color={colors.iconColor} />
+                      </View>
+
+                      <View style={{ flex: 1, gap: 4 }}>
+                        <Text className="font-nunito-bold text-base text-fg">
+                          {t("quests.wordle.title")}
+                        </Text>
+                        <Text className="font-nunito text-sm text-fgMuted">
+                          {t("quests.wordleGroupDesc")}
+                        </Text>
+                      </View>
+
+                      <View className="flex-row items-center gap-2">
+                        <View className="flex-row items-center gap-1">
+                          <CoinIcon size={18} />
+                          <Text
+                            style={{ color: tc.secondaryDark }}
+                            className="font-nunito-bold text-base"
+                          >
+                            {totalReward}
+                          </Text>
+                        </View>
+                        {collapsedGroups.wordle ? (
+                          <ChevronRightIcon size={20} color={tc.muted} />
+                        ) : (
+                          <ChevronDownIcon size={20} color={tc.muted} />
+                        )}
+                      </View>
+                    </TouchableOpacity>
+
+                    <View style={{ marginTop: 16 }}>
+                      <View className="flex-row justify-between mb-1">
+                        <Text className="font-nunito text-xs text-fgMuted">
+                          {t("quests.progress")}
+                        </Text>
+                        <Text
+                          className="font-nunito-bold text-xs"
+                          style={{ color: getProgressColor(groupStatus, tc) }}
+                        >
+                          {t("quests.dailyNumbersLevelsCleared", {
+                            completed: completedLanguages,
+                            total: availableLanguages.length,
+                          })}
+                        </Text>
+                      </View>
+                      <View className="h-3 rounded-full overflow-hidden bg-primaryTint">
+                        <View
+                          style={{
+                            width: `${progressPct}%`,
+                            height: "100%",
+                            backgroundColor: colors.iconColor,
+                          }}
+                        />
+                      </View>
+                    </View>
+
+                    {collapsedGroups.wordle ? null : (
+                      <View className="mt-4 gap-3">
+                        {WORDLE_LANGUAGES.map((language) => {
+                          const quest = item.quests[language];
+                          if (!quest) {
+                            return null;
+                          }
+
+                          const languageStatus = getQuestStatus(quest);
+                          const languageColors = STATUS_COLORS[languageStatus];
+                          const isClaimLoading =
+                            claimQuestMutation.isPending &&
+                            claimQuestMutation.variables?.id === quest.id;
+                          const actionLabel =
+                            languageStatus === "active"
+                              ? t("quests.dailyNumbers.playAction")
+                              : t("quests.dailyNumbers.viewResult");
+                          const attemptsUsed = quest.attemptsUsed ?? 0;
+
+                          return (
+                            <View
+                              key={language}
+                              className="rounded-2xl border p-3"
+                              style={{
+                                borderColor: languageColors.border,
+                                backgroundColor:
+                                  languageStatus === "claimed"
+                                    ? tc.surfaceMuted
+                                    : tc.primaryBg,
+                              }}
+                            >
+                              <View className="flex-row items-start gap-3">
+                                <View className="flex-1 gap-2">
+                                  <View className="flex-row items-center gap-2">
+                                    <Text className="font-nunito-bold text-base text-fg">
+                                      {t(getWordleLanguageLabelKey(language))}
+                                    </Text>
+                                    <View
+                                      className="rounded-full px-2 py-1"
+                                      style={{
+                                        backgroundColor: languageColors.iconBg,
+                                      }}
+                                    >
+                                      <Text
+                                        className="font-nunito-bold text-[11px]"
+                                        style={{
+                                          color: languageColors.iconColor,
+                                        }}
+                                      >
+                                        {getWordleLanguageStatusLabel(quest, t)}
+                                      </Text>
+                                    </View>
+                                  </View>
+
+                                  {attemptsUsed > 0 ? (
+                                    <Text
+                                      className="font-nunito-bold text-xs"
+                                      style={{
+                                        color:
+                                          languageStatus === "failed"
+                                            ? tc.dangerDark
+                                            : languageStatus === "completed" ||
+                                                languageStatus === "claimed"
+                                              ? tc.successDark
+                                              : getMetaColor(
+                                                  languageStatus,
+                                                  tc,
+                                                ),
+                                      }}
+                                    >
+                                      {quest.completed
+                                        ? t("quests.wordleSolvedIn", {
+                                            used: attemptsUsed,
+                                            total: 6,
+                                          })
+                                        : t("quests.wordleAttemptsUsed", {
+                                            used: attemptsUsed,
+                                            total: 6,
+                                          })}
+                                    </Text>
+                                  ) : null}
+                                </View>
+
+                                <View className="items-end gap-2">
+                                  <View className="flex-row items-center gap-1">
+                                    <CoinIcon size={16} />
+                                    <Text
+                                      className="font-nunito-bold text-sm"
+                                      style={{ color: tc.secondaryDark }}
+                                    >
+                                      {quest.reward}
+                                    </Text>
+                                  </View>
+                                </View>
+                              </View>
+
+                              <View className="mt-3 flex-row gap-3">
+                                <TouchableOpacity
+                                  onPress={() =>
+                                    router.push(
+                                      `/quests/wordle?language=${language}` as never,
+                                    )
+                                  }
+                                  style={{
+                                    flex: 1,
+                                    borderRadius: 12,
+                                    overflow: "hidden",
+                                  }}
+                                >
+                                  <View
+                                    style={{
+                                      minHeight: 42,
+                                      paddingHorizontal: 14,
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      backgroundColor: languageColors.iconColor,
+                                    }}
+                                  >
+                                    <Text className="font-nunito-bold text-white">
+                                      {actionLabel}
+                                    </Text>
+                                  </View>
+                                </TouchableOpacity>
+
+                                {quest.completed && !quest.claimed ? (
+                                  <TouchableOpacity
+                                    onPress={() =>
+                                      void claimQuestMutation.mutateAsync(quest)
+                                    }
+                                    disabled={isClaimLoading}
+                                    style={{
+                                      borderRadius: 12,
+                                      overflow: "hidden",
+                                      minWidth: 108,
+                                    }}
+                                  >
+                                    <View
+                                      className="items-center flex-row justify-center gap-2"
+                                      style={{
+                                        minHeight: 42,
+                                        paddingHorizontal: 14,
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        backgroundColor: tc.successDark,
+                                      }}
+                                    >
+                                      {isClaimLoading ? (
+                                        <ActivityIndicator
+                                          color="white"
+                                          size="small"
+                                        />
+                                      ) : (
+                                        <>
+                                          <SparklesIcon
+                                            size={18}
+                                            color="white"
+                                          />
+                                          <Text className="font-nunito-bold text-white">
+                                            {t("quests.claim")}
+                                          </Text>
+                                        </>
+                                      )}
+                                    </View>
+                                  </TouchableOpacity>
+                                ) : null}
+                              </View>
+                            </View>
+                          );
+                        })}
+                      </View>
+                    )}
+                  </View>
+                );
+              }
+
               if (item.kind === "dailyNumbers") {
                 const groupStatus = getDailyNumbersGroupStatus(item.quests);
                 const colors = STATUS_COLORS[groupStatus];
@@ -874,7 +1299,14 @@ export default function QuestsScreen() {
                       </View>
                     </TouchableOpacity>
 
-                    <View
+                    <TouchableOpacity
+                      activeOpacity={0.7}
+                      onPress={() =>
+                        setCollapsedGroups((groups) => ({
+                          ...groups,
+                          dailyNumbers: !groups.dailyNumbers,
+                        }))
+                      }
                       style={{
                         flexDirection: "row",
                         alignItems: "flex-start",
@@ -901,16 +1333,23 @@ export default function QuestsScreen() {
                         </Text>
                       </View>
 
-                      <View className="flex-row items-center gap-1">
-                        <CoinIcon size={18} />
-                        <Text
-                          style={{ color: tc.secondaryDark }}
-                          className="font-nunito-bold text-base"
-                        >
-                          {totalReward}
-                        </Text>
+                      <View className="flex-row items-center gap-2">
+                        <View className="flex-row items-center gap-1">
+                          <CoinIcon size={18} />
+                          <Text
+                            style={{ color: tc.secondaryDark }}
+                            className="font-nunito-bold text-base"
+                          >
+                            {totalReward}
+                          </Text>
+                        </View>
+                        {collapsedGroups.dailyNumbers ? (
+                          <ChevronRightIcon size={20} color={tc.muted} />
+                        ) : (
+                          <ChevronDownIcon size={20} color={tc.muted} />
+                        )}
                       </View>
-                    </View>
+                    </TouchableOpacity>
 
                     <View style={{ marginTop: 16 }}>
                       <View className="flex-row justify-between mb-1">
@@ -938,7 +1377,8 @@ export default function QuestsScreen() {
                       </View>
                     </View>
 
-                    <View className="mt-4 gap-3">
+                    {collapsedGroups.dailyNumbers ? null : (
+                      <View className="mt-4 gap-3">
                       {DAILY_NUMBERS_MODES.map((mode) => {
                         const quest = item.quests[mode];
                         if (!quest) {
@@ -1101,7 +1541,8 @@ export default function QuestsScreen() {
                           </View>
                         );
                       })}
-                    </View>
+                      </View>
+                    )}
                   </View>
                 );
               }

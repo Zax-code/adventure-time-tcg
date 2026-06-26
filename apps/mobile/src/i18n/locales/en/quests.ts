@@ -36,12 +36,18 @@ const quests = {
   dailyNumbersLevelsCleared: "{completed} / {total} levels cleared",
   dailyNumbersGroupDesc:
     "Pick a number mix, play every board from one page, and claim each reward separately.",
+  wordleGroupDesc:
+    "Solve the French and English Wordle from one page and claim each reward separately.",
   steps_10k: "Walk 10,000 steps",
   steps_10k_desc: "Walk 10,000 steps today to earn coins",
   daily_login: "Daily login",
   daily_login_desc: "Login to the game every day",
   wordle_daily: "Complete a Wordle",
   wordle_daily_desc: "Solve today's Wordle puzzle",
+  wordle_daily_fr: "Complete the French Wordle",
+  wordle_daily_fr_desc: "Solve today's French Wordle puzzle",
+  wordle_daily_en: "Complete the English Wordle",
+  wordle_daily_en_desc: "Solve today's English Wordle puzzle",
   speed_calculus_daily: "Speed calculus sprint",
   speed_calculus_daily_desc:
     "Solve as many addition and subtraction problems as you can",
@@ -61,6 +67,7 @@ const quests = {
     languageLabel: "Wordle language",
     frenchWords: "French words",
     englishWords: "English words",
+    failedLabel: "Out of guesses",
     attempts: "Attempts left",
     attemptsUsed: "Solved in",
     submit: "Guess",

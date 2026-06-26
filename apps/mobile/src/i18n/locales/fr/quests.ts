@@ -36,12 +36,18 @@ const quests = {
   dailyNumbersLevelsCleared: "{completed} / {total} niveaux validés",
   dailyNumbersGroupDesc:
     "Choisis une répartition de nombres, joue chaque plateau sur la même page et récupère chaque récompense séparément.",
+  wordleGroupDesc:
+    "Résous le Wordle français et le Wordle anglais sur la même page et récupère chaque récompense séparément.",
   steps_10k: "Marcher 10 000 pas",
   steps_10k_desc: "Marche 10 000 pas aujourd'hui pour gagner des pièces",
   daily_login: "Connexion quotidienne",
   daily_login_desc: "Connecte-toi au jeu chaque jour",
   wordle_daily: "Terminer un Wordle",
   wordle_daily_desc: "Résous le Wordle du jour",
+  wordle_daily_fr: "Terminer le Wordle français",
+  wordle_daily_fr_desc: "Résous le Wordle français du jour",
+  wordle_daily_en: "Terminer le Wordle anglais",
+  wordle_daily_en_desc: "Résous le Wordle anglais du jour",
   speed_calculus_daily: "Sprint de calcul mental",
   speed_calculus_daily_desc:
     "Résous un maximum d'additions et de soustractions",
@@ -61,6 +67,7 @@ const quests = {
     languageLabel: "Langue du Wordle",
     frenchWords: "Mots français",
     englishWords: "Mots anglais",
+    failedLabel: "Plus d'essais",
     attempts: "Essais restants",
     attemptsUsed: "Résolu en",
     submit: "Valider",
