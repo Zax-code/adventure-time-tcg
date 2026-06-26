@@ -68,3 +68,27 @@ export function buildWordleShareResult(
     wordLength: input.wordLength,
   };
 }
+
+/**
+ * Build a human-readable, filesystem-safe file name for the shared result image,
+ * e.g. "adventure-time-wordle-2026-06-26-solved-3of6.png".
+ */
+export function buildWordleShareFileName(result: WordleQuestShareResult): string {
+  const parts = ["adventure-time-wordle"];
+
+  if (result.date) {
+    parts.push(result.date);
+  }
+
+  parts.push(result.solved ? "solved" : "failed");
+  parts.push(`${result.attemptCount}of${result.maxAttempts}`);
+
+  const slug = parts
+    .join("-")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+
+  return `${slug || "adventure-time-wordle"}.png`;
+}

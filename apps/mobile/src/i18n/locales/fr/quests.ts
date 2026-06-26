@@ -71,8 +71,6 @@ const quests = {
     solvedQuest: "Énigme résolue. Quête terminée !",
     failed: "Tu n'as plus d'essais aujourd'hui. Réessaie demain.",
     revealedWord: "Le mot était : {word}",
-    hideLetters: "Masquer les lettres pour screenshot",
-    showLetters: "Réafficher les lettres",
     showDefinition: "Voir la définition",
     definitionTitle: "Définition du mot du jour",
     definitionLoading: "Chargement de la définition...",

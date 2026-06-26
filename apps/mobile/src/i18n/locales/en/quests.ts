@@ -71,8 +71,6 @@ const quests = {
     solvedQuest: "Puzzle solved. Quest completed!",
     failed: "No attempts left today. Try again tomorrow.",
     revealedWord: "The word was: {word}",
-    hideLetters: "Hide letters for a screenshot",
-    showLetters: "Show letters again",
     showDefinition: "Show definition",
     definitionTitle: "Definition of today's word",
     definitionLoading: "Loading the definition...",
