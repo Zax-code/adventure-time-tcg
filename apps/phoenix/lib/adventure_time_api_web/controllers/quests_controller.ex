@@ -70,9 +70,17 @@ defmodule AdventureTimeApiWeb.QuestsController do
   # POST /quests/daily-numbers/submit
   def submit_daily_numbers(conn, %{"mode" => mode, "dateKey" => date_key, "steps" => steps}) do
     expected_quest_version = Map.get(conn.body_params, "questVersion")
+    elapsed_ms = Map.get(conn.body_params, "elapsedMs", 0)
 
     timed_action(conn, "submit_daily_numbers", fn conn, user_id ->
-      case Quests.submit_daily_numbers(user_id, mode, date_key, steps, expected_quest_version) do
+      case Quests.submit_daily_numbers(
+             user_id,
+             mode,
+             date_key,
+             steps,
+             expected_quest_version,
+             elapsed_ms
+           ) do
         {:ok, payload} ->
           json(conn, payload)
 

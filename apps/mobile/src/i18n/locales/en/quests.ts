@@ -32,7 +32,10 @@ const quests = {
   wordleSolvedIn: "Solved in {used}/{total} attempts!",
   dailyNumbersQuestCardMeta:
     "Closest: {value} ({distance} away), {score}% unlocked.",
+  dailyNumbersQuestCardMetaTimed:
+    "Closest: {value} ({distance} away), {score}% unlocked in {time}.",
   dailyNumbersQuestCardExact: "Exact hit, {score}% unlocked.",
+  dailyNumbersQuestCardExactTimed: "Exact hit, {score}% unlocked in {time}.",
   dailyNumbersLevelsCleared: "{completed} / {total} levels cleared",
   dailyNumbersGroupDesc:
     "Pick a number mix, play every board from one page, and claim each reward separately.",
@@ -210,6 +213,7 @@ const quests = {
     reward: "Reward",
     bestResult: "Best result",
     bestDistance: "Best distance",
+    solveTime: "Time",
     howToPlayTitle: "How it works",
     howToPlayStepOne: "Pick two available numbers",
     howToPlayStepTwo: "Choose +, -, ×, or ÷",

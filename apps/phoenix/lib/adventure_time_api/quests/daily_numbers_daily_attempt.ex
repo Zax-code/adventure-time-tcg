@@ -15,6 +15,7 @@ defmodule AdventureTimeApi.Quests.DailyNumbersDailyAttempt do
     field(:score, :integer)
     field(:exact, :boolean, default: false)
     field(:completed, :boolean, default: false)
+    field(:elapsed_ms, :integer, default: 0)
 
     timestamps(type: :utc_datetime, updated_at: false)
   end
@@ -30,7 +31,8 @@ defmodule AdventureTimeApi.Quests.DailyNumbersDailyAttempt do
       :distance,
       :score,
       :exact,
-      :completed
+      :completed,
+      :elapsed_ms
     ])
     |> validate_required([
       :user_id,
@@ -41,12 +43,14 @@ defmodule AdventureTimeApi.Quests.DailyNumbersDailyAttempt do
       :distance,
       :score,
       :exact,
-      :completed
+      :completed,
+      :elapsed_ms
     ])
     |> validate_inclusion(:mode, ["1-5", "2-4", "3-3"])
     |> validate_number(:final_value, greater_than: 0)
     |> validate_number(:distance, greater_than_or_equal_to: 0)
     |> validate_number(:score, greater_than_or_equal_to: 0)
+    |> validate_number(:elapsed_ms, greater_than_or_equal_to: 0)
     |> unique_constraint([:user_id, :date, :mode],
       name: :daily_numbers_daily_attempts_user_id_date_mode_key
     )

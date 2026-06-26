@@ -2,7 +2,8 @@ import { useMutation, useQueries, useQueryClient } from "@tanstack/react-query";
 import { File, Paths } from "expo-file-system";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import * as SecureStore from "expo-secure-store";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import * as Sharing from "expo-sharing";
 import {
   useCallback,
@@ -13,6 +14,7 @@ import {
   useState,
 } from "react";
 import {
+  AppState,
   ActivityIndicator,
   Alert,
   Pressable,
@@ -46,6 +48,7 @@ import {
 } from "../../src/features/quests/daily-numbers/share-result";
 import {
   DAILY_NUMBERS_MODES,
+  formatDailyNumbersElapsedTime,
   getModeAccent,
   getModeLabelKey,
   getModeStatusLabel,
@@ -123,6 +126,7 @@ type FinishStateProps = {
   finishSummary: string | null;
   finishTone: FinishTone;
   finishValue: number | null;
+  formattedElapsedTime: string;
   interaction: BoardInteractionState;
   isSharing: boolean;
   onClaimReward: () => void;
@@ -157,6 +161,29 @@ type LivePlayProps = {
 
 const OPERATORS: Operator[] = ["+", "-", "*", "/"];
 const EXACT_HIT_PERCENT = 100;
+const CHRONOMETER_STORAGE_PREFIX = "dailyNumbersChronometer";
+const CHRONOMETER_SAVE_INTERVAL_MS = 5000;
+const SECURE_STORE_KEY_UNSAFE_CHARS = /[^A-Za-z0-9._-]/g;
+
+function buildChronometerStorageKey(state: DailyNumbersStateResponse) {
+  return [
+    CHRONOMETER_STORAGE_PREFIX,
+    state.date,
+    state.mode,
+    state.questVersion ?? "no-version",
+  ]
+    .map((part) => part.replace(SECURE_STORE_KEY_UNSAFE_CHARS, "_"))
+    .join(".");
+}
+
+function parseStoredElapsedMs(value: string | null) {
+  if (!value) {
+    return 0;
+  }
+
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
 
 function normalizeDailyNumbersMode(mode: string | undefined): DailyNumbersMode {
   if (mode === "1-5" || mode === "2-4" || mode === "3-3") {
@@ -521,6 +548,124 @@ function boardReducer(
   };
 }
 
+function useDailyNumbersChronometer({
+  active,
+  state,
+}: {
+  active: boolean;
+  state: DailyNumbersStateResponse;
+}) {
+  const storageKey = buildChronometerStorageKey(state);
+  const submittedElapsedMs = state.submission?.elapsedMs ?? 0;
+  const [, forceTick] = useReducer((value: number) => value + 1, 0);
+  const elapsedMsRef = useRef(submittedElapsedMs);
+  const startedAtRef = useRef<number | null>(null);
+  const lastSavedAtRef = useRef(0);
+
+  const getElapsedMs = useCallback(() => {
+    const startedAt = startedAtRef.current;
+    if (startedAt === null) {
+      return elapsedMsRef.current;
+    }
+
+    return elapsedMsRef.current + Date.now() - startedAt;
+  }, []);
+
+  const saveElapsedMs = useCallback(
+    (nextElapsedMs: number) => {
+      lastSavedAtRef.current = Date.now();
+      void SecureStore.setItemAsync(
+        storageKey,
+        String(Math.max(0, nextElapsedMs)),
+      );
+    },
+    [storageKey],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    startedAtRef.current = null;
+    lastSavedAtRef.current = 0;
+
+    if (state.submitted) {
+      elapsedMsRef.current = submittedElapsedMs;
+      forceTick();
+      void SecureStore.deleteItemAsync(storageKey);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    elapsedMsRef.current = 0;
+    forceTick();
+
+    void SecureStore.getItemAsync(storageKey).then((storedValue) => {
+      if (cancelled) {
+        return;
+      }
+
+      const storedElapsedMs = parseStoredElapsedMs(storedValue);
+      elapsedMsRef.current = storedElapsedMs;
+      forceTick();
+    });
+
+    return () => {
+      cancelled = true;
+      const finalElapsedMs = getElapsedMs();
+      elapsedMsRef.current = finalElapsedMs;
+      startedAtRef.current = null;
+      saveElapsedMs(finalElapsedMs);
+    };
+  }, [
+    getElapsedMs,
+    saveElapsedMs,
+    state.submitted,
+    storageKey,
+    submittedElapsedMs,
+  ]);
+
+  useEffect(() => {
+    if (state.submitted || !active) {
+      return;
+    }
+
+    if (startedAtRef.current === null) {
+      startedAtRef.current = Date.now();
+    }
+    forceTick();
+
+    const interval = setInterval(() => {
+      const nextElapsedMs = getElapsedMs();
+      forceTick();
+
+      if (Date.now() - lastSavedAtRef.current >= CHRONOMETER_SAVE_INTERVAL_MS) {
+        saveElapsedMs(nextElapsedMs);
+      }
+    }, 1000);
+
+    return () => {
+      clearInterval(interval);
+
+      const startedAt = startedAtRef.current;
+      if (startedAt !== null) {
+        const nextElapsedMs = elapsedMsRef.current + Date.now() - startedAt;
+        elapsedMsRef.current = nextElapsedMs;
+        startedAtRef.current = null;
+        saveElapsedMs(nextElapsedMs);
+      }
+    };
+  }, [active, getElapsedMs, saveElapsedMs, state.submitted]);
+
+  const elapsedMs = state.submitted ? submittedElapsedMs : getElapsedMs();
+
+  return {
+    elapsedMs,
+    formattedElapsedTime: formatDailyNumbersElapsedTime(elapsedMs),
+    getElapsedMs,
+  };
+}
+
 function MessageBanner({ message }: { message: MessageState }) {
   if (!message) {
     return null;
@@ -646,6 +791,7 @@ function MetricsSection({
   compact,
   currentBestTile,
   currentDistance,
+  formattedElapsedTime,
   state,
   t,
   tc,
@@ -653,6 +799,7 @@ function MetricsSection({
   compact: boolean;
   currentBestTile: BoardTile | null;
   currentDistance: number | undefined;
+  formattedElapsedTime: string;
   state: DailyNumbersStateResponse;
   t: TranslateFn;
   tc: ThemeColors;
@@ -686,6 +833,11 @@ function MetricsSection({
           compact={compact}
           label={t("quests.dailyNumbers.bestDistance")}
           value={currentDistance ?? state.bestDistance}
+        />
+        <StatCard
+          compact={compact}
+          label={t("quests.dailyNumbers.solveTime")}
+          value={formattedElapsedTime}
         />
       </View>
     </View>
@@ -772,6 +924,7 @@ function FinishStatePanel({
   finishSummary,
   finishTone,
   finishValue,
+  formattedElapsedTime,
   interaction,
   isSharing,
   onClaimReward,
@@ -864,6 +1017,14 @@ function FinishStatePanel({
           </Text>
           <Text className="font-nunito-extrabold text-2xl text-secondaryDark">
             {state.reward}
+          </Text>
+        </View>
+        <View className="min-w-[96px] flex-1 rounded-2xl border border-primaryBorder bg-surface px-3 py-3">
+          <Text className="font-nunito-semibold text-[10px] uppercase tracking-[1px] text-fgMuted">
+            {t("quests.dailyNumbers.solveTime")}
+          </Text>
+          <Text className="font-nunito-extrabold text-2xl text-fg">
+            {formattedElapsedTime}
           </Text>
         </View>
       </View>
@@ -1213,8 +1374,7 @@ function LivePlayPanel({
                     selectedRightTile.value,
                   ).ok
                 : false;
-            const disabled =
-              interactionLocked || (wouldBeInvalid && !selected);
+            const disabled = interactionLocked || (wouldBeInvalid && !selected);
 
             return (
               <Pressable
@@ -1312,6 +1472,7 @@ function LivePlayPanel({
 function useDailyNumbersBoardController({
   activeMode,
   bannerMessage,
+  chronometerActive,
   claimPending,
   compact,
   modeAccent,
@@ -1324,6 +1485,7 @@ function useDailyNumbersBoardController({
 }: {
   activeMode: DailyNumbersMode;
   bannerMessage: MessageState;
+  chronometerActive: boolean;
   claimPending: boolean;
   compact: boolean;
   modeAccent: ReturnType<typeof getModeAccent>;
@@ -1339,6 +1501,10 @@ function useDailyNumbersBoardController({
     state,
     createBoardInteractionState,
   );
+  const chronometer = useDailyNumbersChronometer({
+    active: chronometerActive && !state.submitted,
+    state,
+  });
 
   const board = useMemo(
     () => buildBoard(state.numbers, interaction.steps),
@@ -1423,6 +1589,7 @@ function useDailyNumbersBoardController({
           mode: activeMode,
           dateKey: state.date,
           questVersion: state.questVersion ?? undefined,
+          elapsedMs: Math.round(chronometer.getElapsedMs()),
           steps: toStepInputs(stepsToSubmit),
         });
 
@@ -1451,6 +1618,7 @@ function useDailyNumbersBoardController({
     },
     [
       activeMode,
+      chronometer.getElapsedMs,
       interaction.submitting,
       onResolveResetError,
       onSubmissionApplied,
@@ -1804,6 +1972,10 @@ function useDailyNumbersBoardController({
     finishSummary,
     finishTone,
     finishValue,
+    formattedElapsedTime:
+      state.submission?.elapsedMs != null
+        ? formatDailyNumbersElapsedTime(state.submission.elapsedMs)
+        : chronometer.formattedElapsedTime,
     interaction,
     interactionLocked,
     modeAccent,
@@ -1831,6 +2003,7 @@ function useDailyNumbersBoardController({
 function DailyNumbersBoard({
   activeMode,
   bannerMessage,
+  chronometerActive,
   claimPending,
   compact,
   modeAccent,
@@ -1843,6 +2016,7 @@ function DailyNumbersBoard({
 }: {
   activeMode: DailyNumbersMode;
   bannerMessage: MessageState;
+  chronometerActive: boolean;
   claimPending: boolean;
   compact: boolean;
   modeAccent: ReturnType<typeof getModeAccent>;
@@ -1856,6 +2030,7 @@ function DailyNumbersBoard({
   const controller = useDailyNumbersBoardController({
     activeMode,
     bannerMessage,
+    chronometerActive,
     claimPending,
     compact,
     modeAccent,
@@ -1884,6 +2059,7 @@ function DailyNumbersBoard({
         finalValue: controller.finishValue,
         distance: controller.finishDistance,
         score: controller.finishScore,
+        elapsedTime: controller.formattedElapsedTime,
         exact: controller.exactHitState,
         completed: controller.finishCompletedState,
       }),
@@ -1895,6 +2071,7 @@ function DailyNumbersBoard({
       controller.finishValue,
       controller.finishDistance,
       controller.finishScore,
+      controller.formattedElapsedTime,
       controller.exactHitState,
       controller.finishCompletedState,
     ],
@@ -1929,7 +2106,7 @@ function DailyNumbersBoard({
       resultValueLabel: controller.t(
         "quests.dailyNumbers.shareResultValueLabel",
       ),
-      distanceLabel: controller.t("quests.dailyNumbers.distanceLabel"),
+      timeLabel: controller.t("quests.dailyNumbers.solveTime"),
       footer: controller.t("quests.dailyNumbers.shareFooter"),
       date: formatNumbersShareDate(controller.state.date, locale),
     };
@@ -2016,6 +2193,7 @@ function DailyNumbersBoard({
             compact={controller.compact}
             currentBestTile={controller.currentBestTile}
             currentDistance={controller.currentDistance}
+            formattedElapsedTime={controller.formattedElapsedTime}
             state={controller.state}
             t={controller.t}
             tc={controller.tc}
@@ -2034,6 +2212,7 @@ function DailyNumbersBoard({
             finishSummary={controller.finishSummary}
             finishTone={controller.finishTone}
             finishValue={controller.finishValue}
+            formattedElapsedTime={controller.formattedElapsedTime}
             interaction={controller.interaction}
             isSharing={isSharing}
             onClaimReward={controller.onClaimReward}
@@ -2115,6 +2294,10 @@ export default function DailyNumbersPlayScreen() {
   const compact = height < 820 || width < 390;
   const initialMode = normalizeDailyNumbersMode(params.mode);
   const [activeMode, setActiveMode] = useState<DailyNumbersMode>(initialMode);
+  const [screenFocused, setScreenFocused] = useState(false);
+  const [appActive, setAppActive] = useState(
+    AppState.currentState === "active",
+  );
   const [uiMessage, setUiMessage] = useState<MessageState>(null);
 
   const modeQueries = useQueries({
@@ -2164,6 +2347,26 @@ export default function DailyNumbersPlayScreen() {
   useEffect(() => {
     setActiveMode(normalizeDailyNumbersMode(params.mode));
   }, [params.mode]);
+
+  useFocusEffect(
+    useCallback(() => {
+      setScreenFocused(true);
+
+      return () => {
+        setScreenFocused(false);
+      };
+    }, []),
+  );
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (nextState) => {
+      setAppActive(nextState === "active");
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
 
   useEffect(() => {
     if (!resetNoticeMessage || !lastQuestResetAt || !lastQuestResetPayload) {
@@ -2260,6 +2463,7 @@ export default function DailyNumbersPlayScreen() {
 
   const boardIdentity = state ? buildBoardIdentity(state) : null;
   const bannerMessage = uiMessage ?? resetNoticeMessage;
+  const chronometerActive = screenFocused && appActive;
 
   if ((activeQuery.isLoading || activeQuery.isPending) && !state) {
     return (
@@ -2327,6 +2531,7 @@ export default function DailyNumbersPlayScreen() {
           key={boardIdentity}
           activeMode={activeMode}
           bannerMessage={bannerMessage}
+          chronometerActive={chronometerActive}
           claimPending={claimQuestMutation.isPending}
           compact={compact}
           modeAccent={modeAccent}

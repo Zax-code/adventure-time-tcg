@@ -4,7 +4,7 @@
 // steps or the official solution, so it is structurally impossible for the
 // route to the answer to leak into a shared image. The daily target and
 // starting board are identical for every player on a given mode/day, so only
-// the player's outcome (final value, distance, score) is surfaced.
+// the player's outcome (final value, distance, score, time) is surfaced.
 
 import type { DailyNumbersMode } from "@adventure-time/api-client";
 
@@ -17,6 +17,7 @@ export type DailyNumbersShareResult = {
   finalValue: number | null;
   distance: number | null;
   score: number | null;
+  elapsedTime: string;
   exact: boolean;
   completed: boolean;
 };
@@ -30,6 +31,7 @@ export type BuildDailyNumbersShareResultInput = {
   finalValue: number | null;
   distance: number | null;
   score: number | null;
+  elapsedTime: string;
   exact: boolean;
   completed: boolean;
 };
@@ -51,6 +53,7 @@ export function buildDailyNumbersShareResult(
     finalValue: input.finalValue,
     distance: input.distance,
     score: input.score,
+    elapsedTime: input.elapsedTime,
     exact: input.exact,
     completed: input.completed,
   };

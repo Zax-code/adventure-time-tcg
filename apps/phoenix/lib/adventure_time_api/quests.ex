@@ -377,7 +377,14 @@ defmodule AdventureTimeApi.Quests do
     end
   end
 
-  def submit_daily_numbers(user_id, mode, expected_date_key, steps, expected_quest_version \\ nil) do
+  def submit_daily_numbers(
+        user_id,
+        mode,
+        expected_date_key,
+        steps,
+        expected_quest_version \\ nil,
+        elapsed_ms \\ 0
+      ) do
     with {:ok, normalized_mode} <- normalize_daily_numbers_mode(mode),
          date = current_reset_date_for_user(user_id),
          :ok <- validate_daily_numbers_date(date, expected_date_key) do
@@ -417,7 +424,8 @@ defmodule AdventureTimeApi.Quests do
               distance: validated_submission.distance,
               score: validated_submission.score,
               exact: validated_submission.exact,
-              completed: validated_submission.completed
+              completed: validated_submission.completed,
+              elapsed_ms: normalize_daily_numbers_elapsed_ms(elapsed_ms)
             }
 
             quest_updates = [
@@ -1529,6 +1537,7 @@ defmodule AdventureTimeApi.Quests do
       exact: attempt.exact,
       score: attempt.score,
       completed: attempt.completed,
+      elapsedMs: attempt.elapsed_ms,
       steps: attempt.submitted_steps,
       officialSolutionUnlocked: true,
       officialSolutionSteps: puzzle.solution
@@ -1790,9 +1799,23 @@ defmodule AdventureTimeApi.Quests do
       progress: 1,
       score: attempt.score,
       distance: attempt.distance,
-      finalValue: attempt.final_value
+      finalValue: attempt.final_value,
+      elapsedMs: attempt.elapsed_ms
     })
   end
+
+  defp normalize_daily_numbers_elapsed_ms(elapsed_ms)
+       when is_integer(elapsed_ms) and elapsed_ms >= 0,
+       do: elapsed_ms
+
+  defp normalize_daily_numbers_elapsed_ms(elapsed_ms) when is_binary(elapsed_ms) do
+    case Integer.parse(elapsed_ms) do
+      {value, ""} when value >= 0 -> value
+      _ -> 0
+    end
+  end
+
+  defp normalize_daily_numbers_elapsed_ms(_elapsed_ms), do: 0
 
   defp normalize_wordle_locale(nil), do: {:ok, @default_wordle_locale}
 

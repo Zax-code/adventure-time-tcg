@@ -35,6 +35,7 @@ import { PageLoadingState } from "../../src/components/loading-state";
 import { ToastBanner } from "../../src/components/toast-banner";
 import {
   DAILY_NUMBERS_MODES,
+  formatDailyNumbersElapsedTime,
   getModeLabelKey,
 } from "../../src/features/quests/daily-numbers/shared";
 import { useTranslation } from "../../src/i18n";
@@ -307,6 +308,48 @@ function getDailyNumbersModeStatusLabel(
   }
 
   return t("quests.dailyNumbers.freshLabel");
+}
+
+function getDailyNumbersResultLabel(
+  quest: Quest,
+  t: (key: string, params?: Record<string, string | number>) => string,
+) {
+  if (
+    quest.score == null ||
+    quest.distance == null ||
+    quest.finalValue == null
+  ) {
+    return null;
+  }
+
+  const elapsedTime =
+    quest.elapsedMs != null && quest.elapsedMs > 0
+      ? formatDailyNumbersElapsedTime(quest.elapsedMs)
+      : null;
+
+  if (quest.distance === 0) {
+    return elapsedTime
+      ? t("quests.dailyNumbersQuestCardExactTimed", {
+          score: quest.score,
+          time: elapsedTime,
+        })
+      : t("quests.dailyNumbersQuestCardExact", {
+          score: quest.score,
+        });
+  }
+
+  return elapsedTime
+    ? t("quests.dailyNumbersQuestCardMetaTimed", {
+        value: quest.finalValue,
+        distance: quest.distance,
+        score: quest.score,
+        time: elapsedTime,
+      })
+    : t("quests.dailyNumbersQuestCardMeta", {
+        value: quest.finalValue,
+        distance: quest.distance,
+        score: quest.score,
+      });
 }
 
 function getWordleLanguageStatusLabel(
@@ -1432,9 +1475,7 @@ export default function QuestsScreen() {
                                   {getQuestDesc(quest.description, t)}
                                 </Text>
 
-                                {quest.score != null &&
-                                quest.distance != null &&
-                                quest.finalValue != null ? (
+                                {getDailyNumbersResultLabel(quest, t) ? (
                                   <Text
                                     className="font-nunito-bold text-xs"
                                     style={{
@@ -1446,15 +1487,7 @@ export default function QuestsScreen() {
                                             : getMetaColor(modeStatus, tc),
                                     }}
                                   >
-                                    {quest.distance === 0
-                                      ? t("quests.dailyNumbersQuestCardExact", {
-                                          score: quest.score,
-                                        })
-                                      : t("quests.dailyNumbersQuestCardMeta", {
-                                          value: quest.finalValue,
-                                          distance: quest.distance,
-                                          score: quest.score,
-                                        })}
+                                    {getDailyNumbersResultLabel(quest, t)}
                                   </Text>
                                 ) : null}
                               </View>
@@ -1797,9 +1830,7 @@ export default function QuestsScreen() {
                       </Text>
                     ) : null}
                     {isDailyNumbersQuest(quest.type) &&
-                    quest.score != null &&
-                    quest.distance != null &&
-                    quest.finalValue != null ? (
+                    getDailyNumbersResultLabel(quest, t) ? (
                       <Text
                         className="font-nunito-bold text-xs text-center mt-1"
                         style={{
@@ -1811,15 +1842,7 @@ export default function QuestsScreen() {
                                 : getMetaColor(status, tc),
                         }}
                       >
-                        {quest.distance === 0
-                          ? t("quests.dailyNumbersQuestCardExact", {
-                              score: quest.score,
-                            })
-                          : t("quests.dailyNumbersQuestCardMeta", {
-                              value: quest.finalValue,
-                              distance: quest.distance,
-                              score: quest.score,
-                            })}
+                        {getDailyNumbersResultLabel(quest, t)}
                       </Text>
                     ) : null}
                     {shouldShowDiscreteSyncButton || stepSync.lastError ? (

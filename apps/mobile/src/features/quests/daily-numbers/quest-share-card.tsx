@@ -12,7 +12,7 @@ export type DailyNumbersQuestShareCardStrings = {
   resultLine: string;
   targetLabel: string;
   resultValueLabel: string;
-  distanceLabel: string;
+  timeLabel: string;
   footer: string;
   date?: string;
 };
@@ -53,7 +53,6 @@ export function DailyNumbersQuestShareCard({
           valueBorder: colors.primaryTint,
           valueText: colors.fg,
         };
-
   return (
     <View
       style={{
@@ -193,7 +192,7 @@ export function DailyNumbersQuestShareCard({
         </View>
       </View>
 
-      {/* Distance stat */}
+      {/* Solve time */}
       <View
         style={{
           width: "100%",
@@ -210,13 +209,13 @@ export function DailyNumbersQuestShareCard({
           className="text-[10px] font-nunito-bold uppercase"
           style={{ color: colors.fgMuted, letterSpacing: 1 }}
         >
-          {strings.distanceLabel}
+          {strings.timeLabel}
         </Text>
         <Text
           className="text-[22px] font-nunito-extrabold"
           style={{ color: colors.fg }}
         >
-          {result.distance ?? "—"}
+          {result.elapsedTime}
         </Text>
       </View>
 
