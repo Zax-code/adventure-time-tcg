@@ -299,6 +299,9 @@ const quests = {
     shareScore: "{score} % débloqués • à {distance} d'écart",
     shareMissed: "à {distance} d'écart",
     shareResultValueLabel: "Ton résultat",
+    shareMode1_5: "1 grand 5 petits",
+    shareMode2_4: "2 grands 4 petits",
+    shareMode3_3: "3 grands 3 petits",
   },
 };
 

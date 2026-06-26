@@ -1891,16 +1891,22 @@ function DailyNumbersBoard({
             distance: controller.finishDistance ?? 0,
           });
 
+    const modeLabelKey =
+      controller.state.mode === "1-5"
+        ? "quests.dailyNumbers.shareMode1_5"
+        : controller.state.mode === "2-4"
+          ? "quests.dailyNumbers.shareMode2_4"
+          : "quests.dailyNumbers.shareMode3_3";
+
     return {
       brand: controller.t("quests.dailyNumbers.shareBrand"),
-      modeLabel: controller.t(getModeLabelKey(controller.state.mode)),
+      modeLabel: controller.t(modeLabelKey),
       resultLine,
       targetLabel: controller.t("quests.dailyNumbers.target"),
       resultValueLabel: controller.t(
         "quests.dailyNumbers.shareResultValueLabel",
       ),
       distanceLabel: controller.t("quests.dailyNumbers.distanceLabel"),
-      scoreLabel: controller.t("quests.dailyNumbers.scoreLabel"),
       footer: controller.t("quests.dailyNumbers.shareFooter"),
       date: formatNumbersShareDate(controller.state.date, locale),
     };

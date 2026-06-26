@@ -13,7 +13,6 @@ export type DailyNumbersQuestShareCardStrings = {
   targetLabel: string;
   resultValueLabel: string;
   distanceLabel: string;
-  scoreLabel: string;
   footer: string;
   date?: string;
 };
@@ -31,9 +30,29 @@ export function DailyNumbersQuestShareCard({
   colors,
   strings,
 }: DailyNumbersQuestShareCardProps) {
-  const success = result.exact || result.completed;
-  const resultPillBg = success ? colors.successTint : colors.dangerTint;
-  const resultPillText = success ? colors.successText : colors.dangerText;
+  // Only an exact hit earns the celebratory success tone. A close (but not
+  // exact) reward-unlocked result uses a distinct "info" tone so it never reads
+  // as a perfect solve, and a missed result uses the danger tone.
+  const tone = result.exact
+    ? {
+        pillBg: colors.successTint,
+        pillText: colors.successText,
+        valueBorder: colors.successBorder,
+        valueText: colors.successText,
+      }
+    : result.completed
+      ? {
+          pillBg: colors.infoTint,
+          pillText: colors.infoText,
+          valueBorder: colors.infoBorder,
+          valueText: colors.infoText,
+        }
+      : {
+          pillBg: colors.dangerTint,
+          pillText: colors.dangerText,
+          valueBorder: colors.primaryTint,
+          valueText: colors.fg,
+        };
 
   return (
     <View
@@ -106,7 +125,7 @@ export function DailyNumbersQuestShareCard({
       {/* Result line */}
       <View
         style={{
-          backgroundColor: resultPillBg,
+          backgroundColor: tone.pillBg,
           borderRadius: 999,
           paddingHorizontal: 18,
           paddingVertical: 8,
@@ -114,7 +133,7 @@ export function DailyNumbersQuestShareCard({
       >
         <Text
           className="text-[15px] font-nunito-extrabold text-center"
-          style={{ color: resultPillText }}
+          style={{ color: tone.pillText }}
         >
           {strings.resultLine}
         </Text>
@@ -153,7 +172,7 @@ export function DailyNumbersQuestShareCard({
             backgroundColor: colors.surface,
             borderRadius: 18,
             borderWidth: 2,
-            borderColor: success ? colors.successBorder : colors.primaryTint,
+            borderColor: tone.valueBorder,
             paddingVertical: 14,
             alignItems: "center",
             gap: 4,
@@ -167,65 +186,38 @@ export function DailyNumbersQuestShareCard({
           </Text>
           <Text
             className="text-[28px] font-nunito-extrabold"
-            style={{ color: success ? colors.successText : colors.fg }}
+            style={{ color: tone.valueText }}
           >
             {result.finalValue ?? "—"}
           </Text>
         </View>
       </View>
 
-      {/* Distance + score stats */}
-      <View style={{ flexDirection: "row", gap: 12, width: "100%" }}>
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: colors.surface,
-            borderRadius: 18,
-            borderWidth: 2,
-            borderColor: colors.primaryTint,
-            paddingVertical: 12,
-            alignItems: "center",
-            gap: 2,
-          }}
+      {/* Distance stat */}
+      <View
+        style={{
+          width: "100%",
+          backgroundColor: colors.surface,
+          borderRadius: 18,
+          borderWidth: 2,
+          borderColor: colors.primaryTint,
+          paddingVertical: 12,
+          alignItems: "center",
+          gap: 2,
+        }}
+      >
+        <Text
+          className="text-[10px] font-nunito-bold uppercase"
+          style={{ color: colors.fgMuted, letterSpacing: 1 }}
         >
-          <Text
-            className="text-[10px] font-nunito-bold uppercase"
-            style={{ color: colors.fgMuted, letterSpacing: 1 }}
-          >
-            {strings.distanceLabel}
-          </Text>
-          <Text
-            className="text-[22px] font-nunito-extrabold"
-            style={{ color: colors.fg }}
-          >
-            {result.distance ?? "—"}
-          </Text>
-        </View>
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: colors.surface,
-            borderRadius: 18,
-            borderWidth: 2,
-            borderColor: colors.primaryTint,
-            paddingVertical: 12,
-            alignItems: "center",
-            gap: 2,
-          }}
+          {strings.distanceLabel}
+        </Text>
+        <Text
+          className="text-[22px] font-nunito-extrabold"
+          style={{ color: colors.fg }}
         >
-          <Text
-            className="text-[10px] font-nunito-bold uppercase"
-            style={{ color: colors.fgMuted, letterSpacing: 1 }}
-          >
-            {strings.scoreLabel}
-          </Text>
-          <Text
-            className="text-[22px] font-nunito-extrabold"
-            style={{ color: colors.fg }}
-          >
-            {result.score != null ? `${result.score}%` : "—"}
-          </Text>
-        </View>
+          {result.distance ?? "—"}
+        </Text>
       </View>
 
       {/* Footer */}

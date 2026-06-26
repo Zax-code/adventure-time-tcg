@@ -289,6 +289,9 @@ const quests = {
     shareScore: "{score}% unlocked • {distance} away",
     shareMissed: "{distance} away",
     shareResultValueLabel: "Your result",
+    shareMode1_5: "1 big 5 smalls",
+    shareMode2_4: "2 big 4 smalls",
+    shareMode3_3: "3 big 3 smalls",
   },
 };
 
