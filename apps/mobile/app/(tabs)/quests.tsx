@@ -163,7 +163,7 @@ function getProgressColor(
   status: QuestStatus,
   tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS],
 ) {
-  if (status === "claimed") return tc.muted;
+  if (status === "claimed") return tc.successDark;
   if (status === "completed") return tc.successDark;
   if (status === "failed") return tc.dangerDark;
   return tc.accentStrong;
@@ -173,9 +173,19 @@ function getMetaColor(
   status: QuestStatus,
   tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS],
 ) {
-  if (status === "claimed") return tc.muted;
+  if (status === "claimed") return tc.successDark;
   if (status === "completed") return tc.successDark;
   return tc.primaryStrong;
+}
+
+function getQuestStatusLabel(
+  status: QuestStatus,
+  t: (key: string, params?: Record<string, string | number>) => string,
+) {
+  if (status === "completed") return t("quests.completedBadge");
+  if (status === "claimed") return t("quests.claimedBadge");
+  if (status === "failed") return t("quests.wordle.failedLabel");
+  return t("quests.progress");
 }
 
 const WORDLE_LANGUAGES: WordleLocale[] = ["fr", "en"];
@@ -649,11 +659,11 @@ export default function QuestsScreen() {
       gradEnd: tc.successDark,
     },
     claimed: {
-      border: tc.muted,
-      iconBg: tc.surfaceMuted,
-      iconColor: tc.muted,
-      gradStart: tc.muted,
-      gradEnd: tc.muted,
+      border: tc.successBorder,
+      iconBg: tc.successTint,
+      iconColor: tc.successDark,
+      gradStart: tc.success,
+      gradEnd: tc.successDark,
     },
     failed: {
       border: tc.dangerBorder,
@@ -935,7 +945,8 @@ export default function QuestsScreen() {
           );
           const distance = submission?.distance ?? quest?.distance ?? null;
           const score = submission?.score ?? quest?.score ?? null;
-          const finalValue = submission?.finalValue ?? quest?.finalValue ?? null;
+          const finalValue =
+            submission?.finalValue ?? quest?.finalValue ?? null;
           const elapsedMs = submission?.elapsedMs ?? quest?.elapsedMs ?? 0;
           const exact = distance === 0 && finalValue != null;
           dateKey = dateKey ?? state.date;
@@ -1335,7 +1346,6 @@ export default function QuestsScreen() {
                       backgroundColor: tc.surface,
                       borderWidth: 2,
                       borderColor: colors.border,
-                      opacity: groupStatus === "claimed" ? 0.6 : 1,
                       boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
                       marginBottom:
                         index === questCardItems.length - 1 ? 0 : 12,
@@ -1407,6 +1417,20 @@ export default function QuestsScreen() {
                           <Text className="font-nunito-bold text-base text-fg">
                             {t("quests.wordle.title")}
                           </Text>
+                          {groupStatus === "completed" ||
+                          groupStatus === "claimed" ? (
+                            <View
+                              className="rounded-full px-2 py-1 mt-1 self-start"
+                              style={{ backgroundColor: colors.iconBg }}
+                            >
+                              <Text
+                                className="font-nunito-bold text-[11px]"
+                                style={{ color: colors.iconColor }}
+                              >
+                                {getQuestStatusLabel(groupStatus, t)}
+                              </Text>
+                            </View>
+                          ) : null}
                         </View>
 
                         <View className="flex-row items-center gap-2">
@@ -1514,10 +1538,7 @@ export default function QuestsScreen() {
                               className="rounded-2xl border p-3"
                               style={{
                                 borderColor: languageColors.border,
-                                backgroundColor:
-                                  languageStatus === "claimed"
-                                    ? tc.surfaceMuted
-                                    : tc.primaryBg,
+                                backgroundColor: tc.primaryBg,
                               }}
                             >
                               <View className="flex-row items-start gap-3">
@@ -1690,7 +1711,6 @@ export default function QuestsScreen() {
                       backgroundColor: tc.surface,
                       borderWidth: 2,
                       borderColor: colors.border,
-                      opacity: groupStatus === "claimed" ? 0.6 : 1,
                       shadowColor: "#000",
                       shadowOpacity: 0.1,
                       shadowRadius: 8,
@@ -1773,6 +1793,20 @@ export default function QuestsScreen() {
                           <Text className="font-nunito-bold text-base text-fg">
                             {t("quests.dailyNumbers.title")}
                           </Text>
+                          {groupStatus === "completed" ||
+                          groupStatus === "claimed" ? (
+                            <View
+                              className="rounded-full px-2 py-1 mt-1 self-start"
+                              style={{ backgroundColor: colors.iconBg }}
+                            >
+                              <Text
+                                className="font-nunito-bold text-[11px]"
+                                style={{ color: colors.iconColor }}
+                              >
+                                {getQuestStatusLabel(groupStatus, t)}
+                              </Text>
+                            </View>
+                          ) : null}
                         </View>
 
                         <View className="flex-row items-center gap-2">
@@ -1879,134 +1913,140 @@ export default function QuestsScreen() {
                               className="rounded-2xl border p-3"
                               style={{
                                 borderColor: modeColors.border,
-                                backgroundColor:
-                                  modeStatus === "claimed"
-                                    ? tc.surfaceMuted
-                                    : tc.primaryBg,
+                                backgroundColor: tc.primaryBg,
                               }}
                             >
-                            <View className="flex-row items-start gap-3">
-                              <View className="flex-1 gap-2">
-                                <View className="flex-row items-center gap-2">
-                                  <Text className="font-nunito-bold text-base text-fg">
-                                    {t(
-                                      getDailyNumbersQuestTabModeLabelKey(mode),
-                                    )}
-                                  </Text>
-                                  <View
-                                    className="rounded-full px-2 py-1"
-                                    style={{
-                                      backgroundColor: modeColors.iconBg,
-                                    }}
-                                  >
-                                    <Text
-                                      className="font-nunito-bold text-[11px]"
-                                      style={{ color: modeColors.iconColor }}
+                              <View className="flex-row items-start gap-3">
+                                <View className="flex-1 gap-2">
+                                  <View className="flex-row items-center gap-2">
+                                    <Text className="font-nunito-bold text-base text-fg">
+                                      {t(
+                                        getDailyNumbersQuestTabModeLabelKey(
+                                          mode,
+                                        ),
+                                      )}
+                                    </Text>
+                                    <View
+                                      className="rounded-full px-2 py-1"
+                                      style={{
+                                        backgroundColor: modeColors.iconBg,
+                                      }}
                                     >
-                                      {getDailyNumbersModeStatusLabel(quest, t)}
+                                      <Text
+                                        className="font-nunito-bold text-[11px]"
+                                        style={{ color: modeColors.iconColor }}
+                                      >
+                                        {getDailyNumbersModeStatusLabel(
+                                          quest,
+                                          t,
+                                        )}
+                                      </Text>
+                                    </View>
+                                  </View>
+
+                                  {getDailyNumbersResultLabel(quest, t) ? (
+                                    <Text
+                                      className="font-nunito-bold text-xs"
+                                      style={{
+                                        color:
+                                          modeStatus === "failed"
+                                            ? tc.dangerDark
+                                            : modeStatus === "completed"
+                                              ? tc.successDark
+                                              : getMetaColor(modeStatus, tc),
+                                      }}
+                                    >
+                                      {getDailyNumbersResultLabel(quest, t)}
+                                    </Text>
+                                  ) : null}
+                                </View>
+
+                                <View className="items-end gap-2">
+                                  <View className="flex-row items-center gap-1">
+                                    <CoinIcon size={16} />
+                                    <Text
+                                      className="font-nunito-bold text-sm"
+                                      style={{ color: tc.secondaryDark }}
+                                    >
+                                      {quest.reward}
                                     </Text>
                                   </View>
                                 </View>
-
-                                {getDailyNumbersResultLabel(quest, t) ? (
-                                  <Text
-                                    className="font-nunito-bold text-xs"
-                                    style={{
-                                      color:
-                                        modeStatus === "failed"
-                                          ? tc.dangerDark
-                                          : modeStatus === "completed"
-                                            ? tc.successDark
-                                            : getMetaColor(modeStatus, tc),
-                                    }}
-                                  >
-                                    {getDailyNumbersResultLabel(quest, t)}
-                                  </Text>
-                                ) : null}
                               </View>
 
-                              <View className="items-end gap-2">
-                                <View className="flex-row items-center gap-1">
-                                  <CoinIcon size={16} />
-                                  <Text
-                                    className="font-nunito-bold text-sm"
-                                    style={{ color: tc.secondaryDark }}
-                                  >
-                                    {quest.reward}
-                                  </Text>
-                                </View>
-                              </View>
-                            </View>
-
-                            <View className="mt-3 flex-row gap-3">
-                              <TouchableOpacity
-                                onPress={() =>
-                                  router.push(
-                                    `/quests/daily-numbers-play?mode=${mode}` as never,
-                                  )
-                                }
-                                style={{ flex: 1, borderRadius: 12, overflow: "hidden" }}
-                              >
-                                <View
-                                  style={{
-                                    minHeight: 42,
-                                    paddingHorizontal: 14,
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    backgroundColor: modeColors.iconColor,
-                                  }}
-                                >
-                                  <Text className="font-nunito-bold text-white">
-                                    {actionLabel}
-                                  </Text>
-                                </View>
-                              </TouchableOpacity>
-
-                              {quest.completed && !quest.claimed ? (
+                              <View className="mt-3 flex-row gap-3">
                                 <TouchableOpacity
                                   onPress={() =>
-                                    void claimQuestMutation.mutateAsync(quest)
+                                    router.push(
+                                      `/quests/daily-numbers-play?mode=${mode}` as never,
+                                    )
                                   }
-                                  disabled={isClaimLoading}
                                   style={{
+                                    flex: 1,
                                     borderRadius: 12,
                                     overflow: "hidden",
-                                    minWidth: 108,
                                   }}
                                 >
                                   <View
-                                    className="items-center flex-row justify-center gap-2"
                                     style={{
                                       minHeight: 42,
                                       paddingHorizontal: 14,
                                       alignItems: "center",
                                       justifyContent: "center",
-                                      backgroundColor: tc.successDark,
+                                      backgroundColor: modeColors.iconColor,
                                     }}
                                   >
-                                    {isClaimLoading ? (
-                                      <ActivityIndicator
-                                        color="white"
-                                        size="small"
-                                      />
-                                    ) : (
-                                      <>
-                                        <SparklesIcon
-                                          size={18}
-                                          color="white"
-                                        />
-                                        <Text className="font-nunito-bold text-white">
-                                          {t("quests.claim")}
-                                        </Text>
-                                      </>
-                                    )}
+                                    <Text className="font-nunito-bold text-white">
+                                      {actionLabel}
+                                    </Text>
                                   </View>
                                 </TouchableOpacity>
-                              ) : null}
+
+                                {quest.completed && !quest.claimed ? (
+                                  <TouchableOpacity
+                                    onPress={() =>
+                                      void claimQuestMutation.mutateAsync(quest)
+                                    }
+                                    disabled={isClaimLoading}
+                                    style={{
+                                      borderRadius: 12,
+                                      overflow: "hidden",
+                                      minWidth: 108,
+                                    }}
+                                  >
+                                    <View
+                                      className="items-center flex-row justify-center gap-2"
+                                      style={{
+                                        minHeight: 42,
+                                        paddingHorizontal: 14,
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        backgroundColor: tc.successDark,
+                                      }}
+                                    >
+                                      {isClaimLoading ? (
+                                        <ActivityIndicator
+                                          color="white"
+                                          size="small"
+                                        />
+                                      ) : (
+                                        <>
+                                          <SparklesIcon
+                                            size={18}
+                                            color="white"
+                                          />
+                                          <Text className="font-nunito-bold text-white">
+                                            {t("quests.claim")}
+                                          </Text>
+                                        </>
+                                      )}
+                                    </View>
+                                  </TouchableOpacity>
+                                ) : null}
+                              </View>
                             </View>
-                          </View>
-                        );
-                      })}
+                          );
+                        })}
                       </View>
                     )}
                   </View>
@@ -2060,7 +2100,6 @@ export default function QuestsScreen() {
                     backgroundColor: tc.surface,
                     borderWidth: 2,
                     borderColor: colors.border,
-                    opacity: status === "claimed" ? 0.6 : 1,
                     shadowColor: "#000",
                     shadowOpacity: 0.1,
                     shadowRadius: 8,
@@ -2128,6 +2167,19 @@ export default function QuestsScreen() {
                       <Text className="font-nunito-bold text-base text-fg">
                         {title}
                       </Text>
+                      {status === "completed" || status === "claimed" ? (
+                        <View
+                          className="rounded-full px-2 py-1 mt-1 self-start"
+                          style={{ backgroundColor: colors.iconBg }}
+                        >
+                          <Text
+                            className="font-nunito-bold text-[11px]"
+                            style={{ color: colors.iconColor }}
+                          >
+                            {getQuestStatusLabel(status, t)}
+                          </Text>
+                        </View>
+                      ) : null}
                     </View>
 
                     <View className="flex-row items-center gap-1">
@@ -2194,48 +2246,87 @@ export default function QuestsScreen() {
                       </View>
                     ) : null}
 
-                    <View className="flex-row justify-between mb-1">
-                      <Text className="font-nunito text-xs text-fgMuted">
-                        {t("quests.progress")}
-                      </Text>
-                      <Text
-                        className="font-nunito-bold text-xs"
-                        style={{ color: getProgressColor(status, tc) }}
+                    {status === "completed" || status === "claimed" ? (
+                      <View
+                        className="rounded-2xl border p-3 flex-row items-center gap-3"
+                        style={{
+                          borderColor: colors.border,
+                          backgroundColor: colors.iconBg,
+                        }}
                       >
-                        {formatProgress(
-                          progressDisplay.progress,
-                          progressDisplay.target,
-                        )}
-                      </Text>
-                    </View>
-                    <View className="h-3 rounded-full overflow-hidden bg-primaryTint">
-                      {status === "claimed" ? (
                         <View
                           style={{
-                            width: `${progressDisplay.progressPct}%`,
-                            backgroundColor: tc.muted,
-                            height: "100%",
+                            backgroundColor: tc.surface,
+                            borderRadius: 999,
+                            padding: 6,
                           }}
-                        />
-                      ) : (
-                        <LinearGradient
-                          colors={[colors.gradStart, colors.gradEnd]}
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 1, y: 0 }}
-                          style={{
-                            width: `${progressDisplay.progressPct}%`,
-                            height: "100%",
-                          }}
-                        />
-                      )}
-                    </View>
+                        >
+                          {status === "claimed" ? (
+                            <ClaimedIcon size={20} color={colors.iconColor} />
+                          ) : (
+                            <CheckCircleIcon
+                              size={20}
+                              color={colors.iconColor}
+                            />
+                          )}
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text
+                            className="font-nunito-bold text-sm"
+                            style={{ color: colors.iconColor }}
+                          >
+                            {getQuestStatusLabel(status, t)}
+                          </Text>
+                          <Text
+                            className="font-nunito-semibold text-xs mt-0.5"
+                            style={{ color: colors.iconColor }}
+                          >
+                            {status === "claimed"
+                              ? t("quests.rewardClaimed", {
+                                  count: quest.reward,
+                                })
+                              : t("quests.rewardReady", {
+                                  count: quest.reward,
+                                })}
+                          </Text>
+                        </View>
+                      </View>
+                    ) : (
+                      <>
+                        <View className="flex-row justify-between mb-1">
+                          <Text className="font-nunito text-xs text-fgMuted">
+                            {t("quests.progress")}
+                          </Text>
+                          <Text
+                            className="font-nunito-bold text-xs"
+                            style={{ color: getProgressColor(status, tc) }}
+                          >
+                            {formatProgress(
+                              progressDisplay.progress,
+                              progressDisplay.target,
+                            )}
+                          </Text>
+                        </View>
+                        <View className="h-3 rounded-full overflow-hidden bg-primaryTint">
+                          <LinearGradient
+                            colors={[colors.gradStart, colors.gradEnd]}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                            style={{
+                              width: `${progressDisplay.progressPct}%`,
+                              height: "100%",
+                            }}
+                          />
+                        </View>
+                      </>
+                    )}
                     {isWordleQuest(quest.type) && quest.attemptsUsed != null ? (
                       <Text
                         className="font-nunito-bold text-xs text-center mt-1"
                         style={{
                           color:
                             status === "claimed"
-                              ? tc.muted
+                              ? tc.successDark
                               : status === "failed"
                                 ? tc.dangerDark
                                 : status === "completed"
@@ -2324,47 +2415,26 @@ export default function QuestsScreen() {
                         onPress={() => void openQuest(quest)}
                         style={{ borderRadius: 12, overflow: "hidden" }}
                       >
-                        {status === "claimed" ? (
-                          <View
-                            style={{
-                              backgroundColor: tc.muted,
-                              minHeight: 44,
-                              paddingHorizontal: 16,
-                              flexDirection: "row",
-                              alignItems: "center",
-                              justifyContent: "center",
-                            }}
-                            className="items-center justify-center"
+                        <LinearGradient
+                          colors={[colors.gradStart, colors.gradEnd]}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 0 }}
+                          className="items-center justify-center"
+                          style={{
+                            minHeight: 44,
+                            paddingHorizontal: 16,
+                            flexDirection: "row",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <Text
+                            className="font-nunito-bold text-white"
+                            style={{ textAlign: "center", lineHeight: 20 }}
                           >
-                            <Text
-                              className="font-nunito-bold text-white"
-                              style={{ textAlign: "center", lineHeight: 20 }}
-                            >
-                              {actionLabel}
-                            </Text>
-                          </View>
-                        ) : (
-                          <LinearGradient
-                            colors={[colors.gradStart, colors.gradEnd]}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 0 }}
-                            className="items-center justify-center"
-                            style={{
-                              minHeight: 44,
-                              paddingHorizontal: 16,
-                              flexDirection: "row",
-                              alignItems: "center",
-                              justifyContent: "center",
-                            }}
-                          >
-                            <Text
-                              className="font-nunito-bold text-white"
-                              style={{ textAlign: "center", lineHeight: 20 }}
-                            >
-                              {actionLabel}
-                            </Text>
-                          </LinearGradient>
-                        )}
+                            {actionLabel}
+                          </Text>
+                        </LinearGradient>
                       </TouchableOpacity>
                     </View>
                   ) : null}
