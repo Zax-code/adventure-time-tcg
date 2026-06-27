@@ -623,19 +623,31 @@ export function StepQuestIcon({ size = 24, color = "#DB2777" }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path
-        d="M4.5 15.2L7.5 9.4C8.1 8.3 9.6 8.1 10.5 9L12.6 11.1C13.9 12.4 15.6 13.1 17.4 13.1H18.5C19.8 13.1 20.8 14.1 20.8 15.4V16C20.8 17.1 19.9 18 18.8 18H6.4C5.2 18 4.2 17 4.2 15.8C4.2 15.6 4.3 15.4 4.5 15.2Z"
+        d="M6.2 17.6C8.7 14.5 15.6 15.7 16.8 11.7C17.5 9.2 15.8 7.8 13.6 8.1C11.3 8.4 9.8 10.7 7.5 10.4"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Circle cx={5.4} cy={18.5} r={2.1} fill={color} fillOpacity={0.16} />
+      <Circle cx={5.4} cy={18.5} r={1} fill={color} />
+      <Path
+        d="M17 3.8V14.2"
+        stroke={color}
+        strokeWidth={1.8}
+        strokeLinecap="round"
+      />
+      <Path
+        d="M17 4.3H20.8L19.6 6.5L20.8 8.7H17V4.3Z"
         fill={color}
         fillOpacity={0.18}
         stroke={color}
-        strokeWidth={1.8}
+        strokeWidth={1.5}
         strokeLinejoin="round"
       />
-      <Path
-        stroke={color}
-        d="M6.1 18H20M9.1 11.2L11.4 13.5M11.2 10.5L13.3 12.6M8.1 14.7H20.5"
-        strokeWidth={1.4}
-        strokeLinecap="round"
-      />
+      <Circle cx={9.1} cy={10.2} r={0.7} fill={color} />
+      <Circle cx={12.3} cy={8.6} r={0.7} fill={color} fillOpacity={0.55} />
+      <Circle cx={15.7} cy={12.4} r={0.7} fill={color} fillOpacity={0.55} />
     </Svg>
   );
 }
@@ -663,13 +675,12 @@ export function DailyLoginQuestIcon({
         strokeWidth={1.8}
         strokeLinecap="round"
       />
-      <Circle cx={12} cy={14.8} r={3.8} fill={color} fillOpacity={0.16} />
-      <Circle cx={12} cy={14.8} r={2.25} stroke={color} strokeWidth={1.4} />
       <Path
-        d="M10.7 13.7C11.3 13.1 12.1 12.9 12.9 13.1M10.8 16.2C11.4 16.6 12.3 16.8 13.2 16.5"
+        d="M8.2 14.5L10.6 16.9L16.4 11.4"
         stroke={color}
-        strokeWidth={1.4}
+        strokeWidth={2}
         strokeLinecap="round"
+        strokeLinejoin="round"
       />
     </Svg>
   );
@@ -766,60 +777,66 @@ export function DailyNumbersQuestIcon({
 }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Rect
-        x={5}
-        y={3.5}
-        width={14}
-        height={17}
-        rx={2.6}
+      <Path
+        d="M5 5.3C5 4.1 5.9 3.2 7.1 3.2H12.1C13.3 3.2 14.2 4.1 14.2 5.3V10.3C14.2 11.5 13.3 12.4 12.1 12.4H7.1C5.9 12.4 5 11.5 5 10.3V5.3Z"
         fill={color}
-        fillOpacity={0.13}
+        fillOpacity={0.14}
         stroke={color}
-        strokeWidth={1.8}
+        strokeWidth={1.6}
       />
-      <Rect
-        x={7.4}
-        y={6.2}
-        width={9.2}
-        height={3.2}
-        rx={1.1}
+      <Path
+        d="M9.8 11.8V13.6C9.8 14.2 10.3 14.7 10.9 14.7H12.7"
+        stroke={color}
+        strokeWidth={1.4}
+        strokeLinecap="round"
+      />
+      <Path
+        d="M3.8 13.7C3.8 12.5 4.7 11.6 5.9 11.6H10.9C12.1 11.6 13 12.5 13 13.7V18.7C13 19.9 12.1 20.8 10.9 20.8H5.9C4.7 20.8 3.8 19.9 3.8 18.7V13.7Z"
         fill={color}
         fillOpacity={0.2}
         stroke={color}
-        strokeWidth={1.2}
-      />
-      <Rect x={7.4} y={11.5} width={3} height={3} rx={0.8} fill={color} />
-      <Rect
-        x={13.6}
-        y={11.5}
-        width={3}
-        height={3}
-        rx={0.8}
-        fill={color}
-        fillOpacity={0.46}
-      />
-      <Rect
-        x={7.4}
-        y={16}
-        width={3}
-        height={3}
-        rx={0.8}
-        fill={color}
-        fillOpacity={0.46}
-      />
-      <Rect x={13.6} y={16} width={3} height={3} rx={0.8} fill={color} />
-      <Path
-        d="M9 7.8H12.3M14.4 7.8H15"
-        stroke={color}
-        strokeWidth={1.2}
-        strokeLinecap="round"
+        strokeWidth={1.6}
       />
       <Path
-        d="M8.6 13H9.2M14.8 17.5H15.4"
+        d="M11 13.7C11 12.5 11.9 11.6 13.1 11.6H18.1C19.3 11.6 20.2 12.5 20.2 13.7V18.7C20.2 19.9 19.3 20.8 18.1 20.8H13.1C11.9 20.8 11 19.9 11 18.7V13.7Z"
+        fill={color}
+        fillOpacity={0.14}
         stroke={color}
-        strokeWidth={1.5}
-        strokeLinecap="round"
+        strokeWidth={1.6}
       />
+      <SvgText
+        x={9.6}
+        y={8.7}
+        textAnchor="middle"
+        dominantBaseline="middle"
+        fill={color}
+        fontSize={4.8}
+        fontWeight="800"
+      >
+        1
+      </SvgText>
+      <SvgText
+        x={8.4}
+        y={17.1}
+        textAnchor="middle"
+        dominantBaseline="middle"
+        fill={color}
+        fontSize={4.8}
+        fontWeight="800"
+      >
+        2
+      </SvgText>
+      <SvgText
+        x={15.6}
+        y={17.1}
+        textAnchor="middle"
+        dominantBaseline="middle"
+        fill={color}
+        fontSize={4.8}
+        fontWeight="800"
+      >
+        3
+      </SvgText>
     </Svg>
   );
 }
