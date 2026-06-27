@@ -4,7 +4,7 @@ import type { AuthUser, QuestsResponse } from "@adventure-time/api-client";
 
 const LOCAL_STEP_SNAPSHOT_KEY_PREFIX = "local-step-snapshot-v1";
 const STEP_GOAL = 10_000;
-const DEFAULT_STEP_REWARD = 150;
+const DEFAULT_STEP_REWARD = 75;
 const SECURE_STORE_OPTIONS = {
   keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK,
 } as const;

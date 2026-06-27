@@ -880,7 +880,7 @@ export default function SpeedCalculusScreen() {
               <Text className="text-sm font-nunito mt-2 text-primaryDark/80 leading-5">
                 {t("quests.speedCalculusRuleLine", {
                   seconds: state?.runDurationSeconds ?? 30,
-                  reward: state?.rewardPerAnswer ?? 4,
+                  reward: state?.rewardPerAnswer ?? 2,
                 })}
               </Text>
             </View>

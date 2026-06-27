@@ -26,7 +26,9 @@ export const authUserSchema = z.object({
 });
 
 export type AuthUser = z.infer<typeof authUserSchema>;
-export type NotificationPreferences = z.infer<typeof notificationPreferencesSchema>;
+export type NotificationPreferences = z.infer<
+  typeof notificationPreferencesSchema
+>;
 
 export const authTokensSchema = z.object({
   accessToken: z.string(),
@@ -180,9 +182,7 @@ export const abilityTargetSelectorValues = [
   "highestSpd",
 ] as const;
 
-export const abilityTargetSelectorSchema = z.enum(
-  abilityTargetSelectorValues,
-);
+export const abilityTargetSelectorSchema = z.enum(abilityTargetSelectorValues);
 
 export const pvpCombatEventTypeValues = [
   "matchStart",
@@ -506,6 +506,14 @@ export const processGiftSchema = z.object({
   action: z.enum(["accept", "reject"]),
 });
 
+export const packAvailabilitySchema = z.object({
+  canOpen: z.boolean(),
+  reason: z.string().nullable().optional(),
+  nextAvailableAt: z.string().nullable().optional(),
+  opensRemaining: z.number().int().nonnegative().nullable().optional(),
+  limit: z.number().int().positive().nullable().optional(),
+});
+
 export const packSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -516,6 +524,7 @@ export const packSchema = z.object({
   isActive: z.boolean(),
   guaranteedRarity: z.string().nullable(),
   packArtAssetId: z.string().nullable(),
+  availability: packAvailabilitySchema.optional(),
 });
 
 export const cardBackVisualSchema = z.object({
@@ -1304,7 +1313,9 @@ export type RegisterResponse = z.infer<typeof registerResponseSchema>;
 export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;
 export type VerifyEmailResponse = z.infer<typeof verifyEmailResponseSchema>;
 export type ResendVerificationInput = z.infer<typeof resendVerificationSchema>;
-export type RequestPasswordResetInput = z.infer<typeof requestPasswordResetSchema>;
+export type RequestPasswordResetInput = z.infer<
+  typeof requestPasswordResetSchema
+>;
 export type RequestPasswordResetResponse = z.infer<
   typeof requestPasswordResetResponseSchema
 >;
@@ -1349,7 +1360,9 @@ export type DailyNumbersMode = z.infer<typeof dailyNumbersModeSchema>;
 export type DailyNumbersTile = z.infer<typeof dailyNumbersTileSchema>;
 export type DailyNumbersStepInput = z.infer<typeof dailyNumbersStepInputSchema>;
 export type DailyNumbersStep = z.infer<typeof dailyNumbersStepSchema>;
-export type DailyNumbersSubmission = z.infer<typeof dailyNumbersSubmissionSchema>;
+export type DailyNumbersSubmission = z.infer<
+  typeof dailyNumbersSubmissionSchema
+>;
 export type DailyNumbersStateResponse = z.infer<
   typeof dailyNumbersStateResponseSchema
 >;

@@ -25,7 +25,7 @@ defmodule AdventureTimeApi.Quests do
 
   alias AdventureTimeApi.{PubSub, Repo}
 
-  @daily_reward 100
+  @daily_reward 50
   @reset_timezone "Europe/Paris"
   @wordle_max_attempts 6
   @default_wordle_locale "fr"
@@ -35,13 +35,13 @@ defmodule AdventureTimeApi.Quests do
   @slow_daily_numbers_ms 150
 
   @quest_definitions [
-    %{quest_type: "steps_10k", icon: "walking", target: 10_000, reward: 150},
-    %{quest_type: "wordle_daily_fr", icon: "wordle", target: 1, reward: 60},
-    %{quest_type: "wordle_daily_en", icon: "wordle", target: 1, reward: 60},
+    %{quest_type: "steps_10k", icon: "walking", target: 10_000, reward: 75},
+    %{quest_type: "wordle_daily_fr", icon: "wordle", target: 1, reward: 35},
+    %{quest_type: "wordle_daily_en", icon: "wordle", target: 1, reward: 35},
     %{quest_type: "speed_calculus_daily", icon: "sparkles", target: 3, reward: 0},
-    %{quest_type: "daily_numbers_1_5", icon: "sparkles", target: 1, reward: 120},
-    %{quest_type: "daily_numbers_2_4", icon: "sparkles", target: 1, reward: 140},
-    %{quest_type: "daily_numbers_3_3", icon: "sparkles", target: 1, reward: 160}
+    %{quest_type: "daily_numbers_1_5", icon: "sparkles", target: 1, reward: 45},
+    %{quest_type: "daily_numbers_2_4", icon: "sparkles", target: 1, reward: 60},
+    %{quest_type: "daily_numbers_3_3", icon: "sparkles", target: 1, reward: 75}
   ]
 
   # ── Wordle Cache (persistent_term for fast in-memory lookups) ───────────────

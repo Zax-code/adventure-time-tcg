@@ -92,7 +92,7 @@ private let atStepQuestSecureStoreLegacyService = "app"
 private let atStepQuestDefaultApiBaseUrl = "https://app.leaetzak.love"
 private let atStepQuestDefaultDeepLink = "adventure-time://widget-quests?focus=steps"
 private let atStepQuestDefaultTarget = 10_000
-private let atStepQuestDefaultReward = 150
+private let atStepQuestDefaultReward = 75
 private let atStepQuestServerSyncThrottleSeconds: TimeInterval = 15 * 60
 private let atStepQuestServerSyncAttemptKey = "stepQuestServerSyncAttempt"
 

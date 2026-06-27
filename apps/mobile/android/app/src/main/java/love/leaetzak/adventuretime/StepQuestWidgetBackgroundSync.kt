@@ -36,7 +36,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 private const val STEP_GOAL = 10_000
-private const val DEFAULT_REWARD = 150
+private const val DEFAULT_REWARD = 75
 private const val SERVER_SYNC_THROTTLE_MS = 15 * 60 * 1000L
 private const val WORK_NAME = "step-quest-widget-health-connect-sync"
 private const val ONE_TIME_WORK_NAME = "step-quest-widget-health-connect-sync-now"

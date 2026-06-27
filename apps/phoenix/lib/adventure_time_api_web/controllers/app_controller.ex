@@ -32,7 +32,7 @@ defmodule AdventureTimeApiWeb.AppController do
 
   def packs(conn, _params) do
     json(conn, %{
-      packs: Catalog.list_active_packs(),
+      packs: Inventory.list_active_packs_for_user(conn.assigns.auth_user.id),
       cardBackVisuals: Catalog.list_card_back_visuals()
     })
   end
@@ -44,6 +44,11 @@ defmodule AdventureTimeApiWeb.AppController do
 
       {:error, :not_enough_coins} ->
         conn |> put_status(:bad_request) |> json(%{error: "Not enough coins"})
+
+      {:error, :weekly_pack_limit_reached, availability} ->
+        conn
+        |> put_status(:conflict)
+        |> json(%{error: "Weekly pack limit reached", availability: availability})
 
       {:error, :pack_not_found_or_inactive} ->
         conn |> put_status(:not_found) |> json(%{error: "Pack not found or inactive"})

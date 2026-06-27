@@ -2,8 +2,7 @@ const packs = {
   loading: "Chargement des packs...",
   unavailable: "Packs indisponibles.",
   title: "Boutique de packs",
-  subtitle:
-    "Choisis un pack, ouvre-le, puis révèle chaque carte à ton rythme.",
+  subtitle: "Choisis un pack, ouvre-le, puis révèle chaque carte à ton rythme.",
   balance: "Solde",
   affordableCount: "{count} packs prêts",
   nextGoal: "{name} dans {count} pièces",
@@ -14,6 +13,8 @@ const packs = {
   needMoreCoinsShort: "Encore {count} pièces",
   readyNow: "Prêt à ouvrir",
   tapToOpen: "Appuie pour ouvrir",
+  weeklyLimitReached: "Limite hebdomadaire atteinte",
+  weeklyLimitAvailable: "Disponible {date}",
   recommended: "Conseillé",
   cardsCount: "{count} cartes",
   guaranteed: "{rarity} garanti",

@@ -14,7 +14,8 @@ defmodule AdventureTimeApi.Quests.SpeedCalculusEngine do
 
   @run_duration_seconds 30
   @max_runs 3
-  @reward_per_answer 4
+  @reward_per_answer 2
+  @reward_cap 80
   @finish_grace_seconds 5
   @resume_pause_seconds 5
 
@@ -24,7 +25,8 @@ defmodule AdventureTimeApi.Quests.SpeedCalculusEngine do
   def finish_grace_seconds, do: @finish_grace_seconds
   def resume_pause_seconds, do: @resume_pause_seconds
 
-  def calculate_reward(correct_answers), do: max(0, correct_answers) * @reward_per_answer
+  def calculate_reward(correct_answers),
+    do: min(max(0, correct_answers) * @reward_per_answer, @reward_cap)
 
   @doc """
   Build #{@question_count} deterministic arithmetic questions for a given seed UUID.

@@ -259,7 +259,7 @@ private struct StepQuestProvider: TimelineProvider {
         title: localized(en: "Walk 10,000 steps", fr: "Marcher 10 000 pas"),
         progress: 7421,
         target: 10_000,
-        reward: 150,
+        reward: 75,
         status: "active",
         recordedFor: currentLocalDateString(),
         deepLink: defaultDeepLink,

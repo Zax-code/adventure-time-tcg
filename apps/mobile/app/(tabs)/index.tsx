@@ -336,7 +336,7 @@ export default function HomeScreen() {
                 <Text className="font-nunito text-sm leading-5 text-fgMuted">
                   {canClaim
                     ? t("home.claimCoins", {
-                        amount: dailyClaimQuery.data?.dailyReward ?? 100,
+                        amount: dailyClaimQuery.data?.dailyReward ?? 50,
                       })
                     : t("home.nextClaim", {
                         time: formatTimeRemaining(liveTime),

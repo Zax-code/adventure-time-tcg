@@ -35,9 +35,9 @@
     {
       "id": "87b86283-4a00-4940-b8b8-af346c500c80",
       "name": "Basic Pack",
-      "description": "3 cards with standard drop rates. A great way to start!",
-      "cardCount": 3,
-      "cost": 50,
+      "description": "2 cards with standard drop rates. The cheapest way to keep opening.",
+      "cardCount": 2,
+      "cost": 150,
       "imageUrl": "/packs/basic-pack.png",
       "color": "#9CA3AF",
       "isActive": true,
@@ -46,9 +46,9 @@
     {
       "id": "c7f9d07d-3c25-42cb-ba93-bb53b3357fd9",
       "name": "Epic Pack",
-      "description": "6 cards with at least 1 guaranteed Epic or better!",
+      "description": "6 cards with 1 guaranteed Epic.",
       "cardCount": 6,
-      "cost": 400,
+      "cost": 2200,
       "imageUrl": "/packs/epic-pack.png",
       "color": "#EC4899",
       "isActive": true,
@@ -57,9 +57,9 @@
     {
       "id": "e307357a-7f48-4928-a897-bbf05b30c0ca",
       "name": "Legendary Pack",
-      "description": "7 cards with at least 1 guaranteed Legendary!",
+      "description": "7 cards with at least 1 guaranteed Legendary. Limited to one opening per week.",
       "cardCount": 7,
-      "cost": 1000,
+      "cost": 4500,
       "imageUrl": "/packs/legendary-pack.png",
       "color": "#F59E0B",
       "isActive": true,
@@ -68,9 +68,9 @@
     {
       "id": "9f35818e-6c8e-4d15-9036-e6e51bd571c8",
       "name": "Premium Pack",
-      "description": "5 cards with at least 1 guaranteed Rare or better!",
+      "description": "5 cards with 1 guaranteed Rare.",
       "cardCount": 5,
-      "cost": 200,
+      "cost": 900,
       "imageUrl": "/packs/premium-pack.png",
       "color": "#8B5CF6",
       "isActive": true,
@@ -79,13 +79,13 @@
     {
       "id": "e36b6468-a945-4ad2-896b-f26285df6c3b",
       "name": "Standard Pack",
-      "description": "5 cards with standard drop rates.",
+      "description": "5 cards with at least 1 guaranteed Uncommon.",
       "cardCount": 5,
-      "cost": 100,
+      "cost": 400,
       "imageUrl": "/packs/standard-pack.png",
       "color": "#3B82F6",
       "isActive": true,
-      "guaranteedRarity": null
+      "guaranteedRarity": "Uncommon"
     }
   ],
   "cards": [
