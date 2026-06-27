@@ -305,6 +305,9 @@ async function notifyStepGoalReached(userId: string, recordedFor: string) {
       title: getTranslation(locale, "settings.stepGoalReachedTitle"),
       body: getTranslation(locale, "settings.stepGoalReachedBody"),
       sound: true,
+      data: {
+        eventType: "step_goal_reached",
+      },
       ...(Platform.OS === "android"
         ? { channelId: STEP_NOTIFICATION_CHANNEL_ID }
         : {}),

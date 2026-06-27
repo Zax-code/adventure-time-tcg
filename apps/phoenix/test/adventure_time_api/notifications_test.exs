@@ -220,7 +220,7 @@ defmodule AdventureTimeApi.NotificationsTest do
                %{
                  "body" => "It's your turn against Jake.",
                  "channelId" => "game-updates",
-                 "data" => %{"eventType" => "pvp_turn"},
+                 "data" => %{"eventType" => "pvp_turn", "matchId" => "match-turn-1"},
                  "priority" => "high",
                  "sound" => "default",
                  "title" => "Your turn to play",
@@ -245,7 +245,7 @@ defmodule AdventureTimeApi.NotificationsTest do
       )
     end)
 
-    assert :ok = Notifications.send_pvp_turn(user.id, "Jake")
+    assert :ok = Notifications.send_pvp_turn(user.id, "Jake", "match-turn-1")
 
     refute Repo.exists?(
              from(device in Device, where: device.installation_id == "turn-installation")
