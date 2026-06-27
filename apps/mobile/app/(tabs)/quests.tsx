@@ -188,6 +188,46 @@ function getQuestStatusLabel(
   return t("quests.progress");
 }
 
+function RewardAmount({
+  amount,
+  claimed,
+  color,
+  iconSize = 18,
+  textClassName = "font-nunito-bold text-base",
+}: {
+  amount: number;
+  claimed: boolean;
+  color: string;
+  iconSize?: number;
+  textClassName?: string;
+}) {
+  return (
+    <View className="flex-row items-center gap-1">
+      <CoinIcon size={iconSize} />
+      <View style={{ justifyContent: "center", position: "relative" }}>
+        <Text className={textClassName} style={{ color }}>
+          {amount}
+        </Text>
+        {claimed ? (
+          <View
+            pointerEvents="none"
+            style={{
+              backgroundColor: color,
+              borderRadius: 999,
+              height: 2,
+              left: -2,
+              position: "absolute",
+              right: -2,
+              top: "50%",
+              transform: [{ translateY: -1 }],
+            }}
+          />
+        ) : null}
+      </View>
+    </View>
+  );
+}
+
 const WORDLE_LANGUAGES: WordleLocale[] = ["fr", "en"];
 
 function isWordleQuest(questType: string) {
@@ -1434,20 +1474,11 @@ export default function QuestsScreen() {
                         </View>
 
                         <View className="flex-row items-center gap-2">
-                          <View className="flex-row items-center gap-1">
-                            <CoinIcon size={18} />
-                            <Text
-                              style={[
-                                { color: tc.secondaryDark },
-                                groupStatus === "claimed"
-                                  ? { textDecorationLine: "line-through" }
-                                  : null,
-                              ]}
-                              className="font-nunito-bold text-base"
-                            >
-                              {totalReward}
-                            </Text>
-                          </View>
+                          <RewardAmount
+                            amount={totalReward}
+                            claimed={groupStatus === "claimed"}
+                            color={tc.secondaryDark}
+                          />
                           {collapsedGroups.wordle ? (
                             <ChevronRightIcon size={20} color={tc.muted} />
                           ) : (
@@ -1599,23 +1630,13 @@ export default function QuestsScreen() {
                                 </View>
 
                                 <View className="items-end gap-2">
-                                  <View className="flex-row items-center gap-1">
-                                    <CoinIcon size={16} />
-                                    <Text
-                                      className="font-nunito-bold text-sm"
-                                      style={[
-                                        { color: tc.secondaryDark },
-                                        languageStatus === "claimed"
-                                          ? {
-                                              textDecorationLine:
-                                                "line-through",
-                                            }
-                                          : null,
-                                      ]}
-                                    >
-                                      {quest.reward}
-                                    </Text>
-                                  </View>
+                                  <RewardAmount
+                                    amount={quest.reward}
+                                    claimed={languageStatus === "claimed"}
+                                    color={tc.secondaryDark}
+                                    iconSize={16}
+                                    textClassName="font-nunito-bold text-sm"
+                                  />
                                 </View>
                               </View>
 
@@ -1823,20 +1844,11 @@ export default function QuestsScreen() {
                         </View>
 
                         <View className="flex-row items-center gap-2">
-                          <View className="flex-row items-center gap-1">
-                            <CoinIcon size={18} />
-                            <Text
-                              style={[
-                                { color: tc.secondaryDark },
-                                groupStatus === "claimed"
-                                  ? { textDecorationLine: "line-through" }
-                                  : null,
-                              ]}
-                              className="font-nunito-bold text-base"
-                            >
-                              {totalReward}
-                            </Text>
-                          </View>
+                          <RewardAmount
+                            amount={totalReward}
+                            claimed={groupStatus === "claimed"}
+                            color={tc.secondaryDark}
+                          />
                           {collapsedGroups.dailyNumbers ? (
                             <ChevronRightIcon size={20} color={tc.muted} />
                           ) : (
@@ -1980,23 +1992,13 @@ export default function QuestsScreen() {
                                 </View>
 
                                 <View className="items-end gap-2">
-                                  <View className="flex-row items-center gap-1">
-                                    <CoinIcon size={16} />
-                                    <Text
-                                      className="font-nunito-bold text-sm"
-                                      style={[
-                                        { color: tc.secondaryDark },
-                                        modeStatus === "claimed"
-                                          ? {
-                                              textDecorationLine:
-                                                "line-through",
-                                            }
-                                          : null,
-                                      ]}
-                                    >
-                                      {quest.reward}
-                                    </Text>
-                                  </View>
+                                  <RewardAmount
+                                    amount={quest.reward}
+                                    claimed={modeStatus === "claimed"}
+                                    color={tc.secondaryDark}
+                                    iconSize={16}
+                                    textClassName="font-nunito-bold text-sm"
+                                  />
                                 </View>
                               </View>
 
@@ -2220,20 +2222,11 @@ export default function QuestsScreen() {
                       ) : null}
                     </View>
 
-                    <View className="flex-row items-center gap-1">
-                      <CoinIcon size={18} />
-                      <Text
-                        style={[
-                          { color: tc.secondaryDark },
-                          status === "claimed"
-                            ? { textDecorationLine: "line-through" }
-                            : null,
-                        ]}
-                        className="font-nunito-bold text-base"
-                      >
-                        {quest.reward}
-                      </Text>
-                    </View>
+                    <RewardAmount
+                      amount={quest.reward}
+                      claimed={status === "claimed"}
+                      color={tc.secondaryDark}
+                    />
                   </View>
 
                   <View style={{ marginTop: 16 }}>
@@ -2611,16 +2604,13 @@ export default function QuestsScreen() {
                     }}
                   >
                     <View
+                      className="absolute rounded-full border-[3px] p-1"
                       style={{
-                        position: "absolute",
-                        top: -10,
-                        right: -10,
                         backgroundColor: tc.surface,
-                        borderRadius: 999,
-                        borderWidth: 3,
                         borderColor: colors.border,
-                        padding: 4,
                         boxShadow: "0 2px 6px rgba(0, 0, 0, 0.15)",
+                        right: -10,
+                        top: -10,
                       }}
                     >
                       <HelpCircleIcon
