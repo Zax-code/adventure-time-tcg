@@ -220,6 +220,18 @@ function getDailyNumbersShareModeLabelKey(mode: DailyNumbersMode) {
   return "quests.dailyNumbers.shareMode3_3";
 }
 
+function getDailyNumbersQuestTabModeLabelKey(mode: DailyNumbersMode) {
+  if (mode === "1-5") {
+    return "quests.dailyNumbers.oneFiveMix";
+  }
+
+  if (mode === "2-4") {
+    return "quests.dailyNumbers.twoFourMix";
+  }
+
+  return "quests.dailyNumbers.threeThreeMix";
+}
+
 function isSpeedCalculusQuest(questType: string) {
   return questType === "speed_calculus_daily";
 }
@@ -1371,108 +1383,114 @@ export default function QuestsScreen() {
                         }))
                       }
                       style={{
-                        flexDirection: "row",
-                        alignItems: "flex-start",
-                        gap: 16,
                         paddingRight: 24,
                       }}
                     >
                       <View
                         style={{
-                          backgroundColor: colors.iconBg,
-                          padding: 12,
-                          borderRadius: 12,
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 16,
                         }}
                       >
-                        <WordleQuestIcon size={28} color={colors.iconColor} />
-                      </View>
+                        <View
+                          style={{
+                            backgroundColor: colors.iconBg,
+                            padding: 12,
+                            borderRadius: 12,
+                          }}
+                        >
+                          <WordleQuestIcon size={28} color={colors.iconColor} />
+                        </View>
 
-                      <View style={{ flex: 1 }}>
-                        <Text className="font-nunito-bold text-base text-fg">
-                          {t("quests.wordle.title")}
-                        </Text>
-                      </View>
-
-                      <View className="flex-row items-center gap-2">
-                        <View className="flex-row items-center gap-1">
-                          <CoinIcon size={18} />
-                          <Text
-                            style={{ color: tc.secondaryDark }}
-                            className="font-nunito-bold text-base"
-                          >
-                            {totalReward}
+                        <View style={{ flex: 1, justifyContent: "center" }}>
+                          <Text className="font-nunito-bold text-base text-fg">
+                            {t("quests.wordle.title")}
                           </Text>
                         </View>
-                        {collapsedGroups.wordle ? (
-                          <ChevronRightIcon size={20} color={tc.muted} />
-                        ) : (
-                          <ChevronDownIcon size={20} color={tc.muted} />
-                        )}
+
+                        <View className="flex-row items-center gap-2">
+                          <View className="flex-row items-center gap-1">
+                            <CoinIcon size={18} />
+                            <Text
+                              style={{ color: tc.secondaryDark }}
+                              className="font-nunito-bold text-base"
+                            >
+                              {totalReward}
+                            </Text>
+                          </View>
+                          {collapsedGroups.wordle ? (
+                            <ChevronRightIcon size={20} color={tc.muted} />
+                          ) : (
+                            <ChevronDownIcon size={20} color={tc.muted} />
+                          )}
+                        </View>
+                      </View>
+
+                      <View style={{ marginTop: 16 }}>
+                        <View className="flex-row justify-between mb-1">
+                          <Text className="font-nunito text-xs text-fgMuted">
+                            {t("quests.progress")}
+                          </Text>
+                          <Text
+                            className="font-nunito-bold text-xs"
+                            style={{ color: getProgressColor(groupStatus, tc) }}
+                          >
+                            {t("quests.dailyNumbersLevelsCleared", {
+                              completed: completedLanguages,
+                              total: availableLanguages.length,
+                            })}
+                          </Text>
+                        </View>
+                        <View className="h-3 rounded-full overflow-hidden bg-primaryTint">
+                          <View
+                            style={{
+                              width: `${progressPct}%`,
+                              height: "100%",
+                              backgroundColor: colors.iconColor,
+                            }}
+                          />
+                        </View>
                       </View>
                     </TouchableOpacity>
 
-                    <View style={{ marginTop: 16 }}>
-                      <View className="flex-row justify-between mb-1">
-                        <Text className="font-nunito text-xs text-fgMuted">
-                          {t("quests.progress")}
-                        </Text>
-                        <Text
-                          className="font-nunito-bold text-xs"
-                          style={{ color: getProgressColor(groupStatus, tc) }}
-                        >
-                          {t("quests.dailyNumbersLevelsCleared", {
-                            completed: completedLanguages,
-                            total: availableLanguages.length,
-                          })}
-                        </Text>
-                      </View>
-                      <View className="h-3 rounded-full overflow-hidden bg-primaryTint">
+                    <View className="mt-4 w-full">
+                      <TouchableOpacity
+                        className="w-full"
+                        onPress={() => {
+                          void handleShareWordleGroup(item.quests);
+                        }}
+                        disabled={sharingGroup !== null}
+                        style={{
+                          borderRadius: 12,
+                          overflow: "hidden",
+                          borderWidth: 1,
+                          borderColor: colors.border,
+                          backgroundColor: colors.iconBg,
+                        }}
+                      >
                         <View
                           style={{
-                            width: `${progressPct}%`,
-                            height: "100%",
-                            backgroundColor: colors.iconColor,
+                            minHeight: 38,
+                            paddingHorizontal: 14,
+                            alignItems: "center",
+                            justifyContent: "center",
                           }}
-                        />
-                      </View>
+                        >
+                          <Text
+                            className="font-nunito-bold text-sm"
+                            style={{ color: colors.iconColor }}
+                          >
+                            {sharingGroup === "wordle"
+                              ? t("quests.shareGroupPreparing")
+                              : t("quests.shareGroupResult")}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
                     </View>
 
                     {collapsedGroups.wordle ? null : (
                       <View className="mt-4 gap-3">
-                        <View className="flex-row justify-end">
-                          <TouchableOpacity
-                            onPress={() => {
-                              void handleShareWordleGroup(item.quests);
-                            }}
-                            disabled={sharingGroup !== null}
-                            style={{
-                              borderRadius: 12,
-                              overflow: "hidden",
-                              borderWidth: 1,
-                              borderColor: colors.border,
-                              backgroundColor: colors.iconBg,
-                            }}
-                          >
-                            <View
-                              style={{
-                                minHeight: 38,
-                                paddingHorizontal: 14,
-                                alignItems: "center",
-                                justifyContent: "center",
-                              }}
-                            >
-                              <Text
-                                className="font-nunito-bold text-sm"
-                                style={{ color: colors.iconColor }}
-                              >
-                                {sharingGroup === "wordle"
-                                  ? t("quests.shareGroupPreparing")
-                                  : t("quests.shareGroupResult")}
-                              </Text>
-                            </View>
-                          </TouchableOpacity>
-                        </View>
-
                         {WORDLE_LANGUAGES.map((language) => {
                           const quest = item.quests[language];
                           if (!quest) {
@@ -1728,111 +1746,117 @@ export default function QuestsScreen() {
                         }))
                       }
                       style={{
-                        flexDirection: "row",
-                        alignItems: "flex-start",
-                        gap: 16,
                         paddingRight: 24,
                       }}
                     >
                       <View
                         style={{
-                          backgroundColor: colors.iconBg,
-                          padding: 4,
-                          borderRadius: 12,
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 16,
                         }}
                       >
-                        <DailyNumbersQuestIcon
-                          size={44}
-                          color={colors.iconColor}
-                        />
-                      </View>
+                        <View
+                          style={{
+                            backgroundColor: colors.iconBg,
+                            padding: 4,
+                            borderRadius: 12,
+                          }}
+                        >
+                          <DailyNumbersQuestIcon
+                            size={44}
+                            color={colors.iconColor}
+                          />
+                        </View>
 
-                      <View style={{ flex: 1 }}>
-                        <Text className="font-nunito-bold text-base text-fg">
-                          {t("quests.dailyNumbers.title")}
-                        </Text>
-                      </View>
-
-                      <View className="flex-row items-center gap-2">
-                        <View className="flex-row items-center gap-1">
-                          <CoinIcon size={18} />
-                          <Text
-                            style={{ color: tc.secondaryDark }}
-                            className="font-nunito-bold text-base"
-                          >
-                            {totalReward}
+                        <View style={{ flex: 1, justifyContent: "center" }}>
+                          <Text className="font-nunito-bold text-base text-fg">
+                            {t("quests.dailyNumbers.title")}
                           </Text>
                         </View>
-                        {collapsedGroups.dailyNumbers ? (
-                          <ChevronRightIcon size={20} color={tc.muted} />
-                        ) : (
-                          <ChevronDownIcon size={20} color={tc.muted} />
-                        )}
+
+                        <View className="flex-row items-center gap-2">
+                          <View className="flex-row items-center gap-1">
+                            <CoinIcon size={18} />
+                            <Text
+                              style={{ color: tc.secondaryDark }}
+                              className="font-nunito-bold text-base"
+                            >
+                              {totalReward}
+                            </Text>
+                          </View>
+                          {collapsedGroups.dailyNumbers ? (
+                            <ChevronRightIcon size={20} color={tc.muted} />
+                          ) : (
+                            <ChevronDownIcon size={20} color={tc.muted} />
+                          )}
+                        </View>
+                      </View>
+
+                      <View style={{ marginTop: 16 }}>
+                        <View className="flex-row justify-between mb-1">
+                          <Text className="font-nunito text-xs text-fgMuted">
+                            {t("quests.progress")}
+                          </Text>
+                          <Text
+                            className="font-nunito-bold text-xs"
+                            style={{ color: getProgressColor(groupStatus, tc) }}
+                          >
+                            {t("quests.dailyNumbersLevelsCleared", {
+                              completed: completedModes,
+                              total: availableModes.length,
+                            })}
+                          </Text>
+                        </View>
+                        <View className="h-3 rounded-full overflow-hidden bg-primaryTint">
+                          <View
+                            style={{
+                              width: `${progressPct}%`,
+                              height: "100%",
+                              backgroundColor: colors.iconColor,
+                            }}
+                          />
+                        </View>
                       </View>
                     </TouchableOpacity>
 
-                    <View style={{ marginTop: 16 }}>
-                      <View className="flex-row justify-between mb-1">
-                        <Text className="font-nunito text-xs text-fgMuted">
-                          {t("quests.progress")}
-                        </Text>
-                        <Text
-                          className="font-nunito-bold text-xs"
-                          style={{ color: getProgressColor(groupStatus, tc) }}
-                        >
-                          {t("quests.dailyNumbersLevelsCleared", {
-                            completed: completedModes,
-                            total: availableModes.length,
-                          })}
-                        </Text>
-                      </View>
-                      <View className="h-3 rounded-full overflow-hidden bg-primaryTint">
+                    <View className="mt-4 w-full">
+                      <TouchableOpacity
+                        className="w-full"
+                        onPress={() => {
+                          void handleShareDailyNumbersGroup(item.quests);
+                        }}
+                        disabled={sharingGroup !== null}
+                        style={{
+                          borderRadius: 12,
+                          overflow: "hidden",
+                          borderWidth: 1,
+                          borderColor: colors.border,
+                          backgroundColor: colors.iconBg,
+                        }}
+                      >
                         <View
                           style={{
-                            width: `${progressPct}%`,
-                            height: "100%",
-                            backgroundColor: colors.iconColor,
+                            minHeight: 38,
+                            paddingHorizontal: 14,
+                            alignItems: "center",
+                            justifyContent: "center",
                           }}
-                        />
-                      </View>
+                        >
+                          <Text
+                            className="font-nunito-bold text-sm"
+                            style={{ color: colors.iconColor }}
+                          >
+                            {sharingGroup === "dailyNumbers"
+                              ? t("quests.shareGroupPreparing")
+                              : t("quests.shareGroupResult")}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
                     </View>
 
                     {collapsedGroups.dailyNumbers ? null : (
                       <View className="mt-4 gap-3">
-                        <View className="flex-row justify-end">
-                          <TouchableOpacity
-                            onPress={() => {
-                              void handleShareDailyNumbersGroup(item.quests);
-                            }}
-                            disabled={sharingGroup !== null}
-                            style={{
-                              borderRadius: 12,
-                              overflow: "hidden",
-                              borderWidth: 1,
-                              borderColor: colors.border,
-                              backgroundColor: colors.iconBg,
-                            }}
-                          >
-                            <View
-                              style={{
-                                minHeight: 38,
-                                paddingHorizontal: 14,
-                                alignItems: "center",
-                                justifyContent: "center",
-                              }}
-                            >
-                              <Text
-                                className="font-nunito-bold text-sm"
-                                style={{ color: colors.iconColor }}
-                              >
-                                {sharingGroup === "dailyNumbers"
-                                  ? t("quests.shareGroupPreparing")
-                                  : t("quests.shareGroupResult")}
-                              </Text>
-                            </View>
-                          </TouchableOpacity>
-                        </View>
-
                         {DAILY_NUMBERS_MODES.map((mode) => {
                           const quest = item.quests[mode];
                           if (!quest) {
@@ -1865,7 +1889,9 @@ export default function QuestsScreen() {
                               <View className="flex-1 gap-2">
                                 <View className="flex-row items-center gap-2">
                                   <Text className="font-nunito-bold text-base text-fg">
-                                    {t(getModeLabelKey(mode))}
+                                    {t(
+                                      getDailyNumbersQuestTabModeLabelKey(mode),
+                                    )}
                                   </Text>
                                   <View
                                     className="rounded-full px-2 py-1"
@@ -2080,7 +2106,7 @@ export default function QuestsScreen() {
                   <View
                     style={{
                       flexDirection: "row",
-                      alignItems: "flex-start",
+                      alignItems: "center",
                       gap: 16,
                       paddingRight: 24,
                     }}
@@ -2098,7 +2124,7 @@ export default function QuestsScreen() {
                       {statusIcon}
                     </View>
 
-                    <View style={{ flex: 1 }}>
+                    <View style={{ flex: 1, justifyContent: "center" }}>
                       <Text className="font-nunito-bold text-base text-fg">
                         {title}
                       </Text>
