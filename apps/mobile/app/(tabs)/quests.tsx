@@ -1437,43 +1437,43 @@ export default function QuestsScreen() {
                       </View>
                     </View>
 
+                    <View className="mt-4 w-full">
+                      <TouchableOpacity
+                        className="w-full"
+                        onPress={() => {
+                          void handleShareWordleGroup(item.quests);
+                        }}
+                        disabled={sharingGroup !== null}
+                        style={{
+                          borderRadius: 12,
+                          overflow: "hidden",
+                          borderWidth: 1,
+                          borderColor: colors.border,
+                          backgroundColor: colors.iconBg,
+                        }}
+                      >
+                        <View
+                          style={{
+                            minHeight: 38,
+                            paddingHorizontal: 14,
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <Text
+                            className="font-nunito-bold text-sm"
+                            style={{ color: colors.iconColor }}
+                          >
+                            {sharingGroup === "wordle"
+                              ? t("quests.shareGroupPreparing")
+                              : t("quests.shareGroupResult")}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    </View>
+
                     {collapsedGroups.wordle ? null : (
                       <View className="mt-4 gap-3">
-                        <View className="w-full">
-                          <TouchableOpacity
-                            className="w-full"
-                            onPress={() => {
-                              void handleShareWordleGroup(item.quests);
-                            }}
-                            disabled={sharingGroup !== null}
-                            style={{
-                              borderRadius: 12,
-                              overflow: "hidden",
-                              borderWidth: 1,
-                              borderColor: colors.border,
-                              backgroundColor: colors.iconBg,
-                            }}
-                          >
-                            <View
-                              style={{
-                                minHeight: 38,
-                                paddingHorizontal: 14,
-                                alignItems: "center",
-                                justifyContent: "center",
-                              }}
-                            >
-                              <Text
-                                className="font-nunito-bold text-sm"
-                                style={{ color: colors.iconColor }}
-                              >
-                                {sharingGroup === "wordle"
-                                  ? t("quests.shareGroupPreparing")
-                                  : t("quests.shareGroupResult")}
-                              </Text>
-                            </View>
-                          </TouchableOpacity>
-                        </View>
-
                         {WORDLE_LANGUAGES.map((language) => {
                           const quest = item.quests[language];
                           if (!quest) {
@@ -1798,43 +1798,43 @@ export default function QuestsScreen() {
                       </View>
                     </View>
 
+                    <View className="mt-4 w-full">
+                      <TouchableOpacity
+                        className="w-full"
+                        onPress={() => {
+                          void handleShareDailyNumbersGroup(item.quests);
+                        }}
+                        disabled={sharingGroup !== null}
+                        style={{
+                          borderRadius: 12,
+                          overflow: "hidden",
+                          borderWidth: 1,
+                          borderColor: colors.border,
+                          backgroundColor: colors.iconBg,
+                        }}
+                      >
+                        <View
+                          style={{
+                            minHeight: 38,
+                            paddingHorizontal: 14,
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <Text
+                            className="font-nunito-bold text-sm"
+                            style={{ color: colors.iconColor }}
+                          >
+                            {sharingGroup === "dailyNumbers"
+                              ? t("quests.shareGroupPreparing")
+                              : t("quests.shareGroupResult")}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    </View>
+
                     {collapsedGroups.dailyNumbers ? null : (
                       <View className="mt-4 gap-3">
-                        <View className="w-full">
-                          <TouchableOpacity
-                            className="w-full"
-                            onPress={() => {
-                              void handleShareDailyNumbersGroup(item.quests);
-                            }}
-                            disabled={sharingGroup !== null}
-                            style={{
-                              borderRadius: 12,
-                              overflow: "hidden",
-                              borderWidth: 1,
-                              borderColor: colors.border,
-                              backgroundColor: colors.iconBg,
-                            }}
-                          >
-                            <View
-                              style={{
-                                minHeight: 38,
-                                paddingHorizontal: 14,
-                                alignItems: "center",
-                                justifyContent: "center",
-                              }}
-                            >
-                              <Text
-                                className="font-nunito-bold text-sm"
-                                style={{ color: colors.iconColor }}
-                              >
-                                {sharingGroup === "dailyNumbers"
-                                  ? t("quests.shareGroupPreparing")
-                                  : t("quests.shareGroupResult")}
-                              </Text>
-                            </View>
-                          </TouchableOpacity>
-                        </View>
-
                         {DAILY_NUMBERS_MODES.map((mode) => {
                           const quest = item.quests[mode];
                           if (!quest) {
