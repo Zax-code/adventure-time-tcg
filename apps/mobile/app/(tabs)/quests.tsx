@@ -2061,9 +2061,12 @@ export default function QuestsScreen() {
                 claimQuestMutation.isPending &&
                 claimQuestMutation.variables?.id === quest.id;
               const title = getQuestTitle(quest.title, t);
+              const isSpeedCalculus = isSpeedCalculusQuest(quest.type);
               const actionLabel =
                 status === "active"
                   ? t("quests.playQuest")
+                  : isSpeedCalculus
+                    ? t("quests.seeAttempts")
                   : t("quests.seeResults");
               const shouldShowActivationPrompt =
                 isStepQuest(quest.type) &&
@@ -2074,7 +2077,6 @@ export default function QuestsScreen() {
                 status === "active" &&
                 user?.preferredStepSource === "device_health" &&
                 !shouldShowActivationPrompt;
-              const isSpeedCalculus = isSpeedCalculusQuest(quest.type);
               const shouldShowCompletionSummary =
                 (status === "completed" || status === "claimed") &&
                 !isSpeedCalculus;
