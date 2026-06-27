@@ -8,7 +8,6 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
-import * as ScreenOrientation from "expo-screen-orientation";
 import {
   useFonts,
   Nunito_400Regular,
@@ -56,11 +55,15 @@ const DEFAULT_NOTIFICATION_PREFERENCES = {
   giftReceived: true,
 } as const;
 
-const LANDSCAPE_ORIENTATION_PATHS = new Set([
-  "/pvp-match",
-  "/pvp-replay",
-  "/pvp-spectate-match",
-]);
+const PORTRAIT_SCREEN_OPTIONS = {
+  headerShown: false,
+  orientation: "portrait_up",
+} as const;
+
+const LANDSCAPE_SCREEN_OPTIONS = {
+  headerShown: false,
+  orientation: "landscape",
+} as const;
 
 export default function RootLayout() {
   const pathname = usePathname();
@@ -122,14 +125,6 @@ export default function RootLayout() {
 
   useEffect(() => {
     rememberContentPathname(pathname);
-  }, [pathname]);
-
-  useEffect(() => {
-    const orientationLock = LANDSCAPE_ORIENTATION_PATHS.has(pathname)
-      ? ScreenOrientation.OrientationLock.LANDSCAPE
-      : ScreenOrientation.OrientationLock.PORTRAIT;
-
-    ScreenOrientation.lockAsync(orientationLock).catch(() => {});
   }, [pathname]);
 
   useEffect(() => {
@@ -312,7 +307,23 @@ export default function RootLayout() {
               {bootstrapPhase !== "ready" ? (
                 <AppLaunchScreen phase={bootstrapPhase} />
               ) : (
-                <Stack screenOptions={{ headerShown: false }}>
+                <Stack screenOptions={PORTRAIT_SCREEN_OPTIONS}>
+                  <Stack.Screen
+                    name="(tabs)"
+                    options={PORTRAIT_SCREEN_OPTIONS}
+                  />
+                  <Stack.Screen
+                    name="pvp-match"
+                    options={LANDSCAPE_SCREEN_OPTIONS}
+                  />
+                  <Stack.Screen
+                    name="pvp-replay"
+                    options={LANDSCAPE_SCREEN_OPTIONS}
+                  />
+                  <Stack.Screen
+                    name="pvp-spectate-match"
+                    options={LANDSCAPE_SCREEN_OPTIONS}
+                  />
                   <Stack.Screen
                     name="admin-card-editor"
                     options={{
