@@ -98,13 +98,14 @@ defmodule AdventureTimeApi.Notifications do
     end
   end
 
-  def send_pvp_turn(user_id, opponent_name)
-      when is_binary(user_id) and is_binary(opponent_name) do
+  def send_pvp_turn(user_id, opponent_name, match_id \\ nil)
+      when is_binary(user_id) and is_binary(opponent_name) and
+             (is_binary(match_id) or is_nil(match_id)) do
     with {:ok, user} <- fetch_push_user(user_id, :notify_pvp_turn) do
       send_visible_notification(user, %{
         title: notification_title(user.preferred_language, :pvp_turn),
         body: notification_body(user.preferred_language, :pvp_turn, %{name: opponent_name}),
-        data: %{"eventType" => "pvp_turn"}
+        data: pvp_turn_notification_data(match_id)
       })
     end
   end
@@ -336,6 +337,12 @@ defmodule AdventureTimeApi.Notifications do
 
   defp notification_body(_locale, :access_request_created, %{email: email}),
     do: "#{email} is waiting for approval."
+
+  defp pvp_turn_notification_data(match_id) when is_binary(match_id) do
+    %{"eventType" => "pvp_turn", "matchId" => match_id}
+  end
+
+  defp pvp_turn_notification_data(_match_id), do: %{"eventType" => "pvp_turn"}
 
   defp push_headers do
     access_token = config(:access_token)

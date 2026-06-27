@@ -25,6 +25,7 @@ import { useStepQuestWidgetSync } from "../src/hooks/use-step-quest-widget-sync"
 import { useUserTimezoneSync } from "../src/hooks/use-user-timezone-sync";
 import { useWidgetRefreshPushRegistration } from "../src/hooks/use-widget-refresh-push-registration";
 import { useWarmPackVisuals } from "../src/hooks/use-warm-pack-visuals";
+import { useNotificationResponseRouting } from "../src/hooks/use-notification-response-routing";
 import { AppLaunchScreen } from "../src/components/app-launch-screen";
 import { queryClient } from "../src/lib/query-client";
 import { useBootstrap } from "../src/hooks/use-bootstrap";
@@ -115,6 +116,8 @@ export default function RootLayout() {
   });
   const localBootReady =
     fontsLoaded && themeHydrated && localeHydrated && sessionHydrated;
+
+  useNotificationResponseRouting(localBootReady && bootstrapPhase === "ready");
 
   useEffect(() => {
     void hydrateTheme();

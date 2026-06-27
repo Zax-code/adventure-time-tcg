@@ -1189,7 +1189,7 @@ defmodule AdventureTimeApi.Pvp do
             user_display_name(match.inviter_id)
           end
 
-        _ = Notifications.send_pvp_turn(current_player_id, opponent_name)
+        _ = Notifications.send_pvp_turn(current_player_id, opponent_name, match.id)
       end)
     end
   end
