@@ -14,6 +14,7 @@ export type WordleShareAttempt = {
 export type WordleQuestShareResult = {
   questTitle: string;
   date?: string;
+  wordLocale?: "fr" | "en";
   attempts: WordleShareAttempt[];
   solved: boolean;
   attemptCount: number;
@@ -27,6 +28,7 @@ type WordleEvaluationStatus = "correct" | "present" | "absent";
 export type BuildWordleShareResultInput = {
   questTitle: string;
   date?: string | null;
+  wordLocale?: "fr" | "en";
   solved: boolean;
   maxAttempts: number;
   wordLength: number;
@@ -61,6 +63,7 @@ export function buildWordleShareResult(
   return {
     questTitle: input.questTitle,
     date: input.date ?? undefined,
+    wordLocale: input.wordLocale,
     attempts,
     solved: input.solved,
     attemptCount: input.evaluations.length,
@@ -78,6 +81,10 @@ export function buildWordleShareFileName(result: WordleQuestShareResult): string
 
   if (result.date) {
     parts.push(result.date);
+  }
+
+  if (result.wordLocale) {
+    parts.push(result.wordLocale);
   }
 
   parts.push(result.solved ? "solved" : "failed");

@@ -27,7 +27,10 @@ import type {
 import { apiClient } from "../../src/lib/api";
 import { PageLoadingState } from "../../src/components/loading-state";
 import { WordleQuestShareCard } from "../../src/features/quests/wordle/quest-share-card";
-import { buildWordleShareResult, buildWordleShareFileName } from "../../src/features/quests/wordle/share-result";
+import {
+  buildWordleShareFileName,
+  buildWordleShareResult,
+} from "../../src/features/quests/wordle/share-result";
 import { useTranslation } from "../../src/i18n";
 import { useQuestResetStore } from "../../src/stores/quest-reset-store";
 import { useThemeStore } from "../../src/stores/theme-store";
@@ -240,12 +243,13 @@ export default function WordleScreen() {
       buildWordleShareResult({
         questTitle: t("quests.wordle.title"),
         date: activeDateKey,
+        wordLocale: wordleLanguage,
         solved,
         maxAttempts: MAX_ATTEMPTS,
         wordLength: WORD_LENGTH,
         evaluations: guesses.map((guess) => guess.evaluation),
       }),
-    [guesses, solved, activeDateKey, t],
+    [guesses, solved, activeDateKey, t, wordleLanguage],
   );
 
   const wordleShareStrings = useMemo(
@@ -253,6 +257,10 @@ export default function WordleScreen() {
       brand: t("quests.wordle.shareBrand"),
       footer: t("quests.wordle.shareFooter"),
       date: formatShareDate(activeDateKey, locale),
+      wordLanguage:
+        wordleLanguage === "fr"
+          ? t("quests.wordle.shareFrenchWord")
+          : t("quests.wordle.shareEnglishWord"),
       resultLine: solved
         ? t("quests.wordle.shareSolved", {
             used: attemptsUsed,
@@ -263,7 +271,7 @@ export default function WordleScreen() {
             total: MAX_ATTEMPTS,
           }),
     }),
-    [t, locale, activeDateKey, solved, attemptsUsed],
+    [t, locale, activeDateKey, wordleLanguage, solved, attemptsUsed],
   );
 
   // ── API ──────────────────────────────────────────────────────────────────

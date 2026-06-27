@@ -101,6 +101,8 @@ const quests = {
     shareResult: "Partager le résultat",
     sharePreparing: "Préparation…",
     shareBrand: "Adventure Time TCG",
+    shareFrenchWord: "Mot français",
+    shareEnglishWord: "Mot anglais",
     shareSolved: "Résolu en {used}/{total}",
     shareFailed: "Échec — {used}/{total}",
     shareFooter: "Quête quotidienne",

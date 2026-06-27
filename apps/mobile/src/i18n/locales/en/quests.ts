@@ -100,6 +100,8 @@ const quests = {
     shareResult: "Share result",
     sharePreparing: "Preparing…",
     shareBrand: "Adventure Time TCG",
+    shareFrenchWord: "French word",
+    shareEnglishWord: "English word",
     shareSolved: "Solved in {used}/{total}",
     shareFailed: "Failed — {used}/{total}",
     shareFooter: "Daily Quest",

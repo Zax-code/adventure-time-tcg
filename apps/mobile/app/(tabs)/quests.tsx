@@ -421,8 +421,8 @@ export default function QuestsScreen() {
     isForceRefreshing: false,
   });
   const [collapsedGroups, setCollapsedGroups] = useState({
-    wordle: false,
-    dailyNumbers: false,
+    wordle: true,
+    dailyNumbers: true,
   });
   const toastAnim = useRef(new Animated.Value(-60)).current;
   const lastImmediateResetAtRef = useRef(0);
