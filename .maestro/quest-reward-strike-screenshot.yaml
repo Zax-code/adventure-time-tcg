@@ -1,0 +1,18 @@
+appId: love.leaetzak.adventuretime
+name: Quest reward strike screenshot
+tags:
+  - quests
+  - screenshots
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- openLink:
+    link: adventure-time:///e2e-auth?redirect=%2Fquests&email=${TEST_EMAIL_URI}&password=${TEST_PASSWORD_URI}
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- assertVisible:
+    text: Daily quests
+- assertVisible:
+    text: Walk 10,000 steps
+- waitForAnimationToEnd
+- takeScreenshot: tmp-quest-reward-strike/claimed-reward
