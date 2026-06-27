@@ -22,10 +22,9 @@ tags:
     visible:
       id: pvp-combat-log-modal
     timeout: 5000
-- swipe:
-    start: "50%,18%"
-    end: "50%,88%"
-    duration: 700
+- tapOn:
+    id: pvp-combat-log-modal-close-button
+    retryTapIfNoChange: true
 - waitForAnimationToEnd
 - assertNotVisible:
     id: pvp-combat-log-modal
@@ -33,10 +32,9 @@ tags:
     id: pvp-my-unit-0
 - assertVisible:
     id: pvp-card-info-modal
-- swipe:
-    start: "50%,18%"
-    end: "50%,88%"
-    duration: 700
+- tapOn:
+    id: pvp-card-info-modal-close-button
+    retryTapIfNoChange: true
 - waitForAnimationToEnd
 - assertNotVisible:
     id: pvp-card-info-modal
