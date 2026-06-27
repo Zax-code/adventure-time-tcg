@@ -3,8 +3,11 @@ package love.leaetzak.adventuretime
 import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -41,6 +44,7 @@ private const val SERVER_SYNC_THROTTLE_MS = 15 * 60 * 1000L
 private const val WORK_NAME = "step-quest-widget-health-connect-sync"
 private const val ONE_TIME_WORK_NAME = "step-quest-widget-health-connect-sync-now"
 private const val STEP_NOTIFICATION_CHANNEL_ID = "step-goals"
+private const val STEP_GOAL_ROUTE_URL = "adventure-time:///widget-quests"
 
 object StepQuestWidgetBackgroundSync {
   fun enqueueOneTime(context: Context) {
@@ -245,6 +249,21 @@ class StepQuestWidgetBackgroundSyncWorker(
       )
     }
 
+    val contentIntent = PendingIntent.getActivity(
+      applicationContext,
+      UUID.nameUUIDFromBytes("step-goal-route-$userId-$recordedFor".toByteArray()).hashCode(),
+      Intent(
+        Intent.ACTION_VIEW,
+        Uri.parse(STEP_GOAL_ROUTE_URL),
+        applicationContext,
+        MainActivity::class.java,
+      ).apply {
+        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        putExtra("eventType", "step_goal_reached")
+      },
+      PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+    )
+
     val notification = NotificationCompat.Builder(applicationContext, STEP_NOTIFICATION_CHANNEL_ID)
       .setSmallIcon(applicationContext.applicationInfo.icon)
       .setContentTitle(if (context.preferredLanguage == "fr") "Objectif de pas atteint" else "Step goal reached")
@@ -256,6 +275,7 @@ class StepQuestWidgetBackgroundSyncWorker(
         },
       )
       .setAutoCancel(true)
+      .setContentIntent(contentIntent)
       .setPriority(NotificationCompat.PRIORITY_DEFAULT)
       .build()
 
