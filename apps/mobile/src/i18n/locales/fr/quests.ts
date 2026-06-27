@@ -88,6 +88,7 @@ const quests = {
     frenchWords: "Mot français",
     englishWords: "Mot anglais",
     failedLabel: "Plus d'essais",
+    seeGuesses: "Voir les tentatives",
     attempts: "Essais restants",
     attemptsUsed: "Résolu en",
     submit: "Valider",

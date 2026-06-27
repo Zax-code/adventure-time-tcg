@@ -1529,7 +1529,7 @@ export default function QuestsScreen() {
                           const actionLabel =
                             languageStatus === "active"
                               ? t("quests.dailyNumbers.playAction")
-                              : t("quests.dailyNumbers.viewResult");
+                              : t("quests.wordle.seeGuesses");
                           const attemptsUsed = quest.attemptsUsed ?? 0;
 
                           return (

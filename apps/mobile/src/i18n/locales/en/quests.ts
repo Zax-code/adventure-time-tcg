@@ -87,6 +87,7 @@ const quests = {
     frenchWords: "French word",
     englishWords: "English word",
     failedLabel: "Out of guesses",
+    seeGuesses: "See guesses",
     attempts: "Attempts left",
     attemptsUsed: "Solved in",
     submit: "Guess",
