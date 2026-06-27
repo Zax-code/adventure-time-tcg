@@ -1,6 +1,6 @@
-import { useEffect, useState, type ReactNode } from "react";
-import { ModalBottomSheet } from "@swmansion/react-native-bottom-sheet";
+import type { ReactNode } from "react";
 import {
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -8,6 +8,11 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { XIcon } from "../../components/icons";
+import { useTranslation } from "../../i18n";
+import { useThemeStore } from "../../stores/theme-store";
+import { THEME_COLORS, THEME_VARS } from "../../theme/themes";
 
 interface BattleFullScreenSheetProps {
   visible: boolean;
@@ -28,30 +33,18 @@ export function BattleFullScreenSheet({
   scrollable = true,
   testID,
 }: BattleFullScreenSheetProps) {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const { height } = useWindowDimensions();
-  const [index, setIndex] = useState(visible ? 1 : 0);
-  const [mounted, setMounted] = useState(visible);
-  const topGap = Math.max(insets.top + 16, 56);
-  const maxSheetHeight = Math.max(0, height - topGap);
+  const { height, width } = useWindowDimensions();
+  const themeName = useThemeStore((state) => state.themeName);
+  const tc = THEME_COLORS[themeName];
+  const topPadding = Math.max(insets.top + 10, 16);
+  const bottomPadding = Math.max(insets.bottom + 10, 16);
+  const horizontalPadding = width > height ? 20 : 12;
+  const modalHeight = Math.max(0, height - topPadding - bottomPadding);
+  const modalMaxWidth = Math.min(width - horizontalPadding * 2, 980);
 
-  useEffect(() => {
-    if (visible) {
-      setMounted(true);
-      setIndex(1);
-      return;
-    }
-
-    setIndex(0);
-  }, [visible]);
-
-  useEffect(() => {
-    if (!visible && index === 0) {
-      setMounted(false);
-    }
-  }, [index, visible]);
-
-  if (!mounted) {
+  if (!visible) {
     return null;
   }
 
@@ -69,68 +62,73 @@ export function BattleFullScreenSheet({
   );
 
   return (
-    <ModalBottomSheet
-      index={index}
-      onIndexChange={setIndex}
-      onSettle={(nextIndex) => {
-        if (nextIndex === 0 && visible) {
-          onClose();
-        }
-      }}
-      detents={[0, "content"]}
-      scrimColor="rgba(0,0,0,0.65)"
-      surface={
-        <View
-          className="bg-bg"
-          style={[
-            StyleSheet.absoluteFill,
-            {
-              borderTopLeftRadius: 30,
-              borderTopRightRadius: 30,
-            },
-          ]}
-        />
-      }
+    <View
+      className="flex-1"
+      style={[
+        StyleSheet.absoluteFill,
+        THEME_VARS[themeName] as never,
+        {
+          backgroundColor:
+            themeName === "nightosphere"
+              ? "rgba(5,1,10,0.88)"
+              : "rgba(38,22,30,0.68)",
+          paddingBottom: bottomPadding,
+          paddingHorizontal: horizontalPadding,
+          paddingTop: topPadding,
+          zIndex: 50,
+        },
+      ]}
     >
-      <View
-        className="bg-bg"
-        style={{
-          borderTopLeftRadius: 30,
-          borderTopRightRadius: 30,
-          overflow: "hidden",
-          maxHeight: maxSheetHeight,
-          minHeight: Math.min(maxSheetHeight, height * 0.68),
-        }}
-        testID={testID}
-      >
-        <View>
-          <View
-            className="h-1 w-9 self-center rounded-full bg-muted"
-            style={{ marginBottom: 8, marginTop: 12 }}
-          />
-
-          <View className="flex-row items-center justify-center border-b border-primaryTint px-5 pb-4">
-            <View className="flex-1 items-center">
-              <Text className="font-nunito-extrabold text-2xl text-fg">
+      <View className="flex-1 items-center justify-center">
+        <View
+          accessibilityViewIsModal
+          className="w-full overflow-hidden rounded-[30px] border border-primaryTint bg-bg"
+          style={{
+            height: modalHeight,
+            maxWidth: modalMaxWidth,
+            boxShadow:
+              themeName === "nightosphere"
+                ? "0px 20px 40px rgba(0, 0, 0, 0.42)"
+                : "0px 20px 40px rgba(90, 45, 12, 0.18)",
+          }}
+          testID={testID}
+        >
+          <View className="flex-row items-center border-b border-primaryTint px-4 py-3">
+            <View className="w-11" />
+            <View className="flex-1 items-center px-2">
+              <Text
+                className="text-center font-nunito-extrabold text-2xl text-fg"
+                numberOfLines={2}
+              >
                 {title}
               </Text>
             </View>
+            <Pressable
+              accessibilityLabel={t("common.close")}
+              accessibilityRole="button"
+              className="h-11 w-11 items-center justify-center rounded-full bg-surfaceMuted"
+              hitSlop={6}
+              onPress={onClose}
+              testID={testID ? `${testID}-close-button` : undefined}
+            >
+              <XIcon size={20} color={tc.fg} />
+            </Pressable>
           </View>
+
+          {content}
+
+          {footer ? (
+            <View
+              className="border-t border-primaryTint bg-surface px-4 pt-4"
+              style={{ paddingBottom: Math.max(insets.bottom, 12) }}
+            >
+              {footer}
+            </View>
+          ) : (
+            <View style={{ height: Math.max(insets.bottom, 12) }} />
+          )}
         </View>
-
-        {content}
-
-        {footer ? (
-          <View
-            className="border-t border-primaryTint bg-surface px-4 pt-4"
-            style={{ paddingBottom: Math.max(insets.bottom, 12) }}
-          >
-            {footer}
-          </View>
-        ) : (
-          <View style={{ height: Math.max(insets.bottom, 12) }} />
-        )}
       </View>
-    </ModalBottomSheet>
+    </View>
   );
 }

@@ -1,46 +1,37 @@
 import { Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { LoadingPanel } from "../src/components/loading-state";
-import { ModalSheetRoute } from "../src/components/modal-sheet-route";
 import { PageErrorState } from "../src/components/error-state";
 import { LoadoutCardDetailsContent } from "../src/components/pvp/loadout-card-details-content";
 import { apiClient } from "../src/lib/api";
 import { useTranslation } from "../src/i18n";
-import { useThemeStore } from "../src/stores/theme-store";
-import { THEME_COLORS, THEME_VARS } from "../src/theme/themes";
+import { BattleFullScreenSheet } from "../src/features/pvp/battle-full-screen-sheet";
 
 export default function PvpCardDetailsScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const params = useLocalSearchParams<{ cardId?: string }>();
-  const themeName = useThemeStore((state) => state.themeName);
-  const tc = THEME_COLORS[themeName];
 
   const collectionQuery = useQuery({
     queryKey: ["collection"],
     queryFn: () => apiClient.collection(),
   });
 
-  const card = collectionQuery.data?.cards.find((entry) => entry.cardId === params.cardId)?.card ?? null;
+  const card =
+    collectionQuery.data?.cards.find((entry) => entry.cardId === params.cardId)
+      ?.card ?? null;
 
   return (
-    <ModalSheetRoute
+    <BattleFullScreenSheet
+      visible
+      title={t("pvp.cardDetailsTitle")}
       onClose={() => router.back()}
-      sheetBackgroundColor={tc.bg}
-      handleColor={tc.muted}
-      sheetStyle={THEME_VARS[themeName]}
+      scrollable={false}
+      testID="pvp-card-details-modal"
     >
       <View className="flex-1 bg-bg">
-        <View className="items-center border-b border-primaryTint px-6 py-4">
-          <Text className="font-nunito-extrabold text-2xl text-fg">
-            {t("pvp.cardDetailsTitle")}
-          </Text>
-        </View>
-
         {collectionQuery.isLoading ? (
           <View className="flex-1 items-center justify-center px-6">
             <LoadingPanel
@@ -65,11 +56,12 @@ export default function PvpCardDetailsScreen() {
             </Text>
           </View>
         ) : (
-          <LoadoutCardDetailsContent card={card} onClose={() => router.back()} />
+          <LoadoutCardDetailsContent
+            card={card}
+            onClose={() => router.back()}
+          />
         )}
-
-        <View style={{ height: insets.bottom }} />
       </View>
-    </ModalSheetRoute>
+    </BattleFullScreenSheet>
   );
 }

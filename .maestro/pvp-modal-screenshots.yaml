@@ -78,10 +78,9 @@ tags:
 - assertVisible:
     id: pvp-invite-sheet
 - takeScreenshot: tmp-pvp-modal-shots/07-invite-sheet
-- swipe:
-    start: "50%,18%"
-    end: "50%,88%"
-    duration: 700
+- tapOn:
+    id: pvp-invite-sheet-close-button
+    retryTapIfNoChange: true
 - waitForAnimationToEnd
 - assertNotVisible:
     id: pvp-invite-sheet

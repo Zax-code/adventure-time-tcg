@@ -356,31 +356,6 @@ export function ActionModal({
                   </View>
                 </ThemedExpoButton>
               ))}
-
-              <ThemedExpoButton
-                onPress={() => {
-                  onSubmitAction({ kind: "pass" });
-                  onClose();
-                }}
-                testID="pvp-action-pass-button"
-                variant="secondary"
-                fallbackAppearance={{
-                  backgroundColor: "#475569",
-                  borderColor: "#475569",
-                  borderRadius: 16,
-                  foregroundColor: "#FFFFFF",
-                  gradientColors: null,
-                  minHeight: 0,
-                  paddingHorizontal: 16,
-                  paddingVertical: 16,
-                  textStyle: {
-                    fontFamily: "Nunito_700Bold",
-                    fontSize: 14,
-                  },
-                }}
-              >
-                {t("pvp.action.pass")}
-              </ThemedExpoButton>
             </View>
           </View>
         </View>
