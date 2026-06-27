@@ -15,8 +15,8 @@ const quests = {
   claimFailed: "Failed to claim reward.",
   fitbitConnectedSuccess: "Fitbit connected.",
   fitbitConnectFailed: "Failed to connect Fitbit.",
-  questReset: "{quest} was reset.",
-  questResetByAdmin: "{quest} was reset by {name}.",
+  questReset: "Daily quests were reset.",
+  questResetByAdmin: "Daily quests were reset by {name}.",
   stepSyncPromptTitle: "Turn on step tracking for this quest",
   stepSyncPromptBody:
     "Enable {healthSystem} once so this quest can count your steps.",

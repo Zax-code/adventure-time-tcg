@@ -79,6 +79,8 @@ type DescriptionModalState = {
   status: QuestStatus;
 } | null;
 
+let lastShownQuestResetToastAt = 0;
+
 function formatProgress(progress: number, target: number) {
   if (target >= 10000) {
     return `${(progress / 1000).toFixed(1)}k / ${(target / 1000).toFixed(0)}k`;
@@ -471,7 +473,6 @@ export default function QuestsScreen() {
     dailyNumbers: true,
   });
   const toastAnim = useRef(new Animated.Value(-60)).current;
-  const lastImmediateResetAtRef = useRef(0);
 
   useEffect(() => {
     if (!toast) {
@@ -714,88 +715,20 @@ export default function QuestsScreen() {
     },
   });
 
-  const previousQuestMapRef = useRef<Record<string, Quest>>({});
-
   useEffect(() => {
     if (!lastQuestResetAt || !lastQuestResetPayload) return;
-
-    const resetQuest = questsQuery.data?.quests.find((quest) => {
-      return (
-        !lastQuestResetPayload.questType ||
-        quest.type === lastQuestResetPayload.questType
-      );
-    });
-
-    const questTitle = resetQuest
-      ? getQuestTitle(resetQuest.title, t)
-      : t("quests.title");
+    if (lastShownQuestResetToastAt === lastQuestResetAt) return;
 
     setToast({
       type: "success",
       message: lastQuestResetPayload.resetByName
         ? t("quests.questResetByAdmin", {
-            quest: questTitle,
             name: lastQuestResetPayload.resetByName,
           })
-        : t("quests.questReset", { quest: questTitle }),
+        : t("quests.questReset"),
     });
-    lastImmediateResetAtRef.current = lastQuestResetAt;
-  }, [lastQuestResetAt, lastQuestResetPayload, questsQuery.data, t]);
-
-  useEffect(() => {
-    const nextQuests = questsQuery.data?.quests;
-    if (!nextQuests) return;
-
-    if (Date.now() - lastImmediateResetAtRef.current < 2_000) {
-      previousQuestMapRef.current = Object.fromEntries(
-        nextQuests.map((quest) => [quest.type, quest]),
-      );
-      return;
-    }
-
-    const previousQuestMap = previousQuestMapRef.current;
-
-    const resetQuest = nextQuests.find((quest) => {
-      const previousQuest = previousQuestMap[quest.type];
-
-      if (!previousQuest) {
-        return false;
-      }
-
-      if (previousQuest.version === quest.version) {
-        return false;
-      }
-
-      return (
-        previousQuest.progress > 0 ||
-        previousQuest.completed ||
-        previousQuest.claimed ||
-        previousQuest.failed ||
-        (previousQuest.attemptsUsed ?? 0) > 0 ||
-        (previousQuest.runsUsed ?? 0) > 0
-      );
-    });
-
-    previousQuestMapRef.current = Object.fromEntries(
-      nextQuests.map((quest) => [quest.type, quest]),
-    );
-
-    if (!resetQuest) {
-      return;
-    }
-
-    const questTitle = getQuestTitle(resetQuest.title, t);
-
-    setToast({
-      type: "success",
-      message: resetQuest.resetByName
-        ? t("quests.questResetByAdmin", {
-            quest: questTitle,
-            name: resetQuest.resetByName,
-          })
-        : t("quests.questReset", { quest: questTitle }),
-    });
-  }, [questsQuery.data, t]);
+    lastShownQuestResetToastAt = lastQuestResetAt;
+  }, [lastQuestResetAt, lastQuestResetPayload, t]);
 
   const openQuest = useCallback(
     (quest: Quest) => {

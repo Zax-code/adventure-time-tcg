@@ -15,8 +15,8 @@ const quests = {
   claimFailed: "Impossible de récupérer la récompense.",
   fitbitConnectedSuccess: "Fitbit connecté.",
   fitbitConnectFailed: "Impossible de connecter Fitbit.",
-  questReset: "{quest} a été réinitialisée.",
-  questResetByAdmin: "{quest} a été réinitialisée par {name}.",
+  questReset: "Les quêtes ont été réinitialisées.",
+  questResetByAdmin: "Les quêtes ont été réinitialisées par {name}.",
   stepSyncPromptTitle: "Active le suivi des pas pour cette quête",
   stepSyncPromptBody:
     "Active {healthSystem} une fois pour que cette quête puisse compter tes pas.",
