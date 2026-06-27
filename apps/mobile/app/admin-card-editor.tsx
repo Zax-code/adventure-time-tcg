@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Alert, Pressable, ScrollView, Text, View } from "react-native";
+import { Alert, ScrollView, Text, View } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
@@ -294,16 +294,6 @@ export default function AdminCardEditorScreen() {
                   isCreateMode
                     ? t("admin.cardEditor.createSubtitle")
                     : t("admin.cardEditor.editSubtitle")
-                }
-                right={
-                  <Pressable
-                    className="rounded-full px-3 py-2"
-                    onPress={closeEditor}
-                  >
-                    <Text className="font-nunito-bold text-sm text-primaryStrong">
-                      {t("admin.common.close")}
-                    </Text>
-                  </Pressable>
                 }
               />
             </View>
