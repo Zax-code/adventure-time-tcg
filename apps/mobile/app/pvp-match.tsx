@@ -14,6 +14,7 @@ import { ActionModal } from "../src/features/pvp/action-modal";
 import { CardInfoModal } from "../src/features/pvp/card-info-modal";
 import { CombatLogModal } from "../src/features/pvp/combat-log-modal";
 import { useMatch } from "../src/features/pvp/use-match";
+import { useLandscapeOrientationLock } from "../src/hooks/use-orientation-lock";
 import {
   type MyMatchView,
   prepareCopyFollowUp,
@@ -85,6 +86,8 @@ function normalizeTargetingMode(mode: TargetingModeInput): TargetingMode {
 }
 
 export default function PvpMatchScreen() {
+  useLandscapeOrientationLock();
+
   const { id, e2eModal } = useLocalSearchParams<{
     id: string;
     e2eModal?: string;

@@ -6,12 +6,15 @@ import { PageLoadingState } from "../src/components/loading-state";
 import { PageErrorState } from "../src/components/error-state";
 import { BattleBoard } from "../src/features/pvp/battle-board";
 import { buildSpectateMatchView } from "../src/features/pvp/read-only-view";
+import { useLandscapeOrientationLock } from "../src/hooks/use-orientation-lock";
 import { useTranslation } from "../src/i18n";
 import { apiClient } from "../src/lib/api";
 import { useThemeStore } from "../src/stores/theme-store";
 import { THEME_VARS } from "../src/theme/themes";
 
 export default function PvpSpectateMatchScreen() {
+  useLandscapeOrientationLock();
+
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const themeName = useThemeStore((state) => state.themeName);

@@ -1,5 +1,5 @@
 import { View } from "react-native";
-import { Tabs, Redirect } from "expo-router";
+import { Tabs, Redirect, Stack } from "expo-router";
 
 import { useSessionStore } from "../../src/stores/session-store";
 import { AppHeader } from "../../src/components/app-header";
@@ -21,6 +21,7 @@ export default function TabLayout() {
 
   return (
     <View style={{ flex: 1 }}>
+      <Stack.Screen options={{ orientation: "portrait_up" }} />
       <Tabs
         screenOptions={{
           headerShown: false,

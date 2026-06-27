@@ -47,6 +47,15 @@ const TAB_CONFIG: Record<
 
 const TAB_ORDER: VisibleTabName[] = Object.keys(TAB_CONFIG) as VisibleTabName[];
 
+const TAB_TEST_IDS: Record<VisibleTabName, string> = {
+  index: "tab-home",
+  packs: "tab-packs",
+  pvp: "tab-pvp",
+  quests: "tab-quests",
+  collection: "tab-collection",
+  gifts: "tab-gifts",
+};
+
 export function BottomTabBar({
   state,
   descriptors,
@@ -123,10 +132,16 @@ export function BottomTabBar({
           return (
             <Pressable
               key={tab.route.key}
+              accessible
               accessibilityRole="button"
               accessibilityState={tab.focused ? { selected: true } : {}}
-              accessibilityLabel={descriptor.options.tabBarAccessibilityLabel}
-              testID={descriptor.options.tabBarButtonTestID}
+              accessibilityLabel={
+                descriptor.options.tabBarAccessibilityLabel ?? tab.label
+              }
+              testID={
+                descriptor.options.tabBarButtonTestID ??
+                TAB_TEST_IDS[tab.route.name as VisibleTabName]
+              }
               onPress={onPress}
               onLongPress={onLongPress}
               className="flex-1 items-center justify-center gap-1 rounded-[22px] px-0 py-2"

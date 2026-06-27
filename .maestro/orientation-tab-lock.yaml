@@ -1,0 +1,49 @@
+appId: love.leaetzak.adventuretime
+name: Orientation lock across PvP and tabs
+tags:
+  - orientation
+  - tabs
+  - pvp
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- openLink:
+    link: adventure-time:///e2e-auth?redirect=%2Fpvp-match%3Fid%3D${TEST_MATCH_ID}&accessToken=${TEST_ACCESS_TOKEN}&refreshToken=${TEST_REFRESH_TOKEN}&user=${TEST_USER}
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- extendedWaitUntil:
+    visible:
+      id: pvp-battle-board
+    timeout: 30000
+- setOrientation: LANDSCAPE_LEFT
+- waitForAnimationToEnd
+- takeScreenshot: tmp-orientation-shots/00-pvp-match-landscape
+- openLink:
+    link: adventure-time:///e2e-auth?redirect=%2Fpvp&accessToken=${TEST_ACCESS_TOKEN}&refreshToken=${TEST_REFRESH_TOKEN}&user=${TEST_USER}
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- extendedWaitUntil:
+    visible:
+      id: pvp-open-mechanics-button
+    timeout: 30000
+- setOrientation: LANDSCAPE_LEFT
+- waitForAnimationToEnd
+- takeScreenshot: tmp-orientation-shots/01-pvp-tab-after-landscape
+- openLink:
+    link: adventure-time:///e2e-auth?redirect=%2Fgifts&accessToken=${TEST_ACCESS_TOKEN}&refreshToken=${TEST_REFRESH_TOKEN}&user=${TEST_USER}
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- extendedWaitUntil:
+    visible: Gifts
+    timeout: 30000
+- setOrientation: LANDSCAPE_LEFT
+- waitForAnimationToEnd
+- takeScreenshot: tmp-orientation-shots/02-gifts-tab-after-landscape
+- openLink:
+    link: adventure-time:///e2e-auth?redirect=%2Fpacks&accessToken=${TEST_ACCESS_TOKEN}&refreshToken=${TEST_REFRESH_TOKEN}&user=${TEST_USER}
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- extendedWaitUntil:
+    visible:
+      id: pack-storefront
+    timeout: 30000
+- setOrientation: LANDSCAPE_LEFT
+- waitForAnimationToEnd
+- takeScreenshot: tmp-orientation-shots/03-packs-tab-after-landscape

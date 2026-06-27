@@ -6,6 +6,9 @@
     "version": "0.3.8",
     "owner": "zax-code",
     "userInterfaceStyle": "automatic",
+    "ios": {
+      "requireFullScreen": true
+    },
     "experiments": {
       "typedRoutes": true
     },

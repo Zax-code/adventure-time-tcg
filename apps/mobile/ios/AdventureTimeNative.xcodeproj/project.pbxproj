@@ -17,6 +17,7 @@
 		A1B200000000000000000003 /* StepQuestWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B200000000000000000014 /* StepQuestWidget.swift */; };
 		A1B200000000000000000004 /* StepQuestWidgetExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = A1B200000000000000000012 /* StepQuestWidgetExtension.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		A1B200000000000000000005 /* WidgetSnapshotBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B200000000000000000015 /* WidgetSnapshotBridge.swift */; };
+		A1B200000000000000000006 /* OrientationLockBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = A1B200000000000000000018 /* OrientationLockBridge.m */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
 /* End PBXBuildFile section */
@@ -61,6 +62,8 @@
 		A1B200000000000000000015 /* WidgetSnapshotBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdventureTimeNative/WidgetSnapshotBridge.swift; sourceTree = "<group>"; };
 		A1B200000000000000000016 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A1B200000000000000000017 /* StepQuestWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = StepQuestWidgetExtension.entitlements; sourceTree = "<group>"; };
+		A1B200000000000000000018 /* OrientationLockBridge.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AdventureTimeNative/OrientationLockBridge.m; sourceTree = "<group>"; };
+		A1B200000000000000000019 /* OrientationLockBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AdventureTimeNative/OrientationLockBridge.h; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = AdventureTimeNative/SplashScreen.storyboard; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
@@ -91,6 +94,8 @@
 			isa = PBXGroup;
 			children = (
 				F11748412D0307B40044C1D9 /* AppDelegate.swift */,
+				A1B200000000000000000019 /* OrientationLockBridge.h */,
+				A1B200000000000000000018 /* OrientationLockBridge.m */,
 				A1B200000000000000000011 /* WidgetSnapshotBridge.m */,
 				A1B200000000000000000015 /* WidgetSnapshotBridge.swift */,
 				F11748442D0722820044C1D9 /* AdventureTimeNative-Bridging-Header.h */,
@@ -445,6 +450,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A1B200000000000000000001 /* WidgetSnapshotBridge.m in Sources */,
+				A1B200000000000000000006 /* OrientationLockBridge.m in Sources */,
 				A1B200000000000000000005 /* WidgetSnapshotBridge.swift in Sources */,
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
 				023F9DC157D8905FA5C0197D /* ExpoModulesProvider.swift in Sources */,
