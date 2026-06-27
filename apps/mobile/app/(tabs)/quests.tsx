@@ -1042,12 +1042,9 @@ export default function QuestsScreen() {
                         <SparklesIcon size={28} color={colors.iconColor} />
                       </View>
 
-                      <View style={{ flex: 1, gap: 4 }}>
+                      <View style={{ flex: 1 }}>
                         <Text className="font-nunito-bold text-base text-fg">
                           {t("quests.wordle.title")}
-                        </Text>
-                        <Text className="font-nunito text-sm text-fgMuted">
-                          {t("quests.wordleGroupDesc")}
                         </Text>
                       </View>
 
@@ -1368,12 +1365,9 @@ export default function QuestsScreen() {
                         <SparklesIcon size={28} color={colors.iconColor} />
                       </View>
 
-                      <View style={{ flex: 1, gap: 4 }}>
+                      <View style={{ flex: 1 }}>
                         <Text className="font-nunito-bold text-base text-fg">
                           {t("quests.dailyNumbers.title")}
-                        </Text>
-                        <Text className="font-nunito text-sm text-fgMuted">
-                          {t("quests.dailyNumbersGroupDesc")}
                         </Text>
                       </View>
 
@@ -1471,10 +1465,6 @@ export default function QuestsScreen() {
                                     </Text>
                                   </View>
                                 </View>
-
-                                <Text className="font-nunito text-sm text-fgMuted">
-                                  {getQuestDesc(quest.description, t)}
-                                </Text>
 
                                 {getDailyNumbersResultLabel(quest, t) ? (
                                   <Text
