@@ -348,6 +348,8 @@ const pvp = {
     "Choisis une composition prête, commence avec tes derniers adversaires ou cherche un joueur précis.",
   createLoadoutHint:
     "Construis d'abord une équipe valide de 6 cartes avant d'envoyer un défi.",
+  needLoadoutToInvite:
+    "Crée au moins une composition avant d'envoyer une invitation.",
   manageLoadoutsHint:
     "Crée, corrige et réorganise les équipes que tu utilises en PvP.",
   spectateHint:
