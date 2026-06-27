@@ -74,7 +74,6 @@ const pvp = {
     activeEnemies: "{count} ennemis actifs",
     strongAgainst: "Fort contre : {value}",
     weakAgainst: "Faible contre : {value}",
-    pass: "Passer",
   },
   combatLog: {
     title: "Journal de combat",
