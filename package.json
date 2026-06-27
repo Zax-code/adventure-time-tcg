@@ -31,6 +31,7 @@
     "build": "npm run build --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
+    "postinstall": "patch-package",
     "test:mobile:e2e:ios": "./scripts/maestro.sh test --platform ios .maestro/smoke.yaml",
     "test:mobile:e2e:android": "./scripts/maestro.sh test --platform android .maestro/smoke.yaml",
     "test:mobile:e2e:pvp:ios": "./scripts/maestro.sh test --platform ios .maestro/pvp-smoke.yaml",
@@ -47,6 +48,7 @@
   },
   "devDependencies": {
     "@types/react": "~19.2.14",
+    "patch-package": "^8.0.1",
     "react-doctor": "^0.2.16"
   },
   "overrides": {

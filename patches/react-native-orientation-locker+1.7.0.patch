@@ -1,0 +1,85 @@
+diff --git a/node_modules/react-native-orientation-locker/iOS/RCTOrientation/Orientation.m b/node_modules/react-native-orientation-locker/iOS/RCTOrientation/Orientation.m
+index d93debf..752ebc9 100644
+--- a/node_modules/react-native-orientation-locker/iOS/RCTOrientation/Orientation.m
++++ b/node_modules/react-native-orientation-locker/iOS/RCTOrientation/Orientation.m
+@@ -18,6 +18,7 @@ @implementation Orientation
+     BOOL _disableFaceUpDown;
+ #endif
+     BOOL _isLocking;
++    BOOL _hasListeners;
+ }
+ 
+ #if (!TARGET_OS_TV)
+@@ -42,10 +43,8 @@ - (instancetype)init
+         _lastOrientation = [self getInterfaceOrientation];
+         _lastDeviceOrientation = [self getDeviceOrientation];
+         _isLocking = NO;
++        _hasListeners = NO;
+         _disableFaceUpDown = NO;
+-        
+-        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(deviceOrientationDidChange:) name:UIDeviceOrientationDidChangeNotification object:nil];
+-        [self addListener:@"orientationDidChange"];
+     }
+     return self;
+ }
+@@ -53,7 +52,25 @@ - (instancetype)init
+ - (void)dealloc
+ {
+     [[NSNotificationCenter defaultCenter] removeObserver:self];
+-    [self removeListeners:1];
++}
++
++- (void)startObserving
++{
++    _hasListeners = YES;
++    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(deviceOrientationDidChange:) name:UIDeviceOrientationDidChangeNotification object:nil];
++}
++
++- (void)stopObserving
++{
++    _hasListeners = NO;
++    [[NSNotificationCenter defaultCenter] removeObserver:self];
++}
++
++- (void)sendEventWithNameIfObserved:(NSString *)name body:(id)body
++{
++    if (_hasListeners) {
++        [self sendEventWithName:name body:body];
++    }
+ }
+ 
+ - (UIInterfaceOrientation)getInterfaceOrientation
+@@ -100,13 +117,13 @@ - (void)deviceOrientationDidChange:(NSNotification *)notification
+     }
+     
+     if (orientation!=UIInterfaceOrientationUnknown && orientation!=_lastOrientation) {
+-        [self sendEventWithName:@"orientationDidChange" body:@{@"orientation": [self getOrientationStr:orientation]}];
++        [self sendEventWithNameIfObserved:@"orientationDidChange" body:@{@"orientation": [self getOrientationStr:orientation]}];
+         _lastOrientation = orientation;
+     }
+     
+     // when call lockToXXX, not sent deviceOrientationDidChange
+     if (!_isLocking && deviceOrientation!=_lastDeviceOrientation) {
+-        [self sendEventWithName:@"deviceOrientationDidChange" body:@{@"deviceOrientation":[self getOrientationStr:deviceOrientation]}];
++        [self sendEventWithNameIfObserved:@"deviceOrientationDidChange" body:@{@"deviceOrientation":[self getOrientationStr:deviceOrientation]}];
+         _lastDeviceOrientation = deviceOrientation;
+     }
+ }
+@@ -174,7 +191,7 @@ - (void)lockToOrientation:(UIInterfaceOrientation) newOrientation usingMask:(UII
+     
+     [UIViewController attemptRotationToDeviceOrientation];
+         
+-    [self sendEventWithName:@"lockDidChange" body:@{orientation: [self getOrientationStr:newOrientation]}];
++    [self sendEventWithNameIfObserved:@"lockDidChange" body:@{orientation: [self getOrientationStr:newOrientation]}];
+ 
+     _isLocking = NO;
+ }
+@@ -275,7 +292,7 @@ - (void)lockToOrientation:(UIInterfaceOrientation) newOrientation usingMask:(UII
+         [UIViewController attemptRotationToDeviceOrientation];
+         
+         // send a lock event
+-        [self sendEventWithName:@"lockDidChange" body:@{@"orientation":@"LANDSCAPE-LEFT"}];
++        [self sendEventWithNameIfObserved:@"lockDidChange" body:@{@"orientation":@"LANDSCAPE-LEFT"}];
+         
+         self->_isLocking = NO;
+     });
