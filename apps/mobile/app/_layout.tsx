@@ -5,9 +5,9 @@ import { ActivityIndicator, View } from "react-native";
 import { Stack, usePathname } from "expo-router";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import Orientation from "react-native-orientation-locker";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import * as ScreenOrientation from "expo-screen-orientation";
 import * as SplashScreen from "expo-splash-screen";
 import {
   useFonts,
@@ -65,23 +65,6 @@ const LANDSCAPE_SCREEN_OPTIONS = {
   headerShown: false,
   orientation: "landscape",
 } as const;
-
-const LANDSCAPE_LOCK_PATH_PREFIXES = [
-  "/pvp-match",
-  "/pvp-replay",
-  "/pvp-spectate-match",
-] as const;
-
-function getOrientationLockForPathname(pathname: string) {
-  const shouldLockLandscape = LANDSCAPE_LOCK_PATH_PREFIXES.some(
-    (pathPrefix) =>
-      pathname === pathPrefix || pathname.startsWith(`${pathPrefix}/`),
-  );
-
-  return shouldLockLandscape
-    ? ScreenOrientation.OrientationLock.LANDSCAPE
-    : ScreenOrientation.OrientationLock.PORTRAIT_UP;
-}
 
 export default function RootLayout() {
   const pathname = usePathname();
@@ -142,41 +125,11 @@ export default function RootLayout() {
   }, [hydrateLocale]);
 
   useEffect(() => {
-    rememberContentPathname(pathname);
-  }, [pathname]);
+    Orientation.lockToPortrait();
+  }, []);
 
   useEffect(() => {
-    const orientationLock = getOrientationLockForPathname(pathname);
-    let isCurrentRoute = true;
-    const routeLockTimers: Array<ReturnType<typeof setTimeout>> = [];
-
-    const lockRouteOrientation = () => {
-      if (!isCurrentRoute) {
-        return;
-      }
-
-      void ScreenOrientation.lockAsync(orientationLock).catch((error) => {
-        console.warn("Failed to lock screen orientation", error);
-      });
-    };
-
-    const scheduleRouteOrientationLock = () => {
-      lockRouteOrientation();
-      routeLockTimers.push(setTimeout(lockRouteOrientation, 150));
-      routeLockTimers.push(setTimeout(lockRouteOrientation, 500));
-    };
-
-    scheduleRouteOrientationLock();
-
-    const orientationSubscription = ScreenOrientation.addOrientationChangeListener(
-      scheduleRouteOrientationLock,
-    );
-
-    return () => {
-      isCurrentRoute = false;
-      orientationSubscription.remove();
-      routeLockTimers.forEach(clearTimeout);
-    };
+    rememberContentPathname(pathname);
   }, [pathname]);
 
   useEffect(() => {

@@ -100,8 +100,6 @@
       <string>UIInterfaceOrientationLandscapeLeft</string>
       <string>UIInterfaceOrientationLandscapeRight</string>
     </array>
-    <key>EXDefaultScreenOrientationMask</key>
-    <string>UIInterfaceOrientationMaskPortrait</string>
     <key>UIUserInterfaceStyle</key>
     <string>Automatic</string>
     <key>UIViewControllerBasedStatusBarAppearance</key>

@@ -16,6 +16,7 @@ import {
 import { buildPvpVisualEvents } from "../src/features/pvp/animation-events";
 import { BattleBoard } from "../src/features/pvp/battle-board";
 import { buildReplayTurnViews } from "../src/features/pvp/read-only-view";
+import { useLandscapeOrientationLock } from "../src/hooks/use-orientation-lock";
 import { useTranslation } from "../src/i18n";
 import { apiClient } from "../src/lib/api";
 import { useSessionStore } from "../src/stores/session-store";
@@ -23,6 +24,8 @@ import { useThemeStore } from "../src/stores/theme-store";
 import { THEME_COLORS, THEME_VARS } from "../src/theme/themes";
 
 export default function PvpReplayScreen() {
+  useLandscapeOrientationLock();
+
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const themeName = useThemeStore((state) => state.themeName);

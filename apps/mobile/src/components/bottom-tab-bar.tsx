@@ -132,6 +132,7 @@ export function BottomTabBar({
           return (
             <Pressable
               key={tab.route.key}
+              accessible
               accessibilityRole="button"
               accessibilityState={tab.focused ? { selected: true } : {}}
               accessibilityLabel={

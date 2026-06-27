@@ -1,6 +1,8 @@
 package love.leaetzak.adventuretime
 import expo.modules.splashscreen.SplashScreenManager
 
+import android.content.Intent
+import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
 
@@ -42,6 +44,13 @@ class MainActivity : ReactActivity() {
               mainComponentName,
               fabricEnabled
           ){})
+  }
+
+  override fun onConfigurationChanged(newConfig: Configuration) {
+    super.onConfigurationChanged(newConfig)
+    val intent = Intent("onConfigurationChanged")
+    intent.putExtra("newConfig", newConfig)
+    sendBroadcast(intent)
   }
 
   /**

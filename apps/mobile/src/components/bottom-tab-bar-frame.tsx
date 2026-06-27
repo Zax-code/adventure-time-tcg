@@ -59,6 +59,9 @@ export function BottomTabBarFrame({
 
   return (
     <View
+      accessibilityElementsHidden={false}
+      collapsable={false}
+      importantForAccessibility="yes"
       pointerEvents="box-none"
       style={[
         styles.root,
@@ -67,9 +70,18 @@ export function BottomTabBarFrame({
         },
       ]}
     >
-      <View className="px-1" style={{ paddingBottom: Math.max(bottom, 6) }}>
+      <View
+        accessibilityElementsHidden={false}
+        collapsable={false}
+        className="px-1"
+        importantForAccessibility="yes"
+        style={{ paddingBottom: Math.max(bottom, 6) }}
+      >
         <View
+          accessibilityElementsHidden={false}
+          collapsable={false}
           className="rounded-[30px] border"
+          importantForAccessibility="yes"
           style={{
             borderColor: withAlpha(tc.primaryBorder, "73"),
             backgroundColor: withAlpha(tc.surface, "F2"),
@@ -77,7 +89,10 @@ export function BottomTabBarFrame({
           }}
         >
           <View
+            accessibilityElementsHidden={false}
+            collapsable={false}
             className="relative p-[6px]"
+            importantForAccessibility="yes"
             onLayout={(event) => {
               const nextWidth = Math.round(event.nativeEvent.layout.width);
               setBarWidth((currentWidth) =>

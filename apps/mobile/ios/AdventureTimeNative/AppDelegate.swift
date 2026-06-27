@@ -39,6 +39,14 @@ class AppDelegate: ExpoAppDelegate {
 
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
+
+  override func application(
+    _ application: UIApplication,
+    supportedInterfaceOrientationsFor window: UIWindow?
+  ) -> UIInterfaceOrientationMask {
+    return OrientationLockBridge.supportedInterfaceOrientations()
+  }
+
   // Linking API
   override func application(
     _ app: UIApplication,

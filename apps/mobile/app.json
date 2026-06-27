@@ -23,13 +23,7 @@
       }
     },
     "plugins": [
-      "expo-sharing",
-      [
-        "expo-screen-orientation",
-        {
-          "initialOrientation": "PORTRAIT_UP"
-        }
-      ]
+      "expo-sharing"
     ]
   }
 }

@@ -314,35 +314,6 @@ PODS:
   - ExpoRouter (56.2.11):
     - ExpoModulesCore
     - RNScreens
-  - ExpoScreenOrientation (56.0.5):
-    - boost
-    - DoubleConversion
-    - ExpoModulesCore
-    - fast_float
-    - fmt
-    - glog
-    - hermes-engine
-    - RCT-Folly
-    - RCT-Folly/Fabric
-    - RCTRequired
-    - RCTTypeSafety
-    - React-Core
-    - React-debug
-    - React-Fabric
-    - React-featureflags
-    - React-graphics
-    - React-ImageManager
-    - React-jsi
-    - React-NativeModulesApple
-    - React-RCTFabric
-    - React-renderercss
-    - React-rendererdebug
-    - React-utils
-    - ReactCodegen
-    - ReactCommon/turbomodule/bridging
-    - ReactCommon/turbomodule/core
-    - SocketRocket
-    - Yoga
   - ExpoSecureStore (56.0.4):
     - ExpoModulesCore
   - ExpoSensors (56.0.6):
@@ -2326,6 +2297,8 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
+  - react-native-orientation-locker (1.7.0):
+    - React-Core
   - react-native-safe-area-context (5.7.0):
     - boost
     - DoubleConversion
@@ -3489,7 +3462,6 @@ DEPENDENCIES:
   - ExpoModulesWorkletsAdapter (from `../../../node_modules/expo-modules-core`)
   - ExpoNotifications (from `../node_modules/expo-notifications/ios`)
   - ExpoRouter (from `../node_modules/expo-router/ios`)
-  - ExpoScreenOrientation (from `../../../node_modules/expo-screen-orientation/ios`)
   - ExpoSecureStore (from `../../../node_modules/expo-secure-store/ios`)
   - ExpoSensors (from `../../../node_modules/expo-sensors/ios`)
   - ExpoSharing (from `../../../node_modules/expo-sharing/ios`)
@@ -3543,6 +3515,7 @@ DEPENDENCIES:
   - React-Mapbuffer (from `../../../node_modules/react-native/ReactCommon`)
   - React-microtasksnativemodule (from `../../../node_modules/react-native/ReactCommon/react/nativemodule/microtasks`)
   - React-mutationobservernativemodule (from `../../../node_modules/react-native/ReactCommon/react/nativemodule/mutationobserver`)
+  - react-native-orientation-locker (from `../../../node_modules/react-native-orientation-locker`)
   - react-native-safe-area-context (from `../../../node_modules/react-native-safe-area-context`)
   - "react-native-vector-icons-ionicons (from `../../../node_modules/@react-native-vector-icons/ionicons`)"
   - react-native-view-shot (from `../../../node_modules/react-native-view-shot`)
@@ -3677,8 +3650,6 @@ EXTERNAL SOURCES:
     :path: "../node_modules/expo-notifications/ios"
   ExpoRouter:
     :path: "../node_modules/expo-router/ios"
-  ExpoScreenOrientation:
-    :path: "../../../node_modules/expo-screen-orientation/ios"
   ExpoSecureStore:
     :path: "../../../node_modules/expo-secure-store/ios"
   ExpoSensors:
@@ -3784,6 +3755,8 @@ EXTERNAL SOURCES:
     :path: "../../../node_modules/react-native/ReactCommon/react/nativemodule/microtasks"
   React-mutationobservernativemodule:
     :path: "../../../node_modules/react-native/ReactCommon/react/nativemodule/mutationobserver"
+  react-native-orientation-locker:
+    :path: "../../../node_modules/react-native-orientation-locker"
   react-native-safe-area-context:
     :path: "../../../node_modules/react-native-safe-area-context"
   react-native-vector-icons-ionicons:
@@ -3915,7 +3888,6 @@ SPEC CHECKSUMS:
   ExpoModulesWorkletsAdapter: 40b116053ae5f919c035b3467dc693e3b7875718
   ExpoNotifications: 87875dae0faded5284004bc1204990947d3f64e0
   ExpoRouter: 5539806fcab8d38c639c9c255a6d73caa839436a
-  ExpoScreenOrientation: 3d5840c0c6ca9464a2b1f93a0c0a08bb3196639e
   ExpoSecureStore: f1bd083c1b7b8d4142013ffcc0082d377d9f49f4
   ExpoSensors: d34558ddf1f1d61c7a22180d1d40d8bd89d67d7b
   ExpoSharing: 89ff19115095e3eb8355d3a2dd6a21875e4b25df
@@ -3933,7 +3905,7 @@ SPEC CHECKSUMS:
   GoogleUtilities: 00c88b9a86066ef77f0da2fab05f65d7768ed8e1
   GTMAppAuth: 217a876b249c3c585a54fd6f73e6b58c4f5c4238
   GTMSessionFetcher: 5aea5ba6bd522a239e236100971f10cb71b96ab6
-  hermes-engine: aa49d2de85093d57b5b632edee7d1a389aada9f9
+  hermes-engine: 9c83ea96ca483666c3fd63c1e807dbd719a9022b
   libavif: 5f8e715bea24debec477006f21ef9e95432e254d
   libdav1d: 23581a4d8ec811ff171ed5e2e05cd27bad64c39f
   libwebp: 02b23773aedb6ff1fd38cec7a77b81414c6842a8
@@ -3976,6 +3948,7 @@ SPEC CHECKSUMS:
   React-Mapbuffer: 3cf4ae68a4d69ca69de94385d423d57785907eb7
   React-microtasksnativemodule: 663a8165cfe10e4eb749796a53b3b8c68631b00c
   React-mutationobservernativemodule: 4f7e4c18735cfbb0f81eada4f34aa527697e8704
+  react-native-orientation-locker: cc6f357b289a2e0dd2210fea0c52cb8e0727fdaa
   react-native-safe-area-context: befb5404eb8a16fdc07fa2bebab3568ecabcbb8a
   react-native-vector-icons-ionicons: 6831196cf1486bfd26b715d749c5c9a7d67bc0eb
   react-native-view-shot: 8a84e76be3832a5e1b1f37a935900a43c243a260
