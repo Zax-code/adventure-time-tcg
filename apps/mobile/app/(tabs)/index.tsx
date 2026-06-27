@@ -36,8 +36,8 @@ import {
   CardsIcon,
   ChevronRightIcon,
   ClockIcon,
+  DailyLoginQuestIcon,
   PackIcon,
-  SparklesIcon,
 } from "../../src/components/icons";
 import { PageErrorState } from "../../src/components/error-state";
 import { PageLoadingState } from "../../src/components/loading-state";
@@ -352,7 +352,7 @@ export default function HomeScreen() {
                 }}
               >
                 {canClaim ? (
-                  <SparklesIcon size={28} color={tc.secondaryText} />
+                  <DailyLoginQuestIcon size={28} color={tc.secondaryText} />
                 ) : (
                   <ClockIcon size={28} color={tc.infoText} />
                 )}
