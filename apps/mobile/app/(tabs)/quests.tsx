@@ -2090,6 +2090,7 @@ export default function QuestsScreen() {
                 claimQuestMutation.isPending &&
                 claimQuestMutation.variables?.id === quest.id;
               const title = getQuestTitle(quest.title, t);
+              const isStep = isStepQuest(quest.type);
               const isSpeedCalculus = isSpeedCalculusQuest(quest.type);
               const actionLabel =
                 status === "active"
@@ -2098,21 +2099,27 @@ export default function QuestsScreen() {
                     ? t("quests.seeAttempts")
                   : t("quests.seeResults");
               const shouldShowActivationPrompt =
-                isStepQuest(quest.type) &&
+                isStep &&
                 status === "active" &&
                 showStepQuestActivationPrompt;
               const shouldShowDiscreteSyncButton =
-                isStepQuest(quest.type) &&
+                isStep &&
                 status === "active" &&
                 user?.preferredStepSource === "device_health" &&
                 !shouldShowActivationPrompt;
               const shouldShowCompletionSummary =
                 (status === "completed" || status === "claimed") &&
-                !isStepQuest(quest.type) &&
+                !isStep &&
                 !isSpeedCalculus;
 
               let statusIcon;
-              if (isSpeedCalculus) {
+              if (isStep) {
+                statusIcon = renderActiveQuestIcon(
+                  quest.type,
+                  44,
+                  colors.iconColor,
+                );
+              } else if (isSpeedCalculus) {
                 statusIcon = renderActiveQuestIcon(
                   quest.type,
                   28,
@@ -2195,10 +2202,7 @@ export default function QuestsScreen() {
                     <View
                       style={{
                         backgroundColor: colors.iconBg,
-                        padding:
-                          isStepQuest(quest.type) && status === "active"
-                            ? 4
-                            : 12,
+                        padding: isStep ? 4 : 12,
                         borderRadius: 12,
                       }}
                     >
@@ -2209,7 +2213,8 @@ export default function QuestsScreen() {
                       <Text className="font-nunito-bold text-base text-fg">
                         {title}
                       </Text>
-                      {status === "completed" || status === "claimed" ? (
+                      {(status === "completed" || status === "claimed") &&
+                      !isStep ? (
                         <View
                           className="rounded-full px-2 py-1 mt-1 self-start"
                           style={{ backgroundColor: colors.iconBg }}
