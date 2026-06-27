@@ -622,34 +622,19 @@ export function WalkingIcon({ size = 24, color = "#DB2777" }: IconProps) {
 export function StepQuestIcon({ size = 24, color = "#DB2777" }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Circle cx={12} cy={12} r={9} fill={color} fillOpacity={0.1} />
-      <Circle cx={12.8} cy={5.4} r={2} fill={color} />
-      <Path
-        d="M12.2 7.8L10.8 11.8"
-        stroke={color}
-        strokeWidth={2}
-        strokeLinecap="round"
-      />
-      <Path
-        d="M11.2 9.4L8.2 10.6M11 10.7L14.2 12.4"
-        stroke={color}
-        strokeWidth={1.8}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <Path
-        d="M10.8 11.8L8.5 15.1L6.9 19M10.8 11.8L13.4 15.2L17 17.2"
-        stroke={color}
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <Path
-        d="M6.7 19.1H4.9M17 17.2H19.1"
-        stroke={color}
-        strokeWidth={1.8}
-        strokeLinecap="round"
-      />
+      <Circle cx={12} cy={12} r={9} fill={color} fillOpacity={0.09} />
+      <G transform="rotate(90 9.6 14.5)">
+        <G fill={color} transform="translate(1.3 3.4) scale(0.045)">
+          <Path d="M145.454 182.99c16.485-8.948 34.84 9.218 46.38 32.816.153 12.414 4.804 23.314 10.484 32.06l-22.083 20.402c-29.716-13.468-59.267-63.634-39.823-81.6a25.137 25.137 0 0 1 5.054-3.667z" />
+          <Path d="M210.094 257.45l-22.486 20.76c27.48 48.827 65.94-.32 22.485-20.76z" />
+        </G>
+      </G>
+      <G transform="rotate(90 16.2 8.1)">
+        <G fill={color} transform="translate(0.8 -4) scale(0.045)">
+          <Path d="M297.23 207.9c-14.674 11.68-5.112 35.667 12.095 55.502 11.36 4.994 19.586 13.527 25.42 22.166l27.433-12.367c-.805-32.616-35.444-79.41-59.575-68.52a25.136 25.136 0 0 0-5.35 3.218z" />
+          <Path d="M340.545 296.48c1.846 47.988 62.107 31.763 27.88-12.593z" />
+        </G>
+      </G>
     </Svg>
   );
 }
@@ -779,44 +764,35 @@ export function DailyNumbersQuestIcon({
 }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Rect
-        x={4}
-        y={4}
-        width={16}
-        height={16}
-        rx={3}
+      <Circle cx={12} cy={12} r={9.5} fill={color} fillOpacity={0.1} />
+      <Circle
+        cx={12}
+        cy={12}
+        r={8.05}
         fill={color}
-        fillOpacity={0.12}
+        fillOpacity={0.09}
         stroke={color}
-        strokeWidth={1.8}
-      />
-      <Path
-        d="M6.8 8.1H17.2M6.8 12H17.2M6.8 15.9H17.2"
-        stroke={color}
-        strokeWidth={1.4}
-        strokeLinecap="round"
-      />
-      <Circle cx={9.2} cy={8.1} r={1.3} fill={color} />
-      <Circle cx={13.7} cy={8.1} r={1.3} fill={color} fillOpacity={0.45} />
-      <Circle cx={10.8} cy={12} r={1.3} fill={color} fillOpacity={0.45} />
-      <Circle cx={15.2} cy={12} r={1.3} fill={color} />
-      <Circle cx={8.6} cy={15.9} r={1.3} fill={color} fillOpacity={0.45} />
-      <Circle cx={12.6} cy={15.9} r={1.3} fill={color} />
-      <Circle cx={16.4} cy={15.9} r={1.3} fill={color} fillOpacity={0.45} />
-      <Path
-        d="M7.5 5.8V18.2M16.5 5.8V18.2"
-        stroke={color}
-        strokeWidth={1.1}
-        strokeLinecap="round"
-        strokeOpacity={0.55}
+        strokeWidth={1.65}
       />
       <Circle
-        cx={18.6}
-        cy={5.4}
-        r={1.4}
-        fill={color}
-        fillOpacity={0.2}
+        cx={12}
+        cy={12}
+        r={5.45}
+        fill="white"
+        fillOpacity={0.78}
+        stroke={color}
+        strokeWidth={1.65}
       />
+      <SvgText
+        x={12}
+        y={13.35}
+        textAnchor="middle"
+        fill={color}
+        fontSize={3.85}
+        fontWeight="900"
+      >
+        100
+      </SvgText>
     </Svg>
   );
 }

@@ -1737,12 +1737,12 @@ export default function QuestsScreen() {
                       <View
                         style={{
                           backgroundColor: colors.iconBg,
-                          padding: 12,
+                          padding: 4,
                           borderRadius: 12,
                         }}
                       >
                         <DailyNumbersQuestIcon
-                          size={28}
+                          size={44}
                           color={colors.iconColor}
                         />
                       </View>
@@ -2021,7 +2021,7 @@ export default function QuestsScreen() {
               } else {
                 statusIcon = renderActiveQuestIcon(
                   quest.type,
-                  28,
+                  isStepQuest(quest.type) ? 44 : 28,
                   colors.iconColor,
                 );
               }
@@ -2088,7 +2088,10 @@ export default function QuestsScreen() {
                     <View
                       style={{
                         backgroundColor: colors.iconBg,
-                        padding: 12,
+                        padding:
+                          isStepQuest(quest.type) && status === "active"
+                            ? 4
+                            : 12,
                         borderRadius: 12,
                       }}
                     >
