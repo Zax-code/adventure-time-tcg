@@ -2074,9 +2074,19 @@ export default function QuestsScreen() {
                 status === "active" &&
                 user?.preferredStepSource === "device_health" &&
                 !shouldShowActivationPrompt;
+              const isSpeedCalculus = isSpeedCalculusQuest(quest.type);
+              const shouldShowCompletionSummary =
+                (status === "completed" || status === "claimed") &&
+                !isSpeedCalculus;
 
               let statusIcon;
-              if (status === "completed") {
+              if (isSpeedCalculus) {
+                statusIcon = renderActiveQuestIcon(
+                  quest.type,
+                  28,
+                  colors.iconColor,
+                );
+              } else if (status === "completed") {
                 statusIcon = (
                   <CheckCircleIcon size={28} color={colors.iconColor} />
                 );
@@ -2246,7 +2256,7 @@ export default function QuestsScreen() {
                       </View>
                     ) : null}
 
-                    {status === "completed" || status === "claimed" ? (
+                    {shouldShowCompletionSummary ? (
                       <View
                         className="rounded-2xl border p-3 flex-row items-center gap-3"
                         style={{
