@@ -1439,8 +1439,9 @@ export default function QuestsScreen() {
 
                     {collapsedGroups.wordle ? null : (
                       <View className="mt-4 gap-3">
-                        <View className="flex-row justify-end">
+                        <View className="w-full">
                           <TouchableOpacity
+                            className="w-full"
                             onPress={() => {
                               void handleShareWordleGroup(item.quests);
                             }}
@@ -1799,8 +1800,9 @@ export default function QuestsScreen() {
 
                     {collapsedGroups.dailyNumbers ? null : (
                       <View className="mt-4 gap-3">
-                        <View className="flex-row justify-end">
+                        <View className="w-full">
                           <TouchableOpacity
+                            className="w-full"
                             onPress={() => {
                               void handleShareDailyNumbersGroup(item.quests);
                             }}
