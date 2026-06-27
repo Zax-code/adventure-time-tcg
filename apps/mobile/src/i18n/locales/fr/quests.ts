@@ -39,31 +39,36 @@ const quests = {
     "Cible exacte, {score} % débloqués en {time}.",
   dailyNumbersLevelsCleared: "{completed} / {total} niveaux validés",
   dailyNumbersGroupDesc:
-    "Choisis une répartition de nombres, joue chaque plateau sur la même page et récupère chaque récompense séparément.",
+    "Choisis l'une des trois répartitions de nombres, puis combine deux nombres disponibles à la fois avec +, -, × ou ÷ pour t'approcher le plus possible de la cible. Un meilleur résultat débloque une plus grande récompense, une cible exacte débloque 100 %, et chaque répartition a sa propre récompense à récupérer.",
   wordleGroupDesc:
-    "Résous le Wordle français et le Wordle anglais sur la même page et récupère chaque récompense séparément.",
+    "Joue au Wordle quotidien en français ou en anglais. Devine le mot de cinq lettres en six essais : les cases vertes sont correctes, les jaunes sont dans le mot mais mal placées, et les grises sont absentes. Chaque langue a sa propre progression et sa propre récompense à récupérer.",
   steps_10k: "Marcher 10 000 pas",
-  steps_10k_desc: "Marche 10 000 pas aujourd'hui pour gagner des pièces",
+  steps_10k_desc:
+    "Marche 10 000 pas aujourd'hui. Connecte une source de pas si l'app te le demande, puis récupère la récompense quand tes pas synchronisés atteignent l'objectif.",
   daily_login: "Connexion quotidienne",
-  daily_login_desc: "Connecte-toi au jeu chaque jour",
+  daily_login_desc:
+    "Ouvre l'app et connecte-toi aujourd'hui. Une fois la connexion comptée, récupère la récompense quotidienne depuis cette carte.",
   wordle_daily: "Terminer un Wordle",
-  wordle_daily_desc: "Résous le Wordle du jour",
+  wordle_daily_desc:
+    "Devine le mot de cinq lettres du jour en six essais pour terminer la quête.",
   wordle_daily_fr: "Terminer le Wordle français",
-  wordle_daily_fr_desc: "Résous le Wordle français du jour",
+  wordle_daily_fr_desc:
+    "Devine le mot français de cinq lettres du jour en six essais pour débloquer cette récompense.",
   wordle_daily_en: "Terminer le Wordle anglais",
-  wordle_daily_en_desc: "Résous le Wordle anglais du jour",
+  wordle_daily_en_desc:
+    "Devine le mot anglais de cinq lettres du jour en six essais pour débloquer cette récompense.",
   speed_calculus_daily: "Sprint de calcul mental",
   speed_calculus_daily_desc:
-    "Résous un maximum d'additions et de soustractions",
+    "Lance jusqu'à trois manches chronométrées et résous un maximum d'additions et de soustractions. Verrouille ta dernière manche pour transformer ton score en récompense à récupérer.",
   daily_numbers_1_5: "Nombres du jour : 1 - 5",
   daily_numbers_1_5_desc:
-    "Utilise 1 grand et 5 petits nombres pour t'approcher au maximum",
+    "Utilise 1 grand et 5 petits nombres, combine deux nombres à la fois, et approche-toi le plus possible de la cible.",
   daily_numbers_2_4: "Nombres du jour : 2 - 4",
   daily_numbers_2_4_desc:
-    "Utilise 2 grands et 4 petits nombres pour t'approcher au maximum",
+    "Utilise 2 grands et 4 petits nombres, combine deux nombres à la fois, et approche-toi le plus possible de la cible.",
   daily_numbers_3_3: "Nombres du jour : 3 - 3",
   daily_numbers_3_3_desc:
-    "Utilise 3 grands et 3 petits nombres pour t'approcher au maximum",
+    "Utilise 3 grands et 3 petits nombres, combine deux nombres à la fois, et approche-toi le plus possible de la cible.",
   wordle: {
     title: "Wordle quotidien",
     subtitle: "Résous l'énigme pour terminer la quête du jour.",
@@ -101,6 +106,8 @@ const quests = {
     shareResult: "Partager le résultat",
     sharePreparing: "Préparation…",
     shareBrand: "Adventure Time TCG",
+    shareFrenchWord: "Mot français",
+    shareEnglishWord: "Mot anglais",
     shareSolved: "Résolu en {used}/{total}",
     shareFailed: "Échec — {used}/{total}",
     shareFooter: "Quête quotidienne",

@@ -38,31 +38,36 @@ const quests = {
   dailyNumbersQuestCardExactTimed: "Exact hit, {score}% unlocked in {time}.",
   dailyNumbersLevelsCleared: "{completed} / {total} levels cleared",
   dailyNumbersGroupDesc:
-    "Pick a number mix, play every board from one page, and claim each reward separately.",
+    "Choose one of the three number mixes, then combine two available numbers at a time with +, -, ×, or ÷ to get as close as possible to the target. Better results unlock a larger reward, exact hits unlock 100%, and each mix has its own reward to claim.",
   wordleGroupDesc:
-    "Solve the French and English Wordle from one page and claim each reward separately.",
+    "Play the daily Wordle in French or English. Guess the five-letter word in six tries: green tiles are correct, yellow tiles are in the word but misplaced, and gray tiles are absent. Each language has separate progress and a separate reward to claim.",
   steps_10k: "Walk 10,000 steps",
-  steps_10k_desc: "Walk 10,000 steps today to earn coins",
+  steps_10k_desc:
+    "Walk 10,000 steps today. Connect a step source if prompted, then claim the reward once your synced steps reach the goal.",
   daily_login: "Daily login",
-  daily_login_desc: "Login to the game every day",
+  daily_login_desc:
+    "Open the app and sign in today. Once the login is counted, claim the daily reward from this card.",
   wordle_daily: "Complete a Wordle",
-  wordle_daily_desc: "Solve today's Wordle puzzle",
+  wordle_daily_desc:
+    "Guess today's five-letter word in six tries to complete the quest.",
   wordle_daily_fr: "Complete the French Wordle",
-  wordle_daily_fr_desc: "Solve today's French Wordle puzzle",
+  wordle_daily_fr_desc:
+    "Guess today's French five-letter word in six tries to unlock this reward.",
   wordle_daily_en: "Complete the English Wordle",
-  wordle_daily_en_desc: "Solve today's English Wordle puzzle",
+  wordle_daily_en_desc:
+    "Guess today's English five-letter word in six tries to unlock this reward.",
   speed_calculus_daily: "Speed calculus sprint",
   speed_calculus_daily_desc:
-    "Solve as many addition and subtraction problems as you can",
+    "Start up to three timed runs and solve as many addition and subtraction problems as you can. Lock your latest run to turn the score into a claimable reward.",
   daily_numbers_1_5: "Daily Numbers: 1 - 5",
   daily_numbers_1_5_desc:
-    "Use 1 large and 5 small numbers to get as close as possible",
+    "Use 1 large number and 5 small numbers, combine two numbers at a time, and get as close as possible to the target.",
   daily_numbers_2_4: "Daily Numbers: 2 - 4",
   daily_numbers_2_4_desc:
-    "Use 2 large and 4 small numbers to get as close as possible",
+    "Use 2 large numbers and 4 small numbers, combine two numbers at a time, and get as close as possible to the target.",
   daily_numbers_3_3: "Daily Numbers: 3 - 3",
   daily_numbers_3_3_desc:
-    "Use 3 large and 3 small numbers to get as close as possible",
+    "Use 3 large numbers and 3 small numbers, combine two numbers at a time, and get as close as possible to the target.",
   wordle: {
     title: "Daily Wordle",
     subtitle: "Solve the puzzle to complete today's quest.",
@@ -100,6 +105,8 @@ const quests = {
     shareResult: "Share result",
     sharePreparing: "Preparing…",
     shareBrand: "Adventure Time TCG",
+    shareFrenchWord: "French word",
+    shareEnglishWord: "English word",
     shareSolved: "Solved in {used}/{total}",
     shareFailed: "Failed — {used}/{total}",
     shareFooter: "Daily Quest",

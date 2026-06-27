@@ -25,9 +25,13 @@ import {
   ChevronRightIcon,
   ClaimedIcon,
   CoinIcon,
+  DailyLoginQuestIcon,
+  DailyNumbersQuestIcon,
   HelpCircleIcon,
+  SpeedCalculusQuestIcon,
   SparklesIcon,
-  WalkingIcon,
+  StepQuestIcon,
+  WordleQuestIcon,
   XCircleIcon,
 } from "../../src/components/icons";
 import { PrimaryButton } from "../../src/components/button";
@@ -169,6 +173,10 @@ function isStepQuest(questType: string) {
   return questType === "steps_10k";
 }
 
+function isDailyLoginQuest(questType: string) {
+  return questType === "daily_login";
+}
+
 function getDailyNumbersModeFromQuestType(
   questType: string,
 ): DailyNumbersMode | null {
@@ -244,52 +252,90 @@ function getDailyNumbersGroupStatus(
 function buildQuestCardItems(quests: Quest[]): QuestCardItem[] {
   const wordleQuests: Partial<Record<WordleLocale, Quest>> = {};
   const dailyNumbersQuests: Partial<Record<DailyNumbersMode, Quest>> = {};
+  const singleQuests: { quest: Quest; index: number }[] = [];
 
-  for (const quest of quests) {
+  quests.forEach((quest, index) => {
     const language = getWordleLanguageFromQuestType(quest.type);
     if (language) {
       wordleQuests[language] = quest;
+      return;
     }
 
     const mode = getDailyNumbersModeFromQuestType(quest.type);
     if (mode) {
       dailyNumbersQuests[mode] = quest;
+      return;
     }
+
+    singleQuests.push({ quest, index });
+  });
+
+  const orderedSingles = singleQuests
+    .slice()
+    .sort((left, right) => {
+      const leftPriority = getQuestCardPriority(left.quest.type);
+      const rightPriority = getQuestCardPriority(right.quest.type);
+      return leftPriority - rightPriority || left.index - right.index;
+    })
+    .map(({ quest }) => ({ kind: "quest" as const, quest }));
+
+  const items: QuestCardItem[] = [...orderedSingles];
+
+  if (WORDLE_LANGUAGES.some((language) => wordleQuests[language])) {
+    items.push({
+      kind: "wordle",
+      quests: wordleQuests,
+    });
   }
 
-  const items: QuestCardItem[] = [];
-  let wordleInserted = false;
-  let dailyNumbersInserted = false;
-
-  for (const quest of quests) {
-    if (isWordleQuest(quest.type)) {
-      if (!wordleInserted) {
-        items.push({
-          kind: "wordle",
-          quests: wordleQuests,
-        });
-        wordleInserted = true;
-      }
-
-      continue;
-    }
-
-    if (isDailyNumbersQuest(quest.type)) {
-      if (!dailyNumbersInserted) {
-        items.push({
-          kind: "dailyNumbers",
-          quests: dailyNumbersQuests,
-        });
-        dailyNumbersInserted = true;
-      }
-
-      continue;
-    }
-
-    items.push({ kind: "quest", quest });
+  if (DAILY_NUMBERS_MODES.some((mode) => dailyNumbersQuests[mode])) {
+    items.push({
+      kind: "dailyNumbers",
+      quests: dailyNumbersQuests,
+    });
   }
 
   return items;
+}
+
+function getQuestCardPriority(questType: string) {
+  if (isStepQuest(questType)) {
+    return 0;
+  }
+
+  if (isSpeedCalculusQuest(questType)) {
+    return 1;
+  }
+
+  return 2;
+}
+
+function renderActiveQuestIcon(
+  questType: string,
+  size: number,
+  color: string,
+) {
+  if (isStepQuest(questType)) {
+    return <StepQuestIcon size={size} color={color} />;
+  }
+
+  if (isSpeedCalculusQuest(questType)) {
+    return <SpeedCalculusQuestIcon size={size} color={color} />;
+  }
+
+  if (isDailyLoginQuest(questType)) {
+    return <DailyLoginQuestIcon size={size} color={color} />;
+  }
+
+  if (isWordleQuest(questType)) {
+    return <WordleQuestIcon size={size} color={color} />;
+  }
+
+  if (isDailyNumbersQuest(questType)) {
+    return <DailyNumbersQuestIcon size={size} color={color} />;
+  }
+
+  return <SparklesIcon size={size} color={color} />;
 }
 
 function getDailyNumbersModeStatusLabel(
@@ -421,8 +467,8 @@ export default function QuestsScreen() {
     isForceRefreshing: false,
   });
   const [collapsedGroups, setCollapsedGroups] = useState({
-    wordle: false,
-    dailyNumbers: false,
+    wordle: true,
+    dailyNumbers: true,
   });
   const toastAnim = useRef(new Animated.Value(-60)).current;
   const lastImmediateResetAtRef = useRef(0);
@@ -857,7 +903,7 @@ export default function QuestsScreen() {
                   gap: 12,
                 }}
               >
-                <WalkingIcon size={32} color={tc.successDark} />
+                <StepQuestIcon size={32} color={tc.successDark} />
                 <View style={{ flex: 1 }}>
                   <Text className="font-nunito-bold text-base text-successDark">
                     {t("settings.connectFitbit")}
@@ -923,7 +969,7 @@ export default function QuestsScreen() {
                 </>
               ) : (
                 <>
-                  <WalkingIcon size={48} color={tc.primaryBorder} />
+                  <StepQuestIcon size={48} color={tc.primaryBorder} />
                   <Text className="font-nunito-bold text-base text-fgMuted mt-4">
                     {t("settings.connectFitbit")}
                   </Text>
@@ -1039,15 +1085,12 @@ export default function QuestsScreen() {
                           borderRadius: 12,
                         }}
                       >
-                        <SparklesIcon size={28} color={colors.iconColor} />
+                        <WordleQuestIcon size={28} color={colors.iconColor} />
                       </View>
 
-                      <View style={{ flex: 1, gap: 4 }}>
+                      <View style={{ flex: 1 }}>
                         <Text className="font-nunito-bold text-base text-fg">
                           {t("quests.wordle.title")}
-                        </Text>
-                        <Text className="font-nunito text-sm text-fgMuted">
-                          {t("quests.wordleGroupDesc")}
                         </Text>
                       </View>
 
@@ -1365,15 +1408,15 @@ export default function QuestsScreen() {
                           borderRadius: 12,
                         }}
                       >
-                        <SparklesIcon size={28} color={colors.iconColor} />
+                        <DailyNumbersQuestIcon
+                          size={28}
+                          color={colors.iconColor}
+                        />
                       </View>
 
-                      <View style={{ flex: 1, gap: 4 }}>
+                      <View style={{ flex: 1 }}>
                         <Text className="font-nunito-bold text-base text-fg">
                           {t("quests.dailyNumbers.title")}
-                        </Text>
-                        <Text className="font-nunito text-sm text-fgMuted">
-                          {t("quests.dailyNumbersGroupDesc")}
                         </Text>
                       </View>
 
@@ -1471,10 +1514,6 @@ export default function QuestsScreen() {
                                     </Text>
                                   </View>
                                 </View>
-
-                                <Text className="font-nunito text-sm text-fgMuted">
-                                  {getQuestDesc(quest.description, t)}
-                                </Text>
 
                                 {getDailyNumbersResultLabel(quest, t) ? (
                                   <Text
@@ -1588,8 +1627,6 @@ export default function QuestsScreen() {
               const isClaimLoading =
                 claimQuestMutation.isPending &&
                 claimQuestMutation.variables?.id === quest.id;
-              const QuestIcon =
-                quest.icon === "walking" ? WalkingIcon : SparklesIcon;
               const title = getQuestTitle(quest.title, t);
               const actionLabel =
                 status === "active"
@@ -1615,7 +1652,11 @@ export default function QuestsScreen() {
               } else if (status === "failed") {
                 statusIcon = <XCircleIcon size={28} color={colors.iconColor} />;
               } else {
-                statusIcon = <QuestIcon size={28} color={colors.iconColor} />;
+                statusIcon = renderActiveQuestIcon(
+                  quest.type,
+                  28,
+                  colors.iconColor,
+                );
               }
 
               return (

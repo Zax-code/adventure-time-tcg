@@ -13,6 +13,7 @@ export type WordleQuestShareCardStrings = {
   brand: string;
   resultLine: string;
   footer: string;
+  wordLanguage: string;
   date?: string;
 };
 
@@ -103,6 +104,12 @@ export function WordleQuestShareCard({
             {strings.date}
           </Text>
         ) : null}
+        <Text
+          className="text-[13px] font-nunito-extrabold text-center uppercase"
+          style={{ color: colors.secondaryDark }}
+        >
+          {strings.wordLanguage}
+        </Text>
       </View>
 
       {/* Result line */}
