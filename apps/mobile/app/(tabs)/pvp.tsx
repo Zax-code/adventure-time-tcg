@@ -291,6 +291,12 @@ export default function PvpScreen() {
   );
   const hasValidLoadout = validLoadouts.length > 0;
   const hasLoadouts = allLoadouts.length > 0;
+  const inviteActionDisabled = !hasValidLoadout;
+  const inviteActionHint = hasValidLoadout
+    ? t("pvp.challengeReadyHint")
+    : hasLoadouts
+      ? t("pvp.allLoadoutsInvalid")
+      : t("pvp.needLoadoutToInvite");
   const pendingChallengeCount =
     pendingReceivedInvites.length + pendingSentInvites.length;
   const hasAnyData =
@@ -781,24 +787,22 @@ export default function PvpScreen() {
           </View>
 
           <ThemedExpoButton
-            onPress={() => {
-              if (hasValidLoadout) {
-                openInviteSheet();
-                return;
-              }
-
-              router.push("/pvp-loadouts");
-            }}
+            disabled={inviteActionDisabled}
+            onPress={openInviteSheet}
             preferFallback
             style={{ width: "100%" }}
             testID="pvp-primary-action-card"
             variant="primary"
             fallbackLayout="stretch"
             fallbackAppearance={{
-              backgroundColor: tc.primaryBg,
-              borderColor: tc.primaryBorder,
+              backgroundColor: inviteActionDisabled
+                ? tc.surfaceMuted
+                : tc.primaryBg,
+              borderColor: inviteActionDisabled
+                ? tc.primaryBorder
+                : tc.primaryBorder,
               borderRadius: 26,
-              foregroundColor: tc.fg,
+              foregroundColor: inviteActionDisabled ? tc.fgMuted : tc.fg,
               gradientColors: null,
               minHeight: 0,
               paddingHorizontal: 18,
@@ -808,29 +812,48 @@ export default function PvpScreen() {
             <View className="gap-3">
               <View className="flex-row items-start justify-between gap-3">
                 <View className="flex-1 gap-2">
-                  <View className="h-12 w-12 items-center justify-center rounded-2xl bg-primaryTint">
-                    {hasValidLoadout ? (
-                      <UserPlusIcon size={24} color={tc.primaryDark} />
-                    ) : (
-                      <CardsIcon size={24} color={tc.primaryDark} />
-                    )}
+                  <View
+                    className={`h-12 w-12 items-center justify-center rounded-2xl ${
+                      inviteActionDisabled ? "bg-surface" : "bg-primaryTint"
+                    }`}
+                  >
+                    <UserPlusIcon
+                      size={24}
+                      color={
+                        inviteActionDisabled ? tc.fgMuted : tc.primaryDark
+                      }
+                    />
                   </View>
-                  <Text className="font-nunito-extrabold text-xl leading-7 text-fg">
-                    {hasValidLoadout
-                      ? t("pvp.sendChallenge")
-                      : t("pvp.createLoadout")}
+                  <Text
+                    className={`font-nunito-extrabold text-xl leading-7 ${
+                      inviteActionDisabled ? "text-fgMuted" : "text-fg"
+                    }`}
+                  >
+                    {t("pvp.sendChallenge")}
                   </Text>
                   <Text className="font-nunito text-sm leading-5 text-fgMuted">
-                    {hasValidLoadout
-                      ? t("pvp.challengeReadyHint")
-                      : t("pvp.createLoadoutHint")}
+                    {inviteActionHint}
                   </Text>
                 </View>
-                <ChevronRightIcon size={22} color={tc.primaryDark} />
+                {inviteActionDisabled ? (
+                  <HelpCircleIcon size={22} color={tc.fgMuted} />
+                ) : (
+                  <ChevronRightIcon size={22} color={tc.primaryDark} />
+                )}
               </View>
               <View className="flex-row flex-wrap gap-2">
-                <View className="rounded-full bg-primaryTint px-3 py-1.5">
-                  <Text className="font-nunito-semibold text-xs text-primaryDark">
+                <View
+                  className={`rounded-full px-3 py-1.5 ${
+                    inviteActionDisabled ? "bg-surface" : "bg-primaryTint"
+                  }`}
+                >
+                  <Text
+                    className={`font-nunito-semibold text-xs ${
+                      inviteActionDisabled
+                        ? "text-fgMuted"
+                        : "text-primaryDark"
+                    }`}
+                  >
                     {hasLoadouts ? validLoadouts.length : 0}{" "}
                     {t("pvp.loadoutReady").toLowerCase()}
                   </Text>

@@ -332,6 +332,7 @@ const pvp = {
   challengeSheetIntro:
     "Pick a ready loadout, start from recent opponents, or search for someone specific.",
   createLoadoutHint: "Build a legal 6-card team before sending battle invites.",
+  needLoadoutToInvite: "Create at least one loadout before sending an invite.",
   manageLoadoutsHint: "Create, fix, and reorder the teams you use in PvP.",
   spectateHint: "Watch live matches to learn lineups, pacing, and matchups.",
   friendEmail: "Friend's email",
