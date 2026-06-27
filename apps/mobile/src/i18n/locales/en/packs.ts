@@ -2,7 +2,8 @@ const packs = {
   loading: "Loading packs...",
   unavailable: "Packs unavailable.",
   title: "Pack shop",
-  subtitle: "Pick a pack, crack it open, and reveal every card at your own pace.",
+  subtitle:
+    "Pick a pack, crack it open, and reveal every card at your own pace.",
   balance: "Balance",
   affordableCount: "{count} packs ready",
   nextGoal: "{name} in {count} coins",
@@ -13,6 +14,8 @@ const packs = {
   needMoreCoinsShort: "Need {count} more coins",
   readyNow: "Ready to open",
   tapToOpen: "Tap to open",
+  weeklyLimitReached: "Weekly limit reached",
+  weeklyLimitAvailable: "Available {date}",
   recommended: "Recommended",
   cardsCount: "{count} cards",
   guaranteed: "Guaranteed {rarity}",
@@ -22,13 +25,16 @@ const packs = {
   opening: {
     chargeTag: "Open",
     chargeTitle: "Charging the portal",
-    chargeBody: "We’re cracking the seal on your pack so the big reveal lands with some drama.",
+    chargeBody:
+      "We’re cracking the seal on your pack so the big reveal lands with some drama.",
     sortingTag: "Sync",
     sortingTitle: "Sorting your haul",
-    sortingBody: "Adding every pull to your collection and updating your balance before the reveal starts.",
+    sortingBody:
+      "Adding every pull to your collection and updating your balance before the reveal starts.",
     revealTag: "Reveal",
     readyTitle: "Everything is ready",
-    readyBody: "Flip through the cards one by one so every hit gets a proper moment.",
+    readyBody:
+      "Flip through the cards one by one so every hit gets a proper moment.",
     revealCta: "Tap anywhere to flip the first card",
     revealProgress: "{count} cards ready",
     syncingProgress: "Locking in your pulls",
@@ -44,7 +50,8 @@ const packs = {
   },
   summary: {
     title: "Your haul",
-    subtitle: "Everything that came out of the pack, lined up and easy to scan.",
+    subtitle:
+      "Everything that came out of the pack, lined up and easy to scan.",
     newCards: "New cards",
     totalCards: "Cards opened",
     rarityBreakdown: "Rarity spread",

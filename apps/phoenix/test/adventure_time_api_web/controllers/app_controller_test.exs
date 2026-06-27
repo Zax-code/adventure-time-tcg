@@ -37,7 +37,7 @@ defmodule AdventureTimeApiWeb.AppControllerTest do
              "coins" => 100,
              "canClaim" => true,
              "timeUntilNextClaim" => 0,
-             "dailyReward" => 100,
+             "dailyReward" => 50,
              "timezone" => "Europe/Paris"
            }
 
@@ -45,8 +45,8 @@ defmodule AdventureTimeApiWeb.AppControllerTest do
 
     assert claim == %{
              "success" => true,
-             "coinsAwarded" => 100,
-             "newBalance" => 200
+             "coinsAwarded" => 50,
+             "newBalance" => 150
            }
 
     conflict = access_token |> auth_conn() |> post(~p"/daily-claim", %{}) |> json_response(409)
@@ -199,6 +199,7 @@ defmodule AdventureTimeApiWeb.AppControllerTest do
     assert response["newBalance"] == 150
     assert response["pack"]["id"] == pack.id
     assert response["pack"]["guaranteedRarity"] == "Rare"
+    assert response["pack"]["availability"]["canOpen"] == true
     assert Map.has_key?(response["pack"], "packArtAssetId")
     assert length(response["cards"]) == 3
     assert Enum.any?(response["cards"], &(&1["id"] == rare_card.id))
@@ -260,7 +261,8 @@ defmodule AdventureTimeApiWeb.AppControllerTest do
 
     assert Enum.any?(
              response["packs"],
-             &(&1["id"] == pack.id and &1["packArtAssetId"] == pack_art_asset.id)
+             &(&1["id"] == pack.id and &1["packArtAssetId"] == pack_art_asset.id and
+                 &1["availability"]["canOpen"] == true)
            )
 
     assert length(response["cardBackVisuals"]) == 15
@@ -271,6 +273,77 @@ defmodule AdventureTimeApiWeb.AppControllerTest do
                  &1["rarityName"] == "Rare" and
                  &1["imageAssetId"] == back_asset.id)
            )
+  end
+
+  test "POST /packs/open limits guaranteed Legendary packs to one weekly opening", _context do
+    user = create_user_with_password("legendary-limit@example.com", "rainicorn")
+    user = user |> Ecto.Changeset.change(coins: 10_000) |> Repo.update!()
+    access_token = login_access_token(user.email, "rainicorn")
+
+    legendary =
+      Repo.insert!(
+        Rarity.changeset(%Rarity{}, %{
+          name: "Legendary",
+          drop_rate: 0.1,
+          color: "#F59E0B"
+        })
+      )
+
+    Repo.insert!(
+      Card.changeset(%Card{}, %{
+        name: "Billy",
+        character: "Billy",
+        description: "A legendary hero.",
+        hp: 22,
+        attack: 11,
+        defense: 8,
+        speed: 50,
+        type: "Hero",
+        rarity_id: legendary.id
+      })
+    )
+
+    pack =
+      Repo.insert!(
+        Pack.changeset(%Pack{}, %{
+          name: "Weekly Legendary Pack",
+          description: "A limited pack.",
+          card_count: 1,
+          cost: 4500,
+          color: "#F59E0B",
+          is_active: true,
+          guaranteed_rarity: "Legendary"
+        })
+      )
+
+    first_open =
+      access_token
+      |> auth_conn()
+      |> post(~p"/packs/open", %{packId: pack.id})
+      |> json_response(200)
+
+    assert first_open["newBalance"] == 5500
+    assert first_open["pack"]["availability"]["canOpen"] == false
+    assert first_open["pack"]["availability"]["reason"] == "weekly_limit"
+    assert first_open["pack"]["availability"]["opensRemaining"] == 0
+    assert first_open["pack"]["availability"]["limit"] == 1
+    assert is_binary(first_open["pack"]["availability"]["nextAvailableAt"])
+
+    second_open =
+      access_token
+      |> auth_conn()
+      |> post(~p"/packs/open", %{packId: pack.id})
+      |> json_response(409)
+
+    assert second_open["error"] == "Weekly pack limit reached"
+    assert second_open["availability"]["canOpen"] == false
+    assert second_open["availability"]["reason"] == "weekly_limit"
+
+    packs = access_token |> auth_conn() |> get(~p"/packs") |> json_response(200)
+    listed_pack = Enum.find(packs["packs"], &(&1["id"] == pack.id))
+
+    assert listed_pack["availability"]["canOpen"] == false
+    assert listed_pack["availability"]["reason"] == "weekly_limit"
   end
 
   test "POST /packs/open returns preserved errors", _context do

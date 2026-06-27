@@ -134,6 +134,32 @@ type OpeningPhase =
   | "revealing"
   | "complete";
 
+function isPackLimited(pack: Pack) {
+  return pack.availability?.canOpen === false;
+}
+
+function canOpenPackWithBalance(pack: Pack, coins: number) {
+  return coins >= pack.cost && !isPackLimited(pack);
+}
+
+function formatPackAvailabilityDate(value: string | null | undefined) {
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value.slice(0, 10);
+  }
+
+  return date.toLocaleDateString(undefined, {
+    weekday: "long",
+    month: "short",
+    day: "numeric",
+  });
+}
+
 const PACK_CARD_RATIO = 320 / 460;
 const REVEAL_CARD_RATIO = CARD_BACKCOVER_RATIO;
 const IS_E2E_BUILD = process.env.EXPO_PUBLIC_E2E_AUTH === "1";
@@ -565,7 +591,12 @@ function buildCardBackVisualMap(visuals: CardBackVisual[]): CardBackVisualMap {
   return new Map(
     visuals.flatMap((visual) =>
       visual.imageAssetId
-        ? [[getCardBackVisualKey(visual.themeName, visual.rarityName), visual.imageAssetId]]
+        ? [
+            [
+              getCardBackVisualKey(visual.themeName, visual.rarityName),
+              visual.imageAssetId,
+            ],
+          ]
         : [],
     ),
   );
@@ -712,10 +743,7 @@ function PackPreviewCard({
           width: "100%",
           height: "100%",
           opacity: compact ? 0.14 : 0.18,
-          transform: [
-            { translateY: compact ? 10 : 14 },
-            { scale: 0.96 },
-          ],
+          transform: [{ translateY: compact ? 10 : 14 }, { scale: 0.96 }],
         }}
         contentFit="contain"
         transition={0}
@@ -1338,7 +1366,8 @@ function CrackedPackPreview({
   burstPattern?: PackBurstPattern;
 }) {
   const height = width / PACK_CARD_RATIO;
-  const resolvedPattern = burstPattern ?? createBurstPattern(width, height, pack);
+  const resolvedPattern =
+    burstPattern ?? createBurstPattern(width, height, pack);
   const centerX = width / 2;
   const centerY = height * 0.47;
   const accentColor = pack.color || tc.primary;
@@ -2193,6 +2222,19 @@ export default function PacksScreen() {
   }
 
   async function openPack(pack: Pack) {
+    if (isPackLimited(pack)) {
+      setOpenError(
+        pack.availability?.nextAvailableAt
+          ? t("packs.weeklyLimitAvailable", {
+              date: formatPackAvailabilityDate(
+                pack.availability.nextAvailableAt,
+              ),
+            })
+          : t("packs.weeklyLimitReached"),
+      );
+      return;
+    }
+
     if (coins < pack.cost) {
       setOpenError(
         t("packs.needCoins", { required: pack.cost, current: coins }),
@@ -2234,12 +2276,15 @@ export default function PacksScreen() {
 
       setOpenedCards(result.cards);
       setNewBalance(result.newBalance);
+      setSelectedPack(result.pack);
 
       await Promise.all([
         prefetchCardImages(result.cards.map((card) => card.imageAssetId)),
         prefetchCatalogImages([
           result.pack.packArtAssetId,
-          ...(packsQuery.data?.cardBackVisuals.map((visual) => visual.imageAssetId) ?? []),
+          ...(packsQuery.data?.cardBackVisuals.map(
+            (visual) => visual.imageAssetId,
+          ) ?? []),
         ]),
         animateLoadingProgress(44, 82, PACK_OPEN_PROGRESS_MS.second),
       ]);
@@ -2247,6 +2292,7 @@ export default function PacksScreen() {
         queryClient.invalidateQueries({ queryKey: ["collection"] }),
         queryClient.invalidateQueries({ queryKey: ["home"] }),
         queryClient.invalidateQueries({ queryKey: ["daily-claim"] }),
+        queryClient.invalidateQueries({ queryKey: ["packs"] }),
         patchUser({ coins: result.newBalance }),
         animateLoadingProgress(82, 100, PACK_OPEN_PROGRESS_MS.final),
       ]);
@@ -2391,7 +2437,9 @@ export default function PacksScreen() {
 
     return [
       ...packsQuery.data.packs.map((pack) => pack.packArtAssetId ?? ""),
-      ...packsQuery.data.cardBackVisuals.map((visual) => visual.imageAssetId ?? ""),
+      ...packsQuery.data.cardBackVisuals.map(
+        (visual) => visual.imageAssetId ?? "",
+      ),
     ].join(",");
   }, [packsQuery.data]);
 
@@ -2435,10 +2483,13 @@ export default function PacksScreen() {
   }
 
   const packs = packsQuery.data.packs;
-  const affordablePacks = packs.filter((pack) => pack.cost <= coins);
+  const availablePacks = packs.filter((pack) => !isPackLimited(pack));
+  const affordablePacks = availablePacks.filter((pack) =>
+    canOpenPackWithBalance(pack, coins),
+  );
   const cheapestLockedPack = packs.reduce<Pack | undefined>(
     (cheapest, pack) => {
-      if (pack.cost <= coins) {
+      if (isPackLimited(pack) || pack.cost <= coins) {
         return cheapest;
       }
 
@@ -2458,7 +2509,7 @@ export default function PacksScreen() {
 
       return best;
     }, undefined) ||
-    packs.reduce<Pack | undefined>((cheapest, pack) => {
+    availablePacks.reduce<Pack | undefined>((cheapest, pack) => {
       if (!cheapest || pack.cost < cheapest.cost) {
         return pack;
       }
@@ -2466,7 +2517,9 @@ export default function PacksScreen() {
       return cheapest;
     }, undefined);
   const heroPack = featuredPack ?? cheapestLockedPack ?? packs[0];
-  const heroCanAfford = heroPack ? heroPack.cost <= coins : false;
+  const heroCanOpen = heroPack
+    ? canOpenPackWithBalance(heroPack, coins)
+    : false;
   const openingStep = getPackProgressStep(phase);
   const openingStackRarities = openedCards
     .slice(0, 3)
@@ -2484,10 +2537,7 @@ export default function PacksScreen() {
     const openingStageHeight = Math.min(Math.max(height * 0.62, 420), 620);
     const openingStageTranslateY = 10;
     const loadingFooterTranslateY = 56;
-    const openingFooterReserve = Math.min(
-      Math.max(height * 0.24, 196),
-      252,
-    );
+    const openingFooterReserve = Math.min(Math.max(height * 0.24, 196), 252);
     const badgeBackgroundColor = withAlpha(
       openingAccent,
       themeName === "nightosphere" ? "26" : "1F",
@@ -2849,10 +2899,7 @@ export default function PacksScreen() {
                   inset: 0,
                   zIndex: 5,
                   opacity: backOpacity,
-                  transform: [
-                    { perspective: 1400 },
-                    { rotateY: backRotateY },
-                  ],
+                  transform: [{ perspective: 1400 }, { rotateY: backRotateY }],
                   backfaceVisibility: "hidden",
                 }}
               >
@@ -2870,10 +2917,7 @@ export default function PacksScreen() {
                   inset: 0,
                   zIndex: 10,
                   opacity: frontOpacity,
-                  transform: [
-                    { perspective: 1400 },
-                    { rotateY: frontRotateY },
-                  ],
+                  transform: [{ perspective: 1400 }, { rotateY: frontRotateY }],
                   backfaceVisibility: "hidden",
                 }}
               >
@@ -2951,7 +2995,8 @@ export default function PacksScreen() {
     const newCards = openedCards.filter((card) => card.isNewForUser);
     const duplicateCards = openedCards.filter((card) => !card.isNewForUser);
     const nextBalance = newBalance ?? coins;
-    const canReopenSelected = nextBalance >= selectedPack.cost;
+    const canReopenSelected =
+      nextBalance >= selectedPack.cost && !isPackLimited(selectedPack);
     const summaryCards = [...newCards, ...duplicateCards];
     const rarityBreakdown = openedCards.reduce<
       Record<string, { total: number; newCount: number }>
@@ -3041,7 +3086,10 @@ export default function PacksScreen() {
 
           <View
             className="gap-4 rounded-[28px] border p-5"
-            style={{ backgroundColor: tc.surface, borderColor: tc.primaryBorder }}
+            style={{
+              backgroundColor: tc.surface,
+              borderColor: tc.primaryBorder,
+            }}
           >
             <View className="flex-row items-center gap-3">
               <View
@@ -3065,37 +3113,37 @@ export default function PacksScreen() {
             </View>
 
             <View className="flex-row flex-wrap gap-2">
-              {(["Legendary", "Epic", "Rare", "Uncommon", "Common"] as const).map(
-                (rarityName) => {
-                  const info = rarityBreakdown[rarityName];
-                  if (!info) {
-                    return null;
-                  }
+              {(
+                ["Legendary", "Epic", "Rare", "Uncommon", "Common"] as const
+              ).map((rarityName) => {
+                const info = rarityBreakdown[rarityName];
+                if (!info) {
+                  return null;
+                }
 
-                  const rarityColors =
-                    RARITY_COLORS[rarityName] ?? RARITY_COLORS.Common;
+                const rarityColors =
+                  RARITY_COLORS[rarityName] ?? RARITY_COLORS.Common;
 
-                  return (
-                    <View
-                      key={rarityName}
-                      className="rounded-full px-3 py-2"
-                      style={{ backgroundColor: rarityColors.ring + "22" }}
+                return (
+                  <View
+                    key={rarityName}
+                    className="rounded-full px-3 py-2"
+                    style={{ backgroundColor: rarityColors.ring + "22" }}
+                  >
+                    <Text
+                      className="font-nunito-bold text-[12px]"
+                      style={{ color: rarityColors.to }}
                     >
-                      <Text
-                        className="font-nunito-bold text-[12px]"
-                        style={{ color: rarityColors.to }}
-                      >
-                        {rarityName} x{info.total}
-                        {info.newCount > 0
-                          ? ` ${t("packs.openResult.newCount", {
-                              count: info.newCount,
-                            })}`
-                          : ""}
-                      </Text>
-                    </View>
-                  );
-                },
-              )}
+                      {rarityName} x{info.total}
+                      {info.newCount > 0
+                        ? ` ${t("packs.openResult.newCount", {
+                            count: info.newCount,
+                          })}`
+                        : ""}
+                    </Text>
+                  </View>
+                );
+              })}
             </View>
           </View>
 
@@ -3290,15 +3338,15 @@ export default function PacksScreen() {
             {heroPack ? (
               <Pressable
                 onPress={() =>
-                  !isOpening && heroCanAfford && void openPack(heroPack)
+                  !isOpening && heroCanOpen && void openPack(heroPack)
                 }
-                disabled={isOpening || !heroCanAfford}
-                style={{ opacity: heroCanAfford ? 1 : 0.82 }}
+                disabled={isOpening || !heroCanOpen}
+                style={{ opacity: heroCanOpen ? 1 : 0.62 }}
               >
                 <View
                   className="flex-row items-center justify-between rounded-[24px] px-5 py-4"
                   style={{
-                    backgroundColor: heroCanAfford
+                    backgroundColor: heroCanOpen
                       ? tc.primaryStrong
                       : tc.surfaceMuted,
                   }}
@@ -3306,26 +3354,34 @@ export default function PacksScreen() {
                   <View className="flex-1 gap-1 pr-3">
                     <Text
                       className="font-nunito-extrabold text-lg"
-                      style={{ color: heroCanAfford ? "#FFFFFF" : tc.fg }}
+                      style={{ color: heroCanOpen ? "#FFFFFF" : tc.fg }}
                     >
                       {heroPack.name}
                     </Text>
                     <Text
                       className="font-nunito text-sm"
                       style={{
-                        color: heroCanAfford
+                        color: heroCanOpen
                           ? "rgba(255,255,255,0.82)"
                           : tc.fgMuted,
                       }}
                     >
-                      {heroCanAfford
-                        ? t("packs.tapToOpen")
-                        : cheapestLockedPack
-                          ? t("packs.nextGoal", {
-                              name: heroPack.name,
-                              count: heroPack.cost - coins,
+                      {isPackLimited(heroPack)
+                        ? heroPack.availability?.nextAvailableAt
+                          ? t("packs.weeklyLimitAvailable", {
+                              date: formatPackAvailabilityDate(
+                                heroPack.availability.nextAvailableAt,
+                              ),
                             })
-                          : t("packs.allAffordable")}
+                          : t("packs.weeklyLimitReached")
+                        : heroCanOpen
+                          ? t("packs.tapToOpen")
+                          : cheapestLockedPack
+                            ? t("packs.nextGoal", {
+                                name: heroPack.name,
+                                count: heroPack.cost - coins,
+                              })
+                            : t("packs.allAffordable")}
                     </Text>
                   </View>
                   <View className="flex-row items-center gap-2">
@@ -3333,7 +3389,7 @@ export default function PacksScreen() {
                     <Text
                       className="font-nunito-extrabold text-lg"
                       style={{
-                        color: heroCanAfford ? "#FFFFFF" : tc.primaryStrong,
+                        color: heroCanOpen ? "#FFFFFF" : tc.primaryStrong,
                       }}
                     >
                       {heroPack.cost}
@@ -3362,28 +3418,47 @@ export default function PacksScreen() {
         <View className="gap-4">
           {packs.map((pack) => {
             const canAfford = coins >= pack.cost;
+            const limitReached = isPackLimited(pack);
+            const canOpen = canOpenPackWithBalance(pack, coins);
             const slug = slugifyPackName(pack.name);
             const coinsNeeded = Math.max(0, pack.cost - coins);
             const isFeatured = featuredPack?.id === pack.id;
             const packSurfaceColor = pack.color
               ? withAlpha(pack.color, "33")
               : tc.surfaceMuted;
+            const statusLabel = limitReached
+              ? pack.availability?.nextAvailableAt
+                ? t("packs.weeklyLimitAvailable", {
+                    date: formatPackAvailabilityDate(
+                      pack.availability.nextAvailableAt,
+                    ),
+                  })
+                : t("packs.weeklyLimitReached")
+              : canAfford
+                ? t("packs.readyNow")
+                : t("packs.needMoreCoinsShort", {
+                    count: coinsNeeded,
+                  });
 
             return (
               <Pressable
                 key={pack.id}
                 testID={`pack-card-${slug}`}
-                onPress={() => !isOpening && canAfford && void openPack(pack)}
-                disabled={isOpening || !canAfford}
-                style={{ opacity: canAfford ? 1 : 0.7 }}
+                onPress={() => !isOpening && canOpen && void openPack(pack)}
+                disabled={isOpening || !canOpen}
+                style={{ opacity: canOpen ? 1 : 0.54 }}
               >
                 <View
                   className="rounded-[30px] border p-4"
                   style={{
-                    backgroundColor: packSurfaceColor,
-                    borderColor: isFeatured
-                      ? withAlpha(pack.color || tc.primary, "66")
-                      : withAlpha(pack.color || tc.primaryBorder, "2E"),
+                    backgroundColor: limitReached
+                      ? tc.surfaceMuted
+                      : packSurfaceColor,
+                    borderColor: limitReached
+                      ? tc.primaryBorder
+                      : isFeatured
+                        ? withAlpha(pack.color || tc.primary, "66")
+                        : withAlpha(pack.color || tc.primaryBorder, "2E"),
                   }}
                 >
                   <View className="flex-row items-start gap-4">
@@ -3429,24 +3504,26 @@ export default function PacksScreen() {
                         <Text
                           className="font-nunito text-xs"
                           style={{
-                            color: canAfford ? tc.successText : tc.dangerText,
+                            color: limitReached
+                              ? tc.fgMuted
+                              : canAfford
+                                ? tc.successText
+                                : tc.dangerText,
                           }}
                         >
-                          {canAfford
-                            ? t("packs.readyNow")
-                            : t("packs.needMoreCoinsShort", {
-                                count: coinsNeeded,
-                              })}
+                          {statusLabel}
                         </Text>
 
                         <Text
                           testID={`pack-open-cta-${slug}`}
                           className="font-nunito-bold text-sm"
                           style={{
-                            color: canAfford ? tc.primaryText : tc.fgMuted,
+                            color: canOpen ? tc.primaryText : tc.fgMuted,
                           }}
                         >
-                          {t("packs.tapToOpen")}
+                          {limitReached
+                            ? t("packs.weeklyLimitReached")
+                            : t("packs.tapToOpen")}
                         </Text>
                       </View>
                     </View>

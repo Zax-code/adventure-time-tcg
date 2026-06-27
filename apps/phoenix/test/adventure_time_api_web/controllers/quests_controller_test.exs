@@ -277,7 +277,7 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
 
     assert quest.progress == 1
     assert quest.completed == true
-    assert quest.reward == 120
+    assert quest.reward == 45
     assert attempt.elapsed_ms == 83_421
 
     already_submitted =
@@ -1064,7 +1064,7 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
     assert first_run["seed"] == first_run["runId"]
     assert first_run["runDurationSeconds"] == 30
     assert first_run["pauseDurationSeconds"] == 5
-    assert first_run["rewardPerAnswer"] == 4
+    assert first_run["rewardPerAnswer"] == 2
     assert length(first_run["questions"]) == 120
     first_question = hd(first_run["questions"])
     assert first_question["index"] == 0

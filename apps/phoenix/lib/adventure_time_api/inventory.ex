@@ -7,7 +7,7 @@ defmodule AdventureTimeApi.Inventory do
 
   alias AdventureTimeApi.Accounts.User
   alias AdventureTimeApi.Catalog.{Card, CardType, Pack, Rarity}
-  alias AdventureTimeApi.Inventory.{OwnedCard, PackOpening}
+  alias AdventureTimeApi.Inventory.{OwnedCard, PackOpening, PackOpeningRecord}
   alias AdventureTimeApi.Pvp
   alias AdventureTimeApi.Repo
 
@@ -15,6 +15,16 @@ defmodule AdventureTimeApi.Inventory do
 
   @dust_sacrifice %{common: 1, uncommon: 5, rare: 20, epic: 50, legendary: 100}
   @craft_cost_multiplier 5
+  @weekly_limited_rarity "legendary"
+  @weekly_pack_limit 1
+
+  def list_active_packs_for_user(user_id) do
+    Pack
+    |> where([pack], pack.is_active == true)
+    |> order_by([pack], asc: pack.cost, asc: pack.inserted_at)
+    |> Repo.all()
+    |> Enum.map(&to_pack_response(&1, user_id))
+  end
 
   def dust_sacrifice_value(rarity_name) do
     key = rarity_name |> to_string() |> String.trim() |> String.downcase() |> String.to_atom()
@@ -166,6 +176,7 @@ defmodule AdventureTimeApi.Inventory do
       with {:ok, user} <- fetch_locked_user(user_id),
            {:ok, pack} <- fetch_active_pack(pack_id),
            :ok <- ensure_can_afford_pack(user, pack),
+           :ok <- ensure_weekly_pack_limit(user, pack),
            available_cards when available_cards != [] <- available_cards(),
            available_rarities when available_rarities != [] <- available_rarities() do
         selected_cards = select_cards_for_pack(pack, available_cards, available_rarities)
@@ -200,8 +211,14 @@ defmodule AdventureTimeApi.Inventory do
           end
         end)
 
+        %PackOpeningRecord{}
+        |> PackOpeningRecord.changeset(%{pack_name: pack.name, opened_at: now})
+        |> Ecto.Changeset.put_change(:user_id, user_id)
+        |> Ecto.Changeset.put_change(:pack_id, pack.id)
+        |> Repo.insert!()
+
         %{
-          pack: to_pack_response(pack),
+          pack: to_pack_response(pack, user_id, DateTime.add(now, 1, :second)),
           cards:
             Enum.map(selected_cards, fn card ->
               card
@@ -216,11 +233,23 @@ defmodule AdventureTimeApi.Inventory do
       end
     end)
     |> case do
-      {:ok, response} -> {:ok, response}
-      {:error, :user_not_found} -> {:error, :user_not_found}
-      {:error, :pack_not_found_or_inactive} -> {:error, :pack_not_found_or_inactive}
-      {:error, :not_enough_coins} -> {:error, :not_enough_coins}
-      {:error, :no_cards_available} -> {:error, :no_cards_available}
+      {:ok, response} ->
+        {:ok, response}
+
+      {:error, :user_not_found} ->
+        {:error, :user_not_found}
+
+      {:error, :pack_not_found_or_inactive} ->
+        {:error, :pack_not_found_or_inactive}
+
+      {:error, :not_enough_coins} ->
+        {:error, :not_enough_coins}
+
+      {:error, {:weekly_pack_limit_reached, payload}} ->
+        {:error, :weekly_pack_limit_reached, payload}
+
+      {:error, :no_cards_available} ->
+        {:error, :no_cards_available}
     end
   end
 
@@ -319,6 +348,16 @@ defmodule AdventureTimeApi.Inventory do
     end
   end
 
+  defp ensure_weekly_pack_limit(user, pack) do
+    availability = pack_availability(user.id, user.timezone, pack)
+
+    if availability.canOpen do
+      :ok
+    else
+      {:error, {:weekly_pack_limit_reached, availability}}
+    end
+  end
+
   defp available_cards do
     Card
     |> where([card], card.is_archived == false)
@@ -358,7 +397,7 @@ defmodule AdventureTimeApi.Inventory do
     |> PackOpening.shuffle()
   end
 
-  defp to_pack_response(pack) do
+  defp to_pack_response(pack, user_id, now \\ DateTime.utc_now()) do
     %{
       id: pack.id,
       name: pack.name,
@@ -368,8 +407,95 @@ defmodule AdventureTimeApi.Inventory do
       color: pack.color,
       isActive: pack.is_active,
       guaranteedRarity: pack.guaranteed_rarity,
-      packArtAssetId: pack.pack_art_asset_id
+      packArtAssetId: pack.pack_art_asset_id,
+      availability: pack_availability(user_id, nil, pack, now)
     }
+  end
+
+  defp pack_availability(user_id, timezone, pack) do
+    pack_availability(user_id, timezone, pack, DateTime.utc_now())
+  end
+
+  defp pack_availability(nil, _timezone, _pack, _now) do
+    %{
+      canOpen: true,
+      reason: nil,
+      nextAvailableAt: nil,
+      opensRemaining: nil,
+      limit: nil
+    }
+  end
+
+  defp pack_availability(user_id, nil, pack, now) do
+    timezone =
+      case Repo.get(User, user_id) do
+        %User{timezone: timezone} when is_binary(timezone) and timezone != "" -> timezone
+        _ -> "Europe/Paris"
+      end
+
+    pack_availability(user_id, timezone, pack, now)
+  end
+
+  defp pack_availability(user_id, timezone, pack, now) do
+    if weekly_limited_pack?(pack) do
+      {week_start, next_week_start} = weekly_window(now, timezone || "Europe/Paris")
+
+      openings =
+        PackOpeningRecord
+        |> where(
+          [opening],
+          opening.user_id == ^user_id and opening.pack_id == ^pack.id and
+            opening.opened_at >= ^week_start and opening.opened_at < ^next_week_start
+        )
+        |> Repo.aggregate(:count, :id)
+
+      opens_remaining = max(@weekly_pack_limit - openings, 0)
+
+      %{
+        canOpen: opens_remaining > 0,
+        reason: if(opens_remaining > 0, do: nil, else: "weekly_limit"),
+        nextAvailableAt: DateTime.to_iso8601(next_week_start),
+        opensRemaining: opens_remaining,
+        limit: @weekly_pack_limit
+      }
+    else
+      %{
+        canOpen: true,
+        reason: nil,
+        nextAvailableAt: nil,
+        opensRemaining: nil,
+        limit: nil
+      }
+    end
+  end
+
+  defp weekly_limited_pack?(pack) do
+    pack.guaranteed_rarity
+    |> to_string()
+    |> String.trim()
+    |> String.downcase()
+    |> Kernel.==(@weekly_limited_rarity)
+  end
+
+  defp weekly_window(now, timezone) do
+    local_now = DateTime.shift_zone!(now, timezone)
+    local_date = DateTime.to_date(local_now)
+    week_start_date = Date.add(local_date, 1 - Date.day_of_week(local_date))
+    next_week_start_date = Date.add(week_start_date, 7)
+
+    week_start =
+      week_start_date
+      |> DateTime.new!(~T[00:00:00], timezone)
+      |> DateTime.shift_zone!("Etc/UTC")
+      |> DateTime.truncate(:second)
+
+    next_week_start =
+      next_week_start_date
+      |> DateTime.new!(~T[00:00:00], timezone)
+      |> DateTime.shift_zone!("Etc/UTC")
+      |> DateTime.truncate(:second)
+
+    {week_start, next_week_start}
   end
 
   defp to_card_payload(card) do
