@@ -2106,7 +2106,7 @@ export default function QuestsScreen() {
                   <View
                     style={{
                       flexDirection: "row",
-                      alignItems: "flex-start",
+                      alignItems: "center",
                       gap: 16,
                       paddingRight: 24,
                     }}
@@ -2124,7 +2124,7 @@ export default function QuestsScreen() {
                       {statusIcon}
                     </View>
 
-                    <View style={{ flex: 1 }}>
+                    <View style={{ flex: 1, justifyContent: "center" }}>
                       <Text className="font-nunito-bold text-base text-fg">
                         {title}
                       </Text>
