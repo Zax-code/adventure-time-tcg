@@ -1437,7 +1437,12 @@ export default function QuestsScreen() {
                           <View className="flex-row items-center gap-1">
                             <CoinIcon size={18} />
                             <Text
-                              style={{ color: tc.secondaryDark }}
+                              style={[
+                                { color: tc.secondaryDark },
+                                groupStatus === "claimed"
+                                  ? { textDecorationLine: "line-through" }
+                                  : null,
+                              ]}
                               className="font-nunito-bold text-base"
                             >
                               {totalReward}
@@ -1598,7 +1603,15 @@ export default function QuestsScreen() {
                                     <CoinIcon size={16} />
                                     <Text
                                       className="font-nunito-bold text-sm"
-                                      style={{ color: tc.secondaryDark }}
+                                      style={[
+                                        { color: tc.secondaryDark },
+                                        languageStatus === "claimed"
+                                          ? {
+                                              textDecorationLine:
+                                                "line-through",
+                                            }
+                                          : null,
+                                      ]}
                                     >
                                       {quest.reward}
                                     </Text>
@@ -1813,7 +1826,12 @@ export default function QuestsScreen() {
                           <View className="flex-row items-center gap-1">
                             <CoinIcon size={18} />
                             <Text
-                              style={{ color: tc.secondaryDark }}
+                              style={[
+                                { color: tc.secondaryDark },
+                                groupStatus === "claimed"
+                                  ? { textDecorationLine: "line-through" }
+                                  : null,
+                              ]}
                               className="font-nunito-bold text-base"
                             >
                               {totalReward}
@@ -1966,7 +1984,15 @@ export default function QuestsScreen() {
                                     <CoinIcon size={16} />
                                     <Text
                                       className="font-nunito-bold text-sm"
-                                      style={{ color: tc.secondaryDark }}
+                                      style={[
+                                        { color: tc.secondaryDark },
+                                        modeStatus === "claimed"
+                                          ? {
+                                              textDecorationLine:
+                                                "line-through",
+                                            }
+                                          : null,
+                                      ]}
                                     >
                                       {quest.reward}
                                     </Text>
@@ -2197,7 +2223,12 @@ export default function QuestsScreen() {
                     <View className="flex-row items-center gap-1">
                       <CoinIcon size={18} />
                       <Text
-                        style={{ color: tc.secondaryDark }}
+                        style={[
+                          { color: tc.secondaryDark },
+                          status === "claimed"
+                            ? { textDecorationLine: "line-through" }
+                            : null,
+                        ]}
                         className="font-nunito-bold text-base"
                       >
                         {quest.reward}
