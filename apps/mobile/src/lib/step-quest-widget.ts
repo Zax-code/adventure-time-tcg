@@ -64,7 +64,7 @@ const widgetSnapshotBridge = NativeModules
   .WidgetSnapshotBridge as WidgetSnapshotBridgeModule | undefined;
 
 export const STEP_QUEST_WIDGET_DEEP_LINK =
-  "adventure-time://widget-quests?focus=steps";
+  "adventure-time://quests?focus=steps";
 
 function formatLocalDate(date: Date) {
   const year = date.getFullYear();

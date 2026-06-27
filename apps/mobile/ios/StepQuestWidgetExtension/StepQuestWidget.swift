@@ -4,7 +4,7 @@ import WidgetKit
 private let appGroupId = "group.love.leaetzak.adventuretime"
 private let snapshotKey = "stepQuestWidgetSnapshot"
 private let widgetKind = "StepQuestWidget"
-private let defaultDeepLink = "adventure-time://widget-quests?focus=steps"
+private let defaultDeepLink = "adventure-time://quests?focus=steps"
 private let themeNameKey = "stepQuestWidgetThemeName"
 private let localeKey = "stepQuestWidgetLocale"
 
