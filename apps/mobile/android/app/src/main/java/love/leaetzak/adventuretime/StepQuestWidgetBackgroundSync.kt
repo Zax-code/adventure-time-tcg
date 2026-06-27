@@ -154,7 +154,7 @@ class StepQuestWidgetBackgroundSyncWorker(
       reward = reward,
       status = status,
       recordedFor = recordedFor,
-      deepLink = sameDaySnapshot?.deepLink ?: "adventure-time://widget-quests?focus=steps",
+      deepLink = sameDaySnapshot?.deepLink ?: "adventure-time://quests?focus=steps",
     )
   }
 
@@ -370,7 +370,7 @@ class StepQuestWidgetBackgroundSyncWorker(
       reward = quest.optInt("reward", DEFAULT_REWARD),
       status = status,
       recordedFor = recordedFor,
-      deepLink = localSnapshot.optString("deepLink", "adventure-time://widget-quests?focus=steps"),
+      deepLink = localSnapshot.optString("deepLink", "adventure-time://quests?focus=steps"),
     )
   }
 

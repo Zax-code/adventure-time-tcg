@@ -12,7 +12,7 @@ private const val STEP_QUEST_WIDGET_USER_CONTEXT_KEY = "stepQuestWidgetUserConte
 private const val STEP_QUEST_WIDGET_SERVER_SYNC_STATE_KEY = "stepQuestWidgetServerSyncState"
 private const val STEP_QUEST_WIDGET_THEME_KEY = "stepQuestWidgetThemeName"
 private const val STEP_QUEST_WIDGET_LOCALE_KEY = "stepQuestWidgetLocale"
-private const val DEFAULT_WIDGET_DEEP_LINK = "adventure-time://widget-quests?focus=steps"
+private const val DEFAULT_WIDGET_DEEP_LINK = "adventure-time://quests?focus=steps"
 private const val DEFAULT_WIDGET_THEME_NAME = "candy"
 private const val DEFAULT_WIDGET_LOCALE = "en"
 

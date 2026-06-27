@@ -27,7 +27,7 @@ import java.util.Date
 import kotlin.math.floor
 import kotlin.math.roundToInt
 
-private const val DEFAULT_WIDGET_DEEP_LINK = "adventure-time://widget-quests?focus=steps"
+private const val DEFAULT_WIDGET_DEEP_LINK = "adventure-time://quests?focus=steps"
 private const val DEFAULT_WIDGET_THEME_NAME = "candy"
 private const val REWARD_TEXT_COLOR = 0xFF8A4A00.toInt()
 private const val ACTION_STEP_QUEST_WIDGET_MIDNIGHT_REFRESH =
@@ -733,7 +733,7 @@ class StepQuestWidgetProvider : AppWidgetProvider() {
     private fun createPendingIntent(context: Context, deepLink: String): PendingIntent {
       val intent = Intent(Intent.ACTION_VIEW, Uri.parse(deepLink)).apply {
         setPackage(context.packageName)
-        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        flags = Intent.FLAG_ACTIVITY_NEW_TASK
       }
 
       return PendingIntent.getActivity(
