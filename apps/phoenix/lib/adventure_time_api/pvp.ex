@@ -84,13 +84,15 @@ defmodule AdventureTimeApi.Pvp do
   end
 
   defp serialize_loadout(loadout, card_map, owned_set) do
+    card_ids = loadout_card_ids(loadout)
+
     %{
       id: loadout.id,
       ownerId: loadout.owner_id,
       name: loadout.name,
-      cardIds: loadout.card_ids,
-      cards: Enum.map(loadout.card_ids, &Map.get(card_map, &1)) |> Enum.reject(&is_nil/1),
-      invalidCardIds: Enum.reject(loadout.card_ids, &MapSet.member?(owned_set, &1)),
+      cardIds: card_ids,
+      cards: loadout_cards(card_ids, card_map),
+      invalidCardIds: invalid_loadout_card_ids(card_ids, owned_set),
       createdAt: iso8601(loadout.inserted_at),
       updatedAt: iso8601(loadout.updated_at)
     }
@@ -840,26 +842,55 @@ defmodule AdventureTimeApi.Pvp do
   end
 
   defp build_loadout_support(loadouts, user_id) do
-    card_ids =
+    valid_card_ids =
       loadouts
-      |> Enum.flat_map(& &1.card_ids)
+      |> Enum.flat_map(&loadout_card_ids/1)
+      |> Enum.flat_map(&normalize_card_id_list/1)
       |> Enum.uniq()
 
-    owned_set =
-      OwnedCard
-      |> where([o], o.user_id == ^user_id and o.card_id in ^card_ids and o.quantity > 0)
-      |> select([o], o.card_id)
-      |> Repo.all()
-      |> MapSet.new()
-
-    card_map =
-      Card
-      |> where([c], c.id in ^card_ids)
-      |> preload(:rarity)
-      |> Repo.all()
-      |> Map.new(fn card -> {card.id, to_card_payload(card)} end)
+    owned_set = fetch_owned_card_id_set(user_id, valid_card_ids)
+    card_map = fetch_loadout_card_map(valid_card_ids)
 
     %{card_map: card_map, owned_set: owned_set}
+  end
+
+  defp loadout_card_ids(%{card_ids: card_ids}) when is_list(card_ids), do: card_ids
+  defp loadout_card_ids(_loadout), do: []
+
+  defp loadout_cards(card_ids, card_map) do
+    card_ids
+    |> Enum.flat_map(&normalize_card_id_list/1)
+    |> Enum.map(&Map.get(card_map, &1))
+    |> Enum.reject(&is_nil/1)
+  end
+
+  defp invalid_loadout_card_ids(card_ids, owned_set) do
+    Enum.reject(card_ids, fn card_id ->
+      case normalize_card_id(card_id) do
+        {:ok, normalized_card_id} -> MapSet.member?(owned_set, normalized_card_id)
+        :error -> false
+      end
+    end)
+  end
+
+  defp fetch_owned_card_id_set(_user_id, []), do: MapSet.new()
+
+  defp fetch_owned_card_id_set(user_id, card_ids) do
+    OwnedCard
+    |> where([o], o.user_id == ^user_id and o.card_id in ^card_ids and o.quantity > 0)
+    |> select([o], o.card_id)
+    |> Repo.all()
+    |> MapSet.new()
+  end
+
+  defp fetch_loadout_card_map([]), do: %{}
+
+  defp fetch_loadout_card_map(card_ids) do
+    Card
+    |> where([c], c.id in ^card_ids)
+    |> preload(:rarity)
+    |> Repo.all()
+    |> Map.new(fn card -> {card.id, to_card_payload(card)} end)
   end
 
   defp serialize_matches(matches) do
@@ -1373,24 +1404,54 @@ defmodule AdventureTimeApi.Pvp do
         {:error, :loadout_duplicate_cards}
 
       true ->
-        owned_count =
-          OwnedCard
-          |> where([o], o.user_id == ^user_id and o.card_id in ^card_ids and o.quantity > 0)
-          |> Repo.aggregate(:count, :id)
+        valid_card_ids = normalize_loadout_card_ids(card_ids)
 
-        if owned_count < 6 do
+        if length(valid_card_ids) != length(card_ids) do
           {:error, :cards_not_owned}
         else
-          cards =
-            Card
-            |> where([c], c.id in ^card_ids)
-            |> preload(:rarity)
-            |> Repo.all()
-
-          check_rarity_caps(cards)
+          validate_owned_loadout(user_id, valid_card_ids)
         end
     end
   end
+
+  defp validate_owned_loadout(user_id, card_ids) do
+    owned_count =
+      OwnedCard
+      |> where([o], o.user_id == ^user_id and o.card_id in ^card_ids and o.quantity > 0)
+      |> Repo.aggregate(:count, :id)
+
+    if owned_count < 6 do
+      {:error, :cards_not_owned}
+    else
+      cards =
+        Card
+        |> where([c], c.id in ^card_ids)
+        |> preload(:rarity)
+        |> Repo.all()
+
+      check_rarity_caps(cards)
+    end
+  end
+
+  defp normalize_loadout_card_ids(card_ids) do
+    Enum.flat_map(card_ids, &normalize_card_id_list/1)
+  end
+
+  defp normalize_card_id_list(card_id) do
+    case normalize_card_id(card_id) do
+      {:ok, normalized_card_id} -> [normalized_card_id]
+      :error -> []
+    end
+  end
+
+  defp normalize_card_id(card_id) when is_binary(card_id) do
+    case Ecto.UUID.cast(card_id) do
+      {:ok, normalized_card_id} -> {:ok, normalized_card_id}
+      :error -> :error
+    end
+  end
+
+  defp normalize_card_id(_card_id), do: :error
 
   defp check_rarity_caps(cards) do
     legendary_count = Enum.count(cards, &(&1.rarity && &1.rarity.name == "Legendary"))

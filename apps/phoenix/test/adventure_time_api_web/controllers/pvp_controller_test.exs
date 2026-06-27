@@ -4,7 +4,7 @@ defmodule AdventureTimeApiWeb.PvpControllerTest do
   alias AdventureTimeApi.Accounts.{EmailCredential, User}
   alias AdventureTimeApi.Catalog.{Card, Rarity}
   alias AdventureTimeApi.Inventory.OwnedCard
-  alias AdventureTimeApi.Pvp.{AbilityDef, CardAbility, Match}
+  alias AdventureTimeApi.Pvp.{AbilityDef, CardAbility, Loadout, Match}
   alias AdventureTimeApi.Repo
   alias AdventureTimeApi.Workers.ExpirePendingInviteWorker
 
@@ -77,6 +77,48 @@ defmodule AdventureTimeApiWeb.PvpControllerTest do
 
     assert [%{"name" => "Starter Six", "invalidCardIds" => [], "cards" => cards}] = listed
     assert Enum.map(cards, & &1["id"]) == card_ids
+  end
+
+  test "loadout responses tolerate malformed legacy card ids", _context do
+    user =
+      create_user_with_password(
+        "legacy-loadout-user@example.com",
+        "password123",
+        "Legacy Loadout User"
+      )
+
+    access_token = login_access_token(user.email, "password123")
+
+    rarity =
+      Repo.insert!(
+        Rarity.changeset(%Rarity{}, %{name: "Legacy Common", drop_rate: 60.0, color: "#9CA3AF"})
+      )
+
+    owned_card_ids = create_owned_cards(user, rarity, "Legacy Loadout", 5)
+    malformed_card_id = "jake-the-dog"
+    card_ids = List.insert_at(owned_card_ids, 4, malformed_card_id)
+
+    Repo.insert!(
+      Loadout.changeset(%Loadout{}, %{
+        owner_id: user.id,
+        name: "Legacy Slug",
+        card_ids: card_ids
+      })
+    )
+
+    list_conn = access_token |> auth_conn() |> get(~p"/pvp/loadouts")
+    listed = json_response(list_conn, 200)["loadouts"]
+
+    assert [
+             %{
+               "name" => "Legacy Slug",
+               "cardIds" => ^card_ids,
+               "invalidCardIds" => [^malformed_card_id],
+               "cards" => cards
+             }
+           ] = listed
+
+    assert Enum.map(cards, & &1["id"]) == owned_card_ids
   end
 
   test "full PvP flow persists from invite through history", _context do
