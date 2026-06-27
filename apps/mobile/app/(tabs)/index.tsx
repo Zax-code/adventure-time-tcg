@@ -26,7 +26,11 @@ import {
   useBottomTabBarContentPadding,
 } from "../../src/theme/layout";
 import { THEME_COLORS } from "../../src/theme/themes";
-import { PrimaryButton } from "../../src/components/button";
+import {
+  GhostButton,
+  PrimaryButton,
+  SecondaryButton,
+} from "../../src/components/button";
 import { CardTile } from "../../src/components/card-tile";
 import {
   CardsIcon,
@@ -36,7 +40,6 @@ import {
   SparklesIcon,
 } from "../../src/components/icons";
 import { PageErrorState } from "../../src/components/error-state";
-import { ThemedExpoButton } from "../../src/components/expo-ui/themed-button";
 import { PageLoadingState } from "../../src/components/loading-state";
 import { useTranslation } from "../../src/i18n";
 
@@ -263,7 +266,7 @@ export default function HomeScreen() {
             </View>
 
             <View className="mt-3 flex-row gap-2">
-              <ThemedExpoButton
+              <SecondaryButton
                 onPress={() => {
                   router.push({
                     pathname: "/settings",
@@ -274,49 +277,21 @@ export default function HomeScreen() {
                   <Ionicons
                     name="settings-outline"
                     size={16}
-                    color={tc.primaryStrong}
+                    color={tc.secondaryText}
                   />
                 }
-                fallbackAppearance={{
-                  backgroundColor: tc.primaryTint,
-                  borderColor: tc.primaryBorder,
-                  borderRadius: 999,
-                  gradientColors: null,
-                  foregroundColor: tc.primaryStrong,
-                  paddingHorizontal: 14,
-                  paddingVertical: 10,
-                  textStyle: {
-                    fontFamily: "Nunito_700Bold",
-                    fontSize: 13,
-                  },
-                }}
                 style={{ flex: 1 }}
-                variant="ghost"
               >
                 {t("home.notificationsPromptSettings")}
-              </ThemedExpoButton>
+              </SecondaryButton>
 
-              <ThemedExpoButton
+              <GhostButton
                 onPress={() => {
                   setNotificationPromptIgnored(true);
                 }}
-                fallbackAppearance={{
-                  backgroundColor: tc.surfaceMuted,
-                  borderColor: tc.primaryBorder,
-                  borderRadius: 999,
-                  gradientColors: null,
-                  foregroundColor: tc.primaryStrong,
-                  paddingHorizontal: 12,
-                  paddingVertical: 10,
-                  textStyle: {
-                    fontFamily: "Nunito_600SemiBold",
-                    fontSize: 13,
-                  },
-                }}
-                variant="ghost"
               >
                 {t("home.notificationsPromptIgnore")}
-              </ThemedExpoButton>
+              </GhostButton>
             </View>
 
             <Pressable
