@@ -26,7 +26,7 @@ import {
 } from "../../src/components/icons";
 import { PageErrorState } from "../../src/components/error-state";
 import { PageLoadingState } from "../../src/components/loading-state";
-import { ThemedExpoButton } from "../../src/components/expo-ui/themed-button";
+import { PrimaryButton } from "../../src/components/button";
 import { ThemedExpoTextInput } from "../../src/components/expo-ui/themed-text-input";
 import { ThemedModal } from "../../src/components/themed-modal";
 import { ToastBanner } from "../../src/components/toast-banner";
@@ -808,15 +808,13 @@ export default function CollectionScreen() {
             </View>
           )}
         </View>
-        <ThemedExpoButton
+        <PrimaryButton
           onPress={() => setShowStatsModal(false)}
-          preferFallback
-          variant="primary"
           style={{ marginTop: 20 }}
           fallbackAppearance={{ borderRadius: 16 }}
         >
           {t("common.close")}
-        </ThemedExpoButton>
+        </PrimaryButton>
       </ThemedModal>
 
       {/* Sort Modal */}
@@ -879,15 +877,13 @@ export default function CollectionScreen() {
             );
           })}
         </View>
-        <ThemedExpoButton
+        <PrimaryButton
           onPress={() => setShowSortModal(false)}
-          preferFallback
-          variant="primary"
           style={{ marginTop: 16 }}
           fallbackAppearance={{ borderRadius: 16 }}
         >
           {t("common.close")}
-        </ThemedExpoButton>
+        </PrimaryButton>
       </ThemedModal>
 
       {/* Dust Info Modal */}
@@ -1469,27 +1465,12 @@ export default function CollectionScreen() {
                 </Text>
               </View>
 
-              <Pressable
+              <PrimaryButton
                 onPress={() => setShowDustModal(false)}
-                style={{ borderRadius: 16, overflow: "hidden" }}
+                fallbackAppearance={{ borderRadius: 16 }}
               >
-                <LinearGradient
-                  colors={[tc.primary, tc.primaryDark]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={{ paddingVertical: 13, alignItems: "center" }}
-                >
-                  <Text
-                    style={{
-                      fontFamily: "Nunito_800ExtraBold",
-                      color: tc.surface,
-                      fontSize: 14,
-                    }}
-                  >
-                    {t("common.close")}
-                  </Text>
-                </LinearGradient>
-              </Pressable>
+                {t("common.close")}
+              </PrimaryButton>
             </ScrollView>
           </View>
         </View>

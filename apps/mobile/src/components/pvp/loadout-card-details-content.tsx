@@ -4,7 +4,7 @@ import { LinearGradient } from "expo-linear-gradient";
 
 import type { CollectionResponse } from "@adventure-time/api-client";
 
-import { ThemedExpoButton } from "../expo-ui/themed-button";
+import { PrimaryButton } from "../button";
 import { useTranslation } from "../../i18n";
 import {
   localizeAbilityText,
@@ -276,10 +276,8 @@ export function LoadoutCardDetailsContent({
         </View>
 
         {onClose ? (
-          <ThemedExpoButton
+          <PrimaryButton
             onPress={onClose}
-            preferFallback
-            variant="primary"
             fallbackAppearance={{
               backgroundColor: tc.primaryDark,
               borderColor: tc.primaryDark,
@@ -297,7 +295,7 @@ export function LoadoutCardDetailsContent({
             style={{ marginTop: 8 }}
           >
             {t("common.close")}
-          </ThemedExpoButton>
+          </PrimaryButton>
         ) : null}
       </View>
     </ScrollView>
