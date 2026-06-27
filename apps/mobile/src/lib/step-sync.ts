@@ -4,6 +4,7 @@ import * as Notifications from "expo-notifications";
 import { Pedometer } from "expo-sensors";
 import * as SecureStore from "expo-secure-store";
 import * as TaskManager from "expo-task-manager";
+import { isCancelledError } from "@tanstack/react-query";
 import {
   AuthorizationRequestStatus,
   type EmitterSubscription,
@@ -227,6 +228,46 @@ function setSyncError(message: string) {
     isSyncing: false,
     lastError: message,
   });
+}
+
+function isQueryCancellationError(error: unknown) {
+  return (
+    isCancelledError(error) ||
+    (error instanceof Error && error.message === "CancelledError")
+  );
+}
+
+async function invalidateStepSyncQueries() {
+  await Promise.all([
+    queryClient.invalidateQueries({
+      queryKey: ["health-steps"],
+      refetchType: "none",
+    }),
+    queryClient.invalidateQueries({
+      queryKey: ["quests"],
+      refetchType: "none",
+    }),
+    queryClient.invalidateQueries({
+      queryKey: ["home"],
+      refetchType: "none",
+    }),
+  ]);
+}
+
+async function fetchQuestsAfterStepSync() {
+  try {
+    return await queryClient.fetchQuery({
+      queryKey: ["quests"],
+      queryFn: () => apiClient.quests(),
+      staleTime: 0,
+    });
+  } catch (error) {
+    if (isQueryCancellationError(error)) {
+      return apiClient.quests();
+    }
+
+    throw error;
+  }
 }
 
 function clearScheduledForegroundSync() {
@@ -830,17 +871,9 @@ export async function syncDeviceStepsNow({
           lastSyncedAt: now.toISOString(),
         });
 
-        await Promise.all([
-          queryClient.invalidateQueries({ queryKey: ["health-steps"] }),
-          queryClient.invalidateQueries({ queryKey: ["quests"] }),
-          queryClient.invalidateQueries({ queryKey: ["home"] }),
-        ]);
+        await invalidateStepSyncQueries();
 
-        const questsResponse = await queryClient.fetchQuery({
-          queryKey: ["quests"],
-          queryFn: () => apiClient.quests(),
-          staleTime: 0,
-        });
+        const questsResponse = await fetchQuestsAfterStepSync();
         const reconciledQuests =
           applyLocalStepSnapshotToQuests(questsResponse, localSnapshot, user) ??
           questsResponse;
@@ -860,6 +893,11 @@ export async function syncDeviceStepsNow({
         void startIosHealthSubscription();
       }
     } catch (error) {
+      if (isQueryCancellationError(error)) {
+        setStore({ isSyncing: false });
+        return;
+      }
+
       const message =
         error instanceof Error ? error.message : "Failed to sync device steps";
       setSyncError(message);
