@@ -1,9 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { File, Paths } from "expo-file-system";
+import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
+import * as Sharing from "expo-sharing";
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { RefObject } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Animated,
   Modal,
   Platform,
@@ -12,11 +17,14 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { captureRef } from "react-native-view-shot";
 
 import type {
   DailyNumbersMode,
+  DailyNumbersStateResponse,
   QuestsResponse,
   WordleLocale,
+  WordleStateResponse,
 } from "@adventure-time/api-client";
 
 import {
@@ -38,11 +46,24 @@ import { PrimaryButton } from "../../src/components/button";
 import { PageErrorState } from "../../src/components/error-state";
 import { PageLoadingState } from "../../src/components/loading-state";
 import { ToastBanner } from "../../src/components/toast-banner";
+import { DailyNumbersQuestShareCard } from "../../src/features/quests/daily-numbers/quest-share-card";
+import type { DailyNumbersQuestShareCardStrings } from "../../src/features/quests/daily-numbers/quest-share-card";
+import {
+  buildDailyNumbersShareResult,
+  type DailyNumbersShareResult,
+} from "../../src/features/quests/daily-numbers/share-result";
 import {
   DAILY_NUMBERS_MODES,
   formatDailyNumbersElapsedTime,
   getModeLabelKey,
 } from "../../src/features/quests/daily-numbers/shared";
+import { GroupedQuestShareImage } from "../../src/features/quests/grouped-quest-share-image";
+import { WordleQuestShareCard } from "../../src/features/quests/wordle/quest-share-card";
+import type { WordleQuestShareCardStrings } from "../../src/features/quests/wordle/quest-share-card";
+import {
+  buildWordleShareResult,
+  type WordleQuestShareResult,
+} from "../../src/features/quests/wordle/share-result";
 import { useTranslation } from "../../src/i18n";
 import { apiClient } from "../../src/lib/api";
 import { connectFitbit } from "../../src/lib/fitbit";
@@ -78,8 +99,30 @@ type DescriptionModalState = {
   description: string;
   status: QuestStatus;
 } | null;
+type SharingGroup = "wordle" | "dailyNumbers";
+type WordleGroupShareItem = {
+  language: WordleLocale;
+  result: WordleQuestShareResult;
+  strings: WordleQuestShareCardStrings;
+};
+type DailyNumbersGroupShareItem = {
+  mode: DailyNumbersMode;
+  result: DailyNumbersShareResult;
+  strings: DailyNumbersQuestShareCardStrings;
+};
 
 let lastShownQuestResetToastAt = 0;
+const WORDLE_MAX_ATTEMPTS = 6;
+const WORDLE_WORD_LENGTH = 5;
+const QUEST_SHARE_DATE_FORMAT_OPTIONS = {
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+} as const;
+const QUEST_SHARE_DATE_FORMATTERS = {
+  en: new Intl.DateTimeFormat("en", QUEST_SHARE_DATE_FORMAT_OPTIONS),
+  fr: new Intl.DateTimeFormat("fr", QUEST_SHARE_DATE_FORMAT_OPTIONS),
+} as const;
 
 function formatProgress(progress: number, target: number) {
   if (target >= 10000) {
@@ -159,6 +202,24 @@ function getWordleLanguageLabelKey(language: WordleLocale) {
     : "quests.wordle.englishWords";
 }
 
+function getWordleShareLanguageLabelKey(language: WordleLocale) {
+  return language === "fr"
+    ? "quests.wordle.shareFrenchWord"
+    : "quests.wordle.shareEnglishWord";
+}
+
+function getDailyNumbersShareModeLabelKey(mode: DailyNumbersMode) {
+  if (mode === "1-5") {
+    return "quests.dailyNumbers.shareMode1_5";
+  }
+
+  if (mode === "2-4") {
+    return "quests.dailyNumbers.shareMode2_4";
+  }
+
+  return "quests.dailyNumbers.shareMode3_3";
+}
+
 function isSpeedCalculusQuest(questType: string) {
   return questType === "speed_calculus_daily";
 }
@@ -195,6 +256,58 @@ function getDailyNumbersModeFromQuestType(
   }
 
   return null;
+}
+
+function formatQuestShareDate(
+  dateKey: string | null | undefined,
+  locale: string,
+): string | undefined {
+  if (!dateKey) {
+    return undefined;
+  }
+
+  const [year, month, day] = dateKey.split("-").map((part) => Number(part));
+  if (!year || !month || !day) {
+    return dateKey;
+  }
+
+  const formatter = locale.startsWith("fr")
+    ? QUEST_SHARE_DATE_FORMATTERS.fr
+    : QUEST_SHARE_DATE_FORMATTERS.en;
+
+  return formatter.format(new Date(Date.UTC(year, month - 1, day)));
+}
+
+function buildGroupedQuestShareFileName(
+  group: SharingGroup,
+  dateKey: string | undefined,
+) {
+  const parts = [
+    group === "wordle"
+      ? "adventure-time-wordle-all"
+      : "adventure-time-numbers-all",
+  ];
+
+  if (dateKey) {
+    parts.push(dateKey);
+  }
+
+  const slug = parts
+    .join("-")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+
+  return `${slug || "adventure-time-quests"}.png`;
+}
+
+function waitForNextFrame() {
+  return new Promise<void>((resolve) => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => resolve());
+    });
+  });
 }
 
 function getWordleGroupStatus(
@@ -449,7 +562,7 @@ export default function QuestsScreen() {
   const patchUser = useSessionStore((state) => state.patchUser);
   const user = useSessionStore((state) => state.user);
   const stepSync = useStepSyncStore();
-  const { t } = useTranslation();
+  const { locale, t } = useTranslation();
   const headerHeight = useAppHeaderHeight();
   const bottomTabPadding = useBottomTabBarContentPadding();
   const lastQuestResetAt = useQuestResetStore((state) => state.lastResetAt);
@@ -472,6 +585,14 @@ export default function QuestsScreen() {
     wordle: true,
     dailyNumbers: true,
   });
+  const [sharingGroup, setSharingGroup] = useState<SharingGroup | null>(null);
+  const [wordleGroupShareItems, setWordleGroupShareItems] = useState<
+    WordleGroupShareItem[] | null
+  >(null);
+  const [dailyNumbersGroupShareItems, setDailyNumbersGroupShareItems] =
+    useState<DailyNumbersGroupShareItem[] | null>(null);
+  const wordleGroupShareRef = useRef<View>(null);
+  const dailyNumbersGroupShareRef = useRef<View>(null);
   const toastAnim = useRef(new Animated.Value(-60)).current;
 
   useEffect(() => {
@@ -620,6 +741,251 @@ export default function QuestsScreen() {
       setIsConnectingFitbit(false);
     }
   }, [questsQuery, t]);
+
+  const shareCapturedGroupImage = useCallback(
+    async ({
+      dateKey,
+      group,
+      ref,
+    }: {
+      dateKey: string | undefined;
+      group: SharingGroup;
+      ref: RefObject<View | null>;
+    }) => {
+      let captureTarget = ref.current;
+      if (!captureTarget) {
+        await waitForNextFrame();
+        captureTarget = ref.current;
+      }
+
+      if (!captureTarget) {
+        throw new Error("Grouped quest share image was not ready.");
+      }
+
+      const uri = await captureRef(captureTarget, {
+        format: "png",
+        quality: 1,
+        result: "tmpfile",
+      });
+
+      let shareUri = uri;
+      try {
+        const fileName = buildGroupedQuestShareFileName(group, dateKey);
+        const destination = new File(Paths.cache, fileName);
+        if (destination.exists) {
+          destination.delete();
+        }
+        await new File(uri).copy(destination);
+        shareUri = destination.uri;
+      } catch (copyError) {
+        console.warn("Failed to rename grouped quest share image", copyError);
+      }
+
+      await Sharing.shareAsync(shareUri, {
+        mimeType: "image/png",
+        dialogTitle: t("quests.shareAllDialogTitle"),
+        UTI: "public.png",
+      });
+    },
+    [t],
+  );
+
+  const handleShareWordleGroup = useCallback(
+    async (quests: Partial<Record<WordleLocale, Quest>>) => {
+      if (sharingGroup) {
+        return;
+      }
+
+      const availableLanguages = WORDLE_LANGUAGES.filter(
+        (language) => quests[language],
+      );
+      if (availableLanguages.length === 0) {
+        return;
+      }
+
+      setSharingGroup("wordle");
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+      try {
+        const [canShare, states] = await Promise.all([
+          Sharing.isAvailableAsync(),
+          Promise.all(
+            availableLanguages.map((language) =>
+              queryClient.fetchQuery({
+                queryKey: ["wordle", language],
+                queryFn: () => apiClient.wordleState(language),
+                staleTime: 30_000,
+              }),
+            ),
+          ),
+        ]);
+
+        if (!canShare) {
+          Alert.alert(t("quests.shareAllUnavailable"));
+          return;
+        }
+
+        let dateKey: string | undefined;
+        const items = states.map((state: WordleStateResponse, index) => {
+          const language = availableLanguages[index];
+          const quest = quests[language];
+          const completed = Boolean(
+            quest?.completed || quest?.claimed || state.solved,
+          );
+          dateKey = dateKey ?? state.date;
+
+          return {
+            language,
+            result: buildWordleShareResult({
+              questTitle: t("quests.wordle.title"),
+              date: state.date,
+              wordLocale: language,
+              solved: completed,
+              maxAttempts: WORDLE_MAX_ATTEMPTS,
+              wordLength: WORDLE_WORD_LENGTH,
+              evaluations: state.guesses.map((guess) => guess.evaluation),
+            }),
+            strings: {
+              brand: t("quests.wordle.shareBrand"),
+              footer: t("quests.wordle.shareFooter"),
+              date: formatQuestShareDate(state.date, locale),
+              wordLanguage: t(getWordleShareLanguageLabelKey(language)),
+              resultLine: completed
+                ? t("quests.wordle.shareSolved", {
+                    used: state.guesses.length,
+                    total: WORDLE_MAX_ATTEMPTS,
+                  })
+                : t("quests.shareNotCompleted"),
+            },
+          };
+        });
+
+        setWordleGroupShareItems(items);
+        await shareCapturedGroupImage({
+          dateKey,
+          group: "wordle",
+          ref: wordleGroupShareRef,
+        });
+      } catch (error) {
+        console.warn("Failed to share grouped Wordle results", error);
+        Alert.alert(t("quests.shareAllError"));
+      } finally {
+        setWordleGroupShareItems(null);
+        setSharingGroup(null);
+      }
+    },
+    [locale, queryClient, shareCapturedGroupImage, sharingGroup, t],
+  );
+
+  const handleShareDailyNumbersGroup = useCallback(
+    async (quests: Partial<Record<DailyNumbersMode, Quest>>) => {
+      if (sharingGroup) {
+        return;
+      }
+
+      const availableModes = DAILY_NUMBERS_MODES.filter((mode) => quests[mode]);
+      if (availableModes.length === 0) {
+        return;
+      }
+
+      setSharingGroup("dailyNumbers");
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+      try {
+        const [canShare, states] = await Promise.all([
+          Sharing.isAvailableAsync(),
+          Promise.all(
+            availableModes.map((mode) =>
+              queryClient.fetchQuery({
+                queryKey: ["daily-numbers", mode],
+                queryFn: () => apiClient.dailyNumbersState(mode),
+                staleTime: 30_000,
+              }),
+            ),
+          ),
+        ]);
+
+        if (!canShare) {
+          Alert.alert(t("quests.shareAllUnavailable"));
+          return;
+        }
+
+        let dateKey: string | undefined;
+        const items = states.map((state: DailyNumbersStateResponse, index) => {
+          const mode = availableModes[index];
+          const quest = quests[mode];
+          const submission = state.submission;
+          const completed = Boolean(
+            quest?.completed ||
+              quest?.claimed ||
+              state.completed ||
+              submission?.completed,
+          );
+          const distance = submission?.distance ?? quest?.distance ?? null;
+          const score = submission?.score ?? quest?.score ?? null;
+          const finalValue = submission?.finalValue ?? quest?.finalValue ?? null;
+          const elapsedMs = submission?.elapsedMs ?? quest?.elapsedMs ?? 0;
+          const exact = distance === 0 && finalValue != null;
+          dateKey = dateKey ?? state.date;
+
+          let resultLine = t("quests.shareNotCompleted");
+          if (completed) {
+            resultLine = exact
+              ? t("quests.dailyNumbers.shareExact", {
+                  score: score ?? 100,
+                })
+              : t("quests.dailyNumbers.shareScore", {
+                  score: score ?? 0,
+                  distance: distance ?? 0,
+                });
+          }
+
+          return {
+            mode,
+            result: buildDailyNumbersShareResult({
+              questTitle: t("quests.dailyNumbers.title"),
+              modeLabel: t(getModeLabelKey(mode)),
+              mode,
+              date: state.date,
+              target: state.target,
+              finalValue,
+              distance,
+              score,
+              elapsedTime: formatDailyNumbersElapsedTime(elapsedMs),
+              exact,
+              completed,
+            }),
+            strings: {
+              brand: t("quests.dailyNumbers.shareBrand"),
+              modeLabel: t(getDailyNumbersShareModeLabelKey(mode)),
+              resultLine,
+              targetLabel: t("quests.dailyNumbers.target"),
+              resultValueLabel: t(
+                "quests.dailyNumbers.shareResultValueLabel",
+              ),
+              timeLabel: t("quests.dailyNumbers.solveTime"),
+              footer: t("quests.dailyNumbers.shareFooter"),
+              date: formatQuestShareDate(state.date, locale),
+            },
+          };
+        });
+
+        setDailyNumbersGroupShareItems(items);
+        await shareCapturedGroupImage({
+          dateKey,
+          group: "dailyNumbers",
+          ref: dailyNumbersGroupShareRef,
+        });
+      } catch (error) {
+        console.warn("Failed to share grouped Daily Numbers results", error);
+        Alert.alert(t("quests.shareAllError"));
+      } finally {
+        setDailyNumbersGroupShareItems(null);
+        setSharingGroup(null);
+      }
+    },
+    [locale, queryClient, shareCapturedGroupImage, sharingGroup, t],
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -1073,6 +1439,40 @@ export default function QuestsScreen() {
 
                     {collapsedGroups.wordle ? null : (
                       <View className="mt-4 gap-3">
+                        <View className="flex-row justify-end">
+                          <TouchableOpacity
+                            onPress={() => {
+                              void handleShareWordleGroup(item.quests);
+                            }}
+                            disabled={sharingGroup !== null}
+                            style={{
+                              borderRadius: 12,
+                              overflow: "hidden",
+                              borderWidth: 1,
+                              borderColor: colors.border,
+                              backgroundColor: colors.iconBg,
+                            }}
+                          >
+                            <View
+                              style={{
+                                minHeight: 38,
+                                paddingHorizontal: 14,
+                                alignItems: "center",
+                                justifyContent: "center",
+                              }}
+                            >
+                              <Text
+                                className="font-nunito-bold text-sm"
+                                style={{ color: colors.iconColor }}
+                              >
+                                {sharingGroup === "wordle"
+                                  ? t("quests.shareGroupPreparing")
+                                  : t("quests.shareGroupResult")}
+                              </Text>
+                            </View>
+                          </TouchableOpacity>
+                        </View>
+
                         {WORDLE_LANGUAGES.map((language) => {
                           const quest = item.quests[language];
                           if (!quest) {
@@ -1399,34 +1799,68 @@ export default function QuestsScreen() {
 
                     {collapsedGroups.dailyNumbers ? null : (
                       <View className="mt-4 gap-3">
-                      {DAILY_NUMBERS_MODES.map((mode) => {
-                        const quest = item.quests[mode];
-                        if (!quest) {
-                          return null;
-                        }
-
-                        const modeStatus = getQuestStatus(quest);
-                        const modeColors = STATUS_COLORS[modeStatus];
-                        const isClaimLoading =
-                          claimQuestMutation.isPending &&
-                          claimQuestMutation.variables?.id === quest.id;
-                        const actionLabel =
-                          modeStatus === "active"
-                            ? t("quests.dailyNumbers.playAction")
-                            : t("quests.dailyNumbers.viewResult");
-
-                        return (
-                          <View
-                            key={mode}
-                            className="rounded-2xl border p-3"
+                        <View className="flex-row justify-end">
+                          <TouchableOpacity
+                            onPress={() => {
+                              void handleShareDailyNumbersGroup(item.quests);
+                            }}
+                            disabled={sharingGroup !== null}
                             style={{
-                              borderColor: modeColors.border,
-                              backgroundColor:
-                                modeStatus === "claimed"
-                                  ? tc.surfaceMuted
-                                  : tc.primaryBg,
+                              borderRadius: 12,
+                              overflow: "hidden",
+                              borderWidth: 1,
+                              borderColor: colors.border,
+                              backgroundColor: colors.iconBg,
                             }}
                           >
+                            <View
+                              style={{
+                                minHeight: 38,
+                                paddingHorizontal: 14,
+                                alignItems: "center",
+                                justifyContent: "center",
+                              }}
+                            >
+                              <Text
+                                className="font-nunito-bold text-sm"
+                                style={{ color: colors.iconColor }}
+                              >
+                                {sharingGroup === "dailyNumbers"
+                                  ? t("quests.shareGroupPreparing")
+                                  : t("quests.shareGroupResult")}
+                              </Text>
+                            </View>
+                          </TouchableOpacity>
+                        </View>
+
+                        {DAILY_NUMBERS_MODES.map((mode) => {
+                          const quest = item.quests[mode];
+                          if (!quest) {
+                            return null;
+                          }
+
+                          const modeStatus = getQuestStatus(quest);
+                          const modeColors = STATUS_COLORS[modeStatus];
+                          const isClaimLoading =
+                            claimQuestMutation.isPending &&
+                            claimQuestMutation.variables?.id === quest.id;
+                          const actionLabel =
+                            modeStatus === "active"
+                              ? t("quests.dailyNumbers.playAction")
+                              : t("quests.dailyNumbers.viewResult");
+
+                          return (
+                            <View
+                              key={mode}
+                              className="rounded-2xl border p-3"
+                              style={{
+                                borderColor: modeColors.border,
+                                backgroundColor:
+                                  modeStatus === "claimed"
+                                    ? tc.surfaceMuted
+                                    : tc.primaryBg,
+                              }}
+                            >
                             <View className="flex-row items-start gap-3">
                               <View className="flex-1 gap-2">
                                 <View className="flex-row items-center gap-2">
@@ -1961,6 +2395,48 @@ export default function QuestsScreen() {
           )}
         </View>
       </ScrollView>
+
+      {wordleGroupShareItems ? (
+        <View
+          pointerEvents="none"
+          collapsable={false}
+          style={{ position: "absolute", left: -9999, top: 0 }}
+        >
+          <View ref={wordleGroupShareRef} collapsable={false}>
+            <GroupedQuestShareImage colors={tc}>
+              {wordleGroupShareItems.map((item) => (
+                <WordleQuestShareCard
+                  key={item.language}
+                  result={item.result}
+                  colors={tc}
+                  strings={item.strings}
+                />
+              ))}
+            </GroupedQuestShareImage>
+          </View>
+        </View>
+      ) : null}
+
+      {dailyNumbersGroupShareItems ? (
+        <View
+          pointerEvents="none"
+          collapsable={false}
+          style={{ position: "absolute", left: -9999, top: 0 }}
+        >
+          <View ref={dailyNumbersGroupShareRef} collapsable={false}>
+            <GroupedQuestShareImage colors={tc}>
+              {dailyNumbersGroupShareItems.map((item) => (
+                <DailyNumbersQuestShareCard
+                  key={item.mode}
+                  result={item.result}
+                  colors={tc}
+                  strings={item.strings}
+                />
+              ))}
+            </GroupedQuestShareImage>
+          </View>
+        </View>
+      ) : null}
 
       <Modal
         visible={showDescriptionFor !== null}
