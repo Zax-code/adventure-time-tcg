@@ -344,15 +344,6 @@ export default function AdminUserEditorScreen() {
                 title={t("admin.userEditor.title")}
                 subtitle={t("admin.users.subtitle")}
                 chrome="soft"
-                right={
-                  <AdminButton
-                    label={t("admin.common.close")}
-                    onPress={closeEditor}
-                    variant="ghost"
-                    icon="close-outline"
-                    borderRadius={999}
-                  />
-                }
               />
             </View>
 
