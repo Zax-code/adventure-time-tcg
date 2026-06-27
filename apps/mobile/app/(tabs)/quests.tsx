@@ -202,28 +202,29 @@ function RewardAmount({
   textClassName?: string;
 }) {
   return (
-    <View className="flex-row items-center gap-1">
+    <View
+      className="flex-row items-center gap-1"
+      style={{ position: "relative" }}
+    >
       <CoinIcon size={iconSize} />
-      <View style={{ justifyContent: "center", position: "relative" }}>
-        <Text className={textClassName} style={{ color }}>
-          {amount}
-        </Text>
-        {claimed ? (
-          <View
-            pointerEvents="none"
-            style={{
-              backgroundColor: color,
-              borderRadius: 999,
-              height: 2,
-              left: -2,
-              position: "absolute",
-              right: -2,
-              top: "50%",
-              transform: [{ translateY: -1 }],
-            }}
-          />
-        ) : null}
-      </View>
+      <Text className={textClassName} style={{ color }}>
+        {amount}
+      </Text>
+      {claimed ? (
+        <View
+          pointerEvents="none"
+          style={{
+            backgroundColor: color,
+            borderRadius: 999,
+            height: 2,
+            left: -1,
+            position: "absolute",
+            right: -2,
+            top: iconSize / 2,
+            transform: [{ translateY: -1 }],
+          }}
+        />
+      ) : null}
     </View>
   );
 }
@@ -2107,6 +2108,7 @@ export default function QuestsScreen() {
                 !shouldShowActivationPrompt;
               const shouldShowCompletionSummary =
                 (status === "completed" || status === "claimed") &&
+                !isStepQuest(quest.type) &&
                 !isSpeedCalculus;
 
               let statusIcon;
