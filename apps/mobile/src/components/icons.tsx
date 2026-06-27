@@ -622,40 +622,19 @@ export function WalkingIcon({ size = 24, color = "#DB2777" }: IconProps) {
 export function StepQuestIcon({ size = 24, color = "#DB2777" }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M8.8 3.2C10.2 3.2 11.1 4.4 10.8 5.8L10.3 8.1C10 9.6 8.8 10.7 7.3 10.7H5.9C4.6 10.7 3.7 9.5 4 8.2L4.5 5.9C4.9 4.3 6.3 3.2 8.8 3.2Z"
-        fill={color}
-        fillOpacity={0.24}
-        stroke={color}
-        strokeWidth={1.8}
-        strokeLinejoin="round"
-      />
-      <Path
-        d="M7.2 10.6C7.2 12.4 8.4 13.4 10 13.9"
-        stroke={color}
-        strokeWidth={1.8}
-        strokeLinecap="round"
-      />
-      <Path
-        d="M16.5 10.6C18 10.6 19.1 11.8 18.8 13.2L18.2 16.1C17.8 17.8 16.4 19 14.6 19H13.2C11.8 19 10.8 17.8 11.1 16.4L11.8 13.3C12.2 11.7 13.7 10.6 16.5 10.6Z"
-        fill={color}
-        fillOpacity={0.24}
-        stroke={color}
-        strokeWidth={1.8}
-        strokeLinejoin="round"
-      />
-      <Path
-        d="M14.1 19C13.7 20.1 12.8 20.8 11.6 20.8"
-        stroke={color}
-        strokeWidth={1.8}
-        strokeLinecap="round"
-      />
-      <Path
-        d="M7.3 5.6H8.8M6.6 8H8.4M14.6 13.1H16.5M13.9 15.8H16.1"
-        stroke={color}
-        strokeWidth={1.4}
-        strokeLinecap="round"
-      />
+      <Circle cx={12} cy={12} r={9} fill={color} fillOpacity={0.09} />
+      <G transform="rotate(90 9.6 14.5)">
+        <G fill={color} transform="translate(1.3 3.4) scale(0.045)">
+          <Path d="M145.454 182.99c16.485-8.948 34.84 9.218 46.38 32.816.153 12.414 4.804 23.314 10.484 32.06l-22.083 20.402c-29.716-13.468-59.267-63.634-39.823-81.6a25.137 25.137 0 0 1 5.054-3.667z" />
+          <Path d="M210.094 257.45l-22.486 20.76c27.48 48.827 65.94-.32 22.485-20.76z" />
+        </G>
+      </G>
+      <G transform="rotate(90 16.2 8.1)">
+        <G fill={color} transform="translate(0.8 -4) scale(0.045)">
+          <Path d="M297.23 207.9c-14.674 11.68-5.112 35.667 12.095 55.502 11.36 4.994 19.586 13.527 25.42 22.166l27.433-12.367c-.805-32.616-35.444-79.41-59.575-68.52a25.136 25.136 0 0 0-5.35 3.218z" />
+          <Path d="M340.545 296.48c1.846 47.988 62.107 31.763 27.88-12.593z" />
+        </G>
+      </G>
     </Svg>
   );
 }
@@ -667,35 +646,28 @@ export function DailyLoginQuestIcon({
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Rect
-        x={4}
-        y={4.5}
-        width={16}
-        height={15}
-        rx={3}
+        x={3.5}
+        y={4}
+        width={17}
+        height={16.5}
+        rx={3.2}
         fill={color}
-        fillOpacity={0.18}
+        fillOpacity={0.14}
         stroke={color}
         strokeWidth={1.8}
       />
       <Path
-        d="M4 9H20M8 3V6M16 3V6"
+        d="M3.5 8.8H20.5M8 2.8V5.6M16 2.8V5.6"
         stroke={color}
         strokeWidth={1.8}
         strokeLinecap="round"
       />
       <Path
-        d="M8 14.2L10.4 16.5L16.2 11.3"
+        d="M8.2 14.5L10.6 16.9L16.4 11.4"
         stroke={color}
         strokeWidth={2}
         strokeLinecap="round"
         strokeLinejoin="round"
-      />
-      <Circle cx={18.2} cy={17.2} r={2.1} fill={color} fillOpacity={0.24} />
-      <Path
-        d="M17.4 17.2H19M18.2 16.4V18"
-        stroke={color}
-        strokeWidth={1.2}
-        strokeLinecap="round"
       />
     </Svg>
   );
@@ -704,63 +676,84 @@ export function DailyLoginQuestIcon({
 export function WordleQuestIcon({ size = 24, color = "#DB2777" }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Rect x={3} y={4} width={5} height={5} rx={1.2} fill={color} />
       <Rect
-        x={9.5}
+        x={4}
         y={4}
-        width={5}
-        height={5}
-        rx={1.2}
-        fill={color}
-        fillOpacity={0.46}
-      />
-      <Rect
-        x={16}
-        y={4}
-        width={5}
-        height={5}
-        rx={1.2}
-        fill={color}
-        fillOpacity={0.2}
-      />
-      <Rect
-        x={3}
-        y={10.5}
-        width={5}
-        height={5}
-        rx={1.2}
-        fill={color}
-        fillOpacity={0.46}
-      />
-      <Rect x={9.5} y={10.5} width={5} height={5} rx={1.2} fill={color} />
-      <Rect
-        x={16}
-        y={10.5}
-        width={5}
-        height={5}
-        rx={1.2}
-        fill={color}
-        fillOpacity={0.2}
-      />
-      <Rect
-        x={3}
-        y={17}
-        width={5}
-        height={3}
+        width={4.6}
+        height={4.6}
         rx={1}
         fill={color}
-        fillOpacity={0.2}
       />
       <Rect
-        x={9.5}
-        y={17}
-        width={5}
-        height={3}
+        x={9.7}
+        y={4}
+        width={4.6}
+        height={4.6}
         rx={1}
         fill={color}
         fillOpacity={0.46}
       />
-      <Rect x={16} y={17} width={5} height={3} rx={1} fill={color} />
+      <Rect
+        x={15.4}
+        y={4}
+        width={4.6}
+        height={4.6}
+        rx={1}
+        fill={color}
+        fillOpacity={0.24}
+      />
+      <Rect
+        x={4}
+        y={9.7}
+        width={4.6}
+        height={4.6}
+        rx={1}
+        fill={color}
+        fillOpacity={0.46}
+      />
+      <Rect
+        x={9.7}
+        y={9.7}
+        width={4.6}
+        height={4.6}
+        rx={1}
+        fill={color}
+      />
+      <Rect
+        x={15.4}
+        y={9.7}
+        width={4.6}
+        height={4.6}
+        rx={1}
+        fill={color}
+        fillOpacity={0.24}
+      />
+      <Rect
+        x={4}
+        y={15.4}
+        width={4.6}
+        height={4.6}
+        rx={1}
+        fill={color}
+        fillOpacity={0.24}
+      />
+      <Rect
+        x={9.7}
+        y={15.4}
+        width={4.6}
+        height={4.6}
+        rx={1}
+        fill={color}
+        fillOpacity={0.46}
+      />
+      <Rect
+        x={15.4}
+        y={15.4}
+        width={4.6}
+        height={4.6}
+        rx={1}
+        fill={color}
+      />
     </Svg>
   );
 }
@@ -771,40 +764,35 @@ export function DailyNumbersQuestIcon({
 }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx={12} cy={12} r={9.5} fill={color} fillOpacity={0.1} />
       <Circle
         cx={12}
         cy={12}
-        r={8.5}
+        r={8.05}
         fill={color}
-        fillOpacity={0.12}
+        fillOpacity={0.09}
         stroke={color}
-        strokeWidth={1.7}
+        strokeWidth={1.65}
       />
-      <Circle cx={12} cy={12} r={4.8} stroke={color} strokeWidth={1.5} />
-      <Circle cx={12} cy={12} r={1.6} fill={color} />
-      <Rect
-        x={3.1}
-        y={3.2}
-        width={5.2}
-        height={5.2}
-        rx={1.2}
+      <Circle
+        cx={12}
+        cy={12}
+        r={5.45}
+        fill="white"
+        fillOpacity={0.78}
+        stroke={color}
+        strokeWidth={1.65}
+      />
+      <SvgText
+        x={12}
+        y={13.35}
+        textAnchor="middle"
         fill={color}
-      />
-      <Rect
-        x={15.7}
-        y={15.6}
-        width={5.2}
-        height={5.2}
-        rx={1.2}
-        fill={color}
-        fillOpacity={0.8}
-      />
-      <Path
-        d="M17.1 18.2H19.5M18.3 17V19.4M4.8 5.8H6.6"
-        stroke="#FFFFFF"
-        strokeWidth={1.2}
-        strokeLinecap="round"
-      />
+        fontSize={3.85}
+        fontWeight="900"
+      >
+        100
+      </SvgText>
     </Svg>
   );
 }
@@ -816,9 +804,15 @@ export function SpeedCalculusQuestIcon({
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path
-        d="M9 3H15M12 3V5"
+        d="M9 3.2H15M12 3.2V5.1"
         stroke={color}
         strokeWidth={1.8}
+        strokeLinecap="round"
+      />
+      <Path
+        d="M7.3 6.2L5.9 4.8M16.7 6.2L18.1 4.8"
+        stroke={color}
+        strokeWidth={1.5}
         strokeLinecap="round"
       />
       <Circle
@@ -826,27 +820,22 @@ export function SpeedCalculusQuestIcon({
         cy={13}
         r={7.5}
         fill={color}
-        fillOpacity={0.16}
+        fillOpacity={0.12}
         stroke={color}
         strokeWidth={1.8}
       />
       <Path
-        d="M12 8.2V13L15.2 15"
+        d="M12.8 7.9L8.5 13.6H12L11.2 18.1L15.9 11.9H12.4L12.8 7.9Z"
+        fill={color}
+        fillOpacity={0.22}
         stroke={color}
-        strokeWidth={1.9}
-        strokeLinecap="round"
+        strokeWidth={1.3}
         strokeLinejoin="round"
       />
       <Path
-        d="M6.6 7.6L5.2 6.2M17.4 7.6L18.8 6.2"
+        d="M7.3 15.6H9.7M8.5 14.4V16.8M14.5 9.9H17.2M14.5 11.7H17.2"
         stroke={color}
-        strokeWidth={1.6}
-        strokeLinecap="round"
-      />
-      <Path
-        d="M7.2 15.8H10M8.6 14.4V17.2M14.2 10.2H17.2M14.2 12H17.2"
-        stroke={color}
-        strokeWidth={1.5}
+        strokeWidth={1.35}
         strokeLinecap="round"
       />
     </Svg>
