@@ -559,24 +559,20 @@ export function AdminButton({
   const { themeName } = useThemeStore();
   const tc = THEME_COLORS[themeName];
   const palette = getButtonPalette(tc)[variant];
-  const fallbackAppearance = icon
-    ? {
-        backgroundColor: palette.bg,
-        borderColor: palette.border,
-        foregroundColor: palette.text,
-        borderRadius: borderRadius ?? 16,
-        paddingHorizontal: 14,
-        paddingVertical: 10,
-        minHeight: 44,
-        gradientColors: null,
-        textStyle: {
-          fontFamily: "Nunito_800ExtraBold",
-          fontSize: 13,
-        },
-      }
-    : borderRadius != null
-      ? { borderRadius }
-      : undefined;
+  const fallbackAppearance = {
+    backgroundColor: palette.bg,
+    borderColor: palette.border,
+    foregroundColor: palette.text,
+    borderRadius: borderRadius ?? 16,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    minHeight: 44,
+    gradientColors: null,
+    textStyle: {
+      fontFamily: "Nunito_800ExtraBold",
+      fontSize: 13,
+    },
+  };
 
   return (
     <ThemedExpoButton
@@ -589,6 +585,7 @@ export function AdminButton({
         ) : undefined
       }
       fallbackAppearance={fallbackAppearance}
+      preferFallback
       style={style ? { minHeight: 44, ...style } : { minHeight: 44 }}
       variant={variant}
     >

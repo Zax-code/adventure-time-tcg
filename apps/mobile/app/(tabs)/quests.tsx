@@ -30,6 +30,7 @@ import {
   WalkingIcon,
   XCircleIcon,
 } from "../../src/components/icons";
+import { PrimaryButton } from "../../src/components/button";
 import { PageErrorState } from "../../src/components/error-state";
 import { PageLoadingState } from "../../src/components/loading-state";
 import { ToastBanner } from "../../src/components/toast-banner";
@@ -2049,21 +2050,24 @@ export default function QuestsScreen() {
                     <Text className="font-nunito text-sm text-fgMuted">
                       {showDescriptionFor.description}
                     </Text>
-                    <TouchableOpacity
+                    <PrimaryButton
                       onPress={() => setShowDescriptionFor(null)}
-                      className="rounded-xl overflow-hidden mt-2"
+                      style={{ marginTop: 8 }}
+                      fallbackAppearance={{
+                        borderRadius: 12,
+                        gradientColors: [
+                          colors.gradStart,
+                          colors.gradEnd,
+                        ] as const,
+                        foregroundColor: "#FFFFFF",
+                        paddingVertical: 12,
+                        textStyle: {
+                          fontFamily: "Nunito_700Bold",
+                        },
+                      }}
                     >
-                      <LinearGradient
-                        colors={[colors.gradStart, colors.gradEnd]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
-                        className="py-3 items-center"
-                      >
-                        <Text className="font-nunito-bold text-white">
-                          {t("common.close")}
-                        </Text>
-                      </LinearGradient>
-                    </TouchableOpacity>
+                      {t("common.close")}
+                    </PrimaryButton>
                   </View>
                 );
               })()

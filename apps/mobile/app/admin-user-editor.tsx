@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
 import type { ReactNode } from "react";
 import { useCallback, useMemo, useState } from "react";
-import { Alert, Pressable, ScrollView, Text, View } from "react-native";
+import { Alert, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
@@ -110,7 +110,10 @@ function UserEditorInsetCard({
   const palette = {
     default: {
       bg: withAlpha(tc.surface, themeName === "nightosphere" ? "D9" : "F7"),
-      rail: withAlpha(tc.primaryBorder, themeName === "nightosphere" ? "66" : "52"),
+      rail: withAlpha(
+        tc.primaryBorder,
+        themeName === "nightosphere" ? "66" : "52",
+      ),
     },
     info: {
       bg: withAlpha(tc.infoTint, "D9"),
@@ -140,7 +143,9 @@ function UserEditorInsetCard({
       style={{ backgroundColor: palette.bg }}
     >
       <View className="flex-row">
-        {rail ? <View style={{ backgroundColor: palette.rail, width: 4 }} /> : null}
+        {rail ? (
+          <View style={{ backgroundColor: palette.rail, width: 4 }} />
+        ) : null}
         <View className="flex-1 gap-3 px-4 py-4">{children}</View>
       </View>
     </View>
@@ -223,7 +228,7 @@ export default function AdminUserEditorScreen() {
   const canManageCoins = detail?.viewerPermissions.canManageCoins ?? false;
   const canManageRights =
     detail?.viewerPermissions.canManageAdminRights ?? false;
-const canResetQuests = detail?.viewerPermissions.canResetDailyQuests ?? false;
+  const canResetQuests = detail?.viewerPermissions.canResetDailyQuests ?? false;
   const canDeleteUser =
     (detail?.viewerPermissions.canDeleteUser ?? false) && !isSelf;
   const completedQuestCount =
@@ -339,16 +344,6 @@ const canResetQuests = detail?.viewerPermissions.canResetDailyQuests ?? false;
                 title={t("admin.userEditor.title")}
                 subtitle={t("admin.users.subtitle")}
                 chrome="soft"
-                right={
-                  <Pressable
-                    className="rounded-full px-3 py-2"
-                    onPress={closeEditor}
-                  >
-                    <Text className="font-nunito-bold text-sm text-primaryStrong">
-                      {t("admin.common.close")}
-                    </Text>
-                  </Pressable>
-                }
               />
             </View>
 
@@ -476,32 +471,19 @@ const canResetQuests = detail?.viewerPermissions.canResetDailyQuests ?? false;
                               { label: "-100", delta: -100 },
                               { label: "-500", delta: -500 },
                             ].map((action) => (
-                              <Pressable
+                              <AdminButton
                                 key={action.label}
-                                className="rounded-full px-4 py-3"
+                                label={action.label}
+                                variant={
+                                  action.delta > 0 ? "secondary" : "danger"
+                                }
                                 disabled={busy}
                                 onPress={() =>
                                   void handleAdjustCoins(action.delta)
                                 }
-                                style={{
-                                  backgroundColor:
-                                    action.delta > 0
-                                      ? withAlpha(tc.secondaryTint, "E8")
-                                      : withAlpha(tc.dangerTint, "CC"),
-                                }}
-                              >
-                                <Text
-                                  className="font-nunito-extrabold text-[13px]"
-                                  style={{
-                                    color:
-                                      action.delta > 0
-                                        ? tc.secondaryText
-                                        : tc.dangerText,
-                                  }}
-                                >
-                                  {action.label}
-                                </Text>
-                              </Pressable>
+                                borderRadius={999}
+                                style={{ minWidth: 76 }}
+                              />
                             ))}
                           </View>
 
