@@ -2213,8 +2213,7 @@ export default function QuestsScreen() {
                       <Text className="font-nunito-bold text-base text-fg">
                         {title}
                       </Text>
-                      {(status === "completed" || status === "claimed") &&
-                      !isStep ? (
+                      {status === "completed" || status === "claimed" ? (
                         <View
                           className="rounded-full px-2 py-1 mt-1 self-start"
                           style={{ backgroundColor: colors.iconBg }}
