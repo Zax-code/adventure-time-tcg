@@ -297,6 +297,17 @@ Key Phoenix vars:
 Public app host should be:
 - `https://app.leaetzak.love`
 
+Production VPS runtime:
+- Native production is the host Podman Quadlet stack named `adventure-time-tcg`.
+- Active services are `adventure-time-tcg-api.service`, `adventure-time-tcg-postgres.service`, `adventure-time-tcg-minio.service`, and `adventure-time-tcg-pod.service`.
+- Caddy routes `app.leaetzak.love` and `phoenix.leaetzak.love` to `127.0.0.1:4200`.
+- The canonical native database is `adventure_time_tcg` on `127.0.0.1:5434`.
+- The canonical native test database is `adventure_time_tcg_test` on `127.0.0.1:5434`.
+- Native MinIO is bound to `127.0.0.1:9100` with console on `127.0.0.1:9101`; the bucket is `private-images`.
+- Native persisted service data lives under `/srv/adventure-time-tcg/`.
+- Do not reintroduce `phoenix` or `dev` into production native DB names.
+- The PWA remains separate in `~/adventure-time-tcg-pwa` and is served from Kubernetes behind `game.leaetzak.love`; do not point mobile/native traffic at PWA services.
+
 ## Mobile Bottom Sheets
 
 All swipeable bottom sheets in the Expo app must use the Software Mansion bottom sheet implementation from `@swmansion/react-native-bottom-sheet`.

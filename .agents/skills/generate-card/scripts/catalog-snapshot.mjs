@@ -2,7 +2,7 @@
 
 import { execFileSync } from "node:child_process";
 
-const database = process.env.CARD_DB_NAME || "adventure_time_phoenix_dev";
+const database = process.env.CARD_DB_NAME || "adventure_time_tcg";
 const user = process.env.CARD_DB_USER || "postgres";
 
 function runPsql(sql) {

@@ -5,17 +5,17 @@ Use this reference when generating an Adventure Time TCG card.
 ## Source Of Truth
 
 - Treat the running Docker/OrbStack PostgreSQL database as local truth.
-- Use the `postgres` service in `compose.yml`: database `adventure_time_phoenix_dev`, user `postgres`.
+- Use the `postgres` service in `compose.yml`: database `adventure_time_tcg`, user `postgres`.
 - Use MinIO through the running stack for card images.
 - Do not read, edit, diff against, or append to `apps/phoenix/priv/repo/seed_data/pvp_seed_catalog.json` for card creation.
-- For live deployment, the VPS Phoenix service also uses `adventure_time_phoenix_dev`; prefer the DB from the running API env/Repo over similarly named legacy databases.
+- For live deployment, the VPS Phoenix service also uses `adventure_time_tcg`; prefer the DB from the running API env/Repo over similarly named legacy databases.
 
 Useful checks from the repo root:
 
 ```bash
 docker compose ps
 node .agents/skills/generate-card/scripts/catalog-snapshot.mjs
-docker compose exec -T postgres psql -U postgres -d adventure_time_phoenix_dev -c "SELECT count(*) FROM cards WHERE NOT is_archived;"
+docker compose exec -T postgres psql -U postgres -d adventure_time_tcg -c "SELECT count(*) FROM cards WHERE NOT is_archived;"
 ```
 
 ## Tables And Fields
@@ -47,7 +47,7 @@ Phoenix card upload accepts common image formats through `POST /admin/cards/:id/
 After upload, verify:
 
 ```bash
-docker compose exec -T postgres psql -U postgres -d adventure_time_phoenix_dev -c "SELECT id, kind, mime_type, object_key FROM image_assets WHERE id='<asset-id>';"
+docker compose exec -T postgres psql -U postgres -d adventure_time_tcg -c "SELECT id, kind, mime_type, object_key FROM image_assets WHERE id='<asset-id>';"
 curl -fsS "http://127.0.0.1:4200/media/card/<asset-id>" >/tmp/card-image-check
 ```
 
@@ -91,6 +91,6 @@ Only use this section after explicit user approval to deploy a reviewed local dr
 
 - SSH target: `leaetzak`; repo path: `/home/zax/adventure-time-tcg`.
 - Confirm `adventure-time-tcg-api.service`, `adventure-time-tcg-postgres.service`, `adventure-time-tcg-minio.service`, and `caddy` are active before and after the write.
-- Back up `adventure_time_phoenix_dev` with `pg_dump -U postgres -Fc` before inserting rows.
+- Back up `adventure_time_tcg` with `pg_dump -U postgres -Fc` before inserting rows.
 - Use `env -u PHX_SERVER bin/adventure_time_api eval ...` for production release evals inside the API container.
 - Plain `curl` can be blocked by Caddy's security matcher. Use an app/browser-like user agent for public verification.

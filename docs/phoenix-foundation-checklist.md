@@ -8,7 +8,7 @@ This checklist is retained as historical context for the initial Phoenix foundat
 - OTP app: `adventure_time_api`
 - Elixir module root: `AdventureTimeApi`
 - Dev HTTP port: `127.0.0.1:4200`
-- Dev PostgreSQL target: `127.0.0.1:5434/adventure_time_phoenix_dev`
+- Dev PostgreSQL target: `127.0.0.1:5434/adventure_time_tcg`
 - The old Node API on `127.0.0.1:4100` has now been retired from production use.
 
 ## Initial Slice Scope

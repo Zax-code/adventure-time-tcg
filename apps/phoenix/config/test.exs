@@ -11,7 +11,7 @@ config :adventure_time_api, AdventureTimeApi.Repo,
   hostname: "127.0.0.1",
   port: String.to_integer(System.get_env("PHX_TEST_DB_PORT") || "5434"),
   database:
-    (System.get_env("PHX_TEST_DB_NAME") || "adventure_time_phoenix_test") <>
+    (System.get_env("PHX_TEST_DB_NAME") || "adventure_time_tcg_test") <>
       (System.get_env("MIX_TEST_PARTITION") || ""),
   pool: Ecto.Adapters.SQL.Sandbox,
   pool_size: System.schedulers_online() * 2

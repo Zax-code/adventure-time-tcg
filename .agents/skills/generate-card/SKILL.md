@@ -44,10 +44,10 @@ When the user later approves the local draft for live deployment, inspect the cu
 
 Production deployment findings to reuse:
 
-- On the VPS, the Phoenix production service intentionally uses the database named `adventure_time_phoenix_dev`. Do not switch to `adventure_time_tcg` merely because it exists; confirm the running API env/Repo target and write to the Phoenix DB.
+- On the VPS, the Phoenix production service intentionally uses the database named `adventure_time_tcg`; confirm the running API env/Repo target before writing live card data.
 - The usual VPS SSH host alias is `leaetzak`, with the repo at `/home/zax/adventure-time-tcg`.
 - Expected live services are `adventure-time-tcg-api.service`, `adventure-time-tcg-postgres.service`, `adventure-time-tcg-minio.service`, and `caddy`.
-- Take a custom-format Postgres backup before inserting live card data, for example under `/home/zax/migration-backups/adventure-time-tcg-card-deploy-<timestamp>/`, using `pg_dump -U postgres -Fc adventure_time_phoenix_dev`.
+- Take a custom-format Postgres backup before inserting live card data, for example under `/home/zax/migration-backups/adventure-time-tcg-card-deploy-<timestamp>/`, using `pg_dump -U postgres -Fc adventure_time_tcg`.
 - For one-off release evals inside the production API container, unset `PHX_SERVER` so the eval process does not try to bind port `4200`: `sudo podman exec adventure-time-tcg-api env -u PHX_SERVER bin/adventure_time_api eval '...'`.
 - Public Caddy intentionally aborts scanner-like user agents including plain `curl`. Verify public HTTPS with an app/browser-like user agent, for example `-A 'AdventureTimeNative/29 CFNetwork/3860.600.12 Darwin/25.5.0'`.
 - Verify media through both Phoenix on the VPS (`http://127.0.0.1:4200/media/card/<asset-id>`) and public Caddy (`https://app.leaetzak.love/media/card/<asset-id>`) using an allowed user agent.

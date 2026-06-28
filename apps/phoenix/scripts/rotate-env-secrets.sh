@@ -49,7 +49,7 @@ SECRET_KEY_BASE=$(mix phx.gen.secret)
 popd >/dev/null
 
 set_env "PHX_PORT" "4200"
-set_env "DATABASE_URL" "postgresql://postgres:postgres@127.0.0.1:5434/adventure_time_phoenix_dev"
+set_env "DATABASE_URL" "postgresql://postgres:postgres@127.0.0.1:5434/adventure_time_tcg"
 set_env "PHX_HOST" "app.leaetzak.love"
 set_env "SECRET_KEY_BASE" "$SECRET_KEY_BASE"
 set_env "ACCESS_TOKEN_SECRET" "$(generate_secret)"
