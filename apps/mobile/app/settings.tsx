@@ -47,6 +47,7 @@ const STEP_SOURCE_OPTIONS = ["device_health", "fitbit"] as const;
 const THEME_OPTIONS: ThemeName[] = ["candy", "ice", "nightosphere"];
 const SETTINGS_SYNC_RAIL_WIDTH = 308;
 
+type StepSource = (typeof STEP_SOURCE_OPTIONS)[number];
 type ToneName = "primary" | "success" | "danger" | "neutral";
 type NotificationPreferenceKey =
   | "dailyReset"
@@ -54,6 +55,22 @@ type NotificationPreferenceKey =
   | "pvpInvite"
   | "pvpTurn"
   | "giftReceived";
+
+function getStepSourceLabel({
+  healthSystemLabel,
+  source,
+  t,
+}: {
+  healthSystemLabel: string;
+  source: StepSource;
+  t: ReturnType<typeof useTranslation>["t"];
+}) {
+  if (source === "device_health") {
+    return healthSystemLabel;
+  }
+
+  return t(`settings.stepSources.${source}`);
+}
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -191,6 +208,16 @@ export default function SettingsScreen() {
     displayNameValue.length > 0 &&
     displayNameValue !== (user?.displayName ?? "").trim();
   const latestStepSource = stepQuery.data?.latest?.source ?? currentStepSource;
+  const currentStepSourceLabel = getStepSourceLabel({
+    healthSystemLabel,
+    source: currentStepSource,
+    t,
+  });
+  const latestStepSourceLabel = getStepSourceLabel({
+    healthSystemLabel,
+    source: latestStepSource,
+    t,
+  });
   const latestSyncedDate = formatSettingsDate(
     stepQuery.data?.latest?.updatedAt ?? null,
     currentLanguage,
@@ -602,7 +629,7 @@ export default function SettingsScreen() {
                       <View className="flex-1">
                         <SummaryChip
                           label={t("settings.stepSource")}
-                          value={t(`settings.stepSources.${currentStepSource}`)}
+                          value={currentStepSourceLabel}
                           tone="neutral"
                           tc={tc}
                         />
@@ -774,7 +801,11 @@ export default function SettingsScreen() {
                                 <Text
                                   className="font-nunito-bold text-base text-fg"
                                 >
-                                  {t(`settings.stepSources.${source}`)}
+                                  {getStepSourceLabel({
+                                    healthSystemLabel,
+                                    source,
+                                    t,
+                                  })}
                                 </Text>
                                 <Text className="font-nunito text-sm leading-5 text-fgMuted">
                                   {isFitbitSource
@@ -880,7 +911,7 @@ export default function SettingsScreen() {
                     <View className="flex-1">
                       <SummaryChip
                         label={t("settings.sourceLabel")}
-                        value={t(`settings.stepSources.${latestStepSource}`)}
+                        value={latestStepSourceLabel}
                         tone="neutral"
                         tc={tc}
                       />
