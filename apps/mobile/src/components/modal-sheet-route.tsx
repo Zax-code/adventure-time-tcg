@@ -1,37 +1,24 @@
-import { useEffect, useRef, type ReactNode } from "react";
-import { Pressable, View, useWindowDimensions, type StyleProp, type ViewStyle } from "react-native";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { useMemo, useRef, useState, type ReactNode } from "react";
+import { BottomSheet } from "@swmansion/react-native-bottom-sheet";
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+  type StyleProp,
+  type ViewStyle,
+} from "react-native";
 import Animated, {
-  Easing,
-  cancelAnimation,
-  runOnJS,
-  runOnUI,
+  Extrapolation,
+  interpolate,
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
-  withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const MIN_TOP_GAP = 56;
 const TOP_PADDING = 16;
-const CLOSE_DISTANCE = 140;
-const CLOSE_VELOCITY = 900;
-const OPEN_BACKDROP_DURATION = 220;
-const CLOSE_BACKDROP_DURATION = 180;
-const CLOSE_SHEET_DURATION = 280;
-const OPEN_SPRING_CONFIG = {
-  damping: 24,
-  mass: 1,
-  overshootClamping: true,
-  stiffness: 180,
-};
-const RESET_SPRING_CONFIG = {
-  damping: 26,
-  mass: 1,
-  overshootClamping: true,
-  stiffness: 220,
-};
 
 export function ModalSheetRoute({
   children,
@@ -39,184 +26,123 @@ export function ModalSheetRoute({
   sheetBackgroundColor,
   handleColor,
   sheetStyle,
+  title,
+  subtitle,
 }: {
   children: ReactNode;
   onClose: () => void;
   sheetBackgroundColor: string;
   handleColor: string;
   sheetStyle?: StyleProp<ViewStyle>;
+  title?: string;
+  subtitle?: string;
 }) {
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
   const topGap = Math.max(insets.top + TOP_PADDING, MIN_TOP_GAP);
-  const openHeight = Math.max(0, height - topGap);
-  const hasAnimatedInRef = useRef(false);
-  const translateY = useSharedValue(openHeight);
-  const backdropOpacity = useSharedValue(0);
-  const maxTranslateY = useSharedValue(openHeight);
-  const isClosing = useSharedValue(0);
-
-  const animateOpen = (nextOpenHeight: number, isInitialMount: boolean) => {
-    "worklet";
-
-    maxTranslateY.value = nextOpenHeight;
-
-    if (isInitialMount) {
-      isClosing.value = 0;
-      cancelAnimation(translateY);
-      cancelAnimation(backdropOpacity);
-      translateY.value = nextOpenHeight;
-      backdropOpacity.value = 0;
-      translateY.value = withSpring(0, OPEN_SPRING_CONFIG);
-      backdropOpacity.value = withTiming(1, {
-        duration: OPEN_BACKDROP_DURATION,
-        easing: Easing.out(Easing.quad),
-      });
-      return;
-    }
-
-    if (!isClosing.value) {
-      translateY.value = Math.min(translateY.value, nextOpenHeight);
-    }
-  };
-
-  const animateReset = () => {
-    "worklet";
-
-    if (isClosing.value) {
-      return;
-    }
-
-    cancelAnimation(translateY);
-    translateY.value = withSpring(0, RESET_SPRING_CONFIG);
-  };
-
-  const animateClose = () => {
-    "worklet";
-
-    if (isClosing.value) {
-      return;
-    }
-
-    isClosing.value = 1;
-    cancelAnimation(translateY);
-    cancelAnimation(backdropOpacity);
-    backdropOpacity.value = withTiming(0, {
-      duration: CLOSE_BACKDROP_DURATION,
-      easing: Easing.inOut(Easing.quad),
-    });
-    translateY.value = withTiming(maxTranslateY.value, {
-      duration: CLOSE_SHEET_DURATION,
-      easing: Easing.out(Easing.cubic),
-    }, (finished) => {
-      if (finished) {
-        runOnJS(onClose)();
-      }
-    });
-  };
-
-  useEffect(() => {
-    const isInitialMount = !hasAnimatedInRef.current;
-    hasAnimatedInRef.current = true;
-    runOnUI(animateOpen)(openHeight, isInitialMount);
-  }, [openHeight]);
-
-  const panGesture = Gesture.Pan()
-    .activeOffsetY(8)
-    .failOffsetX([-12, 12])
-    .onUpdate((event) => {
-      if (isClosing.value) {
-        return;
-      }
-
-      translateY.value = Math.min(
-        maxTranslateY.value,
-        Math.max(0, event.translationY),
-      );
-    })
-    .onEnd((event) => {
-      if (
-        event.translationY > CLOSE_DISTANCE ||
-        event.velocityY > CLOSE_VELOCITY
-      ) {
-        animateClose();
-        return;
-      }
-
-      animateReset();
-    })
-    .onFinalize(() => {
-      if (!isClosing.value && translateY.value > 0) {
-        animateReset();
-      }
-    });
-
-  const handleBackdropPress = () => {
-    runOnUI(animateClose)();
-  };
-
-  const backdropStyle = useAnimatedStyle(() => ({
-    opacity: backdropOpacity.value,
+  const sheetHeight = Math.max(0, height - topGap);
+  const [index, setIndex] = useState(1);
+  const hasRequestedCloseRef = useRef(false);
+  const sheetPosition = useSharedValue(sheetHeight);
+  const backdropAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(
+      sheetPosition.value,
+      [0, Math.max(sheetHeight, 1)],
+      [0, 1],
+      Extrapolation.CLAMP,
+    ),
   }));
-
-  const sheetAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.value }],
-  }));
-
-  return (
-    <View className="flex-1 justify-end" pointerEvents="box-none">
-      <Animated.View
+  const surface = useMemo(
+    () => (
+      <View
         style={[
+          StyleSheet.absoluteFill,
           {
-            position: "absolute",
-            top: 0,
-            right: 0,
-            bottom: 0,
-            left: 0,
-          },
-          backdropStyle,
-        ]}
-      >
-        <Pressable
-          className="absolute inset-0"
-          style={{ backgroundColor: "rgba(0,0,0,0.4)" }}
-          onPress={handleBackdropPress}
-        />
-      </Animated.View>
-
-      <Animated.View
-        style={[
-          {
-            height: openHeight,
-            overflow: "hidden",
+            backgroundColor: sheetBackgroundColor,
             borderTopLeftRadius: 32,
             borderTopRightRadius: 32,
-            backgroundColor: sheetBackgroundColor,
           },
-          sheetAnimatedStyle,
-          sheetStyle,
+        ]}
+      />
+    ),
+    [sheetBackgroundColor],
+  );
+
+  const requestClose = () => {
+    if (hasRequestedCloseRef.current) {
+      return;
+    }
+
+    hasRequestedCloseRef.current = true;
+    onClose();
+  };
+
+  return (
+    <View className="flex-1" pointerEvents="box-none">
+      <Animated.View
+        className="absolute inset-0"
+        style={[
+          { backgroundColor: "rgba(0,0,0,0.4)" },
+          backdropAnimatedStyle,
         ]}
       >
-        <GestureDetector gesture={panGesture}>
-          <View
-            className="items-center pb-2 pt-3"
-            style={{ backgroundColor: sheetBackgroundColor }}
-          >
+        <Pressable className="flex-1" onPress={() => setIndex(0)} />
+      </Animated.View>
+      <BottomSheet
+        index={index}
+        onIndexChange={setIndex}
+        onSettle={(nextIndex) => {
+          if (nextIndex === 0) {
+            requestClose();
+          }
+        }}
+        detents={[0, sheetHeight]}
+        onPositionChange={(position) => {
+          sheetPosition.value = position;
+          if (index === 0 && position <= 0.5) {
+            requestClose();
+          }
+        }}
+        surface={surface}
+      >
+        <View
+          style={[
+            {
+              height: sheetHeight,
+              overflow: "hidden",
+              borderTopLeftRadius: 32,
+              borderTopRightRadius: 32,
+              backgroundColor: sheetBackgroundColor,
+            },
+            sheetStyle,
+          ]}
+        >
+          <View className="border-b border-primaryTint px-5 pb-4 pt-3">
             <View
-              className="h-1.5 w-10 rounded-full"
+              className="mx-auto h-1.5 w-10 rounded-full"
               style={{ backgroundColor: handleColor }}
             />
+            {title ? (
+              <Text
+                className="mt-3 text-center font-nunito-extrabold text-2xl leading-8 text-fg"
+                numberOfLines={2}
+              >
+                {title}
+              </Text>
+            ) : null}
+            {subtitle ? (
+              <Text
+                className="mt-1 text-center font-nunito-semibold text-sm leading-5 text-fgMuted"
+                numberOfLines={2}
+              >
+                {subtitle}
+              </Text>
+            ) : null}
           </View>
-        </GestureDetector>
 
-        <View
-          className="flex-1"
-          onStartShouldSetResponderCapture={() => false}
-          onMoveShouldSetResponderCapture={() => false}
-        >
-          {children}
+          <View className="flex-1">{children}</View>
         </View>
-      </Animated.View>
+      </BottomSheet>
     </View>
   );
 }

@@ -14,7 +14,6 @@ import {
   AdminNotice,
   AdminPanel,
   AdminStat,
-  AdminTopBar,
 } from "../src/components/admin/admin-ui";
 import { withAlpha } from "../src/components/admin/admin-palette";
 import {
@@ -335,18 +334,12 @@ export default function AdminUserEditorScreen() {
       sheetBackgroundColor={tc.bg}
       handleColor={tc.primaryBorder}
       sheetStyle={THEME_VARS[themeName]}
+      title={t("admin.userEditor.title")}
+      subtitle={t("admin.users.subtitle")}
     >
       <KeyboardScreenView>
         <AdminBackground>
           <View className="flex-1">
-            <View className="px-4 pt-2">
-              <AdminTopBar
-                title={t("admin.userEditor.title")}
-                subtitle={t("admin.users.subtitle")}
-                chrome="soft"
-              />
-            </View>
-
             {!userId ? (
               <View className="flex-1 items-center justify-center px-6">
                 <Text className="font-nunito-bold text-[15px] text-dangerText text-center">

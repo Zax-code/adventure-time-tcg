@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ZodError } from "zod";
 
 import { AbilityEditorForm } from "../src/components/admin/ability-editor-sheet";
-import { AdminBackground, AdminTopBar } from "../src/components/admin/admin-ui";
+import { AdminBackground } from "../src/components/admin/admin-ui";
 import {
   KEYBOARD_AWARE_SCROLL_PROPS,
   KeyboardScreenView,
@@ -134,25 +134,20 @@ export default function AdminAbilityEditorScreen() {
       sheetBackgroundColor={tc.bg}
       handleColor={tc.primaryBorder}
       sheetStyle={THEME_VARS[themeName]}
+      title={
+        isCreateMode
+          ? t("admin.abilityEditor.createTitle")
+          : t("admin.abilityEditor.editTitle")
+      }
+      subtitle={
+        isCreateMode
+          ? t("admin.abilityEditor.createSubtitle")
+          : t("admin.abilityEditor.editSubtitle")
+      }
     >
       <KeyboardScreenView>
         <AdminBackground>
           <View className="flex-1">
-            <View className="px-4 pt-2">
-              <AdminTopBar
-                title={
-                  isCreateMode
-                    ? t("admin.abilityEditor.createTitle")
-                    : t("admin.abilityEditor.editTitle")
-                }
-                subtitle={
-                  isCreateMode
-                    ? t("admin.abilityEditor.createSubtitle")
-                    : t("admin.abilityEditor.editSubtitle")
-                }
-              />
-            </View>
-
             {abilitiesQuery.isLoading && !isCreateMode ? (
               <View className="flex-1 items-center justify-center px-6">
                 <LoadingPanel
