@@ -65,16 +65,26 @@ const auth = {
     emailVerifiedCanSignIn: "E-mail vérifié. Tu peux maintenant te connecter.",
     emailVerifiedPendingApproval:
       "E-mail vérifié et compte créé. Ta demande d'accès est en attente de validation par un super admin.",
+    applePendingApproval:
+      "Ce compte Apple est en attente d'approbation. Ta demande d'accès a été envoyée.",
+    googlePendingApproval:
+      "Ce compte Google est en attente d'approbation. Ta demande d'accès a été envoyée.",
     pendingApprovalTitle: "Tu y es presque",
-    pendingApprovalBody:
+    pendingApprovalBodyEmail:
       "Ton e-mail est confirmé et ton compte attend encore l'approbation d'un super admin. Une fois approuvé, reviens ici et connecte-toi avec le même e-mail et mot de passe.",
-    pendingApprovalFootnote:
+    pendingApprovalBodyGoogle:
+      "Ton compte Google attend encore l'approbation d'un super admin. Une fois approuvé, reviens ici et continue avec Google.",
+    pendingApprovalBodyApple:
+      "Ton compte Apple attend encore l'approbation d'un super admin. Une fois approuvé, reviens ici et continue avec Apple.",
+    pendingApprovalFootnoteEmail:
       "Tu pourras revenir à la connexion quand l'accès sera approuvé.",
+    pendingApprovalFootnoteGoogle:
+      "Tu pourras continuer avec Google quand l'accès sera approuvé.",
+    pendingApprovalFootnoteApple:
+      "Tu pourras continuer avec Apple quand l'accès sera approuvé.",
     newVerificationCodeSent: "Un nouveau code de vérification a été envoyé.",
     newResetCodeSent:
       "Si cet e-mail correspond à un compte, un autre code de réinitialisation a été envoyé.",
-    googlePendingApproval:
-      "Ce compte Google est en attente d'approbation. Ta demande d'accès a été envoyée.",
     googleNotConfigured:
       "La connexion Google n'est pas encore configurée pour cet environnement de l'application.",
     googleLoading:

@@ -65,15 +65,26 @@ const auth = {
     emailVerifiedCanSignIn: "Email verified. You can now sign in.",
     emailVerifiedPendingApproval:
       "Email verified and account created. Your access request is pending super admin approval.",
+    applePendingApproval:
+      "This Apple account is pending approval. Your access request has been submitted.",
+    googlePendingApproval:
+      "This Google account is pending approval. Your access request has been submitted.",
     pendingApprovalTitle: "You're almost in",
-    pendingApprovalBody:
+    pendingApprovalBodyEmail:
       "Your email is confirmed and your account is waiting for super admin approval. Once approved, come back here and sign in with the same email and password.",
-    pendingApprovalFootnote: "You can return to sign in when access has been approved.",
+    pendingApprovalBodyGoogle:
+      "Your Google account is waiting for super admin approval. Once approved, come back here and continue with Google again.",
+    pendingApprovalBodyApple:
+      "Your Apple account is waiting for super admin approval. Once approved, come back here and continue with Apple again.",
+    pendingApprovalFootnoteEmail:
+      "You can return to sign in when access has been approved.",
+    pendingApprovalFootnoteGoogle:
+      "You can continue with Google when access has been approved.",
+    pendingApprovalFootnoteApple:
+      "You can continue with Apple when access has been approved.",
     newVerificationCodeSent: "A new verification code was sent.",
     newResetCodeSent:
       "If this email matches an account, another reset code has been sent.",
-    googlePendingApproval:
-      "This Google account is pending approval. Your access request has been submitted.",
     googleNotConfigured:
       "Google sign-in is not configured for this app environment yet.",
     googleLoading: "Google sign-in is still loading. Please try again.",
