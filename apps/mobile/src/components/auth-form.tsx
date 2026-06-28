@@ -53,6 +53,7 @@ type AuthStage =
   | "pendingApproval"
   | "resetRequest"
   | "resetPassword";
+type AuthProvider = "email" | "google" | "apple";
 type AuthFormPrefill = {
   email?: string;
   code?: string;
@@ -64,6 +65,11 @@ type AuthErrorOptions = {
   cause?: unknown;
   onRetry?: () => void;
 };
+type AuthSubmitErrorHandler = (
+  error: unknown,
+  provider: AuthProvider,
+  onRetry: () => void,
+) => void;
 
 type AuthFormInitialState = {
   email: string;
@@ -398,6 +404,7 @@ function AppleSignInButton({
 }
 
 function AppleAuthSection({
+  handleAuthError,
   loading,
   preferredLanguage,
   setAppleLoading,
@@ -405,6 +412,7 @@ function AppleAuthSection({
   setSession,
   t,
 }: {
+  handleAuthError: AuthSubmitErrorHandler;
   loading: boolean;
   preferredLanguage: "en" | "fr";
   setAppleLoading: (value: boolean) => void;
@@ -462,10 +470,7 @@ function AppleAuthSection({
         return;
       }
 
-      setError(formatAuthErrorMessage(submitError, t, t("auth.errors.failed")), {
-        cause: submitError,
-        onRetry: () => void submitApple(),
-      });
+      handleAuthError(submitError, "apple", () => void submitApple());
     } finally {
       setAppleLoading(false);
     }
@@ -481,6 +486,7 @@ function AppleAuthSection({
 }
 
 function BrowserGoogleAuthSection({
+  handleAuthError,
   loading,
   preferredLanguage,
   setError,
@@ -489,6 +495,7 @@ function BrowserGoogleAuthSection({
   t,
   tc,
 }: {
+  handleAuthError: AuthSubmitErrorHandler;
   loading: boolean;
   preferredLanguage: "en" | "fr";
   setError: (value: string | null, options?: AuthErrorOptions) => void;
@@ -569,13 +576,7 @@ function BrowserGoogleAuthSection({
         await retryGoogleAuth(idToken, accessToken);
       } catch (submitError) {
         if (!cancelled) {
-          setError(
-            formatAuthErrorMessage(submitError, t, t("auth.errors.failed")),
-            {
-              cause: submitError,
-              onRetry: () => void finishGoogleAuth(),
-            },
-          );
+          handleAuthError(submitError, "google", () => void finishGoogleAuth());
         }
       } finally {
         if (!cancelled) {
@@ -642,10 +643,7 @@ function BrowserGoogleAuthSection({
         return;
       }
     } catch (submitError) {
-      setError(formatAuthErrorMessage(submitError, t, t("auth.errors.failed")), {
-        cause: submitError,
-        onRetry: () => void submitGoogle(),
-      });
+      handleAuthError(submitError, "google", () => void submitGoogle());
       setGoogleLoading(false);
     }
   }
@@ -661,6 +659,7 @@ function BrowserGoogleAuthSection({
 }
 
 function NativeGoogleAuthSection({
+  handleAuthError,
   loading,
   preferredLanguage,
   setError,
@@ -669,6 +668,7 @@ function NativeGoogleAuthSection({
   t,
   tc,
 }: {
+  handleAuthError: AuthSubmitErrorHandler;
   loading: boolean;
   preferredLanguage: "en" | "fr";
   setError: (value: string | null, options?: AuthErrorOptions) => void;
@@ -739,10 +739,7 @@ function NativeGoogleAuthSection({
       ) {
         setError(submitError.message);
       } else {
-        setError(formatAuthErrorMessage(submitError, t, t("auth.errors.failed")), {
-          cause: submitError,
-          onRetry: () => void submitGoogle(),
-        });
+        handleAuthError(submitError, "google", () => void submitGoogle());
       }
     } finally {
       setGoogleLoading(false);
@@ -795,6 +792,8 @@ function AuthFormInner({ prefill }: { prefill?: AuthFormPrefill }) {
   const [errorCause, setErrorCause] = useState<unknown>(null);
   const [errorRetry, setErrorRetry] = useState<(() => void) | null>(null);
   const [info, setInfo] = useState<string | null>(initialState.info);
+  const [pendingApprovalProvider, setPendingApprovalProvider] =
+    useState<AuthProvider>("email");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
@@ -847,6 +846,7 @@ function AuthFormInner({ prefill }: { prefill?: AuthFormPrefill }) {
   function switchMode(nextMode: AuthMode) {
     setMode(nextMode);
     setStage("credentials");
+    setPendingApprovalProvider("email");
     setVerificationCode("");
     setResetPassword("");
     setError(null);
@@ -859,6 +859,7 @@ function AuthFormInner({ prefill }: { prefill?: AuthFormPrefill }) {
   ) {
     setStage("verify");
     setMode("register");
+    setPendingApprovalProvider("email");
     if (!opts?.preserveCode) {
       setVerificationCode("");
     }
@@ -867,9 +868,13 @@ function AuthFormInner({ prefill }: { prefill?: AuthFormPrefill }) {
     setInfo(nextInfo ?? null);
   }
 
-  function enterPendingApprovalStage(nextInfo?: string | null) {
+  function enterPendingApprovalStage(
+    provider: AuthProvider,
+    nextInfo?: string | null,
+  ) {
     setStage("pendingApproval");
     setMode("login");
+    setPendingApprovalProvider(provider);
     setPassword("");
     setVerificationCode("");
     setResetPassword("");
@@ -880,6 +885,7 @@ function AuthFormInner({ prefill }: { prefill?: AuthFormPrefill }) {
   function returnToSignIn(nextInfo?: string | null) {
     setStage("credentials");
     setMode("login");
+    setPendingApprovalProvider("email");
     setPassword("");
     setVerificationCode("");
     setResetPassword("");
@@ -890,6 +896,7 @@ function AuthFormInner({ prefill }: { prefill?: AuthFormPrefill }) {
   function enterResetRequestStage(nextInfo?: string | null) {
     setStage("resetRequest");
     setMode("login");
+    setPendingApprovalProvider("email");
     setPassword("");
     setVerificationCode("");
     setResetPassword("");
@@ -903,6 +910,7 @@ function AuthFormInner({ prefill }: { prefill?: AuthFormPrefill }) {
   ) {
     setStage("resetPassword");
     setMode("login");
+    setPendingApprovalProvider("email");
     setPassword("");
     if (!opts?.preserveCode) {
       setVerificationCode("");
@@ -928,17 +936,48 @@ function AuthFormInner({ prefill }: { prefill?: AuthFormPrefill }) {
     submitAutoVerify();
   }, [email, prefill?.autoVerify, stage, t, verificationCode]);
 
-  function getFriendlyError(submitError: unknown) {
+  function pendingApprovalInfo(provider: AuthProvider) {
+    switch (provider) {
+      case "apple":
+        return t("auth.status.applePendingApproval");
+      case "google":
+        return t("auth.status.googlePendingApproval");
+      case "email":
+      default:
+        return t("auth.status.emailVerifiedPendingApproval");
+    }
+  }
+
+  function pendingApprovalBody(provider: AuthProvider) {
+    switch (provider) {
+      case "apple":
+        return t("auth.status.pendingApprovalBodyApple");
+      case "google":
+        return t("auth.status.pendingApprovalBodyGoogle");
+      case "email":
+      default:
+        return t("auth.status.pendingApprovalBodyEmail");
+    }
+  }
+
+  function pendingApprovalFootnote(provider: AuthProvider) {
+    switch (provider) {
+      case "apple":
+        return t("auth.status.pendingApprovalFootnoteApple");
+      case "google":
+        return t("auth.status.pendingApprovalFootnoteGoogle");
+      case "email":
+      default:
+        return t("auth.status.pendingApprovalFootnoteEmail");
+    }
+  }
+
+  function getFriendlyError(submitError: unknown, provider: AuthProvider) {
     if (submitError instanceof ApiClientError) {
       if (submitError.code === "ACCESS_REQUEST_PENDING") {
-        if (stage === "verify" || mode === "register") {
-          enterPendingApprovalStage(t("auth.status.emailVerifiedPendingApproval"));
-          return t("auth.status.emailVerifiedPendingApproval");
-        }
-
-        return stage === "pendingApproval"
-          ? t("auth.status.emailVerifiedPendingApproval")
-          : t("auth.status.googlePendingApproval");
+        const message = pendingApprovalInfo(provider);
+        enterPendingApprovalStage(provider, message);
+        return message;
       }
 
       if (submitError.code === "EMAIL_VERIFICATION_REQUIRED") {
@@ -948,6 +987,17 @@ function AuthFormInner({ prefill }: { prefill?: AuthFormPrefill }) {
     }
 
     return formatAuthErrorMessage(submitError, t, t("auth.errors.failed"));
+  }
+
+  function handleAuthError(
+    submitError: unknown,
+    provider: AuthProvider,
+    onRetry: () => void,
+  ) {
+    setError(getFriendlyError(submitError, provider), {
+      cause: submitError,
+      onRetry,
+    });
   }
 
   async function submit() {
@@ -969,7 +1019,10 @@ function AuthFormInner({ prefill }: { prefill?: AuthFormPrefill }) {
         if (result.authorized) {
           returnToSignIn(t("auth.status.emailVerifiedCanSignIn"));
         } else {
-          enterPendingApprovalStage(t("auth.status.emailVerifiedPendingApproval"));
+          enterPendingApprovalStage(
+            "email",
+            t("auth.status.emailVerifiedPendingApproval"),
+          );
         }
         return;
       }
@@ -1015,10 +1068,7 @@ function AuthFormInner({ prefill }: { prefill?: AuthFormPrefill }) {
           : t("auth.status.verificationCodeSentCheckEmail"),
       );
     } catch (submitError) {
-      setError(getFriendlyError(submitError), {
-        cause: submitError,
-        onRetry: () => void submit(),
-      });
+      handleAuthError(submitError, "email", () => void submit());
     } finally {
       setLoading(false);
     }
@@ -1037,10 +1087,7 @@ function AuthFormInner({ prefill }: { prefill?: AuthFormPrefill }) {
         setInfo(t("auth.status.newVerificationCodeSent"));
       }
     } catch (submitError) {
-      setError(getFriendlyError(submitError), {
-        cause: submitError,
-        onRetry: () => void resendCode(),
-      });
+      handleAuthError(submitError, "email", () => void resendCode());
     } finally {
       setLoading(false);
     }
@@ -1308,7 +1355,7 @@ function AuthFormInner({ prefill }: { prefill?: AuthFormPrefill }) {
                   {t("auth.status.pendingApprovalTitle")}
                 </Text>
                 <Text className="font-nunito text-sm leading-6 text-successDark">
-                  {t("auth.status.pendingApprovalBody")}
+                  {pendingApprovalBody(pendingApprovalProvider)}
                 </Text>
               </View>
             ) : stage === "resetRequest" ? null : (
@@ -1433,7 +1480,7 @@ function AuthFormInner({ prefill }: { prefill?: AuthFormPrefill }) {
         ) : stage === "pendingApproval" ? (
           <Pressable onPress={() => returnToSignIn(info)} disabled={loading}>
             <Text className="text-center font-nunito text-sm text-primary">
-              {t("auth.status.pendingApprovalFootnote")}
+              {pendingApprovalFootnote(pendingApprovalProvider)}
             </Text>
           </Pressable>
         ) : stage === "resetRequest" ? (
@@ -1468,6 +1515,7 @@ function AuthFormInner({ prefill }: { prefill?: AuthFormPrefill }) {
         <View className="gap-4">
           {appleAuthConfigured ? (
             <AppleAuthSection
+              handleAuthError={handleAuthError}
               loading={loading || googleLoading || appleLoading}
               preferredLanguage={preferredLanguage}
               setAppleLoading={setAppleLoading}
@@ -1481,6 +1529,7 @@ function AuthFormInner({ prefill }: { prefill?: AuthFormPrefill }) {
             Platform.OS === "android" &&
             Constants.executionEnvironment !== ExecutionEnvironment.StoreClient ? (
               <NativeGoogleAuthSection
+                handleAuthError={handleAuthError}
                 loading={loading || googleLoading || appleLoading}
                 preferredLanguage={preferredLanguage}
                 setError={setError}
@@ -1491,6 +1540,7 @@ function AuthFormInner({ prefill }: { prefill?: AuthFormPrefill }) {
               />
             ) : (
               <BrowserGoogleAuthSection
+                handleAuthError={handleAuthError}
                 loading={loading || googleLoading || appleLoading}
                 preferredLanguage={preferredLanguage}
                 setError={setError}
