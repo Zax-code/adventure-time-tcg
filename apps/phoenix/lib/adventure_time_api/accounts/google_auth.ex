@@ -13,17 +13,21 @@ defmodule AdventureTimeApi.Accounts.GoogleAuth do
   def verify(%{access_token: access_token}) when is_binary(access_token) and access_token != "" do
     with {:ok, payload} <-
            fetch_json("#{access_token_info_url()}?access_token=#{URI.encode(access_token)}"),
-         {:ok, base_profile} <- build_profile(payload),
-         {:ok, userinfo} <- fetch_userinfo(access_token) do
-      {:ok,
-       %{
-         email: base_profile.email,
-         name: userinfo["name"] || base_profile.name,
-         picture: userinfo["picture"] || base_profile.picture
-       }}
-    else
-      {:fallback_userinfo, _reason, base_profile} -> {:ok, base_profile}
-      error -> error
+         {:ok, base_profile} <- build_profile(payload) do
+      case fetch_userinfo(access_token) do
+        {:ok, userinfo} ->
+          {:ok,
+           %{
+             email: base_profile.email,
+             subject: userinfo["sub"] || base_profile.subject,
+             email_verified: base_profile.email_verified,
+             name: userinfo["name"] || base_profile.name,
+             picture: userinfo["picture"] || base_profile.picture
+           }}
+
+        {:fallback_userinfo, _reason} ->
+          {:ok, base_profile}
+      end
     end
   end
 
@@ -57,7 +61,7 @@ defmodule AdventureTimeApi.Accounts.GoogleAuth do
         {:ok, body}
 
       other ->
-        {:fallback_userinfo, other, nil}
+        {:fallback_userinfo, other}
     end
   end
 
@@ -88,6 +92,8 @@ defmodule AdventureTimeApi.Accounts.GoogleAuth do
         {:ok,
          %{
            email: String.downcase(email),
+           subject: payload["sub"],
+           email_verified: email_verified,
            name: payload["name"],
            picture: payload["picture"]
          }}

@@ -1529,6 +1529,41 @@ export const emailAccessRequestSchema = z.object({
   status: z.enum(["pending", "approved", "rejected"]),
   hasAccount: z.boolean(),
   createdAt: z.string(),
+  provider: z.string().nullable().optional(),
+  providerSubjectHash: z.string().nullable().optional(),
+  googleName: z.string().nullable().optional(),
+  googlePictureUrl: z.string().nullable().optional(),
+  lastRequestId: z.string().nullable().optional(),
+  lastIpAddress: z.string().nullable().optional(),
+  lastUserAgent: z.string().nullable().optional(),
+  lastAcceptLanguage: z.string().nullable().optional(),
+  lastClientPlatform: z.string().nullable().optional(),
+  lastClientAppVersion: z.string().nullable().optional(),
+  lastClientBuildNumber: z.string().nullable().optional(),
+  lastInstallationIdHash: z.string().nullable().optional(),
+  lastAttestationStatus: z.string().nullable().optional(),
+  lastSeenAt: z.string().nullable().optional(),
+  attemptCount: z.number().int().nonnegative().optional(),
+  authEvents: z
+    .array(
+      z.object({
+        id: z.string(),
+        eventType: z.string(),
+        provider: z.string().nullable().optional(),
+        statusCode: z.number().int().nullable().optional(),
+        errorCode: z.string().nullable().optional(),
+        requestId: z.string().nullable().optional(),
+        ipAddress: z.string().nullable().optional(),
+        userAgent: z.string().nullable().optional(),
+        clientPlatform: z.string().nullable().optional(),
+        clientAppVersion: z.string().nullable().optional(),
+        clientBuildNumber: z.string().nullable().optional(),
+        installationIdHash: z.string().nullable().optional(),
+        attestationStatus: z.string().nullable().optional(),
+        createdAt: z.string(),
+      }),
+    )
+    .optional(),
 });
 
 export const emailAccessRequestsResponseSchema = z.object({

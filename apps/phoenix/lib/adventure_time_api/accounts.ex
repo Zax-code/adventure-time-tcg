@@ -13,6 +13,7 @@ defmodule AdventureTimeApi.Accounts do
 
   alias AdventureTimeApi.Accounts.{
     AuthError,
+    AuthAttempt,
     EmailAccessRequest,
     EmailCredential,
     EmailDelivery,
@@ -40,7 +41,7 @@ defmodule AdventureTimeApi.Accounts do
   def email_credential_module, do: EmailCredential
   def session_module, do: Session
 
-  def register(attrs, _metadata) do
+  def register(attrs, metadata) do
     normalized_email = normalize_email(attrs["email"])
 
     with {:ok, preferred_language} <- parse_preferred_language(attrs["preferredLanguage"]),
@@ -70,7 +71,7 @@ defmodule AdventureTimeApi.Accounts do
         upsert_email_credential(repo, user, password_hash)
       end)
       |> Multi.run(:request, fn repo, %{user: user} ->
-        ensure_pending_access_request(repo, user)
+        ensure_pending_access_request(repo, user, metadata)
       end)
       |> Multi.delete_all(
         :clear_codes,
@@ -93,6 +94,15 @@ defmodule AdventureTimeApi.Accounts do
       |> Repo.transaction()
       |> case do
         {:ok, %{user: user}} ->
+          record_auth_attempt(%{
+            event_type: "email_register_access_request",
+            provider: "email",
+            email: user.email,
+            requested_locale: Atom.to_string(preferred_language),
+            status_code: 201,
+            metadata: metadata
+          })
+
           with :ok <-
                  EmailDelivery.send_verification_code(normalized_email, verification_code,
                    locale: preferred_language
@@ -232,20 +242,24 @@ defmodule AdventureTimeApi.Accounts do
   def login(attrs, metadata) do
     normalized_email = normalize_email(attrs["email"])
 
-    with {:ok, _password} <- validate_password(attrs["password"]),
-         %User{} = user <- Repo.get_by(User, email: normalized_email),
-         %EmailCredential{} = credential <- Repo.get_by(EmailCredential, user_id: user.id),
-         true <- Bcrypt.verify_pass(attrs["password"], credential.password_hash),
-         :ok <- ensure_email_verified(credential),
-         :ok <- ensure_user_approved(user),
-         {:ok, response} <- issue_session(user, metadata) do
-      {:ok, response}
-    else
-      nil -> {:error, :invalid_credentials, "Invalid email or password."}
-      false -> {:error, :invalid_credentials, "Invalid email or password."}
-      {:error, %AuthError{} = error} -> {:error, error}
-      {:error, message} -> {:error, :validation, message}
-    end
+    result =
+      with {:ok, _password} <- validate_password(attrs["password"]),
+           %User{} = user <- Repo.get_by(User, email: normalized_email),
+           %EmailCredential{} = credential <- Repo.get_by(EmailCredential, user_id: user.id),
+           true <- Bcrypt.verify_pass(attrs["password"], credential.password_hash),
+           :ok <- ensure_email_verified(credential),
+           :ok <- ensure_user_approved(user, metadata),
+           {:ok, response} <- issue_session(user, metadata) do
+        {:ok, response}
+      else
+        nil -> {:error, :invalid_credentials, "Invalid email or password."}
+        false -> {:error, :invalid_credentials, "Invalid email or password."}
+        {:error, %AuthError{} = error} -> {:error, error}
+        {:error, message} -> {:error, :validation, message}
+      end
+
+    record_email_login_attempt(result, normalized_email, metadata)
+    result
   end
 
   def request_password_reset(attrs) do
@@ -332,12 +346,35 @@ defmodule AdventureTimeApi.Accounts do
   end
 
   def login_with_google(attrs, metadata) do
-    with {:ok, preferred_language} <- parse_preferred_language(attrs["preferredLanguage"]),
-         {:ok, profile} <-
-           GoogleAuth.verify(%{id_token: attrs["idToken"], access_token: attrs["accessToken"]}),
-         {:ok, response} <- login_google_profile(profile, metadata, preferred_language) do
-      {:ok, response}
+    result =
+      with {:ok, preferred_language} <- parse_preferred_language(attrs["preferredLanguage"]),
+           {:ok, profile} <-
+             GoogleAuth.verify(%{id_token: attrs["idToken"], access_token: attrs["accessToken"]}),
+           {:ok, response} <- login_google_profile(profile, metadata, preferred_language) do
+        {:ok, response}
+      end
+
+    case result do
+      {:error, %AuthError{} = error} ->
+        if error.code in [
+             "GOOGLE_AUTH_FAILED",
+             "GOOGLE_AUTH_MISSING_TOKEN",
+             "GOOGLE_EMAIL_UNVERIFIED"
+           ] do
+          record_auth_attempt(%{
+            event_type: "google_login_failed",
+            provider: "google",
+            status_code: error.status_code,
+            error_code: error.code,
+            metadata: metadata
+          })
+        end
+
+      _ ->
+        :ok
     end
+
+    result
   end
 
   def refresh(refresh_token, metadata) do
@@ -345,7 +382,7 @@ defmodule AdventureTimeApi.Accounts do
          %Session{} = session <- active_session(claims["sid"], claims["sub"]),
          true <- Bcrypt.verify_pass(refresh_token, session.refresh_token_hash),
          %User{} = user <- Repo.get(User, claims["sub"]),
-         :ok <- ensure_user_approved(user),
+         :ok <- ensure_user_approved(user, metadata),
          {:ok, _revoked} <- revoke_session(session),
          {:ok, response} <- issue_session(user, metadata) do
       {:ok, response}
@@ -649,18 +686,71 @@ defmodule AdventureTimeApi.Accounts do
           request.status == :pending ||
             (request.status == :approved && !MapSet.member?(user_emails, request.email))
         end)
+
+      events_by_email = recent_auth_events_by_email(Enum.map(requests, & &1.email))
+
+      requests =
+        requests
         |> Enum.map(fn request ->
           %{
             "id" => request.id,
             "email" => request.email,
             "status" => Atom.to_string(request.status),
             "hasAccount" => MapSet.member?(user_emails, request.email),
-            "createdAt" => request.inserted_at |> DateTime.to_iso8601()
+            "createdAt" => request.inserted_at |> DateTime.to_iso8601(),
+            "provider" => request.provider,
+            "providerSubjectHash" => request.provider_subject_hash,
+            "googleName" => request.google_name,
+            "googlePictureUrl" => request.google_picture_url,
+            "lastRequestId" => request.last_request_id,
+            "lastIpAddress" => request.last_ip_address,
+            "lastUserAgent" => request.last_user_agent,
+            "lastAcceptLanguage" => request.last_accept_language,
+            "lastClientPlatform" => request.last_client_platform,
+            "lastClientAppVersion" => request.last_client_app_version,
+            "lastClientBuildNumber" => request.last_client_build_number,
+            "lastInstallationIdHash" => request.last_installation_id_hash,
+            "lastAttestationStatus" => request.last_attestation_status,
+            "lastSeenAt" => request.last_seen_at && DateTime.to_iso8601(request.last_seen_at),
+            "attemptCount" => request.attempt_count || 0,
+            "authEvents" => Map.get(events_by_email, request.email, [])
           }
         end)
 
       {:ok, %{requests: requests}}
     end
+  end
+
+  defp recent_auth_events_by_email([]), do: %{}
+
+  defp recent_auth_events_by_email(emails) do
+    normalized_emails = Enum.map(emails, &normalize_email/1)
+
+    AuthAttempt
+    |> where([attempt], attempt.email in ^normalized_emails)
+    |> order_by([attempt], desc: attempt.inserted_at)
+    |> Repo.all()
+    |> Enum.group_by(& &1.email, &auth_attempt_response/1)
+    |> Map.new(fn {email, events} -> {email, Enum.take(events, 5)} end)
+  end
+
+  defp auth_attempt_response(%AuthAttempt{} = attempt) do
+    %{
+      "id" => attempt.id,
+      "eventType" => attempt.event_type,
+      "provider" => attempt.provider,
+      "statusCode" => attempt.status_code,
+      "errorCode" => attempt.error_code,
+      "requestId" => attempt.request_id,
+      "ipAddress" => attempt.ip_address,
+      "userAgent" => attempt.user_agent,
+      "clientPlatform" => attempt.client_platform,
+      "clientAppVersion" => attempt.client_app_version,
+      "clientBuildNumber" => attempt.client_build_number,
+      "installationIdHash" => attempt.installation_id_hash,
+      "attestationStatus" => attempt.attestation_status,
+      "createdAt" => DateTime.to_iso8601(attempt.inserted_at)
+    }
   end
 
   def review_access_request(request_id, attrs, actor) do
@@ -729,7 +819,16 @@ defmodule AdventureTimeApi.Accounts do
   defp login_google_profile(profile, metadata, preferred_language) do
     case Repo.get_by(User, email: profile.email) do
       nil ->
-        ensure_pending_access_request(profile.email, preferred_language)
+        ensure_pending_access_request(profile.email, preferred_language, metadata, profile)
+
+        record_google_attempt(
+          "google_access_request",
+          profile,
+          preferred_language,
+          403,
+          "ACCESS_REQUEST_PENDING",
+          metadata
+        )
 
         {:error,
          %AuthError{
@@ -743,9 +842,47 @@ defmodule AdventureTimeApi.Accounts do
         user = maybe_update_google_profile(user, profile)
 
         case user.access_status do
-          :approved -> issue_session(user, metadata)
-          :pending -> pending_access_error(user.email, true)
-          :rejected -> pending_access_error(user.email, true)
+          :approved ->
+            case issue_session(user, metadata) do
+              {:ok, _response} = result ->
+                record_google_attempt(
+                  "google_login_success",
+                  profile,
+                  preferred_language,
+                  200,
+                  nil,
+                  metadata
+                )
+
+                result
+
+              error ->
+                error
+            end
+
+          :pending ->
+            record_google_attempt(
+              "google_login_failed",
+              profile,
+              preferred_language,
+              403,
+              "ACCESS_REQUEST_PENDING",
+              metadata
+            )
+
+            pending_access_error(user.email, true, metadata, profile)
+
+          :rejected ->
+            record_google_attempt(
+              "google_login_failed",
+              profile,
+              preferred_language,
+              403,
+              "ACCESS_REQUEST_PENDING",
+              metadata
+            )
+
+            pending_access_error(user.email, true, metadata, profile)
         end
     end
   end
@@ -912,12 +1049,19 @@ defmodule AdventureTimeApi.Accounts do
     end
   end
 
-  defp ensure_pending_access_request(email_or_repo, requested_locale_or_user \\ :en)
-
-  defp ensure_pending_access_request(repo, %User{} = user) do
+  defp ensure_pending_access_request(repo, %User{} = user, metadata) do
     case refresh_user_access_state(repo, user) do
       {:ok, updated_user} ->
-        ensure_pending_access_request(updated_user.email, updated_user.preferred_language)
+        upsert_pending_access_request(
+          repo,
+          updated_user.email,
+          updated_user.preferred_language,
+          metadata,
+          %{
+            provider: "email"
+          }
+        )
+
         {:ok, updated_user}
 
       error ->
@@ -925,42 +1069,170 @@ defmodule AdventureTimeApi.Accounts do
     end
   end
 
-  defp ensure_pending_access_request(email, requested_locale) do
-    normalized_email = normalize_email(email)
+  defp ensure_pending_access_request(email, requested_locale, metadata, profile) do
+    upsert_pending_access_request(Repo, email, requested_locale, metadata, profile)
+  end
 
-    case Repo.get_by(EmailAccessRequest, email: normalized_email) do
+  defp upsert_pending_access_request(repo, email, requested_locale, metadata, profile) do
+    normalized_email = normalize_email(email)
+    existing_request = repo.get_by(EmailAccessRequest, email: normalized_email)
+
+    attrs =
+      access_request_attrs(
+        normalized_email,
+        requested_locale,
+        metadata,
+        profile,
+        existing_request
+      )
+
+    case existing_request do
       nil ->
         %EmailAccessRequest{}
-        |> EmailAccessRequest.changeset(%{
-          email: normalized_email,
-          requested_locale: requested_locale,
-          status: :pending
-        })
-        |> Repo.insert()
+        |> EmailAccessRequest.changeset(attrs)
+        |> repo.insert()
         |> notify_access_request_created()
 
       %EmailAccessRequest{status: :pending} = request ->
         request
-        |> EmailAccessRequest.changeset(%{
-          email: normalized_email,
-          requested_locale: requested_locale,
-          status: :pending
-        })
-        |> Repo.update()
+        |> EmailAccessRequest.changeset(attrs)
+        |> repo.update()
 
       %EmailAccessRequest{} = request ->
         request
-        |> EmailAccessRequest.changeset(%{
-          email: normalized_email,
-          requested_locale: requested_locale,
-          status: :pending,
-          reviewed_by: nil,
-          reviewed_at: nil
-        })
-        |> Repo.update()
+        |> EmailAccessRequest.changeset(Map.merge(attrs, %{reviewed_by: nil, reviewed_at: nil}))
+        |> repo.update()
         |> notify_access_request_created()
     end
   end
+
+  defp access_request_attrs(email, requested_locale, metadata, profile, existing_request) do
+    %{
+      email: email,
+      requested_locale: requested_locale,
+      status: :pending,
+      provider: profile_provider(profile),
+      provider_subject_hash: hash_identifier(profile[:subject]),
+      google_name: profile[:name],
+      google_picture_url: profile[:picture],
+      last_request_id: metadata[:request_id],
+      last_ip_address: metadata[:ip_address],
+      last_user_agent: metadata[:user_agent],
+      last_accept_language: metadata[:accept_language],
+      last_client_platform: metadata[:client_platform],
+      last_client_app_version: metadata[:client_app_version],
+      last_client_build_number: metadata[:client_build_number],
+      last_installation_id_hash: hash_identifier(metadata[:installation_id]),
+      last_attestation_status: metadata[:attestation_status],
+      last_seen_at: now_utc(),
+      attempt_count: ((existing_request && existing_request.attempt_count) || 0) + 1
+    }
+  end
+
+  defp record_email_login_attempt({:ok, _response}, email, metadata) do
+    record_auth_attempt(%{
+      event_type: "email_login_success",
+      provider: "email",
+      email: email,
+      status_code: 200,
+      metadata: metadata
+    })
+  end
+
+  defp record_email_login_attempt({:error, %AuthError{} = error}, email, metadata) do
+    record_auth_attempt(%{
+      event_type: "email_login_failed",
+      provider: "email",
+      email: email,
+      status_code: error.status_code,
+      error_code: error.code,
+      metadata: metadata
+    })
+  end
+
+  defp record_email_login_attempt({:error, reason, _message}, email, metadata) do
+    record_auth_attempt(%{
+      event_type: "email_login_failed",
+      provider: "email",
+      email: email,
+      status_code: if(reason == :invalid_credentials, do: 401, else: 400),
+      error_code: reason |> to_string() |> String.upcase(),
+      metadata: metadata
+    })
+  end
+
+  defp record_google_attempt(
+         event_type,
+         profile,
+         requested_locale,
+         status_code,
+         error_code,
+         metadata
+       ) do
+    record_auth_attempt(%{
+      event_type: event_type,
+      provider: "google",
+      email: profile[:email],
+      provider_subject_hash: hash_identifier(profile[:subject]),
+      google_email_verified: profile[:email_verified],
+      google_name: profile[:name],
+      google_picture_url: profile[:picture],
+      requested_locale: Atom.to_string(requested_locale),
+      status_code: status_code,
+      error_code: error_code,
+      metadata: metadata
+    })
+  end
+
+  defp record_auth_attempt(attrs) do
+    metadata = Map.get(attrs, :metadata, %{}) || %{}
+
+    attrs =
+      attrs
+      |> Map.delete(:metadata)
+      |> Map.put_new(:request_id, metadata[:request_id])
+      |> Map.put_new(:ip_address, metadata[:ip_address])
+      |> Map.put_new(:user_agent, metadata[:user_agent])
+      |> Map.put_new(:accept_language, metadata[:accept_language])
+      |> Map.put_new(:client_platform, metadata[:client_platform])
+      |> Map.put_new(:client_app_version, metadata[:client_app_version])
+      |> Map.put_new(:client_build_number, metadata[:client_build_number])
+      |> Map.put_new(:installation_id_hash, hash_identifier(metadata[:installation_id]))
+      |> Map.put_new(:attestation_status, metadata[:attestation_status])
+      |> Map.put(:metadata, %{})
+
+    case %AuthAttempt{} |> AuthAttempt.changeset(attrs) |> Repo.insert() do
+      {:ok, _attempt} ->
+        :ok
+
+      {:error, changeset} ->
+        Logger.warning("Failed to record auth attempt: #{inspect(changeset.errors)}")
+    end
+  end
+
+  defp profile_provider(%{provider: provider}) when is_binary(provider) and provider != "",
+    do: provider
+
+  defp profile_provider(%{subject: subject}) when is_binary(subject) and subject != "",
+    do: "google"
+
+  defp profile_provider(%{name: name}) when is_binary(name) and name != "", do: "google"
+
+  defp profile_provider(%{picture: picture}) when is_binary(picture) and picture != "",
+    do: "google"
+
+  defp profile_provider(_profile), do: "email"
+
+  defp hash_identifier(nil), do: nil
+  defp hash_identifier(""), do: nil
+
+  defp hash_identifier(identifier) when is_binary(identifier) do
+    :sha256
+    |> :crypto.hash(identifier)
+    |> Base.encode16(case: :lower)
+  end
+
+  defp hash_identifier(identifier), do: identifier |> to_string() |> hash_identifier()
 
   defp notify_access_request_created({:ok, %EmailAccessRequest{email: email}} = result) do
     _ = Notifications.send_access_request_created(email)
@@ -1146,24 +1418,31 @@ defmodule AdventureTimeApi.Accounts do
      }}
   end
 
-  defp ensure_user_approved(%User{access_status: :approved}), do: :ok
+  defp ensure_user_approved(user, metadata \\ %{})
 
-  defp ensure_user_approved(%User{email: email, access_status: :pending}) do
+  defp ensure_user_approved(%User{access_status: :approved}, _metadata), do: :ok
+
+  defp ensure_user_approved(%User{email: email, access_status: :pending}, _metadata) do
     pending_access_error(email, false)
   end
 
-  defp ensure_user_approved(%User{email: email, access_status: :rejected}) do
+  defp ensure_user_approved(%User{email: email, access_status: :rejected}, metadata) do
     {:error,
      %AuthError{
        message: "This account is not approved yet. A new access request has been submitted.",
        status_code: 403,
        code: "ACCESS_REQUEST_PENDING"
      }}
-    |> tap(fn _ -> ensure_pending_access_request(email) end)
+    |> tap(fn _ -> ensure_pending_access_request(email, :en, metadata, %{provider: "email"}) end)
   end
 
-  defp pending_access_error(email, maybe_reopen?) do
-    if maybe_reopen?, do: ensure_pending_access_request(email)
+  defp pending_access_error(
+         email,
+         maybe_reopen?,
+         metadata \\ %{},
+         profile \\ %{provider: "email"}
+       ) do
+    if maybe_reopen?, do: ensure_pending_access_request(email, :en, metadata, profile)
 
     {:error,
      %AuthError{
