@@ -1,7 +1,6 @@
 import { useMutation, useQueries, useQueryClient } from "@tanstack/react-query";
 import { File, Paths } from "expo-file-system";
 import * as Haptics from "expo-haptics";
-import { LinearGradient } from "expo-linear-gradient";
 import * as SecureStore from "expo-secure-store";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import * as Sharing from "expo-sharing";
@@ -15,7 +14,6 @@ import {
 } from "react";
 import {
   AppState,
-  ActivityIndicator,
   Alert,
   Pressable,
   ScrollView,
@@ -54,6 +52,7 @@ import {
   getModeStatusLabel,
   getQuestTypeForMode,
 } from "../../src/features/quests/daily-numbers/shared";
+import { QuestActionButton } from "../../src/features/quests/quest-action-button";
 import { useTranslation } from "../../src/i18n";
 import { apiClient } from "../../src/lib/api";
 import { useQuestResetStore } from "../../src/stores/quest-reset-store";
@@ -1060,37 +1059,22 @@ function FinishStatePanel({
                 : t("quests.dailyNumbers.resultLockedNote")}
         </Text>
       )}
-      <Pressable
+      <QuestActionButton
+        label={
+          isSharing
+            ? t("quests.dailyNumbers.sharePreparing")
+            : t("quests.dailyNumbers.shareResult")
+        }
         onPress={onShareResult}
-        disabled={isSharing}
-        className="mt-5 h-12 overflow-hidden rounded-2xl"
-        accessibilityRole="button"
+        loading={isSharing}
+        loadingMode="inline"
+        backgroundColor={tc.primaryDark}
+        foregroundColor="#FFFFFF"
+        minHeight={48}
         accessibilityLabel={t("quests.dailyNumbers.shareResult")}
         testID="daily-numbers-share-result"
-      >
-        <LinearGradient
-          colors={[tc.primary, tc.primaryDark]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={{
-            flex: 1,
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 8,
-            opacity: isSharing ? 0.7 : 1,
-          }}
-        >
-          {isSharing ? (
-            <ActivityIndicator color="#ffffff" size="small" />
-          ) : null}
-          <Text className="font-nunito-bold text-sm text-white">
-            {isSharing
-              ? t("quests.dailyNumbers.sharePreparing")
-              : t("quests.dailyNumbers.shareResult")}
-          </Text>
-        </LinearGradient>
-      </Pressable>
+        style={{ marginTop: 20 }}
+      />
       <View className="mt-5 w-full rounded-2xl border border-primaryBorder bg-surface px-3 py-3">
         <Text className="font-nunito-bold text-sm text-fg">
           {t("quests.dailyNumbers.startingNumbersTitle")}

@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Animated,
   Modal,
   Pressable,
@@ -26,6 +25,7 @@ import type {
 } from "@adventure-time/api-client";
 import { apiClient } from "../../src/lib/api";
 import { PageLoadingState } from "../../src/components/loading-state";
+import { QuestActionButton } from "../../src/features/quests/quest-action-button";
 import { WordleQuestShareCard } from "../../src/features/quests/wordle/quest-share-card";
 import {
   buildWordleShareFileName,
@@ -89,7 +89,10 @@ function keyLetterClass(state?: LetterState): string {
   return "text-primaryStrong";
 }
 
-function formatShareDate(dateKey: string | null, locale: string): string | undefined {
+function formatShareDate(
+  dateKey: string | null,
+  locale: string,
+): string | undefined {
   if (!dateKey) return undefined;
   const [year, month, day] = dateKey.split("-").map((part) => Number(part));
   if (!year || !month || !day) return dateKey;
@@ -1130,39 +1133,22 @@ export default function WordleScreen() {
         )}
 
         {gameOver ? (
-          <TouchableOpacity
+          <QuestActionButton
+            label={
+              isSharing
+                ? t("quests.wordle.sharePreparing")
+                : t("quests.wordle.shareResult")
+            }
             onPress={() => {
               void handleShareResult();
             }}
-            disabled={isSharing}
-            activeOpacity={0.8}
-            accessibilityRole="button"
+            loading={isSharing}
+            loadingMode="inline"
+            backgroundColor={tc.primaryDark}
+            foregroundColor="#FFFFFF"
+            minHeight={48}
             testID="wordle-share-result"
-            className="h-12 rounded-xl overflow-hidden"
-          >
-            <LinearGradient
-              colors={[tc.primary, tc.primaryDark]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={{
-                flex: 1,
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 8,
-                opacity: isSharing ? 0.7 : 1,
-              }}
-            >
-              {isSharing ? (
-                <ActivityIndicator color="#ffffff" size="small" />
-              ) : null}
-              <Text className="text-sm font-nunito-bold text-white">
-                {isSharing
-                  ? t("quests.wordle.sharePreparing")
-                  : t("quests.wordle.shareResult")}
-              </Text>
-            </LinearGradient>
-          </TouchableOpacity>
+          />
         ) : null}
 
         {canShowDefinition ? (
@@ -1200,8 +1186,7 @@ export default function WordleScreen() {
                 <View className="flex-row justify-center gap-1.5">
                   {row.split("").map((letter) => {
                     const kState = keyboardState[letter];
-                    const pressed =
-                      activeKeys.includes(letter) && !inputLocked;
+                    const pressed = activeKeys.includes(letter) && !inputLocked;
                     const keyCls = keyBgBorderClass(kState);
                     const keyStyle = {
                       width: keyWidth || undefined,
