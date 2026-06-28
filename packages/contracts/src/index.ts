@@ -79,6 +79,18 @@ export const googleAuthSchema = z
     message: "Either idToken or accessToken is required.",
   });
 
+export const appleFullNameSchema = z.object({
+  givenName: z.string().nullable().optional(),
+  familyName: z.string().nullable().optional(),
+});
+
+export const appleAuthSchema = z.object({
+  identityToken: z.string().min(1),
+  nonce: z.string().min(1),
+  preferredLanguage: localeSchema.default("en"),
+  fullName: appleFullNameSchema.optional(),
+});
+
 export const raritySchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -1307,6 +1319,7 @@ export const registerNotificationDeviceSchema = z.object({
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type GoogleAuthInput = z.infer<typeof googleAuthSchema>;
+export type AppleAuthInput = z.infer<typeof appleAuthSchema>;
 export type RefreshTokenInput = z.infer<typeof refreshTokenSchema>;
 export type AuthResponse = z.infer<typeof authResponseSchema>;
 export type RegisterResponse = z.infer<typeof registerResponseSchema>;

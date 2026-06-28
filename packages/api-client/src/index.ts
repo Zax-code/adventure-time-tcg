@@ -38,6 +38,7 @@ import {
   adminAllowedEmailUpdateSchema,
   adminEmailRequestActionSchema,
   accountDeleteResponseSchema,
+  appleAuthSchema,
   authUserSchema,
   authResponseSchema,
   claimQuestResponseSchema,
@@ -119,6 +120,7 @@ import {
   type RaritiesResponse,
   type PvpSpectateResponse,
   type PvpSpectateDetailResponse,
+  type AppleAuthInput,
   type AuthResponse,
   type ClaimQuestInput,
   type ClaimQuestResponse,
@@ -394,6 +396,15 @@ export class ApiClient {
     const body = googleAuthSchema.parse(input);
     return this.request(
       "/auth/google",
+      { method: "POST", body: JSON.stringify(body) },
+      (data) => authResponseSchema.parse(data),
+    );
+  }
+
+  async appleAuth(input: AppleAuthInput): Promise<AuthResponse> {
+    const body = appleAuthSchema.parse(input);
+    return this.request(
+      "/auth/apple",
       { method: "POST", body: JSON.stringify(body) },
       (data) => authResponseSchema.parse(data),
     );

@@ -26,7 +26,8 @@ config :adventure_time_api, AdventureTimeApiWeb.Endpoint,
 config :adventure_time_api, AdventureTimeApi.Auth,
   access_token_secret: "test-access-token-secret-please-change-1234567890",
   refresh_token_secret: "test-refresh-token-secret-please-change-1234567890",
-  google_client_ids: ["test-google-client-id"]
+  google_client_ids: ["test-google-client-id"],
+  apple_client_ids: ["love.leaetzak.adventuretime"]
 
 config :adventure_time_api, AdventureTimeApi.Accounts,
   verification_secret: "test-email-verification-secret-please-change-1234567890",

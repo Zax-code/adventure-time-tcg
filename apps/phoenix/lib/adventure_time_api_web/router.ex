@@ -55,6 +55,7 @@ defmodule AdventureTimeApiWeb.Router do
     post("/auth/reset-password", AuthController, :reset_password)
     post("/auth/login", AuthController, :login)
     post("/auth/google", AuthController, :google)
+    post("/auth/apple", AuthController, :apple)
     post("/auth/refresh", AuthController, :refresh)
     post("/auth/logout", AuthController, :logout)
   end

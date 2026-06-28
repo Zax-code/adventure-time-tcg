@@ -34,7 +34,8 @@ config :elixir, :time_zone_database, Tzdata.TimeZoneDatabase
 config :adventure_time_api, AdventureTimeApi.Auth,
   access_token_ttl_seconds: 15 * 60,
   refresh_token_ttl_days: 180,
-  google_client_ids: []
+  google_client_ids: [],
+  apple_client_ids: ["love.leaetzak.adventuretime"]
 
 config :adventure_time_api, AdventureTimeApi.Accounts,
   verification_secret: "dev-email-verification-secret-please-change-1234567890",
@@ -67,6 +68,7 @@ config :adventure_time_api, AdventureTimeApiWeb.Plugs.RateLimit,
     auth_request_password_reset: %{limit: 6, scale_ms: 60_000},
     auth_reset_password: %{limit: 10, scale_ms: 60_000},
     auth_google: %{limit: 10, scale_ms: 60_000},
+    auth_apple: %{limit: 10, scale_ms: 60_000},
     auth_refresh: %{limit: 20, scale_ms: 60_000},
     pvp_match_write: %{limit: 30, scale_ms: 60_000}
   }

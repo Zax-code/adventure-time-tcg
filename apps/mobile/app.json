@@ -7,7 +7,8 @@
     "owner": "zax-code",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "requireFullScreen": true
+      "requireFullScreen": true,
+      "usesAppleSignIn": true
     },
     "android": {
       "blockedPermissions": [
@@ -31,6 +32,7 @@
       }
     },
     "plugins": [
+      "expo-apple-authentication",
       "expo-sharing"
     ]
   }
