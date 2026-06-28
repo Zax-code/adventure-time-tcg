@@ -6,12 +6,12 @@ import {
   isSuccessResponse,
   statusCodes,
 } from "@react-native-google-signin/google-signin";
+import Ionicons from "@react-native-vector-icons/ionicons";
 import * as AppleAuthentication from "expo-apple-authentication";
 import * as Google from "expo-auth-session/providers/google";
 import { SessionUrlProvider } from "expo-auth-session/build/SessionUrlProvider";
 import Constants, { ExecutionEnvironment } from "expo-constants";
 import * as Crypto from "expo-crypto";
-import { LinearGradient } from "expo-linear-gradient";
 import * as WebBrowser from "expo-web-browser";
 import { useRouter } from "expo-router";
 import {
@@ -19,7 +19,6 @@ import {
   Pressable,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { ZodError, type ZodIssue } from "zod";
@@ -314,6 +313,70 @@ function configureNativeGoogleSignIn() {
   nativeGoogleConfigured = true;
 }
 
+type SocialSignInProvider = "google" | "apple";
+
+function SocialProviderMark({
+  provider,
+}: {
+  provider: SocialSignInProvider;
+}) {
+  const iconName = provider === "apple" ? "logo-apple" : "logo-google";
+
+  return <Ionicons name={iconName} size={24} color="white" />;
+}
+
+function SocialSignInButton({
+  disabled,
+  onPress,
+  provider,
+  tc,
+  t,
+}: {
+  disabled: boolean;
+  onPress: () => void;
+  provider: SocialSignInProvider;
+  tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
+  t: (key: string) => string;
+}) {
+  const isGoogle = provider === "google";
+  const title = isGoogle
+    ? t("auth.actions.continueWithGoogle")
+    : t("auth.actions.continueWithApple");
+  const buttonColor = isGoogle ? tc.infoDark : tc.accentDark;
+  const disabledOpacity = disabled ? 0.52 : 1;
+
+  return (
+    <Pressable
+      accessibilityLabel={title}
+      accessibilityRole="button"
+      disabled={disabled}
+      onPress={onPress}
+    >
+      {({ pressed }) => (
+        <View
+          className="min-h-[58px] flex-row items-center justify-center gap-3 rounded-[22px] border px-[18px] py-2.5"
+          style={{
+            backgroundColor: buttonColor,
+            borderColor: buttonColor,
+            opacity: disabledOpacity,
+            transform: [{ scale: pressed && !disabled ? 0.985 : 1 }],
+          }}
+        >
+          <SocialProviderMark provider={provider} />
+          <Text
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.84}
+            className="font-nunito-extrabold text-base text-white"
+          >
+            {title}
+          </Text>
+        </View>
+      )}
+    </Pressable>
+  );
+}
+
 function GoogleSignInButton({
   disabled,
   onPress,
@@ -326,80 +389,35 @@ function GoogleSignInButton({
   t: (key: string) => string;
 }) {
   return (
-    <View className="gap-3">
-      <Text className="text-center font-nunito text-xs uppercase tracking-widest text-primaryText">
-        {t("auth.actions.orContinueWithGoogle")}
-      </Text>
-      <TouchableOpacity
-        onPress={onPress}
-        disabled={disabled}
-        activeOpacity={0.85}
-      >
-        <LinearGradient
-          colors={[tc.primary, tc.primaryDark]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 10,
-            borderRadius: 999,
-            paddingVertical: 16,
-            paddingHorizontal: 24,
-          }}
-        >
-          <Text
-            style={{
-              fontFamily: "Nunito-Bold",
-              fontSize: 16,
-              color: "white",
-            }}
-          >
-            G
-          </Text>
-          <Text
-            style={{
-              fontFamily: "Nunito-Bold",
-              fontSize: 16,
-              color: "white",
-            }}
-          >
-            {t("auth.actions.enterCandyKingdom")}
-          </Text>
-        </LinearGradient>
-      </TouchableOpacity>
-    </View>
+    <SocialSignInButton
+      disabled={disabled}
+      onPress={onPress}
+      provider="google"
+      tc={tc}
+      t={t}
+    />
   );
 }
 
 function AppleSignInButton({
   disabled,
   onPress,
+  tc,
   t,
 }: {
   disabled: boolean;
   onPress: () => void;
+  tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
   t: (key: string) => string;
 }) {
   return (
-    <View className="gap-3">
-      <Text className="text-center font-nunito text-xs uppercase tracking-widest text-primaryText">
-        {t("auth.actions.orContinueWithApple")}
-      </Text>
-      <View
-        pointerEvents={disabled ? "none" : "auto"}
-        style={{ opacity: disabled ? 0.55 : 1 }}
-      >
-        <AppleAuthentication.AppleAuthenticationButton
-          buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
-          buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-          cornerRadius={999}
-          onPress={onPress}
-          style={{ height: 52, width: "100%" }}
-        />
-      </View>
-    </View>
+    <SocialSignInButton
+      disabled={disabled}
+      onPress={onPress}
+      provider="apple"
+      tc={tc}
+      t={t}
+    />
   );
 }
 
@@ -411,6 +429,7 @@ function AppleAuthSection({
   setError,
   setSession,
   t,
+  tc,
 }: {
   handleAuthError: AuthSubmitErrorHandler;
   loading: boolean;
@@ -423,6 +442,7 @@ function AppleAuthSection({
     refreshToken: string;
   }) => Promise<void>;
   t: (key: string) => string;
+  tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
 }) {
   const router = useRouter();
 
@@ -480,6 +500,7 @@ function AppleAuthSection({
     <AppleSignInButton
       disabled={loading}
       onPress={() => void submitApple()}
+      tc={tc}
       t={t}
     />
   );
@@ -1512,45 +1533,49 @@ function AuthFormInner({ prefill }: { prefill?: AuthFormPrefill }) {
       </View>
 
       {stage !== "credentials" || !socialAuthConfigured ? null : (
-        <View className="gap-4">
-          {appleAuthConfigured ? (
-            <AppleAuthSection
-              handleAuthError={handleAuthError}
-              loading={loading || googleLoading || appleLoading}
-              preferredLanguage={preferredLanguage}
-              setAppleLoading={setAppleLoading}
-              setError={setError}
-              setSession={setSession}
-              t={t}
-            />
-          ) : null}
+        <View className="gap-4 pt-2">
+          <View className="h-px bg-primaryBorder" />
+          <View className="gap-3">
+            {appleAuthConfigured ? (
+              <AppleAuthSection
+                handleAuthError={handleAuthError}
+                loading={loading || googleLoading || appleLoading}
+                preferredLanguage={preferredLanguage}
+                setAppleLoading={setAppleLoading}
+                setError={setError}
+                setSession={setSession}
+                t={t}
+                tc={tc}
+              />
+            ) : null}
 
-          {googleAuthConfigured ? (
-            Platform.OS === "android" &&
-            Constants.executionEnvironment !== ExecutionEnvironment.StoreClient ? (
-              <NativeGoogleAuthSection
-                handleAuthError={handleAuthError}
-                loading={loading || googleLoading || appleLoading}
-                preferredLanguage={preferredLanguage}
-                setError={setError}
-                setGoogleLoading={setGoogleLoading}
-                setSession={setSession}
-                t={t}
-                tc={tc}
-              />
-            ) : (
-              <BrowserGoogleAuthSection
-                handleAuthError={handleAuthError}
-                loading={loading || googleLoading || appleLoading}
-                preferredLanguage={preferredLanguage}
-                setError={setError}
-                setGoogleLoading={setGoogleLoading}
-                setSession={setSession}
-                t={t}
-                tc={tc}
-              />
-            )
-          ) : null}
+            {googleAuthConfigured ? (
+              Platform.OS === "android" &&
+              Constants.executionEnvironment !== ExecutionEnvironment.StoreClient ? (
+                <NativeGoogleAuthSection
+                  handleAuthError={handleAuthError}
+                  loading={loading || googleLoading || appleLoading}
+                  preferredLanguage={preferredLanguage}
+                  setError={setError}
+                  setGoogleLoading={setGoogleLoading}
+                  setSession={setSession}
+                  t={t}
+                  tc={tc}
+                />
+              ) : (
+                <BrowserGoogleAuthSection
+                  handleAuthError={handleAuthError}
+                  loading={loading || googleLoading || appleLoading}
+                  preferredLanguage={preferredLanguage}
+                  setError={setError}
+                  setGoogleLoading={setGoogleLoading}
+                  setSession={setSession}
+                  t={t}
+                  tc={tc}
+                />
+              )
+            ) : null}
+          </View>
         </View>
       )}
 
