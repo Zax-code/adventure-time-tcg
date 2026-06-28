@@ -559,6 +559,56 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
     assert attempt.installation_id_hash == request.last_installation_id_hash
   end
 
+  test "POST /auth/google falls back to access token profile when userinfo fails", %{conn: conn} do
+    bypass = Bypass.open()
+
+    Bypass.expect_once(bypass, "GET", "/access-token-info", fn conn ->
+      conn
+      |> Plug.Conn.put_resp_content_type("application/json")
+      |> Plug.Conn.resp(
+        200,
+        Jason.encode!(%{
+          "aud" => "test-google-client-id",
+          "sub" => "google-access-subject",
+          "email" => "fallback-marcy@example.com",
+          "email_verified" => "true",
+          "name" => "Fallback Marceline",
+          "picture" => "https://example.com/fallback-marceline.png"
+        })
+      )
+    end)
+
+    Bypass.expect_once(bypass, "GET", "/userinfo", fn conn ->
+      Plug.Conn.resp(conn, 401, "temporarily unavailable")
+    end)
+
+    Application.put_env(:adventure_time_api, GoogleAuth,
+      access_token_info_url: bypass_url(bypass, "/access-token-info"),
+      userinfo_url: bypass_url(bypass, "/userinfo")
+    )
+
+    on_exit(fn -> Application.delete_env(:adventure_time_api, GoogleAuth) end)
+
+    conn =
+      post(conn, ~p"/auth/google", %{
+        "accessToken" => "valid-access-token",
+        "preferredLanguage" => "en"
+      })
+
+    assert json_response(conn, 403)["code"] == "ACCESS_REQUEST_PENDING"
+
+    request = Repo.get_by!(EmailAccessRequest, email: "fallback-marcy@example.com")
+    assert request.provider == "google"
+    assert request.google_name == "Fallback Marceline"
+    assert request.google_picture_url == "https://example.com/fallback-marceline.png"
+    assert byte_size(request.provider_subject_hash) == 64
+    assert request.provider_subject_hash != "google-access-subject"
+
+    attempt = Repo.get_by!(AuthAttempt, email: "fallback-marcy@example.com")
+    assert attempt.provider_subject_hash == request.provider_subject_hash
+    assert attempt.google_email_verified == true
+  end
+
   test "GET /me returns authenticated user", %{conn: conn} do
     user =
       create_user_with_password("iceking@example.com", "penguin123", "Ice King",

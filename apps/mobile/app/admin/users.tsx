@@ -48,6 +48,16 @@ type AttributionLabels = {
   recentEvents: string;
 };
 
+type AttributionDetailRow = {
+  label: string;
+  value: string | null | undefined;
+  lines?: number;
+};
+
+type VisibleAttributionDetailRow = AttributionDetailRow & {
+  value: string;
+};
+
 type SortField = "email" | "coins" | "createdAt";
 type SortDir = "asc" | "desc";
 type RoleFilter = "all" | "staff" | "players" | "me";
@@ -298,11 +308,15 @@ function AdminRequestRow({
   ]
     .filter(Boolean)
     .join(" / ");
-  const detailRows = [
+  const detailRows: AttributionDetailRow[] = [
     { label: attributionLabels.provider, value: request.provider },
     { label: attributionLabels.googleName, value: request.googleName },
     { label: attributionLabels.ipAddress, value: request.lastIpAddress },
-    { label: attributionLabels.userAgent, value: request.lastUserAgent },
+    {
+      label: attributionLabels.userAgent,
+      value: request.lastUserAgent,
+      lines: 2,
+    },
     { label: attributionLabels.app, value: appVersion || null },
     {
       label: attributionLabels.installation,
@@ -311,7 +325,11 @@ function AdminRequestRow({
         : null,
     },
     { label: attributionLabels.attestation, value: request.lastAttestationStatus },
-    { label: attributionLabels.requestId, value: request.lastRequestId },
+    {
+      label: attributionLabels.requestId,
+      value: request.lastRequestId,
+      lines: 1,
+    },
     {
       label: attributionLabels.lastSeen,
       value: request.lastSeenAt
@@ -320,7 +338,7 @@ function AdminRequestRow({
     },
     { label: attributionLabels.attempts, value: String(request.attemptCount ?? 0) },
   ].filter(
-    (row): row is { label: string; value: string } =>
+    (row): row is VisibleAttributionDetailRow =>
       typeof row.value === "string" && row.value.length > 0,
   );
 
@@ -348,13 +366,17 @@ function AdminRequestRow({
         ) : null}
       </View>
 
-      <View className="gap-1 rounded-[18px] bg-black/5 px-3 py-3">
+      <View className="gap-2 rounded-[16px] border border-primaryBorder/20 bg-surface/70 px-3 py-3">
         {detailRows.map((row) => (
           <View key={row.label} className="gap-0.5">
             <Text className="font-nunito-bold text-[11px] uppercase tracking-wide text-fgMuted">
               {row.label}
             </Text>
-            <Text className="font-nunito-semibold text-[12px] text-fg">
+            <Text
+              className="font-nunito-semibold text-[12px] text-fg"
+              numberOfLines={row.lines}
+              ellipsizeMode={row.lines === 1 ? "middle" : "tail"}
+            >
               {row.value}
             </Text>
           </View>
@@ -367,7 +389,8 @@ function AdminRequestRow({
             {request.authEvents.map((event) => (
               <Text
                 key={event.id}
-                className="font-nunito-semibold text-[12px] text-fg"
+                className="font-nunito-semibold text-[12px] leading-[17px] text-fg"
+                numberOfLines={2}
               >
                 {new Date(event.createdAt).toLocaleString()} - {event.eventType}
                 {event.statusCode ? ` (${event.statusCode})` : ""}
