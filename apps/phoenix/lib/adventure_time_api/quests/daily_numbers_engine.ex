@@ -8,6 +8,7 @@ defmodule AdventureTimeApi.Quests.DailyNumbersEngine do
 
   @mask32 0xFFFFFFFF
   @max_attempts 500
+  @max_easy_exact_operations 2
 
   @large_numbers [25, 50, 75, 100]
   @small_numbers [1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10]
@@ -108,8 +109,12 @@ defmodule AdventureTimeApi.Quests.DailyNumbersEngine do
       |> Map.put(:solution, solver.solution)
       |> Map.put(:numbersUsed, solver.numbersUsed)
       |> Map.put(:operationsCount, solver.operationsCount)
+      |> Map.put(:shortestExactOperationsCount, solver.shortestExactOperationsCount)
 
     cond do
+      easy_exact_solution?(solver) ->
+        find_puzzle(mode, date_key, config, attempt + 1, first_exact)
+
       solver.exact && solver.numbersUsed >= config.min_exact_numbers_used ->
         {:ok, puzzle}
 
@@ -120,6 +125,12 @@ defmodule AdventureTimeApi.Quests.DailyNumbersEngine do
         find_puzzle(mode, date_key, config, attempt + 1, first_exact)
     end
   end
+
+  defp easy_exact_solution?(%{exact: true, shortestExactOperationsCount: operations_count})
+       when is_integer(operations_count),
+       do: operations_count <= @max_easy_exact_operations
+
+  defp easy_exact_solution?(_solver), do: false
 
   defp build_candidate(mode, date_key, attempt, config) do
     seed = "daily-numbers:#{mode}:#{date_key}:attempt:#{attempt}"
@@ -191,13 +202,21 @@ defmodule AdventureTimeApi.Quests.DailyNumbersEngine do
          expression.value}
       end)
 
-    exact_expression =
+    exact_expressions =
       expressions
       |> Enum.filter(&(&1.value == target))
+
+    exact_expression =
+      exact_expressions
       |> Enum.sort_by(fn expression ->
         {-expression.numbers_used, expression.operations_count}
       end)
       |> List.first()
+
+    shortest_exact_operations_count =
+      exact_expressions
+      |> Enum.map(& &1.operations_count)
+      |> Enum.min(fn -> nil end)
 
     %{
       exact: not is_nil(exact_expression),
@@ -205,7 +224,8 @@ defmodule AdventureTimeApi.Quests.DailyNumbersEngine do
       distance: abs(best_expression.value - target),
       solution: if(exact_expression, do: expression_to_steps(exact_expression), else: []),
       numbersUsed: if(exact_expression, do: exact_expression.numbers_used, else: 0),
-      operationsCount: if(exact_expression, do: exact_expression.operations_count, else: 0)
+      operationsCount: if(exact_expression, do: exact_expression.operations_count, else: 0),
+      shortestExactOperationsCount: shortest_exact_operations_count
     }
   end
 

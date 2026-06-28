@@ -31,6 +31,18 @@ defmodule AdventureTimeApi.Quests.DailyNumbersEngineTest do
     assert Enum.count(one_five.numbers, &(&1.value in [25, 50, 75, 100])) == 1
     assert Enum.count(two_four.numbers, &(&1.value in [25, 50, 75, 100])) == 2
     assert Enum.count(three_three.numbers, &(&1.value in [25, 50, 75, 100])) == 3
+
+    assert one_five.shortestExactOperationsCount > 2
+    assert two_four.shortestExactOperationsCount > 2
+    assert three_three.shortestExactOperationsCount > 2
+  end
+
+  test "generate_puzzle skips exact puzzles solvable in two steps or fewer" do
+    assert {:ok, puzzle} = DailyNumbersEngine.generate_puzzle("2-4", ~D[2026-06-05])
+
+    assert puzzle.generationAttempt == 2
+    assert puzzle.shortestExactOperationsCount > 2
+    assert length(puzzle.solution) > 2
   end
 
   test "validate_submission starts the untouched board at 0 percent" do
