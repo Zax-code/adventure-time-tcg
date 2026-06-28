@@ -1,4 +1,4 @@
-import { Platform } from "react-native";
+import { Linking, Platform } from "react-native";
 import * as BackgroundTask from "expo-background-task";
 import * as Notifications from "expo-notifications";
 import { Pedometer } from "expo-sensors";
@@ -72,6 +72,10 @@ const PEDOMETER_PERMISSION_PROMPT_KEY =
 const STEP_SERVER_SYNC_ATTEMPT_KEY_PREFIX = "step-server-sync-attempt-v1";
 const STEP_SYNC_BACKGROUND_TASK = "step-sync-background-task";
 const BACKGROUND_STEP_SYNC_INTERVAL_MINUTES = 15;
+const HEALTH_CONNECT_PACKAGE = "com.google.android.apps.healthdata";
+const HEALTH_CONNECT_MARKET_URL = `market://details?id=${HEALTH_CONNECT_PACKAGE}`;
+const HEALTH_CONNECT_WEB_URL =
+  `https://play.google.com/store/apps/details?id=${HEALTH_CONNECT_PACKAGE}`;
 
 let activeSyncPromise: Promise<void> | null = null;
 let pedometerSubscription: ReturnType<typeof Pedometer.watchStepCount> | null =
@@ -400,7 +404,7 @@ async function readIosHealthStepsToday() {
   return Math.max(0, Math.round(result.sumQuantity?.quantity ?? 0));
 }
 
-async function readIosPedometerStepsToday(interactive: boolean) {
+async function readPedometerStepsToday(interactive: boolean) {
   const granted = await ensurePedometerPermission(interactive);
   if (!granted) {
     return null;
@@ -419,7 +423,7 @@ async function readIosDeviceStepsToday(interactive: boolean) {
     healthSteps = await readIosHealthStepsToday();
   }
 
-  const pedometerSteps = await readIosPedometerStepsToday(interactive);
+  const pedometerSteps = await readPedometerStepsToday(interactive);
 
   if (healthSteps == null) {
     return pedometerSteps;
@@ -587,18 +591,51 @@ async function readAndroidHealthStepsToday() {
   return Math.max(0, Math.round(result.COUNT_TOTAL ?? 0));
 }
 
+async function readAndroidDeviceStepsToday(interactive: boolean) {
+  let healthSteps: number | null = null;
+
+  const healthGranted = await ensureAndroidHealthPermission(interactive);
+  if (healthGranted) {
+    healthSteps = await readAndroidHealthStepsToday();
+  }
+
+  const pedometerSteps = await readPedometerStepsToday(interactive);
+
+  if (healthSteps == null) {
+    return pedometerSteps;
+  }
+
+  if (pedometerSteps == null) {
+    return healthSteps;
+  }
+
+  // Health Connect and the hardware step counter can differ while providers catch up.
+  return Math.max(healthSteps, pedometerSteps);
+}
+
+async function openAndroidHealthConnectInstall() {
+  try {
+    await Linking.openURL(HEALTH_CONNECT_MARKET_URL);
+    return;
+  } catch {
+    // Some devices do not handle market:// URLs. The web URL still gets users
+    // to the Health Connect provider without invoking the unavailable settings intent.
+  }
+
+  try {
+    await Linking.openURL(HEALTH_CONNECT_WEB_URL);
+  } catch {
+    setSyncError("Health Connect could not be opened on this device.");
+  }
+}
+
 async function readAuthoritativeDeviceStepsToday(interactive: boolean) {
   if (Platform.OS === "ios") {
     return readIosDeviceStepsToday(interactive);
   }
 
   if (Platform.OS === "android") {
-    const granted = await ensureAndroidHealthPermission(interactive);
-    if (!granted) {
-      return null;
-    }
-
-    return readAndroidHealthStepsToday();
+    return readAndroidDeviceStepsToday(interactive);
   }
 
   setStore({
@@ -916,7 +953,22 @@ export async function syncDeviceStepsNow({
 
 export async function openDeviceHealthSetup() {
   if (Platform.OS === "android") {
-    openHealthConnectSettings();
+    try {
+      const sdkStatus = await getSdkStatus();
+
+      if (sdkStatus !== SdkAvailabilityStatus.SDK_AVAILABLE) {
+        await openAndroidHealthConnectInstall();
+        return;
+      }
+
+      openHealthConnectSettings();
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Health Connect could not be opened on this device.";
+      setSyncError(message);
+    }
     return;
   }
 
