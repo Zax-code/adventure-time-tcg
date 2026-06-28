@@ -311,6 +311,33 @@ Key Phoenix vars:
 Public app host should be:
 - `https://app.leaetzak.love`
 
+## Mobile Bottom Sheets
+
+All swipeable bottom sheets in the Expo app must use the Software Mansion bottom sheet implementation from `@swmansion/react-native-bottom-sheet`.
+
+Required structure:
+- `apps/mobile/app/_layout.tsx` must keep the app wrapped in `BottomSheetProvider`.
+- Route-backed sheets must use `apps/mobile/src/components/modal-sheet-route.tsx` (`ModalSheetRoute`) inside an Expo Router `transparentModal` route.
+- In-screen sheets that are not routes must use `ModalBottomSheet` directly from `@swmansion/react-native-bottom-sheet`.
+- Do not add new hand-rolled swipe sheets with React Native `Modal`, custom Reanimated/Gesture Handler plumbing, or centered modal surfaces when the UI is meant to behave like a bottom sheet.
+
+Route-backed sheet rules:
+- Put the sheet title and optional subtitle in `ModalSheetRoute` props, not duplicated inside the sheet body.
+- The shared `ModalSheetRoute` header is the grab area; keep the handle, title, and subtitle inside that header so the whole header can participate in sheet gestures.
+- Use the shared backdrop and close timing in `ModalSheetRoute`; do not add a second backdrop or delayed route cleanup.
+- Give full-height scrollable content a stable flex layout inside the route sheet body so nested scroll views keep working.
+
+Direct `ModalBottomSheet` rules:
+- Use direct sheets for local tab/screen affordances such as the collection dust guide or pack preview when a route would be unnecessary.
+- Keep direct sheet headers visually consistent with the route sheet header: readable title sizing, handle at the top, and a header area that can be grabbed.
+- Prefer gesture and scrim dismissal. Do not add explicit close buttons unless the product interaction explicitly requires one.
+- Keep direct sheet content scrollable when it can exceed the viewport.
+
+Current active bottom sheet entry points:
+- `ModalSheetRoute`: settings, collection card detail, PvP mechanics/reference, and admin editor routes.
+- Direct `ModalBottomSheet`: collection dust guide and packs preview.
+- `BattleFullScreenSheet` is not treated as a bottom sheet; it is a centered/full-screen PvP modal surface without bottom-sheet swipe behavior.
+
 ## Mobile Styling: NativeWind First
 
 For mobile UI work, NativeWind must be the default styling system.
