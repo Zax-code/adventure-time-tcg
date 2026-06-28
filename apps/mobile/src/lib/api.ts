@@ -1,4 +1,7 @@
+import Constants from "expo-constants";
+import * as Crypto from "expo-crypto";
 import * as SecureStore from "expo-secure-store";
+import { Platform } from "react-native";
 
 import {
   ApiClient,
@@ -22,7 +25,9 @@ import { useSessionStore } from "../stores/session-store";
 export { API_BASE_URL };
 
 let refreshPromise: Promise<string | null> | null = null;
+let installationIdPromise: Promise<string> | null = null;
 const REFRESH_TOKEN_RACE_RETRY_DELAY_MS = 300;
+const INSTALLATION_ID_KEY = "installationId";
 const SESSION_CLEARABLE_403_CODES = new Set([
   "ACCESS_REQUEST_PENDING",
   "EMAIL_VERIFICATION_REQUIRED",
@@ -30,6 +35,47 @@ const SESSION_CLEARABLE_403_CODES = new Set([
 
 async function getSecureStoreValue(key: "accessToken" | "refreshToken" | "user") {
   return SecureStore.getItemAsync(key);
+}
+
+async function getInstallationId() {
+  if (!installationIdPromise) {
+    installationIdPromise = (async () => {
+      const existing = await SecureStore.getItemAsync(INSTALLATION_ID_KEY);
+
+      if (existing) {
+        return existing;
+      }
+
+      const next = Crypto.randomUUID();
+      await SecureStore.setItemAsync(INSTALLATION_ID_KEY, next);
+      return next;
+    })();
+  }
+
+  return installationIdPromise;
+}
+
+async function getClientHeaders() {
+  const nativeBuildVersion = (
+    Constants as { nativeBuildVersion?: string | null }
+  ).nativeBuildVersion;
+  const buildNumber =
+    nativeBuildVersion ??
+    Constants.expoConfig?.ios?.buildNumber ??
+    Constants.expoConfig?.android?.versionCode?.toString() ??
+    "unknown";
+
+  return {
+    "User-Agent": `AdventureTimeNative/${buildNumber} (${Platform.OS}; ${
+      Constants.expoConfig?.version ?? "unknown"
+    })`,
+    "X-Adventure-Time-Client": "native",
+    "X-Adventure-Time-Platform": Platform.OS,
+    "X-Adventure-Time-App-Version":
+      Constants.expoConfig?.version ?? "unknown",
+    "X-Adventure-Time-Build-Number": buildNumber,
+    "X-Adventure-Time-Installation-Id": await getInstallationId(),
+  };
 }
 
 export async function getAccessToken() {
@@ -94,6 +140,7 @@ async function refreshSessionWithToken(refreshToken: string) {
   const refreshClient = new ApiClient({
     baseUrl: API_BASE_URL,
     getAccessToken: async () => null,
+    getClientHeaders,
   });
 
   const refreshed = await refreshClient.refresh({ refreshToken });
@@ -182,6 +229,7 @@ async function refreshAccessToken() {
 export const apiClient = new ApiClient({
   baseUrl: API_BASE_URL,
   getAccessToken,
+  getClientHeaders,
   refreshAccessToken,
   onAuthFailure: async () => {
     await clearAppSession();

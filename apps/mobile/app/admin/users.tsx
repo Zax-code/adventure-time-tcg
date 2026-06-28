@@ -34,6 +34,20 @@ type AdminEmailRequest = Awaited<
   ReturnType<typeof apiClient.adminEmailRequests>
 >["requests"][number];
 
+type AttributionLabels = {
+  provider: string;
+  googleName: string;
+  ipAddress: string;
+  userAgent: string;
+  app: string;
+  installation: string;
+  attestation: string;
+  requestId: string;
+  lastSeen: string;
+  attempts: string;
+  recentEvents: string;
+};
+
 type SortField = "email" | "coins" | "createdAt";
 type SortDir = "asc" | "desc";
 type RoleFilter = "all" | "staff" | "players" | "me";
@@ -257,6 +271,7 @@ function AdminRequestRow({
   statusLabel,
   createdLabel,
   accountCreatedLabel,
+  attributionLabels,
   approveLabel,
   rejectLabel,
   onApprove,
@@ -267,6 +282,7 @@ function AdminRequestRow({
   statusLabel: string;
   createdLabel: string;
   accountCreatedLabel: string;
+  attributionLabels: AttributionLabels;
   approveLabel: string;
   rejectLabel: string;
   onApprove: () => void;
@@ -275,6 +291,38 @@ function AdminRequestRow({
 }) {
   const { themeName } = useThemeStore();
   const tc = THEME_COLORS[themeName];
+  const appVersion = [
+    request.lastClientPlatform,
+    request.lastClientAppVersion,
+    request.lastClientBuildNumber,
+  ]
+    .filter(Boolean)
+    .join(" / ");
+  const detailRows = [
+    { label: attributionLabels.provider, value: request.provider },
+    { label: attributionLabels.googleName, value: request.googleName },
+    { label: attributionLabels.ipAddress, value: request.lastIpAddress },
+    { label: attributionLabels.userAgent, value: request.lastUserAgent },
+    { label: attributionLabels.app, value: appVersion || null },
+    {
+      label: attributionLabels.installation,
+      value: request.lastInstallationIdHash
+        ? `${request.lastInstallationIdHash.slice(0, 12)}...`
+        : null,
+    },
+    { label: attributionLabels.attestation, value: request.lastAttestationStatus },
+    { label: attributionLabels.requestId, value: request.lastRequestId },
+    {
+      label: attributionLabels.lastSeen,
+      value: request.lastSeenAt
+        ? new Date(request.lastSeenAt).toLocaleString()
+        : null,
+    },
+    { label: attributionLabels.attempts, value: String(request.attemptCount ?? 0) },
+  ].filter(
+    (row): row is { label: string; value: string } =>
+      typeof row.value === "string" && row.value.length > 0,
+  );
 
   return (
     <View
@@ -297,6 +345,35 @@ function AdminRequestRow({
         <AdminChip label={statusLabel} tone="warning" />
         {request.hasAccount ? (
           <AdminChip label={accountCreatedLabel} tone="info" />
+        ) : null}
+      </View>
+
+      <View className="gap-1 rounded-[18px] bg-black/5 px-3 py-3">
+        {detailRows.map((row) => (
+          <View key={row.label} className="gap-0.5">
+            <Text className="font-nunito-bold text-[11px] uppercase tracking-wide text-fgMuted">
+              {row.label}
+            </Text>
+            <Text className="font-nunito-semibold text-[12px] text-fg">
+              {row.value}
+            </Text>
+          </View>
+        ))}
+        {request.authEvents?.length ? (
+          <View className="mt-1 gap-1">
+            <Text className="font-nunito-bold text-[11px] uppercase tracking-wide text-fgMuted">
+              {attributionLabels.recentEvents}
+            </Text>
+            {request.authEvents.map((event) => (
+              <Text
+                key={event.id}
+                className="font-nunito-semibold text-[12px] text-fg"
+              >
+                {new Date(event.createdAt).toLocaleString()} - {event.eventType}
+                {event.statusCode ? ` (${event.statusCode})` : ""}
+              </Text>
+            ))}
+          </View>
         ) : null}
       </View>
 
@@ -729,6 +806,19 @@ export default function AdminUsersScreen() {
                         request.createdAt,
                       ).toLocaleDateString()}
                       accountCreatedLabel={t("admin.users.accountCreated")}
+                      attributionLabels={{
+                        provider: t("admin.users.requestProvider"),
+                        googleName: t("admin.users.requestGoogleName"),
+                        ipAddress: t("admin.users.requestIpAddress"),
+                        userAgent: t("admin.users.requestUserAgent"),
+                        app: t("admin.users.requestApp"),
+                        installation: t("admin.users.requestInstallation"),
+                        attestation: t("admin.users.requestAttestation"),
+                        requestId: t("admin.users.requestId"),
+                        lastSeen: t("admin.users.requestLastSeen"),
+                        attempts: t("admin.users.requestAttempts"),
+                        recentEvents: t("admin.users.requestRecentEvents"),
+                      }}
                       approveLabel={t("admin.users.approve")}
                       rejectLabel={t("admin.users.reject")}
                       onApprove={() =>

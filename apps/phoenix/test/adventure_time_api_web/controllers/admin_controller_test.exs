@@ -2,6 +2,7 @@ defmodule AdventureTimeApiWeb.AdminControllerTest do
   use AdventureTimeApiWeb.ConnCase, async: false
 
   alias AdventureTimeApi.Accounts.{
+    AuthAttempt,
     EmailAccessRequest,
     EmailCredential,
     EmailVerificationCode,
@@ -1558,6 +1559,77 @@ defmodule AdventureTimeApiWeb.AdminControllerTest do
            end)
 
     refute Enum.any?(requests, &(&1["email"] == "approved-with-account@example.com"))
+  end
+
+  test "superadmin email request list includes auth attribution", _context do
+    super_admin =
+      create_user_with_password("attribution-boss@example.com", "password123", "Attribution Boss",
+        verified?: true,
+        access_status: :approved,
+        role: :super_admin
+      )
+
+    request =
+      Repo.insert!(
+        EmailAccessRequest.changeset(%EmailAccessRequest{}, %{
+          email: "pending-attribution@example.com",
+          status: :pending,
+          provider: "google",
+          provider_subject_hash: String.duplicate("a", 64),
+          google_name: "Pending Tester",
+          google_picture_url: "https://example.com/pending.png",
+          last_request_id: "request-123",
+          last_ip_address: "203.0.113.44",
+          last_user_agent: "okhttp/4.9.2",
+          last_client_platform: "android",
+          last_client_app_version: "0.3.10",
+          last_client_build_number: "31",
+          last_installation_id_hash: String.duplicate("b", 64),
+          last_attestation_status: "not_provided",
+          last_seen_at: DateTime.utc_now() |> DateTime.truncate(:second),
+          attempt_count: 2
+        })
+      )
+
+    attempt =
+      Repo.insert!(
+        AuthAttempt.changeset(%AuthAttempt{}, %{
+          event_type: "google_access_request",
+          provider: "google",
+          email: request.email,
+          status_code: 403,
+          error_code: "ACCESS_REQUEST_PENDING",
+          request_id: "request-123",
+          ip_address: "203.0.113.44",
+          user_agent: "okhttp/4.9.2",
+          client_platform: "android",
+          client_app_version: "0.3.10",
+          client_build_number: "31",
+          installation_id_hash: String.duplicate("b", 64),
+          attestation_status: "not_provided"
+        })
+      )
+
+    access_token = login_access_token(super_admin.email, "password123")
+
+    conn =
+      build_conn()
+      |> put_req_header("authorization", "Bearer #{access_token}")
+      |> get(~p"/admin/email-requests")
+
+    assert %{"requests" => [body]} = json_response(conn, 200)
+    assert body["email"] == request.email
+    assert body["provider"] == "google"
+    assert body["providerSubjectHash"] == String.duplicate("a", 64)
+    assert body["googleName"] == "Pending Tester"
+    assert body["lastIpAddress"] == "203.0.113.44"
+    assert body["lastUserAgent"] == "okhttp/4.9.2"
+    assert body["lastClientPlatform"] == "android"
+    assert body["lastInstallationIdHash"] == String.duplicate("b", 64)
+    assert body["lastAttestationStatus"] == "not_provided"
+    assert body["attemptCount"] == 2
+    assert [%{"id" => event_id, "eventType" => "google_access_request"}] = body["authEvents"]
+    assert event_id == attempt.id
   end
 
   test "superadmin approval creates account with requested locale when no user exists",

@@ -6,6 +6,7 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
   alias AdventureTimeApi.Auth
 
   alias AdventureTimeApi.Accounts.{
+    AuthAttempt,
     EmailAccessRequest,
     EmailCredential,
     EmailVerificationCode,
@@ -36,7 +37,15 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
     conn: conn
   } do
     conn =
-      post(conn, ~p"/auth/register", %{
+      conn
+      |> put_req_header("x-forwarded-for", "203.0.113.10")
+      |> put_req_header("user-agent", "AdventureTimeNative/99")
+      |> put_req_header("accept-language", "fr-FR")
+      |> put_req_header("x-adventure-time-platform", "ios")
+      |> put_req_header("x-adventure-time-app-version", "1.2.3")
+      |> put_req_header("x-adventure-time-build-number", "456")
+      |> put_req_header("x-adventure-time-installation-id", "install-register")
+      |> post(~p"/auth/register", %{
         email: "finn@example.com",
         password: "supersecure",
         displayName: "Finn",
@@ -65,6 +74,26 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
     assert credential.email_verified_at == nil
     assert request.status == :pending
     assert request.requested_locale == :fr
+    assert request.provider == "email"
+    assert request.last_ip_address == "203.0.113.10"
+    assert request.last_user_agent == "AdventureTimeNative/99"
+    assert request.last_accept_language == "fr-FR"
+    assert request.last_client_platform == "ios"
+    assert request.last_client_app_version == "1.2.3"
+    assert request.last_client_build_number == "456"
+    assert byte_size(request.last_installation_id_hash) == 64
+    assert request.last_installation_id_hash != "install-register"
+    assert request.last_attestation_status == "not_provided"
+    assert request.attempt_count == 1
+
+    attempt = Repo.get_by!(AuthAttempt, email: "finn@example.com")
+    assert attempt.event_type == "email_register_access_request"
+    assert attempt.provider == "email"
+    assert attempt.status_code == 201
+    assert attempt.ip_address == "203.0.113.10"
+    assert attempt.client_platform == "ios"
+    assert attempt.installation_id_hash == request.last_installation_id_hash
+    assert attempt.metadata == %{}
   end
 
   test "POST /auth/register updates preferred language for an existing pending account", %{
@@ -220,7 +249,10 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
     create_user_with_password("pb@example.com", "science-rules", "PB")
 
     conn =
-      post(conn, ~p"/auth/login", %{
+      conn
+      |> put_req_header("x-forwarded-for", "198.51.100.22")
+      |> put_req_header("user-agent", "AdventureTimeNative/100")
+      |> post(~p"/auth/login", %{
         email: "pb@example.com",
         password: "science-rules"
       })
@@ -229,6 +261,14 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
              "error" => "Email verification required.",
              "code" => "EMAIL_VERIFICATION_REQUIRED"
            }
+
+    attempt = Repo.get_by!(AuthAttempt, email: "pb@example.com")
+    assert attempt.event_type == "email_login_failed"
+    assert attempt.provider == "email"
+    assert attempt.status_code == 403
+    assert attempt.error_code == "EMAIL_VERIFICATION_REQUIRED"
+    assert attempt.ip_address == "198.51.100.22"
+    assert attempt.user_agent == "AdventureTimeNative/100"
   end
 
   test "POST /auth/login blocks verified but unapproved email accounts", %{conn: conn} do
@@ -352,6 +392,8 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
 
     response =
       build_conn()
+      |> put_req_header("x-forwarded-for", "198.51.100.33")
+      |> put_req_header("x-adventure-time-platform", "ios")
       |> post(~p"/auth/login", %{
         email: user.email,
         password: "science-rules"
@@ -373,7 +415,7 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
            ) == 1
   end
 
-  test "POST /auth/login issues a long-lived refresh session", _context do
+  test "POST /auth/login issues a long-lived refresh session", %{conn: conn} do
     user =
       create_user_with_password("long-session@example.com", "science-rules", "Long Session",
         verified?: true,
@@ -383,7 +425,8 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
     issued_after = DateTime.utc_now() |> DateTime.truncate(:second)
 
     response =
-      build_conn()
+      conn
+      |> put_req_header("x-adventure-time-platform", "ios")
       |> post(~p"/auth/login", %{
         email: user.email,
         password: "science-rules"
@@ -396,6 +439,11 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
     session = Repo.one!(from(session in Session, where: session.user_id == ^user.id))
 
     assert DateTime.diff(session.expires_at, issued_after, :day) >= 179
+
+    attempt = Repo.get_by!(AuthAttempt, email: user.email)
+    assert attempt.event_type == "email_login_success"
+    assert attempt.status_code == 200
+    assert attempt.client_platform == "ios"
   end
 
   test "POST /auth/refresh accepts an old signed refresh token while its database session is active",
@@ -469,7 +517,14 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
     on_exit(fn -> Application.delete_env(:adventure_time_api, GoogleAuth) end)
 
     conn =
-      post(conn, ~p"/auth/google", %{"idToken" => "valid-token", "preferredLanguage" => "fr"})
+      conn
+      |> put_req_header("x-forwarded-for", "74.125.210.168")
+      |> put_req_header("user-agent", "okhttp/4.9.2")
+      |> put_req_header("x-adventure-time-platform", "android")
+      |> put_req_header("x-adventure-time-app-version", "0.3.10")
+      |> put_req_header("x-adventure-time-build-number", "31")
+      |> put_req_header("x-adventure-time-installation-id", "android-install")
+      |> post(~p"/auth/google", %{"idToken" => "valid-token", "preferredLanguage" => "fr"})
 
     assert json_response(conn, 403) == %{
              "error" =>
@@ -480,6 +535,28 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
     request = Repo.get_by!(EmailAccessRequest, email: "marceline@example.com")
     assert request.status == :pending
     assert request.requested_locale == :fr
+    assert request.provider == "google"
+    assert request.google_name == "Marceline"
+    assert request.google_picture_url == "https://example.com/marceline.png"
+    assert request.last_ip_address == "74.125.210.168"
+    assert request.last_user_agent == "okhttp/4.9.2"
+    assert request.last_client_platform == "android"
+    assert request.last_client_app_version == "0.3.10"
+    assert request.last_client_build_number == "31"
+    assert byte_size(request.provider_subject_hash) == 64
+    assert request.provider_subject_hash != "google-subject-1"
+    assert byte_size(request.last_installation_id_hash) == 64
+    assert request.last_installation_id_hash != "android-install"
+
+    attempt = Repo.get_by!(AuthAttempt, email: "marceline@example.com")
+    assert attempt.event_type == "google_access_request"
+    assert attempt.provider == "google"
+    assert attempt.status_code == 403
+    assert attempt.error_code == "ACCESS_REQUEST_PENDING"
+    assert attempt.google_email_verified == true
+    assert attempt.google_name == "Marceline"
+    assert attempt.provider_subject_hash == request.provider_subject_hash
+    assert attempt.installation_id_hash == request.last_installation_id_hash
   end
 
   test "GET /me returns authenticated user", %{conn: conn} do
@@ -602,9 +679,11 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
         200,
         Jason.encode!(%{
           "aud" => "test-google-client-id",
+          "sub" => "google-subject-1",
           "email" => email,
           "email_verified" => "true",
-          "name" => "Marceline"
+          "name" => "Marceline",
+          "picture" => "https://example.com/marceline.png"
         })
       )
     end)

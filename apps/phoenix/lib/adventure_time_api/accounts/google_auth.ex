@@ -18,6 +18,8 @@ defmodule AdventureTimeApi.Accounts.GoogleAuth do
       {:ok,
        %{
          email: base_profile.email,
+         subject: userinfo["sub"] || base_profile.subject,
+         email_verified: base_profile.email_verified,
          name: userinfo["name"] || base_profile.name,
          picture: userinfo["picture"] || base_profile.picture
        }}
@@ -88,6 +90,8 @@ defmodule AdventureTimeApi.Accounts.GoogleAuth do
         {:ok,
          %{
            email: String.downcase(email),
+           subject: payload["sub"],
+           email_verified: email_verified,
            name: payload["name"],
            picture: payload["picture"]
          }}

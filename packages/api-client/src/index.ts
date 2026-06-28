@@ -188,6 +188,9 @@ const adminAbilitiesEnvelopeSchema = z.object({
 export interface ApiClientOptions {
   baseUrl: string;
   getAccessToken?: () => string | null | Promise<string | null>;
+  getClientHeaders?: () =>
+    | Record<string, string>
+    | Promise<Record<string, string>>;
   refreshAccessToken?: () => Promise<string | null>;
   onAuthFailure?: () => void | Promise<void>;
 }
@@ -238,7 +241,9 @@ export class ApiClient {
     opts: { allowRefresh: boolean; isJson: boolean },
   ): Promise<T> {
     const accessToken = await this.options.getAccessToken?.();
+    const clientHeaders = (await this.options.getClientHeaders?.()) ?? {};
     const headers: Record<string, string> = {
+      ...clientHeaders,
       ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
       ...((init.headers as Record<string, string> | undefined) ?? {}),
     };
