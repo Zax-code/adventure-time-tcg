@@ -37,6 +37,8 @@ import {
   adminAllowedEmailSchema,
   adminAllowedEmailUpdateSchema,
   adminEmailRequestActionSchema,
+  accountDeleteResponseSchema,
+  appleAuthSchema,
   authUserSchema,
   authResponseSchema,
   claimQuestResponseSchema,
@@ -106,6 +108,7 @@ import {
   type AdminPackEditInput,
   type AdminPacksResponse,
   type AdminUserDeleteResponse,
+  type AccountDeleteResponse,
   type AdminUserDetail,
   type AdminUserQuestResetInput,
   type AdminUserQuestResetResponse,
@@ -117,6 +120,7 @@ import {
   type RaritiesResponse,
   type PvpSpectateResponse,
   type PvpSpectateDetailResponse,
+  type AppleAuthInput,
   type AuthResponse,
   type ClaimQuestInput,
   type ClaimQuestResponse,
@@ -392,6 +396,15 @@ export class ApiClient {
     const body = googleAuthSchema.parse(input);
     return this.request(
       "/auth/google",
+      { method: "POST", body: JSON.stringify(body) },
+      (data) => authResponseSchema.parse(data),
+    );
+  }
+
+  async appleAuth(input: AppleAuthInput): Promise<AuthResponse> {
+    const body = appleAuthSchema.parse(input);
+    return this.request(
+      "/auth/apple",
       { method: "POST", body: JSON.stringify(body) },
       (data) => authResponseSchema.parse(data),
     );
@@ -1024,6 +1037,14 @@ export class ApiClient {
       "/settings/notification-preferences",
       { method: "PATCH", body: JSON.stringify(body) },
       (data) => authUserSchema.parse(data),
+    );
+  }
+
+  async deleteAccount(): Promise<AccountDeleteResponse> {
+    return this.request(
+      "/settings/account",
+      { method: "DELETE" },
+      (data) => accountDeleteResponseSchema.parse(data),
     );
   }
 

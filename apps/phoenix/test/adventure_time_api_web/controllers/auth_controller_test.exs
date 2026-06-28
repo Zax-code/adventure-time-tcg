@@ -6,7 +6,9 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
   alias AdventureTimeApi.Auth
 
   alias AdventureTimeApi.Accounts.{
+    AppleAuth,
     AuthAttempt,
+    AuthProviderIdentity,
     EmailAccessRequest,
     EmailCredential,
     EmailVerificationCode,
@@ -609,6 +611,160 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
     assert attempt.google_email_verified == true
   end
 
+  test "POST /auth/apple creates pending request when email is unknown", %{conn: conn} do
+    %{bypass: bypass, jwk: jwk, kid: kid} = start_bypass_apple_keys()
+
+    Application.put_env(:adventure_time_api, AppleAuth,
+      keys_url: bypass_url(bypass, "/auth/keys")
+    )
+
+    on_exit(fn -> Application.delete_env(:adventure_time_api, AppleAuth) end)
+
+    identity_token =
+      apple_identity_token(jwk, kid, %{
+        "sub" => "apple-subject-1",
+        "email" => "fionna@example.com",
+        "email_verified" => "true",
+        "nonce" => "nonce-1"
+      })
+
+    conn =
+      conn
+      |> put_req_header("x-forwarded-for", "17.0.0.1")
+      |> put_req_header("user-agent", "AdventureTimeNative/34")
+      |> put_req_header("x-adventure-time-platform", "ios")
+      |> put_req_header("x-adventure-time-installation-id", "ios-install")
+      |> post(~p"/auth/apple", %{
+        "identityToken" => identity_token,
+        "nonce" => "nonce-1",
+        "preferredLanguage" => "fr",
+        "fullName" => %{"givenName" => "Fionna", "familyName" => "Campbell"}
+      })
+
+    assert json_response(conn, 403) == %{
+             "error" =>
+               "This Apple account is not approved yet. An access request has been submitted.",
+             "code" => "ACCESS_REQUEST_PENDING"
+           }
+
+    request = Repo.get_by!(EmailAccessRequest, email: "fionna@example.com")
+    assert request.status == :pending
+    assert request.requested_locale == :fr
+    assert request.provider == "apple"
+    assert request.google_name == "Fionna Campbell"
+    assert request.last_ip_address == "17.0.0.1"
+    assert request.last_user_agent == "AdventureTimeNative/34"
+    assert request.last_client_platform == "ios"
+    assert byte_size(request.provider_subject_hash) == 64
+    assert request.provider_subject_hash != "apple-subject-1"
+    assert byte_size(request.last_installation_id_hash) == 64
+    assert request.last_installation_id_hash != "ios-install"
+
+    attempt = Repo.get_by!(AuthAttempt, email: "fionna@example.com")
+    assert attempt.event_type == "apple_access_request"
+    assert attempt.provider == "apple"
+    assert attempt.status_code == 403
+    assert attempt.error_code == "ACCESS_REQUEST_PENDING"
+    assert attempt.google_email_verified == true
+    assert attempt.google_name == "Fionna Campbell"
+    assert attempt.provider_subject_hash == request.provider_subject_hash
+  end
+
+  test "POST /auth/apple links approved user and later signs in without email", %{conn: conn} do
+    %{bypass: bypass, jwk: jwk, kid: kid} = start_bypass_apple_keys()
+
+    Application.put_env(:adventure_time_api, AppleAuth,
+      keys_url: bypass_url(bypass, "/auth/keys")
+    )
+
+    on_exit(fn -> Application.delete_env(:adventure_time_api, AppleAuth) end)
+
+    user =
+      create_user_with_password("apple-approved@example.com", "science-rules", "Old Name",
+        verified?: true,
+        access_status: :approved
+      )
+
+    first_token =
+      apple_identity_token(jwk, kid, %{
+        "sub" => "apple-approved-subject",
+        "email" => user.email,
+        "email_verified" => "true",
+        "nonce" => "nonce-2"
+      })
+
+    first_response =
+      conn
+      |> post(~p"/auth/apple", %{
+        "identityToken" => first_token,
+        "nonce" => "nonce-2",
+        "preferredLanguage" => "en",
+        "fullName" => %{"givenName" => "Cake", "familyName" => "Cat"}
+      })
+      |> json_response(200)
+
+    assert get_in(first_response, ["tokens", "accessToken"])
+    assert get_in(first_response, ["user", "displayName"]) == "Cake Cat"
+
+    identity = Repo.get_by!(AuthProviderIdentity, provider: "apple")
+    assert identity.user_id == user.id
+    assert identity.email == user.email
+    assert byte_size(identity.provider_subject_hash) == 64
+
+    second_token =
+      apple_identity_token(jwk, kid, %{
+        "sub" => "apple-approved-subject",
+        "nonce" => "nonce-3"
+      })
+
+    second_response =
+      build_conn()
+      |> post(~p"/auth/apple", %{
+        "identityToken" => second_token,
+        "nonce" => "nonce-3",
+        "preferredLanguage" => "en"
+      })
+      |> json_response(200)
+
+    assert get_in(second_response, ["user", "id"]) == user.id
+    assert Repo.aggregate(AuthProviderIdentity, :count, :id) == 1
+  end
+
+  test "POST /auth/apple rejects unknown subject when Apple omits email", %{conn: conn} do
+    %{bypass: bypass, jwk: jwk, kid: kid} = start_bypass_apple_keys()
+
+    Application.put_env(:adventure_time_api, AppleAuth,
+      keys_url: bypass_url(bypass, "/auth/keys")
+    )
+
+    on_exit(fn -> Application.delete_env(:adventure_time_api, AppleAuth) end)
+
+    identity_token =
+      apple_identity_token(jwk, kid, %{
+        "sub" => "apple-no-email-subject",
+        "nonce" => "nonce-4"
+      })
+
+    conn =
+      post(conn, ~p"/auth/apple", %{
+        "identityToken" => identity_token,
+        "nonce" => "nonce-4",
+        "preferredLanguage" => "en"
+      })
+
+    assert json_response(conn, 400) == %{
+             "error" =>
+               "Apple did not return a verified email. Try again and share your email with the app.",
+             "code" => "APPLE_EMAIL_MISSING"
+           }
+
+    attempt = Repo.get_by!(AuthAttempt, provider: "apple")
+    assert attempt.event_type == "apple_login_failed"
+    assert attempt.error_code == "APPLE_EMAIL_MISSING"
+    assert attempt.email == nil
+    assert byte_size(attempt.provider_subject_hash) == 64
+  end
+
   test "GET /me returns authenticated user", %{conn: conn} do
     user =
       create_user_with_password("iceking@example.com", "penguin123", "Ice King",
@@ -661,6 +817,7 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
         auth_request_password_reset: %{limit: 10, scale_ms: 60_000},
         auth_reset_password: %{limit: 10, scale_ms: 60_000},
         auth_google: %{limit: 10, scale_ms: 60_000},
+        auth_apple: %{limit: 10, scale_ms: 60_000},
         auth_refresh: %{limit: 20, scale_ms: 60_000},
         pvp_match_write: %{limit: 30, scale_ms: 60_000}
       }
@@ -739,6 +896,46 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
     end)
 
     bypass
+  end
+
+  defp start_bypass_apple_keys do
+    bypass = Bypass.open()
+    jwk = JOSE.JWK.generate_key({:rsa, 2048})
+    kid = "apple-test-key"
+
+    public_jwk =
+      jwk
+      |> JOSE.JWK.to_public()
+      |> JOSE.JWK.to_map()
+      |> elem(1)
+      |> Map.merge(%{"kid" => kid, "alg" => "RS256", "use" => "sig"})
+
+    Bypass.stub(bypass, "GET", "/auth/keys", fn conn ->
+      conn
+      |> Plug.Conn.put_resp_content_type("application/json")
+      |> Plug.Conn.resp(200, Jason.encode!(%{"keys" => [public_jwk]}))
+    end)
+
+    %{bypass: bypass, jwk: jwk, kid: kid}
+  end
+
+  defp apple_identity_token(jwk, kid, claim_overrides) do
+    now = DateTime.utc_now() |> DateTime.to_unix()
+
+    claims =
+      %{
+        "iss" => "https://appleid.apple.com",
+        "aud" => "love.leaetzak.adventuretime",
+        "sub" => "apple-subject",
+        "exp" => now + 300,
+        "iat" => now
+      }
+      |> Map.merge(claim_overrides)
+
+    jwk
+    |> JOSE.JWT.sign(%{"alg" => "RS256", "kid" => kid}, claims)
+    |> JOSE.JWS.compact()
+    |> elem(1)
   end
 
   defp bypass_url(bypass, path), do: "http://127.0.0.1:#{bypass.port}#{path}"

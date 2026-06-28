@@ -56,6 +56,13 @@ config :adventure_time_api, AdventureTimeApi.Auth,
       System.get_env("GOOGLE_ANDROID_CLIENT_ID")
     ]
     |> Enum.reject(&is_nil/1)
+    |> Enum.reject(&(&1 == "")),
+  apple_client_ids:
+    [
+      System.get_env("APPLE_BUNDLE_ID") || "love.leaetzak.adventuretime",
+      System.get_env("IOS_BUNDLE_IDENTIFIER")
+    ]
+    |> Enum.reject(&is_nil/1)
     |> Enum.reject(&(&1 == ""))
 
 config :adventure_time_api, AdventureTimeApi.Accounts,

@@ -1,9 +1,10 @@
 defmodule AdventureTimeApiWeb.AppControllerTest do
   use AdventureTimeApiWeb.ConnCase, async: true
 
-  alias AdventureTimeApi.Accounts.{EmailCredential, User}
+  alias AdventureTimeApi.Accounts.{EmailCredential, Session, User}
   alias AdventureTimeApi.Catalog.{Card, CardBackVisual, ImageAsset, Pack, Rarity}
   alias AdventureTimeApi.Inventory.OwnedCard
+  alias AdventureTimeApi.Notifications.Device
   alias AdventureTimeApi.Pvp.Match
   alias AdventureTimeApi.Quests
   alias AdventureTimeApi.Repo
@@ -105,6 +106,37 @@ defmodule AdventureTimeApiWeb.AppControllerTest do
     assert updated.notify_pvp_invite == false
     assert updated.notify_pvp_turn == true
     assert updated.notify_gift_received == false
+  end
+
+  test "DELETE /settings/account deletes the signed-in account and auth records", _context do
+    user = create_user_with_password("self-delete@example.com", "treasure123")
+    access_token = login_access_token(user.email, "treasure123")
+
+    device =
+      Repo.insert!(
+        Device.changeset(%Device{}, %{
+          user_id: user.id,
+          installation_id: "self-delete-installation",
+          platform: :android,
+          expo_push_token: "ExponentPushToken[self-delete]",
+          last_registered_at: DateTime.utc_now() |> DateTime.truncate(:second)
+        })
+      )
+
+    assert Repo.get_by!(EmailCredential, user_id: user.id)
+    assert Repo.get_by!(Session, user_id: user.id)
+
+    response =
+      access_token
+      |> auth_conn()
+      |> delete(~p"/settings/account")
+      |> json_response(200)
+
+    assert response == %{"success" => true, "deletedUserId" => user.id}
+    refute Repo.get(User, user.id)
+    refute Repo.get_by(EmailCredential, user_id: user.id)
+    refute Repo.get_by(Session, user_id: user.id)
+    refute Repo.get(Device, device.id)
   end
 
   test "POST /health/steps syncs the step quest using the user's timezone", _context do

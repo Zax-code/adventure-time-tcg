@@ -39,6 +39,7 @@ defmodule AdventureTimeApi.Auth do
   def ttl_seconds, do: config()[:access_token_ttl_seconds] || 15 * 60
   def refresh_ttl_days, do: config()[:refresh_token_ttl_days] || 30
   def google_client_ids, do: config()[:google_client_ids] || []
+  def apple_client_ids, do: config()[:apple_client_ids] || []
 
   defp sign(claims, ttl_seconds) do
     now = DateTime.utc_now() |> DateTime.to_unix()

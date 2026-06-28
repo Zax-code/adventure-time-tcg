@@ -114,6 +114,23 @@ const settings = {
   sessionIntro: "Gère cette session sur l'appareil.",
   sessionHelp:
     "Se déconnecter ici supprime seulement la session sur cet appareil.",
+  privacyTitle: "Confidentialité et données",
+  privacyIntro: "Consulte la façon dont les données du compte et du jeu sont utilisées.",
+  privacyHelp:
+    "Adventure Time TCG utilise les données de ton compte, de ta collection, des quêtes, des notifications et de la synchronisation des pas pour faire fonctionner le jeu. Tu peux consulter la politique ou les instructions de suppression du compte à tout moment.",
+  openPrivacyPolicy: "Ouvrir la politique de confidentialité",
+  openAccountDeletionInfo: "Infos de suppression du compte",
+  deleteAccountTitle: "Supprimer le compte",
+  deleteAccountHelp:
+    "Supprime définitivement ton compte, tes identifiants, ta collection, tes cadeaux, ta progression de quêtes, tes données JcJ, tes relevés de pas, tes appareils de notification et ton image de profil. Cette action est irréversible.",
+  deleteAccountAction: "Supprimer mon compte",
+  deleteAccountFailed:
+    "La suppression du compte a échoué. Réessaie ou contacte le support.",
+  deleteAccountConfirmTitle: "Supprimer ton compte ?",
+  deleteAccountConfirmBody:
+    "Cette action supprime définitivement ton compte Adventure Time TCG et tes données de jeu. Elle est irréversible.",
+  deleteAccountCancel: "Garder le compte",
+  deleteAccountConfirmAction: "Supprimer le compte",
   stepSources: {
     device_health: "Santé de l'appareil",
     fitbit: "Fitbit",

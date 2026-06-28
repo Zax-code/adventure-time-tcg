@@ -6,9 +6,11 @@ import {
   isSuccessResponse,
   statusCodes,
 } from "@react-native-google-signin/google-signin";
+import * as AppleAuthentication from "expo-apple-authentication";
 import * as Google from "expo-auth-session/providers/google";
 import { SessionUrlProvider } from "expo-auth-session/build/SessionUrlProvider";
 import Constants, { ExecutionEnvironment } from "expo-constants";
+import * as Crypto from "expo-crypto";
 import { LinearGradient } from "expo-linear-gradient";
 import * as WebBrowser from "expo-web-browser";
 import { useRouter } from "expo-router";
@@ -114,7 +116,7 @@ function getKnownAuthErrorMessage(message: string, t: AuthTranslate) {
   }
 
   if (
-    /either idtoken or accesstoken is required|google did not return a usable token/i.test(
+    /either idtoken or accesstoken is required|google did not return a usable token|apple did not return a usable token/i.test(
       normalized,
     )
   ) {
@@ -286,10 +288,6 @@ function hasGoogleAuthConfig() {
     return Boolean(googleWebClientId);
   }
 
-  if (Platform.OS === "ios") {
-    return Boolean(googleIosClientId || googleWebClientId);
-  }
-
   if (Platform.OS === "android") {
     return Boolean(googleWebClientId);
   }
@@ -366,6 +364,119 @@ function GoogleSignInButton({
         </LinearGradient>
       </TouchableOpacity>
     </View>
+  );
+}
+
+function AppleSignInButton({
+  disabled,
+  onPress,
+  t,
+}: {
+  disabled: boolean;
+  onPress: () => void;
+  t: (key: string) => string;
+}) {
+  return (
+    <View className="gap-3">
+      <Text className="text-center font-nunito text-xs uppercase tracking-widest text-primaryText">
+        {t("auth.actions.orContinueWithApple")}
+      </Text>
+      <View
+        pointerEvents={disabled ? "none" : "auto"}
+        style={{ opacity: disabled ? 0.55 : 1 }}
+      >
+        <AppleAuthentication.AppleAuthenticationButton
+          buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
+          buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+          cornerRadius={999}
+          onPress={onPress}
+          style={{ height: 52, width: "100%" }}
+        />
+      </View>
+    </View>
+  );
+}
+
+function AppleAuthSection({
+  loading,
+  preferredLanguage,
+  setAppleLoading,
+  setError,
+  setSession,
+  t,
+}: {
+  loading: boolean;
+  preferredLanguage: "en" | "fr";
+  setAppleLoading: (value: boolean) => void;
+  setError: (value: string | null, options?: AuthErrorOptions) => void;
+  setSession: (params: {
+    user: import("@adventure-time/api-client").AuthUser;
+    accessToken: string;
+    refreshToken: string;
+  }) => Promise<void>;
+  t: (key: string) => string;
+}) {
+  const router = useRouter();
+
+  async function submitApple() {
+    setAppleLoading(true);
+    setError(null);
+
+    try {
+      const nonce = Crypto.randomUUID();
+      const credential = await AppleAuthentication.signInAsync({
+        nonce,
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+
+      if (!credential.identityToken) {
+        throw new Error("Apple did not return a usable token.");
+      }
+
+      const authResult = await apiClient.appleAuth({
+        identityToken: credential.identityToken,
+        nonce,
+        preferredLanguage,
+        fullName: credential.fullName
+          ? {
+              givenName: credential.fullName.givenName,
+              familyName: credential.fullName.familyName,
+            }
+          : undefined,
+      });
+
+      await setSession({
+        user: authResult.user,
+        accessToken: authResult.tokens.accessToken,
+        refreshToken: authResult.tokens.refreshToken,
+      });
+      router.replace("/(tabs)");
+    } catch (submitError) {
+      if (
+        submitError instanceof Error &&
+        /ERR_REQUEST_CANCELED|canceled|cancelled/i.test(submitError.message)
+      ) {
+        return;
+      }
+
+      setError(formatAuthErrorMessage(submitError, t, t("auth.errors.failed")), {
+        cause: submitError,
+        onRetry: () => void submitApple(),
+      });
+    } finally {
+      setAppleLoading(false);
+    }
+  }
+
+  return (
+    <AppleSignInButton
+      disabled={loading}
+      onPress={() => void submitApple()}
+      t={t}
+    />
   );
 }
 
@@ -686,12 +797,39 @@ function AuthFormInner({ prefill }: { prefill?: AuthFormPrefill }) {
   const [info, setInfo] = useState<string | null>(initialState.info);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
+  const [appleAuthAvailable, setAppleAuthAvailable] = useState(false);
   const passwordInputRef = useRef<TextInput>(null);
   const googleAuthConfigured = hasGoogleAuthConfig();
+  const appleAuthConfigured = Platform.OS === "ios" && appleAuthAvailable;
+  const socialAuthConfigured = googleAuthConfigured || appleAuthConfigured;
   const autoVerifyTriggeredRef = useRef(false);
   const submitAutoVerify = useEffectEvent(() => {
     void submit();
   });
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function checkAppleAvailability() {
+      if (Platform.OS !== "ios") {
+        setAppleAuthAvailable(false);
+        return;
+      }
+
+      const available = await AppleAuthentication.isAvailableAsync();
+
+      if (!cancelled) {
+        setAppleAuthAvailable(available);
+      }
+    }
+
+    void checkAppleAvailability();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function setError(value: string | null, options?: AuthErrorOptions) {
     if (!value) {
@@ -1326,32 +1464,45 @@ function AuthFormInner({ prefill }: { prefill?: AuthFormPrefill }) {
         ) : null}
       </View>
 
-      {stage !== "credentials" || !googleAuthConfigured
-        ? null
-        : Platform.OS === "android" &&
-            Constants.executionEnvironment !== ExecutionEnvironment.StoreClient
-          ? (
-            <NativeGoogleAuthSection
-              loading={loading || googleLoading}
+      {stage !== "credentials" || !socialAuthConfigured ? null : (
+        <View className="gap-4">
+          {appleAuthConfigured ? (
+            <AppleAuthSection
+              loading={loading || googleLoading || appleLoading}
               preferredLanguage={preferredLanguage}
+              setAppleLoading={setAppleLoading}
               setError={setError}
-              setGoogleLoading={setGoogleLoading}
               setSession={setSession}
               t={t}
-              tc={tc}
             />
-          )
-          : (
-            <BrowserGoogleAuthSection
-              loading={loading || googleLoading}
-              preferredLanguage={preferredLanguage}
-              setError={setError}
-              setGoogleLoading={setGoogleLoading}
-              setSession={setSession}
-              t={t}
-              tc={tc}
-            />
-          )}
+          ) : null}
+
+          {googleAuthConfigured ? (
+            Platform.OS === "android" &&
+            Constants.executionEnvironment !== ExecutionEnvironment.StoreClient ? (
+              <NativeGoogleAuthSection
+                loading={loading || googleLoading || appleLoading}
+                preferredLanguage={preferredLanguage}
+                setError={setError}
+                setGoogleLoading={setGoogleLoading}
+                setSession={setSession}
+                t={t}
+                tc={tc}
+              />
+            ) : (
+              <BrowserGoogleAuthSection
+                loading={loading || googleLoading || appleLoading}
+                preferredLanguage={preferredLanguage}
+                setError={setError}
+                setGoogleLoading={setGoogleLoading}
+                setSession={setSession}
+                t={t}
+                tc={tc}
+              />
+            )
+          ) : null}
+        </View>
+      )}
 
       <Text className="text-center font-nunito text-sm text-primary">
         {t("auth.labels.madeWithLoveBy")}

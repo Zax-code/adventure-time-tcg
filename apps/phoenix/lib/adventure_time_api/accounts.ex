@@ -12,8 +12,10 @@ defmodule AdventureTimeApi.Accounts do
   alias AdventureTimeApi.Repo
 
   alias AdventureTimeApi.Accounts.{
+    AppleAuth,
     AuthError,
     AuthAttempt,
+    AuthProviderIdentity,
     EmailAccessRequest,
     EmailCredential,
     EmailDelivery,
@@ -26,6 +28,7 @@ defmodule AdventureTimeApi.Accounts do
   alias AdventureTimeApi.Catalog.ImageAsset
   alias AdventureTimeApi.Health.StepSnapshot
   alias AdventureTimeApi.Inventory.OwnedCard
+  alias AdventureTimeApi.Notifications.Device, as: NotificationDevice
   alias AdventureTimeApi.Pvp.{Loadout, Match}
   alias AdventureTimeApi.Quests
   alias AdventureTimeApi.Quests.{DailyQuest, SpeedCalculusDailyRun, WordleDailyAttempt}
@@ -377,6 +380,43 @@ defmodule AdventureTimeApi.Accounts do
     result
   end
 
+  def login_with_apple(attrs, metadata) do
+    result =
+      with {:ok, preferred_language} <- parse_preferred_language(attrs["preferredLanguage"]),
+           {:ok, profile} <-
+             AppleAuth.verify(%{
+               identity_token: attrs["identityToken"],
+               nonce: attrs["nonce"]
+             }),
+           {:ok, response} <-
+             profile
+             |> Map.put(:name, apple_display_name(attrs["fullName"]))
+             |> login_apple_profile(metadata, preferred_language) do
+        {:ok, response}
+      end
+
+    case result do
+      {:error, %AuthError{} = error} ->
+        if error.code in [
+             "APPLE_AUTH_FAILED",
+             "APPLE_AUTH_MISSING_TOKEN"
+           ] do
+          record_auth_attempt(%{
+            event_type: "apple_login_failed",
+            provider: "apple",
+            status_code: error.status_code,
+            error_code: error.code,
+            metadata: metadata
+          })
+        end
+
+      _ ->
+        :ok
+    end
+
+    result
+  end
+
   def refresh(refresh_token, metadata) do
     with {:ok, claims} <- Auth.verify_refresh_token(refresh_token),
          %Session{} = session <- active_session(claims["sid"], claims["sub"]),
@@ -599,73 +639,18 @@ defmodule AdventureTimeApi.Accounts do
     with :ok <- ensure_super_admin(actor),
          %User{} = user <- Repo.get(User, user_id),
          :ok <- prevent_self_delete(actor, user) do
-      normalized_email = normalize_email(user.email)
-
-      Multi.new()
-      |> Multi.delete_all(
-        :delete_pvp_matches,
-        from(match in Match, where: match.inviter_id == ^user.id or match.invitee_id == ^user.id)
-      )
-      |> Multi.delete_all(
-        :delete_pvp_loadouts,
-        from(loadout in Loadout, where: loadout.owner_id == ^user.id)
-      )
-      |> Multi.delete_all(
-        :delete_daily_quests,
-        from(quest in DailyQuest, where: quest.user_id == ^user.id)
-      )
-      |> Multi.delete_all(
-        :delete_wordle_attempts,
-        from(attempt in WordleDailyAttempt, where: attempt.user_id == ^user.id)
-      )
-      |> Multi.delete_all(
-        :delete_speed_runs,
-        from(run in SpeedCalculusDailyRun, where: run.user_id == ^user.id)
-      )
-      |> Multi.delete_all(
-        :delete_step_snapshots,
-        from(snapshot in StepSnapshot, where: snapshot.user_id == ^user.id)
-      )
-      |> Multi.delete_all(
-        :delete_card_gifts,
-        from(gift in CardGift,
-          where: gift.from_user_id == ^user.id or gift.to_user_id == ^user.id
-        )
-      )
-      |> Multi.delete_all(
-        :delete_owned_cards,
-        from(owned in OwnedCard, where: owned.user_id == ^user.id)
-      )
-      |> Multi.delete_all(
-        :delete_sessions,
-        from(session in Session, where: session.user_id == ^user.id)
-      )
-      |> Multi.delete_all(
-        :delete_credentials,
-        from(credential in EmailCredential, where: credential.user_id == ^user.id)
-      )
-      |> Multi.delete_all(
-        :delete_access_requests,
-        from(request in EmailAccessRequest, where: request.email == ^normalized_email)
-      )
-      |> Multi.delete_all(
-        :delete_verification_codes,
-        from(code in EmailVerificationCode, where: code.email == ^normalized_email)
-      )
-      |> Multi.delete(:delete_user, user)
-      |> maybe_delete_avatar_asset(user.avatar_asset_id)
-      |> Repo.transaction()
-      |> case do
-        {:ok, _changes} ->
-          {:ok, %{success: true, deletedUserId: user.id}}
-
-        {:error, _step, %Ecto.Changeset{} = changeset, _changes} ->
-          {:error, :validation, first_error(changeset)}
-      end
+      delete_user_record(user)
     else
       nil -> {:error, :not_found, "User not found"}
       {:error, %AuthError{} = error} -> {:error, error}
       {:error, message} -> {:error, :validation, message}
+    end
+  end
+
+  def delete_own_account(user_id) do
+    case Repo.get(User, user_id) do
+      %User{} = user -> delete_user_record(user)
+      nil -> {:error, :not_found, "User not found"}
     end
   end
 
@@ -887,7 +872,129 @@ defmodule AdventureTimeApi.Accounts do
     end
   end
 
+  defp login_apple_profile(profile, metadata, preferred_language) do
+    case user_for_provider_identity("apple", profile) do
+      %User{} = user ->
+        login_existing_social_user(
+          user,
+          profile,
+          metadata,
+          preferred_language,
+          provider: "apple",
+          success_event: "apple_login_success",
+          failed_event: "apple_login_failed"
+        )
+
+      nil when is_nil(profile.email) ->
+        record_apple_attempt(
+          "apple_login_failed",
+          profile,
+          preferred_language,
+          400,
+          "APPLE_EMAIL_MISSING",
+          metadata
+        )
+
+        {:error,
+         %AuthError{
+           message:
+             "Apple did not return a verified email. Try again and share your email with the app.",
+           status_code: 400,
+           code: "APPLE_EMAIL_MISSING"
+         }}
+
+      nil ->
+        case Repo.get_by(User, email: profile.email) do
+          nil ->
+            ensure_pending_access_request(profile.email, preferred_language, metadata, profile)
+
+            record_apple_attempt(
+              "apple_access_request",
+              profile,
+              preferred_language,
+              403,
+              "ACCESS_REQUEST_PENDING",
+              metadata
+            )
+
+            {:error,
+             %AuthError{
+               message:
+                 "This Apple account is not approved yet. An access request has been submitted.",
+               status_code: 403,
+               code: "ACCESS_REQUEST_PENDING"
+             }}
+
+          %User{} = user ->
+            login_existing_social_user(
+              user,
+              profile,
+              metadata,
+              preferred_language,
+              provider: "apple",
+              success_event: "apple_login_success",
+              failed_event: "apple_login_failed"
+            )
+        end
+    end
+  end
+
+  defp login_existing_social_user(user, profile, metadata, preferred_language, opts) do
+    provider = Keyword.fetch!(opts, :provider)
+    success_event = Keyword.fetch!(opts, :success_event)
+    failed_event = Keyword.fetch!(opts, :failed_event)
+    user = maybe_update_social_profile(user, profile)
+
+    case user.access_status do
+      :approved ->
+        with :ok <- upsert_provider_identity(user, provider, profile),
+             {:ok, _response} = result <- issue_session(user, metadata) do
+          record_social_attempt(
+            success_event,
+            provider,
+            profile,
+            preferred_language,
+            200,
+            nil,
+            metadata
+          )
+
+          result
+        end
+
+      :pending ->
+        record_social_attempt(
+          failed_event,
+          provider,
+          profile,
+          preferred_language,
+          403,
+          "ACCESS_REQUEST_PENDING",
+          metadata
+        )
+
+        pending_access_error(user.email, true, metadata, profile)
+
+      :rejected ->
+        record_social_attempt(
+          failed_event,
+          provider,
+          profile,
+          preferred_language,
+          403,
+          "ACCESS_REQUEST_PENDING",
+          metadata
+        )
+
+        pending_access_error(user.email, true, metadata, profile)
+    end
+  end
+
   defp maybe_update_google_profile(user, profile) do
+    maybe_update_social_profile(user, profile)
+  end
+
+  defp maybe_update_social_profile(user, profile) do
     display_name =
       if is_binary(profile.name) and String.trim(profile.name) != "",
         do: String.trim(profile.name),
@@ -900,6 +1007,67 @@ defmodule AdventureTimeApi.Accounts do
       end
     else
       user
+    end
+  end
+
+  defp user_for_provider_identity(provider, profile) do
+    provider_subject_hash = provider_subject_hash(profile)
+
+    if is_nil(provider_subject_hash) do
+      nil
+    else
+      AuthProviderIdentity
+      |> Repo.get_by(provider: provider, provider_subject_hash: provider_subject_hash)
+      |> case do
+        %AuthProviderIdentity{} = identity -> identity |> Repo.preload(:user) |> Map.get(:user)
+        nil -> nil
+      end
+    end
+  end
+
+  defp upsert_provider_identity(%User{} = user, provider, profile) do
+    provider_subject_hash = provider_subject_hash(profile)
+
+    if is_nil(provider_subject_hash) do
+      :ok
+    else
+      attrs = %{
+        provider: provider,
+        provider_subject_hash: provider_subject_hash,
+        email: profile[:email],
+        display_name: profile[:name]
+      }
+
+      case Repo.get_by(AuthProviderIdentity,
+             provider: provider,
+             provider_subject_hash: provider_subject_hash
+           ) do
+        nil ->
+          %AuthProviderIdentity{}
+          |> AuthProviderIdentity.changeset(attrs)
+          |> Ecto.Changeset.put_change(:user_id, user.id)
+          |> Repo.insert()
+
+        %AuthProviderIdentity{} = identity ->
+          identity
+          |> AuthProviderIdentity.changeset(attrs)
+          |> Ecto.Changeset.put_change(:user_id, user.id)
+          |> Repo.update()
+      end
+      |> case do
+        {:ok, _identity} ->
+          :ok
+
+        {:error, %Ecto.Changeset{} = changeset} ->
+          Logger.warning("Failed to link #{provider} identity: #{inspect(changeset.errors)}")
+
+          {:error,
+           %AuthError{
+             message: "Authentication failed.",
+             status_code: 500,
+             code: "PROVIDER_IDENTITY_LINK_FAILED"
+           }}
+      end
     end
   end
 
@@ -1184,6 +1352,49 @@ defmodule AdventureTimeApi.Accounts do
     })
   end
 
+  defp record_apple_attempt(
+         event_type,
+         profile,
+         requested_locale,
+         status_code,
+         error_code,
+         metadata
+       ) do
+    record_social_attempt(
+      event_type,
+      "apple",
+      profile,
+      requested_locale,
+      status_code,
+      error_code,
+      metadata
+    )
+  end
+
+  defp record_social_attempt(
+         event_type,
+         provider,
+         profile,
+         requested_locale,
+         status_code,
+         error_code,
+         metadata
+       ) do
+    record_auth_attempt(%{
+      event_type: event_type,
+      provider: provider,
+      email: profile[:email],
+      provider_subject_hash: provider_subject_hash(profile),
+      google_email_verified: profile[:email_verified],
+      google_name: profile[:name],
+      google_picture_url: profile[:picture],
+      requested_locale: Atom.to_string(requested_locale),
+      status_code: status_code,
+      error_code: error_code,
+      metadata: metadata
+    })
+  end
+
   defp record_auth_attempt(attrs) do
     metadata = Map.get(attrs, :metadata, %{}) || %{}
 
@@ -1233,6 +1444,21 @@ defmodule AdventureTimeApi.Accounts do
   end
 
   defp hash_identifier(identifier), do: identifier |> to_string() |> hash_identifier()
+
+  defp provider_subject_hash(profile), do: hash_identifier(profile[:subject])
+
+  defp apple_display_name(%{"givenName" => given_name, "familyName" => family_name}) do
+    [given_name, family_name]
+    |> Enum.filter(&(is_binary(&1) and String.trim(&1) != ""))
+    |> Enum.map(&String.trim/1)
+    |> Enum.join(" ")
+    |> case do
+      "" -> nil
+      name -> name
+    end
+  end
+
+  defp apple_display_name(_full_name), do: nil
 
   defp notify_access_request_created({:ok, %EmailAccessRequest{email: email}} = result) do
     _ = Notifications.send_access_request_created(email)
@@ -1513,6 +1739,80 @@ defmodule AdventureTimeApi.Accounts do
       {:error, "Cannot delete yourself"}
     else
       :ok
+    end
+  end
+
+  defp delete_user_record(%User{} = user) do
+    normalized_email = normalize_email(user.email)
+
+    Multi.new()
+    |> Multi.delete_all(
+      :delete_pvp_matches,
+      from(match in Match, where: match.inviter_id == ^user.id or match.invitee_id == ^user.id)
+    )
+    |> Multi.delete_all(
+      :delete_pvp_loadouts,
+      from(loadout in Loadout, where: loadout.owner_id == ^user.id)
+    )
+    |> Multi.delete_all(
+      :delete_daily_quests,
+      from(quest in DailyQuest, where: quest.user_id == ^user.id)
+    )
+    |> Multi.delete_all(
+      :delete_wordle_attempts,
+      from(attempt in WordleDailyAttempt, where: attempt.user_id == ^user.id)
+    )
+    |> Multi.delete_all(
+      :delete_speed_runs,
+      from(run in SpeedCalculusDailyRun, where: run.user_id == ^user.id)
+    )
+    |> Multi.delete_all(
+      :delete_step_snapshots,
+      from(snapshot in StepSnapshot, where: snapshot.user_id == ^user.id)
+    )
+    |> Multi.delete_all(
+      :delete_card_gifts,
+      from(gift in CardGift,
+        where: gift.from_user_id == ^user.id or gift.to_user_id == ^user.id
+      )
+    )
+    |> Multi.delete_all(
+      :delete_owned_cards,
+      from(owned in OwnedCard, where: owned.user_id == ^user.id)
+    )
+    |> Multi.delete_all(
+      :delete_notification_devices,
+      from(device in NotificationDevice, where: device.user_id == ^user.id)
+    )
+    |> Multi.delete_all(
+      :delete_sessions,
+      from(session in Session, where: session.user_id == ^user.id)
+    )
+    |> Multi.delete_all(
+      :delete_credentials,
+      from(credential in EmailCredential, where: credential.user_id == ^user.id)
+    )
+    |> Multi.delete_all(
+      :delete_provider_identities,
+      from(identity in AuthProviderIdentity, where: identity.user_id == ^user.id)
+    )
+    |> Multi.delete_all(
+      :delete_access_requests,
+      from(request in EmailAccessRequest, where: request.email == ^normalized_email)
+    )
+    |> Multi.delete_all(
+      :delete_verification_codes,
+      from(code in EmailVerificationCode, where: code.email == ^normalized_email)
+    )
+    |> Multi.delete(:delete_user, user)
+    |> maybe_delete_avatar_asset(user.avatar_asset_id)
+    |> Repo.transaction()
+    |> case do
+      {:ok, _changes} ->
+        {:ok, %{success: true, deletedUserId: user.id}}
+
+      {:error, _step, %Ecto.Changeset{} = changeset, _changes} ->
+        {:error, :validation, first_error(changeset)}
     end
   end
 

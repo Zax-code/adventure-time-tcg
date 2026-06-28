@@ -158,6 +158,24 @@ defmodule AdventureTimeApiWeb.AuthController do
     end
   end
 
+  def apple(conn, params) do
+    conn = RateLimit.call(conn, bucket: :auth_apple, key_strategy: :ip)
+
+    if conn.halted do
+      conn
+    else
+      case Accounts.login_with_apple(params, request_metadata(conn)) do
+        {:ok, response} ->
+          json(conn, response)
+
+        {:error, %AuthError{} = error} ->
+          conn
+          |> put_status(error.status_code)
+          |> json(%{error: error.message, code: error.code})
+      end
+    end
+  end
+
   def refresh(conn, %{"refreshToken" => refresh_token}) do
     conn = RateLimit.call(conn, bucket: :auth_refresh, key_strategy: :token_or_ip)
 
