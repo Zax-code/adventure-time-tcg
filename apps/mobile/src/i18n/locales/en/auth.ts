@@ -34,9 +34,8 @@ const auth = {
     resendResetEmail: "Send another reset email",
     useDifferentEmail: "Use a different email",
     backToSignIn: "Back to sign in",
-    orContinueWithApple: "or continue with Apple",
-    orContinueWithGoogle: "or continue with Google",
-    enterCandyKingdom: "Enter the Candy Kingdom",
+    continueWithApple: "Continue with Apple",
+    continueWithGoogle: "Continue with Google",
   },
   labels: {
     madeWithLoveBy: "Made with love by Zak",

@@ -1,0 +1,18 @@
+appId: love.leaetzak.adventuretime
+name: Auth provider buttons screenshot
+tags:
+  - auth
+  - screenshots
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- assertVisible:
+    id: auth-email-input
+- scrollUntilVisible:
+    element:
+      text: Continue with Google
+    direction: DOWN
+    timeout: 20000
+    centerElement: true
+- takeScreenshot: auth-provider-buttons
