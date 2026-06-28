@@ -99,23 +99,13 @@ export default function PvpMechanicsScreen() {
       sheetBackgroundColor={tc.bg}
       handleColor={tc.muted}
       sheetStyle={THEME_VARS[themeName]}
+      title={t("pvp.mechanics.title")}
     >
       <View className="flex-1 bg-bg" testID="pvp-mechanics-screen">
         <ScrollView
           className="flex-1"
           contentContainerStyle={{ gap: 16, padding: 20, paddingBottom: insets.bottom + 24 }}
         >
-          <View>
-            <Text
-              className="font-nunito-extrabold text-[28px] leading-[34px] text-fg"
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.85}
-            >
-              {t("pvp.mechanics.title")}
-            </Text>
-          </View>
-
           <View
             className="gap-4 rounded-[28px] bg-surface p-4"
             testID="pvp-mechanics-overview-card"

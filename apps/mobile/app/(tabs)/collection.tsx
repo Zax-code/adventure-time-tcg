@@ -1,14 +1,23 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import { ModalBottomSheet } from "@swmansion/react-native-bottom-sheet";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import {
   Animated,
   FlatList,
-  Modal,
   Pressable,
   ScrollView,
+  StyleSheet,
   Text,
   View,
+  useWindowDimensions,
 } from "react-native";
 
 import { LinearGradient } from "expo-linear-gradient";
@@ -63,6 +72,57 @@ const DUST_TABLE = [
   { rarity: "Legendary", recycle: 100, craft: 500 },
 ];
 
+const DUST_SHEET_TOP_GAP = 56;
+
+function DustInfoSheet({
+  children,
+  index,
+  onIndexChange,
+  onDismiss,
+  scrimColor,
+  surfaceColor,
+}: {
+  children: ReactNode;
+  index: number;
+  onIndexChange: (index: number) => void;
+  onDismiss: () => void;
+  scrimColor: string;
+  surfaceColor: string;
+}) {
+  const surface = useMemo(
+    () => (
+      <View
+        style={[
+          StyleSheet.absoluteFill,
+          {
+            backgroundColor: surfaceColor,
+            borderTopLeftRadius: 28,
+            borderTopRightRadius: 28,
+          },
+        ]}
+      />
+    ),
+    [surfaceColor],
+  );
+
+  return (
+    <ModalBottomSheet
+      index={index}
+      onIndexChange={onIndexChange}
+      onSettle={(nextIndex) => {
+        if (nextIndex === 0) {
+          onDismiss();
+        }
+      }}
+      detents={[0, "content"]}
+      scrimColor={scrimColor}
+      surface={surface}
+    >
+      {children}
+    </ModalBottomSheet>
+  );
+}
+
 export default function CollectionScreen() {
   const router = useRouter();
   const accessToken = useSessionStore((state) => state.accessToken);
@@ -71,6 +131,7 @@ export default function CollectionScreen() {
   const tc = THEME_COLORS[themeName];
   const headerHeight = useAppHeaderHeight();
   const bottomTabPadding = useBottomTabBarContentPadding();
+  const { height } = useWindowDimensions();
   const collectionFeedbackMessage = useCollectionFeedbackStore(
     (state) => state.message,
   );
@@ -86,11 +147,17 @@ export default function CollectionScreen() {
   const [showStatsModal, setShowStatsModal] = useState(false);
   const [showSortModal, setShowSortModal] = useState(false);
   const [showDustModal, setShowDustModal] = useState(false);
+  const [dustSheetIndex, setDustSheetIndex] = useState(0);
   const [toast, setToast] = useState<{
     message: string;
     type: "success" | "error";
   } | null>(null);
   const toastAnim = useRef(new Animated.Value(-60)).current;
+
+  const openDustSheet = () => {
+    setShowDustModal(true);
+    setDustSheetIndex(1);
+  };
 
   useEffect(() => {
     if (!toast) {
@@ -254,17 +321,6 @@ export default function CollectionScreen() {
         alignItems: "center",
         gap: 10,
       } as const,
-      closePill: {
-        borderRadius: 999,
-        borderWidth: 1,
-        borderColor: tc.secondaryBorder,
-        backgroundColor: tc.surface,
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 5,
-      } as const,
       heroCard: {
         borderRadius: 22,
         borderWidth: 1,
@@ -278,8 +334,21 @@ export default function CollectionScreen() {
             ? "0 10px 24px rgba(0, 0, 0, 0.26)"
             : "0 10px 24px rgba(122, 86, 24, 0.12)",
       } as const,
+      sheetContainer: {
+        backgroundColor: tc.surface,
+        borderTopLeftRadius: 28,
+        borderTopRightRadius: 28,
+        borderWidth: 1,
+        borderColor: tc.secondaryBorder,
+        overflow: "hidden",
+        maxHeight: Math.max(0, height - DUST_SHEET_TOP_GAP),
+        boxShadow:
+          themeName === "nightosphere"
+            ? "0 24px 56px rgba(0, 0, 0, 0.5)"
+            : "0 22px 52px rgba(73, 36, 54, 0.18)",
+      } as const,
     }),
-    [tc, themeName],
+    [tc, themeName, height],
   );
   const sortOptionBaseStyle = useMemo(
     () =>
@@ -353,10 +422,10 @@ export default function CollectionScreen() {
   const allCards = rawCards ?? [];
   const ownedCount = ownedCards.length;
   const notOwnedCount = Math.max(allCards.length - ownedCount, 0);
-  const dustModalBackdrop =
+  const dustSheetScrim =
     themeName === "nightosphere"
-      ? "rgba(6, 1, 10, 0.84)"
-      : "rgba(74, 34, 50, 0.44)";
+      ? "rgba(6,1,10,0.84)"
+      : "rgba(74,34,50,0.44)";
 
   const listHeader = (
     <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 }}>
@@ -379,7 +448,7 @@ export default function CollectionScreen() {
       {/* Dust pill — centered */}
       <View style={{ alignItems: "center", marginBottom: 8 }}>
         <Pressable
-          onPress={() => setShowDustModal(true)}
+          onPress={openDustSheet}
           className="bg-secondaryTint"
           style={{
             borderRadius: 999,
@@ -886,45 +955,16 @@ export default function CollectionScreen() {
         </PrimaryButton>
       </ThemedModal>
 
-      {/* Dust Info Modal */}
-      <Modal
-        visible={showDustModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowDustModal(false)}
-      >
-        <View
-          style={{
-            flex: 1,
-            justifyContent: "center",
-            padding: 24,
-          }}
+      {/* Dust Info Sheet */}
+      {showDustModal ? (
+        <DustInfoSheet
+          index={dustSheetIndex}
+          onIndexChange={setDustSheetIndex}
+          onDismiss={() => setShowDustModal(false)}
+          scrimColor={dustSheetScrim}
+          surfaceColor={tc.surface}
         >
-          <Pressable
-            style={{
-              position: "absolute",
-              top: 0,
-              right: 0,
-              bottom: 0,
-              left: 0,
-              backgroundColor: dustModalBackdrop,
-            }}
-            onPress={() => setShowDustModal(false)}
-          />
-          <View
-            style={{
-              backgroundColor: tc.surface,
-              borderRadius: 28,
-              borderWidth: 1,
-              borderColor: tc.secondaryBorder,
-              overflow: "hidden",
-              maxHeight: "88%",
-              boxShadow:
-                themeName === "nightosphere"
-                  ? "0 24px 56px rgba(0, 0, 0, 0.5)"
-                  : "0 22px 52px rgba(73, 36, 54, 0.18)",
-            }}
-          >
+          <View style={dustModalStyles.sheetContainer}>
             <LinearGradient
               colors={[tc.secondaryTint, tc.primaryBg]}
               start={{ x: 0, y: 0 }}
@@ -1001,33 +1041,6 @@ export default function CollectionScreen() {
                       </Text>
                     </View>
                   </View>
-                  <Pressable
-                    onPress={() => setShowDustModal(false)}
-                    hitSlop={10}
-                    style={dustModalStyles.closePill}
-                    accessibilityRole="button"
-                    accessibilityLabel={t("common.close")}
-                  >
-                    <Text
-                      style={{
-                        fontSize: 12,
-                        fontFamily: "Nunito_700Bold",
-                        color: tc.secondaryText,
-                      }}
-                    >
-                      {t("common.close")}
-                    </Text>
-                    <Text
-                      style={{
-                        fontSize: 15,
-                        fontFamily: "Nunito_800ExtraBold",
-                        color: tc.secondaryText,
-                        lineHeight: 15,
-                      }}
-                    >
-                      ×
-                    </Text>
-                  </Pressable>
                 </View>
               </View>
 
@@ -1465,16 +1478,10 @@ export default function CollectionScreen() {
                 </Text>
               </View>
 
-              <PrimaryButton
-                onPress={() => setShowDustModal(false)}
-                fallbackAppearance={{ borderRadius: 16 }}
-              >
-                {t("common.close")}
-              </PrimaryButton>
             </ScrollView>
           </View>
-        </View>
-      </Modal>
+        </DustInfoSheet>
+      ) : null}
     </View>
   );
 }

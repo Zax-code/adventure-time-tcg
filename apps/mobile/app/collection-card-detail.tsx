@@ -483,6 +483,7 @@ export default function CollectionCardDetailScreen() {
         }}
         sheetBackgroundColor={tc.bg}
         handleColor={tc.muted}
+        title={t("pvp.cardDetailsTitle")}
       >
         <KeyboardScreenView>
           <PageLoadingState
@@ -516,6 +517,8 @@ export default function CollectionCardDetailScreen() {
       }}
       sheetBackgroundColor={tc.bg}
       handleColor={tc.muted}
+      title={t("pvp.cardDetailsTitle")}
+      subtitle={t("collection.detail.manageCard")}
     >
       <KeyboardScreenView>
         <View className="flex-1 bg-bg">
@@ -528,33 +531,6 @@ export default function CollectionCardDetailScreen() {
               errorColor={tc.dangerDark}
             />
           ) : null}
-
-          <View
-            className="border-b border-primaryTint px-6 py-4"
-            testID="collection-card-detail-header"
-          >
-            <View style={{ gap: 4 }}>
-              <Text
-                style={{
-                  fontSize: 24,
-                  fontFamily: "Nunito_800ExtraBold",
-                  color: tc.fg,
-                }}
-              >
-                {t("pvp.cardDetailsTitle")}
-              </Text>
-              <Text
-                style={{
-                  fontSize: 14,
-                  lineHeight: 20,
-                  fontFamily: "Nunito_400Regular",
-                  color: tc.fgMuted,
-                }}
-              >
-                {t("collection.detail.manageCard")}
-              </Text>
-            </View>
-          </View>
 
           {!entry ? (
             <View className="flex-1 items-center justify-center px-6">

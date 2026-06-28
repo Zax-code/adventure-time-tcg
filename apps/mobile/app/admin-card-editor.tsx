@@ -16,7 +16,6 @@ import {
 import {
   AdminBackground,
   AdminButton,
-  AdminTopBar,
 } from "../src/components/admin/admin-ui";
 import {
   KEYBOARD_AWARE_SCROLL_PROPS,
@@ -279,25 +278,20 @@ export default function AdminCardEditorScreen() {
       sheetBackgroundColor={tc.bg}
       handleColor={tc.primaryBorder}
       sheetStyle={THEME_VARS[themeName]}
+      title={
+        isCreateMode
+          ? t("admin.cardEditor.createTitle")
+          : t("admin.cardEditor.editTitle")
+      }
+      subtitle={
+        isCreateMode
+          ? t("admin.cardEditor.createSubtitle")
+          : t("admin.cardEditor.editSubtitle")
+      }
     >
       <KeyboardScreenView>
         <AdminBackground>
           <View className="flex-1">
-            <View className="px-4 pt-2">
-              <AdminTopBar
-                title={
-                  isCreateMode
-                    ? t("admin.cardEditor.createTitle")
-                    : t("admin.cardEditor.editTitle")
-                }
-                subtitle={
-                  isCreateMode
-                    ? t("admin.cardEditor.createSubtitle")
-                    : t("admin.cardEditor.editSubtitle")
-                }
-              />
-            </View>
-
             {loading ? (
               <View className="flex-1 items-center justify-center px-6">
                 <LoadingPanel

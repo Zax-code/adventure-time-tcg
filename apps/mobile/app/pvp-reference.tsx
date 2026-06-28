@@ -152,23 +152,13 @@ export default function PvpReferenceScreen() {
       sheetBackgroundColor={tc.bg}
       handleColor={tc.muted}
       sheetStyle={THEME_VARS[themeName]}
+      title={t("pvp.reference.title")}
     >
       <View className="flex-1 bg-bg" testID="pvp-reference-screen">
         <ScrollView
           className="flex-1"
           contentContainerStyle={{ gap: 16, padding: 20, paddingBottom: insets.bottom + 24 }}
         >
-          <View>
-            <Text
-              className="font-nunito-extrabold text-[28px] leading-[34px] text-fg"
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.8}
-            >
-              {t("pvp.reference.title")}
-            </Text>
-          </View>
-
           <View
             className="gap-4 rounded-[28px] border border-infoBorder bg-surface p-4"
             testID="pvp-reference-overview-card"

@@ -389,6 +389,8 @@ export default function SettingsScreen() {
       sheetBackgroundColor={tc.bg}
       handleColor={tc.primaryBorder}
       sheetStyle={THEME_VARS[themeName]}
+      title={t("settings.title")}
+      subtitle={t("settings.subtitle")}
     >
       <KeyboardScreenView style={THEME_VARS[themeName]}>
         <View className="flex-1 bg-bg">
@@ -405,17 +407,6 @@ export default function SettingsScreen() {
           >
             <View className="gap-6">
               <View className="gap-4">
-                <View className="flex-row items-start justify-between gap-4 px-1">
-                  <View className="flex-1 gap-1">
-                    <Text className="font-nunito-extrabold text-3xl text-fg">
-                      {t("settings.title")}
-                    </Text>
-                    <Text className="font-nunito text-sm leading-5 text-fgMuted">
-                      {t("settings.subtitle")}
-                    </Text>
-                  </View>
-                </View>
-
                 <View
                   className="rounded-3xl border border-primaryBorder px-5 py-5"
                   style={{
