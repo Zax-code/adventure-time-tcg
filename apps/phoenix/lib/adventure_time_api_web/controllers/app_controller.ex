@@ -207,6 +207,19 @@ defmodule AdventureTimeApiWeb.AppController do
     |> json(%{error: "notificationPreferences is required"})
   end
 
+  def delete_account(conn, _params) do
+    case Accounts.delete_own_account(conn.assigns.auth_user.id) do
+      {:ok, result} ->
+        json(conn, result)
+
+      {:error, :not_found, message} ->
+        conn |> put_status(:not_found) |> json(%{error: message})
+
+      {:error, :validation, message} ->
+        conn |> put_status(:bad_request) |> json(%{error: message})
+    end
+  end
+
   def health_steps(conn, _params) do
     user_id = conn.assigns.auth_user.id
 

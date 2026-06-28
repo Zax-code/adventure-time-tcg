@@ -6,6 +6,7 @@ import * as ImagePicker from "expo-image-picker";
 import Ionicons from "@react-native-vector-icons/ionicons";
 import {
   ActivityIndicator,
+  Alert,
   AppState,
   Linking,
   Platform,
@@ -46,6 +47,8 @@ const LANGUAGE_OPTIONS = ["en", "fr"] as const;
 const STEP_SOURCE_OPTIONS = ["device_health", "fitbit"] as const;
 const THEME_OPTIONS: ThemeName[] = ["candy", "ice", "nightosphere"];
 const SETTINGS_SYNC_RAIL_WIDTH = 308;
+const PRIVACY_POLICY_URL = `${API_BASE_URL}/privacy`;
+const ACCOUNT_DELETION_URL = `${API_BASE_URL}/account-deletion`;
 
 type StepSource = (typeof STEP_SOURCE_OPTIONS)[number];
 type ToneName = "primary" | "success" | "danger" | "neutral";
@@ -148,6 +151,15 @@ export default function SettingsScreen() {
     onSuccess: async (nextUser) => {
       await setUser(nextUser);
       await queryClient.invalidateQueries({ queryKey: ["home"] });
+    },
+  });
+
+  const deleteAccountMutation = useMutation({
+    mutationFn: () => apiClient.deleteAccount(),
+    onSuccess: async () => {
+      await clearAppSession();
+      queryClient.clear();
+      router.replace("/login");
     },
   });
 
@@ -408,6 +420,23 @@ export default function SettingsScreen() {
       ...notificationPreferences,
       [key]: nextValue,
     });
+  };
+
+  const confirmDeleteAccount = () => {
+    Alert.alert(
+      t("settings.deleteAccountConfirmTitle"),
+      t("settings.deleteAccountConfirmBody"),
+      [
+        { text: t("settings.deleteAccountCancel"), style: "cancel" },
+        {
+          text: t("settings.deleteAccountConfirmAction"),
+          style: "destructive",
+          onPress: () => {
+            void deleteAccountMutation.mutateAsync();
+          },
+        },
+      ],
+    );
   };
 
   return (
@@ -1139,6 +1168,72 @@ export default function SettingsScreen() {
                         {t("home.logout")}
                       </Text>
                     </View>
+                  </SettingsActionButton>
+                </View>
+              </SurfaceCard>
+            </View>
+
+            <View className="gap-4">
+              <SectionHeader
+                icon="lock-closed-outline"
+                title={t("settings.privacyTitle")}
+                description={t("settings.privacyIntro")}
+                tc={tc}
+              />
+              <SurfaceCard tc={tc}>
+                <View className="gap-4">
+                  <Text className="font-nunito text-sm leading-5 text-fgMuted">
+                    {t("settings.privacyHelp")}
+                  </Text>
+                  <View className="gap-3">
+                    <SettingsActionButton
+                      compact
+                      testID="settings-privacy-policy-action"
+                      onPress={() => void Linking.openURL(PRIVACY_POLICY_URL)}
+                      tc={tc}
+                      variant="secondary"
+                    >
+                      {t("settings.openPrivacyPolicy")}
+                    </SettingsActionButton>
+                    <SettingsActionButton
+                      compact
+                      testID="settings-account-deletion-info-action"
+                      onPress={() => void Linking.openURL(ACCOUNT_DELETION_URL)}
+                      tc={tc}
+                      variant="secondary"
+                    >
+                      {t("settings.openAccountDeletionInfo")}
+                    </SettingsActionButton>
+                  </View>
+                </View>
+              </SurfaceCard>
+
+              <SurfaceCard tc={tc}>
+                <View className="gap-4">
+                  <View className="gap-1">
+                    <Text className="font-nunito-bold text-lg text-dangerDark">
+                      {t("settings.deleteAccountTitle")}
+                    </Text>
+                    <Text className="font-nunito text-sm leading-5 text-fgMuted">
+                      {t("settings.deleteAccountHelp")}
+                    </Text>
+                  </View>
+                  {deleteAccountMutation.error ? (
+                    <ToneBanner tone="danger" tc={tc}>
+                      <Text className="font-nunito-semibold text-sm leading-5 text-dangerText">
+                        {t("settings.deleteAccountFailed")}
+                      </Text>
+                    </ToneBanner>
+                  ) : null}
+                  <SettingsActionButton
+                    compact
+                    testID="settings-delete-account-action"
+                    onPress={confirmDeleteAccount}
+                    loading={deleteAccountMutation.isPending}
+                    tc={tc}
+                    variant="danger"
+                  >
+                    {t("settings.deleteAccountAction")}
                   </SettingsActionButton>
                 </View>
               </SurfaceCard>

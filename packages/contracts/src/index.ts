@@ -1489,6 +1489,8 @@ export const adminUserDeleteResponseSchema = z.object({
   deletedUserId: z.string(),
 });
 
+export const accountDeleteResponseSchema = adminUserDeleteResponseSchema;
+
 export const adminUserQuestResetResponseSchema = z.object({
   success: z.boolean(),
   resetDate: z.string(),
@@ -1603,6 +1605,9 @@ export type AdminUserQuestResetInput = z.infer<
 export type AdminUserDetail = z.infer<typeof adminUserDetailSchema>;
 export type AdminUserDeleteResponse = z.infer<
   typeof adminUserDeleteResponseSchema
+>;
+export type AccountDeleteResponse = z.infer<
+  typeof accountDeleteResponseSchema
 >;
 export type AdminUserQuestResetResponse = z.infer<
   typeof adminUserQuestResetResponseSchema

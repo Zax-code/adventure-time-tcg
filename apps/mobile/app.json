@@ -1,13 +1,21 @@
 {
   "expo": {
-    "name": "Adventure Time",
+    "name": "Adventure Time TCG",
     "slug": "adventure-time-tcg",
     "scheme": "adventure-time",
-    "version": "0.3.11",
+    "version": "1.0.0",
     "owner": "zax-code",
     "userInterfaceStyle": "automatic",
     "ios": {
       "requireFullScreen": true
+    },
+    "android": {
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ]
     },
     "experiments": {
       "typedRoutes": true

@@ -1,5 +1,5 @@
 <resources>
-  <string name="app_name">Adventure Time</string>
+  <string name="app_name">Adventure Time TCG</string>
   <string name="expo_splash_screen_resize_mode" translatable="false">contain</string>
   <string name="expo_splash_screen_status_bar_translucent" translatable="false">false</string>
   <string name="step_quest_widget_name">Step Quest</string>

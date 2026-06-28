@@ -282,12 +282,12 @@ function buildAuthFormInitialState(
 }
 
 function hasGoogleAuthConfig() {
-  if (Constants.executionEnvironment === ExecutionEnvironment.StoreClient) {
-    return Boolean(googleWebClientId);
+  if (Platform.OS === "ios") {
+    return false;
   }
 
-  if (Platform.OS === "ios") {
-    return Boolean(googleIosClientId || googleWebClientId);
+  if (Constants.executionEnvironment === ExecutionEnvironment.StoreClient) {
+    return Boolean(googleWebClientId);
   }
 
   if (Platform.OS === "android") {

@@ -37,6 +37,7 @@ import {
   adminAllowedEmailSchema,
   adminAllowedEmailUpdateSchema,
   adminEmailRequestActionSchema,
+  accountDeleteResponseSchema,
   authUserSchema,
   authResponseSchema,
   claimQuestResponseSchema,
@@ -106,6 +107,7 @@ import {
   type AdminPackEditInput,
   type AdminPacksResponse,
   type AdminUserDeleteResponse,
+  type AccountDeleteResponse,
   type AdminUserDetail,
   type AdminUserQuestResetInput,
   type AdminUserQuestResetResponse,
@@ -1024,6 +1026,14 @@ export class ApiClient {
       "/settings/notification-preferences",
       { method: "PATCH", body: JSON.stringify(body) },
       (data) => authUserSchema.parse(data),
+    );
+  }
+
+  async deleteAccount(): Promise<AccountDeleteResponse> {
+    return this.request(
+      "/settings/account",
+      { method: "DELETE" },
+      (data) => accountDeleteResponseSchema.parse(data),
     );
   }
 

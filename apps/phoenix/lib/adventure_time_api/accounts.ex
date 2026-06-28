@@ -26,6 +26,7 @@ defmodule AdventureTimeApi.Accounts do
   alias AdventureTimeApi.Catalog.ImageAsset
   alias AdventureTimeApi.Health.StepSnapshot
   alias AdventureTimeApi.Inventory.OwnedCard
+  alias AdventureTimeApi.Notifications.Device, as: NotificationDevice
   alias AdventureTimeApi.Pvp.{Loadout, Match}
   alias AdventureTimeApi.Quests
   alias AdventureTimeApi.Quests.{DailyQuest, SpeedCalculusDailyRun, WordleDailyAttempt}
@@ -599,73 +600,18 @@ defmodule AdventureTimeApi.Accounts do
     with :ok <- ensure_super_admin(actor),
          %User{} = user <- Repo.get(User, user_id),
          :ok <- prevent_self_delete(actor, user) do
-      normalized_email = normalize_email(user.email)
-
-      Multi.new()
-      |> Multi.delete_all(
-        :delete_pvp_matches,
-        from(match in Match, where: match.inviter_id == ^user.id or match.invitee_id == ^user.id)
-      )
-      |> Multi.delete_all(
-        :delete_pvp_loadouts,
-        from(loadout in Loadout, where: loadout.owner_id == ^user.id)
-      )
-      |> Multi.delete_all(
-        :delete_daily_quests,
-        from(quest in DailyQuest, where: quest.user_id == ^user.id)
-      )
-      |> Multi.delete_all(
-        :delete_wordle_attempts,
-        from(attempt in WordleDailyAttempt, where: attempt.user_id == ^user.id)
-      )
-      |> Multi.delete_all(
-        :delete_speed_runs,
-        from(run in SpeedCalculusDailyRun, where: run.user_id == ^user.id)
-      )
-      |> Multi.delete_all(
-        :delete_step_snapshots,
-        from(snapshot in StepSnapshot, where: snapshot.user_id == ^user.id)
-      )
-      |> Multi.delete_all(
-        :delete_card_gifts,
-        from(gift in CardGift,
-          where: gift.from_user_id == ^user.id or gift.to_user_id == ^user.id
-        )
-      )
-      |> Multi.delete_all(
-        :delete_owned_cards,
-        from(owned in OwnedCard, where: owned.user_id == ^user.id)
-      )
-      |> Multi.delete_all(
-        :delete_sessions,
-        from(session in Session, where: session.user_id == ^user.id)
-      )
-      |> Multi.delete_all(
-        :delete_credentials,
-        from(credential in EmailCredential, where: credential.user_id == ^user.id)
-      )
-      |> Multi.delete_all(
-        :delete_access_requests,
-        from(request in EmailAccessRequest, where: request.email == ^normalized_email)
-      )
-      |> Multi.delete_all(
-        :delete_verification_codes,
-        from(code in EmailVerificationCode, where: code.email == ^normalized_email)
-      )
-      |> Multi.delete(:delete_user, user)
-      |> maybe_delete_avatar_asset(user.avatar_asset_id)
-      |> Repo.transaction()
-      |> case do
-        {:ok, _changes} ->
-          {:ok, %{success: true, deletedUserId: user.id}}
-
-        {:error, _step, %Ecto.Changeset{} = changeset, _changes} ->
-          {:error, :validation, first_error(changeset)}
-      end
+      delete_user_record(user)
     else
       nil -> {:error, :not_found, "User not found"}
       {:error, %AuthError{} = error} -> {:error, error}
       {:error, message} -> {:error, :validation, message}
+    end
+  end
+
+  def delete_own_account(user_id) do
+    case Repo.get(User, user_id) do
+      %User{} = user -> delete_user_record(user)
+      nil -> {:error, :not_found, "User not found"}
     end
   end
 
@@ -1513,6 +1459,76 @@ defmodule AdventureTimeApi.Accounts do
       {:error, "Cannot delete yourself"}
     else
       :ok
+    end
+  end
+
+  defp delete_user_record(%User{} = user) do
+    normalized_email = normalize_email(user.email)
+
+    Multi.new()
+    |> Multi.delete_all(
+      :delete_pvp_matches,
+      from(match in Match, where: match.inviter_id == ^user.id or match.invitee_id == ^user.id)
+    )
+    |> Multi.delete_all(
+      :delete_pvp_loadouts,
+      from(loadout in Loadout, where: loadout.owner_id == ^user.id)
+    )
+    |> Multi.delete_all(
+      :delete_daily_quests,
+      from(quest in DailyQuest, where: quest.user_id == ^user.id)
+    )
+    |> Multi.delete_all(
+      :delete_wordle_attempts,
+      from(attempt in WordleDailyAttempt, where: attempt.user_id == ^user.id)
+    )
+    |> Multi.delete_all(
+      :delete_speed_runs,
+      from(run in SpeedCalculusDailyRun, where: run.user_id == ^user.id)
+    )
+    |> Multi.delete_all(
+      :delete_step_snapshots,
+      from(snapshot in StepSnapshot, where: snapshot.user_id == ^user.id)
+    )
+    |> Multi.delete_all(
+      :delete_card_gifts,
+      from(gift in CardGift,
+        where: gift.from_user_id == ^user.id or gift.to_user_id == ^user.id
+      )
+    )
+    |> Multi.delete_all(
+      :delete_owned_cards,
+      from(owned in OwnedCard, where: owned.user_id == ^user.id)
+    )
+    |> Multi.delete_all(
+      :delete_notification_devices,
+      from(device in NotificationDevice, where: device.user_id == ^user.id)
+    )
+    |> Multi.delete_all(
+      :delete_sessions,
+      from(session in Session, where: session.user_id == ^user.id)
+    )
+    |> Multi.delete_all(
+      :delete_credentials,
+      from(credential in EmailCredential, where: credential.user_id == ^user.id)
+    )
+    |> Multi.delete_all(
+      :delete_access_requests,
+      from(request in EmailAccessRequest, where: request.email == ^normalized_email)
+    )
+    |> Multi.delete_all(
+      :delete_verification_codes,
+      from(code in EmailVerificationCode, where: code.email == ^normalized_email)
+    )
+    |> Multi.delete(:delete_user, user)
+    |> maybe_delete_avatar_asset(user.avatar_asset_id)
+    |> Repo.transaction()
+    |> case do
+      {:ok, _changes} ->
+        {:ok, %{success: true, deletedUserId: user.id}}
+
+      {:error, _step, %Ecto.Changeset{} = changeset, _changes} ->
+        {:error, :validation, first_error(changeset)}
     end
   end
 

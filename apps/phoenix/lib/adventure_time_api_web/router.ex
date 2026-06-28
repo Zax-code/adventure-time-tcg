@@ -24,6 +24,8 @@ defmodule AdventureTimeApiWeb.Router do
     pipe_through(:browser_html)
 
     get("/", LandingController, :index)
+    get("/privacy", LandingController, :privacy)
+    get("/account-deletion", LandingController, :account_deletion)
     get("/email/verify", EmailVerificationController, :show)
     post("/email/verify", EmailVerificationController, :confirm)
     get("/password/reset", PasswordResetController, :show)
@@ -83,6 +85,7 @@ defmodule AdventureTimeApiWeb.Router do
     patch("/settings/step-source", AppController, :update_step_source)
     patch("/settings/timezone", AppController, :update_timezone)
     patch("/settings/notification-preferences", AppController, :update_notification_preferences)
+    delete("/settings/account", AppController, :delete_account)
     post("/settings/upload", MediaController, :upload_profile)
     post("/notifications/device", NotificationController, :register_device)
     delete("/notifications/device/:installation_id", NotificationController, :unregister_device)

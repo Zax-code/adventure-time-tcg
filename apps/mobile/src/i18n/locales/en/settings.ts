@@ -112,6 +112,22 @@ const settings = {
   sessionTitle: "Session",
   sessionIntro: "Manage this signed-in device.",
   sessionHelp: "Signing out here removes your local session from this device.",
+  privacyTitle: "Privacy and data",
+  privacyIntro: "Review how account and gameplay data is handled.",
+  privacyHelp:
+    "Adventure Time TCG uses your account, collection, quest, notification, and step-sync data to run the game. You can review the policy or open the account deletion instructions at any time.",
+  openPrivacyPolicy: "Open privacy policy",
+  openAccountDeletionInfo: "Account deletion info",
+  deleteAccountTitle: "Delete account",
+  deleteAccountHelp:
+    "Permanently deletes your account, login credentials, collection, gifts, quest progress, PvP data, step snapshots, notification devices, and profile image. This cannot be undone.",
+  deleteAccountAction: "Delete my account",
+  deleteAccountFailed: "Account deletion failed. Please try again or contact support.",
+  deleteAccountConfirmTitle: "Delete your account?",
+  deleteAccountConfirmBody:
+    "This permanently removes your Adventure Time TCG account and gameplay data. This action cannot be undone.",
+  deleteAccountCancel: "Keep account",
+  deleteAccountConfirmAction: "Delete account",
   stepSources: {
     device_health: "Device health",
     fitbit: "Fitbit",
