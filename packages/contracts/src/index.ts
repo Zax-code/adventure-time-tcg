@@ -490,15 +490,11 @@ export const giftSchema = z.object({
   quantity: z.number().int().positive(),
   message: z.string().nullable(),
   status: z.string(),
+  expiresAt: z.string().nullable(),
   createdAt: z.string(),
   fromUser: userSummarySchema,
   toUser: userSummarySchema,
-  card: z.object({
-    id: z.string(),
-    name: z.string(),
-    character: z.string(),
-    rarity: raritySchema,
-  }),
+  card: cardSchema,
 });
 
 export const giftsResponseSchema = z.object({

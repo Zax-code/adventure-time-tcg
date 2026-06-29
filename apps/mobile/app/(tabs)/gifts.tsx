@@ -7,6 +7,8 @@ import { ScrollView, Text, View } from "react-native";
 import type { GiftsResponse } from "@adventure-time/api-client";
 
 import { PrimaryButton } from "../../src/components/button";
+import { CardTile } from "../../src/components/card-tile";
+import type { CardTileCard } from "../../src/components/card-tile";
 import { PageErrorState } from "../../src/components/error-state";
 import { ThemedExpoButton } from "../../src/components/expo-ui/themed-button";
 import {
@@ -240,44 +242,6 @@ export default function GiftsScreen() {
           </LinearGradient>
         </View>
 
-        <View className="gap-4 rounded-[28px] border border-primaryBorder bg-surface p-5">
-          <View className="flex-row items-start gap-4">
-            <View
-              className="size-12 items-center justify-center rounded-2xl"
-              style={{ backgroundColor: tc.primaryTint }}
-            >
-              <SparklesIcon size={20} color={tc.primaryText} />
-            </View>
-            <View className="flex-1 gap-1">
-              <Text className="font-nunito-bold text-lg text-fg">
-                {t("gifts.quickSendTitle")}
-              </Text>
-              <Text className="font-nunito text-sm leading-5 text-fgMuted">
-                {t("gifts.quickSendBody")}
-              </Text>
-            </View>
-          </View>
-
-          <View className="gap-2">
-            <InstructionStep
-              index="1"
-              text={t("gifts.quickSendSteps.openCollection")}
-            />
-            <InstructionStep
-              index="2"
-              text={t("gifts.quickSendSteps.pickCard")}
-            />
-            <InstructionStep
-              index="3"
-              text={t("gifts.quickSendSteps.choosePlayer")}
-            />
-          </View>
-
-          <PrimaryButton onPress={() => router.push("/(tabs)/collection")}>
-            {t("gifts.openCollection")}
-          </PrimaryButton>
-        </View>
-
         <View className="gap-3">
           <View className="gap-1">
             <Text className="font-nunito-bold text-lg text-fg">
@@ -404,6 +368,44 @@ export default function GiftsScreen() {
               ))}
             </View>
           )}
+        </View>
+
+        <View className="gap-4 rounded-[28px] border border-primaryBorder bg-surface p-5">
+          <View className="flex-row items-start gap-4">
+            <View
+              className="size-12 items-center justify-center rounded-2xl"
+              style={{ backgroundColor: tc.primaryTint }}
+            >
+              <SparklesIcon size={20} color={tc.primaryText} />
+            </View>
+            <View className="flex-1 gap-1">
+              <Text className="font-nunito-bold text-lg text-fg">
+                {t("gifts.quickSendTitle")}
+              </Text>
+              <Text className="font-nunito text-sm leading-5 text-fgMuted">
+                {t("gifts.quickSendBody")}
+              </Text>
+            </View>
+          </View>
+
+          <View className="gap-2">
+            <InstructionStep
+              index="1"
+              text={t("gifts.quickSendSteps.openCollection")}
+            />
+            <InstructionStep
+              index="2"
+              text={t("gifts.quickSendSteps.pickCard")}
+            />
+            <InstructionStep
+              index="3"
+              text={t("gifts.quickSendSteps.choosePlayer")}
+            />
+          </View>
+
+          <PrimaryButton onPress={() => router.push("/(tabs)/collection")}>
+            {t("gifts.openCollection")}
+          </PrimaryButton>
         </View>
       </View>
     </ScrollView>
@@ -534,6 +536,12 @@ function GiftCard({
     activeDecision?.giftId === gift.id && activeDecision.action === "reject";
 
   const statusPalette = getStatusPalette(gift.status, tc, t);
+  const cardTile = toCardTileCard(gift);
+  const createdDate = formatGiftDate(gift.createdAt, locale);
+  const expiryText =
+    gift.status === "pending" && gift.expiresAt
+      ? formatGiftExpiry(gift.expiresAt, locale, t)
+      : null;
   const directionPalette = isIncoming
     ? {
         bg: tc.primaryTint,
@@ -553,7 +561,7 @@ function GiftCard({
   return (
     <View className="overflow-hidden rounded-[28px] border border-primaryBorder bg-surface">
       <View className="gap-4 p-4">
-        <View className="flex-row items-start gap-3">
+        <View className="flex-row items-center gap-3">
           <View
             className="rounded-full border px-3 py-1.5"
             style={{
@@ -572,7 +580,7 @@ function GiftCard({
             </View>
           </View>
 
-          <View className="flex-1 items-end gap-2">
+          <View className="flex-1 items-end">
             <View
               className="rounded-full border px-3 py-1.5"
               style={{
@@ -590,19 +598,78 @@ function GiftCard({
                 </Text>
               </View>
             </View>
-            <Text className="font-nunito text-xs text-fgMuted">
-              {formatGiftDate(gift.createdAt, locale)}
-            </Text>
           </View>
         </View>
 
-        <View className="gap-1">
-          <Text className="font-nunito-extrabold text-lg text-fg">
-            {gift.card.name} x{gift.quantity}
-          </Text>
-          <Text className="font-nunito text-sm text-fgMuted">
-            {gift.card.character} · {gift.card.rarity.name}
-          </Text>
+        <View className="flex-row gap-4">
+          <View style={{ width: 118 }}>
+            <CardTile
+              card={cardTile}
+              quantity={gift.quantity}
+              fitContainer
+              testID={`gifts-card-preview-${gift.id}`}
+            />
+          </View>
+
+          <View className="flex-1 gap-3">
+            <View className="gap-1">
+              <Text
+                className="font-nunito-extrabold text-xl leading-6 text-fg"
+                numberOfLines={2}
+              >
+                {gift.card.name}
+              </Text>
+              <Text className="font-nunito-semibold text-sm text-fgMuted">
+                {gift.card.character}
+              </Text>
+              <View className="flex-row flex-wrap gap-2 pt-1">
+                <InfoPill
+                  label={t("gifts.cardMeta.rarity")}
+                  value={gift.card.rarity.name}
+                  bg={tc.primaryTint}
+                  border={tc.primaryBorder}
+                  text={tc.primaryText}
+                />
+                <InfoPill
+                  label={t("gifts.cardMeta.type")}
+                  value={gift.card.type}
+                  bg={tc.accentTint}
+                  border={tc.accentBorder}
+                  text={tc.accentText}
+                />
+                <InfoPill
+                  label={t("gifts.cardMeta.quantity")}
+                  value={t("gifts.quantityCopies", { count: gift.quantity })}
+                  bg={tc.surfaceMuted}
+                  border={tc.primaryTint}
+                  text={tc.fg}
+                />
+              </View>
+            </View>
+
+            <Text
+              className="font-nunito text-sm leading-5 text-fgMuted"
+              numberOfLines={4}
+            >
+              {gift.card.description}
+            </Text>
+
+            <View className="flex-row flex-wrap gap-2">
+              <StatPill label={t("gifts.stats.hp")} value={gift.card.hp} />
+              <StatPill
+                label={t("gifts.stats.attack")}
+                value={gift.card.attack}
+              />
+              <StatPill
+                label={t("gifts.stats.defense")}
+                value={gift.card.defense}
+              />
+              <StatPill
+                label={t("gifts.stats.speed")}
+                value={gift.card.speed}
+              />
+            </View>
+          </View>
         </View>
 
         <View className="flex-row items-center gap-3 rounded-2xl bg-primaryBg px-3 py-3">
@@ -625,11 +692,12 @@ function GiftCard({
                 : t("gifts.sentTo", { name: gift.toUser.displayName })}
             </Text>
             <Text className="font-nunito text-xs text-fgMuted">
-              {isIncoming
-                ? t("gifts.counterpartyHint.received")
-                : isPending
-                  ? t("gifts.counterpartyHint.pendingSent")
-                  : t("gifts.counterpartyHint.sent")}
+              {expiryText
+                ? t("gifts.timelineWithExpiry", {
+                    created: createdDate,
+                    expiry: expiryText,
+                  })
+                : t("gifts.timeline", { created: createdDate })}
             </Text>
           </View>
         </View>
@@ -706,6 +774,69 @@ function GiftCard({
   );
 }
 
+function InfoPill({
+  label,
+  value,
+  bg,
+  border,
+  text,
+}: {
+  label: string;
+  value: string;
+  bg: string;
+  border: string;
+  text: string;
+}) {
+  return (
+    <View
+      className="rounded-full border px-2.5 py-1"
+      style={{ backgroundColor: bg, borderColor: border }}
+    >
+      <Text
+        className="font-nunito-bold text-[11px] leading-4"
+        numberOfLines={1}
+        style={{ color: text }}
+      >
+        {label}: {value}
+      </Text>
+    </View>
+  );
+}
+
+function StatPill({ label, value }: { label: string; value: number }) {
+  const tc = THEME_COLORS[useThemeStore((state) => state.themeName)];
+
+  return (
+    <View
+      className="min-w-[48px] rounded-2xl border px-2.5 py-2"
+      style={{ backgroundColor: tc.surfaceMuted, borderColor: tc.primaryTint }}
+    >
+      <Text className="text-center font-nunito text-[10px] text-fgMuted">
+        {label}
+      </Text>
+      <Text className="text-center font-nunito-extrabold text-sm text-fg">
+        {value}
+      </Text>
+    </View>
+  );
+}
+
+function toCardTileCard(gift: GiftItem): CardTileCard {
+  return {
+    id: gift.card.id,
+    name: gift.card.name,
+    character: gift.card.character,
+    description: gift.card.description,
+    hp: gift.card.hp,
+    attack: gift.card.attack,
+    defense: gift.card.defense,
+    speed: gift.card.speed,
+    type: gift.card.type,
+    rarityName: gift.card.rarity.name,
+    imageAssetId: gift.card.imageAssetId,
+  };
+}
+
 function getStatusPalette(
   status: string,
   tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS],
@@ -728,6 +859,14 @@ function getStatusPalette(
         border: tc.dangerBorder,
         text: tc.dangerText,
         icon: <XCircleIcon size={15} color={tc.dangerText} />,
+        label,
+      };
+    case "expired":
+      return {
+        bg: tc.surfaceMuted,
+        border: tc.primaryTint,
+        text: tc.fgMuted,
+        icon: <XCircleIcon size={15} color={tc.fgMuted} />,
         label,
       };
     default:
@@ -760,4 +899,24 @@ function formatGiftDate(value: string, locale: string) {
     day: "numeric",
     ...(sameYear ? {} : { year: "numeric" }),
   }).format(date);
+}
+
+function formatGiftExpiry(
+  value: string,
+  locale: string,
+  t: (key: string, params?: Record<string, string | number>) => string,
+) {
+  const date = new Date(value);
+  const now = new Date();
+  const diffMs = date.getTime() - now.getTime();
+
+  if (diffMs <= 0) {
+    return t("gifts.expiresExpired");
+  }
+
+  if (diffMs < 24 * 60 * 60 * 1000) {
+    return t("gifts.expiresToday");
+  }
+
+  return t("gifts.expiresOn", { date: formatGiftDate(value, locale) });
 }

@@ -342,6 +342,13 @@ defmodule AdventureTimeApi.Social do
         id: gift.card.id,
         name: gift.card.name,
         character: gift.card.character,
+        description: gift.card.description,
+        hp: gift.card.hp,
+        attack: gift.card.attack,
+        defense: gift.card.defense,
+        speed: gift.card.speed,
+        type: gift.card.type,
+        imageAssetId: gift.card.image_asset_id,
         rarity: %{
           id: gift.card.rarity.id,
           name: gift.card.rarity.name,

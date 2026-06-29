@@ -5,17 +5,8 @@ const gifts = {
   giftTo: "Gift to",
   sendGift: "Send gift",
   sendGiftButton: "Send gift",
-  sendSectionTitle: "Send Gift",
-  cardId: "Card ID",
-  recipientUserId: "Recipient user ID",
-  message: "Message",
   messageLabel: "Message",
   users: "Users",
-  inboxSent: "Inbox / Sent",
-  pending: "Pending: {count}",
-  from: "From",
-  to: "To",
-  status: "Status",
   accept: "Accept",
   accepting: "Accepting...",
   reject: "Reject",
@@ -41,6 +32,23 @@ const gifts = {
   manageTitle: "Manage gift activity",
   manageSubtitle:
     "Switch between incoming cards, sent gifts, and your full timeline.",
+  cardMeta: {
+    rarity: "Rarity",
+    type: "Type",
+    quantity: "Qty",
+  },
+  quantityCopies: "x{count}",
+  stats: {
+    hp: "HP",
+    attack: "ATK",
+    defense: "DEF",
+    speed: "SPD",
+  },
+  timeline: "Sent {created}",
+  timelineWithExpiry: "Sent {created} · {expiry}",
+  expiresOn: "Expires {date}",
+  expiresToday: "Expires today",
+  expiresExpired: "Expired",
   filters: {
     received: "Received",
     sent: "Sent",
@@ -60,11 +68,6 @@ const gifts = {
   sentBadge: "Sent",
   receivedFrom: "From {name}",
   sentTo: "Sent to {name}",
-  counterpartyHint: {
-    received: "Open it to decide what to do next.",
-    sent: "This gift already has a final outcome.",
-    pendingSent: "Waiting for the recipient to respond.",
-  },
   emptyReceivedTitle: "No received gifts yet",
   emptyReceivedBody:
     "When another player sends you a card, it will show up here.",
@@ -78,6 +81,7 @@ const gifts = {
     pending: "Pending",
     accepted: "Accepted",
     rejected: "Rejected",
+    expired: "Expired",
   },
 };
 
