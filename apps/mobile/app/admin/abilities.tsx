@@ -1,5 +1,14 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, type ReactElement } from "react";
 import { FlatList, Pressable, Text, View } from "react-native";
+import Animated, {
+  FadeInLeft,
+  FadeInRight,
+  FadeInUp,
+  FadeOutLeft,
+  FadeOutRight,
+  FadeOutUp,
+  LinearTransition,
+} from "react-native-reanimated";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { ZodError } from "zod";
@@ -41,6 +50,11 @@ const CONTENT_BOTTOM_PADDING = 132;
 const EMPTY_ABILITIES: AdminAbility[] = [];
 const EMPTY_ABILITY_CARDS: AdminAbilityCard[] = [];
 const EMPTY_CARD_ABILITIES: AdminCardAbility[] = [];
+const HEADER_LAYOUT_TRANSITION = LinearTransition.duration(260);
+const FILTER_ENTERING = FadeInUp.duration(240);
+const FILTER_EXITING = FadeOutUp.duration(200);
+const CREATE_ACTION_ENTERING = FadeInLeft.duration(240);
+const CREATE_ACTION_EXITING = FadeOutLeft.duration(200);
 
 function allowsPassiveSlot(card: AdminAbilityCard | undefined) {
   return card?.rarityName === "Legendary";
@@ -73,6 +87,7 @@ export default function AdminAbilitiesScreen() {
   const [activeTab, setActiveTab] = useState<"abilities" | "assignments">(
     "abilities",
   );
+  const [tabSlideDirection, setTabSlideDirection] = useState<1 | -1>(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<
     "all" | "PASSIVE" | "SKILL" | "ULTIMATE"
@@ -194,9 +209,14 @@ export default function AdminAbilitiesScreen() {
 
   const handleTabChange = useCallback(
     (nextTab: "abilities" | "assignments") => {
-      setActiveTab((current) => (current === nextTab ? current : nextTab));
+      if (activeTab === nextTab) {
+        return;
+      }
+
+      setTabSlideDirection(nextTab === "assignments" ? 1 : -1);
+      setActiveTab(nextTab);
     },
-    [],
+    [activeTab],
   );
 
   const openAssignment = useCallback(
@@ -218,7 +238,9 @@ export default function AdminAbilitiesScreen() {
       return [];
     }
 
-    const items: AbilityListItem[] = [{ id: "section", type: "section" }];
+    const items: AbilityListItem[] = [
+      { id: `section-${activeTab}`, type: "section" },
+    ];
 
     if (isAbilitiesTab) {
       if (filteredAbilities.length) {
@@ -251,91 +273,135 @@ export default function AdminAbilitiesScreen() {
     return items;
   }, [
     abilitiesError,
+    activeTab,
     filteredAbilities,
     filteredCards,
     isAbilitiesLoading,
     isAbilitiesTab,
   ]);
 
+  const tabContentEntering = useMemo(
+    () =>
+      tabSlideDirection === 1
+        ? FadeInRight.duration(260)
+        : FadeInLeft.duration(260),
+    [tabSlideDirection],
+  );
+  const tabContentExiting = useMemo(
+    () =>
+      tabSlideDirection === 1
+        ? FadeOutLeft.duration(200)
+        : FadeOutRight.duration(200),
+    [tabSlideDirection],
+  );
+
   const listHeader = useMemo(
     () => (
       <View className="gap-4">
-        <AdminHero
-          title={t("admin.abilities.title")}
-          subtitle={t("admin.abilities.subtitle")}
-          actions={
-            <View pointerEvents={isAbilitiesTab ? "auto" : "none"}>
-              <AdminButton
-                label={t("admin.abilities.createAbility")}
-                icon="add"
-                disabled={!isAbilitiesTab}
-                onPress={() =>
-                  router.push({
-                    pathname: "/admin-ability-editor",
-                    params: { mode: "create" },
-                  } as any)
-                }
+        <Animated.View layout={HEADER_LAYOUT_TRANSITION}>
+          <AdminHero
+            title={t("admin.abilities.title")}
+            subtitle={t("admin.abilities.subtitle")}
+            actions={
+              <>
+                {isAbilitiesTab ? (
+                  <Animated.View
+                    entering={CREATE_ACTION_ENTERING}
+                    exiting={CREATE_ACTION_EXITING}
+                  >
+                    <AdminButton
+                      label={t("admin.abilities.createAbility")}
+                      icon="add"
+                      onPress={() =>
+                        router.push({
+                          pathname: "/admin-ability-editor",
+                          params: { mode: "create" },
+                        } as any)
+                      }
+                    />
+                  </Animated.View>
+                ) : null}
+              </>
+            }
+          >
+            <View className="flex-row flex-wrap gap-3">
+              <AdminStat
+                label={t("admin.abilities.libraryLabel")}
+                value={String(abilities.length)}
+                tone="accent"
+              />
+              <AdminStat
+                label={t("admin.abilities.assignmentLabel")}
+                value={String(cardAbilities.length)}
+                tone="info"
               />
             </View>
-          }
-        >
-          <View className="flex-row flex-wrap gap-3">
-            <AdminStat
-              label={t("admin.abilities.libraryLabel")}
-              value={String(abilities.length)}
-              tone="accent"
+            <AdminSegmentedControl
+              value={activeTab}
+              options={[
+                {
+                  label: t("admin.abilities.tabAbilities"),
+                  value: "abilities",
+                },
+                {
+                  label: t("admin.abilities.tabAssignments"),
+                  value: "assignments",
+                },
+              ]}
+              onChange={handleTabChange}
             />
-            <AdminStat
-              label={t("admin.abilities.assignmentLabel")}
-              value={String(cardAbilities.length)}
-              tone="info"
-            />
-          </View>
-          <AdminSegmentedControl
-            value={activeTab}
-            options={[
-              { label: t("admin.abilities.tabAbilities"), value: "abilities" },
-              {
-                label: t("admin.abilities.tabAssignments"),
-                value: "assignments",
-              },
-            ]}
-            onChange={handleTabChange}
-          />
-          <View>
-            <View className="gap-3">
-              <AdminSearchInput
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                placeholder={
-                  isAbilitiesTab
-                    ? t("admin.abilities.searchAbilities")
-                    : t("admin.abilities.searchCards")
-                }
-              />
-              {isAbilitiesTab ? (
-                <View className="flex-row flex-wrap gap-2">
-                  {(["all", "PASSIVE", "SKILL", "ULTIMATE"] as const).map(
-                    (type) => (
-                      <AdminFilterChip
-                        key={type}
-                        label={
-                          type === "all"
-                            ? t("collection.all")
-                            : t(`admin.abilities.type.${type}`)
-                        }
-                        selected={typeFilter === type}
-                        onPress={() => setTypeFilter(type)}
-                      />
-                    ),
-                  )}
-                </View>
-              ) : null}
+            <View>
+              <Animated.View
+                className="gap-3"
+                layout={HEADER_LAYOUT_TRANSITION}
+              >
+                <AdminSearchInput
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  placeholder={
+                    isAbilitiesTab
+                      ? t("admin.abilities.searchAbilities")
+                      : t("admin.abilities.searchCards")
+                  }
+                />
+                {isAbilitiesTab ? (
+                  <Animated.View
+                    className="overflow-hidden"
+                    layout={HEADER_LAYOUT_TRANSITION}
+                  >
+                    <Animated.View
+                      className="flex-row flex-wrap gap-2"
+                      entering={FILTER_ENTERING}
+                      exiting={FILTER_EXITING}
+                      layout={HEADER_LAYOUT_TRANSITION}
+                    >
+                      {(["all", "PASSIVE", "SKILL", "ULTIMATE"] as const).map(
+                        (type) => (
+                          <AdminFilterChip
+                            key={type}
+                            label={
+                              type === "all"
+                                ? t("collection.all")
+                                : t(`admin.abilities.type.${type}`)
+                            }
+                            selected={typeFilter === type}
+                            onPress={() => setTypeFilter(type)}
+                          />
+                        ),
+                      )}
+                    </Animated.View>
+                  </Animated.View>
+                ) : null}
+              </Animated.View>
             </View>
-          </View>
-        </AdminHero>
+          </AdminHero>
+        </Animated.View>
 
-        <View>
+        <Animated.View
+          key={`guidance-${activeTab}`}
+          entering={tabContentEntering}
+          exiting={tabContentExiting}
+        >
           {abilitiesError ? (
             <AdminPanel>
               <Text className="font-nunito-bold text-[13px] text-dangerText">
@@ -370,7 +436,7 @@ export default function AdminAbilitiesScreen() {
               icon={isAbilitiesTab ? "flash-outline" : "git-network-outline"}
             />
           )}
-        </View>
+        </Animated.View>
       </View>
     ),
     [
@@ -383,6 +449,8 @@ export default function AdminAbilitiesScreen() {
       isAbilitiesTab,
       router,
       searchQuery,
+      tabContentEntering,
+      tabContentExiting,
       t,
       typeFilter,
     ],
@@ -390,8 +458,17 @@ export default function AdminAbilitiesScreen() {
 
   const renderItem = useCallback(
     ({ item }: { item: AbilityListItem }) => {
+      const wrapListItem = (children: ReactElement) => (
+        <Animated.View
+          entering={tabContentEntering}
+          exiting={tabContentExiting}
+        >
+          {children}
+        </Animated.View>
+      );
+
       if (item.type === "section") {
-        return (
+        return wrapListItem(
           <AdminPanel>
             <AdminSectionTitle
               title={
@@ -409,12 +486,12 @@ export default function AdminAbilitiesScreen() {
                   : t("admin.abilities.assignmentsSubtitle")
               }
             />
-          </AdminPanel>
+          </AdminPanel>,
         );
       }
 
       if (item.type === "empty") {
-        return (
+        return wrapListItem(
           <AdminPanel>
             <AdminEmptyState
               icon={isAbilitiesTab ? "flash" : "people"}
@@ -429,14 +506,14 @@ export default function AdminAbilitiesScreen() {
                   : t("admin.abilities.noCardsBody")
               }
             />
-          </AdminPanel>
+          </AdminPanel>,
         );
       }
 
       if (item.type === "ability") {
         const { ability } = item;
 
-        return (
+        return wrapListItem(
           <Pressable
             className="gap-[10] rounded-[22] border border-primaryBorder/20 bg-surfaceMuted p-[14]"
             onPress={() =>
@@ -495,7 +572,7 @@ export default function AdminAbilitiesScreen() {
                 onPress={() => deleteMutation.mutate(ability.id)}
               />
             </View>
-          </Pressable>
+          </Pressable>,
         );
       }
 
@@ -506,12 +583,15 @@ export default function AdminAbilitiesScreen() {
       const ultimate = abilityById.get(assignment?.ultimateId ?? "");
       const cardAllowsPassive = allowsPassiveSlot(card);
 
-      return (
+      return wrapListItem(
         <Pressable
           className="gap-[10] rounded-[22] border border-primaryBorder/20 bg-surfaceMuted p-[14]"
           onPress={() => openAssignment(card, assignment)}
         >
-          <Text className="flex-1 font-nunito-extrabold text-[15px] text-fg">
+          <Text
+            className="font-nunito-extrabold text-[15px] text-fg"
+            numberOfLines={2}
+          >
             {card.name}
           </Text>
           <Text className="font-nunito-semibold text-xs text-muted">
@@ -545,7 +625,7 @@ export default function AdminAbilitiesScreen() {
             variant="ghost"
             onPress={() => openAssignment(card, assignment)}
           />
-        </Pressable>
+        </Pressable>,
       );
     },
     [
@@ -557,6 +637,8 @@ export default function AdminAbilitiesScreen() {
       isAbilitiesTab,
       openAssignment,
       router,
+      tabContentEntering,
+      tabContentExiting,
       t,
     ],
   );
@@ -577,7 +659,7 @@ export default function AdminAbilitiesScreen() {
           gap: 16,
         }}
         ListHeaderComponent={listHeader}
-        removeClippedSubviews
+        removeClippedSubviews={false}
         windowSize={5}
         maxToRenderPerBatch={8}
         initialNumToRender={8}
