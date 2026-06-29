@@ -2,7 +2,7 @@ import { ReactNode, useEffect, useState } from "react";
 import { ModalBottomSheet } from "@swmansion/react-native-bottom-sheet";
 import Animated, {
   Easing,
-  useAnimatedStyle,
+  useDerivedValue,
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
@@ -415,14 +415,9 @@ export function AdminSegmentedControl<T extends string>({
     });
   }, [selectedIndex, selectorProgress]);
 
-  const selectorStyle = useAnimatedStyle(() => ({
-    transform: [
-      {
-        translateX:
-          selectorProgress.value * (selectorWidth + SEGMENTED_CONTROL_GAP),
-      },
-    ],
-  }));
+  const selectorTranslateX = useDerivedValue(
+    () => selectorProgress.value * (selectorWidth + SEGMENTED_CONTROL_GAP),
+  );
 
   return (
     <View
@@ -439,13 +434,11 @@ export function AdminSegmentedControl<T extends string>({
         <Animated.View
           pointerEvents="none"
           className="absolute bottom-2 left-2 top-2 rounded-[16]"
-          style={[
-            {
-              width: selectorWidth,
-              backgroundColor: tc.primaryText,
-            },
-            selectorStyle,
-          ]}
+          style={{
+            width: selectorWidth,
+            backgroundColor: tc.primaryText,
+            transform: [{ translateX: selectorTranslateX }],
+          }}
         />
       ) : null}
       {options.map((option) => {
