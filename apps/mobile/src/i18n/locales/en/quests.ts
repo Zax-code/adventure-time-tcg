@@ -114,6 +114,7 @@ const quests = {
     adminResetBody:
       "Your progress was reset by {name}. You can play again from the start.",
     tryAgain: "Something went wrong, try again.",
+    claimReward: "Claim {reward} coins",
     shareResult: "Share result",
     sharePreparing: "Preparing…",
     shareBrand: "Adventure Time TCG",

@@ -115,6 +115,7 @@ const quests = {
     adminResetBody:
       "Ta progression a été réinitialisée par {name}. Tu peux rejouer depuis le début.",
     tryAgain: "Une erreur est survenue, réessaie.",
+    claimReward: "Récupérer {reward} pièces",
     shareResult: "Partager le résultat",
     sharePreparing: "Préparation…",
     shareBrand: "Adventure Time TCG",
