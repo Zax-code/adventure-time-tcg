@@ -18,3 +18,12 @@ report.xml
 .DS_Store
 .vscode/
 **/.migration-reports/
+
+# Local iOS/dev-client build output
+apps/mobile/ios/build/
+apps/mobile/ios/DerivedData/
+apps/mobile/ios/Pods/
+apps/mobile/ios/.xcode.env.local
+apps/mobile/ios/*.xcworkspace/xcuserdata/
+apps/mobile/ios/*.xcodeproj/xcuserdata/
+apps/mobile/ios/*.xcuserstate
