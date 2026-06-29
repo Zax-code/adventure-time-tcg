@@ -1,9 +1,16 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { Animated, ScrollView, Text, View } from "react-native";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { ApiClientError } from "@adventure-time/api-client";
 
 import { ThemedExpoButton } from "../../src/components/expo-ui/themed-button";
@@ -56,6 +63,15 @@ type SearchableUser = {
 };
 
 const PVP_LOBBY_REFETCH_INTERVAL_MS = 5_000;
+
+type PvpLobbyMatchSummary = {
+  inviterId: string;
+  inviteeId: string;
+  inviterName?: string | null;
+  inviteeName?: string | null;
+  inviterLoadout: string[];
+  inviteeLoadout: string[];
+};
 
 function SectionHeading({
   title,
@@ -169,6 +185,59 @@ function getUserSearchScore(query: string, user: SearchableUser) {
   );
 }
 
+function getPlayerDisplayLabel(
+  name: string | null | undefined,
+  userId: string,
+  t: (key: string, params?: Record<string, string | number>) => string,
+) {
+  const trimmedName = name?.trim();
+
+  if (trimmedName) {
+    return trimmedName;
+  }
+
+  return t("pvp.unknownPlayerWithId", { id: userId.slice(0, 8) });
+}
+
+function getLobbyMatchSummary(
+  match: PvpLobbyMatchSummary,
+  currentUserId: string | null | undefined,
+  t: (key: string, params?: Record<string, string | number>) => string,
+) {
+  const inviterLabel = getPlayerDisplayLabel(
+    match.inviterName,
+    match.inviterId,
+    t,
+  );
+  const inviteeLabel = getPlayerDisplayLabel(
+    match.inviteeName,
+    match.inviteeId,
+    t,
+  );
+
+  if (currentUserId === match.inviterId) {
+    return {
+      title: `vs ${inviteeLabel}`,
+      viewerLoadoutCount: match.inviterLoadout.length,
+      opponentLoadoutCount: match.inviteeLoadout.length,
+    };
+  }
+
+  if (currentUserId === match.inviteeId) {
+    return {
+      title: `vs ${inviterLabel}`,
+      viewerLoadoutCount: match.inviteeLoadout.length,
+      opponentLoadoutCount: match.inviterLoadout.length,
+    };
+  }
+
+  return {
+    title: `${inviterLabel} vs ${inviteeLabel}`,
+    viewerLoadoutCount: match.inviterLoadout.length,
+    opponentLoadoutCount: match.inviteeLoadout.length,
+  };
+}
+
 export default function PvpScreen() {
   const queryClient = useQueryClient();
   const router = useRouter();
@@ -223,6 +292,27 @@ export default function PvpScreen() {
     queryKey: ["users"],
     queryFn: () => apiClient.users(),
   });
+  const currentPvpUserId =
+    currentUserId ?? historyQuery.data?.currentUserId ?? null;
+
+  useFocusEffect(
+    useCallback(() => {
+      void Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ["pvp-invites"],
+          refetchType: "active",
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["pvp-matches"],
+          refetchType: "active",
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["pvp-history"],
+          refetchType: "active",
+        }),
+      ]);
+    }, [queryClient]),
+  );
 
   const validLoadouts = useMemo(
     () =>
@@ -247,16 +337,16 @@ export default function PvpScreen() {
   const pendingReceivedInvites = useMemo(
     () =>
       invitesQuery.data?.invites.filter(
-        (invite) => invite.inviteeId === currentUserId,
+        (invite) => invite.inviteeId === currentPvpUserId,
       ) ?? [],
-    [currentUserId, invitesQuery.data?.invites],
+    [currentPvpUserId, invitesQuery.data?.invites],
   );
   const pendingSentInvites = useMemo(
     () =>
       invitesQuery.data?.invites.filter(
-        (invite) => invite.inviterId === currentUserId,
+        (invite) => invite.inviterId === currentPvpUserId,
       ) ?? [],
-    [currentUserId, invitesQuery.data?.invites],
+    [currentPvpUserId, invitesQuery.data?.invites],
   );
   const activeMatches = useMemo(
     () => matchesQuery.data?.matches ?? [],
@@ -310,13 +400,13 @@ export default function PvpScreen() {
 
     activeMatches.forEach((match) => {
       const otherUserId =
-        match.inviterId === currentUserId ? match.inviteeId : match.inviterId;
+        match.inviterId === currentPvpUserId ? match.inviteeId : match.inviterId;
       next[otherUserId] = "active";
     });
 
     [...pendingSentInvites, ...pendingReceivedInvites].forEach((invite) => {
       const otherUserId =
-        invite.inviterId === currentUserId
+        invite.inviterId === currentPvpUserId
           ? invite.inviteeId
           : invite.inviterId;
 
@@ -328,14 +418,14 @@ export default function PvpScreen() {
     return next;
   }, [
     activeMatches,
-    currentUserId,
+    currentPvpUserId,
     pendingReceivedInvites,
     pendingSentInvites,
   ]);
   const sortedOpponentUsers = useMemo(
     () =>
       [...(usersQuery.data?.users ?? [])]
-        .filter((user) => user.id !== currentUserId)
+        .filter((user) => user.id !== currentPvpUserId)
         .sort((left, right) => {
           const leftBlocked = interactionMap[left.id] ? 1 : 0;
           const rightBlocked = interactionMap[right.id] ? 1 : 0;
@@ -346,7 +436,7 @@ export default function PvpScreen() {
 
           return left.displayName.localeCompare(right.displayName);
         }),
-    [currentUserId, interactionMap, usersQuery.data?.users],
+    [currentPvpUserId, interactionMap, usersQuery.data?.users],
   );
   const challengeableUsers = useMemo(
     () => sortedOpponentUsers.filter((user) => !interactionMap[user.id]),
@@ -399,14 +489,14 @@ export default function PvpScreen() {
 
     historyMatches.forEach((match) => {
       const otherUserId =
-        match.inviterId === currentUserId ? match.inviteeId : match.inviterId;
+        match.inviterId === currentPvpUserId ? match.inviteeId : match.inviterId;
 
       pushRecentOpponent(otherUserId, match.updatedAt || match.createdAt);
     });
 
     activeMatches.forEach((match) => {
       const otherUserId =
-        match.inviterId === currentUserId ? match.inviteeId : match.inviterId;
+        match.inviterId === currentPvpUserId ? match.inviteeId : match.inviterId;
 
       pushRecentOpponent(otherUserId, match.updatedAt || match.createdAt);
     });
@@ -430,7 +520,7 @@ export default function PvpScreen() {
       .map(([userId]) => userId);
   }, [
     activeMatches,
-    currentUserId,
+    currentPvpUserId,
     historyMatches,
     pendingReceivedInvites,
     pendingSentInvites,
@@ -945,7 +1035,7 @@ export default function PvpScreen() {
         </View>
 
         {pendingReceivedInvites.length > 0 ? (
-          <View className="gap-3">
+          <View className="mt-7 gap-3">
             <SectionHeading
               title={t("pvp.incomingChallenges")}
               toneColor={tc.dangerDark}
@@ -1186,7 +1276,7 @@ export default function PvpScreen() {
         ) : null}
 
         {activeMatches.length > 0 ? (
-          <View className="gap-3">
+          <View className="mt-7 gap-4">
             <SectionHeading
               title={t("pvp.activeBattles", { count: activeMatches.length })}
               toneColor={tc.successDark}
@@ -1198,54 +1288,100 @@ export default function PvpScreen() {
                 t,
                 now,
               );
-              const opponentId =
-                match.inviterId === currentUserId
-                  ? match.inviteeId
-                  : match.inviterId;
-              const opponentName =
-                match.inviterId === currentUserId
-                  ? match.inviteeName
-                  : match.inviterName;
+              const summary = getLobbyMatchSummary(match, currentPvpUserId, t);
+              const isMyTurn =
+                match.currentPlayerId != null &&
+                match.currentPlayerId === currentPvpUserId;
+              const turnOwnerLabel =
+                match.currentPlayerId == null
+                  ? t("pvp.activeBattleTurnUnknown")
+                  : isMyTurn
+                    ? t("pvp.activeBattleYourTurn")
+                    : t("pvp.activeBattleTheirTurn");
+              const turnLabel = t("pvp.lobby.turn", {
+                count: match.currentTurn ?? 1,
+              });
 
               return (
                 <ThemedExpoButton
                   key={match.id}
                   onPress={() => router.push(`/pvp-match?id=${match.id}`)}
                   testID={`pvp-active-match-card-${index}`}
+                  accessibilityLabel={`${summary.title}. ${turnOwnerLabel}. ${t(
+                    "pvp.continueBattle",
+                  )}`}
                   preferFallback
                   variant="primary"
                   fallbackLayout="stretch"
                   fallbackAppearance={{
                     backgroundColor: tc.surface,
                     borderColor: tc.successBorder,
-                    borderRadius: 24,
+                    borderRadius: 26,
                     foregroundColor: tc.fg,
                     gradientColors: null,
-                    minHeight: 0,
-                    paddingHorizontal: 16,
-                    paddingVertical: 16,
+                    minHeight: 132,
+                    paddingHorizontal: 18,
+                    paddingVertical: 18,
                   }}
                 >
-                  <View className="h-11 w-11 items-center justify-center rounded-2xl bg-successTint">
-                    <SwordsIcon size={20} color={tc.successDark} />
-                  </View>
-                  <View className="flex-1 gap-1">
-                    <Text className="font-nunito-bold text-fg">
-                      vs {opponentName ?? `${opponentId.slice(0, 10)}…`}
-                    </Text>
-                    <Text className="font-nunito text-xs text-successDark">
-                      {t("pvp.lobby.turn", { count: match.currentTurn ?? 1 })}
-                    </Text>
-                    {timeoutLabel ? (
-                      <Text className="font-nunito-semibold text-[11px] text-fgMuted">
-                        {timeoutLabel.fullLabel}
+                  <View className="gap-4">
+                    <View className="flex-row items-start gap-3">
+                      <View className="h-14 w-14 items-center justify-center rounded-[22px] bg-successTint">
+                        <SwordsIcon size={26} color={tc.successDark} />
+                      </View>
+                      <View className="min-w-0 flex-1 gap-1">
+                        <Text
+                          className="font-nunito-extrabold text-lg leading-6 text-fg"
+                          numberOfLines={2}
+                        >
+                          {summary.title}
+                        </Text>
+                        <Text
+                          className={`font-nunito-bold text-sm ${
+                            isMyTurn ? "text-successDark" : "text-fgMuted"
+                          }`}
+                        >
+                          {turnOwnerLabel}
+                        </Text>
+                      </View>
+                      <View className="rounded-full bg-successTint px-3 py-1.5">
+                        <Text className="font-nunito-extrabold text-xs text-successDark">
+                          {turnLabel}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View className="flex-row flex-wrap gap-2">
+                      <View className="rounded-full bg-primaryTint px-3 py-1.5">
+                        <Text className="font-nunito-semibold text-xs text-primaryDark">
+                          {t("pvp.activeBattleTeams", {
+                            mine: summary.viewerLoadoutCount,
+                            theirs: summary.opponentLoadoutCount,
+                          })}
+                        </Text>
+                      </View>
+                      <View className="rounded-full bg-surfaceMuted px-3 py-1.5">
+                        <Text className="font-nunito-semibold text-xs text-fgMuted">
+                          {t("pvp.activeBattleUpdated", {
+                            time: getTimeAgo(match.updatedAt, t),
+                          })}
+                        </Text>
+                      </View>
+                      {timeoutLabel ? (
+                        <View className="rounded-full bg-infoTint px-3 py-1.5">
+                          <Text className="font-nunito-semibold text-xs text-infoDark">
+                            {timeoutLabel.shortLabel}
+                          </Text>
+                        </View>
+                      ) : null}
+                    </View>
+
+                    <View className="min-h-12 flex-row items-center justify-center gap-2 rounded-2xl bg-successTint px-4 py-3">
+                      <Text className="font-nunito-extrabold text-base text-successDark">
+                        {t("pvp.continueBattle")}
                       </Text>
-                    ) : null}
-                  </View>
-                  <View className="rounded-full bg-successTint px-3 py-1.5">
-                    <Text className="font-nunito-bold text-xs text-successDark">
-                      {t("pvp.continueArrow")}
-                    </Text>
+                      <ChevronRightIcon size={18} color={tc.successDark} />
+                    </View>
                   </View>
                 </ThemedExpoButton>
               );
@@ -1254,7 +1390,7 @@ export default function PvpScreen() {
         ) : null}
 
         {pendingSentInvites.length > 0 ? (
-          <View className="gap-3">
+          <View className="mt-7 gap-3">
             <SectionHeading
               title={t("pvp.sentInvites", { count: pendingSentInvites.length })}
               toneColor={tc.infoDark}
@@ -1303,7 +1439,7 @@ export default function PvpScreen() {
         ) : null}
 
         {completedMatches.length > 0 ? (
-          <View className="gap-3">
+          <View className="mt-8 gap-3">
             <SectionHeading
               title={t("pvp.recentBattles")}
               toneColor={tc.accentText}
@@ -1334,15 +1470,8 @@ export default function PvpScreen() {
               }
             />
             {completedMatches.map((match) => {
-              const result = getPvpMatchResultView(match, currentUserId);
-              const opponentId =
-                match.inviterId === currentUserId
-                  ? match.inviteeId
-                  : match.inviterId;
-              const opponentName =
-                match.inviterId === currentUserId
-                  ? match.inviteeName
-                  : match.inviterName;
+              const result = getPvpMatchResultView(match, currentPvpUserId);
+              const summary = getLobbyMatchSummary(match, currentPvpUserId, t);
 
               return (
                 <ThemedExpoButton
@@ -1378,25 +1507,30 @@ export default function PvpScreen() {
                     paddingVertical: 12,
                   }}
                 >
-                  <Text
-                    className={`font-nunito-bold text-sm ${
-                      result.tone === "draw"
-                        ? "text-infoDark"
-                        : result.tone === "win"
-                          ? "text-successDark"
-                          : "text-dangerDark"
-                    }`}
-                  >
-                    {t(result.labelKey)}
-                  </Text>
-                  <Text className="flex-1 font-nunito text-sm text-fgMuted">
-                    vs {opponentName ?? `${opponentId.slice(0, 10)}…`}
-                  </Text>
-                  <Text className="font-nunito-bold text-xs text-accent">
-                    {match.hasReplayData
-                      ? t("pvp.replayArrow")
-                      : t("pvp.noReplay")}
-                  </Text>
+                  <View className="flex-row items-center gap-3">
+                    <Text
+                      className={`font-nunito-bold text-sm ${
+                        result.tone === "draw"
+                          ? "text-infoDark"
+                          : result.tone === "win"
+                            ? "text-successDark"
+                            : "text-dangerDark"
+                      }`}
+                    >
+                      {t(result.labelKey)}
+                    </Text>
+                    <Text
+                      className="min-w-0 flex-1 font-nunito text-sm text-fgMuted"
+                      numberOfLines={1}
+                    >
+                      {summary.title}
+                    </Text>
+                    <Text className="font-nunito-bold text-xs text-accent">
+                      {match.hasReplayData
+                        ? t("pvp.replayArrow")
+                        : t("pvp.noReplay")}
+                    </Text>
+                  </View>
                 </ThemedExpoButton>
               );
             })}
@@ -1404,7 +1538,7 @@ export default function PvpScreen() {
         ) : null}
 
         {!hasAnyData ? (
-          <View className="overflow-hidden rounded-[28px] border border-primaryTint">
+          <View className="mt-7 overflow-hidden rounded-[28px] border border-primaryTint">
             <LinearGradient
               colors={[tc.primaryBg, tc.surface]}
               start={{ x: 0, y: 0 }}
@@ -1426,7 +1560,7 @@ export default function PvpScreen() {
         ) : null}
 
         {hasLoadouts ? (
-          <View className="mt-4 gap-3">
+          <View className="mt-8 gap-3">
             <SectionHeading
               title={t("pvp.myLoadouts")}
               toneColor={tc.accentText}

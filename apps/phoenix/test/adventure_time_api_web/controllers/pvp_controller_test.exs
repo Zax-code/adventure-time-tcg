@@ -434,6 +434,7 @@ defmodule AdventureTimeApiWeb.PvpControllerTest do
     assert %{"matches" => [match]} = json_response(matches_conn, 200)
     assert match["id"] == match_id
     assert match["status"] == "IN_PROGRESS"
+    assert is_binary(match["currentPlayerId"])
 
     spectator_conn = inviter_token |> auth_conn() |> get(~p"/pvp/spectate")
     assert %{"matches" => spectate_matches} = json_response(spectator_conn, 200)
