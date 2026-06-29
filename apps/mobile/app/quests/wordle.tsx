@@ -14,11 +14,12 @@ import * as Haptics from "expo-haptics";
 import * as Sharing from "expo-sharing";
 import { File, Paths } from "expo-file-system";
 import { captureRef } from "react-native-view-shot";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
 import { ApiClientError } from "@adventure-time/api-client";
 import type {
+  QuestsResponse,
   WordleLocale,
   WordleStateResponse,
   WordleSubmitResponse,
@@ -33,6 +34,7 @@ import {
 } from "../../src/features/quests/wordle/share-result";
 import { useTranslation } from "../../src/i18n";
 import { useQuestResetStore } from "../../src/stores/quest-reset-store";
+import { useSessionStore } from "../../src/stores/session-store";
 import { useThemeStore } from "../../src/stores/theme-store";
 import { useWordleLanguageStore } from "../../src/stores/wordle-language-store";
 import { THEME_COLORS, THEME_VARS } from "../../src/theme/themes";
@@ -62,6 +64,11 @@ const LETTER_PRIORITY: Record<string, number> = {
 
 type LetterState = "correct" | "present" | "absent";
 type GuessResult = { guess: string; evaluation: LetterState[] };
+type Quest = QuestsResponse["quests"][number];
+
+function getWordleQuestType(locale: WordleLocale) {
+  return locale === "fr" ? "wordle_daily_fr" : "wordle_daily_en";
+}
 
 function tileBgBorderClass(state?: LetterState): string {
   if (state === "correct") return "bg-successDark border-successDark";
@@ -129,6 +136,7 @@ export default function WordleScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const patchUser = useSessionStore((state) => state.patchUser);
   const { language: languageParam } = useLocalSearchParams<{
     language?: string;
   }>();
@@ -285,6 +293,23 @@ export default function WordleScreen() {
     enabled: wordleLanguageHydrated,
     staleTime: 30_000,
   });
+
+  const { data: questsData } = useQuery({
+    queryKey: ["quests"],
+    queryFn: () => apiClient.quests(),
+    enabled: wordleLanguageHydrated,
+    staleTime: 30_000,
+  });
+
+  const currentWordleQuest: Quest | undefined = useMemo(() => {
+    const questType = getWordleQuestType(wordleLanguage);
+    return questsData?.quests.find((quest) => quest.type === questType);
+  }, [questsData?.quests, wordleLanguage]);
+
+  const claimableQuest =
+    currentWordleQuest?.completed && !currentWordleQuest.claimed
+      ? currentWordleQuest
+      : null;
 
   const wordleDefinitionDateKey = stateQuery.data?.date ?? activeDateKey;
 
@@ -596,6 +621,8 @@ export default function WordleScreen() {
 
   const patchWordleCaches = useCallback(
     (result: WordleSubmitResponse, nextGuesses: GuessResult[]) => {
+      const questId = questVersionRef.current;
+
       queryClient.setQueryData<WordleStateResponse>(
         ["wordle", wordleLanguage],
         (previous) => {
@@ -614,10 +641,72 @@ export default function WordleScreen() {
         },
       );
 
+      if (questId && result.solved) {
+        queryClient.setQueryData<QuestsResponse>(["quests"], (previous) => {
+          if (!previous) {
+            return previous;
+          }
+
+          return {
+            ...previous,
+            quests: previous.quests.map((quest) =>
+              quest.id === questId
+                ? {
+                    ...quest,
+                    completed: true,
+                    progress: quest.target,
+                  }
+                : quest,
+            ),
+          };
+        });
+      }
+
       void queryClient.invalidateQueries({ queryKey: ["quests"] });
     },
     [queryClient, wordleLanguage],
   );
+
+  const claimQuestMutation = useMutation({
+    mutationFn: (questId: string) => apiClient.claimQuest({ questId }),
+    onSuccess: async (data) => {
+      queryClient.setQueryData<QuestsResponse>(["quests"], (previous) => {
+        if (!previous) {
+          return previous;
+        }
+
+        return {
+          ...previous,
+          quests: previous.quests.map((quest) =>
+            quest.id === data.quest.id
+              ? {
+                  ...quest,
+                  completed: data.quest.completed,
+                  claimed: data.quest.claimed,
+                  progress: quest.target,
+                }
+              : quest,
+          ),
+        };
+      });
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["quests"] }),
+        queryClient.invalidateQueries({ queryKey: ["home"] }),
+      ]);
+      await patchUser({ coins: data.newBalance });
+      setMessage(
+        t("quests.claimSuccess", {
+          amount: data.reward,
+        }),
+      );
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    },
+    onError: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["quests"] });
+      setMessage(t("quests.claimFailed"));
+    },
+  });
 
   const submitGuess = useCallback(async () => {
     if (submitLocked) return;
@@ -1131,6 +1220,27 @@ export default function WordleScreen() {
             {t("quests.wordle.revealedWord", { word: targetWord })}
           </Text>
         )}
+
+        {claimableQuest ? (
+          <QuestActionButton
+            label={t("quests.wordle.claimReward", {
+              reward: claimableQuest.reward,
+            })}
+            onPress={() => {
+              void claimQuestMutation.mutateAsync(claimableQuest.id);
+            }}
+            loading={
+              claimQuestMutation.isPending &&
+              claimQuestMutation.variables === claimableQuest.id
+            }
+            loadingMode="inline"
+            backgroundColor={tc.successDark}
+            foregroundColor="#FFFFFF"
+            minHeight={48}
+            accessibilityLabel={t("quests.claim")}
+            testID="wordle-claim-reward"
+          />
+        ) : null}
 
         {gameOver ? (
           <QuestActionButton
