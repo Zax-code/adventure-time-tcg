@@ -20,6 +20,7 @@ report.xml
 **/.migration-reports/
 
 # Local iOS/dev-client build output
+ios/
 apps/mobile/ios/build/
 apps/mobile/ios/DerivedData/
 apps/mobile/ios/Pods/
