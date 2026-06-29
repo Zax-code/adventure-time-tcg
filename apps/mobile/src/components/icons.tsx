@@ -236,6 +236,33 @@ export function CheckIcon({ size = 24, color = "#DB2777" }: IconProps) {
   );
 }
 
+export function ShareIcon({ size = 24, color = "#DB2777" }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M12 4V15"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+      />
+      <Path
+        d="M8 8L12 4L16 8"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M6 12V18C6 19.1 6.9 20 8 20H16C17.1 20 18 19.1 18 18V12"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
 export function PlayIcon({ size = 24, color = "#DB2777" }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">

@@ -34,6 +34,7 @@ import {
   DailyLoginQuestIcon,
   DailyNumbersQuestIcon,
   HelpCircleIcon,
+  ShareIcon,
   SpeedCalculusQuestIcon,
   SparklesIcon,
   StepQuestIcon,
@@ -81,6 +82,7 @@ import {
 import { THEME_COLORS } from "../../src/theme/themes";
 
 type QuestStatus = "active" | "completed" | "claimed" | "failed";
+type ThemeColors = (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
 type Quest = QuestsResponse["quests"][number];
 type QuestCardItem =
   | { kind: "quest"; quest: Quest }
@@ -161,7 +163,7 @@ function getQuestDesc(
 
 function getProgressColor(
   status: QuestStatus,
-  tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS],
+  tc: ThemeColors,
 ) {
   if (status === "claimed") return tc.successDark;
   if (status === "completed") return tc.successDark;
@@ -171,7 +173,7 @@ function getProgressColor(
 
 function getMetaColor(
   status: QuestStatus,
-  tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS],
+  tc: ThemeColors,
 ) {
   if (status === "claimed") return tc.successDark;
   if (status === "completed") return tc.successDark;
@@ -191,7 +193,7 @@ function getQuestStatusLabel(
 function getQuestActionButtonAppearance(
   status: QuestStatus,
   colors: { iconColor: string },
-  tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS],
+  tc: ThemeColors,
 ) {
   if (status === "active") {
     return {
@@ -434,15 +436,49 @@ function getDailyNumbersGroupStatus(
     return "active";
   }
 
-  if (entries.every((quest) => quest.claimed)) {
+  const statuses = entries.map((quest) => getDailyNumbersQuestStatus(quest));
+
+  if (statuses.some((status) => status === "failed")) {
+    return "failed";
+  }
+
+  if (statuses.every((status) => status === "claimed")) {
     return "claimed";
   }
 
-  if (entries.every((quest) => quest.completed || quest.claimed)) {
+  if (
+    statuses.every((status) => status === "completed" || status === "claimed")
+  ) {
     return "completed";
   }
 
-  if (entries.every((quest) => quest.failed)) {
+  return "active";
+}
+
+function isDailyNumbersExactHit(quest: Quest) {
+  return quest.distance === 0 && quest.finalValue != null;
+}
+
+function hasDailyNumbersResult(quest: Quest) {
+  return (
+    quest.score != null ||
+    quest.distance != null ||
+    quest.finalValue != null ||
+    quest.completed ||
+    quest.claimed
+  );
+}
+
+function getDailyNumbersQuestStatus(quest: Quest): QuestStatus {
+  if (quest.claimed && isDailyNumbersExactHit(quest)) {
+    return "claimed";
+  }
+
+  if (isDailyNumbersExactHit(quest)) {
+    return "completed";
+  }
+
+  if (hasDailyNumbersResult(quest)) {
     return "failed";
   }
 
@@ -538,15 +574,17 @@ function getDailyNumbersModeStatusLabel(
   quest: Quest,
   t: (key: string, params?: Record<string, string | number>) => string,
 ) {
-  if (quest.claimed) {
+  const status = getDailyNumbersQuestStatus(quest);
+
+  if (status === "claimed") {
     return t("quests.dailyNumbers.claimedLabel");
   }
 
-  if (quest.completed) {
+  if (status === "completed") {
     return t("quests.dailyNumbers.completedLabel");
   }
 
-  if (quest.score != null) {
+  if (status === "failed") {
     return t("quests.dailyNumbers.submittedLabel");
   }
 
@@ -986,30 +1024,30 @@ export default function QuestsScreen() {
           const mode = availableModes[index];
           const quest = quests[mode];
           const submission = state.submission;
-          const completed = Boolean(
-            quest?.completed ||
-            quest?.claimed ||
-            state.completed ||
-            submission?.completed,
-          );
           const distance = submission?.distance ?? quest?.distance ?? null;
           const score = submission?.score ?? quest?.score ?? null;
           const finalValue =
             submission?.finalValue ?? quest?.finalValue ?? null;
           const elapsedMs = submission?.elapsedMs ?? quest?.elapsedMs ?? 0;
           const exact = distance === 0 && finalValue != null;
+          const hasResult =
+            score != null ||
+            distance != null ||
+            finalValue != null ||
+            Boolean(
+              state.completed || submission?.completed || quest?.completed,
+            );
           dateKey = dateKey ?? state.date;
 
           let resultLine = t("quests.shareNotCompleted");
-          if (completed) {
-            resultLine = exact
-              ? t("quests.dailyNumbers.shareExact", {
-                  score: score ?? 100,
-                })
-              : t("quests.dailyNumbers.shareScore", {
-                  score: score ?? 0,
-                  distance: distance ?? 0,
-                });
+          if (exact) {
+            resultLine = t("quests.dailyNumbers.shareExact", {
+              score: score ?? 100,
+            });
+          } else if (hasResult) {
+            resultLine = t("quests.dailyNumbers.shareMissed", {
+              distance: distance ?? 0,
+            });
           }
 
           return {
@@ -1025,7 +1063,7 @@ export default function QuestsScreen() {
               score,
               elapsedTime: formatDailyNumbersElapsedTime(elapsedMs),
               exact,
-              completed,
+              completed: exact,
             }),
             strings: {
               brand: t("quests.dailyNumbers.shareBrand"),
@@ -1350,6 +1388,11 @@ export default function QuestsScreen() {
               if (item.kind === "wordle") {
                 const groupStatus = getWordleGroupStatus(item.quests);
                 const colors = STATUS_COLORS[groupStatus];
+                const shareButtonAppearance = getQuestActionButtonAppearance(
+                  groupStatus,
+                  colors,
+                  tc,
+                );
                 const availableLanguages = WORDLE_LANGUAGES.filter(
                   (language) => item.quests[language],
                 );
@@ -1519,8 +1562,10 @@ export default function QuestsScreen() {
                         }
                         loading={sharingGroup === "wordle"}
                         loadingMode="inline"
-                        backgroundColor={tc.primaryDark}
-                        foregroundColor="#FFFFFF"
+                        backgroundColor={shareButtonAppearance.backgroundColor}
+                        foregroundColor={shareButtonAppearance.foregroundColor}
+                        borderColor={shareButtonAppearance.borderColor}
+                        leadingIcon={ShareIcon}
                         minHeight={48}
                         style={{
                           width: "100%",
@@ -1674,12 +1719,17 @@ export default function QuestsScreen() {
               if (item.kind === "dailyNumbers") {
                 const groupStatus = getDailyNumbersGroupStatus(item.quests);
                 const colors = STATUS_COLORS[groupStatus];
+                const shareButtonAppearance = getQuestActionButtonAppearance(
+                  groupStatus,
+                  colors,
+                  tc,
+                );
                 const availableModes = DAILY_NUMBERS_MODES.filter(
                   (mode) => item.quests[mode],
                 );
                 const completedModes = availableModes.filter((mode) => {
                   const quest = item.quests[mode];
-                  return quest?.completed || quest?.claimed;
+                  return quest ? isDailyNumbersExactHit(quest) : false;
                 }).length;
                 const totalReward = availableModes.reduce((sum, mode) => {
                   return sum + (item.quests[mode]?.reward ?? 0);
@@ -1852,8 +1902,10 @@ export default function QuestsScreen() {
                         }
                         loading={sharingGroup === "dailyNumbers"}
                         loadingMode="inline"
-                        backgroundColor={tc.primaryDark}
-                        foregroundColor="#FFFFFF"
+                        backgroundColor={shareButtonAppearance.backgroundColor}
+                        foregroundColor={shareButtonAppearance.foregroundColor}
+                        borderColor={shareButtonAppearance.borderColor}
+                        leadingIcon={ShareIcon}
                         minHeight={48}
                         style={{
                           width: "100%",
@@ -1869,7 +1921,7 @@ export default function QuestsScreen() {
                             return null;
                           }
 
-                          const modeStatus = getQuestStatus(quest);
+                          const modeStatus = getDailyNumbersQuestStatus(quest);
                           const modeColors = STATUS_COLORS[modeStatus];
                           const modeActionAppearance =
                             getQuestActionButtonAppearance(

@@ -25,6 +25,7 @@ import type {
   WordleSubmitResponse,
 } from "@adventure-time/api-client";
 import { apiClient } from "../../src/lib/api";
+import { ShareIcon } from "../../src/components/icons";
 import { PageLoadingState } from "../../src/components/loading-state";
 import { QuestActionButton } from "../../src/features/quests/quest-action-button";
 import { WordleQuestShareCard } from "../../src/features/quests/wordle/quest-share-card";
@@ -1254,8 +1255,9 @@ export default function WordleScreen() {
             }}
             loading={isSharing}
             loadingMode="inline"
-            backgroundColor={tc.primaryDark}
+            backgroundColor={solved ? tc.successDark : tc.dangerDark}
             foregroundColor="#FFFFFF"
+            leadingIcon={ShareIcon}
             minHeight={48}
             testID="wordle-share-result"
           />

@@ -308,7 +308,7 @@ const quests = {
     distanceLabel: "Distance",
     scoreLabel: "Score",
     completedLabel: "Reward unlocked",
-    incompleteLabel: "No reward unlocked",
+    incompleteLabel: "Result submitted",
     shareResult: "Share result",
     sharePreparing: "Preparing…",
     shareBrand: "Adventure Time TCG",

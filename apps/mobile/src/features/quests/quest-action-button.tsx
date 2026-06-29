@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ComponentType, ReactNode } from "react";
 import {
   ActivityIndicator,
   Text,
@@ -19,6 +19,8 @@ export function QuestActionButton({
   loading = false,
   loadingMode = "replace",
   leadingAccessory,
+  leadingIcon: LeadingIcon,
+  leadingIconSize = 18,
   minHeight = 44,
   textClassName = "font-nunito-bold text-sm",
   accessibilityLabel,
@@ -34,6 +36,8 @@ export function QuestActionButton({
   loading?: boolean;
   loadingMode?: QuestActionButtonLoadingMode;
   leadingAccessory?: ReactNode;
+  leadingIcon?: ComponentType<{ size?: number; color?: string }>;
+  leadingIconSize?: number;
   minHeight?: number;
   textClassName?: string;
   accessibilityLabel?: string;
@@ -42,6 +46,7 @@ export function QuestActionButton({
 }) {
   const showInlineLoading = loading && loadingMode === "inline";
   const showReplaceLoading = loading && loadingMode === "replace";
+  const hasLeadingContent = Boolean(leadingAccessory || LeadingIcon);
 
   return (
     <TouchableOpacity
@@ -68,7 +73,7 @@ export function QuestActionButton({
           flexDirection: "row",
           alignItems: "center",
           justifyContent: "center",
-          gap: leadingAccessory || loading ? 8 : 0,
+          gap: hasLeadingContent || loading ? 8 : 0,
           backgroundColor,
         }}
       >
@@ -78,6 +83,8 @@ export function QuestActionButton({
           <>
             {showInlineLoading ? (
               <ActivityIndicator color={foregroundColor} size="small" />
+            ) : LeadingIcon ? (
+              <LeadingIcon size={leadingIconSize} color={foregroundColor} />
             ) : (
               leadingAccessory
             )}
