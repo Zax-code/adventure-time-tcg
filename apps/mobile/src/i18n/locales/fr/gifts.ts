@@ -36,14 +36,6 @@ const gifts = {
   cardMeta: {
     rarity: "Rareté",
     type: "Type",
-    quantity: "Qté",
-  },
-  quantityCopies: "x{count}",
-  stats: {
-    hp: "PV",
-    attack: "ATQ",
-    defense: "DEF",
-    speed: "VIT",
   },
   timeline: "Envoyé le {created}",
   timelineWithExpiry: "Envoyé le {created} · {expiry}",

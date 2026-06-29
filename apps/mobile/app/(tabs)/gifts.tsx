@@ -601,21 +601,22 @@ function GiftCard({
           </View>
         </View>
 
-        <View className="flex-row gap-4">
-          <View style={{ width: 118 }}>
+        <View className="flex-row gap-3">
+          <View>
             <CardTile
               card={cardTile}
               quantity={gift.quantity}
-              fitContainer
               testID={`gifts-card-preview-${gift.id}`}
             />
           </View>
 
-          <View className="flex-1 gap-3">
+          <View className="flex-1 justify-center gap-3">
             <View className="gap-1">
               <Text
-                className="font-nunito-extrabold text-xl leading-6 text-fg"
-                numberOfLines={2}
+                className="font-nunito-extrabold text-2xl leading-7 text-fg"
+                numberOfLines={3}
+                adjustsFontSizeToFit
+                minimumFontScale={0.82}
               >
                 {gift.card.name}
               </Text>
@@ -637,37 +638,7 @@ function GiftCard({
                   border={tc.accentBorder}
                   text={tc.accentText}
                 />
-                <InfoPill
-                  label={t("gifts.cardMeta.quantity")}
-                  value={t("gifts.quantityCopies", { count: gift.quantity })}
-                  bg={tc.surfaceMuted}
-                  border={tc.primaryTint}
-                  text={tc.fg}
-                />
               </View>
-            </View>
-
-            <Text
-              className="font-nunito text-sm leading-5 text-fgMuted"
-              numberOfLines={4}
-            >
-              {gift.card.description}
-            </Text>
-
-            <View className="flex-row flex-wrap gap-2">
-              <StatPill label={t("gifts.stats.hp")} value={gift.card.hp} />
-              <StatPill
-                label={t("gifts.stats.attack")}
-                value={gift.card.attack}
-              />
-              <StatPill
-                label={t("gifts.stats.defense")}
-                value={gift.card.defense}
-              />
-              <StatPill
-                label={t("gifts.stats.speed")}
-                value={gift.card.speed}
-              />
             </View>
           </View>
         </View>
@@ -798,24 +769,6 @@ function InfoPill({
         style={{ color: text }}
       >
         {label}: {value}
-      </Text>
-    </View>
-  );
-}
-
-function StatPill({ label, value }: { label: string; value: number }) {
-  const tc = THEME_COLORS[useThemeStore((state) => state.themeName)];
-
-  return (
-    <View
-      className="min-w-[48px] rounded-2xl border px-2.5 py-2"
-      style={{ backgroundColor: tc.surfaceMuted, borderColor: tc.primaryTint }}
-    >
-      <Text className="text-center font-nunito text-[10px] text-fgMuted">
-        {label}
-      </Text>
-      <Text className="text-center font-nunito-extrabold text-sm text-fg">
-        {value}
       </Text>
     </View>
   );
