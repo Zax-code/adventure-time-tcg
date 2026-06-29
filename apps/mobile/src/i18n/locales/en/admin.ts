@@ -270,9 +270,8 @@ const admin = {
   },
   featured: {
     title: "Featured cards",
-    subtitle:
-      "Highlight the showcase roster exactly like the PWA carousel selection flow.",
-    searchPlaceholder: "Search featured candidates",
+    subtitle: "Choose up to five cards for the home carousel.",
+    searchPlaceholder: "Search cards",
     selectedLabel: "Selected",
     slotsLeftLabel: "Slots left",
     featuredCount: "{count} / 5 featured",
@@ -289,9 +288,13 @@ const admin = {
     noFeaturedTitle: "No featured cards",
     noFeaturedBody: "Tap any card below to promote it into the featured set.",
     allCardsTitle: "All cards ({count})",
-    allCardsSubtitle: "Eligible active cards that can be promoted next.",
+    allCardsSubtitle: "Search active cards, then add or remove them in place.",
     noMatchesTitle: "No cards match",
     noMatchesBody: "Clear the search or add more cards on the cards tab.",
+    selectedBadge: "Featured",
+    addAction: "Add to featured",
+    removeAction: "Remove",
+    fullAction: "Showcase full",
   },
   abilities: {
     invalidApiData: "Ability data from the API is invalid. {details}",

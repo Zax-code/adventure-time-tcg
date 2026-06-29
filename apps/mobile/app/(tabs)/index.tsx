@@ -544,8 +544,8 @@ export default function HomeScreen() {
         ) : null}
 
         {featuredCards.length > 0 ? (
-          <View className="gap-3">
-            <View className="gap-1">
+          <View className="-mx-5 gap-3">
+            <View className="gap-1 px-5">
               <Text className="font-nunito-bold text-lg text-fg">
                 {t("home.featuredCards")}
               </Text>
@@ -566,7 +566,8 @@ export default function HomeScreen() {
               contentContainerStyle={{
                 gap: 12,
                 paddingBottom: 4,
-                paddingRight: 8,
+                paddingLeft: 20,
+                paddingRight: 20,
               }}
               showsHorizontalScrollIndicator={false}
             />

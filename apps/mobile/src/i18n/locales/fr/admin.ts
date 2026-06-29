@@ -271,9 +271,8 @@ const admin = {
   },
   featured: {
     title: "Cartes à la une",
-    subtitle:
-      "Mets en avant la sélection vitrine comme dans le carrousel du PWA.",
-    searchPlaceholder: "Rechercher des candidates à la une",
+    subtitle: "Choisis jusqu'à cinq cartes pour le carrousel de l'accueil.",
+    searchPlaceholder: "Rechercher des cartes",
     selectedLabel: "Sélectionnées",
     slotsLeftLabel: "Places restantes",
     featuredCount: "{count} / 5 à la une",
@@ -292,10 +291,15 @@ const admin = {
     noFeaturedBody:
       "Appuie sur une carte ci-dessous pour l'ajouter à la sélection.",
     allCardsTitle: "Toutes les cartes ({count})",
-    allCardsSubtitle: "Cartes actives éligibles à promouvoir ensuite.",
+    allCardsSubtitle:
+      "Recherche les cartes actives, puis ajoute-les ou retire-les ici.",
     noMatchesTitle: "Aucune carte ne correspond",
     noMatchesBody:
       "Efface la recherche ou ajoute d'autres cartes dans l'onglet cartes.",
+    selectedBadge: "À la une",
+    addAction: "Ajouter à la une",
+    removeAction: "Retirer",
+    fullAction: "Vitrine pleine",
   },
   abilities: {
     invalidApiData:

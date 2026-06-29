@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   FlatList,
   InteractionManager,
   Pressable,
+  StyleSheet,
   Text,
   View,
-  useWindowDimensions,
 } from "react-native";
 import Ionicons from "@react-native-vector-icons/ionicons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -13,10 +13,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { AdminCardsResponse } from "@adventure-time/api-client";
 
 import { CardTile } from "../../src/components/card-tile";
-import {
-  pickReadableTextColor,
-  withAlpha,
-} from "../../src/components/admin/admin-palette";
+import { withAlpha } from "../../src/components/admin/admin-palette";
 import {
   AdminChip,
   AdminEmptyState,
@@ -35,51 +32,69 @@ import { apiClient } from "../../src/lib/api";
 import { useThemeStore } from "../../src/stores/theme-store";
 import { THEME_COLORS } from "../../src/theme/themes";
 
-const GRID_GAP = 12;
 const SCREEN_SIDE_PADDING = 16;
-const PANEL_INNER_PADDING = 16;
 const CONTENT_BOTTOM_PADDING = 132;
+const SELECTED_CARD_WIDTH = 118;
+const ROW_CARD_WIDTH = 82;
+
+const styles = StyleSheet.create({
+  selectedCard: {
+    width: SELECTED_CARD_WIDTH,
+  },
+});
 
 type AdminCard = AdminCardsResponse["cards"][number];
 
-type CardRow = {
+type FeaturedListItem = {
   id: string;
-  left: AdminCard;
-  right?: AdminCard;
+  card: AdminCard;
 };
 
-type FeaturedListItem =
-  | { id: string; type: "featured-header" }
-  | { id: string; type: "featured-row"; row: CardRow }
-  | { id: string; type: "candidate-header" }
-  | { id: string; type: "candidate-row"; row: CardRow };
-
 const keyExtractor = (item: FeaturedListItem) => item.id;
+const cardKeyExtractor = (card: AdminCard) => card.id;
 
-function getFeaturedTileWidth(screenWidth: number) {
-  const availableWidth =
-    screenWidth - SCREEN_SIDE_PADDING * 2 - PANEL_INNER_PADDING * 2;
+const SelectedFeaturedCard = memo(function SelectedFeaturedCard({
+  card,
+  dangerBorder,
+  dangerTint,
+  disabled,
+  onRemove,
+  removeLabel,
+}: {
+  card: AdminCard;
+  dangerBorder: string;
+  dangerTint: string;
+  disabled: boolean;
+  onRemove: (card: AdminCard) => void;
+  removeLabel: string;
+}) {
+  const handlePress = useCallback(() => {
+    onRemove(card);
+  }, [card, onRemove]);
 
-  return Math.floor((availableWidth - GRID_GAP) / 2) - 2;
-}
-
-function chunkCards(cards: AdminCard[]) {
-  const rows: CardRow[] = [];
-
-  for (let index = 0; index < cards.length; index += 2) {
-    rows.push({
-      id: `row-${cards[index].id}-${cards[index + 1]?.id ?? "empty"}`,
-      left: cards[index],
-      right: cards[index + 1],
-    });
-  }
-
-  return rows;
-}
+  return (
+    <View className="gap-2" style={styles.selectedCard}>
+      <CardTile card={card} fitContainer />
+      <Pressable
+        disabled={disabled}
+        onPress={handlePress}
+        className="h-9 items-center justify-center rounded-full border px-3"
+        style={{
+          backgroundColor: withAlpha(dangerTint, "E8"),
+          borderColor: dangerBorder,
+          opacity: disabled ? 0.58 : 1,
+        }}
+      >
+        <Text className="font-nunito-extrabold text-xs text-dangerText">
+          {removeLabel}
+        </Text>
+      </Pressable>
+    </View>
+  );
+});
 
 export default function AdminFeaturedScreen() {
   const queryClient = useQueryClient();
-  const { width } = useWindowDimensions();
   const [searchQuery, setSearchQuery] = useState("");
   const { themeName } = useThemeStore();
   const tc = THEME_COLORS[themeName];
@@ -103,7 +118,6 @@ export default function AdminFeaturedScreen() {
   });
 
   const cards = cardsQuery.data?.cards ?? [];
-  const tileWidth = getFeaturedTileWidth(width);
   const isCardsLoading = cardsQuery.isLoading;
   const cardsError =
     cardsQuery.error instanceof Error ? cardsQuery.error.message : null;
@@ -135,221 +149,102 @@ export default function AdminFeaturedScreen() {
 
   const derived = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
-    const featuredCards: AdminCard[] = [];
-    const nonFeaturedCards: AdminCard[] = [];
-
-    for (const card of cards) {
-      if (card.isArchived) {
-        continue;
+    const activeCards = cards.filter((card) => !card.isArchived);
+    const featuredCards = activeCards.filter((card) => card.isFeatured);
+    const visibleCards = activeCards.filter((card) => {
+      if (!query) {
+        return true;
       }
 
-      if (
-        query &&
-        !`${card.name} ${card.character}`.toLowerCase().includes(query)
-      ) {
-        continue;
-      }
+      return `${card.name} ${card.character}`.toLowerCase().includes(query);
+    });
 
-      if (card.isFeatured) {
-        featuredCards.push(card);
-      } else {
-        nonFeaturedCards.push(card);
-      }
-    }
-
-    return { featuredCards, nonFeaturedCards };
+    return { featuredCards, visibleCards };
   }, [cards, searchQuery]);
 
   const maxReached = derived.featuredCards.length >= 5;
-
-  const listData = useMemo(() => {
-    const items: FeaturedListItem[] = [
-      { id: "featured-header", type: "featured-header" },
-    ];
-
-    chunkCards(derived.featuredCards).forEach((row) => {
-      items.push({ id: `featured-${row.id}`, type: "featured-row", row });
-    });
-
-    items.push({ id: "candidate-header", type: "candidate-header" });
-
-    chunkCards(derived.nonFeaturedCards).forEach((row) => {
-      items.push({ id: `candidate-${row.id}`, type: "candidate-row", row });
-    });
-
-    return items;
-  }, [derived.featuredCards, derived.nonFeaturedCards]);
-
-  const renderRow = useCallback(
-    (row: CardRow, featured: boolean) => (
-      <View className="mt-3 flex-row justify-between gap-3 px-4">
-        <View className="items-center" style={{ width: tileWidth }}>
-          <View
-            className={featured ? "rounded-[18] border-2" : "relative"}
-            style={featured ? { borderColor: tc.secondaryDark } : undefined}
-          >
-            <CardTile card={row.left} fitContainer />
-            <Pressable
-              disabled={!featured && maxReached}
-              className="absolute -top-2 -right-2 h-8 w-8 items-center justify-center rounded-full"
-              style={{
-                borderWidth: 1,
-                borderColor: featured
-                  ? withAlpha(tc.secondaryDark, "80")
-                  : withAlpha(tc.primaryBorder, "73"),
-                backgroundColor: featured
-                  ? tc.secondaryText
-                  : maxReached
-                    ? withAlpha(tc.muted, "E6")
-                    : tc.surfaceMuted,
-              }}
-              onPress={() =>
-                toggleRef.current({
-                  cardId: row.left.id,
-                  isFeatured: !featured,
-                })
-              }
-            >
-              <Ionicons
-                name={featured ? "star" : "star-outline"}
-                size={16}
-                color={
-                  featured
-                    ? pickReadableTextColor(tc.secondaryText, tc.fg, tc.surface)
-                    : maxReached
-                      ? pickReadableTextColor(
-                          withAlpha(tc.muted, "E6"),
-                          tc.fg,
-                          tc.surface,
-                        )
-                      : tc.secondaryText
-                }
-              />
-            </Pressable>
-          </View>
-        </View>
-        {row.right ? (
-          <View
-            className="items-center"
-            style={{
-              width: tileWidth,
-              opacity: !featured && maxReached ? 0.55 : 1,
-            }}
-          >
-            <View
-              className={featured ? "rounded-[18] border-2" : "relative"}
-              style={featured ? { borderColor: tc.secondaryDark } : undefined}
-            >
-              <CardTile card={row.right} fitContainer />
-              <Pressable
-                disabled={!featured && maxReached}
-                className="absolute -top-2 -right-2 h-8 w-8 items-center justify-center rounded-full"
-                style={{
-                  borderWidth: 1,
-                  borderColor: featured
-                    ? withAlpha(tc.secondaryDark, "80")
-                    : withAlpha(tc.primaryBorder, "73"),
-                  backgroundColor: featured
-                    ? tc.secondaryText
-                    : maxReached
-                      ? withAlpha(tc.muted, "E6")
-                      : tc.surfaceMuted,
-                }}
-                onPress={() =>
-                  toggleRef.current({
-                    cardId: row.right!.id,
-                    isFeatured: !featured,
-                  })
-                }
-              >
-                <Ionicons
-                  name={featured ? "star" : "star-outline"}
-                  size={16}
-                  color={
-                    featured
-                      ? pickReadableTextColor(
-                          tc.secondaryText,
-                          tc.fg,
-                          tc.surface,
-                        )
-                      : maxReached
-                        ? pickReadableTextColor(
-                            withAlpha(tc.muted, "E6"),
-                            tc.fg,
-                            tc.surface,
-                          )
-                        : tc.secondaryText
-                  }
-                />
-              </Pressable>
-            </View>
-          </View>
-        ) : (
-          <View style={{ width: tileWidth }} />
-        )}
-      </View>
-    ),
-    [maxReached, tc, tileWidth],
+  const listData = useMemo(
+    () =>
+      derived.visibleCards.map((card) => ({
+        id: card.id,
+        card,
+      })),
+    [derived.visibleCards],
   );
 
-  const renderItem = useCallback(
-    ({ item }: { item: FeaturedListItem }) => {
-      if (item.type === "featured-header") {
-        return (
-          <AdminPanel tint="secondary">
-            <AdminSectionTitle
-              title={t("admin.featured.currentTitle", {
-                count: derived.featuredCards.length,
-              })}
-              subtitle={t("admin.featured.currentSubtitle")}
-            />
-            {!isCardsLoading && !cardsError && !derived.featuredCards.length ? (
-              <View className="mt-3">
-                <AdminEmptyState
-                  icon="star-outline"
-                  title={t("admin.featured.noFeaturedTitle")}
-                  body={t("admin.featured.noFeaturedBody")}
-                />
-              </View>
-            ) : null}
-          </AdminPanel>
-        );
-      }
+  const toggleFeatured = useCallback((card: AdminCard) => {
+    toggleRef.current({
+      cardId: card.id,
+      isFeatured: !card.isFeatured,
+    });
+  }, []);
 
-      if (item.type === "candidate-header") {
-        return (
-          <AdminPanel tint="accent">
-            <AdminSectionTitle
-              title={t("admin.featured.allCardsTitle", {
-                count: derived.nonFeaturedCards.length,
-              })}
-              subtitle={t("admin.featured.allCardsSubtitle")}
-            />
-            {!isCardsLoading &&
-            !cardsError &&
-            !derived.nonFeaturedCards.length ? (
-              <View className="mt-3">
-                <AdminEmptyState
-                  icon="search"
-                  title={t("admin.featured.noMatchesTitle")}
-                  body={t("admin.featured.noMatchesBody")}
-                />
-              </View>
-            ) : null}
-          </AdminPanel>
-        );
-      }
-
-      return renderRow(item.row, item.type === "featured-row");
-    },
+  const renderSelectedCard = useCallback(
+    ({ item }: { item: AdminCard }) => (
+      <SelectedFeaturedCard
+        card={item}
+        dangerBorder={tc.dangerBorder}
+        dangerTint={tc.dangerTint}
+        disabled={toggleMutation.isPending}
+        onRemove={toggleFeatured}
+        removeLabel={t("admin.featured.removeAction")}
+      />
+    ),
     [
-      cardsError,
-      derived.featuredCards.length,
-      derived.nonFeaturedCards.length,
-      isCardsLoading,
-      renderRow,
       t,
+      tc.dangerBorder,
+      tc.dangerTint,
+      toggleFeatured,
+      toggleMutation.isPending,
     ],
+  );
+
+  const selectedStrip = useMemo(
+    () => (
+      <AdminPanel>
+        <AdminSectionTitle
+          title={t("admin.featured.currentTitle", {
+            count: derived.featuredCards.length,
+          })}
+          subtitle={t("admin.featured.currentSubtitle")}
+          right={
+            <AdminChip
+              label={t("admin.featured.featuredCount", {
+                count: isCardsLoading ? "..." : derived.featuredCards.length,
+              })}
+              tone="warning"
+            />
+          }
+        />
+
+        {!isCardsLoading && !cardsError && !derived.featuredCards.length ? (
+          <View className="mt-3">
+            <AdminEmptyState
+              icon="albums-outline"
+              title={t("admin.featured.noFeaturedTitle")}
+              body={t("admin.featured.noFeaturedBody")}
+            />
+          </View>
+        ) : null}
+
+        {derived.featuredCards.length ? (
+          <FlatList
+            horizontal
+            data={derived.featuredCards}
+            keyExtractor={cardKeyExtractor}
+            renderItem={renderSelectedCard}
+            showsHorizontalScrollIndicator={false}
+            className="mt-4 -mx-4"
+            contentContainerStyle={{
+              gap: 12,
+              paddingHorizontal: 16,
+              paddingBottom: 2,
+            }}
+          />
+        ) : null}
+      </AdminPanel>
+    ),
+    [cardsError, derived.featuredCards, isCardsLoading, renderSelectedCard, t],
   );
 
   const listHeader = useMemo(
@@ -376,20 +271,6 @@ export default function AdminFeaturedScreen() {
             onChangeText={setSearchQuery}
             placeholder={t("admin.featured.searchPlaceholder")}
           />
-          <View className="flex-row flex-wrap gap-2">
-            <AdminChip
-              label={t("admin.featured.featuredCount", {
-                count: isCardsLoading ? "..." : derived.featuredCards.length,
-              })}
-              tone="warning"
-            />
-            <AdminChip
-              label={t("admin.featured.waitingCount", {
-                count: isCardsLoading ? "..." : derived.nonFeaturedCards.length,
-              })}
-              tone="default"
-            />
-          </View>
         </AdminHero>
 
         {cardsError ? (
@@ -403,7 +284,7 @@ export default function AdminFeaturedScreen() {
             <AdminLoadingState
               title={t("admin.featured.loading")}
               body={t("common.loadingStates.adminBody")}
-              icon="star"
+              icon="albums-outline"
             />
           </AdminPanel>
         ) : maxReached ? (
@@ -411,7 +292,7 @@ export default function AdminFeaturedScreen() {
             title={t("admin.featured.limitTitle")}
             body={t("admin.featured.maxReached")}
             tone="warning"
-            icon="trophy-outline"
+            icon="lock-closed-outline"
           />
         ) : (
           <AdminNotice
@@ -421,17 +302,147 @@ export default function AdminFeaturedScreen() {
             icon="sparkles-outline"
           />
         )}
+
+        {selectedStrip}
+
+        <AdminPanel chrome="soft">
+          <AdminSectionTitle
+            title={t("admin.featured.allCardsTitle", {
+              count: derived.visibleCards.length,
+            })}
+            subtitle={t("admin.featured.allCardsSubtitle")}
+          />
+        </AdminPanel>
       </View>
     ),
     [
       cardsError,
       derived.featuredCards.length,
-      derived.nonFeaturedCards.length,
+      derived.visibleCards.length,
       isCardsLoading,
       maxReached,
       searchQuery,
+      selectedStrip,
       t,
     ],
+  );
+
+  const listEmpty = useMemo(() => {
+    if (isCardsLoading || cardsError) {
+      return null;
+    }
+
+    return (
+      <AdminPanel>
+        <AdminEmptyState
+          icon="search"
+          title={t("admin.featured.noMatchesTitle")}
+          body={t("admin.featured.noMatchesBody")}
+        />
+      </AdminPanel>
+    );
+  }, [cardsError, isCardsLoading, t]);
+
+  const renderItem = useCallback(
+    ({ item }: { item: FeaturedListItem }) => {
+      const card = item.card;
+      const featured = Boolean(card.isFeatured);
+      const cannotAdd = !featured && maxReached;
+      const disabled = toggleMutation.isPending || cannotAdd;
+      const actionBg = featured
+        ? withAlpha(tc.dangerTint, "E8")
+        : cannotAdd
+          ? withAlpha(tc.surfaceMuted, "D9")
+          : withAlpha(tc.successTint, "E8");
+      const actionBorder = featured
+        ? tc.dangerBorder
+        : cannotAdd
+          ? withAlpha(tc.primaryBorder, "73")
+          : tc.successBorder;
+      const actionColor = featured
+        ? tc.dangerText
+        : cannotAdd
+          ? tc.fgMuted
+          : tc.successText;
+
+      return (
+        <View
+          className="flex-row gap-3 rounded-[24] border bg-surface p-3"
+          style={{
+            borderColor: featured
+              ? tc.secondaryBorder
+              : withAlpha(tc.primaryBorder, "66"),
+            opacity: cannotAdd ? 0.68 : 1,
+          }}
+        >
+          <View style={{ width: ROW_CARD_WIDTH }}>
+            <CardTile card={card} fitContainer />
+          </View>
+
+          <View className="min-w-0 flex-1 gap-2">
+            <View className="gap-[2]">
+              <Text
+                className="font-nunito-extrabold text-base leading-5 text-fg"
+                numberOfLines={1}
+              >
+                {card.name}
+              </Text>
+              <Text
+                className="font-nunito-semibold text-xs text-fgMuted"
+                numberOfLines={1}
+              >
+                {card.character}
+              </Text>
+            </View>
+
+            <View className="flex-row flex-wrap gap-2">
+              {featured ? (
+                <AdminChip
+                  label={t("admin.featured.selectedBadge")}
+                  tone="warning"
+                />
+              ) : null}
+              <AdminChip label={card.rarityName} tone="default" />
+              <AdminChip label={card.type} tone="info" />
+            </View>
+
+            <Text
+              className="font-nunito-semibold text-xs leading-[17px] text-fgMuted"
+              numberOfLines={2}
+            >
+              {card.description}
+            </Text>
+
+            <Pressable
+              disabled={disabled}
+              onPress={() => toggleFeatured(card)}
+              className="mt-1 h-10 flex-row items-center justify-center gap-2 rounded-full border px-4"
+              style={{
+                backgroundColor: actionBg,
+                borderColor: actionBorder,
+              }}
+            >
+              <Ionicons
+                name={featured ? "remove-circle-outline" : "add-circle-outline"}
+                size={16}
+                color={actionColor}
+              />
+              <Text
+                className="font-nunito-extrabold text-xs"
+                style={{ color: actionColor }}
+              >
+                {featured
+                  ? t("admin.featured.removeAction")
+                  : cannotAdd
+                    ? t("admin.featured.fullAction")
+                    : t("admin.featured.addAction")}
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      );
+    },
+    [maxReached, t, tc, toggleFeatured, toggleMutation.isPending],
   );
 
   return (
@@ -446,12 +457,13 @@ export default function AdminFeaturedScreen() {
         paddingHorizontal: SCREEN_SIDE_PADDING,
         paddingTop: 8,
         paddingBottom: CONTENT_BOTTOM_PADDING,
-        gap: 16,
+        gap: 12,
       }}
       ListHeaderComponent={listHeader}
-      removeClippedSubviews
-      windowSize={5}
-      maxToRenderPerBatch={6}
+      ListEmptyComponent={listEmpty}
+      removeClippedSubviews={false}
+      windowSize={7}
+      maxToRenderPerBatch={8}
       initialNumToRender={8}
     />
   );
