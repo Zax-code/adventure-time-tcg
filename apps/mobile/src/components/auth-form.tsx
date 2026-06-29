@@ -89,6 +89,10 @@ function uniqueMessages(messages: Array<string | null | undefined>) {
   return [...new Set(messages.filter((message): message is string => Boolean(message)))];
 }
 
+async function sha256Hex(value: string) {
+  return Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, value);
+}
+
 function getKnownAuthErrorMessage(message: string, t: AuthTranslate) {
   const normalized = message.trim();
 
@@ -452,8 +456,9 @@ function AppleAuthSection({
 
     try {
       const nonce = Crypto.randomUUID();
+      const appleNonce = await sha256Hex(nonce);
       const credential = await AppleAuthentication.signInAsync({
-        nonce,
+        nonce: appleNonce,
         requestedScopes: [
           AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
           AppleAuthentication.AppleAuthenticationScope.EMAIL,

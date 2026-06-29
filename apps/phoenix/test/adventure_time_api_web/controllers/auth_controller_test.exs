@@ -620,12 +620,14 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
 
     on_exit(fn -> Application.delete_env(:adventure_time_api, AppleAuth) end)
 
+    raw_nonce = "nonce-1"
+
     identity_token =
       apple_identity_token(jwk, kid, %{
         "sub" => "apple-subject-1",
         "email" => "fionna@example.com",
         "email_verified" => "true",
-        "nonce" => "nonce-1"
+        "nonce" => sha256_hex(raw_nonce)
       })
 
     conn =
@@ -636,7 +638,7 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
       |> put_req_header("x-adventure-time-installation-id", "ios-install")
       |> post(~p"/auth/apple", %{
         "identityToken" => identity_token,
-        "nonce" => "nonce-1",
+        "nonce" => raw_nonce,
         "preferredLanguage" => "fr",
         "fullName" => %{"givenName" => "Fionna", "familyName" => "Campbell"}
       })
@@ -670,6 +672,74 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
     assert attempt.provider_subject_hash == request.provider_subject_hash
   end
 
+  test "POST /auth/apple accepts Apple SHA-256 nonce claims", %{conn: conn} do
+    %{bypass: bypass, jwk: jwk, kid: kid} = start_bypass_apple_keys()
+
+    Application.put_env(:adventure_time_api, AppleAuth,
+      keys_url: bypass_url(bypass, "/auth/keys")
+    )
+
+    on_exit(fn -> Application.delete_env(:adventure_time_api, AppleAuth) end)
+
+    raw_nonce = "raw-apple-nonce"
+
+    identity_token =
+      apple_identity_token(jwk, kid, %{
+        "sub" => "apple-hashed-nonce-subject",
+        "email" => "hashed-nonce-fionna@example.com",
+        "email_verified" => "true",
+        "nonce" => sha256_hex(raw_nonce)
+      })
+
+    conn =
+      conn
+      |> post(~p"/auth/apple", %{
+        "identityToken" => identity_token,
+        "nonce" => raw_nonce,
+        "preferredLanguage" => "fr"
+      })
+
+    assert json_response(conn, 403)["code"] == "ACCESS_REQUEST_PENDING"
+
+    request = Repo.get_by!(EmailAccessRequest, email: "hashed-nonce-fionna@example.com")
+    assert request.provider == "apple"
+  end
+
+  test "POST /auth/apple rejects raw nonce claims", %{conn: conn} do
+    %{bypass: bypass, jwk: jwk, kid: kid} = start_bypass_apple_keys()
+
+    Application.put_env(:adventure_time_api, AppleAuth,
+      keys_url: bypass_url(bypass, "/auth/keys")
+    )
+
+    on_exit(fn -> Application.delete_env(:adventure_time_api, AppleAuth) end)
+
+    raw_nonce = "raw-apple-nonce"
+
+    identity_token =
+      apple_identity_token(jwk, kid, %{
+        "sub" => "apple-raw-nonce-subject",
+        "email" => "raw-nonce-fionna@example.com",
+        "email_verified" => "true",
+        "nonce" => raw_nonce
+      })
+
+    conn =
+      conn
+      |> post(~p"/auth/apple", %{
+        "identityToken" => identity_token,
+        "nonce" => raw_nonce,
+        "preferredLanguage" => "fr"
+      })
+
+    assert json_response(conn, 401) == %{
+             "error" => "Apple authentication failed.",
+             "code" => "APPLE_AUTH_FAILED"
+           }
+
+    refute Repo.get_by(EmailAccessRequest, email: "raw-nonce-fionna@example.com")
+  end
+
   test "POST /auth/apple links approved user and later signs in without email", %{conn: conn} do
     %{bypass: bypass, jwk: jwk, kid: kid} = start_bypass_apple_keys()
 
@@ -685,19 +755,21 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
         access_status: :approved
       )
 
+    first_raw_nonce = "nonce-2"
+
     first_token =
       apple_identity_token(jwk, kid, %{
         "sub" => "apple-approved-subject",
         "email" => user.email,
         "email_verified" => "true",
-        "nonce" => "nonce-2"
+        "nonce" => sha256_hex(first_raw_nonce)
       })
 
     first_response =
       conn
       |> post(~p"/auth/apple", %{
         "identityToken" => first_token,
-        "nonce" => "nonce-2",
+        "nonce" => first_raw_nonce,
         "preferredLanguage" => "en",
         "fullName" => %{"givenName" => "Cake", "familyName" => "Cat"}
       })
@@ -711,17 +783,19 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
     assert identity.email == user.email
     assert byte_size(identity.provider_subject_hash) == 64
 
+    second_raw_nonce = "nonce-3"
+
     second_token =
       apple_identity_token(jwk, kid, %{
         "sub" => "apple-approved-subject",
-        "nonce" => "nonce-3"
+        "nonce" => sha256_hex(second_raw_nonce)
       })
 
     second_response =
       build_conn()
       |> post(~p"/auth/apple", %{
         "identityToken" => second_token,
-        "nonce" => "nonce-3",
+        "nonce" => second_raw_nonce,
         "preferredLanguage" => "en"
       })
       |> json_response(200)
@@ -739,16 +813,18 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
 
     on_exit(fn -> Application.delete_env(:adventure_time_api, AppleAuth) end)
 
+    raw_nonce = "nonce-4"
+
     identity_token =
       apple_identity_token(jwk, kid, %{
         "sub" => "apple-no-email-subject",
-        "nonce" => "nonce-4"
+        "nonce" => sha256_hex(raw_nonce)
       })
 
     conn =
       post(conn, ~p"/auth/apple", %{
         "identityToken" => identity_token,
-        "nonce" => "nonce-4",
+        "nonce" => raw_nonce,
         "preferredLanguage" => "en"
       })
 
@@ -936,6 +1012,10 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
     |> JOSE.JWT.sign(%{"alg" => "RS256", "kid" => kid}, claims)
     |> JOSE.JWS.compact()
     |> elem(1)
+  end
+
+  defp sha256_hex(value) do
+    :crypto.hash(:sha256, value) |> Base.encode16(case: :lower)
   end
 
   defp bypass_url(bypass, path), do: "http://127.0.0.1:#{bypass.port}#{path}"

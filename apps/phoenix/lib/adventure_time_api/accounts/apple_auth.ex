@@ -66,7 +66,7 @@ defmodule AdventureTimeApi.Accounts.AppleAuth do
       allowed_audiences != [] and claims["aud"] not in allowed_audiences ->
         {:error, apple_failed_error()}
 
-      claims["nonce"] != nonce ->
+      not valid_nonce?(claims["nonce"], nonce) ->
         {:error, apple_failed_error()}
 
       not valid_expiration?(claims["exp"]) ->
@@ -84,6 +84,17 @@ defmodule AdventureTimeApi.Accounts.AppleAuth do
     do: exp > DateTime.utc_now() |> DateTime.to_unix()
 
   defp valid_expiration?(_exp), do: false
+
+  defp valid_nonce?(claim_nonce, raw_nonce)
+       when is_binary(claim_nonce) and is_binary(raw_nonce) do
+    claim_nonce == sha256_hex(raw_nonce)
+  end
+
+  defp valid_nonce?(_claim_nonce, _raw_nonce), do: false
+
+  defp sha256_hex(value) do
+    :crypto.hash(:sha256, value) |> Base.encode16(case: :lower)
+  end
 
   defp build_profile(claims) do
     email = claims["email"]
