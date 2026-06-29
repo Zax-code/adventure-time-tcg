@@ -937,6 +937,7 @@ export const pvpMatchSchema = z.object({
   winnerId: z.string().nullable(),
   completionReason: z.enum(["KO", "DRAW", "CONCEDE", "TIMEOUT"]).optional(),
   currentTurn: z.number().int().positive().optional(),
+  currentPlayerId: z.string().optional(),
   turnExpiresAt: z.string().optional(),
   hasReplayData: z.boolean().optional(),
   createdAt: z.string(),

@@ -208,11 +208,12 @@ defmodule AdventureTimeApi.Pvp do
     draws = Enum.count(completed_matches, &is_nil(&1.winner_id))
     display_names = user_display_map(matches)
     completion_reasons = completion_reason_map(matches)
+    current_player_ids = current_player_id_map(matches)
 
     serialized_matches =
       Enum.map(matches, fn match ->
         match
-        |> serialize_match(display_names, completion_reasons)
+        |> serialize_match(display_names, completion_reasons, current_player_ids)
         |> maybe_put_replay_flag(match)
       end)
 
@@ -771,10 +772,15 @@ defmodule AdventureTimeApi.Pvp do
   # ── Private Helpers ────────────────────────────────────────────────────────
 
   defp serialize_match(match) do
-    serialize_match(match, user_display_map([match]), completion_reason_map([match]))
+    serialize_match(
+      match,
+      user_display_map([match]),
+      completion_reason_map([match]),
+      current_player_id_map([match])
+    )
   end
 
-  defp serialize_match(match, display_names, completion_reasons) do
+  defp serialize_match(match, display_names, completion_reasons, current_player_ids) do
     invitee_loadout = match.invitee_card_ids || []
 
     %{
@@ -792,6 +798,7 @@ defmodule AdventureTimeApi.Pvp do
       updatedAt: iso8601(match.updated_at)
     }
     |> maybe_put_current_turn(match.current_turn)
+    |> maybe_put_current_player_id(match, current_player_ids)
     |> maybe_put_turn_expires_at(match)
     |> maybe_put_completion_reason(match, completion_reasons)
   end
@@ -800,6 +807,22 @@ defmodule AdventureTimeApi.Pvp do
     do: Map.put(payload, :currentTurn, turn)
 
   defp maybe_put_current_turn(payload, _turn), do: payload
+
+  defp maybe_put_current_player_id(
+         payload,
+         %Match{status: "in_progress"} = match,
+         current_player_ids
+       ) do
+    case Map.get(current_player_ids, match.id) do
+      current_player_id when is_binary(current_player_id) ->
+        Map.put(payload, :currentPlayerId, current_player_id)
+
+      _ ->
+        payload
+    end
+  end
+
+  defp maybe_put_current_player_id(payload, _match, _current_player_ids), do: payload
 
   defp maybe_put_turn_expires_at(
          payload,
@@ -896,8 +919,25 @@ defmodule AdventureTimeApi.Pvp do
   defp serialize_matches(matches) do
     display_names = user_display_map(matches)
     completion_reasons = completion_reason_map(matches)
+    current_player_ids = current_player_id_map(matches)
 
-    Enum.map(matches, &serialize_match(&1, display_names, completion_reasons))
+    Enum.map(matches, &serialize_match(&1, display_names, completion_reasons, current_player_ids))
+  end
+
+  defp current_player_id_map(matches) do
+    matches
+    |> Enum.filter(&(&1.status == "in_progress"))
+    |> Enum.map(& &1.id)
+    |> Enum.uniq()
+    |> Map.new(fn match_id ->
+      current_player_id =
+        case latest_snapshot_for_match(match_id) do
+          %MatchSnapshot{state: %{} = state} -> Map.get(state, "currentPlayerId")
+          _ -> nil
+        end
+
+      {match_id, current_player_id}
+    end)
   end
 
   defp completion_reason_map(matches) do
