@@ -81,6 +81,7 @@ import {
 import { THEME_COLORS } from "../../src/theme/themes";
 
 type QuestStatus = "active" | "completed" | "claimed" | "failed";
+type ThemeColors = (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
 type Quest = QuestsResponse["quests"][number];
 type QuestCardItem =
   | { kind: "quest"; quest: Quest }
@@ -161,7 +162,7 @@ function getQuestDesc(
 
 function getProgressColor(
   status: QuestStatus,
-  tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS],
+  tc: ThemeColors,
 ) {
   if (status === "claimed") return tc.successDark;
   if (status === "completed") return tc.successDark;
@@ -171,7 +172,7 @@ function getProgressColor(
 
 function getMetaColor(
   status: QuestStatus,
-  tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS],
+  tc: ThemeColors,
 ) {
   if (status === "claimed") return tc.successDark;
   if (status === "completed") return tc.successDark;
@@ -191,7 +192,7 @@ function getQuestStatusLabel(
 function getQuestActionButtonAppearance(
   status: QuestStatus,
   colors: { iconColor: string },
-  tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS],
+  tc: ThemeColors,
 ) {
   if (status === "active") {
     return {
@@ -203,6 +204,38 @@ function getQuestActionButtonAppearance(
 
   return {
     backgroundColor: colors.iconColor,
+    foregroundColor: "#FFFFFF",
+    borderColor: undefined,
+  };
+}
+
+function getShareGroupButtonAppearance(status: QuestStatus, tc: ThemeColors) {
+  if (status === "completed") {
+    return {
+      backgroundColor: tc.successDark,
+      foregroundColor: "#FFFFFF",
+      borderColor: undefined,
+    };
+  }
+
+  if (status === "claimed") {
+    return {
+      backgroundColor: tc.successTint,
+      foregroundColor: tc.successText,
+      borderColor: tc.successBorder,
+    };
+  }
+
+  if (status === "failed") {
+    return {
+      backgroundColor: tc.dangerDark,
+      foregroundColor: "#FFFFFF",
+      borderColor: undefined,
+    };
+  }
+
+  return {
+    backgroundColor: tc.accentStrong,
     foregroundColor: "#FFFFFF",
     borderColor: undefined,
   };
@@ -1350,6 +1383,10 @@ export default function QuestsScreen() {
               if (item.kind === "wordle") {
                 const groupStatus = getWordleGroupStatus(item.quests);
                 const colors = STATUS_COLORS[groupStatus];
+                const shareButtonAppearance = getShareGroupButtonAppearance(
+                  groupStatus,
+                  tc,
+                );
                 const availableLanguages = WORDLE_LANGUAGES.filter(
                   (language) => item.quests[language],
                 );
@@ -1519,8 +1556,9 @@ export default function QuestsScreen() {
                         }
                         loading={sharingGroup === "wordle"}
                         loadingMode="inline"
-                        backgroundColor={tc.primaryDark}
-                        foregroundColor="#FFFFFF"
+                        backgroundColor={shareButtonAppearance.backgroundColor}
+                        foregroundColor={shareButtonAppearance.foregroundColor}
+                        borderColor={shareButtonAppearance.borderColor}
                         minHeight={48}
                         style={{
                           width: "100%",
@@ -1674,6 +1712,10 @@ export default function QuestsScreen() {
               if (item.kind === "dailyNumbers") {
                 const groupStatus = getDailyNumbersGroupStatus(item.quests);
                 const colors = STATUS_COLORS[groupStatus];
+                const shareButtonAppearance = getShareGroupButtonAppearance(
+                  groupStatus,
+                  tc,
+                );
                 const availableModes = DAILY_NUMBERS_MODES.filter(
                   (mode) => item.quests[mode],
                 );
@@ -1852,8 +1894,9 @@ export default function QuestsScreen() {
                         }
                         loading={sharingGroup === "dailyNumbers"}
                         loadingMode="inline"
-                        backgroundColor={tc.primaryDark}
-                        foregroundColor="#FFFFFF"
+                        backgroundColor={shareButtonAppearance.backgroundColor}
+                        foregroundColor={shareButtonAppearance.foregroundColor}
+                        borderColor={shareButtonAppearance.borderColor}
                         minHeight={48}
                         style={{
                           width: "100%",
