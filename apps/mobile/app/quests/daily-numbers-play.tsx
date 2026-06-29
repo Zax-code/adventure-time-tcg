@@ -977,7 +977,7 @@ function FinishStatePanel({
         className="mt-3 text-center font-nunito-bold text-[11px]"
         style={{ color: finishTone.statusText }}
       >
-        {finishCompleted
+        {exactHitState
           ? t("quests.dailyNumbers.completedLabel")
           : t("quests.dailyNumbers.incompleteLabel")}
       </Text>
@@ -1069,7 +1069,7 @@ function FinishStatePanel({
         onPress={onShareResult}
         loading={isSharing}
         loadingMode="inline"
-        backgroundColor={finishCompleted ? tc.successDark : tc.dangerDark}
+        backgroundColor={exactHitState ? tc.successDark : tc.dangerDark}
         foregroundColor="#FFFFFF"
         leadingIcon={ShareIcon}
         minHeight={48}
@@ -1895,13 +1895,13 @@ function useDailyNumbersBoardController({
       }
     : finishCompleted(state, successState)
       ? {
-          shellBorder: modeAccent.border,
-          shellBg: modeAccent.bg,
-          resultBorder: modeAccent.border,
+          shellBorder: tc.dangerBorder,
+          shellBg: tc.dangerTint,
+          resultBorder: tc.dangerBorder,
           resultBg: tc.surface,
-          resultText: modeAccent.text,
-          summaryText: modeAccent.text,
-          statusText: modeAccent.text,
+          resultText: tc.dangerText,
+          summaryText: tc.dangerText,
+          statusText: tc.dangerText,
         }
       : {
           shellBorder: tc.primaryBorder,
@@ -2047,7 +2047,7 @@ function DailyNumbersBoard({
         score: controller.finishScore,
         elapsedTime: controller.formattedElapsedTime,
         exact: controller.exactHitState,
-        completed: controller.finishCompletedState,
+        completed: controller.exactHitState,
       }),
     [
       controller.t,
@@ -2059,7 +2059,6 @@ function DailyNumbersBoard({
       controller.finishScore,
       controller.formattedElapsedTime,
       controller.exactHitState,
-      controller.finishCompletedState,
     ],
   );
 
@@ -2068,14 +2067,9 @@ function DailyNumbersBoard({
       ? controller.t("quests.dailyNumbers.shareExact", {
           score: controller.finishScore ?? 100,
         })
-      : controller.finishCompletedState
-        ? controller.t("quests.dailyNumbers.shareScore", {
-            score: controller.finishScore ?? 0,
-            distance: controller.finishDistance ?? 0,
-          })
-        : controller.t("quests.dailyNumbers.shareMissed", {
-            distance: controller.finishDistance ?? 0,
-          });
+      : controller.t("quests.dailyNumbers.shareMissed", {
+          distance: controller.finishDistance ?? 0,
+        });
 
     const modeLabelKey =
       controller.state.mode === "1-5"
@@ -2101,7 +2095,6 @@ function DailyNumbersBoard({
     controller.state.mode,
     controller.state.date,
     controller.exactHitState,
-    controller.finishCompletedState,
     controller.finishScore,
     controller.finishDistance,
     locale,
