@@ -129,8 +129,12 @@ export function BattleFullScreenSheet({
 
             {footer ? (
               <View
-                className="border-t border-primaryTint bg-surface px-4 pt-4"
-                style={{ paddingBottom: Math.max(insets.bottom, 12) }}
+                className="border-t border-primaryTint bg-surface px-4"
+                style={{
+                  justifyContent: "center",
+                  minHeight: 76,
+                  paddingVertical: 12,
+                }}
               >
                 {footer}
               </View>
