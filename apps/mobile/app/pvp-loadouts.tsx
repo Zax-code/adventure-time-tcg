@@ -653,7 +653,7 @@ export default function PvpLoadoutsScreen() {
             {loadouts.length > 0 ? (
               <View
                 testID="pvp-loadout-saved-section"
-                className="rounded-[28px] border border-primaryBorder/50 bg-surface/95 p-3"
+                className="rounded-[28px] border border-primaryBorder/50 bg-surface/95 p-4"
               >
                 <Text className="font-nunito-bold text-base text-fg">
                   {t("pvp.yourLoadouts")}
@@ -665,7 +665,11 @@ export default function PvpLoadoutsScreen() {
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={{ gap: 12, paddingRight: 4, paddingTop: 12 }}
+                  contentContainerStyle={{
+                    gap: 12,
+                    paddingHorizontal: 2,
+                    paddingTop: 14,
+                  }}
                 >
                   {loadouts.map((loadout) => {
                     const active = editingLoadoutId === loadout.id;
