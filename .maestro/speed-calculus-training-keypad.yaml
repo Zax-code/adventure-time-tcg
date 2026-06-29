@@ -1,0 +1,44 @@
+appId: love.leaetzak.adventuretime
+name: Speed Calculus training keypad accepts rapid input
+tags:
+  - smoke
+  - quests
+  - speed-calculus
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- openLink:
+    link: adventure-time:///e2e-auth?redirect=%2Fquests%2Fspeed-calculus%2Ftraining&email=${TEST_EMAIL_URI}&password=${TEST_PASSWORD_URI}
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- assertVisible:
+    text: Training mode
+- tapOn:
+    text: Start training run
+- assertVisible:
+    id: speed-calculus-key-1
+- assertVisible:
+    id: speed-calculus-key-submit
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      text: Question 1
+    timeout: 10000
+- tapOn:
+    id: speed-calculus-key-1
+- tapOn:
+    id: speed-calculus-key-2
+- tapOn:
+    id: speed-calculus-key-3
+- assertVisible:
+    text: "123"
+- tapOn:
+    id: speed-calculus-key-clear
+- tapOn:
+    id: speed-calculus-key-4
+- tapOn:
+    id: speed-calculus-key-5
+- tapOn:
+    id: speed-calculus-key-delete
+- assertVisible:
+    text: "4"

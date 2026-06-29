@@ -882,36 +882,54 @@ defmodule AdventureTimeApi.Quests do
   end
 
   @doc "Pause the active run until the player explicitly resumes it."
-  def pause_speed_calculus(user_id) do
+  def pause_speed_calculus(user_id, synced_answers \\ nil, expected_quest_version \\ nil) do
     date = current_reset_date_for_user(user_id)
     settle_expired_runs(user_id, date)
 
-    active_run =
-      SpeedCalculusDailyRun
-      |> where([r], r.user_id == ^user_id and r.date == ^date and r.status == "in_progress")
-      |> Repo.one()
+    with :ok <- validate_speed_calculus_version(user_id, date, expected_quest_version) do
+      Repo.transaction(fn ->
+        active_run =
+          SpeedCalculusDailyRun
+          |> where([r], r.user_id == ^user_id and r.date == ^date and r.status == "in_progress")
+          |> lock("FOR UPDATE")
+          |> Repo.one()
 
-    case active_run do
-      nil ->
-        {:error, :run_not_active}
+        case active_run do
+          nil ->
+            Repo.rollback(:run_not_active)
 
-      %SpeedCalculusDailyRun{} = run ->
-        cond do
-          manually_paused?(run) ->
-            {:ok, build_speed_calculus_state(user_id, date)}
+          %SpeedCalculusDailyRun{} = run ->
+            with {:ok, answers} <- merge_speed_calculus_answers(run, synced_answers) do
+              cond do
+                manually_paused?(run) ->
+                  sync_speed_calculus_answers(run, answers)
+                  build_speed_calculus_state(user_id, date)
 
-          paused_countdown_active?(run) ->
-            {:error, :run_is_paused}
+                paused_countdown_active?(run) ->
+                  Repo.rollback(:run_is_paused)
 
-          true ->
-            now = now_utc()
+                true ->
+                  now = now_utc()
 
-            SpeedCalculusDailyRun
-            |> where([r], r.id == ^run.id)
-            |> Repo.update_all(set: [manual_paused_at: now, pause_expires_at: nil])
+                  SpeedCalculusDailyRun
+                  |> where([r], r.id == ^run.id)
+                  |> Repo.update_all(
+                    set: [answers: answers, manual_paused_at: now, pause_expires_at: nil]
+                  )
 
-            {:ok, build_speed_calculus_state(user_id, date)}
+                  build_speed_calculus_state(user_id, date)
+              end
+            else
+              {:error, reason} -> Repo.rollback(reason)
+            end
         end
+      end)
+      |> case do
+        {:ok, payload} -> {:ok, payload}
+        {:error, reason} -> {:error, reason}
+      end
+    else
+      {:error, reason} -> {:error, reason}
     end
   end
 
@@ -953,7 +971,7 @@ defmodule AdventureTimeApi.Quests do
   end
 
   @doc "Finish the active run: score it, update quest, return result."
-  def finish_speed_calculus(user_id, run_id, expected_quest_version \\ nil) do
+  def finish_speed_calculus(user_id, run_id, expected_quest_version \\ nil, synced_answers \\ nil) do
     date = current_reset_date_for_user(user_id)
 
     with {:ok, run} <- get_visible_speed_run(user_id, run_id),
@@ -966,27 +984,30 @@ defmodule AdventureTimeApi.Quests do
           {:error, :run_not_active}
 
         true ->
-          %{correct_answers: correct_answers} =
-            SpeedCalculusEngine.evaluate_answers(run.seed, run.answers)
+          with {:ok, answers} <- merge_speed_calculus_answers(run, synced_answers) do
+            %{correct_answers: correct_answers} =
+              SpeedCalculusEngine.evaluate_answers(run.seed, answers)
 
-          reward = SpeedCalculusEngine.calculate_reward(correct_answers)
-          now = now_utc()
+            reward = SpeedCalculusEngine.calculate_reward(correct_answers)
+            now = now_utc()
 
-          SpeedCalculusDailyRun
-          |> where([r], r.id == ^run.id)
-          |> Repo.update_all(
-            set: [
-              status: "completed",
-              score: correct_answers,
-              reward: reward,
-              finished_at: now
-            ]
-          )
+            SpeedCalculusDailyRun
+            |> where([r], r.id == ^run.id)
+            |> Repo.update_all(
+              set: [
+                answers: answers,
+                status: "completed",
+                score: correct_answers,
+                reward: reward,
+                finished_at: now
+              ]
+            )
 
-          sync_speed_calculus_quest_from_runs(user_id, run.date)
-          state = build_speed_calculus_state(user_id, run.date)
+            sync_speed_calculus_quest_from_runs(user_id, run.date)
+            state = build_speed_calculus_state(user_id, run.date)
 
-          {:ok, Map.merge(state, %{correctAnswers: correct_answers, reward: reward})}
+            {:ok, Map.merge(state, %{correctAnswers: correct_answers, reward: reward})}
+          end
       end
     else
       {:error, reason} -> {:error, reason}
@@ -1233,6 +1254,31 @@ defmodule AdventureTimeApi.Quests do
       %SpeedCalculusDailyRun{} -> {:error, :run_not_found}
       nil -> {:ok, nil}
     end
+  end
+
+  defp merge_speed_calculus_answers(run, nil), do: {:ok, run.answers || []}
+
+  defp merge_speed_calculus_answers(run, answers) when is_list(answers) do
+    question_count = run.seed |> SpeedCalculusEngine.build_questions() |> length()
+
+    cond do
+      length(answers) > question_count ->
+        {:error, :invalid_answers}
+
+      length(answers) >= length(run.answers || []) ->
+        {:ok, answers}
+
+      true ->
+        {:ok, run.answers || []}
+    end
+  end
+
+  defp merge_speed_calculus_answers(_run, _answers), do: {:error, :invalid_answers}
+
+  defp sync_speed_calculus_answers(run, answers) do
+    SpeedCalculusDailyRun
+    |> where([r], r.id == ^run.id)
+    |> Repo.update_all(set: [answers: answers])
   end
 
   defp validate_wordle_version(_user_id, _date, _locale, nil), do: :ok

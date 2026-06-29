@@ -48,6 +48,7 @@
   },
   "devDependencies": {
     "@types/react": "~19.2.14",
+    "expo-router": "~56.2.11",
     "patch-package": "^8.0.1",
     "react-doctor": "^0.2.16"
   },

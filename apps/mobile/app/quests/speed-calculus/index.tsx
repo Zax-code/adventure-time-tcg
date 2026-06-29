@@ -1,7 +1,15 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import {
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+  useCallback,
+  useEffectEvent,
+} from "react";
 import * as Haptics from "expo-haptics";
 import {
   AppState,
+  type AppStateStatus,
   Animated,
   LayoutAnimation,
   Platform,
@@ -16,7 +24,6 @@ import { router } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
 
 import type {
-  SpeedRunAnswerResponse,
   SpeedRunState,
 } from "@adventure-time/api-client";
 
@@ -50,6 +57,8 @@ if (
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
+type ActiveSpeedRun = NonNullable<SpeedRunState["activeRun"]>;
+
 export default function SpeedCalculusScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -76,6 +85,10 @@ export default function SpeedCalculusScreen() {
   const finishRequestedRef = useRef(false);
   const feedbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const answerRef = useRef("");
+  const activeRunRef = useRef<ActiveSpeedRun | null>(null);
+  const remainingSecondsRef = useRef(0);
+  const pauseRemainingSecondsRef = useRef(0);
+  const stateRef = useRef<SpeedRunState | null>(null);
   const questVersionRef = useRef<string | null>(null);
   const mutationEpochRef = useRef(0);
   const shakeAnim = useRef(new Animated.Value(0)).current;
@@ -97,10 +110,14 @@ export default function SpeedCalculusScreen() {
 
   // ── Apply state from API ─────────────────────────────────────────
   const applyState = useCallback((next: SpeedRunState) => {
+    stateRef.current = next;
     setState(next);
     if (!next.activeRun) {
+      activeRunRef.current = null;
       playDeadlineRef.current = null;
       pauseDeadlineRef.current = null;
+      remainingSecondsRef.current = 0;
+      pauseRemainingSecondsRef.current = 0;
       setRemainingSeconds(0);
       setPauseRemainingSeconds(0);
       answerRef.current = "";
@@ -121,6 +138,9 @@ export default function SpeedCalculusScreen() {
       playDeadlineRef.current = now + nextRemainingSeconds * 1000;
     }
 
+    activeRunRef.current = next.activeRun;
+    remainingSecondsRef.current = nextRemainingSeconds;
+    pauseRemainingSecondsRef.current = nextPauseRemainingSeconds;
     setPauseRemainingSeconds(nextPauseRemainingSeconds);
     setRemainingSeconds(nextRemainingSeconds);
     answerRef.current = "";
@@ -194,66 +214,22 @@ export default function SpeedCalculusScreen() {
     }
   }, [syncLoadedState, t]);
 
-  const applyAnswerUpdate = useCallback(
-    (next: SpeedRunAnswerResponse) => {
-      const previousVersion = questVersionRef.current;
-      const nextVersion = next.questVersion ?? null;
-
-      if (!next.activeRun) {
-        void loadState();
-        return;
+  const commitActiveRun = useCallback((nextRun: ActiveSpeedRun) => {
+    activeRunRef.current = nextRun;
+    remainingSecondsRef.current = nextRun.remainingSeconds;
+    pauseRemainingSecondsRef.current = nextRun.pauseRemainingSeconds;
+    setRemainingSeconds(nextRun.remainingSeconds);
+    setPauseRemainingSeconds(nextRun.pauseRemainingSeconds);
+    setState((prev) => {
+      if (!prev?.activeRun || prev.activeRun.runId !== nextRun.runId) {
+        return prev;
       }
 
-      if (previousVersion && nextVersion && previousVersion !== nextVersion) {
-        void loadState();
-        return;
-      }
-
-      setState((prev) => {
-        if (
-          !prev?.activeRun ||
-          prev.activeRun.runId !== next.activeRun?.runId
-        ) {
-          return prev;
-        }
-
-        return {
-          ...prev,
-          questVersion: nextVersion,
-          activeRun: {
-            ...prev.activeRun,
-            runId: next.activeRun.runId,
-            runNumber: next.activeRun.runNumber,
-            questionIndex: next.activeRun.questionIndex,
-            correctAnswers: next.activeRun.correctAnswers,
-            remainingSeconds: next.activeRun.remainingSeconds,
-            pauseRemainingSeconds: next.activeRun.pauseRemainingSeconds,
-            isManuallyPaused: next.activeRun.isManuallyPaused,
-          },
-        };
-      });
-
-      questVersionRef.current = nextVersion;
-      setPauseRemainingSeconds(next.activeRun.pauseRemainingSeconds);
-      setRemainingSeconds(next.activeRun.remainingSeconds);
-
-      const now = Date.now();
-
-      if (next.activeRun.pauseRemainingSeconds > 0) {
-        pauseDeadlineRef.current =
-          now + next.activeRun.pauseRemainingSeconds * 1000;
-        playDeadlineRef.current =
-          pauseDeadlineRef.current + next.activeRun.remainingSeconds * 1000;
-      } else {
-        pauseDeadlineRef.current = null;
-        playDeadlineRef.current = now + next.activeRun.remainingSeconds * 1000;
-      }
-
-      answerRef.current = "";
-      setAnswer("");
-    },
-    [loadState],
-  );
+      const next = { ...prev, activeRun: nextRun };
+      stateRef.current = next;
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     void loadState();
@@ -271,16 +247,6 @@ export default function SpeedCalculusScreen() {
 
     return () => clearInterval(interval);
   }, [activeRun, loadState]);
-
-  useEffect(() => {
-    const subscription = AppState.addEventListener("change", (nextState) => {
-      if (nextState === "active") {
-        void loadState();
-      }
-    });
-
-    return () => subscription.remove();
-  }, [loadState]);
 
   useEffect(() => {
     if (!lastQuestResetAt) return;
@@ -319,16 +285,20 @@ export default function SpeedCalculusScreen() {
   }, []);
 
   // ── Finish run ───────────────────────────────────────────────────
-  const finishRun = useCallback(async () => {
-    if (finishRequestedRef.current || !state?.activeRun) return;
+  const finishRun = useCallback(async (runSnapshot?: ActiveSpeedRun | null) => {
+    const runToFinish = runSnapshot ?? activeRunRef.current;
+    const currentState = stateRef.current;
+
+    if (finishRequestedRef.current || !runToFinish) return;
     finishRequestedRef.current = true;
     mutationEpochRef.current += 1;
-    const finishingRunNumber = state.activeRun.runNumber;
+    const finishingRunNumber = runToFinish.runNumber;
     setSubmitting(true);
     try {
       const result = await apiClient.finishSpeedCalculus(
-        state.activeRun.runId,
-        state.questVersion ?? undefined,
+        runToFinish.runId,
+        currentState?.questVersion ?? undefined,
+        runToFinish.answers,
       );
       setRoundOverRunNumber(finishingRunNumber);
       setRoundOverScore(result.correctAnswers ?? 0);
@@ -366,7 +336,6 @@ export default function SpeedCalculusScreen() {
     handleSpeedResetError,
     loadState,
     queryClient,
-    state,
     syncLoadedState,
     t,
   ]);
@@ -389,20 +358,23 @@ export default function SpeedCalculusScreen() {
         ? Math.max(0, Math.ceil((pauseDeadlineRef.current - now) / 1000))
         : 0;
       if (nextPause > 0) {
+        pauseRemainingSecondsRef.current = nextPause;
         setPauseRemainingSeconds(nextPause);
         return;
       }
       if (pauseDeadlineRef.current) {
         pauseDeadlineRef.current = null;
+        pauseRemainingSecondsRef.current = 0;
         setPauseRemainingSeconds(0);
       }
       const nextRemaining = playDeadlineRef.current
         ? Math.max(0, Math.ceil((playDeadlineRef.current - now) / 1000))
         : 0;
+      remainingSecondsRef.current = nextRemaining;
       setRemainingSeconds(nextRemaining);
       if (nextRemaining === 0) {
         clearInterval(interval);
-        void finishRun();
+        void finishRun(activeRunRef.current);
       }
     }, 250);
     return () => clearInterval(interval);
@@ -412,7 +384,7 @@ export default function SpeedCalculusScreen() {
   useEffect(() => {
     if (!activeRun || pauseRemainingSeconds > 0 || isManuallyPaused) return;
     if (activeRun.questionIndex >= activeRun.questions.length) {
-      void finishRun();
+      void finishRun(activeRunRef.current);
     }
   }, [activeRun, finishRun, isManuallyPaused, pauseRemainingSeconds]);
 
@@ -478,46 +450,46 @@ export default function SpeedCalculusScreen() {
   const handleDigit = useCallback(
     (digit: string) => {
       if (keypadLocked) return;
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       const next = appendDigit(answerRef.current, digit);
       answerRef.current = next;
       setAnswer(next);
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     },
     [keypadLocked],
   );
 
   const handleDelete = useCallback(() => {
     if (keypadLocked) return;
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const next = deleteDigit(answerRef.current);
     answerRef.current = next;
     setAnswer(next);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, [keypadLocked]);
 
   const handleClear = useCallback(() => {
     if (keypadLocked) return;
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     answerRef.current = "";
     setAnswer("");
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, [keypadLocked]);
 
   const handleToggleSign = useCallback(() => {
     if (keypadLocked) return;
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const next = toggleSign(answerRef.current);
     answerRef.current = next;
     setAnswer(next);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, [keypadLocked]);
 
   // ── Submit answer ────────────────────────────────────────────────
-  const handleSubmit = useCallback(async () => {
-    if (
-      !currentQuestion ||
-      submitting ||
-      pauseRemainingSeconds > 0 ||
-      isManuallyPaused
-    )
+  const handleSubmit = useCallback(() => {
+    const run = activeRunRef.current;
+    const question = run?.questions[run.questionIndex] ?? null;
+
+    if (!run || !question || submitting || pauseRemainingSeconds > 0 || isManuallyPaused) {
       return;
+    }
+
     const trimmed = answerRef.current.trim();
     if (!canSubmitAnswer(trimmed)) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -525,102 +497,55 @@ export default function SpeedCalculusScreen() {
       return;
     }
     const expectedAnswer =
-      currentQuestion.operator === "+"
-        ? currentQuestion.left + currentQuestion.right
-        : currentQuestion.left - currentQuestion.right;
+      question.operator === "+"
+        ? question.left + question.right
+        : question.left - question.right;
     const parsed = parseInt(trimmed, 10);
-    const runId = activeRun?.runId;
-    if (!runId) return;
+    const isCorrect = parsed === expectedAnswer;
+    const nextAnswers = [...run.answers, parsed];
+    const nextQuestionIndex = Math.min(nextAnswers.length, run.questions.length);
+    const nextRun: ActiveSpeedRun = {
+      ...run,
+      answers: nextAnswers,
+      correctAnswers: run.correctAnswers + (isCorrect ? 1 : 0),
+      questionIndex: nextQuestionIndex,
+      remainingSeconds: remainingSecondsRef.current,
+      pauseRemainingSeconds: pauseRemainingSecondsRef.current,
+    };
 
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setSubmitting(true);
-    mutationEpochRef.current += 1;
-
-    // Show feedback immediately — correctness is known locally
-    if (parsed === expectedAnswer) {
+    if (isCorrect) {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       showFeedback({
         kind: "correct",
         message: t("quests.speedCalculusCorrectFeedback"),
       });
     } else {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       showFeedback({
         kind: "incorrect",
         message: t("quests.speedCalculusWrongFeedback", {
           answer: expectedAnswer,
         }),
-        questionLabel: `${currentQuestion.left} ${currentQuestion.operator} ${currentQuestion.right}`,
+        questionLabel: `${question.left} ${question.operator} ${question.right}`,
         correctAnswer: expectedAnswer,
       });
       triggerShake();
     }
 
-    // Clear answer immediately
     answerRef.current = "";
     setAnswer("");
+    commitActiveRun(nextRun);
 
-    // Optimistically advance to next question. Skip on the last question to avoid
-    // triggering the auto-finish effect before the answer is recorded server-side.
-    const isLastQuestion =
-      activeRun != null &&
-      activeRun.questionIndex + 1 >= activeRun.questions.length;
-    if (!isLastQuestion) {
-      setState((prev) =>
-        prev?.activeRun
-          ? {
-              ...prev,
-              activeRun: {
-                ...prev.activeRun,
-                questionIndex: prev.activeRun.questionIndex + 1,
-              },
-            }
-          : prev,
-      );
-    }
-
-    try {
-      const data = await apiClient.answerSpeedCalculus(
-        runId,
-        parsed,
-        state?.questVersion ?? undefined,
-      );
-      if (!data.activeRun || data.activeRun.runId !== runId) {
-        await loadState();
-        return;
-      }
-
-      applyAnswerUpdate(data);
-
-      if (
-        activeRun &&
-        data.activeRun.questionIndex >= activeRun.questions.length
-      ) {
-        await finishRun();
-      }
-    } catch (error) {
-      if (await handleSpeedResetError(error)) {
-        return;
-      }
-      setToast({
-        type: "error",
-        message: t("quests.speedCalculusFinishError"),
-      });
-      await loadState();
-    } finally {
-      setSubmitting(false);
+    if (nextQuestionIndex >= run.questions.length) {
+      void finishRun(nextRun);
     }
   }, [
-    activeRun,
-    currentQuestion,
+    commitActiveRun,
     finishRun,
-    handleSpeedResetError,
-    loadState,
     pauseRemainingSeconds,
     isManuallyPaused,
     showFeedback,
-    state?.questVersion,
     submitting,
-    applyAnswerUpdate,
-    syncLoadedState,
     t,
     triggerShake,
   ]);
@@ -674,20 +599,36 @@ export default function SpeedCalculusScreen() {
   }, [queryClient, syncLoadedState, t]);
 
   const pauseRun = useCallback(() => {
+    const run = activeRunRef.current;
+
     if (
-      !activeRun ||
+      !run ||
       pauseRemainingSeconds > 0 ||
-      isManuallyPaused ||
+      run.isManuallyPaused ||
       submitting
     ) {
       return;
     }
 
+    const pausedRun: ActiveSpeedRun = {
+      ...run,
+      isManuallyPaused: true,
+      remainingSeconds: remainingSecondsRef.current,
+      pauseRemainingSeconds: 0,
+      pauseExpiresAt: null,
+    };
+
+    playDeadlineRef.current = null;
+    pauseDeadlineRef.current = null;
+    commitActiveRun(pausedRun);
     setSubmitting(true);
     mutationEpochRef.current += 1;
 
     apiClient
-      .pauseSpeedCalculus()
+      .pauseSpeedCalculusWithAnswers({
+        answers: pausedRun.answers,
+        questVersion: stateRef.current?.questVersion ?? undefined,
+      })
       .then((data) => {
         syncLoadedState(data);
       })
@@ -703,14 +644,15 @@ export default function SpeedCalculusScreen() {
               ? error.message
               : t("quests.speedCalculusPauseError"),
         });
+        void loadState();
       })
       .finally(() => {
         setSubmitting(false);
       });
   }, [
-    activeRun,
+    commitActiveRun,
     handleSpeedResetError,
-    isManuallyPaused,
+    loadState,
     pauseRemainingSeconds,
     submitting,
     syncLoadedState,
@@ -751,6 +693,22 @@ export default function SpeedCalculusScreen() {
     syncLoadedState,
     t,
   ]);
+
+  const handleAppStateChange = useEffectEvent((nextState: AppStateStatus) => {
+    if (nextState === "active") {
+      void loadState();
+      return;
+    }
+
+    if (activeRunRef.current && !activeRunRef.current.isManuallyPaused) {
+      pauseRun();
+    }
+  });
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", handleAppStateChange);
+    return () => subscription.remove();
+  }, []);
 
   // ── Toggle run history accordion ─────────────────────────────────
   const toggleRunHistory = useCallback((runNumber: number) => {
