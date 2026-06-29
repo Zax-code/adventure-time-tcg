@@ -1,0 +1,49 @@
+appId: love.leaetzak.adventuretime
+name: Store listing quest screenshots
+tags:
+  - quests
+  - screenshots
+  - store-listing
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- openLink:
+    link: adventure-time:///e2e-auth?redirect=%2Fquests&email=${TEST_EMAIL_URI}&password=${TEST_PASSWORD_URI}
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- extendedWaitUntil:
+    visible:
+      text: Daily quests
+    timeout: 15000
+- waitForAnimationToEnd
+- takeScreenshot: tmp-store-listing-quest-shots/01-quests-hub
+
+- openLink:
+    link: adventure-time:///e2e-auth?redirect=%2Fquests%2Fdaily-numbers-play%3Fmode%3D2-4&email=${TEST_EMAIL_URI}&password=${TEST_PASSWORD_URI}
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- extendedWaitUntil:
+    visible:
+      text: Daily Numbers
+    timeout: 15000
+- waitForAnimationToEnd
+- takeScreenshot: tmp-store-listing-quest-shots/02-daily-numbers
+
+- openLink:
+    link: adventure-time:///e2e-auth?redirect=%2Fquests%2Fwordle%3Flanguage%3Den&email=${TEST_EMAIL_URI}&password=${TEST_PASSWORD_URI}
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- extendedWaitUntil:
+    visible:
+      text: Daily Wordle
+    timeout: 15000
+- waitForAnimationToEnd
+- takeScreenshot: tmp-store-listing-quest-shots/03-wordle
+
+- openLink:
+    link: adventure-time:///e2e-auth?redirect=%2Fcollection&email=${TEST_EMAIL_URI}&password=${TEST_PASSWORD_URI}
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- extendedWaitUntil:
+    visible:
+      id: collection-card-tile-0
+    timeout: 15000
+- waitForAnimationToEnd
+- takeScreenshot: tmp-store-listing-quest-shots/04-collection
