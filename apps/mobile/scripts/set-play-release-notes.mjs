@@ -6,7 +6,7 @@ import {
 } from "./google-play-service-account.mjs";
 
 const DEFAULT_PACKAGE_NAME = "love.leaetzak.adventuretime";
-const DEFAULT_TRACK = "internal";
+const DEFAULT_TRACK = "alpha";
 const DEFAULT_LOCALE = "en-US";
 const ANDROID_PUBLISHER_SCOPE =
   "https://www.googleapis.com/auth/androidpublisher";

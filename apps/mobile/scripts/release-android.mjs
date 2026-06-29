@@ -12,7 +12,7 @@ import { recordMobileRelease } from "./release-trace.mjs";
 const DEFAULT_PACKAGE_NAME = "love.leaetzak.adventuretime";
 const PRODUCTION_API_BASE_URL = "https://app.leaetzak.love";
 const DEFAULT_PROFILE = "production";
-const DEFAULT_TRACK = "internal";
+const DEFAULT_TRACK = "alpha";
 const DEFAULT_LOCALE = "en-US";
 const DEFAULT_OUTPUT_PATH = path.resolve(
   import.meta.dirname,
