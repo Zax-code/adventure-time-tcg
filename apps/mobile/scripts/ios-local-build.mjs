@@ -7,6 +7,7 @@ const IOS_WORKSPACE = "AdventureTimeNative.xcworkspace";
 const IOS_SCHEME = "AdventureTimeNative";
 const IOS_CONFIGURATION = "Release";
 const IOS_DESTINATION = "generic/platform=iOS";
+const APPLE_SIGN_IN_ENTITLEMENT = "com.apple.developer.applesignin";
 const LOGIN_KEYCHAIN_PATH = path.join(
   os.homedir(),
   "Library/Keychains/login.keychain-db",
@@ -89,6 +90,15 @@ async function readProfileField(profilePath, keyPath) {
   );
 }
 
+async function readProfileEntitlements(profilePath) {
+  const quotedProfile = profilePath.replace(/'/g, "'\\''");
+  const entitlementsJson = await shell(
+    `security cms -D -i '${quotedProfile}' | plutil -extract Entitlements json -o - -`,
+  );
+
+  return JSON.parse(entitlementsJson);
+}
+
 function stripTeamPrefix(applicationIdentifier) {
   const firstDotIndex = applicationIdentifier.indexOf(".");
 
@@ -102,18 +112,35 @@ function stripTeamPrefix(applicationIdentifier) {
 }
 
 async function readProvisioningProfile(profilePath) {
-  const [name, uuid, applicationIdentifier] = await Promise.all([
+  const [name, uuid, applicationIdentifier, entitlements] = await Promise.all([
     readProfileField(profilePath, "Name"),
     readProfileField(profilePath, "UUID"),
     readProfileField(profilePath, "Entitlements.application-identifier"),
+    readProfileEntitlements(profilePath),
   ]);
 
   return {
     bundleIdentifier: stripTeamPrefix(applicationIdentifier),
+    entitlements,
     name,
     path: profilePath,
     uuid,
   };
+}
+
+function ensureProfileHasAppleSignIn(profile) {
+  const appleSignIn = profile.entitlements?.[APPLE_SIGN_IN_ENTITLEMENT];
+
+  if (Array.isArray(appleSignIn) && appleSignIn.includes("Default")) {
+    return;
+  }
+
+  throw new Error(
+    [
+      `Provisioning profile "${profile.name}" (${profile.uuid}) for ${profile.bundleIdentifier} does not include the ${APPLE_SIGN_IN_ENTITLEMENT} entitlement.`,
+      `Enable Sign in with Apple for the ${profile.bundleIdentifier} App ID in Apple Developer Console, regenerate/download the App Store provisioning profile, and update apps/mobile/credentials.json to point at the refreshed profile before building or releasing iOS.`,
+    ].join(" "),
+  );
 }
 
 async function installProvisioningProfile(profile) {
@@ -285,6 +312,8 @@ export async function buildIosLocally({
       credentials.mainTarget.certPassword,
     ),
   ]);
+
+  ensureProfileHasAppleSignIn(mainProfile);
 
   await ensureSigningIdentityAvailable(certificateSha1);
   await Promise.all([
