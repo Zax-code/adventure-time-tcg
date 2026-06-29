@@ -34,6 +34,7 @@ import {
   DailyLoginQuestIcon,
   DailyNumbersQuestIcon,
   HelpCircleIcon,
+  ShareIcon,
   SpeedCalculusQuestIcon,
   SparklesIcon,
   StepQuestIcon,
@@ -1528,6 +1529,7 @@ export default function QuestsScreen() {
                         backgroundColor={shareButtonAppearance.backgroundColor}
                         foregroundColor={shareButtonAppearance.foregroundColor}
                         borderColor={shareButtonAppearance.borderColor}
+                        leadingIcon={ShareIcon}
                         minHeight={48}
                         style={{
                           width: "100%",
@@ -1867,6 +1869,7 @@ export default function QuestsScreen() {
                         backgroundColor={shareButtonAppearance.backgroundColor}
                         foregroundColor={shareButtonAppearance.foregroundColor}
                         borderColor={shareButtonAppearance.borderColor}
+                        leadingIcon={ShareIcon}
                         minHeight={48}
                         style={{
                           width: "100%",
