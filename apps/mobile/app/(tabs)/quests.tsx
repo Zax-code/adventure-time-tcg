@@ -209,38 +209,6 @@ function getQuestActionButtonAppearance(
   };
 }
 
-function getShareGroupButtonAppearance(status: QuestStatus, tc: ThemeColors) {
-  if (status === "completed") {
-    return {
-      backgroundColor: tc.successDark,
-      foregroundColor: "#FFFFFF",
-      borderColor: undefined,
-    };
-  }
-
-  if (status === "claimed") {
-    return {
-      backgroundColor: tc.successTint,
-      foregroundColor: tc.successText,
-      borderColor: tc.successBorder,
-    };
-  }
-
-  if (status === "failed") {
-    return {
-      backgroundColor: tc.dangerDark,
-      foregroundColor: "#FFFFFF",
-      borderColor: undefined,
-    };
-  }
-
-  return {
-    backgroundColor: tc.accentStrong,
-    foregroundColor: "#FFFFFF",
-    borderColor: undefined,
-  };
-}
-
 function RewardAmount({
   amount,
   claimed,
@@ -1383,8 +1351,9 @@ export default function QuestsScreen() {
               if (item.kind === "wordle") {
                 const groupStatus = getWordleGroupStatus(item.quests);
                 const colors = STATUS_COLORS[groupStatus];
-                const shareButtonAppearance = getShareGroupButtonAppearance(
+                const shareButtonAppearance = getQuestActionButtonAppearance(
                   groupStatus,
+                  colors,
                   tc,
                 );
                 const availableLanguages = WORDLE_LANGUAGES.filter(
@@ -1712,8 +1681,9 @@ export default function QuestsScreen() {
               if (item.kind === "dailyNumbers") {
                 const groupStatus = getDailyNumbersGroupStatus(item.quests);
                 const colors = STATUS_COLORS[groupStatus];
-                const shareButtonAppearance = getShareGroupButtonAppearance(
+                const shareButtonAppearance = getQuestActionButtonAppearance(
                   groupStatus,
+                  colors,
                   tc,
                 );
                 const availableModes = DAILY_NUMBERS_MODES.filter(
