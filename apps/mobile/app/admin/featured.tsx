@@ -2,12 +2,10 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   FlatList,
   InteractionManager,
-  Pressable,
   StyleSheet,
   Text,
   View,
 } from "react-native";
-import Ionicons from "@react-native-vector-icons/ionicons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type { AdminCardsResponse } from "@adventure-time/api-client";
@@ -15,6 +13,7 @@ import type { AdminCardsResponse } from "@adventure-time/api-client";
 import { CardTile } from "../../src/components/card-tile";
 import { withAlpha } from "../../src/components/admin/admin-palette";
 import {
+  AdminButton,
   AdminChip,
   AdminEmptyState,
   AdminHero,
@@ -55,15 +54,11 @@ const cardKeyExtractor = (card: AdminCard) => card.id;
 
 const SelectedFeaturedCard = memo(function SelectedFeaturedCard({
   card,
-  dangerBorder,
-  dangerTint,
   disabled,
   onRemove,
   removeLabel,
 }: {
   card: AdminCard;
-  dangerBorder: string;
-  dangerTint: string;
   disabled: boolean;
   onRemove: (card: AdminCard) => void;
   removeLabel: string;
@@ -75,20 +70,13 @@ const SelectedFeaturedCard = memo(function SelectedFeaturedCard({
   return (
     <View className="gap-2" style={styles.selectedCard}>
       <CardTile card={card} fitContainer />
-      <Pressable
+      <AdminButton
+        label={removeLabel}
+        icon="remove-circle-outline"
+        variant="danger"
         disabled={disabled}
         onPress={handlePress}
-        className="h-9 items-center justify-center rounded-full border px-3"
-        style={{
-          backgroundColor: withAlpha(dangerTint, "E8"),
-          borderColor: dangerBorder,
-          opacity: disabled ? 0.58 : 1,
-        }}
-      >
-        <Text className="font-nunito-extrabold text-xs text-dangerText">
-          {removeLabel}
-        </Text>
-      </Pressable>
+      />
     </View>
   );
 });
@@ -183,20 +171,12 @@ export default function AdminFeaturedScreen() {
     ({ item }: { item: AdminCard }) => (
       <SelectedFeaturedCard
         card={item}
-        dangerBorder={tc.dangerBorder}
-        dangerTint={tc.dangerTint}
         disabled={toggleMutation.isPending}
         onRemove={toggleFeatured}
         removeLabel={t("admin.featured.removeAction")}
       />
     ),
-    [
-      t,
-      tc.dangerBorder,
-      tc.dangerTint,
-      toggleFeatured,
-      toggleMutation.isPending,
-    ],
+    [t, toggleFeatured, toggleMutation.isPending],
   );
 
   const selectedStrip = useMemo(
@@ -349,21 +329,6 @@ export default function AdminFeaturedScreen() {
       const featured = Boolean(card.isFeatured);
       const cannotAdd = !featured && maxReached;
       const disabled = toggleMutation.isPending || cannotAdd;
-      const actionBg = featured
-        ? withAlpha(tc.dangerTint, "E8")
-        : cannotAdd
-          ? withAlpha(tc.surfaceMuted, "D9")
-          : withAlpha(tc.successTint, "E8");
-      const actionBorder = featured
-        ? tc.dangerBorder
-        : cannotAdd
-          ? withAlpha(tc.primaryBorder, "73")
-          : tc.successBorder;
-      const actionColor = featured
-        ? tc.dangerText
-        : cannotAdd
-          ? tc.fgMuted
-          : tc.successText;
 
       return (
         <View
@@ -413,31 +378,20 @@ export default function AdminFeaturedScreen() {
               {card.description}
             </Text>
 
-            <Pressable
-              disabled={disabled}
-              onPress={() => toggleFeatured(card)}
-              className="mt-1 h-10 flex-row items-center justify-center gap-2 rounded-full border px-4"
-              style={{
-                backgroundColor: actionBg,
-                borderColor: actionBorder,
-              }}
-            >
-              <Ionicons
-                name={featured ? "remove-circle-outline" : "add-circle-outline"}
-                size={16}
-                color={actionColor}
-              />
-              <Text
-                className="font-nunito-extrabold text-xs"
-                style={{ color: actionColor }}
-              >
-                {featured
+            <AdminButton
+              label={
+                featured
                   ? t("admin.featured.removeAction")
                   : cannotAdd
                     ? t("admin.featured.fullAction")
-                    : t("admin.featured.addAction")}
-              </Text>
-            </Pressable>
+                    : t("admin.featured.addAction")
+              }
+              icon={featured ? "remove-circle-outline" : "add-circle-outline"}
+              variant={featured ? "danger" : cannotAdd ? "ghost" : "primary"}
+              disabled={disabled}
+              onPress={() => toggleFeatured(card)}
+              style={{ marginTop: 4 }}
+            />
           </View>
         </View>
       );

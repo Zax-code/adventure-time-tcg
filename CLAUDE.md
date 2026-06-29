@@ -371,6 +371,13 @@ Acceptable `style` use cases:
 - `contentContainerStyle`
 - placeholder colors
 
+## Mobile Shared Controls
+
+All app command buttons must use the shared button layer instead of one-off `Pressable`, `TouchableOpacity`, or custom gradient button implementations.
+Use `PrimaryButton`, `SecondaryButton`, `GhostButton`, or `ThemedExpoButton` for regular app surfaces.
+Use `AdminButton` for admin surfaces.
+Direct `Pressable` is acceptable for cards, rows, chips, segmented controls, pickers, icon chrome, game-board controls, and modal/backdrop mechanics; if it is a create/save/edit/delete/add/remove/upload/cancel/navigation-like command button, route it through the shared button components.
+
 ## Theme System
 
 Main files:

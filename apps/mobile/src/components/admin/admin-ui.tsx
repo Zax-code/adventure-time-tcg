@@ -509,34 +509,27 @@ export function AdminSearchInput({
   );
 }
 
-function getButtonPalette(tc: ThemeColors) {
-  return {
-    primary: {
-      bg: tc.primary,
-      text: pickReadableTextColor(tc.primary, tc.fg, tc.surface),
-      border: tc.primaryDark,
-    },
-    secondary: {
-      bg: tc.secondaryTint,
-      text: tc.secondaryText,
-      border: tc.secondaryBorder,
-    },
-    danger: {
-      bg: tc.dangerDark,
-      text: pickReadableTextColor(tc.dangerDark, tc.fg, tc.surface),
-      border: tc.dangerDark,
-    },
-    ghost: {
-      bg: withAlpha(tc.surfaceMuted, "F5"),
-      text: tc.primaryStrong,
-      border: withAlpha(tc.primaryBorder, "73"),
-    },
-    warning: {
-      bg: tc.accentTint,
-      text: tc.accentText,
-      border: tc.accentBorder,
-    },
-  };
+type AdminButtonVariant =
+  | "primary"
+  | "secondary"
+  | "danger"
+  | "ghost"
+  | "warning";
+
+function getAdminButtonIconColor(tc: ThemeColors, variant: AdminButtonVariant) {
+  if (variant === "primary" || variant === "danger") {
+    return "#FFFFFF";
+  }
+
+  if (variant === "secondary") {
+    return tc.secondaryText;
+  }
+
+  if (variant === "warning") {
+    return tc.accentText;
+  }
+
+  return tc.primaryText;
 }
 
 export function AdminButton({
@@ -550,7 +543,7 @@ export function AdminButton({
 }: {
   label: string;
   onPress: () => void;
-  variant?: "primary" | "secondary" | "danger" | "ghost" | "warning";
+  variant?: AdminButtonVariant;
   icon?: IoniconName;
   disabled?: boolean;
   borderRadius?: number;
@@ -558,16 +551,20 @@ export function AdminButton({
 }) {
   const { themeName } = useThemeStore();
   const tc = THEME_COLORS[themeName];
-  const palette = getButtonPalette(tc)[variant];
+  const iconColor = getAdminButtonIconColor(tc, variant);
   const fallbackAppearance = {
-    backgroundColor: palette.bg,
-    borderColor: palette.border,
-    foregroundColor: palette.text,
+    ...(variant === "warning"
+      ? {
+          backgroundColor: tc.accentTint,
+          borderColor: tc.accentBorder,
+          foregroundColor: tc.accentText,
+          gradientColors: null,
+        }
+      : {}),
     borderRadius: borderRadius ?? 16,
     paddingHorizontal: 14,
     paddingVertical: 10,
     minHeight: 44,
-    gradientColors: null,
     textStyle: {
       fontFamily: "Nunito_800ExtraBold",
       fontSize: 13,
@@ -581,7 +578,7 @@ export function AdminButton({
       label={label}
       leadingAccessory={
         icon ? (
-          <Ionicons name={icon} size={16} color={palette.text} />
+          <Ionicons name={icon} size={16} color={iconColor} />
         ) : undefined
       }
       fallbackAppearance={fallbackAppearance}

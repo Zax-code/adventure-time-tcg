@@ -1,6 +1,6 @@
 # Adventure Time TCG Design System
 
-Last audited: 2026-06-20
+Last audited: 2026-06-29
 
 This document defines the current design system for the Expo mobile app in `apps/mobile`. It is based on an audit of the active app routes, shared components, feature components, theme tokens, and admin surfaces. It is meant to be the source of truth for new UI work and for normalizing existing screens.
 
@@ -420,6 +420,8 @@ Existing examples:
 
 ### Buttons
 
+All command buttons must route through the shared button components. Do not create one-off `Pressable`, `TouchableOpacity`, or custom gradient buttons for submit, create, save, edit, delete, add/remove, upload, cancel, or navigation-like command actions.
+
 Use:
 
 - `PrimaryButton`
@@ -427,6 +429,8 @@ Use:
 - `GhostButton`
 - `ThemedExpoButton` for advanced layout or variant support
 - `AdminButton` inside admin surfaces
+
+Use `Pressable` directly only for non-button interaction patterns such as cards/rows, chips, segmented controls, pickers, icon chrome, game-board controls, or modal/backdrop mechanics. If that direct `Pressable` starts to look or behave like a command button, extract it into the shared button layer instead.
 
 Standard button shape:
 
@@ -447,7 +451,7 @@ Use icon-only buttons for compact chrome:
 
 Every icon-only button needs an accessibility label or test ID when relevant.
 
-Avoid new one-off `TouchableOpacity` + `LinearGradient` buttons. If a button needs custom content, use `ThemedExpoButton` with `preferFallback`, `fallbackLayout="stretch"`, and an explicit `fallbackAppearance`.
+If a button needs custom content, use `ThemedExpoButton` with `preferFallback`, `fallbackLayout="stretch"`, and an explicit `fallbackAppearance`.
 
 ### Inputs
 
@@ -783,4 +787,3 @@ For design-system-sensitive UI changes:
 - For interaction or visual behavior, run the narrowest relevant Maestro flow through `scripts/maestro.sh`.
 - For screenshot-dependent work, follow the repository screenshot workflow in `AGENTS.md`.
 - Inspect screenshots directly before claiming a visual change is complete.
-
