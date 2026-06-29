@@ -1,7 +1,12 @@
-import { ReactNode, useEffect, useRef, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { ModalBottomSheet } from "@swmansion/react-native-bottom-sheet";
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 import {
-  Animated,
   Modal,
   Pressable,
   ScrollView,
@@ -40,6 +45,8 @@ const absoluteFill = {
   bottom: 0,
   left: 0,
 };
+const SEGMENTED_CONTROL_PADDING = 8;
+const SEGMENTED_CONTROL_GAP = 8;
 
 export function AdminBackground({ children }: { children: ReactNode }) {
   const { themeName } = useThemeStore();
@@ -384,16 +391,63 @@ export function AdminSegmentedControl<T extends string>({
 }) {
   const { themeName } = useThemeStore();
   const tc = THEME_COLORS[themeName];
+  const [controlWidth, setControlWidth] = useState(0);
+  const selectedIndex = Math.max(
+    0,
+    options.findIndex((option) => option.value === value),
+  );
+  const selectorProgress = useSharedValue(selectedIndex);
+  const selectorWidth =
+    controlWidth > 0
+      ? Math.max(
+          0,
+          (controlWidth -
+            SEGMENTED_CONTROL_PADDING * 2 -
+            SEGMENTED_CONTROL_GAP * Math.max(options.length - 1, 0)) /
+            Math.max(options.length, 1),
+        )
+      : 0;
+
+  useEffect(() => {
+    selectorProgress.value = withTiming(selectedIndex, {
+      duration: 260,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [selectedIndex, selectorProgress]);
+
+  const selectorStyle = useAnimatedStyle(() => ({
+    transform: [
+      {
+        translateX:
+          selectorProgress.value * (selectorWidth + SEGMENTED_CONTROL_GAP),
+      },
+    ],
+  }));
 
   return (
     <View
       className="flex-row gap-2 rounded-[22] border p-2"
+      onLayout={({ nativeEvent }) => setControlWidth(nativeEvent.layout.width)}
       style={{
         backgroundColor: withAlpha(tc.surfaceMuted, "E6"),
         borderColor: withAlpha(tc.primaryBorder, "5C"),
         opacity: disabled ? 0.6 : 1,
+        position: "relative",
       }}
     >
+      {selectorWidth > 0 ? (
+        <Animated.View
+          pointerEvents="none"
+          className="absolute bottom-2 left-2 top-2 rounded-[16]"
+          style={[
+            {
+              width: selectorWidth,
+              backgroundColor: tc.primaryText,
+            },
+            selectorStyle,
+          ]}
+        />
+      ) : null}
       {options.map((option) => {
         const active = option.value === value;
 
@@ -411,9 +465,7 @@ export function AdminSegmentedControl<T extends string>({
             accessibilityRole="button"
             accessibilityState={{ selected: active, disabled }}
             className="flex-1 items-center rounded-[16] px-3 py-[11]"
-            style={{
-              backgroundColor: active ? tc.primaryText : tc.surface,
-            }}
+            style={{ zIndex: 1 }}
           >
             <Text
               className="font-nunito-extrabold text-[13px]"
