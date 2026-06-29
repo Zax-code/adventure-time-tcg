@@ -1069,7 +1069,7 @@ function FinishStatePanel({
         onPress={onShareResult}
         loading={isSharing}
         loadingMode="inline"
-        backgroundColor={finishCompleted ? tc.successDark : tc.primary}
+        backgroundColor={finishCompleted ? tc.successDark : tc.dangerDark}
         foregroundColor="#FFFFFF"
         leadingIcon={ShareIcon}
         minHeight={48}
