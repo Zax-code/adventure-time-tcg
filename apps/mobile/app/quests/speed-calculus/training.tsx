@@ -456,44 +456,44 @@ export default function SpeedCalculusTrainingScreen() {
         return;
       }
 
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       const nextAnswer = appendDigit(answerRef.current, digit);
       answerRef.current = nextAnswer;
       setAnswer(nextAnswer);
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     },
     [keypadLocked],
   );
 
   const handleDelete = useCallback(() => {
-    if (keypadLocked) {
-      return;
-    }
+      if (keypadLocked) {
+        return;
+      }
 
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const nextAnswer = deleteDigit(answerRef.current);
-    answerRef.current = nextAnswer;
-    setAnswer(nextAnswer);
+      const nextAnswer = deleteDigit(answerRef.current);
+      answerRef.current = nextAnswer;
+      setAnswer(nextAnswer);
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, [keypadLocked]);
 
   const handleClear = useCallback(() => {
-    if (keypadLocked) {
-      return;
-    }
+      if (keypadLocked) {
+        return;
+      }
 
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    answerRef.current = "";
-    setAnswer("");
+      answerRef.current = "";
+      setAnswer("");
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, [keypadLocked]);
 
   const handleToggleSign = useCallback(() => {
-    if (keypadLocked) {
-      return;
-    }
+      if (keypadLocked) {
+        return;
+      }
 
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const nextAnswer = toggleSign(answerRef.current);
-    answerRef.current = nextAnswer;
-    setAnswer(nextAnswer);
+      const nextAnswer = toggleSign(answerRef.current);
+      answerRef.current = nextAnswer;
+      setAnswer(nextAnswer);
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, [keypadLocked]);
 
   const handleSubmit = useCallback(() => {
@@ -526,14 +526,14 @@ export default function SpeedCalculusTrainingScreen() {
     const isLastQuestion =
       activeRun.questionIndex + 1 >= activeRun.questions.length;
 
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
     if (parsed === expectedAnswer) {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       showFeedback({
         kind: "correct",
         message: t("quests.speedCalculusCorrectFeedback"),
       });
     } else {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       showFeedback({
         kind: "incorrect",
         message: t("quests.speedCalculusWrongFeedback", {

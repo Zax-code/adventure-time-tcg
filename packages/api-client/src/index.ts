@@ -86,6 +86,7 @@ import {
   speedAnswerSchema,
   speedAnswerResponseSchema,
   speedFinishSchema,
+  speedPauseSchema,
   speedTrainingRunSchema,
   speedRunStateSchema,
   syncStepsSchema,
@@ -642,9 +643,22 @@ export class ApiClient {
   }
 
   async pauseSpeedCalculus(): Promise<SpeedRunState> {
+    const body = speedPauseSchema.parse({});
     return this.request(
       "/quests/speed-calculus/pause",
-      { method: "POST", body: JSON.stringify({}) },
+      { method: "POST", body: JSON.stringify(body) },
+      (data) => speedRunStateSchema.parse(data),
+    );
+  }
+
+  async pauseSpeedCalculusWithAnswers(input: {
+    answers: number[];
+    questVersion?: string;
+  }): Promise<SpeedRunState> {
+    const body = speedPauseSchema.parse(input);
+    return this.request(
+      "/quests/speed-calculus/pause",
+      { method: "POST", body: JSON.stringify(body) },
       (data) => speedRunStateSchema.parse(data),
     );
   }
@@ -652,8 +666,9 @@ export class ApiClient {
   async finishSpeedCalculus(
     runId: string,
     questVersion?: string,
+    answers?: number[],
   ): Promise<SpeedRunState & { correctAnswers?: number; reward?: number }> {
-    const body = speedFinishSchema.parse({ runId, questVersion });
+    const body = speedFinishSchema.parse({ runId, questVersion, answers });
     return this.request(
       "/quests/speed-calculus/finish",
       { method: "POST", body: JSON.stringify(body) },
