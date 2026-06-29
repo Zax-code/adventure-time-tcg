@@ -38,6 +38,7 @@ import {
 } from "@adventure-time/api-client";
 
 import { PageErrorState } from "../../src/components/error-state";
+import { ShareIcon } from "../../src/components/icons";
 import { PageLoadingState } from "../../src/components/loading-state";
 import { DailyNumbersQuestShareCard } from "../../src/features/quests/daily-numbers/quest-share-card";
 import {
@@ -1068,8 +1069,9 @@ function FinishStatePanel({
         onPress={onShareResult}
         loading={isSharing}
         loadingMode="inline"
-        backgroundColor={tc.primaryDark}
+        backgroundColor={finishCompleted ? tc.successDark : tc.primary}
         foregroundColor="#FFFFFF"
+        leadingIcon={ShareIcon}
         minHeight={48}
         accessibilityLabel={t("quests.dailyNumbers.shareResult")}
         testID="daily-numbers-share-result"
