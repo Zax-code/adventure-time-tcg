@@ -5,7 +5,6 @@ defmodule AdventureTimeApiWeb.SocialControllerTest do
   alias AdventureTimeApi.Catalog.{Card, Rarity}
   alias AdventureTimeApi.Inventory.OwnedCard
   alias AdventureTimeApi.Repo
-  alias AdventureTimeApi.Social.CardGift
 
   test "GET /users excludes the current user", _context do
     current_user = create_user_with_password("current@example.com", "password123")
@@ -78,7 +77,21 @@ defmodule AdventureTimeApiWeb.SocialControllerTest do
 
     gifts_response = recipient_token |> auth_conn() |> get(~p"/gifts") |> json_response(200)
     assert gifts_response["pendingCount"] == 1
-    assert [%{"id" => ^gift_id, "status" => "pending"}] = gifts_response["gifts"]
+
+    assert [%{"id" => ^gift_id, "status" => "pending", "card" => gift_card} = gift] =
+             gifts_response["gifts"]
+
+    assert gift["expiresAt"]
+    assert gift_card["id"] == card.id
+    assert gift_card["name"] == "Jake"
+    assert gift_card["description"] == "Stretchy hero."
+    assert gift_card["hp"] == 16
+    assert gift_card["attack"] == 7
+    assert gift_card["defense"] == 6
+    assert gift_card["speed"] == 48
+    assert gift_card["type"] == "Hero"
+    assert gift_card["imageAssetId"] == nil
+    assert gift_card["rarity"]["name"] == "Common"
 
     forbidden =
       third_token

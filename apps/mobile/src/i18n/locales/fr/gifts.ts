@@ -5,17 +5,8 @@ const gifts = {
   giftTo: "Cadeau pour",
   sendGift: "Envoyer un cadeau",
   sendGiftButton: "Envoyer le cadeau",
-  sendSectionTitle: "Envoyer un cadeau",
-  cardId: "ID de carte",
-  recipientUserId: "ID du destinataire",
-  message: "Message",
   messageLabel: "Message",
   users: "Utilisateurs",
-  inboxSent: "Boîte / envoyés",
-  pending: "En attente : {count}",
-  from: "De",
-  to: "À",
-  status: "Statut",
   accept: "Accepter",
   accepting: "Acceptation...",
   reject: "Refuser",
@@ -42,6 +33,15 @@ const gifts = {
   manageTitle: "Gérer l'activité",
   manageSubtitle:
     "Passe des cadeaux reçus aux cadeaux envoyés, ou affiche tout l'historique.",
+  cardMeta: {
+    rarity: "Rareté",
+    type: "Type",
+  },
+  timeline: "Envoyé le {created}",
+  timelineWithExpiry: "Envoyé le {created} · {expiry}",
+  expiresOn: "Expire le {date}",
+  expiresToday: "Expire aujourd'hui",
+  expiresExpired: "Expiré",
   filters: {
     received: "Reçus",
     sent: "Envoyés",
@@ -61,11 +61,6 @@ const gifts = {
   sentBadge: "Envoyé",
   receivedFrom: "De {name}",
   sentTo: "Envoyé à {name}",
-  counterpartyHint: {
-    received: "Ouvre-le pour décider de la suite.",
-    sent: "Ce cadeau a déjà un résultat final.",
-    pendingSent: "En attente d'une réponse du destinataire.",
-  },
   emptyReceivedTitle: "Aucun cadeau reçu pour l'instant",
   emptyReceivedBody:
     "Quand un autre joueur t'enverra une carte, elle apparaîtra ici.",
@@ -79,6 +74,7 @@ const gifts = {
     pending: "En attente",
     accepted: "Accepté",
     rejected: "Refusé",
+    expired: "Expiré",
   },
 };
 
