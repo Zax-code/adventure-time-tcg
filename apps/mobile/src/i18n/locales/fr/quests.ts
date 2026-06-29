@@ -319,7 +319,7 @@ const quests = {
     distanceLabel: "Écart",
     scoreLabel: "Score",
     completedLabel: "Récompense débloquée",
-    incompleteLabel: "Aucune récompense débloquée",
+    incompleteLabel: "Résultat envoyé",
     shareResult: "Partager le résultat",
     sharePreparing: "Préparation…",
     shareBrand: "Adventure Time TCG",
