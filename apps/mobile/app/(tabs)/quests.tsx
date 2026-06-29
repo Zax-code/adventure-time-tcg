@@ -2369,7 +2369,7 @@ export default function QuestsScreen() {
                       </Text>
                     ) : null}
                     {shouldShowDiscreteSyncButton || stepSync.lastError ? (
-                      <View className="mt-2 items-end">
+                      <View className="mt-2">
                         {shouldShowDiscreteSyncButton ? (
                           <QuestButton
                             label={
@@ -2390,7 +2390,7 @@ export default function QuestsScreen() {
                             borderColor={tc.primaryBorder}
                             minHeight={36}
                             textClassName="font-nunito-semibold text-xs"
-                            style={{ alignSelf: "flex-end" }}
+                            style={{ alignSelf: "stretch" }}
                           />
                         ) : null}
                         {stepSync.lastError ? (
