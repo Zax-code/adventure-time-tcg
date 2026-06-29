@@ -1078,6 +1078,65 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
     assert after_count == before_count
   end
 
+  test "speed calculus syncs local answer batches on pause and finish", _context do
+    user = create_user_with_password("speed-local-sync@example.com", "password123")
+    access_token = login_access_token(user.email, "password123")
+
+    started =
+      access_token
+      |> auth_conn()
+      |> post(~p"/quests/speed-calculus/start", %{})
+      |> json_response(200)
+
+    run_id = started["activeRun"]["runId"]
+    questions = started["activeRun"]["questions"]
+    first_answer = speed_question_answer(Enum.at(questions, 0))
+    second_answer = speed_question_answer(Enum.at(questions, 1))
+
+    SpeedCalculusDailyRun
+    |> Repo.get!(run_id)
+    |> Ecto.Changeset.change(
+      pause_expires_at:
+        DateTime.utc_now() |> DateTime.truncate(:second) |> DateTime.add(-1, :second)
+    )
+    |> Repo.update!()
+
+    paused =
+      access_token
+      |> auth_conn()
+      |> post(~p"/quests/speed-calculus/pause", %{
+        "answers" => [first_answer],
+        "questVersion" => started["questVersion"]
+      })
+      |> json_response(200)
+
+    assert paused["activeRun"]["isManuallyPaused"] == true
+    assert paused["activeRun"]["answers"] == [first_answer]
+    assert Repo.get!(SpeedCalculusDailyRun, run_id).answers == [first_answer]
+
+    resumed =
+      access_token
+      |> auth_conn()
+      |> post(~p"/quests/speed-calculus/resume", %{})
+      |> json_response(200)
+
+    assert resumed["activeRun"]["answers"] == [first_answer]
+
+    finished =
+      access_token
+      |> auth_conn()
+      |> post(~p"/quests/speed-calculus/finish", %{
+        "runId" => run_id,
+        "answers" => [first_answer, second_answer],
+        "questVersion" => started["questVersion"]
+      })
+      |> json_response(200)
+
+    assert finished["activeRun"] == nil
+    assert finished["correctAnswers"] == 2
+    assert Repo.get!(SpeedCalculusDailyRun, run_id).answers == [first_answer, second_answer]
+  end
+
   test "speed calculus rejects active-run and empty-history cashout cases", _context do
     user = create_user_with_password("speed-errors@example.com", "password123")
     access_token = login_access_token(user.email, "password123")
@@ -1189,6 +1248,12 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
   defp sorted_words("fr"), do: ["AMOUR", "AVION", "BANJO", "CHIEN", "FLEUR", "GLACE", "NUAGE"]
 
   defp sorted_words("en"), do: ["APPLE", "BANJO", "CRANE", "GHOST", "HOUSE", "LIGHT", "ZEBRA"]
+
+  defp speed_question_answer(%{"left" => left, "operator" => "+", "right" => right}),
+    do: left + right
+
+  defp speed_question_answer(%{"left" => left, "operator" => "-", "right" => right}),
+    do: left - right
 
   defp create_user_with_password(email, password, display_name \\ "Tester", opts \\ []) do
     role = Keyword.get(opts, :role, :user)

@@ -312,23 +312,46 @@ defmodule AdventureTimeApiWeb.QuestsController do
 
   # POST /quests/speed-calculus/pause
   def pause_speed_calculus(conn, _params) do
-    timed_action(conn, "pause_speed_calculus", fn conn, user_id ->
-      case Quests.pause_speed_calculus(user_id) do
-        {:ok, payload} ->
-          json(conn, payload)
+    quest_version = Map.get(conn.body_params, "questVersion")
 
-        {:error, :run_not_active} ->
-          conn
-          |> put_status(400)
-          |> json(%{error: "Run is not active", code: "RUN_NOT_ACTIVE"})
+    case parse_optional_int_list(Map.get(conn.body_params, "answers")) do
+      {:ok, answers} ->
+        timed_action(conn, "pause_speed_calculus", fn conn, user_id ->
+          case Quests.pause_speed_calculus(user_id, answers, quest_version) do
+            {:ok, payload} ->
+              json(conn, payload)
 
-        {:error, :run_is_paused} ->
-          conn |> put_status(400) |> json(%{error: "Run is paused", code: "RUN_IS_PAUSED"})
+            {:error, :speed_calculus_reset} ->
+              conn
+              |> put_status(409)
+              |> json(%{
+                error: "Speed Calculus was reset while you were playing",
+                code: "SPEED_CALCULUS_RESET"
+              })
 
-        {:error, _reason} ->
-          conn |> put_status(500) |> json(%{error: "Internal error"})
-      end
-    end)
+            {:error, :run_not_active} ->
+              conn
+              |> put_status(400)
+              |> json(%{error: "Run is not active", code: "RUN_NOT_ACTIVE"})
+
+            {:error, :run_is_paused} ->
+              conn |> put_status(400) |> json(%{error: "Run is paused", code: "RUN_IS_PAUSED"})
+
+            {:error, :invalid_answers} ->
+              conn
+              |> put_status(400)
+              |> json(%{error: "answers must be a list of integers", code: "INVALID_ANSWERS"})
+
+            {:error, _reason} ->
+              conn |> put_status(500) |> json(%{error: "Internal error"})
+          end
+        end)
+
+      :error ->
+        conn
+        |> put_status(400)
+        |> json(%{error: "answers must be a list of integers", code: "INVALID_ANSWERS"})
+    end
   end
 
   # POST /quests/speed-calculus/resume
@@ -343,31 +366,44 @@ defmodule AdventureTimeApiWeb.QuestsController do
   def finish_speed_calculus(conn, %{"runId" => run_id}) do
     quest_version = Map.get(conn.body_params, "questVersion")
 
-    timed_action(conn, "finish_speed_calculus", fn conn, user_id ->
-      case Quests.finish_speed_calculus(user_id, run_id, quest_version) do
-        {:ok, payload} ->
-          json(conn, payload)
+    case parse_optional_int_list(Map.get(conn.body_params, "answers")) do
+      {:ok, answers} ->
+        timed_action(conn, "finish_speed_calculus", fn conn, user_id ->
+          case Quests.finish_speed_calculus(user_id, run_id, quest_version, answers) do
+            {:ok, payload} ->
+              json(conn, payload)
 
-        {:error, :speed_calculus_reset} ->
-          conn
-          |> put_status(409)
-          |> json(%{
-            error: "Speed Calculus was reset while you were playing",
-            code: "SPEED_CALCULUS_RESET"
-          })
+            {:error, :speed_calculus_reset} ->
+              conn
+              |> put_status(409)
+              |> json(%{
+                error: "Speed Calculus was reset while you were playing",
+                code: "SPEED_CALCULUS_RESET"
+              })
 
-        {:error, :run_not_found} ->
-          conn |> put_status(404) |> json(%{error: "Run not found"})
+            {:error, :run_not_found} ->
+              conn |> put_status(404) |> json(%{error: "Run not found"})
 
-        {:error, :run_not_active} ->
-          conn
-          |> put_status(400)
-          |> json(%{error: "Run is not active", code: "RUN_NOT_ACTIVE"})
+            {:error, :run_not_active} ->
+              conn
+              |> put_status(400)
+              |> json(%{error: "Run is not active", code: "RUN_NOT_ACTIVE"})
 
-        {:error, _reason} ->
-          conn |> put_status(500) |> json(%{error: "Internal error"})
-      end
-    end)
+            {:error, :invalid_answers} ->
+              conn
+              |> put_status(400)
+              |> json(%{error: "answers must be a list of integers", code: "INVALID_ANSWERS"})
+
+            {:error, _reason} ->
+              conn |> put_status(500) |> json(%{error: "Internal error"})
+          end
+        end)
+
+      :error ->
+        conn
+        |> put_status(400)
+        |> json(%{error: "answers must be a list of integers", code: "INVALID_ANSWERS"})
+    end
   end
 
   def finish_speed_calculus(conn, _params) do
@@ -438,4 +474,18 @@ defmodule AdventureTimeApiWeb.QuestsController do
   end
 
   defp parse_int(_), do: nil
+
+  defp parse_optional_int_list(nil), do: {:ok, nil}
+
+  defp parse_optional_int_list(values) when is_list(values) do
+    parsed = Enum.map(values, &parse_int/1)
+
+    if Enum.all?(parsed, &is_integer/1) do
+      {:ok, parsed}
+    else
+      :error
+    end
+  end
+
+  defp parse_optional_int_list(_), do: :error
 end

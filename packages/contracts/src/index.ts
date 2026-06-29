@@ -856,6 +856,13 @@ export const speedAnswerSchema = z.object({
   questVersion: z.string().optional(),
 });
 
+export const speedSyncedAnswersSchema = z.array(z.number().int()).max(120);
+
+export const speedPauseSchema = z.object({
+  answers: speedSyncedAnswersSchema.optional(),
+  questVersion: z.string().optional(),
+});
+
 export const speedAnswerResponseSchema = z.object({
   questVersion: z.string().nullable().optional(),
   activeRun: z
@@ -882,6 +889,7 @@ export const speedTrainingRunSchema = z.object({
 
 export const speedFinishSchema = z.object({
   runId: z.string(),
+  answers: speedSyncedAnswersSchema.optional(),
   questVersion: z.string().optional(),
 });
 
