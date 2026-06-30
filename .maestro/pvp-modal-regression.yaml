@@ -1,0 +1,68 @@
+appId: love.leaetzak.adventuretime
+name: Adventure Time PvP modal regression
+tags:
+  - pvp
+  - regression
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- scrollUntilVisible:
+    element:
+      id: auth-email-input
+    direction: DOWN
+    timeout: 40000
+    centerElement: true
+- assertVisible:
+    id: auth-email-input
+- tapOn:
+    id: auth-email-input
+- eraseText
+- inputText: ${TEST_EMAIL}
+- pressKey: Enter
+- assertVisible:
+    id: auth-password-input
+- tapOn:
+    id: auth-password-input
+- eraseText
+- inputText: ${TEST_PASSWORD}
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: tab-home
+    timeout: 30000
+- openLink:
+    link: adventure-time:///pvp-match?id=${TEST_MATCH_ID}
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- extendedWaitUntil:
+    visible:
+      id: pvp-battle-board
+    timeout: 30000
+- waitForAnimationToEnd
+- tapOn:
+    id: pvp-battle-log-button
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible:
+      id: pvp-combat-log-modal
+    timeout: 5000
+- tapOn:
+    id: pvp-combat-log-modal-close-button
+    retryTapIfNoChange: true
+- waitForAnimationToEnd
+- assertNotVisible:
+    id: pvp-combat-log-modal
+- longPressOn:
+    id: pvp-my-unit-0
+- assertVisible:
+    id: pvp-card-info-modal
+- tapOn:
+    id: pvp-card-info-modal-close-button
+    retryTapIfNoChange: true
+- waitForAnimationToEnd
+- assertNotVisible:
+    id: pvp-card-info-modal
+- tapOn:
+    id: pvp-my-unit-0
+- assertVisible:
+    id: pvp-action-modal
