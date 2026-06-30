@@ -14,7 +14,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import Ionicons from "@react-native-vector-icons/ionicons";
 
 import { BottomTabBarFrame, type ThemeColorKey } from "../bottom-tab-bar-frame";
-import { CoinIcon, CardsIcon, HomeIcon, SettingsIcon } from "../icons";
+import { CoinIcon, CardsIcon, HomeIcon, PackIcon, SettingsIcon } from "../icons";
 import { useTranslation } from "../../i18n";
 import { apiClient } from "../../lib/api";
 import { queryClient } from "../../lib/query-client";
@@ -267,6 +267,8 @@ export function AdminShell({ children }: { children: ReactNode }) {
                 >
                   {item.path === "/admin/cards" ? (
                     <CardsIcon size={24} color={color} />
+                  ) : item.path === "/admin/packs" ? (
+                    <PackIcon size={24} color={color} />
                   ) : (
                     <Ionicons name={item.icon} size={24} color={color} />
                   )}
