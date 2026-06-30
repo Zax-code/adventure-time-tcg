@@ -179,7 +179,7 @@ defmodule AdventureTimeApiWeb.PvpController do
     user_id = conn.assigns.auth_user.id
 
     case Pvp.list_matches(user_id) do
-      {:ok, matches} -> json(conn, %{matches: matches})
+      {:ok, response} -> json(conn, response)
     end
   end
 
