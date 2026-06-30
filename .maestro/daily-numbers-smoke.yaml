@@ -9,12 +9,12 @@ tags:
     clearState: true
     clearKeychain: true
 - openLink:
-    link: adventure-time:///e2e-auth?redirect=%2Fquests%2Fdaily-numbers%3Fmode%3Dclassic&email=${TEST_EMAIL_URI}&password=${TEST_PASSWORD_URI}
+    link: adventure-time:///e2e-auth?redirect=%2Fquests%2Fdaily-numbers%3Fmode%3D1-5&email=${TEST_EMAIL_URI}&password=${TEST_PASSWORD_URI}
 - runFlow: subflows/confirm-open-link-if-needed.yaml
 - assertVisible:
     text: Daily Numbers
 - assertVisible:
-    id: daily-numbers-mode-classic
+    id: daily-numbers-mode-1-5
 - assertVisible:
     id: daily-numbers-submit
 - assertVisible:
@@ -22,9 +22,13 @@ tags:
 - assertVisible:
     id: daily-numbers-tile-n1
 - tapOn:
-    id: daily-numbers-tile-n0
+    id: daily-numbers-operator-plus
 - tapOn:
     id: daily-numbers-operator-plus
+- tapOn:
+    id: daily-numbers-operator-plus
+- tapOn:
+    id: daily-numbers-tile-n0
 - tapOn:
     id: daily-numbers-tile-n1
 - tapOn:
