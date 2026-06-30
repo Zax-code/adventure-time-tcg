@@ -3426,19 +3426,19 @@ export default function PacksScreen() {
             const packSurfaceColor = pack.color
               ? withAlpha(pack.color, "33")
               : tc.surfaceMuted;
-            const statusLabel = limitReached
-              ? pack.availability?.nextAvailableAt
+            const statusLabel = canAfford
+              ? t("packs.readyNow")
+              : t("packs.needMoreCoinsShort", {
+                  count: coinsNeeded,
+                });
+            const limitAvailableLabel =
+              limitReached && pack.availability?.nextAvailableAt
                 ? t("packs.weeklyLimitAvailable", {
                     date: formatPackAvailabilityDate(
                       pack.availability.nextAvailableAt,
                     ),
                   })
-                : t("packs.weeklyLimitReached")
-              : canAfford
-                ? t("packs.readyNow")
-                : t("packs.needMoreCoinsShort", {
-                    count: coinsNeeded,
-                  });
+                : null;
 
             return (
               <Pressable
@@ -3500,32 +3500,53 @@ export default function PacksScreen() {
                         </Text>
                       </View>
 
-                      <View className="flex-row items-center justify-between gap-3">
-                        <Text
-                          className="font-nunito text-xs"
+                      {limitReached ? (
+                        <View
+                          className="flex-row items-center gap-3 rounded-2xl border px-3 py-2"
                           style={{
-                            color: limitReached
-                              ? tc.fgMuted
-                              : canAfford
-                                ? tc.successText
-                                : tc.dangerText,
+                            backgroundColor: tc.bg,
+                            borderColor: tc.primaryBorder,
                           }}
                         >
-                          {statusLabel}
-                        </Text>
+                          <View
+                            className="h-8 w-8 items-center justify-center rounded-full"
+                            style={{ backgroundColor: tc.primaryTint }}
+                          >
+                            <ClockIcon size={15} color={tc.primaryText} />
+                          </View>
+                          <View className="min-w-0 flex-1 gap-0.5">
+                            <Text className="font-nunito-bold text-sm leading-5 text-fg">
+                              {t("packs.weeklyLimitReached")}
+                            </Text>
+                            {limitAvailableLabel ? (
+                              <Text className="font-nunito text-xs leading-4 text-fgMuted">
+                                {limitAvailableLabel}
+                              </Text>
+                            ) : null}
+                          </View>
+                        </View>
+                      ) : (
+                        <View className="flex-row items-center justify-between gap-3">
+                          <Text
+                            className="font-nunito text-xs"
+                            style={{
+                              color: canAfford ? tc.successText : tc.dangerText,
+                            }}
+                          >
+                            {statusLabel}
+                          </Text>
 
-                        <Text
-                          testID={`pack-open-cta-${slug}`}
-                          className="font-nunito-bold text-sm"
-                          style={{
-                            color: canOpen ? tc.primaryText : tc.fgMuted,
-                          }}
-                        >
-                          {limitReached
-                            ? t("packs.weeklyLimitReached")
-                            : t("packs.tapToOpen")}
-                        </Text>
-                      </View>
+                          <Text
+                            testID={`pack-open-cta-${slug}`}
+                            className="font-nunito-bold text-sm"
+                            style={{
+                              color: canOpen ? tc.primaryText : tc.fgMuted,
+                            }}
+                          >
+                            {t("packs.tapToOpen")}
+                          </Text>
+                        </View>
+                      )}
                     </View>
                   </View>
                 </View>
