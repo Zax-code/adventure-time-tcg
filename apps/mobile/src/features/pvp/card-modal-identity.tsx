@@ -95,8 +95,9 @@ export function CardModalIdentity({
   const rarityBackground = rarityColor.ring;
   const rarityText = readableTextColor(rarityBackground);
   const imageUrl = resolveBattleImageUrl(unit.imageUrl);
+  const unitName = unit.name || t("pvp.unknown");
   const characterLabel =
-    unit.character && unit.character !== unit.name ? unit.character : null;
+    unit.character && unit.character !== unitName ? unit.character : null;
 
   return (
     <View
@@ -106,7 +107,7 @@ export function CardModalIdentity({
       <CardModalArtwork
         key={imageUrl ?? `fallback-${unit.instanceId}`}
         imageUrl={imageUrl}
-        fallbackLabel={unit.name.charAt(0)}
+        fallbackLabel={unitName.charAt(0)}
         backgroundColor={typeColor.light}
       />
 
@@ -145,7 +146,7 @@ export function CardModalIdentity({
           numberOfLines={1}
           style={{ color: typeText }}
         >
-          {unit.name}
+          {unitName}
         </Text>
         {characterLabel ? (
           <Text

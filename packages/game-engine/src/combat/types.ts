@@ -394,6 +394,8 @@ export type CombatEventType =
   | "coverRedirect"
   | "thorns"
   | "counter"
+  | "selfDamage"
+  | "reflectDamage"
   | "preventDeath"
   | "statusRoll"
   | "randomStatusRoll"

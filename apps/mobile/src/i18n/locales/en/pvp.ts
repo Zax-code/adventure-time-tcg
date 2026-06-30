@@ -117,6 +117,8 @@ const pvp = {
     coverRedirect: "Cover redirected damage from {source} to {target}",
     thorns: "{source}'s Thorns dealt {amount} damage to {target}",
     counter: "{source} countered {target} for {amount} damage",
+    selfDamage: "{actor} took {amount} self-damage",
+    reflectDamage: "{source} reflected {amount} damage to {target}",
     preventDeath: "{target} was saved from KO by {ability}",
     statusSteal: "{target} stole {status} from {source}",
     swapHp: "{actor} swapped HP percentages with {target}",

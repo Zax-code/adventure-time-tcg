@@ -226,6 +226,8 @@ export const pvpCombatEventTypeValues = [
   "coverRedirect",
   "thorns",
   "counter",
+  "selfDamage",
+  "reflectDamage",
   "preventDeath",
   "statusRoll",
   "randomStatusRoll",

@@ -39,6 +39,20 @@ type SummaryEffect = {
   detail: string;
 };
 
+function getUnitStatuses(unit: PvpUnitState) {
+  return Array.isArray(unit.statuses) ? unit.statuses : [];
+}
+
+function getUnitCooldowns(unit: PvpUnitState) {
+  return unit.cooldowns && typeof unit.cooldowns === "object"
+    ? unit.cooldowns
+    : {};
+}
+
+function getUnitPassives(unit: PvpUnitState) {
+  return Array.isArray(unit.passives) ? unit.passives : [];
+}
+
 function formatTurnsLeft(count: number, t: Translate) {
   return count === 1 ? t("pvp.turnLeft") : t("pvp.turnsLeft", { count });
 }
@@ -58,11 +72,14 @@ export function CardInfoModal({
   const hpPct = Math.max(0, unit.hp / Math.max(1, unit.maxHp));
   const hpColor =
     hpPct > 0.5 ? "#16A34A" : hpPct > 0.25 ? "#F59E0B" : "#DC2626";
+  const statuses = getUnitStatuses(unit);
+  const cooldowns = getUnitCooldowns(unit);
+  const passives = getUnitPassives(unit);
   const skillDef = unit.skill ? abilityDefinitions?.[unit.skill] : undefined;
   const ultimateDef = unit.ultimate
     ? abilityDefinitions?.[unit.ultimate]
     : undefined;
-  const passiveDefs = unit.passives.map((key) => ({
+  const passiveDefs = passives.map((key) => ({
     key,
     definition: abilityDefinitions?.[key],
   }));
@@ -71,12 +88,12 @@ export function CardInfoModal({
   const skillLabel = localizeAbilityType("SKILL", t);
   const ultimateLabel = localizeAbilityType("ULTIMATE", t);
   const skillCooldown =
-    unit.skill && unit.cooldowns[unit.skill] ? unit.cooldowns[unit.skill] : 0;
+    unit.skill && cooldowns[unit.skill] ? cooldowns[unit.skill] : 0;
   const ultimateCooldown =
-    unit.ultimate && unit.cooldowns[unit.ultimate]
-      ? unit.cooldowns[unit.ultimate]
+    unit.ultimate && cooldowns[unit.ultimate]
+      ? cooldowns[unit.ultimate]
       : 0;
-  const summaryStatuses = unit.statuses.map((status, index) => ({
+  const summaryStatuses = statuses.map((status, index) => ({
     key: `status-${status.name}-${index}`,
     label: localizeStatusName(status.name, t),
     detail:
@@ -123,7 +140,7 @@ export function CardInfoModal({
             >
               <CardModalIdentity unit={unit} themeName={themeName} />
               <View className="px-5 pb-5 pt-4">
-                <StatusEffectsList statuses={unit.statuses} t={t} />
+                <StatusEffectsList statuses={statuses} t={t} />
               </View>
             </View>
 
