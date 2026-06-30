@@ -28,6 +28,7 @@
     "release:mobile": "node ./scripts/release-mobile.mjs",
     "release:mobile:android": "npm run release:android -w @adventure-time/mobile --",
     "release:mobile:ios": "npm run release:ios -w @adventure-time/mobile --",
+    "greenlight:mobile": "./scripts/greenlight-mobile-preflight.sh",
     "build": "npm run build --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",

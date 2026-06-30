@@ -99,6 +99,7 @@ Root:
 - `npm run release:mobile:ios` - build a local iOS `.ipa` and upload it directly to App Store Connect/TestFlight with Apple's local tooling
 - `npm run release:mobile:android` - submit a locally built Android artifact through EAS/Google Play and then push the Play release note
 - `npm run release:mobile -- --platform <ios|android|both> ...` - default mobile release entry point when the user asks to "release"
+- `npm run greenlight:mobile` - run Greenlight App Store preflight on the Expo app from a clean temporary source copy
 - `npm run build`
 - `npm run typecheck`
 
