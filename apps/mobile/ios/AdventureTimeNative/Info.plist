@@ -51,6 +51,11 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_expo._tcp</string>
+		<string>_reactnative._tcp</string>
+	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>Take a photo for profile or admin card images when you choose to upload one.</string>
 	<key>NSFaceIDUsageDescription</key>
@@ -59,6 +64,8 @@
 	<string>Adventure Time TCG reads your daily step count to keep step quests synced.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>Adventure Time TCG uses HealthKit background delivery to keep step quests up to date.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Adventure Time TCG needs local network access to connect to the development server on this Mac.</string>
 	<key>NSMotionUsageDescription</key>
 	<string>Adventure Time TCG uses motion activity to show live step progress while the app is open.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
