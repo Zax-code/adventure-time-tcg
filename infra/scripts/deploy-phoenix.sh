@@ -126,11 +126,11 @@ install_quadlets() {
   sudo rm -f "$QUADLET_DIR/adventure-time-tcg.network"
   sudo install -m 0644 "$quadlet_source_dir/adventure-time-tcg.pod" \
     "$QUADLET_DIR/adventure-time-tcg.pod"
-  sudo install -m 0644 "$quadlet_source_dir/adventure-time-tcg-postgres.container" \
+  sudo install -m 0600 "$quadlet_source_dir/adventure-time-tcg-postgres.container" \
     "$QUADLET_DIR/adventure-time-tcg-postgres.container"
-  sudo install -m 0644 "$quadlet_source_dir/adventure-time-tcg-minio.container" \
+  sudo install -m 0600 "$quadlet_source_dir/adventure-time-tcg-minio.container" \
     "$QUADLET_DIR/adventure-time-tcg-minio.container"
-  sudo install -m 0644 "$rendered_api" \
+  sudo install -m 0600 "$rendered_api" \
     "$QUADLET_DIR/adventure-time-tcg-api.container"
   rm -f "$rendered_api"
 }
