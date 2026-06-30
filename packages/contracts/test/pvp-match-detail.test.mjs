@@ -235,3 +235,77 @@ test("pvp match detail accepts sanitized all-units and conditional payloads", ()
     1 / 3,
   );
 });
+
+test("pvp match detail accepts Phoenix combat log retaliation events", () => {
+  const response = {
+    match: {
+      id: "match-1",
+      inviterId: "user-1",
+      inviteeId: "user-2",
+      status: "IN_PROGRESS",
+      inviterLoadout: [],
+      inviteeLoadout: [],
+      winnerId: null,
+      currentTurn: 1,
+      createdAt: "2026-06-22T00:00:00Z",
+      updatedAt: "2026-06-22T00:00:00Z",
+    },
+    battleState: {
+      id: "match-1",
+      turn: 1,
+      phase: "active",
+      currentPlayerId: "user-1",
+      players: [
+        {
+          userId: "user-1",
+          name: "A",
+          energy: 0,
+          maxEnergy: 1,
+          hasUsedFreeBasic: false,
+          units: [makeUnit("u1")],
+          bench: [],
+        },
+        {
+          userId: "user-2",
+          name: "B",
+          energy: 0,
+          maxEnergy: 1,
+          hasUsedFreeBasic: false,
+          units: [makeUnit("u2")],
+          bench: [],
+        },
+      ],
+      log: [
+        {
+          seq: 1,
+          turn: 1,
+          type: "selfDamage",
+          payload: {
+            actorId: "u1",
+            targetId: "u1",
+            amount: 2,
+          },
+        },
+        {
+          seq: 2,
+          turn: 1,
+          type: "reflectDamage",
+          payload: {
+            sourceId: "u2",
+            targetId: "u1",
+            amount: 3,
+          },
+        },
+      ],
+      isMyTurn: true,
+      myUserId: "user-1",
+    },
+  };
+
+  const parsed = pvpMatchDetailResponseSchema.parse(response);
+
+  assert.deepEqual(
+    parsed.battleState?.log.map((event) => event.type),
+    ["selfDamage", "reflectDamage"],
+  );
+});

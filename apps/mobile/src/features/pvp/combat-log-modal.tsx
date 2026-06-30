@@ -358,6 +358,17 @@ function summarizeCombatEvent(
         target: targetName ?? target,
         amount: String(getEventAmount(event) ?? 0),
       });
+    case "selfDamage":
+      return t("pvp.combatLog.selfDamage", {
+        actor: actorName ?? unit,
+        amount: String(getEventAmount(event) ?? 0),
+      });
+    case "reflectDamage":
+      return t("pvp.combatLog.reflectDamage", {
+        source: sourceName ?? unit,
+        target: targetName ?? target,
+        amount: String(getEventAmount(event) ?? 0),
+      });
     case "preventDeath":
       return t("pvp.combatLog.preventDeath", {
         target: targetName ?? unit,
@@ -395,6 +406,8 @@ function getEventClasses(type: string) {
     case "damage":
     case "crit":
     case "ko":
+    case "selfDamage":
+    case "reflectDamage":
       return "border-dangerBorder bg-dangerTint";
     case "heal":
     case "revive":
@@ -425,6 +438,8 @@ function getEventTextClass(type: string) {
     case "damage":
     case "crit":
     case "ko":
+    case "selfDamage":
+    case "reflectDamage":
       return "text-dangerDark";
     case "heal":
     case "revive":

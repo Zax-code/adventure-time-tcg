@@ -32,6 +32,16 @@ interface ActionModalProps {
   onSubmitAction: (action: PvpAction) => void;
 }
 
+function getUnitStatuses(unit: PvpUnitState) {
+  return Array.isArray(unit.statuses) ? unit.statuses : [];
+}
+
+function getUnitCooldowns(unit: PvpUnitState) {
+  return unit.cooldowns && typeof unit.cooldowns === "object"
+    ? unit.cooldowns
+    : {};
+}
+
 export function ActionModal({
   visible,
   unit,
@@ -52,20 +62,22 @@ export function ActionModal({
   const ultimateDef = ultimateKey
     ? abilityDefinitions?.[ultimateKey]
     : undefined;
+  const statuses = unit ? getUnitStatuses(unit) : [];
+  const cooldowns = unit ? getUnitCooldowns(unit) : {};
   const isSilenced =
-    unit?.statuses.some((status) => status.name === "Silence") ?? false;
+    statuses.some((status) => status.name === "Silence") ?? false;
   const isStunned =
-    unit?.statuses.some((status) => status.name === "Stunned") ?? false;
+    statuses.some((status) => status.name === "Stunned") ?? false;
   const hasFreeHasteBasic =
-    (unit?.statuses.some((status) => status.name === "Haste") ?? false) &&
+    statuses.some((status) => status.name === "Haste") &&
     !myPlayer.hasUsedFreeBasic;
   const stunEnergyTax = isStunned ? 1 : 0;
   const basicCost = (hasFreeHasteBasic ? 0 : 1) + stunEnergyTax;
   const skillCost = (skillDef?.cost ?? 0) + stunEnergyTax;
   const ultimateCost = (ultimateDef?.cost ?? 0) + stunEnergyTax;
-  const skillCd = skillKey && unit ? (unit.cooldowns[skillKey] ?? 0) : 0;
+  const skillCd = skillKey && unit ? (cooldowns[skillKey] ?? 0) : 0;
   const ultimateCd =
-    ultimateKey && unit ? (unit.cooldowns[ultimateKey] ?? 0) : 0;
+    ultimateKey && unit ? (cooldowns[ultimateKey] ?? 0) : 0;
   const strongTypes = unit ? getStrongAgainst(unit.type as never) : [];
   const weakTypes = unit ? getWeakAgainst(unit.type as never) : [];
 

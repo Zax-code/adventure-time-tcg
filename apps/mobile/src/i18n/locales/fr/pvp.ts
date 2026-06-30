@@ -119,6 +119,8 @@ const pvp = {
     coverRedirect: "Couverture redirige les dégâts de {source} vers {target}",
     thorns: "Épines de {source} inflige {amount} dégâts à {target}",
     counter: "{source} contre {target} pour {amount} dégâts",
+    selfDamage: "{actor} subit {amount} dégâts auto-infligés",
+    reflectDamage: "{source} renvoie {amount} dégâts à {target}",
     preventDeath: "{target} évite le K.O. grâce à {ability}",
     statusSteal: "{target} vole {status} à {source}",
     swapHp: "{actor} échange ses pourcentages de PV avec {target}",
