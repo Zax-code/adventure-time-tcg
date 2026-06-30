@@ -3,12 +3,19 @@
     "name": "Adventure Time TCG",
     "slug": "adventure-time-tcg",
     "scheme": "adventure-time",
-    "version": "1.0.7",
+    "version": "1.0.8",
     "owner": "zax-code",
     "userInterfaceStyle": "automatic",
     "ios": {
       "requireFullScreen": true,
-      "usesAppleSignIn": true
+      "usesAppleSignIn": true,
+      "infoPlist": {
+        "NSLocalNetworkUsageDescription": "Adventure Time TCG needs local network access to connect to the development server on this Mac.",
+        "NSBonjourServices": [
+          "_expo._tcp",
+          "_reactnative._tcp"
+        ]
+      }
     },
     "android": {
       "blockedPermissions": [
