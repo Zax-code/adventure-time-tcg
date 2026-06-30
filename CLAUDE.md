@@ -322,6 +322,44 @@ Production VPS runtime:
 - Do not reintroduce `phoenix` or `dev` into production native DB names.
 - The PWA remains separate in `~/adventure-time-tcg-pwa` and is served from Kubernetes behind `game.leaetzak.love`; do not point mobile/native traffic at PWA services.
 
+Production investigation workflow:
+- SSH target is `leaetzak`; prefer commands that run entirely on the VPS and stream only the needed result back.
+- Production runs in rootful Podman. Inspect containers with `ssh leaetzak 'sudo -n /usr/bin/podman ps --all'`.
+- Query production Postgres through the database container instead of printing or copying credentials:
+
+  ```sh
+  ssh leaetzak 'sudo -n /usr/bin/podman exec -i adventure-time-tcg-postgres /usr/local/bin/psql -U postgres -d adventure_time_tcg -v ON_ERROR_STOP=1 -P pager=off -X' <<'SQL'
+  SELECT now();
+  SQL
+  ```
+
+- Never paste production secrets into chat or logs. Do not dump full env output. If you need DB access, use the container-local `psql` pattern above.
+- For read-only Phoenix/Ecto inspection in the running release, use release eval without starting a second web endpoint:
+
+  ```sh
+  ssh leaetzak 'sudo -n /usr/bin/podman exec -i adventure-time-tcg-api /app/bin/adventure_time_api eval "$(cat)"' <<'EXS'
+  Application.load(:adventure_time_api)
+  Application.ensure_all_started(:tzdata)
+  Application.ensure_all_started(:ecto_sql)
+  {:ok, _pid} = AdventureTimeApi.Repo.start_link()
+
+  # Read-only Ecto or context calls here.
+  EXS
+  ```
+
+- Do not call `Application.ensure_all_started(:adventure_time_api)` inside release eval on production; the live API already owns port `4200` and a second endpoint start can fail.
+- For production service logs, start with `ssh leaetzak 'sudo -n journalctl -u adventure-time-tcg-api.service -n 300 --no-pager'`; use `sudo -n /usr/bin/podman logs --tail 300 adventure-time-tcg-api` only when container logs are more relevant.
+- PvP match investigation usually needs both compact persistence data and reconstructed state:
+  - `pvp_match_events` is the compact action journal.
+  - `pvp_match_snapshots.state["log"]` contains expanded battle log snapshots.
+  - `AdventureTimeApi.Pvp.get_spectate(match_id)` reconstructs the current spectator view and expanded combat log through the app seam.
+- When checking ability/card data, use the current local DB or production DB. Do not use `apps/phoenix/priv/repo/seed_data/pvp_seed_catalog.json` for behavioral conclusions; it can be stale.
+- The local ability audit command is:
+
+  ```sh
+  cd apps/phoenix && set -a && source .env && set +a && mix run scripts/audit-pvp-abilities.exs
+  ```
+
 ## Mobile Bottom Sheets
 
 All swipeable bottom sheets in the Expo app must use the Software Mansion bottom sheet implementation from `@swmansion/react-native-bottom-sheet`.
