@@ -14,6 +14,7 @@ import {
   getEventCritRoll,
   getEventDestinationId,
   getEventDestinationName,
+  getEventHealing,
   getEventMissChance,
   getEventMissRoll,
   getEventMaxEnergy,
@@ -28,7 +29,9 @@ import {
   getEventTargetName,
   getEventWinnerId,
   getEventWinnerLabel,
+  didEventExecute,
   didEventRollPass,
+  isCritEvent,
   isMissEvent,
   isDrawEvent,
 } from "./event-payload";
@@ -227,6 +230,14 @@ function summarizeCombatEvent(
           roll: formatAttackRollDetail(event, t),
         });
       }
+      if (isCritEvent(event)) {
+        return t("pvp.combatLog.criticalDamage", {
+          attacker: actorName ?? unit,
+          amount: String(getEventAmount(event) ?? 0),
+          target: targetName ?? target,
+          roll: formatAttackRollDetail(event, t),
+        });
+      }
       return t("pvp.combatLog.damage", {
         attacker: actorName ?? unit,
         amount: String(getEventAmount(event) ?? 0),
@@ -235,6 +246,7 @@ function summarizeCombatEvent(
       });
     case "crit":
       return t("pvp.combatLog.crit", {
+        attacker: actorName ?? unit,
         target: targetName ?? target,
         roll: formatCritRollDetail(event, t),
       });
@@ -280,9 +292,37 @@ function summarizeCombatEvent(
         status: localizeStatusName(getEventStatusName(event) ?? "", t),
       });
     case "statusTick":
+      const statusName = getEventStatusName(event) ?? "";
+      const localizedStatus = localizeStatusName(statusName, t);
+      const tickAmount = getEventAmount(event) ?? 0;
+      const tickHealing = getEventHealing(event);
+
+      if (didEventExecute(event)) {
+        return t("pvp.combatLog.statusExecute", {
+          target: targetName ?? unit,
+          status: localizedStatus,
+        });
+      }
+
+      if (tickHealing !== null && tickHealing > 0) {
+        return t("pvp.combatLog.statusTickHealing", {
+          target: targetName ?? unit,
+          status: localizedStatus,
+          amount: String(tickHealing),
+        });
+      }
+
+      if (tickAmount > 0) {
+        return t("pvp.combatLog.statusTickDamage", {
+          target: targetName ?? unit,
+          status: localizedStatus,
+          amount: String(tickAmount),
+        });
+      }
+
       return t("pvp.combatLog.statusTick", {
         target: targetName ?? unit,
-        status: localizeStatusName(getEventStatusName(event) ?? "", t),
+        status: localizedStatus,
       });
     case "statusExpire":
       return t("pvp.combatLog.statusExpire", {

@@ -84,14 +84,19 @@ const pvp = {
     turnEnd: "Le tour {turn} se termine",
     energyGrant: "L'énergie de {player} est maintenant {amount}",
     abilityStart: "{actor} utilise {ability}",
-    miss: "{attacker} a manqué {target}{roll}",
+    miss: "L'attaque de {attacker} manque {target}{roll}",
     damage: "{attacker} inflige {amount} dégâts à {target}{roll}",
-    crit: "Coup critique sur {target}{roll}",
-    attackMissRollDetail: " (raté {missRoll}/{missChance})",
-    attackMissOnlyRollDetail: " (raté {missRoll}/{missChance})",
+    criticalDamage:
+      "{attacker} réussit un coup critique sur {target} pour {amount} dégâts{roll}",
+    crit: "Le jet critique de {attacker} réussit contre {target}{roll}",
+    attackMissRollDetail:
+      " (jet de raté {missRoll} contre {missChance} de chance)",
+    attackMissOnlyRollDetail:
+      " (jet de raté {missRoll} contre {missChance} de chance)",
     attackHitRollDetail:
-      " (raté {missRoll}/{missChance}, critique {critRoll}/{critChance})",
-    critRollDetail: " (critique {critRoll}/{critChance})",
+      " (jet de raté {missRoll} contre {missChance} de chance, jet critique {critRoll} contre {critChance} de chance)",
+    critRollDetail:
+      " (jet critique {critRoll} contre {critChance} de chance)",
     ko: "{target} a été mis K.O.",
     heal: "{target} récupère {amount} PV",
     revive: "{target} revient au combat",
@@ -103,6 +108,9 @@ const pvp = {
     timeout: "{player} perd au temps",
     statusApply: "{target} gagne {status}",
     statusTick: "{target} subit {status}",
+    statusTickDamage: "{status} inflige {amount} dégâts à {target}",
+    statusTickHealing: "{status} rend {amount} PV à {target}",
+    statusExecute: "{status} exécute {target}",
     statusExpire: "{status} expire sur {target}",
     statusCleanse: "{target} est purifié de {status}",
     passiveRollPass: "Le jet du passif {ability} de {unit} réussit ({roll})",

@@ -83,14 +83,19 @@ const pvp = {
     turnEnd: "Turn {turn} ended",
     energyGrant: "{player} energy is now {amount}",
     abilityStart: "{actor} used {ability}",
-    miss: "{attacker} missed {target}{roll}",
+    miss: "{attacker}'s attack missed {target}{roll}",
     damage: "{attacker} dealt {amount} damage to {target}{roll}",
-    crit: "Critical hit on {target}{roll}",
-    attackMissRollDetail: " (miss {missRoll}/{missChance})",
-    attackMissOnlyRollDetail: " (miss {missRoll}/{missChance})",
+    criticalDamage:
+      "{attacker} landed a critical hit on {target} for {amount} damage{roll}",
+    crit: "{attacker}'s critical roll succeeded against {target}{roll}",
+    attackMissRollDetail:
+      " (miss roll {missRoll} against {missChance} chance)",
+    attackMissOnlyRollDetail:
+      " (miss roll {missRoll} against {missChance} chance)",
     attackHitRollDetail:
-      " (miss {missRoll}/{missChance}, crit {critRoll}/{critChance})",
-    critRollDetail: " (crit {critRoll}/{critChance})",
+      " (miss roll {missRoll} against {missChance} chance, crit roll {critRoll} against {critChance} chance)",
+    critRollDetail:
+      " (crit roll {critRoll} against {critChance} chance)",
     ko: "{target} was knocked out",
     heal: "{target} healed for {amount}",
     revive: "{target} returned to battle",
@@ -102,6 +107,9 @@ const pvp = {
     timeout: "{player} lost by timeout",
     statusApply: "{target} gained {status}",
     statusTick: "{target} was affected by {status}",
+    statusTickDamage: "{status} dealt {amount} damage to {target}",
+    statusTickHealing: "{status} restored {amount} HP to {target}",
+    statusExecute: "{status} executed {target}",
     statusExpire: "{status} expired on {target}",
     statusCleanse: "{target} was cleansed of {status}",
     passiveRollPass: "{unit}'s passive {ability} roll passed ({roll})",

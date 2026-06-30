@@ -46,6 +46,10 @@ export function getEventAmount(event: CombatEvent): number | null {
   ]);
 }
 
+export function getEventHealing(event: CombatEvent): number | null {
+  return pickNumber(event.payload, ["healing", "heal"]);
+}
+
 export function getEventMaxEnergy(event: CombatEvent): number | null {
   return pickNumber(event.payload, ["maxEnergy"]);
 }
@@ -88,6 +92,10 @@ export function getEventOptionCount(event: CombatEvent): number | null {
 
 export function didEventRollPass(event: CombatEvent): boolean {
   return pickBoolean(event.payload, ["passed"]);
+}
+
+export function didEventExecute(event: CombatEvent): boolean {
+  return pickBoolean(event.payload, ["execute", "fatal"]);
 }
 
 export function isMissEvent(event: CombatEvent): boolean {

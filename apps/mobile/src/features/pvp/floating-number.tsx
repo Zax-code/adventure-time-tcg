@@ -7,10 +7,13 @@ interface FloatingNumberProps {
   onDone: () => void;
 }
 
-const TYPE_CONFIG: Record<FloatingNumberProps["type"], { color: string; fontSize: number; prefix: string }> = {
+const TYPE_CONFIG: Record<
+  FloatingNumberProps["type"],
+  { color: string; fontSize: number; prefix: string }
+> = {
   damage: { color: "#FEE2E2", fontSize: 17, prefix: "-" },
-  crit: { color: "#FFEDD5", fontSize: 23, prefix: "-" },
-  shieldCrit: { color: "#CFFAFE", fontSize: 23, prefix: "-" },
+  crit: { color: "#FFFBEB", fontSize: 19, prefix: "-" },
+  shieldCrit: { color: "#ECFEFF", fontSize: 19, prefix: "-" },
   heal: { color: "#D1FAE5", fontSize: 17, prefix: "+" },
   miss: { color: "#E5E7EB", fontSize: 15, prefix: "" },
 };
@@ -36,14 +39,31 @@ export function FloatingNumber({ amount, type, onDone }: FloatingNumberProps) {
 
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(translateY, { toValue: -72, duration: 820, useNativeDriver: true }),
+      Animated.timing(translateY, {
+        toValue: -72,
+        duration: 820,
+        useNativeDriver: true,
+      }),
       Animated.sequence([
-        Animated.spring(scale, { toValue: 1.16, damping: 8, stiffness: 180, useNativeDriver: true }),
-        Animated.timing(scale, { toValue: 1, duration: 260, useNativeDriver: true }),
+        Animated.spring(scale, {
+          toValue: 1.16,
+          damping: 8,
+          stiffness: 180,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scale, {
+          toValue: 1,
+          duration: 260,
+          useNativeDriver: true,
+        }),
       ]),
       Animated.sequence([
         Animated.delay(520),
-        Animated.timing(opacity, { toValue: 0, duration: 300, useNativeDriver: true }),
+        Animated.timing(opacity, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
       ]),
     ]).start(({ finished }) => {
       if (finished) onDone();
@@ -51,15 +71,24 @@ export function FloatingNumber({ amount, type, onDone }: FloatingNumberProps) {
   }, []);
 
   const cfg = TYPE_CONFIG[type];
-  const label = type === "miss" ? "MISS" : `${cfg.prefix}${amount}`;
+  const isCritical = type === "crit" || type === "shieldCrit";
+  const label =
+    type === "miss"
+      ? "MISS"
+      : isCritical
+        ? `CRIT ${cfg.prefix}${amount}`
+        : `${cfg.prefix}${amount}`;
   const bg =
     type === "heal"
       ? "rgba(5,150,105,0.92)"
       : type === "miss"
         ? "rgba(71,85,105,0.92)"
-        : type === "crit" || type === "shieldCrit"
-          ? "rgba(234,88,12,0.94)"
+        : isCritical
+          ? "rgba(217,119,6,0.96)"
           : "rgba(220,38,38,0.94)";
+  const borderColor = isCritical
+    ? "rgba(253,224,71,0.92)"
+    : "rgba(255,255,255,0.62)";
 
   return (
     <Animated.View
@@ -72,11 +101,11 @@ export function FloatingNumber({ amount, type, onDone }: FloatingNumberProps) {
           top: "28%",
           zIndex: 100,
           backgroundColor: bg,
-          borderColor: "rgba(255,255,255,0.62)",
-          borderWidth: 2,
-          borderRadius: 999,
-          paddingHorizontal: 10,
-          paddingVertical: 3,
+          borderColor,
+          borderWidth: isCritical ? 3 : 2,
+          borderRadius: isCritical ? 8 : 999,
+          paddingHorizontal: isCritical ? 12 : 10,
+          paddingVertical: isCritical ? 5 : 3,
         },
       ]}
     >
