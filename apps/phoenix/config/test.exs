@@ -7,7 +7,8 @@ import Config
 # Run `mix help test` for more information.
 config :adventure_time_api, AdventureTimeApi.Repo,
   username: "postgres",
-  password: "postgres",
+  password:
+    System.get_env("PHX_TEST_DB_PASSWORD") || System.get_env("POSTGRES_PASSWORD") || "postgres",
   hostname: "127.0.0.1",
   port: String.to_integer(System.get_env("PHX_TEST_DB_PORT") || "5434"),
   database:

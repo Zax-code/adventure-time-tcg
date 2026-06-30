@@ -34,11 +34,11 @@ ENV MIX_ENV=prod
 RUN mix local.hex --force && mix local.rebar --force
 
 COPY mix.exs mix.lock ./
-COPY config ./config
 
 RUN mix deps.get --only ${MIX_ENV}
 RUN mix deps.compile
 
+COPY config ./config
 COPY lib ./lib
 COPY priv ./priv
 
