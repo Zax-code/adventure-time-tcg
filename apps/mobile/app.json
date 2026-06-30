@@ -3,7 +3,7 @@
     "name": "Adventure Time TCG",
     "slug": "adventure-time-tcg",
     "scheme": "adventure-time",
-    "version": "1.0.6",
+    "version": "1.0.7",
     "owner": "zax-code",
     "userInterfaceStyle": "automatic",
     "ios": {

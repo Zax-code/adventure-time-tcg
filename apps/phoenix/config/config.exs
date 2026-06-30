@@ -27,6 +27,22 @@ config :logger, :default_formatter,
 
 config :phoenix, :json_library, Jason
 
+config :phoenix, :filter_parameters, ~w(
+    accessToken
+    access_token
+    authorization
+    clientSecret
+    client_secret
+    code
+    idToken
+    id_token
+    password
+    refreshToken
+    refresh_token
+    secret
+    token
+  )
+
 config :req, user_agent: "adventure-time-phoenix"
 
 config :elixir, :time_zone_database, Tzdata.TimeZoneDatabase

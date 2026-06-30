@@ -9,9 +9,7 @@ ContainerName=adventure-time-tcg-postgres
 Image=docker.io/library/postgres:16-alpine
 Pod=adventure-time-tcg.pod
 Volume=/srv/adventure-time-tcg/postgres:/var/lib/postgresql/data:Z
-Environment=POSTGRES_DB=adventure_time_tcg
-Environment=POSTGRES_USER=postgres
-Environment=POSTGRES_PASSWORD=postgres
+EnvironmentFile=/home/zax/adventure-time-tcg-secrets/postgres.container.env
 Exec=postgres -c listen_addresses=0.0.0.0
 HealthCmd=pg_isready -U postgres
 HealthInterval=30s

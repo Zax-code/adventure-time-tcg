@@ -9,8 +9,7 @@ ContainerName=adventure-time-tcg-minio
 Image=quay.io/minio/minio:RELEASE.2025-02-28T09-55-16Z
 Pod=adventure-time-tcg.pod
 Volume=/srv/adventure-time-tcg/minio:/data:Z
-Environment=MINIO_ROOT_USER=minio
-Environment=MINIO_ROOT_PASSWORD=minioadmin
+EnvironmentFile=/home/zax/adventure-time-tcg-secrets/minio.container.env
 Exec=minio server /data --console-address :9001
 
 [Service]

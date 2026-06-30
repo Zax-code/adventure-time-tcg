@@ -19,7 +19,8 @@ if is_binary(database_url) and database_url != "" do
 else
   config :adventure_time_api, AdventureTimeApi.Repo,
     username: "postgres",
-    password: "postgres",
+    password:
+      System.get_env("PHX_DEV_DB_PASSWORD") || System.get_env("POSTGRES_PASSWORD") || "postgres",
     hostname: "127.0.0.1",
     port: 5434,
     database: "adventure_time_tcg",

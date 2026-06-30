@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import {
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -62,6 +63,87 @@ export function BattleFullScreenSheet({
     <View className="flex-1">{children}</View>
   );
 
+  const sheet = (
+    <View
+      className="flex-1"
+      style={[
+        StyleSheet.absoluteFill,
+        THEME_VARS[themeName] as never,
+        {
+          backgroundColor:
+            themeName === "nightosphere"
+              ? "rgba(5,1,10,0.88)"
+              : "rgba(38,22,30,0.68)",
+          paddingBottom: bottomPadding,
+          paddingHorizontal: horizontalPadding,
+          paddingTop: topPadding,
+          zIndex: 999,
+        },
+      ]}
+    >
+      <View className="flex-1 items-center justify-center">
+        <View
+          accessibilityViewIsModal
+          className="w-full overflow-hidden rounded-[30px] border border-primaryTint bg-bg"
+          style={{
+            height: modalHeight,
+            maxWidth: modalMaxWidth,
+            boxShadow:
+              themeName === "nightosphere"
+                ? "0px 20px 40px rgba(0, 0, 0, 0.42)"
+                : "0px 20px 40px rgba(90, 45, 12, 0.18)",
+          }}
+          testID={testID}
+        >
+          <View className="flex-row items-center border-b border-primaryTint px-4 py-3">
+            <View className="w-11" />
+            <View className="flex-1 items-center px-2">
+              <Text
+                className="text-center font-nunito-extrabold text-2xl text-fg"
+                numberOfLines={2}
+              >
+                {title}
+              </Text>
+            </View>
+            <Pressable
+              accessibilityLabel={t("common.close")}
+              accessibilityRole="button"
+              className="h-11 w-11 items-center justify-center rounded-full bg-surfaceMuted"
+              hitSlop={6}
+              onPress={onClose}
+              testID={testID ? `${testID}-close-button` : undefined}
+            >
+              <XIcon size={20} color={tc.fg} />
+            </Pressable>
+          </View>
+
+          {content}
+
+          {footer ? (
+            <View
+              className="border-t border-primaryTint bg-surface px-4"
+              style={{
+                justifyContent: "center",
+                minHeight: 76,
+                paddingVertical: 12,
+              }}
+            >
+              {footer}
+            </View>
+          ) : (
+            <View style={{ height: Math.max(insets.bottom, 12) }} />
+          )}
+        </View>
+      </View>
+    </View>
+  );
+
+  if (Platform.OS === "ios") {
+    // Native fullscreen modal presentation can abort on iOS when the PvP route
+    // is locked to landscape and UIKit performs a mixed-orientation transition.
+    return sheet;
+  }
+
   return (
     <Modal
       animationType="fade"
@@ -72,78 +154,7 @@ export function BattleFullScreenSheet({
       transparent
       visible={visible}
     >
-      <View
-        className="flex-1"
-        style={[
-          StyleSheet.absoluteFill,
-          THEME_VARS[themeName] as never,
-          {
-            backgroundColor:
-              themeName === "nightosphere"
-                ? "rgba(5,1,10,0.88)"
-                : "rgba(38,22,30,0.68)",
-            paddingBottom: bottomPadding,
-            paddingHorizontal: horizontalPadding,
-            paddingTop: topPadding,
-            zIndex: 50,
-          },
-        ]}
-      >
-        <View className="flex-1 items-center justify-center">
-          <View
-            accessibilityViewIsModal
-            className="w-full overflow-hidden rounded-[30px] border border-primaryTint bg-bg"
-            style={{
-              height: modalHeight,
-              maxWidth: modalMaxWidth,
-              boxShadow:
-                themeName === "nightosphere"
-                  ? "0px 20px 40px rgba(0, 0, 0, 0.42)"
-                  : "0px 20px 40px rgba(90, 45, 12, 0.18)",
-            }}
-            testID={testID}
-          >
-            <View className="flex-row items-center border-b border-primaryTint px-4 py-3">
-              <View className="w-11" />
-              <View className="flex-1 items-center px-2">
-                <Text
-                  className="text-center font-nunito-extrabold text-2xl text-fg"
-                  numberOfLines={2}
-                >
-                  {title}
-                </Text>
-              </View>
-              <Pressable
-                accessibilityLabel={t("common.close")}
-                accessibilityRole="button"
-                className="h-11 w-11 items-center justify-center rounded-full bg-surfaceMuted"
-                hitSlop={6}
-                onPress={onClose}
-                testID={testID ? `${testID}-close-button` : undefined}
-              >
-                <XIcon size={20} color={tc.fg} />
-              </Pressable>
-            </View>
-
-            {content}
-
-            {footer ? (
-              <View
-                className="border-t border-primaryTint bg-surface px-4"
-                style={{
-                  justifyContent: "center",
-                  minHeight: 76,
-                  paddingVertical: 12,
-                }}
-              >
-                {footer}
-              </View>
-            ) : (
-              <View style={{ height: Math.max(insets.bottom, 12) }} />
-            )}
-          </View>
-        </View>
-      </View>
+      {sheet}
     </Modal>
   );
 }
