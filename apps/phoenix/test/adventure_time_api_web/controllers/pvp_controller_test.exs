@@ -427,11 +427,20 @@ defmodule AdventureTimeApiWeb.PvpControllerTest do
   end
 
   test "matches and spectate endpoints expose accepted matches", _context do
-    %{inviter_token: inviter_token, invitee_token: invitee_token, match_id: match_id} =
+    %{
+      inviter: inviter,
+      inviter_token: inviter_token,
+      invitee_token: invitee_token,
+      match_id: match_id
+    } =
       create_accepted_match_fixture("spectate")
 
     matches_conn = inviter_token |> auth_conn() |> get(~p"/pvp/matches")
-    assert %{"matches" => [match]} = json_response(matches_conn, 200)
+
+    assert %{"currentUserId" => current_user_id, "matches" => [match]} =
+             json_response(matches_conn, 200)
+
+    assert current_user_id == inviter.id
     assert match["id"] == match_id
     assert match["status"] == "IN_PROGRESS"
     assert is_binary(match["currentPlayerId"])

@@ -73,6 +73,12 @@ type PvpLobbyMatchSummary = {
   inviteeLoadout: string[];
 };
 
+type PvpLobbyTurnStatus = {
+  isMyTurn: boolean;
+  labelKey: string;
+  tone: "viewer" | "opponent" | "unknown";
+};
+
 function SectionHeading({
   title,
   toneColor,
@@ -238,6 +244,33 @@ function getLobbyMatchSummary(
   };
 }
 
+function getLobbyTurnStatus(
+  match: { currentPlayerId?: string | null },
+  currentUserId: string | null | undefined,
+): PvpLobbyTurnStatus {
+  if (!match.currentPlayerId || !currentUserId) {
+    return {
+      isMyTurn: false,
+      labelKey: "pvp.activeBattleTurnUnknown",
+      tone: "unknown",
+    };
+  }
+
+  if (match.currentPlayerId === currentUserId) {
+    return {
+      isMyTurn: true,
+      labelKey: "pvp.activeBattleYourTurn",
+      tone: "viewer",
+    };
+  }
+
+  return {
+    isMyTurn: false,
+    labelKey: "pvp.activeBattleTheirTurn",
+    tone: "opponent",
+  };
+}
+
 export default function PvpScreen() {
   const queryClient = useQueryClient();
   const router = useRouter();
@@ -293,7 +326,10 @@ export default function PvpScreen() {
     queryFn: () => apiClient.users(),
   });
   const currentPvpUserId =
-    currentUserId ?? historyQuery.data?.currentUserId ?? null;
+    matchesQuery.data?.currentUserId ??
+    historyQuery.data?.currentUserId ??
+    currentUserId ??
+    null;
 
   useFocusEffect(
     useCallback(() => {
@@ -1289,15 +1325,35 @@ export default function PvpScreen() {
                 now,
               );
               const summary = getLobbyMatchSummary(match, currentPvpUserId, t);
-              const isMyTurn =
-                match.currentPlayerId != null &&
-                match.currentPlayerId === currentPvpUserId;
-              const turnOwnerLabel =
-                match.currentPlayerId == null
-                  ? t("pvp.activeBattleTurnUnknown")
-                  : isMyTurn
-                    ? t("pvp.activeBattleYourTurn")
-                    : t("pvp.activeBattleTheirTurn");
+              const turnStatus = getLobbyTurnStatus(match, currentPvpUserId);
+              const turnOwnerLabel = t(turnStatus.labelKey);
+              const isMyTurn = turnStatus.isMyTurn;
+              const isOpponentTurn = turnStatus.tone === "opponent";
+              const turnToneColor = isMyTurn
+                ? tc.successDark
+                : isOpponentTurn
+                  ? tc.infoDark
+                  : tc.fgMuted;
+              const turnBorderColor = isMyTurn
+                ? tc.successBorder
+                : isOpponentTurn
+                  ? tc.infoBorder
+                  : tc.primaryBorder;
+              const turnIconBgClassName = isMyTurn
+                ? "bg-successTint"
+                : isOpponentTurn
+                  ? "bg-infoTint"
+                  : "bg-surfaceMuted";
+              const turnTextClassName = isMyTurn
+                ? "text-successDark"
+                : isOpponentTurn
+                  ? "text-infoDark"
+                  : "text-fgMuted";
+              const turnPillClassName = isMyTurn
+                ? "bg-successTint"
+                : isOpponentTurn
+                  ? "bg-infoTint"
+                  : "bg-surfaceMuted";
               const turnLabel = t("pvp.lobby.turn", {
                 count: match.currentTurn ?? 1,
               });
@@ -1315,7 +1371,7 @@ export default function PvpScreen() {
                   fallbackLayout="stretch"
                   fallbackAppearance={{
                     backgroundColor: tc.surface,
-                    borderColor: tc.successBorder,
+                    borderColor: turnBorderColor,
                     borderRadius: 26,
                     foregroundColor: tc.fg,
                     gradientColors: null,
@@ -1326,8 +1382,10 @@ export default function PvpScreen() {
                 >
                   <View className="gap-4">
                     <View className="flex-row items-start gap-3">
-                      <View className="h-14 w-14 items-center justify-center rounded-[22px] bg-successTint">
-                        <SwordsIcon size={26} color={tc.successDark} />
+                      <View
+                        className={`h-14 w-14 items-center justify-center rounded-[22px] ${turnIconBgClassName}`}
+                      >
+                        <SwordsIcon size={26} color={turnToneColor} />
                       </View>
                       <View className="min-w-0 flex-1 gap-1">
                         <Text
@@ -1337,15 +1395,17 @@ export default function PvpScreen() {
                           {summary.title}
                         </Text>
                         <Text
-                          className={`font-nunito-bold text-sm ${
-                            isMyTurn ? "text-successDark" : "text-fgMuted"
-                          }`}
+                          className={`font-nunito-bold text-sm ${turnTextClassName}`}
                         >
                           {turnOwnerLabel}
                         </Text>
                       </View>
-                      <View className="rounded-full bg-successTint px-3 py-1.5">
-                        <Text className="font-nunito-extrabold text-xs text-successDark">
+                      <View
+                        className={`rounded-full px-3 py-1.5 ${turnPillClassName}`}
+                      >
+                        <Text
+                          className={`font-nunito-extrabold text-xs ${turnTextClassName}`}
+                        >
                           {turnLabel}
                         </Text>
                       </View>
