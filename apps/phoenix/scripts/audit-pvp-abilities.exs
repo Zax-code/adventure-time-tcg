@@ -62,6 +62,22 @@ defmodule AdventureTimeApi.PvpAbilityAudit do
     trigger
   ))
 
+  @supported_triggers MapSet.new(~w(
+    onActionStart
+    onAllyFatalDamage
+    onAllyKo
+    onAnyKo
+    onBattleInit
+    onBelowHp
+    onDamageDealt
+    onDamageTaken
+    onDealDamage
+    onEnemyKo
+    onHealAlly
+    onStartTurn
+    onStatusApplied
+  ))
+
   def run do
     abilities =
       AbilityDef
@@ -70,6 +86,7 @@ defmodule AdventureTimeApi.PvpAbilityAudit do
       |> Enum.map(&ability_to_map/1)
 
     unsupported = unsupported_payload_keys(abilities)
+    unsupported_triggers = unsupported_triggers(abilities)
     findings = Enum.flat_map(abilities, &description_findings/1)
 
     IO.puts("# PvP Ability Audit")
@@ -80,9 +97,10 @@ defmodule AdventureTimeApi.PvpAbilityAudit do
     IO.puts("")
 
     print_unsupported_payload_keys(unsupported)
+    print_unsupported_triggers(unsupported_triggers)
     print_description_findings(findings)
 
-    if unsupported == [] do
+    if unsupported == [] and unsupported_triggers == [] do
       :ok
     else
       System.halt(1)
@@ -163,8 +181,22 @@ defmodule AdventureTimeApi.PvpAbilityAudit do
     Map.put(payload, "healPctOfMaxHp", 0.25)
   end
 
+  defp runtime_payload("finnjake.brotherBond", payload),
+    do: Map.put(payload, "trigger", "onBattleInit")
+
+  defp runtime_payload("keeoth.bloodBond", payload), do: Map.put(payload, "target", "self")
+
   defp runtime_payload("kingooo.scamScheme", payload),
     do: Map.put_new(payload, "stealBuffCount", 1)
+
+  defp runtime_payload("magicman.jerkMagic", payload) do
+    payload
+    |> Map.put_new("stealBuffCount", 1)
+    |> Map.put("target", "enemy")
+  end
+
+  defp runtime_payload("marshall.nightmareKing", payload),
+    do: Map.put(payload, "target", "target")
 
   defp runtime_payload("lsp.lumpyPower", payload) do
     payload
@@ -202,6 +234,20 @@ defmodule AdventureTimeApi.PvpAbilityAudit do
       |> Map.keys()
       |> Enum.reject(&MapSet.member?(@supported_top_level_payload_keys, &1))
       |> Enum.map(&{ability_key, &1})
+    end)
+    |> Enum.sort()
+  end
+
+  defp unsupported_triggers(abilities) do
+    abilities
+    |> Enum.flat_map(fn %{key: ability_key, payload: payload} ->
+      case payload["trigger"] do
+        trigger when is_binary(trigger) ->
+          if MapSet.member?(@supported_triggers, trigger), do: [], else: [{ability_key, trigger}]
+
+        _ ->
+          []
+      end
     end)
     |> Enum.sort()
   end
@@ -349,6 +395,24 @@ defmodule AdventureTimeApi.PvpAbilityAudit do
 
     Enum.each(unsupported, fn {ability_key, payload_key} ->
       IO.puts("- #{ability_key}: #{payload_key}")
+    end)
+
+    IO.puts("")
+  end
+
+  defp print_unsupported_triggers([]) do
+    IO.puts("## Unsupported Passive Triggers")
+    IO.puts("")
+    IO.puts("None.")
+    IO.puts("")
+  end
+
+  defp print_unsupported_triggers(unsupported_triggers) do
+    IO.puts("## Unsupported Passive Triggers")
+    IO.puts("")
+
+    Enum.each(unsupported_triggers, fn {ability_key, trigger} ->
+      IO.puts("- #{ability_key}: #{trigger}")
     end)
 
     IO.puts("")
