@@ -98,7 +98,7 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
     assert attempt.metadata == %{}
   end
 
-  test "POST /auth/register updates preferred language for an existing pending account", %{
+  test "POST /auth/register rejects an existing pending account", %{
     conn: conn
   } do
     post(conn, ~p"/auth/register", %{
@@ -116,13 +116,58 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
         preferredLanguage: "fr"
       })
 
-    assert json_response(conn, 201)["success"] == true
+    assert json_response(conn, 409) == %{
+             "error" =>
+               "An account or access request already exists for this email. Sign in with the original method or wait for approval."
+           }
 
     user = Repo.get_by!(User, email: "bmo@example.com")
     request = Repo.get_by!(EmailAccessRequest, email: user.email)
 
-    assert user.preferred_language == :fr
-    assert request.requested_locale == :fr
+    assert user.preferred_language == :en
+    assert request.requested_locale == :en
+  end
+
+  test "POST /auth/register rejects an existing provider access request", %{conn: conn} do
+    Repo.insert!(
+      EmailAccessRequest.changeset(%EmailAccessRequest{}, %{
+        email: "provider-pending@example.com",
+        status: :pending,
+        provider: "google"
+      })
+    )
+
+    conn =
+      post(conn, ~p"/auth/register", %{
+        email: "provider-pending@example.com",
+        password: "supersecure",
+        displayName: "Provider Pending",
+        preferredLanguage: "fr"
+      })
+
+    assert json_response(conn, 409) == %{
+             "error" =>
+               "An account or access request already exists for this email. Sign in with the original method or wait for approval."
+           }
+  end
+
+  test "POST /auth/register rejects an approved provider-only account", %{conn: conn} do
+    create_user_without_password("provider-approved@example.com", "Provider Approved",
+      access_status: :approved
+    )
+
+    conn =
+      post(conn, ~p"/auth/register", %{
+        email: "provider-approved@example.com",
+        password: "supersecure",
+        displayName: "Provider Approved",
+        preferredLanguage: "fr"
+      })
+
+    assert json_response(conn, 409) == %{
+             "error" =>
+               "An account or access request already exists for this email. Sign in with the original method or wait for approval."
+           }
   end
 
   test "POST /auth/register notifies super admins only for the first pending access request", %{
@@ -197,7 +242,10 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
         preferredLanguage: "fr"
       })
 
-    assert json_response(conn, 201)["accessRequestPending"] == true
+    assert json_response(conn, 409) == %{
+             "error" =>
+               "An account or access request already exists for this email. Sign in with the original method or wait for approval."
+           }
 
     assert [
              [
@@ -561,6 +609,43 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
     assert attempt.installation_id_hash == request.last_installation_id_hash
   end
 
+  test "POST /auth/google links an approved email account", %{conn: conn} do
+    user =
+      create_user_with_password("google-approved@example.com", "password123", "Google Approved",
+        verified?: true,
+        access_status: :approved
+      )
+
+    bypass = start_bypass_google_tokeninfo(user.email)
+
+    Application.put_env(:adventure_time_api, GoogleAuth,
+      id_token_info_url: bypass_url(bypass, "/tokeninfo"),
+      access_token_info_url: bypass_url(bypass, "/access-token-info"),
+      userinfo_url: bypass_url(bypass, "/userinfo")
+    )
+
+    on_exit(fn -> Application.delete_env(:adventure_time_api, GoogleAuth) end)
+
+    response =
+      conn
+      |> post(~p"/auth/google", %{"idToken" => "valid-token", "preferredLanguage" => "en"})
+      |> json_response(200)
+
+    assert get_in(response, ["user", "id"]) == user.id
+
+    assert get_in(response, ["user", "authMethods"]) == %{
+             "password" => true,
+             "google" => true,
+             "apple" => false
+           }
+
+    identity = Repo.get_by!(AuthProviderIdentity, provider: "google")
+    assert identity.user_id == user.id
+    assert identity.email == user.email
+    assert byte_size(identity.provider_subject_hash) == 64
+    assert identity.provider_subject_hash != "google-subject-1"
+  end
+
   test "POST /auth/google falls back to access token profile when userinfo fails", %{conn: conn} do
     bypass = Bypass.open()
 
@@ -778,6 +863,12 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
     assert get_in(first_response, ["tokens", "accessToken"])
     assert get_in(first_response, ["user", "displayName"]) == "Cake Cat"
 
+    assert get_in(first_response, ["user", "authMethods"]) == %{
+             "password" => true,
+             "google" => false,
+             "apple" => true
+           }
+
     identity = Repo.get_by!(AuthProviderIdentity, provider: "apple")
     assert identity.user_id == user.id
     assert identity.email == user.email
@@ -868,6 +959,11 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
              "avatarAssetId" => nil,
              "coins" => 100,
              "dust" => 0,
+             "authMethods" => %{
+               "password" => true,
+               "google" => false,
+               "apple" => false
+             },
              "isAdmin" => true,
              "isSuperAdmin" => true,
              "notificationPreferences" => %{
@@ -950,6 +1046,19 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
     )
 
     user
+  end
+
+  defp create_user_without_password(email, display_name, opts) do
+    role = Keyword.get(opts, :role, :user)
+    access_status = Keyword.get(opts, :access_status, :pending)
+
+    Repo.insert!(
+      User.registration_changeset(%User{}, %{
+        email: email,
+        display_name: display_name
+      })
+      |> User.access_changeset(%{role: role, access_status: access_status})
+    )
   end
 
   defp start_bypass_google_tokeninfo(email) do

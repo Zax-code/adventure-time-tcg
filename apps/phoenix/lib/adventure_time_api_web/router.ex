@@ -86,6 +86,7 @@ defmodule AdventureTimeApiWeb.Router do
     patch("/settings/step-source", AppController, :update_step_source)
     patch("/settings/timezone", AppController, :update_timezone)
     patch("/settings/notification-preferences", AppController, :update_notification_preferences)
+    patch("/settings/password", AppController, :update_password)
     delete("/settings/account", AppController, :delete_account)
     post("/settings/upload", MediaController, :upload_profile)
     post("/notifications/device", NotificationController, :register_device)

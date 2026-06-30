@@ -551,6 +551,30 @@ defmodule AdventureTimeApi.Accounts do
     end
   end
 
+  def update_password(user_id, attrs) when is_map(attrs) do
+    current_password = Map.get(attrs, "currentPassword", Map.get(attrs, :currentPassword))
+    new_password = Map.get(attrs, "newPassword", Map.get(attrs, :newPassword))
+
+    with %User{} = user <- Repo.get(User, user_id),
+         {:ok, password} <- validate_password(new_password) do
+      case Repo.get_by(EmailCredential, user_id: user.id) do
+        %EmailCredential{email_verified_at: %DateTime{}} = credential ->
+          change_existing_password(user, credential, current_password, password)
+
+        %EmailCredential{} = credential ->
+          set_initial_password(user, credential, password)
+
+        nil ->
+          set_initial_password(user, nil, password)
+      end
+    else
+      nil -> {:error, :not_found, "User not found"}
+      {:error, message} -> {:error, :validation, message}
+    end
+  end
+
+  def update_password(_user_id, _attrs), do: {:error, :validation, "newPassword is required"}
+
   def list_admin_users do
     User
     |> order_by([user], asc: user.email)
@@ -783,6 +807,9 @@ defmodule AdventureTimeApi.Accounts do
           )
       end
     end)
+    |> Multi.run(:provider_identity, fn repo, %{user: user} ->
+      maybe_upsert_provider_identity_from_request(repo, user, request, status)
+    end)
     |> Multi.update(
       :request,
       EmailAccessRequest.changeset(request, %{
@@ -801,53 +828,64 @@ defmodule AdventureTimeApi.Accounts do
     end
   end
 
-  defp login_google_profile(profile, metadata, preferred_language) do
-    case Repo.get_by(User, email: profile.email) do
-      nil ->
-        ensure_pending_access_request(profile.email, preferred_language, metadata, profile)
+  defp maybe_upsert_provider_identity_from_request(_repo, nil, _request, _status), do: {:ok, nil}
 
-        record_google_attempt(
-          "google_access_request",
+  defp maybe_upsert_provider_identity_from_request(_repo, _user, _request, status)
+       when status != :approved,
+       do: {:ok, nil}
+
+  defp maybe_upsert_provider_identity_from_request(repo, user, request, :approved) do
+    if request.provider in ["google", "apple"] &&
+         is_binary(request.provider_subject_hash) &&
+         request.provider_subject_hash != "" do
+      attrs = %{
+        provider: request.provider,
+        provider_subject_hash: request.provider_subject_hash,
+        email: request.email,
+        display_name: request.google_name
+      }
+
+      case repo.get_by(AuthProviderIdentity,
+             provider: request.provider,
+             provider_subject_hash: request.provider_subject_hash
+           ) do
+        nil ->
+          %AuthProviderIdentity{}
+          |> AuthProviderIdentity.changeset(attrs)
+          |> Ecto.Changeset.put_change(:user_id, user.id)
+          |> repo.insert()
+
+        %AuthProviderIdentity{} = identity ->
+          identity
+          |> AuthProviderIdentity.changeset(attrs)
+          |> Ecto.Changeset.put_change(:user_id, user.id)
+          |> repo.update()
+      end
+    else
+      {:ok, nil}
+    end
+  end
+
+  defp login_google_profile(profile, metadata, preferred_language) do
+    case user_for_provider_identity("google", profile) do
+      %User{} = user ->
+        login_existing_social_user(
+          user,
           profile,
+          metadata,
           preferred_language,
-          403,
-          "ACCESS_REQUEST_PENDING",
-          metadata
+          provider: "google",
+          success_event: "google_login_success",
+          failed_event: "google_login_failed"
         )
 
-        {:error,
-         %AuthError{
-           message:
-             "This Google account is not approved yet. An access request has been submitted.",
-           status_code: 403,
-           code: "ACCESS_REQUEST_PENDING"
-         }}
+      nil ->
+        case Repo.get_by(User, email: profile.email) do
+          nil ->
+            ensure_pending_access_request(profile.email, preferred_language, metadata, profile)
 
-      %User{} = user ->
-        user = maybe_update_google_profile(user, profile)
-
-        case user.access_status do
-          :approved ->
-            case issue_session(user, metadata) do
-              {:ok, _response} = result ->
-                record_google_attempt(
-                  "google_login_success",
-                  profile,
-                  preferred_language,
-                  200,
-                  nil,
-                  metadata
-                )
-
-                result
-
-              error ->
-                error
-            end
-
-          :pending ->
             record_google_attempt(
-              "google_login_failed",
+              "google_access_request",
               profile,
               preferred_language,
               403,
@@ -855,19 +893,24 @@ defmodule AdventureTimeApi.Accounts do
               metadata
             )
 
-            pending_access_error(user.email, true, metadata, profile)
+            {:error,
+             %AuthError{
+               message:
+                 "This Google account is not approved yet. An access request has been submitted.",
+               status_code: 403,
+               code: "ACCESS_REQUEST_PENDING"
+             }}
 
-          :rejected ->
-            record_google_attempt(
-              "google_login_failed",
+          %User{} = user ->
+            login_existing_social_user(
+              user,
               profile,
+              metadata,
               preferred_language,
-              403,
-              "ACCESS_REQUEST_PENDING",
-              metadata
+              provider: "google",
+              success_event: "google_login_success",
+              failed_event: "google_login_failed"
             )
-
-            pending_access_error(user.email, true, metadata, profile)
         end
     end
   end
@@ -988,10 +1031,6 @@ defmodule AdventureTimeApi.Accounts do
 
         pending_access_error(user.email, true, metadata, profile)
     end
-  end
-
-  defp maybe_update_google_profile(user, profile) do
-    maybe_update_social_profile(user, profile)
   end
 
   defp maybe_update_social_profile(user, profile) do
@@ -1139,6 +1178,7 @@ defmodule AdventureTimeApi.Accounts do
        avatarAssetId: user.avatar_asset_id,
        coins: user.coins,
        dust: user.dust,
+       authMethods: auth_methods_for_user(user),
        isAdmin: admin_role?(user.role),
        isSuperAdmin: super_admin_role?(user.role),
        preferredStepSource: Atom.to_string(user.preferred_step_source),
@@ -1154,21 +1194,96 @@ defmodule AdventureTimeApi.Accounts do
      }}
   end
 
+  defp auth_methods_for_user(user) do
+    %{
+      password:
+        Repo.exists?(
+          from(credential in EmailCredential,
+            where:
+              credential.user_id == ^user.id and
+                not is_nil(credential.email_verified_at)
+          )
+        ),
+      google: provider_identity_exists?(user, "google"),
+      apple: provider_identity_exists?(user, "apple")
+    }
+  end
+
+  defp provider_identity_exists?(user, provider) do
+    Repo.exists?(
+      from(identity in AuthProviderIdentity,
+        where: identity.user_id == ^user.id and identity.provider == ^provider
+      )
+    )
+  end
+
+  defp change_existing_password(user, credential, current_password, new_password) do
+    with {:ok, password} <- validate_current_password(current_password),
+         true <- Bcrypt.verify_pass(password, credential.password_hash),
+         {:ok, _credential} <-
+           credential
+           |> EmailCredential.changeset(%{
+             password_hash: Bcrypt.hash_pwd_salt(new_password),
+             email_verified_at: credential.email_verified_at
+           })
+           |> Repo.update() do
+      build_auth_user(user)
+    else
+      false ->
+        {:error, :invalid_current_password, "Current password is incorrect."}
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        {:error, :validation, first_error(changeset)}
+
+      {:error, message} ->
+        {:error, :validation, message}
+    end
+  end
+
+  defp set_initial_password(user, nil, password) do
+    %EmailCredential{}
+    |> EmailCredential.changeset(%{
+      password_hash: Bcrypt.hash_pwd_salt(password),
+      email_verified_at: now_utc()
+    })
+    |> Ecto.Changeset.put_change(:user_id, user.id)
+    |> Repo.insert()
+    |> case do
+      {:ok, _credential} -> build_auth_user(user)
+      {:error, %Ecto.Changeset{} = changeset} -> {:error, :validation, first_error(changeset)}
+    end
+  end
+
+  defp set_initial_password(user, credential, password) do
+    credential
+    |> EmailCredential.changeset(%{
+      password_hash: Bcrypt.hash_pwd_salt(password),
+      email_verified_at: now_utc()
+    })
+    |> Repo.update()
+    |> case do
+      {:ok, _credential} -> build_auth_user(user)
+      {:error, %Ecto.Changeset{} = changeset} -> {:error, :validation, first_error(changeset)}
+    end
+  end
+
   defp fetch_registration_user(nil), do: {:error, "email is required"}
 
   defp fetch_registration_user(email) do
     case Repo.get_by(User, email: email) do
       nil ->
-        {:ok, nil}
+        case Repo.get_by(EmailAccessRequest, email: email) do
+          %EmailAccessRequest{} ->
+            {:error, :conflict,
+             "An account or access request already exists for this email. Sign in with the original method or wait for approval."}
 
-      %User{} = user ->
-        credential = Repo.get_by(EmailCredential, user_id: user.id)
-
-        if credential && credential.email_verified_at do
-          {:error, :conflict, "Email account already exists. Please sign in."}
-        else
-          {:ok, user}
+          nil ->
+            {:ok, nil}
         end
+
+      %User{} ->
+        {:error, :conflict,
+         "An account or access request already exists for this email. Sign in with the original method or wait for approval."}
     end
   end
 
@@ -1878,6 +1993,7 @@ defmodule AdventureTimeApi.Accounts do
       "email" => user.email,
       "displayName" => user.display_name,
       "coins" => user.coins,
+      "authMethods" => auth_methods_for_user(user),
       "role" => Atom.to_string(user.role),
       "accessStatus" => Atom.to_string(user.access_status),
       "isAdmin" => admin_role?(user.role),
@@ -2068,6 +2184,16 @@ defmodule AdventureTimeApi.Accounts do
   end
 
   defp validate_password(_), do: {:error, "password is required"}
+
+  defp validate_current_password(password) when is_binary(password) do
+    if String.trim(password) == "" do
+      {:error, "currentPassword is required"}
+    else
+      {:ok, password}
+    end
+  end
+
+  defp validate_current_password(_), do: {:error, "currentPassword is required"}
 
   defp validate_code(code) when is_binary(code) do
     if Regex.match?(~r/^\d{6}$/, code) do

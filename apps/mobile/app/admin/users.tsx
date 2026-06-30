@@ -87,11 +87,18 @@ type UserRowItem = Extract<
 
 const keyExtractor = (item: UserListItem) => item.id;
 
+type AuthMethodLabels = {
+  password: string;
+  google: string;
+  apple: string;
+};
+
 type UserRowLabels = {
   currentUser: string;
   admin: string;
   superAdmin: string;
   noDisplayName: string;
+  authMethods: AuthMethodLabels;
 };
 
 function UsersSubsectionHeader({
@@ -123,6 +130,7 @@ const AdminUserRow = memo(function AdminUserRow({
   isCurrentUser,
   currentUserLabel,
   adminLabel,
+  authMethodLabels,
   superAdminLabel,
   coinsLabel,
   noDisplayNameLabel,
@@ -134,6 +142,7 @@ const AdminUserRow = memo(function AdminUserRow({
   isCurrentUser: boolean;
   currentUserLabel: string;
   adminLabel: string;
+  authMethodLabels: AuthMethodLabels;
   superAdminLabel: string;
   coinsLabel: string;
   noDisplayNameLabel: string;
@@ -168,6 +177,29 @@ const AdminUserRow = memo(function AdminUserRow({
       ? withAlpha(tc.accentTint, themeName === "nightosphere" ? "52" : "D9")
       : withAlpha(tc.primaryBg, themeName === "nightosphere" ? "78" : "F0");
   const railColor = withAlpha(tint, themeName === "nightosphere" ? "AD" : "70");
+  const authMethodBadges = [
+    user.authMethods.password
+      ? {
+          key: "password",
+          label: authMethodLabels.password,
+          tone: "default" as const,
+        }
+      : null,
+    user.authMethods.google
+      ? { key: "google", label: authMethodLabels.google, tone: "info" as const }
+      : null,
+    user.authMethods.apple
+      ? { key: "apple", label: authMethodLabels.apple, tone: "accent" as const }
+      : null,
+  ].filter(
+    (
+      item,
+    ): item is {
+      key: string;
+      label: string;
+      tone: "default" | "info" | "accent";
+    } => item !== null,
+  );
 
   return (
     <Pressable
@@ -231,6 +263,9 @@ const AdminUserRow = memo(function AdminUserRow({
             ) : null}
             <AdminChip label={coinsLabel} tone="warning" />
             <AdminChip label={questCompletionLabel} tone="info" />
+            {authMethodBadges.map((badge) => (
+              <AdminChip key={badge.key} label={badge.label} tone={badge.tone} />
+            ))}
           </View>
 
           <Text className="font-nunito-semibold text-[12px] text-fgMuted">
@@ -266,6 +301,7 @@ const AdminUserListRow = memo(function AdminUserListRow({
       isCurrentUser={item.type === "current-user"}
       currentUserLabel={labels.currentUser}
       adminLabel={labels.admin}
+      authMethodLabels={labels.authMethods}
       superAdminLabel={labels.superAdmin}
       coinsLabel={coinsLabel}
       noDisplayNameLabel={labels.noDisplayName}
@@ -665,6 +701,11 @@ export default function AdminUsersScreen() {
       admin: t("admin.common.admin"),
       superAdmin: t("admin.common.superAdmin"),
       noDisplayName: t("admin.common.noDisplayName"),
+      authMethods: {
+        password: t("admin.common.authPassword"),
+        google: t("admin.common.authGoogle"),
+        apple: t("admin.common.authApple"),
+      },
     }),
     [t],
   );

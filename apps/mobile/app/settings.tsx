@@ -26,7 +26,12 @@ import {
 } from "../src/components/keyboard-screen-view";
 import { ModalSheetRoute } from "../src/components/modal-sheet-route";
 import { useTranslation } from "../src/i18n";
-import { apiClient, API_BASE_URL, clearAppSession } from "../src/lib/api";
+import {
+  apiClient,
+  API_BASE_URL,
+  ApiClientError,
+  clearAppSession,
+} from "../src/lib/api";
 import {
   ensureAppNotificationPermission,
   getNotificationPermissionStatus,
@@ -99,6 +104,13 @@ export default function SettingsScreen() {
   const [notificationError, setNotificationError] = useState<string | null>(
     null,
   );
+  const [currentPasswordInput, setCurrentPasswordInput] = useState("");
+  const [newPasswordInput, setNewPasswordInput] = useState("");
+  const [confirmPasswordInput, setConfirmPasswordInput] = useState("");
+  const [passwordStatus, setPasswordStatus] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
   const scrollViewRef = useRef<ScrollView | null>(null);
   const [notificationsSectionY, setNotificationsSectionY] = useState<
     number | null
@@ -154,6 +166,38 @@ export default function SettingsScreen() {
     },
   });
 
+  const changePasswordMutation = useMutation({
+    mutationFn: (input: {
+      currentPassword?: string;
+      newPassword: string;
+      mode: "create" | "change";
+    }) =>
+      apiClient.changePassword({
+        currentPassword: input.currentPassword,
+        newPassword: input.newPassword,
+      }),
+    onSuccess: async (nextUser, input) => {
+      await setUser(nextUser);
+      await queryClient.invalidateQueries({ queryKey: ["home"] });
+      setCurrentPasswordInput("");
+      setNewPasswordInput("");
+      setConfirmPasswordInput("");
+      setPasswordStatus({
+        type: "success",
+        message:
+          input.mode === "create"
+            ? t("settings.passwordCreated")
+            : t("settings.passwordUpdated"),
+      });
+    },
+    onError: (error) => {
+      setPasswordStatus({
+        type: "error",
+        message: settingsErrorMessage(error, t("settings.passwordChangeFailed")),
+      });
+    },
+  });
+
   const deleteAccountMutation = useMutation({
     mutationFn: () => apiClient.deleteAccount(),
     onSuccess: async () => {
@@ -200,6 +244,12 @@ export default function SettingsScreen() {
     pvpTurn: true,
     giftReceived: true,
   };
+  const authMethods = user?.authMethods ?? {
+    password: false,
+    google: false,
+    apple: false,
+  };
+  const hasPasswordAuth = authMethods.password;
   const healthStatusLabel = t(
     `settings.permissionStates.${stepSync.healthPermissionStatus}`,
   );
@@ -278,6 +328,16 @@ export default function SettingsScreen() {
       : stepSync.healthPermissionStatus === "granted"
         ? t("settings.syncNow")
         : t("settings.enableStepSync");
+  const passwordSubmitDisabled =
+    changePasswordMutation.isPending ||
+    newPasswordInput.length < 8 ||
+    confirmPasswordInput.length === 0 ||
+    (hasPasswordAuth && currentPasswordInput.length === 0);
+  const authMethodChips = [
+    authMethods.password ? t("settings.authMethods.password") : null,
+    authMethods.google ? t("settings.authMethods.google") : null,
+    authMethods.apple ? t("settings.authMethods.apple") : null,
+  ].filter((label): label is string => label !== null);
 
   useEffect(() => {
     void getNotificationPermissionStatus();
@@ -419,6 +479,40 @@ export default function SettingsScreen() {
     await updateNotificationPreferencesMutation.mutateAsync({
       ...notificationPreferences,
       [key]: nextValue,
+    });
+  };
+
+  const handlePasswordSubmit = () => {
+    setPasswordStatus(null);
+
+    if (hasPasswordAuth && currentPasswordInput.length === 0) {
+      setPasswordStatus({
+        type: "error",
+        message: t("settings.currentPasswordRequired"),
+      });
+      return;
+    }
+
+    if (newPasswordInput.length < 8) {
+      setPasswordStatus({
+        type: "error",
+        message: t("settings.passwordTooShort"),
+      });
+      return;
+    }
+
+    if (newPasswordInput !== confirmPasswordInput) {
+      setPasswordStatus({
+        type: "error",
+        message: t("settings.passwordMismatch"),
+      });
+      return;
+    }
+
+    changePasswordMutation.mutate({
+      currentPassword: hasPasswordAuth ? currentPasswordInput : undefined,
+      newPassword: newPasswordInput,
+      mode: hasPasswordAuth ? "change" : "create",
     });
   };
 
@@ -1136,6 +1230,158 @@ export default function SettingsScreen() {
                   <Text className="font-nunito text-sm leading-5 text-fgMuted">
                     {t("settings.sessionHelp")}
                   </Text>
+                  <View className="gap-4 rounded-[24px] bg-surfaceMuted p-4">
+                    <View className="gap-2">
+                      <View className="flex-row items-center justify-between gap-3">
+                        <View className="flex-1 gap-1">
+                          <Text className="font-nunito-bold text-lg text-fg">
+                            {t("settings.passwordTitle")}
+                          </Text>
+                          <Text className="font-nunito text-sm leading-5 text-fgMuted">
+                            {hasPasswordAuth
+                              ? t("settings.passwordChangeHelp")
+                              : t("settings.passwordCreateHelp")}
+                          </Text>
+                        </View>
+                        <Ionicons
+                          name={hasPasswordAuth ? "key" : "key-outline"}
+                          size={22}
+                          color={tc.primaryText}
+                        />
+                      </View>
+
+                      {authMethodChips.length > 0 ? (
+                        <View className="flex-row flex-wrap gap-2">
+                          {authMethodChips.map((label) => (
+                            <View
+                              key={label}
+                              className="rounded-full border border-primaryBorder bg-surface px-3 py-1"
+                            >
+                              <Text className="font-nunito-bold text-xs text-primaryText">
+                                {label}
+                              </Text>
+                            </View>
+                          ))}
+                        </View>
+                      ) : null}
+                    </View>
+
+                    <View className="gap-3">
+                      {hasPasswordAuth ? (
+                        <ThemedExpoTextInput
+                          value={currentPasswordInput}
+                          onChangeText={(value) => {
+                            setCurrentPasswordInput(value);
+                            setPasswordStatus(null);
+                          }}
+                          placeholder={t("settings.currentPasswordPlaceholder")}
+                          autoComplete="current-password"
+                          secureTextEntry
+                          testID="settings-current-password-input"
+                          hostStyle={{ width: "100%" }}
+                          style={{
+                            backgroundColor: tc.surface,
+                            borderColor: tc.primaryBorder,
+                            borderRadius: 16,
+                            borderWidth: 1,
+                            height: 48,
+                            paddingHorizontal: 14,
+                            width: "100%",
+                          }}
+                          textStyle={{
+                            color: tc.fg,
+                            fontFamily: "Nunito-SemiBold",
+                            fontSize: 15,
+                          }}
+                        />
+                      ) : null}
+                      <ThemedExpoTextInput
+                        value={newPasswordInput}
+                        onChangeText={(value) => {
+                          setNewPasswordInput(value);
+                          setPasswordStatus(null);
+                        }}
+                        placeholder={t("settings.newPasswordPlaceholder")}
+                        autoComplete="new-password"
+                        secureTextEntry
+                        testID="settings-new-password-input"
+                        hostStyle={{ width: "100%" }}
+                        style={{
+                          backgroundColor: tc.surface,
+                          borderColor: tc.primaryBorder,
+                          borderRadius: 16,
+                          borderWidth: 1,
+                          height: 48,
+                          paddingHorizontal: 14,
+                          width: "100%",
+                        }}
+                        textStyle={{
+                          color: tc.fg,
+                          fontFamily: "Nunito-SemiBold",
+                          fontSize: 15,
+                        }}
+                      />
+                      <ThemedExpoTextInput
+                        value={confirmPasswordInput}
+                        onChangeText={(value) => {
+                          setConfirmPasswordInput(value);
+                          setPasswordStatus(null);
+                        }}
+                        placeholder={t("settings.confirmNewPasswordPlaceholder")}
+                        autoComplete="new-password"
+                        secureTextEntry
+                        testID="settings-confirm-password-input"
+                        hostStyle={{ width: "100%" }}
+                        style={{
+                          backgroundColor: tc.surface,
+                          borderColor: tc.primaryBorder,
+                          borderRadius: 16,
+                          borderWidth: 1,
+                          height: 48,
+                          paddingHorizontal: 14,
+                          width: "100%",
+                        }}
+                        textStyle={{
+                          color: tc.fg,
+                          fontFamily: "Nunito-SemiBold",
+                          fontSize: 15,
+                        }}
+                      />
+                    </View>
+
+                    {passwordStatus ? (
+                      <ToneBanner
+                        tone={passwordStatus.type === "success" ? "success" : "danger"}
+                        tc={tc}
+                      >
+                        <Text
+                          className="font-nunito-semibold text-sm leading-5"
+                          style={{
+                            color:
+                              passwordStatus.type === "success"
+                                ? tc.successText
+                                : tc.dangerText,
+                          }}
+                        >
+                          {passwordStatus.message}
+                        </Text>
+                      </ToneBanner>
+                    ) : null}
+
+                    <SettingsActionButton
+                      compact
+                      testID="settings-password-submit"
+                      onPress={handlePasswordSubmit}
+                      disabled={passwordSubmitDisabled}
+                      loading={changePasswordMutation.isPending}
+                      tc={tc}
+                      variant="primary"
+                    >
+                      {hasPasswordAuth
+                        ? t("settings.changePasswordAction")
+                        : t("settings.createPasswordAction")}
+                    </SettingsActionButton>
+                  </View>
                   <SettingsActionButton
                     compact
                     testID="settings-logout-action"
@@ -1612,6 +1858,18 @@ function toneColors(tc: (typeof THEME_COLORS)[ThemeName], tone: ToneName) {
         text: tc.primaryText,
       };
   }
+}
+
+function settingsErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof ApiClientError) {
+    return error.message;
+  }
+
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return fallback;
 }
 
 function formatSettingsDate(value: string | null, locale: string) {

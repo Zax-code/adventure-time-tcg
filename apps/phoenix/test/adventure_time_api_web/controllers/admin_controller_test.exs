@@ -3,6 +3,7 @@ defmodule AdventureTimeApiWeb.AdminControllerTest do
 
   alias AdventureTimeApi.Accounts.{
     AuthAttempt,
+    AuthProviderIdentity,
     EmailAccessRequest,
     EmailCredential,
     EmailVerificationCode,
@@ -1078,6 +1079,16 @@ defmodule AdventureTimeApiWeb.AdminControllerTest do
         role: :user
       )
 
+    Repo.insert!(
+      AuthProviderIdentity.changeset(%AuthProviderIdentity{}, %{
+        provider: "google",
+        provider_subject_hash: String.duplicate("c", 64),
+        email: user.email,
+        display_name: user.display_name
+      })
+      |> Ecto.Changeset.put_change(:user_id, user.id)
+    )
+
     date = Quests.current_reset_date()
 
     Quests.materialize_daily_quests(user.id, date)
@@ -1130,6 +1141,13 @@ defmodule AdventureTimeApiWeb.AdminControllerTest do
 
     detail = json_response(detail_conn, 200)
     assert detail["email"] == user.email
+
+    assert detail["authMethods"] == %{
+             "password" => true,
+             "google" => true,
+             "apple" => false
+           }
+
     assert detail["todayDate"] == Date.to_iso8601(date)
     assert length(detail["dailyQuests"]) == 7
 
@@ -1646,7 +1664,10 @@ defmodule AdventureTimeApiWeb.AdminControllerTest do
         EmailAccessRequest.changeset(%EmailAccessRequest{}, %{
           email: "new-locale@example.com",
           requested_locale: :fr,
-          status: :pending
+          status: :pending,
+          provider: "google",
+          provider_subject_hash: String.duplicate("d", 64),
+          google_name: "New Locale"
         })
       )
 
@@ -1658,7 +1679,13 @@ defmodule AdventureTimeApiWeb.AdminControllerTest do
       |> patch(~p"/admin/email-requests/#{request.id}", %{"status" => "approved"})
 
     assert json_response(conn, 200) == %{"id" => request.id, "status" => "approved"}
-    assert Repo.get_by!(User, email: "new-locale@example.com").preferred_language == :fr
+
+    user = Repo.get_by!(User, email: "new-locale@example.com")
+    assert user.preferred_language == :fr
+
+    identity = Repo.get_by!(AuthProviderIdentity, provider: "google")
+    assert identity.user_id == user.id
+    assert identity.provider_subject_hash == String.duplicate("d", 64)
   end
 
   defp create_user_with_password(email, password, display_name, opts) do
