@@ -56,7 +56,7 @@ export default function AdminAbilityEditorScreen() {
   const closeEditor = () => router.dismissTo("/admin/abilities" as any);
   const canAccessAdmin = sessionHydrated && isAdmin;
 
-  const abilitiesQuery = useQuery({
+  const { data: abilitiesQueryData, error: abilitiesQueryError, isLoading: abilitiesQueryIsLoading } = useQuery({
     queryKey: ["admin-abilities"],
     queryFn: () => apiClient.adminAbilities(),
     enabled: canAccessAdmin,
@@ -96,7 +96,7 @@ export default function AdminAbilityEditorScreen() {
   const selectedAbility = isCreateMode
     ? null
     : (() => {
-        const match = (abilitiesQuery.data?.abilities ?? []).find(
+        const match = (abilitiesQueryData?.abilities ?? []).find(
           (ability) => ability.id === abilityId,
         );
 
@@ -116,7 +116,7 @@ export default function AdminAbilityEditorScreen() {
       })();
 
   const queryError = formatAbilitiesError(
-    abilitiesQuery.error,
+    abilitiesQueryError,
     t("admin.abilityEditor.invalidApiData", { details: "{details}" }),
   );
 
@@ -148,7 +148,7 @@ export default function AdminAbilityEditorScreen() {
       <KeyboardScreenView>
         <AdminBackground>
           <View className="flex-1">
-            {abilitiesQuery.isLoading && !isCreateMode ? (
+            {abilitiesQueryIsLoading && !isCreateMode ? (
               <View className="flex-1 items-center justify-center px-6">
                 <LoadingPanel
                   title={t("admin.abilityEditor.loading")}

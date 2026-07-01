@@ -121,11 +121,11 @@ export default function AdminCardsScreen() {
   const { themeName } = useThemeStore();
   const tc = THEME_COLORS[themeName];
 
-  const cardsQuery = useQuery({
+  const { data: cardsQueryData, error: cardsQueryError, isLoading: cardsQueryIsLoading } = useQuery({
     queryKey: ["admin-cards"],
     queryFn: () => apiClient.adminCards(),
   });
-  const raritiesQuery = useQuery({
+  const { data: raritiesQueryData } = useQuery({
     queryKey: ["admin-rarities"],
     queryFn: () => apiClient.rarities(),
   });
@@ -143,10 +143,13 @@ export default function AdminCardsScreen() {
   });
 
   const tileWidth = getTwoColumnWidth(width);
-  const cards = cardsQuery.data?.cards ?? [];
-  const isCardsLoading = cardsQuery.isLoading;
+  const cards = useMemo(
+    () => cardsQueryData?.cards ?? [],
+    [cardsQueryData?.cards],
+  );
+  const isCardsLoading = cardsQueryIsLoading;
   const cardsError =
-    cardsQuery.error instanceof Error ? cardsQuery.error.message : null;
+    cardsQueryError instanceof Error ? cardsQueryError.message : null;
 
   const derived = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -209,8 +212,7 @@ export default function AdminCardsScreen() {
     () =>
       cards
         .slice(0, 48)
-        .map((card) => card.imageAssetId)
-        .filter(Boolean)
+        .flatMap((card) => (card.imageAssetId ? [card.imageAssetId] : []))
         .join(","),
     [cards],
   );
@@ -423,7 +425,7 @@ export default function AdminCardsScreen() {
                 subtitle={t("admin.cards.rarityBreakdownSubtitle")}
               />
               <View className="mt-3 flex-row flex-wrap gap-2">
-                {(raritiesQuery.data?.rarities ?? []).map((rarity) => (
+                {(raritiesQueryData?.rarities ?? []).map((rarity) => (
                   <AdminChip
                     key={rarity.id}
                     label={`${rarity.name}: ${derived.rarityCounts.get(rarity.id) ?? 0}`}
@@ -497,7 +499,7 @@ export default function AdminCardsScreen() {
       isArchivedCardsOpen,
       isCardsLoading,
       openCardEditor,
-      raritiesQuery.data?.rarities,
+      raritiesQueryData?.rarities,
       searchQuery,
       t,
     ],

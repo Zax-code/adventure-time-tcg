@@ -469,11 +469,11 @@ export default function AdminUsersScreen() {
   const isSuperAdmin = currentUser?.isSuperAdmin ?? false;
   const { t } = useTranslation();
 
-  const usersQuery = useQuery({
+  const { data: usersQueryData, error: usersQueryError, isLoading: usersQueryIsLoading } = useQuery({
     queryKey: ["admin-users"],
     queryFn: () => apiClient.adminUsers(),
   });
-  const requestsQuery = useQuery({
+  const { data: requestsQueryData, error: requestsQueryError, isLoading: requestsQueryIsLoading } = useQuery({
     queryKey: ["admin-email-requests"],
     queryFn: () => apiClient.adminEmailRequests(),
     enabled: isSuperAdmin,
@@ -515,14 +515,14 @@ export default function AdminUsersScreen() {
   );
 
   const pendingRequests = useMemo(() => {
-    return [...(requestsQuery.data?.requests ?? [])]
+    return [...(requestsQueryData?.requests ?? [])]
       .filter((request) => request.status === "pending")
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  }, [requestsQuery.data?.requests]);
+  }, [requestsQueryData?.requests]);
 
   const filteredUsers = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
-    let list = (usersQuery.data?.users ?? []).filter((user) => {
+    let list = (usersQueryData?.users ?? []).filter((user) => {
       if (roleFilter === "staff" && !user.isAdmin) {
         return false;
       }
@@ -571,7 +571,7 @@ export default function AdminUsersScreen() {
     searchQuery,
     sortDir,
     sortField,
-    usersQuery.data?.users,
+    usersQueryData?.users,
   ]);
 
   const userGroups = useMemo(() => {
@@ -614,12 +614,12 @@ export default function AdminUsersScreen() {
   );
 
   const usersError =
-    usersQuery.error instanceof Error ? usersQuery.error.message : null;
+    usersQueryError instanceof Error ? usersQueryError.message : null;
   const requestsError =
-    requestsQuery.error instanceof Error ? requestsQuery.error.message : null;
+    requestsQueryError instanceof Error ? requestsQueryError.message : null;
 
   const listData = useMemo(() => {
-    if (usersError || usersQuery.isLoading) {
+    if (usersError || usersQueryIsLoading) {
       return [];
     }
 
@@ -672,7 +672,7 @@ export default function AdminUsersScreen() {
     }
 
     return items;
-  }, [formatJoinedLabel, userGroups, usersError, usersQuery.isLoading]);
+  }, [formatJoinedLabel, userGroups, usersError, usersQueryIsLoading]);
 
   const handleSortPress = useCallback(
     (field: SortField) => {
@@ -817,7 +817,7 @@ export default function AdminUsersScreen() {
               {usersError}
             </Text>
           </AdminPanel>
-        ) : usersQuery.isLoading ? (
+        ) : usersQueryIsLoading ? (
           <AdminPanel>
             <AdminLoadingState
               title={t("admin.users.loadingUsers")}
@@ -827,7 +827,7 @@ export default function AdminUsersScreen() {
           </AdminPanel>
         ) : null}
 
-        {!usersError && !usersQuery.isLoading ? (
+        {!usersError && !usersQueryIsLoading ? (
           isSuperAdmin ? (
             requestsError ? (
               <AdminPanel tint="secondary">
@@ -835,7 +835,7 @@ export default function AdminUsersScreen() {
                   {requestsError}
                 </Text>
               </AdminPanel>
-            ) : requestsQuery.isLoading ? (
+            ) : requestsQueryIsLoading ? (
               <AdminPanel tint="secondary">
                 <AdminLoadingState
                   title={t("admin.users.loadingRequests")}
@@ -920,7 +920,7 @@ export default function AdminUsersScreen() {
           )
         ) : null}
 
-        {!usersError && !usersQuery.isLoading ? (
+        {!usersError && !usersQueryIsLoading ? (
           <AdminPanel>
             <AdminSectionTitle
               title={t("admin.users.accountsTitle")}
@@ -935,7 +935,7 @@ export default function AdminUsersScreen() {
       isSuperAdmin,
       pendingRequests,
       requestsError,
-      requestsQuery.isLoading,
+      requestsQueryIsLoading,
       requestStatusLabel,
       reviewEmailRequest,
       reviewRequestMutation.isPending,
@@ -948,7 +948,7 @@ export default function AdminUsersScreen() {
       userGroups.visiblePlayerCount,
       userGroups.visibleStaffCount,
       usersError,
-      usersQuery.isLoading,
+      usersQueryIsLoading,
     ],
   );
 

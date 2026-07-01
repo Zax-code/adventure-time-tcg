@@ -37,7 +37,7 @@ export default function PvpReplayScreen() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState<1 | 2>(1);
 
-  const replayQuery = useQuery({
+  const { data: replayQueryData, error: replayQueryError, isError: replayQueryIsError, isLoading: replayQueryIsLoading, refetch: replayQueryRefetch } = useQuery({
     queryKey: ["pvp-history", id],
     queryFn: () => apiClient.pvpHistoryDetail(id ?? ""),
     enabled: Boolean(id),
@@ -45,8 +45,8 @@ export default function PvpReplayScreen() {
   });
 
   const turnViews = useMemo(
-    () => buildReplayTurnViews(replayQuery.data?.replay, currentUserId),
-    [currentUserId, replayQuery.data?.replay],
+    () => buildReplayTurnViews(replayQueryData?.replay, currentUserId),
+    [currentUserId, replayQueryData?.replay],
   );
 
   const currentTurnView =
@@ -89,7 +89,7 @@ export default function PvpReplayScreen() {
     return () => clearInterval(interval);
   }, [isPlaying, playbackSpeed, turnViews.length]);
 
-  if (replayQuery.isLoading) {
+  if (replayQueryIsLoading) {
     return (
       <PageLoadingState
         title={t("pvp.loadingReplay")}
@@ -99,13 +99,13 @@ export default function PvpReplayScreen() {
     );
   }
 
-  if (replayQuery.isError) {
+  if (replayQueryIsError) {
     return (
       <PageErrorState
-        error={replayQuery.error}
+        error={replayQueryError}
         title={t("pvp.failedLoadReplay")}
         onRetry={() => {
-          void replayQuery.refetch();
+          void replayQueryRefetch();
         }}
         onBack={() => router.push("/pvp-history" as never)}
       />

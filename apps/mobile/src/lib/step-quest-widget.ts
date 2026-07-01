@@ -63,7 +63,7 @@ interface StepQuestWidgetSyncContext {
 const widgetSnapshotBridge = NativeModules
   .WidgetSnapshotBridge as WidgetSnapshotBridgeModule | undefined;
 
-export const STEP_QUEST_WIDGET_DEEP_LINK =
+const STEP_QUEST_WIDGET_DEEP_LINK =
   "adventure-time://quests?focus=steps";
 
 function formatLocalDate(date: Date) {
@@ -75,7 +75,7 @@ function formatLocalDate(date: Date) {
 
 function formatNumber(value: number, locale: Locale) {
   try {
-    return new Intl.NumberFormat(locale).format(value);
+    return value.toLocaleString(locale);
   } catch {
     return value.toLocaleString();
   }
@@ -106,7 +106,7 @@ function getQuestTitle(locale: Locale, titleKey: string) {
   return translated.startsWith("quests.") ? titleKey : translated;
 }
 
-export function buildStepQuestWidgetSnapshot(
+function buildStepQuestWidgetSnapshot(
   questsResponse: QuestsResponse,
   locale: Locale,
   themeName: ThemeName,
@@ -159,7 +159,7 @@ export function buildStepQuestWidgetSnapshot(
   };
 }
 
-export async function writeStepQuestWidgetSnapshot(
+async function writeStepQuestWidgetSnapshot(
   snapshot: StepQuestWidgetSnapshot,
 ) {
   if (!widgetSnapshotBridge) {

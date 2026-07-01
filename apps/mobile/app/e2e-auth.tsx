@@ -11,7 +11,48 @@ import { useThemeStore } from "../src/stores/theme-store";
 
 const e2eAuthEnabled = process.env.EXPO_PUBLIC_E2E_AUTH === "1";
 const e2eAuthEmail = process.env.EXPO_PUBLIC_E2E_EMAIL ?? "mobile-test@leaetzak.love";
-const e2eAuthPassword = process.env.EXPO_PUBLIC_E2E_PASSWORD ?? "password123";
+const e2eAuthPassword = process.env.EXPO_PUBLIC_E2E_PASSCODE ?? "";
+
+function decodeParam(value: string | string[] | undefined) {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+function parseSessionUser(serialized: string) {
+  try {
+    const parsed = JSON.parse(serialized) as Partial<AuthUser>;
+    if (
+      typeof parsed.id !== "string" ||
+      typeof parsed.email !== "string" ||
+      typeof parsed.preferredLanguage !== "string"
+    ) {
+      return null;
+    }
+
+    return parsed as AuthUser;
+  } catch {
+    return null;
+  }
+}
+
+function parseRedirectHref(redirect: string): Href {
+  const [pathnamePart, queryPart = ""] = redirect.split("?");
+  const pathname = pathnamePart.trim();
+
+  if (!pathname || !queryPart) {
+    return (pathname || "/pvp") as Href;
+  }
+
+  const params = Object.fromEntries(new URLSearchParams(queryPart).entries());
+  return { pathname, params } as Href;
+}
 
 export default function E2EAuthScreen() {
   const router = useRouter();
@@ -26,47 +67,6 @@ export default function E2EAuthScreen() {
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState("Starting test sign-in...");
   const hasStartedRef = useRef(false);
-
-  function decodeParam(value: string | string[] | undefined) {
-    if (typeof value !== "string") {
-      return null;
-    }
-
-    try {
-      return decodeURIComponent(value);
-    } catch {
-      return value;
-    }
-  }
-
-  function parseSessionUser(serialized: string) {
-    try {
-      const parsed = JSON.parse(serialized) as Partial<AuthUser>;
-      if (
-        typeof parsed.id !== "string" ||
-        typeof parsed.email !== "string" ||
-        typeof parsed.preferredLanguage !== "string"
-      ) {
-        return null;
-      }
-
-      return parsed as AuthUser;
-    } catch {
-      return null;
-    }
-  }
-
-  function parseRedirectHref(redirect: string): Href {
-    const [pathnamePart, queryPart = ""] = redirect.split("?");
-    const pathname = pathnamePart.trim();
-
-    if (!pathname || !queryPart) {
-      return (pathname || "/pvp") as Href;
-    }
-
-    const params = Object.fromEntries(new URLSearchParams(queryPart).entries());
-    return { pathname, params } as Href;
-  }
 
   useEffect(() => {
     if (hasStartedRef.current) {

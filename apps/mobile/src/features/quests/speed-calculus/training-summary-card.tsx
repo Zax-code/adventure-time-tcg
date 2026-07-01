@@ -31,11 +31,7 @@ export function TrainingSummaryCard({
       style={{
         borderColor: tc.secondaryBorder,
         backgroundColor: tc.surface,
-        shadowColor: withAlpha(tc.secondaryDark, "24"),
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 12,
-        elevation: 4,
+        boxShadow: `0px 4px 12px ${withAlpha(tc.secondaryDark, "24")}`,
       }}
     >
       <View className="flex-row items-center justify-between gap-3">

@@ -31,6 +31,8 @@ interface LoadoutCardDetailsContentProps {
   onClose?: () => void;
 }
 
+const EMPTY_PREVIEW_STATUSES: PreviewStatus[] = [];
+
 const abilityCardClasses: Record<"PASSIVE" | "SKILL" | "ULTIMATE", string> = {
   PASSIVE: "border-infoBorder bg-infoTint",
   SKILL: "border-successBorder bg-successTint",
@@ -90,7 +92,7 @@ function isDebuff(name: string) {
 
 export function LoadoutCardDetailsContent({
   card,
-  statuses = [],
+  statuses = EMPTY_PREVIEW_STATUSES,
   onClose,
 }: LoadoutCardDetailsContentProps) {
   const { t, locale } = useTranslation();

@@ -49,7 +49,7 @@ export default function AdminImageAssetsScreen() {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
 
-  const imageAssetsQuery = useQuery({
+  const { data: imageAssetsQueryData, error: imageAssetsQueryError, isLoading: imageAssetsQueryIsLoading } = useQuery({
     queryKey: ["admin-image-assets"],
     queryFn: () => apiClient.adminImageAssets(),
   });
@@ -92,10 +92,13 @@ export default function AdminImageAssetsScreen() {
     },
   });
 
-  const imageAssets = imageAssetsQuery.data?.imageAssets ?? [];
+  const imageAssets = useMemo(
+    () => imageAssetsQueryData?.imageAssets ?? [],
+    [imageAssetsQueryData?.imageAssets],
+  );
   const imageAssetsError =
-    imageAssetsQuery.error instanceof Error
-      ? imageAssetsQuery.error.message
+    imageAssetsQueryError instanceof Error
+      ? imageAssetsQueryError.message
       : null;
 
   const recentAssets = useMemo(() => imageAssets.slice(0, 24), [imageAssets]);
@@ -169,7 +172,7 @@ export default function AdminImageAssetsScreen() {
         </View>
       </AdminHero>
 
-      {!imageAssetsQuery.isLoading && !imageAssetsError ? (
+      {!imageAssetsQueryIsLoading && !imageAssetsError ? (
         <AdminNotice
           title={t("admin.imageAssets.guidanceTitle")}
           body={t("admin.imageAssets.guidanceBody")}
@@ -186,7 +189,7 @@ export default function AdminImageAssetsScreen() {
           subtitle={t("admin.imageAssets.recentSubtitle")}
         />
         <View className="mt-3 gap-3">
-          {imageAssetsQuery.isLoading ? (
+          {imageAssetsQueryIsLoading ? (
             <AdminLoadingState
               title={t("admin.imageAssets.loading")}
               body={t("common.loadingStates.adminBody")}

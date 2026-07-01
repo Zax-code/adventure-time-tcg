@@ -8,6 +8,7 @@ import { AuthForm } from "../src/components/auth-form";
 import { KEYBOARD_AWARE_SCROLL_PROPS } from "../src/components/keyboard-screen-view";
 import { useThemeStore } from "../src/stores/theme-store";
 import { THEME_COLORS, THEME_VARS } from "../src/theme/themes";
+import { useAnimatedValue } from "../src/hooks/use-animated-value";
 
 const PARTICLES = [
   { left: "8%", top: "12%", size: 14, delay: 0, duration: 3200 },
@@ -32,7 +33,7 @@ function FloatingHeart({
   duration,
   color,
 }: (typeof PARTICLES)[number] & { color: string }) {
-  const anim = useRef(new Animated.Value(0)).current;
+  const anim = useAnimatedValue(0);
 
   useEffect(() => {
     const loop = Animated.loop(

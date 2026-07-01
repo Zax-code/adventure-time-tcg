@@ -22,7 +22,7 @@ export const STATUS_NAMES = [
   "Doom",
 ] as const;
 
-export const CONSUMPTION_ONLY_STATUS_NAMES = ["Freeze", "Stunned"] as const;
+const CONSUMPTION_ONLY_STATUS_NAMES = ["Freeze", "Stunned"] as const;
 
 export const TYPE_NAMES = [
   "Hero",
@@ -526,7 +526,7 @@ export function formToPayload(form: PayloadFormState): Record<string, unknown> {
   return payload;
 }
 
-export const STRUCTURED_PAYLOAD_KEYS = new Set([
+const STRUCTURED_PAYLOAD_KEYS = new Set([
   "damageMul",
   "burnBonusMul",
   "bonusDamageVsDebuffedTargetsPct",

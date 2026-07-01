@@ -53,26 +53,24 @@ export function TurnBanner({ isMyTurn, onDone }: TurnBannerProps) {
     ]).start(({ finished }) => {
       if (finished) onDone();
     });
-  }, []);
+  }, [onDone, opacity, scale, translateY]);
 
   return (
     <Animated.View
       testID="pvp-turn-banner"
       pointerEvents="none"
-      style={[
-        {
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          zIndex: 200,
-          alignItems: "center",
-          justifyContent: "center",
-          transform: [{ scale }, { translateY }],
-          opacity,
-        },
-      ]}
+      style={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 200,
+        alignItems: "center",
+        justifyContent: "center",
+        transform: [{ scale }, { translateY }],
+        opacity,
+      }}
     >
       <Animated.View
         style={{

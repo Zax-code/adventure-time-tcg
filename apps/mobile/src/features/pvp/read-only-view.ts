@@ -260,7 +260,7 @@ function normalizeAbilityDefinitions(
   );
 }
 
-export function normalizeReplayState(value: unknown): BattleState | null {
+function normalizeReplayState(value: unknown): BattleState | null {
   const state = asRecord(value);
   if (!state || !Array.isArray(state.players) || state.players.length !== 2) {
     return null;

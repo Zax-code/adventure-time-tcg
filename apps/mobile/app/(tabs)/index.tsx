@@ -49,6 +49,13 @@ const styles = StyleSheet.create({
   },
 });
 
+function formatTimeRemaining(ms: number) {
+  const h = Math.floor(ms / 3600000);
+  const m = Math.floor((ms % 3600000) / 60000);
+  const s = Math.floor((ms % 60000) / 1000);
+  return `${h}h ${m}m ${s}s`;
+}
+
 export default function HomeScreen() {
   const queryClient = useQueryClient();
   const router = useRouter();
@@ -63,19 +70,19 @@ export default function HomeScreen() {
   const headerHeight = useAppHeaderHeight();
   const bottomTabPadding = useBottomTabBarContentPadding();
 
-  const homeQuery = useQuery({
+  const { data: homeQueryData, error: homeQueryError, isError: homeQueryIsError, isLoading: homeQueryIsLoading, refetch: homeQueryRefetch } = useQuery({
     queryKey: ["home"],
     queryFn: () => apiClient.home(),
   });
-  const dailyClaimQuery = useQuery({
+  const { data: dailyClaimQueryData } = useQuery({
     queryKey: ["daily-claim"],
     queryFn: () => apiClient.getDailyClaimStatus(),
   });
-  const featuredQuery = useQuery({
+  const { data: featuredQueryData } = useQuery({
     queryKey: ["featured-cards"],
     queryFn: () => apiClient.featuredCards(),
   });
-  const raritiesQuery = useQuery({
+  const { data: raritiesQueryData } = useQuery({
     queryKey: ["rarities"],
     queryFn: () => apiClient.rarities(),
   });
@@ -83,9 +90,11 @@ export default function HomeScreen() {
   const claimMutation = useMutation({
     mutationFn: () => apiClient.claimDailyReward(),
     onSuccess: async (data) => {
-      await queryClient.invalidateQueries({ queryKey: ["daily-claim"] });
-      await queryClient.invalidateQueries({ queryKey: ["home"] });
-      await patchUser({ coins: data.newBalance });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["daily-claim"] }),
+        queryClient.invalidateQueries({ queryKey: ["home"] }),
+        patchUser({ coins: data.newBalance }),
+      ]);
     },
     onError: async (error) => {
       if (
@@ -99,7 +108,7 @@ export default function HomeScreen() {
     },
   });
 
-  const canClaim = dailyClaimQuery.data?.canClaim ?? false;
+  const canClaim = dailyClaimQueryData?.canClaim ?? false;
   const wantsNotifications = Boolean(
     user?.notificationPreferences.dailyReset ||
     user?.notificationPreferences.stepGoal ||
@@ -115,8 +124,8 @@ export default function HomeScreen() {
     useState(false);
 
   useEffect(() => {
-    setLiveTime(dailyClaimQuery.data?.timeUntilNextClaim ?? 0);
-  }, [dailyClaimQuery.data]);
+    setLiveTime(dailyClaimQueryData?.timeUntilNextClaim ?? 0);
+  }, [dailyClaimQueryData]);
 
   useEffect(() => {
     let cancelled = false;
@@ -173,13 +182,6 @@ export default function HomeScreen() {
     (notificationPermissionStatus === "not_requested" ||
       notificationPermissionStatus === "denied");
 
-  function formatTimeRemaining(ms: number) {
-    const h = Math.floor(ms / 3600000);
-    const m = Math.floor((ms % 3600000) / 60000);
-    const s = Math.floor((ms % 60000) / 1000);
-    return `${h}h ${m}m ${s}s`;
-  }
-
   function formatDropRatePercentage(dropRate: number) {
     if (totalDropRate <= 0) {
       return "0%";
@@ -193,7 +195,7 @@ export default function HomeScreen() {
     return `${Math.round(percentage)}%`;
   }
 
-  if (homeQuery.isLoading) {
+  if (homeQueryIsLoading) {
     return (
       <PageLoadingState
         title={t("nav.home")}
@@ -203,18 +205,18 @@ export default function HomeScreen() {
     );
   }
 
-  if (homeQuery.isError) {
+  if (homeQueryIsError) {
     return (
       <PageErrorState
-        error={homeQuery.error}
+        error={homeQueryError}
         onRetry={() => {
-          void homeQuery.refetch();
+          void homeQueryRefetch();
         }}
       />
     );
   }
 
-  const home = homeQuery.data;
+  const home = homeQueryData;
   if (!home) {
     return (
       <View className="flex-1 bg-bg p-6">
@@ -233,8 +235,8 @@ export default function HomeScreen() {
     0,
     home.collectionStats.totalCards - home.collectionStats.uniqueOwned,
   );
-  const featuredCards = featuredQuery.data?.cards ?? [];
-  const rarities = raritiesQuery.data?.rarities ?? [];
+  const featuredCards = featuredQueryData?.cards ?? [];
+  const rarities = raritiesQueryData?.rarities ?? [];
   const totalDropRate = rarities.reduce((sum, rarity) => {
     return sum + rarity.dropRate;
   }, 0);
@@ -336,7 +338,7 @@ export default function HomeScreen() {
                 <Text className="font-nunito text-sm leading-5 text-fgMuted">
                   {canClaim
                     ? t("home.claimCoins", {
-                        amount: dailyClaimQuery.data?.dailyReward ?? 50,
+                        amount: dailyClaimQueryData?.dailyReward ?? 50,
                       })
                     : t("home.nextClaim", {
                         time: formatTimeRemaining(liveTime),

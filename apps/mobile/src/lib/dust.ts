@@ -1,4 +1,4 @@
-export const DUST_SACRIFICE_BY_RARITY: Record<string, number> = {
+const DUST_SACRIFICE_BY_RARITY: Record<string, number> = {
   common: 1, uncommon: 5, rare: 20, epic: 50, legendary: 100,
 };
 const CRAFT_COST_MULTIPLIER = 5;

@@ -80,6 +80,7 @@ import {
   useBottomTabBarContentPadding,
 } from "../../src/theme/layout";
 import { THEME_COLORS } from "../../src/theme/themes";
+import { useAnimatedValue } from "../../src/hooks/use-animated-value";
 
 type QuestStatus = "active" | "completed" | "claimed" | "failed";
 type ThemeColors = (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
@@ -726,7 +727,7 @@ export default function QuestsScreen() {
     useState<DailyNumbersGroupShareItem[] | null>(null);
   const wordleGroupShareRef = useRef<View>(null);
   const dailyNumbersGroupShareRef = useRef<View>(null);
-  const toastAnim = useRef(new Animated.Value(-60)).current;
+  const toastAnim = useAnimatedValue(-60);
 
   useEffect(() => {
     if (!toast) {
@@ -775,14 +776,20 @@ export default function QuestsScreen() {
     },
   };
 
-  const questsQuery = useQuery({
+  const {
+    data: questsQueryData,
+    error: questsQueryError,
+    isError: questsQueryIsError,
+    isLoading: questsQueryIsLoading,
+    refetch: questsQueryRefetch,
+  } = useQuery({
     queryKey: ["quests"],
     queryFn: () => apiClient.quests(),
     refetchInterval: 30_000,
   });
   const showFitbitConnectCta =
     user?.preferredStepSource === "fitbit" &&
-    !questsQuery.data?.fitbitConnected;
+    !questsQueryData?.fitbitConnected;
 
   const showStepQuestActivationPrompt =
     user?.preferredStepSource === "device_health" &&
@@ -827,14 +834,14 @@ export default function QuestsScreen() {
         interactive: false,
         source: "manual",
       });
-      await questsQuery.refetch();
+      await questsQueryRefetch();
     } finally {
       setStepQuestUiState((state) => ({
         ...state,
         isForceRefreshing: false,
       }));
     }
-  }, [questsQuery]);
+  }, [questsQueryRefetch]);
 
   const handleConnectFitbit = useCallback(async () => {
     setIsConnectingFitbit(true);
@@ -842,7 +849,7 @@ export default function QuestsScreen() {
     try {
       const result = await connectFitbit("/quests");
 
-      await questsQuery.refetch();
+      await questsQueryRefetch();
 
       if (result.type === "success") {
         setToast({
@@ -863,7 +870,7 @@ export default function QuestsScreen() {
     } finally {
       setIsConnectingFitbit(false);
     }
-  }, [questsQuery, t]);
+  }, [questsQueryRefetch, t]);
 
   const shareCapturedGroupImage = useCallback(
     async ({
@@ -1111,8 +1118,8 @@ export default function QuestsScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      void questsQuery.refetch();
-    }, [questsQuery]),
+      void questsQueryRefetch();
+    }, [questsQueryRefetch]),
   );
 
   const claimQuestMutation = useMutation({
@@ -1272,7 +1279,7 @@ export default function QuestsScreen() {
     [router],
   );
 
-  if (questsQuery.isLoading) {
+  if (questsQueryIsLoading) {
     return (
       <PageLoadingState
         title={t("nav.quests")}
@@ -1282,26 +1289,26 @@ export default function QuestsScreen() {
     );
   }
 
-  if (questsQuery.isError || !questsQuery.data) {
+  if (questsQueryIsError || !questsQueryData) {
     return (
       <PageErrorState
-        error={questsQuery.error}
-        title={questsQuery.error ? undefined : t("quests.unavailable")}
+        error={questsQueryError}
+        title={questsQueryError ? undefined : t("quests.unavailable")}
         body={
-          questsQuery.error ? undefined : t("common.errorStates.generic.body")
+          questsQueryError ? undefined : t("common.errorStates.generic.body")
         }
         detail={
-          questsQuery.error ? undefined : t("common.errorStates.generic.detail")
+          questsQueryError ? undefined : t("common.errorStates.generic.detail")
         }
         onRetry={() => {
-          void questsQuery.refetch();
+          void questsQueryRefetch();
         }}
       />
     );
   }
 
   const displayedQuests =
-    applyLocalStepProgressToQuests(questsQuery.data, user) ?? questsQuery.data;
+    applyLocalStepProgressToQuests(questsQueryData, user) ?? questsQueryData;
   const questCardItems = buildQuestCardItems(displayedQuests.quests);
 
   return (
@@ -1355,11 +1362,7 @@ export default function QuestsScreen() {
                 padding: 16,
                 marginTop: 16,
                 marginBottom: 16,
-                shadowColor: "#000",
-                shadowOpacity: 0.08,
-                shadowRadius: 4,
-                shadowOffset: { width: 0, height: 2 },
-                elevation: 2,
+                boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.08)",
               }}
             >
               <View
@@ -1399,7 +1402,7 @@ export default function QuestsScreen() {
             </View>
           ) : null}
 
-          {questsQuery.data.quests.length === 0 ? (
+          {questsQueryData.quests.length === 0 ? (
             <View
               className="bg-surfaceMuted border border-primaryBorder"
               style={{
@@ -1849,11 +1852,7 @@ export default function QuestsScreen() {
                       backgroundColor: tc.surface,
                       borderWidth: 2,
                       borderColor: colors.border,
-                      shadowColor: "#000",
-                      shadowOpacity: 0.1,
-                      shadowRadius: 8,
-                      shadowOffset: { width: 0, height: 2 },
-                      elevation: 2,
+                      boxShadow: "0px 2px 8px rgba(0, 0, 0, 0.1)",
                       marginBottom:
                         index === questCardItems.length - 1 ? 0 : 12,
                     }}
@@ -1880,11 +1879,7 @@ export default function QuestsScreen() {
                           borderRadius: 999,
                           borderWidth: 2,
                           borderColor: colors.border,
-                          shadowColor: "#000",
-                          shadowOpacity: 0.15,
-                          shadowRadius: 4,
-                          shadowOffset: { width: 0, height: 2 },
-                          elevation: 2,
+                          boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.15)",
                         }}
                       >
                         <HelpCircleIcon
@@ -2244,11 +2239,7 @@ export default function QuestsScreen() {
                     backgroundColor: tc.surface,
                     borderWidth: 2,
                     borderColor: colors.border,
-                    shadowColor: "#000",
-                    shadowOpacity: 0.1,
-                    shadowRadius: 8,
-                    shadowOffset: { width: 0, height: 2 },
-                    elevation: 2,
+                    boxShadow: "0px 2px 8px rgba(0, 0, 0, 0.1)",
                     marginBottom: index === questCardItems.length - 1 ? 0 : 12,
                   }}
                 >

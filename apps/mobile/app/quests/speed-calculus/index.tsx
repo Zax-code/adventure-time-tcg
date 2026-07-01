@@ -49,6 +49,7 @@ import {
   getAnswerBoxPalette,
   withAlpha,
 } from "../../../src/features/quests/speed-calculus/palette";
+import { useAnimatedValue } from "../../../src/hooks/use-animated-value";
 
 if (
   Platform.OS === "android" &&
@@ -91,9 +92,9 @@ export default function SpeedCalculusScreen() {
   const stateRef = useRef<SpeedRunState | null>(null);
   const questVersionRef = useRef<string | null>(null);
   const mutationEpochRef = useRef(0);
-  const shakeAnim = useRef(new Animated.Value(0)).current;
-  const feedbackSlide = useRef(new Animated.Value(-20)).current;
-  const feedbackOpacity = useRef(new Animated.Value(0)).current;
+  const shakeAnim = useAnimatedValue(0);
+  const feedbackSlide = useAnimatedValue(-20);
+  const feedbackOpacity = useAnimatedValue(0);
   // ── Derived ──────────────────────────────────────────────────────
   const activeRun = state?.activeRun ?? null;
   const currentQuestion = useMemo(() => {
@@ -279,8 +280,12 @@ export default function SpeedCalculusScreen() {
 
   // ── Feedback cleanup ─────────────────────────────────────────────
   useEffect(() => {
+    const feedbackTimeoutRefSnapshot = feedbackTimeoutRef.current;
+
     return () => {
-      if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
+      if (feedbackTimeoutRefSnapshot) {
+        clearTimeout(feedbackTimeoutRefSnapshot);
+      }
     };
   }, []);
 
@@ -757,14 +762,7 @@ export default function SpeedCalculusScreen() {
           className={`absolute left-4 right-4 z-[100] rounded-xl p-4 ${toast.type === "success" ? "bg-successDark" : "bg-dangerDark"}`}
           style={{
             top: insets.top + 8,
-            shadowColor: withAlpha(
-              toast.type === "success" ? tc.successDark : tc.dangerDark,
-              "2E",
-            ),
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.15,
-            shadowRadius: 8,
-            elevation: 8,
+            boxShadow: `0px 4px 8px ${withAlpha( toast.type === "success" ? tc.successDark : tc.dangerDark, "2E", )}`,
           }}
         >
           <Text
@@ -792,10 +790,7 @@ export default function SpeedCalculusScreen() {
           <Text
             className="text-[28px] font-nunito-extrabold text-primaryDark"
             style={{
-              shadowColor: withAlpha(tc.primaryDark, "2E"),
-              shadowOffset: { width: 0, height: 1 },
-              shadowOpacity: 0.18,
-              shadowRadius: 4,
+              boxShadow: `0px 1px 4px ${withAlpha(tc.primaryDark, "2E")}`,
             }}
           >
             {t("quests.speedCalculusTitle")}
@@ -823,11 +818,7 @@ export default function SpeedCalculusScreen() {
           className="rounded-3xl border-2 border-primaryTint p-5"
           style={{
             backgroundColor: tc.surfaceMuted,
-            shadowColor: withAlpha(tc.primaryDark, "24"),
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.1,
-            shadowRadius: 12,
-            elevation: 4,
+            boxShadow: `0px 4px 12px ${withAlpha(tc.primaryDark, "24")}`,
           }}
         >
           <View className="flex-row items-center justify-between gap-4">
@@ -871,11 +862,7 @@ export default function SpeedCalculusScreen() {
           style={{
             borderColor: tc.secondaryBorder,
             backgroundColor: tc.surface,
-            shadowColor: withAlpha(tc.secondaryDark, "24"),
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.1,
-            shadowRadius: 12,
-            elevation: 4,
+            boxShadow: `0px 4px 12px ${withAlpha(tc.secondaryDark, "24")}`,
           }}
         >
           <Text className="text-xs font-nunito-bold uppercase tracking-[3.5px] text-secondaryText/80">

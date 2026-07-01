@@ -1811,7 +1811,7 @@ function StatusArrayEditor({
 
         return (
           <View
-            key={`${label}-${index}`}
+            key={`${label}-${entry.name}`}
             className="rounded-[18] p-3 gap-3 bg-surface/92 border border-primaryBorder/16"
           >
             <View className="flex-row justify-between items-center gap-[10]">

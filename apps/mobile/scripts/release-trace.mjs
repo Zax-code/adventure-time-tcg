@@ -189,7 +189,7 @@ async function fetchLatestFinishedStoreBuild({ mobileRoot, platform }) {
   return latestBuild;
 }
 
-export async function ensureReleaseTraceBaselineFromEas({
+async function ensureReleaseTraceBaselineFromEas({
   mobileRoot,
   platform,
 }) {

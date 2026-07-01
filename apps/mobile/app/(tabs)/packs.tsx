@@ -2175,18 +2175,18 @@ export default function PacksScreen() {
   const stageCardWidth = revealCardWidth;
   const loadingDeckWidth = revealCardWidth;
 
-  const chargeAnim = useRef(new Animated.Value(0)).current;
+  const chargeAnim = useAnimatedValue(0);
   const sheenAnim = useAnimatedValue(0);
-  const burstFlashAnim = useRef(new Animated.Value(0)).current;
-  const loadingIdleAnim = useRef(new Animated.Value(0)).current;
-  const loadingProgressAnim = useRef(new Animated.Value(0)).current;
-  const stackSpreadAnim = useRef(new Animated.Value(0)).current;
-  const readyRevealAnim = useRef(new Animated.Value(0)).current;
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-  const flipAnim = useRef(new Animated.Value(0)).current;
+  const burstFlashAnim = useAnimatedValue(0);
+  const loadingIdleAnim = useAnimatedValue(0);
+  const loadingProgressAnim = useAnimatedValue(0);
+  const stackSpreadAnim = useAnimatedValue(0);
+  const readyRevealAnim = useAnimatedValue(0);
+  const pulseAnim = useAnimatedValue(1);
+  const flipAnim = useAnimatedValue(0);
   const revealHaloAnim = useAnimatedValue(0);
   const revealSparkAnim = useAnimatedValue(0);
-  const burstOpenAnim = useRef(new Animated.Value(0)).current;
+  const burstOpenAnim = useAnimatedValue(0);
   const chargeLoopRef = useRef<Animated.CompositeAnimation | null>(null);
   const sheenLoopRef = useRef<Animated.CompositeAnimation | null>(null);
   const loadingLoopRef = useRef<Animated.CompositeAnimation | null>(null);
@@ -2421,7 +2421,7 @@ export default function PacksScreen() {
         prefetchCardImages(result.cards.map((card) => card.imageAssetId)),
         prefetchCatalogImages([
           result.pack.packArtAssetId,
-          ...(packsQuery.data?.cardBackVisuals.map(
+          ...(packsQueryData?.cardBackVisuals.map(
             (visual) => visual.imageAssetId,
           ) ?? []),
         ]),
@@ -2573,41 +2573,41 @@ export default function PacksScreen() {
     burstOpenAnim.setValue(0);
   }
 
-  const packsQuery = useQuery({
+  const { data: packsQueryData, error: packsQueryError, isError: packsQueryIsError, isLoading: packsQueryIsLoading, refetch: packsQueryRefetch } = useQuery({
     queryKey: ["packs"],
     queryFn: () => apiClient.packs(),
   });
 
   const cardBackVisualMap = useMemo(
-    () => buildCardBackVisualMap(packsQuery.data?.cardBackVisuals ?? []),
-    [packsQuery.data?.cardBackVisuals],
+    () => buildCardBackVisualMap(packsQueryData?.cardBackVisuals ?? []),
+    [packsQueryData?.cardBackVisuals],
   );
 
   const packVisualPrefetchKey = useMemo(() => {
-    if (!packsQuery.data) {
+    if (!packsQueryData) {
       return "";
     }
 
     return [
-      ...packsQuery.data.packs.map((pack) => pack.packArtAssetId ?? ""),
-      ...packsQuery.data.cardBackVisuals.map(
+      ...packsQueryData.packs.map((pack) => pack.packArtAssetId ?? ""),
+      ...packsQueryData.cardBackVisuals.map(
         (visual) => visual.imageAssetId ?? "",
       ),
     ].join(",");
-  }, [packsQuery.data]);
+  }, [packsQueryData]);
 
   useEffect(() => {
-    if (!packsQuery.data || !packVisualPrefetchKey) {
+    if (!packsQueryData || !packVisualPrefetchKey) {
       return;
     }
 
     void prefetchCatalogImages([
-      ...packsQuery.data.packs.map((pack) => pack.packArtAssetId),
-      ...packsQuery.data.cardBackVisuals.map((visual) => visual.imageAssetId),
+      ...packsQueryData.packs.map((pack) => pack.packArtAssetId),
+      ...packsQueryData.cardBackVisuals.map((visual) => visual.imageAssetId),
     ]);
-  }, [packVisualPrefetchKey, packsQuery.data]);
+  }, [packVisualPrefetchKey, packsQueryData]);
 
-  if (packsQuery.isLoading) {
+  if (packsQueryIsLoading) {
     return (
       <PageLoadingState
         title={t("nav.pack")}
@@ -2617,25 +2617,25 @@ export default function PacksScreen() {
     );
   }
 
-  if (packsQuery.isError || !packsQuery.data) {
+  if (packsQueryIsError || !packsQueryData) {
     return (
       <PageErrorState
-        error={packsQuery.error}
-        title={packsQuery.error ? undefined : t("packs.unavailable")}
+        error={packsQueryError}
+        title={packsQueryError ? undefined : t("packs.unavailable")}
         body={
-          packsQuery.error ? undefined : t("common.errorStates.generic.body")
+          packsQueryError ? undefined : t("common.errorStates.generic.body")
         }
         detail={
-          packsQuery.error ? undefined : t("common.errorStates.generic.detail")
+          packsQueryError ? undefined : t("common.errorStates.generic.detail")
         }
         onRetry={() => {
-          void packsQuery.refetch();
+          void packsQueryRefetch();
         }}
       />
     );
   }
 
-  const packs = packsQuery.data.packs;
+  const packs = packsQueryData.packs;
   const availablePacks = packs.filter((pack) => !isPackLimited(pack));
   const affordablePacks = availablePacks.filter((pack) =>
     canOpenPackWithBalance(pack, coins),

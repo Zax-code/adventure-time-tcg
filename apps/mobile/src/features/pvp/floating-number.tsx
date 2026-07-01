@@ -68,7 +68,7 @@ export function FloatingNumber({ amount, type, onDone }: FloatingNumberProps) {
     ]).start(({ finished }) => {
       if (finished) onDone();
     });
-  }, []);
+  }, [opacity, onDone, scale, translateY]);
 
   const cfg = TYPE_CONFIG[type];
   const isCritical = type === "crit" || type === "shieldCrit";

@@ -50,7 +50,7 @@ export default function PvpHistoryScreen() {
   const { t } = useTranslation();
   const tc = THEME_COLORS[useThemeStore((state) => state.themeName)];
 
-  const historyQuery = useQuery({
+  const { data: historyQueryData, error: historyQueryError, isError: historyQueryIsError, isLoading: historyQueryIsLoading, refetch: historyQueryRefetch } = useQuery({
     queryKey: ["pvp-history"],
     queryFn: () => apiClient.pvpHistory(),
     refetchOnMount: "always",
@@ -60,8 +60,8 @@ export default function PvpHistoryScreen() {
 
   const completedMatches = useMemo(
     () =>
-      (historyQuery.data?.matches ?? []).filter((match) => match.status === "COMPLETED"),
-    [historyQuery.data?.matches],
+      (historyQueryData?.matches ?? []).filter((match) => match.status === "COMPLETED"),
+    [historyQueryData?.matches],
   );
 
   return (
@@ -96,7 +96,7 @@ export default function PvpHistoryScreen() {
             </Text>
             <Text className="font-nunito text-sm text-fgMuted">
               {t("pvp.completedMatches", {
-                count: historyQuery.data?.totalCount ?? completedMatches.length,
+                count: historyQueryData?.totalCount ?? completedMatches.length,
               })}
             </Text>
           </View>
@@ -108,43 +108,43 @@ export default function PvpHistoryScreen() {
           <View className="flex-row justify-between">
             <View className="items-center">
               <Text className="font-nunito-extrabold text-3xl text-white">
-                {historyQuery.data?.stats?.wins ?? 0}
+                {historyQueryData?.stats?.wins ?? 0}
               </Text>
               <Text className="font-nunito text-sm text-white/80">{t("pvp.wins")}</Text>
             </View>
             <View className="items-center">
               <Text className="font-nunito-extrabold text-3xl text-white">
-                {historyQuery.data?.stats?.losses ?? 0}
+                {historyQueryData?.stats?.losses ?? 0}
               </Text>
               <Text className="font-nunito text-sm text-white/80">{t("pvp.losses")}</Text>
             </View>
             <View className="items-center">
               <Text className="font-nunito-extrabold text-3xl text-white">
-                {historyQuery.data?.stats?.draws ?? 0}
+                {historyQueryData?.stats?.draws ?? 0}
               </Text>
               <Text className="font-nunito text-sm text-white/80">{t("pvp.draws")}</Text>
             </View>
             <View className="items-center">
               <Text className="font-nunito-extrabold text-3xl text-white">
-                {historyQuery.data?.stats?.winRate ?? 0}%
+                {historyQueryData?.stats?.winRate ?? 0}%
               </Text>
               <Text className="font-nunito text-sm text-white/80">{t("pvp.winRate")}</Text>
             </View>
           </View>
         </View>
 
-        {historyQuery.isLoading ? (
+        {historyQueryIsLoading ? (
           <LoadingPanel
             title={t("pvp.matchHistory")}
             message={t("common.loadingStates.sectionBody")}
             icon="time"
           />
-        ) : historyQuery.isError ? (
+        ) : historyQueryIsError ? (
           <SectionErrorState
-            error={historyQuery.error}
+            error={historyQueryError}
             title={t("pvp.failedLoadReplay")}
             onRetry={() => {
-              void historyQuery.refetch();
+              void historyQueryRefetch();
             }}
           />
         ) : completedMatches.length === 0 ? (
@@ -182,7 +182,7 @@ export default function PvpHistoryScreen() {
         ) : (
           <View className="gap-3">
             {completedMatches.map((match) => {
-              const currentUserId = historyQuery.data?.currentUserId;
+              const currentUserId = historyQueryData?.currentUserId;
               const opponentName =
                 match.inviterId === currentUserId
                   ? match.inviteeName ?? match.inviteeId.slice(0, 8)

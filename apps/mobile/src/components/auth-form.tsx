@@ -617,6 +617,7 @@ function BrowserGoogleAuthSection({
       cancelled = true;
     };
   }, [
+    handleAuthError,
     preferredLanguage,
     response,
     router,

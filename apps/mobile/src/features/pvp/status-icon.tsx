@@ -44,10 +44,10 @@ export function StatusIcon({ name, duration }: StatusIconProps) {
         "rounded-full items-center justify-center mr-0.5",
         isDebuff ? "bg-dangerTint" : "bg-infoTint",
       ].join(" ")}
-      style={{ width: 14, height: 14 }}
+      style={{ width: 20, height: 20 }}
     >
       <Text
-        style={{ fontSize: 7, lineHeight: 10 }}
+        style={{ fontSize: 12, lineHeight: 16 }}
         className={isDebuff ? "text-dangerDark" : "text-infoDark"}
       >
         {label}
@@ -55,9 +55,9 @@ export function StatusIcon({ name, duration }: StatusIconProps) {
       {duration > 0 && duration !== -1 && (
         <View
           className="absolute -bottom-0.5 -right-0.5 rounded-full bg-surface items-center justify-center"
-          style={{ width: 7, height: 7 }}
+          style={{ width: 14, height: 14 }}
         >
-          <Text style={{ fontSize: 5, lineHeight: 7 }} className="text-fg">
+          <Text style={{ fontSize: 12, lineHeight: 12 }} className="text-fg">
             {duration}
           </Text>
         </View>

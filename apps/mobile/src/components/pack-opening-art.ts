@@ -26,7 +26,7 @@ export type PackOpeningArtLayout = PackOpeningArtDimensions & {
   y: number;
 };
 
-export const PACK_OPENING_ART_SOURCE = {
+const PACK_OPENING_ART_SOURCE = {
   basic: basicPackArt,
   epic: epicPackArt,
   legendary: legendaryPackArt,
@@ -34,7 +34,7 @@ export const PACK_OPENING_ART_SOURCE = {
   standard: standardPackArt,
 } satisfies Record<PackArtKind, string | number>;
 
-export const PACK_OPENING_ART_DIMENSIONS = {
+const PACK_OPENING_ART_DIMENSIONS = {
   basic: { height: 1438, width: 861 },
   epic: { height: 1440, width: 863 },
   legendary: { height: 1439, width: 861 },

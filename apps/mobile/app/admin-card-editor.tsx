@@ -76,22 +76,22 @@ export default function AdminCardEditorScreen() {
   const initializedCreateRef = useRef(false);
   const closeEditor = () => router.dismissTo("/admin/cards" as any);
 
-  const cardQuery = useQuery({
+  const { data: cardQueryData, error: cardQueryError, isLoading: cardQueryIsLoading } = useQuery({
     queryKey: ["admin-card", cardId],
     queryFn: () => apiClient.adminCard(cardId!),
     enabled: canLoadCard,
   });
-  const raritiesQuery = useQuery({
+  const { data: raritiesQueryData, error: raritiesQueryError, isLoading: raritiesQueryIsLoading } = useQuery({
     queryKey: ["admin-rarities"],
     queryFn: () => apiClient.rarities(),
     enabled: canAccessAdmin,
   });
-  const abilitiesQuery = useQuery({
+  const { data: abilitiesQueryData, error: abilitiesQueryError, isLoading: abilitiesQueryIsLoading } = useQuery({
     queryKey: ["admin-abilities"],
     queryFn: () => apiClient.adminAbilities(),
     enabled: canAccessAdmin,
   });
-  const selectedRarity = raritiesQuery.data?.rarities.find(
+  const selectedRarity = raritiesQueryData?.rarities.find(
     (rarity) => rarity.id === draft.rarityId,
   );
   const allowsPassiveSlot = selectedRarity?.name === "Legendary";
@@ -102,7 +102,7 @@ export default function AdminCardEditorScreen() {
         return;
       }
 
-      const defaultRarityId = raritiesQuery.data?.rarities[0]?.id;
+      const defaultRarityId = raritiesQueryData?.rarities[0]?.id;
       if (!defaultRarityId) {
         return;
       }
@@ -116,20 +116,20 @@ export default function AdminCardEditorScreen() {
       return;
     }
 
-    if (!cardQuery.data) {
+    if (!cardQueryData) {
       return;
     }
 
-    if (initializedCardIdRef.current === cardQuery.data.id) {
+    if (initializedCardIdRef.current === cardQueryData.id) {
       return;
     }
 
-    initializedCardIdRef.current = cardQuery.data.id;
-    setDraft(toCardDraft(cardQuery.data));
-    const currentAssignment = abilitiesQuery.data?.cardAbilities.find(
-      (entry) => entry.cardId === cardQuery.data?.id,
+    initializedCardIdRef.current = cardQueryData.id;
+    setDraft(toCardDraft(cardQueryData));
+    const currentAssignment = abilitiesQueryData?.cardAbilities.find(
+      (entry) => entry.cardId === cardQueryData?.id,
     );
-    const cardAllowsPassiveSlot = cardQuery.data.rarityName === "Legendary";
+    const cardAllowsPassiveSlot = cardQueryData.rarityName === "Legendary";
     setAssignmentDraft({
       passiveId: cardAllowsPassiveSlot
         ? (currentAssignment?.passiveId ?? "")
@@ -138,10 +138,10 @@ export default function AdminCardEditorScreen() {
       ultimateId: currentAssignment?.ultimateId ?? "",
     });
   }, [
-    abilitiesQuery.data?.cardAbilities,
-    cardQuery.data,
+    abilitiesQueryData?.cardAbilities,
+    cardQueryData,
     isCreateMode,
-    raritiesQuery.data?.rarities,
+    raritiesQueryData?.rarities,
   ]);
 
   const saveMutation = useMutation({
@@ -198,12 +198,12 @@ export default function AdminCardEditorScreen() {
 
   const archiveMutation = useMutation({
     mutationFn: async () => {
-      if (!cardQuery.data) {
+      if (!cardQueryData) {
         throw new Error(t("admin.cardEditor.cardNotLoaded"));
       }
 
-      return apiClient.updateAdminCard(cardQuery.data.id, {
-        isArchived: !cardQuery.data.isArchived,
+      return apiClient.updateAdminCard(cardQueryData.id, {
+        isArchived: !cardQueryData.isArchived,
       });
     },
     onSuccess: async () => {
@@ -259,10 +259,10 @@ export default function AdminCardEditorScreen() {
   });
 
   const loading =
-    (!isCreateMode && cardQuery.isLoading) ||
-    raritiesQuery.isLoading ||
-    abilitiesQuery.isLoading;
-  const error = cardQuery.error || raritiesQuery.error || abilitiesQuery.error;
+    (!isCreateMode && cardQueryIsLoading) ||
+    raritiesQueryIsLoading ||
+    abilitiesQueryIsLoading;
+  const error = cardQueryError || raritiesQueryError || abilitiesQueryError;
 
   if (!sessionHydrated) {
     return null;
@@ -306,7 +306,7 @@ export default function AdminCardEditorScreen() {
                   {getErrorMessage(error, t("admin.cardEditor.loadFailed"))}
                 </Text>
               </View>
-            ) : !isCreateMode && !cardQuery.data ? (
+            ) : !isCreateMode && !cardQueryData ? (
               <View className="flex-1 items-center justify-center px-6">
                 <Text className="font-nunito-bold text-[15px] text-dangerText text-center">
                   {t("admin.cardEditor.notFound")}
@@ -326,10 +326,10 @@ export default function AdminCardEditorScreen() {
                   showsVerticalScrollIndicator={false}
                 >
                   <CardEditorSheet
-                    card={cardQuery.data ?? null}
+                    card={cardQueryData ?? null}
                     draft={draft}
-                    rarities={raritiesQuery.data?.rarities ?? []}
-                    abilities={abilitiesQuery.data?.abilities ?? []}
+                    rarities={raritiesQueryData?.rarities ?? []}
+                    abilities={abilitiesQueryData?.abilities ?? []}
                     assignmentDraft={assignmentDraft}
                     uploadPending={uploadMutation.isPending}
                     onUploadImage={() => uploadMutation.mutate()}
@@ -338,7 +338,7 @@ export default function AdminCardEditorScreen() {
                       if (
                         key === "rarityId" &&
                         !rarityAllowsPassiveSlot(
-                          raritiesQuery.data?.rarities ?? [],
+                          raritiesQueryData?.rarities ?? [],
                           value,
                         )
                       ) {
@@ -381,12 +381,12 @@ export default function AdminCardEditorScreen() {
                       borderRadius={footerButtonRadius}
                       style={isCreateMode ? { width: "100%" } : { flex: 1 }}
                     />
-                    {!isCreateMode && cardQuery.data ? (
+                    {!isCreateMode && cardQueryData ? (
                       <AdminButton
                         label={
                           archiveMutation.isPending
                             ? t("admin.common.saving")
-                            : cardQuery.data.isArchived
+                            : cardQueryData.isArchived
                               ? t("admin.cardEditor.restoreCard")
                               : t("admin.cardEditor.archiveCard")
                         }

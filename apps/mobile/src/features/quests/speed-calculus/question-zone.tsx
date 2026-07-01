@@ -6,6 +6,7 @@ import type { SpeedRunState } from "@adventure-time/api-client";
 import { useTranslation } from "../../../i18n";
 import { useThemeStore } from "../../../stores/theme-store";
 import { THEME_COLORS } from "../../../theme/themes";
+import { useAnimatedValue } from "../../../hooks/use-animated-value";
 
 type Question = NonNullable<SpeedRunState["activeRun"]>["questions"][number];
 
@@ -25,7 +26,7 @@ export function QuestionZone({ pauseRemainingSeconds, currentQuestion, activeRun
 
   // ── Pause countdown ring ──────────────────────────────────────────
   const initialPauseRef = useRef<number | null>(null);
-  const pauseRingAnim = useRef(new Animated.Value(0)).current;
+  const pauseRingAnim = useAnimatedValue(0);
   useEffect(() => {
     if (pauseRemainingSeconds > 0 && initialPauseRef.current === null) {
       initialPauseRef.current = pauseRemainingSeconds;

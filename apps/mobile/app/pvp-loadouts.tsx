@@ -352,11 +352,11 @@ export default function PvpLoadoutsScreen() {
     type: "success" | "error";
   } | null>(null);
 
-  const collectionQuery = useQuery({
+  const { data: collectionQueryData, error: collectionQueryError, isError: collectionQueryIsError, isLoading: collectionQueryIsLoading, refetch: collectionQueryRefetch } = useQuery({
     queryKey: ["collection"],
     queryFn: () => apiClient.collection(),
   });
-  const loadoutsQuery = useQuery({
+  const { data: loadoutsQueryData, error: loadoutsQueryError, isError: loadoutsQueryIsError, isLoading: loadoutsQueryIsLoading, refetch: loadoutsQueryRefetch } = useQuery({
     queryKey: ["pvp-loadouts"],
     queryFn: () => apiClient.pvpLoadouts(),
   });
@@ -369,9 +369,14 @@ export default function PvpLoadoutsScreen() {
     return () => clearTimeout(timer);
   }, [toast]);
 
-  const ownedCards =
-    collectionQuery.data?.cards.filter((entry) => entry.quantity > 0) ?? [];
-  const loadouts = loadoutsQuery.data?.loadouts ?? [];
+  const ownedCards = useMemo(
+    () => collectionQueryData?.cards.filter((entry) => entry.quantity > 0) ?? [],
+    [collectionQueryData?.cards],
+  );
+  const loadouts = useMemo(
+    () => loadoutsQueryData?.loadouts ?? [],
+    [loadoutsQueryData?.loadouts],
+  );
 
   const cardMap = useMemo(() => {
     return new Map(ownedCards.map((entry) => [entry.cardId, entry.card]));
@@ -565,7 +570,7 @@ export default function PvpLoadoutsScreen() {
   const remainingSlots = Math.max(0, 6 - selectedCards.length);
   const footerBottomPadding = Math.max(insets.bottom + 8, 20);
 
-  if (collectionQuery.isLoading || loadoutsQuery.isLoading) {
+  if (collectionQueryIsLoading || loadoutsQueryIsLoading) {
     return (
       <PageLoadingState
         title={t("pvp.yourLoadouts")}
@@ -575,13 +580,13 @@ export default function PvpLoadoutsScreen() {
     );
   }
 
-  if (collectionQuery.isError || loadoutsQuery.isError) {
+  if (collectionQueryIsError || loadoutsQueryIsError) {
     return (
       <PageErrorState
-        error={collectionQuery.error ?? loadoutsQuery.error}
+        error={collectionQueryError ?? loadoutsQueryError}
         onRetry={() => {
-          void collectionQuery.refetch();
-          void loadoutsQuery.refetch();
+          void collectionQueryRefetch();
+          void loadoutsQueryRefetch();
         }}
       />
     );

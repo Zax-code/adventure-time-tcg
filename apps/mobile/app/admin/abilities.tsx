@@ -98,19 +98,19 @@ export default function AdminAbilitiesScreen() {
     skillId: "",
     ultimateId: "",
   });
-  const abilitiesQuery = useQuery({
+  const { data: abilitiesQueryData, error: abilitiesQueryError, isLoading: abilitiesQueryIsLoading } = useQuery({
     queryKey: ["admin-abilities"],
     queryFn: () => apiClient.adminAbilities(),
   });
-  const isAbilitiesLoading = abilitiesQuery.isLoading;
+  const isAbilitiesLoading = abilitiesQueryIsLoading;
   const abilitiesError = formatAbilitiesError(
-    abilitiesQuery.error,
+    abilitiesQueryError,
     t("admin.abilities.invalidApiData", { details: "{details}" }),
   );
-  const abilities = abilitiesQuery.data?.abilities ?? EMPTY_ABILITIES;
-  const cards = abilitiesQuery.data?.cards ?? EMPTY_ABILITY_CARDS;
+  const abilities = abilitiesQueryData?.abilities ?? EMPTY_ABILITIES;
+  const cards = abilitiesQueryData?.cards ?? EMPTY_ABILITY_CARDS;
   const cardAbilities =
-    abilitiesQuery.data?.cardAbilities ?? EMPTY_CARD_ABILITIES;
+    abilitiesQueryData?.cardAbilities ?? EMPTY_CARD_ABILITIES;
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => apiClient.deleteAdminAbility(id),

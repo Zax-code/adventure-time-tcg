@@ -64,7 +64,7 @@ export function BottomTabBar({
   const { t } = useTranslation();
   const themeName = useThemeStore((state) => state.themeName);
   const tc = THEME_COLORS[themeName];
-  const giftsQuery = useQuery({
+  const { data: giftsQueryData } = useQuery({
     queryKey: ["gifts"],
     queryFn: () => apiClient.gifts(),
     staleTime: 30_000,
@@ -84,8 +84,8 @@ export function BottomTabBar({
     const label = t(config.labelKey);
 
     const badge =
-      name === "gifts" && (giftsQuery.data?.pendingCount ?? 0) > 0
-        ? (giftsQuery.data?.pendingCount ?? 0)
+      name === "gifts" && (giftsQueryData?.pendingCount ?? 0) > 0
+        ? (giftsQueryData?.pendingCount ?? 0)
         : undefined;
 
     return { route, routeIndex, focused, color, label, badge };

@@ -6,7 +6,6 @@ import { Platform } from "react-native";
 import {
   ApiClient,
   ApiClientError,
-  ApiNetworkError,
   isNetworkError,
   type AuthUser,
 } from "@adventure-time/api-client";
@@ -107,9 +106,9 @@ export async function getStoredUser() {
 
 export async function clearAppSession() {
   const currentUser = await getStoredUser();
-  await unregisterNotificationDeviceBeforeSessionClear();
-  await clearScheduledNotificationPreferencesForSession();
   await Promise.all([
+    unregisterNotificationDeviceBeforeSessionClear(),
+    clearScheduledNotificationPreferencesForSession(),
     currentUser?.id
       ? clearLocalStepSnapshotForUser(currentUser.id)
       : Promise.resolve(),
@@ -189,8 +188,10 @@ async function refreshAccessToken() {
   }
 
   refreshPromise = (async () => {
-    const refreshToken = await getRefreshToken();
-    const currentUser = await getStoredUser();
+    const [refreshToken, currentUser] = await Promise.all([
+      getRefreshToken(),
+      getStoredUser(),
+    ]);
 
     if (!refreshToken || !currentUser) {
       return null;
@@ -237,4 +238,4 @@ export const apiClient = new ApiClient({
 });
 
 export { ApiClientError };
-export { ApiNetworkError, isNetworkError };
+export { isNetworkError };

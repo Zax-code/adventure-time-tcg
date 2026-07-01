@@ -6,11 +6,12 @@ import { LinearGradient } from "expo-linear-gradient";
 import type { IoniconName } from "../lib/ionicons";
 import { useThemeStore } from "../stores/theme-store";
 import { THEME_COLORS } from "../theme/themes";
+import { useAnimatedValue } from "../hooks/use-animated-value";
 
 type LoadingVariant = "page" | "section";
 
 function LoadingDots({ color }: { color: string }) {
-  const anim = useRef(new Animated.Value(0)).current;
+  const anim = useAnimatedValue(0);
 
   useEffect(() => {
     const loop = Animated.loop(

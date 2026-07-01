@@ -68,7 +68,7 @@ async function main() {
   process.env.EAS_BUILD_DISABLE_EXPO_DOCTOR_STEP ??= "1";
   process.env.EXPO_PUBLIC_E2E_EMAIL ??=
     process.env.MOBILE_TEST_EMAIL ?? "mobile-test@leaetzak.love";
-  process.env.EXPO_PUBLIC_E2E_PASSWORD ??= process.env.MOBILE_TEST_PASSWORD ?? "";
+  process.env.EXPO_PUBLIC_E2E_PASSCODE ??= process.env.MOBILE_TEST_PASSWORD ?? "";
 
   const options = parseCliOptions();
   await mkdir(path.dirname(options.outputPath), { recursive: true });

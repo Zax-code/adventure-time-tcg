@@ -254,10 +254,14 @@ export function prepareBattleAction(
     }
 
     const source = payload.copyAbilitySource ?? "either";
-    const allySources = me.units
-      .filter((unit) => unit.hp > 0 && unit.instanceId !== actorInstanceId)
-      .map((unit) => unit.instanceId);
-    const enemySources = opponent.units.filter((unit) => unit.hp > 0).map((unit) => unit.instanceId);
+    const allySources = me.units.flatMap((unit) =>
+      unit.hp > 0 && unit.instanceId !== actorInstanceId
+        ? [unit.instanceId]
+        : [],
+    );
+    const enemySources = opponent.units.flatMap((unit) =>
+      unit.hp > 0 ? [unit.instanceId] : [],
+    );
 
     return {
       actionKind: "copy",
@@ -327,13 +331,19 @@ export function prepareCopyFollowUp(
 
   let validTargetIds: string[] = [];
   if (copiedPayload.revivePct !== undefined) {
-    validTargetIds = [...me.units, ...me.bench].filter((unit) => unit.hp <= 0).map((unit) => unit.instanceId);
+    validTargetIds = [...me.units, ...me.bench].flatMap((unit) =>
+      unit.hp <= 0 ? [unit.instanceId] : [],
+    );
   } else if (targetMode === "enemy") {
     validTargetIds = getValidTargets(targetingState, actorInstanceId, "skill", copiedAbilityKey);
   } else if (targetMode === "ally") {
-    validTargetIds = [...me.units, ...me.bench].filter((unit) => unit.hp > 0).map((unit) => unit.instanceId);
+    validTargetIds = [...me.units, ...me.bench].flatMap((unit) =>
+      unit.hp > 0 ? [unit.instanceId] : [],
+    );
   } else if (targetMode === "any") {
-    const allyTargets = [...me.units, ...me.bench].filter((unit) => unit.hp > 0).map((unit) => unit.instanceId);
+    const allyTargets = [...me.units, ...me.bench].flatMap((unit) =>
+      unit.hp > 0 ? [unit.instanceId] : [],
+    );
     const enemyTargets = getValidTargets(targetingState, actorInstanceId, "skill", copiedAbilityKey);
     validTargetIds = [...allyTargets, ...enemyTargets];
   }

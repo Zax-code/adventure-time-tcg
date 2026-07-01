@@ -48,6 +48,7 @@ import {
   useBottomTabBarContentPadding,
 } from "../../src/theme/layout";
 import { THEME_COLORS } from "../../src/theme/themes";
+import { useAnimatedValue } from "../../src/hooks/use-animated-value";
 
 type CollectionEntry = CollectionResponse["cards"][number];
 type OwnershipFilter = "all" | "owned" | "not-owned";
@@ -152,7 +153,7 @@ export default function CollectionScreen() {
     message: string;
     type: "success" | "error";
   } | null>(null);
-  const toastAnim = useRef(new Animated.Value(-60)).current;
+  const toastAnim = useAnimatedValue(-60);
 
   const openDustSheet = () => {
     setShowDustModal(true);
@@ -183,13 +184,13 @@ export default function CollectionScreen() {
     clearCollectionFeedback();
   }, [clearCollectionFeedback, collectionFeedbackMessage]);
 
-  const collectionQuery = useQuery({
+  const { data: collectionQueryData, error: collectionQueryError, isError: collectionQueryIsError, isLoading: collectionQueryIsLoading, refetch: collectionQueryRefetch } = useQuery({
     queryKey: ["collection"],
     queryFn: () => apiClient.collection(),
   });
 
   // Derived data — computed before early returns to satisfy Rules of Hooks
-  const rawCards = collectionQuery.data?.cards;
+  const rawCards = collectionQueryData?.cards;
   const ownedCards = useMemo(
     () => (rawCards ?? []).filter((entry) => entry.quantity > 0),
     [rawCards],
@@ -382,7 +383,7 @@ export default function CollectionScreen() {
     [accessToken, router],
   );
 
-  if (collectionQuery.isLoading) {
+  if (collectionQueryIsLoading) {
     return (
       <PageLoadingState
         title={t("nav.collection")}
@@ -392,18 +393,18 @@ export default function CollectionScreen() {
     );
   }
 
-  if (collectionQuery.isError) {
+  if (collectionQueryIsError) {
     return (
       <PageErrorState
-        error={collectionQuery.error}
+        error={collectionQueryError}
         onRetry={() => {
-          void collectionQuery.refetch();
+          void collectionQueryRefetch();
         }}
       />
     );
   }
 
-  const collection = collectionQuery.data;
+  const collection = collectionQueryData;
   if (!collection) {
     return (
       <View className="flex-1 bg-bg p-6">
@@ -457,10 +458,7 @@ export default function CollectionScreen() {
             flexDirection: "row",
             alignItems: "center",
             gap: 6,
-            shadowColor: "#000",
-            shadowOpacity: 0.1,
-            shadowRadius: 6,
-            elevation: 2,
+            boxShadow: "0px 0px 6px rgba(0, 0, 0, 0.1)",
           }}
         >
           <DustIcon size={16} color={tc.secondaryText} />
@@ -493,10 +491,7 @@ export default function CollectionScreen() {
             borderRadius: 999,
             paddingHorizontal: 20,
             paddingVertical: 8,
-            shadowColor: "#000",
-            shadowOpacity: 0.1,
-            shadowRadius: 6,
-            elevation: 2,
+            boxShadow: "0px 0px 6px rgba(0, 0, 0, 0.1)",
           }}
         >
           <BarChartIcon size={20} color={tc.primaryText} />
@@ -653,10 +648,7 @@ export default function CollectionScreen() {
               paddingVertical: 6,
               ...(filterRarity === "all"
                 ? {
-                    shadowColor: "#000",
-                    shadowOpacity: 0.15,
-                    shadowRadius: 4,
-                    elevation: 2,
+                    boxShadow: "0px 0px 4px rgba(0, 0, 0, 0.15)",
                   }
                 : {}),
             }}
@@ -683,10 +675,7 @@ export default function CollectionScreen() {
                 paddingVertical: 6,
                 ...(filterRarity === name
                   ? {
-                      shadowColor: "#000",
-                      shadowOpacity: 0.15,
-                      shadowRadius: 4,
-                      elevation: 2,
+                      boxShadow: "0px 0px 4px rgba(0, 0, 0, 0.15)",
                     }
                   : {}),
               }}
@@ -1085,7 +1074,7 @@ export default function CollectionScreen() {
                     <View style={dustModalStyles.craftRulePill}>
                       <Text
                         style={{
-                          fontSize: 11,
+                          fontSize: 12,
                           fontFamily: "Nunito_700Bold",
                           color: tc.secondaryText,
                           textAlign: "right",

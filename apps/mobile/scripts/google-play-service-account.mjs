@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
-export const DEFAULT_GOOGLE_PLAY_SERVICE_ACCOUNT_PATH = path.resolve(
+const DEFAULT_GOOGLE_PLAY_SERVICE_ACCOUNT_PATH = path.resolve(
   import.meta.dirname,
   "../credentials/android/google-play-service-account.json",
 );

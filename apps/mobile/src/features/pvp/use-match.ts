@@ -38,6 +38,11 @@ const EMPTY_VISUAL_EVENTS: PvpVisualEvents = {
 };
 const VISUAL_EVENTS_CLEAR_BUFFER_MS = 1400;
 
+type VisualEventsState = {
+  matchId: string;
+  events: PvpVisualEvents;
+};
+
 function hasVisualEvents(events: PvpVisualEvents) {
   return (
     events.floatingEvents.length > 0 || events.unitAnimationEvents.length > 0
@@ -91,11 +96,8 @@ export function useMatch(matchId: string) {
   const hasSyncedLogRef = useRef(false);
   const syncedMatchIdRef = useRef<string | null>(null);
   const refreshedTerminalMatchRef = useRef<string | null>(null);
-  const clearVisualEventsTimerRef = useRef<ReturnType<
-    typeof setTimeout
-  > | null>(null);
-  const [visualEvents, setVisualEvents] =
-    useState<PvpVisualEvents>(EMPTY_VISUAL_EVENTS);
+  const [visualEventsState, setVisualEventsState] =
+    useState<VisualEventsState | null>(null);
   const matchQueryKey = ["pvp-match", matchId] as const;
 
   const refreshPvpLobbyQueries = useCallback(() => {
@@ -127,6 +129,10 @@ export function useMatch(matchId: string) {
   const matchView: MyMatchView | null = battleState
     ? deriveMyMatchView(battleState, myUserId)
     : null;
+  const visualEvents =
+    battleState && visualEventsState?.matchId === matchId
+      ? visualEventsState.events
+      : EMPTY_VISUAL_EVENTS;
 
   useEffect(() => {
     const match = data?.match;
@@ -146,24 +152,13 @@ export function useMatch(matchId: string) {
   }, [data?.match, refreshPvpLobbyQueries]);
 
   useEffect(() => {
-    const clearVisualEventsTimer = () => {
-      if (clearVisualEventsTimerRef.current) {
-        clearTimeout(clearVisualEventsTimerRef.current);
-        clearVisualEventsTimerRef.current = null;
-      }
-    };
-
     if (syncedMatchIdRef.current !== matchId) {
-      clearVisualEventsTimer();
       syncedMatchIdRef.current = matchId;
       logLengthRef.current = 0;
       hasSyncedLogRef.current = false;
-      setVisualEvents(EMPTY_VISUAL_EVENTS);
     }
 
     if (!battleState) {
-      clearVisualEventsTimer();
-      setVisualEvents(EMPTY_VISUAL_EVENTS);
       return;
     }
 
@@ -181,26 +176,29 @@ export function useMatch(matchId: string) {
 
     const nextVisualEvents = buildLatestTurnPvpVisualEvents(logSlice);
     if (hasVisualEvents(nextVisualEvents)) {
-      clearVisualEventsTimer();
-      setVisualEvents(nextVisualEvents);
-      clearVisualEventsTimerRef.current = setTimeout(
-        () => {
-          clearVisualEventsTimerRef.current = null;
-          setVisualEvents(EMPTY_VISUAL_EVENTS);
-        },
-        getMaxVisualDelayMs(nextVisualEvents) + VISUAL_EVENTS_CLEAR_BUFFER_MS,
-      );
+      setVisualEventsState({ matchId, events: nextVisualEvents });
     }
   }, [battleState, matchId]);
 
-  useEffect(
-    () => () => {
-      if (clearVisualEventsTimerRef.current) {
-        clearTimeout(clearVisualEventsTimerRef.current);
-      }
-    },
-    [],
-  );
+  useEffect(() => {
+    if (!visualEventsState || !hasVisualEvents(visualEventsState.events)) {
+      return;
+    }
+
+    const timeoutId = setTimeout(
+      () => {
+        setVisualEventsState((current) =>
+          current === visualEventsState
+            ? { ...visualEventsState, events: EMPTY_VISUAL_EVENTS }
+            : current,
+        );
+      },
+      getMaxVisualDelayMs(visualEventsState.events) +
+        VISUAL_EVENTS_CLEAR_BUFFER_MS,
+    );
+
+    return () => clearTimeout(timeoutId);
+  }, [visualEventsState]);
 
   const actionMutation = useMutation({
     mutationFn: (action: PvpAction) => apiClient.actPvpMatch(matchId, action),

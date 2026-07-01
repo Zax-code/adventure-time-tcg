@@ -14,13 +14,13 @@ export default function PvpCardDetailsScreen() {
   const { t } = useTranslation();
   const params = useLocalSearchParams<{ cardId?: string }>();
 
-  const collectionQuery = useQuery({
+  const { data: collectionQueryData, error: collectionQueryError, isError: collectionQueryIsError, isLoading: collectionQueryIsLoading, refetch: collectionQueryRefetch } = useQuery({
     queryKey: ["collection"],
     queryFn: () => apiClient.collection(),
   });
 
   const card =
-    collectionQuery.data?.cards.find((entry) => entry.cardId === params.cardId)
+    collectionQueryData?.cards.find((entry) => entry.cardId === params.cardId)
       ?.card ?? null;
 
   return (
@@ -32,7 +32,7 @@ export default function PvpCardDetailsScreen() {
       testID="pvp-card-details-modal"
     >
       <View className="flex-1 bg-bg">
-        {collectionQuery.isLoading ? (
+        {collectionQueryIsLoading ? (
           <View className="flex-1 items-center justify-center px-6">
             <LoadingPanel
               title={t("pvp.cardDetailsTitle")}
@@ -40,12 +40,12 @@ export default function PvpCardDetailsScreen() {
               icon="sparkles"
             />
           </View>
-        ) : collectionQuery.isError ? (
+        ) : collectionQueryIsError ? (
           <PageErrorState
-            error={collectionQuery.error}
+            error={collectionQueryError}
             title={t("messages.somethingWentWrong")}
             onRetry={() => {
-              void collectionQuery.refetch();
+              void collectionQueryRefetch();
             }}
             onBack={() => router.back()}
           />

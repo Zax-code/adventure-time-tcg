@@ -6,6 +6,7 @@ import { useTranslation } from "../../../i18n";
 import { useThemeStore } from "../../../stores/theme-store";
 import { THEME_COLORS } from "../../../theme/themes";
 import { withAlpha } from "./palette";
+import { useAnimatedValue } from "../../../hooks/use-animated-value";
 
 type RoundOverOverlayProps = {
   showRoundOver: boolean;
@@ -26,7 +27,7 @@ export function RoundOverOverlay({
   const tc = THEME_COLORS[useThemeStore((s) => s.themeName)];
 
   // ── Round-over entrance animation ─────────────────────────────────
-  const roundOverAnim = useRef(new Animated.Value(0)).current;
+  const roundOverAnim = useAnimatedValue(0);
   useEffect(() => {
     if (showRoundOver) {
       roundOverAnim.setValue(0);
@@ -54,11 +55,7 @@ export function RoundOverOverlay({
         style={{
           transform: [{ scale: roundOverScale }],
           opacity: roundOverAnim,
-          shadowColor: tc.primaryStrong,
-          shadowOffset: { width: 0, height: 16 },
-          shadowOpacity: 0.45,
-          shadowRadius: 40,
-          elevation: 20,
+          boxShadow: `0px 16px 40px ${tc.primaryStrong}`,
         }}
       >
         <LinearGradient

@@ -148,7 +148,7 @@ export async function ensureAppNotificationPermission(interactive: boolean) {
   return nextStatus === "granted";
 }
 
-export function shouldRegisterForPushNotifications(
+function shouldRegisterForPushNotifications(
   user: Pick<AuthUser, "preferredStepSource" | "notificationPreferences">,
 ) {
   const prefs = user.notificationPreferences;
