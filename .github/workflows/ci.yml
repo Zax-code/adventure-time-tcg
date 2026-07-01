@@ -15,10 +15,95 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  changes:
+    name: Detect Changed Areas
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      mobile_and_shared: ${{ steps.filter.outputs.mobile_and_shared }}
+      phoenix_api: ${{ steps.filter.outputs.phoenix_api }}
+      phoenix_container: ${{ steps.filter.outputs.phoenix_container }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed areas
+        id: filter
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            {
+              echo "mobile_and_shared=true"
+              echo "phoenix_api=true"
+              echo "phoenix_container=true"
+            } >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base_ref="origin/${{ github.base_ref }}"
+            git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
+            changed_files="$(git diff --name-only "$base_ref"...HEAD)"
+          else
+            before_sha="${{ github.event.before }}"
+            if [[ "$before_sha" =~ ^0+$ ]]; then
+              changed_files="$(git ls-tree -r --name-only HEAD)"
+            else
+              changed_files="$(git diff --name-only "$before_sha" "${{ github.sha }}")"
+            fi
+          fi
+
+          matches_any() {
+            local pattern
+            for pattern in "$@"; do
+              if grep -Eq "$pattern" <<<"$changed_files"; then
+                return 0
+              fi
+            done
+            return 1
+          }
+
+          mobile_and_shared=false
+          phoenix_api=false
+          phoenix_container=false
+
+          if matches_any \
+            '^\.github/workflows/ci\.yml$' \
+            '^\.npmrc$' \
+            '^\.nvmrc$' \
+            '^app\.json$' \
+            '^package(-lock)?\.json$' \
+            '^patches/' \
+            '^tsconfig[^/]*\.json$' \
+            '^apps/mobile/' \
+            '^packages/'; then
+            mobile_and_shared=true
+          fi
+
+          if matches_any \
+            '^\.github/workflows/ci\.yml$' \
+            '^apps/phoenix/'; then
+            phoenix_api=true
+            phoenix_container=true
+          fi
+
+          {
+            echo "mobile_and_shared=$mobile_and_shared"
+            echo "phoenix_api=$phoenix_api"
+            echo "phoenix_container=$phoenix_container"
+          } >> "$GITHUB_OUTPUT"
+
   mobile-and-shared:
     name: Mobile and Shared Validation
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    needs: changes
+    if: ${{ needs.changes.outputs.mobile_and_shared == 'true' }}
 
     steps:
       - name: Check out repository
@@ -43,6 +128,8 @@ jobs:
     name: Phoenix API Validation
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    needs: changes
+    if: ${{ needs.changes.outputs.phoenix_api == 'true' }}
 
     services:
       postgres:
@@ -75,7 +162,7 @@ jobs:
         uses: erlef/setup-beam@v1
         with:
           elixir-version: "1.19.5"
-          otp-version: "28.0"
+          otp-version: "28.1"
 
       - name: Install Hex and Rebar
         run: |
@@ -110,6 +197,8 @@ jobs:
     name: Phoenix Container Build
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    needs: changes
+    if: ${{ needs.changes.outputs.phoenix_container == 'true' && github.event_name != 'push' }}
 
     steps:
       - name: Check out repository
