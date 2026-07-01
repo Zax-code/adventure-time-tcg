@@ -36,82 +36,80 @@ defmodule AdventureTimeApiWeb.HealthController do
   end
 
   defp status_html do
-    checked_at = SiteLayout.escape(now_utc())
-
     body = """
     <div data-status-page>
       <section class="status-hero">
         <div class="status-banner" data-status-banner data-state="checking">
           <span class="status-orb" aria-hidden="true"></span>
           <div class="status-banner-copy">
-            <p class="eyebrow">Game status</p>
-            <h1 data-banner-title>Checking Adventure Time TCG</h1>
-            <p data-banner-text>We are checking sign-in, collections, quests, and battles now.</p>
+            <p class="eyebrow" data-i18n="status.eyebrow">Game status</p>
+            <h1 data-banner-title data-i18n="status.banner.checking.title">Checking Adventure Time TCG</h1>
+            <p data-banner-text data-i18n="status.banner.checking.body">We are checking sign-in, collections, quests, and battles now.</p>
           </div>
           <div class="status-refresh">
-            <span>Updates automatically</span>
-            <span>Checked <b data-updated-at>#{checked_at}</b> UTC</span>
+            <span data-i18n="status.updates">Updates automatically</span>
+            <span><span data-i18n="status.checked">Checked</span> <b data-updated-at>...</b></span>
           </div>
         </div>
       </section>
 
-      <section class="section" aria-label="Game areas">
+      <section class="section" aria-label="Game areas" data-i18n-attr="aria-label:status.areasAria">
         <div class="section-head">
           <div>
-            <p class="kicker">Can I play?</p>
-            <h2>What this status covers</h2>
+            <p class="kicker" data-i18n="status.coverage.kicker">Can I play?</p>
+            <h2 data-i18n="status.coverage.title">What this status covers</h2>
           </div>
-          <p>A quick check of the parts players rely on most.</p>
+          <p data-i18n="status.coverage.body">A quick check of the parts players rely on most.</p>
         </div>
 
         <div class="status-components">
           <div class="status-row" data-component="edge">
             <div class="status-row-main">
-              <b>Open the app</b>
-              <span>The app can reach Adventure Time TCG.</span>
+              <b data-i18n="status.edge.title">Open the app</b>
+              <span data-i18n="status.edge.body">The app can reach Adventure Time TCG.</span>
             </div>
             <span class="status-badge" data-badge data-state="checking">
               <span class="dot"></span>
-              <span data-badge-label>Checking</span>
+              <span data-badge-label data-i18n="status.state.checking">Checking</span>
             </span>
           </div>
 
           <div class="status-row" data-component="api">
             <div class="status-row-main">
-              <b>Sign in and play</b>
-              <span>Accounts, packs, quests, gifts, and battles can respond.</span>
+              <b data-i18n="status.api.title">Sign in and play</b>
+              <span data-i18n="status.api.body">Accounts, packs, quests, gifts, and battles can respond.</span>
             </div>
             <span class="status-badge" data-badge data-state="checking">
               <span class="dot"></span>
-              <span data-badge-label>Checking</span>
+              <span data-badge-label data-i18n="status.state.checking">Checking</span>
             </span>
           </div>
 
           <div class="status-row" data-component="database">
             <div class="status-row-main">
-              <b>Saved progress</b>
-              <span data-hint>Checking collections, quests, gifts, and battle history.</span>
+              <b data-i18n="status.database.title">Saved progress</b>
+              <span data-hint data-i18n="status.database.checking">Checking collections, quests, gifts, and battle history.</span>
             </div>
             <span class="status-badge" data-badge data-state="checking">
               <span class="dot"></span>
-              <span data-badge-label>Checking</span>
+              <span data-badge-label data-i18n="status.state.checking">Checking</span>
             </span>
           </div>
         </div>
       </section>
 
-      <section class="section" aria-label="Player help">
+      <section class="section" aria-label="Player help" data-i18n-attr="aria-label:status.helpAria">
         <div class="card">
-          <span class="kicker kicker-primary">Still stuck?</span>
-          <h2>If the game still feels off</h2>
-          <p>
+          <span class="kicker kicker-primary" data-i18n="status.help.kicker">Still stuck?</span>
+          <h2 data-i18n="status.help.title">If the game still feels off</h2>
+          <p data-i18n="status.help.body">
             Try closing and reopening the app, checking your connection, or coming back in a
             few minutes. If the problem keeps happening, contact support and include what you
             were trying to do.
           </p>
           <div class="actions">
-            <a class="btn btn-primary" href="mailto:support@leaetzak.love">Contact support</a>
-            <a class="btn btn-ghost" href="/">Back to app overview</a>
+            <a class="btn btn-primary" href="mailto:support@leaetzak.love" data-i18n="status.help.support">Contact support</a>
+            <a class="btn btn-ghost" href="/" data-i18n="status.help.back">Back to app overview</a>
           </div>
         </div>
       </section>
@@ -125,11 +123,5 @@ defmodule AdventureTimeApiWeb.HealthController do
       active: :status,
       body: body
     )
-  end
-
-  defp now_utc do
-    DateTime.utc_now()
-    |> DateTime.truncate(:second)
-    |> Calendar.strftime("%Y-%m-%d %H:%M:%S")
   end
 end

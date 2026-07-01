@@ -24,29 +24,32 @@ defmodule AdventureTimeApiWeb.LandingController do
 
   defp landing_html do
     logo_path = ~p"/images/app-icon.png"
+    quests_screenshot_path = ~p"/images/store-screenshots/quests-hub.png"
+    numbers_screenshot_path = ~p"/images/store-screenshots/daily-numbers.png"
+    collection_screenshot_path = ~p"/images/store-screenshots/collection.png"
 
     body = """
-    <section class="hero" aria-label="App overview">
+    <section class="hero" aria-label="App overview" data-i18n-attr="aria-label:home.heroAria">
       <div class="hero-copy">
-        <h1>Collect, quest, and battle in <span class="grad">Adventure Time TCG</span>.</h1>
-        <p class="lede">
+        <h1 data-i18n-html="home.title">Collect, quest, and battle in <span class="grad">Adventure Time TCG</span>.</h1>
+        <p class="lede" data-i18n="home.lede">
           Build a collection of Adventure Time cards, open packs, complete daily
           challenges, and test your team in friendly head-to-head battles.
         </p>
 
-        <ul class="pill-list" aria-label="What you can do">
-          <li>Open packs and grow a collection of character cards</li>
-          <li>Earn coins, dust, and rewards from daily play</li>
-          <li>Challenge friends and watch matches unfold turn by turn</li>
+        <ul class="pill-list" aria-label="What you can do" data-i18n-attr="aria-label:home.pillListAria">
+          <li data-i18n="home.pill.collect">Open packs and grow a collection of character cards</li>
+          <li data-i18n="home.pill.earn">Earn coins, dust, and rewards from daily play</li>
+          <li data-i18n="home.pill.battle">Challenge friends and watch matches unfold turn by turn</li>
         </ul>
 
         <div class="actions">
-          <a class="btn btn-primary" href="#how-it-plays">See how it plays</a>
-          <a class="btn btn-ghost" href="/privacy">Privacy &amp; account</a>
+          <a class="btn btn-primary" href="#how-it-plays" data-scroll-target="how-it-plays" data-i18n="home.cta.play">See how it plays</a>
+          <a class="btn btn-ghost" href="/privacy" data-i18n="home.cta.privacy">Privacy &amp; account</a>
         </div>
       </div>
 
-      <aside class="hero-panel" aria-label="App snapshot">
+      <aside class="hero-panel" aria-label="App snapshot" data-i18n-attr="aria-label:home.snapshotAria">
         <div class="hero-mark">
           <div class="card-ghost left"></div>
           <div class="card-ghost right"></div>
@@ -54,138 +57,188 @@ defmodule AdventureTimeApiWeb.LandingController do
             <img
               src="#{logo_path}"
               alt="Adventure Time TCG app icon showing a collectible card with Finn"
+              data-i18n-attr="alt:home.iconAlt"
             />
           </div>
         </div>
 
         <div class="tile-stack">
           <div class="tile">
-            <p class="label">Collect</p>
-            <p class="value">Cards &amp; packs</p>
+            <p class="label" data-i18n="home.tile.collect.label">Collect</p>
+            <p class="value" data-i18n="home.tile.collect.value">Cards &amp; packs</p>
           </div>
           <div class="tile">
-            <p class="label">Progress</p>
-            <p class="value">Quests &amp; rewards</p>
+            <p class="label" data-i18n="home.tile.progress.label">Progress</p>
+            <p class="value" data-i18n="home.tile.progress.value">Quests &amp; rewards</p>
           </div>
           <div class="tile">
-            <p class="label">Play</p>
-            <p class="value">Friendly battles</p>
+            <p class="label" data-i18n="home.tile.play.label">Play</p>
+            <p class="value" data-i18n="home.tile.play.value">Friendly battles</p>
           </div>
         </div>
       </aside>
     </section>
 
-    <section class="stat-strip" aria-label="At a glance">
+    <section class="stat-strip" aria-label="At a glance" data-i18n-attr="aria-label:home.statsAria">
       <div class="stat">
         <b>3</b>
-        <span>Ways to play each day</span>
+        <span data-i18n="home.stat.play">Ways to play each day</span>
       </div>
       <div class="stat">
         <b>2</b>
-        <span>Languages: English &amp; French</span>
+        <span data-i18n="home.stat.languages">Languages: English &amp; French</span>
       </div>
       <div class="stat">
         <b>PvP</b>
-        <span>Challenge other players</span>
+        <span data-i18n="home.stat.pvp">Challenge other players</span>
       </div>
       <div class="stat">
         <b>Daily</b>
-        <span>Fresh quests and rewards</span>
+        <span data-i18n="home.stat.daily">Fresh quests and rewards</span>
       </div>
     </section>
 
-    <section class="section" id="how-it-plays" aria-label="How the app plays">
+    <section class="section" id="how-it-plays" aria-label="How the app plays" data-i18n-attr="aria-label:home.howAria">
       <div class="section-head">
         <div>
-          <p class="kicker kicker-primary">How it plays</p>
-          <h2>A card collection with something to do every day</h2>
+          <p class="kicker kicker-primary" data-i18n="home.how.kicker">How it plays</p>
+          <h2 data-i18n="home.how.title">A card collection with something to do every day</h2>
         </div>
-        <p>Open packs, make progress, and bring your favorite cards into battle.</p>
+        <p data-i18n="home.how.body">Open packs, make progress, and bring your favorite cards into battle.</p>
       </div>
 
-      <div class="bento">
-        <article class="card feature-card wide">
-          <span class="card-glyph" aria-hidden="true">#{app_icon(:cards)}</span>
-          <span class="kicker kicker-primary">Collect</span>
-          <h2>Complete your character collection</h2>
-          <p>
-            Browse your cards, chase rarities, recycle extras into dust, and craft the
-            characters you still need.
-          </p>
-        </article>
+      <div class="play-loop">
+        <div class="loop-steps" aria-label="Gameplay loop" data-i18n-attr="aria-label:home.loopAria">
+          <article class="loop-step">
+            <div>
+              <div class="loop-step-title">
+                <span class="card-glyph" aria-hidden="true">#{app_icon(:pack)}</span>
+                <div>
+                  <span class="kicker kicker-primary" data-i18n="home.feature.collect.kicker">Collect</span>
+                  <h3 data-i18n="home.feature.collect.title">Open packs and find new cards</h3>
+                </div>
+              </div>
+              <p data-i18n="home.feature.collect.body">
+                Crack open reward packs, discover characters, and grow your Adventure Time roster.
+              </p>
+            </div>
+          </article>
 
-        <article class="card feature-card wide">
-          <span class="card-glyph g-secondary" aria-hidden="true">#{app_icon(:quest)}</span>
-          <span class="kicker kicker-secondary">Quest</span>
-          <h2>Daily challenges with playful rewards</h2>
-          <p>
-            Check in, solve quick challenges, sync optional step progress, and turn small
-            daily wins into coins, dust, and packs.
-          </p>
-        </article>
+          <article class="loop-step">
+            <div>
+              <div class="loop-step-title">
+                <span class="card-glyph g-secondary" aria-hidden="true">#{app_icon(:quest)}</span>
+                <div>
+                  <span class="kicker kicker-secondary" data-i18n="home.feature.quest.kicker">Quest</span>
+                  <h3 data-i18n="home.feature.quest.title">Complete quick daily challenges</h3>
+                </div>
+              </div>
+              <p data-i18n="home.feature.quest.body">
+                Check in, solve playful quests, sync optional step progress, and earn coins, dust, and packs.
+              </p>
+            </div>
+          </article>
 
-        <article class="card feature-card wide">
-          <span class="card-glyph g-secondary" aria-hidden="true">#{app_icon(:pack)}</span>
-          <span class="kicker kicker-secondary">Packs</span>
-          <h2>Open rewards and discover new cards</h2>
-          <p>
-            Crack open packs from daily play, find new characters, and turn every reward
-            into collection progress.
-          </p>
-        </article>
+          <article class="loop-step">
+            <div>
+              <div class="loop-step-title">
+                <span class="card-glyph g-success" aria-hidden="true">#{app_icon(:cards)}</span>
+                <div>
+                  <span class="kicker kicker-primary" data-i18n="home.feature.packs.kicker">Upgrade</span>
+                  <h3 data-i18n="home.feature.packs.title">Craft the cards your team needs</h3>
+                </div>
+              </div>
+              <p data-i18n="home.feature.packs.body">
+                Recycle extras into dust, chase rarities, and turn rewards into real collection progress.
+              </p>
+            </div>
+          </article>
 
-        <article class="card feature-card wide">
-          <span class="card-glyph g-accent" aria-hidden="true">#{app_icon(:swords)}</span>
-          <span class="kicker">Battle</span>
-          <h2>Build a team and battle your friends</h2>
-          <p>
-            Pick your loadout, make tactical choices, follow the battle log, and keep a
-            history of your favorite wins.
-          </p>
-        </article>
+          <article class="loop-step">
+            <div>
+              <div class="loop-step-title">
+                <span class="card-glyph g-accent" aria-hidden="true">#{app_icon(:swords)}</span>
+                <div>
+                  <span class="kicker" data-i18n="home.feature.battle.kicker">Battle</span>
+                  <h3 data-i18n="home.feature.battle.title">Bring your team into friendly PvP</h3>
+                </div>
+              </div>
+              <p data-i18n="home.feature.battle.body">
+                Pick a loadout, make tactical choices, and follow every turn in the battle log.
+              </p>
+            </div>
+          </article>
+        </div>
+
+        <aside class="screenshot-spread" aria-label="App screenshots" data-i18n-attr="aria-label:home.screenshotsAria">
+          <div class="shot-card shot-back-left">
+            <img
+              src="#{quests_screenshot_path}"
+              alt="Adventure Time TCG daily quests screenshot"
+              loading="lazy"
+              data-i18n-attr="alt:home.screenshot.questsAlt"
+            />
+          </div>
+          <div class="shot-card shot-back-right">
+            <img
+              src="#{numbers_screenshot_path}"
+              alt="Adventure Time TCG daily numbers quest screenshot"
+              loading="lazy"
+              data-i18n-attr="alt:home.screenshot.numbersAlt"
+            />
+          </div>
+          <div class="shot-card shot-front">
+            <img
+              src="#{collection_screenshot_path}"
+              alt="Adventure Time TCG collection screenshot"
+              loading="lazy"
+              data-i18n-attr="alt:home.screenshot.collectionAlt"
+            />
+          </div>
+        </aside>
       </div>
     </section>
 
-    <section class="section" aria-label="Player-friendly features">
+    <section class="section" aria-label="Player-friendly features" data-i18n-attr="aria-label:home.friendlyAria">
       <div class="section-head">
         <div>
-          <p class="kicker">Player friendly</p>
-          <h2>Built for playful, low-pressure sessions</h2>
+          <p class="kicker" data-i18n="home.friendly.kicker">Player friendly</p>
+          <h2 data-i18n="home.friendly.title">Built for playful, low-pressure sessions</h2>
         </div>
       </div>
 
       <div class="card-grid">
         <article class="card">
           <span class="card-glyph g-success" aria-hidden="true">#{app_icon(:check_circle)}</span>
-          <span class="kicker kicker-primary">Easy check-in</span>
-          <h2>Know when the game is available</h2>
-          <p>
+          <span class="kicker kicker-primary" data-i18n="home.card.status.kicker">Easy check-in</span>
+          <h2 data-i18n="home.card.status.title">Know when the game is available</h2>
+          <p data-i18n="home.card.status.body">
             The status page gives players a simple place to check whether sign-in,
             collections, and battles are working normally.
           </p>
-          <a class="text-link" href="/status">Check game status</a>
+          <a class="text-link" href="/status" data-i18n="home.card.status.link">Check game status</a>
         </article>
 
         <article class="card">
           <span class="card-glyph g-accent" aria-hidden="true">#{app_icon(:shield_user)}</span>
-          <span class="kicker">Account care</span>
-          <h2>Your progress belongs to your account</h2>
-          <p>
+          <span class="kicker" data-i18n="home.card.account.kicker">Account care</span>
+          <h2 data-i18n="home.card.account.title">Your progress belongs to your account</h2>
+          <p data-i18n="home.card.account.body">
             Sign in to keep your collection, quest progress, gifts, preferences, and battle
             history with you.
           </p>
-          <a class="text-link" href="/privacy">See privacy details</a>
+          <a class="text-link" href="/privacy" data-i18n="home.card.account.link">See privacy details</a>
         </article>
 
         <article class="card">
           <span class="card-glyph g-danger" aria-hidden="true">#{app_icon(:x_circle)}</span>
-          <span class="kicker">Account deletion</span>
-          <h2>You can delete your account</h2>
-          <p>
+          <span class="kicker" data-i18n="home.card.deletion.kicker">Account deletion</span>
+          <h2 data-i18n="home.card.deletion.title">You can delete your account</h2>
+          <p data-i18n="home.card.deletion.body">
             The account deletion page explains what is removed, what may be retained for
             safety, and how to request deletion.
           </p>
-          <a class="text-link" href="/account-deletion">Delete account details</a>
+          <a class="text-link" href="/account-deletion" data-i18n="home.card.deletion.link">Delete account details</a>
         </article>
       </div>
     </section>
@@ -239,53 +292,54 @@ defmodule AdventureTimeApiWeb.LandingController do
   defp policy_body(title, lede, page, cards_html) do
     escaped_title = SiteLayout.escape(title)
     escaped_lede = SiteLayout.escape(lede)
+    page_key = Atom.to_string(page)
 
     """
-    <section class="hero" aria-label="#{escaped_title}">
+    <section class="hero" aria-label="#{escaped_title}" data-i18n-attr="aria-label:policy.#{page_key}.title">
       <div class="hero-copy">
         <p class="eyebrow">Adventure Time TCG</p>
-        <h1>#{escaped_title}</h1>
-        <p class="lede">#{escaped_lede}</p>
+        <h1 data-i18n="policy.#{page_key}.title">#{escaped_title}</h1>
+        <p class="lede" data-i18n="policy.#{page_key}.lede">#{escaped_lede}</p>
 
-        <ul class="pill-list" aria-label="Policy highlights">
-          <li>Plain-language controls live in the mobile settings screen</li>
-          <li>Gameplay progress stays tied to your signed-in account</li>
-          <li>Optional health data is used only for step quest progress</li>
+        <ul class="pill-list" aria-label="Policy highlights" data-i18n-attr="aria-label:policy.highlightsAria">
+          <li data-i18n="policy.highlight.controls">Plain-language controls live in the mobile settings screen</li>
+          <li data-i18n="policy.highlight.progress">Gameplay progress stays tied to your signed-in account</li>
+          <li data-i18n="policy.highlight.health">Optional health data is used only for step quest progress</li>
         </ul>
 
         <div class="actions">
-          <a class="btn btn-primary" href="#policy-details">Read the details</a>
-          <a class="btn btn-ghost" href="/">App overview</a>
+          <a class="btn btn-primary" href="#policy-details" data-i18n="policy.cta.details">Read the details</a>
+          <a class="btn btn-ghost" href="/" data-i18n="policy.cta.overview">App overview</a>
         </div>
       </div>
 
-      <aside class="hero-panel" aria-label="Data controls">
+      <aside class="hero-panel" aria-label="Data controls" data-i18n-attr="aria-label:policy.controlsAria">
         <div class="tile-stack">
           <div class="tile">
-            <p class="label">Account control</p>
-            <p class="value">Settings screen</p>
+            <p class="label" data-i18n="policy.tile.account.label">Account control</p>
+            <p class="value" data-i18n="policy.tile.account.value">Settings screen</p>
           </div>
           <div class="tile">
-            <p class="label">Privacy policy</p>
-            <p class="value"><a href="/privacy">Open page</a></p>
+            <p class="label" data-i18n="policy.tile.privacy.label">Privacy policy</p>
+            <p class="value"><a href="/privacy" data-i18n="policy.tile.open">Open page</a></p>
           </div>
           <div class="tile">
-            <p class="label">Deletion help</p>
-            <p class="value"><a href="/account-deletion">Open page</a></p>
+            <p class="label" data-i18n="policy.tile.deletion.label">Deletion help</p>
+            <p class="value"><a href="/account-deletion" data-i18n="policy.tile.open">Open page</a></p>
           </div>
           <div class="tile">
-            <p class="label">Support</p>
+            <p class="label" data-i18n="policy.tile.support.label">Support</p>
             <p class="value"><a href="mailto:support@leaetzak.love">support@leaetzak.love</a></p>
           </div>
         </div>
       </aside>
     </section>
 
-    <section class="section" id="policy-details" aria-label="#{escaped_title} details">
+    <section class="section" id="policy-details" aria-label="#{escaped_title} details" data-i18n-attr="aria-label:policy.#{page_key}.detailsAria">
       <div class="section-head">
         <div>
-          <p class="kicker">#{policy_kicker(page)}</p>
-          <h2>#{policy_heading(page)}</h2>
+          <p class="kicker" data-i18n="policy.#{page_key}.kicker">#{policy_kicker(page)}</p>
+          <h2 data-i18n="policy.#{page_key}.heading">#{policy_heading(page)}</h2>
         </div>
       </div>
       <div class="card-grid">
@@ -304,9 +358,9 @@ defmodule AdventureTimeApiWeb.LandingController do
   defp privacy_cards do
     """
         <article class="card feature-card">
-          <span class="kicker kicker-primary">Account</span>
-          <h3>Account and authentication data</h3>
-          <p>
+          <span class="kicker kicker-primary" data-i18n="privacy.account.kicker">Account</span>
+          <h3 data-i18n="privacy.account.title">Account and authentication data</h3>
+          <p data-i18n="privacy.account.body">
             We store your email address, display name, password authentication state,
             preferred language, timezone, profile image, and session tokens so you can
             sign in and keep your account secure.
@@ -314,18 +368,18 @@ defmodule AdventureTimeApiWeb.LandingController do
         </article>
 
         <article class="card feature-card">
-          <span class="kicker kicker-secondary">Gameplay</span>
-          <h3>Game progress data</h3>
-          <p>
+          <span class="kicker kicker-secondary" data-i18n="privacy.gameplay.kicker">Gameplay</span>
+          <h3 data-i18n="privacy.gameplay.title">Game progress data</h3>
+          <p data-i18n="privacy.gameplay.body">
             We store coins, dust, cards, packs, gifts, quests, PvP loadouts, matches,
             battle events, and related timestamps so the game can preserve your progress.
           </p>
         </article>
 
         <article class="card feature-card">
-          <span class="kicker">Activity</span>
-          <h3>Optional step-sync data</h3>
-          <p>
+          <span class="kicker" data-i18n="privacy.activity.kicker">Activity</span>
+          <h3 data-i18n="privacy.activity.title">Optional step-sync data</h3>
+          <p data-i18n="privacy.activity.body">
             If you enable step quests, the app reads step counts from Apple Health,
             Health Connect, the device pedometer, or Fitbit. We store daily step totals,
             source, date, and sync timestamps for quest progress. We do not sell this data.
@@ -333,9 +387,9 @@ defmodule AdventureTimeApiWeb.LandingController do
         </article>
 
         <article class="card feature-card">
-          <span class="kicker kicker-primary">Notifications</span>
-          <h3>Notification data</h3>
-          <p>
+          <span class="kicker kicker-primary" data-i18n="privacy.notifications.kicker">Notifications</span>
+          <h3 data-i18n="privacy.notifications.title">Notification data</h3>
+          <p data-i18n="privacy.notifications.body">
             If you enable notifications, we store installation identifiers and push tokens
             so the app can send requested quest, gift, and PvP alerts. You can disable
             notification preferences in the app or revoke OS permission at any time.
@@ -343,9 +397,9 @@ defmodule AdventureTimeApiWeb.LandingController do
         </article>
 
         <article class="card feature-card">
-          <span class="kicker kicker-secondary">Sharing</span>
-          <h3>Sharing and third parties</h3>
-          <p>
+          <span class="kicker kicker-secondary" data-i18n="privacy.sharing.kicker">Sharing</span>
+          <h3 data-i18n="privacy.sharing.title">Sharing and third parties</h3>
+          <p data-i18n="privacy.sharing.body">
             Data is sent securely when you use the app. Third-party services are used only
             as needed for platform login, push notifications, app store distribution, and
             optional Fitbit connection.
@@ -353,14 +407,14 @@ defmodule AdventureTimeApiWeb.LandingController do
         </article>
 
         <article class="card feature-card">
-          <span class="kicker">Control</span>
-          <h3>Access and deletion</h3>
-          <p>
+          <span class="kicker" data-i18n="privacy.control.kicker">Control</span>
+          <h3 data-i18n="privacy.control.title">Access and deletion</h3>
+          <p data-i18n="privacy.control.body">
             You can delete your account in the mobile settings screen. Deletion removes
             your account, credentials, collection, gifts, quest progress, PvP data, step
             snapshots, notification devices, and profile image from Adventure Time TCG.
           </p>
-          <a class="text-link" href="/account-deletion">Open deletion instructions</a>
+          <a class="text-link" href="/account-deletion" data-i18n="privacy.control.link">Open deletion instructions</a>
         </article>
     """
   end
@@ -368,18 +422,18 @@ defmodule AdventureTimeApiWeb.LandingController do
   defp account_deletion_cards do
     """
         <article class="card feature-card">
-          <span class="kicker kicker-primary">In app</span>
-          <h3>Delete from settings</h3>
-          <p>
+          <span class="kicker kicker-primary" data-i18n="deletion.inApp.kicker">In app</span>
+          <h3 data-i18n="deletion.inApp.title">Delete from settings</h3>
+          <p data-i18n="deletion.inApp.body">
             Sign in, open Settings, scroll to Privacy and data, then choose Delete my
             account. Confirm the prompt to permanently remove your account and gameplay data.
           </p>
         </article>
 
         <article class="card feature-card">
-          <span class="kicker kicker-secondary">Deleted data</span>
-          <h3>What is removed</h3>
-          <p>
+          <span class="kicker kicker-secondary" data-i18n="deletion.removed.kicker">Deleted data</span>
+          <h3 data-i18n="deletion.removed.title">What is removed</h3>
+          <p data-i18n="deletion.removed.body">
             Account deletion removes login credentials, sessions, collection data, gifts,
             quest progress, PvP data, step snapshots, notification devices, access requests,
             verification codes, and your profile image.
@@ -387,9 +441,9 @@ defmodule AdventureTimeApiWeb.LandingController do
         </article>
 
         <article class="card feature-card">
-          <span class="kicker">Help</span>
-          <h3>Need assistance?</h3>
-          <p>
+          <span class="kicker" data-i18n="deletion.help.kicker">Help</span>
+          <h3 data-i18n="deletion.help.title">Need assistance?</h3>
+          <p data-i18n="deletion.help.body">
             If you cannot access the app, contact support from the account email address
             and request account deletion. We may ask you to verify ownership before acting.
           </p>

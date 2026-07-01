@@ -15,6 +15,10 @@ defmodule AdventureTimeApiWeb.Router do
     plug(:accepts, ["html", "json"])
   end
 
+  pipeline :not_found do
+    plug(:accepts, ["html", "json"])
+  end
+
   pipeline :api_auth do
     plug(:accepts, ["json"])
     plug(RequireAuth)
@@ -174,5 +178,11 @@ defmodule AdventureTimeApiWeb.Router do
     put("/admin/cards/:id", AdminController, :update_card)
     patch("/admin/cards/:id", AdminController, :patch_card)
     post("/admin/cards/:id/image", AdminController, :upload_card_image)
+  end
+
+  scope "/", AdventureTimeApiWeb do
+    pipe_through(:not_found)
+
+    match(:*, "/*path", NotFoundController, :show)
   end
 end

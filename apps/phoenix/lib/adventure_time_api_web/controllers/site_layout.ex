@@ -28,13 +28,15 @@ defmodule AdventureTimeApiWeb.SiteLayout do
     lang = Keyword.get(opts, :lang, "en")
     active = Keyword.get(opts, :active)
     main_class = Keyword.get(opts, :main_class, "shell")
+    page_key = Keyword.get(opts, :page_key)
 
-    stylesheet_path = ~p"/assets/landing.css"
-    script_path = ~p"/assets/site.js"
+    asset_version = "public-site-20260701-5"
+    stylesheet_path = ~p"/assets/landing.css" <> "?v=#{asset_version}"
+    script_path = ~p"/assets/site.js" <> "?v=#{asset_version}"
 
     """
     <!DOCTYPE html>
-    <html lang="#{escape(lang)}" data-theme="candy">
+    <html lang="#{escape(lang)}" data-theme="candy"#{page_key_attr(page_key)}>
       <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -62,12 +64,35 @@ defmodule AdventureTimeApiWeb.SiteLayout do
                     : "candy";
               }
               document.documentElement.setAttribute("data-theme", t);
+              var l = localStorage.getItem("attcg-web-language");
+              if (["en", "fr"].indexOf(l) === -1) {
+                l = document.documentElement.getAttribute("lang") === "fr" ? "fr" : null;
+                if (!l) {
+                  var ls = navigator.languages && navigator.languages.length
+                    ? navigator.languages
+                    : [navigator.language || navigator.userLanguage || "en"];
+                  l = "en";
+                  for (var i = 0; i < ls.length; i++) {
+                    var candidate = String(ls[i]).toLowerCase();
+                    if (candidate.indexOf("fr") === 0) {
+                      l = "fr";
+                      break;
+                    }
+                    if (candidate.indexOf("en") === 0) {
+                      l = "en";
+                      break;
+                    }
+                  }
+                }
+              }
+              document.documentElement.setAttribute("lang", l);
+              document.documentElement.setAttribute("data-language", l);
             } catch (e) {}
           })();
         </script>
       </head>
       <body>
-        <a class="skip-link" href="#main-content">Skip to content</a>
+        <a class="skip-link" href="#main-content" data-i18n="common.skip">Skip to content</a>
         #{header(active)}
         <main id="main-content" class="#{escape(main_class)}">
     #{body}
@@ -84,29 +109,36 @@ defmodule AdventureTimeApiWeb.SiteLayout do
     """
     <header class="topbar">
       <div class="topbar-inner">
-        <a class="brand" href="/" aria-label="Adventure Time TCG home">
+        <a class="brand" href="/" aria-label="Adventure Time TCG home" data-i18n-attr="aria-label:common.brandAria">
           <span class="brand-name">
             <b>Adventure Time TCG</b>
-            <span>Collect cards. Complete quests. Battle friends.</span>
+            <span data-i18n="common.tagline">Collect cards. Complete quests. Battle friends.</span>
           </span>
         </a>
 
-        <nav class="nav" aria-label="Primary">
-          <a href="/"#{nav_current(active, :home)}>Home</a>
-          <a href="/status"#{nav_current(active, :status)}>Status</a>
-          <a href="/privacy" data-optional#{nav_current(active, :privacy)}>Privacy</a>
+        <nav class="nav" aria-label="Primary" data-i18n-attr="aria-label:common.primaryNav">
+          <a href="/" data-i18n="nav.home"#{nav_current(active, :home)}>Home</a>
+          <a href="/status" data-i18n="nav.status"#{nav_current(active, :status)}>Status</a>
+          <a href="/privacy" data-optional data-i18n="nav.privacy"#{nav_current(active, :privacy)}>Privacy</a>
         </nav>
 
-        <div class="theme-switch" role="group" aria-label="Choose a theme">
-          <button type="button" data-theme-name="candy" aria-pressed="true" title="Candy Kingdom theme">
-            <span class="visually-hidden">Candy theme</span>
-          </button>
-          <button type="button" data-theme-name="ice" aria-pressed="false" title="Ice Kingdom theme">
-            <span class="visually-hidden">Ice theme</span>
-          </button>
-          <button type="button" data-theme-name="nightosphere" aria-pressed="false" title="Nightosphere theme">
-            <span class="visually-hidden">Nightosphere theme</span>
-          </button>
+        <div class="topbar-controls">
+          <div class="language-switch" role="group" aria-label="Choose a language" data-i18n-attr="aria-label:common.languageSwitch">
+            <button type="button" data-language-name="en" aria-pressed="true" data-i18n="language.en" title="English" data-i18n-attr="title:language.enFull">EN</button>
+            <button type="button" data-language-name="fr" aria-pressed="false" data-i18n="language.fr" title="French" data-i18n-attr="title:language.frFull">FR</button>
+          </div>
+
+          <div class="theme-switch" role="group" aria-label="Choose a theme" data-i18n-attr="aria-label:common.themeSwitch">
+            <button type="button" data-theme-name="candy" aria-pressed="true" title="Candy Kingdom theme" data-i18n-attr="title:theme.candy">
+              <span class="visually-hidden" data-i18n="theme.candy">Candy theme</span>
+            </button>
+            <button type="button" data-theme-name="ice" aria-pressed="false" title="Ice Kingdom theme" data-i18n-attr="title:theme.ice">
+              <span class="visually-hidden" data-i18n="theme.ice">Ice theme</span>
+            </button>
+            <button type="button" data-theme-name="nightosphere" aria-pressed="false" title="Nightosphere theme" data-i18n-attr="title:theme.nightosphere">
+              <span class="visually-hidden" data-i18n="theme.nightosphere">Nightosphere theme</span>
+            </button>
+          </div>
         </div>
       </div>
     </header>
@@ -120,15 +152,14 @@ defmodule AdventureTimeApiWeb.SiteLayout do
       <div class="footer-inner">
         <div class="footer-brand">
           <b>Adventure Time TCG</b>
-          <span>A mobile card battler about collecting favorite characters, finishing daily quests, and jumping into friendly matches.</span>
         </div>
-        <nav class="footer-links" aria-label="Footer">
-          <a href="/">Home</a>
-          <a href="/status">Status</a>
-          <a href="/privacy">Privacy</a>
-          <a href="/account-deletion">Account deletion</a>
-          <a href="/.well-known/security.txt">Security</a>
-          <a href="mailto:support@leaetzak.love">Support</a>
+        <nav class="footer-links" aria-label="Footer" data-i18n-attr="aria-label:common.footerNav">
+          <a href="/" data-i18n="nav.home">Home</a>
+          <a href="/status" data-i18n="nav.status">Status</a>
+          <a href="/privacy" data-i18n="nav.privacy">Privacy</a>
+          <a href="/account-deletion" data-i18n="nav.accountDeletion">Account deletion</a>
+          <a href="/.well-known/security.txt" data-i18n="nav.security">Security</a>
+          <a href="mailto:support@leaetzak.love" data-i18n="nav.support">Support</a>
         </nav>
       </div>
     </footer>
@@ -145,4 +176,7 @@ defmodule AdventureTimeApiWeb.SiteLayout do
 
   defp nav_current(active, key) when active == key, do: ~s( aria-current="page")
   defp nav_current(_active, _key), do: ""
+
+  defp page_key_attr(nil), do: ""
+  defp page_key_attr(page_key), do: ~s( data-page-key="#{escape(page_key)}")
 end
