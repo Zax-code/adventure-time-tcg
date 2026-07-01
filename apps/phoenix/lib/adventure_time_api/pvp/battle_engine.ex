@@ -816,6 +816,8 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
             duration = status["duration"] || 1
             owner_turns_seen = status["ownerTurnsSeen"] || 0
 
+            # Doom fires at the start of the final owner turn before normal
+            # owner-turn-end expiry removes it.
             if duration > 0 and owner_turns_seen + 1 >= duration do
               threshold = status["magnitude"] || 0.30
               {:ok, u} = find_unit_across_players(acc_state, unit_id)

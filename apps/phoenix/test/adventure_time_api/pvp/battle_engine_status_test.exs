@@ -970,6 +970,53 @@ defmodule AdventureTimeApi.Pvp.BattleEngineStatusTest do
              end)
     end
 
+    test "Doom fires on the final owner start turn before expiring" do
+      state =
+        make_state(
+          %{},
+          %{
+            "hp" => 40,
+            "maxHp" => 100,
+            "statuses" => [
+              %{
+                "name" => "Doom",
+                "duration" => 3,
+                "magnitude" => 0.35,
+                "sourceInstanceId" => nil,
+                "appliedAt" => 0,
+                "targetOwnerId" => "player2",
+                "appliedDuringPlayerId" => "player1",
+                "expiresAt" => "afterOwnerTurnEndEffects",
+                "ownerTurnsSeen" => 0
+              }
+            ]
+          }
+        )
+
+      {player2_first_turn, first_events} = BattleEngine.simulate_end_turn(state)
+      refute Enum.any?(first_events, &doom_tick?/1)
+      assert has_status(get_unit(player2_first_turn, "p2u1"), "Doom")
+
+      {player1_turn, _events} = BattleEngine.simulate_end_turn(player2_first_turn)
+      {player2_second_turn, second_events} = BattleEngine.simulate_end_turn(player1_turn)
+      refute Enum.any?(second_events, &doom_tick?/1)
+      assert has_status(get_unit(player2_second_turn, "p2u1"), "Doom")
+
+      {player1_turn_again, _events} = BattleEngine.simulate_end_turn(player2_second_turn)
+      {after_final_tick, final_events} = BattleEngine.simulate_end_turn(player1_turn_again)
+
+      p2_unit = get_unit(after_final_tick, "p2u1")
+      assert p2_unit["hp"] == 5
+      assert has_status(p2_unit, "Doom")
+
+      assert Enum.any?(final_events, fn event ->
+               doom_tick?(event) and get_in(event, ["payload", "damage"]) == 35
+             end)
+
+      {after_owner_turn_end, _events} = BattleEngine.simulate_end_turn(after_final_tick)
+      refute has_status(get_unit(after_owner_turn_end, "p2u1"), "Doom")
+    end
+
     test "knocked-out units are not ticked" do
       state =
         make_state(
@@ -995,6 +1042,10 @@ defmodule AdventureTimeApi.Pvp.BattleEngineStatusTest do
       assert p2_unit["hp"] == 0
       assert has_status(p2_unit, "Burn"), "statuses should remain (no tick ran)"
     end
+  end
+
+  defp doom_tick?(event) do
+    event["type"] == "statusTick" and get_in(event, ["payload", "status"]) == "Doom"
   end
 
   # ── Action guards ─────────────────────────────────────────────────────────
