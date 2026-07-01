@@ -895,6 +895,12 @@ button {
   color: var(--success-text);
 }
 
+.card-glyph.g-danger {
+  background: var(--danger-tint);
+  border-color: var(--danger-border);
+  color: var(--danger-text);
+}
+
 /* --------------------------------------------------------------------------
    11. Policy detail + forms
    -------------------------------------------------------------------------- */

@@ -108,10 +108,10 @@ defmodule AdventureTimeApiWeb.LandingController do
         <article class="card feature-card wide">
           <span class="card-glyph" aria-hidden="true">#{app_icon(:cards)}</span>
           <span class="kicker kicker-primary">Collect</span>
-          <h2>Open packs and complete your collection</h2>
+          <h2>Complete your character collection</h2>
           <p>
-            Discover character cards, chase rarities, recycle extras into dust, and craft
-            the cards you still need.
+            Browse your cards, chase rarities, recycle extras into dust, and craft the
+            characters you still need.
           </p>
         </article>
 
@@ -125,7 +125,17 @@ defmodule AdventureTimeApiWeb.LandingController do
           </p>
         </article>
 
-        <article class="card feature-card full">
+        <article class="card feature-card wide">
+          <span class="card-glyph g-secondary" aria-hidden="true">#{app_icon(:pack)}</span>
+          <span class="kicker kicker-secondary">Packs</span>
+          <h2>Open rewards and discover new cards</h2>
+          <p>
+            Crack open packs from daily play, find new characters, and turn every reward
+            into collection progress.
+          </p>
+        </article>
+
+        <article class="card feature-card wide">
           <span class="card-glyph g-accent" aria-hidden="true">#{app_icon(:swords)}</span>
           <span class="kicker">Battle</span>
           <h2>Build a team and battle your friends</h2>
@@ -169,14 +179,14 @@ defmodule AdventureTimeApiWeb.LandingController do
         </article>
 
         <article class="card">
-          <span class="card-glyph g-secondary" aria-hidden="true">#{app_icon(:pack)}</span>
-          <span class="kicker kicker-secondary">Packs</span>
-          <h2>Short sessions still move you forward</h2>
+          <span class="card-glyph g-danger" aria-hidden="true">#{app_icon(:x_circle)}</span>
+          <span class="kicker">Account deletion</span>
+          <h2>You can delete your account</h2>
           <p>
-            Open a pack, claim a reward, recycle duplicates, or tweak a battle team in just
-            a few minutes.
+            The account deletion page explains what is removed, what may be retained for
+            safety, and how to request deletion.
           </p>
-          <a class="text-link" href="/account-deletion">Manage your account</a>
+          <a class="text-link" href="/account-deletion">Delete account details</a>
         </article>
       </div>
     </section>
@@ -421,6 +431,15 @@ defmodule AdventureTimeApiWeb.LandingController do
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
       <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" />
       <path d="M7 12l3.5 3.5L17 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+    """
+  end
+
+  defp app_icon(:x_circle) do
+    """
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" />
+      <path d="M9 9l6 6M15 9l-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
     </svg>
     """
   end
