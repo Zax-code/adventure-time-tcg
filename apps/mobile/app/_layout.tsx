@@ -27,6 +27,7 @@ import { useWidgetRefreshPushRegistration } from "../src/hooks/use-widget-refres
 import { useWarmPackVisuals } from "../src/hooks/use-warm-pack-visuals";
 import { useNotificationResponseRouting } from "../src/hooks/use-notification-response-routing";
 import { AppLaunchScreen } from "../src/components/app-launch-screen";
+import { AppOverlayProvider } from "../src/components/app-overlay-portal";
 import { queryClient } from "../src/lib/query-client";
 import { useBootstrap } from "../src/hooks/use-bootstrap";
 import { apiClient } from "../src/lib/api";
@@ -310,103 +311,105 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
           <BottomSheetProvider>
-            <View style={[{ flex: 1 }, THEME_VARS[themeName]]}>
-              <StatusBar style="dark" />
-              {bootstrapPhase !== "ready" ? (
-                <AppLaunchScreen phase={bootstrapPhase} />
-              ) : (
-                <Stack screenOptions={PORTRAIT_SCREEN_OPTIONS}>
-                  <Stack.Screen
-                    name="(tabs)"
-                    options={PORTRAIT_SCREEN_OPTIONS}
-                  />
-                  <Stack.Screen
-                    name="pvp-match"
-                    options={LANDSCAPE_SCREEN_OPTIONS}
-                  />
-                  <Stack.Screen
-                    name="pvp-replay"
-                    options={LANDSCAPE_SCREEN_OPTIONS}
-                  />
-                  <Stack.Screen
-                    name="pvp-spectate-match"
-                    options={LANDSCAPE_SCREEN_OPTIONS}
-                  />
-                  <Stack.Screen
-                    name="admin-card-editor"
-                    options={{
-                      presentation: "transparentModal",
-                      animation: "none",
-                      contentStyle: { backgroundColor: "transparent" },
-                      headerShown: false,
-                    }}
-                  />
-                  <Stack.Screen
-                    name="admin-ability-editor"
-                    options={{
-                      presentation: "transparentModal",
-                      animation: "none",
-                      contentStyle: { backgroundColor: "transparent" },
-                      headerShown: false,
-                    }}
-                  />
-                  <Stack.Screen
-                    name="admin-user-editor"
-                    options={{
-                      presentation: "transparentModal",
-                      animation: "none",
-                      contentStyle: { backgroundColor: "transparent" },
-                      headerShown: false,
-                    }}
-                  />
-                  <Stack.Screen
-                    name="settings"
-                    options={{
-                      presentation: "transparentModal",
-                      animation: "none",
-                      contentStyle: { backgroundColor: "transparent" },
-                      headerShown: false,
-                    }}
-                  />
-                  <Stack.Screen
-                    name="pvp-mechanics"
-                    options={{
-                      presentation: "transparentModal",
-                      animation: "none",
-                      contentStyle: { backgroundColor: "transparent" },
-                      headerShown: false,
-                    }}
-                  />
-                  <Stack.Screen
-                    name="pvp-reference"
-                    options={{
-                      presentation: "transparentModal",
-                      animation: "none",
-                      contentStyle: { backgroundColor: "transparent" },
-                      headerShown: false,
-                    }}
-                  />
-                  <Stack.Screen
-                    name="pvp-card-details"
-                    options={{
-                      presentation: "transparentModal",
-                      animation: "none",
-                      contentStyle: { backgroundColor: "transparent" },
-                      headerShown: false,
-                    }}
-                  />
-                  <Stack.Screen
-                    name="collection-card-detail"
-                    options={{
-                      presentation: "transparentModal",
-                      animation: "none",
-                      contentStyle: { backgroundColor: "transparent" },
-                      headerShown: false,
-                    }}
-                  />
-                </Stack>
-              )}
-            </View>
+            <AppOverlayProvider>
+              <View style={[{ flex: 1 }, THEME_VARS[themeName]]}>
+                <StatusBar style="dark" />
+                {bootstrapPhase !== "ready" ? (
+                  <AppLaunchScreen phase={bootstrapPhase} />
+                ) : (
+                  <Stack screenOptions={PORTRAIT_SCREEN_OPTIONS}>
+                    <Stack.Screen
+                      name="(tabs)"
+                      options={PORTRAIT_SCREEN_OPTIONS}
+                    />
+                    <Stack.Screen
+                      name="pvp-match"
+                      options={LANDSCAPE_SCREEN_OPTIONS}
+                    />
+                    <Stack.Screen
+                      name="pvp-replay"
+                      options={LANDSCAPE_SCREEN_OPTIONS}
+                    />
+                    <Stack.Screen
+                      name="pvp-spectate-match"
+                      options={LANDSCAPE_SCREEN_OPTIONS}
+                    />
+                    <Stack.Screen
+                      name="admin-card-editor"
+                      options={{
+                        presentation: "transparentModal",
+                        animation: "none",
+                        contentStyle: { backgroundColor: "transparent" },
+                        headerShown: false,
+                      }}
+                    />
+                    <Stack.Screen
+                      name="admin-ability-editor"
+                      options={{
+                        presentation: "transparentModal",
+                        animation: "none",
+                        contentStyle: { backgroundColor: "transparent" },
+                        headerShown: false,
+                      }}
+                    />
+                    <Stack.Screen
+                      name="admin-user-editor"
+                      options={{
+                        presentation: "transparentModal",
+                        animation: "none",
+                        contentStyle: { backgroundColor: "transparent" },
+                        headerShown: false,
+                      }}
+                    />
+                    <Stack.Screen
+                      name="settings"
+                      options={{
+                        presentation: "transparentModal",
+                        animation: "none",
+                        contentStyle: { backgroundColor: "transparent" },
+                        headerShown: false,
+                      }}
+                    />
+                    <Stack.Screen
+                      name="pvp-mechanics"
+                      options={{
+                        presentation: "transparentModal",
+                        animation: "none",
+                        contentStyle: { backgroundColor: "transparent" },
+                        headerShown: false,
+                      }}
+                    />
+                    <Stack.Screen
+                      name="pvp-reference"
+                      options={{
+                        presentation: "transparentModal",
+                        animation: "none",
+                        contentStyle: { backgroundColor: "transparent" },
+                        headerShown: false,
+                      }}
+                    />
+                    <Stack.Screen
+                      name="pvp-card-details"
+                      options={{
+                        presentation: "transparentModal",
+                        animation: "none",
+                        contentStyle: { backgroundColor: "transparent" },
+                        headerShown: false,
+                      }}
+                    />
+                    <Stack.Screen
+                      name="collection-card-detail"
+                      options={{
+                        presentation: "transparentModal",
+                        animation: "none",
+                        contentStyle: { backgroundColor: "transparent" },
+                        headerShown: false,
+                      }}
+                    />
+                  </Stack>
+                )}
+              </View>
+            </AppOverlayProvider>
           </BottomSheetProvider>
         </QueryClientProvider>
       </SafeAreaProvider>

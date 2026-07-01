@@ -12,6 +12,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { XIcon } from "../../components/icons";
+import { AppOverlayPortal } from "../../components/app-overlay-portal";
 import { useTranslation } from "../../i18n";
 import { useThemeStore } from "../../stores/theme-store";
 import { THEME_COLORS, THEME_VARS } from "../../theme/themes";
@@ -141,7 +142,8 @@ export function BattleFullScreenSheet({
   if (Platform.OS === "ios") {
     // Native fullscreen modal presentation can abort on iOS when the PvP route
     // is locked to landscape and UIKit performs a mixed-orientation transition.
-    return sheet;
+    // Keep the iOS sheet in React, but portal it above tab/header chrome.
+    return <AppOverlayPortal>{sheet}</AppOverlayPortal>;
   }
 
   return (
