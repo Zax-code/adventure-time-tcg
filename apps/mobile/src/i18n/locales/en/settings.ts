@@ -112,6 +112,27 @@ const settings = {
   sessionTitle: "Session",
   sessionIntro: "Manage this signed-in device.",
   sessionHelp: "Signing out here removes your local session from this device.",
+  passwordTitle: "Password sign-in",
+  passwordChangeHelp:
+    "Update the password for this account. Google and Apple sign-in stay connected when enabled.",
+  passwordCreateHelp:
+    "Add a password to this approved account so you can sign in with email too.",
+  currentPasswordPlaceholder: "Current password",
+  newPasswordPlaceholder: "New password (8+ characters)",
+  confirmNewPasswordPlaceholder: "Confirm new password",
+  createPasswordAction: "Create password",
+  changePasswordAction: "Change password",
+  passwordCreated: "Password created. You can now sign in with email and password.",
+  passwordUpdated: "Password updated.",
+  passwordMismatch: "The new passwords do not match.",
+  passwordTooShort: "Password must be at least 8 characters.",
+  currentPasswordRequired: "Current password is required.",
+  passwordChangeFailed: "Password update failed. Please try again.",
+  authMethods: {
+    password: "Password",
+    google: "Google",
+    apple: "Apple",
+  },
   privacyTitle: "Privacy and data",
   privacyIntro: "Review how account and gameplay data is handled.",
   privacyHelp:

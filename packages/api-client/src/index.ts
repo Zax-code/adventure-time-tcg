@@ -41,6 +41,7 @@ import {
   appleAuthSchema,
   authUserSchema,
   authResponseSchema,
+  changePasswordSchema,
   claimQuestResponseSchema,
   claimQuestSchema,
   collectionResponseSchema,
@@ -123,6 +124,7 @@ import {
   type PvpSpectateDetailResponse,
   type AppleAuthInput,
   type AuthResponse,
+  type ChangePasswordInput,
   type ClaimQuestInput,
   type ClaimQuestResponse,
   type CollectionResponse,
@@ -1050,6 +1052,15 @@ export class ApiClient {
     const body = updateNotificationPreferencesSchema.parse(input);
     return this.request(
       "/settings/notification-preferences",
+      { method: "PATCH", body: JSON.stringify(body) },
+      (data) => authUserSchema.parse(data),
+    );
+  }
+
+  async changePassword(input: ChangePasswordInput) {
+    const body = changePasswordSchema.parse(input);
+    return this.request(
+      "/settings/password",
       { method: "PATCH", body: JSON.stringify(body) },
       (data) => authUserSchema.parse(data),
     );
