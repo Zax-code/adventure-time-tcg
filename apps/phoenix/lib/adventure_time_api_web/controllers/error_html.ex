@@ -3,96 +3,117 @@ defmodule AdventureTimeApiWeb.ErrorHTML do
 
   import Phoenix.HTML, only: [raw: 1]
 
+  alias AdventureTimeApiWeb.SiteLayout
+
   def render(template, _assigns) do
     status = template |> String.replace_suffix(".html", "")
 
-    {badge, title, body, primary_label, primary_href, secondary_label, secondary_href} =
-      copy_for(status)
-
-    raw("""
-    <!DOCTYPE html>
-    <html lang="en">
-      <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>#{escape(title)} | Adventure Time TCG</title>
-        <meta name="theme-color" content="#F472B6" />
-        <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800&display=swap"
-          rel="stylesheet"
-        />
-        <link rel="stylesheet" href="/assets/landing.css" />
-      </head>
-      <body>
-        <main class="verify-page-shell">
-          <section class="verify-card hero-shell" aria-label="#{escape(title)}">
-            <div class="hero-copy">
-              <p class="eyebrow">#{escape(badge)}</p>
-              <h1 class="verify-title">#{escape(title)}</h1>
-              <p class="lede verify-lede">#{escape(body)}</p>
-
-              <div class="verify-actions">
-                <a class="action primary" href="#{escape(primary_href)}">#{escape(primary_label)}</a>
-                <a class="action secondary" href="#{escape(secondary_href)}">#{escape(secondary_label)}</a>
-              </div>
-            </div>
-
-            <aside class="hero-panel verify-panel" aria-label="Adventure Time TCG">
-              <div class="hero-mark verify-mark">
-                <div class="card-shadow card-shadow-left"></div>
-                <div class="card-shadow card-shadow-right"></div>
-                <div class="logo-wrap">
-                  <img src="/images/app-icon.png" alt="Adventure Time TCG app icon" />
-                </div>
-              </div>
-
-              <div class="status-stack">
-                <div class="status-tile">
-                  <p class="status-label">Where now</p>
-                  <p class="status-value">Head back into the Candy Kingdom</p>
-                </div>
-                <div class="status-tile">
-                  <p class="status-label">Quick fix</p>
-                  <p class="status-value">Open the app or restart from the email link</p>
-                </div>
-                <div class="status-tile">
-                  <p class="status-label">Status</p>
-                  <p class="status-value">#{escape(status)}</p>
-                </div>
-              </div>
-            </aside>
-          </section>
-        </main>
-      </body>
-    </html>
-    """)
+    if status == "404" do
+      raw(not_found_document())
+    else
+      raw(error_document(status))
+    end
   end
 
-  defp copy_for("404") do
-    {
-      "Not found",
-      "This page wandered off",
-      "The path you tried does not exist anymore, or it was never part of this adventure. Start again from the homepage or jump back into the app.",
-      "Go to homepage",
-      "/",
-      "Open the app",
-      "adventure-time://login?mode=login"
-    }
+  def not_found_document do
+    logo_path = "/images/app-icon.png"
+
+    body = """
+    <section class="hero not-found-hero" aria-label="Missing page" data-i18n-attr="aria-label:notFound.heroAria">
+      <div class="hero-copy not-found-copy">
+        <p class="kicker kicker-primary" data-i18n="notFound.kicker">404: Lost in the Candy Kingdom</p>
+        <h1 data-i18n-html="notFound.title">This page is missing from the collection.</h1>
+        <p class="lede" data-i18n="notFound.lede">
+          We searched the Tree Fort, the Nightosphere, and one very suspicious pack wrapper. This page still did not show up.
+        </p>
+
+        <ul class="pill-list not-found-list" aria-label="Helpful exits" data-i18n-attr="aria-label:notFound.exitsAria">
+          <li data-i18n="notFound.clue.route">No secret endpoint map here. Nice try, wizard.</li>
+          <li data-i18n="notFound.clue.home">The homepage is safe, sparkly, and only one click away.</li>
+          <li data-i18n="notFound.clue.support">If a link sent you here, support can help untangle it.</li>
+        </ul>
+
+        <div class="actions">
+          <a class="btn btn-primary" href="/" data-i18n="notFound.cta.home">Return to homepage</a>
+          <a class="btn btn-ghost" href="mailto:support@leaetzak.love" data-i18n="notFound.cta.support">Contact support</a>
+        </div>
+      </div>
+
+      <aside class="hero-panel not-found-panel" aria-label="Lost card report" data-i18n-attr="aria-label:notFound.reportAria">
+        <div class="lost-card-stack" aria-hidden="true">
+          <div class="lost-card lost-card-back">
+            <span>404</span>
+          </div>
+          <div class="lost-card lost-card-front">
+            <img src="#{logo_path}" alt="" />
+            <b>404</b>
+            <span data-i18n="notFound.cardStatus">Page MIA</span>
+          </div>
+        </div>
+
+        <div class="tile-stack">
+          <div class="tile">
+            <p class="label" data-i18n="notFound.tile.rarity.label">Rarity</p>
+            <p class="value" data-i18n="notFound.tile.rarity.value">Mythically misplaced</p>
+          </div>
+          <div class="tile">
+            <p class="label" data-i18n="notFound.tile.ability.label">Ability</p>
+            <p class="value" data-i18n="notFound.tile.ability.value">Dodges every route</p>
+          </div>
+          <div class="tile">
+            <p class="label" data-i18n="notFound.tile.counter.label">Counterplay</p>
+            <p class="value" data-i18n="notFound.tile.counter.value">Go home, regroup</p>
+          </div>
+        </div>
+      </aside>
+    </section>
+    """
+
+    SiteLayout.document(
+      title: "Page Not Found - Adventure Time TCG",
+      description:
+        "The requested Adventure Time TCG page could not be found. Return to the homepage or contact support.",
+      page_key: "notFound",
+      body: body
+    )
   end
 
-  defp copy_for(_status) do
-    {
-      "Something went wrong",
-      "This page hit a snag",
-      "Adventure Time TCG could not finish this page right now. Try again in a moment, or go back to the app and continue there.",
-      "Go to homepage",
-      "/",
-      "Open the app",
-      "adventure-time://login?mode=login"
-    }
+  defp error_document(status) do
+    body = """
+    <section class="hero not-found-hero" aria-label="Server error">
+      <div class="hero-copy not-found-copy">
+        <p class="kicker kicker-primary">Something went wrong</p>
+        <h1>This page hit a snag.</h1>
+        <p class="lede">
+          Adventure Time TCG could not finish this page right now. Try again in a moment, or go back to the app and continue there.
+        </p>
+
+        <div class="actions">
+          <a class="btn btn-primary" href="/">Go to homepage</a>
+          <a class="btn btn-ghost" href="adventure-time://login?mode=login">Open the app</a>
+        </div>
+      </div>
+
+      <aside class="hero-panel not-found-panel" aria-label="Adventure Time TCG">
+        <div class="tile-stack">
+          <div class="tile">
+            <p class="label">Status</p>
+            <p class="value">#{escape(status)}</p>
+          </div>
+          <div class="tile">
+            <p class="label">Next step</p>
+            <p class="value">Try again soon</p>
+          </div>
+        </div>
+      </aside>
+    </section>
+    """
+
+    SiteLayout.document(
+      title: "Something Went Wrong - Adventure Time TCG",
+      description: "Adventure Time TCG could not finish this page right now.",
+      body: body
+    )
   end
 
   defp escape(value) do
