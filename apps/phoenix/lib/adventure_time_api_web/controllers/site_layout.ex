@@ -67,11 +67,6 @@ defmodule AdventureTimeApiWeb.SiteLayout do
         </script>
       </head>
       <body>
-        <div class="aurora" aria-hidden="true">
-          <span class="blob blob-1"></span>
-          <span class="blob blob-2"></span>
-          <span class="blob blob-3"></span>
-        </div>
         <a class="skip-link" href="#main-content">Skip to content</a>
         #{header(active)}
         <main id="main-content" class="#{escape(main_class)}">
@@ -86,7 +81,7 @@ defmodule AdventureTimeApiWeb.SiteLayout do
 
   @doc "Sticky top navigation bar with brand, links, and the theme switcher."
   def header(active) do
-    logo_path = ~p"/images/app-icon.png"
+    logo_path = ~p"/images/logo.svg"
 
     """
     <header class="topbar">

@@ -242,68 +242,6 @@ button {
 }
 
 /* --------------------------------------------------------------------------
-   3. Aurora background
-   -------------------------------------------------------------------------- */
-.aurora {
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  overflow: hidden;
-  background:
-    radial-gradient(120% 90% at 50% -10%, var(--bg-2), transparent 60%),
-    var(--bg);
-  transition: background 0.5s ease;
-}
-
-.aurora .blob {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(90px);
-  opacity: 0.85;
-  will-change: transform;
-}
-
-.aurora .blob-1 {
-  width: 46vw;
-  height: 46vw;
-  top: -12vw;
-  left: -8vw;
-  background: var(--glow-1);
-  animation: drift-1 26s ease-in-out infinite;
-}
-
-.aurora .blob-2 {
-  width: 40vw;
-  height: 40vw;
-  top: 20vh;
-  right: -10vw;
-  background: var(--glow-2);
-  animation: drift-2 32s ease-in-out infinite;
-}
-
-.aurora .blob-3 {
-  width: 38vw;
-  height: 38vw;
-  bottom: -14vw;
-  left: 30vw;
-  background: var(--glow-3);
-  animation: drift-3 30s ease-in-out infinite;
-}
-
-@keyframes drift-1 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(6vw, 5vh) scale(1.12); }
-}
-@keyframes drift-2 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(-5vw, 6vh) scale(1.08); }
-}
-@keyframes drift-3 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(4vw, -6vh) scale(1.15); }
-}
-
-/* --------------------------------------------------------------------------
    4. Layout shells
    -------------------------------------------------------------------------- */
 .shell {
@@ -379,8 +317,9 @@ button {
   width: 44px;
   height: 44px;
   border-radius: 14px;
-  padding: 3px;
-  background: linear-gradient(135deg, var(--primary), var(--accent));
+  padding: 9px;
+  background: var(--surface-solid);
+  border: 1px solid var(--primary-border);
   box-shadow: var(--shadow-sm);
   flex: none;
 }
@@ -388,8 +327,7 @@ button {
 .brand-mark img {
   width: 100%;
   height: 100%;
-  border-radius: 11px;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .brand-name {
@@ -460,13 +398,13 @@ button {
 }
 
 .theme-switch button[data-theme-name="candy"] {
-  background-image: linear-gradient(135deg, #f472b6, #fde047);
+  background: #f472b6;
 }
 .theme-switch button[data-theme-name="ice"] {
-  background-image: linear-gradient(135deg, #60a5fa, #67e8f9);
+  background: #60a5fa;
 }
 .theme-switch button[data-theme-name="nightosphere"] {
-  background-image: linear-gradient(135deg, #ef4444, #c084fc);
+  background: #ef4444;
 }
 
 .theme-switch button:hover {
@@ -511,7 +449,7 @@ button {
 
 .btn-primary {
   --btn-fg: #fff;
-  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  background: var(--primary-strong);
   box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 
@@ -659,10 +597,7 @@ button {
 }
 
 .hero-copy h1 .grad {
-  background: linear-gradient(115deg, var(--primary-dark), var(--accent-dark) 55%, var(--secondary-dark));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: var(--primary-strong);
 }
 
 .pill-list {
@@ -688,9 +623,8 @@ button {
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background:
-    radial-gradient(circle at 50% 50%, var(--surface-solid) 34%, transparent 36%),
-    linear-gradient(135deg, var(--primary), var(--accent));
+  background: var(--primary);
+  border: 5px solid var(--surface-solid);
   box-shadow: var(--shadow-sm);
 }
 
@@ -722,13 +656,13 @@ button {
 
 .card-ghost.left {
   transform: rotate(-14deg) translate(-32%, 6%);
-  background: linear-gradient(160deg, var(--primary-tint), var(--surface));
+  background: var(--primary-tint);
   animation: float-a 7s ease-in-out infinite;
 }
 
 .card-ghost.right {
   transform: rotate(13deg) translate(34%, -4%);
-  background: linear-gradient(160deg, var(--accent-tint), var(--surface));
+  background: var(--accent-tint);
   animation: float-b 8s ease-in-out infinite;
 }
 
@@ -738,8 +672,9 @@ button {
   width: 52%;
   aspect-ratio: 1 / 1;
   border-radius: 28px;
-  padding: 6px;
-  background: linear-gradient(135deg, var(--primary), var(--accent));
+  padding: 18px;
+  background: var(--surface-solid);
+  border: 1px solid var(--primary-border);
   box-shadow: var(--shadow-lg);
   animation: float-a 6s ease-in-out infinite;
 }
@@ -747,8 +682,7 @@ button {
 .logo-wrap img {
   width: 100%;
   height: 100%;
-  border-radius: 22px;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 @keyframes float-a {
@@ -870,15 +804,7 @@ button {
 }
 
 .card::before {
-  content: "";
-  position: absolute;
-  top: -40%;
-  right: -30%;
-  width: 60%;
-  height: 80%;
-  background: radial-gradient(circle, var(--glow-2), transparent 70%);
-  opacity: 0.5;
-  pointer-events: none;
+  content: none;
 }
 
 .feature-card:hover {
@@ -905,11 +831,17 @@ button {
   border-radius: 15px;
   display: grid;
   place-items: center;
-  font-size: 1.5rem;
+  padding: 10px;
   background: var(--primary-tint);
   border: 1px solid var(--primary-border);
   box-shadow: var(--shadow-sm);
   margin-bottom: 0.4rem;
+}
+
+.card-glyph img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .card-glyph.g-secondary {
@@ -1061,7 +993,7 @@ button {
   width: clamp(52px, 10vw, 74px);
   height: clamp(52px, 10vw, 74px);
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #fff, var(--state));
+  background: var(--state);
   box-shadow: 0 0 0 8px color-mix(in srgb, var(--state) 22%, transparent);
 }
 

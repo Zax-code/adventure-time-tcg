@@ -23,7 +23,7 @@ defmodule AdventureTimeApiWeb.LandingController do
   end
 
   defp landing_html do
-    logo_path = ~p"/images/app-icon.png"
+    logo_path = ~p"/images/logo.svg"
 
     body = """
     <section class="hero" aria-label="Service overview">
@@ -52,10 +52,7 @@ defmodule AdventureTimeApiWeb.LandingController do
           <div class="card-ghost left"></div>
           <div class="card-ghost right"></div>
           <div class="logo-wrap">
-            <img
-              src="#{logo_path}"
-              alt="Adventure Time TCG app icon showing a collectible card with Finn"
-            />
+            <img src="#{logo_path}" alt="Adventure Time TCG logo" />
           </div>
         </div>
 
@@ -106,7 +103,7 @@ defmodule AdventureTimeApiWeb.LandingController do
 
       <div class="bento">
         <article class="card feature-card wide">
-          <span class="card-glyph" aria-hidden="true">&#127183;</span>
+          <span class="card-glyph" aria-hidden="true"><img src="#{logo_path}" alt="" /></span>
           <span class="kicker kicker-primary">Collect</span>
           <h2>Packs, rarities, and card art</h2>
           <p>
@@ -116,7 +113,7 @@ defmodule AdventureTimeApiWeb.LandingController do
         </article>
 
         <article class="card feature-card wide">
-          <span class="card-glyph g-secondary" aria-hidden="true">&#9889;</span>
+          <span class="card-glyph g-secondary" aria-hidden="true"><img src="#{logo_path}" alt="" /></span>
           <span class="kicker kicker-secondary">Quest</span>
           <h2>Daily progress that stays in step</h2>
           <p>
@@ -126,7 +123,7 @@ defmodule AdventureTimeApiWeb.LandingController do
         </article>
 
         <article class="card feature-card full">
-          <span class="card-glyph g-accent" aria-hidden="true">&#9876;</span>
+          <span class="card-glyph g-accent" aria-hidden="true"><img src="#{logo_path}" alt="" /></span>
           <span class="kicker">Battle</span>
           <h2>Live PvP, replays, and spectating</h2>
           <p>
@@ -148,7 +145,7 @@ defmodule AdventureTimeApiWeb.LandingController do
 
       <div class="card-grid">
         <article class="card">
-          <span class="card-glyph g-success" aria-hidden="true">&#128994;</span>
+          <span class="card-glyph g-success" aria-hidden="true"><img src="#{logo_path}" alt="" /></span>
           <span class="kicker kicker-primary">Health</span>
           <h2>Live service status</h2>
           <p>
@@ -159,7 +156,7 @@ defmodule AdventureTimeApiWeb.LandingController do
         </article>
 
         <article class="card">
-          <span class="card-glyph g-accent" aria-hidden="true">&#128274;</span>
+          <span class="card-glyph g-accent" aria-hidden="true"><img src="#{logo_path}" alt="" /></span>
           <span class="kicker">Security</span>
           <h2>Responsible disclosure</h2>
           <p>
@@ -170,7 +167,7 @@ defmodule AdventureTimeApiWeb.LandingController do
         </article>
 
         <article class="card">
-          <span class="card-glyph g-secondary" aria-hidden="true">&#127959;</span>
+          <span class="card-glyph g-secondary" aria-hidden="true"><img src="#{logo_path}" alt="" /></span>
           <span class="kicker kicker-secondary">Infrastructure</span>
           <h2>One backend, shared contracts</h2>
           <p>
