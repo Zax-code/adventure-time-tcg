@@ -15,6 +15,10 @@ defmodule AdventureTimeApiWeb.Router do
     plug(:accepts, ["html", "json"])
   end
 
+  pipeline :not_found do
+    plug(:accepts, ["html", "json"])
+  end
+
   pipeline :api_auth do
     plug(:accepts, ["json"])
     plug(RequireAuth)
@@ -24,6 +28,7 @@ defmodule AdventureTimeApiWeb.Router do
     pipe_through(:browser_html)
 
     get("/", LandingController, :index)
+    get("/status", HealthController, :page)
     get("/privacy", LandingController, :privacy)
     get("/account-deletion", LandingController, :account_deletion)
     get("/email/verify", EmailVerificationController, :show)
@@ -86,6 +91,7 @@ defmodule AdventureTimeApiWeb.Router do
     patch("/settings/step-source", AppController, :update_step_source)
     patch("/settings/timezone", AppController, :update_timezone)
     patch("/settings/notification-preferences", AppController, :update_notification_preferences)
+    patch("/settings/password", AppController, :update_password)
     delete("/settings/account", AppController, :delete_account)
     post("/settings/upload", MediaController, :upload_profile)
     post("/notifications/device", NotificationController, :register_device)
@@ -173,5 +179,11 @@ defmodule AdventureTimeApiWeb.Router do
     put("/admin/cards/:id", AdminController, :update_card)
     patch("/admin/cards/:id", AdminController, :patch_card)
     post("/admin/cards/:id/image", AdminController, :upload_card_image)
+  end
+
+  scope "/", AdventureTimeApiWeb do
+    pipe_through(:not_found)
+
+    match(:*, "/*path", NotFoundController, :show)
   end
 end

@@ -83,19 +83,22 @@ const pvp = {
     turnEnd: "Turn {turn} ended",
     energyGrant: "{player} energy is now {amount}",
     abilityStart: "{actor} used {ability}",
-    miss: "{attacker}'s attack missed {target}{roll}",
-    damage: "{attacker} dealt {amount} damage to {target}{roll}",
-    criticalDamage:
-      "{attacker} landed a critical hit on {target} for {amount} damage{roll}",
-    crit: "{attacker}'s critical roll succeeded against {target}{roll}",
-    attackMissRollDetail:
-      " (miss roll {missRoll} against {missChance} chance)",
-    attackMissOnlyRollDetail:
-      " (miss roll {missRoll} against {missChance} chance)",
-    attackHitRollDetail:
-      " (miss roll {missRoll} against {missChance} chance, crit roll {critRoll} against {critChance} chance)",
-    critRollDetail:
-      " (crit roll {critRoll} against {critChance} chance)",
+    missHighHitChance: "{attacker} narrowly missed {target}. (miss)",
+    missMediumHitChance: "{target} dodged {attacker}'s attack. (miss)",
+    missLowHitChance:
+      "{attacker} couldn't find an opening against {target}. (miss)",
+    damage: "{attacker} struck {target} for {amount} damage.",
+    damageLowHitChance:
+      "{attacker} found an opening and hit {target} for {amount} damage.",
+    crit: "Critical hit on {target}. (crit)",
+    critLowChance:
+      "{attacker} landed a lucky critical hit on {target} for {amount} damage. (crit)",
+    critMediumChance:
+      "{attacker} landed a critical hit on {target} for {amount} damage. (crit)",
+    critHighChance:
+      "{attacker} struck {target}'s weak point for {amount} damage. (crit)",
+    hitChanceDetail: "Hit chance {hitChance}",
+    hitCritChanceDetail: "Hit chance {hitChance} · Crit {critChance}",
     ko: "{target} was knocked out",
     heal: "{target} healed for {amount}",
     revive: "{target} returned to battle",

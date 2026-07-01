@@ -84,19 +84,22 @@ const pvp = {
     turnEnd: "Le tour {turn} se termine",
     energyGrant: "L'énergie de {player} est maintenant {amount}",
     abilityStart: "{actor} utilise {ability}",
-    miss: "L'attaque de {attacker} manque {target}{roll}",
-    damage: "{attacker} inflige {amount} dégâts à {target}{roll}",
-    criticalDamage:
-      "{attacker} réussit un coup critique sur {target} pour {amount} dégâts{roll}",
-    crit: "Le jet critique de {attacker} réussit contre {target}{roll}",
-    attackMissRollDetail:
-      " (jet de raté {missRoll} contre {missChance} de chance)",
-    attackMissOnlyRollDetail:
-      " (jet de raté {missRoll} contre {missChance} de chance)",
-    attackHitRollDetail:
-      " (jet de raté {missRoll} contre {missChance} de chance, jet critique {critRoll} contre {critChance} de chance)",
-    critRollDetail:
-      " (jet critique {critRoll} contre {critChance} de chance)",
+    missHighHitChance: "{attacker} a manqué {target} de peu. (raté)",
+    missMediumHitChance: "{target} a esquivé l'attaque de {attacker}. (raté)",
+    missLowHitChance:
+      "{attacker} n'a pas trouvé d'ouverture contre {target}. (raté)",
+    damage: "{attacker} a frappé {target} pour {amount} dégâts.",
+    damageLowHitChance:
+      "{attacker} a trouvé une ouverture et infligé {amount} dégâts à {target}.",
+    crit: "Coup critique sur {target}. (crit)",
+    critLowChance:
+      "{attacker} a porté un coup critique chanceux à {target} pour {amount} dégâts. (crit)",
+    critMediumChance:
+      "{attacker} a porté un coup critique à {target} pour {amount} dégâts. (crit)",
+    critHighChance:
+      "{attacker} a frappé le point faible de {target} pour {amount} dégâts. (crit)",
+    hitChanceDetail: "Chance de toucher {hitChance}",
+    hitCritChanceDetail: "Chance de toucher {hitChance} · Crit {critChance}",
     ko: "{target} a été mis K.O.",
     heal: "{target} récupère {amount} PV",
     revive: "{target} revient au combat",

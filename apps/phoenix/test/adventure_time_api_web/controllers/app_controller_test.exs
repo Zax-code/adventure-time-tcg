@@ -1,7 +1,8 @@
 defmodule AdventureTimeApiWeb.AppControllerTest do
   use AdventureTimeApiWeb.ConnCase, async: true
 
-  alias AdventureTimeApi.Accounts.{EmailCredential, Session, User}
+  alias AdventureTimeApi.Auth
+  alias AdventureTimeApi.Accounts.{AuthProviderIdentity, EmailCredential, Session, User}
   alias AdventureTimeApi.Catalog.{Card, CardBackVisual, ImageAsset, Pack, Rarity}
   alias AdventureTimeApi.Inventory.OwnedCard
   alias AdventureTimeApi.Notifications.Device
@@ -26,6 +27,102 @@ defmodule AdventureTimeApiWeb.AppControllerTest do
     assert rarity["dustValue"] == 1
     assert rarity["craftCost"] == 5
     assert is_binary(rarity["id"])
+  end
+
+  test "PATCH /settings/password creates password auth for a provider-only account", _context do
+    user = create_user_without_password("provider-settings@example.com", "Provider Settings")
+
+    Repo.insert!(
+      AuthProviderIdentity.changeset(%AuthProviderIdentity{}, %{
+        provider: "google",
+        provider_subject_hash: String.duplicate("a", 64),
+        email: user.email,
+        display_name: user.display_name
+      })
+      |> Ecto.Changeset.put_change(:user_id, user.id)
+    )
+
+    access_token = access_token_for_user(user)
+
+    response =
+      access_token
+      |> auth_conn()
+      |> patch(~p"/settings/password", %{"newPassword" => "provider123"})
+      |> json_response(200)
+
+    assert response["authMethods"] == %{
+             "password" => true,
+             "google" => true,
+             "apple" => false
+           }
+
+    login =
+      build_conn()
+      |> post(~p"/auth/login", %{email: user.email, password: "provider123"})
+      |> json_response(200)
+
+    assert get_in(login, ["user", "id"]) == user.id
+  end
+
+  test "PATCH /settings/password changes an existing password", _context do
+    user = create_user_with_password("change-settings@example.com", "oldpass123")
+    access_token = login_access_token(user.email, "oldpass123")
+
+    response =
+      access_token
+      |> auth_conn()
+      |> patch(~p"/settings/password", %{
+        "currentPassword" => "oldpass123",
+        "newPassword" => "newpass123"
+      })
+      |> json_response(200)
+
+    assert response["authMethods"]["password"] == true
+
+    assert json_response(
+             post(build_conn(), ~p"/auth/login", %{
+               email: user.email,
+               password: "oldpass123"
+             }),
+             401
+           ) == %{"error" => "Invalid email or password."}
+
+    assert get_in(
+             post(build_conn(), ~p"/auth/login", %{
+               email: user.email,
+               password: "newpass123"
+             })
+             |> json_response(200),
+             ["user", "id"]
+           ) == user.id
+  end
+
+  test "PATCH /settings/password rejects incorrect current password", _context do
+    user = create_user_with_password("wrong-current@example.com", "oldpass123")
+    access_token = login_access_token(user.email, "oldpass123")
+
+    response =
+      access_token
+      |> auth_conn()
+      |> patch(~p"/settings/password", %{
+        "currentPassword" => "not-right",
+        "newPassword" => "newpass123"
+      })
+      |> json_response(400)
+
+    assert response == %{
+             "error" => "Current password is incorrect.",
+             "code" => "INVALID_CURRENT_PASSWORD"
+           }
+
+    assert get_in(
+             post(build_conn(), ~p"/auth/login", %{
+               email: user.email,
+               password: "oldpass123"
+             })
+             |> json_response(200),
+             ["user", "id"]
+           ) == user.id
   end
 
   test "GET and POST /daily-claim return mobile daily reward semantics", _context do
@@ -820,6 +917,25 @@ defmodule AdventureTimeApiWeb.AppControllerTest do
     )
 
     user
+  end
+
+  defp create_user_without_password(email, display_name) do
+    Repo.insert!(
+      User.registration_changeset(%User{}, %{email: email, display_name: display_name})
+      |> User.access_changeset(%{role: :user, access_status: :approved})
+    )
+  end
+
+  defp access_token_for_user(user) do
+    {:ok, token} =
+      Auth.sign_access_token(%{
+        "sub" => user.id,
+        "email" => user.email,
+        "isAdmin" => false,
+        "isSuperAdmin" => false
+      })
+
+    token
   end
 
   defp login_access_token(email, password) do

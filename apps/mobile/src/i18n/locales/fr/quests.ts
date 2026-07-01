@@ -6,6 +6,7 @@ const quests = {
   connectFitbitDesc:
     "Associe ton compte Fitbit pour débloquer les quêtes de suivi de pas et gagner plus de pièces !",
   claim: "Récupérer",
+  claimAll: "Tout récupérer",
   progress: "Progression",
   completedBadge: "Terminée",
   claimedBadge: "Terminée",

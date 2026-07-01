@@ -210,6 +210,20 @@ function getQuestActionButtonAppearance(
   };
 }
 
+function getClaimableGroupedQuests<T extends string>(
+  order: T[],
+  quests: Partial<Record<T, Quest>>,
+) {
+  return order.flatMap((key) => {
+    const quest = quests[key];
+    return quest?.completed && !quest.claimed ? [quest] : [];
+  });
+}
+
+function getQuestRewardTotal(quests: Quest[]) {
+  return quests.reduce((total, quest) => total + quest.reward, 0);
+}
+
 function RewardAmount({
   amount,
   claimed,
@@ -1187,6 +1201,53 @@ export default function QuestsScreen() {
     },
   });
 
+  const claimGroupedQuestsMutation = useMutation({
+    mutationFn: async ({
+      quests,
+    }: {
+      group: SharingGroup;
+      quests: Quest[];
+    }) => {
+      const responses = await Promise.all(
+        quests.map((quest) => apiClient.claimQuest({ questId: quest.id })),
+      );
+
+      const newBalance = responses.reduce<number | null>(
+        (highest, response) =>
+          highest == null
+            ? response.newBalance
+            : Math.max(highest, response.newBalance),
+        null,
+      );
+
+      return {
+        claimedReward: getQuestRewardTotal(quests),
+        newBalance,
+      };
+    },
+    onSuccess: async (data) => {
+      if (data.newBalance != null) {
+        await patchUser({ coins: data.newBalance });
+      }
+
+      setToast({
+        message: t("quests.claimSuccess", {
+          amount: data.claimedReward,
+        }),
+        type: "success",
+      });
+    },
+    onError: () => {
+      setToast({ message: t("quests.claimFailed"), type: "error" });
+    },
+    onSettled: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["quests"] }),
+        queryClient.invalidateQueries({ queryKey: ["home"] }),
+      ]);
+    },
+  });
+
   useEffect(() => {
     if (!lastQuestResetAt || !lastQuestResetPayload) return;
     if (lastShownQuestResetToastAt === lastQuestResetAt) return;
@@ -1406,6 +1467,13 @@ export default function QuestsScreen() {
                   (sum, language) => sum + (item.quests[language]?.reward ?? 0),
                   0,
                 );
+                const claimableQuests = getClaimableGroupedQuests(
+                  WORDLE_LANGUAGES,
+                  item.quests,
+                );
+                const isGroupClaimLoading =
+                  claimGroupedQuestsMutation.isPending &&
+                  claimGroupedQuestsMutation.variables?.group === "wordle";
                 const progressPct =
                   availableLanguages.length === 0
                     ? 0
@@ -1547,7 +1615,30 @@ export default function QuestsScreen() {
                       </View>
                     </TouchableOpacity>
 
-                    <View className="mt-4 w-full">
+                    <View className="mt-4 flex-row gap-3">
+                      {claimableQuests.length > 0 ? (
+                        <QuestButton
+                          label={t("quests.claimAll")}
+                          onPress={() => {
+                            void claimGroupedQuestsMutation.mutateAsync({
+                              group: "wordle",
+                              quests: claimableQuests,
+                            });
+                          }}
+                          disabled={
+                            claimQuestMutation.isPending ||
+                            claimGroupedQuestsMutation.isPending
+                          }
+                          loading={isGroupClaimLoading}
+                          leadingAccessory={CLAIM_BUTTON_ICON}
+                          backgroundColor={tc.successDark}
+                          minHeight={48}
+                          testID="quests-wordle-claim-all"
+                          style={{
+                            flex: 1,
+                          }}
+                        />
+                      ) : null}
                       <QuestButton
                         label={
                           sharingGroup === "wordle"
@@ -1568,7 +1659,7 @@ export default function QuestsScreen() {
                         leadingIcon={ShareIcon}
                         minHeight={48}
                         style={{
-                          width: "100%",
+                          flex: 1,
                         }}
                       />
                     </View>
@@ -1698,6 +1789,9 @@ export default function QuestsScreen() {
                                     onPress={() =>
                                       void claimQuestMutation.mutateAsync(quest)
                                     }
+                                    disabled={
+                                      claimGroupedQuestsMutation.isPending
+                                    }
                                     loading={isClaimLoading}
                                     leadingAccessory={CLAIM_BUTTON_ICON}
                                     backgroundColor={tc.successDark}
@@ -1734,6 +1828,14 @@ export default function QuestsScreen() {
                 const totalReward = availableModes.reduce((sum, mode) => {
                   return sum + (item.quests[mode]?.reward ?? 0);
                 }, 0);
+                const claimableQuests = getClaimableGroupedQuests(
+                  DAILY_NUMBERS_MODES,
+                  item.quests,
+                );
+                const isGroupClaimLoading =
+                  claimGroupedQuestsMutation.isPending &&
+                  claimGroupedQuestsMutation.variables?.group ===
+                    "dailyNumbers";
                 const progressPct =
                   availableModes.length === 0
                     ? 0
@@ -1886,7 +1988,30 @@ export default function QuestsScreen() {
                       </View>
                     </TouchableOpacity>
 
-                    <View className="mt-4 w-full">
+                    <View className="mt-4 flex-row gap-3">
+                      {claimableQuests.length > 0 ? (
+                        <QuestButton
+                          label={t("quests.claimAll")}
+                          onPress={() => {
+                            void claimGroupedQuestsMutation.mutateAsync({
+                              group: "dailyNumbers",
+                              quests: claimableQuests,
+                            });
+                          }}
+                          disabled={
+                            claimQuestMutation.isPending ||
+                            claimGroupedQuestsMutation.isPending
+                          }
+                          loading={isGroupClaimLoading}
+                          leadingAccessory={CLAIM_BUTTON_ICON}
+                          backgroundColor={tc.successDark}
+                          minHeight={48}
+                          testID="quests-daily-numbers-claim-all"
+                          style={{
+                            flex: 1,
+                          }}
+                        />
+                      ) : null}
                       <QuestButton
                         label={
                           sharingGroup === "dailyNumbers"
@@ -1908,7 +2033,7 @@ export default function QuestsScreen() {
                         leadingIcon={ShareIcon}
                         minHeight={48}
                         style={{
-                          width: "100%",
+                          flex: 1,
                         }}
                       />
                     </View>
@@ -2027,6 +2152,9 @@ export default function QuestsScreen() {
                                     label={t("quests.claim")}
                                     onPress={() =>
                                       void claimQuestMutation.mutateAsync(quest)
+                                    }
+                                    disabled={
+                                      claimGroupedQuestsMutation.isPending
                                     }
                                     loading={isClaimLoading}
                                     leadingAccessory={CLAIM_BUTTON_ICON}

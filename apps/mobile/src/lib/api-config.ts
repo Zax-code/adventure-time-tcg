@@ -31,6 +31,7 @@ function resolveApiBaseUrl(rawBaseUrl: string) {
       return normalizedBaseUrl;
     }
 
+    // greenlight:ignore hardcoded-ipv4
     url.hostname = "10.0.2.2";
 
     const pathname = url.pathname === "/" ? "" : url.pathname.replace(/\/$/, "");

@@ -408,6 +408,24 @@ export default function AdminUserEditorScreen() {
                         tone="accent"
                       />
                     ) : null}
+                    {detail.authMethods.password ? (
+                      <AdminChip
+                        label={t("admin.common.authPassword")}
+                        tone="default"
+                      />
+                    ) : null}
+                    {detail.authMethods.google ? (
+                      <AdminChip
+                        label={t("admin.common.authGoogle")}
+                        tone="info"
+                      />
+                    ) : null}
+                    {detail.authMethods.apple ? (
+                      <AdminChip
+                        label={t("admin.common.authApple")}
+                        tone="accent"
+                      />
+                    ) : null}
                     <AdminChip
                       label={t("admin.common.joinedDate", {
                         date: formatDate(detail.createdAt),

@@ -11,12 +11,10 @@ import {
   getEventAmount,
   getEventChance,
   getEventCritChance,
-  getEventCritRoll,
   getEventDestinationId,
   getEventDestinationName,
   getEventHealing,
   getEventMissChance,
-  getEventMissRoll,
   getEventMaxEnergy,
   getEventOptionCount,
   getEventRemaining,
@@ -31,8 +29,8 @@ import {
   getEventWinnerLabel,
   didEventExecute,
   didEventRollPass,
-  isCritEvent,
   isMissEvent,
+  isCritEvent,
   isDrawEvent,
 } from "./event-payload";
 import type { PvpBattleState } from "./types";
@@ -52,9 +50,23 @@ type Translate = (
 type ResolveDisplayName = (id: string | null) => string | null;
 type ResolveAbilityName = (keyOrName: string | null) => string | null;
 
+const LOW_HIT_CHANCE = 0.65;
+const HIGH_HIT_CHANCE = 0.85;
+const LOW_CRIT_CHANCE = 0.1;
+const HIGH_CRIT_CHANCE = 0.2;
+
 interface CombatLogResolvers {
   displayName: ResolveDisplayName;
   abilityName: ResolveAbilityName;
+}
+
+interface CombatLogSummary {
+  message: string;
+  detail?: string;
+}
+
+function combatLogMessage(message: string): CombatLogSummary {
+  return { message };
 }
 
 function formatPercent(value: number): string {
@@ -62,57 +74,127 @@ function formatPercent(value: number): string {
   return `${percent < 10 ? percent.toFixed(1) : percent.toFixed(0)}%`;
 }
 
-function formatAttackRollDetail(
+function getEventHitChance(
+  event: PvpBattleState["log"][number],
+): number | null {
+  const missChance = getEventMissChance(event);
+  return missChance === null ? null : 1 - missChance;
+}
+
+function formatAttackChanceDetail(
   event: PvpBattleState["log"][number],
   t: Translate,
-): string {
-  const missRoll = getEventMissRoll(event);
-  const missChance = getEventMissChance(event);
+): string | undefined {
+  const hitChance = getEventHitChance(event);
 
-  if (missRoll === null || missChance === null) {
-    return "";
+  if (hitChance === null) {
+    return undefined;
   }
 
   if (isMissEvent(event)) {
-    return t("pvp.combatLog.attackMissRollDetail", {
-      missRoll: formatPercent(missRoll),
-      missChance: formatPercent(missChance),
+    return t("pvp.combatLog.hitChanceDetail", {
+      hitChance: formatPercent(hitChance),
     });
   }
 
-  const critRoll = getEventCritRoll(event);
   const critChance = getEventCritChance(event);
 
-  if (critRoll === null || critChance === null) {
-    return t("pvp.combatLog.attackMissOnlyRollDetail", {
-      missRoll: formatPercent(missRoll),
-      missChance: formatPercent(missChance),
+  if (critChance === null) {
+    return t("pvp.combatLog.hitChanceDetail", {
+      hitChance: formatPercent(hitChance),
     });
   }
 
-  return t("pvp.combatLog.attackHitRollDetail", {
-    missRoll: formatPercent(missRoll),
-    missChance: formatPercent(missChance),
-    critRoll: formatPercent(critRoll),
+  return t("pvp.combatLog.hitCritChanceDetail", {
+    hitChance: formatPercent(hitChance),
     critChance: formatPercent(critChance),
   });
 }
 
-function formatCritRollDetail(
+function summarizeDamageEvent(
   event: PvpBattleState["log"][number],
   t: Translate,
-): string {
-  const critRoll = getEventCritRoll(event);
+  attacker: string,
+  target: string,
+): CombatLogSummary {
+  const amount = String(getEventAmount(event) ?? 0);
+  const hitChance = getEventHitChance(event);
   const critChance = getEventCritChance(event);
+  const detail = formatAttackChanceDetail(event, t);
 
-  if (critRoll === null || critChance === null) {
-    return "";
+  if (isMissEvent(event)) {
+    if (hitChance !== null && hitChance >= HIGH_HIT_CHANCE) {
+      return {
+        message: t("pvp.combatLog.missHighHitChance", { attacker, target }),
+        detail,
+      };
+    }
+
+    if (hitChance !== null && hitChance >= LOW_HIT_CHANCE) {
+      return {
+        message: t("pvp.combatLog.missMediumHitChance", { attacker, target }),
+        detail,
+      };
+    }
+
+    return {
+      message: t("pvp.combatLog.missLowHitChance", { attacker, target }),
+      detail,
+    };
   }
 
-  return t("pvp.combatLog.critRollDetail", {
-    critRoll: formatPercent(critRoll),
-    critChance: formatPercent(critChance),
-  });
+  if (isCritEvent(event)) {
+    if (critChance !== null && critChance < LOW_CRIT_CHANCE) {
+      return {
+        message: t("pvp.combatLog.critLowChance", {
+          attacker,
+          target,
+          amount,
+        }),
+        detail,
+      };
+    }
+
+    if (critChance !== null && critChance >= HIGH_CRIT_CHANCE) {
+      return {
+        message: t("pvp.combatLog.critHighChance", {
+          attacker,
+          target,
+          amount,
+        }),
+        detail,
+      };
+    }
+
+    return {
+      message: t("pvp.combatLog.critMediumChance", {
+        attacker,
+        target,
+        amount,
+      }),
+      detail,
+    };
+  }
+
+  if (hitChance !== null && hitChance < LOW_HIT_CHANCE) {
+    return {
+      message: t("pvp.combatLog.damageLowHitChance", {
+        attacker,
+        target,
+        amount,
+      }),
+      detail,
+    };
+  }
+
+  return {
+    message: t("pvp.combatLog.damage", {
+      attacker,
+      target,
+      amount,
+    }),
+    detail,
+  };
 }
 
 function formatChanceRollDetail(event: PvpBattleState["log"][number]): string {
@@ -177,7 +259,7 @@ function summarizeCombatEvent(
   event: PvpBattleState["log"][number],
   t: Translate,
   resolvers: CombatLogResolvers,
-): string {
+): CombatLogSummary {
   const unit = t("pvp.combatLog.unitFallback");
   const player = t("pvp.combatLog.playerFallback");
   const target = t("pvp.combatLog.targetFallback");
@@ -198,99 +280,103 @@ function summarizeCombatEvent(
 
   switch (event.type) {
     case "matchStart":
-      return t("pvp.combatLog.matchStart", {
-        roll:
-          formatChanceRollDetail(event) === ""
-            ? ""
-            : t("pvp.combatLog.initiativeTieRollDetail", {
-                roll: formatChanceRollDetail(event),
-              }),
-      });
+      return {
+        message: t("pvp.combatLog.matchStart", {
+          roll:
+            formatChanceRollDetail(event) === ""
+              ? ""
+              : t("pvp.combatLog.initiativeTieRollDetail", {
+                  roll: formatChanceRollDetail(event),
+                }),
+        }),
+      };
     case "turnStart":
-      return t("pvp.combatLog.turnStart", { turn: event.turn });
+      return { message: t("pvp.combatLog.turnStart", { turn: event.turn }) };
     case "turnEnd":
-      return t("pvp.combatLog.turnEnd", { turn: event.turn });
+      return { message: t("pvp.combatLog.turnEnd", { turn: event.turn }) };
     case "energyGrant":
       const amount = getEventAmount(event) ?? 0;
       const maxEnergy = getEventMaxEnergy(event);
-      return t("pvp.combatLog.energyGrant", {
-        player: actorName ?? player,
-        amount: maxEnergy === null ? String(amount) : `${amount}/${maxEnergy}`,
-      });
+      return {
+        message: t("pvp.combatLog.energyGrant", {
+          player: actorName ?? player,
+          amount:
+            maxEnergy === null ? String(amount) : `${amount}/${maxEnergy}`,
+        }),
+      };
     case "abilityStart":
-      return t("pvp.combatLog.abilityStart", {
-        actor: actorName ?? unit,
-        ability: abilityLabel ?? ability,
-      });
+      return {
+        message: t("pvp.combatLog.abilityStart", {
+          actor: actorName ?? unit,
+          ability: abilityLabel ?? ability,
+        }),
+      };
     case "damage":
-      if (isMissEvent(event)) {
-        return t("pvp.combatLog.miss", {
-          attacker: actorName ?? unit,
-          target: targetName ?? target,
-          roll: formatAttackRollDetail(event, t),
-        });
-      }
-      if (isCritEvent(event)) {
-        return t("pvp.combatLog.criticalDamage", {
-          attacker: actorName ?? unit,
-          amount: String(getEventAmount(event) ?? 0),
-          target: targetName ?? target,
-          roll: formatAttackRollDetail(event, t),
-        });
-      }
-      return t("pvp.combatLog.damage", {
-        attacker: actorName ?? unit,
-        amount: String(getEventAmount(event) ?? 0),
-        target: targetName ?? target,
-        roll: formatAttackRollDetail(event, t),
-      });
+      return summarizeDamageEvent(
+        event,
+        t,
+        actorName ?? unit,
+        targetName ?? target,
+      );
     case "crit":
-      return t("pvp.combatLog.crit", {
-        attacker: actorName ?? unit,
-        target: targetName ?? target,
-        roll: formatCritRollDetail(event, t),
-      });
+      return combatLogMessage(
+        t("pvp.combatLog.crit", { target: targetName ?? target }),
+      );
     case "ko":
-      return t("pvp.combatLog.ko", {
-        target: targetName ?? unit,
-      });
+      return combatLogMessage(
+        t("pvp.combatLog.ko", { target: targetName ?? unit }),
+      );
     case "heal":
-      return t("pvp.combatLog.heal", {
-        target: targetName ?? unit,
-        amount: String(getEventAmount(event) ?? 0),
-      });
+      return {
+        message: t("pvp.combatLog.heal", {
+          target: targetName ?? unit,
+          amount: String(getEventAmount(event) ?? 0),
+        }),
+      };
     case "revive":
-      return t("pvp.combatLog.revive", {
-        target: targetName ?? unit,
-      });
+      return combatLogMessage(
+        t("pvp.combatLog.revive", { target: targetName ?? unit }),
+      );
     case "shieldAbsorb":
-      return t("pvp.combatLog.shieldAbsorb", {
-        target: targetName ?? unit,
-        amount: String(getEventAmount(event) ?? 0),
-      });
+      return {
+        message: t("pvp.combatLog.shieldAbsorb", {
+          target: targetName ?? unit,
+          amount: String(getEventAmount(event) ?? 0),
+        }),
+      };
     case "swap":
-      return t("pvp.combatLog.swap", {
-        player: actorName ?? player,
-      });
+      return combatLogMessage(
+        t("pvp.combatLog.swap", {
+          player: actorName ?? player,
+        }),
+      );
     case "formation":
-      return t("pvp.combatLog.formation");
+      return combatLogMessage(t("pvp.combatLog.formation"));
     case "pass":
-      return t("pvp.combatLog.pass", {
-        player: actorName ?? player,
-      });
+      return combatLogMessage(
+        t("pvp.combatLog.pass", {
+          player: actorName ?? player,
+        }),
+      );
     case "concede":
-      return t("pvp.combatLog.concede", {
-        player: actorName ?? player,
-      });
+      return combatLogMessage(
+        t("pvp.combatLog.concede", {
+          player: actorName ?? player,
+        }),
+      );
     case "timeout":
-      return t("pvp.combatLog.timeout", {
-        player: actorName ?? player,
-      });
+      return combatLogMessage(
+        t("pvp.combatLog.timeout", {
+          player: actorName ?? player,
+        }),
+      );
     case "statusApply":
-      return t("pvp.combatLog.statusApply", {
-        target: targetName ?? unit,
-        status: localizeStatusName(getEventStatusName(event) ?? "", t),
-      });
+      return combatLogMessage(
+        t("pvp.combatLog.statusApply", {
+          target: targetName ?? unit,
+          status: localizeStatusName(getEventStatusName(event) ?? "", t),
+        }),
+      );
     case "statusTick":
       const statusName = getEventStatusName(event) ?? "";
       const localizedStatus = localizeStatusName(statusName, t);
@@ -298,143 +384,187 @@ function summarizeCombatEvent(
       const tickHealing = getEventHealing(event);
 
       if (didEventExecute(event)) {
-        return t("pvp.combatLog.statusExecute", {
-          target: targetName ?? unit,
-          status: localizedStatus,
-        });
+        return combatLogMessage(
+          t("pvp.combatLog.statusExecute", {
+            target: targetName ?? unit,
+            status: localizedStatus,
+          }),
+        );
       }
 
       if (tickHealing !== null && tickHealing > 0) {
-        return t("pvp.combatLog.statusTickHealing", {
-          target: targetName ?? unit,
-          status: localizedStatus,
-          amount: String(tickHealing),
-        });
+        return combatLogMessage(
+          t("pvp.combatLog.statusTickHealing", {
+            target: targetName ?? unit,
+            status: localizedStatus,
+            amount: String(tickHealing),
+          }),
+        );
       }
 
       if (tickAmount > 0) {
-        return t("pvp.combatLog.statusTickDamage", {
+        return combatLogMessage(
+          t("pvp.combatLog.statusTickDamage", {
+            target: targetName ?? unit,
+            status: localizedStatus,
+            amount: String(tickAmount),
+          }),
+        );
+      }
+
+      return combatLogMessage(
+        t("pvp.combatLog.statusTick", {
           target: targetName ?? unit,
           status: localizedStatus,
-          amount: String(tickAmount),
-        });
-      }
-
-      return t("pvp.combatLog.statusTick", {
-        target: targetName ?? unit,
-        status: localizedStatus,
-      });
-    case "statusExpire":
-      return t("pvp.combatLog.statusExpire", {
-        status: localizeStatusName(getEventStatusName(event) ?? "", t),
-        target: targetName ?? unit,
-      });
-    case "statusCleanse":
-      return t("pvp.combatLog.statusCleanse", {
-        target: targetName ?? unit,
-        status: localizeStatusName(getEventStatusName(event) ?? "", t),
-      });
-    case "passiveRoll":
-      return t(
-        didEventRollPass(event)
-          ? "pvp.combatLog.passiveRollPass"
-          : "pvp.combatLog.passiveRollFail",
-        {
-          unit: actorName ?? unit,
-          ability: abilityLabel ?? ability,
-          roll: formatChanceRollDetail(event),
-        },
+        }),
       );
-    case "passiveTrigger":
-      return t("pvp.combatLog.passiveTrigger", {
-        unit: actorName ?? unit,
-        ability: abilityLabel ?? ability,
-      });
-    case "statusRoll":
-      return t(
-        didEventRollPass(event)
-          ? "pvp.combatLog.statusRollPass"
-          : "pvp.combatLog.statusRollFail",
-        {
+    case "statusExpire":
+      return combatLogMessage(
+        t("pvp.combatLog.statusExpire", {
+          status: localizeStatusName(getEventStatusName(event) ?? "", t),
+          target: targetName ?? unit,
+        }),
+      );
+    case "statusCleanse":
+      return combatLogMessage(
+        t("pvp.combatLog.statusCleanse", {
           target: targetName ?? unit,
           status: localizeStatusName(getEventStatusName(event) ?? "", t),
-          roll: formatChanceRollDetail(event),
-        },
+        }),
+      );
+    case "passiveRoll":
+      return combatLogMessage(
+        t(
+          didEventRollPass(event)
+            ? "pvp.combatLog.passiveRollPass"
+            : "pvp.combatLog.passiveRollFail",
+          {
+            unit: actorName ?? unit,
+            ability: abilityLabel ?? ability,
+            roll: formatChanceRollDetail(event),
+          },
+        ),
+      );
+    case "passiveTrigger":
+      return combatLogMessage(
+        t("pvp.combatLog.passiveTrigger", {
+          unit: actorName ?? unit,
+          ability: abilityLabel ?? ability,
+        }),
+      );
+    case "statusRoll":
+      return combatLogMessage(
+        t(
+          didEventRollPass(event)
+            ? "pvp.combatLog.statusRollPass"
+            : "pvp.combatLog.statusRollFail",
+          {
+            target: targetName ?? unit,
+            status: localizeStatusName(getEventStatusName(event) ?? "", t),
+            roll: formatChanceRollDetail(event),
+          },
+        ),
       );
     case "randomStatusRoll":
-      return t("pvp.combatLog.randomStatusRoll", {
-        target: targetName ?? unit,
-        status: localizeStatusName(getEventStatusName(event) ?? "", t),
-        roll: formatRandomChoiceDetail(event, t),
-      });
+      return combatLogMessage(
+        t("pvp.combatLog.randomStatusRoll", {
+          target: targetName ?? unit,
+          status: localizeStatusName(getEventStatusName(event) ?? "", t),
+          roll: formatRandomChoiceDetail(event, t),
+        }),
+      );
     case "cooldownTick":
-      return t("pvp.combatLog.cooldownTick", {
-        target: targetName ?? unit,
-        ability: abilityLabel ?? ability,
-        count: String(getEventRemaining(event) ?? 0),
-      });
+      return combatLogMessage(
+        t("pvp.combatLog.cooldownTick", {
+          target: targetName ?? unit,
+          ability: abilityLabel ?? ability,
+          count: String(getEventRemaining(event) ?? 0),
+        }),
+      );
     case "freeze_skip":
-      return t("pvp.combatLog.freezeSkip", {
-        target: targetName ?? unit,
-      });
+      return combatLogMessage(
+        t("pvp.combatLog.freezeSkip", {
+          target: targetName ?? unit,
+        }),
+      );
     case "stun_consume":
-      return t("pvp.combatLog.stunConsume", {
-        target: targetName ?? unit,
-      });
+      return combatLogMessage(
+        t("pvp.combatLog.stunConsume", {
+          target: targetName ?? unit,
+        }),
+      );
     case "coverRedirect":
-      return t("pvp.combatLog.coverRedirect", {
-        source: sourceName ?? target,
-        target: destinationName ?? unit,
-      });
+      return combatLogMessage(
+        t("pvp.combatLog.coverRedirect", {
+          source: sourceName ?? target,
+          target: destinationName ?? unit,
+        }),
+      );
     case "thorns":
-      return t("pvp.combatLog.thorns", {
-        source: sourceName ?? unit,
-        target: targetName ?? target,
-        amount: String(getEventAmount(event) ?? 0),
-      });
+      return combatLogMessage(
+        t("pvp.combatLog.thorns", {
+          source: sourceName ?? unit,
+          target: targetName ?? target,
+          amount: String(getEventAmount(event) ?? 0),
+        }),
+      );
     case "counter":
-      return t("pvp.combatLog.counter", {
-        source: sourceName ?? unit,
-        target: targetName ?? target,
-        amount: String(getEventAmount(event) ?? 0),
-      });
+      return combatLogMessage(
+        t("pvp.combatLog.counter", {
+          source: sourceName ?? unit,
+          target: targetName ?? target,
+          amount: String(getEventAmount(event) ?? 0),
+        }),
+      );
     case "selfDamage":
-      return t("pvp.combatLog.selfDamage", {
-        actor: actorName ?? unit,
-        amount: String(getEventAmount(event) ?? 0),
-      });
+      return combatLogMessage(
+        t("pvp.combatLog.selfDamage", {
+          actor: actorName ?? unit,
+          amount: String(getEventAmount(event) ?? 0),
+        }),
+      );
     case "reflectDamage":
-      return t("pvp.combatLog.reflectDamage", {
-        source: sourceName ?? unit,
-        target: targetName ?? target,
-        amount: String(getEventAmount(event) ?? 0),
-      });
+      return combatLogMessage(
+        t("pvp.combatLog.reflectDamage", {
+          source: sourceName ?? unit,
+          target: targetName ?? target,
+          amount: String(getEventAmount(event) ?? 0),
+        }),
+      );
     case "preventDeath":
-      return t("pvp.combatLog.preventDeath", {
-        target: targetName ?? unit,
-        ability: abilityLabel ?? ability,
-      });
+      return combatLogMessage(
+        t("pvp.combatLog.preventDeath", {
+          target: targetName ?? unit,
+          ability: abilityLabel ?? ability,
+        }),
+      );
     case "statusSteal":
-      return t("pvp.combatLog.statusSteal", {
-        status: localizeStatusName(getEventStatusName(event) ?? "", t),
-        source: sourceName ?? target,
-        target: destinationName ?? unit,
-      });
+      return combatLogMessage(
+        t("pvp.combatLog.statusSteal", {
+          status: localizeStatusName(getEventStatusName(event) ?? "", t),
+          source: sourceName ?? target,
+          target: destinationName ?? unit,
+        }),
+      );
     case "swapHp":
-      return t("pvp.combatLog.swapHp", {
-        actor: actorName ?? unit,
-        target: targetName ?? target,
-      });
+      return combatLogMessage(
+        t("pvp.combatLog.swapHp", {
+          actor: actorName ?? unit,
+          target: targetName ?? target,
+        }),
+      );
     case "gameOver":
       if (isDrawEvent(event)) {
-        return t("pvp.combatLog.draw");
+        return combatLogMessage(t("pvp.combatLog.draw"));
       }
 
-      return t("pvp.combatLog.winner", {
-        winner: winnerLabel ?? t("pvp.combatLog.unknown"),
-      });
+      return combatLogMessage(
+        t("pvp.combatLog.winner", {
+          winner: winnerLabel ?? t("pvp.combatLog.unknown"),
+        }),
+      );
     default:
-      return event.type;
+      return combatLogMessage(event.type);
   }
 }
 
@@ -512,10 +642,19 @@ export function CombatLogModal({
   const recentLog = useMemo(
     () =>
       log
-        .map((event, index) => ({
-          event,
-          key: getCombatLogEventKey(event, index),
-        }))
+        .reduce<Array<{ event: PvpBattleState["log"][number]; key: string }>>(
+          (events, event, index) => {
+            if (event.type !== "crit") {
+              events.push({
+                event,
+                key: getCombatLogEventKey(event, index),
+              });
+            }
+
+            return events;
+          },
+          [],
+        )
         .reverse()
         .slice(0, 30),
     [log],
@@ -540,25 +679,36 @@ export function CombatLogModal({
             </Text>
           </View>
         ) : (
-          recentLog.map(({ event, key }) => (
-            <View
-              key={key}
-              className={`rounded-3xl border px-4 py-3 ${getEventClasses(event.type)}`}
-            >
-              <View className="flex-row items-start justify-between gap-3">
-                <Text
-                  className={`flex-1 font-nunito text-sm leading-5 ${getEventTextClass(event.type)}`}
-                >
-                  {summarizeCombatEvent(event, t, resolvers)}
-                </Text>
-                <View className="rounded-full bg-black/5 px-2 py-1">
-                  <Text className="font-nunito-bold text-[10px] text-fgMuted">
-                    {t("pvp.combatLog.turnBadge", { turn: event.turn })}
-                  </Text>
+          recentLog.map(({ event, key }) => {
+            const summary = summarizeCombatEvent(event, t, resolvers);
+
+            return (
+              <View
+                key={key}
+                className={`rounded-3xl border px-4 py-3 ${getEventClasses(event.type)}`}
+              >
+                <View className="flex-row items-start justify-between gap-3">
+                  <View className="flex-1">
+                    <Text
+                      className={`font-nunito text-sm leading-5 ${getEventTextClass(event.type)}`}
+                    >
+                      {summary.message}
+                    </Text>
+                    {summary.detail ? (
+                      <Text className="mt-1 font-nunito-bold text-xs leading-4 text-fgMuted">
+                        {summary.detail}
+                      </Text>
+                    ) : null}
+                  </View>
+                  <View className="rounded-full bg-black/5 px-2 py-1">
+                    <Text className="font-nunito-bold text-[10px] text-fgMuted">
+                      {t("pvp.combatLog.turnBadge", { turn: event.turn })}
+                    </Text>
+                  </View>
                 </View>
               </View>
-            </View>
-          ))
+            );
+          })
         )}
       </View>
     </BattleFullScreenSheet>

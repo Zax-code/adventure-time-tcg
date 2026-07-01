@@ -114,6 +114,28 @@ const settings = {
   sessionIntro: "Gère cette session sur l'appareil.",
   sessionHelp:
     "Se déconnecter ici supprime seulement la session sur cet appareil.",
+  passwordTitle: "Connexion par mot de passe",
+  passwordChangeHelp:
+    "Modifie le mot de passe de ce compte. Les connexions Google et Apple restent actives quand elles sont disponibles.",
+  passwordCreateHelp:
+    "Ajoute un mot de passe à ce compte approuvé pour pouvoir aussi te connecter par e-mail.",
+  currentPasswordPlaceholder: "Mot de passe actuel",
+  newPasswordPlaceholder: "Nouveau mot de passe (8+ caractères)",
+  confirmNewPasswordPlaceholder: "Confirmer le nouveau mot de passe",
+  createPasswordAction: "Créer le mot de passe",
+  changePasswordAction: "Changer le mot de passe",
+  passwordCreated:
+    "Mot de passe créé. Tu peux maintenant te connecter par e-mail et mot de passe.",
+  passwordUpdated: "Mot de passe mis à jour.",
+  passwordMismatch: "Les nouveaux mots de passe ne correspondent pas.",
+  passwordTooShort: "Le mot de passe doit contenir au moins 8 caractères.",
+  currentPasswordRequired: "Le mot de passe actuel est obligatoire.",
+  passwordChangeFailed: "La mise à jour du mot de passe a échoué. Réessaie.",
+  authMethods: {
+    password: "Mot de passe",
+    google: "Google",
+    apple: "Apple",
+  },
   privacyTitle: "Confidentialité et données",
   privacyIntro: "Consulte la façon dont les données du compte et du jeu sont utilisées.",
   privacyHelp:

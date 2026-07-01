@@ -34,6 +34,9 @@ const admin = {
     coinsCount: "{count} pièces",
     joinedDate: "Inscrit le {date}",
     todayDate: "Aujourd'hui {date}",
+    authPassword: "Mot de passe",
+    authGoogle: "Google",
+    authApple: "Apple",
   },
   users: {
     title: "Utilisateurs",

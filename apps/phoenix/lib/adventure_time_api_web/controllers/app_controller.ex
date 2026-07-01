@@ -207,6 +207,24 @@ defmodule AdventureTimeApiWeb.AppController do
     |> json(%{error: "notificationPreferences is required"})
   end
 
+  def update_password(conn, params) do
+    case Accounts.update_password(conn.assigns.auth_user.id, params) do
+      {:ok, user} ->
+        json(conn, user)
+
+      {:error, :not_found, message} ->
+        conn |> put_status(:not_found) |> json(%{error: message})
+
+      {:error, :invalid_current_password, message} ->
+        conn
+        |> put_status(:bad_request)
+        |> json(%{error: message, code: "INVALID_CURRENT_PASSWORD"})
+
+      {:error, :validation, message} ->
+        conn |> put_status(:bad_request) |> json(%{error: message})
+    end
+  end
+
   def delete_account(conn, _params) do
     case Accounts.delete_own_account(conn.assigns.auth_user.id) do
       {:ok, result} ->

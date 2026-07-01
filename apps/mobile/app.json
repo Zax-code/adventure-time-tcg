@@ -1,14 +1,28 @@
 {
   "expo": {
     "name": "Adventure Time TCG",
+    "description": "Collect Adventure Time-inspired cards, open packs, complete daily quests, and battle friends.",
     "slug": "adventure-time-tcg",
     "scheme": "adventure-time",
-    "version": "1.0.7",
+    "version": "1.0.8",
     "owner": "zax-code",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "ios": {
+      "bundleIdentifier": "love.leaetzak.adventuretime",
+      "icon": "./assets/ios-icon.png",
       "requireFullScreen": true,
-      "usesAppleSignIn": true
+      "usesAppleSignIn": true,
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "infoPlist": {
+        "NSLocalNetworkUsageDescription": "Adventure Time TCG needs local network access to connect to the development server on this Mac.",
+        "NSBonjourServices": [
+          "_expo._tcp",
+          "_reactnative._tcp"
+        ]
+      }
     },
     "android": {
       "blockedPermissions": [
@@ -27,6 +41,7 @@
     },
     "extra": {
       "router": {},
+      "privacyPolicyUrl": "https://app.leaetzak.love/privacy",
       "eas": {
         "projectId": "bba73c43-35cf-4baf-885e-2126ec97cf3a"
       }
