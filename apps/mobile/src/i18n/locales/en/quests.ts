@@ -6,6 +6,7 @@ const quests = {
   connectFitbitDesc:
     "Link your Fitbit account to unlock step-tracking quests and earn more coins!",
   claim: "Claim",
+  claimAll: "Claim all",
   progress: "Progress",
   completedBadge: "Completed",
   claimedBadge: "Completed",
