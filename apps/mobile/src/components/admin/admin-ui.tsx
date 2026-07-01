@@ -607,7 +607,7 @@ export function AdminButton({
         }
       : {}),
     borderRadius: borderRadius ?? 16,
-    paddingHorizontal: 14,
+    paddingHorizontal: 15,
     paddingVertical: 10,
     minHeight: 44,
     textStyle: {
