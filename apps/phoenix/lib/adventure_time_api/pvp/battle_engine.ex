@@ -1093,6 +1093,7 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
   defp passive_target_id(trigger, context, unit_id) do
     case trigger do
       "onDamageDealt" -> context["targetId"]
+      "onDealDamage" -> context["targetId"]
       "onDamageTaken" -> context["attackerId"]
       "onBelowHp" -> context["unitId"] || unit_id
       "onHealAlly" -> context["targetId"] || unit_id
@@ -1105,6 +1106,9 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
   defp passive_applies_to_unit?(trigger, player, unit, context) do
     case trigger do
       "onDamageDealt" ->
+        context["attackerId"] == unit["instanceId"]
+
+      "onDealDamage" ->
         context["attackerId"] == unit["instanceId"]
 
       "onDamageTaken" ->
@@ -1226,7 +1230,109 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
 
   defp apply_passive_stat_bonus(state, _unit_id, _stat_bonus), do: state
 
-  defp apply_passive_stat_bonus_targets(state, unit, payload) do
+  defp stat_bonus_delta(unit, stat_bonus) do
+    hp_bonus = stat_bonus_rate(Map.get(stat_bonus, "hp", 0))
+    atk_bonus = stat_bonus_rate(Map.get(stat_bonus, "attack", 0))
+    def_bonus = stat_bonus_rate(Map.get(stat_bonus, "defense", 0))
+    speed_bonus = stat_bonus_rate(Map.get(stat_bonus, "speed", 0))
+
+    max_hp = unit["maxHp"] || 0
+    attack = unit["attack"] || 0
+    defense = unit["defense"] || 0
+    speed = unit["speed"] || 0
+
+    %{
+      "maxHp" => max(1, floor(max_hp * (1 + hp_bonus))) - max_hp,
+      "attack" => max(1, floor(attack * (1 + atk_bonus))) - attack,
+      "defense" => max(0, floor(defense * (1 + def_bonus))) - defense,
+      "speed" => max(1, floor(speed * (1 + speed_bonus))) - speed
+    }
+    |> Enum.reject(fn {_key, value} -> value == 0 end)
+    |> Map.new()
+  end
+
+  defp apply_tracked_stat_aura(state, unit_id, source_id, passive_key, stat_bonus) do
+    update_unit(state, unit_id, fn unit ->
+      aura_key = "#{source_id}:#{passive_key}"
+      contributions = unit["statAuraContributions"] || %{}
+
+      if Map.has_key?(contributions, aura_key) do
+        unit
+      else
+        delta =
+          unit
+          |> stat_bonus_delta(stat_bonus)
+          |> Map.put("sourceInstanceId", source_id)
+          |> Map.put("abilityKey", passive_key)
+
+        unit
+        |> apply_stat_delta(delta)
+        |> Map.put("statAuraContributions", Map.put(contributions, aura_key, delta))
+      end
+    end)
+  end
+
+  defp apply_stat_delta(unit, delta) do
+    max_hp_delta = delta["maxHp"] || 0
+
+    unit
+    |> Map.update!("maxHp", &max(1, &1 + max_hp_delta))
+    |> Map.update!("hp", fn hp ->
+      hp
+      |> Kernel.+(max_hp_delta)
+      |> max(1)
+      |> min((unit["maxHp"] || 1) + max_hp_delta)
+    end)
+    |> Map.update!("attack", &max(1, &1 + (delta["attack"] || 0)))
+    |> Map.update!("defense", &max(0, &1 + (delta["defense"] || 0)))
+    |> Map.update!("speed", &max(1, &1 + (delta["speed"] || 0)))
+  end
+
+  defp remove_inactive_stat_auras(state) do
+    alive_source_ids =
+      state["players"]
+      |> Enum.flat_map(fn player -> player["units"] ++ player["bench"] end)
+      |> Enum.filter(&unit_alive?/1)
+      |> Enum.map(& &1["instanceId"])
+      |> MapSet.new()
+
+    Enum.reduce(state["players"], state, fn player, acc_state ->
+      player["units"]
+      |> Kernel.++(player["bench"])
+      |> Enum.reduce(acc_state, fn unit, unit_acc ->
+        remove_inactive_stat_auras_from_unit(unit_acc, unit["instanceId"], alive_source_ids)
+      end)
+    end)
+  end
+
+  defp remove_inactive_stat_auras_from_unit(state, unit_id, alive_source_ids) do
+    update_unit(state, unit_id, fn unit ->
+      contributions = unit["statAuraContributions"] || %{}
+
+      {expired, active} =
+        Enum.split_with(contributions, fn {_key, contribution} ->
+          not MapSet.member?(alive_source_ids, contribution["sourceInstanceId"])
+        end)
+
+      unit =
+        Enum.reduce(expired, unit, fn {_key, contribution}, acc_unit ->
+          reverted =
+            contribution
+            |> Map.take(["maxHp", "attack", "defense", "speed"])
+            |> Map.new(fn {key, value} -> {key, -value} end)
+
+          apply_stat_delta(acc_unit, reverted)
+        end)
+
+      if active == [] do
+        Map.delete(unit, "statAuraContributions")
+      else
+        Map.put(unit, "statAuraContributions", Map.new(active))
+      end
+    end)
+  end
+
+  defp apply_passive_stat_bonus_targets(state, unit, passive_key, payload) do
     stat_bonus = payload["statBonus"]
     actor_id = unit["instanceId"]
     actor_player = get_unit_player(state, actor_id)
@@ -1255,10 +1361,15 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
       |> Enum.reduce(state, fn target_id, acc_state ->
         case find_unit_across_players(acc_state, target_id) do
           {:ok, target_unit} ->
-            if is_list(apply_to_types) and target_unit["type"] not in apply_to_types do
-              acc_state
-            else
-              apply_passive_stat_bonus(acc_state, target_id, stat_bonus)
+            cond do
+              is_list(apply_to_types) and target_unit["type"] not in apply_to_types ->
+                acc_state
+
+              payload["statBonusDurationMode"] == "whileSourceActive" ->
+                apply_tracked_stat_aura(acc_state, target_id, actor_id, passive_key, stat_bonus)
+
+              true ->
+                apply_passive_stat_bonus(acc_state, target_id, stat_bonus)
             end
 
           {:error, _} ->
@@ -1270,9 +1381,37 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
     end
   end
 
+  defp maybe_drop_basic_damage_multiplier_from_passive(payload, trigger)
+       when trigger in ["onDamageDealt", "onDealDamage"] do
+    if payload["onBasicOnly"] == true do
+      Map.delete(payload, "damageMul")
+    else
+      payload
+    end
+  end
+
+  defp maybe_drop_basic_damage_multiplier_from_passive(payload, _trigger), do: payload
+
+  defp maybe_keep_threshold_statuses(payload, unit) do
+    threshold = payload["belowHpThreshold"]
+
+    if is_number(threshold) and Map.has_key?(payload, "applyStatuses") do
+      hp_pct = if unit["maxHp"] > 0, do: unit["hp"] / unit["maxHp"], else: 0
+
+      if hp_pct <= threshold do
+        payload
+      else
+        Map.delete(payload, "applyStatuses")
+      end
+    else
+      payload
+    end
+  end
+
   defp maybe_execute_passive(state, player, unit, passive_key, passive_def, trigger, context) do
     payload = passive_def["payload"] || %{}
     once? = payload["once"] == true
+    context = context || %{}
 
     cond do
       payload["trigger"] != trigger ->
@@ -1288,6 +1427,9 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
           payload["requiredStatus"] != context["status"] ->
         state
 
+      payload["onBasicOnly"] == true and context["abilityType"] != "basic" ->
+        state
+
       once? and Map.get(get_unit_passive_triggered(unit), passive_key) == true ->
         state
 
@@ -1300,7 +1442,24 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
         else
           state =
             if trigger == "onBattleInit" and is_map(payload["statBonus"]) do
-              apply_passive_stat_bonus_targets(state, unit, payload)
+              apply_passive_stat_bonus_targets(state, unit, passive_key, payload)
+            else
+              state
+            end
+
+          state =
+            if trigger == "onBattleInit" and is_integer(payload["debuffImmunityCount"]) and
+                 payload["debuffImmunityCount"] > 0 do
+              {new_state, _events} =
+                apply_status(
+                  state,
+                  unit["instanceId"],
+                  "Barrier",
+                  payload["debuffImmunityCount"],
+                  source_instance_id: unit["instanceId"]
+                )
+
+              new_state
             else
               state
             end
@@ -1322,12 +1481,31 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
             end
 
           state =
+            if is_number(payload["lifestealPct"]) and is_number(context["damage"]) and
+                 context["damage"] > 0 do
+              apply_ability_heal_amount(
+                state,
+                unit["instanceId"],
+                floor(context["damage"] * payload["lifestealPct"]),
+                healer_id: unit["instanceId"]
+              )
+            else
+              state
+            end
+
+          payload_for_dispatch =
+            payload
+            |> Map.delete("statBonus")
+            |> maybe_drop_basic_damage_multiplier_from_passive(trigger)
+            |> maybe_keep_threshold_statuses(unit)
+
+          state =
             dispatch_ability_payload(
               state,
               player["userId"],
               unit["instanceId"],
               target_id,
-              %{"payload" => Map.delete(payload, "statBonus")}
+              %{"payload" => payload_for_dispatch}
             )
 
           state =
@@ -1385,9 +1563,16 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
       get_unit_passives(target)
       |> Enum.reduce(0.0, fn passive_key, acc ->
         case get_in(state, ["abilityDefinitions", passive_key, "payload"]) do
-          %{"trigger" => "onDamageTaken", "damageReduction" => reduction}
+          %{"trigger" => "onDamageTaken", "damageReduction" => reduction} = payload
           when is_number(reduction) ->
-            acc + reduction
+            hit_count_limit = payload["hitCountLimit"]
+            hits_taken = target["hitsTaken"] || 0
+
+            if is_integer(hit_count_limit) and hits_taken >= hit_count_limit do
+              acc
+            else
+              acc + reduction
+            end
 
           _ ->
             acc
@@ -1396,6 +1581,15 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
 
     min(0.2, max(0.0, reductions))
   end
+
+  defp record_hit_taken(state, target_id) do
+    update_unit(state, target_id, fn unit ->
+      Map.update(unit, "hitsTaken", 1, &(&1 + 1))
+    end)
+  end
+
+  defp maybe_record_hit_taken(state, _target_id, damage) when damage <= 0, do: state
+  defp maybe_record_hit_taken(state, target_id, _damage), do: record_hit_taken(state, target_id)
 
   defp trigger_ko_passives(state, koed_unit_id) do
     case find_unit_across_players(state, koed_unit_id) do
@@ -1410,6 +1604,7 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
           |> check_passives("onAnyKo", context)
           |> check_passives("onAllyKo", context)
           |> check_passives("onEnemyKo", context)
+          |> remove_inactive_stat_auras()
         else
           state
         end
@@ -1531,6 +1726,12 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
   defp trigger_post_damage_passives(state, attacker_id, target_id, damage, ability_type) do
     state
     |> check_passives("onDamageDealt", %{
+      "attackerId" => attacker_id,
+      "targetId" => target_id,
+      "damage" => damage,
+      "abilityType" => ability_type
+    })
+    |> check_passives("onDealDamage", %{
       "attackerId" => attacker_id,
       "targetId" => target_id,
       "damage" => damage,
@@ -2241,6 +2442,21 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
        type_multiplier: type_mul,
        base_damage: base_damage
      }, rng2}
+  end
+
+  defp basic_passive_damage_multiplier(state, actor) do
+    actor
+    |> get_unit_passives()
+    |> Enum.reduce(1.0, fn passive_key, multiplier ->
+      payload = get_in(state, ["abilityDefinitions", passive_key, "payload"]) || %{}
+
+      if payload["trigger"] in ["onDamageDealt", "onDealDamage"] and
+           payload["onBasicOnly"] == true and is_number(payload["damageMul"]) do
+        multiplier * payload["damageMul"]
+      else
+        multiplier
+      end
+    end)
   end
 
   defp attack_roll_payload(dmg_ctx) do
@@ -2974,6 +3190,7 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
           acc_state4 =
             acc_state3
             |> update_unit(target_id, &apply_hp_change(&1, hp_after))
+            |> maybe_record_hit_taken(target_id, effective_damage)
             |> Map.put("rngIndex", new_rng_index)
             |> append_log([damage_evt])
 
@@ -3139,6 +3356,7 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
                           splash_target["instanceId"],
                           &apply_hp_change(&1, hp_after)
                         )
+                        |> maybe_record_hit_taken(splash_target["instanceId"], splash_damage)
                         |> Map.put("rngIndex", new_rng_index)
                         |> append_log([splash_evt])
 
@@ -3484,7 +3702,9 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
             end
 
           # Shield absorption
-          raw_damage = dmg_ctx.final_damage
+          raw_damage =
+            max(0, floor(dmg_ctx.final_damage * basic_passive_damage_multiplier(state, actor)))
+
           reduction_pct = get_passive_damage_reduction_pct(state, eff_target)
 
           raw_damage =
@@ -3539,6 +3759,7 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
           state =
             state
             |> update_unit(effective_target_id, &apply_hp_change(&1, hp_after))
+            |> maybe_record_hit_taken(effective_target_id, effective_damage)
             |> append_log([damage_evt])
 
           state =
@@ -4065,8 +4286,22 @@ defmodule AdventureTimeApi.Pvp.BattleEngine do
         "jakerainicorn.familyUnite" ->
           Map.put(payload, "healPctOfMaxHp", 0.25)
 
+        "finnjake.brotherBond" ->
+          Map.put(payload, "trigger", "onBattleInit")
+
+        "keeoth.bloodBond" ->
+          Map.put(payload, "target", "self")
+
         "kingooo.scamScheme" ->
           Map.put_new(payload, "stealBuffCount", 1)
+
+        "magicman.jerkMagic" ->
+          payload
+          |> Map.put_new("stealBuffCount", 1)
+          |> Map.put("target", "enemy")
+
+        "marshall.nightmareKing" ->
+          Map.put(payload, "target", "target")
 
         "lsp.lumpyPower" ->
           payload

@@ -83,14 +83,22 @@ const pvp = {
     turnEnd: "Turn {turn} ended",
     energyGrant: "{player} energy is now {amount}",
     abilityStart: "{actor} used {ability}",
-    miss: "{attacker} missed {target}{roll}",
-    damage: "{attacker} dealt {amount} damage to {target}{roll}",
-    crit: "Critical hit on {target}{roll}",
-    attackMissRollDetail: " (miss {missRoll}/{missChance})",
-    attackMissOnlyRollDetail: " (miss {missRoll}/{missChance})",
-    attackHitRollDetail:
-      " (miss {missRoll}/{missChance}, crit {critRoll}/{critChance})",
-    critRollDetail: " (crit {critRoll}/{critChance})",
+    missHighHitChance: "{attacker} narrowly missed {target}. (miss)",
+    missMediumHitChance: "{target} dodged {attacker}'s attack. (miss)",
+    missLowHitChance:
+      "{attacker} couldn't find an opening against {target}. (miss)",
+    damage: "{attacker} struck {target} for {amount} damage.",
+    damageLowHitChance:
+      "{attacker} found an opening and hit {target} for {amount} damage.",
+    crit: "Critical hit on {target}. (crit)",
+    critLowChance:
+      "{attacker} landed a lucky critical hit on {target} for {amount} damage. (crit)",
+    critMediumChance:
+      "{attacker} landed a critical hit on {target} for {amount} damage. (crit)",
+    critHighChance:
+      "{attacker} struck {target}'s weak point for {amount} damage. (crit)",
+    hitChanceDetail: "Hit chance {hitChance}",
+    hitCritChanceDetail: "Hit chance {hitChance} · Crit {critChance}",
     ko: "{target} was knocked out",
     heal: "{target} healed for {amount}",
     revive: "{target} returned to battle",
@@ -102,6 +110,9 @@ const pvp = {
     timeout: "{player} lost by timeout",
     statusApply: "{target} gained {status}",
     statusTick: "{target} was affected by {status}",
+    statusTickDamage: "{status} dealt {amount} damage to {target}",
+    statusTickHealing: "{status} restored {amount} HP to {target}",
+    statusExecute: "{status} executed {target}",
     statusExpire: "{status} expired on {target}",
     statusCleanse: "{target} was cleansed of {status}",
     passiveRollPass: "{unit}'s passive {ability} roll passed ({roll})",

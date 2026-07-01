@@ -86,6 +86,32 @@ defmodule AdventureTimeApi.Pvp.BattleEngineStatusTest do
 
   defp get_status(unit, name), do: Enum.find(unit["statuses"] || [], &(&1["name"] == name))
 
+  @all_status_names ~w(
+    Barrier
+    Burn
+    Counter
+    Cover
+    Doom
+    Empower
+    Freeze
+    GuardUp
+    Haste
+    Mark
+    Poison
+    Regeneration
+    Shield
+    Silence
+    Stealth
+    Stunned
+    SummoningSickness
+    Taunt
+    Thorns
+    Vulnerable
+    Weakened
+  )
+
+  @self_status_names ~w(Barrier Counter Cover Empower GuardUp Haste Regeneration Shield Stealth Thorns)
+
   defp get_player(state, user_id) do
     Enum.find(state["players"], &(&1["userId"] == user_id))
   end
@@ -97,6 +123,56 @@ defmodule AdventureTimeApi.Pvp.BattleEngineStatusTest do
   # ── apply_status via simulate_action with applyStatuses payload ───────────
 
   describe "apply_status via ability applyStatuses payload" do
+    test "every engine status kind can be applied through an ability payload" do
+      Enum.each(@all_status_names, fn status_name ->
+        target = if status_name in @self_status_names, do: "self", else: "enemy"
+        expected_unit_id = if target == "self", do: "p1u1", else: "p2u1"
+
+        status_spec =
+          %{"name" => status_name, "duration" => 2, "target" => target}
+          |> then(fn spec ->
+            if status_name == "Shield", do: Map.put(spec, "magnitude", 10), else: spec
+          end)
+
+        state =
+          make_state()
+          |> put_ability(%{
+            "key" => "test.apply_#{status_name}",
+            "type" => "SKILL",
+            "cost" => 0,
+            "cooldown" => nil,
+            "oncePerMatch" => false,
+            "payload" => %{"applyStatuses" => [status_spec], "target" => "enemy"}
+          })
+          |> update_in(["players"], fn players ->
+            Enum.map(players, fn player ->
+              if player["userId"] == "player1" do
+                Map.update!(player, "units", fn units ->
+                  Enum.map(units, &Map.put(&1, "skill", "test.apply_#{status_name}"))
+                end)
+              else
+                player
+              end
+            end)
+          end)
+
+        {:ok, new_state, _events} =
+          BattleEngine.simulate_action(state, "player1", %{
+            "kind" => "skill",
+            "actorInstanceId" => "p1u1",
+            "targetInstanceId" => "p2u1"
+          })
+
+        status = get_status(get_unit(new_state, expected_unit_id), status_name)
+
+        assert status, "#{status_name} should be applied to #{expected_unit_id}"
+
+        if status_name in ["Freeze", "Stunned"] do
+          assert status["duration"] == -1
+        end
+      end)
+    end
+
     test "applies a new status to the target unit" do
       state =
         make_state(
@@ -514,6 +590,47 @@ defmodule AdventureTimeApi.Pvp.BattleEngineStatusTest do
       p2_unit = get_unit(new_state, "p2u1")
       # 5% * 3 stacks * 100 maxHp = 15
       assert p2_unit["hp"] == 85
+    end
+
+    test "Doom fires on the final owner turn before expiring" do
+      state =
+        make_state(
+          %{},
+          %{
+            "hp" => 30,
+            "maxHp" => 100,
+            "statuses" => [
+              %{
+                "name" => "Doom",
+                "duration" => 3,
+                "magnitude" => 0.35,
+                "sourceInstanceId" => nil,
+                "appliedAt" => 0
+              }
+            ]
+          }
+        )
+
+      {state, _events} = BattleEngine.simulate_end_turn(state)
+      assert has_status(get_unit(state, "p2u1"), "Doom")
+
+      {state, _events} = BattleEngine.simulate_end_turn(state)
+      {state, _events} = BattleEngine.simulate_end_turn(state)
+      assert has_status(get_unit(state, "p2u1"), "Doom")
+
+      {state, _events} = BattleEngine.simulate_end_turn(state)
+      {new_state, events} = BattleEngine.simulate_end_turn(state)
+
+      p2_unit = get_unit(new_state, "p2u1")
+      refute has_status(p2_unit, "Doom")
+      assert p2_unit["hp"] == 0
+      assert p2_unit["knockedOut"]
+
+      assert Enum.any?(events, fn event ->
+               event["type"] == "statusTick" and
+                 event["payload"]["status"] == "Doom" and
+                 event["payload"]["execute"] == true
+             end)
     end
 
     test "Regeneration heals 8% maxHp per tick" do

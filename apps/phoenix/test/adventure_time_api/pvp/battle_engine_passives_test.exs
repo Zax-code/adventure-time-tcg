@@ -113,6 +113,25 @@ defmodule AdventureTimeApi.Pvp.BattleEnginePassivesTest do
     end)
   end
 
+  defp assign_skill(state, user_id, instance_id, skill_key) do
+    update_in(state, ["players"], fn players ->
+      Enum.map(players, fn player ->
+        if player["userId"] == user_id do
+          units =
+            Enum.map(player["units"], fn unit ->
+              if unit["instanceId"] == instance_id,
+                do: Map.put(unit, "skill", skill_key),
+                else: unit
+            end)
+
+          Map.put(player, "units", units)
+        else
+          player
+        end
+      end)
+    end)
+  end
+
   test "onBattleInit statBonus permanently boosts stats" do
     state =
       make_state()
@@ -477,5 +496,231 @@ defmodule AdventureTimeApi.Pvp.BattleEnginePassivesTest do
 
     assert get_unit(new_state, "p1u2")["hp"] == 80
     assert has_status(get_unit(new_state, "p1u2"), "Regeneration")
+  end
+
+  test "debuffImmunityCount grants Barrier charges at battle start" do
+    state =
+      make_state()
+      |> put_ability("finnjake.brotherBond", %{
+        "trigger" => "onBattleInit",
+        "debuffImmunityCount" => 1,
+        "applyStatuses" => [
+          %{"name" => "GuardUp", "duration" => 1, "target" => "self"},
+          %{"name" => "Haste", "duration" => 1, "target" => "self"}
+        ]
+      })
+      |> assign_passive("player1", "p1u1", "finnjake.brotherBond")
+
+    new_state = BattleEngine.initialize_passives(state)
+    unit = get_unit(new_state, "p1u1")
+
+    assert has_status(unit, "GuardUp")
+    assert has_status(unit, "Haste")
+    assert has_status(unit, "Barrier")
+  end
+
+  test "onDealDamage lifesteals from actual damage and applies threshold self status" do
+    state =
+      make_state(
+        p1_units: [
+          make_unit(%{
+            "instanceId" => "p1u1",
+            "hp" => 35,
+            "maxHp" => 100,
+            "attack" => 100,
+            "defense" => 0
+          })
+        ],
+        p2_units: [
+          make_unit(%{"instanceId" => "p2u1", "defense" => 0, "maxHp" => 300, "hp" => 300})
+        ]
+      )
+      |> put_ability("keeoth.bloodBond", %{
+        "trigger" => "onDealDamage",
+        "lifestealPct" => 0.25,
+        "belowHpThreshold" => 0.4,
+        "applyStatuses" => [%{"name" => "Empower", "duration" => 1}],
+        "target" => "self"
+      })
+      |> assign_passive("player1", "p1u1", "keeoth.bloodBond")
+
+    {:ok, new_state, events} =
+      BattleEngine.simulate_action(state, "player1", %{
+        "kind" => "basic",
+        "actorInstanceId" => "p1u1",
+        "targetInstanceId" => "p2u1"
+      })
+
+    damage = events |> Enum.find(&(&1["type"] == "damage")) |> get_in(["payload", "damage"])
+    unit = get_unit(new_state, "p1u1")
+
+    assert unit["hp"] == min(100, 35 + floor(damage * 0.25))
+    assert has_status(unit, "Empower")
+  end
+
+  test "onDamageDealt basic-only status applies to the damaged target and skips skills" do
+    mark_passive = %{
+      "trigger" => "onDamageDealt",
+      "onBasicOnly" => true,
+      "applyStatuses" => [%{"name" => "Mark", "duration" => 1}],
+      "target" => "target"
+    }
+
+    state =
+      make_state(
+        p1_units: [make_unit(%{"instanceId" => "p1u1", "attack" => 100, "defense" => 0})],
+        p2_units: [make_unit(%{"instanceId" => "p2u1", "defense" => 0})]
+      )
+      |> put_ability("marshall.nightmareKing", mark_passive)
+      |> assign_passive("player1", "p1u1", "marshall.nightmareKing")
+
+    {:ok, basic_state, _events} =
+      BattleEngine.simulate_action(state, "player1", %{
+        "kind" => "basic",
+        "actorInstanceId" => "p1u1",
+        "targetInstanceId" => "p2u1"
+      })
+
+    assert has_status(get_unit(basic_state, "p2u1"), "Mark")
+    refute has_status(get_unit(basic_state, "p1u1"), "Mark")
+
+    skill_state =
+      state
+      |> put_in(["players", Access.at(0), "energy"], 4)
+      |> put_in(["abilityDefinitions", "skill.hit"], %{
+        "key" => "skill.hit",
+        "type" => "SKILL",
+        "cost" => 0,
+        "cooldown" => nil,
+        "oncePerMatch" => false,
+        "payload" => %{"damageMul" => 1.0}
+      })
+      |> assign_skill("player1", "p1u1", "skill.hit")
+
+    {:ok, skill_result, _events} =
+      BattleEngine.simulate_action(skill_state, "player1", %{
+        "kind" => "skill",
+        "actorInstanceId" => "p1u1",
+        "targetInstanceId" => "p2u1"
+      })
+
+    refute has_status(get_unit(skill_result, "p2u1"), "Mark")
+  end
+
+  test "onDamageDealt basic-only damageMul increases basic damage without a self-hit" do
+    base_state =
+      make_state(
+        p1_units: [make_unit(%{"instanceId" => "p1u1", "attack" => 100, "defense" => 0})],
+        p2_units: [
+          make_unit(%{"instanceId" => "p2u1", "defense" => 0, "maxHp" => 300, "hp" => 300})
+        ]
+      )
+
+    bonus_state =
+      base_state
+      |> put_ability("susan.hyoomanStrength", %{
+        "trigger" => "onDamageDealt",
+        "onBasicOnly" => true,
+        "damageMul" => 1.15,
+        "target" => "self"
+      })
+      |> assign_passive("player1", "p1u1", "susan.hyoomanStrength")
+
+    {:ok, base_result, _events} =
+      BattleEngine.simulate_action(base_state, "player1", %{
+        "kind" => "basic",
+        "actorInstanceId" => "p1u1",
+        "targetInstanceId" => "p2u1"
+      })
+
+    {:ok, bonus_result, _events} =
+      BattleEngine.simulate_action(bonus_state, "player1", %{
+        "kind" => "basic",
+        "actorInstanceId" => "p1u1",
+        "targetInstanceId" => "p2u1"
+      })
+
+    base_damage = 300 - get_unit(base_result, "p2u1")["hp"]
+    bonus_damage = 300 - get_unit(bonus_result, "p2u1")["hp"]
+
+    assert bonus_damage > base_damage
+    assert get_unit(bonus_result, "p1u1")["hp"] == 100
+  end
+
+  test "damageReduction with hitCountLimit only applies to the first N hits" do
+    state =
+      make_state(
+        p1_units: [make_unit(%{"instanceId" => "p1u1", "attack" => 50, "defense" => 0})],
+        p2_units: [
+          make_unit(%{
+            "instanceId" => "p2u1",
+            "defense" => 0,
+            "maxHp" => 500,
+            "hp" => 500
+          })
+        ]
+      )
+      |> put_in(["players", Access.at(0), "energy"], 10)
+      |> put_ability("ice.frostArmor", %{
+        "trigger" => "onDamageTaken",
+        "damageReduction" => 0.1,
+        "hitCountLimit" => 3
+      })
+      |> assign_passive("player2", "p2u1", "ice.frostArmor")
+
+    action = %{"kind" => "basic", "actorInstanceId" => "p1u1", "targetInstanceId" => "p2u1"}
+
+    {:ok, state, events1} = BattleEngine.simulate_action(state, "player1", action)
+    {:ok, state, events2} = BattleEngine.simulate_action(state, "player1", action)
+    {:ok, state, events3} = BattleEngine.simulate_action(state, "player1", action)
+    {:ok, _state, events4} = BattleEngine.simulate_action(state, "player1", action)
+
+    hit1 = Enum.find(events1, &(&1["type"] == "damage"))
+    hit2 = Enum.find(events2, &(&1["type"] == "damage"))
+    hit3 = Enum.find(events3, &(&1["type"] == "damage"))
+    hit4 = Enum.find(events4, &(&1["type"] == "damage"))
+
+    assert get_in(hit1, ["payload", "damageReductionPct"]) == 0.1
+    assert get_in(hit2, ["payload", "damageReductionPct"]) == 0.1
+    assert get_in(hit3, ["payload", "damageReductionPct"]) == 0.1
+    assert get_in(hit4, ["payload", "damageReductionPct"]) == 0.0
+  end
+
+  test "whileSourceActive stat aura is removed after the source is knocked out" do
+    state =
+      make_state(
+        current_player_id: "player2",
+        p1_units: [
+          make_unit(%{
+            "instanceId" => "p1u1",
+            "hp" => 10,
+            "maxHp" => 100,
+            "defense" => 0,
+            "passives" => ["rainicorn.prismAura"],
+            "passiveTriggered" => %{}
+          }),
+          make_unit(%{"instanceId" => "p1u2", "attack" => 50, "position" => 2})
+        ],
+        p2_units: [make_unit(%{"instanceId" => "p2u1", "attack" => 200, "defense" => 0})]
+      )
+      |> put_ability("rainicorn.prismAura", %{
+        "trigger" => "onBattleInit",
+        "statBonus" => %{"attack" => 5},
+        "statBonusTarget" => "allAllies",
+        "statBonusDurationMode" => "whileSourceActive"
+      })
+
+    initialized = BattleEngine.initialize_passives(state)
+    assert get_unit(initialized, "p1u2")["attack"] == 52
+
+    {:ok, new_state, _events} =
+      BattleEngine.simulate_action(initialized, "player2", %{
+        "kind" => "basic",
+        "actorInstanceId" => "p2u1",
+        "targetInstanceId" => "p1u1"
+      })
+
+    assert get_unit(new_state, "p1u1")["knockedOut"]
+    assert get_unit(new_state, "p1u2")["attack"] == 50
   end
 end

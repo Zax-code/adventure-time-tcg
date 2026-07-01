@@ -9,6 +9,11 @@ export const notificationPreferencesSchema = z.object({
   pvpTurn: z.boolean(),
   giftReceived: z.boolean(),
 });
+export const authMethodsSchema = z.object({
+  password: z.boolean(),
+  google: z.boolean(),
+  apple: z.boolean(),
+});
 
 export const authUserSchema = z.object({
   id: z.string(),
@@ -17,6 +22,7 @@ export const authUserSchema = z.object({
   avatarAssetId: z.string().nullable(),
   coins: z.number().int().nonnegative(),
   dust: z.number().int().nonnegative(),
+  authMethods: authMethodsSchema,
   isAdmin: z.boolean(),
   isSuperAdmin: z.boolean(),
   preferredStepSource: stepSourceSchema,
@@ -26,6 +32,7 @@ export const authUserSchema = z.object({
 });
 
 export type AuthUser = z.infer<typeof authUserSchema>;
+export type AuthMethods = z.infer<typeof authMethodsSchema>;
 export type NotificationPreferences = z.infer<
   typeof notificationPreferencesSchema
 >;
@@ -1315,6 +1322,11 @@ export const updateNotificationPreferencesSchema = z.object({
   notificationPreferences: notificationPreferencesSchema,
 });
 
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1).optional(),
+  newPassword: z.string().min(8),
+});
+
 export const notificationPlatformSchema = z.enum(["ios", "android"]);
 
 export const registerNotificationDeviceSchema = z.object({
@@ -1341,6 +1353,7 @@ export type RequestPasswordResetResponse = z.infer<
 >;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 export type ResetPasswordResponse = z.infer<typeof resetPasswordResponseSchema>;
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 export type CollectionResponse = z.infer<typeof collectionResponseSchema>;
 export type UsersResponse = z.infer<typeof usersResponseSchema>;
 export type HomeResponse = z.infer<typeof homeResponseSchema>;
@@ -1458,6 +1471,7 @@ export const adminUserSchema = z.object({
   email: z.string().email(),
   displayName: z.string().nullable(),
   coins: z.number().int().nonnegative(),
+  authMethods: authMethodsSchema,
   isAdmin: z.boolean(),
   isSuperAdmin: z.boolean(),
   createdAt: z.string(),

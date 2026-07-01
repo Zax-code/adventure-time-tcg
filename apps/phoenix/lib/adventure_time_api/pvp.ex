@@ -185,7 +185,7 @@ defmodule AdventureTimeApi.Pvp do
       |> order_by([m], desc: m.updated_at)
       |> Repo.all()
 
-    {:ok, serialize_matches(matches)}
+    {:ok, %{matches: serialize_matches(matches), currentUserId: user_id}}
   end
 
   def list_history(user_id) do

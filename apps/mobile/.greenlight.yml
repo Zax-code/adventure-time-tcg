@@ -1,0 +1,4 @@
+ignore:
+  - local-build
+  - ios/build
+  - src/components/icons.tsx

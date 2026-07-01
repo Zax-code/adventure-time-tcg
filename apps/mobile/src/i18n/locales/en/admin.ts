@@ -34,6 +34,9 @@ const admin = {
     coinsCount: "{count} coins",
     joinedDate: "Joined {date}",
     todayDate: "Today {date}",
+    authPassword: "Password",
+    authGoogle: "Google",
+    authApple: "Apple",
   },
   users: {
     title: "Users",

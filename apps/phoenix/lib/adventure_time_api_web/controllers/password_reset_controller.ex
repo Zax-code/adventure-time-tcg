@@ -2,6 +2,7 @@ defmodule AdventureTimeApiWeb.PasswordResetController do
   use AdventureTimeApiWeb, :controller
 
   alias AdventureTimeApi.Accounts
+  alias AdventureTimeApiWeb.SiteLayout
 
   def show(conn, params) do
     locale = parse_locale(params["locale"])
@@ -66,7 +67,12 @@ defmodule AdventureTimeApiWeb.PasswordResetController do
       primary_label: copy.reset_in_browser,
       secondary_label: copy.open_in_app,
       password_label: copy.password_label,
-      password_placeholder: copy.password_placeholder
+      password_placeholder: copy.password_placeholder,
+      badge_key: "reset.pending.badge",
+      title_key: "reset.pending.title",
+      body_key: "reset.pending.body",
+      primary_key: "reset.action.resetInBrowser",
+      secondary_key: "reset.action.openInApp"
     }
   end
 
@@ -87,7 +93,12 @@ defmodule AdventureTimeApiWeb.PasswordResetController do
       primary_label: copy.open_app_to_sign_in,
       secondary_label: copy.open_app_to_sign_in,
       password_label: copy.password_label,
-      password_placeholder: copy.password_placeholder
+      password_placeholder: copy.password_placeholder,
+      badge_key: "reset.success.badge",
+      title_key: "reset.success.title",
+      body_key: "reset.success.body",
+      primary_key: "reset.action.openAppToSignIn",
+      secondary_key: "reset.action.openAppToSignIn"
     }
   end
 
@@ -108,7 +119,12 @@ defmodule AdventureTimeApiWeb.PasswordResetController do
       primary_label: copy.reset_in_browser,
       secondary_label: copy.open_in_app,
       password_label: copy.password_label,
-      password_placeholder: copy.password_placeholder
+      password_placeholder: copy.password_placeholder,
+      badge_key: "reset.validation.badge",
+      title_key: "reset.validation.title",
+      body_key: "reset.validation.body",
+      primary_key: "reset.action.resetInBrowser",
+      secondary_key: "reset.action.openInApp"
     }
   end
 
@@ -129,7 +145,12 @@ defmodule AdventureTimeApiWeb.PasswordResetController do
       primary_label: copy.open_in_app,
       secondary_label: copy.open_in_app,
       password_label: copy.password_label,
-      password_placeholder: copy.password_placeholder
+      password_placeholder: copy.password_placeholder,
+      badge_key: "reset.error.badge",
+      title_key: "reset.invalid.title",
+      body_key: "reset.invalid.body",
+      primary_key: "reset.action.openInApp",
+      secondary_key: "reset.action.openInApp"
     }
   end
 
@@ -150,7 +171,12 @@ defmodule AdventureTimeApiWeb.PasswordResetController do
       primary_label: copy.open_in_app,
       secondary_label: copy.open_in_app,
       password_label: copy.password_label,
-      password_placeholder: copy.password_placeholder
+      password_placeholder: copy.password_placeholder,
+      badge_key: "reset.error.badge",
+      title_key: "reset.missing.title",
+      body_key: "reset.missing.body",
+      primary_key: "reset.action.openInApp",
+      secondary_key: "reset.action.openInApp"
     }
   end
 
@@ -171,14 +197,18 @@ defmodule AdventureTimeApiWeb.PasswordResetController do
       primary_label: copy.open_in_app,
       secondary_label: copy.open_in_app,
       password_label: copy.password_label,
-      password_placeholder: copy.password_placeholder
+      password_placeholder: copy.password_placeholder,
+      badge_key: "reset.error.badge",
+      title_key: "reset.expired.title",
+      body_key: "reset.expired.body",
+      primary_key: "reset.action.openInApp",
+      secondary_key: "reset.action.openInApp"
     }
   end
 
   defp reset_html(locale, assigns) do
     copy = copy_for(locale)
     logo_path = ~p"/images/app-icon.png"
-    stylesheet_path = ~p"/assets/landing.css"
     escaped_email = escape(assigns.email)
     escaped_code = escape(assigns.code)
     escaped_locale = escape(Atom.to_string(assigns.locale))
@@ -194,27 +224,33 @@ defmodule AdventureTimeApiWeb.PasswordResetController do
     escaped_password_label = escape(assigns.password_label)
     escaped_password_placeholder = escape(assigns.password_placeholder)
     escaped_error = escape(assigns.error_message || "")
+    escaped_badge_key = escape(assigns.badge_key)
+    escaped_title_key = escape(assigns.title_key)
+    escaped_body_key = escape(assigns.body_key)
+    escaped_primary_key = escape(assigns.primary_key)
+    escaped_secondary_key = escape(assigns.secondary_key)
 
     reset_form =
       if assigns.show_form? do
         """
-        <form method="post" action="/password/reset" class="verify-form">
+        <form method="post" action="/password/reset" class="form">
           <input type="hidden" name="email" value="#{escaped_email}" />
           <input type="hidden" name="code" value="#{escaped_code}" />
-          <input type="hidden" name="locale" value="#{escaped_locale}" />
-          <label class="verify-field">
-            <span class="support-kicker">#{escaped_password_label}</span>
+          <input type="hidden" name="locale" value="#{escaped_locale}" data-language-field />
+          <label class="field">
+            <span class="label" data-i18n="reset.label.password">#{escaped_password_label}</span>
             <input
-              class="verify-input"
+              class="input"
               type="password"
               name="password"
               minlength="8"
               required
               placeholder="#{escaped_password_placeholder}"
+              data-i18n-attr="placeholder:reset.placeholder.password"
             />
           </label>
-          #{if assigns.error_message, do: ~s(<p class="verify-error">#{escaped_error}</p>), else: ""}
-          <button type="submit" class="action primary">#{escaped_primary}</button>
+          #{if assigns.error_message, do: ~s(<p class="form-error">#{escaped_error}</p>), else: ""}
+          <button type="submit" class="btn btn-primary" data-i18n="#{escaped_primary_key}">#{escaped_primary}</button>
         </form>
         """
       else
@@ -223,86 +259,71 @@ defmodule AdventureTimeApiWeb.PasswordResetController do
 
     open_app_link =
       if assigns.show_open_app? do
-        """
-        <a class="action secondary" href="#{escaped_app_link}">#{escaped_secondary}</a>
-        """
+        ~s(<a class="btn btn-secondary" href="#{escaped_app_link}" data-localized-app-link data-i18n="#{escaped_secondary_key}">#{escaped_secondary}</a>)
       else
         ""
       end
 
+    body = """
+    <section class="hero" aria-label="#{escaped_title}" data-i18n-attr="aria-label:#{escaped_title_key}" data-page-title-key="#{escaped_title_key}" data-page-description-key="#{escaped_body_key}">
+      <div class="hero-copy">
+        <p class="eyebrow" data-i18n="#{escaped_badge_key}">#{escaped_badge}</p>
+        <h1 data-i18n="#{escaped_title_key}">#{escaped_title}</h1>
+        <p class="lede" data-i18n="#{escaped_body_key}">#{escaped_body}</p>
+
+        <div class="detail-grid" aria-label="#{escaped_help}" data-i18n-attr="aria-label:reset.help">
+          <div class="detail-card">
+            <p class="kicker" data-i18n="reset.label.email">#{escaped_email_label}</p>
+            <p class="detail-value">#{escaped_email}</p>
+          </div>
+          <div class="detail-card">
+            <p class="kicker" data-i18n="reset.label.code">#{escaped_code_label}</p>
+            <p class="code-pill">#{escaped_code}</p>
+          </div>
+        </div>
+
+        <p class="form-help" data-i18n="reset.help">#{escaped_help}</p>
+
+        <div class="actions">
+          #{reset_form}
+          #{open_app_link}
+        </div>
+      </div>
+
+      <aside class="hero-panel" aria-label="Adventure Time TCG">
+        <div class="hero-mark">
+          <div class="card-ghost left"></div>
+          <div class="card-ghost right"></div>
+          <div class="logo-wrap">
+            <img src="#{logo_path}" alt="Adventure Time TCG app icon" data-i18n-attr="alt:auth.iconAlt" />
+          </div>
+        </div>
+
+        <div class="tile-stack">
+          <div class="tile">
+            <p class="label" data-i18n="reset.tile.app.label">#{escape(copy.app_label)}</p>
+            <p class="value" data-i18n="reset.tile.app.value">#{escape(copy.app_value)}</p>
+          </div>
+          <div class="tile">
+            <p class="label" data-i18n="reset.tile.browser.label">#{escape(copy.browser_label)}</p>
+            <p class="value" data-i18n="reset.tile.browser.value">#{escape(copy.browser_value)}</p>
+          </div>
+          <div class="tile">
+            <p class="label" data-i18n="reset.tile.tip.label">#{escape(copy.tip_label)}</p>
+            <p class="value" data-i18n="reset.tile.tip.value">#{escape(copy.tip_value)}</p>
+          </div>
+        </div>
+      </aside>
+    </section>
     """
-    <!DOCTYPE html>
-    <html lang="#{copy.lang}">
-      <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>#{escaped_title} | Adventure Time TCG</title>
-        <meta name="theme-color" content="#F472B6" />
-        <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800&display=swap"
-          rel="stylesheet"
-        />
-        <link rel="stylesheet" href="#{stylesheet_path}" />
-      </head>
-      <body>
-        <main class="verify-page-shell">
-          <section class="verify-card hero-shell" aria-label="#{escaped_title}">
-            <div class="hero-copy">
-              <p class="eyebrow">#{escaped_badge}</p>
-              <h1 class="verify-title">#{escaped_title}</h1>
-              <p class="lede verify-lede">#{escaped_body}</p>
 
-              <div class="verify-detail-grid" aria-label="#{escaped_help}">
-                <div class="support-card verify-detail-card">
-                  <p class="support-kicker">#{escaped_email_label}</p>
-                  <p class="verify-detail-value">#{escaped_email}</p>
-                </div>
-                <div class="support-card verify-detail-card">
-                  <p class="support-kicker">#{escaped_code_label}</p>
-                  <p class="verify-code-pill">#{escaped_code}</p>
-                </div>
-              </div>
-
-              <p class="verify-help">#{escaped_help}</p>
-
-              <div class="verify-actions">
-                #{reset_form}
-                #{open_app_link}
-              </div>
-            </div>
-
-            <aside class="hero-panel verify-panel" aria-label="Adventure Time TCG">
-              <div class="hero-mark verify-mark">
-                <div class="card-shadow card-shadow-left"></div>
-                <div class="card-shadow card-shadow-right"></div>
-                <div class="logo-wrap">
-                  <img src="#{logo_path}" alt="Adventure Time TCG app icon" />
-                </div>
-              </div>
-
-              <div class="status-stack">
-                <div class="status-tile">
-                  <p class="status-label">#{escape(copy.app_label)}</p>
-                  <p class="status-value">#{escape(copy.app_value)}</p>
-                </div>
-                <div class="status-tile">
-                  <p class="status-label">#{escape(copy.browser_label)}</p>
-                  <p class="status-value">#{escape(copy.browser_value)}</p>
-                </div>
-                <div class="status-tile">
-                  <p class="status-label">#{escape(copy.tip_label)}</p>
-                  <p class="status-value">#{escape(copy.tip_value)}</p>
-                </div>
-              </div>
-            </aside>
-          </section>
-        </main>
-      </body>
-    </html>
-    """
+    SiteLayout.document(
+      title: "#{assigns.title} | Adventure Time TCG",
+      description: assigns.body,
+      lang: copy.lang,
+      main_class: "auth-shell",
+      body: body
+    )
   end
 
   defp valid_prefill?(email, code) do
@@ -333,43 +354,43 @@ defmodule AdventureTimeApiWeb.PasswordResetController do
   defp copy_for(:fr) do
     %{
       lang: "fr",
-      pending_badge: "Reinitialisation",
+      pending_badge: "Réinitialisation",
       pending_title: "Choisis un nouveau mot de passe",
       pending_body:
-        "Termine ici dans le navigateur, ou ouvre l'application pour revenir avec l'e-mail et le code deja remplis.",
-      success_badge: "Mot de passe mis a jour",
-      success_title: "Ton mot de passe est pret",
+        "Termine ici dans le navigateur, ou ouvre l'application pour revenir avec l'e-mail et le code déjà remplis.",
+      success_badge: "Mot de passe mis à jour",
+      success_title: "Ton mot de passe est prêt",
       success_body:
-        "Ton nouveau mot de passe est enregistre. Ouvre l'application pour te reconnecter.",
+        "Ton nouveau mot de passe est enregistré. Ouvre l'application pour te reconnecter.",
       validation_badge: "Presque fini",
       validation_title: "Choisis un mot de passe valide",
       validation_body:
-        "Le code semble bon, mais ton nouveau mot de passe doit encore respecter les regles minimales.",
+        "Le code semble bon, mais ton nouveau mot de passe doit encore respecter les règles minimales.",
       error_badge: "Lien invalide",
-      invalid_title: "Ce code n'a pas pu etre valide",
+      invalid_title: "Ce code n'a pas pu être utilisé",
       invalid_body:
-        "Le code semble incorrect. Ouvre l'application pour demander un nouvel e-mail de reinitialisation.",
-      missing_title: "Aucune reinitialisation en attente",
+        "Le code semble incorrect. Ouvre l'application pour demander un nouvel e-mail de réinitialisation.",
+      missing_title: "Aucune réinitialisation en attente",
       missing_body:
-        "Ce lien ne correspond a aucune demande active. Ouvre l'application pour demander un nouvel e-mail de reinitialisation.",
+        "Ce lien ne correspond à aucune demande active. Ouvre l'application pour demander un nouvel e-mail de réinitialisation.",
       expired_title: "Ce lien n'est plus actif",
       expired_body:
-        "Ce code a peut-etre deja ete utilise ou il a expire. Ouvre l'application pour demander un nouveau code.",
-      reset_in_browser: "Mettre a jour le mot de passe",
+        "Ce code a peut-être déjà été utilisé ou il a expiré. Ouvre l'application pour demander un nouveau code.",
+      reset_in_browser: "Mettre à jour le mot de passe",
       open_in_app: "Ouvrir l'application",
       open_app_to_sign_in: "Ouvrir l'application pour se connecter",
       email_label: "E-mail",
       code_label: "Code",
       password_label: "Nouveau mot de passe",
-      password_placeholder: "Au moins 8 caracteres",
+      password_placeholder: "Au moins 8 caractères",
       help_text:
-        "Le meme code fonctionne aussi dans l'ecran mot de passe oublie de l'application.",
+        "Le même code fonctionne aussi dans l'écran de mot de passe oublié de l'application.",
       app_label: "Application",
       app_value: "Retour direct avec deeplink",
       browser_label: "Navigateur",
       browser_value: "Nouveau mot de passe sans retaper le code",
       tip_label: "Astuce",
-      tip_value: "Si tu preferes, ouvre l'app pour finaliser la reinitialisation la-bas."
+      tip_value: "Si tu préfères, ouvre l'app pour finaliser la réinitialisation là-bas."
     }
   end
 

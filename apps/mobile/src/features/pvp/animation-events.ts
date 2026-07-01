@@ -103,7 +103,7 @@ export function buildPvpVisualEvents(events: CombatEvent[]): PvpVisualEvents {
     const delayMs = visualStep * VISUAL_EVENT_STAGGER_MS;
     let emittedVisual = false;
 
-    if (event.type === "damage" || event.type === "crit") {
+    if (event.type === "damage") {
       const targetInstanceId = getEventTargetInstanceId(event);
       const amount = getEventAmount(event) ?? 0;
 
