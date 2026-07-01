@@ -24,6 +24,7 @@ defmodule AdventureTimeApiWeb.Router do
     pipe_through(:browser_html)
 
     get("/", LandingController, :index)
+    get("/status", HealthController, :page)
     get("/privacy", LandingController, :privacy)
     get("/account-deletion", LandingController, :account_deletion)
     get("/email/verify", EmailVerificationController, :show)

@@ -1,182 +1,277 @@
 defmodule AdventureTimeApiWeb.LandingController do
   use AdventureTimeApiWeb, :controller
 
+  alias AdventureTimeApiWeb.SiteLayout
+
   def index(conn, _params) do
-    conn
-    |> put_resp_content_type("text/html")
-    |> put_resp_header("cache-control", "public, max-age=300")
-    |> send_resp(200, landing_html())
+    render_html(conn, "public, max-age=300", landing_html())
   end
 
   def privacy(conn, _params) do
-    conn
-    |> put_resp_content_type("text/html")
-    |> put_resp_header("cache-control", "public, max-age=300")
-    |> send_resp(200, privacy_html())
+    render_html(conn, "public, max-age=300", privacy_html())
   end
 
   def account_deletion(conn, _params) do
+    render_html(conn, "public, max-age=300", account_deletion_html())
+  end
+
+  defp render_html(conn, cache_control, html) do
     conn
     |> put_resp_content_type("text/html")
-    |> put_resp_header("cache-control", "public, max-age=300")
-    |> send_resp(200, account_deletion_html())
+    |> put_resp_header("cache-control", cache_control)
+    |> send_resp(200, html)
   end
 
   defp landing_html do
     logo_path = ~p"/images/app-icon.png"
-    stylesheet_path = ~p"/assets/landing.css"
-    health_path = ~p"/ready"
-    security_path = ~p"/.well-known/security.txt"
 
+    body = """
+    <section class="hero" aria-label="Service overview">
+      <div class="hero-copy">
+        <p class="eyebrow">Official mobile backend</p>
+        <h1>Adventure Time TCG lives here.</h1>
+        <p class="lede">
+          This host powers account access, card art, gifts, quest progress, and
+          real-time PvP for the Adventure Time TCG mobile app.
+        </p>
+
+        <ul class="pill-list" aria-label="Core capabilities">
+          <li>Collectible cards, packs, and synced media</li>
+          <li>Daily quests, rewards, and progression systems</li>
+          <li>Realtime battles, sockets, spectating, and match history</li>
+        </ul>
+
+        <div class="actions">
+          <a class="btn btn-primary" href="/status">View live status</a>
+          <a class="btn btn-ghost" href="/privacy">Privacy &amp; data</a>
+        </div>
+      </div>
+
+      <aside class="hero-panel" aria-label="Service snapshot">
+        <div class="hero-mark">
+          <div class="card-ghost left"></div>
+          <div class="card-ghost right"></div>
+          <div class="logo-wrap">
+            <img
+              src="#{logo_path}"
+              alt="Adventure Time TCG app icon showing a collectible card with Finn"
+            />
+          </div>
+        </div>
+
+        <div class="tile-stack">
+          <div class="tile">
+            <p class="label">Platform</p>
+            <p class="value">Expo mobile app</p>
+          </div>
+          <div class="tile">
+            <p class="label">Backend</p>
+            <p class="value">Phoenix API</p>
+          </div>
+          <div class="tile">
+            <p class="label">Realtime</p>
+            <p class="value">Sockets &amp; live PvP</p>
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <section class="section" aria-label="Core app loops">
+      <div class="section-head">
+        <div>
+          <p class="kicker kicker-primary">The loop</p>
+          <h2>Collect, quest, and battle</h2>
+        </div>
+        <p>Three tightly connected systems, all served from one backend contract.</p>
+      </div>
+
+      <div class="card-grid">
+        <article class="card feature-card">
+          <span class="kicker kicker-primary">Collect</span>
+          <h2>Packs, rarities, and card art</h2>
+          <p>
+            Pack openings, collection sync, crafted cards, and image delivery stay fast and
+            consistent with the app's candy-coated card feel.
+          </p>
+        </article>
+
+        <article class="card feature-card">
+          <span class="kicker kicker-secondary">Quest</span>
+          <h2>Daily progress that stays in step</h2>
+          <p>
+            Daily claims, Wordle, speed calculus, and step-linked rewards all run through one
+            backend contract for the mobile client.
+          </p>
+        </article>
+
+        <article class="card feature-card">
+          <span class="kicker">Battle</span>
+          <h2>Live PvP, replays, and spectating</h2>
+          <p>
+            Matchmaking, battle actions, websocket updates, and replay-friendly match history
+            are hosted here for players and spectators.
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" aria-label="Support and operational links">
+      <div class="section-head">
+        <div>
+          <p class="kicker">Operations</p>
+          <h2>Health, security, and one shared backend</h2>
+        </div>
+      </div>
+
+      <div class="card-grid">
+        <article class="card">
+          <span class="kicker kicker-primary">Health</span>
+          <h2>Live service status</h2>
+          <p>
+            A public status page presents the readiness of the edge, API, and database in
+            real time instead of exposing a raw JSON probe.
+          </p>
+          <a class="text-link" href="/status">Open the status page</a>
+        </article>
+
+        <article class="card">
+          <span class="kicker">Security</span>
+          <h2>Responsible disclosure</h2>
+          <p>
+            Security researchers and operators can use the published disclosure contact for
+            issues related to the public service.
+          </p>
+          <a class="text-link" href="/.well-known/security.txt">Open security.txt</a>
+        </article>
+
+        <article class="card">
+          <span class="kicker kicker-secondary">Infrastructure</span>
+          <h2>One backend, shared contracts</h2>
+          <p>
+            Phoenix owns auth, persistence, uploads, and gameplay state while the mobile app
+            talks to it through shared API contracts.
+          </p>
+          <a class="text-link" href="/privacy">See how data is handled</a>
+        </article>
+      </div>
+    </section>
     """
-    <!DOCTYPE html>
-    <html lang="en">
-      <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>Adventure Time TCG</title>
-        <meta
-          name="description"
-          content="Adventure Time TCG is the mobile-first card battler where you collect cards, complete quests, and jump into real-time PvP."
-        />
-        <meta name="theme-color" content="#F472B6" />
-        <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800&display=swap"
-          rel="stylesheet"
-        />
-        <link rel="stylesheet" href="#{stylesheet_path}" />
-      </head>
-      <body>
-        <a class="skip-link" href="#main-content">Skip to content</a>
-        <main class="page-shell">
-          <section class="hero-shell" aria-label="Service overview">
-            <div class="hero-copy" id="main-content">
-              <p class="eyebrow">Official mobile backend</p>
-              <h1>Adventure Time TCG lives here.</h1>
-              <p class="lede">
-                The public app host powers account access, card art, gifts, quest progress, and
-                real-time PvP for the Adventure Time TCG mobile app.
-              </p>
 
-              <ul class="signal-list" aria-label="Core capabilities">
-                <li>Collectible cards, packs, and synced media</li>
-                <li>Daily quests, rewards, and progression systems</li>
-                <li>Realtime battles, sockets, spectating, and match history</li>
-              </ul>
-
-              <div class="actions">
-                <a class="action primary" href="#{health_path}">Open live status</a>
-                <a class="action secondary" href="#{security_path}">View security contact</a>
-              </div>
-            </div>
-
-            <aside class="hero-panel" aria-label="Service status">
-              <div class="hero-mark">
-                <div class="card-shadow card-shadow-left"></div>
-                <div class="card-shadow card-shadow-right"></div>
-                <div class="logo-wrap">
-                  <img
-                    src="#{logo_path}"
-                    alt="Adventure Time TCG app icon showing a collectible card with Finn"
-                  />
-                </div>
-              </div>
-
-              <div class="status-stack">
-                <div class="status-tile">
-                  <p class="status-label">Platform</p>
-                  <p class="status-value">Expo mobile app</p>
-                </div>
-                <div class="status-tile">
-                  <p class="status-label">Backend</p>
-                  <p class="status-value">Phoenix API</p>
-                </div>
-                <div class="status-tile">
-                  <p class="status-label">Realtime</p>
-                  <p class="status-value">Sockets + PvP</p>
-                </div>
-              </div>
-            </aside>
-          </section>
-
-          <section class="feature-grid" aria-label="Core app loops">
-            <article class="feature-card">
-              <span class="feature-kicker">Collect</span>
-              <h2>Packs, rarities, and card art</h2>
-              <p>
-                Pack openings, collection sync, crafted cards, and image delivery all stay fast and
-                consistent with the app's candy-coated card feel.
-              </p>
-            </article>
-
-            <article class="feature-card">
-              <span class="feature-kicker">Quest</span>
-              <h2>Daily progress that stays in step</h2>
-              <p>
-                Daily claims, Wordle, speed calculus, and step-linked rewards all run through one
-                backend contract for the mobile client.
-              </p>
-            </article>
-
-            <article class="feature-card">
-              <span class="feature-kicker">Battle</span>
-              <h2>Live PvP, replays, and spectating</h2>
-              <p>
-                Matchmaking, battle actions, websocket updates, and replay-friendly match history
-                are hosted here for players and spectators.
-              </p>
-            </article>
-          </section>
-
-          <section class="support-grid" aria-label="Support and operational links">
-            <article class="support-card">
-              <p class="support-kicker">Health</p>
-              <h2>Public edge is responding</h2>
-              <p>
-                If this page loads, the public host is up and routing web traffic normally instead
-                of exposing a blank API root.
-              </p>
-              <a class="text-link" href="#{health_path}">Check the readiness endpoint</a>
-            </article>
-
-            <article class="support-card">
-              <p class="support-kicker">Security</p>
-              <h2>Responsible disclosure</h2>
-              <p>
-                Security researchers and operators can use the published disclosure contact for
-                issues related to the public service.
-              </p>
-              <a class="text-link" href="#{security_path}">Open security.txt</a>
-            </article>
-
-            <article class="support-card">
-              <p class="support-kicker">Infrastructure</p>
-              <h2>One backend, shared contracts</h2>
-              <p>
-                Phoenix owns auth, persistence, uploads, and gameplay state while the mobile app
-                talks to it through shared API contracts.
-              </p>
-              <span class="support-note">Built for the live Adventure Time TCG app.</span>
-            </article>
-          </section>
-        </main>
-      </body>
-    </html>
-    """
+    SiteLayout.document(
+      title: "Adventure Time TCG",
+      description:
+        "Adventure Time TCG is the mobile-first card battler where you collect cards, complete quests, and jump into real-time PvP.",
+      active: :home,
+      body: body
+    )
   end
 
   defp privacy_html do
-    policy_page(
-      "Privacy Policy",
-      "How Adventure Time TCG handles account, gameplay, and optional step-sync data.",
-      """
-      <section class="feature-grid policy-grid" aria-label="Privacy details">
-        <article class="feature-card policy-card">
-          <span class="feature-kicker">Account</span>
-          <h2>Account and authentication data</h2>
+    body =
+      policy_body(
+        "Privacy Policy",
+        "How Adventure Time TCG handles account, gameplay, and optional step-sync data.",
+        :privacy,
+        privacy_cards()
+      )
+
+    SiteLayout.document(
+      title: "Privacy Policy — Adventure Time TCG",
+      description:
+        "How Adventure Time TCG handles account, gameplay, and optional step-sync data.",
+      active: :privacy,
+      body: body
+    )
+  end
+
+  defp account_deletion_html do
+    body =
+      policy_body(
+        "Account Deletion",
+        "Delete your Adventure Time TCG account from the app settings screen whenever you need to.",
+        :account_deletion,
+        account_deletion_cards()
+      )
+
+    SiteLayout.document(
+      title: "Account Deletion — Adventure Time TCG",
+      description:
+        "Delete your Adventure Time TCG account from the app settings screen whenever you need to.",
+      active: nil,
+      body: body
+    )
+  end
+
+  defp policy_body(title, lede, page, cards_html) do
+    escaped_title = SiteLayout.escape(title)
+    escaped_lede = SiteLayout.escape(lede)
+
+    """
+    <section class="hero" aria-label="#{escaped_title}">
+      <div class="hero-copy">
+        <p class="eyebrow">Adventure Time TCG</p>
+        <h1>#{escaped_title}</h1>
+        <p class="lede">#{escaped_lede}</p>
+
+        <ul class="pill-list" aria-label="Policy highlights">
+          <li>Plain-language controls live in the mobile settings screen</li>
+          <li>Gameplay progress stays tied to your signed-in account</li>
+          <li>Optional health data is used only for step quest progress</li>
+        </ul>
+
+        <div class="actions">
+          <a class="btn btn-primary" href="#policy-details">Read the details</a>
+          <a class="btn btn-ghost" href="/">App overview</a>
+        </div>
+      </div>
+
+      <aside class="hero-panel" aria-label="Data controls">
+        <div class="tile-stack">
+          <div class="tile">
+            <p class="label">Account control</p>
+            <p class="value">Settings screen</p>
+          </div>
+          <div class="tile">
+            <p class="label">Privacy policy</p>
+            <p class="value"><a href="/privacy">Open page</a></p>
+          </div>
+          <div class="tile">
+            <p class="label">Deletion help</p>
+            <p class="value"><a href="/account-deletion">Open page</a></p>
+          </div>
+          <div class="tile">
+            <p class="label">Support</p>
+            <p class="value"><a href="mailto:support@leaetzak.love">support@leaetzak.love</a></p>
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <section class="section" id="policy-details" aria-label="#{escaped_title} details">
+      <div class="section-head">
+        <div>
+          <p class="kicker">#{policy_kicker(page)}</p>
+          <h2>#{policy_heading(page)}</h2>
+        </div>
+      </div>
+      <div class="card-grid">
+    #{cards_html}
+      </div>
+    </section>
+    """
+  end
+
+  defp policy_kicker(:privacy), do: "Privacy"
+  defp policy_kicker(:account_deletion), do: "Account deletion"
+
+  defp policy_heading(:privacy), do: "What we store and why"
+  defp policy_heading(:account_deletion), do: "How to delete your account"
+
+  defp privacy_cards do
+    """
+        <article class="card feature-card">
+          <span class="kicker kicker-primary">Account</span>
+          <h3>Account and authentication data</h3>
           <p>
             We store your email address, display name, password authentication state,
             preferred language, timezone, profile image, and session tokens so you can
@@ -184,18 +279,18 @@ defmodule AdventureTimeApiWeb.LandingController do
           </p>
         </article>
 
-        <article class="feature-card policy-card">
-          <span class="feature-kicker">Gameplay</span>
-          <h2>Game progress data</h2>
+        <article class="card feature-card">
+          <span class="kicker kicker-secondary">Gameplay</span>
+          <h3>Game progress data</h3>
           <p>
             We store coins, dust, cards, packs, gifts, quests, PvP loadouts, matches,
             battle events, and related timestamps so the game can preserve your progress.
           </p>
         </article>
 
-        <article class="feature-card policy-card">
-          <span class="feature-kicker">Activity</span>
-          <h2>Optional step-sync data</h2>
+        <article class="card feature-card">
+          <span class="kicker">Activity</span>
+          <h3>Optional step-sync data</h3>
           <p>
             If you enable step quests, the app reads step counts from Apple Health,
             Health Connect, the device pedometer, or Fitbit. We store daily step totals,
@@ -203,9 +298,9 @@ defmodule AdventureTimeApiWeb.LandingController do
           </p>
         </article>
 
-        <article class="feature-card policy-card">
-          <span class="feature-kicker">Notifications</span>
-          <h2>Notification data</h2>
+        <article class="card feature-card">
+          <span class="kicker kicker-primary">Notifications</span>
+          <h3>Notification data</h3>
           <p>
             If you enable notifications, we store installation identifiers and push tokens
             so the app can send requested quest, gift, and PvP alerts. You can disable
@@ -213,9 +308,9 @@ defmodule AdventureTimeApiWeb.LandingController do
           </p>
         </article>
 
-        <article class="feature-card policy-card">
-          <span class="feature-kicker">Sharing</span>
-          <h2>Sharing and third parties</h2>
+        <article class="card feature-card">
+          <span class="kicker kicker-secondary">Sharing</span>
+          <h3>Sharing and third parties</h3>
           <p>
             Data is transmitted over HTTPS to the Adventure Time TCG backend. Third-party
             services are used only as needed for platform login, push delivery, store
@@ -223,9 +318,9 @@ defmodule AdventureTimeApiWeb.LandingController do
           </p>
         </article>
 
-        <article class="feature-card policy-card">
-          <span class="feature-kicker">Control</span>
-          <h2>Access and deletion</h2>
+        <article class="card feature-card">
+          <span class="kicker">Control</span>
+          <h3>Access and deletion</h3>
           <p>
             You can delete your account in the mobile settings screen. Deletion removes
             your account, credentials, collection, gifts, quest progress, PvP data, step
@@ -233,29 +328,23 @@ defmodule AdventureTimeApiWeb.LandingController do
           </p>
           <a class="text-link" href="/account-deletion">Open deletion instructions</a>
         </article>
-      </section>
-      """
-    )
+    """
   end
 
-  defp account_deletion_html do
-    policy_page(
-      "Account Deletion",
-      "Delete your Adventure Time TCG account from the app settings screen whenever you need to.",
-      """
-      <section class="feature-grid policy-grid" aria-label="Account deletion instructions">
-        <article class="feature-card policy-card">
-          <span class="feature-kicker">In app</span>
-          <h2>Delete from settings</h2>
+  defp account_deletion_cards do
+    """
+        <article class="card feature-card">
+          <span class="kicker kicker-primary">In app</span>
+          <h3>Delete from settings</h3>
           <p>
             Sign in, open Settings, scroll to Privacy and data, then choose Delete my
             account. Confirm the prompt to permanently remove your account and gameplay data.
           </p>
         </article>
 
-        <article class="feature-card policy-card">
-          <span class="feature-kicker">Deleted data</span>
-          <h2>What is removed</h2>
+        <article class="card feature-card">
+          <span class="kicker kicker-secondary">Deleted data</span>
+          <h3>What is removed</h3>
           <p>
             Account deletion removes login credentials, sessions, collection data, gifts,
             quest progress, PvP data, step snapshots, notification devices, access requests,
@@ -263,100 +352,15 @@ defmodule AdventureTimeApiWeb.LandingController do
           </p>
         </article>
 
-        <article class="feature-card policy-card">
-          <span class="feature-kicker">Help</span>
-          <h2>Need assistance?</h2>
+        <article class="card feature-card">
+          <span class="kicker">Help</span>
+          <h3>Need assistance?</h3>
           <p>
             If you cannot access the app, contact support from the account email address
             and request account deletion. We may ask you to verify ownership before acting.
           </p>
           <a class="text-link" href="mailto:support@leaetzak.love">support@leaetzak.love</a>
         </article>
-      </section>
-      """
-    )
-  end
-
-  defp policy_page(title, lede, body_html) do
-    stylesheet_path = ~p"/assets/landing.css"
-    privacy_path = ~p"/privacy"
-    deletion_path = ~p"/account-deletion"
-
-    """
-    <!DOCTYPE html>
-    <html lang="en">
-      <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>#{title} - Adventure Time TCG</title>
-        <meta name="description" content="#{lede}" />
-        <meta name="theme-color" content="#F472B6" />
-        <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800&display=swap"
-          rel="stylesheet"
-        />
-        <link rel="stylesheet" href="#{stylesheet_path}" />
-      </head>
-      <body>
-        <a class="skip-link" href="#main-content">Skip to content</a>
-        <main class="page-shell policy-page-shell">
-          <section class="hero-shell policy-hero" aria-label="#{title}">
-            <div class="hero-copy policy-copy" id="main-content">
-              <p class="eyebrow">Adventure Time TCG</p>
-              <h1>#{title}</h1>
-              <p class="lede">#{lede}</p>
-              <ul class="signal-list" aria-label="Policy highlights">
-                <li>Plain-language controls live in the mobile settings screen</li>
-                <li>Gameplay progress stays tied to your signed-in account</li>
-                <li>Optional health data is used only for step quest progress</li>
-              </ul>
-              <div class="actions">
-                <a class="action primary" href="/">App overview</a>
-                <a class="action secondary" href="#policy-details">Policy details</a>
-              </div>
-            </div>
-
-            <aside class="hero-panel policy-panel" aria-label="Data controls">
-              <div class="status-stack policy-status-stack">
-                <div class="status-tile">
-                  <p class="status-label">Account control</p>
-                  <p class="status-value">Settings screen</p>
-                </div>
-                <div class="status-tile">
-                  <p class="status-label">Privacy policy</p>
-                  <p class="status-value">
-                    <a class="panel-link" href="#{privacy_path}">Open page</a>
-                  </p>
-                </div>
-                <div class="status-tile">
-                  <p class="status-label">Deletion help</p>
-                  <p class="status-value">
-                    <a class="panel-link" href="#{deletion_path}">Open page</a>
-                  </p>
-                </div>
-              </div>
-
-              <div class="policy-note">
-                <p class="support-kicker">Support</p>
-                <h2>Need help with your account?</h2>
-                <p>
-                  Contact support from the email address on your Adventure Time TCG account so
-                  ownership can be verified.
-                </p>
-                <a class="text-link" href="mailto:support@leaetzak.love">support@leaetzak.love</a>
-              </div>
-            </aside>
-          </section>
-
-          <div id="policy-details">
-            #{body_html}
-          </div>
-        </main>
-      </body>
-    </html>
     """
   end
 end

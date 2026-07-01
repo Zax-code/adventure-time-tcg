@@ -2,6 +2,7 @@ defmodule AdventureTimeApiWeb.EmailVerificationController do
   use AdventureTimeApiWeb, :controller
 
   alias AdventureTimeApi.Accounts
+  alias AdventureTimeApiWeb.SiteLayout
 
   def show(conn, params) do
     locale = parse_locale(params["locale"])
@@ -165,7 +166,6 @@ defmodule AdventureTimeApiWeb.EmailVerificationController do
   defp verification_html(locale, assigns) do
     copy = copy_for(locale)
     logo_path = ~p"/images/app-icon.png"
-    stylesheet_path = ~p"/assets/landing.css"
     escaped_email = escape(assigns.email)
     escaped_code = escape(assigns.code)
     escaped_locale = escape(Atom.to_string(assigns.locale))
@@ -182,11 +182,11 @@ defmodule AdventureTimeApiWeb.EmailVerificationController do
     confirm_form =
       if assigns.show_confirm? do
         """
-        <form method="post" action="/email/verify" class="verify-actions">
+        <form method="post" action="/email/verify" class="form">
           <input type="hidden" name="email" value="#{escaped_email}" />
           <input type="hidden" name="code" value="#{escaped_code}" />
           <input type="hidden" name="locale" value="#{escaped_locale}" />
-          <button type="submit" class="action primary">#{escaped_primary}</button>
+          <button type="submit" class="btn btn-primary">#{escaped_primary}</button>
         </form>
         """
       else
@@ -195,86 +195,71 @@ defmodule AdventureTimeApiWeb.EmailVerificationController do
 
     open_app_link =
       if assigns.show_open_app? do
-        """
-        <a class="action secondary" href="#{escaped_app_link}">#{escaped_secondary}</a>
-        """
+        ~s(<a class="btn btn-secondary" href="#{escaped_app_link}">#{escaped_secondary}</a>)
       else
         ""
       end
 
+    body = """
+    <section class="hero" aria-label="#{escaped_title}">
+      <div class="hero-copy">
+        <p class="eyebrow">#{escaped_badge}</p>
+        <h1>#{escaped_title}</h1>
+        <p class="lede">#{escaped_body}</p>
+
+        <div class="detail-grid" aria-label="#{escaped_help}">
+          <div class="detail-card">
+            <p class="kicker">#{escaped_email_label}</p>
+            <p class="detail-value">#{escaped_email}</p>
+          </div>
+          <div class="detail-card">
+            <p class="kicker">#{escaped_code_label}</p>
+            <p class="code-pill">#{escaped_code}</p>
+          </div>
+        </div>
+
+        <p class="form-help">#{escaped_help}</p>
+
+        <div class="actions">
+          #{confirm_form}
+          #{open_app_link}
+        </div>
+      </div>
+
+      <aside class="hero-panel" aria-label="Adventure Time TCG">
+        <div class="hero-mark">
+          <div class="card-ghost left"></div>
+          <div class="card-ghost right"></div>
+          <div class="logo-wrap">
+            <img src="#{logo_path}" alt="Adventure Time TCG app icon" />
+          </div>
+        </div>
+
+        <div class="tile-stack">
+          <div class="tile">
+            <p class="label">#{escape(copy.app_label)}</p>
+            <p class="value">#{escape(copy.app_value)}</p>
+          </div>
+          <div class="tile">
+            <p class="label">#{escape(copy.browser_label)}</p>
+            <p class="value">#{escape(copy.browser_value)}</p>
+          </div>
+          <div class="tile">
+            <p class="label">#{escape(copy.tip_label)}</p>
+            <p class="value">#{escape(copy.tip_value)}</p>
+          </div>
+        </div>
+      </aside>
+    </section>
     """
-    <!DOCTYPE html>
-    <html lang="#{copy.lang}">
-      <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>#{escaped_title} | Adventure Time TCG</title>
-        <meta name="theme-color" content="#F472B6" />
-        <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800&display=swap"
-          rel="stylesheet"
-        />
-        <link rel="stylesheet" href="#{stylesheet_path}" />
-      </head>
-      <body>
-        <main class="verify-page-shell">
-          <section class="verify-card hero-shell" aria-label="#{escaped_title}">
-            <div class="hero-copy">
-              <p class="eyebrow">#{escaped_badge}</p>
-              <h1 class="verify-title">#{escaped_title}</h1>
-              <p class="lede verify-lede">#{escaped_body}</p>
 
-              <div class="verify-detail-grid" aria-label="#{escaped_help}">
-                <div class="support-card verify-detail-card">
-                  <p class="support-kicker">#{escaped_email_label}</p>
-                  <p class="verify-detail-value">#{escaped_email}</p>
-                </div>
-                <div class="support-card verify-detail-card">
-                  <p class="support-kicker">#{escaped_code_label}</p>
-                  <p class="verify-code-pill">#{escaped_code}</p>
-                </div>
-              </div>
-
-              <p class="verify-help">#{escaped_help}</p>
-
-              <div class="verify-actions">
-                #{confirm_form}
-                #{open_app_link}
-              </div>
-            </div>
-
-            <aside class="hero-panel verify-panel" aria-label="Adventure Time TCG">
-              <div class="hero-mark verify-mark">
-                <div class="card-shadow card-shadow-left"></div>
-                <div class="card-shadow card-shadow-right"></div>
-                <div class="logo-wrap">
-                  <img src="#{logo_path}" alt="Adventure Time TCG app icon" />
-                </div>
-              </div>
-
-              <div class="status-stack">
-                <div class="status-tile">
-                  <p class="status-label">#{escape(copy.app_label)}</p>
-                  <p class="status-value">#{escape(copy.app_value)}</p>
-                </div>
-                <div class="status-tile">
-                  <p class="status-label">#{escape(copy.browser_label)}</p>
-                  <p class="status-value">#{escape(copy.browser_value)}</p>
-                </div>
-                <div class="status-tile">
-                  <p class="status-label">#{escape(copy.tip_label)}</p>
-                  <p class="status-value">#{escape(copy.tip_value)}</p>
-                </div>
-              </div>
-            </aside>
-          </section>
-        </main>
-      </body>
-    </html>
-    """
+    SiteLayout.document(
+      title: "#{assigns.title} | Adventure Time TCG",
+      description: assigns.body,
+      lang: copy.lang,
+      main_class: "auth-shell",
+      body: body
+    )
   end
 
   defp valid_prefill?(email, code) do
