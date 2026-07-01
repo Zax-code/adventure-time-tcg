@@ -87,7 +87,7 @@ defmodule AdventureTimeApiWeb.SiteLayout do
         <a class="brand" href="/" aria-label="Adventure Time TCG home">
           <span class="brand-name">
             <b>Adventure Time TCG</b>
-            <span>Official mobile backend</span>
+            <span>Collect cards. Complete quests. Battle friends.</span>
           </span>
         </a>
 
@@ -120,7 +120,7 @@ defmodule AdventureTimeApiWeb.SiteLayout do
       <div class="footer-inner">
         <div class="footer-brand">
           <b>Adventure Time TCG</b>
-          <span>The Phoenix backend and public web surface for the Adventure Time TCG mobile app.</span>
+          <span>A mobile card battler about collecting favorite characters, finishing daily quests, and jumping into friendly matches.</span>
         </div>
         <nav class="footer-links" aria-label="Footer">
           <a href="/">Home</a>

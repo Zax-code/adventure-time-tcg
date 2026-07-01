@@ -26,28 +26,28 @@ defmodule AdventureTimeApiWeb.LandingController do
     logo_path = ~p"/images/app-icon.png"
 
     body = """
-    <section class="hero" aria-label="Service overview">
+    <section class="hero" aria-label="App overview">
       <div class="hero-copy">
-        <p class="eyebrow">Official mobile backend</p>
-        <h1>The home of <span class="grad">Adventure Time TCG</span>.</h1>
+        <p class="eyebrow">Mobile card battler</p>
+        <h1>Collect, quest, and battle in <span class="grad">Adventure Time TCG</span>.</h1>
         <p class="lede">
-          This host powers account access, card art, gifts, quest progress, and
-          real-time PvP for the Adventure Time TCG mobile app.
+          Build a collection of Adventure Time cards, open packs, complete daily
+          challenges, and test your team in friendly head-to-head battles.
         </p>
 
-        <ul class="pill-list" aria-label="Core capabilities">
-          <li>Collectible cards, packs, and synced media</li>
-          <li>Daily quests, rewards, and progression systems</li>
-          <li>Realtime battles, sockets, spectating, and match history</li>
+        <ul class="pill-list" aria-label="What you can do">
+          <li>Open packs and grow a collection of character cards</li>
+          <li>Earn coins, dust, and rewards from daily play</li>
+          <li>Challenge friends and watch matches unfold turn by turn</li>
         </ul>
 
         <div class="actions">
-          <a class="btn btn-primary" href="/status">View live status</a>
-          <a class="btn btn-ghost" href="/privacy">Privacy &amp; data</a>
+          <a class="btn btn-primary" href="#how-it-plays">See how it plays</a>
+          <a class="btn btn-ghost" href="/privacy">Privacy &amp; account</a>
         </div>
       </div>
 
-      <aside class="hero-panel" aria-label="Service snapshot">
+      <aside class="hero-panel" aria-label="App snapshot">
         <div class="hero-mark">
           <div class="card-ghost left"></div>
           <div class="card-ghost right"></div>
@@ -61,16 +61,16 @@ defmodule AdventureTimeApiWeb.LandingController do
 
         <div class="tile-stack">
           <div class="tile">
-            <p class="label">Platform</p>
-            <p class="value">Expo mobile app</p>
+            <p class="label">Collect</p>
+            <p class="value">Cards &amp; packs</p>
           </div>
           <div class="tile">
-            <p class="label">Backend</p>
-            <p class="value">Phoenix API</p>
+            <p class="label">Progress</p>
+            <p class="value">Quests &amp; rewards</p>
           </div>
           <div class="tile">
-            <p class="label">Realtime</p>
-            <p class="value">Sockets &amp; live PvP</p>
+            <p class="label">Play</p>
+            <p class="value">Friendly battles</p>
           </div>
         </div>
       </aside>
@@ -79,105 +79,104 @@ defmodule AdventureTimeApiWeb.LandingController do
     <section class="stat-strip" aria-label="At a glance">
       <div class="stat">
         <b>3</b>
-        <span>Core game loops</span>
+        <span>Ways to play each day</span>
       </div>
       <div class="stat">
         <b>2</b>
-        <span>Languages: EN &amp; FR</span>
+        <span>Languages: English &amp; French</span>
       </div>
       <div class="stat">
-        <b>Live</b>
-        <span>Realtime PvP sockets</span>
+        <b>PvP</b>
+        <span>Challenge other players</span>
       </div>
       <div class="stat">
-        <b>24/7</b>
-        <span>Public status page</span>
+        <b>Daily</b>
+        <span>Fresh quests and rewards</span>
       </div>
     </section>
 
-    <section class="section" aria-label="Core app loops">
+    <section class="section" id="how-it-plays" aria-label="How the app plays">
       <div class="section-head">
         <div>
-          <p class="kicker kicker-primary">The loop</p>
-          <h2>Collect, quest, and battle</h2>
+          <p class="kicker kicker-primary">How it plays</p>
+          <h2>A card collection with something to do every day</h2>
         </div>
-        <p>Three tightly connected systems, all served from one backend contract.</p>
+        <p>Open packs, make progress, and bring your favorite cards into battle.</p>
       </div>
 
       <div class="bento">
         <article class="card feature-card wide">
           <span class="card-glyph" aria-hidden="true">#{app_icon(:cards)}</span>
           <span class="kicker kicker-primary">Collect</span>
-          <h2>Packs, rarities, and card art</h2>
+          <h2>Open packs and complete your collection</h2>
           <p>
-            Pack openings, collection sync, crafted cards, and image delivery stay fast and
-            consistent with the app's candy-coated card feel.
+            Discover character cards, chase rarities, recycle extras into dust, and craft
+            the cards you still need.
           </p>
         </article>
 
         <article class="card feature-card wide">
           <span class="card-glyph g-secondary" aria-hidden="true">#{app_icon(:quest)}</span>
           <span class="kicker kicker-secondary">Quest</span>
-          <h2>Daily progress that stays in step</h2>
+          <h2>Daily challenges with playful rewards</h2>
           <p>
-            Daily claims, Wordle, speed calculus, and step-linked rewards all run through one
-            backend contract for the mobile client.
+            Check in, solve quick challenges, sync optional step progress, and turn small
+            daily wins into coins, dust, and packs.
           </p>
         </article>
 
         <article class="card feature-card full">
           <span class="card-glyph g-accent" aria-hidden="true">#{app_icon(:swords)}</span>
           <span class="kicker">Battle</span>
-          <h2>Live PvP, replays, and spectating</h2>
+          <h2>Build a team and battle your friends</h2>
           <p>
-            Matchmaking, battle actions, websocket updates, and replay-friendly match history
-            are hosted here for players and spectators &mdash; every action journaled and
-            reconstructable.
+            Pick your loadout, make tactical choices, follow the battle log, and keep a
+            history of your favorite wins.
           </p>
         </article>
       </div>
     </section>
 
-    <section class="section" aria-label="Support and operational links">
+    <section class="section" aria-label="Player-friendly features">
       <div class="section-head">
         <div>
-          <p class="kicker">Operations</p>
-          <h2>Health, security, and one shared backend</h2>
+          <p class="kicker">Player friendly</p>
+          <h2>Built for playful, low-pressure sessions</h2>
         </div>
       </div>
 
       <div class="card-grid">
         <article class="card">
           <span class="card-glyph g-success" aria-hidden="true">#{app_icon(:check_circle)}</span>
-          <span class="kicker kicker-primary">Health</span>
-          <h2>Live service status</h2>
+          <span class="kicker kicker-primary">Easy check-in</span>
+          <h2>Know when the game is available</h2>
           <p>
-            A public status page presents the readiness of the edge, API, and database in
-            real time instead of exposing a raw JSON probe.
+            The status page gives players a simple place to check whether sign-in,
+            collections, and battles are working normally.
           </p>
-          <a class="text-link" href="/status">Open the status page</a>
+          <a class="text-link" href="/status">Check game status</a>
         </article>
 
         <article class="card">
           <span class="card-glyph g-accent" aria-hidden="true">#{app_icon(:shield_user)}</span>
-          <span class="kicker">Security</span>
-          <h2>Responsible disclosure</h2>
+          <span class="kicker">Account care</span>
+          <h2>Your progress belongs to your account</h2>
           <p>
-            Security researchers and operators can use the published disclosure contact for
-            issues related to the public service.
+            Sign in to keep your collection, quest progress, gifts, preferences, and battle
+            history with you.
           </p>
-          <a class="text-link" href="/.well-known/security.txt">Open security.txt</a>
+          <a class="text-link" href="/privacy">See privacy details</a>
         </article>
 
         <article class="card">
           <span class="card-glyph g-secondary" aria-hidden="true">#{app_icon(:pack)}</span>
-          <span class="kicker kicker-secondary">Infrastructure</span>
-          <h2>One backend, shared contracts</h2>
+          <span class="kicker kicker-secondary">Packs</span>
+          <h2>Short sessions still move you forward</h2>
           <p>
-            Phoenix owns auth, persistence, uploads, and gameplay state while the mobile app
-            talks to it through shared API contracts.
+            Open a pack, claim a reward, recycle duplicates, or tweak a battle team in just
+            a few minutes.
           </p>
-          <a class="text-link" href="/privacy">See how data is handled</a>
+          <a class="text-link" href="/account-deletion">Manage your account</a>
         </article>
       </div>
     </section>
@@ -338,9 +337,9 @@ defmodule AdventureTimeApiWeb.LandingController do
           <span class="kicker kicker-secondary">Sharing</span>
           <h3>Sharing and third parties</h3>
           <p>
-            Data is transmitted over HTTPS to the Adventure Time TCG backend. Third-party
-            services are used only as needed for platform login, push delivery, store
-            distribution, infrastructure, and optional Fitbit connection.
+            Data is sent securely when you use the app. Third-party services are used only
+            as needed for platform login, push notifications, app store distribution, and
+            optional Fitbit connection.
           </p>
         </article>
 
@@ -350,7 +349,7 @@ defmodule AdventureTimeApiWeb.LandingController do
           <p>
             You can delete your account in the mobile settings screen. Deletion removes
             your account, credentials, collection, gifts, quest progress, PvP data, step
-            snapshots, notification devices, and profile image from the production backend.
+            snapshots, notification devices, and profile image from Adventure Time TCG.
           </p>
           <a class="text-link" href="/account-deletion">Open deletion instructions</a>
         </article>

@@ -164,7 +164,6 @@
     var bannerTitle = root.querySelector("[data-banner-title]");
     var bannerText = root.querySelector("[data-banner-text]");
     var updatedAt = root.querySelector("[data-updated-at]");
-    var latencyValue = root.querySelector("[data-latency-value]");
 
     function refresh() {
       setBadge(root, "edge", "checking");
@@ -187,14 +186,9 @@
             "database",
             dbUp ? "operational" : "down",
             dbUp
-              ? "Readiness probe passed (SELECT 1)."
-              : "Readiness probe failing or unreachable."
+              ? "Collections, quests, gifts, and battle history are available."
+              : "Some saved progress may be temporarily unavailable."
           );
-
-          if (latencyValue) {
-            latencyValue.textContent =
-              ready.latency == null ? "—" : ready.latency + " ms";
-          }
 
           var overall = "operational";
           if (!edgeUp || !apiUp) {
@@ -208,17 +202,17 @@
           }
           if (bannerTitle && bannerText) {
             if (overall === "operational") {
-              bannerTitle.textContent = "All systems operational";
+              bannerTitle.textContent = "Adventure Time TCG is ready to play";
               bannerText.textContent =
-                "The public edge, API, and database are responding normally.";
+                "Sign-in, collections, quests, and battles are responding normally.";
             } else if (overall === "degraded") {
-              bannerTitle.textContent = "Partial service disruption";
+              bannerTitle.textContent = "Some game features may be limited";
               bannerText.textContent =
-                "The edge and API are up, but the database readiness check is failing.";
+                "You may be able to open the app, but saved progress or battles may not load correctly.";
             } else {
-              bannerTitle.textContent = "Service disruption";
+              bannerTitle.textContent = "Adventure Time TCG is having trouble";
               bannerText.textContent =
-                "One or more core endpoints are not responding.";
+                "The app may not load right now. Please try again in a few minutes.";
             }
           }
           if (updatedAt) {

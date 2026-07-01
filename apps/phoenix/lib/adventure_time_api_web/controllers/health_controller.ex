@@ -39,24 +39,24 @@ defmodule AdventureTimeApiWeb.HealthController do
 
   defp status_html(db_ok) do
     banner_state = if db_ok, do: "operational", else: "degraded"
-    db_state = if db_ok, do: "operational", else: "down"
+    progress_state = if db_ok, do: "operational", else: "down"
 
-    db_hint =
+    progress_hint =
       if db_ok,
-        do: "Readiness probe passed (SELECT 1).",
-        else: "Readiness probe failed or unreachable."
+        do: "Collections, quests, gifts, and battle history are available.",
+        else: "Some saved progress may be temporarily unavailable."
 
-    banner_title = if db_ok, do: "All systems operational", else: "Partial service disruption"
+    banner_title =
+      if db_ok,
+        do: "Adventure Time TCG is ready to play",
+        else: "Some game features may be limited"
 
     banner_text =
       if db_ok,
-        do: "The public edge, API, and database are responding normally.",
-        else: "The edge and API are up, but the database readiness check is failing."
+        do: "Sign-in, collections, quests, and battles are responding normally.",
+        else:
+          "You may be able to open the app, but saved progress or battles may not load correctly."
 
-    version = SiteLayout.escape(app_version())
-    elixir_version = SiteLayout.escape(System.version())
-    otp_version = SiteLayout.escape(otp_release())
-    uptime = SiteLayout.escape(format_uptime())
     checked_at = SiteLayout.escape(now_utc())
 
     body = """
@@ -65,31 +65,31 @@ defmodule AdventureTimeApiWeb.HealthController do
         <div class="status-banner" data-status-banner data-state="#{banner_state}">
           <span class="status-orb" aria-hidden="true"></span>
           <div class="status-banner-copy">
-            <p class="eyebrow">Live status</p>
+            <p class="eyebrow">Game status</p>
             <h1 data-banner-title>#{banner_title}</h1>
             <p data-banner-text>#{banner_text}</p>
           </div>
           <div class="status-refresh">
-            <span>Auto-refreshes every 15s</span>
+            <span>Updates automatically</span>
             <span>Checked <b data-updated-at>#{checked_at}</b> UTC</span>
           </div>
         </div>
       </section>
 
-      <section class="section" aria-label="Service components">
+      <section class="section" aria-label="Game areas">
         <div class="section-head">
           <div>
-            <p class="kicker">Components</p>
-            <h2>Service components</h2>
+            <p class="kicker">Can I play?</p>
+            <h2>What this status covers</h2>
           </div>
-          <p>Each component reflects a live probe from your browser.</p>
+          <p>A quick check of the parts players rely on most.</p>
         </div>
 
         <div class="status-components">
           <div class="status-row" data-component="edge">
             <div class="status-row-main">
-              <b>Public edge</b>
-              <span>Caddy routing HTTPS traffic to Phoenix</span>
+              <b>Open the app</b>
+              <span>The app can reach Adventure Time TCG.</span>
             </div>
             <span class="status-badge" data-badge data-state="operational">
               <span class="dot"></span>
@@ -99,8 +99,8 @@ defmodule AdventureTimeApiWeb.HealthController do
 
           <div class="status-row" data-component="api">
             <div class="status-row-main">
-              <b>API service</b>
-              <span>Phoenix responding on <code>/health</code></span>
+              <b>Sign in and play</b>
+              <span>Accounts, packs, quests, gifts, and battles can respond.</span>
             </div>
             <span class="status-badge" data-badge data-state="operational">
               <span class="dot"></span>
@@ -110,10 +110,10 @@ defmodule AdventureTimeApiWeb.HealthController do
 
           <div class="status-row" data-component="database">
             <div class="status-row-main">
-              <b>Database</b>
-              <span data-hint>#{db_hint}</span>
+              <b>Saved progress</b>
+              <span data-hint>#{progress_hint}</span>
             </div>
-            <span class="status-badge" data-badge data-state="#{db_state}">
+            <span class="status-badge" data-badge data-state="#{progress_state}">
               <span class="dot"></span>
               <span data-badge-label>#{if db_ok, do: "Operational", else: "Down"}</span>
             </span>
@@ -121,56 +121,18 @@ defmodule AdventureTimeApiWeb.HealthController do
         </div>
       </section>
 
-      <section class="section" aria-label="Runtime details">
-        <div class="section-head">
-          <div>
-            <p class="kicker kicker-secondary">Runtime</p>
-            <h2>Build &amp; runtime</h2>
-          </div>
-        </div>
-
-        <div class="metric-grid">
-          <div class="metric">
-            <p class="metric-label">Service</p>
-            <p class="metric-value">Phoenix</p>
-            <p class="metric-hint">adventure_time_api</p>
-          </div>
-          <div class="metric">
-            <p class="metric-label">Version</p>
-            <p class="metric-value">#{version}</p>
-          </div>
-          <div class="metric">
-            <p class="metric-label">Uptime</p>
-            <p class="metric-value">#{uptime}</p>
-            <p class="metric-hint">Since last restart</p>
-          </div>
-          <div class="metric">
-            <p class="metric-label">Ready latency</p>
-            <p class="metric-value" data-latency-value>—</p>
-            <p class="metric-hint">/ready round-trip</p>
-          </div>
-          <div class="metric">
-            <p class="metric-label">Elixir</p>
-            <p class="metric-value">#{elixir_version}</p>
-          </div>
-          <div class="metric">
-            <p class="metric-label">OTP</p>
-            <p class="metric-value">#{otp_version}</p>
-          </div>
-        </div>
-      </section>
-
-      <section class="section" aria-label="Machine-readable probes">
+      <section class="section" aria-label="Player help">
         <div class="card">
-          <span class="kicker kicker-primary">Endpoints</span>
-          <h2>Machine-readable probes</h2>
+          <span class="kicker kicker-primary">Still stuck?</span>
+          <h2>If the game still feels off</h2>
           <p>
-            This page is backed by two JSON endpoints used by uptime monitors and the
-            container orchestrator health check. You can open them directly:
+            Try closing and reopening the app, checking your connection, or coming back in a
+            few minutes. If the problem keeps happening, contact support and include what you
+            were trying to do.
           </p>
           <div class="actions">
-            <a class="btn btn-ghost" href="/health">GET /health</a>
-            <a class="btn btn-ghost" href="/ready">GET /ready</a>
+            <a class="btn btn-primary" href="mailto:support@leaetzak.love">Contact support</a>
+            <a class="btn btn-ghost" href="/">Back to app overview</a>
           </div>
         </div>
       </section>
@@ -178,45 +140,17 @@ defmodule AdventureTimeApiWeb.HealthController do
     """
 
     SiteLayout.document(
-      title: "Service Status — Adventure Time TCG",
+      title: "Game Status — Adventure Time TCG",
       description:
-        "Live status of the Adventure Time TCG backend: public edge, API, and database readiness.",
+        "Check whether Adventure Time TCG is ready for sign-in, quests, packs, and battles.",
       active: :status,
       body: body
     )
-  end
-
-  defp app_version do
-    case Application.spec(:adventure_time_api, :vsn) do
-      nil -> "unknown"
-      vsn -> to_string(vsn)
-    end
-  end
-
-  defp otp_release do
-    :erlang.system_info(:otp_release) |> to_string()
   end
 
   defp now_utc do
     DateTime.utc_now()
     |> DateTime.truncate(:second)
     |> Calendar.strftime("%Y-%m-%d %H:%M:%S")
-  end
-
-  defp format_uptime do
-    {wall_clock_ms, _since_last_call} = :erlang.statistics(:wall_clock)
-    total_seconds = div(wall_clock_ms, 1000)
-
-    days = div(total_seconds, 86_400)
-    hours = total_seconds |> rem(86_400) |> div(3600)
-    minutes = total_seconds |> rem(3600) |> div(60)
-    seconds = rem(total_seconds, 60)
-
-    cond do
-      days > 0 -> "#{days}d #{hours}h"
-      hours > 0 -> "#{hours}h #{minutes}m"
-      minutes > 0 -> "#{minutes}m #{seconds}s"
-      true -> "#{seconds}s"
-    end
   end
 end
