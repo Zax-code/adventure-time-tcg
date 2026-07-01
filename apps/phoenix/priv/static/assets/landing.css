@@ -429,13 +429,13 @@ button {
 }
 
 .theme-switch button[data-theme-name="candy"] {
-  background-image: linear-gradient(135deg, #F472B6 0%, #FDE047 52%, #C084FC 100%);
+  background-image: linear-gradient(135deg, #F472B6 0%, #F472B6 52%, #FDE047 76%, #C084FC 100%);
 }
 .theme-switch button[data-theme-name="ice"] {
-  background-image: linear-gradient(135deg, #60A5FA 0%, #67E8F9 52%, #818CF8 100%);
+  background-image: linear-gradient(135deg, #60A5FA 0%, #60A5FA 52%, #67E8F9 76%, #818CF8 100%);
 }
 .theme-switch button[data-theme-name="nightosphere"] {
-  background-image: linear-gradient(135deg, #EF4444 0%, #F97316 52%, #C084FC 100%);
+  background-image: linear-gradient(135deg, #EF4444 0%, #EF4444 52%, #F97316 76%, #C084FC 100%);
 }
 
 .theme-switch button:hover {
