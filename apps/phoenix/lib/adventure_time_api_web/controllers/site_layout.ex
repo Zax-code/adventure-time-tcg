@@ -81,15 +81,10 @@ defmodule AdventureTimeApiWeb.SiteLayout do
 
   @doc "Sticky top navigation bar with brand, links, and the theme switcher."
   def header(active) do
-    logo_path = ~p"/images/app-icon.png"
-
     """
     <header class="topbar">
       <div class="topbar-inner">
         <a class="brand" href="/" aria-label="Adventure Time TCG home">
-          <span class="brand-mark">
-            <img src="#{logo_path}" alt="" />
-          </span>
           <span class="brand-name">
             <b>Adventure Time TCG</b>
             <span>Official mobile backend</span>
