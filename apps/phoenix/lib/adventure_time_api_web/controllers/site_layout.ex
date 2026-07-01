@@ -81,7 +81,7 @@ defmodule AdventureTimeApiWeb.SiteLayout do
 
   @doc "Sticky top navigation bar with brand, links, and the theme switcher."
   def header(active) do
-    logo_path = ~p"/images/logo.svg"
+    logo_path = ~p"/images/app-icon.png"
 
     """
     <header class="topbar">

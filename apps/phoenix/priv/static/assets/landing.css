@@ -317,7 +317,7 @@ button {
   width: 44px;
   height: 44px;
   border-radius: 14px;
-  padding: 9px;
+  padding: 3px;
   background: var(--surface-solid);
   border: 1px solid var(--primary-border);
   box-shadow: var(--shadow-sm);
@@ -327,7 +327,8 @@ button {
 .brand-mark img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  border-radius: 11px;
+  object-fit: cover;
 }
 
 .brand-name {
@@ -672,7 +673,7 @@ button {
   width: 52%;
   aspect-ratio: 1 / 1;
   border-radius: 28px;
-  padding: 18px;
+  padding: 6px;
   background: var(--surface-solid);
   border: 1px solid var(--primary-border);
   box-shadow: var(--shadow-lg);
@@ -682,7 +683,8 @@ button {
 .logo-wrap img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  border-radius: 22px;
+  object-fit: cover;
 }
 
 @keyframes float-a {
@@ -831,32 +833,36 @@ button {
   border-radius: 15px;
   display: grid;
   place-items: center;
-  padding: 10px;
+  padding: 11px;
   background: var(--primary-tint);
   border: 1px solid var(--primary-border);
   box-shadow: var(--shadow-sm);
   margin-bottom: 0.4rem;
+  color: var(--primary-text);
 }
 
-.card-glyph img {
+.card-glyph svg {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  display: block;
 }
 
 .card-glyph.g-secondary {
   background: var(--secondary-tint);
   border-color: color-mix(in srgb, var(--secondary) 45%, transparent);
+  color: var(--secondary-text);
 }
 
 .card-glyph.g-accent {
   background: var(--accent-tint);
   border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  color: var(--accent-text);
 }
 
 .card-glyph.g-success {
   background: var(--success-tint);
   border-color: color-mix(in srgb, var(--success) 45%, transparent);
+  color: var(--success-text);
 }
 
 /* --------------------------------------------------------------------------
