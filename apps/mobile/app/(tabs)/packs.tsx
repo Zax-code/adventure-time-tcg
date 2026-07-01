@@ -125,6 +125,17 @@ type LoadingSparkle = {
   delay: number;
   rotation: number;
 };
+type CardBackStackSpec = {
+  key: string;
+  finalX: number;
+  finalY: number;
+  finalRotate: string;
+  collapsedX: number;
+  collapsedY: number;
+  collapsedRotate: string;
+  scale: number;
+  zIndex: number;
+};
 type OpeningPhase =
   | "selecting"
   | "shaking"
@@ -176,6 +187,10 @@ const PACK_OPEN_PROGRESS_MS = IS_E2E_BUILD
       second: 420,
       final: 220,
     };
+const REVEAL_FLIP_MS = IS_E2E_BUILD ? 520 : 1120;
+const SPARK_REVEAL_FLIP_MS = IS_E2E_BUILD ? 980 : 2100;
+const REVEAL_START_DELAY_MS = IS_E2E_BUILD ? 200 : 420;
+const SPARK_REVEAL_START_DELAY_MS = IS_E2E_BUILD ? 360 : 920;
 const BURST_PARTICLE_COLORS = [
   "#FFF2A8",
   "#FFC247",
@@ -241,7 +256,69 @@ const TREASURE_RAY_SPECS = [
     color: "rgba(255, 203, 80, 0.42)",
   },
 ];
+const CARD_BACK_STACK_SPECS: [
+  CardBackStackSpec,
+  CardBackStackSpec,
+  CardBackStackSpec,
+] = [
+  {
+    key: "left",
+    finalX: -30,
+    finalY: 12,
+    finalRotate: "-8deg",
+    collapsedX: -6,
+    collapsedY: 5,
+    collapsedRotate: "-2deg",
+    scale: 0.96,
+    zIndex: 1,
+  },
+  {
+    key: "right",
+    finalX: 30,
+    finalY: 12,
+    finalRotate: "8deg",
+    collapsedX: 6,
+    collapsedY: 5,
+    collapsedRotate: "2deg",
+    scale: 0.96,
+    zIndex: 2,
+  },
+  {
+    key: "center",
+    finalX: 0,
+    finalY: -10,
+    finalRotate: "0deg",
+    collapsedX: 0,
+    collapsedY: 0,
+    collapsedRotate: "0deg",
+    scale: 1,
+    zIndex: 3,
+  },
+];
 const AnimatedPath = Animated.createAnimatedComponent(Path);
+const packScreenStyles = StyleSheet.create({
+  burstFlare: {
+    position: "absolute",
+    width: 30,
+    height: 30,
+    borderRadius: 999,
+    backgroundColor: "#FFF2AA",
+    boxShadow:
+      "0 0 18px rgba(255, 242, 170, 0.95), 0 0 42px rgba(255, 156, 37, 0.8), 0 0 80px rgba(255, 91, 18, 0.6)",
+  },
+  burstShockwave: {
+    position: "absolute",
+    width: 120,
+    height: 120,
+    borderRadius: 999,
+    borderWidth: 3,
+    borderColor: "rgba(255, 228, 130, 0.9)",
+  },
+  burstParticle: {
+    position: "absolute",
+    borderRadius: 999,
+  },
+});
 
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -559,6 +636,10 @@ function getPackProgressStep(phase: OpeningPhase) {
 }
 
 function getHapticForCard(card: OpenedCard) {
+  if (card.revealSource === "spark") {
+    return Haptics.NotificationFeedbackType.Success;
+  }
+
   const rarityName = card.rarity?.name ?? "Common";
   if (rarityName === "Legendary") {
     return Haptics.NotificationFeedbackType.Success;
@@ -1152,12 +1233,14 @@ function RevealCardHalo({
   color,
   opacityAnim,
   rarityName,
+  isSparkReveal = false,
   themeName,
   width,
 }: {
   color: string;
   opacityAnim: Animated.Value;
   rarityName: RarityName;
+  isSparkReveal?: boolean;
   themeName: ThemeName;
   width: number;
 }) {
@@ -1165,11 +1248,11 @@ function RevealCardHalo({
   const haloShapeSource = getCardOutlineSource(themeName, rarityName);
   const haloOpacity = opacityAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, 0.22],
+    outputRange: [0, isSparkReveal ? 0.38 : 0.22],
   });
   const haloScale = opacityAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [0.995, 1.025],
+    outputRange: [0.995, isSparkReveal ? 1.055 : 1.025],
   });
 
   return (
@@ -1204,6 +1287,92 @@ function RevealCardHalo({
   );
 }
 
+function SparkRevealOverlay({
+  color,
+  anim,
+  width,
+}: {
+  color: string;
+  anim: Animated.Value;
+  width: number;
+}) {
+  const height = width / REVEAL_CARD_RATIO;
+  const pulseOpacity = anim.interpolate({
+    inputRange: [0, 0.25, 0.62, 1],
+    outputRange: [0, 0.92, 0.34, 0],
+  });
+  const pulseScale = anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.78, 1.36],
+  });
+  const glintOpacity = anim.interpolate({
+    inputRange: [0, 0.32, 0.68, 1],
+    outputRange: [0, 0.8, 0.22, 0],
+  });
+  const glintTranslateX = anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-width * 0.8, width * 0.8],
+  });
+  const starScale = anim.interpolate({
+    inputRange: [0, 0.45, 0.72, 1],
+    outputRange: [0.75, 1.22, 1.04, 0.9],
+  });
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={{
+        position: "absolute",
+        top: -18,
+        right: -18,
+        bottom: -18,
+        left: -18,
+        zIndex: 24,
+        opacity: pulseOpacity,
+        transform: [{ scale: pulseScale }],
+      }}
+    >
+      <View
+        style={{
+          position: "absolute",
+          top: 0,
+          right: 0,
+          bottom: 0,
+          left: 0,
+          borderRadius: 36,
+          borderWidth: 2,
+          borderColor: color,
+          backgroundColor: withAlpha(color, "16"),
+        }}
+      />
+      <Animated.View
+        style={{
+          position: "absolute",
+          top: height * 0.12,
+          bottom: height * 0.12,
+          left: width * 0.42,
+          width: 22,
+          borderRadius: 999,
+          backgroundColor: "rgba(255, 255, 255, 0.72)",
+          opacity: glintOpacity,
+          transform: [{ translateX: glintTranslateX }, { rotate: "18deg" }],
+        }}
+      />
+      <Animated.View
+        style={{
+          position: "absolute",
+          right: 18,
+          top: 16,
+          opacity: glintOpacity,
+          transform: [{ scale: starScale }],
+        }}
+      >
+        <SparklesIcon size={30} color="#FFF8D6" />
+      </Animated.View>
+    </Animated.View>
+  );
+}
+
 function CardBackStack({
   width,
   tc,
@@ -1218,18 +1387,30 @@ function CardBackStack({
   tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
   themeName: ThemeName;
   cardBackVisualMap: CardBackVisualMap;
-  rarityNames?: RarityName[];
+  rarityNames: RarityName[];
   spreadAnim: Animated.Value;
   idleAnim?: Animated.Value;
   pulseAnim?: Animated.Value;
 }) {
   const cardHeight = width / REVEAL_CARD_RATIO;
   const stackHeight = cardHeight + 44;
-  const stackRarities: [RarityName, RarityName, RarityName] = [
-    rarityNames?.[0] ?? "Common",
-    rarityNames?.[1] ?? rarityNames?.[0] ?? "Common",
-    rarityNames?.[2] ?? rarityNames?.[1] ?? rarityNames?.[0] ?? "Common",
-  ];
+  const visibleRarityNames =
+    rarityNames.length > 3
+      ? rarityNames.slice(0, 3)
+      : rarityNames.length > 0
+        ? rarityNames
+        : (["Common"] as RarityName[]);
+  const visibleCardCount = visibleRarityNames.length;
+  const visibleStackCards =
+    visibleCardCount === 1
+      ? [CARD_BACK_STACK_SPECS[2]]
+      : visibleCardCount === 2
+        ? CARD_BACK_STACK_SPECS.slice(0, 2)
+        : CARD_BACK_STACK_SPECS;
+  const visibleStackEntries = visibleStackCards.map((card, index) => ({
+    ...card,
+    rarityName: visibleRarityNames[index] ?? "Common",
+  }));
   const wrapperTransforms = [
     ...(idleAnim
       ? [
@@ -1269,44 +1450,7 @@ function CardBackStack({
         transform: wrapperTransforms,
       }}
     >
-      {[
-        {
-          key: "left",
-          rarityName: stackRarities[0],
-          finalX: -30,
-          finalY: 12,
-          finalRotate: "-8deg",
-          collapsedX: -6,
-          collapsedY: 5,
-          collapsedRotate: "-2deg",
-          scale: 0.96,
-          zIndex: 1,
-        },
-        {
-          key: "right",
-          rarityName: stackRarities[1],
-          finalX: 30,
-          finalY: 12,
-          finalRotate: "8deg",
-          collapsedX: 6,
-          collapsedY: 5,
-          collapsedRotate: "2deg",
-          scale: 0.96,
-          zIndex: 2,
-        },
-        {
-          key: "center",
-          rarityName: stackRarities[2],
-          finalX: 0,
-          finalY: -10,
-          finalRotate: "0deg",
-          collapsedX: 0,
-          collapsedY: 0,
-          collapsedRotate: "0deg",
-          scale: 1,
-          zIndex: 3,
-        },
-      ].map((card) => (
+      {visibleStackEntries.map((card) => (
         <Animated.View
           key={card.key}
           style={{
@@ -1347,7 +1491,7 @@ function CardBackStack({
             cardBackVisualMap={cardBackVisualMap}
           />
         </Animated.View>
-      ))}
+        ))}
     </Animated.View>
   );
 }
@@ -1530,91 +1674,85 @@ function CrackedPackPreview({
       </Svg>
       <Animated.View
         pointerEvents="none"
-        style={{
-          position: "absolute",
-          left: centerX - 15,
-          top: centerY - 15,
-          width: 30,
-          height: 30,
-          borderRadius: 999,
-          backgroundColor: "#FFF2AA",
-          opacity: flareOpacity,
-          boxShadow:
-            "0 0 18px rgba(255, 242, 170, 0.95), 0 0 42px rgba(255, 156, 37, 0.8), 0 0 80px rgba(255, 91, 18, 0.6)",
-          transform: [{ scale: flareScale }],
-        }}
+        style={[
+          packScreenStyles.burstFlare,
+          {
+            left: centerX - 15,
+            top: centerY - 15,
+            opacity: flareOpacity,
+            transform: [{ scale: flareScale }],
+          },
+        ]}
       />
       <Animated.View
         pointerEvents="none"
-        style={{
-          position: "absolute",
-          left: centerX - 60,
-          top: centerY - 60,
-          width: 120,
-          height: 120,
-          borderRadius: 999,
-          borderWidth: 3,
-          borderColor: "rgba(255, 228, 130, 0.9)",
-          opacity: shockwaveOpacity,
-          transform: [{ scale: shockwaveScale }],
-        }}
+        style={[
+          packScreenStyles.burstShockwave,
+          {
+            left: centerX - 60,
+            top: centerY - 60,
+            opacity: shockwaveOpacity,
+            transform: [{ scale: shockwaveScale }],
+          },
+        ]}
       />
       {resolvedPattern.particles.map((particle) => {
         return (
           <Animated.View
             key={particle.id}
             pointerEvents="none"
-            style={{
-              position: "absolute",
-              left: centerX - particle.size / 2,
-              top: centerY - particle.size / 2,
-              width: particle.size,
-              height: particle.size,
-              borderRadius: 999,
-              backgroundColor: particle.color,
-              boxShadow: `0 0 14px ${particle.color}`,
-              opacity: openAnim.interpolate({
-                inputRange: [0, 0.62, 0.68, 1],
-                outputRange: [0, 0, 1, 0],
-                extrapolate: "clamp",
-              }),
-              transform: [
-                {
-                  translateX: openAnim.interpolate({
-                    inputRange: [0, 0.62, 0.76, 1],
-                    outputRange: [
-                      0,
-                      0,
-                      particle.travelX * 0.16,
-                      particle.travelX,
-                    ],
-                    extrapolate: "clamp",
-                  }),
-                },
-                {
-                  translateY: openAnim.interpolate({
-                    inputRange: [0, 0.62, 0.76, 1],
-                    outputRange: [
-                      0,
-                      0,
-                      particle.travelY * 0.16,
-                      particle.travelY,
-                    ],
-                    extrapolate: "clamp",
-                  }),
-                },
-                {
-                  rotate: particle.spin,
-                },
-                {
-                  scale: openAnim.interpolate({
-                    inputRange: [0, 0.62, 0.74, 1],
-                    outputRange: [0.5, 0.5, 1, 0],
-                    extrapolate: "clamp",
-                  }),
-                },
-              ],
-            }}
+            style={[
+              packScreenStyles.burstParticle,
+              {
+                left: centerX - particle.size / 2,
+                top: centerY - particle.size / 2,
+                width: particle.size,
+                height: particle.size,
+                backgroundColor: particle.color,
+                boxShadow: `0 0 14px ${particle.color}`,
+                opacity: openAnim.interpolate({
+                  inputRange: [0, 0.62, 0.68, 1],
+                  outputRange: [0, 0, 1, 0],
+                  extrapolate: "clamp",
+                }),
+                transform: [
+                  {
+                    translateX: openAnim.interpolate({
+                      inputRange: [0, 0.62, 0.76, 1],
+                      outputRange: [
+                        0,
+                        0,
+                        particle.travelX * 0.16,
+                        particle.travelX,
+                      ],
+                      extrapolate: "clamp",
+                    }),
+                  },
+                  {
+                    translateY: openAnim.interpolate({
+                      inputRange: [0, 0.62, 0.76, 1],
+                      outputRange: [
+                        0,
+                        0,
+                        particle.travelY * 0.16,
+                        particle.travelY,
+                      ],
+                      extrapolate: "clamp",
+                    }),
+                  },
+                  {
+                    rotate: particle.spin,
+                  },
+                  {
+                    scale: openAnim.interpolate({
+                      inputRange: [0, 0.62, 0.74, 1],
+                      outputRange: [0.5, 0.5, 1, 0],
+                      extrapolate: "clamp",
+                    }),
+                  },
+                ],
+              },
+            ]}
           />
         );
       })}
@@ -2047,6 +2185,7 @@ export default function PacksScreen() {
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const flipAnim = useRef(new Animated.Value(0)).current;
   const revealHaloAnim = useAnimatedValue(0);
+  const revealSparkAnim = useAnimatedValue(0);
   const burstOpenAnim = useRef(new Animated.Value(0)).current;
   const chargeLoopRef = useRef<Animated.CompositeAnimation | null>(null);
   const sheenLoopRef = useRef<Animated.CompositeAnimation | null>(null);
@@ -2345,18 +2484,30 @@ export default function PacksScreen() {
     setPhase("revealing");
     flipAnim.setValue(0);
     revealHaloAnim.setValue(0);
+    revealSparkAnim.setValue(0);
     revealAnimationRef.current?.stop();
+    const isSparkReveal = nextCard.revealSource === "spark";
     revealAnimationRef.current = Animated.sequence([
-      Animated.delay(IS_E2E_BUILD ? 200 : 420),
-      Animated.timing(flipAnim, {
-        toValue: 1,
-        duration: IS_E2E_BUILD ? 520 : 1120,
-        useNativeDriver: true,
-        easing: Easing.bezier(0.22, 0.61, 0.36, 1),
-      }),
+      Animated.delay(
+        isSparkReveal ? SPARK_REVEAL_START_DELAY_MS : REVEAL_START_DELAY_MS,
+      ),
+      Animated.parallel([
+        Animated.timing(flipAnim, {
+          toValue: 1,
+          duration: isSparkReveal ? SPARK_REVEAL_FLIP_MS : REVEAL_FLIP_MS,
+          useNativeDriver: true,
+          easing: Easing.bezier(0.22, 0.61, 0.36, 1),
+        }),
+        Animated.timing(revealSparkAnim, {
+          toValue: isSparkReveal ? 1 : 0,
+          duration: isSparkReveal ? SPARK_REVEAL_FLIP_MS + 260 : 1,
+          useNativeDriver: true,
+          easing: Easing.out(Easing.cubic),
+        }),
+      ]),
       Animated.timing(revealHaloAnim, {
         toValue: 1,
-        duration: IS_E2E_BUILD ? 120 : 220,
+        duration: isSparkReveal ? 360 : IS_E2E_BUILD ? 120 : 220,
         useNativeDriver: true,
         easing: Easing.out(Easing.quad),
       }),
@@ -2379,6 +2530,7 @@ export default function PacksScreen() {
     revealAnimationRef.current = null;
     flipAnim.setValue(1);
     revealHaloAnim.setValue(1);
+    revealSparkAnim.setValue(1);
     isRevealAnimatingRef.current = false;
     setIsRevealSettled(true);
   }
@@ -2417,6 +2569,7 @@ export default function PacksScreen() {
     pulseAnim.setValue(1);
     flipAnim.setValue(0);
     revealHaloAnim.setValue(0);
+    revealSparkAnim.setValue(0);
     burstOpenAnim.setValue(0);
   }
 
@@ -2521,9 +2674,13 @@ export default function PacksScreen() {
     ? canOpenPackWithBalance(heroPack, coins)
     : false;
   const openingStep = getPackProgressStep(phase);
-  const openingStackRarities = openedCards
-    .slice(0, 3)
-    .map((card) => toRarityName(card.rarity?.name));
+  const openingStackRarities = openedCards.slice(0, 3).map((card) => {
+    if (card.revealSource === "spark") {
+      return "Common";
+    }
+
+    return toRarityName(card.rarity?.name);
+  });
 
   if (
     (phase === "shaking" || phase === "bursting" || phase === "loading") &&
@@ -2809,6 +2966,7 @@ export default function PacksScreen() {
     const glowColor = getRarityGlowColor(rarityName);
     const isHighRarity = ["Legendary", "Epic", "Rare"].includes(rarityName);
     const isLastCard = revealedIndex === openedCards.length - 1;
+    const isSparkReveal = card.revealSource === "spark";
     const cardScale = flipAnim.interpolate({
       inputRange: [0, 1],
       outputRange: [0.94, 1],
@@ -2889,9 +3047,17 @@ export default function PacksScreen() {
                 color={rarityRing}
                 opacityAnim={revealHaloAnim}
                 rarityName={rarityName}
+                isSparkReveal={isSparkReveal}
                 themeName={themeName}
                 width={revealCardWidth}
               />
+              {isSparkReveal ? (
+                <SparkRevealOverlay
+                  color={rarityRing}
+                  anim={revealSparkAnim}
+                  width={revealCardWidth}
+                />
+              ) : null}
               <Animated.View
                 pointerEvents="none"
                 style={{

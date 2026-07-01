@@ -5,15 +5,9 @@ defmodule AdventureTimeApi.Inventory.PackOpening do
 
   def select_card(available_cards, available_rarities, guaranteed_rarity)
       when is_binary(guaranteed_rarity) do
-    case Enum.find(available_rarities, &(&1.name == guaranteed_rarity)) do
-      nil ->
-        select_card(available_cards, available_rarities, nil)
-
-      rarity ->
-        case Enum.filter(available_cards, &(&1.rarity_id == rarity.id)) do
-          [] -> select_card(available_cards, available_rarities, nil)
-          cards -> Enum.random(cards)
-        end
+    case select_card_for_rarity(available_cards, available_rarities, guaranteed_rarity) do
+      {:ok, card} -> card
+      :error -> select_card(available_cards, available_rarities, nil)
     end
   end
 
@@ -29,6 +23,22 @@ defmodule AdventureTimeApi.Inventory.PackOpening do
   end
 
   def shuffle(cards), do: Enum.shuffle(cards)
+
+  def select_card_for_rarity(available_cards, available_rarities, rarity_name)
+      when is_binary(rarity_name) do
+    case Enum.find(available_rarities, &(&1.name == rarity_name)) do
+      nil ->
+        :error
+
+      rarity ->
+        available_cards
+        |> Enum.filter(&(&1.rarity_id == rarity.id))
+        |> case do
+          [] -> :error
+          cards -> {:ok, Enum.random(cards)}
+        end
+    end
+  end
 
   defp weighted_rarity_id([first_rarity | _] = available_rarities) do
     total_weight = Enum.reduce(available_rarities, 0.0, &(&1.drop_rate + &2))

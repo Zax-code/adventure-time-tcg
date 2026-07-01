@@ -574,6 +574,7 @@ export const adminPackEditSchema = z.object({
 
 export const openedCardSchema = cardSchema.extend({
   isNewForUser: z.boolean(),
+  revealSource: z.enum(["spark"]).optional(),
 });
 
 export const openPackSchema = z.object({
