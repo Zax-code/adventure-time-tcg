@@ -28,7 +28,6 @@ defmodule AdventureTimeApiWeb.LandingController do
     body = """
     <section class="hero" aria-label="App overview">
       <div class="hero-copy">
-        <p class="eyebrow">Mobile card battler</p>
         <h1>Collect, quest, and battle in <span class="grad">Adventure Time TCG</span>.</h1>
         <p class="lede">
           Build a collection of Adventure Time cards, open packs, complete daily
