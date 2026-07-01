@@ -44,6 +44,142 @@ defmodule AdventureTimeApi.InventoryTest do
     assert Enum.any?(response.cards, &(&1.id == rare_card.id and &1.rarity.name == "Rare"))
   end
 
+  test "open_pack_for_user advances hidden spark counters only on low random rarities" do
+    user = create_user("inventory-spark-advance@example.com") |> grant_coins(300)
+    common = create_rarity("Common", 52.0, "#9CA3AF")
+    common_card = create_card("Finn", common.id)
+    pack = create_pack("Basic Pack", 2, 100, nil)
+
+    assert {:ok, response} = Inventory.open_pack_for_user(user.id, pack.id)
+    assert Enum.all?(response.cards, &(&1.id == common_card.id))
+    assert Enum.all?(response.cards, &(Map.get(&1, :revealSource) == nil))
+
+    user = Repo.get!(User, user.id)
+    assert user.pack_epic_spark_counter == 2
+    assert user.pack_legendary_spark_counter == 2
+  end
+
+  test "open_pack_for_user silently forces epic spark and preserves legendary counter" do
+    user =
+      create_user("inventory-epic-spark@example.com")
+      |> grant_coins(300)
+      |> set_spark_counters(50, 37)
+
+    _common = create_rarity("Common", 52.0, "#9CA3AF")
+    epic = create_rarity("Epic", 4.0, "#8B5CF6")
+    epic_card = create_card("BMO", epic.id)
+    pack = create_pack("Basic Pack", 1, 100, nil)
+
+    assert {:ok, response} = Inventory.open_pack_for_user(user.id, pack.id)
+    assert [%{id: card_id, rarity: %{name: "Epic"}, revealSource: "spark"}] = response.cards
+    assert card_id == epic_card.id
+
+    user = Repo.get!(User, user.id)
+    assert user.pack_epic_spark_counter == 0
+    assert user.pack_legendary_spark_counter == 37
+  end
+
+  test "open_pack_for_user silently forces legendary spark before epic spark" do
+    user =
+      create_user("inventory-legendary-spark@example.com")
+      |> grant_coins(300)
+      |> set_spark_counters(50, 150)
+
+    _common = create_rarity("Common", 52.0, "#9CA3AF")
+    _epic = create_rarity("Epic", 4.0, "#8B5CF6")
+    legendary = create_rarity("Legendary", 1.0, "#F59E0B")
+    legendary_card = create_card("The Lich", legendary.id)
+    pack = create_pack("Basic Pack", 1, 100, nil)
+
+    assert {:ok, response} = Inventory.open_pack_for_user(user.id, pack.id)
+
+    assert [%{id: card_id, rarity: %{name: "Legendary"}, revealSource: "spark"}] =
+             response.cards
+
+    assert card_id == legendary_card.id
+
+    user = Repo.get!(User, user.id)
+    assert user.pack_epic_spark_counter == 50
+    assert user.pack_legendary_spark_counter == 0
+  end
+
+  test "open_pack_for_user does not trigger legendary spark inside legendary packs" do
+    user =
+      create_user("inventory-legendary-pack-spark@example.com")
+      |> grant_coins(5_000)
+      |> set_spark_counters(12, 150)
+
+    common = create_rarity("Common", 1_000_000.0, "#9CA3AF")
+    legendary = create_rarity("Legendary", 1.0, "#F59E0B")
+    _common_card = create_card("Banana Guard", common.id)
+    legendary_card = create_card("Golb", legendary.id)
+    pack = create_pack("Legendary Pack", 2, 100, "Legendary")
+
+    assert {:ok, response} = Inventory.open_pack_for_user(user.id, pack.id)
+    assert Enum.any?(response.cards, &(&1.id == legendary_card.id))
+    refute Enum.any?(response.cards, &(Map.get(&1, :revealSource) == "spark"))
+  end
+
+  test "open_pack_for_user random epic resets epic spark without advancing legendary spark" do
+    user =
+      create_user("inventory-random-epic-spark@example.com")
+      |> grant_coins(300)
+      |> set_spark_counters(12, 34)
+
+    epic = create_rarity("Epic", 4.0, "#8B5CF6")
+    epic_card = create_card("Flame Princess", epic.id)
+    pack = create_pack("Basic Pack", 1, 100, nil)
+
+    assert {:ok, response} = Inventory.open_pack_for_user(user.id, pack.id)
+    assert [%{id: card_id, rarity: %{name: "Epic"}} = opened_card] = response.cards
+    assert card_id == epic_card.id
+    refute Map.has_key?(opened_card, :revealSource)
+
+    user = Repo.get!(User, user.id)
+    assert user.pack_epic_spark_counter == 0
+    assert user.pack_legendary_spark_counter == 34
+  end
+
+  test "open_pack_for_user random legendary resets legendary spark without advancing epic spark" do
+    user =
+      create_user("inventory-random-legendary-spark@example.com")
+      |> grant_coins(300)
+      |> set_spark_counters(12, 34)
+
+    legendary = create_rarity("Legendary", 1.0, "#F59E0B")
+    legendary_card = create_card("Billy", legendary.id)
+    pack = create_pack("Basic Pack", 1, 100, nil)
+
+    assert {:ok, response} = Inventory.open_pack_for_user(user.id, pack.id)
+    assert [%{id: card_id, rarity: %{name: "Legendary"}} = opened_card] = response.cards
+    assert card_id == legendary_card.id
+    refute Map.has_key?(opened_card, :revealSource)
+
+    user = Repo.get!(User, user.id)
+    assert user.pack_epic_spark_counter == 12
+    assert user.pack_legendary_spark_counter == 0
+  end
+
+  test "open_pack_for_user guaranteed high rarities do not reset or advance spark counters" do
+    user =
+      create_user("inventory-guaranteed-spark@example.com")
+      |> grant_coins(300)
+      |> set_spark_counters(12, 34)
+
+    epic = create_rarity("Epic", 4.0, "#8B5CF6")
+    epic_card = create_card("Lumpy Space Princess", epic.id)
+    pack = create_pack("Epic Pack", 1, 100, "Epic")
+
+    assert {:ok, response} = Inventory.open_pack_for_user(user.id, pack.id)
+    assert [%{id: card_id, rarity: %{name: "Epic"}} = opened_card] = response.cards
+    assert card_id == epic_card.id
+    refute Map.has_key?(opened_card, :revealSource)
+
+    user = Repo.get!(User, user.id)
+    assert user.pack_epic_spark_counter == 12
+    assert user.pack_legendary_spark_counter == 34
+  end
+
   test "craft_card rejects non-positive quantities" do
     user = create_user("inventory-craft-invalid@example.com") |> grant_dust(200)
     rare = create_rarity("Rare", 10.0, "#3B82F6")
@@ -110,6 +246,15 @@ defmodule AdventureTimeApi.InventoryTest do
   defp grant_dust(user, dust) do
     user
     |> Ecto.Changeset.change(dust: dust)
+    |> Repo.update!()
+  end
+
+  defp set_spark_counters(user, epic_counter, legendary_counter) do
+    user
+    |> Ecto.Changeset.change(
+      pack_epic_spark_counter: epic_counter,
+      pack_legendary_spark_counter: legendary_counter
+    )
     |> Repo.update!()
   end
 

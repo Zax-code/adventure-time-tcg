@@ -17,6 +17,10 @@ defmodule AdventureTimeApi.Inventory do
   @craft_cost_multiplier 5
   @weekly_limited_rarity "legendary"
   @weekly_pack_limit 1
+  @epic_spark_threshold 50
+  @legendary_spark_threshold 150
+  @legendary_pack_random_legendary_rate 0.25
+  @low_rarity_names MapSet.new(["Common", "Uncommon", "Rare"])
 
   def list_active_packs_for_user(user_id) do
     Pack
@@ -179,7 +183,8 @@ defmodule AdventureTimeApi.Inventory do
            :ok <- ensure_weekly_pack_limit(user, pack),
            available_cards when available_cards != [] <- available_cards(),
            available_rarities when available_rarities != [] <- available_rarities() do
-        selected_cards = select_cards_for_pack(pack, available_cards, available_rarities)
+        {selected_drops, spark_counters} =
+          select_drops_for_pack(user, pack, available_cards, available_rarities)
 
         owned_card_ids_before_open =
           OwnedCard
@@ -193,9 +198,16 @@ defmodule AdventureTimeApi.Inventory do
 
         {1, _} =
           from(existing_user in User, where: existing_user.id == ^user_id)
-          |> Repo.update_all(set: [coins: new_balance, updated_at: now])
+          |> Repo.update_all(
+            set: [
+              coins: new_balance,
+              pack_epic_spark_counter: spark_counters.epic,
+              pack_legendary_spark_counter: spark_counters.legendary,
+              updated_at: now
+            ]
+          )
 
-        Enum.each(selected_cards, fn card ->
+        Enum.each(selected_drops, fn %{card: card} ->
           case Repo.get_by(OwnedCard, user_id: user_id, card_id: card.id) do
             nil ->
               %OwnedCard{}
@@ -220,10 +232,13 @@ defmodule AdventureTimeApi.Inventory do
         %{
           pack: to_pack_response(pack, user_id, DateTime.add(now, 1, :second)),
           cards:
-            Enum.map(selected_cards, fn card ->
-              card
-              |> to_card_payload()
-              |> Map.put(:isNewForUser, not MapSet.member?(owned_card_ids_before_open, card.id))
+            Enum.map(selected_drops, fn %{card: card} = drop ->
+              card_payload =
+                card
+                |> to_card_payload()
+                |> Map.put(:isNewForUser, not MapSet.member?(owned_card_ids_before_open, card.id))
+
+              maybe_put_reveal_source(card_payload, drop)
             end),
           newBalance: new_balance
         }
@@ -371,30 +386,184 @@ defmodule AdventureTimeApi.Inventory do
     |> Repo.all()
   end
 
-  defp select_cards_for_pack(pack, available_cards, available_rarities) do
+  defp select_drops_for_pack(user, pack, available_cards, available_rarities) do
     guaranteed_cards =
       case pack.guaranteed_rarity do
         rarity when is_binary(rarity) and rarity != "" ->
-          [PackOpening.select_card(available_cards, available_rarities, rarity)]
+          [
+            %{
+              card: PackOpening.select_card(available_cards, available_rarities, rarity),
+              source: :guaranteed
+            }
+          ]
 
         _ ->
           []
       end
 
     remaining_slots = max(pack.card_count - length(guaranteed_cards), 0)
+    spark_counters = spark_counters_for_user(user)
+    random_rarities = random_rarities_for_pack(pack, available_rarities)
 
-    random_cards =
+    {random_drops, spark_counters} =
       if remaining_slots == 0 do
-        []
+        {[], spark_counters}
       else
-        for _slot <- 1..remaining_slots do
-          PackOpening.select_card(available_cards, available_rarities)
-        end
+        select_random_drops(
+          remaining_slots,
+          available_cards,
+          random_rarities,
+          spark_counters,
+          legendary_spark_allowed?(pack)
+        )
       end
 
     guaranteed_cards
-    |> Kernel.++(random_cards)
-    |> PackOpening.shuffle()
+    |> Kernel.++(random_drops)
+    |> order_drops_for_reveal()
+    |> then(&{&1, spark_counters})
+  end
+
+  defp select_random_drops(
+         slot_count,
+         available_cards,
+         available_rarities,
+         spark_counters,
+         allow_legendary_spark?
+       ) do
+    1..slot_count
+    |> Enum.reduce({[], spark_counters}, fn _slot, {drops, counters} ->
+      {drop, counters} =
+        select_random_drop(
+          available_cards,
+          available_rarities,
+          counters,
+          allow_legendary_spark?
+        )
+
+      {[drop | drops], counters}
+    end)
+    |> then(fn {drops, counters} -> {Enum.reverse(drops), counters} end)
+  end
+
+  defp select_random_drop(available_cards, available_rarities, counters, allow_legendary_spark?) do
+    case spark_rarity(counters, allow_legendary_spark?) do
+      "Legendary" ->
+        select_spark_drop(available_cards, available_rarities, counters, "Legendary")
+
+      "Epic" ->
+        select_spark_drop(available_cards, available_rarities, counters, "Epic")
+
+      nil ->
+        card = PackOpening.select_card(available_cards, available_rarities)
+
+        {
+          %{card: card, source: :random},
+          advance_spark_counters(counters, card.rarity.name)
+        }
+    end
+  end
+
+  defp select_spark_drop(available_cards, available_rarities, counters, rarity_name) do
+    case PackOpening.select_card_for_rarity(available_cards, available_rarities, rarity_name) do
+      {:ok, card} ->
+        {
+          %{card: card, source: :spark, revealSource: "spark"},
+          reset_spark_counter(counters, rarity_name)
+        }
+
+      :error ->
+        card = PackOpening.select_card(available_cards, available_rarities)
+
+        {
+          %{card: card, source: :random},
+          advance_spark_counters(counters, card.rarity.name)
+        }
+    end
+  end
+
+  defp spark_rarity(%{spark_used?: true}, _allow_legendary_spark?), do: nil
+
+  defp spark_rarity(%{legendary: legendary}, true) when legendary >= @legendary_spark_threshold,
+    do: "Legendary"
+
+  defp spark_rarity(%{epic: epic}, _allow_legendary_spark?)
+       when epic >= @epic_spark_threshold,
+       do: "Epic"
+
+  defp spark_rarity(_counters, _allow_legendary_spark?), do: nil
+
+  defp legendary_spark_allowed?(pack), do: not weekly_limited_pack?(pack)
+
+  defp random_rarities_for_pack(pack, available_rarities) do
+    if weekly_limited_pack?(pack) do
+      reduce_legendary_pack_random_rate(available_rarities)
+    else
+      available_rarities
+    end
+  end
+
+  defp reduce_legendary_pack_random_rate(available_rarities) do
+    legendary_rate =
+      available_rarities
+      |> Enum.find(&(&1.name == "Legendary"))
+      |> case do
+        nil -> 0.0
+        rarity -> rarity.drop_rate
+      end
+
+    common_bonus = max(legendary_rate - @legendary_pack_random_legendary_rate, 0.0)
+
+    Enum.map(available_rarities, fn
+      %{name: "Legendary"} = rarity ->
+        %{rarity | drop_rate: min(rarity.drop_rate, @legendary_pack_random_legendary_rate)}
+
+      %{name: "Common"} = rarity ->
+        %{rarity | drop_rate: rarity.drop_rate + common_bonus}
+
+      rarity ->
+        rarity
+    end)
+  end
+
+  defp spark_counters_for_user(user) do
+    %{
+      epic: max(user.pack_epic_spark_counter || 0, 0),
+      legendary: max(user.pack_legendary_spark_counter || 0, 0),
+      spark_used?: false
+    }
+  end
+
+  defp advance_spark_counters(counters, rarity_name) do
+    cond do
+      MapSet.member?(@low_rarity_names, rarity_name) ->
+        %{counters | epic: counters.epic + 1, legendary: counters.legendary + 1}
+
+      rarity_name == "Epic" ->
+        %{counters | epic: 0}
+
+      rarity_name == "Legendary" ->
+        %{counters | legendary: 0}
+
+      true ->
+        counters
+    end
+  end
+
+  defp reset_spark_counter(counters, "Legendary"),
+    do: %{counters | legendary: 0, spark_used?: true}
+
+  defp reset_spark_counter(counters, "Epic"),
+    do: %{counters | epic: 0, spark_used?: true}
+
+  defp order_drops_for_reveal(drops) do
+    {spark_drops, regular_drops} = Enum.split_with(drops, &(&1[:source] == :spark))
+
+    if spark_drops == [] do
+      PackOpening.shuffle(drops)
+    else
+      PackOpening.shuffle(regular_drops) ++ spark_drops
+    end
   end
 
   defp to_pack_response(pack, user_id, now \\ DateTime.utc_now()) do
@@ -518,6 +687,13 @@ defmodule AdventureTimeApi.Inventory do
       imageAssetId: card.image_asset_id
     }
   end
+
+  defp maybe_put_reveal_source(card_payload, %{revealSource: reveal_source})
+       when is_binary(reveal_source) do
+    Map.put(card_payload, :revealSource, reveal_source)
+  end
+
+  defp maybe_put_reveal_source(card_payload, _drop), do: card_payload
 
   defp collection_stats_for_entries(entries) do
     total_cards = Enum.reduce(entries, 0, fn entry, sum -> sum + entry.quantity end)

@@ -29,6 +29,8 @@ defmodule AdventureTimeApi.Accounts.User do
     field(:notify_pvp_invite, :boolean, default: true)
     field(:notify_pvp_turn, :boolean, default: true)
     field(:notify_gift_received, :boolean, default: true)
+    field(:pack_epic_spark_counter, :integer, default: 0)
+    field(:pack_legendary_spark_counter, :integer, default: 0)
 
     has_one(:email_credential, AdventureTimeApi.Accounts.EmailCredential)
 
