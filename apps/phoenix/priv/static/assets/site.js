@@ -1,6 +1,7 @@
 /* Adventure Time TCG — public site behavior
  * 1. Theme switcher with persistence (candy / ice / nightosphere)
- * 2. Live status page polling against the JSON health probes
+ * 2. Soft navigation between public pages
+ * 3. Live status page polling against the JSON health probes
  */
 (function () {
   "use strict";
@@ -12,6 +13,8 @@
     ice: "#f0f7ff",
     nightosphere: "#0d0010",
   };
+  var statusInterval = null;
+  var currentNavigation = null;
 
   // ---- Theme -------------------------------------------------------------
   function storedTheme() {
@@ -68,12 +71,156 @@
 
     var buttons = document.querySelectorAll("[data-theme-name]");
     for (var i = 0; i < buttons.length; i++) {
+      if (buttons[i].getAttribute("data-theme-ready") === "true") {
+        continue;
+      }
+      buttons[i].setAttribute("data-theme-ready", "true");
       buttons[i].addEventListener("click", function (event) {
         var theme = event.currentTarget.getAttribute("data-theme-name");
         applyTheme(theme);
         storeTheme(theme);
       });
     }
+  }
+
+  // ---- Soft navigation ---------------------------------------------------
+  function isPlainLeftClick(event) {
+    return (
+      event.button === 0 &&
+      !event.metaKey &&
+      !event.ctrlKey &&
+      !event.shiftKey &&
+      !event.altKey
+    );
+  }
+
+  function shouldHandleLink(link, event) {
+    if (!link || !isPlainLeftClick(event)) {
+      return false;
+    }
+    if (
+      link.target ||
+      link.hasAttribute("download") ||
+      link.getAttribute("href") == null
+    ) {
+      return false;
+    }
+
+    var href = link.getAttribute("href");
+    if (
+      href.charAt(0) === "#" ||
+      href.indexOf("mailto:") === 0 ||
+      href.indexOf("tel:") === 0
+    ) {
+      return false;
+    }
+
+    var url = new URL(link.href, window.location.href);
+    if (url.origin !== window.location.origin) {
+      return false;
+    }
+
+    return ["/", "/status", "/privacy", "/account-deletion"].indexOf(url.pathname) !== -1;
+  }
+
+  function updateActiveNav(pathname) {
+    var links = document.querySelectorAll(".nav a");
+    for (var i = 0; i < links.length; i++) {
+      var link = links[i];
+      var linkPath = new URL(link.href, window.location.href).pathname;
+      if (linkPath === pathname) {
+        link.setAttribute("aria-current", "page");
+      } else {
+        link.removeAttribute("aria-current");
+      }
+    }
+  }
+
+  function replacePageFromDocument(nextDocument, url, shouldPush) {
+    var currentMain = document.querySelector("#main-content");
+    var nextMain = nextDocument.querySelector("#main-content");
+    if (!currentMain || !nextMain) {
+      window.location.href = url.href;
+      return;
+    }
+
+    stopStatusPage();
+    document.title = nextDocument.title;
+    currentMain.className = nextMain.className;
+    currentMain.innerHTML = nextMain.innerHTML;
+    updateActiveNav(url.pathname);
+
+    if (shouldPush) {
+      history.pushState({}, "", url.href);
+    }
+
+    initStatusPage();
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }
+
+  function setNavigating(isNavigating) {
+    document.documentElement.classList.toggle("is-soft-navigating", isNavigating);
+  }
+
+  function navigateSoft(url, shouldPush) {
+    if (currentNavigation) {
+      currentNavigation.abort();
+    }
+    currentNavigation = new AbortController();
+    setNavigating(true);
+
+    return fetch(url.href, {
+      headers: { accept: "text/html" },
+      signal: currentNavigation.signal,
+    })
+      .then(function (response) {
+        if (!response.ok) {
+          throw new Error("Navigation failed");
+        }
+        return response.text();
+      })
+      .then(function (html) {
+        var nextDocument = new DOMParser().parseFromString(html, "text/html");
+        var swap = function () {
+          replacePageFromDocument(nextDocument, url, shouldPush);
+        };
+
+        if (document.startViewTransition) {
+          document.startViewTransition(swap);
+        } else {
+          swap();
+        }
+      })
+      .catch(function (error) {
+        if (error.name !== "AbortError") {
+          window.location.href = url.href;
+        }
+      })
+      .finally(function () {
+        currentNavigation = null;
+        setNavigating(false);
+      });
+  }
+
+  function initSoftNavigation() {
+    document.addEventListener("click", function (event) {
+      var link = event.target.closest && event.target.closest("a");
+      if (!shouldHandleLink(link, event)) {
+        return;
+      }
+
+      var url = new URL(link.href, window.location.href);
+      if (url.href === window.location.href) {
+        return;
+      }
+
+      event.preventDefault();
+      navigateSoft(url, true);
+    });
+
+    window.addEventListener("popstate", function () {
+      navigateSoft(new URL(window.location.href), false);
+    });
   }
 
   // ---- Status page -------------------------------------------------------
@@ -155,6 +302,8 @@
   }
 
   function initStatusPage() {
+    stopStatusPage();
+
     var root = document.querySelector("[data-status-page]");
     if (!root) {
       return;
@@ -223,12 +372,14 @@
     }
 
     refresh();
-    setInterval(refresh, 15000);
-    document.addEventListener("visibilitychange", function () {
-      if (document.visibilityState === "visible") {
-        refresh();
-      }
-    });
+    statusInterval = setInterval(refresh, 15000);
+  }
+
+  function stopStatusPage() {
+    if (statusInterval) {
+      clearInterval(statusInterval);
+      statusInterval = null;
+    }
   }
 
   // ---- Boot --------------------------------------------------------------
@@ -242,6 +393,12 @@
 
   ready(function () {
     initThemeSwitch();
+    initSoftNavigation();
     initStatusPage();
+    document.addEventListener("visibilitychange", function () {
+      if (document.visibilityState === "visible") {
+        initStatusPage();
+      }
+    });
   });
 })();

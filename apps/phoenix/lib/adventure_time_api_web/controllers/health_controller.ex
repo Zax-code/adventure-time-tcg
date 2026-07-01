@@ -29,45 +29,24 @@ defmodule AdventureTimeApiWeb.HealthController do
   # live in the browser against the JSON probes above.
   # ---------------------------------------------------------------------------
   def page(conn, _params) do
-    db_ok = Health.ready?() == :ok
-
     conn
     |> put_resp_content_type("text/html")
     |> put_resp_header("cache-control", "no-store")
-    |> send_resp(200, status_html(db_ok))
+    |> send_resp(200, status_html())
   end
 
-  defp status_html(db_ok) do
-    banner_state = if db_ok, do: "operational", else: "degraded"
-    progress_state = if db_ok, do: "operational", else: "down"
-
-    progress_hint =
-      if db_ok,
-        do: "Collections, quests, gifts, and battle history are available.",
-        else: "Some saved progress may be temporarily unavailable."
-
-    banner_title =
-      if db_ok,
-        do: "Adventure Time TCG is ready to play",
-        else: "Some game features may be limited"
-
-    banner_text =
-      if db_ok,
-        do: "Sign-in, collections, quests, and battles are responding normally.",
-        else:
-          "You may be able to open the app, but saved progress or battles may not load correctly."
-
+  defp status_html do
     checked_at = SiteLayout.escape(now_utc())
 
     body = """
     <div data-status-page>
       <section class="status-hero">
-        <div class="status-banner" data-status-banner data-state="#{banner_state}">
+        <div class="status-banner" data-status-banner data-state="checking">
           <span class="status-orb" aria-hidden="true"></span>
           <div class="status-banner-copy">
             <p class="eyebrow">Game status</p>
-            <h1 data-banner-title>#{banner_title}</h1>
-            <p data-banner-text>#{banner_text}</p>
+            <h1 data-banner-title>Checking Adventure Time TCG</h1>
+            <p data-banner-text>We are checking sign-in, collections, quests, and battles now.</p>
           </div>
           <div class="status-refresh">
             <span>Updates automatically</span>
@@ -91,9 +70,9 @@ defmodule AdventureTimeApiWeb.HealthController do
               <b>Open the app</b>
               <span>The app can reach Adventure Time TCG.</span>
             </div>
-            <span class="status-badge" data-badge data-state="operational">
+            <span class="status-badge" data-badge data-state="checking">
               <span class="dot"></span>
-              <span data-badge-label>Operational</span>
+              <span data-badge-label>Checking</span>
             </span>
           </div>
 
@@ -102,20 +81,20 @@ defmodule AdventureTimeApiWeb.HealthController do
               <b>Sign in and play</b>
               <span>Accounts, packs, quests, gifts, and battles can respond.</span>
             </div>
-            <span class="status-badge" data-badge data-state="operational">
+            <span class="status-badge" data-badge data-state="checking">
               <span class="dot"></span>
-              <span data-badge-label>Operational</span>
+              <span data-badge-label>Checking</span>
             </span>
           </div>
 
           <div class="status-row" data-component="database">
             <div class="status-row-main">
               <b>Saved progress</b>
-              <span data-hint>#{progress_hint}</span>
+              <span data-hint>Checking collections, quests, gifts, and battle history.</span>
             </div>
-            <span class="status-badge" data-badge data-state="#{progress_state}">
+            <span class="status-badge" data-badge data-state="checking">
               <span class="dot"></span>
-              <span data-badge-label>#{if db_ok, do: "Operational", else: "Down"}</span>
+              <span data-badge-label>Checking</span>
             </span>
           </div>
         </div>

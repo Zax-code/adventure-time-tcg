@@ -197,6 +197,10 @@ html {
   scroll-behavior: smooth;
 }
 
+@view-transition {
+  navigation: auto;
+}
+
 body {
   min-height: 100dvh;
   font-family: "Nunito", "Segoe UI", system-ui, -apple-system, sans-serif;
@@ -251,6 +255,12 @@ button {
   display: flex;
   flex-direction: column;
   gap: clamp(3rem, 7vw, 5.5rem);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.is-soft-navigating .shell {
+  opacity: 0.25;
+  transform: translateY(8px);
 }
 
 .auth-shell {
@@ -260,6 +270,18 @@ button {
   display: flex;
   min-height: 60vh;
   align-items: center;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.is-soft-navigating .auth-shell {
+  opacity: 0.25;
+  transform: translateY(8px);
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.22s;
+  animation-timing-function: ease;
 }
 
 .auth-shell > .hero {

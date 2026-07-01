@@ -28,7 +28,7 @@ defmodule AdventureTimeApiWeb.HealthControllerTest do
     body = html_response(conn, 200)
     assert get_resp_header(conn, "content-type") == ["text/html; charset=utf-8"]
     assert body =~ "What this status covers"
-    assert body =~ "Adventure Time TCG is ready to play"
+    assert body =~ "Checking Adventure Time TCG"
     assert body =~ "data-status-page"
     assert body =~ "Contact support"
   end
