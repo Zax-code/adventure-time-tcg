@@ -42,6 +42,13 @@ import { ShareIcon } from "../../src/components/icons";
 import { PageLoadingState } from "../../src/components/loading-state";
 import { DailyNumbersQuestShareCard } from "../../src/features/quests/daily-numbers/quest-share-card";
 import {
+  applyDailyNumbersOperation,
+  getDailyNumbersOperatorAvailability,
+  getDailyNumbersOperatorPressResult,
+  getDailyNumbersTileAvailability,
+  type DailyNumbersOperator,
+} from "../../src/features/quests/daily-numbers/board-interaction";
+import {
   buildDailyNumbersShareFileName,
   buildDailyNumbersShareResult,
 } from "../../src/features/quests/daily-numbers/share-result";
@@ -69,7 +76,7 @@ type BoardTile = {
 };
 
 type MessageState = { type: "success" | "error"; text: string } | null;
-type Operator = DailyNumbersStep["operator"];
+type Operator = DailyNumbersOperator;
 type PreviewState =
   | { kind: "empty" }
   | { kind: "invalid"; reason: "division" | "positive" }
@@ -155,6 +162,28 @@ type LivePlayProps = {
   selectedOperator: Operator | null;
   selectedRightTile: BoardTile | null;
   submitting: boolean;
+  t: TranslateFn;
+  tc: ThemeColors;
+};
+type AvailableNumbersGridProps = {
+  availableTiles: BoardTile[];
+  compact: boolean;
+  interactionLocked: boolean;
+  modeAccent: ReturnType<typeof getModeAccent>;
+  onTilePress: (tileId: string) => void;
+  selectedLeftTile: BoardTile | null;
+  selectedOperator: Operator | null;
+  selectedRightTile: BoardTile | null;
+  t: TranslateFn;
+  tc: ThemeColors;
+};
+type OperatorPickerProps = {
+  compact: boolean;
+  interactionLocked: boolean;
+  onOperatorPress: (operator: Operator) => void;
+  selectedLeftTile: BoardTile | null;
+  selectedOperator: Operator | null;
+  selectedRightTile: BoardTile | null;
   t: TranslateFn;
   tc: ThemeColors;
 };
@@ -300,36 +329,6 @@ function getDefaultDistance(
   target: number,
 ) {
   return Math.abs(chooseClosestTile(numbers, target).value - target);
-}
-
-function applyOperation(
-  leftValue: number,
-  operator: Operator,
-  rightValue: number,
-) {
-  if (operator === "+") {
-    return { ok: true as const, result: leftValue + rightValue };
-  }
-
-  if (operator === "*") {
-    return { ok: true as const, result: leftValue * rightValue };
-  }
-
-  if (operator === "-") {
-    const result = leftValue - rightValue;
-    return result > 0
-      ? { ok: true as const, result }
-      : { ok: false as const, reason: "positive" as const };
-  }
-
-  if (rightValue === 0 || leftValue % rightValue !== 0) {
-    return { ok: false as const, reason: "division" as const };
-  }
-
-  const result = leftValue / rightValue;
-  return result > 0
-    ? { ok: true as const, result }
-    : { ok: false as const, reason: "positive" as const };
 }
 
 function toStepInputs(steps: DailyNumbersStep[]): DailyNumbersStepInput[] {
@@ -1171,6 +1170,149 @@ function FinishStatePanel({
   );
 }
 
+function AvailableNumbersGrid({
+  availableTiles,
+  compact,
+  interactionLocked,
+  modeAccent,
+  onTilePress,
+  selectedLeftTile,
+  selectedOperator,
+  selectedRightTile,
+  t,
+  tc,
+}: AvailableNumbersGridProps) {
+  return (
+    <>
+      <Text className="mt-3 font-nunito-bold text-sm text-fg">
+        {t("quests.dailyNumbers.availableNumbers")}
+      </Text>
+      <View className="mt-2 flex-row flex-wrap justify-between gap-y-2">
+        {availableTiles.map((tile) => {
+          const availability = getDailyNumbersTileAvailability({
+            interactionLocked,
+            selectedLeftTile,
+            selectedOperator,
+            selectedRightTile,
+            tile,
+          });
+
+          return (
+            <Animated.View
+              key={tile.id}
+              entering={FadeIn.duration(180)}
+              exiting={FadeOut.duration(140)}
+              layout={LinearTransition.duration(200)}
+              style={{ width: "31.5%" }}
+            >
+              <Pressable
+                onPress={() => onTilePress(tile.id)}
+                disabled={availability.disabled}
+                className="rounded-2xl border px-2 py-2.5"
+                style={{
+                  borderColor: availability.selected
+                    ? modeAccent.text
+                    : tc.primaryBorder,
+                  backgroundColor: availability.selected
+                    ? tc.surface
+                    : tc.primaryBg,
+                  opacity:
+                    availability.disabled && !availability.selected ? 0.4 : 1,
+                }}
+                testID={`daily-numbers-tile-${tile.id}`}
+                accessibilityRole="button"
+                accessibilityState={{
+                  selected: availability.selected,
+                  disabled: availability.disabled,
+                }}
+                accessibilityLabel={t("quests.dailyNumbers.tileValue", {
+                  value: tile.value,
+                })}
+              >
+                <Text
+                  className={`text-center font-nunito-extrabold ${compact ? "text-[20px]" : "text-[22px]"}`}
+                  style={{
+                    color: availability.selected ? modeAccent.text : tc.fg,
+                  }}
+                >
+                  {tile.value}
+                </Text>
+              </Pressable>
+            </Animated.View>
+          );
+        })}
+      </View>
+    </>
+  );
+}
+
+function OperatorPicker({
+  compact,
+  interactionLocked,
+  onOperatorPress,
+  selectedLeftTile,
+  selectedOperator,
+  selectedRightTile,
+  t,
+  tc,
+}: OperatorPickerProps) {
+  return (
+    <>
+      <Text className="mt-3 font-nunito-bold text-sm text-fg">
+        {t("quests.dailyNumbers.operators")}
+      </Text>
+      <View className="mt-2 flex-row gap-2">
+        {OPERATORS.map((operator) => {
+          const availability = getDailyNumbersOperatorAvailability({
+            interactionLocked,
+            operator,
+            selectedLeftTile,
+            selectedOperator,
+            selectedRightTile,
+          });
+
+          return (
+            <Pressable
+              key={operator}
+              onPress={() => onOperatorPress(operator)}
+              disabled={availability.disabled}
+              className="flex-1 rounded-2xl border px-3 py-3"
+              style={{
+                borderColor: availability.selected
+                  ? tc.accentStrong
+                  : tc.primaryBorder,
+                backgroundColor: availability.selected
+                  ? tc.accentTint
+                  : tc.primaryBg,
+                opacity:
+                  availability.disabled && !availability.selected ? 0.4 : 1,
+              }}
+              testID={`daily-numbers-operator-${operator === "*" ? "multiply" : operator === "/" ? "divide" : operator === "+" ? "plus" : "minus"}`}
+              accessibilityRole="button"
+              accessibilityState={{
+                selected: availability.selected,
+                disabled: availability.disabled,
+              }}
+              accessibilityLabel={t("quests.dailyNumbers.operatorValue", {
+                operator: displayOperator(operator),
+              })}
+            >
+              <Text
+                className={`text-center font-nunito-extrabold ${compact ? "text-lg" : "text-xl"}`}
+                style={{
+                  color: availability.selected ? tc.accentStrong : tc.fg,
+                }}
+              >
+                {operator === "*" ? "×" : operator}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </>
+  );
+}
+
 function LivePlayPanel({
   availableTiles,
   compact,
@@ -1192,8 +1334,6 @@ function LivePlayPanel({
   t,
   tc,
 }: LivePlayProps) {
-  const pairSelected = Boolean(selectedLeftTile && selectedRightTile);
-
   return (
     <>
       <View
@@ -1302,94 +1442,29 @@ function LivePlayPanel({
           </Text>
         </Pressable>
 
-        <Text className="mt-3 font-nunito-bold text-sm text-fg">
-          {t("quests.dailyNumbers.availableNumbers")}
-        </Text>
-        <View className="mt-2 flex-row flex-wrap justify-between gap-y-2">
-          {availableTiles.map((tile) => {
-            const selected =
-              tile.id === selectedLeftTile?.id ||
-              tile.id === selectedRightTile?.id;
+        <AvailableNumbersGrid
+          availableTiles={availableTiles}
+          compact={compact}
+          interactionLocked={interactionLocked}
+          modeAccent={modeAccent}
+          onTilePress={onTilePress}
+          selectedLeftTile={selectedLeftTile}
+          selectedOperator={selectedOperator}
+          selectedRightTile={selectedRightTile}
+          t={t}
+          tc={tc}
+        />
 
-            return (
-              <Animated.View
-                key={tile.id}
-                entering={FadeIn.duration(180)}
-                exiting={FadeOut.duration(140)}
-                layout={LinearTransition.duration(200)}
-                style={{ width: "31.5%" }}
-              >
-                <Pressable
-                  onPress={() => onTilePress(tile.id)}
-                  disabled={interactionLocked}
-                  className="rounded-2xl border px-2 py-2.5"
-                  style={{
-                    borderColor: selected ? modeAccent.text : tc.primaryBorder,
-                    backgroundColor: selected ? tc.surface : tc.primaryBg,
-                  }}
-                  testID={`daily-numbers-tile-${tile.id}`}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected, disabled: interactionLocked }}
-                  accessibilityLabel={t("quests.dailyNumbers.tileValue", {
-                    value: tile.value,
-                  })}
-                >
-                  <Text
-                    className={`text-center font-nunito-extrabold ${compact ? "text-[20px]" : "text-[22px]"}`}
-                    style={{ color: selected ? modeAccent.text : tc.fg }}
-                  >
-                    {tile.value}
-                  </Text>
-                </Pressable>
-              </Animated.View>
-            );
-          })}
-        </View>
-
-        <Text className="mt-3 font-nunito-bold text-sm text-fg">
-          {t("quests.dailyNumbers.operators")}
-        </Text>
-        <View className="mt-2 flex-row gap-2">
-          {OPERATORS.map((operator) => {
-            const selected = selectedOperator === operator;
-            const wouldBeInvalid =
-              pairSelected && selectedLeftTile && selectedRightTile
-                ? !applyOperation(
-                    selectedLeftTile.value,
-                    operator,
-                    selectedRightTile.value,
-                  ).ok
-                : false;
-            const disabled = interactionLocked || (wouldBeInvalid && !selected);
-
-            return (
-              <Pressable
-                key={operator}
-                onPress={() => onOperatorPress(operator)}
-                disabled={disabled}
-                className="flex-1 rounded-2xl border px-3 py-3"
-                style={{
-                  borderColor: selected ? tc.accentStrong : tc.primaryBorder,
-                  backgroundColor: selected ? tc.accentTint : tc.primaryBg,
-                  opacity: wouldBeInvalid && !selected ? 0.4 : 1,
-                }}
-                testID={`daily-numbers-operator-${operator === "*" ? "multiply" : operator === "/" ? "divide" : operator === "+" ? "plus" : "minus"}`}
-                accessibilityRole="button"
-                accessibilityState={{ selected, disabled }}
-                accessibilityLabel={t("quests.dailyNumbers.operatorValue", {
-                  operator: displayOperator(operator),
-                })}
-              >
-                <Text
-                  className={`text-center font-nunito-extrabold ${compact ? "text-lg" : "text-xl"}`}
-                  style={{ color: selected ? tc.accentStrong : tc.fg }}
-                >
-                  {operator === "*" ? "×" : operator}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
+        <OperatorPicker
+          compact={compact}
+          interactionLocked={interactionLocked}
+          onOperatorPress={onOperatorPress}
+          selectedLeftTile={selectedLeftTile}
+          selectedOperator={selectedOperator}
+          selectedRightTile={selectedRightTile}
+          t={t}
+          tc={tc}
+        />
       </View>
 
       <View className="mt-3 flex-row gap-2">
@@ -1547,7 +1622,7 @@ function useDailyNumbersBoardController({
       return { kind: "empty" };
     }
 
-    const result = applyOperation(
+    const result = applyDailyNumbersOperation(
       selectedLeftTile.value,
       interaction.selectedOperator,
       selectedRightTile.value,
@@ -1615,16 +1690,21 @@ function useDailyNumbersBoardController({
 
   const handleTilePress = useCallback(
     (tileId: string) => {
-      if (interactionLocked) {
+      const tile = availableTileMap.get(tileId);
+
+      if (!tile) {
         return;
       }
 
-      if (
-        tileId !== interaction.selectedLeftId &&
-        tileId !== interaction.selectedRightId &&
-        interaction.selectedLeftId &&
-        interaction.selectedRightId
-      ) {
+      const availability = getDailyNumbersTileAvailability({
+        interactionLocked,
+        selectedLeftTile,
+        selectedOperator: interaction.selectedOperator,
+        selectedRightTile,
+        tile,
+      });
+
+      if (availability.disabled) {
         return;
       }
 
@@ -1632,34 +1712,30 @@ function useDailyNumbersBoardController({
       dispatch({ type: "selectTile", tileId });
     },
     [
-      interaction.selectedLeftId,
-      interaction.selectedRightId,
+      availableTileMap,
+      interaction.selectedOperator,
       interactionLocked,
+      selectedLeftTile,
+      selectedRightTile,
     ],
   );
 
   const handleOperatorPress = useCallback(
     (operator: Operator) => {
-      if (interactionLocked) {
-        return;
-      }
+      const pressResult = getDailyNumbersOperatorPressResult({
+        interactionLocked,
+        operator,
+        selectedOperator: interaction.selectedOperator,
+      });
 
-      if (!interaction.selectedLeftId) {
-        triggerErrorHaptic();
-        dispatch({
-          type: "setMessage",
-          message: {
-            type: "error",
-            text: t("quests.dailyNumbers.invalidSelection"),
-          },
-        });
+      if (!pressResult.accepted) {
         return;
       }
 
       triggerSelectionHaptic();
       dispatch({ type: "toggleOperator", operator });
     },
-    [interaction.selectedLeftId, interactionLocked, t],
+    [interaction.selectedOperator, interactionLocked],
   );
 
   const handleClearSlot = useCallback(
@@ -1735,7 +1811,7 @@ function useDailyNumbersBoardController({
       return;
     }
 
-    const operation = applyOperation(
+    const operation = applyDailyNumbersOperation(
       leftTile.value,
       interaction.selectedOperator,
       rightTile.value,
