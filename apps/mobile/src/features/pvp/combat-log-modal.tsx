@@ -13,6 +13,7 @@ import {
   getEventCritChance,
   getEventDestinationId,
   getEventDestinationName,
+  getEventHealing,
   getEventMissChance,
   getEventMaxEnergy,
   getEventOptionCount,
@@ -26,6 +27,7 @@ import {
   getEventTargetName,
   getEventWinnerId,
   getEventWinnerLabel,
+  didEventExecute,
   didEventRollPass,
   isMissEvent,
   isCritEvent,
@@ -376,10 +378,44 @@ function summarizeCombatEvent(
         }),
       );
     case "statusTick":
+      const statusName = getEventStatusName(event) ?? "";
+      const localizedStatus = localizeStatusName(statusName, t);
+      const tickAmount = getEventAmount(event) ?? 0;
+      const tickHealing = getEventHealing(event);
+
+      if (didEventExecute(event)) {
+        return combatLogMessage(
+          t("pvp.combatLog.statusExecute", {
+            target: targetName ?? unit,
+            status: localizedStatus,
+          }),
+        );
+      }
+
+      if (tickHealing !== null && tickHealing > 0) {
+        return combatLogMessage(
+          t("pvp.combatLog.statusTickHealing", {
+            target: targetName ?? unit,
+            status: localizedStatus,
+            amount: String(tickHealing),
+          }),
+        );
+      }
+
+      if (tickAmount > 0) {
+        return combatLogMessage(
+          t("pvp.combatLog.statusTickDamage", {
+            target: targetName ?? unit,
+            status: localizedStatus,
+            amount: String(tickAmount),
+          }),
+        );
+      }
+
       return combatLogMessage(
         t("pvp.combatLog.statusTick", {
           target: targetName ?? unit,
-          status: localizeStatusName(getEventStatusName(event) ?? "", t),
+          status: localizedStatus,
         }),
       );
     case "statusExpire":
