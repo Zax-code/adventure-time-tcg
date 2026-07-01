@@ -1,17 +1,23 @@
-/* =========================================================================
-   Adventure Time TCG — public web behavior
-   Theme persistence + switcher and the live status page poller.
-   ========================================================================= */
+/* Adventure Time TCG — public site behavior
+ * 1. Theme switcher with persistence (candy / ice / nightosphere)
+ * 2. Live status page polling against the JSON health probes
+ */
 (function () {
   "use strict";
 
   var THEMES = ["candy", "ice", "nightosphere"];
   var STORAGE_KEY = "attcg-web-theme";
-  var root = document.documentElement;
+  var THEME_META = {
+    candy: "#fff0f5",
+    ice: "#f0f7ff",
+    nightosphere: "#0d0010",
+  };
 
-  function readStoredTheme() {
+  // ---- Theme -------------------------------------------------------------
+  function storedTheme() {
     try {
-      return window.localStorage.getItem(STORAGE_KEY);
+      var value = window.localStorage.getItem(STORAGE_KEY);
+      return THEMES.indexOf(value) !== -1 ? value : null;
     } catch (err) {
       return null;
     }
@@ -21,7 +27,7 @@
     try {
       window.localStorage.setItem(STORAGE_KEY, theme);
     } catch (err) {
-      /* ignore private-mode storage failures */
+      /* ignore */
     }
   }
 
@@ -29,23 +35,22 @@
     if (THEMES.indexOf(theme) === -1) {
       theme = "candy";
     }
-    root.setAttribute("data-theme", theme);
+    document.documentElement.setAttribute("data-theme", theme);
+
     var meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) {
-      var color =
-        getComputedStyle(root).getPropertyValue("--bg").trim() || "#fff0f5";
-      meta.setAttribute("content", color);
+    if (meta && THEME_META[theme]) {
+      meta.setAttribute("content", THEME_META[theme]);
     }
-    document.querySelectorAll("[data-theme-name]").forEach(function (btn) {
-      btn.setAttribute(
-        "aria-pressed",
-        btn.getAttribute("data-theme-name") === theme ? "true" : "false"
-      );
-    });
+
+    var buttons = document.querySelectorAll("[data-theme-name]");
+    for (var i = 0; i < buttons.length; i++) {
+      var isActive = buttons[i].getAttribute("data-theme-name") === theme;
+      buttons[i].setAttribute("aria-pressed", isActive ? "true" : "false");
+    }
   }
 
   function initialTheme() {
-    var stored = readStoredTheme();
+    var stored = storedTheme();
     if (stored) {
       return stored;
     }
@@ -60,151 +65,179 @@
 
   function initThemeSwitch() {
     applyTheme(initialTheme());
-    document.querySelectorAll("[data-theme-name]").forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        var theme = btn.getAttribute("data-theme-name");
+
+    var buttons = document.querySelectorAll("[data-theme-name]");
+    for (var i = 0; i < buttons.length; i++) {
+      buttons[i].addEventListener("click", function (event) {
+        var theme = event.currentTarget.getAttribute("data-theme-name");
         applyTheme(theme);
         storeTheme(theme);
       });
-    });
+    }
   }
 
-  /* ---------------------------------------------------------------------
-     Live status polling for the /status page.
-     --------------------------------------------------------------------- */
+  // ---- Status page -------------------------------------------------------
   var STATE_LABELS = {
     operational: "Operational",
     degraded: "Degraded",
     down: "Down",
-    checking: "Checking…"
+    checking: "Checking",
   };
 
-  function setBadge(el, state) {
-    if (!el) return;
-    el.setAttribute("data-state", state);
-    var label = el.querySelector("[data-badge-label]");
+  function setBadge(root, selector, state, hint) {
+    var component = root.querySelector(
+      '[data-component="' + selector + '"]'
+    );
+    if (!component) {
+      return;
+    }
+    var badge = component.querySelector("[data-badge]");
+    var label = component.querySelector("[data-badge-label]");
+    if (badge) {
+      badge.setAttribute("data-state", state);
+    }
     if (label) {
       label.textContent = STATE_LABELS[state] || state;
     }
-  }
-
-  function relativeTime(date) {
-    return date.toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit"
-    });
+    if (hint) {
+      var hintEl = component.querySelector("[data-hint]");
+      if (hintEl) {
+        hintEl.textContent = hint;
+      }
+    }
   }
 
   function checkEndpoint(url) {
     var started = performance.now();
-    return fetch(url, { cache: "no-store", headers: { accept: "application/json" } })
-      .then(function (res) {
-        var latency = Math.round(performance.now() - started);
-        return res
+    return fetch(url, {
+      headers: { accept: "application/json" },
+      cache: "no-store",
+    })
+      .then(function (response) {
+        return response
           .json()
           .catch(function () {
             return {};
           })
-          .then(function (body) {
-            return { ok: res.ok, status: res.status, latency: latency, body: body };
+          .then(function (data) {
+            return {
+              ok: response.ok,
+              status: response.status,
+              data: data,
+              latency: Math.round(performance.now() - started),
+            };
           });
       })
       .catch(function () {
-        return { ok: false, status: 0, latency: null, body: {} };
+        return { ok: false, status: 0, data: {}, latency: null };
       });
   }
 
+  function pad(value) {
+    return value < 10 ? "0" + value : String(value);
+  }
+
+  function nowUtc() {
+    var d = new Date();
+    return (
+      d.getUTCFullYear() +
+      "-" +
+      pad(d.getUTCMonth() + 1) +
+      "-" +
+      pad(d.getUTCDate()) +
+      " " +
+      pad(d.getUTCHours()) +
+      ":" +
+      pad(d.getUTCMinutes()) +
+      ":" +
+      pad(d.getUTCSeconds())
+    );
+  }
+
   function initStatusPage() {
-    var page = document.querySelector("[data-status-page]");
-    if (!page) return;
-
-    var banner = page.querySelector("[data-status-banner]");
-    var bannerTitle = page.querySelector("[data-banner-title]");
-    var bannerText = page.querySelector("[data-banner-text]");
-    var updatedAt = page.querySelector("[data-updated-at]");
-    var latencyMetric = page.querySelector("[data-latency-value]");
-
-    var edgeBadge = page.querySelector('[data-component="edge"] [data-badge]');
-    var apiBadge = page.querySelector('[data-component="api"] [data-badge]');
-    var dbBadge = page.querySelector('[data-component="database"] [data-badge]');
-    var dbHint = page.querySelector('[data-component="database"] [data-hint]');
-
-    function setBanner(state) {
-      if (banner) banner.setAttribute("data-state", state);
-      if (bannerTitle) {
-        bannerTitle.textContent =
-          state === "operational"
-            ? "All systems operational"
-            : state === "degraded"
-            ? "Partial service disruption"
-            : "Service disruption";
-      }
-      if (bannerText) {
-        bannerText.textContent =
-          state === "operational"
-            ? "The public edge, API, and database are responding normally."
-            : state === "degraded"
-            ? "Some components are responding, but at least one check is unhealthy."
-            : "One or more core components are not responding right now.";
-      }
+    var root = document.querySelector("[data-status-page]");
+    if (!root) {
+      return;
     }
 
-    function poll() {
-      [edgeBadge, apiBadge, dbBadge].forEach(function (b) {
-        setBadge(b, "checking");
-      });
+    var banner = root.querySelector("[data-status-banner]");
+    var bannerTitle = root.querySelector("[data-banner-title]");
+    var bannerText = root.querySelector("[data-banner-text]");
+    var updatedAt = root.querySelector("[data-updated-at]");
+    var latencyValue = root.querySelector("[data-latency-value]");
+
+    function refresh() {
+      setBadge(root, "edge", "checking");
+      setBadge(root, "api", "checking");
+      setBadge(root, "database", "checking");
 
       Promise.all([checkEndpoint("/health"), checkEndpoint("/ready")]).then(
         function (results) {
           var health = results[0];
           var ready = results[1];
 
-          // Edge is up if either request completed with an HTTP response.
-          var edgeUp = health.status !== 0 || ready.status !== 0;
-          setBadge(edgeBadge, edgeUp ? "operational" : "down");
+          var edgeUp = health.status > 0 || ready.status > 0;
+          var apiUp = health.ok && health.data.status === "ok";
+          var dbUp = ready.ok && ready.data.status === "ready";
 
-          // API service = /health returning ok.
-          var apiUp = health.ok && health.body && health.body.status === "ok";
-          setBadge(apiBadge, apiUp ? "operational" : edgeUp ? "degraded" : "down");
-
-          // Database = /ready is the DB readiness probe.
-          var dbUp = ready.ok && ready.body && ready.body.status === "ready";
-          setBadge(dbBadge, dbUp ? "operational" : edgeUp ? "down" : "down");
-          if (dbHint) {
-            dbHint.textContent = dbUp
+          setBadge(root, "edge", edgeUp ? "operational" : "down");
+          setBadge(root, "api", apiUp ? "operational" : "down");
+          setBadge(
+            root,
+            "database",
+            dbUp ? "operational" : "down",
+            dbUp
               ? "Readiness probe passed (SELECT 1)."
-              : "Readiness probe failed or unreachable.";
+              : "Readiness probe failing or unreachable."
+          );
+
+          if (latencyValue) {
+            latencyValue.textContent =
+              ready.latency == null ? "—" : ready.latency + " ms";
           }
 
-          if (latencyMetric) {
-            var latency = ready.latency != null ? ready.latency : health.latency;
-            latencyMetric.textContent = latency != null ? latency + " ms" : "—";
+          var overall = "operational";
+          if (!edgeUp || !apiUp) {
+            overall = "down";
+          } else if (!dbUp) {
+            overall = "degraded";
           }
 
-          var overall = edgeUp && apiUp && dbUp
-            ? "operational"
-            : edgeUp
-            ? "degraded"
-            : "down";
-          setBanner(overall);
-
+          if (banner) {
+            banner.setAttribute("data-state", overall);
+          }
+          if (bannerTitle && bannerText) {
+            if (overall === "operational") {
+              bannerTitle.textContent = "All systems operational";
+              bannerText.textContent =
+                "The public edge, API, and database are responding normally.";
+            } else if (overall === "degraded") {
+              bannerTitle.textContent = "Partial service disruption";
+              bannerText.textContent =
+                "The edge and API are up, but the database readiness check is failing.";
+            } else {
+              bannerTitle.textContent = "Service disruption";
+              bannerText.textContent =
+                "One or more core endpoints are not responding.";
+            }
+          }
           if (updatedAt) {
-            updatedAt.textContent = relativeTime(new Date());
+            updatedAt.textContent = nowUtc();
           }
         }
       );
     }
 
-    poll();
-    window.setInterval(poll, 15000);
+    refresh();
+    setInterval(refresh, 15000);
     document.addEventListener("visibilitychange", function () {
       if (document.visibilityState === "visible") {
-        poll();
+        refresh();
       }
     });
   }
 
+  // ---- Boot --------------------------------------------------------------
   function ready(fn) {
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", fn);

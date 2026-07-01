@@ -50,8 +50,28 @@ defmodule AdventureTimeApiWeb.SiteLayout do
           rel="stylesheet"
         />
         <link rel="stylesheet" href="#{stylesheet_path}" />
+        <script>
+          (function () {
+            try {
+              var t = localStorage.getItem("attcg-web-theme");
+              if (["candy", "ice", "nightosphere"].indexOf(t) === -1) {
+                t =
+                  window.matchMedia &&
+                  window.matchMedia("(prefers-color-scheme: dark)").matches
+                    ? "nightosphere"
+                    : "candy";
+              }
+              document.documentElement.setAttribute("data-theme", t);
+            } catch (e) {}
+          })();
+        </script>
       </head>
       <body>
+        <div class="aurora" aria-hidden="true">
+          <span class="blob blob-1"></span>
+          <span class="blob blob-2"></span>
+          <span class="blob blob-3"></span>
+        </div>
         <a class="skip-link" href="#main-content">Skip to content</a>
         #{header(active)}
         <main id="main-content" class="#{escape(main_class)}">

@@ -29,7 +29,7 @@ defmodule AdventureTimeApiWeb.LandingController do
     <section class="hero" aria-label="Service overview">
       <div class="hero-copy">
         <p class="eyebrow">Official mobile backend</p>
-        <h1>Adventure Time TCG lives here.</h1>
+        <h1>The home of <span class="grad">Adventure Time TCG</span>.</h1>
         <p class="lede">
           This host powers account access, card art, gifts, quest progress, and
           real-time PvP for the Adventure Time TCG mobile app.
@@ -76,6 +76,25 @@ defmodule AdventureTimeApiWeb.LandingController do
       </aside>
     </section>
 
+    <section class="stat-strip" aria-label="At a glance">
+      <div class="stat">
+        <b>3</b>
+        <span>Core game loops</span>
+      </div>
+      <div class="stat">
+        <b>2</b>
+        <span>Languages: EN &amp; FR</span>
+      </div>
+      <div class="stat">
+        <b>Live</b>
+        <span>Realtime PvP sockets</span>
+      </div>
+      <div class="stat">
+        <b>24/7</b>
+        <span>Public status page</span>
+      </div>
+    </section>
+
     <section class="section" aria-label="Core app loops">
       <div class="section-head">
         <div>
@@ -85,8 +104,9 @@ defmodule AdventureTimeApiWeb.LandingController do
         <p>Three tightly connected systems, all served from one backend contract.</p>
       </div>
 
-      <div class="card-grid">
-        <article class="card feature-card">
+      <div class="bento">
+        <article class="card feature-card wide">
+          <span class="card-glyph" aria-hidden="true">&#127183;</span>
           <span class="kicker kicker-primary">Collect</span>
           <h2>Packs, rarities, and card art</h2>
           <p>
@@ -95,7 +115,8 @@ defmodule AdventureTimeApiWeb.LandingController do
           </p>
         </article>
 
-        <article class="card feature-card">
+        <article class="card feature-card wide">
+          <span class="card-glyph g-secondary" aria-hidden="true">&#9889;</span>
           <span class="kicker kicker-secondary">Quest</span>
           <h2>Daily progress that stays in step</h2>
           <p>
@@ -104,12 +125,14 @@ defmodule AdventureTimeApiWeb.LandingController do
           </p>
         </article>
 
-        <article class="card feature-card">
+        <article class="card feature-card full">
+          <span class="card-glyph g-accent" aria-hidden="true">&#9876;</span>
           <span class="kicker">Battle</span>
           <h2>Live PvP, replays, and spectating</h2>
           <p>
             Matchmaking, battle actions, websocket updates, and replay-friendly match history
-            are hosted here for players and spectators.
+            are hosted here for players and spectators &mdash; every action journaled and
+            reconstructable.
           </p>
         </article>
       </div>
@@ -125,6 +148,7 @@ defmodule AdventureTimeApiWeb.LandingController do
 
       <div class="card-grid">
         <article class="card">
+          <span class="card-glyph g-success" aria-hidden="true">&#128994;</span>
           <span class="kicker kicker-primary">Health</span>
           <h2>Live service status</h2>
           <p>
@@ -135,6 +159,7 @@ defmodule AdventureTimeApiWeb.LandingController do
         </article>
 
         <article class="card">
+          <span class="card-glyph g-accent" aria-hidden="true">&#128274;</span>
           <span class="kicker">Security</span>
           <h2>Responsible disclosure</h2>
           <p>
@@ -145,6 +170,7 @@ defmodule AdventureTimeApiWeb.LandingController do
         </article>
 
         <article class="card">
+          <span class="card-glyph g-secondary" aria-hidden="true">&#127959;</span>
           <span class="kicker kicker-secondary">Infrastructure</span>
           <h2>One backend, shared contracts</h2>
           <p>
