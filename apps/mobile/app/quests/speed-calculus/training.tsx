@@ -37,6 +37,7 @@ import {
 } from "../../../src/features/quests/speed-calculus/palette";
 import { TrainingHistoryCard } from "../../../src/features/quests/speed-calculus/training-history-card";
 import { TrainingSummaryCard } from "../../../src/features/quests/speed-calculus/training-summary-card";
+import { useAnimatedValue } from "../../../src/hooks/use-animated-value";
 
 const DEFAULT_RUN_DURATION_SECONDS = 30;
 const DEFAULT_PAUSE_DURATION_SECONDS = 5;
@@ -136,9 +137,9 @@ export default function SpeedCalculusTrainingScreen() {
   const finishRequestedRef = useRef(false);
   const feedbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const answerRef = useRef("");
-  const shakeAnim = useRef(new Animated.Value(0)).current;
-  const feedbackSlide = useRef(new Animated.Value(-20)).current;
-  const feedbackOpacity = useRef(new Animated.Value(0)).current;
+  const shakeAnim = useAnimatedValue(0);
+  const feedbackSlide = useAnimatedValue(-20);
+  const feedbackOpacity = useAnimatedValue(0);
 
   const currentQuestion = useMemo(() => {
     if (!activeRun) {
@@ -231,9 +232,11 @@ export default function SpeedCalculusTrainingScreen() {
   }, [toast]);
 
   useEffect(() => {
+    const feedbackTimeoutRefSnapshot = feedbackTimeoutRef.current;
+
     return () => {
-      if (feedbackTimeoutRef.current) {
-        clearTimeout(feedbackTimeoutRef.current);
+      if (feedbackTimeoutRefSnapshot) {
+        clearTimeout(feedbackTimeoutRefSnapshot);
       }
     };
   }, []);
@@ -603,14 +606,7 @@ export default function SpeedCalculusTrainingScreen() {
           className={`absolute left-4 right-4 z-[100] rounded-xl p-4 ${toast.type === "success" ? "bg-successDark" : "bg-dangerDark"}`}
           style={{
             top: insets.top + 8,
-            shadowColor: withAlpha(
-              toast.type === "success" ? tc.successDark : tc.dangerDark,
-              "2E",
-            ),
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.15,
-            shadowRadius: 8,
-            elevation: 8,
+            boxShadow: `0px 4px 8px ${withAlpha( toast.type === "success" ? tc.successDark : tc.dangerDark, "2E", )}`,
           }}
         >
           <Text
@@ -637,10 +633,7 @@ export default function SpeedCalculusTrainingScreen() {
           <Text
             className="text-[28px] font-nunito-extrabold text-primaryDark"
             style={{
-              shadowColor: withAlpha(tc.successDark, "2E"),
-              shadowOffset: { width: 0, height: 1 },
-              shadowOpacity: 0.18,
-              shadowRadius: 4,
+              boxShadow: `0px 1px 4px ${withAlpha(tc.successDark, "2E")}`,
             }}
           >
             {t("quests.speedCalculusTrainingTitle")}

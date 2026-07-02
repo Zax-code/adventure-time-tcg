@@ -285,9 +285,8 @@ private struct StepQuestProvider: TimelineProvider {
       entries.append(rolloverEntry)
     }
 
-    let refreshBaseDate = entries.last?.date ?? now
-    let refreshDate = Calendar.current.date(byAdding: .minute, value: 15, to: refreshBaseDate)
-      ?? refreshBaseDate.addingTimeInterval(900)
+    let refreshDate = Calendar.current.date(byAdding: .minute, value: 15, to: now)
+      ?? now.addingTimeInterval(900)
     completion(Timeline(entries: entries, policy: .after(refreshDate)))
   }
 

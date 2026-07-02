@@ -177,11 +177,13 @@ export async function registerWidgetRefreshPushTokenFromDeviceToken(
     return;
   }
 
-  const installationId = await getInstallationId();
-  const expoPushToken = await Notifications.getExpoPushTokenAsync({
-    projectId,
-    devicePushToken,
-  });
+  const [installationId, expoPushToken] = await Promise.all([
+    getInstallationId(),
+    Notifications.getExpoPushTokenAsync({
+      projectId,
+      devicePushToken,
+    }),
+  ]);
 
   await fetch(`${API_BASE_URL}/notifications/device`, {
     method: "POST",

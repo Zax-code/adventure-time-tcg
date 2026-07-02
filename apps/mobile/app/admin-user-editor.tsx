@@ -165,7 +165,7 @@ export default function AdminUserEditorScreen() {
   const closeEditor = () => router.dismissTo("/admin/users" as any);
   const canAccessAdmin = sessionHydrated && Boolean(sessionUser?.isAdmin);
 
-  const detailQuery = useQuery({
+  const { data: detailQueryData, error: detailQueryError, isLoading: detailQueryIsLoading } = useQuery({
     queryKey: ["admin-user", userId],
     queryFn: () => apiClient.adminUserDetail(userId!),
     enabled: canAccessAdmin && Boolean(userId),
@@ -221,7 +221,7 @@ export default function AdminUserEditorScreen() {
     },
   });
 
-  const detail = detailQuery.data;
+  const detail = detailQueryData;
   const isViewerSuperAdmin = sessionUser?.isSuperAdmin ?? false;
   const isSelf = detail?.id === sessionUser?.id;
   const canManageCoins = detail?.viewerPermissions.canManageCoins ?? false;
@@ -346,7 +346,7 @@ export default function AdminUserEditorScreen() {
                   {t("admin.userEditor.missingUserId")}
                 </Text>
               </View>
-            ) : detailQuery.isLoading ? (
+            ) : detailQueryIsLoading ? (
               <View className="flex-1 items-center justify-center px-6">
                 <LoadingPanel
                   title={t("admin.userEditor.loadingUser")}
@@ -354,11 +354,11 @@ export default function AdminUserEditorScreen() {
                   icon="person"
                 />
               </View>
-            ) : detailQuery.error ? (
+            ) : detailQueryError ? (
               <View className="flex-1 items-center justify-center px-6">
                 <Text className="font-nunito-bold text-[15px] text-dangerText text-center">
-                  {detailQuery.error instanceof Error
-                    ? detailQuery.error.message
+                  {detailQueryError instanceof Error
+                    ? detailQueryError.message
                     : t("admin.userEditor.loadFailed")}
                 </Text>
               </View>

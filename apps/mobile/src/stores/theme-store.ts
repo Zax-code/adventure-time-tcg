@@ -4,9 +4,9 @@ import { create } from "zustand";
 import type { ThemeName } from "../theme/themes";
 
 const THEME_STORAGE_KEY = "themeName";
-export const VALID_THEME_NAMES = ["candy", "ice", "nightosphere"] as const;
+const VALID_THEME_NAMES = ["candy", "ice", "nightosphere"] as const;
 
-export function normalizeThemeName(value: string | null | undefined): ThemeName {
+function normalizeThemeName(value: string | null | undefined): ThemeName {
   return VALID_THEME_NAMES.includes(value as ThemeName)
     ? (value as ThemeName)
     : "candy";

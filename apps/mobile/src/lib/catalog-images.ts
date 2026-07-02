@@ -8,16 +8,18 @@ export function getCatalogImageUrl(imageAssetId: string) {
   return `${API_BASE_URL}/media/catalog/${imageAssetId}`;
 }
 
-export function getCatalogImageCacheKey(imageAssetId: string) {
+function getCatalogImageCacheKey(imageAssetId: string) {
   return `catalog:${imageAssetId}`;
 }
 
 export async function prefetchCatalogImages(
   imageAssetIds: Array<string | null | undefined>,
 ) {
-  const pendingIds = imageAssetIds
-    .filter((imageAssetId): imageAssetId is string => Boolean(imageAssetId))
-    .filter((imageAssetId) => !prefetchedCatalogImages.has(imageAssetId));
+  const pendingIds = imageAssetIds.filter(
+    (imageAssetId): imageAssetId is string =>
+      typeof imageAssetId === "string" &&
+      !prefetchedCatalogImages.has(imageAssetId),
+  );
 
   if (!pendingIds.length) {
     return;

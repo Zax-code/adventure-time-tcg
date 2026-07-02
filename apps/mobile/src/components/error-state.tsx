@@ -126,7 +126,7 @@ function ErrorPanel({
               className="font-nunito-bold uppercase tracking-[2px]"
               style={{
                 color: networkFailure ? tc.infoDark : tc.dangerDark,
-                fontSize: 11,
+                fontSize: 12,
               }}
             >
               {eyebrow}

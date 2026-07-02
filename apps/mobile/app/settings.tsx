@@ -116,13 +116,13 @@ export default function SettingsScreen() {
     number | null
   >(null);
 
-  const stepQuery = useQuery({
+  const { data: stepQueryData, refetch: stepQueryRefetch } = useQuery({
     queryKey: ["health-steps"],
     queryFn: () => apiClient.getHealthSteps(),
     enabled: Boolean(user),
   });
 
-  const fitbitStatusQuery = useQuery({
+  const { data: fitbitStatusQueryData, refetch: fitbitStatusQueryRefetch } = useQuery({
     queryKey: ["fitbit-status"],
     queryFn: () => apiClient.fitbitStatus(),
     enabled: Boolean(user),
@@ -132,9 +132,11 @@ export default function SettingsScreen() {
     mutationFn: (preferredStepSource: "device_health" | "fitbit") =>
       apiClient.updateStepSource({ preferredStepSource }),
     onSuccess: async (nextUser) => {
-      await setUser(nextUser);
-      await queryClient.invalidateQueries({ queryKey: ["home"] });
-      await queryClient.invalidateQueries({ queryKey: ["health-steps"] });
+      await Promise.all([
+        setUser(nextUser),
+        queryClient.invalidateQueries({ queryKey: ["home"] }),
+        queryClient.invalidateQueries({ queryKey: ["health-steps"] }),
+      ]);
     },
   });
 
@@ -263,13 +265,13 @@ export default function SettingsScreen() {
   const notificationStatusLabel = t(
     `settings.permissionStates.${stepSync.notificationPermissionStatus}`,
   );
-  const fitbitConnected = fitbitStatusQuery.data?.connected ?? false;
+  const fitbitConnected = fitbitStatusQueryData?.connected ?? false;
   const prefersFitbit = currentStepSource === "fitbit";
   const displayNameValue = displayNameInput.trim();
   const canSaveDisplayName =
     displayNameValue.length > 0 &&
     displayNameValue !== (user?.displayName ?? "").trim();
-  const latestStepSource = stepQuery.data?.latest?.source ?? currentStepSource;
+  const latestStepSource = stepQueryData?.latest?.source ?? currentStepSource;
   const currentStepSourceLabel = getStepSourceLabel({
     healthSystemLabel,
     source: currentStepSource,
@@ -281,11 +283,11 @@ export default function SettingsScreen() {
     t,
   });
   const latestSyncedDate = formatSettingsDate(
-    stepQuery.data?.latest?.updatedAt ?? null,
+    stepQueryData?.latest?.updatedAt ?? null,
     currentLanguage,
   );
   const recordedForDate = formatRecordedForDate(
-    stepQuery.data?.latest?.recordedFor ?? null,
+    stepQueryData?.latest?.recordedFor ?? null,
     currentLanguage,
   );
   const fitbitStatusLabel = fitbitConnected
@@ -390,16 +392,16 @@ export default function SettingsScreen() {
         }
 
         await Promise.all([
-          fitbitStatusQuery.refetch(),
-          stepQuery.refetch(),
+          fitbitStatusQueryRefetch(),
+          stepQueryRefetch(),
           queryClient.invalidateQueries({ queryKey: ["quests"] }),
         ]);
         return;
       }
 
       await Promise.all([
-        fitbitStatusQuery.refetch(),
-        stepQuery.refetch(),
+        fitbitStatusQueryRefetch(),
+        stepQueryRefetch(),
         queryClient.invalidateQueries({ queryKey: ["quests"] }),
       ]);
       return;
@@ -440,8 +442,8 @@ export default function SettingsScreen() {
     }
 
     await Promise.all([
-      fitbitStatusQuery.refetch(),
-      stepQuery.refetch(),
+      fitbitStatusQueryRefetch(),
+      stepQueryRefetch(),
       queryClient.invalidateQueries({ queryKey: ["quests"] }),
     ]);
   };
@@ -561,11 +563,7 @@ export default function SettingsScreen() {
                   className="rounded-3xl border border-primaryBorder px-5 py-5"
                   style={{
                     backgroundColor: tc.surface,
-                    shadowColor: "#000",
-                    shadowOpacity: 0.04,
-                    shadowRadius: 8,
-                    shadowOffset: { width: 0, height: 3 },
-                    elevation: 2,
+                    boxShadow: "0px 3px 8px rgba(0, 0, 0, 0.04)",
                   }}
                 >
                   <View className="gap-4">
@@ -988,7 +986,7 @@ export default function SettingsScreen() {
                       <StatTile
                         label={t("settings.latestSyncedLabel")}
                         value={t("settings.stepCountValue", {
-                          count: stepQuery.data?.latest?.stepCount ?? 0,
+                          count: stepQueryData?.latest?.stepCount ?? 0,
                         })}
                         tone="neutral"
                         tc={tc}
@@ -1527,11 +1525,7 @@ function SurfaceCard({
     <View
       className="rounded-3xl border border-primaryBorder bg-surface p-5"
       style={{
-        shadowColor: "#000",
-        shadowOpacity: 0.04,
-        shadowRadius: 8,
-        shadowOffset: { width: 0, height: 3 },
-        elevation: 2,
+        boxShadow: "0px 3px 8px rgba(0, 0, 0, 0.04)",
       }}
     >
       {children}
@@ -1883,12 +1877,12 @@ function formatSettingsDate(value: string | null, locale: string) {
     return null;
   }
 
-  return new Intl.DateTimeFormat(locale, {
+  return date.toLocaleString(locale, {
     month: "short",
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
-  }).format(date);
+  });
 }
 
 function formatRecordedForDate(value: string | null, locale: string) {
@@ -1902,9 +1896,9 @@ function formatRecordedForDate(value: string | null, locale: string) {
     return value;
   }
 
-  return new Intl.DateTimeFormat(locale, {
+  return date.toLocaleDateString(locale, {
     month: "short",
     day: "numeric",
     year: "numeric",
-  }).format(date);
+  });
 }

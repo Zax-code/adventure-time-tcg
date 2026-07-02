@@ -39,6 +39,7 @@ import { useSessionStore } from "../../src/stores/session-store";
 import { useThemeStore } from "../../src/stores/theme-store";
 import { useWordleLanguageStore } from "../../src/stores/wordle-language-store";
 import { THEME_COLORS, THEME_VARS } from "../../src/theme/themes";
+import { useAnimatedValue } from "../../src/hooks/use-animated-value";
 
 const MAX_ATTEMPTS = 6;
 const WORD_LENGTH = 5;
@@ -143,7 +144,7 @@ export default function WordleScreen() {
   }>();
 
   const [guesses, setGuesses] = useState<GuessResult[]>([]);
-  const [currentGuess, setCurrentGuess] = useState<(string | null)[]>(
+  const [currentGuess, setCurrentGuess] = useState<(string | null)[]>(() =>
     Array(WORD_LENGTH).fill(null),
   );
   const [solved, setSolved] = useState(false);
@@ -195,11 +196,15 @@ export default function WordleScreen() {
   const lastHandledResetAtRef = useRef(0);
   const appliedLanguageParamRef = useRef<string | null>(null);
 
-  // Animation values — initialized once, stable across renders
-  const popAnims = useRef(
-    Array.from({ length: WORD_LENGTH }, () => new Animated.Value(1)),
-  ).current;
-  const shakeAnim = useRef(new Animated.Value(0)).current;
+  const popAnimsRef = useRef<Animated.Value[] | null>(null);
+  if (popAnimsRef.current === null) {
+    popAnimsRef.current = Array.from(
+      { length: WORD_LENGTH },
+      () => new Animated.Value(1),
+    );
+  }
+  const popAnims = popAnimsRef.current;
+  const shakeAnim = useAnimatedValue(0);
   const rowFlipAnimsRef = useRef<Record<number, Animated.Value[]>>({});
   const revealTimersRef = useRef<
     Record<number, ReturnType<typeof setTimeout>[]>
@@ -288,7 +293,7 @@ export default function WordleScreen() {
 
   // ── API ──────────────────────────────────────────────────────────────────
 
-  const stateQuery = useQuery({
+  const { data: stateQueryData, isLoading: stateQueryIsLoading } = useQuery({
     queryKey: ["wordle", wordleLanguage],
     queryFn: () => apiClient.wordleState(wordleLanguage),
     enabled: wordleLanguageHydrated,
@@ -312,9 +317,9 @@ export default function WordleScreen() {
       ? currentWordleQuest
       : null;
 
-  const wordleDefinitionDateKey = stateQuery.data?.date ?? activeDateKey;
+  const wordleDefinitionDateKey = stateQueryData?.date ?? activeDateKey;
 
-  const definitionQuery = useQuery({
+  const { data: definitionQueryData, error: definitionQueryError, isLoading: definitionQueryIsLoading } = useQuery({
     queryKey: ["wordleDefinition", wordleLanguage, wordleDefinitionDateKey],
     queryFn: () => apiClient.wordleDefinition(wordleLanguage),
     enabled: wordleLanguageHydrated && wordleDefinitionDateKey != null,
@@ -323,7 +328,7 @@ export default function WordleScreen() {
   });
 
   useEffect(() => {
-    const data = stateQuery.data;
+    const data = stateQueryData;
     if (!data) return;
 
     const serverDate = data.date;
@@ -422,7 +427,7 @@ export default function WordleScreen() {
     clearCurrentGuess,
     clearRevealAnimations,
     lastQuestResetAt,
-    stateQuery.data,
+    stateQueryData,
   ]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Actions ──────────────────────────────────────────────────────────────
@@ -487,8 +492,10 @@ export default function WordleScreen() {
   ]);
 
   useEffect(() => {
+    const revealTimersSnapshot = revealTimersRef.current;
+
     return () => {
-      Object.values(revealTimersRef.current).forEach((timers) => {
+      Object.values(revealTimersSnapshot).forEach((timers) => {
         timers.forEach((timer) => clearTimeout(timer));
       });
     };
@@ -828,6 +835,7 @@ export default function WordleScreen() {
     triggerShake,
     resetBoardForNewDay,
     patchWordleCaches,
+    submitLocked,
   ]);
 
   // ── Keyboard press helpers ───────────────────────────────────────────────
@@ -849,7 +857,7 @@ export default function WordleScreen() {
   }, [canShowDefinition, definitionModalVisible]);
 
   useEffect(() => {
-    const variants = definitionQuery.data?.variants ?? [];
+    const variants = definitionQueryData?.variants ?? [];
 
     if (variants.length === 0) {
       return;
@@ -865,7 +873,7 @@ export default function WordleScreen() {
 
       return variants[0]?.displayWord ?? null;
     });
-  }, [definitionQuery.data]);
+  }, [definitionQueryData]);
 
   const handleWordleLanguageChange = useCallback(
     (nextLanguage: WordleLocale) => {
@@ -1028,7 +1036,7 @@ export default function WordleScreen() {
 
   // ── Render ───────────────────────────────────────────────────────────────
 
-  if ((!wordleLanguageHydrated || stateQuery.isLoading) && !stateQuery.data) {
+  if ((!wordleLanguageHydrated || stateQueryIsLoading) && !stateQueryData) {
     return (
       <PageLoadingState
         title={t("quests.wordle.title")}
@@ -1458,19 +1466,19 @@ export default function WordleScreen() {
               {t("quests.wordle.definitionTitle")}
             </Text>
 
-            {definitionQuery.isLoading && !definitionQuery.data ? (
+            {definitionQueryIsLoading && !definitionQueryData ? (
               <Text className="mt-3 text-sm leading-5 font-nunito text-primaryStrong">
                 {t("quests.wordle.definitionLoading")}
               </Text>
             ) : null}
 
-            {definitionQuery.error && !definitionQuery.data ? (
+            {definitionQueryError && !definitionQueryData ? (
               <Text className="mt-3 text-sm leading-5 font-nunito text-dangerDark">
                 {t("quests.wordle.definitionError")}
               </Text>
             ) : null}
 
-            {definitionQuery.data ? (
+            {definitionQueryData ? (
               <ScrollView
                 className="mt-3 max-h-[320px]"
                 contentContainerStyle={{ gap: 10 }}
@@ -1480,18 +1488,18 @@ export default function WordleScreen() {
                     {t("quests.wordle.definitionWordLabel")}
                   </Text>
                   <Text className="mt-1 text-base font-nunito-extrabold text-primaryStrong">
-                    {definitionQuery.data.word}
+                    {definitionQueryData.word}
                   </Text>
                 </View>
 
-                {definitionQuery.data.variants.length > 1 ? (
+                {definitionQueryData.variants.length > 1 ? (
                   <Text className="text-xs font-nunito-bold uppercase tracking-[1px] text-fgMuted">
                     {t("quests.wordle.definitionChoicesLabel")}
                   </Text>
                 ) : null}
 
-                {definitionQuery.data.variants.map((variant) => {
-                  const expandable = definitionQuery.data.variants.length > 1;
+                {definitionQueryData.variants.map((variant) => {
+                  const expandable = definitionQueryData.variants.length > 1;
                   const expanded =
                     !expandable ||
                     expandedDefinitionWord === variant.displayWord;

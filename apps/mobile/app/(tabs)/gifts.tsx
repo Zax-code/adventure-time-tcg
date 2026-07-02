@@ -52,7 +52,7 @@ export default function GiftsScreen() {
     action: GiftDecision;
   } | null>(null);
 
-  const giftsQuery = useQuery({
+  const { data: giftsQueryData, error: giftsQueryError, isError: giftsQueryIsError, isLoading: giftsQueryIsLoading, refetch: giftsQueryRefetch } = useQuery({
     queryKey: ["gifts"],
     queryFn: () => apiClient.gifts(),
   });
@@ -72,7 +72,7 @@ export default function GiftsScreen() {
     },
   });
 
-  if (giftsQuery.isLoading) {
+  if (giftsQueryIsLoading) {
     return (
       <PageLoadingState
         title={t("gifts.title")}
@@ -82,18 +82,18 @@ export default function GiftsScreen() {
     );
   }
 
-  if (giftsQuery.isError) {
+  if (giftsQueryIsError) {
     return (
       <PageErrorState
-        error={giftsQuery.error}
+        error={giftsQueryError}
         onRetry={() => {
-          void giftsQuery.refetch();
+          void giftsQueryRefetch();
         }}
       />
     );
   }
 
-  if (!giftsQuery.data) {
+  if (!giftsQueryData) {
     return (
       <View className="flex-1 bg-bg p-6">
         <Text className="font-nunito text-fgMuted">
@@ -103,7 +103,7 @@ export default function GiftsScreen() {
     );
   }
 
-  const allGifts = [...giftsQuery.data.gifts].sort(
+  const allGifts = [...giftsQueryData.gifts].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
   const receivedGifts = allGifts.filter(
@@ -847,11 +847,11 @@ function formatGiftDate(value: string, locale: string) {
   const now = new Date();
   const sameYear = date.getFullYear() === now.getFullYear();
 
-  return new Intl.DateTimeFormat(locale, {
+  return date.toLocaleDateString(locale, {
     month: "short",
     day: "numeric",
     ...(sameYear ? {} : { year: "numeric" }),
-  }).format(date);
+  });
 }
 
 function formatGiftExpiry(

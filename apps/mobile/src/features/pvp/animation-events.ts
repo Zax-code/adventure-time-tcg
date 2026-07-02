@@ -240,7 +240,7 @@ export function buildPvpVisualEvents(events: CombatEvent[]): PvpVisualEvents {
   return { floatingEvents, unitAnimationEvents };
 }
 
-export function getLatestVisualTurnEvents(
+function getLatestVisualTurnEvents(
   events: CombatEvent[],
 ): CombatEvent[] {
   const checkedTurns = new Set<number>();

@@ -13,9 +13,11 @@ export function getCardImageCacheKey(imageAssetId: string) {
 }
 
 export async function prefetchCardImages(imageAssetIds: Array<string | null | undefined>) {
-  const pendingIds = imageAssetIds
-    .filter((imageAssetId): imageAssetId is string => Boolean(imageAssetId))
-    .filter((imageAssetId) => !prefetchedCardImages.has(imageAssetId));
+  const pendingIds = imageAssetIds.filter(
+    (imageAssetId): imageAssetId is string =>
+      typeof imageAssetId === "string" &&
+      !prefetchedCardImages.has(imageAssetId),
+  );
 
   if (!pendingIds.length) {
     return;

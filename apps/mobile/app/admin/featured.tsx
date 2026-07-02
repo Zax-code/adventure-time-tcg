@@ -88,7 +88,7 @@ export default function AdminFeaturedScreen() {
   const tc = THEME_COLORS[themeName];
   const { t } = useTranslation();
 
-  const cardsQuery = useQuery({
+  const { data: cardsQueryData, error: cardsQueryError, isLoading: cardsQueryIsLoading } = useQuery({
     queryKey: ["admin-cards"],
     queryFn: () => apiClient.adminCards(),
   });
@@ -105,10 +105,13 @@ export default function AdminFeaturedScreen() {
     },
   });
 
-  const cards = cardsQuery.data?.cards ?? [];
-  const isCardsLoading = cardsQuery.isLoading;
+  const cards = useMemo(
+    () => cardsQueryData?.cards ?? [],
+    [cardsQueryData?.cards],
+  );
+  const isCardsLoading = cardsQueryIsLoading;
   const cardsError =
-    cardsQuery.error instanceof Error ? cardsQuery.error.message : null;
+    cardsQueryError instanceof Error ? cardsQueryError.message : null;
 
   const toggleRef = useRef(toggleMutation.mutate);
   toggleRef.current = toggleMutation.mutate;
@@ -117,8 +120,7 @@ export default function AdminFeaturedScreen() {
     () =>
       cards
         .slice(0, 48)
-        .map((card) => card.imageAssetId)
-        .filter(Boolean)
+        .flatMap((card) => (card.imageAssetId ? [card.imageAssetId] : []))
         .join(","),
     [cards],
   );

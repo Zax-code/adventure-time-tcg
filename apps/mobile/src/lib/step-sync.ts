@@ -800,7 +800,7 @@ export async function ensureBackgroundStepTaskRegistered() {
   return true;
 }
 
-export async function unregisterBackgroundStepTask() {
+async function unregisterBackgroundStepTask() {
   const registered = await TaskManager.isTaskRegisteredAsync(
     STEP_SYNC_BACKGROUND_TASK,
   ).catch(() => false);

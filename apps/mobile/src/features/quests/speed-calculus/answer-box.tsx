@@ -28,11 +28,7 @@ export function AnswerBox({
         borderColor: answerBoxBorder,
         backgroundColor: answerBoxBg,
         transform: [{ translateX: shakeAnim }],
-        shadowColor: answerBoxBorder,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.25,
-        shadowRadius: 12,
-        elevation: 4,
+        boxShadow: `0px 4px 12px ${answerBoxBorder}`,
       }}
     >
       <View className="flex-1 items-center justify-center pt-2">

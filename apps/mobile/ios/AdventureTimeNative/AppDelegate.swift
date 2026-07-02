@@ -348,7 +348,7 @@ actor StepQuestBackgroundSyncService {
         questsResponse,
         locale: locale,
         recordedFor: recordedFor,
-        existingSnapshot: existingSnapshot
+        existingSnapshot: localSnapshot
       ) {
         saveSnapshot(syncedSnapshot)
       }

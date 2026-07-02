@@ -5,6 +5,7 @@ import type { SpeedRunState } from "@adventure-time/api-client";
 import { useTranslation } from "../../../i18n";
 import { useThemeStore } from "../../../stores/theme-store";
 import { THEME_COLORS } from "../../../theme/themes";
+import { useAnimatedValue } from "../../../hooks/use-animated-value";
 
 type HudCardProps = {
   activeRun: NonNullable<SpeedRunState["activeRun"]> | null;
@@ -31,7 +32,7 @@ export function HudCard({
 }: HudCardProps) {
   const { t } = useTranslation();
   const tc = THEME_COLORS[useThemeStore((s) => s.themeName)];
-  const progressAnim = useRef(new Animated.Value(1)).current;
+  const progressAnim = useAnimatedValue(1);
 
   // ── Timer urgency ─────────────────────────────────────────────────
   const maxSeconds = runDurationSeconds;
@@ -64,10 +65,13 @@ export function HudCard({
       useNativeDriver: false,
     }).start();
   }, [
+    activeRun,
     activeRun?.runId,
     isManuallyPaused,
     pauseRemainingSeconds,
     progressAnim,
+    remainingSeconds,
+    timerProgress,
   ]);
 
   const progressWidth = progressAnim.interpolate({
@@ -79,11 +83,7 @@ export function HudCard({
     <View
       className="mx-4 mt-3 rounded-2xl px-4 pt-3 pb-2 bg-surface"
       style={{
-        shadowColor: tc.primaryDark,
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.12,
-        shadowRadius: 10,
-        elevation: 4,
+        boxShadow: `0px 3px 10px ${tc.primaryDark}`,
       }}
     >
       <View className="flex-row items-start justify-between gap-3">

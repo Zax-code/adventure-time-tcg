@@ -4,9 +4,9 @@ import { create } from "zustand";
 import type { Locale } from "../i18n/types";
 
 const LOCALE_STORAGE_KEY = "locale";
-export const VALID_LOCALES = ["en", "fr"] as const;
+const VALID_LOCALES = ["en", "fr"] as const;
 
-export function normalizeLocale(value: string | null | undefined): Locale {
+function normalizeLocale(value: string | null | undefined): Locale {
   return VALID_LOCALES.includes(value as Locale) ? (value as Locale) : "en";
 }
 

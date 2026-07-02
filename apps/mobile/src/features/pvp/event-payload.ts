@@ -66,7 +66,7 @@ export function getEventChance(event: CombatEvent): number | null {
   return pickNumber(event.payload, ["chance", "initiativeTieChance"]);
 }
 
-export function getEventMissRoll(event: CombatEvent): number | null {
+function getEventMissRoll(event: CombatEvent): number | null {
   return pickNumber(event.payload, ["missRoll"]);
 }
 
@@ -74,7 +74,7 @@ export function getEventMissChance(event: CombatEvent): number | null {
   return pickNumber(event.payload, ["missChance"]);
 }
 
-export function getEventCritRoll(event: CombatEvent): number | null {
+function getEventCritRoll(event: CombatEvent): number | null {
   return pickNumber(event.payload, ["critRoll"]);
 }
 

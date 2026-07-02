@@ -294,7 +294,7 @@ export function UnitCard({
             <Text
               style={{
                 color: "#fff",
-                fontSize: 10,
+                fontSize: 12,
                 fontFamily: "Nunito_700Bold",
               }}
             >

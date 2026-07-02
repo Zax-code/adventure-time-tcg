@@ -50,11 +50,19 @@ import {
   useMinuteNow,
 } from "../../src/features/pvp/turn-timeout";
 import { getPvpMatchResultView } from "../../src/features/pvp/match-result";
+import { useAnimatedValue } from "../../src/hooks/use-animated-value";
 
 type ToastState = {
   message: string;
   type: "success" | "error";
 };
+
+const PVP_REFRESH_QUERY_KEYS = [
+  ["pvp-invites"],
+  ["pvp-matches"],
+  ["pvp-history"],
+  ["pvp-loadouts"],
+] as const;
 
 type SearchableUser = {
   id: string;
@@ -294,40 +302,40 @@ export default function PvpScreen() {
     Record<string, string>
   >({});
   const [toast, setToast] = useState<ToastState | null>(null);
-  const toastAnim = useRef(new Animated.Value(-96)).current;
+  const toastAnim = useAnimatedValue(-96);
 
-  const invitesQuery = useQuery({
+  const { data: invitesQueryData } = useQuery({
     queryKey: ["pvp-invites"],
     queryFn: () => apiClient.pvpInvites(),
     refetchOnMount: "always",
     refetchInterval: (query) =>
       query.state.status === "error" ? false : PVP_LOBBY_REFETCH_INTERVAL_MS,
   });
-  const matchesQuery = useQuery({
+  const { data: matchesQueryData } = useQuery({
     queryKey: ["pvp-matches"],
     queryFn: () => apiClient.pvpMatches(),
     refetchOnMount: "always",
     refetchInterval: (query) =>
       query.state.status === "error" ? false : PVP_LOBBY_REFETCH_INTERVAL_MS,
   });
-  const historyQuery = useQuery({
+  const { data: historyQueryData } = useQuery({
     queryKey: ["pvp-history"],
     queryFn: () => apiClient.pvpHistory(),
     refetchOnMount: "always",
     refetchInterval: (query) =>
       query.state.status === "error" ? false : PVP_LOBBY_REFETCH_INTERVAL_MS,
   });
-  const loadoutsQuery = useQuery({
+  const { data: loadoutsQueryData } = useQuery({
     queryKey: ["pvp-loadouts"],
     queryFn: () => apiClient.pvpLoadouts(),
   });
-  const usersQuery = useQuery({
+  const { data: usersQueryData, isLoading: usersQueryIsLoading } = useQuery({
     queryKey: ["users"],
     queryFn: () => apiClient.users(),
   });
   const currentPvpUserId =
-    matchesQuery.data?.currentUserId ??
-    historyQuery.data?.currentUserId ??
+    matchesQueryData?.currentUserId ??
+    historyQueryData?.currentUserId ??
     currentUserId ??
     null;
 
@@ -352,10 +360,10 @@ export default function PvpScreen() {
 
   const validLoadouts = useMemo(
     () =>
-      (loadoutsQuery.data?.loadouts ?? []).filter(
+      (loadoutsQueryData?.loadouts ?? []).filter(
         (loadout) => loadout.invalidCardIds.length === 0,
       ),
-    [loadoutsQuery.data?.loadouts],
+    [loadoutsQueryData?.loadouts],
   );
   const selectedInviteLoadout = useMemo(
     () =>
@@ -365,35 +373,38 @@ export default function PvpScreen() {
   );
   const selectedOpponent = useMemo(
     () =>
-      usersQuery.data?.users.find((user) => user.id === selectedOpponentId) ??
+      usersQueryData?.users.find((user) => user.id === selectedOpponentId) ??
       null,
-    [selectedOpponentId, usersQuery.data?.users],
+    [selectedOpponentId, usersQueryData?.users],
   );
 
   const pendingReceivedInvites = useMemo(
     () =>
-      invitesQuery.data?.invites.filter(
+      invitesQueryData?.invites.filter(
         (invite) => invite.inviteeId === currentPvpUserId,
       ) ?? [],
-    [currentPvpUserId, invitesQuery.data?.invites],
+    [currentPvpUserId, invitesQueryData?.invites],
   );
   const pendingSentInvites = useMemo(
     () =>
-      invitesQuery.data?.invites.filter(
+      invitesQueryData?.invites.filter(
         (invite) => invite.inviterId === currentPvpUserId,
       ) ?? [],
-    [currentPvpUserId, invitesQuery.data?.invites],
+    [currentPvpUserId, invitesQueryData?.invites],
   );
   const activeMatches = useMemo(
-    () => matchesQuery.data?.matches ?? [],
-    [matchesQuery.data?.matches],
+    () => matchesQueryData?.matches ?? [],
+    [matchesQueryData?.matches],
   );
   const now = useMinuteNow(activeMatches.length > 0);
   const historyMatches = useMemo(
-    () => historyQuery.data?.matches ?? [],
-    [historyQuery.data?.matches],
+    () => historyQueryData?.matches ?? [],
+    [historyQueryData?.matches],
   );
-  const allLoadouts = loadoutsQuery.data?.loadouts ?? [];
+  const allLoadouts = useMemo(
+    () => loadoutsQueryData?.loadouts ?? [],
+    [loadoutsQueryData?.loadouts],
+  );
   const completedMatches = useMemo(
     () =>
       historyMatches
@@ -427,8 +438,8 @@ export default function PvpScreen() {
     pendingReceivedInvites.length + pendingSentInvites.length;
   const hasAnyData =
     hasLoadouts ||
-    (invitesQuery.data?.invites.length ?? 0) > 0 ||
-    (matchesQuery.data?.matches.length ?? 0) > 0 ||
+    (invitesQueryData?.invites.length ?? 0) > 0 ||
+    (matchesQueryData?.matches.length ?? 0) > 0 ||
     completedMatches.length > 0;
 
   const interactionMap = useMemo(() => {
@@ -460,7 +471,7 @@ export default function PvpScreen() {
   ]);
   const sortedOpponentUsers = useMemo(
     () =>
-      [...(usersQuery.data?.users ?? [])]
+      [...(usersQueryData?.users ?? [])]
         .filter((user) => user.id !== currentPvpUserId)
         .sort((left, right) => {
           const leftBlocked = interactionMap[left.id] ? 1 : 0;
@@ -472,7 +483,7 @@ export default function PvpScreen() {
 
           return left.displayName.localeCompare(right.displayName);
         }),
-    [currentPvpUserId, interactionMap, usersQuery.data?.users],
+    [currentPvpUserId, interactionMap, usersQueryData?.users],
   );
   const challengeableUsers = useMemo(
     () => sortedOpponentUsers.filter((user) => !interactionMap[user.id]),
@@ -596,11 +607,11 @@ export default function PvpScreen() {
     }
 
     return sortedOpponentUsers
-      .map((user) => ({
-        user,
-        score: getUserSearchScore(normalizedOpponentSearch, user),
-      }))
-      .filter((entry) => Number.isFinite(entry.score))
+      .flatMap((user) => {
+        const score = getUserSearchScore(normalizedOpponentSearch, user);
+
+        return Number.isFinite(score) ? [{ user, score }] : [];
+      })
       .sort((left, right) => {
         if (left.user.id === selectedOpponentId) {
           return -1;
@@ -672,15 +683,6 @@ export default function PvpScreen() {
     setShowInviteModal(false);
   };
 
-  const refreshAll = async () => {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["pvp-invites"] }),
-      queryClient.invalidateQueries({ queryKey: ["pvp-matches"] }),
-      queryClient.invalidateQueries({ queryKey: ["pvp-history"] }),
-      queryClient.invalidateQueries({ queryKey: ["pvp-loadouts"] }),
-    ]);
-  };
-
   const createMutation = useMutation({
     mutationFn: async () => {
       if (!selectedInviteLoadout || !selectedOpponent) {
@@ -697,7 +699,11 @@ export default function PvpScreen() {
       setSelectedInviteLoadoutId(null);
       setSelectedOpponentId(null);
       closeInviteSheet();
-      await refreshAll();
+      await Promise.all(
+        PVP_REFRESH_QUERY_KEYS.map((queryKey) =>
+          queryClient.invalidateQueries({ queryKey }),
+        ),
+      );
     },
     onError: (error) => {
       setToast({
@@ -711,7 +717,11 @@ export default function PvpScreen() {
     mutationFn: ({ id, cardIds }: { id: string; cardIds: string[] }) =>
       apiClient.acceptPvpMatch(id, cardIds),
     onSuccess: async (detail) => {
-      await refreshAll();
+      await Promise.all(
+        PVP_REFRESH_QUERY_KEYS.map((queryKey) =>
+          queryClient.invalidateQueries({ queryKey }),
+        ),
+      );
       router.push(`/pvp-match?id=${detail.match.id}`);
     },
     onError: (error) => {
@@ -726,7 +736,11 @@ export default function PvpScreen() {
     mutationFn: (id: string) => apiClient.declinePvpMatch(id),
     onSuccess: async () => {
       setToast({ message: t("pvp.inviteDeclined"), type: "success" });
-      await refreshAll();
+      await Promise.all(
+        PVP_REFRESH_QUERY_KEYS.map((queryKey) =>
+          queryClient.invalidateQueries({ queryKey }),
+        ),
+      );
     },
     onError: (error) => {
       setToast({
@@ -740,7 +754,11 @@ export default function PvpScreen() {
     mutationFn: (id: string) => apiClient.cancelPvpInvite(id),
     onSuccess: async () => {
       setToast({ message: t("pvp.inviteDeclined"), type: "success" });
-      await refreshAll();
+      await Promise.all(
+        PVP_REFRESH_QUERY_KEYS.map((queryKey) =>
+          queryClient.invalidateQueries({ queryKey }),
+        ),
+      );
     },
     onError: (error) => {
       setToast({
@@ -1247,7 +1265,7 @@ export default function PvpScreen() {
                           </ThemedExpoButton>
                         </View>
                       </>
-                    ) : (loadoutsQuery.data?.loadouts.length ?? 0) > 0 ? (
+                    ) : (loadoutsQueryData?.loadouts.length ?? 0) > 0 ? (
                       <View className="rounded-xl border border-secondaryBorder bg-secondaryTint p-3">
                         <Text className="font-nunito text-sm text-secondaryText">
                           {t("pvp.allLoadoutsInvalid")}
@@ -2024,7 +2042,7 @@ export default function PvpScreen() {
                 ))}
               </View>
             </View>
-          ) : (loadoutsQuery.data?.loadouts.length ?? 0) > 0 ? (
+          ) : (loadoutsQueryData?.loadouts.length ?? 0) > 0 ? (
             <View className="rounded-[24px] border border-secondaryBorder bg-secondaryTint p-4">
               <Text className="font-nunito text-sm text-secondaryText">
                 {t("pvp.allLoadoutsInvalid")}
@@ -2097,7 +2115,7 @@ export default function PvpScreen() {
               </Text>
             </View>
             <View className="gap-2">
-              {usersQuery.isLoading ? (
+              {usersQueryIsLoading ? (
                 <LoadingPanel
                   title={t("pvp.chooseOpponent")}
                   message={t("common.loadingStates.rosterBody")}

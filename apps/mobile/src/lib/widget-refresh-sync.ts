@@ -9,9 +9,11 @@ export async function refreshWidgetSnapshotFromServer() {
     return false;
   }
 
-  const quests = await apiClient.quests();
-  const locale = await getStoredLocale();
-  const themeName = await getStoredThemeName();
+  const [quests, locale, themeName] = await Promise.all([
+    apiClient.quests(),
+    getStoredLocale(),
+    getStoredThemeName(),
+  ]);
   await syncStepQuestWidgetSnapshot(quests, locale, themeName);
   return true;
 }

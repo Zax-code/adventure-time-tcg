@@ -25,11 +25,7 @@ export function RunHistoryCard({
       className="rounded-3xl border-2 border-primaryTint p-5"
       style={{
         backgroundColor: tc.surfaceMuted,
-        shadowColor: withAlpha(tc.primaryDark, "24"),
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 12,
-        elevation: 4,
+        boxShadow: `0px 4px 12px ${withAlpha(tc.primaryDark, "24")}`,
       }}
     >
       <View className="flex-row items-center gap-2">
@@ -84,11 +80,7 @@ export function RunHistoryCard({
                       className="flex-row items-center gap-1 rounded-[20px] border border-primaryTint px-3 py-1"
                       style={{
                         backgroundColor: tc.surface,
-                        shadowColor: withAlpha(tc.primaryDark, "18"),
-                        shadowOffset: { width: 0, height: 1 },
-                        shadowOpacity: 0.05,
-                        shadowRadius: 2,
-                        elevation: 1,
+                        boxShadow: `0px 1px 2px ${withAlpha(tc.primaryDark, "18")}`,
                       }}
                     >
                       <Text className="text-xs font-nunito-semibold text-primaryDark">
@@ -116,14 +108,7 @@ export function RunHistoryCard({
                         key={`${run.runNumber}-${entry.index}`}
                         className={`rounded-2xl border px-3 py-2 ${entry.isCorrect ? "border-successBorder bg-successTint" : "border-dangerBorder bg-dangerTint"}`}
                         style={{
-                          shadowColor: withAlpha(
-                            entry.isCorrect ? tc.successDark : tc.dangerDark,
-                            "18",
-                          ),
-                          shadowOffset: { width: 0, height: 1 },
-                          shadowOpacity: 0.04,
-                          shadowRadius: 2,
-                          elevation: 1,
+                          boxShadow: `0px 1px 2px ${withAlpha( entry.isCorrect ? tc.successDark : tc.dangerDark, "18", )}`,
                         }}
                       >
                         <View className="flex-row items-center justify-between gap-3">

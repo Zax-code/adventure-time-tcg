@@ -54,6 +54,7 @@ import {
 } from "../src/components/icons";
 import { ToastBanner } from "../src/components/toast-banner";
 import { getDustSacrificeValue, getDustCraftCost } from "../src/lib/dust";
+import { useAnimatedValue } from "../src/hooks/use-animated-value";
 
 function estimateCatalogCount(stats: CollectionResponse["stats"]) {
   if (stats.uniqueOwned <= 0 || stats.completionPercentage <= 0) {
@@ -175,7 +176,7 @@ export default function CollectionCardDetailScreen() {
     message: string;
     type: "success" | "error";
   } | null>(null);
-  const toastAnim = useRef(new Animated.Value(-60)).current;
+  const toastAnim = useAnimatedValue(-60);
   const scrollViewRef = useRef<ScrollView | null>(null);
   const scrollOffsetYRef = useRef(0);
   const dustActionTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -229,21 +230,21 @@ export default function CollectionCardDetailScreen() {
     [],
   );
 
-  const collectionQuery = useQuery({
+  const { data: collectionQueryData, isLoading: collectionQueryIsLoading } = useQuery({
     queryKey: ["collection"],
     queryFn: () => apiClient.collection(),
   });
 
-  const usersQuery = useQuery({
+  const { data: usersQueryData, isLoading: usersQueryIsLoading } = useQuery({
     queryKey: ["users"],
     queryFn: () => apiClient.users(),
     enabled: giftExpanded,
   });
 
   const entry =
-    collectionQuery.data?.cards.find((e) => e.cardId === params.cardId) ?? null;
+    collectionQueryData?.cards.find((e) => e.cardId === params.cardId) ?? null;
 
-  const dust = collectionQuery.data?.dust ?? 0;
+  const dust = collectionQueryData?.dust ?? 0;
   const homeQueryKey = useMemo(() => ["home"] as const, []);
   const collectionQueryKey = useMemo(() => ["collection"] as const, []);
 
@@ -281,10 +282,22 @@ export default function CollectionCardDetailScreen() {
   const recycleMutation = useMutation({
     mutationFn: ({ cardId, quantity }: { cardId: string; quantity: number }) =>
       apiClient.recycleCard(cardId, quantity),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["collection"] }),
+        queryClient.invalidateQueries({ queryKey: ["home"] }),
+      ]);
+    },
   });
 
   const craftMutation = useMutation({
     mutationFn: (cardId: string) => apiClient.craftCard(cardId),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["collection"] }),
+        queryClient.invalidateQueries({ queryKey: ["home"] }),
+      ]);
+    },
   });
 
   const sendGiftMutation = useMutation({
@@ -454,7 +467,7 @@ export default function CollectionCardDetailScreen() {
     }
   };
 
-  const otherUsers = (usersQuery.data?.users ?? []).filter(
+  const otherUsers = (usersQueryData?.users ?? []).filter(
     (u) => u.id !== currentUserId,
   );
   const filteredUsers = otherUsers.filter((u) =>
@@ -473,7 +486,7 @@ export default function CollectionCardDetailScreen() {
     [accessToken, entry],
   );
 
-  if (collectionQuery.isLoading) {
+  if (collectionQueryIsLoading) {
     return (
       <ModalSheetRoute
         onClose={() => {
@@ -662,9 +675,7 @@ export default function CollectionCardDetailScreen() {
                   backgroundColor: tc.surface,
                   padding: 16,
                   gap: 14,
-                  shadowColor: "#000",
-                  shadowOpacity: 0.06,
-                  shadowRadius: 10,
+                  boxShadow: "0px 0px 10px rgba(0, 0, 0, 0.06)",
                 }}
                 testID="collection-card-detail-stats"
               >
@@ -789,9 +800,7 @@ export default function CollectionCardDetailScreen() {
                   backgroundColor: tc.secondaryTint,
                   padding: 16,
                   gap: 12,
-                  shadowColor: "#000",
-                  shadowOpacity: 0.06,
-                  shadowRadius: 10,
+                  boxShadow: "0px 0px 10px rgba(0, 0, 0, 0.06)",
                 }}
                 testID="collection-card-detail-craft"
               >
@@ -901,9 +910,7 @@ export default function CollectionCardDetailScreen() {
                       borderColor: tc.successBorder,
                       backgroundColor: tc.successTint,
                       overflow: "hidden",
-                      shadowColor: "#000",
-                      shadowOpacity: 0.06,
-                      shadowRadius: 10,
+                      boxShadow: "0px 0px 10px rgba(0, 0, 0, 0.06)",
                     }}
                     testID="collection-card-detail-recycle"
                   >
@@ -1251,9 +1258,7 @@ export default function CollectionCardDetailScreen() {
                       borderColor: tc.infoBorder,
                       backgroundColor: tc.infoTint,
                       overflow: "hidden",
-                      shadowColor: "#000",
-                      shadowOpacity: 0.06,
-                      shadowRadius: 10,
+                      boxShadow: "0px 0px 10px rgba(0, 0, 0, 0.06)",
                     }}
                     testID="collection-card-detail-gift"
                   >
@@ -1408,7 +1413,7 @@ export default function CollectionCardDetailScreen() {
                           keyboardShouldPersistTaps="handled"
                           testID="collection-card-detail-gift-user-list"
                         >
-                          {usersQuery.isLoading ? (
+                          {usersQueryIsLoading ? (
                             <View style={{ padding: 12 }}>
                               <LoadingPanel
                                 title={t("gifts.users")}

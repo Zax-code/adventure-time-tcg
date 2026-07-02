@@ -20,7 +20,7 @@ export default function PvpSpectateMatchScreen() {
   const themeName = useThemeStore((state) => state.themeName);
   const { t } = useTranslation();
 
-  const spectateQuery = useQuery({
+  const { data: spectateQueryData, error: spectateQueryError, isError: spectateQueryIsError, isLoading: spectateQueryIsLoading, refetch: spectateQueryRefetch } = useQuery({
     queryKey: ["pvp-spectate", id],
     queryFn: () => apiClient.pvpSpectateMatch(id ?? ""),
     enabled: Boolean(id),
@@ -28,9 +28,9 @@ export default function PvpSpectateMatchScreen() {
     refetchInterval: (query) => (query.state.status === "error" ? false : 3000),
   });
 
-  const matchView = buildSpectateMatchView(spectateQuery.data?.battleState);
+  const matchView = buildSpectateMatchView(spectateQueryData?.battleState);
 
-  if (spectateQuery.isLoading) {
+  if (spectateQueryIsLoading) {
     return (
       <PageLoadingState
         title={t("pvp.loadingBattle")}
@@ -40,13 +40,13 @@ export default function PvpSpectateMatchScreen() {
     );
   }
 
-  if (spectateQuery.isError && !matchView) {
+  if (spectateQueryIsError && !matchView) {
     return (
       <PageErrorState
-        error={spectateQuery.error}
+        error={spectateQueryError}
         title={t("pvp.failedLoadMatch")}
         onRetry={() => {
-          void spectateQuery.refetch();
+          void spectateQueryRefetch();
         }}
         onBack={() => router.push("/pvp-spectate" as never)}
       />
@@ -64,7 +64,7 @@ export default function PvpSpectateMatchScreen() {
     );
   }
 
-  const isCompleted = spectateQuery.data?.match.status === "COMPLETED";
+  const isCompleted = spectateQueryData?.match.status === "COMPLETED";
 
   return (
     <View style={[styles.container, THEME_VARS[themeName] as never]}>

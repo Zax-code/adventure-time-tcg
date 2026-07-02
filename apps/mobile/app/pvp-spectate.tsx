@@ -38,12 +38,12 @@ export default function PvpSpectateScreen() {
   const { t } = useTranslation();
   const tc = THEME_COLORS[useThemeStore((state) => state.themeName)];
 
-  const spectateQuery = useQuery({
+  const { data: spectateQueryData, error: spectateQueryError, isError: spectateQueryIsError, isLoading: spectateQueryIsLoading, refetch: spectateQueryRefetch } = useQuery({
     queryKey: ["pvp-spectate"],
     queryFn: () => apiClient.pvpSpectate(),
     refetchInterval: 10_000,
   });
-  const now = useMinuteNow((spectateQuery.data?.matches.length ?? 0) > 0);
+  const now = useMinuteNow((spectateQueryData?.matches.length ?? 0) > 0);
 
   return (
     <ScrollView className="flex-1 bg-bg" contentContainerStyle={{ paddingBottom: 32 }}>
@@ -83,21 +83,21 @@ export default function PvpSpectateScreen() {
       </View>
 
       <View className="px-4 pt-5">
-        {spectateQuery.isLoading ? (
+        {spectateQueryIsLoading ? (
           <LoadingPanel
             title={t("pvp.spectateTitle")}
             message={t("common.loadingStates.rosterBody")}
             icon="eye"
           />
-        ) : spectateQuery.isError ? (
+        ) : spectateQueryIsError ? (
           <SectionErrorState
-            error={spectateQuery.error}
+            error={spectateQueryError}
             title={t("pvp.failedLoadMatch")}
             onRetry={() => {
-              void spectateQuery.refetch();
+              void spectateQueryRefetch();
             }}
           />
-        ) : (spectateQuery.data?.matches.length ?? 0) === 0 ? (
+        ) : (spectateQueryData?.matches.length ?? 0) === 0 ? (
           <View className="items-center rounded-2xl border border-primaryTint bg-surface p-8">
             <SwordsIcon size={48} color={tc.primaryBorder} />
             <Text className="mt-4 font-nunito-bold text-lg text-fg">
@@ -106,7 +106,7 @@ export default function PvpSpectateScreen() {
           </View>
         ) : (
           <View className="gap-3">
-            {spectateQuery.data!.matches.map((match) => {
+            {spectateQueryData!.matches.map((match) => {
               const timeoutLabel = formatTurnTimeout(match.turnExpiresAt, t, now);
 
               return (

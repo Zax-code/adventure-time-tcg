@@ -6,6 +6,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "../i18n";
 import { useThemeStore } from "../stores/theme-store";
 import { THEME_COLORS, type ThemeName } from "../theme/themes";
+import { useAnimatedValue } from "../hooks/use-animated-value";
 
 const LAUNCH_GRADIENTS: Record<ThemeName, [string, string, string]> = {
   candy: ["#FFE3F1", "#FF8BC1", "#FF4AA2"],
@@ -16,7 +17,7 @@ const LAUNCH_GRADIENTS: Record<ThemeName, [string, string, string]> = {
 const PHASE_DOT_DELAYS = [0, 180, 360] as const;
 
 function PulseDot({ delay, color }: { delay: number; color: string }) {
-  const anim = useRef(new Animated.Value(0)).current;
+  const anim = useAnimatedValue(0);
 
   useEffect(() => {
     const loop = Animated.loop(
@@ -137,10 +138,7 @@ export function AppLaunchScreen({
               maxWidth: 360,
               borderRadius: 36,
               borderColor: "rgba(255,255,255,0.35)",
-              shadowColor: "#000",
-              shadowOpacity: 0.16,
-              shadowRadius: 20,
-              shadowOffset: { width: 0, height: 10 },
+              boxShadow: "0px 10px 20px rgba(0, 0, 0, 0.16)",
             }}
           >
             <LinearGradient

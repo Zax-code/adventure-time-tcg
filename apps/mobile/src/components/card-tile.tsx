@@ -1038,7 +1038,7 @@ export const CardTile = memo(function CardTile(props: CardTileProps) {
             >
               <Text
                 className="font-nunito-semibold text-primaryText"
-                style={{ fontSize: 10 }}
+                style={{ fontSize: 12 }}
               >
                 Recycle
               </Text>
@@ -1052,7 +1052,7 @@ export const CardTile = memo(function CardTile(props: CardTileProps) {
             >
               <Text
                 className="font-nunito-semibold text-primaryText"
-                style={{ fontSize: 10 }}
+                style={{ fontSize: 12 }}
               >
                 Craft
               </Text>

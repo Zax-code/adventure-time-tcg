@@ -47,11 +47,7 @@ export function AppHeader() {
             borderRadius: 9999,
             paddingHorizontal: 16,
             paddingVertical: 6,
-            shadowColor: "#000",
-            shadowOpacity: 0.15,
-            shadowRadius: 6,
-            shadowOffset: { width: 0, height: 2 },
-            elevation: 3,
+            boxShadow: "0px 2px 6px rgba(0, 0, 0, 0.15)",
           }}
         >
           <CoinIcon size={20} />
@@ -70,11 +66,7 @@ export function AppHeader() {
                   borderRadius: 999,
                   alignItems: "center",
                   justifyContent: "center",
-                  shadowColor: "#000",
-                  shadowOpacity: 0.15,
-                  shadowRadius: 8,
-                  shadowOffset: { width: 0, height: 3 },
-                  elevation: 3,
+                  boxShadow: "0px 3px 8px rgba(0, 0, 0, 0.15)",
                 }}
               >
                 <HeaderShieldUserIcon size={24} color="#FFFFFF" />
@@ -95,11 +87,7 @@ export function AppHeader() {
                 alignItems: "center",
                 justifyContent: "center",
                 backgroundColor: tc.surfaceMuted,
-                shadowColor: "#000",
-                shadowOpacity: 0.1,
-                shadowRadius: 4,
-                shadowOffset: { width: 0, height: 2 },
-                elevation: 2,
+                boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.1)",
               }}
             >
               <SettingsIcon size={24} color={tc.primaryDark} />

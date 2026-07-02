@@ -5,7 +5,7 @@ export const KEYPAD_ROWS = [
   ["±", "0", "DEL"],
 ] as const;
 export type KeypadKey = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "±" | "0" | "DEL";
-export const MAX_ANSWER_LENGTH = 5;
+const MAX_ANSWER_LENGTH = 5;
 
 // ── Input helpers (matching PWA speed-calculus-client.ts) ─────────────
 
