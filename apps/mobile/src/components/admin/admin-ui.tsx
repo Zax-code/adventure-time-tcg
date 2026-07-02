@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useEffect, useMemo, useState } from "react";
 import { ModalBottomSheet } from "@swmansion/react-native-bottom-sheet";
 import Animated, {
   Easing,
@@ -21,10 +21,8 @@ import Ionicons from "@react-native-vector-icons/ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { LoadingPanel } from "../loading-state";
-import {
-  KEYBOARD_AWARE_SCROLL_PROPS,
-  KeyboardScreenView,
-} from "../keyboard-screen-view";
+import { KEYBOARD_AWARE_SCROLL_PROPS } from "../keyboard-aware-scroll-props";
+import { KeyboardScreenView } from "../keyboard-screen-view";
 import {
   getAbilityTypePalette,
   pickReadableTextColor,
@@ -597,6 +595,11 @@ export function AdminButton({
   const { themeName } = useThemeStore();
   const tc = THEME_COLORS[themeName];
   const iconColor = getAdminButtonIconColor(tc, variant);
+  const leadingAccessory = useMemo(
+    () =>
+      icon ? <Ionicons name={icon} size={16} color={iconColor} /> : undefined,
+    [icon, iconColor],
+  );
   const fallbackAppearance = {
     ...(variant === "warning"
       ? {
@@ -621,11 +624,7 @@ export function AdminButton({
       onPress={onPress}
       disabled={disabled}
       label={label}
-      leadingAccessory={
-        icon ? (
-          <Ionicons name={icon} size={16} color={iconColor} />
-        ) : undefined
-      }
+      leadingAccessory={leadingAccessory}
       fallbackAppearance={fallbackAppearance}
       preferFallback
       style={style ? { minHeight: 44, ...style } : { minHeight: 44 }}

@@ -12,7 +12,7 @@ import {
   Platform,
   ScrollView,
   Text,
-  TouchableOpacity,
+  Pressable,
   View,
 } from "react-native";
 import { captureRef } from "react-native-view-shot";
@@ -1495,7 +1495,7 @@ export default function QuestsScreen() {
                         index === questCardItems.length - 1 ? 0 : 12,
                     }}
                   >
-                    <TouchableOpacity
+                    <Pressable
                       style={{
                         position: "absolute",
                         top: -8,
@@ -1526,10 +1526,9 @@ export default function QuestsScreen() {
                           noCircle
                         />
                       </View>
-                    </TouchableOpacity>
+                    </Pressable>
 
-                    <TouchableOpacity
-                      activeOpacity={0.7}
+                    <Pressable
                       onPress={() =>
                         setCollapsedGroups((groups) => ({
                           ...groups,
@@ -1616,7 +1615,7 @@ export default function QuestsScreen() {
                           />
                         </View>
                       </View>
-                    </TouchableOpacity>
+                    </Pressable>
 
                     <View className="mt-4 flex-row gap-3">
                       {claimableQuests.length > 0 ? (
@@ -1857,7 +1856,7 @@ export default function QuestsScreen() {
                         index === questCardItems.length - 1 ? 0 : 12,
                     }}
                   >
-                    <TouchableOpacity
+                    <Pressable
                       style={{
                         position: "absolute",
                         top: -8,
@@ -1888,10 +1887,9 @@ export default function QuestsScreen() {
                           noCircle
                         />
                       </View>
-                    </TouchableOpacity>
+                    </Pressable>
 
-                    <TouchableOpacity
-                      activeOpacity={0.7}
+                    <Pressable
                       onPress={() =>
                         setCollapsedGroups((groups) => ({
                           ...groups,
@@ -1981,7 +1979,7 @@ export default function QuestsScreen() {
                           />
                         </View>
                       </View>
-                    </TouchableOpacity>
+                    </Pressable>
 
                     <View className="mt-4 flex-row gap-3">
                       {claimableQuests.length > 0 ? (
@@ -2243,7 +2241,7 @@ export default function QuestsScreen() {
                     marginBottom: index === questCardItems.length - 1 ? 0 : 12,
                   }}
                 >
-                  <TouchableOpacity
+                  <Pressable
                     style={{
                       position: "absolute",
                       top: -8,
@@ -2274,7 +2272,7 @@ export default function QuestsScreen() {
                         noCircle
                       />
                     </View>
-                  </TouchableOpacity>
+                  </Pressable>
 
                   <View
                     style={{

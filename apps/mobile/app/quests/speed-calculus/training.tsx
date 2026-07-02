@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import * as Haptics from "expo-haptics";
 import {
   Animated,
@@ -128,9 +135,7 @@ export default function SpeedCalculusTrainingScreen() {
   const [runDurationSeconds, setRunDurationSeconds] = useState(
     DEFAULT_RUN_DURATION_SECONDS,
   );
-  const [pauseDurationSeconds, setPauseDurationSeconds] = useState(
-    DEFAULT_PAUSE_DURATION_SECONDS,
-  );
+  const pauseDurationSecondsRef = useRef(DEFAULT_PAUSE_DURATION_SECONDS);
 
   const playDeadlineRef = useRef<number | null>(null);
   const pauseDeadlineRef = useRef<number | null>(null);
@@ -248,6 +253,10 @@ export default function SpeedCalculusTrainingScreen() {
     }
   }, [activeRun, modalVisible]);
 
+  const finishRunEvent = useEffectEvent(() => {
+    finishRun();
+  });
+
   useEffect(() => {
     if (!activeRun) {
       return;
@@ -282,12 +291,12 @@ export default function SpeedCalculusTrainingScreen() {
 
       if (nextRemaining === 0) {
         clearInterval(interval);
-        finishRun();
+        finishRunEvent();
       }
     }, 250);
 
     return () => clearInterval(interval);
-  }, [activeRun, finishRun, isManuallyPaused]);
+  }, [activeRun, isManuallyPaused]);
 
   useEffect(() => {
     if (!activeRun || pauseRemainingSeconds > 0 || isManuallyPaused) {
@@ -371,7 +380,7 @@ export default function SpeedCalculusTrainingScreen() {
     try {
       const session = await apiClient.startSpeedCalculusTraining();
       setRunDurationSeconds(session.runDurationSeconds);
-      setPauseDurationSeconds(session.pauseDurationSeconds);
+      pauseDurationSecondsRef.current = session.pauseDurationSeconds;
       setShowRoundOver(false);
       setRoundOverScore(0);
       applyActiveRun(buildTrainingActiveRun(session));
@@ -428,6 +437,7 @@ export default function SpeedCalculusTrainingScreen() {
     }
 
     const now = Date.now();
+    const pauseDurationSeconds = pauseDurationSecondsRef.current;
     const nextPauseDeadline = now + pauseDurationSeconds * 1000;
 
     pauseDeadlineRef.current = nextPauseDeadline;
@@ -448,7 +458,6 @@ export default function SpeedCalculusTrainingScreen() {
   }, [
     activeRun,
     isManuallyPaused,
-    pauseDurationSeconds,
     remainingSeconds,
     submitting,
   ]);

@@ -26,7 +26,7 @@ import { useTranslation } from "../../src/i18n";
 import { apiClient } from "../../src/lib/api";
 import { useSessionStore } from "../../src/stores/session-store";
 import { useThemeStore } from "../../src/stores/theme-store";
-import { KEYBOARD_AWARE_SCROLL_PROPS } from "../../src/components/keyboard-screen-view";
+import { KEYBOARD_AWARE_SCROLL_PROPS } from "../../src/components/keyboard-aware-scroll-props";
 import {
   useAppHeaderHeight,
   useBottomTabBarContentPadding,

@@ -6,21 +6,21 @@ import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
-  BLANK_CARD_DRAFT,
   CardEditorSheet,
+} from "../src/components/admin/card-editor-sheet";
+import {
+  BLANK_CARD_DRAFT,
   type AssignmentDraft,
   type CardDraft,
   toCardDraft,
   toCardSavePayload,
-} from "../src/components/admin/card-editor-sheet";
+} from "../src/components/admin/card-editor-draft";
 import {
   AdminBackground,
   AdminButton,
 } from "../src/components/admin/admin-ui";
-import {
-  KEYBOARD_AWARE_SCROLL_PROPS,
-  KeyboardScreenView,
-} from "../src/components/keyboard-screen-view";
+import { KEYBOARD_AWARE_SCROLL_PROPS } from "../src/components/keyboard-aware-scroll-props";
+import { KeyboardScreenView } from "../src/components/keyboard-screen-view";
 import { LoadingPanel } from "../src/components/loading-state";
 import { ModalSheetRoute } from "../src/components/modal-sheet-route";
 import { apiClient } from "../src/lib/api";

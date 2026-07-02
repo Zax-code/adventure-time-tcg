@@ -5,7 +5,6 @@ import {
   Pressable,
   ScrollView,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -1072,17 +1071,16 @@ export default function WordleScreen() {
         <Text className="text-sm text-primaryDark font-nunito">
           {t("quests.wordle.subtitle")}
         </Text>
-        <TouchableOpacity
+        <Pressable
           onPress={() => router.back()}
           className="w-full rounded-xl overflow-hidden"
-          activeOpacity={0.8}
         >
           <View className="bg-primary py-2 items-center">
             <Text className="text-white font-nunito-semibold text-sm">
               {t("quests.wordle.backToQuests")}
             </Text>
           </View>
-        </TouchableOpacity>
+        </Pressable>
       </View>
 
       <View className="rounded-2xl border-2 border-primaryTint bg-surface p-4 shadow shadow-black/10">
@@ -1093,10 +1091,9 @@ export default function WordleScreen() {
           {WORDLE_LANGUAGE_OPTIONS.map((option) => {
             const selected = wordleLanguage === option;
             return (
-              <TouchableOpacity
+              <Pressable
                 key={option}
                 onPress={() => handleWordleLanguageChange(option)}
-                activeOpacity={0.8}
                 className={`flex-1 rounded-2xl border-2 px-4 py-3 ${selected ? "border-primary bg-primaryTint" : "border-primaryTint bg-bg"}`}
               >
                 <Text
@@ -1106,7 +1103,7 @@ export default function WordleScreen() {
                     ? t("quests.wordle.frenchWords")
                     : t("quests.wordle.englishWords")}
                 </Text>
-              </TouchableOpacity>
+              </Pressable>
             );
           })}
         </View>
@@ -1180,10 +1177,9 @@ export default function WordleScreen() {
 
                   const isTappable = isActiveRow && !!letter && !inputLocked;
                   return (
-                    <TouchableOpacity
+                    <Pressable
                       key={`${rowIndex}-${colIndex}`}
                       style={{ flex: 1, height: 48 }}
-                      activeOpacity={isTappable ? 0.7 : 1}
                       onPress={
                         isTappable ? () => removeLetter(colIndex) : undefined
                       }
@@ -1195,7 +1191,7 @@ export default function WordleScreen() {
                       >
                         {letterEl}
                       </Animated.View>
-                    </TouchableOpacity>
+                    </Pressable>
                   );
                 })}
               </View>
@@ -1272,15 +1268,14 @@ export default function WordleScreen() {
         ) : null}
 
         {canShowDefinition ? (
-          <TouchableOpacity
+          <Pressable
             onPress={() => setDefinitionModalVisible(true)}
-            activeOpacity={0.8}
             className="items-center rounded-xl border-2 border-primaryTint bg-bg px-4 py-3"
           >
             <Text className="text-sm font-nunito-bold text-primaryStrong">
               {t("quests.wordle.showDefinition")}
             </Text>
-          </TouchableOpacity>
+          </Pressable>
         ) : null}
       </View>
 
@@ -1509,8 +1504,7 @@ export default function WordleScreen() {
                       key={variant.displayWord}
                       className="rounded-2xl border border-primaryTint bg-bg px-3 py-2"
                     >
-                      <TouchableOpacity
-                        activeOpacity={expandable ? 0.8 : 1}
+                      <Pressable
                         onPress={() => {
                           if (!expandable) {
                             return;
@@ -1540,7 +1534,7 @@ export default function WordleScreen() {
                             {expanded ? "-" : "+"}
                           </Text>
                         ) : null}
-                      </TouchableOpacity>
+                      </Pressable>
 
                       {expanded ? (
                         <View className="mt-3 gap-2">
@@ -1561,9 +1555,8 @@ export default function WordleScreen() {
               </ScrollView>
             ) : null}
 
-            <TouchableOpacity
+            <Pressable
               onPress={() => setDefinitionModalVisible(false)}
-              activeOpacity={0.8}
               className="mt-5 h-11 rounded-xl overflow-hidden"
             >
               <LinearGradient
@@ -1580,7 +1573,7 @@ export default function WordleScreen() {
                   {t("quests.wordle.definitionClose")}
                 </Text>
               </LinearGradient>
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </View>
       </Modal>
@@ -1608,9 +1601,8 @@ export default function WordleScreen() {
                   })
                 : t("quests.wordle.resetBody")}
             </Text>
-            <TouchableOpacity
+            <Pressable
               onPress={() => setResetModalKind(null)}
-              activeOpacity={0.8}
               className="mt-5 h-11 rounded-xl overflow-hidden"
             >
               <LinearGradient
@@ -1627,7 +1619,7 @@ export default function WordleScreen() {
                   {t("quests.wordle.resetCta")}
                 </Text>
               </LinearGradient>
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </View>
       </Modal>

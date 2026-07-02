@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -20,10 +20,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ThemedExpoButton } from "../src/components/expo-ui/themed-button";
 import { ThemedExpoSwitch } from "../src/components/expo-ui/themed-switch";
 import { ThemedExpoTextInput } from "../src/components/expo-ui/themed-text-input";
-import {
-  KEYBOARD_AWARE_SCROLL_PROPS,
-  KeyboardScreenView,
-} from "../src/components/keyboard-screen-view";
+import { KEYBOARD_AWARE_SCROLL_PROPS } from "../src/components/keyboard-aware-scroll-props";
+import { KeyboardScreenView } from "../src/components/keyboard-screen-view";
 import { ModalSheetRoute } from "../src/components/modal-sheet-route";
 import { useTranslation } from "../src/i18n";
 import {
@@ -112,9 +110,7 @@ export default function SettingsScreen() {
     message: string;
   } | null>(null);
   const scrollViewRef = useRef<ScrollView | null>(null);
-  const [notificationsSectionY, setNotificationsSectionY] = useState<
-    number | null
-  >(null);
+  const notificationsSectionYRef = useRef<number | null>(null);
 
   const { data: stepQueryData, refetch: stepQueryRefetch } = useQuery({
     queryKey: ["health-steps"],
@@ -355,22 +351,27 @@ export default function SettingsScreen() {
     };
   }, []);
 
-  useEffect(() => {
-    if (params.section !== "notifications" || notificationsSectionY === null) {
+  const scrollToNotificationsSection = useCallback(() => {
+    const notificationsSectionY = notificationsSectionYRef.current;
+    if (notificationsSectionY === null) {
       return;
     }
 
-    const frame = requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
       scrollViewRef.current?.scrollTo({
         y: Math.max(notificationsSectionY - 20, 0),
         animated: true,
       });
     });
+  }, []);
 
-    return () => {
-      cancelAnimationFrame(frame);
-    };
-  }, [notificationsSectionY, params.section]);
+  useEffect(() => {
+    if (params.section !== "notifications") {
+      return;
+    }
+
+    scrollToNotificationsSection();
+  }, [params.section, scrollToNotificationsSection]);
 
   const handleStepAction = async () => {
     if (prefersFitbit) {
@@ -421,11 +422,12 @@ export default function SettingsScreen() {
   const handleChooseFitbit = async () => {
     setFitbitError(null);
 
-    await updateSourceMutation.mutateAsync("fitbit");
-
     if (fitbitConnected) {
+      await updateSourceMutation.mutateAsync("fitbit");
       return;
     }
+
+    await updateSourceMutation.mutateAsync("fitbit");
 
     setIsConnectingFitbit(true);
 
@@ -1078,7 +1080,11 @@ export default function SettingsScreen() {
             <View
               className="gap-4"
               onLayout={(event) => {
-                setNotificationsSectionY(event.nativeEvent.layout.y);
+                notificationsSectionYRef.current = event.nativeEvent.layout.y;
+
+                if (params.section === "notifications") {
+                  scrollToNotificationsSection();
+                }
               }}
             >
               <SectionHeader

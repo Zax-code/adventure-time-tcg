@@ -319,8 +319,10 @@ async function notifyStepGoalReached(userId: string, recordedFor: string) {
     trigger: null,
   });
 
-  await SecureStore.setItemAsync(key, "1");
-  await markStepQuestWidgetNotificationDelivered(userId, recordedFor);
+  await Promise.all([
+    SecureStore.setItemAsync(key, "1"),
+    markStepQuestWidgetNotificationDelivered(userId, recordedFor),
+  ]);
 }
 
 async function ensureIosBackgroundDeliveryConfigured() {
@@ -469,9 +471,11 @@ async function ensureIosHealthPermission(interactive: boolean) {
   await requestAuthorization({
     toRead: [IOS_STEP_TYPE],
   });
-  await markPrompted(HEALTH_PERMISSION_PROMPT_KEY);
 
-  const nextPermissionStatus = await getIosHealthPermissionStatus();
+  const [nextPermissionStatus] = await Promise.all([
+    getIosHealthPermissionStatus(),
+    markPrompted(HEALTH_PERMISSION_PROMPT_KEY),
+  ]);
 
   if (nextPermissionStatus === "granted") {
     setStore({

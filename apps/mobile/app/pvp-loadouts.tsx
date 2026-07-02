@@ -17,10 +17,8 @@ import type { CollectionResponse } from "@adventure-time/api-client";
 import { apiClient } from "../src/lib/api";
 import { localizeTypeName } from "../src/lib/combat-i18n";
 import { getCardImageCacheKey, getCardImageUrl } from "../src/lib/card-images";
-import {
-  KEYBOARD_AWARE_SCROLL_PROPS,
-  KeyboardScreenView,
-} from "../src/components/keyboard-screen-view";
+import { KEYBOARD_AWARE_SCROLL_PROPS } from "../src/components/keyboard-aware-scroll-props";
+import { KeyboardScreenView } from "../src/components/keyboard-screen-view";
 import { ThemedExpoButton } from "../src/components/expo-ui/themed-button";
 import { ThemedExpoTextInput } from "../src/components/expo-ui/themed-text-input";
 import { useTranslation } from "../src/i18n";

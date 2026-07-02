@@ -12,7 +12,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
   useWindowDimensions,
 } from "react-native";
@@ -2157,9 +2156,10 @@ export default function PacksScreen() {
   const [openingRunId, setOpeningRunId] = useState(0);
   const [openError, setOpenError] = useState<string | null>(null);
   const [loadingProgress, setLoadingProgress] = useState(0);
-  const [burstPattern, setBurstPattern] = useState<PackBurstPattern>(() =>
-    createBurstPattern(320, 320 / PACK_CARD_RATIO),
-  );
+  const burstPatternRef = useRef<PackBurstPattern | null>(null);
+  if (burstPatternRef.current === null) {
+    burstPatternRef.current = createBurstPattern(320, 320 / PACK_CARD_RATIO);
+  }
   const isCardPreviewVisible = previewedCard !== null;
   const shouldHideTabBar =
     (phase !== "selecting" && phase !== "complete") || isCardPreviewVisible;
@@ -2314,13 +2314,12 @@ export default function PacksScreen() {
     stopChargeAnimations();
     burstFlashAnim.setValue(0);
     burstOpenAnim.setValue(0);
-    setBurstPattern(
+    burstPatternRef.current =
       createBurstPattern(
         stageCardWidth,
         stageCardWidth / PACK_CARD_RATIO,
         selectedPack ?? undefined,
-      ),
-    );
+      );
 
     Animated.parallel([
       Animated.sequence([
@@ -2856,9 +2855,8 @@ export default function PacksScreen() {
 
   if (phase === "readyToReveal" && selectedPack) {
     return (
-      <TouchableOpacity
+      <Pressable
         testID="pack-opening-ready"
-        activeOpacity={0.92}
         onPress={revealNext}
         className="flex-1 bg-bg"
       >
@@ -2949,7 +2947,7 @@ export default function PacksScreen() {
             </Text>
           </View>
         </View>
-      </TouchableOpacity>
+      </Pressable>
     );
   }
 
@@ -2990,9 +2988,8 @@ export default function PacksScreen() {
       extrapolate: "clamp",
     });
     return (
-      <TouchableOpacity
+      <Pressable
         testID="pack-opening-reveal"
-        activeOpacity={0.92}
         onPress={handleRevealTap}
         className="flex-1 bg-bg"
       >
@@ -3153,7 +3150,7 @@ export default function PacksScreen() {
             </Text>
           </View>
         </View>
-      </TouchableOpacity>
+      </Pressable>
     );
   }
 

@@ -164,11 +164,12 @@ function shouldRegisterForPushNotifications(
 export async function syncLocalNotificationSchedules(
   user: Pick<AuthUser, "notificationPreferences" | "preferredLanguage" | "timezone"> | null,
 ) {
-  await cancelDailyResetNotification();
-
   if (!user?.notificationPreferences.dailyReset) {
+    await cancelDailyResetNotification();
     return;
   }
+
+  await cancelDailyResetNotification();
 
   const granted = await ensureAppNotificationPermission(false);
   if (!granted) {

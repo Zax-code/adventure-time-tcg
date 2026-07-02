@@ -4,7 +4,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   type KeyboardAvoidingViewProps,
-  type ScrollViewProps,
   type StyleProp,
   type ViewStyle,
 } from "react-native";
@@ -16,17 +15,6 @@ const KEYBOARD_AVOIDING_BEHAVIOR = Platform.select<
   android: "height",
   default: undefined,
 });
-
-export const KEYBOARD_AWARE_SCROLL_PROPS: Pick<
-  ScrollViewProps,
-  | "automaticallyAdjustKeyboardInsets"
-  | "keyboardDismissMode"
-  | "keyboardShouldPersistTaps"
-> = {
-  automaticallyAdjustKeyboardInsets: Platform.OS === "ios",
-  keyboardDismissMode: Platform.OS === "ios" ? "interactive" : "on-drag",
-  keyboardShouldPersistTaps: "handled",
-};
 
 export function KeyboardScreenView({
   children,

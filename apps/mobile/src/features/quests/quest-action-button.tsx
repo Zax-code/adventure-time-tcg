@@ -1,8 +1,8 @@
 import type { ComponentType, ReactNode } from "react";
 import {
   ActivityIndicator,
+  Pressable,
   Text,
-  TouchableOpacity,
   type ViewStyle,
   View,
 } from "react-native";
@@ -49,22 +49,22 @@ export function QuestActionButton({
   const hasLeadingContent = Boolean(leadingAccessory || LeadingIcon);
 
   return (
-    <TouchableOpacity
+    <Pressable
       onPress={onPress}
       disabled={disabled || loading}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
       testID={testID}
-      style={[
-        {
-          borderRadius: 12,
-          borderWidth: borderColor ? 1 : 0,
-          borderColor,
-          opacity: disabled || loading ? 0.6 : 1,
-          overflow: "hidden",
-        },
-        style,
-      ]}
+      style={({ pressed }) => [
+          {
+            borderRadius: 12,
+            borderWidth: borderColor ? 1 : 0,
+            borderColor,
+            opacity: disabled || loading ? 0.6 : pressed ? 0.82 : 1,
+            overflow: "hidden",
+          },
+          style,
+        ]}
     >
       <View
         style={{
@@ -101,6 +101,6 @@ export function QuestActionButton({
           </>
         )}
       </View>
-    </TouchableOpacity>
+    </Pressable>
   );
 }
