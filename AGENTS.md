@@ -340,7 +340,6 @@ Production investigation workflow:
   - `pvp_match_events` is the compact action journal.
   - `pvp_match_snapshots.state["log"]` contains expanded battle log snapshots.
   - `AdventureTimeApi.Pvp.get_spectate(match_id)` reconstructs the current spectator view and expanded combat log through the app seam.
-- When checking ability/card data, use the current local DB or production DB. Do not use `apps/phoenix/priv/repo/seed_data/pvp_seed_catalog.json` for behavioral conclusions; it can be stale.
 - The local ability audit command is:
 
   ```sh
