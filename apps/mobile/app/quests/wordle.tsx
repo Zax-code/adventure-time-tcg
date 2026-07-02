@@ -1,28 +1,20 @@
-import {
-  useState,
-  memo,
-  useCallback,
-  useMemo,
-  useRef,
-  type ReactNode,
-} from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import {
   FlatList,
   Modal,
   Pressable,
   ScrollView,
   Text,
-  View } from "react-native";
+  View,
+} from "react-native";
 import {
   type SharedValue,
-  useAnimatedStyle,
   useSharedValue,
   withSequence,
   withSpring,
   withTiming,
   withDelay,
 } from "react-native-reanimated";
-import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
@@ -38,15 +30,20 @@ import type {
   WordleDefinitionVariant,
   WordleLocale,
   WordleStateResponse,
-  WordleSubmitResponse } from "@adventure-time/api-client";
+  WordleSubmitResponse,
+} from "@adventure-time/api-client";
 import { apiClient } from "../../src/lib/api";
 import { ShareIcon } from "../../src/components/icons";
 import { PageLoadingState } from "../../src/components/loading-state";
 import { QuestActionButton } from "../../src/features/quests/quest-action-button";
+import { WordleActiveRow } from "../../src/features/quests/wordle/active-row";
+import { WordleDefinitionVariantCard } from "../../src/features/quests/wordle/definition-variant-card";
 import { WordleQuestShareCard } from "../../src/features/quests/wordle/quest-share-card";
 import {
   buildWordleShareFileName,
-  buildWordleShareResult } from "../../src/features/quests/wordle/share-result";
+  buildWordleShareResult,
+} from "../../src/features/quests/wordle/share-result";
+import { WordleTile } from "../../src/features/quests/wordle/tile";
 import { useTranslation } from "../../src/i18n";
 import { useQuestResetStore } from "../../src/stores/quest-reset-store";
 import { useSessionStore } from "../../src/stores/session-store";
@@ -66,14 +63,13 @@ const KEY_HIT_SLOP = {
   top: KEY_TOUCH_PADDING_Y,
   bottom: KEY_TOUCH_PADDING_Y,
   left: KEY_TOUCH_PADDING_X,
-  right: KEY_TOUCH_PADDING_X } as const;
-const NARROW_TILE_LETTER_STYLE = {
-  minWidth: 12,
-  textAlign: "center" as const };
+  right: KEY_TOUCH_PADDING_X,
+} as const;
 const LETTER_PRIORITY: Record<string, number> = {
   absent: 0,
   present: 1,
-  correct: 2 };
+  correct: 2,
+};
 
 type LetterState = "correct" | "present" | "absent";
 type GuessResult = { guess: string; evaluation: LetterState[] };
@@ -103,77 +99,6 @@ function useWordleBoardValues(initialValue: number): SharedValue<number>[][] {
   return useMemo(
     () => [first, second, third, fourth, fifth, sixth],
     [fifth, first, fourth, second, sixth, third],
-  );
-}
-
-function WordleActiveRow({
-  children,
-  shakeAnim,
-}: {
-  children: ReactNode;
-  shakeAnim: SharedValue<number>;
-}) {
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: shakeAnim.value }],
-  }));
-
-  return <Animated.View style={animatedStyle}>{children}</Animated.View>;
-}
-
-function WordleTile({
-  bgBorderCls,
-  isActiveLetter,
-  isAnimatingRow,
-  isRemovingCell,
-  letter,
-  letterCls,
-  popAnim,
-  removeOpacity,
-  removeScale,
-  rowFlipAnim,
-}: {
-  bgBorderCls: string;
-  isActiveLetter: boolean;
-  isAnimatingRow: boolean;
-  isRemovingCell: boolean;
-  letter: string;
-  letterCls: string;
-  popAnim: SharedValue<number>;
-  removeOpacity: SharedValue<number>;
-  removeScale: SharedValue<number>;
-  rowFlipAnim: SharedValue<number>;
-}) {
-  const animatedStyle = useAnimatedStyle(() => {
-    const transform = [];
-
-    if (isRemovingCell) {
-      transform.push({ scale: removeScale.value });
-    } else if (isActiveLetter) {
-      transform.push({ scale: popAnim.value });
-    }
-
-    if (isAnimatingRow) {
-      transform.push({ scaleX: rowFlipAnim.value });
-    }
-
-    return {
-      opacity: isRemovingCell ? removeOpacity.value : 1,
-      transform,
-    };
-  });
-
-  return (
-    <Animated.View
-      className={`rounded-xl border-2 items-center justify-center ${bgBorderCls}`}
-      style={[{ width: "100%", height: 48 }, animatedStyle]}
-    >
-      <Text
-        className={`text-xl font-nunito-extrabold ${letterCls}`}
-        style={letter === "I" ? NARROW_TILE_LETTER_STYLE : undefined}
-      >
-        {letter}
-      </Text>
-    </Animated.View>
   );
 }
 
@@ -219,59 +144,9 @@ function formatShareDate(
   return date.toLocaleDateString(locale === "fr" ? "fr-FR" : "en-US", {
     year: "numeric",
     month: "short",
-    day: "numeric" });
+    day: "numeric",
+  });
 }
-
-const WordleDefinitionVariantCard = memo(function WordleDefinitionVariantCard({
-  definitionSourceLabel,
-  expanded,
-  expandable,
-  onToggle,
-  variant }: {
-  definitionSourceLabel: string;
-  expanded: boolean;
-  expandable: boolean;
-  onToggle: (displayWord: string, expandable: boolean) => void;
-  variant: WordleDefinitionVariant;
-}) {
-  return (
-    <View className="rounded-2xl border border-primaryTint bg-bg px-3 py-2">
-      <Pressable
-        onPress={() => onToggle(variant.displayWord, expandable)}
-        className="flex-row items-start justify-between gap-3"
-      >
-        <View className="flex-1">
-          <Text className="text-base font-nunito-extrabold text-primaryStrong">
-            {variant.displayWord}
-          </Text>
-          {variant.partOfSpeech ? (
-            <Text className="mt-1 text-sm font-nunito text-fgMuted">
-              {variant.partOfSpeech}
-            </Text>
-          ) : null}
-        </View>
-
-        {expandable ? (
-          <Text className="text-lg font-nunito-extrabold text-primaryStrong">
-            {expanded ? "-" : "+"}
-          </Text>
-        ) : null}
-      </Pressable>
-
-      {expanded ? (
-        <View className="mt-3 gap-2">
-          <Text className="text-sm leading-6 font-nunito text-primaryStrong">
-            {variant.definition}
-          </Text>
-
-          <Text className="text-xs leading-5 font-nunito text-fgMuted">
-            {definitionSourceLabel}
-          </Text>
-        </View>
-      ) : null}
-    </View>
-  );
-});
 
 export default function WordleScreen() {
   return useWordleScreenView();
@@ -422,7 +297,8 @@ function useWordleScreenView() {
         solved,
         maxAttempts: MAX_ATTEMPTS,
         wordLength: WORD_LENGTH,
-        evaluations: guesses.map((guess) => guess.evaluation) }),
+        evaluations: guesses.map((guess) => guess.evaluation),
+      }),
     [guesses, solved, activeDateKey, t, wordleLanguage],
   );
 
@@ -438,10 +314,13 @@ function useWordleScreenView() {
       resultLine: solved
         ? t("quests.wordle.shareSolved", {
             used: attemptsUsed,
-            total: MAX_ATTEMPTS })
+            total: MAX_ATTEMPTS,
+          })
         : t("quests.wordle.shareFailed", {
             used: attemptsUsed,
-            total: MAX_ATTEMPTS }) }),
+            total: MAX_ATTEMPTS,
+          }),
+    }),
     [t, locale, activeDateKey, wordleLanguage, solved, attemptsUsed],
   );
 
@@ -451,13 +330,15 @@ function useWordleScreenView() {
     queryKey: ["wordle", wordleLanguage],
     queryFn: () => apiClient.wordleState(wordleLanguage),
     enabled: wordleLanguageHydrated,
-    staleTime: 30_000 });
+    staleTime: 30_000,
+  });
 
   const { data: questsData } = useQuery({
     queryKey: ["quests"],
     queryFn: () => apiClient.quests(),
     enabled: wordleLanguageHydrated,
-    staleTime: 30_000 });
+    staleTime: 30_000,
+  });
 
   const currentWordleQuest: Quest | undefined = useMemo(() => {
     const questType = getWordleQuestType(wordleLanguage);
@@ -471,12 +352,17 @@ function useWordleScreenView() {
 
   const wordleDefinitionDateKey = stateQueryData?.date ?? activeDateKey;
 
-  const { data: definitionQueryData, error: definitionQueryError, isLoading: definitionQueryIsLoading } = useQuery({
+  const {
+    data: definitionQueryData,
+    error: definitionQueryError,
+    isLoading: definitionQueryIsLoading,
+  } = useQuery({
     queryKey: ["wordleDefinition", wordleLanguage, wordleDefinitionDateKey],
     queryFn: () => apiClient.wordleDefinition(wordleLanguage),
     enabled: wordleLanguageHydrated && wordleDefinitionDateKey != null,
     staleTime: Infinity,
-    retry: 1 });
+    retry: 1,
+  });
 
   const definitionVariantCount = definitionQueryData?.variants.length ?? 0;
   const handleDefinitionVariantToggle = useCallback(
@@ -500,7 +386,8 @@ function useWordleScreenView() {
       return (
         <WordleDefinitionVariantCard
           definitionSourceLabel={t("quests.wordle.definitionSource", {
-            source: variant.sourceName })}
+            source: variant.sourceName,
+          })}
           expanded={expanded}
           expandable={expandable}
           onToggle={handleDefinitionVariantToggle}
@@ -792,7 +679,8 @@ function useWordleScreenView() {
             date: result.date,
             guesses: nextGuesses,
             solved: result.solved,
-            targetWord: result.targetWord ?? previous.targetWord ?? null };
+            targetWord: result.targetWord ?? previous.targetWord ?? null,
+          };
         },
       );
 
@@ -809,9 +697,11 @@ function useWordleScreenView() {
                 ? {
                     ...quest,
                     completed: true,
-                    progress: quest.target }
+                    progress: quest.target,
+                  }
                 : quest,
-            ) };
+            ),
+          };
         });
       }
 
@@ -836,9 +726,11 @@ function useWordleScreenView() {
                   ...quest,
                   completed: data.quest.completed,
                   claimed: data.quest.claimed,
-                  progress: quest.target }
+                  progress: quest.target,
+                }
               : quest,
-          ) };
+          ),
+        };
       });
 
       await Promise.all([
@@ -848,14 +740,16 @@ function useWordleScreenView() {
       await patchUser({ coins: data.newBalance });
       setMessage(
         t("quests.claimSuccess", {
-          amount: data.reward }),
+          amount: data.reward,
+        }),
       );
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     },
     onError: async () => {
       await queryClient.invalidateQueries({ queryKey: ["quests"] });
       setMessage(t("quests.claimFailed"));
-    } });
+    },
+  });
 
   const submitGuess = useCallback(async () => {
     if (submitLocked) return;
@@ -878,12 +772,14 @@ function useWordleScreenView() {
         locale: wordleLanguage,
         guess: normalizedGuess,
         expectedDate: activeDateKey ?? undefined,
-        questVersion: questVersionRef.current ?? undefined });
+        questVersion: questVersionRef.current ?? undefined,
+      });
 
       const rowIndex = guesses.length;
       const newGuess: GuessResult = {
         guess: normalizedGuess,
-        evaluation: result.evaluation as LetterState[] };
+        evaluation: result.evaluation as LetterState[],
+      };
       const nextGuesses = [...guesses, newGuess];
 
       patchWordleCaches(result, nextGuesses);
@@ -912,25 +808,28 @@ function useWordleScreenView() {
         }, delay + 260);
         revealTimers.push(timer);
       }
-      const revealDoneTimer = setTimeout(() => {
-        setAnimatingRows((prev) => {
-          const next = new Set(prev);
-          next.delete(rowIndex);
-          return next;
-        });
-        delete revealTimersRef.current[rowIndex];
-        if (result.solved) {
-          setSolved(true);
-          setMessage(
-            result.questJustCompleted
-              ? t("quests.wordle.solvedQuest")
-              : t("quests.wordle.solved"),
-          );
-        } else if (nextGuesses.length >= MAX_ATTEMPTS) {
-          setMessage(t("quests.wordle.failed"));
-          setTargetWord(result.targetWord ?? null);
-        }
-      }, (WORD_LENGTH - 1) * 90 + 520);
+      const revealDoneTimer = setTimeout(
+        () => {
+          setAnimatingRows((prev) => {
+            const next = new Set(prev);
+            next.delete(rowIndex);
+            return next;
+          });
+          delete revealTimersRef.current[rowIndex];
+          if (result.solved) {
+            setSolved(true);
+            setMessage(
+              result.questJustCompleted
+                ? t("quests.wordle.solvedQuest")
+                : t("quests.wordle.solved"),
+            );
+          } else if (nextGuesses.length >= MAX_ATTEMPTS) {
+            setMessage(t("quests.wordle.failed"));
+            setTargetWord(result.targetWord ?? null);
+          }
+        },
+        (WORD_LENGTH - 1) * 90 + 520,
+      );
       revealTimers.push(revealDoneTimer);
       revealTimersRef.current[rowIndex] = revealTimers;
 
@@ -1118,7 +1017,8 @@ function useWordleScreenView() {
       const uri = await captureRef(shareCardRef, {
         format: "png",
         quality: 1,
-        result: "tmpfile" });
+        result: "tmpfile",
+      });
 
       // Copy the temp capture to a readable file name so the share sheet and
       // saved file are recognizable (e.g. adventure-time-wordle-…-solved-3of6.png).
@@ -1138,7 +1038,8 @@ function useWordleScreenView() {
       await Sharing.shareAsync(shareUri, {
         mimeType: "image/png",
         dialogTitle: t("quests.wordle.shareDialogTitle"),
-        UTI: "public.png" });
+        UTI: "public.png",
+      });
     } catch (error) {
       console.warn("Failed to share Wordle result", error);
       setMessage(t("quests.wordle.shareError"));
@@ -1188,7 +1089,8 @@ function useWordleScreenView() {
       contentContainerStyle={{
         paddingHorizontal: 16,
         paddingVertical: 16,
-        gap: 16 }}
+        gap: 16,
+      }}
       contentInset={{ top: insets.top, bottom: insets.bottom + 8 }}
       scrollIndicatorInsets={{ top: insets.top, bottom: insets.bottom + 8 }}
       keyboardShouldPersistTaps="handled"
@@ -1331,7 +1233,8 @@ function useWordleScreenView() {
         {claimableQuest ? (
           <QuestActionButton
             label={t("quests.wordle.claimReward", {
-              reward: claimableQuest.reward })}
+              reward: claimableQuest.reward,
+            })}
             onPress={() => {
               void claimQuestMutation.mutateAsync(claimableQuest.id);
             }}
@@ -1407,7 +1310,8 @@ function useWordleScreenView() {
                     const keyStyle = {
                       width: keyWidth || undefined,
                       opacity: inputLocked ? 0.45 : pressed ? 0.82 : 1,
-                      transform: [{ scale: pressed ? 0.96 : 1 }] };
+                      transform: [{ scale: pressed ? 0.96 : 1 }],
+                    };
 
                     return (
                       <Pressable
@@ -1472,8 +1376,10 @@ function useWordleScreenView() {
                   scale:
                     activeKeys.includes("CLEAR") && !rowClearDisabled
                       ? 0.96
-                      : 1 },
-              ] }}
+                      : 1,
+                },
+              ],
+            }}
             testID="wordle-key-CLEAR"
           >
             <Text className="text-xs font-nunito-extrabold text-primaryStrong">
@@ -1505,8 +1411,10 @@ function useWordleScreenView() {
               transform: [
                 {
                   scale:
-                    activeKeys.includes("SUBMIT") && !submitLocked ? 0.96 : 1 },
-              ] }}
+                    activeKeys.includes("SUBMIT") && !submitLocked ? 0.96 : 1,
+                },
+              ],
+            }}
             testID="wordle-key-SUBMIT"
           >
             <LinearGradient
@@ -1516,7 +1424,8 @@ function useWordleScreenView() {
               style={{
                 flex: 1,
                 alignItems: "center",
-                justifyContent: "center" }}
+                justifyContent: "center",
+              }}
             >
               <Text className="text-xs font-nunito-extrabold text-white">
                 {submitting ? "…" : t("quests.wordle.submit")}
@@ -1607,7 +1516,8 @@ function useWordleScreenView() {
                 style={{
                   flex: 1,
                   alignItems: "center",
-                  justifyContent: "center" }}
+                  justifyContent: "center",
+                }}
               >
                 <Text className="text-sm font-nunito-bold text-white">
                   {t("quests.wordle.definitionClose")}
@@ -1637,7 +1547,8 @@ function useWordleScreenView() {
                 ? t("quests.wordle.adminResetBody", {
                     name:
                       resetByNameRef.current ??
-                      (locale === "fr" ? "un administrateur" : "an admin") })
+                      (locale === "fr" ? "un administrateur" : "an admin"),
+                  })
                 : t("quests.wordle.resetBody")}
             </Text>
             <Pressable
@@ -1651,7 +1562,8 @@ function useWordleScreenView() {
                 style={{
                   flex: 1,
                   alignItems: "center",
-                  justifyContent: "center" }}
+                  justifyContent: "center",
+                }}
               >
                 <Text className="text-sm font-nunito-bold text-white">
                   {t("quests.wordle.resetCta")}

@@ -1,2483 +1,109 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ModalBottomSheet } from "@swmansion/react-native-bottom-sheet";
 import { Image } from "expo-image";
 import { useNavigation } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
-import { useState, useMemo, useRef, type ReactNode } from "react";
+import { useState, useMemo, useRef } from "react";
 import {
   Pressable,
   ScrollView,
-  StyleSheet,
   Text,
   View,
-  useWindowDimensions } from "react-native";
-import Animated, {
+  useWindowDimensions,
+} from "react-native";
+import {
   cancelAnimation,
   Easing,
-  Extrapolation,
-  interpolate,
   runOnJS,
-  type SharedValue,
-  useAnimatedProps,
-  useAnimatedStyle,
   useSharedValue,
   withDelay,
   withRepeat,
   withSequence,
   withTiming,
 } from "react-native-reanimated";
-import Svg, {
-  Circle,
-  Defs,
-  Path,
-  RadialGradient as SvgRadialGradient,
-  Stop } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import type {
-  CollectionResponse,
-  OpenPackResponse,
-  PacksResponse } from "@adventure-time/api-client";
 import { PrimaryButton, SecondaryButton } from "../../src/components/button";
 import { CardTile } from "../../src/components/card-tile";
-import {
-  CARD_ART_RATIO,
-  CARD_BACKCOVER_RATIO,
-  getCardBackcoverSource } from "../../src/components/card-back-cover-art";
-import { getCardOutlineSource } from "../../src/components/card-outline-frame";
+import { CARD_ART_RATIO } from "../../src/components/card-back-cover-art";
 import { PageErrorState } from "../../src/components/error-state";
 import {
-  BoxIcon,
   CheckIcon,
   ClockIcon,
   CoinIcon,
-  CrownIcon,
-  DiamondIcon,
   EyeIcon,
-  GiftBoxIcon,
   PackIcon,
-  SparkleIcon,
   SparklesIcon,
-  ZapIcon } from "../../src/components/icons";
+  ZapIcon,
+} from "../../src/components/icons";
 import { PageLoadingState } from "../../src/components/loading-state";
-import {
-  getContainedPackOpeningArtLayout,
-  getPackOpeningArtDimensions,
-  getPackOpeningArtSource,
-  type PackOpeningArtLayout } from "../../src/components/pack-opening-art";
-import { getPackOpeningVisualProfile } from "../../src/components/pack-opening-visuals";
+import { getPackOpeningArtSource } from "../../src/components/pack-opening-art";
 import PackOpeningSequenceDom from "../../src/components/pack-opening-sequence-dom";
-import {
-  RARITY_COLORS,
-  RARITY_COLORS_ICE,
-  RARITY_COLORS_NIGHTOSPHERE } from "../../src/components/theme";
+import { RARITY_COLORS } from "../../src/components/theme";
 import { useTranslation } from "../../src/i18n";
 import { apiClient } from "../../src/lib/api";
-import {
-  getCatalogImageUrl,
-  prefetchCatalogImages } from "../../src/lib/catalog-images";
+import { prefetchCatalogImages } from "../../src/lib/catalog-images";
 import { prefetchCardImages } from "../../src/lib/card-images";
 import { useSessionStore } from "../../src/stores/session-store";
 import { useThemeStore } from "../../src/stores/theme-store";
 import {
   useAppHeaderHeight,
-  useBottomTabBarContentPadding } from "../../src/theme/layout";
-import { THEME_COLORS, type ThemeName } from "../../src/theme/themes";
-
-import type { ViewStyle } from "react-native";
-import { asStyle } from "../../src/lib/style-object";
+  useBottomTabBarContentPadding,
+} from "../../src/theme/layout";
+import { THEME_COLORS } from "../../src/theme/themes";
 import { reactEffect } from "../../src/lib/react-primitives";
 
-type Pack = PacksResponse["packs"][number];
-type CardBackVisual = PacksResponse["cardBackVisuals"][number];
-type OpenedCard = OpenPackResponse["cards"][number];
-type CardTileEntry = CollectionResponse["cards"][number];
-type AbsolutePosition = Pick<ViewStyle, "top" | "right" | "bottom" | "left">;
-type RarityName = "Common" | "Uncommon" | "Rare" | "Epic" | "Legendary";
-type CardBackVisualMap = Map<string, string>;
-type BurstCrack = {
-  path: string;
-  dashLength: number;
-  delay: number;
-};
-type BurstParticle = {
-  id: string;
-  travelX: number;
-  travelY: number;
-  size: number;
-  spin: string;
-  color: string;
-};
-type BurstShard = {
-  id: string;
-  travelX: number;
-  travelY: number;
-  width: number;
-  height: number;
-  spin: string;
-};
-type PackBurstPattern = {
-  cracks: BurstCrack[];
-  particles: BurstParticle[];
-  shards: BurstShard[];
-};
-type LoadingSparkle = {
-  id: string;
-  travelX: number;
-  travelY: number;
-  size: number;
-  delay: number;
-  rotation: number;
-};
-type CardBackStackSpec = {
-  key: string;
-  finalX: number;
-  finalY: number;
-  finalRotate: string;
-  collapsedX: number;
-  collapsedY: number;
-  collapsedRotate: string;
-  scale: number;
-  zIndex: number;
-};
-type OpeningPhase =
-  | "selecting"
-  | "shaking"
-  | "bursting"
-  | "loading"
-  | "readyToReveal"
-  | "revealing"
-  | "complete";
-
-function isPackLimited(pack: Pack) {
-  return pack.availability?.canOpen === false;
-}
-
-function canOpenPackWithBalance(pack: Pack, coins: number) {
-  return coins >= pack.cost && !isPackLimited(pack);
-}
-
-function formatPackAvailabilityDate(value: string | null | undefined) {
-  if (!value) {
-    return "";
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return value.slice(0, 10);
-  }
-
-  return date.toLocaleDateString(undefined, {
-    weekday: "long",
-    month: "short",
-    day: "numeric" });
-}
-
-const PACK_CARD_RATIO = 320 / 460;
-const REVEAL_CARD_RATIO = CARD_BACKCOVER_RATIO;
-const IS_E2E_BUILD = process.env.EXPO_PUBLIC_E2E_AUTH === "1";
-const PACK_OPEN_SHAKE_MS = IS_E2E_BUILD ? 3200 : 950;
-const PACK_OPEN_BURST_MS = IS_E2E_BUILD ? 2400 : 2200;
-const PACK_OPEN_PROGRESS_MS = IS_E2E_BUILD
-  ? {
-      first: 1400,
-      second: 1400,
-      final: 720 }
-  : {
-      first: 420,
-      second: 420,
-      final: 220 };
-const REVEAL_FLIP_MS = IS_E2E_BUILD ? 520 : 1120;
-const SPARK_REVEAL_FLIP_MS = IS_E2E_BUILD ? 980 : 2100;
-const REVEAL_START_DELAY_MS = IS_E2E_BUILD ? 200 : 420;
-const SPARK_REVEAL_START_DELAY_MS = IS_E2E_BUILD ? 360 : 920;
-const BURST_PARTICLE_COLORS = [
-  "#FFF2A8",
-  "#FFC247",
-  "#FF7622",
-  "#FF3B16",
-  "#7BD6FF",
-];
-const TREASURE_RAY_SPECS = [
-  {
-    angle: 16,
-    spread: 6,
-    inner: 0.18,
-    outer: 0.48,
-    color: "rgba(255, 242, 168, 0.52)" },
-  {
-    angle: 52,
-    spread: 7,
-    inner: 0.2,
-    outer: 0.44,
-    color: "rgba(255, 194, 70, 0.42)" },
-  {
-    angle: 88,
-    spread: 6,
-    inner: 0.18,
-    outer: 0.46,
-    color: "rgba(255, 255, 210, 0.5)" },
-  {
-    angle: 124,
-    spread: 7,
-    inner: 0.2,
-    outer: 0.42,
-    color: "rgba(255, 202, 88, 0.38)" },
-  {
-    angle: 164,
-    spread: 8,
-    inner: 0.22,
-    outer: 0.46,
-    color: "rgba(255, 244, 180, 0.5)" },
-  {
-    angle: 214,
-    spread: 7,
-    inner: 0.2,
-    outer: 0.42,
-    color: "rgba(255, 177, 54, 0.38)" },
-  {
-    angle: 258,
-    spread: 6,
-    inner: 0.19,
-    outer: 0.45,
-    color: "rgba(255, 255, 218, 0.48)" },
-  {
-    angle: 304,
-    spread: 7,
-    inner: 0.2,
-    outer: 0.43,
-    color: "rgba(255, 203, 80, 0.42)" },
-];
-const CARD_BACK_STACK_SPECS: [
-  CardBackStackSpec,
-  CardBackStackSpec,
-  CardBackStackSpec,
-] = [
-  {
-    key: "left",
-    finalX: -30,
-    finalY: 12,
-    finalRotate: "-8deg",
-    collapsedX: -6,
-    collapsedY: 5,
-    collapsedRotate: "-2deg",
-    scale: 0.96,
-    zIndex: 1 },
-  {
-    key: "right",
-    finalX: 30,
-    finalY: 12,
-    finalRotate: "8deg",
-    collapsedX: 6,
-    collapsedY: 5,
-    collapsedRotate: "2deg",
-    scale: 0.96,
-    zIndex: 2 },
-  {
-    key: "center",
-    finalX: 0,
-    finalY: -10,
-    finalRotate: "0deg",
-    collapsedX: 0,
-    collapsedY: 0,
-    collapsedRotate: "0deg",
-    scale: 1,
-    zIndex: 3 },
-];
-const AnimatedPath = Animated.createAnimatedComponent(Path);
-const packScreenStyles = StyleSheet.create({
-  burstFlare: {
-    position: "absolute",
-    width: 30,
-    height: 30,
-    borderRadius: 999,
-    backgroundColor: "#FFF2AA",
-    boxShadow:
-      "0 0 18px rgba(255, 242, 170, 0.95), 0 0 42px rgba(255, 156, 37, 0.8), 0 0 80px rgba(255, 91, 18, 0.6)" },
-  burstShockwave: {
-    position: "absolute",
-    width: 120,
-    height: 120,
-    borderRadius: 999,
-    borderWidth: 3,
-    borderColor: "rgba(255, 228, 130, 0.9)" },
-  burstParticle: {
-    position: "absolute",
-    borderRadius: 999 } });
-
-function delay(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function slugifyPackName(name: string) {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
-function toCardTileEntry(card: OpenedCard): CardTileEntry {
-  return {
-    id: `opened-${card.id}`,
-    cardId: card.id,
-    card,
-    obtainedAt: new Date(0).toISOString(),
-    quantity: 1 };
-}
-
-function getRarityGlowColor(rarityName: string): string {
-  switch (rarityName) {
-    case "Legendary":
-      return "#FFD166";
-    case "Epic":
-      return "#C084FC";
-    case "Rare":
-      return "#60A5FA";
-    case "Uncommon":
-      return "#34D399";
-    default:
-      return "#F472B6";
-  }
-}
-
-function getPackIcon(pack: Pack, size = 34) {
-  const visualProfile = getPackOpeningVisualProfile({
-    guaranteedRarity: pack.guaranteedRarity,
-    name: pack.name });
-
-  switch (visualProfile.iconKind) {
-    case "crown":
-      return <CrownIcon size={size} color={visualProfile.iconColor} />;
-    case "diamond":
-      return <DiamondIcon size={size} color={visualProfile.iconColor} />;
-    case "sparkle":
-      return <SparkleIcon size={size} color={visualProfile.iconColor} />;
-    case "gift-box":
-      return <GiftBoxIcon size={size} color={visualProfile.iconColor} />;
-    default:
-      return <BoxIcon size={size} color={visualProfile.iconColor} />;
-  }
-}
-
-function getThemeRarityPalette(themeName: ThemeName, rarityName: RarityName) {
-  const paletteMap =
-    themeName === "ice"
-      ? RARITY_COLORS_ICE
-      : themeName === "nightosphere"
-        ? RARITY_COLORS_NIGHTOSPHERE
-        : RARITY_COLORS;
-
-  return paletteMap[rarityName] ?? paletteMap.Common;
-}
-
-function randomBetween(min: number, max: number) {
-  return Math.random() * (max - min) + min;
-}
-
-function shuffleArray<T>(items: T[]) {
-  return items
-    .map((item) => ({ item, sort: Math.random() }))
-    .sort((left, right) => left.sort - right.sort)
-    .map(({ item }) => item);
-}
-
-function getPathLength(points: Array<{ x: number; y: number }>) {
-  let length = 0;
-
-  for (let index = 1; index < points.length; index += 1) {
-    const previous = points[index - 1];
-    const current = points[index];
-    length += Math.hypot(current.x - previous.x, current.y - previous.y);
-  }
-
-  return length;
-}
-
-function getRayToPackEdge(
-  centerX: number,
-  centerY: number,
-  angle: number,
-  artLayout: PackOpeningArtLayout,
-) {
-  const dx = Math.cos(angle);
-  const dy = Math.sin(angle);
-  const candidates: number[] = [];
-  const left = artLayout.x;
-  const right = artLayout.x + artLayout.width;
-  const top = artLayout.y;
-  const bottom = artLayout.y + artLayout.height;
-
-  if (dx > 0) {
-    candidates.push((right - centerX) / dx);
-  } else if (dx < 0) {
-    candidates.push((left - centerX) / dx);
-  }
-
-  if (dy > 0) {
-    candidates.push((bottom - centerY) / dy);
-  } else if (dy < 0) {
-    candidates.push((top - centerY) / dy);
-  }
-
-  const distance = Math.min(...candidates.filter((candidate) => candidate > 0));
-
-  return {
-    x: centerX + dx * distance,
-    y: centerY + dy * distance,
-    dx,
-    dy,
-    distance };
-}
-
-function createLightningCrackPath(
-  centerX: number,
-  centerY: number,
-  angle: number,
-  artLayout: PackOpeningArtLayout,
-) {
-  const edge = getRayToPackEdge(centerX, centerY, angle, artLayout);
-  const normalX = -edge.dy;
-  const normalY = edge.dx;
-  const points = [{ x: centerX, y: centerY }];
-  const segments = Math.floor(randomBetween(5, 8));
-
-  for (let index = 1; index < segments; index += 1) {
-    const progress = index / segments;
-    const baseX = centerX + edge.dx * edge.distance * progress;
-    const baseY = centerY + edge.dy * edge.distance * progress;
-    const amplitude =
-      Math.min(artLayout.width * 0.1, edge.distance * 0.11) *
-      Math.sin(Math.PI * progress);
-    const offset = randomBetween(-amplitude, amplitude);
-
-    points.push({
-      x: baseX + normalX * offset,
-      y: baseY + normalY * offset });
-  }
-
-  points.push({ x: edge.x, y: edge.y });
-
-  return {
-    path: points
-      .map(
-        (point, index) =>
-          `${index === 0 ? "M" : "L"} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`,
-      )
-      .join(" "),
-    dashLength: Math.ceil(getPathLength(points)) };
-}
-
-function createBurstPattern(
-  width: number,
-  height: number,
-  pack?: Pick<Pack, "guaranteedRarity" | "name" | "packArtAssetId">,
-): PackBurstPattern {
-  const artDimensions = pack
-    ? getPackOpeningArtDimensions(pack)
-    : getPackOpeningArtDimensions({ name: "" });
-  const artLayout = getContainedPackOpeningArtLayout(
-    width,
-    height,
-    artDimensions,
-  );
-  const centerX = artLayout.x + artLayout.width * 0.5;
-  const centerY = artLayout.y + artLayout.height * 0.47;
-  const crackCount = 9;
-  const startAngle = randomBetween(0, Math.PI * 2);
-  const crackAngles = Array.from({ length: crackCount }, (_, index) => {
-    const evenlySpaced = startAngle + (Math.PI * 2 * index) / crackCount;
-    return evenlySpaced + randomBetween(-0.24, 0.24);
-  });
-
-  const cracks = shuffleArray(crackAngles).map((angle, index) => {
-    const crackPath = createLightningCrackPath(
-      centerX,
-      centerY,
-      angle,
-      artLayout,
-    );
-
-    return {
-      ...crackPath,
-      delay: index * 0.05 + randomBetween(0, 0.03) };
-  });
-
-  const particles = Array.from({ length: 82 }, (_, index) => {
-    const angle = randomBetween(0, Math.PI * 2);
-    const distance = randomBetween(140, 390);
-    return {
-      id: `particle-${index}`,
-      travelX: Math.cos(angle) * distance,
-      travelY: Math.sin(angle) * distance,
-      size: randomBetween(4, 13),
-      spin: `${Math.round(randomBetween(-540, 540))}deg`,
-      color:
-        BURST_PARTICLE_COLORS[
-          Math.floor(randomBetween(0, BURST_PARTICLE_COLORS.length))
-        ] ?? BURST_PARTICLE_COLORS[0] };
-  });
-
-  const shards = Array.from({ length: 18 }, (_, index) => {
-    const angle = randomBetween(0, Math.PI * 2);
-    const distance = randomBetween(120, 330);
-    return {
-      id: `shard-${index}`,
-      travelX: Math.cos(angle) * distance,
-      travelY: Math.sin(angle) * distance,
-      width: randomBetween(18, 28),
-      height: randomBetween(30, 48),
-      spin: `${Math.round(randomBetween(-760, 760))}deg` };
-  });
-
-  return { cracks, particles, shards };
-}
-
-function getPackArtUrl(pack: Pick<Pack, "packArtAssetId">) {
-  return pack.packArtAssetId ? getCatalogImageUrl(pack.packArtAssetId) : null;
-}
-
-function createLoadingSparkles(baseSize: number) {
-  const maxDistance = baseSize * 0.92;
-  const minDistance = baseSize * 0.19;
-
-  return Array.from({ length: 36 }, (_, index) => {
-    const angle = randomBetween(0, Math.PI * 2);
-    const distance = randomBetween(minDistance, maxDistance);
-
-    return {
-      id: `sparkle-${index}`,
-      travelX: Math.cos(angle) * distance,
-      travelY: Math.sin(angle) * distance,
-      size: randomBetween(baseSize * 0.028, baseSize * 0.074),
-      delay: randomBetween(0, 0.18),
-      rotation: randomBetween(0, 80) };
-  });
-}
-
-function getTreasureRayPath(
-  centerX: number,
-  centerY: number,
-  angleDeg: number,
-  innerRadius: number,
-  outerRadius: number,
-  spreadDeg: number,
-) {
-  const startAngle = ((angleDeg - spreadDeg) * Math.PI) / 180;
-  const endAngle = ((angleDeg + spreadDeg) * Math.PI) / 180;
-  const tipAngle = (angleDeg * Math.PI) / 180;
-
-  const startX = centerX + Math.cos(startAngle) * innerRadius;
-  const startY = centerY + Math.sin(startAngle) * innerRadius;
-  const endX = centerX + Math.cos(endAngle) * innerRadius;
-  const endY = centerY + Math.sin(endAngle) * innerRadius;
-  const tipX = centerX + Math.cos(tipAngle) * outerRadius;
-  const tipY = centerY + Math.sin(tipAngle) * outerRadius;
-
-  return `M ${startX.toFixed(1)} ${startY.toFixed(1)} L ${tipX.toFixed(1)} ${tipY.toFixed(1)} L ${endX.toFixed(1)} ${endY.toFixed(1)} Z`;
-}
-
-function withAlpha(hex: string, alpha: string) {
-  if (hex.startsWith("#") && hex.length === 7) {
-    return `${hex}${alpha}`;
-  }
-
-  return hex;
-}
-
-function getPackProgressStep(phase: OpeningPhase) {
-  switch (phase) {
-    case "shaking":
-    case "bursting":
-      return 0;
-    case "loading":
-      return 1;
-    case "readyToReveal":
-    case "revealing":
-      return 2;
-    case "complete":
-      return 3;
-    default:
-      return -1;
-  }
-}
-
-function getHapticForCard(card: OpenedCard) {
-  if (card.revealSource === "spark") {
-    return Haptics.NotificationFeedbackType.Success;
-  }
-
-  const rarityName = card.rarity?.name ?? "Common";
-  if (rarityName === "Legendary") {
-    return Haptics.NotificationFeedbackType.Success;
-  }
-  if (rarityName === "Epic" || rarityName === "Rare") {
-    return Haptics.NotificationFeedbackType.Warning;
-  }
-  return null;
-}
-
-function toRarityName(value: string | undefined): RarityName {
-  if (
-    value === "Common" ||
-    value === "Uncommon" ||
-    value === "Rare" ||
-    value === "Epic" ||
-    value === "Legendary"
-  ) {
-    return value;
-  }
-
-  return "Common";
-}
-
-function getCardBackVisualKey(themeName: ThemeName, rarityName: RarityName) {
-  return `${themeName}:${rarityName}`;
-}
-
-function buildCardBackVisualMap(visuals: CardBackVisual[]): CardBackVisualMap {
-  return new Map(
-    visuals.flatMap((visual) =>
-      visual.imageAssetId
-        ? [
-            [
-              getCardBackVisualKey(visual.themeName, visual.rarityName),
-              visual.imageAssetId,
-            ],
-          ]
-        : [],
-    ),
-  );
-}
-
-function BackgroundOrbs({
-  primary,
-  secondary,
-  accent }: {
-  primary: string;
-  secondary: string;
-  accent: string;
-}) {
-  void primary;
-  void secondary;
-  void accent;
-  return null;
-}
-
-function PackFaceInterior({
-  pack,
-  tc,
-  compact = false }: {
-  pack: Pack;
-  tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
-  compact?: boolean;
-}) {
-  const { t } = useTranslation();
-  const iconSize = compact ? 30 : 72;
-  const nameSize = compact ? 15 : 28;
-
-  return (
-    <View style={{ flex: 1, padding: compact ? 16 : 24 }}>
-      <View className="flex-1 items-center justify-center gap-4">
-        <View className="items-center justify-center">
-          {getPackIcon(pack, iconSize)}
-        </View>
-        <Text
-          className="text-center font-nunito-extrabold text-fg"
-          style={{ fontSize: nameSize, lineHeight: nameSize + 4 }}
-        >
-          {pack.name}
-        </Text>
-        <View
-          className="rounded-full px-4 py-1.5"
-          style={{ backgroundColor: tc.surface }}
-        >
-          <Text className="font-nunito-bold text-[13px] text-fgMuted">
-            {t("packs.cardsCount", { count: pack.cardCount })}
-          </Text>
-        </View>
-      </View>
-    </View>
-  );
-}
-
-function PackPreviewCard({
-  pack,
-  width,
-  tc,
-  compact = false,
-  pulseAnim,
-  chargeAnim,
-  sheenAnim }: {
-  pack: Pack;
-  width: number;
-  tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
-  compact?: boolean;
-  pulseAnim?: SharedValue<number>;
-  chargeAnim?: SharedValue<number>;
-  sheenAnim?: SharedValue<number>;
-}) {
-  const height = width / PACK_CARD_RATIO;
-  const packArtSource = getPackOpeningArtSource({
-    guaranteedRarity: pack.guaranteedRarity,
-    name: pack.name,
-    packArtAssetId: pack.packArtAssetId,
-    packArtUrl: getPackArtUrl(pack) });
-  const cardAnimatedStyle = useAnimatedStyle(() => {
-    const transforms = [];
-
-    if (chargeAnim) {
-      transforms.push(
-        {
-          translateY: interpolate(chargeAnim.value, [0, 0.5, 1], [6, -8, 6]),
-        },
-        {
-          rotateX: `${interpolate(chargeAnim.value, [0, 0.5, 1], [0, 6, 0])}deg`,
-        },
-        {
-          rotateZ: `${interpolate(chargeAnim.value, [0, 0.5, 1], [-1, 1, -1])}deg`,
-        },
-      );
-    }
-
-    if (pulseAnim) {
-      transforms.push({
-        scale: interpolate(pulseAnim.value, [0, 0.5, 1], [1, 1.014, 1]),
-      });
-    }
-
-    if (chargeAnim) {
-      transforms.push({
-        scale: interpolate(chargeAnim.value, [0, 0.5, 1], [1, 1.015, 1]),
-      });
-    }
-
-    return {
-      transform: transforms,
-    };
-  });
-
-  const sheenStyle = useAnimatedStyle(() => ({
-    transform: [
-      {
-        translateX: sheenAnim
-          ? interpolate(
-              sheenAnim.value,
-              [0, 0.45, 0.7, 1],
-              [-width * 1.2, -width * 1.2, width * 1.2, width * 1.2],
-            )
-          : -width * 1.2,
-      },
-      { rotate: "16deg" },
-    ],
-  }));
-
-  return (
-    <Animated.View
-      style={[
-        {
-          width,
-          height,
-          overflow: "visible",
-          backgroundColor: "transparent",
-        },
-        cardAnimatedStyle,
-      ]}
-    >
-      <Image
-        source={packArtSource}
-        style={{
-          position: "absolute",
-          width: "100%",
-          height: "100%",
-          opacity: compact ? 0.14 : 0.18,
-          transform: [{ translateY: compact ? 10 : 14 }, { scale: 0.96 }] }}
-        contentFit="contain"
-        transition={0}
-        blurRadius={compact ? 12 : 18}
-      />
-      <Image
-        source={packArtSource}
-        style={{ width: "100%", height: "100%" }}
-        contentFit="contain"
-        transition={0}
-      />
-      {sheenAnim ? (
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            {
-              position: "absolute",
-              top: -height * 0.08,
-              bottom: -height * 0.08,
-              width: width * 0.54,
-              opacity: 0.42,
-            },
-            sheenStyle,
-          ]}
-        >
-          <LinearGradient
-            colors={[
-              "rgba(255,255,255,0)",
-              "rgba(255,255,255,0.35)",
-              "rgba(255,255,255,0)",
-            ]}
-            start={{ x: 0, y: 0.2 }}
-            end={{ x: 1, y: 0.8 }}
-            style={{ flex: 1 }}
-          />
-        </Animated.View>
-      ) : null}
-    </Animated.View>
-  );
-}
-
-const PackFaceCanvas = packFaceCanvas;
-
-function packFaceCanvas({
-  pack,
-  width,
-  height,
-  tc }: {
-  pack: Pack;
-  width: number;
-  height: number;
-  tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
-}) {
-  const accentColor = pack.color || tc.primary;
-  const packSurfaceColor = pack.color || tc.surfaceMuted;
-
-  return (
-    <View
-      style={{
-        width,
-        height,
-        borderRadius: 32,
-        overflow: "hidden",
-        borderWidth: 2,
-        borderColor: withAlpha(accentColor, "66"),
-        backgroundColor: packSurfaceColor }}
-    >
-      <PackFaceInterior pack={pack} tc={tc} />
-    </View>
-  );
-}
-
-const PackOpeningAura = packOpeningAura;
-
-function packOpeningAura({
-  width,
-  height,
-  gradientId }: {
-  width: number;
-  height: number;
-  gradientId: string;
-}) {
-  return (
-    <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
-      <Defs>
-        <SvgRadialGradient id={gradientId} cx="50%" cy="44%" r="58%">
-          <Stop offset="0%" stopColor="rgba(255,226,128,0.5)" />
-          <Stop offset="35%" stopColor="rgba(255,115,19,0.16)" />
-          <Stop offset="68%" stopColor="rgba(255,115,19,0)" />
-          <Stop offset="100%" stopColor="rgba(255,115,19,0)" />
-        </SvgRadialGradient>
-      </Defs>
-      <Circle
-        cx={width / 2}
-        cy={height * 0.44}
-        r={Math.min(width, height) * 0.38}
-        fill={`url(#${gradientId})`}
-      />
-    </Svg>
-  );
-}
-
-function LoadingSparkleView({
-  anim,
-  centerX,
-  centerY,
-  sparkle,
-  width,
-}: {
-  anim: SharedValue<number>;
-  centerX: number;
-  centerY: number;
-  sparkle: LoadingSparkle;
-  width: number;
-}) {
-  const rise = Math.max(20, width * 0.18);
-  const appearAt = sparkle.delay;
-  const settleAt = Math.min(1, appearAt + 0.18);
-  const driftAt = Math.min(1, appearAt + 0.55);
-  const vanishAt = Math.min(1, appearAt + 0.86);
-  const inputRange = [0, appearAt, settleAt, driftAt, vanishAt, 1];
-  const animatedStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(
-      anim.value,
-      inputRange,
-      [0, 0, 1, 0.95, 0, 0],
-      Extrapolation.CLAMP,
-    ),
-    transform: [
-      {
-        translateX: interpolate(
-          anim.value,
-          inputRange,
-          [
-            0,
-            0,
-            sparkle.travelX * 0.82,
-            sparkle.travelX,
-            sparkle.travelX * 1.12,
-            sparkle.travelX * 1.12,
-          ],
-          Extrapolation.CLAMP,
-        ),
-      },
-      {
-        translateY: interpolate(
-          anim.value,
-          inputRange,
-          [
-            0,
-            0,
-            sparkle.travelY * 0.82,
-            sparkle.travelY,
-            sparkle.travelY * 1.12 - rise,
-            sparkle.travelY * 1.12 - rise,
-          ],
-          Extrapolation.CLAMP,
-        ),
-      },
-      {
-        scale: interpolate(
-          anim.value,
-          inputRange,
-          [0.15, 0.15, 1, 0.65, 0.1, 0.1],
-          Extrapolation.CLAMP,
-        ),
-      },
-      {
-        rotate: `${interpolate(
-          anim.value,
-          inputRange,
-          [
-            sparkle.rotation,
-            sparkle.rotation,
-            sparkle.rotation + 70,
-            sparkle.rotation + 145,
-            sparkle.rotation + 250,
-            sparkle.rotation + 250,
-          ],
-          Extrapolation.CLAMP,
-        )}deg`,
-      },
-    ],
-  }));
-
-  return (
-    <Animated.View
-      style={[
-        {
-          position: "absolute",
-          left: centerX - sparkle.size / 2,
-          top: centerY - sparkle.size / 2,
-          width: sparkle.size,
-          height: sparkle.size,
-        },
-        animatedStyle,
-      ]}
-    >
-      <View
-        style={{
-          position: "absolute",
-          left: sparkle.size * 0.4,
-          top: 0,
-          width: sparkle.size * 0.2,
-          height: sparkle.size,
-          borderRadius: 999,
-          backgroundColor: "#FFF9D8",
-        }}
-      />
-      <View
-        style={{
-          position: "absolute",
-          left: 0,
-          top: sparkle.size * 0.4,
-          width: sparkle.size,
-          height: sparkle.size * 0.2,
-          borderRadius: 999,
-          backgroundColor: "#FFF9D8",
-        }}
-      />
-    </Animated.View>
-  );
-}
-
-function PackLoadingGlow({
-  width,
-  anim,
-  sparkles }: {
-  width: number;
-  anim: SharedValue<number>;
-  sparkles: LoadingSparkle[];
-}) {
-  const size = width * 1.58;
-  const centerX = size / 2;
-  const centerY = size * 0.47;
-  const glowBlurStyle = useAnimatedStyle(() => ({
-    opacity:
-      interpolate(
-        anim.value,
-        [0, 0.2, 0.55, 1],
-        [0, 0.82, 0.74, 0.38],
-        Extrapolation.CLAMP,
-      ) * 0.34,
-    transform: [
-      {
-        scale: interpolate(
-          anim.value,
-          [0, 0.2, 0.55, 1],
-          [0.18, 1.02, 1.28, 1.48],
-          Extrapolation.CLAMP,
-        ),
-      },
-    ],
-  }));
-  const raysStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(
-      anim.value,
-      [0, 0.22, 1],
-      [0, 0.86, 0.42],
-      Extrapolation.CLAMP,
-    ),
-    transform: [
-      {
-        scale: interpolate(
-          anim.value,
-          [0, 0.22, 1],
-          [0.15, 0.95, 1.18],
-          Extrapolation.CLAMP,
-        ),
-      },
-      {
-        rotate: `${interpolate(
-          anim.value,
-          [0, 0.22, 1],
-          [0, 12, 36],
-          Extrapolation.CLAMP,
-        )}deg`,
-      },
-    ],
-  }));
-  const glowCoreStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(
-      anim.value,
-      [0, 0.2, 0.55, 1],
-      [0, 0.82, 0.74, 0.38],
-      Extrapolation.CLAMP,
-    ),
-    transform: [
-      {
-        scale: interpolate(
-          anim.value,
-          [0, 0.2, 0.55, 1],
-          [0.12, 0.95, 1.2, 1.35],
-          Extrapolation.CLAMP,
-        ),
-      },
-    ],
-  }));
-
-  return (
-    <View
-      pointerEvents="none"
-      style={{
-        width: size,
-        height: size,
-        alignItems: "center",
-        justifyContent: "center" }}
-    >
-      <Animated.View
-        style={[
-          {
-            position: "absolute",
-            width: size * 0.98,
-            height: size * 0.98,
-          },
-          glowBlurStyle,
-        ]}
-      >
-        <Svg width="100%" height="100%" viewBox={`0 0 ${size} ${size}`}>
-          <Defs>
-            <SvgRadialGradient
-              id="pack-loading-glow-blur"
-              cx="50%"
-              cy="50%"
-              r="50%"
-            >
-              <Stop offset="0%" stopColor="rgba(255,255,235,0.34)" />
-              <Stop offset="24%" stopColor="rgba(255,228,126,0.16)" />
-              <Stop offset="54%" stopColor="rgba(255,172,45,0.05)" />
-              <Stop offset="100%" stopColor="rgba(255,116,22,0)" />
-            </SvgRadialGradient>
-          </Defs>
-          <Circle
-            cx={centerX}
-            cy={centerY}
-            r={size * 0.49}
-            fill="url(#pack-loading-glow-blur)"
-          />
-        </Svg>
-      </Animated.View>
-
-      <Animated.View
-        style={[
-          {
-            position: "absolute",
-            width: size,
-            height: size,
-          },
-          raysStyle,
-        ]}
-      >
-        <Svg width="100%" height="100%" viewBox={`0 0 ${size} ${size}`}>
-          {TREASURE_RAY_SPECS.map((ray) => (
-            <Path
-              key={`treasure-ray-${ray.angle}`}
-              d={getTreasureRayPath(
-                centerX,
-                centerY,
-                ray.angle,
-                size * ray.inner,
-                size * ray.outer,
-                ray.spread,
-              )}
-              fill={ray.color}
-            />
-          ))}
-        </Svg>
-      </Animated.View>
-
-      <Animated.View
-        style={[
-          {
-            position: "absolute",
-            width: size * 0.86,
-            height: size * 0.86,
-          },
-          glowCoreStyle,
-        ]}
-      >
-        <Svg width="100%" height="100%" viewBox={`0 0 ${size} ${size}`}>
-          <Defs>
-            <SvgRadialGradient
-              id="pack-loading-glow-core"
-              cx="50%"
-              cy="50%"
-              r="50%"
-            >
-              <Stop offset="0%" stopColor="rgba(255,255,235,0.98)" />
-              <Stop offset="8%" stopColor="rgba(255,255,235,0.98)" />
-              <Stop offset="16%" stopColor="rgba(255,228,126,0.76)" />
-              <Stop offset="35%" stopColor="rgba(255,172,45,0.24)" />
-              <Stop offset="58%" stopColor="rgba(255,116,22,0.08)" />
-              <Stop offset="73%" stopColor="rgba(255,116,22,0)" />
-              <Stop offset="100%" stopColor="rgba(255,116,22,0)" />
-            </SvgRadialGradient>
-          </Defs>
-          <Circle
-            cx={centerX}
-            cy={centerY}
-            r={size * 0.43}
-            fill="url(#pack-loading-glow-core)"
-          />
-        </Svg>
-      </Animated.View>
-
-      {sparkles.map((sparkle) => (
-        <LoadingSparkleView
-          key={sparkle.id}
-          anim={anim}
-          centerX={centerX}
-          centerY={centerY}
-          sparkle={sparkle}
-          width={width}
-        />
-      ))}
-    </View>
-  );
-}
-
-const CardBackFace = cardBackFace;
-
-function cardBackFace({
-  width,
-  themeName,
-  rarityName,
-  cardBackVisualMap }: {
-  width: number;
-  themeName: ThemeName;
-  rarityName: RarityName;
-  cardBackVisualMap: CardBackVisualMap;
-}) {
-  const height = width / REVEAL_CARD_RATIO;
-  const backcoverSource = getCardBackcoverSource(
-    themeName,
-    rarityName,
-    cardBackVisualMap.get(getCardBackVisualKey(themeName, rarityName)),
-  );
-
-  return (
-    <View
-      style={{
-        width,
-        height,
-        borderRadius: 32,
-        overflow: "hidden" }}
-    >
-      <Image
-        source={backcoverSource}
-        contentFit="cover"
-        style={{
-          width: "100%",
-          height: "100%" }}
-      />
-    </View>
-  );
-}
-
-function RevealCardHalo({
-  color,
-  opacityAnim,
-  rarityName,
-  isSparkReveal = false,
-  themeName,
-  width }: {
-  color: string;
-  opacityAnim: SharedValue<number>;
-  rarityName: RarityName;
-  isSparkReveal?: boolean;
-  themeName: ThemeName;
-  width: number;
-}) {
-  const height = width / REVEAL_CARD_RATIO;
-  const haloShapeSource = getCardOutlineSource(themeName, rarityName);
-  const haloStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(
-      opacityAnim.value,
-      [0, 1],
-      [0, isSparkReveal ? 0.38 : 0.22],
-    ),
-    transform: [
-      {
-        scale: interpolate(
-          opacityAnim.value,
-          [0, 1],
-          [0.995, isSparkReveal ? 1.055 : 1.025],
-        ),
-      },
-    ],
-  }));
-
-  return (
-    <Animated.View
-      pointerEvents="none"
-      style={[
-        asStyle({
-          position: "absolute",
-          left: 0,
-          top: 0,
-          width,
-          height,
-          zIndex: 0,
-        }),
-        haloStyle,
-      ]}
-    >
-      <Image
-        pointerEvents="none"
-        source={haloShapeSource}
-        contentFit="fill"
-        blurRadius={7}
-        tintColor={color}
-        style={{
-          position: "absolute",
-          top: -4,
-          right: -4,
-          bottom: -4,
-          left: -4 }}
-      />
-    </Animated.View>
-  );
-}
-
-function SparkRevealOverlay({
-  color,
-  anim,
-  width }: {
-  color: string;
-  anim: SharedValue<number>;
-  width: number;
-}) {
-  const height = width / REVEAL_CARD_RATIO;
-  const pulseStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(anim.value, [0, 0.25, 0.62, 1], [0, 0.92, 0.34, 0]),
-    transform: [{ scale: interpolate(anim.value, [0, 1], [0.78, 1.36]) }],
-  }));
-  const glintStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(anim.value, [0, 0.32, 0.68, 1], [0, 0.8, 0.22, 0]),
-    transform: [
-      { translateX: interpolate(anim.value, [0, 1], [-width * 0.8, width * 0.8]) },
-      { rotate: "18deg" },
-    ],
-  }));
-  const starStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(anim.value, [0, 0.32, 0.68, 1], [0, 0.8, 0.22, 0]),
-    transform: [
-      {
-        scale: interpolate(
-          anim.value,
-          [0, 0.45, 0.72, 1],
-          [0.75, 1.22, 1.04, 0.9],
-        ),
-      },
-    ],
-  }));
-
-  return (
-    <Animated.View
-      pointerEvents="none"
-      style={[
-        asStyle({
-          position: "absolute",
-          top: -18,
-          right: -18,
-          bottom: -18,
-          left: -18,
-          zIndex: 24,
-        }),
-        pulseStyle,
-      ]}
-    >
-      <View
-        style={asStyle({
-          position: "absolute",
-          top: 0,
-          right: 0,
-          bottom: 0,
-          left: 0,
-          borderRadius: 36,
-          borderWidth: 2,
-          borderColor: color,
-          backgroundColor: withAlpha(color, "16") })}
-      />
-      <Animated.View
-        style={[
-          asStyle({
-            position: "absolute",
-            top: height * 0.12,
-            bottom: height * 0.12,
-            left: width * 0.42,
-            width: 22,
-            borderRadius: 999,
-            backgroundColor: "rgba(255, 255, 255, 0.72)",
-          }),
-          glintStyle,
-        ]}
-      />
-      <Animated.View
-        style={[
-          {
-            position: "absolute",
-            right: 18,
-            top: 16,
-          },
-          starStyle,
-        ]}
-      >
-        <SparklesIcon size={30} color="#FFF8D6" />
-      </Animated.View>
-    </Animated.View>
-  );
-}
-
-function CardBackStackItem({
-  card,
-  cardBackVisualMap,
-  spreadAnim,
-  themeName,
-  width,
-}: {
-  card: (typeof CARD_BACK_STACK_SPECS)[number] & { rarityName: RarityName };
-  cardBackVisualMap: CardBackVisualMap;
-  spreadAnim: SharedValue<number>;
-  themeName: ThemeName;
-  width: number;
-}) {
-  const cardStyle = useAnimatedStyle(() => ({
-    transform: [
-      {
-        translateX: interpolate(
-          spreadAnim.value,
-          [0, 1],
-          [card.collapsedX, card.finalX],
-        ),
-      },
-      {
-        translateY: interpolate(
-          spreadAnim.value,
-          [0, 1],
-          [card.collapsedY, card.finalY],
-        ),
-      },
-      {
-        rotate: `${interpolate(
-          spreadAnim.value,
-          [0, 1],
-          [Number.parseFloat(card.collapsedRotate), Number.parseFloat(card.finalRotate)],
-        )}deg`,
-      },
-      {
-        scale: interpolate(spreadAnim.value, [0, 1], [0.98, card.scale]),
-      },
-    ],
-  }));
-
-  return (
-    <Animated.View
-      style={[
-        {
-          position: "absolute",
-          zIndex: card.zIndex,
-        },
-        cardStyle,
-      ]}
-    >
-      <CardBackFace
-        width={width}
-        themeName={themeName}
-        rarityName={card.rarityName}
-        cardBackVisualMap={cardBackVisualMap}
-      />
-    </Animated.View>
-  );
-}
-
-function CardBackStack({
-  width,
-  tc,
-  themeName,
-  cardBackVisualMap,
-  rarityNames,
-  spreadAnim,
-  idleAnim,
-  pulseAnim }: {
-  width: number;
-  tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
-  themeName: ThemeName;
-  cardBackVisualMap: CardBackVisualMap;
-  rarityNames: RarityName[];
-  spreadAnim: SharedValue<number>;
-  idleAnim?: SharedValue<number>;
-  pulseAnim?: SharedValue<number>;
-}) {
-  const cardHeight = width / REVEAL_CARD_RATIO;
-  const stackHeight = cardHeight + 44;
-  const visibleRarityNames =
-    rarityNames.length > 3
-      ? rarityNames.slice(0, 3)
-      : rarityNames.length > 0
-        ? rarityNames
-        : (["Common"] as RarityName[]);
-  const visibleCardCount = visibleRarityNames.length;
-  const visibleStackCards =
-    visibleCardCount === 1
-      ? [CARD_BACK_STACK_SPECS[2]]
-      : visibleCardCount === 2
-        ? CARD_BACK_STACK_SPECS.slice(0, 2)
-        : CARD_BACK_STACK_SPECS;
-  const visibleStackEntries = visibleStackCards.map((card, index) => ({
-    ...card,
-    rarityName: visibleRarityNames[index] ?? "Common" }));
-  const wrapperStyle = useAnimatedStyle(() => {
-    const transforms = [];
-
-    if (idleAnim) {
-      transforms.push(
-        { translateY: interpolate(idleAnim.value, [0, 0.5, 1], [8, -8, 8]) },
-        { scale: interpolate(idleAnim.value, [0, 0.5, 1], [0.994, 1.008, 0.994]) },
-      );
-    }
-
-    if (pulseAnim) {
-      transforms.push({
-        scale: interpolate(pulseAnim.value, [0, 0.5, 1], [1, 1.014, 1]),
-      });
-    }
-
-    return { transform: transforms };
-  });
-
-  return (
-    <Animated.View
-      style={[
-        {
-          width: width + 90,
-          height: stackHeight,
-          alignItems: "center",
-          justifyContent: "center",
-        },
-        wrapperStyle,
-      ]}
-    >
-      {visibleStackEntries.map((card) => (
-        <CardBackStackItem
-          key={card.key}
-          card={card}
-          cardBackVisualMap={cardBackVisualMap}
-          spreadAnim={spreadAnim}
-          themeName={themeName}
-          width={width}
-        />
-        ))}
-    </Animated.View>
-  );
-}
-
-function AnimatedCrackPaths({
-  crack,
-  crackIndex,
-  openAnim,
-}: {
-  crack: PackBurstPattern["cracks"][number];
-  crackIndex: number;
-  openAnim: SharedValue<number>;
-}) {
-  const crackDrawEnd = Math.min(0.72, crack.delay + 0.24);
-  const crackFadeStart = Math.min(0.82, crackDrawEnd + 0.18);
-  const animatedProps = useAnimatedProps(() => ({
-    opacity: interpolate(
-      openAnim.value,
-      [0, crack.delay, crackDrawEnd, crackFadeStart, 1],
-      [0, 0, 1, 0.8, 0],
-      Extrapolation.CLAMP,
-    ),
-    strokeDashoffset: interpolate(
-      openAnim.value,
-      [0, crack.delay, crackDrawEnd, 1],
-      [crack.dashLength, crack.dashLength, 0, 0],
-      Extrapolation.CLAMP,
-    ),
-  }));
-
-  return (
-    <>
-      <AnimatedPath
-        key={`crack-glow-${crackIndex}`}
-        d={crack.path}
-        fill="none"
-        stroke="rgba(255, 116, 24, 0.85)"
-        strokeWidth={9}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeDasharray={crack.dashLength}
-        animatedProps={animatedProps}
-      />
-      <AnimatedPath
-        key={`crack-core-${crackIndex}`}
-        d={crack.path}
-        fill="none"
-        stroke="#FFF8BF"
-        strokeWidth={3.2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeDasharray={crack.dashLength}
-        animatedProps={animatedProps}
-      />
-    </>
-  );
-}
-
-function BurstParticleView({
-  centerX,
-  centerY,
-  openAnim,
-  particle,
-}: {
-  centerX: number;
-  centerY: number;
-  openAnim: SharedValue<number>;
-  particle: PackBurstPattern["particles"][number];
-}) {
-  const particleStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(
-      openAnim.value,
-      [0, 0.62, 0.68, 1],
-      [0, 0, 1, 0],
-      Extrapolation.CLAMP,
-    ),
-    transform: [
-      {
-        translateX: interpolate(
-          openAnim.value,
-          [0, 0.62, 0.76, 1],
-          [0, 0, particle.travelX * 0.16, particle.travelX],
-          Extrapolation.CLAMP,
-        ),
-      },
-      {
-        translateY: interpolate(
-          openAnim.value,
-          [0, 0.62, 0.76, 1],
-          [0, 0, particle.travelY * 0.16, particle.travelY],
-          Extrapolation.CLAMP,
-        ),
-      },
-      { rotate: particle.spin },
-      {
-        scale: interpolate(
-          openAnim.value,
-          [0, 0.62, 0.74, 1],
-          [0.5, 0.5, 1, 0],
-          Extrapolation.CLAMP,
-        ),
-      },
-    ],
-  }));
-
-  return (
-    <Animated.View
-      pointerEvents="none"
-      style={[
-        packScreenStyles.burstParticle,
-        {
-          left: centerX - particle.size / 2,
-          top: centerY - particle.size / 2,
-          width: particle.size,
-          height: particle.size,
-          backgroundColor: particle.color,
-          boxShadow: `0 0 14px ${particle.color}`,
-        },
-        particleStyle,
-      ]}
-    />
-  );
-}
-
-function BurstShardView({
-  accentColor,
-  centerX,
-  centerY,
-  openAnim,
-  shard,
-}: {
-  accentColor: string;
-  centerX: number;
-  centerY: number;
-  openAnim: SharedValue<number>;
-  shard: PackBurstPattern["shards"][number];
-}) {
-  const shardStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(
-      openAnim.value,
-      [0, 0.62, 0.68, 1],
-      [0, 0, 1, 0],
-      Extrapolation.CLAMP,
-    ),
-    transform: [
-      {
-        translateX: interpolate(
-          openAnim.value,
-          [0, 0.62, 0.76, 1],
-          [0, 0, shard.travelX * 0.16, shard.travelX],
-          Extrapolation.CLAMP,
-        ),
-      },
-      {
-        translateY: interpolate(
-          openAnim.value,
-          [0, 0.62, 0.76, 1],
-          [0, 0, shard.travelY * 0.16, shard.travelY],
-          Extrapolation.CLAMP,
-        ),
-      },
-      { rotate: shard.spin },
-      {
-        scale: interpolate(
-          openAnim.value,
-          [0, 0.62, 0.74, 1],
-          [0.8, 0.8, 1, 1.25],
-          Extrapolation.CLAMP,
-        ),
-      },
-    ],
-  }));
-
-  return (
-    <Animated.View
-      key={shard.id}
-      pointerEvents="none"
-      style={[
-        {
-          position: "absolute",
-          left: centerX - shard.width / 2,
-          top: centerY - shard.height / 2,
-          width: shard.width,
-          height: shard.height,
-        },
-        shardStyle,
-      ]}
-    >
-      <LinearGradient
-        colors={["rgba(255,225,121,0.95)", "rgba(137,54,12,0.95)"]}
-        start={{ x: 0.2, y: 0 }}
-        end={{ x: 0.8, y: 1 }}
-        style={{
-          flex: 1,
-          borderRadius: 10,
-          borderWidth: 1,
-          borderColor: withAlpha(accentColor, "88"),
-          boxShadow: "0 0 14px rgba(255, 168, 42, 0.6)",
-          transform: [{ rotate: "18deg" }],
-        }}
-      />
-    </Animated.View>
-  );
-}
-
-function CrackedPackPreview({
-  pack,
-  width,
-  tc,
-  openAnim,
-  burstPattern }: {
-  pack: Pack;
-  width: number;
-  tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
-  openAnim: SharedValue<number>;
-  burstPattern?: PackBurstPattern;
-}) {
-  const height = width / PACK_CARD_RATIO;
-  const resolvedPattern =
-    burstPattern ?? createBurstPattern(width, height, pack);
-  const centerX = width / 2;
-  const centerY = height * 0.47;
-  const accentColor = pack.color || tc.primary;
-  const packStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(
-      openAnim.value,
-      [0, 0.45, 0.72, 1],
-      [1, 1, 1, 0],
-      Extrapolation.CLAMP,
-    ),
-    transform: [
-      {
-        translateX: interpolate(
-          openAnim.value,
-          [0, 0.18, 0.34, 0.52, 0.72, 0.94, 1],
-          [0, -2, 2, -3, 4, 3, 0],
-          Extrapolation.CLAMP,
-        ),
-      },
-      {
-        translateY: interpolate(
-          openAnim.value,
-          [0, 0.18, 0.34, 0.52, 0.72, 0.94, 1],
-          [0, 1, -2, -1, 2, -3, 0],
-          Extrapolation.CLAMP,
-        ),
-      },
-      {
-        rotateZ: `${interpolate(
-          openAnim.value,
-          [0, 0.18, 0.34, 0.52, 0.72, 0.94, 1],
-          [0, -1, 1.1, -1.4, 1.9, 2.4, 25],
-          Extrapolation.CLAMP,
-        )}deg`,
-      },
-      {
-        scale: interpolate(
-          openAnim.value,
-          [0, 0.45, 0.72, 1],
-          [1, 1.06, 1.2, 0.42],
-          Extrapolation.CLAMP,
-        ),
-      },
-    ],
-  }));
-  const seamStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(
-      openAnim.value,
-      [0, 0.18, 0.62, 1],
-      [0, 0.85, 0, 0],
-      Extrapolation.CLAMP,
-    ),
-    transform: [
-      {
-        scaleY: interpolate(
-          openAnim.value,
-          [0, 0.62, 1],
-          [0.5, 1.18, 1.18],
-          Extrapolation.CLAMP,
-        ),
-      },
-      {
-        scaleX: interpolate(
-          openAnim.value,
-          [0, 0.62, 1],
-          [0.6, 1.7, 1.7],
-          Extrapolation.CLAMP,
-        ),
-      },
-    ],
-  }));
-  const flareStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(
-      openAnim.value,
-      [0, 0.38, 0.68, 1],
-      [0, 0, 1, 0],
-      Extrapolation.CLAMP,
-    ),
-    transform: [
-      {
-        scale: interpolate(
-          openAnim.value,
-          [0, 0.38, 0.68, 0.82, 1],
-          [0.2, 0.2, 3.5, 14, 14],
-          Extrapolation.CLAMP,
-        ),
-      },
-    ],
-  }));
-  const shockwaveStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(
-      openAnim.value,
-      [0, 0.62, 0.72, 1],
-      [0, 0, 0.95, 0],
-      Extrapolation.CLAMP,
-    ),
-    transform: [
-      {
-        scale: interpolate(
-          openAnim.value,
-          [0, 0.62, 1],
-          [0.2, 0.2, 5.5],
-          Extrapolation.CLAMP,
-        ),
-      },
-    ],
-  }));
-
-  return (
-    <Animated.View
-      style={[
-        {
-          width,
-          height,
-          alignItems: "center",
-          justifyContent: "center",
-        },
-        packStyle,
-      ]}
-    >
-      <PackFaceCanvas pack={pack} width={width} height={height} tc={tc} />
-      <Animated.View
-        pointerEvents="none"
-        style={[
-          asStyle({
-            position: "absolute",
-            left: centerX - Math.max(18, width * 0.065),
-            top: 24,
-            width: Math.max(36, width * 0.16),
-            height: height - 46,
-            borderRadius: 999,
-            backgroundColor: "rgba(255, 242, 170, 0.92)",
-          }),
-          seamStyle,
-        ]}
-      />
-      <Svg
-        pointerEvents="none"
-        width={width}
-        height={height}
-        viewBox={`0 0 ${width} ${height}`}
-        style={{ position: "absolute", left: 0, top: 0 }}
-      >
-        {resolvedPattern.cracks.map((crack, crackIndex) => (
-          <AnimatedCrackPaths
-            key={`crack-${crackIndex}`}
-            crack={crack}
-            crackIndex={crackIndex}
-            openAnim={openAnim}
-          />
-        ))}
-      </Svg>
-      <Animated.View
-        pointerEvents="none"
-        style={[
-          packScreenStyles.burstFlare,
-          {
-            left: centerX - 15,
-            top: centerY - 15,
-          },
-          flareStyle,
-        ]}
-      />
-      <Animated.View
-        pointerEvents="none"
-        style={[
-          packScreenStyles.burstShockwave,
-          {
-            left: centerX - 60,
-            top: centerY - 60,
-          },
-          shockwaveStyle,
-        ]}
-      />
-      {resolvedPattern.particles.map((particle) => (
-        <BurstParticleView
-          key={particle.id}
-          centerX={centerX}
-          centerY={centerY}
-          openAnim={openAnim}
-          particle={particle}
-        />
-      ))}
-      {resolvedPattern.shards.map((shard) => (
-        <BurstShardView
-          key={shard.id}
-          accentColor={accentColor}
-          centerX={centerX}
-          centerY={centerY}
-          openAnim={openAnim}
-          shard={shard}
-        />
-      ))}
-    </Animated.View>
-  );
-}
-
-const OpeningProgress = openingProgress;
-
-function LoadingProgressFill({
-  color,
-  progress,
-}: {
-  color: string;
-  progress: SharedValue<number>;
-}) {
-  const progressStyle = useAnimatedStyle(() => ({
-    width: `${progress.value}%`,
-  }));
-
-  return (
-    <Animated.View
-      style={[
-        {
-          height: "100%",
-          borderRadius: 999,
-          backgroundColor: color,
-        },
-        progressStyle,
-      ]}
-    />
-  );
-}
-
-function ReadyRevealGlow({
-  anim,
-  height,
-  surfaceColor,
-  width,
-}: {
-  anim: SharedValue<number>;
-  height: number;
-  surfaceColor: string;
-  width: number;
-}) {
-  const glowStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(anim.value, [0, 0.45, 1], [0.56, 0.2, 0]),
-    transform: [{ scale: interpolate(anim.value, [0, 1], [0.88, 1.16]) }],
-  }));
-
-  return (
-    <Animated.View
-      pointerEvents="none"
-      style={[
-        {
-          position: "absolute",
-          width,
-          height,
-          borderRadius: 999,
-          backgroundColor: surfaceColor,
-        },
-        glowStyle,
-      ]}
-    />
-  );
-}
-
-function ReadyRevealStackWrapper({
-  anim,
-  children,
-}: {
-  anim: SharedValue<number>;
-  children: ReactNode;
-}) {
-  const stackStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(anim.value, [0, 0.28, 1], [0, 0.22, 1]),
-    transform: [{ scale: interpolate(anim.value, [0, 1], [0.86, 1]) }],
-  }));
-
-  return <Animated.View style={stackStyle}>{children}</Animated.View>;
-}
-
-function RevealCardStage({
-  accessToken,
-  card,
-  cardBackVisualMap,
-  flipAnim,
-  isRevealSettled,
-  isSparkReveal,
-  newBadgeLabel,
-  rarityName,
-  rarityRing,
-  revealCardWidth,
-  revealHaloAnim,
-  revealSparkAnim,
-  tc,
-  themeName,
-}: {
-  accessToken: string | null;
-  card: OpenedCard;
-  cardBackVisualMap: CardBackVisualMap;
-  flipAnim: SharedValue<number>;
-  isRevealSettled: boolean;
-  isSparkReveal: boolean;
-  newBadgeLabel: string;
-  rarityName: RarityName;
-  rarityRing: string;
-  revealCardWidth: number;
-  revealHaloAnim: SharedValue<number>;
-  revealSparkAnim: SharedValue<number>;
-  tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
-  themeName: ThemeName;
-}) {
-  const cardStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: interpolate(flipAnim.value, [0, 1], [0.94, 1]) }],
-  }));
-  const backStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(
-      flipAnim.value,
-      [0, 0.42, 0.58, 1],
-      [1, 1, 0, 0],
-      Extrapolation.CLAMP,
-    ),
-    transform: [
-      { perspective: 1400 },
-      { rotateY: `${interpolate(flipAnim.value, [0, 1], [0, 180])}deg` },
-    ],
-  }));
-  const frontStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(
-      flipAnim.value,
-      [0, 0.42, 0.58, 1],
-      [0, 0, 1, 1],
-      Extrapolation.CLAMP,
-    ),
-    transform: [
-      { perspective: 1400 },
-      { rotateY: `${interpolate(flipAnim.value, [0, 1], [180, 360])}deg` },
-    ],
-  }));
-
-  return (
-    <Animated.View
-      style={[
-        {
-          width: revealCardWidth,
-          aspectRatio: REVEAL_CARD_RATIO,
-        },
-        cardStyle,
-      ]}
-    >
-      <RevealCardHalo
-        color={rarityRing}
-        opacityAnim={revealHaloAnim}
-        rarityName={rarityName}
-        isSparkReveal={isSparkReveal}
-        themeName={themeName}
-        width={revealCardWidth}
-      />
-      {isSparkReveal ? (
-        <SparkRevealOverlay
-          color={rarityRing}
-          anim={revealSparkAnim}
-          width={revealCardWidth}
-        />
-      ) : null}
-      <Animated.View
-        pointerEvents="none"
-        style={[
-          {
-            position: "absolute",
-            inset: 0,
-            zIndex: 5,
-            backfaceVisibility: "hidden",
-          },
-          backStyle,
-        ]}
-      >
-        <CardBackFace
-          width={revealCardWidth}
-          themeName={themeName}
-          rarityName={rarityName}
-          cardBackVisualMap={cardBackVisualMap}
-        />
-      </Animated.View>
-      <Animated.View
-        pointerEvents="none"
-        style={[
-          {
-            position: "absolute",
-            inset: 0,
-            zIndex: 10,
-            backfaceVisibility: "hidden",
-          },
-          frontStyle,
-        ]}
-      >
-        <CardTile
-          entry={toCardTileEntry(card)}
-          size="large"
-          fitContainer
-          accessToken={accessToken}
-        />
-      </Animated.View>
-
-      {card.isNewForUser ? (
-        <View
-          className="absolute right-3 top-3 z-30"
-          style={{ opacity: isRevealSettled ? 1 : 0 }}
-        >
-          <LinearGradient
-            colors={[tc.success, tc.successDark]}
-            style={{
-              borderRadius: 999,
-              paddingHorizontal: 10,
-              paddingVertical: 5,
-            }}
-          >
-            <Text className="font-nunito-extrabold text-[10px] text-white">
-              {newBadgeLabel}
-            </Text>
-          </LinearGradient>
-        </View>
-      ) : null}
-    </Animated.View>
-  );
-}
-
-function openingProgress({
-  tc,
-  activeStep }: {
-  tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
-  activeStep: number;
-}) {
-  return (
-    <View className="flex-row gap-2">
-      {[0, 1, 2, 3].map((step) => {
-        const isActive = step <= activeStep;
-        return (
-          <View
-            key={step}
-            style={{
-              height: 6,
-              width: step === activeStep ? 40 : 28,
-              borderRadius: 999,
-              backgroundColor: isActive ? tc.primaryDark : tc.primaryBorder,
-              opacity: isActive ? 1 : 0.5 }}
-          />
-        );
-      })}
-    </View>
-  );
-}
-
-const SectionBadge = sectionBadge;
-
-function sectionBadge({
-  icon,
-  label,
-  backgroundColor,
-  textColor }: {
-  icon: ReactNode;
-  label: string;
-  backgroundColor: string;
-  textColor: string;
-}) {
-  return (
-    <View
-      className="flex-row items-center gap-2 rounded-full px-3 py-1.5"
-      style={{ backgroundColor }}
-    >
-      {icon}
-      <Text
-        className="font-nunito-bold text-[11px]"
-        style={{ color: textColor }}
-      >
-        {label}
-      </Text>
-    </View>
-  );
-}
-
-const PackSummaryCardSheet = usePackSummaryCardSheetView;
-
-function usePackSummaryCardSheetView({
-  card,
-  accessToken,
-  onClose }: {
-  card: OpenedCard;
-  accessToken: string | null;
-  onClose: () => void;
-}) {
-  const { t } = useTranslation();
-  const { height, width } = useWindowDimensions();
-  const insets = useSafeAreaInsets();
-  const themeName = useThemeStore((state) => state.themeName);
-  const tc = THEME_COLORS[themeName];
-  const [index, setIndex] = useState(1);
-  const topGap = Math.max(insets.top + 16, 56);
-  const maxSheetHeight = Math.max(0, height - topGap);
-  const cardWidth = Math.min(width - 48, 340);
-  const rarityName = card.rarity?.name ?? "Common";
-  const rarityColor = RARITY_COLORS[rarityName] ?? RARITY_COLORS.Common;
-  const sheetSurface = useMemo(
-    () => (
-      <View
-        className="bg-bg"
-        style={[
-          StyleSheet.absoluteFill,
-          {
-            borderTopLeftRadius: 32,
-            borderTopRightRadius: 32 },
-        ]}
-      />
-    ),
-    [],
-  );
-
-  const stats = [
-    {
-      label: "HP",
-      value: card.hp,
-      color: tc.dangerDark,
-      backgroundColor: tc.dangerTint },
-    {
-      label: "ATK",
-      value: card.attack,
-      color: tc.secondaryText,
-      backgroundColor: tc.secondaryTint },
-    {
-      label: "DEF",
-      value: card.defense,
-      color: tc.infoText,
-      backgroundColor: tc.infoTint },
-    {
-      label: "SPD",
-      value: card.speed,
-      color: tc.successText,
-      backgroundColor: tc.successTint },
-  ];
-
-  return (
-    <ModalBottomSheet
-      index={index}
-      onIndexChange={setIndex}
-      onSettle={(nextIndex) => {
-        if (nextIndex === 0) {
-          onClose();
-        }
-      }}
-      detents={[0, "content"]}
-      scrimColor="rgba(0,0,0,0.4)"
-      surface={sheetSurface}
-    >
-      <View
-        className="bg-bg"
-        style={{
-          borderTopLeftRadius: 32,
-          borderTopRightRadius: 32,
-          maxHeight: maxSheetHeight,
-          minHeight: Math.min(maxSheetHeight, height * 0.7),
-          overflow: "hidden" }}
-        testID="pack-summary-card-preview-sheet"
-      >
-        <View className="items-center pb-2 pt-3">
-          <View
-            className="h-1.5 w-10 rounded-full"
-            style={{ backgroundColor: tc.muted }}
-          />
-        </View>
-        <View
-          className="border-b border-primaryTint px-6 py-4"
-          testID="pack-summary-card-preview-header"
-        >
-          <View>
-            <View>
-              <Text
-                className="font-nunito-extrabold text-2xl text-fg"
-                numberOfLines={1}
-              >
-                {card.name}
-              </Text>
-              <Text
-                className="mt-1 font-nunito-semibold text-sm text-fgMuted"
-                numberOfLines={1}
-              >
-                {t("packs.summary.cardDetailsSubtitle", {
-                  character: card.character })}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        <ScrollView
-          contentInsetAdjustmentBehavior="automatic"
-          contentInset={{ bottom: Math.max(insets.bottom, 12) }}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{
-            paddingHorizontal: 16,
-            paddingTop: 18,
-            paddingBottom: 20,
-            gap: 16 }}
-        >
-          <View className="items-center">
-            <View style={{ width: cardWidth }}>
-              <CardTile
-                entry={toCardTileEntry(card)}
-                accessToken={accessToken}
-                size="large"
-                fitContainer
-              />
-            </View>
-          </View>
-
-          <View
-            style={{
-              flexDirection: "row",
-              flexWrap: "wrap",
-              gap: 10 }}
-          >
-            {[
-              {
-                label: t("packs.summary.cardRarity"),
-                value: rarityName,
-                textColor: rarityColor.to,
-                backgroundColor: withAlpha(rarityColor.ring, "22"),
-                borderColor: withAlpha(rarityColor.ring, "66") },
-              {
-                label: t("packs.summary.cardType"),
-                value: card.type,
-                textColor: tc.primaryStrong,
-                backgroundColor: tc.surface,
-                borderColor: tc.primaryBorder },
-              {
-                label: t("packs.summary.cardPull"),
-                value: card.isNewForUser
-                  ? t("packs.reveal.newCard")
-                  : t("packs.reveal.duplicate"),
-                textColor: card.isNewForUser ? tc.successText : tc.fgMuted,
-                backgroundColor: card.isNewForUser
-                  ? tc.successTint
-                  : tc.surfaceMuted,
-                borderColor: card.isNewForUser
-                  ? tc.successBorder
-                  : tc.primaryBorder },
-              {
-                label: t("packs.summary.cardCharacter"),
-                value: card.character,
-                textColor: tc.secondaryText,
-                backgroundColor: tc.secondaryTint,
-                borderColor: tc.secondaryBorder },
-            ].map((metric) => (
-              <View
-                key={metric.label}
-                className="w-[47.5%] gap-1 rounded-[18px] border px-[14px] py-3"
-                style={{
-                  borderColor: metric.borderColor,
-                  backgroundColor: metric.backgroundColor }}
-              >
-                <Text className="font-nunito-semibold text-[12px] text-fgMuted">
-                  {metric.label}
-                </Text>
-                <Text
-                  className="font-nunito-extrabold text-[18px]"
-                  numberOfLines={1}
-                  style={{ color: metric.textColor }}
-                >
-                  {metric.value}
-                </Text>
-              </View>
-            ))}
-          </View>
-
-          <View
-            className="gap-4 rounded-[24px] border p-4"
-            style={{
-              backgroundColor: tc.surface,
-              borderColor: tc.primaryBorder }}
-            testID="pack-summary-card-preview-stats"
-          >
-            <View className="flex-row items-center justify-between gap-3">
-              <Text className="font-nunito-extrabold text-base text-fg">
-                {t("collection.detail.stats")}
-              </Text>
-              <LinearGradient
-                colors={[rarityColor.from, rarityColor.to]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={{
-                  borderRadius: 999,
-                  paddingHorizontal: 12,
-                  paddingVertical: 7 }}
-              >
-                <Text className="font-nunito-extrabold text-[11px] text-white">
-                  {rarityName.toUpperCase()}
-                </Text>
-              </LinearGradient>
-            </View>
-
-            <View className="flex-row gap-2.5">
-              {stats.map((stat) => (
-                <View
-                  key={stat.label}
-                  className="flex-1 items-center gap-0.5 rounded-[18px] px-2 py-3"
-                  style={{ backgroundColor: stat.backgroundColor }}
-                >
-                  <Text
-                    className="font-nunito-extrabold text-[20px]"
-                    style={{ color: stat.color }}
-                  >
-                    {stat.value}
-                  </Text>
-                  <Text className="font-nunito-bold text-[11px] text-fgMuted">
-                    {stat.label}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        </ScrollView>
-      </View>
-    </ModalBottomSheet>
-  );
-}
+import {
+  BackgroundOrbs,
+  CardBackStack,
+  CrackedPackPreview,
+  LoadingProgressFill,
+  OpeningProgress,
+  PackIconVisual,
+  PackLoadingGlow,
+  PackOpeningAura,
+  PackPreviewCard,
+  PackSummaryCardSheet,
+  ReadyRevealGlow,
+  ReadyRevealStackWrapper,
+  RevealCardStage,
+  SectionBadge,
+} from "../../src/features/packs/opening-components";
+import {
+  IS_E2E_BUILD,
+  PACK_CARD_RATIO,
+  PACK_OPEN_BURST_MS,
+  PACK_OPEN_PROGRESS_MS,
+  PACK_OPEN_SHAKE_MS,
+  REVEAL_CARD_RATIO,
+  REVEAL_FLIP_MS,
+  REVEAL_START_DELAY_MS,
+  SPARK_REVEAL_FLIP_MS,
+  SPARK_REVEAL_START_DELAY_MS,
+  buildCardBackVisualMap,
+  canOpenPackWithBalance,
+  createBurstPattern,
+  createLoadingSparkles,
+  delay,
+  formatPackAvailabilityDate,
+  getHapticForCard,
+  getPackArtUrl,
+  getPackProgressStep,
+  getRarityGlowColor,
+  getThemeRarityPalette,
+  isPackLimited,
+  slugifyPackName,
+  toCardTileEntry,
+  toRarityName,
+  withAlpha,
+  type CardBackVisualMap,
+  type LoadingSparkle,
+  type OpenedCard,
+  type OpeningPhase,
+  type Pack,
+  type PackBurstPattern,
+  type RarityName,
+} from "../../src/features/packs/opening-model";
 
 export default function PacksScreen() {
   return usePacksScreenView();
@@ -2540,16 +166,20 @@ function usePacksScreenView() {
   const revealSparkAnim = useSharedValue(0);
   const burstOpenAnim = useSharedValue(0);
   const readyPulseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const revealAnimationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const revealAnimationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const isRevealAnimatingRef = useRef(false);
 
   reactEffect(() => {
     navigation.setOptions({
-      tabBarStyle: shouldHideTabBar ? { display: "none" } : undefined });
+      tabBarStyle: shouldHideTabBar ? { display: "none" } : undefined,
+    });
 
     return () => {
       navigation.setOptions({
-        tabBarStyle: undefined });
+        tabBarStyle: undefined,
+      });
     };
   }, [navigation, shouldHideTabBar]);
 
@@ -2563,20 +193,25 @@ function usePacksScreenView() {
     stackSpreadAnim.value = 0;
 
     readyRevealAnim.value = withTiming(1, {
-        duration: IS_E2E_BUILD ? 900 : 1350,
-        easing: Easing.inOut(Easing.cubic) });
+      duration: IS_E2E_BUILD ? 900 : 1350,
+      easing: Easing.inOut(Easing.cubic),
+    });
     stackSpreadAnim.value = withTiming(1, {
-        duration: IS_E2E_BUILD ? 950 : 1600,
-        easing: Easing.inOut(Easing.cubic) });
-    readyPulseTimerRef.current = setTimeout(() => {
-      pulseAnim.value = withRepeat(
-        withSequence(
-          withTiming(1, { duration: 2400, easing: Easing.linear }),
-          withTiming(0, { duration: 0 }),
-        ),
-        -1,
-      );
-    }, IS_E2E_BUILD ? 950 : 1600);
+      duration: IS_E2E_BUILD ? 950 : 1600,
+      easing: Easing.inOut(Easing.cubic),
+    });
+    readyPulseTimerRef.current = setTimeout(
+      () => {
+        pulseAnim.value = withRepeat(
+          withSequence(
+            withTiming(1, { duration: 2400, easing: Easing.linear }),
+            withTiming(0, { duration: 0 }),
+          ),
+          -1,
+        );
+      },
+      IS_E2E_BUILD ? 950 : 1600,
+    );
 
     return () => {
       if (readyPulseTimerRef.current) {
@@ -2638,24 +273,26 @@ function usePacksScreenView() {
     stopChargeAnimations();
     burstFlashAnim.value = 0;
     burstOpenAnim.value = 0;
-    burstPatternRef.current =
-      createBurstPattern(
-        stageCardWidth,
-        stageCardWidth / PACK_CARD_RATIO,
-        selectedPack ?? undefined,
-      );
+    burstPatternRef.current = createBurstPattern(
+      stageCardWidth,
+      stageCardWidth / PACK_CARD_RATIO,
+      selectedPack ?? undefined,
+    );
 
     burstFlashAnim.value = withSequence(
       withTiming(1, {
-          duration: Math.round(PACK_OPEN_BURST_MS * 0.3),
-          easing: Easing.out(Easing.quad) }),
+        duration: Math.round(PACK_OPEN_BURST_MS * 0.3),
+        easing: Easing.out(Easing.quad),
+      }),
       withTiming(0, {
-          duration: Math.round(PACK_OPEN_BURST_MS * 0.7),
-          easing: Easing.in(Easing.quad) }),
+        duration: Math.round(PACK_OPEN_BURST_MS * 0.7),
+        easing: Easing.in(Easing.quad),
+      }),
     );
     burstOpenAnim.value = withTiming(1, {
-        duration: PACK_OPEN_BURST_MS,
-        easing: Easing.out(Easing.cubic) });
+      duration: PACK_OPEN_BURST_MS,
+      easing: Easing.out(Easing.cubic),
+    });
   }
 
   function animateLoadingProgress(from: number, to: number, duration: number) {
@@ -2663,12 +300,16 @@ function usePacksScreenView() {
     loadingProgressAnim.value = from;
 
     return new Promise<void>((resolve) => {
-      loadingProgressAnim.value = withTiming(to, {
-        duration,
-        easing: Easing.inOut(Easing.quad),
-      }, () => {
-        runOnJS(resolve)();
-      });
+      loadingProgressAnim.value = withTiming(
+        to,
+        {
+          duration,
+          easing: Easing.inOut(Easing.quad),
+        },
+        () => {
+          runOnJS(resolve)();
+        },
+      );
     });
   }
 
@@ -2679,7 +320,8 @@ function usePacksScreenView() {
           ? t("packs.weeklyLimitAvailable", {
               date: formatPackAvailabilityDate(
                 pack.availability.nextAvailableAt,
-              ) })
+              ),
+            })
           : t("packs.weeklyLimitReached"),
       );
       return;
@@ -2830,11 +472,14 @@ function usePacksScreenView() {
         easing: Easing.out(Easing.quad),
       }),
     );
-    revealAnimationTimerRef.current = setTimeout(() => {
-      revealAnimationTimerRef.current = null;
-      isRevealAnimatingRef.current = false;
-      setIsRevealSettled(true);
-    }, revealStartDelay + flipDuration + haloDuration);
+    revealAnimationTimerRef.current = setTimeout(
+      () => {
+        revealAnimationTimerRef.current = null;
+        isRevealAnimatingRef.current = false;
+        setIsRevealSettled(true);
+      },
+      revealStartDelay + flipDuration + haloDuration,
+    );
 
     if (hapticType) {
       void Haptics.notificationAsync(hapticType).catch(() => null);
@@ -2910,9 +555,16 @@ function usePacksScreenView() {
     burstOpenAnim.value = 0;
   }
 
-  const { data: packsQueryData, error: packsQueryError, isError: packsQueryIsError, isLoading: packsQueryIsLoading, refetch: packsQueryRefetch } = useQuery({
+  const {
+    data: packsQueryData,
+    error: packsQueryError,
+    isError: packsQueryIsError,
+    isLoading: packsQueryIsLoading,
+    refetch: packsQueryRefetch,
+  } = useQuery({
     queryKey: ["packs"],
-    queryFn: () => apiClient.packs() });
+    queryFn: () => apiClient.packs(),
+  });
 
   const cardBackVisualMap = useMemo(
     () => buildCardBackVisualMap(packsQueryData?.cardBackVisuals ?? []),
@@ -3055,7 +707,8 @@ function usePacksScreenView() {
           className="flex-1 px-4"
           style={{
             paddingTop: headerHeight + 16,
-            paddingBottom: openingBottomPadding }}
+            paddingBottom: openingBottomPadding,
+          }}
         >
           <View className="flex-1 justify-center">
             <View
@@ -3064,7 +717,8 @@ function usePacksScreenView() {
                 width: "100%",
                 maxWidth: 520,
                 height: openingStageHeight,
-                transform: [{ translateY: openingStageTranslateY }] }}
+                transform: [{ translateY: openingStageTranslateY }],
+              }}
             >
               <PackOpeningSequenceDom
                 key={`${openingRunId}`}
@@ -3078,12 +732,14 @@ function usePacksScreenView() {
                 pack={{
                   backgroundColor: tc.bg,
                   cardCountLabel: t("packs.cardsCount", {
-                    count: selectedPack.cardCount }),
+                    count: selectedPack.cardCount,
+                  }),
                   color: selectedPack.color || "#C96A24",
                   guaranteedRarity: selectedPack.guaranteedRarity,
                   name: selectedPack.name,
                   packArtAssetId: selectedPack.packArtAssetId,
-                  packArtUrl: getPackArtUrl(selectedPack) }}
+                  packArtUrl: getPackArtUrl(selectedPack),
+                }}
                 stageOffsetY={openingStageTranslateY}
                 dom={{
                   contentInsetAdjustmentBehavior: "never",
@@ -3091,7 +747,9 @@ function usePacksScreenView() {
                   style: {
                     backgroundColor: "transparent",
                     flex: 1,
-                    opacity: isChargePhase ? prewarmDomOpacity : 1 } }}
+                    opacity: isChargePhase ? prewarmDomOpacity : 1,
+                  },
+                }}
               />
               {isChargePhase ? (
                 <View className="absolute inset-0 items-center justify-center">
@@ -3113,7 +771,8 @@ function usePacksScreenView() {
               minHeight: isLoadingPhase ? openingFooterReserve : undefined,
               transform: isLoadingPhase
                 ? [{ translateY: loadingFooterTranslateY }]
-                : undefined }}
+                : undefined,
+            }}
           >
             {isLoadingPhase ? (
               <>
@@ -3133,7 +792,8 @@ function usePacksScreenView() {
                   className="w-full overflow-hidden rounded-full"
                   style={{
                     backgroundColor: progressTrackColor,
-                    height: 12 }}
+                    height: 12,
+                  }}
                 >
                   <LoadingProgressFill
                     color={openingAccent}
@@ -3191,7 +851,8 @@ function usePacksScreenView() {
           className="flex-1 px-4"
           style={{
             paddingTop: headerHeight + 24,
-            paddingBottom: openingBottomPadding }}
+            paddingBottom: openingBottomPadding,
+          }}
         >
           <View className="w-full items-center gap-3">
             <Text className="text-center font-nunito-extrabold text-[28px] leading-[34px] text-fg">
@@ -3227,7 +888,8 @@ function usePacksScreenView() {
             <SectionBadge
               icon={<PackIcon size={14} color={tc.primaryText} />}
               label={t("packs.opening.revealProgress", {
-                count: openedCards.length })}
+                count: openedCards.length,
+              })}
               backgroundColor={tc.primaryTint}
               textColor={tc.primaryText}
             />
@@ -3265,7 +927,8 @@ function usePacksScreenView() {
             position: "absolute",
             inset: 0,
             backgroundColor: glowColor,
-            opacity: 0.1 }}
+            opacity: 0.1,
+          }}
         />
         <BackgroundOrbs
           primary={tc.surfaceMuted}
@@ -3277,7 +940,8 @@ function usePacksScreenView() {
           className="flex-1 px-4"
           style={{
             paddingTop: headerHeight + 20,
-            paddingBottom: openingBottomPadding }}
+            paddingBottom: openingBottomPadding,
+          }}
         >
           <View className="w-full max-w-[360px] self-center gap-3">
             <View className="flex-row items-center justify-between">
@@ -3290,7 +954,8 @@ function usePacksScreenView() {
               <Text className="font-nunito-bold text-sm text-fgMuted">
                 {t("packs.reveal.cardProgress", {
                   current: revealedIndex + 1,
-                  total: openedCards.length })}
+                  total: openedCards.length,
+                })}
               </Text>
             </View>
             <OpeningProgress tc={tc} activeStep={openingStep} />
@@ -3385,7 +1050,8 @@ function usePacksScreenView() {
           contentContainerStyle={{
             paddingHorizontal: 20,
             paddingBottom: 24,
-            gap: 18 }}
+            gap: 18,
+          }}
           contentInset={{ bottom: bottomTabPadding }}
           scrollIndicatorInsets={{ bottom: bottomTabPadding }}
         >
@@ -3403,7 +1069,8 @@ function usePacksScreenView() {
               padding: 22,
               borderWidth: 1,
               borderColor: tc.primaryBorder,
-              backgroundColor: tc.surface }}
+              backgroundColor: tc.surface,
+            }}
           >
             <View className="gap-3">
               <SectionBadge
@@ -3452,7 +1119,8 @@ function usePacksScreenView() {
             className="gap-4 rounded-[28px] border p-5"
             style={{
               backgroundColor: tc.surface,
-              borderColor: tc.primaryBorder }}
+              borderColor: tc.primaryBorder,
+            }}
           >
             <View className="flex-row items-center gap-3">
               <View
@@ -3468,7 +1136,8 @@ function usePacksScreenView() {
                 <Text className="mt-1 font-nunito text-xs text-fgMuted">
                   {selectedPack.guaranteedRarity
                     ? t("packs.guaranteed", {
-                        rarity: selectedPack.guaranteedRarity })
+                        rarity: selectedPack.guaranteedRarity,
+                      })
                     : t("packs.standardOdds")}
                 </Text>
               </View>
@@ -3499,7 +1168,8 @@ function usePacksScreenView() {
                       {rarityName} x{info.total}
                       {info.newCount > 0
                         ? ` ${t("packs.openResult.newCount", {
-                            count: info.newCount })}`
+                            count: info.newCount,
+                          })}`
                         : ""}
                     </Text>
                   </View>
@@ -3532,7 +1202,8 @@ function usePacksScreenView() {
                         style={{
                           borderRadius: 999,
                           paddingHorizontal: 10,
-                          paddingVertical: 5 }}
+                          paddingVertical: 5,
+                        }}
                       >
                         <Text className="font-nunito-extrabold text-[10px] text-white">
                           {t("packs.openResult.newBadge")}
@@ -3615,26 +1286,31 @@ function usePacksScreenView() {
             width: 1,
             height: 1,
             opacity: 0,
-            overflow: "hidden" }}
+            overflow: "hidden",
+          }}
         >
           <PackOpeningSequenceDom
             mode="charge"
             pack={{
               backgroundColor: tc.bg,
               cardCountLabel: t("packs.cardsCount", {
-                count: heroPack.cardCount }),
+                count: heroPack.cardCount,
+              }),
               color: heroPack.color || "#C96A24",
               guaranteedRarity: heroPack.guaranteedRarity,
               name: heroPack.name,
               packArtAssetId: heroPack.packArtAssetId,
-              packArtUrl: getPackArtUrl(heroPack) }}
+              packArtUrl: getPackArtUrl(heroPack),
+            }}
             stageOffsetY={0}
             dom={{
               contentInsetAdjustmentBehavior: "never",
               scrollEnabled: false,
               style: {
                 backgroundColor: "transparent",
-                flex: 1 } }}
+                flex: 1,
+              },
+            }}
           />
         </View>
       ) : null}
@@ -3645,7 +1321,8 @@ function usePacksScreenView() {
         contentContainerStyle={{
           paddingHorizontal: 20,
           paddingBottom: 24,
-          gap: 18 }}
+          gap: 18,
+        }}
         contentInset={{ bottom: bottomTabPadding }}
         scrollIndicatorInsets={{ bottom: bottomTabPadding }}
       >
@@ -3656,7 +1333,8 @@ function usePacksScreenView() {
             padding: 22,
             borderWidth: 1,
             borderColor: tc.primaryBorder,
-            backgroundColor: tc.surface }}
+            backgroundColor: tc.surface,
+          }}
         >
           <View className="gap-3">
             <View className="gap-3">
@@ -3673,7 +1351,8 @@ function usePacksScreenView() {
                 {featuredPack
                   ? t("packs.nextGoalValue", {
                       name: featuredPack.name,
-                      count: featuredPack.cardCount })
+                      count: featuredPack.cardCount,
+                    })
                   : t("packs.noAffordable")}
               </Text>
             </View>
@@ -3683,7 +1362,8 @@ function usePacksScreenView() {
             <SectionBadge
               icon={<CheckIcon size={12} color={tc.successText} />}
               label={t("packs.affordableCount", {
-                count: affordablePacks.length })}
+                count: affordablePacks.length,
+              })}
               backgroundColor={tc.successTint}
               textColor={tc.successText}
             />
@@ -3701,7 +1381,8 @@ function usePacksScreenView() {
                   style={{
                     backgroundColor: heroCanOpen
                       ? tc.primaryStrong
-                      : tc.surfaceMuted }}
+                      : tc.surfaceMuted,
+                  }}
                 >
                   <View className="flex-1 gap-1 pr-3">
                     <Text
@@ -3715,21 +1396,24 @@ function usePacksScreenView() {
                       style={{
                         color: heroCanOpen
                           ? "rgba(255,255,255,0.82)"
-                          : tc.fgMuted }}
+                          : tc.fgMuted,
+                      }}
                     >
                       {isPackLimited(heroPack)
                         ? heroPack.availability?.nextAvailableAt
                           ? t("packs.weeklyLimitAvailable", {
                               date: formatPackAvailabilityDate(
                                 heroPack.availability.nextAvailableAt,
-                              ) })
+                              ),
+                            })
                           : t("packs.weeklyLimitReached")
                         : heroCanOpen
                           ? t("packs.tapToOpen")
                           : cheapestLockedPack
                             ? t("packs.nextGoal", {
                                 name: heroPack.name,
-                                count: heroPack.cost - coins })
+                                count: heroPack.cost - coins,
+                              })
                             : t("packs.allAffordable")}
                     </Text>
                   </View>
@@ -3738,7 +1422,8 @@ function usePacksScreenView() {
                     <Text
                       className="font-nunito-extrabold text-lg"
                       style={{
-                        color: heroCanOpen ? "#FFFFFF" : tc.primaryStrong }}
+                        color: heroCanOpen ? "#FFFFFF" : tc.primaryStrong,
+                      }}
                     >
                       {heroPack.cost}
                     </Text>
@@ -3754,7 +1439,8 @@ function usePacksScreenView() {
             className="rounded-[24px] border p-4"
             style={{
               backgroundColor: tc.dangerTint,
-              borderColor: tc.dangerBorder }}
+              borderColor: tc.dangerBorder,
+            }}
           >
             <Text className="font-nunito-semibold text-sm leading-6 text-dangerText">
               {openError}
@@ -3776,13 +1462,15 @@ function usePacksScreenView() {
             const statusLabel = canAfford
               ? t("packs.readyNow")
               : t("packs.needMoreCoinsShort", {
-                  count: coinsNeeded });
+                  count: coinsNeeded,
+                });
             const limitAvailableLabel =
               limitReached && pack.availability?.nextAvailableAt
                 ? t("packs.weeklyLimitAvailable", {
                     date: formatPackAvailabilityDate(
                       pack.availability.nextAvailableAt,
-                    ) })
+                    ),
+                  })
                 : null;
 
             return (
@@ -3803,11 +1491,12 @@ function usePacksScreenView() {
                       ? tc.primaryBorder
                       : isFeatured
                         ? withAlpha(pack.color || tc.primary, "66")
-                        : withAlpha(pack.color || tc.primaryBorder, "2E") }}
+                        : withAlpha(pack.color || tc.primaryBorder, "2E"),
+                  }}
                 >
                   <View className="flex-row items-start gap-4">
                     <View className="items-center justify-center p-4">
-                      {getPackIcon(pack, 34)}
+                      <PackIconVisual pack={pack} size={34} />
                     </View>
 
                     <View className="flex-1 gap-4">
@@ -3838,7 +1527,8 @@ function usePacksScreenView() {
                           {" · "}
                           {pack.guaranteedRarity
                             ? t("packs.guaranteed", {
-                                rarity: pack.guaranteedRarity })
+                                rarity: pack.guaranteedRarity,
+                              })
                             : t("packs.standardOdds")}
                         </Text>
                       </View>
@@ -3848,7 +1538,8 @@ function usePacksScreenView() {
                           className="flex-row items-center gap-3 rounded-2xl border px-3 py-2"
                           style={{
                             backgroundColor: tc.bg,
-                            borderColor: tc.primaryBorder }}
+                            borderColor: tc.primaryBorder,
+                          }}
                         >
                           <View
                             className="h-8 w-8 items-center justify-center rounded-full"
@@ -3872,7 +1563,8 @@ function usePacksScreenView() {
                           <Text
                             className="font-nunito text-xs"
                             style={{
-                              color: canAfford ? tc.successText : tc.dangerText }}
+                              color: canAfford ? tc.successText : tc.dangerText,
+                            }}
                           >
                             {statusLabel}
                           </Text>
@@ -3881,7 +1573,8 @@ function usePacksScreenView() {
                             testID={`pack-open-cta-${slug}`}
                             className="font-nunito-bold text-sm"
                             style={{
-                              color: canOpen ? tc.primaryText : tc.fgMuted }}
+                              color: canOpen ? tc.primaryText : tc.fgMuted,
+                            }}
                           >
                             {t("packs.tapToOpen")}
                           </Text>
