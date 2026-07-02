@@ -81,6 +81,10 @@ function formatAbilitiesError(error: unknown, invalidDataLabel: string) {
 }
 
 export default function AdminAbilitiesScreen() {
+  return useAdminAbilitiesScreenView();
+}
+
+function useAdminAbilitiesScreenView() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { t } = useTranslation();

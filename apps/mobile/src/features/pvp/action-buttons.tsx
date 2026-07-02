@@ -8,11 +8,13 @@ import { THEME_COLORS } from "../../theme/themes";
 interface ActionButtonsProps {
   energy: number;
   maxEnergy: number;
-  isSwapMode: boolean;
-  isTargeting: boolean;
-  hasBench: boolean;
-  isMyTurn: boolean;
-  isActing: boolean;
+  state: {
+    isSwapMode: boolean;
+    isTargeting: boolean;
+    hasBench: boolean;
+    isMyTurn: boolean;
+    isActing: boolean;
+  };
   onSwapToggle: () => void;
   onCancel: () => void;
   onEndTurn: () => void;
@@ -21,17 +23,14 @@ interface ActionButtonsProps {
 export function ActionButtons({
   energy,
   maxEnergy,
-  isSwapMode,
-  isTargeting,
-  hasBench,
-  isMyTurn,
-  isActing,
+  state,
   onSwapToggle,
   onCancel,
   onEndTurn,
 }: ActionButtonsProps) {
   const themeName = useThemeStore((state) => state.themeName);
   const tc = THEME_COLORS[themeName];
+  const { isSwapMode, isTargeting, hasBench, isMyTurn, isActing } = state;
   const showCancel = isTargeting || isSwapMode;
   const swapDisabled = !hasBench || !isMyTurn;
   const endDisabled = !isMyTurn || isActing;

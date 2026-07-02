@@ -12,6 +12,11 @@ import { useThemeStore } from "../../../stores/theme-store";
 import { THEME_COLORS } from "../../../theme/themes";
 import { KEYPAD_ROWS, type KeypadKey } from "./constants";
 import { withAlpha } from "./palette";
+import {
+  getChangedTouchCount,
+  pressForChangedTouches,
+  releaseChangedTouches,
+} from "./keypad-touch";
 
 type InteractiveKeyId = KeypadKey | "CLEAR" | "SUBMIT";
 
@@ -88,13 +93,9 @@ function KeyButton({
   const showPressed = pressed && !disabled;
 
   const releaseTouches = useCallback((event: GestureResponderEvent) => {
-    const changedTouchCount = Math.max(
-      1,
-      event.nativeEvent.changedTouches?.length ?? 1,
-    );
-    activeTouchCountRef.current = Math.max(
-      0,
-      activeTouchCountRef.current - changedTouchCount,
+    activeTouchCountRef.current = releaseChangedTouches(
+      activeTouchCountRef.current,
+      event,
     );
     if (activeTouchCountRef.current === 0) {
       setPressed(false);
@@ -104,15 +105,10 @@ function KeyButton({
   const handleTouchStart = useCallback(
     (event: GestureResponderEvent) => {
       if (disabled) return;
-      const changedTouchCount = Math.max(
-        1,
-        event.nativeEvent.changedTouches?.length ?? 1,
-      );
+      const changedTouchCount = getChangedTouchCount(event);
       activeTouchCountRef.current += changedTouchCount;
       setPressed(true);
-      for (let i = 0; i < changedTouchCount; i += 1) {
-        onPress();
-      }
+      pressForChangedTouches(event, onPress);
     },
     [disabled, onPress],
   );

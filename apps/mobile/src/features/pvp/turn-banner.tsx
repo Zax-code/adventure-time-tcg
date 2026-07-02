@@ -1,10 +1,12 @@
 import { useEffect, useRef } from "react";
-import { Animated } from "react-native";
+import { Animated } from "../../lib/native-animated";
+import type { AnimatedValue } from "../../lib/native-animated";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { useTranslation } from "../../i18n";
 import { useThemeStore } from "../../stores/theme-store";
 import { THEME_COLORS } from "../../theme/themes";
+import { asStyle } from "../../lib/style-object";
 
 interface TurnBannerProps {
   isMyTurn: boolean;
@@ -15,9 +17,9 @@ export function TurnBanner({ isMyTurn, onDone }: TurnBannerProps) {
   const { t } = useTranslation();
   const themeName = useThemeStore((state) => state.themeName);
   const tc = THEME_COLORS[themeName];
-  const scaleRef = useRef<Animated.Value | null>(null);
-  const opacityRef = useRef<Animated.Value | null>(null);
-  const translateYRef = useRef<Animated.Value | null>(null);
+  const scaleRef = useRef<AnimatedValue | null>(null);
+  const opacityRef = useRef<AnimatedValue | null>(null);
+  const translateYRef = useRef<AnimatedValue | null>(null);
 
   if (scaleRef.current === null) {
     scaleRef.current = new Animated.Value(0.8);
@@ -59,7 +61,7 @@ export function TurnBanner({ isMyTurn, onDone }: TurnBannerProps) {
     <Animated.View
       testID="pvp-turn-banner"
       pointerEvents="none"
-      style={{
+      style={asStyle({
         position: "absolute",
         top: 0,
         left: 0,
@@ -70,7 +72,7 @@ export function TurnBanner({ isMyTurn, onDone }: TurnBannerProps) {
         justifyContent: "center",
         transform: [{ scale }, { translateY }],
         opacity,
-      }}
+      })}
     >
       <Animated.View
         style={{

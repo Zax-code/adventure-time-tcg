@@ -128,7 +128,9 @@ interface PlayerPlateProps {
   tone: "opponent" | "player";
 }
 
-function PlayerPlate({
+const PlayerPlate = playerPlate;
+
+function playerPlate({
   name,
   energy,
   maxEnergy,
@@ -157,7 +159,9 @@ function PlayerPlate({
   );
 }
 
-function EnergyPill({
+const EnergyPill = energyPill;
+
+function energyPill({
   energy,
   maxEnergy,
 }: {
@@ -174,7 +178,11 @@ function EnergyPill({
   );
 }
 
-export function BattleBoard({
+export function BattleBoard(props: BattleBoardProps) {
+  return useBattleBoardView(props);
+}
+
+function useBattleBoardView({
   matchView,
   newEvents,
   unitAnimationEvents,
@@ -646,11 +654,13 @@ export function BattleBoard({
               <ActionButtons
                 energy={myPlayer.energy}
                 maxEnergy={myPlayer.maxEnergy}
-                isSwapMode={isSwapMode}
-                isTargeting={targeting !== null}
-                hasBench={hasBench}
-                isMyTurn={isMyTurn}
-                isActing={isActing}
+                state={{
+                  isSwapMode,
+                  isTargeting: targeting !== null,
+                  hasBench,
+                  isMyTurn,
+                  isActing,
+                }}
                 onSwapToggle={onSwapToggle}
                 onCancel={onCancelTargeting}
                 onEndTurn={onEndTurn}

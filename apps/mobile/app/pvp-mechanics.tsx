@@ -104,7 +104,9 @@ export default function PvpMechanicsScreen() {
       <View className="flex-1 bg-bg" testID="pvp-mechanics-screen">
         <ScrollView
           className="flex-1"
-          contentContainerStyle={{ gap: 16, padding: 20, paddingBottom: insets.bottom + 24 }}
+          contentContainerStyle={{ gap: 16, padding: 20, paddingBottom: 24 }}
+          contentInset={{ bottom: insets.bottom }}
+          scrollIndicatorInsets={{ bottom: insets.bottom }}
         >
           <View
             className="gap-4 rounded-[28px] bg-surface p-4"

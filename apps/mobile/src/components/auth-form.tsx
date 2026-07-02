@@ -1,11 +1,10 @@
-import React, { useEffect, useEffectEvent, useRef, useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   GoogleSignin,
   isCancelledResponse,
   isErrorWithCode,
   isSuccessResponse,
-  statusCodes,
-} from "@react-native-google-signin/google-signin";
+  statusCodes } from "@react-native-google-signin/google-signin";
 import Ionicons from "@react-native-vector-icons/ionicons";
 import * as AppleAuthentication from "expo-apple-authentication";
 import * as Google from "expo-auth-session/providers/google";
@@ -19,8 +18,7 @@ import {
   Pressable,
   Text,
   TextInput,
-  View,
-} from "react-native";
+  View } from "react-native";
 import { ZodError, type ZodIssue } from "zod";
 import { SectionErrorState } from "./error-state";
 import { ApiClientError, apiClient, isNetworkError } from "../lib/api";
@@ -33,14 +31,14 @@ import { PrimaryButton } from "./button";
 import { ThemedExpoTextInput } from "./expo-ui/themed-text-input";
 import { CardsIcon, PackIcon, QuestIcon } from "./icons";
 import { KeyboardScreenView } from "./keyboard-screen-view";
+import { reactEffect, effectEvent } from "../lib/react-primitives";
 
 WebBrowser.maybeCompleteAuthSession();
 
 const sessionUrlProvider = new SessionUrlProvider();
 const expoProxyProjectName = "@zax-code/adventure-time-tcg";
 const expoProxyRedirectUri = sessionUrlProvider.getRedirectUrl({
-  projectNameForProxy: expoProxyProjectName,
-});
+  projectNameForProxy: expoProxyProjectName });
 const expoProxyReturnUrl = sessionUrlProvider.getDefaultReturnUrl();
 const googleWebClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
 const googleIosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
@@ -288,8 +286,7 @@ function buildAuthFormInitialState(
     verificationCode: prefill?.code ?? "",
     mode,
     stage,
-    info,
-  };
+    info };
 }
 
 function hasGoogleAuthConfig() {
@@ -312,16 +309,14 @@ function configureNativeGoogleSignIn() {
   GoogleSignin.configure({
     webClientId: googleWebClientId,
     iosClientId: googleIosClientId,
-    offlineAccess: false,
-  });
+    offlineAccess: false });
   nativeGoogleConfigured = true;
 }
 
 type SocialSignInProvider = "google" | "apple";
 
 function SocialProviderMark({
-  provider,
-}: {
+  provider }: {
   provider: SocialSignInProvider;
 }) {
   const iconName = provider === "apple" ? "logo-apple" : "logo-google";
@@ -334,8 +329,7 @@ function SocialSignInButton({
   onPress,
   provider,
   tc,
-  t,
-}: {
+  t }: {
   disabled: boolean;
   onPress: () => void;
   provider: SocialSignInProvider;
@@ -363,8 +357,7 @@ function SocialSignInButton({
             backgroundColor: buttonColor,
             borderColor: buttonColor,
             opacity: disabledOpacity,
-            transform: [{ scale: pressed && !disabled ? 0.985 : 1 }],
-          }}
+            transform: [{ scale: pressed && !disabled ? 0.985 : 1 }] }}
         >
           <SocialProviderMark provider={provider} />
           <Text
@@ -385,8 +378,7 @@ function GoogleSignInButton({
   disabled,
   onPress,
   tc,
-  t,
-}: {
+  t }: {
   disabled: boolean;
   onPress: () => void;
   tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
@@ -407,8 +399,7 @@ function AppleSignInButton({
   disabled,
   onPress,
   tc,
-  t,
-}: {
+  t }: {
   disabled: boolean;
   onPress: () => void;
   tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
@@ -433,8 +424,7 @@ function AppleAuthSection({
   setError,
   setSession,
   t,
-  tc,
-}: {
+  tc }: {
   handleAuthError: AuthSubmitErrorHandler;
   loading: boolean;
   preferredLanguage: "en" | "fr";
@@ -462,8 +452,7 @@ function AppleAuthSection({
         requestedScopes: [
           AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
           AppleAuthentication.AppleAuthenticationScope.EMAIL,
-        ],
-      });
+        ] });
 
       if (!credential.identityToken) {
         throw new Error("Apple did not return a usable token.");
@@ -476,16 +465,13 @@ function AppleAuthSection({
         fullName: credential.fullName
           ? {
               givenName: credential.fullName.givenName,
-              familyName: credential.fullName.familyName,
-            }
-          : undefined,
-      });
+              familyName: credential.fullName.familyName }
+          : undefined });
 
       await setSession({
         user: authResult.user,
         accessToken: authResult.tokens.accessToken,
-        refreshToken: authResult.tokens.refreshToken,
-      });
+        refreshToken: authResult.tokens.refreshToken });
       router.replace("/(tabs)");
     } catch (submitError) {
       if (
@@ -519,8 +505,7 @@ function BrowserGoogleAuthSection({
   setGoogleLoading,
   setSession,
   t,
-  tc,
-}: {
+  tc }: {
   handleAuthError: AuthSubmitErrorHandler;
   loading: boolean;
   preferredLanguage: "en" | "fr";
@@ -537,19 +522,17 @@ function BrowserGoogleAuthSection({
   const router = useRouter();
   const isExpoGo =
     Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
-  const retryGoogleAuth = useEffectEvent(
+  const retryGoogleAuth = effectEvent(
     async (idToken?: string, accessToken?: string) => {
       const authResult = await apiClient.googleAuth({
         idToken,
         accessToken,
-        preferredLanguage,
-      });
+        preferredLanguage });
 
       await setSession({
         user: authResult.user,
         accessToken: authResult.tokens.accessToken,
-        refreshToken: authResult.tokens.refreshToken,
-      });
+        refreshToken: authResult.tokens.refreshToken });
       router.replace("/(tabs)");
     },
   );
@@ -561,17 +544,15 @@ function BrowserGoogleAuthSection({
           responseType: "token",
           scopes: ["openid", "profile", "email"],
           selectAccount: true,
-          shouldAutoExchangeCode: false,
-        }
+          shouldAutoExchangeCode: false }
       : {
           iosClientId: googleIosClientId,
           webClientId: googleWebClientId,
           scopes: ["openid", "profile", "email"],
-          selectAccount: true,
-        },
+          selectAccount: true },
   );
 
-  useEffect(() => {
+  reactEffect(() => {
     if (!response) {
       return;
     }
@@ -693,8 +674,7 @@ function NativeGoogleAuthSection({
   setGoogleLoading,
   setSession,
   t,
-  tc,
-}: {
+  tc }: {
   handleAuthError: AuthSubmitErrorHandler;
   loading: boolean;
   preferredLanguage: "en" | "fr";
@@ -722,8 +702,7 @@ function NativeGoogleAuthSection({
 
     try {
       await GoogleSignin.hasPlayServices({
-        showPlayServicesUpdateDialog: true,
-      });
+        showPlayServicesUpdateDialog: true });
 
       const response = await GoogleSignin.signIn();
       if (isCancelledResponse(response)) {
@@ -745,14 +724,12 @@ function NativeGoogleAuthSection({
       const authResult = await apiClient.googleAuth({
         idToken,
         accessToken,
-        preferredLanguage,
-      });
+        preferredLanguage });
 
       await setSession({
         user: authResult.user,
         accessToken: authResult.tokens.accessToken,
-        refreshToken: authResult.tokens.refreshToken,
-      });
+        refreshToken: authResult.tokens.refreshToken });
       router.replace("/(tabs)");
     } catch (submitError) {
       if (
@@ -787,7 +764,7 @@ export function AuthForm({ prefill }: { prefill?: AuthFormPrefill }) {
   const preferredLanguage = useLocaleStore((state) => state.locale);
   const setPreferredLanguage = useLocaleStore((state) => state.setLocale);
 
-  useEffect(() => {
+  reactEffect(() => {
     if (prefill?.locale && prefill.locale !== preferredLanguage) {
       void setPreferredLanguage(prefill.locale);
     }
@@ -798,7 +775,11 @@ export function AuthForm({ prefill }: { prefill?: AuthFormPrefill }) {
   return <AuthFormInner key={prefillKey} prefill={prefill} />;
 }
 
-function AuthFormInner({ prefill }: { prefill?: AuthFormPrefill }) {
+function AuthFormInner(props: { prefill?: AuthFormPrefill }) {
+  return useAuthFormInnerView(props);
+}
+
+function useAuthFormInnerView({ prefill }: { prefill?: AuthFormPrefill }) {
   const router = useRouter();
   const setSession = useSessionStore((state) => state.setSession);
   const preferredLanguage = useLocaleStore((state) => state.locale);
@@ -830,11 +811,11 @@ function AuthFormInner({ prefill }: { prefill?: AuthFormPrefill }) {
   const appleAuthConfigured = Platform.OS === "ios" && appleAuthAvailable;
   const socialAuthConfigured = googleAuthConfigured || appleAuthConfigured;
   const autoVerifyTriggeredRef = useRef(false);
-  const submitAutoVerify = useEffectEvent(() => {
+  const submitAutoVerify = effectEvent(() => {
     void submit();
   });
 
-  useEffect(() => {
+  reactEffect(() => {
     let cancelled = false;
 
     async function checkAppleAvailability() {
@@ -947,7 +928,7 @@ function AuthFormInner({ prefill }: { prefill?: AuthFormPrefill }) {
     setInfo(nextInfo ?? null);
   }
 
-  useEffect(() => {
+  reactEffect(() => {
     if (
       !prefill?.autoVerify ||
       autoVerifyTriggeredRef.current ||
@@ -1023,8 +1004,7 @@ function AuthFormInner({ prefill }: { prefill?: AuthFormPrefill }) {
   ) {
     setError(getFriendlyError(submitError, provider), {
       cause: submitError,
-      onRetry,
-    });
+      onRetry });
   }
 
   async function submit() {
@@ -1040,8 +1020,7 @@ function AuthFormInner({ prefill }: { prefill?: AuthFormPrefill }) {
       if (stage === "verify") {
         const result = await apiClient.verifyEmail({
           email,
-          code: verificationCode,
-        });
+          code: verificationCode });
 
         if (result.authorized) {
           returnToSignIn(t("auth.status.emailVerifiedCanSignIn"));
@@ -1065,8 +1044,7 @@ function AuthFormInner({ prefill }: { prefill?: AuthFormPrefill }) {
         await apiClient.resetPassword({
           email,
           code: verificationCode,
-          password: resetPassword,
-        });
+          password: resetPassword });
         returnToSignIn(t("auth.status.passwordResetSuccess"));
         return;
       }
@@ -1076,8 +1054,7 @@ function AuthFormInner({ prefill }: { prefill?: AuthFormPrefill }) {
         await setSession({
           user: result.user,
           accessToken: result.tokens.accessToken,
-          refreshToken: result.tokens.refreshToken,
-        });
+          refreshToken: result.tokens.refreshToken });
         router.replace("/(tabs)");
         return;
       }
@@ -1086,8 +1063,7 @@ function AuthFormInner({ prefill }: { prefill?: AuthFormPrefill }) {
         email,
         password,
         displayName,
-        preferredLanguage,
-      });
+        preferredLanguage });
       setVerificationCode("");
       enterVerificationStage(
         result.accessRequestPending
@@ -1174,15 +1150,13 @@ function AuthFormInner({ prefill }: { prefill?: AuthFormPrefill }) {
                   ? tc.surfaceMuted
                   : mode === "login"
                     ? tc.primaryDark
-                    : tc.surfaceMuted,
-            }}
+                    : tc.surfaceMuted }}
           >
             <Text
               style={{
                 fontFamily: "Nunito-Bold",
                 fontSize: 14,
-                color: mode === "login" ? "white" : tc.primaryStrong,
-              }}
+                color: mode === "login" ? "white" : tc.primaryStrong }}
             >
               {t("auth.tabs.signIn")}
             </Text>
@@ -1201,15 +1175,13 @@ function AuthFormInner({ prefill }: { prefill?: AuthFormPrefill }) {
                   ? tc.surfaceMuted
                   : mode === "register"
                     ? tc.primaryDark
-                    : tc.surfaceMuted,
-            }}
+                    : tc.surfaceMuted }}
           >
             <Text
               style={{
                 fontFamily: "Nunito-Bold",
                 fontSize: 14,
-                color: mode === "register" ? "white" : tc.primaryStrong,
-              }}
+                color: mode === "register" ? "white" : tc.primaryStrong }}
             >
               {t("auth.tabs.register")}
             </Text>
@@ -1268,13 +1240,11 @@ function AuthFormInner({ prefill }: { prefill?: AuthFormPrefill }) {
                 borderWidth: 1,
                 height: 50,
                 paddingHorizontal: 16,
-                width: "100%",
-              }}
+                width: "100%" }}
               textStyle={{
                 color: tc.fg,
                 fontFamily: "Nunito_400Regular",
-                fontSize: 16,
-              }}
+                fontSize: 16 }}
             />
 
             {stage === "verify" ? (
@@ -1321,13 +1291,11 @@ function AuthFormInner({ prefill }: { prefill?: AuthFormPrefill }) {
                   borderWidth: 1,
                   height: 50,
                   paddingHorizontal: 16,
-                  width: "100%",
-                }}
+                  width: "100%" }}
                 textStyle={{
                   color: tc.fg,
                   fontFamily: "Nunito_400Regular",
-                  fontSize: 16,
-                }}
+                  fontSize: 16 }}
               />
             ) : stage === "resetPassword" ? (
               <>
@@ -1345,13 +1313,11 @@ function AuthFormInner({ prefill }: { prefill?: AuthFormPrefill }) {
                     borderWidth: 1,
                     height: 50,
                     paddingHorizontal: 16,
-                    width: "100%",
-                  }}
+                    width: "100%" }}
                   textStyle={{
                     color: tc.fg,
                     fontFamily: "Nunito_400Regular",
-                    fontSize: 16,
-                  }}
+                    fontSize: 16 }}
                 />
                 <ThemedExpoTextInput
                   value={resetPassword}
@@ -1367,13 +1333,11 @@ function AuthFormInner({ prefill }: { prefill?: AuthFormPrefill }) {
                     borderWidth: 1,
                     height: 50,
                     paddingHorizontal: 16,
-                    width: "100%",
-                  }}
+                    width: "100%" }}
                   textStyle={{
                     color: tc.fg,
                     fontFamily: "Nunito_400Regular",
-                    fontSize: 16,
-                  }}
+                    fontSize: 16 }}
                 />
               </>
             ) : stage === "pendingApproval" ? (
@@ -1415,13 +1379,11 @@ function AuthFormInner({ prefill }: { prefill?: AuthFormPrefill }) {
                     borderWidth: 1,
                     height: 50,
                     paddingHorizontal: 16,
-                    width: "100%",
-                  }}
+                    width: "100%" }}
                   textStyle={{
                     color: tc.fg,
                     fontFamily: "Nunito_400Regular",
-                    fontSize: 16,
-                  }}
+                    fontSize: 16 }}
                 />
                 {mode === "register" ? (
                   <ThemedExpoTextInput
@@ -1436,13 +1398,11 @@ function AuthFormInner({ prefill }: { prefill?: AuthFormPrefill }) {
                       borderWidth: 1,
                       height: 50,
                       paddingHorizontal: 16,
-                      width: "100%",
-                    }}
+                      width: "100%" }}
                     textStyle={{
                       color: tc.fg,
                       fontFamily: "Nunito_400Regular",
-                      fontSize: 16,
-                    }}
+                      fontSize: 16 }}
                   />
                 ) : null}
               </>

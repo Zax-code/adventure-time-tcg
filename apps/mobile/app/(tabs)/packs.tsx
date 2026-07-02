@@ -4,38 +4,37 @@ import { Image } from "expo-image";
 import { useNavigation } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useState, useMemo, useRef, type ReactNode } from "react";
 import {
-  Animated,
   Easing,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
-  useWindowDimensions,
-} from "react-native";
+  useWindowDimensions } from "react-native";
+import {
+  Animated,
+  type AnimatedValue,
+  type CompositeAnimation } from "../../src/lib/native-animated";
 import Svg, {
   Circle,
   Defs,
   Path,
   RadialGradient as SvgRadialGradient,
-  Stop,
-} from "react-native-svg";
+  Stop } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import type {
   CollectionResponse,
   OpenPackResponse,
-  PacksResponse,
-} from "@adventure-time/api-client";
+  PacksResponse } from "@adventure-time/api-client";
 import { PrimaryButton, SecondaryButton } from "../../src/components/button";
 import { CardTile } from "../../src/components/card-tile";
 import {
   CARD_ART_RATIO,
   CARD_BACKCOVER_RATIO,
-  getCardBackcoverSource,
-} from "../../src/components/card-back-cover-art";
+  getCardBackcoverSource } from "../../src/components/card-back-cover-art";
 import { getCardOutlineSource } from "../../src/components/card-outline-frame";
 import { PageErrorState } from "../../src/components/error-state";
 import {
@@ -50,38 +49,35 @@ import {
   PackIcon,
   SparkleIcon,
   SparklesIcon,
-  ZapIcon,
-} from "../../src/components/icons";
+  ZapIcon } from "../../src/components/icons";
 import { PageLoadingState } from "../../src/components/loading-state";
 import {
   getContainedPackOpeningArtLayout,
   getPackOpeningArtDimensions,
   getPackOpeningArtSource,
-  type PackOpeningArtLayout,
-} from "../../src/components/pack-opening-art";
+  type PackOpeningArtLayout } from "../../src/components/pack-opening-art";
 import { getPackOpeningVisualProfile } from "../../src/components/pack-opening-visuals";
 import PackOpeningSequenceDom from "../../src/components/pack-opening-sequence-dom";
 import {
   RARITY_COLORS,
   RARITY_COLORS_ICE,
-  RARITY_COLORS_NIGHTOSPHERE,
-} from "../../src/components/theme";
+  RARITY_COLORS_NIGHTOSPHERE } from "../../src/components/theme";
 import { useTranslation } from "../../src/i18n";
 import { apiClient } from "../../src/lib/api";
 import {
   getCatalogImageUrl,
-  prefetchCatalogImages,
-} from "../../src/lib/catalog-images";
+  prefetchCatalogImages } from "../../src/lib/catalog-images";
 import { prefetchCardImages } from "../../src/lib/card-images";
 import { useSessionStore } from "../../src/stores/session-store";
 import { useThemeStore } from "../../src/stores/theme-store";
 import {
   useAppHeaderHeight,
-  useBottomTabBarContentPadding,
-} from "../../src/theme/layout";
+  useBottomTabBarContentPadding } from "../../src/theme/layout";
 import { THEME_COLORS, type ThemeName } from "../../src/theme/themes";
 
 import type { ViewStyle } from "react-native";
+import { asStyle } from "../../src/lib/style-object";
+import { reactEffect } from "../../src/lib/react-primitives";
 
 type Pack = PacksResponse["packs"][number];
 type CardBackVisual = PacksResponse["cardBackVisuals"][number];
@@ -166,8 +162,7 @@ function formatPackAvailabilityDate(value: string | null | undefined) {
   return date.toLocaleDateString(undefined, {
     weekday: "long",
     month: "short",
-    day: "numeric",
-  });
+    day: "numeric" });
 }
 
 const PACK_CARD_RATIO = 320 / 460;
@@ -179,13 +174,11 @@ const PACK_OPEN_PROGRESS_MS = IS_E2E_BUILD
   ? {
       first: 1400,
       second: 1400,
-      final: 720,
-    }
+      final: 720 }
   : {
       first: 420,
       second: 420,
-      final: 220,
-    };
+      final: 220 };
 const REVEAL_FLIP_MS = IS_E2E_BUILD ? 520 : 1120;
 const SPARK_REVEAL_FLIP_MS = IS_E2E_BUILD ? 980 : 2100;
 const REVEAL_START_DELAY_MS = IS_E2E_BUILD ? 200 : 420;
@@ -203,57 +196,49 @@ const TREASURE_RAY_SPECS = [
     spread: 6,
     inner: 0.18,
     outer: 0.48,
-    color: "rgba(255, 242, 168, 0.52)",
-  },
+    color: "rgba(255, 242, 168, 0.52)" },
   {
     angle: 52,
     spread: 7,
     inner: 0.2,
     outer: 0.44,
-    color: "rgba(255, 194, 70, 0.42)",
-  },
+    color: "rgba(255, 194, 70, 0.42)" },
   {
     angle: 88,
     spread: 6,
     inner: 0.18,
     outer: 0.46,
-    color: "rgba(255, 255, 210, 0.5)",
-  },
+    color: "rgba(255, 255, 210, 0.5)" },
   {
     angle: 124,
     spread: 7,
     inner: 0.2,
     outer: 0.42,
-    color: "rgba(255, 202, 88, 0.38)",
-  },
+    color: "rgba(255, 202, 88, 0.38)" },
   {
     angle: 164,
     spread: 8,
     inner: 0.22,
     outer: 0.46,
-    color: "rgba(255, 244, 180, 0.5)",
-  },
+    color: "rgba(255, 244, 180, 0.5)" },
   {
     angle: 214,
     spread: 7,
     inner: 0.2,
     outer: 0.42,
-    color: "rgba(255, 177, 54, 0.38)",
-  },
+    color: "rgba(255, 177, 54, 0.38)" },
   {
     angle: 258,
     spread: 6,
     inner: 0.19,
     outer: 0.45,
-    color: "rgba(255, 255, 218, 0.48)",
-  },
+    color: "rgba(255, 255, 218, 0.48)" },
   {
     angle: 304,
     spread: 7,
     inner: 0.2,
     outer: 0.43,
-    color: "rgba(255, 203, 80, 0.42)",
-  },
+    color: "rgba(255, 203, 80, 0.42)" },
 ];
 const CARD_BACK_STACK_SPECS: [
   CardBackStackSpec,
@@ -269,8 +254,7 @@ const CARD_BACK_STACK_SPECS: [
     collapsedY: 5,
     collapsedRotate: "-2deg",
     scale: 0.96,
-    zIndex: 1,
-  },
+    zIndex: 1 },
   {
     key: "right",
     finalX: 30,
@@ -280,8 +264,7 @@ const CARD_BACK_STACK_SPECS: [
     collapsedY: 5,
     collapsedRotate: "2deg",
     scale: 0.96,
-    zIndex: 2,
-  },
+    zIndex: 2 },
   {
     key: "center",
     finalX: 0,
@@ -291,8 +274,7 @@ const CARD_BACK_STACK_SPECS: [
     collapsedY: 0,
     collapsedRotate: "0deg",
     scale: 1,
-    zIndex: 3,
-  },
+    zIndex: 3 },
 ];
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 const packScreenStyles = StyleSheet.create({
@@ -303,28 +285,24 @@ const packScreenStyles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: "#FFF2AA",
     boxShadow:
-      "0 0 18px rgba(255, 242, 170, 0.95), 0 0 42px rgba(255, 156, 37, 0.8), 0 0 80px rgba(255, 91, 18, 0.6)",
-  },
+      "0 0 18px rgba(255, 242, 170, 0.95), 0 0 42px rgba(255, 156, 37, 0.8), 0 0 80px rgba(255, 91, 18, 0.6)" },
   burstShockwave: {
     position: "absolute",
     width: 120,
     height: 120,
     borderRadius: 999,
     borderWidth: 3,
-    borderColor: "rgba(255, 228, 130, 0.9)",
-  },
+    borderColor: "rgba(255, 228, 130, 0.9)" },
   burstParticle: {
     position: "absolute",
-    borderRadius: 999,
-  },
-});
+    borderRadius: 999 } });
 
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function useAnimatedValue(initialValue: number) {
-  const ref = useRef<Animated.Value | null>(null);
+  const ref = useRef<AnimatedValue | null>(null);
 
   if (ref.current === null) {
     ref.current = new Animated.Value(initialValue);
@@ -346,8 +324,7 @@ function toCardTileEntry(card: OpenedCard): CardTileEntry {
     cardId: card.id,
     card,
     obtainedAt: new Date(0).toISOString(),
-    quantity: 1,
-  };
+    quantity: 1 };
 }
 
 function getRarityGlowColor(rarityName: string): string {
@@ -368,8 +345,7 @@ function getRarityGlowColor(rarityName: string): string {
 function getPackIcon(pack: Pack, size = 34) {
   const visualProfile = getPackOpeningVisualProfile({
     guaranteedRarity: pack.guaranteedRarity,
-    name: pack.name,
-  });
+    name: pack.name });
 
   switch (visualProfile.iconKind) {
     case "crown":
@@ -452,8 +428,7 @@ function getRayToPackEdge(
     y: centerY + dy * distance,
     dx,
     dy,
-    distance,
-  };
+    distance };
 }
 
 function createLightningCrackPath(
@@ -479,8 +454,7 @@ function createLightningCrackPath(
 
     points.push({
       x: baseX + normalX * offset,
-      y: baseY + normalY * offset,
-    });
+      y: baseY + normalY * offset });
   }
 
   points.push({ x: edge.x, y: edge.y });
@@ -492,8 +466,7 @@ function createLightningCrackPath(
           `${index === 0 ? "M" : "L"} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`,
       )
       .join(" "),
-    dashLength: Math.ceil(getPathLength(points)),
-  };
+    dashLength: Math.ceil(getPathLength(points)) };
 }
 
 function createBurstPattern(
@@ -528,8 +501,7 @@ function createBurstPattern(
 
     return {
       ...crackPath,
-      delay: index * 0.05 + randomBetween(0, 0.03),
-    };
+      delay: index * 0.05 + randomBetween(0, 0.03) };
   });
 
   const particles = Array.from({ length: 82 }, (_, index) => {
@@ -544,8 +516,7 @@ function createBurstPattern(
       color:
         BURST_PARTICLE_COLORS[
           Math.floor(randomBetween(0, BURST_PARTICLE_COLORS.length))
-        ] ?? BURST_PARTICLE_COLORS[0],
-    };
+        ] ?? BURST_PARTICLE_COLORS[0] };
   });
 
   const shards = Array.from({ length: 18 }, (_, index) => {
@@ -557,8 +528,7 @@ function createBurstPattern(
       travelY: Math.sin(angle) * distance,
       width: randomBetween(18, 28),
       height: randomBetween(30, 48),
-      spin: `${Math.round(randomBetween(-760, 760))}deg`,
-    };
+      spin: `${Math.round(randomBetween(-760, 760))}deg` };
   });
 
   return { cracks, particles, shards };
@@ -582,8 +552,7 @@ function createLoadingSparkles(baseSize: number) {
       travelY: Math.sin(angle) * distance,
       size: randomBetween(baseSize * 0.028, baseSize * 0.074),
       delay: randomBetween(0, 0.18),
-      rotation: randomBetween(0, 80),
-    };
+      rotation: randomBetween(0, 80) };
   });
 }
 
@@ -685,8 +654,7 @@ function buildCardBackVisualMap(visuals: CardBackVisual[]): CardBackVisualMap {
 function BackgroundOrbs({
   primary,
   secondary,
-  accent,
-}: {
+  accent }: {
   primary: string;
   secondary: string;
   accent: string;
@@ -700,8 +668,7 @@ function BackgroundOrbs({
 function PackFaceInterior({
   pack,
   tc,
-  compact = false,
-}: {
+  compact = false }: {
   pack: Pack;
   tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
   compact?: boolean;
@@ -735,30 +702,30 @@ function PackFaceInterior({
   );
 }
 
-function PackPreviewCard({
+const PackPreviewCard = packPreviewCard;
+
+function packPreviewCard({
   pack,
   width,
   tc,
   compact = false,
   pulseAnim,
   chargeAnim,
-  sheenAnim,
-}: {
+  sheenAnim }: {
   pack: Pack;
   width: number;
   tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
   compact?: boolean;
-  pulseAnim?: Animated.Value;
-  chargeAnim?: Animated.Value;
-  sheenAnim?: Animated.Value;
+  pulseAnim?: AnimatedValue;
+  chargeAnim?: AnimatedValue;
+  sheenAnim?: AnimatedValue;
 }) {
   const height = width / PACK_CARD_RATIO;
   const packArtSource = getPackOpeningArtSource({
     guaranteedRarity: pack.guaranteedRarity,
     name: pack.name,
     packArtAssetId: pack.packArtAssetId,
-    packArtUrl: getPackArtUrl(pack),
-  });
+    packArtUrl: getPackArtUrl(pack) });
   void sheenAnim;
 
   const animatedTransforms = [
@@ -767,21 +734,15 @@ function PackPreviewCard({
           {
             translateY: chargeAnim.interpolate({
               inputRange: [0, 0.5, 1],
-              outputRange: [6, -8, 6],
-            }),
-          },
+              outputRange: [6, -8, 6] }) },
           {
             rotateX: chargeAnim.interpolate({
               inputRange: [0, 0.5, 1],
-              outputRange: ["0deg", "6deg", "0deg"],
-            }),
-          },
+              outputRange: ["0deg", "6deg", "0deg"] }) },
           {
             rotateZ: chargeAnim.interpolate({
               inputRange: [0, 0.5, 1],
-              outputRange: ["-1deg", "1deg", "-1deg"],
-            }),
-          },
+              outputRange: ["-1deg", "1deg", "-1deg"] }) },
         ]
       : []),
     ...(pulseAnim
@@ -789,9 +750,7 @@ function PackPreviewCard({
           {
             scale: pulseAnim.interpolate({
               inputRange: [0, 0.5, 1],
-              outputRange: [1, 1.014, 1],
-            }),
-          },
+              outputRange: [1, 1.014, 1] }) },
         ]
       : []),
     ...(chargeAnim
@@ -799,9 +758,7 @@ function PackPreviewCard({
           {
             scale: chargeAnim.interpolate({
               inputRange: [0, 0.5, 1],
-              outputRange: [1, 1.015, 1],
-            }),
-          },
+              outputRange: [1, 1.015, 1] }) },
         ]
       : []),
   ];
@@ -813,8 +770,7 @@ function PackPreviewCard({
         height,
         overflow: "visible",
         backgroundColor: "transparent",
-        transform: animatedTransforms,
-      }}
+        transform: animatedTransforms }}
     >
       <Image
         source={packArtSource}
@@ -823,8 +779,7 @@ function PackPreviewCard({
           width: "100%",
           height: "100%",
           opacity: compact ? 0.14 : 0.18,
-          transform: [{ translateY: compact ? 10 : 14 }, { scale: 0.96 }],
-        }}
+          transform: [{ translateY: compact ? 10 : 14 }, { scale: 0.96 }] }}
         contentFit="contain"
         transition={0}
         blurRadius={compact ? 12 : 18}
@@ -853,12 +808,9 @@ function PackPreviewCard({
                     -width * 1.2,
                     width * 1.2,
                     width * 1.2,
-                  ],
-                }),
-              },
+                  ] }) },
               { rotate: "16deg" },
-            ],
-          }}
+            ] }}
         >
           <LinearGradient
             colors={[
@@ -876,12 +828,13 @@ function PackPreviewCard({
   );
 }
 
-function PackFaceCanvas({
+const PackFaceCanvas = packFaceCanvas;
+
+function packFaceCanvas({
   pack,
   width,
   height,
-  tc,
-}: {
+  tc }: {
   pack: Pack;
   width: number;
   height: number;
@@ -899,19 +852,19 @@ function PackFaceCanvas({
         overflow: "hidden",
         borderWidth: 2,
         borderColor: withAlpha(accentColor, "66"),
-        backgroundColor: packSurfaceColor,
-      }}
+        backgroundColor: packSurfaceColor }}
     >
       <PackFaceInterior pack={pack} tc={tc} />
     </View>
   );
 }
 
-function PackOpeningAura({
+const PackOpeningAura = packOpeningAura;
+
+function packOpeningAura({
   width,
   height,
-  gradientId,
-}: {
+  gradientId }: {
   width: number;
   height: number;
   gradientId: string;
@@ -936,13 +889,14 @@ function PackOpeningAura({
   );
 }
 
-function PackLoadingGlow({
+const PackLoadingGlow = packLoadingGlow;
+
+function packLoadingGlow({
   width,
   anim,
-  sparkles,
-}: {
+  sparkles }: {
   width: number;
-  anim: Animated.Value;
+  anim: AnimatedValue;
   sparkles: LoadingSparkle[];
 }) {
   const size = width * 1.58;
@@ -951,33 +905,27 @@ function PackLoadingGlow({
   const glowOpacity = anim.interpolate({
     inputRange: [0, 0.2, 0.55, 1],
     outputRange: [0, 0.82, 0.74, 0.38],
-    extrapolate: "clamp",
-  });
+    extrapolate: "clamp" });
   const glowScale = anim.interpolate({
     inputRange: [0, 0.2, 0.55, 1],
     outputRange: [0.12, 0.95, 1.2, 1.35],
-    extrapolate: "clamp",
-  });
+    extrapolate: "clamp" });
   const glowBlurScale = anim.interpolate({
     inputRange: [0, 0.2, 0.55, 1],
     outputRange: [0.18, 1.02, 1.28, 1.48],
-    extrapolate: "clamp",
-  });
+    extrapolate: "clamp" });
   const raysOpacity = anim.interpolate({
     inputRange: [0, 0.22, 1],
     outputRange: [0, 0.86, 0.42],
-    extrapolate: "clamp",
-  });
+    extrapolate: "clamp" });
   const raysScale = anim.interpolate({
     inputRange: [0, 0.22, 1],
     outputRange: [0.15, 0.95, 1.18],
-    extrapolate: "clamp",
-  });
+    extrapolate: "clamp" });
   const raysRotate = anim.interpolate({
     inputRange: [0, 0.22, 1],
     outputRange: ["0deg", "12deg", "36deg"],
-    extrapolate: "clamp",
-  });
+    extrapolate: "clamp" });
 
   return (
     <View
@@ -986,8 +934,7 @@ function PackLoadingGlow({
         width: size,
         height: size,
         alignItems: "center",
-        justifyContent: "center",
-      }}
+        justifyContent: "center" }}
     >
       <Animated.View
         style={{
@@ -996,10 +943,8 @@ function PackLoadingGlow({
           height: size * 0.98,
           opacity: glowOpacity.interpolate({
             inputRange: [0, 1],
-            outputRange: [0, 0.34],
-          }),
-          transform: [{ scale: glowBlurScale }],
-        }}
+            outputRange: [0, 0.34] }),
+          transform: [{ scale: glowBlurScale }] }}
       >
         <Svg width="100%" height="100%" viewBox={`0 0 ${size} ${size}`}>
           <Defs>
@@ -1030,8 +975,7 @@ function PackLoadingGlow({
           width: size,
           height: size,
           opacity: raysOpacity,
-          transform: [{ scale: raysScale }, { rotate: raysRotate }],
-        }}
+          transform: [{ scale: raysScale }, { rotate: raysRotate }] }}
       >
         <Svg width="100%" height="100%" viewBox={`0 0 ${size} ${size}`}>
           {TREASURE_RAY_SPECS.map((ray) => (
@@ -1057,8 +1001,7 @@ function PackLoadingGlow({
           width: size * 0.86,
           height: size * 0.86,
           opacity: glowOpacity,
-          transform: [{ scale: glowScale }],
-        }}
+          transform: [{ scale: glowScale }] }}
       >
         <Svg width="100%" height="100%" viewBox={`0 0 ${size} ${size}`}>
           <Defs>
@@ -1105,8 +1048,7 @@ function PackLoadingGlow({
               opacity: anim.interpolate({
                 inputRange: [0, appearAt, settleAt, driftAt, vanishAt, 1],
                 outputRange: [0, 0, 1, 0.95, 0, 0],
-                extrapolate: "clamp",
-              }),
+                extrapolate: "clamp" }),
               transform: [
                 {
                   translateX: anim.interpolate({
@@ -1119,9 +1061,7 @@ function PackLoadingGlow({
                       sparkle.travelX * 1.12,
                       sparkle.travelX * 1.12,
                     ],
-                    extrapolate: "clamp",
-                  }),
-                },
+                    extrapolate: "clamp" }) },
                 {
                   translateY: anim.interpolate({
                     inputRange: [0, appearAt, settleAt, driftAt, vanishAt, 1],
@@ -1133,16 +1073,12 @@ function PackLoadingGlow({
                       sparkle.travelY * 1.12 - rise,
                       sparkle.travelY * 1.12 - rise,
                     ],
-                    extrapolate: "clamp",
-                  }),
-                },
+                    extrapolate: "clamp" }) },
                 {
                   scale: anim.interpolate({
                     inputRange: [0, appearAt, settleAt, driftAt, vanishAt, 1],
                     outputRange: [0.15, 0.15, 1, 0.65, 0.1, 0.1],
-                    extrapolate: "clamp",
-                  }),
-                },
+                    extrapolate: "clamp" }) },
                 {
                   rotate: anim.interpolate({
                     inputRange: [0, appearAt, settleAt, driftAt, vanishAt, 1],
@@ -1154,11 +1090,8 @@ function PackLoadingGlow({
                       `${sparkle.rotation + 250}deg`,
                       `${sparkle.rotation + 250}deg`,
                     ],
-                    extrapolate: "clamp",
-                  }),
-                },
-              ],
-            }}
+                    extrapolate: "clamp" }) },
+              ] }}
           >
             <View
               style={{
@@ -1168,8 +1101,7 @@ function PackLoadingGlow({
                 width: sparkle.size * 0.2,
                 height: sparkle.size,
                 borderRadius: 999,
-                backgroundColor: "#FFF9D8",
-              }}
+                backgroundColor: "#FFF9D8" }}
             />
             <View
               style={{
@@ -1179,8 +1111,7 @@ function PackLoadingGlow({
                 width: sparkle.size,
                 height: sparkle.size * 0.2,
                 borderRadius: 999,
-                backgroundColor: "#FFF9D8",
-              }}
+                backgroundColor: "#FFF9D8" }}
             />
           </Animated.View>
         );
@@ -1189,12 +1120,13 @@ function PackLoadingGlow({
   );
 }
 
-function CardBackFace({
+const CardBackFace = cardBackFace;
+
+function cardBackFace({
   width,
   themeName,
   rarityName,
-  cardBackVisualMap,
-}: {
+  cardBackVisualMap }: {
   width: number;
   themeName: ThemeName;
   rarityName: RarityName;
@@ -1213,31 +1145,30 @@ function CardBackFace({
         width,
         height,
         borderRadius: 32,
-        overflow: "hidden",
-      }}
+        overflow: "hidden" }}
     >
       <Image
         source={backcoverSource}
         contentFit="cover"
         style={{
           width: "100%",
-          height: "100%",
-        }}
+          height: "100%" }}
       />
     </View>
   );
 }
 
-function RevealCardHalo({
+const RevealCardHalo = revealCardHalo;
+
+function revealCardHalo({
   color,
   opacityAnim,
   rarityName,
   isSparkReveal = false,
   themeName,
-  width,
-}: {
+  width }: {
   color: string;
-  opacityAnim: Animated.Value;
+  opacityAnim: AnimatedValue;
   rarityName: RarityName;
   isSparkReveal?: boolean;
   themeName: ThemeName;
@@ -1247,17 +1178,15 @@ function RevealCardHalo({
   const haloShapeSource = getCardOutlineSource(themeName, rarityName);
   const haloOpacity = opacityAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, isSparkReveal ? 0.38 : 0.22],
-  });
+    outputRange: [0, isSparkReveal ? 0.38 : 0.22] });
   const haloScale = opacityAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [0.995, isSparkReveal ? 1.055 : 1.025],
-  });
+    outputRange: [0.995, isSparkReveal ? 1.055 : 1.025] });
 
   return (
     <Animated.View
       pointerEvents="none"
-      style={{
+      style={asStyle({
         position: "absolute",
         left: 0,
         top: 0,
@@ -1265,8 +1194,7 @@ function RevealCardHalo({
         height,
         opacity: haloOpacity,
         zIndex: 0,
-        transform: [{ scale: haloScale }],
-      }}
+        transform: [{ scale: haloScale }] })}
     >
       <Image
         pointerEvents="none"
@@ -1279,48 +1207,43 @@ function RevealCardHalo({
           top: -4,
           right: -4,
           bottom: -4,
-          left: -4,
-        }}
+          left: -4 }}
       />
     </Animated.View>
   );
 }
 
-function SparkRevealOverlay({
+const SparkRevealOverlay = sparkRevealOverlay;
+
+function sparkRevealOverlay({
   color,
   anim,
-  width,
-}: {
+  width }: {
   color: string;
-  anim: Animated.Value;
+  anim: AnimatedValue;
   width: number;
 }) {
   const height = width / REVEAL_CARD_RATIO;
   const pulseOpacity = anim.interpolate({
     inputRange: [0, 0.25, 0.62, 1],
-    outputRange: [0, 0.92, 0.34, 0],
-  });
+    outputRange: [0, 0.92, 0.34, 0] });
   const pulseScale = anim.interpolate({
     inputRange: [0, 1],
-    outputRange: [0.78, 1.36],
-  });
+    outputRange: [0.78, 1.36] });
   const glintOpacity = anim.interpolate({
     inputRange: [0, 0.32, 0.68, 1],
-    outputRange: [0, 0.8, 0.22, 0],
-  });
+    outputRange: [0, 0.8, 0.22, 0] });
   const glintTranslateX = anim.interpolate({
     inputRange: [0, 1],
-    outputRange: [-width * 0.8, width * 0.8],
-  });
+    outputRange: [-width * 0.8, width * 0.8] });
   const starScale = anim.interpolate({
     inputRange: [0, 0.45, 0.72, 1],
-    outputRange: [0.75, 1.22, 1.04, 0.9],
-  });
+    outputRange: [0.75, 1.22, 1.04, 0.9] });
 
   return (
     <Animated.View
       pointerEvents="none"
-      style={{
+      style={asStyle({
         position: "absolute",
         top: -18,
         right: -18,
@@ -1328,11 +1251,10 @@ function SparkRevealOverlay({
         left: -18,
         zIndex: 24,
         opacity: pulseOpacity,
-        transform: [{ scale: pulseScale }],
-      }}
+        transform: [{ scale: pulseScale }] })}
     >
       <View
-        style={{
+        style={asStyle({
           position: "absolute",
           top: 0,
           right: 0,
@@ -1341,11 +1263,10 @@ function SparkRevealOverlay({
           borderRadius: 36,
           borderWidth: 2,
           borderColor: color,
-          backgroundColor: withAlpha(color, "16"),
-        }}
+          backgroundColor: withAlpha(color, "16") })}
       />
       <Animated.View
-        style={{
+        style={asStyle({
           position: "absolute",
           top: height * 0.12,
           bottom: height * 0.12,
@@ -1354,8 +1275,7 @@ function SparkRevealOverlay({
           borderRadius: 999,
           backgroundColor: "rgba(255, 255, 255, 0.72)",
           opacity: glintOpacity,
-          transform: [{ translateX: glintTranslateX }, { rotate: "18deg" }],
-        }}
+          transform: [{ translateX: glintTranslateX }, { rotate: "18deg" }] })}
       />
       <Animated.View
         style={{
@@ -1363,8 +1283,7 @@ function SparkRevealOverlay({
           right: 18,
           top: 16,
           opacity: glintOpacity,
-          transform: [{ scale: starScale }],
-        }}
+          transform: [{ scale: starScale }] }}
       >
         <SparklesIcon size={30} color="#FFF8D6" />
       </Animated.View>
@@ -1372,7 +1291,9 @@ function SparkRevealOverlay({
   );
 }
 
-function CardBackStack({
+const CardBackStack = cardBackStack;
+
+function cardBackStack({
   width,
   tc,
   themeName,
@@ -1380,16 +1301,15 @@ function CardBackStack({
   rarityNames,
   spreadAnim,
   idleAnim,
-  pulseAnim,
-}: {
+  pulseAnim }: {
   width: number;
   tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
   themeName: ThemeName;
   cardBackVisualMap: CardBackVisualMap;
   rarityNames: RarityName[];
-  spreadAnim: Animated.Value;
-  idleAnim?: Animated.Value;
-  pulseAnim?: Animated.Value;
+  spreadAnim: AnimatedValue;
+  idleAnim?: AnimatedValue;
+  pulseAnim?: AnimatedValue;
 }) {
   const cardHeight = width / REVEAL_CARD_RATIO;
   const stackHeight = cardHeight + 44;
@@ -1408,23 +1328,18 @@ function CardBackStack({
         : CARD_BACK_STACK_SPECS;
   const visibleStackEntries = visibleStackCards.map((card, index) => ({
     ...card,
-    rarityName: visibleRarityNames[index] ?? "Common",
-  }));
+    rarityName: visibleRarityNames[index] ?? "Common" }));
   const wrapperTransforms = [
     ...(idleAnim
       ? [
           {
             translateY: idleAnim.interpolate({
               inputRange: [0, 0.5, 1],
-              outputRange: [8, -8, 8],
-            }),
-          },
+              outputRange: [8, -8, 8] }) },
           {
             scale: idleAnim.interpolate({
               inputRange: [0, 0.5, 1],
-              outputRange: [0.994, 1.008, 0.994],
-            }),
-          },
+              outputRange: [0.994, 1.008, 0.994] }) },
         ]
       : []),
     ...(pulseAnim
@@ -1432,9 +1347,7 @@ function CardBackStack({
           {
             scale: pulseAnim.interpolate({
               inputRange: [0, 0.5, 1],
-              outputRange: [1, 1.014, 1],
-            }),
-          },
+              outputRange: [1, 1.014, 1] }) },
         ]
       : []),
   ];
@@ -1446,8 +1359,7 @@ function CardBackStack({
         height: stackHeight,
         alignItems: "center",
         justifyContent: "center",
-        transform: wrapperTransforms,
-      }}
+        transform: wrapperTransforms }}
     >
       {visibleStackEntries.map((card) => (
         <Animated.View
@@ -1459,29 +1371,20 @@ function CardBackStack({
               {
                 translateX: spreadAnim.interpolate({
                   inputRange: [0, 1],
-                  outputRange: [card.collapsedX, card.finalX],
-                }),
-              },
+                  outputRange: [card.collapsedX, card.finalX] }) },
               {
                 translateY: spreadAnim.interpolate({
                   inputRange: [0, 1],
-                  outputRange: [card.collapsedY, card.finalY],
-                }),
-              },
+                  outputRange: [card.collapsedY, card.finalY] }) },
               {
                 rotate: spreadAnim.interpolate({
                   inputRange: [0, 1],
-                  outputRange: [card.collapsedRotate, card.finalRotate],
-                }),
-              },
+                  outputRange: [card.collapsedRotate, card.finalRotate] }) },
               {
                 scale: spreadAnim.interpolate({
                   inputRange: [0, 1],
-                  outputRange: [0.98, card.scale],
-                }),
-              },
-            ],
-          }}
+                  outputRange: [0.98, card.scale] }) },
+            ] }}
         >
           <CardBackFace
             width={width}
@@ -1495,17 +1398,18 @@ function CardBackStack({
   );
 }
 
-function CrackedPackPreview({
+const CrackedPackPreview = crackedPackPreview;
+
+function crackedPackPreview({
   pack,
   width,
   tc,
   openAnim,
-  burstPattern,
-}: {
+  burstPattern }: {
   pack: Pack;
   width: number;
   tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
-  openAnim: Animated.Value;
+  openAnim: AnimatedValue;
   burstPattern?: PackBurstPattern;
 }) {
   const height = width / PACK_CARD_RATIO;
@@ -1517,28 +1421,23 @@ function CrackedPackPreview({
   const packOpacity = openAnim.interpolate({
     inputRange: [0, 0.45, 0.72, 1],
     outputRange: [1, 1, 1, 0],
-    extrapolate: "clamp",
-  });
+    extrapolate: "clamp" });
   const flareOpacity = openAnim.interpolate({
     inputRange: [0, 0.38, 0.68, 1],
     outputRange: [0, 0, 1, 0],
-    extrapolate: "clamp",
-  });
+    extrapolate: "clamp" });
   const flareScale = openAnim.interpolate({
     inputRange: [0, 0.38, 0.68, 0.82, 1],
     outputRange: [0.2, 0.2, 3.5, 14, 14],
-    extrapolate: "clamp",
-  });
+    extrapolate: "clamp" });
   const shockwaveOpacity = openAnim.interpolate({
     inputRange: [0, 0.62, 0.72, 1],
     outputRange: [0, 0, 0.95, 0],
-    extrapolate: "clamp",
-  });
+    extrapolate: "clamp" });
   const shockwaveScale = openAnim.interpolate({
     inputRange: [0, 0.62, 1],
     outputRange: [0.2, 0.2, 5.5],
-    extrapolate: "clamp",
-  });
+    extrapolate: "clamp" });
 
   return (
     <Animated.View
@@ -1553,16 +1452,12 @@ function CrackedPackPreview({
             translateX: openAnim.interpolate({
               inputRange: [0, 0.18, 0.34, 0.52, 0.72, 0.94, 1],
               outputRange: [0, -2, 2, -3, 4, 3, 0],
-              extrapolate: "clamp",
-            }),
-          },
+              extrapolate: "clamp" }) },
           {
             translateY: openAnim.interpolate({
               inputRange: [0, 0.18, 0.34, 0.52, 0.72, 0.94, 1],
               outputRange: [0, 1, -2, -1, 2, -3, 0],
-              extrapolate: "clamp",
-            }),
-          },
+              extrapolate: "clamp" }) },
           {
             rotateZ: openAnim.interpolate({
               inputRange: [0, 0.18, 0.34, 0.52, 0.72, 0.94, 1],
@@ -1575,23 +1470,18 @@ function CrackedPackPreview({
                 "2.4deg",
                 "25deg",
               ],
-              extrapolate: "clamp",
-            }),
-          },
+              extrapolate: "clamp" }) },
           {
             scale: openAnim.interpolate({
               inputRange: [0, 0.45, 0.72, 1],
               outputRange: [1, 1.06, 1.2, 0.42],
-              extrapolate: "clamp",
-            }),
-          },
-        ],
-      }}
+              extrapolate: "clamp" }) },
+        ] }}
     >
       <PackFaceCanvas pack={pack} width={width} height={height} tc={tc} />
       <Animated.View
         pointerEvents="none"
-        style={{
+        style={asStyle({
           position: "absolute",
           left: centerX - Math.max(18, width * 0.065),
           top: 24,
@@ -1602,25 +1492,19 @@ function CrackedPackPreview({
           opacity: openAnim.interpolate({
             inputRange: [0, 0.18, 0.62, 1],
             outputRange: [0, 0.85, 0, 0],
-            extrapolate: "clamp",
-          }),
+            extrapolate: "clamp" }),
           transform: [
             {
               scaleY: openAnim.interpolate({
                 inputRange: [0, 0.62, 1],
                 outputRange: [0.5, 1.18, 1.18],
-                extrapolate: "clamp",
-              }),
-            },
+                extrapolate: "clamp" }) },
             {
               scaleX: openAnim.interpolate({
                 inputRange: [0, 0.62, 1],
                 outputRange: [0.6, 1.7, 1.7],
-                extrapolate: "clamp",
-              }),
-            },
-          ],
-        }}
+                extrapolate: "clamp" }) },
+          ] })}
       />
       <Svg
         pointerEvents="none"
@@ -1635,13 +1519,11 @@ function CrackedPackPreview({
           const crackDashOffset = openAnim.interpolate({
             inputRange: [0, crack.delay, crackDrawEnd, 1],
             outputRange: [crack.dashLength, crack.dashLength, 0, 0],
-            extrapolate: "clamp",
-          });
+            extrapolate: "clamp" });
           const crackOpacity = openAnim.interpolate({
             inputRange: [0, crack.delay, crackDrawEnd, crackFadeStart, 1],
             outputRange: [0, 0, 1, 0.8, 0],
-            extrapolate: "clamp",
-          });
+            extrapolate: "clamp" });
 
           return [
             <AnimatedPath
@@ -1679,8 +1561,7 @@ function CrackedPackPreview({
             left: centerX - 15,
             top: centerY - 15,
             opacity: flareOpacity,
-            transform: [{ scale: flareScale }],
-          },
+            transform: [{ scale: flareScale }] },
         ]}
       />
       <Animated.View
@@ -1691,8 +1572,7 @@ function CrackedPackPreview({
             left: centerX - 60,
             top: centerY - 60,
             opacity: shockwaveOpacity,
-            transform: [{ scale: shockwaveScale }],
-          },
+            transform: [{ scale: shockwaveScale }] },
         ]}
       />
       {resolvedPattern.particles.map((particle) => {
@@ -1712,8 +1592,7 @@ function CrackedPackPreview({
                 opacity: openAnim.interpolate({
                   inputRange: [0, 0.62, 0.68, 1],
                   outputRange: [0, 0, 1, 0],
-                  extrapolate: "clamp",
-                }),
+                  extrapolate: "clamp" }),
                 transform: [
                   {
                     translateX: openAnim.interpolate({
@@ -1724,9 +1603,7 @@ function CrackedPackPreview({
                         particle.travelX * 0.16,
                         particle.travelX,
                       ],
-                      extrapolate: "clamp",
-                    }),
-                  },
+                      extrapolate: "clamp" }) },
                   {
                     translateY: openAnim.interpolate({
                       inputRange: [0, 0.62, 0.76, 1],
@@ -1736,21 +1613,15 @@ function CrackedPackPreview({
                         particle.travelY * 0.16,
                         particle.travelY,
                       ],
-                      extrapolate: "clamp",
-                    }),
-                  },
+                      extrapolate: "clamp" }) },
                   {
-                    rotate: particle.spin,
-                  },
+                    rotate: particle.spin },
                   {
                     scale: openAnim.interpolate({
                       inputRange: [0, 0.62, 0.74, 1],
                       outputRange: [0.5, 0.5, 1, 0],
-                      extrapolate: "clamp",
-                    }),
-                  },
-                ],
-              },
+                      extrapolate: "clamp" }) },
+                ] },
             ]}
           />
         );
@@ -1769,33 +1640,25 @@ function CrackedPackPreview({
               opacity: openAnim.interpolate({
                 inputRange: [0, 0.62, 0.68, 1],
                 outputRange: [0, 0, 1, 0],
-                extrapolate: "clamp",
-              }),
+                extrapolate: "clamp" }),
               transform: [
                 {
                   translateX: openAnim.interpolate({
                     inputRange: [0, 0.62, 0.76, 1],
                     outputRange: [0, 0, shard.travelX * 0.16, shard.travelX],
-                    extrapolate: "clamp",
-                  }),
-                },
+                    extrapolate: "clamp" }) },
                 {
                   translateY: openAnim.interpolate({
                     inputRange: [0, 0.62, 0.76, 1],
                     outputRange: [0, 0, shard.travelY * 0.16, shard.travelY],
-                    extrapolate: "clamp",
-                  }),
-                },
+                    extrapolate: "clamp" }) },
                 { rotate: shard.spin },
                 {
                   scale: openAnim.interpolate({
                     inputRange: [0, 0.62, 0.74, 1],
                     outputRange: [0.8, 0.8, 1, 1.25],
-                    extrapolate: "clamp",
-                  }),
-                },
-              ],
-            }}
+                    extrapolate: "clamp" }) },
+              ] }}
           >
             <LinearGradient
               colors={["rgba(255,225,121,0.95)", "rgba(137,54,12,0.95)"]}
@@ -1807,8 +1670,7 @@ function CrackedPackPreview({
                 borderWidth: 1,
                 borderColor: withAlpha(accentColor, "88"),
                 boxShadow: "0 0 14px rgba(255, 168, 42, 0.6)",
-                transform: [{ rotate: "18deg" }],
-              }}
+                transform: [{ rotate: "18deg" }] }}
             />
           </Animated.View>
         );
@@ -1817,10 +1679,11 @@ function CrackedPackPreview({
   );
 }
 
-function OpeningProgress({
+const OpeningProgress = openingProgress;
+
+function openingProgress({
   tc,
-  activeStep,
-}: {
+  activeStep }: {
   tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
   activeStep: number;
 }) {
@@ -1836,8 +1699,7 @@ function OpeningProgress({
               width: step === activeStep ? 40 : 28,
               borderRadius: 999,
               backgroundColor: isActive ? tc.primaryDark : tc.primaryBorder,
-              opacity: isActive ? 1 : 0.5,
-            }}
+              opacity: isActive ? 1 : 0.5 }}
           />
         );
       })}
@@ -1845,12 +1707,13 @@ function OpeningProgress({
   );
 }
 
-function SectionBadge({
+const SectionBadge = sectionBadge;
+
+function sectionBadge({
   icon,
   label,
   backgroundColor,
-  textColor,
-}: {
+  textColor }: {
   icon: ReactNode;
   label: string;
   backgroundColor: string;
@@ -1872,11 +1735,12 @@ function SectionBadge({
   );
 }
 
-function PackSummaryCardSheet({
+const PackSummaryCardSheet = usePackSummaryCardSheetView;
+
+function usePackSummaryCardSheetView({
   card,
   accessToken,
-  onClose,
-}: {
+  onClose }: {
   card: OpenedCard;
   accessToken: string | null;
   onClose: () => void;
@@ -1900,8 +1764,7 @@ function PackSummaryCardSheet({
           StyleSheet.absoluteFill,
           {
             borderTopLeftRadius: 32,
-            borderTopRightRadius: 32,
-          },
+            borderTopRightRadius: 32 },
         ]}
       />
     ),
@@ -1913,26 +1776,22 @@ function PackSummaryCardSheet({
       label: "HP",
       value: card.hp,
       color: tc.dangerDark,
-      backgroundColor: tc.dangerTint,
-    },
+      backgroundColor: tc.dangerTint },
     {
       label: "ATK",
       value: card.attack,
       color: tc.secondaryText,
-      backgroundColor: tc.secondaryTint,
-    },
+      backgroundColor: tc.secondaryTint },
     {
       label: "DEF",
       value: card.defense,
       color: tc.infoText,
-      backgroundColor: tc.infoTint,
-    },
+      backgroundColor: tc.infoTint },
     {
       label: "SPD",
       value: card.speed,
       color: tc.successText,
-      backgroundColor: tc.successTint,
-    },
+      backgroundColor: tc.successTint },
   ];
 
   return (
@@ -1955,8 +1814,7 @@ function PackSummaryCardSheet({
           borderTopRightRadius: 32,
           maxHeight: maxSheetHeight,
           minHeight: Math.min(maxSheetHeight, height * 0.7),
-          overflow: "hidden",
-        }}
+          overflow: "hidden" }}
         testID="pack-summary-card-preview-sheet"
       >
         <View className="items-center pb-2 pt-3">
@@ -1982,8 +1840,7 @@ function PackSummaryCardSheet({
                 numberOfLines={1}
               >
                 {t("packs.summary.cardDetailsSubtitle", {
-                  character: card.character,
-                })}
+                  character: card.character })}
               </Text>
             </View>
           </View>
@@ -1998,8 +1855,7 @@ function PackSummaryCardSheet({
             paddingHorizontal: 16,
             paddingTop: 18,
             paddingBottom: 20,
-            gap: 16,
-          }}
+            gap: 16 }}
         >
           <View className="items-center">
             <View style={{ width: cardWidth }}>
@@ -2016,8 +1872,7 @@ function PackSummaryCardSheet({
             style={{
               flexDirection: "row",
               flexWrap: "wrap",
-              gap: 10,
-            }}
+              gap: 10 }}
           >
             {[
               {
@@ -2025,15 +1880,13 @@ function PackSummaryCardSheet({
                 value: rarityName,
                 textColor: rarityColor.to,
                 backgroundColor: withAlpha(rarityColor.ring, "22"),
-                borderColor: withAlpha(rarityColor.ring, "66"),
-              },
+                borderColor: withAlpha(rarityColor.ring, "66") },
               {
                 label: t("packs.summary.cardType"),
                 value: card.type,
                 textColor: tc.primaryStrong,
                 backgroundColor: tc.surface,
-                borderColor: tc.primaryBorder,
-              },
+                borderColor: tc.primaryBorder },
               {
                 label: t("packs.summary.cardPull"),
                 value: card.isNewForUser
@@ -2045,23 +1898,20 @@ function PackSummaryCardSheet({
                   : tc.surfaceMuted,
                 borderColor: card.isNewForUser
                   ? tc.successBorder
-                  : tc.primaryBorder,
-              },
+                  : tc.primaryBorder },
               {
                 label: t("packs.summary.cardCharacter"),
                 value: card.character,
                 textColor: tc.secondaryText,
                 backgroundColor: tc.secondaryTint,
-                borderColor: tc.secondaryBorder,
-              },
+                borderColor: tc.secondaryBorder },
             ].map((metric) => (
               <View
                 key={metric.label}
                 className="w-[47.5%] gap-1 rounded-[18px] border px-[14px] py-3"
                 style={{
                   borderColor: metric.borderColor,
-                  backgroundColor: metric.backgroundColor,
-                }}
+                  backgroundColor: metric.backgroundColor }}
               >
                 <Text className="font-nunito-semibold text-[12px] text-fgMuted">
                   {metric.label}
@@ -2081,8 +1931,7 @@ function PackSummaryCardSheet({
             className="gap-4 rounded-[24px] border p-4"
             style={{
               backgroundColor: tc.surface,
-              borderColor: tc.primaryBorder,
-            }}
+              borderColor: tc.primaryBorder }}
             testID="pack-summary-card-preview-stats"
           >
             <View className="flex-row items-center justify-between gap-3">
@@ -2096,8 +1945,7 @@ function PackSummaryCardSheet({
                 style={{
                   borderRadius: 999,
                   paddingHorizontal: 12,
-                  paddingVertical: 7,
-                }}
+                  paddingVertical: 7 }}
               >
                 <Text className="font-nunito-extrabold text-[11px] text-white">
                   {rarityName.toUpperCase()}
@@ -2132,6 +1980,10 @@ function PackSummaryCardSheet({
 }
 
 export default function PacksScreen() {
+  return usePacksScreenView();
+}
+
+function usePacksScreenView() {
   const navigation = useNavigation();
   const queryClient = useQueryClient();
   const accessToken = useSessionStore((state) => state.accessToken);
@@ -2187,25 +2039,23 @@ export default function PacksScreen() {
   const revealHaloAnim = useAnimatedValue(0);
   const revealSparkAnim = useAnimatedValue(0);
   const burstOpenAnim = useAnimatedValue(0);
-  const chargeLoopRef = useRef<Animated.CompositeAnimation | null>(null);
-  const sheenLoopRef = useRef<Animated.CompositeAnimation | null>(null);
-  const loadingLoopRef = useRef<Animated.CompositeAnimation | null>(null);
-  const revealAnimationRef = useRef<Animated.CompositeAnimation | null>(null);
+  const chargeLoopRef = useRef<CompositeAnimation | null>(null);
+  const sheenLoopRef = useRef<CompositeAnimation | null>(null);
+  const loadingLoopRef = useRef<CompositeAnimation | null>(null);
+  const revealAnimationRef = useRef<CompositeAnimation | null>(null);
   const isRevealAnimatingRef = useRef(false);
 
-  useEffect(() => {
+  reactEffect(() => {
     navigation.setOptions({
-      tabBarStyle: shouldHideTabBar ? { display: "none" } : undefined,
-    });
+      tabBarStyle: shouldHideTabBar ? { display: "none" } : undefined });
 
     return () => {
       navigation.setOptions({
-        tabBarStyle: undefined,
-      });
+        tabBarStyle: undefined });
     };
   }, [navigation, shouldHideTabBar]);
 
-  useEffect(() => {
+  reactEffect(() => {
     if (phase !== "readyToReveal") {
       return;
     }
@@ -2214,29 +2064,26 @@ export default function PacksScreen() {
     pulseAnim.setValue(0);
     stackSpreadAnim.setValue(0);
 
-    let pulseLoop: Animated.CompositeAnimation | null = null;
+    let pulseLoop: CompositeAnimation | null = null;
 
     Animated.parallel([
       Animated.timing(readyRevealAnim, {
         toValue: 1,
         duration: IS_E2E_BUILD ? 900 : 1350,
         easing: Easing.inOut(Easing.cubic),
-        useNativeDriver: true,
-      }),
+        useNativeDriver: true }),
       Animated.timing(stackSpreadAnim, {
         toValue: 1,
         duration: IS_E2E_BUILD ? 950 : 1600,
         easing: Easing.inOut(Easing.cubic),
-        useNativeDriver: true,
-      }),
+        useNativeDriver: true }),
     ]).start(() => {
       pulseLoop = Animated.loop(
         Animated.timing(pulseAnim, {
           toValue: 1,
           duration: 2400,
           easing: Easing.linear,
-          useNativeDriver: true,
-        }),
+          useNativeDriver: true }),
       );
       pulseLoop.start();
     });
@@ -2244,7 +2091,7 @@ export default function PacksScreen() {
     return () => pulseLoop?.stop();
   }, [phase, pulseAnim, readyRevealAnim, stackSpreadAnim]);
 
-  useEffect(() => {
+  reactEffect(() => {
     if (phase !== "loading") {
       loadingLoopRef.current?.stop();
       loadingLoopRef.current = null;
@@ -2258,8 +2105,7 @@ export default function PacksScreen() {
         toValue: 1,
         duration: 2450,
         easing: Easing.linear,
-        useNativeDriver: true,
-      }),
+        useNativeDriver: true }),
     );
     loadingLoopRef.current.start();
 
@@ -2287,14 +2133,12 @@ export default function PacksScreen() {
           toValue: 1,
           duration: 920,
           easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
+          useNativeDriver: true }),
         Animated.timing(chargeAnim, {
           toValue: 0,
           duration: 920,
           easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
+          useNativeDriver: true }),
       ]),
     );
     chargeLoopRef.current.start();
@@ -2304,8 +2148,7 @@ export default function PacksScreen() {
         toValue: 1,
         duration: 3400,
         easing: Easing.linear,
-        useNativeDriver: true,
-      }),
+        useNativeDriver: true }),
     );
     sheenLoopRef.current.start();
   }
@@ -2327,21 +2170,18 @@ export default function PacksScreen() {
           toValue: 1,
           duration: Math.round(PACK_OPEN_BURST_MS * 0.3),
           easing: Easing.out(Easing.quad),
-          useNativeDriver: true,
-        }),
+          useNativeDriver: true }),
         Animated.timing(burstFlashAnim, {
           toValue: 0,
           duration: Math.round(PACK_OPEN_BURST_MS * 0.7),
           easing: Easing.in(Easing.quad),
-          useNativeDriver: true,
-        }),
+          useNativeDriver: true }),
       ]),
       Animated.timing(burstOpenAnim, {
         toValue: 1,
         duration: PACK_OPEN_BURST_MS,
         easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
+        useNativeDriver: true }),
     ]).start();
   }
 
@@ -2354,8 +2194,7 @@ export default function PacksScreen() {
         toValue: to,
         duration,
         easing: Easing.inOut(Easing.quad),
-        useNativeDriver: false,
-      }).start(() => resolve());
+        useNativeDriver: false }).start(() => resolve());
     });
   }
 
@@ -2366,8 +2205,7 @@ export default function PacksScreen() {
           ? t("packs.weeklyLimitAvailable", {
               date: formatPackAvailabilityDate(
                 pack.availability.nextAvailableAt,
-              ),
-            })
+              ) })
           : t("packs.weeklyLimitReached"),
       );
       return;
@@ -2495,21 +2333,18 @@ export default function PacksScreen() {
           toValue: 1,
           duration: isSparkReveal ? SPARK_REVEAL_FLIP_MS : REVEAL_FLIP_MS,
           useNativeDriver: true,
-          easing: Easing.bezier(0.22, 0.61, 0.36, 1),
-        }),
+          easing: Easing.bezier(0.22, 0.61, 0.36, 1) }),
         Animated.timing(revealSparkAnim, {
           toValue: isSparkReveal ? 1 : 0,
           duration: isSparkReveal ? SPARK_REVEAL_FLIP_MS + 260 : 1,
           useNativeDriver: true,
-          easing: Easing.out(Easing.cubic),
-        }),
+          easing: Easing.out(Easing.cubic) }),
       ]),
       Animated.timing(revealHaloAnim, {
         toValue: 1,
         duration: isSparkReveal ? 360 : IS_E2E_BUILD ? 120 : 220,
         useNativeDriver: true,
-        easing: Easing.out(Easing.quad),
-      }),
+        easing: Easing.out(Easing.quad) }),
     ]);
     revealAnimationRef.current.start(() => {
       revealAnimationRef.current = null;
@@ -2574,8 +2409,7 @@ export default function PacksScreen() {
 
   const { data: packsQueryData, error: packsQueryError, isError: packsQueryIsError, isLoading: packsQueryIsLoading, refetch: packsQueryRefetch } = useQuery({
     queryKey: ["packs"],
-    queryFn: () => apiClient.packs(),
-  });
+    queryFn: () => apiClient.packs() });
 
   const cardBackVisualMap = useMemo(
     () => buildCardBackVisualMap(packsQueryData?.cardBackVisuals ?? []),
@@ -2595,7 +2429,7 @@ export default function PacksScreen() {
     ].join(",");
   }, [packsQueryData]);
 
-  useEffect(() => {
+  reactEffect(() => {
     if (!packsQueryData || !packVisualPrefetchKey) {
       return;
     }
@@ -2718,8 +2552,7 @@ export default function PacksScreen() {
           className="flex-1 px-4"
           style={{
             paddingTop: headerHeight + 16,
-            paddingBottom: openingBottomPadding,
-          }}
+            paddingBottom: openingBottomPadding }}
         >
           <View className="flex-1 justify-center">
             <View
@@ -2728,8 +2561,7 @@ export default function PacksScreen() {
                 width: "100%",
                 maxWidth: 520,
                 height: openingStageHeight,
-                transform: [{ translateY: openingStageTranslateY }],
-              }}
+                transform: [{ translateY: openingStageTranslateY }] }}
             >
               <PackOpeningSequenceDom
                 key={`${openingRunId}`}
@@ -2743,14 +2575,12 @@ export default function PacksScreen() {
                 pack={{
                   backgroundColor: tc.bg,
                   cardCountLabel: t("packs.cardsCount", {
-                    count: selectedPack.cardCount,
-                  }),
+                    count: selectedPack.cardCount }),
                   color: selectedPack.color || "#C96A24",
                   guaranteedRarity: selectedPack.guaranteedRarity,
                   name: selectedPack.name,
                   packArtAssetId: selectedPack.packArtAssetId,
-                  packArtUrl: getPackArtUrl(selectedPack),
-                }}
+                  packArtUrl: getPackArtUrl(selectedPack) }}
                 stageOffsetY={openingStageTranslateY}
                 dom={{
                   contentInsetAdjustmentBehavior: "never",
@@ -2758,9 +2588,7 @@ export default function PacksScreen() {
                   style: {
                     backgroundColor: "transparent",
                     flex: 1,
-                    opacity: isChargePhase ? prewarmDomOpacity : 1,
-                  },
-                }}
+                    opacity: isChargePhase ? prewarmDomOpacity : 1 } }}
               />
               {isChargePhase ? (
                 <View className="absolute inset-0 items-center justify-center">
@@ -2782,8 +2610,7 @@ export default function PacksScreen() {
               minHeight: isLoadingPhase ? openingFooterReserve : undefined,
               transform: isLoadingPhase
                 ? [{ translateY: loadingFooterTranslateY }]
-                : undefined,
-            }}
+                : undefined }}
           >
             {isLoadingPhase ? (
               <>
@@ -2803,19 +2630,16 @@ export default function PacksScreen() {
                   className="w-full overflow-hidden rounded-full"
                   style={{
                     backgroundColor: progressTrackColor,
-                    height: 12,
-                  }}
+                    height: 12 }}
                 >
                   <Animated.View
                     style={{
                       width: loadingProgressAnim.interpolate({
                         inputRange: [0, 100],
-                        outputRange: ["0%", "100%"],
-                      }),
+                        outputRange: ["0%", "100%"] }),
                       height: "100%",
                       borderRadius: 999,
-                      backgroundColor: openingAccent,
-                    }}
+                      backgroundColor: openingAccent }}
                   />
                 </View>
                 <Text
@@ -2869,8 +2693,7 @@ export default function PacksScreen() {
           className="flex-1 px-4"
           style={{
             paddingTop: headerHeight + 24,
-            paddingBottom: openingBottomPadding,
-          }}
+            paddingBottom: openingBottomPadding }}
         >
           <View className="w-full items-center gap-3">
             <Text className="text-center font-nunito-extrabold text-[28px] leading-[34px] text-fg">
@@ -2892,33 +2715,25 @@ export default function PacksScreen() {
                 backgroundColor: tc.surface,
                 opacity: readyRevealAnim.interpolate({
                   inputRange: [0, 0.45, 1],
-                  outputRange: [0.56, 0.2, 0],
-                }),
+                  outputRange: [0.56, 0.2, 0] }),
                 transform: [
                   {
                     scale: readyRevealAnim.interpolate({
                       inputRange: [0, 1],
-                      outputRange: [0.88, 1.16],
-                    }),
-                  },
-                ],
-              }}
+                      outputRange: [0.88, 1.16] }) },
+                ] }}
             />
             <Animated.View
               style={{
                 opacity: readyRevealAnim.interpolate({
                   inputRange: [0, 0.28, 1],
-                  outputRange: [0, 0.22, 1],
-                }),
+                  outputRange: [0, 0.22, 1] }),
                 transform: [
                   {
                     scale: readyRevealAnim.interpolate({
                       inputRange: [0, 1],
-                      outputRange: [0.86, 1],
-                    }),
-                  },
-                ],
-              }}
+                      outputRange: [0.86, 1] }) },
+                ] }}
             >
               <CardBackStack
                 width={stageCardWidth}
@@ -2937,8 +2752,7 @@ export default function PacksScreen() {
             <SectionBadge
               icon={<PackIcon size={14} color={tc.primaryText} />}
               label={t("packs.opening.revealProgress", {
-                count: openedCards.length,
-              })}
+                count: openedCards.length })}
               backgroundColor={tc.primaryTint}
               textColor={tc.primaryText}
             />
@@ -2967,26 +2781,21 @@ export default function PacksScreen() {
     const isSparkReveal = card.revealSource === "spark";
     const cardScale = flipAnim.interpolate({
       inputRange: [0, 1],
-      outputRange: [0.94, 1],
-    });
+      outputRange: [0.94, 1] });
     const backRotateY = flipAnim.interpolate({
       inputRange: [0, 1],
-      outputRange: ["0deg", "180deg"],
-    });
+      outputRange: ["0deg", "180deg"] });
     const frontRotateY = flipAnim.interpolate({
       inputRange: [0, 1],
-      outputRange: ["180deg", "360deg"],
-    });
+      outputRange: ["180deg", "360deg"] });
     const backOpacity = flipAnim.interpolate({
       inputRange: [0, 0.42, 0.58, 1],
       outputRange: [1, 1, 0, 0],
-      extrapolate: "clamp",
-    });
+      extrapolate: "clamp" });
     const frontOpacity = flipAnim.interpolate({
       inputRange: [0, 0.42, 0.58, 1],
       outputRange: [0, 0, 1, 1],
-      extrapolate: "clamp",
-    });
+      extrapolate: "clamp" });
     return (
       <Pressable
         testID="pack-opening-reveal"
@@ -2998,8 +2807,7 @@ export default function PacksScreen() {
             position: "absolute",
             inset: 0,
             backgroundColor: glowColor,
-            opacity: 0.1,
-          }}
+            opacity: 0.1 }}
         />
         <BackgroundOrbs
           primary={tc.surfaceMuted}
@@ -3011,8 +2819,7 @@ export default function PacksScreen() {
           className="flex-1 px-4"
           style={{
             paddingTop: headerHeight + 20,
-            paddingBottom: openingBottomPadding,
-          }}
+            paddingBottom: openingBottomPadding }}
         >
           <View className="w-full max-w-[360px] self-center gap-3">
             <View className="flex-row items-center justify-between">
@@ -3025,8 +2832,7 @@ export default function PacksScreen() {
               <Text className="font-nunito-bold text-sm text-fgMuted">
                 {t("packs.reveal.cardProgress", {
                   current: revealedIndex + 1,
-                  total: openedCards.length,
-                })}
+                  total: openedCards.length })}
               </Text>
             </View>
             <OpeningProgress tc={tc} activeStep={openingStep} />
@@ -3037,8 +2843,7 @@ export default function PacksScreen() {
               style={{
                 width: revealCardWidth,
                 aspectRatio: REVEAL_CARD_RATIO,
-                transform: [{ scale: cardScale }],
-              }}
+                transform: [{ scale: cardScale }] }}
             >
               <RevealCardHalo
                 color={rarityRing}
@@ -3063,8 +2868,7 @@ export default function PacksScreen() {
                   zIndex: 5,
                   opacity: backOpacity,
                   transform: [{ perspective: 1400 }, { rotateY: backRotateY }],
-                  backfaceVisibility: "hidden",
-                }}
+                  backfaceVisibility: "hidden" }}
               >
                 <CardBackFace
                   width={revealCardWidth}
@@ -3081,8 +2885,7 @@ export default function PacksScreen() {
                   zIndex: 10,
                   opacity: frontOpacity,
                   transform: [{ perspective: 1400 }, { rotateY: frontRotateY }],
-                  backfaceVisibility: "hidden",
-                }}
+                  backfaceVisibility: "hidden" }}
               >
                 <CardTile
                   entry={toCardTileEntry(card)}
@@ -3102,8 +2905,7 @@ export default function PacksScreen() {
                     style={{
                       borderRadius: 999,
                       paddingHorizontal: 10,
-                      paddingVertical: 5,
-                    }}
+                      paddingVertical: 5 }}
                   >
                     <Text className="font-nunito-extrabold text-[10px] text-white">
                       {t("packs.openResult.newBadge")}
@@ -3183,9 +2985,10 @@ export default function PacksScreen() {
           contentInsetAdjustmentBehavior="never"
           contentContainerStyle={{
             paddingHorizontal: 20,
-            paddingBottom: bottomTabPadding,
-            gap: 18,
-          }}
+            paddingBottom: 24,
+            gap: 18 }}
+          contentInset={{ bottom: bottomTabPadding }}
+          scrollIndicatorInsets={{ bottom: bottomTabPadding }}
         >
           <View style={{ height: headerHeight }} />
           <BackgroundOrbs
@@ -3201,8 +3004,7 @@ export default function PacksScreen() {
               padding: 22,
               borderWidth: 1,
               borderColor: tc.primaryBorder,
-              backgroundColor: tc.surface,
-            }}
+              backgroundColor: tc.surface }}
           >
             <View className="gap-3">
               <SectionBadge
@@ -3251,8 +3053,7 @@ export default function PacksScreen() {
             className="gap-4 rounded-[28px] border p-5"
             style={{
               backgroundColor: tc.surface,
-              borderColor: tc.primaryBorder,
-            }}
+              borderColor: tc.primaryBorder }}
           >
             <View className="flex-row items-center gap-3">
               <View
@@ -3268,8 +3069,7 @@ export default function PacksScreen() {
                 <Text className="mt-1 font-nunito text-xs text-fgMuted">
                   {selectedPack.guaranteedRarity
                     ? t("packs.guaranteed", {
-                        rarity: selectedPack.guaranteedRarity,
-                      })
+                        rarity: selectedPack.guaranteedRarity })
                     : t("packs.standardOdds")}
                 </Text>
               </View>
@@ -3300,8 +3100,7 @@ export default function PacksScreen() {
                       {rarityName} x{info.total}
                       {info.newCount > 0
                         ? ` ${t("packs.openResult.newCount", {
-                            count: info.newCount,
-                          })}`
+                            count: info.newCount })}`
                         : ""}
                     </Text>
                   </View>
@@ -3334,8 +3133,7 @@ export default function PacksScreen() {
                         style={{
                           borderRadius: 999,
                           paddingHorizontal: 10,
-                          paddingVertical: 5,
-                        }}
+                          paddingVertical: 5 }}
                       >
                         <Text className="font-nunito-extrabold text-[10px] text-white">
                           {t("packs.openResult.newBadge")}
@@ -3418,31 +3216,26 @@ export default function PacksScreen() {
             width: 1,
             height: 1,
             opacity: 0,
-            overflow: "hidden",
-          }}
+            overflow: "hidden" }}
         >
           <PackOpeningSequenceDom
             mode="charge"
             pack={{
               backgroundColor: tc.bg,
               cardCountLabel: t("packs.cardsCount", {
-                count: heroPack.cardCount,
-              }),
+                count: heroPack.cardCount }),
               color: heroPack.color || "#C96A24",
               guaranteedRarity: heroPack.guaranteedRarity,
               name: heroPack.name,
               packArtAssetId: heroPack.packArtAssetId,
-              packArtUrl: getPackArtUrl(heroPack),
-            }}
+              packArtUrl: getPackArtUrl(heroPack) }}
             stageOffsetY={0}
             dom={{
               contentInsetAdjustmentBehavior: "never",
               scrollEnabled: false,
               style: {
                 backgroundColor: "transparent",
-                flex: 1,
-              },
-            }}
+                flex: 1 } }}
           />
         </View>
       ) : null}
@@ -3452,9 +3245,10 @@ export default function PacksScreen() {
         contentInsetAdjustmentBehavior="never"
         contentContainerStyle={{
           paddingHorizontal: 20,
-          paddingBottom: bottomTabPadding,
-          gap: 18,
-        }}
+          paddingBottom: 24,
+          gap: 18 }}
+        contentInset={{ bottom: bottomTabPadding }}
+        scrollIndicatorInsets={{ bottom: bottomTabPadding }}
       >
         <View style={{ height: headerHeight }} />
         <View
@@ -3463,8 +3257,7 @@ export default function PacksScreen() {
             padding: 22,
             borderWidth: 1,
             borderColor: tc.primaryBorder,
-            backgroundColor: tc.surface,
-          }}
+            backgroundColor: tc.surface }}
         >
           <View className="gap-3">
             <View className="gap-3">
@@ -3481,8 +3274,7 @@ export default function PacksScreen() {
                 {featuredPack
                   ? t("packs.nextGoalValue", {
                       name: featuredPack.name,
-                      count: featuredPack.cardCount,
-                    })
+                      count: featuredPack.cardCount })
                   : t("packs.noAffordable")}
               </Text>
             </View>
@@ -3492,8 +3284,7 @@ export default function PacksScreen() {
             <SectionBadge
               icon={<CheckIcon size={12} color={tc.successText} />}
               label={t("packs.affordableCount", {
-                count: affordablePacks.length,
-              })}
+                count: affordablePacks.length })}
               backgroundColor={tc.successTint}
               textColor={tc.successText}
             />
@@ -3511,8 +3302,7 @@ export default function PacksScreen() {
                   style={{
                     backgroundColor: heroCanOpen
                       ? tc.primaryStrong
-                      : tc.surfaceMuted,
-                  }}
+                      : tc.surfaceMuted }}
                 >
                   <View className="flex-1 gap-1 pr-3">
                     <Text
@@ -3526,24 +3316,21 @@ export default function PacksScreen() {
                       style={{
                         color: heroCanOpen
                           ? "rgba(255,255,255,0.82)"
-                          : tc.fgMuted,
-                      }}
+                          : tc.fgMuted }}
                     >
                       {isPackLimited(heroPack)
                         ? heroPack.availability?.nextAvailableAt
                           ? t("packs.weeklyLimitAvailable", {
                               date: formatPackAvailabilityDate(
                                 heroPack.availability.nextAvailableAt,
-                              ),
-                            })
+                              ) })
                           : t("packs.weeklyLimitReached")
                         : heroCanOpen
                           ? t("packs.tapToOpen")
                           : cheapestLockedPack
                             ? t("packs.nextGoal", {
                                 name: heroPack.name,
-                                count: heroPack.cost - coins,
-                              })
+                                count: heroPack.cost - coins })
                             : t("packs.allAffordable")}
                     </Text>
                   </View>
@@ -3552,8 +3339,7 @@ export default function PacksScreen() {
                     <Text
                       className="font-nunito-extrabold text-lg"
                       style={{
-                        color: heroCanOpen ? "#FFFFFF" : tc.primaryStrong,
-                      }}
+                        color: heroCanOpen ? "#FFFFFF" : tc.primaryStrong }}
                     >
                       {heroPack.cost}
                     </Text>
@@ -3569,8 +3355,7 @@ export default function PacksScreen() {
             className="rounded-[24px] border p-4"
             style={{
               backgroundColor: tc.dangerTint,
-              borderColor: tc.dangerBorder,
-            }}
+              borderColor: tc.dangerBorder }}
           >
             <Text className="font-nunito-semibold text-sm leading-6 text-dangerText">
               {openError}
@@ -3592,15 +3377,13 @@ export default function PacksScreen() {
             const statusLabel = canAfford
               ? t("packs.readyNow")
               : t("packs.needMoreCoinsShort", {
-                  count: coinsNeeded,
-                });
+                  count: coinsNeeded });
             const limitAvailableLabel =
               limitReached && pack.availability?.nextAvailableAt
                 ? t("packs.weeklyLimitAvailable", {
                     date: formatPackAvailabilityDate(
                       pack.availability.nextAvailableAt,
-                    ),
-                  })
+                    ) })
                 : null;
 
             return (
@@ -3621,8 +3404,7 @@ export default function PacksScreen() {
                       ? tc.primaryBorder
                       : isFeatured
                         ? withAlpha(pack.color || tc.primary, "66")
-                        : withAlpha(pack.color || tc.primaryBorder, "2E"),
-                  }}
+                        : withAlpha(pack.color || tc.primaryBorder, "2E") }}
                 >
                   <View className="flex-row items-start gap-4">
                     <View className="items-center justify-center p-4">
@@ -3657,8 +3439,7 @@ export default function PacksScreen() {
                           {" · "}
                           {pack.guaranteedRarity
                             ? t("packs.guaranteed", {
-                                rarity: pack.guaranteedRarity,
-                              })
+                                rarity: pack.guaranteedRarity })
                             : t("packs.standardOdds")}
                         </Text>
                       </View>
@@ -3668,8 +3449,7 @@ export default function PacksScreen() {
                           className="flex-row items-center gap-3 rounded-2xl border px-3 py-2"
                           style={{
                             backgroundColor: tc.bg,
-                            borderColor: tc.primaryBorder,
-                          }}
+                            borderColor: tc.primaryBorder }}
                         >
                           <View
                             className="h-8 w-8 items-center justify-center rounded-full"
@@ -3693,8 +3473,7 @@ export default function PacksScreen() {
                           <Text
                             className="font-nunito text-xs"
                             style={{
-                              color: canAfford ? tc.successText : tc.dangerText,
-                            }}
+                              color: canAfford ? tc.successText : tc.dangerText }}
                           >
                             {statusLabel}
                           </Text>
@@ -3703,8 +3482,7 @@ export default function PacksScreen() {
                             testID={`pack-open-cta-${slug}`}
                             className="font-nunito-bold text-sm"
                             style={{
-                              color: canOpen ? tc.primaryText : tc.fgMuted,
-                            }}
+                              color: canOpen ? tc.primaryText : tc.fgMuted }}
                           >
                             {t("packs.tapToOpen")}
                           </Text>

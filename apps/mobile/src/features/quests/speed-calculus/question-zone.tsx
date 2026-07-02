@@ -1,5 +1,6 @@
-import { useEffect, useRef } from "react";
-import { Animated, Text, View } from "react-native";
+import { useRef } from "react";
+import { Text, View } from "react-native";
+import { Animated } from "../../../lib/native-animated";
 import Svg, { Circle } from "react-native-svg";
 import type { SpeedRunState } from "@adventure-time/api-client";
 
@@ -7,6 +8,7 @@ import { useTranslation } from "../../../i18n";
 import { useThemeStore } from "../../../stores/theme-store";
 import { THEME_COLORS } from "../../../theme/themes";
 import { useAnimatedValue } from "../../../hooks/use-animated-value";
+import { reactEffect } from "../../../lib/react-primitives";
 
 type Question = NonNullable<SpeedRunState["activeRun"]>["questions"][number];
 
@@ -27,15 +29,14 @@ export function QuestionZone({ pauseRemainingSeconds, currentQuestion, activeRun
   // ── Pause countdown ring ──────────────────────────────────────────
   const initialPauseRef = useRef<number | null>(null);
   const pauseRingAnim = useAnimatedValue(0);
-  useEffect(() => {
+  reactEffect(() => {
     if (pauseRemainingSeconds > 0 && initialPauseRef.current === null) {
       initialPauseRef.current = pauseRemainingSeconds;
       pauseRingAnim.setValue(0);
       Animated.timing(pauseRingAnim, {
         toValue: 1,
         duration: pauseRemainingSeconds * 1000,
-        useNativeDriver: false,
-      }).start();
+        useNativeDriver: false }).start();
     }
     if (pauseRemainingSeconds === 0) {
       initialPauseRef.current = null;
@@ -47,7 +48,12 @@ export function QuestionZone({ pauseRemainingSeconds, currentQuestion, activeRun
   return (
     <View className="flex-1 items-center justify-center px-6">
       {pauseRemainingSeconds > 0 ? (
-        <View className="flex flex-col items-center justify-center" style={{ transform: [{ translateY: -20 }] }}>
+        <View
+          accessibilityLabel="speed-calculus-pause-countdown"
+          className="flex flex-col items-center justify-center"
+          testID="speed-calculus-pause-countdown"
+          style={{ transform: [{ translateY: -20 }] }}
+        >
           <Text className="text-[10px] font-nunito-bold uppercase tracking-[4px] text-primary/50 mb-5">
             {t("quests.speedCalculusResumeCountdownTitle")}
           </Text>
@@ -81,8 +87,17 @@ export function QuestionZone({ pauseRemainingSeconds, currentQuestion, activeRun
           </Text>
         </View>
       ) : currentQuestion ? (
-        <View className="items-center w-full" style={{ transform: [{ translateY: -20 }] }}>
-          <Text className="text-[10px] font-nunito-bold uppercase tracking-[4px] text-primary/40">
+        <View
+          accessibilityLabel="speed-calculus-question-active"
+          className="items-center w-full"
+          testID="speed-calculus-question-active"
+          style={{ transform: [{ translateY: -20 }] }}
+        >
+          <Text
+            accessibilityLabel={`speed-calculus-question-label-${(activeRun?.questionIndex ?? 0) + 1}`}
+            className="text-[10px] font-nunito-bold uppercase tracking-[4px] text-primary/40"
+            testID={`speed-calculus-question-label-${(activeRun?.questionIndex ?? 0) + 1}`}
+          >
             {t("quests.speedCalculusQuestionNumber", { current: (activeRun?.questionIndex ?? 0) + 1 })}
           </Text>
           <View className="w-12 h-px mt-2 mb-5 bg-primaryBorder" />

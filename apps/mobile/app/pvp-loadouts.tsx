@@ -1,5 +1,14 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import {
+  FlatList,
   Pressable,
   ScrollView,
   Text,
@@ -37,6 +46,12 @@ import { PageLoadingState } from "../src/components/loading-state";
 
 type CollectionEntry = CollectionResponse["cards"][number];
 type BuilderCard = CollectionEntry["card"];
+type SavedLoadout = {
+  id: string;
+  name: string;
+  cardIds: string[];
+  invalidCardIds: string[];
+};
 
 const LOADOUT_TYPES = [
   "all",
@@ -105,7 +120,9 @@ function BuilderCardPressable({
   );
 }
 
-function InfoPill({
+const InfoPill = infoPill;
+
+function infoPill({
   label,
   backgroundColor,
   borderColor,
@@ -131,7 +148,9 @@ function InfoPill({
   );
 }
 
-function CompactStat({
+const CompactStat = compactStat;
+
+function compactStat({
   label,
   value,
   backgroundColor,
@@ -163,7 +182,9 @@ function CompactStat({
   );
 }
 
-function LoadoutSlotCard({
+const LoadoutSlotCard = loadoutSlotCard;
+
+function loadoutSlotCard({
   card,
   index,
   label,
@@ -334,7 +355,74 @@ function LoadoutSlotCard({
   );
 }
 
+const SavedLoadoutCard = memo(function SavedLoadoutCard({
+  active,
+  editingLabel,
+  firstThreeActiveLabel,
+  invalidLoadoutLabel,
+  loadout,
+  onEdit,
+  tc,
+}: {
+  active: boolean;
+  editingLabel: string;
+  firstThreeActiveLabel: string;
+  invalidLoadoutLabel: string;
+  loadout: SavedLoadout;
+  onEdit: (loadoutId: string) => void;
+  tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
+}) {
+  const isValid = loadout.invalidCardIds.length === 0;
+
+  return (
+    <Pressable
+      testID={`pvp-loadout-saved-${loadout.id}`}
+      onPress={() => onEdit(loadout.id)}
+      className="rounded-[24px] p-4"
+      style={{
+        width: 208,
+        borderWidth: 1,
+        borderColor: active ? tc.accentDark : `${tc.primaryBorder}88`,
+        backgroundColor: active ? tc.accentTint : tc.surfaceMuted,
+      }}
+    >
+      <View className="flex-row items-start justify-between gap-3">
+        <Text
+          className={`flex-1 font-nunito-bold text-base ${
+            active ? "text-accentStrong" : "text-fg"
+          }`}
+          numberOfLines={2}
+        >
+          {loadout.name}
+        </Text>
+        {active ? (
+          <View className="rounded-full bg-accentDark px-2 py-1">
+            <Text className="font-nunito-bold text-[10px] text-white">
+              {editingLabel}
+            </Text>
+          </View>
+        ) : null}
+      </View>
+
+      <Text className="mt-3 font-nunito-semibold text-xs text-fgMuted">
+        {loadout.cardIds.length}/6
+      </Text>
+      <Text
+        className={`mt-1 font-nunito text-xs ${
+          isValid ? "text-fgMuted" : "text-dangerDark"
+        }`}
+      >
+        {isValid ? firstThreeActiveLabel : invalidLoadoutLabel}
+      </Text>
+    </Pressable>
+  );
+});
+
 export default function PvpLoadoutsScreen() {
+  return usePvpLoadoutsScreenView();
+}
+
+function usePvpLoadoutsScreenView() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
@@ -485,7 +573,7 @@ export default function PvpLoadoutsScreen() {
     },
   });
 
-  const editLoadout = (loadoutId: string) => {
+  const editLoadout = useCallback((loadoutId: string) => {
     const loadout = loadouts.find((entry) => entry.id === loadoutId);
     if (!loadout) {
       return;
@@ -494,13 +582,30 @@ export default function PvpLoadoutsScreen() {
     setEditingLoadoutId(loadout.id);
     setLoadoutName(loadout.name);
     setSelectedCardIds(loadout.cardIds.filter((cardId) => cardMap.has(cardId)));
-  };
+  }, [cardMap, loadouts]);
 
   const createNewLoadout = () => {
     setEditingLoadoutId(null);
     setLoadoutName("");
     setSelectedCardIds([]);
   };
+
+  const renderSavedLoadout = useCallback(
+    ({ item: loadout }: { item: SavedLoadout }) => (
+      <SavedLoadoutCard
+        active={editingLoadoutId === loadout.id}
+        editingLabel={t("pvp.editing")}
+        firstThreeActiveLabel={t("pvp.firstThreeActive")}
+        invalidLoadoutLabel={t("pvp.invalidLoadout", {
+          count: loadout.invalidCardIds.length,
+        })}
+        loadout={loadout}
+        onEdit={editLoadout}
+        tc={tc}
+      />
+    ),
+    [editLoadout, editingLoadoutId, t, tc],
+  );
 
   const toggleCardSelection = (card: BuilderCard) => {
     const isSelected = selectedCardIds.includes(card.id);
@@ -665,68 +770,18 @@ export default function PvpLoadoutsScreen() {
                   {t("pvp.savedLoadoutsHint")}
                 </Text>
 
-                <ScrollView
+                <FlatList
+                  data={loadouts}
                   horizontal
+                  keyExtractor={(loadout) => loadout.id}
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={{
                     gap: 12,
                     paddingHorizontal: 2,
                     paddingTop: 14,
                   }}
-                >
-                  {loadouts.map((loadout) => {
-                    const active = editingLoadoutId === loadout.id;
-                    const isValid = loadout.invalidCardIds.length === 0;
-
-                    return (
-                      <Pressable
-                        key={loadout.id}
-                        testID={`pvp-loadout-saved-${loadout.id}`}
-                        onPress={() => editLoadout(loadout.id)}
-                        className="rounded-[24px] p-4"
-                        style={{
-                          width: 208,
-                          borderWidth: 1,
-                          borderColor: active ? tc.accentDark : `${tc.primaryBorder}88`,
-                          backgroundColor: active ? tc.accentTint : tc.surfaceMuted,
-                        }}
-                      >
-                        <View className="flex-row items-start justify-between gap-3">
-                          <Text
-                            className={`flex-1 font-nunito-bold text-base ${
-                              active ? "text-accentStrong" : "text-fg"
-                            }`}
-                            numberOfLines={2}
-                          >
-                            {loadout.name}
-                          </Text>
-                          {active ? (
-                            <View className="rounded-full bg-accentDark px-2 py-1">
-                              <Text className="font-nunito-bold text-[10px] text-white">
-                                {t("pvp.editing")}
-                              </Text>
-                            </View>
-                          ) : null}
-                        </View>
-
-                        <Text className="mt-3 font-nunito-semibold text-xs text-fgMuted">
-                          {loadout.cardIds.length}/6
-                        </Text>
-                        <Text
-                          className={`mt-1 font-nunito text-xs ${
-                            isValid ? "text-fgMuted" : "text-dangerDark"
-                          }`}
-                        >
-                          {isValid
-                            ? t("pvp.firstThreeActive")
-                            : t("pvp.invalidLoadout", {
-                                count: loadout.invalidCardIds.length,
-                              })}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </ScrollView>
+                  renderItem={renderSavedLoadout}
+                />
 
                 {editingLoadout ? (
                   <ThemedExpoButton
@@ -922,6 +977,7 @@ export default function PvpLoadoutsScreen() {
 
             <View
               testID="pvp-loadout-collection"
+              collapsable={false}
               className="rounded-[28px] border border-primaryBorder/50 bg-surface/95 p-3"
             >
               <View className="flex-row items-start justify-between gap-3">
@@ -943,11 +999,7 @@ export default function PvpLoadoutsScreen() {
                 </View>
               </View>
 
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ gap: 8, paddingRight: 4, paddingTop: 14 }}
-              >
+              <View className="flex-row flex-wrap gap-2 pt-3">
                 {LOADOUT_TYPES.map((type) => {
                   const active = filter === type;
                   return (
@@ -976,7 +1028,7 @@ export default function PvpLoadoutsScreen() {
                     </ThemedExpoButton>
                   );
                 })}
-              </ScrollView>
+              </View>
 
               <View className="mt-3 flex-row flex-wrap justify-between gap-y-3">
                 {filteredCollection.map((entry) => {

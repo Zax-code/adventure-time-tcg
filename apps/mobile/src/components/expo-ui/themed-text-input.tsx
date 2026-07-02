@@ -1,12 +1,11 @@
-import { useEffect, type RefObject } from "react";
+import { type RefObject } from "react";
 import {
   Host,
   TextInput as ExpoTextInput,
   useNativeState,
   type TextInputProps as ExpoTextInputProps,
   type UniversalStyle,
-  type UniversalTextStyle,
-} from "@expo/ui";
+  type UniversalTextStyle } from "@expo/ui";
 import {
   StyleSheet,
   TextInput as ReactNativeTextInput,
@@ -14,15 +13,14 @@ import {
   type StyleProp,
   type TextInputProps as ReactNativeTextInputProps,
   type TextStyle,
-  type ViewStyle,
-} from "react-native";
+  type ViewStyle } from "react-native";
 
 import { useThemeStore } from "../../stores/theme-store";
 import {
   getExpoUIColorScheme,
   THEME_COLORS,
-  type ThemeName,
-} from "../../theme/themes";
+  type ThemeName } from "../../theme/themes";
+import { reactEffect } from "../../lib/react-primitives";
 
 type ThemedExpoTextInputProps = Omit<
   ExpoTextInputProps,
@@ -74,7 +72,7 @@ export function ThemedExpoTextInput({
     hasStyledContainer ||
     (typeof props.testID === "string" && props.testID.length > 0);
 
-  useEffect(() => {
+  reactEffect(() => {
     if (textState.value !== value) {
       textState.value = value;
     }
@@ -115,8 +113,7 @@ export function ThemedExpoTextInput({
       returnKeyType: props.returnKeyType,
       secureTextEntry: props.secureTextEntry,
       selectTextOnFocus: props.selectTextOnFocus,
-      testID: props.testID,
-    };
+      testID: props.testID };
     const fallbackInputStyle = StyleSheet.flatten([
       style as TextStyle | undefined,
       textStyle as TextStyle | undefined,

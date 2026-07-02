@@ -1,4 +1,6 @@
-import { Animated, Text, View } from "react-native";
+import { Text, View } from "react-native";
+import { Animated } from "../lib/native-animated";
+import type { AnimatedValue } from "../lib/native-animated";
 
 type ToastType = "success" | "error";
 
@@ -12,7 +14,7 @@ export function ToastBanner({
 }: {
   message: string;
   type: ToastType;
-  translateY: Animated.Value;
+  translateY: AnimatedValue;
   successColor: string;
   errorColor: string;
   topOffset?: number;

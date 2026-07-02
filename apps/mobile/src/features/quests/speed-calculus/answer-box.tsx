@@ -1,10 +1,12 @@
-import { Animated, Text, View } from "react-native";
+import { Text, View } from "react-native";
+import { Animated } from "../../../lib/native-animated";
+import type { AnimatedValue } from "../../../lib/native-animated";
 
 import { useTranslation } from "../../../i18n";
 
 type AnswerBoxProps = {
   answer: string;
-  shakeAnim: Animated.Value;
+  shakeAnim: AnimatedValue;
   answerBoxBg: string;
   answerBoxBorder: string;
   answerBoxText: string;
@@ -20,9 +22,13 @@ export function AnswerBox({
   answerPlaceholderText,
 }: AnswerBoxProps) {
   const { t } = useTranslation();
+  const answerTestID = `speed-calculus-answer-value-${answer || "empty"}`;
 
   return (
     <Animated.View
+      testID={answerTestID}
+      accessibilityLabel={answerTestID}
+      accessible
       className="mx-4 rounded-2xl border-2 px-5 items-center h-20"
       style={{
         borderColor: answerBoxBorder,
@@ -39,6 +45,8 @@ export function AnswerBox({
           {t("quests.speedCalculusAnswerPlaceholder")}
         </Text>
         <Text
+          testID={answerTestID}
+          accessibilityLabel={answerTestID}
           className="font-nunito-extrabold text-center text-[40px] leading-[46px]"
           style={{
             color: answer ? answerBoxText : answerPlaceholderText,

@@ -82,6 +82,10 @@ const SelectedFeaturedCard = memo(function SelectedFeaturedCard({
 });
 
 export default function AdminFeaturedScreen() {
+  return useAdminFeaturedScreenView();
+}
+
+function useAdminFeaturedScreenView() {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const { themeName } = useThemeStore();

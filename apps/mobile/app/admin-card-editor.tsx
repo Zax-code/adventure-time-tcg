@@ -49,6 +49,10 @@ function rarityAllowsPassiveSlot(
 }
 
 export default function AdminCardEditorScreen() {
+  return useAdminCardEditorScreenView();
+}
+
+function useAdminCardEditorScreenView() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
@@ -320,9 +324,11 @@ export default function AdminCardEditorScreen() {
                   contentContainerStyle={{
                     paddingHorizontal: 16,
                     paddingTop: 14,
-                    paddingBottom: scrollBottomPadding,
+                    paddingBottom: 16,
                     gap: 16,
                   }}
+                  contentInset={{ bottom: scrollBottomPadding }}
+                  scrollIndicatorInsets={{ bottom: scrollBottomPadding }}
                   showsVerticalScrollIndicator={false}
                 >
                   <CardEditorSheet

@@ -108,6 +108,10 @@ function SectionHeader({
 }
 
 export default function AdminCardsScreen() {
+  return useAdminCardsScreenView();
+}
+
+function useAdminCardsScreenView() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { width } = useWindowDimensions();

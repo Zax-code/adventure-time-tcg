@@ -20,8 +20,9 @@ tags:
 - takeScreenshot: tmp-loadout-editor-shots/02-edit-top
 - scrollUntilVisible:
     element:
-      id: pvp-loadout-collection
+      id: "pvp-loadout-card-.*"
     direction: DOWN
     timeout: 20000
-    centerElement: true
+    visibilityPercentage: 50
+    centerElement: false
 - takeScreenshot: tmp-loadout-editor-shots/03-editor-overview

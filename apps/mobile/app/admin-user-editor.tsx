@@ -76,7 +76,9 @@ function UserEditorSection({
   );
 }
 
-function UserEditorDivider() {
+const UserEditorDivider = useUserEditorDividerView;
+
+function useUserEditorDividerView() {
   const themeName = useThemeStore((state) => state.themeName);
   const tc = THEME_COLORS[themeName];
 
@@ -93,7 +95,9 @@ function UserEditorDivider() {
   );
 }
 
-function UserEditorInsetCard({
+const UserEditorInsetCard = useUserEditorInsetCardView;
+
+function useUserEditorInsetCardView({
   children,
   tone = "default",
   rail = true,
@@ -150,6 +154,10 @@ function UserEditorInsetCard({
 }
 
 export default function AdminUserEditorScreen() {
+  return useAdminUserEditorScreenView();
+}
+
+function useAdminUserEditorScreenView() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();

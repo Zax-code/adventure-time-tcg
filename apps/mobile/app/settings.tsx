@@ -79,6 +79,10 @@ function getStepSourceLabel({
 }
 
 export default function SettingsScreen() {
+  return useSettingsScreenView();
+}
+
+function useSettingsScreenView() {
   const router = useRouter();
   const params = useLocalSearchParams<{ section?: string }>();
   const queryClient = useQueryClient();
@@ -556,8 +560,10 @@ export default function SettingsScreen() {
             contentContainerStyle={{
               paddingTop: 20,
               paddingHorizontal: 20,
-              paddingBottom: insets.bottom + 32,
+              paddingBottom: 32,
             }}
+            contentInset={{ bottom: insets.bottom }}
+            scrollIndicatorInsets={{ bottom: insets.bottom }}
           >
             <View className="gap-6">
               <View className="gap-4">
@@ -1520,7 +1526,9 @@ function SectionHeader({
   );
 }
 
-function SurfaceCard({
+const SurfaceCard = surfaceCard;
+
+function surfaceCard({
   children,
   tc,
 }: {
@@ -1539,7 +1547,9 @@ function SurfaceCard({
   );
 }
 
-function ChoiceCard({
+const ChoiceCard = choiceCard;
+
+function choiceCard({
   children,
   disabled,
   onPress,
@@ -1580,7 +1590,9 @@ function ChoiceCard({
   );
 }
 
-function ThemePreview({ themeName }: { themeName: ThemeName }) {
+const ThemePreview = themePreview;
+
+function themePreview({ themeName }: { themeName: ThemeName }) {
   const preview = THEME_COLORS[themeName];
 
   return (
@@ -1601,7 +1613,9 @@ function ThemePreview({ themeName }: { themeName: ThemeName }) {
   );
 }
 
-function SummaryChip({
+const SummaryChip = summaryChip;
+
+function summaryChip({
   label,
   tc,
   tone,
@@ -1635,7 +1649,9 @@ function SummaryChip({
   );
 }
 
-function SettingsToggleRow({
+const SettingsToggleRow = settingsToggleRow;
+
+function settingsToggleRow({
   description,
   disabled,
   onToggle,
@@ -1696,7 +1712,9 @@ function SettingsToggleRow({
   );
 }
 
-function StatTile({
+const StatTile = statTile;
+
+function statTile({
   label,
   tc,
   tone,
@@ -1732,7 +1750,9 @@ function StatTile({
   );
 }
 
-function ToneBanner({
+const ToneBanner = toneBanner;
+
+function toneBanner({
   children,
   tc,
   tone,
@@ -1757,7 +1777,9 @@ function ToneBanner({
   );
 }
 
-function SettingsActionButton({
+const SettingsActionButton = settingsActionButton;
+
+function settingsActionButton({
   children,
   compact,
   disabled,

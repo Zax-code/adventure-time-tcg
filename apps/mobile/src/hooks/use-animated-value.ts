@@ -1,8 +1,9 @@
 import { useRef } from "react";
-import { Animated } from "react-native";
+import { Animated } from "../lib/native-animated";
+import type { AnimatedValue } from "../lib/native-animated";
 
 export function useAnimatedValue(initialValue: number) {
-  const ref = useRef<Animated.Value | null>(null);
+  const ref = useRef<AnimatedValue | null>(null);
 
   if (ref.current === null) {
     ref.current = new Animated.Value(initialValue);

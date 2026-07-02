@@ -69,6 +69,10 @@ const LANDSCAPE_SCREEN_OPTIONS = {
 } as const;
 
 export default function RootLayout() {
+  return useRootLayoutView();
+}
+
+function useRootLayoutView() {
   const pathname = usePathname();
 
   useBootstrap();

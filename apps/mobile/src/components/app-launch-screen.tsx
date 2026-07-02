@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
-import { Animated, Text, View, type ViewStyle } from "react-native";
+import { Text, View, type ViewStyle } from "react-native";
+import { Animated } from "../lib/native-animated";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 

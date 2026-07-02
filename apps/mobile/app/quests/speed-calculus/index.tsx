@@ -1,31 +1,24 @@
-import {
-  useState,
-  useEffect,
+import { useState,
   useRef,
   useMemo,
-  useCallback,
-  useEffectEvent,
-} from "react";
+  useCallback } from "react";
 import * as Haptics from "expo-haptics";
 import {
   AppState,
   type AppStateStatus,
-  Animated,
-  LayoutAnimation,
   Platform,
   Pressable,
   ScrollView,
   Text,
   UIManager,
-  View,
-} from "react-native";
+  View } from "react-native";
+import { Animated, LayoutAnimation } from "../../../src/lib/native-animated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
 
 import type {
-  SpeedRunState,
-} from "@adventure-time/api-client";
+  SpeedRunState } from "@adventure-time/api-client";
 
 import { ApiClientError, apiClient } from "../../../src/lib/api";
 import { useTranslation } from "../../../src/i18n";
@@ -43,13 +36,12 @@ import {
   toggleSign,
   canSubmitAnswer,
   type ToastType,
-  type FeedbackType,
-} from "../../../src/features/quests/speed-calculus/constants";
+  type FeedbackType } from "../../../src/features/quests/speed-calculus/constants";
 import {
   getAnswerBoxPalette,
-  withAlpha,
-} from "../../../src/features/quests/speed-calculus/palette";
+  withAlpha } from "../../../src/features/quests/speed-calculus/palette";
 import { useAnimatedValue } from "../../../src/hooks/use-animated-value";
+import { reactEffect, effectEvent } from "../../../src/lib/react-primitives";
 
 if (
   Platform.OS === "android" &&
@@ -61,6 +53,10 @@ if (
 type ActiveSpeedRun = NonNullable<SpeedRunState["activeRun"]>;
 
 export default function SpeedCalculusScreen() {
+  return useSpeedCalculusScreenView();
+}
+
+function useSpeedCalculusScreenView() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
@@ -157,10 +153,8 @@ export default function SpeedCalculusScreen() {
         type: "success",
         message: nextState?.resetByName
           ? t("quests.speedCalculusResetByAdmin", {
-              name: nextState.resetByName,
-            })
-          : t("quests.speedCalculusReset"),
-      });
+              name: nextState.resetByName })
+          : t("quests.speedCalculusReset") });
       void queryClient.invalidateQueries({ queryKey: ["quests"] });
     },
     [queryClient, t],
@@ -207,8 +201,7 @@ export default function SpeedCalculusScreen() {
         message:
           error instanceof Error
             ? error.message
-            : t("quests.speedCalculusLoadError"),
-      });
+            : t("quests.speedCalculusLoadError") });
     } finally {
       if (requestEpoch === mutationEpochRef.current) {
         setLoading(false);
@@ -233,15 +226,15 @@ export default function SpeedCalculusScreen() {
     });
   }, []);
 
-  useEffect(() => {
+  reactEffect(() => {
     void loadState();
   }, [loadState]);
 
-  const loadStateEvent = useEffectEvent(() => {
+  const loadStateEvent = effectEvent(() => {
     void loadState();
   });
 
-  useEffect(() => {
+  reactEffect(() => {
     if (activeRun) {
       return;
     }
@@ -254,7 +247,7 @@ export default function SpeedCalculusScreen() {
     return () => clearInterval(interval);
   }, [activeRun]);
 
-  useEffect(() => {
+  reactEffect(() => {
     if (!lastQuestResetAt) return;
     void loadState();
   }, [lastQuestResetAt, loadState]);
@@ -277,14 +270,14 @@ export default function SpeedCalculusScreen() {
   );
 
   // ── Toast auto-dismiss ───────────────────────────────────────────
-  useEffect(() => {
+  reactEffect(() => {
     if (!toast) return;
     const timer = setTimeout(() => setToast(null), 4000);
     return () => clearTimeout(timer);
   }, [toast]);
 
   // ── Feedback cleanup ─────────────────────────────────────────────
-  useEffect(() => {
+  reactEffect(() => {
     const feedbackTimeoutRefSnapshot = feedbackTimeoutRef.current;
 
     return () => {
@@ -320,13 +313,10 @@ export default function SpeedCalculusScreen() {
         message: result.locked
           ? t("quests.speedCalculusRunLocked", {
               score: result.correctAnswers ?? 0,
-              reward: result.reward ?? 0,
-            })
+              reward: result.reward ?? 0 })
           : t("quests.speedCalculusRunFinished", {
               score: result.correctAnswers ?? 0,
-              reward: result.reward ?? 0,
-            }),
-      });
+              reward: result.reward ?? 0 }) });
     } catch (error) {
       if (await handleSpeedResetError(error)) {
         return;
@@ -335,8 +325,7 @@ export default function SpeedCalculusScreen() {
       setModalVisible(false);
       setToast({
         type: "error",
-        message: t("quests.speedCalculusFinishError"),
-      });
+        message: t("quests.speedCalculusFinishError") });
       await loadState();
     } finally {
       finishRequestedRef.current = false;
@@ -351,7 +340,7 @@ export default function SpeedCalculusScreen() {
   ]);
 
   // ── Countdown timer ──────────────────────────────────────────────
-  useEffect(() => {
+  reactEffect(() => {
     if (!state?.activeRun) return;
 
     if (isManuallyPaused) {
@@ -391,7 +380,7 @@ export default function SpeedCalculusScreen() {
   }, [finishRun, isManuallyPaused, state?.activeRun]);
 
   // ── Auto-finish when all questions answered ──────────────────────
-  useEffect(() => {
+  reactEffect(() => {
     if (!activeRun || pauseRemainingSeconds > 0 || isManuallyPaused) return;
     if (activeRun.questionIndex >= activeRun.questions.length) {
       void finishRun(activeRunRef.current);
@@ -405,28 +394,23 @@ export default function SpeedCalculusScreen() {
       Animated.timing(shakeAnim, {
         toValue: 7,
         duration: 68,
-        useNativeDriver: true,
-      }),
+        useNativeDriver: true }),
       Animated.timing(shakeAnim, {
         toValue: -7,
         duration: 68,
-        useNativeDriver: true,
-      }),
+        useNativeDriver: true }),
       Animated.timing(shakeAnim, {
         toValue: 5,
         duration: 68,
-        useNativeDriver: true,
-      }),
+        useNativeDriver: true }),
       Animated.timing(shakeAnim, {
         toValue: -5,
         duration: 68,
-        useNativeDriver: true,
-      }),
+        useNativeDriver: true }),
       Animated.timing(shakeAnim, {
         toValue: 0,
         duration: 68,
-        useNativeDriver: true,
-      }),
+        useNativeDriver: true }),
     ]).start();
   }, [shakeAnim]);
 
@@ -440,13 +424,11 @@ export default function SpeedCalculusScreen() {
         Animated.timing(feedbackSlide, {
           toValue: 0,
           duration: 300,
-          useNativeDriver: true,
-        }),
+          useNativeDriver: true }),
         Animated.timing(feedbackOpacity, {
           toValue: 1,
           duration: 300,
-          useNativeDriver: true,
-        }),
+          useNativeDriver: true }),
       ]).start();
       feedbackTimeoutRef.current = setTimeout(() => {
         setFeedback(null);
@@ -520,25 +502,21 @@ export default function SpeedCalculusScreen() {
       correctAnswers: run.correctAnswers + (isCorrect ? 1 : 0),
       questionIndex: nextQuestionIndex,
       remainingSeconds: remainingSecondsRef.current,
-      pauseRemainingSeconds: pauseRemainingSecondsRef.current,
-    };
+      pauseRemainingSeconds: pauseRemainingSecondsRef.current };
 
     if (isCorrect) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       showFeedback({
         kind: "correct",
-        message: t("quests.speedCalculusCorrectFeedback"),
-      });
+        message: t("quests.speedCalculusCorrectFeedback") });
     } else {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       showFeedback({
         kind: "incorrect",
         message: t("quests.speedCalculusWrongFeedback", {
-          answer: expectedAnswer,
-        }),
+          answer: expectedAnswer }),
         questionLabel: `${question.left} ${question.operator} ${question.right}`,
-        correctAnswer: expectedAnswer,
-      });
+        correctAnswer: expectedAnswer });
       triggerShake();
     }
 
@@ -574,8 +552,7 @@ export default function SpeedCalculusScreen() {
         message:
           error instanceof Error
             ? error.message
-            : t("quests.speedCalculusStartError"),
-      });
+            : t("quests.speedCalculusStartError") });
     } finally {
       setSubmitting(false);
     }
@@ -592,17 +569,14 @@ export default function SpeedCalculusScreen() {
       setToast({
         type: "success",
         message: t("quests.speedCalculusCashOutSuccess", {
-          reward: data.rewardPreview,
-        }),
-      });
+          reward: data.rewardPreview }) });
     } catch (error) {
       setToast({
         type: "error",
         message:
           error instanceof Error
             ? error.message
-            : t("quests.speedCalculusCashOutError"),
-      });
+            : t("quests.speedCalculusCashOutError") });
     } finally {
       setSubmitting(false);
     }
@@ -625,8 +599,7 @@ export default function SpeedCalculusScreen() {
       isManuallyPaused: true,
       remainingSeconds: remainingSecondsRef.current,
       pauseRemainingSeconds: 0,
-      pauseExpiresAt: null,
-    };
+      pauseExpiresAt: null };
 
     playDeadlineRef.current = null;
     pauseDeadlineRef.current = null;
@@ -637,8 +610,7 @@ export default function SpeedCalculusScreen() {
     apiClient
       .pauseSpeedCalculusWithAnswers({
         answers: pausedRun.answers,
-        questVersion: stateRef.current?.questVersion ?? undefined,
-      })
+        questVersion: stateRef.current?.questVersion ?? undefined })
       .then((data) => {
         syncLoadedState(data);
       })
@@ -652,8 +624,7 @@ export default function SpeedCalculusScreen() {
           message:
             error instanceof Error
               ? error.message
-              : t("quests.speedCalculusPauseError"),
-        });
+              : t("quests.speedCalculusPauseError") });
         void loadState();
       })
       .finally(() => {
@@ -690,8 +661,7 @@ export default function SpeedCalculusScreen() {
         message:
           error instanceof Error
             ? error.message
-            : t("quests.speedCalculusResumeError"),
-      });
+            : t("quests.speedCalculusResumeError") });
     } finally {
       setSubmitting(false);
     }
@@ -704,7 +674,7 @@ export default function SpeedCalculusScreen() {
     t,
   ]);
 
-  const handleAppStateChange = useEffectEvent((nextState: AppStateStatus) => {
+  const handleAppStateChange = effectEvent((nextState: AppStateStatus) => {
     if (nextState === "active") {
       void loadState();
       return;
@@ -715,7 +685,7 @@ export default function SpeedCalculusScreen() {
     }
   });
 
-  useEffect(() => {
+  reactEffect(() => {
     const subscription = AppState.addEventListener("change", handleAppStateChange);
     return () => subscription.remove();
   }, []);
@@ -732,7 +702,7 @@ export default function SpeedCalculusScreen() {
   const displayedCorrectAnswers =
     activeRun?.correctAnswers ?? (showRoundOver ? roundOverScore : 0);
 
-  useEffect(() => {
+  reactEffect(() => {
     if (activeRun && !activeRun.isManuallyPaused && !modalVisible) {
       setModalVisible(true);
       setShowRoundOver(false);
@@ -767,14 +737,12 @@ export default function SpeedCalculusScreen() {
           className={`absolute left-4 right-4 z-[100] rounded-xl p-4 ${toast.type === "success" ? "bg-successDark" : "bg-dangerDark"}`}
           style={{
             top: insets.top + 8,
-            boxShadow: `0px 4px 8px ${withAlpha( toast.type === "success" ? tc.successDark : tc.dangerDark, "2E", )}`,
-          }}
+            boxShadow: `0px 4px 8px ${withAlpha( toast.type === "success" ? tc.successDark : tc.dangerDark, "2E", )}` }}
         >
           <Text
             className="font-nunito-semibold text-sm"
             style={{
-              color: toast.type === "success" ? tc.successTint : tc.dangerTint,
-            }}
+              color: toast.type === "success" ? tc.successTint : tc.dangerTint }}
           >
             {toast.message}
           </Text>
@@ -784,10 +752,10 @@ export default function SpeedCalculusScreen() {
       <ScrollView
         contentContainerStyle={{
           paddingHorizontal: 16,
-          paddingTop: insets.top + 16,
-          paddingBottom: insets.bottom + 32,
-          gap: 16,
-        }}
+          paddingVertical: 16,
+          gap: 16 }}
+        contentInset={{ top: insets.top, bottom: insets.bottom + 16 }}
+        scrollIndicatorInsets={{ top: insets.top, bottom: insets.bottom + 16 }}
         keyboardShouldPersistTaps="handled"
       >
         {/* ── Header ──────────────────────────────────────────────── */}
@@ -795,15 +763,13 @@ export default function SpeedCalculusScreen() {
           <Text
             className="text-[28px] font-nunito-extrabold text-primaryDark"
             style={{
-              boxShadow: `0px 1px 4px ${withAlpha(tc.primaryDark, "2E")}`,
-            }}
+              boxShadow: `0px 1px 4px ${withAlpha(tc.primaryDark, "2E")}` }}
           >
             {t("quests.speedCalculusTitle")}
           </Text>
           <Text className="text-sm font-nunito text-center text-primaryDark/80 max-w-[340px]">
             {t("quests.speedCalculusSubtitle", {
-              seconds: state?.runDurationSeconds ?? 30,
-            })}
+              seconds: state?.runDurationSeconds ?? 30 })}
           </Text>
           <Pressable
             onPress={() => router.back()}
@@ -823,8 +789,7 @@ export default function SpeedCalculusScreen() {
           className="rounded-3xl border-2 border-primaryTint p-5"
           style={{
             backgroundColor: tc.surfaceMuted,
-            boxShadow: `0px 4px 12px ${withAlpha(tc.primaryDark, "24")}`,
-          }}
+            boxShadow: `0px 4px 12px ${withAlpha(tc.primaryDark, "24")}` }}
         >
           <View className="flex-row items-center justify-between gap-4">
             <View className="flex-1">
@@ -834,8 +799,7 @@ export default function SpeedCalculusScreen() {
               <Text className="text-sm font-nunito mt-2 text-primaryDark/80 leading-5">
                 {t("quests.speedCalculusRuleLine", {
                   seconds: state?.runDurationSeconds ?? 30,
-                  reward: state?.rewardPerAnswer ?? 2,
-                })}
+                  reward: state?.rewardPerAnswer ?? 2 })}
               </Text>
             </View>
             <View
@@ -867,8 +831,7 @@ export default function SpeedCalculusScreen() {
           style={{
             borderColor: tc.secondaryBorder,
             backgroundColor: tc.surface,
-            boxShadow: `0px 4px 12px ${withAlpha(tc.secondaryDark, "24")}`,
-          }}
+            boxShadow: `0px 4px 12px ${withAlpha(tc.secondaryDark, "24")}` }}
         >
           <Text className="text-xs font-nunito-bold uppercase tracking-[3.5px] text-secondaryText/80">
             {t("quests.speedCalculusTrainingTitle")}
@@ -907,8 +870,7 @@ export default function SpeedCalculusScreen() {
         roundOverScore={roundOverScore}
         sessionLabel={t("quests.speedCalculusRunLabel", {
           run: activeRun?.runNumber ?? roundOverRunNumber,
-          total: state?.maxRuns ?? 3,
-        })}
+          total: state?.maxRuns ?? 3 })}
         roundOverBackLabel={t("quests.speedCalculusBackToMain")}
         pausedBackLabel={t("quests.speedCalculusBackToMain")}
         runDurationSeconds={state?.runDurationSeconds ?? 30}

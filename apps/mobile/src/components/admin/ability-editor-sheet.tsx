@@ -1,11 +1,8 @@
-import {
+import { useState,
   useCallback,
-  useEffect,
   useMemo,
   useRef,
-  useState,
-  type ReactNode,
-} from "react";
+  type ReactNode } from "react";
 import { Alert, Pressable, Text, View } from "react-native";
 import Ionicons from "@react-native-vector-icons/ionicons";
 
@@ -22,15 +19,13 @@ import {
   TYPE_NAMES,
   type PayloadFormState,
   type StatusName,
-  type TypeName,
-} from "./ability-payload";
+  type TypeName } from "./ability-payload";
 import {
   AbilityTypeChip,
   AdminButton,
   AdminChip,
   AdminField,
-  AdminNotice,
-} from "./admin-ui";
+  AdminNotice } from "./admin-ui";
 import { ThemedExpoSwitch } from "../expo-ui/themed-switch";
 import { ThemedExpoTextInput } from "../expo-ui/themed-text-input";
 import { useTranslation } from "../../i18n";
@@ -38,6 +33,7 @@ import type { IoniconName } from "../../lib/ionicons";
 import { useThemeStore } from "../../stores/theme-store";
 import { THEME_COLORS } from "../../theme/themes";
 import { withAlpha } from "./admin-palette";
+import { reactEffect } from "../../lib/react-primitives";
 
 type AbilityType = "PASSIVE" | "SKILL" | "ULTIMATE";
 
@@ -94,16 +90,14 @@ function defaultStatusEntry() {
     duration: "",
     magnitude: "",
     target: "" as PayloadFormState["target"],
-    targetSelector: "" as PayloadFormState["targetSelector"],
-  };
+    targetSelector: "" as PayloadFormState["targetSelector"] };
 }
 
 function defaultSimpleStatusEntry() {
   return {
     name: "Burn" as StatusName,
     duration: "",
-    magnitude: "",
-  };
+    magnitude: "" };
 }
 
 function getInitialEditorState(ability: EditableAbility | null) {
@@ -118,8 +112,7 @@ function getInitialEditorState(ability: EditableAbility | null) {
       formOncePerMatch: ability.oncePerMatch,
       formPayload: payloadToForm(ability.payload ?? {}),
       extraPayloadKeys: stripStructuredPayloadKeys(ability.payload ?? {}),
-      rawPayloadText: JSON.stringify(ability.payload ?? {}, null, 2),
-    };
+      rawPayloadText: JSON.stringify(ability.payload ?? {}, null, 2) };
   }
 
   return {
@@ -132,16 +125,18 @@ function getInitialEditorState(ability: EditableAbility | null) {
     formOncePerMatch: false,
     formPayload: { ...emptyPayloadForm },
     extraPayloadKeys: {},
-    rawPayloadText: "{}",
-  };
+    rawPayloadText: "{}" };
 }
 
-export function AbilityEditorForm({
+export function AbilityEditorForm(props: AbilityEditorFormProps) {
+  return useAbilityEditorFormView(props);
+}
+
+function useAbilityEditorFormView({
   ability,
   saving,
   onSubmit,
-  onDelete,
-}: AbilityEditorFormProps) {
+  onDelete }: AbilityEditorFormProps) {
   const { t } = useTranslation();
   const fieldLabel = (key: string) =>
     t(`admin.abilityEditor.fieldLabels.${key}`);
@@ -181,8 +176,7 @@ export function AbilityEditorForm({
       JSON.stringify(
         {
           ...extraPayloadKeys,
-          ...formToPayload(formPayload),
-        },
+          ...formToPayload(formPayload) },
         null,
         2,
       ),
@@ -192,7 +186,7 @@ export function AbilityEditorForm({
     ? rawPayloadText
     : syncedRawPayloadText;
 
-  useEffect(() => {
+  reactEffect(() => {
     if (!rawPayloadTouchedRef.current) {
       setRawPayloadText(syncedRawPayloadText);
     }
@@ -274,8 +268,7 @@ export function AbilityEditorForm({
         formPayload.applyToAllyTypes.length
       ),
       copyAbility: !!formPayload.copyAbilityType,
-      conditional: !!formPayload.conditionalRaw.trim(),
-    }),
+      conditional: !!formPayload.conditionalRaw.trim() }),
     [formPayload],
   );
 
@@ -341,8 +334,7 @@ export function AbilityEditorForm({
         } catch (error) {
           setFormError(
             t("admin.abilityEditor.conditionalInvalid", {
-              error: formatError(error, t("admin.abilityEditor.genericError")),
-            }),
+              error: formatError(error, t("admin.abilityEditor.genericError")) }),
           );
           return false;
         }
@@ -350,8 +342,7 @@ export function AbilityEditorForm({
 
       payload = {
         ...extraPayloadKeys,
-        ...formToPayload(formPayload),
-      };
+        ...formToPayload(formPayload) };
     }
 
     await onSubmit({
@@ -372,8 +363,7 @@ export function AbilityEditorForm({
           : formType === "SKILL"
             ? formOncePerMatch
             : false,
-      payload,
-    });
+      payload });
 
     return true;
   }, [
@@ -401,15 +391,13 @@ export function AbilityEditorForm({
             Alert.alert(
               t("admin.abilityEditor.deleteAbilityTitle"),
               t("admin.abilityEditor.deleteAbilityBody", {
-                name: ability.name,
-              }),
+                name: ability.name }),
               [
                 { text: t("common.cancel"), style: "cancel" },
                 {
                   text: t("admin.abilityEditor.delete"),
                   style: "destructive",
-                  onPress: () => void onDelete(ability.id),
-                },
+                  onPress: () => void onDelete(ability.id) },
               ],
             )
           }
@@ -485,15 +473,13 @@ export function AbilityEditorForm({
               {
                 label: t("admin.abilityEditor.cost"),
                 value: formCost,
-                onChangeText: setFormCost,
-              },
+                onChangeText: setFormCost },
               ...(formType === "SKILL"
                 ? [
                     {
                       label: t("admin.abilityEditor.cooldown"),
                       value: formCooldown,
-                      onChangeText: setFormCooldown,
-                    },
+                      onChangeText: setFormCooldown },
                   ]
                 : []),
             ]}
@@ -527,8 +513,7 @@ export function AbilityEditorForm({
           onChange={(value) =>
             setFormPayload((current) => ({
               ...current,
-              target: value as PayloadFormState["target"],
-            }))
+              target: value as PayloadFormState["target"] }))
           }
           openDropdownId={openDropdownId}
           setOpenDropdownId={setOpenDropdownId}
@@ -540,15 +525,13 @@ export function AbilityEditorForm({
             { label: t("admin.abilityEditor.none"), value: "" },
             ...ABILITY_TARGET_SELECTORS.map((value) => ({
               label: value,
-              value,
-            })),
+              value })),
           ]}
           value={formPayload.targetSelector}
           onChange={(value) =>
             setFormPayload((current) => ({
               ...current,
-              targetSelector: value as PayloadFormState["targetSelector"],
-            }))
+              targetSelector: value as PayloadFormState["targetSelector"] }))
           }
           openDropdownId={openDropdownId}
           setOpenDropdownId={setOpenDropdownId}
@@ -579,8 +562,7 @@ export function AbilityEditorForm({
             onChange={(value) =>
               setFormPayload((current) => ({
                 ...current,
-                trigger: value as PayloadFormState["trigger"],
-              }))
+                trigger: value as PayloadFormState["trigger"] }))
             }
             openDropdownId={openDropdownId}
             setOpenDropdownId={setOpenDropdownId}
@@ -591,89 +573,70 @@ export function AbilityEditorForm({
                 label: fieldLabel("chance"),
                 value: formPayload.chance,
                 onChangeText: (value) =>
-                  setFormPayload((current) => ({ ...current, chance: value })),
-              },
+                  setFormPayload((current) => ({ ...current, chance: value })) },
               {
                 label: fieldLabel("thresholdPct"),
                 value: formPayload.thresholdPct,
                 onChangeText: (value) =>
                   setFormPayload((current) => ({
                     ...current,
-                    thresholdPct: value,
-                  })),
-              },
+                    thresholdPct: value })) },
               {
                 label: fieldLabel("belowHpThreshold"),
                 value: formPayload.belowHpThreshold,
                 onChangeText: (value) =>
                   setFormPayload((current) => ({
                     ...current,
-                    belowHpThreshold: value,
-                  })),
-              },
+                    belowHpThreshold: value })) },
               {
                 label: fieldLabel("healingBonus"),
                 value: formPayload.healingBonus,
                 onChangeText: (value) =>
                   setFormPayload((current) => ({
                     ...current,
-                    healingBonus: value,
-                  })),
-              },
+                    healingBonus: value })) },
               {
                 label: fieldLabel("debuffImmunityCount"),
                 value: formPayload.debuffImmunityCount,
                 onChangeText: (value) =>
                   setFormPayload((current) => ({
                     ...current,
-                    debuffImmunityCount: value,
-                  })),
-              },
+                    debuffImmunityCount: value })) },
               {
                 label: fieldLabel("bonusCritChanceBasic"),
                 value: formPayload.bonusCritChanceBasic,
                 onChangeText: (value) =>
                   setFormPayload((current) => ({
                     ...current,
-                    bonusCritChanceBasic: value,
-                  })),
-              },
+                    bonusCritChanceBasic: value })) },
               {
                 label: fieldLabel("battleStartEnergyBonus"),
                 value: formPayload.battleStartEnergyBonus,
                 onChangeText: (value) =>
                   setFormPayload((current) => ({
                     ...current,
-                    battleStartEnergyBonus: value,
-                  })),
-              },
+                    battleStartEnergyBonus: value })) },
               {
                 label: fieldLabel("redirectIncomingChance"),
                 value: formPayload.redirectIncomingChance,
                 onChangeText: (value) =>
                   setFormPayload((current) => ({
                     ...current,
-                    redirectIncomingChance: value,
-                  })),
-              },
+                    redirectIncomingChance: value })) },
               {
                 label: fieldLabel("redirectIfSelfAboveHpPct"),
                 value: formPayload.redirectIfSelfAboveHpPct,
                 onChangeText: (value) =>
                   setFormPayload((current) => ({
                     ...current,
-                    redirectIfSelfAboveHpPct: value,
-                  })),
-              },
+                    redirectIfSelfAboveHpPct: value })) },
               {
                 label: fieldLabel("evasionChance"),
                 value: formPayload.evasionChance,
                 onChangeText: (value) =>
                   setFormPayload((current) => ({
                     ...current,
-                    evasionChance: value,
-                  })),
-              },
+                    evasionChance: value })) },
             ]}
           />
           <ToggleRow
@@ -711,101 +674,80 @@ export function AbilityEditorForm({
               label: fieldLabel("damageMul"),
               value: formPayload.damageMul,
               onChangeText: (value) =>
-                setFormPayload((current) => ({ ...current, damageMul: value })),
-            },
+                setFormPayload((current) => ({ ...current, damageMul: value })) },
             {
               label: fieldLabel("ignoreDefensePct"),
               value: formPayload.ignoreDefensePct,
               onChangeText: (value) =>
                 setFormPayload((current) => ({
                   ...current,
-                  ignoreDefensePct: value,
-                })),
-            },
+                  ignoreDefensePct: value })) },
             {
               label: fieldLabel("splashPct"),
               value: formPayload.splashPct,
               onChangeText: (value) =>
-                setFormPayload((current) => ({ ...current, splashPct: value })),
-            },
+                setFormPayload((current) => ({ ...current, splashPct: value })) },
             {
               label: fieldLabel("burnBonusMul"),
               value: formPayload.burnBonusMul,
               onChangeText: (value) =>
                 setFormPayload((current) => ({
                   ...current,
-                  burnBonusMul: value,
-                })),
-            },
+                  burnBonusMul: value })) },
             {
               label: fieldLabel("bonusDamageVsDebuffedTargetsPct"),
               value: formPayload.bonusDamageVsDebuffedTargetsPct,
               onChangeText: (value) =>
                 setFormPayload((current) => ({
                   ...current,
-                  bonusDamageVsDebuffedTargetsPct: value,
-                })),
-            },
+                  bonusDamageVsDebuffedTargetsPct: value })) },
             {
               label: fieldLabel("instantKoIfTargetBelowHpPct"),
               value: formPayload.instantKoIfTargetBelowHpPct,
               onChangeText: (value) =>
                 setFormPayload((current) => ({
                   ...current,
-                  instantKoIfTargetBelowHpPct: value,
-                })),
-            },
+                  instantKoIfTargetBelowHpPct: value })) },
             {
               label: fieldLabel("applyStatusChance"),
               value: formPayload.applyStatusChance,
               onChangeText: (value) =>
                 setFormPayload((current) => ({
                   ...current,
-                  applyStatusChance: value,
-                })),
-            },
+                  applyStatusChance: value })) },
             {
               label: fieldLabel("hits"),
               value: formPayload.hits,
               onChangeText: (value) =>
-                setFormPayload((current) => ({ ...current, hits: value })),
-            },
+                setFormPayload((current) => ({ ...current, hits: value })) },
             {
               label: fieldLabel("executeDamageMul"),
               value: formPayload.executeDamageMul,
               onChangeText: (value) =>
                 setFormPayload((current) => ({
                   ...current,
-                  executeDamageMul: value,
-                })),
-            },
+                  executeDamageMul: value })) },
             {
               label: fieldLabel("executeThreshold"),
               value: formPayload.executeThreshold,
               onChangeText: (value) =>
                 setFormPayload((current) => ({
                   ...current,
-                  executeThreshold: value,
-                })),
-            },
+                  executeThreshold: value })) },
             {
               label: fieldLabel("healPctOfMaxHpOnExecute"),
               value: formPayload.healPctOfMaxHpOnExecute,
               onChangeText: (value) =>
                 setFormPayload((current) => ({
                   ...current,
-                  healPctOfMaxHpOnExecute: value,
-                })),
-            },
+                  healPctOfMaxHpOnExecute: value })) },
             {
               label: fieldLabel("damageReduction"),
               value: formPayload.damageReduction,
               onChangeText: (value) =>
                 setFormPayload((current) => ({
                   ...current,
-                  damageReduction: value,
-                })),
-            },
+                  damageReduction: value })) },
           ]}
         />
         <ToggleRow
@@ -842,8 +784,7 @@ export function AbilityEditorForm({
           onChange={(value) =>
             setFormPayload((current) => ({
               ...current,
-              shieldTarget: value as PayloadFormState["shieldTarget"],
-            }))
+              shieldTarget: value as PayloadFormState["shieldTarget"] }))
           }
           openDropdownId={openDropdownId}
           setOpenDropdownId={setOpenDropdownId}
@@ -856,54 +797,42 @@ export function AbilityEditorForm({
               onChangeText: (value) =>
                 setFormPayload((current) => ({
                   ...current,
-                  shieldPctOfMaxHp: value,
-                })),
-            },
+                  shieldPctOfMaxHp: value })) },
             {
               label: fieldLabel("healPctOfDamage"),
               value: formPayload.healPctOfDamage,
               onChangeText: (value) =>
                 setFormPayload((current) => ({
                   ...current,
-                  healPctOfDamage: value,
-                })),
-            },
+                  healPctOfDamage: value })) },
             {
               label: fieldLabel("healLowestAllyPctOfDamage"),
               value: formPayload.healLowestAllyPctOfDamage,
               onChangeText: (value) =>
                 setFormPayload((current) => ({
                   ...current,
-                  healLowestAllyPctOfDamage: value,
-                })),
-            },
+                  healLowestAllyPctOfDamage: value })) },
             {
               label: fieldLabel("healPctOfMaxHp"),
               value: formPayload.healPctOfMaxHp,
               onChangeText: (value) =>
                 setFormPayload((current) => ({
                   ...current,
-                  healPctOfMaxHp: value,
-                })),
-            },
+                  healPctOfMaxHp: value })) },
             {
               label: fieldLabel("lifestealPct"),
               value: formPayload.lifestealPct,
               onChangeText: (value) =>
                 setFormPayload((current) => ({
                   ...current,
-                  lifestealPct: value,
-                })),
-            },
+                  lifestealPct: value })) },
             {
               label: fieldLabel("healLowestHpAllyPctOfMaxHp"),
               value: formPayload.healLowestHpAllyPctOfMaxHp,
               onChangeText: (value) =>
                 setFormPayload((current) => ({
                   ...current,
-                  healLowestHpAllyPctOfMaxHp: value,
-                })),
-            },
+                  healLowestHpAllyPctOfMaxHp: value })) },
           ]}
         />
       </Section>
@@ -930,14 +859,12 @@ export function AbilityEditorForm({
           onAdd={() =>
             setFormPayload((current) => ({
               ...current,
-              applyStatuses: [...current.applyStatuses, defaultStatusEntry()],
-            }))
+              applyStatuses: [...current.applyStatuses, defaultStatusEntry()] }))
           }
           onChange={(entries) =>
             setFormPayload((current) => ({
               ...current,
-              applyStatuses: entries as PayloadFormState["applyStatuses"],
-            }))
+              applyStatuses: entries as PayloadFormState["applyStatuses"] }))
           }
         />
         <StatusArrayEditor
@@ -952,14 +879,12 @@ export function AbilityEditorForm({
               randomStatuses: [
                 ...current.randomStatuses,
                 defaultSimpleStatusEntry(),
-              ],
-            }))
+              ] }))
           }
           onChange={(entries) =>
             setFormPayload((current) => ({
               ...current,
-              randomStatuses: entries as PayloadFormState["randomStatuses"],
-            }))
+              randomStatuses: entries as PayloadFormState["randomStatuses"] }))
           }
         />
         <StatusArrayEditor
@@ -974,15 +899,13 @@ export function AbilityEditorForm({
               applyStatusesToAttacker: [
                 ...current.applyStatusesToAttacker,
                 defaultSimpleStatusEntry(),
-              ],
-            }))
+              ] }))
           }
           onChange={(entries) =>
             setFormPayload((current) => ({
               ...current,
               applyStatusesToAttacker:
-                entries as PayloadFormState["applyStatusesToAttacker"],
-            }))
+                entries as PayloadFormState["applyStatusesToAttacker"] }))
           }
         />
       </Section>
@@ -1013,8 +936,7 @@ export function AbilityEditorForm({
           onChange={(value) =>
             setFormPayload((current) => ({
               ...current,
-              cleanseTarget: value as PayloadFormState["cleanseTarget"],
-            }))
+              cleanseTarget: value as PayloadFormState["cleanseTarget"] }))
           }
           openDropdownId={openDropdownId}
           setOpenDropdownId={setOpenDropdownId}
@@ -1027,78 +949,61 @@ export function AbilityEditorForm({
               onChangeText: (value) =>
                 setFormPayload((current) => ({
                   ...current,
-                  cleanseCount: value,
-                })),
-            },
+                  cleanseCount: value })) },
             {
               label: fieldLabel("revivePct"),
               value: formPayload.revivePct,
               onChangeText: (value) =>
-                setFormPayload((current) => ({ ...current, revivePct: value })),
-            },
+                setFormPayload((current) => ({ ...current, revivePct: value })) },
             {
               label: fieldLabel("reviveAllyOnEnemyKoPct"),
               value: formPayload.reviveAllyOnEnemyKoPct,
               onChangeText: (value) =>
                 setFormPayload((current) => ({
                   ...current,
-                  reviveAllyOnEnemyKoPct: value,
-                })),
-            },
+                  reviveAllyOnEnemyKoPct: value })) },
             {
               label: fieldLabel("reduceCooldowns"),
               value: formPayload.reduceCooldowns,
               onChangeText: (value) =>
                 setFormPayload((current) => ({
                   ...current,
-                  reduceCooldowns: value,
-                })),
-            },
+                  reduceCooldowns: value })) },
             {
               label: fieldLabel("increaseTargetCooldowns"),
               value: formPayload.increaseTargetCooldowns,
               onChangeText: (value) =>
                 setFormPayload((current) => ({
                   ...current,
-                  increaseTargetCooldowns: value,
-                })),
-            },
+                  increaseTargetCooldowns: value })) },
             {
               label: fieldLabel("reduceEnemyCooldowns"),
               value: formPayload.reduceEnemyCooldowns,
               onChangeText: (value) =>
                 setFormPayload((current) => ({
                   ...current,
-                  reduceEnemyCooldowns: value,
-                })),
-            },
+                  reduceEnemyCooldowns: value })) },
             {
               label: fieldLabel("hitCountLimit"),
               value: formPayload.hitCountLimit,
               onChangeText: (value) =>
                 setFormPayload((current) => ({
                   ...current,
-                  hitCountLimit: value,
-                })),
-            },
+                  hitCountLimit: value })) },
             {
               label: fieldLabel("selfDamagePct"),
               value: formPayload.selfDamagePct,
               onChangeText: (value) =>
                 setFormPayload((current) => ({
                   ...current,
-                  selfDamagePct: value,
-                })),
-            },
+                  selfDamagePct: value })) },
             {
               label: fieldLabel("stealBuffCount"),
               value: formPayload.stealBuffCount,
               onChangeText: (value) =>
                 setFormPayload((current) => ({
                   ...current,
-                  stealBuffCount: value,
-                })),
-            },
+                  stealBuffCount: value })) },
           ]}
         />
         <ToggleRow
@@ -1107,8 +1012,7 @@ export function AbilityEditorForm({
           onChange={(value) =>
             setFormPayload((current) => ({
               ...current,
-              cleanseAllStatuses: value,
-            }))
+              cleanseAllStatuses: value }))
           }
         />
         <ToggleRow
@@ -1117,8 +1021,7 @@ export function AbilityEditorForm({
           onChange={(value) =>
             setFormPayload((current) => ({
               ...current,
-              alsoCleanseAllEnemies: value,
-            }))
+              alsoCleanseAllEnemies: value }))
           }
         />
         <ToggleRow
@@ -1134,8 +1037,7 @@ export function AbilityEditorForm({
           onChange={(value) =>
             setFormPayload((current) => ({
               ...current,
-              swapHpPercentages: value,
-            }))
+              swapHpPercentages: value }))
           }
         />
       </Section>
@@ -1166,8 +1068,7 @@ export function AbilityEditorForm({
             onChange={(value) =>
               setFormPayload((current) => ({
                 ...current,
-                statBonusTarget: value as PayloadFormState["statBonusTarget"],
-              }))
+                statBonusTarget: value as PayloadFormState["statBonusTarget"] }))
             }
             openDropdownId={openDropdownId}
             setOpenDropdownId={setOpenDropdownId}
@@ -1180,16 +1081,14 @@ export function AbilityEditorForm({
               { label: optionLabel("permanent"), value: "permanent" },
               {
                 label: optionLabel("whileSourceActive"),
-                value: "whileSourceActive",
-              },
+                value: "whileSourceActive" },
             ]}
             value={formPayload.statBonusDurationMode}
             onChange={(value) =>
               setFormPayload((current) => ({
                 ...current,
                 statBonusDurationMode:
-                  value as PayloadFormState["statBonusDurationMode"],
-              }))
+                  value as PayloadFormState["statBonusDurationMode"] }))
             }
             openDropdownId={openDropdownId}
             setOpenDropdownId={setOpenDropdownId}
@@ -1202,45 +1101,35 @@ export function AbilityEditorForm({
                 onChangeText: (value) =>
                   setFormPayload((current) => ({
                     ...current,
-                    statBonusHp: value,
-                  })),
-              },
+                    statBonusHp: value })) },
               {
                 label: fieldLabel("statBonusAttack"),
                 value: formPayload.statBonusAttack,
                 onChangeText: (value) =>
                   setFormPayload((current) => ({
                     ...current,
-                    statBonusAttack: value,
-                  })),
-              },
+                    statBonusAttack: value })) },
               {
                 label: fieldLabel("statBonusDefense"),
                 value: formPayload.statBonusDefense,
                 onChangeText: (value) =>
                   setFormPayload((current) => ({
                     ...current,
-                    statBonusDefense: value,
-                  })),
-              },
+                    statBonusDefense: value })) },
               {
                 label: fieldLabel("statBonusSpeed"),
                 value: formPayload.statBonusSpeed,
                 onChangeText: (value) =>
                   setFormPayload((current) => ({
                     ...current,
-                    statBonusSpeed: value,
-                  })),
-              },
+                    statBonusSpeed: value })) },
               {
                 label: fieldLabel("adjacentAuraStatusDuration"),
                 value: formPayload.adjacentAuraStatusDuration,
                 onChangeText: (value) =>
                   setFormPayload((current) => ({
                     ...current,
-                    adjacentAuraStatusDuration: value,
-                  })),
-              },
+                    adjacentAuraStatusDuration: value })) },
             ]}
           />
           <SelectField
@@ -1255,8 +1144,7 @@ export function AbilityEditorForm({
               setFormPayload((current) => ({
                 ...current,
                 adjacentAuraStatusName:
-                  value as PayloadFormState["adjacentAuraStatusName"],
-              }))
+                  value as PayloadFormState["adjacentAuraStatusName"] }))
             }
             openDropdownId={openDropdownId}
             setOpenDropdownId={setOpenDropdownId}
@@ -1271,8 +1159,7 @@ export function AbilityEditorForm({
                 requiredAnyAllyTypes: toggleListValue(
                   current.requiredAnyAllyTypes,
                   value as TypeName,
-                ),
-              }))
+                ) }))
             }
           />
           <MultiSelectRow
@@ -1285,8 +1172,7 @@ export function AbilityEditorForm({
                 applyToAllyTypes: toggleListValue(
                   current.applyToAllyTypes,
                   value as TypeName,
-                ),
-              }))
+                ) }))
             }
           />
         </Section>
@@ -1315,8 +1201,7 @@ export function AbilityEditorForm({
             onChange={(value) =>
               setFormPayload((current) => ({
                 ...current,
-                copyAbilityType: value as PayloadFormState["copyAbilityType"],
-              }))
+                copyAbilityType: value as PayloadFormState["copyAbilityType"] }))
             }
             openDropdownId={openDropdownId}
             setOpenDropdownId={setOpenDropdownId}
@@ -1335,8 +1220,7 @@ export function AbilityEditorForm({
               setFormPayload((current) => ({
                 ...current,
                 copyAbilitySource:
-                  value as PayloadFormState["copyAbilitySource"],
-              }))
+                  value as PayloadFormState["copyAbilitySource"] }))
             }
             openDropdownId={openDropdownId}
             setOpenDropdownId={setOpenDropdownId}
@@ -1436,8 +1320,7 @@ function Section({
   badgeTone = "default",
   icon = "albums-outline",
   defaultOpen = false,
-  children,
-}: {
+  children }: {
   title: string;
   subtitle?: string;
   badgeLabel?: string;
@@ -1485,9 +1368,10 @@ function Section({
   );
 }
 
-function GridFields({
-  fields,
-}: {
+const GridFields = gridFields;
+
+function gridFields({
+  fields }: {
   fields: Array<{
     label: string;
     value: string;
@@ -1510,10 +1394,11 @@ function GridFields({
   );
 }
 
-function AbilityTypeSelector({
+const AbilityTypeSelector = useAbilityTypeSelectorView;
+
+function useAbilityTypeSelectorView({
   value,
-  onChange,
-}: {
+  onChange }: {
   value: AbilityType;
   onChange: (value: AbilityType) => void;
 }) {
@@ -1545,8 +1430,7 @@ function AbilityTypeSelector({
                   : withAlpha(tc.surface, "F0"),
                 borderColor: selected
                   ? withAlpha(tc.primaryStrong, "6B")
-                  : withAlpha(tc.primaryBorder, "45"),
-              }}
+                  : withAlpha(tc.primaryBorder, "45") }}
               onPress={() => onChange(option.value)}
             >
               <View
@@ -1554,8 +1438,7 @@ function AbilityTypeSelector({
                 style={{
                   backgroundColor: selected
                     ? withAlpha(tc.primaryStrong, "18")
-                    : withAlpha(tc.surfaceMuted, "E6"),
-                }}
+                    : withAlpha(tc.surfaceMuted, "E6") }}
               >
                 <Ionicons
                   name={option.icon}
@@ -1590,11 +1473,12 @@ function AbilityTypeSelector({
   );
 }
 
-function ToggleRow({
+const ToggleRow = useToggleRowView;
+
+function useToggleRowView({
   label,
   value,
-  onChange,
-}: {
+  onChange }: {
   label: string;
   value: boolean;
   onChange: (value: boolean) => void;
@@ -1613,8 +1497,7 @@ function ToggleRow({
           : withAlpha(tc.surface, "EB"),
         borderColor: value
           ? withAlpha(tc.primary, "8A")
-          : withAlpha(tc.primaryBorder, "45"),
-      }}
+          : withAlpha(tc.primaryBorder, "45") }}
       onPress={() => onChange(!value)}
     >
       <View className="flex-1 gap-1">
@@ -1642,15 +1525,16 @@ function ToggleRow({
   );
 }
 
-function SelectField({
+const SelectField = useSelectFieldView;
+
+function useSelectFieldView({
   id,
   label,
   value,
   options,
   onChange,
   openDropdownId,
-  setOpenDropdownId,
-}: {
+  setOpenDropdownId }: {
   id: string;
   label: string;
   value: string;
@@ -1719,12 +1603,13 @@ function SelectField({
   );
 }
 
-function MultiSelectRow({
+const MultiSelectRow = multiSelectRow;
+
+function multiSelectRow({
   label,
   options,
   values,
-  onToggle,
-}: {
+  onToggle }: {
   label: string;
   options: readonly string[];
   values: string[];
@@ -1755,7 +1640,9 @@ function MultiSelectRow({
   );
 }
 
-function StatusArrayEditor({
+const StatusArrayEditor = useStatusArrayEditorView;
+
+function useStatusArrayEditorView({
   label,
   entries,
   includeTargeting,
@@ -1763,8 +1650,7 @@ function StatusArrayEditor({
   openDropdownId,
   setOpenDropdownId,
   onAdd,
-  onChange,
-}: {
+  onChange }: {
   label: string;
   entries: Array<{
     name: StatusName;
@@ -1842,8 +1728,7 @@ function StatusArrayEditor({
                           name: value as StatusName,
                           duration: isConsumptionOnlyStatus(value)
                             ? ""
-                            : current.duration,
-                        }
+                            : current.duration }
                       : current,
                   ),
                 )
@@ -1905,8 +1790,7 @@ function StatusArrayEditor({
                     { label: t("admin.abilityEditor.none"), value: "" },
                     ...ABILITY_TARGETS.map((value) => ({
                       label: value,
-                      value,
-                    })),
+                      value })),
                   ]}
                   value={entry.target ?? ""}
                   onChange={(value) =>
@@ -1915,8 +1799,7 @@ function StatusArrayEditor({
                         entryIndex === index
                           ? {
                               ...current,
-                              target: value as PayloadFormState["target"],
-                            }
+                              target: value as PayloadFormState["target"] }
                           : current,
                       ),
                     )
@@ -1931,8 +1814,7 @@ function StatusArrayEditor({
                     { label: t("admin.abilityEditor.none"), value: "" },
                     ...ABILITY_TARGET_SELECTORS.map((value) => ({
                       label: value,
-                      value,
-                    })),
+                      value })),
                   ]}
                   value={entry.targetSelector ?? ""}
                   onChange={(value) =>
@@ -1942,8 +1824,7 @@ function StatusArrayEditor({
                           ? {
                               ...current,
                               targetSelector:
-                                value as PayloadFormState["targetSelector"],
-                            }
+                                value as PayloadFormState["targetSelector"] }
                           : current,
                       ),
                     )
@@ -1960,12 +1841,13 @@ function StatusArrayEditor({
   );
 }
 
-function JsonField({
+const JsonField = useJsonFieldView;
+
+function useJsonFieldView({
   label,
   value,
   onChangeText,
-  placeholder,
-}: {
+  placeholder }: {
   label: string;
   value: string;
   onChangeText: (value: string) => void;
@@ -1992,8 +1874,7 @@ function JsonField({
           borderWidth: 2,
           paddingHorizontal: 14,
           paddingVertical: 12,
-          width: "100%",
-        }}
+          width: "100%" }}
         textStyle={{ color: tc.fg, fontFamily: "monospace", fontSize: 13 }}
         numberOfLines={8}
       />
@@ -2001,10 +1882,11 @@ function JsonField({
   );
 }
 
-function InfoPill({
+const InfoPill = useInfoPillView;
+
+function useInfoPillView({
   text,
-  tone = "warning",
-}: {
+  tone = "warning" }: {
   text: string;
   tone?: "info" | "warning" | "accent";
 }) {
@@ -2013,17 +1895,13 @@ function InfoPill({
   const palette = {
     info: {
       bg: withAlpha(tc.infoTint, "D9"),
-      text: tc.infoText,
-    },
+      text: tc.infoText },
     warning: {
       bg: withAlpha(tc.secondaryTint, "D9"),
-      text: tc.secondaryText,
-    },
+      text: tc.secondaryText },
     accent: {
       bg: withAlpha(tc.accentTint, "D9"),
-      text: tc.accentText,
-    },
-  }[tone];
+      text: tc.accentText } }[tone];
 
   return (
     <View

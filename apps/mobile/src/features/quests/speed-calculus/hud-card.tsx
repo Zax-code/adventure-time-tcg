@@ -1,11 +1,13 @@
-import { useEffect, useRef } from "react";
-import { Animated, Easing, Pressable, Text, View } from "react-native";
+import { useRef } from "react";
+import { Easing, Pressable, Text, View } from "react-native";
+import { Animated } from "../../../lib/native-animated";
 import type { SpeedRunState } from "@adventure-time/api-client";
 
 import { useTranslation } from "../../../i18n";
 import { useThemeStore } from "../../../stores/theme-store";
 import { THEME_COLORS } from "../../../theme/themes";
 import { useAnimatedValue } from "../../../hooks/use-animated-value";
+import { reactEffect } from "../../../lib/react-primitives";
 
 type HudCardProps = {
   activeRun: NonNullable<SpeedRunState["activeRun"]> | null;
@@ -28,8 +30,7 @@ export function HudCard({
   displayedCorrectAnswers,
   isManuallyPaused,
   onPause,
-  pauseDisabled,
-}: HudCardProps) {
+  pauseDisabled }: HudCardProps) {
   const { t } = useTranslation();
   const tc = THEME_COLORS[useThemeStore((s) => s.themeName)];
   const progressAnim = useAnimatedValue(1);
@@ -44,7 +45,7 @@ export function HudCard({
       ? Math.max(0, Math.min(1, remainingSeconds / maxSeconds))
       : 1;
 
-  useEffect(() => {
+  reactEffect(() => {
     if (!activeRun) {
       progressAnim.stopAnimation();
       progressAnim.setValue(1);
@@ -62,8 +63,7 @@ export function HudCard({
       toValue: 0,
       duration: remainingSeconds * 1000,
       easing: Easing.linear,
-      useNativeDriver: false,
-    }).start();
+      useNativeDriver: false }).start();
   }, [
     activeRun,
     activeRun?.runId,
@@ -76,15 +76,13 @@ export function HudCard({
 
   const progressWidth = progressAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: ["0%", "100%"],
-  });
+    outputRange: ["0%", "100%"] });
 
   return (
     <View
       className="mx-4 mt-3 rounded-2xl px-4 pt-3 pb-2 bg-surface"
       style={{
-        boxShadow: `0px 3px 10px ${tc.primaryDark}`,
-      }}
+        boxShadow: `0px 3px 10px ${tc.primaryDark}` }}
     >
       <View className="flex-row items-start justify-between gap-3">
         {/* Timer */}
@@ -122,8 +120,7 @@ export function HudCard({
             style={({ pressed }) => ({
               opacity: pauseDisabled ? 0.45 : pressed ? 0.8 : 1,
               borderColor: tc.primaryBorder,
-              backgroundColor: isManuallyPaused ? tc.primaryTint : tc.primaryBg,
-            })}
+              backgroundColor: isManuallyPaused ? tc.primaryTint : tc.primaryBg })}
           >
             <Text className="font-nunito-bold text-sm" style={{ color: tc.primaryDark }}>
               {t("quests.speedCalculusPause")}
@@ -138,8 +135,7 @@ export function HudCard({
           className="h-full rounded-full"
           style={{
             width: progressWidth,
-            backgroundColor: timerColor,
-          }}
+            backgroundColor: timerColor }}
         />
       </View>
     </View>

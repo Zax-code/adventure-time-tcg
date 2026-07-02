@@ -157,7 +157,9 @@ export default function PvpReferenceScreen() {
       <View className="flex-1 bg-bg" testID="pvp-reference-screen">
         <ScrollView
           className="flex-1"
-          contentContainerStyle={{ gap: 16, padding: 20, paddingBottom: insets.bottom + 24 }}
+          contentContainerStyle={{ gap: 16, padding: 20, paddingBottom: 24 }}
+          contentInset={{ bottom: insets.bottom }}
+          scrollIndicatorInsets={{ bottom: insets.bottom }}
         >
           <View
             className="gap-4 rounded-[28px] border border-infoBorder bg-surface p-4"

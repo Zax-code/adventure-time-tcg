@@ -77,7 +77,11 @@ const TARGET_EFFECTIVENESS_COLORS = {
   },
 };
 
-export function UnitCard({
+export function UnitCard(props: UnitCardProps) {
+  return useUnitCardView(props);
+}
+
+function useUnitCardView({
   unit,
   testID,
   isSelected,
