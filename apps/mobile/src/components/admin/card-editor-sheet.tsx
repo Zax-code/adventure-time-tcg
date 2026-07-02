@@ -124,7 +124,11 @@ function SelectionChip({
   );
 }
 
-export function CardEditorSheet({
+export function CardEditorSheet(props: CardEditorSheetProps) {
+  return useCardEditorSheetView(props);
+}
+
+function useCardEditorSheetView({
   card,
   draft,
   rarities,

@@ -10,7 +10,6 @@ import { ModalBottomSheet } from "@swmansion/react-native-bottom-sheet";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import {
-  Animated,
   FlatList,
   Pressable,
   ScrollView,
@@ -19,6 +18,7 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
+import { Animated } from "../../src/lib/native-animated";
 
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -49,6 +49,7 @@ import {
 } from "../../src/theme/layout";
 import { THEME_COLORS } from "../../src/theme/themes";
 import { useAnimatedValue } from "../../src/hooks/use-animated-value";
+import { asStyle } from "../../src/lib/style-object";
 
 type CollectionEntry = CollectionResponse["cards"][number];
 type OwnershipFilter = "all" | "owned" | "not-owned";
@@ -125,6 +126,10 @@ function DustInfoSheet({
 }
 
 export default function CollectionScreen() {
+  return useCollectionScreenView();
+}
+
+function useCollectionScreenView() {
   const router = useRouter();
   const accessToken = useSessionStore((state) => state.accessToken);
   const { t } = useTranslation();
@@ -432,7 +437,7 @@ export default function CollectionScreen() {
     <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 }}>
       {/* Title */}
       <Text
-        style={{
+        style={asStyle({
           fontSize: 30,
           fontFamily: "Nunito_800ExtraBold",
           color: tc.primaryDark,
@@ -441,7 +446,7 @@ export default function CollectionScreen() {
           textShadowColor: "rgba(0,0,0,0.15)",
           textShadowOffset: { width: 0, height: 1 },
           textShadowRadius: 3,
-        }}
+        })}
       >
         {t("collection.title")}
       </Text>
@@ -481,7 +486,7 @@ export default function CollectionScreen() {
       <View style={{ alignItems: "center", marginBottom: 16 }}>
         <Pressable
           onPress={() => setShowStatsModal(true)}
-          style={{
+          style={asStyle({
             flexDirection: "row",
             alignItems: "center",
             gap: 8,
@@ -492,7 +497,7 @@ export default function CollectionScreen() {
             paddingHorizontal: 20,
             paddingVertical: 8,
             boxShadow: "0px 0px 6px rgba(0, 0, 0, 0.1)",
-          }}
+          })}
         >
           <BarChartIcon size={20} color={tc.primaryText} />
           <Text
@@ -527,7 +532,7 @@ export default function CollectionScreen() {
 
       {/* Search */}
       <View
-        style={{
+        style={asStyle({
           flexDirection: "row",
           alignItems: "center",
           backgroundColor: "rgba(255,255,255,0.7)",
@@ -537,7 +542,7 @@ export default function CollectionScreen() {
           borderWidth: 1,
           borderColor: tc.primaryBorder,
           marginBottom: 12,
-        }}
+        })}
       >
         <Text style={{ fontSize: 14, marginRight: 6, color: tc.muted }}>
           🔍
@@ -592,7 +597,7 @@ export default function CollectionScreen() {
             <Pressable
               key={option.key}
               onPress={() => setOwnershipFilter(option.key)}
-              style={{
+              style={asStyle({
                 flex: 1,
                 borderRadius: 14,
                 borderWidth: 1,
@@ -602,7 +607,7 @@ export default function CollectionScreen() {
                 paddingVertical: 10,
                 alignItems: "center",
                 gap: 2,
-              }}
+              })}
               testID={`collection-ownership-filter-${option.key}`}
             >
               <Text
@@ -700,7 +705,7 @@ export default function CollectionScreen() {
       >
         <Pressable
           onPress={() => setShowSortModal(true)}
-          style={{
+          style={asStyle({
             flexDirection: "row",
             alignItems: "center",
             gap: 4,
@@ -710,7 +715,7 @@ export default function CollectionScreen() {
             borderRadius: 8,
             paddingHorizontal: 12,
             paddingVertical: 6,
-          }}
+          })}
         >
           <Text
             style={{
@@ -751,7 +756,9 @@ export default function CollectionScreen() {
       <FlatList
         {...KEYBOARD_AWARE_SCROLL_PROPS}
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: bottomTabPadding }}
+        contentContainerStyle={{ paddingBottom: 24 }}
+        contentInset={{ bottom: bottomTabPadding }}
+        scrollIndicatorInsets={{ bottom: bottomTabPadding }}
         numColumns={2}
         columnWrapperStyle={{ justifyContent: "space-evenly" }}
         data={filteredCards}
@@ -805,7 +812,7 @@ export default function CollectionScreen() {
               return (
                 <View
                   key={name}
-                  style={{
+                  style={asStyle({
                     backgroundColor: tc.surfaceMuted,
                     borderRadius: 16,
                     borderWidth: 1,
@@ -815,7 +822,7 @@ export default function CollectionScreen() {
                     flexGrow: 1,
                     flexBasis: "30%",
                     alignItems: "center",
-                  }}
+                  })}
                 >
                   <Text
                     style={{

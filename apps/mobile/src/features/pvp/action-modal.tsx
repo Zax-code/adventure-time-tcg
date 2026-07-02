@@ -42,7 +42,11 @@ function getUnitCooldowns(unit: PvpUnitState) {
     : {};
 }
 
-export function ActionModal({
+export function ActionModal(props: ActionModalProps) {
+  return useActionModalView(props);
+}
+
+function useActionModalView({
   visible,
   unit,
   matchView,

@@ -2,6 +2,7 @@ import { Text, View } from "react-native";
 
 import { useTranslation } from "../../i18n";
 import type { TargetingMode } from "./types";
+import { asStyle } from "../../lib/style-object";
 
 interface TargetSelectionHintProps {
   targeting: TargetingMode | null;
@@ -22,7 +23,7 @@ export function TargetSelectionHint({ targeting }: TargetSelectionHintProps) {
 
   return (
     <View
-      style={{
+      style={asStyle({
         position: "absolute",
         top: 8,
         alignSelf: "center",
@@ -31,7 +32,7 @@ export function TargetSelectionHint({ targeting }: TargetSelectionHintProps) {
         paddingHorizontal: 12,
         paddingVertical: 6,
         zIndex: 50,
-      }}
+      })}
     >
       <Text
         style={{

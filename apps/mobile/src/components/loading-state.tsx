@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
-import { Animated, Text, View } from "react-native";
+import { Text, View } from "react-native";
+import { Animated } from "../lib/native-animated";
 import Ionicons from "@react-native-vector-icons/ionicons";
 import { LinearGradient } from "expo-linear-gradient";
 

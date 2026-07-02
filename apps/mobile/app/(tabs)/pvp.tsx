@@ -6,7 +6,8 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { Animated, ScrollView, Text, View } from "react-native";
+import { ScrollView, Text, View } from "react-native";
+import { Animated } from "../../src/lib/native-animated";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
@@ -280,6 +281,10 @@ function getLobbyTurnStatus(
 }
 
 export default function PvpScreen() {
+  return usePvpScreenView();
+}
+
+function usePvpScreenView() {
   const queryClient = useQueryClient();
   const router = useRouter();
   const tc = THEME_COLORS[useThemeStore((state) => state.themeName)];

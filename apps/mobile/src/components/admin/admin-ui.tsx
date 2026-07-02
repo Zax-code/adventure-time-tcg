@@ -23,6 +23,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LoadingPanel } from "../loading-state";
 import { KEYBOARD_AWARE_SCROLL_PROPS } from "../keyboard-aware-scroll-props";
 import { KeyboardScreenView } from "../keyboard-screen-view";
+import { asStyle } from "../../lib/style-object";
 import {
   getAbilityTypePalette,
   pickReadableTextColor,
@@ -705,6 +706,23 @@ export function AbilityTypeChip({
   );
 }
 
+function getAdminFieldInputStyle(
+  tc: ThemeColors,
+  multiline: boolean | undefined,
+) {
+  return asStyle({
+    backgroundColor: tc.surface,
+    borderColor: tc.primaryBorder,
+    borderRadius: 16,
+    borderWidth: 2,
+    height: multiline ? undefined : 46,
+    paddingHorizontal: 14,
+    paddingTop: multiline ? 12 : 0,
+    paddingBottom: multiline ? 12 : 0,
+    width: "100%",
+  });
+}
+
 export function AdminField({
   label,
   value,
@@ -736,17 +754,7 @@ export function AdminField({
           minHeight: multiline ? 100 : 46,
           width: "100%",
         }}
-        style={{
-          backgroundColor: tc.surface,
-          borderColor: tc.primaryBorder,
-          borderRadius: 16,
-          borderWidth: 2,
-          height: multiline ? undefined : 46,
-          paddingHorizontal: 14,
-          paddingTop: multiline ? 12 : 0,
-          paddingBottom: multiline ? 12 : 0,
-          width: "100%",
-        }}
+        style={getAdminFieldInputStyle(tc, multiline)}
         textStyle={{
           color: tc.fg,
           fontFamily: "Nunito-SemiBold",

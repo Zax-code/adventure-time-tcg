@@ -1,6 +1,7 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { useRef, useEffect } from "react";
-import { Animated, ScrollView, View } from "react-native";
+import { ScrollView, View } from "react-native";
+import { Animated } from "../src/lib/native-animated";
 import { useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -9,6 +10,7 @@ import { KEYBOARD_AWARE_SCROLL_PROPS } from "../src/components/keyboard-aware-sc
 import { useThemeStore } from "../src/stores/theme-store";
 import { THEME_COLORS, THEME_VARS } from "../src/theme/themes";
 import { useAnimatedValue } from "../src/hooks/use-animated-value";
+import { asStyle } from "../src/lib/style-object";
 
 const PARTICLES = [
   { left: "8%", top: "12%", size: 14, delay: 0, duration: 3200 },
@@ -62,7 +64,7 @@ function FloatingHeart({
 
   return (
     <Animated.View
-      style={{
+      style={asStyle({
         position: "absolute",
         left,
         top,
@@ -72,7 +74,7 @@ function FloatingHeart({
         backgroundColor: color,
         transform: [{ translateY }],
         opacity,
-      }}
+      })}
     />
   );
 }
@@ -108,9 +110,10 @@ export default function LoginScreen() {
           flexGrow: 1,
           justifyContent: "center",
           paddingHorizontal: 20,
-          paddingTop: insets.top + 20,
-          paddingBottom: insets.bottom + 20,
+          paddingVertical: 20,
         }}
+        contentInset={{ top: insets.top, bottom: insets.bottom }}
+        scrollIndicatorInsets={{ top: insets.top, bottom: insets.bottom }}
         showsVerticalScrollIndicator={false}
       >
         <View>

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Ionicons from "@react-native-vector-icons/ionicons";
 import {
@@ -8,46 +8,40 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  View,
-} from "react-native";
+  View } from "react-native";
 import { useRouter } from "expo-router";
 
 import { ApiClientError, apiClient } from "../../src/lib/api";
 import {
   getNotificationPermissionPromptHidden,
   getNotificationPermissionStatus,
-  setNotificationPermissionPromptHidden,
-} from "../../src/lib/app-notifications";
+  setNotificationPermissionPromptHidden } from "../../src/lib/app-notifications";
 import { useSessionStore } from "../../src/stores/session-store";
 import { useStepSyncStore } from "../../src/stores/step-sync-store";
 import { useThemeStore } from "../../src/stores/theme-store";
 import {
   useAppHeaderHeight,
-  useBottomTabBarContentPadding,
-} from "../../src/theme/layout";
+  useBottomTabBarContentPadding } from "../../src/theme/layout";
 import { THEME_COLORS } from "../../src/theme/themes";
 import {
   GhostButton,
   PrimaryButton,
-  SecondaryButton,
-} from "../../src/components/button";
+  SecondaryButton } from "../../src/components/button";
 import { CardTile } from "../../src/components/card-tile";
 import {
   CardsIcon,
   ChevronRightIcon,
   ClockIcon,
   DailyLoginQuestIcon,
-  PackIcon,
-} from "../../src/components/icons";
+  PackIcon } from "../../src/components/icons";
 import { PageErrorState } from "../../src/components/error-state";
 import { PageLoadingState } from "../../src/components/loading-state";
 import { useTranslation } from "../../src/i18n";
+import { reactEffect } from "../../src/lib/react-primitives";
 
 const styles = StyleSheet.create({
   featuredCardFrame: {
-    width: 144,
-  },
-});
+    width: 144 } });
 
 function formatTimeRemaining(ms: number) {
   const h = Math.floor(ms / 3600000);
@@ -59,8 +53,7 @@ function formatTimeRemaining(ms: number) {
 function NotificationSettingsButton({
   color,
   label,
-  onPress,
-}: {
+  onPress }: {
   color: string;
   label: string;
   onPress: () => void;
@@ -82,6 +75,10 @@ function NotificationSettingsButton({
 }
 
 export default function HomeScreen() {
+  return useHomeScreenView();
+}
+
+function useHomeScreenView() {
   const queryClient = useQueryClient();
   const router = useRouter();
   const accessToken = useSessionStore((state) => state.accessToken);
@@ -97,16 +94,13 @@ export default function HomeScreen() {
 
   const { data: homeQueryData, error: homeQueryError, isError: homeQueryIsError, isLoading: homeQueryIsLoading, refetch: homeQueryRefetch } = useQuery({
     queryKey: ["home"],
-    queryFn: () => apiClient.home(),
-  });
+    queryFn: () => apiClient.home() });
   const { data: dailyClaimQueryData } = useQuery({
     queryKey: ["daily-claim"],
-    queryFn: () => apiClient.getDailyClaimStatus(),
-  });
+    queryFn: () => apiClient.getDailyClaimStatus() });
   const { data: featuredQueryData } = useQuery({
     queryKey: ["featured-cards"],
-    queryFn: () => apiClient.featuredCards(),
-  });
+    queryFn: () => apiClient.featuredCards() });
   const featuredCards = featuredQueryData?.cards ?? [];
   const renderFeaturedCard = useCallback(
     ({ item }: { item: (typeof featuredCards)[number] }) => (
@@ -118,8 +112,7 @@ export default function HomeScreen() {
   );
   const { data: raritiesQueryData } = useQuery({
     queryKey: ["rarities"],
-    queryFn: () => apiClient.rarities(),
-  });
+    queryFn: () => apiClient.rarities() });
 
   const claimMutation = useMutation({
     mutationFn: () => apiClient.claimDailyReward(),
@@ -139,8 +132,7 @@ export default function HomeScreen() {
         await queryClient.invalidateQueries({ queryKey: ["daily-claim"] });
         await queryClient.invalidateQueries({ queryKey: ["home"] });
       }
-    },
-  });
+    } });
 
   const canClaim = dailyClaimQueryData?.canClaim ?? false;
   const wantsNotifications = Boolean(
@@ -157,11 +149,11 @@ export default function HomeScreen() {
   const [notificationPromptHidden, setNotificationPromptHidden] =
     useState(false);
 
-  useEffect(() => {
+  reactEffect(() => {
     setLiveTime(dailyClaimQueryData?.timeUntilNextClaim ?? 0);
   }, [dailyClaimQueryData]);
 
-  useEffect(() => {
+  reactEffect(() => {
     let cancelled = false;
 
     setNotificationPromptIgnored(false);
@@ -194,7 +186,7 @@ export default function HomeScreen() {
     };
   }, [user?.id]);
 
-  useEffect(() => {
+  reactEffect(() => {
     if (liveTime <= 0 || canClaim) return;
     const id = setInterval(() => {
       setLiveTime((prev) => {
@@ -305,8 +297,7 @@ export default function HomeScreen() {
                 onPress={() => {
                   router.push({
                     pathname: "/settings",
-                    params: { section: "notifications" },
-                  });
+                    params: { section: "notifications" } });
                 }}
                 color={tc.secondaryText}
                 label={t("home.notificationsPromptSettings")}
@@ -348,8 +339,7 @@ export default function HomeScreen() {
             backgroundColor: tc.surface,
             borderColor: tc.primaryBorder,
             borderRadius: 24,
-            borderWidth: 1,
-          }}
+            borderWidth: 1 }}
         >
           <View className="gap-4 px-5 py-5">
             <View className="flex-row items-start justify-between gap-4">
@@ -363,11 +353,9 @@ export default function HomeScreen() {
                 <Text className="font-nunito text-sm leading-5 text-fgMuted">
                   {canClaim
                     ? t("home.claimCoins", {
-                        amount: dailyClaimQueryData?.dailyReward ?? 50,
-                      })
+                        amount: dailyClaimQueryData?.dailyReward ?? 50 })
                     : t("home.nextClaim", {
-                        time: formatTimeRemaining(liveTime),
-                      })}
+                        time: formatTimeRemaining(liveTime) })}
                 </Text>
               </View>
 
@@ -375,8 +363,7 @@ export default function HomeScreen() {
                 className="h-14 w-14 items-center justify-center rounded-3xl border"
                 style={{
                   backgroundColor: canClaim ? tc.secondaryTint : tc.infoTint,
-                  borderColor: canClaim ? tc.secondaryBorder : tc.infoBorder,
-                }}
+                  borderColor: canClaim ? tc.secondaryBorder : tc.infoBorder }}
               >
                 {canClaim ? (
                   <DailyLoginQuestIcon size={28} color={tc.secondaryText} />
@@ -400,9 +387,7 @@ export default function HomeScreen() {
                 paddingVertical: 12,
                 textStyle: {
                   fontFamily: "Nunito_700Bold",
-                  fontSize: 15,
-                },
-              }}
+                  fontSize: 15 } }}
               style={{ alignSelf: "stretch" }}
             >
               {canClaim ? t("home.claim") : t("home.claimed")}
@@ -419,8 +404,7 @@ export default function HomeScreen() {
               <Text className="font-nunito text-sm leading-5 text-fgMuted">
                 {t("home.cardsCollected", {
                   owned: home.collectionStats.uniqueOwned,
-                  total: home.collectionStats.totalCards,
-                })}
+                  total: home.collectionStats.totalCards })}
               </Text>
             </View>
 
@@ -440,8 +424,7 @@ export default function HomeScreen() {
                 backgroundColor: tc.primaryDark,
                 width: `${collectionPercent}%`,
                 height: "100%",
-                borderRadius: 999,
-              }}
+                borderRadius: 999 }}
             />
           </View>
 
@@ -450,8 +433,7 @@ export default function HomeScreen() {
               className="flex-1 rounded-2xl border px-4 py-3"
               style={{
                 backgroundColor: tc.secondaryTint,
-                borderColor: tc.secondaryBorder,
-              }}
+                borderColor: tc.secondaryBorder }}
             >
               <Text className="font-nunito-extrabold text-xl text-secondaryText">
                 {home.collectionStats.uniqueOwned}
@@ -464,8 +446,7 @@ export default function HomeScreen() {
               className="flex-1 rounded-2xl border px-4 py-3"
               style={{
                 backgroundColor: tc.accentTint,
-                borderColor: tc.accentBorder,
-              }}
+                borderColor: tc.accentBorder }}
             >
               <Text className="font-nunito-extrabold text-xl text-accentText">
                 {cardsRemaining}
@@ -549,8 +530,7 @@ export default function HomeScreen() {
                     backgroundColor: tc.surfaceMuted,
                     borderColor: rarity.color,
                     minHeight: 56,
-                    width: "48%",
-                  }}
+                    width: "48%" }}
                 >
                   <View className="flex-row items-center justify-between gap-2">
                     <Text
@@ -590,8 +570,7 @@ export default function HomeScreen() {
                 gap: 12,
                 paddingBottom: 4,
                 paddingLeft: 20,
-                paddingRight: 20,
-              }}
+                paddingRight: 20 }}
               showsHorizontalScrollIndicator={false}
             />
           </View>

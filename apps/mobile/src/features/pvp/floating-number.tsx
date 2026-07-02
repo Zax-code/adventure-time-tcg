@@ -1,5 +1,7 @@
 import { useEffect, useRef } from "react";
-import { Animated, Text } from "react-native";
+import { Text } from "react-native";
+import { Animated } from "../../lib/native-animated";
+import type { AnimatedValue } from "../../lib/native-animated";
 
 interface FloatingNumberProps {
   amount: number;
@@ -19,9 +21,9 @@ const TYPE_CONFIG: Record<
 };
 
 export function FloatingNumber({ amount, type, onDone }: FloatingNumberProps) {
-  const translateYRef = useRef<Animated.Value | null>(null);
-  const opacityRef = useRef<Animated.Value | null>(null);
-  const scaleRef = useRef<Animated.Value | null>(null);
+  const translateYRef = useRef<AnimatedValue | null>(null);
+  const opacityRef = useRef<AnimatedValue | null>(null);
+  const scaleRef = useRef<AnimatedValue | null>(null);
 
   if (translateYRef.current === null) {
     translateYRef.current = new Animated.Value(0);

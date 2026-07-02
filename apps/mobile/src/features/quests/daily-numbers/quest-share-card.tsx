@@ -3,6 +3,7 @@ import { LinearGradient } from "expo-linear-gradient";
 
 import type { THEME_COLORS } from "../../../theme/themes";
 import type { DailyNumbersShareResult } from "./share-result";
+import { asStyle } from "../../../lib/style-object";
 
 type ThemeColors = (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
 
@@ -55,7 +56,7 @@ export function DailyNumbersQuestShareCard({
         };
   return (
     <View
-      style={{
+      style={asStyle({
         width: CARD_WIDTH,
         backgroundColor: colors.bg,
         borderRadius: 28,
@@ -65,7 +66,7 @@ export function DailyNumbersQuestShareCard({
         paddingVertical: 28,
         alignItems: "center",
         gap: 18,
-      }}
+      })}
     >
       {/* Brand badge */}
       <LinearGradient
@@ -141,7 +142,7 @@ export function DailyNumbersQuestShareCard({
       {/* Target + player result */}
       <View style={{ flexDirection: "row", gap: 12, width: "100%" }}>
         <View
-          style={{
+          style={asStyle({
             flex: 1,
             backgroundColor: colors.surface,
             borderRadius: 18,
@@ -150,7 +151,7 @@ export function DailyNumbersQuestShareCard({
             paddingVertical: 14,
             alignItems: "center",
             gap: 4,
-          }}
+          })}
         >
           <Text
             className="text-[10px] font-nunito-bold uppercase"
@@ -166,7 +167,7 @@ export function DailyNumbersQuestShareCard({
           </Text>
         </View>
         <View
-          style={{
+          style={asStyle({
             flex: 1,
             backgroundColor: colors.surface,
             borderRadius: 18,
@@ -175,7 +176,7 @@ export function DailyNumbersQuestShareCard({
             paddingVertical: 14,
             alignItems: "center",
             gap: 4,
-          }}
+          })}
         >
           <Text
             className="text-[10px] font-nunito-bold uppercase"
@@ -194,7 +195,7 @@ export function DailyNumbersQuestShareCard({
 
       {/* Solve time */}
       <View
-        style={{
+        style={asStyle({
           width: "100%",
           backgroundColor: colors.surface,
           borderRadius: 18,
@@ -203,7 +204,7 @@ export function DailyNumbersQuestShareCard({
           paddingVertical: 12,
           alignItems: "center",
           gap: 2,
-        }}
+        })}
       >
         <Text
           className="text-[10px] font-nunito-bold uppercase"

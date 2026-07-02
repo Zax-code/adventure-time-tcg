@@ -1,29 +1,22 @@
-import {
+import { useState,
   useCallback,
-  useEffect,
-  useEffectEvent,
   useMemo,
-  useRef,
-  useState,
-} from "react";
+  useRef } from "react";
 import * as Haptics from "expo-haptics";
 import {
-  Animated,
-  LayoutAnimation,
   Platform,
   Pressable,
   ScrollView,
   Text,
   UIManager,
-  View,
-} from "react-native";
+  View } from "react-native";
+import { Animated, LayoutAnimation } from "../../../src/lib/native-animated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 
 import type {
   SpeedRunState,
-  SpeedTrainingRun,
-} from "@adventure-time/api-client";
+  SpeedTrainingRun } from "@adventure-time/api-client";
 
 import { apiClient } from "../../../src/lib/api";
 import { useTranslation } from "../../../src/i18n";
@@ -36,21 +29,37 @@ import {
   deleteDigit,
   toggleSign,
   type FeedbackType,
-  type ToastType,
-} from "../../../src/features/quests/speed-calculus/constants";
+  type ToastType } from "../../../src/features/quests/speed-calculus/constants";
 import {
   getAnswerBoxPalette,
-  withAlpha,
-} from "../../../src/features/quests/speed-calculus/palette";
+  withAlpha } from "../../../src/features/quests/speed-calculus/palette";
 import { TrainingHistoryCard } from "../../../src/features/quests/speed-calculus/training-history-card";
 import { TrainingSummaryCard } from "../../../src/features/quests/speed-calculus/training-summary-card";
 import { useAnimatedValue } from "../../../src/hooks/use-animated-value";
+import { reactEffect, effectEvent } from "../../../src/lib/react-primitives";
 
 const DEFAULT_RUN_DURATION_SECONDS = 30;
+const E2E_RUN_DURATION_SECONDS = 120;
 const DEFAULT_PAUSE_DURATION_SECONDS = 5;
+const IS_E2E_BUILD = process.env.EXPO_PUBLIC_E2E_AUTH === "1";
 
 type TrainingActiveRun = NonNullable<SpeedRunState["activeRun"]>;
 type TrainingHistoryRun = SpeedRunState["history"][number];
+
+function positiveDuration(
+  value: number | null | undefined,
+  fallback: number,
+): number {
+  return typeof value === "number" && Number.isFinite(value) && value > 0
+    ? value
+    : fallback;
+}
+
+function trainingRunDuration(value: number | null | undefined): number {
+  const duration = positiveDuration(value, DEFAULT_RUN_DURATION_SECONDS);
+
+  return IS_E2E_BUILD ? Math.max(duration, E2E_RUN_DURATION_SECONDS) : duration;
+}
 
 if (
   Platform.OS === "android" &&
@@ -61,8 +70,13 @@ if (
 
 function buildTrainingActiveRun(session: SpeedTrainingRun): TrainingActiveRun {
   const startedAt = new Date();
+  const runDurationSeconds = trainingRunDuration(session.runDurationSeconds);
+  const pauseDurationSeconds = Math.max(
+    0,
+    positiveDuration(session.pauseDurationSeconds, DEFAULT_PAUSE_DURATION_SECONDS),
+  );
   const pauseExpiresAt = new Date(
-    startedAt.getTime() + session.pauseDurationSeconds * 1000,
+    startedAt.getTime() + pauseDurationSeconds * 1000,
   );
 
   return {
@@ -73,13 +87,12 @@ function buildTrainingActiveRun(session: SpeedTrainingRun): TrainingActiveRun {
     questions: session.questions,
     answers: [],
     correctAnswers: 0,
-    remainingSeconds: session.runDurationSeconds,
-    pauseRemainingSeconds: session.pauseDurationSeconds,
+    remainingSeconds: runDurationSeconds,
+    pauseRemainingSeconds: pauseDurationSeconds,
     isManuallyPaused: false,
-    durationSeconds: session.runDurationSeconds,
+    durationSeconds: runDurationSeconds,
     pauseExpiresAt: pauseExpiresAt.toISOString(),
-    startedAt: startedAt.toISOString(),
-  };
+    startedAt: startedAt.toISOString() };
 }
 
 function buildTrainingHistory(run: TrainingActiveRun): TrainingHistoryRun {
@@ -99,8 +112,7 @@ function buildTrainingHistory(run: TrainingActiveRun): TrainingHistoryRun {
       userAnswer,
       wasAnswered: true,
       isCorrect,
-      correctAnswer: isCorrect ? null : correctAnswer,
-    };
+      correctAnswer: isCorrect ? null : correctAnswer };
   });
 
   return {
@@ -111,11 +123,14 @@ function buildTrainingHistory(run: TrainingActiveRun): TrainingHistoryRun {
     reward: 0,
     totalAnswered: run.answers.length,
     correctAnswers: run.correctAnswers,
-    history,
-  };
+    history };
 }
 
 export default function SpeedCalculusTrainingScreen() {
+  return useSpeedCalculusTrainingScreenView();
+}
+
+function useSpeedCalculusTrainingScreenView() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const tc = THEME_COLORS[useThemeStore((state) => state.themeName)];
@@ -165,8 +180,6 @@ export default function SpeedCalculusTrainingScreen() {
     activeRun?.correctAnswers ?? (showRoundOver ? roundOverScore : 0);
 
   const applyActiveRun = useCallback((next: TrainingActiveRun | null) => {
-    setActiveRun(next);
-
     if (!next) {
       playDeadlineRef.current = null;
       pauseDeadlineRef.current = null;
@@ -175,6 +188,7 @@ export default function SpeedCalculusTrainingScreen() {
       answerRef.current = "";
       setAnswer("");
       setFeedback(null);
+      setActiveRun(null);
       return;
     }
 
@@ -193,6 +207,7 @@ export default function SpeedCalculusTrainingScreen() {
     setRemainingSeconds(next.remainingSeconds);
     answerRef.current = "";
     setAnswer("");
+    setActiveRun(next);
   }, []);
 
   const finishRun = useCallback(
@@ -216,9 +231,7 @@ export default function SpeedCalculusTrainingScreen() {
         setToast({
           type: "success",
           message: t("quests.speedCalculusTrainingFinish", {
-            score: runToFinish.correctAnswers,
-          }),
-        });
+            score: runToFinish.correctAnswers }) });
       } finally {
         finishRequestedRef.current = false;
         setSubmitting(false);
@@ -227,7 +240,7 @@ export default function SpeedCalculusTrainingScreen() {
     [activeRun, applyActiveRun, t],
   );
 
-  useEffect(() => {
+  reactEffect(() => {
     if (!toast) {
       return;
     }
@@ -236,7 +249,7 @@ export default function SpeedCalculusTrainingScreen() {
     return () => clearTimeout(timer);
   }, [toast]);
 
-  useEffect(() => {
+  reactEffect(() => {
     const feedbackTimeoutRefSnapshot = feedbackTimeoutRef.current;
 
     return () => {
@@ -246,18 +259,18 @@ export default function SpeedCalculusTrainingScreen() {
     };
   }, []);
 
-  useEffect(() => {
+  reactEffect(() => {
     if (activeRun && !activeRun.isManuallyPaused && !modalVisible) {
       setModalVisible(true);
       setShowRoundOver(false);
     }
   }, [activeRun, modalVisible]);
 
-  const finishRunEvent = useEffectEvent(() => {
+  const finishRunEvent = effectEvent(() => {
     finishRun();
   });
 
-  useEffect(() => {
+  reactEffect(() => {
     if (!activeRun) {
       return;
     }
@@ -265,6 +278,30 @@ export default function SpeedCalculusTrainingScreen() {
     if (isManuallyPaused) {
       pauseDeadlineRef.current = null;
       return;
+    }
+
+    const now = Date.now();
+    const nextRemainingSeconds = positiveDuration(
+      activeRun.remainingSeconds,
+      runDurationSeconds || DEFAULT_RUN_DURATION_SECONDS,
+    );
+    const nextPauseRemainingSeconds = Math.max(
+      0,
+      activeRun.pauseRemainingSeconds || 0,
+    );
+
+    if (!playDeadlineRef.current || playDeadlineRef.current <= now) {
+      if (nextPauseRemainingSeconds > 0) {
+        pauseDeadlineRef.current = now + nextPauseRemainingSeconds * 1000;
+        playDeadlineRef.current =
+          pauseDeadlineRef.current + nextRemainingSeconds * 1000;
+      } else {
+        pauseDeadlineRef.current = null;
+        playDeadlineRef.current = now + nextRemainingSeconds * 1000;
+      }
+
+      setPauseRemainingSeconds(nextPauseRemainingSeconds);
+      setRemainingSeconds(nextRemainingSeconds);
     }
 
     const interval = setInterval(() => {
@@ -296,9 +333,9 @@ export default function SpeedCalculusTrainingScreen() {
     }, 250);
 
     return () => clearInterval(interval);
-  }, [activeRun, isManuallyPaused]);
+  }, [activeRun, isManuallyPaused, runDurationSeconds]);
 
-  useEffect(() => {
+  reactEffect(() => {
     if (!activeRun || pauseRemainingSeconds > 0 || isManuallyPaused) {
       return;
     }
@@ -314,28 +351,23 @@ export default function SpeedCalculusTrainingScreen() {
       Animated.timing(shakeAnim, {
         toValue: 7,
         duration: 68,
-        useNativeDriver: true,
-      }),
+        useNativeDriver: true }),
       Animated.timing(shakeAnim, {
         toValue: -7,
         duration: 68,
-        useNativeDriver: true,
-      }),
+        useNativeDriver: true }),
       Animated.timing(shakeAnim, {
         toValue: 5,
         duration: 68,
-        useNativeDriver: true,
-      }),
+        useNativeDriver: true }),
       Animated.timing(shakeAnim, {
         toValue: -5,
         duration: 68,
-        useNativeDriver: true,
-      }),
+        useNativeDriver: true }),
       Animated.timing(shakeAnim, {
         toValue: 0,
         duration: 68,
-        useNativeDriver: true,
-      }),
+        useNativeDriver: true }),
     ]).start();
   }, [shakeAnim]);
 
@@ -353,13 +385,11 @@ export default function SpeedCalculusTrainingScreen() {
         Animated.timing(feedbackSlide, {
           toValue: 0,
           duration: 300,
-          useNativeDriver: true,
-        }),
+          useNativeDriver: true }),
         Animated.timing(feedbackOpacity, {
           toValue: 1,
           duration: 300,
-          useNativeDriver: true,
-        }),
+          useNativeDriver: true }),
       ]).start();
 
       feedbackTimeoutRef.current = setTimeout(() => {
@@ -379,8 +409,18 @@ export default function SpeedCalculusTrainingScreen() {
 
     try {
       const session = await apiClient.startSpeedCalculusTraining();
-      setRunDurationSeconds(session.runDurationSeconds);
-      pauseDurationSecondsRef.current = session.pauseDurationSeconds;
+      const nextRunDurationSeconds = trainingRunDuration(
+        session.runDurationSeconds,
+      );
+      const nextPauseDurationSeconds = Math.max(
+        0,
+        positiveDuration(
+          session.pauseDurationSeconds,
+          DEFAULT_PAUSE_DURATION_SECONDS,
+        ),
+      );
+      setRunDurationSeconds(nextRunDurationSeconds);
+      pauseDurationSecondsRef.current = nextPauseDurationSeconds;
       setShowRoundOver(false);
       setRoundOverScore(0);
       applyActiveRun(buildTrainingActiveRun(session));
@@ -391,8 +431,7 @@ export default function SpeedCalculusTrainingScreen() {
         message:
           error instanceof Error
             ? error.message
-            : t("quests.speedCalculusTrainingStartError"),
-      });
+            : t("quests.speedCalculusTrainingStartError") });
     } finally {
       setSubmitting(false);
     }
@@ -419,8 +458,7 @@ export default function SpeedCalculusTrainingScreen() {
             isManuallyPaused: true,
             remainingSeconds,
             pauseRemainingSeconds: 0,
-            pauseExpiresAt: null,
-          }
+            pauseExpiresAt: null }
         : current,
     );
   }, [
@@ -451,8 +489,7 @@ export default function SpeedCalculusTrainingScreen() {
             isManuallyPaused: false,
             pauseRemainingSeconds: pauseDurationSeconds,
             remainingSeconds,
-            pauseExpiresAt: new Date(nextPauseDeadline).toISOString(),
-          }
+            pauseExpiresAt: new Date(nextPauseDeadline).toISOString() }
         : current,
     );
   }, [
@@ -542,18 +579,15 @@ export default function SpeedCalculusTrainingScreen() {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       showFeedback({
         kind: "correct",
-        message: t("quests.speedCalculusCorrectFeedback"),
-      });
+        message: t("quests.speedCalculusCorrectFeedback") });
     } else {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       showFeedback({
         kind: "incorrect",
         message: t("quests.speedCalculusWrongFeedback", {
-          answer: expectedAnswer,
-        }),
+          answer: expectedAnswer }),
         questionLabel: `${currentQuestion.left} ${currentQuestion.operator} ${currentQuestion.right}`,
-        correctAnswer: expectedAnswer,
-      });
+        correctAnswer: expectedAnswer });
       triggerShake();
     }
 
@@ -566,8 +600,7 @@ export default function SpeedCalculusTrainingScreen() {
         answers: nextAnswers,
         correctAnswers: nextCorrectAnswers,
         remainingSeconds,
-        pauseRemainingSeconds,
-      });
+        pauseRemainingSeconds });
       return;
     }
 
@@ -579,8 +612,7 @@ export default function SpeedCalculusTrainingScreen() {
             questionIndex: current.questionIndex + 1,
             correctAnswers: nextCorrectAnswers,
             remainingSeconds,
-            pauseRemainingSeconds,
-          }
+            pauseRemainingSeconds }
         : current,
     );
   }, [
@@ -615,14 +647,12 @@ export default function SpeedCalculusTrainingScreen() {
           className={`absolute left-4 right-4 z-[100] rounded-xl p-4 ${toast.type === "success" ? "bg-successDark" : "bg-dangerDark"}`}
           style={{
             top: insets.top + 8,
-            boxShadow: `0px 4px 8px ${withAlpha( toast.type === "success" ? tc.successDark : tc.dangerDark, "2E", )}`,
-          }}
+            boxShadow: `0px 4px 8px ${withAlpha( toast.type === "success" ? tc.successDark : tc.dangerDark, "2E", )}` }}
         >
           <Text
             className="font-nunito-semibold text-sm"
             style={{
-              color: toast.type === "success" ? tc.successTint : tc.dangerTint,
-            }}
+              color: toast.type === "success" ? tc.successTint : tc.dangerTint }}
           >
             {toast.message}
           </Text>
@@ -632,18 +662,17 @@ export default function SpeedCalculusTrainingScreen() {
       <ScrollView
         contentContainerStyle={{
           paddingHorizontal: 16,
-          paddingTop: insets.top + 16,
-          paddingBottom: insets.bottom + 32,
-          gap: 16,
-        }}
+          paddingVertical: 16,
+          gap: 16 }}
+        contentInset={{ top: insets.top, bottom: insets.bottom + 16 }}
+        scrollIndicatorInsets={{ top: insets.top, bottom: insets.bottom + 16 }}
         keyboardShouldPersistTaps="handled"
       >
         <View className="items-center gap-2">
           <Text
             className="text-[28px] font-nunito-extrabold text-primaryDark"
             style={{
-              boxShadow: `0px 1px 4px ${withAlpha(tc.successDark, "2E")}`,
-            }}
+              boxShadow: `0px 1px 4px ${withAlpha(tc.successDark, "2E")}` }}
           >
             {t("quests.speedCalculusTrainingTitle")}
           </Text>

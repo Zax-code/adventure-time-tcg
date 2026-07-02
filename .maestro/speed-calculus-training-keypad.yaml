@@ -19,19 +19,23 @@ tags:
     id: speed-calculus-key-1
 - assertVisible:
     id: speed-calculus-key-submit
-- waitForAnimationToEnd
+- takeScreenshot: tmp-speed-calculus-shots/00-keypad-visible
 - extendedWaitUntil:
     visible:
-      text: Question 1
+      id: speed-calculus-question-active
     timeout: 10000
+- assertVisible:
+    id: speed-calculus-question-label-1
+- takeScreenshot: tmp-speed-calculus-shots/00-question-visible
 - tapOn:
     id: speed-calculus-key-1
 - tapOn:
     id: speed-calculus-key-2
 - tapOn:
     id: speed-calculus-key-3
+- takeScreenshot: tmp-speed-calculus-shots/01-answer-123
 - assertVisible:
-    text: "123"
+    id: speed-calculus-answer-value-123
 - tapOn:
     id: speed-calculus-key-clear
 - tapOn:
@@ -40,5 +44,6 @@ tags:
     id: speed-calculus-key-5
 - tapOn:
     id: speed-calculus-key-delete
+- takeScreenshot: tmp-speed-calculus-shots/02-answer-4
 - assertVisible:
-    text: "4"
+    id: speed-calculus-answer-value-4

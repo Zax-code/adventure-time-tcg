@@ -38,6 +38,10 @@ type GiftItem = GiftsResponse["gifts"][number];
 type GiftDecision = "accept" | "reject";
 
 export default function GiftsScreen() {
+  return useGiftsScreenView();
+}
+
+function useGiftsScreenView() {
   const queryClient = useQueryClient();
   const router = useRouter();
   const themeName = useThemeStore((state) => state.themeName);
@@ -160,8 +164,10 @@ export default function GiftsScreen() {
       className="flex-1 bg-bg"
       contentContainerStyle={{
         padding: 20,
-        paddingBottom: bottomTabPadding,
+        paddingBottom: 20,
       }}
+      contentInset={{ bottom: bottomTabPadding }}
+      scrollIndicatorInsets={{ bottom: bottomTabPadding }}
     >
       <View className="gap-5" style={{ paddingTop: headerHeight }}>
         <View className="overflow-hidden rounded-[32px] border border-primaryBorder bg-surface">
@@ -441,7 +447,9 @@ function SummaryCard({
   );
 }
 
-function InstructionStep({ index, text }: { index: string; text: string }) {
+const InstructionStep = useInstructionStepView;
+
+function useInstructionStepView({ index, text }: { index: string; text: string }) {
   const tc = THEME_COLORS[useThemeStore((state) => state.themeName)];
 
   return (
@@ -463,7 +471,9 @@ function InstructionStep({ index, text }: { index: string; text: string }) {
   );
 }
 
-function SectionHeading({
+const SectionHeading = sectionHeading;
+
+function sectionHeading({
   title,
   subtitle,
 }: {
@@ -478,7 +488,9 @@ function SectionHeading({
   );
 }
 
-function GiftEmptyState({ filter }: { filter: GiftFilter }) {
+const GiftEmptyState = useGiftEmptyStateView;
+
+function useGiftEmptyStateView({ filter }: { filter: GiftFilter }) {
   const { t } = useTranslation();
   const tc = THEME_COLORS[useThemeStore((state) => state.themeName)];
   const title =
@@ -512,7 +524,9 @@ function GiftEmptyState({ filter }: { filter: GiftFilter }) {
   );
 }
 
-function GiftCard({
+const GiftCard = useGiftCardView;
+
+function useGiftCardView({
   gift,
   currentUserId,
   locale,
@@ -745,7 +759,9 @@ function GiftCard({
   );
 }
 
-function InfoPill({
+const InfoPill = infoPill;
+
+function infoPill({
   label,
   value,
   bg,

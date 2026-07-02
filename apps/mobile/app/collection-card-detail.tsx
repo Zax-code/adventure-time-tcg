@@ -1,12 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import {
-  Animated,
   Platform,
   ScrollView,
   Text,
   View,
-  useWindowDimensions,
-} from "react-native";
+  useWindowDimensions } from "react-native";
+import { Animated } from "../src/lib/native-animated";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
@@ -15,8 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import type {
   CollectionResponse,
-  HomeResponse,
-} from "@adventure-time/api-client";
+  HomeResponse } from "@adventure-time/api-client";
 import { apiClient } from "../src/lib/api";
 import { useCollectionFeedbackStore } from "../src/stores/collection-feedback-store";
 import { useSessionStore } from "../src/stores/session-store";
@@ -26,18 +24,15 @@ import { CardTile } from "../src/components/card-tile";
 import {
   CARD_DUST_ACTION_DURATION_MS,
   type CardDustActionAnimationState,
-  type CardDustActionType,
-} from "../src/components/card-dust-action-animation-config";
+  type CardDustActionType } from "../src/components/card-dust-action-animation-config";
 import {
-  CardDustActionFrame,
-} from "../src/components/card-dust-action-animation";
+  CardDustActionFrame } from "../src/components/card-dust-action-animation";
 import { KEYBOARD_AWARE_SCROLL_PROPS } from "../src/components/keyboard-aware-scroll-props";
 import { KeyboardScreenView } from "../src/components/keyboard-screen-view";
 import { ModalSheetRoute } from "../src/components/modal-sheet-route";
 import {
   LoadingPanel,
-  PageLoadingState,
-} from "../src/components/loading-state";
+  PageLoadingState } from "../src/components/loading-state";
 import { ThemedExpoButton } from "../src/components/expo-ui/themed-button";
 import { ThemedExpoTextInput } from "../src/components/expo-ui/themed-text-input";
 import { RARITY_COLORS } from "../src/components/theme";
@@ -48,11 +43,12 @@ import {
   CraftIcon,
   DustIcon,
   GiftHeartIcon,
-  RecycleIcon,
-} from "../src/components/icons";
+  RecycleIcon } from "../src/components/icons";
 import { ToastBanner } from "../src/components/toast-banner";
 import { getDustSacrificeValue, getDustCraftCost } from "../src/lib/dust";
 import { useAnimatedValue } from "../src/hooks/use-animated-value";
+import { asStyle } from "../src/lib/style-object";
+import { reactEffect } from "../src/lib/react-primitives";
 
 function estimateCatalogCount(stats: CollectionResponse["stats"]) {
   if (stats.uniqueOwned <= 0 || stats.completionPercentage <= 0) {
@@ -85,8 +81,7 @@ function patchCollectionAfterDustAction(
         ...entry,
         quantity: nextQuantity,
         obtainedAt:
-          nextQuantity > 0 ? entry.obtainedAt ?? new Date().toISOString() : null,
-      };
+          nextQuantity > 0 ? entry.obtainedAt ?? new Date().toISOString() : null };
     });
 
   const totalCards = nextCards.reduce((sum, entry) => sum + entry.quantity, 0);
@@ -104,9 +99,7 @@ function patchCollectionAfterDustAction(
     stats: {
       totalCards,
       uniqueOwned,
-      completionPercentage,
-    },
-  };
+      completionPercentage } };
 }
 
 function patchHomeDust(
@@ -119,9 +112,7 @@ function patchHomeDust(
     ...current,
     user: {
       ...current.user,
-      dust: nextDust,
-    },
-  };
+      dust: nextDust } };
 }
 
 const DUST_ACTION_SCROLL_DELAY_MS = 420;
@@ -145,6 +136,10 @@ function triggerDustActionHaptic(type: CardDustActionType) {
 }
 
 export default function CollectionCardDetailScreen() {
+  return useCollectionCardDetailScreenView();
+}
+
+function useCollectionCardDetailScreenView() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
@@ -220,7 +215,7 @@ export default function CollectionCardDetailScreen() {
     [waitForDustActionDelay],
   );
 
-  useEffect(
+  reactEffect(
     () => () => {
       dustActionTimeoutsRef.current.forEach(clearTimeout);
       dustActionTimeoutsRef.current = [];
@@ -230,14 +225,12 @@ export default function CollectionCardDetailScreen() {
 
   const { data: collectionQueryData, isLoading: collectionQueryIsLoading } = useQuery({
     queryKey: ["collection"],
-    queryFn: () => apiClient.collection(),
-  });
+    queryFn: () => apiClient.collection() });
 
   const { data: usersQueryData, isLoading: usersQueryIsLoading } = useQuery({
     queryKey: ["users"],
     queryFn: () => apiClient.users(),
-    enabled: giftExpanded,
-  });
+    enabled: giftExpanded });
 
   const entry =
     collectionQueryData?.cards.find((e) => e.cardId === params.cardId) ?? null;
@@ -246,7 +239,7 @@ export default function CollectionCardDetailScreen() {
   const homeQueryKey = useMemo(() => ["home"] as const, []);
   const collectionQueryKey = useMemo(() => ["collection"] as const, []);
 
-  useEffect(() => {
+  reactEffect(() => {
     if (!toast) {
       return;
     }
@@ -255,14 +248,13 @@ export default function CollectionCardDetailScreen() {
     Animated.timing(toastAnim, {
       toValue: 0,
       duration: 250,
-      useNativeDriver: true,
-    }).start();
+      useNativeDriver: true }).start();
 
     const timer = setTimeout(() => setToast(null), 2600);
     return () => clearTimeout(timer);
   }, [toast, toastAnim]);
 
-  useEffect(() => {
+  reactEffect(() => {
     setRecycleExpanded(false);
     setGiftExpanded(false);
     setRecycleQuantity(1);
@@ -285,8 +277,7 @@ export default function CollectionCardDetailScreen() {
         queryClient.invalidateQueries({ queryKey: ["collection"] }),
         queryClient.invalidateQueries({ queryKey: ["home"] }),
       ]);
-    },
-  });
+    } });
 
   const craftMutation = useMutation({
     mutationFn: (cardId: string) => apiClient.craftCard(cardId),
@@ -295,15 +286,13 @@ export default function CollectionCardDetailScreen() {
         queryClient.invalidateQueries({ queryKey: ["collection"] }),
         queryClient.invalidateQueries({ queryKey: ["home"] }),
       ]);
-    },
-  });
+    } });
 
   const sendGiftMutation = useMutation({
     mutationFn: ({
       cardId,
       toUserId,
-      message,
-    }: {
+      message }: {
       cardId: string;
       toUserId: string;
       message?: string;
@@ -314,8 +303,7 @@ export default function CollectionCardDetailScreen() {
         queryClient.invalidateQueries({ queryKey: ["collection"] }),
       ]);
       router.back();
-    },
-  });
+    } });
 
   const handleRecycle = async () => {
     if (!entry) return;
@@ -325,22 +313,19 @@ export default function CollectionCardDetailScreen() {
       const remainingQuantity = entry.quantity - recycleQuantity;
       const result = await recycleMutation.mutateAsync({
         cardId: entry.cardId,
-        quantity: recycleQuantity,
-      });
+        quantity: recycleQuantity });
       const recycledCount = result.quantityRecycled ?? recycleQuantity;
       const dustGained =
         result.dustGained ??
         getDustSacrificeValue(entry.card.rarity.name) * recycleQuantity;
       const successMessage = t("collection.detail.recycleSuccess", {
         count: recycledCount,
-        dust: dustGained,
-      });
+        dust: dustGained });
 
       await scrollCardIntoViewBeforeDustAction();
       await runDustActionAnimation({
         type: "recycle",
-        disappearCard: remainingQuantity <= 0,
-      });
+        disappearCard: remainingQuantity <= 0 });
 
       queryClient.setQueryData(
         collectionQueryKey,
@@ -367,18 +352,15 @@ export default function CollectionCardDetailScreen() {
         setRecycleQuantity(1);
         setToast({
           type: "success",
-          message: successMessage,
-        });
+          message: successMessage });
       }
 
       void queryClient.invalidateQueries({
         queryKey: collectionQueryKey,
-        refetchType: "active",
-      });
+        refetchType: "active" });
       void queryClient.invalidateQueries({
         queryKey: homeQueryKey,
-        refetchType: "inactive",
-      });
+        refetchType: "inactive" });
     } catch (err) {
       setRecycleError(
         err instanceof Error
@@ -401,8 +383,7 @@ export default function CollectionCardDetailScreen() {
         result.dustSpent ?? getDustCraftCost(entry.card.rarity.name);
       const successMessage = t("collection.detail.craftSuccess", {
         count: craftedCount,
-        dust: dustSpent,
-      });
+        dust: dustSpent });
 
       await scrollCardIntoViewBeforeDustAction();
 
@@ -424,23 +405,19 @@ export default function CollectionCardDetailScreen() {
 
       await runDustActionAnimation({
         type: "craft",
-        revealLockedCard: !wasOwned,
-      });
+        revealLockedCard: !wasOwned });
 
       setIsBusy(false);
       setToast({
         type: "success",
-        message: successMessage,
-      });
+        message: successMessage });
 
       void queryClient.invalidateQueries({
         queryKey: collectionQueryKey,
-        refetchType: "active",
-      });
+        refetchType: "active" });
       void queryClient.invalidateQueries({
         queryKey: homeQueryKey,
-        refetchType: "inactive",
-      });
+        refetchType: "inactive" });
     } catch (err) {
       setCraftError(
         err instanceof Error ? err.message : t("collection.detail.craftFailed"),
@@ -457,8 +434,7 @@ export default function CollectionCardDetailScreen() {
       await sendGiftMutation.mutateAsync({
         cardId: entry.cardId,
         toUserId: selectedUserId,
-        message: giftMessage || undefined,
-      });
+        message: giftMessage || undefined });
     } catch (err) {
       setGiftError(err instanceof Error ? err.message : "Gift failed");
       setIsBusy(false);
@@ -559,8 +535,9 @@ export default function CollectionCardDetailScreen() {
                 paddingVertical: 20,
                 paddingHorizontal: 16,
                 gap: 16,
-                paddingBottom: insets.bottom + 24,
-              }}
+                paddingBottom: 24 }}
+              contentInset={{ bottom: insets.bottom }}
+              scrollIndicatorInsets={{ bottom: insets.bottom }}
               onScroll={({ nativeEvent }) => {
                 scrollOffsetYRef.current = nativeEvent.contentOffset.y;
               }}
@@ -570,8 +547,7 @@ export default function CollectionCardDetailScreen() {
             >
               <View
                 style={{
-                  gap: 16,
-                }}
+                  gap: 16 }}
                 testID="collection-card-detail-overview"
               >
                 <View className="items-center">
@@ -596,8 +572,7 @@ export default function CollectionCardDetailScreen() {
                   style={{
                     flexDirection: "row",
                     flexWrap: "wrap",
-                    gap: 10,
-                  }}
+                    gap: 10 }}
                 >
                   {[
                     {
@@ -605,33 +580,29 @@ export default function CollectionCardDetailScreen() {
                       value: String(entry.quantity),
                       textColor: tc.primaryStrong,
                       backgroundColor: tc.surface,
-                      borderColor: tc.primaryBorder,
-                    },
+                      borderColor: tc.primaryBorder },
                     {
                       label: t("collection.detail.dustBalance"),
                       value: String(dust),
                       textColor: tc.secondaryText,
                       backgroundColor: tc.secondaryTint,
-                      borderColor: tc.secondaryBorder,
-                    },
+                      borderColor: tc.secondaryBorder },
                     {
                       label: t("collection.detail.recycleValue"),
                       value: `+${recycleValue}`,
                       textColor: tc.successText,
                       backgroundColor: tc.successTint,
-                      borderColor: tc.successBorder,
-                    },
+                      borderColor: tc.successBorder },
                     {
                       label: t("collection.detail.craftCost"),
                       value: `-${craftCost}`,
                       textColor: tc.infoText,
                       backgroundColor: tc.infoTint,
-                      borderColor: tc.infoBorder,
-                    },
+                      borderColor: tc.infoBorder },
                   ].map((metric) => (
                     <View
                       key={metric.label}
-                      style={{
+                      style={asStyle({
                         width: "47.5%",
                         borderRadius: 18,
                         borderWidth: 1,
@@ -639,15 +610,13 @@ export default function CollectionCardDetailScreen() {
                         backgroundColor: metric.backgroundColor,
                         paddingHorizontal: 14,
                         paddingVertical: 12,
-                        gap: 4,
-                      }}
+                        gap: 4 })}
                     >
                       <Text
                         style={{
                           fontFamily: "Nunito_600SemiBold",
                           fontSize: 12,
-                          color: tc.fgMuted,
-                        }}
+                          color: tc.fgMuted }}
                       >
                         {metric.label}
                       </Text>
@@ -655,8 +624,7 @@ export default function CollectionCardDetailScreen() {
                         style={{
                           fontFamily: "Nunito_800ExtraBold",
                           fontSize: 20,
-                          color: metric.textColor,
-                        }}
+                          color: metric.textColor }}
                       >
                         {metric.value}
                       </Text>
@@ -673,8 +641,7 @@ export default function CollectionCardDetailScreen() {
                   backgroundColor: tc.surface,
                   padding: 16,
                   gap: 14,
-                  boxShadow: "0px 0px 10px rgba(0, 0, 0, 0.06)",
-                }}
+                  boxShadow: "0px 0px 10px rgba(0, 0, 0, 0.06)" }}
                 testID="collection-card-detail-stats"
               >
                 <View className="flex-row items-center justify-between">
@@ -682,8 +649,7 @@ export default function CollectionCardDetailScreen() {
                     style={{
                       fontSize: 16,
                       fontFamily: "Nunito_800ExtraBold",
-                      color: tc.fg,
-                    }}
+                      color: tc.fg }}
                   >
                     {t("collection.detail.stats")}
                   </Text>
@@ -694,15 +660,13 @@ export default function CollectionCardDetailScreen() {
                     style={{
                       borderRadius: 999,
                       paddingHorizontal: 12,
-                      paddingVertical: 6,
-                    }}
+                      paddingVertical: 6 }}
                   >
                     <Text
                       style={{
                         color: "#FFFFFF",
                         fontFamily: "Nunito_800ExtraBold",
-                        fontSize: 12,
-                      }}
+                        fontSize: 12 }}
                     >
                       {entry.card.rarity.name.toUpperCase()}
                     </Text>
@@ -712,34 +676,29 @@ export default function CollectionCardDetailScreen() {
                 <View
                   style={{
                     flexDirection: "row",
-                    gap: 10,
-                  }}
+                    gap: 10 }}
                 >
                   {[
                     {
                       label: "HP",
                       value: isOwned ? String(entry.card.hp) : "??",
                       color: tc.dangerDark,
-                      backgroundColor: tc.dangerTint,
-                    },
+                      backgroundColor: tc.dangerTint },
                     {
                       label: "ATK",
                       value: isOwned ? String(entry.card.attack) : "??",
                       color: tc.secondaryText,
-                      backgroundColor: tc.secondaryTint,
-                    },
+                      backgroundColor: tc.secondaryTint },
                     {
                       label: "DEF",
                       value: isOwned ? String(entry.card.defense) : "??",
                       color: tc.infoText,
-                      backgroundColor: tc.infoTint,
-                    },
+                      backgroundColor: tc.infoTint },
                     {
                       label: "SPD",
                       value: isOwned ? String(entry.card.speed) : "??",
                       color: tc.successText,
-                      backgroundColor: tc.successTint,
-                    },
+                      backgroundColor: tc.successTint },
                   ].map((stat) => (
                     <View
                       key={stat.label}
@@ -750,15 +709,13 @@ export default function CollectionCardDetailScreen() {
                         paddingVertical: 12,
                         paddingHorizontal: 8,
                         alignItems: "center",
-                        gap: 2,
-                      }}
+                        gap: 2 }}
                     >
                       <Text
                         style={{
                           fontSize: 20,
                           fontFamily: "Nunito_800ExtraBold",
-                          color: stat.color,
-                        }}
+                          color: stat.color }}
                       >
                         {stat.value}
                       </Text>
@@ -766,8 +723,7 @@ export default function CollectionCardDetailScreen() {
                         style={{
                           fontSize: 12,
                           fontFamily: "Nunito_700Bold",
-                          color: tc.fgMuted,
-                        }}
+                          color: tc.fgMuted }}
                       >
                         {stat.label}
                       </Text>
@@ -782,8 +738,7 @@ export default function CollectionCardDetailScreen() {
                       lineHeight: 19,
                       fontFamily: "Nunito_600SemiBold",
                       color: tc.fgMuted,
-                      textAlign: "center",
-                    }}
+                      textAlign: "center" }}
                   >
                     {t("collection.locked.statsHint")}
                   </Text>
@@ -798,8 +753,7 @@ export default function CollectionCardDetailScreen() {
                   backgroundColor: tc.secondaryTint,
                   padding: 16,
                   gap: 12,
-                  boxShadow: "0px 0px 10px rgba(0, 0, 0, 0.06)",
-                }}
+                  boxShadow: "0px 0px 10px rgba(0, 0, 0, 0.06)" }}
                 testID="collection-card-detail-craft"
               >
                 <View className="flex-row items-start gap-3">
@@ -810,8 +764,7 @@ export default function CollectionCardDetailScreen() {
                       borderRadius: 21,
                       alignItems: "center",
                       justifyContent: "center",
-                      backgroundColor: tc.secondary,
-                    }}
+                      backgroundColor: tc.secondary }}
                   >
                     <CraftIcon size={18} color={tc.secondaryText} />
                   </View>
@@ -821,13 +774,12 @@ export default function CollectionCardDetailScreen() {
                         style={{
                           fontSize: 16,
                           fontFamily: "Nunito_800ExtraBold",
-                          color: tc.secondaryText,
-                        }}
+                          color: tc.secondaryText }}
                       >
                         {t("collection.detail.craft")}
                       </Text>
                       <View
-                        style={{
+                        style={asStyle({
                           borderRadius: 999,
                           backgroundColor: tc.surface,
                           paddingHorizontal: 10,
@@ -836,15 +788,13 @@ export default function CollectionCardDetailScreen() {
                           borderColor: tc.secondaryBorder,
                           flexDirection: "row",
                           alignItems: "center",
-                          gap: 4,
-                        }}
+                          gap: 4 })}
                       >
                         <Text
                           style={{
                             fontSize: 12,
                             fontFamily: "Nunito_700Bold",
-                            color: tc.secondaryText,
-                          }}
+                            color: tc.secondaryText }}
                         >
                           -{craftCost}
                         </Text>
@@ -857,14 +807,12 @@ export default function CollectionCardDetailScreen() {
                         fontSize: 13,
                         lineHeight: 20,
                         fontFamily: "Nunito_400Regular",
-                        color: tc.secondaryText,
-                      }}
+                        color: tc.secondaryText }}
                     >
                       {canCraft
                         ? t("collection.detail.craftReadyHint")
                         : t("collection.detail.craftNeedMoreDust", {
-                            amount: craftCost - dust,
-                          })}
+                            amount: craftCost - dust })}
                     </Text>
                   </View>
                 </View>
@@ -885,13 +833,10 @@ export default function CollectionCardDetailScreen() {
                     paddingVertical: 12,
                     textStyle: {
                       fontFamily: "Nunito_800ExtraBold",
-                      fontSize: 15,
-                    },
-                  }}
+                      fontSize: 15 } }}
                   style={{
                     width: "100%",
-                    opacity: isBusy || !canCraft ? 0.55 : 1,
-                  }}
+                    opacity: isBusy || !canCraft ? 0.55 : 1 }}
                   testID="collection-card-detail-craft-button"
                   variant="secondary"
                 >
@@ -908,8 +853,7 @@ export default function CollectionCardDetailScreen() {
                       borderColor: tc.successBorder,
                       backgroundColor: tc.successTint,
                       overflow: "hidden",
-                      boxShadow: "0px 0px 10px rgba(0, 0, 0, 0.06)",
-                    }}
+                      boxShadow: "0px 0px 10px rgba(0, 0, 0, 0.06)" }}
                     testID="collection-card-detail-recycle"
                   >
                     <ThemedExpoButton
@@ -927,9 +871,7 @@ export default function CollectionCardDetailScreen() {
                         paddingVertical: 14,
                         textStyle: {
                           fontFamily: "Nunito_800ExtraBold",
-                          fontSize: 16,
-                        },
-                      }}
+                          fontSize: 16 } }}
                       testID="collection-card-detail-recycle-toggle"
                       variant="ghost"
                     >
@@ -938,16 +880,14 @@ export default function CollectionCardDetailScreen() {
                           width: "100%",
                           flexDirection: "row",
                           alignItems: "center",
-                          gap: 12,
-                        }}
+                          gap: 12 }}
                       >
                         <View
                           style={{
                             flex: 1,
                             flexDirection: "row",
                             alignItems: "center",
-                            gap: 10,
-                          }}
+                            gap: 10 }}
                         >
                           <RecycleIcon size={18} color={tc.successText} />
                           <View style={{ flex: 1 }}>
@@ -955,8 +895,7 @@ export default function CollectionCardDetailScreen() {
                               style={{
                                 fontSize: 16,
                                 fontFamily: "Nunito_800ExtraBold",
-                                color: tc.successText,
-                              }}
+                                color: tc.successText }}
                             >
                               {t("collection.detail.recycle")}
                             </Text>
@@ -965,8 +904,7 @@ export default function CollectionCardDetailScreen() {
                                 marginTop: 2,
                                 fontSize: 12,
                                 fontFamily: "Nunito_400Regular",
-                                color: tc.successText,
-                              }}
+                                color: tc.successText }}
                             >
                               {t("collection.detail.recycleHint")}
                             </Text>
@@ -976,11 +914,10 @@ export default function CollectionCardDetailScreen() {
                           style={{
                             flexDirection: "row",
                             alignItems: "center",
-                            gap: 8,
-                          }}
+                            gap: 8 }}
                         >
                           <View
-                            style={{
+                            style={asStyle({
                               borderRadius: 999,
                               paddingHorizontal: 10,
                               paddingVertical: 5,
@@ -989,15 +926,13 @@ export default function CollectionCardDetailScreen() {
                               borderColor: tc.successBorder,
                               flexDirection: "row",
                               alignItems: "center",
-                              gap: 4,
-                            }}
+                              gap: 4 })}
                           >
                             <Text
                               style={{
                                 fontSize: 12,
                                 fontFamily: "Nunito_700Bold",
-                                color: tc.successText,
-                              }}
+                                color: tc.successText }}
                             >
                               +{recycleValue}
                             </Text>
@@ -1007,8 +942,7 @@ export default function CollectionCardDetailScreen() {
                             style={{
                               transform: [
                                 { rotate: recycleExpanded ? "180deg" : "0deg" },
-                              ],
-                            }}
+                              ] }}
                           >
                             <ChevronDownIcon size={18} color={tc.successText} />
                           </View>
@@ -1023,11 +957,10 @@ export default function CollectionCardDetailScreen() {
                         <View
                           style={{
                             flexDirection: "row",
-                            gap: 10,
-                          }}
+                            gap: 10 }}
                         >
                           <View
-                            style={{
+                            style={asStyle({
                               flex: 1,
                               borderRadius: 16,
                               backgroundColor: tc.surface,
@@ -1035,15 +968,13 @@ export default function CollectionCardDetailScreen() {
                               borderColor: tc.successBorder,
                               paddingHorizontal: 14,
                               paddingVertical: 10,
-                              gap: 2,
-                            }}
+                              gap: 2 })}
                           >
                             <Text
                               style={{
                                 fontSize: 12,
                                 fontFamily: "Nunito_600SemiBold",
-                                color: tc.fgMuted,
-                              }}
+                                color: tc.fgMuted }}
                             >
                               {t("collection.detail.ownedCopies")}
                             </Text>
@@ -1051,14 +982,13 @@ export default function CollectionCardDetailScreen() {
                               style={{
                                 fontSize: 16,
                                 fontFamily: "Nunito_800ExtraBold",
-                                color: tc.successText,
-                              }}
+                                color: tc.successText }}
                             >
                               {entry.quantity}
                             </Text>
                           </View>
                           <View
-                            style={{
+                            style={asStyle({
                               flex: 1,
                               borderRadius: 16,
                               backgroundColor: tc.surface,
@@ -1066,15 +996,13 @@ export default function CollectionCardDetailScreen() {
                               borderColor: tc.successBorder,
                               paddingHorizontal: 14,
                               paddingVertical: 10,
-                              gap: 2,
-                            }}
+                              gap: 2 })}
                           >
                             <Text
                               style={{
                                 fontSize: 12,
                                 fontFamily: "Nunito_600SemiBold",
-                                color: tc.fgMuted,
-                              }}
+                                color: tc.fgMuted }}
                             >
                               {t("collection.detail.recycleValue")}
                             </Text>
@@ -1082,15 +1010,13 @@ export default function CollectionCardDetailScreen() {
                               style={{
                                 flexDirection: "row",
                                 alignItems: "center",
-                                gap: 4,
-                              }}
+                                gap: 4 }}
                             >
                               <Text
                                 style={{
                                   fontSize: 16,
                                   fontFamily: "Nunito_800ExtraBold",
-                                  color: tc.successText,
-                                }}
+                                  color: tc.successText }}
                               >
                                 +{recycleValue * recycleQuantity}
                               </Text>
@@ -1107,15 +1033,13 @@ export default function CollectionCardDetailScreen() {
                             borderColor: tc.successBorder,
                             paddingHorizontal: 16,
                             paddingVertical: 12,
-                            gap: 8,
-                          }}
+                            gap: 8 }}
                         >
                           <Text
                             style={{
                               fontSize: 12,
                               fontFamily: "Nunito_600SemiBold",
-                              color: tc.fgMuted,
-                            }}
+                              color: tc.fgMuted }}
                           >
                             {t("collection.detail.recycleCount")}
                           </Text>
@@ -1141,15 +1065,13 @@ export default function CollectionCardDetailScreen() {
                                   paddingVertical: 0,
                                   textStyle: {
                                     fontFamily: "Nunito_800ExtraBold",
-                                    fontSize: 22,
-                                  },
-                                }}
+                                    fontSize: 22 } }}
                                 style={{ width: 42, height: 42 }}
                                 testID="collection-card-detail-recycle-minus"
                                 variant="ghost"
                               />
                               <View
-                                style={{
+                                style={asStyle({
                                   minWidth: 110,
                                   borderRadius: 18,
                                   backgroundColor: tc.successTint,
@@ -1157,15 +1079,13 @@ export default function CollectionCardDetailScreen() {
                                   borderColor: tc.successBorder,
                                   paddingHorizontal: 16,
                                   paddingVertical: 10,
-                                  alignItems: "center",
-                                }}
+                                  alignItems: "center" })}
                               >
                                 <Text
                                   style={{
                                     fontSize: 18,
                                     fontFamily: "Nunito_800ExtraBold",
-                                    color: tc.successText,
-                                  }}
+                                    color: tc.successText }}
                                 >
                                   {recycleQuantity}
                                 </Text>
@@ -1189,9 +1109,7 @@ export default function CollectionCardDetailScreen() {
                                   paddingVertical: 0,
                                   textStyle: {
                                     fontFamily: "Nunito_800ExtraBold",
-                                    fontSize: 22,
-                                  },
-                                }}
+                                    fontSize: 22 } }}
                                 style={{ width: 42, height: 42 }}
                                 testID="collection-card-detail-recycle-plus"
                                 variant="ghost"
@@ -1203,8 +1121,7 @@ export default function CollectionCardDetailScreen() {
                                 fontSize: 18,
                                 fontFamily: "Nunito_800ExtraBold",
                                 color: tc.successText,
-                                textAlign: "center",
-                              }}
+                                textAlign: "center" }}
                             >
                               1
                             </Text>
@@ -1227,13 +1144,10 @@ export default function CollectionCardDetailScreen() {
                             paddingVertical: 12,
                             textStyle: {
                               fontFamily: "Nunito_800ExtraBold",
-                              fontSize: 15,
-                            },
-                          }}
+                              fontSize: 15 } }}
                           style={{
                             width: "100%",
-                            opacity: isBusy ? 0.6 : 1,
-                          }}
+                            opacity: isBusy ? 0.6 : 1 }}
                           testID="collection-card-detail-recycle-button"
                           variant="primary"
                         >
@@ -1241,8 +1155,7 @@ export default function CollectionCardDetailScreen() {
                             t("collection.detail.recycling")
                           ) : (
                             t("collection.detail.confirmRecycle", {
-                              amount: recycleValue * recycleQuantity,
-                            })
+                              amount: recycleValue * recycleQuantity })
                           )}
                         </ThemedExpoButton>
                       </View>
@@ -1256,8 +1169,7 @@ export default function CollectionCardDetailScreen() {
                       borderColor: tc.infoBorder,
                       backgroundColor: tc.infoTint,
                       overflow: "hidden",
-                      boxShadow: "0px 0px 10px rgba(0, 0, 0, 0.06)",
-                    }}
+                      boxShadow: "0px 0px 10px rgba(0, 0, 0, 0.06)" }}
                     testID="collection-card-detail-gift"
                   >
                     <ThemedExpoButton
@@ -1275,9 +1187,7 @@ export default function CollectionCardDetailScreen() {
                         paddingVertical: 14,
                         textStyle: {
                           fontFamily: "Nunito_800ExtraBold",
-                          fontSize: 16,
-                        },
-                      }}
+                          fontSize: 16 } }}
                       testID="collection-card-detail-gift-toggle"
                       variant="ghost"
                     >
@@ -1286,16 +1196,14 @@ export default function CollectionCardDetailScreen() {
                           width: "100%",
                           flexDirection: "row",
                           alignItems: "center",
-                          gap: 12,
-                        }}
+                          gap: 12 }}
                       >
                         <View
                           style={{
                             flex: 1,
                             flexDirection: "row",
                             alignItems: "center",
-                            gap: 10,
-                          }}
+                            gap: 10 }}
                         >
                           <GiftHeartIcon size={18} color={tc.infoText} />
                           <View style={{ flex: 1 }}>
@@ -1303,8 +1211,7 @@ export default function CollectionCardDetailScreen() {
                               style={{
                                 fontSize: 16,
                                 fontFamily: "Nunito_800ExtraBold",
-                                color: tc.infoText,
-                              }}
+                                color: tc.infoText }}
                             >
                               {t("gifts.sendGift")}
                             </Text>
@@ -1313,13 +1220,11 @@ export default function CollectionCardDetailScreen() {
                                 marginTop: 2,
                                 fontSize: 12,
                                 fontFamily: "Nunito_400Regular",
-                                color: tc.infoText,
-                              }}
+                                color: tc.infoText }}
                             >
                               {selectedUser
                                 ? t("collection.detail.selectedRecipient", {
-                                    name: selectedUser.displayName,
-                                  })
+                                    name: selectedUser.displayName })
                                 : t("collection.detail.giftHint")}
                             </Text>
                           </View>
@@ -1329,12 +1234,11 @@ export default function CollectionCardDetailScreen() {
                           style={{
                             flexDirection: "row",
                             alignItems: "center",
-                            gap: 8,
-                          }}
+                            gap: 8 }}
                         >
                           {selectedUser ? (
                             <View
-                              style={{
+                              style={asStyle({
                                 height: 24,
                                 width: 24,
                                 borderRadius: 12,
@@ -1342,8 +1246,7 @@ export default function CollectionCardDetailScreen() {
                                 justifyContent: "center",
                                 backgroundColor: tc.surface,
                                 borderWidth: 1,
-                                borderColor: tc.infoBorder,
-                              }}
+                                borderColor: tc.infoBorder })}
                             >
                               <CheckIcon size={14} color={tc.infoText} />
                             </View>
@@ -1352,8 +1255,7 @@ export default function CollectionCardDetailScreen() {
                             style={{
                               transform: [
                                 { rotate: giftExpanded ? "180deg" : "0deg" },
-                              ],
-                            }}
+                              ] }}
                           >
                             <ChevronDownIcon size={18} color={tc.infoText} />
                           </View>
@@ -1370,8 +1272,7 @@ export default function CollectionCardDetailScreen() {
                             style={{
                               fontSize: 12,
                               fontFamily: "Nunito_700Bold",
-                              color: tc.infoText,
-                            }}
+                              color: tc.infoText }}
                           >
                             {t("gifts.giftTo")}
                           </Text>
@@ -1389,13 +1290,11 @@ export default function CollectionCardDetailScreen() {
                               borderColor: tc.infoBorder,
                               height: 46,
                               paddingHorizontal: 12,
-                              width: "100%",
-                            }}
+                              width: "100%" }}
                             textStyle={{
                               color: tc.fg,
                               fontFamily: "Nunito_400Regular",
-                              fontSize: 14,
-                            }}
+                              fontSize: 14 }}
                           />
                         </View>
 
@@ -1405,8 +1304,7 @@ export default function CollectionCardDetailScreen() {
                             backgroundColor: tc.surface,
                             borderRadius: 18,
                             borderWidth: 1,
-                            borderColor: tc.infoBorder,
-                          }}
+                            borderColor: tc.infoBorder }}
                           nestedScrollEnabled
                           keyboardShouldPersistTaps="handled"
                           testID="collection-card-detail-gift-user-list"
@@ -1426,8 +1324,7 @@ export default function CollectionCardDetailScreen() {
                                 fontSize: 13,
                                 color: tc.fgMuted,
                                 textAlign: "center",
-                                padding: 12,
-                              }}
+                                padding: 12 }}
                             >
                               {t("collection.gift.noPlayersFound")}
                             </Text>
@@ -1459,9 +1356,7 @@ export default function CollectionCardDetailScreen() {
                                         fontFamily: isSelected
                                           ? "Nunito_700Bold"
                                           : "Nunito_600SemiBold",
-                                        fontSize: 14,
-                                      },
-                                    }}
+                                        fontSize: 14 } }}
                                     testID={`collection-card-detail-gift-user-${user.id}`}
                                     variant="ghost"
                                   >
@@ -1472,8 +1367,7 @@ export default function CollectionCardDetailScreen() {
                                           ? "Nunito_700Bold"
                                           : "Nunito_600SemiBold",
                                         fontSize: 14,
-                                        color: tc.fg,
-                                      }}
+                                        color: tc.fg }}
                                     >
                                       {user.displayName}
                                     </Text>
@@ -1501,13 +1395,11 @@ export default function CollectionCardDetailScreen() {
                             borderColor: tc.infoBorder,
                             height: 46,
                             paddingHorizontal: 12,
-                            width: "100%",
-                          }}
+                            width: "100%" }}
                           textStyle={{
                             color: tc.fg,
                             fontFamily: "Nunito_400Regular",
-                            fontSize: 14,
-                          }}
+                            fontSize: 14 }}
                         />
 
                         <ThemedExpoButton
@@ -1526,13 +1418,10 @@ export default function CollectionCardDetailScreen() {
                             paddingVertical: 12,
                             textStyle: {
                               fontFamily: "Nunito_800ExtraBold",
-                              fontSize: 15,
-                            },
-                          }}
+                              fontSize: 15 } }}
                           style={{
                             width: "100%",
-                            opacity: isBusy || !selectedUserId ? 0.55 : 1,
-                          }}
+                            opacity: isBusy || !selectedUserId ? 0.55 : 1 }}
                           testID="collection-card-detail-gift-send"
                           variant="secondary"
                         >
@@ -1552,8 +1441,7 @@ export default function CollectionCardDetailScreen() {
                     borderColor: tc.infoBorder,
                     backgroundColor: tc.infoTint,
                     paddingHorizontal: 14,
-                    paddingVertical: 12,
-                  }}
+                    paddingVertical: 12 }}
                 >
                   <Text
                     style={{
@@ -1561,8 +1449,7 @@ export default function CollectionCardDetailScreen() {
                       fontFamily: "Nunito_600SemiBold",
                       fontSize: 13,
                       lineHeight: 19,
-                      textAlign: "center",
-                    }}
+                      textAlign: "center" }}
                   >
                     {t("collection.detail.craftFirstHint")}
                   </Text>
@@ -1577,16 +1464,14 @@ export default function CollectionCardDetailScreen() {
                     borderColor: tc.dangerBorder,
                     backgroundColor: tc.dangerTint,
                     paddingHorizontal: 14,
-                    paddingVertical: 12,
-                  }}
+                    paddingVertical: 12 }}
                 >
                   <Text
                     style={{
                       color: tc.dangerText,
                       fontFamily: "Nunito_600SemiBold",
                       fontSize: 13,
-                      textAlign: "center",
-                    }}
+                      textAlign: "center" }}
                   >
                     {recycleError || craftError || giftError}
                   </Text>

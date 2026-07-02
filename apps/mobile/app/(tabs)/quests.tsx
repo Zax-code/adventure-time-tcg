@@ -7,7 +7,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
 import {
   Alert,
-  Animated,
   Modal,
   Platform,
   ScrollView,
@@ -15,6 +14,7 @@ import {
   Pressable,
   View,
 } from "react-native";
+import { Animated } from "../../src/lib/native-animated";
 import { captureRef } from "react-native-view-shot";
 
 import type {
@@ -81,6 +81,7 @@ import {
 } from "../../src/theme/layout";
 import { THEME_COLORS } from "../../src/theme/themes";
 import { useAnimatedValue } from "../../src/hooks/use-animated-value";
+import { asStyle } from "../../src/lib/style-object";
 
 type QuestStatus = "active" | "completed" | "claimed" | "failed";
 type ThemeColors = (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
@@ -250,7 +251,7 @@ function RewardAmount({
       {claimed ? (
         <View
           pointerEvents="none"
-          style={{
+          style={asStyle({
             backgroundColor: color,
             borderRadius: 999,
             height: 2,
@@ -259,7 +260,7 @@ function RewardAmount({
             right: -2,
             top: iconSize / 2,
             transform: [{ translateY: -1 }],
-          }}
+          })}
         />
       ) : null}
     </View>
@@ -691,6 +692,10 @@ function getQuestProgressDisplay(quest: Quest) {
 }
 
 export default function QuestsScreen() {
+  return useQuestsScreenView();
+}
+
+function useQuestsScreenView() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const patchUser = useSessionStore((state) => state.patchUser);
@@ -1327,9 +1332,11 @@ export default function QuestsScreen() {
       <ScrollView
         className="flex-1"
         contentContainerStyle={{
-          paddingBottom: bottomTabPadding,
+          paddingBottom: 24,
           paddingHorizontal: 16,
         }}
+        contentInset={{ bottom: bottomTabPadding }}
+        scrollIndicatorInsets={{ bottom: bottomTabPadding }}
       >
         <View style={{ paddingTop: headerHeight + 16 }}>
           <View className="items-center mb-6" style={{ gap: 8 }}>

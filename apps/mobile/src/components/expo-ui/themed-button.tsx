@@ -25,6 +25,7 @@ import {
   getExpoUIColorScheme,
   THEME_COLORS,
 } from "../../theme/themes";
+import { asStyle } from "../../lib/style-object";
 
 type ThemedButtonVariant =
   | "primary"
@@ -352,7 +353,7 @@ function FallbackButton({
           colors={appearance.gradientColors}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
-          style={{
+          style={asStyle({
             borderRadius: appearance.borderRadius,
             height: appearance.height,
             paddingVertical: appearance.paddingVertical,
@@ -362,7 +363,7 @@ function FallbackButton({
             justifyContent:
               fallbackLayout === "stretch" ? "flex-start" : "center",
             width: "100%",
-          }}
+          })}
         >
           {content}
         </LinearGradient>

@@ -1,4 +1,6 @@
-import { Animated, Text, View } from "react-native";
+import { Text, View } from "react-native";
+import { Animated } from "../../../lib/native-animated";
+import type { AnimatedValue } from "../../../lib/native-animated";
 import type { SpeedRunState } from "@adventure-time/api-client";
 
 import { type FeedbackType } from "./constants";
@@ -7,8 +9,8 @@ type Question = NonNullable<SpeedRunState["activeRun"]>["questions"][number];
 
 type FeedbackBannerProps = {
   feedback: FeedbackType;
-  feedbackSlide: Animated.Value;
-  feedbackOpacity: Animated.Value;
+  feedbackSlide: AnimatedValue;
+  feedbackOpacity: AnimatedValue;
   pauseRemainingSeconds: number;
   currentQuestion: Question | null;
 };

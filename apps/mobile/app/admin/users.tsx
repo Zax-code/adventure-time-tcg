@@ -125,7 +125,7 @@ function UsersSubsectionHeader({
   );
 }
 
-const AdminUserRow = memo(function AdminUserRow({
+const adminUserRow = memo(function useAdminUserRowView({
   user,
   isCurrentUser,
   currentUserLabel,
@@ -277,7 +277,9 @@ const AdminUserRow = memo(function AdminUserRow({
   );
 });
 
-const AdminUserListRow = memo(function AdminUserListRow({
+const AdminUserRow = adminUserRow;
+
+const adminUserListRow = memo(function useAdminUserListRowView({
   item,
   labels,
   onOpenUser,
@@ -312,7 +314,11 @@ const AdminUserListRow = memo(function AdminUserListRow({
   );
 });
 
-function AdminRequestRow({
+const AdminUserListRow = adminUserListRow;
+
+const AdminRequestRow = useAdminRequestRowView;
+
+function useAdminRequestRowView({
   request,
   statusLabel,
   createdLabel,
@@ -457,6 +463,10 @@ function AdminRequestRow({
 }
 
 export default function AdminUsersScreen() {
+  return useAdminUsersScreenView();
+}
+
+function useAdminUsersScreenView() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");

@@ -98,6 +98,10 @@ function getPackArtStatusLabel(
 }
 
 export default function AdminPacksScreen() {
+  return useAdminPacksScreenView();
+}
+
+function useAdminPacksScreenView() {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");

@@ -1,4 +1,6 @@
-import { Animated, Modal, Pressable, Text, View } from "react-native";
+import { Modal, Pressable, Text, View } from "react-native";
+import { Animated } from "../../../lib/native-animated";
+import type { AnimatedValue } from "../../../lib/native-animated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import type { SpeedRunState } from "@adventure-time/api-client";
@@ -28,10 +30,10 @@ type ActiveRunPanelProps = {
   displayedCorrectAnswers: number;
   isManuallyPaused: boolean;
   feedback: FeedbackType;
-  feedbackSlide: Animated.Value;
-  feedbackOpacity: Animated.Value;
+  feedbackSlide: AnimatedValue;
+  feedbackOpacity: AnimatedValue;
   answer: string;
-  shakeAnim: Animated.Value;
+  shakeAnim: AnimatedValue;
   answerBoxBg: string;
   answerBoxBorder: string;
   answerBoxText: string;
