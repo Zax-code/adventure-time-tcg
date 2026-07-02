@@ -423,8 +423,8 @@ defmodule AdventureTimeApi.Accounts do
          true <- Bcrypt.verify_pass(refresh_token, session.refresh_token_hash),
          %User{} = user <- Repo.get(User, claims["sub"]),
          :ok <- ensure_user_approved(user, metadata),
-         {:ok, _revoked} <- revoke_session(session),
-         {:ok, response} <- issue_session(user, metadata) do
+         {:ok, _session} <- extend_session(session, metadata),
+         {:ok, response} <- issue_refresh_response(user, refresh_token) do
       {:ok, response}
     else
       {:error, %AuthError{} = error} ->
@@ -1115,14 +1115,20 @@ defmodule AdventureTimeApi.Accounts do
 
     with session_id <- Ecto.UUID.generate(),
          {:ok, refresh_token} <- Auth.sign_refresh_token(session_id, user.id),
-         {:ok, access_token} <-
+         {:ok, response} <- issue_refresh_response(user, refresh_token),
+         {:ok, _session} <- create_session(session_id, user.id, refresh_token, metadata, now) do
+      {:ok, response}
+    end
+  end
+
+  defp issue_refresh_response(user, refresh_token) do
+    with {:ok, access_token} <-
            Auth.sign_access_token(%{
              "sub" => user.id,
              "email" => user.email,
              "isAdmin" => admin_role?(user.role),
              "isSuperAdmin" => super_admin_role?(user.role)
            }),
-         {:ok, _session} <- create_session(session_id, user.id, refresh_token, metadata, now),
          {:ok, auth_user} <- build_auth_user(user) do
       {:ok,
        %{
@@ -1154,6 +1160,24 @@ defmodule AdventureTimeApi.Accounts do
   defp revoke_session(session) do
     session
     |> Ecto.Changeset.change(revoked_at: now_utc())
+    |> Repo.update()
+  end
+
+  defp extend_session(session, metadata) do
+    next_expires_at = DateTime.add(now_utc(), Auth.refresh_ttl_days() * 24 * 60 * 60, :second)
+
+    expires_at =
+      case DateTime.compare(session.expires_at, next_expires_at) do
+        :gt -> session.expires_at
+        _ -> next_expires_at
+      end
+
+    session
+    |> Session.changeset(%{
+      user_agent: metadata[:user_agent],
+      ip_address: metadata[:ip_address],
+      expires_at: expires_at
+    })
     |> Repo.update()
   end
 

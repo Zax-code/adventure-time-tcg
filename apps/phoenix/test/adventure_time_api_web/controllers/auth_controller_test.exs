@@ -433,7 +433,8 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
            ) == %{"error" => "Session not found."}
   end
 
-  test "POST /auth/refresh rotates session for approved verified users", _context do
+  test "POST /auth/refresh keeps the same long-lived session for approved verified users",
+       _context do
     user =
       create_user_with_password("bubblegum@example.com", "science-rules", "PB",
         verified?: true,
@@ -455,14 +456,44 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
     conn = post(build_conn(), ~p"/auth/refresh", %{"refreshToken" => refresh_token})
     body = json_response(conn, 200)
 
-    assert get_in(body, ["tokens", "refreshToken"]) != refresh_token
-    assert Repo.aggregate(Session, :count, :id) == 2
+    assert get_in(body, ["tokens", "refreshToken"]) == refresh_token
+    assert Repo.aggregate(Session, :count, :id) == 1
 
-    assert Repo.aggregate(
-             from(session in Session, where: not is_nil(session.revoked_at)),
-             :count,
-             :id
-           ) == 1
+    session = Repo.one!(from(session in Session, where: session.user_id == ^user.id))
+    assert is_nil(session.revoked_at)
+    assert DateTime.compare(session.expires_at, DateTime.utc_now()) == :gt
+  end
+
+  test "POST /auth/refresh survives a lost refresh response", _context do
+    user =
+      create_user_with_password("lost-response@example.com", "science-rules", "Lost Response",
+        verified?: true,
+        access_status: :approved
+      )
+
+    response =
+      build_conn()
+      |> post(~p"/auth/login", %{
+        email: user.email,
+        password: "science-rules"
+      })
+      |> json_response(200)
+
+    refresh_token = get_in(response, ["tokens", "refreshToken"])
+
+    _discarded_response =
+      post(build_conn(), ~p"/auth/refresh", %{"refreshToken" => refresh_token})
+      |> json_response(200)
+
+    retry_response =
+      post(build_conn(), ~p"/auth/refresh", %{"refreshToken" => refresh_token})
+      |> json_response(200)
+
+    assert get_in(retry_response, ["tokens", "refreshToken"]) == refresh_token
+    assert Repo.aggregate(Session, :count, :id) == 1
+
+    session = Repo.one!(from(session in Session, where: session.user_id == ^user.id))
+    assert is_nil(session.revoked_at)
   end
 
   test "POST /auth/login issues a long-lived refresh session", %{conn: conn} do
