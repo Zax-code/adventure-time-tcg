@@ -1,4 +1,9 @@
 import { Pressable, Text, View } from "react-native";
+import Animated, {
+  FadeIn,
+  FadeOut,
+  LinearTransition,
+} from "react-native-reanimated";
 import type { SpeedRunState } from "@adventure-time/api-client";
 
 import { useTranslation } from "../../../i18n";
@@ -44,9 +49,10 @@ export function RunHistoryCard({
           {(state?.history ?? []).map((run) => {
             const isOpen = openRuns[run.runNumber] ?? false;
             return (
-              <View
+              <Animated.View
                 key={run.runNumber}
                 className="rounded-2xl border border-primaryTint p-4"
+                layout={LinearTransition.duration(300)}
                 style={{ backgroundColor: tc.primaryBg }}
               >
                 <Pressable
@@ -99,8 +105,10 @@ export function RunHistoryCard({
                 </Pressable>
 
                 {isOpen && (
-                  <View
+                  <Animated.View
                     className="pt-4 mt-4 gap-2 border-t"
+                    entering={FadeIn.duration(180)}
+                    exiting={FadeOut.duration(140)}
                     style={{ borderTopColor: withAlpha(tc.primaryTint, "B3") }}
                   >
                     {run.history.map((entry) => (
@@ -143,9 +151,9 @@ export function RunHistoryCard({
                         )}
                       </View>
                     ))}
-                  </View>
+                  </Animated.View>
                 )}
-              </View>
+              </Animated.View>
             );
           })}
         </View>

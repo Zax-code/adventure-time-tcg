@@ -1,70 +1,81 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { Text, View } from "react-native";
-import { Animated } from "../lib/native-animated";
+import Animated, {
+  cancelAnimation,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from "react-native-reanimated";
 import Ionicons from "@react-native-vector-icons/ionicons";
 import { LinearGradient } from "expo-linear-gradient";
 
 import type { IoniconName } from "../lib/ionicons";
 import { useThemeStore } from "../stores/theme-store";
 import { THEME_COLORS } from "../theme/themes";
-import { useAnimatedValue } from "../hooks/use-animated-value";
 
 type LoadingVariant = "page" | "section";
 
-function LoadingDots({ color }: { color: string }) {
-  const anim = useAnimatedValue(0);
+function LoadingDot({ color, index }: { color: string; index: number }) {
+  const progress = useSharedValue(0);
 
   useEffect(() => {
-    const loop = Animated.loop(
-      Animated.timing(anim, {
-        toValue: 1,
-        duration: 1200,
-        useNativeDriver: true,
-      }),
-    );
-
-    loop.start();
-
+    progress.value = withRepeat(withTiming(1, { duration: 1200 }), -1);
     return () => {
-      loop.stop();
-      anim.setValue(0);
+      cancelAnimation(progress);
+      progress.value = 0;
     };
-  }, [anim]);
+  }, [progress]);
 
+  const animatedStyle = useAnimatedStyle(() => {
+    const opacityRange =
+      index === 0
+        ? [1, 0.35, 0.35, 0.35, 1]
+        : index === 1
+          ? [0.35, 1, 0.35, 0.35, 0.35]
+          : [0.35, 0.35, 1, 0.35, 0.35];
+    const scaleRange =
+      index === 0
+        ? [1.15, 0.9, 0.9, 0.9, 1.15]
+        : index === 1
+          ? [0.9, 1.15, 0.9, 0.9, 0.9]
+          : [0.9, 0.9, 1.15, 0.9, 0.9];
+
+    return {
+      opacity: interpolate(progress.value, [0, 0.25, 0.5, 0.75, 1], opacityRange),
+      transform: [
+        {
+          scale: interpolate(
+            progress.value,
+            [0, 0.25, 0.5, 0.75, 1],
+            scaleRange,
+          ),
+        },
+      ],
+    };
+  });
+
+  return (
+    <Animated.View
+      style={[
+        {
+          width: 10,
+          height: 10,
+          borderRadius: 999,
+          backgroundColor: color,
+        },
+        animatedStyle,
+      ]}
+    />
+  );
+}
+
+function LoadingDots({ color }: { color: string }) {
   return (
     <View className="mt-4 flex-row items-center justify-center gap-2">
       {[0, 1, 2].map((index) => (
-        <Animated.View
-          key={index}
-          style={{
-            width: 10,
-            height: 10,
-            borderRadius: 999,
-            backgroundColor: color,
-            opacity: anim.interpolate({
-              inputRange: [0, 0.25, 0.5, 0.75, 1],
-              outputRange:
-                index === 0
-                  ? [1, 0.35, 0.35, 0.35, 1]
-                  : index === 1
-                    ? [0.35, 1, 0.35, 0.35, 0.35]
-                    : [0.35, 0.35, 1, 0.35, 0.35],
-            }),
-            transform: [
-              {
-                scale: anim.interpolate({
-                  inputRange: [0, 0.25, 0.5, 0.75, 1],
-                  outputRange:
-                    index === 0
-                      ? [1.15, 0.9, 0.9, 0.9, 1.15]
-                      : index === 1
-                        ? [0.9, 1.15, 0.9, 0.9, 0.9]
-                        : [0.9, 0.9, 1.15, 0.9, 0.9],
-                }),
-              },
-            ],
-          }}
-        />
+        <LoadingDot key={index} color={color} index={index} />
       ))}
     </View>
   );

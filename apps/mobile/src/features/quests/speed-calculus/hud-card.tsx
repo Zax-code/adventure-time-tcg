@@ -1,12 +1,16 @@
-import { useRef } from "react";
-import { Easing, Pressable, Text, View } from "react-native";
-import { Animated } from "../../../lib/native-animated";
+import { Pressable, Text, View } from "react-native";
+import Animated, {
+  cancelAnimation,
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 import type { SpeedRunState } from "@adventure-time/api-client";
 
 import { useTranslation } from "../../../i18n";
 import { useThemeStore } from "../../../stores/theme-store";
 import { THEME_COLORS } from "../../../theme/themes";
-import { useAnimatedValue } from "../../../hooks/use-animated-value";
 import { reactEffect } from "../../../lib/react-primitives";
 
 type HudCardProps = {
@@ -33,7 +37,7 @@ export function HudCard({
   pauseDisabled }: HudCardProps) {
   const { t } = useTranslation();
   const tc = THEME_COLORS[useThemeStore((s) => s.themeName)];
-  const progressAnim = useAnimatedValue(1);
+  const progressAnim = useSharedValue(1);
 
   // ── Timer urgency ─────────────────────────────────────────────────
   const maxSeconds = runDurationSeconds;
@@ -47,23 +51,22 @@ export function HudCard({
 
   reactEffect(() => {
     if (!activeRun) {
-      progressAnim.stopAnimation();
-      progressAnim.setValue(1);
+      cancelAnimation(progressAnim);
+      progressAnim.value = 1;
       return;
     }
 
-    progressAnim.stopAnimation();
-    progressAnim.setValue(timerProgress);
+    cancelAnimation(progressAnim);
+    progressAnim.value = timerProgress;
 
     if (pauseRemainingSeconds > 0 || isManuallyPaused || remainingSeconds <= 0) {
       return;
     }
 
-    Animated.timing(progressAnim, {
-      toValue: 0,
+    progressAnim.value = withTiming(0, {
       duration: remainingSeconds * 1000,
       easing: Easing.linear,
-      useNativeDriver: false }).start();
+    });
   }, [
     activeRun,
     activeRun?.runId,
@@ -74,9 +77,9 @@ export function HudCard({
     timerProgress,
   ]);
 
-  const progressWidth = progressAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ["0%", "100%"] });
+  const progressStyle = useAnimatedStyle(() => ({
+    width: `${progressAnim.value * 100}%`,
+  }));
 
   return (
     <View
@@ -133,9 +136,12 @@ export function HudCard({
       <View className="mt-2.5 mb-0.5 h-[5px] rounded-full overflow-hidden bg-primaryTint">
         <Animated.View
           className="h-full rounded-full"
-          style={{
-            width: progressWidth,
-            backgroundColor: timerColor }}
+          style={[
+            {
+              backgroundColor: timerColor,
+            },
+            progressStyle,
+          ]}
         />
       </View>
     </View>

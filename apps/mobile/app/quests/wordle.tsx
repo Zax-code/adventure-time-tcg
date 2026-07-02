@@ -1,4 +1,11 @@
-import { useState, memo, useCallback, useMemo, useRef } from "react";
+import {
+  useState,
+  memo,
+  useCallback,
+  useMemo,
+  useRef,
+  type ReactNode,
+} from "react";
 import {
   FlatList,
   Modal,
@@ -7,9 +14,15 @@ import {
   Text,
   View } from "react-native";
 import {
-  Animated,
-  type AnimatedValue,
-  type CompositeAnimation } from "../../src/lib/native-animated";
+  type SharedValue,
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withSpring,
+  withTiming,
+  withDelay,
+} from "react-native-reanimated";
+import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
@@ -40,7 +53,6 @@ import { useSessionStore } from "../../src/stores/session-store";
 import { useThemeStore } from "../../src/stores/theme-store";
 import { useWordleLanguageStore } from "../../src/stores/wordle-language-store";
 import { THEME_COLORS, THEME_VARS } from "../../src/theme/themes";
-import { useAnimatedValue } from "../../src/hooks/use-animated-value";
 import { reactEffect } from "../../src/lib/react-primitives";
 
 const MAX_ATTEMPTS = 6;
@@ -66,6 +78,104 @@ const LETTER_PRIORITY: Record<string, number> = {
 type LetterState = "correct" | "present" | "absent";
 type GuessResult = { guess: string; evaluation: LetterState[] };
 type Quest = QuestsResponse["quests"][number];
+
+function useWordleColumnValues(initialValue: number): SharedValue<number>[] {
+  const first = useSharedValue(initialValue);
+  const second = useSharedValue(initialValue);
+  const third = useSharedValue(initialValue);
+  const fourth = useSharedValue(initialValue);
+  const fifth = useSharedValue(initialValue);
+
+  return useMemo(
+    () => [first, second, third, fourth, fifth],
+    [fifth, first, fourth, second, third],
+  );
+}
+
+function useWordleBoardValues(initialValue: number): SharedValue<number>[][] {
+  const first = useWordleColumnValues(initialValue);
+  const second = useWordleColumnValues(initialValue);
+  const third = useWordleColumnValues(initialValue);
+  const fourth = useWordleColumnValues(initialValue);
+  const fifth = useWordleColumnValues(initialValue);
+  const sixth = useWordleColumnValues(initialValue);
+
+  return useMemo(
+    () => [first, second, third, fourth, fifth, sixth],
+    [fifth, first, fourth, second, sixth, third],
+  );
+}
+
+function WordleActiveRow({
+  children,
+  shakeAnim,
+}: {
+  children: ReactNode;
+  shakeAnim: SharedValue<number>;
+}) {
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: shakeAnim.value }],
+  }));
+
+  return <Animated.View style={animatedStyle}>{children}</Animated.View>;
+}
+
+function WordleTile({
+  bgBorderCls,
+  isActiveLetter,
+  isAnimatingRow,
+  isRemovingCell,
+  letter,
+  letterCls,
+  popAnim,
+  removeOpacity,
+  removeScale,
+  rowFlipAnim,
+}: {
+  bgBorderCls: string;
+  isActiveLetter: boolean;
+  isAnimatingRow: boolean;
+  isRemovingCell: boolean;
+  letter: string;
+  letterCls: string;
+  popAnim: SharedValue<number>;
+  removeOpacity: SharedValue<number>;
+  removeScale: SharedValue<number>;
+  rowFlipAnim: SharedValue<number>;
+}) {
+  const animatedStyle = useAnimatedStyle(() => {
+    const transform = [];
+
+    if (isRemovingCell) {
+      transform.push({ scale: removeScale.value });
+    } else if (isActiveLetter) {
+      transform.push({ scale: popAnim.value });
+    }
+
+    if (isAnimatingRow) {
+      transform.push({ scaleX: rowFlipAnim.value });
+    }
+
+    return {
+      opacity: isRemovingCell ? removeOpacity.value : 1,
+      transform,
+    };
+  });
+
+  return (
+    <Animated.View
+      className={`rounded-xl border-2 items-center justify-center ${bgBorderCls}`}
+      style={[{ width: "100%", height: 48 }, animatedStyle]}
+    >
+      <Text
+        className={`text-xl font-nunito-extrabold ${letterCls}`}
+        style={letter === "I" ? NARROW_TILE_LETTER_STYLE : undefined}
+      >
+        {letter}
+      </Text>
+    </Animated.View>
+  );
+}
 
 function getWordleQuestType(locale: WordleLocale) {
   return locale === "fr" ? "wordle_daily_fr" : "wordle_daily_en";
@@ -249,22 +359,14 @@ function useWordleScreenView() {
   const lastHandledResetAtRef = useRef(0);
   const appliedLanguageParamRef = useRef<string | null>(null);
 
-  const popAnimsRef = useRef<AnimatedValue[] | null>(null);
-  if (popAnimsRef.current === null) {
-    popAnimsRef.current = Array.from(
-      { length: WORD_LENGTH },
-      () => new Animated.Value(1),
-    );
-  }
-  const popAnims = popAnimsRef.current;
-  const shakeAnim = useAnimatedValue(0);
-  const rowFlipAnimsRef = useRef<Record<number, AnimatedValue[]>>({});
+  const popAnims = useWordleColumnValues(1);
+  const shakeAnim = useSharedValue(0);
+  const rowFlipAnims = useWordleBoardValues(1);
   const revealTimersRef = useRef<
     Record<number, ReturnType<typeof setTimeout>[]>
   >({});
-  const removeAnim = useRef({
-    scale: new Animated.Value(1),
-    opacity: new Animated.Value(1) }).current;
+  const removeScale = useSharedValue(1);
+  const removeOpacity = useSharedValue(1);
 
   const replaceCurrentGuess = useCallback((next: (string | null)[]) => {
     currentGuessRef.current = next;
@@ -280,10 +382,14 @@ function useWordleScreenView() {
       timers.forEach((timer) => clearTimeout(timer));
     });
     revealTimersRef.current = {};
-    rowFlipAnimsRef.current = {};
+    rowFlipAnims.forEach((row) => {
+      row.forEach((anim) => {
+        anim.value = 1;
+      });
+    });
     setAnimatingRows(new Set());
     setTileFaceUp(new Set());
-  }, []);
+  }, [rowFlipAnims]);
 
   reactEffect(() => {
     void hydrateWordleLanguage();
@@ -585,29 +691,14 @@ function useWordleScreenView() {
   }, []);
 
   const triggerShake = useCallback(() => {
-    shakeAnim.setValue(0);
-    Animated.sequence([
-      Animated.timing(shakeAnim, {
-        toValue: -5,
-        duration: 68,
-        useNativeDriver: true }),
-      Animated.timing(shakeAnim, {
-        toValue: 5,
-        duration: 68,
-        useNativeDriver: true }),
-      Animated.timing(shakeAnim, {
-        toValue: -5,
-        duration: 68,
-        useNativeDriver: true }),
-      Animated.timing(shakeAnim, {
-        toValue: 5,
-        duration: 68,
-        useNativeDriver: true }),
-      Animated.timing(shakeAnim, {
-        toValue: 0,
-        duration: 68,
-        useNativeDriver: true }),
-    ]).start();
+    shakeAnim.value = 0;
+    shakeAnim.value = withSequence(
+      withTiming(-5, { duration: 68 }),
+      withTiming(5, { duration: 68 }),
+      withTiming(-5, { duration: 68 }),
+      withTiming(5, { duration: 68 }),
+      withTiming(0, { duration: 68 }),
+    );
   }, [shakeAnim]);
 
   const addLetter = useCallback(
@@ -621,12 +712,11 @@ function useWordleScreenView() {
       next[firstNull] = letter;
       currentGuessRef.current = next;
 
-      popAnims[firstNull].setValue(0.82);
-      Animated.spring(popAnims[firstNull], {
-        toValue: 1,
-        useNativeDriver: true,
-        speed: 20,
-        bounciness: 8 }).start();
+      popAnims[firstNull].value = 0.82;
+      popAnims[firstNull].value = withSpring(1, {
+        damping: 10,
+        stiffness: 220,
+      });
 
       replaceCurrentGuess(next);
     },
@@ -639,10 +729,10 @@ function useWordleScreenView() {
       next[colIndex] = null;
       replaceCurrentGuess(next);
       setRemovingCellIndex(null);
-      removeAnim.scale.setValue(1);
-      removeAnim.opacity.setValue(1);
+      removeScale.value = 1;
+      removeOpacity.value = 1;
     },
-    [removeAnim, replaceCurrentGuess],
+    [removeOpacity, removeScale, replaceCurrentGuess],
   );
 
   const removeLetter = useCallback(
@@ -663,24 +753,18 @@ function useWordleScreenView() {
 
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       setRemovingCellIndex(targetIndex);
-      removeAnim.scale.setValue(1);
-      removeAnim.opacity.setValue(1);
-      Animated.parallel([
-        Animated.timing(removeAnim.scale, {
-          toValue: 0,
-          duration: 160,
-          useNativeDriver: true }),
-        Animated.timing(removeAnim.opacity, {
-          toValue: 0,
-          duration: 160,
-          useNativeDriver: true }),
-      ]).start(() => handleRemoveAnimationEnd(targetIndex));
+      removeScale.value = 1;
+      removeOpacity.value = 1;
+      removeScale.value = withTiming(0, { duration: 160 });
+      removeOpacity.value = withTiming(0, { duration: 160 });
+      setTimeout(() => handleRemoveAnimationEnd(targetIndex), 160);
     },
     [
       inputLocked,
       removingCellIndex,
       currentGuess,
-      removeAnim,
+      removeOpacity,
+      removeScale,
       handleRemoveAnimationEnd,
     ],
   );
@@ -690,17 +774,6 @@ function useWordleScreenView() {
     clearCurrentGuess();
     triggerShake();
   }, [clearCurrentGuess, inputLocked, triggerShake]);
-
-  const getRowFlipAnims = useCallback((rowIndex: number) => {
-    if (!rowFlipAnimsRef.current[rowIndex]) {
-      rowFlipAnimsRef.current[rowIndex] = Array.from(
-        { length: WORD_LENGTH },
-        () => new Animated.Value(1),
-      );
-    }
-
-    return rowFlipAnimsRef.current[rowIndex];
-  }, []);
 
   const patchWordleCaches = useCallback(
     (result: WordleSubmitResponse, nextGuesses: GuessResult[]) => {
@@ -819,26 +892,19 @@ function useWordleScreenView() {
       clearCurrentGuess();
       setActiveDateKey(result.date);
       setAnimatingRows((prev) => new Set(prev).add(rowIndex));
-      const rowFlipAnims = getRowFlipAnims(rowIndex);
+      const rowFlipAnimValues = rowFlipAnims[rowIndex];
       const revealTimers: ReturnType<typeof setTimeout>[] = [];
 
       // Flip reveal: each tile flips in sequence, 90ms stagger
-      const flipSequences: CompositeAnimation[] = [];
       for (let col = 0; col < WORD_LENGTH; col++) {
-        rowFlipAnims[col].setValue(1);
+        rowFlipAnimValues[col].value = 1;
         const delay = col * 90;
-        flipSequences.push(
-          Animated.sequence([
-            Animated.delay(delay),
-            Animated.timing(rowFlipAnims[col], {
-              toValue: 0,
-              duration: 260,
-              useNativeDriver: true }),
-            Animated.timing(rowFlipAnims[col], {
-              toValue: 1,
-              duration: 260,
-              useNativeDriver: true }),
-          ]),
+        rowFlipAnimValues[col].value = withDelay(
+          delay,
+          withSequence(
+            withTiming(0, { duration: 260 }),
+            withTiming(1, { duration: 260 }),
+          ),
         );
         // Flip color at the midpoint (tile is edge-on)
         const timer = setTimeout(() => {
@@ -846,8 +912,7 @@ function useWordleScreenView() {
         }, delay + 260);
         revealTimers.push(timer);
       }
-      revealTimersRef.current[rowIndex] = revealTimers;
-      Animated.parallel(flipSequences).start(() => {
+      const revealDoneTimer = setTimeout(() => {
         setAnimatingRows((prev) => {
           const next = new Set(prev);
           next.delete(rowIndex);
@@ -865,7 +930,9 @@ function useWordleScreenView() {
           setMessage(t("quests.wordle.failed"));
           setTargetWord(result.targetWord ?? null);
         }
-      });
+      }, (WORD_LENGTH - 1) * 90 + 520);
+      revealTimers.push(revealDoneTimer);
+      revealTimersRef.current[rowIndex] = revealTimers;
 
       setSubmitting(false);
     } catch (err) {
@@ -893,7 +960,7 @@ function useWordleScreenView() {
     clearCurrentGuess,
     currentGuess,
     guesses,
-    getRowFlipAnims,
+    rowFlipAnims,
     wordleLanguage,
     t,
     triggerShake,
@@ -1204,39 +1271,8 @@ function useWordleScreenView() {
                   const bgBorderCls = tileBgBorderClass(evalState);
                   const letterCls = tileLetterClass(evalState);
                   const isAnimatingRow = animatingRows.has(rowIndex);
-                  const rowFlipAnims = getRowFlipAnims(rowIndex);
                   const isRemovingCell =
                     isActiveRow && colIndex === removingCellIndex;
-
-                  // Build transform and opacity for animated values
-                  const animStyle: Record<string, unknown> = {};
-                  const transforms: unknown[] = [];
-
-                  if (isRemovingCell) {
-                    transforms.push({ scale: removeAnim.scale });
-                    animStyle.opacity = removeAnim.opacity;
-                  } else if (isActiveRow && letter) {
-                    transforms.push({ scale: popAnims[colIndex] });
-                  }
-
-                  if (isAnimatingRow) {
-                    transforms.push({ scaleX: rowFlipAnims[colIndex] });
-                  }
-
-                  if (transforms.length > 0) {
-                    animStyle.transform = transforms;
-                  }
-
-                  const letterEl = (
-                    <Text
-                      className={`text-xl font-nunito-extrabold ${letterCls}`}
-                      style={
-                        letter === "I" ? NARROW_TILE_LETTER_STYLE : undefined
-                      }
-                    >
-                      {letter}
-                    </Text>
-                  );
 
                   const isTappable = isActiveRow && !!letter && !inputLocked;
                   return (
@@ -1248,12 +1284,18 @@ function useWordleScreenView() {
                       }
                       disabled={!isTappable}
                     >
-                      <Animated.View
-                        className={`rounded-xl border-2 items-center justify-center ${bgBorderCls}`}
-                        style={[{ width: "100%", height: 48 }, animStyle]}
-                      >
-                        {letterEl}
-                      </Animated.View>
+                      <WordleTile
+                        bgBorderCls={bgBorderCls}
+                        isActiveLetter={isActiveRow && !!letter}
+                        isAnimatingRow={isAnimatingRow}
+                        isRemovingCell={isRemovingCell}
+                        letter={letter}
+                        letterCls={letterCls}
+                        popAnim={popAnims[colIndex]}
+                        removeOpacity={removeOpacity}
+                        removeScale={removeScale}
+                        rowFlipAnim={rowFlipAnims[rowIndex][colIndex]}
+                      />
                     </Pressable>
                   );
                 })}
@@ -1262,12 +1304,9 @@ function useWordleScreenView() {
 
             if (isActiveRow) {
               return (
-                <Animated.View
-                  key={rowIndex}
-                  style={{ transform: [{ translateX: shakeAnim }] }}
-                >
+                <WordleActiveRow key={rowIndex} shakeAnim={shakeAnim}>
                   {rowTiles}
-                </Animated.View>
+                </WordleActiveRow>
               );
             }
 

@@ -1,4 +1,9 @@
 import { Pressable, Text, View } from "react-native";
+import Animated, {
+  FadeIn,
+  FadeOut,
+  LinearTransition,
+} from "react-native-reanimated";
 import type { SpeedRunState } from "@adventure-time/api-client";
 
 import { useTranslation } from "../../../i18n";
@@ -41,8 +46,9 @@ export function TrainingHistoryCard({
           {t("quests.speedCalculusTrainingNoRunsYet")}
         </Text>
       ) : (
-        <View
+        <Animated.View
           className="mt-4 rounded-2xl border border-primaryTint p-4"
+          layout={LinearTransition.duration(300)}
           style={{ backgroundColor: tc.primaryBg }}
         >
           <Pressable
@@ -80,8 +86,10 @@ export function TrainingHistoryCard({
           </Pressable>
 
           {isOpen ? (
-            <View
+            <Animated.View
               className="mt-4 gap-2 border-t pt-4"
+              entering={FadeIn.duration(180)}
+              exiting={FadeOut.duration(140)}
               style={{ borderTopColor: withAlpha(tc.primaryTint, "B3") }}
             >
               {lastRun.history.map((entry) => (
@@ -124,9 +132,9 @@ export function TrainingHistoryCard({
                   ) : null}
                 </View>
               ))}
-            </View>
+            </Animated.View>
           ) : null}
-        </View>
+        </Animated.View>
       )}
     </View>
   );

@@ -1,13 +1,21 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { Text, View, type ViewStyle } from "react-native";
-import { Animated } from "../lib/native-animated";
+import Animated, {
+  cancelAnimation,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { useTranslation } from "../i18n";
 import { useThemeStore } from "../stores/theme-store";
 import { THEME_COLORS, type ThemeName } from "../theme/themes";
-import { useAnimatedValue } from "../hooks/use-animated-value";
 
 const LAUNCH_GRADIENTS: Record<ThemeName, [string, string, string]> = {
   candy: ["#FFE3F1", "#FF8BC1", "#FF4AA2"],
@@ -18,52 +26,35 @@ const LAUNCH_GRADIENTS: Record<ThemeName, [string, string, string]> = {
 const PHASE_DOT_DELAYS = [0, 180, 360] as const;
 
 function PulseDot({ delay, color }: { delay: number; color: string }) {
-  const anim = useAnimatedValue(0);
+  const progress = useSharedValue(0);
 
   useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(anim, {
-          toValue: 1,
-          duration: 900,
-          delay,
-          useNativeDriver: true,
-        }),
-        Animated.timing(anim, {
-          toValue: 0,
-          duration: 900,
-          useNativeDriver: true,
-        }),
-      ]),
+    progress.value = withRepeat(
+      withSequence(
+        withDelay(delay, withTiming(1, { duration: 900 })),
+        withTiming(0, { duration: 900 }),
+      ),
+      -1,
     );
+    return () => cancelAnimation(progress);
+  }, [delay, progress]);
 
-    loop.start();
-
-    return () => {
-      loop.stop();
-    };
-  }, [anim, delay]);
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(progress.value, [0, 1], [0.35, 1]),
+    transform: [{ scale: interpolate(progress.value, [0, 1], [0.85, 1.15]) }],
+  }));
 
   return (
     <Animated.View
-      style={{
-        width: 10,
-        height: 10,
-        borderRadius: 999,
-        backgroundColor: color,
-        opacity: anim.interpolate({
-          inputRange: [0, 1],
-          outputRange: [0.35, 1],
-        }),
-        transform: [
-          {
-            scale: anim.interpolate({
-              inputRange: [0, 1],
-              outputRange: [0.85, 1.15],
-            }),
-          },
-        ],
-      }}
+      style={[
+        {
+          width: 10,
+          height: 10,
+          borderRadius: 999,
+          backgroundColor: color,
+        },
+        animatedStyle,
+      ]}
     />
   );
 }

@@ -1,7 +1,16 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { useRef, useEffect } from "react";
+import { useEffect } from "react";
 import { ScrollView, View } from "react-native";
-import { Animated } from "../src/lib/native-animated";
+import Animated, {
+  cancelAnimation,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
 import { useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -9,7 +18,6 @@ import { AuthForm } from "../src/components/auth-form";
 import { KEYBOARD_AWARE_SCROLL_PROPS } from "../src/components/keyboard-aware-scroll-props";
 import { useThemeStore } from "../src/stores/theme-store";
 import { THEME_COLORS, THEME_VARS } from "../src/theme/themes";
-import { useAnimatedValue } from "../src/hooks/use-animated-value";
 import { asStyle } from "../src/lib/style-object";
 
 const PARTICLES = [
@@ -35,46 +43,38 @@ function FloatingHeart({
   duration,
   color,
 }: (typeof PARTICLES)[number] & { color: string }) {
-  const anim = useAnimatedValue(0);
+  const progress = useSharedValue(0);
 
   useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(anim, {
-          toValue: 1,
-          duration,
-          delay,
-          useNativeDriver: true,
-        }),
-        Animated.timing(anim, { toValue: 0, duration, useNativeDriver: true }),
-      ]),
+    progress.value = withRepeat(
+      withSequence(
+        withDelay(delay, withTiming(1, { duration })),
+        withTiming(0, { duration }),
+      ),
+      -1,
     );
-    loop.start();
-    return () => loop.stop();
-  }, [anim, delay, duration]);
+    return () => cancelAnimation(progress);
+  }, [delay, duration, progress]);
 
-  const translateY = anim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, -20],
-  });
-  const opacity = anim.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: [0.3, 0.7, 0.3],
-  });
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(progress.value, [0, 0.5, 1], [0.3, 0.7, 0.3]),
+    transform: [{ translateY: interpolate(progress.value, [0, 1], [0, -20]) }],
+  }));
 
   return (
     <Animated.View
-      style={asStyle({
-        position: "absolute",
-        left,
-        top,
-        width: size,
-        height: size,
-        borderRadius: size / 2,
-        backgroundColor: color,
-        transform: [{ translateY }],
-        opacity,
-      })}
+      style={[
+        asStyle({
+          position: "absolute",
+          left,
+          top,
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          backgroundColor: color,
+        }),
+        animatedStyle,
+      ]}
     />
   );
 }

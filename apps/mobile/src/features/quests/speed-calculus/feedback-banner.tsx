@@ -1,6 +1,8 @@
 import { Text, View } from "react-native";
-import { Animated } from "../../../lib/native-animated";
-import type { AnimatedValue } from "../../../lib/native-animated";
+import Animated, {
+  type SharedValue,
+  useAnimatedStyle,
+} from "react-native-reanimated";
 import type { SpeedRunState } from "@adventure-time/api-client";
 
 import { type FeedbackType } from "./constants";
@@ -9,8 +11,8 @@ type Question = NonNullable<SpeedRunState["activeRun"]>["questions"][number];
 
 type FeedbackBannerProps = {
   feedback: FeedbackType;
-  feedbackSlide: AnimatedValue;
-  feedbackOpacity: AnimatedValue;
+  feedbackSlide: SharedValue<number>;
+  feedbackOpacity: SharedValue<number>;
   pauseRemainingSeconds: number;
   currentQuestion: Question | null;
 };
@@ -22,6 +24,11 @@ export function FeedbackBanner({
   pauseRemainingSeconds,
   currentQuestion,
 }: FeedbackBannerProps) {
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: feedbackOpacity.value,
+    transform: [{ translateY: feedbackSlide.value }],
+  }));
+
   return (
     <View className="h-[58px] mt-2.5 mx-4 justify-center">
       {feedback && pauseRemainingSeconds === 0 && currentQuestion && (
@@ -31,10 +38,7 @@ export function FeedbackBanner({
               ? "border-dangerBorder bg-dangerTint"
               : "border-successBorder bg-successTint"
           }`}
-          style={{
-            transform: [{ translateY: feedbackSlide }],
-            opacity: feedbackOpacity,
-          }}
+          style={animatedStyle}
         >
           <Text
             className={`font-nunito-bold text-sm text-center ${

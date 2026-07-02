@@ -4,13 +4,15 @@ import { useState,
   useRef } from "react";
 import * as Haptics from "expo-haptics";
 import {
-  Platform,
   Pressable,
   ScrollView,
   Text,
-  UIManager,
   View } from "react-native";
-import { Animated, LayoutAnimation } from "../../../src/lib/native-animated";
+import {
+  useSharedValue,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 
@@ -35,7 +37,6 @@ import {
   withAlpha } from "../../../src/features/quests/speed-calculus/palette";
 import { TrainingHistoryCard } from "../../../src/features/quests/speed-calculus/training-history-card";
 import { TrainingSummaryCard } from "../../../src/features/quests/speed-calculus/training-summary-card";
-import { useAnimatedValue } from "../../../src/hooks/use-animated-value";
 import { reactEffect, effectEvent } from "../../../src/lib/react-primitives";
 
 const DEFAULT_RUN_DURATION_SECONDS = 30;
@@ -59,13 +60,6 @@ function trainingRunDuration(value: number | null | undefined): number {
   const duration = positiveDuration(value, DEFAULT_RUN_DURATION_SECONDS);
 
   return IS_E2E_BUILD ? Math.max(duration, E2E_RUN_DURATION_SECONDS) : duration;
-}
-
-if (
-  Platform.OS === "android" &&
-  UIManager.setLayoutAnimationEnabledExperimental
-) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
 function buildTrainingActiveRun(session: SpeedTrainingRun): TrainingActiveRun {
@@ -157,9 +151,9 @@ function useSpeedCalculusTrainingScreenView() {
   const finishRequestedRef = useRef(false);
   const feedbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const answerRef = useRef("");
-  const shakeAnim = useAnimatedValue(0);
-  const feedbackSlide = useAnimatedValue(-20);
-  const feedbackOpacity = useAnimatedValue(0);
+  const shakeAnim = useSharedValue(0);
+  const feedbackSlide = useSharedValue(-20);
+  const feedbackOpacity = useSharedValue(0);
 
   const currentQuestion = useMemo(() => {
     if (!activeRun) {
@@ -346,29 +340,14 @@ function useSpeedCalculusTrainingScreenView() {
   }, [activeRun, finishRun, isManuallyPaused, pauseRemainingSeconds]);
 
   const triggerShake = useCallback(() => {
-    shakeAnim.setValue(0);
-    Animated.sequence([
-      Animated.timing(shakeAnim, {
-        toValue: 7,
-        duration: 68,
-        useNativeDriver: true }),
-      Animated.timing(shakeAnim, {
-        toValue: -7,
-        duration: 68,
-        useNativeDriver: true }),
-      Animated.timing(shakeAnim, {
-        toValue: 5,
-        duration: 68,
-        useNativeDriver: true }),
-      Animated.timing(shakeAnim, {
-        toValue: -5,
-        duration: 68,
-        useNativeDriver: true }),
-      Animated.timing(shakeAnim, {
-        toValue: 0,
-        duration: 68,
-        useNativeDriver: true }),
-    ]).start();
+    shakeAnim.value = 0;
+    shakeAnim.value = withSequence(
+      withTiming(7, { duration: 68 }),
+      withTiming(-7, { duration: 68 }),
+      withTiming(5, { duration: 68 }),
+      withTiming(-5, { duration: 68 }),
+      withTiming(0, { duration: 68 }),
+    );
   }, [shakeAnim]);
 
   const showFeedback = useCallback(
@@ -378,19 +357,11 @@ function useSpeedCalculusTrainingScreenView() {
       }
 
       setFeedback(nextFeedback);
-      feedbackSlide.setValue(-20);
-      feedbackOpacity.setValue(0);
+      feedbackSlide.value = -20;
+      feedbackOpacity.value = 0;
 
-      Animated.parallel([
-        Animated.timing(feedbackSlide, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: true }),
-        Animated.timing(feedbackOpacity, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true }),
-      ]).start();
+      feedbackSlide.value = withTiming(0, { duration: 300 });
+      feedbackOpacity.value = withTiming(1, { duration: 300 });
 
       feedbackTimeoutRef.current = setTimeout(() => {
         setFeedback(null);
@@ -629,7 +600,6 @@ function useSpeedCalculusTrainingScreenView() {
   ]);
 
   const toggleHistory = useCallback(() => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setHistoryOpen((current) => !current);
   }, []);
 

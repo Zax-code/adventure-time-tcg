@@ -1,15 +1,18 @@
-import { useRef } from "react";
 import { Pressable, Text, View } from "react-native";
-import { Animated } from "../../../lib/native-animated";
+import Animated, {
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { useTranslation } from "../../../i18n";
 import { useThemeStore } from "../../../stores/theme-store";
 import { THEME_COLORS } from "../../../theme/themes";
 import { withAlpha } from "./palette";
-import { useAnimatedValue } from "../../../hooks/use-animated-value";
-import { asStyle } from "../../../lib/style-object";
 import { reactEffect } from "../../../lib/react-primitives";
+import { asStyle } from "../../../lib/style-object";
 
 type RoundOverOverlayProps = {
   showRoundOver: boolean;
@@ -29,21 +32,25 @@ export function RoundOverOverlay({
   const tc = THEME_COLORS[useThemeStore((s) => s.themeName)];
 
   // ── Round-over entrance animation ─────────────────────────────────
-  const roundOverAnim = useAnimatedValue(0);
+  const roundOverAnim = useSharedValue(0);
   reactEffect(() => {
     if (showRoundOver) {
-      roundOverAnim.setValue(0);
-      Animated.spring(roundOverAnim, {
-        toValue: 1,
-        useNativeDriver: true,
-        tension: 120,
-        friction: 8 }).start();
+      roundOverAnim.value = 0;
+      roundOverAnim.value = withSpring(1, {
+        damping: 8,
+        stiffness: 120,
+      });
     }
   }, [showRoundOver, roundOverAnim]);
 
-  const roundOverScale = roundOverAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.72, 1] });
+  const roundOverStyle = useAnimatedStyle(() => ({
+    opacity: roundOverAnim.value,
+    transform: [
+      {
+        scale: interpolate(roundOverAnim.value, [0, 1], [0.72, 1]),
+      },
+    ],
+  }));
 
   return (
     <View
@@ -52,10 +59,12 @@ export function RoundOverOverlay({
     >
       <Animated.View
         className="overflow-hidden rounded-3xl w-[85%] max-w-[340px]"
-        style={{
-          transform: [{ scale: roundOverScale }],
-          opacity: roundOverAnim,
-          boxShadow: `0px 16px 40px ${tc.primaryStrong}` }}
+        style={[
+          {
+            boxShadow: `0px 16px 40px ${tc.primaryStrong}`,
+          },
+          roundOverStyle,
+        ]}
       >
         <LinearGradient
           colors={[tc.primary, tc.primaryDark]}

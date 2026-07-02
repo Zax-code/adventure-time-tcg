@@ -6,17 +6,27 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { useState, useMemo, useRef, type ReactNode } from "react";
 import {
-  Easing,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
   useWindowDimensions } from "react-native";
-import {
-  Animated,
-  type AnimatedValue,
-  type CompositeAnimation } from "../../src/lib/native-animated";
+import Animated, {
+  cancelAnimation,
+  Easing,
+  Extrapolation,
+  interpolate,
+  runOnJS,
+  type SharedValue,
+  useAnimatedProps,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
 import Svg, {
   Circle,
   Defs,
@@ -299,16 +309,6 @@ const packScreenStyles = StyleSheet.create({
 
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function useAnimatedValue(initialValue: number) {
-  const ref = useRef<AnimatedValue | null>(null);
-
-  if (ref.current === null) {
-    ref.current = new Animated.Value(initialValue);
-  }
-
-  return ref.current;
 }
 
 function slugifyPackName(name: string) {
@@ -702,9 +702,7 @@ function PackFaceInterior({
   );
 }
 
-const PackPreviewCard = packPreviewCard;
-
-function packPreviewCard({
+function PackPreviewCard({
   pack,
   width,
   tc,
@@ -716,9 +714,9 @@ function packPreviewCard({
   width: number;
   tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
   compact?: boolean;
-  pulseAnim?: AnimatedValue;
-  chargeAnim?: AnimatedValue;
-  sheenAnim?: AnimatedValue;
+  pulseAnim?: SharedValue<number>;
+  chargeAnim?: SharedValue<number>;
+  sheenAnim?: SharedValue<number>;
 }) {
   const height = width / PACK_CARD_RATIO;
   const packArtSource = getPackOpeningArtSource({
@@ -726,51 +724,66 @@ function packPreviewCard({
     name: pack.name,
     packArtAssetId: pack.packArtAssetId,
     packArtUrl: getPackArtUrl(pack) });
-  void sheenAnim;
+  const cardAnimatedStyle = useAnimatedStyle(() => {
+    const transforms = [];
 
-  const animatedTransforms = [
-    ...(chargeAnim
-      ? [
-          {
-            translateY: chargeAnim.interpolate({
-              inputRange: [0, 0.5, 1],
-              outputRange: [6, -8, 6] }) },
-          {
-            rotateX: chargeAnim.interpolate({
-              inputRange: [0, 0.5, 1],
-              outputRange: ["0deg", "6deg", "0deg"] }) },
-          {
-            rotateZ: chargeAnim.interpolate({
-              inputRange: [0, 0.5, 1],
-              outputRange: ["-1deg", "1deg", "-1deg"] }) },
-        ]
-      : []),
-    ...(pulseAnim
-      ? [
-          {
-            scale: pulseAnim.interpolate({
-              inputRange: [0, 0.5, 1],
-              outputRange: [1, 1.014, 1] }) },
-        ]
-      : []),
-    ...(chargeAnim
-      ? [
-          {
-            scale: chargeAnim.interpolate({
-              inputRange: [0, 0.5, 1],
-              outputRange: [1, 1.015, 1] }) },
-        ]
-      : []),
-  ];
+    if (chargeAnim) {
+      transforms.push(
+        {
+          translateY: interpolate(chargeAnim.value, [0, 0.5, 1], [6, -8, 6]),
+        },
+        {
+          rotateX: `${interpolate(chargeAnim.value, [0, 0.5, 1], [0, 6, 0])}deg`,
+        },
+        {
+          rotateZ: `${interpolate(chargeAnim.value, [0, 0.5, 1], [-1, 1, -1])}deg`,
+        },
+      );
+    }
+
+    if (pulseAnim) {
+      transforms.push({
+        scale: interpolate(pulseAnim.value, [0, 0.5, 1], [1, 1.014, 1]),
+      });
+    }
+
+    if (chargeAnim) {
+      transforms.push({
+        scale: interpolate(chargeAnim.value, [0, 0.5, 1], [1, 1.015, 1]),
+      });
+    }
+
+    return {
+      transform: transforms,
+    };
+  });
+
+  const sheenStyle = useAnimatedStyle(() => ({
+    transform: [
+      {
+        translateX: sheenAnim
+          ? interpolate(
+              sheenAnim.value,
+              [0, 0.45, 0.7, 1],
+              [-width * 1.2, -width * 1.2, width * 1.2, width * 1.2],
+            )
+          : -width * 1.2,
+      },
+      { rotate: "16deg" },
+    ],
+  }));
 
   return (
     <Animated.View
-      style={{
-        width,
-        height,
-        overflow: "visible",
-        backgroundColor: "transparent",
-        transform: animatedTransforms }}
+      style={[
+        {
+          width,
+          height,
+          overflow: "visible",
+          backgroundColor: "transparent",
+        },
+        cardAnimatedStyle,
+      ]}
     >
       <Image
         source={packArtSource}
@@ -793,24 +806,16 @@ function packPreviewCard({
       {sheenAnim ? (
         <Animated.View
           pointerEvents="none"
-          style={{
-            position: "absolute",
-            top: -height * 0.08,
-            bottom: -height * 0.08,
-            width: width * 0.54,
-            opacity: 0.42,
-            transform: [
-              {
-                translateX: sheenAnim.interpolate({
-                  inputRange: [0, 0.45, 0.7, 1],
-                  outputRange: [
-                    -width * 1.2,
-                    -width * 1.2,
-                    width * 1.2,
-                    width * 1.2,
-                  ] }) },
-              { rotate: "16deg" },
-            ] }}
+          style={[
+            {
+              position: "absolute",
+              top: -height * 0.08,
+              bottom: -height * 0.08,
+              width: width * 0.54,
+              opacity: 0.42,
+            },
+            sheenStyle,
+          ]}
         >
           <LinearGradient
             colors={[
@@ -889,43 +894,202 @@ function packOpeningAura({
   );
 }
 
-const PackLoadingGlow = packLoadingGlow;
+function LoadingSparkleView({
+  anim,
+  centerX,
+  centerY,
+  sparkle,
+  width,
+}: {
+  anim: SharedValue<number>;
+  centerX: number;
+  centerY: number;
+  sparkle: LoadingSparkle;
+  width: number;
+}) {
+  const rise = Math.max(20, width * 0.18);
+  const appearAt = sparkle.delay;
+  const settleAt = Math.min(1, appearAt + 0.18);
+  const driftAt = Math.min(1, appearAt + 0.55);
+  const vanishAt = Math.min(1, appearAt + 0.86);
+  const inputRange = [0, appearAt, settleAt, driftAt, vanishAt, 1];
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(
+      anim.value,
+      inputRange,
+      [0, 0, 1, 0.95, 0, 0],
+      Extrapolation.CLAMP,
+    ),
+    transform: [
+      {
+        translateX: interpolate(
+          anim.value,
+          inputRange,
+          [
+            0,
+            0,
+            sparkle.travelX * 0.82,
+            sparkle.travelX,
+            sparkle.travelX * 1.12,
+            sparkle.travelX * 1.12,
+          ],
+          Extrapolation.CLAMP,
+        ),
+      },
+      {
+        translateY: interpolate(
+          anim.value,
+          inputRange,
+          [
+            0,
+            0,
+            sparkle.travelY * 0.82,
+            sparkle.travelY,
+            sparkle.travelY * 1.12 - rise,
+            sparkle.travelY * 1.12 - rise,
+          ],
+          Extrapolation.CLAMP,
+        ),
+      },
+      {
+        scale: interpolate(
+          anim.value,
+          inputRange,
+          [0.15, 0.15, 1, 0.65, 0.1, 0.1],
+          Extrapolation.CLAMP,
+        ),
+      },
+      {
+        rotate: `${interpolate(
+          anim.value,
+          inputRange,
+          [
+            sparkle.rotation,
+            sparkle.rotation,
+            sparkle.rotation + 70,
+            sparkle.rotation + 145,
+            sparkle.rotation + 250,
+            sparkle.rotation + 250,
+          ],
+          Extrapolation.CLAMP,
+        )}deg`,
+      },
+    ],
+  }));
 
-function packLoadingGlow({
+  return (
+    <Animated.View
+      style={[
+        {
+          position: "absolute",
+          left: centerX - sparkle.size / 2,
+          top: centerY - sparkle.size / 2,
+          width: sparkle.size,
+          height: sparkle.size,
+        },
+        animatedStyle,
+      ]}
+    >
+      <View
+        style={{
+          position: "absolute",
+          left: sparkle.size * 0.4,
+          top: 0,
+          width: sparkle.size * 0.2,
+          height: sparkle.size,
+          borderRadius: 999,
+          backgroundColor: "#FFF9D8",
+        }}
+      />
+      <View
+        style={{
+          position: "absolute",
+          left: 0,
+          top: sparkle.size * 0.4,
+          width: sparkle.size,
+          height: sparkle.size * 0.2,
+          borderRadius: 999,
+          backgroundColor: "#FFF9D8",
+        }}
+      />
+    </Animated.View>
+  );
+}
+
+function PackLoadingGlow({
   width,
   anim,
   sparkles }: {
   width: number;
-  anim: AnimatedValue;
+  anim: SharedValue<number>;
   sparkles: LoadingSparkle[];
 }) {
   const size = width * 1.58;
   const centerX = size / 2;
   const centerY = size * 0.47;
-  const glowOpacity = anim.interpolate({
-    inputRange: [0, 0.2, 0.55, 1],
-    outputRange: [0, 0.82, 0.74, 0.38],
-    extrapolate: "clamp" });
-  const glowScale = anim.interpolate({
-    inputRange: [0, 0.2, 0.55, 1],
-    outputRange: [0.12, 0.95, 1.2, 1.35],
-    extrapolate: "clamp" });
-  const glowBlurScale = anim.interpolate({
-    inputRange: [0, 0.2, 0.55, 1],
-    outputRange: [0.18, 1.02, 1.28, 1.48],
-    extrapolate: "clamp" });
-  const raysOpacity = anim.interpolate({
-    inputRange: [0, 0.22, 1],
-    outputRange: [0, 0.86, 0.42],
-    extrapolate: "clamp" });
-  const raysScale = anim.interpolate({
-    inputRange: [0, 0.22, 1],
-    outputRange: [0.15, 0.95, 1.18],
-    extrapolate: "clamp" });
-  const raysRotate = anim.interpolate({
-    inputRange: [0, 0.22, 1],
-    outputRange: ["0deg", "12deg", "36deg"],
-    extrapolate: "clamp" });
+  const glowBlurStyle = useAnimatedStyle(() => ({
+    opacity:
+      interpolate(
+        anim.value,
+        [0, 0.2, 0.55, 1],
+        [0, 0.82, 0.74, 0.38],
+        Extrapolation.CLAMP,
+      ) * 0.34,
+    transform: [
+      {
+        scale: interpolate(
+          anim.value,
+          [0, 0.2, 0.55, 1],
+          [0.18, 1.02, 1.28, 1.48],
+          Extrapolation.CLAMP,
+        ),
+      },
+    ],
+  }));
+  const raysStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(
+      anim.value,
+      [0, 0.22, 1],
+      [0, 0.86, 0.42],
+      Extrapolation.CLAMP,
+    ),
+    transform: [
+      {
+        scale: interpolate(
+          anim.value,
+          [0, 0.22, 1],
+          [0.15, 0.95, 1.18],
+          Extrapolation.CLAMP,
+        ),
+      },
+      {
+        rotate: `${interpolate(
+          anim.value,
+          [0, 0.22, 1],
+          [0, 12, 36],
+          Extrapolation.CLAMP,
+        )}deg`,
+      },
+    ],
+  }));
+  const glowCoreStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(
+      anim.value,
+      [0, 0.2, 0.55, 1],
+      [0, 0.82, 0.74, 0.38],
+      Extrapolation.CLAMP,
+    ),
+    transform: [
+      {
+        scale: interpolate(
+          anim.value,
+          [0, 0.2, 0.55, 1],
+          [0.12, 0.95, 1.2, 1.35],
+          Extrapolation.CLAMP,
+        ),
+      },
+    ],
+  }));
 
   return (
     <View
@@ -937,14 +1101,14 @@ function packLoadingGlow({
         justifyContent: "center" }}
     >
       <Animated.View
-        style={{
-          position: "absolute",
-          width: size * 0.98,
-          height: size * 0.98,
-          opacity: glowOpacity.interpolate({
-            inputRange: [0, 1],
-            outputRange: [0, 0.34] }),
-          transform: [{ scale: glowBlurScale }] }}
+        style={[
+          {
+            position: "absolute",
+            width: size * 0.98,
+            height: size * 0.98,
+          },
+          glowBlurStyle,
+        ]}
       >
         <Svg width="100%" height="100%" viewBox={`0 0 ${size} ${size}`}>
           <Defs>
@@ -970,12 +1134,14 @@ function packLoadingGlow({
       </Animated.View>
 
       <Animated.View
-        style={{
-          position: "absolute",
-          width: size,
-          height: size,
-          opacity: raysOpacity,
-          transform: [{ scale: raysScale }, { rotate: raysRotate }] }}
+        style={[
+          {
+            position: "absolute",
+            width: size,
+            height: size,
+          },
+          raysStyle,
+        ]}
       >
         <Svg width="100%" height="100%" viewBox={`0 0 ${size} ${size}`}>
           {TREASURE_RAY_SPECS.map((ray) => (
@@ -996,12 +1162,14 @@ function packLoadingGlow({
       </Animated.View>
 
       <Animated.View
-        style={{
-          position: "absolute",
-          width: size * 0.86,
-          height: size * 0.86,
-          opacity: glowOpacity,
-          transform: [{ scale: glowScale }] }}
+        style={[
+          {
+            position: "absolute",
+            width: size * 0.86,
+            height: size * 0.86,
+          },
+          glowCoreStyle,
+        ]}
       >
         <Svg width="100%" height="100%" viewBox={`0 0 ${size} ${size}`}>
           <Defs>
@@ -1029,93 +1197,16 @@ function packLoadingGlow({
         </Svg>
       </Animated.View>
 
-      {sparkles.map((sparkle) => {
-        const rise = Math.max(20, width * 0.18);
-        const appearAt = sparkle.delay;
-        const settleAt = Math.min(1, appearAt + 0.18);
-        const driftAt = Math.min(1, appearAt + 0.55);
-        const vanishAt = Math.min(1, appearAt + 0.86);
-
-        return (
-          <Animated.View
-            key={sparkle.id}
-            style={{
-              position: "absolute",
-              left: centerX - sparkle.size / 2,
-              top: centerY - sparkle.size / 2,
-              width: sparkle.size,
-              height: sparkle.size,
-              opacity: anim.interpolate({
-                inputRange: [0, appearAt, settleAt, driftAt, vanishAt, 1],
-                outputRange: [0, 0, 1, 0.95, 0, 0],
-                extrapolate: "clamp" }),
-              transform: [
-                {
-                  translateX: anim.interpolate({
-                    inputRange: [0, appearAt, settleAt, driftAt, vanishAt, 1],
-                    outputRange: [
-                      0,
-                      0,
-                      sparkle.travelX * 0.82,
-                      sparkle.travelX,
-                      sparkle.travelX * 1.12,
-                      sparkle.travelX * 1.12,
-                    ],
-                    extrapolate: "clamp" }) },
-                {
-                  translateY: anim.interpolate({
-                    inputRange: [0, appearAt, settleAt, driftAt, vanishAt, 1],
-                    outputRange: [
-                      0,
-                      0,
-                      sparkle.travelY * 0.82,
-                      sparkle.travelY,
-                      sparkle.travelY * 1.12 - rise,
-                      sparkle.travelY * 1.12 - rise,
-                    ],
-                    extrapolate: "clamp" }) },
-                {
-                  scale: anim.interpolate({
-                    inputRange: [0, appearAt, settleAt, driftAt, vanishAt, 1],
-                    outputRange: [0.15, 0.15, 1, 0.65, 0.1, 0.1],
-                    extrapolate: "clamp" }) },
-                {
-                  rotate: anim.interpolate({
-                    inputRange: [0, appearAt, settleAt, driftAt, vanishAt, 1],
-                    outputRange: [
-                      `${sparkle.rotation}deg`,
-                      `${sparkle.rotation}deg`,
-                      `${sparkle.rotation + 70}deg`,
-                      `${sparkle.rotation + 145}deg`,
-                      `${sparkle.rotation + 250}deg`,
-                      `${sparkle.rotation + 250}deg`,
-                    ],
-                    extrapolate: "clamp" }) },
-              ] }}
-          >
-            <View
-              style={{
-                position: "absolute",
-                left: sparkle.size * 0.4,
-                top: 0,
-                width: sparkle.size * 0.2,
-                height: sparkle.size,
-                borderRadius: 999,
-                backgroundColor: "#FFF9D8" }}
-            />
-            <View
-              style={{
-                position: "absolute",
-                left: 0,
-                top: sparkle.size * 0.4,
-                width: sparkle.size,
-                height: sparkle.size * 0.2,
-                borderRadius: 999,
-                backgroundColor: "#FFF9D8" }}
-            />
-          </Animated.View>
-        );
-      })}
+      {sparkles.map((sparkle) => (
+        <LoadingSparkleView
+          key={sparkle.id}
+          anim={anim}
+          centerX={centerX}
+          centerY={centerY}
+          sparkle={sparkle}
+          width={width}
+        />
+      ))}
     </View>
   );
 }
@@ -1158,9 +1249,7 @@ function cardBackFace({
   );
 }
 
-const RevealCardHalo = revealCardHalo;
-
-function revealCardHalo({
+function RevealCardHalo({
   color,
   opacityAnim,
   rarityName,
@@ -1168,7 +1257,7 @@ function revealCardHalo({
   themeName,
   width }: {
   color: string;
-  opacityAnim: AnimatedValue;
+  opacityAnim: SharedValue<number>;
   rarityName: RarityName;
   isSparkReveal?: boolean;
   themeName: ThemeName;
@@ -1176,25 +1265,37 @@ function revealCardHalo({
 }) {
   const height = width / REVEAL_CARD_RATIO;
   const haloShapeSource = getCardOutlineSource(themeName, rarityName);
-  const haloOpacity = opacityAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, isSparkReveal ? 0.38 : 0.22] });
-  const haloScale = opacityAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.995, isSparkReveal ? 1.055 : 1.025] });
+  const haloStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(
+      opacityAnim.value,
+      [0, 1],
+      [0, isSparkReveal ? 0.38 : 0.22],
+    ),
+    transform: [
+      {
+        scale: interpolate(
+          opacityAnim.value,
+          [0, 1],
+          [0.995, isSparkReveal ? 1.055 : 1.025],
+        ),
+      },
+    ],
+  }));
 
   return (
     <Animated.View
       pointerEvents="none"
-      style={asStyle({
-        position: "absolute",
-        left: 0,
-        top: 0,
-        width,
-        height,
-        opacity: haloOpacity,
-        zIndex: 0,
-        transform: [{ scale: haloScale }] })}
+      style={[
+        asStyle({
+          position: "absolute",
+          left: 0,
+          top: 0,
+          width,
+          height,
+          zIndex: 0,
+        }),
+        haloStyle,
+      ]}
     >
       <Image
         pointerEvents="none"
@@ -1213,45 +1314,53 @@ function revealCardHalo({
   );
 }
 
-const SparkRevealOverlay = sparkRevealOverlay;
-
-function sparkRevealOverlay({
+function SparkRevealOverlay({
   color,
   anim,
   width }: {
   color: string;
-  anim: AnimatedValue;
+  anim: SharedValue<number>;
   width: number;
 }) {
   const height = width / REVEAL_CARD_RATIO;
-  const pulseOpacity = anim.interpolate({
-    inputRange: [0, 0.25, 0.62, 1],
-    outputRange: [0, 0.92, 0.34, 0] });
-  const pulseScale = anim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.78, 1.36] });
-  const glintOpacity = anim.interpolate({
-    inputRange: [0, 0.32, 0.68, 1],
-    outputRange: [0, 0.8, 0.22, 0] });
-  const glintTranslateX = anim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [-width * 0.8, width * 0.8] });
-  const starScale = anim.interpolate({
-    inputRange: [0, 0.45, 0.72, 1],
-    outputRange: [0.75, 1.22, 1.04, 0.9] });
+  const pulseStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(anim.value, [0, 0.25, 0.62, 1], [0, 0.92, 0.34, 0]),
+    transform: [{ scale: interpolate(anim.value, [0, 1], [0.78, 1.36]) }],
+  }));
+  const glintStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(anim.value, [0, 0.32, 0.68, 1], [0, 0.8, 0.22, 0]),
+    transform: [
+      { translateX: interpolate(anim.value, [0, 1], [-width * 0.8, width * 0.8]) },
+      { rotate: "18deg" },
+    ],
+  }));
+  const starStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(anim.value, [0, 0.32, 0.68, 1], [0, 0.8, 0.22, 0]),
+    transform: [
+      {
+        scale: interpolate(
+          anim.value,
+          [0, 0.45, 0.72, 1],
+          [0.75, 1.22, 1.04, 0.9],
+        ),
+      },
+    ],
+  }));
 
   return (
     <Animated.View
       pointerEvents="none"
-      style={asStyle({
-        position: "absolute",
-        top: -18,
-        right: -18,
-        bottom: -18,
-        left: -18,
-        zIndex: 24,
-        opacity: pulseOpacity,
-        transform: [{ scale: pulseScale }] })}
+      style={[
+        asStyle({
+          position: "absolute",
+          top: -18,
+          right: -18,
+          bottom: -18,
+          left: -18,
+          zIndex: 24,
+        }),
+        pulseStyle,
+      ]}
     >
       <View
         style={asStyle({
@@ -1266,24 +1375,28 @@ function sparkRevealOverlay({
           backgroundColor: withAlpha(color, "16") })}
       />
       <Animated.View
-        style={asStyle({
-          position: "absolute",
-          top: height * 0.12,
-          bottom: height * 0.12,
-          left: width * 0.42,
-          width: 22,
-          borderRadius: 999,
-          backgroundColor: "rgba(255, 255, 255, 0.72)",
-          opacity: glintOpacity,
-          transform: [{ translateX: glintTranslateX }, { rotate: "18deg" }] })}
+        style={[
+          asStyle({
+            position: "absolute",
+            top: height * 0.12,
+            bottom: height * 0.12,
+            left: width * 0.42,
+            width: 22,
+            borderRadius: 999,
+            backgroundColor: "rgba(255, 255, 255, 0.72)",
+          }),
+          glintStyle,
+        ]}
       />
       <Animated.View
-        style={{
-          position: "absolute",
-          right: 18,
-          top: 16,
-          opacity: glintOpacity,
-          transform: [{ scale: starScale }] }}
+        style={[
+          {
+            position: "absolute",
+            right: 18,
+            top: 16,
+          },
+          starStyle,
+        ]}
       >
         <SparklesIcon size={30} color="#FFF8D6" />
       </Animated.View>
@@ -1291,9 +1404,69 @@ function sparkRevealOverlay({
   );
 }
 
-const CardBackStack = cardBackStack;
+function CardBackStackItem({
+  card,
+  cardBackVisualMap,
+  spreadAnim,
+  themeName,
+  width,
+}: {
+  card: (typeof CARD_BACK_STACK_SPECS)[number] & { rarityName: RarityName };
+  cardBackVisualMap: CardBackVisualMap;
+  spreadAnim: SharedValue<number>;
+  themeName: ThemeName;
+  width: number;
+}) {
+  const cardStyle = useAnimatedStyle(() => ({
+    transform: [
+      {
+        translateX: interpolate(
+          spreadAnim.value,
+          [0, 1],
+          [card.collapsedX, card.finalX],
+        ),
+      },
+      {
+        translateY: interpolate(
+          spreadAnim.value,
+          [0, 1],
+          [card.collapsedY, card.finalY],
+        ),
+      },
+      {
+        rotate: `${interpolate(
+          spreadAnim.value,
+          [0, 1],
+          [Number.parseFloat(card.collapsedRotate), Number.parseFloat(card.finalRotate)],
+        )}deg`,
+      },
+      {
+        scale: interpolate(spreadAnim.value, [0, 1], [0.98, card.scale]),
+      },
+    ],
+  }));
 
-function cardBackStack({
+  return (
+    <Animated.View
+      style={[
+        {
+          position: "absolute",
+          zIndex: card.zIndex,
+        },
+        cardStyle,
+      ]}
+    >
+      <CardBackFace
+        width={width}
+        themeName={themeName}
+        rarityName={card.rarityName}
+        cardBackVisualMap={cardBackVisualMap}
+      />
+    </Animated.View>
+  );
+}
+
+function CardBackStack({
   width,
   tc,
   themeName,
@@ -1307,9 +1480,9 @@ function cardBackStack({
   themeName: ThemeName;
   cardBackVisualMap: CardBackVisualMap;
   rarityNames: RarityName[];
-  spreadAnim: AnimatedValue;
-  idleAnim?: AnimatedValue;
-  pulseAnim?: AnimatedValue;
+  spreadAnim: SharedValue<number>;
+  idleAnim?: SharedValue<number>;
+  pulseAnim?: SharedValue<number>;
 }) {
   const cardHeight = width / REVEAL_CARD_RATIO;
   const stackHeight = cardHeight + 44;
@@ -1329,78 +1502,253 @@ function cardBackStack({
   const visibleStackEntries = visibleStackCards.map((card, index) => ({
     ...card,
     rarityName: visibleRarityNames[index] ?? "Common" }));
-  const wrapperTransforms = [
-    ...(idleAnim
-      ? [
-          {
-            translateY: idleAnim.interpolate({
-              inputRange: [0, 0.5, 1],
-              outputRange: [8, -8, 8] }) },
-          {
-            scale: idleAnim.interpolate({
-              inputRange: [0, 0.5, 1],
-              outputRange: [0.994, 1.008, 0.994] }) },
-        ]
-      : []),
-    ...(pulseAnim
-      ? [
-          {
-            scale: pulseAnim.interpolate({
-              inputRange: [0, 0.5, 1],
-              outputRange: [1, 1.014, 1] }) },
-        ]
-      : []),
-  ];
+  const wrapperStyle = useAnimatedStyle(() => {
+    const transforms = [];
+
+    if (idleAnim) {
+      transforms.push(
+        { translateY: interpolate(idleAnim.value, [0, 0.5, 1], [8, -8, 8]) },
+        { scale: interpolate(idleAnim.value, [0, 0.5, 1], [0.994, 1.008, 0.994]) },
+      );
+    }
+
+    if (pulseAnim) {
+      transforms.push({
+        scale: interpolate(pulseAnim.value, [0, 0.5, 1], [1, 1.014, 1]),
+      });
+    }
+
+    return { transform: transforms };
+  });
 
   return (
     <Animated.View
-      style={{
-        width: width + 90,
-        height: stackHeight,
-        alignItems: "center",
-        justifyContent: "center",
-        transform: wrapperTransforms }}
+      style={[
+        {
+          width: width + 90,
+          height: stackHeight,
+          alignItems: "center",
+          justifyContent: "center",
+        },
+        wrapperStyle,
+      ]}
     >
       {visibleStackEntries.map((card) => (
-        <Animated.View
+        <CardBackStackItem
           key={card.key}
-          style={{
-            position: "absolute",
-            zIndex: card.zIndex,
-            transform: [
-              {
-                translateX: spreadAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [card.collapsedX, card.finalX] }) },
-              {
-                translateY: spreadAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [card.collapsedY, card.finalY] }) },
-              {
-                rotate: spreadAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [card.collapsedRotate, card.finalRotate] }) },
-              {
-                scale: spreadAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0.98, card.scale] }) },
-            ] }}
-        >
-          <CardBackFace
-            width={width}
-            themeName={themeName}
-            rarityName={card.rarityName}
-            cardBackVisualMap={cardBackVisualMap}
-          />
-        </Animated.View>
+          card={card}
+          cardBackVisualMap={cardBackVisualMap}
+          spreadAnim={spreadAnim}
+          themeName={themeName}
+          width={width}
+        />
         ))}
     </Animated.View>
   );
 }
 
-const CrackedPackPreview = crackedPackPreview;
+function AnimatedCrackPaths({
+  crack,
+  crackIndex,
+  openAnim,
+}: {
+  crack: PackBurstPattern["cracks"][number];
+  crackIndex: number;
+  openAnim: SharedValue<number>;
+}) {
+  const crackDrawEnd = Math.min(0.72, crack.delay + 0.24);
+  const crackFadeStart = Math.min(0.82, crackDrawEnd + 0.18);
+  const animatedProps = useAnimatedProps(() => ({
+    opacity: interpolate(
+      openAnim.value,
+      [0, crack.delay, crackDrawEnd, crackFadeStart, 1],
+      [0, 0, 1, 0.8, 0],
+      Extrapolation.CLAMP,
+    ),
+    strokeDashoffset: interpolate(
+      openAnim.value,
+      [0, crack.delay, crackDrawEnd, 1],
+      [crack.dashLength, crack.dashLength, 0, 0],
+      Extrapolation.CLAMP,
+    ),
+  }));
 
-function crackedPackPreview({
+  return (
+    <>
+      <AnimatedPath
+        key={`crack-glow-${crackIndex}`}
+        d={crack.path}
+        fill="none"
+        stroke="rgba(255, 116, 24, 0.85)"
+        strokeWidth={9}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeDasharray={crack.dashLength}
+        animatedProps={animatedProps}
+      />
+      <AnimatedPath
+        key={`crack-core-${crackIndex}`}
+        d={crack.path}
+        fill="none"
+        stroke="#FFF8BF"
+        strokeWidth={3.2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeDasharray={crack.dashLength}
+        animatedProps={animatedProps}
+      />
+    </>
+  );
+}
+
+function BurstParticleView({
+  centerX,
+  centerY,
+  openAnim,
+  particle,
+}: {
+  centerX: number;
+  centerY: number;
+  openAnim: SharedValue<number>;
+  particle: PackBurstPattern["particles"][number];
+}) {
+  const particleStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(
+      openAnim.value,
+      [0, 0.62, 0.68, 1],
+      [0, 0, 1, 0],
+      Extrapolation.CLAMP,
+    ),
+    transform: [
+      {
+        translateX: interpolate(
+          openAnim.value,
+          [0, 0.62, 0.76, 1],
+          [0, 0, particle.travelX * 0.16, particle.travelX],
+          Extrapolation.CLAMP,
+        ),
+      },
+      {
+        translateY: interpolate(
+          openAnim.value,
+          [0, 0.62, 0.76, 1],
+          [0, 0, particle.travelY * 0.16, particle.travelY],
+          Extrapolation.CLAMP,
+        ),
+      },
+      { rotate: particle.spin },
+      {
+        scale: interpolate(
+          openAnim.value,
+          [0, 0.62, 0.74, 1],
+          [0.5, 0.5, 1, 0],
+          Extrapolation.CLAMP,
+        ),
+      },
+    ],
+  }));
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        packScreenStyles.burstParticle,
+        {
+          left: centerX - particle.size / 2,
+          top: centerY - particle.size / 2,
+          width: particle.size,
+          height: particle.size,
+          backgroundColor: particle.color,
+          boxShadow: `0 0 14px ${particle.color}`,
+        },
+        particleStyle,
+      ]}
+    />
+  );
+}
+
+function BurstShardView({
+  accentColor,
+  centerX,
+  centerY,
+  openAnim,
+  shard,
+}: {
+  accentColor: string;
+  centerX: number;
+  centerY: number;
+  openAnim: SharedValue<number>;
+  shard: PackBurstPattern["shards"][number];
+}) {
+  const shardStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(
+      openAnim.value,
+      [0, 0.62, 0.68, 1],
+      [0, 0, 1, 0],
+      Extrapolation.CLAMP,
+    ),
+    transform: [
+      {
+        translateX: interpolate(
+          openAnim.value,
+          [0, 0.62, 0.76, 1],
+          [0, 0, shard.travelX * 0.16, shard.travelX],
+          Extrapolation.CLAMP,
+        ),
+      },
+      {
+        translateY: interpolate(
+          openAnim.value,
+          [0, 0.62, 0.76, 1],
+          [0, 0, shard.travelY * 0.16, shard.travelY],
+          Extrapolation.CLAMP,
+        ),
+      },
+      { rotate: shard.spin },
+      {
+        scale: interpolate(
+          openAnim.value,
+          [0, 0.62, 0.74, 1],
+          [0.8, 0.8, 1, 1.25],
+          Extrapolation.CLAMP,
+        ),
+      },
+    ],
+  }));
+
+  return (
+    <Animated.View
+      key={shard.id}
+      pointerEvents="none"
+      style={[
+        {
+          position: "absolute",
+          left: centerX - shard.width / 2,
+          top: centerY - shard.height / 2,
+          width: shard.width,
+          height: shard.height,
+        },
+        shardStyle,
+      ]}
+    >
+      <LinearGradient
+        colors={["rgba(255,225,121,0.95)", "rgba(137,54,12,0.95)"]}
+        start={{ x: 0.2, y: 0 }}
+        end={{ x: 0.8, y: 1 }}
+        style={{
+          flex: 1,
+          borderRadius: 10,
+          borderWidth: 1,
+          borderColor: withAlpha(accentColor, "88"),
+          boxShadow: "0 0 14px rgba(255, 168, 42, 0.6)",
+          transform: [{ rotate: "18deg" }],
+        }}
+      />
+    </Animated.View>
+  );
+}
+
+function CrackedPackPreview({
   pack,
   width,
   tc,
@@ -1409,7 +1757,7 @@ function crackedPackPreview({
   pack: Pack;
   width: number;
   tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
-  openAnim: AnimatedValue;
+  openAnim: SharedValue<number>;
   burstPattern?: PackBurstPattern;
 }) {
   const height = width / PACK_CARD_RATIO;
@@ -1418,93 +1766,138 @@ function crackedPackPreview({
   const centerX = width / 2;
   const centerY = height * 0.47;
   const accentColor = pack.color || tc.primary;
-  const packOpacity = openAnim.interpolate({
-    inputRange: [0, 0.45, 0.72, 1],
-    outputRange: [1, 1, 1, 0],
-    extrapolate: "clamp" });
-  const flareOpacity = openAnim.interpolate({
-    inputRange: [0, 0.38, 0.68, 1],
-    outputRange: [0, 0, 1, 0],
-    extrapolate: "clamp" });
-  const flareScale = openAnim.interpolate({
-    inputRange: [0, 0.38, 0.68, 0.82, 1],
-    outputRange: [0.2, 0.2, 3.5, 14, 14],
-    extrapolate: "clamp" });
-  const shockwaveOpacity = openAnim.interpolate({
-    inputRange: [0, 0.62, 0.72, 1],
-    outputRange: [0, 0, 0.95, 0],
-    extrapolate: "clamp" });
-  const shockwaveScale = openAnim.interpolate({
-    inputRange: [0, 0.62, 1],
-    outputRange: [0.2, 0.2, 5.5],
-    extrapolate: "clamp" });
+  const packStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(
+      openAnim.value,
+      [0, 0.45, 0.72, 1],
+      [1, 1, 1, 0],
+      Extrapolation.CLAMP,
+    ),
+    transform: [
+      {
+        translateX: interpolate(
+          openAnim.value,
+          [0, 0.18, 0.34, 0.52, 0.72, 0.94, 1],
+          [0, -2, 2, -3, 4, 3, 0],
+          Extrapolation.CLAMP,
+        ),
+      },
+      {
+        translateY: interpolate(
+          openAnim.value,
+          [0, 0.18, 0.34, 0.52, 0.72, 0.94, 1],
+          [0, 1, -2, -1, 2, -3, 0],
+          Extrapolation.CLAMP,
+        ),
+      },
+      {
+        rotateZ: `${interpolate(
+          openAnim.value,
+          [0, 0.18, 0.34, 0.52, 0.72, 0.94, 1],
+          [0, -1, 1.1, -1.4, 1.9, 2.4, 25],
+          Extrapolation.CLAMP,
+        )}deg`,
+      },
+      {
+        scale: interpolate(
+          openAnim.value,
+          [0, 0.45, 0.72, 1],
+          [1, 1.06, 1.2, 0.42],
+          Extrapolation.CLAMP,
+        ),
+      },
+    ],
+  }));
+  const seamStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(
+      openAnim.value,
+      [0, 0.18, 0.62, 1],
+      [0, 0.85, 0, 0],
+      Extrapolation.CLAMP,
+    ),
+    transform: [
+      {
+        scaleY: interpolate(
+          openAnim.value,
+          [0, 0.62, 1],
+          [0.5, 1.18, 1.18],
+          Extrapolation.CLAMP,
+        ),
+      },
+      {
+        scaleX: interpolate(
+          openAnim.value,
+          [0, 0.62, 1],
+          [0.6, 1.7, 1.7],
+          Extrapolation.CLAMP,
+        ),
+      },
+    ],
+  }));
+  const flareStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(
+      openAnim.value,
+      [0, 0.38, 0.68, 1],
+      [0, 0, 1, 0],
+      Extrapolation.CLAMP,
+    ),
+    transform: [
+      {
+        scale: interpolate(
+          openAnim.value,
+          [0, 0.38, 0.68, 0.82, 1],
+          [0.2, 0.2, 3.5, 14, 14],
+          Extrapolation.CLAMP,
+        ),
+      },
+    ],
+  }));
+  const shockwaveStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(
+      openAnim.value,
+      [0, 0.62, 0.72, 1],
+      [0, 0, 0.95, 0],
+      Extrapolation.CLAMP,
+    ),
+    transform: [
+      {
+        scale: interpolate(
+          openAnim.value,
+          [0, 0.62, 1],
+          [0.2, 0.2, 5.5],
+          Extrapolation.CLAMP,
+        ),
+      },
+    ],
+  }));
 
   return (
     <Animated.View
-      style={{
-        width,
-        height,
-        alignItems: "center",
-        justifyContent: "center",
-        opacity: packOpacity,
-        transform: [
-          {
-            translateX: openAnim.interpolate({
-              inputRange: [0, 0.18, 0.34, 0.52, 0.72, 0.94, 1],
-              outputRange: [0, -2, 2, -3, 4, 3, 0],
-              extrapolate: "clamp" }) },
-          {
-            translateY: openAnim.interpolate({
-              inputRange: [0, 0.18, 0.34, 0.52, 0.72, 0.94, 1],
-              outputRange: [0, 1, -2, -1, 2, -3, 0],
-              extrapolate: "clamp" }) },
-          {
-            rotateZ: openAnim.interpolate({
-              inputRange: [0, 0.18, 0.34, 0.52, 0.72, 0.94, 1],
-              outputRange: [
-                "0deg",
-                "-1deg",
-                "1.1deg",
-                "-1.4deg",
-                "1.9deg",
-                "2.4deg",
-                "25deg",
-              ],
-              extrapolate: "clamp" }) },
-          {
-            scale: openAnim.interpolate({
-              inputRange: [0, 0.45, 0.72, 1],
-              outputRange: [1, 1.06, 1.2, 0.42],
-              extrapolate: "clamp" }) },
-        ] }}
+      style={[
+        {
+          width,
+          height,
+          alignItems: "center",
+          justifyContent: "center",
+        },
+        packStyle,
+      ]}
     >
       <PackFaceCanvas pack={pack} width={width} height={height} tc={tc} />
       <Animated.View
         pointerEvents="none"
-        style={asStyle({
-          position: "absolute",
-          left: centerX - Math.max(18, width * 0.065),
-          top: 24,
-          width: Math.max(36, width * 0.16),
-          height: height - 46,
-          borderRadius: 999,
-          backgroundColor: "rgba(255, 242, 170, 0.92)",
-          opacity: openAnim.interpolate({
-            inputRange: [0, 0.18, 0.62, 1],
-            outputRange: [0, 0.85, 0, 0],
-            extrapolate: "clamp" }),
-          transform: [
-            {
-              scaleY: openAnim.interpolate({
-                inputRange: [0, 0.62, 1],
-                outputRange: [0.5, 1.18, 1.18],
-                extrapolate: "clamp" }) },
-            {
-              scaleX: openAnim.interpolate({
-                inputRange: [0, 0.62, 1],
-                outputRange: [0.6, 1.7, 1.7],
-                extrapolate: "clamp" }) },
-          ] })}
+        style={[
+          asStyle({
+            position: "absolute",
+            left: centerX - Math.max(18, width * 0.065),
+            top: 24,
+            width: Math.max(36, width * 0.16),
+            height: height - 46,
+            borderRadius: 999,
+            backgroundColor: "rgba(255, 242, 170, 0.92)",
+          }),
+          seamStyle,
+        ]}
       />
       <Svg
         pointerEvents="none"
@@ -1513,45 +1906,14 @@ function crackedPackPreview({
         viewBox={`0 0 ${width} ${height}`}
         style={{ position: "absolute", left: 0, top: 0 }}
       >
-        {resolvedPattern.cracks.flatMap((crack, crackIndex) => {
-          const crackDrawEnd = Math.min(0.72, crack.delay + 0.24);
-          const crackFadeStart = Math.min(0.82, crackDrawEnd + 0.18);
-          const crackDashOffset = openAnim.interpolate({
-            inputRange: [0, crack.delay, crackDrawEnd, 1],
-            outputRange: [crack.dashLength, crack.dashLength, 0, 0],
-            extrapolate: "clamp" });
-          const crackOpacity = openAnim.interpolate({
-            inputRange: [0, crack.delay, crackDrawEnd, crackFadeStart, 1],
-            outputRange: [0, 0, 1, 0.8, 0],
-            extrapolate: "clamp" });
-
-          return [
-            <AnimatedPath
-              key={`crack-glow-${crackIndex}`}
-              d={crack.path}
-              fill="none"
-              stroke="rgba(255, 116, 24, 0.85)"
-              strokeWidth={9}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeDasharray={crack.dashLength}
-              strokeDashoffset={crackDashOffset}
-              opacity={crackOpacity}
-            />,
-            <AnimatedPath
-              key={`crack-core-${crackIndex}`}
-              d={crack.path}
-              fill="none"
-              stroke="#FFF8BF"
-              strokeWidth={3.2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeDasharray={crack.dashLength}
-              strokeDashoffset={crackDashOffset}
-              opacity={crackOpacity}
-            />,
-          ];
-        })}
+        {resolvedPattern.cracks.map((crack, crackIndex) => (
+          <AnimatedCrackPaths
+            key={`crack-${crackIndex}`}
+            crack={crack}
+            crackIndex={crackIndex}
+            openAnim={openAnim}
+          />
+        ))}
       </Svg>
       <Animated.View
         pointerEvents="none"
@@ -1560,8 +1922,8 @@ function crackedPackPreview({
           {
             left: centerX - 15,
             top: centerY - 15,
-            opacity: flareOpacity,
-            transform: [{ scale: flareScale }] },
+          },
+          flareStyle,
         ]}
       />
       <Animated.View
@@ -1571,115 +1933,253 @@ function crackedPackPreview({
           {
             left: centerX - 60,
             top: centerY - 60,
-            opacity: shockwaveOpacity,
-            transform: [{ scale: shockwaveScale }] },
+          },
+          shockwaveStyle,
         ]}
       />
-      {resolvedPattern.particles.map((particle) => {
-        return (
-          <Animated.View
-            key={particle.id}
-            pointerEvents="none"
-            style={[
-              packScreenStyles.burstParticle,
-              {
-                left: centerX - particle.size / 2,
-                top: centerY - particle.size / 2,
-                width: particle.size,
-                height: particle.size,
-                backgroundColor: particle.color,
-                boxShadow: `0 0 14px ${particle.color}`,
-                opacity: openAnim.interpolate({
-                  inputRange: [0, 0.62, 0.68, 1],
-                  outputRange: [0, 0, 1, 0],
-                  extrapolate: "clamp" }),
-                transform: [
-                  {
-                    translateX: openAnim.interpolate({
-                      inputRange: [0, 0.62, 0.76, 1],
-                      outputRange: [
-                        0,
-                        0,
-                        particle.travelX * 0.16,
-                        particle.travelX,
-                      ],
-                      extrapolate: "clamp" }) },
-                  {
-                    translateY: openAnim.interpolate({
-                      inputRange: [0, 0.62, 0.76, 1],
-                      outputRange: [
-                        0,
-                        0,
-                        particle.travelY * 0.16,
-                        particle.travelY,
-                      ],
-                      extrapolate: "clamp" }) },
-                  {
-                    rotate: particle.spin },
-                  {
-                    scale: openAnim.interpolate({
-                      inputRange: [0, 0.62, 0.74, 1],
-                      outputRange: [0.5, 0.5, 1, 0],
-                      extrapolate: "clamp" }) },
-                ] },
-            ]}
-          />
-        );
-      })}
-      {resolvedPattern.shards.map((shard) => {
-        return (
-          <Animated.View
-            key={shard.id}
-            pointerEvents="none"
-            style={{
-              position: "absolute",
-              left: centerX - shard.width / 2,
-              top: centerY - shard.height / 2,
-              width: shard.width,
-              height: shard.height,
-              opacity: openAnim.interpolate({
-                inputRange: [0, 0.62, 0.68, 1],
-                outputRange: [0, 0, 1, 0],
-                extrapolate: "clamp" }),
-              transform: [
-                {
-                  translateX: openAnim.interpolate({
-                    inputRange: [0, 0.62, 0.76, 1],
-                    outputRange: [0, 0, shard.travelX * 0.16, shard.travelX],
-                    extrapolate: "clamp" }) },
-                {
-                  translateY: openAnim.interpolate({
-                    inputRange: [0, 0.62, 0.76, 1],
-                    outputRange: [0, 0, shard.travelY * 0.16, shard.travelY],
-                    extrapolate: "clamp" }) },
-                { rotate: shard.spin },
-                {
-                  scale: openAnim.interpolate({
-                    inputRange: [0, 0.62, 0.74, 1],
-                    outputRange: [0.8, 0.8, 1, 1.25],
-                    extrapolate: "clamp" }) },
-              ] }}
-          >
-            <LinearGradient
-              colors={["rgba(255,225,121,0.95)", "rgba(137,54,12,0.95)"]}
-              start={{ x: 0.2, y: 0 }}
-              end={{ x: 0.8, y: 1 }}
-              style={{
-                flex: 1,
-                borderRadius: 10,
-                borderWidth: 1,
-                borderColor: withAlpha(accentColor, "88"),
-                boxShadow: "0 0 14px rgba(255, 168, 42, 0.6)",
-                transform: [{ rotate: "18deg" }] }}
-            />
-          </Animated.View>
-        );
-      })}
+      {resolvedPattern.particles.map((particle) => (
+        <BurstParticleView
+          key={particle.id}
+          centerX={centerX}
+          centerY={centerY}
+          openAnim={openAnim}
+          particle={particle}
+        />
+      ))}
+      {resolvedPattern.shards.map((shard) => (
+        <BurstShardView
+          key={shard.id}
+          accentColor={accentColor}
+          centerX={centerX}
+          centerY={centerY}
+          openAnim={openAnim}
+          shard={shard}
+        />
+      ))}
     </Animated.View>
   );
 }
 
 const OpeningProgress = openingProgress;
+
+function LoadingProgressFill({
+  color,
+  progress,
+}: {
+  color: string;
+  progress: SharedValue<number>;
+}) {
+  const progressStyle = useAnimatedStyle(() => ({
+    width: `${progress.value}%`,
+  }));
+
+  return (
+    <Animated.View
+      style={[
+        {
+          height: "100%",
+          borderRadius: 999,
+          backgroundColor: color,
+        },
+        progressStyle,
+      ]}
+    />
+  );
+}
+
+function ReadyRevealGlow({
+  anim,
+  height,
+  surfaceColor,
+  width,
+}: {
+  anim: SharedValue<number>;
+  height: number;
+  surfaceColor: string;
+  width: number;
+}) {
+  const glowStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(anim.value, [0, 0.45, 1], [0.56, 0.2, 0]),
+    transform: [{ scale: interpolate(anim.value, [0, 1], [0.88, 1.16]) }],
+  }));
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        {
+          position: "absolute",
+          width,
+          height,
+          borderRadius: 999,
+          backgroundColor: surfaceColor,
+        },
+        glowStyle,
+      ]}
+    />
+  );
+}
+
+function ReadyRevealStackWrapper({
+  anim,
+  children,
+}: {
+  anim: SharedValue<number>;
+  children: ReactNode;
+}) {
+  const stackStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(anim.value, [0, 0.28, 1], [0, 0.22, 1]),
+    transform: [{ scale: interpolate(anim.value, [0, 1], [0.86, 1]) }],
+  }));
+
+  return <Animated.View style={stackStyle}>{children}</Animated.View>;
+}
+
+function RevealCardStage({
+  accessToken,
+  card,
+  cardBackVisualMap,
+  flipAnim,
+  isRevealSettled,
+  isSparkReveal,
+  newBadgeLabel,
+  rarityName,
+  rarityRing,
+  revealCardWidth,
+  revealHaloAnim,
+  revealSparkAnim,
+  tc,
+  themeName,
+}: {
+  accessToken: string | null;
+  card: OpenedCard;
+  cardBackVisualMap: CardBackVisualMap;
+  flipAnim: SharedValue<number>;
+  isRevealSettled: boolean;
+  isSparkReveal: boolean;
+  newBadgeLabel: string;
+  rarityName: RarityName;
+  rarityRing: string;
+  revealCardWidth: number;
+  revealHaloAnim: SharedValue<number>;
+  revealSparkAnim: SharedValue<number>;
+  tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
+  themeName: ThemeName;
+}) {
+  const cardStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: interpolate(flipAnim.value, [0, 1], [0.94, 1]) }],
+  }));
+  const backStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(
+      flipAnim.value,
+      [0, 0.42, 0.58, 1],
+      [1, 1, 0, 0],
+      Extrapolation.CLAMP,
+    ),
+    transform: [
+      { perspective: 1400 },
+      { rotateY: `${interpolate(flipAnim.value, [0, 1], [0, 180])}deg` },
+    ],
+  }));
+  const frontStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(
+      flipAnim.value,
+      [0, 0.42, 0.58, 1],
+      [0, 0, 1, 1],
+      Extrapolation.CLAMP,
+    ),
+    transform: [
+      { perspective: 1400 },
+      { rotateY: `${interpolate(flipAnim.value, [0, 1], [180, 360])}deg` },
+    ],
+  }));
+
+  return (
+    <Animated.View
+      style={[
+        {
+          width: revealCardWidth,
+          aspectRatio: REVEAL_CARD_RATIO,
+        },
+        cardStyle,
+      ]}
+    >
+      <RevealCardHalo
+        color={rarityRing}
+        opacityAnim={revealHaloAnim}
+        rarityName={rarityName}
+        isSparkReveal={isSparkReveal}
+        themeName={themeName}
+        width={revealCardWidth}
+      />
+      {isSparkReveal ? (
+        <SparkRevealOverlay
+          color={rarityRing}
+          anim={revealSparkAnim}
+          width={revealCardWidth}
+        />
+      ) : null}
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          {
+            position: "absolute",
+            inset: 0,
+            zIndex: 5,
+            backfaceVisibility: "hidden",
+          },
+          backStyle,
+        ]}
+      >
+        <CardBackFace
+          width={revealCardWidth}
+          themeName={themeName}
+          rarityName={rarityName}
+          cardBackVisualMap={cardBackVisualMap}
+        />
+      </Animated.View>
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          {
+            position: "absolute",
+            inset: 0,
+            zIndex: 10,
+            backfaceVisibility: "hidden",
+          },
+          frontStyle,
+        ]}
+      >
+        <CardTile
+          entry={toCardTileEntry(card)}
+          size="large"
+          fitContainer
+          accessToken={accessToken}
+        />
+      </Animated.View>
+
+      {card.isNewForUser ? (
+        <View
+          className="absolute right-3 top-3 z-30"
+          style={{ opacity: isRevealSettled ? 1 : 0 }}
+        >
+          <LinearGradient
+            colors={[tc.success, tc.successDark]}
+            style={{
+              borderRadius: 999,
+              paddingHorizontal: 10,
+              paddingVertical: 5,
+            }}
+          >
+            <Text className="font-nunito-extrabold text-[10px] text-white">
+              {newBadgeLabel}
+            </Text>
+          </LinearGradient>
+        </View>
+      ) : null}
+    </Animated.View>
+  );
+}
 
 function openingProgress({
   tc,
@@ -2027,22 +2527,20 @@ function usePacksScreenView() {
   const stageCardWidth = revealCardWidth;
   const loadingDeckWidth = revealCardWidth;
 
-  const chargeAnim = useAnimatedValue(0);
-  const sheenAnim = useAnimatedValue(0);
-  const burstFlashAnim = useAnimatedValue(0);
-  const loadingIdleAnim = useAnimatedValue(0);
-  const loadingProgressAnim = useAnimatedValue(0);
-  const stackSpreadAnim = useAnimatedValue(0);
-  const readyRevealAnim = useAnimatedValue(0);
-  const pulseAnim = useAnimatedValue(1);
-  const flipAnim = useAnimatedValue(0);
-  const revealHaloAnim = useAnimatedValue(0);
-  const revealSparkAnim = useAnimatedValue(0);
-  const burstOpenAnim = useAnimatedValue(0);
-  const chargeLoopRef = useRef<CompositeAnimation | null>(null);
-  const sheenLoopRef = useRef<CompositeAnimation | null>(null);
-  const loadingLoopRef = useRef<CompositeAnimation | null>(null);
-  const revealAnimationRef = useRef<CompositeAnimation | null>(null);
+  const chargeAnim = useSharedValue(0);
+  const sheenAnim = useSharedValue(0);
+  const burstFlashAnim = useSharedValue(0);
+  const loadingIdleAnim = useSharedValue(0);
+  const loadingProgressAnim = useSharedValue(0);
+  const stackSpreadAnim = useSharedValue(0);
+  const readyRevealAnim = useSharedValue(0);
+  const pulseAnim = useSharedValue(1);
+  const flipAnim = useSharedValue(0);
+  const revealHaloAnim = useSharedValue(0);
+  const revealSparkAnim = useSharedValue(0);
+  const burstOpenAnim = useSharedValue(0);
+  const readyPulseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const revealAnimationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isRevealAnimatingRef = useRef(false);
 
   reactEffect(() => {
@@ -2060,103 +2558,86 @@ function usePacksScreenView() {
       return;
     }
 
-    readyRevealAnim.setValue(0);
-    pulseAnim.setValue(0);
-    stackSpreadAnim.setValue(0);
+    readyRevealAnim.value = 0;
+    pulseAnim.value = 0;
+    stackSpreadAnim.value = 0;
 
-    let pulseLoop: CompositeAnimation | null = null;
-
-    Animated.parallel([
-      Animated.timing(readyRevealAnim, {
-        toValue: 1,
+    readyRevealAnim.value = withTiming(1, {
         duration: IS_E2E_BUILD ? 900 : 1350,
-        easing: Easing.inOut(Easing.cubic),
-        useNativeDriver: true }),
-      Animated.timing(stackSpreadAnim, {
-        toValue: 1,
+        easing: Easing.inOut(Easing.cubic) });
+    stackSpreadAnim.value = withTiming(1, {
         duration: IS_E2E_BUILD ? 950 : 1600,
-        easing: Easing.inOut(Easing.cubic),
-        useNativeDriver: true }),
-    ]).start(() => {
-      pulseLoop = Animated.loop(
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 2400,
-          easing: Easing.linear,
-          useNativeDriver: true }),
+        easing: Easing.inOut(Easing.cubic) });
+    readyPulseTimerRef.current = setTimeout(() => {
+      pulseAnim.value = withRepeat(
+        withSequence(
+          withTiming(1, { duration: 2400, easing: Easing.linear }),
+          withTiming(0, { duration: 0 }),
+        ),
+        -1,
       );
-      pulseLoop.start();
-    });
+    }, IS_E2E_BUILD ? 950 : 1600);
 
-    return () => pulseLoop?.stop();
+    return () => {
+      if (readyPulseTimerRef.current) {
+        clearTimeout(readyPulseTimerRef.current);
+        readyPulseTimerRef.current = null;
+      }
+      cancelAnimation(pulseAnim);
+    };
   }, [phase, pulseAnim, readyRevealAnim, stackSpreadAnim]);
 
   reactEffect(() => {
     if (phase !== "loading") {
-      loadingLoopRef.current?.stop();
-      loadingLoopRef.current = null;
-      loadingIdleAnim.setValue(0);
+      cancelAnimation(loadingIdleAnim);
+      loadingIdleAnim.value = 0;
       return;
     }
 
-    loadingIdleAnim.setValue(0);
-    loadingLoopRef.current = Animated.loop(
-      Animated.timing(loadingIdleAnim, {
-        toValue: 1,
-        duration: 2450,
-        easing: Easing.linear,
-        useNativeDriver: true }),
+    loadingIdleAnim.value = 0;
+    loadingIdleAnim.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 2450, easing: Easing.linear }),
+        withTiming(0, { duration: 0 }),
+      ),
+      -1,
     );
-    loadingLoopRef.current.start();
 
     return () => {
-      loadingLoopRef.current?.stop();
-      loadingLoopRef.current = null;
+      cancelAnimation(loadingIdleAnim);
     };
   }, [loadingIdleAnim, phase]);
 
   function stopChargeAnimations() {
-    chargeLoopRef.current?.stop();
-    chargeLoopRef.current = null;
-    sheenLoopRef.current?.stop();
-    sheenLoopRef.current = null;
+    cancelAnimation(chargeAnim);
+    cancelAnimation(sheenAnim);
   }
 
   function startChargeAnimation() {
     stopChargeAnimations();
-    chargeAnim.setValue(0);
-    sheenAnim.setValue(0);
+    chargeAnim.value = 0;
+    sheenAnim.value = 0;
 
-    chargeLoopRef.current = Animated.loop(
-      Animated.sequence([
-        Animated.timing(chargeAnim, {
-          toValue: 1,
-          duration: 920,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true }),
-        Animated.timing(chargeAnim, {
-          toValue: 0,
-          duration: 920,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true }),
-      ]),
+    chargeAnim.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 920, easing: Easing.inOut(Easing.sin) }),
+        withTiming(0, { duration: 920, easing: Easing.inOut(Easing.sin) }),
+      ),
+      -1,
     );
-    chargeLoopRef.current.start();
-
-    sheenLoopRef.current = Animated.loop(
-      Animated.timing(sheenAnim, {
-        toValue: 1,
-        duration: 3400,
-        easing: Easing.linear,
-        useNativeDriver: true }),
+    sheenAnim.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 3400, easing: Easing.linear }),
+        withTiming(0, { duration: 0 }),
+      ),
+      -1,
     );
-    sheenLoopRef.current.start();
   }
 
   function startBurstAnimation() {
     stopChargeAnimations();
-    burstFlashAnim.setValue(0);
-    burstOpenAnim.setValue(0);
+    burstFlashAnim.value = 0;
+    burstOpenAnim.value = 0;
     burstPatternRef.current =
       createBurstPattern(
         stageCardWidth,
@@ -2164,37 +2645,30 @@ function usePacksScreenView() {
         selectedPack ?? undefined,
       );
 
-    Animated.parallel([
-      Animated.sequence([
-        Animated.timing(burstFlashAnim, {
-          toValue: 1,
+    burstFlashAnim.value = withSequence(
+      withTiming(1, {
           duration: Math.round(PACK_OPEN_BURST_MS * 0.3),
-          easing: Easing.out(Easing.quad),
-          useNativeDriver: true }),
-        Animated.timing(burstFlashAnim, {
-          toValue: 0,
+          easing: Easing.out(Easing.quad) }),
+      withTiming(0, {
           duration: Math.round(PACK_OPEN_BURST_MS * 0.7),
-          easing: Easing.in(Easing.quad),
-          useNativeDriver: true }),
-      ]),
-      Animated.timing(burstOpenAnim, {
-        toValue: 1,
+          easing: Easing.in(Easing.quad) }),
+    );
+    burstOpenAnim.value = withTiming(1, {
         duration: PACK_OPEN_BURST_MS,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true }),
-    ]).start();
+        easing: Easing.out(Easing.cubic) });
   }
 
   function animateLoadingProgress(from: number, to: number, duration: number) {
     setLoadingProgress(Math.round(to));
-    loadingProgressAnim.setValue(from);
+    loadingProgressAnim.value = from;
 
     return new Promise<void>((resolve) => {
-      Animated.timing(loadingProgressAnim, {
-        toValue: to,
+      loadingProgressAnim.value = withTiming(to, {
         duration,
         easing: Easing.inOut(Easing.quad),
-        useNativeDriver: false }).start(() => resolve());
+      }, () => {
+        runOnJS(resolve)();
+      });
     });
   }
 
@@ -2224,8 +2698,8 @@ function usePacksScreenView() {
     setRevealedIndex(-1);
     setPreviewedCard(null);
     setLoadingProgress(0);
-    loadingProgressAnim.setValue(0);
-    stackSpreadAnim.setValue(0);
+    loadingProgressAnim.value = 0;
+    stackSpreadAnim.value = 0;
     setNewBalance(null);
     setIsOpening(true);
     setOpeningRunId((value) => value + 1);
@@ -2319,38 +2793,48 @@ function usePacksScreenView() {
     setIsRevealSettled(false);
     setRevealedIndex(nextIndex);
     setPhase("revealing");
-    flipAnim.setValue(0);
-    revealHaloAnim.setValue(0);
-    revealSparkAnim.setValue(0);
-    revealAnimationRef.current?.stop();
+    flipAnim.value = 0;
+    revealHaloAnim.value = 0;
+    revealSparkAnim.value = 0;
+    if (revealAnimationTimerRef.current) {
+      clearTimeout(revealAnimationTimerRef.current);
+      revealAnimationTimerRef.current = null;
+    }
+    cancelAnimation(flipAnim);
+    cancelAnimation(revealHaloAnim);
+    cancelAnimation(revealSparkAnim);
     const isSparkReveal = nextCard.revealSource === "spark";
-    revealAnimationRef.current = Animated.sequence([
-      Animated.delay(
-        isSparkReveal ? SPARK_REVEAL_START_DELAY_MS : REVEAL_START_DELAY_MS,
-      ),
-      Animated.parallel([
-        Animated.timing(flipAnim, {
-          toValue: 1,
-          duration: isSparkReveal ? SPARK_REVEAL_FLIP_MS : REVEAL_FLIP_MS,
-          useNativeDriver: true,
-          easing: Easing.bezier(0.22, 0.61, 0.36, 1) }),
-        Animated.timing(revealSparkAnim, {
-          toValue: isSparkReveal ? 1 : 0,
-          duration: isSparkReveal ? SPARK_REVEAL_FLIP_MS + 260 : 1,
-          useNativeDriver: true,
-          easing: Easing.out(Easing.cubic) }),
-      ]),
-      Animated.timing(revealHaloAnim, {
-        toValue: 1,
-        duration: isSparkReveal ? 360 : IS_E2E_BUILD ? 120 : 220,
-        useNativeDriver: true,
-        easing: Easing.out(Easing.quad) }),
-    ]);
-    revealAnimationRef.current.start(() => {
-      revealAnimationRef.current = null;
+    const revealStartDelay = isSparkReveal
+      ? SPARK_REVEAL_START_DELAY_MS
+      : REVEAL_START_DELAY_MS;
+    const flipDuration = isSparkReveal ? SPARK_REVEAL_FLIP_MS : REVEAL_FLIP_MS;
+    const haloDuration = isSparkReveal ? 360 : IS_E2E_BUILD ? 120 : 220;
+    flipAnim.value = withDelay(
+      revealStartDelay,
+      withTiming(1, {
+        duration: flipDuration,
+        easing: Easing.bezier(0.22, 0.61, 0.36, 1),
+      }),
+    );
+    revealSparkAnim.value = withDelay(
+      revealStartDelay,
+      withTiming(isSparkReveal ? 1 : 0, {
+        duration: isSparkReveal ? SPARK_REVEAL_FLIP_MS + 260 : 1,
+        easing: Easing.out(Easing.cubic),
+      }),
+    );
+    revealHaloAnim.value = withDelay(
+      revealStartDelay + flipDuration,
+      withTiming(1, {
+        duration: haloDuration,
+        easing: Easing.out(Easing.quad),
+      }),
+    );
+    revealAnimationTimerRef.current = setTimeout(() => {
+      revealAnimationTimerRef.current = null;
       isRevealAnimatingRef.current = false;
       setIsRevealSettled(true);
-    });
+    }, revealStartDelay + flipDuration + haloDuration);
 
     if (hapticType) {
       void Haptics.notificationAsync(hapticType).catch(() => null);
@@ -2360,11 +2844,16 @@ function usePacksScreenView() {
   }
 
   function finishRevealAnimation() {
-    revealAnimationRef.current?.stop();
-    revealAnimationRef.current = null;
-    flipAnim.setValue(1);
-    revealHaloAnim.setValue(1);
-    revealSparkAnim.setValue(1);
+    if (revealAnimationTimerRef.current) {
+      clearTimeout(revealAnimationTimerRef.current);
+      revealAnimationTimerRef.current = null;
+    }
+    cancelAnimation(flipAnim);
+    cancelAnimation(revealHaloAnim);
+    cancelAnimation(revealSparkAnim);
+    flipAnim.value = 1;
+    revealHaloAnim.value = 1;
+    revealSparkAnim.value = 1;
     isRevealAnimatingRef.current = false;
     setIsRevealSettled(true);
   }
@@ -2391,20 +2880,34 @@ function usePacksScreenView() {
     setOpenError(null);
     setIsOpening(false);
     stopChargeAnimations();
-    revealAnimationRef.current?.stop();
-    revealAnimationRef.current = null;
-    chargeAnim.setValue(0);
-    sheenAnim.setValue(0);
-    burstFlashAnim.setValue(0);
-    loadingIdleAnim.setValue(0);
-    loadingProgressAnim.setValue(0);
-    stackSpreadAnim.setValue(0);
-    readyRevealAnim.setValue(0);
-    pulseAnim.setValue(1);
-    flipAnim.setValue(0);
-    revealHaloAnim.setValue(0);
-    revealSparkAnim.setValue(0);
-    burstOpenAnim.setValue(0);
+    if (revealAnimationTimerRef.current) {
+      clearTimeout(revealAnimationTimerRef.current);
+      revealAnimationTimerRef.current = null;
+    }
+    [
+      burstFlashAnim,
+      loadingIdleAnim,
+      loadingProgressAnim,
+      stackSpreadAnim,
+      readyRevealAnim,
+      pulseAnim,
+      flipAnim,
+      revealHaloAnim,
+      revealSparkAnim,
+      burstOpenAnim,
+    ].forEach((anim) => cancelAnimation(anim));
+    chargeAnim.value = 0;
+    sheenAnim.value = 0;
+    burstFlashAnim.value = 0;
+    loadingIdleAnim.value = 0;
+    loadingProgressAnim.value = 0;
+    stackSpreadAnim.value = 0;
+    readyRevealAnim.value = 0;
+    pulseAnim.value = 1;
+    flipAnim.value = 0;
+    revealHaloAnim.value = 0;
+    revealSparkAnim.value = 0;
+    burstOpenAnim.value = 0;
   }
 
   const { data: packsQueryData, error: packsQueryError, isError: packsQueryIsError, isLoading: packsQueryIsLoading, refetch: packsQueryRefetch } = useQuery({
@@ -2632,14 +3135,9 @@ function usePacksScreenView() {
                     backgroundColor: progressTrackColor,
                     height: 12 }}
                 >
-                  <Animated.View
-                    style={{
-                      width: loadingProgressAnim.interpolate({
-                        inputRange: [0, 100],
-                        outputRange: ["0%", "100%"] }),
-                      height: "100%",
-                      borderRadius: 999,
-                      backgroundColor: openingAccent }}
+                  <LoadingProgressFill
+                    color={openingAccent}
+                    progress={loadingProgressAnim}
                   />
                 </View>
                 <Text
@@ -2705,36 +3203,13 @@ function usePacksScreenView() {
           </View>
 
           <View className="flex-1 items-center justify-center py-5">
-            <Animated.View
-              pointerEvents="none"
-              style={{
-                position: "absolute",
-                width: stageCardWidth + 118,
-                height: stageCardWidth / REVEAL_CARD_RATIO + 118,
-                borderRadius: 999,
-                backgroundColor: tc.surface,
-                opacity: readyRevealAnim.interpolate({
-                  inputRange: [0, 0.45, 1],
-                  outputRange: [0.56, 0.2, 0] }),
-                transform: [
-                  {
-                    scale: readyRevealAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0.88, 1.16] }) },
-                ] }}
+            <ReadyRevealGlow
+              anim={readyRevealAnim}
+              height={stageCardWidth / REVEAL_CARD_RATIO + 118}
+              surfaceColor={tc.surface}
+              width={stageCardWidth + 118}
             />
-            <Animated.View
-              style={{
-                opacity: readyRevealAnim.interpolate({
-                  inputRange: [0, 0.28, 1],
-                  outputRange: [0, 0.22, 1] }),
-                transform: [
-                  {
-                    scale: readyRevealAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0.86, 1] }) },
-                ] }}
-            >
+            <ReadyRevealStackWrapper anim={readyRevealAnim}>
               <CardBackStack
                 width={stageCardWidth}
                 tc={tc}
@@ -2744,7 +3219,7 @@ function usePacksScreenView() {
                 spreadAnim={stackSpreadAnim}
                 pulseAnim={pulseAnim}
               />
-            </Animated.View>
+            </ReadyRevealStackWrapper>
           </View>
 
           <View className="items-center gap-4 pb-2">
@@ -2779,23 +3254,6 @@ function usePacksScreenView() {
     const isHighRarity = ["Legendary", "Epic", "Rare"].includes(rarityName);
     const isLastCard = revealedIndex === openedCards.length - 1;
     const isSparkReveal = card.revealSource === "spark";
-    const cardScale = flipAnim.interpolate({
-      inputRange: [0, 1],
-      outputRange: [0.94, 1] });
-    const backRotateY = flipAnim.interpolate({
-      inputRange: [0, 1],
-      outputRange: ["0deg", "180deg"] });
-    const frontRotateY = flipAnim.interpolate({
-      inputRange: [0, 1],
-      outputRange: ["180deg", "360deg"] });
-    const backOpacity = flipAnim.interpolate({
-      inputRange: [0, 0.42, 0.58, 1],
-      outputRange: [1, 1, 0, 0],
-      extrapolate: "clamp" });
-    const frontOpacity = flipAnim.interpolate({
-      inputRange: [0, 0.42, 0.58, 1],
-      outputRange: [0, 0, 1, 1],
-      extrapolate: "clamp" });
     return (
       <Pressable
         testID="pack-opening-reveal"
@@ -2839,81 +3297,22 @@ function usePacksScreenView() {
           </View>
 
           <View className="flex-1 items-center justify-center py-3">
-            <Animated.View
-              style={{
-                width: revealCardWidth,
-                aspectRatio: REVEAL_CARD_RATIO,
-                transform: [{ scale: cardScale }] }}
-            >
-              <RevealCardHalo
-                color={rarityRing}
-                opacityAnim={revealHaloAnim}
-                rarityName={rarityName}
-                isSparkReveal={isSparkReveal}
-                themeName={themeName}
-                width={revealCardWidth}
-              />
-              {isSparkReveal ? (
-                <SparkRevealOverlay
-                  color={rarityRing}
-                  anim={revealSparkAnim}
-                  width={revealCardWidth}
-                />
-              ) : null}
-              <Animated.View
-                pointerEvents="none"
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  zIndex: 5,
-                  opacity: backOpacity,
-                  transform: [{ perspective: 1400 }, { rotateY: backRotateY }],
-                  backfaceVisibility: "hidden" }}
-              >
-                <CardBackFace
-                  width={revealCardWidth}
-                  themeName={themeName}
-                  rarityName={rarityName}
-                  cardBackVisualMap={cardBackVisualMap}
-                />
-              </Animated.View>
-              <Animated.View
-                pointerEvents="none"
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  zIndex: 10,
-                  opacity: frontOpacity,
-                  transform: [{ perspective: 1400 }, { rotateY: frontRotateY }],
-                  backfaceVisibility: "hidden" }}
-              >
-                <CardTile
-                  entry={toCardTileEntry(card)}
-                  size="large"
-                  fitContainer
-                  accessToken={accessToken}
-                />
-              </Animated.View>
-
-              {card.isNewForUser ? (
-                <Animated.View
-                  className="absolute right-3 top-3 z-30"
-                  style={{ opacity: isRevealSettled ? 1 : 0 }}
-                >
-                  <LinearGradient
-                    colors={[tc.success, tc.successDark]}
-                    style={{
-                      borderRadius: 999,
-                      paddingHorizontal: 10,
-                      paddingVertical: 5 }}
-                  >
-                    <Text className="font-nunito-extrabold text-[10px] text-white">
-                      {t("packs.openResult.newBadge")}
-                    </Text>
-                  </LinearGradient>
-                </Animated.View>
-              ) : null}
-            </Animated.View>
+            <RevealCardStage
+              accessToken={accessToken}
+              card={card}
+              cardBackVisualMap={cardBackVisualMap}
+              flipAnim={flipAnim}
+              isRevealSettled={isRevealSettled}
+              isSparkReveal={isSparkReveal}
+              newBadgeLabel={t("packs.openResult.newBadge")}
+              rarityName={rarityName}
+              rarityRing={rarityRing}
+              revealCardWidth={revealCardWidth}
+              revealHaloAnim={revealHaloAnim}
+              revealSparkAnim={revealSparkAnim}
+              tc={tc}
+              themeName={themeName}
+            />
           </View>
 
           <View className="items-center gap-3 pb-2">
