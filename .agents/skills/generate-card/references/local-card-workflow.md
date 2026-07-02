@@ -7,7 +7,7 @@ Use this reference when generating an Adventure Time TCG card.
 - Treat the running Docker/OrbStack PostgreSQL database as local truth.
 - Use the `postgres` service in `compose.yml`: database `adventure_time_tcg`, user `postgres`.
 - Use MinIO through the running stack for card images.
-- Do not read, edit, diff against, or append to `apps/phoenix/priv/repo/seed_data/pvp_seed_catalog.json` for card creation.
+- Do not use bundled seed data for card creation; read current cards from the running database and write review drafts through the Phoenix admin/API/database workflow.
 - For live deployment, the VPS Phoenix service also uses `adventure_time_tcg`; prefer the DB from the running API env/Repo over similarly named legacy databases.
 
 Useful checks from the repo root:

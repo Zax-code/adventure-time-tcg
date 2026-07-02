@@ -105,13 +105,14 @@ export async function getStoredUser() {
 }
 
 export async function clearAppSession() {
-  const currentUser = await getStoredUser();
   await Promise.all([
     unregisterNotificationDeviceBeforeSessionClear(),
     clearScheduledNotificationPreferencesForSession(),
-    currentUser?.id
-      ? clearLocalStepSnapshotForUser(currentUser.id)
-      : Promise.resolve(),
+    getStoredUser().then((currentUser) =>
+      currentUser?.id
+        ? clearLocalStepSnapshotForUser(currentUser.id)
+        : Promise.resolve(),
+    ),
     clearStepQuestWidgetSnapshot(),
     clearStepQuestWidgetSyncContext(),
   ]);

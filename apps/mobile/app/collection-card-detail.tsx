@@ -31,10 +31,8 @@ import {
 import {
   CardDustActionFrame,
 } from "../src/components/card-dust-action-animation";
-import {
-  KEYBOARD_AWARE_SCROLL_PROPS,
-  KeyboardScreenView,
-} from "../src/components/keyboard-screen-view";
+import { KEYBOARD_AWARE_SCROLL_PROPS } from "../src/components/keyboard-aware-scroll-props";
+import { KeyboardScreenView } from "../src/components/keyboard-screen-view";
 import { ModalSheetRoute } from "../src/components/modal-sheet-route";
 import {
   LoadingPanel,

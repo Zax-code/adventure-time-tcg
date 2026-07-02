@@ -40,7 +40,7 @@ import { ThemedExpoTextInput } from "../../src/components/expo-ui/themed-text-in
 import { ThemedModal } from "../../src/components/themed-modal";
 import { ToastBanner } from "../../src/components/toast-banner";
 import { useTranslation } from "../../src/i18n";
-import { KEYBOARD_AWARE_SCROLL_PROPS } from "../../src/components/keyboard-screen-view";
+import { KEYBOARD_AWARE_SCROLL_PROPS } from "../../src/components/keyboard-aware-scroll-props";
 import { useCollectionFeedbackStore } from "../../src/stores/collection-feedback-store";
 import { useThemeStore } from "../../src/stores/theme-store";
 import {

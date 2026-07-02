@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Ionicons from "@react-native-vector-icons/ionicons";
 import {
@@ -56,6 +56,31 @@ function formatTimeRemaining(ms: number) {
   return `${h}h ${m}m ${s}s`;
 }
 
+function NotificationSettingsButton({
+  color,
+  label,
+  onPress,
+}: {
+  color: string;
+  label: string;
+  onPress: () => void;
+}) {
+  const leadingAccessory = useMemo(
+    () => <Ionicons name="settings-outline" size={16} color={color} />,
+    [color],
+  );
+
+  return (
+    <SecondaryButton
+      onPress={onPress}
+      leadingAccessory={leadingAccessory}
+      style={{ flex: 1 }}
+    >
+      {label}
+    </SecondaryButton>
+  );
+}
+
 export default function HomeScreen() {
   const queryClient = useQueryClient();
   const router = useRouter();
@@ -82,6 +107,15 @@ export default function HomeScreen() {
     queryKey: ["featured-cards"],
     queryFn: () => apiClient.featuredCards(),
   });
+  const featuredCards = featuredQueryData?.cards ?? [];
+  const renderFeaturedCard = useCallback(
+    ({ item }: { item: (typeof featuredCards)[number] }) => (
+      <View style={styles.featuredCardFrame}>
+        <CardTile entry={item} accessToken={accessToken} />
+      </View>
+    ),
+    [accessToken],
+  );
   const { data: raritiesQueryData } = useQuery({
     queryKey: ["rarities"],
     queryFn: () => apiClient.rarities(),
@@ -235,7 +269,6 @@ export default function HomeScreen() {
     0,
     home.collectionStats.totalCards - home.collectionStats.uniqueOwned,
   );
-  const featuredCards = featuredQueryData?.cards ?? [];
   const rarities = raritiesQueryData?.rarities ?? [];
   const totalDropRate = rarities.reduce((sum, rarity) => {
     return sum + rarity.dropRate;
@@ -268,24 +301,16 @@ export default function HomeScreen() {
             </View>
 
             <View className="mt-3 flex-row gap-2">
-              <SecondaryButton
+              <NotificationSettingsButton
                 onPress={() => {
                   router.push({
                     pathname: "/settings",
                     params: { section: "notifications" },
                   });
                 }}
-                leadingAccessory={
-                  <Ionicons
-                    name="settings-outline"
-                    size={16}
-                    color={tc.secondaryText}
-                  />
-                }
-                style={{ flex: 1 }}
-              >
-                {t("home.notificationsPromptSettings")}
-              </SecondaryButton>
+                color={tc.secondaryText}
+                label={t("home.notificationsPromptSettings")}
+              />
 
               <GhostButton
                 onPress={() => {
@@ -560,11 +585,7 @@ export default function HomeScreen() {
               horizontal
               data={featuredCards}
               keyExtractor={(item) => item.card.id}
-              renderItem={({ item }) => (
-                <View style={styles.featuredCardFrame}>
-                  <CardTile entry={item} accessToken={accessToken} />
-                </View>
-              )}
+              renderItem={renderFeaturedCard}
               contentContainerStyle={{
                 gap: 12,
                 paddingBottom: 4,

@@ -30,7 +30,7 @@ import {
   AdminFilterChip,
   AdminStat,
 } from "../../src/components/admin/admin-ui";
-import { KEYBOARD_AWARE_SCROLL_PROPS } from "../../src/components/keyboard-screen-view";
+import { KEYBOARD_AWARE_SCROLL_PROPS } from "../../src/components/keyboard-aware-scroll-props";
 import { useTranslation } from "../../src/i18n";
 
 type AdminAbilityData = Awaited<ReturnType<typeof apiClient.adminAbilities>>;

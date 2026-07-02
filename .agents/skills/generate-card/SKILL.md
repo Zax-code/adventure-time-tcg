@@ -5,7 +5,7 @@ description: Create a new Adventure Time TCG card from a provided illustration a
 
 # Generate Card
 
-Create one review-ready card at a time. The local Docker/OrbStack Phoenix database is the source of truth for existing live cards. Do not use `apps/phoenix/priv/repo/seed_data/pvp_seed_catalog.json` as card-generation input or as the write target.
+Create one review-ready card at a time. The local Docker/OrbStack Phoenix database is the source of truth for existing live cards. Do not use bundled seed data as card-generation input or as the write target.
 
 ## Workflow
 

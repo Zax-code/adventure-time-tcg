@@ -16,10 +16,8 @@ import {
   AdminStat,
 } from "../src/components/admin/admin-ui";
 import { withAlpha } from "../src/components/admin/admin-palette";
-import {
-  KEYBOARD_AWARE_SCROLL_PROPS,
-  KeyboardScreenView,
-} from "../src/components/keyboard-screen-view";
+import { KEYBOARD_AWARE_SCROLL_PROPS } from "../src/components/keyboard-aware-scroll-props";
+import { KeyboardScreenView } from "../src/components/keyboard-screen-view";
 import { LoadingPanel } from "../src/components/loading-state";
 import { ModalSheetRoute } from "../src/components/modal-sheet-route";
 import { useTranslation } from "../src/i18n";

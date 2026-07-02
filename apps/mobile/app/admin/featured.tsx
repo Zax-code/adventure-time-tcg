@@ -24,7 +24,7 @@ import {
   AdminSectionTitle,
   AdminStat,
 } from "../../src/components/admin/admin-ui";
-import { KEYBOARD_AWARE_SCROLL_PROPS } from "../../src/components/keyboard-screen-view";
+import { KEYBOARD_AWARE_SCROLL_PROPS } from "../../src/components/keyboard-aware-scroll-props";
 import { useTranslation } from "../../src/i18n";
 import { prefetchCardImages } from "../../src/lib/card-images";
 import { apiClient } from "../../src/lib/api";

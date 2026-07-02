@@ -20,7 +20,7 @@ import {
   AdminStat,
 } from "../../src/components/admin/admin-ui";
 import { withAlpha } from "../../src/components/admin/admin-palette";
-import { KEYBOARD_AWARE_SCROLL_PROPS } from "../../src/components/keyboard-screen-view";
+import { KEYBOARD_AWARE_SCROLL_PROPS } from "../../src/components/keyboard-aware-scroll-props";
 import { useTranslation } from "../../src/i18n";
 import { apiClient } from "../../src/lib/api";
 import { useSessionStore } from "../../src/stores/session-store";

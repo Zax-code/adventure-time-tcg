@@ -5,7 +5,7 @@ import { useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AuthForm } from "../src/components/auth-form";
-import { KEYBOARD_AWARE_SCROLL_PROPS } from "../src/components/keyboard-screen-view";
+import { KEYBOARD_AWARE_SCROLL_PROPS } from "../src/components/keyboard-aware-scroll-props";
 import { useThemeStore } from "../src/stores/theme-store";
 import { THEME_COLORS, THEME_VARS } from "../src/theme/themes";
 import { useAnimatedValue } from "../src/hooks/use-animated-value";
@@ -96,8 +96,8 @@ export default function LoginScreen() {
     >
       {PARTICLES.map((p) => (
         <FloatingHeart
-          key={`${p.left}-${p.top}-${p.size}`}
           {...p}
+          key={`${p.left}-${p.top}-${p.size}`}
           color={tc.primary}
         />
       ))}

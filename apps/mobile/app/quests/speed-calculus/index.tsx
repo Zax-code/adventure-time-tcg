@@ -187,7 +187,8 @@ export default function SpeedCalculusScreen() {
 
     try {
       const data = await apiClient.speedCalculusState();
-      if (requestEpoch !== mutationEpochRef.current) {
+      const isStaleRequest = requestEpoch !== mutationEpochRef.current;
+      if (isStaleRequest) {
         return;
       }
 
@@ -236,6 +237,10 @@ export default function SpeedCalculusScreen() {
     void loadState();
   }, [loadState]);
 
+  const loadStateEvent = useEffectEvent(() => {
+    void loadState();
+  });
+
   useEffect(() => {
     if (activeRun) {
       return;
@@ -243,11 +248,11 @@ export default function SpeedCalculusScreen() {
 
     const intervalMs = 15_000;
     const interval = setInterval(() => {
-      void loadState();
+      loadStateEvent();
     }, intervalMs);
 
     return () => clearInterval(interval);
-  }, [activeRun, loadState]);
+  }, [activeRun]);
 
   useEffect(() => {
     if (!lastQuestResetAt) return;

@@ -1,11 +1,7 @@
-import type { ComponentType, ReactNode } from "react";
-import {
-  ActivityIndicator,
-  Text,
-  TouchableOpacity,
-  type ViewStyle,
-  View,
-} from "react-native";
+import { useMemo, type ComponentType, type ReactNode } from "react";
+import { ActivityIndicator, type ViewStyle } from "react-native";
+
+import { ThemedExpoButton } from "../../components/expo-ui/themed-button";
 
 type QuestActionButtonLoadingMode = "replace" | "inline";
 
@@ -46,61 +42,70 @@ export function QuestActionButton({
 }) {
   const showInlineLoading = loading && loadingMode === "inline";
   const showReplaceLoading = loading && loadingMode === "replace";
-  const hasLeadingContent = Boolean(leadingAccessory || LeadingIcon);
+  const resolvedLeadingAccessory = useMemo(
+    () =>
+      showInlineLoading ? (
+        <ActivityIndicator color={foregroundColor} size="small" />
+      ) : LeadingIcon ? (
+        <LeadingIcon size={leadingIconSize} color={foregroundColor} />
+      ) : (
+        leadingAccessory
+      ),
+    [
+      foregroundColor,
+      LeadingIcon,
+      leadingAccessory,
+      leadingIconSize,
+      showInlineLoading,
+    ],
+  );
+  const fontFamily = textClassName.includes("semibold")
+    ? "Nunito_600SemiBold"
+    : "Nunito_700Bold";
+  const fontSize = textClassName.includes("text-xs")
+    ? 12
+    : textClassName.includes("text-base")
+      ? 16
+      : 14;
+  const fallbackAppearance = useMemo(
+    () => ({
+      backgroundColor,
+      borderColor,
+      borderRadius: 12,
+      borderWidth: borderColor ? 1 : 0,
+      foregroundColor,
+      gradientColors: null,
+      paddingHorizontal: 14,
+      paddingVertical: 0,
+      textStyle: {
+        fontFamily,
+        fontSize,
+        lineHeight: minHeight < 42 ? 18 : 20,
+      },
+    }),
+    [backgroundColor, borderColor, fontFamily, fontSize, foregroundColor, minHeight],
+  );
+  const buttonStyle = useMemo(
+    () => ({
+      ...style,
+      minHeight,
+    }),
+    [minHeight, style],
+  );
 
   return (
-    <TouchableOpacity
+    <ThemedExpoButton
       onPress={onPress}
       disabled={disabled || loading}
-      accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
       testID={testID}
-      style={[
-        {
-          borderRadius: 12,
-          borderWidth: borderColor ? 1 : 0,
-          borderColor,
-          opacity: disabled || loading ? 0.6 : 1,
-          overflow: "hidden",
-        },
-        style,
-      ]}
-    >
-      <View
-        style={{
-          minHeight,
-          paddingHorizontal: 14,
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: hasLeadingContent || loading ? 8 : 0,
-          backgroundColor,
-        }}
-      >
-        {showReplaceLoading ? (
-          <ActivityIndicator color={foregroundColor} size="small" />
-        ) : (
-          <>
-            {showInlineLoading ? (
-              <ActivityIndicator color={foregroundColor} size="small" />
-            ) : LeadingIcon ? (
-              <LeadingIcon size={leadingIconSize} color={foregroundColor} />
-            ) : (
-              leadingAccessory
-            )}
-            <Text
-              className={textClassName}
-              style={{
-                color: foregroundColor,
-                lineHeight: minHeight < 42 ? 18 : 20,
-                textAlign: "center",
-              }}
-            >
-              {label}
-            </Text>
-          </>
-        )}
-      </View>
-    </TouchableOpacity>
+      loading={showReplaceLoading}
+      label={label}
+      leadingAccessory={resolvedLeadingAccessory}
+      fallbackAppearance={fallbackAppearance}
+      preferFallback
+      style={buttonStyle}
+      variant="primary"
+    />
   );
 }
