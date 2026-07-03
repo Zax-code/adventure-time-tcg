@@ -312,6 +312,7 @@ Production VPS runtime:
 Production investigation workflow:
 - SSH target is `leaetzak`; prefer commands that run entirely on the VPS and stream only the needed result back.
 - Production runs in rootful Podman. Inspect containers with `ssh leaetzak 'sudo -n /usr/bin/podman ps --all'`.
+- Caddy intentionally blocks bad or scanner-like user agents, including default `curl`, and Fail2Ban can promote repeated matches into UFW rejects. Do not treat default-`curl` connection failures or empty replies as proof that Phoenix is down. For live health checks, prefer direct host checks such as `ssh leaetzak 'curl http://127.0.0.1:4200/ready'`, or use a realistic mobile app user agent only when you explicitly need to test public Caddy routing. If you temporarily unban an investigation IP, restore the `caddy-bad-user-agent` ban before finishing unless the user explicitly asks to keep it open.
 - Query production Postgres through the database container instead of printing or copying credentials:
 
   ```sh
