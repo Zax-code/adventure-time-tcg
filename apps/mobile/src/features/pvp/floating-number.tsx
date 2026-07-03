@@ -1,7 +1,14 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { Text } from "react-native";
-import { Animated } from "../../lib/native-animated";
-import type { AnimatedValue } from "../../lib/native-animated";
+import Animated, {
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withSequence,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
 
 interface FloatingNumberProps {
   amount: number;
@@ -21,56 +28,37 @@ const TYPE_CONFIG: Record<
 };
 
 export function FloatingNumber({ amount, type, onDone }: FloatingNumberProps) {
-  const translateYRef = useRef<AnimatedValue | null>(null);
-  const opacityRef = useRef<AnimatedValue | null>(null);
-  const scaleRef = useRef<AnimatedValue | null>(null);
-
-  if (translateYRef.current === null) {
-    translateYRef.current = new Animated.Value(0);
-  }
-  if (opacityRef.current === null) {
-    opacityRef.current = new Animated.Value(1);
-  }
-  if (scaleRef.current === null) {
-    scaleRef.current = new Animated.Value(0.78);
-  }
-
-  const translateY = translateYRef.current;
-  const opacity = opacityRef.current;
-  const scale = scaleRef.current;
+  const translateY = useSharedValue(0);
+  const opacity = useSharedValue(1);
+  const scale = useSharedValue(0.78);
 
   useEffect(() => {
-    Animated.parallel([
-      Animated.timing(translateY, {
-        toValue: -72,
-        duration: 820,
-        useNativeDriver: true,
+    translateY.value = 0;
+    opacity.value = 1;
+    scale.value = 0.78;
+
+    translateY.value = withTiming(-72, { duration: 820 });
+    scale.value = withSequence(
+      withSpring(1.16, {
+        damping: 8,
+        stiffness: 180,
       }),
-      Animated.sequence([
-        Animated.spring(scale, {
-          toValue: 1.16,
-          damping: 8,
-          stiffness: 180,
-          useNativeDriver: true,
-        }),
-        Animated.timing(scale, {
-          toValue: 1,
-          duration: 260,
-          useNativeDriver: true,
-        }),
-      ]),
-      Animated.sequence([
-        Animated.delay(520),
-        Animated.timing(opacity, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-      ]),
-    ]).start(({ finished }) => {
-      if (finished) onDone();
-    });
-  }, [opacity, onDone, scale, translateY]);
+      withTiming(1, { duration: 260 }),
+    );
+    opacity.value = withDelay(
+      520,
+      withTiming(0, { duration: 300 }, (finished) => {
+        if (finished) {
+          runOnJS(onDone)();
+        }
+      }),
+    );
+  }, [onDone, opacity, scale, translateY]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ translateY: translateY.value }, { scale: scale.value }],
+  }));
 
   const cfg = TYPE_CONFIG[type];
   const isCritical = type === "crit" || type === "shieldCrit";
@@ -96,7 +84,7 @@ export function FloatingNumber({ amount, type, onDone }: FloatingNumberProps) {
     <Animated.View
       pointerEvents="none"
       style={[
-        { transform: [{ translateY }, { scale }], opacity },
+        animatedStyle,
         {
           position: "absolute",
           alignSelf: "center",

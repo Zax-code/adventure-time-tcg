@@ -1,13 +1,17 @@
 import { useRef } from "react";
 import { Text, View } from "react-native";
-import { Animated } from "../../../lib/native-animated";
+import Animated, {
+  cancelAnimation,
+  useAnimatedProps,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 import Svg, { Circle } from "react-native-svg";
 import type { SpeedRunState } from "@adventure-time/api-client";
 
 import { useTranslation } from "../../../i18n";
 import { useThemeStore } from "../../../stores/theme-store";
 import { THEME_COLORS } from "../../../theme/themes";
-import { useAnimatedValue } from "../../../hooks/use-animated-value";
 import { reactEffect } from "../../../lib/react-primitives";
 
 type Question = NonNullable<SpeedRunState["activeRun"]>["questions"][number];
@@ -28,22 +32,24 @@ export function QuestionZone({ pauseRemainingSeconds, currentQuestion, activeRun
 
   // ── Pause countdown ring ──────────────────────────────────────────
   const initialPauseRef = useRef<number | null>(null);
-  const pauseRingAnim = useAnimatedValue(0);
+  const pauseRingProgress = useSharedValue(0);
   reactEffect(() => {
     if (pauseRemainingSeconds > 0 && initialPauseRef.current === null) {
       initialPauseRef.current = pauseRemainingSeconds;
-      pauseRingAnim.setValue(0);
-      Animated.timing(pauseRingAnim, {
-        toValue: 1,
+      pauseRingProgress.value = 0;
+      pauseRingProgress.value = withTiming(1, {
         duration: pauseRemainingSeconds * 1000,
-        useNativeDriver: false }).start();
+      });
     }
     if (pauseRemainingSeconds === 0) {
       initialPauseRef.current = null;
-      pauseRingAnim.setValue(0);
+      cancelAnimation(pauseRingProgress);
+      pauseRingProgress.value = 0;
     }
-  }, [pauseRemainingSeconds, pauseRingAnim]);
-  const pauseRingOffset = pauseRingAnim.interpolate({ inputRange: [0, 1], outputRange: [0, RING_C] });
+  }, [pauseRemainingSeconds, pauseRingProgress]);
+  const pauseRingProps = useAnimatedProps(() => ({
+    strokeDashoffset: pauseRingProgress.value * RING_C,
+  }));
 
   return (
     <View className="flex-1 items-center justify-center px-6">
@@ -71,7 +77,7 @@ export function QuestionZone({ pauseRemainingSeconds, currentQuestion, activeRun
                 strokeWidth="4"
                 fill="none"
                 strokeDasharray={RING_C}
-                strokeDashoffset={pauseRingOffset}
+                animatedProps={pauseRingProps}
                 strokeLinecap="round"
                 transform="rotate(-90, 64, 64)"
               />

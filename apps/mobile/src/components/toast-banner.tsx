@@ -1,6 +1,8 @@
 import { Text, View } from "react-native";
-import { Animated } from "../lib/native-animated";
-import type { AnimatedValue } from "../lib/native-animated";
+import Animated, {
+  type SharedValue,
+  useAnimatedStyle,
+} from "react-native-reanimated";
 
 type ToastType = "success" | "error";
 
@@ -14,21 +16,27 @@ export function ToastBanner({
 }: {
   message: string;
   type: ToastType;
-  translateY: AnimatedValue;
+  translateY: SharedValue<number>;
   successColor: string;
   errorColor: string;
   topOffset?: number;
 }) {
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+  }));
+
   return (
     <Animated.View
-      style={{
-        position: "absolute",
-        top: topOffset,
-        left: 16,
-        right: 16,
-        zIndex: 50,
-        transform: [{ translateY }],
-      }}
+      style={[
+        {
+          position: "absolute",
+          top: topOffset,
+          left: 16,
+          right: 16,
+          zIndex: 50,
+        },
+        animatedStyle,
+      ]}
     >
       <View
         style={{

@@ -5,7 +5,7 @@ import {
   Text,
   View,
   useWindowDimensions } from "react-native";
-import { Animated } from "../src/lib/native-animated";
+import { useSharedValue, withTiming } from "react-native-reanimated";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
@@ -46,7 +46,6 @@ import {
   RecycleIcon } from "../src/components/icons";
 import { ToastBanner } from "../src/components/toast-banner";
 import { getDustSacrificeValue, getDustCraftCost } from "../src/lib/dust";
-import { useAnimatedValue } from "../src/hooks/use-animated-value";
 import { asStyle } from "../src/lib/style-object";
 import { reactEffect } from "../src/lib/react-primitives";
 
@@ -169,7 +168,7 @@ function useCollectionCardDetailScreenView() {
     message: string;
     type: "success" | "error";
   } | null>(null);
-  const toastAnim = useAnimatedValue(-60);
+  const toastAnim = useSharedValue(-60);
   const scrollViewRef = useRef<ScrollView | null>(null);
   const scrollOffsetYRef = useRef(0);
   const dustActionTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -244,11 +243,8 @@ function useCollectionCardDetailScreenView() {
       return;
     }
 
-    toastAnim.setValue(-60);
-    Animated.timing(toastAnim, {
-      toValue: 0,
-      duration: 250,
-      useNativeDriver: true }).start();
+    toastAnim.value = -60;
+    toastAnim.value = withTiming(0, { duration: 250 });
 
     const timer = setTimeout(() => setToast(null), 2600);
     return () => clearTimeout(timer);

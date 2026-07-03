@@ -6,13 +6,15 @@ import * as Haptics from "expo-haptics";
 import {
   AppState,
   type AppStateStatus,
-  Platform,
   Pressable,
   ScrollView,
   Text,
-  UIManager,
   View } from "react-native";
-import { Animated, LayoutAnimation } from "../../../src/lib/native-animated";
+import {
+  useSharedValue,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
@@ -40,15 +42,7 @@ import {
 import {
   getAnswerBoxPalette,
   withAlpha } from "../../../src/features/quests/speed-calculus/palette";
-import { useAnimatedValue } from "../../../src/hooks/use-animated-value";
 import { reactEffect, effectEvent } from "../../../src/lib/react-primitives";
-
-if (
-  Platform.OS === "android" &&
-  UIManager.setLayoutAnimationEnabledExperimental
-) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
 
 type ActiveSpeedRun = NonNullable<SpeedRunState["activeRun"]>;
 
@@ -88,9 +82,9 @@ function useSpeedCalculusScreenView() {
   const stateRef = useRef<SpeedRunState | null>(null);
   const questVersionRef = useRef<string | null>(null);
   const mutationEpochRef = useRef(0);
-  const shakeAnim = useAnimatedValue(0);
-  const feedbackSlide = useAnimatedValue(-20);
-  const feedbackOpacity = useAnimatedValue(0);
+  const shakeAnim = useSharedValue(0);
+  const feedbackSlide = useSharedValue(-20);
+  const feedbackOpacity = useSharedValue(0);
   // ── Derived ──────────────────────────────────────────────────────
   const activeRun = state?.activeRun ?? null;
   const currentQuestion = useMemo(() => {
@@ -389,47 +383,24 @@ function useSpeedCalculusScreenView() {
 
   // ── Animation helpers ────────────────────────────────────────────
   const triggerShake = useCallback(() => {
-    shakeAnim.setValue(0);
-    Animated.sequence([
-      Animated.timing(shakeAnim, {
-        toValue: 7,
-        duration: 68,
-        useNativeDriver: true }),
-      Animated.timing(shakeAnim, {
-        toValue: -7,
-        duration: 68,
-        useNativeDriver: true }),
-      Animated.timing(shakeAnim, {
-        toValue: 5,
-        duration: 68,
-        useNativeDriver: true }),
-      Animated.timing(shakeAnim, {
-        toValue: -5,
-        duration: 68,
-        useNativeDriver: true }),
-      Animated.timing(shakeAnim, {
-        toValue: 0,
-        duration: 68,
-        useNativeDriver: true }),
-    ]).start();
+    shakeAnim.value = 0;
+    shakeAnim.value = withSequence(
+      withTiming(7, { duration: 68 }),
+      withTiming(-7, { duration: 68 }),
+      withTiming(5, { duration: 68 }),
+      withTiming(-5, { duration: 68 }),
+      withTiming(0, { duration: 68 }),
+    );
   }, [shakeAnim]);
 
   const showFeedback = useCallback(
     (fb: FeedbackType) => {
       if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
       setFeedback(fb);
-      feedbackSlide.setValue(-20);
-      feedbackOpacity.setValue(0);
-      Animated.parallel([
-        Animated.timing(feedbackSlide, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: true }),
-        Animated.timing(feedbackOpacity, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true }),
-      ]).start();
+      feedbackSlide.value = -20;
+      feedbackOpacity.value = 0;
+      feedbackSlide.value = withTiming(0, { duration: 300 });
+      feedbackOpacity.value = withTiming(1, { duration: 300 });
       feedbackTimeoutRef.current = setTimeout(() => {
         setFeedback(null);
         feedbackTimeoutRef.current = null;
@@ -692,7 +663,6 @@ function useSpeedCalculusScreenView() {
 
   // ── Toggle run history accordion ─────────────────────────────────
   const toggleRunHistory = useCallback((runNumber: number) => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setOpenRuns((prev) => ({ ...prev, [runNumber]: !prev[runNumber] }));
   }, []);
 

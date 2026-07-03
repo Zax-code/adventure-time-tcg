@@ -1,7 +1,15 @@
-import { useEffect, useRef } from "react";
-import { Animated } from "../../lib/native-animated";
-import type { AnimatedValue } from "../../lib/native-animated";
+import { useEffect } from "react";
+import Animated, {
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withSequence,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
+import { Text, View } from "react-native";
 
 import { useTranslation } from "../../i18n";
 import { useThemeStore } from "../../stores/theme-store";
@@ -17,64 +25,60 @@ export function TurnBanner({ isMyTurn, onDone }: TurnBannerProps) {
   const { t } = useTranslation();
   const themeName = useThemeStore((state) => state.themeName);
   const tc = THEME_COLORS[themeName];
-  const scaleRef = useRef<AnimatedValue | null>(null);
-  const opacityRef = useRef<AnimatedValue | null>(null);
-  const translateYRef = useRef<AnimatedValue | null>(null);
-
-  if (scaleRef.current === null) {
-    scaleRef.current = new Animated.Value(0.8);
-  }
-  if (opacityRef.current === null) {
-    opacityRef.current = new Animated.Value(0);
-  }
-  if (translateYRef.current === null) {
-    translateYRef.current = new Animated.Value(12);
-  }
-
-  const scale = scaleRef.current;
-  const opacity = opacityRef.current;
-  const translateY = translateYRef.current;
+  const scale = useSharedValue(0.8);
+  const opacity = useSharedValue(0);
+  const translateY = useSharedValue(12);
 
   useEffect(() => {
-    Animated.parallel([
-      Animated.sequence([
-        Animated.spring(scale, { toValue: 1, damping: 12, stiffness: 150, useNativeDriver: true }),
-        Animated.delay(920),
-        Animated.timing(scale, { toValue: 0.92, duration: 220, useNativeDriver: true }),
-      ]),
-      Animated.sequence([
-        Animated.timing(opacity, { toValue: 1, duration: 180, useNativeDriver: true }),
-        Animated.delay(980),
-        Animated.timing(opacity, { toValue: 0, duration: 220, useNativeDriver: true }),
-      ]),
-      Animated.sequence([
-        Animated.spring(translateY, { toValue: 0, damping: 13, stiffness: 160, useNativeDriver: true }),
-        Animated.delay(940),
-        Animated.timing(translateY, { toValue: -10, duration: 220, useNativeDriver: true }),
-      ]),
-    ]).start(({ finished }) => {
-      if (finished) onDone();
-    });
+    scale.value = 0.8;
+    opacity.value = 0;
+    translateY.value = 12;
+
+    scale.value = withSequence(
+      withSpring(1, { damping: 12, stiffness: 150 }),
+      withDelay(920, withTiming(0.92, { duration: 220 })),
+    );
+    opacity.value = withSequence(
+      withTiming(1, { duration: 180 }),
+      withDelay(
+        980,
+        withTiming(0, { duration: 220 }, (finished) => {
+          if (finished) {
+            runOnJS(onDone)();
+          }
+        }),
+      ),
+    );
+    translateY.value = withSequence(
+      withSpring(0, { damping: 13, stiffness: 160 }),
+      withDelay(940, withTiming(-10, { duration: 220 })),
+    );
   }, [onDone, opacity, scale, translateY]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ scale: scale.value }, { translateY: translateY.value }],
+  }));
 
   return (
     <Animated.View
       testID="pvp-turn-banner"
       pointerEvents="none"
-      style={asStyle({
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        zIndex: 200,
-        alignItems: "center",
-        justifyContent: "center",
-        transform: [{ scale }, { translateY }],
-        opacity,
-      })}
+      style={[
+        asStyle({
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 200,
+          alignItems: "center",
+          justifyContent: "center",
+        }),
+        animatedStyle,
+      ]}
     >
-      <Animated.View
+      <View
         style={{
           overflow: "hidden",
           borderRadius: 26,
@@ -98,21 +102,23 @@ export function TurnBanner({ isMyTurn, onDone }: TurnBannerProps) {
             paddingVertical: 18,
           }}
         >
-        <Animated.Text
-          style={{
-            color: "#fff",
-            fontSize: 26,
-            fontFamily: "Nunito_800ExtraBold",
-            textAlign: "center",
-            textShadowColor: "rgba(0,0,0,0.28)",
-            textShadowOffset: { width: 0, height: 2 },
-            textShadowRadius: 4,
-          }}
-        >
-          {isMyTurn ? t("pvp.turnBanner.yourTurn") : t("pvp.turnBanner.opponentTurn")}
-        </Animated.Text>
+          <Text
+            style={{
+              color: "#fff",
+              fontSize: 26,
+              fontFamily: "Nunito_800ExtraBold",
+              textAlign: "center",
+              textShadowColor: "rgba(0,0,0,0.28)",
+              textShadowOffset: { width: 0, height: 2 },
+              textShadowRadius: 4,
+            }}
+          >
+            {isMyTurn
+              ? t("pvp.turnBanner.yourTurn")
+              : t("pvp.turnBanner.opponentTurn")}
+          </Text>
         </LinearGradient>
-      </Animated.View>
+      </View>
     </Animated.View>
   );
 }

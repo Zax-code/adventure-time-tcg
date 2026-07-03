@@ -7,7 +7,14 @@ import {
   type ReactNode,
 } from "react";
 import { ScrollView, Text, View } from "react-native";
-import { Animated } from "../../src/lib/native-animated";
+import {
+  cancelAnimation,
+  runOnJS,
+  useSharedValue,
+  withDelay,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
@@ -51,7 +58,6 @@ import {
   useMinuteNow,
 } from "../../src/features/pvp/turn-timeout";
 import { getPvpMatchResultView } from "../../src/features/pvp/match-result";
-import { useAnimatedValue } from "../../src/hooks/use-animated-value";
 
 type ToastState = {
   message: string;
@@ -307,7 +313,7 @@ function usePvpScreenView() {
     Record<string, string>
   >({});
   const [toast, setToast] = useState<ToastState | null>(null);
-  const toastAnim = useAnimatedValue(-96);
+  const toastAnim = useSharedValue(-96);
 
   const { data: invitesQueryData } = useQuery({
     queryKey: ["pvp-invites"],
@@ -653,24 +659,19 @@ function usePvpScreenView() {
       return;
     }
 
-    toastAnim.setValue(-96);
-    Animated.sequence([
-      Animated.timing(toastAnim, {
-        toValue: 0,
-        duration: 180,
-        useNativeDriver: true,
-      }),
-      Animated.delay(3200),
-      Animated.timing(toastAnim, {
-        toValue: -96,
-        duration: 180,
-        useNativeDriver: true,
-      }),
-    ]).start(({ finished }) => {
-      if (finished) {
-        setToast(null);
-      }
-    });
+    toastAnim.value = -96;
+    toastAnim.value = withSequence(
+      withTiming(0, { duration: 180 }),
+      withDelay(
+        3200,
+        withTiming(-96, { duration: 180 }, (finished) => {
+          if (finished) {
+            runOnJS(setToast)(null);
+          }
+        }),
+      ),
+    );
+    return () => cancelAnimation(toastAnim);
   }, [toast, toastAnim]);
 
   const resetInviteSheetFilters = () => {

@@ -14,7 +14,7 @@ import {
   Pressable,
   View,
 } from "react-native";
-import { Animated } from "../../src/lib/native-animated";
+import { useSharedValue, withTiming } from "react-native-reanimated";
 import { captureRef } from "react-native-view-shot";
 
 import type {
@@ -80,7 +80,6 @@ import {
   useBottomTabBarContentPadding,
 } from "../../src/theme/layout";
 import { THEME_COLORS } from "../../src/theme/themes";
-import { useAnimatedValue } from "../../src/hooks/use-animated-value";
 import { asStyle } from "../../src/lib/style-object";
 
 type QuestStatus = "active" | "completed" | "claimed" | "failed";
@@ -732,19 +731,15 @@ function useQuestsScreenView() {
     useState<DailyNumbersGroupShareItem[] | null>(null);
   const wordleGroupShareRef = useRef<View>(null);
   const dailyNumbersGroupShareRef = useRef<View>(null);
-  const toastAnim = useAnimatedValue(-60);
+  const toastAnim = useSharedValue(-60);
 
   useEffect(() => {
     if (!toast) {
       return;
     }
 
-    toastAnim.setValue(-60);
-    Animated.timing(toastAnim, {
-      toValue: 0,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
+    toastAnim.value = -60;
+    toastAnim.value = withTiming(0, { duration: 300 });
     const timer = setTimeout(() => setToast(null), 4000);
     return () => clearTimeout(timer);
   }, [toast, toastAnim]);

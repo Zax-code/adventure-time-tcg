@@ -1,4 +1,8 @@
 import "react-native-reanimated";
+import {
+  configureReanimatedLogger,
+  ReanimatedLogLevel,
+} from "react-native-reanimated";
 import { useEffect } from "react";
 import { BottomSheetProvider } from "@swmansion/react-native-bottom-sheet";
 import { ActivityIndicator, View } from "react-native";
@@ -47,6 +51,11 @@ import { useStepSyncStore } from "../src/stores/step-sync-store";
 import { useLocaleStore } from "../src/stores/locale-store";
 import { useThemeStore } from "../src/stores/theme-store";
 import { THEME_COLORS, THEME_VARS } from "../src/theme/themes";
+
+configureReanimatedLogger({
+  level: ReanimatedLogLevel.warn,
+  strict: false,
+});
 
 SplashScreen.preventAutoHideAsync();
 

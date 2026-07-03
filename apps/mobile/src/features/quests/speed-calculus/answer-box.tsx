@@ -1,12 +1,14 @@
 import { Text, View } from "react-native";
-import { Animated } from "../../../lib/native-animated";
-import type { AnimatedValue } from "../../../lib/native-animated";
+import Animated, {
+  type SharedValue,
+  useAnimatedStyle,
+} from "react-native-reanimated";
 
 import { useTranslation } from "../../../i18n";
 
 type AnswerBoxProps = {
   answer: string;
-  shakeAnim: AnimatedValue;
+  shakeAnim: SharedValue<number>;
   answerBoxBg: string;
   answerBoxBorder: string;
   answerBoxText: string;
@@ -23,6 +25,9 @@ export function AnswerBox({
 }: AnswerBoxProps) {
   const { t } = useTranslation();
   const answerTestID = `speed-calculus-answer-value-${answer || "empty"}`;
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: shakeAnim.value }],
+  }));
 
   return (
     <Animated.View
@@ -30,12 +35,14 @@ export function AnswerBox({
       accessibilityLabel={answerTestID}
       accessible
       className="mx-4 rounded-2xl border-2 px-5 items-center h-20"
-      style={{
-        borderColor: answerBoxBorder,
-        backgroundColor: answerBoxBg,
-        transform: [{ translateX: shakeAnim }],
-        boxShadow: `0px 4px 12px ${answerBoxBorder}`,
-      }}
+      style={[
+        {
+          borderColor: answerBoxBorder,
+          backgroundColor: answerBoxBg,
+          boxShadow: `0px 4px 12px ${answerBoxBorder}`,
+        },
+        animatedStyle,
+      ]}
     >
       <View className="flex-1 items-center justify-center pt-2">
         <Text

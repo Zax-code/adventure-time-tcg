@@ -18,7 +18,7 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
-import { Animated } from "../../src/lib/native-animated";
+import { useSharedValue, withTiming } from "react-native-reanimated";
 
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -48,7 +48,6 @@ import {
   useBottomTabBarContentPadding,
 } from "../../src/theme/layout";
 import { THEME_COLORS } from "../../src/theme/themes";
-import { useAnimatedValue } from "../../src/hooks/use-animated-value";
 import { asStyle } from "../../src/lib/style-object";
 
 type CollectionEntry = CollectionResponse["cards"][number];
@@ -158,7 +157,7 @@ function useCollectionScreenView() {
     message: string;
     type: "success" | "error";
   } | null>(null);
-  const toastAnim = useAnimatedValue(-60);
+  const toastAnim = useSharedValue(-60);
 
   const openDustSheet = () => {
     setShowDustModal(true);
@@ -170,12 +169,8 @@ function useCollectionScreenView() {
       return;
     }
 
-    toastAnim.setValue(-60);
-    Animated.timing(toastAnim, {
-      toValue: 0,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
+    toastAnim.value = -60;
+    toastAnim.value = withTiming(0, { duration: 300 });
     const timer = setTimeout(() => setToast(null), 4000);
     return () => clearTimeout(timer);
   }, [toast, toastAnim]);
