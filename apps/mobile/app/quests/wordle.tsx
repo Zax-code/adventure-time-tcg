@@ -65,7 +65,6 @@ const KEY_HIT_SLOP = {
   left: KEY_TOUCH_PADDING_X,
   right: KEY_TOUCH_PADDING_X,
 } as const;
-const WORDLE_KEY_POP_MS = 100;
 const WORDLE_REMOVE_MS = 160;
 const WORDLE_REVEAL_HALF_MS = 260;
 const WORDLE_REVEAL_STAGGER_MS = 90;
@@ -238,7 +237,6 @@ function useWordleScreenView() {
   const lastHandledResetAtRef = useRef(0);
   const appliedLanguageParamRef = useRef<string | null>(null);
 
-  const popAnims = useWordleColumnValues(1);
   const shakeAnim = useSharedValue(0);
   const rowFlipAnims = useWordleBoardValues(1);
   const revealTimersRef = useRef<
@@ -614,15 +612,9 @@ function useWordleScreenView() {
       next[firstNull] = letter;
       currentGuessRef.current = next;
 
-      cancelAnimation(popAnims[firstNull]);
-      popAnims[firstNull].value = 0.92;
-      popAnims[firstNull].value = withTiming(1, {
-        duration: WORDLE_KEY_POP_MS,
-      });
-
       replaceCurrentGuess(next);
     },
-    [inputLocked, popAnims, replaceCurrentGuess],
+    [inputLocked, replaceCurrentGuess],
   );
 
   const handleRemoveAnimationEnd = useCallback((colIndex: number) => {
@@ -661,8 +653,6 @@ function useWordleScreenView() {
       if (!removedLetter) return;
 
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      cancelAnimation(popAnims[targetIndex]);
-      popAnims[targetIndex].value = 1;
       if (removeAnimationTimersRef.current[targetIndex]) {
         clearTimeout(removeAnimationTimersRef.current[targetIndex]);
       }
@@ -680,7 +670,7 @@ function useWordleScreenView() {
         WORDLE_REMOVE_MS,
       );
     },
-    [inputLocked, popAnims, handleRemoveAnimationEnd, replaceCurrentGuess],
+    [inputLocked, handleRemoveAnimationEnd, replaceCurrentGuess],
   );
 
   const clearRow = useCallback(() => {
@@ -1225,7 +1215,6 @@ function useWordleScreenView() {
                         isRemovingCell={isRemovingCell}
                         letter={displayLetter}
                         letterCls={letterCls}
-                        popAnim={popAnims[colIndex]}
                         rowFlipAnim={rowFlipAnims[rowIndex][colIndex]}
                       />
                     </Pressable>

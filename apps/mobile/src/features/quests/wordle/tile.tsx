@@ -20,7 +20,6 @@ export function WordleTile({
   isRemovingCell,
   letter,
   letterCls,
-  popAnim,
   rowFlipAnim,
 }: {
   bgBorderCls: string;
@@ -29,11 +28,28 @@ export function WordleTile({
   isRemovingCell: boolean;
   letter: string;
   letterCls: string;
-  popAnim: SharedValue<number>;
   rowFlipAnim: SharedValue<number>;
 }) {
+  const entryScale = useSharedValue(1);
+  const entryOpacity = useSharedValue(1);
   const removeShake = useSharedValue(0);
   const removeLetterOpacity = useSharedValue(1);
+
+  reactEffect(() => {
+    cancelAnimation(entryScale);
+    cancelAnimation(entryOpacity);
+
+    if (!letter || isRemovingCell) {
+      entryScale.value = 1;
+      entryOpacity.value = 1;
+      return;
+    }
+
+    entryScale.value = 0.88;
+    entryOpacity.value = 0.4;
+    entryScale.value = withTiming(1, { duration: 110 });
+    entryOpacity.value = withTiming(1, { duration: 110 });
+  }, [entryOpacity, entryScale, isRemovingCell, letter]);
 
   reactEffect(() => {
     cancelAnimation(removeShake);
@@ -65,7 +81,7 @@ export function WordleTile({
     }
 
     if (!isRemovingCell && isActiveLetter) {
-      transform.push({ scale: popAnim.value });
+      transform.push({ scale: entryScale.value });
     }
 
     if (isAnimatingRow) {
@@ -77,7 +93,7 @@ export function WordleTile({
     };
   });
   const letterAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: isRemovingCell ? removeLetterOpacity.value : 1,
+    opacity: isRemovingCell ? removeLetterOpacity.value : entryOpacity.value,
   }));
 
   return (
