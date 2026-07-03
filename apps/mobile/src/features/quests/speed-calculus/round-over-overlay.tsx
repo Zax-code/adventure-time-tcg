@@ -39,7 +39,7 @@ export function RoundOverOverlay({
     if (showRoundOver) {
       roundOverAnim.value = 0;
       roundOverAnim.value = withTiming(1, {
-        duration: 120,
+        duration: 220,
         easing: Easing.out(Easing.cubic),
       });
     }
@@ -49,7 +49,7 @@ export function RoundOverOverlay({
     opacity: roundOverAnim.value,
     transform: [
       {
-        scale: interpolate(roundOverAnim.value, [0, 1], [0.9, 1]),
+        scale: interpolate(roundOverAnim.value, [0, 1], [0.82, 1]),
       },
     ],
   }));

@@ -65,10 +65,10 @@ const KEY_HIT_SLOP = {
   left: KEY_TOUCH_PADDING_X,
   right: KEY_TOUCH_PADDING_X,
 } as const;
-const WORDLE_KEY_POP_MS = 70;
-const WORDLE_REMOVE_MS = 70;
-const WORDLE_REVEAL_HALF_MS = 95;
-const WORDLE_REVEAL_STAGGER_MS = 45;
+const WORDLE_KEY_POP_MS = 100;
+const WORDLE_REMOVE_MS = 160;
+const WORDLE_REVEAL_HALF_MS = 260;
+const WORDLE_REVEAL_STAGGER_MS = 90;
 const LETTER_PRIORITY: Record<string, number> = {
   absent: 0,
   present: 1,
@@ -201,8 +201,8 @@ function useWordleScreenView() {
   const [expandedDefinitionWord, setExpandedDefinitionWord] = useState<
     string | null
   >(null);
-  const [removingCellIndex, setRemovingCellIndex] = useState<number | null>(
-    null,
+  const [removingCells, setRemovingCells] = useState<Record<number, string>>(
+    {},
   );
   const [animatingRows, setAnimatingRows] = useState<Set<number>>(new Set());
   const [tileFaceUp, setTileFaceUp] = useState<Set<string>>(new Set());
@@ -244,12 +244,11 @@ function useWordleScreenView() {
   const revealTimersRef = useRef<
     Record<number, ReturnType<typeof setTimeout>[]>
   >({});
-  const removeAnimationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  );
-  const pendingRemoveIndexRef = useRef<number | null>(null);
-  const removeScale = useSharedValue(1);
-  const removeOpacity = useSharedValue(1);
+  const removeAnimationTimersRef = useRef<
+    Record<number, ReturnType<typeof setTimeout>>
+  >({});
+  const removeScaleAnims = useWordleColumnValues(1);
+  const removeOpacityAnims = useWordleColumnValues(1);
 
   const replaceCurrentGuess = useCallback((next: (string | null)[]) => {
     currentGuessRef.current = next;
@@ -257,8 +256,21 @@ function useWordleScreenView() {
   }, []);
 
   const clearCurrentGuess = useCallback(() => {
+    Object.values(removeAnimationTimersRef.current).forEach((timer) =>
+      clearTimeout(timer),
+    );
+    removeAnimationTimersRef.current = {};
+    removeScaleAnims.forEach((anim) => {
+      cancelAnimation(anim);
+      anim.value = 1;
+    });
+    removeOpacityAnims.forEach((anim) => {
+      cancelAnimation(anim);
+      anim.value = 1;
+    });
+    setRemovingCells({});
     replaceCurrentGuess(Array(WORD_LENGTH).fill(null));
-  }, [replaceCurrentGuess]);
+  }, [removeOpacityAnims, removeScaleAnims, replaceCurrentGuess]);
 
   const clearRevealAnimations = useCallback(() => {
     Object.values(revealTimersRef.current).forEach((timers) => {
@@ -582,10 +594,10 @@ function useWordleScreenView() {
       Object.values(revealTimersSnapshot).forEach((timers) => {
         timers.forEach((timer) => clearTimeout(timer));
       });
-      if (removeAnimationTimerRef.current) {
-        clearTimeout(removeAnimationTimerRef.current);
-        removeAnimationTimerRef.current = null;
-      }
+      Object.values(removeAnimationTimersRef.current).forEach((timer) =>
+        clearTimeout(timer),
+      );
+      removeAnimationTimersRef.current = {};
     };
   }, []);
 
@@ -625,30 +637,29 @@ function useWordleScreenView() {
 
   const handleRemoveAnimationEnd = useCallback(
     (colIndex: number) => {
-      const next = [...currentGuessRef.current];
-      next[colIndex] = null;
-      replaceCurrentGuess(next);
-      setRemovingCellIndex(null);
-      pendingRemoveIndexRef.current = null;
-      if (removeAnimationTimerRef.current) {
-        clearTimeout(removeAnimationTimerRef.current);
-        removeAnimationTimerRef.current = null;
+      if (removeAnimationTimersRef.current[colIndex]) {
+        clearTimeout(removeAnimationTimersRef.current[colIndex]);
+        delete removeAnimationTimersRef.current[colIndex];
       }
-      cancelAnimation(removeScale);
-      cancelAnimation(removeOpacity);
-      removeScale.value = 1;
-      removeOpacity.value = 1;
+      setRemovingCells((previous) => {
+        if (!(colIndex in previous)) {
+          return previous;
+        }
+        const next = { ...previous };
+        delete next[colIndex];
+        return next;
+      });
+      cancelAnimation(removeScaleAnims[colIndex]);
+      cancelAnimation(removeOpacityAnims[colIndex]);
+      removeScaleAnims[colIndex].value = 1;
+      removeOpacityAnims[colIndex].value = 1;
     },
-    [removeOpacity, removeScale, replaceCurrentGuess],
+    [removeOpacityAnims, removeScaleAnims],
   );
 
   const removeLetter = useCallback(
     (index?: number) => {
       if (inputLocked) return;
-
-      if (pendingRemoveIndexRef.current !== null) {
-        handleRemoveAnimationEnd(pendingRemoveIndexRef.current);
-      }
 
       let targetIndex: number;
       const guessSnapshot = currentGuessRef.current;
@@ -663,18 +674,35 @@ function useWordleScreenView() {
         targetIndex = guessSnapshot.length - 1 - lastFilled;
       }
 
+      const removedLetter = guessSnapshot[targetIndex];
+      if (!removedLetter) return;
+
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       cancelAnimation(popAnims[targetIndex]);
       popAnims[targetIndex].value = 1;
-      cancelAnimation(removeScale);
-      cancelAnimation(removeOpacity);
-      setRemovingCellIndex(targetIndex);
-      pendingRemoveIndexRef.current = targetIndex;
-      removeScale.value = 1;
-      removeOpacity.value = 1;
-      removeScale.value = withTiming(0, { duration: WORDLE_REMOVE_MS });
-      removeOpacity.value = withTiming(0, { duration: WORDLE_REMOVE_MS });
-      removeAnimationTimerRef.current = setTimeout(
+      if (removeAnimationTimersRef.current[targetIndex]) {
+        clearTimeout(removeAnimationTimersRef.current[targetIndex]);
+      }
+
+      const next = [...guessSnapshot];
+      next[targetIndex] = null;
+      replaceCurrentGuess(next);
+      setRemovingCells((previous) => ({
+        ...previous,
+        [targetIndex]: removedLetter.toUpperCase(),
+      }));
+
+      cancelAnimation(removeScaleAnims[targetIndex]);
+      cancelAnimation(removeOpacityAnims[targetIndex]);
+      removeScaleAnims[targetIndex].value = 1;
+      removeOpacityAnims[targetIndex].value = 1;
+      removeScaleAnims[targetIndex].value = withTiming(0, {
+        duration: WORDLE_REMOVE_MS,
+      });
+      removeOpacityAnims[targetIndex].value = withTiming(0, {
+        duration: WORDLE_REMOVE_MS,
+      });
+      removeAnimationTimersRef.current[targetIndex] = setTimeout(
         () => handleRemoveAnimationEnd(targetIndex),
         WORDLE_REMOVE_MS,
       );
@@ -682,9 +710,10 @@ function useWordleScreenView() {
     [
       inputLocked,
       popAnims,
-      removeOpacity,
-      removeScale,
+      removeOpacityAnims,
+      removeScaleAnims,
       handleRemoveAnimationEnd,
+      replaceCurrentGuess,
     ],
   );
 
@@ -1202,14 +1231,18 @@ function useWordleScreenView() {
             const rowTiles = (
               <View className="flex-row gap-2">
                 {letters.map((letter, colIndex) => {
+                  const removingLetter = isActiveRow
+                    ? removingCells[colIndex]
+                    : undefined;
+                  const displayLetter = removingLetter ?? letter;
                   const evalState = getTileState(rowIndex, colIndex);
                   const bgBorderCls = tileBgBorderClass(evalState);
                   const letterCls = tileLetterClass(evalState);
                   const isAnimatingRow = animatingRows.has(rowIndex);
-                  const isRemovingCell =
-                    isActiveRow && colIndex === removingCellIndex;
+                  const isRemovingCell = removingLetter != null;
 
-                  const isTappable = isActiveRow && !!letter && !inputLocked;
+                  const isTappable =
+                    isActiveRow && !!letter && !isRemovingCell && !inputLocked;
                   return (
                     <Pressable
                       key={`${rowIndex}-${colIndex}`}
@@ -1224,11 +1257,11 @@ function useWordleScreenView() {
                         isActiveLetter={isActiveRow && !!letter}
                         isAnimatingRow={isAnimatingRow}
                         isRemovingCell={isRemovingCell}
-                        letter={letter}
+                        letter={displayLetter}
                         letterCls={letterCls}
                         popAnim={popAnims[colIndex]}
-                        removeOpacity={removeOpacity}
-                        removeScale={removeScale}
+                        removeOpacity={removeOpacityAnims[colIndex]}
+                        removeScale={removeScaleAnims[colIndex]}
                         rowFlipAnim={rowFlipAnims[rowIndex][colIndex]}
                       />
                     </Pressable>
