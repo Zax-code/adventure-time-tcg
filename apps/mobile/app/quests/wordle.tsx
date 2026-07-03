@@ -8,10 +8,10 @@ import {
   View,
 } from "react-native";
 import {
+  cancelAnimation,
   type SharedValue,
   useSharedValue,
   withSequence,
-  withSpring,
   withTiming,
   withDelay,
 } from "react-native-reanimated";
@@ -65,6 +65,10 @@ const KEY_HIT_SLOP = {
   left: KEY_TOUCH_PADDING_X,
   right: KEY_TOUCH_PADDING_X,
 } as const;
+const WORDLE_KEY_POP_MS = 70;
+const WORDLE_REMOVE_MS = 70;
+const WORDLE_REVEAL_HALF_MS = 95;
+const WORDLE_REVEAL_STAGGER_MS = 45;
 const LETTER_PRIORITY: Record<string, number> = {
   absent: 0,
   present: 1,
@@ -240,6 +244,10 @@ function useWordleScreenView() {
   const revealTimersRef = useRef<
     Record<number, ReturnType<typeof setTimeout>[]>
   >({});
+  const removeAnimationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const pendingRemoveIndexRef = useRef<number | null>(null);
   const removeScale = useSharedValue(1);
   const removeOpacity = useSharedValue(1);
 
@@ -574,10 +582,15 @@ function useWordleScreenView() {
       Object.values(revealTimersSnapshot).forEach((timers) => {
         timers.forEach((timer) => clearTimeout(timer));
       });
+      if (removeAnimationTimerRef.current) {
+        clearTimeout(removeAnimationTimerRef.current);
+        removeAnimationTimerRef.current = null;
+      }
     };
   }, []);
 
   const triggerShake = useCallback(() => {
+    cancelAnimation(shakeAnim);
     shakeAnim.value = 0;
     shakeAnim.value = withSequence(
       withTiming(-5, { duration: 68 }),
@@ -599,10 +612,10 @@ function useWordleScreenView() {
       next[firstNull] = letter;
       currentGuessRef.current = next;
 
-      popAnims[firstNull].value = 0.82;
-      popAnims[firstNull].value = withSpring(1, {
-        damping: 10,
-        stiffness: 220,
+      cancelAnimation(popAnims[firstNull]);
+      popAnims[firstNull].value = 0.92;
+      popAnims[firstNull].value = withTiming(1, {
+        duration: WORDLE_KEY_POP_MS,
       });
 
       replaceCurrentGuess(next);
@@ -616,6 +629,13 @@ function useWordleScreenView() {
       next[colIndex] = null;
       replaceCurrentGuess(next);
       setRemovingCellIndex(null);
+      pendingRemoveIndexRef.current = null;
+      if (removeAnimationTimerRef.current) {
+        clearTimeout(removeAnimationTimerRef.current);
+        removeAnimationTimerRef.current = null;
+      }
+      cancelAnimation(removeScale);
+      cancelAnimation(removeOpacity);
       removeScale.value = 1;
       removeOpacity.value = 1;
     },
@@ -624,32 +644,44 @@ function useWordleScreenView() {
 
   const removeLetter = useCallback(
     (index?: number) => {
-      if (inputLocked || removingCellIndex !== null) return;
+      if (inputLocked) return;
+
+      if (pendingRemoveIndexRef.current !== null) {
+        handleRemoveAnimationEnd(pendingRemoveIndexRef.current);
+      }
 
       let targetIndex: number;
+      const guessSnapshot = currentGuessRef.current;
       if (index !== undefined) {
-        if (currentGuess[index] === null) return;
+        if (guessSnapshot[index] === null) return;
         targetIndex = index;
       } else {
-        const lastFilled = [...currentGuess]
+        const lastFilled = [...guessSnapshot]
           .reverse()
           .findIndex((l) => l !== null);
         if (lastFilled === -1) return;
-        targetIndex = currentGuess.length - 1 - lastFilled;
+        targetIndex = guessSnapshot.length - 1 - lastFilled;
       }
 
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      cancelAnimation(popAnims[targetIndex]);
+      popAnims[targetIndex].value = 1;
+      cancelAnimation(removeScale);
+      cancelAnimation(removeOpacity);
       setRemovingCellIndex(targetIndex);
+      pendingRemoveIndexRef.current = targetIndex;
       removeScale.value = 1;
       removeOpacity.value = 1;
-      removeScale.value = withTiming(0, { duration: 160 });
-      removeOpacity.value = withTiming(0, { duration: 160 });
-      setTimeout(() => handleRemoveAnimationEnd(targetIndex), 160);
+      removeScale.value = withTiming(0, { duration: WORDLE_REMOVE_MS });
+      removeOpacity.value = withTiming(0, { duration: WORDLE_REMOVE_MS });
+      removeAnimationTimerRef.current = setTimeout(
+        () => handleRemoveAnimationEnd(targetIndex),
+        WORDLE_REMOVE_MS,
+      );
     },
     [
       inputLocked,
-      removingCellIndex,
-      currentGuess,
+      popAnims,
       removeOpacity,
       removeScale,
       handleRemoveAnimationEnd,
@@ -754,7 +786,7 @@ function useWordleScreenView() {
   const submitGuess = useCallback(async () => {
     if (submitLocked) return;
 
-    const normalizedGuess = currentGuess
+    const normalizedGuess = currentGuessRef.current
       .filter((l) => l !== null)
       .join("")
       .toUpperCase();
@@ -791,21 +823,22 @@ function useWordleScreenView() {
       const rowFlipAnimValues = rowFlipAnims[rowIndex];
       const revealTimers: ReturnType<typeof setTimeout>[] = [];
 
-      // Flip reveal: each tile flips in sequence, 90ms stagger
+      // Flip reveal: each tile flips in a short sequence so validation feels immediate.
       for (let col = 0; col < WORD_LENGTH; col++) {
+        cancelAnimation(rowFlipAnimValues[col]);
         rowFlipAnimValues[col].value = 1;
-        const delay = col * 90;
+        const delay = col * WORDLE_REVEAL_STAGGER_MS;
         rowFlipAnimValues[col].value = withDelay(
           delay,
           withSequence(
-            withTiming(0, { duration: 260 }),
-            withTiming(1, { duration: 260 }),
+            withTiming(0, { duration: WORDLE_REVEAL_HALF_MS }),
+            withTiming(1, { duration: WORDLE_REVEAL_HALF_MS }),
           ),
         );
         // Flip color at the midpoint (tile is edge-on)
         const timer = setTimeout(() => {
           setTileFaceUp((prev) => new Set([...prev, `${rowIndex}-${col}`]));
-        }, delay + 260);
+        }, delay + WORDLE_REVEAL_HALF_MS);
         revealTimers.push(timer);
       }
       const revealDoneTimer = setTimeout(
@@ -828,7 +861,8 @@ function useWordleScreenView() {
             setTargetWord(result.targetWord ?? null);
           }
         },
-        (WORD_LENGTH - 1) * 90 + 520,
+        (WORD_LENGTH - 1) * WORDLE_REVEAL_STAGGER_MS +
+          WORDLE_REVEAL_HALF_MS * 2,
       );
       revealTimers.push(revealDoneTimer);
       revealTimersRef.current[rowIndex] = revealTimers;
@@ -857,7 +891,6 @@ function useWordleScreenView() {
   }, [
     activeDateKey,
     clearCurrentGuess,
-    currentGuess,
     guesses,
     rowFlipAnims,
     wordleLanguage,

@@ -1777,6 +1777,7 @@ function usePackSummaryCardSheetView({
   const [index, setIndex] = useState(1);
   const topGap = Math.max(insets.top + 16, 56);
   const maxSheetHeight = Math.max(0, height - topGap);
+  const bottomContentPadding = Math.max(insets.bottom + 36, 64);
   const cardWidth = Math.min(width - 48, 340);
   const rarityName = card.rarity?.name ?? "Common";
   const rarityColor = RARITY_COLORS[rarityName] ?? RARITY_COLORS.Common;
@@ -1879,13 +1880,13 @@ function usePackSummaryCardSheetView({
 
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
-          contentInset={{ bottom: Math.max(insets.bottom, 12) }}
+          contentInset={{ bottom: bottomContentPadding }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{
             paddingHorizontal: 16,
             paddingTop: 18,
-            paddingBottom: 20,
+            paddingBottom: 96,
             gap: 16,
           }}
         >

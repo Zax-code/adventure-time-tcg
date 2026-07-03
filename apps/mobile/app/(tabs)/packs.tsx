@@ -1049,7 +1049,7 @@ function usePacksScreenView() {
           contentInsetAdjustmentBehavior="never"
           contentContainerStyle={{
             paddingHorizontal: 20,
-            paddingBottom: 24,
+            paddingBottom: 128,
             gap: 18,
           }}
           contentInset={{ bottom: bottomTabPadding }}

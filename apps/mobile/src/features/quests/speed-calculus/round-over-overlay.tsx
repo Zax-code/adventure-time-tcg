@@ -1,9 +1,10 @@
 import { Pressable, Text, View } from "react-native";
 import Animated, {
+  Easing,
   interpolate,
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
+  withTiming,
 } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -27,7 +28,8 @@ export function RoundOverOverlay({
   roundOverScore,
   sessionLabel,
   backLabel,
-  onDismiss }: RoundOverOverlayProps) {
+  onDismiss,
+}: RoundOverOverlayProps) {
   const { t } = useTranslation();
   const tc = THEME_COLORS[useThemeStore((s) => s.themeName)];
 
@@ -36,9 +38,9 @@ export function RoundOverOverlay({
   reactEffect(() => {
     if (showRoundOver) {
       roundOverAnim.value = 0;
-      roundOverAnim.value = withSpring(1, {
-        damping: 8,
-        stiffness: 120,
+      roundOverAnim.value = withTiming(1, {
+        duration: 120,
+        easing: Easing.out(Easing.cubic),
       });
     }
   }, [showRoundOver, roundOverAnim]);
@@ -47,7 +49,7 @@ export function RoundOverOverlay({
     opacity: roundOverAnim.value,
     transform: [
       {
-        scale: interpolate(roundOverAnim.value, [0, 1], [0.72, 1]),
+        scale: interpolate(roundOverAnim.value, [0, 1], [0.9, 1]),
       },
     ],
   }));
@@ -80,7 +82,8 @@ export function RoundOverOverlay({
               left: 0,
               right: 0,
               bottom: 0,
-              overflow: "hidden" }}
+              overflow: "hidden",
+            }}
             pointerEvents="none"
           >
             <View style={{ flexDirection: "row", flexWrap: "wrap", flex: 1 }}>
@@ -92,7 +95,8 @@ export function RoundOverOverlay({
                     height: 3,
                     borderRadius: 2,
                     margin: 5.5,
-                    backgroundColor: withAlpha(tc.primaryBg, "14") }}
+                    backgroundColor: withAlpha(tc.primaryBg, "14"),
+                  }}
                 />
               ))}
             </View>
@@ -109,7 +113,8 @@ export function RoundOverOverlay({
                 top: -60,
                 left: -60,
                 right: -60,
-                bottom: -60 }}
+                bottom: -60,
+              }}
             />
             <View
               style={{
@@ -118,7 +123,8 @@ export function RoundOverOverlay({
                 left: 0,
                 right: 0,
                 height: 1,
-                backgroundColor: withAlpha(tc.primaryBg, "47") }}
+                backgroundColor: withAlpha(tc.primaryBg, "47"),
+              }}
             />
           </View>
 
@@ -133,7 +139,8 @@ export function RoundOverOverlay({
               borderRadius: 6,
               backgroundColor: tc.secondary,
               opacity: 0.22,
-              transform: [{ rotate: "45deg" }] })}
+              transform: [{ rotate: "45deg" }],
+            })}
             pointerEvents="none"
           />
           <View
@@ -145,7 +152,8 @@ export function RoundOverOverlay({
               height: 100,
               borderRadius: 50,
               backgroundColor: tc.accent,
-              opacity: 0.14 })}
+              opacity: 0.14,
+            })}
             pointerEvents="none"
           />
 
@@ -197,7 +205,8 @@ export function RoundOverOverlay({
                 style={{
                   paddingVertical: 16,
                   alignItems: "center",
-                  borderRadius: 999 }}
+                  borderRadius: 999,
+                }}
               >
                 <Text
                   className="font-nunito-extrabold text-center text-[13px] uppercase tracking-[2.5px]"
