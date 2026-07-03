@@ -1537,11 +1537,19 @@ function RevealPullProgressSegment({
 }) {
   const isPast = index < revealedIndex;
   const isCurrent = index === revealedIndex;
-  const fillStyle = useAnimatedStyle(() => ({
-    opacity: isPast
-      ? 1
-      : interpolate(revealProgress.value, [0, 0.42, 1], [0, 0.35, 1]),
-  }));
+  const fillStyle = useAnimatedStyle(() => {
+    const currentFill = interpolate(revealProgress.value, [0, 1], [0, 100]);
+    const currentOpacity = interpolate(
+      revealProgress.value,
+      [0, 0.42, 1],
+      [0, 0.35, 1],
+    );
+
+    return {
+      opacity: isPast ? 1 : currentOpacity,
+      width: `${isPast ? 100 : currentFill}%`,
+    };
+  });
 
   return (
     <View
@@ -1549,7 +1557,17 @@ function RevealPullProgressSegment({
       style={{ backgroundColor: trackColor }}
     >
       {isPast || isCurrent ? (
-        <Animated.View style={[StyleSheet.absoluteFill, fillStyle]}>
+        <Animated.View
+          style={[
+            {
+              position: "absolute",
+              top: 0,
+              bottom: 0,
+              left: 0,
+            },
+            fillStyle,
+          ]}
+        >
           <LinearGradient
             colors={[colorFrom, colorTo]}
             start={{ x: 0, y: 0.5 }}
