@@ -49,7 +49,10 @@
     "plugins": [
       "expo-apple-authentication",
       "expo-sharing",
-      "./plugins/with-ios-modular-headers"
+      "./plugins/with-ios-modular-headers",
+      "expo-build-properties",
+      "expo-router",
+      "expo-splash-screen"
     ]
   }
 }
