@@ -1,7 +1,9 @@
 import {
   getEventActiveOutId,
   getEventAmount,
+  getEventActorId,
   getEventBenchInId,
+  getEventSourceId,
   getEventStatusName,
   getEventTargetInstanceId,
   isCritEvent,
@@ -47,6 +49,11 @@ export interface PvpVisualEvents {
   unitAnimationEvents: UnitAnimationEvent[];
 }
 
+type IndexedCombatEvent = {
+  event: CombatEvent;
+  sourceIndex: number;
+};
+
 function pushUnitAnimation(
   unitAnimationEvents: UnitAnimationEvent[],
   event: CombatEvent,
@@ -64,6 +71,68 @@ function pushUnitAnimation(
     seq: event.seq,
     targetInstanceId,
     type,
+    delayMs,
+  });
+
+  return true;
+}
+
+function pushFloatingDamageEvent(
+  floatingEvents: FloatingEvent[],
+  event: CombatEvent,
+  sourceIndex: number,
+  delayMs: number,
+) {
+  const targetInstanceId = getEventTargetInstanceId(event);
+  const amount = getEventAmount(event) ?? 0;
+
+  if (!targetInstanceId) {
+    return false;
+  }
+
+  const type = isMissEvent(event)
+    ? "miss"
+    : isCritEvent(event)
+      ? "crit"
+      : "damage";
+
+  floatingEvents.push({
+    key: getVisualEventKey(event, sourceIndex, "float", type, targetInstanceId),
+    seq: event.seq,
+    targetInstanceId,
+    type,
+    amount,
+    delayMs,
+  });
+
+  return true;
+}
+
+function pushFloatingHealEvent(
+  floatingEvents: FloatingEvent[],
+  event: CombatEvent,
+  sourceIndex: number,
+  delayMs: number,
+) {
+  const targetInstanceId = getEventTargetInstanceId(event);
+  const amount = getEventAmount(event) ?? 0;
+
+  if (!targetInstanceId || amount <= 0) {
+    return false;
+  }
+
+  floatingEvents.push({
+    key: getVisualEventKey(
+      event,
+      sourceIndex,
+      "float",
+      "heal",
+      targetInstanceId,
+    ),
+    seq: event.seq,
+    targetInstanceId,
+    type: "heal",
+    amount,
     delayMs,
   });
 
@@ -94,150 +163,323 @@ function getVisualEventKey(
   ].join(":");
 }
 
-export function buildPvpVisualEvents(events: CombatEvent[]): PvpVisualEvents {
-  const floatingEvents: FloatingEvent[] = [];
-  const unitAnimationEvents: UnitAnimationEvent[] = [];
-  let visualStep = 0;
+function pushOrderedTarget(targets: string[], targetInstanceId: string | null) {
+  if (!targetInstanceId || targets.includes(targetInstanceId)) {
+    return;
+  }
 
-  for (const [sourceIndex, event] of events.entries()) {
-    const delayMs = visualStep * VISUAL_EVENT_STAGGER_MS;
-    let emittedVisual = false;
+  targets.push(targetInstanceId);
+}
 
-    if (event.type === "damage") {
-      const targetInstanceId = getEventTargetInstanceId(event);
-      const amount = getEventAmount(event) ?? 0;
+function getEventActorOrSourceId(event: CombatEvent) {
+  return getEventActorId(event) ?? getEventSourceId(event);
+}
 
-      if (targetInstanceId) {
-        const type = isMissEvent(event)
-          ? "miss"
-          : isCritEvent(event)
-            ? "crit"
-            : "damage";
-        floatingEvents.push({
-          key: getVisualEventKey(
-            event,
-            sourceIndex,
-            "float",
-            type,
-            targetInstanceId,
-          ),
-          seq: event.seq,
-          targetInstanceId,
-          type,
-          amount,
+function emitStandaloneVisualEvent(
+  visualEvents: PvpVisualEvents,
+  event: CombatEvent,
+  sourceIndex: number,
+  delayMs: number,
+) {
+  let emittedVisual = false;
+
+  if (event.type === "damage") {
+    const actorInstanceId = getEventActorOrSourceId(event);
+    const targetInstanceId = getEventTargetInstanceId(event);
+
+    emittedVisual =
+      pushFloatingDamageEvent(
+        visualEvents.floatingEvents,
+        event,
+        sourceIndex,
+        delayMs,
+      ) || emittedVisual;
+
+    if (!isMissEvent(event)) {
+      emittedVisual =
+        pushUnitAnimation(
+          visualEvents.unitAnimationEvents,
+          event,
+          sourceIndex,
+          actorInstanceId !== targetInstanceId ? actorInstanceId : null,
+          "attack",
           delayMs,
-        });
-        emittedVisual = true;
-      }
-
-      if (!isMissEvent(event)) {
-        emittedVisual =
-          pushUnitAnimation(
-            unitAnimationEvents,
-            event,
-            sourceIndex,
-            targetInstanceId,
-            "damage",
-            delayMs,
-          ) || emittedVisual;
-      }
-    } else if (event.type === "shieldAbsorb") {
-      emittedVisual = pushUnitAnimation(
-        unitAnimationEvents,
+        ) || emittedVisual;
+      emittedVisual =
+        pushUnitAnimation(
+          visualEvents.unitAnimationEvents,
+          event,
+          sourceIndex,
+          targetInstanceId,
+          "damage",
+          delayMs,
+        ) || emittedVisual;
+    }
+  } else if (event.type === "shieldAbsorb") {
+    emittedVisual = pushUnitAnimation(
+      visualEvents.unitAnimationEvents,
+      event,
+      sourceIndex,
+      getEventTargetInstanceId(event),
+      "damage",
+      delayMs,
+    );
+  } else if (event.type === "heal") {
+    emittedVisual =
+      pushFloatingHealEvent(
+        visualEvents.floatingEvents,
+        event,
+        sourceIndex,
+        delayMs,
+      ) || emittedVisual;
+    emittedVisual =
+      pushUnitAnimation(
+        visualEvents.unitAnimationEvents,
         event,
         sourceIndex,
         getEventTargetInstanceId(event),
-        "damage",
+        "heal",
         delayMs,
-      );
-    } else if (event.type === "heal") {
-      const targetInstanceId = getEventTargetInstanceId(event);
-      const amount = getEventAmount(event) ?? 0;
+      ) || emittedVisual;
+  } else if (event.type === "ko") {
+    emittedVisual = pushUnitAnimation(
+      visualEvents.unitAnimationEvents,
+      event,
+      sourceIndex,
+      getEventTargetInstanceId(event),
+      "death",
+      delayMs,
+    );
+  } else if (event.type === "statusApply") {
+    const statusName = getEventStatusName(event);
+    const targetInstanceId = getEventTargetInstanceId(event);
+    const actorInstanceId = getEventActorOrSourceId(event);
 
-      if (targetInstanceId && amount > 0) {
-        floatingEvents.push({
-          key: getVisualEventKey(
-            event,
-            sourceIndex,
-            "float",
-            "heal",
-            targetInstanceId,
-          ),
-          seq: event.seq,
-          targetInstanceId,
-          type: "heal",
-          amount,
-          delayMs,
-        });
-        emittedVisual = true;
-        emittedVisual =
-          pushUnitAnimation(
-            unitAnimationEvents,
-            event,
-            sourceIndex,
-            targetInstanceId,
-            "heal",
-            delayMs,
-          ) || emittedVisual;
-      }
-    } else if (event.type === "ko") {
+    if (statusName && BUFF_STATUS_NAMES.has(statusName)) {
       emittedVisual = pushUnitAnimation(
-        unitAnimationEvents,
+        visualEvents.unitAnimationEvents,
         event,
         sourceIndex,
-        getEventTargetInstanceId(event),
-        "death",
+        actorInstanceId !== targetInstanceId ? actorInstanceId : null,
+        "buff-cast",
         delayMs,
       );
-    } else if (event.type === "statusApply") {
-      const statusName = getEventStatusName(event);
-      const targetInstanceId = getEventTargetInstanceId(event);
-
-      if (statusName && BUFF_STATUS_NAMES.has(statusName)) {
-        emittedVisual = pushUnitAnimation(
-          unitAnimationEvents,
+      emittedVisual =
+        pushUnitAnimation(
+          visualEvents.unitAnimationEvents,
           event,
           sourceIndex,
           targetInstanceId,
           "buff",
           delayMs,
-        );
-      } else if (statusName && DEBUFF_STATUS_NAMES.has(statusName)) {
-        emittedVisual = pushUnitAnimation(
-          unitAnimationEvents,
-          event,
-          sourceIndex,
-          targetInstanceId,
-          "debuff",
-          delayMs,
-        );
-      }
-    } else if (event.type === "swap") {
+        ) || emittedVisual;
+    } else if (statusName && DEBUFF_STATUS_NAMES.has(statusName)) {
       emittedVisual = pushUnitAnimation(
-        unitAnimationEvents,
+        visualEvents.unitAnimationEvents,
         event,
         sourceIndex,
-        getEventActiveOutId(event),
-        "swap-out",
+        actorInstanceId !== targetInstanceId ? actorInstanceId : null,
+        "attack",
         delayMs,
       );
       emittedVisual =
         pushUnitAnimation(
-          unitAnimationEvents,
+          visualEvents.unitAnimationEvents,
           event,
           sourceIndex,
-          getEventBenchInId(event),
-          "swap-in",
+          targetInstanceId,
+          "damage",
           delayMs,
         ) || emittedVisual;
     }
+  } else if (event.type === "swap") {
+    emittedVisual = pushUnitAnimation(
+      visualEvents.unitAnimationEvents,
+      event,
+      sourceIndex,
+      getEventActiveOutId(event),
+      "swap-out",
+      delayMs,
+    );
+    emittedVisual =
+      pushUnitAnimation(
+        visualEvents.unitAnimationEvents,
+        event,
+        sourceIndex,
+        getEventBenchInId(event),
+        "swap-in",
+        delayMs,
+      ) || emittedVisual;
+  }
 
-    if (emittedVisual) {
-      visualStep += 1;
+  return emittedVisual;
+}
+
+function emitAbilitySegmentVisualEvents(
+  visualEvents: PvpVisualEvents,
+  abilityStart: IndexedCombatEvent,
+  segmentEvents: IndexedCombatEvent[],
+  baseDelayMs: number,
+) {
+  const offenseTargets: string[] = [];
+  const buffTargets: string[] = [];
+  const otherEvents: IndexedCombatEvent[] = [];
+  const actorInstanceId = getEventActorOrSourceId(abilityStart.event);
+  let emittedVisual = false;
+
+  for (const { event, sourceIndex } of segmentEvents) {
+    if (event.type === "damage") {
+      emittedVisual =
+        pushFloatingDamageEvent(
+          visualEvents.floatingEvents,
+          event,
+          sourceIndex,
+          baseDelayMs,
+        ) || emittedVisual;
+
+      if (!isMissEvent(event)) {
+        pushOrderedTarget(offenseTargets, getEventTargetInstanceId(event));
+      }
+      continue;
+    }
+
+    if (event.type === "shieldAbsorb") {
+      pushOrderedTarget(offenseTargets, getEventTargetInstanceId(event));
+      continue;
+    }
+
+    if (event.type === "statusApply") {
+      const statusName = getEventStatusName(event);
+
+      if (statusName && DEBUFF_STATUS_NAMES.has(statusName)) {
+        pushOrderedTarget(offenseTargets, getEventTargetInstanceId(event));
+      } else if (statusName && BUFF_STATUS_NAMES.has(statusName)) {
+        pushOrderedTarget(buffTargets, getEventTargetInstanceId(event));
+      }
+      continue;
+    }
+
+    otherEvents.push({ event, sourceIndex });
+  }
+
+  if (offenseTargets.length > 0) {
+    emittedVisual =
+      pushUnitAnimation(
+        visualEvents.unitAnimationEvents,
+        abilityStart.event,
+        abilityStart.sourceIndex,
+        actorInstanceId,
+        "attack",
+        baseDelayMs,
+      ) || emittedVisual;
+  }
+
+  for (const targetInstanceId of offenseTargets) {
+    emittedVisual =
+      pushUnitAnimation(
+        visualEvents.unitAnimationEvents,
+        abilityStart.event,
+        abilityStart.sourceIndex,
+        targetInstanceId,
+        "damage",
+        baseDelayMs,
+      ) || emittedVisual;
+  }
+
+  const buffDelayMs =
+    baseDelayMs + (offenseTargets.length > 0 ? VISUAL_EVENT_STAGGER_MS : 0);
+
+  if (buffTargets.length > 0) {
+    emittedVisual =
+      pushUnitAnimation(
+        visualEvents.unitAnimationEvents,
+        abilityStart.event,
+        abilityStart.sourceIndex,
+        actorInstanceId,
+        "buff-cast",
+        buffDelayMs,
+      ) || emittedVisual;
+  }
+
+  for (const targetInstanceId of buffTargets) {
+    emittedVisual =
+      pushUnitAnimation(
+        visualEvents.unitAnimationEvents,
+        abilityStart.event,
+        abilityStart.sourceIndex,
+        targetInstanceId,
+        "buff",
+        buffDelayMs,
+      ) || emittedVisual;
+  }
+
+  let otherStep =
+    (offenseTargets.length > 0 ? 1 : 0) + (buffTargets.length > 0 ? 1 : 0);
+
+  for (const { event, sourceIndex } of otherEvents) {
+    const delayMs = baseDelayMs + otherStep * VISUAL_EVENT_STAGGER_MS;
+    if (emitStandaloneVisualEvent(visualEvents, event, sourceIndex, delayMs)) {
+      otherStep += 1;
+      emittedVisual = true;
     }
   }
 
-  return { floatingEvents, unitAnimationEvents };
+  return {
+    emittedVisual,
+    stepsUsed: Math.max(otherStep, emittedVisual ? 1 : 0),
+  };
+}
+
+export function buildPvpVisualEvents(events: CombatEvent[]): PvpVisualEvents {
+  const visualEvents: PvpVisualEvents = {
+    floatingEvents: [],
+    unitAnimationEvents: [],
+  };
+  let visualStep = 0;
+  let index = 0;
+
+  while (index < events.length) {
+    const event = events[index];
+    const delayMs = visualStep * VISUAL_EVENT_STAGGER_MS;
+
+    if (event.type === "abilityStart") {
+      const segmentEvents: IndexedCombatEvent[] = [];
+      let nextIndex = index + 1;
+
+      while (
+        nextIndex < events.length &&
+        events[nextIndex].type !== "abilityStart"
+      ) {
+        segmentEvents.push({
+          event: events[nextIndex],
+          sourceIndex: nextIndex,
+        });
+        nextIndex += 1;
+      }
+
+      const result = emitAbilitySegmentVisualEvents(
+        visualEvents,
+        { event, sourceIndex: index },
+        segmentEvents,
+        delayMs,
+      );
+
+      if (result.emittedVisual) {
+        visualStep += result.stepsUsed;
+      }
+
+      index = nextIndex;
+      continue;
+    }
+
+    if (emitStandaloneVisualEvent(visualEvents, event, index, delayMs)) {
+      visualStep += 1;
+    }
+
+    index += 1;
+  }
+
+  return visualEvents;
 }
 
 function getLatestVisualTurnEvents(

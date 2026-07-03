@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import Animated, {
   runOnJS,
   useAnimatedStyle,
@@ -28,6 +28,15 @@ export function TurnBanner({ isMyTurn, onDone }: TurnBannerProps) {
   const scale = useSharedValue(0.8);
   const opacity = useSharedValue(0);
   const translateY = useSharedValue(12);
+  const onDoneRef = useRef(onDone);
+
+  useEffect(() => {
+    onDoneRef.current = onDone;
+  }, [onDone]);
+
+  const handleDone = useCallback(() => {
+    onDoneRef.current();
+  }, []);
 
   useEffect(() => {
     scale.value = 0.8;
@@ -44,7 +53,7 @@ export function TurnBanner({ isMyTurn, onDone }: TurnBannerProps) {
         980,
         withTiming(0, { duration: 220 }, (finished) => {
           if (finished) {
-            runOnJS(onDone)();
+            runOnJS(handleDone)();
           }
         }),
       ),
@@ -53,7 +62,7 @@ export function TurnBanner({ isMyTurn, onDone }: TurnBannerProps) {
       withSpring(0, { damping: 13, stiffness: 160 }),
       withDelay(940, withTiming(-10, { duration: 220 })),
     );
-  }, [onDone, opacity, scale, translateY]);
+  }, [handleDone, isMyTurn, opacity, scale, translateY]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
