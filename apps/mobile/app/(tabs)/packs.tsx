@@ -26,6 +26,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type {
   CollectionResponse,
   HomeResponse,
+  PvpLoadoutsResponse,
 } from "@adventure-time/api-client";
 
 import { PrimaryButton, SecondaryButton } from "../../src/components/button";
@@ -77,6 +78,7 @@ import {
 import {
   patchCollectionAfterPackOpen,
   patchHomeAfterPackOpen,
+  patchPvpLoadoutsAfterPackOpen,
 } from "../../src/features/packs/collection-cache";
 import {
   IS_E2E_BUILD,
@@ -387,6 +389,10 @@ function usePacksScreenView() {
         ["home"],
         (current) => patchHomeAfterPackOpen(current, result),
       );
+      queryClient.setQueryData<PvpLoadoutsResponse | undefined>(
+        ["pvp-loadouts"],
+        (current) => patchPvpLoadoutsAfterPackOpen(current, result),
+      );
 
       await Promise.all([
         prefetchCardImages(result.cards.map((card) => card.imageAssetId)),
@@ -403,6 +409,7 @@ function usePacksScreenView() {
         queryClient.invalidateQueries({ queryKey: ["home"] }),
         queryClient.invalidateQueries({ queryKey: ["daily-claim"] }),
         queryClient.invalidateQueries({ queryKey: ["packs"] }),
+        queryClient.invalidateQueries({ queryKey: ["pvp-loadouts"] }),
         patchUser({ coins: result.newBalance }),
         animateLoadingProgress(82, 100, PACK_OPEN_PROGRESS_MS.final),
       ]);

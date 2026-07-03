@@ -2,6 +2,7 @@ import type {
   CollectionResponse,
   HomeResponse,
   OpenPackResponse,
+  PvpLoadoutsResponse,
 } from "@adventure-time/api-client";
 
 function completionPercentage(uniqueOwned: number, totalCatalogCards: number) {
@@ -93,5 +94,30 @@ export function patchHomeAfterPackOpen(
       uniqueOwned,
       completionPercentage: completionPercentage(uniqueOwned, totalCards),
     },
+  };
+}
+
+export function patchPvpLoadoutsAfterPackOpen(
+  current: PvpLoadoutsResponse | undefined,
+  result: OpenPackResponse,
+): PvpLoadoutsResponse | undefined {
+  if (!current) {
+    return current;
+  }
+
+  const openedCardIds = new Set(result.cards.map((card) => card.id));
+
+  if (openedCardIds.size === 0) {
+    return current;
+  }
+
+  return {
+    ...current,
+    loadouts: current.loadouts.map((loadout) => ({
+      ...loadout,
+      invalidCardIds: loadout.invalidCardIds.filter(
+        (cardId) => !openedCardIds.has(cardId),
+      ),
+    })),
   };
 }

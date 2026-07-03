@@ -5,10 +5,12 @@ import type {
   CollectionResponse,
   HomeResponse,
   OpenPackResponse,
+  PvpLoadoutsResponse,
 } from "@adventure-time/api-client";
 import {
   patchCollectionAfterPackOpen,
   patchHomeAfterPackOpen,
+  patchPvpLoadoutsAfterPackOpen,
 } from "../src/features/packs/collection-cache.ts";
 
 const rarity = {
@@ -146,5 +148,33 @@ describe("pack opening collection cache patches", () => {
     assert.equal(patched?.collectionStats.totalCards, 10);
     assert.equal(patched?.collectionStats.uniqueOwned, 5);
     assert.equal(patched?.collectionStats.completionPercentage, 50);
+  });
+
+  it("removes opened cards from cached invalid loadout markers", () => {
+    const loadouts: PvpLoadoutsResponse = {
+      loadouts: [
+        {
+          id: "loadout-1",
+          ownerId: "user-1",
+          name: "Almost ready",
+          cardIds: [
+            "card-new",
+            "card-other",
+            "card-3",
+            "card-4",
+            "card-5",
+            "card-6",
+          ],
+          cards: [card("card-new", "New Card")],
+          invalidCardIds: ["card-new", "card-other"],
+          createdAt: "2026-06-01T00:00:00Z",
+          updatedAt: "2026-06-01T00:00:00Z",
+        },
+      ],
+    };
+
+    const patched = patchPvpLoadoutsAfterPackOpen(loadouts, openResult);
+
+    assert.deepEqual(patched?.loadouts[0]?.invalidCardIds, ["card-other"]);
   });
 });
