@@ -23,7 +23,9 @@ interface BattleFullScreenSheetProps {
   onClose: () => void;
   children: ReactNode;
   footer?: ReactNode;
+  iosPresentation?: "modal" | "portal";
   scrollable?: boolean;
+  showCloseButton?: boolean;
   testID?: string;
 }
 
@@ -33,7 +35,9 @@ export function BattleFullScreenSheet({
   onClose,
   children,
   footer,
+  iosPresentation = "portal",
   scrollable = true,
+  showCloseButton = true,
   testID,
 }: BattleFullScreenSheetProps) {
   const { t } = useTranslation();
@@ -97,7 +101,7 @@ export function BattleFullScreenSheet({
           testID={testID}
         >
           <View className="flex-row items-center border-b border-primaryTint px-4 py-3">
-            <View className="w-11" />
+            <View style={{ width: showCloseButton ? 44 : 0 }} />
             <View className="flex-1 items-center px-2">
               <Text
                 className="text-center font-nunito-extrabold text-2xl text-fg"
@@ -106,16 +110,18 @@ export function BattleFullScreenSheet({
                 {title}
               </Text>
             </View>
-            <Pressable
-              accessibilityLabel={t("common.close")}
-              accessibilityRole="button"
-              className="h-11 w-11 items-center justify-center rounded-full bg-surfaceMuted"
-              hitSlop={6}
-              onPress={onClose}
-              testID={testID ? `${testID}-close-button` : undefined}
-            >
-              <XIcon size={20} color={tc.fg} />
-            </Pressable>
+            {showCloseButton ? (
+              <Pressable
+                accessibilityLabel={t("common.close")}
+                accessibilityRole="button"
+                className="h-11 w-11 items-center justify-center rounded-full bg-surfaceMuted"
+                hitSlop={6}
+                onPress={onClose}
+                testID={testID ? `${testID}-close-button` : undefined}
+              >
+                <XIcon size={20} color={tc.fg} />
+              </Pressable>
+            ) : null}
           </View>
 
           {content}
@@ -139,7 +145,7 @@ export function BattleFullScreenSheet({
     </View>
   );
 
-  if (Platform.OS === "ios") {
+  if (Platform.OS === "ios" && iosPresentation === "portal") {
     // Native fullscreen modal presentation can abort on iOS when the PvP route
     // is locked to landscape and UIKit performs a mixed-orientation transition.
     // Keep the iOS sheet in React, but portal it above tab/header chrome.

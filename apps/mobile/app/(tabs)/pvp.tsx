@@ -1765,6 +1765,8 @@ function usePvpScreenView() {
         title={t("pvp.sendChallenge")}
         onClose={closeInviteSheet}
         testID="pvp-invite-sheet"
+        iosPresentation="modal"
+        showCloseButton={false}
         footer={
           <View className="flex-row gap-3">
             <ThemedExpoButton
