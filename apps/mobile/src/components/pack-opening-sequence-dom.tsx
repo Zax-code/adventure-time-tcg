@@ -92,10 +92,8 @@ const CSS = `
     position: absolute;
     left: 50%;
     top: calc(50% + var(--pack-stage-offset));
-    width: min(92vw, 680px);
-    height: min(92vh, 620px);
-    max-width: 100%;
-    max-height: 100%;
+    width: 100%;
+    height: 100%;
     display: grid;
     place-items: center;
     transform: translate(-50%, -50%);
@@ -154,6 +152,23 @@ const CSS = `
     background:
       radial-gradient(circle, rgba(255, 255, 245, .98) 0 8%, rgba(var(--pack-highlight-rgb), .86) 16%, rgba(var(--pack-rgb), .42) 35%, rgba(var(--pack-shadow-rgb), .14) 58%, transparent 73%);
     filter: blur(3px);
+    mix-blend-mode: screen;
+  }
+
+  .pack-opening-burst-afterglow {
+    position: absolute;
+    left: 50%;
+    top: 47%;
+    width: 560px;
+    height: 560px;
+    border-radius: 50%;
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0;
+    z-index: 36;
+    pointer-events: none;
+    background:
+      radial-gradient(circle, rgba(255, 255, 240, .74) 0 8%, rgba(var(--pack-highlight-rgb), .58) 17%, rgba(var(--pack-rgb), .32) 34%, rgba(var(--pack-shadow-rgb), .12) 58%, transparent 74%);
+    filter: blur(8px);
     mix-blend-mode: screen;
   }
 
@@ -385,6 +400,10 @@ const CSS = `
     animation: pack-treasure-glow 2.6s cubic-bezier(.12,.75,.2,1) 1.52s forwards;
   }
 
+  .pack-opening-stage.exploding .pack-opening-burst-afterglow {
+    animation: pack-burst-afterglow-settle .88s ease-out 1.52s forwards;
+  }
+
   .pack-opening-stage.exploding .pack-opening-rays {
     animation: pack-treasure-rays 2.8s ease-out 1.52s forwards;
   }
@@ -396,22 +415,29 @@ const CSS = `
   .pack-opening-stage.loading-active .pack-opening-light {
     --settled-light-scale: 1.08;
     opacity: var(--settled-light-opacity);
-    animation: pack-loading-glow 3.4s ease-in-out infinite;
+    animation:
+      pack-loading-glow-enter .72s cubic-bezier(.16,.82,.22,1) forwards,
+      pack-loading-glow 3.4s ease-in-out .72s infinite;
+  }
+
+  .pack-opening-stage.loading-active .pack-opening-burst-afterglow {
+    animation: pack-loading-afterglow-fade 1.08s ease-out forwards;
   }
 
   .pack-opening-stage.loading-active .pack-opening-aura {
-    --settled-aura-scale: 1.08;
     opacity: var(--settled-aura-opacity);
     transform: scale(var(--settled-aura-scale));
     filter: blur(var(--settled-aura-blur));
-    animation: pack-loading-aura 3.6s ease-in-out infinite;
+    animation: none;
   }
 
   .pack-opening-stage.loading-active .pack-opening-rays {
     --settled-rays-scale: 1.02;
     opacity: var(--settled-rays-opacity);
     transform: translate(-50%, -50%) scale(var(--settled-rays-scale)) rotate(var(--settled-rays-rotate));
-    animation: pack-loading-rays 7.2s linear infinite;
+    animation:
+      pack-loading-rays-enter .72s cubic-bezier(.16,.82,.22,1) forwards,
+      pack-loading-rays 7.2s linear .72s infinite;
   }
 
   .pack-opening-stage.loading-active .pack-opening-card,
@@ -435,7 +461,9 @@ const CSS = `
       )
       scale(var(--settled-sparkle-scale))
       rotate(var(--settled-sparkle-rotate));
-    animation: pack-sparkle-drift 2.9s ease-in-out infinite;
+    animation:
+      pack-sparkle-loading-enter .72s cubic-bezier(.16,.82,.22,1) forwards,
+      pack-sparkle-drift 2.9s ease-in-out calc(.72s + var(--loading-delay)) infinite;
   }
 
   @keyframes pack-card-idle {
@@ -607,6 +635,39 @@ const CSS = `
     }
   }
 
+  @keyframes pack-sparkle-loading-enter {
+    0% {
+      opacity: var(--settled-sparkle-opacity);
+      transform:
+        translate(
+          calc(-50% + var(--x) * .88),
+          calc(-50% + var(--y) * .9)
+        )
+        scale(.48)
+        rotate(0deg);
+    }
+    52% {
+      opacity: .82;
+      transform:
+        translate(
+          calc(-50% + var(--x) * .96),
+          calc(-50% + var(--y) * .96)
+        )
+        scale(.72)
+        rotate(72deg);
+    }
+    100% {
+      opacity: .56;
+      transform:
+        translate(
+          calc(-50% + var(--x) * var(--settled-sparkle-x)),
+          calc(-50% + var(--y) * var(--settled-sparkle-y))
+        )
+        scale(var(--settled-sparkle-scale))
+        rotate(var(--settled-sparkle-rotate));
+    }
+  }
+
   @keyframes pack-loading-glow {
     0%, 100% {
       opacity: var(--settled-light-opacity);
@@ -617,6 +678,50 @@ const CSS = `
       opacity: .74;
       transform: translate(-50%, -50%) scale(1);
       filter: blur(5px);
+    }
+  }
+
+  @keyframes pack-loading-glow-enter {
+    0% {
+      opacity: .92;
+      transform: translate(-50%, -50%) scale(1.02);
+      filter: blur(6px);
+    }
+    100% {
+      opacity: var(--settled-light-opacity);
+      transform: translate(-50%, -50%) scale(var(--settled-light-scale));
+      filter: blur(var(--settled-light-blur));
+    }
+  }
+
+  @keyframes pack-burst-afterglow-settle {
+    0% {
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(.82);
+      filter: blur(5px);
+    }
+    100% {
+      opacity: .72;
+      transform: translate(-50%, -50%) scale(1.08);
+      filter: blur(7px);
+    }
+  }
+
+  @keyframes pack-loading-afterglow-fade {
+    0% {
+      opacity: .72;
+      transform: translate(-50%, -50%) scale(1.08);
+      filter: blur(7px);
+    }
+    58% {
+      opacity: .32;
+      transform: translate(-50%, -50%) scale(1.2);
+      filter: blur(11px);
+    }
+    100% {
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(1.32);
+      filter: blur(16px);
     }
   }
 
@@ -632,6 +737,17 @@ const CSS = `
     100% {
       opacity: .36;
       transform: translate(-50%, -50%) scale(.82) rotate(48deg);
+    }
+  }
+
+  @keyframes pack-loading-rays-enter {
+    0% {
+      opacity: .7;
+      transform: translate(-50%, -50%) scale(.95) rotate(13deg);
+    }
+    100% {
+      opacity: var(--settled-rays-opacity);
+      transform: translate(-50%, -50%) scale(var(--settled-rays-scale)) rotate(var(--settled-rays-rotate));
     }
   }
 `;
@@ -951,6 +1067,7 @@ export default function PackOpeningSequenceDom({
           <div className="pack-opening-aura" />
           <div className="pack-opening-rays" />
           <div className="pack-opening-light" />
+          <div className="pack-opening-burst-afterglow" />
           <div className="pack-opening-shockwave" />
           <div
             className="pack-opening-card"

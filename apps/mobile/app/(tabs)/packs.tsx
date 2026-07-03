@@ -58,7 +58,6 @@ import {
   CardBackStack,
   CrackedPackPreview,
   LoadingProgressFill,
-  OpeningProgress,
   PackIconVisual,
   PackLoadingGlow,
   PackOpeningAura,
@@ -66,6 +65,7 @@ import {
   PackSummaryCardSheet,
   ReadyRevealGlow,
   ReadyRevealStackWrapper,
+  RevealPullProgress,
   RevealCardStage,
   SectionBadge,
 } from "../../src/features/packs/opening-components";
@@ -88,7 +88,6 @@ import {
   formatPackAvailabilityDate,
   getHapticForCard,
   getPackArtUrl,
-  getPackProgressStep,
   getRarityGlowColor,
   getThemeRarityPalette,
   isPackLimited,
@@ -661,7 +660,6 @@ function usePacksScreenView() {
   const heroCanOpen = heroPack
     ? canOpenPackWithBalance(heroPack, coins)
     : false;
-  const openingStep = getPackProgressStep(phase);
   const openingStackRarities = openedCards.slice(0, 3).map((card) => {
     if (card.revealSource === "spark") {
       return "Common";
@@ -695,6 +693,35 @@ function usePacksScreenView() {
       themeName === "nightosphere"
         ? withAlpha(tc.primaryBorder, "44")
         : withAlpha(tc.fgMuted, "22");
+    const openingDom = (
+      <PackOpeningSequenceDom
+        key={`${openingRunId}`}
+        mode={
+          isLoadingPhase ? "loading" : phase === "bursting" ? "burst" : "charge"
+        }
+        pack={{
+          backgroundColor: tc.bg,
+          cardCountLabel: t("packs.cardsCount", {
+            count: selectedPack.cardCount,
+          }),
+          color: selectedPack.color || "#C96A24",
+          guaranteedRarity: selectedPack.guaranteedRarity,
+          name: selectedPack.name,
+          packArtAssetId: selectedPack.packArtAssetId,
+          packArtUrl: getPackArtUrl(selectedPack),
+        }}
+        stageOffsetY={openingStageTranslateY}
+        dom={{
+          contentInsetAdjustmentBehavior: "never",
+          scrollEnabled: false,
+          style: {
+            backgroundColor: "transparent",
+            flex: 1,
+            opacity: isChargePhase ? prewarmDomOpacity : 1,
+          },
+        }}
+      />
+    );
 
     return (
       <View
@@ -703,6 +730,18 @@ function usePacksScreenView() {
         }
         className="flex-1 bg-bg"
       >
+        <View
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            top: 0,
+            right: 0,
+            bottom: 0,
+            left: 0,
+          }}
+        >
+          {openingDom}
+        </View>
         <View
           className="flex-1 px-4"
           style={{
@@ -720,37 +759,6 @@ function usePacksScreenView() {
                 transform: [{ translateY: openingStageTranslateY }],
               }}
             >
-              <PackOpeningSequenceDom
-                key={`${openingRunId}`}
-                mode={
-                  isLoadingPhase
-                    ? "loading"
-                    : phase === "bursting"
-                      ? "burst"
-                      : "charge"
-                }
-                pack={{
-                  backgroundColor: tc.bg,
-                  cardCountLabel: t("packs.cardsCount", {
-                    count: selectedPack.cardCount,
-                  }),
-                  color: selectedPack.color || "#C96A24",
-                  guaranteedRarity: selectedPack.guaranteedRarity,
-                  name: selectedPack.name,
-                  packArtAssetId: selectedPack.packArtAssetId,
-                  packArtUrl: getPackArtUrl(selectedPack),
-                }}
-                stageOffsetY={openingStageTranslateY}
-                dom={{
-                  contentInsetAdjustmentBehavior: "never",
-                  scrollEnabled: false,
-                  style: {
-                    backgroundColor: "transparent",
-                    flex: 1,
-                    opacity: isChargePhase ? prewarmDomOpacity : 1,
-                  },
-                }}
-              />
               {isChargePhase ? (
                 <View className="absolute inset-0 items-center justify-center">
                   <PackPreviewCard
@@ -884,7 +892,6 @@ function usePacksScreenView() {
           </View>
 
           <View className="items-center gap-4 pb-2">
-            <OpeningProgress tc={tc} activeStep={openingStep} />
             <SectionBadge
               icon={<PackIcon size={14} color={tc.primaryText} />}
               label={t("packs.opening.revealProgress", {
@@ -913,7 +920,6 @@ function usePacksScreenView() {
     const rarityRing =
       getThemeRarityPalette(themeName, rarityName)?.ring ?? tc.primaryDark;
     const glowColor = getRarityGlowColor(rarityName);
-    const isHighRarity = ["Legendary", "Epic", "Rare"].includes(rarityName);
     const isLastCard = revealedIndex === openedCards.length - 1;
     const isSparkReveal = card.revealSource === "spark";
     return (
@@ -958,7 +964,13 @@ function usePacksScreenView() {
                 })}
               </Text>
             </View>
-            <OpeningProgress tc={tc} activeStep={openingStep} />
+            <RevealPullProgress
+              cards={openedCards}
+              revealProgress={flipAnim}
+              revealedIndex={revealedIndex}
+              tc={tc}
+              themeName={themeName}
+            />
           </View>
 
           <View className="flex-1 items-center justify-center py-3">

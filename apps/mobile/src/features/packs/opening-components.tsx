@@ -66,7 +66,6 @@ import {
   formatPackAvailabilityDate,
   getHapticForCard,
   getPackArtUrl,
-  getPackProgressStep,
   getRarityGlowColor,
   getThemeRarityPalette,
   getCardBackVisualKey,
@@ -1480,7 +1479,106 @@ export function CrackedPackPreview({
   );
 }
 
-export const OpeningProgress = openingProgress;
+export function RevealPullProgress({
+  cards,
+  revealProgress,
+  revealedIndex,
+  tc,
+  themeName,
+}: {
+  cards: OpenedCard[];
+  revealProgress: SharedValue<number>;
+  revealedIndex: number;
+  tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
+  themeName: ThemeName;
+}) {
+  if (cards.length === 0) {
+    return null;
+  }
+
+  return (
+    <View className="w-full flex-row gap-1.5">
+      {cards.map((card, index) => {
+        const rarityName = toRarityName(card.rarity?.name);
+        const rarityPalette =
+          getThemeRarityPalette(themeName, rarityName) ??
+          getThemeRarityPalette(themeName, "Common");
+
+        return (
+          <RevealPullProgressSegment
+            key={`${card.id}-${index}`}
+            colorFrom={rarityPalette.from}
+            colorTo={rarityPalette.to}
+            index={index}
+            revealProgress={revealProgress}
+            revealedIndex={revealedIndex}
+            trackColor={withAlpha(tc.primaryBorder, "66")}
+          />
+        );
+      })}
+    </View>
+  );
+}
+
+function RevealPullProgressSegment({
+  colorFrom,
+  colorTo,
+  index,
+  revealProgress,
+  revealedIndex,
+  trackColor,
+}: {
+  colorFrom: string;
+  colorTo: string;
+  index: number;
+  revealProgress: SharedValue<number>;
+  revealedIndex: number;
+  trackColor: string;
+}) {
+  const isPast = index < revealedIndex;
+  const isCurrent = index === revealedIndex;
+  const fillStyle = useAnimatedStyle(() => {
+    const currentFill = interpolate(revealProgress.value, [0, 1], [0, 100]);
+    const currentOpacity = interpolate(
+      revealProgress.value,
+      [0, 0.42, 1],
+      [0, 0.35, 1],
+    );
+
+    return {
+      opacity: isPast ? 1 : currentOpacity,
+      width: `${isPast ? 100 : currentFill}%`,
+    };
+  });
+
+  return (
+    <View
+      className="h-2 flex-1 overflow-hidden rounded-full"
+      style={{ backgroundColor: trackColor }}
+    >
+      {isPast || isCurrent ? (
+        <Animated.View
+          style={[
+            {
+              position: "absolute",
+              top: 0,
+              bottom: 0,
+              left: 0,
+            },
+            fillStyle,
+          ]}
+        >
+          <LinearGradient
+            colors={[colorFrom, colorTo]}
+            start={{ x: 0, y: 0.5 }}
+            end={{ x: 1, y: 0.5 }}
+            style={{ flex: 1 }}
+          />
+        </Animated.View>
+      ) : null}
+    </View>
+  );
+}
 
 export function LoadingProgressFill({
   color,
@@ -1698,34 +1796,6 @@ export function RevealCardStage({
         </View>
       ) : null}
     </Animated.View>
-  );
-}
-
-function openingProgress({
-  tc,
-  activeStep,
-}: {
-  tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
-  activeStep: number;
-}) {
-  return (
-    <View className="flex-row gap-2">
-      {[0, 1, 2, 3].map((step) => {
-        const isActive = step <= activeStep;
-        return (
-          <View
-            key={step}
-            style={{
-              height: 6,
-              width: step === activeStep ? 40 : 28,
-              borderRadius: 999,
-              backgroundColor: isActive ? tc.primaryDark : tc.primaryBorder,
-              opacity: isActive ? 1 : 0.5,
-            }}
-          />
-        );
-      })}
-    </View>
   );
 }
 

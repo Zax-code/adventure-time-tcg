@@ -109,7 +109,7 @@ export const PACK_CARD_RATIO = 320 / 460;
 export const REVEAL_CARD_RATIO = CARD_BACKCOVER_RATIO;
 export const IS_E2E_BUILD = process.env.EXPO_PUBLIC_E2E_AUTH === "1";
 export const PACK_OPEN_SHAKE_MS = IS_E2E_BUILD ? 3200 : 950;
-export const PACK_OPEN_BURST_MS = IS_E2E_BUILD ? 2400 : 2200;
+export const PACK_OPEN_BURST_MS = IS_E2E_BUILD ? 2400 : 2800;
 export const PACK_OPEN_PROGRESS_MS = IS_E2E_BUILD
   ? {
       first: 1400,
@@ -498,23 +498,6 @@ export function withAlpha(hex: string, alpha: string) {
   }
 
   return hex;
-}
-
-export function getPackProgressStep(phase: OpeningPhase) {
-  switch (phase) {
-    case "shaking":
-    case "bursting":
-      return 0;
-    case "loading":
-      return 1;
-    case "readyToReveal":
-    case "revealing":
-      return 2;
-    case "complete":
-      return 3;
-    default:
-      return -1;
-  }
 }
 
 export function getHapticForCard(card: OpenedCard) {
