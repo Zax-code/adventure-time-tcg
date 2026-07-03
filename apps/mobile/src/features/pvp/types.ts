@@ -53,6 +53,8 @@ export interface FloatingEvent {
 }
 
 export type UnitAnimationEventType =
+  | "attack"
+  | "buff-cast"
   | "damage"
   | "heal"
   | "death"

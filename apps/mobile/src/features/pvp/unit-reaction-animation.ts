@@ -17,6 +17,8 @@ interface UnitReactionAnimationOptions {
 }
 
 const REACTION_FLASH_COLORS: Record<UnitAnimationEventType, string> = {
+  attack: "rgba(251,146,60,0.5)",
+  "buff-cast": "rgba(250,204,21,0.54)",
   damage: "rgba(248,113,113,0.62)",
   heal: "rgba(52,211,153,0.48)",
   death: "rgba(15,23,42,0.72)",
@@ -83,6 +85,48 @@ export function useUnitReactionAnimation({
   const triggerReaction = useCallback(
     (type: UnitAnimationEventType) => {
       reset();
+
+      if (type === "attack") {
+        flash(type, 0.5, 300);
+        const lift = compact ? -3 : -6;
+        const lean = compact ? -1.4 : -2.5;
+        translateY.value = withSequence(
+          withTiming(lift, { duration: 84, easing: Easing.out(Easing.quad) }),
+          withTiming(compact ? 1 : 2, {
+            duration: 92,
+            easing: Easing.inOut(Easing.quad),
+          }),
+          withTiming(0, { duration: 120, easing: Easing.out(Easing.quad) }),
+        );
+        rotateZ.value = withSequence(
+          withTiming(lean, { duration: 84, easing: Easing.out(Easing.quad) }),
+          withTiming(-lean * 0.45, { duration: 92 }),
+          withTiming(0, { duration: 120 }),
+        );
+        scale.value = withSequence(
+          withTiming(1.075, { duration: 84, easing: Easing.out(Easing.quad) }),
+          withTiming(0.985, { duration: 92, easing: Easing.inOut(Easing.quad) }),
+          withSpring(1, { damping: 12, stiffness: 190 }),
+        );
+        return;
+      }
+
+      if (type === "buff-cast") {
+        flash(type, 0.6, 460);
+        translateY.value = withSequence(
+          withTiming(compact ? -4 : -8, {
+            duration: 160,
+            easing: Easing.out(Easing.cubic),
+          }),
+          withTiming(0, { duration: 250, easing: Easing.out(Easing.quad) }),
+        );
+        scale.value = withSequence(
+          withTiming(1.09, { duration: 150, easing: Easing.out(Easing.quad) }),
+          withTiming(1.02, { duration: 120 }),
+          withSpring(1, { damping: 10, stiffness: 130 }),
+        );
+        return;
+      }
 
       if (type === "damage") {
         flash(type, 0.7, 420);

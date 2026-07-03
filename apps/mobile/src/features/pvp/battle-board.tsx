@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Pressable, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -239,13 +239,14 @@ function useBattleBoardView({
     visible: true,
   }));
 
-  if (turnBannerState.turn !== turn) {
+  useEffect(() => {
     setTurnBannerState((current) => ({
       turn,
-      bannerKey: current.bannerKey + 1,
+      bannerKey:
+        current.turn === turn ? current.bannerKey : current.bannerKey + 1,
       visible: true,
     }));
-  }
+  }, [turn]);
 
   const floatingByUnit = useMemo(() => {
     const next: Record<string, FloatingEvent[]> = {};
