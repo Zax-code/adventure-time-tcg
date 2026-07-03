@@ -143,6 +143,8 @@ function usePacksScreenView() {
   const openingBottomPadding = shouldHideTabBar
     ? Math.max(safeAreaBottom + 16, 24)
     : bottomTabPadding;
+  const storefrontScrollBottomSpacerHeight = bottomTabPadding;
+  const summaryScrollBottomSpacerHeight = Math.max(92, bottomTabPadding);
 
   const revealCardWidth = Math.min(
     width - 36,
@@ -1061,10 +1063,9 @@ function usePacksScreenView() {
           contentInsetAdjustmentBehavior="never"
           contentContainerStyle={{
             paddingHorizontal: 20,
-            paddingBottom: 128,
+            paddingBottom: 36,
             gap: 18,
           }}
-          contentInset={{ bottom: bottomTabPadding }}
           scrollIndicatorInsets={{ bottom: bottomTabPadding }}
         >
           <View style={{ height: headerHeight }} />
@@ -1267,6 +1268,8 @@ function usePacksScreenView() {
               {t("packs.summary.browsePacks")}
             </SecondaryButton>
           </View>
+
+          <View style={{ height: summaryScrollBottomSpacerHeight }} />
         </ScrollView>
 
         {previewedCard ? (
@@ -1335,7 +1338,6 @@ function usePacksScreenView() {
           paddingBottom: 24,
           gap: 18,
         }}
-        contentInset={{ bottom: bottomTabPadding }}
         scrollIndicatorInsets={{ bottom: bottomTabPadding }}
       >
         <View style={{ height: headerHeight }} />
@@ -1599,6 +1601,8 @@ function usePacksScreenView() {
             );
           })}
         </View>
+
+        <View style={{ height: storefrontScrollBottomSpacerHeight }} />
       </ScrollView>
     </View>
   );
