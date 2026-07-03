@@ -686,11 +686,11 @@ function useWordleScreenView() {
 
       const next = [...guessSnapshot];
       next[targetIndex] = null;
-      replaceCurrentGuess(next);
       setRemovingCells((previous) => ({
         ...previous,
         [targetIndex]: removedLetter.toUpperCase(),
       }));
+      replaceCurrentGuess(next);
 
       cancelAnimation(removeScaleAnims[targetIndex]);
       cancelAnimation(removeOpacityAnims[targetIndex]);
