@@ -58,7 +58,6 @@ import {
   CardBackStack,
   CrackedPackPreview,
   LoadingProgressFill,
-  OpeningProgress,
   PackIconVisual,
   PackLoadingGlow,
   PackOpeningAura,
@@ -66,6 +65,7 @@ import {
   PackSummaryCardSheet,
   ReadyRevealGlow,
   ReadyRevealStackWrapper,
+  RevealPullProgress,
   RevealCardStage,
   SectionBadge,
 } from "../../src/features/packs/opening-components";
@@ -88,7 +88,6 @@ import {
   formatPackAvailabilityDate,
   getHapticForCard,
   getPackArtUrl,
-  getPackProgressStep,
   getRarityGlowColor,
   getThemeRarityPalette,
   isPackLimited,
@@ -661,7 +660,6 @@ function usePacksScreenView() {
   const heroCanOpen = heroPack
     ? canOpenPackWithBalance(heroPack, coins)
     : false;
-  const openingStep = getPackProgressStep(phase);
   const openingStackRarities = openedCards.slice(0, 3).map((card) => {
     if (card.revealSource === "spark") {
       return "Common";
@@ -894,7 +892,6 @@ function usePacksScreenView() {
           </View>
 
           <View className="items-center gap-4 pb-2">
-            <OpeningProgress tc={tc} activeStep={openingStep} />
             <SectionBadge
               icon={<PackIcon size={14} color={tc.primaryText} />}
               label={t("packs.opening.revealProgress", {
@@ -923,7 +920,6 @@ function usePacksScreenView() {
     const rarityRing =
       getThemeRarityPalette(themeName, rarityName)?.ring ?? tc.primaryDark;
     const glowColor = getRarityGlowColor(rarityName);
-    const isHighRarity = ["Legendary", "Epic", "Rare"].includes(rarityName);
     const isLastCard = revealedIndex === openedCards.length - 1;
     const isSparkReveal = card.revealSource === "spark";
     return (
@@ -968,7 +964,14 @@ function usePacksScreenView() {
                 })}
               </Text>
             </View>
-            <OpeningProgress tc={tc} activeStep={openingStep} />
+            <RevealPullProgress
+              cards={openedCards}
+              revealedIndex={
+                isRevealSettled ? revealedIndex : revealedIndex - 1
+              }
+              tc={tc}
+              themeName={themeName}
+            />
           </View>
 
           <View className="flex-1 items-center justify-center py-3">

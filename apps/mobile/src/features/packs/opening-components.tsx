@@ -66,7 +66,6 @@ import {
   formatPackAvailabilityDate,
   getHapticForCard,
   getPackArtUrl,
-  getPackProgressStep,
   getRarityGlowColor,
   getThemeRarityPalette,
   getCardBackVisualKey,
@@ -1480,7 +1479,52 @@ export function CrackedPackPreview({
   );
 }
 
-export const OpeningProgress = openingProgress;
+export function RevealPullProgress({
+  cards,
+  revealedIndex,
+  tc,
+  themeName,
+}: {
+  cards: OpenedCard[];
+  revealedIndex: number;
+  tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
+  themeName: ThemeName;
+}) {
+  if (cards.length === 0) {
+    return null;
+  }
+
+  return (
+    <View className="w-full flex-row gap-1.5">
+      {cards.map((card, index) => {
+        const rarityName = toRarityName(card.rarity?.name);
+        const rarityPalette =
+          getThemeRarityPalette(themeName, rarityName) ??
+          getThemeRarityPalette(themeName, "Common");
+        const isRevealed = index <= revealedIndex;
+
+        return (
+          <View
+            key={`${card.id}-${index}`}
+            className="h-2 flex-1 overflow-hidden rounded-full"
+            style={{
+              backgroundColor: withAlpha(tc.primaryBorder, "66"),
+            }}
+          >
+            {isRevealed ? (
+              <LinearGradient
+                colors={[rarityPalette.from, rarityPalette.to]}
+                start={{ x: 0, y: 0.5 }}
+                end={{ x: 1, y: 0.5 }}
+                style={{ flex: 1 }}
+              />
+            ) : null}
+          </View>
+        );
+      })}
+    </View>
+  );
+}
 
 export function LoadingProgressFill({
   color,
@@ -1698,34 +1742,6 @@ export function RevealCardStage({
         </View>
       ) : null}
     </Animated.View>
-  );
-}
-
-function openingProgress({
-  tc,
-  activeStep,
-}: {
-  tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
-  activeStep: number;
-}) {
-  return (
-    <View className="flex-row gap-2">
-      {[0, 1, 2, 3].map((step) => {
-        const isActive = step <= activeStep;
-        return (
-          <View
-            key={step}
-            style={{
-              height: 6,
-              width: step === activeStep ? 40 : 28,
-              borderRadius: 999,
-              backgroundColor: isActive ? tc.primaryDark : tc.primaryBorder,
-              opacity: isActive ? 1 : 0.5,
-            }}
-          />
-        );
-      })}
-    </View>
   );
 }
 

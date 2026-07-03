@@ -500,23 +500,6 @@ export function withAlpha(hex: string, alpha: string) {
   return hex;
 }
 
-export function getPackProgressStep(phase: OpeningPhase) {
-  switch (phase) {
-    case "shaking":
-    case "bursting":
-      return 0;
-    case "loading":
-      return 1;
-    case "readyToReveal":
-    case "revealing":
-      return 2;
-    case "complete":
-      return 3;
-    default:
-      return -1;
-  }
-}
-
 export function getHapticForCard(card: OpenedCard) {
   if (card.revealSource === "spark") {
     return Haptics.NotificationFeedbackType.Success;
