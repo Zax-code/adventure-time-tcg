@@ -1481,11 +1481,13 @@ export function CrackedPackPreview({
 
 export function RevealPullProgress({
   cards,
+  revealProgress,
   revealedIndex,
   tc,
   themeName,
 }: {
   cards: OpenedCard[];
+  revealProgress: SharedValue<number>;
   revealedIndex: number;
   tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
   themeName: ThemeName;
@@ -1501,27 +1503,61 @@ export function RevealPullProgress({
         const rarityPalette =
           getThemeRarityPalette(themeName, rarityName) ??
           getThemeRarityPalette(themeName, "Common");
-        const isRevealed = index <= revealedIndex;
 
         return (
-          <View
+          <RevealPullProgressSegment
             key={`${card.id}-${index}`}
-            className="h-2 flex-1 overflow-hidden rounded-full"
-            style={{
-              backgroundColor: withAlpha(tc.primaryBorder, "66"),
-            }}
-          >
-            {isRevealed ? (
-              <LinearGradient
-                colors={[rarityPalette.from, rarityPalette.to]}
-                start={{ x: 0, y: 0.5 }}
-                end={{ x: 1, y: 0.5 }}
-                style={{ flex: 1 }}
-              />
-            ) : null}
-          </View>
+            colorFrom={rarityPalette.from}
+            colorTo={rarityPalette.to}
+            index={index}
+            revealProgress={revealProgress}
+            revealedIndex={revealedIndex}
+            trackColor={withAlpha(tc.primaryBorder, "66")}
+          />
         );
       })}
+    </View>
+  );
+}
+
+function RevealPullProgressSegment({
+  colorFrom,
+  colorTo,
+  index,
+  revealProgress,
+  revealedIndex,
+  trackColor,
+}: {
+  colorFrom: string;
+  colorTo: string;
+  index: number;
+  revealProgress: SharedValue<number>;
+  revealedIndex: number;
+  trackColor: string;
+}) {
+  const isPast = index < revealedIndex;
+  const isCurrent = index === revealedIndex;
+  const fillStyle = useAnimatedStyle(() => ({
+    opacity: isPast
+      ? 1
+      : interpolate(revealProgress.value, [0, 0.42, 1], [0, 0.35, 1]),
+  }));
+
+  return (
+    <View
+      className="h-2 flex-1 overflow-hidden rounded-full"
+      style={{ backgroundColor: trackColor }}
+    >
+      {isPast || isCurrent ? (
+        <Animated.View style={[StyleSheet.absoluteFill, fillStyle]}>
+          <LinearGradient
+            colors={[colorFrom, colorTo]}
+            start={{ x: 0, y: 0.5 }}
+            end={{ x: 1, y: 0.5 }}
+            style={{ flex: 1 }}
+          />
+        </Animated.View>
+      ) : null}
     </View>
   );
 }

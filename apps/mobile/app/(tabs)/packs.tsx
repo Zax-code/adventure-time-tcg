@@ -966,9 +966,8 @@ function usePacksScreenView() {
             </View>
             <RevealPullProgress
               cards={openedCards}
-              revealedIndex={
-                isRevealSettled ? revealedIndex : revealedIndex - 1
-              }
+              revealProgress={flipAnim}
+              revealedIndex={revealedIndex}
               tc={tc}
               themeName={themeName}
             />
