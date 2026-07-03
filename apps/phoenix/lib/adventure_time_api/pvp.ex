@@ -931,8 +931,8 @@ defmodule AdventureTimeApi.Pvp do
     |> Enum.uniq()
     |> Map.new(fn match_id ->
       current_player_id =
-        case latest_snapshot_for_match(match_id) do
-          %MatchSnapshot{state: %{} = state} -> Map.get(state, "currentPlayerId")
+        case reconstruct_state(match_id) do
+          {:ok, %{} = state} -> Map.get(state, "currentPlayerId")
           _ -> nil
         end
 

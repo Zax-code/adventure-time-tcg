@@ -464,6 +464,33 @@ defmodule AdventureTimeApiWeb.PvpControllerTest do
     assert json_response(get_match_conn, 200)["match"]["id"] == match_id
   end
 
+  test "matches endpoint exposes the latest current player after an unsnapshotted turn change",
+       _context do
+    %{
+      acting_token: acting_token,
+      battle_state: battle_state,
+      match_id: match_id
+    } =
+      create_accepted_match_fixture("turn-list")
+
+    acting_user_id = battle_state["currentPlayerId"]
+
+    end_turn_conn =
+      acting_token
+      |> auth_conn()
+      |> post(~p"/pvp/matches/#{match_id}/end-turn", %{})
+
+    assert %{"battleState" => %{"currentPlayerId" => next_player_id, "turn" => 2}} =
+             json_response(end_turn_conn, 200)
+
+    assert next_player_id != acting_user_id
+
+    matches_conn = acting_token |> auth_conn() |> get(~p"/pvp/matches")
+
+    assert %{"matches" => [%{"currentPlayerId" => ^next_player_id, "currentTurn" => 2}]} =
+             json_response(matches_conn, 200)
+  end
+
   test "skill and ultimate action routes execute assigned abilities", _context do
     %{
       acting_token: acting_token,
