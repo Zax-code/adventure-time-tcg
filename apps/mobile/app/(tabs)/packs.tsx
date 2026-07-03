@@ -23,6 +23,11 @@ import {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import type {
+  CollectionResponse,
+  HomeResponse,
+} from "@adventure-time/api-client";
+
 import { PrimaryButton, SecondaryButton } from "../../src/components/button";
 import { CardTile } from "../../src/components/card-tile";
 import { CARD_ART_RATIO } from "../../src/components/card-back-cover-art";
@@ -69,6 +74,10 @@ import {
   RevealCardStage,
   SectionBadge,
 } from "../../src/features/packs/opening-components";
+import {
+  patchCollectionAfterPackOpen,
+  patchHomeAfterPackOpen,
+} from "../../src/features/packs/collection-cache";
 import {
   IS_E2E_BUILD,
   PACK_CARD_RATIO,
@@ -370,6 +379,14 @@ function usePacksScreenView() {
       setOpenedCards(result.cards);
       setNewBalance(result.newBalance);
       setSelectedPack(result.pack);
+      queryClient.setQueryData<CollectionResponse | undefined>(
+        ["collection"],
+        (current) => patchCollectionAfterPackOpen(current, result),
+      );
+      queryClient.setQueryData<HomeResponse | undefined>(
+        ["home"],
+        (current) => patchHomeAfterPackOpen(current, result),
+      );
 
       await Promise.all([
         prefetchCardImages(result.cards.map((card) => card.imageAssetId)),
