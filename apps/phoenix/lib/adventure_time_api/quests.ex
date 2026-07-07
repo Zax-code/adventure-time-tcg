@@ -12,6 +12,7 @@ defmodule AdventureTimeApi.Quests do
   alias AdventureTimeApi.Health
 
   alias AdventureTimeApi.Quests.{
+    DailyNumbersArchiveAttempt,
     DailyNumbersDailyAttempt,
     DailyNumbersEngine,
     DailyQuest,
@@ -33,6 +34,7 @@ defmodule AdventureTimeApi.Quests do
   @slow_wordle_ms 150
   @slow_speed_state_ms 150
   @slow_daily_numbers_ms 150
+  @daily_numbers_archive_days 30
 
   @quest_definitions [
     %{quest_type: "steps_10k", icon: "walking", target: 10_000, reward: 75},
@@ -465,6 +467,73 @@ defmodule AdventureTimeApi.Quests do
             end
           end
         end
+      end
+    end
+  end
+
+  def daily_numbers_archive_history(user_id) do
+    today = current_reset_date_for_user(user_id)
+
+    dates =
+      1..@daily_numbers_archive_days
+      |> Enum.map(&Date.add(today, -&1))
+
+    attempts =
+      DailyNumbersArchiveAttempt
+      |> where([a], a.user_id == ^user_id and a.date in ^dates)
+      |> Repo.all()
+      |> Map.new(&{{&1.date, &1.mode}, &1})
+
+    days =
+      Enum.map(dates, fn date ->
+        %{
+          date: Date.to_iso8601(date),
+          modes:
+            daily_numbers_modes()
+            |> Enum.map(fn mode ->
+              attempts
+              |> Map.get({date, mode})
+              |> build_daily_numbers_archive_mode_summary(mode)
+            end)
+        }
+      end)
+
+    {:ok, %{today: Date.to_iso8601(today), days: days}}
+  end
+
+  def daily_numbers_archive_state(user_id, date_key, mode) do
+    with {:ok, date} <- parse_daily_numbers_archive_date(date_key),
+         :ok <- validate_daily_numbers_archive_date(user_id, date),
+         {:ok, normalized_mode} <- normalize_daily_numbers_mode(mode) do
+      {:ok, build_daily_numbers_archive_state(user_id, date, normalized_mode)}
+    end
+  end
+
+  def submit_daily_numbers_archive(user_id, date_key, mode, steps, elapsed_ms \\ 0) do
+    with {:ok, date} <- parse_daily_numbers_archive_date(date_key),
+         :ok <- validate_daily_numbers_archive_date(user_id, date),
+         {:ok, normalized_mode} <- normalize_daily_numbers_mode(mode),
+         {:ok, puzzle} <- DailyNumbersEngine.generate_puzzle(normalized_mode, date),
+         {:ok, validated_submission} <- DailyNumbersEngine.validate_submission(puzzle, steps) do
+      submission_attrs = %{
+        user_id: user_id,
+        date: date,
+        mode: normalized_mode,
+        submitted_steps: validated_submission.steps,
+        final_value: validated_submission.finalValue,
+        distance: validated_submission.distance,
+        score: validated_submission.score,
+        exact: validated_submission.exact,
+        completed: validated_submission.completed,
+        elapsed_ms: normalize_daily_numbers_elapsed_ms(elapsed_ms)
+      }
+
+      case upsert_daily_numbers_archive_attempt(user_id, date, normalized_mode, submission_attrs) do
+        {:ok, _attempt} ->
+          {:ok, build_daily_numbers_archive_state(user_id, date, normalized_mode)}
+
+        {:error, reason} ->
+          {:error, reason}
       end
     end
   end
@@ -1590,6 +1659,62 @@ defmodule AdventureTimeApi.Quests do
     }
   end
 
+  defp build_daily_numbers_submission_payload(%DailyNumbersArchiveAttempt{} = attempt, puzzle) do
+    %{
+      finalValue: attempt.final_value,
+      defaultDistance: puzzle.distance,
+      distance: attempt.distance,
+      exact: attempt.exact,
+      score: attempt.score,
+      completed: attempt.completed,
+      elapsedMs: attempt.elapsed_ms,
+      steps: attempt.submitted_steps,
+      officialSolutionUnlocked: true,
+      officialSolutionSteps: puzzle.solution
+    }
+  end
+
+  defp build_daily_numbers_archive_state(user_id, date, mode) do
+    {{attempt, puzzle}, duration_ms} =
+      timed(fn ->
+        {
+          get_daily_numbers_archive_attempt(user_id, date, mode),
+          DailyNumbersEngine.generate_puzzle(mode, date)
+        }
+      end)
+
+    {:ok, puzzle_payload} = puzzle
+
+    maybe_log_slow(
+      duration_ms,
+      @slow_daily_numbers_ms,
+      "daily_numbers_archive_state_slow",
+      user_id: user_id,
+      mode: mode
+    )
+
+    %{
+      archive: true,
+      mode: mode,
+      date: Date.to_iso8601(date),
+      resetTimezone: reset_timezone_for_user(user_id),
+      target: puzzle_payload.target,
+      numbers: puzzle_payload.numbers,
+      generationAttempt: puzzle_payload.generationAttempt,
+      bestValue: puzzle_payload.bestValue,
+      bestDistance: puzzle_payload.distance,
+      questVersion: nil,
+      resetByName: nil,
+      reward: 0,
+      claimed: false,
+      completed: if(attempt, do: attempt.completed, else: false),
+      submitted: not is_nil(attempt),
+      status: daily_numbers_archive_status(attempt),
+      submission: build_daily_numbers_submission_payload(attempt, puzzle_payload),
+      officialSolutionSteps: puzzle_payload.solution
+    }
+  end
+
   defp load_daily_numbers_attempts(user_id, date) do
     DailyNumbersDailyAttempt
     |> where([a], a.user_id == ^user_id and a.date == ^date)
@@ -1601,6 +1726,105 @@ defmodule AdventureTimeApi.Quests do
     DailyNumbersDailyAttempt
     |> where([a], a.user_id == ^user_id and a.date == ^date and a.mode == ^mode)
     |> Repo.one()
+  end
+
+  defp get_daily_numbers_archive_attempt(user_id, date, mode) do
+    DailyNumbersArchiveAttempt
+    |> where([a], a.user_id == ^user_id and a.date == ^date and a.mode == ^mode)
+    |> Repo.one()
+  end
+
+  defp upsert_daily_numbers_archive_attempt(user_id, date, mode, attrs) do
+    case get_daily_numbers_archive_attempt(user_id, date, mode) do
+      nil ->
+        %DailyNumbersArchiveAttempt{}
+        |> DailyNumbersArchiveAttempt.changeset(attrs)
+        |> Repo.insert()
+
+      %DailyNumbersArchiveAttempt{} = current ->
+        if daily_numbers_archive_submission_better?(attrs, current) do
+          current
+          |> DailyNumbersArchiveAttempt.changeset(attrs)
+          |> Repo.update()
+        else
+          {:ok, current}
+        end
+    end
+  end
+
+  defp daily_numbers_archive_submission_better?(_attrs, %DailyNumbersArchiveAttempt{exact: true}),
+    do: false
+
+  defp daily_numbers_archive_submission_better?(%{exact: true}, _current), do: true
+
+  defp daily_numbers_archive_submission_better?(attrs, current) do
+    {archive_result_rank(attrs), attrs.elapsed_ms} <
+      {archive_result_rank(current), current.elapsed_ms}
+  end
+
+  defp archive_result_rank(%DailyNumbersArchiveAttempt{distance: distance, score: score}) do
+    {distance, -score}
+  end
+
+  defp archive_result_rank(%{distance: distance, score: score}) do
+    {distance, -score}
+  end
+
+  defp build_daily_numbers_archive_mode_summary(nil, mode) do
+    %{
+      mode: mode,
+      status: "unplayed",
+      finalValue: nil,
+      distance: nil,
+      score: nil,
+      exact: false,
+      completed: false,
+      elapsedMs: nil
+    }
+  end
+
+  defp build_daily_numbers_archive_mode_summary(%DailyNumbersArchiveAttempt{} = attempt, mode) do
+    %{
+      mode: mode,
+      status: daily_numbers_archive_status(attempt),
+      finalValue: attempt.final_value,
+      distance: attempt.distance,
+      score: attempt.score,
+      exact: attempt.exact,
+      completed: attempt.completed,
+      elapsedMs: attempt.elapsed_ms
+    }
+  end
+
+  defp daily_numbers_archive_status(nil), do: "unplayed"
+  defp daily_numbers_archive_status(%DailyNumbersArchiveAttempt{exact: true}), do: "exact"
+  defp daily_numbers_archive_status(%DailyNumbersArchiveAttempt{completed: true}), do: "solved"
+  defp daily_numbers_archive_status(%DailyNumbersArchiveAttempt{}), do: "tried"
+
+  defp parse_daily_numbers_archive_date(date_key) when is_binary(date_key) do
+    case Date.from_iso8601(date_key) do
+      {:ok, date} -> {:ok, date}
+      {:error, _reason} -> {:error, :invalid_daily_numbers_archive_date}
+    end
+  end
+
+  defp parse_daily_numbers_archive_date(_date_key),
+    do: {:error, :invalid_daily_numbers_archive_date}
+
+  defp validate_daily_numbers_archive_date(user_id, date) do
+    today = current_reset_date_for_user(user_id)
+    earliest = Date.add(today, -@daily_numbers_archive_days)
+
+    cond do
+      Date.compare(date, today) != :lt ->
+        {:error, :daily_numbers_archive_today_or_future}
+
+      Date.compare(date, earliest) == :lt ->
+        {:error, :daily_numbers_archive_out_of_range}
+
+      true ->
+        :ok
+    end
   end
 
   defp normalize_daily_numbers_mode(mode) when is_binary(mode) do
@@ -1618,6 +1842,8 @@ defmodule AdventureTimeApi.Quests do
   end
 
   defp normalize_daily_numbers_mode(_mode), do: {:error, :invalid_daily_numbers_mode}
+
+  defp daily_numbers_modes, do: ["1-5", "2-4", "3-3"]
 
   defp daily_numbers_mode_alias("classic"), do: "1-5"
   defp daily_numbers_mode_alias("1_5"), do: "1-5"

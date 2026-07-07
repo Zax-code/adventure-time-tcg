@@ -45,6 +45,9 @@ import {
   claimQuestResponseSchema,
   claimQuestSchema,
   collectionResponseSchema,
+  dailyNumbersArchiveHistoryResponseSchema,
+  dailyNumbersArchiveStateResponseSchema,
+  dailyNumbersArchiveSubmitSchema,
   dailyNumbersStateResponseSchema,
   dailyNumbersSubmitSchema,
   craftRecycleResponseSchema,
@@ -129,6 +132,9 @@ import {
   type ClaimQuestResponse,
   type CollectionResponse,
   type DailyNumbersMode,
+  type DailyNumbersArchiveHistoryResponse,
+  type DailyNumbersArchiveStateResponse,
+  type DailyNumbersArchiveSubmitInput,
   type DailyNumbersStateResponse,
   type DailyNumbersSubmitInput,
   type DailyClaimResponse,
@@ -573,6 +579,37 @@ export class ApiClient {
       "/quests/daily-numbers/submit",
       { method: "POST", body: JSON.stringify(body) },
       (data) => dailyNumbersStateResponseSchema.parse(data),
+    );
+  }
+
+  async dailyNumbersArchiveHistory(): Promise<DailyNumbersArchiveHistoryResponse> {
+    return this.request(
+      "/quests/daily-numbers/history",
+      { method: "GET" },
+      (data) => dailyNumbersArchiveHistoryResponseSchema.parse(data),
+    );
+  }
+
+  async dailyNumbersArchiveState(
+    dateKey: string,
+    mode: DailyNumbersMode,
+  ): Promise<DailyNumbersArchiveStateResponse> {
+    const query = `?date=${encodeURIComponent(dateKey)}&mode=${encodeURIComponent(mode)}`;
+    return this.request(
+      `/quests/daily-numbers/archive${query}`,
+      { method: "GET" },
+      (data) => dailyNumbersArchiveStateResponseSchema.parse(data),
+    );
+  }
+
+  async submitDailyNumbersArchive(
+    input: DailyNumbersArchiveSubmitInput,
+  ): Promise<DailyNumbersArchiveStateResponse> {
+    const body = dailyNumbersArchiveSubmitSchema.parse(input);
+    return this.request(
+      "/quests/daily-numbers/archive/submit",
+      { method: "POST", body: JSON.stringify(body) },
+      (data) => dailyNumbersArchiveStateResponseSchema.parse(data),
     );
   }
 

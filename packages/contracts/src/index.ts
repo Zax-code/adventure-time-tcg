@@ -792,6 +792,48 @@ export const dailyNumbersSubmitSchema = z.object({
   steps: z.array(dailyNumbersStepInputSchema),
 });
 
+export const dailyNumbersArchiveStatusSchema = z.enum([
+  "unplayed",
+  "tried",
+  "solved",
+  "exact",
+]);
+
+export const dailyNumbersArchiveModeSummarySchema = z.object({
+  mode: dailyNumbersModeSchema,
+  status: dailyNumbersArchiveStatusSchema,
+  finalValue: z.number().int().positive().nullable(),
+  distance: z.number().int().nonnegative().nullable(),
+  score: z.number().int().nonnegative().nullable(),
+  exact: z.boolean(),
+  completed: z.boolean(),
+  elapsedMs: z.number().int().nonnegative().nullable(),
+});
+
+export const dailyNumbersArchiveHistoryEntrySchema = z.object({
+  date: z.string(),
+  modes: z.array(dailyNumbersArchiveModeSummarySchema),
+});
+
+export const dailyNumbersArchiveHistoryResponseSchema = z.object({
+  today: z.string(),
+  days: z.array(dailyNumbersArchiveHistoryEntrySchema),
+});
+
+export const dailyNumbersArchiveStateResponseSchema =
+  dailyNumbersStateResponseSchema.extend({
+    archive: z.literal(true),
+    status: dailyNumbersArchiveStatusSchema,
+    officialSolutionSteps: z.array(dailyNumbersStepSchema),
+  });
+
+export const dailyNumbersArchiveSubmitSchema = z.object({
+  mode: dailyNumbersModeSchema,
+  dateKey: z.string().min(1),
+  elapsedMs: z.number().int().nonnegative().optional(),
+  steps: z.array(dailyNumbersStepInputSchema),
+});
+
 export const speedQuestionSchema = z.object({
   index: z.number().int().nonnegative(),
   left: z.number().int(),
@@ -1401,6 +1443,24 @@ export type DailyNumbersStateResponse = z.infer<
   typeof dailyNumbersStateResponseSchema
 >;
 export type DailyNumbersSubmitInput = z.infer<typeof dailyNumbersSubmitSchema>;
+export type DailyNumbersArchiveStatus = z.infer<
+  typeof dailyNumbersArchiveStatusSchema
+>;
+export type DailyNumbersArchiveModeSummary = z.infer<
+  typeof dailyNumbersArchiveModeSummarySchema
+>;
+export type DailyNumbersArchiveHistoryEntry = z.infer<
+  typeof dailyNumbersArchiveHistoryEntrySchema
+>;
+export type DailyNumbersArchiveHistoryResponse = z.infer<
+  typeof dailyNumbersArchiveHistoryResponseSchema
+>;
+export type DailyNumbersArchiveStateResponse = z.infer<
+  typeof dailyNumbersArchiveStateResponseSchema
+>;
+export type DailyNumbersArchiveSubmitInput = z.infer<
+  typeof dailyNumbersArchiveSubmitSchema
+>;
 export type WordleDefinitionVariant = z.infer<
   typeof wordleDefinitionVariantSchema
 >;

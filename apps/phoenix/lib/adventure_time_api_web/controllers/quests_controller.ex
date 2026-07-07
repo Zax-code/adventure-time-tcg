@@ -125,6 +125,122 @@ defmodule AdventureTimeApiWeb.QuestsController do
     |> json(%{error: "mode, dateKey, and steps are required"})
   end
 
+  # GET /quests/daily-numbers/history
+  def daily_numbers_archive_history(conn, _params) do
+    timed_action(conn, "daily_numbers_archive_history", fn conn, user_id ->
+      {:ok, payload} = Quests.daily_numbers_archive_history(user_id)
+      json(conn, payload)
+    end)
+  end
+
+  # GET /quests/daily-numbers/archive
+  def daily_numbers_archive_state(conn, %{"date" => date_key, "mode" => mode}) do
+    timed_action(conn, "daily_numbers_archive_state", fn conn, user_id ->
+      case Quests.daily_numbers_archive_state(user_id, date_key, mode) do
+        {:ok, payload} ->
+          json(conn, payload)
+
+        {:error, :invalid_daily_numbers_mode} ->
+          conn
+          |> put_status(400)
+          |> json(%{
+            error: "Unsupported Daily Numbers mode",
+            code: "INVALID_DAILY_NUMBERS_MODE"
+          })
+
+        {:error, :invalid_daily_numbers_archive_date} ->
+          conn
+          |> put_status(400)
+          |> json(%{
+            error: "Invalid Daily Numbers archive date",
+            code: "INVALID_DAILY_NUMBERS_ARCHIVE_DATE"
+          })
+
+        {:error, :daily_numbers_archive_today_or_future} ->
+          conn
+          |> put_status(400)
+          |> json(%{
+            error: "Daily Numbers archive only supports previous dates",
+            code: "DAILY_NUMBERS_ARCHIVE_TODAY_OR_FUTURE"
+          })
+
+        {:error, :daily_numbers_archive_out_of_range} ->
+          conn
+          |> put_status(404)
+          |> json(%{
+            error: "Daily Numbers archive date is outside the available history",
+            code: "DAILY_NUMBERS_ARCHIVE_OUT_OF_RANGE"
+          })
+      end
+    end)
+  end
+
+  def daily_numbers_archive_state(conn, _params) do
+    conn |> put_status(400) |> json(%{error: "date and mode are required"})
+  end
+
+  # POST /quests/daily-numbers/archive/submit
+  def submit_daily_numbers_archive(conn, %{
+        "mode" => mode,
+        "dateKey" => date_key,
+        "steps" => steps
+      }) do
+    elapsed_ms = Map.get(conn.body_params, "elapsedMs", 0)
+
+    timed_action(conn, "submit_daily_numbers_archive", fn conn, user_id ->
+      case Quests.submit_daily_numbers_archive(user_id, date_key, mode, steps, elapsed_ms) do
+        {:ok, payload} ->
+          json(conn, payload)
+
+        {:error, :invalid_daily_numbers_mode} ->
+          conn
+          |> put_status(400)
+          |> json(%{
+            error: "Unsupported Daily Numbers mode",
+            code: "INVALID_DAILY_NUMBERS_MODE"
+          })
+
+        {:error, :invalid_daily_numbers_archive_date} ->
+          conn
+          |> put_status(400)
+          |> json(%{
+            error: "Invalid Daily Numbers archive date",
+            code: "INVALID_DAILY_NUMBERS_ARCHIVE_DATE"
+          })
+
+        {:error, :daily_numbers_archive_today_or_future} ->
+          conn
+          |> put_status(400)
+          |> json(%{
+            error: "Daily Numbers archive only supports previous dates",
+            code: "DAILY_NUMBERS_ARCHIVE_TODAY_OR_FUTURE"
+          })
+
+        {:error, :daily_numbers_archive_out_of_range} ->
+          conn
+          |> put_status(404)
+          |> json(%{
+            error: "Daily Numbers archive date is outside the available history",
+            code: "DAILY_NUMBERS_ARCHIVE_OUT_OF_RANGE"
+          })
+
+        {:error, message} when is_binary(message) ->
+          conn
+          |> put_status(400)
+          |> json(%{error: message, code: "INVALID_DAILY_NUMBERS_SUBMISSION"})
+
+        {:error, _reason} ->
+          conn |> put_status(500) |> json(%{error: "Internal error"})
+      end
+    end)
+  end
+
+  def submit_daily_numbers_archive(conn, _params) do
+    conn
+    |> put_status(400)
+    |> json(%{error: "mode, dateKey, and steps are required"})
+  end
+
   # GET /wordle
   def wordle_state(conn, params) do
     locale = Map.get(params, "locale")

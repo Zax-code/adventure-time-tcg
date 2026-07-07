@@ -1620,6 +1620,19 @@ function useQuestsScreenView() {
                     </Pressable>
 
                     <View className="mt-4 flex-row gap-3">
+                      <QuestButton
+                        label={t("quests.dailyNumbers.historyAction")}
+                        onPress={() =>
+                          router.push("/quests/daily-numbers-history" as never)
+                        }
+                        backgroundColor={tc.surface}
+                        foregroundColor={tc.primaryDark}
+                        borderColor={tc.primaryBorder}
+                        minHeight={48}
+                        style={{
+                          flex: 1,
+                        }}
+                      />
                       {claimableQuests.length > 0 ? (
                         <QuestButton
                           label={t("quests.claimAll")}

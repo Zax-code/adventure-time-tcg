@@ -20,6 +20,7 @@ export type DailyNumbersShareResult = {
   elapsedTime: string;
   exact: boolean;
   completed: boolean;
+  archive?: boolean;
 };
 
 export type BuildDailyNumbersShareResultInput = {
@@ -34,6 +35,7 @@ export type BuildDailyNumbersShareResultInput = {
   elapsedTime: string;
   exact: boolean;
   completed: boolean;
+  archive?: boolean;
 };
 
 /**
@@ -56,6 +58,7 @@ export function buildDailyNumbersShareResult(
     elapsedTime: input.elapsedTime,
     exact: input.exact,
     completed: input.completed,
+    archive: input.archive,
   };
 }
 
@@ -67,6 +70,10 @@ export function buildDailyNumbersShareFileName(
   result: DailyNumbersShareResult,
 ): string {
   const parts = ["adventure-time-numbers"];
+
+  if (result.archive) {
+    parts.push("archive");
+  }
 
   if (result.date) {
     parts.push(result.date);
