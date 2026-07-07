@@ -111,6 +111,7 @@ function ArchiveModeChip({
 
   return (
     <Pressable
+      testID={`daily-numbers-archive-mode-${modeSummary.mode}`}
       onPress={() =>
         router.push(
           `/quests/daily-numbers-play?archiveDate=${date}&mode=${modeSummary.mode}` as never,
