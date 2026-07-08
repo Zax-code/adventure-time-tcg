@@ -18,7 +18,7 @@ PODS:
   - EXJSONUtils (56.0.0)
   - EXManifests (56.0.4):
     - ExpoModulesCore
-  - Expo (56.0.14):
+  - Expo (56.0.15):
     - boost
     - DoubleConversion
     - ExpoModulesCore
@@ -234,9 +234,9 @@ PODS:
     - React-Core
   - ExpoAppleAuthentication (56.0.4):
     - ExpoModulesCore
-  - ExpoAsset (56.0.18):
+  - ExpoAsset (56.0.19):
     - ExpoModulesCore
-  - ExpoBackgroundTask (56.0.20):
+  - ExpoBackgroundTask (56.0.21):
     - ExpoModulesCore
     - ExpoTaskManager
   - ExpoBlur (56.0.3):
@@ -260,7 +260,7 @@ PODS:
     - SDWebImageAVIFCoder (~> 0.11.0)
     - SDWebImageSVGCoder (~> 1.7.0)
     - SDWebImageWebPCoder (~> 0.14.6)
-  - ExpoImagePicker (56.0.19):
+  - ExpoImagePicker (56.0.20):
     - ExpoModulesCore
   - ExpoKeepAwake (56.0.3):
     - ExpoModulesCore
@@ -270,7 +270,7 @@ PODS:
     - ExpoModulesCore
   - ExpoLogBox (56.0.14):
     - React-Core
-  - ExpoModulesCore (56.0.19):
+  - ExpoModulesCore (56.0.20):
     - boost
     - DoubleConversion
     - ExpoModulesJSI
@@ -300,36 +300,36 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - ExpoModulesJSI (56.0.11):
+  - ExpoModulesJSI (56.0.12):
     - React-Core
     - ReactCommon
-  - ExpoModulesWorklets (56.0.19):
+  - ExpoModulesWorklets (56.0.20):
     - ExpoModulesCore
     - ExpoModulesJSI
-  - ExpoModulesWorkletsAdapter (56.0.19):
+  - ExpoModulesWorkletsAdapter (56.0.20):
     - ExpoModulesCore
     - ExpoModulesJSI
     - ExpoModulesWorklets
     - RNWorklets
-  - ExpoNotifications (56.0.19):
+  - ExpoNotifications (56.0.20):
     - ExpoModulesCore
-  - ExpoRouter (56.2.13):
+  - ExpoRouter (56.2.14):
     - ExpoModulesCore
     - RNScreens
   - ExpoSecureStore (56.0.4):
     - ExpoModulesCore
   - ExpoSensors (56.0.6):
     - ExpoModulesCore
-  - ExpoSharing (56.0.20):
+  - ExpoSharing (56.0.21):
     - ExpoModulesCore
   - ExpoSplashScreen (56.0.12):
     - ExpoModulesCore
   - ExpoSymbols (56.0.6):
     - ExpoModulesCore
-  - ExpoTaskManager (56.0.20):
+  - ExpoTaskManager (56.0.21):
     - ExpoModulesCore
     - UMAppLoader
-  - ExpoUI (56.0.20):
+  - ExpoUI (56.0.21):
     - ExpoModulesCore
     - ExpoModulesWorklets
     - React-RCTFabric
@@ -3445,7 +3445,7 @@ DEPENDENCIES:
   - "ExpoAdapterGoogleSignIn (from `../../../node_modules/@react-native-google-signin/google-signin/expo/ios`)"
   - ExpoAppleAuthentication (from `../../../node_modules/expo-apple-authentication/ios`)
   - ExpoAsset (from `../../../node_modules/expo-asset/ios`)
-  - ExpoBackgroundTask (from `../../../node_modules/expo-background-task/ios`)
+  - ExpoBackgroundTask (from `../node_modules/expo-background-task/ios`)
   - ExpoBlur (from `../../../node_modules/expo-blur/ios`)
   - ExpoCrypto (from `../../../node_modules/expo-crypto/ios`)
   - "ExpoDomWebView (from `../../../node_modules/@expo/dom-webview/ios`)"
@@ -3454,7 +3454,7 @@ DEPENDENCIES:
   - ExpoGlassEffect (from `../../../node_modules/expo-glass-effect/ios`)
   - ExpoHaptics (from `../../../node_modules/expo-haptics/ios`)
   - ExpoImage (from `../../../node_modules/expo-image/ios`)
-  - ExpoImagePicker (from `../../../node_modules/expo-image-picker/ios`)
+  - ExpoImagePicker (from `../node_modules/expo-image-picker/ios`)
   - ExpoKeepAwake (from `../../../node_modules/expo-keep-awake/ios`)
   - ExpoLinearGradient (from `../../../node_modules/expo-linear-gradient/ios`)
   - ExpoLinking (from `../../../node_modules/expo-linking/ios`)
@@ -3463,14 +3463,14 @@ DEPENDENCIES:
   - ExpoModulesJSI (from `../../../node_modules/expo-modules-jsi/apple`)
   - ExpoModulesWorklets (from `../../../node_modules/expo-modules-core`)
   - ExpoModulesWorkletsAdapter (from `../../../node_modules/expo-modules-core`)
-  - ExpoNotifications (from `../../../node_modules/expo-notifications/ios`)
+  - ExpoNotifications (from `../node_modules/expo-notifications/ios`)
   - ExpoRouter (from `../../../node_modules/expo-router/ios`)
   - ExpoSecureStore (from `../../../node_modules/expo-secure-store/ios`)
   - ExpoSensors (from `../../../node_modules/expo-sensors/ios`)
   - ExpoSharing (from `../node_modules/expo-sharing/ios`)
   - ExpoSplashScreen (from `../node_modules/expo-splash-screen/ios`)
   - ExpoSymbols (from `../../../node_modules/expo-symbols/ios`)
-  - ExpoTaskManager (from `../../../node_modules/expo-task-manager/ios`)
+  - ExpoTaskManager (from `../node_modules/expo-task-manager/ios`)
   - "ExpoUI (from `../../../node_modules/@expo/ui/ios`)"
   - ExpoWebBrowser (from `../../../node_modules/expo-web-browser/ios`)
   - EXUpdatesInterface (from `../../../node_modules/expo-updates-interface/ios`)
@@ -3616,7 +3616,7 @@ EXTERNAL SOURCES:
   ExpoAsset:
     :path: "../../../node_modules/expo-asset/ios"
   ExpoBackgroundTask:
-    :path: "../../../node_modules/expo-background-task/ios"
+    :path: "../node_modules/expo-background-task/ios"
   ExpoBlur:
     :path: "../../../node_modules/expo-blur/ios"
   ExpoCrypto:
@@ -3634,7 +3634,7 @@ EXTERNAL SOURCES:
   ExpoImage:
     :path: "../../../node_modules/expo-image/ios"
   ExpoImagePicker:
-    :path: "../../../node_modules/expo-image-picker/ios"
+    :path: "../node_modules/expo-image-picker/ios"
   ExpoKeepAwake:
     :path: "../../../node_modules/expo-keep-awake/ios"
   ExpoLinearGradient:
@@ -3652,7 +3652,7 @@ EXTERNAL SOURCES:
   ExpoModulesWorkletsAdapter:
     :path: "../../../node_modules/expo-modules-core"
   ExpoNotifications:
-    :path: "../../../node_modules/expo-notifications/ios"
+    :path: "../node_modules/expo-notifications/ios"
   ExpoRouter:
     :path: "../../../node_modules/expo-router/ios"
   ExpoSecureStore:
@@ -3666,7 +3666,7 @@ EXTERNAL SOURCES:
   ExpoSymbols:
     :path: "../../../node_modules/expo-symbols/ios"
   ExpoTaskManager:
-    :path: "../../../node_modules/expo-task-manager/ios"
+    :path: "../node_modules/expo-task-manager/ios"
   ExpoUI:
     :path: "../../../node_modules/@expo/ui/ios"
   ExpoWebBrowser:
@@ -3866,15 +3866,15 @@ SPEC CHECKSUMS:
   EXConstants: 5120c651b684c629efa1bafcf0d0ddb96b0de62f
   EXJSONUtils: dba2755f4e24009eaf87a876b2d615ea06c16e42
   EXManifests: 7e19be8df665a338493060a419847dae76ffcd43
-  Expo: 29a32c01985586602c9652cb0aa9a49758e0b93f
+  Expo: 1c386ee90a3c037994adaa078100e1daf54d0b35
   expo-dev-client: fa5261818901b8d0c1648a1c47020eb8175de371
   expo-dev-launcher: 2446855727d1bfd39fd711482e08b36e35f937c2
   expo-dev-menu: e542fe5b43f90f1e47417439e42eea4e6525026c
   expo-dev-menu-interface: 65402d4affb8b418aa6cec29b3abb0e313c8f443
   ExpoAdapterGoogleSignIn: ab4d9fc38cb91077a4138d178395525ec65d0c2e
   ExpoAppleAuthentication: 3dd8ddd3016396a8171f06af8cc5e3e008e8eaf4
-  ExpoAsset: b4d20fb5e56abe866465a1bb0cc22870a6a4e4d3
-  ExpoBackgroundTask: 685efc62723fda44baf35f54168641217c45dc8a
+  ExpoAsset: df5110ae7e42e935bad07138133aa74f025ef79e
+  ExpoBackgroundTask: 4ca20be83becbac7be0d18ef769eb940b87e0c9a
   ExpoBlur: caddd80171e5f8f3581ff3d865e99c6465047240
   ExpoCrypto: b54a97c4357d46d7f8de079e69fa89029572244b
   ExpoDomWebView: 4e53b05879dc73ba374f76bff93dd64c8a0d91b3
@@ -3883,24 +3883,24 @@ SPEC CHECKSUMS:
   ExpoGlassEffect: 7d4233dc0727ee2b28dd757eda70e1b6abf662fd
   ExpoHaptics: 89364cf3c3ca2cfd54cafed42f3be3169bab6d42
   ExpoImage: 93cda9464c2c62a5244931b66edeb0b24ed204c2
-  ExpoImagePicker: f4ce1db4d779c6ab47b377de47abae1b4e82802d
+  ExpoImagePicker: 7d604d51b6cf07f3d6cbaada9a19c50e64c8c67a
   ExpoKeepAwake: 359c47a1d9ccc3a3c519bca6e39562cce230c5bb
   ExpoLinearGradient: 16c2b9c6105444883d34958d573725de1293b8d0
   ExpoLinking: f8a78524352bf2c3baed5b33c8b56cd57c448702
   ExpoLogBox: cdad5c9402a186574fb5924ea91df1f08ba9a98a
-  ExpoModulesCore: 16e7285d0a8a06abd9e7c8cba4abf28d1bcef106
-  ExpoModulesJSI: 20d6c8dbe75f9efbe05d7c4a2a10ed03760ea5c1
-  ExpoModulesWorklets: 3f1c52dff52fe268d3a896efec06a6fa942a4f2e
-  ExpoModulesWorkletsAdapter: 7b39123984b9d0073365795091691c500bbdd4e1
-  ExpoNotifications: d95d9a54ac370743260a4ccbf6038a12cfabbb06
-  ExpoRouter: c82c4297fdca966ec5fb98422e8c72015a341e00
+  ExpoModulesCore: 25f6708863cbaca3cf40d03ee944ed13149072df
+  ExpoModulesJSI: e62656cfaffb5aeb3fdc1dd2bc49f77e87ed2261
+  ExpoModulesWorklets: bf01b3310464f105c5f6dbd887db81a51c765d05
+  ExpoModulesWorkletsAdapter: 4edc8bfc0112ad09a8bb5851964ed8acbecbf137
+  ExpoNotifications: 13dd7a12760ecae8ac3aad6bf7c79cf123ea56d0
+  ExpoRouter: 173998c68fd6c518276ff8b516cf5748760d2d8f
   ExpoSecureStore: f1bd083c1b7b8d4142013ffcc0082d377d9f49f4
   ExpoSensors: d34558ddf1f1d61c7a22180d1d40d8bd89d67d7b
-  ExpoSharing: d5e79c74e4fd502761b0ed558f350826dae68296
+  ExpoSharing: 405cd864050b2202541098ba02d7e5a357cbc696
   ExpoSplashScreen: db432721a17dc8a718d5e2562f8edebe310e524f
   ExpoSymbols: 377747de25bcb1ab68ec68f23d81fb81d43eae83
-  ExpoTaskManager: 6bb6debe614a5f28fabb07f2b73b0c19b8562b73
-  ExpoUI: 56780db669fe580d74c4e0710668c37ba331cf04
+  ExpoTaskManager: 37b716a7eebc9722743fe6da3e0ce1a08ac50833
+  ExpoUI: 1f2b09895d7479e3392732946cd71202574d667d
   ExpoWebBrowser: 6e3d90e3fe1952d21a8494872b1e1a485cd50e2f
   EXUpdatesInterface: 25408a97d682355eb9fb37e5aa6e22caece1881f
   fast_float: b32c788ed9c6a8c584d114d0047beda9664e7cc6
