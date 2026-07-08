@@ -303,7 +303,6 @@ const quests = {
     archiveNoReward:
       "Les résultats d'archive sont enregistrés pour le plaisir et ne donnent pas de pièces.",
     archiveTryAgain: "Réessayer",
-    archiveResultType: "Type",
     archiveResultLabel: "Archive",
     rewardReminder:
       "Retourne aux quêtes quotidiennes pour récupérer {reward} pièces quand tu veux.",

@@ -1082,16 +1082,7 @@ function FinishStatePanel({
             {finishScore != null ? `${finishScore}%` : "—"}
           </Text>
         </View>
-        {archiveMode ? (
-          <View className="min-w-[96px] flex-1 rounded-2xl border border-primaryBorder bg-surface px-3 py-3">
-            <Text className="font-nunito-semibold text-[10px] uppercase tracking-[1px] text-fgMuted">
-              {t("quests.dailyNumbers.archiveResultType")}
-            </Text>
-            <Text className="font-nunito-extrabold text-2xl text-fg">
-              {t("quests.dailyNumbers.archiveResultLabel")}
-            </Text>
-          </View>
-        ) : (
+        {!archiveMode ? (
           <View className="min-w-[96px] flex-1 rounded-2xl border border-primaryBorder bg-surface px-3 py-3">
             <Text className="font-nunito-semibold text-[10px] uppercase tracking-[1px] text-fgMuted">
               {t("quests.dailyNumbers.reward")}
@@ -1100,7 +1091,7 @@ function FinishStatePanel({
               {state.reward}
             </Text>
           </View>
-        )}
+        ) : null}
         <View className="min-w-[96px] flex-1 rounded-2xl border border-primaryBorder bg-surface px-3 py-3">
           <Text className="font-nunito-semibold text-[10px] uppercase tracking-[1px] text-fgMuted">
             {t("quests.dailyNumbers.solveTime")}
@@ -2631,14 +2622,28 @@ function DailyNumbersPlayView({
       >
         <View className="mb-3 items-center gap-2">
           <Text className="text-center font-nunito-extrabold text-[28px] text-primaryDark">
-            {archiveMode
-              ? t("quests.dailyNumbers.archiveTitle")
-              : t("quests.dailyNumbers.title")}
+            {t("quests.dailyNumbers.title")}
           </Text>
           {archiveMode ? (
-            <Text className="text-center font-nunito-bold text-sm text-primaryDark">
-              {archiveDate}
-            </Text>
+            <>
+              <View
+                className="rounded-full border px-4 py-1.5"
+                style={{
+                  backgroundColor: tc.secondaryDark,
+                  borderColor: tc.secondaryBorder,
+                }}
+              >
+                <Text
+                  className="text-center font-nunito-extrabold text-xs uppercase tracking-[1px]"
+                  style={{ color: tc.secondaryText }}
+                >
+                  {t("quests.dailyNumbers.archiveResultLabel")}
+                </Text>
+              </View>
+              <Text className="text-center font-nunito-bold text-sm text-primaryDark">
+                {archiveDate}
+              </Text>
+            </>
           ) : null}
           <Text className="max-w-[340px] text-center font-nunito text-sm text-primaryDark/80">
             {archiveMode

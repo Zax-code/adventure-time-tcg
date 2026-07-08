@@ -292,7 +292,6 @@ const quests = {
     lockedSuccess: "Reward unlocked. Your result is locked in.",
     archiveNoReward: "Archive results are saved for fun and do not grant coins.",
     archiveTryAgain: "Try again",
-    archiveResultType: "Type",
     archiveResultLabel: "Archive",
     rewardReminder:
       "Head back to daily quests and claim {reward} coins when you're ready.",
