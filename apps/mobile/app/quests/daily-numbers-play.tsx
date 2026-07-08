@@ -2340,9 +2340,7 @@ function DailyNumbersBoard({
   const shareResult = useMemo(
     () =>
       buildDailyNumbersShareResult({
-        questTitle: archiveMode
-          ? controller.t("quests.dailyNumbers.archiveShareTitle")
-          : controller.t("quests.dailyNumbers.title"),
+        questTitle: controller.t("quests.dailyNumbers.title"),
         modeLabel: controller.t(getModeLabelKey(controller.state.mode)),
         mode: controller.state.mode,
         date: controller.state.date,
@@ -2394,6 +2392,7 @@ function DailyNumbersBoard({
         "quests.dailyNumbers.shareResultValueLabel",
       ),
       timeLabel: controller.t("quests.dailyNumbers.solveTime"),
+      archiveLabel: controller.t("quests.dailyNumbers.archiveResultLabel"),
       footer: archiveMode
         ? controller.t("quests.dailyNumbers.archiveShareFooter")
         : controller.t("quests.dailyNumbers.shareFooter"),

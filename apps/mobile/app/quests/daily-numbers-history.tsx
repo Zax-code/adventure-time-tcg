@@ -15,7 +15,6 @@ import {
   getModeAccent,
   getModeLabelKey,
 } from "../../src/features/quests/daily-numbers/shared";
-import { QuestActionButton } from "../../src/features/quests/quest-action-button";
 import { useTranslation } from "../../src/i18n";
 import { apiClient } from "../../src/lib/api";
 import { useThemeStore } from "../../src/stores/theme-store";
@@ -86,6 +85,30 @@ function getStatusTone(
     border: tc.primaryBorder,
     text: tc.fgMuted,
   };
+}
+
+function HistoryBackButton({
+  label,
+  onPress,
+}: {
+  label: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      className="w-full overflow-hidden rounded-xl"
+      style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+    >
+      <View className="items-center rounded-xl bg-primary py-2">
+        <Text className="font-nunito-semibold text-sm text-primaryBg">
+          {label}
+        </Text>
+      </View>
+    </Pressable>
+  );
 }
 
 function ArchiveModeChip({
@@ -205,13 +228,9 @@ export default function DailyNumbersHistoryScreen() {
           <Text className="max-w-[350px] text-center font-nunito text-sm text-primaryDark/80">
             {t("quests.dailyNumbers.archiveListSubtitle")}
           </Text>
-          <QuestActionButton
+          <HistoryBackButton
             label={t("quests.dailyNumbers.backToQuests")}
             onPress={() => router.back()}
-            backgroundColor={tc.surface}
-            foregroundColor={tc.primaryDark}
-            borderColor={tc.primaryBorder}
-            minHeight={40}
           />
         </View>
 

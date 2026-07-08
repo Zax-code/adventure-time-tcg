@@ -10,14 +10,28 @@ tags:
     clearState: true
     clearKeychain: true
 - openLink:
-    link: adventure-time:///e2e-auth?redirect=%2Fquests%2Fdaily-numbers-history&email=${TEST_EMAIL_URI}&password=${TEST_PASSWORD_URI}
+    link: adventure-time:///e2e-auth?redirect=%2Fquests&email=${TEST_EMAIL_URI}&password=${TEST_PASSWORD_URI}
 - runFlow: subflows/confirm-open-link-if-needed.yaml
+- extendedWaitUntil:
+    visible:
+      text: Daily quests
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: quests-daily-numbers-history
+    direction: DOWN
+    timeout: 20000
+    centerElement: true
+- waitForAnimationToEnd
+- takeScreenshot: tmp-daily-numbers-archive-shots/01-quests-entry
+- tapOn:
+    id: quests-daily-numbers-history
 - extendedWaitUntil:
     visible:
       text: Daily Numbers Archive
     timeout: 15000
 - waitForAnimationToEnd
-- takeScreenshot: tmp-daily-numbers-archive-shots/01-history
+- takeScreenshot: tmp-daily-numbers-archive-shots/02-history
 
 - tapOn:
     id: daily-numbers-archive-mode-1-5
@@ -26,7 +40,7 @@ tags:
       text: Daily Numbers Archive
     timeout: 15000
 - waitForAnimationToEnd
-- takeScreenshot: tmp-daily-numbers-archive-shots/02-archive-board
+- takeScreenshot: tmp-daily-numbers-archive-shots/03-archive-board
 
 - tapOn:
     id: daily-numbers-tile-n0
@@ -57,7 +71,7 @@ tags:
     timeout: 20000
     centerElement: true
 - waitForAnimationToEnd
-- takeScreenshot: tmp-daily-numbers-archive-shots/03-archive-result
+- takeScreenshot: tmp-daily-numbers-archive-shots/04-archive-result
 
 - tapOn:
     id: daily-numbers-share-result
@@ -66,11 +80,36 @@ tags:
       text: ".*Image.*"
     timeout: 15000
 - waitForAnimationToEnd
-- takeScreenshot: tmp-daily-numbers-archive-shots/04-share-sheet
+- takeScreenshot: tmp-daily-numbers-archive-shots/05-share-sheet
 - tapOn:
     point: "39%,88%"
 - waitForAnimationToEnd
 - launchApp:
     appId: com.apple.mobileslideshow
 - waitForAnimationToEnd
-- takeScreenshot: tmp-daily-numbers-archive-shots/05-photos
+- runFlow:
+    when:
+      visible: Aujourd'hui
+    commands:
+      - tapOn:
+          point: "9%,9%"
+      - waitForAnimationToEnd
+- runFlow:
+    when:
+      visible: Aujourd’hui
+    commands:
+      - tapOn:
+          point: "9%,9%"
+      - waitForAnimationToEnd
+- runFlow:
+    when:
+      visible: Today
+    commands:
+      - tapOn:
+          point: "9%,9%"
+      - waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      text: "Phototh[eè]que|Library"
+    timeout: 10000
+- takeScreenshot: tmp-daily-numbers-archive-shots/06-photos

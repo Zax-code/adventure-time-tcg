@@ -344,7 +344,6 @@ const quests = {
     archiveDistanceShort: "{distance} away",
     archiveOpenMode: "Open {mode} archive puzzle for {date}",
     archiveDateMeta: "Archive date: {date}",
-    archiveShareTitle: "Daily Numbers Archive",
     archiveShareFooter: "Archive puzzle - no reward",
     completedLabel: "Reward unlocked",
     incompleteLabel: "Result submitted",

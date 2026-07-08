@@ -357,7 +357,6 @@ const quests = {
     archiveDistanceShort: "À {distance}",
     archiveOpenMode: "Ouvrir l'archive {mode} du {date}",
     archiveDateMeta: "Date d'archive : {date}",
-    archiveShareTitle: "Archives des nombres",
     archiveShareFooter: "Énigme d'archive - sans récompense",
     completedLabel: "Récompense débloquée",
     incompleteLabel: "Résultat envoyé",
