@@ -2077,12 +2077,7 @@ function useDailyNumbersBoardController({
 
     triggerLightHaptic();
     dispatch({ type: "resetBoard" });
-    if (archiveMode) {
-      chronometer.resetElapsedMs();
-    }
   }, [
-    archiveMode,
-    chronometer.resetElapsedMs,
     interaction.selectedLeftId,
     interaction.selectedOperator,
     interaction.selectedRightId,
