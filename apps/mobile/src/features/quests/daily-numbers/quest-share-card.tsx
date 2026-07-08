@@ -109,8 +109,7 @@ export function DailyNumbersQuestShareCard({
       {/* Mode + archive pills */}
       <View
         style={{
-          flexDirection: "row",
-          flexWrap: "wrap",
+          alignItems: "center",
           justifyContent: "center",
           gap: 8,
         }}
