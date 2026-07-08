@@ -1093,6 +1093,7 @@ function useQuestsScreenView() {
               targetLabel: t("quests.dailyNumbers.target"),
               resultValueLabel: t("quests.dailyNumbers.shareResultValueLabel"),
               timeLabel: t("quests.dailyNumbers.solveTime"),
+              archiveLabel: t("quests.dailyNumbers.archiveResultLabel"),
               footer: t("quests.dailyNumbers.shareFooter"),
               date: formatQuestShareDate(state.date, locale),
             },
@@ -1983,7 +1984,21 @@ function useQuestsScreenView() {
                       </View>
                     </Pressable>
 
-                    <View className="mt-4 flex-row gap-3">
+                    <View className="mt-4">
+                      <QuestButton
+                        label={t("quests.dailyNumbers.historyAction")}
+                        onPress={() =>
+                          router.push("/quests/daily-numbers-history" as never)
+                        }
+                        backgroundColor={tc.surface}
+                        foregroundColor={tc.primaryDark}
+                        borderColor={tc.primaryBorder}
+                        minHeight={48}
+                        testID="quests-daily-numbers-history"
+                      />
+                    </View>
+
+                    <View className="mt-3 flex-row gap-3">
                       {claimableQuests.length > 0 ? (
                         <QuestButton
                           label={t("quests.claimAll")}

@@ -15,6 +15,7 @@ export type DailyNumbersQuestShareCardStrings = {
   resultValueLabel: string;
   timeLabel: string;
   footer: string;
+  archiveLabel: string;
   date?: string;
 };
 
@@ -105,21 +106,48 @@ export function DailyNumbersQuestShareCard({
         ) : null}
       </View>
 
-      {/* Mode pill */}
+      {/* Mode + archive pills */}
       <View
         style={{
-          backgroundColor: colors.primaryTint,
-          borderRadius: 999,
-          paddingHorizontal: 14,
-          paddingVertical: 6,
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 8,
         }}
       >
-        <Text
-          className="text-[12px] font-nunito-extrabold uppercase text-center"
-          style={{ color: colors.primaryStrong, letterSpacing: 1 }}
+        {result.archive ? (
+          <View
+            style={{
+              backgroundColor: colors.secondaryDark,
+              borderColor: colors.secondaryBorder,
+              borderRadius: 999,
+              borderWidth: 1,
+              paddingHorizontal: 14,
+              paddingVertical: 6,
+            }}
+          >
+            <Text
+              className="text-[12px] font-nunito-extrabold uppercase text-center"
+              style={{ color: colors.secondaryText, letterSpacing: 1 }}
+            >
+              {strings.archiveLabel}
+            </Text>
+          </View>
+        ) : null}
+        <View
+          style={{
+            backgroundColor: colors.primaryTint,
+            borderRadius: 999,
+            paddingHorizontal: 14,
+            paddingVertical: 6,
+          }}
         >
-          {strings.modeLabel}
-        </Text>
+          <Text
+            className="text-[12px] font-nunito-extrabold uppercase text-center"
+            style={{ color: colors.primaryStrong, letterSpacing: 1 }}
+          >
+            {strings.modeLabel}
+          </Text>
+        </View>
       </View>
 
       {/* Result line */}

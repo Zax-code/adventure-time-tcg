@@ -217,10 +217,17 @@ const quests = {
     "{score} bonnes réponses sur {answered} réponses envoyées.",
   dailyNumbers: {
     title: "Nombres du jour",
+    archiveTitle: "Archives des nombres",
     subtitle:
       "Tape deux nombres et un opérateur pour créer un résultat. Plus tu améliores le plateau de départ, plus tu débloques la récompense.",
+    archiveSubtitle:
+      "Rejoue les anciens plateaux de Nombres du jour pour le défi. Les archives ne donnent pas de récompense.",
+    archiveListSubtitle:
+      "Choisis un ancien jour et un niveau pour le rejouer sans récompense.",
     backToQuests: "Retour aux quêtes",
+    backToHistory: "Retour à l'historique",
     backToOverview: "Retour à l'aperçu",
+    historyAction: "Historique",
     chooseLevel: "Choisis ton niveau",
     openGame: "Jouer",
     playAction: "Jouer",
@@ -237,6 +244,8 @@ const quests = {
     claimedLabel: "Récompense récupérée",
     helperLine:
       "Le plateau de départ vaut 0 %. Chaque amélioration augmente le pourcentage de récompense, et une cible exacte s'envoie automatiquement à 100 %.",
+    archiveHelperLine:
+      "Les archives gardent ton meilleur résultat et ton temps, mais ne donnent jamais de pièces.",
     target: "Cible",
     targetValue: "Cible : {target}",
     reward: "Récompense",
@@ -268,18 +277,33 @@ const quests = {
     submitConfirmBody:
       "Ce résultat sera envoyé comme tentative finale du jour. Les cibles exactes s'envoient automatiquement.",
     submitConfirmAction: "Verrouiller le résultat",
+    archiveSubmitConfirmTitle: "Enregistrer ce résultat d'archive ?",
+    archiveSubmitConfirmBody:
+      "Cela enregistre ton meilleur résultat pour cette énigme d'archive. Aucune récompense ne sera donnée.",
+    archiveSubmitConfirmAction: "Enregistrer",
+    archiveSaveResult: "Enregistrer",
     stepHistoryTitle: "Tes étapes",
     noStepsYet: "Aucune étape pour l'instant. Commence par combiner deux nombres.",
     revealSolution: "Afficher la solution officielle",
     hideSolution: "Masquer la solution officielle",
     exactResult: "Cible exacte ! {score} % débloqués et la quête est terminée.",
+    archiveExactResult:
+      "Cible exacte ! {score} % enregistrés pour cette archive.",
     closeResult:
       "Résultat le plus proche : {value}, à {distance} d'écart avec {score} % débloqués.",
+    archiveCloseResult:
+      "Résultat le plus proche : {value}, à {distance} d'écart avec {score} % enregistrés.",
     autoSubmittingSuccess:
       "Résultat exact trouvé. Envoi automatique en cours...",
     clearReached:
       "Récompense débloquée. Envoie maintenant ou continue pour un meilleur pourcentage.",
+    archiveImproved:
+      "Résultat amélioré. Enregistre maintenant ou continue pour trouver la cible exacte.",
     lockedSuccess: "Récompense débloquée. Ton résultat est désormais verrouillé.",
+    archiveNoReward:
+      "Les résultats d'archive sont enregistrés pour le plaisir et ne donnent pas de pièces.",
+    archiveTryAgain: "Réessayer",
+    archiveResultLabel: "Archive",
     rewardReminder:
       "Retourne aux quêtes quotidiennes pour récupérer {reward} pièces quand tu veux.",
     alreadyClaimed: "Récompense déjà récupérée pour ce mode.",
@@ -293,6 +317,9 @@ const quests = {
     officialSolutionTitle: "Solution officielle",
     officialSolutionBody:
       "Une route exacte trouvée par le solveur backend pour l'énigme du jour.",
+    revealSolutionConfirmTitle: "Afficher la solution ?",
+    revealSolutionConfirmBody:
+      "Cela affichera une route exacte pour cette énigme.",
     exactHitLabel: "Résultat exact",
     resultLockedLabel: "Résultat verrouillé",
     resetNotice:
@@ -300,6 +327,7 @@ const quests = {
     adminResetNotice:
       "Nombres du jour a été réinitialisé par {name}. Chargement d'une nouvelle énigme.",
     loadError: "Impossible de charger Nombres du jour.",
+    archiveLoadError: "Impossible de charger l'historique des nombres.",
     submitError: "Impossible d'envoyer Nombres du jour.",
     invalidDivision: "La division doit être exacte",
     invalidPositive: "Le résultat doit rester positif",
@@ -319,6 +347,16 @@ const quests = {
     finalResult: "Résultat final",
     distanceLabel: "Écart",
     scoreLabel: "Score",
+    archiveStatusUnplayed: "Non joué",
+    archiveStatusTried: "Essayé",
+    archiveStatusSolved: "Résolu",
+    archiveStatusExact: "Exact",
+    archiveNoResult: "Aucun résultat",
+    archiveExactShort: "Exact",
+    archiveDistanceShort: "À {distance}",
+    archiveOpenMode: "Ouvrir l'archive {mode} du {date}",
+    archiveDateMeta: "Date d'archive : {date}",
+    archiveShareFooter: "Énigme d'archive - sans récompense",
     completedLabel: "Récompense débloquée",
     incompleteLabel: "Résultat envoyé",
     shareResult: "Partager le résultat",

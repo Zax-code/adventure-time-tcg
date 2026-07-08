@@ -209,10 +209,17 @@ const quests = {
     "{score} correct answers across {answered} submitted answers.",
   dailyNumbers: {
     title: "Daily Numbers",
+    archiveTitle: "Daily Numbers Archive",
     subtitle:
       "Tap two numbers and an operator to build a result. The more you improve on the starting board, the more of the reward you unlock.",
+    archiveSubtitle:
+      "Replay previous Daily Numbers boards for the challenge. Archive puzzles do not grant rewards.",
+    archiveListSubtitle:
+      "Pick a previous day and mode to play it again without rewards.",
     backToQuests: "Back to quests",
+    backToHistory: "Back to history",
     backToOverview: "Back to overview",
+    historyAction: "History",
     chooseLevel: "Choose your level",
     openGame: "Play",
     playAction: "Play",
@@ -229,6 +236,8 @@ const quests = {
     claimedLabel: "Claimed",
     helperLine:
       "The untouched board starts at 0%. Every improvement increases the reward percentage, and exact hits auto-submit at 100%.",
+    archiveHelperLine:
+      "Archive boards keep your best result and time, but never award coins.",
     target: "Target",
     targetValue: "Target: {target}",
     reward: "Reward",
@@ -260,17 +269,30 @@ const quests = {
     submitConfirmBody:
       "This result will be submitted as your final attempt for today. Exact hits submit automatically.",
     submitConfirmAction: "Lock result",
+    archiveSubmitConfirmTitle: "Save this archive result?",
+    archiveSubmitConfirmBody:
+      "This saves your best result for this archived puzzle. It will not grant a reward.",
+    archiveSubmitConfirmAction: "Save result",
+    archiveSaveResult: "Save result",
     stepHistoryTitle: "Your steps",
     noStepsYet: "No steps yet. Start by combining two numbers.",
     revealSolution: "Reveal official solution",
     hideSolution: "Hide official solution",
     exactResult: "Exact hit! {score}% unlocked and the quest is complete.",
+    archiveExactResult: "Exact hit! {score}% recorded for this archive puzzle.",
     closeResult:
       "Closest result: {value}, {distance} away with {score}% unlocked.",
+    archiveCloseResult:
+      "Closest result: {value}, {distance} away with {score}% recorded.",
     autoSubmittingSuccess: "Exact hit found. Submitting it now...",
     clearReached:
       "Reward unlocked. Submit now or keep playing for a better percentage.",
+    archiveImproved:
+      "Improved result found. Save now or keep playing for an exact hit.",
     lockedSuccess: "Reward unlocked. Your result is locked in.",
+    archiveNoReward: "Archive results are saved for fun and do not grant coins.",
+    archiveTryAgain: "Try again",
+    archiveResultLabel: "Archive",
     rewardReminder:
       "Head back to daily quests and claim {reward} coins when you're ready.",
     alreadyClaimed: "Reward already claimed for this mode.",
@@ -283,6 +305,9 @@ const quests = {
     officialSolutionTitle: "Official solution",
     officialSolutionBody:
       "One exact route the backend solver found for today's puzzle.",
+    revealSolutionConfirmTitle: "Reveal solution?",
+    revealSolutionConfirmBody:
+      "This will show one exact route for this puzzle.",
     exactHitLabel: "Exact hit",
     resultLockedLabel: "Result locked",
     resetNotice:
@@ -290,6 +315,7 @@ const quests = {
     adminResetNotice:
       "Daily Numbers was reset by {name}. Loading the fresh puzzle.",
     loadError: "Failed to load Daily Numbers.",
+    archiveLoadError: "Failed to load Daily Numbers history.",
     submitError: "Failed to submit Daily Numbers.",
     invalidDivision: "Division must be exact",
     invalidPositive: "Result must be positive",
@@ -308,6 +334,16 @@ const quests = {
     finalResult: "Final result",
     distanceLabel: "Distance",
     scoreLabel: "Score",
+    archiveStatusUnplayed: "Unplayed",
+    archiveStatusTried: "Tried",
+    archiveStatusSolved: "Solved",
+    archiveStatusExact: "Exact",
+    archiveNoResult: "No result",
+    archiveExactShort: "Exact",
+    archiveDistanceShort: "{distance} away",
+    archiveOpenMode: "Open {mode} archive puzzle for {date}",
+    archiveDateMeta: "Archive date: {date}",
+    archiveShareFooter: "Archive puzzle - no reward",
     completedLabel: "Reward unlocked",
     incompleteLabel: "Result submitted",
     shareResult: "Share result",

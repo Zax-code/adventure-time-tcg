@@ -7,6 +7,7 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
   alias AdventureTimeApi.Quests
 
   alias AdventureTimeApi.Quests.{
+    DailyNumbersArchiveAttempt,
     DailyNumbersDailyAttempt,
     DailyNumbersEngine,
     DailyQuest,
@@ -343,6 +344,284 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
              "error" => "Quest not completed",
              "code" => "QUEST_NOT_COMPLETED"
            }
+  end
+
+  test "Daily Numbers archive lists previous days and saves non-rewarding results", _context do
+    user = create_user_with_password("daily-numbers-archive@example.com", "password123")
+    access_token = login_access_token(user.email, "password123")
+    today = Quests.current_reset_date()
+    archive_date = Date.add(today, -1)
+    launch_date = ~D[2026-06-19]
+    {:ok, puzzle} = DailyNumbersEngine.generate_puzzle("2-4", archive_date)
+
+    history =
+      access_token
+      |> auth_conn()
+      |> get(~p"/quests/daily-numbers/history")
+      |> json_response(200)
+
+    assert history["today"] == Date.to_iso8601(today)
+    refute Enum.any?(history["days"], &(&1["date"] == Date.to_iso8601(today)))
+    assert Enum.any?(history["days"], &(&1["date"] == Date.to_iso8601(archive_date)))
+
+    assert Enum.all?(
+             history["days"],
+             &(Date.compare(Date.from_iso8601!(&1["date"]), launch_date) != :lt)
+           )
+
+    too_old_date = Date.add(launch_date, -1)
+
+    too_old =
+      access_token
+      |> auth_conn()
+      |> get(~p"/quests/daily-numbers/archive?date=#{Date.to_iso8601(too_old_date)}&mode=1-5")
+      |> json_response(404)
+
+    assert too_old["code"] == "DAILY_NUMBERS_ARCHIVE_OUT_OF_RANGE"
+
+    state =
+      access_token
+      |> auth_conn()
+      |> get(~p"/quests/daily-numbers/archive?date=#{Date.to_iso8601(archive_date)}&mode=2-4")
+      |> json_response(200)
+
+    assert state["archive"] == true
+    assert state["date"] == Date.to_iso8601(archive_date)
+    assert state["reward"] == 0
+    assert state["submitted"] == false
+    assert length(state["officialSolutionSteps"]) > 0
+
+    solution_steps =
+      Enum.map(puzzle.solution, fn step ->
+        %{
+          "leftId" => step.leftId,
+          "operator" => step.operator,
+          "rightId" => step.rightId,
+          "resultId" => step.resultId
+        }
+      end)
+
+    submitted =
+      access_token
+      |> auth_conn()
+      |> post(~p"/quests/daily-numbers/archive/submit", %{
+        "mode" => "2-4",
+        "dateKey" => Date.to_iso8601(archive_date),
+        "elapsedMs" => 12_345,
+        "steps" => solution_steps
+      })
+      |> json_response(200)
+
+    assert submitted["archive"] == true
+    assert submitted["submitted"] == true
+    assert submitted["status"] == "exact"
+    assert submitted["reward"] == 0
+    assert submitted["submission"]["elapsedMs"] == 12_345
+
+    refute Repo.get_by(DailyQuest,
+             user_id: user.id,
+             date: archive_date,
+             quest_type: "daily_numbers_2_4"
+           )
+
+    attempt =
+      Repo.get_by!(DailyNumbersArchiveAttempt,
+        user_id: user.id,
+        date: archive_date,
+        mode: "2-4"
+      )
+
+    assert attempt.exact == true
+    assert attempt.elapsed_ms == 12_345
+  end
+
+  test "Daily Numbers archive uses the player's original daily result as history", _context do
+    user =
+      create_user_with_password("daily-numbers-archive-daily-history@example.com", "password123")
+
+    access_token = login_access_token(user.email, "password123")
+    archive_date = Date.add(Quests.current_reset_date(), -1)
+    {:ok, puzzle} = DailyNumbersEngine.generate_puzzle("1-5", archive_date)
+
+    {:ok, daily_submission} = DailyNumbersEngine.validate_submission(puzzle, puzzle.solution)
+
+    Repo.insert!(
+      DailyNumbersDailyAttempt.changeset(%DailyNumbersDailyAttempt{}, %{
+        user_id: user.id,
+        date: archive_date,
+        mode: "1-5",
+        submitted_steps: daily_submission.steps,
+        final_value: daily_submission.finalValue,
+        distance: daily_submission.distance,
+        score: daily_submission.score,
+        exact: daily_submission.exact,
+        completed: daily_submission.completed,
+        elapsed_ms: 32_100
+      })
+    )
+
+    history =
+      access_token
+      |> auth_conn()
+      |> get(~p"/quests/daily-numbers/history")
+      |> json_response(200)
+
+    archive_day = Enum.find(history["days"], &(&1["date"] == Date.to_iso8601(archive_date)))
+    one_five = Enum.find(archive_day["modes"], &(&1["mode"] == "1-5"))
+
+    assert one_five["status"] == "exact"
+    assert one_five["exact"] == true
+    assert one_five["elapsedMs"] == 32_100
+
+    state =
+      access_token
+      |> auth_conn()
+      |> get(~p"/quests/daily-numbers/archive?date=#{Date.to_iso8601(archive_date)}&mode=1-5")
+      |> json_response(200)
+
+    assert state["submitted"] == true
+    assert state["status"] == "exact"
+    assert state["submission"]["elapsedMs"] == 32_100
+
+    solution_steps =
+      Enum.map(puzzle.solution, fn step ->
+        %{
+          "leftId" => step.leftId,
+          "operator" => step.operator,
+          "rightId" => step.rightId,
+          "resultId" => step.resultId
+        }
+      end)
+
+    replayed =
+      access_token
+      |> auth_conn()
+      |> post(~p"/quests/daily-numbers/archive/submit", %{
+        "mode" => "1-5",
+        "dateKey" => Date.to_iso8601(archive_date),
+        "elapsedMs" => 5_000,
+        "steps" => solution_steps
+      })
+      |> json_response(200)
+
+    assert replayed["submission"]["elapsedMs"] == 32_100
+
+    refute Repo.get_by(DailyNumbersArchiveAttempt,
+             user_id: user.id,
+             date: archive_date,
+             mode: "1-5"
+           )
+  end
+
+  test "Daily Numbers archive replay can improve a non-exact daily baseline", _context do
+    user =
+      create_user_with_password("daily-numbers-archive-daily-improve@example.com", "password123")
+
+    access_token = login_access_token(user.email, "password123")
+    archive_date = Date.add(Quests.current_reset_date(), -1)
+    {:ok, puzzle} = DailyNumbersEngine.generate_puzzle("2-4", archive_date)
+    {:ok, missed_submission} = DailyNumbersEngine.validate_submission(puzzle, [])
+
+    Repo.insert!(
+      DailyNumbersDailyAttempt.changeset(%DailyNumbersDailyAttempt{}, %{
+        user_id: user.id,
+        date: archive_date,
+        mode: "2-4",
+        submitted_steps: missed_submission.steps,
+        final_value: missed_submission.finalValue,
+        distance: missed_submission.distance,
+        score: missed_submission.score,
+        exact: missed_submission.exact,
+        completed: missed_submission.completed,
+        elapsed_ms: 45_000
+      })
+    )
+
+    solution_steps =
+      Enum.map(puzzle.solution, fn step ->
+        %{
+          "leftId" => step.leftId,
+          "operator" => step.operator,
+          "rightId" => step.rightId,
+          "resultId" => step.resultId
+        }
+      end)
+
+    replayed =
+      access_token
+      |> auth_conn()
+      |> post(~p"/quests/daily-numbers/archive/submit", %{
+        "mode" => "2-4",
+        "dateKey" => Date.to_iso8601(archive_date),
+        "elapsedMs" => 12_000,
+        "steps" => solution_steps
+      })
+      |> json_response(200)
+
+    assert replayed["status"] == "exact"
+    assert replayed["submission"]["elapsedMs"] == 12_000
+
+    attempt =
+      Repo.get_by!(DailyNumbersArchiveAttempt,
+        user_id: user.id,
+        date: archive_date,
+        mode: "2-4"
+      )
+
+    assert attempt.exact == true
+    assert attempt.elapsed_ms == 12_000
+  end
+
+  test "Daily Numbers archive exact result keeps the first exact elapsed time", _context do
+    user = create_user_with_password("daily-numbers-archive-exact@example.com", "password123")
+    access_token = login_access_token(user.email, "password123")
+    archive_date = Date.add(Quests.current_reset_date(), -1)
+    {:ok, puzzle} = DailyNumbersEngine.generate_puzzle("1-5", archive_date)
+
+    solution_steps =
+      Enum.map(puzzle.solution, fn step ->
+        %{
+          "leftId" => step.leftId,
+          "operator" => step.operator,
+          "rightId" => step.rightId,
+          "resultId" => step.resultId
+        }
+      end)
+
+    first =
+      access_token
+      |> auth_conn()
+      |> post(~p"/quests/daily-numbers/archive/submit", %{
+        "mode" => "1-5",
+        "dateKey" => Date.to_iso8601(archive_date),
+        "elapsedMs" => 20_000,
+        "steps" => solution_steps
+      })
+      |> json_response(200)
+
+    assert first["submission"]["elapsedMs"] == 20_000
+
+    second =
+      access_token
+      |> auth_conn()
+      |> post(~p"/quests/daily-numbers/archive/submit", %{
+        "mode" => "1-5",
+        "dateKey" => Date.to_iso8601(archive_date),
+        "elapsedMs" => 5_000,
+        "steps" => solution_steps
+      })
+      |> json_response(200)
+
+    assert second["submission"]["elapsedMs"] == 20_000
+
+    attempt =
+      Repo.get_by!(DailyNumbersArchiveAttempt,
+        user_id: user.id,
+        date: archive_date,
+        mode: "1-5"
+      )
+
+    assert attempt.elapsed_ms == 20_000
   end
 
   test "GET /wordle and POST /wordle preserve guess, solve, and reset contracts", _context do

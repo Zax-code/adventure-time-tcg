@@ -31,6 +31,7 @@ import { captureRef } from "react-native-view-shot";
 
 import {
   ApiClientError,
+  type DailyNumbersArchiveStateResponse,
   type DailyNumbersMode,
   type DailyNumbersStateResponse,
   type DailyNumbersStep,
@@ -86,9 +87,12 @@ type TranslateFn = (
   params?: Record<string, string | number>,
 ) => string;
 type ThemeColors = (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
+type DailyNumbersBoardState =
+  | DailyNumbersStateResponse
+  | DailyNumbersArchiveStateResponse;
 type ModeCard = {
   mode: DailyNumbersMode;
-  state: DailyNumbersStateResponse | undefined;
+  state: DailyNumbersBoardState | undefined;
   isLoading: boolean;
 };
 type SlotKey = "left" | "operator" | "right";
@@ -100,6 +104,7 @@ type BoardInteractionState = {
   message: MessageState;
   submitting: boolean;
   revealedSolution: boolean;
+  retrying: boolean;
 };
 type BoardAction =
   | { type: "selectTile"; tileId: string }
@@ -112,6 +117,7 @@ type BoardAction =
   | { type: "submitStarted" }
   | { type: "submitFailed"; message: MessageState }
   | { type: "submitFinished" }
+  | { type: "startRetry" }
   | { type: "toggleSolution" };
 type FinishTone = {
   shellBorder: string;
@@ -136,11 +142,15 @@ type FinishStateProps = {
   formattedElapsedTime: string;
   interaction: BoardInteractionState;
   isSharing: boolean;
+  archiveMode: boolean;
+  canRetryArchive: boolean;
   onClaimReward: () => void;
   onShareResult: () => void;
+  onStartRetry: () => void;
   onToggleSolution: () => void;
-  state: DailyNumbersStateResponse;
+  state: DailyNumbersBoardState;
   submittedSolutionSteps: DailyNumbersStep[];
+  officialSolutionSteps: DailyNumbersStep[];
   t: TranslateFn;
   tc: ThemeColors;
 };
@@ -156,7 +166,11 @@ type LivePlayProps = {
   onResetBoard: () => void;
   onSubmitPress: () => void;
   onTilePress: (tileId: string) => void;
+  onToggleSolution: () => void;
   onUndoStep: () => void;
+  archiveMode: boolean;
+  officialSolutionSteps: DailyNumbersStep[];
+  revealedSolution: boolean;
   previewState: PreviewState;
   selectedLeftTile: BoardTile | null;
   selectedOperator: Operator | null;
@@ -194,12 +208,23 @@ const CHRONOMETER_STORAGE_PREFIX = "dailyNumbersChronometer";
 const CHRONOMETER_SAVE_INTERVAL_MS = 5000;
 const SECURE_STORE_KEY_UNSAFE_CHARS = /[^A-Za-z0-9._-]/g;
 
-function buildChronometerStorageKey(state: DailyNumbersStateResponse) {
+function isArchiveState(
+  state: DailyNumbersBoardState,
+): state is DailyNumbersArchiveStateResponse {
+  return "archive" in state && state.archive === true;
+}
+
+function buildChronometerStorageKey(
+  state: DailyNumbersBoardState,
+  attemptScope: string,
+) {
   return [
     CHRONOMETER_STORAGE_PREFIX,
+    isArchiveState(state) ? "archive" : "daily",
     state.date,
     state.mode,
     state.questVersion ?? "no-version",
+    attemptScope,
   ]
     .map((part) => part.replace(SECURE_STORE_KEY_UNSAFE_CHARS, "_"))
     .join(".");
@@ -230,6 +255,14 @@ function normalizeDailyNumbersMode(mode: string | undefined): DailyNumbersMode {
   return "1-5";
 }
 
+function normalizeArchiveDateParam(dateKey: string | undefined) {
+  if (!dateKey || !/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
+    return null;
+  }
+
+  return dateKey;
+}
+
 function triggerSelectionHaptic() {
   void Haptics.selectionAsync();
 }
@@ -255,7 +288,7 @@ function sortTiles(a: BoardTile, b: BoardTile) {
 }
 
 function buildBoard(
-  numbers: DailyNumbersStateResponse["numbers"],
+  numbers: DailyNumbersBoardState["numbers"],
   steps: DailyNumbersStep[],
 ) {
   const tiles = new Map<string, BoardTile>(
@@ -325,7 +358,7 @@ function chooseClosestTile(tiles: BoardTile[], target: number) {
 }
 
 function getDefaultDistance(
-  numbers: DailyNumbersStateResponse["numbers"],
+  numbers: DailyNumbersBoardState["numbers"],
   target: number,
 ) {
   return Math.abs(chooseClosestTile(numbers, target).value - target);
@@ -362,7 +395,7 @@ function formatNumbersShareDate(
 
 function buildSubmissionSummary(
   t: TranslateFn,
-  submission: NonNullable<DailyNumbersStateResponse["submission"]>,
+  submission: NonNullable<DailyNumbersBoardState["submission"]>,
 ) {
   if (submission.distance === 0) {
     return t("quests.dailyNumbers.exactResult", {
@@ -377,21 +410,24 @@ function buildSubmissionSummary(
   });
 }
 
-function buildBoardIdentity(state: DailyNumbersStateResponse) {
+function buildBoardIdentity(state: DailyNumbersBoardState) {
   const numbersIdentity = state.numbers
     .map((tile) => `${tile.id}:${tile.value}`)
     .join("|");
   return [
     state.mode,
     state.date,
+    isArchiveState(state) ? "archive" : "daily",
     state.questVersion ?? "no-version",
     state.submitted ? "submitted" : "fresh",
+    state.submission?.finalValue ?? "no-result",
+    state.submission?.elapsedMs ?? "no-time",
     numbersIdentity,
   ].join(":");
 }
 
 function createBoardInteractionState(
-  state: DailyNumbersStateResponse,
+  state: DailyNumbersBoardState,
 ): BoardInteractionState {
   return {
     steps: state.submission?.steps ?? [],
@@ -401,6 +437,7 @@ function createBoardInteractionState(
     message: null,
     submitting: false,
     revealedSolution: false,
+    retrying: false,
   };
 }
 
@@ -538,6 +575,20 @@ function boardReducer(
     return {
       ...state,
       submitting: false,
+      retrying: false,
+    };
+  }
+
+  if (action.type === "startRetry") {
+    return {
+      steps: [],
+      selectedLeftId: null,
+      selectedOperator: null,
+      selectedRightId: null,
+      message: null,
+      submitting: false,
+      revealedSolution: false,
+      retrying: true,
     };
   }
 
@@ -549,13 +600,17 @@ function boardReducer(
 
 function useDailyNumbersChronometer({
   active,
+  attemptScope,
+  submitted,
   state,
 }: {
   active: boolean;
-  state: DailyNumbersStateResponse;
+  attemptScope: string;
+  submitted: boolean;
+  state: DailyNumbersBoardState;
 }) {
-  const storageKey = buildChronometerStorageKey(state);
-  const submittedElapsedMs = state.submission?.elapsedMs ?? 0;
+  const storageKey = buildChronometerStorageKey(state, attemptScope);
+  const submittedElapsedMs = submitted ? (state.submission?.elapsedMs ?? 0) : 0;
   const [, forceTick] = useReducer((value: number) => value + 1, 0);
   const elapsedMsRef = useRef(submittedElapsedMs);
   const startedAtRef = useRef<number | null>(null);
@@ -587,7 +642,7 @@ function useDailyNumbersChronometer({
     startedAtRef.current = null;
     lastSavedAtRef.current = 0;
 
-    if (state.submitted) {
+    if (submitted) {
       elapsedMsRef.current = submittedElapsedMs;
       forceTick();
       void SecureStore.deleteItemAsync(storageKey);
@@ -619,13 +674,13 @@ function useDailyNumbersChronometer({
   }, [
     getElapsedMs,
     saveElapsedMs,
-    state.submitted,
+    submitted,
     storageKey,
     submittedElapsedMs,
   ]);
 
   useEffect(() => {
-    if (state.submitted || !active) {
+    if (submitted || !active) {
       return;
     }
 
@@ -654,14 +709,23 @@ function useDailyNumbersChronometer({
         saveElapsedMs(nextElapsedMs);
       }
     };
-  }, [active, getElapsedMs, saveElapsedMs, state.submitted]);
+  }, [active, getElapsedMs, saveElapsedMs, submitted]);
 
-  const elapsedMs = state.submitted ? submittedElapsedMs : getElapsedMs();
+  const resetElapsedMs = useCallback(() => {
+    elapsedMsRef.current = 0;
+    startedAtRef.current = active && !submitted ? Date.now() : null;
+    lastSavedAtRef.current = Date.now();
+    void SecureStore.setItemAsync(storageKey, "0");
+    forceTick();
+  }, [active, storageKey, submitted]);
+
+  const elapsedMs = submitted ? submittedElapsedMs : getElapsedMs();
 
   return {
     elapsedMs,
     formattedElapsedTime: formatDailyNumbersElapsedTime(elapsedMs),
     getElapsedMs,
+    resetElapsedMs,
   };
 }
 
@@ -799,7 +863,7 @@ function MetricsSection({
   currentBestTile: BoardTile | null;
   currentDistance: number | undefined;
   formattedElapsedTime: string;
-  state: DailyNumbersStateResponse;
+  state: DailyNumbersBoardState;
   t: TranslateFn;
   tc: ThemeColors;
 }) {
@@ -844,9 +908,11 @@ function MetricsSection({
 }
 
 function SuccessCallout({
+  archiveMode,
   completionReached,
   t,
 }: {
+  archiveMode: boolean;
   completionReached: boolean;
   t: TranslateFn;
 }) {
@@ -854,7 +920,9 @@ function SuccessCallout({
     <View className="mb-1 rounded-2xl border border-successBorder bg-successTint px-3 py-2">
       <Text className="font-nunito-bold text-xs text-successText">
         {completionReached
-          ? t("quests.dailyNumbers.clearReached")
+          ? archiveMode
+            ? t("quests.dailyNumbers.archiveImproved")
+            : t("quests.dailyNumbers.clearReached")
           : t("quests.dailyNumbers.lockedSuccess")}
       </Text>
     </View>
@@ -913,6 +981,8 @@ function StepList({
 }
 
 function FinishStatePanel({
+  archiveMode,
+  canRetryArchive,
   claimable,
   claimPending,
   compact,
@@ -928,7 +998,9 @@ function FinishStatePanel({
   isSharing,
   onClaimReward,
   onShareResult,
+  onStartRetry,
   onToggleSolution,
+  officialSolutionSteps,
   state,
   submittedSolutionSteps,
   t,
@@ -1010,14 +1082,16 @@ function FinishStatePanel({
             {finishScore != null ? `${finishScore}%` : "—"}
           </Text>
         </View>
-        <View className="min-w-[96px] flex-1 rounded-2xl border border-primaryBorder bg-surface px-3 py-3">
-          <Text className="font-nunito-semibold text-[10px] uppercase tracking-[1px] text-fgMuted">
-            {t("quests.dailyNumbers.reward")}
-          </Text>
-          <Text className="font-nunito-extrabold text-2xl text-secondaryDark">
-            {state.reward}
-          </Text>
-        </View>
+        {!archiveMode ? (
+          <View className="min-w-[96px] flex-1 rounded-2xl border border-primaryBorder bg-surface px-3 py-3">
+            <Text className="font-nunito-semibold text-[10px] uppercase tracking-[1px] text-fgMuted">
+              {t("quests.dailyNumbers.reward")}
+            </Text>
+            <Text className="font-nunito-extrabold text-2xl text-secondaryDark">
+              {state.reward}
+            </Text>
+          </View>
+        ) : null}
         <View className="min-w-[96px] flex-1 rounded-2xl border border-primaryBorder bg-surface px-3 py-3">
           <Text className="font-nunito-semibold text-[10px] uppercase tracking-[1px] text-fgMuted">
             {t("quests.dailyNumbers.solveTime")}
@@ -1027,7 +1101,11 @@ function FinishStatePanel({
           </Text>
         </View>
       </View>
-      {claimable && state.questVersion ? (
+      {archiveMode ? (
+        <Text className="mt-5 text-center font-nunito-semibold text-sm text-fgMuted">
+          {t("quests.dailyNumbers.archiveNoReward")}
+        </Text>
+      ) : claimable && state.questVersion ? (
         <Pressable
           onPress={onClaimReward}
           disabled={claimPending}
@@ -1059,6 +1137,19 @@ function FinishStatePanel({
                 : t("quests.dailyNumbers.resultLockedNote")}
         </Text>
       )}
+      {archiveMode && canRetryArchive ? (
+        <Pressable
+          onPress={onStartRetry}
+          className="mt-4 rounded-2xl border border-primaryBorder bg-surface px-4 py-3"
+          testID="daily-numbers-archive-retry"
+          accessibilityRole="button"
+          accessibilityLabel={t("quests.dailyNumbers.archiveTryAgain")}
+        >
+          <Text className="text-center font-nunito-bold text-fg">
+            {t("quests.dailyNumbers.archiveTryAgain")}
+          </Text>
+        </Pressable>
+      ) : null}
       <QuestActionButton
         label={
           isSharing
@@ -1117,7 +1208,7 @@ function FinishStatePanel({
           </View>
         </View>
       ) : null}
-      {state.submission?.officialSolutionUnlocked ? (
+      {officialSolutionSteps.length > 0 ? (
         <>
           <Pressable
             onPress={onToggleSolution}
@@ -1146,7 +1237,7 @@ function FinishStatePanel({
                 {t("quests.dailyNumbers.officialSolutionBody")}
               </Text>
               <View className="mt-3 gap-2">
-                {state.submission.officialSolutionSteps.map((step, index) => (
+                {officialSolutionSteps.map((step, index) => (
                   <View
                     key={`${step.resultId}-${index}`}
                     className="rounded-2xl bg-primaryBg px-3 py-2"
@@ -1314,6 +1405,7 @@ function OperatorPicker({
 }
 
 function LivePlayPanel({
+  archiveMode,
   availableTiles,
   compact,
   interactionLocked,
@@ -1325,8 +1417,11 @@ function LivePlayPanel({
   onResetBoard,
   onSubmitPress,
   onTilePress,
+  onToggleSolution,
   onUndoStep,
+  officialSolutionSteps,
   previewState,
+  revealedSolution,
   selectedLeftTile,
   selectedOperator,
   selectedRightTile,
@@ -1478,13 +1573,21 @@ function LivePlayPanel({
           testID="daily-numbers-submit"
           accessibilityRole="button"
           accessibilityState={{ disabled: interactionLocked }}
-          accessibilityLabel={t("quests.dailyNumbers.submit")}
+          accessibilityLabel={
+            archiveMode
+              ? t("quests.dailyNumbers.archiveSaveResult")
+              : t("quests.dailyNumbers.submit")
+          }
         >
           <Text
             className="text-center font-nunito-bold text-sm"
             style={{ color: interactionLocked ? tc.fgMuted : tc.primaryBg }}
           >
-            {submitting ? "…" : t("quests.dailyNumbers.submit")}
+            {submitting
+              ? "…"
+              : archiveMode
+                ? t("quests.dailyNumbers.archiveSaveResult")
+                : t("quests.dailyNumbers.submit")}
           </Text>
         </Pressable>
       </View>
@@ -1526,12 +1629,60 @@ function LivePlayPanel({
         t={t}
         title={t("quests.dailyNumbers.stepHistoryTitle")}
       />
+      {archiveMode && officialSolutionSteps.length > 0 ? (
+        <>
+          <Pressable
+            onPress={() => {
+              if (revealedSolution) {
+                onToggleSolution();
+                return;
+              }
+
+              Alert.alert(
+                t("quests.dailyNumbers.revealSolutionConfirmTitle"),
+                t("quests.dailyNumbers.revealSolutionConfirmBody"),
+                [
+                  { text: t("common.cancel"), style: "cancel" },
+                  {
+                    text: t("quests.dailyNumbers.revealSolution"),
+                    style: "destructive",
+                    onPress: onToggleSolution,
+                  },
+                ],
+              );
+            }}
+            className="mt-3 rounded-2xl border border-primaryBorder bg-surface px-4 py-3"
+            testID="daily-numbers-archive-reveal-solution"
+            accessibilityRole="button"
+            accessibilityState={{ expanded: revealedSolution }}
+            accessibilityLabel={
+              revealedSolution
+                ? t("quests.dailyNumbers.hideSolution")
+                : t("quests.dailyNumbers.revealSolution")
+            }
+          >
+            <Text className="text-center font-nunito-bold text-fg">
+              {revealedSolution
+                ? t("quests.dailyNumbers.hideSolution")
+                : t("quests.dailyNumbers.revealSolution")}
+            </Text>
+          </Pressable>
+          {revealedSolution ? (
+            <StepList
+              steps={officialSolutionSteps}
+              t={t}
+              title={t("quests.dailyNumbers.officialSolutionTitle")}
+            />
+          ) : null}
+        </>
+      ) : null}
     </>
   );
 }
 
 function useDailyNumbersBoardController({
   activeMode,
+  archiveMode,
   bannerMessage,
   chronometerActive,
   claimPending,
@@ -1545,6 +1696,7 @@ function useDailyNumbersBoardController({
   tc,
 }: {
   activeMode: DailyNumbersMode;
+  archiveMode: boolean;
   bannerMessage: MessageState;
   chronometerActive: boolean;
   claimPending: boolean;
@@ -1552,8 +1704,8 @@ function useDailyNumbersBoardController({
   modeAccent: ReturnType<typeof getModeAccent>;
   onClaimReward: () => void;
   onResolveResetError: (error: unknown) => Promise<boolean>;
-  onSubmissionApplied: (nextState: DailyNumbersStateResponse) => void;
-  state: DailyNumbersStateResponse;
+  onSubmissionApplied: (nextState: DailyNumbersBoardState) => void;
+  state: DailyNumbersBoardState;
   t: TranslateFn;
   tc: ThemeColors;
 }) {
@@ -1562,8 +1714,11 @@ function useDailyNumbersBoardController({
     state,
     createBoardInteractionState,
   );
+  const hasLockedSubmission = state.submitted === true && !interaction.retrying;
   const chronometer = useDailyNumbersChronometer({
-    active: chronometerActive && !state.submitted,
+    active: chronometerActive && !hasLockedSubmission,
+    attemptScope: interaction.retrying ? "retry" : "initial",
+    submitted: hasLockedSubmission,
     state,
   });
 
@@ -1600,19 +1755,22 @@ function useDailyNumbersBoardController({
     [state.numbers, state.target],
   );
   const exactHitReached =
-    state.submitted !== true &&
+    !hasLockedSubmission &&
     interaction.steps.length > 0 &&
     currentDistance === 0;
   const completionReached =
-    state.submitted !== true &&
+    !hasLockedSubmission &&
     interaction.steps.length > 0 &&
     currentDistance < defaultDistance;
   const successState =
-    state.submission?.completed === true || completionReached;
-  const exactHitState = state.submission?.exact === true || exactHitReached;
-  const finishScreenState = exactHitState || state.submitted === true;
+    (hasLockedSubmission && state.submission?.completed === true) ||
+    completionReached;
+  const exactHitState =
+    (hasLockedSubmission && state.submission?.exact === true) ||
+    exactHitReached;
+  const finishScreenState = exactHitState || hasLockedSubmission;
   const interactionLocked =
-    interaction.submitting || state.submitted === true || exactHitReached;
+    interaction.submitting || hasLockedSubmission || exactHitReached;
   const previewState = useMemo<PreviewState>(() => {
     if (
       !selectedLeftTile ||
@@ -1637,7 +1795,7 @@ function useDailyNumbersBoardController({
 
   const submitBoard = useCallback(
     async (stepsToSubmit: DailyNumbersStep[], alreadyStarted = false) => {
-      if (state.submitted || interaction.submitting) {
+      if (hasLockedSubmission || interaction.submitting) {
         return;
       }
 
@@ -1646,13 +1804,22 @@ function useDailyNumbersBoardController({
       }
 
       try {
-        const nextState = await apiClient.submitDailyNumbers({
-          mode: activeMode,
-          dateKey: state.date,
-          questVersion: state.questVersion ?? undefined,
-          elapsedMs: Math.round(chronometer.getElapsedMs()),
-          steps: toStepInputs(stepsToSubmit),
-        });
+        const elapsedMs = Math.round(chronometer.getElapsedMs());
+        const steps = toStepInputs(stepsToSubmit);
+        const nextState = archiveMode
+          ? await apiClient.submitDailyNumbersArchive({
+              mode: activeMode,
+              dateKey: state.date,
+              elapsedMs,
+              steps,
+            })
+          : await apiClient.submitDailyNumbers({
+              mode: activeMode,
+              dateKey: state.date,
+              questVersion: state.questVersion ?? undefined,
+              elapsedMs,
+              steps,
+            });
 
         dispatch({ type: "submitFinished" });
         onSubmissionApplied(nextState);
@@ -1679,7 +1846,9 @@ function useDailyNumbersBoardController({
     },
     [
       activeMode,
+      archiveMode,
       chronometer.getElapsedMs,
+      hasLockedSubmission,
       interaction.submitting,
       onResolveResetError,
       onSubmissionApplied,
@@ -1908,7 +2077,12 @@ function useDailyNumbersBoardController({
 
     triggerLightHaptic();
     dispatch({ type: "resetBoard" });
+    if (archiveMode) {
+      chronometer.resetElapsedMs();
+    }
   }, [
+    archiveMode,
+    chronometer.resetElapsedMs,
     interaction.selectedLeftId,
     interaction.selectedOperator,
     interaction.selectedRightId,
@@ -1918,18 +2092,24 @@ function useDailyNumbersBoardController({
   ]);
 
   const handleSubmitPress = useCallback(() => {
-    if (interaction.submitting || state.submitted) {
+    if (interaction.submitting || hasLockedSubmission) {
       return;
     }
 
     triggerPrimaryHaptic();
     Alert.alert(
-      t("quests.dailyNumbers.submitConfirmTitle"),
-      t("quests.dailyNumbers.submitConfirmBody"),
+      archiveMode
+        ? t("quests.dailyNumbers.archiveSubmitConfirmTitle")
+        : t("quests.dailyNumbers.submitConfirmTitle"),
+      archiveMode
+        ? t("quests.dailyNumbers.archiveSubmitConfirmBody")
+        : t("quests.dailyNumbers.submitConfirmBody"),
       [
         { text: t("common.cancel"), style: "cancel" },
         {
-          text: t("quests.dailyNumbers.submitConfirmAction"),
+          text: archiveMode
+            ? t("quests.dailyNumbers.archiveSubmitConfirmAction")
+            : t("quests.dailyNumbers.submitConfirmAction"),
           style: "destructive",
           onPress: () => {
             void submitBoard(interaction.steps);
@@ -1938,9 +2118,10 @@ function useDailyNumbersBoardController({
       ],
     );
   }, [
+    archiveMode,
     interaction.steps,
     interaction.submitting,
-    state.submitted,
+    hasLockedSubmission,
     submitBoard,
     t,
   ]);
@@ -1958,6 +2139,12 @@ function useDailyNumbersBoardController({
     triggerLightHaptic();
     dispatch({ type: "toggleSolution" });
   }, []);
+
+  const handleStartRetry = useCallback(() => {
+    triggerLightHaptic();
+    dispatch({ type: "startRetry" });
+    chronometer.resetElapsedMs();
+  }, [chronometer.resetElapsedMs]);
 
   const finishTone: FinishTone = exactHitState
     ? {
@@ -1991,7 +2178,17 @@ function useDailyNumbersBoardController({
   const finishCompletedState =
     exactHitState || state.submission?.completed === true;
   const submissionSummary = state.submission
-    ? buildSubmissionSummary(t, state.submission)
+    ? archiveMode
+      ? state.submission.distance === 0
+        ? t("quests.dailyNumbers.archiveExactResult", {
+            score: state.submission.score,
+          })
+        : t("quests.dailyNumbers.archiveCloseResult", {
+            value: state.submission.finalValue,
+            distance: state.submission.distance,
+            score: state.submission.score,
+          })
+      : buildSubmissionSummary(t, state.submission)
     : null;
   const exactHitScore =
     state.submission?.score ?? (exactHitState ? EXACT_HIT_PERCENT : null);
@@ -2001,18 +2198,32 @@ function useDailyNumbersBoardController({
       : t("quests.dailyNumbers.exactResult", {
           score: exactHitScore,
         });
-  const finishSummary = exactHitState ? exactHitSummary : submissionSummary;
+  const archiveExactHitSummary =
+    exactHitScore === null
+      ? null
+      : t("quests.dailyNumbers.archiveExactResult", {
+          score: exactHitScore,
+        });
+  const finishSummary = exactHitState
+    ? archiveMode
+      ? archiveExactHitSummary
+      : exactHitSummary
+    : submissionSummary;
   const finishValue =
-    state.submission?.finalValue ??
+    (hasLockedSubmission ? state.submission?.finalValue : null) ??
     (finishScreenState ? (currentBestTile?.value ?? null) : null);
   const finishDistance =
-    state.submission?.distance ?? (finishScreenState ? currentDistance : null);
+    (hasLockedSubmission ? state.submission?.distance : null) ??
+    (finishScreenState ? currentDistance : null);
   const finishScore =
-    state.submission?.score ?? (exactHitState ? EXACT_HIT_PERCENT : null);
+    (hasLockedSubmission ? state.submission?.score : null) ??
+    (exactHitState ? EXACT_HIT_PERCENT : null);
   const submittedSolutionSteps =
-    state.submission?.steps ?? (exactHitState ? interaction.steps : []);
+    (hasLockedSubmission ? state.submission?.steps : null) ??
+    (exactHitState ? interaction.steps : []);
   const claimable =
-    state.submitted === true &&
+    !archiveMode &&
+    hasLockedSubmission &&
     state.completed &&
     !state.claimed &&
     Boolean(state.questVersion);
@@ -2035,7 +2246,7 @@ function useDailyNumbersBoardController({
     finishTone,
     finishValue,
     formattedElapsedTime:
-      state.submission?.elapsedMs != null
+      hasLockedSubmission && state.submission?.elapsedMs != null
         ? formatDailyNumbersElapsedTime(state.submission.elapsedMs)
         : chronometer.formattedElapsedTime,
     interaction,
@@ -2047,6 +2258,7 @@ function useDailyNumbersBoardController({
     onOperatorPress: handleOperatorPress,
     onResetBoard: handleResetBoard,
     onSubmitPress: handleSubmitPress,
+    onStartRetry: handleStartRetry,
     onTilePress: handleTilePress,
     onToggleSolution: handleToggleSolution,
     onUndoStep: handleUndoStep,
@@ -2056,6 +2268,9 @@ function useDailyNumbersBoardController({
     selectedRightTile,
     state,
     submittedSolutionSteps,
+    officialSolutionSteps: isArchiveState(state)
+      ? state.officialSolutionSteps
+      : (state.submission?.officialSolutionSteps ?? []),
     t,
     tc,
     visibleMessage,
@@ -2064,6 +2279,7 @@ function useDailyNumbersBoardController({
 
 function DailyNumbersBoard({
   activeMode,
+  archiveMode,
   bannerMessage,
   chronometerActive,
   claimPending,
@@ -2077,6 +2293,7 @@ function DailyNumbersBoard({
   tc,
 }: {
   activeMode: DailyNumbersMode;
+  archiveMode: boolean;
   bannerMessage: MessageState;
   chronometerActive: boolean;
   claimPending: boolean;
@@ -2084,13 +2301,14 @@ function DailyNumbersBoard({
   modeAccent: ReturnType<typeof getModeAccent>;
   onClaimReward: () => void;
   onResolveResetError: (error: unknown) => Promise<boolean>;
-  onSubmissionApplied: (nextState: DailyNumbersStateResponse) => void;
-  state: DailyNumbersStateResponse;
+  onSubmissionApplied: (nextState: DailyNumbersBoardState) => void;
+  state: DailyNumbersBoardState;
   t: TranslateFn;
   tc: ThemeColors;
 }) {
   const controller = useDailyNumbersBoardController({
     activeMode,
+    archiveMode,
     bannerMessage,
     chronometerActive,
     claimPending,
@@ -2124,6 +2342,7 @@ function DailyNumbersBoard({
         elapsedTime: controller.formattedElapsedTime,
         exact: controller.exactHitState,
         completed: controller.exactHitState,
+        archive: archiveMode,
       }),
     [
       controller.t,
@@ -2135,6 +2354,7 @@ function DailyNumbersBoard({
       controller.finishScore,
       controller.formattedElapsedTime,
       controller.exactHitState,
+      archiveMode,
     ],
   );
 
@@ -2163,7 +2383,10 @@ function DailyNumbersBoard({
         "quests.dailyNumbers.shareResultValueLabel",
       ),
       timeLabel: controller.t("quests.dailyNumbers.solveTime"),
-      footer: controller.t("quests.dailyNumbers.shareFooter"),
+      archiveLabel: controller.t("quests.dailyNumbers.archiveResultLabel"),
+      footer: archiveMode
+        ? controller.t("quests.dailyNumbers.archiveShareFooter")
+        : controller.t("quests.dailyNumbers.shareFooter"),
       date: formatNumbersShareDate(controller.state.date, locale),
     };
   }, [
@@ -2174,6 +2397,7 @@ function DailyNumbersBoard({
     controller.finishScore,
     controller.finishDistance,
     locale,
+    archiveMode,
   ]);
 
   const handleShareResult = useCallback(async () => {
@@ -2234,6 +2458,7 @@ function DailyNumbersBoard({
       <MessageBanner message={controller.visibleMessage} />
       {controller.completionReached && !controller.finishScreenState ? (
         <SuccessCallout
+          archiveMode={archiveMode}
           completionReached={controller.completionReached}
           t={controller.t}
         />
@@ -2259,6 +2484,8 @@ function DailyNumbersBoard({
           <FinishStatePanel
             claimable={controller.claimable}
             claimPending={controller.claimPending}
+            archiveMode={archiveMode}
+            canRetryArchive={archiveMode && !controller.exactHitState}
             compact={controller.compact}
             exactHitState={controller.exactHitState}
             finishCompleted={controller.finishCompletedState}
@@ -2272,7 +2499,9 @@ function DailyNumbersBoard({
             isSharing={isSharing}
             onClaimReward={controller.onClaimReward}
             onShareResult={handleShareResult}
+            onStartRetry={controller.onStartRetry}
             onToggleSolution={controller.onToggleSolution}
+            officialSolutionSteps={controller.officialSolutionSteps}
             state={controller.state}
             submittedSolutionSteps={controller.submittedSolutionSteps}
             t={controller.t}
@@ -2281,6 +2510,7 @@ function DailyNumbersBoard({
         ) : (
           <LivePlayPanel
             availableTiles={controller.board.availableTiles}
+            archiveMode={archiveMode}
             compact={controller.compact}
             interactionLocked={controller.interactionLocked}
             localSteps={controller.interaction.steps}
@@ -2291,8 +2521,11 @@ function DailyNumbersBoard({
             onResetBoard={controller.onResetBoard}
             onSubmitPress={controller.onSubmitPress}
             onTilePress={controller.onTilePress}
+            onToggleSolution={controller.onToggleSolution}
             onUndoStep={controller.onUndoStep}
+            officialSolutionSteps={controller.officialSolutionSteps}
             previewState={controller.previewState}
+            revealedSolution={controller.interaction.revealedSolution}
             selectedLeftTile={controller.selectedLeftTile}
             selectedOperator={controller.selectedOperator}
             selectedRightTile={controller.selectedRightTile}
@@ -2325,15 +2558,146 @@ function DailyNumbersBoard({
 }
 
 function finishCompleted(
-  state: DailyNumbersStateResponse,
+  state: DailyNumbersBoardState,
   successState: boolean,
 ) {
   return state.submission?.completed === true || successState;
 }
 
+type DailyNumbersPlayViewProps = {
+  activeMode: DailyNumbersMode;
+  archiveDate: string | null;
+  archiveMode: boolean;
+  bannerMessage: MessageState;
+  boardIdentity: string | null;
+  chronometerActive: boolean;
+  claimPending: boolean;
+  compact: boolean;
+  insets: ReturnType<typeof useSafeAreaInsets>;
+  modeAccent: ReturnType<typeof getModeAccent>;
+  modeCards: ModeCard[];
+  onClaimReward: () => void;
+  onModeSelect: (mode: DailyNumbersMode) => void;
+  onResolveResetError: (error: unknown) => Promise<boolean>;
+  onSubmissionApplied: (nextState: DailyNumbersBoardState) => void;
+  router: ReturnType<typeof useRouter>;
+  state: DailyNumbersBoardState;
+  t: TranslateFn;
+  tc: ThemeColors;
+};
+
+function DailyNumbersPlayView({
+  activeMode,
+  archiveDate,
+  archiveMode,
+  bannerMessage,
+  boardIdentity,
+  chronometerActive,
+  claimPending,
+  compact,
+  insets,
+  modeAccent,
+  modeCards,
+  onClaimReward,
+  onModeSelect,
+  onResolveResetError,
+  onSubmissionApplied,
+  router,
+  state,
+  t,
+  tc,
+}: DailyNumbersPlayViewProps) {
+  return (
+    <ScrollView
+      className="flex-1 bg-bg"
+      contentContainerStyle={{ flexGrow: 1 }}
+      keyboardShouldPersistTaps="handled"
+    >
+      <View
+        style={{
+          paddingTop: insets.top + 10,
+          paddingBottom: insets.bottom + 10,
+          paddingHorizontal: compact ? 10 : 14,
+        }}
+      >
+        <View className="mb-3 items-center gap-2">
+          <Text className="text-center font-nunito-extrabold text-[28px] text-primaryDark">
+            {t("quests.dailyNumbers.title")}
+          </Text>
+          {archiveMode ? (
+            <>
+              <View
+                className="rounded-full border px-4 py-1.5"
+                style={{
+                  backgroundColor: tc.secondaryDark,
+                  borderColor: tc.secondaryBorder,
+                }}
+              >
+                <Text
+                  className="text-center font-nunito-extrabold text-xs uppercase tracking-[1px]"
+                  style={{ color: tc.secondaryText }}
+                >
+                  {t("quests.dailyNumbers.archiveResultLabel")}
+                </Text>
+              </View>
+              <Text className="text-center font-nunito-bold text-sm text-primaryDark">
+                {archiveDate}
+              </Text>
+            </>
+          ) : null}
+          <Text className="max-w-[340px] text-center font-nunito text-sm text-primaryDark/80">
+            {archiveMode
+              ? t("quests.dailyNumbers.archiveSubtitle")
+              : t("quests.dailyNumbers.subtitle")}
+          </Text>
+          <BackButton
+            label={
+              archiveMode
+                ? t("quests.dailyNumbers.backToHistory")
+                : t("quests.dailyNumbers.backToQuests")
+            }
+            onPress={() => router.back()}
+          />
+        </View>
+
+        <ModeTabs
+          activeMode={activeMode}
+          modeCards={modeCards}
+          onSelectMode={onModeSelect}
+          t={t}
+          tc={tc}
+        />
+
+        <Text className="mb-2 px-1 text-center font-nunito-semibold text-xs text-fgMuted">
+          {archiveMode
+            ? t("quests.dailyNumbers.archiveHelperLine")
+            : t("quests.dailyNumbers.helperLine")}
+        </Text>
+
+        <DailyNumbersBoard
+          key={boardIdentity}
+          activeMode={activeMode}
+          archiveMode={archiveMode}
+          bannerMessage={bannerMessage}
+          chronometerActive={chronometerActive}
+          claimPending={claimPending}
+          compact={compact}
+          modeAccent={modeAccent}
+          onClaimReward={onClaimReward}
+          onResolveResetError={onResolveResetError}
+          onSubmissionApplied={onSubmissionApplied}
+          state={state}
+          t={t}
+          tc={tc}
+        />
+      </View>
+    </ScrollView>
+  );
+}
+
 export default function DailyNumbersPlayScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ mode?: string }>();
+  const params = useLocalSearchParams<{ mode?: string; archiveDate?: string }>();
   const insets = useSafeAreaInsets();
   const { height, width } = useWindowDimensions();
   const queryClient = useQueryClient();
@@ -2348,6 +2712,8 @@ export default function DailyNumbersPlayScreen() {
 
   const compact = height < 820 || width < 390;
   const initialMode = normalizeDailyNumbersMode(params.mode);
+  const archiveDate = normalizeArchiveDateParam(params.archiveDate);
+  const archiveMode = archiveDate !== null;
   const [activeMode, setActiveMode] = useState<DailyNumbersMode>(initialMode);
   const [screenFocused, setScreenFocused] = useState(false);
   const [appActive, setAppActive] = useState(
@@ -2357,8 +2723,13 @@ export default function DailyNumbersPlayScreen() {
 
   const modeQueries = useQueries({
     queries: DAILY_NUMBERS_MODES.map((mode) => ({
-      queryKey: ["daily-numbers", mode] as const,
-      queryFn: () => apiClient.dailyNumbersState(mode),
+      queryKey: archiveMode
+        ? (["daily-numbers-archive", archiveDate, mode] as const)
+        : (["daily-numbers", mode] as const),
+      queryFn: () =>
+        archiveMode
+          ? apiClient.dailyNumbersArchiveState(archiveDate ?? "", mode)
+          : apiClient.dailyNumbersState(mode),
     })),
   });
 
@@ -2376,6 +2747,10 @@ export default function DailyNumbersPlayScreen() {
   const state = modeCards[activeQueryIndex].state;
   const modeAccent = getModeAccent(activeMode, tc);
   const resetNoticeMessage = useMemo<MessageState>(() => {
+    if (archiveMode) {
+      return null;
+    }
+
     if (!lastQuestResetAt || !lastQuestResetPayload) {
       return null;
     }
@@ -2397,7 +2772,7 @@ export default function DailyNumbersPlayScreen() {
           })
         : t("quests.dailyNumbers.resetNotice"),
     };
-  }, [activeMode, lastQuestResetAt, lastQuestResetPayload, t]);
+  }, [activeMode, archiveMode, lastQuestResetAt, lastQuestResetPayload, t]);
 
   useEffect(() => {
     setActiveMode(normalizeDailyNumbersMode(params.mode));
@@ -2486,6 +2861,10 @@ export default function DailyNumbersPlayScreen() {
 
   const handleResetError = useCallback(
     async (error: unknown) => {
+      if (archiveMode) {
+        return false;
+      }
+
       if (
         error instanceof ApiClientError &&
         error.code === "DAILY_NUMBERS_RESET"
@@ -2504,16 +2883,26 @@ export default function DailyNumbersPlayScreen() {
 
       return false;
     },
-    [activeMode, queryClient, t],
+    [activeMode, archiveMode, queryClient, t],
   );
 
   const handleSubmissionApplied = useCallback(
-    (nextState: DailyNumbersStateResponse) => {
-      queryClient.setQueryData(["daily-numbers", activeMode], nextState);
-      void queryClient.invalidateQueries({ queryKey: ["quests"] });
+    (nextState: DailyNumbersBoardState) => {
+      if (archiveMode) {
+        queryClient.setQueryData(
+          ["daily-numbers-archive", archiveDate, activeMode],
+          nextState,
+        );
+        void queryClient.invalidateQueries({
+          queryKey: ["daily-numbers-archive-history"],
+        });
+      } else {
+        queryClient.setQueryData(["daily-numbers", activeMode], nextState);
+        void queryClient.invalidateQueries({ queryKey: ["quests"] });
+      }
       setUiMessage(null);
     },
-    [activeMode, queryClient],
+    [activeMode, archiveDate, archiveMode, queryClient],
   );
 
   const boardIdentity = state ? buildBoardIdentity(state) : null;
@@ -2545,63 +2934,30 @@ export default function DailyNumbersPlayScreen() {
   }
 
   return (
-    <ScrollView
-      className="flex-1 bg-bg"
-      contentContainerStyle={{ flexGrow: 1 }}
-      keyboardShouldPersistTaps="handled"
-    >
-      <View
-        style={{
-          paddingTop: insets.top + 10,
-          paddingBottom: insets.bottom + 10,
-          paddingHorizontal: compact ? 10 : 14,
-        }}
-      >
-        <View className="mb-3 items-center gap-2">
-          <Text className="text-center font-nunito-extrabold text-[28px] text-primaryDark">
-            {t("quests.dailyNumbers.title")}
-          </Text>
-          <Text className="max-w-[340px] text-center font-nunito text-sm text-primaryDark/80">
-            {t("quests.dailyNumbers.subtitle")}
-          </Text>
-          <BackButton
-            label={t("quests.dailyNumbers.backToQuests")}
-            onPress={() => router.back()}
-          />
-        </View>
-
-        <ModeTabs
-          activeMode={activeMode}
-          modeCards={modeCards}
-          onSelectMode={handleModeSelect}
-          t={t}
-          tc={tc}
-        />
-
-        <Text className="mb-2 px-1 text-center font-nunito-semibold text-xs text-fgMuted">
-          {t("quests.dailyNumbers.helperLine")}
-        </Text>
-
-        <DailyNumbersBoard
-          key={boardIdentity}
-          activeMode={activeMode}
-          bannerMessage={bannerMessage}
-          chronometerActive={chronometerActive}
-          claimPending={claimQuestMutation.isPending}
-          compact={compact}
-          modeAccent={modeAccent}
-          onClaimReward={() => {
-            if (state.questVersion) {
-              void claimQuestMutation.mutateAsync(state.questVersion);
-            }
-          }}
-          onResolveResetError={handleResetError}
-          onSubmissionApplied={handleSubmissionApplied}
-          state={state}
-          t={t}
-          tc={tc}
-        />
-      </View>
-    </ScrollView>
+    <DailyNumbersPlayView
+      activeMode={activeMode}
+      archiveDate={archiveDate}
+      archiveMode={archiveMode}
+      bannerMessage={bannerMessage}
+      boardIdentity={boardIdentity}
+      chronometerActive={chronometerActive}
+      claimPending={claimQuestMutation.isPending}
+      compact={compact}
+      insets={insets}
+      modeAccent={modeAccent}
+      modeCards={modeCards}
+      onClaimReward={() => {
+        if (state.questVersion) {
+          void claimQuestMutation.mutateAsync(state.questVersion);
+        }
+      }}
+      onModeSelect={handleModeSelect}
+      onResolveResetError={handleResetError}
+      onSubmissionApplied={handleSubmissionApplied}
+      router={router}
+      state={state}
+      t={t}
+      tc={tc}
+    />
   );
 }
