@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "workspaces": [
     "apps/mobile",
+    "apps/web",
     "packages/*"
   ],
   "scripts": {
@@ -15,6 +16,9 @@
     "dev:mobile:android": "npm run android:local -w @adventure-time/mobile",
     "dev:mobile:ios": "npm run ios:local -w @adventure-time/mobile",
     "dev:mobile:both": "npm run dev:both -w @adventure-time/mobile",
+    "dev:web": "npm run dev -w @adventure-time/web",
+    "build:web": "npm run build -w @adventure-time/web",
+    "test:web": "npm run test -w @adventure-time/web",
     "build:mobile:e2e:ios": "node ./apps/mobile/scripts/build-ios-e2e-local.mjs",
     "build:mobile:e2e:android": "node ./apps/mobile/scripts/build-android-e2e-local.mjs",
     "install:mobile:e2e:ios": "node ./apps/mobile/scripts/install-ios-e2e-local.mjs",

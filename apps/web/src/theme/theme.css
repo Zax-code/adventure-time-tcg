@@ -1,0 +1,141 @@
+:root,
+:root[data-theme="candy"] {
+  color-scheme: light;
+  --color-bg: #fff0f5;
+  --color-fg: #4a3728;
+  --color-surface: rgba(255, 255, 255, 0.96);
+  --color-surface-muted: rgba(255, 255, 255, 0.9);
+  --color-fg-muted: #6b7280;
+  --color-muted: #9ca3af;
+  --color-primary: #f472b6;
+  --color-primary-dark: #ec4899;
+  --color-primary-text: #db2777;
+  --color-primary-strong: #be185d;
+  --color-primary-border: #f9a8d4;
+  --color-primary-bg: #fdf2f8;
+  --color-primary-tint: #fce7f3;
+  --color-secondary: #fde047;
+  --color-secondary-dark: #facc15;
+  --color-secondary-text: #894b00;
+  --color-secondary-tint: #fef9c3;
+  --color-secondary-border: #fef08a;
+  --color-accent: #c084fc;
+  --color-accent-dark: #a855f7;
+  --color-accent-text: #9333ea;
+  --color-accent-strong: #7c3aed;
+  --color-accent-tint: #f3e8ff;
+  --color-accent-border: #e9d5ff;
+  --color-success: #2dd4bf;
+  --color-success-dark: #14b8a6;
+  --color-success-text: #005f5a;
+  --color-success-tint: #ccfbf1;
+  --color-success-border: #96f7e4;
+  --color-danger: #fb7185;
+  --color-danger-dark: #f43f5e;
+  --color-danger-text: #a50036;
+  --color-danger-tint: #ffe4e6;
+  --color-danger-border: #fecdd3;
+  --color-info: #818cf8;
+  --color-info-dark: #6366f1;
+  --color-info-text: #4f46e5;
+  --color-info-tint: #e0e7ff;
+  --color-info-border: #c7d2fe;
+}
+
+:root[data-theme="ice"] {
+  color-scheme: light;
+  --color-bg: #f0f7ff;
+  --color-fg: #1f2937;
+  --color-surface: rgba(255, 255, 255, 0.98);
+  --color-surface-muted: rgba(240, 247, 255, 0.95);
+  --color-fg-muted: #6b7280;
+  --color-muted: #94a3b8;
+  --color-primary: #60a5fa;
+  --color-primary-dark: #3b82f6;
+  --color-primary-text: #1d4ed8;
+  --color-primary-strong: #1e40af;
+  --color-primary-border: #bfdbfe;
+  --color-primary-bg: #eff6ff;
+  --color-primary-tint: #dbeafe;
+  --color-secondary: #67e8f9;
+  --color-secondary-dark: #22d3ee;
+  --color-secondary-text: #0e7490;
+  --color-secondary-tint: #cffafe;
+  --color-secondary-border: #a5f3fc;
+  --color-accent: #818cf8;
+  --color-accent-dark: #6366f1;
+  --color-accent-text: #4338ca;
+  --color-accent-strong: #3730a3;
+  --color-accent-tint: #e0e7ff;
+  --color-accent-border: #c7d2fe;
+  --color-success: #34d399;
+  --color-success-dark: #10b981;
+  --color-success-text: #065f46;
+  --color-success-tint: #d1fae5;
+  --color-success-border: #6ee7b7;
+  --color-danger: #f87171;
+  --color-danger-dark: #ef4444;
+  --color-danger-text: #b91c1c;
+  --color-danger-tint: #fee2e2;
+  --color-danger-border: #fecaca;
+  --color-info: #60a5fa;
+  --color-info-dark: #3b82f6;
+  --color-info-text: #1d4ed8;
+  --color-info-tint: #dbeafe;
+  --color-info-border: #bfdbfe;
+}
+
+:root[data-theme="nightosphere"] {
+  color-scheme: dark;
+  --color-bg: #0d0010;
+  --color-fg: #f0c0c0;
+  --color-surface: #1a0b15;
+  --color-surface-muted: #120813;
+  --color-fg-muted: #9ca3af;
+  --color-muted: #4b5563;
+  --color-primary: #ef4444;
+  --color-primary-dark: #dc2626;
+  --color-primary-text: #fca5a5;
+  --color-primary-strong: #b91c1c;
+  --color-primary-border: #7f1d1d;
+  --color-primary-bg: #1c0a0a;
+  --color-primary-tint: #2d0f0f;
+  --color-secondary: #f97316;
+  --color-secondary-dark: #ea580c;
+  --color-secondary-text: #fdba74;
+  --color-secondary-tint: #1c0d05;
+  --color-secondary-border: #7c2d12;
+  --color-accent: #c084fc;
+  --color-accent-dark: #a855f7;
+  --color-accent-text: #e9d5ff;
+  --color-accent-strong: #7c3aed;
+  --color-accent-tint: #1e0a2e;
+  --color-accent-border: #4c1d95;
+  --color-success: #34d399;
+  --color-success-dark: #10b981;
+  --color-success-text: #6ee7b7;
+  --color-success-tint: #022c22;
+  --color-success-border: #064e3b;
+  --color-danger: #f87171;
+  --color-danger-dark: #ef4444;
+  --color-danger-text: #fecaca;
+  --color-danger-tint: #1c0505;
+  --color-danger-border: #7f1d1d;
+  --color-info: #818cf8;
+  --color-info-dark: #6366f1;
+  --color-info-text: #c7d2fe;
+  --color-info-tint: #0f0f2e;
+  --color-info-border: #1e1b4b;
+}
+
+.theme-option-candy {
+  --swatch: #f472b6;
+}
+
+.theme-option-ice {
+  --swatch: #60a5fa;
+}
+
+.theme-option-nightosphere {
+  --swatch: #ef4444;
+}
