@@ -20,6 +20,14 @@ if System.get_env("PHX_SERVER") do
   config :adventure_time_api, AdventureTimeApiWeb.Endpoint, server: true
 end
 
+case System.get_env("WEBSITE_INDEX_PATH") do
+  path when is_binary(path) and path != "" ->
+    config :adventure_time_api, AdventureTimeApiWeb.Plugs.WebsiteDocumentPlug, index_path: path
+
+  _missing ->
+    :ok
+end
+
 case System.get_env("AUTH_EMAIL_DELIVERY_ADAPTER") do
   "noop" ->
     config :adventure_time_api, AdventureTimeApi.Accounts.EmailDelivery,

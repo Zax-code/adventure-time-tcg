@@ -57,8 +57,17 @@ defmodule AdventureTimeApiWeb.Plugs.RateLimit do
     if token == "" do
       ip_address(conn)
     else
-      <<digest::binary>> = :crypto.hash(:sha256, token)
-      ip_address(conn) <> ":" <> Base.encode16(digest, case: :lower)
+      token_key(conn, token)
+    end
+  end
+
+  defp build_key(conn, {:cookie_token_or_ip, cookie_name}) when is_binary(cookie_name) do
+    token = conn |> fetch_cookies() |> Map.fetch!(:req_cookies) |> Map.get(cookie_name, "")
+
+    if token == "" do
+      ip_address(conn)
+    else
+      token_key(conn, token)
     end
   end
 
@@ -69,6 +78,11 @@ defmodule AdventureTimeApiWeb.Plugs.RateLimit do
   end
 
   defp build_key(conn, _strategy), do: ip_address(conn)
+
+  defp token_key(conn, token) do
+    digest = :crypto.hash(:sha256, token)
+    ip_address(conn) <> ":" <> Base.encode16(digest, case: :lower)
+  end
 
   defp ip_address(%Plug.Conn{remote_ip: nil}), do: "unknown"
 

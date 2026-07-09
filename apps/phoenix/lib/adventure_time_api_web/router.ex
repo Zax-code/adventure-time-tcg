@@ -2,6 +2,7 @@ defmodule AdventureTimeApiWeb.Router do
   use AdventureTimeApiWeb, :router
 
   alias AdventureTimeApiWeb.Plugs.RequireAuth
+  alias AdventureTimeApiWeb.Plugs.RequireWebSessionRequest
 
   pipeline :api do
     plug(:accepts, ["json"])
@@ -22,6 +23,11 @@ defmodule AdventureTimeApiWeb.Router do
   pipeline :api_auth do
     plug(:accepts, ["json"])
     plug(RequireAuth)
+  end
+
+  pipeline :web_session do
+    plug(:accepts, ["json"])
+    plug(RequireWebSessionRequest)
   end
 
   scope "/", AdventureTimeApiWeb do
@@ -63,6 +69,14 @@ defmodule AdventureTimeApiWeb.Router do
     post("/auth/apple", AuthController, :apple)
     post("/auth/refresh", AuthController, :refresh)
     post("/auth/logout", AuthController, :logout)
+  end
+
+  scope "/web", AdventureTimeApiWeb do
+    pipe_through(:web_session)
+
+    post("/session", WebSessionController, :create)
+    post("/session/refresh", WebSessionController, :refresh)
+    delete("/session", WebSessionController, :delete)
   end
 
   scope "/", AdventureTimeApiWeb do
