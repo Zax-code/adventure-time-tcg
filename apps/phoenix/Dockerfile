@@ -4,6 +4,29 @@ ARG ELIXIR_VERSION=1.19.5
 ARG OTP_VERSION=28
 ARG DEBIAN_VERSION=trixie
 
+FROM docker.io/library/node:22.14.0-bookworm-slim AS web-builder
+
+WORKDIR /workspace
+
+COPY package.json package-lock.json tsconfig.base.json ./
+COPY apps/mobile/package.json ./apps/mobile/package.json
+COPY apps/web/package.json ./apps/web/package.json
+COPY packages/api-client/package.json ./packages/api-client/package.json
+COPY packages/contracts/package.json ./packages/contracts/package.json
+COPY packages/db/package.json ./packages/db/package.json
+COPY packages/game-engine/package.json ./packages/game-engine/package.json
+COPY packages/theme/package.json ./packages/theme/package.json
+
+RUN npm ci --ignore-scripts
+
+COPY apps/web ./apps/web
+COPY packages/api-client ./packages/api-client
+COPY packages/contracts ./packages/contracts
+COPY packages/game-engine ./packages/game-engine
+COPY packages/theme ./packages/theme
+
+RUN npm run build:web
+
 FROM docker.io/library/elixir:${ELIXIR_VERSION}-otp-${OTP_VERSION}-slim AS base
 
 ARG DEBIAN_FRONTEND=noninteractive
@@ -33,14 +56,15 @@ ENV MIX_ENV=prod
 
 RUN mix local.hex --force && mix local.rebar --force
 
-COPY mix.exs mix.lock ./
+COPY apps/phoenix/mix.exs apps/phoenix/mix.lock ./
 
 RUN mix deps.get --only ${MIX_ENV}
 RUN mix deps.compile
 
-COPY config ./config
-COPY lib ./lib
-COPY priv ./priv
+COPY apps/phoenix/config ./config
+COPY apps/phoenix/lib ./lib
+COPY apps/phoenix/priv ./priv
+COPY --from=web-builder /workspace/apps/phoenix/priv/static/assets/web ./priv/static/assets/web
 
 RUN mix compile
 RUN mix release
