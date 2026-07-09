@@ -28,7 +28,7 @@ tags:
     id: quests-daily-numbers-history
 - extendedWaitUntil:
     visible:
-      text: Daily Numbers Archive
+      id: daily-numbers-archive-pill
     timeout: 15000
 - waitForAnimationToEnd
 - takeScreenshot: tmp-daily-numbers-archive-shots/02-history
@@ -37,7 +37,7 @@ tags:
     id: daily-numbers-archive-mode-1-5
 - extendedWaitUntil:
     visible:
-      text: Daily Numbers Archive
+      id: daily-numbers-archive-pill
     timeout: 15000
 - waitForAnimationToEnd
 - takeScreenshot: tmp-daily-numbers-archive-shots/03-archive-board

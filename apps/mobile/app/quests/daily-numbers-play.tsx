@@ -105,6 +105,7 @@ type BoardInteractionState = {
   submitting: boolean;
   revealedSolution: boolean;
   retrying: boolean;
+  retryAttempt: number;
 };
 type BoardAction =
   | { type: "selectTile"; tileId: string }
@@ -438,6 +439,7 @@ function createBoardInteractionState(
     submitting: false,
     revealedSolution: false,
     retrying: false,
+    retryAttempt: 0,
   };
 }
 
@@ -589,6 +591,7 @@ function boardReducer(
       submitting: false,
       revealedSolution: false,
       retrying: true,
+      retryAttempt: state.retryAttempt + 1,
     };
   }
 
@@ -601,11 +604,13 @@ function boardReducer(
 function useDailyNumbersChronometer({
   active,
   attemptScope,
+  resetSignal,
   submitted,
   state,
 }: {
   active: boolean;
   attemptScope: string;
+  resetSignal: number;
   submitted: boolean;
   state: DailyNumbersBoardState;
 }) {
@@ -654,6 +659,17 @@ function useDailyNumbersChronometer({
     elapsedMsRef.current = 0;
     forceTick();
 
+    if (resetSignal > 0) {
+      saveElapsedMs(0);
+      return () => {
+        cancelled = true;
+        const finalElapsedMs = getElapsedMs();
+        elapsedMsRef.current = finalElapsedMs;
+        startedAtRef.current = null;
+        saveElapsedMs(finalElapsedMs);
+      };
+    }
+
     void SecureStore.getItemAsync(storageKey).then((storedValue) => {
       if (cancelled) {
         return;
@@ -673,6 +689,7 @@ function useDailyNumbersChronometer({
     };
   }, [
     getElapsedMs,
+    resetSignal,
     saveElapsedMs,
     submitted,
     storageKey,
@@ -1718,6 +1735,7 @@ function useDailyNumbersBoardController({
   const chronometer = useDailyNumbersChronometer({
     active: chronometerActive && !hasLockedSubmission,
     attemptScope: interaction.retrying ? "retry" : "initial",
+    resetSignal: interaction.retrying ? interaction.retryAttempt : 0,
     submitted: hasLockedSubmission,
     state,
   });
@@ -2138,8 +2156,7 @@ function useDailyNumbersBoardController({
   const handleStartRetry = useCallback(() => {
     triggerLightHaptic();
     dispatch({ type: "startRetry" });
-    chronometer.resetElapsedMs();
-  }, [chronometer.resetElapsedMs]);
+  }, []);
 
   const finishTone: FinishTone = exactHitState
     ? {
@@ -2627,6 +2644,7 @@ function DailyNumbersPlayView({
                   backgroundColor: tc.secondaryDark,
                   borderColor: tc.secondaryBorder,
                 }}
+                testID="daily-numbers-archive-pill"
               >
                 <Text
                   className="text-center font-nunito-extrabold text-xs uppercase tracking-[1px]"

@@ -125,6 +125,11 @@ async function unregisterInstallation(accessToken: string) {
   return response.ok;
 }
 
+async function claimThenUnregisterInstallation(accessToken: string) {
+  await registerInstallation(accessToken).catch(() => false);
+  return unregisterInstallation(accessToken);
+}
+
 export async function syncNotificationDeviceRegistration(params: {
   accessToken: string;
   preferredStepSource: "device_health" | "fitbit";
@@ -142,7 +147,7 @@ export async function syncNotificationDeviceRegistration(params: {
     params.notificationPreferences.giftReceived;
 
   if (!wantsWidgetRefresh && !wantsVisiblePushes) {
-    await unregisterInstallation(params.accessToken).catch(() => {
+    await claimThenUnregisterInstallation(params.accessToken).catch(() => {
       // Registration cleanup should stay best-effort.
     });
     return;
@@ -153,7 +158,7 @@ export async function syncNotificationDeviceRegistration(params: {
     params.notificationPermissionStatus !== "granted" &&
     !wantsWidgetRefresh
   ) {
-    await unregisterInstallation(params.accessToken).catch(() => {
+    await claimThenUnregisterInstallation(params.accessToken).catch(() => {
       // Visible push cleanup should stay best-effort.
     });
     return;

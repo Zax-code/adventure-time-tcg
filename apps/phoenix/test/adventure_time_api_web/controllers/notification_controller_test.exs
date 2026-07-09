@@ -38,6 +38,60 @@ defmodule AdventureTimeApiWeb.NotificationControllerTest do
     refute Repo.get(Device, device.id)
   end
 
+  test "POST /notifications/device transfers an installation to the current user", _context do
+    first_user = create_user_with_password("notify-first@example.com", "password123")
+    second_user = create_user_with_password("notify-second@example.com", "password123")
+    first_token = login_access_token(first_user.email, "password123")
+    second_token = login_access_token(second_user.email, "password123")
+
+    first_token
+    |> auth_conn()
+    |> post(~p"/notifications/device", %{
+      "installationId" => "shared-installation",
+      "platform" => "ios",
+      "expoPushToken" => "ExponentPushToken[shared-first]"
+    })
+    |> json_response(200)
+
+    second_token
+    |> auth_conn()
+    |> post(~p"/notifications/device", %{
+      "installationId" => "shared-installation",
+      "platform" => "ios",
+      "expoPushToken" => "ExponentPushToken[shared-second]"
+    })
+    |> json_response(200)
+
+    device = Repo.get_by!(Device, installation_id: "shared-installation")
+    assert device.user_id == second_user.id
+    assert device.expo_push_token == "ExponentPushToken[shared-second]"
+    refute Repo.get_by(Device, user_id: first_user.id, installation_id: "shared-installation")
+  end
+
+  test "DELETE /notifications/device does not remove another user's installation", _context do
+    first_user = create_user_with_password("notify-owned@example.com", "password123")
+    second_user = create_user_with_password("notify-other@example.com", "password123")
+    second_token = login_access_token(second_user.email, "password123")
+
+    device =
+      Repo.insert!(
+        Device.changeset(%Device{}, %{
+          user_id: first_user.id,
+          installation_id: "owned-installation",
+          platform: :ios,
+          expo_push_token: "ExponentPushToken[owned]",
+          last_registered_at: DateTime.utc_now() |> DateTime.truncate(:second)
+        })
+      )
+
+    second_token
+    |> auth_conn()
+    |> delete(~p"/notifications/device/owned-installation")
+    |> json_response(200)
+
+    assert Repo.get(Device, device.id)
+  end
+
   defp create_user_with_password(email, password) do
     user =
       Repo.insert!(

@@ -223,8 +223,23 @@ export default function DailyNumbersHistoryScreen() {
       >
         <View className="items-center gap-2">
           <Text className="text-center font-nunito-extrabold text-[28px] text-primaryDark">
-            {t("quests.dailyNumbers.archiveTitle")}
+            {t("quests.dailyNumbers.title")}
           </Text>
+          <View
+            className="rounded-full border px-4 py-1.5"
+            style={{
+              backgroundColor: tc.secondaryDark,
+              borderColor: tc.secondaryBorder,
+            }}
+            testID="daily-numbers-archive-pill"
+          >
+            <Text
+              className="text-center font-nunito-extrabold text-xs uppercase tracking-[1px]"
+              style={{ color: tc.secondaryText }}
+            >
+              {t("quests.dailyNumbers.archiveResultLabel")}
+            </Text>
+          </View>
           <Text className="max-w-[350px] text-center font-nunito text-sm text-primaryDark/80">
             {t("quests.dailyNumbers.archiveListSubtitle")}
           </Text>
