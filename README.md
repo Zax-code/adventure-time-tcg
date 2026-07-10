@@ -1,6 +1,6 @@
 # Adventure Time TCG
 
-`adventure-time-tcg` is the active production workspace for the Adventure Time TCG mobile app and Phoenix backend.
+`adventure-time-tcg` is the active production workspace for the Adventure Time TCG website, mobile app, and Phoenix backend.
 
 The Phoenix API is now the main backend. The legacy PWA and the old Fastify API remain in the repo as migration/reference material, not as the primary development target.
 
@@ -18,7 +18,8 @@ Current canonical names and paths:
 ## Current Status
 
 - Phoenix owns the live backend architecture and database schema.
-- The mobile app targets the Phoenix HTTP API.
+- The responsive website and mobile app target the Phoenix HTTP API.
+- Phoenix serves the production website bundle and its secure browser-session endpoints.
 - Production data migration now uses the Phoenix-native `mix pwa_import` workflow.
 - PvP history from the legacy stack is intentionally not migrated.
 - `apps/api` is kept only as an archived behavior/reference copy.
@@ -28,14 +29,16 @@ Current canonical names and paths:
 Apps:
 
 - `apps/phoenix` - Phoenix JSON API
+- `apps/web` - React/Vite responsive website, served by Phoenix in production
 - `apps/mobile` - Expo / React Native app
 - `apps/api` - archived legacy Fastify API reference
 
-Packages still used by mobile/runtime code:
+Packages in active runtime use:
 
-- `packages/api-client` - typed client used by mobile
-- `packages/contracts` - backend/mobile DTOs, schemas, and enums
+- `packages/api-client` - typed client used by web and mobile
+- `packages/contracts` - backend/web/mobile DTOs, schemas, and enums
 - `packages/game-engine` - pure TypeScript combat helpers used by mobile
+- `packages/theme` - shared Candy, Ice, and Nightosphere design tokens
 - `packages/db` - legacy Drizzle schema and migration history reference
 
 Infrastructure helpers:
@@ -50,6 +53,7 @@ From the repo root:
 
 ```bash
 npm run dev:api
+npm run dev:web
 npm run dev:mobile
 npm run dev:mobile:ios
 npm run dev:mobile:android
@@ -59,6 +63,8 @@ npm run build:mobile:dev:ios
 npm run build:mobile:dev:ios:simulator
 npm run build:mobile:local -- --platform both
 npm run release:mobile -- --platform both --android-note="Fixes PvP reconnection."
+npm run test:web
+npm run build:web
 npm run build
 npm run typecheck
 ```
@@ -66,6 +72,7 @@ npm run typecheck
 What they do:
 
 - `npm run dev:api` - start Phoenix
+- `npm run dev:web` - start the Vite website on `http://127.0.0.1:4173`, proxying API traffic to Phoenix
 - `npm run dev:api:container` - start the Phoenix API inside the local compose stack
 - `npm run dev:stack` - start Phoenix, PostgreSQL, and MinIO together in containers
 - `npm run dev:mobile` - start the Expo dev server for installed development builds
@@ -77,6 +84,8 @@ What they do:
 - `npm run build:mobile:dev:ios:simulator` - create an iOS simulator development build with EAS using the `development-simulator` profile
 - `npm run build:mobile:local -- --platform <android|ios|both>` - build local production `.aab` and/or `.ipa` artifacts with `eas build --local`
 - `npm run release:mobile -- --platform <android|ios|both> ...` - build local production artifacts first, then submit them through EAS
+- `npm run test:web` - run the website unit and integration tests
+- `npm run build:web` - build the website into Phoenix's static asset directory
 
 ## Mobile Translations
 
@@ -196,8 +205,8 @@ Primary runbook:
 
 Key workflows:
 
-- `CI` - pull request and `main` validation for Phoenix, mobile, shared code, and the Phoenix release image build
-- `Deploy Phoenix` - production backend deployment to the VPS by publishing a release image, running release migrations, and restarting the API container
+- `CI` - pull request and `main` validation for Phoenix, web, mobile, shared code, and the Phoenix release image build
+- `Deploy Phoenix` - production backend and website deployment to the VPS by publishing a release image, running release migrations, and restarting the API container
 
 Mobile builds and store releases are intentionally not run on GitHub. Build and release mobile from this Mac. Android uses EAS/Google Play; iOS defaults to a local App Store Connect upload with Apple's tooling.
 
@@ -206,8 +215,17 @@ Mobile builds and store releases are intentionally not run on GitHub. Build and 
 Key env files:
 
 - Phoenix: `apps/phoenix/.env`
+- web: same-origin requests through Vite's local Phoenix proxy; no browser secrets are stored in an env file
 - mobile: `apps/mobile/.env`
 - no archived legacy runtime env file should remain in-repo; keep any temporary historical copy outside the repo
+
+Browser provider sign-in is configured by Phoenix at runtime:
+
+- `AUTH_GOOGLE_ID` - public Google web OAuth client ID
+- `APPLE_WEB_CLIENT_ID` - Apple Services ID for the website
+- `APPLE_WEB_REDIRECT_URI` - exact registered HTTPS return URL for that Services ID
+
+Apple sign-in stays hidden on the website until both Apple web values are present and the redirect URI is valid HTTPS.
 
 Important mobile env value:
 

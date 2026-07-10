@@ -1304,6 +1304,21 @@ export const authResponseSchema = z.object({
   tokens: authTokensSchema,
 });
 
+export const webSessionResponseSchema = z.object({
+  user: authUserSchema,
+  accessToken: z.string().min(1),
+});
+
+export const webAuthConfigSchema = z.object({
+  googleClientId: z.string().min(1).nullable(),
+  apple: z
+    .object({
+      clientId: z.string().min(1),
+      redirectUri: z.string().url(),
+    })
+    .nullable(),
+});
+
 export const registerResponseSchema = z.object({
   success: z.boolean(),
   message: z.string(),
@@ -1384,6 +1399,8 @@ export type GoogleAuthInput = z.infer<typeof googleAuthSchema>;
 export type AppleAuthInput = z.infer<typeof appleAuthSchema>;
 export type RefreshTokenInput = z.infer<typeof refreshTokenSchema>;
 export type AuthResponse = z.infer<typeof authResponseSchema>;
+export type WebSessionResponse = z.infer<typeof webSessionResponseSchema>;
+export type WebAuthConfig = z.infer<typeof webAuthConfigSchema>;
 export type RegisterResponse = z.infer<typeof registerResponseSchema>;
 export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;
 export type VerifyEmailResponse = z.infer<typeof verifyEmailResponseSchema>;

@@ -58,12 +58,13 @@ defmodule AdventureTimeApiWeb.AdminControllerTest do
         role: :admin
       )
 
-    Repo.insert!(
-      EmailAccessRequest.changeset(%EmailAccessRequest{}, %{
-        email: "pending@example.com",
-        status: :pending
-      })
-    )
+    request =
+      Repo.insert!(
+        EmailAccessRequest.changeset(%EmailAccessRequest{}, %{
+          email: "pending@example.com",
+          status: :pending
+        })
+      )
 
     access_token = login_access_token(admin.email, "password123")
 
@@ -73,6 +74,16 @@ defmodule AdventureTimeApiWeb.AdminControllerTest do
       |> get(~p"/admin/email-requests")
 
     assert json_response(conn, 403) == %{
+             "error" => "Super admin access required",
+             "code" => "SUPER_ADMIN_REQUIRED"
+           }
+
+    review_conn =
+      build_conn()
+      |> put_req_header("authorization", "Bearer #{access_token}")
+      |> patch(~p"/admin/email-requests/#{request.id}", %{"status" => "approved"})
+
+    assert json_response(review_conn, 403) == %{
              "error" => "Super admin access required",
              "code" => "SUPER_ADMIN_REQUIRED"
            }

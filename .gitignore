@@ -2,6 +2,7 @@ node_modules/
 .npm/
 dist/
 coverage/
+apps/phoenix/priv/static/assets/web/
 *.tsbuildinfo
 .env
 .env.*

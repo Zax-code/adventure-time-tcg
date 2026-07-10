@@ -36,6 +36,7 @@
   "dependencies": {
     "@adventure-time/api-client": "file:../../packages/api-client",
     "@adventure-time/game-engine": "file:../../packages/game-engine",
+    "@adventure-time/theme": "file:../../packages/theme",
     "@expo-google-fonts/nunito": "^0.4.2",
     "@expo/ui": "~56.0.21",
     "@kingstinct/react-native-healthkit": "^14.0.1",

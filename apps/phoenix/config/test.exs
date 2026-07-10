@@ -24,6 +24,16 @@ config :adventure_time_api, AdventureTimeApiWeb.Endpoint,
   secret_key_base: "NqBr4+7AYxsv3qEp8xD26T2w+Y1LYZvcgYcnioPNV/ZYHCpcttODgfBu9DBzHrC0",
   server: false
 
+config :adventure_time_api, AdventureTimeApiWeb.Plugs.WebsiteDocumentPlug,
+  index_path: Path.expand("../test/support/fixtures/website/index.html", __DIR__)
+
+config :adventure_time_api, AdventureTimeApiWeb.WebSessionController,
+  refresh_cookie_name: "adventure_time_refresh",
+  refresh_cookie_secure: false,
+  google_client_id: nil,
+  apple_client_id: nil,
+  apple_redirect_uri: nil
+
 config :adventure_time_api, AdventureTimeApi.Auth,
   access_token_secret: "test-access-token-secret-please-change-1234567890",
   refresh_token_secret: "test-refresh-token-secret-please-change-1234567890",

@@ -19,10 +19,11 @@ defmodule AdventureTimeApiWeb.HealthControllerTest do
            }
   end
 
-  test "GET /status renders the human-facing status page", %{conn: conn} do
+  test "GET /status keeps the human-facing fallback for non-document requests", %{conn: conn} do
     conn =
       conn
       |> put_req_header("accept", "text/html")
+      |> put_req_header("sec-fetch-dest", "empty")
       |> get(~p"/status")
 
     body = html_response(conn, 200)

@@ -16,13 +16,14 @@ What it does:
 - runs `npm ci`
 - runs `npm run typecheck`
 - runs `npm run build`
+- runs the website test suite when web-facing files change
 - provisions PostgreSQL 16 for Phoenix validation
 - runs `mix deps.get`
 - runs `mix format --check-formatted`
 - runs `mix compile --warnings-as-errors`
 - runs `mix test`
 
-This is the required branch-protection workflow for `main`.
+The workspace build compiles the Vite website into Phoenix's static directory, so the release-image validation covers the browser bundle as well as the backend. This is the required branch-protection workflow for `main`.
 
 ### `Deploy Phoenix`
 
@@ -33,7 +34,7 @@ Runs automatically on pushes to `main` when backend/deploy-relevant files change
 What it does:
 
 - optionally connects the GitHub runner to Tailscale before SSH when tailnet credentials are configured
-- builds and pushes the Phoenix release image to GHCR
+- builds and pushes the Phoenix release image, including the compiled website, to GHCR
 - uploads the repo-owned deploy script to the production host
 - deploys an exact Git SHA or ref
 - refuses to deploy from a dirty host checkout

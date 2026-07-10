@@ -256,6 +256,7 @@ export class ApiClient {
     const accessToken = await this.options.getAccessToken?.();
     const clientHeaders = (await this.options.getClientHeaders?.()) ?? {};
     const headers: Record<string, string> = {
+      Accept: "application/json",
       ...clientHeaders,
       ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
       ...((init.headers as Record<string, string> | undefined) ?? {}),

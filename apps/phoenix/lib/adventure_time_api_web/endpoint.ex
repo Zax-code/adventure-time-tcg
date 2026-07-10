@@ -30,6 +30,7 @@ defmodule AdventureTimeApiWeb.Endpoint do
     body_reader: {AdventureTimeApiWeb.RawBodyReader, :read_body, []}
   )
 
+  plug(AdventureTimeApiWeb.Plugs.WebsiteDocumentPlug)
   plug(Plug.Head)
   plug(AdventureTimeApiWeb.Router)
 end

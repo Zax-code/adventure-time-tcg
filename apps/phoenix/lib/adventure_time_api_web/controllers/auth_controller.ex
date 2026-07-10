@@ -4,6 +4,7 @@ defmodule AdventureTimeApiWeb.AuthController do
   alias AdventureTimeApi.Accounts
   alias AdventureTimeApi.Accounts.AuthError
   alias AdventureTimeApiWeb.Plugs.RateLimit
+  alias AdventureTimeApiWeb.RequestMetadata
 
   def register(conn, params) do
     conn = RateLimit.call(conn, bucket: :auth_register, key_strategy: :ip)
@@ -11,7 +12,7 @@ defmodule AdventureTimeApiWeb.AuthController do
     if conn.halted do
       conn
     else
-      case Accounts.register(params, request_metadata(conn)) do
+      case Accounts.register(params, RequestMetadata.from_conn(conn)) do
         {:ok, response} ->
           conn |> put_status(:created) |> json(response)
 
@@ -36,7 +37,7 @@ defmodule AdventureTimeApiWeb.AuthController do
     if conn.halted do
       conn
     else
-      case Accounts.login(params, request_metadata(conn)) do
+      case Accounts.login(params, RequestMetadata.from_conn(conn)) do
         {:ok, response} ->
           json(conn, response)
 
@@ -146,7 +147,7 @@ defmodule AdventureTimeApiWeb.AuthController do
     if conn.halted do
       conn
     else
-      case Accounts.login_with_google(params, request_metadata(conn)) do
+      case Accounts.login_with_google(params, RequestMetadata.from_conn(conn)) do
         {:ok, response} ->
           json(conn, response)
 
@@ -164,7 +165,7 @@ defmodule AdventureTimeApiWeb.AuthController do
     if conn.halted do
       conn
     else
-      case Accounts.login_with_apple(params, request_metadata(conn)) do
+      case Accounts.login_with_apple(params, RequestMetadata.from_conn(conn)) do
         {:ok, response} ->
           json(conn, response)
 
@@ -182,7 +183,7 @@ defmodule AdventureTimeApiWeb.AuthController do
     if conn.halted do
       conn
     else
-      case Accounts.refresh(refresh_token, request_metadata(conn)) do
+      case Accounts.refresh(refresh_token, RequestMetadata.from_conn(conn)) do
         {:ok, response} ->
           json(conn, response)
 
@@ -213,33 +214,4 @@ defmodule AdventureTimeApiWeb.AuthController do
     |> put_status(:bad_request)
     |> json(%{error: "Missing refresh token"})
   end
-
-  defp request_metadata(conn) do
-    %{
-      request_id: response_header(conn, "x-request-id") || request_header(conn, "x-request-id"),
-      user_agent: List.first(get_req_header(conn, "user-agent")),
-      ip_address: forwarded_ip(conn) || ip_to_string(conn.remote_ip),
-      accept_language: request_header(conn, "accept-language"),
-      client_platform: request_header(conn, "x-adventure-time-platform"),
-      client_app_version: request_header(conn, "x-adventure-time-app-version"),
-      client_build_number: request_header(conn, "x-adventure-time-build-number"),
-      installation_id: request_header(conn, "x-adventure-time-installation-id"),
-      attestation_status: request_header(conn, "x-adventure-time-attestation") || "not_provided"
-    }
-  end
-
-  defp forwarded_ip(conn) do
-    conn
-    |> request_header("x-forwarded-for")
-    |> case do
-      nil -> request_header(conn, "x-real-ip")
-      value -> value |> String.split(",") |> List.first() |> String.trim()
-    end
-  end
-
-  defp request_header(conn, name), do: conn |> get_req_header(name) |> List.first()
-  defp response_header(conn, name), do: conn |> get_resp_header(name) |> List.first()
-
-  defp ip_to_string(nil), do: nil
-  defp ip_to_string(tuple) when is_tuple(tuple), do: tuple |> Tuple.to_list() |> Enum.join(".")
 end

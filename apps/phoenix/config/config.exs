@@ -86,8 +86,19 @@ config :adventure_time_api, AdventureTimeApiWeb.Plugs.RateLimit,
     auth_google: %{limit: 10, scale_ms: 60_000},
     auth_apple: %{limit: 10, scale_ms: 60_000},
     auth_refresh: %{limit: 20, scale_ms: 60_000},
+    auth_logout: %{limit: 20, scale_ms: 60_000},
     pvp_match_write: %{limit: 30, scale_ms: 60_000}
   }
+
+config :adventure_time_api, AdventureTimeApiWeb.Plugs.WebsiteDocumentPlug,
+  index_path: "priv/static/assets/web/index.html"
+
+config :adventure_time_api, AdventureTimeApiWeb.WebSessionController,
+  refresh_cookie_name: "adventure_time_refresh",
+  refresh_cookie_secure: false,
+  google_client_id: nil,
+  apple_client_id: nil,
+  apple_redirect_uri: nil
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

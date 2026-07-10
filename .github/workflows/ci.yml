@@ -81,15 +81,28 @@ jobs:
             '^patches/' \
             '^tsconfig[^/]*\.json$' \
             '^apps/mobile/' \
+            '^apps/web/' \
             '^packages/'; then
             mobile_and_shared=true
           fi
 
           if matches_any \
             '^\.github/workflows/ci\.yml$' \
+            '^\.dockerignore$' \
+            '^package(-lock)?\.json$' \
+            '^apps/phoenix/' \
+            '^apps/web/' \
+            '^packages/api-client/' \
+            '^packages/contracts/' \
+            '^packages/game-engine/' \
+            '^packages/theme/'; then
+            phoenix_container=true
+          fi
+
+          if matches_any \
+            '^\.github/workflows/ci\.yml$' \
             '^apps/phoenix/'; then
             phoenix_api=true
-            phoenix_container=true
           fi
 
           {
@@ -123,6 +136,9 @@ jobs:
 
       - name: Run workspace build scripts
         run: npm run build
+
+      - name: Run website tests
+        run: npm run test:web
 
   phoenix-test:
     name: Phoenix API Validation
@@ -210,7 +226,7 @@ jobs:
       - name: Build Phoenix release image
         uses: docker/build-push-action@v6
         with:
-          context: ./apps/phoenix
+          context: .
           file: ./apps/phoenix/Dockerfile
           platforms: linux/amd64
           push: false
