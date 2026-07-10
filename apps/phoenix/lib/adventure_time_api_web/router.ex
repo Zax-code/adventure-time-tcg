@@ -74,7 +74,10 @@ defmodule AdventureTimeApiWeb.Router do
   scope "/web", AdventureTimeApiWeb do
     pipe_through(:web_session)
 
+    get("/auth/config", WebSessionController, :auth_config)
     post("/session", WebSessionController, :create)
+    post("/session/google", WebSessionController, :google)
+    post("/session/apple", WebSessionController, :apple)
     post("/session/refresh", WebSessionController, :refresh)
     delete("/session", WebSessionController, :delete)
   end

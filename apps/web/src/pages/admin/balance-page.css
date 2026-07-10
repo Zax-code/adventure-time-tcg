@@ -1,0 +1,437 @@
+.balance-lab-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(280px, 0.7fr);
+  gap: 18px;
+  align-items: start;
+  margin-bottom: 20px;
+}
+
+.balance-lab-main,
+.balance-lab-history {
+  min-width: 0;
+}
+
+.balance-lab-history {
+  position: sticky;
+  top: 18px;
+}
+
+.balance-control-grid {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.55fr) minmax(0, 1.45fr);
+  gap: 14px;
+}
+
+.balance-scope-field,
+.balance-weight-grid > label {
+  display: grid;
+  min-width: 0;
+  gap: 7px;
+  padding: 14px;
+  border: 1px solid var(--primaryBorder);
+  border-radius: 18px;
+  background: var(--surfaceMuted);
+}
+
+.balance-scope-field > span,
+.balance-weight-grid > label > span {
+  color: var(--fg);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+}
+
+.balance-scope-field > small,
+.balance-weight-grid > label > small {
+  color: var(--fgMuted);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.balance-scope-field select,
+.balance-weight-grid input {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--primaryBorder);
+  border-radius: 13px;
+  outline: 0;
+  background: var(--surface);
+  color: var(--fg);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.balance-scope-field :where(select, input):focus-visible,
+.balance-weight-grid input:focus-visible {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primaryTint);
+}
+
+.balance-weight-grid {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.balance-history-list {
+  display: grid;
+  gap: 8px;
+}
+
+.balance-history-list article {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr) auto;
+  overflow: hidden;
+  border: 1px solid var(--primaryBorder);
+  border-radius: 16px;
+  background: var(--surfaceMuted);
+  transition: border-color var(--transition), background var(--transition);
+}
+
+.balance-history-list article.selected {
+  border-color: var(--primary);
+  background: var(--primaryTint);
+}
+
+.balance-history-select {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+  padding: 12px 10px 12px 13px;
+  border: 0;
+  background: transparent;
+  color: var(--fg);
+  text-align: left;
+}
+
+.balance-history-select > span {
+  color: var(--primaryText);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+}
+
+.balance-history-select > b {
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.balance-history-select > small {
+  overflow: hidden;
+  color: var(--fgMuted);
+  font-size: 9px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.balance-history-remove {
+  align-self: stretch;
+  padding: 8px;
+  border: 0;
+  border-left: 1px solid var(--primaryBorder);
+  background: transparent;
+  color: var(--dangerText);
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.balance-history-select:hover,
+.balance-history-remove:hover {
+  background: color-mix(in srgb, var(--surface) 54%, transparent);
+}
+
+.balance-report-preview {
+  display: grid;
+  gap: 18px;
+}
+
+.balance-report-preview > .admin-section + .admin-section {
+  margin-top: 0;
+}
+
+.balance-download-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.balance-report-grid,
+.balance-insight-grid {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.balance-insight-grid > .admin-section {
+  min-width: 0;
+}
+
+.balance-table-wrap {
+  min-width: 0;
+  overflow-x: auto;
+  border: 1px solid var(--primaryBorder);
+  border-radius: 16px;
+  background: var(--surfaceMuted);
+  overscroll-behavior-inline: contain;
+}
+
+.balance-table {
+  width: 100%;
+  min-width: 520px;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.balance-card-ledger {
+  min-width: 840px;
+}
+
+.balance-table :where(th, td) {
+  padding: 11px 13px;
+  border-bottom: 1px solid var(--primaryBorder);
+  color: var(--fgMuted);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.balance-table :where(th, td):first-child {
+  color: var(--fg);
+  text-align: left;
+}
+
+.balance-table thead th {
+  background: color-mix(in srgb, var(--primaryTint) 62%, var(--surface));
+  color: var(--primaryText);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+
+.balance-table tbody th {
+  font-weight: 900;
+}
+
+.balance-table tbody tr:last-child :where(th, td) {
+  border-bottom: 0;
+}
+
+.balance-table tbody tr:hover {
+  background: color-mix(in srgb, var(--primaryTint) 40%, transparent);
+}
+
+.balance-card-ledger tbody th > :where(b, small) {
+  display: block;
+}
+
+.balance-card-ledger tbody th > small {
+  margin-top: 2px;
+  color: var(--fgMuted);
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.balance-outlier-list {
+  display: grid;
+  gap: 8px;
+}
+
+.balance-outlier-list article {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 11px;
+  padding: 11px;
+  border: 1px solid var(--primaryBorder);
+  border-radius: 15px;
+  background: var(--surfaceMuted);
+}
+
+.balance-outlier-list h3 {
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.balance-outlier-list p,
+.balance-muted-copy {
+  color: var(--fgMuted);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.balance-signal {
+  display: inline-flex;
+  min-height: 26px;
+  align-items: center;
+  padding: 5px 8px;
+  border: 1px solid;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.balance-signal-high {
+  border-color: var(--dangerBorder);
+  background: var(--dangerTint);
+  color: var(--dangerText);
+}
+
+.balance-signal-low {
+  border-color: var(--infoBorder);
+  background: var(--infoTint);
+  color: var(--infoText);
+}
+
+.balance-outlier-list dl {
+  display: flex;
+  gap: 12px;
+}
+
+.balance-outlier-list dl > div {
+  display: grid;
+  gap: 2px;
+  text-align: right;
+}
+
+.balance-outlier-list dt,
+.balance-run-facts dt {
+  color: var(--fgMuted);
+  font-size: 8px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.balance-outlier-list dd,
+.balance-run-facts dd {
+  margin: 0;
+  color: var(--fg);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.balance-recommendations {
+  display: grid;
+  gap: 9px;
+  margin: 0;
+  padding: 0;
+  counter-reset: balance-check;
+  list-style: none;
+}
+
+.balance-recommendations li {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: start;
+  gap: 9px;
+  color: var(--fgMuted);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.balance-recommendations li::before {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--primaryTint);
+  color: var(--primaryText);
+  content: counter(balance-check);
+  counter-increment: balance-check;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.balance-run-facts {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--primaryBorder);
+}
+
+.balance-run-facts > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.balance-empty-icon {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  margin-top: 6px;
+  border-radius: 16px;
+  background: var(--primaryTint);
+  color: var(--primaryText);
+}
+
+@media (max-width: 1080px) {
+  .balance-lab-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .balance-lab-history {
+    position: static;
+  }
+
+  .balance-history-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 820px) {
+  .balance-control-grid,
+  .balance-report-grid,
+  .balance-insight-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .balance-weight-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .balance-history-list,
+  .balance-weight-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .balance-download-actions,
+  .balance-download-actions .button {
+    width: 100%;
+  }
+
+  .balance-outlier-list article {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .balance-outlier-list dl {
+    grid-column: 2;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .balance-history-list article {
+    transition: none;
+  }
+}

@@ -4,13 +4,13 @@ Guidance for coding agents working in `adventure-time-tcg` after the Phoenix cut
 
 ## Mission
 
-This repo now operates as a Phoenix-first backend and Expo mobile app workspace for the Adventure Time TCG.
+This repo now operates as a Phoenix-first backend, responsive website, and Expo mobile app workspace for the Adventure Time TCG.
 
 Primary goals:
 - keep the Phoenix backend healthy and production-ready
-- preserve gameplay and mobile-facing contract behavior unless a change is intentional
+- preserve gameplay and web/mobile-facing contract behavior unless a change is intentional
 - use the legacy PWA and the old Fastify API as reference sources, not target architecture
-- keep shared mobile/runtime packages (`packages/api-client`, `packages/contracts`, `packages/game-engine`) working until a later consolidation pass removes them deliberately
+- keep shared runtime packages (`packages/api-client`, `packages/contracts`, `packages/game-engine`, `packages/theme`) working until a later consolidation pass removes them deliberately
 
 You are usually operating directly on the Arch Linux VPS that hosts the app.
 Assume local environment setup, systemd work, Caddy work, PostgreSQL access, MinIO access, and Phoenix tooling are in scope when needed.
@@ -26,17 +26,19 @@ Use this order when behavior is unclear:
 
 Apps:
 - `apps/phoenix` - primary backend
+- `apps/web` - React/Vite responsive website served by Phoenix in production
 - `apps/mobile` - Expo / React Native app
 - `apps/api` - archived legacy Fastify reference only
 
 Packages still in active use:
-- `packages/api-client` - typed client used by mobile
-- `packages/contracts` - backend/mobile wire schemas, DTOs, and enums
+- `packages/api-client` - typed client used by web and mobile
+- `packages/contracts` - backend/web/mobile wire schemas, DTOs, and enums
 - `packages/game-engine` - pure TS combat helpers used by mobile
+- `packages/theme` - shared web/mobile design tokens
 - `packages/db` - legacy schema/migration reference
 
 Architecture rules:
-- mobile talks to the backend through `@adventure-time/api-client`
+- web and mobile talk to the backend through `@adventure-time/api-client`
 - request/response contracts live in `@adventure-time/contracts` and are re-exported by `@adventure-time/api-client`
 - mobile UI translations live in `apps/mobile/src/i18n/`
 - do not put UI translation strings into `packages/contracts`
@@ -86,6 +88,9 @@ Run commands from the repo root unless a package-specific command is clearer.
 
 Root:
 - `npm run dev:api` - start Phoenix
+- `npm run dev:web` - start the Vite website on port `4173` with a local Phoenix proxy
+- `npm run test:web` - run website unit and integration tests
+- `npm run build:web` - build the website into Phoenix's static asset directory
 - `npm run dev:mobile` - start the Expo dev server for development builds
 - `npm run dev:mobile:ios` - install/run the local iOS development build
 - `npm run dev:mobile:android` - install/run the local Android development build

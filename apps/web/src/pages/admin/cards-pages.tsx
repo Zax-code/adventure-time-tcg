@@ -258,6 +258,225 @@ function toCardPayload(draft: CardDraft) {
   };
 }
 
+type CardEditorFormProps = {
+  abilitiesByType: Record<AdminAbility["type"], AdminAbility[]>;
+  allowsPassive: boolean;
+  assignment: AssignmentDraft;
+  clearAssignmentPending: boolean;
+  createMode: boolean;
+  currentCard?: Pick<AdminCard, "isArchived">;
+  draft: CardDraft;
+  effectiveRarityId: string;
+  onArchiveStatusChange: () => void;
+  onAssignmentChange: (key: keyof AssignmentDraft, value: string) => void;
+  onClearAssignments: () => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  onUpload: (file: File) => void;
+  patchPending: boolean;
+  rarities: readonly { id: string; name: string }[];
+  updateDraft: <Key extends keyof CardDraft>(
+    key: Key,
+    value: CardDraft[Key],
+  ) => void;
+  uploadPending: boolean;
+};
+
+function AdminCardEditorForm({
+  abilitiesByType,
+  allowsPassive,
+  assignment,
+  clearAssignmentPending,
+  createMode,
+  currentCard,
+  draft,
+  effectiveRarityId,
+  onArchiveStatusChange,
+  onAssignmentChange,
+  onClearAssignments,
+  onSubmit,
+  onUpload,
+  patchPending,
+  rarities,
+  updateDraft,
+  uploadPending,
+}: CardEditorFormProps) {
+  return (
+    <form className="admin-editor-main" id="admin-card-form" onSubmit={onSubmit}>
+      <AdminSection
+        description="Player-facing identity and catalog classification."
+        title="01 · Identity"
+      >
+        <div className="form-grid admin-form-grid">
+          <Field label="Card name">
+            <input
+              onChange={(event) => updateDraft("name", event.currentTarget.value)}
+              required
+              value={draft.name}
+            />
+          </Field>
+          <Field label="Character">
+            <input
+              onChange={(event) => updateDraft("character", event.currentTarget.value)}
+              required
+              value={draft.character}
+            />
+          </Field>
+          <Field label="Type">
+            <select
+              onChange={(event) => updateDraft("type", event.currentTarget.value as CardType)}
+              value={draft.type}
+            >
+              {cardTypeValues.map((type) => <option key={type}>{type}</option>)}
+            </select>
+          </Field>
+          <Field label="Rarity">
+            <select
+              onChange={(event) => updateDraft("rarityId", event.currentTarget.value)}
+              required
+              value={effectiveRarityId}
+            >
+              {rarities.map((rarity) => (
+                <option key={rarity.id} value={rarity.id}>{rarity.name}</option>
+              ))}
+            </select>
+          </Field>
+          <div className="full">
+            <Field label="Description">
+              <textarea
+                onChange={(event) => updateDraft("description", event.currentTarget.value)}
+                required
+                value={draft.description}
+              />
+            </Field>
+          </div>
+        </div>
+      </AdminSection>
+
+      <AdminSection
+        description="Positive integer base values used by the battle engine."
+        title="02 · Combat statistics"
+      >
+        <div className="admin-stat-fields">
+          {(["hp", "attack", "defense", "speed"] as const).map((key) => (
+            <Field key={key} label={key === "hp" ? "HP" : key}>
+              <input
+                min="1"
+                onChange={(event) => updateDraft(key, event.currentTarget.value)}
+                required
+                type="number"
+                value={draft[key]}
+              />
+            </Field>
+          ))}
+        </div>
+      </AdminSection>
+
+      <AdminSection
+        description="A card may have one passive, skill, and ultimate override."
+        title="03 · Ability assignments"
+      >
+        <div className="form-grid admin-form-grid">
+          <Field
+            hint={allowsPassive ? "Legendary cards may equip a passive." : "Passive slots are Legendary-only."}
+            label="Passive"
+          >
+            <select
+              disabled={!allowsPassive}
+              onChange={(event) => onAssignmentChange("passiveId", event.currentTarget.value)}
+              value={allowsPassive ? assignment.passiveId : ""}
+            >
+              <option value="">Inherit default</option>
+              {abilitiesByType.PASSIVE.map((ability) => (
+                <option key={ability.id} value={ability.id}>{ability.name}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Skill">
+            <select
+              onChange={(event) => onAssignmentChange("skillId", event.currentTarget.value)}
+              value={assignment.skillId}
+            >
+              <option value="">Inherit default</option>
+              {abilitiesByType.SKILL.map((ability) => (
+                <option key={ability.id} value={ability.id}>{ability.name}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Ultimate">
+            <select
+              onChange={(event) => onAssignmentChange("ultimateId", event.currentTarget.value)}
+              value={assignment.ultimateId}
+            >
+              <option value="">Inherit default</option>
+              {abilitiesByType.ULTIMATE.map((ability) => (
+                <option key={ability.id} value={ability.id}>{ability.name}</option>
+              ))}
+            </select>
+          </Field>
+          {!createMode ? (
+            <div className="admin-field-action">
+              <Button
+                busy={clearAssignmentPending}
+                onClick={() => {
+                  if (window.confirm("Clear all three custom ability slots for this card?")) {
+                    onClearAssignments();
+                  }
+                }}
+                tone="ghost"
+              >
+                Clear all overrides
+              </Button>
+            </div>
+          ) : null}
+        </div>
+      </AdminSection>
+
+      <AdminSection
+        description="PNG, JPEG, WEBP, or SVG. Save a new card before uploading."
+        title="04 · Artwork"
+      >
+        {createMode ? (
+          <p className="admin-muted-copy">Create the record first; artwork attaches to its generated id.</p>
+        ) : (
+          <Field label="Upload card image">
+            <input
+              accept="image/png,image/jpeg,image/webp,image/svg+xml"
+              disabled={uploadPending}
+              onChange={(event) => {
+                const file = event.currentTarget.files?.[0];
+                if (file) onUpload(file);
+                event.currentTarget.value = "";
+              }}
+              type="file"
+            />
+          </Field>
+        )}
+      </AdminSection>
+
+      {!createMode && currentCard ? (
+        <AdminSection
+          description="Archiving is reversible. Phoenix exposes no hard-delete route for cards."
+          title="05 · Catalog status"
+        >
+          <div className="admin-danger-row">
+            <div>
+              <h3>{currentCard.isArchived ? "Restore this card" : "Archive this card"}</h3>
+              <p>{currentCard.isArchived ? "Return it to the active catalog." : "Hide it from players while retaining its record."}</p>
+            </div>
+            <Button
+              busy={patchPending}
+              onClick={onArchiveStatusChange}
+              tone={currentCard.isArchived ? "secondary" : "danger"}
+            >
+              {currentCard.isArchived ? "Restore card" : "Archive card"}
+            </Button>
+          </div>
+        </AdminSection>
+      ) : null}
+    </form>
+  );
+}
+
 export function AdminCardEditorPage() {
   const { id = "new" } = useParams<{ id: string }>();
   const createMode = id === "new";
@@ -475,179 +694,31 @@ export function AdminCardEditorPage() {
       />
 
       <div className="admin-editor-layout">
-        <form className="admin-editor-main" id="admin-card-form" onSubmit={handleSubmit}>
-          <AdminSection
-            description="Player-facing identity and catalog classification."
-            title="01 · Identity"
-          >
-            <div className="form-grid admin-form-grid">
-              <Field label="Card name">
-                <input
-                  onChange={(event) => updateDraft("name", event.currentTarget.value)}
-                  required
-                  value={draft.name}
-                />
-              </Field>
-              <Field label="Character">
-                <input
-                  onChange={(event) => updateDraft("character", event.currentTarget.value)}
-                  required
-                  value={draft.character}
-                />
-              </Field>
-              <Field label="Type">
-                <select
-                  onChange={(event) => updateDraft("type", event.currentTarget.value as CardType)}
-                  value={draft.type}
-                >
-                  {cardTypeValues.map((type) => <option key={type}>{type}</option>)}
-                </select>
-              </Field>
-              <Field label="Rarity">
-                <select
-                  onChange={(event) => updateDraft("rarityId", event.currentTarget.value)}
-                  required
-                  value={effectiveRarityId}
-                >
-                  {rarityQuery.data?.rarities.map((rarity) => (
-                    <option key={rarity.id} value={rarity.id}>{rarity.name}</option>
-                  ))}
-                </select>
-              </Field>
-              <div className="full">
-                <Field label="Description">
-                  <textarea
-                    onChange={(event) => updateDraft("description", event.currentTarget.value)}
-                    required
-                    value={draft.description}
-                  />
-                </Field>
-              </div>
-            </div>
-          </AdminSection>
-
-          <AdminSection
-            description="Positive integer base values used by the battle engine."
-            title="02 · Combat statistics"
-          >
-            <div className="admin-stat-fields">
-              {(["hp", "attack", "defense", "speed"] as const).map((key) => (
-                <Field key={key} label={key === "hp" ? "HP" : key}>
-                  <input
-                    min="1"
-                    onChange={(event) => updateDraft(key, event.currentTarget.value)}
-                    required
-                    type="number"
-                    value={draft[key]}
-                  />
-                </Field>
-              ))}
-            </div>
-          </AdminSection>
-
-          <AdminSection
-            description="A card may have one passive, skill, and ultimate override."
-            title="03 · Ability assignments"
-          >
-            <div className="form-grid admin-form-grid">
-              <Field
-                hint={allowsPassive ? "Legendary cards may equip a passive." : "Passive slots are Legendary-only."}
-                label="Passive"
-              >
-                <select
-                  disabled={!allowsPassive}
-                  onChange={(event) => setAssignment((current) => ({ ...current, passiveId: event.currentTarget.value }))}
-                  value={allowsPassive ? assignment.passiveId : ""}
-                >
-                  <option value="">Inherit default</option>
-                  {abilitiesByType.PASSIVE.map((ability) => (
-                    <option key={ability.id} value={ability.id}>{ability.name}</option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="Skill">
-                <select
-                  onChange={(event) => setAssignment((current) => ({ ...current, skillId: event.currentTarget.value }))}
-                  value={assignment.skillId}
-                >
-                  <option value="">Inherit default</option>
-                  {abilitiesByType.SKILL.map((ability) => (
-                    <option key={ability.id} value={ability.id}>{ability.name}</option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="Ultimate">
-                <select
-                  onChange={(event) => setAssignment((current) => ({ ...current, ultimateId: event.currentTarget.value }))}
-                  value={assignment.ultimateId}
-                >
-                  <option value="">Inherit default</option>
-                  {abilitiesByType.ULTIMATE.map((ability) => (
-                    <option key={ability.id} value={ability.id}>{ability.name}</option>
-                  ))}
-                </select>
-              </Field>
-              {!createMode ? (
-                <div className="admin-field-action">
-                  <Button
-                    busy={clearAssignmentMutation.isPending}
-                    onClick={() => {
-                      if (window.confirm("Clear all three custom ability slots for this card?")) {
-                        clearAssignmentMutation.mutate();
-                      }
-                    }}
-                    tone="ghost"
-                  >
-                    Clear all overrides
-                  </Button>
-                </div>
-              ) : null}
-            </div>
-          </AdminSection>
-
-          <AdminSection
-            description="PNG, JPEG, WEBP, or SVG. Save a new card before uploading."
-            title="04 · Artwork"
-          >
-            {createMode ? (
-              <p className="admin-muted-copy">Create the record first; artwork attaches to its generated id.</p>
-            ) : (
-              <Field label="Upload card image">
-                <input
-                  accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                  disabled={uploadMutation.isPending}
-                  onChange={(event) => {
-                    const file = event.currentTarget.files?.[0];
-                    if (file) uploadMutation.mutate(file);
-                    event.currentTarget.value = "";
-                  }}
-                  type="file"
-                />
-              </Field>
-            )}
-          </AdminSection>
-
-          {!createMode && currentCard ? (
-            <AdminSection
-              description="Archiving is reversible. Phoenix exposes no hard-delete route for cards."
-              title="05 · Catalog status"
-            >
-              <div className="admin-danger-row">
-                <div>
-                  <h3>{currentCard.isArchived ? "Restore this card" : "Archive this card"}</h3>
-                  <p>{currentCard.isArchived ? "Return it to the active catalog." : "Hide it from players while retaining its record."}</p>
-                </div>
-                <Button
-                  busy={patchMutation.isPending}
-                  onClick={() => patchMutation.mutate({ isArchived: !currentCard.isArchived })}
-                  tone={currentCard.isArchived ? "secondary" : "danger"}
-                >
-                  {currentCard.isArchived ? "Restore card" : "Archive card"}
-                </Button>
-              </div>
-            </AdminSection>
-          ) : null}
-        </form>
+        <AdminCardEditorForm
+          abilitiesByType={abilitiesByType}
+          allowsPassive={allowsPassive}
+          assignment={assignment}
+          clearAssignmentPending={clearAssignmentMutation.isPending}
+          createMode={createMode}
+          currentCard={currentCard}
+          draft={draft}
+          effectiveRarityId={effectiveRarityId}
+          onArchiveStatusChange={() => {
+            if (currentCard) {
+              patchMutation.mutate({ isArchived: !currentCard.isArchived });
+            }
+          }}
+          onAssignmentChange={(key, value) =>
+            setAssignment((current) => ({ ...current, [key]: value }))
+          }
+          onClearAssignments={() => clearAssignmentMutation.mutate()}
+          onSubmit={handleSubmit}
+          onUpload={(file) => uploadMutation.mutate(file)}
+          patchPending={patchMutation.isPending}
+          rarities={rarityQuery.data?.rarities ?? []}
+          updateDraft={updateDraft}
+          uploadPending={uploadMutation.isPending}
+        />
 
         <aside className="admin-editor-aside">
           <section className="panel admin-sticky-preview">

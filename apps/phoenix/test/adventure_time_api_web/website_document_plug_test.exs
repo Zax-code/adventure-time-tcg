@@ -101,7 +101,7 @@ defmodule AdventureTimeApiWeb.WebsiteDocumentPlugTest do
     assert json_response(wildcard_conn, 401) == %{"error" => "Unauthorized"}
   end
 
-  test "non-document fetches, static files, callbacks, probes, and unknown routes fall through" do
+  test "non-document fetches, static files, callbacks, and probes fall through" do
     fetch_conn =
       build_conn()
       |> put_req_header("accept", "text/html")
@@ -134,14 +134,41 @@ defmodule AdventureTimeApiWeb.WebsiteDocumentPlugTest do
       |> get("/health")
 
     assert json_response(probe_conn, 200) == %{"service" => "phoenix", "status" => "ok"}
+  end
 
+  test "unknown browser navigation serves the application 404 without stealing JSON requests" do
     unknown_conn =
+      build_conn()
+      |> put_req_header("accept", "text/html,application/xhtml+xml")
+      |> put_req_header("sec-fetch-dest", "document")
+      |> put_req_header("sec-fetch-mode", "navigate")
+      |> get("/not-a-website-route")
+
+    assert html_response(unknown_conn, 404) =~ "data-website-test-index"
+    assert get_resp_header(unknown_conn, "cache-control") == ["no-store"]
+
+    unknown_json_conn =
+      build_conn()
+      |> put_req_header("accept", "application/json")
+      |> get("/not-a-website-route")
+
+    assert json_response(unknown_json_conn, 404) == %{"error" => "Not Found"}
+  end
+
+  test "provider scripts are narrowly allowed for popup authentication" do
+    conn =
       build_conn()
       |> put_req_header("accept", "text/html")
       |> put_req_header("sec-fetch-dest", "document")
-      |> get("/not-a-website-route")
+      |> get("/login")
 
-    refute html_response(unknown_conn, 404) =~ "data-website-test-index"
+    assert [csp] = get_resp_header(conn, "content-security-policy")
+    assert csp =~ "script-src 'self' https://accounts.google.com https://appleid.cdn-apple.com"
+    assert csp =~ "frame-src https://accounts.google.com https://appleid.apple.com"
+
+    assert get_resp_header(conn, "cross-origin-opener-policy") == [
+             "same-origin-allow-popups"
+           ]
   end
 
   test "authorized machine requests do not receive the website document" do

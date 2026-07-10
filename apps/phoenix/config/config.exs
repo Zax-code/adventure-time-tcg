@@ -95,7 +95,10 @@ config :adventure_time_api, AdventureTimeApiWeb.Plugs.WebsiteDocumentPlug,
 
 config :adventure_time_api, AdventureTimeApiWeb.WebSessionController,
   refresh_cookie_name: "adventure_time_refresh",
-  refresh_cookie_secure: false
+  refresh_cookie_secure: false,
+  google_client_id: nil,
+  apple_client_id: nil,
+  apple_redirect_uri: nil
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

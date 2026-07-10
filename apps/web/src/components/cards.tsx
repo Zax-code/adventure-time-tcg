@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
-import type { CollectionResponse } from "@adventure-time/api-client";
 import { Link } from "react-router-dom";
+
+import type { CollectionResponse } from "@adventure-time/api-client";
 
 import { CardArt } from "@/components/game-art";
 import {

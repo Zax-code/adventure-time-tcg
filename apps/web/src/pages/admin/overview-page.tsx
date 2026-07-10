@@ -28,6 +28,7 @@ const workspaces = [
   { href: "/admin/image-assets", title: "Image assets", copy: "Reusable PNG, JPEG, WEBP, and SVG uploads", Icon: SparklesIcon, tone: "success" },
   { href: "/admin/abilities", title: "Abilities", copy: "Combat definitions and card assignments", Icon: SwordsIcon, tone: "accent" },
   { href: "/admin/users", title: "Users", copy: "Roles, coins, quests, and deletion permissions", Icon: UserPlusIcon, tone: "info" },
+  { href: "/admin/balance", title: "Balance Lab", copy: "Versioned catalog analysis, review signals, and exports", Icon: BarChartIcon, tone: "info" },
 ] as const;
 
 export function AdminOverviewPage() {
@@ -66,12 +67,14 @@ export function AdminOverviewPage() {
             <AdminMetric label="Player accounts" note="Visible to this administrator" tone="info" value={users.data?.users.length ?? 0} />
             <AdminMetric label="Active catalog" note="Non-archived card definitions" tone="success" value={cards.data?.cards.filter((card) => !card.isArchived).length ?? 0} />
             <AdminMetric label="Active packs" note="Available pack definitions" tone="secondary" value={packs.data?.packs.filter((pack) => pack.isActive).length ?? 0} />
-            <AdminMetric
-              label="Pending access"
-              note={user?.isSuperAdmin ? "Super-admin moderation queue" : "Super-admin only"}
-              tone={pendingRequests ? "danger" : "accent"}
-              value={user?.isSuperAdmin ? pendingRequests : "Restricted"}
-            />
+            {user?.isSuperAdmin ? (
+              <AdminMetric
+                label="Pending access"
+                note="Super-admin moderation queue"
+                tone={pendingRequests ? "danger" : "accent"}
+                value={pendingRequests}
+              />
+            ) : null}
           </section>
           <div className="admin-overview-layout">
             <AdminSection description="Open a focused operational workspace." title="Workspaces">
@@ -98,7 +101,7 @@ export function AdminOverviewPage() {
                 <article><AdminStatus tone="approved">Resolved</AdminStatus><div><h3>Daily quests</h3><p>Seven current definitions; the retired daily-login quest is excluded.</p></div></article>
                 <article><AdminStatus tone="pending">Interface policy</AdminStatus><div><h3>Featured maximum</h3><p>Five slots are enforced by the website, not the backend contract.</p></div></article>
                 <article><AdminStatus tone="rejected">Unavailable</AdminStatus><div><h3>Operational audit log</h3><p>No audit-log endpoint exists, so no synthetic activity is shown.</p></div></article>
-                <article><AdminStatus tone="rejected">Unavailable</AdminStatus><div><h3>Balance Lab</h3><p><Link className="text-link" to="/admin/balance">Review the explicit keep, rebuild, or remove decision →</Link></p></div></article>
+                <article><AdminStatus tone="approved">Catalog-backed</AdminStatus><div><h3>Balance Lab</h3><p><Link className="text-link" to="/admin/balance">Generate versioned stat analysis with explicit telemetry limits →</Link></p></div></article>
               </div>
             </AdminSection>
           </div>

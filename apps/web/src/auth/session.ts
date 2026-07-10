@@ -1,8 +1,15 @@
 import {
-  authUserSchema,
+  appleAuthSchema,
+  googleAuthSchema,
   loginSchema,
+  webAuthConfigSchema,
+  webSessionResponseSchema,
+  type AppleAuthInput,
   type AuthUser,
+  type GoogleAuthInput,
   type LoginInput,
+  type WebAuthConfig,
+  type WebSessionResponse,
 } from "@adventure-time/api-client";
 
 import {
@@ -19,11 +26,6 @@ export type AuthSnapshot = {
   restoreError: string | null;
 };
 
-type WebSessionResponse = {
-  user: AuthUser;
-  accessToken: string;
-};
-
 let accessToken: string | null = null;
 let snapshot: AuthSnapshot = {
   status: "restoring",
@@ -32,22 +34,6 @@ let snapshot: AuthSnapshot = {
 };
 let refreshPromise: Promise<WebSessionResponse> | null = null;
 const listeners = new Set<() => void>();
-
-function parseWebSession(data: unknown): WebSessionResponse {
-  if (!data || typeof data !== "object" || Array.isArray(data)) {
-    throw new Error("The server returned an invalid session.");
-  }
-
-  const record = data as Record<string, unknown>;
-  if (typeof record.accessToken !== "string" || !record.accessToken) {
-    throw new Error("The server returned an invalid access token.");
-  }
-
-  return {
-    user: authUserSchema.parse(record.user),
-    accessToken: record.accessToken,
-  };
-}
 
 function publish(next: AuthSnapshot) {
   snapshot = next;
@@ -68,7 +54,7 @@ function requestSessionRefresh() {
     refreshPromise = webJsonRequest(
       "/web/session/refresh",
       { method: "POST", body: "{}" },
-      parseWebSession,
+      (data) => webSessionResponseSchema.parse(data),
     ).finally(() => {
       refreshPromise = null;
     });
@@ -100,7 +86,39 @@ export async function createWebSession(input: LoginInput) {
   const session = await webJsonRequest(
     "/web/session",
     { method: "POST", body: JSON.stringify(body) },
-    parseWebSession,
+    (data) => webSessionResponseSchema.parse(data),
+  );
+
+  applySession(session);
+  return session.user;
+}
+
+export async function getWebAuthConfig() {
+  return webJsonRequest<WebAuthConfig>(
+    "/web/auth/config",
+    { method: "GET" },
+    (data) => webAuthConfigSchema.parse(data),
+  );
+}
+
+export async function createGoogleWebSession(input: GoogleAuthInput) {
+  const body = googleAuthSchema.parse(input);
+  const session = await webJsonRequest(
+    "/web/session/google",
+    { method: "POST", body: JSON.stringify(body) },
+    (data) => webSessionResponseSchema.parse(data),
+  );
+
+  applySession(session);
+  return session.user;
+}
+
+export async function createAppleWebSession(input: AppleAuthInput) {
+  const body = appleAuthSchema.parse(input);
+  const session = await webJsonRequest(
+    "/web/session/apple",
+    { method: "POST", body: JSON.stringify(body) },
+    (data) => webSessionResponseSchema.parse(data),
   );
 
   applySession(session);

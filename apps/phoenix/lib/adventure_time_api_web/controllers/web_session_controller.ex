@@ -7,6 +7,22 @@ defmodule AdventureTimeApiWeb.WebSessionController do
   alias AdventureTimeApiWeb.Plugs.RateLimit
   alias AdventureTimeApiWeb.RequestMetadata
 
+  def auth_config(conn, _params) do
+    config = controller_config()
+    google_client_id = present_config(config[:google_client_id])
+    apple_client_id = present_config(config[:apple_client_id])
+    apple_redirect_uri = present_config(config[:apple_redirect_uri])
+
+    apple =
+      if apple_client_id && valid_apple_redirect_uri?(apple_redirect_uri) do
+        %{clientId: apple_client_id, redirectUri: apple_redirect_uri}
+      end
+
+    conn
+    |> prepare_response()
+    |> json(%{googleClientId: google_client_id, apple: apple})
+  end
+
   def create(conn, params) do
     conn =
       conn
@@ -28,6 +44,32 @@ defmodule AdventureTimeApiWeb.WebSessionController do
         {:error, _reason, message} ->
           conn |> put_status(:unauthorized) |> json(%{error: message})
       end
+    end
+  end
+
+  def google(conn, params) do
+    conn =
+      conn
+      |> prepare_response()
+      |> RateLimit.call(bucket: :auth_google, key_strategy: :ip)
+
+    if conn.halted do
+      conn
+    else
+      provider_session(conn, Accounts.login_with_google(params, RequestMetadata.from_conn(conn)))
+    end
+  end
+
+  def apple(conn, params) do
+    conn =
+      conn
+      |> prepare_response()
+      |> RateLimit.call(bucket: :auth_apple, key_strategy: :ip)
+
+    if conn.halted do
+      conn
+    else
+      provider_session(conn, Accounts.login_with_apple(params, RequestMetadata.from_conn(conn)))
     end
   end
 
@@ -102,6 +144,18 @@ defmodule AdventureTimeApiWeb.WebSessionController do
     end
   end
 
+  defp provider_session(conn, result) do
+    case result do
+      {:ok, response} ->
+        put_session_response(conn, response)
+
+      {:error, %AuthError{} = error} ->
+        conn
+        |> put_status(error.status_code)
+        |> json(%{error: error.message, code: error.code})
+    end
+  end
+
   defp put_session_response(conn, response) do
     conn
     |> put_refresh_cookie(response.tokens.refreshToken)
@@ -133,7 +187,7 @@ defmodule AdventureTimeApiWeb.WebSessionController do
   end
 
   defp cookie_options do
-    config = Application.fetch_env!(:adventure_time_api, __MODULE__)
+    config = controller_config()
 
     [
       http_only: true,
@@ -144,8 +198,29 @@ defmodule AdventureTimeApiWeb.WebSessionController do
   end
 
   defp refresh_cookie_name do
-    :adventure_time_api
-    |> Application.fetch_env!(__MODULE__)
+    controller_config()
     |> Keyword.fetch!(:refresh_cookie_name)
   end
+
+  defp controller_config do
+    Application.fetch_env!(:adventure_time_api, __MODULE__)
+  end
+
+  defp present_config(value) when is_binary(value) do
+    case String.trim(value) do
+      "" -> nil
+      configured -> configured
+    end
+  end
+
+  defp present_config(_value), do: nil
+
+  defp valid_apple_redirect_uri?(value) when is_binary(value) do
+    case URI.parse(value) do
+      %URI{scheme: "https", host: host} when is_binary(host) and host != "" -> true
+      _ -> false
+    end
+  end
+
+  defp valid_apple_redirect_uri?(_value), do: false
 end

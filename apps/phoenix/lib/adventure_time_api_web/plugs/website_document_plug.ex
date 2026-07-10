@@ -1,11 +1,14 @@
 defmodule AdventureTimeApiWeb.Plugs.WebsiteDocumentPlug do
   @moduledoc """
-  Serves the compiled web application document for explicit browser routes.
+  Serves the compiled web application document for browser routes.
 
   The mobile API intentionally owns several of the same GET paths. This plug
   therefore runs before the Phoenix router and only handles an explicit HTML
-  document navigation. JSON, wildcard, authenticated machine, static, probe,
-  and callback requests continue through the existing router unchanged.
+  document navigation. Known routes receive the application document with a
+  200 response; unknown browser routes receive the same document with a 404 so
+  React can render the designed not-found page. JSON, wildcard, authenticated
+  machine, static, probe, and callback requests continue through the existing
+  router unchanged.
   """
 
   import Plug.Conn
@@ -56,19 +59,42 @@ defmodule AdventureTimeApiWeb.Plugs.WebsiteDocumentPlug do
                   "/admin/balance"
                 ])
 
+  @reserved_navigation_paths MapSet.new([
+                               "/favicon.ico",
+                               "/health",
+                               "/ready",
+                               "/robots.txt",
+                               "/site.webmanifest",
+                               "/theme-bootstrap.js"
+                             ])
+
+  @reserved_navigation_prefixes [
+    "/.well-known/",
+    "/assets/",
+    "/auth/",
+    "/fitbit/",
+    "/fonts/",
+    "/images/",
+    "/media/",
+    "/phoenix/",
+    "/socket/",
+    "/web/"
+  ]
+
   @content_security_policy Enum.join(
                              [
                                "default-src 'self'",
                                "base-uri 'self'",
-                               "connect-src 'self'",
+                               "connect-src 'self' https://accounts.google.com https://oauth2.googleapis.com https://appleid.apple.com",
                                "font-src 'self'",
                                "form-action 'self'",
+                               "frame-src https://accounts.google.com https://appleid.apple.com",
                                "frame-ancestors 'none'",
                                "img-src 'self' data: blob:",
                                "manifest-src 'self'",
                                "media-src 'self'",
                                "object-src 'none'",
-                               "script-src 'self'",
+                               "script-src 'self' https://accounts.google.com https://appleid.cdn-apple.com",
                                "style-src 'self'",
                                "worker-src 'none'"
                              ],
@@ -80,8 +106,11 @@ defmodule AdventureTimeApiWeb.Plugs.WebsiteDocumentPlug do
 
   @impl Plug
   def call(%Plug.Conn{method: method} = conn, _opts) when method in ["GET", "HEAD"] do
-    if website_route?(conn.request_path, conn.path_info) and document_request?(conn) do
-      serve_document(conn)
+    if document_request?(conn) do
+      case navigation_status(conn.request_path, conn.path_info) do
+        nil -> conn
+        status -> serve_document(conn, status)
+      end
     else
       conn
     end
@@ -89,8 +118,17 @@ defmodule AdventureTimeApiWeb.Plugs.WebsiteDocumentPlug do
 
   def call(conn, _opts), do: conn
 
-  defp website_route?(request_path, path_info) do
-    MapSet.member?(@exact_routes, request_path) or dynamic_route?(path_info)
+  defp navigation_status(request_path, path_info) do
+    cond do
+      reserved_navigation?(request_path) -> nil
+      MapSet.member?(@exact_routes, request_path) or dynamic_route?(path_info) -> :ok
+      true -> :not_found
+    end
+  end
+
+  defp reserved_navigation?(request_path) do
+    MapSet.member?(@reserved_navigation_paths, request_path) or
+      Enum.any?(@reserved_navigation_prefixes, &String.starts_with?(request_path, &1))
   end
 
   defp dynamic_route?(["collection", id]), do: present_segment?(id)
@@ -134,7 +172,7 @@ defmodule AdventureTimeApiWeb.Plugs.WebsiteDocumentPlug do
     end
   end
 
-  defp serve_document(conn) do
+  defp serve_document(conn, status) do
     case File.read(index_path()) do
       {:ok, document} ->
         body = if conn.method == "HEAD", do: "", else: document
@@ -142,7 +180,7 @@ defmodule AdventureTimeApiWeb.Plugs.WebsiteDocumentPlug do
         conn
         |> put_document_headers()
         |> put_resp_header("content-length", Integer.to_string(byte_size(document)))
-        |> send_resp(:ok, body)
+        |> send_resp(status, body)
         |> halt()
 
       {:error, reason} ->
@@ -161,7 +199,7 @@ defmodule AdventureTimeApiWeb.Plugs.WebsiteDocumentPlug do
     |> put_resp_content_type("text/html")
     |> put_resp_header("cache-control", "no-store")
     |> put_resp_header("content-security-policy", @content_security_policy)
-    |> put_resp_header("cross-origin-opener-policy", "same-origin")
+    |> put_resp_header("cross-origin-opener-policy", "same-origin-allow-popups")
     |> put_resp_header("cross-origin-resource-policy", "same-origin")
     |> put_resp_header(
       "permissions-policy",

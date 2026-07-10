@@ -137,6 +137,9 @@ jobs:
       - name: Run workspace build scripts
         run: npm run build
 
+      - name: Run website tests
+        run: npm run test:web
+
   phoenix-test:
     name: Phoenix API Validation
     runs-on: ubuntu-latest

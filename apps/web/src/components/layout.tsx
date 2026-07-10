@@ -90,7 +90,11 @@ export function AppLayout({ admin = false }: { admin?: boolean }) {
   const { logout, user } = auth;
   const location = useLocation();
   const [accountOpen, setAccountOpen] = useState(false);
-  const nav = admin ? adminNav : playerNav;
+  const nav = admin
+    ? adminNav.filter(
+        (item) => item.href !== "/admin/email-requests" || user?.isSuperAdmin,
+      )
+    : playerNav;
 
   const content = (
     <div className={`app-frame ${admin ? "admin-frame" : ""}`}>
@@ -169,6 +173,16 @@ export function AppLayout({ admin = false }: { admin?: boolean }) {
   }
 
   return content;
+}
+
+export function SuperAdminRoute() {
+  const { user } = useAuth();
+
+  if (!user?.isSuperAdmin) {
+    return <Navigate to="/admin" replace />;
+  }
+
+  return <Outlet />;
 }
 
 export function ThemeMeta() {

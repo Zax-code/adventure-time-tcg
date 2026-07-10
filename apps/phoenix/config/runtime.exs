@@ -1,5 +1,20 @@
 import Config
 
+google_web_client_id =
+  [
+    System.get_env("AUTH_GOOGLE_ID"),
+    System.get_env("EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID"),
+    if(config_env() in [:dev, :prod],
+      do: "831806850937-p3udmkmhoeik4d63rt3r422bj91g02b3.apps.googleusercontent.com"
+    )
+  ]
+  |> Enum.find(&(is_binary(&1) and String.trim(&1) != ""))
+
+config :adventure_time_api, AdventureTimeApiWeb.WebSessionController,
+  google_client_id: google_web_client_id,
+  apple_client_id: System.get_env("APPLE_WEB_CLIENT_ID"),
+  apple_redirect_uri: System.get_env("APPLE_WEB_REDIRECT_URI")
+
 # config/runtime.exs is executed for all environments, including
 # during releases. It is executed after compilation and before the
 # system starts, so it is typically used to load production configuration
@@ -62,7 +77,7 @@ if config_env() == :prod do
         raise("environment variable REFRESH_TOKEN_SECRET is missing"),
     google_client_ids:
       [
-        System.get_env("AUTH_GOOGLE_ID"),
+        google_web_client_id,
         System.get_env("GOOGLE_IOS_CLIENT_ID"),
         System.get_env("GOOGLE_ANDROID_CLIENT_ID")
       ]
@@ -71,7 +86,8 @@ if config_env() == :prod do
     apple_client_ids:
       [
         System.get_env("APPLE_BUNDLE_ID") || "love.leaetzak.adventuretime",
-        System.get_env("IOS_BUNDLE_IDENTIFIER")
+        System.get_env("IOS_BUNDLE_IDENTIFIER"),
+        System.get_env("APPLE_WEB_CLIENT_ID")
       ]
       |> Enum.reject(&is_nil/1)
       |> Enum.reject(&(&1 == ""))

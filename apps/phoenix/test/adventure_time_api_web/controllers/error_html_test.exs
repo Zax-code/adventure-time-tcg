@@ -1,21 +1,20 @@
 defmodule AdventureTimeApiWeb.ErrorHTMLTest do
   use AdventureTimeApiWeb.ConnCase, async: true
 
-  test "unknown browser route renders the custom 404 page", %{conn: conn} do
+  test "unknown browser route renders the redesigned website 404 shell", %{conn: conn} do
     conn =
       conn
-      |> put_req_header("accept", "text/html")
+      |> put_req_header("accept", "text/html,application/xhtml+xml")
+      |> put_req_header("sec-fetch-dest", "document")
+      |> put_req_header("sec-fetch-mode", "navigate")
       |> get("/this-route-does-not-exist")
 
     html = html_response(conn, 404)
 
-    assert html =~ "This page is missing from the collection"
-    assert html =~ "notFound.kicker"
-    assert html =~ "No secret endpoint map here"
-    assert html =~ "FR"
-    refute html =~ "Available routes"
+    assert html =~ "data-website-test-index"
+    assert get_resp_header(conn, "cache-control") == ["no-store"]
+    assert get_resp_header(conn, "content-security-policy") != []
     refute html =~ "AdventureTimeApiWeb.Router"
-    refute html =~ "&lt;!DOCTYPE html&gt;"
   end
 
   test "unknown JSON route returns a compact JSON 404", %{conn: conn} do

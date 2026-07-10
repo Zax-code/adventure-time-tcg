@@ -1,3 +1,5 @@
+import { vars } from "nativewind";
+
 import {
   getThemeColorScheme,
   THEME_COLORS,
@@ -5,7 +7,6 @@ import {
   THEME_NAMES,
   type ThemeName,
 } from "@adventure-time/theme";
-import { vars } from "nativewind";
 
 export { THEME_COLORS, type ThemeName } from "@adventure-time/theme";
 

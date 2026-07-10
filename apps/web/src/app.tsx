@@ -6,7 +6,12 @@ import {
 } from "react";
 import { Route, Routes, useLocation } from "react-router-dom";
 
-import { AppLayout, PublicLayout, ThemeMeta } from "@/components/layout";
+import {
+  AppLayout,
+  PublicLayout,
+  SuperAdminRoute,
+  ThemeMeta,
+} from "@/components/layout";
 import { LoadingState } from "@/components/ui";
 import { titleForPath } from "@/route-manifest";
 
@@ -136,7 +141,9 @@ export function App() {
           <Route path="admin/abilities/:id" element={<AdminAbilityEditorPage />} />
           <Route path="admin/users" element={<AdminUsersPage />} />
           <Route path="admin/users/:id" element={<AdminUserDetailPage />} />
-          <Route path="admin/email-requests" element={<AdminEmailRequestsPage />} />
+          <Route element={<SuperAdminRoute />}>
+            <Route path="admin/email-requests" element={<AdminEmailRequestsPage />} />
+          </Route>
           <Route path="admin/balance" element={<AdminBalancePage />} />
         </Route>
 

@@ -8,6 +8,7 @@ export default defineConfig(({ command }) => ({
   plugins: [react()],
   build: {
     emptyOutDir: true,
+    modulePreload: { polyfill: false },
     outDir: "../phoenix/priv/static/assets/web",
     sourcemap: false,
   },

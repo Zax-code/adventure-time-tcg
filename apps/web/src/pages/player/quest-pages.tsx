@@ -1,6 +1,8 @@
 import {
   type FormEvent,
+  useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import {
@@ -293,15 +295,73 @@ export function DailyNumbersHistoryPage() {
 
 export function SpeedCalculusPage() {
   const queryClient = useQueryClient();
+  const answerInputRef = useRef<HTMLInputElement>(null);
+  const pendingAnswerFocusRef = useRef(false);
+  const [answerFocusRequest, setAnswerFocusRequest] = useState(0);
+  const [displayRemainingSeconds, setDisplayRemainingSeconds] = useState(0);
   const state = useQuery({ queryKey: ["speed-calculus"], queryFn: () => webApiClient.speedCalculusState(), refetchInterval: (query) => query.state.data?.activeRun ? 5_000 : false });
   const command = useMutation({
     mutationFn: (kind: "start" | "pause" | "resume" | "cashout") => kind === "start" ? webApiClient.startSpeedCalculus() : kind === "pause" ? webApiClient.pauseSpeedCalculus() : kind === "resume" ? webApiClient.resumeSpeedCalculus() : webApiClient.cashoutSpeedCalculus(),
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["speed-calculus"] }),
+    onSuccess: (_response, kind) => {
+      if (kind === "start" || kind === "resume") requestAnswerFocus();
+      void queryClient.invalidateQueries({ queryKey: ["speed-calculus"] });
+    },
   });
   const answer = useMutation({
     mutationFn: ({ runId, value, version }: { runId: string; value: number; version?: string }) => webApiClient.answerSpeedCalculus(runId, value, version),
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["speed-calculus"] }),
+    onSuccess: () => {
+      requestAnswerFocus();
+      void queryClient.invalidateQueries({ queryKey: ["speed-calculus"] });
+    },
   });
+
+  const finish = useMutation({
+    mutationFn: ({ runId, questVersion }: { runId: string; questVersion?: string }) =>
+      webApiClient.finishSpeedCalculus(runId, questVersion),
+    onSuccess: async (_result) => {
+      await queryClient.invalidateQueries({ queryKey: ["speed-calculus"] });
+    },
+  });
+
+  const activeRun = state.data?.activeRun;
+
+  useEffect(() => {
+    setDisplayRemainingSeconds(activeRun?.remainingSeconds ?? 0);
+  }, [activeRun?.isManuallyPaused, activeRun?.remainingSeconds, activeRun?.runId]);
+
+  useEffect(() => {
+    if (!activeRun || activeRun.isManuallyPaused || finish.isPending) {
+      return;
+    }
+
+    if (displayRemainingSeconds <= 0 || activeRun.questionIndex >= activeRun.questions.length) {
+      finish.mutate({ runId: activeRun.runId, questVersion: state.data?.questVersion ?? undefined });
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setDisplayRemainingSeconds((remaining) => Math.max(0, remaining - 1));
+    }, 1_000);
+
+    return () => window.clearTimeout(timer);
+  }, [activeRun, displayRemainingSeconds, finish, state.data?.questVersion]);
+
+  useEffect(() => {
+    if (
+      pendingAnswerFocusRef.current
+      && activeRun
+      && !activeRun.isManuallyPaused
+      && answerInputRef.current
+    ) {
+      answerInputRef.current.focus();
+      pendingAnswerFocusRef.current = false;
+    }
+  }, [activeRun, answerFocusRequest]);
+
+  function requestAnswerFocus() {
+    pendingAnswerFocusRef.current = true;
+    setAnswerFocusRequest((request) => request + 1);
+  }
 
   function submitAnswer(event: FormEvent<HTMLFormElement>, runId: string, version?: string) {
     event.preventDefault();
@@ -319,11 +379,11 @@ export function SpeedCalculusPage() {
             <div className="stat-grid compact-stats"><StatCard label="Runs used" value={`${data.runsUsed}/${data.maxRuns}`} /><StatCard label="Latest score" value={data.latestScore} tone="accent" /><StatCard label="Reward preview" value={`${data.rewardPreview} coins`} tone="secondary" /><StatCard label="Seconds per run" value={data.runDurationSeconds} tone="info" /></div>
             {data.activeRun ? (
               <Panel className="speed-run-panel">
-                <div className="speed-run-head"><div><span>Run {data.activeRun.runNumber}</span><strong>{data.activeRun.remainingSeconds}s</strong></div><div><span>Correct</span><strong>{data.activeRun.correctAnswers}</strong></div></div>
+                <div className="speed-run-head"><div><span>Run {data.activeRun.runNumber}</span><strong>{displayRemainingSeconds}s</strong></div><div><span>Correct</span><strong>{data.activeRun.correctAnswers}</strong></div></div>
                 {data.activeRun.isManuallyPaused ? <Notice title="Run paused"><p>You have {data.activeRun.pauseRemainingSeconds} seconds left in the pause window.</p><Button busy={command.isPending} onClick={() => command.mutate("resume")}>Resume run</Button></Notice> : (
                   <form className="speed-question" onSubmit={(event) => submitAnswer(event, data.activeRun!.runId, data.questVersion ?? undefined)}>
                     <div>{data.activeRun.questions[data.activeRun.questionIndex]?.left ?? "?"} <b>{data.activeRun.questions[data.activeRun.questionIndex]?.operator}</b> {data.activeRun.questions[data.activeRun.questionIndex]?.right ?? "?"} <span>=</span></div>
-                    <input aria-label="Answer" autoFocus inputMode="numeric" name="answer" pattern="-?[0-9]+" required type="text" />
+                    <input aria-label="Answer" inputMode="numeric" name="answer" pattern="-?[0-9]+" ref={answerInputRef} required type="text" />
                     <Button busy={answer.isPending} type="submit">Answer</Button>
                   </form>
                 )}
@@ -333,7 +393,7 @@ export function SpeedCalculusPage() {
               <Panel className="speed-start-panel"><SpeedCalculusQuestIcon /><div><h2>{data.locked ? "Today's scored runs are complete." : "Ready for the clock?"}</h2><p>{data.canStartRun ? `You have ${data.maxRuns - data.runsUsed} scored run${data.maxRuns - data.runsUsed === 1 ? "" : "s"} left.` : "Use training for unlimited reward-free practice."}</p></div><div className="button-row"><Button busy={command.isPending} disabled={!data.canStartRun} onClick={() => command.mutate("start")}>Start scored run</Button>{data.canCashOut ? <Button busy={command.isPending} onClick={() => command.mutate("cashout")} tone="secondary">Cash out {data.rewardPreview}</Button> : null}</div></Panel>
             )}
             {data.history.length ? <Panel><SectionHeader title="Today's run history" /><div className="run-history">{data.history.map((run) => <article key={run.runId}><span>Run {run.runNumber}</span><b>{run.correctAnswers} correct</b><small>{run.totalAnswered} answered · {run.reward} coins</small></article>)}</div></Panel> : null}
-            <FormStatus message={command.isError ? readErrorMessage(command.error) : answer.isError ? readErrorMessage(answer.error) : undefined} />
+            <FormStatus message={finish.isError ? readErrorMessage(finish.error) : command.isError ? readErrorMessage(command.error) : answer.isError ? readErrorMessage(answer.error) : undefined} />
           </>
         )}
       </QueryState>
@@ -342,10 +402,32 @@ export function SpeedCalculusPage() {
 }
 
 export function SpeedTrainingPage() {
-  const training = useMutation({ mutationFn: () => webApiClient.startSpeedCalculusTraining() });
   const [index, setIndex] = useState(0);
   const [correct, setCorrect] = useState(0);
+  const answerInputRef = useRef<HTMLInputElement>(null);
+  const pendingAnswerFocusRef = useRef(false);
+  const [answerFocusRequest, setAnswerFocusRequest] = useState(0);
+  const training = useMutation({
+    mutationFn: () => webApiClient.startSpeedCalculusTraining(),
+    onSuccess: () => {
+      setIndex(0);
+      setCorrect(0);
+      requestAnswerFocus();
+    },
+  });
   const current = training.data?.questions[index];
+
+  useEffect(() => {
+    if (pendingAnswerFocusRef.current && current && answerInputRef.current) {
+      answerInputRef.current.focus();
+      pendingAnswerFocusRef.current = false;
+    }
+  }, [answerFocusRequest, current]);
+
+  function requestAnswerFocus() {
+    pendingAnswerFocusRef.current = true;
+    setAnswerFocusRequest((request) => request + 1);
+  }
 
   function answer(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -354,13 +436,14 @@ export function SpeedTrainingPage() {
     const expected = current.operator === "+" ? current.left + current.right : current.left - current.right;
     if (value === expected) setCorrect((score) => score + 1);
     setIndex((value) => value + 1);
+    requestAnswerFocus();
     event.currentTarget.reset();
   }
 
   return (
     <div className="page-stack speed-training-page">
       <PageHeader actions={<ButtonLink to="/quests/speed-calculus" tone="ghost">Back to scored runs</ButtonLink>} eyebrow="Training room" lede="Unlimited practice, no timer pressure, no rewards. The questions still come from the game server." title="Build the rhythm first." />
-      {!training.data ? <Panel className="training-intro"><GiftHeartIcon /><h2>Practice is intentionally consequence-free.</h2><p>Start a fresh seeded set. Nothing here spends a run or changes today's score.</p><Button busy={training.isPending} onClick={() => { setIndex(0); setCorrect(0); training.mutate(); }}>Begin training</Button></Panel> : current ? <Panel className="training-board"><div className="training-score"><span>Question {index + 1}</span><b>{correct} correct</b></div><form className="speed-question" onSubmit={answer}><div>{current.left} <b>{current.operator}</b> {current.right} <span>=</span></div><input aria-label="Answer" autoFocus inputMode="numeric" name="answer" required /><Button type="submit">Check</Button></form></Panel> : <EmptyState action={<Button onClick={() => { setIndex(0); setCorrect(0); training.mutate(); }}>New set</Button>} copy={`You answered ${correct} of ${training.data.questions.length} correctly.`} title="Training set complete" />}
+      {!training.data ? <Panel className="training-intro"><GiftHeartIcon /><h2>Practice is intentionally consequence-free.</h2><p>Start a fresh seeded set. Nothing here spends a run or changes today's score.</p><Button busy={training.isPending} onClick={() => training.mutate()}>Begin training</Button></Panel> : current ? <Panel className="training-board"><div className="training-score"><span>Question {index + 1}</span><b>{correct} correct</b></div><form className="speed-question" onSubmit={answer}><div>{current.left} <b>{current.operator}</b> {current.right} <span>=</span></div><input aria-label="Answer" inputMode="numeric" name="answer" ref={answerInputRef} required /><Button type="submit">Check</Button></form></Panel> : <EmptyState action={<Button onClick={() => training.mutate()}>New set</Button>} copy={`You answered ${correct} of ${training.data.questions.length} correctly.`} title="Training set complete" />}
       {training.isError ? <FormStatus message={readErrorMessage(training.error)} /> : null}
     </div>
   );

@@ -8,9 +8,16 @@ import {
   useSyncExternalStore,
 } from "react";
 
-import type { AuthUser, LoginInput } from "@adventure-time/api-client";
+import type {
+  AppleAuthInput,
+  AuthUser,
+  GoogleAuthInput,
+  LoginInput,
+} from "@adventure-time/api-client";
 
 import {
+  createAppleWebSession,
+  createGoogleWebSession,
   createWebSession,
   destroyWebSession,
   getAuthSnapshot,
@@ -24,6 +31,8 @@ type AuthContextValue = {
   user: AuthUser | null;
   restoreError: string | null;
   login: (input: LoginInput) => Promise<AuthUser>;
+  loginWithGoogle: (input: GoogleAuthInput) => Promise<AuthUser>;
+  loginWithApple: (input: AppleAuthInput) => Promise<AuthUser>;
   logout: () => Promise<void>;
   restore: () => Promise<AuthUser | null>;
 };
@@ -37,6 +46,14 @@ export function AuthProvider({ children }: PropsWithChildren) {
     getAuthSnapshot,
   );
   const login = useCallback((input: LoginInput) => createWebSession(input), []);
+  const loginWithGoogle = useCallback(
+    (input: GoogleAuthInput) => createGoogleWebSession(input),
+    [],
+  );
+  const loginWithApple = useCallback(
+    (input: AppleAuthInput) => createAppleWebSession(input),
+    [],
+  );
   const logout = useCallback(() => destroyWebSession(), []);
   const restore = useCallback(() => restoreWebSession(), []);
 
@@ -52,10 +69,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
       user: auth.user,
       restoreError: auth.restoreError,
       login,
+      loginWithGoogle,
+      loginWithApple,
       logout,
       restore,
     }),
-    [auth, login, logout, restore],
+    [auth, login, loginWithApple, loginWithGoogle, logout, restore],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
