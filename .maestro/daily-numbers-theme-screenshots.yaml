@@ -1,0 +1,71 @@
+appId: love.leaetzak.adventuretime
+name: Daily Numbers theme screenshots
+tags:
+  - quests
+  - daily-numbers
+  - themes
+  - screenshots
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- openLink:
+    link: adventure-time:///e2e-auth?redirect=%2Fsettings&email=${TEST_EMAIL_URI}&password=${TEST_PASSWORD_URI}
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- extendedWaitUntil:
+    visible:
+      id: settings-profile-edit
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: settings-theme-ice
+    direction: DOWN
+    timeout: 20000
+    centerElement: true
+- tapOn:
+    id: settings-theme-ice
+- stopApp
+- launchApp
+- openLink:
+    link: adventure-time:///quests/daily-numbers-play?mode=3-3
+- extendedWaitUntil:
+    visible:
+      id: daily-numbers-tile-n0
+    timeout: 15000
+- waitForAnimationToEnd
+- takeScreenshot: tmp-daily-numbers-redesign-shots/13-ice-theme-board
+
+- openLink:
+    link: adventure-time:///settings
+- extendedWaitUntil:
+    visible:
+      id: settings-profile-edit
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: settings-theme-nightosphere
+    direction: DOWN
+    timeout: 20000
+    centerElement: true
+- tapOn:
+    id: settings-theme-nightosphere
+- stopApp
+- launchApp
+- openLink:
+    link: adventure-time:///quests/daily-numbers-play?mode=3-3
+- extendedWaitUntil:
+    visible:
+      id: daily-numbers-tile-n0
+    timeout: 15000
+- tapOn:
+    text: "Number tile (?:[1-9]|10)"
+- tapOn:
+    text: "Number tile (?:25|50|75|100)"
+- assertVisible:
+    id: daily-numbers-operator-minus
+    enabled: false
+- assertVisible:
+    id: daily-numbers-operator-divide
+    enabled: false
+- waitForAnimationToEnd
+- takeScreenshot: tmp-daily-numbers-redesign-shots/14-nightosphere-disabled

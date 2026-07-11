@@ -59,16 +59,16 @@ export function getModeAccent(
 ) {
   if (mode === "1-5") {
     return {
-      border: tc.primaryText,
+      border: tc.primaryBorder,
       bg: tc.primaryBg,
       tint: tc.primaryTint,
-      text: tc.primaryText,
+      text: tc.primaryStrong,
     };
   }
 
   if (mode === "2-4") {
     return {
-      border: tc.infoText,
+      border: tc.infoBorder,
       bg: tc.infoTint,
       tint: tc.surfaceMuted,
       text: tc.infoText,
@@ -76,10 +76,10 @@ export function getModeAccent(
   }
 
   return {
-    border: tc.accentText,
+    border: tc.accentBorder,
     bg: tc.accentTint,
     tint: tc.surfaceMuted,
-    text: tc.accentText,
+    text: tc.accentStrong,
   };
 }
 
