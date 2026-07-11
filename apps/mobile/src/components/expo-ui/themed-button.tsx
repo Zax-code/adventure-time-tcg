@@ -1,5 +1,6 @@
 import { type ReactNode, type Ref } from "react";
 import {
+  type AccessibilityState,
   ActivityIndicator,
   type Insets,
   Platform,
@@ -60,6 +61,7 @@ type ThemedExpoButtonProps = {
   hitSlop?: Insets | number;
   testID?: string;
   accessibilityLabel?: string;
+  accessibilityState?: AccessibilityState;
   disabled?: boolean;
   loading?: boolean;
   preferFallback?: boolean;
@@ -147,6 +149,7 @@ function shouldUseFallbackButton(
   preserveChildLayout: boolean | undefined,
   hitSlop: Insets | number | undefined,
   testID: string | undefined,
+  accessibilityState: AccessibilityState | undefined,
   style: ViewStyle | undefined,
 ) {
   if (
@@ -158,7 +161,8 @@ function shouldUseFallbackButton(
     onLongPress ||
     preserveChildLayout ||
     hitSlop != null ||
-    testID
+    testID ||
+    accessibilityState != null
   ) {
     return true;
   }
@@ -236,6 +240,7 @@ function FallbackButton({
   hitSlop,
   testID,
   accessibilityLabel,
+  accessibilityState,
   disabled,
   loading,
   preserveChildLayout,
@@ -315,6 +320,7 @@ function FallbackButton({
       accessible
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label ?? undefined}
+      accessibilityState={accessibilityState}
       nativeID={testID}
       testID={testID}
       disabled={disabled || loading}
@@ -393,6 +399,7 @@ export function ThemedExpoButton(props: ThemedExpoButtonProps) {
     onLongPress,
     hitSlop,
     testID,
+    accessibilityState,
     variant,
   } = props;
   const themeName = useThemeStore((state) => state.themeName);
@@ -412,6 +419,7 @@ export function ThemedExpoButton(props: ThemedExpoButtonProps) {
       preserveChildLayout,
       hitSlop,
       testID,
+      accessibilityState,
       style,
     )
   ) {

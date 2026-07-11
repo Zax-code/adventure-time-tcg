@@ -385,8 +385,12 @@ const quests = {
     selectedLeftValue: "Premier nombre sélectionné : {value}",
     selectedOperatorValue: "Opérateur sélectionné : {operator}",
     selectedRightValue: "Deuxième nombre sélectionné : {value}",
+    selectedTilePosition: "Nombre {value}, opérande {position}",
     tileValue: "Tuile nombre {value}",
+    tileUnavailable: "Nombre {value}, indisponible pour la sélection actuelle",
     operatorValue: "Opérateur {operator}",
+    operatorUnavailable:
+      "Opérateur {operator}, indisponible pour les nombres sélectionnés",
     stepNumber: "Étape {step}",
     stepSummary: "{leftValue} {operator} {rightValue} = {resultValue}",
     finalResult: "Résultat final",

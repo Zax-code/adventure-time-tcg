@@ -41,22 +41,34 @@ export function getModeLabelKey(mode: DailyNumbersMode) {
   return "quests.dailyNumbers.threeThree";
 }
 
+export function getModeMixLabelKey(mode: DailyNumbersMode) {
+  if (mode === "1-5") {
+    return "quests.dailyNumbers.oneFiveMix";
+  }
+
+  if (mode === "2-4") {
+    return "quests.dailyNumbers.twoFourMix";
+  }
+
+  return "quests.dailyNumbers.threeThreeMix";
+}
+
 export function getModeAccent(
   mode: DailyNumbersMode,
   tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS],
 ) {
   if (mode === "1-5") {
     return {
-      border: tc.primaryBorder,
+      border: tc.primaryText,
       bg: tc.primaryBg,
       tint: tc.primaryTint,
-      text: tc.primaryStrong,
+      text: tc.primaryText,
     };
   }
 
   if (mode === "2-4") {
     return {
-      border: tc.infoBorder,
+      border: tc.infoText,
       bg: tc.infoTint,
       tint: tc.surfaceMuted,
       text: tc.infoText,
@@ -64,10 +76,10 @@ export function getModeAccent(
   }
 
   return {
-    border: tc.accentBorder,
+    border: tc.accentText,
     bg: tc.accentTint,
     tint: tc.surfaceMuted,
-    text: tc.accentStrong,
+    text: tc.accentText,
   };
 }
 

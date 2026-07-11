@@ -1,5 +1,10 @@
 import { useMemo, type ComponentType, type ReactNode, type Ref } from "react";
-import { ActivityIndicator, type View, type ViewStyle } from "react-native";
+import {
+  type AccessibilityState,
+  ActivityIndicator,
+  type View,
+  type ViewStyle,
+} from "react-native";
 
 import { ThemedExpoButton } from "../../components/expo-ui/themed-button";
 
@@ -21,6 +26,7 @@ export function QuestActionButton({
   minHeight = 44,
   textClassName = "font-nunito-bold text-sm",
   accessibilityLabel,
+  accessibilityState,
   testID,
   style,
 }: {
@@ -39,6 +45,7 @@ export function QuestActionButton({
   minHeight?: number;
   textClassName?: string;
   accessibilityLabel?: string;
+  accessibilityState?: AccessibilityState;
   testID?: string;
   style?: ViewStyle;
 }) {
@@ -108,6 +115,7 @@ export function QuestActionButton({
       onPress={onPress}
       disabled={disabled || loading}
       accessibilityLabel={accessibilityLabel ?? label}
+      accessibilityState={accessibilityState}
       testID={testID}
       loading={showReplaceLoading}
       label={label}
