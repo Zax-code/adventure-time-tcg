@@ -1,6 +1,6 @@
 {
   "name": "@adventure-time/mobile",
-  "version": "1.0.12",
+  "version": "1.0.14",
   "private": true,
   "main": "./index.js",
   "expo": {
