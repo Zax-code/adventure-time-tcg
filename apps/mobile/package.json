@@ -31,7 +31,8 @@
     "build:ios:local": "node ./scripts/build-ios-local.mjs",
     "play:release-notes": "node ./scripts/set-play-release-notes.mjs",
     "release:android": "node ./scripts/release-android.mjs",
-    "release:ios": "node ./scripts/release-ios.mjs"
+    "release:ios": "node ./scripts/release-ios.mjs",
+    "test:quests": "node --experimental-strip-types --test test/quest-hub-model.test.ts test/quest-i18n-parity.test.ts"
   },
   "dependencies": {
     "@adventure-time/api-client": "file:../../packages/api-client",

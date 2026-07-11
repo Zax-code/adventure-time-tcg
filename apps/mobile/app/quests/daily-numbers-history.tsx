@@ -15,6 +15,11 @@ import {
   getModeAccent,
   getModeLabelKey,
 } from "../../src/features/quests/daily-numbers/shared";
+import {
+  navigateBackFromQuest,
+  QuestScreenDescription,
+  QuestScreenHeader,
+} from "../../src/features/quests/quest-screen-header";
 import { useTranslation } from "../../src/i18n";
 import { apiClient } from "../../src/lib/api";
 import { useThemeStore } from "../../src/stores/theme-store";
@@ -85,30 +90,6 @@ function getStatusTone(
     border: tc.primaryBorder,
     text: tc.fgMuted,
   };
-}
-
-function HistoryBackButton({
-  label,
-  onPress,
-}: {
-  label: string;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      className="w-full overflow-hidden rounded-xl"
-      style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-    >
-      <View className="items-center rounded-xl bg-primary py-2">
-        <Text className="font-nunito-semibold text-sm text-primaryBg">
-          {label}
-        </Text>
-      </View>
-    </Pressable>
-  );
 }
 
 function ArchiveModeChip({
@@ -208,82 +189,95 @@ export default function DailyNumbersHistoryScreen() {
         onRetry={() => {
           void refetch();
         }}
+        onBack={() => navigateBackFromQuest(router, "/(tabs)/quests")}
+        backLabel={t("quests.dailyNumbers.backToQuests")}
       />
     );
   }
 
   return (
-    <ScrollView className="flex-1 bg-bg">
+    <View className="flex-1 bg-bg">
       <View
+        className="bg-bg pb-2"
         style={{
           paddingTop: insets.top + 12,
-          paddingBottom: insets.bottom + 20,
           paddingHorizontal: 14,
         }}
       >
-        <View className="items-center gap-2">
-          <Text className="text-center font-nunito-extrabold text-[28px] text-primaryDark">
-            {t("quests.dailyNumbers.title")}
-          </Text>
-          <View
-            className="rounded-full border px-4 py-1.5"
-            style={{
-              backgroundColor: tc.secondaryDark,
-              borderColor: tc.secondaryBorder,
-            }}
-            testID="daily-numbers-archive-pill"
-          >
-            <Text
-              className="text-center font-nunito-extrabold text-xs uppercase tracking-[1px]"
-              style={{ color: tc.secondaryText }}
-            >
-              {t("quests.dailyNumbers.archiveResultLabel")}
-            </Text>
-          </View>
-          <Text className="max-w-[350px] text-center font-nunito text-sm text-primaryDark/80">
-            {t("quests.dailyNumbers.archiveListSubtitle")}
-          </Text>
-          <HistoryBackButton
-            label={t("quests.dailyNumbers.backToQuests")}
-            onPress={() => router.back()}
-          />
-        </View>
-
-        <View className="mt-5 gap-3">
-          {history.days.map((day) => (
-            <View
-              key={day.date}
-              className="rounded-2xl border bg-surface p-4"
-              style={{ borderColor: tc.primaryBorder }}
-            >
-              <Text className="font-nunito-extrabold text-lg text-fg">
-                {formatArchiveDate(day.date, locale)}
-              </Text>
-              <Text className="mt-1 font-nunito-semibold text-xs text-fgMuted">
-                {t("quests.dailyNumbers.archiveDateMeta", { date: day.date })}
-              </Text>
-              <View className="mt-3 flex-row flex-wrap gap-2">
-                {DAILY_NUMBERS_MODES.map((mode) => {
-                  const modeSummary = day.modes.find(
-                    (item) => item.mode === mode,
-                  );
-                  if (!modeSummary) {
-                    return null;
-                  }
-
-                  return (
-                    <ArchiveModeChip
-                      key={mode}
-                      date={day.date}
-                      modeSummary={modeSummary}
-                    />
-                  );
-                })}
-              </View>
-            </View>
-          ))}
-        </View>
+        <QuestScreenHeader
+          title={t("quests.dailyNumbers.title")}
+          backLabel={t("quests.dailyNumbers.backToQuests")}
+          backTestID="daily-numbers-history-back"
+          fallbackHref="/(tabs)/quests"
+        />
       </View>
-    </ScrollView>
+
+      <ScrollView className="flex-1 bg-bg">
+        <View
+          style={{
+            paddingTop: 8,
+            paddingBottom: insets.bottom + 20,
+            paddingHorizontal: 14,
+          }}
+        >
+          <QuestScreenDescription>
+            {t("quests.dailyNumbers.archiveListSubtitle")}
+          </QuestScreenDescription>
+
+          <View className="gap-3">
+            <View
+              className="self-center rounded-full border px-4 py-1.5"
+              style={{
+                backgroundColor: tc.secondaryDark,
+                borderColor: tc.secondaryBorder,
+              }}
+              testID="daily-numbers-archive-pill"
+            >
+              <Text
+                className="text-center font-nunito-extrabold text-xs uppercase tracking-[1px]"
+                style={{ color: tc.secondaryText }}
+              >
+                {t("quests.dailyNumbers.archiveResultLabel")}
+              </Text>
+            </View>
+          </View>
+
+          <View className="mt-5 gap-3">
+            {history.days.map((day) => (
+              <View
+                key={day.date}
+                className="rounded-2xl border bg-surface p-4"
+                style={{ borderColor: tc.primaryBorder }}
+              >
+                <Text className="font-nunito-extrabold text-lg text-fg">
+                  {formatArchiveDate(day.date, locale)}
+                </Text>
+                <Text className="mt-1 font-nunito-semibold text-xs text-fgMuted">
+                  {t("quests.dailyNumbers.archiveDateMeta", { date: day.date })}
+                </Text>
+                <View className="mt-3 flex-row flex-wrap gap-2">
+                  {DAILY_NUMBERS_MODES.map((mode) => {
+                    const modeSummary = day.modes.find(
+                      (item) => item.mode === mode,
+                    );
+                    if (!modeSummary) {
+                      return null;
+                    }
+
+                    return (
+                      <ArchiveModeChip
+                        key={mode}
+                        date={day.date}
+                        modeSummary={modeSummary}
+                      />
+                    );
+                  })}
+                </View>
+              </View>
+            ))}
+          </View>
+        </View>
+      </ScrollView>
+    </View>
   );
 }

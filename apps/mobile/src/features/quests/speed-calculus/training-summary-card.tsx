@@ -1,4 +1,4 @@
-import { Pressable, Text, View } from "react-native";
+import { Pressable, Text, useWindowDimensions, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import type { SpeedRunState } from "@adventure-time/api-client";
 
@@ -24,6 +24,8 @@ export function TrainingSummaryCard({
 }: TrainingSummaryCardProps) {
   const { t } = useTranslation();
   const tc = THEME_COLORS[useThemeStore((s) => s.themeName)];
+  const { fontScale } = useWindowDimensions();
+  const stackMetadata = fontScale >= 1.6;
 
   return (
     <View
@@ -34,8 +36,14 @@ export function TrainingSummaryCard({
         boxShadow: `0px 4px 12px ${withAlpha(tc.secondaryDark, "24")}`,
       }}
     >
-      <View className="flex-row items-center justify-between gap-3">
-        <View className="flex-1">
+      <View
+        className={
+          stackMetadata
+            ? "items-stretch gap-3"
+            : "flex-row items-center justify-between gap-3"
+        }
+      >
+        <View className="min-w-0 flex-1">
           <Text className="text-xs font-nunito-bold uppercase tracking-[3.5px] text-secondaryText/80">
             {t("quests.speedCalculusTrainingTitle")}
           </Text>
@@ -44,7 +52,7 @@ export function TrainingSummaryCard({
           </Text>
         </View>
         <View
-          className="items-end rounded-2xl px-4 py-3"
+          className={`${stackMetadata ? "items-start self-stretch" : "items-end"} rounded-2xl px-4 py-3`}
           style={{ backgroundColor: tc.secondaryTint }}
         >
           <Text className="text-xs font-nunito-semibold text-primaryDark/70">

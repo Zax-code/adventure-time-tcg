@@ -1,29 +1,26 @@
-import { useState,
-  useCallback,
-  useMemo,
-  useRef } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import * as Haptics from "expo-haptics";
-import {
-  Pressable,
-  ScrollView,
-  Text,
-  View } from "react-native";
+import { ScrollView, Text, View } from "react-native";
 import {
   useSharedValue,
   withSequence,
   withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { router } from "expo-router";
 
 import type {
   SpeedRunState,
-  SpeedTrainingRun } from "@adventure-time/api-client";
+  SpeedTrainingRun,
+} from "@adventure-time/api-client";
 
 import { apiClient } from "../../../src/lib/api";
 import { useTranslation } from "../../../src/i18n";
 import { useThemeStore } from "../../../src/stores/theme-store";
 import { THEME_COLORS } from "../../../src/theme/themes";
+import {
+  QuestScreenDescription,
+  QuestScreenHeader,
+} from "../../../src/features/quests/quest-screen-header";
 import { ActiveRunPanel } from "../../../src/features/quests/speed-calculus/active-run-panel";
 import {
   appendDigit,
@@ -31,10 +28,12 @@ import {
   deleteDigit,
   toggleSign,
   type FeedbackType,
-  type ToastType } from "../../../src/features/quests/speed-calculus/constants";
+  type ToastType,
+} from "../../../src/features/quests/speed-calculus/constants";
 import {
   getAnswerBoxPalette,
-  withAlpha } from "../../../src/features/quests/speed-calculus/palette";
+  withAlpha,
+} from "../../../src/features/quests/speed-calculus/palette";
 import { TrainingHistoryCard } from "../../../src/features/quests/speed-calculus/training-history-card";
 import { TrainingSummaryCard } from "../../../src/features/quests/speed-calculus/training-summary-card";
 import { reactEffect, effectEvent } from "../../../src/lib/react-primitives";
@@ -67,7 +66,10 @@ function buildTrainingActiveRun(session: SpeedTrainingRun): TrainingActiveRun {
   const runDurationSeconds = trainingRunDuration(session.runDurationSeconds);
   const pauseDurationSeconds = Math.max(
     0,
-    positiveDuration(session.pauseDurationSeconds, DEFAULT_PAUSE_DURATION_SECONDS),
+    positiveDuration(
+      session.pauseDurationSeconds,
+      DEFAULT_PAUSE_DURATION_SECONDS,
+    ),
   );
   const pauseExpiresAt = new Date(
     startedAt.getTime() + pauseDurationSeconds * 1000,
@@ -86,7 +88,8 @@ function buildTrainingActiveRun(session: SpeedTrainingRun): TrainingActiveRun {
     isManuallyPaused: false,
     durationSeconds: runDurationSeconds,
     pauseExpiresAt: pauseExpiresAt.toISOString(),
-    startedAt: startedAt.toISOString() };
+    startedAt: startedAt.toISOString(),
+  };
 }
 
 function buildTrainingHistory(run: TrainingActiveRun): TrainingHistoryRun {
@@ -106,7 +109,8 @@ function buildTrainingHistory(run: TrainingActiveRun): TrainingHistoryRun {
       userAnswer,
       wasAnswered: true,
       isCorrect,
-      correctAnswer: isCorrect ? null : correctAnswer };
+      correctAnswer: isCorrect ? null : correctAnswer,
+    };
   });
 
   return {
@@ -117,7 +121,8 @@ function buildTrainingHistory(run: TrainingActiveRun): TrainingHistoryRun {
     reward: 0,
     totalAnswered: run.answers.length,
     correctAnswers: run.correctAnswers,
-    history };
+    history,
+  };
 }
 
 export default function SpeedCalculusTrainingScreen() {
@@ -225,7 +230,9 @@ function useSpeedCalculusTrainingScreenView() {
         setToast({
           type: "success",
           message: t("quests.speedCalculusTrainingFinish", {
-            score: runToFinish.correctAnswers }) });
+            score: runToFinish.correctAnswers,
+          }),
+        });
       } finally {
         finishRequestedRef.current = false;
         setSubmitting(false);
@@ -402,7 +409,8 @@ function useSpeedCalculusTrainingScreenView() {
         message:
           error instanceof Error
             ? error.message
-            : t("quests.speedCalculusTrainingStartError") });
+            : t("quests.speedCalculusTrainingStartError"),
+      });
     } finally {
       setSubmitting(false);
     }
@@ -429,7 +437,8 @@ function useSpeedCalculusTrainingScreenView() {
             isManuallyPaused: true,
             remainingSeconds,
             pauseRemainingSeconds: 0,
-            pauseExpiresAt: null }
+            pauseExpiresAt: null,
+          }
         : current,
     );
   }, [
@@ -460,15 +469,11 @@ function useSpeedCalculusTrainingScreenView() {
             isManuallyPaused: false,
             pauseRemainingSeconds: pauseDurationSeconds,
             remainingSeconds,
-            pauseExpiresAt: new Date(nextPauseDeadline).toISOString() }
+            pauseExpiresAt: new Date(nextPauseDeadline).toISOString(),
+          }
         : current,
     );
-  }, [
-    activeRun,
-    isManuallyPaused,
-    remainingSeconds,
-    submitting,
-  ]);
+  }, [activeRun, isManuallyPaused, remainingSeconds, submitting]);
 
   const handleDigit = useCallback(
     (digit: string) => {
@@ -485,35 +490,35 @@ function useSpeedCalculusTrainingScreenView() {
   );
 
   const handleDelete = useCallback(() => {
-      if (keypadLocked) {
-        return;
-      }
+    if (keypadLocked) {
+      return;
+    }
 
-      const nextAnswer = deleteDigit(answerRef.current);
-      answerRef.current = nextAnswer;
-      setAnswer(nextAnswer);
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const nextAnswer = deleteDigit(answerRef.current);
+    answerRef.current = nextAnswer;
+    setAnswer(nextAnswer);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, [keypadLocked]);
 
   const handleClear = useCallback(() => {
-      if (keypadLocked) {
-        return;
-      }
+    if (keypadLocked) {
+      return;
+    }
 
-      answerRef.current = "";
-      setAnswer("");
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    answerRef.current = "";
+    setAnswer("");
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, [keypadLocked]);
 
   const handleToggleSign = useCallback(() => {
-      if (keypadLocked) {
-        return;
-      }
+    if (keypadLocked) {
+      return;
+    }
 
-      const nextAnswer = toggleSign(answerRef.current);
-      answerRef.current = nextAnswer;
-      setAnswer(nextAnswer);
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const nextAnswer = toggleSign(answerRef.current);
+    answerRef.current = nextAnswer;
+    setAnswer(nextAnswer);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, [keypadLocked]);
 
   const handleSubmit = useCallback(() => {
@@ -550,15 +555,18 @@ function useSpeedCalculusTrainingScreenView() {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       showFeedback({
         kind: "correct",
-        message: t("quests.speedCalculusCorrectFeedback") });
+        message: t("quests.speedCalculusCorrectFeedback"),
+      });
     } else {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       showFeedback({
         kind: "incorrect",
         message: t("quests.speedCalculusWrongFeedback", {
-          answer: expectedAnswer }),
+          answer: expectedAnswer,
+        }),
         questionLabel: `${currentQuestion.left} ${currentQuestion.operator} ${currentQuestion.right}`,
-        correctAnswer: expectedAnswer });
+        correctAnswer: expectedAnswer,
+      });
       triggerShake();
     }
 
@@ -571,7 +579,8 @@ function useSpeedCalculusTrainingScreenView() {
         answers: nextAnswers,
         correctAnswers: nextCorrectAnswers,
         remainingSeconds,
-        pauseRemainingSeconds });
+        pauseRemainingSeconds,
+      });
       return;
     }
 
@@ -583,7 +592,8 @@ function useSpeedCalculusTrainingScreenView() {
             questionIndex: current.questionIndex + 1,
             correctAnswers: nextCorrectAnswers,
             remainingSeconds,
-            pauseRemainingSeconds }
+            pauseRemainingSeconds,
+          }
         : current,
     );
   }, [
@@ -614,53 +624,49 @@ function useSpeedCalculusTrainingScreenView() {
     <View className="flex-1 bg-primaryBg">
       {toast ? (
         <View
+          accessible
+          accessibilityLabel={toast.message}
+          accessibilityLiveRegion="polite"
+          accessibilityRole="alert"
           className={`absolute left-4 right-4 z-[100] rounded-xl p-4 ${toast.type === "success" ? "bg-successDark" : "bg-dangerDark"}`}
           style={{
             top: insets.top + 8,
-            boxShadow: `0px 4px 8px ${withAlpha( toast.type === "success" ? tc.successDark : tc.dangerDark, "2E", )}` }}
+            boxShadow: `0px 4px 8px ${withAlpha(toast.type === "success" ? tc.successDark : tc.dangerDark, "2E")}`,
+          }}
         >
           <Text
             className="font-nunito-semibold text-sm"
             style={{
-              color: toast.type === "success" ? tc.successTint : tc.dangerTint }}
+              color: toast.type === "success" ? tc.successTint : tc.dangerTint,
+            }}
           >
             {toast.message}
           </Text>
         </View>
       ) : null}
 
+      <View className="bg-bg px-4 pb-2" style={{ paddingTop: insets.top + 12 }}>
+        <QuestScreenHeader
+          title={t("quests.speedCalculusTrainingTitle")}
+          backLabel={t("quests.speedCalculusBackToMain")}
+          backTestID="speed-calculus-training-back"
+          fallbackHref="/quests/speed-calculus"
+        />
+      </View>
+
       <ScrollView
         contentContainerStyle={{
           paddingHorizontal: 16,
           paddingVertical: 16,
-          gap: 16 }}
-        contentInset={{ top: insets.top, bottom: insets.bottom + 16 }}
-        scrollIndicatorInsets={{ top: insets.top, bottom: insets.bottom + 16 }}
+          gap: 16,
+        }}
+        contentInset={{ bottom: insets.bottom + 16 }}
+        scrollIndicatorInsets={{ bottom: insets.bottom + 16 }}
         keyboardShouldPersistTaps="handled"
       >
-        <View className="items-center gap-2">
-          <Text
-            className="text-[28px] font-nunito-extrabold text-primaryDark"
-            style={{
-              boxShadow: `0px 1px 4px ${withAlpha(tc.successDark, "2E")}` }}
-          >
-            {t("quests.speedCalculusTrainingTitle")}
-          </Text>
-          <Text className="max-w-[340px] text-center text-sm font-nunito text-primaryDark/80">
-            {t("quests.speedCalculusTrainingBody")}
-          </Text>
-          <Pressable
-            onPress={() => router.back()}
-            className="w-full rounded-xl overflow-hidden"
-            style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
-          >
-            <View className="items-center rounded-xl bg-primary py-2">
-              <Text className="font-nunito-semibold text-sm text-primaryBg">
-                {t("quests.speedCalculusBackToMain")}
-              </Text>
-            </View>
-          </Pressable>
-        </View>
+        <QuestScreenDescription>
+          {t("quests.speedCalculusTrainingBody")}
+        </QuestScreenDescription>
 
         <TrainingSummaryCard
           activeRun={activeRun}

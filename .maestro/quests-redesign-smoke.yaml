@@ -1,0 +1,193 @@
+appId: love.leaetzak.adventuretime
+name: Quests redesign navigation smoke
+tags:
+  - quests
+  - redesign
+  - navigation
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- openLink:
+    link: adventure-time:///e2e-auth?redirect=%2Fquests&email=${TEST_EMAIL_URI}&password=${TEST_PASSWORD_URI}
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- extendedWaitUntil:
+    visible:
+      id: quests-progress-summary
+    timeout: 15000
+- assertVisible:
+    id: quests-primary-action
+- assertVisible:
+    id: quests-primary-mode-claim
+- waitForAnimationToEnd
+- takeScreenshot: tmp-quests-redesign-shots/01-quests-hub-reward-ready
+- tapOn:
+    id: quests-primary-action
+- extendedWaitUntil:
+    visible:
+      id: quests-primary-mode-open
+    timeout: 15000
+- assertVisible:
+    id: quests-share-results
+- tapOn:
+    id: quests-share-results
+- assertVisible:
+    id: quests-recap-sheet
+- assertVisible:
+    id: quests-share-wordle
+- waitForAnimationToEnd
+- takeScreenshot: tmp-quests-redesign-shots/02-share-results
+- swipe:
+    start: "50%,50%"
+    end: "50%,92%"
+    duration: 550
+- extendedWaitUntil:
+    notVisible:
+      id: quests-recap-sheet
+    timeout: 10000
+- scrollUntilVisible:
+    element:
+      id: quests-card-wordle
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    id: quests-card-wordle
+- assertVisible:
+    id: quests-launch-sheet
+- assertVisible:
+    id: quests-wordle-option-fr
+- assertVisible:
+    id: quests-wordle-option-en
+- waitForAnimationToEnd
+- takeScreenshot: tmp-quests-redesign-shots/03-wordle-launcher
+- tapOn:
+    id: quests-wordle-option-en
+- extendedWaitUntil:
+    visible:
+      id: wordle-back
+    timeout: 15000
+- runFlow:
+    file: subflows/tap-quest-header-back.yaml
+    env:
+      BACK_TEST_ID: wordle-back
+- extendedWaitUntil:
+    visible:
+      id: tab-quests
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: quests-card-speed_calculus_daily
+    direction: UP
+    timeout: 10000
+- tapOn:
+    id: quests-card-speed_calculus_daily
+- extendedWaitUntil:
+    visible:
+      id: speed-calculus-back
+    timeout: 15000
+- waitForAnimationToEnd
+- takeScreenshot: tmp-quests-redesign-shots/04-speed-calculus
+- runFlow:
+    file: subflows/tap-quest-header-back.yaml
+    env:
+      BACK_TEST_ID: speed-calculus-back
+- extendedWaitUntil:
+    visible:
+      id: tab-quests
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: quests-card-dailyNumbers
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    id: quests-card-dailyNumbers
+- assertVisible:
+    id: quests-launch-sheet
+- scrollUntilVisible:
+    element:
+      id: quests-daily-numbers-history
+    direction: DOWN
+    timeout: 10000
+    visibilityPercentage: 100
+- waitForAnimationToEnd
+- takeScreenshot: tmp-quests-redesign-shots/05-daily-numbers-launcher
+- tapOn:
+    id: quests-daily-numbers-option-2-4
+- extendedWaitUntil:
+    visible:
+      id: daily-numbers-back
+    timeout: 15000
+- runFlow:
+    file: subflows/tap-quest-header-back.yaml
+    env:
+      BACK_TEST_ID: daily-numbers-back
+- extendedWaitUntil:
+    visible:
+      id: tab-quests
+    timeout: 15000
+- openLink:
+    link: adventure-time:///widget-quests
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- extendedWaitUntil:
+    visible:
+      id: quests-card-steps_10k
+    timeout: 15000
+- openLink:
+    link: adventure-time://quests?focus=steps
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- extendedWaitUntil:
+    visible:
+      id: quests-card-steps_10k
+    timeout: 15000
+- waitForAnimationToEnd
+- takeScreenshot: tmp-quests-redesign-shots/06-step-focus
+- openLink:
+    link: adventure-time:///quests/wordle?language=fr
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- extendedWaitUntil:
+    visible:
+      id: wordle-back
+    timeout: 15000
+- runFlow:
+    file: subflows/tap-quest-header-back.yaml
+    env:
+      BACK_TEST_ID: wordle-back
+- extendedWaitUntil:
+    visible:
+      id: tab-quests
+    timeout: 15000
+- openLink:
+    link: adventure-time:///quests/speed-calculus/training
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- extendedWaitUntil:
+    visible:
+      id: speed-calculus-training-back
+    timeout: 15000
+- runFlow:
+    file: subflows/tap-quest-header-back.yaml
+    env:
+      BACK_TEST_ID: speed-calculus-training-back
+- extendedWaitUntil:
+    visible:
+      id: speed-calculus-back
+    timeout: 15000
+- runFlow:
+    file: subflows/tap-quest-header-back.yaml
+    env:
+      BACK_TEST_ID: speed-calculus-back
+- extendedWaitUntil:
+    visible:
+      id: tab-quests
+    timeout: 15000
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      # A stale detail beneath the hub would reopen on this edge-back gesture.
+      - swipe:
+          start: "1%,50%"
+          end: "75%,50%"
+          duration: 500
+      - assertVisible:
+          id: tab-quests

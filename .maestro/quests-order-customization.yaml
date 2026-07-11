@@ -1,0 +1,66 @@
+appId: love.leaetzak.adventuretime
+name: Quest hub order can be customized
+tags:
+  - quests
+  - preferences
+  - bottom-sheet
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- openLink:
+    link: adventure-time:///e2e-auth?redirect=%2Fquests&email=${TEST_EMAIL_URI}&password=${TEST_PASSWORD_URI}
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- extendedWaitUntil:
+    visible:
+      id: quests-progress-summary
+    timeout: 15000
+- tapOn:
+    id: quests-customize-order
+- assertVisible:
+    id: quests-order-sheet
+- assertVisible:
+    id: quests-order-row-wordle
+- assertVisible:
+    id: quests-order-row-dailyNumbers
+- assertVisible:
+    id: quests-order-row-speedCalculus
+- assertVisible:
+    id: quests-order-row-steps
+- tapOn:
+    id: quests-order-down-wordle
+- waitForAnimationToEnd
+- takeScreenshot: tmp-quests-redesign-shots/quest-order-customized
+- swipe:
+    start: "50%,32%"
+    end: "50%,92%"
+    duration: 550
+- extendedWaitUntil:
+    notVisible:
+      id: quests-order-sheet
+    timeout: 10000
+- assertVisible: Start Daily Numbers
+- stopApp
+- launchApp
+- tapOn:
+    id: tab-quests
+- extendedWaitUntil:
+    visible:
+      id: quests-progress-summary
+    timeout: 15000
+- assertVisible: Start Daily Numbers
+- tapOn:
+    id: quests-customize-order
+- assertVisible:
+    id: quests-order-sheet
+- tapOn:
+    id: quests-order-reset
+- swipe:
+    start: "50%,32%"
+    end: "50%,92%"
+    duration: 550
+- extendedWaitUntil:
+    notVisible:
+      id: quests-order-sheet
+    timeout: 10000
+- assertVisible: Start Daily Wordle

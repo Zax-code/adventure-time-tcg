@@ -27,6 +27,10 @@ export function ToastBanner({
 
   return (
     <Animated.View
+      accessible
+      accessibilityLabel={message}
+      accessibilityLiveRegion="polite"
+      accessibilityRole="alert"
       style={[
         {
           position: "absolute",

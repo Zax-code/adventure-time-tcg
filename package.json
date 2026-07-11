@@ -41,6 +41,8 @@
     "test:mobile:e2e:android": "./scripts/maestro.sh test --platform android .maestro/smoke.yaml",
     "test:mobile:e2e:pvp:ios": "./scripts/maestro.sh test --platform ios .maestro/pvp-smoke.yaml",
     "test:mobile:e2e:pvp:android": "./scripts/maestro.sh test --platform android .maestro/pvp-smoke.yaml",
+    "test:mobile:e2e:quests:ios": "MOBILE_TEST_QUEST_FIXTURE=share-and-claim MOBILE_TEST_EMAIL=\"${MOBILE_TEST_EMAIL:-quests-e2e-$(date +%s)@leaetzak.love}\" ./scripts/maestro.sh test --platform ios .maestro/quests-redesign-smoke.yaml",
+    "test:mobile:e2e:quests:android": "MOBILE_TEST_QUEST_FIXTURE=share-and-claim MOBILE_TEST_EMAIL=\"${MOBILE_TEST_EMAIL:-quests-e2e-$(date +%s)@leaetzak.love}\" ./scripts/maestro.sh test --platform android .maestro/quests-redesign-smoke.yaml",
     "test:mobile:e2e:pvp:head-to-head:ios": "./scripts/maestro-pvp-head-to-head.sh --platform ios",
     "test:mobile:e2e:pvp:head-to-head:android": "./scripts/maestro-pvp-head-to-head.sh --platform android",
     "db:generate": "npm run db:generate -w @adventure-time/db",

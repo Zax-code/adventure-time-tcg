@@ -13,7 +13,7 @@ tags:
 - runFlow: subflows/confirm-open-link-if-needed.yaml
 - extendedWaitUntil:
     visible:
-      text: Daily quests
+      id: quests-progress-summary
     timeout: 15000
 - waitForAnimationToEnd
 - takeScreenshot: tmp-store-listing-quest-shots/01-quests-hub
@@ -23,7 +23,7 @@ tags:
 - runFlow: subflows/confirm-open-link-if-needed.yaml
 - extendedWaitUntil:
     visible:
-      text: Daily Numbers
+      id: daily-numbers-back
     timeout: 15000
 - waitForAnimationToEnd
 - takeScreenshot: tmp-store-listing-quest-shots/02-daily-numbers
@@ -33,7 +33,7 @@ tags:
 - runFlow: subflows/confirm-open-link-if-needed.yaml
 - extendedWaitUntil:
     visible:
-      text: Daily Wordle
+      id: wordle-back
     timeout: 15000
 - waitForAnimationToEnd
 - takeScreenshot: tmp-store-listing-quest-shots/03-wordle

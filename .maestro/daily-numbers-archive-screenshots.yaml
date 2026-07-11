@@ -14,16 +14,20 @@ tags:
 - runFlow: subflows/confirm-open-link-if-needed.yaml
 - extendedWaitUntil:
     visible:
-      text: Daily quests
+      id: quests-progress-summary
     timeout: 15000
 - scrollUntilVisible:
     element:
-      id: quests-daily-numbers-history
+      id: quests-card-dailyNumbers
     direction: DOWN
     timeout: 20000
     centerElement: true
 - waitForAnimationToEnd
 - takeScreenshot: tmp-daily-numbers-archive-shots/01-quests-entry
+- tapOn:
+    id: quests-card-dailyNumbers
+- assertVisible:
+    id: quests-launch-sheet
 - tapOn:
     id: quests-daily-numbers-history
 - extendedWaitUntil:

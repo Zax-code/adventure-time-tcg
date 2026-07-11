@@ -1,11 +1,12 @@
-import { useMemo, type ComponentType, type ReactNode } from "react";
-import { ActivityIndicator, type ViewStyle } from "react-native";
+import { useMemo, type ComponentType, type ReactNode, type Ref } from "react";
+import { ActivityIndicator, type View, type ViewStyle } from "react-native";
 
 import { ThemedExpoButton } from "../../components/expo-ui/themed-button";
 
 type QuestActionButtonLoadingMode = "replace" | "inline";
 
 export function QuestActionButton({
+  buttonRef,
   label,
   onPress,
   backgroundColor,
@@ -23,6 +24,7 @@ export function QuestActionButton({
   testID,
   style,
 }: {
+  buttonRef?: Ref<View>;
   label: string;
   onPress: () => void;
   backgroundColor: string;
@@ -83,7 +85,14 @@ export function QuestActionButton({
         lineHeight: minHeight < 42 ? 18 : 20,
       },
     }),
-    [backgroundColor, borderColor, fontFamily, fontSize, foregroundColor, minHeight],
+    [
+      backgroundColor,
+      borderColor,
+      fontFamily,
+      fontSize,
+      foregroundColor,
+      minHeight,
+    ],
   );
   const buttonStyle = useMemo(
     () => ({
@@ -95,6 +104,7 @@ export function QuestActionButton({
 
   return (
     <ThemedExpoButton
+      buttonRef={buttonRef}
       onPress={onPress}
       disabled={disabled || loading}
       accessibilityLabel={accessibilityLabel ?? label}
