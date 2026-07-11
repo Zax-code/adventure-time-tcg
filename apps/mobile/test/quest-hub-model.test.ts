@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import {
   buildQuestHubItems,
   claimQuestsSequentially,
+  DEFAULT_QUEST_HUB_ORDER,
   getNextQuestHubItem,
   getQuestHubItemLifecycle,
   getQuestHubItemStats,
@@ -11,6 +12,8 @@ import {
   getQuestProgressDisplay,
   getQuestLifecycle,
   isQuestShareable,
+  moveQuestHubPreference,
+  normalizeQuestHubOrder,
   type Quest,
 } from "../src/features/quests/quest-hub-model.ts";
 
@@ -86,7 +89,7 @@ describe("quest hub presentation model", () => {
 
     assert.deepEqual(
       items.map((item) => item.id),
-      ["speed", "wordle", "dailyNumbers", "steps"],
+      ["wordle", "dailyNumbers", "speed", "steps"],
     );
 
     const wordle = items.find((item) => item.kind === "wordle");
@@ -249,7 +252,7 @@ describe("quest hub presentation model", () => {
     assert.equal(getNextQuestHubItem(items), wordle);
   });
 
-  it("sorts reward-ready and in-progress work before fresh and claimed work", () => {
+  it("keeps the preferred order across different quest lifecycles", () => {
     const items = buildQuestHubItems([
       makeQuest({ id: "steps", claimed: true }),
       makeQuest({
@@ -274,8 +277,61 @@ describe("quest hub presentation model", () => {
     ]);
 
     assert.deepEqual(
+      items.map((item) => item.id),
+      ["wordle", "dailyNumbers", "speed", "steps"],
+    );
+    assert.deepEqual(
       items.map((item) => getQuestHubItemLifecycle(item)),
-      ["ready", "in_progress", "fresh", "claimed"],
+      ["fresh", "ready", "in_progress", "claimed"],
+    );
+  });
+
+  it("uses a custom order for both the cards and the next hub action", () => {
+    const items = buildQuestHubItems(
+      [
+        makeQuest({ id: "steps", progress: 2_000 }),
+        makeQuest({
+          id: "speed",
+          type: "speed_calculus_daily",
+          actionPath: "/quests/speed-calculus",
+          progress: 1,
+          runsUsed: 1,
+          maxRuns: 3,
+        }),
+        makeQuest({
+          id: "wordle-fr",
+          type: "wordle_daily_fr",
+          actionPath: "/quests/wordle?language=fr",
+        }),
+      ],
+      ["steps", "speedCalculus", "wordle", "dailyNumbers"],
+    );
+
+    assert.deepEqual(
+      items.map((item) => item.id),
+      ["steps", "speed", "wordle"],
+    );
+    assert.equal(getNextQuestHubItem(items)?.id, "steps");
+  });
+
+  it("normalizes persisted orders and supports bounded moves", () => {
+    assert.deepEqual(normalizeQuestHubOrder(["steps", "wordle", "steps"]), [
+      "steps",
+      "wordle",
+      "dailyNumbers",
+      "speedCalculus",
+    ]);
+    assert.deepEqual(
+      normalizeQuestHubOrder(["unknown"]),
+      DEFAULT_QUEST_HUB_ORDER,
+    );
+    assert.deepEqual(
+      moveQuestHubPreference(DEFAULT_QUEST_HUB_ORDER, "steps", "up"),
+      ["wordle", "dailyNumbers", "steps", "speedCalculus"],
+    );
+    assert.deepEqual(
+      moveQuestHubPreference(DEFAULT_QUEST_HUB_ORDER, "wordle", "up"),
+      DEFAULT_QUEST_HUB_ORDER,
     );
   });
 

@@ -32,6 +32,16 @@ export type DailyNumbersQuestHubItem = {
 export type QuestHubItem =
   SingleQuestHubItem | WordleQuestHubItem | DailyNumbersQuestHubItem;
 
+export type QuestHubPreferenceId =
+  "wordle" | "dailyNumbers" | "speedCalculus" | "steps";
+
+export const DEFAULT_QUEST_HUB_ORDER: QuestHubPreferenceId[] = [
+  "wordle",
+  "dailyNumbers",
+  "speedCalculus",
+  "steps",
+];
+
 export const WORDLE_LANGUAGES: WordleLocale[] = ["fr", "en"];
 export const DAILY_NUMBERS_MODES: DailyNumbersMode[] = ["1-5", "2-4", "3-3"];
 
@@ -171,28 +181,57 @@ export function getQuestProgressDisplay(quest: Quest) {
   };
 }
 
-function getSingleItemPriority(questType: string) {
-  if (isSpeedCalculusQuest(questType)) return 0;
-  if (isStepQuest(questType)) return 3;
-  if (isDailyLoginQuest(questType)) return 4;
-  return 5;
+export function normalizeQuestHubOrder(
+  value: readonly unknown[] | null | undefined,
+): QuestHubPreferenceId[] {
+  const validIds = new Set<QuestHubPreferenceId>(DEFAULT_QUEST_HUB_ORDER);
+  const normalized = (value ?? []).filter(
+    (id, index, order): id is QuestHubPreferenceId =>
+      typeof id === "string" &&
+      validIds.has(id as QuestHubPreferenceId) &&
+      order.indexOf(id) === index,
+  );
+
+  return [
+    ...normalized,
+    ...DEFAULT_QUEST_HUB_ORDER.filter((id) => !normalized.includes(id)),
+  ];
 }
 
-function getItemKindPriority(item: QuestHubItem) {
-  if (item.kind === "wordle") return 1;
-  if (item.kind === "dailyNumbers") return 2;
-  return getSingleItemPriority(item.quest.type);
+export function moveQuestHubPreference(
+  order: readonly QuestHubPreferenceId[],
+  id: QuestHubPreferenceId,
+  direction: "up" | "down",
+) {
+  const normalized = normalizeQuestHubOrder(order);
+  const currentIndex = normalized.indexOf(id);
+  const nextIndex = currentIndex + (direction === "up" ? -1 : 1);
+  if (currentIndex < 0 || nextIndex < 0 || nextIndex >= normalized.length) {
+    return normalized;
+  }
+
+  const reordered = [...normalized];
+  [reordered[currentIndex], reordered[nextIndex]] = [
+    reordered[nextIndex],
+    reordered[currentIndex],
+  ];
+  return reordered;
 }
 
-function getLifecyclePriority(lifecycle: QuestLifecycle) {
-  if (lifecycle === "ready") return 0;
-  if (lifecycle === "in_progress") return 1;
-  if (lifecycle === "fresh") return 2;
-  if (lifecycle === "failed") return 3;
-  return 4;
+export function getQuestHubPreferenceId(
+  item: QuestHubItem,
+): QuestHubPreferenceId | null {
+  if (item.kind === "wordle") return "wordle";
+  if (item.kind === "dailyNumbers") return "dailyNumbers";
+  if (isSpeedCalculusQuest(item.quest.type)) return "speedCalculus";
+  if (isStepQuest(item.quest.type)) return "steps";
+  return null;
 }
 
-export function buildQuestHubItems(quests: Quest[]): QuestHubItem[] {
+export function buildQuestHubItems(
+  quests: Quest[],
+  preferenceOrder: readonly QuestHubPreferenceId[] = DEFAULT_QUEST_HUB_ORDER,
+): QuestHubItem[] {
   const wordleQuests: Partial<Record<WordleLocale, Quest>> = {};
   const dailyNumbersQuests: Partial<Record<DailyNumbersMode, Quest>> = {};
   const singleItems: SingleQuestHubItem[] = [];
@@ -245,15 +284,21 @@ export function buildQuestHubItems(quests: Quest[]): QuestHubItem[] {
     });
   }
 
-  return items.sort((left, right) => {
-    const lifecycleDifference =
-      getLifecyclePriority(getQuestHubItemLifecycle(left)) -
-      getLifecyclePriority(getQuestHubItemLifecycle(right));
-    return (
-      lifecycleDifference ||
-      getItemKindPriority(left) - getItemKindPriority(right)
-    );
-  });
+  const normalizedOrder = normalizeQuestHubOrder(preferenceOrder);
+  return items
+    .map((item, originalIndex) => ({ item, originalIndex }))
+    .sort((left, right) => {
+      const leftId = getQuestHubPreferenceId(left.item);
+      const rightId = getQuestHubPreferenceId(right.item);
+      const leftIndex = leftId
+        ? normalizedOrder.indexOf(leftId)
+        : normalizedOrder.length;
+      const rightIndex = rightId
+        ? normalizedOrder.indexOf(rightId)
+        : normalizedOrder.length;
+      return leftIndex - rightIndex || left.originalIndex - right.originalIndex;
+    })
+    .map(({ item }) => item);
 }
 
 export function getQuestHubSummary(quests: Quest[]) {
@@ -274,19 +319,16 @@ export function getQuestHubSummary(quests: Quest[]) {
 }
 
 export function getNextQuestHubItem(items: QuestHubItem[]) {
-  const isPlayable = (item: QuestHubItem) =>
-    item.kind !== "single" || Boolean(item.quest.actionPath);
-
   return (
-    items.find(
-      (item) =>
-        getQuestHubItemLifecycle(item) === "in_progress" && isPlayable(item),
-    ) ??
     items.find((item) => {
-      if (getQuestHubItemLifecycle(item) !== "fresh") return false;
-      return isPlayable(item);
-    }) ??
-    null
+      const lifecycle = getQuestHubItemLifecycle(item);
+      const isAvailable = lifecycle === "in_progress" || lifecycle === "fresh";
+      const isActionable =
+        item.kind !== "single" ||
+        Boolean(item.quest.actionPath) ||
+        isStepQuest(item.quest.type);
+      return isAvailable && isActionable;
+    }) ?? null
   );
 }
 

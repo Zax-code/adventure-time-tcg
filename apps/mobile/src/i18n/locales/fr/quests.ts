@@ -5,6 +5,14 @@ const quests = {
       "Tes défis, ta progression et tes récompenses du jour au même endroit.",
     todayAdventure: "L'aventure du jour",
     finishedToday: "quêtes terminées aujourd'hui",
+    customizeOrder: "Modifier l'ordre",
+    orderTitle: "Choisis l'ordre de tes quêtes",
+    orderSubtitle:
+      "La première quête disponible devient l'action principale du hub. Les changements sont enregistrés automatiquement sur cet appareil.",
+    orderPosition: "Priorité {position}",
+    moveUp: "Monter",
+    moveDown: "Descendre",
+    resetOrder: "Rétablir l'ordre par défaut",
     upNext: "À toi de jouer",
     upNextSubtitle:
       "Commence, continue, consulte ta progression ou récupère une récompense.",

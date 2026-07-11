@@ -24,13 +24,17 @@ import Animated, { FadeInUp, ReduceMotion } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
+  ChevronDownIcon,
   ChevronRightIcon,
   CoinIcon,
   ShareIcon,
   SparklesIcon,
 } from "../../components/icons";
 import { QuestActionButton } from "./quest-action-button";
-import type { QuestLifecycle } from "./quest-hub-model";
+import type {
+  QuestHubPreferenceId,
+  QuestLifecycle,
+} from "./quest-hub-model";
 import type { THEME_COLORS } from "../../theme/themes";
 
 type ThemeColors = (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
@@ -65,6 +69,13 @@ export type QuestRecapAction = {
   isLoading: boolean;
   onPress: () => void;
   testID: string;
+};
+
+export type QuestOrderOption = {
+  id: QuestHubPreferenceId;
+  title: string;
+  icon: QuestIconComponent;
+  positionLabel: string;
 };
 
 export function QuestRewardPill({
@@ -113,8 +124,10 @@ export function QuestHubSummary({
   actionLabel,
   actionLoading,
   claimMode,
+  customizeLabel,
   finishedCount,
   onAction,
+  onCustomize,
   onShare,
   readyReward,
   rewardAccessibilityLabel,
@@ -130,8 +143,10 @@ export function QuestHubSummary({
   actionLabel: string;
   actionLoading?: boolean;
   claimMode: boolean;
+  customizeLabel: string;
   finishedCount: number;
   onAction?: () => void;
+  onCustomize: () => void;
   onShare?: () => void;
   readyReward: number;
   rewardAccessibilityLabel: string;
@@ -165,9 +180,21 @@ export function QuestHubSummary({
           <SparklesIcon size={88} color={tc.primary} />
         </View>
 
-        <Text className="font-nunito-bold text-xs uppercase tracking-[2px] text-primaryText">
-          {title}
-        </Text>
+        <View className="flex-row items-center justify-between gap-3">
+          <Text className="shrink font-nunito-bold text-xs uppercase tracking-[2px] text-primaryText">
+            {title}
+          </Text>
+          <QuestActionButton
+            label={customizeLabel}
+            onPress={onCustomize}
+            backgroundColor={tc.surface}
+            foregroundColor={tc.primaryText}
+            borderColor={tc.primaryBorder}
+            minHeight={36}
+            textClassName="font-nunito-bold text-xs"
+            testID="quests-customize-order"
+          />
+        </View>
         <View
           className={
             stackActions ? "mt-2 gap-3" : "mt-2 flex-row items-end gap-4"
@@ -663,7 +690,7 @@ export function QuestLaunchSheet({
                 backgroundColor:
                   option.lifecycle === "ready"
                     ? tc.successTint
-                  : option.lifecycle === "failed"
+                    : option.lifecycle === "failed"
                       ? tc.dangerTint
                       : tc.surfaceMuted,
                 borderColor:
@@ -854,6 +881,189 @@ export function QuestRecapSheet({
               </View>
             );
           })}
+          <View style={{ height: Math.max(bottom + 20, 32) }} />
+        </ScrollView>
+      </View>
+    </ModalBottomSheet>
+  );
+}
+
+export function QuestOrderSheet({
+  index,
+  moveDownLabel,
+  moveUpLabel,
+  onDismiss,
+  onIndexChange,
+  onMove,
+  onReset,
+  options,
+  resetLabel,
+  subtitle,
+  tc,
+  title,
+}: {
+  index: number;
+  moveDownLabel: string;
+  moveUpLabel: string;
+  onDismiss: () => void;
+  onIndexChange: (index: number) => void;
+  onMove: (id: QuestHubPreferenceId, direction: "up" | "down") => void;
+  onReset: () => void;
+  options: QuestOrderOption[];
+  resetLabel: string;
+  subtitle: string;
+  tc: ThemeColors;
+  title: string;
+}) {
+  const { fontScale, height } = useWindowDimensions();
+  const { bottom } = useSafeAreaInsets();
+  const useBoundedHeight = fontScale >= 1.6;
+  const stackRowActions = fontScale >= 1.35;
+  const surface = useMemo(() => <SheetSurface tc={tc} />, [tc]);
+  const headingRef = useRef<Text>(null);
+  useSheetHeadingFocus(index, headingRef);
+
+  return (
+    <ModalBottomSheet
+      index={index}
+      onIndexChange={onIndexChange}
+      onSettle={(nextIndex) => {
+        if (nextIndex === 0) onDismiss();
+      }}
+      detents={[0, "content"]}
+      scrimColor="rgba(0,0,0,0.42)"
+      surface={surface}
+    >
+      <View
+        accessibilityViewIsModal
+        onAccessibilityEscape={() => onIndexChange(0)}
+        className="bg-bg"
+        style={{
+          height: useBoundedHeight ? height * 0.82 : undefined,
+          maxHeight: height * 0.82,
+          borderTopLeftRadius: 30,
+          borderTopRightRadius: 30,
+          borderCurve: "continuous",
+          overflow: "hidden",
+        }}
+        testID="quests-order-sheet"
+      >
+        <QuestSheetHeader
+          headingRef={headingRef}
+          title={title}
+          subtitle={subtitle}
+          tc={tc}
+        />
+        <ScrollView
+          style={{ flex: useBoundedHeight ? 1 : undefined, flexShrink: 1 }}
+          contentInsetAdjustmentBehavior="automatic"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{
+            paddingHorizontal: 16,
+            paddingBottom: 0,
+            gap: 10,
+          }}
+        >
+          {options.map((option, optionIndex) => {
+            const Icon = option.icon;
+            return (
+              <View
+                key={option.id}
+                className="rounded-[20px] p-3"
+                style={{
+                  backgroundColor: tc.surfaceMuted,
+                  borderColor:
+                    optionIndex === 0 ? tc.primary : tc.primaryBorder,
+                  borderCurve: "continuous",
+                  borderWidth: optionIndex === 0 ? 1.5 : 1,
+                }}
+                testID={`quests-order-row-${option.id}`}
+              >
+                <View
+                  className={
+                    stackRowActions ? "gap-3" : "flex-row items-center gap-3"
+                  }
+                >
+                  <View className="min-w-0 flex-1 flex-row items-center gap-3">
+                    <View
+                      className="h-11 w-11 items-center justify-center rounded-2xl"
+                      style={{ backgroundColor: tc.primaryTint }}
+                    >
+                      <Icon size={25} color={tc.primaryText} />
+                    </View>
+                    <View className="min-w-0 flex-1">
+                      <Text className="font-nunito-extrabold text-base text-fg">
+                        {option.title}
+                      </Text>
+                      <Text className="font-nunito-bold text-xs text-primaryText">
+                        {option.positionLabel}
+                      </Text>
+                    </View>
+                  </View>
+                  <View
+                    className={
+                      stackRowActions
+                        ? "flex-row gap-2"
+                        : "flex-row shrink-0 gap-2"
+                    }
+                  >
+                    <QuestActionButton
+                      accessibilityLabel={`${moveUpLabel}: ${option.title}`}
+                      label={moveUpLabel}
+                      onPress={() => {
+                        void Haptics.selectionAsync();
+                        onMove(option.id, "up");
+                      }}
+                      disabled={optionIndex === 0}
+                      backgroundColor={tc.surface}
+                      foregroundColor={tc.primaryText}
+                      borderColor={tc.primaryBorder}
+                      leadingAccessory={
+                        <View style={{ transform: [{ rotate: "180deg" }] }}>
+                          <ChevronDownIcon size={16} color={tc.primaryText} />
+                        </View>
+                      }
+                      minHeight={40}
+                      textClassName="font-nunito-bold text-xs"
+                      style={stackRowActions ? { flex: 1 } : undefined}
+                      testID={`quests-order-up-${option.id}`}
+                    />
+                    <QuestActionButton
+                      accessibilityLabel={`${moveDownLabel}: ${option.title}`}
+                      label={moveDownLabel}
+                      onPress={() => {
+                        void Haptics.selectionAsync();
+                        onMove(option.id, "down");
+                      }}
+                      disabled={optionIndex === options.length - 1}
+                      backgroundColor={tc.surface}
+                      foregroundColor={tc.primaryText}
+                      borderColor={tc.primaryBorder}
+                      leadingAccessory={
+                        <ChevronDownIcon size={16} color={tc.primaryText} />
+                      }
+                      minHeight={40}
+                      textClassName="font-nunito-bold text-xs"
+                      style={stackRowActions ? { flex: 1 } : undefined}
+                      testID={`quests-order-down-${option.id}`}
+                    />
+                  </View>
+                </View>
+              </View>
+            );
+          })}
+          <QuestActionButton
+            label={resetLabel}
+            onPress={() => {
+              void Haptics.selectionAsync();
+              onReset();
+            }}
+            backgroundColor={tc.surface}
+            foregroundColor={tc.primaryText}
+            borderColor={tc.primaryBorder}
+            minHeight={46}
+            testID="quests-order-reset"
+          />
           <View style={{ height: Math.max(bottom + 20, 32) }} />
         </ScrollView>
       </View>

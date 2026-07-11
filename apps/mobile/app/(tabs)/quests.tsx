@@ -56,6 +56,7 @@ import {
   QuestHubCard,
   QuestHubSummary,
   QuestLaunchSheet,
+  QuestOrderSheet,
   QuestRecapSheet,
   QuestVariantChip,
   type QuestRecapAction,
@@ -66,6 +67,7 @@ import {
   buildQuestHubItems,
   claimQuestsSequentially,
   DAILY_NUMBERS_MODES,
+  DEFAULT_QUEST_HUB_ORDER,
   getDailyNumbersModeFromQuestType,
   getNextQuestHubItem,
   getQuestHubItemLifecycle,
@@ -80,9 +82,11 @@ import {
   isSpeedCalculusQuest,
   isStepQuest,
   isWordleQuest,
+  moveQuestHubPreference,
   WORDLE_LANGUAGES,
   type Quest,
   type QuestHubItem,
+  type QuestHubPreferenceId,
   type QuestLifecycle,
 } from "../../src/features/quests/quest-hub-model";
 import { QuestActionButton } from "../../src/features/quests/quest-action-button";
@@ -101,6 +105,7 @@ import {
   syncDeviceStepsNow,
 } from "../../src/lib/step-sync";
 import { useQuestResetStore } from "../../src/stores/quest-reset-store";
+import { useQuestHubPreferencesStore } from "../../src/stores/quest-hub-preferences-store";
 import { useSessionStore } from "../../src/stores/session-store";
 import { useStepSyncStore } from "../../src/stores/step-sync-store";
 import { useThemeStore } from "../../src/stores/theme-store";
@@ -437,6 +442,13 @@ function useQuestsScreenView() {
   const lastQuestResetPayload = useQuestResetStore(
     (state) => state.lastPayload,
   );
+  const questHubOrder = useQuestHubPreferencesStore((state) => state.order);
+  const hydrateQuestHubOrder = useQuestHubPreferencesStore(
+    (state) => state.hydrateForUser,
+  );
+  const setQuestHubOrder = useQuestHubPreferencesStore(
+    (state) => state.setOrderForUser,
+  );
 
   const scrollRef = useRef<ScrollView>(null);
   const scrollOffsetRef = useRef(0);
@@ -475,6 +487,7 @@ function useQuestsScreenView() {
     null,
   );
   const [launcherSheetIndex, setLauncherSheetIndex] = useState(0);
+  const [orderSheetIndex, setOrderSheetIndex] = useState(0);
   const [recapOpenSignature, setRecapOpenSignature] = useState<string | null>(
     null,
   );
@@ -516,6 +529,11 @@ function useQuestsScreenView() {
       3500,
     );
   }, [headerHeight]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    void hydrateQuestHubOrder(user.id);
+  }, [hydrateQuestHubOrder, user?.id]);
 
   useEffect(() => {
     if (!toast) return;
@@ -1121,7 +1139,7 @@ function useQuestsScreenView() {
 
   const displayedQuests =
     applyLocalStepProgressToQuests(questsQueryData, user) ?? questsQueryData;
-  const hubItems = buildQuestHubItems(displayedQuests.quests);
+  const hubItems = buildQuestHubItems(displayedQuests.quests, questHubOrder);
   const summary = getQuestHubSummary(displayedQuests.quests);
   const nextItem = getNextQuestHubItem(hubItems);
   const activeItems = hubItems.filter((item) => {
@@ -1135,13 +1153,6 @@ function useQuestsScreenView() {
   const wordleItem = hubItems.find((item) => item.kind === "wordle");
   const dailyNumbersItem = hubItems.find(
     (item) => item.kind === "dailyNumbers",
-  );
-  const unfinishedStepItem = hubItems.find(
-    (item) =>
-      item.kind === "single" &&
-      isStepQuest(item.quest.type) &&
-      (getQuestLifecycle(item.quest) === "fresh" ||
-        getQuestLifecycle(item.quest) === "in_progress"),
   );
   const claimInFlight =
     claimQuestMutation.isPending || claimAllMutation.isPending;
@@ -1216,24 +1227,24 @@ function useQuestsScreenView() {
   const nextItemTitle = nextItem ? getItemTitle(nextItem, t) : "";
   const nextItemIsSpeed =
     nextItem?.kind === "single" && isSpeedCalculusQuest(nextItem.quest.type);
+  const nextItemIsStep =
+    nextItem?.kind === "single" && isStepQuest(nextItem.quest.type);
   const hasPrimaryAction =
-    summary.claimableQuests.length > 0 ||
-    nextItem != null ||
-    unfinishedStepItem != null;
+    summary.claimableQuests.length > 0 || nextItem != null;
   const primaryActionLabel =
     summary.claimableQuests.length > 0
       ? t("quests.hub.claimReady", { amount: summary.readyReward })
       : nextItem
-        ? nextItemIsSpeed
-          ? t("quests.hub.openQuest", { quest: nextItemTitle })
-          : getQuestHubItemLifecycle(nextItem) === "in_progress"
-            ? t("quests.hub.continueQuest", { quest: nextItemTitle })
-            : t("quests.hub.startQuest", { quest: nextItemTitle })
-        : unfinishedStepItem
+        ? nextItemIsStep
           ? t("quests.hub.viewStepProgress")
-          : summary.finishedCount < summary.totalCount
-            ? t("quests.hub.keepGoing")
-            : t("quests.hub.allDone");
+          : nextItemIsSpeed
+            ? t("quests.hub.openQuest", { quest: nextItemTitle })
+            : getQuestHubItemLifecycle(nextItem) === "in_progress"
+              ? t("quests.hub.continueQuest", { quest: nextItemTitle })
+              : t("quests.hub.startQuest", { quest: nextItemTitle })
+        : summary.finishedCount < summary.totalCount
+          ? t("quests.hub.keepGoing")
+          : t("quests.hub.allDone");
 
   const handlePrimaryAction = () => {
     if (claimLockRef.current || claimInFlight) return;
@@ -1244,6 +1255,10 @@ function useQuestsScreenView() {
       return;
     }
     if (nextItem) {
+      if (nextItem.kind === "single" && isStepQuest(nextItem.quest.type)) {
+        focusStepQuest();
+        return;
+      }
       const inProgressQuests = nextItem.quests.filter(
         (quest) => getQuestLifecycle(quest) === "in_progress",
       );
@@ -1254,8 +1269,37 @@ function useQuestsScreenView() {
       openHubItem(nextItem);
       return;
     }
-    if (unfinishedStepItem) focusStepQuest();
   };
+
+  const questOrderOptions = questHubOrder.map((id, index) => {
+    const optionById: Record<
+      QuestHubPreferenceId,
+      { icon: QuestIcon; title: string }
+    > = {
+      wordle: {
+        icon: WordleQuestIcon,
+        title: t("quests.wordle.title"),
+      },
+      dailyNumbers: {
+        icon: DailyNumbersQuestIcon,
+        title: t("quests.dailyNumbers.title"),
+      },
+      speedCalculus: {
+        icon: SpeedCalculusQuestIcon,
+        title: t("quests.speedCalculusTitle"),
+      },
+      steps: {
+        icon: StepQuestIcon,
+        title: t("quests.steps_10k"),
+      },
+    };
+
+    return {
+      id,
+      ...optionById[id],
+      positionLabel: t("quests.hub.orderPosition", { position: index + 1 }),
+    };
+  });
 
   const buildWordleOptions = (): QuestVariantOption[] => {
     if (!wordleItem || wordleItem.kind !== "wordle") return [];
@@ -1621,8 +1665,10 @@ function useQuestsScreenView() {
               actionLabel={primaryActionLabel}
               actionLoading={claimAllMutation.isPending}
               claimMode={summary.claimableQuests.length > 0}
+              customizeLabel={t("quests.hub.customizeOrder")}
               finishedCount={summary.finishedCount}
               onAction={hasPrimaryAction ? handlePrimaryAction : undefined}
+              onCustomize={() => setOrderSheetIndex(1)}
               onShare={
                 recapActions.length > 0
                   ? () => setRecapOpenSignature(shareableQuestSignature)
@@ -1749,6 +1795,30 @@ function useQuestsScreenView() {
           title={t("quests.hub.wordleLauncherTitle")}
         />
       ) : null}
+
+      <QuestOrderSheet
+        index={orderSheetIndex}
+        moveDownLabel={t("quests.hub.moveDown")}
+        moveUpLabel={t("quests.hub.moveUp")}
+        onDismiss={() => setOrderSheetIndex(0)}
+        onIndexChange={setOrderSheetIndex}
+        onMove={(id, direction) => {
+          if (!user?.id) return;
+          void setQuestHubOrder(
+            user.id,
+            moveQuestHubPreference(questHubOrder, id, direction),
+          );
+        }}
+        onReset={() => {
+          if (!user?.id) return;
+          void setQuestHubOrder(user.id, DEFAULT_QUEST_HUB_ORDER);
+        }}
+        options={questOrderOptions}
+        resetLabel={t("quests.hub.resetOrder")}
+        subtitle={t("quests.hub.orderSubtitle")}
+        tc={tc}
+        title={t("quests.hub.orderTitle")}
+      />
 
       {activeLauncher === "dailyNumbers" ? (
         <QuestLaunchSheet
