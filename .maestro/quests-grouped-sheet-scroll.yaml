@@ -2,7 +2,6 @@ appId: love.leaetzak.adventuretime
 name: Quest grouped sheet remains scrollable
 tags:
   - quests
-  - accessibility
   - bottom-sheet
 ---
 - launchApp:
@@ -22,6 +21,10 @@ tags:
     timeout: 30000
     speed: 90
     visibilityPercentage: 10
+- swipe:
+    start: "50%,72%"
+    end: "50%,38%"
+    duration: 350
 - tapOn:
     id: quests-card-dailyNumbers
 - assertVisible:
@@ -33,6 +36,8 @@ tags:
     timeout: 30000
     speed: 90
     visibilityPercentage: 100
+- waitForAnimationToEnd
+- takeScreenshot: tmp-quests-redesign-shots/grouped-sheet-content-sized
 - tapOn:
     id: quests-daily-numbers-history
 - extendedWaitUntil:

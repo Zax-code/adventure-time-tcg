@@ -603,8 +603,7 @@ export function QuestLaunchSheet({
   const { fontScale, height } = useWindowDimensions();
   const { bottom } = useSafeAreaInsets();
   const stackOptions = fontScale >= 1.6;
-  const useBoundedHeight =
-    fontScale >= 1.6 || options.length >= 3 || historyAction != null;
+  const useBoundedHeight = fontScale >= 1.6;
   const surface = useMemo(() => <SheetSurface tc={tc} />, [tc]);
   const headingRef = useRef<Text>(null);
   useSheetHeadingFocus(index, headingRef);
@@ -659,23 +658,23 @@ export function QuestLaunchSheet({
                 void Haptics.selectionAsync();
                 option.onPress();
               }}
-              className="rounded-[22px] p-4"
-              style={({ pressed }) => ({
+              className="rounded-[22px] p-4 active:opacity-80"
+              style={{
                 backgroundColor:
                   option.lifecycle === "ready"
                     ? tc.successTint
-                    : option.lifecycle === "failed"
+                  : option.lifecycle === "failed"
                       ? tc.dangerTint
-                      : tc.primaryBg,
+                      : tc.surfaceMuted,
                 borderColor:
                   option.lifecycle === "ready"
-                    ? tc.successBorder
+                    ? tc.successDark
                     : option.lifecycle === "failed"
-                      ? tc.dangerBorder
-                      : tc.primaryBorder,
-                borderWidth: 1,
-                opacity: pressed ? 0.82 : 1,
-              })}
+                      ? tc.dangerDark
+                      : tc.primary,
+                borderCurve: "continuous",
+                borderWidth: 1.5,
+              }}
               testID={option.testID}
             >
               <View
@@ -759,7 +758,7 @@ export function QuestRecapSheet({
 }) {
   const { fontScale, height } = useWindowDimensions();
   const { bottom } = useSafeAreaInsets();
-  const useBoundedHeight = fontScale >= 1.6 || actions.length >= 3;
+  const useBoundedHeight = fontScale >= 1.6;
   const surface = useMemo(() => <SheetSurface tc={tc} />, [tc]);
   const isBusy = actions.some((action) => action.isLoading);
   const headingRef = useRef<Text>(null);
@@ -813,9 +812,10 @@ export function QuestRecapSheet({
                 key={action.id}
                 className="rounded-[22px] p-4"
                 style={{
-                  backgroundColor: tc.primaryBg,
-                  borderColor: tc.primaryBorder,
-                  borderWidth: 1,
+                  backgroundColor: tc.surfaceMuted,
+                  borderColor: tc.primary,
+                  borderCurve: "continuous",
+                  borderWidth: 1.5,
                 }}
               >
                 <View className="flex-row items-center gap-3">
