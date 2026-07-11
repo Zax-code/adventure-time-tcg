@@ -1,0 +1,74 @@
+appId: love.leaetzak.adventuretime
+name: Quest midnight cutoff
+tags:
+  - quests
+  - midnight
+  - navigation
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- openLink:
+    link: adventure-time:///e2e-auth?redirect=%2Fquests%2Fwordle%3Flanguage%3Den&email=${TEST_EMAIL_URI}&password=${TEST_PASSWORD_URI}
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- extendedWaitUntil:
+    visible:
+      id: wordle-back
+    timeout: 15000
+- openLink:
+    link: "adventure-time:///quests/wordle?language=en&_e2eQuestCutoff=active-wordle"
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- extendedWaitUntil:
+    visible:
+      id: quest-day-cutoff-modal
+    timeout: 10000
+- assertVisible: "Time's up!"
+- extendedWaitUntil:
+    visible:
+      id: quest-day-cutoff-continue
+    timeout: 15000
+- assertVisible: "See the new quests"
+- tapOn:
+    id: quest-day-cutoff-continue
+- extendedWaitUntil:
+    visible:
+      id: quests-progress-summary
+    timeout: 15000
+- assertNotVisible:
+    id: wordle-back
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - swipe:
+          start: "1%,50%"
+          end: "75%,50%"
+          duration: 500
+      - assertVisible:
+          id: tab-quests
+- scrollUntilVisible:
+    element:
+      id: quests-card-wordle
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    id: quests-card-wordle
+- assertVisible:
+    id: quests-launch-sheet
+- openLink:
+    link: "adventure-time:///quests?_e2eQuestCutoff=quest-hub"
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- extendedWaitUntil:
+    visible:
+      id: quest-day-cutoff-modal
+    timeout: 10000
+- extendedWaitUntil:
+    visible:
+      id: quest-day-cutoff-continue
+    timeout: 15000
+- tapOn:
+    id: quest-day-cutoff-continue
+- assertVisible:
+    id: tab-quests
+- assertNotVisible:
+    id: quests-launch-sheet
