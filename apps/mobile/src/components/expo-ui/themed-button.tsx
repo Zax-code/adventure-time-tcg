@@ -1,4 +1,4 @@
-import { type ReactNode } from "react";
+import { type ReactNode, type Ref } from "react";
 import {
   ActivityIndicator,
   type Insets,
@@ -53,6 +53,7 @@ type ThemedButtonFallbackAppearance = {
 };
 
 type ThemedExpoButtonProps = {
+  buttonRef?: Ref<View>;
   onPress?: () => void;
   onLongPress?: () => void;
   delayLongPress?: number;
@@ -228,6 +229,7 @@ function getDefaultFallbackAppearance(
 }
 
 function FallbackButton({
+  buttonRef,
   onPress,
   onLongPress,
   delayLongPress,
@@ -288,9 +290,11 @@ function FallbackButton({
         <Text
           style={{
             color: foregroundColor,
+            flexShrink: 1,
             fontFamily: appearance.textStyle.fontFamily,
             fontSize: appearance.textStyle.fontSize,
             lineHeight: appearance.textStyle.lineHeight,
+            textAlign: "center",
           }}
         >
           {label}
@@ -303,6 +307,7 @@ function FallbackButton({
 
   return (
     <Pressable
+      ref={buttonRef}
       onPress={onPress}
       onLongPress={onLongPress}
       delayLongPress={delayLongPress}

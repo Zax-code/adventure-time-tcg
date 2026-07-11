@@ -27,12 +27,7 @@ export default function WidgetQuestsScreen() {
 
     handledStaleQuestLink.current = true;
 
-    if (router.canGoBack()) {
-      router.back();
-      return;
-    }
-
-    router.replace("/(tabs)/quests");
+    router.replace("/(tabs)/quests?focus=steps");
   }, [alreadyOnQuestTab, hydrated, router, user]);
 
   if (!hydrated) {
@@ -47,5 +42,5 @@ export default function WidgetQuestsScreen() {
     return null;
   }
 
-  return <Redirect href="/(tabs)/quests" />;
+  return <Redirect href="/(tabs)/quests?focus=steps" />;
 }

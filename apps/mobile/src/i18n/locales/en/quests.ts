@@ -1,27 +1,66 @@
 const quests = {
   title: "Daily quests",
-  subtitle: "Complete quests to earn bonus coins!",
+  hub: {
+    subtitle: "Your daily challenges, progress, and rewards in one place.",
+    todayAdventure: "Today's adventure",
+    finishedToday: "quests finished today",
+    upNext: "Up next",
+    upNextSubtitle: "Start, continue, review progress, or collect a reward.",
+    finishedSection: "Finished today",
+    finishedSectionSubtitle: "Finished quests stay here until the daily reset.",
+    rewardReady: "Reward ready",
+    claimed: "Claimed",
+    finished: "Finished",
+    inProgress: "In progress",
+    fresh: "Fresh",
+    wordleCardDescription: "Two languages, with separate progress and rewards.",
+    dailyNumbersCardDescription:
+      "Three number mixes, with a fresh target for each board.",
+    speedSummary: "{used}/{total} runs · latest score {score}",
+    speedRuns: "{used}/{total} runs",
+    wordleAttempts: "{used}/{total} tries",
+    wordleOption: "A fresh five-letter puzzle",
+    wordleSolvedMeta: "Solved in {used}/{total} tries",
+    wordleFailedMeta: "No guesses left · {used}/{total} used",
+    dailyNumbersScore: "{score}% reward unlocked",
+    coinReward: "{amount} coin reward",
+    claimReady: "Claim {amount} coins",
+    claimPartial:
+      "Claimed {claimed} of {total} rewards. Try the remaining rewards again.",
+    continueQuest: "Continue {quest}",
+    startQuest: "Start {quest}",
+    openQuest: "Open {quest}",
+    openToPlay: "Open to play",
+    viewStepProgress: "View step progress",
+    keepGoing: "Keep going",
+    allDone: "All done for today",
+    share: "Share results",
+    recapTitle: "Share puzzle results",
+    recapSubtitle:
+      "Choose which finished puzzle results to share. Answers stay private.",
+    resultsReady: "Finished results: {count}",
+    shareWordle: "Share Wordle results",
+    shareDailyNumbers: "Share Numbers results",
+    wordleLauncherTitle: "Choose your Wordle",
+    wordleLauncherSubtitle:
+      "Pick a language. Each puzzle has its own progress and reward.",
+    dailyNumbersLauncherTitle: "Choose a Numbers board",
+    dailyNumbersLauncherSubtitle:
+      "Pick a number mix. Each board has its own result and reward.",
+    openQuestHint: "Opens this quest.",
+    chooseVariantHint: "Opens the quest picker.",
+    stepSyncIssue:
+      "Step syncing needs attention. Try again or review your step settings.",
+  },
   noQuests: "No quests available today",
   checkBackLater: "Check back later for new quests!",
   connectFitbitDesc:
     "Link your Fitbit account to unlock step-tracking quests and earn more coins!",
   claim: "Claim",
-  claimAll: "Claim all",
   progress: "Progress",
-  completedBadge: "Completed",
-  claimedBadge: "Completed",
-  rewardReady: "{count} coins ready to claim",
-  rewardClaimed: "{count} coins claimed",
-  playQuest: "Play quest",
-  seeResults: "See result",
-  seeAttempts: "See attempts",
-  loading: "Loading quests...",
   unavailable: "Quest data unavailable.",
   claimSuccess: "+{amount} coins claimed!",
   claimFailed: "Failed to claim reward.",
-  shareGroupResult: "Share all",
-  shareGroupPreparing: "Preparing...",
-  shareNotCompleted: "Not completed yet",
   shareAllDialogTitle: "Share quest results",
   shareAllError: "Could not create the share image. Try again.",
   shareAllUnavailable: "Sharing isn't available on this device.",
@@ -29,7 +68,6 @@ const quests = {
   fitbitConnectFailed: "Failed to connect Fitbit.",
   questReset: "Daily quests were reset.",
   questResetByAdmin: "Daily quests were reset by {name}.",
-  stepSyncPromptTitle: "Turn on step tracking for this quest",
   stepSyncPromptBody:
     "Enable {healthSystem} once so this quest can count your steps.",
   stepSyncPromptSetupBody:
@@ -40,19 +78,6 @@ const quests = {
   widgetReadyToClaim: "Reward ready: {reward} coins",
   widgetClaimedToday: "Claimed for today",
   widgetFailedToday: "Try again tomorrow",
-  wordleAttemptsUsed: "{used} / {total} attempts used",
-  wordleSolvedIn: "Solved in {used}/{total} attempts!",
-  dailyNumbersQuestCardMeta:
-    "Closest: {value} ({distance} away), {score}% unlocked.",
-  dailyNumbersQuestCardMetaTimed:
-    "Closest: {value} ({distance} away), {score}% unlocked in {time}.",
-  dailyNumbersQuestCardExact: "Exact hit, {score}% unlocked.",
-  dailyNumbersQuestCardExactTimed: "Exact hit, {score}% unlocked in {time}.",
-  dailyNumbersLevelsCleared: "{completed} / {total} levels cleared",
-  dailyNumbersGroupDesc:
-    "Choose one of the three number mixes, then combine two available numbers at a time with +, -, ×, or ÷ to get as close as possible to the target. Better results unlock a larger reward, exact hits unlock 100%, and each mix has its own reward to claim.",
-  wordleGroupDesc:
-    "Play the daily Wordle in French or English. Guess the five-letter word in six tries: green tiles are correct, yellow tiles are in the word but misplaced, and gray tiles are absent. Each language has separate progress and a separate reward to claim.",
   steps_10k: "Walk 10,000 steps",
   steps_10k_desc:
     "Walk 10,000 steps today. Connect a step source if prompted, then claim the reward once your synced steps reach the goal.",
@@ -140,10 +165,11 @@ const quests = {
   speedCalculusStartRun: "Start run {run}",
   speedCalculusCashOut: "Cash out {reward} coins",
   speedCalculusClaimed: "Reward already claimed for today.",
+  speedCalculusClaimReward: "Claim {reward} coins",
   speedCalculusLocked:
     "Final score locked. Your quest reward is {reward} coins.",
   speedCalculusClaimReminder:
-    "Head back to daily quests and claim the reward when you're ready.",
+    "Claim this reward now, or return to daily quests and claim it later.",
   speedCalculusRunLabel: "Run {run}/{total}",
   speedCalculusCorrectNow: "Correct now",
   speedCalculusQuestionNumber: "Question {current}",
@@ -290,7 +316,8 @@ const quests = {
     archiveImproved:
       "Improved result found. Save now or keep playing for an exact hit.",
     lockedSuccess: "Reward unlocked. Your result is locked in.",
-    archiveNoReward: "Archive results are saved for fun and do not grant coins.",
+    archiveNoReward:
+      "Archive results are saved for fun and do not grant coins.",
     archiveTryAgain: "Try again",
     archiveResultLabel: "Archive",
     rewardReminder:
@@ -329,8 +356,7 @@ const quests = {
     tileValue: "Number tile {value}",
     operatorValue: "Operator {operator}",
     stepNumber: "Step {step}",
-    stepSummary:
-      "{leftValue} {operator} {rightValue} = {resultValue}",
+    stepSummary: "{leftValue} {operator} {rightValue} = {resultValue}",
     finalResult: "Final result",
     distanceLabel: "Distance",
     scoreLabel: "Score",

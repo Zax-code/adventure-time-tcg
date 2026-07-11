@@ -1,27 +1,70 @@
 const quests = {
   title: "Quêtes quotidiennes",
-  subtitle: "Termine des quêtes pour gagner des pièces bonus !",
+  hub: {
+    subtitle:
+      "Tes défis, ta progression et tes récompenses du jour au même endroit.",
+    todayAdventure: "L'aventure du jour",
+    finishedToday: "quêtes terminées aujourd'hui",
+    upNext: "À toi de jouer",
+    upNextSubtitle:
+      "Commence, continue, consulte ta progression ou récupère une récompense.",
+    finishedSection: "Terminées aujourd'hui",
+    finishedSectionSubtitle:
+      "Les quêtes terminées restent ici jusqu'à la réinitialisation quotidienne.",
+    rewardReady: "Récompense prête",
+    claimed: "Récupérée",
+    finished: "Terminée",
+    inProgress: "En cours",
+    fresh: "Nouvelle",
+    wordleCardDescription:
+      "Deux langues, avec une progression et une récompense distinctes.",
+    dailyNumbersCardDescription:
+      "Trois répartitions de nombres, chacune avec sa propre cible.",
+    speedSummary: "{used}/{total} manches · dernier score {score}",
+    speedRuns: "{used}/{total} manches",
+    wordleAttempts: "{used}/{total} essais",
+    wordleOption: "Une nouvelle énigme de cinq lettres",
+    wordleSolvedMeta: "Résolu en {used}/{total} essais",
+    wordleFailedMeta: "Plus d'essais · {used}/{total} utilisés",
+    dailyNumbersScore: "{score} % de la récompense débloquée",
+    coinReward: "Récompense de {amount} pièces",
+    claimReady: "Récupérer {amount} pièces",
+    claimPartial:
+      "{claimed} récompenses sur {total} récupérées. Réessaie pour récupérer les autres.",
+    continueQuest: "Continuer {quest}",
+    startQuest: "Commencer {quest}",
+    openQuest: "Ouvrir {quest}",
+    openToPlay: "Ouvrir pour jouer",
+    viewStepProgress: "Voir la progression des pas",
+    keepGoing: "Continue comme ça",
+    allDone: "Tout est terminé pour aujourd'hui",
+    share: "Partager les résultats",
+    recapTitle: "Partager les résultats des jeux",
+    recapSubtitle:
+      "Choisis les résultats terminés à partager. Les réponses restent privées.",
+    resultsReady: "Résultats terminés : {count}",
+    shareWordle: "Partager les résultats Wordle",
+    shareDailyNumbers: "Partager les résultats Nombres",
+    wordleLauncherTitle: "Choisis ton Wordle",
+    wordleLauncherSubtitle:
+      "Choisis une langue. Chaque énigme a sa propre progression et récompense.",
+    dailyNumbersLauncherTitle: "Choisis un plateau de nombres",
+    dailyNumbersLauncherSubtitle:
+      "Choisis une répartition. Chaque plateau a son propre résultat et sa récompense.",
+    openQuestHint: "Ouvre cette quête.",
+    chooseVariantHint: "Ouvre le sélecteur de quête.",
+    stepSyncIssue:
+      "La synchronisation des pas nécessite ton attention. Réessaie ou vérifie les réglages.",
+  },
   noQuests: "Aucune quête disponible aujourd'hui",
   checkBackLater: "Reviens plus tard pour de nouvelles quêtes !",
   connectFitbitDesc:
     "Associe ton compte Fitbit pour débloquer les quêtes de suivi de pas et gagner plus de pièces !",
   claim: "Récupérer",
-  claimAll: "Tout récupérer",
   progress: "Progression",
-  completedBadge: "Terminée",
-  claimedBadge: "Terminée",
-  rewardReady: "{count} pièces à récupérer",
-  rewardClaimed: "{count} pièces récupérées",
-  playQuest: "Jouer la quête",
-  seeResults: "Voir le résultat",
-  seeAttempts: "Voir les tentatives",
-  loading: "Chargement des quêtes...",
   unavailable: "Données de quête indisponibles.",
   claimSuccess: "+{amount} pièces récupérées !",
   claimFailed: "Impossible de récupérer la récompense.",
-  shareGroupResult: "Tout partager",
-  shareGroupPreparing: "Préparation...",
-  shareNotCompleted: "Pas encore terminée",
   shareAllDialogTitle: "Partager les résultats de quête",
   shareAllError: "Impossible de créer l'image à partager. Réessaie.",
   shareAllUnavailable: "Le partage n'est pas disponible sur cet appareil.",
@@ -29,7 +72,6 @@ const quests = {
   fitbitConnectFailed: "Impossible de connecter Fitbit.",
   questReset: "Les quêtes ont été réinitialisées.",
   questResetByAdmin: "Les quêtes ont été réinitialisées par {name}.",
-  stepSyncPromptTitle: "Active le suivi des pas pour cette quête",
   stepSyncPromptBody:
     "Active {healthSystem} une fois pour que cette quête puisse compter tes pas.",
   stepSyncPromptSetupBody:
@@ -40,20 +82,6 @@ const quests = {
   widgetReadyToClaim: "Récompense prête : {reward} pièces",
   widgetClaimedToday: "Récupérée pour aujourd'hui",
   widgetFailedToday: "Réessaie demain",
-  wordleAttemptsUsed: "{used} / {total} essais utilisés",
-  wordleSolvedIn: "Résolu en {used}/{total} essais !",
-  dailyNumbersQuestCardMeta:
-    "Plus proche : {value} ({distance} d'écart), {score} % débloqués.",
-  dailyNumbersQuestCardMetaTimed:
-    "Plus proche : {value} ({distance} d'écart), {score} % débloqués en {time}.",
-  dailyNumbersQuestCardExact: "Cible exacte, {score} % débloqués.",
-  dailyNumbersQuestCardExactTimed:
-    "Cible exacte, {score} % débloqués en {time}.",
-  dailyNumbersLevelsCleared: "{completed} / {total} niveaux validés",
-  dailyNumbersGroupDesc:
-    "Choisis l'une des trois répartitions de nombres, puis combine deux nombres disponibles à la fois avec +, -, × ou ÷ pour t'approcher le plus possible de la cible. Un meilleur résultat débloque une plus grande récompense, une cible exacte débloque 100 %, et chaque répartition a sa propre récompense à récupérer.",
-  wordleGroupDesc:
-    "Joue au Wordle quotidien en français ou en anglais. Devine le mot de cinq lettres en six essais : les cases vertes sont correctes, les jaunes sont dans le mot mais mal placées, et les grises sont absentes. Chaque langue a sa propre progression et sa propre récompense à récupérer.",
   steps_10k: "Marcher 10 000 pas",
   steps_10k_desc:
     "Marche 10 000 pas aujourd'hui. Connecte une source de pas si l'app te le demande, puis récupère la récompense quand tes pas synchronisés atteignent l'objectif.",
@@ -141,10 +169,11 @@ const quests = {
   speedCalculusStartRun: "Lancer la manche {run}",
   speedCalculusCashOut: "Sécuriser {reward} pièces",
   speedCalculusClaimed: "Récompense déjà récupérée aujourd'hui.",
+  speedCalculusClaimReward: "Récupérer {reward} pièces",
   speedCalculusLocked:
     "Score final verrouillé. Ta récompense de quête est de {reward} pièces.",
   speedCalculusClaimReminder:
-    "Retourne aux quêtes quotidiennes pour récupérer la récompense quand tu veux.",
+    "Récupère cette récompense maintenant, ou plus tard depuis les quêtes quotidiennes.",
   speedCalculusRunLabel: "Manche {run}/{total}",
   speedCalculusCorrectNow: "Bonnes réponses",
   speedCalculusQuestionNumber: "Question {current}",
@@ -204,15 +233,13 @@ const quests = {
     "Entraîne-toi avec les mêmes règles de temps et de questions que la quête quotidienne, sans effet sur le résultat du jour.",
   speedCalculusTrainingStart: "Lancer un entraînement",
   speedCalculusTrainingResume: "Reprendre l'entraînement",
-  speedCalculusTrainingStartError:
-    "Impossible de lancer un entraînement.",
+  speedCalculusTrainingStartError: "Impossible de lancer un entraînement.",
   speedCalculusTrainingFinish:
     "Entraînement terminé : {score} bonnes réponses.",
   speedCalculusTrainingSessionLabel: "Entraînement",
   speedCalculusTrainingBack: "Retour à l'entraînement",
   speedCalculusTrainingLastRun: "Dernier entraînement",
-  speedCalculusTrainingNoRunsYet:
-    "Aucun entraînement terminé pour le moment.",
+  speedCalculusTrainingNoRunsYet: "Aucun entraînement terminé pour le moment.",
   speedCalculusTrainingSummary:
     "{score} bonnes réponses sur {answered} réponses envoyées.",
   dailyNumbers: {
@@ -283,7 +310,8 @@ const quests = {
     archiveSubmitConfirmAction: "Enregistrer",
     archiveSaveResult: "Enregistrer",
     stepHistoryTitle: "Tes étapes",
-    noStepsYet: "Aucune étape pour l'instant. Commence par combiner deux nombres.",
+    noStepsYet:
+      "Aucune étape pour l'instant. Commence par combiner deux nombres.",
     revealSolution: "Afficher la solution officielle",
     hideSolution: "Masquer la solution officielle",
     exactResult: "Cible exacte ! {score} % débloqués et la quête est terminée.",
@@ -299,7 +327,8 @@ const quests = {
       "Récompense débloquée. Envoie maintenant ou continue pour un meilleur pourcentage.",
     archiveImproved:
       "Résultat amélioré. Enregistre maintenant ou continue pour trouver la cible exacte.",
-    lockedSuccess: "Récompense débloquée. Ton résultat est désormais verrouillé.",
+    lockedSuccess:
+      "Récompense débloquée. Ton résultat est désormais verrouillé.",
     archiveNoReward:
       "Les résultats d'archive sont enregistrés pour le plaisir et ne donnent pas de pièces.",
     archiveTryAgain: "Réessayer",
@@ -331,8 +360,7 @@ const quests = {
     submitError: "Impossible d'envoyer Nombres du jour.",
     invalidDivision: "La division doit être exacte",
     invalidPositive: "Le résultat doit rester positif",
-    invalidDifferentNumbers:
-      "Choisis deux nombres disponibles différents",
+    invalidDifferentNumbers: "Choisis deux nombres disponibles différents",
     invalidSelection: "Choisis deux nombres et un opérateur",
     noUndo: "Rien à annuler pour l'instant.",
     noReset: "Le plateau est déjà remis à zéro.",
@@ -342,8 +370,7 @@ const quests = {
     tileValue: "Tuile nombre {value}",
     operatorValue: "Opérateur {operator}",
     stepNumber: "Étape {step}",
-    stepSummary:
-      "{leftValue} {operator} {rightValue} = {resultValue}",
+    stepSummary: "{leftValue} {operator} {rightValue} = {resultValue}",
     finalResult: "Résultat final",
     distanceLabel: "Écart",
     scoreLabel: "Score",

@@ -62,6 +62,11 @@ import {
   getQuestTypeForMode,
 } from "../../src/features/quests/daily-numbers/shared";
 import { QuestActionButton } from "../../src/features/quests/quest-action-button";
+import {
+  navigateBackFromQuest,
+  QuestScreenDescription,
+  QuestScreenHeader,
+} from "../../src/features/quests/quest-screen-header";
 import { useTranslation } from "../../src/i18n";
 import { apiClient } from "../../src/lib/api";
 import { useQuestResetStore } from "../../src/stores/quest-reset-store";
@@ -88,8 +93,7 @@ type TranslateFn = (
 ) => string;
 type ThemeColors = (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
 type DailyNumbersBoardState =
-  | DailyNumbersStateResponse
-  | DailyNumbersArchiveStateResponse;
+  DailyNumbersStateResponse | DailyNumbersArchiveStateResponse;
 type ModeCard = {
   mode: DailyNumbersMode;
   state: DailyNumbersBoardState | undefined;
@@ -753,6 +757,10 @@ function MessageBanner({ message }: { message: MessageState }) {
 
   return (
     <View
+      accessible
+      accessibilityLabel={message.text}
+      accessibilityLiveRegion="polite"
+      accessibilityRole="alert"
       className={`mb-1 rounded-2xl border px-3 py-1.5 ${message.type === "success" ? "border-successBorder bg-successTint" : "border-dangerBorder bg-dangerTint"}`}
     >
       <Text
@@ -761,33 +769,6 @@ function MessageBanner({ message }: { message: MessageState }) {
         {message.text}
       </Text>
     </View>
-  );
-}
-
-function BackButton({
-  label,
-  onPress,
-}: {
-  label: string;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      onPress={() => {
-        triggerLightHaptic();
-        onPress();
-      }}
-      className="w-full overflow-hidden rounded-xl"
-      style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-    >
-      <View className="items-center rounded-xl bg-primary py-2">
-        <Text className="font-nunito-semibold text-sm text-primaryBg">
-          {label}
-        </Text>
-      </View>
-    </Pressable>
   );
 }
 
@@ -1065,7 +1046,7 @@ function FinishStatePanel({
         className="mt-3 text-center font-nunito-bold text-[11px]"
         style={{ color: finishTone.statusText }}
       >
-        {exactHitState
+        {finishCompleted
           ? t("quests.dailyNumbers.completedLabel")
           : t("quests.dailyNumbers.incompleteLabel")}
       </Text>
@@ -1123,24 +1104,23 @@ function FinishStatePanel({
           {t("quests.dailyNumbers.archiveNoReward")}
         </Text>
       ) : claimable && state.questVersion ? (
-        <Pressable
+        <QuestActionButton
+          label={t("quests.dailyNumbers.claimReward", {
+            reward: state.reward,
+          })}
           onPress={onClaimReward}
-          disabled={claimPending}
-          className="mt-5 rounded-2xl px-4 py-4"
-          style={{
-            backgroundColor: claimPending ? tc.surfaceMuted : tc.successDark,
-          }}
-          accessibilityRole="button"
-          accessibilityLabel={t("quests.claim")}
-        >
-          <Text className="text-center font-nunito-bold text-sm text-white">
-            {claimPending
-              ? "…"
-              : t("quests.dailyNumbers.claimReward", {
-                  reward: state.reward,
-                })}
-          </Text>
-        </Pressable>
+          loading={claimPending}
+          loadingMode="inline"
+          backgroundColor={tc.successTint}
+          foregroundColor={tc.successText}
+          borderColor={tc.successBorder}
+          minHeight={48}
+          accessibilityLabel={t("quests.dailyNumbers.claimReward", {
+            reward: state.reward,
+          })}
+          testID="daily-numbers-claim-reward"
+          style={{ marginTop: 20 }}
+        />
       ) : (
         <Text className="mt-5 text-center font-nunito-semibold text-sm text-fgMuted">
           {state.claimed
@@ -1176,8 +1156,9 @@ function FinishStatePanel({
         onPress={onShareResult}
         loading={isSharing}
         loadingMode="inline"
-        backgroundColor={exactHitState ? tc.successDark : tc.dangerDark}
-        foregroundColor="#FFFFFF"
+        backgroundColor={tc.surface}
+        foregroundColor={tc.primaryDark}
+        borderColor={tc.primaryBorder}
         leadingIcon={ShareIcon}
         minHeight={48}
         accessibilityLabel={t("quests.dailyNumbers.shareResult")}
@@ -2170,13 +2151,13 @@ function useDailyNumbersBoardController({
       }
     : finishCompleted(state, successState)
       ? {
-          shellBorder: tc.dangerBorder,
-          shellBg: tc.dangerTint,
-          resultBorder: tc.dangerBorder,
+          shellBorder: tc.infoBorder,
+          shellBg: tc.infoTint,
+          resultBorder: tc.infoBorder,
           resultBg: tc.surface,
-          resultText: tc.dangerText,
-          summaryText: tc.dangerText,
-          statusText: tc.dangerText,
+          resultText: tc.infoText,
+          summaryText: tc.infoText,
+          statusText: tc.infoText,
         }
       : {
           shellBorder: tc.primaryBorder,
@@ -2353,7 +2334,7 @@ function DailyNumbersBoard({
         score: controller.finishScore,
         elapsedTime: controller.formattedElapsedTime,
         exact: controller.exactHitState,
-        completed: controller.exactHitState,
+        completed: controller.state.completed,
         archive: archiveMode,
       }),
     [
@@ -2366,6 +2347,7 @@ function DailyNumbersBoard({
       controller.finishScore,
       controller.formattedElapsedTime,
       controller.exactHitState,
+      controller.state.completed,
       archiveMode,
     ],
   );
@@ -2375,9 +2357,14 @@ function DailyNumbersBoard({
       ? controller.t("quests.dailyNumbers.shareExact", {
           score: controller.finishScore ?? 100,
         })
-      : controller.t("quests.dailyNumbers.shareMissed", {
-          distance: controller.finishDistance ?? 0,
-        });
+      : controller.state.completed
+        ? controller.t("quests.dailyNumbers.shareScore", {
+            score: controller.finishScore ?? 0,
+            distance: controller.finishDistance ?? 0,
+          })
+        : controller.t("quests.dailyNumbers.shareMissed", {
+            distance: controller.finishDistance ?? 0,
+          });
 
     const modeLabelKey =
       controller.state.mode === "1-5"
@@ -2406,6 +2393,7 @@ function DailyNumbersBoard({
     controller.state.mode,
     controller.state.date,
     controller.exactHitState,
+    controller.state.completed,
     controller.finishScore,
     controller.finishDistance,
     locale,
@@ -2569,10 +2557,7 @@ function DailyNumbersBoard({
   );
 }
 
-function finishCompleted(
-  state: DailyNumbersBoardState,
-  successState: boolean,
-) {
+function finishCompleted(state: DailyNumbersBoardState, successState: boolean) {
   return state.submission?.completed === true || successState;
 }
 
@@ -2592,7 +2577,6 @@ type DailyNumbersPlayViewProps = {
   onModeSelect: (mode: DailyNumbersMode) => void;
   onResolveResetError: (error: unknown) => Promise<boolean>;
   onSubmissionApplied: (nextState: DailyNumbersBoardState) => void;
-  router: ReturnType<typeof useRouter>;
   state: DailyNumbersBoardState;
   t: TranslateFn;
   tc: ThemeColors;
@@ -2614,103 +2598,118 @@ function DailyNumbersPlayView({
   onModeSelect,
   onResolveResetError,
   onSubmissionApplied,
-  router,
   state,
   t,
   tc,
 }: DailyNumbersPlayViewProps) {
   return (
-    <ScrollView
-      className="flex-1 bg-bg"
-      contentContainerStyle={{ flexGrow: 1 }}
-      keyboardShouldPersistTaps="handled"
-    >
+    <View className="flex-1 bg-bg">
       <View
+        className="bg-bg pb-2"
         style={{
           paddingTop: insets.top + 10,
-          paddingBottom: insets.bottom + 10,
           paddingHorizontal: compact ? 10 : 14,
         }}
       >
-        <View className="mb-3 items-center gap-2">
-          <Text className="text-center font-nunito-extrabold text-[28px] text-primaryDark">
-            {t("quests.dailyNumbers.title")}
-          </Text>
-          {archiveMode ? (
-            <>
-              <View
-                className="rounded-full border px-4 py-1.5"
-                style={{
-                  backgroundColor: tc.secondaryDark,
-                  borderColor: tc.secondaryBorder,
-                }}
-                testID="daily-numbers-archive-pill"
-              >
-                <Text
-                  className="text-center font-nunito-extrabold text-xs uppercase tracking-[1px]"
-                  style={{ color: tc.secondaryText }}
-                >
-                  {t("quests.dailyNumbers.archiveResultLabel")}
-                </Text>
-              </View>
-              <Text className="text-center font-nunito-bold text-sm text-primaryDark">
-                {archiveDate}
-              </Text>
-            </>
-          ) : null}
-          <Text className="max-w-[340px] text-center font-nunito text-sm text-primaryDark/80">
+        <QuestScreenHeader
+          title={t("quests.dailyNumbers.title")}
+          backLabel={
+            archiveMode
+              ? t("quests.dailyNumbers.backToHistory")
+              : t("quests.dailyNumbers.backToQuests")
+          }
+          backTestID="daily-numbers-back"
+          fallbackHref={
+            archiveMode ? "/quests/daily-numbers-history" : "/(tabs)/quests"
+          }
+        />
+      </View>
+
+      <ScrollView
+        className="flex-1 bg-bg"
+        contentContainerStyle={{ flexGrow: 1 }}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View
+          style={{
+            paddingTop: 8,
+            paddingBottom: insets.bottom + 10,
+            paddingHorizontal: compact ? 10 : 14,
+          }}
+        >
+          <QuestScreenDescription>
             {archiveMode
               ? t("quests.dailyNumbers.archiveSubtitle")
               : t("quests.dailyNumbers.subtitle")}
+          </QuestScreenDescription>
+
+          <View className="mb-3 gap-3">
+            {archiveMode ? (
+              <View className="flex-row flex-wrap items-center justify-center gap-2">
+                <View
+                  className="rounded-full border px-4 py-1.5"
+                  style={{
+                    backgroundColor: tc.secondaryDark,
+                    borderColor: tc.secondaryBorder,
+                  }}
+                  testID="daily-numbers-archive-pill"
+                >
+                  <Text
+                    className="text-center font-nunito-extrabold text-xs uppercase tracking-[1px]"
+                    style={{ color: tc.secondaryText }}
+                  >
+                    {t("quests.dailyNumbers.archiveResultLabel")}
+                  </Text>
+                </View>
+                <Text className="text-center font-nunito-bold text-sm text-primaryDark">
+                  {archiveDate}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+
+          <ModeTabs
+            activeMode={activeMode}
+            modeCards={modeCards}
+            onSelectMode={onModeSelect}
+            t={t}
+            tc={tc}
+          />
+
+          <Text className="mb-2 px-1 text-center font-nunito-semibold text-xs text-fgMuted">
+            {archiveMode
+              ? t("quests.dailyNumbers.archiveHelperLine")
+              : t("quests.dailyNumbers.helperLine")}
           </Text>
-          <BackButton
-            label={
-              archiveMode
-                ? t("quests.dailyNumbers.backToHistory")
-                : t("quests.dailyNumbers.backToQuests")
-            }
-            onPress={() => router.back()}
+
+          <DailyNumbersBoard
+            key={boardIdentity}
+            activeMode={activeMode}
+            archiveMode={archiveMode}
+            bannerMessage={bannerMessage}
+            chronometerActive={chronometerActive}
+            claimPending={claimPending}
+            compact={compact}
+            modeAccent={modeAccent}
+            onClaimReward={onClaimReward}
+            onResolveResetError={onResolveResetError}
+            onSubmissionApplied={onSubmissionApplied}
+            state={state}
+            t={t}
+            tc={tc}
           />
         </View>
-
-        <ModeTabs
-          activeMode={activeMode}
-          modeCards={modeCards}
-          onSelectMode={onModeSelect}
-          t={t}
-          tc={tc}
-        />
-
-        <Text className="mb-2 px-1 text-center font-nunito-semibold text-xs text-fgMuted">
-          {archiveMode
-            ? t("quests.dailyNumbers.archiveHelperLine")
-            : t("quests.dailyNumbers.helperLine")}
-        </Text>
-
-        <DailyNumbersBoard
-          key={boardIdentity}
-          activeMode={activeMode}
-          archiveMode={archiveMode}
-          bannerMessage={bannerMessage}
-          chronometerActive={chronometerActive}
-          claimPending={claimPending}
-          compact={compact}
-          modeAccent={modeAccent}
-          onClaimReward={onClaimReward}
-          onResolveResetError={onResolveResetError}
-          onSubmissionApplied={onSubmissionApplied}
-          state={state}
-          t={t}
-          tc={tc}
-        />
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
 export default function DailyNumbersPlayScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ mode?: string; archiveDate?: string }>();
+  const params = useLocalSearchParams<{
+    mode?: string;
+    archiveDate?: string;
+  }>();
   const insets = useSafeAreaInsets();
   const { height, width } = useWindowDimensions();
   const queryClient = useQueryClient();
@@ -2867,10 +2866,14 @@ export default function DailyNumbersPlayScreen() {
     },
   });
 
-  const handleModeSelect = useCallback((mode: DailyNumbersMode) => {
-    setActiveMode(mode);
-    setUiMessage(null);
-  }, []);
+  const handleModeSelect = useCallback(
+    (mode: DailyNumbersMode) => {
+      setActiveMode(mode);
+      setUiMessage(null);
+      router.setParams({ mode });
+    },
+    [router],
+  );
 
   const handleResetError = useCallback(
     async (error: unknown) => {
@@ -2942,6 +2945,17 @@ export default function DailyNumbersPlayScreen() {
         onRetry={() => {
           void activeQuery.refetch();
         }}
+        onBack={() =>
+          navigateBackFromQuest(
+            router,
+            archiveMode ? "/quests/daily-numbers-history" : "/(tabs)/quests",
+          )
+        }
+        backLabel={
+          archiveMode
+            ? t("quests.dailyNumbers.backToHistory")
+            : t("quests.dailyNumbers.backToQuests")
+        }
       />
     );
   }
@@ -2967,7 +2981,6 @@ export default function DailyNumbersPlayScreen() {
       onModeSelect={handleModeSelect}
       onResolveResetError={handleResetError}
       onSubmissionApplied={handleSubmissionApplied}
-      router={router}
       state={state}
       t={t}
       tc={tc}

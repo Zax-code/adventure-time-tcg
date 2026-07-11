@@ -40,6 +40,14 @@ if [[ "${1:-}" == "test" ]]; then
       ./scripts/ensure-mobile-test-user.sh >/dev/null
   )
 
+  if [[ "${MOBILE_TEST_QUEST_FIXTURE:-}" == "share-and-claim" ]]; then
+    (
+      cd /Users/zax/Develop/adventure-time-tcg/apps/phoenix
+      MOBILE_TEST_EMAIL="$test_email" \
+        ./scripts/ensure-mobile-test-quest-fixture.sh >/dev/null
+    )
+  fi
+
   if [[ "${#args[@]}" -ge 4 && -f "${args[3]}" ]] && grep -q '\${TEST_MATCH_ID}' "${args[3]}" && [[ -z "$test_match_id" ]]; then
     test_match_id="$(
       cd /Users/zax/Develop/adventure-time-tcg/apps/phoenix
@@ -113,6 +121,7 @@ NODE
   if [[ "${#args[@]}" -ge 4 && -f "${args[3]}" ]]; then
     flow_dir="$(dirname "${args[3]}")"
     temp_flow="$(mktemp "${flow_dir}/.maestro-flow.XXXXXX")"
+    mv "$temp_flow" "${temp_flow}.yaml"
     temp_flow="${temp_flow}.yaml"
     TEST_EMAIL_VALUE="$test_email" \
     TEST_OPPONENT_EMAIL_VALUE="$test_opponent_email" \
@@ -151,16 +160,16 @@ NODE
   fi
 fi
 
-if command -v maestro >/dev/null 2>&1; then
-  exec maestro "${args[@]}"
-fi
-
 MAESTRO_LOCAL_BIN="$HOME/.maestro/bin/maestro"
 
-if [[ -x "$MAESTRO_LOCAL_BIN" ]]; then
-  exec "$MAESTRO_LOCAL_BIN" "${args[@]}"
+if command -v maestro >/dev/null 2>&1; then
+  maestro_bin="$(command -v maestro)"
+elif [[ -x "$MAESTRO_LOCAL_BIN" ]]; then
+  maestro_bin="$MAESTRO_LOCAL_BIN"
+else
+  echo "Maestro CLI is not installed." >&2
+  echo "Install it with: curl -fsSL https://get.maestro.mobile.dev | bash" >&2
+  exit 1
 fi
 
-echo "Maestro CLI is not installed." >&2
-echo "Install it with: curl -fsSL https://get.maestro.mobile.dev | bash" >&2
-exit 1
+"$maestro_bin" "${args[@]}"

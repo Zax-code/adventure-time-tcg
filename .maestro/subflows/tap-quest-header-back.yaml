@@ -1,0 +1,4 @@
+appId: love.leaetzak.adventuretime
+---
+- tapOn:
+    id: ${BACK_TEST_ID}

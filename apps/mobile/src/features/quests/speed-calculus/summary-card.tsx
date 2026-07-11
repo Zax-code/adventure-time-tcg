@@ -1,9 +1,10 @@
-import { Pressable, Text, View } from "react-native";
+import { Pressable, Text, useWindowDimensions, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import type { SpeedRunState } from "@adventure-time/api-client";
 
 import { useTranslation } from "../../../i18n";
 import { CoinIcon } from "../../../components/icons";
+import { QuestActionButton } from "../quest-action-button";
 import { useThemeStore } from "../../../stores/theme-store";
 import { THEME_COLORS } from "../../../theme/themes";
 import { withAlpha } from "./palette";
@@ -12,21 +13,27 @@ type SummaryCardProps = {
   state: SpeedRunState | null;
   activeRun: SpeedRunState["activeRun"];
   submitting: boolean;
+  claiming: boolean;
   onStartRun: () => void;
   onResumeRun: () => void;
   onCashOut: () => void;
+  onClaim: () => void;
 };
 
 export function SummaryCard({
   state,
   activeRun,
   submitting,
+  claiming,
   onStartRun,
   onResumeRun,
   onCashOut,
+  onClaim,
 }: SummaryCardProps) {
   const { t } = useTranslation();
   const tc = THEME_COLORS[useThemeStore((s) => s.themeName)];
+  const { fontScale } = useWindowDimensions();
+  const stackMetadata = fontScale >= 1.6;
   return (
     <View
       className="rounded-3xl border-2 p-5 gap-3"
@@ -36,7 +43,13 @@ export function SummaryCard({
         boxShadow: `0px 4px 12px ${withAlpha(tc.secondaryDark, "24")}`,
       }}
     >
-      <View className="flex-row justify-between items-center gap-3">
+      <View
+        className={
+          stackMetadata
+            ? "items-stretch gap-3"
+            : "flex-row items-center justify-between gap-3"
+        }
+      >
         <View>
           <Text className="text-sm font-nunito-semibold text-primaryDark/70">
             {t("quests.speedCalculusLatestReward")}
@@ -48,7 +61,7 @@ export function SummaryCard({
             </Text>
           </View>
         </View>
-        <View className="items-end">
+        <View className={stackMetadata ? "items-start" : "items-end"}>
           <Text className="text-sm font-nunito-semibold text-primaryDark/70">
             {t("quests.speedCalculusLatestScore")}
           </Text>
@@ -163,9 +176,30 @@ export function SummaryCard({
                 })}
           </Text>
           {!state.claimed && (
-            <Text className="font-nunito text-successText text-[13px] mt-1">
-              {t("quests.speedCalculusClaimReminder")}
-            </Text>
+            <>
+              <Text className="font-nunito text-successText text-[13px] mt-1">
+                {t("quests.speedCalculusClaimReminder")}
+              </Text>
+              {state.questVersion ? (
+                <QuestActionButton
+                  label={t("quests.speedCalculusClaimReward", {
+                    reward: state.rewardPreview,
+                  })}
+                  onPress={onClaim}
+                  loading={claiming}
+                  loadingMode="inline"
+                  backgroundColor={tc.successTint}
+                  foregroundColor={tc.successText}
+                  borderColor={tc.successBorder}
+                  minHeight={48}
+                  style={{ marginTop: 12 }}
+                  accessibilityLabel={t("quests.speedCalculusClaimReward", {
+                    reward: state.rewardPreview,
+                  })}
+                  testID="speed-calculus-claim-reward"
+                />
+              ) : null}
+            </>
           )}
         </View>
       )}

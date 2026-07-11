@@ -1,5 +1,5 @@
 appId: love.leaetzak.adventuretime
-name: Quest reward strike screenshot
+name: Quest step card screenshot
 tags:
   - quests
   - screenshots
@@ -11,8 +11,11 @@ tags:
     link: adventure-time:///e2e-auth?redirect=%2Fquests&email=${TEST_EMAIL_URI}&password=${TEST_PASSWORD_URI}
 - runFlow: subflows/confirm-open-link-if-needed.yaml
 - assertVisible:
-    text: Daily quests
-- assertVisible:
-    text: Walk 10,000 steps
+    id: quests-progress-summary
+- scrollUntilVisible:
+    element:
+      id: quests-card-steps_10k
+    direction: DOWN
+    timeout: 10000
 - waitForAnimationToEnd
-- takeScreenshot: tmp-quest-reward-strike/claimed-reward
+- takeScreenshot: tmp-quest-reward-strike/step-card
