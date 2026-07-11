@@ -1599,7 +1599,6 @@ function useQuestsScreenView() {
           paddingBottom: 28,
           paddingHorizontal: 16,
         }}
-        contentInset={{ bottom: bottomTabPadding }}
         scrollIndicatorInsets={{ bottom: bottomTabPadding }}
         showsVerticalScrollIndicator={false}
       >
@@ -1735,6 +1734,7 @@ function useQuestsScreenView() {
               ) : null}
             </>
           )}
+          <View style={{ height: bottomTabPadding }} />
         </View>
       </ScrollView>
 

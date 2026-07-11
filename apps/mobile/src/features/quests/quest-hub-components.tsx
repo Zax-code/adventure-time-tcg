@@ -21,6 +21,7 @@ import {
   View,
 } from "react-native";
 import Animated, { FadeInUp, ReduceMotion } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
   ChevronRightIcon,
@@ -551,10 +552,14 @@ function QuestSheetHeader({
         ref={headingRef}
         className="text-center font-nunito-extrabold text-2xl text-fg"
         accessibilityRole="header"
+        maxFontSizeMultiplier={1.8}
       >
         {title}
       </Text>
-      <Text className="mt-1 text-center font-nunito text-sm leading-5 text-fgMuted">
+      <Text
+        className="mt-1 text-center font-nunito text-sm leading-5 text-fgMuted"
+        maxFontSizeMultiplier={2}
+      >
         {subtitle}
       </Text>
     </View>
@@ -596,7 +601,10 @@ export function QuestLaunchSheet({
   title: string;
 }) {
   const { fontScale, height } = useWindowDimensions();
+  const { bottom } = useSafeAreaInsets();
   const stackOptions = fontScale >= 1.6;
+  const useBoundedHeight =
+    fontScale >= 1.6 || options.length >= 3 || historyAction != null;
   const surface = useMemo(() => <SheetSurface tc={tc} />, [tc]);
   const headingRef = useRef<Text>(null);
   useSheetHeadingFocus(index, headingRef);
@@ -616,7 +624,14 @@ export function QuestLaunchSheet({
         accessibilityViewIsModal
         onAccessibilityEscape={() => onIndexChange(0)}
         className="bg-bg"
-        style={{ maxHeight: height * 0.82 }}
+        style={{
+          height: useBoundedHeight ? height * 0.82 : undefined,
+          maxHeight: height * 0.82,
+          borderTopLeftRadius: 30,
+          borderTopRightRadius: 30,
+          borderCurve: "continuous",
+          overflow: "hidden",
+        }}
         testID="quests-launch-sheet"
       >
         <QuestSheetHeader
@@ -626,11 +641,12 @@ export function QuestLaunchSheet({
           tc={tc}
         />
         <ScrollView
+          style={{ flex: useBoundedHeight ? 1 : undefined, flexShrink: 1 }}
           contentInsetAdjustmentBehavior="automatic"
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{
             paddingHorizontal: 16,
-            paddingBottom: 32,
+            paddingBottom: 0,
             gap: 12,
           }}
         >
@@ -643,12 +659,21 @@ export function QuestLaunchSheet({
                 void Haptics.selectionAsync();
                 option.onPress();
               }}
-              className="rounded-[22px] border bg-surface p-4"
+              className="rounded-[22px] p-4"
               style={({ pressed }) => ({
+                backgroundColor:
+                  option.lifecycle === "ready"
+                    ? tc.successTint
+                    : option.lifecycle === "failed"
+                      ? tc.dangerTint
+                      : tc.primaryBg,
                 borderColor:
                   option.lifecycle === "ready"
                     ? tc.successBorder
-                    : tc.primaryBorder,
+                    : option.lifecycle === "failed"
+                      ? tc.dangerBorder
+                      : tc.primaryBorder,
+                borderWidth: 1,
                 opacity: pressed ? 0.82 : 1,
               })}
               testID={option.testID}
@@ -659,10 +684,16 @@ export function QuestLaunchSheet({
                 }
               >
                 <View className="min-w-0 flex-1">
-                  <Text className="font-nunito-extrabold text-base text-fg">
+                  <Text
+                    className="font-nunito-extrabold text-base"
+                    style={{ color: tc.primaryText }}
+                  >
                     {option.label}
                   </Text>
-                  <Text className="mt-0.5 font-nunito-semibold text-sm text-fgMuted">
+                  <Text
+                    className="mt-0.5 font-nunito-semibold text-sm"
+                    style={{ color: tc.fgMuted }}
+                  >
                     {option.meta}
                   </Text>
                   <Text
@@ -702,6 +733,7 @@ export function QuestLaunchSheet({
               testID={historyAction.testID}
             />
           ) : null}
+          <View style={{ height: Math.max(bottom + 20, 32) }} />
         </ScrollView>
       </View>
     </ModalBottomSheet>
@@ -725,7 +757,9 @@ export function QuestRecapSheet({
   tc: ThemeColors;
   title: string;
 }) {
-  const { height } = useWindowDimensions();
+  const { fontScale, height } = useWindowDimensions();
+  const { bottom } = useSafeAreaInsets();
+  const useBoundedHeight = fontScale >= 1.6 || actions.length >= 3;
   const surface = useMemo(() => <SheetSurface tc={tc} />, [tc]);
   const isBusy = actions.some((action) => action.isLoading);
   const headingRef = useRef<Text>(null);
@@ -746,7 +780,14 @@ export function QuestRecapSheet({
         accessibilityViewIsModal
         onAccessibilityEscape={() => onIndexChange(0)}
         className="bg-bg"
-        style={{ maxHeight: height * 0.82 }}
+        style={{
+          height: useBoundedHeight ? height * 0.82 : undefined,
+          maxHeight: height * 0.82,
+          borderTopLeftRadius: 30,
+          borderTopRightRadius: 30,
+          borderCurve: "continuous",
+          overflow: "hidden",
+        }}
         testID="quests-recap-sheet"
       >
         <QuestSheetHeader
@@ -756,11 +797,12 @@ export function QuestRecapSheet({
           tc={tc}
         />
         <ScrollView
+          style={{ flex: useBoundedHeight ? 1 : undefined, flexShrink: 1 }}
           contentInsetAdjustmentBehavior="automatic"
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{
             paddingHorizontal: 16,
-            paddingBottom: 32,
+            paddingBottom: 0,
             gap: 12,
           }}
         >
@@ -769,8 +811,12 @@ export function QuestRecapSheet({
             return (
               <View
                 key={action.id}
-                className="rounded-[22px] border bg-surface p-4"
-                style={{ borderColor: tc.primaryBorder }}
+                className="rounded-[22px] p-4"
+                style={{
+                  backgroundColor: tc.primaryBg,
+                  borderColor: tc.primaryBorder,
+                  borderWidth: 1,
+                }}
               >
                 <View className="flex-row items-center gap-3">
                   <View
@@ -780,7 +826,10 @@ export function QuestRecapSheet({
                     <Icon size={27} color={tc.primaryText} />
                   </View>
                   <View className="min-w-0 flex-1">
-                    <Text className="font-nunito-extrabold text-base text-fg">
+                    <Text
+                      className="font-nunito-extrabold text-base"
+                      style={{ color: tc.primaryText }}
+                    >
                       {action.title}
                     </Text>
                     <Text className="mt-0.5 font-nunito-semibold text-sm text-fgMuted">
@@ -805,6 +854,7 @@ export function QuestRecapSheet({
               </View>
             );
           })}
+          <View style={{ height: Math.max(bottom + 20, 32) }} />
         </ScrollView>
       </View>
     </ModalBottomSheet>

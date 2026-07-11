@@ -1,0 +1,41 @@
+appId: love.leaetzak.adventuretime
+name: Quest grouped sheet remains scrollable
+tags:
+  - quests
+  - accessibility
+  - bottom-sheet
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- openLink:
+    link: adventure-time:///e2e-auth?redirect=%2Fquests&email=${TEST_EMAIL_URI}&password=${TEST_PASSWORD_URI}
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- extendedWaitUntil:
+    visible:
+      id: quests-progress-summary
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: quests-card-dailyNumbers
+    direction: DOWN
+    timeout: 30000
+    speed: 90
+    visibilityPercentage: 10
+- tapOn:
+    id: quests-card-dailyNumbers
+- assertVisible:
+    id: quests-launch-sheet
+- scrollUntilVisible:
+    element:
+      id: quests-daily-numbers-history
+    direction: DOWN
+    timeout: 30000
+    speed: 90
+    visibilityPercentage: 100
+- tapOn:
+    id: quests-daily-numbers-history
+- extendedWaitUntil:
+    visible:
+      id: daily-numbers-history-back
+    timeout: 10000

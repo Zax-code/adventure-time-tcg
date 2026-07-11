@@ -104,8 +104,12 @@ tags:
     id: quests-card-dailyNumbers
 - assertVisible:
     id: quests-launch-sheet
-- assertVisible:
-    id: quests-daily-numbers-history
+- scrollUntilVisible:
+    element:
+      id: quests-daily-numbers-history
+    direction: DOWN
+    timeout: 10000
+    visibilityPercentage: 100
 - waitForAnimationToEnd
 - takeScreenshot: tmp-quests-redesign-shots/05-daily-numbers-launcher
 - tapOn:
