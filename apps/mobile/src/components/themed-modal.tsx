@@ -15,6 +15,8 @@ type ThemedModalProps = {
   onClose: () => void;
   children: ReactNode;
   panelStyle?: StyleProp<ViewStyle>;
+  dismissible?: boolean;
+  onShow?: () => void;
   testID?: string;
 };
 
@@ -23,6 +25,8 @@ export function ThemedModal({
   onClose,
   children,
   panelStyle,
+  dismissible = true,
+  onShow,
   testID,
 }: ThemedModalProps) {
   const themeName = useThemeStore((state) => state.themeName);
@@ -37,17 +41,22 @@ export function ThemedModal({
       visible={visible}
       transparent
       animationType="fade"
-      onRequestClose={onClose}
+      onShow={onShow}
+      onRequestClose={() => {
+        if (dismissible) onClose();
+      }}
     >
       <View style={[{ flex: 1 }, THEME_VARS[themeName] as never]}>
         <Pressable
+          accessible={false}
+          focusable={false}
           style={{
             flex: 1,
             justifyContent: "center",
             padding: 24,
             backgroundColor: backdropColor,
           }}
-          onPress={onClose}
+          onPress={dismissible ? onClose : undefined}
         >
           <View
             testID={testID}

@@ -42,6 +42,10 @@ import {
   QuestScreenDescription,
   QuestScreenHeader,
 } from "../../src/features/quests/quest-screen-header";
+import {
+  DEFAULT_QUEST_TIME_ZONE,
+  isCurrentQuestDay,
+} from "../../src/features/quests/quest-day-cutoff";
 import { WordleActiveRow } from "../../src/features/quests/wordle/active-row";
 import { WordleDefinitionVariantCard } from "../../src/features/quests/wordle/definition-variant-card";
 import { WordleQuestShareCard } from "../../src/features/quests/wordle/quest-share-card";
@@ -186,6 +190,9 @@ function useWordleScreenView() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const patchUser = useSessionStore((state) => state.patchUser);
+  const questTimeZone = useSessionStore(
+    (state) => state.user?.timezone ?? DEFAULT_QUEST_TIME_ZONE,
+  );
   const { language: languageParam } = useLocalSearchParams<{
     language?: string;
   }>();
@@ -804,6 +811,10 @@ function useWordleScreenView() {
         questVersion: questVersionRef.current ?? undefined,
       });
 
+      if (!isCurrentQuestDay(result.date, questTimeZone)) {
+        return;
+      }
+
       const rowIndex = guesses.length;
       const newGuess: GuessResult = {
         guess: normalizedGuess,
@@ -890,6 +901,7 @@ function useWordleScreenView() {
     clearCurrentGuess,
     guesses,
     rowFlipAnims,
+    questTimeZone,
     wordleLanguage,
     t,
     triggerShake,

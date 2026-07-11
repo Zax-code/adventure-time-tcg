@@ -63,6 +63,10 @@ import {
 } from "../../src/features/quests/daily-numbers/shared";
 import { QuestActionButton } from "../../src/features/quests/quest-action-button";
 import {
+  DEFAULT_QUEST_TIME_ZONE,
+  isCurrentQuestDay,
+} from "../../src/features/quests/quest-day-cutoff";
+import {
   navigateBackFromQuest,
   QuestScreenDescription,
   QuestScreenHeader,
@@ -2716,6 +2720,9 @@ export default function DailyNumbersPlayScreen() {
   const { t } = useTranslation();
   const tc = THEME_COLORS[useThemeStore((state) => state.themeName)];
   const patchUser = useSessionStore((state) => state.patchUser);
+  const questTimeZone = useSessionStore(
+    (state) => state.user?.timezone ?? DEFAULT_QUEST_TIME_ZONE,
+  );
   const lastQuestResetAt = useQuestResetStore((state) => state.lastResetAt);
   const lastQuestResetPayload = useQuestResetStore(
     (state) => state.lastPayload,
@@ -2904,6 +2911,13 @@ export default function DailyNumbersPlayScreen() {
 
   const handleSubmissionApplied = useCallback(
     (nextState: DailyNumbersBoardState) => {
+      if (
+        !archiveMode &&
+        !isCurrentQuestDay(nextState.date, questTimeZone)
+      ) {
+        return;
+      }
+
       if (archiveMode) {
         queryClient.setQueryData(
           ["daily-numbers-archive", archiveDate, activeMode],
@@ -2918,7 +2932,7 @@ export default function DailyNumbersPlayScreen() {
       }
       setUiMessage(null);
     },
-    [activeMode, archiveDate, archiveMode, queryClient],
+    [activeMode, archiveDate, archiveMode, queryClient, questTimeZone],
   );
 
   const boardIdentity = state ? buildBoardIdentity(state) : null;

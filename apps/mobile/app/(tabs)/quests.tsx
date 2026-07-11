@@ -90,6 +90,10 @@ import {
   type QuestLifecycle,
 } from "../../src/features/quests/quest-hub-model";
 import { QuestActionButton } from "../../src/features/quests/quest-action-button";
+import {
+  DEFAULT_QUEST_TIME_ZONE,
+  isCurrentQuestDay,
+} from "../../src/features/quests/quest-day-cutoff";
 import { WordleQuestShareCard } from "../../src/features/quests/wordle/quest-share-card";
 import type { WordleQuestShareCardStrings } from "../../src/features/quests/wordle/quest-share-card";
 import {
@@ -105,6 +109,7 @@ import {
   syncDeviceStepsNow,
 } from "../../src/lib/step-sync";
 import { useQuestResetStore } from "../../src/stores/quest-reset-store";
+import { useQuestDayCutoffStore } from "../../src/stores/quest-day-cutoff-store";
 import { useQuestHubPreferencesStore } from "../../src/stores/quest-hub-preferences-store";
 import { useSessionStore } from "../../src/stores/session-store";
 import { useStepSyncStore } from "../../src/stores/step-sync-store";
@@ -432,6 +437,7 @@ function useQuestsScreenView() {
   const queryClient = useQueryClient();
   const patchUser = useSessionStore((state) => state.patchUser);
   const user = useSessionStore((state) => state.user);
+  const questTimeZone = user?.timezone ?? DEFAULT_QUEST_TIME_ZONE;
   const stepSync = useStepSyncStore();
   const { locale, t } = useTranslation();
   const headerHeight = useAppHeaderHeight();
@@ -500,6 +506,39 @@ function useQuestsScreenView() {
   const wordleGroupShareRef = useRef<View>(null);
   const dailyNumbersGroupShareRef = useRef<View>(null);
   const toastAnim = useSharedValue(-60);
+
+  useEffect(() => {
+    return useQuestDayCutoffStore.subscribe((state, previousState) => {
+      if (state.cutoffVersion === previousState.cutoffVersion) return;
+
+      if (launcherNavigationTimeoutRef.current) {
+        clearTimeout(launcherNavigationTimeoutRef.current);
+        launcherNavigationTimeoutRef.current = null;
+      }
+      if (sheetFocusTimeoutRef.current) {
+        clearTimeout(sheetFocusTimeoutRef.current);
+        sheetFocusTimeoutRef.current = null;
+      }
+      if (stepFocusTimeoutRef.current) {
+        clearTimeout(stepFocusTimeoutRef.current);
+        stepFocusTimeoutRef.current = null;
+      }
+      if (stepAccessibilityTimeoutRef.current) {
+        clearTimeout(stepAccessibilityTimeoutRef.current);
+        stepAccessibilityTimeoutRef.current = null;
+      }
+      pendingLauncherPathRef.current = null;
+      shareLockRef.current = false;
+      setHighlightSteps(false);
+      setActiveLauncher(null);
+      setLauncherSheetIndex(0);
+      setOrderSheetIndex(0);
+      setRecapOpenSignature(null);
+      setSharingGroup(null);
+      setWordleGroupShareItems(null);
+      setDailyNumbersGroupShareItems(null);
+    });
+  }, []);
 
   const focusStepQuest = useCallback(() => {
     setHighlightSteps(true);
@@ -892,6 +931,8 @@ function useQuestsScreenView() {
     async (quests: Partial<Record<WordleLocale, Quest>>) => {
       if (shareLockRef.current || sharingGroup) return;
       shareLockRef.current = true;
+      const cutoffVersionAtStart =
+        useQuestDayCutoffStore.getState().cutoffVersion;
 
       const availableLanguages = WORDLE_LANGUAGES.filter((language) => {
         const quest = quests[language];
@@ -911,11 +952,23 @@ function useQuestsScreenView() {
           Promise.all(
             availableLanguages.map(async (language) => {
               const state = await apiClient.wordleState(language);
-              queryClient.setQueryData(["wordle", language], state);
+              if (isCurrentQuestDay(state.date, questTimeZone)) {
+                queryClient.setQueryData(["wordle", language], state);
+              }
               return state;
             }),
           ),
         ]);
+
+        if (
+          useQuestDayCutoffStore.getState().cutoffVersion !==
+            cutoffVersionAtStart ||
+          states.some(
+            (state) => !isCurrentQuestDay(state.date, questTimeZone),
+          )
+        ) {
+          return;
+        }
 
         if (!canShare) {
           Alert.alert(t("quests.shareAllUnavailable"));
@@ -976,13 +1029,22 @@ function useQuestsScreenView() {
         setSharingGroup(null);
       }
     },
-    [locale, queryClient, shareCapturedGroupImage, sharingGroup, t],
+    [
+      locale,
+      queryClient,
+      questTimeZone,
+      shareCapturedGroupImage,
+      sharingGroup,
+      t,
+    ],
   );
 
   const handleShareDailyNumbersGroup = useCallback(
     async (quests: Partial<Record<DailyNumbersMode, Quest>>) => {
       if (shareLockRef.current || sharingGroup) return;
       shareLockRef.current = true;
+      const cutoffVersionAtStart =
+        useQuestDayCutoffStore.getState().cutoffVersion;
 
       const availableModes = DAILY_NUMBERS_MODES.filter((mode) => {
         const quest = quests[mode];
@@ -1009,6 +1071,16 @@ function useQuestsScreenView() {
             ),
           ),
         ]);
+
+        if (
+          useQuestDayCutoffStore.getState().cutoffVersion !==
+            cutoffVersionAtStart ||
+          states.some(
+            (state) => !isCurrentQuestDay(state.date, questTimeZone),
+          )
+        ) {
+          return;
+        }
 
         if (!canShare) {
           Alert.alert(t("quests.shareAllUnavailable"));
@@ -1091,7 +1163,14 @@ function useQuestsScreenView() {
         setSharingGroup(null);
       }
     },
-    [locale, queryClient, shareCapturedGroupImage, sharingGroup, t],
+    [
+      locale,
+      queryClient,
+      questTimeZone,
+      shareCapturedGroupImage,
+      sharingGroup,
+      t,
+    ],
   );
 
   useEffect(() => {

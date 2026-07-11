@@ -1,5 +1,15 @@
 const quests = {
   title: "Quêtes quotidiennes",
+  dailyCutoff: {
+    title: "Temps écoulé !",
+    body: "La journée de quêtes vient de se terminer. Ta progression précédente est close et de nouvelles quêtes quotidiennes sont prêtes.",
+    refreshingBody:
+      "La journée de quêtes vient de se terminer. Chargement de tes nouvelles quêtes quotidiennes...",
+    errorBody:
+      "La journée de quêtes est terminée, mais les nouvelles quêtes n'ont pas pu être chargées. Vérifie ta connexion et réessaie.",
+    cta: "Voir les nouvelles quêtes",
+    retry: "Réessayer",
+  },
   hub: {
     subtitle:
       "Tes défis, ta progression et tes récompenses du jour au même endroit.",

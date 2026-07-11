@@ -1,5 +1,15 @@
 const quests = {
   title: "Daily quests",
+  dailyCutoff: {
+    title: "Time's up!",
+    body: "The quest day just ended. Your previous progress is now closed, and fresh daily quests are ready.",
+    refreshingBody:
+      "The quest day just ended. Loading your fresh daily quests now...",
+    errorBody:
+      "The quest day is over, but the new quests could not be loaded. Check your connection and try again.",
+    cta: "See the new quests",
+    retry: "Try again",
+  },
   hub: {
     subtitle: "Your daily challenges, progress, and rewards in one place.",
     todayAdventure: "Today's adventure",
