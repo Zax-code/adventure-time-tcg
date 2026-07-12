@@ -4,6 +4,10 @@ import { Text as NativeText, View } from "react-native";
 import type { THEME_COLORS } from "../../../theme/themes";
 import type { DailyNumbersQuestShareCardStrings } from "./quest-share-card";
 import type { DailyNumbersShareResult } from "./share-result";
+import {
+  DailyNumbersTargetPal,
+  type DailyNumbersTargetPalMood,
+} from "./target-pal";
 
 type ThemeColors = (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
 
@@ -12,6 +16,7 @@ type DailyNumbersGameShareCardProps = {
   colors: ThemeColors;
   strings: DailyNumbersQuestShareCardStrings & {
     outcomeLabel: string;
+    quip: string;
     scoreLabel: string;
   };
 };
@@ -22,13 +27,12 @@ function Text(props: ComponentProps<typeof NativeText>) {
   return <NativeText maxFontSizeMultiplier={1} {...props} />;
 }
 
-function Divider({ color }: { color: string }) {
-  return (
-    <View
-      className="h-px w-full"
-      style={{ backgroundColor: color, opacity: 0.28 }}
-    />
-  );
+function getMascotMood(
+  result: DailyNumbersShareResult,
+): DailyNumbersTargetPalMood {
+  if (result.exact) return "caught";
+  if (result.completed) return "nervous";
+  return "escaped";
 }
 
 export function DailyNumbersGameShareCard({
@@ -47,105 +51,116 @@ export function DailyNumbersGameShareCard({
   const finalValue =
     result.finalValue == null ? "—" : String(result.finalValue);
   const score = result.score == null ? "—" : `${result.score}%`;
-  const outcomeColor = result.exact
-    ? colors.successText
-    : result.completed
-      ? colors.fg
-      : colors.dangerText;
+  const outcomeColor = result.exact ? colors.successText : colors.primaryText;
 
   return (
     <View
       style={{
-        width: CARD_WIDTH,
         backgroundColor: colors.bg,
-        paddingHorizontal: 26,
-        paddingBottom: 28,
-        paddingTop: 26,
+        paddingBottom: 25,
+        paddingHorizontal: 24,
+        paddingTop: 24,
+        width: CARD_WIDTH,
       }}
     >
       <Text
         className="font-nunito-extrabold text-[10px] uppercase"
-        style={{ color: colors.fg, letterSpacing: 1.5 }}
+        style={{ color: colors.primaryText, letterSpacing: 1.5 }}
       >
         {strings.brand}
       </Text>
 
       <Text
-        className="pt-2 font-nunito-extrabold text-[30px] leading-[34px]"
+        className="pt-1 font-nunito-extrabold text-[25px] leading-[29px]"
         style={{ color: colors.fg }}
       >
         {result.questTitle}
       </Text>
 
       <Text
-        className="pt-1 font-nunito-bold text-[12px] leading-[18px]"
+        className="pt-0.5 font-nunito-bold text-[11px] leading-4"
         style={{ color: colors.fgMuted }}
       >
         {context}
       </Text>
 
-      <View className="py-5">
-        <Divider color={colors.fgMuted} />
+      <View className="min-h-[156px] pt-7">
+        <View className="max-w-[226px]">
+          <Text
+            className="font-nunito-extrabold text-[50px] leading-[50px]"
+            numberOfLines={2}
+            style={{ color: outcomeColor }}
+          >
+            {strings.outcomeLabel}
+          </Text>
+        </View>
+
+        <View
+          style={{
+            position: "absolute",
+            right: -18,
+            top: 14,
+            transform: [{ rotate: "8deg" }],
+          }}
+        >
+          <DailyNumbersTargetPal
+            colors={colors}
+            mood={getMascotMood(result)}
+            value={result.target}
+            width={116}
+          />
+        </View>
       </View>
 
-      <View
-        className="rounded-[22px] px-5 py-6"
-        style={{ backgroundColor: colors.surface }}
+      <Text
+        className="max-w-[292px] font-nunito-extrabold text-[17px] leading-[22px]"
+        style={{ color: colors.primaryText }}
       >
+        {strings.quip}
+      </Text>
+
+      <View className="pt-6">
         <Text
-          className="font-nunito-extrabold text-[42px] leading-[46px]"
-          style={{ color: outcomeColor }}
+          className="font-nunito-extrabold text-[10px] uppercase"
+          style={{ color: colors.fgMuted, letterSpacing: 1.35 }}
         >
-          {strings.outcomeLabel}
+          {strings.timeLabel}
         </Text>
-
-        <View className="pt-5">
-          <Text
-            className="font-nunito-extrabold text-[10px] uppercase"
-            style={{ color: colors.fgMuted, letterSpacing: 1.4 }}
-          >
-            {strings.timeLabel}
-          </Text>
-          <Text
-            className="pt-0.5 font-nunito-extrabold text-[32px] leading-[36px]"
-            style={{ color: colors.fg, fontVariant: ["tabular-nums"] }}
-          >
-            {result.elapsedTime}
-          </Text>
-        </View>
-
-        <View className="py-5">
-          <Divider color={colors.fgMuted} />
-        </View>
-
         <Text
-          className="font-nunito-bold text-[14px] leading-5"
-          style={{ color: colors.fgMuted }}
+          className="font-nunito-extrabold text-[32px] leading-[35px]"
+          style={{ color: colors.fg, fontVariant: ["tabular-nums"] }}
         >
-          {strings.resultValueLabel}: {finalValue} · {strings.targetLabel}:{" "}
-          {result.target}
+          {result.elapsedTime}
         </Text>
       </View>
 
-      <View className="flex-row items-end justify-between gap-4 pt-5">
+      <Text
+        className="pt-5 font-nunito-extrabold text-[15px] leading-5"
+        style={{ color: colors.fg }}
+      >
+        {strings.resultValueLabel} {finalValue} {result.exact ? "=" : "→"}{" "}
+        {strings.targetLabel} {result.target}
+      </Text>
+
+      <View className="flex-row items-end justify-between gap-4 pt-7">
         <View className="min-w-0 flex-1">
           <Text
-            className="font-nunito-extrabold text-[10px] uppercase"
+            className="font-nunito-extrabold text-[9px] uppercase"
             style={{ color: colors.fgMuted, letterSpacing: 1.3 }}
           >
             {strings.scoreLabel}
           </Text>
           <Text
-            className="pt-0.5 font-nunito-extrabold text-[18px] leading-6"
-            style={{ color: colors.fg, fontVariant: ["tabular-nums"] }}
+            className="font-nunito-extrabold text-[15px] leading-5"
+            style={{ color: colors.fgMuted, fontVariant: ["tabular-nums"] }}
           >
             {score}
           </Text>
         </View>
 
         <Text
-          className="max-w-[170px] text-right font-nunito-bold text-[10px] uppercase leading-4"
-          style={{ color: colors.fgMuted, letterSpacing: 1.2 }}
+          className="max-w-[170px] text-right font-nunito-bold text-[9px] uppercase leading-[14px]"
+          style={{ color: colors.fgMuted, letterSpacing: 1.15 }}
         >
           {strings.footer}
         </Text>

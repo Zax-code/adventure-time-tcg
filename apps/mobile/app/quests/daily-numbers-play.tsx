@@ -27,6 +27,8 @@ import Animated, {
   FadeIn,
   FadeOut,
   LinearTransition,
+  ReduceMotion,
+  ZoomIn,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { captureRef } from "react-native-view-shot";
@@ -53,6 +55,10 @@ import {
 } from "../../src/components/icons";
 import { PageLoadingState } from "../../src/components/loading-state";
 import { DailyNumbersGameShareCard } from "../../src/features/quests/daily-numbers/game-share-card";
+import {
+  DailyNumbersTargetPal,
+  type DailyNumbersTargetPalMood,
+} from "../../src/features/quests/daily-numbers/target-pal";
 import {
   applyDailyNumbersOperation,
   getDailyNumbersOperatorAvailability,
@@ -368,12 +374,77 @@ function displayOperator(operator: Operator) {
   return operator === "*" ? "×" : operator === "/" ? "÷" : operator;
 }
 
-function withAlpha(color: string, alpha: string) {
-  if (color.startsWith("#") && color.length >= 7) {
-    return `${color.slice(0, 7)}${alpha}`;
+function getLiveTargetMood(
+  stepCount: number,
+  currentDistance: number,
+  defaultDistance: number,
+): DailyNumbersTargetPalMood {
+  if (currentDistance === 0) {
+    return "caught";
   }
 
-  return color;
+  if (
+    currentDistance <= 10 ||
+    (stepCount > 0 && currentDistance < defaultDistance)
+  ) {
+    return "nervous";
+  }
+
+  return "smug";
+}
+
+function getLiveTargetMoodKey(
+  stepCount: number,
+  currentDistance: number,
+  defaultDistance: number,
+) {
+  if (currentDistance === 1) {
+    return "quests.dailyNumbers.targetMoodOneAway";
+  }
+
+  if (currentDistance <= 10) {
+    return "quests.dailyNumbers.targetMoodNervous";
+  }
+
+  if (currentDistance <= 25) {
+    return "quests.dailyNumbers.targetMoodFaster";
+  }
+
+  if (stepCount > 0 && currentDistance < defaultDistance) {
+    return "quests.dailyNumbers.targetMoodNoticed";
+  }
+
+  return "quests.dailyNumbers.targetMoodSafe";
+}
+
+function getResultQuipKey({
+  completed,
+  distance,
+  exact,
+}: {
+  completed: boolean;
+  distance: number | null;
+  exact: boolean;
+}) {
+  if (exact) {
+    return "quests.dailyNumbers.resultExactQuip";
+  }
+
+  if (distance === 1) {
+    return "quests.dailyNumbers.resultOneAwayQuip";
+  }
+
+  if (distance !== null && distance <= 10) {
+    return "quests.dailyNumbers.resultNearQuip";
+  }
+
+  if (distance !== null && distance <= 49) {
+    return "quests.dailyNumbers.resultMidQuip";
+  }
+
+  return completed
+    ? "quests.dailyNumbers.resultFarQuip"
+    : "quests.dailyNumbers.resultNoQuip";
 }
 
 function formatNumbersShareDate(
@@ -606,7 +677,7 @@ function ModeTabs({
   t: TranslateFn;
 }) {
   return (
-    <View className="mb-4 flex-row gap-1 rounded-2xl bg-surfaceMuted p-1">
+    <View className="mb-3 flex-row gap-2">
       {modeCards.map(({ mode, state, isLoading }) => {
         const selected = mode === activeMode;
         const statusLabel = getModeStatusLabel(state, isLoading, t);
@@ -618,7 +689,7 @@ function ModeTabs({
               triggerSelectionHaptic();
               onSelectMode(mode);
             }}
-            className={`min-h-[54px] flex-1 items-center justify-center rounded-xl px-1.5 py-1.5 active:opacity-80 ${selected ? "bg-primaryTint" : "bg-transparent"}`}
+            className={`min-h-[56px] flex-1 items-center justify-center rounded-[18px] px-1.5 py-1.5 active:opacity-70 ${selected ? "bg-primaryTint" : "bg-transparent"}`}
             testID={`daily-numbers-mode-${mode}`}
             accessibilityRole="button"
             accessibilityState={{ selected }}
@@ -627,6 +698,9 @@ function ModeTabs({
             <Text
               className="text-center font-nunito-extrabold text-[15px] text-fg"
               numberOfLines={1}
+              adjustsFontSizeToFit
+              maxFontSizeMultiplier={1.2}
+              minimumFontScale={0.72}
             >
               {t(getModeLabelKey(mode))}
             </Text>
@@ -645,110 +719,97 @@ function ModeTabs({
   );
 }
 
-function InlineMetric({
-  label,
-  value,
-}: {
-  label: string;
-  value: number | string;
-}) {
-  return (
-    <View className="min-w-0 flex-1 items-center justify-center px-1.5 py-2.5">
-      <Text
-        className="text-center font-nunito-bold text-[9px] uppercase tracking-[0.8px] text-fgMuted"
-        maxFontSizeMultiplier={1.3}
-        numberOfLines={1}
-        adjustsFontSizeToFit
-        minimumFontScale={0.72}
-      >
-        {label}
-      </Text>
-      <Text
-        className="mt-0.5 text-center font-nunito-extrabold text-lg leading-6 text-fg"
-        style={{ fontVariant: ["tabular-nums"] }}
-        maxFontSizeMultiplier={1.2}
-        numberOfLines={1}
-      >
-        {value}
-      </Text>
-    </View>
-  );
-}
-
-function MetricsSection({
+function TargetChaseHero({
+  archiveMode,
   compact,
   currentBestTile,
   currentDistance,
+  defaultDistance,
   formattedElapsedTime,
   state,
+  stepCount,
   t,
   tc,
 }: {
+  archiveMode: boolean;
   compact: boolean;
   currentBestTile: BoardTile | null;
   currentDistance: number | undefined;
+  defaultDistance: number;
   formattedElapsedTime: string;
   state: DailyNumbersBoardState;
+  stepCount: number;
   t: TranslateFn;
   tc: ThemeColors;
 }) {
   const { fontScale } = useWindowDimensions();
-  const stackMetrics = fontScale >= 1.4;
+  const distance = currentDistance ?? state.bestDistance;
+  const mood = getLiveTargetMood(stepCount, distance, defaultDistance);
+  const moodCopy =
+    archiveMode && stepCount === 0
+      ? t("quests.dailyNumbers.archiveTargetQuip")
+      : stepCount === 0
+        ? t("quests.dailyNumbers.targetTaunt")
+        : t(getLiveTargetMoodKey(stepCount, distance, defaultDistance));
+  const mascotWidth =
+    stepCount > 0
+      ? compact || fontScale >= 1.35
+        ? 142
+        : 158
+      : compact || fontScale >= 1.35
+        ? 166
+        : 184;
 
   return (
-    <View className="pb-4">
-      <View className={`${compact ? "py-2" : "py-3"} items-center`}>
-        <Text className="font-nunito-extrabold text-[10px] uppercase tracking-[1.4px] text-fgMuted">
-          {t("quests.dailyNumbers.target")}
+    <View className="pb-3 pt-1">
+      <View className="flex-row items-center justify-between gap-3 px-1">
+        <Text className="font-nunito-extrabold text-sm text-primaryText">
+          {t("quests.dailyNumbers.catchThis")}
         </Text>
-        <Text
-          className={`${compact ? "text-[52px] leading-[58px]" : "text-[60px] leading-[66px]"} font-nunito-extrabold text-fg`}
-          style={{ fontVariant: ["tabular-nums"] }}
-          maxFontSizeMultiplier={1.15}
-          numberOfLines={1}
-        >
-          {state.target}
-        </Text>
+        <View className="flex-row items-center gap-1.5">
+          <ClockIcon size={14} color={tc.fgMuted} />
+          <Text
+            className="font-nunito-extrabold text-base text-fg"
+            style={{ fontVariant: ["tabular-nums"] }}
+          >
+            {formattedElapsedTime}
+          </Text>
+        </View>
       </View>
-      <View
-        className={`${stackMetrics ? "flex-wrap" : ""} flex-row border-y`}
-        style={{ borderColor: withAlpha(tc.fgMuted, "2E") }}
+
+      <Animated.View
+        key={mood}
+        accessible
+        accessibilityLabel={`${t("quests.dailyNumbers.target")} ${state.target}`}
+        entering={ZoomIn.duration(220).reduceMotion(ReduceMotion.System)}
+        className="items-center"
+        testID="daily-numbers-target-pal"
       >
-        <View className={`${stackMetrics ? "w-1/2" : "flex-1"}`}>
-          <InlineMetric
-            label={t("quests.dailyNumbers.bestResult")}
-            value={currentBestTile?.value ?? "—"}
-          />
-        </View>
-        <View
-          className="my-2.5 w-px"
-          style={{ backgroundColor: withAlpha(tc.fgMuted, "2E") }}
+        <DailyNumbersTargetPal
+          colors={tc}
+          mood={mood}
+          value={state.target}
+          width={mascotWidth}
         />
-        <View className={`${stackMetrics ? "w-1/2" : "flex-1"}`}>
-          <InlineMetric
-            label={t("quests.dailyNumbers.bestDistance")}
-            value={currentDistance ?? state.bestDistance}
-          />
-        </View>
-        {stackMetrics ? (
-          <View
-            className="h-px w-full"
-            style={{ backgroundColor: withAlpha(tc.fgMuted, "2E") }}
-          />
-        ) : null}
-        {!stackMetrics ? (
-          <View
-            className="my-2.5 w-px"
-            style={{ backgroundColor: withAlpha(tc.fgMuted, "2E") }}
-          />
-        ) : null}
-        <View className={`${stackMetrics ? "w-full" : "flex-1"}`}>
-          <InlineMetric
-            label={t("quests.dailyNumbers.solveTime")}
-            value={formattedElapsedTime}
-          />
-        </View>
+      </Animated.View>
+
+      <View
+        className="-mt-4 max-w-[270px] self-end rounded-[18px] bg-surface px-3 py-2"
+        style={{ transform: [{ rotate: "-2deg" }] }}
+      >
+        <Text className="font-nunito-extrabold text-xs leading-4 text-primaryText">
+          {moodCopy}
+        </Text>
       </View>
+
+      <Text
+        className="mt-2 text-center font-nunito-bold text-xs leading-4 text-fgMuted"
+        style={{ fontVariant: ["tabular-nums"] }}
+      >
+        {t("quests.dailyNumbers.bestResult")} {currentBestTile?.value ?? "—"}
+        {"  ·  "}
+        {t("quests.dailyNumbers.archiveDistanceShort", { distance })}
+      </Text>
     </View>
   );
 }
@@ -757,17 +818,20 @@ function SuccessCallout({
   archiveMode,
   completionReached,
   t,
+  tc,
 }: {
   archiveMode: boolean;
   completionReached: boolean;
   t: TranslateFn;
+  tc: ThemeColors;
 }) {
   return (
     <Animated.View
-      entering={FadeIn.duration(180)}
-      className="mb-3 flex-row items-center gap-2 rounded-xl bg-successTint px-3 py-2.5"
+      entering={FadeIn.duration(180).reduceMotion(ReduceMotion.System)}
+      className="mb-3 flex-row items-center justify-center gap-2 px-2 py-1"
     >
-      <Text className="flex-1 font-nunito-bold text-xs leading-4 text-successText">
+      <SparklesIcon size={16} color={tc.successText} />
+      <Text className="font-nunito-extrabold text-xs leading-4 text-successText">
         {completionReached
           ? archiveMode
             ? t("quests.dailyNumbers.archiveImproved")
@@ -782,17 +846,15 @@ function StepList({
   emptyCopy,
   steps,
   t,
-  tc,
   title,
 }: {
   emptyCopy?: string;
   steps: DailyNumbersStep[];
   t: TranslateFn;
-  tc: ThemeColors;
   title: string;
 }) {
   return (
-    <View className="mt-4">
+    <View className="mt-6">
       <View className="flex-row items-baseline justify-between">
         <Text className="font-nunito-extrabold text-sm text-fg">{title}</Text>
         <Text
@@ -803,23 +865,23 @@ function StepList({
         </Text>
       </View>
       {steps.length > 0 ? (
-        <View
-          className="mt-1.5 border-t"
-          style={{ borderColor: withAlpha(tc.fgMuted, "2E") }}
-        >
+        <View className="mt-2 gap-1">
           {steps.map((step, index) => (
             <Animated.View
               key={`${step.resultId}-${index}`}
-              entering={FadeIn.duration(160).delay(index * 35)}
-              layout={LinearTransition.duration(180)}
-              className="flex-row items-center gap-3 border-b py-2.5"
-              style={{ borderColor: withAlpha(tc.fgMuted, "2E") }}
+              entering={FadeIn.duration(160)
+                .delay(index * 35)
+                .reduceMotion(ReduceMotion.System)}
+              layout={LinearTransition.duration(180).reduceMotion(
+                ReduceMotion.System,
+              )}
+              className="flex-row items-center gap-3 py-1.5"
             >
               <Text
-                className="w-5 text-center font-nunito-extrabold text-xs text-fgMuted"
+                className="w-7 font-nunito-extrabold text-xs text-primaryText"
                 style={{ fontVariant: ["tabular-nums"] }}
               >
-                {index + 1}
+                #{index + 1}
               </Text>
               <Text className="min-w-0 flex-1 font-nunito-extrabold text-sm leading-5 text-fg">
                 {t("quests.dailyNumbers.stepSummary", {
@@ -860,10 +922,7 @@ function ResultDetails({
 }) {
   return (
     <>
-      <View
-        className="mt-6 border-t pt-4"
-        style={{ borderColor: withAlpha(tc.fgMuted, "2E") }}
-      >
+      <View className="mt-7">
         <Text className="font-nunito-extrabold text-sm text-fg">
           {t("quests.dailyNumbers.startingNumbersTitle")}
         </Text>
@@ -890,7 +949,6 @@ function ResultDetails({
         <StepList
           steps={submittedSolutionSteps}
           t={t}
-          tc={tc}
           title={t("quests.dailyNumbers.solutionUsedTitle")}
         />
       ) : null}
@@ -903,7 +961,7 @@ function ResultDetails({
                 : t("quests.dailyNumbers.revealSolution")
             }
             onPress={onToggleSolution}
-            backgroundColor={tc.bg}
+            backgroundColor={tc.surfaceMuted}
             foregroundColor={tc.primaryText}
             leadingIcon={EyeIcon}
             minHeight={48}
@@ -920,9 +978,8 @@ function ResultDetails({
           />
           {interaction.revealedSolution ? (
             <Animated.View
-              entering={FadeIn.duration(180)}
-              className="mt-4 border-t pt-4"
-              style={{ borderColor: withAlpha(tc.fgMuted, "2E") }}
+              entering={FadeIn.duration(180).reduceMotion(ReduceMotion.System)}
+              className="mt-5"
             >
               <Text className="font-nunito text-sm leading-5 text-fgMuted">
                 {t("quests.dailyNumbers.officialSolutionBody")}
@@ -930,7 +987,6 @@ function ResultDetails({
               <StepList
                 steps={officialSolutionSteps}
                 t={t}
-                tc={tc}
                 title={t("quests.dailyNumbers.officialSolutionTitle")}
               />
             </Animated.View>
@@ -965,90 +1021,103 @@ function FinishStatePanel({
   t,
   tc,
 }: FinishStateProps) {
-  const { fontScale } = useWindowDimensions();
-  const stackMetrics = fontScale >= 1.4;
   const resultColor = exactHitState ? tc.successText : tc.primaryText;
+  const mascotMood: DailyNumbersTargetPalMood = exactHitState
+    ? "caught"
+    : finishCompleted
+      ? "nervous"
+      : "escaped";
+  const resultQuip = t(
+    getResultQuipKey({
+      completed: finishCompleted,
+      distance: finishDistance,
+      exact: exactHitState,
+    }),
+  );
+  const outcomeLabel = exactHitState
+    ? t("quests.dailyNumbers.exactHitLabel")
+    : finishDistance == null
+      ? t("quests.dailyNumbers.archiveNoResult")
+      : t("quests.dailyNumbers.archiveDistanceShort", {
+          distance: finishDistance,
+        });
 
   return (
     <View className="pt-2">
-      <View
-        className="border-b py-5"
-        style={{ borderColor: withAlpha(tc.fgMuted, "2E") }}
+      {archiveMode ? (
+        <Text className="mb-2 font-nunito-bold text-[10px] uppercase tracking-[1.2px] text-fgMuted">
+          {t("quests.dailyNumbers.archiveResultLabel")}
+        </Text>
+      ) : null}
+
+      <Animated.View
+        entering={FadeIn.duration(220).reduceMotion(ReduceMotion.System)}
+        className="min-h-[176px] items-center"
       >
-        {archiveMode ? (
-          <Text className="mb-2 font-nunito-bold text-[10px] uppercase tracking-[1.2px] text-fgMuted">
-            {t("quests.dailyNumbers.archiveResultLabel")}
-          </Text>
-        ) : null}
-        {exactHitState ? (
+        <View className="items-center">
           <Text
-            className={`${compact ? "text-[42px] leading-[48px]" : "text-[48px] leading-[54px]"} font-nunito-extrabold`}
-            style={{ color: resultColor }}
-            maxFontSizeMultiplier={1.2}
-          >
-            {t("quests.dailyNumbers.exactHitLabel")}
-          </Text>
-        ) : (
-          <Text
-            className={`${compact ? "text-[42px] leading-[48px]" : "text-[48px] leading-[54px]"} font-nunito-extrabold`}
+            className={`${compact ? "text-[46px] leading-[49px]" : "text-[54px] leading-[57px]"} text-center font-nunito-extrabold`}
             style={{ color: resultColor, fontVariant: ["tabular-nums"] }}
-            maxFontSizeMultiplier={1.15}
+            maxFontSizeMultiplier={1.1}
+            testID="daily-numbers-result-outcome"
           >
-            {finishDistance == null
-              ? t("quests.dailyNumbers.archiveNoResult")
-              : t("quests.dailyNumbers.archiveDistanceShort", {
-                  distance: finishDistance,
-                })}
+            {outcomeLabel}
           </Text>
-        )}
-        {interaction.submitting && !state.submitted && exactHitState ? (
-          <Text className="mt-2 font-nunito-semibold text-xs text-fgMuted">
-            {t("quests.dailyNumbers.autoSubmittingSuccess")}
-          </Text>
-        ) : null}
-      </View>
-
-      <View
-        className={`${stackMetrics ? "flex-col" : "flex-row"} border-b`}
-        style={{ borderColor: withAlpha(tc.fgMuted, "2E") }}
-      >
-        <View className="min-w-0 flex-1 py-4">
-          <View className="flex-row items-center gap-1.5">
-            <ClockIcon size={15} color={tc.fgMuted} />
-            <Text className="font-nunito-extrabold text-[10px] uppercase tracking-[1px] text-fgMuted">
-              {t("quests.dailyNumbers.solveTime")}
-            </Text>
-          </View>
-          <Text
-            className="mt-1 font-nunito-extrabold text-[30px] leading-9 text-fg"
-            style={{ fontVariant: ["tabular-nums"] }}
-            maxFontSizeMultiplier={1.15}
-          >
-            {formattedElapsedTime}
+          <Text className="mt-2 max-w-[300px] text-center font-nunito-extrabold text-base leading-5 text-fg">
+            {resultQuip}
           </Text>
         </View>
+
         <View
-          className={`${stackMetrics ? "h-px w-full" : "my-3 w-px"}`}
-          style={{ backgroundColor: withAlpha(tc.fgMuted, "2E") }}
-        />
-        <View className="min-w-0 flex-1 py-4">
-          <Text className="font-nunito-extrabold text-[10px] uppercase tracking-[1px] text-fgMuted">
-            {t("quests.dailyNumbers.finalResult")}
-          </Text>
-          <Text
-            className="mt-1 font-nunito-extrabold text-2xl leading-8 text-fg"
-            style={{ fontVariant: ["tabular-nums"] }}
-            maxFontSizeMultiplier={1.2}
-          >
-            {finishValue ?? state.target}
-          </Text>
+          className="-mb-5 -mt-2"
+          style={{ transform: [{ rotate: exactHitState ? "-7deg" : "5deg" }] }}
+        >
+          <DailyNumbersTargetPal
+            colors={tc}
+            mood={mascotMood}
+            value={state.target}
+            width={compact ? 128 : 140}
+          />
+        </View>
+      </Animated.View>
+
+      {interaction.submitting && !state.submitted && exactHitState ? (
+        <Text className="mt-1 text-center font-nunito-semibold text-xs text-fgMuted">
+          {t("quests.dailyNumbers.autoSubmittingSuccess")}
+        </Text>
+      ) : null}
+
+      <View className="mt-5 items-center px-1">
+        <View className="flex-row items-center gap-1.5">
+          <ClockIcon size={14} color={tc.fgMuted} />
           <Text className="font-nunito-bold text-xs text-fgMuted">
-            {t("quests.dailyNumbers.targetValue", { target: state.target })}
+            {t("quests.dailyNumbers.chaseTime")}
           </Text>
         </View>
+        <Text
+          className="mt-0.5 font-nunito-extrabold text-[36px] leading-[40px] text-fg"
+          style={{ fontVariant: ["tabular-nums"] }}
+          maxFontSizeMultiplier={1.12}
+          testID="daily-numbers-result-time"
+        >
+          {formattedElapsedTime}
+        </Text>
+
+        <Text className="mt-4 font-nunito-bold text-xs text-fgMuted">
+          {t("quests.dailyNumbers.finalResult")}
+        </Text>
+        <Text
+          className="font-nunito-extrabold text-lg leading-6 text-fg"
+          style={{ fontVariant: ["tabular-nums"] }}
+          adjustsFontSizeToFit
+          maxFontSizeMultiplier={1.15}
+          numberOfLines={1}
+        >
+          {finishValue ?? "—"} {exactHitState ? "=" : "→"} {state.target}
+        </Text>
       </View>
 
-      <View className="flex-row flex-wrap gap-x-5 gap-y-1 py-3">
+      <View className="flex-row flex-wrap justify-center gap-x-5 gap-y-1 px-1 pb-2 pt-4">
         <Text className="font-nunito-bold text-xs text-fgMuted">
           {t("quests.dailyNumbers.scoreLabel")}:{" "}
           {finishScore != null ? `${finishScore}%` : "—"}
@@ -1115,14 +1184,13 @@ function FinishStatePanel({
         label={
           isSharing
             ? t("quests.dailyNumbers.sharePreparing")
-            : t("quests.dailyNumbers.shareResult")
+            : t("quests.dailyNumbers.shareEvidence")
         }
         onPress={onShareResult}
         loading={isSharing}
         loadingMode="inline"
-        backgroundColor={tc.surface}
+        backgroundColor={tc.surfaceMuted}
         foregroundColor={tc.primaryText}
-        borderColor={withAlpha(tc.fgMuted, "38")}
         leadingIcon={ShareIcon}
         minHeight={48}
         accessibilityLabel={t("quests.dailyNumbers.shareResult")}
@@ -1185,15 +1253,22 @@ function AvailableNumbersGrid({
           return (
             <Animated.View
               key={tile.id}
-              entering={FadeIn.duration(180)}
-              exiting={FadeOut.duration(140)}
-              layout={LinearTransition.duration(200)}
+              entering={FadeIn.duration(180).reduceMotion(ReduceMotion.System)}
+              exiting={FadeOut.duration(140).reduceMotion(ReduceMotion.System)}
+              layout={LinearTransition.duration(200).reduceMotion(
+                ReduceMotion.System,
+              )}
               style={{ width: "31.5%" }}
             >
               <Pressable
                 onPress={() => onTilePress(tile.id)}
                 disabled={availability.disabled}
                 className={`${compact ? "min-h-[58px]" : "min-h-[64px]"} items-center justify-center overflow-hidden rounded-xl px-2 py-2 ${availability.selected ? "bg-primaryTint" : tile.source === "derived" ? "bg-surfaceMuted" : "bg-surface"} ${availability.disabled ? "opacity-20" : "active:opacity-70"}`}
+                style={
+                  availability.selected
+                    ? { transform: [{ translateY: -2 }] }
+                    : undefined
+                }
                 testID={`daily-numbers-tile-${tile.id}`}
                 accessibilityRole="button"
                 accessibilityState={{
@@ -1216,18 +1291,18 @@ function AvailableNumbersGrid({
                 }
               >
                 {tile.source === "derived" ? (
-                  <Text
-                    className="absolute right-2 top-1 font-nunito-extrabold text-[10px] text-fgMuted"
+                  <View
+                    className="absolute right-2 top-1.5"
                     accessibilityElementsHidden
                     importantForAccessibility="no-hide-descendants"
                   >
-                    ✦
-                  </Text>
+                    <SparklesIcon size={11} color={tc.primaryText} />
+                  </View>
                 ) : null}
                 <Text
                   className={`text-center font-nunito-extrabold ${compact ? "text-[22px]" : "text-[25px]"}`}
                   style={{
-                    color: tc.fg,
+                    color: availability.selected ? tc.primaryText : tc.fg,
                     fontVariant: ["tabular-nums"],
                   }}
                   numberOfLines={1}
@@ -1269,7 +1344,7 @@ function OperatorPicker({
       <Text className="font-nunito-extrabold text-sm text-fg">
         {t("quests.dailyNumbers.operators")}
       </Text>
-      <View className="mt-2 flex-row gap-1 rounded-xl bg-surfaceMuted p-1">
+      <View className="mt-2 flex-row gap-2">
         {OPERATORS.map((operator) => {
           const availability = getDailyNumbersOperatorAvailability({
             interactionLocked,
@@ -1284,7 +1359,7 @@ function OperatorPicker({
               key={operator}
               onPress={() => onOperatorPress(operator)}
               disabled={availability.disabled}
-              className={`${compact ? "min-h-[46px]" : "min-h-[50px]"} flex-1 items-center justify-center rounded-lg px-2 py-2 ${availability.selected ? "bg-primaryTint" : "bg-transparent"} ${availability.disabled || availability.wouldBeInvalid ? "opacity-20" : "active:opacity-70"}`}
+              className={`${compact ? "min-h-[46px]" : "min-h-[50px]"} flex-1 items-center justify-center rounded-xl bg-surfaceMuted px-2 py-2 ${availability.selected ? "bg-primaryTint" : ""} ${availability.disabled ? "opacity-20" : availability.wouldBeInvalid ? "opacity-[0.34]" : "active:opacity-70"}`}
               testID={`daily-numbers-operator-${operator === "*" ? "multiply" : operator === "/" ? "divide" : operator === "+" ? "plus" : "minus"}`}
               accessibilityRole="button"
               accessibilityState={{
@@ -1292,7 +1367,7 @@ function OperatorPicker({
                 disabled: availability.disabled,
               }}
               accessibilityLabel={
-                availability.wouldBeInvalid && !availability.selected
+                availability.wouldBeInvalid
                   ? t("quests.dailyNumbers.operatorUnavailable", {
                       operator: displayOperator(operator),
                     })
@@ -1304,8 +1379,9 @@ function OperatorPicker({
               <Text
                 className={`text-center font-nunito-extrabold ${compact ? "text-[20px]" : "text-[23px]"}`}
                 style={{
-                  color: tc.fg,
+                  color: availability.selected ? tc.primaryText : tc.fg,
                 }}
+                maxFontSizeMultiplier={1.2}
               >
                 {displayOperator(operator)}
               </Text>
@@ -1326,12 +1402,13 @@ function EquationResult({
 }) {
   return (
     <View
-      className={`${expanded ? "flex-1" : "min-w-[58px] max-w-[72px] flex-1"} h-12 items-center justify-center px-1.5`}
+      className={`${expanded ? "flex-1" : "min-w-[62px] max-w-[80px] flex-1"} h-14 items-center justify-center px-1.5`}
     >
       <Text
-        className={`text-center font-nunito-extrabold text-lg ${previewState.kind === "invalid" ? "text-dangerText" : previewState.kind === "ready" ? "text-primaryText" : "text-fgMuted"}`}
+        className={`text-center font-nunito-extrabold text-[24px] ${previewState.kind === "invalid" ? "text-dangerText" : previewState.kind === "ready" ? "text-primaryText" : "text-fgMuted"}`}
         numberOfLines={1}
         adjustsFontSizeToFit
+        maxFontSizeMultiplier={1.2}
         minimumFontScale={0.6}
       >
         {previewState.kind === "ready" ? previewState.result : "—"}
@@ -1349,7 +1426,6 @@ function EquationWorkbench({
   selectedOperator,
   selectedRightTile,
   t,
-  tc,
 }: {
   interactionLocked: boolean;
   localSteps: DailyNumbersStep[];
@@ -1359,14 +1435,13 @@ function EquationWorkbench({
   selectedOperator: Operator | null;
   selectedRightTile: BoardTile | null;
   t: TranslateFn;
-  tc: ThemeColors;
 }) {
   const { fontScale, width } = useWindowDimensions();
   const stackResult = fontScale >= 1.35 || width < 350;
 
   return (
     <>
-      <View className="mb-2 flex-row items-baseline justify-between">
+      <View className="mb-1 mt-6 flex-row items-baseline justify-between">
         <Text className="font-nunito-extrabold text-sm text-fg">
           {t("quests.dailyNumbers.selection")}
         </Text>
@@ -1377,14 +1452,11 @@ function EquationWorkbench({
         </Text>
       </View>
 
-      <View
-        className="border-y py-2"
-        style={{ borderColor: withAlpha(tc.fgMuted, "2E") }}
-      >
+      <View className="py-1">
         <View className="flex-row items-center gap-1.5">
           <Pressable
             onPress={() => onClearSlot("left")}
-            className={`h-12 min-w-0 flex-1 items-center justify-center rounded-lg px-1.5 ${selectedLeftTile ? "bg-primaryTint" : "bg-transparent"} ${interactionLocked ? "opacity-[0.34]" : "active:opacity-70"}`}
+            className={`h-14 min-w-0 flex-1 items-center justify-center px-1.5 ${interactionLocked ? "opacity-20" : "active:opacity-60"}`}
             disabled={interactionLocked}
             accessibilityRole="button"
             accessibilityState={{ disabled: interactionLocked }}
@@ -1397,9 +1469,10 @@ function EquationWorkbench({
             }
           >
             <Text
-              className={`text-center font-nunito-extrabold text-base ${selectedLeftTile ? "text-fg" : "text-fgMuted"}`}
+              className={`text-center font-nunito-extrabold text-[24px] ${selectedLeftTile ? "text-primaryText" : "text-fgMuted"}`}
               numberOfLines={1}
               adjustsFontSizeToFit
+              maxFontSizeMultiplier={1.2}
               minimumFontScale={0.68}
             >
               {selectedLeftTile?.value ?? "—"}
@@ -1407,7 +1480,7 @@ function EquationWorkbench({
           </Pressable>
           <Pressable
             onPress={() => onClearSlot("operator")}
-            className={`h-12 w-11 items-center justify-center rounded-lg px-1 ${selectedOperator ? "bg-primaryTint" : "bg-transparent"} ${interactionLocked ? "opacity-[0.34]" : "active:opacity-70"}`}
+            className={`h-14 w-11 items-center justify-center px-1 ${interactionLocked ? "opacity-20" : "active:opacity-60"}`}
             disabled={interactionLocked}
             accessibilityRole="button"
             accessibilityState={{ disabled: interactionLocked }}
@@ -1420,14 +1493,15 @@ function EquationWorkbench({
             }
           >
             <Text
-              className={`text-center font-nunito-extrabold text-lg ${selectedOperator ? "text-fg" : "text-fgMuted"}`}
+              className={`text-center font-nunito-extrabold text-[24px] ${selectedOperator ? "text-primaryText" : "text-fgMuted"}`}
+              maxFontSizeMultiplier={1.2}
             >
               {selectedOperator ? displayOperator(selectedOperator) : "?"}
             </Text>
           </Pressable>
           <Pressable
             onPress={() => onClearSlot("right")}
-            className={`h-12 min-w-0 flex-1 items-center justify-center rounded-lg px-1.5 ${selectedRightTile ? "bg-primaryTint" : "bg-transparent"} ${interactionLocked ? "opacity-[0.34]" : "active:opacity-70"}`}
+            className={`h-14 min-w-0 flex-1 items-center justify-center px-1.5 ${interactionLocked ? "opacity-20" : "active:opacity-60"}`}
             disabled={interactionLocked}
             accessibilityRole="button"
             accessibilityState={{ disabled: interactionLocked }}
@@ -1440,9 +1514,10 @@ function EquationWorkbench({
             }
           >
             <Text
-              className={`text-center font-nunito-extrabold text-base ${selectedRightTile ? "text-fg" : "text-fgMuted"}`}
+              className={`text-center font-nunito-extrabold text-[24px] ${selectedRightTile ? "text-primaryText" : "text-fgMuted"}`}
               numberOfLines={1}
               adjustsFontSizeToFit
+              maxFontSizeMultiplier={1.2}
               minimumFontScale={0.68}
             >
               {selectedRightTile?.value ?? "—"}
@@ -1458,10 +1533,7 @@ function EquationWorkbench({
           ) : null}
         </View>
         {stackResult ? (
-          <View
-            className="mt-2 flex-row items-center gap-2 border-t pt-2"
-            style={{ borderColor: withAlpha(tc.fgMuted, "2E") }}
-          >
+          <View className="mt-1 flex-row items-center gap-2">
             <Text className="w-6 text-center font-nunito-extrabold text-lg text-fgMuted">
               =
             </Text>
@@ -1469,16 +1541,19 @@ function EquationWorkbench({
           </View>
         ) : null}
         <Text
-          className={`mt-2 px-1 font-nunito-bold text-[11px] leading-4 ${previewState.kind === "invalid" ? "text-dangerText" : "text-fgMuted"}`}
-          numberOfLines={2}
+          className={`mt-1 px-1 text-center font-nunito-bold text-xs leading-4 ${previewState.kind === "invalid" ? "text-dangerText" : previewState.kind === "ready" ? "text-primaryText" : "text-fgMuted"}`}
         >
           {previewState.kind === "ready"
-            ? t("quests.dailyNumbers.nextResult")
+            ? t("quests.dailyNumbers.targetMoodReady", {
+                result: previewState.result,
+              })
             : previewState.kind === "invalid"
               ? previewState.reason === "division"
                 ? t("quests.dailyNumbers.invalidDivision")
                 : t("quests.dailyNumbers.invalidPositive")
-              : t("quests.dailyNumbers.noPreview")}
+              : selectedLeftTile && selectedRightTile && !selectedOperator
+                ? t("quests.dailyNumbers.pickOperator")
+                : t("quests.dailyNumbers.pickTroublemakers")}
         </Text>
       </View>
     </>
@@ -1512,18 +1587,6 @@ function LivePlayPanel({
   return (
     <>
       <View>
-        <EquationWorkbench
-          interactionLocked={interactionLocked}
-          localSteps={localSteps}
-          onClearSlot={onClearSlot}
-          previewState={previewState}
-          selectedLeftTile={selectedLeftTile}
-          selectedOperator={selectedOperator}
-          selectedRightTile={selectedRightTile}
-          t={t}
-          tc={tc}
-        />
-
         <AvailableNumbersGrid
           availableTiles={availableTiles}
           compact={compact}
@@ -1547,8 +1610,25 @@ function LivePlayPanel({
           tc={tc}
         />
 
+        <EquationWorkbench
+          interactionLocked={interactionLocked}
+          localSteps={localSteps}
+          onClearSlot={onClearSlot}
+          previewState={previewState}
+          selectedLeftTile={selectedLeftTile}
+          selectedOperator={selectedOperator}
+          selectedRightTile={selectedRightTile}
+          t={t}
+        />
+
         <QuestActionButton
-          label={t("quests.dailyNumbers.applyStep")}
+          label={
+            previewState.kind === "ready"
+              ? t("quests.dailyNumbers.makeValue", {
+                  value: previewState.result,
+                })
+              : t("quests.dailyNumbers.makeNumber")
+          }
           onPress={onApplyStep}
           disabled={interactionLocked}
           backgroundColor={
@@ -1566,7 +1646,7 @@ function LivePlayPanel({
         label={
           archiveMode
             ? t("quests.dailyNumbers.archiveSaveResult")
-            : t("quests.dailyNumbers.submit")
+            : t("quests.dailyNumbers.submitPlayful")
         }
         onPress={onSubmitPress}
         disabled={interactionLocked}
@@ -1574,7 +1654,6 @@ function LivePlayPanel({
         loadingMode="inline"
         backgroundColor={interactionLocked ? tc.surfaceMuted : tc.surface}
         foregroundColor={interactionLocked ? tc.fgMuted : tc.primaryText}
-        borderColor={withAlpha(tc.fgMuted, "38")}
         leadingIcon={CheckIcon}
         minHeight={50}
         accessibilityLabel={
@@ -1589,7 +1668,7 @@ function LivePlayPanel({
       <View className="mt-2 flex-row gap-2">
         <View className="min-w-0 flex-1">
           <QuestActionButton
-            label={t("quests.dailyNumbers.undo")}
+            label={t("quests.dailyNumbers.undoPlayful")}
             onPress={onUndoStep}
             disabled={interactionLocked}
             backgroundColor={tc.bg}
@@ -1605,7 +1684,7 @@ function LivePlayPanel({
         </View>
         <View className="min-w-0 flex-1">
           <QuestActionButton
-            label={t("quests.dailyNumbers.reset")}
+            label={t("quests.dailyNumbers.resetPlayful")}
             onPress={onResetBoard}
             disabled={interactionLocked}
             backgroundColor={tc.bg}
@@ -1625,8 +1704,7 @@ function LivePlayPanel({
         emptyCopy={t("quests.dailyNumbers.noStepsYet")}
         steps={localSteps}
         t={t}
-        tc={tc}
-        title={t("quests.dailyNumbers.stepHistoryTitle")}
+        title={t("quests.dailyNumbers.mathTrail")}
       />
       {archiveMode && officialSolutionSteps.length > 0 ? (
         <>
@@ -1672,7 +1750,6 @@ function LivePlayPanel({
             <StepList
               steps={officialSolutionSteps}
               t={t}
-              tc={tc}
               title={t("quests.dailyNumbers.officialSolutionTitle")}
             />
           ) : null}
@@ -2201,6 +2278,7 @@ function useDailyNumbersBoardController({
     completionReached,
     currentBestTile,
     currentDistance,
+    defaultDistance,
     exactHitState,
     finishCompletedState,
     finishDistance,
@@ -2315,6 +2393,13 @@ function useDailyNumbersShare(
           : controller.t("quests.dailyNumbers.archiveDistanceShort", {
               distance: controller.finishDistance,
             }),
+      quip: controller.t(
+        getResultQuipKey({
+          completed: controller.finishCompletedState,
+          distance: controller.finishDistance,
+          exact: controller.exactHitState,
+        }),
+      ),
       resultLine,
       targetLabel: controller.t("quests.dailyNumbers.target"),
       resultValueLabel: controller.t(
@@ -2324,8 +2409,8 @@ function useDailyNumbersShare(
       timeLabel: controller.t("quests.dailyNumbers.solveTime"),
       archiveLabel: controller.t("quests.dailyNumbers.archiveResultLabel"),
       footer: archiveMode
-        ? controller.t("quests.dailyNumbers.archiveShareFooter")
-        : controller.t("quests.dailyNumbers.shareFooter"),
+        ? controller.t("quests.dailyNumbers.gameShareArchiveFooter")
+        : controller.t("quests.dailyNumbers.gameShareFooter"),
       date: formatNumbersShareDate(controller.state.date, locale),
     };
   }, [
@@ -2334,6 +2419,7 @@ function useDailyNumbersShare(
     controller.state.date,
     controller.exactHitState,
     controller.state.completed,
+    controller.finishCompletedState,
     controller.finishScore,
     controller.finishDistance,
     locale,
@@ -2496,17 +2582,21 @@ function DailyNumbersBoard({
           archiveMode={archiveMode}
           completionReached={controller.completionReached}
           t={controller.t}
+          tc={controller.tc}
         />
       ) : null}
 
       <View className="flex-1">
         {!controller.finishScreenState ? (
-          <MetricsSection
+          <TargetChaseHero
+            archiveMode={archiveMode}
             compact={controller.compact}
             currentBestTile={controller.currentBestTile}
             currentDistance={controller.currentDistance}
+            defaultDistance={controller.defaultDistance}
             formattedElapsedTime={controller.formattedElapsedTime}
             state={controller.state}
+            stepCount={controller.interaction.steps.length}
             t={controller.t}
             tc={controller.tc}
           />
