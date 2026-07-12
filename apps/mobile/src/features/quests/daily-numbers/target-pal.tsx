@@ -179,16 +179,16 @@ export function DailyNumbersTargetPal({
           maxFontSizeMultiplier={1}
           numberOfLines={1}
           style={{
-            bottom: height * 0.08,
+            bottom: height * 0.015,
             color: colors.primaryText,
             fontFamily: "Nunito_800ExtraBold",
-            fontSize: width * 0.2,
+            fontSize: width * 0.32,
             fontVariant: ["tabular-nums"],
-            left: width * 0.27,
-            lineHeight: width * 0.23,
+            left: width * 0.15,
+            lineHeight: width * 0.34,
             position: "absolute",
             textAlign: "center",
-            width: width * 0.46,
+            width: width * 0.7,
           }}
         >
           {value}

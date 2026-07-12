@@ -43,6 +43,7 @@ tags:
 
 - tapOn:
     id: daily-numbers-operator-plus
+- takeScreenshot: tmp-daily-numbers-redesign-shots/02b-ready-result
 - scrollUntilVisible:
     element:
       id: daily-numbers-apply-step
@@ -66,7 +67,8 @@ tags:
       id: daily-numbers-undo
     direction: DOWN
     timeout: 10000
-    centerElement: true
+    visibilityPercentage: 50
+    centerElement: false
 - tapOn:
     id: daily-numbers-undo
 - scrollUntilVisible:
@@ -99,7 +101,8 @@ tags:
       id: daily-numbers-reset
     direction: DOWN
     timeout: 10000
-    centerElement: true
+    visibilityPercentage: 50
+    centerElement: false
 - tapOn:
     id: daily-numbers-reset
 - scrollUntilVisible:
