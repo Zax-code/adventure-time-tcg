@@ -29,7 +29,6 @@ import Animated, {
   FadeOut,
   LinearTransition,
   ReduceMotion,
-  ZoomIn,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { captureRef } from "react-native-view-shot";
@@ -53,9 +52,9 @@ import {
   ShareIcon,
   SkipBackIcon,
   SparklesIcon,
-  TrophyIcon,
 } from "../../src/components/icons";
 import { PageLoadingState } from "../../src/components/loading-state";
+import { DailyNumbersAdventureScene } from "../../src/features/quests/daily-numbers/adventure-scene";
 import { DailyNumbersGameShareCard } from "../../src/features/quests/daily-numbers/game-share-card";
 import {
   DailyNumbersTargetPal,
@@ -83,6 +82,7 @@ import {
 import {
   DAILY_NUMBERS_MODES,
   formatDailyNumbersElapsedTime,
+  getModeAccent,
   getModeLabelKey,
   getModeMixLabelKey,
   getModeStatusLabel,
@@ -672,49 +672,72 @@ function ModeTabs({
   modeCards,
   onSelectMode,
   t,
+  tc,
 }: {
   activeMode: DailyNumbersMode;
   modeCards: ModeCard[];
   onSelectMode: (mode: DailyNumbersMode) => void;
   t: TranslateFn;
+  tc: ThemeColors;
 }) {
   return (
     <View className="mb-3 flex-row gap-2">
       {modeCards.map(({ mode, state, isLoading }) => {
         const selected = mode === activeMode;
         const statusLabel = getModeStatusLabel(state, isLoading, t);
+        const accent = getModeAccent(mode, tc);
 
         return (
-          <Pressable
+          <Animated.View
             key={mode}
-            onPress={() => {
-              triggerSelectionHaptic();
-              onSelectMode(mode);
-            }}
-            className={`min-h-[56px] flex-1 items-center justify-center rounded-[18px] px-1.5 py-1.5 active:opacity-70 ${selected ? "bg-primaryTint" : "bg-transparent"}`}
-            testID={`daily-numbers-mode-${mode}`}
-            accessibilityRole="button"
-            accessibilityState={{ selected }}
-            accessibilityLabel={`${t(getModeLabelKey(mode))}, ${t(getModeMixLabelKey(mode))}, ${statusLabel}`}
+            layout={LinearTransition.duration(180).reduceMotion(
+              ReduceMotion.System,
+            )}
+            className="min-w-0 flex-1"
           >
-            <Text
-              className="text-center font-nunito-extrabold text-[15px] text-fg"
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              maxFontSizeMultiplier={1.2}
-              minimumFontScale={0.72}
+            <Pressable
+              onPress={() => {
+                triggerSelectionHaptic();
+                onSelectMode(mode);
+              }}
+              className="min-h-[58px] items-center justify-center overflow-hidden rounded-[16px] border-2 px-1.5 py-1.5 active:opacity-70"
+              style={{
+                backgroundColor: selected ? accent.bg : tc.surfaceMuted,
+                borderColor: selected ? accent.border : tc.primaryBorder,
+                transform: [{ translateY: selected ? -2 : 0 }],
+              }}
+              testID={`daily-numbers-mode-${mode}`}
+              accessibilityRole="button"
+              accessibilityState={{ selected }}
+              accessibilityLabel={`${t(getModeLabelKey(mode))}, ${t(getModeMixLabelKey(mode))}, ${statusLabel}`}
             >
-              {t(getModeLabelKey(mode))}
-            </Text>
-            <Text
-              className="mt-0.5 font-nunito-bold text-[10px] leading-3 text-fgMuted"
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.7}
-            >
-              {statusLabel}
-            </Text>
-          </Pressable>
+              <View
+                className="absolute -top-1.5 h-3 w-9 rounded-full border"
+                style={{
+                  backgroundColor: selected ? accent.tint : tc.bg,
+                  borderColor: selected ? accent.border : tc.primaryBorder,
+                }}
+              />
+              <Text
+                className="text-center font-nunito-extrabold text-[15px]"
+                style={{ color: selected ? accent.text : tc.fg }}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                maxFontSizeMultiplier={1.2}
+                minimumFontScale={0.72}
+              >
+                {t(getModeLabelKey(mode))}
+              </Text>
+              <Text
+                className="mt-0.5 font-nunito-bold text-[9px] uppercase leading-3 tracking-[0.35px] text-fgMuted"
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.68}
+              >
+                {statusLabel}
+              </Text>
+            </Pressable>
+          </Animated.View>
         );
       })}
     </View>
@@ -751,110 +774,33 @@ function TargetChaseHero({
     archiveMode && stepCount === 0
       ? t("quests.dailyNumbers.archiveTargetQuip")
       : stepCount === 0
-        ? t("quests.dailyNumbers.catchThis")
+        ? t("quests.dailyNumbers.bmoIntro")
         : t(getLiveTargetMoodKey(stepCount, distance, defaultDistance));
-  const mascotWidth = compact || fontScale >= 1.35 ? 174 : 194;
 
   return (
-    <View className="pb-2 pt-1">
-      <Text className="text-center font-nunito-extrabold text-[11px] uppercase tracking-[1.5px] text-primaryText">
-        {t("quests.dailyNumbers.target")}
-      </Text>
-
-      <Animated.View
-        key={mood}
-        accessible
-        accessibilityLabel={`${t("quests.dailyNumbers.target")} ${state.target}`}
-        entering={ZoomIn.duration(220).reduceMotion(ReduceMotion.System)}
-        className="items-center"
-        testID="daily-numbers-target-pal"
-      >
-        <DailyNumbersTargetPal
-          colors={tc}
-          mood={mood}
-          value={state.target}
-          width={mascotWidth}
-        />
-      </Animated.View>
-
-      <View
-        className="-mt-5 max-w-[230px] self-end rounded-[20px] bg-surface px-3.5 py-2.5"
-        style={{ transform: [{ rotate: "-2deg" }] }}
-      >
-        <View
-          className="absolute -left-1.5 bottom-3 h-3 w-3 bg-surface"
-          style={{ transform: [{ rotate: "45deg" }] }}
-        />
-        <Text className="font-nunito-extrabold text-xs leading-4 text-primaryText">
-          {moodCopy}
-        </Text>
-      </View>
-
-      <View className="mt-2 flex-row items-start px-1">
-        <View className="min-w-0 flex-1 items-center">
-          <TrophyIcon size={19} color={tc.primaryText} />
-          <Text
-            className="mt-1 text-center font-nunito-extrabold text-[10px] uppercase tracking-[0.8px] text-fgMuted"
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.72}
-          >
-            {t("quests.dailyNumbers.bestMetric")}
-          </Text>
-          <Text
-            className="mt-0.5 text-center font-nunito-extrabold text-[22px] leading-7 text-fg"
-            style={{ fontVariant: ["tabular-nums"] }}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.7}
-          >
-            {currentBestTile?.value ?? "—"}
-          </Text>
-        </View>
-
-        <View className="min-w-0 flex-1 items-center">
-          <DailyNumbersTargetPal colors={tc} mood={mood} width={26} />
-          <Text
-            className="mt-1 text-center font-nunito-extrabold text-[10px] uppercase tracking-[0.8px] text-fgMuted"
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.72}
-          >
-            {t("quests.dailyNumbers.awayMetric")}
-          </Text>
-          <Text
-            className="mt-0.5 text-center font-nunito-extrabold text-[22px] leading-7 text-fg"
-            style={{ fontVariant: ["tabular-nums"] }}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.7}
-          >
-            {distance}
-          </Text>
-        </View>
-
-        <View className="min-w-0 flex-1 items-center">
-          <ClockIcon size={19} color={tc.primaryText} />
-          <Text
-            className="mt-1 text-center font-nunito-extrabold text-[10px] uppercase tracking-[0.8px] text-fgMuted"
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.72}
-          >
-            {t("quests.dailyNumbers.timeMetric")}
-          </Text>
-          <Text
-            className="mt-0.5 text-center font-nunito-extrabold text-[22px] leading-7 text-fg"
-            style={{ fontVariant: ["tabular-nums"] }}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.7}
-          >
-            {formattedElapsedTime}
-          </Text>
-        </View>
-      </View>
-    </View>
+    <Animated.View
+      key={mood}
+      entering={FadeIn.duration(180).reduceMotion(ReduceMotion.System)}
+      className="pb-1"
+    >
+      <DailyNumbersAdventureScene
+        archiveLabel={t("quests.dailyNumbers.archiveResultLabel")}
+        archiveMode={archiveMode}
+        awayLabel={t("quests.dailyNumbers.awayMetric")}
+        bestLabel={t("quests.dailyNumbers.bestMetric")}
+        colors={tc}
+        compact={compact || fontScale >= 1.35}
+        currentBestValue={currentBestTile?.value ?? null}
+        distance={distance}
+        elapsedTime={formattedElapsedTime}
+        guideTitle={t("quests.dailyNumbers.bmoQuestTitle")}
+        mood={mood}
+        quip={moodCopy}
+        target={state.target}
+        targetLabel={t("quests.dailyNumbers.target")}
+        timeLabel={t("quests.dailyNumbers.timeMetric")}
+      />
+    </Animated.View>
   );
 }
 
@@ -898,18 +844,25 @@ function StepList({
   title: string;
 }) {
   return (
-    <View className="mt-6">
+    <View className="mt-5 overflow-hidden rounded-[24px] border-2 border-secondaryBorder bg-secondaryTint p-3">
       <View className="flex-row items-baseline justify-between">
-        <Text className="font-nunito-extrabold text-sm text-fg">{title}</Text>
-        <Text
-          className="font-nunito-bold text-xs text-fgMuted"
-          style={{ fontVariant: ["tabular-nums"] }}
-        >
-          {steps.length}
-        </Text>
+        <View className="min-w-0 flex-1 flex-row items-center gap-2">
+          <View className="h-3 w-3 rotate-45 rounded-[3px] bg-secondaryDark" />
+          <Text className="min-w-0 flex-1 font-nunito-extrabold text-[11px] uppercase tracking-[0.9px] text-secondaryText">
+            {title}
+          </Text>
+        </View>
+        <View className="rounded-full border border-secondaryBorder bg-surface px-2 py-0.5">
+          <Text
+            className="font-nunito-extrabold text-[10px] text-fgMuted"
+            style={{ fontVariant: ["tabular-nums"] }}
+          >
+            {steps.length}
+          </Text>
+        </View>
       </View>
       {steps.length > 0 ? (
-        <View className="mt-2 gap-1">
+        <View className="mt-2 gap-1.5">
           {steps.map((step, index) => (
             <Animated.View
               key={`${step.resultId}-${index}`}
@@ -919,14 +872,16 @@ function StepList({
               layout={LinearTransition.duration(180).reduceMotion(
                 ReduceMotion.System,
               )}
-              className="flex-row items-center gap-3 py-1.5"
+              className="flex-row items-center gap-2 rounded-[16px] border border-secondaryBorder bg-surface px-2.5 py-2"
             >
-              <Text
-                className="w-7 font-nunito-extrabold text-xs text-primaryText"
-                style={{ fontVariant: ["tabular-nums"] }}
-              >
-                #{index + 1}
-              </Text>
+              <View className="h-7 w-7 items-center justify-center rounded-full bg-primaryTint">
+                <Text
+                  className="font-nunito-extrabold text-[10px] text-primaryText"
+                  style={{ fontVariant: ["tabular-nums"] }}
+                >
+                  {index + 1}
+                </Text>
+              </View>
               <Text className="min-w-0 flex-1 font-nunito-extrabold text-sm leading-5 text-fg">
                 {t("quests.dailyNumbers.stepSummary", {
                   leftValue: step.leftValue,
@@ -939,7 +894,7 @@ function StepList({
           ))}
         </View>
       ) : emptyCopy ? (
-        <Text className="mt-2 font-nunito-semibold text-xs leading-4 text-fgMuted">
+        <Text className="mt-2 rounded-[16px] border border-dashed border-secondaryBorder bg-surface px-3 py-2.5 font-nunito-semibold text-xs leading-4 text-fgMuted">
           {emptyCopy}
         </Text>
       ) : null}
@@ -1087,91 +1042,120 @@ function FinishStatePanel({
         });
 
   return (
-    <View className="pt-2">
-      {archiveMode ? (
-        <Text className="mb-2 font-nunito-bold text-[10px] uppercase tracking-[1.2px] text-fgMuted">
-          {t("quests.dailyNumbers.archiveResultLabel")}
-        </Text>
-      ) : null}
-
+    <View className="pt-1">
       <Animated.View
         entering={FadeIn.duration(220).reduceMotion(ReduceMotion.System)}
-        className="min-h-[176px] items-center"
+        className="overflow-hidden rounded-[28px] border-2 border-primaryBorder bg-primaryTint p-4"
       >
-        <View className="items-center">
-          <Text
-            className={`${compact ? "text-[46px] leading-[49px]" : "text-[54px] leading-[57px]"} text-center font-nunito-extrabold`}
-            style={{ color: resultColor, fontVariant: ["tabular-nums"] }}
-            maxFontSizeMultiplier={1.1}
-            testID="daily-numbers-result-outcome"
-          >
-            {outcomeLabel}
+        <View className="flex-row items-center justify-between gap-2">
+          <Text className="font-nunito-extrabold text-[11px] uppercase tracking-[1.2px] text-primaryText">
+            {t("quests.dailyNumbers.bmoVerdict")}
           </Text>
-          <Text className="mt-2 max-w-[300px] text-center font-nunito-extrabold text-base leading-5 text-fg">
-            {resultQuip}
-          </Text>
+          {archiveMode ? (
+            <View className="rounded-full border border-primaryBorder bg-surface px-2.5 py-1">
+              <Text className="font-nunito-extrabold text-[9px] uppercase tracking-[0.7px] text-primaryText">
+                {t("quests.dailyNumbers.archiveResultLabel")}
+              </Text>
+            </View>
+          ) : null}
         </View>
 
-        <View
-          className="-mb-5 -mt-2"
-          style={{ transform: [{ rotate: exactHitState ? "-7deg" : "5deg" }] }}
-        >
-          <DailyNumbersTargetPal
-            colors={tc}
-            mood={mascotMood}
-            value={state.target}
-            width={compact ? 128 : 140}
-          />
+        <View className="mt-1 flex-row items-center gap-3">
+          <View
+            style={{
+              transform: [{ rotate: exactHitState ? "-4deg" : "3deg" }],
+            }}
+          >
+            <DailyNumbersTargetPal
+              colors={tc}
+              mood={mascotMood}
+              value={state.target}
+              width={compact ? 112 : 124}
+            />
+          </View>
+          <View className="min-w-0 flex-1">
+            <Text
+              className={`${compact ? "text-[34px] leading-[38px]" : "text-[40px] leading-[44px]"} font-nunito-extrabold`}
+              style={{ color: resultColor, fontVariant: ["tabular-nums"] }}
+              maxFontSizeMultiplier={1.08}
+              numberOfLines={2}
+              adjustsFontSizeToFit
+              minimumFontScale={0.7}
+              testID="daily-numbers-result-outcome"
+            >
+              {outcomeLabel}
+            </Text>
+            <View className="mt-2 rounded-[16px] border border-primaryBorder bg-surface px-3 py-2">
+              <Text className="font-nunito-extrabold text-xs leading-4 text-fg">
+                {resultQuip}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        <View className="mt-3 flex-row rounded-[18px] border border-primaryBorder bg-surface px-1 py-2.5">
+          <View className="min-w-0 flex-1 items-center px-1">
+            <View className="flex-row items-center gap-1">
+              <ClockIcon size={13} color={tc.fgMuted} />
+              <Text className="font-nunito-extrabold text-[9px] uppercase tracking-[0.5px] text-fgMuted">
+                {t("quests.dailyNumbers.timeMetric")}
+              </Text>
+            </View>
+            <Text
+              className="mt-0.5 font-nunito-extrabold text-base text-fg"
+              style={{ fontVariant: ["tabular-nums"] }}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.7}
+              testID="daily-numbers-result-time"
+            >
+              {formattedElapsedTime}
+            </Text>
+          </View>
+          <View className="min-w-0 flex-1 items-center border-x border-primaryBorder px-1">
+            <Text className="font-nunito-extrabold text-[9px] uppercase tracking-[0.5px] text-fgMuted">
+              {t("quests.dailyNumbers.finalResult")}
+            </Text>
+            <Text
+              className="mt-0.5 font-nunito-extrabold text-base text-fg"
+              style={{ fontVariant: ["tabular-nums"] }}
+              adjustsFontSizeToFit
+              maxFontSizeMultiplier={1.1}
+              minimumFontScale={0.65}
+              numberOfLines={1}
+            >
+              {finishValue ?? "—"}
+            </Text>
+          </View>
+          <View className="min-w-0 flex-1 items-center px-1">
+            <Text className="font-nunito-extrabold text-[9px] uppercase tracking-[0.5px] text-fgMuted">
+              {t("quests.dailyNumbers.scoreLabel")}
+            </Text>
+            <Text
+              className="mt-0.5 font-nunito-extrabold text-base text-fg"
+              style={{ fontVariant: ["tabular-nums"] }}
+              numberOfLines={1}
+            >
+              {finishScore != null ? `${finishScore}%` : "—"}
+            </Text>
+          </View>
         </View>
       </Animated.View>
 
       {interaction.submitting && !state.submitted && exactHitState ? (
-        <Text className="mt-1 text-center font-nunito-semibold text-xs text-fgMuted">
+        <Text className="mt-2 text-center font-nunito-semibold text-xs text-fgMuted">
           {t("quests.dailyNumbers.autoSubmittingSuccess")}
         </Text>
       ) : null}
 
-      <View className="mt-5 items-center px-1">
-        <View className="flex-row items-center gap-1.5">
-          <ClockIcon size={14} color={tc.fgMuted} />
-          <Text className="font-nunito-bold text-xs text-fgMuted">
-            {t("quests.dailyNumbers.chaseTime")}
-          </Text>
-        </View>
-        <Text
-          className="mt-0.5 font-nunito-extrabold text-[36px] leading-[40px] text-fg"
-          style={{ fontVariant: ["tabular-nums"] }}
-          maxFontSizeMultiplier={1.12}
-          testID="daily-numbers-result-time"
-        >
-          {formattedElapsedTime}
-        </Text>
-
-        <Text className="mt-4 font-nunito-bold text-xs text-fgMuted">
-          {t("quests.dailyNumbers.finalResult")}
-        </Text>
-        <Text
-          className="font-nunito-extrabold text-lg leading-6 text-fg"
-          style={{ fontVariant: ["tabular-nums"] }}
-          adjustsFontSizeToFit
-          maxFontSizeMultiplier={1.15}
-          numberOfLines={1}
-        >
-          {finishValue ?? "—"} {exactHitState ? "=" : "→"} {state.target}
-        </Text>
-      </View>
-
-      <View className="flex-row flex-wrap justify-center gap-x-5 gap-y-1 px-1 pb-2 pt-4">
-        <Text className="font-nunito-bold text-xs text-fgMuted">
-          {t("quests.dailyNumbers.scoreLabel")}:{" "}
-          {finishScore != null ? `${finishScore}%` : "—"}
-        </Text>
-        {!archiveMode ? (
-          <Text className="font-nunito-bold text-xs text-fgMuted">
+      {!archiveMode ? (
+        <View className="mt-3 flex-row items-center justify-center gap-2 rounded-[18px] border border-secondaryBorder bg-secondaryTint px-3 py-2">
+          <CoinIcon size={16} />
+          <Text className="font-nunito-extrabold text-xs text-secondaryText">
             {t("quests.dailyNumbers.reward")}: {state.reward}
           </Text>
-        ) : null}
-      </View>
+        </View>
+      ) : null}
       {archiveMode ? (
         <View className="px-1 py-2">
           <Text className="text-center font-nunito-bold text-xs leading-4 text-fgMuted">
@@ -1266,9 +1250,25 @@ function AvailableNumbersGrid({
   tc,
 }: AvailableNumbersGridProps) {
   return (
-    <View className="mt-4">
-      <View className="flex-row flex-wrap justify-between gap-y-2">
+    <View className="mt-3 rounded-[26px] border-2 border-primaryBorder bg-primaryTint p-3">
+      <View className="mb-2 flex-row items-center justify-between gap-2 px-1">
+        <View className="flex-row items-center gap-2">
+          <View className="h-3 w-3 rotate-45 rounded-[3px] bg-secondary" />
+          <Text className="font-nunito-extrabold text-[11px] uppercase tracking-[1px] text-primaryText">
+            {t("quests.dailyNumbers.availableNumbers")}
+          </Text>
+        </View>
+        <Text
+          className="font-nunito-extrabold text-xs text-fgMuted"
+          style={{ fontVariant: ["tabular-nums"] }}
+        >
+          {availableTiles.length}
+        </Text>
+      </View>
+
+      <View className="flex-row flex-wrap justify-between gap-y-2.5">
         {availableTiles.map((tile) => {
+          const index = availableTiles.indexOf(tile);
           const availability = getDailyNumbersTileAvailability({
             interactionLocked,
             selectedLeftTile,
@@ -1282,6 +1282,46 @@ function AvailableNumbersGrid({
               : tile.id === selectedRightTile?.id
                 ? 2
                 : null;
+          const stoneColors =
+            tile.source === "derived"
+              ? {
+                  background: tc.infoTint,
+                  border: tc.infoBorder,
+                }
+              : [
+                  {
+                    background: tc.secondaryTint,
+                    border: tc.secondaryBorder,
+                  },
+                  {
+                    background: tc.accentTint,
+                    border: tc.accentBorder,
+                  },
+                  {
+                    background: tc.successTint,
+                    border: tc.successBorder,
+                  },
+                ][index % 3];
+          const radii = [
+            {
+              borderTopLeftRadius: 23,
+              borderTopRightRadius: 17,
+              borderBottomRightRadius: 22,
+              borderBottomLeftRadius: 15,
+            },
+            {
+              borderTopLeftRadius: 16,
+              borderTopRightRadius: 24,
+              borderBottomRightRadius: 16,
+              borderBottomLeftRadius: 22,
+            },
+            {
+              borderTopLeftRadius: 21,
+              borderTopRightRadius: 15,
+              borderBottomRightRadius: 24,
+              borderBottomLeftRadius: 18,
+            },
+          ][index % 3];
 
           return (
             <Animated.View
@@ -1291,17 +1331,34 @@ function AvailableNumbersGrid({
               layout={LinearTransition.duration(200).reduceMotion(
                 ReduceMotion.System,
               )}
-              style={{ width: "31.5%" }}
+              style={{
+                transform: [
+                  {
+                    rotate:
+                      index % 3 === 0
+                        ? "-1.25deg"
+                        : index % 3 === 1
+                          ? "0.8deg"
+                          : "-0.4deg",
+                  },
+                  { translateY: availability.selected ? -3 : 0 },
+                ],
+                width: "31.5%",
+              }}
             >
               <Pressable
                 onPress={() => onTilePress(tile.id)}
                 disabled={availability.disabled}
-                className={`${compact ? "min-h-[62px]" : "min-h-[68px]"} items-center justify-center overflow-hidden rounded-[18px] px-2 py-2 ${availability.selected ? "bg-primaryTint" : tile.source === "derived" ? "bg-surfaceMuted" : "bg-surface"} ${availability.disabled ? "opacity-20" : "active:opacity-70"}`}
-                style={
-                  availability.selected
-                    ? { transform: [{ translateY: -2 }] }
-                    : undefined
-                }
+                className={`${compact ? "min-h-[64px]" : "min-h-[72px]"} items-center justify-center overflow-hidden border-2 px-2 py-2 ${availability.disabled ? "opacity-[0.38]" : "active:opacity-70"}`}
+                style={{
+                  ...radii,
+                  backgroundColor: availability.selected
+                    ? tc.primaryStrong
+                    : stoneColors.background,
+                  borderColor: availability.selected
+                    ? tc.primaryBorder
+                    : stoneColors.border,
+                }}
                 testID={`daily-numbers-tile-${tile.id}`}
                 accessibilityRole="button"
                 accessibilityState={{
@@ -1325,7 +1382,7 @@ function AvailableNumbersGrid({
               >
                 {tile.source === "derived" ? (
                   <View
-                    className="absolute right-2 top-1.5"
+                    className="absolute right-2 top-1.5 rounded-full bg-surface p-0.5"
                     accessibilityElementsHidden
                     importantForAccessibility="no-hide-descendants"
                   >
@@ -1333,9 +1390,8 @@ function AvailableNumbersGrid({
                   </View>
                 ) : null}
                 <Text
-                  className={`text-center font-nunito-extrabold ${compact ? "text-[22px]" : "text-[25px]"}`}
+                  className={`text-center font-nunito-extrabold ${compact ? "text-[23px]" : "text-[27px]"} ${availability.selected ? "text-white" : "text-fg"}`}
                   style={{
-                    color: availability.selected ? tc.primaryText : tc.fg,
                     fontVariant: ["tabular-nums"],
                   }}
                   numberOfLines={1}
@@ -1345,13 +1401,15 @@ function AvailableNumbersGrid({
                   {tile.value}
                 </Text>
                 {selectionOrder ? (
-                  <Text
-                    className="absolute bottom-1.5 left-2 font-nunito-extrabold text-[10px] text-fg"
+                  <View
+                    className="absolute bottom-1.5 left-1.5 h-[18px] w-[18px] items-center justify-center rounded-full bg-surface"
                     accessibilityElementsHidden
                     importantForAccessibility="no-hide-descendants"
                   >
-                    {selectionOrder}
-                  </Text>
+                    <Text className="font-nunito-extrabold text-[10px] text-primaryText">
+                      {selectionOrder}
+                    </Text>
+                  </View>
                 ) : null}
               </Pressable>
             </Animated.View>
@@ -1374,7 +1432,13 @@ function OperatorPicker({
 }: OperatorPickerProps) {
   return (
     <View className="mt-3">
-      <View className="flex-row gap-2">
+      <View className="mb-2 flex-row items-center gap-2 px-1">
+        <View className="h-3 w-3 rounded-full bg-accent" />
+        <Text className="font-nunito-extrabold text-[11px] uppercase tracking-[1px] text-primaryText">
+          {t("quests.dailyNumbers.operators")}
+        </Text>
+      </View>
+      <View className="flex-row justify-center gap-3 px-1">
         {OPERATORS.map((operator) => {
           const availability = getDailyNumbersOperatorAvailability({
             interactionLocked,
@@ -1383,13 +1447,33 @@ function OperatorPicker({
             selectedOperator,
             selectedRightTile,
           });
+          const operatorIndex = OPERATORS.indexOf(operator);
+          const tokenColors = [
+            { background: tc.secondaryTint, border: tc.secondaryBorder },
+            { background: tc.infoTint, border: tc.infoBorder },
+            { background: tc.accentTint, border: tc.accentBorder },
+            { background: tc.successTint, border: tc.successBorder },
+          ][operatorIndex];
 
           return (
             <Pressable
               key={operator}
               onPress={() => onOperatorPress(operator)}
               disabled={availability.disabled}
-              className={`${compact ? "min-h-[48px]" : "min-h-[52px]"} flex-1 items-center justify-center rounded-2xl bg-surface px-2 py-2 ${availability.selected ? "bg-primaryTint" : ""} ${availability.disabled ? "opacity-20" : availability.wouldBeInvalid ? "opacity-[0.34]" : "active:opacity-70"}`}
+              className={`${compact ? "h-[50px]" : "h-[54px]"} min-w-0 flex-1 items-center justify-center rounded-full border-2 px-2 py-2 ${availability.disabled ? "opacity-[0.42]" : availability.wouldBeInvalid ? "opacity-[0.52]" : "active:opacity-70"}`}
+              style={{
+                backgroundColor: availability.selected
+                  ? tc.primaryStrong
+                  : tokenColors.background,
+                borderColor: availability.selected
+                  ? tc.primaryBorder
+                  : tokenColors.border,
+                transform: [
+                  {
+                    rotate: operatorIndex % 2 === 0 ? "-1.5deg" : "1.5deg",
+                  },
+                ],
+              }}
               testID={`daily-numbers-operator-${operator === "*" ? "multiply" : operator === "/" ? "divide" : operator === "+" ? "plus" : "minus"}`}
               accessibilityRole="button"
               accessibilityState={{
@@ -1407,10 +1491,7 @@ function OperatorPicker({
               }
             >
               <Text
-                className={`text-center font-nunito-extrabold ${compact ? "text-[20px]" : "text-[23px]"}`}
-                style={{
-                  color: availability.selected ? tc.primaryText : tc.fg,
-                }}
+                className={`text-center font-nunito-extrabold ${compact ? "text-[21px]" : "text-[24px]"} ${availability.selected ? "text-white" : "text-fg"}`}
                 maxFontSizeMultiplier={1.2}
               >
                 {displayOperator(operator)}
@@ -1442,40 +1523,36 @@ function EquationResult({
     <Pressable
       onPress={onApplyStep}
       disabled={interactionLocked}
-      className={`${expanded ? "min-h-[64px] flex-1" : "h-[72px] min-w-[72px] max-w-[88px] flex-1"} items-center justify-center rounded-[18px] px-2 ${ready ? "bg-primaryStrong" : "bg-surfaceMuted"} ${interactionLocked ? "opacity-20" : ready ? "active:opacity-80" : "opacity-60 active:opacity-80"}`}
+      className={`${expanded ? "min-h-[62px] flex-1" : "h-[64px] min-w-[70px] max-w-[92px] flex-1"} items-center justify-center rounded-[18px] border-2 px-2 ${ready ? "border-primaryBorder bg-primaryStrong" : previewState.kind === "invalid" ? "border-dangerBorder bg-surface" : "border-dashed border-primaryBorder bg-surface"} ${interactionLocked ? "opacity-20" : "active:opacity-75"}`}
       testID="daily-numbers-apply-step"
       accessibilityRole="button"
       accessibilityState={{ disabled: interactionLocked }}
-      accessibilityLabel={t("quests.dailyNumbers.applyStep")}
+      accessibilityLabel={
+        ready
+          ? t("quests.dailyNumbers.makeValue", { value: previewState.result })
+          : t("quests.dailyNumbers.applyStep")
+      }
     >
       {ready ? (
-        <>
-          <Text
-            className="text-center font-nunito-extrabold text-[25px] leading-7 text-white"
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            maxFontSizeMultiplier={1.15}
-            minimumFontScale={0.6}
-          >
-            {previewState.result}
-          </Text>
-          <Text
-            className="mt-0.5 text-center font-nunito-bold text-[9px] leading-3 text-white opacity-80"
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            maxFontSizeMultiplier={1.1}
-            minimumFontScale={0.7}
-          >
-            {t("quests.dailyNumbers.applyStep")}
-          </Text>
-        </>
+        <Text
+          className="text-center font-nunito-extrabold text-[27px] leading-8 text-white"
+          style={{ fontVariant: ["tabular-nums"] }}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          maxFontSizeMultiplier={1.15}
+          minimumFontScale={0.58}
+          testID="daily-numbers-apply-step-value"
+        >
+          {previewState.result}
+        </Text>
       ) : (
         <Text
-          className={`text-center font-nunito-extrabold text-[11px] leading-4 ${previewState.kind === "invalid" ? "text-dangerText" : "text-fgMuted"}`}
+          className={`text-center font-nunito-extrabold text-[10px] uppercase leading-3.5 tracking-[0.5px] ${previewState.kind === "invalid" ? "text-dangerText" : "text-primaryText"}`}
           numberOfLines={2}
           adjustsFontSizeToFit
           maxFontSizeMultiplier={1.15}
           minimumFontScale={0.7}
+          testID="daily-numbers-apply-step-placeholder"
         >
           {t("quests.dailyNumbers.applyStep")}
         </Text>
@@ -1509,23 +1586,25 @@ function EquationWorkbench({
   const stackResult = fontScale >= 1.35 || width < 350;
 
   return (
-    <>
-      <View className="mb-2 mt-5 flex-row items-baseline justify-between px-1">
-        <Text className="font-nunito-extrabold text-xs text-fg">
+    <View className="mt-3 overflow-hidden rounded-[26px] border-2 border-secondaryBorder bg-secondaryTint px-3 pb-3 pt-2.5">
+      <View className="mb-2 flex-row items-baseline justify-between gap-2 px-1">
+        <Text className="font-nunito-extrabold text-[11px] uppercase tracking-[1px] text-secondaryText">
           {t("quests.dailyNumbers.makeNumber")}
         </Text>
-        <Text className="font-nunito-bold text-xs text-fgMuted">
-          {t("quests.dailyNumbers.stepNumber", {
-            step: localSteps.length + 1,
-          })}
-        </Text>
+        <View className="rounded-full border border-secondaryBorder bg-surface px-2 py-0.5">
+          <Text className="font-nunito-extrabold text-[9px] uppercase tracking-[0.45px] text-fgMuted">
+            {t("quests.dailyNumbers.stepNumber", {
+              step: localSteps.length + 1,
+            })}
+          </Text>
+        </View>
       </View>
 
       <View>
         <View className="flex-row items-center gap-1.5">
           <Pressable
             onPress={() => onClearSlot("left")}
-            className={`h-[72px] min-w-0 flex-1 items-center justify-center rounded-[18px] px-1.5 ${selectedLeftTile ? "bg-surface" : "bg-surfaceMuted opacity-60"} ${interactionLocked ? "opacity-20" : "active:opacity-70"}`}
+            className={`h-[64px] min-w-0 flex-1 items-center justify-center rounded-[18px] border-2 px-1.5 ${selectedLeftTile ? "border-primaryBorder bg-surface" : "border-dashed border-secondaryBorder bg-surface opacity-70"} ${interactionLocked ? "opacity-20" : "active:opacity-70"}`}
             disabled={interactionLocked}
             accessibilityRole="button"
             accessibilityState={{ disabled: interactionLocked }}
@@ -1538,7 +1617,7 @@ function EquationWorkbench({
             }
           >
             <Text
-              className={`text-center font-nunito-extrabold text-[29px] ${selectedLeftTile ? "text-primaryText" : "text-fgMuted"}`}
+              className={`text-center font-nunito-extrabold text-[27px] ${selectedLeftTile ? "text-primaryText" : "text-fgMuted"}`}
               numberOfLines={1}
               adjustsFontSizeToFit
               maxFontSizeMultiplier={1.2}
@@ -1549,7 +1628,7 @@ function EquationWorkbench({
           </Pressable>
           <Pressable
             onPress={() => onClearSlot("operator")}
-            className={`h-14 w-12 items-center justify-center rounded-2xl px-1 ${selectedOperator ? "bg-primaryTint" : "bg-surfaceMuted opacity-60"} ${interactionLocked ? "opacity-20" : "active:opacity-70"}`}
+            className={`h-12 w-11 items-center justify-center rounded-full border-2 px-1 ${selectedOperator ? "border-accentBorder bg-accentTint" : "border-dashed border-secondaryBorder bg-surface opacity-70"} ${interactionLocked ? "opacity-20" : "active:opacity-70"}`}
             disabled={interactionLocked}
             accessibilityRole="button"
             accessibilityState={{ disabled: interactionLocked }}
@@ -1562,7 +1641,7 @@ function EquationWorkbench({
             }
           >
             <Text
-              className={`text-center font-nunito-extrabold text-[26px] ${selectedOperator ? "text-primaryText" : "text-fgMuted"}`}
+              className={`text-center font-nunito-extrabold text-[24px] ${selectedOperator ? "text-accentText" : "text-fgMuted"}`}
               maxFontSizeMultiplier={1.2}
             >
               {selectedOperator ? displayOperator(selectedOperator) : "?"}
@@ -1570,7 +1649,7 @@ function EquationWorkbench({
           </Pressable>
           <Pressable
             onPress={() => onClearSlot("right")}
-            className={`h-[72px] min-w-0 flex-1 items-center justify-center rounded-[18px] px-1.5 ${selectedRightTile ? "bg-surface" : "bg-surfaceMuted opacity-60"} ${interactionLocked ? "opacity-20" : "active:opacity-70"}`}
+            className={`h-[64px] min-w-0 flex-1 items-center justify-center rounded-[18px] border-2 px-1.5 ${selectedRightTile ? "border-primaryBorder bg-surface" : "border-dashed border-secondaryBorder bg-surface opacity-70"} ${interactionLocked ? "opacity-20" : "active:opacity-70"}`}
             disabled={interactionLocked}
             accessibilityRole="button"
             accessibilityState={{ disabled: interactionLocked }}
@@ -1583,7 +1662,7 @@ function EquationWorkbench({
             }
           >
             <Text
-              className={`text-center font-nunito-extrabold text-[29px] ${selectedRightTile ? "text-primaryText" : "text-fgMuted"}`}
+              className={`text-center font-nunito-extrabold text-[27px] ${selectedRightTile ? "text-primaryText" : "text-fgMuted"}`}
               numberOfLines={1}
               adjustsFontSizeToFit
               maxFontSizeMultiplier={1.2}
@@ -1594,7 +1673,7 @@ function EquationWorkbench({
           </Pressable>
           {!stackResult ? (
             <>
-              <Text className="px-0.5 font-nunito-extrabold text-base text-fgMuted">
+              <Text className="px-0.5 font-nunito-extrabold text-lg text-secondaryText">
                 =
               </Text>
               <EquationResult
@@ -1608,7 +1687,7 @@ function EquationWorkbench({
         </View>
         {stackResult ? (
           <View className="mt-1 flex-row items-center gap-2">
-            <Text className="w-6 text-center font-nunito-extrabold text-lg text-fgMuted">
+            <Text className="w-6 text-center font-nunito-extrabold text-lg text-secondaryText">
               =
             </Text>
             <EquationResult
@@ -1621,7 +1700,7 @@ function EquationWorkbench({
           </View>
         ) : null}
         <Text
-          className={`mt-1 px-1 text-center font-nunito-bold text-xs leading-4 ${previewState.kind === "invalid" ? "text-dangerText" : previewState.kind === "ready" ? "text-primaryText" : "text-fgMuted"}`}
+          className={`mt-2 px-1 text-center font-nunito-bold text-[11px] leading-4 ${previewState.kind === "invalid" ? "text-dangerText" : previewState.kind === "ready" ? "text-primaryText" : "text-fgMuted"}`}
         >
           {previewState.kind === "ready"
             ? t("quests.dailyNumbers.targetMoodReady", {
@@ -1636,7 +1715,7 @@ function EquationWorkbench({
                 : t("quests.dailyNumbers.pickTroublemakers")}
         </Text>
       </View>
-    </>
+    </View>
   );
 }
 
@@ -1667,16 +1746,16 @@ function LivePlayPanel({
   return (
     <>
       <View>
-        <EquationWorkbench
+        <AvailableNumbersGrid
+          availableTiles={availableTiles}
+          compact={compact}
           interactionLocked={interactionLocked}
-          localSteps={localSteps}
-          onApplyStep={onApplyStep}
-          onClearSlot={onClearSlot}
-          previewState={previewState}
+          onTilePress={onTilePress}
           selectedLeftTile={selectedLeftTile}
           selectedOperator={selectedOperator}
           selectedRightTile={selectedRightTile}
           t={t}
+          tc={tc}
         />
 
         <OperatorPicker
@@ -1690,16 +1769,16 @@ function LivePlayPanel({
           tc={tc}
         />
 
-        <AvailableNumbersGrid
-          availableTiles={availableTiles}
-          compact={compact}
+        <EquationWorkbench
           interactionLocked={interactionLocked}
-          onTilePress={onTilePress}
+          localSteps={localSteps}
+          onApplyStep={onApplyStep}
+          onClearSlot={onClearSlot}
+          previewState={previewState}
           selectedLeftTile={selectedLeftTile}
           selectedOperator={selectedOperator}
           selectedRightTile={selectedRightTile}
           t={t}
-          tc={tc}
         />
       </View>
 
@@ -2841,6 +2920,7 @@ function DailyNumbersPlayView({
             modeCards={modeCards}
             onSelectMode={onModeSelect}
             t={t}
+            tc={tc}
           />
 
           <DailyNumbersBoard
@@ -2898,7 +2978,7 @@ export default function DailyNumbersPlayScreen() {
   );
   const resetNoticeKeyRef = useRef<string | null>(null);
 
-  const compact = height < 820 || width < 390;
+  const compact = height < 900 || width < 420;
   const initialMode = normalizeDailyNumbersMode(params.mode);
   const archiveDate = normalizeArchiveDateParam(params.archiveDate);
   const archiveMode = archiveDate !== null;
