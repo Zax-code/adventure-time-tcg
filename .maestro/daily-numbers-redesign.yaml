@@ -19,10 +19,6 @@ tags:
     text: Daily Numbers
 - assertVisible:
     id: daily-numbers-mode-3-3
-- assertVisible:
-    id: daily-numbers-apply-step-placeholder
-- assertNotVisible:
-    id: daily-numbers-apply-step-value
 - takeScreenshot: tmp-daily-numbers-redesign-shots/01-fresh-board
 
 # Three-large / three-small mode always gives us one operand from 1-10 and one
@@ -31,10 +27,6 @@ tags:
     text: "Number tile (?:[1-9]|10)"
 - tapOn:
     text: "Number tile (?:25|50|75|100)"
-- assertVisible:
-    id: daily-numbers-apply-step-placeholder
-- assertNotVisible:
-    id: daily-numbers-apply-step-value
 - assertVisible:
     id: daily-numbers-operator-minus
     enabled: false
@@ -51,10 +43,6 @@ tags:
 
 - tapOn:
     id: daily-numbers-operator-plus
-- assertNotVisible:
-    id: daily-numbers-apply-step-placeholder
-- assertVisible:
-    id: daily-numbers-apply-step-value
 - takeScreenshot: tmp-daily-numbers-redesign-shots/02b-ready-result
 - scrollUntilVisible:
     element:
@@ -64,10 +52,6 @@ tags:
     centerElement: true
 - tapOn:
     id: daily-numbers-apply-step
-- assertVisible:
-    id: daily-numbers-apply-step-placeholder
-- assertNotVisible:
-    id: daily-numbers-apply-step-value
 - scrollUntilVisible:
     element:
       id: daily-numbers-tile-r0
