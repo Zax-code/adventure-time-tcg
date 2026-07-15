@@ -1737,7 +1737,7 @@ function EquationResult({
               <Text
                 className={`${boardNumberTextClass} w-full px-4 text-center font-nunito-extrabold ${committing ? "text-primaryStrong" : "text-white"}`}
                 numberOfLines={1}
-                adjustsFontSizeToFit={String(previewState.result).length > 3}
+                adjustsFontSizeToFit={String(previewState.result).length > 4}
                 minimumFontScale={0.68}
                 style={{ fontVariant: ["tabular-nums"] }}
               >

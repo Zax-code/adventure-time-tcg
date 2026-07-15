@@ -19,5 +19,10 @@ describe("Daily Numbers equation result layout", () => {
       /className="absolute inset-y-0 right-2/,
       "the action arrow should not consume result-number layout width",
     );
+    assert.match(
+      equationResultSource,
+      /adjustsFontSizeToFit=\{String\(previewState\.result\)\.length > 4\}/,
+      "four-digit results should keep normal tile typography while longer results may auto-fit",
+    );
   });
 });
