@@ -29,6 +29,7 @@ import Animated, {
   FadeIn,
   FadeOut,
   LinearTransition,
+  ZoomIn,
   interpolate,
   runOnJS,
   useAnimatedStyle,
@@ -194,6 +195,7 @@ type LivePlayProps = {
   selectedOperator: Operator | null;
   selectedRightTile: BoardTile | null;
   submitting: boolean;
+  target: number;
   t: TranslateFn;
   tc: ThemeColors;
 };
@@ -1353,7 +1355,11 @@ function FinishStatePanel({
           </Text>
         ) : null}
         {exactHitState ? (
-          <View className="items-center" testID="daily-numbers-exact-target">
+          <Animated.View
+            entering={ZoomIn.duration(220)}
+            className="items-center"
+            testID="daily-numbers-exact-target"
+          >
             <Text
               className={`${resultEmphasisClass} text-center font-nunito-extrabold`}
               style={{ color: resultColor, fontVariant: ["tabular-nums"] }}
@@ -1369,7 +1375,7 @@ function FinishStatePanel({
             >
               {t("quests.dailyNumbers.target")}
             </Text>
-          </View>
+          </Animated.View>
         ) : null}
         <Text
           className="mt-2 text-center font-nunito-bold text-xs"
@@ -1757,21 +1763,62 @@ function OperatorPicker({
 function EquationResult({
   compact,
   committing,
+  exactHitPreview,
+  exactHitTransitioning,
   interactionLocked,
   onApplyStep,
+  onExactHitTransitionFinished,
   previewState,
   resultRef,
   t,
+  tc,
 }: {
   compact: boolean;
   committing: boolean;
+  exactHitPreview: boolean;
+  exactHitTransitioning: boolean;
   interactionLocked: boolean;
   onApplyStep: () => void;
+  onExactHitTransitionFinished: () => void;
   previewState: PreviewState;
   resultRef: RefObject<View | null>;
   t: TranslateFn;
+  tc: ThemeColors;
 }) {
   const boardNumberTextClass = getBoardNumberTextClass(compact);
+  const exactHitProgress = useSharedValue(0);
+  const exactHitAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(exactHitProgress.value, [0, 0.7, 1], [1, 1, 0.82]),
+    transform: [
+      {
+        scale: interpolate(
+          exactHitProgress.value,
+          [0, 0.55, 1],
+          [1, 1.1, 1.04],
+        ),
+      },
+    ],
+  }));
+
+  useEffect(() => {
+    if (!exactHitTransitioning) {
+      exactHitProgress.value = 0;
+      return;
+    }
+
+    exactHitProgress.value = withTiming(
+      1,
+      {
+        duration: 260,
+        easing: Easing.bezier(0.16, 1, 0.3, 1),
+      },
+      (finished) => {
+        if (finished) {
+          runOnJS(onExactHitTransitionFinished)();
+        }
+      },
+    );
+  }, [exactHitProgress, exactHitTransitioning, onExactHitTransitionFinished]);
 
   return (
     <View
@@ -1783,13 +1830,23 @@ function EquationResult({
           key={`ready-${previewState.result}`}
           entering={FadeIn.duration(150)}
           className="h-full w-full"
+          style={exactHitAnimatedStyle}
+          testID={exactHitPreview ? "daily-numbers-exact-preview" : undefined}
         >
           <View ref={resultRef} collapsable={false} className="h-full w-full">
             <Pressable
               onPress={onApplyStep}
               disabled={interactionLocked || committing}
-              className={`${committing ? "bg-surface" : "bg-primaryStrong"} relative h-full w-full items-center justify-center rounded-xl border-2 border-primaryStrong px-2 py-2`}
+              className="relative h-full w-full items-center justify-center rounded-xl border-2 px-2 py-2"
               style={({ pressed }) => ({
+                backgroundColor: exactHitPreview
+                  ? tc.successDark
+                  : committing
+                    ? tc.surface
+                    : tc.primaryStrong,
+                borderColor: exactHitPreview
+                  ? tc.successBorder
+                  : tc.primaryStrong,
                 opacity:
                   interactionLocked && !committing ? 0.38 : pressed ? 0.76 : 1,
               })}
@@ -1800,11 +1857,15 @@ function EquationResult({
               accessibilityLabel={t("quests.dailyNumbers.applyResult", {
                 result: previewState.result,
               })}
-              accessibilityHint={t("quests.dailyNumbers.applyResultHint")}
+              accessibilityHint={
+                exactHitPreview
+                  ? t("quests.dailyNumbers.exactHitLabel")
+                  : t("quests.dailyNumbers.applyResultHint")
+              }
               testID="daily-numbers-apply-step"
             >
               <Text
-                className={`${boardNumberTextClass} w-full ${compact ? "px-2" : "px-3"} text-center font-nunito-extrabold ${committing ? "text-primaryStrong" : "text-white"}`}
+                className={`${boardNumberTextClass} w-full ${compact ? "px-2" : "px-3"} text-center font-nunito-extrabold ${committing && !exactHitPreview ? "text-primaryStrong" : "text-white"}`}
                 numberOfLines={1}
                 adjustsFontSizeToFit={String(previewState.result).length > 4}
                 minimumFontScale={0.68}
@@ -1820,7 +1881,7 @@ function EquationResult({
                   importantForAccessibility="no-hide-descendants"
                 >
                   <Text className="font-nunito-extrabold text-lg text-white">
-                    ↓
+                    {exactHitPreview ? "✦" : "↓"}
                   </Text>
                 </View>
               ) : null}
@@ -1846,29 +1907,35 @@ function EquationResult({
 function EquationWorkbench({
   compact,
   committing,
+  exactHitTransitioning,
   interactionLocked,
   localSteps,
   onApplyStep,
   onClearSlot,
+  onExactHitTransitionFinished,
   previewState,
   resultRef,
   selectedLeftTile,
   selectedOperator,
   selectedRightTile,
+  target,
   t,
   tc,
 }: {
   compact: boolean;
   committing: boolean;
+  exactHitTransitioning: boolean;
   interactionLocked: boolean;
   localSteps: DailyNumbersStep[];
   onApplyStep: () => void;
   onClearSlot: (slot: SlotKey) => void;
+  onExactHitTransitionFinished: () => void;
   previewState: PreviewState;
   resultRef: RefObject<View | null>;
   selectedLeftTile: BoardTile | null;
   selectedOperator: Operator | null;
   selectedRightTile: BoardTile | null;
+  target: number;
   t: TranslateFn;
   tc: ThemeColors;
 }) {
@@ -1876,6 +1943,8 @@ function EquationWorkbench({
   const stackResult = fontScale >= 1.35 || width < 380;
   const equationTextClassName = getBoardNumberTextClass(compact);
   const equationControlHeight = compact ? "h-[58px]" : "h-16";
+  const exactHitPreview =
+    previewState.kind === "ready" && previewState.result === target;
 
   return (
     <View>
@@ -1992,11 +2061,15 @@ function EquationWorkbench({
               <EquationResult
                 compact={compact}
                 committing={committing}
+                exactHitPreview={exactHitPreview}
+                exactHitTransitioning={exactHitTransitioning}
                 interactionLocked={interactionLocked}
                 onApplyStep={onApplyStep}
+                onExactHitTransitionFinished={onExactHitTransitionFinished}
                 previewState={previewState}
                 resultRef={resultRef}
                 t={t}
+                tc={tc}
               />
             </>
           ) : null}
@@ -2011,11 +2084,15 @@ function EquationWorkbench({
             <EquationResult
               compact={compact}
               committing={committing}
+              exactHitPreview={exactHitPreview}
+              exactHitTransitioning={exactHitTransitioning}
               interactionLocked={interactionLocked}
               onApplyStep={onApplyStep}
+              onExactHitTransitionFinished={onExactHitTransitionFinished}
               previewState={previewState}
               resultRef={resultRef}
               t={t}
+              tc={tc}
             />
           </View>
         ) : null}
@@ -2280,6 +2357,7 @@ function LivePlayPanel({
   selectedOperator,
   selectedRightTile,
   submitting,
+  target,
   t,
   tc,
 }: LivePlayProps) {
@@ -2290,8 +2368,12 @@ function LivePlayPanel({
   const [commitAnimation, setCommitAnimation] =
     useState<ResultCommitAnimation | null>(null);
   const [preparingCommit, setPreparingCommit] = useState(false);
+  const [exactHitTransitioning, setExactHitTransitioning] = useState(false);
   const commitLocked =
-    interactionLocked || preparingCommit || commitAnimation !== null;
+    interactionLocked ||
+    preparingCommit ||
+    exactHitTransitioning ||
+    commitAnimation !== null;
   const committingTileIds = useMemo(
     () =>
       new Set(
@@ -2318,6 +2400,11 @@ function LivePlayPanel({
       !selectedLeftTile ||
       !selectedRightTile
     ) {
+      return;
+    }
+
+    if (previewState.result === target) {
+      setExactHitTransitioning(true);
       return;
     }
 
@@ -2373,6 +2460,7 @@ function LivePlayPanel({
     previewState,
     selectedLeftTile,
     selectedRightTile,
+    target,
   ]);
 
   const handleCommitMerged = useCallback(() => {
@@ -2388,16 +2476,21 @@ function LivePlayPanel({
       <View ref={stageRef} collapsable={false} className="relative">
         <EquationWorkbench
           compact={compact}
-          committing={preparingCommit || commitAnimation !== null}
+          committing={
+            preparingCommit || exactHitTransitioning || commitAnimation !== null
+          }
+          exactHitTransitioning={exactHitTransitioning}
           interactionLocked={commitLocked}
           localSteps={localSteps}
           onApplyStep={handleApplyResult}
           onClearSlot={onClearSlot}
+          onExactHitTransitionFinished={onApplyStep}
           previewState={previewState}
           resultRef={resultRef}
           selectedLeftTile={selectedLeftTile}
           selectedOperator={selectedOperator}
           selectedRightTile={selectedRightTile}
+          target={target}
           t={t}
           tc={tc}
         />
@@ -3416,6 +3509,7 @@ function DailyNumbersBoard({
             selectedOperator={controller.selectedOperator}
             selectedRightTile={controller.selectedRightTile}
             submitting={controller.interaction.submitting}
+            target={controller.state.target}
             t={controller.t}
             tc={controller.tc}
           />

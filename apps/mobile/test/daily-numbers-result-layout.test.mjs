@@ -18,6 +18,12 @@ const finishStateEnd = source.indexOf(
   finishStateStart,
 );
 const finishStateSource = source.slice(finishStateStart, finishStateEnd);
+const livePlayStart = source.indexOf("function LivePlayPanel(");
+const livePlayEnd = source.indexOf(
+  "function useDailyNumbersBoardController(",
+  livePlayStart,
+);
+const livePlaySource = source.slice(livePlayStart, livePlayEnd);
 
 describe("Daily Numbers equation result layout", () => {
   it("keeps 1000 and 10000 in a dedicated full-width text lane", () => {
@@ -35,6 +41,41 @@ describe("Daily Numbers equation result layout", () => {
       equationResultSource,
       /adjustsFontSizeToFit=\{String\(previewState\.result\)\.length > 4\}/,
       "four-digit results should keep normal tile typography while longer results may auto-fit",
+    );
+  });
+
+  it("marks an exact-target preview as a distinct success state", () => {
+    assert.match(
+      equationResultSource,
+      /testID=\{\s*exactHitPreview \? "daily-numbers-exact-preview"/,
+      "an exact result should expose its special preview state",
+    );
+    assert.match(
+      equationResultSource,
+      /exactHitPreview\s*\? tc\.successDark/,
+      "an exact result should use the success palette before it is applied",
+    );
+  });
+});
+
+describe("Daily Numbers exact-hit transition", () => {
+  it("bypasses future-tile measurement before applying the exact result", () => {
+    const exactHitBranch = livePlaySource.indexOf(
+      "if (previewState.result === target)",
+    );
+    const futureTileMeasurement = livePlaySource.indexOf(
+      "const targetNode = futureResultRef.current",
+    );
+
+    assert.ok(exactHitBranch >= 0, "exact hits should have a dedicated branch");
+    assert.ok(
+      exactHitBranch < futureTileMeasurement,
+      "the exact-hit branch should return before the tile-transfer path is measured",
+    );
+    assert.match(
+      livePlaySource.slice(exactHitBranch, futureTileMeasurement),
+      /setExactHitTransitioning\(true\);\s*return;/,
+      "the exact result should transition directly into the finish state",
     );
   });
 });
