@@ -1735,7 +1735,7 @@ function EquationResult({
               testID="daily-numbers-apply-step"
             >
               <Text
-                className={`${boardNumberTextClass} w-full px-4 text-center font-nunito-extrabold ${committing ? "text-primaryStrong" : "text-white"}`}
+                className={`${boardNumberTextClass} w-full ${compact ? "px-2" : "px-3"} text-center font-nunito-extrabold ${committing ? "text-primaryStrong" : "text-white"}`}
                 numberOfLines={1}
                 adjustsFontSizeToFit={String(previewState.result).length > 4}
                 minimumFontScale={0.68}
