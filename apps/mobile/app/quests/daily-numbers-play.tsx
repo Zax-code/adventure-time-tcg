@@ -421,6 +421,12 @@ function getBoardNumberTextClass(compact: boolean) {
   return compact ? "text-[22px] leading-[28px]" : "text-[25px] leading-[32px]";
 }
 
+function getBoardTileHeightClass(compact: boolean) {
+  return compact ? "h-[58px]" : "h-16";
+}
+
+const BOARD_TILE_WIDTH = "31.5%";
+
 function measureView(view: View): Promise<MeasuredRect> {
   return new Promise((resolve, reject) => {
     view.measureInWindow((x, y, width, height) => {
@@ -1510,8 +1516,8 @@ function AvailableNumbersGrid({
                   index === futureTileCount - 1 ? futureResultRef : undefined
                 }
                 collapsable={false}
-                className={compact ? "h-[58px]" : "h-16"}
-                style={{ width: "31.5%" }}
+                className={getBoardTileHeightClass(compact)}
+                style={{ width: BOARD_TILE_WIDTH }}
               />
             ))}
           </View>
@@ -1535,12 +1541,12 @@ function AvailableNumbersGrid({
               }
               exiting={FadeOut.duration(140)}
               layout={LinearTransition.duration(200)}
-              style={{ width: "31.5%" }}
+              style={{ width: BOARD_TILE_WIDTH }}
             >
               <Pressable
                 onPress={() => onTilePress(tile.id)}
                 disabled={availability.disabled}
-                className={`${compact ? "min-h-[58px]" : "min-h-[64px]"} items-center justify-center overflow-hidden rounded-xl px-2 py-2`}
+                className={`${getBoardTileHeightClass(compact)} items-center justify-center overflow-hidden rounded-xl px-2 py-2`}
                 style={{
                   borderColor: availability.selected
                     ? modeAccent.text
@@ -1683,7 +1689,6 @@ function OperatorPicker({
 function EquationResult({
   compact,
   committing,
-  expanded,
   interactionLocked,
   onApplyStep,
   previewState,
@@ -1692,7 +1697,6 @@ function EquationResult({
 }: {
   compact: boolean;
   committing: boolean;
-  expanded?: boolean;
   interactionLocked: boolean;
   onApplyStep: () => void;
   previewState: PreviewState;
@@ -1703,23 +1707,23 @@ function EquationResult({
 
   return (
     <View
-      className={`${expanded ? "flex-1" : "min-w-[86px] max-w-[104px] flex-1"} ${compact ? "h-[58px]" : "h-16"} items-center justify-center px-1`}
+      className={`${getBoardTileHeightClass(compact)} items-center justify-center`}
+      style={{ width: BOARD_TILE_WIDTH }}
     >
       {previewState.kind === "ready" ? (
         <Animated.View
           key={`ready-${previewState.result}`}
           entering={FadeIn.duration(150)}
-          className="w-full"
+          className="h-full w-full"
         >
-          <View ref={resultRef} collapsable={false} className="w-full">
+          <View ref={resultRef} collapsable={false} className="h-full w-full">
             <Pressable
               onPress={onApplyStep}
               disabled={interactionLocked || committing}
-              className={`${compact ? "min-h-[54px]" : "min-h-[60px]"} ${committing ? "border-2 border-primaryStrong bg-surface" : "bg-primaryStrong"} w-full flex-row items-center justify-center gap-1.5 rounded-xl px-2`}
+              className={`${committing ? "bg-surface" : "bg-primaryStrong"} h-full w-full flex-row items-center justify-center gap-1.5 rounded-xl border-2 border-primaryStrong px-2 py-2`}
               style={({ pressed }) => ({
                 opacity:
                   interactionLocked && !committing ? 0.38 : pressed ? 0.76 : 1,
-                transform: [{ scale: pressed ? 0.96 : 1 }],
               })}
               accessibilityRole="button"
               accessibilityState={{
@@ -1927,7 +1931,7 @@ function EquationWorkbench({
           ) : null}
         </View>
         {stackResult ? (
-          <View className="mt-2 flex-row items-center gap-2 border-t border-primaryBorder pt-2">
+          <View className="mt-2 flex-row items-center justify-end gap-2 border-t border-primaryBorder pt-2">
             <Text
               className={`${equationTextClassName} w-8 text-center font-nunito-extrabold text-fgMuted`}
             >
@@ -1936,7 +1940,6 @@ function EquationWorkbench({
             <EquationResult
               compact={compact}
               committing={committing}
-              expanded
               interactionLocked={interactionLocked}
               onApplyStep={onApplyStep}
               previewState={previewState}
@@ -2049,8 +2052,6 @@ function CommittedResultTile({
   const resultCenterY = resultRect.y + resultRect.height / 2;
   const targetCenterX = targetRect.x + targetRect.width / 2;
   const targetCenterY = targetRect.y + targetRect.height / 2;
-  const startScaleX = resultRect.width / targetRect.width;
-  const startScaleY = resultRect.height / targetRect.height;
   const animatedStyle = useAnimatedStyle(() => {
     const transferProgress = interpolate(
       progress.value,
@@ -2058,13 +2059,6 @@ function CommittedResultTile({
       [0, 1],
       "clamp",
     );
-    const settlePulse = interpolate(
-      progress.value,
-      [0, 0.14, 0.3],
-      [1, 1.04, 1],
-      "clamp",
-    );
-
     return {
       transform: [
         {
@@ -2072,14 +2066,6 @@ function CommittedResultTile({
         },
         {
           translateY: (resultCenterY - targetCenterY) * (1 - transferProgress),
-        },
-        {
-          scaleX:
-            (startScaleX + (1 - startScaleX) * transferProgress) * settlePulse,
-        },
-        {
-          scaleY:
-            (startScaleY + (1 - startScaleY) * transferProgress) * settlePulse,
         },
       ],
     };
