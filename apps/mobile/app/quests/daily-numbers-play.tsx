@@ -11,11 +11,13 @@ import {
   useReducer,
   useRef,
   useState,
+  type RefObject,
 } from "react";
 import {
   AccessibilityInfo,
   AppState,
   Alert,
+  type LayoutChangeEvent,
   Pressable,
   ScrollView,
   Text,
@@ -23,11 +25,18 @@ import {
   useWindowDimensions,
 } from "react-native";
 import Animated, {
+  Easing,
   FadeIn,
-  FadeInDown,
   FadeOut,
-  Keyframe,
   LinearTransition,
+  interpolate,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withSpring,
+  withTiming,
+  type SharedValue,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { captureRef } from "react-native-view-shot";
@@ -191,14 +200,36 @@ type LivePlayProps = {
 type AvailableNumbersGridProps = {
   availableTiles: BoardTile[];
   compact: boolean;
+  committingResultId: string | null;
+  committingTileIds: ReadonlySet<string>;
+  futureResultRef: RefObject<View | null>;
   interactionLocked: boolean;
   modeAccent: ReturnType<typeof getModeAccent>;
+  onTileRef: (tileId: string, node: View | null) => void;
   onTilePress: (tileId: string) => void;
   selectedLeftTile: BoardTile | null;
   selectedOperator: Operator | null;
   selectedRightTile: BoardTile | null;
   t: TranslateFn;
   tc: ThemeColors;
+};
+type MeasuredRect = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+type ResultCommitAnimation = {
+  leftId: string;
+  leftRect: MeasuredRect;
+  leftValue: number;
+  resultRect: MeasuredRect;
+  resultId: string;
+  resultValue: number;
+  rightId: string;
+  rightRect: MeasuredRect;
+  rightValue: number;
+  targetRect: MeasuredRect;
 };
 type OperatorPickerProps = {
   compact: boolean;
@@ -212,20 +243,6 @@ type OperatorPickerProps = {
 };
 
 const OPERATORS: Operator[] = ["+", "-", "*", "/"];
-const RESULT_COMMIT_EXIT = new Keyframe({
-  0: {
-    opacity: 1,
-    transform: [{ translateY: 0 }, { scale: 1 }],
-  },
-  70: {
-    opacity: 1,
-    transform: [{ translateY: 92 }, { scale: 0.9 }],
-  },
-  100: {
-    opacity: 0,
-    transform: [{ translateY: 138 }, { scale: 0.82 }],
-  },
-}).duration(260);
 const EXACT_HIT_PERCENT = 100;
 const CHRONOMETER_STORAGE_PREFIX = "dailyNumbersChronometer";
 const CHRONOMETER_SAVE_INTERVAL_MS = 5000;
@@ -398,6 +415,35 @@ function toStepInputs(steps: DailyNumbersStep[]): DailyNumbersStepInput[] {
 
 function displayOperator(operator: Operator) {
   return operator === "*" ? "×" : operator === "/" ? "÷" : operator;
+}
+
+function getBoardNumberTextClass(compact: boolean) {
+  return compact ? "text-[22px] leading-[28px]" : "text-[25px] leading-[32px]";
+}
+
+function measureView(view: View): Promise<MeasuredRect> {
+  return new Promise((resolve, reject) => {
+    view.measureInWindow((x, y, width, height) => {
+      if (width <= 0 || height <= 0) {
+        reject(new Error("Daily Numbers animation target is not measurable."));
+        return;
+      }
+
+      resolve({ x, y, width, height });
+    });
+  });
+}
+
+function relativeRect(
+  rect: MeasuredRect,
+  rootRect: MeasuredRect,
+): MeasuredRect {
+  return {
+    x: rect.x - rootRect.x,
+    y: rect.y - rootRect.y,
+    width: rect.width,
+    height: rect.height,
+  };
 }
 
 function formatNumbersShareDate(
@@ -797,11 +843,61 @@ function ModeTabs({
   t: TranslateFn;
   tc: ThemeColors;
 }) {
+  const [containerWidth, setContainerWidth] = useState(0);
+  const indicatorX = useSharedValue(0);
+  const tabGap = 6;
+  const tabPadding = 4;
+  const activeIndex = Math.max(
+    0,
+    modeCards.findIndex(({ mode }) => mode === activeMode),
+  );
+  const tabWidth =
+    containerWidth > 0 ? (containerWidth - tabPadding * 2 - tabGap * 2) / 3 : 0;
+  const activeAccent = getModeAccent(activeMode, tc);
+  const indicatorStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: indicatorX.value }],
+  }));
+
+  useEffect(() => {
+    if (tabWidth <= 0) {
+      return;
+    }
+
+    indicatorX.value = withSpring(
+      tabPadding + activeIndex * (tabWidth + tabGap),
+      {
+        damping: 20,
+        stiffness: 210,
+        mass: 0.72,
+      },
+    );
+  }, [activeIndex, indicatorX, tabWidth]);
+
+  const handleLayout = useCallback((event: LayoutChangeEvent) => {
+    setContainerWidth(event.nativeEvent.layout.width);
+  }, []);
+
   return (
-    <View className="mb-4 flex-row border-b border-primaryBorder">
+    <View
+      className="relative mb-4 flex-row gap-1.5 rounded-2xl p-1"
+      onLayout={handleLayout}
+    >
+      {tabWidth > 0 ? (
+        <Animated.View
+          pointerEvents="none"
+          className="absolute bottom-1 left-0 top-1 rounded-xl border-2"
+          style={[
+            {
+              width: tabWidth,
+              backgroundColor: activeAccent.bg,
+              borderColor: activeAccent.text,
+            },
+            indicatorStyle,
+          ]}
+        />
+      ) : null}
       {modeCards.map(({ mode, state, isLoading }) => {
         const selected = mode === activeMode;
-        const accent = getModeAccent(mode, tc);
         const statusLabel =
           archiveMode && state?.submission
             ? t("quests.dailyNumbers.archiveSavedLabel")
@@ -815,11 +911,11 @@ function ModeTabs({
               triggerSelectionHaptic();
               onSelectMode(mode);
             }}
-            className="min-h-[64px] flex-1 items-center justify-center px-1.5 py-2.5"
+            className="min-h-[64px] flex-1 items-center justify-center rounded-xl border px-1.5 py-2.5"
             style={({ pressed }) => ({
-              borderBottomColor: selected ? accent.text : "transparent",
-              borderBottomWidth: selected ? 3 : 0,
+              borderColor: selected ? "transparent" : tc.primaryBorder,
               opacity: pressed ? 0.72 : 1,
+              zIndex: 1,
             })}
             testID={`daily-numbers-mode-${mode}`}
             accessibilityRole="button"
@@ -1367,8 +1463,12 @@ function FinishStatePanel({
 function AvailableNumbersGrid({
   availableTiles,
   compact,
+  committingResultId,
+  committingTileIds,
+  futureResultRef,
   interactionLocked,
   modeAccent,
+  onTileRef,
   onTilePress,
   selectedLeftTile,
   selectedOperator,
@@ -1376,6 +1476,14 @@ function AvailableNumbersGrid({
   t,
   tc,
 }: AvailableNumbersGridProps) {
+  const boardNumberTextClass = getBoardNumberTextClass(compact);
+  const commitInProgress =
+    committingTileIds.size > 0 || committingResultId !== null;
+  const futureTileCount =
+    selectedLeftTile && selectedOperator && selectedRightTile
+      ? Math.max(1, availableTiles.length - 1)
+      : 0;
+
   return (
     <View className="mt-5">
       <View className="flex-row items-baseline justify-between">
@@ -1389,7 +1497,25 @@ function AvailableNumbersGrid({
           {availableTiles.length}
         </Text>
       </View>
-      <View className="mt-2.5 flex-row flex-wrap justify-between gap-y-2">
+      <View className="relative mt-2.5 flex-row flex-wrap justify-between gap-y-2">
+        {futureTileCount > 0 ? (
+          <View
+            pointerEvents="none"
+            className="absolute inset-0 flex-row flex-wrap justify-between gap-y-2 opacity-0"
+          >
+            {Array.from({ length: futureTileCount }, (_, index) => (
+              <View
+                key={`future-slot-${index}`}
+                ref={
+                  index === futureTileCount - 1 ? futureResultRef : undefined
+                }
+                collapsable={false}
+                className={compact ? "h-[58px]" : "h-16"}
+                style={{ width: "31.5%" }}
+              />
+            ))}
+          </View>
+        ) : null}
         {availableTiles.map((tile) => {
           const availability = getDailyNumbersTileAvailability({
             interactionLocked,
@@ -1402,10 +1528,10 @@ function AvailableNumbersGrid({
           return (
             <Animated.View
               key={tile.id}
+              ref={(node: View | null) => onTileRef(tile.id, node)}
+              collapsable={false}
               entering={
-                tile.source === "derived"
-                  ? FadeInDown.duration(240)
-                  : FadeIn.duration(180)
+                tile.source === "derived" ? undefined : FadeIn.duration(180)
               }
               exiting={FadeOut.duration(140)}
               layout={LinearTransition.duration(200)}
@@ -1418,15 +1544,24 @@ function AvailableNumbersGrid({
                 style={{
                   borderColor: availability.selected
                     ? modeAccent.text
-                    : "transparent",
+                    : tile.source === "derived"
+                      ? tc.primaryStrong
+                      : "transparent",
                   borderWidth: 2,
                   backgroundColor: availability.selected
                     ? modeAccent.bg
                     : tile.source === "derived"
-                      ? tc.surfaceMuted
+                      ? tc.surface
                       : tc.surface,
                   opacity:
-                    availability.disabled && !availability.selected ? 0.4 : 1,
+                    committingTileIds.has(tile.id) ||
+                    tile.id === committingResultId
+                      ? 0
+                      : !commitInProgress &&
+                          availability.disabled &&
+                          !availability.selected
+                        ? 0.4
+                        : 1,
                 }}
                 testID={`daily-numbers-tile-${tile.id}`}
                 accessibilityRole="button"
@@ -1448,13 +1583,17 @@ function AvailableNumbersGrid({
                   </Text>
                 ) : null}
                 <Text
-                  className={`text-center font-nunito-extrabold ${compact ? "text-[22px]" : "text-[25px]"}`}
+                  className={`${boardNumberTextClass} text-center font-nunito-extrabold`}
                   style={{
-                    color: availability.selected ? modeAccent.text : tc.fg,
+                    color: availability.selected
+                      ? modeAccent.text
+                      : tile.source === "derived"
+                        ? tc.primaryStrong
+                        : tc.fg,
                     fontVariant: ["tabular-nums"],
                   }}
                   numberOfLines={1}
-                  adjustsFontSizeToFit
+                  adjustsFontSizeToFit={String(tile.value).length > 3}
                   minimumFontScale={0.68}
                 >
                   {tile.value}
@@ -1478,12 +1617,14 @@ function OperatorPicker({
   t,
   tc,
 }: OperatorPickerProps) {
+  const boardNumberTextClass = getBoardNumberTextClass(compact);
+
   return (
     <View className="mt-5">
       <Text className="font-nunito-extrabold text-sm text-fg">
         {t("quests.dailyNumbers.operators")}
       </Text>
-      <View className="mt-2 flex-row gap-1 rounded-xl bg-surfaceMuted p-1">
+      <View className="mt-2 flex-row gap-2">
         {OPERATORS.map((operator) => {
           const availability = getDailyNumbersOperatorAvailability({
             interactionLocked,
@@ -1498,11 +1639,14 @@ function OperatorPicker({
               key={operator}
               onPress={() => onOperatorPress(operator)}
               disabled={availability.disabled}
-              className={`${compact ? "min-h-[58px]" : "min-h-[64px]"} flex-1 items-center justify-center rounded-lg px-2 py-2`}
+              className={`${compact ? "min-h-[58px]" : "min-h-[64px]"} flex-1 items-center justify-center rounded-xl border px-2 py-2`}
               style={{
+                borderColor: availability.selected
+                  ? tc.accentStrong
+                  : tc.primaryBorder,
                 backgroundColor: availability.selected
                   ? tc.accentTint
-                  : "transparent",
+                  : tc.surface,
                 opacity:
                   availability.disabled && !availability.selected
                     ? 0.2
@@ -1521,7 +1665,7 @@ function OperatorPicker({
               })}
             >
               <Text
-                className={`text-center font-nunito-extrabold ${compact ? "text-[22px]" : "text-[25px]"}`}
+                className={`${boardNumberTextClass} text-center font-nunito-extrabold`}
                 style={{
                   color: availability.selected ? tc.accentStrong : tc.fg,
                 }}
@@ -1538,72 +1682,81 @@ function OperatorPicker({
 
 function EquationResult({
   compact,
+  committing,
   expanded,
   interactionLocked,
   onApplyStep,
   previewState,
+  resultRef,
   t,
 }: {
   compact: boolean;
+  committing: boolean;
   expanded?: boolean;
   interactionLocked: boolean;
   onApplyStep: () => void;
   previewState: PreviewState;
+  resultRef: RefObject<View | null>;
   t: TranslateFn;
 }) {
-  const resultClassName = compact ? "text-[22px]" : "text-[25px]";
+  const boardNumberTextClass = getBoardNumberTextClass(compact);
 
   return (
     <View
-      className={`${expanded ? "flex-1" : "min-w-[72px] max-w-[92px] flex-1"} ${compact ? "h-[58px]" : "h-16"} items-center justify-center px-1`}
+      className={`${expanded ? "flex-1" : "min-w-[86px] max-w-[104px] flex-1"} ${compact ? "h-[58px]" : "h-16"} items-center justify-center px-1`}
     >
       {previewState.kind === "ready" ? (
         <Animated.View
           key={`ready-${previewState.result}`}
           entering={FadeIn.duration(150)}
-          exiting={RESULT_COMMIT_EXIT}
           className="w-full"
         >
-          <Pressable
-            onPress={onApplyStep}
-            disabled={interactionLocked}
-            className={`${compact ? "min-h-[54px]" : "min-h-[60px]"} w-full flex-row items-center justify-center gap-1.5 rounded-xl bg-primaryStrong px-2`}
-            style={({ pressed }) => ({
-              opacity: interactionLocked ? 0.38 : pressed ? 0.76 : 1,
-              transform: [{ scale: pressed ? 0.96 : 1 }],
-            })}
-            accessibilityRole="button"
-            accessibilityState={{ disabled: interactionLocked }}
-            accessibilityLabel={t("quests.dailyNumbers.applyResult", {
-              result: previewState.result,
-            })}
-            accessibilityHint={t("quests.dailyNumbers.applyResultHint")}
-            testID="daily-numbers-apply-step"
-          >
-            <Text
-              className={`${resultClassName} text-center font-nunito-extrabold text-white`}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.68}
-              style={{ fontVariant: ["tabular-nums"] }}
+          <View ref={resultRef} collapsable={false} className="w-full">
+            <Pressable
+              onPress={onApplyStep}
+              disabled={interactionLocked || committing}
+              className={`${compact ? "min-h-[54px]" : "min-h-[60px]"} ${committing ? "border-2 border-primaryStrong bg-surface" : "bg-primaryStrong"} w-full flex-row items-center justify-center gap-1.5 rounded-xl px-2`}
+              style={({ pressed }) => ({
+                opacity:
+                  interactionLocked && !committing ? 0.38 : pressed ? 0.76 : 1,
+                transform: [{ scale: pressed ? 0.96 : 1 }],
+              })}
+              accessibilityRole="button"
+              accessibilityState={{
+                disabled: interactionLocked || committing,
+              }}
+              accessibilityLabel={t("quests.dailyNumbers.applyResult", {
+                result: previewState.result,
+              })}
+              accessibilityHint={t("quests.dailyNumbers.applyResultHint")}
+              testID="daily-numbers-apply-step"
             >
-              {previewState.result}
-            </Text>
-            <Text
-              className="font-nunito-extrabold text-lg text-white"
-              accessibilityElementsHidden
-              importantForAccessibility="no-hide-descendants"
-            >
-              ↓
-            </Text>
-          </Pressable>
+              <Text
+                className={`${boardNumberTextClass} text-center font-nunito-extrabold ${committing ? "text-primaryStrong" : "text-white"}`}
+                numberOfLines={1}
+                adjustsFontSizeToFit={String(previewState.result).length > 3}
+                minimumFontScale={0.68}
+                style={{ fontVariant: ["tabular-nums"] }}
+              >
+                {previewState.result}
+              </Text>
+              {!committing ? (
+                <Text
+                  className="font-nunito-extrabold text-lg text-white"
+                  accessibilityElementsHidden
+                  importantForAccessibility="no-hide-descendants"
+                >
+                  ↓
+                </Text>
+              ) : null}
+            </Pressable>
+          </View>
         </Animated.View>
       ) : (
         <Animated.View key={previewState.kind} entering={FadeIn.duration(120)}>
           <Text
-            className={`${resultClassName} text-center font-nunito-extrabold ${previewState.kind === "invalid" ? "text-dangerText" : "text-fgMuted"}`}
+            className={`${boardNumberTextClass} text-center font-nunito-extrabold ${previewState.kind === "invalid" ? "text-dangerText" : "text-fgMuted"}`}
             numberOfLines={1}
-            adjustsFontSizeToFit
             minimumFontScale={0.68}
             style={{ fontVariant: ["tabular-nums"] }}
           >
@@ -1617,11 +1770,13 @@ function EquationResult({
 
 function EquationWorkbench({
   compact,
+  committing,
   interactionLocked,
   localSteps,
   onApplyStep,
   onClearSlot,
   previewState,
+  resultRef,
   selectedLeftTile,
   selectedOperator,
   selectedRightTile,
@@ -1629,11 +1784,13 @@ function EquationWorkbench({
   tc,
 }: {
   compact: boolean;
+  committing: boolean;
   interactionLocked: boolean;
   localSteps: DailyNumbersStep[];
   onApplyStep: () => void;
   onClearSlot: (slot: SlotKey) => void;
   previewState: PreviewState;
+  resultRef: RefObject<View | null>;
   selectedLeftTile: BoardTile | null;
   selectedOperator: Operator | null;
   selectedRightTile: BoardTile | null;
@@ -1642,7 +1799,7 @@ function EquationWorkbench({
 }) {
   const { fontScale, width } = useWindowDimensions();
   const stackResult = fontScale >= 1.35 || width < 380;
-  const equationTextClassName = compact ? "text-[22px]" : "text-[25px]";
+  const equationTextClassName = getBoardNumberTextClass(compact);
   const equationControlHeight = compact ? "h-[58px]" : "h-16";
 
   return (
@@ -1683,7 +1840,9 @@ function EquationWorkbench({
             <Text
               className={`${equationTextClassName} text-center font-nunito-extrabold ${selectedLeftTile ? "text-fg" : "text-fgMuted"}`}
               numberOfLines={1}
-              adjustsFontSizeToFit
+              adjustsFontSizeToFit={
+                String(selectedLeftTile?.value ?? "—").length > 3
+              }
               minimumFontScale={0.68}
               style={{ fontVariant: ["tabular-nums"] }}
             >
@@ -1739,7 +1898,9 @@ function EquationWorkbench({
             <Text
               className={`${equationTextClassName} text-center font-nunito-extrabold ${selectedRightTile ? "text-fg" : "text-fgMuted"}`}
               numberOfLines={1}
-              adjustsFontSizeToFit
+              adjustsFontSizeToFit={
+                String(selectedRightTile?.value ?? "—").length > 3
+              }
               minimumFontScale={0.68}
               style={{ fontVariant: ["tabular-nums"] }}
             >
@@ -1755,9 +1916,11 @@ function EquationWorkbench({
               </Text>
               <EquationResult
                 compact={compact}
+                committing={committing}
                 interactionLocked={interactionLocked}
                 onApplyStep={onApplyStep}
                 previewState={previewState}
+                resultRef={resultRef}
                 t={t}
               />
             </>
@@ -1772,10 +1935,12 @@ function EquationWorkbench({
             </Text>
             <EquationResult
               compact={compact}
+              committing={committing}
               expanded
               interactionLocked={interactionLocked}
               onApplyStep={onApplyStep}
               previewState={previewState}
+              resultRef={resultRef}
               t={t}
             />
           </View>
@@ -1793,6 +1958,245 @@ function EquationWorkbench({
               : t("quests.dailyNumbers.noPreview")}
         </Text>
       </View>
+    </View>
+  );
+}
+
+function ConsumedNumberTile({
+  compact,
+  modeAccent,
+  progress,
+  rect,
+  resultRect,
+  value,
+}: {
+  compact: boolean;
+  modeAccent: ReturnType<typeof getModeAccent>;
+  progress: SharedValue<number>;
+  rect: MeasuredRect;
+  resultRect: MeasuredRect;
+  value: number;
+}) {
+  const translateX =
+    resultRect.x + resultRect.width / 2 - (rect.x + rect.width / 2);
+  const translateY =
+    resultRect.y + resultRect.height / 2 - (rect.y + rect.height / 2);
+  const animatedStyle = useAnimatedStyle(() => {
+    const mergeProgress = interpolate(
+      progress.value,
+      [0, 0.3],
+      [0, 1],
+      "clamp",
+    );
+
+    return {
+      opacity: interpolate(
+        progress.value,
+        [0, 0.22, 0.32],
+        [1, 0.82, 0],
+        "clamp",
+      ),
+      transform: [
+        { translateX: translateX * mergeProgress },
+        { translateY: translateY * mergeProgress },
+        { scale: interpolate(mergeProgress, [0, 1], [1, 0.28]) },
+      ],
+    };
+  });
+
+  return (
+    <Animated.View
+      className="absolute items-center justify-center rounded-xl border-2"
+      style={[
+        {
+          left: rect.x,
+          top: rect.y,
+          width: rect.width,
+          height: rect.height,
+          backgroundColor: modeAccent.bg,
+          borderColor: modeAccent.text,
+        },
+        animatedStyle,
+      ]}
+    >
+      <Text
+        className={`${getBoardNumberTextClass(compact)} text-center font-nunito-extrabold`}
+        style={{
+          color: modeAccent.text,
+          fontVariant: ["tabular-nums"],
+        }}
+      >
+        {value}
+      </Text>
+    </Animated.View>
+  );
+}
+
+function CommittedResultTile({
+  compact,
+  progress,
+  resultRect,
+  targetRect,
+  value,
+}: {
+  compact: boolean;
+  progress: SharedValue<number>;
+  resultRect: MeasuredRect;
+  targetRect: MeasuredRect;
+  value: number;
+}) {
+  const resultCenterX = resultRect.x + resultRect.width / 2;
+  const resultCenterY = resultRect.y + resultRect.height / 2;
+  const targetCenterX = targetRect.x + targetRect.width / 2;
+  const targetCenterY = targetRect.y + targetRect.height / 2;
+  const startScaleX = resultRect.width / targetRect.width;
+  const startScaleY = resultRect.height / targetRect.height;
+  const animatedStyle = useAnimatedStyle(() => {
+    const transferProgress = interpolate(
+      progress.value,
+      [0.3, 1],
+      [0, 1],
+      "clamp",
+    );
+    const settlePulse = interpolate(
+      progress.value,
+      [0, 0.14, 0.3],
+      [1, 1.04, 1],
+      "clamp",
+    );
+
+    return {
+      transform: [
+        {
+          translateX: (resultCenterX - targetCenterX) * (1 - transferProgress),
+        },
+        {
+          translateY: (resultCenterY - targetCenterY) * (1 - transferProgress),
+        },
+        {
+          scaleX:
+            (startScaleX + (1 - startScaleX) * transferProgress) * settlePulse,
+        },
+        {
+          scaleY:
+            (startScaleY + (1 - startScaleY) * transferProgress) * settlePulse,
+        },
+      ],
+    };
+  });
+  const derivedMarkStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(progress.value, [0.68, 0.9], [0, 1], "clamp"),
+  }));
+
+  return (
+    <Animated.View
+      className="absolute items-center justify-center rounded-xl border-2 border-primaryStrong bg-surface"
+      style={[
+        {
+          left: targetRect.x,
+          top: targetRect.y,
+          width: targetRect.width,
+          height: targetRect.height,
+          zIndex: 2,
+        },
+        animatedStyle,
+      ]}
+    >
+      <Animated.Text
+        className="absolute right-2 top-1 font-nunito-extrabold text-[10px] text-fgMuted"
+        style={derivedMarkStyle}
+      >
+        ✦
+      </Animated.Text>
+      <Text
+        className={`${getBoardNumberTextClass(compact)} text-center font-nunito-extrabold text-primaryStrong`}
+        style={{ fontVariant: ["tabular-nums"] }}
+      >
+        {value}
+      </Text>
+    </Animated.View>
+  );
+}
+
+function OperationCommitOverlay({
+  animation,
+  compact,
+  modeAccent,
+  onMerged,
+  onFinished,
+}: {
+  animation: ResultCommitAnimation;
+  compact: boolean;
+  modeAccent: ReturnType<typeof getModeAccent>;
+  onMerged: () => void;
+  onFinished: () => void;
+}) {
+  const progress = useSharedValue(0);
+  const mergedCallback = useRef(onMerged).current;
+  const finishedCallback = useRef(onFinished).current;
+
+  useEffect(() => {
+    progress.value = withTiming(
+      0.3,
+      {
+        duration: 170,
+        easing: Easing.out(Easing.cubic),
+      },
+      (finished) => {
+        if (!finished) {
+          return;
+        }
+
+        runOnJS(mergedCallback)();
+        progress.value = withDelay(
+          16,
+          withTiming(
+            1,
+            {
+              duration: 390,
+              easing: Easing.bezier(0.2, 0.78, 0.2, 1),
+            },
+            (transferFinished) => {
+              if (transferFinished) {
+                runOnJS(finishedCallback)();
+              }
+            },
+          ),
+        );
+      },
+    );
+  }, [finishedCallback, mergedCallback, progress]);
+
+  return (
+    <View
+      pointerEvents="none"
+      className="absolute inset-0 z-20"
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+    >
+      <ConsumedNumberTile
+        compact={compact}
+        modeAccent={modeAccent}
+        progress={progress}
+        rect={animation.leftRect}
+        resultRect={animation.resultRect}
+        value={animation.leftValue}
+      />
+      <ConsumedNumberTile
+        compact={compact}
+        modeAccent={modeAccent}
+        progress={progress}
+        rect={animation.rightRect}
+        resultRect={animation.resultRect}
+        value={animation.rightValue}
+      />
+      <CommittedResultTile
+        compact={compact}
+        progress={progress}
+        resultRect={animation.resultRect}
+        targetRect={animation.targetRect}
+        value={animation.resultValue}
+      />
     </View>
   );
 }
@@ -1822,16 +2226,118 @@ function LivePlayPanel({
   t,
   tc,
 }: LivePlayProps) {
+  const stageRef = useRef<View>(null);
+  const resultRef = useRef<View>(null);
+  const futureResultRef = useRef<View>(null);
+  const tileRefs = useRef(new Map<string, View>());
+  const [commitAnimation, setCommitAnimation] =
+    useState<ResultCommitAnimation | null>(null);
+  const [preparingCommit, setPreparingCommit] = useState(false);
+  const commitLocked =
+    interactionLocked || preparingCommit || commitAnimation !== null;
+  const committingTileIds = useMemo(
+    () =>
+      new Set(
+        commitAnimation
+          ? [commitAnimation.leftId, commitAnimation.rightId]
+          : [],
+      ),
+    [commitAnimation],
+  );
+
+  const handleTileRef = useCallback((tileId: string, node: View | null) => {
+    if (node) {
+      tileRefs.current.set(tileId, node);
+      return;
+    }
+
+    tileRefs.current.delete(tileId);
+  }, []);
+
+  const handleApplyResult = useCallback(async () => {
+    if (
+      commitLocked ||
+      previewState.kind !== "ready" ||
+      !selectedLeftTile ||
+      !selectedRightTile
+    ) {
+      return;
+    }
+
+    const stageNode = stageRef.current;
+    const resultNode = resultRef.current;
+    const targetNode = futureResultRef.current;
+    const leftNode = tileRefs.current.get(selectedLeftTile.id);
+    const rightNode = tileRefs.current.get(selectedRightTile.id);
+
+    if (!stageNode || !resultNode || !targetNode || !leftNode || !rightNode) {
+      onApplyStep();
+      return;
+    }
+
+    setPreparingCommit(true);
+
+    try {
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => resolve());
+      });
+
+      const [stageRect, resultRect, targetRect, leftRect, rightRect] =
+        await Promise.all([
+          measureView(stageNode),
+          measureView(resultNode),
+          measureView(targetNode),
+          measureView(leftNode),
+          measureView(rightNode),
+        ]);
+
+      setCommitAnimation({
+        leftId: selectedLeftTile.id,
+        leftRect: relativeRect(leftRect, stageRect),
+        leftValue: selectedLeftTile.value,
+        resultRect: relativeRect(resultRect, stageRect),
+        resultId: `r${localSteps.length}`,
+        resultValue: previewState.result,
+        rightId: selectedRightTile.id,
+        rightRect: relativeRect(rightRect, stageRect),
+        rightValue: selectedRightTile.value,
+        targetRect: relativeRect(targetRect, stageRect),
+      });
+    } catch (error) {
+      console.warn("Failed to measure Daily Numbers result animation", error);
+      onApplyStep();
+    } finally {
+      setPreparingCommit(false);
+    }
+  }, [
+    commitLocked,
+    localSteps.length,
+    onApplyStep,
+    previewState,
+    selectedLeftTile,
+    selectedRightTile,
+  ]);
+
+  const handleCommitMerged = useCallback(() => {
+    onApplyStep();
+  }, [onApplyStep]);
+
+  const handleCommitFinished = useCallback(() => {
+    requestAnimationFrame(() => setCommitAnimation(null));
+  }, []);
+
   return (
     <>
-      <View>
+      <View ref={stageRef} collapsable={false} className="relative">
         <EquationWorkbench
           compact={compact}
-          interactionLocked={interactionLocked}
+          committing={preparingCommit || commitAnimation !== null}
+          interactionLocked={commitLocked}
           localSteps={localSteps}
-          onApplyStep={onApplyStep}
+          onApplyStep={handleApplyResult}
           onClearSlot={onClearSlot}
           previewState={previewState}
+          resultRef={resultRef}
           selectedLeftTile={selectedLeftTile}
           selectedOperator={selectedOperator}
           selectedRightTile={selectedRightTile}
@@ -1841,8 +2347,12 @@ function LivePlayPanel({
         <AvailableNumbersGrid
           availableTiles={availableTiles}
           compact={compact}
-          interactionLocked={interactionLocked}
+          committingResultId={commitAnimation?.resultId ?? null}
+          committingTileIds={committingTileIds}
+          futureResultRef={futureResultRef}
+          interactionLocked={commitLocked}
           modeAccent={modeAccent}
+          onTileRef={handleTileRef}
           onTilePress={onTilePress}
           selectedLeftTile={selectedLeftTile}
           selectedOperator={selectedOperator}
@@ -1853,7 +2363,7 @@ function LivePlayPanel({
 
         <OperatorPicker
           compact={compact}
-          interactionLocked={interactionLocked}
+          interactionLocked={commitLocked}
           onOperatorPress={onOperatorPress}
           selectedLeftTile={selectedLeftTile}
           selectedOperator={selectedOperator}
@@ -1861,6 +2371,15 @@ function LivePlayPanel({
           t={t}
           tc={tc}
         />
+        {commitAnimation ? (
+          <OperationCommitOverlay
+            animation={commitAnimation}
+            compact={compact}
+            modeAccent={modeAccent}
+            onMerged={handleCommitMerged}
+            onFinished={handleCommitFinished}
+          />
+        ) : null}
       </View>
 
       <QuestActionButton
@@ -1870,11 +2389,11 @@ function LivePlayPanel({
             : t("quests.dailyNumbers.submit")
         }
         onPress={onSubmitPress}
-        disabled={interactionLocked}
+        disabled={commitLocked}
         loading={submitting}
         loadingMode="inline"
-        backgroundColor={interactionLocked ? tc.surfaceMuted : tc.surface}
-        foregroundColor={interactionLocked ? tc.fgMuted : tc.primaryText}
+        backgroundColor={commitLocked ? tc.surfaceMuted : tc.surface}
+        foregroundColor={commitLocked ? tc.fgMuted : tc.primaryText}
         borderColor={tc.primaryBorder}
         leadingIcon={CheckIcon}
         minHeight={50}
@@ -1884,7 +2403,7 @@ function LivePlayPanel({
             : t("quests.dailyNumbers.submit")
         }
         testID="daily-numbers-submit"
-        style={{ marginTop: 12, opacity: interactionLocked ? 0.38 : 1 }}
+        style={{ marginTop: 12, opacity: commitLocked ? 0.38 : 1 }}
       />
 
       <View className="mt-2 flex-row gap-2">
@@ -1892,7 +2411,7 @@ function LivePlayPanel({
           <QuestActionButton
             label={t("quests.dailyNumbers.undo")}
             onPress={onUndoStep}
-            disabled={interactionLocked}
+            disabled={commitLocked}
             backgroundColor={tc.bg}
             foregroundColor={tc.fgMuted}
             leadingIcon={SkipBackIcon}
@@ -1901,14 +2420,14 @@ function LivePlayPanel({
             textClassName="font-nunito-bold text-xs"
             accessibilityLabel={t("quests.dailyNumbers.undo")}
             testID="daily-numbers-undo"
-            style={{ opacity: interactionLocked ? 0.38 : 1 }}
+            style={{ opacity: commitLocked ? 0.38 : 1 }}
           />
         </View>
         <View className="min-w-0 flex-1">
           <QuestActionButton
             label={t("quests.dailyNumbers.reset")}
             onPress={onResetBoard}
-            disabled={interactionLocked}
+            disabled={commitLocked}
             backgroundColor={tc.bg}
             foregroundColor={tc.fgMuted}
             leadingIcon={RecycleIcon}
@@ -1917,7 +2436,7 @@ function LivePlayPanel({
             textClassName="font-nunito-bold text-xs"
             accessibilityLabel={t("quests.dailyNumbers.reset")}
             testID="daily-numbers-reset"
-            style={{ opacity: interactionLocked ? 0.38 : 1 }}
+            style={{ opacity: commitLocked ? 0.38 : 1 }}
           />
         </View>
       </View>
