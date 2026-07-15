@@ -31,8 +31,16 @@ tags:
     id: daily-numbers-tile-n0
 - tapOn:
     id: daily-numbers-tile-n1
+- assertVisible:
+    id: daily-numbers-apply-step
+- waitForAnimationToEnd
+- takeScreenshot: tmp-daily-numbers-archive-shots/10-clickable-result
 - tapOn:
     id: daily-numbers-apply-step
+- waitForAnimationToEnd
+- assertVisible:
+    id: daily-numbers-tile-r0
+- takeScreenshot: tmp-daily-numbers-archive-shots/11-derived-result
 - scrollUntilVisible:
     element:
       id: daily-numbers-undo

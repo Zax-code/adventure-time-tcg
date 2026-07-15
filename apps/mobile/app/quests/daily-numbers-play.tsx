@@ -24,7 +24,9 @@ import {
 } from "react-native";
 import Animated, {
   FadeIn,
+  FadeInDown,
   FadeOut,
+  Keyframe,
   LinearTransition,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -210,6 +212,20 @@ type OperatorPickerProps = {
 };
 
 const OPERATORS: Operator[] = ["+", "-", "*", "/"];
+const RESULT_COMMIT_EXIT = new Keyframe({
+  0: {
+    opacity: 1,
+    transform: [{ translateY: 0 }, { scale: 1 }],
+  },
+  70: {
+    opacity: 1,
+    transform: [{ translateY: 92 }, { scale: 0.9 }],
+  },
+  100: {
+    opacity: 0,
+    transform: [{ translateY: 138 }, { scale: 0.82 }],
+  },
+}).duration(260);
 const EXACT_HIT_PERCENT = 100;
 const CHRONOMETER_STORAGE_PREFIX = "dailyNumbersChronometer";
 const CHRONOMETER_SAVE_INTERVAL_MS = 5000;
@@ -1216,15 +1232,17 @@ function FinishStatePanel({
       <View
         className={`${stackMetrics ? "flex-col" : "flex-row"} border-b border-primaryBorder`}
       >
-        <View className="min-w-0 flex-1 py-4">
-          <View className="flex-row items-center gap-1.5">
+        <View
+          className={`${stackMetrics ? "px-1" : "pr-5"} min-w-0 flex-1 py-4`}
+        >
+          <View className="min-h-5 flex-row items-center gap-1.5">
             <ClockIcon size={15} color={tc.fgMuted} />
-            <Text className="font-nunito-extrabold text-[10px] uppercase tracking-[1px] text-fgMuted">
+            <Text className="font-nunito-extrabold text-[10px] leading-4 uppercase tracking-[1px] text-fgMuted">
               {t("quests.dailyNumbers.solveTime")}
             </Text>
           </View>
           <Text
-            className="mt-1 font-nunito-extrabold text-[30px] leading-9 text-fg"
+            className="mt-2 font-nunito-extrabold text-[30px] leading-10 text-fg"
             style={{ fontVariant: ["tabular-nums"] }}
             selectable
             testID="daily-numbers-result-time"
@@ -1239,14 +1257,19 @@ function FinishStatePanel({
               : "my-3 w-px bg-primaryBorder"
           }
         />
-        <View className="min-w-0 flex-1 py-4">
-          <Text className="font-nunito-extrabold text-[10px] uppercase tracking-[1px] text-fgMuted">
+        <View
+          className={`${stackMetrics ? "px-1" : "pl-5"} min-w-0 flex-1 py-4`}
+        >
+          <Text className="min-h-5 font-nunito-extrabold text-[10px] leading-4 uppercase tracking-[1px] text-fgMuted">
             {t("quests.dailyNumbers.finalResult")}
           </Text>
           <Text
-            className="mt-1 font-nunito-extrabold text-2xl leading-8 text-fg"
+            className="mt-2 font-nunito-extrabold text-2xl leading-9 text-fg"
             style={{ fontVariant: ["tabular-nums"] }}
             selectable
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.72}
           >
             {finishValue ?? "—"} {exactHitState ? "=" : "→"} {state.target}
           </Text>
@@ -1379,7 +1402,11 @@ function AvailableNumbersGrid({
           return (
             <Animated.View
               key={tile.id}
-              entering={FadeIn.duration(180)}
+              entering={
+                tile.source === "derived"
+                  ? FadeInDown.duration(240)
+                  : FadeIn.duration(180)
+              }
               exiting={FadeOut.duration(140)}
               layout={LinearTransition.duration(200)}
               style={{ width: "31.5%" }}
@@ -1471,7 +1498,7 @@ function OperatorPicker({
               key={operator}
               onPress={() => onOperatorPress(operator)}
               disabled={availability.disabled}
-              className={`${compact ? "min-h-[46px]" : "min-h-[50px]"} flex-1 items-center justify-center rounded-lg px-2 py-2`}
+              className={`${compact ? "min-h-[58px]" : "min-h-[64px]"} flex-1 items-center justify-center rounded-lg px-2 py-2`}
               style={{
                 backgroundColor: availability.selected
                   ? tc.accentTint
@@ -1494,7 +1521,7 @@ function OperatorPicker({
               })}
             >
               <Text
-                className={`text-center font-nunito-extrabold ${compact ? "text-[20px]" : "text-[23px]"}`}
+                className={`text-center font-nunito-extrabold ${compact ? "text-[22px]" : "text-[25px]"}`}
                 style={{
                   color: availability.selected ? tc.accentStrong : tc.fg,
                 }}
@@ -1510,32 +1537,89 @@ function OperatorPicker({
 }
 
 function EquationResult({
+  compact,
   expanded,
+  interactionLocked,
+  onApplyStep,
   previewState,
+  t,
 }: {
+  compact: boolean;
   expanded?: boolean;
+  interactionLocked: boolean;
+  onApplyStep: () => void;
   previewState: PreviewState;
+  t: TranslateFn;
 }) {
+  const resultClassName = compact ? "text-[22px]" : "text-[25px]";
+
   return (
     <View
-      className={`${expanded ? "flex-1" : "min-w-[58px] max-w-[72px] flex-1"} h-12 items-center justify-center px-1.5`}
+      className={`${expanded ? "flex-1" : "min-w-[72px] max-w-[92px] flex-1"} ${compact ? "h-[58px]" : "h-16"} items-center justify-center px-1`}
     >
-      <Text
-        className={`text-center font-nunito-extrabold text-lg ${previewState.kind === "invalid" ? "text-dangerText" : previewState.kind === "ready" ? "text-primaryText" : "text-fgMuted"}`}
-        numberOfLines={1}
-        adjustsFontSizeToFit
-        minimumFontScale={0.6}
-        style={{ fontVariant: ["tabular-nums"] }}
-      >
-        {previewState.kind === "ready" ? previewState.result : "—"}
-      </Text>
+      {previewState.kind === "ready" ? (
+        <Animated.View
+          key={`ready-${previewState.result}`}
+          entering={FadeIn.duration(150)}
+          exiting={RESULT_COMMIT_EXIT}
+          className="w-full"
+        >
+          <Pressable
+            onPress={onApplyStep}
+            disabled={interactionLocked}
+            className={`${compact ? "min-h-[54px]" : "min-h-[60px]"} w-full flex-row items-center justify-center gap-1.5 rounded-xl bg-primaryStrong px-2`}
+            style={({ pressed }) => ({
+              opacity: interactionLocked ? 0.38 : pressed ? 0.76 : 1,
+              transform: [{ scale: pressed ? 0.96 : 1 }],
+            })}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: interactionLocked }}
+            accessibilityLabel={t("quests.dailyNumbers.applyResult", {
+              result: previewState.result,
+            })}
+            accessibilityHint={t("quests.dailyNumbers.applyResultHint")}
+            testID="daily-numbers-apply-step"
+          >
+            <Text
+              className={`${resultClassName} text-center font-nunito-extrabold text-white`}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.68}
+              style={{ fontVariant: ["tabular-nums"] }}
+            >
+              {previewState.result}
+            </Text>
+            <Text
+              className="font-nunito-extrabold text-lg text-white"
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+            >
+              ↓
+            </Text>
+          </Pressable>
+        </Animated.View>
+      ) : (
+        <Animated.View key={previewState.kind} entering={FadeIn.duration(120)}>
+          <Text
+            className={`${resultClassName} text-center font-nunito-extrabold ${previewState.kind === "invalid" ? "text-dangerText" : "text-fgMuted"}`}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.68}
+            style={{ fontVariant: ["tabular-nums"] }}
+          >
+            —
+          </Text>
+        </Animated.View>
+      )}
     </View>
   );
 }
 
 function EquationWorkbench({
+  compact,
   interactionLocked,
   localSteps,
+  onApplyStep,
   onClearSlot,
   previewState,
   selectedLeftTile,
@@ -1544,8 +1628,10 @@ function EquationWorkbench({
   t,
   tc,
 }: {
+  compact: boolean;
   interactionLocked: boolean;
   localSteps: DailyNumbersStep[];
+  onApplyStep: () => void;
   onClearSlot: (slot: SlotKey) => void;
   previewState: PreviewState;
   selectedLeftTile: BoardTile | null;
@@ -1555,7 +1641,9 @@ function EquationWorkbench({
   tc: ThemeColors;
 }) {
   const { fontScale, width } = useWindowDimensions();
-  const stackResult = fontScale >= 1.35 || width < 350;
+  const stackResult = fontScale >= 1.35 || width < 380;
+  const equationTextClassName = compact ? "text-[22px]" : "text-[25px]";
+  const equationControlHeight = compact ? "h-[58px]" : "h-16";
 
   return (
     <View>
@@ -1574,7 +1662,7 @@ function EquationWorkbench({
         <View className="flex-row items-center gap-1.5">
           <Pressable
             onPress={() => onClearSlot("left")}
-            className="h-12 min-w-0 flex-1 items-center justify-center rounded-lg px-1.5"
+            className={`${equationControlHeight} min-w-0 flex-1 items-center justify-center rounded-lg px-1.5`}
             style={({ pressed }) => ({
               backgroundColor: selectedLeftTile
                 ? tc.primaryTint
@@ -1593,7 +1681,7 @@ function EquationWorkbench({
             }
           >
             <Text
-              className={`text-center font-nunito-extrabold text-base ${selectedLeftTile ? "text-fg" : "text-fgMuted"}`}
+              className={`${equationTextClassName} text-center font-nunito-extrabold ${selectedLeftTile ? "text-fg" : "text-fgMuted"}`}
               numberOfLines={1}
               adjustsFontSizeToFit
               minimumFontScale={0.68}
@@ -1604,7 +1692,7 @@ function EquationWorkbench({
           </Pressable>
           <Pressable
             onPress={() => onClearSlot("operator")}
-            className="h-12 w-11 items-center justify-center rounded-lg px-1"
+            className={`${equationControlHeight} w-14 items-center justify-center rounded-lg px-1`}
             style={({ pressed }) => ({
               backgroundColor: selectedOperator
                 ? tc.primaryTint
@@ -1623,14 +1711,14 @@ function EquationWorkbench({
             }
           >
             <Text
-              className={`text-center font-nunito-extrabold text-lg ${selectedOperator ? "text-fg" : "text-fgMuted"}`}
+              className={`${equationTextClassName} text-center font-nunito-extrabold ${selectedOperator ? "text-fg" : "text-fgMuted"}`}
             >
               {selectedOperator ? displayOperator(selectedOperator) : "?"}
             </Text>
           </Pressable>
           <Pressable
             onPress={() => onClearSlot("right")}
-            className="h-12 min-w-0 flex-1 items-center justify-center rounded-lg px-1.5"
+            className={`${equationControlHeight} min-w-0 flex-1 items-center justify-center rounded-lg px-1.5`}
             style={({ pressed }) => ({
               backgroundColor: selectedRightTile
                 ? tc.primaryTint
@@ -1649,7 +1737,7 @@ function EquationWorkbench({
             }
           >
             <Text
-              className={`text-center font-nunito-extrabold text-base ${selectedRightTile ? "text-fg" : "text-fgMuted"}`}
+              className={`${equationTextClassName} text-center font-nunito-extrabold ${selectedRightTile ? "text-fg" : "text-fgMuted"}`}
               numberOfLines={1}
               adjustsFontSizeToFit
               minimumFontScale={0.68}
@@ -1660,19 +1748,36 @@ function EquationWorkbench({
           </Pressable>
           {!stackResult ? (
             <>
-              <Text className="px-0.5 font-nunito-extrabold text-base text-fgMuted">
+              <Text
+                className={`${equationTextClassName} px-0.5 font-nunito-extrabold text-fgMuted`}
+              >
                 =
               </Text>
-              <EquationResult previewState={previewState} />
+              <EquationResult
+                compact={compact}
+                interactionLocked={interactionLocked}
+                onApplyStep={onApplyStep}
+                previewState={previewState}
+                t={t}
+              />
             </>
           ) : null}
         </View>
         {stackResult ? (
           <View className="mt-2 flex-row items-center gap-2 border-t border-primaryBorder pt-2">
-            <Text className="w-6 text-center font-nunito-extrabold text-lg text-fgMuted">
+            <Text
+              className={`${equationTextClassName} w-8 text-center font-nunito-extrabold text-fgMuted`}
+            >
               =
             </Text>
-            <EquationResult expanded previewState={previewState} />
+            <EquationResult
+              compact={compact}
+              expanded
+              interactionLocked={interactionLocked}
+              onApplyStep={onApplyStep}
+              previewState={previewState}
+              t={t}
+            />
           </View>
         ) : null}
         <Text
@@ -1721,8 +1826,10 @@ function LivePlayPanel({
     <>
       <View>
         <EquationWorkbench
+          compact={compact}
           interactionLocked={interactionLocked}
           localSteps={localSteps}
+          onApplyStep={onApplyStep}
           onClearSlot={onClearSlot}
           previewState={previewState}
           selectedLeftTile={selectedLeftTile}
@@ -1753,20 +1860,6 @@ function LivePlayPanel({
           selectedRightTile={selectedRightTile}
           t={t}
           tc={tc}
-        />
-
-        <QuestActionButton
-          label={t("quests.dailyNumbers.applyStep")}
-          onPress={onApplyStep}
-          disabled={interactionLocked}
-          backgroundColor={
-            interactionLocked ? tc.surfaceMuted : tc.primaryStrong
-          }
-          foregroundColor={interactionLocked ? tc.fgMuted : "#FFFFFF"}
-          minHeight={50}
-          accessibilityLabel={t("quests.dailyNumbers.applyStep")}
-          testID="daily-numbers-apply-step"
-          style={{ marginTop: 12, opacity: interactionLocked ? 0.38 : 1 }}
         />
       </View>
 
