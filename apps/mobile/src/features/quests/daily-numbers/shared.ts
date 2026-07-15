@@ -1,4 +1,7 @@
-import type { DailyNumbersMode, DailyNumbersStateResponse } from "@adventure-time/api-client";
+import type {
+  DailyNumbersMode,
+  DailyNumbersStateResponse,
+} from "@adventure-time/api-client";
 
 import { THEME_COLORS } from "../../../theme/themes";
 
@@ -48,7 +51,7 @@ export function getModeAccent(
   if (mode === "1-5") {
     return {
       border: tc.primaryBorder,
-      bg: tc.primaryBg,
+      bg: tc.primaryTint,
       tint: tc.primaryTint,
       text: tc.primaryStrong,
     };
@@ -77,7 +80,9 @@ export function getModeStatusLabel(
   t: (key: string, params?: Record<string, string | number>) => string,
 ) {
   if (!modeState) {
-    return isLoading ? t("common.loading") : t("quests.dailyNumbers.freshLabel");
+    return isLoading
+      ? t("common.loading")
+      : t("quests.dailyNumbers.freshLabel");
   }
 
   if (modeState.claimed) {

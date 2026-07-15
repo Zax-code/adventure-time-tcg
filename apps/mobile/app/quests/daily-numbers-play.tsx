@@ -891,12 +891,11 @@ function ModeTabs({
       {tabWidth > 0 ? (
         <Animated.View
           pointerEvents="none"
-          className="absolute bottom-1 left-0 top-1 rounded-xl border-2"
+          className="absolute bottom-1 left-0 top-1 rounded-xl"
           style={[
             {
               width: tabWidth,
               backgroundColor: activeAccent.bg,
-              borderColor: activeAccent.text,
             },
             indicatorStyle,
           ]}
@@ -909,6 +908,7 @@ function ModeTabs({
             ? t("quests.dailyNumbers.archiveSavedLabel")
             : getModeStatusLabel(state, isLoading, t);
         const modeLabel = t(getModeLabelKey(mode));
+        const modeAccent = getModeAccent(mode, tc);
 
         return (
           <Pressable
@@ -917,9 +917,8 @@ function ModeTabs({
               triggerSelectionHaptic();
               onSelectMode(mode);
             }}
-            className="min-h-[64px] flex-1 items-center justify-center rounded-xl border px-1.5 py-2.5"
+            className="min-h-[64px] flex-1 items-center justify-center rounded-xl px-1.5 py-2.5"
             style={({ pressed }) => ({
-              borderColor: selected ? "transparent" : tc.primaryBorder,
               opacity: pressed ? 0.72 : 1,
               zIndex: 1,
             })}
@@ -930,14 +929,14 @@ function ModeTabs({
           >
             <Text
               className="text-center font-nunito-extrabold text-[15px]"
-              style={{ color: tc.fg }}
+              style={{ color: selected ? modeAccent.text : tc.fg }}
               numberOfLines={1}
             >
               {modeLabel}
             </Text>
             <Text
               className="mt-0.5 min-h-6 text-center font-nunito-bold text-[10px] leading-3"
-              style={{ color: tc.fgMuted }}
+              style={{ color: selected ? modeAccent.text : tc.fgMuted }}
               numberOfLines={2}
             >
               {statusLabel}
