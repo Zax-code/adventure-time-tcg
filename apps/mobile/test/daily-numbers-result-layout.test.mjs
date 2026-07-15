@@ -6,6 +6,12 @@ const source = readFileSync("app/quests/daily-numbers-play.tsx", "utf8");
 const resultStart = source.indexOf("function EquationResult(");
 const resultEnd = source.indexOf("function EquationWorkbench(", resultStart);
 const equationResultSource = source.slice(resultStart, resultEnd);
+const resultDetailsStart = source.indexOf("function ResultDetails(");
+const resultDetailsEnd = source.indexOf(
+  "function FinishStatePanel(",
+  resultDetailsStart,
+);
+const resultDetailsSource = source.slice(resultDetailsStart, resultDetailsEnd);
 const finishStateStart = source.indexOf("function FinishStatePanel(");
 const finishStateEnd = source.indexOf(
   "function AvailableNumbersGrid(",
@@ -34,17 +40,42 @@ describe("Daily Numbers equation result layout", () => {
 });
 
 describe("Daily Numbers finish state layout", () => {
+  it("separates every starting number into its own compact cell", () => {
+    assert.match(
+      resultDetailsSource,
+      /h-11 min-w-\[46px\].*rounded-xl border border-primaryBorder bg-surface/,
+      "starting numbers should render in distinct themed cells",
+    );
+  });
+
   it("gives an exact-hit target equal typographic weight to the outcome", () => {
     assert.match(
       finishStateSource,
       /testID="daily-numbers-exact-target"/,
       "exact hits should promote the target into the celebration panel",
     );
+    assert.match(
+      finishStateSource,
+      /const resultEmphasisClass = compact[\s\S]*?testID="daily-numbers-exact-target"[\s\S]*?className=\{`\$\{resultEmphasisClass\}[\s\S]*?testID="daily-numbers-result-outcome"/,
+      "the exact target and outcome should share the same responsive emphasis",
+    );
+    assert.match(
+      finishStateSource,
+      /<\/Animated\.View>\s*\{exactHitState \? \(\s*<Animated\.Text[\s\S]*?testID="daily-numbers-result-outcome"/,
+      "the exact-hit label should sit outside and below the tinted result panel",
+    );
+  });
+
+  it("uses star particles without oversized square decorations", () => {
     assert.equal(
-      finishStateSource.match(/compact \? "text-\[42px\] leading-\[48px\]"/g)
-        ?.length,
+      finishStateSource.match(/✦/g)?.length,
       2,
-      "the exact target and outcome should share the same responsive type scale",
+      "the result hero should keep its two star particles",
+    );
+    assert.doesNotMatch(
+      finishStateSource,
+      /absolute -left-4 top-5 h-12 w-12|absolute -right-5 bottom-4 h-16 w-16/,
+      "the result hero should not contain large rounded-square particles",
     );
   });
 });

@@ -1180,19 +1180,23 @@ function ResultDetails({
         <Text className="font-nunito-extrabold text-sm text-fg">
           {t("quests.dailyNumbers.startingNumbersTitle")}
         </Text>
-        <View className="mt-2 flex-row flex-wrap items-center gap-x-4 gap-y-2">
+        <View className="mt-2 flex-row flex-wrap items-center gap-2">
           {state.numbers.map((tile) => (
-            <Text
+            <View
+              className="h-11 min-w-[46px] items-center justify-center rounded-xl border border-primaryBorder bg-surface px-2"
               key={tile.id}
-              className="min-w-[40px] text-center font-nunito-extrabold text-base text-fg"
-              style={{ fontVariant: ["tabular-nums"] }}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.7}
-              selectable
             >
-              {tile.value}
-            </Text>
+              <Text
+                className="text-center font-nunito-extrabold text-base text-fg"
+                style={{ fontVariant: ["tabular-nums"] }}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.7}
+                selectable
+              >
+                {tile.value}
+              </Text>
+            </View>
           ))}
         </View>
       </View>
@@ -1272,6 +1276,9 @@ function FinishStatePanel({
 }: FinishStateProps) {
   const { fontScale } = useWindowDimensions();
   const stackMetrics = fontScale >= 1.4;
+  const resultEmphasisClass = compact
+    ? "text-[42px] leading-[48px]"
+    : "text-[48px] leading-[54px]";
   const resultColor = exactHitState
     ? tc.successDark
     : finishCompleted
@@ -1311,14 +1318,6 @@ function FinishStatePanel({
         className="relative mb-1 items-center overflow-hidden rounded-[28px] border px-4 pb-5 pt-5"
         style={{ backgroundColor: resultTint, borderColor: resultBorder }}
       >
-        <View
-          className="absolute -left-4 top-5 h-12 w-12 rotate-12 rounded-2xl"
-          style={{ backgroundColor: resultBorder, opacity: 0.55 }}
-        />
-        <View
-          className="absolute -right-5 bottom-4 h-16 w-16 -rotate-12 rounded-[22px]"
-          style={{ backgroundColor: resultBorder, opacity: 0.55 }}
-        />
         <Text
           className="absolute right-8 top-3 font-nunito-extrabold text-xl"
           style={{ color: resultColor, opacity: 0.55 }}
@@ -1343,21 +1342,20 @@ function FinishStatePanel({
             {t("quests.dailyNumbers.archiveResultLabel")}
           </Text>
         ) : null}
-        <Text
-          className={`${compact ? "text-[42px] leading-[48px]" : "text-[48px] leading-[54px]"} text-center font-nunito-extrabold`}
-          style={{ color: resultColor, fontVariant: ["tabular-nums"] }}
-          selectable
-          testID="daily-numbers-result-outcome"
-        >
-          {outcomeLabel}
-        </Text>
-        {exactHitState ? (
-          <View
-            className="mt-2 items-center"
-            testID="daily-numbers-exact-target"
+        {!exactHitState ? (
+          <Text
+            className={`${resultEmphasisClass} text-center font-nunito-extrabold`}
+            style={{ color: resultColor, fontVariant: ["tabular-nums"] }}
+            selectable
+            testID="daily-numbers-result-outcome"
           >
+            {outcomeLabel}
+          </Text>
+        ) : null}
+        {exactHitState ? (
+          <View className="items-center" testID="daily-numbers-exact-target">
             <Text
-              className={`${compact ? "text-[42px] leading-[48px]" : "text-[48px] leading-[54px]"} text-center font-nunito-extrabold`}
+              className={`${resultEmphasisClass} text-center font-nunito-extrabold`}
               style={{ color: resultColor, fontVariant: ["tabular-nums"] }}
               selectable
               adjustsFontSizeToFit
@@ -1389,6 +1387,17 @@ function FinishStatePanel({
           </Text>
         ) : null}
       </Animated.View>
+      {exactHitState ? (
+        <Animated.Text
+          entering={FadeIn.duration(180).delay(80)}
+          className={`${resultEmphasisClass} py-3 text-center font-nunito-extrabold`}
+          style={{ color: resultColor }}
+          selectable
+          testID="daily-numbers-result-outcome"
+        >
+          {outcomeLabel}
+        </Animated.Text>
+      ) : null}
 
       <View
         className={`${stackMetrics ? "flex-col" : "flex-row"} border-b border-primaryBorder`}
