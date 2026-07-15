@@ -1273,10 +1273,20 @@ function FinishStatePanel({
   const { fontScale } = useWindowDimensions();
   const stackMetrics = fontScale >= 1.4;
   const resultColor = exactHitState
-    ? tc.successText
+    ? tc.successDark
     : finishCompleted
-      ? tc.infoText
-      : tc.dangerText;
+      ? tc.infoDark
+      : tc.dangerDark;
+  const resultTint = exactHitState
+    ? tc.successTint
+    : finishCompleted
+      ? tc.infoTint
+      : tc.dangerTint;
+  const resultBorder = exactHitState
+    ? tc.successBorder
+    : finishCompleted
+      ? tc.infoBorder
+      : tc.dangerBorder;
   const outcomeLabel = exactHitState
     ? t("quests.dailyNumbers.exactHitLabel")
     : finishDistance == null
@@ -1298,10 +1308,38 @@ function FinishStatePanel({
     <View className="pt-1" testID="daily-numbers-result">
       <Animated.View
         entering={FadeIn.duration(220)}
-        className="items-center border-b border-primaryBorder px-2 pb-5 pt-3"
+        className="relative mb-1 items-center overflow-hidden rounded-[28px] border px-4 pb-5 pt-5"
+        style={{ backgroundColor: resultTint, borderColor: resultBorder }}
       >
+        <View
+          className="absolute -left-4 top-5 h-12 w-12 rotate-12 rounded-2xl"
+          style={{ backgroundColor: resultBorder, opacity: 0.55 }}
+        />
+        <View
+          className="absolute -right-5 bottom-4 h-16 w-16 -rotate-12 rounded-[22px]"
+          style={{ backgroundColor: resultBorder, opacity: 0.55 }}
+        />
+        <Text
+          className="absolute right-8 top-3 font-nunito-extrabold text-xl"
+          style={{ color: resultColor, opacity: 0.55 }}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        >
+          ✦
+        </Text>
+        <Text
+          className="absolute bottom-3 left-8 font-nunito-extrabold text-sm"
+          style={{ color: resultColor, opacity: 0.42 }}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        >
+          ✦
+        </Text>
         {archiveMode ? (
-          <Text className="mb-2 font-nunito-bold text-[10px] uppercase tracking-[1.2px] text-fgMuted">
+          <Text
+            className="mb-2 font-nunito-bold text-[10px] uppercase tracking-[1.2px]"
+            style={{ color: resultColor }}
+          >
             {t("quests.dailyNumbers.archiveResultLabel")}
           </Text>
         ) : null}
@@ -1313,6 +1351,28 @@ function FinishStatePanel({
         >
           {outcomeLabel}
         </Text>
+        {exactHitState ? (
+          <View
+            className="mt-2 items-center"
+            testID="daily-numbers-exact-target"
+          >
+            <Text
+              className={`${compact ? "text-[42px] leading-[48px]" : "text-[48px] leading-[54px]"} text-center font-nunito-extrabold`}
+              style={{ color: resultColor, fontVariant: ["tabular-nums"] }}
+              selectable
+              adjustsFontSizeToFit
+              numberOfLines={1}
+            >
+              {state.target}
+            </Text>
+            <Text
+              className="font-nunito-extrabold text-[10px] uppercase tracking-[1.4px]"
+              style={{ color: resultColor }}
+            >
+              {t("quests.dailyNumbers.target")}
+            </Text>
+          </View>
+        ) : null}
         <Text
           className="mt-2 text-center font-nunito-bold text-xs"
           style={{ color: resultColor }}
