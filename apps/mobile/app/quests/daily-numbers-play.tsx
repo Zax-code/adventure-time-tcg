@@ -1719,7 +1719,7 @@ function EquationResult({
             <Pressable
               onPress={onApplyStep}
               disabled={interactionLocked || committing}
-              className={`${committing ? "bg-surface" : "bg-primaryStrong"} h-full w-full flex-row items-center justify-center gap-1.5 rounded-xl border-2 border-primaryStrong px-2 py-2`}
+              className={`${committing ? "bg-surface" : "bg-primaryStrong"} relative h-full w-full items-center justify-center rounded-xl border-2 border-primaryStrong px-2 py-2`}
               style={({ pressed }) => ({
                 opacity:
                   interactionLocked && !committing ? 0.38 : pressed ? 0.76 : 1,
@@ -1735,7 +1735,7 @@ function EquationResult({
               testID="daily-numbers-apply-step"
             >
               <Text
-                className={`${boardNumberTextClass} text-center font-nunito-extrabold ${committing ? "text-primaryStrong" : "text-white"}`}
+                className={`${boardNumberTextClass} w-full px-4 text-center font-nunito-extrabold ${committing ? "text-primaryStrong" : "text-white"}`}
                 numberOfLines={1}
                 adjustsFontSizeToFit={String(previewState.result).length > 3}
                 minimumFontScale={0.68}
@@ -1744,13 +1744,16 @@ function EquationResult({
                 {previewState.result}
               </Text>
               {!committing ? (
-                <Text
-                  className="font-nunito-extrabold text-lg text-white"
+                <View
+                  pointerEvents="none"
+                  className="absolute inset-y-0 right-2 items-center justify-center"
                   accessibilityElementsHidden
                   importantForAccessibility="no-hide-descendants"
                 >
-                  ↓
-                </Text>
+                  <Text className="font-nunito-extrabold text-lg text-white">
+                    ↓
+                  </Text>
+                </View>
               ) : null}
             </Pressable>
           </View>
@@ -2397,8 +2400,9 @@ function LivePlayPanel({
             label={t("quests.dailyNumbers.undo")}
             onPress={onUndoStep}
             disabled={commitLocked}
-            backgroundColor={tc.bg}
-            foregroundColor={tc.fgMuted}
+            backgroundColor={tc.primaryTint}
+            foregroundColor={tc.primaryText}
+            borderColor={tc.primaryBorder}
             leadingIcon={SkipBackIcon}
             leadingIconSize={16}
             minHeight={46}
@@ -2413,8 +2417,9 @@ function LivePlayPanel({
             label={t("quests.dailyNumbers.reset")}
             onPress={onResetBoard}
             disabled={commitLocked}
-            backgroundColor={tc.bg}
-            foregroundColor={tc.fgMuted}
+            backgroundColor={tc.accentTint}
+            foregroundColor={tc.accentStrong}
+            borderColor={tc.accentBorder}
             leadingIcon={RecycleIcon}
             leadingIconSize={16}
             minHeight={46}
