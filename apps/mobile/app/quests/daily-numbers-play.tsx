@@ -1123,7 +1123,7 @@ function StepList({
         <View className="mt-1.5 border-t border-primaryBorder">
           {steps.map((step, index) => (
             <Animated.View
-              key={`${step.resultId}-${index}`}
+              key={step.resultId}
               entering={FadeIn.duration(160).delay(index * 35)}
               layout={LinearTransition.duration(180)}
               className="flex-row items-center gap-3 border-b border-primaryBorder py-2.5"
@@ -3088,11 +3088,6 @@ function useDailyNumbersBoardController({
 type DailyNumbersBoardController = ReturnType<
   typeof useDailyNumbersBoardController
 >;
-type ResultVisibilityChangeHandler = (
-  visible: boolean,
-  resultKey: string,
-  announcement: string | null,
-) => void;
 
 function useDailyNumbersShare(
   controller: DailyNumbersBoardController,
@@ -3254,9 +3249,9 @@ function DailyNumbersBoard({
   compact,
   modeAccent,
   onClaimReward,
-  onResultVisibilityChange,
   onResolveResetError,
   onSubmissionApplied,
+  scrollViewRef,
   state,
   t,
   tc,
@@ -3269,9 +3264,9 @@ function DailyNumbersBoard({
   compact: boolean;
   modeAccent: ReturnType<typeof getModeAccent>;
   onClaimReward: () => void;
-  onResultVisibilityChange: ResultVisibilityChangeHandler;
   onResolveResetError: (error: unknown) => Promise<boolean>;
   onSubmissionApplied: (nextState: DailyNumbersBoardState) => void;
+  scrollViewRef: RefObject<ScrollView | null>;
   state: DailyNumbersBoardState;
   t: TranslateFn;
   tc: ThemeColors;
@@ -3299,31 +3294,43 @@ function DailyNumbersBoard({
     shareResult,
     shareStrings,
   } = useDailyNumbersShare(controller, archiveMode);
+  const announcedResultKeyRef = useRef<string | null>(null);
   const resultKey = buildPuzzleIdentity(controller.state);
 
   useEffect(() => {
-    const announcement = !controller.finishScreenState
-      ? null
-      : controller.exactHitState
-        ? controller.t("quests.dailyNumbers.exactHitLabel")
-        : controller.finishDistance == null
-          ? controller.t("quests.dailyNumbers.resultLockedLabel")
-          : controller.t("quests.dailyNumbers.distanceOutcome", {
-              distance: controller.finishDistance,
-            });
+    if (!controller.finishScreenState) {
+      if (announcedResultKeyRef.current === resultKey) {
+        announcedResultKeyRef.current = null;
+      }
+      return;
+    }
 
-    onResultVisibilityChange(
-      controller.finishScreenState,
-      resultKey,
-      announcement,
-    );
+    const announcement = controller.exactHitState
+      ? controller.t("quests.dailyNumbers.exactHitLabel")
+      : controller.finishDistance == null
+        ? controller.t("quests.dailyNumbers.resultLockedLabel")
+        : controller.t("quests.dailyNumbers.distanceOutcome", {
+            distance: controller.finishDistance,
+          });
+
+    if (!announcement || announcedResultKeyRef.current === resultKey) {
+      return;
+    }
+
+    announcedResultKeyRef.current = resultKey;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+        AccessibilityInfo.announceForAccessibility(announcement);
+      });
+    });
   }, [
     controller.exactHitState,
     controller.finishDistance,
     controller.finishScreenState,
     controller.t,
-    onResultVisibilityChange,
     resultKey,
+    scrollViewRef,
   ]);
 
   return (
@@ -3488,31 +3495,6 @@ function DailyNumbersPlayView({
   tc,
 }: DailyNumbersPlayViewProps) {
   const scrollViewRef = useRef<ScrollView>(null);
-  const announcedResultKeyRef = useRef<string | null>(null);
-  const handleResultVisibilityChange =
-    useCallback<ResultVisibilityChangeHandler>(
-      (visible, resultKey, announcement) => {
-        if (!visible) {
-          if (announcedResultKeyRef.current === resultKey) {
-            announcedResultKeyRef.current = null;
-          }
-          return;
-        }
-
-        if (!announcement || announcedResultKeyRef.current === resultKey) {
-          return;
-        }
-
-        announcedResultKeyRef.current = resultKey;
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-            AccessibilityInfo.announceForAccessibility(announcement);
-          });
-        });
-      },
-      [],
-    );
 
   return (
     <View className="flex-1 bg-bg">
@@ -3593,9 +3575,9 @@ function DailyNumbersPlayView({
             compact={compact}
             modeAccent={modeAccent}
             onClaimReward={onClaimReward}
-            onResultVisibilityChange={handleResultVisibilityChange}
             onResolveResetError={onResolveResetError}
             onSubmissionApplied={onSubmissionApplied}
+            scrollViewRef={scrollViewRef}
             state={state}
             t={t}
             tc={tc}
