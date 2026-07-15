@@ -66,6 +66,30 @@ clear_metro_cache_if_needed() {
   fi
 }
 
+ensure_local_api_ready() {
+  case "$API_BASE_URL" in
+    http://127.0.0.1:* | http://localhost:*) ;;
+    *) return 0 ;;
+  esac
+
+  local ready_url="${API_BASE_URL%/}/ready"
+
+  if curl \
+    --fail \
+    --max-time 3 \
+    --output /dev/null \
+    --silent \
+    --user-agent "AdventureTimeNative/iOS-local-development" \
+    "$ready_url"; then
+    return 0
+  fi
+
+  echo "Local Phoenix API is not healthy at $ready_url"
+  echo "Start it, or restart a wedged process, in another terminal:"
+  echo "  npm run dev:api"
+  exit 1
+}
+
 list_available_simulators() {
   xcrun simctl list devices available | awk -F'[()]' '/iPhone/ {gsub(/^ +| +$/, "", $1); print $1}'
 }
@@ -114,11 +138,12 @@ boot_simulator() {
   exit 1
 }
 
-for command_name in cmp npx pod xcrun open rg; do
+for command_name in cmp curl npx pod xcrun open rg; do
   require_command "$command_name"
 done
 
 require_command node
+ensure_local_api_ready
 ensure_pods_in_sync
 prepend_node_path "$MOBILE_ROOT/node_modules"
 clear_metro_cache_if_needed
