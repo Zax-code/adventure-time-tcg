@@ -13,6 +13,7 @@ import {
   useState,
 } from "react";
 import {
+  AccessibilityInfo,
   AppState,
   Alert,
   Pressable,
@@ -39,7 +40,15 @@ import {
 } from "@adventure-time/api-client";
 
 import { PageErrorState } from "../../src/components/error-state";
-import { ShareIcon } from "../../src/components/icons";
+import {
+  CheckIcon,
+  ClockIcon,
+  CoinIcon,
+  EyeIcon,
+  RecycleIcon,
+  ShareIcon,
+  SkipBackIcon,
+} from "../../src/components/icons";
 import { PageLoadingState } from "../../src/components/loading-state";
 import { DailyNumbersQuestShareCard } from "../../src/features/quests/daily-numbers/quest-share-card";
 import {
@@ -128,15 +137,6 @@ type BoardAction =
   | { type: "submitFinished" }
   | { type: "startRetry" }
   | { type: "toggleSolution" };
-type FinishTone = {
-  shellBorder: string;
-  shellBg: string;
-  resultBorder: string;
-  resultBg: string;
-  resultText: string;
-  summaryText: string;
-  statusText: string;
-};
 type FinishStateProps = {
   claimable: boolean;
   claimPending: boolean;
@@ -145,8 +145,6 @@ type FinishStateProps = {
   finishCompleted: boolean;
   finishDistance: number | null;
   finishScore: number | null;
-  finishSummary: string | null;
-  finishTone: FinishTone;
   finishValue: number | null;
   formattedElapsedTime: string;
   interaction: BoardInteractionState;
@@ -402,36 +400,26 @@ function formatNumbersShareDate(
   });
 }
 
-function buildSubmissionSummary(
-  t: TranslateFn,
-  submission: NonNullable<DailyNumbersBoardState["submission"]>,
-) {
-  if (submission.distance === 0) {
-    return t("quests.dailyNumbers.exactResult", {
-      score: submission.score,
-    });
-  }
-
-  return t("quests.dailyNumbers.closeResult", {
-    value: submission.finalValue,
-    distance: submission.distance,
-    score: submission.score,
-  });
-}
-
-function buildBoardIdentity(state: DailyNumbersBoardState) {
+function buildPuzzleIdentity(state: DailyNumbersBoardState) {
   const numbersIdentity = state.numbers
     .map((tile) => `${tile.id}:${tile.value}`)
     .join("|");
+
   return [
     state.mode,
     state.date,
     isArchiveState(state) ? "archive" : "daily",
     state.questVersion ?? "no-version",
+    numbersIdentity,
+  ].join(":");
+}
+
+function buildBoardIdentity(state: DailyNumbersBoardState) {
+  return [
+    buildPuzzleIdentity(state),
     state.submitted ? "submitted" : "fresh",
     state.submission?.finalValue ?? "no-result",
     state.submission?.elapsedMs ?? "no-time",
-    numbersIdentity,
   ].join(":");
 }
 
@@ -760,41 +748,49 @@ function MessageBanner({ message }: { message: MessageState }) {
   }
 
   return (
-    <View
+    <Animated.View
       accessible
       accessibilityLabel={message.text}
       accessibilityLiveRegion="polite"
       accessibilityRole="alert"
-      className={`mb-1 rounded-2xl border px-3 py-1.5 ${message.type === "success" ? "border-successBorder bg-successTint" : "border-dangerBorder bg-dangerTint"}`}
+      entering={FadeIn.duration(180)}
+      exiting={FadeOut.duration(140)}
+      className={`mb-3 rounded-xl px-3 py-2.5 ${message.type === "success" ? "bg-successTint" : "bg-dangerTint"}`}
     >
       <Text
-        className={`font-nunito-semibold text-xs ${message.type === "success" ? "text-successText" : "text-dangerText"}`}
+        className={`font-nunito-bold text-xs leading-4 ${message.type === "success" ? "text-successText" : "text-dangerText"}`}
       >
         {message.text}
       </Text>
-    </View>
+    </Animated.View>
   );
 }
 
 function ModeTabs({
   activeMode,
+  archiveMode,
   modeCards,
   onSelectMode,
   t,
   tc,
 }: {
   activeMode: DailyNumbersMode;
+  archiveMode: boolean;
   modeCards: ModeCard[];
   onSelectMode: (mode: DailyNumbersMode) => void;
   t: TranslateFn;
   tc: ThemeColors;
 }) {
   return (
-    <View className="mb-2 flex-row gap-2">
+    <View className="mb-4 flex-row border-b border-primaryBorder">
       {modeCards.map(({ mode, state, isLoading }) => {
         const selected = mode === activeMode;
         const accent = getModeAccent(mode, tc);
-        const statusLabel = getModeStatusLabel(state, isLoading, t);
+        const statusLabel =
+          archiveMode && state?.submission
+            ? t("quests.dailyNumbers.archiveSavedLabel")
+            : getModeStatusLabel(state, isLoading, t);
+        const modeLabel = t(getModeLabelKey(mode));
 
         return (
           <Pressable
@@ -803,22 +799,28 @@ function ModeTabs({
               triggerSelectionHaptic();
               onSelectMode(mode);
             }}
-            className="flex-1 rounded-2xl border px-3 py-2"
-            style={{
-              borderColor: selected ? accent.text : tc.primaryBorder,
-              backgroundColor: selected ? accent.bg : tc.surface,
-            }}
+            className="min-h-[64px] flex-1 items-center justify-center px-1.5 py-2.5"
+            style={({ pressed }) => ({
+              borderBottomColor: selected ? accent.text : "transparent",
+              borderBottomWidth: selected ? 3 : 0,
+              opacity: pressed ? 0.72 : 1,
+            })}
             testID={`daily-numbers-mode-${mode}`}
             accessibilityRole="button"
             accessibilityState={{ selected }}
-            accessibilityLabel={t(getModeLabelKey(mode))}
+            accessibilityLabel={`${modeLabel}. ${statusLabel}`}
           >
-            <Text className="text-center font-nunito-bold text-sm text-fg">
-              {t(getModeLabelKey(mode))}
+            <Text
+              className="text-center font-nunito-extrabold text-[15px]"
+              style={{ color: tc.fg }}
+              numberOfLines={1}
+            >
+              {modeLabel}
             </Text>
             <Text
-              className="mt-1 text-center font-nunito-bold text-[11px]"
-              style={{ color: selected ? accent.text : tc.fgMuted }}
+              className="mt-0.5 min-h-6 text-center font-nunito-bold text-[10px] leading-3"
+              style={{ color: tc.fgMuted }}
+              numberOfLines={2}
             >
               {statusLabel}
             </Text>
@@ -829,22 +831,25 @@ function ModeTabs({
   );
 }
 
-function StatCard({
-  compact,
+function InlineMetric({
   label,
   value,
 }: {
-  compact: boolean;
   label: string;
   value: number | string;
 }) {
   return (
-    <View className="min-w-[140px] flex-1 rounded-2xl bg-primaryBg px-4 py-3">
-      <Text className="font-nunito-semibold text-[10px] uppercase tracking-[1px] text-fgMuted">
+    <View className="min-w-0 items-center justify-center px-1.5 py-2.5">
+      <Text
+        className="text-center font-nunito-bold text-[9px] uppercase tracking-[0.8px] text-fgMuted"
+        numberOfLines={2}
+      >
         {label}
       </Text>
       <Text
-        className={`font-nunito-extrabold ${compact ? "text-[28px]" : "text-[32px]"} text-fg`}
+        className="mt-0.5 text-center font-nunito-extrabold text-lg leading-6 text-fg"
+        style={{ fontVariant: ["tabular-nums"] }}
+        numberOfLines={1}
       >
         {value}
       </Text>
@@ -857,6 +862,7 @@ function MetricsSection({
   currentBestTile,
   currentDistance,
   formattedElapsedTime,
+  modeAccent,
   state,
   t,
   tc,
@@ -865,45 +871,82 @@ function MetricsSection({
   currentBestTile: BoardTile | null;
   currentDistance: number | undefined;
   formattedElapsedTime: string;
+  modeAccent: ReturnType<typeof getModeAccent>;
   state: DailyNumbersBoardState;
   t: TranslateFn;
   tc: ThemeColors;
 }) {
+  const { fontScale } = useWindowDimensions();
+  const stackMetrics = fontScale >= 1.4;
+
   return (
-    <View className="gap-2">
-      <View
-        className="rounded-2xl border px-4 py-3"
-        style={{ backgroundColor: tc.infoTint, borderColor: tc.infoBorder }}
-      >
-        <Text
-          className="font-nunito-semibold text-[10px] uppercase tracking-[1px]"
-          style={{ color: tc.infoText }}
-        >
+    <View className="pb-4">
+      <View className={`${compact ? "py-2" : "py-3"} items-center`}>
+        <Text className="font-nunito-extrabold text-[10px] uppercase tracking-[1.4px] text-fgMuted">
           {t("quests.dailyNumbers.target")}
         </Text>
         <Text
-          className={`font-nunito-extrabold ${compact ? "text-[32px]" : "text-[38px]"}`}
-          style={{ color: tc.infoText }}
+          className={`${compact ? "text-[52px] leading-[58px]" : "text-[60px] leading-[66px]"} font-nunito-extrabold`}
+          style={{ color: modeAccent.text, fontVariant: ["tabular-nums"] }}
+          numberOfLines={1}
+          selectable
+          testID="daily-numbers-target"
         >
           {state.target}
         </Text>
       </View>
-      <View className="flex-row flex-wrap gap-2">
-        <StatCard
-          compact={compact}
-          label={t("quests.dailyNumbers.bestResult")}
-          value={currentBestTile?.value ?? "—"}
-        />
-        <StatCard
-          compact={compact}
-          label={t("quests.dailyNumbers.bestDistance")}
-          value={currentDistance ?? state.bestDistance}
-        />
-        <StatCard
-          compact={compact}
-          label={t("quests.dailyNumbers.solveTime")}
-          value={formattedElapsedTime}
-        />
+      <View
+        className={`${stackMetrics ? "flex-col" : "flex-row"} border-y border-primaryBorder`}
+      >
+        {stackMetrics ? (
+          <>
+            <View className="w-full flex-row">
+              <View className="flex-1">
+                <InlineMetric
+                  label={t("quests.dailyNumbers.bestResult")}
+                  value={currentBestTile?.value ?? "—"}
+                />
+              </View>
+              <View className="my-2.5 w-px bg-primaryBorder" />
+              <View className="flex-1">
+                <InlineMetric
+                  label={t("quests.dailyNumbers.bestDistance")}
+                  value={currentDistance ?? state.bestDistance}
+                />
+              </View>
+            </View>
+            <View className="h-px w-full bg-primaryBorder" />
+            <View className="w-full">
+              <InlineMetric
+                label={t("quests.dailyNumbers.solveTime")}
+                value={formattedElapsedTime}
+              />
+            </View>
+          </>
+        ) : (
+          <>
+            <View className="flex-1">
+              <InlineMetric
+                label={t("quests.dailyNumbers.bestResult")}
+                value={currentBestTile?.value ?? "—"}
+              />
+            </View>
+            <View className="my-2.5 w-px bg-primaryBorder" />
+            <View className="flex-1">
+              <InlineMetric
+                label={t("quests.dailyNumbers.bestDistance")}
+                value={currentDistance ?? state.bestDistance}
+              />
+            </View>
+            <View className="my-2.5 w-px bg-primaryBorder" />
+            <View className="flex-1">
+              <InlineMetric
+                label={t("quests.dailyNumbers.solveTime")}
+                value={formattedElapsedTime}
+              />
+            </View>
+          </>
+        )}
       </View>
     </View>
   );
@@ -913,21 +956,27 @@ function SuccessCallout({
   archiveMode,
   completionReached,
   t,
+  tc,
 }: {
   archiveMode: boolean;
   completionReached: boolean;
   t: TranslateFn;
+  tc: ThemeColors;
 }) {
   return (
-    <View className="mb-1 rounded-2xl border border-successBorder bg-successTint px-3 py-2">
-      <Text className="font-nunito-bold text-xs text-successText">
+    <Animated.View
+      entering={FadeIn.duration(180)}
+      className="mb-3 flex-row items-start gap-2 px-1"
+    >
+      <CheckIcon size={17} color={tc.successText} />
+      <Text className="min-w-0 flex-1 font-nunito-bold text-xs leading-4 text-successText">
         {completionReached
           ? archiveMode
             ? t("quests.dailyNumbers.archiveImproved")
             : t("quests.dailyNumbers.clearReached")
           : t("quests.dailyNumbers.lockedSuccess")}
       </Text>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -943,26 +992,35 @@ function StepList({
   title: string;
 }) {
   return (
-    <View className="mt-2">
-      <View className="mt-2 flex-row items-center justify-between rounded-2xl bg-primaryBg px-3 py-2.5">
-        <Text className="font-nunito-semibold text-sm text-fg">{title}</Text>
-        <Text className="font-nunito-bold text-sm text-fgMuted">
+    <View className="mt-5">
+      <View className="flex-row items-baseline justify-between">
+        <Text className="font-nunito-extrabold text-sm text-fg">{title}</Text>
+        <Text
+          className="font-nunito-bold text-xs text-fgMuted"
+          style={{ fontVariant: ["tabular-nums"] }}
+        >
           {steps.length}
         </Text>
       </View>
       {steps.length > 0 ? (
-        <View className="mt-2 gap-2">
+        <View className="mt-1.5 border-t border-primaryBorder">
           {steps.map((step, index) => (
-            <View
+            <Animated.View
               key={`${step.resultId}-${index}`}
-              className="rounded-2xl border border-primaryBorder bg-surface px-3 py-2.5"
+              entering={FadeIn.duration(160).delay(index * 35)}
+              layout={LinearTransition.duration(180)}
+              className="flex-row items-center gap-3 border-b border-primaryBorder py-2.5"
             >
-              <Text className="font-nunito-semibold text-xs text-fgMuted">
-                {t("quests.dailyNumbers.stepNumber", {
+              <Text
+                className="w-5 text-center font-nunito-extrabold text-xs text-fgMuted"
+                style={{ fontVariant: ["tabular-nums"] }}
+                accessibilityLabel={t("quests.dailyNumbers.stepNumber", {
                   step: index + 1,
                 })}
+              >
+                {index + 1}
               </Text>
-              <Text className="mt-1 font-nunito-bold text-sm text-fg">
+              <Text className="min-w-0 flex-1 font-nunito-extrabold text-sm leading-5 text-fg">
                 {t("quests.dailyNumbers.stepSummary", {
                   leftValue: step.leftValue,
                   operator: displayOperator(step.operator),
@@ -970,15 +1028,104 @@ function StepList({
                   resultValue: step.resultValue,
                 })}
               </Text>
-            </View>
+            </Animated.View>
           ))}
         </View>
       ) : emptyCopy ? (
-        <Text className="mt-2 px-1 font-nunito text-sm text-fgMuted">
+        <Text className="mt-2 font-nunito-semibold text-xs leading-4 text-fgMuted">
           {emptyCopy}
         </Text>
       ) : null}
     </View>
+  );
+}
+
+function ResultDetails({
+  interaction,
+  officialSolutionSteps,
+  onToggleSolution,
+  state,
+  submittedSolutionSteps,
+  t,
+  tc,
+}: {
+  interaction: BoardInteractionState;
+  officialSolutionSteps: DailyNumbersStep[];
+  onToggleSolution: () => void;
+  state: DailyNumbersBoardState;
+  submittedSolutionSteps: DailyNumbersStep[];
+  t: TranslateFn;
+  tc: ThemeColors;
+}) {
+  return (
+    <>
+      <View className="mt-6 border-t border-primaryBorder pt-4">
+        <Text className="font-nunito-extrabold text-sm text-fg">
+          {t("quests.dailyNumbers.startingNumbersTitle")}
+        </Text>
+        <View className="mt-2 flex-row flex-wrap items-center gap-x-4 gap-y-2">
+          {state.numbers.map((tile) => (
+            <Text
+              key={tile.id}
+              className="min-w-[40px] text-center font-nunito-extrabold text-base text-fg"
+              style={{ fontVariant: ["tabular-nums"] }}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.7}
+              selectable
+            >
+              {tile.value}
+            </Text>
+          ))}
+        </View>
+      </View>
+      {submittedSolutionSteps.length > 0 ? (
+        <StepList
+          steps={submittedSolutionSteps}
+          t={t}
+          title={t("quests.dailyNumbers.solutionUsedTitle")}
+        />
+      ) : null}
+      {officialSolutionSteps.length > 0 ? (
+        <>
+          <QuestActionButton
+            label={
+              interaction.revealedSolution
+                ? t("quests.dailyNumbers.hideSolution")
+                : t("quests.dailyNumbers.revealSolution")
+            }
+            onPress={onToggleSolution}
+            backgroundColor={tc.bg}
+            foregroundColor={tc.primaryText}
+            leadingIcon={EyeIcon}
+            minHeight={48}
+            style={{ marginTop: 14 }}
+            testID="daily-numbers-reveal-solution"
+            accessibilityLabel={
+              interaction.revealedSolution
+                ? t("quests.dailyNumbers.hideSolution")
+                : t("quests.dailyNumbers.revealSolution")
+            }
+            accessibilityState={{ expanded: interaction.revealedSolution }}
+          />
+          {interaction.revealedSolution ? (
+            <Animated.View
+              entering={FadeIn.duration(180)}
+              className="mt-4 border-t border-primaryBorder pt-4"
+            >
+              <Text className="font-nunito text-sm leading-5 text-fgMuted">
+                {t("quests.dailyNumbers.officialSolutionBody")}
+              </Text>
+              <StepList
+                steps={officialSolutionSteps}
+                t={t}
+                title={t("quests.dailyNumbers.officialSolutionTitle")}
+              />
+            </Animated.View>
+          ) : null}
+        </>
+      ) : null}
+    </>
   );
 }
 
@@ -992,8 +1139,6 @@ function FinishStatePanel({
   finishCompleted,
   finishDistance,
   finishScore,
-  finishSummary,
-  finishTone,
   finishValue,
   formattedElapsedTime,
   interaction,
@@ -1008,103 +1153,125 @@ function FinishStatePanel({
   t,
   tc,
 }: FinishStateProps) {
+  const { fontScale } = useWindowDimensions();
+  const stackMetrics = fontScale >= 1.4;
+  const resultColor = exactHitState
+    ? tc.successText
+    : finishCompleted
+      ? tc.infoText
+      : tc.dangerText;
+  const outcomeLabel = exactHitState
+    ? t("quests.dailyNumbers.exactHitLabel")
+    : finishDistance == null
+      ? t("quests.dailyNumbers.resultLockedLabel")
+      : t("quests.dailyNumbers.distanceOutcome", {
+          distance: finishDistance,
+        });
+  const resultNote = state.claimed
+    ? t("quests.dailyNumbers.alreadyClaimed")
+    : !state.submitted && exactHitState
+      ? null
+      : finishCompleted
+        ? t("quests.dailyNumbers.rewardReminder", {
+            reward: state.reward,
+          })
+        : t("quests.dailyNumbers.resultLockedNote");
+
   return (
-    <View
-      className="rounded-[28px] border px-5 py-6"
-      style={{
-        borderColor: finishTone.shellBorder,
-        backgroundColor: finishTone.shellBg,
-      }}
-    >
-      <Text className="text-center font-nunito-bold text-xs uppercase tracking-[1px] text-fgMuted">
-        {exactHitState
-          ? t("quests.dailyNumbers.exactHitLabel")
-          : t("quests.dailyNumbers.resultLockedLabel")}
-      </Text>
+    <View className="pt-1" testID="daily-numbers-result">
+      <Animated.View
+        entering={FadeIn.duration(220)}
+        className="items-center border-b border-primaryBorder px-2 pb-5 pt-3"
+      >
+        {archiveMode ? (
+          <Text className="mb-2 font-nunito-bold text-[10px] uppercase tracking-[1.2px] text-fgMuted">
+            {t("quests.dailyNumbers.archiveResultLabel")}
+          </Text>
+        ) : null}
+        <Text
+          className={`${compact ? "text-[42px] leading-[48px]" : "text-[48px] leading-[54px]"} text-center font-nunito-extrabold`}
+          style={{ color: resultColor, fontVariant: ["tabular-nums"] }}
+          selectable
+          testID="daily-numbers-result-outcome"
+        >
+          {outcomeLabel}
+        </Text>
+        <Text
+          className="mt-2 text-center font-nunito-bold text-xs"
+          style={{ color: resultColor }}
+        >
+          {archiveMode
+            ? t("quests.dailyNumbers.archiveSavedLabel")
+            : finishCompleted
+              ? t("quests.dailyNumbers.completedLabel")
+              : t("quests.dailyNumbers.incompleteLabel")}
+        </Text>
+        {interaction.submitting && !state.submitted && exactHitState ? (
+          <Text className="mt-2 text-center font-nunito-semibold text-xs text-fgMuted">
+            {t("quests.dailyNumbers.autoSubmittingSuccess")}
+          </Text>
+        ) : null}
+      </Animated.View>
+
       <View
-        className="mt-3 w-full rounded-[28px] border bg-surface px-4 py-5"
-        style={{
-          borderColor: finishTone.resultBorder,
-          backgroundColor: finishTone.resultBg,
-        }}
+        className={`${stackMetrics ? "flex-col" : "flex-row"} border-b border-primaryBorder`}
       >
-        <Text className="text-center font-nunito-semibold text-[10px] uppercase tracking-[1px] text-fgMuted">
-          {t("quests.dailyNumbers.finalResult")}
-        </Text>
-        <Text
-          className={`mt-2 text-center font-nunito-extrabold ${exactHitState ? "text-[40px]" : compact ? "text-[32px]" : "text-[36px]"}`}
-          style={{ color: finishTone.resultText }}
-          numberOfLines={1}
-          adjustsFontSizeToFit
-          minimumFontScale={0.7}
-        >
-          {finishValue ?? state.target}
-        </Text>
-        <Text className="mt-2 text-center font-nunito-semibold text-xs text-fgMuted">
-          {t("quests.dailyNumbers.targetValue", {
-            target: state.target,
-          })}
-        </Text>
-      </View>
-      <Text
-        className="mt-3 text-center font-nunito-bold text-[11px]"
-        style={{ color: finishTone.statusText }}
-      >
-        {finishCompleted
-          ? t("quests.dailyNumbers.completedLabel")
-          : t("quests.dailyNumbers.incompleteLabel")}
-      </Text>
-      {finishSummary ? (
-        <Text
-          className="mt-2 text-center font-nunito-bold text-sm"
-          style={{ color: finishTone.summaryText }}
-        >
-          {finishSummary}
-        </Text>
-      ) : null}
-      {interaction.submitting && !state.submitted && exactHitState ? (
-        <Text className="mt-2 text-center font-nunito-semibold text-xs text-fgMuted">
-          {t("quests.dailyNumbers.autoSubmittingSuccess")}
-        </Text>
-      ) : null}
-      <View className="mt-5 flex-row flex-wrap gap-2">
-        <View className="min-w-[96px] flex-1 rounded-2xl border border-primaryBorder bg-surface px-3 py-3">
-          <Text className="font-nunito-semibold text-[10px] uppercase tracking-[1px] text-fgMuted">
-            {t("quests.dailyNumbers.distanceLabel")}
-          </Text>
-          <Text className="font-nunito-extrabold text-2xl text-fg">
-            {finishDistance ?? "—"}
-          </Text>
-        </View>
-        <View className="min-w-[96px] flex-1 rounded-2xl border border-primaryBorder bg-surface px-3 py-3">
-          <Text className="font-nunito-semibold text-[10px] uppercase tracking-[1px] text-fgMuted">
-            {t("quests.dailyNumbers.scoreLabel")}
-          </Text>
-          <Text className="font-nunito-extrabold text-2xl text-fg">
-            {finishScore != null ? `${finishScore}%` : "—"}
-          </Text>
-        </View>
-        {!archiveMode ? (
-          <View className="min-w-[96px] flex-1 rounded-2xl border border-primaryBorder bg-surface px-3 py-3">
-            <Text className="font-nunito-semibold text-[10px] uppercase tracking-[1px] text-fgMuted">
-              {t("quests.dailyNumbers.reward")}
-            </Text>
-            <Text className="font-nunito-extrabold text-2xl text-secondaryDark">
-              {state.reward}
+        <View className="min-w-0 flex-1 py-4">
+          <View className="flex-row items-center gap-1.5">
+            <ClockIcon size={15} color={tc.fgMuted} />
+            <Text className="font-nunito-extrabold text-[10px] uppercase tracking-[1px] text-fgMuted">
+              {t("quests.dailyNumbers.solveTime")}
             </Text>
           </View>
-        ) : null}
-        <View className="min-w-[96px] flex-1 rounded-2xl border border-primaryBorder bg-surface px-3 py-3">
-          <Text className="font-nunito-semibold text-[10px] uppercase tracking-[1px] text-fgMuted">
-            {t("quests.dailyNumbers.solveTime")}
-          </Text>
-          <Text className="font-nunito-extrabold text-2xl text-fg">
+          <Text
+            className="mt-1 font-nunito-extrabold text-[30px] leading-9 text-fg"
+            style={{ fontVariant: ["tabular-nums"] }}
+            selectable
+            testID="daily-numbers-result-time"
+          >
             {formattedElapsedTime}
           </Text>
         </View>
+        <View
+          className={
+            stackMetrics
+              ? "h-px w-full bg-primaryBorder"
+              : "my-3 w-px bg-primaryBorder"
+          }
+        />
+        <View className="min-w-0 flex-1 py-4">
+          <Text className="font-nunito-extrabold text-[10px] uppercase tracking-[1px] text-fgMuted">
+            {t("quests.dailyNumbers.finalResult")}
+          </Text>
+          <Text
+            className="mt-1 font-nunito-extrabold text-2xl leading-8 text-fg"
+            style={{ fontVariant: ["tabular-nums"] }}
+            selectable
+          >
+            {finishValue ?? "—"} {exactHitState ? "=" : "→"} {state.target}
+          </Text>
+        </View>
+      </View>
+
+      <View className="flex-row flex-wrap items-center gap-x-5 gap-y-2 py-3">
+        <Text className="font-nunito-bold text-xs text-fgMuted">
+          {t("quests.dailyNumbers.distanceLabel")}: {finishDistance ?? "—"}
+        </Text>
+        <Text className="font-nunito-bold text-xs text-fgMuted">
+          {t("quests.dailyNumbers.scoreLabel")}:{" "}
+          {finishScore != null ? `${finishScore}%` : "—"}
+        </Text>
+        {!archiveMode ? (
+          <View className="flex-row items-center gap-1.5">
+            <CoinIcon size={16} />
+            <Text className="font-nunito-bold text-xs text-fgMuted">
+              {t("quests.dailyNumbers.reward")}: {state.reward}
+            </Text>
+          </View>
+        ) : null}
       </View>
       {archiveMode ? (
-        <Text className="mt-5 text-center font-nunito-semibold text-sm text-fgMuted">
+        <Text className="px-1 py-2 text-center font-nunito-bold text-xs leading-4 text-fgMuted">
           {t("quests.dailyNumbers.archiveNoReward")}
         </Text>
       ) : claimable && state.questVersion ? (
@@ -1115,41 +1282,33 @@ function FinishStatePanel({
           onPress={onClaimReward}
           loading={claimPending}
           loadingMode="inline"
-          backgroundColor={tc.successTint}
-          foregroundColor={tc.successText}
-          borderColor={tc.successBorder}
+          backgroundColor={tc.primaryStrong}
+          foregroundColor="#FFFFFF"
+          leadingAccessory={<CoinIcon size={18} />}
           minHeight={48}
           accessibilityLabel={t("quests.dailyNumbers.claimReward", {
             reward: state.reward,
           })}
           testID="daily-numbers-claim-reward"
-          style={{ marginTop: 20 }}
+          style={{ marginTop: 12 }}
         />
-      ) : (
-        <Text className="mt-5 text-center font-nunito-semibold text-sm text-fgMuted">
-          {state.claimed
-            ? t("quests.dailyNumbers.alreadyClaimed")
-            : !state.submitted && exactHitState
-              ? t("quests.dailyNumbers.autoSubmittingSuccess")
-              : finishCompleted
-                ? t("quests.dailyNumbers.rewardReminder", {
-                    reward: state.reward,
-                  })
-                : t("quests.dailyNumbers.resultLockedNote")}
+      ) : resultNote ? (
+        <Text className="px-1 py-2 text-center font-nunito-semibold text-xs leading-4 text-fgMuted">
+          {resultNote}
         </Text>
-      )}
+      ) : null}
       {archiveMode && canRetryArchive ? (
-        <Pressable
+        <QuestActionButton
+          label={t("quests.dailyNumbers.archiveTryAgain")}
           onPress={onStartRetry}
-          className="mt-4 rounded-2xl border border-primaryBorder bg-surface px-4 py-3"
+          backgroundColor={tc.primaryStrong}
+          foregroundColor="#FFFFFF"
+          leadingIcon={RecycleIcon}
+          minHeight={48}
+          style={{ marginTop: 12 }}
           testID="daily-numbers-archive-retry"
-          accessibilityRole="button"
           accessibilityLabel={t("quests.dailyNumbers.archiveTryAgain")}
-        >
-          <Text className="text-center font-nunito-bold text-fg">
-            {t("quests.dailyNumbers.archiveTryAgain")}
-          </Text>
-        </Pressable>
+        />
       ) : null}
       <QuestActionButton
         label={
@@ -1161,104 +1320,23 @@ function FinishStatePanel({
         loading={isSharing}
         loadingMode="inline"
         backgroundColor={tc.surface}
-        foregroundColor={tc.primaryDark}
+        foregroundColor={tc.primaryText}
         borderColor={tc.primaryBorder}
         leadingIcon={ShareIcon}
         minHeight={48}
         accessibilityLabel={t("quests.dailyNumbers.shareResult")}
         testID="daily-numbers-share-result"
-        style={{ marginTop: 20 }}
+        style={{ marginTop: 12 }}
       />
-      <View className="mt-5 w-full rounded-2xl border border-primaryBorder bg-surface px-3 py-3">
-        <Text className="font-nunito-bold text-sm text-fg">
-          {t("quests.dailyNumbers.startingNumbersTitle")}
-        </Text>
-        <View className="mt-2 flex-row flex-wrap gap-2">
-          {state.numbers.map((tile) => (
-            <View
-              key={tile.id}
-              className="min-w-[56px] rounded-2xl bg-primaryBg px-3 py-2"
-            >
-              <Text className="text-center font-nunito-extrabold text-base text-fg">
-                {tile.value}
-              </Text>
-            </View>
-          ))}
-        </View>
-      </View>
-      {submittedSolutionSteps.length > 0 ? (
-        <View className="mt-5 w-full rounded-2xl border border-primaryBorder bg-surface px-3 py-3">
-          <Text className="font-nunito-bold text-sm text-fg">
-            {t("quests.dailyNumbers.solutionUsedTitle")}
-          </Text>
-          <View className="mt-2 gap-2">
-            {submittedSolutionSteps.map((step, index) => (
-              <View
-                key={`${step.resultId}-${index}`}
-                className="rounded-2xl bg-primaryBg px-3 py-2"
-              >
-                <Text className="font-nunito-bold text-[13px] text-fg">
-                  {t("quests.dailyNumbers.stepSummary", {
-                    leftValue: step.leftValue,
-                    operator: displayOperator(step.operator),
-                    rightValue: step.rightValue,
-                    resultValue: step.resultValue,
-                  })}
-                </Text>
-              </View>
-            ))}
-          </View>
-        </View>
-      ) : null}
-      {officialSolutionSteps.length > 0 ? (
-        <>
-          <Pressable
-            onPress={onToggleSolution}
-            className="mt-5 rounded-2xl border border-primaryBorder bg-surface px-4 py-3"
-            testID="daily-numbers-reveal-solution"
-            accessibilityRole="button"
-            accessibilityState={{ expanded: interaction.revealedSolution }}
-            accessibilityLabel={
-              interaction.revealedSolution
-                ? t("quests.dailyNumbers.hideSolution")
-                : t("quests.dailyNumbers.revealSolution")
-            }
-          >
-            <Text className="text-center font-nunito-bold text-fg">
-              {interaction.revealedSolution
-                ? t("quests.dailyNumbers.hideSolution")
-                : t("quests.dailyNumbers.revealSolution")}
-            </Text>
-          </Pressable>
-          {interaction.revealedSolution ? (
-            <View className="mt-3 w-full rounded-2xl border border-primaryBorder bg-surface px-3 py-3">
-              <Text className="font-nunito-bold text-sm text-fg">
-                {t("quests.dailyNumbers.officialSolutionTitle")}
-              </Text>
-              <Text className="mt-1 font-nunito text-sm text-fgMuted">
-                {t("quests.dailyNumbers.officialSolutionBody")}
-              </Text>
-              <View className="mt-3 gap-2">
-                {officialSolutionSteps.map((step, index) => (
-                  <View
-                    key={`${step.resultId}-${index}`}
-                    className="rounded-2xl bg-primaryBg px-3 py-2"
-                  >
-                    <Text className="font-nunito-bold text-[13px] text-fg">
-                      {t("quests.dailyNumbers.stepSummary", {
-                        leftValue: step.leftValue,
-                        operator: displayOperator(step.operator),
-                        rightValue: step.rightValue,
-                        resultValue: step.resultValue,
-                      })}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-          ) : null}
-        </>
-      ) : null}
+      <ResultDetails
+        interaction={interaction}
+        officialSolutionSteps={officialSolutionSteps}
+        onToggleSolution={onToggleSolution}
+        state={state}
+        submittedSolutionSteps={submittedSolutionSteps}
+        t={t}
+        tc={tc}
+      />
     </View>
   );
 }
@@ -1276,11 +1354,19 @@ function AvailableNumbersGrid({
   tc,
 }: AvailableNumbersGridProps) {
   return (
-    <>
-      <Text className="mt-3 font-nunito-bold text-sm text-fg">
-        {t("quests.dailyNumbers.availableNumbers")}
-      </Text>
-      <View className="mt-2 flex-row flex-wrap justify-between gap-y-2">
+    <View className="mt-5">
+      <View className="flex-row items-baseline justify-between">
+        <Text className="font-nunito-extrabold text-sm text-fg">
+          {t("quests.dailyNumbers.availableNumbers")}
+        </Text>
+        <Text
+          className="font-nunito-bold text-xs text-fgMuted"
+          style={{ fontVariant: ["tabular-nums"] }}
+        >
+          {availableTiles.length}
+        </Text>
+      </View>
+      <View className="mt-2.5 flex-row flex-wrap justify-between gap-y-2">
         {availableTiles.map((tile) => {
           const availability = getDailyNumbersTileAvailability({
             interactionLocked,
@@ -1301,14 +1387,17 @@ function AvailableNumbersGrid({
               <Pressable
                 onPress={() => onTilePress(tile.id)}
                 disabled={availability.disabled}
-                className="rounded-2xl border px-2 py-2.5"
+                className={`${compact ? "min-h-[58px]" : "min-h-[64px]"} items-center justify-center overflow-hidden rounded-xl px-2 py-2`}
                 style={{
                   borderColor: availability.selected
                     ? modeAccent.text
-                    : tc.primaryBorder,
+                    : "transparent",
+                  borderWidth: 2,
                   backgroundColor: availability.selected
-                    ? tc.surface
-                    : tc.primaryBg,
+                    ? modeAccent.bg
+                    : tile.source === "derived"
+                      ? tc.surfaceMuted
+                      : tc.surface,
                   opacity:
                     availability.disabled && !availability.selected ? 0.4 : 1,
                 }}
@@ -1322,11 +1411,24 @@ function AvailableNumbersGrid({
                   value: tile.value,
                 })}
               >
+                {tile.source === "derived" ? (
+                  <Text
+                    className="absolute right-2 top-1 font-nunito-extrabold text-[10px] text-fgMuted"
+                    accessibilityElementsHidden
+                    importantForAccessibility="no-hide-descendants"
+                  >
+                    ✦
+                  </Text>
+                ) : null}
                 <Text
-                  className={`text-center font-nunito-extrabold ${compact ? "text-[20px]" : "text-[22px]"}`}
+                  className={`text-center font-nunito-extrabold ${compact ? "text-[22px]" : "text-[25px]"}`}
                   style={{
                     color: availability.selected ? modeAccent.text : tc.fg,
+                    fontVariant: ["tabular-nums"],
                   }}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.68}
                 >
                   {tile.value}
                 </Text>
@@ -1335,7 +1437,7 @@ function AvailableNumbersGrid({
           );
         })}
       </View>
-    </>
+    </View>
   );
 }
 
@@ -1350,11 +1452,11 @@ function OperatorPicker({
   tc,
 }: OperatorPickerProps) {
   return (
-    <>
-      <Text className="mt-3 font-nunito-bold text-sm text-fg">
+    <View className="mt-5">
+      <Text className="font-nunito-extrabold text-sm text-fg">
         {t("quests.dailyNumbers.operators")}
       </Text>
-      <View className="mt-2 flex-row gap-2">
+      <View className="mt-2 flex-row gap-1 rounded-xl bg-surfaceMuted p-1">
         {OPERATORS.map((operator) => {
           const availability = getDailyNumbersOperatorAvailability({
             interactionLocked,
@@ -1369,16 +1471,17 @@ function OperatorPicker({
               key={operator}
               onPress={() => onOperatorPress(operator)}
               disabled={availability.disabled}
-              className="flex-1 rounded-2xl border px-3 py-3"
+              className={`${compact ? "min-h-[46px]" : "min-h-[50px]"} flex-1 items-center justify-center rounded-lg px-2 py-2`}
               style={{
-                borderColor: availability.selected
-                  ? tc.accentStrong
-                  : tc.primaryBorder,
                 backgroundColor: availability.selected
                   ? tc.accentTint
-                  : tc.primaryBg,
+                  : "transparent",
                 opacity:
-                  availability.disabled && !availability.selected ? 0.4 : 1,
+                  availability.disabled && !availability.selected
+                    ? 0.2
+                    : availability.wouldBeInvalid
+                      ? 0.34
+                      : 1,
               }}
               testID={`daily-numbers-operator-${operator === "*" ? "multiply" : operator === "/" ? "divide" : operator === "+" ? "plus" : "minus"}`}
               accessibilityRole="button"
@@ -1391,18 +1494,201 @@ function OperatorPicker({
               })}
             >
               <Text
-                className={`text-center font-nunito-extrabold ${compact ? "text-lg" : "text-xl"}`}
+                className={`text-center font-nunito-extrabold ${compact ? "text-[20px]" : "text-[23px]"}`}
                 style={{
                   color: availability.selected ? tc.accentStrong : tc.fg,
                 }}
               >
-                {operator === "*" ? "×" : operator}
+                {displayOperator(operator)}
               </Text>
             </Pressable>
           );
         })}
       </View>
-    </>
+    </View>
+  );
+}
+
+function EquationResult({
+  expanded,
+  previewState,
+}: {
+  expanded?: boolean;
+  previewState: PreviewState;
+}) {
+  return (
+    <View
+      className={`${expanded ? "flex-1" : "min-w-[58px] max-w-[72px] flex-1"} h-12 items-center justify-center px-1.5`}
+    >
+      <Text
+        className={`text-center font-nunito-extrabold text-lg ${previewState.kind === "invalid" ? "text-dangerText" : previewState.kind === "ready" ? "text-primaryText" : "text-fgMuted"}`}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.6}
+        style={{ fontVariant: ["tabular-nums"] }}
+      >
+        {previewState.kind === "ready" ? previewState.result : "—"}
+      </Text>
+    </View>
+  );
+}
+
+function EquationWorkbench({
+  interactionLocked,
+  localSteps,
+  onClearSlot,
+  previewState,
+  selectedLeftTile,
+  selectedOperator,
+  selectedRightTile,
+  t,
+  tc,
+}: {
+  interactionLocked: boolean;
+  localSteps: DailyNumbersStep[];
+  onClearSlot: (slot: SlotKey) => void;
+  previewState: PreviewState;
+  selectedLeftTile: BoardTile | null;
+  selectedOperator: Operator | null;
+  selectedRightTile: BoardTile | null;
+  t: TranslateFn;
+  tc: ThemeColors;
+}) {
+  const { fontScale, width } = useWindowDimensions();
+  const stackResult = fontScale >= 1.35 || width < 350;
+
+  return (
+    <View>
+      <View className="mb-2 flex-row items-baseline justify-between">
+        <Text className="font-nunito-extrabold text-sm text-fg">
+          {t("quests.dailyNumbers.selection")}
+        </Text>
+        <Text className="font-nunito-bold text-xs text-fgMuted">
+          {t("quests.dailyNumbers.stepNumber", {
+            step: localSteps.length + 1,
+          })}
+        </Text>
+      </View>
+
+      <View className="border-y border-primaryBorder py-2">
+        <View className="flex-row items-center gap-1.5">
+          <Pressable
+            onPress={() => onClearSlot("left")}
+            className="h-12 min-w-0 flex-1 items-center justify-center rounded-lg px-1.5"
+            style={({ pressed }) => ({
+              backgroundColor: selectedLeftTile
+                ? tc.primaryTint
+                : "transparent",
+              opacity: interactionLocked ? 0.34 : pressed ? 0.7 : 1,
+            })}
+            disabled={interactionLocked}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: interactionLocked }}
+            accessibilityLabel={
+              selectedLeftTile
+                ? t("quests.dailyNumbers.selectedLeftValue", {
+                    value: selectedLeftTile.value,
+                  })
+                : t("quests.dailyNumbers.pickLeft")
+            }
+          >
+            <Text
+              className={`text-center font-nunito-extrabold text-base ${selectedLeftTile ? "text-fg" : "text-fgMuted"}`}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.68}
+              style={{ fontVariant: ["tabular-nums"] }}
+            >
+              {selectedLeftTile?.value ?? "—"}
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => onClearSlot("operator")}
+            className="h-12 w-11 items-center justify-center rounded-lg px-1"
+            style={({ pressed }) => ({
+              backgroundColor: selectedOperator
+                ? tc.primaryTint
+                : "transparent",
+              opacity: interactionLocked ? 0.34 : pressed ? 0.7 : 1,
+            })}
+            disabled={interactionLocked}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: interactionLocked }}
+            accessibilityLabel={
+              selectedOperator
+                ? t("quests.dailyNumbers.selectedOperatorValue", {
+                    operator: displayOperator(selectedOperator),
+                  })
+                : t("quests.dailyNumbers.pickOperator")
+            }
+          >
+            <Text
+              className={`text-center font-nunito-extrabold text-lg ${selectedOperator ? "text-fg" : "text-fgMuted"}`}
+            >
+              {selectedOperator ? displayOperator(selectedOperator) : "?"}
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => onClearSlot("right")}
+            className="h-12 min-w-0 flex-1 items-center justify-center rounded-lg px-1.5"
+            style={({ pressed }) => ({
+              backgroundColor: selectedRightTile
+                ? tc.primaryTint
+                : "transparent",
+              opacity: interactionLocked ? 0.34 : pressed ? 0.7 : 1,
+            })}
+            disabled={interactionLocked}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: interactionLocked }}
+            accessibilityLabel={
+              selectedRightTile
+                ? t("quests.dailyNumbers.selectedRightValue", {
+                    value: selectedRightTile.value,
+                  })
+                : t("quests.dailyNumbers.pickRight")
+            }
+          >
+            <Text
+              className={`text-center font-nunito-extrabold text-base ${selectedRightTile ? "text-fg" : "text-fgMuted"}`}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.68}
+              style={{ fontVariant: ["tabular-nums"] }}
+            >
+              {selectedRightTile?.value ?? "—"}
+            </Text>
+          </Pressable>
+          {!stackResult ? (
+            <>
+              <Text className="px-0.5 font-nunito-extrabold text-base text-fgMuted">
+                =
+              </Text>
+              <EquationResult previewState={previewState} />
+            </>
+          ) : null}
+        </View>
+        {stackResult ? (
+          <View className="mt-2 flex-row items-center gap-2 border-t border-primaryBorder pt-2">
+            <Text className="w-6 text-center font-nunito-extrabold text-lg text-fgMuted">
+              =
+            </Text>
+            <EquationResult expanded previewState={previewState} />
+          </View>
+        ) : null}
+        <Text
+          className={`mt-2 px-1 font-nunito-bold text-[11px] leading-4 ${previewState.kind === "invalid" ? "text-dangerText" : "text-fgMuted"}`}
+          numberOfLines={2}
+        >
+          {previewState.kind === "ready"
+            ? t("quests.dailyNumbers.nextResult")
+            : previewState.kind === "invalid"
+              ? previewState.reason === "division"
+                ? t("quests.dailyNumbers.invalidDivision")
+                : t("quests.dailyNumbers.invalidPositive")
+              : t("quests.dailyNumbers.noPreview")}
+        </Text>
+      </View>
+    </View>
   );
 }
 
@@ -1433,112 +1719,18 @@ function LivePlayPanel({
 }: LivePlayProps) {
   return (
     <>
-      <View
-        className="mt-3 flex-1 rounded-2xl border px-3 py-3"
-        style={{
-          borderColor: modeAccent.border,
-          backgroundColor: modeAccent.bg,
-        }}
-      >
-        <View className="flex-row items-center gap-2">
-          <Pressable
-            onPress={() => onClearSlot("left")}
-            className="h-12 flex-1 items-center justify-center rounded-2xl border border-primaryBorder bg-surface px-3"
-            disabled={interactionLocked}
-            accessibilityRole="button"
-            accessibilityState={{ disabled: interactionLocked }}
-            accessibilityLabel={
-              selectedLeftTile
-                ? t("quests.dailyNumbers.selectedLeftValue", {
-                    value: selectedLeftTile.value,
-                  })
-                : t("quests.dailyNumbers.pickLeft")
-            }
-          >
-            <Text className="text-center font-nunito-bold text-sm text-fg">
-              {selectedLeftTile?.value ?? t("quests.dailyNumbers.pickNumber")}
-            </Text>
-          </Pressable>
-          <Pressable
-            onPress={() => onClearSlot("operator")}
-            className="h-12 w-12 items-center justify-center rounded-2xl border border-primaryBorder bg-surfaceMuted px-2"
-            disabled={interactionLocked}
-            accessibilityRole="button"
-            accessibilityState={{ disabled: interactionLocked }}
-            accessibilityLabel={
-              selectedOperator
-                ? t("quests.dailyNumbers.selectedOperatorValue", {
-                    operator: displayOperator(selectedOperator),
-                  })
-                : t("quests.dailyNumbers.pickOperator")
-            }
-          >
-            <Text className="text-center font-nunito-extrabold text-lg text-fg">
-              {selectedOperator === "*" ? "×" : (selectedOperator ?? "?")}
-            </Text>
-          </Pressable>
-          <Pressable
-            onPress={() => onClearSlot("right")}
-            className="h-12 flex-1 items-center justify-center rounded-2xl border border-primaryBorder bg-surface px-3"
-            disabled={interactionLocked}
-            accessibilityRole="button"
-            accessibilityState={{ disabled: interactionLocked }}
-            accessibilityLabel={
-              selectedRightTile
-                ? t("quests.dailyNumbers.selectedRightValue", {
-                    value: selectedRightTile.value,
-                  })
-                : t("quests.dailyNumbers.pickRight")
-            }
-          >
-            <Text className="text-center font-nunito-bold text-sm text-fg">
-              {selectedRightTile?.value ?? t("quests.dailyNumbers.pickNumber")}
-            </Text>
-          </Pressable>
-        </View>
-
-        <View className="mt-2 rounded-2xl border border-primaryBorder bg-surface px-3 py-2.5">
-          <Text
-            className="font-nunito-semibold text-[10px] uppercase tracking-[1px]"
-            style={{ color: modeAccent.text }}
-          >
-            {t("quests.dailyNumbers.nextResult")}
-          </Text>
-          <Text
-            className={`mt-1 font-nunito-bold text-sm ${previewState.kind === "invalid" ? "text-dangerDark" : "text-fg"}`}
-          >
-            {previewState.kind === "ready"
-              ? previewState.result
-              : previewState.kind === "invalid"
-                ? previewState.reason === "division"
-                  ? t("quests.dailyNumbers.invalidDivision")
-                  : t("quests.dailyNumbers.invalidPositive")
-                : t("quests.dailyNumbers.noPreview")}
-          </Text>
-        </View>
-
-        <Pressable
-          onPress={onApplyStep}
-          disabled={interactionLocked}
-          className="mt-2 rounded-2xl px-3 py-3"
-          style={{
-            backgroundColor: interactionLocked
-              ? tc.surfaceMuted
-              : tc.accentDark,
-          }}
-          testID="daily-numbers-apply-step"
-          accessibilityRole="button"
-          accessibilityState={{ disabled: interactionLocked }}
-          accessibilityLabel={t("quests.dailyNumbers.applyStep")}
-        >
-          <Text
-            className="text-center font-nunito-bold text-sm"
-            style={{ color: interactionLocked ? tc.fgMuted : tc.primaryBg }}
-          >
-            {t("quests.dailyNumbers.applyStep")}
-          </Text>
-        </Pressable>
-
+      <View>
+        <EquationWorkbench
+          interactionLocked={interactionLocked}
+          localSteps={localSteps}
+          onClearSlot={onClearSlot}
+          previewState={previewState}
+          selectedLeftTile={selectedLeftTile}
+          selectedOperator={selectedOperator}
+          selectedRightTile={selectedRightTile}
+          t={t}
+          tc={tc}
+        />
         <AvailableNumbersGrid
           availableTiles={availableTiles}
           compact={compact}
@@ -1562,67 +1754,79 @@ function LivePlayPanel({
           t={t}
           tc={tc}
         />
+
+        <QuestActionButton
+          label={t("quests.dailyNumbers.applyStep")}
+          onPress={onApplyStep}
+          disabled={interactionLocked}
+          backgroundColor={
+            interactionLocked ? tc.surfaceMuted : tc.primaryStrong
+          }
+          foregroundColor={interactionLocked ? tc.fgMuted : "#FFFFFF"}
+          minHeight={50}
+          accessibilityLabel={t("quests.dailyNumbers.applyStep")}
+          testID="daily-numbers-apply-step"
+          style={{ marginTop: 12, opacity: interactionLocked ? 0.38 : 1 }}
+        />
       </View>
 
-      <View className="mt-3 flex-row gap-2">
-        <Pressable
-          onPress={onSubmitPress}
-          disabled={interactionLocked}
-          className="flex-1 rounded-2xl px-3 py-3"
-          style={{
-            backgroundColor: interactionLocked ? tc.surfaceMuted : tc.primary,
-          }}
-          testID="daily-numbers-submit"
-          accessibilityRole="button"
-          accessibilityState={{ disabled: interactionLocked }}
-          accessibilityLabel={
-            archiveMode
-              ? t("quests.dailyNumbers.archiveSaveResult")
-              : t("quests.dailyNumbers.submit")
-          }
-        >
-          <Text
-            className="text-center font-nunito-bold text-sm"
-            style={{ color: interactionLocked ? tc.fgMuted : tc.primaryBg }}
-          >
-            {submitting
-              ? "…"
-              : archiveMode
-                ? t("quests.dailyNumbers.archiveSaveResult")
-                : t("quests.dailyNumbers.submit")}
-          </Text>
-        </Pressable>
-      </View>
+      <QuestActionButton
+        label={
+          archiveMode
+            ? t("quests.dailyNumbers.archiveSaveResult")
+            : t("quests.dailyNumbers.submit")
+        }
+        onPress={onSubmitPress}
+        disabled={interactionLocked}
+        loading={submitting}
+        loadingMode="inline"
+        backgroundColor={interactionLocked ? tc.surfaceMuted : tc.surface}
+        foregroundColor={interactionLocked ? tc.fgMuted : tc.primaryText}
+        borderColor={tc.primaryBorder}
+        leadingIcon={CheckIcon}
+        minHeight={50}
+        accessibilityLabel={
+          archiveMode
+            ? t("quests.dailyNumbers.archiveSaveResult")
+            : t("quests.dailyNumbers.submit")
+        }
+        testID="daily-numbers-submit"
+        style={{ marginTop: 12, opacity: interactionLocked ? 0.38 : 1 }}
+      />
 
       <View className="mt-2 flex-row gap-2">
-        <Pressable
-          onPress={onUndoStep}
-          disabled={interactionLocked}
-          className="flex-1 rounded-2xl border border-primaryBorder bg-surfaceMuted px-3 py-3"
-          style={{ opacity: interactionLocked ? 0.55 : 1 }}
-          testID="daily-numbers-undo"
-          accessibilityRole="button"
-          accessibilityState={{ disabled: interactionLocked }}
-          accessibilityLabel={t("quests.dailyNumbers.undo")}
-        >
-          <Text className="text-center font-nunito-bold text-sm text-fg">
-            {t("quests.dailyNumbers.undo")}
-          </Text>
-        </Pressable>
-        <Pressable
-          onPress={onResetBoard}
-          disabled={interactionLocked}
-          className="flex-1 rounded-2xl border border-primaryBorder bg-surfaceMuted px-3 py-3"
-          style={{ opacity: interactionLocked ? 0.55 : 1 }}
-          testID="daily-numbers-reset"
-          accessibilityRole="button"
-          accessibilityState={{ disabled: interactionLocked }}
-          accessibilityLabel={t("quests.dailyNumbers.reset")}
-        >
-          <Text className="text-center font-nunito-bold text-sm text-fg">
-            {t("quests.dailyNumbers.reset")}
-          </Text>
-        </Pressable>
+        <View className="min-w-0 flex-1">
+          <QuestActionButton
+            label={t("quests.dailyNumbers.undo")}
+            onPress={onUndoStep}
+            disabled={interactionLocked}
+            backgroundColor={tc.bg}
+            foregroundColor={tc.fgMuted}
+            leadingIcon={SkipBackIcon}
+            leadingIconSize={16}
+            minHeight={46}
+            textClassName="font-nunito-bold text-xs"
+            accessibilityLabel={t("quests.dailyNumbers.undo")}
+            testID="daily-numbers-undo"
+            style={{ opacity: interactionLocked ? 0.38 : 1 }}
+          />
+        </View>
+        <View className="min-w-0 flex-1">
+          <QuestActionButton
+            label={t("quests.dailyNumbers.reset")}
+            onPress={onResetBoard}
+            disabled={interactionLocked}
+            backgroundColor={tc.bg}
+            foregroundColor={tc.fgMuted}
+            leadingIcon={RecycleIcon}
+            leadingIconSize={16}
+            minHeight={46}
+            textClassName="font-nunito-bold text-xs"
+            accessibilityLabel={t("quests.dailyNumbers.reset")}
+            testID="daily-numbers-reset"
+            style={{ opacity: interactionLocked ? 0.38 : 1 }}
+          />
+        </View>
       </View>
 
       <StepList
@@ -1633,7 +1837,12 @@ function LivePlayPanel({
       />
       {archiveMode && officialSolutionSteps.length > 0 ? (
         <>
-          <Pressable
+          <QuestActionButton
+            label={
+              revealedSolution
+                ? t("quests.dailyNumbers.hideSolution")
+                : t("quests.dailyNumbers.revealSolution")
+            }
             onPress={() => {
               if (revealedSolution) {
                 onToggleSolution();
@@ -1653,22 +1862,19 @@ function LivePlayPanel({
                 ],
               );
             }}
-            className="mt-3 rounded-2xl border border-primaryBorder bg-surface px-4 py-3"
+            backgroundColor={tc.bg}
+            foregroundColor={tc.primaryText}
+            leadingIcon={EyeIcon}
+            minHeight={48}
+            style={{ marginTop: 12 }}
             testID="daily-numbers-archive-reveal-solution"
-            accessibilityRole="button"
-            accessibilityState={{ expanded: revealedSolution }}
             accessibilityLabel={
               revealedSolution
                 ? t("quests.dailyNumbers.hideSolution")
                 : t("quests.dailyNumbers.revealSolution")
             }
-          >
-            <Text className="text-center font-nunito-bold text-fg">
-              {revealedSolution
-                ? t("quests.dailyNumbers.hideSolution")
-                : t("quests.dailyNumbers.revealSolution")}
-            </Text>
-          </Pressable>
+            accessibilityState={{ expanded: revealedSolution }}
+          />
           {revealedSolution ? (
             <StepList
               steps={officialSolutionSteps}
@@ -1765,9 +1971,6 @@ function useDailyNumbersBoardController({
     !hasLockedSubmission &&
     interaction.steps.length > 0 &&
     currentDistance < defaultDistance;
-  const successState =
-    (hasLockedSubmission && state.submission?.completed === true) ||
-    completionReached;
   const exactHitState =
     (hasLockedSubmission && state.submission?.exact === true) ||
     exactHitReached;
@@ -2143,69 +2346,8 @@ function useDailyNumbersBoardController({
     dispatch({ type: "startRetry" });
   }, []);
 
-  const finishTone: FinishTone = exactHitState
-    ? {
-        shellBorder: modeAccent.border,
-        shellBg: modeAccent.bg,
-        resultBorder: tc.successBorder,
-        resultBg: tc.surface,
-        resultText: tc.successText,
-        summaryText: tc.successText,
-        statusText: tc.successText,
-      }
-    : finishCompleted(state, successState)
-      ? {
-          shellBorder: tc.infoBorder,
-          shellBg: tc.infoTint,
-          resultBorder: tc.infoBorder,
-          resultBg: tc.surface,
-          resultText: tc.infoText,
-          summaryText: tc.infoText,
-          statusText: tc.infoText,
-        }
-      : {
-          shellBorder: tc.primaryBorder,
-          shellBg: tc.primaryBg,
-          resultBorder: tc.primaryBorder,
-          resultBg: tc.surface,
-          resultText: tc.fg,
-          summaryText: tc.fg,
-          statusText: tc.fgMuted,
-        };
   const finishCompletedState =
     exactHitState || state.submission?.completed === true;
-  const submissionSummary = state.submission
-    ? archiveMode
-      ? state.submission.distance === 0
-        ? t("quests.dailyNumbers.archiveExactResult", {
-            score: state.submission.score,
-          })
-        : t("quests.dailyNumbers.archiveCloseResult", {
-            value: state.submission.finalValue,
-            distance: state.submission.distance,
-            score: state.submission.score,
-          })
-      : buildSubmissionSummary(t, state.submission)
-    : null;
-  const exactHitScore =
-    state.submission?.score ?? (exactHitState ? EXACT_HIT_PERCENT : null);
-  const exactHitSummary =
-    exactHitScore === null
-      ? null
-      : t("quests.dailyNumbers.exactResult", {
-          score: exactHitScore,
-        });
-  const archiveExactHitSummary =
-    exactHitScore === null
-      ? null
-      : t("quests.dailyNumbers.archiveExactResult", {
-          score: exactHitScore,
-        });
-  const finishSummary = exactHitState
-    ? archiveMode
-      ? archiveExactHitSummary
-      : exactHitSummary
-    : submissionSummary;
   const finishValue =
     (hasLockedSubmission ? state.submission?.finalValue : null) ??
     (finishScreenState ? (currentBestTile?.value ?? null) : null);
@@ -2239,8 +2381,6 @@ function useDailyNumbersBoardController({
     finishDistance,
     finishScreenState,
     finishScore,
-    finishSummary,
-    finishTone,
     finishValue,
     formattedElapsedTime:
       hasLockedSubmission && state.submission?.elapsedMs != null
@@ -2274,51 +2414,19 @@ function useDailyNumbersBoardController({
   };
 }
 
-function DailyNumbersBoard({
-  activeMode,
-  archiveMode,
-  bannerMessage,
-  chronometerActive,
-  claimPending,
-  compact,
-  modeAccent,
-  onClaimReward,
-  onResolveResetError,
-  onSubmissionApplied,
-  state,
-  t,
-  tc,
-}: {
-  activeMode: DailyNumbersMode;
-  archiveMode: boolean;
-  bannerMessage: MessageState;
-  chronometerActive: boolean;
-  claimPending: boolean;
-  compact: boolean;
-  modeAccent: ReturnType<typeof getModeAccent>;
-  onClaimReward: () => void;
-  onResolveResetError: (error: unknown) => Promise<boolean>;
-  onSubmissionApplied: (nextState: DailyNumbersBoardState) => void;
-  state: DailyNumbersBoardState;
-  t: TranslateFn;
-  tc: ThemeColors;
-}) {
-  const controller = useDailyNumbersBoardController({
-    activeMode,
-    archiveMode,
-    bannerMessage,
-    chronometerActive,
-    claimPending,
-    compact,
-    modeAccent,
-    onClaimReward,
-    onResolveResetError,
-    onSubmissionApplied,
-    state,
-    t,
-    tc,
-  });
+type DailyNumbersBoardController = ReturnType<
+  typeof useDailyNumbersBoardController
+>;
+type ResultVisibilityChangeHandler = (
+  visible: boolean,
+  resultKey: string,
+  announcement: string | null,
+) => void;
 
+function useDailyNumbersShare(
+  controller: DailyNumbersBoardController,
+  archiveMode: boolean,
+) {
   const { locale } = useTranslation();
   const [isSharing, setIsSharing] = useState(false);
   const shareCardRef = useRef<View>(null);
@@ -2457,27 +2565,125 @@ function DailyNumbersBoard({
     }
   }, [isSharing, controller.t, shareResult]);
 
+  return {
+    handleShareResult,
+    isSharing,
+    shareCardRef,
+    shareResult,
+    shareStrings,
+  };
+}
+
+function DailyNumbersBoard({
+  activeMode,
+  archiveMode,
+  bannerMessage,
+  chronometerActive,
+  claimPending,
+  compact,
+  modeAccent,
+  onClaimReward,
+  onResultVisibilityChange,
+  onResolveResetError,
+  onSubmissionApplied,
+  state,
+  t,
+  tc,
+}: {
+  activeMode: DailyNumbersMode;
+  archiveMode: boolean;
+  bannerMessage: MessageState;
+  chronometerActive: boolean;
+  claimPending: boolean;
+  compact: boolean;
+  modeAccent: ReturnType<typeof getModeAccent>;
+  onClaimReward: () => void;
+  onResultVisibilityChange: ResultVisibilityChangeHandler;
+  onResolveResetError: (error: unknown) => Promise<boolean>;
+  onSubmissionApplied: (nextState: DailyNumbersBoardState) => void;
+  state: DailyNumbersBoardState;
+  t: TranslateFn;
+  tc: ThemeColors;
+}) {
+  const controller = useDailyNumbersBoardController({
+    activeMode,
+    archiveMode,
+    bannerMessage,
+    chronometerActive,
+    claimPending,
+    compact,
+    modeAccent,
+    onClaimReward,
+    onResolveResetError,
+    onSubmissionApplied,
+    state,
+    t,
+    tc,
+  });
+
+  const {
+    handleShareResult,
+    isSharing,
+    shareCardRef,
+    shareResult,
+    shareStrings,
+  } = useDailyNumbersShare(controller, archiveMode);
+  const resultKey = buildPuzzleIdentity(controller.state);
+
+  useEffect(() => {
+    const announcement = !controller.finishScreenState
+      ? null
+      : controller.exactHitState
+        ? controller.t("quests.dailyNumbers.exactHitLabel")
+        : controller.finishDistance == null
+          ? controller.t("quests.dailyNumbers.resultLockedLabel")
+          : controller.t("quests.dailyNumbers.distanceOutcome", {
+              distance: controller.finishDistance,
+            });
+
+    onResultVisibilityChange(
+      controller.finishScreenState,
+      resultKey,
+      announcement,
+    );
+  }, [
+    controller.exactHitState,
+    controller.finishDistance,
+    controller.finishScreenState,
+    controller.t,
+    onResultVisibilityChange,
+    resultKey,
+  ]);
+
   return (
     <>
+      {!controller.finishScreenState ? (
+        <View className="mb-3">
+          <QuestScreenDescription>
+            {archiveMode
+              ? controller.t("quests.dailyNumbers.archiveSubtitle")
+              : controller.t("quests.dailyNumbers.subtitle")}
+          </QuestScreenDescription>
+        </View>
+      ) : null}
       <MessageBanner message={controller.visibleMessage} />
       {controller.completionReached && !controller.finishScreenState ? (
         <SuccessCallout
           archiveMode={archiveMode}
           completionReached={controller.completionReached}
           t={controller.t}
+          tc={controller.tc}
         />
       ) : null}
 
-      <View
-        className="flex-1 rounded-[28px] border bg-surface p-3"
-        style={{ borderColor: controller.modeAccent.border }}
-      >
+      <View className="flex-1">
         {!controller.finishScreenState ? (
           <MetricsSection
             compact={controller.compact}
             currentBestTile={controller.currentBestTile}
             currentDistance={controller.currentDistance}
             formattedElapsedTime={controller.formattedElapsedTime}
+            modeAccent={controller.modeAccent}
             state={controller.state}
             t={controller.t}
             tc={controller.tc}
@@ -2495,8 +2701,6 @@ function DailyNumbersBoard({
             finishCompleted={controller.finishCompletedState}
             finishDistance={controller.finishDistance}
             finishScore={controller.finishScore}
-            finishSummary={controller.finishSummary}
-            finishTone={controller.finishTone}
             finishValue={controller.finishValue}
             formattedElapsedTime={controller.formattedElapsedTime}
             interaction={controller.interaction}
@@ -2540,12 +2744,22 @@ function DailyNumbersBoard({
         )}
       </View>
 
+      {!controller.finishScreenState ? (
+        <Text className="mt-5 border-t border-primaryBorder px-1 pt-4 font-nunito-semibold text-[11px] leading-4 text-fgMuted">
+          {archiveMode
+            ? controller.t("quests.dailyNumbers.archiveHelperLine")
+            : controller.t("quests.dailyNumbers.helperLine")}
+        </Text>
+      ) : null}
+
       {/* Offscreen, capture-friendly share card. Rendered (not display:none)
           and laid out off-screen so react-native-view-shot can snapshot it. */}
       {controller.finishScreenState ? (
         <View
+          accessibilityElementsHidden
           pointerEvents="none"
           collapsable={false}
+          importantForAccessibility="no-hide-descendants"
           style={{ position: "absolute", left: -9999, top: 0 }}
         >
           <View ref={shareCardRef} collapsable={false}>
@@ -2559,10 +2773,6 @@ function DailyNumbersBoard({
       ) : null}
     </>
   );
-}
-
-function finishCompleted(state: DailyNumbersBoardState, successState: boolean) {
-  return state.submission?.completed === true || successState;
 }
 
 type DailyNumbersPlayViewProps = {
@@ -2606,13 +2816,40 @@ function DailyNumbersPlayView({
   t,
   tc,
 }: DailyNumbersPlayViewProps) {
+  const scrollViewRef = useRef<ScrollView>(null);
+  const announcedResultKeyRef = useRef<string | null>(null);
+  const handleResultVisibilityChange =
+    useCallback<ResultVisibilityChangeHandler>(
+      (visible, resultKey, announcement) => {
+        if (!visible) {
+          if (announcedResultKeyRef.current === resultKey) {
+            announcedResultKeyRef.current = null;
+          }
+          return;
+        }
+
+        if (!announcement || announcedResultKeyRef.current === resultKey) {
+          return;
+        }
+
+        announcedResultKeyRef.current = resultKey;
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+            AccessibilityInfo.announceForAccessibility(announcement);
+          });
+        });
+      },
+      [],
+    );
+
   return (
     <View className="flex-1 bg-bg">
       <View
         className="bg-bg pb-2"
         style={{
           paddingTop: insets.top + 10,
-          paddingHorizontal: compact ? 10 : 14,
+          paddingHorizontal: compact ? 12 : 16,
         }}
       >
         <QuestScreenHeader
@@ -2630,7 +2867,9 @@ function DailyNumbersPlayView({
       </View>
 
       <ScrollView
+        ref={scrollViewRef}
         className="flex-1 bg-bg"
+        contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={{ flexGrow: 1 }}
         keyboardShouldPersistTaps="handled"
       >
@@ -2638,53 +2877,40 @@ function DailyNumbersPlayView({
           style={{
             paddingTop: 8,
             paddingBottom: insets.bottom + 10,
-            paddingHorizontal: compact ? 10 : 14,
+            paddingHorizontal: compact ? 12 : 16,
           }}
         >
-          <QuestScreenDescription>
-            {archiveMode
-              ? t("quests.dailyNumbers.archiveSubtitle")
-              : t("quests.dailyNumbers.subtitle")}
-          </QuestScreenDescription>
-
-          <View className="mb-3 gap-3">
-            {archiveMode ? (
-              <View className="flex-row flex-wrap items-center justify-center gap-2">
-                <View
-                  className="rounded-full border px-4 py-1.5"
-                  style={{
-                    backgroundColor: tc.secondaryDark,
-                    borderColor: tc.secondaryBorder,
-                  }}
-                  testID="daily-numbers-archive-pill"
+          {archiveMode ? (
+            <View className="mb-3 flex-row flex-wrap items-center justify-center gap-2">
+              <View
+                className="rounded-full border px-4 py-1.5"
+                style={{
+                  backgroundColor: tc.secondaryDark,
+                  borderColor: tc.secondaryBorder,
+                }}
+                testID="daily-numbers-archive-pill"
+              >
+                <Text
+                  className="text-center font-nunito-extrabold text-xs uppercase tracking-[1px]"
+                  style={{ color: tc.secondaryText }}
                 >
-                  <Text
-                    className="text-center font-nunito-extrabold text-xs uppercase tracking-[1px]"
-                    style={{ color: tc.secondaryText }}
-                  >
-                    {t("quests.dailyNumbers.archiveResultLabel")}
-                  </Text>
-                </View>
-                <Text className="text-center font-nunito-bold text-sm text-primaryDark">
-                  {archiveDate}
+                  {t("quests.dailyNumbers.archiveResultLabel")}
                 </Text>
               </View>
-            ) : null}
-          </View>
+              <Text className="text-center font-nunito-bold text-sm text-primaryDark">
+                {archiveDate}
+              </Text>
+            </View>
+          ) : null}
 
           <ModeTabs
             activeMode={activeMode}
+            archiveMode={archiveMode}
             modeCards={modeCards}
             onSelectMode={onModeSelect}
             t={t}
             tc={tc}
           />
-
-          <Text className="mb-2 px-1 text-center font-nunito-semibold text-xs text-fgMuted">
-            {archiveMode
-              ? t("quests.dailyNumbers.archiveHelperLine")
-              : t("quests.dailyNumbers.helperLine")}
-          </Text>
 
           <DailyNumbersBoard
             key={boardIdentity}
@@ -2696,6 +2922,7 @@ function DailyNumbersPlayView({
             compact={compact}
             modeAccent={modeAccent}
             onClaimReward={onClaimReward}
+            onResultVisibilityChange={handleResultVisibilityChange}
             onResolveResetError={onResolveResetError}
             onSubmissionApplied={onSubmissionApplied}
             state={state}
@@ -2911,10 +3138,7 @@ export default function DailyNumbersPlayScreen() {
 
   const handleSubmissionApplied = useCallback(
     (nextState: DailyNumbersBoardState) => {
-      if (
-        !archiveMode &&
-        !isCurrentQuestDay(nextState.date, questTimeZone)
-      ) {
+      if (!archiveMode && !isCurrentQuestDay(nextState.date, questTimeZone)) {
         return;
       }
 

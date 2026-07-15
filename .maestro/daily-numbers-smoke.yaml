@@ -16,11 +16,11 @@ tags:
 - assertVisible:
     id: daily-numbers-mode-1-5
 - assertVisible:
-    id: daily-numbers-submit
-- assertVisible:
     id: daily-numbers-tile-n0
 - assertVisible:
     id: daily-numbers-tile-n1
+- waitForAnimationToEnd
+- takeScreenshot: tmp-daily-numbers-archive-shots/09-final-live-board
 - tapOn:
     id: daily-numbers-operator-plus
 - tapOn:
@@ -33,7 +33,21 @@ tags:
     id: daily-numbers-tile-n1
 - tapOn:
     id: daily-numbers-apply-step
+- scrollUntilVisible:
+    element:
+      id: daily-numbers-undo
+    direction: DOWN
+    timeout: 20000
+    centerElement: true
 - assertVisible:
     id: daily-numbers-undo
 - assertVisible:
     id: daily-numbers-reset
+- scrollUntilVisible:
+    element:
+      id: daily-numbers-submit
+    direction: DOWN
+    timeout: 20000
+    centerElement: true
+- assertVisible:
+    id: daily-numbers-submit
