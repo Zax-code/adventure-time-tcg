@@ -673,6 +673,8 @@ export function QuestLaunchSheet({
             gap: 12,
           }}
         >
+          {/* Launcher choices are fixed at three or fewer; virtualization would add overhead. */}
+          {/* react-doctor-disable-next-line react-doctor/rn-no-scrollview-mapped-list */}
           {options.map((option) => (
             <Pressable
               key={option.id}
@@ -829,6 +831,8 @@ export function QuestRecapSheet({
             gap: 12,
           }}
         >
+          {/* Recap actions are fixed at two or fewer; virtualization would add overhead. */}
+          {/* react-doctor-disable-next-line react-doctor/rn-no-scrollview-mapped-list */}
           {actions.map((action) => {
             const Icon = action.icon;
             return (
@@ -961,6 +965,8 @@ export function QuestOrderSheet({
             gap: 10,
           }}
         >
+          {/* Quest order is fixed at four rows; virtualization would add overhead. */}
+          {/* react-doctor-disable-next-line react-doctor/rn-no-scrollview-mapped-list */}
           {options.map((option, optionIndex) => {
             const Icon = option.icon;
             return (
