@@ -89,6 +89,10 @@ import {
   isCurrentQuestDay,
 } from "../../src/features/quests/quest-day-cutoff";
 import {
+  formatQuestShareDate,
+  resolveQuestShareDateKey,
+} from "../../src/features/quests/quest-share-date";
+import {
   navigateBackFromQuest,
   QuestScreenDescription,
   QuestScreenHeader,
@@ -453,22 +457,6 @@ function relativeRect(
     width: rect.width,
     height: rect.height,
   };
-}
-
-function formatNumbersShareDate(
-  dateKey: string | null,
-  locale: string,
-): string | undefined {
-  if (!dateKey) return undefined;
-  const [year, month, day] = dateKey.split("-").map((part) => Number(part));
-  if (!year || !month || !day) return dateKey;
-  const date = new Date(year, month - 1, day);
-  if (Number.isNaN(date.getTime())) return dateKey;
-  return date.toLocaleDateString(locale === "fr" ? "fr-FR" : "en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
 }
 
 function buildPuzzleIdentity(state: DailyNumbersBoardState) {
@@ -3181,6 +3169,12 @@ function useDailyNumbersShare(
   const { locale } = useTranslation();
   const [isSharing, setIsSharing] = useState(false);
   const shareCardRef = useRef<View>(null);
+  const [shareDateKey, setShareDateKey] = useState(() =>
+    resolveQuestShareDateKey({
+      archive: archiveMode,
+      questDateKey: controller.state.date,
+    }),
+  );
 
   // Spoiler-safe share model — only the player's outcome is surfaced, never the
   // solution steps or the official solution.
@@ -3190,7 +3184,7 @@ function useDailyNumbersShare(
         questTitle: controller.t("quests.dailyNumbers.title"),
         modeLabel: controller.t(getModeLabelKey(controller.state.mode)),
         mode: controller.state.mode,
-        date: controller.state.date,
+        date: shareDateKey,
         target: controller.state.target,
         finalValue: controller.finishValue,
         distance: controller.finishDistance,
@@ -3203,7 +3197,7 @@ function useDailyNumbersShare(
     [
       controller.t,
       controller.state.mode,
-      controller.state.date,
+      shareDateKey,
       controller.state.target,
       controller.finishValue,
       controller.finishDistance,
@@ -3249,12 +3243,12 @@ function useDailyNumbersShare(
       footer: archiveMode
         ? controller.t("quests.dailyNumbers.archiveShareFooter")
         : controller.t("quests.dailyNumbers.shareFooter"),
-      date: formatNumbersShareDate(controller.state.date, locale),
+      date: formatQuestShareDate(shareDateKey, locale),
     };
   }, [
     controller.t,
     controller.state.mode,
-    controller.state.date,
+    shareDateKey,
     controller.exactHitState,
     controller.state.completed,
     controller.finishScore,
@@ -3268,6 +3262,11 @@ function useDailyNumbersShare(
       return;
     }
 
+    const currentShareDateKey = resolveQuestShareDateKey({
+      archive: archiveMode,
+      questDateKey: controller.state.date,
+    });
+    setShareDateKey(currentShareDateKey);
     setIsSharing(true);
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
@@ -3292,7 +3291,10 @@ function useDailyNumbersShare(
       // saved file are recognizable.
       let shareUri = uri;
       try {
-        const fileName = buildDailyNumbersShareFileName(shareResult);
+        const fileName = buildDailyNumbersShareFileName({
+          ...shareResult,
+          date: currentShareDateKey,
+        });
         const destination = new File(Paths.cache, fileName);
         if (destination.exists) {
           destination.delete();
@@ -3314,7 +3316,13 @@ function useDailyNumbersShare(
     } finally {
       setIsSharing(false);
     }
-  }, [isSharing, controller.t, shareResult]);
+  }, [
+    archiveMode,
+    controller.state.date,
+    controller.t,
+    isSharing,
+    shareResult,
+  ]);
 
   return {
     handleShareResult,

@@ -94,6 +94,10 @@ import {
   DEFAULT_QUEST_TIME_ZONE,
   isCurrentQuestDay,
 } from "../../src/features/quests/quest-day-cutoff";
+import {
+  formatQuestShareDate,
+  resolveQuestShareDateKey,
+} from "../../src/features/quests/quest-share-date";
 import { WordleQuestShareCard } from "../../src/features/quests/wordle/quest-share-card";
 import type { WordleQuestShareCardStrings } from "../../src/features/quests/wordle/quest-share-card";
 import {
@@ -141,16 +145,6 @@ type DailyNumbersGroupShareItem = {
 
 const WORDLE_MAX_ATTEMPTS = 6;
 const WORDLE_WORD_LENGTH = 5;
-const QUEST_SHARE_DATE_FORMAT_OPTIONS = {
-  month: "short",
-  day: "numeric",
-  year: "numeric",
-} as const;
-const QUEST_SHARE_DATE_FORMATTERS = {
-  en: new Intl.DateTimeFormat("en", QUEST_SHARE_DATE_FORMAT_OPTIONS),
-  fr: new Intl.DateTimeFormat("fr", QUEST_SHARE_DATE_FORMAT_OPTIONS),
-} as const;
-
 let lastShownQuestResetToastAt = 0;
 
 function getQuestTitle(titleKey: string, t: Translate) {
@@ -376,25 +370,6 @@ function getItemAccessibilitySummary(item: QuestHubItem, t: Translate) {
   }
 
   return `${t("quests.progress")}: ${getItemProgress(item).label}`;
-}
-
-function formatQuestShareDate(
-  dateKey: string | null | undefined,
-  locale: string,
-) {
-  if (!dateKey) return undefined;
-
-  const parts = dateKey.split("-").map((part) => Number(part));
-  const year = parts[0];
-  const month = parts[1];
-  const day = parts[2];
-  if (!year || !month || !day) return dateKey;
-
-  const formatter = locale.startsWith("fr")
-    ? QUEST_SHARE_DATE_FORMATTERS.fr
-    : QUEST_SHARE_DATE_FORMATTERS.en;
-
-  return formatter.format(new Date(Date.UTC(year, month - 1, day)));
 }
 
 function buildGroupedQuestShareFileName(
@@ -975,7 +950,9 @@ function useQuestsScreenView() {
           return;
         }
 
-        let dateKey: string | undefined;
+        const dateKey = resolveQuestShareDateKey({
+          questDateKey: states[0]?.date,
+        });
         const items = states.map((state: WordleStateResponse, index) => {
           const language = availableLanguages[index];
           if (!state.solved && state.guesses.length < WORDLE_MAX_ATTEMPTS) {
@@ -983,13 +960,11 @@ function useQuestsScreenView() {
           }
 
           const solved = state.solved;
-          dateKey = dateKey ?? state.date;
-
           return {
             language,
             result: buildWordleShareResult({
               questTitle: t("quests.wordle.title"),
-              date: state.date,
+              date: dateKey,
               wordLocale: language,
               solved,
               maxAttempts: WORDLE_MAX_ATTEMPTS,
@@ -999,7 +974,7 @@ function useQuestsScreenView() {
             strings: {
               brand: t("quests.wordle.shareBrand"),
               footer: t("quests.wordle.shareFooter"),
-              date: formatQuestShareDate(state.date, locale),
+              date: formatQuestShareDate(dateKey, locale),
               wordLanguage: t(getWordleShareLanguageLabelKey(language)),
               resultLine: solved
                 ? t("quests.wordle.shareSolved", {
@@ -1087,7 +1062,9 @@ function useQuestsScreenView() {
           return;
         }
 
-        let dateKey: string | undefined;
+        const dateKey = resolveQuestShareDateKey({
+          questDateKey: states[0]?.date,
+        });
         const items = states.map((state: DailyNumbersStateResponse, index) => {
           const mode = availableModes[index];
           const quest = quests[mode];
@@ -1104,8 +1081,6 @@ function useQuestsScreenView() {
             quest?.completed ||
             quest?.claimed,
           );
-          dateKey = dateKey ?? state.date;
-
           const resultLine = exact
             ? t("quests.dailyNumbers.shareExact", {
                 score: score ?? 100,
@@ -1125,7 +1100,7 @@ function useQuestsScreenView() {
               questTitle: t("quests.dailyNumbers.title"),
               modeLabel: t(getModeLabelKey(mode)),
               mode,
-              date: state.date,
+              date: dateKey,
               target: state.target,
               finalValue,
               distance,
@@ -1143,7 +1118,7 @@ function useQuestsScreenView() {
               timeLabel: t("quests.dailyNumbers.solveTime"),
               archiveLabel: t("quests.dailyNumbers.archiveResultLabel"),
               footer: t("quests.dailyNumbers.shareFooter"),
-              date: formatQuestShareDate(state.date, locale),
+              date: formatQuestShareDate(dateKey, locale),
             },
           };
         });
