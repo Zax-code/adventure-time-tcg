@@ -62,6 +62,7 @@ interface CardTileProps {
   entry?: CollectionEntry;
   quantity?: number;
   isLocked?: boolean;
+  animationsEnabled?: boolean;
   accessToken?: string | null;
   onPress?: () => void;
   onRecycle?: () => void;
@@ -468,10 +469,11 @@ function RarityShimmerOverlay({
     ),
     transform: [
       {
-        translateX: interpolate(sweepAnim.value, [0, 1], [
-          -layout.width * 0.45 - beamWidth,
-          layout.width * 1.08,
-        ]),
+        translateX: interpolate(
+          sweepAnim.value,
+          [0, 1],
+          [-layout.width * 0.45 - beamWidth, layout.width * 1.08],
+        ),
       },
       { rotate: "-18deg" },
     ],
@@ -484,10 +486,11 @@ function RarityShimmerOverlay({
     ),
     transform: [
       {
-        translateX: interpolate(sweepAnim.value, [0, 1], [
-          -layout.width * 0.86 - beamWidth,
-          layout.width * 0.78,
-        ]),
+        translateX: interpolate(
+          sweepAnim.value,
+          [0, 1],
+          [-layout.width * 0.86 - beamWidth, layout.width * 0.78],
+        ),
       },
       { rotate: "-18deg" },
     ],
@@ -638,6 +641,7 @@ function RarityShimmerOverlay({
 export const CardTile = memo(function CardTile(props: CardTileProps) {
   const {
     accessToken: _accessToken,
+    animationsEnabled = true,
     onPress,
     onRecycle,
     onCraft,
@@ -697,7 +701,7 @@ export const CardTile = memo(function CardTile(props: CardTileProps) {
 
   const bounceAnim = useSharedValue(0);
   useEffect(() => {
-    if (size !== "small" || quantity <= 1) {
+    if (!animationsEnabled || size !== "small" || quantity <= 1) {
       cancelAnimation(bounceAnim);
       bounceAnim.value = 0;
       return;
@@ -722,7 +726,7 @@ export const CardTile = memo(function CardTile(props: CardTileProps) {
       cancelAnimation(bounceAnim);
       bounceAnim.value = 0;
     };
-  }, [bounceAnim, quantity, size]);
+  }, [animationsEnabled, bounceAnim, quantity, size]);
   const bounceStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: bounceAnim.value }],
   }));
@@ -965,7 +969,7 @@ export const CardTile = memo(function CardTile(props: CardTileProps) {
           contentFit="fill"
         />
 
-        {premiumRarityName ? (
+        {premiumRarityName && animationsEnabled ? (
           <RarityShimmerOverlay cfg={cfg} rarityName={premiumRarityName} />
         ) : null}
 
