@@ -138,6 +138,9 @@ jobs:
       - name: Test container env rendering
         run: bash infra/scripts/tests/render-container-envs.test.sh
 
+      - name: Test production deploy ordering
+        run: bash infra/scripts/tests/deploy-phoenix-order.test.sh
+
   mobile-and-shared:
     name: Mobile and Shared Validation
     runs-on: ubuntu-latest

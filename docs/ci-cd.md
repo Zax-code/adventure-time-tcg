@@ -40,6 +40,8 @@ What it does:
 - refuses to deploy from a dirty host checkout
 - installs the checked-in Quadlet units into `/etc/containers/systemd`
 - renders a container-friendly env file from the host secrets file
+- pulls and verifies the immutable API image before stopping or reloading any production services
+- explicitly stops the API before restarting its required pod, PostgreSQL, and MinIO services so systemd cannot cut over before migrations
 - runs `AdventureTimeApi.Release.migrate` in a one-off container unless manually skipped
 - restarts the Quadlet-generated systemd service
 - verifies `/ready` before reporting success
