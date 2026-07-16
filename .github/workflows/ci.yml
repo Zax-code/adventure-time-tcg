@@ -20,6 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
+      infra: ${{ steps.filter.outputs.infra }}
       mobile_and_shared: ${{ steps.filter.outputs.mobile_and_shared }}
       phoenix_api: ${{ steps.filter.outputs.phoenix_api }}
       phoenix_container: ${{ steps.filter.outputs.phoenix_container }}
@@ -38,6 +39,7 @@ jobs:
 
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             {
+              echo "infra=true"
               echo "mobile_and_shared=true"
               echo "phoenix_api=true"
               echo "phoenix_container=true"
@@ -71,6 +73,13 @@ jobs:
           mobile_and_shared=false
           phoenix_api=false
           phoenix_container=false
+          infra=false
+
+          if matches_any \
+            '^\.github/workflows/ci\.yml$' \
+            '^infra/'; then
+            infra=true
+          fi
 
           if matches_any \
             '^\.github/workflows/ci\.yml$' \
@@ -106,10 +115,28 @@ jobs:
           fi
 
           {
+            echo "infra=$infra"
             echo "mobile_and_shared=$mobile_and_shared"
             echo "phoenix_api=$phoenix_api"
             echo "phoenix_container=$phoenix_container"
           } >> "$GITHUB_OUTPUT"
+
+  infra-test:
+    name: Infrastructure Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: changes
+    if: ${{ needs.changes.outputs.infra == 'true' }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Check shell syntax
+        run: bash -n infra/scripts/*.sh infra/scripts/tests/*.sh
+
+      - name: Test container env rendering
+        run: bash infra/scripts/tests/render-container-envs.test.sh
 
   mobile-and-shared:
     name: Mobile and Shared Validation

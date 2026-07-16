@@ -56,6 +56,7 @@ defmodule AdventureTimeApiWeb.Router do
 
     get("/health", HealthController, :show)
     get("/ready", HealthController, :ready)
+    get("/ready/media", HealthController, :media_ready)
     get("/media/card/:id", MediaController, :card)
     get("/media/catalog/:id", MediaController, :catalog)
 
