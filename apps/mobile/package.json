@@ -24,6 +24,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "android": "expo run:android",
     "ios": "expo run:ios",
+    "test:ui-regressions": "node --test test/mobile-ui-regressions.test.mjs",
     "build:android:dev": "eas build --platform android --profile development",
     "build:ios:dev": "eas build --platform ios --profile development",
     "build:ios:dev:simulator": "eas build --platform ios --profile development-simulator",

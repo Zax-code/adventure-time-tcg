@@ -421,7 +421,9 @@ function useCollectionScreenView() {
       <CardTile
         entry={item}
         accessToken={accessToken}
-        animationsEnabled={appActive && visibleCardIds.has(item.id)}
+        animationsEnabled={
+          screenFocused && appActive && visibleCardIds.has(item.id)
+        }
         muted={item.quantity === 0}
         testID={`collection-card-tile-${index}`}
         onPress={() =>
@@ -432,12 +434,8 @@ function useCollectionScreenView() {
         }
       />
     ),
-    [accessToken, appActive, router, visibleCardIds],
+    [accessToken, appActive, router, screenFocused, visibleCardIds],
   );
-
-  if (!screenFocused) {
-    return null;
-  }
 
   if (collectionQueryIsLoading) {
     return (

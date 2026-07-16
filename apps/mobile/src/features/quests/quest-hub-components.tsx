@@ -198,12 +198,18 @@ export function QuestHubSummary({
           }
         >
           <View className="flex-1">
-            <Text className="font-nunito-extrabold text-[28px] leading-8 text-fg">
-              {finishedCount}
-              <Text className="font-nunito-bold text-lg text-fgMuted">
+            <View
+              accessible
+              accessibilityLabel={`${finishedCount} / ${totalCount}`}
+              className="flex-row items-baseline"
+            >
+              <Text className="font-nunito-extrabold text-[28px] leading-10 text-fg">
+                {finishedCount}
+              </Text>
+              <Text className="font-nunito-bold text-lg leading-7 text-fgMuted">
                 {` / ${totalCount}`}
               </Text>
-            </Text>
+            </View>
             <Text className="mt-1 font-nunito-semibold text-sm text-fgMuted">
               {subtitle}
             </Text>

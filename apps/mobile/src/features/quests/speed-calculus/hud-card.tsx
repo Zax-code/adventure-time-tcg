@@ -48,18 +48,21 @@ export function HudCard({
     activeRun && maxSeconds > 0
       ? Math.max(0, Math.min(1, remainingSeconds / maxSeconds))
       : 1;
+  const activeRunId = activeRun?.runId ?? null;
+  const timerRunning =
+    activeRunId !== null &&
+    pauseRemainingSeconds <= 0 &&
+    !isManuallyPaused &&
+    remainingSeconds > 0;
 
   reactEffect(() => {
-    if (!activeRun) {
-      cancelAnimation(progressAnim);
-      progressAnim.value = 1;
-      return;
-    }
-
     cancelAnimation(progressAnim);
-    progressAnim.value = timerProgress;
+    progressAnim.value = activeRunId === null ? 1 : timerProgress;
+  }, [activeRunId, maxSeconds, progressAnim]);
 
-    if (pauseRemainingSeconds > 0 || isManuallyPaused || remainingSeconds <= 0) {
+  reactEffect(() => {
+    if (!timerRunning) {
+      cancelAnimation(progressAnim);
       return;
     }
 
@@ -67,15 +70,9 @@ export function HudCard({
       duration: remainingSeconds * 1000,
       easing: Easing.linear,
     });
-  }, [
-    activeRun,
-    activeRun?.runId,
-    isManuallyPaused,
-    pauseRemainingSeconds,
-    progressAnim,
-    remainingSeconds,
-    timerProgress,
-  ]);
+
+    return () => cancelAnimation(progressAnim);
+  }, [activeRunId, progressAnim, timerRunning]);
 
   const progressStyle = useAnimatedStyle(() => ({
     width: `${progressAnim.value * 100}%`,

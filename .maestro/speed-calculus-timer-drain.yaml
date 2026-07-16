@@ -1,0 +1,32 @@
+appId: love.leaetzak.adventuretime
+name: Speed Calculus timer drains continuously across answers
+tags:
+  - quests
+  - speed-calculus
+  - regression
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- openLink:
+    link: adventure-time:///e2e-auth?redirect=%2Fquests%2Fspeed-calculus%2Ftraining&email=${TEST_EMAIL_URI}&password=${TEST_PASSWORD_URI}
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- assertVisible:
+    text: Training mode
+- tapOn:
+    text: Start training run
+- extendedWaitUntil:
+    visible:
+      id: speed-calculus-question-label-1
+    timeout: 10000
+- takeScreenshot: tmp-speed-calculus-timer-shots/00-before-answers
+- repeat:
+    times: 4
+    commands:
+      - tapOn:
+          id: speed-calculus-key-1
+      - tapOn:
+          id: speed-calculus-key-submit
+- assertVisible:
+    id: speed-calculus-question-label-5
+- takeScreenshot: tmp-speed-calculus-timer-shots/01-after-answers
