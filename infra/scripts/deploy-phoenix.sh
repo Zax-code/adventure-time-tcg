@@ -13,6 +13,7 @@ Options:
   --container-env-file <path>   Rendered env file consumed by the API container
   --quadlet-dir <path>          Quadlet installation directory
   --health-url <url>            Ready-check URL; defaults to localhost using port 4200
+  --media-health-url <url>      Object-storage ready-check URL
   --registry-auth-file <path>   Optional Podman auth file for private registries
   --registry-username <value>   Optional registry username for an ephemeral login
   --skip-migrate                Skip release migrations
@@ -97,20 +98,21 @@ resolve_env_file() {
   exit 1
 }
 
-render_container_env() {
+render_container_envs() {
   local source_env="$1"
-  local target_env="$2"
-  local temp_env
+  local api_target_env="$2"
+  local minio_target_env="$3"
+  local renderer="$REPO_ROOT/infra/scripts/render-container-envs.sh"
 
-  temp_env="$(mktemp)"
+  if [ ! -f "$renderer" ]; then
+    renderer="$(dirname "${BASH_SOURCE[0]}")/render-container-envs.sh"
+  fi
 
-  sed -E \
-    -e 's#^MINIO_ENDPOINT=(127\.0\.0\.1|localhost|host\.containers\.internal)$#MINIO_ENDPOINT=127.0.0.1#' \
-    "$source_env" > "$temp_env"
-
-  sudo install -d -m 0755 "$(dirname "$target_env")"
-  sudo install -m 0600 "$temp_env" "$target_env"
-  rm -f "$temp_env"
+  require_file "$renderer" "container env renderer"
+  sudo "$renderer" \
+    --source "$source_env" \
+    --api-target "$api_target_env" \
+    --minio-target "$minio_target_env"
 }
 
 install_quadlets() {
@@ -236,9 +238,11 @@ APP_DIR="apps/phoenix"
 SERVICE_NAME="adventure-time-tcg-api.service"
 ENV_FILE=""
 CONTAINER_ENV_FILE="/home/zax/adventure-time-tcg-secrets/api.container.env"
+MINIO_CONTAINER_ENV_FILE="/home/zax/adventure-time-tcg-secrets/minio.container.env"
 MAIL_RELAY_CONFIG_FILE="/home/zax/adventure-time-tcg-secrets/msmtprc"
 QUADLET_DIR="/etc/containers/systemd"
 HEALTH_URL="http://127.0.0.1:4200/ready"
+MEDIA_HEALTH_URL="http://127.0.0.1:4200/ready/media"
 REGISTRY_AUTH_FILE=""
 REGISTRY_USERNAME=""
 SKIP_MIGRATE="false"
@@ -281,6 +285,10 @@ while [ "$#" -gt 0 ]; do
       ;;
     --health-url)
       HEALTH_URL="${2:-}"
+      shift 2
+      ;;
+    --media-health-url)
+      MEDIA_HEALTH_URL="${2:-}"
       shift 2
       ;;
     --registry-auth-file)
@@ -352,8 +360,8 @@ if [ -n "$REGISTRY_AUTH_FILE" ] && [ ! -f "$REGISTRY_AUTH_FILE" ]; then
   exit 1
 fi
 
-echo "Rendering container env file from $ENV_FILE..."
-render_container_env "$ENV_FILE" "$CONTAINER_ENV_FILE"
+echo "Rendering API and MinIO container env files from $ENV_FILE..."
+render_container_envs "$ENV_FILE" "$CONTAINER_ENV_FILE" "$MINIO_CONTAINER_ENV_FILE"
 require_file "$MAIL_RELAY_CONFIG_FILE" "msmtp relay config"
 
 echo "Installing Quadlet units..."
@@ -394,6 +402,12 @@ wait_for_systemd "$SERVICE_NAME"
 if ! wait_for_healthcheck "$HEALTH_URL"; then
   sudo systemctl status "$SERVICE_NAME" --no-pager >&2 || true
   sudo journalctl -u "$SERVICE_NAME" -n 200 --no-pager >&2 || true
+  exit 1
+fi
+
+if ! wait_for_healthcheck "$MEDIA_HEALTH_URL"; then
+  sudo systemctl status adventure-time-tcg-minio.service "$SERVICE_NAME" --no-pager >&2 || true
+  sudo journalctl -u adventure-time-tcg-minio.service -u "$SERVICE_NAME" -n 200 --no-pager >&2 || true
   exit 1
 fi
 

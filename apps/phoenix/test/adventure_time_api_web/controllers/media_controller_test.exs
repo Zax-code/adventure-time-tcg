@@ -3,6 +3,7 @@ defmodule AdventureTimeApiWeb.MediaControllerTest do
 
   alias AdventureTimeApi.Accounts.{EmailCredential, User}
   alias AdventureTimeApi.Catalog.ImageAsset
+  alias AdventureTimeApi.Media
   alias AdventureTimeApi.Repo
 
   @minio_env_keys [
@@ -109,6 +110,42 @@ defmodule AdventureTimeApiWeb.MediaControllerTest do
 
     assert response(conn, 200) == "PNGDATA"
     assert get_resp_header(conn, "content-type") == ["image/png"]
+  end
+
+  test "object storage readiness succeeds when the configured bucket accepts credentials" do
+    bypass = Bypass.open()
+    configure_minio_bypass(bypass)
+
+    Bypass.expect_once(bypass, "HEAD", "/private-images", fn conn ->
+      Plug.Conn.resp(conn, 200, "")
+    end)
+
+    assert Media.ready?() == :ok
+  end
+
+  test "object storage readiness reports rejected credentials" do
+    bypass = Bypass.open()
+    configure_minio_bypass(bypass)
+
+    Bypass.expect_once(bypass, "HEAD", "/private-images", fn conn ->
+      Plug.Conn.resp(conn, 403, "")
+    end)
+
+    assert Media.ready?() == {:error, {:object_storage_unready, 403}}
+  end
+
+  test "object storage readiness rejects a partial configuration" do
+    restore_minio_env_on_exit()
+    Enum.each(@minio_env_keys, &System.delete_env/1)
+
+    Application.put_env(:adventure_time_api, AdventureTimeApi.Media,
+      base_url: "http://127.0.0.1:9100",
+      bucket: nil,
+      access_key: "minio",
+      secret_key: "secret"
+    )
+
+    assert Media.ready?() == {:error, :object_storage_not_configured}
   end
 
   test "GET /media/card/:id serves object storage bytes when configured through MinIO env parts",
@@ -268,5 +305,17 @@ defmodule AdventureTimeApiWeb.MediaControllerTest do
         {key, value} -> System.put_env(key, value)
       end)
     end)
+  end
+
+  defp configure_minio_bypass(bypass) do
+    restore_minio_env_on_exit()
+    Enum.each(@minio_env_keys, &System.delete_env/1)
+
+    Application.put_env(:adventure_time_api, AdventureTimeApi.Media,
+      base_url: "http://127.0.0.1:#{bypass.port}",
+      bucket: "private-images",
+      access_key: "minio",
+      secret_key: "secret"
+    )
   end
 end

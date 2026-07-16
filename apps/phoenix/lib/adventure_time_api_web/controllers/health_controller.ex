@@ -2,6 +2,7 @@ defmodule AdventureTimeApiWeb.HealthController do
   use AdventureTimeApiWeb, :controller
 
   alias AdventureTimeApi.Health
+  alias AdventureTimeApi.Media
   alias AdventureTimeApiWeb.SiteLayout
 
   # ---------------------------------------------------------------------------
@@ -21,6 +22,18 @@ defmodule AdventureTimeApiWeb.HealthController do
         conn
         |> put_status(:service_unavailable)
         |> json(%{status: "not_ready", service: "phoenix"})
+    end
+  end
+
+  def media_ready(conn, _params) do
+    case Media.ready?() do
+      :ok ->
+        json(conn, %{status: "ready", service: "media"})
+
+      {:error, _reason} ->
+        conn
+        |> put_status(:service_unavailable)
+        |> json(%{status: "not_ready", service: "media"})
     end
   end
 

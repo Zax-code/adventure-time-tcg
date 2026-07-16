@@ -12,6 +12,39 @@ defmodule AdventureTimeApi.Media do
 
   @catalog_mime_types ["image/png", "image/jpeg", "image/webp", "image/svg+xml"]
 
+  def ready? do
+    config = object_storage_config()
+
+    case config do
+      %{base_url: base_url, bucket: bucket, access_key: access_key, secret_key: secret_key}
+      when is_binary(base_url) and is_binary(bucket) and is_binary(access_key) and
+             is_binary(secret_key) and base_url != "" and bucket != "" and access_key != "" and
+             secret_key != "" ->
+        url = [String.trim_trailing(base_url, "/"), bucket] |> Enum.join("/")
+
+        case signed_request(:head, url, "", access_key, secret_key) do
+          {:ok, %{status: status}} when status in 200..299 ->
+            :ok
+
+          {:ok, %{status: status}} ->
+            {:error, {:object_storage_unready, status}}
+
+          {:error, reason} ->
+            {:error, {:object_storage_unready, reason}}
+        end
+
+      _ when map_size(config) == 4 ->
+        if Enum.all?(config, fn {_key, value} -> value in [nil, ""] end) do
+          :ok
+        else
+          {:error, :object_storage_not_configured}
+        end
+
+      _ ->
+        :ok
+    end
+  end
+
   def get_image_asset(id, kind) when kind in [:card, :profile, :catalog] do
     ImageAsset
     |> where([image_asset], image_asset.id == ^id and image_asset.kind == ^kind)
