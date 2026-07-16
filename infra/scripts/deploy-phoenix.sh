@@ -364,6 +364,13 @@ echo "Rendering API and MinIO container env files from $ENV_FILE..."
 render_container_envs "$ENV_FILE" "$CONTAINER_ENV_FILE" "$MINIO_CONTAINER_ENV_FILE"
 require_file "$MAIL_RELAY_CONFIG_FILE" "msmtp relay config"
 
+echo "Pulling API image $IMAGE_REF before changing systemd services..."
+pull_image
+wait_for_image_ref
+
+echo "Stopping the API before restarting its required backing services..."
+sudo systemctl stop "$SERVICE_NAME" || true
+
 echo "Installing Quadlet units..."
 install_quadlets "$REPO_ROOT"
 retire_legacy_network_unit
@@ -379,10 +386,6 @@ wait_for_systemd adventure-time-tcg-pod.service
 wait_for_systemd adventure-time-tcg-postgres.service
 wait_for_systemd adventure-time-tcg-minio.service
 wait_for_postgres_tcp
-
-echo "Pulling API image $IMAGE_REF..."
-pull_image
-wait_for_image_ref
 
 if [ "$SKIP_MIGRATE" != "true" ]; then
   echo "Running database migrations..."
