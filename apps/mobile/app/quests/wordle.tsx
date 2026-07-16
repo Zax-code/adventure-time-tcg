@@ -46,6 +46,10 @@ import {
   DEFAULT_QUEST_TIME_ZONE,
   isCurrentQuestDay,
 } from "../../src/features/quests/quest-day-cutoff";
+import {
+  formatQuestShareDate,
+  resolveQuestShareDateKey,
+} from "../../src/features/quests/quest-share-date";
 import { WordleActiveRow } from "../../src/features/quests/wordle/active-row";
 import { WordleDefinitionVariantCard } from "../../src/features/quests/wordle/definition-variant-card";
 import { WordleQuestShareCard } from "../../src/features/quests/wordle/quest-share-card";
@@ -145,22 +149,6 @@ function keyLetterClass(state?: LetterState): string {
   return "text-primaryStrong";
 }
 
-function formatShareDate(
-  dateKey: string | null,
-  locale: string,
-): string | undefined {
-  if (!dateKey) return undefined;
-  const [year, month, day] = dateKey.split("-").map((part) => Number(part));
-  if (!year || !month || !day) return dateKey;
-  const date = new Date(year, month - 1, day);
-  if (Number.isNaN(date.getTime())) return dateKey;
-  return date.toLocaleDateString(locale === "fr" ? "fr-FR" : "en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
-
 export default function WordleScreen() {
   return useWordleScreenView();
 }
@@ -219,6 +207,9 @@ function useWordleScreenView() {
   const [animatingRows, setAnimatingRows] = useState<Set<number>>(new Set());
   const [tileFaceUp, setTileFaceUp] = useState<Set<string>>(new Set());
   const [isSharing, setIsSharing] = useState(false);
+  const [shareDateKey, setShareDateKey] = useState(() =>
+    resolveQuestShareDateKey({ questDateKey: null }),
+  );
   const shareCardRef = useRef<View>(null);
 
   const attemptsUsed = guesses.length;
@@ -306,28 +297,27 @@ function useWordleScreenView() {
   }, [guesses]);
 
   const keyboardRows = locale === "fr" ? AZERTY_ROWS : QWERTY_ROWS;
-
   // Spoiler-safe share model — only tile evaluations are passed in, never the
   // guessed letters or the answer.
   const wordleShareResult = useMemo(
     () =>
       buildWordleShareResult({
         questTitle: t("quests.wordle.title"),
-        date: activeDateKey,
+        date: shareDateKey,
         wordLocale: wordleLanguage,
         solved,
         maxAttempts: MAX_ATTEMPTS,
         wordLength: WORD_LENGTH,
         evaluations: guesses.map((guess) => guess.evaluation),
       }),
-    [guesses, solved, activeDateKey, t, wordleLanguage],
+    [guesses, solved, shareDateKey, t, wordleLanguage],
   );
 
   const wordleShareStrings = useMemo(
     () => ({
       brand: t("quests.wordle.shareBrand"),
       footer: t("quests.wordle.shareFooter"),
-      date: formatShareDate(activeDateKey, locale),
+      date: formatQuestShareDate(shareDateKey, locale),
       wordLanguage:
         wordleLanguage === "fr"
           ? t("quests.wordle.shareFrenchWord")
@@ -342,7 +332,7 @@ function useWordleScreenView() {
             total: MAX_ATTEMPTS,
           }),
     }),
-    [t, locale, activeDateKey, wordleLanguage, solved, attemptsUsed],
+    [t, locale, shareDateKey, wordleLanguage, solved, attemptsUsed],
   );
 
   // ── API ──────────────────────────────────────────────────────────────────
@@ -1045,6 +1035,10 @@ function useWordleScreenView() {
       return;
     }
 
+    const currentShareDateKey = resolveQuestShareDateKey({
+      questDateKey: activeDateKey,
+    });
+    setShareDateKey(currentShareDateKey);
     setIsSharing(true);
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
@@ -1069,7 +1063,10 @@ function useWordleScreenView() {
       // saved file are recognizable (e.g. adventure-time-wordle-…-solved-3of6.png).
       let shareUri = uri;
       try {
-        const fileName = buildWordleShareFileName(wordleShareResult);
+        const fileName = buildWordleShareFileName({
+          ...wordleShareResult,
+          date: currentShareDateKey,
+        });
         const destination = new File(Paths.cache, fileName);
         if (destination.exists) {
           destination.delete();
@@ -1091,7 +1088,7 @@ function useWordleScreenView() {
     } finally {
       setIsSharing(false);
     }
-  }, [isSharing, t, wordleShareResult]);
+  }, [activeDateKey, isSharing, t, wordleShareResult]);
 
   // ── Tile helpers ─────────────────────────────────────────────────────────
 
