@@ -101,14 +101,34 @@ function useHomeScreenView() {
   const { data: featuredQueryData } = useQuery({
     queryKey: ["featured-cards"],
     queryFn: () => apiClient.featuredCards() });
+  const { data: collectionQueryData } = useQuery({
+    queryKey: ["collection"],
+    queryFn: () => apiClient.collection() });
   const featuredCards = featuredQueryData?.cards ?? [];
+  const ownedCardIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const entry of collectionQueryData?.cards ?? []) {
+      if (entry.quantity > 0) {
+        ids.add(entry.cardId);
+      }
+    }
+    return ids;
+  }, [collectionQueryData?.cards]);
   const renderFeaturedCard = useCallback(
-    ({ item }: { item: (typeof featuredCards)[number] }) => (
-      <View style={styles.featuredCardFrame}>
-        <CardTile entry={item} accessToken={accessToken} />
-      </View>
-    ),
-    [accessToken],
+    ({ item }: { item: (typeof featuredCards)[number] }) => {
+      const isOwned = ownedCardIds.has(item.cardId);
+      return (
+        <View style={styles.featuredCardFrame}>
+          <CardTile
+            entry={item}
+            accessToken={accessToken}
+            isLocked={!isOwned}
+            muted={!isOwned}
+          />
+        </View>
+      );
+    },
+    [accessToken, ownedCardIds],
   );
   const { data: raritiesQueryData } = useQuery({
     queryKey: ["rarities"],

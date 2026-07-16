@@ -297,6 +297,7 @@ function useCollectionCardDetailScreenView() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["gifts"] }),
         queryClient.invalidateQueries({ queryKey: ["collection"] }),
+        queryClient.invalidateQueries({ queryKey: ["home"] }),
       ]);
       router.back();
     } });
