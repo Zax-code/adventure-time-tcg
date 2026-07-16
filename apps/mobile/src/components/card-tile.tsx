@@ -638,6 +638,262 @@ function RarityShimmerOverlay({
   );
 }
 
+type CardFaceProps = {
+  animationsEnabled: boolean;
+  card: CardTileCard;
+  cardContentOpacity: number;
+  cfg: (typeof SIZE_CONFIG)[CardTileSize];
+  descriptionPanelStyle: ViewStyle;
+  descriptionTextColor: string;
+  fitContainer: boolean;
+  frameSource: ReturnType<typeof getCardOutlineSource>;
+  isArchived: boolean;
+  isLocked: boolean;
+  premiumRarityName: PremiumRarityName | null;
+  rarityColor: RarityPalette;
+  size: CardTileSize;
+  themeName: ThemeName;
+  typeColor: Palette;
+  typeIndicatorStyle: ViewStyle;
+  typeIndicatorTextColor: string;
+};
+
+function CardFace({
+  animationsEnabled,
+  card,
+  cardContentOpacity,
+  cfg,
+  descriptionPanelStyle,
+  descriptionTextColor,
+  fitContainer,
+  frameSource,
+  isArchived,
+  isLocked,
+  premiumRarityName,
+  rarityColor,
+  size,
+  themeName,
+  typeColor,
+  typeIndicatorStyle,
+  typeIndicatorTextColor,
+}: CardFaceProps) {
+  return (
+    <View
+      className="overflow-hidden"
+      style={{
+        borderRadius: cfg.borderRadius,
+        backgroundColor: "transparent",
+        height: fitContainer ? undefined : cfg.height,
+        aspectRatio: fitContainer ? CARD_ART_RATIO : undefined,
+        boxShadow:
+          size === "large"
+            ? `0px 14px 30px ${withAlpha(rarityColor.ring, "2E")}`
+            : `0px 6px 14px ${withAlpha(rarityColor.ring, "24")}`,
+      }}
+    >
+      <View
+        className="absolute overflow-hidden"
+        style={{
+          left: cfg.fillLeft,
+          right: cfg.fillRight,
+          top: cfg.fillTop,
+          bottom: cfg.fillBottom,
+          borderRadius: cfg.panelRadius,
+        }}
+      >
+        <LinearGradient
+          colors={[
+            withAlpha(typeColor.frame, "E8"),
+            typeColor.light,
+            withAlpha(typeColor.frame, "D9"),
+          ]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{ flex: 1 }}
+        />
+      </View>
+
+      <View
+        className="absolute"
+        style={{
+          left: cfg.contentLeft,
+          right: cfg.contentRight,
+          top: cfg.contentTop,
+          bottom: cfg.contentBottom,
+          gap: cfg.gap,
+          opacity: cardContentOpacity,
+        }}
+      >
+        <View
+          className="overflow-hidden"
+          style={{
+            flex: cfg.artFlex,
+            minHeight: cfg.artMinHeight,
+            borderRadius: cfg.panelRadius,
+            borderWidth: 1,
+            borderColor: withAlpha(rarityColor.ring, "99"),
+            backgroundColor: typeColor.light,
+          }}
+        >
+          {isLocked ? (
+            <LockedIllustration cfg={cfg} imageAssetId={card.imageAssetId} />
+          ) : card.imageAssetId ? (
+            <Image
+              source={{
+                uri: getCardImageUrl(card.imageAssetId),
+                cacheKey: getCardImageCacheKey(card.imageAssetId),
+              }}
+              placeholder={{ blurhash: "LKO2?U%2Tw=w]~RBVZRi};RPxuwH" }}
+              style={{ width: "100%", height: "100%" }}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+            />
+          ) : (
+            <View
+              className="flex-1 items-center justify-center"
+              style={{ backgroundColor: typeColor.light }}
+            >
+              <Text
+                className="font-nunito-extrabold"
+                style={{
+                  color: typeColor.dark,
+                  fontSize: cfg.nameFontSize * 2,
+                }}
+              >
+                {(card.character || card.name || "?").charAt(0)}
+              </Text>
+            </View>
+          )}
+
+          {!isLocked ? (
+            <LinearGradient
+              pointerEvents="none"
+              colors={DEFAULT_ART_TITLE_GRADIENT_COLORS}
+              className="absolute inset-x-0 bottom-0"
+              style={{ height: "48%" }}
+            />
+          ) : null}
+
+          <View
+            className="absolute bottom-0 left-0 right-0 items-center"
+            style={{
+              paddingHorizontal: cfg.titlePaddingH,
+              paddingBottom: cfg.titlePaddingV,
+              paddingTop: cfg.titlePaddingV * 1.4,
+            }}
+          >
+            <Text
+              className="font-nunito-extrabold"
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.72}
+              style={{
+                color: "#FFFFFF",
+                fontSize: cfg.nameFontSize,
+                textAlign: "center",
+                textShadowColor: "rgba(0,0,0,0.55)",
+                textShadowOffset: { width: 0, height: 1 },
+                textShadowRadius: 3,
+              }}
+            >
+              {card.name}
+            </Text>
+            <Text
+              className="font-nunito-semibold italic"
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.72}
+              style={{
+                color: "rgba(255, 255, 255, 0.86)",
+                fontSize: cfg.characterFontSize,
+                textAlign: "center",
+                textShadowColor: "rgba(0,0,0,0.55)",
+                textShadowOffset: { width: 0, height: 1 },
+                textShadowRadius: 2,
+              }}
+            >
+              {card.character}
+            </Text>
+          </View>
+        </View>
+
+        <View style={descriptionPanelStyle}>
+          <Text
+            className="font-nunito-semibold"
+            numberOfLines={cfg.descLines}
+            style={{
+              color: descriptionTextColor,
+              flexShrink: 1,
+              fontSize: cfg.descFontSize,
+              lineHeight: cfg.descLineHeight,
+              textShadowColor:
+                themeName === "nightosphere"
+                  ? "rgba(0,0,0,0.28)"
+                  : "rgba(255,255,255,0.28)",
+              textShadowOffset: { width: 0, height: 1 },
+              textShadowRadius: 1,
+            }}
+          >
+            {isLocked ? "" : card.description}
+          </Text>
+        </View>
+      </View>
+
+      <LinearGradient
+        pointerEvents="none"
+        colors={[
+          withAlpha(typeColor.dark, "F2"),
+          typeColor.frame,
+          withAlpha(typeColor.dark, "F2"),
+        ]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        className="absolute items-center justify-center"
+        style={typeIndicatorStyle}
+      >
+        <Text
+          className="font-nunito-extrabold"
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.78}
+          style={{
+            color: typeIndicatorTextColor,
+            fontSize: cfg.typeIndicatorFontSize,
+            textAlign: "center",
+          }}
+        >
+          {isLocked ? "????" : card.type}
+        </Text>
+      </LinearGradient>
+
+      <Image
+        pointerEvents="none"
+        source={frameSource}
+        style={{
+          position: "absolute",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+          zIndex: 30,
+        }}
+        contentFit="fill"
+      />
+
+      {premiumRarityName && animationsEnabled ? (
+        <RarityShimmerOverlay cfg={cfg} rarityName={premiumRarityName} />
+      ) : null}
+
+      {isArchived ? (
+        <View className="absolute right-3 top-3 z-40 rounded-full bg-dangerDark/90 px-2 py-1">
+          <Text className="font-nunito-extrabold text-[10px] text-white">
+            Archived
+          </Text>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
 export const CardTile = memo(function CardTile(props: CardTileProps) {
   const {
     accessToken: _accessToken,
@@ -768,219 +1024,25 @@ export const CardTile = memo(function CardTile(props: CardTileProps) {
         containerStyle,
       ]}
     >
-      <View
-        className="overflow-hidden"
-        style={{
-          borderRadius: cfg.borderRadius,
-          backgroundColor: "transparent",
-          height: fitContainer ? undefined : cfg.height,
-          aspectRatio: fitContainer ? CARD_ART_RATIO : undefined,
-          boxShadow:
-            size === "large"
-              ? `0px 14px 30px ${withAlpha(rarityColor.ring, "2E")}`
-              : `0px 6px 14px ${withAlpha(rarityColor.ring, "24")}`,
-        }}
-      >
-        <View
-          className="absolute overflow-hidden"
-          style={{
-            left: cfg.fillLeft,
-            right: cfg.fillRight,
-            top: cfg.fillTop,
-            bottom: cfg.fillBottom,
-            borderRadius: cfg.panelRadius,
-          }}
-        >
-          <LinearGradient
-            colors={[
-              withAlpha(typeColor.frame, "E8"),
-              typeColor.light,
-              withAlpha(typeColor.frame, "D9"),
-            ]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={{ flex: 1 }}
-          />
-        </View>
-
-        <View
-          className="absolute"
-          style={{
-            left: cfg.contentLeft,
-            right: cfg.contentRight,
-            top: cfg.contentTop,
-            bottom: cfg.contentBottom,
-            gap: cfg.gap,
-            opacity: cardContentOpacity,
-          }}
-        >
-          <View
-            className="overflow-hidden"
-            style={{
-              flex: cfg.artFlex,
-              minHeight: cfg.artMinHeight,
-              borderRadius: cfg.panelRadius,
-              borderWidth: 1,
-              borderColor: withAlpha(rarityColor.ring, "99"),
-              backgroundColor: typeColor.light,
-            }}
-          >
-            {isLocked ? (
-              <LockedIllustration cfg={cfg} imageAssetId={card.imageAssetId} />
-            ) : card.imageAssetId ? (
-              <Image
-                source={{
-                  uri: getCardImageUrl(card.imageAssetId),
-                  cacheKey: getCardImageCacheKey(card.imageAssetId),
-                }}
-                placeholder={{ blurhash: "LKO2?U%2Tw=w]~RBVZRi};RPxuwH" }}
-                style={{ width: "100%", height: "100%" }}
-                contentFit="cover"
-                cachePolicy="memory-disk"
-              />
-            ) : (
-              <View
-                className="flex-1 items-center justify-center"
-                style={{ backgroundColor: typeColor.light }}
-              >
-                <Text
-                  className="font-nunito-extrabold"
-                  style={{
-                    color: typeColor.dark,
-                    fontSize: cfg.nameFontSize * 2,
-                  }}
-                >
-                  {(card.character || card.name || "?").charAt(0)}
-                </Text>
-              </View>
-            )}
-
-            {!isLocked ? (
-              <LinearGradient
-                pointerEvents="none"
-                colors={DEFAULT_ART_TITLE_GRADIENT_COLORS}
-                className="absolute inset-x-0 bottom-0"
-                style={{ height: "48%" }}
-              />
-            ) : null}
-
-            <View
-              className="absolute bottom-0 left-0 right-0 items-center"
-              style={{
-                paddingHorizontal: cfg.titlePaddingH,
-                paddingBottom: cfg.titlePaddingV,
-                paddingTop: cfg.titlePaddingV * 1.4,
-              }}
-            >
-              <Text
-                className="font-nunito-extrabold"
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.72}
-                style={{
-                  color: "#FFFFFF",
-                  fontSize: cfg.nameFontSize,
-                  textAlign: "center",
-                  textShadowColor: "rgba(0,0,0,0.55)",
-                  textShadowOffset: { width: 0, height: 1 },
-                  textShadowRadius: 3,
-                }}
-              >
-                {card.name}
-              </Text>
-              <Text
-                className="font-nunito-semibold italic"
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.72}
-                style={{
-                  color: "rgba(255, 255, 255, 0.86)",
-                  fontSize: cfg.characterFontSize,
-                  textAlign: "center",
-                  textShadowColor: "rgba(0,0,0,0.55)",
-                  textShadowOffset: { width: 0, height: 1 },
-                  textShadowRadius: 2,
-                }}
-              >
-                {card.character}
-              </Text>
-            </View>
-          </View>
-
-          <View style={descriptionPanelStyle}>
-            <Text
-              className="font-nunito-semibold"
-              numberOfLines={cfg.descLines}
-              style={{
-                color: descriptionTextColor,
-                flexShrink: 1,
-                fontSize: cfg.descFontSize,
-                lineHeight: cfg.descLineHeight,
-                textShadowColor:
-                  themeName === "nightosphere"
-                    ? "rgba(0,0,0,0.28)"
-                    : "rgba(255,255,255,0.28)",
-                textShadowOffset: { width: 0, height: 1 },
-                textShadowRadius: 1,
-              }}
-            >
-              {isLocked ? "" : card.description}
-            </Text>
-          </View>
-        </View>
-
-        <LinearGradient
-          pointerEvents="none"
-          colors={[
-            withAlpha(typeColor.dark, "F2"),
-            typeColor.frame,
-            withAlpha(typeColor.dark, "F2"),
-          ]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          className="absolute items-center justify-center"
-          style={typeIndicatorStyle}
-        >
-          <Text
-            className="font-nunito-extrabold"
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.78}
-            style={{
-              color: typeIndicatorTextColor,
-              fontSize: cfg.typeIndicatorFontSize,
-              textAlign: "center",
-            }}
-          >
-            {isLocked ? "????" : card.type}
-          </Text>
-        </LinearGradient>
-
-        <Image
-          pointerEvents="none"
-          source={frameSource}
-          style={{
-            position: "absolute",
-            inset: 0,
-            width: "100%",
-            height: "100%",
-            zIndex: 30,
-          }}
-          contentFit="fill"
-        />
-
-        {premiumRarityName && animationsEnabled ? (
-          <RarityShimmerOverlay cfg={cfg} rarityName={premiumRarityName} />
-        ) : null}
-
-        {isArchived ? (
-          <View className="absolute right-3 top-3 z-40 rounded-full bg-dangerDark/90 px-2 py-1">
-            <Text className="font-nunito-extrabold text-[10px] text-white">
-              Archived
-            </Text>
-          </View>
-        ) : null}
-      </View>
+      <CardFace
+        animationsEnabled={animationsEnabled}
+        card={card}
+        cardContentOpacity={cardContentOpacity}
+        cfg={cfg}
+        descriptionPanelStyle={descriptionPanelStyle}
+        descriptionTextColor={descriptionTextColor}
+        fitContainer={fitContainer}
+        frameSource={frameSource}
+        isArchived={isArchived}
+        isLocked={isLocked}
+        premiumRarityName={premiumRarityName}
+        rarityColor={rarityColor}
+        size={size}
+        themeName={themeName}
+        typeColor={typeColor}
+        typeIndicatorStyle={typeIndicatorStyle}
+        typeIndicatorTextColor={typeIndicatorTextColor}
+      />
 
       {size === "small" &&
         (quantity > 1 ? (
