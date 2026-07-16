@@ -1,6 +1,7 @@
 import { type ReactNode, type Ref } from "react";
 import {
   ActivityIndicator,
+  type AccessibilityState,
   type Insets,
   Platform,
   Pressable,
@@ -8,8 +9,18 @@ import {
   View,
   type ViewStyle,
 } from "react-native";
-import { Button as ComposeButton, FilledTonalButton, Host as ComposeHost, Text as ComposeText, TextButton } from "@expo/ui/jetpack-compose";
-import { Button as SwiftButton, Host as SwiftHost, Text as SwiftText } from "@expo/ui/swift-ui";
+import {
+  Button as ComposeButton,
+  FilledTonalButton,
+  Host as ComposeHost,
+  Text as ComposeText,
+  TextButton,
+} from "@expo/ui/jetpack-compose";
+import {
+  Button as SwiftButton,
+  Host as SwiftHost,
+  Text as SwiftText,
+} from "@expo/ui/swift-ui";
 import {
   buttonStyle,
   controlSize,
@@ -21,18 +32,11 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 
 import { useThemeStore } from "../../stores/theme-store";
-import {
-  getExpoUIColorScheme,
-  THEME_COLORS,
-} from "../../theme/themes";
+import { getExpoUIColorScheme, THEME_COLORS } from "../../theme/themes";
 import { asStyle } from "../../lib/style-object";
 
 type ThemedButtonVariant =
-  | "primary"
-  | "secondary"
-  | "danger"
-  | "ghost"
-  | "warning";
+  "primary" | "secondary" | "danger" | "ghost" | "warning";
 
 type ThemedButtonFallbackAppearance = {
   backgroundColor?: string;
@@ -60,6 +64,7 @@ type ThemedExpoButtonProps = {
   hitSlop?: Insets | number;
   testID?: string;
   accessibilityLabel?: string;
+  accessibilityState?: AccessibilityState;
   disabled?: boolean;
   loading?: boolean;
   preferFallback?: boolean;
@@ -126,7 +131,10 @@ function getButtonPalette(
   }
 }
 
-function getLabelText(label: string | undefined, children: ReactNode | undefined) {
+function getLabelText(
+  label: string | undefined,
+  children: ReactNode | undefined,
+) {
   if (label) {
     return label;
   }
@@ -165,10 +173,10 @@ function shouldUseFallbackButton(
 
   return Boolean(
     style?.flex != null ||
-      style?.flexGrow != null ||
-      style?.flexBasis != null ||
-      style?.alignSelf === "stretch" ||
-      style?.width != null
+    style?.flexGrow != null ||
+    style?.flexBasis != null ||
+    style?.alignSelf === "stretch" ||
+    style?.width != null,
   );
 }
 
@@ -221,8 +229,7 @@ function getDefaultFallbackAppearance(
               ? ([tc.accentText, tc.accentText] as const)
               : ([tc.primary, tc.primaryDark] as const),
     textStyle: {
-      fontFamily:
-        variant === "ghost" ? "Nunito_600SemiBold" : "Nunito_700Bold",
+      fontFamily: variant === "ghost" ? "Nunito_600SemiBold" : "Nunito_700Bold",
       fontSize: variant === "ghost" ? 14 : 15,
     },
   };
@@ -236,6 +243,7 @@ function FallbackButton({
   hitSlop,
   testID,
   accessibilityLabel,
+  accessibilityState,
   disabled,
   loading,
   preserveChildLayout,
@@ -315,6 +323,7 @@ function FallbackButton({
       accessible
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label ?? undefined}
+      accessibilityState={accessibilityState}
       nativeID={testID}
       testID={testID}
       disabled={disabled || loading}
@@ -444,7 +453,8 @@ export function ThemedExpoButton(props: ThemedExpoButtonProps) {
           <SwiftText
             modifiers={[
               font({
-                family: variant === "ghost" ? "Nunito_600SemiBold" : "Nunito_700Bold",
+                family:
+                  variant === "ghost" ? "Nunito_600SemiBold" : "Nunito_700Bold",
                 size: variant === "ghost" ? 14 : 15,
               }),
               foregroundStyle(
@@ -472,7 +482,12 @@ export function ThemedExpoButton(props: ThemedExpoButtonProps) {
           : ComposeButton;
 
     return (
-      <ComposeHost colorScheme={colorScheme} seedColor={tc.primary} matchContents style={style}>
+      <ComposeHost
+        colorScheme={colorScheme}
+        seedColor={tc.primary}
+        matchContents
+        style={style}
+      >
         <ButtonComponent
           onClick={disabled ? undefined : onPress}
           enabled={!disabled}

@@ -305,7 +305,8 @@ const quests = {
     pickLeft: "Pick a number",
     pickOperator: "Pick an operator",
     pickRight: "Pick another number",
-    applyStep: "Make result",
+    applyResult: "Use result {{result}}",
+    applyResultHint: "Adds this result to the available numbers.",
     undo: "Undo last step",
     reset: "Reset board",
     submit: "Submit result",
@@ -338,6 +339,7 @@ const quests = {
       "Archive results are saved for fun and do not grant coins.",
     archiveTryAgain: "Try again",
     archiveResultLabel: "Archive",
+    archiveSavedLabel: "Result saved",
     rewardReminder:
       "Head back to daily quests and claim {reward} coins when you're ready.",
     alreadyClaimed: "Reward already claimed for this mode.",
@@ -354,6 +356,7 @@ const quests = {
     revealSolutionConfirmBody:
       "This will show one exact route for this puzzle.",
     exactHitLabel: "Exact hit",
+    distanceOutcome: "{distance} away",
     resultLockedLabel: "Result locked",
     resetNotice:
       "Daily Numbers reset while you were playing. Loading the new puzzle.",

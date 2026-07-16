@@ -52,7 +52,8 @@
       "./plugins/with-ios-modular-headers",
       "expo-build-properties",
       "expo-router",
-      "expo-splash-screen"
+      "expo-splash-screen",
+      "expo-background-task"
     ]
   }
 }

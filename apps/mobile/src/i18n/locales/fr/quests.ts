@@ -314,7 +314,8 @@ const quests = {
     pickLeft: "Choisis un nombre",
     pickOperator: "Choisis un opérateur",
     pickRight: "Choisis un autre nombre",
-    applyStep: "Créer le résultat",
+    applyResult: "Utiliser le résultat {{result}}",
+    applyResultHint: "Ajoute ce résultat aux nombres disponibles.",
     undo: "Annuler la dernière étape",
     reset: "Réinitialiser",
     submit: "Envoyer le résultat",
@@ -351,6 +352,7 @@ const quests = {
       "Les résultats d'archive sont enregistrés pour le plaisir et ne donnent pas de pièces.",
     archiveTryAgain: "Réessayer",
     archiveResultLabel: "Archive",
+    archiveSavedLabel: "Résultat enregistré",
     rewardReminder:
       "Retourne aux quêtes quotidiennes pour récupérer {reward} pièces quand tu veux.",
     alreadyClaimed: "Récompense déjà récupérée pour ce mode.",
@@ -368,6 +370,7 @@ const quests = {
     revealSolutionConfirmBody:
       "Cela affichera une route exacte pour cette énigme.",
     exactHitLabel: "Résultat exact",
+    distanceOutcome: "À {distance} d'écart",
     resultLockedLabel: "Résultat verrouillé",
     resetNotice:
       "Nombres du jour a été réinitialisé pendant ta partie. Chargement de la nouvelle énigme.",

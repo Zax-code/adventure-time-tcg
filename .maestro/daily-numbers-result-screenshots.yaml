@@ -1,0 +1,34 @@
+appId: love.leaetzak.adventuretime
+name: Daily Numbers result screenshots
+tags:
+  - quests
+  - daily-numbers
+  - archive
+  - screenshots
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- openLink:
+    link: adventure-time:///e2e-auth?redirect=%2Fquests%2Fdaily-numbers-history&email=${TEST_EMAIL_URI}&password=${TEST_PASSWORD_URI}
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- extendedWaitUntil:
+    visible:
+      id: daily-numbers-archive-pill
+    timeout: 15000
+- tapOn:
+    id: daily-numbers-archive-mode-1-5
+- extendedWaitUntil:
+    visible:
+      id: daily-numbers-result
+    timeout: 15000
+- waitForAnimationToEnd
+- takeScreenshot: tmp-daily-numbers-archive-shots/07-final-result-top
+- scrollUntilVisible:
+    element:
+      id: daily-numbers-share-result
+    direction: DOWN
+    timeout: 20000
+    centerElement: true
+- waitForAnimationToEnd
+- takeScreenshot: tmp-daily-numbers-archive-shots/08-final-result-actions
