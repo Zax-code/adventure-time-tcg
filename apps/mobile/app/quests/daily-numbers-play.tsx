@@ -27,9 +27,10 @@ import {
 import Animated, {
   Easing,
   FadeIn,
+  FadeInUp,
   FadeOut,
+  FadeOutUp,
   LinearTransition,
-  ZoomIn,
   interpolate,
   runOnJS,
   useAnimatedStyle,
@@ -1355,11 +1356,7 @@ function FinishStatePanel({
           </Text>
         ) : null}
         {exactHitState ? (
-          <Animated.View
-            entering={ZoomIn.duration(220)}
-            className="items-center"
-            testID="daily-numbers-exact-target"
-          >
+          <View className="items-center" testID="daily-numbers-exact-target">
             <Text
               className={`${resultEmphasisClass} text-center font-nunito-extrabold`}
               style={{ color: resultColor, fontVariant: ["tabular-nums"] }}
@@ -1375,7 +1372,7 @@ function FinishStatePanel({
             >
               {t("quests.dailyNumbers.target")}
             </Text>
-          </Animated.View>
+          </View>
         ) : null}
         <Text
           className="mt-2 text-center font-nunito-bold text-xs"
@@ -1764,61 +1761,32 @@ function EquationResult({
   compact,
   committing,
   exactHitPreview,
-  exactHitTransitioning,
   interactionLocked,
   onApplyStep,
-  onExactHitTransitionFinished,
   previewState,
   resultRef,
   t,
-  tc,
 }: {
   compact: boolean;
   committing: boolean;
   exactHitPreview: boolean;
-  exactHitTransitioning: boolean;
   interactionLocked: boolean;
   onApplyStep: () => void;
-  onExactHitTransitionFinished: () => void;
   previewState: PreviewState;
   resultRef: RefObject<View | null>;
   t: TranslateFn;
-  tc: ThemeColors;
 }) {
   const boardNumberTextClass = getBoardNumberTextClass(compact);
-  const exactHitProgress = useSharedValue(0);
-  const exactHitAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(exactHitProgress.value, [0, 0.7, 1], [1, 1, 0.82]),
-    transform: [
-      {
-        scale: interpolate(
-          exactHitProgress.value,
-          [0, 0.55, 1],
-          [1, 1.1, 1.04],
-        ),
-      },
-    ],
-  }));
-
-  useEffect(() => {
-    if (!exactHitTransitioning) {
-      exactHitProgress.value = 0;
-      return;
-    }
-
-    exactHitProgress.value = withTiming(
-      1,
-      {
-        duration: 260,
-        easing: Easing.bezier(0.16, 1, 0.3, 1),
-      },
-      (finished) => {
-        if (finished) {
-          runOnJS(onExactHitTransitionFinished)();
-        }
-      },
-    );
-  }, [exactHitProgress, exactHitTransitioning, onExactHitTransitionFinished]);
+  const resultSurfaceClassName = exactHitPreview
+    ? "bg-successTint border-successBorder"
+    : committing
+      ? "bg-surface border-primaryStrong"
+      : "bg-primaryStrong border-primaryStrong";
+  const resultTextClassName = exactHitPreview
+    ? "text-successDark"
+    : committing
+      ? "text-primaryStrong"
+      : "text-white";
 
   return (
     <View
@@ -1830,23 +1798,14 @@ function EquationResult({
           key={`ready-${previewState.result}`}
           entering={FadeIn.duration(150)}
           className="h-full w-full"
-          style={exactHitAnimatedStyle}
           testID={exactHitPreview ? "daily-numbers-exact-preview" : undefined}
         >
           <View ref={resultRef} collapsable={false} className="h-full w-full">
             <Pressable
               onPress={onApplyStep}
               disabled={interactionLocked || committing}
-              className="relative h-full w-full items-center justify-center rounded-xl border-2 px-2 py-2"
+              className={`${resultSurfaceClassName} relative h-full w-full items-center justify-center rounded-xl border-2 px-2 py-2`}
               style={({ pressed }) => ({
-                backgroundColor: exactHitPreview
-                  ? tc.successDark
-                  : committing
-                    ? tc.surface
-                    : tc.primaryStrong,
-                borderColor: exactHitPreview
-                  ? tc.successBorder
-                  : tc.primaryStrong,
                 opacity:
                   interactionLocked && !committing ? 0.38 : pressed ? 0.76 : 1,
               })}
@@ -1865,7 +1824,7 @@ function EquationResult({
               testID="daily-numbers-apply-step"
             >
               <Text
-                className={`${boardNumberTextClass} w-full ${compact ? "px-2" : "px-3"} text-center font-nunito-extrabold ${committing && !exactHitPreview ? "text-primaryStrong" : "text-white"}`}
+                className={`${boardNumberTextClass} w-full ${compact ? "px-2" : "px-3"} text-center font-nunito-extrabold ${resultTextClassName}`}
                 numberOfLines={1}
                 adjustsFontSizeToFit={String(previewState.result).length > 4}
                 minimumFontScale={0.68}
@@ -1880,7 +1839,9 @@ function EquationResult({
                   accessibilityElementsHidden
                   importantForAccessibility="no-hide-descendants"
                 >
-                  <Text className="font-nunito-extrabold text-lg text-white">
+                  <Text
+                    className={`font-nunito-extrabold text-lg ${exactHitPreview ? "text-successDark" : "text-white"}`}
+                  >
                     {exactHitPreview ? "✦" : "↓"}
                   </Text>
                 </View>
@@ -1907,12 +1868,10 @@ function EquationResult({
 function EquationWorkbench({
   compact,
   committing,
-  exactHitTransitioning,
   interactionLocked,
   localSteps,
   onApplyStep,
   onClearSlot,
-  onExactHitTransitionFinished,
   previewState,
   resultRef,
   selectedLeftTile,
@@ -1924,12 +1883,10 @@ function EquationWorkbench({
 }: {
   compact: boolean;
   committing: boolean;
-  exactHitTransitioning: boolean;
   interactionLocked: boolean;
   localSteps: DailyNumbersStep[];
   onApplyStep: () => void;
   onClearSlot: (slot: SlotKey) => void;
-  onExactHitTransitionFinished: () => void;
   previewState: PreviewState;
   resultRef: RefObject<View | null>;
   selectedLeftTile: BoardTile | null;
@@ -2062,14 +2019,11 @@ function EquationWorkbench({
                 compact={compact}
                 committing={committing}
                 exactHitPreview={exactHitPreview}
-                exactHitTransitioning={exactHitTransitioning}
                 interactionLocked={interactionLocked}
                 onApplyStep={onApplyStep}
-                onExactHitTransitionFinished={onExactHitTransitionFinished}
                 previewState={previewState}
                 resultRef={resultRef}
                 t={t}
-                tc={tc}
               />
             </>
           ) : null}
@@ -2085,14 +2039,11 @@ function EquationWorkbench({
               compact={compact}
               committing={committing}
               exactHitPreview={exactHitPreview}
-              exactHitTransitioning={exactHitTransitioning}
               interactionLocked={interactionLocked}
               onApplyStep={onApplyStep}
-              onExactHitTransitionFinished={onExactHitTransitionFinished}
               previewState={previewState}
               resultRef={resultRef}
               t={t}
-              tc={tc}
             />
           </View>
         ) : null}
@@ -2335,6 +2286,157 @@ function OperationCommitOverlay({
   );
 }
 
+function LivePlayControls({
+  archiveMode,
+  interactionLocked,
+  localSteps,
+  officialSolutionSteps,
+  onResetBoard,
+  onSubmitPress,
+  onToggleSolution,
+  onUndoStep,
+  revealedSolution,
+  submitting,
+  t,
+  tc,
+}: {
+  archiveMode: boolean;
+  interactionLocked: boolean;
+  localSteps: DailyNumbersStep[];
+  officialSolutionSteps: DailyNumbersStep[];
+  onResetBoard: () => void;
+  onSubmitPress: () => void;
+  onToggleSolution: () => void;
+  onUndoStep: () => void;
+  revealedSolution: boolean;
+  submitting: boolean;
+  t: TranslateFn;
+  tc: ThemeColors;
+}) {
+  const handleToggleSolution = () => {
+    if (revealedSolution) {
+      onToggleSolution();
+      return;
+    }
+
+    Alert.alert(
+      t("quests.dailyNumbers.revealSolutionConfirmTitle"),
+      t("quests.dailyNumbers.revealSolutionConfirmBody"),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("quests.dailyNumbers.revealSolution"),
+          style: "destructive",
+          onPress: onToggleSolution,
+        },
+      ],
+    );
+  };
+
+  return (
+    <>
+      <QuestActionButton
+        label={
+          archiveMode
+            ? t("quests.dailyNumbers.archiveSaveResult")
+            : t("quests.dailyNumbers.submit")
+        }
+        onPress={onSubmitPress}
+        disabled={interactionLocked}
+        loading={submitting}
+        loadingMode="inline"
+        backgroundColor={interactionLocked ? tc.surfaceMuted : tc.surface}
+        foregroundColor={interactionLocked ? tc.fgMuted : tc.primaryText}
+        borderColor={tc.primaryBorder}
+        leadingIcon={CheckIcon}
+        minHeight={50}
+        accessibilityLabel={
+          archiveMode
+            ? t("quests.dailyNumbers.archiveSaveResult")
+            : t("quests.dailyNumbers.submit")
+        }
+        testID="daily-numbers-submit"
+        style={{ marginTop: 12, opacity: interactionLocked ? 0.38 : 1 }}
+      />
+
+      <View className="mt-2 flex-row gap-2">
+        <View className="min-w-0 flex-1">
+          <QuestActionButton
+            label={t("quests.dailyNumbers.undo")}
+            onPress={onUndoStep}
+            disabled={interactionLocked}
+            backgroundColor={tc.primaryTint}
+            foregroundColor={tc.primaryText}
+            borderColor={tc.primaryBorder}
+            leadingIcon={SkipBackIcon}
+            leadingIconSize={16}
+            minHeight={46}
+            textClassName="font-nunito-bold text-xs"
+            accessibilityLabel={t("quests.dailyNumbers.undo")}
+            testID="daily-numbers-undo"
+            style={{ opacity: interactionLocked ? 0.38 : 1 }}
+          />
+        </View>
+        <View className="min-w-0 flex-1">
+          <QuestActionButton
+            label={t("quests.dailyNumbers.reset")}
+            onPress={onResetBoard}
+            disabled={interactionLocked}
+            backgroundColor={tc.accentTint}
+            foregroundColor={tc.accentStrong}
+            borderColor={tc.accentBorder}
+            leadingIcon={RecycleIcon}
+            leadingIconSize={16}
+            minHeight={46}
+            textClassName="font-nunito-bold text-xs"
+            accessibilityLabel={t("quests.dailyNumbers.reset")}
+            testID="daily-numbers-reset"
+            style={{ opacity: interactionLocked ? 0.38 : 1 }}
+          />
+        </View>
+      </View>
+
+      <StepList
+        emptyCopy={t("quests.dailyNumbers.noStepsYet")}
+        steps={localSteps}
+        t={t}
+        title={t("quests.dailyNumbers.stepHistoryTitle")}
+      />
+      {archiveMode && officialSolutionSteps.length > 0 ? (
+        <>
+          <QuestActionButton
+            label={
+              revealedSolution
+                ? t("quests.dailyNumbers.hideSolution")
+                : t("quests.dailyNumbers.revealSolution")
+            }
+            onPress={handleToggleSolution}
+            backgroundColor={tc.bg}
+            foregroundColor={tc.primaryText}
+            leadingIcon={EyeIcon}
+            minHeight={48}
+            style={{ marginTop: 12 }}
+            testID="daily-numbers-archive-reveal-solution"
+            accessibilityLabel={
+              revealedSolution
+                ? t("quests.dailyNumbers.hideSolution")
+                : t("quests.dailyNumbers.revealSolution")
+            }
+            accessibilityState={{ expanded: revealedSolution }}
+          />
+          {revealedSolution ? (
+            <StepList
+              steps={officialSolutionSteps}
+              t={t}
+              title={t("quests.dailyNumbers.officialSolutionTitle")}
+            />
+          ) : null}
+        </>
+      ) : null}
+    </>
+  );
+}
+
 function LivePlayPanel({
   archiveMode,
   availableTiles,
@@ -2368,12 +2470,8 @@ function LivePlayPanel({
   const [commitAnimation, setCommitAnimation] =
     useState<ResultCommitAnimation | null>(null);
   const [preparingCommit, setPreparingCommit] = useState(false);
-  const [exactHitTransitioning, setExactHitTransitioning] = useState(false);
   const commitLocked =
-    interactionLocked ||
-    preparingCommit ||
-    exactHitTransitioning ||
-    commitAnimation !== null;
+    interactionLocked || preparingCommit || commitAnimation !== null;
   const committingTileIds = useMemo(
     () =>
       new Set(
@@ -2404,7 +2502,7 @@ function LivePlayPanel({
     }
 
     if (previewState.result === target) {
-      setExactHitTransitioning(true);
+      onApplyStep();
       return;
     }
 
@@ -2476,15 +2574,11 @@ function LivePlayPanel({
       <View ref={stageRef} collapsable={false} className="relative">
         <EquationWorkbench
           compact={compact}
-          committing={
-            preparingCommit || exactHitTransitioning || commitAnimation !== null
-          }
-          exactHitTransitioning={exactHitTransitioning}
+          committing={preparingCommit || commitAnimation !== null}
           interactionLocked={commitLocked}
           localSteps={localSteps}
           onApplyStep={handleApplyResult}
           onClearSlot={onClearSlot}
-          onExactHitTransitionFinished={onApplyStep}
           previewState={previewState}
           resultRef={resultRef}
           selectedLeftTile={selectedLeftTile}
@@ -2532,122 +2626,20 @@ function LivePlayPanel({
         ) : null}
       </View>
 
-      <QuestActionButton
-        label={
-          archiveMode
-            ? t("quests.dailyNumbers.archiveSaveResult")
-            : t("quests.dailyNumbers.submit")
-        }
-        onPress={onSubmitPress}
-        disabled={commitLocked}
-        loading={submitting}
-        loadingMode="inline"
-        backgroundColor={commitLocked ? tc.surfaceMuted : tc.surface}
-        foregroundColor={commitLocked ? tc.fgMuted : tc.primaryText}
-        borderColor={tc.primaryBorder}
-        leadingIcon={CheckIcon}
-        minHeight={50}
-        accessibilityLabel={
-          archiveMode
-            ? t("quests.dailyNumbers.archiveSaveResult")
-            : t("quests.dailyNumbers.submit")
-        }
-        testID="daily-numbers-submit"
-        style={{ marginTop: 12, opacity: commitLocked ? 0.38 : 1 }}
-      />
-
-      <View className="mt-2 flex-row gap-2">
-        <View className="min-w-0 flex-1">
-          <QuestActionButton
-            label={t("quests.dailyNumbers.undo")}
-            onPress={onUndoStep}
-            disabled={commitLocked}
-            backgroundColor={tc.primaryTint}
-            foregroundColor={tc.primaryText}
-            borderColor={tc.primaryBorder}
-            leadingIcon={SkipBackIcon}
-            leadingIconSize={16}
-            minHeight={46}
-            textClassName="font-nunito-bold text-xs"
-            accessibilityLabel={t("quests.dailyNumbers.undo")}
-            testID="daily-numbers-undo"
-            style={{ opacity: commitLocked ? 0.38 : 1 }}
-          />
-        </View>
-        <View className="min-w-0 flex-1">
-          <QuestActionButton
-            label={t("quests.dailyNumbers.reset")}
-            onPress={onResetBoard}
-            disabled={commitLocked}
-            backgroundColor={tc.accentTint}
-            foregroundColor={tc.accentStrong}
-            borderColor={tc.accentBorder}
-            leadingIcon={RecycleIcon}
-            leadingIconSize={16}
-            minHeight={46}
-            textClassName="font-nunito-bold text-xs"
-            accessibilityLabel={t("quests.dailyNumbers.reset")}
-            testID="daily-numbers-reset"
-            style={{ opacity: commitLocked ? 0.38 : 1 }}
-          />
-        </View>
-      </View>
-
-      <StepList
-        emptyCopy={t("quests.dailyNumbers.noStepsYet")}
-        steps={localSteps}
+      <LivePlayControls
+        archiveMode={archiveMode}
+        interactionLocked={commitLocked}
+        localSteps={localSteps}
+        officialSolutionSteps={officialSolutionSteps}
+        onResetBoard={onResetBoard}
+        onSubmitPress={onSubmitPress}
+        onToggleSolution={onToggleSolution}
+        onUndoStep={onUndoStep}
+        revealedSolution={revealedSolution}
+        submitting={submitting}
         t={t}
-        title={t("quests.dailyNumbers.stepHistoryTitle")}
+        tc={tc}
       />
-      {archiveMode && officialSolutionSteps.length > 0 ? (
-        <>
-          <QuestActionButton
-            label={
-              revealedSolution
-                ? t("quests.dailyNumbers.hideSolution")
-                : t("quests.dailyNumbers.revealSolution")
-            }
-            onPress={() => {
-              if (revealedSolution) {
-                onToggleSolution();
-                return;
-              }
-
-              Alert.alert(
-                t("quests.dailyNumbers.revealSolutionConfirmTitle"),
-                t("quests.dailyNumbers.revealSolutionConfirmBody"),
-                [
-                  { text: t("common.cancel"), style: "cancel" },
-                  {
-                    text: t("quests.dailyNumbers.revealSolution"),
-                    style: "destructive",
-                    onPress: onToggleSolution,
-                  },
-                ],
-              );
-            }}
-            backgroundColor={tc.bg}
-            foregroundColor={tc.primaryText}
-            leadingIcon={EyeIcon}
-            minHeight={48}
-            style={{ marginTop: 12 }}
-            testID="daily-numbers-archive-reveal-solution"
-            accessibilityLabel={
-              revealedSolution
-                ? t("quests.dailyNumbers.hideSolution")
-                : t("quests.dailyNumbers.revealSolution")
-            }
-            accessibilityState={{ expanded: revealedSolution }}
-          />
-          {revealedSolution ? (
-            <StepList
-              steps={officialSolutionSteps}
-              t={t}
-              title={t("quests.dailyNumbers.officialSolutionTitle")}
-            />
-          ) : null}
-        </>
-      ) : null}
     </>
   );
 }
@@ -3447,72 +3439,81 @@ function DailyNumbersBoard({
         />
       ) : null}
 
-      <View className="flex-1">
-        {!controller.finishScreenState ? (
-          <MetricsSection
-            compact={controller.compact}
-            currentBestTile={controller.currentBestTile}
-            currentDistance={controller.currentDistance}
-            formattedElapsedTime={controller.formattedElapsedTime}
-            modeAccent={controller.modeAccent}
-            state={controller.state}
-            t={controller.t}
-            tc={controller.tc}
-          />
-        ) : null}
-
+      <View collapsable={false} className="flex-1">
         {controller.finishScreenState ? (
-          <FinishStatePanel
-            claimable={controller.claimable}
-            claimPending={controller.claimPending}
-            archiveMode={archiveMode}
-            canRetryArchive={archiveMode && !controller.exactHitState}
-            compact={controller.compact}
-            exactHitState={controller.exactHitState}
-            finishCompleted={controller.finishCompletedState}
-            finishDistance={controller.finishDistance}
-            finishScore={controller.finishScore}
-            finishValue={controller.finishValue}
-            formattedElapsedTime={controller.formattedElapsedTime}
-            interaction={controller.interaction}
-            isSharing={isSharing}
-            onClaimReward={controller.onClaimReward}
-            onShareResult={handleShareResult}
-            onStartRetry={controller.onStartRetry}
-            onToggleSolution={controller.onToggleSolution}
-            officialSolutionSteps={controller.officialSolutionSteps}
-            state={controller.state}
-            submittedSolutionSteps={controller.submittedSolutionSteps}
-            t={controller.t}
-            tc={controller.tc}
-          />
+          <Animated.View
+            key="daily-numbers-finish"
+            entering={FadeInUp.duration(240)}
+            className="flex-1"
+          >
+            <FinishStatePanel
+              claimable={controller.claimable}
+              claimPending={controller.claimPending}
+              archiveMode={archiveMode}
+              canRetryArchive={archiveMode && !controller.exactHitState}
+              compact={controller.compact}
+              exactHitState={controller.exactHitState}
+              finishCompleted={controller.finishCompletedState}
+              finishDistance={controller.finishDistance}
+              finishScore={controller.finishScore}
+              finishValue={controller.finishValue}
+              formattedElapsedTime={controller.formattedElapsedTime}
+              interaction={controller.interaction}
+              isSharing={isSharing}
+              onClaimReward={controller.onClaimReward}
+              onShareResult={handleShareResult}
+              onStartRetry={controller.onStartRetry}
+              onToggleSolution={controller.onToggleSolution}
+              officialSolutionSteps={controller.officialSolutionSteps}
+              state={controller.state}
+              submittedSolutionSteps={controller.submittedSolutionSteps}
+              t={controller.t}
+              tc={controller.tc}
+            />
+          </Animated.View>
         ) : (
-          <LivePlayPanel
-            availableTiles={controller.board.availableTiles}
-            archiveMode={archiveMode}
-            compact={controller.compact}
-            interactionLocked={controller.interactionLocked}
-            localSteps={controller.interaction.steps}
-            modeAccent={controller.modeAccent}
-            onApplyStep={controller.onApplyStep}
-            onClearSlot={controller.onClearSlot}
-            onOperatorPress={controller.onOperatorPress}
-            onResetBoard={controller.onResetBoard}
-            onSubmitPress={controller.onSubmitPress}
-            onTilePress={controller.onTilePress}
-            onToggleSolution={controller.onToggleSolution}
-            onUndoStep={controller.onUndoStep}
-            officialSolutionSteps={controller.officialSolutionSteps}
-            previewState={controller.previewState}
-            revealedSolution={controller.interaction.revealedSolution}
-            selectedLeftTile={controller.selectedLeftTile}
-            selectedOperator={controller.selectedOperator}
-            selectedRightTile={controller.selectedRightTile}
-            submitting={controller.interaction.submitting}
-            target={controller.state.target}
-            t={controller.t}
-            tc={controller.tc}
-          />
+          <Animated.View
+            key="daily-numbers-live"
+            exiting={FadeOutUp.duration(180)}
+            className="flex-1"
+          >
+            <MetricsSection
+              compact={controller.compact}
+              currentBestTile={controller.currentBestTile}
+              currentDistance={controller.currentDistance}
+              formattedElapsedTime={controller.formattedElapsedTime}
+              modeAccent={controller.modeAccent}
+              state={controller.state}
+              t={controller.t}
+              tc={controller.tc}
+            />
+            <LivePlayPanel
+              availableTiles={controller.board.availableTiles}
+              archiveMode={archiveMode}
+              compact={controller.compact}
+              interactionLocked={controller.interactionLocked}
+              localSteps={controller.interaction.steps}
+              modeAccent={controller.modeAccent}
+              onApplyStep={controller.onApplyStep}
+              onClearSlot={controller.onClearSlot}
+              onOperatorPress={controller.onOperatorPress}
+              onResetBoard={controller.onResetBoard}
+              onSubmitPress={controller.onSubmitPress}
+              onTilePress={controller.onTilePress}
+              onToggleSolution={controller.onToggleSolution}
+              onUndoStep={controller.onUndoStep}
+              officialSolutionSteps={controller.officialSolutionSteps}
+              previewState={controller.previewState}
+              revealedSolution={controller.interaction.revealedSolution}
+              selectedLeftTile={controller.selectedLeftTile}
+              selectedOperator={controller.selectedOperator}
+              selectedRightTile={controller.selectedRightTile}
+              submitting={controller.interaction.submitting}
+              target={controller.state.target}
+              t={controller.t}
+              tc={controller.tc}
+            />
+          </Animated.View>
         )}
       </View>
 

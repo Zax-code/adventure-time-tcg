@@ -24,6 +24,9 @@ const livePlayEnd = source.indexOf(
   livePlayStart,
 );
 const livePlaySource = source.slice(livePlayStart, livePlayEnd);
+const boardStart = source.indexOf("function DailyNumbersBoard(");
+const boardEnd = source.indexOf("function DailyNumbersPlayView(", boardStart);
+const boardSource = source.slice(boardStart, boardEnd);
 
 describe("Daily Numbers equation result layout", () => {
   it("keeps 1000 and 10000 in a dedicated full-width text lane", () => {
@@ -52,8 +55,21 @@ describe("Daily Numbers equation result layout", () => {
     );
     assert.match(
       equationResultSource,
-      /exactHitPreview\s*\? tc\.successDark/,
-      "an exact result should use the success palette before it is applied",
+      /exactHitPreview\s*\? "bg-successTint border-successBorder"/,
+      "an exact result should match the finish view's light success treatment",
+    );
+    assert.match(
+      equationResultSource,
+      /exactHitPreview\s*\? "text-successDark"/,
+      "an exact result should use the same strong success foreground as the finish hero",
+    );
+  });
+
+  it("preserves the regular primary result treatment", () => {
+    assert.match(
+      equationResultSource,
+      /committing\s*\? "bg-surface border-primaryStrong"\s*:\s*"bg-primaryStrong border-primaryStrong"/,
+      "ordinary results should retain their original primary surface and border",
     );
   });
 });
@@ -74,8 +90,21 @@ describe("Daily Numbers exact-hit transition", () => {
     );
     assert.match(
       livePlaySource.slice(exactHitBranch, futureTileMeasurement),
-      /setExactHitTransitioning\(true\);\s*return;/,
-      "the exact result should transition directly into the finish state",
+      /onApplyStep\(\);\s*return;/,
+      "the exact result should apply immediately so the mounted board/result transition can run",
+    );
+  });
+
+  it("animates the mounted live and finish branches as one state transition", () => {
+    assert.match(
+      boardSource,
+      /key="daily-numbers-finish"[\s\S]*?entering=\{FadeInUp\.duration\(240\)\}/,
+      "the exact result view should enter through the shared board transition",
+    );
+    assert.match(
+      boardSource,
+      /key="daily-numbers-live"[\s\S]*?exiting=\{FadeOutUp\.duration\(180\)\}/,
+      "the operation view should visibly hand off to the result view",
     );
   });
 });
