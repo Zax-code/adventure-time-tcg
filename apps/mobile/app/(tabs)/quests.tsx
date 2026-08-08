@@ -79,6 +79,7 @@ import {
   isDailyLoginQuest,
   isDailyNumbersQuest,
   isQuestShareable,
+  isPerfectTimingQuest,
   isSpeedCalculusQuest,
   isStepQuest,
   isWordleQuest,
@@ -299,6 +300,12 @@ function getVariantStatusLabel(quest: Quest, t: Translate) {
     });
   }
 
+  if (lifecycle === "in_progress" && isPerfectTimingQuest(quest.type)) {
+    return t("quests.perfectTiming.attempt", {
+      number: quest.attemptsUsed ?? quest.progress,
+    });
+  }
+
   return getLifecycleLabel(lifecycle, t);
 }
 
@@ -322,6 +329,10 @@ function getItemDescription(item: QuestHubItem, t: Translate) {
       used: quest.runsUsed ?? quest.progress,
       total: quest.maxRuns ?? quest.target,
     });
+  }
+
+  if (isPerfectTimingQuest(quest.type)) {
+    return t("quests.hub.perfectTimingCardDescription");
   }
 
   return getQuestDescription(quest.description, t);
@@ -1337,6 +1348,10 @@ function useQuestsScreenView() {
       dailyNumbers: {
         icon: DailyNumbersQuestIcon,
         title: t("quests.dailyNumbers.title"),
+      },
+      perfectTiming: {
+        icon: SparklesIcon,
+        title: t("quests.perfectTiming.title"),
       },
       speedCalculus: {
         icon: SpeedCalculusQuestIcon,

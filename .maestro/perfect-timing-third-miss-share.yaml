@@ -1,0 +1,86 @@
+appId: love.leaetzak.adventuretime
+name: Perfect Timing third Miss and failed sharing
+tags:
+  - quests
+  - perfect-timing
+  - sharing
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- openLink:
+    link: adventure-time:///e2e-auth?redirect=%2Fquests%2Fperfect-timing&email=${TEST_EMAIL_URI}&password=${TEST_PASSWORD_URI}
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- extendedWaitUntil:
+    visible:
+      id: perfect-timing-target
+    timeout: 15000
+- waitForAnimationToEnd
+- openLink:
+    link: adventure-time:///quests/perfect-timing
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- extendedWaitUntil:
+    visible:
+      id: perfect-timing-start
+    timeout: 15000
+- tapOn:
+    id: perfect-timing-start
+- waitForAnimationToEnd
+- runFlow:
+    when:
+      visible: "Could not start this attempt."
+    commands:
+      - tapOn:
+          id: perfect-timing-start
+      - waitForAnimationToEnd
+- tapOn:
+    id: perfect-timing-stop
+- extendedWaitUntil:
+    visible:
+      id: perfect-timing-continue
+    timeout: 15000
+- assertNotVisible:
+    id: perfect-timing-keep
+- tapOn:
+    id: perfect-timing-continue
+- tapOn: "Discard and continue"
+- extendedWaitUntil:
+    visible:
+      id: perfect-timing-start
+    timeout: 15000
+- tapOn:
+    id: perfect-timing-start
+- waitForAnimationToEnd
+- tapOn:
+    id: perfect-timing-stop
+- extendedWaitUntil:
+    visible:
+      id: perfect-timing-continue
+    timeout: 15000
+- assertNotVisible:
+    id: perfect-timing-keep
+- tapOn:
+    id: perfect-timing-continue
+- tapOn: "Discard and continue"
+- extendedWaitUntil:
+    visible:
+      id: perfect-timing-start
+    timeout: 15000
+- tapOn:
+    id: perfect-timing-start
+- waitForAnimationToEnd
+- tapOn:
+    id: perfect-timing-stop
+- extendedWaitUntil:
+    visible:
+      id: perfect-timing-share
+    timeout: 15000
+- assertNotVisible:
+    id: perfect-timing-continue
+- assertNotVisible:
+    id: perfect-timing-keep
+- tapOn:
+    id: perfect-timing-share
+- extendedWaitUntil:
+    visible: "Copy"
+    timeout: 15000

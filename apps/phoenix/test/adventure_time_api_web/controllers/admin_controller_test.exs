@@ -1160,11 +1160,11 @@ defmodule AdventureTimeApiWeb.AdminControllerTest do
            }
 
     assert detail["todayDate"] == Date.to_iso8601(date)
-    assert length(detail["dailyQuests"]) == 7
+    assert length(detail["dailyQuests"]) == 8
 
     assert detail["dailyQuestCompletion"] == %{
              "completed" => 0,
-             "total" => 7,
+             "total" => 8,
              "percentage" => 0
            }
 

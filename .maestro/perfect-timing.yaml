@@ -1,0 +1,79 @@
+appId: love.leaetzak.adventuretime
+name: Perfect Timing daily quest and training smoke
+tags:
+  - quests
+  - perfect-timing
+  - screenshots
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- openLink:
+    link: adventure-time:///e2e-auth?redirect=%2Fquests%2Fperfect-timing&email=${TEST_EMAIL_URI}&password=${TEST_PASSWORD_URI}
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- extendedWaitUntil:
+    visible:
+      id: perfect-timing-target
+    timeout: 15000
+- waitForAnimationToEnd
+- openLink:
+    link: adventure-time:///quests/perfect-timing
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- extendedWaitUntil:
+    visible:
+      id: perfect-timing-start
+    timeout: 15000
+- takeScreenshot: tmp-perfect-timing-shots/01-official-ready
+- tapOn:
+    id: perfect-timing-start
+- waitForAnimationToEnd
+- runFlow:
+    when:
+      visible: "Could not start this attempt."
+    commands:
+      - tapOn:
+          id: perfect-timing-start
+      - waitForAnimationToEnd
+- assertVisible:
+    id: perfect-timing-stop
+- takeScreenshot: tmp-perfect-timing-shots/02-official-blind
+- tapOn:
+    id: perfect-timing-stop
+- extendedWaitUntil:
+    visible:
+      id: perfect-timing-result
+    timeout: 15000
+- assertNotVisible:
+    id: perfect-timing-keep
+- takeScreenshot: tmp-perfect-timing-shots/03-first-miss
+- tapOn:
+    id: perfect-timing-continue
+- assertVisible: "Continuing will permanently discard this result. You will not be able to recover it."
+- takeScreenshot: tmp-perfect-timing-shots/04-continue-confirmation
+- tapOn: "Discard and continue"
+- extendedWaitUntil:
+    visible:
+      id: perfect-timing-start
+    timeout: 10000
+- tapOn:
+    id: perfect-timing-mode-training
+- extendedWaitUntil:
+    visible:
+      id: perfect-timing-training-start
+    timeout: 10000
+- takeScreenshot: tmp-perfect-timing-shots/05-training-ready
+- tapOn:
+    id: perfect-timing-training-start
+- waitForAnimationToEnd
+- takeScreenshot: tmp-perfect-timing-shots/06-training-blind
+- tapOn:
+    id: perfect-timing-training-stop
+- extendedWaitUntil:
+    visible:
+      id: perfect-timing-result
+    timeout: 10000
+- assertVisible:
+    id: perfect-timing-training-retry
+- assertVisible:
+    id: perfect-timing-training-new-target
+- takeScreenshot: tmp-perfect-timing-shots/07-training-result

@@ -37,7 +37,7 @@ function makeQuest(overrides: Partial<Quest> = {}): Quest {
 }
 
 describe("quest hub presentation model", () => {
-  it("groups the canonical seven-quest payload into four ordered hub entries", () => {
+  it("groups the canonical eight-quest payload into five ordered hub entries", () => {
     const items = buildQuestHubItems([
       makeQuest({
         id: "steps",
@@ -49,6 +49,14 @@ describe("quest hub presentation model", () => {
         actionPath: "/quests/speed-calculus",
         reward: 0,
         target: 3,
+      }),
+      makeQuest({
+        id: "perfect-timing",
+        type: "perfect_timing_daily",
+        actionPath: "/quests/perfect-timing",
+        reward: 0,
+        target: 6_500,
+        maxAttempts: 3,
       }),
       makeQuest({
         id: "wordle-en",
@@ -89,7 +97,7 @@ describe("quest hub presentation model", () => {
 
     assert.deepEqual(
       items.map((item) => item.id),
-      ["wordle", "dailyNumbers", "speed", "steps"],
+      ["wordle", "dailyNumbers", "perfect-timing", "speed", "steps"],
     );
 
     const wordle = items.find((item) => item.kind === "wordle");
@@ -319,6 +327,7 @@ describe("quest hub presentation model", () => {
       "steps",
       "wordle",
       "dailyNumbers",
+      "perfectTiming",
       "speedCalculus",
     ]);
     assert.deepEqual(
@@ -327,7 +336,7 @@ describe("quest hub presentation model", () => {
     );
     assert.deepEqual(
       moveQuestHubPreference(DEFAULT_QUEST_HUB_ORDER, "steps", "up"),
-      ["wordle", "dailyNumbers", "steps", "speedCalculus"],
+      ["wordle", "dailyNumbers", "perfectTiming", "steps", "speedCalculus"],
     );
     assert.deepEqual(
       moveQuestHubPreference(DEFAULT_QUEST_HUB_ORDER, "wordle", "up"),

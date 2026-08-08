@@ -33,11 +33,16 @@ export type QuestHubItem =
   SingleQuestHubItem | WordleQuestHubItem | DailyNumbersQuestHubItem;
 
 export type QuestHubPreferenceId =
-  "wordle" | "dailyNumbers" | "speedCalculus" | "steps";
+  | "wordle"
+  | "dailyNumbers"
+  | "perfectTiming"
+  | "speedCalculus"
+  | "steps";
 
 export const DEFAULT_QUEST_HUB_ORDER: QuestHubPreferenceId[] = [
   "wordle",
   "dailyNumbers",
+  "perfectTiming",
   "speedCalculus",
   "steps",
 ];
@@ -51,6 +56,10 @@ export function isWordleQuest(questType: string) {
 
 export function isSpeedCalculusQuest(questType: string) {
   return questType === "speed_calculus_daily";
+}
+
+export function isPerfectTimingQuest(questType: string) {
+  return questType === "perfect_timing_daily";
 }
 
 export function isDailyNumbersQuest(questType: string) {
@@ -91,6 +100,10 @@ export function isQuestInProgress(quest: Quest) {
 
   if (isSpeedCalculusQuest(quest.type)) {
     return (quest.runsUsed ?? quest.progress) > 0;
+  }
+
+  if (isPerfectTimingQuest(quest.type)) {
+    return (quest.attemptsUsed ?? quest.progress) > 0;
   }
 
   return quest.progress > 0;
@@ -172,6 +185,16 @@ export function getQuestProgressDisplay(quest: Quest) {
     };
   }
 
+  if (isPerfectTimingQuest(quest.type)) {
+    const target = quest.maxAttempts ?? 3;
+    const progress = quest.attemptsUsed ?? quest.progress;
+    return {
+      progress,
+      target,
+      percentage: Math.min(100, (progress / target) * 100),
+    };
+  }
+
   const target = Math.max(quest.target, 1);
   const progress = quest.completed ? target : quest.progress;
   return {
@@ -224,6 +247,7 @@ export function getQuestHubPreferenceId(
   if (item.kind === "wordle") return "wordle";
   if (item.kind === "dailyNumbers") return "dailyNumbers";
   if (isSpeedCalculusQuest(item.quest.type)) return "speedCalculus";
+  if (isPerfectTimingQuest(item.quest.type)) return "perfectTiming";
   if (isStepQuest(item.quest.type)) return "steps";
   return null;
 }

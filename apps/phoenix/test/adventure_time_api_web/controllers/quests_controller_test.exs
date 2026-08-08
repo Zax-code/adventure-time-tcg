@@ -11,6 +11,7 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
     DailyNumbersDailyAttempt,
     DailyNumbersEngine,
     DailyQuest,
+    PerfectTimingAttempt,
     SpeedCalculusDailyRun,
     WordleDictionaryWord,
     WordleDictionaryWordDefinition,
@@ -62,12 +63,13 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
 
     response = access_token |> auth_conn() |> get(~p"/quests") |> json_response(200)
     assert response["fitbitConnected"] == false
-    assert length(response["quests"]) == 7
+    assert length(response["quests"]) == 8
 
     assert Enum.sort(Enum.map(response["quests"], & &1["type"])) == [
              "daily_numbers_1_5",
              "daily_numbers_2_4",
              "daily_numbers_3_3",
+             "perfect_timing_daily",
              "speed_calculus_daily",
              "steps_10k",
              "wordle_daily_en",
@@ -202,6 +204,101 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
       |> json_response(404)
 
     assert foreign == %{"error" => "Quest not found"}
+  end
+
+  test "Perfect Timing API starts, scores, keeps, grants once, and isolates training", _context do
+    user = create_user_with_password("perfect-timing-api@example.com", "password123")
+    access_token = login_access_token(user.email, "password123")
+
+    state =
+      access_token
+      |> auth_conn()
+      |> get(~p"/quests/perfect-timing")
+      |> json_response(200)
+
+    assert state["status"] == "ready"
+    assert state["targetMs"] in 3_000..10_000
+    assert rem(state["targetMs"], 100) == 0
+    assert state["remainingAttempts"] == 3
+
+    training =
+      access_token
+      |> auth_conn()
+      |> post(~p"/quests/perfect-timing/training/target", %{})
+      |> json_response(200)
+
+    assert training["targetMs"] in 3_000..10_000
+    refute training["targetMs"] == state["targetMs"]
+
+    started =
+      access_token
+      |> auth_conn()
+      |> post(~p"/quests/perfect-timing/start", %{
+        "dateKey" => state["date"],
+        "questVersion" => state["questVersion"]
+      })
+      |> json_response(200)
+
+    assert started["status"] == "active"
+    assert started["attemptsUsed"] == 1
+
+    attempt = Repo.get!(PerfectTimingAttempt, started["activeAttempt"]["id"])
+
+    Repo.update!(
+      Ecto.Changeset.change(attempt,
+        started_at:
+          DateTime.utc_now()
+          |> DateTime.add(-(state["targetMs"] + 2_000), :millisecond)
+          |> DateTime.truncate(:microsecond)
+      )
+    )
+
+    stopped =
+      access_token
+      |> auth_conn()
+      |> post(~p"/quests/perfect-timing/stop", %{
+        "attemptId" => attempt.id,
+        "elapsedMs" => state["targetMs"] + 51,
+        "stopReason" => "manual",
+        "dateKey" => state["date"],
+        "questVersion" => state["questVersion"]
+      })
+      |> json_response(200)
+
+    assert stopped["status"] == "result"
+    assert stopped["currentResult"]["tier"] == "great"
+    assert stopped["currentResult"]["reward"] == 63
+
+    kept =
+      access_token
+      |> auth_conn()
+      |> post(~p"/quests/perfect-timing/keep", %{
+        "attemptId" => attempt.id,
+        "dateKey" => state["date"],
+        "questVersion" => state["questVersion"]
+      })
+      |> json_response(200)
+
+    assert kept["finalized"] == true
+    assert kept["completed"] == true
+    assert kept["rewardGranted"] == true
+    assert kept["finalReward"] == 63
+    assert kept["remainingAttempts"] == 0
+    assert kept["coinBalance"] == 163
+
+    repeated =
+      access_token
+      |> auth_conn()
+      |> post(~p"/quests/perfect-timing/keep", %{
+        "attemptId" => attempt.id,
+        "dateKey" => state["date"],
+        "questVersion" => state["questVersion"]
+      })
+      |> json_response(200)
+
+    assert repeated["coinBalance"] == 163
+    assert Repo.get!(User, user.id).coins == 163
+    assert Repo.aggregate(PerfectTimingAttempt, :count, :id) == 1
   end
 
   test "GET /quests/daily-numbers and POST /quests/daily-numbers/submit preserve deterministic puzzle and percentage reward contracts",

@@ -625,6 +625,7 @@ export const questSchema = z.object({
   attemptsUsed: z.number().int().nonnegative().optional(),
   runsUsed: z.number().int().nonnegative().optional(),
   maxRuns: z.number().int().nonnegative().optional(),
+  maxAttempts: z.number().int().nonnegative().optional(),
   latestScore: z.number().int().nonnegative().optional(),
   rewardPreview: z.number().int().nonnegative().optional(),
   locked: z.boolean().optional(),
@@ -634,6 +635,12 @@ export const questSchema = z.object({
   distance: z.number().int().nonnegative().optional(),
   finalValue: z.number().int().positive().optional(),
   elapsedMs: z.number().int().nonnegative().optional(),
+  finalized: z.boolean().optional(),
+  finalTier: z
+    .enum(["perfect", "amazing", "great", "close", "miss"])
+    .nullable()
+    .optional(),
+  finalReward: z.number().int().nonnegative().optional(),
   resetByName: z.string().nullable().optional(),
 });
 
@@ -832,6 +839,91 @@ export const dailyNumbersArchiveSubmitSchema = z.object({
   dateKey: z.string().min(1),
   elapsedMs: z.number().int().nonnegative().optional(),
   steps: z.array(dailyNumbersStepInputSchema),
+});
+
+export const perfectTimingTierSchema = z.enum([
+  "perfect",
+  "amazing",
+  "great",
+  "close",
+  "miss",
+]);
+
+export const perfectTimingDirectionSchema = z.enum(["early", "late", "exact"]);
+export const perfectTimingStopReasonSchema = z.enum([
+  "manual",
+  "navigation",
+  "background",
+  "server_recovery",
+]);
+export const perfectTimingClientStopReasonSchema = perfectTimingStopReasonSchema.exclude([
+  "server_recovery",
+]);
+export const perfectTimingAttemptStatusSchema = z.enum([
+  "started",
+  "result",
+  "discarded",
+  "kept",
+  "auto_finalized",
+  "failed",
+]);
+
+export const perfectTimingAttemptSchema = z.object({
+  id: z.string(),
+  attemptNumber: z.number().int().min(1).max(3),
+  targetMs: z.number().int().min(3_000).max(10_000),
+  status: perfectTimingAttemptStatusSchema,
+  stopReason: perfectTimingStopReasonSchema.nullable(),
+  elapsedMs: z.number().int().nonnegative().nullable(),
+  deviationMs: z.number().int().nonnegative().nullable(),
+  direction: perfectTimingDirectionSchema.nullable(),
+  tier: perfectTimingTierSchema.nullable(),
+  reward: z.number().int().min(0).max(100),
+  startedAt: z.string(),
+  completedAt: z.string().nullable(),
+});
+
+export const perfectTimingStateSchema = z.object({
+  date: z.string(),
+  resetTimezone: z.string(),
+  questVersion: z.string(),
+  resetByName: z.string().nullable().optional(),
+  targetMs: z.number().int().min(3_000).max(10_000),
+  maxAttempts: z.literal(3),
+  attemptsUsed: z.number().int().min(0).max(3),
+  remainingAttempts: z.number().int().min(0).max(3),
+  status: z.enum(["ready", "active", "result", "finalized"]),
+  completed: z.boolean(),
+  failed: z.boolean(),
+  finalized: z.boolean(),
+  rewardGranted: z.boolean(),
+  finalReward: z.number().int().min(0).max(100),
+  finalTier: perfectTimingTierSchema.nullable(),
+  finalizedAttemptNumber: z.number().int().min(1).max(3).nullable(),
+  coinBalance: z.number().int().nonnegative(),
+  activeAttempt: perfectTimingAttemptSchema.nullable(),
+  currentResult: perfectTimingAttemptSchema.nullable(),
+  attempts: z.array(perfectTimingAttemptSchema).max(3),
+});
+
+export const perfectTimingStartSchema = z.object({
+  dateKey: z.string().min(1),
+  questVersion: z.string().min(1),
+});
+
+export const perfectTimingStopSchema = perfectTimingStartSchema.extend({
+  attemptId: z.string().min(1),
+  elapsedMs: z.number().int().nonnegative(),
+  stopReason: perfectTimingClientStopReasonSchema,
+});
+
+export const perfectTimingDecisionSchema = perfectTimingStartSchema.extend({
+  attemptId: z.string().min(1),
+});
+
+export const perfectTimingTrainingTargetSchema = z.object({
+  targetMs: z.number().int().min(3_000).max(10_000),
+  officialTargetMs: z.number().int().min(3_000).max(10_000),
 });
 
 export const speedQuestionSchema = z.object({
@@ -1477,6 +1569,22 @@ export type DailyNumbersArchiveStateResponse = z.infer<
 >;
 export type DailyNumbersArchiveSubmitInput = z.infer<
   typeof dailyNumbersArchiveSubmitSchema
+>;
+export type PerfectTimingTier = z.infer<typeof perfectTimingTierSchema>;
+export type PerfectTimingDirection = z.infer<typeof perfectTimingDirectionSchema>;
+export type PerfectTimingStopReason = z.infer<typeof perfectTimingStopReasonSchema>;
+export type PerfectTimingClientStopReason = z.infer<
+  typeof perfectTimingClientStopReasonSchema
+>;
+export type PerfectTimingAttempt = z.infer<typeof perfectTimingAttemptSchema>;
+export type PerfectTimingState = z.infer<typeof perfectTimingStateSchema>;
+export type PerfectTimingStartInput = z.infer<typeof perfectTimingStartSchema>;
+export type PerfectTimingStopInput = z.infer<typeof perfectTimingStopSchema>;
+export type PerfectTimingDecisionInput = z.infer<
+  typeof perfectTimingDecisionSchema
+>;
+export type PerfectTimingTrainingTarget = z.infer<
+  typeof perfectTimingTrainingTargetSchema
 >;
 export type WordleDefinitionVariant = z.infer<
   typeof wordleDefinitionVariantSchema

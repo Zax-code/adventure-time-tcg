@@ -135,6 +135,18 @@ defmodule AdventureTimeApiWeb.Router do
     )
 
     get("/quests/speed-calculus", QuestsController, :speed_calculus_state)
+    get("/quests/perfect-timing", QuestsController, :perfect_timing_state)
+    post("/quests/perfect-timing/start", QuestsController, :start_perfect_timing)
+    post("/quests/perfect-timing/stop", QuestsController, :stop_perfect_timing)
+    post("/quests/perfect-timing/continue", QuestsController, :continue_perfect_timing)
+    post("/quests/perfect-timing/keep", QuestsController, :keep_perfect_timing)
+
+    post(
+      "/quests/perfect-timing/training/target",
+      QuestsController,
+      :perfect_timing_training_target
+    )
+
     post("/quests/speed-calculus/start", QuestsController, :start_speed_calculus_run)
 
     post(
