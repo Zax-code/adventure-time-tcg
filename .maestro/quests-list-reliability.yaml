@@ -1,0 +1,37 @@
+appId: love.leaetzak.adventuretime
+name: Quest list loads and keeps every quest card separated
+tags:
+  - quests
+  - regression
+  - layout
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- openLink:
+    link: adventure-time:///e2e-auth?redirect=%2Fquests&email=${TEST_EMAIL_URI}&password=${TEST_PASSWORD_URI}
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- extendedWaitUntil:
+    visible:
+      id: quests-progress-summary
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: quests-card-perfect_timing_daily
+    direction: DOWN
+    timeout: 10000
+    visibilityPercentage: 100
+- assertVisible:
+    id: quests-card-perfect_timing_daily
+- waitForAnimationToEnd
+- takeScreenshot: tmp-quest-bug-audit/quests-list-perfect-timing
+- scrollUntilVisible:
+    element:
+      id: quests-card-speed_calculus_daily
+    direction: DOWN
+    timeout: 10000
+    visibilityPercentage: 100
+- assertVisible:
+    id: quests-card-speed_calculus_daily
+- waitForAnimationToEnd
+- takeScreenshot: tmp-quest-bug-audit/quests-list-speed-calculus

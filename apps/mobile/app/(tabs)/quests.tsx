@@ -572,13 +572,13 @@ function useQuestsScreenView() {
   const {
     data: questsQueryData,
     error: questsQueryError,
-    isError: questsQueryIsError,
     isLoading: questsQueryIsLoading,
     refetch: questsQueryRefetch,
   } = useQuery({
     queryKey: ["quests"],
     queryFn: () => apiClient.quests(),
     refetchInterval: 30_000,
+    retry: false,
   });
 
   const shareableQuestSignature =
@@ -599,8 +599,26 @@ function useQuestsScreenView() {
 
   useFocusEffect(
     useCallback(() => {
-      void questsQueryRefetch();
-    }, [questsQueryRefetch]),
+      const refreshQuestsAndFitbit = async () => {
+        const result = await questsQueryRefetch();
+
+        if (
+          user?.preferredStepSource !== "fitbit" ||
+          !result.data?.fitbitConnected
+        ) {
+          return;
+        }
+
+        try {
+          await apiClient.getHealthSteps();
+          await questsQueryRefetch();
+        } catch {
+          // The cached Fitbit snapshot keeps the quest list usable while offline.
+        }
+      };
+
+      void refreshQuestsAndFitbit();
+    }, [questsQueryRefetch, user?.preferredStepSource]),
   );
 
   useEffect(() => {
@@ -675,10 +693,14 @@ function useQuestsScreenView() {
     }));
 
     try {
-      await syncDeviceStepsNow({
-        interactive: false,
-        source: "manual",
-      });
+      if (user?.preferredStepSource === "fitbit") {
+        await apiClient.getHealthSteps();
+      } else {
+        await syncDeviceStepsNow({
+          interactive: false,
+          source: "manual",
+        });
+      }
       await questsQueryRefetch();
     } finally {
       setStepQuestUiState((state) => ({
@@ -686,7 +708,7 @@ function useQuestsScreenView() {
         isForceRefreshing: false,
       }));
     }
-  }, [questsQueryRefetch]);
+  }, [questsQueryRefetch, user?.preferredStepSource]);
 
   const handleConnectFitbit = useCallback(async () => {
     setIsConnectingFitbit(true);
@@ -1184,7 +1206,7 @@ function useQuestsScreenView() {
     );
   }
 
-  if (questsQueryIsError || !questsQueryData) {
+  if (!questsQueryData) {
     return (
       <PageErrorState
         error={questsQueryError}

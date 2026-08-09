@@ -55,6 +55,36 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
     :ok
   end
 
+  test "daily quest materialization uses one database statement", _context do
+    user = create_user_with_password("quest-materialization@example.com", "password123")
+    handler_id = "quest-materialization-#{System.unique_integer([:positive])}"
+    test_pid = self()
+
+    :telemetry.attach(
+      handler_id,
+      [:adventure_time_api, :repo, :query],
+      fn _event, _measurements, _metadata, _config -> send(test_pid, :quest_query) end,
+      nil
+    )
+
+    on_exit(fn -> :telemetry.detach(handler_id) end)
+
+    Quests.materialize_daily_quests(user.id, Quests.current_reset_date())
+
+    query_count =
+      Stream.repeatedly(fn ->
+        receive do
+          :quest_query -> :query
+        after
+          0 -> :done
+        end
+      end)
+      |> Enum.take_while(&(&1 == :query))
+      |> length()
+
+    assert query_count == 1
+  end
+
   test "GET /quests materializes daily quests and POST /quests/claim preserves reward semantics",
        _context do
     user = create_user_with_password("quests@example.com", "password123")
@@ -136,6 +166,34 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
 
   test "GET /quests reports Fitbit connection and uses the preferred step source snapshot",
        _context do
+    bypass = Bypass.open()
+    original_fitbit_config = Application.get_env(:adventure_time_api, AdventureTimeApi.Fitbit)
+    {:ok, request_counter} = Agent.start_link(fn -> 0 end)
+
+    Application.put_env(:adventure_time_api, AdventureTimeApi.Fitbit,
+      client_id: "test-client",
+      client_secret: "test-secret",
+      api_url: "http://localhost:#{bypass.port}"
+    )
+
+    on_exit(fn ->
+      Application.put_env(
+        :adventure_time_api,
+        AdventureTimeApi.Fitbit,
+        original_fitbit_config || []
+      )
+    end)
+
+    Bypass.stub(
+      bypass,
+      "GET",
+      "/1/user/-/activities/date/#{Date.to_iso8601(Quests.current_reset_date())}.json",
+      fn conn ->
+        Agent.update(request_counter, &(&1 + 1))
+        Plug.Conn.resp(conn, 200, Jason.encode!(%{"summary" => %{"steps" => 9_999}}))
+      end
+    )
+
     user = create_user_with_password("fitbit-quests@example.com", "password123")
     access_token = login_access_token(user.email, "password123")
     date = Quests.current_reset_date()
@@ -176,6 +234,15 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
     assert response["fitbitConnected"] == true
 
     assert Enum.find(response["quests"], &(&1["type"] == "steps_10k"))["progress"] == 6400
+    assert Agent.get(request_counter, & &1) == 0
+
+    access_token |> auth_conn() |> get(~p"/health/steps") |> json_response(200)
+    assert Agent.get(request_counter, & &1) == 1
+
+    refreshed = access_token |> auth_conn() |> get(~p"/quests") |> json_response(200)
+
+    assert Enum.find(refreshed["quests"], &(&1["type"] == "steps_10k"))["progress"] == 9999
+    assert Agent.get(request_counter, & &1) == 1
   end
 
   test "POST /quests/claim returns 404 for unknown and foreign quests", _context do

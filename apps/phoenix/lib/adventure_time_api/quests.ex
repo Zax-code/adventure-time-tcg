@@ -183,32 +183,34 @@ defmodule AdventureTimeApi.Quests do
   # ── Quest Materialization ────────────────────────────────────────────────────
 
   @doc """
-  Ensure each of the 3 quest types has a daily_quest row for this user+date.
+  Ensure each configured quest type has a daily_quest row for this user+date.
   Inserts on first call; on conflict, updates only target (preserves progress/reward/completion).
   """
   def materialize_daily_quests(user_id, date \\ nil) do
     date = date || current_reset_date_for_user(user_id)
     now = now_utc()
 
-    Enum.each(@quest_definitions, fn def ->
-      target = quest_target(def, date)
+    entries =
+      Enum.map(@quest_definitions, fn def ->
+        %{
+          id: Ecto.UUID.generate(),
+          user_id: user_id,
+          date: date,
+          quest_type: def.quest_type,
+          target: quest_target(def, date),
+          reward: def.reward,
+          progress: 0,
+          completed: false,
+          claimed: false,
+          inserted_at: now,
+          updated_at: now
+        }
+      end)
 
-      %DailyQuest{}
-      |> DailyQuest.changeset(%{
-        user_id: user_id,
-        date: date,
-        quest_type: def.quest_type,
-        target: target,
-        reward: def.reward,
-        progress: 0,
-        completed: false,
-        claimed: false
-      })
-      |> Repo.insert(
-        on_conflict: [set: [target: target, updated_at: now]],
-        conflict_target: [:user_id, :date, :quest_type]
-      )
-    end)
+    Repo.insert_all(DailyQuest, entries,
+      on_conflict: {:replace, [:target, :updated_at]},
+      conflict_target: [:user_id, :date, :quest_type]
+    )
 
     :ok
   end
@@ -262,15 +264,9 @@ defmodule AdventureTimeApi.Quests do
   """
   def list_quests_for_user(user_id) do
     date = current_reset_date_for_user(user_id)
-    user = Repo.get(User, user_id)
     fitbit_connected = Fitbit.connected?(user_id)
 
     materialize_daily_quests(user_id, date)
-
-    if user && user.preferred_step_source == :fitbit && fitbit_connected && Fitbit.configured?() do
-      _ = Fitbit.sync_steps_for_date(user_id, date)
-    end
-
     sync_steps_quest(user_id, date)
 
     quests =

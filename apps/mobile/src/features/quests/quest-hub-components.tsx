@@ -20,7 +20,7 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-import Animated, { FadeInUp, ReduceMotion } from "react-native-reanimated";
+import Animated, { FadeIn, ReduceMotion } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
@@ -496,7 +496,7 @@ export function QuestHubCard({
 
   return (
     <Animated.View
-      entering={FadeInUp.duration(220)
+      entering={FadeIn.duration(180)
         .delay(index * 45)
         .reduceMotion(ReduceMotion.System)}
     >
