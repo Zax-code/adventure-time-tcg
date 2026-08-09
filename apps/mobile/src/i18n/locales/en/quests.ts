@@ -61,6 +61,7 @@ const quests = {
     resultsReady: "Finished results: {count}",
     shareWordle: "Share Wordle results",
     shareDailyNumbers: "Share Numbers results",
+    sharePerfectTiming: "Share Perfect Timing result",
     wordleLauncherTitle: "Choose your Wordle",
     wordleLauncherSubtitle:
       "Pick a language. Each puzzle has its own progress and reward.",

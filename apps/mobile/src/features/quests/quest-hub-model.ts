@@ -137,6 +137,10 @@ export function isQuestShareable(quest: Quest) {
     );
   }
 
+  if (isPerfectTimingQuest(quest.type)) {
+    return quest.completed || quest.claimed || quest.failed;
+  }
+
   return false;
 }
 

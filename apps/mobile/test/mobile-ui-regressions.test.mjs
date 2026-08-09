@@ -57,6 +57,19 @@ describe("mobile UI regression contracts", () => {
     assert.match(questsScreenSource, /if \(!questsQueryData\)/);
   });
 
+  it("includes finalized Perfect Timing results in the quest recap sheet", () => {
+    assert.match(
+      questsScreenSource,
+      /testID: "quests-share-perfect-timing"/,
+      "the recap sheet should offer Perfect Timing alongside the other puzzles",
+    );
+    assert.match(
+      questsScreenSource,
+      /<PerfectTimingQuestShareCard/,
+      "the quest list should render the existing Perfect Timing share card for capture",
+    );
+  });
+
   it("keeps the collection mounted behind its transparent card-detail route", () => {
     assert.doesNotMatch(
       collectionSource,
