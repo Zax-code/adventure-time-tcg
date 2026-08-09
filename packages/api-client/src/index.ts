@@ -66,6 +66,11 @@ import {
   openPackResponseSchema,
   openPackSchema,
   packsResponseSchema,
+  perfectTimingDecisionSchema,
+  perfectTimingStartSchema,
+  perfectTimingStateSchema,
+  perfectTimingStopSchema,
+  perfectTimingTrainingTargetSchema,
   pvpActionSchema,
   pvpEndTurnSchema,
   pvpHistoryResponseSchema,
@@ -150,6 +155,11 @@ import {
   type OpenPackInput,
   type OpenPackResponse,
   type PacksResponse,
+  type PerfectTimingDecisionInput,
+  type PerfectTimingStartInput,
+  type PerfectTimingState,
+  type PerfectTimingStopInput,
+  type PerfectTimingTrainingTarget,
   type PvpAction,
   type PvpEndTurnInput,
   type PvpBattleState,
@@ -611,6 +621,64 @@ export class ApiClient {
       "/quests/daily-numbers/archive/submit",
       { method: "POST", body: JSON.stringify(body) },
       (data) => dailyNumbersArchiveStateResponseSchema.parse(data),
+    );
+  }
+
+  async perfectTimingState(): Promise<PerfectTimingState> {
+    return this.request("/quests/perfect-timing", { method: "GET" }, (data) =>
+      perfectTimingStateSchema.parse(data),
+    );
+  }
+
+  async startPerfectTiming(
+    input: PerfectTimingStartInput,
+  ): Promise<PerfectTimingState> {
+    const body = perfectTimingStartSchema.parse(input);
+    return this.request(
+      "/quests/perfect-timing/start",
+      { method: "POST", body: JSON.stringify(body) },
+      (data) => perfectTimingStateSchema.parse(data),
+    );
+  }
+
+  async stopPerfectTiming(
+    input: PerfectTimingStopInput,
+  ): Promise<PerfectTimingState> {
+    const body = perfectTimingStopSchema.parse(input);
+    return this.request(
+      "/quests/perfect-timing/stop",
+      { method: "POST", body: JSON.stringify(body) },
+      (data) => perfectTimingStateSchema.parse(data),
+    );
+  }
+
+  async continuePerfectTiming(
+    input: PerfectTimingDecisionInput,
+  ): Promise<PerfectTimingState> {
+    const body = perfectTimingDecisionSchema.parse(input);
+    return this.request(
+      "/quests/perfect-timing/continue",
+      { method: "POST", body: JSON.stringify(body) },
+      (data) => perfectTimingStateSchema.parse(data),
+    );
+  }
+
+  async keepPerfectTiming(
+    input: PerfectTimingDecisionInput,
+  ): Promise<PerfectTimingState> {
+    const body = perfectTimingDecisionSchema.parse(input);
+    return this.request(
+      "/quests/perfect-timing/keep",
+      { method: "POST", body: JSON.stringify(body) },
+      (data) => perfectTimingStateSchema.parse(data),
+    );
+  }
+
+  async perfectTimingTrainingTarget(): Promise<PerfectTimingTrainingTarget> {
+    return this.request(
+      "/quests/perfect-timing/training/target",
+      { method: "POST", body: JSON.stringify({}) },
+      (data) => perfectTimingTrainingTargetSchema.parse(data),
     );
   }
 

@@ -98,6 +98,7 @@ const QUEST_DAY_CACHE_KEYS = [
   ["wordleDefinition"],
   ["daily-numbers"],
   ["speed-calculus"],
+  ["perfect-timing"],
 ] as const;
 
 async function refreshQuestDayData() {
@@ -482,6 +483,7 @@ function useRootLayoutView() {
         });
         void queryClient.invalidateQueries({ queryKey: ["speed-calculus"] });
         void queryClient.invalidateQueries({ queryKey: ["daily-numbers"] });
+        void queryClient.invalidateQueries({ queryKey: ["perfect-timing"] });
       },
     });
   }, [accessToken, authUserId, publishReset]);

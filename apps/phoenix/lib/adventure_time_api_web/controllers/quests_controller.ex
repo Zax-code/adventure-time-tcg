@@ -349,6 +349,113 @@ defmodule AdventureTimeApiWeb.QuestsController do
     conn |> put_status(400) |> json(%{error: "guess is required"})
   end
 
+  # GET /quests/perfect-timing
+  def perfect_timing_state(conn, _params) do
+    timed_action(conn, "perfect_timing_state", fn conn, user_id ->
+      render_perfect_timing_result(conn, Quests.perfect_timing_state(user_id))
+    end)
+  end
+
+  # POST /quests/perfect-timing/start
+  def start_perfect_timing(conn, %{"dateKey" => date_key, "questVersion" => quest_version}) do
+    timed_action(conn, "start_perfect_timing", fn conn, user_id ->
+      render_perfect_timing_result(
+        conn,
+        Quests.start_perfect_timing(user_id, date_key, quest_version)
+      )
+    end)
+  end
+
+  def start_perfect_timing(conn, _params) do
+    conn |> put_status(400) |> json(%{error: "dateKey and questVersion are required"})
+  end
+
+  # POST /quests/perfect-timing/stop
+  def stop_perfect_timing(
+        conn,
+        %{
+          "attemptId" => attempt_id,
+          "elapsedMs" => elapsed_ms,
+          "stopReason" => stop_reason,
+          "dateKey" => date_key,
+          "questVersion" => quest_version
+        }
+      ) do
+    case parse_int(elapsed_ms) do
+      nil ->
+        conn |> put_status(400) |> json(%{error: "elapsedMs must be an integer"})
+
+      parsed_elapsed_ms ->
+        timed_action(conn, "stop_perfect_timing", fn conn, user_id ->
+          render_perfect_timing_result(
+            conn,
+            Quests.stop_perfect_timing(
+              user_id,
+              attempt_id,
+              parsed_elapsed_ms,
+              stop_reason,
+              date_key,
+              quest_version
+            )
+          )
+        end)
+    end
+  end
+
+  def stop_perfect_timing(conn, _params) do
+    conn
+    |> put_status(400)
+    |> json(%{
+      error: "attemptId, elapsedMs, stopReason, dateKey, and questVersion are required"
+    })
+  end
+
+  # POST /quests/perfect-timing/continue
+  def continue_perfect_timing(
+        conn,
+        %{"attemptId" => attempt_id, "dateKey" => date_key, "questVersion" => quest_version}
+      ) do
+    timed_action(conn, "continue_perfect_timing", fn conn, user_id ->
+      render_perfect_timing_result(
+        conn,
+        Quests.continue_perfect_timing(user_id, attempt_id, date_key, quest_version)
+      )
+    end)
+  end
+
+  def continue_perfect_timing(conn, _params) do
+    conn
+    |> put_status(400)
+    |> json(%{error: "attemptId, dateKey, and questVersion are required"})
+  end
+
+  # POST /quests/perfect-timing/keep
+  def keep_perfect_timing(
+        conn,
+        %{"attemptId" => attempt_id, "dateKey" => date_key, "questVersion" => quest_version}
+      ) do
+    timed_action(conn, "keep_perfect_timing", fn conn, user_id ->
+      render_perfect_timing_result(
+        conn,
+        Quests.keep_perfect_timing(user_id, attempt_id, date_key, quest_version)
+      )
+    end)
+  end
+
+  def keep_perfect_timing(conn, _params) do
+    conn
+    |> put_status(400)
+    |> json(%{error: "attemptId, dateKey, and questVersion are required"})
+  end
+
+  # POST /quests/perfect-timing/training/target
+  def perfect_timing_training_target(conn, _params) do
+    timed_action(conn, "perfect_timing_training_target", fn conn, user_id ->
+      {:ok, payload} = Quests.perfect_timing_training_target(user_id)
+      json(conn, payload)
+    end)
+  end
+
   # GET /quests/speed-calculus
   def speed_calculus_state(conn, _params) do
     timed_action(conn, "speed_calculus_state", fn conn, user_id ->
@@ -560,6 +667,60 @@ defmodule AdventureTimeApiWeb.QuestsController do
           conn |> put_status(500) |> json(%{error: "Internal error"})
       end
     end)
+  end
+
+  defp render_perfect_timing_result(conn, {:ok, payload}), do: json(conn, payload)
+
+  defp render_perfect_timing_result(conn, {:error, :perfect_timing_reset}) do
+    conn
+    |> put_status(409)
+    |> json(%{
+      error: "Perfect Timing reset while this attempt was open",
+      code: "PERFECT_TIMING_RESET"
+    })
+  end
+
+  defp render_perfect_timing_result(conn, {:error, :attempt_not_found}) do
+    conn |> put_status(404) |> json(%{error: "Attempt not found", code: "ATTEMPT_NOT_FOUND"})
+  end
+
+  defp render_perfect_timing_result(conn, {:error, :attempts_exhausted}) do
+    conn
+    |> put_status(409)
+    |> json(%{error: "No attempts remaining", code: "PERFECT_TIMING_ATTEMPTS_EXHAUSTED"})
+  end
+
+  defp render_perfect_timing_result(conn, {:error, :result_awaiting_decision}) do
+    conn
+    |> put_status(409)
+    |> json(%{error: "Choose whether to continue or keep this result", code: "RESULT_PENDING"})
+  end
+
+  defp render_perfect_timing_result(conn, {:error, :cannot_keep_miss}) do
+    conn
+    |> put_status(400)
+    |> json(%{error: "A missed result cannot be kept", code: "CANNOT_KEEP_MISS"})
+  end
+
+  defp render_perfect_timing_result(conn, {:error, :result_not_active}) do
+    conn
+    |> put_status(409)
+    |> json(%{error: "This result is no longer active", code: "RESULT_NOT_ACTIVE"})
+  end
+
+  defp render_perfect_timing_result(conn, {:error, reason})
+       when reason in [:invalid_elapsed_ms, :impossible_elapsed_ms, :invalid_stop_reason] do
+    conn
+    |> put_status(400)
+    |> json(%{error: "Invalid attempt result", code: "INVALID_PERFECT_TIMING_RESULT"})
+  end
+
+  defp render_perfect_timing_result(conn, {:error, :quest_not_found}) do
+    conn |> put_status(404) |> json(%{error: "Quest not found", code: "QUEST_NOT_FOUND"})
+  end
+
+  defp render_perfect_timing_result(conn, {:error, _reason}) do
+    conn |> put_status(500) |> json(%{error: "Internal error"})
   end
 
   defp timed_action(conn, event, fun) do
