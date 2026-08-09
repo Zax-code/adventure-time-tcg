@@ -141,6 +141,22 @@ describe("quest hub presentation model", () => {
     assert.equal(isQuestShareable(quest), true);
   });
 
+  it("makes finalized Perfect Timing results available in the quest recap", () => {
+    const completed = makeQuest({
+      type: "perfect_timing_daily",
+      completed: true,
+    });
+    const failed = makeQuest({
+      type: "perfect_timing_daily",
+      failed: true,
+    });
+    const unfinished = makeQuest({ type: "perfect_timing_daily" });
+
+    assert.equal(isQuestShareable(completed), true);
+    assert.equal(isQuestShareable(failed), true);
+    assert.equal(isQuestShareable(unfinished), false);
+  });
+
   it("does not make one finished variant hide a fresh family variant", () => {
     const items = buildQuestHubItems([
       makeQuest({

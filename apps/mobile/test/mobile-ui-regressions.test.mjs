@@ -10,6 +10,7 @@ const questHubSource = readFileSync(
   "src/features/quests/quest-hub-components.tsx",
   "utf8",
 );
+const questsScreenSource = readFileSync("app/(tabs)/quests.tsx", "utf8");
 const collectionSource = readFileSync("app/(tabs)/collection.tsx", "utf8");
 
 describe("mobile UI regression contracts", () => {
@@ -36,6 +37,36 @@ describe("mobile UI regression contracts", () => {
       questHubSource,
       /text-\[28px\] leading-10[\s\S]*?\{finishedCount\}/,
       "the large counter value needs a line box with vertical breathing room",
+    );
+  });
+
+  it("keeps quest card entrances inside their final layout bounds", () => {
+    assert.doesNotMatch(
+      questHubSource,
+      /entering=\{FadeInUp/,
+      "vertically translated entrances can temporarily draw one quest over another",
+    );
+  });
+
+  it("keeps cached quests visible when a background refresh fails", () => {
+    assert.doesNotMatch(
+      questsScreenSource,
+      /if \(questsQueryIsError \|\| !questsQueryData\)/,
+      "a refetch error must not replace usable cached quests with a full-page error",
+    );
+    assert.match(questsScreenSource, /if \(!questsQueryData\)/);
+  });
+
+  it("includes finalized Perfect Timing results in the quest recap sheet", () => {
+    assert.match(
+      questsScreenSource,
+      /testID: "quests-share-perfect-timing"/,
+      "the recap sheet should offer Perfect Timing alongside the other puzzles",
+    );
+    assert.match(
+      questsScreenSource,
+      /<PerfectTimingQuestShareCard/,
+      "the quest list should render the existing Perfect Timing share card for capture",
     );
   });
 

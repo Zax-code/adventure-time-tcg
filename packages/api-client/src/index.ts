@@ -210,6 +210,7 @@ const adminAbilitiesEnvelopeSchema = z.object({
 
 export interface ApiClientOptions {
   baseUrl: string;
+  requestTimeoutMs?: number;
   getAccessToken?: () => string | null | Promise<string | null>;
   getClientHeaders?: () =>
     | Record<string, string>
@@ -249,7 +250,7 @@ export function isNetworkError(error: unknown): error is ApiNetworkError {
     return false;
   }
 
-  return /network request failed|failed to fetch|load failed/i.test(
+  return /network request failed|request timed out|failed to fetch|load failed/i.test(
     error.message,
   );
 }
@@ -282,19 +283,43 @@ export class ApiClient {
     }
 
     let response: Response;
+    const abortController = new AbortController();
+    const requestTimeoutMs = this.options.requestTimeoutMs ?? 8_000;
+    const upstreamSignal = init.signal;
+    let didTimeout = false;
+    const abortFromUpstream = () => abortController.abort(upstreamSignal?.reason);
+
+    if (upstreamSignal?.aborted) {
+      abortFromUpstream();
+    } else {
+      upstreamSignal?.addEventListener("abort", abortFromUpstream, {
+        once: true,
+      });
+    }
+
+    const timeout = setTimeout(() => {
+      didTimeout = true;
+      abortController.abort();
+    }, requestTimeoutMs);
 
     try {
       response = await fetch(`${this.options.baseUrl}${path}`, {
         ...init,
         headers,
+        signal: abortController.signal,
       });
     } catch (error) {
       throw new ApiNetworkError(
-        error instanceof Error && error.message
+        didTimeout
+          ? "Request timed out"
+          : error instanceof Error && error.message
           ? error.message
           : "Network request failed",
         error,
       );
+    } finally {
+      clearTimeout(timeout);
+      upstreamSignal?.removeEventListener("abort", abortFromUpstream);
     }
 
     if (
