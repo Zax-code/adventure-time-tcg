@@ -25,6 +25,7 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "test:ui-regressions": "node --test test/mobile-ui-regressions.test.mjs test/perfect-timing-ui.test.mjs",
+    "test:startup": "node --experimental-strip-types --test test/startup-recovery.test.ts",
     "build:android:dev": "eas build --platform android --profile development",
     "build:ios:dev": "eas build --platform ios --profile development",
     "build:ios:dev:simulator": "eas build --platform ios --profile development-simulator",

@@ -13,12 +13,17 @@ export function useBootstrap() {
   );
   const setBootstrapPhase = useSessionStore((state) => state.setBootstrapPhase);
   const setUser = useSessionStore((state) => state.setUser);
+  const bootstrapAttempt = useSessionStore((state) => state.bootstrapAttempt);
 
   useEffect(() => {
     let cancelled = false;
 
     async function bootstrap() {
-      await hydrateFromStorage();
+      const hydrated = await hydrateFromStorage();
+
+      if (!hydrated || cancelled) {
+        return;
+      }
 
       const { accessToken, refreshToken, user } = useSessionStore.getState();
 
@@ -54,5 +59,5 @@ export function useBootstrap() {
     return () => {
       cancelled = true;
     };
-  }, [hydrateFromStorage, setBootstrapPhase, setUser]);
+  }, [bootstrapAttempt, hydrateFromStorage, setBootstrapPhase, setUser]);
 }

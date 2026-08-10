@@ -11,6 +11,7 @@ import {
 } from "@adventure-time/api-client";
 
 import { queryClient } from "./query-client";
+import { runStartupTask } from "./startup-recovery";
 import { clearScheduledNotificationPreferencesForSession } from "./app-notifications";
 import { clearLocalStepSnapshotForUser } from "./local-step-snapshot";
 import {
@@ -27,27 +28,39 @@ let refreshPromise: Promise<string | null> | null = null;
 let installationIdPromise: Promise<string> | null = null;
 const REFRESH_TOKEN_RACE_RETRY_DELAY_MS = 300;
 const INSTALLATION_ID_KEY = "installationId";
+const INSTALLATION_ID_SECURE_STORE_OPTIONS = {
+  keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK,
+} as const;
 const SESSION_CLEARABLE_403_CODES = new Set([
   "ACCESS_REQUEST_PENDING",
   "EMAIL_VERIFICATION_REQUIRED",
 ]);
 
 async function getSecureStoreValue(key: "accessToken" | "refreshToken" | "user") {
-  return SecureStore.getItemAsync(key);
+  const result = await runStartupTask(() => SecureStore.getItemAsync(key));
+  return result.ok ? result.value : null;
 }
 
 async function getInstallationId() {
   if (!installationIdPromise) {
     installationIdPromise = (async () => {
-      const existing = await SecureStore.getItemAsync(INSTALLATION_ID_KEY);
+      const result = await runStartupTask(async () => {
+        const existing = await SecureStore.getItemAsync(INSTALLATION_ID_KEY);
 
-      if (existing) {
-        return existing;
-      }
+        if (existing) {
+          return existing;
+        }
 
-      const next = Crypto.randomUUID();
-      await SecureStore.setItemAsync(INSTALLATION_ID_KEY, next);
-      return next;
+        const next = Crypto.randomUUID();
+        await SecureStore.setItemAsync(
+          INSTALLATION_ID_KEY,
+          next,
+          INSTALLATION_ID_SECURE_STORE_OPTIONS,
+        );
+        return next;
+      });
+
+      return result.ok ? result.value : Crypto.randomUUID();
     })();
   }
 
@@ -78,29 +91,38 @@ async function getClientHeaders() {
 }
 
 export async function getAccessToken() {
-  return (
-    (await getSecureStoreValue("accessToken")) ??
-    useSessionStore.getState().accessToken
-  );
+  const session = useSessionStore.getState();
+  if (session.hydrated && !session.accessToken) {
+    return null;
+  }
+
+  return (await getSecureStoreValue("accessToken")) ?? session.accessToken;
 }
 
 async function getRefreshToken() {
-  return (
-    (await getSecureStoreValue("refreshToken")) ??
-    useSessionStore.getState().refreshToken
-  );
+  const session = useSessionStore.getState();
+  if (session.hydrated && !session.refreshToken) {
+    return null;
+  }
+
+  return (await getSecureStoreValue("refreshToken")) ?? session.refreshToken;
 }
 
 export async function getStoredUser() {
+  const session = useSessionStore.getState();
+  if (session.hydrated && !session.user) {
+    return null;
+  }
+
   const userJson = await getSecureStoreValue("user");
   if (!userJson) {
-    return useSessionStore.getState().user;
+    return session.user;
   }
 
   try {
     return JSON.parse(userJson) as AuthUser;
   } catch {
-    return useSessionStore.getState().user;
+    return session.user;
   }
 }
 

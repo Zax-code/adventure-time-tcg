@@ -12,6 +12,14 @@ const common = {
       "Getting your cards, colors, and kingdom gate ready before the adventure begins.",
     preparing: "Preparing your adventure...",
     restoring: "Reconnecting to the Candy Kingdom...",
+    errorTitle: "The app could not unlock its saved session.",
+    errorBody:
+      "The startup screen has been released, but your saved sign-in details were not available yet.",
+    errorTimeoutDetail:
+      "The secure storage check took too long. Try it again now.",
+    errorRejectedDetail:
+      "The secure storage check failed temporarily. Try it again now.",
+    retry: "Retry startup",
   },
   loadingStates: {
     pageBody: "One moment while we bring this screen to life.",
