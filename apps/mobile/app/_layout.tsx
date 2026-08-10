@@ -36,8 +36,10 @@ import { useUserTimezoneSync } from "../src/hooks/use-user-timezone-sync";
 import { useWidgetRefreshPushRegistration } from "../src/hooks/use-widget-refresh-push-registration";
 import { useWarmPackVisuals } from "../src/hooks/use-warm-pack-visuals";
 import { useNotificationResponseRouting } from "../src/hooks/use-notification-response-routing";
+import { useNativeSplashDismissal } from "../src/hooks/use-native-splash-dismissal";
 import { AppLaunchScreen } from "../src/components/app-launch-screen";
 import { AppOverlayProvider } from "../src/components/app-overlay-portal";
+import { PageErrorState } from "../src/components/error-state";
 import { QuestDayCutoffModal } from "../src/features/quests/quest-day-cutoff-modal";
 import {
   isQuestExperiencePath,
@@ -47,6 +49,10 @@ import {
 } from "../src/features/quests/quest-day-cutoff";
 import { useTranslation } from "../src/i18n";
 import { queryClient } from "../src/lib/query-client";
+import {
+  FONT_STARTUP_TIMEOUT_MS,
+  isFontStartupSettled,
+} from "../src/lib/startup-recovery";
 import { useBootstrap } from "../src/hooks/use-bootstrap";
 import { apiClient } from "../src/lib/api";
 import { API_BASE_URL } from "../src/lib/api-config";
@@ -72,7 +78,7 @@ configureReanimatedLogger({
   strict: false,
 });
 
-SplashScreen.preventAutoHideAsync();
+void SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
 const DEFAULT_NOTIFICATION_PREFERENCES = {
   dailyReset: true,
@@ -169,11 +175,19 @@ function useRootLayoutView() {
 
   const hydrateTheme = useThemeStore((state) => state.hydrateFromStorage);
   const themeHydrated = useThemeStore((state) => state.hydrated);
+  const themeHydrationFailure = useThemeStore(
+    (state) => state.hydrationFailure,
+  );
   const themeName = useThemeStore((state) => state.themeName);
   const hydrateLocale = useLocaleStore((state) => state.hydrateFromStorage);
   const localeHydrated = useLocaleStore((state) => state.hydrated);
+  const localeHydrationFailure = useLocaleStore(
+    (state) => state.hydrationFailure,
+  );
   const sessionHydrated = useSessionStore((state) => state.hydrated);
   const bootstrapPhase = useSessionStore((state) => state.bootstrapPhase);
+  const bootstrapFailure = useSessionStore((state) => state.bootstrapFailure);
+  const retryBootstrap = useSessionStore((state) => state.retryBootstrap);
   const accessToken = useSessionStore((state) => state.accessToken);
   const user = useSessionStore((state) => state.user);
   const { t } = useTranslation();
@@ -294,14 +308,22 @@ function useRootLayoutView() {
   });
   useWarmPackVisuals(accessToken, bootstrapPhase);
 
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     Nunito_400Regular,
     Nunito_600SemiBold,
     Nunito_700Bold,
     Nunito_800ExtraBold,
   });
+  const [fontsTimedOut, setFontsTimedOut] = useState(false);
+  const fontsSettled = isFontStartupSettled({
+    loaded: fontsLoaded,
+    failed: Boolean(fontError),
+    timedOut: fontsTimedOut,
+  });
   const localBootReady =
-    fontsLoaded && themeHydrated && localeHydrated && sessionHydrated;
+    fontsSettled && themeHydrated && localeHydrated && sessionHydrated;
+
+  useNativeSplashDismissal(localBootReady);
 
   useNotificationResponseRouting(localBootReady && bootstrapPhase === "ready");
 
@@ -312,6 +334,39 @@ function useRootLayoutView() {
   useEffect(() => {
     void hydrateLocale();
   }, [hydrateLocale]);
+
+  useEffect(() => {
+    if (fontsLoaded || fontError) {
+      return;
+    }
+
+    const timeoutId = setTimeout(() => {
+      setFontsTimedOut(true);
+    }, FONT_STARTUP_TIMEOUT_MS);
+
+    return () => clearTimeout(timeoutId);
+  }, [fontError, fontsLoaded]);
+
+  useEffect(() => {
+    if (fontError) {
+      console.warn("[startup] Bundled fonts failed; using system fonts.");
+    } else if (fontsTimedOut) {
+      console.warn("[startup] Bundled fonts timed out; using system fonts.");
+    }
+  }, [fontError, fontsTimedOut]);
+
+  useEffect(() => {
+    if (themeHydrationFailure) {
+      console.warn(
+        `[startup] Theme hydration ${themeHydrationFailure}; using default theme.`,
+      );
+    }
+    if (localeHydrationFailure) {
+      console.warn(
+        `[startup] Locale hydration ${localeHydrationFailure}; using default locale.`,
+      );
+    }
+  }, [localeHydrationFailure, themeHydrationFailure]);
 
   useEffect(() => {
     Orientation.lockToPortrait();
@@ -333,12 +388,6 @@ function useRootLayoutView() {
   useEffect(() => {
     void registerWidgetRefreshNotificationTask();
   }, []);
-
-  useEffect(() => {
-    if (localBootReady) {
-      void SplashScreen.hideAsync();
-    }
-  }, [localBootReady]);
 
   useEffect(() => {
     if (!accessToken || !authUserId) {
@@ -509,7 +558,19 @@ function useRootLayoutView() {
             <AppOverlayProvider>
               <View style={[{ flex: 1 }, THEME_VARS[themeName]]}>
                 <StatusBar style="dark" />
-                {bootstrapPhase !== "ready" ? (
+                {bootstrapPhase === "error" ? (
+                  <PageErrorState
+                    title={t("common.launch.errorTitle")}
+                    body={t("common.launch.errorBody")}
+                    detail={t(
+                      bootstrapFailure === "timeout"
+                        ? "common.launch.errorTimeoutDetail"
+                        : "common.launch.errorRejectedDetail",
+                    )}
+                    retryLabel={t("common.launch.retry")}
+                    onRetry={retryBootstrap}
+                  />
+                ) : bootstrapPhase !== "ready" ? (
                   <AppLaunchScreen phase={bootstrapPhase} />
                 ) : (
                   <Stack screenOptions={PORTRAIT_SCREEN_OPTIONS}>
