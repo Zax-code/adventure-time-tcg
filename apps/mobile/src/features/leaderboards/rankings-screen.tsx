@@ -135,26 +135,21 @@ export function RankingsScreen() {
             <Pressable
               key={item}
               onPress={() => setPeriod(item)}
-              className="flex-1 overflow-hidden rounded-full"
+              className="flex-1 items-center justify-center overflow-hidden rounded-full px-2 py-3"
             >
               {selected ? (
                 <LinearGradient
                   colors={[tc.primaryDark, tc.primary]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
-                  className="items-center px-2 py-3"
-                >
-                  <Text className="font-nunito-bold text-sm text-white">
-                    {t(`rankings.periods.${item}`)}
-                  </Text>
-                </LinearGradient>
-              ) : (
-                <View className="items-center px-2 py-3">
-                  <Text className="font-nunito-bold text-sm text-primaryText">
-                    {t(`rankings.periods.${item}`)}
-                  </Text>
-                </View>
-              )}
+                  style={{ position: "absolute", inset: 0 }}
+                />
+              ) : null}
+              <Text
+                className={`font-nunito-bold text-sm ${selected ? "text-white" : "text-primaryText"}`}
+              >
+                {t(`rankings.periods.${item}`)}
+              </Text>
             </Pressable>
           );
         })}
@@ -219,7 +214,7 @@ function RankingsContent({ data }: { data: LeaderboardResponse }) {
         </Text>
       </View>
 
-      <View className="flex-row items-end justify-center gap-2 px-1 pt-3">
+      <View className="flex-row items-end justify-center gap-1 pt-3">
         {data.podium[1] ? <PodiumCard row={data.podium[1]} place={2} /> : null}
         {data.podium[0] ? <PodiumCard row={data.podium[0]} place={1} /> : null}
         {data.podium[2] ? <PodiumCard row={data.podium[2]} place={3} /> : null}
@@ -258,22 +253,29 @@ function PodiumCard({ row, place }: { row: LeaderboardRow; place: 1 | 2 | 3 }) {
         : ["#FFF7ED", "#FED7AA"];
 
   return (
-    <LinearGradient
-      colors={colors as [string, string]}
-      className={`flex-1 items-center justify-end gap-2 rounded-t-[26px] border border-primaryBorder px-2 pb-4 ${heightClass}`}
+    <View
+      className={`flex-1 overflow-hidden rounded-t-[26px] border border-primaryBorder ${heightClass}`}
     >
-      <View className="absolute top-3 size-10 items-center justify-center rounded-full bg-white/80">
-        <Text className="font-nunito-extrabold text-xl text-fg">{place}</Text>
+      <LinearGradient
+        colors={colors as [string, string]}
+        style={{ position: "absolute", inset: 0 }}
+      />
+      <View className="h-full items-center justify-end gap-2 px-2 pb-4">
+        <View className="absolute inset-x-0 top-3 items-center">
+          <View className="size-10 items-center justify-center rounded-full bg-white/80">
+            <Text className="font-nunito-extrabold text-xl text-fg">{place}</Text>
+          </View>
+        </View>
+        <Avatar avatarKey={row.profile.fallbackAvatarKey} size={place === 1 ? 72 : 58} />
+        <Text numberOfLines={1} className="w-full text-center font-nunito-bold text-xs text-fg">
+          {row.profile.displayName}
+        </Text>
+        <Text className="font-nunito-bold text-sm text-fgMuted">{formatRaw(row)}</Text>
+        <View className="rounded-lg bg-white/80 px-3 py-1.5">
+          <Text className="font-nunito-extrabold text-base text-primaryText">{row.points} pts</Text>
+        </View>
       </View>
-      <Avatar avatarKey={row.profile.fallbackAvatarKey} size={place === 1 ? 72 : 58} />
-      <Text numberOfLines={1} className="w-full text-center font-nunito-bold text-xs text-fg">
-        {row.profile.displayName}
-      </Text>
-      <Text className="font-nunito-bold text-sm text-fgMuted">{formatRaw(row)}</Text>
-      <View className="rounded-lg bg-white/80 px-3 py-1.5">
-        <Text className="font-nunito-extrabold text-base text-primaryText">{row.points} pts</Text>
-      </View>
-    </LinearGradient>
+    </View>
   );
 }
 
