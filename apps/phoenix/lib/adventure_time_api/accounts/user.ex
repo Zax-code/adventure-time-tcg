@@ -10,11 +10,17 @@ defmodule AdventureTimeApi.Accounts.User do
   @locales [:en, :fr]
   @roles [:user, :admin, :super_admin]
   @access_statuses [:pending, :approved, :rejected]
+  @public_profile_statuses [:visible, :hidden, :moderated, :deleted]
   @default_timezone "Europe/Paris"
 
   schema "users" do
     field(:email, :string)
     field(:display_name, :string)
+    field(:public_discriminator, :string, read_after_writes: true)
+    field(:public_profile_id, Ecto.UUID, read_after_writes: true)
+    field(:public_profile_status, Ecto.Enum, values: @public_profile_statuses, default: :visible)
+    field(:leaderboard_eligible, :boolean, default: true)
+    field(:display_name_changed_at, :utc_datetime_usec)
     field(:coins, :integer, default: 100)
     field(:dust, :integer, default: 0)
     field(:last_daily_claim, :utc_datetime)

@@ -1,5 +1,187 @@
 import { z } from "zod";
 
+export const leaderboardBoardKeySchema = z.enum([
+  "steps/default",
+  "daily-numbers/1-5",
+  "daily-numbers/2-4",
+  "daily-numbers/3-3",
+  "daily-numbers/family",
+  "wordle/fr",
+  "wordle/en",
+  "wordle/family",
+  "speed-calculus/ranked",
+  "perfect-timing/official",
+]);
+
+export const fallbackAvatarKeySchema = z.enum([
+  "finn",
+  "jake",
+  "princess-bubblegum",
+  "marceline",
+  "bmo",
+  "ice-king",
+  "flame-princess",
+  "lumpy-space-princess",
+  "lady-rainicorn",
+  "gunter",
+  "peppermint-butler",
+  "tree-trunks",
+]);
+
+export const leaderboardBoardSchema = z.object({
+  key: leaderboardBoardKeySchema,
+  quest: z.string(),
+  family: z.enum([
+    "steps",
+    "daily_numbers",
+    "wordle",
+    "speed_calculus",
+    "perfect_timing",
+  ]),
+  mode: z.string(),
+  direction: z.enum(["higher", "lower", "points"]),
+  boardKind: z.enum(["source", "derived_family"]),
+  rawResultKind: z.string(),
+  enabled: z.boolean(),
+  prizesEnabled: z.boolean(),
+  displayOrder: z.number().int().positive(),
+  members: z.array(leaderboardBoardKeySchema),
+});
+
+export const leaderboardBoardsResponseSchema = z.object({
+  boards: z.array(leaderboardBoardSchema),
+  fallbackAvatarKeys: z.array(fallbackAvatarKeySchema),
+  serverNow: z.string().datetime(),
+});
+
+export const leaderboardPublicIdentitySchema = z.object({
+  publicProfileId: z.string().uuid().nullable(),
+  displayName: z.string().nullable(),
+  discriminator: z.string(),
+  handle: z.string(),
+  avatarUrl: z.string().url().nullable(),
+  fallbackAvatarKey: fallbackAvatarKeySchema,
+  visibility: z.enum(["visible", "hidden", "moderated", "deleted"]),
+});
+
+export const leaderboardRawResultSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("steps"), steps: z.number().int().nonnegative() }),
+  z.object({
+    kind: z.literal("exact_completion_time"),
+    exact: z.boolean(),
+    elapsedMs: z.number().int().nonnegative(),
+  }),
+  z.object({
+    kind: z.literal("wordle_outcome"),
+    outcome: z.enum(["solved", "failed"]),
+    guesses: z.number().int().min(1).max(6),
+  }),
+  z.object({
+    kind: z.literal("correct_answers"),
+    correctAnswers: z.number().int().nonnegative(),
+  }),
+  z.object({
+    kind: z.literal("duration_error_ms"),
+    outcome: z.enum(["success", "miss"]),
+    absoluteErrorMs: z.number().int().nonnegative(),
+    tier: z.string().nullable(),
+  }),
+  z.object({
+    kind: z.literal("member_breakdown"),
+    members: z.record(z.number().int().min(0).max(1_000_000)),
+  }),
+]);
+
+export const leaderboardRowSchema = z.object({
+  position: z.number().int().positive(),
+  rank: z.number().int().positive(),
+  profile: leaderboardPublicIdentitySchema,
+  rawResult: leaderboardRawResultSchema,
+  points: z.number().int().min(0).max(1000),
+  pointsMilli: z.number().int().min(0).max(1_000_000),
+  provisional: z.boolean(),
+  medal: z.enum(["gold", "silver", "bronze"]).nullable(),
+});
+
+export const leaderboardPeriodSchema = z.object({
+  type: z.enum(["day", "week"]),
+  status: z.enum(["scheduled", "open", "closing", "closed", "corrected"]),
+  startsAt: z.string().datetime(),
+  endsAt: z.string().datetime(),
+  closesAt: z.string().datetime(),
+  serverNow: z.string().datetime(),
+  revision: z.number().int().nonnegative(),
+  provisional: z.boolean(),
+  standingsThrough: z.string().date().nullable(),
+  prizesEnabled: z.boolean(),
+});
+
+export const leaderboardResponseSchema = z.object({
+  board: leaderboardBoardSchema,
+  period: leaderboardPeriodSchema,
+  podium: z.array(leaderboardRowSchema),
+  rows: z.array(leaderboardRowSchema),
+  currentPlayer: leaderboardRowSchema.nullable(),
+  pendingCurrentPlayerResult: leaderboardRawResultSchema.nullable(),
+  qualification: z
+    .object({ validResults: z.number().int().nonnegative(), requiredResults: z.literal(3) })
+    .nullable(),
+  pageInfo: z.object({
+    nextCursor: z.string().nullable(),
+    hasNextPage: z.boolean(),
+  }),
+  scoring: z.object({
+    version: z.string(),
+    displayMax: z.literal(1000),
+    weeklyRule: z.literal("average_best_3"),
+  }),
+});
+
+export const publicLeaderboardProfileSchema = z.object({
+  profile: leaderboardPublicIdentitySchema,
+  crowns: z.object({
+    steps: z.number().int().nonnegative(),
+    dailyNumbers: z.number().int().nonnegative(),
+    wordle: z.number().int().nonnegative(),
+    speedCalculus: z.number().int().nonnegative(),
+    perfectTiming: z.number().int().nonnegative(),
+    total: z.number().int().nonnegative(),
+  }),
+  medals: z.object({
+    gold: z.number().int().nonnegative(),
+    silver: z.number().int().nonnegative(),
+    bronze: z.number().int().nonnegative(),
+  }),
+  recentPlacements: z.array(
+    z.object({
+      boardKey: leaderboardBoardKeySchema,
+      weekStart: z.string().date(),
+      rank: z.number().int().positive(),
+      points: z.number().int().min(0).max(1000),
+      medal: z.enum(["gold", "silver", "bronze"]).nullable(),
+    }),
+  ),
+  personalBests: z.array(
+    z.object({
+      boardKey: leaderboardBoardKeySchema,
+      rawResult: leaderboardRawResultSchema,
+      points: z.number().int().min(0).max(1000),
+    }),
+  ),
+});
+
+export type LeaderboardBoardKey = z.infer<typeof leaderboardBoardKeySchema>;
+export type FallbackAvatarKey = z.infer<typeof fallbackAvatarKeySchema>;
+export type LeaderboardBoard = z.infer<typeof leaderboardBoardSchema>;
+export type LeaderboardBoardsResponse = z.infer<
+  typeof leaderboardBoardsResponseSchema
+>;
+export type LeaderboardRow = z.infer<typeof leaderboardRowSchema>;
+export type LeaderboardResponse = z.infer<typeof leaderboardResponseSchema>;
+export type PublicLeaderboardProfile = z.infer<
+  typeof publicLeaderboardProfileSchema
+>;
+
 export const stepSourceSchema = z.enum(["device_health", "fitbit"]);
 export const localeSchema = z.enum(["en", "fr"]);
 export const notificationPreferencesSchema = z.object({

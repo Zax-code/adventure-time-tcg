@@ -121,6 +121,10 @@ defmodule AdventureTimeApiWeb.Router do
     get("/health/steps", AppController, :health_steps)
     post("/health/steps", AppController, :sync_steps)
 
+    get("/leaderboards/boards", LeaderboardsController, :boards)
+    get("/leaderboards/:quest/:mode", LeaderboardsController, :show)
+    get("/public-profiles/:public_profile_id", LeaderboardsController, :public_profile)
+
     get("/quests", QuestsController, :list_quests)
     post("/quests/claim", QuestsController, :claim_quest)
     get("/quests/daily-numbers", QuestsController, :daily_numbers_state)

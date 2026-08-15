@@ -29,6 +29,9 @@ import {
   rarityNameSchema,
   pvpSpectateResponseSchema,
   pvpSpectateDetailResponseSchema,
+  leaderboardBoardsResponseSchema,
+  leaderboardResponseSchema,
+  publicLeaderboardProfileSchema,
   updateDisplayNameSchema,
   updateLanguageSchema,
   updateNotificationPreferencesSchema,
@@ -130,6 +133,10 @@ import {
   type RaritiesResponse,
   type PvpSpectateResponse,
   type PvpSpectateDetailResponse,
+  type LeaderboardBoardKey,
+  type LeaderboardBoardsResponse,
+  type LeaderboardResponse,
+  type PublicLeaderboardProfile,
   type AppleAuthInput,
   type AuthResponse,
   type ChangePasswordInput,
@@ -1366,6 +1373,43 @@ export class ApiClient {
       `/pvp/spectate/${matchId}`,
       { method: "GET" },
       (data) => pvpSpectateDetailResponseSchema.parse(data),
+    );
+  }
+
+  async leaderboardBoards(): Promise<LeaderboardBoardsResponse> {
+    return this.request("/leaderboards/boards", { method: "GET" }, (data) =>
+      leaderboardBoardsResponseSchema.parse(data),
+    );
+  }
+
+  async leaderboard(
+    boardKey: LeaderboardBoardKey,
+    period: "yesterday" | "current_week",
+    cursor?: string,
+  ): Promise<LeaderboardResponse> {
+    const [quest, mode] = boardKey.split("/");
+    const query = new URLSearchParams({ period });
+
+    if (cursor) {
+      query.set("cursor", cursor);
+    }
+
+    return this.request(
+      `/leaderboards/${encodeURIComponent(quest)}/${encodeURIComponent(
+        mode,
+      )}?${query.toString()}`,
+      { method: "GET" },
+      (data) => leaderboardResponseSchema.parse(data),
+    );
+  }
+
+  async publicLeaderboardProfile(
+    publicProfileId: string,
+  ): Promise<PublicLeaderboardProfile> {
+    return this.request(
+      `/public-profiles/${encodeURIComponent(publicProfileId)}`,
+      { method: "GET" },
+      (data) => publicLeaderboardProfileSchema.parse(data),
     );
   }
 }
