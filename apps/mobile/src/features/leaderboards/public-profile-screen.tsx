@@ -149,7 +149,7 @@ export function PublicProfileScreen() {
               borderRadius: 28,
               borderWidth: 1,
               borderColor: tc.secondaryDark,
-              backgroundColor: tc.secondary,
+              backgroundColor: tc.surface,
               padding: 20,
             }}
           >
