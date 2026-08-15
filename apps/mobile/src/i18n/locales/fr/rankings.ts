@@ -8,6 +8,7 @@ const rankings = {
   provisional: "Provisoire — certains fuseaux horaires jouent encore",
   standingsThrough: "Classement provisoire arrêté au {date}",
   scoringHelp: "Comprendre le calcul des points",
+  profileTapHint: "Touche un aventurier pour voir ses couronnes et ses succès",
   historyTitle: "Historique hebdomadaire",
   historyBody: "Les semaines terminées apparaîtront ici au lancement des classements.",
   periods: {
@@ -21,6 +22,35 @@ const rankings = {
     wordle: "Wordle",
     speedCalculus: "Calcul rapide",
     perfectTiming: "Timing parfait",
+  },
+  profile: {
+    title: "Profil du joueur",
+    loadingTitle: "Recherche de cet aventurier",
+    loadingBody: "Chargement de son profil de jeu public.",
+    adventurer: "Aventurier",
+    publicGameProfile: "Profil de jeu public",
+    crownsTitle: "Couronnes",
+    crownsSubtitle: "Récompenses propres à chaque quête gagnées sur les podiums hebdomadaires.",
+    totalCrowns: "Total des couronnes",
+    nonTradable: "Non échangeables",
+    achievementsTitle: "Succès",
+    achievementsSubtitle: "Classements hebdomadaires or, argent et bronze.",
+    medals: {
+      gold: "Or",
+      silver: "Argent",
+      bronze: "Bronze",
+    },
+    recentPlacements: "Classements hebdomadaires récents",
+    personalBests: "Records personnels",
+    noPlacements: "Aucun classement hebdomadaire clôturé pour le moment.",
+    noPersonalBests: "Aucun record personnel pour le moment.",
+    boardLabels: {
+      dailyNumbers15: "Le compte est bon · 1–5",
+      dailyNumbers24: "Le compte est bon · 2–4",
+      dailyNumbers33: "Le compte est bon · 3–3",
+      wordleFr: "Wordle · Français",
+      wordleEn: "Wordle · Anglais",
+    },
   },
 };
 

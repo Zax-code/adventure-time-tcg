@@ -11,6 +11,15 @@ import { useThemeStore } from "../stores/theme-store";
 import { THEME_COLORS } from "../theme/themes";
 import { CoinIcon, GiftHeartIcon, SettingsIcon } from "./icons";
 
+const HEADER_ACTION_SURFACE_STYLE = {
+  width: 40,
+  height: 40,
+  borderRadius: 999,
+  alignItems: "center",
+  justifyContent: "center",
+  boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.1)",
+} as const;
+
 function HeaderShieldUserIcon({ size = 24, color = "#FFFFFF" }: { size?: number; color?: string }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
@@ -69,8 +78,10 @@ export function AppHeader() {
             testID="app-header-gifts-button"
           >
             <View
-              className="size-10 items-center justify-center rounded-full bg-surfaceMuted"
-              style={{ boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.1)" }}
+              style={{
+                ...HEADER_ACTION_SURFACE_STYLE,
+                backgroundColor: tc.surfaceMuted,
+              }}
             >
               <GiftHeartIcon size={23} color={tc.successText} />
               {pendingGifts > 0 ? (
@@ -110,13 +121,8 @@ export function AppHeader() {
           >
             <View
               style={{
-                width: 40,
-                height: 40,
-                borderRadius: 999,
-                alignItems: "center",
-                justifyContent: "center",
+                ...HEADER_ACTION_SURFACE_STYLE,
                 backgroundColor: tc.surfaceMuted,
-                boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.1)",
               }}
             >
               <SettingsIcon size={24} color={tc.primaryDark} />

@@ -8,6 +8,7 @@ const rankings = {
   provisional: "Provisional — some timezones are still playing",
   standingsThrough: "Provisional standings through {date}",
   scoringHelp: "How scoring works",
+  profileTapHint: "Tap any adventurer to see their crowns and achievements",
   historyTitle: "Weekly history",
   historyBody: "Closed competition weeks will appear here once rankings launch.",
   periods: {
@@ -21,6 +22,35 @@ const rankings = {
     wordle: "Wordle",
     speedCalculus: "Speed Calculus",
     perfectTiming: "Perfect Timing",
+  },
+  profile: {
+    title: "Player profile",
+    loadingTitle: "Finding this adventurer",
+    loadingBody: "Loading their public game profile.",
+    adventurer: "Adventurer",
+    publicGameProfile: "Public game profile",
+    crownsTitle: "Crowns",
+    crownsSubtitle: "Quest-specific rewards earned from weekly podium finishes.",
+    totalCrowns: "Total crowns",
+    nonTradable: "Non-tradable",
+    achievementsTitle: "Achievements",
+    achievementsSubtitle: "Gold, silver, and bronze weekly leaderboard finishes.",
+    medals: {
+      gold: "Gold",
+      silver: "Silver",
+      bronze: "Bronze",
+    },
+    recentPlacements: "Recent weekly placements",
+    personalBests: "Personal bests",
+    noPlacements: "No closed weekly placements yet.",
+    noPersonalBests: "No personal bests yet.",
+    boardLabels: {
+      dailyNumbers15: "Daily Numbers · 1–5",
+      dailyNumbers24: "Daily Numbers · 2–4",
+      dailyNumbers33: "Daily Numbers · 3–3",
+      wordleFr: "Wordle · French",
+      wordleEn: "Wordle · English",
+    },
   },
 };
 

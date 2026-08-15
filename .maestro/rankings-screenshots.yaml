@@ -31,3 +31,15 @@ tags:
     duration: 700
 - waitForAnimationToEnd
 - takeScreenshot: tmp-rankings-shots/03-rankings-player-top-seven
+- tapOn:
+    id: leaderboard-row-5
+- assertVisible:
+    id: public-profile-screen
+- waitForAnimationToEnd
+- takeScreenshot: tmp-rankings-shots/04-public-profile-crowns-achievements
+- swipe:
+    start: "50%,80%"
+    end: "50%,25%"
+    duration: 700
+- waitForAnimationToEnd
+- takeScreenshot: tmp-rankings-shots/05-public-profile-details

@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import { useFocusEffect, useLocalSearchParams } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useMemo, useState, type ComponentType } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
@@ -81,7 +81,13 @@ export function RankingsScreen() {
     "perfect-timing/official",
   );
 
-  const query = useQuery({
+  const {
+    data: queryData,
+    error: queryError,
+    isError: queryIsError,
+    isLoading: queryIsLoading,
+    refetch: refetchLeaderboard,
+  } = useQuery({
     queryKey: ["leaderboard", boardKey, period],
     queryFn: () => apiClient.leaderboard(boardKey, period as "yesterday" | "current_week"),
     enabled: !isPreview && period !== "history",
@@ -94,17 +100,17 @@ export function RankingsScreen() {
   useFocusEffect(
     useCallback(() => {
       if (!isPreview && period !== "history") {
-        void query.refetch();
+        void refetchLeaderboard();
       }
-    }, [isPreview, period, query.refetch]),
+    }, [isPreview, period, refetchLeaderboard]),
   );
 
   const data = useMemo<LeaderboardResponse | undefined>(() => {
-    if (!isPreview) return query.data;
+    if (!isPreview) return queryData;
     const previewData =
       placement === "top7" ? RANKINGS_TOP_SEVEN_PREVIEW_DATA : RANKINGS_PREVIEW_DATA;
     return { ...previewData, board: { ...previewData.board, key: boardKey } };
-  }, [boardKey, isPreview, placement, query.data]);
+  }, [boardKey, isPreview, placement, queryData]);
 
   return (
     <ScrollView
@@ -194,23 +200,34 @@ export function RankingsScreen() {
 
       {period === "history" ? (
         <EmptyPanel title={t("rankings.historyTitle")} body={t("rankings.historyBody")} />
-      ) : query.isLoading && !isPreview ? (
+      ) : queryIsLoading && !isPreview ? (
         <PageLoadingState
           title={t("rankings.loadingTitle")}
           message={t("rankings.loadingBody")}
           icon="trophy"
         />
-      ) : query.isError && !isPreview ? (
-        <PageErrorState error={query.error} onRetry={() => void query.refetch()} />
+      ) : queryIsError && !isPreview ? (
+        <PageErrorState error={queryError} onRetry={() => void refetchLeaderboard()} />
       ) : data ? (
-        <RankingsContent data={data} />
+        <RankingsContent data={data} preview={isPreview} />
       ) : null}
     </ScrollView>
   );
 }
 
-function RankingsContent({ data }: { data: LeaderboardResponse }) {
+function RankingsContent({ data, preview }: { data: LeaderboardResponse; preview: boolean }) {
   const { t } = useTranslation();
+  const router = useRouter();
+  const openProfile = (row: LeaderboardRow) => {
+    if (!row.profile.publicProfileId || row.profile.visibility !== "visible") return;
+    router.push({
+      pathname: "/public-profile",
+      params: {
+        id: row.profile.publicProfileId,
+        ...(preview ? { preview: "1" } : {}),
+      },
+    } as never);
+  };
 
   return (
     <View className="gap-4">
@@ -223,9 +240,9 @@ function RankingsContent({ data }: { data: LeaderboardResponse }) {
       </View>
 
       <View className="flex-row items-end justify-center gap-1 pt-3">
-        {data.podium[1] ? <PodiumCard row={data.podium[1]} place={2} /> : null}
-        {data.podium[0] ? <PodiumCard row={data.podium[0]} place={1} /> : null}
-        {data.podium[2] ? <PodiumCard row={data.podium[2]} place={3} /> : null}
+        {data.podium[1] ? <PodiumCard row={data.podium[1]} place={2} onPress={() => openProfile(data.podium[1])} /> : null}
+        {data.podium[0] ? <PodiumCard row={data.podium[0]} place={1} onPress={() => openProfile(data.podium[0])} /> : null}
+        {data.podium[2] ? <PodiumCard row={data.podium[2]} place={3} onPress={() => openProfile(data.podium[2])} /> : null}
       </View>
 
       <View className="overflow-hidden rounded-[28px] border border-primaryBorder bg-surface">
@@ -235,6 +252,7 @@ function RankingsContent({ data }: { data: LeaderboardResponse }) {
             row={row}
             bordered={index > 0}
             current={isCurrentPlayer(row, data.currentPlayer)}
+            onPress={() => openProfile(row)}
           />
         ))}
       </View>
@@ -242,9 +260,16 @@ function RankingsContent({ data }: { data: LeaderboardResponse }) {
       {data.currentPlayer && data.currentPlayer.rank > 7 ? (
         <View className="rounded-[24px] border-2 border-primaryBorder bg-primaryTint">
           <View className="absolute -top-2 left-1/2 size-4 rotate-45 border-l-2 border-t-2 border-primaryBorder bg-primaryTint" />
-          <RankingRow row={data.currentPlayer} />
+          <RankingRow row={data.currentPlayer} onPress={() => openProfile(data.currentPlayer!)} />
         </View>
       ) : null}
+
+      <View className="flex-row items-center justify-center gap-2 px-3 py-1">
+        <TrophyIcon size={18} color="#DB2777" />
+        <Text className="text-center font-nunito-semibold text-xs text-fgMuted">
+          {t("rankings.profileTapHint")}
+        </Text>
+      </View>
 
       <View className="flex-row items-center justify-center gap-2 py-1">
         <HelpCircleIcon size={20} color="#DB2777" />
@@ -256,7 +281,7 @@ function RankingsContent({ data }: { data: LeaderboardResponse }) {
   );
 }
 
-function PodiumCard({ row, place }: { row: LeaderboardRow; place: 1 | 2 | 3 }) {
+function PodiumCard({ row, place, onPress }: { row: LeaderboardRow; place: 1 | 2 | 3; onPress: () => void }) {
   const heightClass = place === 1 ? "h-[236px]" : place === 2 ? "h-[206px]" : "h-[192px]";
   const colors =
     place === 1
@@ -266,8 +291,10 @@ function PodiumCard({ row, place }: { row: LeaderboardRow; place: 1 | 2 | 3 }) {
         : ["#FFF7ED", "#FED7AA"];
 
   return (
-    <View
+    <Pressable
+      onPress={onPress}
       className={`flex-1 overflow-hidden rounded-t-[26px] ${heightClass}`}
+      testID={`leaderboard-podium-${place}`}
     >
       <LinearGradient
         colors={colors as [string, string]}
@@ -292,7 +319,7 @@ function PodiumCard({ row, place }: { row: LeaderboardRow; place: 1 | 2 | 3 }) {
         pointerEvents="none"
         className="absolute inset-0 rounded-t-[26px] border border-primaryBorder"
       />
-    </View>
+    </Pressable>
   );
 }
 
@@ -300,14 +327,18 @@ function RankingRow({
   row,
   bordered,
   current,
+  onPress,
 }: {
   row: LeaderboardRow;
   bordered?: boolean;
   current?: boolean;
+  onPress?: () => void;
 }) {
   return (
-    <View
+    <Pressable
+      onPress={onPress}
       className={`flex-row items-center gap-3 px-4 py-3 ${bordered ? "border-t border-primaryBorder" : ""} ${current ? "bg-primaryTint" : ""}`}
+      testID={`leaderboard-row-${row.rank}`}
     >
       <Text className="w-7 text-center font-nunito-extrabold text-sm text-primaryText">
         {row.rank}
@@ -320,7 +351,7 @@ function RankingRow({
       <Text className="w-16 text-right font-nunito-extrabold text-sm text-primaryText">
         {row.points} pts
       </Text>
-    </View>
+    </Pressable>
   );
 }
 

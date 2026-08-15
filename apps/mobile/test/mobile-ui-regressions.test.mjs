@@ -12,6 +12,11 @@ const questHubSource = readFileSync(
 );
 const questsScreenSource = readFileSync("app/(tabs)/quests.tsx", "utf8");
 const collectionSource = readFileSync("app/(tabs)/collection.tsx", "utf8");
+const appHeaderSource = readFileSync("src/components/app-header.tsx", "utf8");
+const rankingsSource = readFileSync(
+  "src/features/leaderboards/rankings-screen.tsx",
+  "utf8",
+);
 
 describe("mobile UI regression contracts", () => {
   it("keeps the Speed Calculus timer drain on one uninterrupted animation", () => {
@@ -86,5 +91,24 @@ describe("mobile UI regression contracts", () => {
       /\[accessToken, appActive, router, screenFocused, visibleCardIds\]/,
       "focus changes should refresh visible tiles so their animations actually stop and resume",
     );
+  });
+
+  it("keeps Gifts and Settings on the same header action surface", () => {
+    assert.match(
+      appHeaderSource,
+      /const HEADER_ACTION_SURFACE_STYLE = \{[\s\S]*?width: 40,[\s\S]*?height: 40,/,
+      "header actions should share one explicit 40 by 40 surface",
+    );
+    assert.equal(
+      appHeaderSource.match(/\.\.\.HEADER_ACTION_SURFACE_STYLE/g)?.length,
+      2,
+      "both Gifts and Settings should use the shared header action surface",
+    );
+  });
+
+  it("keeps leaderboard public profiles discoverable from every ranking placement", () => {
+    assert.match(rankingsSource, /pathname: "\/public-profile"/);
+    assert.match(rankingsSource, /<PodiumCard[\s\S]*?onPress=/);
+    assert.match(rankingsSource, /<RankingRow[\s\S]*?onPress=/);
   });
 });
