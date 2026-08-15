@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { Image } from "expo-image";
-import { LinearGradient } from "expo-linear-gradient";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import type { ComponentType } from "react";
 import { ScrollView, Text, View } from "react-native";
@@ -144,20 +143,18 @@ export function PublicProfileScreen() {
             title={t("rankings.profile.crownsTitle")}
             subtitle={t("rankings.profile.crownsSubtitle")}
           />
-          <LinearGradient
-            colors={[tc.secondaryTint, tc.surface]}
+          <View
             style={{
               overflow: "hidden",
               borderRadius: 28,
               borderWidth: 1,
-              borderColor: tc.secondaryBorder,
+              borderColor: tc.secondaryDark,
+              backgroundColor: tc.secondary,
               padding: 20,
             }}
           >
             <View className="flex-row items-center gap-4">
-              <View className="size-[72px] items-center justify-center rounded-[24px] bg-secondaryTint">
-                <LeaderboardCrownIcon size={47} color={tc.secondaryText} />
-              </View>
+              <LeaderboardCrownIcon size={52} color={tc.secondaryText} />
               <View className="flex-1">
                 <Text selectable className="font-nunito text-sm text-fgMuted">
                   {t("rankings.profile.totalCrowns")}
@@ -176,7 +173,7 @@ export function PublicProfileScreen() {
                 </Text>
               </View>
             </View>
-          </LinearGradient>
+          </View>
 
           <View className="flex-row flex-wrap justify-between gap-y-3">
             {CROWN_FAMILIES.map(({ key, labelKey, icon: Icon }) => (
