@@ -228,7 +228,7 @@ function RankingsContent({ data }: { data: LeaderboardResponse }) {
         {data.podium[2] ? <PodiumCard row={data.podium[2]} place={3} /> : null}
       </View>
 
-      <View className="overflow-hidden rounded-[28px] border border-primaryBorder bg-surface px-4">
+      <View className="overflow-hidden rounded-[28px] border border-primaryBorder bg-surface">
         {data.rows.slice(3).map((row, index) => (
           <RankingRow
             key={row.profile.handle}
@@ -240,7 +240,7 @@ function RankingsContent({ data }: { data: LeaderboardResponse }) {
       </View>
 
       {data.currentPlayer && data.currentPlayer.rank > 7 ? (
-        <View className="rounded-[24px] border-2 border-primaryBorder bg-primaryTint px-4">
+        <View className="rounded-[24px] border-2 border-primaryBorder bg-primaryTint">
           <View className="absolute -top-2 left-1/2 size-4 rotate-45 border-l-2 border-t-2 border-primaryBorder bg-primaryTint" />
           <RankingRow row={data.currentPlayer} />
         </View>
@@ -307,7 +307,7 @@ function RankingRow({
 }) {
   return (
     <View
-      className={`flex-row items-center gap-3 py-3 ${bordered ? "border-t border-primaryBorder/40" : ""} ${current ? "-mx-4 bg-primaryTint px-4" : ""}`}
+      className={`flex-row items-center gap-3 px-4 py-3 ${bordered ? "border-t border-primaryBorder" : ""} ${current ? "bg-primaryTint" : ""}`}
     >
       <Text className="w-7 text-center font-nunito-extrabold text-sm text-primaryText">
         {row.rank}
