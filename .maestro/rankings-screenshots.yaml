@@ -20,3 +20,14 @@ tags:
     duration: 700
 - waitForAnimationToEnd
 - takeScreenshot: tmp-rankings-shots/02-rankings-lower
+- openLink:
+    link: "adventure-time:///rankings?preview=1&placement=top7"
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- assertVisible:
+    id: rankings-screen
+- swipe:
+    start: "50%,78%"
+    end: "50%,28%"
+    duration: 700
+- waitForAnimationToEnd
+- takeScreenshot: tmp-rankings-shots/03-rankings-player-top-seven

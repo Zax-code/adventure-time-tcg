@@ -17,6 +17,8 @@ defmodule AdventureTimeApi.Leaderboards.Query do
 
   alias AdventureTimeApi.Repo
 
+  @visible_row_limit 7
+
   @spec fetch(String.t(), String.t(), String.t(), Ecto.UUID.t()) ::
           {:ok, map()} | {:error, atom()}
   def fetch(quest, mode, period_name, current_user_id) do
@@ -26,8 +28,9 @@ defmodule AdventureTimeApi.Leaderboards.Query do
            Repo.get_by(Snapshot, period_id: period.id, board_id: board.id, current: true),
          %ScoringVersion{} = scoring_version <-
            Repo.get(ScoringVersion, snapshot.scoring_version_id) do
-      rows = fetch_rows(snapshot.id, 50)
-      projected_rows = Enum.map(rows, &project_row(&1, period))
+      rows = fetch_rows(snapshot.id, @visible_row_limit + 1)
+      visible_rows = Enum.take(rows, @visible_row_limit)
+      projected_rows = Enum.map(visible_rows, &project_row(&1, period))
       current_player_row = find_current_player(snapshot.id, current_user_id, period)
 
       {:ok,
@@ -36,14 +39,10 @@ defmodule AdventureTimeApi.Leaderboards.Query do
          period: project_period(period, snapshot),
          podium: Enum.filter(projected_rows, &(&1.rank <= 3)),
          rows: projected_rows,
-         currentPlayer:
-           if(Enum.any?(rows, fn {row, _user} -> row.user_id == current_user_id end),
-             do: nil,
-             else: current_player_row
-           ),
+         currentPlayer: current_player_row,
          pendingCurrentPlayerResult: nil,
          qualification: qualification(board.id, period, current_user_id, current_player_row),
-         pageInfo: %{nextCursor: nil, hasNextPage: false},
+         pageInfo: %{nextCursor: nil, hasNextPage: length(rows) > @visible_row_limit},
          scoring: %{
            version: scoring_version.version,
            displayMax: 1_000,

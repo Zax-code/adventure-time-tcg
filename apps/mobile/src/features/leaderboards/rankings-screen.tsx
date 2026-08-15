@@ -32,7 +32,10 @@ import {
 } from "../../theme/layout";
 import { THEME_COLORS } from "../../theme/themes";
 import { LEADERBOARD_AVATAR_SOURCES } from "./avatar-assets";
-import { RANKINGS_PREVIEW_DATA } from "./rankings-preview-data";
+import {
+  RANKINGS_PREVIEW_DATA,
+  RANKINGS_TOP_SEVEN_PREVIEW_DATA,
+} from "./rankings-preview-data";
 
 type Period = "yesterday" | "current_week" | "history";
 type IconComponent = ComponentType<{ size?: number; color?: string }>;
@@ -62,7 +65,10 @@ const BOARD_OPTIONS: Array<{
 ];
 
 export function RankingsScreen() {
-  const { preview } = useLocalSearchParams<{ preview?: string }>();
+  const { placement, preview } = useLocalSearchParams<{
+    placement?: string;
+    preview?: string;
+  }>();
   const isPreview =
     process.env.EXPO_PUBLIC_E2E_AUTH === "1" && preview === "1";
   const { t } = useTranslation();
@@ -95,8 +101,10 @@ export function RankingsScreen() {
 
   const data = useMemo<LeaderboardResponse | undefined>(() => {
     if (!isPreview) return query.data;
-    return { ...RANKINGS_PREVIEW_DATA, board: { ...RANKINGS_PREVIEW_DATA.board, key: boardKey } };
-  }, [boardKey, isPreview, query.data]);
+    const previewData =
+      placement === "top7" ? RANKINGS_TOP_SEVEN_PREVIEW_DATA : RANKINGS_PREVIEW_DATA;
+    return { ...previewData, board: { ...previewData.board, key: boardKey } };
+  }, [boardKey, isPreview, placement, query.data]);
 
   return (
     <ScrollView
@@ -222,14 +230,19 @@ function RankingsContent({ data }: { data: LeaderboardResponse }) {
 
       <View className="overflow-hidden rounded-[28px] border border-primaryBorder bg-surface px-4">
         {data.rows.slice(3).map((row, index) => (
-          <RankingRow key={row.profile.handle} row={row} bordered={index > 0} />
+          <RankingRow
+            key={row.profile.handle}
+            row={row}
+            bordered={index > 0}
+            current={isCurrentPlayer(row, data.currentPlayer)}
+          />
         ))}
       </View>
 
-      {data.currentPlayer ? (
+      {data.currentPlayer && data.currentPlayer.rank > 7 ? (
         <View className="rounded-[24px] border-2 border-primaryBorder bg-primaryTint px-4">
           <View className="absolute -top-2 left-1/2 size-4 rotate-45 border-l-2 border-t-2 border-primaryBorder bg-primaryTint" />
-          <RankingRow row={data.currentPlayer} label={t("rankings.you")} />
+          <RankingRow row={data.currentPlayer} />
         </View>
       ) : null}
 
@@ -254,7 +267,7 @@ function PodiumCard({ row, place }: { row: LeaderboardRow; place: 1 | 2 | 3 }) {
 
   return (
     <View
-      className={`flex-1 overflow-hidden rounded-t-[26px] border border-primaryBorder ${heightClass}`}
+      className={`flex-1 overflow-hidden rounded-t-[26px] ${heightClass}`}
     >
       <LinearGradient
         colors={colors as [string, string]}
@@ -275,15 +288,29 @@ function PodiumCard({ row, place }: { row: LeaderboardRow; place: 1 | 2 | 3 }) {
           <Text className="font-nunito-extrabold text-base text-primaryText">{row.points} pts</Text>
         </View>
       </View>
+      <View
+        pointerEvents="none"
+        className="absolute inset-0 rounded-t-[26px] border border-primaryBorder"
+      />
     </View>
   );
 }
 
-function RankingRow({ row, bordered, label }: { row: LeaderboardRow; bordered?: boolean; label?: string }) {
+function RankingRow({
+  row,
+  bordered,
+  current,
+}: {
+  row: LeaderboardRow;
+  bordered?: boolean;
+  current?: boolean;
+}) {
   return (
-    <View className={`flex-row items-center gap-3 py-3 ${bordered ? "border-t border-primaryBorder/40" : ""}`}>
+    <View
+      className={`flex-row items-center gap-3 py-3 ${bordered ? "border-t border-primaryBorder/40" : ""} ${current ? "-mx-4 bg-primaryTint px-4" : ""}`}
+    >
       <Text className="w-7 text-center font-nunito-extrabold text-sm text-primaryText">
-        {label ?? row.rank}
+        {row.rank}
       </Text>
       <Avatar avatarKey={row.profile.fallbackAvatarKey} size={42} />
       <Text numberOfLines={1} className="flex-1 font-nunito-bold text-sm text-fg">
@@ -295,6 +322,14 @@ function RankingRow({ row, bordered, label }: { row: LeaderboardRow; bordered?: 
       </Text>
     </View>
   );
+}
+
+function isCurrentPlayer(row: LeaderboardRow, currentPlayer: LeaderboardRow | null) {
+  if (!currentPlayer) return false;
+  if (row.profile.publicProfileId && currentPlayer.profile.publicProfileId) {
+    return row.profile.publicProfileId === currentPlayer.profile.publicProfileId;
+  }
+  return row.profile.handle === currentPlayer.profile.handle;
 }
 
 function Avatar({ avatarKey, size }: { avatarKey: FallbackAvatarKey; size: number }) {

@@ -48,6 +48,13 @@ const previewRows = [
   row(7, 7, "LSPForever", "lumpy-space-princess", 95, 715),
 ];
 
+const topSevenCurrentPlayer = row(5, 5, "BMO Player", "bmo", 79, 763);
+const topSevenPreviewRows = [
+  ...previewRows.slice(0, 4),
+  topSevenCurrentPlayer,
+  ...previewRows.slice(5),
+];
+
 export const RANKINGS_PREVIEW_DATA: LeaderboardResponse = {
   board: {
     key: "perfect-timing/official",
@@ -85,4 +92,12 @@ export const RANKINGS_PREVIEW_DATA: LeaderboardResponse = {
     displayMax: 1_000,
     weeklyRule: "average_best_3",
   },
+};
+
+export const RANKINGS_TOP_SEVEN_PREVIEW_DATA: LeaderboardResponse = {
+  ...RANKINGS_PREVIEW_DATA,
+  podium: topSevenPreviewRows.slice(0, 3),
+  rows: topSevenPreviewRows,
+  currentPlayer: topSevenCurrentPlayer,
+  pageInfo: { nextCursor: null, hasNextPage: false },
 };
