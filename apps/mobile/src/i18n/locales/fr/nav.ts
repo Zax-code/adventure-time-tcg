@@ -5,6 +5,7 @@ const nav = {
   collection: "Collection",
   gifts: "Cadeaux",
   quests: "Quêtes",
+  rankings: "Classements",
 };
 
 export default nav;

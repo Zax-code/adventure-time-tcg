@@ -1,0 +1,22 @@
+appId: love.leaetzak.adventuretime
+name: Rankings focused screenshots
+tags:
+  - rankings
+  - screenshots
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- openLink:
+    link: adventure-time:///e2e-auth?redirect=%2F%28tabs%29%2Frankings%3Fpreview%3D1&email=${TEST_EMAIL_URI}&password=${TEST_PASSWORD_URI}
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- assertVisible:
+    id: rankings-screen
+- waitForAnimationToEnd
+- takeScreenshot: tmp-rankings-shots/01-rankings-top
+- swipe:
+    start: "50%,78%"
+    end: "50%,28%"
+    duration: 700
+- waitForAnimationToEnd
+- takeScreenshot: tmp-rankings-shots/02-rankings-lower
