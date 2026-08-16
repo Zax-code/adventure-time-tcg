@@ -30,7 +30,14 @@ defmodule AdventureTimeApiWeb.LeaderboardsController do
   end
 
   def show(conn, %{"quest" => quest, "mode" => mode, "period" => period}) do
-    case Query.fetch(quest, mode, period, conn.assigns.auth_user.id) do
+    result =
+      if period == "history" do
+        Query.history(quest, mode, conn.assigns.auth_user.id)
+      else
+        Query.fetch(quest, mode, period, conn.assigns.auth_user.id)
+      end
+
+    case result do
       {:ok, payload} ->
         json(conn, payload)
 

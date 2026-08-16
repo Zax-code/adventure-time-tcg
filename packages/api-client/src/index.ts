@@ -30,6 +30,7 @@ import {
   pvpSpectateResponseSchema,
   pvpSpectateDetailResponseSchema,
   leaderboardBoardsResponseSchema,
+  leaderboardHistoryResponseSchema,
   leaderboardResponseSchema,
   publicLeaderboardProfileSchema,
   updateDisplayNameSchema,
@@ -135,6 +136,7 @@ import {
   type PvpSpectateDetailResponse,
   type LeaderboardBoardKey,
   type LeaderboardBoardsResponse,
+  type LeaderboardHistoryResponse,
   type LeaderboardResponse,
   type PublicLeaderboardProfile,
   type AppleAuthInput,
@@ -1400,6 +1402,18 @@ export class ApiClient {
       )}?${query.toString()}`,
       { method: "GET" },
       (data) => leaderboardResponseSchema.parse(data),
+    );
+  }
+
+  async leaderboardHistory(
+    boardKey: LeaderboardBoardKey,
+  ): Promise<LeaderboardHistoryResponse> {
+    const [quest, mode] = boardKey.split("/");
+
+    return this.request(
+      `/leaderboards/${encodeURIComponent(quest)}/${encodeURIComponent(mode)}?period=history`,
+      { method: "GET" },
+      (data) => leaderboardHistoryResponseSchema.parse(data),
     );
   }
 

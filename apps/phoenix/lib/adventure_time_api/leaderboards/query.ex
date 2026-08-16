@@ -28,31 +28,63 @@ defmodule AdventureTimeApi.Leaderboards.Query do
            Repo.get_by(Snapshot, period_id: period.id, board_id: board.id, current: true),
          %ScoringVersion{} = scoring_version <-
            Repo.get(ScoringVersion, snapshot.scoring_version_id) do
-      rows = fetch_rows(snapshot.id, @visible_row_limit + 1)
-      visible_rows = Enum.take(rows, @visible_row_limit)
-      projected_rows = Enum.map(visible_rows, &project_row(&1, period))
-      current_player_row = find_current_player(snapshot.id, current_user_id, period)
-
-      {:ok,
-       %{
-         board: project_board(board),
-         period: project_period(period, snapshot),
-         podium: Enum.filter(projected_rows, &(&1.rank <= 3)),
-         rows: projected_rows,
-         currentPlayer: current_player_row,
-         pendingCurrentPlayerResult: nil,
-         qualification: qualification(board.id, period, current_user_id, current_player_row),
-         pageInfo: %{nextCursor: nil, hasNextPage: length(rows) > @visible_row_limit},
-         scoring: %{
-           version: scoring_version.version,
-           displayMax: 1_000,
-           weeklyRule: "average_best_3"
-         }
-       }}
+      {:ok, build_payload(board, period, snapshot, scoring_version, current_user_id)}
     else
       nil -> {:error, :period_unavailable}
       {:error, reason} -> {:error, reason}
     end
+  end
+
+  @spec history(String.t(), String.t(), Ecto.UUID.t()) :: {:ok, map()} | {:error, atom()}
+  def history(quest, mode, current_user_id) do
+    with %Board{} = board <- Repo.get_by(Board, key: "#{quest}/#{mode}", enabled: true) do
+      weeks =
+        from(period in Period,
+          join: snapshot in Snapshot,
+          on:
+            snapshot.period_id == period.id and snapshot.board_id == ^board.id and
+              snapshot.current,
+          join: scoring_version in ScoringVersion,
+          on: scoring_version.id == snapshot.scoring_version_id,
+          where:
+            period.period_type == :week and period.status in [:closed, :corrected] and
+              period.origin == :verified,
+          order_by: [desc: period.week_start],
+          limit: 12,
+          select: {period, snapshot, scoring_version}
+        )
+        |> Repo.all()
+        |> Enum.map(fn {period, snapshot, scoring_version} ->
+          build_payload(board, period, snapshot, scoring_version, current_user_id)
+        end)
+
+      {:ok, %{weeks: weeks}}
+    else
+      nil -> {:error, :period_unavailable}
+    end
+  end
+
+  defp build_payload(board, period, snapshot, scoring_version, current_user_id) do
+    rows = fetch_rows(snapshot.id, @visible_row_limit + 1)
+    visible_rows = Enum.take(rows, @visible_row_limit)
+    projected_rows = Enum.map(visible_rows, &project_row(&1, period))
+    current_player_row = find_current_player(snapshot.id, current_user_id, period)
+
+    %{
+      board: project_board(board),
+      period: project_period(period, snapshot),
+      podium: Enum.filter(projected_rows, &(&1.rank <= 3)),
+      rows: projected_rows,
+      currentPlayer: current_player_row,
+      pendingCurrentPlayerResult: nil,
+      qualification: qualification(board.id, period, current_user_id, current_player_row),
+      pageInfo: %{nextCursor: nil, hasNextPage: length(rows) > @visible_row_limit},
+      scoring: %{
+        version: scoring_version.version,
+        displayMax: 1_000,
+        weeklyRule: "average_best_3"
+      }
+    }
   end
 
   defp fetch_period(board_id, "yesterday") do
@@ -197,7 +229,9 @@ defmodule AdventureTimeApi.Leaderboards.Query do
       serverNow: DateTime.utc_now(),
       revision: snapshot.revision,
       provisional: period.status in [:open, :closing],
-      standingsThrough: period.competition_date,
+      standingsThrough:
+        period.competition_date ||
+          (period.week_start && Date.add(period.week_start, 6)),
       prizesEnabled: period.prizes_allowed
     }
   end

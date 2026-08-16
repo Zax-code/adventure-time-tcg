@@ -8,6 +8,7 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import type {
   FallbackAvatarKey,
   LeaderboardBoardKey,
+  LeaderboardHistoryResponse,
   LeaderboardResponse,
   LeaderboardRow,
 } from "@adventure-time/api-client";
@@ -80,6 +81,26 @@ export function RankingsScreen() {
   const [boardKey, setBoardKey] = useState<LeaderboardBoardKey>(
     "perfect-timing/official",
   );
+  const modeOptions = useMemo(() => {
+    if (boardKey.startsWith("daily-numbers/")) {
+      return [
+        { key: "daily-numbers/family", label: t("rankings.modes.combined") },
+        { key: "daily-numbers/1-5", label: "1–5" },
+        { key: "daily-numbers/2-4", label: "2–4" },
+        { key: "daily-numbers/3-3", label: "3–3" },
+      ] as const;
+    }
+
+    if (boardKey.startsWith("wordle/")) {
+      return [
+        { key: "wordle/family", label: t("rankings.modes.combined") },
+        { key: "wordle/fr", label: t("rankings.modes.french") },
+        { key: "wordle/en", label: t("rankings.modes.english") },
+      ] as const;
+    }
+
+    return [];
+  }, [boardKey, t]);
 
   const {
     data: queryData,
@@ -97,12 +118,30 @@ export function RankingsScreen() {
     retry: 1,
   });
 
+  const {
+    data: historyData,
+    error: historyError,
+    isError: historyIsError,
+    isLoading: historyIsLoading,
+    refetch: refetchHistory,
+  } = useQuery({
+    queryKey: ["leaderboard-history", boardKey],
+    queryFn: () => apiClient.leaderboardHistory(boardKey),
+    enabled: !isPreview && period === "history",
+    staleTime: 5 * 60_000,
+    retry: 1,
+  });
+
   useFocusEffect(
     useCallback(() => {
-      if (!isPreview && period !== "history") {
-        void refetchLeaderboard();
+      if (!isPreview) {
+        if (period === "history") {
+          void refetchHistory();
+        } else {
+          void refetchLeaderboard();
+        }
       }
-    }, [isPreview, period, refetchLeaderboard]),
+    }, [isPreview, period, refetchHistory, refetchLeaderboard]),
   );
 
   const data = useMemo<LeaderboardResponse | undefined>(() => {
@@ -171,7 +210,11 @@ export function RankingsScreen() {
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-3">
         {BOARD_OPTIONS.map((option) => {
-          const selected = option.key === boardKey;
+          const selected =
+            option.key === boardKey ||
+            (option.key.startsWith("daily-numbers/") &&
+              boardKey.startsWith("daily-numbers/")) ||
+            (option.key.startsWith("wordle/") && boardKey.startsWith("wordle/"));
           const Icon = option.icon;
           return (
             <Pressable key={option.key} onPress={() => setBoardKey(option.key)}>
@@ -198,8 +241,48 @@ export function RankingsScreen() {
         })}
       </ScrollView>
 
+      {modeOptions.length ? (
+        <View className="flex-row flex-wrap gap-2">
+          {modeOptions.map((option) => {
+            const selected = option.key === boardKey;
+
+            return (
+              <Pressable
+                key={option.key}
+                onPress={() => setBoardKey(option.key)}
+                className={`rounded-full border px-4 py-2 ${
+                  selected
+                    ? "border-primaryBorder bg-primaryTint"
+                    : "border-primaryBorder bg-surface"
+                }`}
+              >
+                <Text
+                  className={`font-nunito-bold text-sm ${
+                    selected ? "text-primaryText" : "text-fgMuted"
+                  }`}
+                >
+                  {option.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      ) : null}
+
       {period === "history" ? (
-        <EmptyPanel title={t("rankings.historyTitle")} body={t("rankings.historyBody")} />
+        historyIsLoading && !isPreview ? (
+          <PageLoadingState
+            title={t("rankings.loadingTitle")}
+            message={t("rankings.loadingBody")}
+            icon="trophy"
+          />
+        ) : historyIsError && !isPreview ? (
+          <PageErrorState error={historyError} onRetry={() => void refetchHistory()} />
+        ) : historyData?.weeks.length ? (
+          <HistoryContent history={historyData} />
+        ) : (
+          <EmptyPanel title={t("rankings.historyTitle")} body={t("rankings.historyBody")} />
+        )
       ) : queryIsLoading && !isPreview ? (
         <PageLoadingState
           title={t("rankings.loadingTitle")}
@@ -234,7 +317,9 @@ function RankingsContent({ data, preview }: { data: LeaderboardResponse; preview
       <View className="rounded-2xl bg-primaryTint px-4 py-3">
         <Text selectable className="text-center font-nunito-bold text-sm text-primaryText">
           {data.period.standingsThrough
-            ? t("rankings.standingsThrough", { date: data.period.standingsThrough })
+            ? data.period.provisional
+              ? t("rankings.standingsThrough", { date: data.period.standingsThrough })
+              : t("rankings.closedThrough", { date: data.period.standingsThrough })
             : t("rankings.provisional")}
         </Text>
       </View>
@@ -277,6 +362,23 @@ function RankingsContent({ data, preview }: { data: LeaderboardResponse; preview
           {t("rankings.scoringHelp")}
         </Text>
       </View>
+    </View>
+  );
+}
+
+function HistoryContent({ history }: { history: LeaderboardHistoryResponse }) {
+  const { t } = useTranslation();
+
+  return (
+    <View className="gap-6">
+      {history.weeks.map((week) => (
+        <View key={week.period.startsAt} className="gap-3">
+          <Text className="px-1 font-nunito-extrabold text-xl text-fg">
+            {t("rankings.weekEnding", { date: week.period.standingsThrough ?? "" })}
+          </Text>
+          <RankingsContent data={week} preview={false} />
+        </View>
+      ))}
     </View>
   );
 }

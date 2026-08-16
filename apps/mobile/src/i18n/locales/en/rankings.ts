@@ -7,10 +7,12 @@ const rankings = {
   you: "You",
   provisional: "Provisional — some timezones are still playing",
   standingsThrough: "Provisional standings through {date}",
+  closedThrough: "Final standings through {date}",
+  weekEnding: "Week ending {date}",
   scoringHelp: "How scoring works",
   profileTapHint: "Tap any adventurer to see their crowns and achievements",
   historyTitle: "Weekly history",
-  historyBody: "Closed competition weeks will appear here once rankings launch.",
+  historyBody: "No closed competition weeks yet.",
   periods: {
     yesterday: "Yesterday",
     current_week: "This week",
@@ -22,6 +24,11 @@ const rankings = {
     wordle: "Wordle",
     speedCalculus: "Speed Calculus",
     perfectTiming: "Perfect Timing",
+  },
+  modes: {
+    combined: "Combined",
+    french: "French",
+    english: "English",
   },
   profile: {
     title: "Player profile",

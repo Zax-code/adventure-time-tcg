@@ -110,6 +110,11 @@ defmodule AdventureTimeApi.Leaderboards.LifecycleTest do
            |> Repo.all()
            |> Enum.map(& &1.balance)
            |> Enum.sort() == [3, 3, 3]
+
+    assert {:ok, %{weeks: [history]}} = Query.history("steps", "default", hd(users).id)
+    assert history.period.status == :closed
+    assert history.period.standingsThrough == ~D[2026-08-23]
+    assert Enum.map(history.rows, & &1.rank) == [1, 1, 1]
   end
 
   defp activate! do

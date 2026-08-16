@@ -137,6 +137,10 @@ export const leaderboardResponseSchema = z.object({
   }),
 });
 
+export const leaderboardHistoryResponseSchema = z.object({
+  weeks: z.array(leaderboardResponseSchema),
+});
+
 export const publicLeaderboardProfileSchema = z.object({
   profile: leaderboardPublicIdentitySchema,
   crowns: z.object({
@@ -178,6 +182,9 @@ export type LeaderboardBoardsResponse = z.infer<
 >;
 export type LeaderboardRow = z.infer<typeof leaderboardRowSchema>;
 export type LeaderboardResponse = z.infer<typeof leaderboardResponseSchema>;
+export type LeaderboardHistoryResponse = z.infer<
+  typeof leaderboardHistoryResponseSchema
+>;
 export type PublicLeaderboardProfile = z.infer<
   typeof publicLeaderboardProfileSchema
 >;
