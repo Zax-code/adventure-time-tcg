@@ -67,6 +67,25 @@ defmodule AdventureTimeApiWeb.QuestsController do
     conn |> put_status(400) |> json(%{error: "mode is required"})
   end
 
+  def start_daily_numbers_ranked(conn, %{"mode" => mode}) do
+    timed_action(conn, "start_daily_numbers_ranked", fn conn, user_id ->
+      case Quests.start_daily_numbers_ranked(user_id, mode) do
+        {:ok, payload} ->
+          json(conn, payload)
+
+        {:error, :invalid_daily_numbers_mode} ->
+          conn
+          |> put_status(400)
+          |> json(%{error: "Unsupported Daily Numbers mode", code: "INVALID_DAILY_NUMBERS_MODE"})
+
+        {:error, reason} ->
+          conn
+          |> put_status(422)
+          |> json(%{error: "Ranked session unavailable", code: to_string(reason)})
+      end
+    end)
+  end
+
   # POST /quests/daily-numbers/submit
   def submit_daily_numbers(conn, %{"mode" => mode, "dateKey" => date_key, "steps" => steps}) do
     expected_quest_version = Map.get(conn.body_params, "questVersion")

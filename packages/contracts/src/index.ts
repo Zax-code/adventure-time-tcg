@@ -141,6 +141,36 @@ export const leaderboardHistoryResponseSchema = z.object({
   weeks: z.array(leaderboardResponseSchema),
 });
 
+export const leaderboardHistoryDaysResponseSchema = z.object({
+  days: z.array(leaderboardResponseSchema),
+});
+
+export const leaderboardResultExclusionSchema = z.object({
+  reason: z.string().trim().min(8),
+});
+
+export const leaderboardCorrectionPreviewSchema = z.object({
+  reason: z.string().trim().min(8),
+  excludeUserIds: z.array(z.string().uuid()).min(1),
+});
+
+export const leaderboardCorrectionConfirmSchema = z.object({
+  previewHash: z.string().min(1),
+  confirm: z.literal(true),
+});
+
+export const leaderboardCorrectionResponseSchema = z.object({
+  id: z.string().uuid(),
+  sourceSnapshotId: z.string().uuid(),
+  sourceRevision: z.number().int().positive(),
+  status: z.enum(["previewed", "applied"]),
+  previewHash: z.string(),
+  proposedChanges: z.record(z.unknown()),
+  rankDelta: z.record(z.unknown()),
+  rewardDelta: z.record(z.unknown()),
+  resultingSnapshotId: z.string().uuid().nullable(),
+});
+
 export const publicLeaderboardProfileSchema = z.object({
   profile: leaderboardPublicIdentitySchema,
   crowns: z.object({
@@ -184,6 +214,21 @@ export type LeaderboardRow = z.infer<typeof leaderboardRowSchema>;
 export type LeaderboardResponse = z.infer<typeof leaderboardResponseSchema>;
 export type LeaderboardHistoryResponse = z.infer<
   typeof leaderboardHistoryResponseSchema
+>;
+export type LeaderboardHistoryDaysResponse = z.infer<
+  typeof leaderboardHistoryDaysResponseSchema
+>;
+export type LeaderboardResultExclusionInput = z.infer<
+  typeof leaderboardResultExclusionSchema
+>;
+export type LeaderboardCorrectionPreviewInput = z.infer<
+  typeof leaderboardCorrectionPreviewSchema
+>;
+export type LeaderboardCorrectionConfirmInput = z.infer<
+  typeof leaderboardCorrectionConfirmSchema
+>;
+export type LeaderboardCorrectionResponse = z.infer<
+  typeof leaderboardCorrectionResponseSchema
 >;
 export type PublicLeaderboardProfile = z.infer<
   typeof publicLeaderboardProfileSchema

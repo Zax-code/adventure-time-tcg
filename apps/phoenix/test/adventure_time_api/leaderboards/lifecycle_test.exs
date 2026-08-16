@@ -7,6 +7,7 @@ defmodule AdventureTimeApi.Leaderboards.LifecycleTest do
 
   alias AdventureTimeApi.Leaderboards.{
     Configuration,
+    Corrections,
     DailyResult,
     Lifecycle,
     Period,
@@ -14,6 +15,8 @@ defmodule AdventureTimeApi.Leaderboards.LifecycleTest do
     QuestResults,
     RewardGrant,
     RewardWallet,
+    Scoring,
+    ScoringVersion,
     Snapshot,
     SnapshotRow,
     UserAchievement
@@ -62,6 +65,68 @@ defmodule AdventureTimeApi.Leaderboards.LifecycleTest do
 
     assert {:ok, weekly} = Query.fetch("steps", "default", "current_week", user.id)
     assert weekly.pendingCurrentPlayerResult == %{"kind" => "steps", "steps" => 12_000}
+  end
+
+  test "Monday reconciliation still includes the prior Sunday before global closure" do
+    user = insert_user!("sunday-reconcile")
+
+    %StepSnapshot{}
+    |> StepSnapshot.changeset(%{
+      user_id: user.id,
+      source: :device_health,
+      step_count: 18_000,
+      recorded_for: ~D[2026-08-23]
+    })
+    |> Repo.insert!()
+
+    assert :ok = Lifecycle.tick(~U[2026-08-24 12:00:00.000000Z])
+
+    assert Repo.get_by(DailyResult,
+             user_id: user.id,
+             competition_date: ~D[2026-08-23],
+             active: true
+           )
+  end
+
+  test "an open period retains its scoring version across a Monday activation" do
+    activate!()
+    assert :ok = Lifecycle.tick(~U[2026-08-23 12:00:00.000000Z])
+
+    prior_week = Repo.get_by!(Period, period_type: :week, week_start: ~D[2026-08-17])
+    launch_version_id = prior_week.scoring_version_id
+
+    configuration =
+      Scoring.launch_configuration()
+      |> Map.put(:version, "2026-W35-v2")
+      |> Map.put(:effective_competition_week, ~D[2026-08-24])
+
+    version =
+      %ScoringVersion{}
+      |> ScoringVersion.changeset(%{
+        version: configuration.version,
+        schema_version: configuration.schema_version,
+        configuration: Jason.decode!(Jason.encode!(configuration)),
+        configuration_hash: Configuration.configuration_hash(configuration),
+        effective_week_start: ~D[2026-08-24],
+        status: :scheduled
+      })
+      |> Repo.insert!()
+
+    assert :ok = Lifecycle.tick(~U[2026-08-24 20:16:00.000000Z])
+
+    prior_week = Repo.reload!(prior_week)
+    current_week = Repo.get_by!(Period, period_type: :week, week_start: ~D[2026-08-24])
+    assert prior_week.scoring_version_id == launch_version_id
+    assert current_week.scoring_version_id == version.id
+
+    prior_snapshot =
+      Repo.get_by!(Snapshot,
+        period_id: prior_week.id,
+        board_id: board_id("steps/default"),
+        current: true
+      )
+
+    assert prior_snapshot.scoring_version_id == launch_version_id
   end
 
   test "closes local-date results and ranks the best three in the current week", _context do
@@ -155,14 +220,88 @@ defmodule AdventureTimeApi.Leaderboards.LifecycleTest do
     assert history.period.standingsThrough == ~D[2026-08-23]
     assert Enum.map(history.rows, & &1.rank) == [1, 1, 1]
 
+    assert {:ok, %{days: days}} =
+             Query.history_days("steps", "default", "2026-08-17", hd(users).id)
+
+    assert Enum.any?(days, &(&1.period.standingsThrough == ~D[2026-08-17]))
+
     deleted_user = hd(users)
+
+    deleted_row_id =
+      Repo.get_by!(SnapshotRow, snapshot_id: snapshot.id, user_id: deleted_user.id).id
+
     assert {:ok, %{success: true}} = Accounts.delete_own_account(deleted_user.id)
 
-    deleted_row = Repo.get_by!(SnapshotRow, snapshot_id: snapshot.id, position: 1)
+    deleted_row = Repo.get!(SnapshotRow, deleted_row_id)
     assert is_nil(deleted_row.user_id)
     assert is_nil(deleted_row.public_profile_id)
     assert deleted_row.identity_audit == %{}
     assert is_binary(deleted_row.anonymous_tombstone)
+  end
+
+  test "audited corrections supersede snapshots and reconcile weekly prizes" do
+    [first, second, third] = users = Enum.map(1..3, &insert_user!("correction-#{&1}"))
+    activate!()
+
+    Enum.zip(users, [30_000, 20_000, 10_000])
+    |> Enum.each(fn {user, steps} ->
+      Enum.each(0..2, fn offset ->
+        insert_and_sync_steps!(user, Date.add(~D[2026-08-17], offset), steps)
+      end)
+    end)
+
+    assert :ok = Lifecycle.tick(~U[2026-08-24 20:16:00.000000Z])
+    week = Repo.get_by!(Period, period_type: :week, week_start: ~D[2026-08-17])
+
+    source =
+      Repo.get_by!(Snapshot,
+        period_id: week.id,
+        board_id: board_id("steps/default"),
+        current: true
+      )
+
+    actor = %{id: third.id, isSuperAdmin: true}
+
+    assert {:ok, preview} =
+             Corrections.preview(source.id, actor, "Invalid winning result", [first.id])
+
+    assert preview.sourceRevision == 1
+    assert preview.rankDelta[first.id] == %{"before" => 1, "after" => nil}
+
+    assert {:ok, applied} =
+             Corrections.confirm(source.id, actor, preview.previewHash, true)
+
+    replacement = Repo.get!(Snapshot, applied.resultingSnapshotId)
+    assert replacement.current
+    assert replacement.revision == 2
+    assert replacement.supersedes_snapshot_id == source.id
+    assert Repo.reload!(source).status == :superseded
+
+    replacement_id = replacement.id
+
+    assert SnapshotRow
+           |> where([row], row.snapshot_id == ^replacement_id)
+           |> Repo.all()
+           |> Enum.sort_by(& &1.position)
+           |> Enum.map(&{&1.user_id, &1.rank, &1.medal_tier}) == [
+             {second.id, 1, :gold},
+             {third.id, 2, :silver}
+           ]
+
+    balances =
+      RewardWallet
+      |> Repo.all()
+      |> Map.new(&{{&1.user_id, &1.crown_family}, &1.balance})
+
+    assert balances[{first.id, :steps}] == 0
+    assert balances[{second.id, :steps}] == 3
+    assert balances[{third.id, :steps}] == 2
+    assert Repo.aggregate(from(grant in RewardGrant, where: grant.status == :active), :count) == 2
+
+    assert Repo.aggregate(
+             from(achievement in UserAchievement, where: achievement.status == :active),
+             :count
+           ) == 2
   end
 
   defp activate! do

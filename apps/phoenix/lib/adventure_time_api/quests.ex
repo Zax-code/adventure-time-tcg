@@ -10,7 +10,7 @@ defmodule AdventureTimeApi.Quests do
   alias AdventureTimeApi.Accounts.User
   alias AdventureTimeApi.Fitbit
   alias AdventureTimeApi.Health
-  alias AdventureTimeApi.Leaderboards.QuestResults
+  alias AdventureTimeApi.Leaderboards.{QuestResults, RankedSessions}
 
   alias AdventureTimeApi.Quests.{
     DailyNumbersArchiveAttempt,
@@ -489,6 +489,28 @@ defmodule AdventureTimeApi.Quests do
     end
   end
 
+  def start_daily_numbers_ranked(user_id, mode) do
+    with {:ok, normalized_mode} <- normalize_daily_numbers_mode(mode),
+         %User{} = user <- Repo.get(User, user_id),
+         date = current_reset_date_for_user(user_id) do
+      materialize_daily_quests(user_id, date)
+
+      with nil <- get_daily_numbers_attempt(user_id, date, normalized_mode),
+           {:ok, _session} <- RankedSessions.start_daily_numbers(user, date, normalized_mode) do
+        {:ok, build_daily_numbers_state(user_id, date, normalized_mode)}
+      else
+        %DailyNumbersDailyAttempt{} ->
+          {:ok, build_daily_numbers_state(user_id, date, normalized_mode)}
+
+        error ->
+          error
+      end
+    else
+      nil -> {:error, :user_not_found}
+      error -> error
+    end
+  end
+
   def submit_daily_numbers(
         user_id,
         mode,
@@ -569,7 +591,14 @@ defmodule AdventureTimeApi.Quests do
             end)
             |> Repo.transaction()
             |> case do
-              {:ok, _changes} ->
+              {:ok, %{daily_numbers_attempt: attempt}} ->
+                RankedSessions.settle_daily_numbers(
+                  user_id,
+                  date,
+                  normalized_mode,
+                  attempt.id
+                )
+
                 QuestResults.sync_safely(
                   user_id,
                   date,
@@ -1209,6 +1238,22 @@ defmodule AdventureTimeApi.Quests do
     else
       {:error, reason} -> {:error, reason}
     end
+  end
+
+  @doc "Settles globally expired ranked runs for quest-owned background reconciliation."
+  @spec settle_expired_speed_calculus_runs_since(Date.t(), DateTime.t()) ::
+          {non_neg_integer(), nil}
+  def settle_expired_speed_calculus_runs_since(%Date{} = since, %DateTime{} = now \\ now_utc()) do
+    expiration_cutoff =
+      DateTime.add(now, -SpeedCalculusEngine.finish_grace_seconds(), :second)
+
+    SpeedCalculusDailyRun
+    |> where(
+      [run],
+      run.date >= ^since and run.status == "in_progress" and is_nil(run.manual_paused_at) and
+        run.play_deadline_at < ^expiration_cutoff
+    )
+    |> Repo.update_all(set: [status: "abandoned", score: 0, reward: 0, finished_at: now])
   end
 
   @doc "Cash out: lock the speed calculus quest early with the best run's reward."

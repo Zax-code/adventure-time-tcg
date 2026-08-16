@@ -13,13 +13,18 @@ defmodule AdventureTimeApi.Leaderboards.QuestResults do
   alias AdventureTimeApi.Accounts.User
   alias AdventureTimeApi.Health.StepSnapshot
 
-  alias AdventureTimeApi.Leaderboards.{Calendar, Configuration, ResultRecorder, Slots}
+  alias AdventureTimeApi.Leaderboards.{
+    Calendar,
+    Configuration,
+    RankedSession,
+    ResultRecorder,
+    Slots
+  }
 
   alias AdventureTimeApi.Quests.{
     DailyNumbersDailyAttempt,
     PerfectTimingAttempt,
     SpeedCalculusDailyRun,
-    SpeedCalculusEngine,
     WordleDailyAttempt
   }
 
@@ -91,9 +96,14 @@ defmodule AdventureTimeApi.Leaderboards.QuestResults do
   @spec reconcile_open_week(DateTime.t()) :: :ok
   def reconcile_open_week(now \\ DateTime.utc_now()) do
     today = DateTime.to_date(now)
-    since = max_date(Configuration.launch_date(), Date.beginning_of_week(today, :monday))
 
-    settle_expired_speed_runs(since, now)
+    since =
+      today
+      |> Date.beginning_of_week(:monday)
+      |> Date.add(-1)
+      |> max_date(Configuration.launch_date())
+
+    AdventureTimeApi.Quests.settle_expired_speed_calculus_runs_since(since, now)
 
     from(snapshot in StepSnapshot,
       join: user in User,
@@ -107,7 +117,11 @@ defmodule AdventureTimeApi.Leaderboards.QuestResults do
     |> Enum.each(fn {user_id, date, source} -> sync_safely(user_id, date, source) end)
 
     from(attempt in DailyNumbersDailyAttempt,
-      where: attempt.date >= ^since,
+      left_join: session in RankedSession,
+      on:
+        session.source_kind == "daily_numbers_daily_attempt" and session.source_id == attempt.id and
+          session.status == :settled and session.integrity_status == :accepted,
+      where: attempt.date >= ^since and (not attempt.exact or not is_nil(session.id)),
       select: {attempt.user_id, attempt.date, attempt.mode}
     )
     |> Repo.all()
@@ -140,17 +154,6 @@ defmodule AdventureTimeApi.Leaderboards.QuestResults do
     |> Enum.each(fn {user_id, date} -> sync_safely(user_id, date, :perfect_timing) end)
 
     :ok
-  end
-
-  defp settle_expired_speed_runs(since, now) do
-    cutoff = DateTime.add(now, -SpeedCalculusEngine.finish_grace_seconds(), :second)
-
-    from(run in SpeedCalculusDailyRun,
-      where:
-        run.date >= ^since and run.status == "in_progress" and is_nil(run.manual_paused_at) and
-          run.play_deadline_at < ^cutoff
-    )
-    |> Repo.update_all(set: [status: "abandoned", score: 0, reward: 0, finished_at: now])
   end
 
   defp max_date(first, second) do
@@ -186,26 +189,55 @@ defmodule AdventureTimeApi.Leaderboards.QuestResults do
       %DailyNumbersDailyAttempt{} = attempt ->
         outcome = if attempt.exact, do: "exact", else: "failed"
 
-        {:ok,
-         source_attrs(
-           "daily-numbers/#{mode}",
-           "daily_numbers_daily_attempt",
-           attempt.id,
-           %{
-             "kind" => "exact_completion_time",
-             "exact" => attempt.exact,
-             "elapsedMs" => attempt.elapsed_ms
-           },
-           attempt.elapsed_ms,
-           outcome,
-           attempt.inserted_at,
-           %{
-             exact: attempt.exact,
-             completed: attempt.completed,
-             elapsedMs: attempt.elapsed_ms,
-             distance: attempt.distance
-           }
-         )}
+        ranked_session =
+          Repo.get_by(RankedSession,
+            source_kind: "daily_numbers_daily_attempt",
+            source_id: attempt.id,
+            status: :settled,
+            integrity_status: :accepted
+          )
+
+        leaderboard_elapsed_ms =
+          case ranked_session do
+            %RankedSession{} = session ->
+              max(
+                DateTime.diff(session.server_ended_at, session.server_started_at, :millisecond),
+                0
+              )
+
+            nil when not attempt.exact ->
+              attempt.elapsed_ms
+
+            nil ->
+              nil
+          end
+
+        if is_nil(leaderboard_elapsed_ms) do
+          {:error, :untrusted_ranked_timing}
+        else
+          {:ok,
+           source_attrs(
+             "daily-numbers/#{mode}",
+             "daily_numbers_daily_attempt",
+             attempt.id,
+             %{
+               "kind" => "exact_completion_time",
+               "exact" => attempt.exact,
+               "elapsedMs" => leaderboard_elapsed_ms
+             },
+             leaderboard_elapsed_ms,
+             outcome,
+             attempt.inserted_at,
+             %{
+               exact: attempt.exact,
+               completed: attempt.completed,
+               clientElapsedMs: attempt.elapsed_ms,
+               serverElapsedMs: leaderboard_elapsed_ms,
+               distance: attempt.distance
+             }
+           )
+           |> Map.put(:ranked_session_id, ranked_session && ranked_session.id)}
+        end
 
       nil ->
         {:ok, :not_final}

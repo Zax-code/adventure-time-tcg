@@ -36,20 +36,19 @@ defmodule AdventureTimeApi.Leaderboards.Lifecycle do
   @spec tick(DateTime.t()) :: :ok | {:error, term()}
   def tick(now \\ DateTime.utc_now()) do
     with {:ok, _version} <- Configuration.ensure_launch_version(),
-         {:ok, version} <- Configuration.activate_due(now),
-         {:ok, configuration} <- Configuration.normalize(version.configuration) do
+         {:ok, _version} <- Configuration.activate_due(now) do
       QuestResults.reconcile_open_week(now)
       dates = competition_dates(Configuration.launch_date(), DateTime.to_date(now))
-      periods = Enum.map(dates, &ensure_day_period(&1, version, now))
+      periods = Enum.map(dates, &ensure_day_period(&1, now))
 
       weeks =
         dates
         |> Enum.map(&Date.beginning_of_week(&1, :monday))
         |> Enum.uniq()
-        |> Enum.map(&ensure_week_period(&1, version, now))
+        |> Enum.map(&ensure_week_period(&1, now))
 
-      Enum.each(periods, &finalize_day_if_due(&1, version, configuration, now))
-      Enum.each(weeks, &refresh_week(&1, version, configuration, now))
+      Enum.each(periods, &finalize_day_if_due(&1, now))
+      Enum.each(weeks, &refresh_week(&1, now))
       :ok
     else
       {:error, :not_yet_effective} -> :ok
@@ -72,7 +71,8 @@ defmodule AdventureTimeApi.Leaderboards.Lifecycle do
     |> Enum.sort(Date)
   end
 
-  defp ensure_day_period(date, version, now) do
+  defp ensure_day_period(date, now) do
+    {version, _configuration} = scoring_for_date!(date)
     starts_at = utc_midnight(date)
     closes_at = Calendar.publication_cutoff(date)
 
@@ -90,8 +90,15 @@ defmodule AdventureTimeApi.Leaderboards.Lifecycle do
     })
   end
 
-  defp ensure_week_period(today, version, now) do
+  defp ensure_week_period(today, now) do
     week_start = Date.beginning_of_week(today, :monday)
+
+    scoring_date =
+      if Date.compare(week_start, Configuration.launch_date()) == :lt,
+        do: Configuration.launch_date(),
+        else: week_start
+
+    {version, _configuration} = scoring_for_date!(scoring_date)
     starts_at = utc_midnight(week_start)
     ends_at = utc_midnight(Date.add(week_start, 7))
     closes_at = Calendar.publication_cutoff(Date.add(week_start, 6))
@@ -123,10 +130,12 @@ defmodule AdventureTimeApi.Leaderboards.Lifecycle do
     end
   end
 
-  defp finalize_day_if_due(period, version, configuration, now) do
+  defp finalize_day_if_due(period, now) do
     if DateTime.compare(now, period.closes_at) == :lt do
       :ok
     else
+      {version, configuration} = scoring_for_period!(period)
+
       period =
         if period.status in [:closed, :corrected] do
           period
@@ -149,7 +158,8 @@ defmodule AdventureTimeApi.Leaderboards.Lifecycle do
     end
   end
 
-  defp refresh_week(period, version, configuration, now) do
+  defp refresh_week(period, now) do
+    {version, configuration} = scoring_for_period!(period)
     closing = DateTime.compare(now, period.closes_at) != :lt
 
     period =
@@ -489,6 +499,22 @@ defmodule AdventureTimeApi.Leaderboards.Lifecycle do
       "avatarAssetId" => user.avatar_asset_id,
       "visibility" => Atom.to_string(user.public_profile_status)
     }
+  end
+
+  defp scoring_for_date!(date) do
+    case Configuration.for_date(date) do
+      {:ok, scoring} -> scoring
+      {:error, reason} -> raise "scoring unavailable for #{date}: #{inspect(reason)}"
+    end
+  end
+
+  defp scoring_for_period!(period) do
+    version = Repo.get!(AdventureTimeApi.Leaderboards.ScoringVersion, period.scoring_version_id)
+
+    case Configuration.normalize(version.configuration) do
+      {:ok, configuration} -> {version, configuration}
+      {:error, reason} -> raise "invalid period scoring configuration: #{inspect(reason)}"
+    end
   end
 
   defp utc_midnight(date), do: DateTime.new!(date, ~T[00:00:00], "Etc/UTC")

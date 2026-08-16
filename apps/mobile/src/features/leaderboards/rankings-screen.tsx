@@ -279,7 +279,7 @@ export function RankingsScreen() {
         ) : historyIsError && !isPreview ? (
           <PageErrorState error={historyError} onRetry={() => void refetchHistory()} />
         ) : historyData?.weeks.length ? (
-          <HistoryContent history={historyData} />
+          <HistoryContent boardKey={boardKey} history={historyData} />
         ) : (
           <EmptyPanel title={t("rankings.historyTitle")} body={t("rankings.historyBody")} />
         )
@@ -349,6 +349,16 @@ function RankingsContent({ data, preview }: { data: LeaderboardResponse; preview
         </View>
       ) : null}
 
+      {data.pendingCurrentPlayerResult ? (
+        <View className="rounded-[24px] border border-primaryBorder bg-infoTint px-4 py-3">
+          <Text className="text-center font-nunito-bold text-sm text-primaryText">
+            {t("rankings.pendingResult", {
+              result: formatRawResult(data.pendingCurrentPlayerResult),
+            })}
+          </Text>
+        </View>
+      ) : null}
+
       <View className="flex-row items-center justify-center gap-2 px-3 py-1">
         <TrophyIcon size={18} color="#DB2777" />
         <Text className="text-center font-nunito-semibold text-xs text-fgMuted">
@@ -366,19 +376,73 @@ function RankingsContent({ data, preview }: { data: LeaderboardResponse; preview
   );
 }
 
-function HistoryContent({ history }: { history: LeaderboardHistoryResponse }) {
-  const { t } = useTranslation();
-
+function HistoryContent({
+  boardKey,
+  history,
+}: {
+  boardKey: LeaderboardBoardKey;
+  history: LeaderboardHistoryResponse;
+}) {
   return (
     <View className="gap-6">
       {history.weeks.map((week) => (
-        <View key={week.period.startsAt} className="gap-3">
-          <Text className="px-1 font-nunito-extrabold text-xl text-fg">
-            {t("rankings.weekEnding", { date: week.period.standingsThrough ?? "" })}
-          </Text>
-          <RankingsContent data={week} preview={false} />
-        </View>
+        <HistoryWeek boardKey={boardKey} key={week.period.startsAt} week={week} />
       ))}
+    </View>
+  );
+}
+
+function HistoryWeek({
+  boardKey,
+  week,
+}: {
+  boardKey: LeaderboardBoardKey;
+  week: LeaderboardResponse;
+}) {
+  const { t } = useTranslation();
+  const [expanded, setExpanded] = useState(false);
+  const weekStart = week.period.startsAt.slice(0, 10);
+  const days = useQuery({
+    queryKey: ["leaderboard-history-days", boardKey, weekStart],
+    queryFn: () => apiClient.leaderboardHistoryDays(boardKey, weekStart),
+    enabled: expanded,
+    staleTime: 10 * 60_000,
+  });
+
+  return (
+    <View className="gap-3">
+      <Text className="px-1 font-nunito-extrabold text-xl text-fg">
+        {t("rankings.weekEnding", { date: week.period.standingsThrough ?? "" })}
+      </Text>
+      <RankingsContent data={week} preview={false} />
+      <Pressable
+        onPress={() => setExpanded((current) => !current)}
+        className="items-center rounded-full border border-primaryBorder bg-surface px-4 py-3"
+      >
+        <Text className="font-nunito-bold text-sm text-primaryText">
+          {t(expanded ? "rankings.hideDays" : "rankings.viewDays")}
+        </Text>
+      </Pressable>
+      {expanded && days.isLoading ? (
+        <PageLoadingState
+          title={t("rankings.loadingTitle")}
+          message={t("rankings.loadingBody")}
+          icon="trophy"
+        />
+      ) : expanded && days.isError ? (
+        <PageErrorState error={days.error} onRetry={() => void days.refetch()} />
+      ) : expanded ? (
+        <View className="gap-5 border-l-2 border-primaryBorder pl-3">
+          {days.data?.days.map((day) => (
+            <View key={day.period.startsAt} className="gap-2">
+              <Text className="font-nunito-extrabold text-base text-fg">
+                {day.period.standingsThrough}
+              </Text>
+              <RankingsContent data={day} preview={false} />
+            </View>
+          ))}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -477,12 +541,20 @@ function Avatar({ avatarKey, size }: { avatarKey: FallbackAvatarKey; size: numbe
 }
 
 function formatRaw(row: LeaderboardRow) {
-  const raw = row.rawResult;
+  return formatRawResult(row.rawResult);
+}
+
+function formatRawResult(raw: LeaderboardRow["rawResult"]) {
   if (raw.kind === "duration_error_ms") return `${raw.absoluteErrorMs} ms`;
   if (raw.kind === "steps") return raw.steps.toLocaleString();
   if (raw.kind === "correct_answers") return String(raw.correctAnswers);
   if (raw.kind === "wordle_outcome") return raw.outcome === "failed" ? "Failed" : `${raw.guesses}/6`;
   if (raw.kind === "exact_completion_time") return raw.exact ? `${(raw.elapsedMs / 1000).toFixed(1)} s` : "Not exact";
+  if (raw.kind === "member_breakdown") {
+    const values = Object.values(raw.members);
+    const average = values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
+    return `${Math.round(average / 1000)} pts`;
+  }
   return "—";
 }
 

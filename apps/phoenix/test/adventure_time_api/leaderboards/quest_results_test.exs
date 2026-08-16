@@ -7,7 +7,8 @@ defmodule AdventureTimeApi.Leaderboards.QuestResultsTest do
   alias AdventureTimeApi.Leaderboards.{
     Configuration,
     DailyResult,
-    QuestResults
+    QuestResults,
+    RankedSessions
   }
 
   alias AdventureTimeApi.Quests.{
@@ -69,6 +70,23 @@ defmodule AdventureTimeApi.Leaderboards.QuestResultsTest do
       })
       |> Repo.insert!()
 
+    assert {:ok, _session} =
+             RankedSessions.start_daily_numbers(
+               user,
+               date,
+               "1-5",
+               ~U[2026-08-17 11:59:15.000000Z]
+             )
+
+    assert {:ok, _session} =
+             RankedSessions.settle_daily_numbers(
+               user.id,
+               date,
+               "1-5",
+               daily_numbers.id,
+               ~U[2026-08-17 12:00:00.000000Z]
+             )
+
     wordle =
       %WordleDailyAttempt{}
       |> WordleDailyAttempt.changeset(%{
@@ -125,7 +143,7 @@ defmodule AdventureTimeApi.Leaderboards.QuestResultsTest do
 
     assert dn_result.raw_result == %{
              "kind" => "exact_completion_time",
-             "elapsedMs" => 30_000,
+             "elapsedMs" => 45_000,
              "exact" => true
            }
 
@@ -152,6 +170,31 @@ defmodule AdventureTimeApi.Leaderboards.QuestResultsTest do
            }
 
     assert Repo.aggregate(DailyResult, :count) == 4
+  end
+
+  test "rejects exact Daily Numbers results without server timing evidence", %{
+    user: user,
+    date: date
+  } do
+    %DailyNumbersDailyAttempt{}
+    |> DailyNumbersDailyAttempt.changeset(%{
+      user_id: user.id,
+      date: date,
+      mode: "1-5",
+      submitted_steps: [],
+      final_value: 42,
+      distance: 0,
+      score: 100,
+      exact: true,
+      completed: true,
+      elapsed_ms: 0
+    })
+    |> Repo.insert!()
+
+    assert {:error, :untrusted_ranked_timing} =
+             QuestResults.sync(user.id, date, {:daily_numbers, "1-5"})
+
+    assert Repo.aggregate(DailyResult, :count) == 0
   end
 
   test "does not record unfinished Wordle or Perfect Timing attempts", %{user: user, date: date} do

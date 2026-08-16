@@ -383,6 +383,12 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
       |> get(~p"/quests/daily-numbers?mode=1-5")
       |> json_response(200)
 
+    ranked_state =
+      access_token
+      |> auth_conn()
+      |> post(~p"/quests/daily-numbers/ranked-start", %{"mode" => "1-5"})
+      |> json_response(200)
+
     other_state =
       other_access_token
       |> auth_conn()
@@ -396,6 +402,8 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
       |> json_response(200)
 
     assert state["mode"] == "1-5"
+    assert ranked_state["numbers"] == state["numbers"]
+    assert ranked_state["target"] == state["target"]
     assert balanced_state["mode"] == "2-4"
     assert state["target"] == other_state["target"]
     assert state["numbers"] == other_state["numbers"]

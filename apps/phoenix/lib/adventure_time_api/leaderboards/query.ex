@@ -7,9 +7,11 @@ defmodule AdventureTimeApi.Leaderboards.Query do
 
   alias AdventureTimeApi.Leaderboards.{
     Board,
+    Configuration,
     DailyResult,
     Period,
     PublicProfiles,
+    Scoring,
     ScoringVersion,
     Snapshot,
     SnapshotRow
@@ -64,6 +66,38 @@ defmodule AdventureTimeApi.Leaderboards.Query do
     end
   end
 
+  def history_days(quest, mode, period_start, current_user_id) do
+    with %Board{} = board <- Repo.get_by(Board, key: "#{quest}/#{mode}", enabled: true),
+         {:ok, week_start} <- Date.from_iso8601(period_start) do
+      week_end = Date.add(week_start, 6)
+
+      days =
+        from(period in Period,
+          join: snapshot in Snapshot,
+          on:
+            snapshot.period_id == period.id and snapshot.board_id == ^board.id and
+              snapshot.current,
+          join: scoring_version in ScoringVersion,
+          on: scoring_version.id == snapshot.scoring_version_id,
+          where:
+            period.period_type == :day and period.status in [:closed, :corrected] and
+              period.competition_date >= ^week_start and period.competition_date <= ^week_end and
+              period.origin == :verified,
+          order_by: [asc: period.competition_date],
+          select: {period, snapshot, scoring_version}
+        )
+        |> Repo.all()
+        |> Enum.map(fn {period, snapshot, scoring_version} ->
+          build_payload(board, period, snapshot, scoring_version, current_user_id)
+        end)
+
+      {:ok, %{days: days}}
+    else
+      nil -> {:error, :period_unavailable}
+      {:error, _reason} -> {:error, :invalid_period}
+    end
+  end
+
   defp build_payload(board, period, snapshot, scoring_version, current_user_id) do
     rows = fetch_rows(snapshot.id, @visible_row_limit + 1)
     visible_rows = Enum.take(rows, @visible_row_limit)
@@ -76,7 +110,7 @@ defmodule AdventureTimeApi.Leaderboards.Query do
       podium: Enum.filter(projected_rows, &(&1.rank <= 3)),
       rows: projected_rows,
       currentPlayer: current_player_row,
-      pendingCurrentPlayerResult: pending_result(board.id, period, current_user_id),
+      pendingCurrentPlayerResult: pending_result(board, period, current_user_id, scoring_version),
       qualification: qualification(board.id, period, current_user_id, current_player_row),
       pageInfo: %{nextCursor: nil, hasNextPage: length(rows) > @visible_row_limit},
       scoring: %{
@@ -248,9 +282,47 @@ defmodule AdventureTimeApi.Leaderboards.Query do
     |> Repo.one()
   end
 
-  defp pending_result(_board_id, %Period{period_type: :day}, _user_id), do: nil
+  defp pending_result(_board, %Period{period_type: :day}, _user_id, _version), do: nil
 
-  defp pending_result(board_id, %Period{period_type: :week} = period, user_id) do
+  defp pending_result(%Board{board_kind: :source} = board, period, user_id, _version) do
+    pending_source_result(board.id, period, user_id)
+  end
+
+  defp pending_result(%Board{board_kind: :derived_family} = board, period, user_id, version) do
+    member_keys = Map.get(board.derived_members, "members", [])
+
+    member_boards =
+      Repo.all(
+        from(member in Board, where: member.key in ^member_keys, select: {member.id, member.key})
+      )
+
+    member_points =
+      member_boards
+      |> Enum.flat_map(fn {board_id, board_key} ->
+        case pending_source_daily_result(board_id, period, user_id) do
+          %DailyResult{} = result -> [{board_key, result.points_milli}]
+          nil -> []
+        end
+      end)
+      |> Map.new()
+
+    with true <- map_size(member_points) > 0,
+         {:ok, configuration} <- Configuration.normalize(version.configuration),
+         {:ok, derived} <- Scoring.derived(configuration, board.key, member_points) do
+      %{"kind" => "member_breakdown", "members" => derived.member_points_milli}
+    else
+      _ -> nil
+    end
+  end
+
+  defp pending_source_result(board_id, period, user_id) do
+    case pending_source_daily_result(board_id, period, user_id) do
+      %DailyResult{} = result -> result.raw_result
+      nil -> nil
+    end
+  end
+
+  defp pending_source_daily_result(board_id, %Period{period_type: :week} = period, user_id) do
     week_end = Date.add(period.week_start, 6)
 
     closed_dates =
@@ -269,7 +341,7 @@ defmodule AdventureTimeApi.Leaderboards.Query do
           result.competition_date <= ^week_end and result.competition_date not in ^closed_dates,
       order_by: [desc: result.competition_date, desc: result.accepted_at],
       limit: 1,
-      select: result.raw_result
+      select: result
     )
     |> Repo.one()
   end

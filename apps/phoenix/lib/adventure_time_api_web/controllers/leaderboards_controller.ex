@@ -72,4 +72,25 @@ defmodule AdventureTimeApiWeb.LeaderboardsController do
         |> json(%{error: "Public profile not found", code: "PUBLIC_PROFILE_NOT_FOUND"})
     end
   end
+
+  def history_days(conn, %{
+        "quest" => quest,
+        "mode" => mode,
+        "period_start" => period_start
+      }) do
+    case Query.history_days(quest, mode, period_start, conn.assigns.auth_user.id) do
+      {:ok, payload} ->
+        json(conn, payload)
+
+      {:error, :invalid_period} ->
+        conn
+        |> put_status(:bad_request)
+        |> json(%{error: "Invalid leaderboard period", code: "INVALID_LEADERBOARD_PERIOD"})
+
+      {:error, :period_unavailable} ->
+        conn
+        |> put_status(:not_found)
+        |> json(%{error: "Leaderboard unavailable", code: "LEADERBOARD_PERIOD_UNAVAILABLE"})
+    end
+  end
 end
