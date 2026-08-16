@@ -76,6 +76,7 @@ export function RankingsScreen() {
     process.env.EXPO_PUBLIC_E2E_AUTH === "1" && preview === "1";
   const isYesterdayPendingPreview =
     isPreview && previewState === "yesterday-pending";
+  const isLoadingPreview = isPreview && previewState === "loading";
   const { t } = useTranslation();
   const themeName = useThemeStore((state) => state.themeName);
   const tc = THEME_COLORS[themeName];
@@ -85,7 +86,7 @@ export function RankingsScreen() {
     isYesterdayPendingPreview ? "yesterday" : "current_week",
   );
   const [boardKey, setBoardKey] = useState<LeaderboardBoardKey>(
-    "perfect-timing/official",
+    isLoadingPreview ? "steps/default" : "perfect-timing/official",
   );
   const modeOptions = useMemo(() => {
     if (boardKey.startsWith("daily-numbers/")) {
@@ -151,12 +152,19 @@ export function RankingsScreen() {
   );
 
   const data = useMemo<LeaderboardResponse | undefined>(() => {
-    if (isYesterdayPendingPreview) return undefined;
+    if (isYesterdayPendingPreview || isLoadingPreview) return undefined;
     if (!isPreview) return queryData;
     const previewData =
       placement === "top7" ? RANKINGS_TOP_SEVEN_PREVIEW_DATA : RANKINGS_PREVIEW_DATA;
     return { ...previewData, board: { ...previewData.board, key: boardKey } };
-  }, [boardKey, isPreview, isYesterdayPendingPreview, placement, queryData]);
+  }, [
+    boardKey,
+    isLoadingPreview,
+    isPreview,
+    isYesterdayPendingPreview,
+    placement,
+    queryData,
+  ]);
 
   const isYesterdayPending =
     period === "yesterday" &&
@@ -230,24 +238,20 @@ export function RankingsScreen() {
           const Icon = option.icon;
           return (
             <Pressable key={option.key} onPress={() => setBoardKey(option.key)}>
-              {selected ? (
-                <LinearGradient
-                  colors={[tc.primaryStrong, tc.primary]}
-                  className="h-[92px] w-[106px] items-center justify-center gap-2 rounded-3xl border border-primaryBorder"
+              <View
+                className={`h-[92px] w-[106px] items-center justify-center gap-2 rounded-3xl border border-primaryBorder ${
+                  selected ? "bg-primaryText" : "bg-surface"
+                }`}
+              >
+                <Icon size={30} color={selected ? tc.surface : tc.primaryText} />
+                <Text
+                  className={`text-center font-nunito-bold text-xs ${
+                    selected ? "text-surface" : "text-primaryText"
+                  }`}
                 >
-                  <Icon size={30} color="#fff" />
-                  <Text className="text-center font-nunito-bold text-xs text-white">
-                    {t(option.labelKey)}
-                  </Text>
-                </LinearGradient>
-              ) : (
-                <View className="h-[92px] w-[106px] items-center justify-center gap-2 rounded-3xl border border-primaryBorder bg-surface">
-                  <Icon size={30} color={tc.primaryText} />
-                  <Text className="text-center font-nunito-bold text-xs text-primaryText">
-                    {t(option.labelKey)}
-                  </Text>
-                </View>
-              )}
+                  {t(option.labelKey)}
+                </Text>
+              </View>
             </Pressable>
           );
         })}
@@ -297,7 +301,7 @@ export function RankingsScreen() {
         )
       ) : isYesterdayPending ? (
         <YesterdayPendingPanel />
-      ) : queryIsLoading && !isPreview ? (
+      ) : isLoadingPreview || (queryIsLoading && !isPreview) ? (
         <PageLoadingState
           title={t("rankings.loadingTitle")}
           message={t("rankings.loadingBody")}
