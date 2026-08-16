@@ -53,33 +53,32 @@
   },
   "dependencies": {
     "react-native-svg": "15.15.4",
-    "react-native-worklets": "0.8.3"
+    "react-native-worklets": "0.10.1"
   },
   "devDependencies": {
     "@types/react": "~19.2.14",
-    "expo-router": "~56.2.15",
+    "expo-router": "~57.0.13",
     "patch-package": "^8.0.1",
     "react-doctor": "^0.6.0",
-    "react-native-screens": "4.25.2"
+    "react-native-screens": "4.26.2"
   },
   "overrides": {
-    "@expo/fingerprint": "0.19.8",
-    "@expo/log-box": "56.0.14",
+    "@expo/fingerprint": "0.20.7",
+    "@expo/log-box": "57.0.2",
     "nativewind": "4.2.3",
-    "expo": "56.0.16",
-    "expo-asset": "56.0.20",
-    "expo-constants": "56.0.21",
-    "expo-file-system": "56.0.8",
-    "expo-font": "56.0.7",
-    "expo-modules-core": "56.0.21",
-    "expo-modules-jsi": "56.0.12",
+    "expo": "57.0.13",
+    "expo-asset": "57.0.11",
+    "expo-constants": "57.0.11",
+    "expo-file-system": "57.0.3",
+    "expo-font": "57.0.1",
+    "expo-modules-core": "57.0.11",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native-css-interop": "0.2.3",
-    "react-native-gesture-handler": "2.31.2",
-    "react-native-reanimated": "4.3.1",
+    "react-native-gesture-handler": "2.32.0",
+    "react-native-reanimated": "4.5.1",
     "react-native-safe-area-context": "5.7.0",
-    "react-native-screens": "4.25.2",
-    "react-native-worklets": "0.8.3"
+    "react-native-screens": "4.26.2",
+    "react-native-worklets": "0.10.1"
   }
 }

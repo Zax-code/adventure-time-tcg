@@ -6,12 +6,10 @@ import android.content.res.Configuration
 import com.facebook.react.PackageList
 import com.facebook.react.ReactApplication
 import com.facebook.react.ReactNativeApplicationEntryPoint.loadReactNative
-import com.facebook.react.ReactNativeHost
 import com.facebook.react.ReactPackage
 import com.facebook.react.ReactHost
 import com.facebook.react.common.ReleaseLevel
 import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint
-import com.facebook.react.defaults.DefaultReactNativeHost
 
 import expo.modules.ApplicationLifecycleDispatcher
 import expo.modules.ExpoReactHostFactory
@@ -27,26 +25,15 @@ class MainApplication : Application(), ReactApplication {
   private val jsMainModulePath = ".expo/.virtual-metro-entry"
   private val jsBundleAssetPath = "index.android.bundle"
 
-  override val reactNativeHost: ReactNativeHost =
-    object : DefaultReactNativeHost(this) {
-      override fun getPackages(): List<ReactPackage> =
-        packageList
-
-      override fun getJSMainModuleName(): String = jsMainModulePath
-
-      override fun getUseDeveloperSupport(): Boolean = BuildConfig.DEBUG
-
-      override val isNewArchEnabled: Boolean = BuildConfig.IS_NEW_ARCHITECTURE_ENABLED
-    }
-
-  override val reactHost: ReactHost
-    get() = ExpoReactHostFactory.getDefaultReactHost(
+  override val reactHost: ReactHost by lazy {
+    ExpoReactHostFactory.getDefaultReactHost(
       context = applicationContext,
       packageList = packageList,
       jsMainModulePath = jsMainModulePath,
       jsBundleAssetPath = jsBundleAssetPath,
       useDevSupport = BuildConfig.DEBUG,
     )
+  }
 
   override fun onCreate() {
     super.onCreate()
