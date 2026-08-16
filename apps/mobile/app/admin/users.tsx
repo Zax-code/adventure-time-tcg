@@ -37,15 +37,24 @@ type AdminEmailRequest = Awaited<
 type AttributionLabels = {
   provider: string;
   googleName: string;
-  ipAddress: string;
   userAgent: string;
   app: string;
-  installation: string;
   attestation: string;
   requestId: string;
   lastSeen: string;
   attempts: string;
   recentEvents: string;
+  assessmentTitle: string;
+  assessing: string;
+  unavailable: string;
+  testLab: string;
+  googleNetwork: string;
+  confidence: string;
+  coverage: string;
+  heuristic: string;
+  missingEvidence: string;
+  revealIp: string;
+  revealedIp: string;
 };
 
 type AttributionDetailRow = {
@@ -152,7 +161,6 @@ const adminUserRow = memo(function useAdminUserRowView({
 }) {
   const { themeName } = useThemeStore();
   const tc = THEME_COLORS[themeName];
-
   const displayName = user.displayName?.trim();
   const title = displayName || user.email;
   const subtitle = displayName ? user.email : noDisplayNameLabel;
@@ -264,7 +272,11 @@ const adminUserRow = memo(function useAdminUserRowView({
             <AdminChip label={coinsLabel} tone="warning" />
             <AdminChip label={questCompletionLabel} tone="info" />
             {authMethodBadges.map((badge) => (
-              <AdminChip key={badge.key} label={badge.label} tone={badge.tone} />
+              <AdminChip
+                key={badge.key}
+                label={badge.label}
+                tone={badge.tone}
+              />
             ))}
           </View>
 
@@ -343,6 +355,8 @@ function useAdminRequestRowView({
 }) {
   const { themeName } = useThemeStore();
   const tc = THEME_COLORS[themeName];
+  const [revealedIp, setRevealedIp] = useState<string | null>(null);
+  const [revealingIp, setRevealingIp] = useState(false);
   const appVersion = [
     request.lastClientPlatform,
     request.lastClientAppVersion,
@@ -353,7 +367,6 @@ function useAdminRequestRowView({
   const detailRows: AttributionDetailRow[] = [
     { label: attributionLabels.provider, value: request.provider },
     { label: attributionLabels.googleName, value: request.googleName },
-    { label: attributionLabels.ipAddress, value: request.lastIpAddress },
     {
       label: attributionLabels.userAgent,
       value: request.lastUserAgent,
@@ -361,12 +374,9 @@ function useAdminRequestRowView({
     },
     { label: attributionLabels.app, value: appVersion || null },
     {
-      label: attributionLabels.installation,
-      value: request.lastInstallationIdHash
-        ? `${request.lastInstallationIdHash.slice(0, 12)}...`
-        : null,
+      label: attributionLabels.attestation,
+      value: request.lastAttestationStatus,
     },
-    { label: attributionLabels.attestation, value: request.lastAttestationStatus },
     {
       label: attributionLabels.requestId,
       value: request.lastRequestId,
@@ -378,11 +388,36 @@ function useAdminRequestRowView({
         ? new Date(request.lastSeenAt).toLocaleString()
         : null,
     },
-    { label: attributionLabels.attempts, value: String(request.attemptCount ?? 0) },
+    {
+      label: attributionLabels.attempts,
+      value: String(request.attemptCount ?? 0),
+    },
   ].filter(
     (row): row is VisibleAttributionDetailRow =>
       typeof row.value === "string" && row.value.length > 0,
   );
+  const assessment = request.assessment;
+  const assessmentStatus = !assessment
+    ? null
+    : assessment.state === "test_lab"
+      ? attributionLabels.testLab
+      : assessment.state === "assessing"
+        ? attributionLabels.assessing
+        : assessment.state === "unavailable"
+          ? attributionLabels.unavailable
+          : `${attributionLabels.confidence}: ${assessment.confidence}% · ${attributionLabels.coverage}: ${assessment.coverage}%`;
+
+  async function revealIpAddress() {
+    setRevealingIp(true);
+    try {
+      const response = await apiClient.revealAdminEmailRequestIp(request.id);
+      setRevealedIp(response.ipAddress);
+    } catch {
+      setRevealedIp(null);
+    } finally {
+      setRevealingIp(false);
+    }
+  }
 
   return (
     <View
@@ -407,6 +442,54 @@ function useAdminRequestRowView({
           <AdminChip label={accountCreatedLabel} tone="info" />
         ) : null}
       </View>
+
+      {assessment ? (
+        <View className="gap-2 rounded-[16px] border border-infoBorder bg-infoTint px-3 py-3">
+          <View className="flex-row items-center justify-between gap-2">
+            <Text className="font-nunito-extrabold text-[13px] text-infoText">
+              {attributionLabels.assessmentTitle}
+            </Text>
+            <AdminChip label={attributionLabels.heuristic} tone="info" />
+          </View>
+          <Text className="font-nunito-bold text-[13px] text-fg">
+            {assessmentStatus}
+          </Text>
+          {assessment.network.googleNetwork === "matched" &&
+          assessment.network.testLab !== "matched" ? (
+            <Text className="font-nunito-semibold text-[12px] text-fgMuted">
+              {attributionLabels.googleNetwork}
+            </Text>
+          ) : null}
+          {assessment.network.maskedIpAddress ? (
+            <Text className="font-nunito-semibold text-[12px] text-fgMuted">
+              {assessment.network.maskedIpAddress}
+              {assessment.network.organization
+                ? ` · ${assessment.network.organization}`
+                : ""}
+            </Text>
+          ) : null}
+          {"missingReasons" in assessment &&
+          assessment.missingReasons.length ? (
+            <Text className="font-nunito-semibold text-[12px] text-fgMuted">
+              {attributionLabels.missingEvidence}:{" "}
+              {assessment.missingReasons.join(", ")}
+            </Text>
+          ) : null}
+          {revealedIp ? (
+            <Text className="font-nunito-bold text-[12px] text-dangerText">
+              {attributionLabels.revealedIp}: {revealedIp}
+            </Text>
+          ) : (
+            <AdminButton
+              label={attributionLabels.revealIp}
+              variant="ghost"
+              icon="eye-outline"
+              disabled={revealingIp}
+              onPress={() => void revealIpAddress()}
+            />
+          )}
+        </View>
+      ) : null}
 
       <View className="gap-2 rounded-[16px] border border-primaryBorder/20 bg-surface/70 px-3 py-3">
         {detailRows.map((row) => (
@@ -479,11 +562,19 @@ function useAdminUsersScreenView() {
   const isSuperAdmin = currentUser?.isSuperAdmin ?? false;
   const { t } = useTranslation();
 
-  const { data: usersQueryData, error: usersQueryError, isLoading: usersQueryIsLoading } = useQuery({
+  const {
+    data: usersQueryData,
+    error: usersQueryError,
+    isLoading: usersQueryIsLoading,
+  } = useQuery({
     queryKey: ["admin-users"],
     queryFn: () => apiClient.adminUsers(),
   });
-  const { data: requestsQueryData, error: requestsQueryError, isLoading: requestsQueryIsLoading } = useQuery({
+  const {
+    data: requestsQueryData,
+    error: requestsQueryError,
+    isLoading: requestsQueryIsLoading,
+  } = useQuery({
     queryKey: ["admin-email-requests"],
     queryFn: () => apiClient.adminEmailRequests(),
     enabled: isSuperAdmin,
@@ -883,15 +974,24 @@ function useAdminUsersScreenView() {
                       attributionLabels={{
                         provider: t("admin.users.requestProvider"),
                         googleName: t("admin.users.requestGoogleName"),
-                        ipAddress: t("admin.users.requestIpAddress"),
                         userAgent: t("admin.users.requestUserAgent"),
                         app: t("admin.users.requestApp"),
-                        installation: t("admin.users.requestInstallation"),
                         attestation: t("admin.users.requestAttestation"),
                         requestId: t("admin.users.requestId"),
                         lastSeen: t("admin.users.requestLastSeen"),
                         attempts: t("admin.users.requestAttempts"),
                         recentEvents: t("admin.users.requestRecentEvents"),
+                        assessmentTitle: t("admin.users.assessmentTitle"),
+                        assessing: t("admin.users.assessmentAssessing"),
+                        unavailable: t("admin.users.assessmentUnavailable"),
+                        testLab: t("admin.users.assessmentTestLab"),
+                        googleNetwork: t("admin.users.assessmentGoogleNetwork"),
+                        confidence: t("admin.users.assessmentConfidence"),
+                        coverage: t("admin.users.assessmentCoverage"),
+                        heuristic: t("admin.users.assessmentHeuristic"),
+                        missingEvidence: t("admin.users.assessmentMissing"),
+                        revealIp: t("admin.users.assessmentRevealIp"),
+                        revealedIp: t("admin.users.assessmentRevealedIp"),
                       }}
                       approveLabel={t("admin.users.approve")}
                       rejectLabel={t("admin.users.reject")}
