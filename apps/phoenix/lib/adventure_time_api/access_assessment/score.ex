@@ -84,7 +84,8 @@ defmodule AdventureTimeApi.AccessAssessment.Score do
       reason_codes: Map.get(component, :reason_codes, []),
       explanations: Map.get(component, :explanations, []),
       observed_at: Map.get(component, :observed_at),
-      hard_failure: Map.get(component, :hard_failure, false)
+      hard_failure: Map.get(component, :hard_failure, false),
+      model_version: @model_version
     }
   end
 

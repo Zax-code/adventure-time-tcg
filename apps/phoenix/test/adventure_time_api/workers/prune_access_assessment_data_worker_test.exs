@@ -39,7 +39,13 @@ defmodule AdventureTimeApi.Workers.PruneAccessAssessmentDataWorkerTest do
           verified_at: now
         },
         contributions: [
-          %{key: :identity, value: 90, weight: 20, reason_codes: ["identity.verified"]}
+          %{
+            key: :identity,
+            value: 90,
+            weight: 20,
+            reason_codes: ["identity.verified"],
+            model_version: "access-request-v1"
+          }
         ]
       })
       |> Repo.insert!()

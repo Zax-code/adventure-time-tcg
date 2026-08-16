@@ -76,22 +76,39 @@ if assessment_collection_enabled do
     (System.get_env("ACCESS_ASSESSMENT_RELEASED_BUILDS") || "")
     |> String.split(",", trim: true)
     |> Enum.reduce(%{}, fn entry, builds ->
-      case String.split(entry, ":", parts: 3) do
-        [platform, version, build_number]
-        when platform in ["android", "ios"] and version != "" and build_number != "" ->
+      case String.split(entry, ":") do
+        ["android", version, build_number, version_code]
+        when version != "" and build_number != "" and version_code != "" ->
           Map.update(
             builds,
-            platform,
+            "android",
+            [%{version: version, build_number: build_number, version_code: version_code}],
+            &[
+              %{version: version, build_number: build_number, version_code: version_code} | &1
+            ]
+          )
+
+        ["ios", version, build_number]
+        when version != "" and build_number != "" ->
+          Map.update(
+            builds,
+            "ios",
             [%{version: version, build_number: build_number}],
             &[%{version: version, build_number: build_number} | &1]
           )
 
         _invalid ->
           raise(
-            "ACCESS_ASSESSMENT_RELEASED_BUILDS must contain comma-separated platform:version:build entries"
+            "ACCESS_ASSESSMENT_RELEASED_BUILDS must contain android:version:build:version-code or ios:version:build entries"
           )
       end
     end)
+
+  released_build_registry_version =
+    System.get_env("ACCESS_ASSESSMENT_RELEASED_BUILD_REGISTRY_VERSION") ||
+      raise(
+        "environment variable ACCESS_ASSESSMENT_RELEASED_BUILD_REGISTRY_VERSION is required when assessment collection is enabled"
+      )
 
   scoring_model_version =
     System.get_env("ACCESS_ASSESSMENT_SCORING_MODEL_VERSION") ||
@@ -149,10 +166,23 @@ if assessment_collection_enabled do
     )
   end
 
+  android_registry_codes =
+    released_builds
+    |> Map.get("android", [])
+    |> Enum.map(& &1.version_code)
+
+  unless android_registry_codes != [] and
+           Enum.all?(android_registry_codes, &(&1 in released_version_codes)) do
+    raise(
+      "each Android released build version code must appear in PLAY_INTEGRITY_RELEASED_VERSION_CODES"
+    )
+  end
+
   config :adventure_time_api, AdventureTimeApi.AccessAssessment,
     collection_enabled: true,
     admin_display_enabled: truthy?.(System.get_env("ACCESS_ASSESSMENT_ADMIN_DISPLAY_ENABLED")),
     released_builds: released_builds,
+    released_build_registry_version: released_build_registry_version,
     scoring_model_version: scoring_model_version,
     expected_range_versions: %{
       test_lab: test_lab_range_version,
@@ -187,11 +217,13 @@ end
 
 case System.get_env("ACCESS_ASSESSMENT_TRUSTED_PROXY_CIDRS") do
   value when is_binary(value) and value != "" ->
+    trusted_proxy_cidrs =
+      value
+      |> String.split(",", trim: true)
+      |> Enum.map(&String.trim/1)
+
     config :adventure_time_api, AdventureTimeApiWeb.Plugs.CanonicalClientIp,
-      trusted_proxy_cidrs:
-        value
-        |> String.split(",", trim: true)
-        |> Enum.map(&String.trim/1)
+      trusted_proxy_cidrs: trusted_proxy_cidrs
 
   _missing ->
     if config_env() == :prod do

@@ -13,6 +13,8 @@ defmodule AdventureTimeApi.AccessAssessment.Challenges do
   @ttl_seconds 5 * 60
 
   def issue(access_request_id) do
+    started_at = System.monotonic_time()
+
     result =
       if AdventureTimeApi.AccessAssessment.collection_enabled?() do
         case Repo.get_by(Assessment, email_access_request_id: access_request_id) do
@@ -27,11 +29,12 @@ defmodule AdventureTimeApi.AccessAssessment.Challenges do
         {:ok, nil}
       end
 
-    emit(:issue, challenge_result(result))
+    emit(:issue, challenge_result(result), started_at)
     result
   end
 
   def consume(token) when is_binary(token) do
+    started_at = System.monotonic_time()
     digest = digest(token)
     now = now()
 
@@ -58,7 +61,7 @@ defmodule AdventureTimeApi.AccessAssessment.Challenges do
         end
       end)
 
-    emit(:consume, challenge_result(result))
+    emit(:consume, challenge_result(result), started_at)
     result
   end
 
@@ -124,10 +127,10 @@ defmodule AdventureTimeApi.AccessAssessment.Challenges do
     |> Keyword.get(:package_name, "love.leaetzak.adventuretime")
   end
 
-  defp emit(operation, result) do
+  defp emit(operation, result, started_at) do
     :telemetry.execute(
       [:adventure_time_api, :access_assessment, :challenge],
-      %{count: 1},
+      %{count: 1, duration: System.monotonic_time() - started_at},
       %{operation: operation, result: result}
     )
   end

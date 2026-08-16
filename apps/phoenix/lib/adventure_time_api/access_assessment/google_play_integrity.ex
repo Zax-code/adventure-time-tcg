@@ -29,6 +29,13 @@ defmodule AdventureTimeApi.AccessAssessment.GooglePlayIntegrity do
          {:ok, evidence} <- normalize(body, expected, opts) do
       {:ok, evidence}
     else
+      {:error, %Req.TransportError{reason: :timeout}} -> {:error, :timeout}
+      {:error, %Req.TransportError{}} -> {:error, :network_error}
+      {:ok, %{status: 429}} -> {:error, :quota_exhausted}
+      {:ok, %{status: status}} when status >= 500 -> {:error, :provider_error}
+      {:ok, %{status: _status}} -> {:error, :invalid_response}
+      {:error, :invalid_verdict} -> {:error, :invalid_response}
+      {:error, _credentials_error} -> {:error, :provider_auth_unavailable}
       _error -> {:error, :provider_unavailable}
     end
   end
@@ -67,6 +74,7 @@ defmodule AdventureTimeApi.AccessAssessment.GooglePlayIntegrity do
              Enum.any?(actual_certificates, &(&1 in certificate_digests)),
          version_verified:
            released_version_codes != [] and actual_version in released_version_codes,
+         version_code: actual_version,
          request_hash_verified: request["requestHash"] == expected.request_hash,
          token_timestamp: token_timestamp,
          verified_at: now

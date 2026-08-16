@@ -25,6 +25,9 @@ const loadingStateSource = readFileSync(
   "src/components/loading-state.tsx",
   "utf8",
 );
+const adminUsersSource = readFileSync("app/admin/users.tsx", "utf8");
+const adminEnglishSource = readFileSync("src/i18n/locales/en/admin.ts", "utf8");
+const adminFrenchSource = readFileSync("src/i18n/locales/fr/admin.ts", "utf8");
 
 describe("mobile UI regression contracts", () => {
   it("keeps the Speed Calculus timer drain on one uninterrupted animation", () => {
@@ -165,5 +168,23 @@ describe("mobile UI regression contracts", () => {
 
   it("keeps the loading card free of clipped platform shadows", () => {
     assert.doesNotMatch(loadingStateSource, /boxShadow:/);
+  });
+
+  it("keeps access assessments explanatory and accessible without color", () => {
+    assert.match(adminUsersSource, /assessment\.confidence/);
+    assert.match(adminUsersSource, /assessment\.coverage/);
+    assert.match(adminUsersSource, /bandLabel/);
+    assert.match(adminUsersSource, /assessment\.network\.testLabRangeStale/);
+    assert.match(adminUsersSource, /assessment\.network\.googleRangeStale/);
+    assert.match(adminUsersSource, /<AdminButton[\s\S]*?showEvidence/);
+    assert.doesNotMatch(
+      adminUsersSource,
+      /reasons=\{assessment\.(?:missingReasons|hardFailureReasons)\}/,
+      "backend reason codes must be translated before rendering",
+    );
+    assert.match(adminEnglishSource, /assessmentTestLabWarning:/);
+    assert.match(adminFrenchSource, /assessmentTestLabWarning:/);
+    assert.match(adminEnglishSource, /assessmentReasons: \{/);
+    assert.match(adminFrenchSource, /assessmentReasons: \{/);
   });
 });

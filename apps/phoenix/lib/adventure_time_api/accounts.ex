@@ -1868,7 +1868,7 @@ defmodule AdventureTimeApi.Accounts do
   defp ensure_user_approved(%User{access_status: :approved}, _metadata), do: :ok
 
   defp ensure_user_approved(%User{email: email, access_status: :pending}, metadata) do
-    pending_access_error(email, false, metadata)
+    pending_access_error(email, true, metadata)
   end
 
   defp ensure_user_approved(%User{email: email, access_status: :rejected}, metadata) do

@@ -36,7 +36,15 @@ defmodule AdventureTimeApi.AccessRequestAssessment.NetworkClassification do
 
     range_sets()
     |> Enum.each(fn {name, range_set} ->
-      if NetworkRangeSet.stale?(range_set, now) do
+      stale? = NetworkRangeSet.stale?(range_set, now)
+
+      :telemetry.execute(
+        [:adventure_time_api, :access_assessment, :range_data],
+        %{count: 1},
+        %{range_set: name, status: if(stale?, do: :stale, else: :current)}
+      )
+
+      if stale? do
         require Logger
 
         Logger.warning(

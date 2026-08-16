@@ -462,6 +462,8 @@ Add a release-safe Mix inspection task that reports aggregate lifecycle counts, 
 
 Existing Caddy JSON access logs retain network addresses for 30 days, matching the selected exact-IP window. The implementation must confirm this production setting and must not extend it as part of this feature.
 
+Production confirmation (2026-08-16): a read-only inspection of the live VPS Caddy configuration found `roll_keep_for 720h` and `roll_keep 10`. This feature did not change the logging configuration or retention period.
+
 ## Verification Plan
 
 ### Phoenix

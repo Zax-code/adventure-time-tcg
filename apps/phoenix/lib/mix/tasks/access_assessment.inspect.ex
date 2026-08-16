@@ -24,11 +24,13 @@ defmodule Mix.Tasks.AccessAssessment.Inspect do
     Mix.Task.run("app.start")
 
     report = %{
+      minimum_cohort_size: @minimum_cohort_size,
       lifecycle: grouped_counts(:state),
       coverage_distribution: coverage_distribution(),
       score_distribution: score_distribution(),
       platform_profiles: grouped_counts(:platform_profile),
       provider_availability: provider_availability(),
+      hard_failure_distribution: hard_failure_distribution(),
       range_data: NetworkClassification.range_metadata(),
       manual_outcomes: manual_outcomes()
     }
@@ -41,6 +43,7 @@ defmodule Mix.Tasks.AccessAssessment.Inspect do
     |> group_by([assessment], field(assessment, ^field_name))
     |> select([assessment], {field(assessment, ^field_name), count(assessment.id)})
     |> Repo.all()
+    |> suppress_small_counts()
     |> Map.new(fn {key, count} -> {to_string(key), count} end)
   end
 
@@ -72,21 +75,60 @@ defmodule Mix.Tasks.AccessAssessment.Inspect do
        ), count(assessment.id)}
     )
     |> Repo.all()
+    |> suppress_small_counts()
     |> Map.new()
   end
 
   defp provider_availability do
-    Repo.one(
-      from(assessment in Assessment,
-        select: %{
-          total: count(assessment.id),
-          ipqs_available:
-            fragment("COUNT(*) FILTER (WHERE ? IS NOT NULL)", assessment.ip_intelligence_evidence),
-          play_integrity_available:
-            fragment("COUNT(*) FILTER (WHERE ? IS NOT NULL)", assessment.play_integrity_evidence)
-        }
+    availability =
+      Repo.one(
+        from(assessment in Assessment,
+          select: %{
+            total: count(assessment.id),
+            ipqs_available:
+              fragment(
+                "COUNT(*) FILTER (WHERE ? IS NOT NULL)",
+                assessment.ip_intelligence_evidence
+              ),
+            play_integrity_available:
+              fragment(
+                "COUNT(*) FILTER (WHERE ? IS NOT NULL AND (?->>'failure_reason') IS NULL)",
+                assessment.play_integrity_evidence,
+                assessment.play_integrity_evidence
+              ),
+            play_integrity_failed:
+              fragment(
+                "COUNT(*) FILTER (WHERE (?->>'failure_reason') IS NOT NULL)",
+                assessment.play_integrity_evidence
+              )
+          }
+        )
       )
-    )
+
+    if availability.total >= @minimum_cohort_size do
+      %{
+        total: availability.total,
+        ipqs_available: disclose_count(availability.ipqs_available),
+        play_integrity_available: disclose_count(availability.play_integrity_available),
+        play_integrity_failed: disclose_count(availability.play_integrity_failed)
+      }
+    else
+      %{suppressed: true}
+    end
+  end
+
+  defp hard_failure_distribution do
+    Repo
+    |> Ecto.Adapters.SQL.query!("""
+    SELECT reason, COUNT(*)::bigint
+    FROM access_request_assessments
+    CROSS JOIN LATERAL unnest(COALESCE(hard_failure_reasons, ARRAY[]::varchar[])) AS reason
+    GROUP BY reason
+    """)
+    |> Map.fetch!(:rows)
+    |> Enum.map(fn [reason, count] -> {reason, count} end)
+    |> suppress_small_counts()
+    |> Map.new()
   end
 
   defp manual_outcomes do
@@ -106,4 +148,11 @@ defmodule Mix.Tasks.AccessAssessment.Inspect do
       }
     end)
   end
+
+  defp suppress_small_counts(counts) do
+    Enum.filter(counts, fn {_key, count} -> count >= @minimum_cohort_size end)
+  end
+
+  defp disclose_count(count) when count >= @minimum_cohort_size, do: count
+  defp disclose_count(_count), do: "suppressed"
 end

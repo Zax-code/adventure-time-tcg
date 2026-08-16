@@ -59,6 +59,7 @@ defmodule AdventureTimeApi.AccessAssessment.GooglePlayIntegrityTest do
              package_name_verified: true,
              certificate_verified: true,
              version_verified: true,
+             version_code: "123",
              request_hash_verified: true,
              token_timestamp: now,
              verified_at: now
@@ -110,5 +111,28 @@ defmodule AdventureTimeApi.AccessAssessment.GooglePlayIntegrityTest do
     assert evidence.certificate_verified == false
     assert evidence.version_verified == false
     assert evidence.app_recognition == :unrecognized_version
+    assert evidence.version_code == "999"
+  end
+
+  test "preserves bounded provider failure classes" do
+    bypass = Bypass.open()
+
+    Bypass.expect_once(
+      bypass,
+      "POST",
+      "/v1/love.leaetzak.adventuretime:decodeIntegrityToken",
+      fn conn -> Plug.Conn.resp(conn, 429, Jason.encode!(%{error: "quota"})) end
+    )
+
+    assert {:error, :quota_exhausted} =
+             GooglePlayIntegrity.decode(
+               "token",
+               %{request_hash: "expected-hash", now: ~U[2026-08-16 12:00:00Z]},
+               endpoint: "http://127.0.0.1:#{bypass.port}",
+               access_token_provider: fn -> {:ok, "access-token"} end,
+               package_name: "love.leaetzak.adventuretime",
+               certificate_digests: ["release-cert"],
+               released_version_codes: ["123"]
+             )
   end
 end

@@ -3,6 +3,7 @@ defmodule AdventureTimeApi.AccessAssessment.EvidenceBuilderTest do
 
   alias AdventureTimeApi.AccessAssessment
   alias AdventureTimeApi.AccessAssessment.Assessment
+  alias AdventureTimeApi.AccessAssessment.Evidence.PlayIntegrity
   alias AdventureTimeApi.AccessAssessment.EvidenceBuilder
   alias AdventureTimeApi.Accounts.AuthAttempt
   alias AdventureTimeApi.Accounts.AuthProviderIdentity
@@ -16,7 +17,7 @@ defmodule AdventureTimeApi.AccessAssessment.EvidenceBuilderTest do
       :adventure_time_api,
       AccessAssessment,
       Keyword.put(original, :released_builds, %{
-        "android" => [%{version: "1.0.22", build_number: "123"}],
+        "android" => [%{version: "1.0.22", build_number: "123", version_code: "123"}],
         "ios" => [%{version: "1.0.22", build_number: "123"}]
       })
     )
@@ -125,6 +126,43 @@ defmodule AdventureTimeApi.AccessAssessment.EvidenceBuilderTest do
              "client.same_site_origin",
              "client.browser_request_shape"
            ]
+  end
+
+  test "Android client corroboration requires the verified version code to match the claimed build" do
+    request =
+      request(
+        last_client_platform: "android",
+        last_client_app_version: "1.0.22",
+        last_client_build_number: "123",
+        last_user_agent: "AdventureTimeNative/1.0.22"
+      )
+
+    evidence = %PlayIntegrity{
+      app_recognition: :play_recognized,
+      licensing: :licensed,
+      device_verdicts: ["MEETS_DEVICE_INTEGRITY"],
+      package_name_verified: true,
+      certificate_verified: true,
+      version_verified: true,
+      version_code: "999",
+      request_hash_verified: true,
+      verified_at: now()
+    }
+
+    assessment = %Assessment{assessment(:android) | play_integrity_evidence: evidence}
+    components = EvidenceBuilder.components(request, assessment, missing_ip(), now())
+
+    refute "client.integrity_build_corroborated" in components.client.reason_codes
+
+    matching_assessment = %Assessment{
+      assessment
+      | play_integrity_evidence: %{evidence | version_code: "123"}
+    }
+
+    matching_components =
+      EvidenceBuilder.components(request, matching_assessment, missing_ip(), now())
+
+    assert "client.integrity_build_corroborated" in matching_components.client.reason_codes
   end
 
   defp request(overrides \\ []) do

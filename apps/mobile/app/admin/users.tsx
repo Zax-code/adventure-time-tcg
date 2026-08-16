@@ -60,6 +60,26 @@ type AttributionLabels = {
   age: string;
   testLabRange: string;
   rangeVersion: string;
+  rangeStale: string;
+  testLabWarning: string;
+  bandStronger: string;
+  bandMixed: string;
+  bandConcerning: string;
+  networkDetails: string;
+  networkFlags: string;
+  networkFlagsNone: string;
+  asn: string;
+  country: string;
+  connectionType: string;
+  connectionMobile: string;
+  connectionResidential: string;
+  connectionCorporate: string;
+  connectionDatacenter: string;
+  connectionOther: string;
+  flagVpn: string;
+  flagProxy: string;
+  flagHosting: string;
+  flagTor: string;
   showEvidence: string;
   hideEvidence: string;
   revealIp: string;
@@ -88,6 +108,118 @@ const SORT_DEFAULTS: Record<SortField, SortDir> = {
 
 const ROLE_FILTER_KEYS: RoleFilter[] = ["all", "staff", "players", "me"];
 const SORT_OPTIONS: SortField[] = ["email", "coins", "createdAt"];
+
+const ASSESSMENT_REASON_KEYS = {
+  "assessment.rescore_pending":
+    "admin.users.assessmentReasons.assessmentRescorePending",
+  "client.browser_request_shape":
+    "admin.users.assessmentReasons.clientBrowserRequestShape",
+  "client.installation_changed":
+    "admin.users.assessmentReasons.clientInstallationChanged",
+  "client.installation_continuous":
+    "admin.users.assessmentReasons.clientInstallationContinuous",
+  "client.installation_malformed":
+    "admin.users.assessmentReasons.clientInstallationMalformed",
+  "client.integrity_build_corroborated":
+    "admin.users.assessmentReasons.clientIntegrityBuildCorroborated",
+  "client.platform_agrees":
+    "admin.users.assessmentReasons.clientPlatformAgrees",
+  "client.platform_conflict":
+    "admin.users.assessmentReasons.clientPlatformConflict",
+  "client.released_build": "admin.users.assessmentReasons.clientReleasedBuild",
+  "client.same_site_origin":
+    "admin.users.assessmentReasons.clientSameSiteOrigin",
+  "client.unrecognized_build":
+    "admin.users.assessmentReasons.clientUnrecognizedBuild",
+  "continuity.installation_many_identities":
+    "admin.users.assessmentReasons.continuityInstallationManyIdentities",
+  "continuity.installation_repeated":
+    "admin.users.assessmentReasons.continuityInstallationRepeated",
+  "continuity.ip_many_identities":
+    "admin.users.assessmentReasons.continuityIpManyIdentities",
+  "continuity.low_attempt_volume":
+    "admin.users.assessmentReasons.continuityLowAttemptVolume",
+  "continuity.provider_identity_repeated":
+    "admin.users.assessmentReasons.continuityProviderIdentityRepeated",
+  "continuity.recent_attempt_burst":
+    "admin.users.assessmentReasons.continuityRecentAttemptBurst",
+  "continuity.request_attempts_high":
+    "admin.users.assessmentReasons.continuityRequestAttemptsHigh",
+  "identity.email_verification_pending":
+    "admin.users.assessmentReasons.identityEmailVerificationPending",
+  "identity.email_verified":
+    "admin.users.assessmentReasons.identityEmailVerified",
+  "identity.provider_email_unverified":
+    "admin.users.assessmentReasons.identityProviderEmailUnverified",
+  "identity.provider_mapping_conflict":
+    "admin.users.assessmentReasons.identityProviderMappingConflict",
+  "identity.provider_mapping_repeated":
+    "admin.users.assessmentReasons.identityProviderMappingRepeated",
+  "identity.provider_verified":
+    "admin.users.assessmentReasons.identityProviderVerified",
+  "integrity.certificate_mismatch":
+    "admin.users.assessmentReasons.integrityCertificateMismatch",
+  "integrity.licensed": "admin.users.assessmentReasons.integrityLicensed",
+  "integrity.meets_basic_integrity":
+    "admin.users.assessmentReasons.integrityMeetsBasic",
+  "integrity.meets_device_integrity":
+    "admin.users.assessmentReasons.integrityMeetsDevice",
+  "integrity.meets_strong_integrity":
+    "admin.users.assessmentReasons.integrityMeetsStrong",
+  "integrity.no_device_integrity":
+    "admin.users.assessmentReasons.integrityNoDevice",
+  "integrity.not_submitted":
+    "admin.users.assessmentReasons.integrityNotSubmitted",
+  "integrity.package_mismatch":
+    "admin.users.assessmentReasons.integrityPackageMismatch",
+  "integrity.play_recognized":
+    "admin.users.assessmentReasons.integrityPlayRecognized",
+  "integrity.provider_auth_unavailable":
+    "admin.users.assessmentReasons.integrityProviderAuthUnavailable",
+  "integrity.provider_invalid_response":
+    "admin.users.assessmentReasons.integrityProviderInvalidResponse",
+  "integrity.provider_network_error":
+    "admin.users.assessmentReasons.integrityProviderNetworkError",
+  "integrity.provider_quota_exhausted":
+    "admin.users.assessmentReasons.integrityProviderQuotaExhausted",
+  "integrity.provider_timeout":
+    "admin.users.assessmentReasons.integrityProviderTimeout",
+  "integrity.provider_unavailable":
+    "admin.users.assessmentReasons.integrityProviderUnavailable",
+  "integrity.released_build_verified":
+    "admin.users.assessmentReasons.integrityReleasedBuildVerified",
+  "integrity.request_hash_mismatch":
+    "admin.users.assessmentReasons.integrityRequestHashMismatch",
+  "integrity.unevaluated": "admin.users.assessmentReasons.integrityUnevaluated",
+  "integrity.unlicensed": "admin.users.assessmentReasons.integrityUnlicensed",
+  "integrity.unrecognized_version":
+    "admin.users.assessmentReasons.integrityUnrecognizedVersion",
+  "integrity.version_mismatch":
+    "admin.users.assessmentReasons.integrityVersionMismatch",
+  "ip.active_tor": "admin.users.assessmentReasons.ipActiveTor",
+  "ip.bot_status": "admin.users.assessmentReasons.ipBotStatus",
+  "ip.canonical_address_unavailable":
+    "admin.users.assessmentReasons.ipCanonicalUnavailable",
+  "ip.confirmed_high_risk_attacks":
+    "admin.users.assessmentReasons.ipHighRiskAttacks",
+  "ip.enrichment_pending": "admin.users.assessmentReasons.ipEnrichmentPending",
+  "ip.frequent_abuser": "admin.users.assessmentReasons.ipFrequentAbuser",
+  "ip.hosting": "admin.users.assessmentReasons.ipHosting",
+  "ip.provider_unavailable":
+    "admin.users.assessmentReasons.ipProviderUnavailable",
+  "ip.proxy": "admin.users.assessmentReasons.ipProxy",
+  "ip.public_access_point": "admin.users.assessmentReasons.ipPublicAccessPoint",
+  "ip.recent_abuse": "admin.users.assessmentReasons.ipRecentAbuse",
+  "ip.shared_connection": "admin.users.assessmentReasons.ipSharedConnection",
+  "ip.vpn": "admin.users.assessmentReasons.ipVpn",
+} as const;
+
+function assessmentReasonKey(reason: string) {
+  return (
+    ASSESSMENT_REASON_KEYS[reason as keyof typeof ASSESSMENT_REASON_KEYS] ??
+    "admin.users.assessmentReasons.unknown"
+  );
+}
 
 type UserListItem =
   | { id: "current-section"; type: "current-section" }
@@ -366,7 +498,7 @@ function EvidenceReasonList({
           key={`${title}-${reason}`}
           className="font-nunito-semibold text-[12px] text-fg"
         >
-          · {reason.replaceAll("_", " ")}
+          · {reason}
         </Text>
       ))}
     </View>
@@ -398,6 +530,7 @@ function useAdminRequestRowView({
   onReject: () => void;
   disabled: boolean;
 }) {
+  const { t } = useTranslation();
   const { themeName } = useThemeStore();
   const tc = THEME_COLORS[themeName];
   const [evidenceExpanded, setEvidenceExpanded] = useState(false);
@@ -445,6 +578,14 @@ function useAdminRequestRowView({
       typeof row.value === "string" && row.value.length > 0,
   );
   const assessment = request.assessment;
+  const bandLabel =
+    assessment?.state === "complete" || assessment?.state === "partial"
+      ? assessment.band === "stronger"
+        ? attributionLabels.bandStronger
+        : assessment.band === "mixed"
+          ? attributionLabels.bandMixed
+          : attributionLabels.bandConcerning
+      : null;
   const assessmentStatus = !assessment
     ? null
     : assessment.state === "test_lab"
@@ -453,7 +594,7 @@ function useAdminRequestRowView({
         ? attributionLabels.assessing
         : assessment.state === "unavailable"
           ? attributionLabels.unavailable
-          : `${attributionLabels.confidence}: ${assessment.confidence}% · ${attributionLabels.coverage}: ${assessment.coverage}%`;
+          : `${attributionLabels.confidence}: ${assessment.confidence}% · ${attributionLabels.coverage}: ${assessment.coverage}% · ${bandLabel}`;
   const scoredAssessment =
     assessment?.state === "complete" || assessment?.state === "partial"
       ? assessment
@@ -470,6 +611,18 @@ function useAdminRequestRowView({
   const assessmentAge = assessment?.assessedAt
     ? formatAssessmentAge(assessment.assessedAt)
     : null;
+  const connectionType = assessment?.network.connectionType?.toLowerCase();
+  const localizedConnectionType = !connectionType
+    ? null
+    : connectionType === "mobile"
+      ? attributionLabels.connectionMobile
+      : connectionType === "residential"
+        ? attributionLabels.connectionResidential
+        : connectionType === "corporate"
+          ? attributionLabels.connectionCorporate
+          : connectionType === "data center" || connectionType === "datacenter"
+            ? attributionLabels.connectionDatacenter
+            : attributionLabels.connectionOther;
 
   return (
     <View
@@ -514,12 +667,22 @@ function useAdminRequestRowView({
           </Text>
           {assessment.state === "test_lab" ? (
             <View className="gap-1">
-              <Text className="font-nunito-semibold text-[12px] text-fgMuted">
-                {attributionLabels.testLabRange}: {assessment.network.testLabMatchedCidr ?? "—"}
+              <Text className="font-nunito-bold text-[12px] text-dangerDark">
+                {attributionLabels.testLabWarning}
               </Text>
               <Text className="font-nunito-semibold text-[12px] text-fgMuted">
-                {attributionLabels.rangeVersion}: {assessment.network.testLabRangeVersion ?? "—"}
+                {attributionLabels.testLabRange}:{" "}
+                {assessment.network.testLabMatchedCidr ?? "—"}
               </Text>
+              <Text className="font-nunito-semibold text-[12px] text-fgMuted">
+                {attributionLabels.rangeVersion}:{" "}
+                {assessment.network.testLabRangeVersion ?? "—"}
+              </Text>
+              {assessment.network.testLabRangeStale ? (
+                <Text className="font-nunito-bold text-[12px] text-dangerDark">
+                  {attributionLabels.rangeStale}
+                </Text>
+              ) : null}
             </View>
           ) : null}
           {assessment.network.googleNetwork === "matched" &&
@@ -529,55 +692,93 @@ function useAdminRequestRowView({
             </Text>
           ) : null}
           {assessment.network.maskedIpAddress ? (
-            <Text className="font-nunito-semibold text-[12px] text-fgMuted">
-              {assessment.network.maskedIpAddress}
-              {assessment.network.organization
-                ? ` · ${assessment.network.organization}`
-                : ""}
-            </Text>
+            <View className="gap-1">
+              <Text className="font-nunito-bold text-[12px] text-fg">
+                {attributionLabels.networkDetails}
+              </Text>
+              <Text className="font-nunito-semibold text-[12px] text-fgMuted">
+                {[
+                  assessment.network.maskedIpAddress,
+                  assessment.network.organization,
+                  assessment.network.asn
+                    ? `${attributionLabels.asn} ${assessment.network.asn}`
+                    : null,
+                  assessment.network.countryCode
+                    ? `${attributionLabels.country} ${assessment.network.countryCode}`
+                    : null,
+                  localizedConnectionType
+                    ? `${attributionLabels.connectionType} ${localizedConnectionType}`
+                    : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </Text>
+              <Text className="font-nunito-semibold text-[12px] text-fgMuted">
+                {attributionLabels.networkFlags}:{" "}
+                {[
+                  assessment.network.vpn && attributionLabels.flagVpn,
+                  assessment.network.proxy && attributionLabels.flagProxy,
+                  assessment.network.hosting && attributionLabels.flagHosting,
+                  assessment.network.tor && attributionLabels.flagTor,
+                ]
+                  .filter(Boolean)
+                  .join(", ") || attributionLabels.networkFlagsNone}
+              </Text>
+              {assessment.network.googleRangeStale ? (
+                <Text className="font-nunito-bold text-[12px] text-dangerDark">
+                  {attributionLabels.rangeStale}
+                </Text>
+              ) : null}
+            </View>
           ) : null}
           {assessment.state !== "test_lab" ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityState={{ expanded: evidenceExpanded }}
-              className="rounded-xl border border-infoBorder px-3 py-2"
-              onPress={() => setEvidenceExpanded((expanded) => !expanded)}
-            >
-              <Text className="font-nunito-extrabold text-[12px] text-infoText">
-                {evidenceExpanded
+            <AdminButton
+              label={
+                evidenceExpanded
                   ? attributionLabels.hideEvidence
-                  : attributionLabels.showEvidence}
-              </Text>
-            </Pressable>
+                  : attributionLabels.showEvidence
+              }
+              variant="ghost"
+              icon={evidenceExpanded ? "chevron-up" : "chevron-down"}
+              onPress={() => setEvidenceExpanded((expanded) => !expanded)}
+            />
           ) : null}
           {evidenceExpanded && assessment.state !== "test_lab" ? (
             <View className="gap-2 rounded-xl bg-surface/70 px-3 py-2">
               {positiveContributions.length ? (
                 <EvidenceReasonList
                   title={attributionLabels.positiveEvidence}
-                  reasons={positiveContributions.flatMap(
-                    (contribution) => contribution.reasonCodes,
+                  reasons={positiveContributions.flatMap((contribution) =>
+                    contribution.reasonCodes.map((reason) =>
+                      t(assessmentReasonKey(reason)),
+                    ),
                   )}
                 />
               ) : null}
               {negativeContributions.length ? (
                 <EvidenceReasonList
                   title={attributionLabels.negativeEvidence}
-                  reasons={negativeContributions.flatMap(
-                    (contribution) => contribution.reasonCodes,
+                  reasons={negativeContributions.flatMap((contribution) =>
+                    contribution.reasonCodes.map((reason) =>
+                      t(assessmentReasonKey(reason)),
+                    ),
                   )}
                 />
               ) : null}
               {assessment.hardFailureReasons.length ? (
                 <EvidenceReasonList
                   title={attributionLabels.hardFailures}
-                  reasons={assessment.hardFailureReasons}
+                  reasons={assessment.hardFailureReasons.map((reason) =>
+                    t(assessmentReasonKey(reason)),
+                  )}
                 />
               ) : null}
               {assessment.missingReasons.length ? (
                 <EvidenceReasonList
                   title={attributionLabels.missingEvidence}
-                  reasons={assessment.missingReasons}
+                  reasons={assessment.missingReasons.map((reason) =>
+                    t(assessmentReasonKey(reason)),
+                  )}
                 />
               ) : null}
             </View>
@@ -1104,6 +1305,46 @@ function useAdminUsersScreenView() {
                         age: t("admin.users.assessmentAge"),
                         testLabRange: t("admin.users.assessmentTestLabRange"),
                         rangeVersion: t("admin.users.assessmentRangeVersion"),
+                        rangeStale: t("admin.users.assessmentRangeStale"),
+                        testLabWarning: t(
+                          "admin.users.assessmentTestLabWarning",
+                        ),
+                        bandStronger: t("admin.users.assessmentBandStronger"),
+                        bandMixed: t("admin.users.assessmentBandMixed"),
+                        bandConcerning: t(
+                          "admin.users.assessmentBandConcerning",
+                        ),
+                        networkDetails: t(
+                          "admin.users.assessmentNetworkDetails",
+                        ),
+                        networkFlags: t("admin.users.assessmentNetworkFlags"),
+                        networkFlagsNone: t(
+                          "admin.users.assessmentNetworkFlagsNone",
+                        ),
+                        asn: t("admin.users.assessmentAsn"),
+                        country: t("admin.users.assessmentCountry"),
+                        connectionType: t(
+                          "admin.users.assessmentConnectionType",
+                        ),
+                        connectionMobile: t(
+                          "admin.users.assessmentConnectionMobile",
+                        ),
+                        connectionResidential: t(
+                          "admin.users.assessmentConnectionResidential",
+                        ),
+                        connectionCorporate: t(
+                          "admin.users.assessmentConnectionCorporate",
+                        ),
+                        connectionDatacenter: t(
+                          "admin.users.assessmentConnectionDatacenter",
+                        ),
+                        connectionOther: t(
+                          "admin.users.assessmentConnectionOther",
+                        ),
+                        flagVpn: t("admin.users.assessmentFlagVpn"),
+                        flagProxy: t("admin.users.assessmentFlagProxy"),
+                        flagHosting: t("admin.users.assessmentFlagHosting"),
+                        flagTor: t("admin.users.assessmentFlagTor"),
                         showEvidence: t("admin.users.assessmentShowEvidence"),
                         hideEvidence: t("admin.users.assessmentHideEvidence"),
                         revealIp: t("admin.users.assessmentRevealIp"),

@@ -552,6 +552,11 @@ function formatAssessmentAge(assessedAt: string | null) {
   return `${Math.floor(seconds / 86400)}d`;
 }
 
+function humanizeAssessmentReason(reason: string) {
+  const humanized = reason.replace(/[._]+/g, " ").trim();
+  return humanized.charAt(0).toUpperCase() + humanized.slice(1);
+}
+
 export function AdminEmailRequestsPage() {
   const queryClient = useQueryClient();
   const [chosenId, setChosenId] = useState<string>();
@@ -601,14 +606,22 @@ export function AdminEmailRequestsPage() {
       ? selected.assessment.contributions.reduce(
           (groups, contribution) => {
             if ((contribution.effectFromNeutral ?? 0) > 0) {
-              groups.positive.push(...contribution.reasonCodes);
+              groups.positive.push(
+                ...(contribution.explanations.length
+                  ? contribution.explanations
+                  : contribution.reasonCodes.map(humanizeAssessmentReason)),
+              );
             }
 
             if (
               (contribution.effectFromNeutral ?? 0) < 0 ||
               contribution.hardFailure
             ) {
-              groups.negative.push(...contribution.reasonCodes);
+              groups.negative.push(
+                ...(contribution.explanations.length
+                  ? contribution.explanations
+                  : contribution.reasonCodes.map(humanizeAssessmentReason)),
+              );
             }
 
             return groups;
@@ -739,11 +752,17 @@ export function AdminEmailRequestsPage() {
                           <div>
                             <dt>Range-set version</dt>
                             <dd>
-                              {selected.assessment.network.testLabRangeVersion ??
-                                "Unavailable"}
+                              {selected.assessment.network
+                                .testLabRangeVersion ?? "Unavailable"}
                             </dd>
                           </div>
                         </dl>
+                        {selected.assessment.network.testLabRangeStale ? (
+                          <p>
+                            <b>Warning:</b> this Test Lab range list is more
+                            than 90 days old.
+                          </p>
+                        ) : null}
                       </>
                     ) : selected.assessment.state === "complete" ||
                       selected.assessment.state === "partial" ? (
@@ -788,6 +807,12 @@ export function AdminEmailRequestsPage() {
                             .filter(Boolean)
                             .join(", ") || "none reported"}
                         </p>
+                        {selected.assessment.network.googleRangeStale ? (
+                          <p>
+                            <b>Warning:</b> this Google network range list is
+                            more than 90 days old.
+                          </p>
+                        ) : null}
                         <details>
                           <summary>Evidence details</summary>
                           <h4>Positive evidence</h4>
@@ -804,13 +829,15 @@ export function AdminEmailRequestsPage() {
                           </ul>
                           <h4>Hard failures</h4>
                           <p>
-                            {selected.assessment.hardFailureReasons.join(", ") ||
-                              "None"}
+                            {selected.assessment.hardFailureReasons
+                              .map(humanizeAssessmentReason)
+                              .join(", ") || "None"}
                           </p>
                           <h4>Missing evidence</h4>
                           <p>
-                            {selected.assessment.missingReasons.join(", ") ||
-                              "None"}
+                            {selected.assessment.missingReasons
+                              .map(humanizeAssessmentReason)
+                              .join(", ") || "None"}
                           </p>
                         </details>
                       </>
@@ -825,13 +852,15 @@ export function AdminEmailRequestsPage() {
                           <summary>Evidence details</summary>
                           <p>
                             Missing:{" "}
-                            {selected.assessment.missingReasons.join(", ") ||
-                              "None"}
+                            {selected.assessment.missingReasons
+                              .map(humanizeAssessmentReason)
+                              .join(", ") || "None"}
                           </p>
                           <p>
                             Hard failures:{" "}
-                            {selected.assessment.hardFailureReasons.join(", ") ||
-                              "None"}
+                            {selected.assessment.hardFailureReasons
+                              .map(humanizeAssessmentReason)
+                              .join(", ") || "None"}
                           </p>
                         </details>
                       </>

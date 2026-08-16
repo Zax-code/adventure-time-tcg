@@ -7,6 +7,7 @@ defmodule AdventureTimeApi.Application do
 
   @impl true
   def start(_type, _args) do
+    AdventureTimeApiWeb.Plugs.CanonicalClientIp.validate_configuration!()
     validate_access_assessment_configuration!()
 
     children = [

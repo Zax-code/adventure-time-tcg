@@ -12,10 +12,23 @@ defmodule AdventureTimeApiWeb.Plugs.CanonicalClientIp do
 
   @private_key :canonical_client_ip
   @peer_private_key :transport_peer_ip
+  @trusted_proxies_cache_key {__MODULE__, :trusted_proxies}
   @default_max_forwarded_bytes 2_048
   @default_max_forwarded_hops 10
 
   def init(opts), do: opts
+
+  @spec validate_configuration!() :: :ok
+  def validate_configuration! do
+    parsed =
+      :adventure_time_api
+      |> Application.get_env(__MODULE__, [])
+      |> Keyword.get(:trusted_proxy_cidrs, [])
+      |> parse_trusted_proxies()
+
+    :persistent_term.put(@trusted_proxies_cache_key, parsed)
+    :ok
+  end
 
   def call(conn, opts) do
     peer = normalize(conn.remote_ip)
@@ -23,7 +36,7 @@ defmodule AdventureTimeApiWeb.Plugs.CanonicalClientIp do
 
     canonical =
       if trusted?(peer, trusted_proxies) do
-        resolve_forwarded(conn, peer, trusted_proxies, opts)
+        resolve_forwarded(conn, trusted_proxies, opts)
       else
         peer
       end
@@ -45,10 +58,10 @@ defmodule AdventureTimeApiWeb.Plugs.CanonicalClientIp do
     end
   end
 
-  defp resolve_forwarded(conn, peer, trusted_proxies, opts) do
+  defp resolve_forwarded(conn, trusted_proxies, opts) do
     case get_req_header(conn, "x-forwarded-for") do
       [] ->
-        peer
+        invalid(:missing_forwarded_header)
 
       [header] ->
         parse_forwarded(header, trusted_proxies, opts)
@@ -119,13 +132,21 @@ defmodule AdventureTimeApiWeb.Plugs.CanonicalClientIp do
   end
 
   defp trusted_proxies(opts) do
-    opts
-    |> Keyword.get_lazy(:trusted_proxy_cidrs, fn ->
-      :adventure_time_api
-      |> Application.get_env(__MODULE__, [])
-      |> Keyword.get(:trusted_proxy_cidrs, [])
+    case Keyword.fetch(opts, :trusted_proxy_cidrs) do
+      {:ok, configured} ->
+        parse_trusted_proxies(configured)
+
+      :error ->
+        :persistent_term.get(@trusted_proxies_cache_key, [])
+    end
+  end
+
+  defp parse_trusted_proxies(configured) do
+    configured
+    |> Enum.map(fn
+      %{network: _network, prefix: _prefix, bits: _bits} = cidr -> cidr
+      source -> NetworkAddress.parse_cidr!(source)
     end)
-    |> Enum.map(&NetworkAddress.parse_cidr!/1)
   end
 
   defp invalid(reason) do

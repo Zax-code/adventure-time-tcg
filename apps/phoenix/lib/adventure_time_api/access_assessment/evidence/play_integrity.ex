@@ -15,7 +15,9 @@ defmodule AdventureTimeApi.AccessAssessment.Evidence.PlayIntegrity do
     field(:package_name_verified, :boolean)
     field(:certificate_verified, :boolean)
     field(:version_verified, :boolean)
+    field(:version_code, :string)
     field(:request_hash_verified, :boolean)
+    field(:failure_reason, :string)
     field(:token_timestamp, :utc_datetime)
     field(:verified_at, :utc_datetime)
   end

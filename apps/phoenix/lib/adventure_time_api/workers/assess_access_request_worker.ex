@@ -29,7 +29,8 @@ defmodule AdventureTimeApi.Workers.AssessAccessRequestWorker do
       %{result: worker_result(result)}
     )
 
-    result
+    emit_stale_job(result)
+    normalize_result(result)
   end
 
   defp perform_assessment(%Oban.Job{
@@ -38,20 +39,35 @@ defmodule AdventureTimeApi.Workers.AssessAccessRequestWorker do
            "evidence_revision" => evidence_revision
          }
        }) do
-    with %Assessment{} = assessment <-
-           Repo.get_by(Assessment, email_access_request_id: access_request_id),
+    with {:assessment, %Assessment{} = assessment} <-
+           {:assessment, Repo.get_by(Assessment, email_access_request_id: access_request_id)},
          true <- assessment.evidence_revision == evidence_revision,
-         %EmailAccessRequest{} = request <- Repo.get(EmailAccessRequest, access_request_id) do
+         {:request, %EmailAccessRequest{} = request} <-
+           {:request, Repo.get(EmailAccessRequest, access_request_id)} do
       assess(request, assessment)
     else
-      nil -> :discard
-      false -> :discard
+      {:assessment, nil} -> {:discard, :missing_assessment}
+      false -> {:discard, :stale_revision}
+      {:request, nil} -> {:discard, :missing_request}
     end
   end
 
   defp worker_result(:ok), do: :complete
-  defp worker_result(:discard), do: :stale_or_missing
+  defp worker_result({:discard, reason}), do: reason
   defp worker_result({:error, _reason}), do: :retryable_error
+
+  defp emit_stale_job({:discard, :stale_revision}) do
+    :telemetry.execute(
+      [:adventure_time_api, :access_assessment, :stale_job],
+      %{count: 1},
+      %{reason: :revision_mismatch}
+    )
+  end
+
+  defp emit_stale_job(_result), do: :ok
+
+  defp normalize_result({:discard, _reason}), do: :discard
+  defp normalize_result(result), do: result
 
   defp assess(request, assessment) do
     now = DateTime.utc_now() |> DateTime.truncate(:second)

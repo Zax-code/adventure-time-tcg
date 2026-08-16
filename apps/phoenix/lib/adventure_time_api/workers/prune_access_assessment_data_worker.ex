@@ -15,6 +15,7 @@ defmodule AdventureTimeApi.Workers.PruneAccessAssessmentDataWorker do
 
   @impl Oban.Worker
   def perform(%Oban.Job{args: args}) do
+    started_at = System.monotonic_time()
     now = parse_now(args["now"])
 
     exact_request_ids =
@@ -123,7 +124,8 @@ defmodule AdventureTimeApi.Workers.PruneAccessAssessmentDataWorker do
         summaries_deleted: summary_count,
         reveal_audits_deleted: reveal_audit_count,
         snapshots_deleted: snapshot_count,
-        challenges_deleted: challenge_count
+        challenges_deleted: challenge_count,
+        duration: System.monotonic_time() - started_at
       },
       %{}
     )

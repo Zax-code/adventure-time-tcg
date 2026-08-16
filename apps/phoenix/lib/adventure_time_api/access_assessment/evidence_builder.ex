@@ -195,7 +195,8 @@ defmodule AdventureTimeApi.AccessAssessment.EvidenceBuilder do
     native_ua? = String.starts_with?(request.last_user_agent || "", "AdventureTimeNative/")
     claimed_native? = request.last_client_platform in ["android", "ios"]
     platform_agrees? = claimed_native? and native_ua?
-    build_recognized? = released_build?(request)
+    released_build = released_build(request)
+    build_recognized? = not is_nil(released_build)
     installation_present? = not is_nil(assessment.installation_provider_pseudonym)
 
     installation_continuous? =
@@ -207,7 +208,9 @@ defmodule AdventureTimeApi.AccessAssessment.EvidenceBuilder do
         )
 
     installation_changed? = distinct_request_values(:installation_id_hash, request.id) >= 2
-    integrity_build_corroborated? = integrity_build_corroborated?(assessment)
+
+    integrity_build_corroborated? =
+      integrity_build_corroborated?(assessment, released_build)
 
     {value, reasons} =
       {50, []}
@@ -248,21 +251,30 @@ defmodule AdventureTimeApi.AccessAssessment.EvidenceBuilder do
     component(value |> clamp() |> min(80), reasons, request.last_seen_at)
   end
 
-  defp integrity_build_corroborated?(%Assessment{play_integrity_evidence: nil}), do: false
+  defp integrity_build_corroborated?(_assessment, nil), do: false
 
-  defp integrity_build_corroborated?(%Assessment{play_integrity_evidence: evidence}) do
+  defp integrity_build_corroborated?(%Assessment{play_integrity_evidence: nil}, _build), do: false
+
+  defp integrity_build_corroborated?(
+         %Assessment{play_integrity_evidence: evidence},
+         %{version_code: version_code}
+       )
+       when is_binary(version_code) do
     evidence.app_recognition == :play_recognized and evidence.package_name_verified == true and
-      evidence.certificate_verified == true and evidence.version_verified == true
+      evidence.certificate_verified == true and evidence.version_verified == true and
+      evidence.version_code == version_code
   end
 
-  defp released_build?(request) do
+  defp integrity_build_corroborated?(_assessment, _build), do: false
+
+  defp released_build(request) do
     builds =
       :adventure_time_api
       |> Application.get_env(AdventureTimeApi.AccessAssessment, [])
       |> Keyword.get(:released_builds, %{})
       |> Map.get(request.last_client_platform, [])
 
-    Enum.any?(builds, fn build ->
+    Enum.find(builds, fn build ->
       build.version == request.last_client_app_version and
         build.build_number == request.last_client_build_number
     end)

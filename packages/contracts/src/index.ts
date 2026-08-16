@@ -2028,6 +2028,8 @@ const accessAssessmentNetworkSchema = z.object({
   testLabRangeVersion: z.string().nullable(),
   googleMatchedCidr: z.string().nullable(),
   googleRangeVersion: z.string().nullable(),
+  testLabRangeStale: z.boolean().nullable(),
+  googleRangeStale: z.boolean().nullable(),
   organization: z.string().nullable(),
   asn: z.number().int().nullable(),
   countryCode: z.string().nullable(),
@@ -2050,8 +2052,10 @@ const accessAssessmentContributionSchema = z.object({
   value: z.number().int(),
   effectFromNeutral: z.number().nullable(),
   reasonCodes: z.array(z.string()),
+  explanations: z.array(z.string()),
   observedAt: z.string().nullable(),
   hardFailure: z.boolean(),
+  modelVersion: z.string(),
 });
 
 const accessAssessmentBase = {

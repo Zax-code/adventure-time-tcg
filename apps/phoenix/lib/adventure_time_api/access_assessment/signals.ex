@@ -44,6 +44,9 @@ defmodule AdventureTimeApi.AccessAssessment.Signals do
     hard_failures = integrity_hard_failures(evidence)
 
     cond do
+      is_binary(evidence[:failure_reason]) ->
+        {:missing, evidence.failure_reason}
+
       hard_failures != [] ->
         component(0, hard_failures, evidence[:verified_at], true)
 

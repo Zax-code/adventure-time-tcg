@@ -29,6 +29,8 @@ defmodule AdventureTimeApi.AccessAssessment do
   end
 
   def reveal_ip(access_request_id, actor_id, audit_request_id) do
+    started_at = System.monotonic_time()
+
     result =
       Repo.transaction(fn ->
         assessment =
@@ -59,7 +61,7 @@ defmodule AdventureTimeApi.AccessAssessment do
 
     :telemetry.execute(
       [:adventure_time_api, :access_assessment, :ip_reveal],
-      %{count: 1},
+      %{count: 1, duration: System.monotonic_time() - started_at},
       %{result: if(match?({:ok, _response}, result), do: :ok, else: :gone)}
     )
 
@@ -81,7 +83,7 @@ defmodule AdventureTimeApi.AccessAssessment do
 
       case PlayIntegrity.decode(integrity_token, expected) do
         {:ok, evidence} -> persist_integrity(assessment, evidence)
-        {:error, _provider_failure} -> {:ok, :unavailable}
+        {:error, provider_failure} -> persist_integrity_failure(assessment, provider_failure)
       end
     else
       _invalid_or_stale -> {:error, :invalid_challenge}
@@ -185,12 +187,13 @@ defmodule AdventureTimeApi.AccessAssessment do
   end
 
   defp persist_local_assessment(access_request, metadata) do
+    classification_started_at = System.monotonic_time()
     address = canonical_address(metadata[:ip_address])
     classification = NetworkClassification.classify(address)
 
     :telemetry.execute(
       [:adventure_time_api, :access_assessment, :classification],
-      %{count: 1},
+      %{count: 1, duration: System.monotonic_time() - classification_started_at},
       %{test_lab: classification.test_lab, google_network: classification.google_network}
     )
 
@@ -260,11 +263,11 @@ defmodule AdventureTimeApi.AccessAssessment do
       {:ok, _job} ->
         :ok
 
-      {:error, changeset} ->
+      {:error, _changeset} ->
         :telemetry.execute(
           [:adventure_time_api, :access_assessment, :enqueue_error],
           %{count: 1},
-          %{error: inspect(changeset.errors)}
+          %{error: :job_insert_failed}
         )
     end
 
@@ -287,6 +290,40 @@ defmodule AdventureTimeApi.AccessAssessment do
 
     enqueue_assessment(result, false)
   end
+
+  defp persist_integrity_failure(assessment, provider_failure) do
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
+
+    result =
+      assessment
+      |> Assessment.changeset(%{
+        evidence_revision: assessment.evidence_revision + 1,
+        play_integrity_evidence: %{
+          app_recognition: :unevaluated,
+          licensing: :unevaluated,
+          device_verdicts: [],
+          failure_reason: integrity_failure_reason(provider_failure),
+          verified_at: now
+        },
+        integrity_assessed_at: now
+      })
+      |> Repo.update()
+
+    case enqueue_assessment(result, false) do
+      {:ok, _assessment} -> {:ok, :unavailable}
+      error -> error
+    end
+  end
+
+  defp integrity_failure_reason(:timeout), do: "integrity.provider_timeout"
+  defp integrity_failure_reason(:quota_exhausted), do: "integrity.provider_quota_exhausted"
+  defp integrity_failure_reason(:invalid_response), do: "integrity.provider_invalid_response"
+  defp integrity_failure_reason(:network_error), do: "integrity.provider_network_error"
+
+  defp integrity_failure_reason(:provider_auth_unavailable),
+    do: "integrity.provider_auth_unavailable"
+
+  defp integrity_failure_reason(_other), do: "integrity.provider_unavailable"
 
   defp set_review_retention(repo, assessment, reviewed_at) do
     assessment
@@ -461,6 +498,8 @@ defmodule AdventureTimeApi.AccessAssessment do
       "testLabRangeVersion" => facts && facts.test_lab_range_version,
       "googleMatchedCidr" => facts && facts.google_network_matched_cidr,
       "googleRangeVersion" => facts && facts.google_network_range_version,
+      "testLabRangeStale" => facts && facts.test_lab_range_stale,
+      "googleRangeStale" => facts && facts.google_network_range_stale,
       "organization" => intelligence && intelligence.organization,
       "asn" => intelligence && intelligence.asn,
       "countryCode" => intelligence && intelligence.country_code,
@@ -479,8 +518,10 @@ defmodule AdventureTimeApi.AccessAssessment do
       "value" => contribution.value,
       "effectFromNeutral" => contribution.effect_from_neutral,
       "reasonCodes" => contribution.reason_codes,
+      "explanations" => contribution.explanations,
       "observedAt" => iso8601(contribution.observed_at),
-      "hardFailure" => contribution.hard_failure
+      "hardFailure" => contribution.hard_failure,
+      "modelVersion" => contribution.model_version
     }
   end
 

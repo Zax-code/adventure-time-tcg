@@ -92,14 +92,15 @@ defmodule AdventureTimeApiWeb.Plugs.CanonicalClientIpTest do
     assert CanonicalClientIp.fetch(conn) == :unknown
   end
 
-  test "a trusted peer with no forwarding header falls back to its peer address" do
+  test "a trusted peer with no forwarding header has an unknown client address" do
     conn =
       :get
       |> conn("/")
       |> Map.put(:remote_ip, {127, 0, 0, 1})
       |> resolve()
 
-    assert CanonicalClientIp.fetch(conn) == {:ok, {127, 0, 0, 1}}
+    assert CanonicalClientIp.fetch(conn) == :unknown
+    assert CanonicalClientIp.to_string(conn) == nil
   end
 
   defp resolve(conn) do

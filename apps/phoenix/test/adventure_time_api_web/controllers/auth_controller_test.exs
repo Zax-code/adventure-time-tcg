@@ -401,6 +401,56 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
            }
   end
 
+  test "repeat pending Android logins revise evidence and return a fresh integrity challenge", %{
+    conn: conn
+  } do
+    Application.put_env(:adventure_time_api, AccessAssessment, collection_enabled: true)
+
+    create_user_with_password("pending-android@example.com", "bassbass", "Pending Android",
+      verified?: true
+    )
+
+    first =
+      conn
+      |> put_req_header("x-forwarded-for", "198.51.100.45")
+      |> put_req_header("user-agent", "AdventureTimeNative/1.0.22")
+      |> put_req_header("x-adventure-time-platform", "android")
+      |> put_req_header("x-adventure-time-installation-id", "pending-installation")
+      |> post(~p"/auth/login", %{
+        email: "pending-android@example.com",
+        password: "bassbass"
+      })
+
+    first_body = json_response(first, 403)
+    assert first_body["code"] == "ACCESS_REQUEST_PENDING"
+    assert first_body["assessmentChallenge"]["kind"] == "play_integrity_standard"
+
+    request = Repo.get_by!(EmailAccessRequest, email: "pending-android@example.com")
+    assert Repo.get_by!(Assessment, email_access_request_id: request.id).evidence_revision == 1
+
+    second =
+      build_conn()
+      |> put_req_header("x-forwarded-for", "198.51.100.45")
+      |> put_req_header("user-agent", "AdventureTimeNative/1.0.22")
+      |> put_req_header("x-adventure-time-platform", "android")
+      |> put_req_header("x-adventure-time-installation-id", "pending-installation")
+      |> post(~p"/auth/login", %{
+        email: "pending-android@example.com",
+        password: "bassbass"
+      })
+
+    second_body = json_response(second, 403)
+    assert second_body["assessmentChallenge"]["kind"] == "play_integrity_standard"
+
+    refute second_body["assessmentChallenge"]["token"] ==
+             first_body["assessmentChallenge"]["token"]
+
+    updated_request = Repo.get!(EmailAccessRequest, request.id)
+    updated_assessment = Repo.get_by!(Assessment, email_access_request_id: request.id)
+    assert updated_request.attempt_count == 2
+    assert updated_assessment.evidence_revision == 2
+  end
+
   test "POST /auth/request-password-reset returns a generic success and creates a reset code", %{
     conn: conn
   } do

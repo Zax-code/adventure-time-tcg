@@ -5,6 +5,7 @@ defmodule AdventureTimeApiWeb.PlayIntegrityControllerTest do
   alias AdventureTimeApi.AccessAssessment.Assessment
   alias AdventureTimeApi.AccessAssessment.Challenges
   alias AdventureTimeApi.AccessAssessment.PlayIntegrity
+  alias AdventureTimeApi.AccessAssessment.Signals
   alias AdventureTimeApi.Accounts.EmailAccessRequest
   alias AdventureTimeApi.Repo
 
@@ -23,11 +24,14 @@ defmodule AdventureTimeApiWeb.PlayIntegrityControllerTest do
          package_name_verified: true,
          certificate_verified: true,
          version_verified: true,
+         version_code: "123",
          request_hash_verified: true,
          token_timestamp: now,
          verified_at: now
        }}
     end
+
+    def decode("timeout-token", _expected, _opts), do: {:error, :timeout}
   end
 
   setup do
@@ -82,6 +86,34 @@ defmodule AdventureTimeApiWeb.PlayIntegrityControllerTest do
              "error" => "Invalid integrity submission",
              "code" => "INVALID_INTEGRITY_SUBMISSION"
            }
+  end
+
+  test "persists an explicit missing reason when the provider times out", %{conn: conn} do
+    request = access_request()
+
+    {:ok, _assessment} =
+      AccessAssessment.capture(request, %{
+        ip_address: "198.51.100.21",
+        client_platform: "android",
+        user_agent: "AdventureTimeNative/1.0.22"
+      })
+
+    {:ok, challenge} = Challenges.issue(request.id)
+
+    conn =
+      post(conn, "/auth/access-request-assessment/play-integrity", %{
+        "challengeToken" => challenge.token,
+        "integrityToken" => "timeout-token"
+      })
+
+    assert response(conn, 204) == ""
+
+    assessment = Repo.get_by!(Assessment, email_access_request_id: request.id)
+    assert assessment.evidence_revision == 2
+    assert assessment.play_integrity_evidence.failure_reason == "integrity.provider_timeout"
+
+    assert Signals.play_integrity(Map.from_struct(assessment.play_integrity_evidence)) ==
+             {:missing, "integrity.provider_timeout"}
   end
 
   defp access_request do
