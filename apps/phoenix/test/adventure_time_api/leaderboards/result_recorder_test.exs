@@ -6,6 +6,7 @@ defmodule AdventureTimeApi.Leaderboards.ResultRecorderTest do
   alias AdventureTimeApi.Leaderboards.{
     Board,
     CompetitionSlot,
+    Corrections,
     DailyResult,
     ResultRecorder,
     ResultTelemetry,
@@ -45,25 +46,56 @@ defmodule AdventureTimeApi.Leaderboards.ResultRecorderTest do
     assert Repo.aggregate(DailyResult, :count) == 2
   end
 
+  test "an excluded source cannot be restored by reconciliation" do
+    user = insert_user!()
+    board = Repo.get_by!(Board, key: "steps/default")
+    scoring_version = insert_scoring_version!()
+    slot = insert_slot!(user.id)
+    source_id = Ecto.UUID.generate()
+
+    result =
+      record_steps!(user, board, scoring_version, slot, steps: 20_000, source_id: source_id)
+
+    actor = %{id: user.id, isSuperAdmin: true}
+    assert {:ok, excluded} = Corrections.exclude_result(result.id, actor, "Invalid source data")
+    assert excluded.result_status == :excluded
+
+    assert {:error, :result_excluded} =
+             ResultRecorder.record_validated(
+               step_attrs(user, board, scoring_version, slot,
+                 steps: 21_000,
+                 source_id: source_id
+               )
+             )
+
+    assert Repo.get!(DailyResult, result.id).result_status == :excluded
+  end
+
   defp record_steps!(user, board, scoring_version, slot, options) do
     assert {:ok, result} =
-             ResultRecorder.record_validated(%{
-               user_id: user.id,
-               board_key: board.key,
-               competition_slot_id: slot.id,
-               competition_date: slot.local_date,
-               source_kind: "health_step_snapshot",
-               source_id: options[:source_id],
-               raw_result: %{"steps" => options[:steps]},
-               raw_numeric_value: options[:steps],
-               outcome: "accepted",
-               scoring_version_id: scoring_version.id,
-               scoring_configuration: Scoring.launch_configuration(),
-               submitted_at: DateTime.utc_now(),
-               telemetry: %{normalized_metrics: %{"steps" => options[:steps]}}
-             })
+             ResultRecorder.record_validated(
+               step_attrs(user, board, scoring_version, slot, options)
+             )
 
     result
+  end
+
+  defp step_attrs(user, board, scoring_version, slot, options) do
+    %{
+      user_id: user.id,
+      board_key: board.key,
+      competition_slot_id: slot.id,
+      competition_date: slot.local_date,
+      source_kind: "health_step_snapshot",
+      source_id: options[:source_id],
+      raw_result: %{"steps" => options[:steps]},
+      raw_numeric_value: options[:steps],
+      outcome: "accepted",
+      scoring_version_id: scoring_version.id,
+      scoring_configuration: Scoring.launch_configuration(),
+      submitted_at: DateTime.utc_now(),
+      telemetry: %{normalized_metrics: %{"steps" => options[:steps]}}
+    }
   end
 
   defp insert_user! do

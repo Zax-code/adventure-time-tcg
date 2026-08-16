@@ -17,6 +17,7 @@ defmodule AdventureTimeApi.Leaderboards.Lifecycle do
     Calendar,
     Configuration,
     DailyResult,
+    Locks,
     Period,
     Prizes,
     QuestResults,
@@ -134,58 +135,78 @@ defmodule AdventureTimeApi.Leaderboards.Lifecycle do
     if DateTime.compare(now, period.closes_at) == :lt do
       :ok
     else
-      {version, configuration} = scoring_for_period!(period)
+      Repo.transaction(fn ->
+        Boards.list_enabled()
+        |> Enum.each(&Locks.daily_result!(&1.id, period.competition_date))
 
-      period =
-        if period.status in [:closed, :corrected] do
-          period
-        else
-          period |> Period.changeset(%{status: :closing}) |> Repo.update!()
+        {version, configuration} = scoring_for_period!(period)
+
+        period =
+          if period.status in [:closed, :corrected] do
+            period
+          else
+            period |> Period.changeset(%{status: :closing}) |> Repo.update!()
+          end
+
+        build_all_snapshots(period, version, configuration, now)
+
+        from(result in DailyResult,
+          where:
+            result.competition_date == ^period.competition_date and result.active and
+              result.result_status == :accepted
+        )
+        |> Repo.update_all(
+          set: [result_status: :snapshotted, provisional: false, updated_at: now]
+        )
+
+        if period.status == :closing do
+          period |> Period.changeset(%{status: :closed}) |> Repo.update!()
         end
-
-      build_all_snapshots(period, version, configuration, now)
-
-      from(result in DailyResult,
-        where:
-          result.competition_date == ^period.competition_date and result.active and
-            result.result_status == :accepted
-      )
-      |> Repo.update_all(set: [result_status: :snapshotted, provisional: false, updated_at: now])
-
-      if period.status == :closing do
-        period |> Period.changeset(%{status: :closed}) |> Repo.update!()
-      end
+      end)
     end
   end
 
   defp refresh_week(period, now) do
-    {version, configuration} = scoring_for_period!(period)
-    closing = DateTime.compare(now, period.closes_at) != :lt
+    Repo.transaction(fn ->
+      Boards.list_enabled()
+      |> Enum.each(&Locks.period_board!(period.id, &1.id))
 
-    period =
-      if closing and period.status not in [:closed, :corrected] do
-        period |> Period.changeset(%{status: :closed}) |> Repo.update!()
-      else
-        period
+      {version, configuration} = scoring_for_period!(period)
+      closing = DateTime.compare(now, period.closes_at) != :lt
+
+      period =
+        if closing and period.status not in [:closed, :corrected] do
+          period |> Period.changeset(%{status: :closed}) |> Repo.update!()
+        else
+          period
+        end
+
+      build_all_snapshots(period, version, configuration, now)
+
+      if period.status == :closed do
+        award_week(period, now)
       end
-
-    build_all_snapshots(period, version, configuration, now)
-
-    if period.status == :closed do
-      award_week(period, now)
-    end
+    end)
   end
 
   defp build_all_snapshots(period, version, configuration, now) do
     Boards.list_enabled()
     |> Enum.each(fn board ->
-      rows =
-        case board.board_kind do
-          :source -> source_rows(period, board, configuration)
-          :derived_family -> derived_rows(period, board, configuration)
+      Repo.transaction(fn ->
+        Locks.period_board!(period.id, board.id)
+
+        if period.period_type == :day do
+          Locks.daily_result!(board.id, period.competition_date)
         end
 
-      persist_snapshot(period, board, version, rows, now)
+        rows =
+          case board.board_kind do
+            :source -> source_rows(period, board, configuration)
+            :derived_family -> derived_rows(period, board, configuration)
+          end
+
+        persist_snapshot(period, board, version, rows, now)
+      end)
     end)
   end
 
@@ -327,65 +348,58 @@ defmodule AdventureTimeApi.Leaderboards.Lifecycle do
 
   defp persist_snapshot(period, board, version, rows, now) do
     signature = snapshot_signature(rows)
+    current = Repo.get_by(Snapshot, period_id: period.id, board_id: board.id, current: true)
 
-    Repo.transaction(fn ->
-      lock_key = "#{period.id}:#{board.id}"
-      Repo.query!("SELECT pg_advisory_xact_lock(hashtextextended($1, 0))", [lock_key])
-
-      current = Repo.get_by(Snapshot, period_id: period.id, board_id: board.id, current: true)
-
-      if reusable_snapshot?(current, period, signature) do
+    if reusable_snapshot?(current, period, signature) do
+      current
+    else
+      if current do
         current
-      else
-        if current do
-          current
-          |> Snapshot.changeset(%{current: false, status: :superseded})
-          |> Repo.update!()
-        end
-
-        snapshot =
-          %Snapshot{}
-          |> Snapshot.changeset(%{
-            period_id: period.id,
-            board_id: board.id,
-            revision: if(current, do: current.revision + 1, else: 1),
-            status: :closed,
-            scoring_version_id: version.id,
-            participant_count: length(rows),
-            valid_result_count:
-              Enum.reduce(rows, 0, &(&2 + length(&1.selected_daily_result_ids))),
-            configuration_hash: version.configuration_hash,
-            source_cutoff: now,
-            finalized_at: now,
-            finalized_by: signature,
-            supersedes_snapshot_id: current && current.id,
-            current: true
-          })
-          |> Repo.insert!()
-
-        rows
-        |> Enum.each(fn row ->
-          %SnapshotRow{}
-          |> SnapshotRow.changeset(%{
-            snapshot_id: snapshot.id,
-            user_id: row.user_id,
-            public_profile_id: row.public_profile_id,
-            position: row.position,
-            rank: row.rank,
-            tie_group: row.rank,
-            points_milli: row.points_milli,
-            raw_result: row.raw_result,
-            selected_daily_result_ids: row.selected_daily_result_ids,
-            selected_points_milli: row.selected_points_milli,
-            medal_tier: medal_tier(period, board, row.rank),
-            identity_audit: row.identity_audit
-          })
-          |> Repo.insert!()
-        end)
-
-        snapshot
+        |> Snapshot.changeset(%{current: false, status: :superseded})
+        |> Repo.update!()
       end
-    end)
+
+      snapshot =
+        %Snapshot{}
+        |> Snapshot.changeset(%{
+          period_id: period.id,
+          board_id: board.id,
+          revision: if(current, do: current.revision + 1, else: 1),
+          status: :closed,
+          scoring_version_id: version.id,
+          participant_count: length(rows),
+          valid_result_count: Enum.reduce(rows, 0, &(&2 + length(&1.selected_daily_result_ids))),
+          configuration_hash: version.configuration_hash,
+          source_cutoff: now,
+          finalized_at: now,
+          finalized_by: signature,
+          supersedes_snapshot_id: current && current.id,
+          current: true
+        })
+        |> Repo.insert!()
+
+      rows
+      |> Enum.each(fn row ->
+        %SnapshotRow{}
+        |> SnapshotRow.changeset(%{
+          snapshot_id: snapshot.id,
+          user_id: row.user_id,
+          public_profile_id: row.public_profile_id,
+          position: row.position,
+          rank: row.rank,
+          tie_group: row.rank,
+          points_milli: row.points_milli,
+          raw_result: row.raw_result,
+          selected_daily_result_ids: row.selected_daily_result_ids,
+          selected_points_milli: row.selected_points_milli,
+          medal_tier: medal_tier(period, board, row.rank),
+          identity_audit: row.identity_audit
+        })
+        |> Repo.insert!()
+      end)
+
+      snapshot
+    end
   end
 
   defp reusable_snapshot?(nil, _period, _signature), do: false

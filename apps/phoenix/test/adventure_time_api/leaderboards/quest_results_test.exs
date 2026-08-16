@@ -240,8 +240,8 @@ defmodule AdventureTimeApi.Leaderboards.QuestResultsTest do
         score: 10,
         reward: 0,
         started_at: ~U[2026-08-17 23:59:00Z],
-        finished_at: ~U[2026-08-18 00:01:00Z],
-        play_deadline_at: ~U[2026-08-18 00:01:00Z]
+        finished_at: ~U[2026-08-18 00:00:00Z],
+        play_deadline_at: ~U[2026-08-18 00:00:00Z]
       })
       |> Repo.insert!()
 

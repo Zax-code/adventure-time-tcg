@@ -14,6 +14,7 @@ import type {
 } from "@adventure-time/api-client";
 
 import { PageErrorState } from "../../components/error-state";
+import { SecondaryButton } from "../../components/button";
 import {
   ClockIcon,
   DailyNumbersQuestIcon,
@@ -354,6 +355,7 @@ function RankingsContent({ data, preview }: { data: LeaderboardResponse; preview
           <Text className="text-center font-nunito-bold text-sm text-primaryText">
             {t("rankings.pendingResult", {
               result: formatRawResult(data.pendingCurrentPlayerResult),
+              points: data.pendingCurrentPlayerPoints ?? 0,
             })}
           </Text>
         </View>
@@ -415,14 +417,12 @@ function HistoryWeek({
         {t("rankings.weekEnding", { date: week.period.standingsThrough ?? "" })}
       </Text>
       <RankingsContent data={week} preview={false} />
-      <Pressable
+      <SecondaryButton
         onPress={() => setExpanded((current) => !current)}
-        className="items-center rounded-full border border-primaryBorder bg-surface px-4 py-3"
+        style={{ width: "100%" }}
       >
-        <Text className="font-nunito-bold text-sm text-primaryText">
-          {t(expanded ? "rankings.hideDays" : "rankings.viewDays")}
-        </Text>
-      </Pressable>
+        {t(expanded ? "rankings.hideDays" : "rankings.viewDays")}
+      </SecondaryButton>
       {expanded && days.isLoading ? (
         <PageLoadingState
           title={t("rankings.loadingTitle")}

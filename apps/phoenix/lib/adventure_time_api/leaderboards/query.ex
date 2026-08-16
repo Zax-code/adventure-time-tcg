@@ -103,6 +103,7 @@ defmodule AdventureTimeApi.Leaderboards.Query do
     visible_rows = Enum.take(rows, @visible_row_limit)
     projected_rows = Enum.map(visible_rows, &project_row(&1, period))
     current_player_row = find_current_player(snapshot.id, current_user_id, period)
+    pending = pending_result(board, period, current_user_id, scoring_version)
 
     %{
       board: project_board(board),
@@ -110,7 +111,8 @@ defmodule AdventureTimeApi.Leaderboards.Query do
       podium: Enum.filter(projected_rows, &(&1.rank <= 3)),
       rows: projected_rows,
       currentPlayer: current_player_row,
-      pendingCurrentPlayerResult: pending_result(board, period, current_user_id, scoring_version),
+      pendingCurrentPlayerResult: pending && pending.raw_result,
+      pendingCurrentPlayerPoints: pending && div(pending.points_milli + 500, 1_000),
       qualification: qualification(board.id, period, current_user_id, current_player_row),
       pageInfo: %{nextCursor: nil, hasNextPage: length(rows) > @visible_row_limit},
       scoring: %{
@@ -285,7 +287,13 @@ defmodule AdventureTimeApi.Leaderboards.Query do
   defp pending_result(_board, %Period{period_type: :day}, _user_id, _version), do: nil
 
   defp pending_result(%Board{board_kind: :source} = board, period, user_id, _version) do
-    pending_source_result(board.id, period, user_id)
+    case pending_source_daily_result(board.id, period, user_id) do
+      %DailyResult{} = result ->
+        %{raw_result: result.raw_result, points_milli: result.points_milli}
+
+      nil ->
+        nil
+    end
   end
 
   defp pending_result(%Board{board_kind: :derived_family} = board, period, user_id, version) do
@@ -296,33 +304,35 @@ defmodule AdventureTimeApi.Leaderboards.Query do
         from(member in Board, where: member.key in ^member_keys, select: {member.id, member.key})
       )
 
+    member_ids = Enum.map(member_boards, &elem(&1, 0))
+    keys_by_id = Map.new(member_boards)
+    results = pending_source_daily_results(member_ids, period, user_id)
+    latest_date = results |> Enum.map(& &1.competition_date) |> Enum.max(Date, fn -> nil end)
+
     member_points =
-      member_boards
-      |> Enum.flat_map(fn {board_id, board_key} ->
-        case pending_source_daily_result(board_id, period, user_id) do
-          %DailyResult{} = result -> [{board_key, result.points_milli}]
-          nil -> []
-        end
-      end)
-      |> Map.new()
+      results
+      |> Enum.filter(&(&1.competition_date == latest_date))
+      |> Map.new(&{Map.fetch!(keys_by_id, &1.board_id), &1.points_milli})
 
     with true <- map_size(member_points) > 0,
          {:ok, configuration} <- Configuration.normalize(version.configuration),
          {:ok, derived} <- Scoring.derived(configuration, board.key, member_points) do
-      %{"kind" => "member_breakdown", "members" => derived.member_points_milli}
+      %{
+        raw_result: %{"kind" => "member_breakdown", "members" => derived.member_points_milli},
+        points_milli: derived.points_milli
+      }
     else
       _ -> nil
     end
   end
 
-  defp pending_source_result(board_id, period, user_id) do
-    case pending_source_daily_result(board_id, period, user_id) do
-      %DailyResult{} = result -> result.raw_result
-      nil -> nil
-    end
+  defp pending_source_daily_result(board_id, %Period{period_type: :week} = period, user_id) do
+    [board_id]
+    |> pending_source_daily_results(period, user_id)
+    |> List.first()
   end
 
-  defp pending_source_daily_result(board_id, %Period{period_type: :week} = period, user_id) do
+  defp pending_source_daily_results(board_ids, %Period{period_type: :week} = period, user_id) do
     week_end = Date.add(period.week_start, 6)
 
     closed_dates =
@@ -336,14 +346,15 @@ defmodule AdventureTimeApi.Leaderboards.Query do
 
     from(result in DailyResult,
       where:
-        result.user_id == ^user_id and result.board_id == ^board_id and result.active and
-          result.result_status == :accepted and result.competition_date >= ^period.week_start and
+        result.user_id == ^user_id and result.board_id in ^board_ids and result.active and
+          result.result_status == :accepted and result.integrity_status == :accepted and
+          result.eligibility_status == :eligible and
+          result.competition_date >= ^period.week_start and
           result.competition_date <= ^week_end and result.competition_date not in ^closed_dates,
       order_by: [desc: result.competition_date, desc: result.accepted_at],
-      limit: 1,
       select: result
     )
-    |> Repo.one()
+    |> Repo.all()
   end
 
   defp qualification(_board_id, %Period{period_type: :day}, _user_id, _row), do: nil

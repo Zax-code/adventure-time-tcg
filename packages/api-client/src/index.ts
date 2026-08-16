@@ -36,6 +36,7 @@ import {
   leaderboardHistoryResponseSchema,
   leaderboardHistoryDaysResponseSchema,
   leaderboardResultExclusionSchema,
+  leaderboardResultExclusionResponseSchema,
   leaderboardResponseSchema,
   publicLeaderboardProfileSchema,
   updateDisplayNameSchema,
@@ -147,6 +148,7 @@ import {
   type LeaderboardHistoryResponse,
   type LeaderboardHistoryDaysResponse,
   type LeaderboardResultExclusionInput,
+  type LeaderboardResultExclusionResponse,
   type LeaderboardResponse,
   type PublicLeaderboardProfile,
   type AppleAuthInput,
@@ -1455,13 +1457,13 @@ export class ApiClient {
   async excludeLeaderboardResult(
     resultId: string,
     input: LeaderboardResultExclusionInput,
-  ): Promise<{ id: string; status: "excluded" }> {
+  ): Promise<LeaderboardResultExclusionResponse> {
     const body = leaderboardResultExclusionSchema.parse(input);
 
     return this.request(
       `/admin/leaderboards/results/${encodeURIComponent(resultId)}/exclude`,
       { method: "POST", body: JSON.stringify(body) },
-      (data) => data as { id: string; status: "excluded" },
+      (data) => leaderboardResultExclusionResponseSchema.parse(data),
     );
   }
 

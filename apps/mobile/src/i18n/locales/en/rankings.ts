@@ -11,7 +11,7 @@ const rankings = {
   weekEnding: "Week ending {date}",
   viewDays: "View daily results",
   hideDays: "Hide daily results",
-  pendingResult: "Your latest result (pending closure): {result}",
+  pendingResult: "Your latest result (pending closure): {result} · {points} pts",
   scoringHelp: "How scoring works",
   profileTapHint: "Tap any adventurer to see their crowns and achievements",
   historyTitle: "Weekly history",

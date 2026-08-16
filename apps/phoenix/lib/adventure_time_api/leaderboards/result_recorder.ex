@@ -8,7 +8,7 @@ defmodule AdventureTimeApi.Leaderboards.ResultRecorder do
 
   import Ecto.Query
 
-  alias AdventureTimeApi.Leaderboards.{Board, DailyResult, ResultTelemetry, Scoring}
+  alias AdventureTimeApi.Leaderboards.{Board, DailyResult, Locks, ResultTelemetry, Scoring}
   alias AdventureTimeApi.Repo
 
   @required_keys [
@@ -34,6 +34,8 @@ defmodule AdventureTimeApi.Leaderboards.ResultRecorder do
           Repo.one(from(board in Board, where: board.key == ^attrs.board_key and board.enabled)) ||
             Repo.rollback(:unknown_or_disabled_board)
 
+        Locks.daily_result!(board.id, attrs.competition_date)
+
         lock_key =
           Enum.join(
             [attrs.user_id, board.id, Date.to_iso8601(attrs.competition_date)],
@@ -54,6 +56,15 @@ defmodule AdventureTimeApi.Leaderboards.ResultRecorder do
               lock: "FOR UPDATE"
             )
           )
+
+        same_source =
+          previous && previous.source_kind == attrs.source_kind &&
+            previous.source_id == attrs.source_id
+
+        if same_source &&
+             (previous.result_status == :excluded or previous.eligibility_status == :moderated) do
+          Repo.rollback(:result_excluded)
+        end
 
         accepted_at = DateTime.utc_now()
 
@@ -80,10 +91,6 @@ defmodule AdventureTimeApi.Leaderboards.ResultRecorder do
           accepted_at: accepted_at,
           supersedes_result_id: previous && previous.id
         }
-
-        same_source =
-          previous && previous.source_kind == attrs.source_kind &&
-            previous.source_id == attrs.source_id
 
         result =
           if same_source do

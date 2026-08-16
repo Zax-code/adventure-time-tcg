@@ -123,6 +123,7 @@ export const leaderboardResponseSchema = z.object({
   rows: z.array(leaderboardRowSchema),
   currentPlayer: leaderboardRowSchema.nullable(),
   pendingCurrentPlayerResult: leaderboardRawResultSchema.nullable(),
+  pendingCurrentPlayerPoints: z.number().int().min(0).max(1000).nullable(),
   qualification: z
     .object({ validResults: z.number().int().nonnegative(), requiredResults: z.literal(3) })
     .nullable(),
@@ -149,10 +150,21 @@ export const leaderboardResultExclusionSchema = z.object({
   reason: z.string().trim().min(8),
 });
 
-export const leaderboardCorrectionPreviewSchema = z.object({
-  reason: z.string().trim().min(8),
-  excludeUserIds: z.array(z.string().uuid()).min(1),
+export const leaderboardResultExclusionResponseSchema = z.object({
+  id: z.string().uuid(),
+  status: z.literal("excluded"),
 });
+
+export const leaderboardCorrectionPreviewSchema = z
+  .object({
+    reason: z.string().trim().min(8),
+    excludeUserIds: z.array(z.string().uuid()).default([]),
+    excludeDailyResultIds: z.array(z.string().uuid()).default([]),
+  })
+  .refine(
+    (input) => input.excludeUserIds.length > 0 || input.excludeDailyResultIds.length > 0,
+    "At least one user or daily result must be excluded",
+  );
 
 export const leaderboardCorrectionConfirmSchema = z.object({
   previewHash: z.string().min(1),
@@ -220,6 +232,9 @@ export type LeaderboardHistoryDaysResponse = z.infer<
 >;
 export type LeaderboardResultExclusionInput = z.infer<
   typeof leaderboardResultExclusionSchema
+>;
+export type LeaderboardResultExclusionResponse = z.infer<
+  typeof leaderboardResultExclusionResponseSchema
 >;
 export type LeaderboardCorrectionPreviewInput = z.infer<
   typeof leaderboardCorrectionPreviewSchema

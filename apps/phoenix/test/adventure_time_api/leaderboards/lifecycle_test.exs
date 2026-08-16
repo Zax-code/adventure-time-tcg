@@ -250,6 +250,8 @@ defmodule AdventureTimeApi.Leaderboards.LifecycleTest do
       end)
     end)
 
+    insert_and_sync_steps!(first, ~D[2026-08-20], 1)
+
     assert :ok = Lifecycle.tick(~U[2026-08-24 20:16:00.000000Z])
     week = Repo.get_by!(Period, period_type: :week, week_start: ~D[2026-08-17])
 
@@ -261,9 +263,29 @@ defmodule AdventureTimeApi.Leaderboards.LifecycleTest do
       )
 
     actor = %{id: third.id, isSuperAdmin: true}
+    first_row = Repo.get_by!(SnapshotRow, snapshot_id: source.id, user_id: first.id)
+    excluded_result_id = hd(first_row.selected_daily_result_ids)
+
+    unselected_result =
+      Repo.get_by!(DailyResult,
+        user_id: first.id,
+        board_id: board_id("steps/default"),
+        competition_date: ~D[2026-08-20]
+      )
+
+    assert {:error, :no_matching_rows} =
+             Corrections.preview(source.id, actor, "Invalid mixed result set", %{
+               "excludeDailyResultIds" => [excluded_result_id, unselected_result.id]
+             })
+
+    unselected_result
+    |> Ecto.Changeset.change(active: false)
+    |> Repo.update!()
 
     assert {:ok, preview} =
-             Corrections.preview(source.id, actor, "Invalid winning result", [first.id])
+             Corrections.preview(source.id, actor, "Invalid winning result", %{
+               "excludeDailyResultIds" => [excluded_result_id]
+             })
 
     assert preview.sourceRevision == 1
     assert preview.rankDelta[first.id] == %{"before" => 1, "after" => nil}
@@ -276,6 +298,7 @@ defmodule AdventureTimeApi.Leaderboards.LifecycleTest do
     assert replacement.revision == 2
     assert replacement.supersedes_snapshot_id == source.id
     assert Repo.reload!(source).status == :superseded
+    assert Repo.get!(DailyResult, excluded_result_id).result_status == :excluded
 
     replacement_id = replacement.id
 

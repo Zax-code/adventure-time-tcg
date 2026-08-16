@@ -38,7 +38,8 @@ defmodule AdventureTimeApi.Leaderboards.QuestResults do
       {:ok, _result} ->
         :ok
 
-      {:error, reason} when reason in [:scoring_unavailable, :leaderboard_ineligible] ->
+      {:error, reason}
+      when reason in [:scoring_unavailable, :leaderboard_ineligible, :result_excluded] ->
         :ok
 
       {:error, reason} ->
@@ -346,7 +347,7 @@ defmodule AdventureTimeApi.Leaderboards.QuestResults do
         slot.ends_at
       end
 
-    if DateTime.compare(normalized.submitted_at, deadline) == :gt do
+    if DateTime.compare(normalized.submitted_at, deadline) != :lt do
       {:error, :slot_attribution_closed}
     else
       :ok

@@ -449,14 +449,15 @@ defmodule AdventureTimeApiWeb.AdminController do
     end
   end
 
-  def preview_leaderboard_correction(conn, %{
-        "id" => id,
-        "reason" => reason,
-        "excludeUserIds" => excluded_user_ids
-      }) do
+  def preview_leaderboard_correction(conn, %{"id" => id, "reason" => reason} = params) do
+    changes = %{
+      "excludeUserIds" => Map.get(params, "excludeUserIds", []),
+      "excludeDailyResultIds" => Map.get(params, "excludeDailyResultIds", [])
+    }
+
     with :ok <- require_super_admin(conn),
          {:ok, preview} <-
-           Corrections.preview(id, conn.assigns.auth_user, reason, excluded_user_ids) do
+           Corrections.preview(id, conn.assigns.auth_user, reason, changes) do
       json(conn, preview)
     else
       {:error, %Plug.Conn{} = conn} -> conn

@@ -85,6 +85,7 @@ export const RANKINGS_PREVIEW_DATA: LeaderboardResponse = {
   rows: previewRows,
   currentPlayer: row(8, 8, "BMO Player", "bmo", 101, 697),
   pendingCurrentPlayerResult: null,
+  pendingCurrentPlayerPoints: null,
   qualification: null,
   pageInfo: { nextCursor: null, hasNextPage: false },
   scoring: {

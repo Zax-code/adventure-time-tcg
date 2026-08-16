@@ -5,14 +5,19 @@ defmodule AdventureTimeApi.Leaderboards.Corrections do
 
   alias AdventureTimeApi.Leaderboards.{
     Board,
+    Configuration,
     DailyResult,
+    Locks,
     Period,
     Prizes,
+    Ranking,
     RewardGrant,
     RewardWallet,
     Snapshot,
     SnapshotCorrection,
     SnapshotRow,
+    Scoring,
+    ScoringVersion,
     UserAchievement
   }
 
@@ -20,44 +25,56 @@ defmodule AdventureTimeApi.Leaderboards.Corrections do
 
   def exclude_result(result_id, actor, reason) when is_binary(reason) do
     with :ok <- authorize(actor),
-         :ok <- validate_reason(reason),
-         %DailyResult{} = result <- Repo.get(DailyResult, result_id),
-         true <-
-           result.result_status != :snapshotted or {:error, :closed_snapshot_requires_correction} do
-      result
-      |> Ecto.Changeset.change(%{
-        result_status: :excluded,
-        eligibility_status: :moderated,
-        excluded_reason: String.trim(reason),
-        excluded_by_user_id: actor.id,
-        excluded_at: DateTime.utc_now()
-      })
-      |> Repo.update()
+         :ok <- validate_reason(reason) do
+      Repo.transaction(fn ->
+        preliminary = Repo.get(DailyResult, result_id) || Repo.rollback(:not_found)
+        Locks.daily_result!(preliminary.board_id, preliminary.competition_date)
+
+        result =
+          Repo.one(
+            from(result in DailyResult, where: result.id == ^result_id, lock: "FOR UPDATE")
+          ) ||
+            Repo.rollback(:not_found)
+
+        if result.result_status == :snapshotted do
+          Repo.rollback(:closed_snapshot_requires_correction)
+        end
+
+        result
+        |> Ecto.Changeset.change(%{
+          result_status: :excluded,
+          eligibility_status: :moderated,
+          excluded_reason: String.trim(reason),
+          excluded_by_user_id: actor.id,
+          excluded_at: DateTime.utc_now()
+        })
+        |> Repo.update!()
+      end)
     else
-      nil -> {:error, :not_found}
       {:error, reason} -> {:error, reason}
     end
   end
 
   def exclude_result(_result_id, _actor, _reason), do: {:error, :invalid_reason}
 
-  def preview(snapshot_id, actor, reason, excluded_user_ids)
-      when is_binary(reason) and is_list(excluded_user_ids) do
+  def preview(snapshot_id, actor, reason, changes_input)
+      when is_binary(reason) and is_map(changes_input) do
     with :ok <- authorize(actor),
          :ok <- validate_reason(reason),
-         {:ok, excluded_user_ids} <- validate_user_ids(excluded_user_ids),
+         {:ok, changes} <- normalize_changes(changes_input),
          %Snapshot{current: true} = snapshot <- Repo.get(Snapshot, snapshot_id),
          %Period{} = period <- Repo.get(Period, snapshot.period_id),
+         %Board{} = board <- Repo.get(Board, snapshot.board_id),
          true <- period.status in [:closed, :corrected] or {:error, :period_not_closed},
          rows <- rows_for(snapshot.id),
-         true <-
-           Enum.any?(rows, &(&1.user_id in excluded_user_ids)) or {:error, :no_matching_rows} do
-      proposed_rows = corrected_rows(rows, excluded_user_ids)
-      changes = %{"excludeUserIds" => Enum.sort(excluded_user_ids)}
+         true <- changes_match_rows?(rows, changes) or {:error, :no_matching_rows},
+         {:ok, proposed_rows} <- corrected_rows(snapshot, period, board, rows, changes) do
       rank_delta = rank_delta(rows, proposed_rows)
       reward_delta = reward_delta(rows, proposed_rows)
       now = DateTime.utc_now()
-      preview_hash = preview_hash(snapshot, changes, rank_delta, reward_delta)
+
+      preview_hash =
+        preview_hash(snapshot, actor.id, String.trim(reason), changes, rank_delta, reward_delta)
 
       correction =
         %SnapshotCorrection{
@@ -82,11 +99,18 @@ defmodule AdventureTimeApi.Leaderboards.Corrections do
     end
   end
 
+  def preview(snapshot_id, actor, reason, excluded_user_ids) when is_list(excluded_user_ids) do
+    preview(snapshot_id, actor, reason, %{"excludeUserIds" => excluded_user_ids})
+  end
+
   def preview(_snapshot_id, _actor, _reason, _ids), do: {:error, :invalid_changes}
 
   def confirm(snapshot_id, actor, preview_hash, true) when is_binary(preview_hash) do
     with :ok <- authorize(actor) do
       Repo.transaction(fn ->
+        preliminary = Repo.get(Snapshot, snapshot_id) || Repo.rollback(:not_found)
+        Locks.period_board!(preliminary.period_id, preliminary.board_id)
+
         correction =
           Repo.one(
             from(correction in SnapshotCorrection,
@@ -111,11 +135,27 @@ defmodule AdventureTimeApi.Leaderboards.Corrections do
           Repo.rollback(:stale_correction_preview)
         end
 
+        if correction.actor_user_id != actor.id do
+          Repo.rollback(:correction_actor_mismatch)
+        end
+
         now = DateTime.utc_now()
-        excluded_user_ids = Map.fetch!(correction.proposed_changes, "excludeUserIds")
-        rows = source.id |> rows_for() |> corrected_rows(excluded_user_ids)
         period = Repo.get!(Period, source.period_id)
         board = Repo.get!(Board, source.board_id)
+
+        rows =
+          case corrected_rows(
+                 source,
+                 period,
+                 board,
+                 rows_for(source.id),
+                 correction.proposed_changes
+               ) do
+            {:ok, rows} -> rows
+            {:error, reason} -> Repo.rollback(reason)
+          end
+
+        apply_result_exclusions(correction.proposed_changes, actor, correction.reason, now)
 
         source
         |> Ecto.Changeset.change(current: false, status: :superseded)
@@ -173,14 +213,47 @@ defmodule AdventureTimeApi.Leaderboards.Corrections do
     if String.length(String.trim(reason)) >= 8, do: :ok, else: {:error, :invalid_reason}
   end
 
-  defp validate_user_ids(ids) do
-    ids = Enum.uniq(ids)
+  defp normalize_changes(changes) do
+    user_ids =
+      changes
+      |> Map.get("excludeUserIds", Map.get(changes, :excludeUserIds, []))
+      |> Enum.uniq()
 
-    if ids != [] and Enum.all?(ids, &match?({:ok, _}, Ecto.UUID.cast(&1))) do
-      {:ok, ids}
+    result_ids =
+      changes
+      |> Map.get("excludeDailyResultIds", Map.get(changes, :excludeDailyResultIds, []))
+      |> Enum.uniq()
+
+    if (user_ids != [] or result_ids != []) and valid_uuids?(user_ids) and
+         valid_uuids?(result_ids) do
+      {:ok,
+       %{
+         "excludeUserIds" => Enum.sort(user_ids),
+         "excludeDailyResultIds" => Enum.sort(result_ids)
+       }}
     else
       {:error, :invalid_changes}
     end
+  rescue
+    _ -> {:error, :invalid_changes}
+  end
+
+  defp valid_uuids?(ids),
+    do: is_list(ids) and Enum.all?(ids, &match?({:ok, _}, Ecto.UUID.cast(&1)))
+
+  defp changes_match_rows?(rows, changes) do
+    snapshot_user_ids = rows |> Enum.map(& &1.user_id) |> MapSet.new()
+
+    snapshot_result_ids =
+      rows
+      |> Enum.flat_map(& &1.selected_daily_result_ids)
+      |> MapSet.new()
+
+    requested_user_ids = MapSet.new(changes["excludeUserIds"])
+    requested_result_ids = MapSet.new(changes["excludeDailyResultIds"])
+
+    MapSet.subset?(requested_user_ids, snapshot_user_ids) and
+      MapSet.subset?(requested_result_ids, snapshot_result_ids)
   end
 
   defp rows_for(snapshot_id) do
@@ -192,9 +265,34 @@ defmodule AdventureTimeApi.Leaderboards.Corrections do
     )
   end
 
-  defp corrected_rows(rows, excluded_user_ids) do
+  defp corrected_rows(snapshot, period, board, rows, changes) do
+    rows = Enum.reject(rows, &(&1.user_id in changes["excludeUserIds"]))
+    excluded_result_ids = changes["excludeDailyResultIds"]
+
+    cond do
+      excluded_result_ids == [] ->
+        {:ok, rerank_existing_groups(rows)}
+
+      period.period_type == :day ->
+        excluded = MapSet.new(excluded_result_ids)
+
+        {:ok,
+         rows
+         |> Enum.reject(fn row ->
+           Enum.any?(row.selected_daily_result_ids, &MapSet.member?(excluded, &1))
+         end)
+         |> rerank_existing_groups()}
+
+      period.period_type == :week and board.board_kind == :source ->
+        recompute_weekly_rows(snapshot, period, board, rows, excluded_result_ids)
+
+      true ->
+        {:error, :result_exclusion_requires_source_board}
+    end
+  end
+
+  defp rerank_existing_groups(rows) do
     rows
-    |> Enum.reject(&(&1.user_id in excluded_user_ids))
     |> Enum.chunk_by(& &1.rank)
     |> Enum.flat_map_reduce(1, fn tied_rows, next_position ->
       rank = next_position
@@ -209,6 +307,72 @@ defmodule AdventureTimeApi.Leaderboards.Corrections do
       {projected, next_position + length(tied_rows)}
     end)
     |> elem(0)
+  end
+
+  defp recompute_weekly_rows(snapshot, period, board, rows, excluded_result_ids) do
+    version = Repo.get!(ScoringVersion, snapshot.scoring_version_id)
+
+    with {:ok, configuration} <- Configuration.normalize(version.configuration) do
+      week_end = Date.add(period.week_start, 6)
+
+      corrected =
+        rows
+        |> Enum.flat_map(fn row ->
+          results =
+            Repo.all(
+              from(result in DailyResult,
+                where:
+                  result.user_id == ^row.user_id and result.board_id == ^board.id and
+                    result.active and result.result_status in [:accepted, :snapshotted] and
+                    result.integrity_status == :accepted and
+                    result.eligibility_status == :eligible and
+                    result.competition_date >= ^period.week_start and
+                    result.competition_date <= ^week_end and
+                    result.id not in ^excluded_result_ids,
+                order_by: [desc: result.points_milli]
+              )
+            )
+
+          case Scoring.weekly(configuration, Enum.map(results, & &1.points_milli)) do
+            {:ok, %{status: :ranked} = score} ->
+              selected = Enum.take(results, length(score.selected_points_milli))
+              best = hd(results)
+
+              [
+                %{
+                  row
+                  | points_milli: score.points_milli,
+                    raw_result: best.raw_result,
+                    selected_daily_result_ids: Enum.map(selected, & &1.id),
+                    selected_points_milli: score.selected_points_milli
+                }
+              ]
+
+            _ ->
+              []
+          end
+        end)
+        |> Ranking.rank(&{&1.points_milli, &1.selected_points_milli})
+        |> Enum.map(&%{&1 | tie_group: &1.rank})
+
+      {:ok, corrected}
+    end
+  end
+
+  defp apply_result_exclusions(changes, actor, reason, now) do
+    ids = changes["excludeDailyResultIds"]
+
+    from(result in DailyResult, where: result.id in ^ids)
+    |> Repo.update_all(
+      set: [
+        result_status: :excluded,
+        eligibility_status: :moderated,
+        excluded_reason: reason,
+        excluded_by_user_id: actor.id,
+        excluded_at: now,
+        updated_at: now
+      ]
+    )
   end
 
   defp rank_delta(before_rows, after_rows) do
@@ -234,8 +398,8 @@ defmodule AdventureTimeApi.Leaderboards.Corrections do
     |> Enum.map(&%{"userId" => &1.user_id, "rank" => &1.rank})
   end
 
-  defp preview_hash(snapshot, changes, rank_delta, reward_delta) do
-    {snapshot.id, snapshot.revision, changes, rank_delta, reward_delta}
+  defp preview_hash(snapshot, actor_user_id, reason, changes, rank_delta, reward_delta) do
+    {snapshot.id, snapshot.revision, actor_user_id, reason, changes, rank_delta, reward_delta}
     |> :erlang.term_to_binary([:deterministic])
     |> then(&:crypto.hash(:sha256, &1))
     |> Base.encode16(case: :lower)
