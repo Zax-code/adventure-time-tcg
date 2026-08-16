@@ -212,7 +212,13 @@ defmodule AdventureTimeApi.Quests.PerfectTimingTest do
     previous_date = Date.add(current_date, -1)
     Quests.materialize_daily_quests(user.id, previous_date)
     previous_quest = quest_for(user, previous_date)
-    started_at = DateTime.add(DateTime.utc_now(), -5, :second)
+
+    started_at =
+      DateTime.add(
+        DateTime.utc_now(),
+        -(PerfectTimingEngine.maximum_target_ms() + 1_000),
+        :millisecond
+      )
 
     assert {:ok, active} =
              PerfectTiming.start(
