@@ -14,17 +14,51 @@ if assessment_collection_enabled do
     System.get_env("IPQS_API_KEY") ||
       raise("environment variable IPQS_API_KEY is required when assessment collection is enabled")
 
-  pseudonym_secret =
-    System.get_env("ACCESS_ASSESSMENT_PSEUDONYM_SECRET") ||
+  if String.trim(ipqs_api_key) == "" do
+    raise("IPQS_API_KEY must not be empty when assessment collection is enabled")
+  end
+
+  pseudonym_secret_path =
+    System.get_env("ACCESS_ASSESSMENT_PSEUDONYM_SECRET_PATH") ||
       raise(
-        "environment variable ACCESS_ASSESSMENT_PSEUDONYM_SECRET is required when assessment collection is enabled"
+        "environment variable ACCESS_ASSESSMENT_PSEUDONYM_SECRET_PATH is required when assessment collection is enabled"
       )
+
+  pseudonym_secret =
+    pseudonym_secret_path
+    |> File.read!()
+    |> String.trim()
+
+  if byte_size(pseudonym_secret) < 32 do
+    raise("ACCESS_ASSESSMENT_PSEUDONYM_SECRET_PATH must contain at least 32 bytes")
+  end
 
   play_credentials_path =
     System.get_env("PLAY_INTEGRITY_SERVICE_ACCOUNT_PATH") ||
       raise(
         "environment variable PLAY_INTEGRITY_SERVICE_ACCOUNT_PATH is required when assessment collection is enabled"
       )
+
+  play_credentials =
+    play_credentials_path
+    |> File.read!()
+    |> Jason.decode!()
+
+  unless is_binary(play_credentials["client_email"]) and
+           is_binary(play_credentials["private_key"]) do
+    raise("PLAY_INTEGRITY_SERVICE_ACCOUNT_PATH must contain client_email and private_key fields")
+  end
+
+  play_cloud_project_number =
+    System.get_env("PLAY_INTEGRITY_CLOUD_PROJECT_NUMBER") ||
+      raise(
+        "environment variable PLAY_INTEGRITY_CLOUD_PROJECT_NUMBER is required when assessment collection is enabled"
+      )
+
+  case Integer.parse(play_cloud_project_number) do
+    {value, ""} when value > 0 -> :ok
+    _invalid -> raise("PLAY_INTEGRITY_CLOUD_PROJECT_NUMBER must be a positive integer")
+  end
 
   play_certificate_digests =
     (System.get_env("PLAY_INTEGRITY_CERTIFICATE_DIGESTS") || "")
@@ -59,16 +93,54 @@ if assessment_collection_enabled do
       end
     end)
 
+  scoring_model_version =
+    System.get_env("ACCESS_ASSESSMENT_SCORING_MODEL_VERSION") ||
+      raise(
+        "environment variable ACCESS_ASSESSMENT_SCORING_MODEL_VERSION is required when assessment collection is enabled"
+      )
+
+  test_lab_range_version =
+    System.get_env("ACCESS_ASSESSMENT_TEST_LAB_RANGE_VERSION") ||
+      raise(
+        "environment variable ACCESS_ASSESSMENT_TEST_LAB_RANGE_VERSION is required when assessment collection is enabled"
+      )
+
+  google_range_version =
+    System.get_env("ACCESS_ASSESSMENT_GOOGLE_RANGE_VERSION") ||
+      raise(
+        "environment variable ACCESS_ASSESSMENT_GOOGLE_RANGE_VERSION is required when assessment collection is enabled"
+      )
+
   if play_certificate_digests == [] do
     raise(
       "environment variable PLAY_INTEGRITY_CERTIFICATE_DIGESTS is required when assessment collection is enabled"
     )
   end
 
+  unless Enum.all?(play_certificate_digests, fn digest ->
+           normalized = String.trim_trailing(digest, "=")
+
+           case Base.url_decode64(normalized, padding: false) do
+             {:ok, decoded} -> byte_size(decoded) == 32
+             :error -> false
+           end
+         end) do
+    raise("PLAY_INTEGRITY_CERTIFICATE_DIGESTS must contain base64url SHA-256 digests")
+  end
+
   if released_version_codes == [] do
     raise(
       "environment variable PLAY_INTEGRITY_RELEASED_VERSION_CODES is required when assessment collection is enabled"
     )
+  end
+
+  unless Enum.all?(released_version_codes, fn version ->
+           case Integer.parse(version) do
+             {value, ""} when value > 0 -> true
+             _invalid -> false
+           end
+         end) do
+    raise("PLAY_INTEGRITY_RELEASED_VERSION_CODES must contain positive integers")
   end
 
   if map_size(released_builds) == 0 do
@@ -80,12 +152,18 @@ if assessment_collection_enabled do
   config :adventure_time_api, AdventureTimeApi.AccessAssessment,
     collection_enabled: true,
     admin_display_enabled: truthy?.(System.get_env("ACCESS_ASSESSMENT_ADMIN_DISPLAY_ENABLED")),
-    released_builds: released_builds
+    released_builds: released_builds,
+    scoring_model_version: scoring_model_version,
+    expected_range_versions: %{
+      test_lab: test_lab_range_version,
+      google: google_range_version
+    }
 
   config :adventure_time_api, AdventureTimeApi.AccessAssessment.IpIntelligence,
     adapter: AdventureTimeApi.AccessAssessment.IpQualityScore,
     endpoint: System.get_env("IPQS_ENDPOINT") || "https://ipqualityscore.com/api/json/ip",
     api_key: ipqs_api_key,
+    settings_version: System.get_env("IPQS_SETTINGS_VERSION") || "v1",
     timeout_ms: String.to_integer(System.get_env("IPQS_TIMEOUT_MS") || "3000")
 
   config :adventure_time_api, AdventureTimeApi.AccessAssessment.Pseudonym,
@@ -100,13 +178,14 @@ if assessment_collection_enabled do
     package_name:
       System.get_env("PLAY_INTEGRITY_PACKAGE_NAME") ||
         "love.leaetzak.adventuretime",
+    cloud_project_number: play_cloud_project_number,
     certificate_digests: play_certificate_digests,
     released_version_codes: released_version_codes,
     credentials_path: play_credentials_path,
     timeout_ms: String.to_integer(System.get_env("PLAY_INTEGRITY_TIMEOUT_MS") || "3000")
 end
 
-case System.get_env("TRUSTED_PROXY_CIDRS") do
+case System.get_env("ACCESS_ASSESSMENT_TRUSTED_PROXY_CIDRS") do
   value when is_binary(value) and value != "" ->
     config :adventure_time_api, AdventureTimeApiWeb.Plugs.CanonicalClientIp,
       trusted_proxy_cidrs:

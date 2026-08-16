@@ -7,6 +7,7 @@ defmodule AdventureTimeApi.AccessAssessment.Evidence.IpIntelligence do
 
   embedded_schema do
     field(:provider, :string)
+    field(:settings_version, :string)
     field(:provider_request_id, :string)
     field(:fraud_score, :integer)
     field(:proxy, :boolean)
@@ -29,7 +30,7 @@ defmodule AdventureTimeApi.AccessAssessment.Evidence.IpIntelligence do
   def changeset(evidence, attrs) do
     evidence
     |> cast(attrs, __schema__(:fields))
-    |> validate_required([:provider, :fraud_score, :looked_up_at])
+    |> validate_required([:provider, :settings_version, :fraud_score, :looked_up_at])
     |> validate_number(:fraud_score, greater_than_or_equal_to: 0, less_than_or_equal_to: 100)
   end
 end

@@ -15,9 +15,11 @@ defmodule AdventureTimeApi.AccessAssessment.IpRevealAudit do
     timestamps(type: :utc_datetime, updated_at: false)
   end
 
-  def changeset(audit, attrs) do
+  def create_changeset(audit, email_access_request_id, actor_id, attrs) do
     audit
-    |> cast(attrs, [:email_access_request_id, :actor_id, :request_id])
+    |> cast(attrs, [:request_id])
+    |> put_change(:email_access_request_id, email_access_request_id)
+    |> put_change(:actor_id, actor_id)
     |> validate_required([:email_access_request_id, :actor_id])
   end
 end

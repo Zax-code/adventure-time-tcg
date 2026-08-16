@@ -1,10 +1,26 @@
 defmodule AdventureTimeApi.AccessAssessment.ChallengesTest do
-  use AdventureTimeApi.DataCase, async: true
+  use AdventureTimeApi.DataCase, async: false
 
   alias AdventureTimeApi.AccessAssessment.Assessment
   alias AdventureTimeApi.AccessAssessment.Challenges
   alias AdventureTimeApi.AccessAssessment.IntegrityChallenge
   alias AdventureTimeApi.Accounts.EmailAccessRequest
+
+  setup do
+    original = Application.get_env(:adventure_time_api, AdventureTimeApi.AccessAssessment, [])
+
+    Application.put_env(
+      :adventure_time_api,
+      AdventureTimeApi.AccessAssessment,
+      Keyword.put(original, :collection_enabled, true)
+    )
+
+    on_exit(fn ->
+      Application.put_env(:adventure_time_api, AdventureTimeApi.AccessAssessment, original)
+    end)
+
+    :ok
+  end
 
   test "issues an opaque one-use challenge bound to the assessment revision" do
     request = request_with_assessment()
@@ -30,6 +46,19 @@ defmodule AdventureTimeApi.AccessAssessment.ChallengesTest do
 
     request = request_with_assessment(:android, :test_lab)
     assert {:ok, nil} = Challenges.issue(request.id)
+  end
+
+  test "does not issue a challenge when collection is disabled" do
+    request = request_with_assessment()
+
+    Application.put_env(
+      :adventure_time_api,
+      AdventureTimeApi.AccessAssessment,
+      collection_enabled: false
+    )
+
+    assert {:ok, nil} = Challenges.issue(request.id)
+    assert Repo.aggregate(IntegrityChallenge, :count) == 0
   end
 
   defp request_with_assessment(profile \\ :android, state \\ :assessing) do

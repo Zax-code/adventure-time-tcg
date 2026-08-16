@@ -4,6 +4,7 @@ defmodule AdventureTimeApi.Workers.AssessAccessRequestWorkerTest do
 
   alias AdventureTimeApi.AccessAssessment
   alias AdventureTimeApi.AccessAssessment.{Assessment, IpIntelligence}
+  alias AdventureTimeApi.Accounts.AuthAttempt
   alias AdventureTimeApi.Accounts.EmailAccessRequest
   alias AdventureTimeApi.Workers.AssessAccessRequestWorker
 
@@ -50,6 +51,19 @@ defmodule AdventureTimeApi.Workers.AssessAccessRequestWorkerTest do
         last_seen_at: ~U[2026-08-16 12:00:00Z]
       })
       |> Repo.insert!()
+
+    %AuthAttempt{}
+    |> AuthAttempt.changeset(%{
+      event_type: "google_access_request",
+      provider: "google",
+      email: request.email,
+      email_access_request_id: request.id,
+      provider_subject_hash: request.provider_subject_hash,
+      google_email_verified: true,
+      status_code: 403,
+      error_code: "ACCESS_REQUEST_PENDING"
+    })
+    |> Repo.insert!()
 
     assert {:ok, assessment} =
              AccessAssessment.capture(request, %{
@@ -100,7 +114,7 @@ defmodule AdventureTimeApi.Workers.AssessAccessRequestWorkerTest do
 
     updated = Repo.get!(Assessment, assessment.id)
     assert updated.state == :partial
-    assert updated.trustworthiness_confidence == 76
+    assert updated.trustworthiness_confidence == 73
     assert updated.evidence_coverage == 70
     assert updated.band == :stronger
     assert updated.missing_reasons == ["integrity.not_submitted"]

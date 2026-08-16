@@ -63,12 +63,18 @@ config :adventure_time_api, AdventureTimeApi.Accounts,
 
 config :adventure_time_api, AdventureTimeApi.AccessAssessment,
   collection_enabled: false,
-  admin_display_enabled: false
+  admin_display_enabled: false,
+  scoring_model_version: "access-request-v1",
+  expected_range_versions: %{
+    test_lab: "firebase-test-lab-2026-08-13",
+    google: "google-ip-ranges-1786889149345"
+  }
 
 config :adventure_time_api, AdventureTimeApi.AccessAssessment.IpIntelligence,
   adapter: AdventureTimeApi.AccessAssessment.IpQualityScore,
   endpoint: "https://ipqualityscore.com/api/json/ip",
   api_key: nil,
+  settings_version: "v1",
   timeout_ms: 3_000
 
 config :adventure_time_api, AdventureTimeApi.AccessAssessment.Pseudonym,
@@ -79,6 +85,7 @@ config :adventure_time_api, AdventureTimeApi.AccessAssessment.PlayIntegrity,
   adapter: AdventureTimeApi.AccessAssessment.GooglePlayIntegrity,
   endpoint: "https://playintegrity.googleapis.com",
   package_name: "love.leaetzak.adventuretime",
+  cloud_project_number: nil,
   certificate_digests: [],
   released_version_codes: [],
   credentials_path: nil,

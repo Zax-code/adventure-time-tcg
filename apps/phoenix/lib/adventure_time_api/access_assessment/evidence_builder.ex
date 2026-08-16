@@ -36,6 +36,19 @@ defmodule AdventureTimeApi.AccessAssessment.EvidenceBuilder do
 
   defp identity(%EmailAccessRequest{provider: provider} = request)
        when provider in ["google", "apple"] do
+    conflict? =
+      is_binary(request.provider_subject_hash) and
+        Repo.exists?(
+          from(identity in AuthProviderIdentity,
+            where:
+              identity.provider == ^provider and
+                ((identity.provider_subject_hash == ^request.provider_subject_hash and
+                    identity.email != ^request.email) or
+                   (identity.email == ^request.email and
+                      identity.provider_subject_hash != ^request.provider_subject_hash))
+          )
+        )
+
     repeated_mapping? =
       not is_nil(request.provider_subject_hash) and
         Repo.exists?(
@@ -47,10 +60,34 @@ defmodule AdventureTimeApi.AccessAssessment.EvidenceBuilder do
           )
         )
 
-    if repeated_mapping? do
-      component(100, ["identity.provider_mapping_repeated"], request.last_seen_at)
-    else
-      component(90, ["identity.provider_verified"], request.last_seen_at)
+    latest_email_verified =
+      AuthAttempt
+      |> where(
+        [attempt],
+        attempt.email_access_request_id == ^request.id and attempt.provider == ^provider
+      )
+      |> order_by([attempt], desc: attempt.inserted_at)
+      |> select([attempt], attempt.google_email_verified)
+      |> limit(1)
+      |> Repo.one()
+
+    cond do
+      conflict? ->
+        component(
+          0,
+          ["identity.provider_mapping_conflict"],
+          request.last_seen_at,
+          true
+        )
+
+      repeated_mapping? ->
+        component(100, ["identity.provider_mapping_repeated"], request.last_seen_at)
+
+      provider == "apple" or latest_email_verified == true ->
+        component(90, ["identity.provider_verified"], request.last_seen_at)
+
+      true ->
+        component(40, ["identity.provider_email_unverified"], request.last_seen_at)
     end
   end
 
@@ -75,6 +112,8 @@ defmodule AdventureTimeApi.AccessAssessment.EvidenceBuilder do
     since_24h = DateTime.add(now, -24, :hour)
     since_1h = DateTime.add(now, -1, :hour)
     since_10m = DateTime.add(now, -10, :minute)
+    attempts_24h = attempts_for_request(request.id, since_24h)
+    failed_burst? = failed_attempts_for_request(request.id, since_10m) >= 3
 
     value = 50
     reasons = []
@@ -86,7 +125,7 @@ defmodule AdventureTimeApi.AccessAssessment.EvidenceBuilder do
           :installation_id_hash,
           request.last_installation_id_hash,
           request.id
-        ),
+        ) and not failed_burst?,
         10,
         "continuity.installation_repeated"
       )
@@ -94,7 +133,8 @@ defmodule AdventureTimeApi.AccessAssessment.EvidenceBuilder do
     {value, reasons} =
       adjust(
         {value, reasons},
-        repeated_for_request?(:provider_subject_hash, request.provider_subject_hash, request.id),
+        repeated_for_request?(:provider_subject_hash, request.provider_subject_hash, request.id) and
+          not failed_burst?,
         10,
         "continuity.provider_identity_repeated"
       )
@@ -102,7 +142,7 @@ defmodule AdventureTimeApi.AccessAssessment.EvidenceBuilder do
     {value, reasons} =
       adjust(
         {value, reasons},
-        (request.attempt_count || 0) <= 3,
+        attempts_24h <= 3 and not failed_burst?,
         5,
         "continuity.low_attempt_volume"
       )
@@ -110,7 +150,7 @@ defmodule AdventureTimeApi.AccessAssessment.EvidenceBuilder do
     {value, reasons} =
       adjust(
         {value, reasons},
-        (request.attempt_count || 0) > 5,
+        attempts_24h > 5,
         -10,
         "continuity.request_attempts_high"
       )
@@ -144,25 +184,75 @@ defmodule AdventureTimeApi.AccessAssessment.EvidenceBuilder do
   end
 
   defp client(request, assessment) do
+    if assessment.platform_profile == :web do
+      web_client(request, assessment)
+    else
+      native_client(request, assessment)
+    end
+  end
+
+  defp native_client(request, assessment) do
     native_ua? = String.starts_with?(request.last_user_agent || "", "AdventureTimeNative/")
     claimed_native? = request.last_client_platform in ["android", "ios"]
     platform_agrees? = claimed_native? and native_ua?
     build_recognized? = released_build?(request)
+    installation_present? = not is_nil(assessment.installation_provider_pseudonym)
+
+    installation_continuous? =
+      installation_present? and assessment.installation_id_well_formed == true and
+        repeated_for_request?(
+          :installation_id_hash,
+          request.last_installation_id_hash,
+          request.id
+        )
+
+    installation_changed? = distinct_request_values(:installation_id_hash, request.id) >= 2
+    integrity_build_corroborated? = integrity_build_corroborated?(assessment)
 
     {value, reasons} =
       {50, []}
       |> adjust(build_recognized?, 20, "client.released_build")
       |> adjust(platform_agrees?, 10, "client.platform_agrees")
-      |> adjust(
-        not is_nil(assessment.installation_provider_pseudonym),
-        10,
-        "client.installation_present"
-      )
+      |> adjust(installation_continuous?, 10, "client.installation_continuous")
+      |> adjust(integrity_build_corroborated?, 10, "client.integrity_build_corroborated")
       |> adjust(claimed_native? and not native_ua?, -25, "client.platform_conflict")
       |> adjust(claimed_native? and not build_recognized?, -25, "client.unrecognized_build")
+      |> adjust(
+        (installation_present? and assessment.installation_id_well_formed != true) or
+          installation_changed?,
+        -15,
+        if(installation_changed?,
+          do: "client.installation_changed",
+          else: "client.installation_malformed"
+        )
+      )
 
-    max_value = if assessment.platform_profile == :web, do: 80, else: 100
+    max_value = if assessment.platform_profile == :ios, do: 90, else: 100
     component(value |> clamp() |> min(max_value), reasons, request.last_seen_at)
+  end
+
+  defp web_client(request, assessment) do
+    {value, reasons} =
+      {50, []}
+      |> adjust(
+        assessment.origin_host_consistent == true,
+        10,
+        "client.same_site_origin"
+      )
+      |> adjust(
+        assessment.browser_request_shape == true,
+        10,
+        "client.browser_request_shape"
+      )
+
+    component(value |> clamp() |> min(80), reasons, request.last_seen_at)
+  end
+
+  defp integrity_build_corroborated?(%Assessment{play_integrity_evidence: nil}), do: false
+
+  defp integrity_build_corroborated?(%Assessment{play_integrity_evidence: evidence}) do
+    evidence.app_recognition == :play_recognized and evidence.package_name_verified == true and
+      evidence.certificate_verified == true and evidence.version_verified == true
   end
 
   defp released_build?(request) do
@@ -185,6 +275,35 @@ defmodule AdventureTimeApi.AccessAssessment.EvidenceBuilder do
     |> where([attempt], attempt.email_access_request_id == ^request_id)
     |> where([attempt], field(attempt, ^field) == ^value)
     |> Repo.aggregate(:count) >= 2
+  end
+
+  defp attempts_for_request(request_id, since) do
+    AuthAttempt
+    |> where(
+      [attempt],
+      attempt.email_access_request_id == ^request_id and attempt.inserted_at >= ^since
+    )
+    |> Repo.aggregate(:count)
+  end
+
+  defp failed_attempts_for_request(request_id, since) do
+    AuthAttempt
+    |> where(
+      [attempt],
+      attempt.email_access_request_id == ^request_id and attempt.inserted_at >= ^since and
+        not is_nil(attempt.error_code) and attempt.error_code != "ACCESS_REQUEST_PENDING"
+    )
+    |> Repo.aggregate(:count)
+  end
+
+  defp distinct_request_values(field, request_id) do
+    AuthAttempt
+    |> where(
+      [attempt],
+      attempt.email_access_request_id == ^request_id and not is_nil(field(attempt, ^field))
+    )
+    |> select([attempt], count(field(attempt, ^field), :distinct))
+    |> Repo.one()
   end
 
   defp distinct_identities(_field, nil, _since), do: 0
@@ -235,13 +354,13 @@ defmodule AdventureTimeApi.AccessAssessment.EvidenceBuilder do
   defp adjust({value, reasons}, true, amount, reason), do: {value + amount, reasons ++ [reason]}
   defp adjust(result, _false, _amount, _reason), do: result
 
-  defp component(value, reason_codes, observed_at) do
+  defp component(value, reason_codes, observed_at, hard_failure \\ false) do
     %{
       value: value,
       reason_codes: reason_codes,
       explanations: Enum.map(reason_codes, &String.replace(&1, [".", "_"], " ")),
       observed_at: observed_at,
-      hard_failure: false
+      hard_failure: hard_failure
     }
   end
 

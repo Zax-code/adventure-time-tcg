@@ -13,41 +13,53 @@ defmodule AdventureTimeApi.AccessAssessment.Challenges do
   @ttl_seconds 5 * 60
 
   def issue(access_request_id) do
-    case Repo.get_by(Assessment, email_access_request_id: access_request_id) do
-      %Assessment{platform_profile: :android, state: state} = assessment
-      when state != :test_lab ->
-        issue_for_assessment(assessment)
+    result =
+      if AdventureTimeApi.AccessAssessment.collection_enabled?() do
+        case Repo.get_by(Assessment, email_access_request_id: access_request_id) do
+          %Assessment{platform_profile: :android, state: state} = assessment
+          when state != :test_lab ->
+            issue_for_assessment(assessment)
 
-      _other ->
+          _other ->
+            {:ok, nil}
+        end
+      else
         {:ok, nil}
-    end
+      end
+
+    emit(:issue, challenge_result(result))
+    result
   end
 
   def consume(token) when is_binary(token) do
     digest = digest(token)
     now = now()
 
-    Repo.transaction(fn ->
-      challenge =
-        Repo.one(
-          from(c in IntegrityChallenge,
-            where:
-              c.challenge_digest == ^digest and is_nil(c.consumed_at) and
-                c.expires_at > ^now,
-            lock: "FOR UPDATE"
+    result =
+      Repo.transaction(fn ->
+        challenge =
+          Repo.one(
+            from(c in IntegrityChallenge,
+              where:
+                c.challenge_digest == ^digest and is_nil(c.consumed_at) and
+                  c.expires_at > ^now,
+              lock: "FOR UPDATE"
+            )
           )
-        )
 
-      case challenge do
-        %IntegrityChallenge{} ->
-          challenge
-          |> Ecto.Changeset.change(consumed_at: now)
-          |> Repo.update!()
+        case challenge do
+          %IntegrityChallenge{} ->
+            challenge
+            |> Ecto.Changeset.change(consumed_at: now)
+            |> Repo.update!()
 
-        nil ->
-          Repo.rollback(:invalid_challenge)
-      end
-    end)
+          nil ->
+            Repo.rollback(:invalid_challenge)
+        end
+      end)
+
+    emit(:consume, challenge_result(result))
+    result
   end
 
   def consume(_token), do: {:error, :invalid_challenge}
@@ -66,14 +78,15 @@ defmodule AdventureTimeApi.AccessAssessment.Challenges do
       )
 
     attrs = %{
-      email_access_request_id: assessment.email_access_request_id,
       challenge_digest: challenge_digest,
       expected_request_hash: request_hash,
       evidence_revision: assessment.evidence_revision,
       expires_at: expires_at
     }
 
-    case %IntegrityChallenge{} |> IntegrityChallenge.changeset(attrs) |> Repo.insert() do
+    case %IntegrityChallenge{}
+         |> IntegrityChallenge.create_changeset(assessment.email_access_request_id, attrs)
+         |> Repo.insert() do
       {:ok, _stored} ->
         {:ok,
          %{
@@ -110,4 +123,17 @@ defmodule AdventureTimeApi.AccessAssessment.Challenges do
     |> Application.get_env(AdventureTimeApi.AccessAssessment.PlayIntegrity, [])
     |> Keyword.get(:package_name, "love.leaetzak.adventuretime")
   end
+
+  defp emit(operation, result) do
+    :telemetry.execute(
+      [:adventure_time_api, :access_assessment, :challenge],
+      %{count: 1},
+      %{operation: operation, result: result}
+    )
+  end
+
+  defp challenge_result({:ok, nil}), do: :not_applicable
+  defp challenge_result({:ok, _challenge}), do: :ok
+  defp challenge_result({:error, :invalid_challenge}), do: :invalid
+  defp challenge_result({:error, _reason}), do: :error
 end

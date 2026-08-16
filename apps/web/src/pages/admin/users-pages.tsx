@@ -538,6 +538,20 @@ function requestName(request: EmailRequest) {
   return request.googleName || request.email.split("@")[0] || "Unknown request";
 }
 
+function formatAssessmentAge(assessedAt: string | null) {
+  if (!assessedAt) return "not yet assessed";
+
+  const seconds = Math.max(
+    0,
+    Math.floor((Date.now() - new Date(assessedAt).getTime()) / 1000),
+  );
+
+  if (seconds < 60) return `${seconds}s`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
+  return `${Math.floor(seconds / 86400)}d`;
+}
+
 export function AdminEmailRequestsPage() {
   const queryClient = useQueryClient();
   const [chosenId, setChosenId] = useState<string>();
@@ -581,6 +595,27 @@ export function AdminEmailRequestsPage() {
   const revealIp = useMutation({
     mutationFn: (id: string) => webApiClient.revealAdminEmailRequestIp(id),
   });
+  const evidenceReasons =
+    selected?.assessment?.state === "complete" ||
+    selected?.assessment?.state === "partial"
+      ? selected.assessment.contributions.reduce(
+          (groups, contribution) => {
+            if ((contribution.effectFromNeutral ?? 0) > 0) {
+              groups.positive.push(...contribution.reasonCodes);
+            }
+
+            if (
+              (contribution.effectFromNeutral ?? 0) < 0 ||
+              contribution.hardFailure
+            ) {
+              groups.negative.push(...contribution.reasonCodes);
+            }
+
+            return groups;
+          },
+          { positive: [] as string[], negative: [] as string[] },
+        )
+      : { positive: [], negative: [] };
 
   return (
     <>
@@ -683,11 +718,33 @@ export function AdminEmailRequestsPage() {
                     <h3>
                       Trust assessment <small>Advisory heuristic</small>
                     </h3>
+                    <p>
+                      Model {selected.assessment.modelVersion} · assessed{" "}
+                      {formatAssessmentAge(selected.assessment.assessedAt)} ago
+                    </p>
                     {selected.assessment.state === "test_lab" ? (
-                      <p>
-                        <b>Firebase Test Lab environment</b> — no trust score.
-                        This does not itself prove a Play pre-launch report.
-                      </p>
+                      <>
+                        <p>
+                          <b>Firebase Test Lab environment</b> — no trust score.
+                          This does not itself prove a Play pre-launch report.
+                        </p>
+                        <dl className="admin-detail-list">
+                          <div>
+                            <dt>Matched Test Lab range</dt>
+                            <dd>
+                              {selected.assessment.network.testLabMatchedCidr ??
+                                "Unavailable"}
+                            </dd>
+                          </div>
+                          <div>
+                            <dt>Range-set version</dt>
+                            <dd>
+                              {selected.assessment.network.testLabRangeVersion ??
+                                "Unavailable"}
+                            </dd>
+                          </div>
+                        </dl>
+                      </>
                     ) : selected.assessment.state === "complete" ||
                       selected.assessment.state === "partial" ? (
                       <>
@@ -713,31 +770,71 @@ export function AdminEmailRequestsPage() {
                           {selected.assessment.network.organization
                             ? ` · ${selected.assessment.network.organization}`
                             : ""}
+                          {selected.assessment.network.asn
+                            ? ` · ASN ${selected.assessment.network.asn}`
+                            : ""}
+                          {selected.assessment.network.countryCode
+                            ? ` · ${selected.assessment.network.countryCode}`
+                            : ""}
                         </p>
-                        <ul>
-                          {selected.assessment.contributions.map(
-                            (contribution) => (
-                              <li key={contribution.key}>
-                                <b>{contribution.key.replaceAll("_", " ")}</b>:{" "}
-                                {contribution.value}/100 ({contribution.weight}%
-                                weight)
-                              </li>
-                            ),
-                          )}
-                        </ul>
-                        {selected.assessment.missingReasons.length ? (
+                        <p>
+                          Network flags:{" "}
+                          {[
+                            selected.assessment.network.vpn && "VPN",
+                            selected.assessment.network.proxy && "proxy",
+                            selected.assessment.network.hosting && "hosting",
+                            selected.assessment.network.tor && "Tor",
+                          ]
+                            .filter(Boolean)
+                            .join(", ") || "none reported"}
+                        </p>
+                        <details>
+                          <summary>Evidence details</summary>
+                          <h4>Positive evidence</h4>
+                          <ul>
+                            {evidenceReasons.positive.map((reason) => (
+                              <li key={`positive-${reason}`}>{reason}</li>
+                            ))}
+                          </ul>
+                          <h4>Negative evidence</h4>
+                          <ul>
+                            {evidenceReasons.negative.map((reason) => (
+                              <li key={`negative-${reason}`}>{reason}</li>
+                            ))}
+                          </ul>
+                          <h4>Hard failures</h4>
                           <p>
-                            Missing:{" "}
-                            {selected.assessment.missingReasons.join(", ")}
+                            {selected.assessment.hardFailureReasons.join(", ") ||
+                              "None"}
                           </p>
-                        ) : null}
+                          <h4>Missing evidence</h4>
+                          <p>
+                            {selected.assessment.missingReasons.join(", ") ||
+                              "None"}
+                          </p>
+                        </details>
                       </>
                     ) : (
-                      <p>
-                        {selected.assessment.state === "assessing"
-                          ? "Assessment in progress."
-                          : "Not enough evidence for a score."}
-                      </p>
+                      <>
+                        <p>
+                          {selected.assessment.state === "assessing"
+                            ? "Assessment in progress."
+                            : "Not enough evidence for a score."}
+                        </p>
+                        <details>
+                          <summary>Evidence details</summary>
+                          <p>
+                            Missing:{" "}
+                            {selected.assessment.missingReasons.join(", ") ||
+                              "None"}
+                          </p>
+                          <p>
+                            Hard failures:{" "}
+                            {selected.assessment.hardFailureReasons.join(", ") ||
+                              "None"}
+                          </p>
+                        </details>
+                      </>
                     )}
                     <div className="button-row">
                       {revealIp.data && revealIp.variables === selected.id ? (

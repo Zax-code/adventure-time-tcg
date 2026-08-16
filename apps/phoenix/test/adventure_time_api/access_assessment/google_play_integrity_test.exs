@@ -31,7 +31,7 @@ defmodule AdventureTimeApi.AccessAssessment.GooglePlayIntegrityTest do
             },
             accountDetails: %{appLicensingVerdict: "LICENSED"},
             deviceIntegrity: %{
-              deviceRecognitionVerdict: ["MEETS_DEVICE_INTEGRITY"]
+              deviceRecognitionVerdict: ["MEETS_DEVICE_INTEGRITY", "RAW_FUTURE_FIELD"]
             },
             rawField: "must not escape"
           }

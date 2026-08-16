@@ -30,6 +30,61 @@ defmodule AdventureTimeApi.AccessRequestAssessment.NetworkClassification do
     end
   end
 
+  @spec validate_range_sets!() :: :ok
+  def validate_range_sets! do
+    now = DateTime.utc_now()
+
+    range_sets()
+    |> Enum.each(fn {name, range_set} ->
+      if NetworkRangeSet.stale?(range_set, now) do
+        require Logger
+
+        Logger.warning(
+          "access assessment #{name} range data is stale",
+          range_set: name,
+          range_version: range_set.version
+        )
+      end
+    end)
+
+    :ok
+  end
+
+  @spec validate_expected_versions!(map()) :: :ok
+  def validate_expected_versions!(expected_versions) do
+    actual_versions = Map.new(range_sets(), fn {name, range_set} -> {name, range_set.version} end)
+
+    Enum.each(expected_versions, fn {name, expected_version} ->
+      case Map.fetch(actual_versions, name) do
+        {:ok, ^expected_version} ->
+          :ok
+
+        {:ok, actual_version} ->
+          raise ArgumentError,
+                "#{name} range version mismatch: expected #{expected_version}, got #{actual_version}"
+
+        :error ->
+          raise ArgumentError, "unknown range set #{inspect(name)}"
+      end
+    end)
+
+    :ok
+  end
+
+  @spec range_metadata() :: map()
+  def range_metadata do
+    range_sets()
+    |> Map.new(fn {name, range_set} ->
+      {name,
+       %{
+         version: range_set.version,
+         retrieved_at: range_set.retrieved_at,
+         prefix_count: length(range_set.prefixes),
+         stale: NetworkRangeSet.stale?(range_set, DateTime.utc_now())
+       }}
+    end)
+  end
+
   defp range_sets do
     case :persistent_term.get(@cache_key, nil) do
       nil ->

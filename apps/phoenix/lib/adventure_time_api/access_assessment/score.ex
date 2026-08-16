@@ -21,6 +21,8 @@ defmodule AdventureTimeApi.AccessAssessment.Score do
 
   @type profile :: :android | :ios | :web | :unknown
 
+  def model_version, do: @model_version
+
   @spec calculate(profile(), map(), keyword()) :: map()
   def calculate(profile, components, opts \\ []) when is_map(components) do
     if Keyword.get(opts, :test_lab) == :matched do

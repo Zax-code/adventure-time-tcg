@@ -3,9 +3,11 @@ defmodule AdventureTimeApi.Workers.PruneAccessAssessmentDataWorkerTest do
 
   alias AdventureTimeApi.AccessAssessment.Assessment
   alias AdventureTimeApi.AccessAssessment.IntegrityChallenge
+  alias AdventureTimeApi.AccessAssessment.IpRevealAudit
   alias AdventureTimeApi.AccessAssessment.Snapshot
   alias AdventureTimeApi.Accounts.AuthAttempt
   alias AdventureTimeApi.Accounts.EmailAccessRequest
+  alias AdventureTimeApi.Accounts.User
   alias AdventureTimeApi.Workers.PruneAccessAssessmentDataWorker
 
   test "applies the 30, 90, and 365 day privacy windows idempotently" do
@@ -24,8 +26,10 @@ defmodule AdventureTimeApi.Workers.PruneAccessAssessmentDataWorkerTest do
         installation_provider_pseudonym: "installation",
         exact_ip_retained_until: DateTime.add(now, -1, :second),
         detailed_evidence_retained_until: DateTime.add(now, -1, :second),
+        summary_retained_until: DateTime.add(now, -1, :second),
         ip_intelligence_evidence: %{
           provider: "ipqualityscore",
+          settings_version: "v1",
           fraud_score: 10,
           looked_up_at: now
         },
@@ -61,14 +65,22 @@ defmodule AdventureTimeApi.Workers.PruneAccessAssessmentDataWorkerTest do
     |> Repo.insert!()
 
     %IntegrityChallenge{}
-    |> IntegrityChallenge.changeset(%{
-      email_access_request_id: request.id,
+    |> IntegrityChallenge.create_changeset(request.id, %{
       challenge_digest: :crypto.hash(:sha256, "expired"),
       expected_request_hash: "hash",
       evidence_revision: 1,
       expires_at: DateTime.add(now, -1, :second)
     })
     |> Repo.insert!()
+
+    actor = user("retention-reviewer@example.com")
+
+    Repo.insert!(%IpRevealAudit{
+      email_access_request_id: request.id,
+      actor_id: actor.id,
+      request_id: "request-id",
+      inserted_at: DateTime.add(now, -366, :day)
+    })
 
     assert :ok =
              PruneAccessAssessmentDataWorker.perform(%Oban.Job{
@@ -87,6 +99,10 @@ defmodule AdventureTimeApi.Workers.PruneAccessAssessmentDataWorkerTest do
     assert assessment.identity_provider_pseudonym == nil
     assert assessment.installation_provider_pseudonym == nil
     assert assessment.contributions == []
+    assert assessment.scoring_model_version == nil
+    assert assessment.trustworthiness_confidence == nil
+    assert assessment.evidence_coverage == nil
+    assert assessment.missing_reasons == []
 
     attempt = Repo.get_by!(AuthAttempt, email_access_request_id: request.id)
     assert attempt.canonical_ip == nil
@@ -94,6 +110,7 @@ defmodule AdventureTimeApi.Workers.PruneAccessAssessmentDataWorkerTest do
     assert Repo.get!(EmailAccessRequest, request.id).last_ip_address == nil
     assert Repo.aggregate(Snapshot, :count) == 0
     assert Repo.aggregate(IntegrityChallenge, :count) == 0
+    assert Repo.aggregate(IpRevealAudit, :count) == 0
   end
 
   defp request do
@@ -104,6 +121,13 @@ defmodule AdventureTimeApi.Workers.PruneAccessAssessmentDataWorkerTest do
       provider: "email",
       last_ip_address: "198.51.100.20"
     })
+    |> Repo.insert!()
+  end
+
+  defp user(email) do
+    %User{}
+    |> User.registration_changeset(%{email: email})
+    |> User.access_changeset(%{role: :super_admin, access_status: :approved})
     |> Repo.insert!()
   end
 end

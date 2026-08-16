@@ -29,34 +29,41 @@ defmodule AdventureTimeApi.AccessAssessment do
   end
 
   def reveal_ip(access_request_id, actor_id, audit_request_id) do
-    Repo.transaction(fn ->
-      assessment =
-        Repo.one(
-          from(a in Assessment,
-            where: a.email_access_request_id == ^access_request_id,
-            lock: "FOR UPDATE"
+    result =
+      Repo.transaction(fn ->
+        assessment =
+          Repo.one(
+            from(a in Assessment,
+              where: a.email_access_request_id == ^access_request_id,
+              lock: "FOR UPDATE"
+            )
           )
-        )
 
-      now = DateTime.utc_now() |> DateTime.truncate(:second)
+        now = DateTime.utc_now() |> DateTime.truncate(:second)
 
-      if revealable?(assessment, now) do
-        %IpRevealAudit{}
-        |> IpRevealAudit.changeset(%{
-          email_access_request_id: access_request_id,
-          actor_id: actor_id,
-          request_id: audit_request_id
-        })
-        |> Repo.insert!()
+        if revealable?(assessment, now) do
+          %IpRevealAudit{}
+          |> IpRevealAudit.create_changeset(access_request_id, actor_id, %{
+            request_id: audit_request_id
+          })
+          |> Repo.insert!()
 
-        %{
-          ipAddress: NetworkAddress.to_string(assessment.canonical_ip),
-          retainedUntil: iso8601(assessment.exact_ip_retained_until)
-        }
-      else
-        Repo.rollback(:gone)
-      end
-    end)
+          %{
+            ipAddress: NetworkAddress.to_string(assessment.canonical_ip),
+            retainedUntil: iso8601(assessment.exact_ip_retained_until)
+          }
+        else
+          Repo.rollback(:gone)
+        end
+      end)
+
+    :telemetry.execute(
+      [:adventure_time_api, :access_assessment, :ip_reveal],
+      %{count: 1},
+      %{result: if(match?({:ok, _response}, result), do: :ok, else: :gone)}
+    )
+
+    result
   end
 
   def submit_play_integrity(challenge_token, integrity_token)
@@ -87,11 +94,22 @@ defmodule AdventureTimeApi.AccessAssessment do
   @spec capture(EmailAccessRequest.t(), map()) ::
           {:ok, Assessment.t() | nil} | {:error, Ecto.Changeset.t()}
   def capture(%EmailAccessRequest{} = access_request, metadata) when is_map(metadata) do
-    if collection_enabled?() do
-      persist_local_assessment(access_request, metadata)
-    else
-      {:ok, nil}
-    end
+    started_at = System.monotonic_time()
+
+    result =
+      if collection_enabled?() do
+        persist_local_assessment(access_request, metadata)
+      else
+        {:ok, nil}
+      end
+
+    :telemetry.execute(
+      [:adventure_time_api, :access_assessment, :capture],
+      %{count: 1, duration: System.monotonic_time() - started_at},
+      %{result: capture_result(result)}
+    )
+
+    result
   end
 
   def collection_enabled? do
@@ -104,6 +122,35 @@ defmodule AdventureTimeApi.AccessAssessment do
     :adventure_time_api
     |> Application.get_env(__MODULE__, [])
     |> Keyword.get(:admin_display_enabled, false)
+  end
+
+  def rescore(access_request_id) do
+    if collection_enabled?() do
+      case Repo.get_by(Assessment, email_access_request_id: access_request_id) do
+        %Assessment{state: :test_lab} ->
+          {:ok, :test_lab}
+
+        %Assessment{} = assessment ->
+          assessment
+          |> Assessment.changeset(%{
+            state: :assessing,
+            evidence_revision: assessment.evidence_revision + 1,
+            trustworthiness_confidence: nil,
+            evidence_coverage: nil,
+            band: nil,
+            contributions: [],
+            missing_reasons: ["assessment.rescore_pending"],
+            hard_failure_reasons: []
+          })
+          |> Repo.update()
+          |> enqueue_assessment(false)
+
+        nil ->
+          {:ok, nil}
+      end
+    else
+      {:ok, nil}
+    end
   end
 
   @spec snapshot_review(
@@ -140,10 +187,20 @@ defmodule AdventureTimeApi.AccessAssessment do
   defp persist_local_assessment(access_request, metadata) do
     address = canonical_address(metadata[:ip_address])
     classification = NetworkClassification.classify(address)
+
+    :telemetry.execute(
+      [:adventure_time_api, :access_assessment, :classification],
+      %{count: 1},
+      %{test_lab: classification.test_lab, google_network: classification.google_network}
+    )
+
     now = DateTime.utc_now() |> DateTime.truncate(:second)
     current = Repo.get_by(Assessment, email_access_request_id: access_request.id)
     evidence_revision = if current, do: current.evidence_revision + 1, else: 1
     test_lab? = classification.test_lab == :matched
+
+    {retained_ip_evidence, retained_ip_enriched_at} =
+      reusable_ip_evidence(current, address, now, test_lab?)
 
     attrs = %{
       state: if(test_lab?, do: :test_lab, else: :assessing),
@@ -158,14 +215,22 @@ defmodule AdventureTimeApi.AccessAssessment do
       identity_provider_pseudonym: identity_pseudonym(access_request),
       installation_provider_pseudonym:
         Pseudonym.generate(:installation, metadata[:installation_id]),
+      installation_id_well_formed: metadata[:installation_id_well_formed] == true,
+      origin_host_consistent: metadata[:origin_host_consistent],
+      browser_request_shape: metadata[:browser_request_shape],
       pseudonym_version: pseudonym_version(),
       network_facts: classification,
+      ip_intelligence_evidence: retained_ip_evidence,
+      play_integrity_evidence: nil,
       contributions: [],
       missing_reasons: if(test_lab?, do: [], else: ["ip.enrichment_pending"]),
       hard_failure_reasons: [],
       assessed_at: if(test_lab?, do: now),
-      ip_enriched_at: nil,
-      integrity_assessed_at: nil
+      ip_enriched_at: retained_ip_enriched_at,
+      integrity_assessed_at: nil,
+      exact_ip_retained_until: nil,
+      detailed_evidence_retained_until: nil,
+      summary_retained_until: nil
     }
 
     result =
@@ -227,15 +292,14 @@ defmodule AdventureTimeApi.AccessAssessment do
     assessment
     |> Assessment.changeset(%{
       exact_ip_retained_until: DateTime.add(reviewed_at, 30, :day),
-      detailed_evidence_retained_until: DateTime.add(reviewed_at, 90, :day)
+      detailed_evidence_retained_until: DateTime.add(reviewed_at, 90, :day),
+      summary_retained_until: DateTime.add(reviewed_at, 365, :day)
     })
     |> repo.update()
   end
 
   defp snapshot_attrs(assessment, outcome, reviewed_at) do
     network_classifications = embedded_map(assessment.network_facts)
-
-    contributions = Enum.map(assessment.contributions, &embedded_map/1)
 
     contribution_reasons =
       assessment.contributions
@@ -251,7 +315,6 @@ defmodule AdventureTimeApi.AccessAssessment do
       evidence_coverage: assessment.evidence_coverage,
       band: assessment.band,
       network_classifications: network_classifications,
-      contributions: contributions,
       reason_codes:
         Enum.uniq(
           assessment.missing_reasons ++
@@ -280,6 +343,25 @@ defmodule AdventureTimeApi.AccessAssessment do
     end
   end
 
+  defp capture_result({:ok, nil}), do: :disabled
+  defp capture_result({:ok, _assessment}), do: :ok
+  defp capture_result({:error, _changeset}), do: :error
+
+  defp reusable_ip_evidence(nil, _address, _now, _test_lab?), do: {nil, nil}
+  defp reusable_ip_evidence(_current, _address, _now, true), do: {nil, nil}
+
+  defp reusable_ip_evidence(current, address, now, false) do
+    evidence = current.ip_intelligence_evidence
+
+    if current.canonical_ip == address and evidence != nil and current.ip_enriched_at != nil and
+         DateTime.diff(now, current.ip_enriched_at, :second) <= 24 * 60 * 60 and
+         evidence.settings_version == ip_settings_version() do
+      {Map.from_struct(evidence), current.ip_enriched_at}
+    else
+      {nil, nil}
+    end
+  end
+
   defp platform_profile(metadata) do
     platform = metadata[:client_platform]
     user_agent = metadata[:user_agent] || ""
@@ -293,9 +375,12 @@ defmodule AdventureTimeApi.AccessAssessment do
     end
   end
 
-  defp identity_pseudonym(%EmailAccessRequest{provider: provider, email: email})
-       when provider in ["google", "apple"] do
-    Pseudonym.generate(:identity, email)
+  defp identity_pseudonym(%EmailAccessRequest{
+         provider: provider,
+         provider_subject_hash: subject_hash
+       })
+       when provider in ["google", "apple"] and is_binary(subject_hash) do
+    Pseudonym.generate(:identity, subject_hash)
   end
 
   defp identity_pseudonym(_request), do: nil
@@ -304,6 +389,12 @@ defmodule AdventureTimeApi.AccessAssessment do
     :adventure_time_api
     |> Application.get_env(Pseudonym, [])
     |> Keyword.get(:version, "v1")
+  end
+
+  defp ip_settings_version do
+    :adventure_time_api
+    |> Application.get_env(AdventureTimeApi.AccessAssessment.IpIntelligence, [])
+    |> Keyword.get(:settings_version, "v1")
   end
 
   defp mask(nil), do: nil
@@ -318,6 +409,8 @@ defmodule AdventureTimeApi.AccessAssessment do
 
     "#{prefix}::/64"
   end
+
+  defp admin_view(%Assessment{scoring_model_version: nil}), do: nil
 
   defp admin_view(%Assessment{state: :test_lab} = assessment) do
     network = network_view(assessment)

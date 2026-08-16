@@ -18,16 +18,16 @@ defmodule AdventureTimeApi.AccessAssessment.IntegrityChallenge do
     timestamps(type: :utc_datetime, updated_at: false)
   end
 
-  def changeset(challenge, attrs) do
+  def create_changeset(challenge, access_request_id, attrs) do
     challenge
     |> cast(attrs, [
-      :email_access_request_id,
       :challenge_digest,
       :expected_request_hash,
       :evidence_revision,
       :expires_at,
       :consumed_at
     ])
+    |> put_change(:email_access_request_id, access_request_id)
     |> validate_required([
       :email_access_request_id,
       :challenge_digest,

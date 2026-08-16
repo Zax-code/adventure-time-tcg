@@ -313,6 +313,29 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
 
     dev_code = register_response["devCode"]
 
+    request = Repo.get_by!(EmailAccessRequest, email: "jake@example.com")
+
+    %Assessment{}
+    |> Assessment.create_changeset(request.id, %{
+      state: :partial,
+      evidence_revision: 1,
+      scoring_model_version: "access-request-v1",
+      platform_profile: :web,
+      trustworthiness_confidence: 50,
+      evidence_coverage: 40,
+      band: :mixed
+    })
+    |> Repo.insert!()
+
+    current_assessment_config =
+      Application.get_env(:adventure_time_api, AccessAssessment, [])
+
+    Application.put_env(
+      :adventure_time_api,
+      AccessAssessment,
+      Keyword.put(current_assessment_config, :collection_enabled, true)
+    )
+
     conn =
       post(build_conn(), ~p"/auth/verify-email", %{
         email: "jake@example.com",
@@ -330,6 +353,11 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
     credential = Repo.get_by!(EmailCredential, user_id: user.id)
     assert %DateTime{} = credential.email_verified_at
     assert user.access_status == :pending
+
+    rescoring = Repo.get_by!(Assessment, email_access_request_id: request.id)
+    assert rescoring.evidence_revision == 2
+    assert rescoring.state == :assessing
+    assert rescoring.missing_reasons == ["assessment.rescore_pending"]
   end
 
   test "POST /auth/login blocks unverified email accounts", %{conn: conn} do

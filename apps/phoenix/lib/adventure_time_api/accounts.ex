@@ -166,6 +166,7 @@ defmodule AdventureTimeApi.Accounts do
           |> Repo.transaction()
           |> case do
             {:ok, %{user: updated_user}} ->
+              maybe_rescore_verified_access_request(normalized_email)
               {:ok, verification_response(updated_user)}
 
             {:error, _step, %Ecto.Changeset{} = changeset, _changes} ->
@@ -1663,6 +1664,17 @@ defmodule AdventureTimeApi.Accounts do
         )
 
         nil
+    end
+  end
+
+  defp maybe_rescore_verified_access_request(email) do
+    case Repo.get_by(EmailAccessRequest, email: email, status: :pending) do
+      %EmailAccessRequest{id: request_id} ->
+        _result = AccessAssessment.rescore(request_id)
+        :ok
+
+      nil ->
+        :ok
     end
   end
 

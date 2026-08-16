@@ -53,12 +53,94 @@ defmodule AdventureTimeApi.AccessAssessmentTest do
     assert assessment.assessed_at
   end
 
+  test "a new request revision clears challenge-bound evidence and only reuses matching fresh IP evidence" do
+    request = access_request("revision@example.com")
+
+    {:ok, assessment} =
+      AccessAssessment.capture(request, %{
+        ip_address: "198.51.100.44",
+        client_platform: "android",
+        user_agent: "AdventureTimeNative/1.0.22"
+      })
+
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
+
+    assessment
+    |> Assessment.changeset(%{
+      ip_intelligence_evidence: %{
+        provider: "ipqualityscore",
+        settings_version: "v1",
+        fraud_score: 12,
+        looked_up_at: now
+      },
+      ip_enriched_at: now,
+      play_integrity_evidence: %{
+        app_recognition: :play_recognized,
+        licensing: :licensed,
+        verified_at: now
+      },
+      integrity_assessed_at: now
+    })
+    |> Repo.update!()
+
+    assert {:ok, same_ip} =
+             AccessAssessment.capture(request, %{
+               ip_address: "198.51.100.44",
+               client_platform: "android",
+               user_agent: "AdventureTimeNative/1.0.22"
+             })
+
+    assert same_ip.ip_intelligence_evidence.fraud_score == 12
+    assert same_ip.play_integrity_evidence == nil
+    assert same_ip.integrity_assessed_at == nil
+
+    assert {:ok, changed_ip} =
+             AccessAssessment.capture(request, %{
+               ip_address: "198.51.100.45",
+               client_platform: "android",
+               user_agent: "AdventureTimeNative/1.0.22"
+             })
+
+    assert changed_ip.ip_intelligence_evidence == nil
+    assert changed_ip.ip_enriched_at == nil
+  end
+
   test "capture is inert when collection is disabled" do
     Application.put_env(:adventure_time_api, AccessAssessment, collection_enabled: false)
     request = access_request("disabled@example.com")
 
     assert {:ok, nil} = AccessAssessment.capture(request, %{ip_address: "198.51.100.1"})
     refute Repo.get_by(Assessment, email_access_request_id: request.id)
+  end
+
+  test "rescoring increments the revision without discarding challenge-bound evidence" do
+    request = access_request("rescore@example.com")
+
+    {:ok, assessment} =
+      AccessAssessment.capture(request, %{
+        ip_address: "198.51.100.44",
+        client_platform: "android",
+        user_agent: "AdventureTimeNative/1.0.22"
+      })
+
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
+
+    assessment
+    |> Assessment.changeset(%{
+      play_integrity_evidence: %{
+        app_recognition: :play_recognized,
+        licensing: :licensed,
+        verified_at: now
+      },
+      integrity_assessed_at: now
+    })
+    |> Repo.update!()
+
+    assert {:ok, rescoring} = AccessAssessment.rescore(request.id)
+    assert rescoring.evidence_revision == assessment.evidence_revision + 1
+    assert rescoring.state == :assessing
+    assert rescoring.play_integrity_evidence.app_recognition == :play_recognized
+    assert rescoring.missing_reasons == ["assessment.rescore_pending"]
   end
 
   test "manual review stores an immutable score snapshot without the exact IP" do
@@ -103,6 +185,7 @@ defmodule AdventureTimeApi.AccessAssessmentTest do
     updated = Repo.get!(Assessment, assessment.id)
     assert updated.exact_ip_retained_until == ~U[2026-09-15 13:00:00Z]
     assert updated.detailed_evidence_retained_until == ~U[2026-11-14 13:00:00Z]
+    assert updated.summary_retained_until == ~U[2027-08-16 13:00:00Z]
     assert snapshot.retained_until == ~U[2027-08-16 13:00:00Z]
   end
 

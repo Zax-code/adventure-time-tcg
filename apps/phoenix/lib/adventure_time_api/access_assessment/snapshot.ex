@@ -16,7 +16,6 @@ defmodule AdventureTimeApi.AccessAssessment.Snapshot do
     field(:evidence_coverage, :integer)
     field(:band, Ecto.Enum, values: [:stronger, :mixed, :concerning])
     field(:network_classifications, :map, default: %{})
-    field(:contributions, {:array, :map}, default: [])
     field(:reason_codes, {:array, :string}, default: [])
     field(:assessed_at, :utc_datetime)
     field(:reviewed_at, :utc_datetime)
@@ -47,7 +46,6 @@ defmodule AdventureTimeApi.AccessAssessment.Snapshot do
       :evidence_coverage,
       :band,
       :network_classifications,
-      :contributions,
       :reason_codes,
       :assessed_at,
       :reviewed_at,

@@ -53,6 +53,15 @@ type AttributionLabels = {
   coverage: string;
   heuristic: string;
   missingEvidence: string;
+  positiveEvidence: string;
+  negativeEvidence: string;
+  hardFailures: string;
+  model: string;
+  age: string;
+  testLabRange: string;
+  rangeVersion: string;
+  showEvidence: string;
+  hideEvidence: string;
   revealIp: string;
   revealedIp: string;
 };
@@ -328,6 +337,42 @@ const adminUserListRow = memo(function useAdminUserListRowView({
 
 const AdminUserListRow = adminUserListRow;
 
+function formatAssessmentAge(assessedAt: string) {
+  const seconds = Math.max(
+    0,
+    Math.floor((Date.now() - new Date(assessedAt).getTime()) / 1000),
+  );
+
+  if (seconds < 60) return `${seconds}s`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
+  return `${Math.floor(seconds / 86400)}d`;
+}
+
+function EvidenceReasonList({
+  title,
+  reasons,
+}: {
+  title: string;
+  reasons: string[];
+}) {
+  return (
+    <View className="gap-1">
+      <Text className="font-nunito-extrabold text-[11px] uppercase tracking-wide text-fgMuted">
+        {title}
+      </Text>
+      {reasons.map((reason) => (
+        <Text
+          key={`${title}-${reason}`}
+          className="font-nunito-semibold text-[12px] text-fg"
+        >
+          · {reason.replaceAll("_", " ")}
+        </Text>
+      ))}
+    </View>
+  );
+}
+
 const AdminRequestRow = useAdminRequestRowView;
 
 function useAdminRequestRowView({
@@ -355,8 +400,11 @@ function useAdminRequestRowView({
 }) {
   const { themeName } = useThemeStore();
   const tc = THEME_COLORS[themeName];
-  const [revealedIp, setRevealedIp] = useState<string | null>(null);
-  const [revealingIp, setRevealingIp] = useState(false);
+  const [evidenceExpanded, setEvidenceExpanded] = useState(false);
+  const revealIp = useMutation({
+    mutationFn: () => apiClient.revealAdminEmailRequestIp(request.id),
+  });
+  const revealedIp = revealIp.data?.ipAddress ?? null;
   const appVersion = [
     request.lastClientPlatform,
     request.lastClientAppVersion,
@@ -406,18 +454,22 @@ function useAdminRequestRowView({
         : assessment.state === "unavailable"
           ? attributionLabels.unavailable
           : `${attributionLabels.confidence}: ${assessment.confidence}% · ${attributionLabels.coverage}: ${assessment.coverage}%`;
-
-  async function revealIpAddress() {
-    setRevealingIp(true);
-    try {
-      const response = await apiClient.revealAdminEmailRequestIp(request.id);
-      setRevealedIp(response.ipAddress);
-    } catch {
-      setRevealedIp(null);
-    } finally {
-      setRevealingIp(false);
-    }
-  }
+  const scoredAssessment =
+    assessment?.state === "complete" || assessment?.state === "partial"
+      ? assessment
+      : null;
+  const positiveContributions =
+    scoredAssessment?.contributions.filter(
+      (contribution) => (contribution.effectFromNeutral ?? 0) > 0,
+    ) ?? [];
+  const negativeContributions =
+    scoredAssessment?.contributions.filter(
+      (contribution) =>
+        (contribution.effectFromNeutral ?? 0) < 0 || contribution.hardFailure,
+    ) ?? [];
+  const assessmentAge = assessment?.assessedAt
+    ? formatAssessmentAge(assessment.assessedAt)
+    : null;
 
   return (
     <View
@@ -454,6 +506,22 @@ function useAdminRequestRowView({
           <Text className="font-nunito-bold text-[13px] text-fg">
             {assessmentStatus}
           </Text>
+          <Text className="font-nunito-semibold text-[12px] text-fgMuted">
+            {attributionLabels.model}: {assessment.modelVersion}
+            {assessmentAge
+              ? ` · ${attributionLabels.age}: ${assessmentAge}`
+              : ""}
+          </Text>
+          {assessment.state === "test_lab" ? (
+            <View className="gap-1">
+              <Text className="font-nunito-semibold text-[12px] text-fgMuted">
+                {attributionLabels.testLabRange}: {assessment.network.testLabMatchedCidr ?? "—"}
+              </Text>
+              <Text className="font-nunito-semibold text-[12px] text-fgMuted">
+                {attributionLabels.rangeVersion}: {assessment.network.testLabRangeVersion ?? "—"}
+              </Text>
+            </View>
+          ) : null}
           {assessment.network.googleNetwork === "matched" &&
           assessment.network.testLab !== "matched" ? (
             <Text className="font-nunito-semibold text-[12px] text-fgMuted">
@@ -468,12 +536,51 @@ function useAdminRequestRowView({
                 : ""}
             </Text>
           ) : null}
-          {"missingReasons" in assessment &&
-          assessment.missingReasons.length ? (
-            <Text className="font-nunito-semibold text-[12px] text-fgMuted">
-              {attributionLabels.missingEvidence}:{" "}
-              {assessment.missingReasons.join(", ")}
-            </Text>
+          {assessment.state !== "test_lab" ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ expanded: evidenceExpanded }}
+              className="rounded-xl border border-infoBorder px-3 py-2"
+              onPress={() => setEvidenceExpanded((expanded) => !expanded)}
+            >
+              <Text className="font-nunito-extrabold text-[12px] text-infoText">
+                {evidenceExpanded
+                  ? attributionLabels.hideEvidence
+                  : attributionLabels.showEvidence}
+              </Text>
+            </Pressable>
+          ) : null}
+          {evidenceExpanded && assessment.state !== "test_lab" ? (
+            <View className="gap-2 rounded-xl bg-surface/70 px-3 py-2">
+              {positiveContributions.length ? (
+                <EvidenceReasonList
+                  title={attributionLabels.positiveEvidence}
+                  reasons={positiveContributions.flatMap(
+                    (contribution) => contribution.reasonCodes,
+                  )}
+                />
+              ) : null}
+              {negativeContributions.length ? (
+                <EvidenceReasonList
+                  title={attributionLabels.negativeEvidence}
+                  reasons={negativeContributions.flatMap(
+                    (contribution) => contribution.reasonCodes,
+                  )}
+                />
+              ) : null}
+              {assessment.hardFailureReasons.length ? (
+                <EvidenceReasonList
+                  title={attributionLabels.hardFailures}
+                  reasons={assessment.hardFailureReasons}
+                />
+              ) : null}
+              {assessment.missingReasons.length ? (
+                <EvidenceReasonList
+                  title={attributionLabels.missingEvidence}
+                  reasons={assessment.missingReasons}
+                />
+              ) : null}
+            </View>
           ) : null}
           {revealedIp ? (
             <Text className="font-nunito-bold text-[12px] text-dangerText">
@@ -484,8 +591,8 @@ function useAdminRequestRowView({
               label={attributionLabels.revealIp}
               variant="ghost"
               icon="eye-outline"
-              disabled={revealingIp}
-              onPress={() => void revealIpAddress()}
+              disabled={revealIp.isPending}
+              onPress={() => revealIp.mutate()}
             />
           )}
         </View>
@@ -990,6 +1097,15 @@ function useAdminUsersScreenView() {
                         coverage: t("admin.users.assessmentCoverage"),
                         heuristic: t("admin.users.assessmentHeuristic"),
                         missingEvidence: t("admin.users.assessmentMissing"),
+                        positiveEvidence: t("admin.users.assessmentPositive"),
+                        negativeEvidence: t("admin.users.assessmentNegative"),
+                        hardFailures: t("admin.users.assessmentHardFailures"),
+                        model: t("admin.users.assessmentModel"),
+                        age: t("admin.users.assessmentAge"),
+                        testLabRange: t("admin.users.assessmentTestLabRange"),
+                        rangeVersion: t("admin.users.assessmentRangeVersion"),
+                        showEvidence: t("admin.users.assessmentShowEvidence"),
+                        hideEvidence: t("admin.users.assessmentHideEvidence"),
                         revealIp: t("admin.users.assessmentRevealIp"),
                         revealedIp: t("admin.users.assessmentRevealedIp"),
                       }}

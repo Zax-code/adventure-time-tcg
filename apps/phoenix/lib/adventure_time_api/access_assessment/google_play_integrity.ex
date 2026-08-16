@@ -5,6 +5,11 @@ defmodule AdventureTimeApi.AccessAssessment.GooglePlayIntegrity do
 
   @default_endpoint "https://playintegrity.googleapis.com"
   @freshness_seconds 5 * 60
+  @recognized_device_verdicts [
+    "MEETS_BASIC_INTEGRITY",
+    "MEETS_DEVICE_INTEGRITY",
+    "MEETS_STRONG_INTEGRITY"
+  ]
 
   @impl true
   def decode(token, expected, opts) when is_binary(token) do
@@ -103,7 +108,7 @@ defmodule AdventureTimeApi.AccessAssessment.GooglePlayIntegrity do
   defp licensing(_other), do: :unevaluated
 
   defp normalize_device_verdicts(verdicts) when is_list(verdicts) do
-    Enum.filter(verdicts, &is_binary/1)
+    Enum.filter(verdicts, &(&1 in @recognized_device_verdicts))
   end
 
   defp normalize_device_verdicts(_other), do: []

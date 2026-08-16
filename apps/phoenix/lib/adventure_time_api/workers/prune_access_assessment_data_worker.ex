@@ -7,6 +7,7 @@ defmodule AdventureTimeApi.Workers.PruneAccessAssessmentDataWorker do
 
   alias AdventureTimeApi.AccessAssessment.Assessment
   alias AdventureTimeApi.AccessAssessment.IntegrityChallenge
+  alias AdventureTimeApi.AccessAssessment.IpRevealAudit
   alias AdventureTimeApi.AccessAssessment.Snapshot
   alias AdventureTimeApi.Accounts.AuthAttempt
   alias AdventureTimeApi.Accounts.EmailAccessRequest
@@ -69,6 +70,45 @@ defmodule AdventureTimeApi.Workers.PruneAccessAssessmentDataWorker do
         ]
       )
 
+    summary_request_ids =
+      Repo.all(
+        from(a in Assessment,
+          where: not is_nil(a.summary_retained_until) and a.summary_retained_until <= ^now,
+          select: a.email_access_request_id
+        )
+      )
+
+    {summary_count, _} =
+      Repo.update_all(
+        from(a in Assessment,
+          where: not is_nil(a.summary_retained_until) and a.summary_retained_until <= ^now
+        ),
+        set: [
+          state: :unavailable,
+          scoring_model_version: nil,
+          trustworthiness_confidence: nil,
+          evidence_coverage: nil,
+          band: nil,
+          masked_ip_address: nil,
+          network_facts: nil,
+          missing_reasons: [],
+          hard_failure_reasons: [],
+          assessed_at: nil,
+          summary_retained_until: nil
+        ]
+      )
+
+    {reveal_audit_count, _} =
+      if summary_request_ids == [] do
+        {0, nil}
+      else
+        Repo.delete_all(
+          from(audit in IpRevealAudit,
+            where: audit.email_access_request_id in ^summary_request_ids
+          )
+        )
+      end
+
     {snapshot_count, _} =
       Repo.delete_all(from(s in Snapshot, where: s.retained_until <= ^now))
 
@@ -80,6 +120,8 @@ defmodule AdventureTimeApi.Workers.PruneAccessAssessmentDataWorker do
       %{
         exact_ip_deleted: exact_count,
         details_deleted: detail_count,
+        summaries_deleted: summary_count,
+        reveal_audits_deleted: reveal_audit_count,
         snapshots_deleted: snapshot_count,
         challenges_deleted: challenge_count
       },

@@ -29,6 +29,9 @@ defmodule AdventureTimeApi.AccessAssessment.Assessment do
     field(:masked_ip_address, :string)
     field(:identity_provider_pseudonym, :string)
     field(:installation_provider_pseudonym, :string)
+    field(:installation_id_well_formed, :boolean)
+    field(:origin_host_consistent, :boolean)
+    field(:browser_request_shape, :boolean)
     field(:pseudonym_version, :string)
     field(:missing_reasons, {:array, :string}, default: [])
     field(:hard_failure_reasons, {:array, :string}, default: [])
@@ -37,6 +40,7 @@ defmodule AdventureTimeApi.AccessAssessment.Assessment do
     field(:integrity_assessed_at, :utc_datetime)
     field(:exact_ip_retained_until, :utc_datetime)
     field(:detailed_evidence_retained_until, :utc_datetime)
+    field(:summary_retained_until, :utc_datetime)
     field(:lock_version, :integer, default: 1)
 
     belongs_to(:email_access_request, AdventureTimeApi.Accounts.EmailAccessRequest)
@@ -69,6 +73,9 @@ defmodule AdventureTimeApi.AccessAssessment.Assessment do
       :masked_ip_address,
       :identity_provider_pseudonym,
       :installation_provider_pseudonym,
+      :installation_id_well_formed,
+      :origin_host_consistent,
+      :browser_request_shape,
       :pseudonym_version,
       :missing_reasons,
       :hard_failure_reasons,
@@ -76,7 +83,8 @@ defmodule AdventureTimeApi.AccessAssessment.Assessment do
       :ip_enriched_at,
       :integrity_assessed_at,
       :exact_ip_retained_until,
-      :detailed_evidence_retained_until
+      :detailed_evidence_retained_until,
+      :summary_retained_until
     ])
     |> cast_embed(:network_facts)
     |> cast_embed(:ip_intelligence_evidence)
@@ -85,7 +93,6 @@ defmodule AdventureTimeApi.AccessAssessment.Assessment do
     |> validate_required([
       :state,
       :evidence_revision,
-      :scoring_model_version,
       :platform_profile
     ])
     |> validate_number(:evidence_revision, greater_than: 0)
