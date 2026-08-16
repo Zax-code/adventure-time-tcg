@@ -67,3 +67,23 @@ _Avoid_: Revealing pending swaps, opponent-visible queued swap intent
 **PvP Targeting Intent**:
 A player's in-progress target selection does not need to be private. Showing target highlights or targeting previews to the opponent before action submission is acceptable because the opponent cannot interrupt that choice.
 _Avoid_: Treating target hover/selection preview as secret information
+
+**Access Request Assessment**:
+An evidence-based, advisory evaluation that helps a superadmin manually review a pending access request. Trustworthiness confidence and Google Test Lab classification are independent outputs, and neither approves, rejects, blocks, or otherwise decides the request automatically.
+_Avoid_: Automatic access decision, IP verdict, automatic trust decision, origin-only assessment
+
+**Trustworthiness Confidence**:
+An advisory percentage estimating how likely a non-Test-Lab access request is to be genuine and non-abusive. It evaluates the request as a whole rather than claiming that an IP address or person is inherently trustworthy.
+_Avoid_: IP trust score, honesty score, approval probability
+
+**Evidence Coverage**:
+A percentage describing how much applicable evidence was available when Trustworthiness Confidence was calculated. It expresses assessment completeness, not trustworthiness, and must remain visible alongside any partial score.
+_Avoid_: Trust confidence, certainty, missing-evidence penalty
+
+**Google Test Lab Classification**:
+An assessment of whether an access request originated from a Google Firebase Test Lab environment. A matched request is presented as an automated test environment instead of receiving Trustworthiness Confidence, and the match does not by itself prove that the request belongs to a Play pre-launch report.
+_Avoid_: Google-owned IP equals Play validation, Test Lab trust score
+
+**Google Network Classification**:
+An assessment of whether an access request originated from a generally Google-owned network. It is not a Google Test Lab Classification and does not imply Play validation.
+_Avoid_: Google network equals Test Lab, Google network equals trusted
