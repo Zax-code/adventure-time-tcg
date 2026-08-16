@@ -69,7 +69,13 @@ config :adventure_time_api, AdventureTimeApi.Media,
 config :adventure_time_api, Oban,
   repo: AdventureTimeApi.Repo,
   queues: [default: 10, maintenance: 5],
-  plugins: [Oban.Plugins.Pruner]
+  plugins: [
+    Oban.Plugins.Pruner,
+    {Oban.Plugins.Cron,
+     crontab: [
+       {"*/5 * * * *", AdventureTimeApi.Workers.LeaderboardLifecycleWorker}
+     ]}
+  ]
 
 config :adventure_time_api, AdventureTimeApi.Pvp, invite_ttl_hours: 24
 

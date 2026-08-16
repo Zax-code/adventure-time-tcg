@@ -13,7 +13,7 @@ defmodule AdventureTimeApi.Leaderboards.QuestResults do
   alias AdventureTimeApi.Accounts.User
   alias AdventureTimeApi.Health.StepSnapshot
 
-  alias AdventureTimeApi.Leaderboards.{Configuration, ResultRecorder, Slots}
+  alias AdventureTimeApi.Leaderboards.{Calendar, Configuration, ResultRecorder, Slots}
 
   alias AdventureTimeApi.Quests.{
     DailyNumbersDailyAttempt,
@@ -59,7 +59,10 @@ defmodule AdventureTimeApi.Leaderboards.QuestResults do
 
   @spec sync(Ecto.UUID.t(), Date.t(), term()) :: {:ok, term()} | {:error, term()}
   def sync(user_id, %Date{} = date, source) do
-    with %User{leaderboard_eligible: true} = user <- Repo.get(User, user_id),
+    with true <-
+           DateTime.compare(DateTime.utc_now(), Calendar.publication_cutoff(date)) == :lt or
+             {:error, :result_window_closed},
+         %User{leaderboard_eligible: true} = user <- Repo.get(User, user_id),
          {:ok, normalized} when is_map(normalized) <- load_source(user, date, source),
          {:ok, {version, configuration}} <- Configuration.for_date(date),
          {:ok, slot} <- Slots.get_or_create(user, date) do
@@ -76,6 +79,7 @@ defmodule AdventureTimeApi.Leaderboards.QuestResults do
       %User{} -> {:error, :leaderboard_ineligible}
       nil -> {:error, :user_not_found}
       {:ok, :not_final} -> {:ok, :not_final}
+      {:error, :result_window_closed} = error -> error
       error -> error
     end
   end
@@ -94,7 +98,7 @@ defmodule AdventureTimeApi.Leaderboards.QuestResults do
            "steps/default",
            "health_step_snapshot",
            snapshot.id,
-           %{"steps" => snapshot.step_count},
+           %{"kind" => "steps", "steps" => snapshot.step_count},
            snapshot.step_count,
            "accepted",
            snapshot.updated_at,
@@ -116,7 +120,11 @@ defmodule AdventureTimeApi.Leaderboards.QuestResults do
            "daily-numbers/#{mode}",
            "daily_numbers_daily_attempt",
            attempt.id,
-           %{"exact" => attempt.exact, "elapsedMs" => attempt.elapsed_ms},
+           %{
+             "kind" => "exact_completion_time",
+             "exact" => attempt.exact,
+             "elapsedMs" => attempt.elapsed_ms
+           },
            attempt.elapsed_ms,
            outcome,
            attempt.inserted_at,
@@ -165,7 +173,7 @@ defmodule AdventureTimeApi.Leaderboards.QuestResults do
            "speed-calculus/ranked",
            "speed_calculus_daily_run",
            run.id,
-           %{"correctAnswers" => score},
+           %{"kind" => "correct_answers", "correctAnswers" => score},
            score,
            status,
            run.finished_at || run.inserted_at,
@@ -201,7 +209,12 @@ defmodule AdventureTimeApi.Leaderboards.QuestResults do
            "perfect-timing/official",
            "perfect_timing_attempt",
            attempt.id,
-           %{"outcome" => outcome, "absoluteErrorMs" => error_ms},
+           %{
+             "kind" => "duration_error_ms",
+             "outcome" => outcome,
+             "absoluteErrorMs" => error_ms,
+             "tier" => attempt.tier
+           },
            error_ms,
            outcome,
            attempt.completed_at || attempt.inserted_at,
@@ -227,7 +240,7 @@ defmodule AdventureTimeApi.Leaderboards.QuestResults do
       "wordle/#{attempt.locale}",
       "wordle_daily_attempt",
       attempt.id,
-      %{"outcome" => outcome, "guesses" => attempt.attempt},
+      %{"kind" => "wordle_outcome", "outcome" => outcome, "guesses" => attempt.attempt},
       attempt.attempt,
       outcome,
       attempt.inserted_at,

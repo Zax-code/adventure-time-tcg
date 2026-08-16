@@ -29,15 +29,14 @@ defmodule AdventureTimeApi.Leaderboards.Configuration do
     })
     |> Repo.insert(
       on_conflict: :nothing,
-      conflict_target: :version,
-      returning: true
+      conflict_target: :version
     )
     |> case do
-      {:ok, %ScoringVersion{id: nil}} ->
+      {:ok, _version} ->
         {:ok, Repo.get_by!(ScoringVersion, version: @launch.version)}
 
-      result ->
-        result
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 

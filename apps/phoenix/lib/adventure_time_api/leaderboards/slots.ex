@@ -47,15 +47,11 @@ defmodule AdventureTimeApi.Leaderboards.Slots do
         })
         |> Repo.insert(
           on_conflict: :nothing,
-          conflict_target: [:user_id, :competition_week_key, :local_date],
-          returning: true
+          conflict_target: [:user_id, :competition_week_key, :local_date]
         )
         |> case do
-          {:ok, %CompetitionSlot{id: nil}} ->
+          {:ok, _slot} ->
             Repo.get_by!(CompetitionSlot, user_id: user.id, local_date: date)
-
-          {:ok, slot} ->
-            slot
 
           {:error, reason} ->
             Repo.rollback(reason)

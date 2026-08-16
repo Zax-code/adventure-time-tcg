@@ -39,7 +39,7 @@ defmodule AdventureTimeApi.Leaderboards.QuestResultsTest do
 
     assert {:ok, result} = QuestResults.sync(user.id, date, :steps)
     assert result.source_id == selected.id
-    assert result.raw_result == %{"steps" => 20_000}
+    assert result.raw_result == %{"kind" => "steps", "steps" => 20_000}
     assert result.points_milli == 632_121
 
     selected
@@ -48,7 +48,7 @@ defmodule AdventureTimeApi.Leaderboards.QuestResultsTest do
 
     assert {:ok, updated} = QuestResults.sync(user.id, date, :steps)
     assert updated.id == result.id
-    assert updated.raw_result == %{"steps" => 30_000}
+    assert updated.raw_result == %{"kind" => "steps", "steps" => 30_000}
     assert Repo.aggregate(DailyResult, :count) == 1
   end
 
@@ -122,18 +122,34 @@ defmodule AdventureTimeApi.Leaderboards.QuestResultsTest do
 
     assert {:ok, dn_result} = QuestResults.sync(user.id, date, {:daily_numbers, "1-5"})
     assert dn_result.source_id == daily_numbers.id
-    assert dn_result.raw_result == %{"elapsedMs" => 30_000, "exact" => true}
+
+    assert dn_result.raw_result == %{
+             "kind" => "exact_completion_time",
+             "elapsedMs" => 30_000,
+             "exact" => true
+           }
 
     assert {:ok, wordle_result} = QuestResults.sync(user.id, date, {:wordle, "en"})
     assert wordle_result.source_id == wordle.id
-    assert wordle_result.raw_result == %{"guesses" => 3, "outcome" => "solved"}
+
+    assert wordle_result.raw_result == %{
+             "kind" => "wordle_outcome",
+             "guesses" => 3,
+             "outcome" => "solved"
+           }
 
     assert {:ok, speed_result} = QuestResults.sync(user.id, date, {:speed_calculus, speed.id})
-    assert speed_result.raw_result == %{"correctAnswers" => 12}
+    assert speed_result.raw_result == %{"kind" => "correct_answers", "correctAnswers" => 12}
 
     assert {:ok, perfect_result} = QuestResults.sync(user.id, date, :perfect_timing)
     assert perfect_result.source_id == perfect.id
-    assert perfect_result.raw_result == %{"absoluteErrorMs" => 40, "outcome" => "success"}
+
+    assert perfect_result.raw_result == %{
+             "kind" => "duration_error_ms",
+             "absoluteErrorMs" => 40,
+             "outcome" => "success",
+             "tier" => "amazing"
+           }
 
     assert Repo.aggregate(DailyResult, :count) == 4
   end

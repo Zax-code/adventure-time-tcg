@@ -1604,13 +1604,22 @@ defmodule AdventureTimeApi.Quests do
     expiration_cutoff =
       DateTime.add(now, -SpeedCalculusEngine.finish_grace_seconds(), :second)
 
-    SpeedCalculusDailyRun
-    |> where(
-      [r],
-      r.user_id == ^user_id and r.date == ^date and r.status == "in_progress" and
-        is_nil(r.manual_paused_at) and r.play_deadline_at < ^expiration_cutoff
-    )
+    expired_query =
+      SpeedCalculusDailyRun
+      |> where(
+        [r],
+        r.user_id == ^user_id and r.date == ^date and r.status == "in_progress" and
+          is_nil(r.manual_paused_at) and r.play_deadline_at < ^expiration_cutoff
+      )
+
+    expired_run_ids = expired_query |> select([r], r.id) |> Repo.all()
+
+    expired_query
     |> Repo.update_all(set: [status: "abandoned", score: 0, reward: 0, finished_at: now])
+
+    Enum.each(expired_run_ids, fn run_id ->
+      QuestResults.sync_safely(user_id, date, {:speed_calculus, run_id})
+    end)
 
     :ok
   end
