@@ -69,6 +69,14 @@ export default function TabLayout() {
           options={{
             title: t("nav.gifts"),
             tabBarButtonTestID: "tab-gifts",
+            href: null,
+          }}
+        />
+        <Tabs.Screen
+          name="rankings"
+          options={{
+            title: t("nav.rankings"),
+            tabBarButtonTestID: "tab-rankings",
           }}
         />
         <Tabs.Screen

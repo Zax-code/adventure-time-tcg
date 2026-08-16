@@ -1,4 +1,3 @@
-import { useQuery } from "@tanstack/react-query";
 import type { BottomTabBarProps } from "expo-router/js-tabs";
 import {
   Pressable,
@@ -8,18 +7,17 @@ import {
   type ViewStyle,
 } from "react-native";
 
-import { apiClient } from "../lib/api";
 import { useTranslation } from "../i18n";
 import { useThemeStore } from "../stores/theme-store";
 import { THEME_COLORS } from "../theme/themes";
 import { BottomTabBarFrame, type ThemeColorKey } from "./bottom-tab-bar-frame";
 import {
   CardsIcon,
-  GiftHeartIcon,
   HomeIcon,
   PackIcon,
   QuestIcon,
   SwordsIcon,
+  TrophyIcon,
 } from "./icons";
 
 type VisibleTabName =
@@ -28,7 +26,7 @@ type VisibleTabName =
   | "pvp"
   | "quests"
   | "collection"
-  | "gifts";
+  | "rankings";
 
 const TAB_CONFIG: Record<
   VisibleTabName,
@@ -42,7 +40,7 @@ const TAB_CONFIG: Record<
   pvp: { labelKey: "nav.pvp", tintKey: "accentText" },
   quests: { labelKey: "nav.quests", tintKey: "infoText" },
   collection: { labelKey: "nav.collection", tintKey: "primaryText" },
-  gifts: { labelKey: "nav.gifts", tintKey: "successText" },
+  rankings: { labelKey: "nav.rankings", tintKey: "accentText" },
 };
 
 const TAB_ORDER: VisibleTabName[] = Object.keys(TAB_CONFIG) as VisibleTabName[];
@@ -53,7 +51,7 @@ const TAB_TEST_IDS: Record<VisibleTabName, string> = {
   pvp: "tab-pvp",
   quests: "tab-quests",
   collection: "tab-collection",
-  gifts: "tab-gifts",
+  rankings: "tab-rankings",
 };
 
 export function BottomTabBar({
@@ -64,13 +62,6 @@ export function BottomTabBar({
   const { t } = useTranslation();
   const themeName = useThemeStore((state) => state.themeName);
   const tc = THEME_COLORS[themeName];
-  const { data: giftsQueryData } = useQuery({
-    queryKey: ["gifts"],
-    queryFn: () => apiClient.gifts(),
-    staleTime: 30_000,
-    refetchInterval: 30_000,
-  });
-
   const tabs = TAB_ORDER.map((name) => {
     const routeIndex = state.routes.findIndex((route) => route.name === name);
     if (routeIndex === -1) {
@@ -83,12 +74,7 @@ export function BottomTabBar({
     const color = focused ? tc[config.tintKey] : tc.fgMuted;
     const label = t(config.labelKey);
 
-    const badge =
-      name === "gifts" && (giftsQueryData?.pendingCount ?? 0) > 0
-        ? (giftsQueryData?.pendingCount ?? 0)
-        : undefined;
-
-    return { route, routeIndex, focused, color, label, badge };
+    return { route, routeIndex, focused, color, label };
   }).filter((tab): tab is NonNullable<typeof tab> => tab !== null);
 
   const activeTabIndex = Math.max(
@@ -152,16 +138,6 @@ export function BottomTabBar({
                   routeName={tab.route.name as VisibleTabName}
                   color={tab.color}
                 />
-                {tab.badge ? (
-                  <View
-                    className="absolute size-4 items-center justify-center rounded bg-dangerDark"
-                    style={{ top: -8, right: -8 }}
-                  >
-                    <Text className="font-nunito-bold text-[9px] text-white">
-                      {tab.badge > 9 ? "9+" : tab.badge}
-                    </Text>
-                  </View>
-                ) : null}
               </View>
               <Text
                 className={`text-center text-[9px] ${
@@ -198,7 +174,7 @@ function TabIcon({
       return <QuestIcon size={24} color={color} />;
     case "collection":
       return <CardsIcon size={24} color={color} />;
-    case "gifts":
-      return <GiftHeartIcon size={24} color={color} />;
+    case "rankings":
+      return <TrophyIcon size={24} color={color} />;
   }
 }
