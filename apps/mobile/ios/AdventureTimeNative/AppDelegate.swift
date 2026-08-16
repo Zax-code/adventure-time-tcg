@@ -7,7 +7,7 @@ import Security
 import UserNotifications
 import WidgetKit
 
-@UIApplicationMain
+@main
 class AppDelegate: ExpoAppDelegate {
   var window: UIWindow?
 
