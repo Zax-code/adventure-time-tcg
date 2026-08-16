@@ -407,6 +407,19 @@ defmodule AdventureTimeApiWeb.LandingController do
         </article>
 
         <article class="card feature-card">
+          <span class="kicker" data-i18n="privacy.security.kicker">Security</span>
+          <h3 data-i18n="privacy.security.title">Access-request fraud prevention</h3>
+          <p data-i18n="privacy.security.body">
+            When you request access, we may assess your IP network, request and app
+            metadata, and Android app/device integrity to help a super administrator
+            review abuse risk. IPQualityScore processes the IP and limited technical
+            metadata for this purpose. The result is advisory only: a person approves or
+            rejects every request. Exact IPs are removed 30 days after review, detailed
+            evidence after 90 days, and the review record after one year.
+          </p>
+        </article>
+
+        <article class="card feature-card">
           <span class="kicker" data-i18n="privacy.control.kicker">Control</span>
           <h3 data-i18n="privacy.control.title">Access and deletion</h3>
           <p data-i18n="privacy.control.body">

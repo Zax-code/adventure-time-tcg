@@ -7,6 +7,7 @@ defmodule AdventureTimeApi.Accounts do
   require Logger
 
   alias Ecto.Multi
+  alias AdventureTimeApi.AccessAssessment
   alias AdventureTimeApi.Auth
   alias AdventureTimeApi.Notifications
   alias AdventureTimeApi.Repo
@@ -97,7 +98,9 @@ defmodule AdventureTimeApi.Accounts do
       )
       |> Repo.transaction()
       |> case do
-        {:ok, %{user: user}} ->
+        {:ok, %{user: user, request: request}} ->
+          assessment_challenge = capture_access_assessment(request, metadata)
+
           record_auth_attempt(%{
             event_type: "email_register_access_request",
             provider: "email",
@@ -111,7 +114,9 @@ defmodule AdventureTimeApi.Accounts do
                  EmailDelivery.send_verification_code(normalized_email, verification_code,
                    locale: preferred_language
                  ) do
-            {:ok, registration_response(user, verification_code)}
+            {:ok,
+             registration_response(user, verification_code)
+             |> maybe_put_assessment_challenge(assessment_challenge)}
           else
             {:error, message} -> {:error, :delivery, message}
           end
@@ -161,6 +166,7 @@ defmodule AdventureTimeApi.Accounts do
           |> Repo.transaction()
           |> case do
             {:ok, %{user: updated_user}} ->
+              maybe_rescore_verified_access_request(normalized_email)
               {:ok, verification_response(updated_user)}
 
             {:error, _step, %Ecto.Changeset{} = changeset, _changes} ->
@@ -698,6 +704,7 @@ defmodule AdventureTimeApi.Accounts do
         end)
 
       events_by_email = recent_auth_events_by_email(Enum.map(requests, & &1.email))
+      assessments_by_request = AccessAssessment.admin_views(Enum.map(requests, & &1.id))
 
       requests =
         requests
@@ -709,21 +716,19 @@ defmodule AdventureTimeApi.Accounts do
             "hasAccount" => MapSet.member?(user_emails, request.email),
             "createdAt" => request.inserted_at |> DateTime.to_iso8601(),
             "provider" => request.provider,
-            "providerSubjectHash" => request.provider_subject_hash,
             "googleName" => request.google_name,
             "googlePictureUrl" => request.google_picture_url,
             "lastRequestId" => request.last_request_id,
-            "lastIpAddress" => request.last_ip_address,
             "lastUserAgent" => request.last_user_agent,
             "lastAcceptLanguage" => request.last_accept_language,
             "lastClientPlatform" => request.last_client_platform,
             "lastClientAppVersion" => request.last_client_app_version,
             "lastClientBuildNumber" => request.last_client_build_number,
-            "lastInstallationIdHash" => request.last_installation_id_hash,
             "lastAttestationStatus" => request.last_attestation_status,
             "lastSeenAt" => request.last_seen_at && DateTime.to_iso8601(request.last_seen_at),
             "attemptCount" => request.attempt_count || 0,
-            "authEvents" => Map.get(events_by_email, request.email, [])
+            "authEvents" => Map.get(events_by_email, request.email, []),
+            "assessment" => Map.get(assessments_by_request, request.id)
           }
         end)
 
@@ -752,15 +757,25 @@ defmodule AdventureTimeApi.Accounts do
       "statusCode" => attempt.status_code,
       "errorCode" => attempt.error_code,
       "requestId" => attempt.request_id,
-      "ipAddress" => attempt.ip_address,
       "userAgent" => attempt.user_agent,
       "clientPlatform" => attempt.client_platform,
       "clientAppVersion" => attempt.client_app_version,
       "clientBuildNumber" => attempt.client_build_number,
-      "installationIdHash" => attempt.installation_id_hash,
       "attestationStatus" => attempt.attestation_status,
       "createdAt" => DateTime.to_iso8601(attempt.inserted_at)
     }
+  end
+
+  def reveal_access_request_ip(request_id, actor, audit_request_id) do
+    with :ok <- ensure_super_admin(actor),
+         %EmailAccessRequest{} <- Repo.get(EmailAccessRequest, request_id),
+         {:ok, response} <- AccessAssessment.reveal_ip(request_id, actor.id, audit_request_id) do
+      {:ok, response}
+    else
+      nil -> {:error, :not_found, "Access request not found"}
+      {:error, :gone} -> {:error, :gone}
+      {:error, %AuthError{} = error} -> {:error, error}
+    end
   end
 
   def review_access_request(request_id, attrs, actor) do
@@ -819,6 +834,9 @@ defmodule AdventureTimeApi.Accounts do
         reviewed_at: now
       })
     )
+    |> Multi.run(:assessment_snapshot, fn repo, %{request: updated_request} ->
+      AccessAssessment.snapshot_review(repo, updated_request, actor, status, now)
+    end)
     |> Repo.transaction()
     |> case do
       {:ok, %{request: updated_request}} ->
@@ -883,7 +901,9 @@ defmodule AdventureTimeApi.Accounts do
       nil ->
         case Repo.get_by(User, email: profile.email) do
           nil ->
-            ensure_pending_access_request(profile.email, preferred_language, metadata, profile)
+            assessment_challenge =
+              ensure_pending_access_request(profile.email, preferred_language, metadata, profile)
+              |> capture_access_assessment_result(metadata)
 
             record_google_attempt(
               "google_access_request",
@@ -899,7 +919,8 @@ defmodule AdventureTimeApi.Accounts do
                message:
                  "This Google account is not approved yet. An access request has been submitted.",
                status_code: 403,
-               code: "ACCESS_REQUEST_PENDING"
+               code: "ACCESS_REQUEST_PENDING",
+               details: challenge_details(assessment_challenge)
              }}
 
           %User{} = user ->
@@ -950,7 +971,9 @@ defmodule AdventureTimeApi.Accounts do
       nil ->
         case Repo.get_by(User, email: profile.email) do
           nil ->
-            ensure_pending_access_request(profile.email, preferred_language, metadata, profile)
+            assessment_challenge =
+              ensure_pending_access_request(profile.email, preferred_language, metadata, profile)
+              |> capture_access_assessment_result(metadata)
 
             record_apple_attempt(
               "apple_access_request",
@@ -966,7 +989,8 @@ defmodule AdventureTimeApi.Accounts do
                message:
                  "This Apple account is not approved yet. An access request has been submitted.",
                status_code: 403,
-               code: "ACCESS_REQUEST_PENDING"
+               code: "ACCESS_REQUEST_PENDING",
+               details: challenge_details(assessment_challenge)
              }}
 
           %User{} = user ->
@@ -1358,22 +1382,18 @@ defmodule AdventureTimeApi.Accounts do
   end
 
   defp ensure_pending_access_request(repo, %User{} = user, metadata) do
-    case refresh_user_access_state(repo, user) do
-      {:ok, updated_user} ->
-        upsert_pending_access_request(
-          repo,
-          updated_user.email,
-          updated_user.preferred_language,
-          metadata,
-          %{
-            provider: "email"
-          }
-        )
-
-        {:ok, updated_user}
-
-      error ->
-        error
+    with {:ok, updated_user} <- refresh_user_access_state(repo, user),
+         {:ok, request} <-
+           upsert_pending_access_request(
+             repo,
+             updated_user.email,
+             updated_user.preferred_language,
+             metadata,
+             %{
+               provider: "email"
+             }
+           ) do
+      {:ok, request}
     end
   end
 
@@ -1538,11 +1558,22 @@ defmodule AdventureTimeApi.Accounts do
   defp record_auth_attempt(attrs) do
     metadata = Map.get(attrs, :metadata, %{}) || %{}
 
+    access_request =
+      case Map.get(attrs, :email) do
+        email when is_binary(email) ->
+          Repo.get_by(EmailAccessRequest, email: normalize_email(email), status: :pending)
+
+        _missing_email ->
+          nil
+      end
+
     attrs =
       attrs
       |> Map.delete(:metadata)
       |> Map.put_new(:request_id, metadata[:request_id])
       |> Map.put_new(:ip_address, metadata[:ip_address])
+      |> Map.put_new(:canonical_ip, metadata[:ip_address])
+      |> Map.put_new(:email_access_request_id, access_request && access_request.id)
       |> Map.put_new(:user_agent, metadata[:user_agent])
       |> Map.put_new(:accept_language, metadata[:accept_language])
       |> Map.put_new(:client_platform, metadata[:client_platform])
@@ -1606,6 +1637,54 @@ defmodule AdventureTimeApi.Accounts do
   end
 
   defp notify_access_request_created(result), do: result
+
+  defp capture_access_assessment_result({:ok, %EmailAccessRequest{} = request} = result, metadata) do
+    _result = result
+    capture_access_assessment(request, metadata)
+  end
+
+  defp capture_access_assessment_result(_result, _metadata), do: nil
+
+  defp capture_access_assessment(%EmailAccessRequest{} = request, metadata) do
+    case AccessAssessment.capture(request, metadata) do
+      {:ok, nil} ->
+        nil
+
+      {:ok, assessment} ->
+        case AdventureTimeApi.AccessAssessment.Challenges.issue(
+               assessment.email_access_request_id
+             ) do
+          {:ok, challenge} -> challenge
+          {:error, _reason} -> nil
+        end
+
+      {:error, changeset} ->
+        Logger.warning(
+          "Failed to capture access assessment for request #{request.id}: #{inspect(changeset.errors)}"
+        )
+
+        nil
+    end
+  end
+
+  defp maybe_rescore_verified_access_request(email) do
+    case Repo.get_by(EmailAccessRequest, email: email, status: :pending) do
+      %EmailAccessRequest{id: request_id} ->
+        _result = AccessAssessment.rescore(request_id)
+        :ok
+
+      nil ->
+        :ok
+    end
+  end
+
+  defp maybe_put_assessment_challenge(response, nil), do: response
+
+  defp maybe_put_assessment_challenge(response, challenge),
+    do: Map.put(response, :assessmentChallenge, challenge)
+
+  defp challenge_details(nil), do: %{}
+  defp challenge_details(challenge), do: %{assessmentChallenge: challenge}
 
   defp refresh_user_access_state(repo, %User{} = user) do
     next_status = next_pending_status(user.access_status)
@@ -1788,34 +1867,58 @@ defmodule AdventureTimeApi.Accounts do
 
   defp ensure_user_approved(%User{access_status: :approved}, _metadata), do: :ok
 
-  defp ensure_user_approved(%User{email: email, access_status: :pending}, _metadata) do
-    pending_access_error(email, false)
+  defp ensure_user_approved(%User{email: email, access_status: :pending}, metadata) do
+    pending_access_error(email, true, metadata)
   end
 
   defp ensure_user_approved(%User{email: email, access_status: :rejected}, metadata) do
+    challenge =
+      ensure_pending_access_request(email, :en, metadata, %{provider: "email"})
+      |> capture_access_assessment_result(metadata)
+
     {:error,
      %AuthError{
        message: "This account is not approved yet. A new access request has been submitted.",
        status_code: 403,
-       code: "ACCESS_REQUEST_PENDING"
+       code: "ACCESS_REQUEST_PENDING",
+       details: challenge_details(challenge)
      }}
-    |> tap(fn _ -> ensure_pending_access_request(email, :en, metadata, %{provider: "email"}) end)
   end
 
   defp pending_access_error(
          email,
          maybe_reopen?,
-         metadata \\ %{},
+         metadata,
          profile \\ %{provider: "email"}
        ) do
-    if maybe_reopen?, do: ensure_pending_access_request(email, :en, metadata, profile)
+    challenge =
+      if maybe_reopen? do
+        ensure_pending_access_request(email, :en, metadata, profile)
+        |> capture_access_assessment_result(metadata)
+      else
+        existing_assessment_challenge(email)
+      end
 
     {:error,
      %AuthError{
        message: "This account is not approved yet. An access request has been submitted.",
        status_code: 403,
-       code: "ACCESS_REQUEST_PENDING"
+       code: "ACCESS_REQUEST_PENDING",
+       details: challenge_details(challenge)
      }}
+  end
+
+  defp existing_assessment_challenge(email) do
+    case Repo.get_by(EmailAccessRequest, email: email, status: :pending) do
+      %EmailAccessRequest{id: request_id} ->
+        case AdventureTimeApi.AccessAssessment.Challenges.issue(request_id) do
+          {:ok, challenge} -> challenge
+          {:error, _reason} -> nil
+        end
+
+      nil ->
+        nil
+    end
   end
 
   defp ensure_super_admin(auth_user) do

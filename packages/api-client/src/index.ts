@@ -48,6 +48,7 @@ import {
   adminAllowedEmailUpdateSchema,
   adminEmailRequestActionSchema,
   accountDeleteResponseSchema,
+  accessRequestIpRevealResponseSchema,
   appleAuthSchema,
   authUserSchema,
   authResponseSchema,
@@ -109,6 +110,7 @@ import {
   speedTrainingRunSchema,
   speedRunStateSchema,
   syncStepsSchema,
+  submitAccessRequestIntegritySchema,
   updateStepSourceSchema,
   usersResponseSchema,
   verifyEmailResponseSchema,
@@ -129,6 +131,7 @@ import {
   type AdminPacksResponse,
   type AdminUserDeleteResponse,
   type AccountDeleteResponse,
+  type AccessRequestIpRevealResponse,
   type AdminUserDetail,
   type AdminUserQuestResetInput,
   type AdminUserQuestResetResponse,
@@ -200,6 +203,7 @@ import {
   type SpeedRunState,
   type SpeedTrainingRun,
   type SyncStepsInput,
+  type SubmitAccessRequestIntegrityInput,
   type UpdateStepSourceInput,
   type UpdateLanguageInput,
   type UpdateNotificationPreferencesInput,
@@ -234,8 +238,7 @@ export interface ApiClientOptions {
   requestTimeoutMs?: number;
   getAccessToken?: () => string | null | Promise<string | null>;
   getClientHeaders?: () =>
-    | Record<string, string>
-    | Promise<Record<string, string>>;
+    Record<string, string> | Promise<Record<string, string>>;
   refreshAccessToken?: () => Promise<string | null>;
   onAuthFailure?: () => void | Promise<void>;
 }
@@ -308,7 +311,8 @@ export class ApiClient {
     const requestTimeoutMs = this.options.requestTimeoutMs ?? 8_000;
     const upstreamSignal = init.signal;
     let didTimeout = false;
-    const abortFromUpstream = () => abortController.abort(upstreamSignal?.reason);
+    const abortFromUpstream = () =>
+      abortController.abort(upstreamSignal?.reason);
 
     if (upstreamSignal?.aborted) {
       abortFromUpstream();
@@ -334,8 +338,8 @@ export class ApiClient {
         didTimeout
           ? "Request timed out"
           : error instanceof Error && error.message
-          ? error.message
-          : "Network request failed",
+            ? error.message
+            : "Network request failed",
         error,
       );
     } finally {
@@ -375,7 +379,7 @@ export class ApiClient {
       );
     }
 
-    return parser(await response.json());
+    return parser(response.status === 204 ? null : await response.json());
   }
 
   private async request<T>(
@@ -406,6 +410,17 @@ export class ApiClient {
       "/auth/register",
       { method: "POST", body: JSON.stringify(body) },
       (data) => registerResponseSchema.parse(data),
+    );
+  }
+
+  async submitAccessRequestIntegrity(
+    input: SubmitAccessRequestIntegrityInput,
+  ): Promise<void> {
+    const body = submitAccessRequestIntegritySchema.parse(input);
+    return this.request(
+      "/auth/access-request-assessment/play-integrity",
+      { method: "POST", body: JSON.stringify(body) },
+      () => undefined,
     );
   }
 
@@ -440,7 +455,9 @@ export class ApiClient {
     );
   }
 
-  async resetPassword(input: ResetPasswordInput): Promise<ResetPasswordResponse> {
+  async resetPassword(
+    input: ResetPasswordInput,
+  ): Promise<ResetPasswordResponse> {
     const body = resetPasswordSchema.parse(input);
     return this.request(
       "/auth/reset-password",
@@ -621,10 +638,14 @@ export class ApiClient {
     );
   }
 
-  async dailyNumbersState(mode: DailyNumbersMode): Promise<DailyNumbersStateResponse> {
+  async dailyNumbersState(
+    mode: DailyNumbersMode,
+  ): Promise<DailyNumbersStateResponse> {
     const query = `?mode=${encodeURIComponent(mode)}`;
-    return this.request(`/quests/daily-numbers${query}`, { method: "GET" }, (data) =>
-      dailyNumbersStateResponseSchema.parse(data),
+    return this.request(
+      `/quests/daily-numbers${query}`,
+      { method: "GET" },
+      (data) => dailyNumbersStateResponseSchema.parse(data),
     );
   }
 
@@ -749,8 +770,10 @@ export class ApiClient {
     locale?: "fr" | "en",
   ): Promise<WordleDefinitionResponse> {
     const query = locale ? `?locale=${encodeURIComponent(locale)}` : "";
-    return this.request(`/wordle/definition${query}`, { method: "GET" }, (data) =>
-      wordleDefinitionResponseSchema.parse(data),
+    return this.request(
+      `/wordle/definition${query}`,
+      { method: "GET" },
+      (data) => wordleDefinitionResponseSchema.parse(data),
     );
   }
 
@@ -1210,7 +1233,9 @@ export class ApiClient {
     );
   }
 
-  async updateNotificationPreferences(input: UpdateNotificationPreferencesInput) {
+  async updateNotificationPreferences(
+    input: UpdateNotificationPreferencesInput,
+  ) {
     const body = updateNotificationPreferencesSchema.parse(input);
     return this.request(
       "/settings/notification-preferences",
@@ -1229,10 +1254,8 @@ export class ApiClient {
   }
 
   async deleteAccount(): Promise<AccountDeleteResponse> {
-    return this.request(
-      "/settings/account",
-      { method: "DELETE" },
-      (data) => accountDeleteResponseSchema.parse(data),
+    return this.request("/settings/account", { method: "DELETE" }, (data) =>
+      accountDeleteResponseSchema.parse(data),
     );
   }
 
@@ -1386,6 +1409,16 @@ export class ApiClient {
     );
   }
 
+  async revealAdminEmailRequestIp(
+    id: string,
+  ): Promise<AccessRequestIpRevealResponse> {
+    return this.request(
+      `/admin/email-requests/${id}/reveal-ip`,
+      { method: "POST", body: JSON.stringify({}) },
+      (data) => accessRequestIpRevealResponseSchema.parse(data),
+    );
+  }
+
   async pvpSpectate(): Promise<PvpSpectateResponse> {
     return this.request("/pvp/spectate", { method: "GET" }, (data) =>
       pvpSpectateResponseSchema.parse(data),
@@ -1393,10 +1426,8 @@ export class ApiClient {
   }
 
   async pvpSpectateMatch(matchId: string): Promise<PvpSpectateDetailResponse> {
-    return this.request(
-      `/pvp/spectate/${matchId}`,
-      { method: "GET" },
-      (data) => pvpSpectateDetailResponseSchema.parse(data),
+    return this.request(`/pvp/spectate/${matchId}`, { method: "GET" }, (data) =>
+      pvpSpectateDetailResponseSchema.parse(data),
     );
   }
 

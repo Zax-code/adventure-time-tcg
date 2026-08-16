@@ -1,6 +1,10 @@
 defmodule AdventureTimeApiWeb.AdminControllerTest do
   use AdventureTimeApiWeb.ConnCase, async: false
 
+  alias AdventureTimeApi.AccessAssessment
+  alias AdventureTimeApi.AccessAssessment.IpRevealAudit
+  alias AdventureTimeApi.AccessAssessment.Snapshot
+
   alias AdventureTimeApi.Accounts.{
     AuthAttempt,
     AuthProviderIdentity,
@@ -21,9 +25,11 @@ defmodule AdventureTimeApiWeb.AdminControllerTest do
 
   setup do
     original_config = Application.get_env(:adventure_time_api, AdventureTimeApi.Media)
+    original_assessment_config = Application.get_env(:adventure_time_api, AccessAssessment, [])
 
     on_exit(fn ->
       Application.put_env(:adventure_time_api, AdventureTimeApi.Media, original_config)
+      Application.put_env(:adventure_time_api, AccessAssessment, original_assessment_config)
     end)
 
     :ok
@@ -1481,6 +1487,8 @@ defmodule AdventureTimeApiWeb.AdminControllerTest do
   end
 
   test "superadmin can approve email requests and promote users", _context do
+    Application.put_env(:adventure_time_api, AccessAssessment, collection_enabled: true)
+
     super_admin =
       create_user_with_password("boss@example.com", "password123", "Boss",
         verified?: true,
@@ -1503,6 +1511,13 @@ defmodule AdventureTimeApiWeb.AdminControllerTest do
         })
       )
 
+    assert {:ok, _assessment} =
+             AccessAssessment.capture(request, %{
+               ip_address: "198.51.100.17",
+               client_platform: "web",
+               user_agent: "Mozilla/5.0"
+             })
+
     access_token = login_access_token(super_admin.email, "password123")
 
     list_conn =
@@ -1519,6 +1534,11 @@ defmodule AdventureTimeApiWeb.AdminControllerTest do
 
     assert json_response(review_conn, 200) == %{"id" => request.id, "status" => "approved"}
     assert Repo.get!(User, pending_user.id).access_status == :approved
+
+    assert %Snapshot{review_outcome: :approved, review_actor_id: actor_id} =
+             Repo.get_by!(Snapshot, email_access_request_id: request.id)
+
+    assert actor_id == super_admin.id
 
     role_conn =
       build_conn()
@@ -1591,6 +1611,11 @@ defmodule AdventureTimeApiWeb.AdminControllerTest do
   end
 
   test "superadmin email request list includes auth attribution", _context do
+    Application.put_env(:adventure_time_api, AccessAssessment,
+      collection_enabled: true,
+      admin_display_enabled: true
+    )
+
     super_admin =
       create_user_with_password("attribution-boss@example.com", "password123", "Attribution Boss",
         verified?: true,
@@ -1639,6 +1664,13 @@ defmodule AdventureTimeApiWeb.AdminControllerTest do
         })
       )
 
+    assert {:ok, _assessment} =
+             AccessAssessment.capture(request, %{
+               ip_address: "203.0.113.44",
+               client_platform: "android",
+               user_agent: "AdventureTimeNative/0.3.10"
+             })
+
     access_token = login_access_token(super_admin.email, "password123")
 
     conn =
@@ -1649,16 +1681,34 @@ defmodule AdventureTimeApiWeb.AdminControllerTest do
     assert %{"requests" => [body]} = json_response(conn, 200)
     assert body["email"] == request.email
     assert body["provider"] == "google"
-    assert body["providerSubjectHash"] == String.duplicate("a", 64)
+    refute Map.has_key?(body, "providerSubjectHash")
     assert body["googleName"] == "Pending Tester"
-    assert body["lastIpAddress"] == "203.0.113.44"
+    refute Map.has_key?(body, "lastIpAddress")
     assert body["lastUserAgent"] == "okhttp/4.9.2"
     assert body["lastClientPlatform"] == "android"
-    assert body["lastInstallationIdHash"] == String.duplicate("b", 64)
+    refute Map.has_key?(body, "lastInstallationIdHash")
     assert body["lastAttestationStatus"] == "not_provided"
     assert body["attemptCount"] == 2
     assert [%{"id" => event_id, "eventType" => "google_access_request"}] = body["authEvents"]
     assert event_id == attempt.id
+    refute Map.has_key?(hd(body["authEvents"]), "ipAddress")
+    refute Map.has_key?(hd(body["authEvents"]), "installationIdHash")
+    assert body["assessment"]["state"] == "assessing"
+    assert body["assessment"]["network"]["maskedIpAddress"] == "203.0.113.x"
+
+    reveal_conn =
+      build_conn()
+      |> put_req_header("authorization", "Bearer #{access_token}")
+      |> post(~p"/admin/email-requests/#{request.id}/reveal-ip", %{})
+
+    assert get_resp_header(reveal_conn, "cache-control") == ["no-store"]
+    assert json_response(reveal_conn, 200)["ipAddress"] == "203.0.113.44"
+
+    assert %IpRevealAudit{actor_id: actor_id, request_id: audit_request_id} =
+             Repo.get_by!(IpRevealAudit, email_access_request_id: request.id)
+
+    assert actor_id == super_admin.id
+    assert is_binary(audit_request_id)
   end
 
   test "superadmin approval creates account with requested locale when no user exists",

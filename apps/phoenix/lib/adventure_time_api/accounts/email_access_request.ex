@@ -31,6 +31,8 @@ defmodule AdventureTimeApi.Accounts.EmailAccessRequest do
     field(:last_seen_at, :utc_datetime)
     field(:attempt_count, :integer, default: 0)
 
+    has_one(:assessment, AdventureTimeApi.AccessAssessment.Assessment)
+
     timestamps(type: :utc_datetime)
   end
 

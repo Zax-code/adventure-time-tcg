@@ -323,6 +323,28 @@ defmodule AdventureTimeApiWeb.AdminController do
     end
   end
 
+  def reveal_email_request_ip(conn, %{"id" => request_id}) do
+    case Accounts.reveal_access_request_ip(
+           request_id,
+           conn.assigns.auth_user,
+           List.first(get_req_header(conn, "x-request-id")) || Ecto.UUID.generate()
+         ) do
+      {:ok, response} ->
+        conn
+        |> put_resp_header("cache-control", "no-store")
+        |> json(response)
+
+      {:error, :gone} ->
+        conn |> put_status(:gone) |> json(%{error: "IP address is no longer retained"})
+
+      {:error, :not_found, message} ->
+        conn |> put_status(:not_found) |> json(%{error: message})
+
+      {:error, %AuthError{} = error} ->
+        conn |> put_status(error.status_code) |> json(%{error: error.message, code: error.code})
+    end
+  end
+
   # ── Ability Admin ──────────────────────────────────────────────────────────
 
   def list_abilities(conn, _params) do

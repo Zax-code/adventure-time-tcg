@@ -4,6 +4,8 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
   import Ecto.Query
 
   alias AdventureTimeApi.Auth
+  alias AdventureTimeApi.AccessAssessment
+  alias AdventureTimeApi.AccessAssessment.Assessment
 
   alias AdventureTimeApi.Accounts.{
     AppleAuth,
@@ -24,12 +26,16 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
     rate_limit_config =
       Application.get_env(:adventure_time_api, AdventureTimeApiWeb.Plugs.RateLimit)
 
+    assessment_config = Application.get_env(:adventure_time_api, AccessAssessment, [])
+
     on_exit(fn ->
       Application.put_env(
         :adventure_time_api,
         AdventureTimeApiWeb.Plugs.RateLimit,
         rate_limit_config
       )
+
+      Application.put_env(:adventure_time_api, AccessAssessment, assessment_config)
     end)
 
     :ok
@@ -96,6 +102,37 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
     assert attempt.client_platform == "ios"
     assert attempt.installation_id_hash == request.last_installation_id_hash
     assert attempt.metadata == %{}
+  end
+
+  test "POST /auth/register captures an assessment after the request is durable", %{conn: conn} do
+    Application.put_env(:adventure_time_api, AccessAssessment, collection_enabled: true)
+
+    conn =
+      conn
+      |> put_req_header("x-forwarded-for", "198.51.100.73")
+      |> put_req_header("user-agent", "AdventureTimeNative/1.0.22")
+      |> put_req_header("x-adventure-time-platform", "android")
+      |> post(~p"/auth/register", %{
+        email: "assessment-capture@example.com",
+        password: "supersecure",
+        displayName: "Assessment Capture",
+        preferredLanguage: "en"
+      })
+
+    body = json_response(conn, 201)
+    assert body["accessRequestPending"]
+    assert body["assessmentChallenge"]["kind"] == "play_integrity_standard"
+    assert is_binary(body["assessmentChallenge"]["token"])
+    assert is_binary(body["assessmentChallenge"]["requestHash"])
+
+    request = Repo.get_by!(EmailAccessRequest, email: "assessment-capture@example.com")
+    assessment = Repo.get_by!(Assessment, email_access_request_id: request.id)
+    attempt = Repo.get_by!(AuthAttempt, email: request.email)
+
+    assert assessment.state == :assessing
+    assert assessment.canonical_ip == {198, 51, 100, 73}
+    assert attempt.email_access_request_id == request.id
+    assert attempt.canonical_ip == assessment.canonical_ip
   end
 
   test "POST /auth/register rejects an existing pending account", %{
@@ -276,6 +313,29 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
 
     dev_code = register_response["devCode"]
 
+    request = Repo.get_by!(EmailAccessRequest, email: "jake@example.com")
+
+    %Assessment{}
+    |> Assessment.create_changeset(request.id, %{
+      state: :partial,
+      evidence_revision: 1,
+      scoring_model_version: "access-request-v1",
+      platform_profile: :web,
+      trustworthiness_confidence: 50,
+      evidence_coverage: 40,
+      band: :mixed
+    })
+    |> Repo.insert!()
+
+    current_assessment_config =
+      Application.get_env(:adventure_time_api, AccessAssessment, [])
+
+    Application.put_env(
+      :adventure_time_api,
+      AccessAssessment,
+      Keyword.put(current_assessment_config, :collection_enabled, true)
+    )
+
     conn =
       post(build_conn(), ~p"/auth/verify-email", %{
         email: "jake@example.com",
@@ -293,6 +353,11 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
     credential = Repo.get_by!(EmailCredential, user_id: user.id)
     assert %DateTime{} = credential.email_verified_at
     assert user.access_status == :pending
+
+    rescoring = Repo.get_by!(Assessment, email_access_request_id: request.id)
+    assert rescoring.evidence_revision == 2
+    assert rescoring.state == :assessing
+    assert rescoring.missing_reasons == ["assessment.rescore_pending"]
   end
 
   test "POST /auth/login blocks unverified email accounts", %{conn: conn} do
@@ -334,6 +399,56 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
              "error" => "This account is not approved yet. An access request has been submitted.",
              "code" => "ACCESS_REQUEST_PENDING"
            }
+  end
+
+  test "repeat pending Android logins revise evidence and return a fresh integrity challenge", %{
+    conn: conn
+  } do
+    Application.put_env(:adventure_time_api, AccessAssessment, collection_enabled: true)
+
+    create_user_with_password("pending-android@example.com", "bassbass", "Pending Android",
+      verified?: true
+    )
+
+    first =
+      conn
+      |> put_req_header("x-forwarded-for", "198.51.100.45")
+      |> put_req_header("user-agent", "AdventureTimeNative/1.0.22")
+      |> put_req_header("x-adventure-time-platform", "android")
+      |> put_req_header("x-adventure-time-installation-id", "pending-installation")
+      |> post(~p"/auth/login", %{
+        email: "pending-android@example.com",
+        password: "bassbass"
+      })
+
+    first_body = json_response(first, 403)
+    assert first_body["code"] == "ACCESS_REQUEST_PENDING"
+    assert first_body["assessmentChallenge"]["kind"] == "play_integrity_standard"
+
+    request = Repo.get_by!(EmailAccessRequest, email: "pending-android@example.com")
+    assert Repo.get_by!(Assessment, email_access_request_id: request.id).evidence_revision == 1
+
+    second =
+      build_conn()
+      |> put_req_header("x-forwarded-for", "198.51.100.45")
+      |> put_req_header("user-agent", "AdventureTimeNative/1.0.22")
+      |> put_req_header("x-adventure-time-platform", "android")
+      |> put_req_header("x-adventure-time-installation-id", "pending-installation")
+      |> post(~p"/auth/login", %{
+        email: "pending-android@example.com",
+        password: "bassbass"
+      })
+
+    second_body = json_response(second, 403)
+    assert second_body["assessmentChallenge"]["kind"] == "play_integrity_standard"
+
+    refute second_body["assessmentChallenge"]["token"] ==
+             first_body["assessmentChallenge"]["token"]
+
+    updated_request = Repo.get!(EmailAccessRequest, request.id)
+    updated_assessment = Repo.get_by!(Assessment, email_access_request_id: request.id)
+    assert updated_request.attempt_count == 2
+    assert updated_assessment.evidence_revision == 2
   end
 
   test "POST /auth/request-password-reset returns a generic success and creates a reset code", %{
@@ -1051,6 +1166,52 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
              "error" => "Too many requests",
              "code" => "RATE_LIMITED"
            }
+  end
+
+  test "POST /auth/register uses the canonical client IP for attribution and rate limiting", %{
+    conn: conn
+  } do
+    Application.put_env(:adventure_time_api, AdventureTimeApiWeb.Plugs.RateLimit,
+      buckets: %{auth_register: %{limit: 1, scale_ms: 60_000}}
+    )
+
+    assert conn
+           |> put_req_header("x-forwarded-for", "198.51.100.10")
+           |> post(~p"/auth/register", %{
+             email: "canonical-one@example.com",
+             password: "supersecure",
+             displayName: "Canonical One",
+             preferredLanguage: "en"
+           })
+           |> json_response(201)
+
+    assert build_conn()
+           |> put_req_header("x-forwarded-for", "198.51.100.11")
+           |> post(~p"/auth/register", %{
+             email: "canonical-two@example.com",
+             password: "supersecure",
+             displayName: "Canonical Two",
+             preferredLanguage: "en"
+           })
+           |> json_response(201)
+
+    limited_conn =
+      build_conn()
+      |> put_req_header("x-forwarded-for", "198.51.100.10")
+      |> post(~p"/auth/register", %{
+        email: "canonical-three@example.com",
+        password: "supersecure",
+        displayName: "Canonical Three",
+        preferredLanguage: "en"
+      })
+
+    assert json_response(limited_conn, 429)["code"] == "RATE_LIMITED"
+
+    assert Repo.get_by!(EmailAccessRequest, email: "canonical-one@example.com").last_ip_address ==
+             "198.51.100.10"
+
+    assert Repo.get_by!(EmailAccessRequest, email: "canonical-two@example.com").last_ip_address ==
+             "198.51.100.11"
   end
 
   defp create_user_with_password(email, password, display_name, opts \\ []) do

@@ -27,6 +27,11 @@ const privacySections = [
     body: "Data is sent securely when you use the game. Third-party services are used only as needed for platform login, email, push notifications, app distribution, storage, and an optional Fitbit connection.",
   },
   {
+    kicker: "Security",
+    title: "Access-request fraud prevention",
+    body: "When you request access, we may assess your IP network, request and app metadata, and Android app/device integrity to help a super administrator review abuse risk. IPQualityScore processes the IP and limited technical metadata for this purpose. The result is advisory only: a person approves or rejects every request. Exact IPs are removed 30 days after review, detailed evidence after 90 days, and the review record after one year.",
+  },
+  {
     kicker: "Control",
     title: "Access and deletion",
     body: "You can update preferences, disconnect optional services, or delete your account. Deletion removes credentials, collection, gifts, quest progress, PvP data, step snapshots, notification devices, and your profile image.",
@@ -38,7 +43,7 @@ export function PrivacyPage() {
     <>
       <header className="page-header public-page-header">
         <div className="page-heading">
-          <span className="eyebrow">Privacy policy · updated July 2026</span>
+          <span className="eyebrow">Privacy policy · updated August 2026</span>
           <h1>Privacy without the maze.</h1>
           <p>
             A readable account of the data that makes collections, quests,

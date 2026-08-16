@@ -11,7 +11,8 @@
         "EXPO_PUBLIC_API_BASE_URL": "https://app.leaetzak.love",
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "831806850937-p3udmkmhoeik4d63rt3r422bj91g02b3.apps.googleusercontent.com",
         "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "831806850937-udqpted9icstf3m5q3li3elhkgironf0.apps.googleusercontent.com",
-        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "831806850937-64l1nt24a0m4b6joisv18kis4m2up18k.apps.googleusercontent.com"
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "831806850937-64l1nt24a0m4b6joisv18kis4m2up18k.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_CLOUD_PROJECT_NUMBER": "831806850937"
       },
       "ios": {
         "resourceClass": "m-medium"
@@ -35,7 +36,8 @@
         "EXPO_PUBLIC_E2E_AUTH": "1",
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "831806850937-p3udmkmhoeik4d63rt3r422bj91g02b3.apps.googleusercontent.com",
         "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "831806850937-udqpted9icstf3m5q3li3elhkgironf0.apps.googleusercontent.com",
-        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "831806850937-64l1nt24a0m4b6joisv18kis4m2up18k.apps.googleusercontent.com"
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "831806850937-64l1nt24a0m4b6joisv18kis4m2up18k.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_CLOUD_PROJECT_NUMBER": "831806850937"
       },
       "ios": {
         "buildConfiguration": "Release",
@@ -51,7 +53,8 @@
         "EXPO_PUBLIC_E2E_AUTH": "1",
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "831806850937-p3udmkmhoeik4d63rt3r422bj91g02b3.apps.googleusercontent.com",
         "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "831806850937-udqpted9icstf3m5q3li3elhkgironf0.apps.googleusercontent.com",
-        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "831806850937-64l1nt24a0m4b6joisv18kis4m2up18k.apps.googleusercontent.com"
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "831806850937-64l1nt24a0m4b6joisv18kis4m2up18k.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_CLOUD_PROJECT_NUMBER": "831806850937"
       },
       "android": {
         "buildType": "apk"
@@ -63,7 +66,8 @@
         "EXPO_PUBLIC_API_BASE_URL": "https://app.leaetzak.love",
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "831806850937-p3udmkmhoeik4d63rt3r422bj91g02b3.apps.googleusercontent.com",
         "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "831806850937-udqpted9icstf3m5q3li3elhkgironf0.apps.googleusercontent.com",
-        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "831806850937-oukl63812hv6bjc4u3k47gkt2svjsbud.apps.googleusercontent.com"
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "831806850937-oukl63812hv6bjc4u3k47gkt2svjsbud.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_CLOUD_PROJECT_NUMBER": "831806850937"
       },
       "ios": {
         "resourceClass": "m-medium"

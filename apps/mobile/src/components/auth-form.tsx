@@ -4,7 +4,8 @@ import {
   isCancelledResponse,
   isErrorWithCode,
   isSuccessResponse,
-  statusCodes } from "@react-native-google-signin/google-signin";
+  statusCodes,
+} from "@react-native-google-signin/google-signin";
 import Ionicons from "@react-native-vector-icons/ionicons";
 import * as AppleAuthentication from "expo-apple-authentication";
 import * as Google from "expo-auth-session/providers/google";
@@ -13,15 +14,14 @@ import Constants, { ExecutionEnvironment } from "expo-constants";
 import * as Crypto from "expo-crypto";
 import * as WebBrowser from "expo-web-browser";
 import { useRouter } from "expo-router";
-import {
-  Platform,
-  Pressable,
-  Text,
-  TextInput,
-  View } from "react-native";
+import { Platform, Pressable, Text, TextInput, View } from "react-native";
 import { ZodError, type ZodIssue } from "zod";
 import { SectionErrorState } from "./error-state";
 import { ApiClientError, apiClient, isNetworkError } from "../lib/api";
+import {
+  assessmentChallengeFromError,
+  submitAssessmentChallenge,
+} from "../lib/play-integrity";
 import { useTranslation } from "../i18n";
 import { useLocaleStore } from "../stores/locale-store";
 import { useSessionStore } from "../stores/session-store";
@@ -38,7 +38,8 @@ WebBrowser.maybeCompleteAuthSession();
 const sessionUrlProvider = new SessionUrlProvider();
 const expoProxyProjectName = "@zax-code/adventure-time-tcg";
 const expoProxyRedirectUri = sessionUrlProvider.getRedirectUrl({
-  projectNameForProxy: expoProxyProjectName });
+  projectNameForProxy: expoProxyProjectName,
+});
 const expoProxyReturnUrl = sessionUrlProvider.getDefaultReturnUrl();
 const googleWebClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
 const googleIosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
@@ -84,7 +85,11 @@ type ParsedAuthIssue = {
 };
 
 function uniqueMessages(messages: Array<string | null | undefined>) {
-  return [...new Set(messages.filter((message): message is string => Boolean(message)))];
+  return [
+    ...new Set(
+      messages.filter((message): message is string => Boolean(message)),
+    ),
+  ];
 }
 
 async function sha256Hex(value: string) {
@@ -98,7 +103,11 @@ function getKnownAuthErrorMessage(message: string, t: AuthTranslate) {
     return null;
   }
 
-  if (/invalid email address|email has invalid format|email (is required|can't be blank)/i.test(normalized)) {
+  if (
+    /invalid email address|email has invalid format|email (is required|can't be blank)/i.test(
+      normalized,
+    )
+  ) {
     return t("auth.errors.invalidEmail");
   }
 
@@ -138,7 +147,9 @@ function formatAuthIssue(
   t: AuthTranslate,
 ): string | null {
   const firstPathSegment = Array.isArray(issue.path)
-    ? issue.path.find((segment): segment is string => typeof segment === "string") ?? null
+    ? (issue.path.find(
+        (segment): segment is string => typeof segment === "string",
+      ) ?? null)
     : null;
 
   switch (firstPathSegment) {
@@ -167,7 +178,9 @@ function extractAuthMessages(value: unknown, t: AuthTranslate): string[] {
   }
 
   if (value instanceof ZodError) {
-    return uniqueMessages(value.issues.map((issue) => formatAuthIssue(issue, t)));
+    return uniqueMessages(
+      value.issues.map((issue) => formatAuthIssue(issue, t)),
+    );
   }
 
   if (typeof value === "string") {
@@ -286,7 +299,8 @@ function buildAuthFormInitialState(
     verificationCode: prefill?.code ?? "",
     mode,
     stage,
-    info };
+    info,
+  };
 }
 
 function hasGoogleAuthConfig() {
@@ -302,23 +316,25 @@ function hasGoogleAuthConfig() {
 }
 
 function configureNativeGoogleSignIn() {
-  if (nativeGoogleConfigured || Platform.OS !== "android" || !googleWebClientId) {
+  if (
+    nativeGoogleConfigured ||
+    Platform.OS !== "android" ||
+    !googleWebClientId
+  ) {
     return;
   }
 
   GoogleSignin.configure({
     webClientId: googleWebClientId,
     iosClientId: googleIosClientId,
-    offlineAccess: false });
+    offlineAccess: false,
+  });
   nativeGoogleConfigured = true;
 }
 
 type SocialSignInProvider = "google" | "apple";
 
-function SocialProviderMark({
-  provider }: {
-  provider: SocialSignInProvider;
-}) {
+function SocialProviderMark({ provider }: { provider: SocialSignInProvider }) {
   const iconName = provider === "apple" ? "logo-apple" : "logo-google";
 
   return <Ionicons name={iconName} size={24} color="white" />;
@@ -329,7 +345,8 @@ function SocialSignInButton({
   onPress,
   provider,
   tc,
-  t }: {
+  t,
+}: {
   disabled: boolean;
   onPress: () => void;
   provider: SocialSignInProvider;
@@ -357,7 +374,8 @@ function SocialSignInButton({
             backgroundColor: buttonColor,
             borderColor: buttonColor,
             opacity: disabledOpacity,
-            transform: [{ scale: pressed && !disabled ? 0.985 : 1 }] }}
+            transform: [{ scale: pressed && !disabled ? 0.985 : 1 }],
+          }}
         >
           <SocialProviderMark provider={provider} />
           <Text
@@ -378,7 +396,8 @@ function GoogleSignInButton({
   disabled,
   onPress,
   tc,
-  t }: {
+  t,
+}: {
   disabled: boolean;
   onPress: () => void;
   tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
@@ -399,7 +418,8 @@ function AppleSignInButton({
   disabled,
   onPress,
   tc,
-  t }: {
+  t,
+}: {
   disabled: boolean;
   onPress: () => void;
   tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
@@ -424,7 +444,8 @@ function AppleAuthSection({
   setError,
   setSession,
   t,
-  tc }: {
+  tc,
+}: {
   handleAuthError: AuthSubmitErrorHandler;
   loading: boolean;
   preferredLanguage: "en" | "fr";
@@ -452,7 +473,8 @@ function AppleAuthSection({
         requestedScopes: [
           AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
           AppleAuthentication.AppleAuthenticationScope.EMAIL,
-        ] });
+        ],
+      });
 
       if (!credential.identityToken) {
         throw new Error("Apple did not return a usable token.");
@@ -465,13 +487,16 @@ function AppleAuthSection({
         fullName: credential.fullName
           ? {
               givenName: credential.fullName.givenName,
-              familyName: credential.fullName.familyName }
-          : undefined });
+              familyName: credential.fullName.familyName,
+            }
+          : undefined,
+      });
 
       await setSession({
         user: authResult.user,
         accessToken: authResult.tokens.accessToken,
-        refreshToken: authResult.tokens.refreshToken });
+        refreshToken: authResult.tokens.refreshToken,
+      });
       router.replace("/(tabs)");
     } catch (submitError) {
       if (
@@ -505,7 +530,8 @@ function BrowserGoogleAuthSection({
   setGoogleLoading,
   setSession,
   t,
-  tc }: {
+  tc,
+}: {
   handleAuthError: AuthSubmitErrorHandler;
   loading: boolean;
   preferredLanguage: "en" | "fr";
@@ -527,12 +553,14 @@ function BrowserGoogleAuthSection({
       const authResult = await apiClient.googleAuth({
         idToken,
         accessToken,
-        preferredLanguage });
+        preferredLanguage,
+      });
 
       await setSession({
         user: authResult.user,
         accessToken: authResult.tokens.accessToken,
-        refreshToken: authResult.tokens.refreshToken });
+        refreshToken: authResult.tokens.refreshToken,
+      });
       router.replace("/(tabs)");
     },
   );
@@ -544,12 +572,14 @@ function BrowserGoogleAuthSection({
           responseType: "token",
           scopes: ["openid", "profile", "email"],
           selectAccount: true,
-          shouldAutoExchangeCode: false }
+          shouldAutoExchangeCode: false,
+        }
       : {
           iosClientId: googleIosClientId,
           webClientId: googleWebClientId,
           scopes: ["openid", "profile", "email"],
-          selectAccount: true },
+          selectAccount: true,
+        },
   );
 
   reactEffect(() => {
@@ -562,7 +592,8 @@ function BrowserGoogleAuthSection({
       return;
     }
 
-    const idToken = response.authentication?.idToken ?? response.params.id_token;
+    const idToken =
+      response.authentication?.idToken ?? response.params.id_token;
     const accessToken =
       response.authentication?.accessToken ?? response.params.access_token;
 
@@ -674,7 +705,8 @@ function NativeGoogleAuthSection({
   setGoogleLoading,
   setSession,
   t,
-  tc }: {
+  tc,
+}: {
   handleAuthError: AuthSubmitErrorHandler;
   loading: boolean;
   preferredLanguage: "en" | "fr";
@@ -702,7 +734,8 @@ function NativeGoogleAuthSection({
 
     try {
       await GoogleSignin.hasPlayServices({
-        showPlayServicesUpdateDialog: true });
+        showPlayServicesUpdateDialog: true,
+      });
 
       const response = await GoogleSignin.signIn();
       if (isCancelledResponse(response)) {
@@ -724,12 +757,14 @@ function NativeGoogleAuthSection({
       const authResult = await apiClient.googleAuth({
         idToken,
         accessToken,
-        preferredLanguage });
+        preferredLanguage,
+      });
 
       await setSession({
         user: authResult.user,
         accessToken: authResult.tokens.accessToken,
-        refreshToken: authResult.tokens.refreshToken });
+        refreshToken: authResult.tokens.refreshToken,
+      });
       router.replace("/(tabs)");
     } catch (submitError) {
       if (
@@ -1002,9 +1037,11 @@ function useAuthFormInnerView({ prefill }: { prefill?: AuthFormPrefill }) {
     provider: AuthProvider,
     onRetry: () => void,
   ) {
+    void submitAssessmentChallenge(assessmentChallengeFromError(submitError));
     setError(getFriendlyError(submitError, provider), {
       cause: submitError,
-      onRetry });
+      onRetry,
+    });
   }
 
   async function submit() {
@@ -1020,7 +1057,8 @@ function useAuthFormInnerView({ prefill }: { prefill?: AuthFormPrefill }) {
       if (stage === "verify") {
         const result = await apiClient.verifyEmail({
           email,
-          code: verificationCode });
+          code: verificationCode,
+        });
 
         if (result.authorized) {
           returnToSignIn(t("auth.status.emailVerifiedCanSignIn"));
@@ -1044,7 +1082,8 @@ function useAuthFormInnerView({ prefill }: { prefill?: AuthFormPrefill }) {
         await apiClient.resetPassword({
           email,
           code: verificationCode,
-          password: resetPassword });
+          password: resetPassword,
+        });
         returnToSignIn(t("auth.status.passwordResetSuccess"));
         return;
       }
@@ -1054,7 +1093,8 @@ function useAuthFormInnerView({ prefill }: { prefill?: AuthFormPrefill }) {
         await setSession({
           user: result.user,
           accessToken: result.tokens.accessToken,
-          refreshToken: result.tokens.refreshToken });
+          refreshToken: result.tokens.refreshToken,
+        });
         router.replace("/(tabs)");
         return;
       }
@@ -1063,7 +1103,9 @@ function useAuthFormInnerView({ prefill }: { prefill?: AuthFormPrefill }) {
         email,
         password,
         displayName,
-        preferredLanguage });
+        preferredLanguage,
+      });
+      void submitAssessmentChallenge(result.assessmentChallenge);
       setVerificationCode("");
       enterVerificationStage(
         result.accessRequestPending
@@ -1150,13 +1192,15 @@ function useAuthFormInnerView({ prefill }: { prefill?: AuthFormPrefill }) {
                   ? tc.surfaceMuted
                   : mode === "login"
                     ? tc.primaryDark
-                    : tc.surfaceMuted }}
+                    : tc.surfaceMuted,
+            }}
           >
             <Text
               style={{
                 fontFamily: "Nunito-Bold",
                 fontSize: 14,
-                color: mode === "login" ? "white" : tc.primaryStrong }}
+                color: mode === "login" ? "white" : tc.primaryStrong,
+              }}
             >
               {t("auth.tabs.signIn")}
             </Text>
@@ -1175,13 +1219,15 @@ function useAuthFormInnerView({ prefill }: { prefill?: AuthFormPrefill }) {
                   ? tc.surfaceMuted
                   : mode === "register"
                     ? tc.primaryDark
-                    : tc.surfaceMuted }}
+                    : tc.surfaceMuted,
+            }}
           >
             <Text
               style={{
                 fontFamily: "Nunito-Bold",
                 fontSize: 14,
-                color: mode === "register" ? "white" : tc.primaryStrong }}
+                color: mode === "register" ? "white" : tc.primaryStrong,
+              }}
             >
               {t("auth.tabs.register")}
             </Text>
@@ -1240,11 +1286,13 @@ function useAuthFormInnerView({ prefill }: { prefill?: AuthFormPrefill }) {
                 borderWidth: 1,
                 height: 50,
                 paddingHorizontal: 16,
-                width: "100%" }}
+                width: "100%",
+              }}
               textStyle={{
                 color: tc.fg,
                 fontFamily: "Nunito_400Regular",
-                fontSize: 16 }}
+                fontSize: 16,
+              }}
             />
 
             {stage === "verify" ? (
@@ -1291,11 +1339,13 @@ function useAuthFormInnerView({ prefill }: { prefill?: AuthFormPrefill }) {
                   borderWidth: 1,
                   height: 50,
                   paddingHorizontal: 16,
-                  width: "100%" }}
+                  width: "100%",
+                }}
                 textStyle={{
                   color: tc.fg,
                   fontFamily: "Nunito_400Regular",
-                  fontSize: 16 }}
+                  fontSize: 16,
+                }}
               />
             ) : stage === "resetPassword" ? (
               <>
@@ -1313,11 +1363,13 @@ function useAuthFormInnerView({ prefill }: { prefill?: AuthFormPrefill }) {
                     borderWidth: 1,
                     height: 50,
                     paddingHorizontal: 16,
-                    width: "100%" }}
+                    width: "100%",
+                  }}
                   textStyle={{
                     color: tc.fg,
                     fontFamily: "Nunito_400Regular",
-                    fontSize: 16 }}
+                    fontSize: 16,
+                  }}
                 />
                 <ThemedExpoTextInput
                   value={resetPassword}
@@ -1333,11 +1385,13 @@ function useAuthFormInnerView({ prefill }: { prefill?: AuthFormPrefill }) {
                     borderWidth: 1,
                     height: 50,
                     paddingHorizontal: 16,
-                    width: "100%" }}
+                    width: "100%",
+                  }}
                   textStyle={{
                     color: tc.fg,
                     fontFamily: "Nunito_400Regular",
-                    fontSize: 16 }}
+                    fontSize: 16,
+                  }}
                 />
               </>
             ) : stage === "pendingApproval" ? (
@@ -1379,11 +1433,13 @@ function useAuthFormInnerView({ prefill }: { prefill?: AuthFormPrefill }) {
                     borderWidth: 1,
                     height: 50,
                     paddingHorizontal: 16,
-                    width: "100%" }}
+                    width: "100%",
+                  }}
                   textStyle={{
                     color: tc.fg,
                     fontFamily: "Nunito_400Regular",
-                    fontSize: 16 }}
+                    fontSize: 16,
+                  }}
                 />
                 {mode === "register" ? (
                   <ThemedExpoTextInput
@@ -1398,11 +1454,13 @@ function useAuthFormInnerView({ prefill }: { prefill?: AuthFormPrefill }) {
                       borderWidth: 1,
                       height: 50,
                       paddingHorizontal: 16,
-                      width: "100%" }}
+                      width: "100%",
+                    }}
                     textStyle={{
                       color: tc.fg,
                       fontFamily: "Nunito_400Regular",
-                      fontSize: 16 }}
+                      fontSize: 16,
+                    }}
                   />
                 ) : null}
               </>
@@ -1458,7 +1516,10 @@ function useAuthFormInnerView({ prefill }: { prefill?: AuthFormPrefill }) {
                 {t("auth.actions.resendCode")}
               </Text>
             </Pressable>
-            <Pressable onPress={() => switchMode("register")} disabled={loading}>
+            <Pressable
+              onPress={() => switchMode("register")}
+              disabled={loading}
+            >
               <Text className="text-center font-nunito text-sm text-primary">
                 {t("auth.actions.useDifferentEmail")}
               </Text>
@@ -1483,14 +1544,20 @@ function useAuthFormInnerView({ prefill }: { prefill?: AuthFormPrefill }) {
                 {t("auth.actions.resendResetEmail")}
               </Text>
             </Pressable>
-            <Pressable onPress={() => enterResetRequestStage(null)} disabled={loading}>
+            <Pressable
+              onPress={() => enterResetRequestStage(null)}
+              disabled={loading}
+            >
               <Text className="text-center font-nunito text-sm text-primary">
                 {t("auth.actions.useDifferentEmail")}
               </Text>
             </Pressable>
           </View>
         ) : mode === "login" ? (
-          <Pressable onPress={() => enterResetRequestStage(null)} disabled={loading}>
+          <Pressable
+            onPress={() => enterResetRequestStage(null)}
+            disabled={loading}
+          >
             <Text className="text-center font-nunito text-sm text-primaryStrong">
               {t("auth.actions.forgotPassword")}
             </Text>
@@ -1517,7 +1584,8 @@ function useAuthFormInnerView({ prefill }: { prefill?: AuthFormPrefill }) {
 
             {googleAuthConfigured ? (
               Platform.OS === "android" &&
-              Constants.executionEnvironment !== ExecutionEnvironment.StoreClient ? (
+              Constants.executionEnvironment !==
+                ExecutionEnvironment.StoreClient ? (
                 <NativeGoogleAuthSection
                   handleAuthError={handleAuthError}
                   loading={loading || googleLoading || appleLoading}

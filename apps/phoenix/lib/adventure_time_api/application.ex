@@ -7,6 +7,9 @@ defmodule AdventureTimeApi.Application do
 
   @impl true
   def start(_type, _args) do
+    AdventureTimeApiWeb.Plugs.CanonicalClientIp.validate_configuration!()
+    validate_access_assessment_configuration!()
+
     children = [
       AdventureTimeApiWeb.Telemetry,
       AdventureTimeApi.Repo,
@@ -25,6 +28,26 @@ defmodule AdventureTimeApi.Application do
     # for other strategies and supported options
     opts = [strategy: :one_for_one, name: AdventureTimeApi.Supervisor]
     Supervisor.start_link(children, opts)
+  end
+
+  defp validate_access_assessment_configuration! do
+    if AdventureTimeApi.AccessAssessment.collection_enabled?() do
+      config =
+        Application.get_env(:adventure_time_api, AdventureTimeApi.AccessAssessment, [])
+
+      configured_model_version = Keyword.fetch!(config, :scoring_model_version)
+
+      if configured_model_version != AdventureTimeApi.AccessAssessment.Score.model_version() do
+        raise ArgumentError,
+              "access assessment model version mismatch: expected #{AdventureTimeApi.AccessAssessment.Score.model_version()}, got #{configured_model_version}"
+      end
+
+      AdventureTimeApi.AccessRequestAssessment.NetworkClassification.validate_range_sets!()
+
+      AdventureTimeApi.AccessRequestAssessment.NetworkClassification.validate_expected_versions!(
+        Keyword.fetch!(config, :expected_range_versions)
+      )
+    end
   end
 
   # Tell Phoenix to update the endpoint configuration

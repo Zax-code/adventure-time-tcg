@@ -113,6 +113,131 @@ const admin = {
     requestLastSeen: "Dernière vue",
     requestAttempts: "Tentatives",
     requestRecentEvents: "Événements récents",
+    assessmentTitle: "Évaluation de confiance",
+    assessmentAssessing: "Évaluation en cours",
+    assessmentUnavailable: "Pas assez de preuves pour calculer un score",
+    assessmentTestLab: "Environnement Firebase Test Lab (aucun score)",
+    assessmentGoogleNetwork:
+      "Réseau appartenant à Google ; hors plages Test Lab publiées",
+    assessmentConfidence: "Confiance de fiabilité",
+    assessmentCoverage: "Couverture des preuves",
+    assessmentHeuristic: "Heuristique consultative",
+    assessmentMissing: "Preuves manquantes",
+    assessmentPositive: "Preuves positives",
+    assessmentNegative: "Preuves négatives",
+    assessmentHardFailures: "Échecs bloquants du signal",
+    assessmentModel: "Modèle",
+    assessmentAge: "Ancienneté de l’évaluation",
+    assessmentTestLabRange: "Plage Test Lab correspondante",
+    assessmentRangeVersion: "Version du jeu de plages",
+    assessmentShowEvidence: "Afficher le détail des preuves",
+    assessmentHideEvidence: "Masquer le détail des preuves",
+    assessmentBandStronger: "Signaux de confiance plus forts",
+    assessmentBandMixed: "Signaux de confiance mitigés",
+    assessmentBandConcerning: "Signaux de confiance préoccupants",
+    assessmentTestLabWarning:
+      "Cette correspondance ne prouve pas à elle seule un rapport de pré-lancement Play.",
+    assessmentRangeStale:
+      "Attention : cette liste de plages réseau date de plus de 90 jours.",
+    assessmentNetworkDetails: "Détails du réseau",
+    assessmentNetworkFlags: "Indicateurs réseau",
+    assessmentNetworkFlagsNone: "Aucun signalé",
+    assessmentAsn: "ASN",
+    assessmentCountry: "Pays",
+    assessmentConnectionType: "Connexion",
+    assessmentConnectionMobile: "Mobile",
+    assessmentConnectionResidential: "Résidentielle",
+    assessmentConnectionCorporate: "Entreprise",
+    assessmentConnectionDatacenter: "Centre de données",
+    assessmentConnectionOther: "Autre",
+    assessmentFlagVpn: "VPN",
+    assessmentFlagProxy: "Proxy",
+    assessmentFlagHosting: "Hébergement",
+    assessmentFlagTor: "Tor",
+    assessmentReasons: {
+      unknown: "Preuve d’évaluation non reconnue",
+      assessmentRescorePending:
+        "L’actualisation de l’évaluation est en attente",
+      clientBrowserRequestShape:
+        "La requête ressemble à celle d’un navigateur normal",
+      clientInstallationChanged: "L’identifiant d’installation a changé",
+      clientInstallationContinuous: "L’identifiant d’installation est cohérent",
+      clientInstallationMalformed: "L’identifiant d’installation est mal formé",
+      clientIntegrityBuildCorroborated:
+        "Play Integrity confirme la version déclarée",
+      clientPlatformAgrees: "La plateforme et l’agent utilisateur concordent",
+      clientPlatformConflict:
+        "La plateforme et la forme de la requête divergent",
+      clientReleasedBuild:
+        "La version de l’app figure au registre des versions",
+      clientSameSiteOrigin: "L’origine du navigateur correspond à ce site",
+      clientUnrecognizedBuild:
+        "La version déclarée de l’app n’est pas reconnue",
+      continuityInstallationManyIdentities:
+        "L’installation est associée à plusieurs identités",
+      continuityInstallationRepeated: "L’installation a déjà été observée",
+      continuityIpManyIdentities: "Le réseau est associé à plusieurs identités",
+      continuityLowAttemptVolume: "Le volume récent de demandes est faible",
+      continuityProviderIdentityRepeated:
+        "L’identité du fournisseur a déjà été observée",
+      continuityRecentAttemptBurst:
+        "Une rafale récente de demandes a été détectée",
+      continuityRequestAttemptsHigh:
+        "Cette demande compte de nombreuses tentatives",
+      identityEmailVerificationPending:
+        "La vérification de l’e-mail est en attente",
+      identityEmailVerified: "L’adresse e-mail est vérifiée",
+      identityProviderEmailUnverified:
+        "L’e-mail du fournisseur n’est pas vérifié",
+      identityProviderMappingConflict:
+        "Le lien avec l’identité du fournisseur diverge",
+      identityProviderMappingRepeated:
+        "Le lien avec l’identité du fournisseur est cohérent",
+      identityProviderVerified: "Le fournisseur d’identité a vérifié le compte",
+      integrityCertificateMismatch:
+        "Le certificat de signature de l’app ne correspond pas",
+      integrityLicensed: "Google Play indique une installation sous licence",
+      integrityMeetsBasic: "L’appareil satisfait l’intégrité de base",
+      integrityMeetsDevice: "L’appareil satisfait l’intégrité de l’appareil",
+      integrityMeetsStrong: "L’appareil satisfait l’intégrité forte",
+      integrityNoDevice: "L’intégrité de l’appareil n’est pas satisfaite",
+      integrityNotSubmitted: "La preuve Play Integrity n’a pas été envoyée",
+      integrityPackageMismatch: "Le package de l’app ne correspond pas",
+      integrityPlayRecognized: "Google Play reconnaît la version de l’app",
+      integrityProviderAuthUnavailable:
+        "L’authentification Play Integrity est indisponible",
+      integrityProviderInvalidResponse:
+        "Play Integrity a renvoyé une réponse invalide",
+      integrityProviderNetworkError: "Play Integrity est injoignable",
+      integrityProviderQuotaExhausted: "Le quota Play Integrity est épuisé",
+      integrityProviderTimeout: "Play Integrity a expiré",
+      integrityProviderUnavailable: "Play Integrity est indisponible",
+      integrityReleasedBuildVerified: "La version publiée a été vérifiée",
+      integrityRequestHashMismatch:
+        "La réponse d’intégrité ne correspond pas à la demande",
+      integrityUnevaluated: "Google Play n’a pas pu évaluer l’intégrité",
+      integrityUnlicensed: "Google Play indique une installation sans licence",
+      integrityUnrecognizedVersion:
+        "La version de l’app n’est pas dans le registre",
+      integrityVersionMismatch:
+        "La version vérifiée ne correspond pas à celle déclarée",
+      ipActiveTor: "Le réseau est une sortie Tor active",
+      ipBotStatus: "Le fournisseur réseau signale une activité de bot",
+      ipCanonicalUnavailable: "Aucune IP cliente fiable n’est disponible",
+      ipHighRiskAttacks:
+        "Le fournisseur réseau signale des attaques à haut risque",
+      ipEnrichmentPending: "L’analyse du réseau est en attente",
+      ipFrequentAbuser: "Le fournisseur réseau signale des abus fréquents",
+      ipHosting: "Le réseau est classé comme hébergeur",
+      ipProviderUnavailable: "Le fournisseur d’analyse réseau est indisponible",
+      ipProxy: "Le réseau est classé comme proxy",
+      ipPublicAccessPoint: "Le réseau est un point d’accès public",
+      ipRecentAbuse: "Le fournisseur réseau signale des abus récents",
+      ipSharedConnection: "Le réseau est une connexion partagée",
+      ipVpn: "Le réseau est classé comme VPN",
+    },
+    assessmentRevealIp: "Afficher l’IP exacte (audité)",
+    assessmentRevealedIp: "IP exacte",
     approve: "Approuver",
     reject: "Rejeter",
     noRequestsTitle: "Aucune demande en attente",

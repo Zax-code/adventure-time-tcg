@@ -125,7 +125,10 @@ export const leaderboardResponseSchema = z.object({
   pendingCurrentPlayerResult: leaderboardRawResultSchema.nullable(),
   pendingCurrentPlayerPoints: z.number().int().min(0).max(1000).nullable(),
   qualification: z
-    .object({ validResults: z.number().int().nonnegative(), requiredResults: z.literal(3) })
+    .object({
+      validResults: z.number().int().nonnegative(),
+      requiredResults: z.literal(3),
+    })
     .nullable(),
   pageInfo: z.object({
     nextCursor: z.string().nullable(),
@@ -162,7 +165,8 @@ export const leaderboardCorrectionPreviewSchema = z
     excludeDailyResultIds: z.array(z.string().uuid()).default([]),
   })
   .refine(
-    (input) => input.excludeUserIds.length > 0 || input.excludeDailyResultIds.length > 0,
+    (input) =>
+      input.excludeUserIds.length > 0 || input.excludeDailyResultIds.length > 0,
     "At least one user or daily result must be excluded",
   );
 
@@ -1105,9 +1109,8 @@ export const perfectTimingStopReasonSchema = z.enum([
   "background",
   "server_recovery",
 ]);
-export const perfectTimingClientStopReasonSchema = perfectTimingStopReasonSchema.exclude([
-  "server_recovery",
-]);
+export const perfectTimingClientStopReasonSchema =
+  perfectTimingStopReasonSchema.exclude(["server_recovery"]);
 export const perfectTimingAttemptStatusSchema = z.enum([
   "started",
   "result",
@@ -1660,11 +1663,24 @@ export const webAuthConfigSchema = z.object({
     .nullable(),
 });
 
+export const accessAssessmentChallengeSchema = z.object({
+  kind: z.literal("play_integrity_standard"),
+  token: z.string().min(1),
+  requestHash: z.string().min(1),
+  expiresAt: z.string().min(1),
+});
+
+export const submitAccessRequestIntegritySchema = z.object({
+  challengeToken: z.string().min(1),
+  integrityToken: z.string().min(1),
+});
+
 export const registerResponseSchema = z.object({
   success: z.boolean(),
   message: z.string(),
   authorized: z.boolean(),
   accessRequestPending: z.boolean(),
+  assessmentChallenge: accessAssessmentChallengeSchema.optional(),
   devCode: z.string().optional(),
 });
 
@@ -1743,6 +1759,12 @@ export type AuthResponse = z.infer<typeof authResponseSchema>;
 export type WebSessionResponse = z.infer<typeof webSessionResponseSchema>;
 export type WebAuthConfig = z.infer<typeof webAuthConfigSchema>;
 export type RegisterResponse = z.infer<typeof registerResponseSchema>;
+export type AccessAssessmentChallenge = z.infer<
+  typeof accessAssessmentChallengeSchema
+>;
+export type SubmitAccessRequestIntegrityInput = z.infer<
+  typeof submitAccessRequestIntegritySchema
+>;
 export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;
 export type VerifyEmailResponse = z.infer<typeof verifyEmailResponseSchema>;
 export type ResendVerificationInput = z.infer<typeof resendVerificationSchema>;
@@ -1820,8 +1842,12 @@ export type DailyNumbersArchiveSubmitInput = z.infer<
   typeof dailyNumbersArchiveSubmitSchema
 >;
 export type PerfectTimingTier = z.infer<typeof perfectTimingTierSchema>;
-export type PerfectTimingDirection = z.infer<typeof perfectTimingDirectionSchema>;
-export type PerfectTimingStopReason = z.infer<typeof perfectTimingStopReasonSchema>;
+export type PerfectTimingDirection = z.infer<
+  typeof perfectTimingDirectionSchema
+>;
+export type PerfectTimingStopReason = z.infer<
+  typeof perfectTimingStopReasonSchema
+>;
 export type PerfectTimingClientStopReason = z.infer<
   typeof perfectTimingClientStopReasonSchema
 >;
@@ -1994,6 +2020,98 @@ export const allowedEmailsResponseSchema = z.object({
   emails: z.array(allowedEmailSchema),
 });
 
+const accessAssessmentNetworkSchema = z.object({
+  maskedIpAddress: z.string().nullable(),
+  googleNetwork: z.enum(["matched", "not_matched", "unknown"]),
+  testLab: z.enum(["matched", "not_matched", "unknown"]),
+  testLabMatchedCidr: z.string().nullable(),
+  testLabRangeVersion: z.string().nullable(),
+  googleMatchedCidr: z.string().nullable(),
+  googleRangeVersion: z.string().nullable(),
+  testLabRangeStale: z.boolean().nullable(),
+  googleRangeStale: z.boolean().nullable(),
+  organization: z.string().nullable(),
+  asn: z.number().int().nullable(),
+  countryCode: z.string().nullable(),
+  connectionType: z.string().nullable(),
+  vpn: z.boolean().nullable(),
+  proxy: z.boolean().nullable(),
+  hosting: z.boolean().nullable(),
+  tor: z.boolean().nullable(),
+});
+
+const accessAssessmentContributionSchema = z.object({
+  key: z.enum([
+    "play_integrity",
+    "identity",
+    "continuity",
+    "client",
+    "ip_intelligence",
+  ]),
+  weight: z.number().int(),
+  value: z.number().int(),
+  effectFromNeutral: z.number().nullable(),
+  reasonCodes: z.array(z.string()),
+  explanations: z.array(z.string()),
+  observedAt: z.string().nullable(),
+  hardFailure: z.boolean(),
+  modelVersion: z.string(),
+});
+
+const accessAssessmentBase = {
+  heuristic: z.literal(true),
+  modelVersion: z.string(),
+  platformProfile: z.enum(["android", "ios", "web", "unknown"]),
+  network: accessAssessmentNetworkSchema,
+  assessedAt: z.string().nullable(),
+};
+
+export const accessAssessmentSchema = z.discriminatedUnion("state", [
+  z.object({
+    ...accessAssessmentBase,
+    state: z.literal("assessing"),
+    coverage: z.number().int().nullable(),
+    missingReasons: z.array(z.string()),
+    hardFailureReasons: z.array(z.string()),
+  }),
+  z.object({
+    ...accessAssessmentBase,
+    state: z.literal("complete"),
+    confidence: z.number().int().min(0).max(100),
+    coverage: z.number().int().min(0).max(100),
+    band: z.enum(["stronger", "mixed", "concerning"]),
+    contributions: z.array(accessAssessmentContributionSchema),
+    missingReasons: z.array(z.string()),
+    hardFailureReasons: z.array(z.string()),
+  }),
+  z.object({
+    ...accessAssessmentBase,
+    state: z.literal("partial"),
+    confidence: z.number().int().min(0).max(100),
+    coverage: z.number().int().min(0).max(100),
+    band: z.enum(["stronger", "mixed", "concerning"]),
+    contributions: z.array(accessAssessmentContributionSchema),
+    missingReasons: z.array(z.string()),
+    hardFailureReasons: z.array(z.string()),
+  }),
+  z.object({
+    ...accessAssessmentBase,
+    state: z.literal("unavailable"),
+    coverage: z.number().int().nullable(),
+    missingReasons: z.array(z.string()),
+    hardFailureReasons: z.array(z.string()),
+  }),
+  z.object({
+    ...accessAssessmentBase,
+    state: z.literal("test_lab"),
+  }),
+]);
+
+export const accessRequestIpRevealResponseSchema = z.object({
+  ipAddress: z.string(),
+  retainedUntil: z.string().nullable(),
+});
+
 export const emailAccessRequestSchema = z.object({
   id: z.string(),
   email: z.string().email(),
@@ -2001,17 +2119,14 @@ export const emailAccessRequestSchema = z.object({
   hasAccount: z.boolean(),
   createdAt: z.string(),
   provider: z.string().nullable().optional(),
-  providerSubjectHash: z.string().nullable().optional(),
   googleName: z.string().nullable().optional(),
   googlePictureUrl: z.string().nullable().optional(),
   lastRequestId: z.string().nullable().optional(),
-  lastIpAddress: z.string().nullable().optional(),
   lastUserAgent: z.string().nullable().optional(),
   lastAcceptLanguage: z.string().nullable().optional(),
   lastClientPlatform: z.string().nullable().optional(),
   lastClientAppVersion: z.string().nullable().optional(),
   lastClientBuildNumber: z.string().nullable().optional(),
-  lastInstallationIdHash: z.string().nullable().optional(),
   lastAttestationStatus: z.string().nullable().optional(),
   lastSeenAt: z.string().nullable().optional(),
   attemptCount: z.number().int().nonnegative().optional(),
@@ -2024,17 +2139,16 @@ export const emailAccessRequestSchema = z.object({
         statusCode: z.number().int().nullable().optional(),
         errorCode: z.string().nullable().optional(),
         requestId: z.string().nullable().optional(),
-        ipAddress: z.string().nullable().optional(),
         userAgent: z.string().nullable().optional(),
         clientPlatform: z.string().nullable().optional(),
         clientAppVersion: z.string().nullable().optional(),
         clientBuildNumber: z.string().nullable().optional(),
-        installationIdHash: z.string().nullable().optional(),
         attestationStatus: z.string().nullable().optional(),
         createdAt: z.string(),
       }),
     )
     .optional(),
+  assessment: accessAssessmentSchema.nullable().optional(),
 });
 
 export const emailAccessRequestsResponseSchema = z.object({
@@ -2075,14 +2189,16 @@ export type AdminUserDetail = z.infer<typeof adminUserDetailSchema>;
 export type AdminUserDeleteResponse = z.infer<
   typeof adminUserDeleteResponseSchema
 >;
-export type AccountDeleteResponse = z.infer<
-  typeof accountDeleteResponseSchema
->;
+export type AccountDeleteResponse = z.infer<typeof accountDeleteResponseSchema>;
 export type AdminUserQuestResetResponse = z.infer<
   typeof adminUserQuestResetResponseSchema
 >;
 export type AllowedEmailsResponse = z.infer<typeof allowedEmailsResponseSchema>;
 export type EmailAccessRequestsResponse = z.infer<
   typeof emailAccessRequestsResponseSchema
+>;
+export type AccessAssessment = z.infer<typeof accessAssessmentSchema>;
+export type AccessRequestIpRevealResponse = z.infer<
+  typeof accessRequestIpRevealResponseSchema
 >;
 export type PvpSpectateResponse = z.infer<typeof pvpSpectateResponseSchema>;

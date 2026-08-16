@@ -68,6 +68,13 @@ defmodule AdventureTimeApiWeb.Router do
     post("/auth/login", AuthController, :login)
     post("/auth/google", AuthController, :google)
     post("/auth/apple", AuthController, :apple)
+
+    post(
+      "/auth/access-request-assessment/play-integrity",
+      PlayIntegrityController,
+      :create
+    )
+
     post("/auth/refresh", AuthController, :refresh)
     post("/auth/logout", AuthController, :logout)
   end
@@ -207,6 +214,13 @@ defmodule AdventureTimeApiWeb.Router do
     delete("/admin/users/:id", AdminController, :delete_user)
     get("/admin/email-requests", AdminController, :email_requests)
     patch("/admin/email-requests/:id", AdminController, :review_email_request)
+
+    post(
+      "/admin/email-requests/:id/reveal-ip",
+      AdminController,
+      :reveal_email_request_ip
+    )
+
     post("/admin/leaderboards/results/:id/exclude", AdminController, :exclude_leaderboard_result)
 
     post(

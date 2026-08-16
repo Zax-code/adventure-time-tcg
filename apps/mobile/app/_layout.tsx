@@ -58,6 +58,7 @@ import { apiClient } from "../src/lib/api";
 import { API_BASE_URL } from "../src/lib/api-config";
 import { registerWidgetRefreshNotificationTask } from "../src/lib/widget-refresh-notification-task";
 import { rememberContentPathname } from "../src/lib/widget-route-history";
+import { preparePlayIntegrity } from "../src/lib/play-integrity";
 import {
   connectQuestRealtime,
   disconnectQuestRealtime,
@@ -168,6 +169,10 @@ function useRootLayoutView() {
   const questCutoffTestParam = globalSearchParams._e2eQuestCutoff;
 
   useBootstrap();
+
+  useEffect(() => {
+    void preparePlayIntegrity();
+  }, []);
   useRetryFailedQueriesOnAppActive();
   useUserTimezoneSync();
   useStepSyncManager();

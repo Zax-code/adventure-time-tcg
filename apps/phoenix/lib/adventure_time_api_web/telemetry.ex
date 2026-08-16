@@ -75,6 +75,59 @@ defmodule AdventureTimeApiWeb.Telemetry do
           "The time the connection spent waiting before being checked out for the query"
       ),
 
+      # Access-request assessment metrics. Every tag is a bounded enum and no
+      # metric includes request, identity, or network identifiers.
+      counter("adventure_time_api.access_assessment.capture.count", tags: [:result]),
+      distribution("adventure_time_api.access_assessment.capture.duration",
+        unit: {:native, :millisecond}
+      ),
+      counter("adventure_time_api.access_assessment.classification.count",
+        tags: [:test_lab, :google_network]
+      ),
+      distribution("adventure_time_api.access_assessment.classification.duration",
+        unit: {:native, :millisecond}
+      ),
+      counter("adventure_time_api.access_assessment.provider.count",
+        tags: [:provider, :result]
+      ),
+      distribution("adventure_time_api.access_assessment.provider.duration",
+        tags: [:provider, :result],
+        unit: {:native, :millisecond}
+      ),
+      counter("adventure_time_api.access_assessment.worker.count", tags: [:result]),
+      distribution("adventure_time_api.access_assessment.worker.duration",
+        tags: [:result],
+        unit: {:native, :millisecond}
+      ),
+      counter("adventure_time_api.access_assessment.outcome.count", tags: [:state]),
+      counter("adventure_time_api.access_assessment.challenge.count",
+        tags: [:operation, :result]
+      ),
+      distribution("adventure_time_api.access_assessment.challenge.duration",
+        tags: [:operation, :result],
+        unit: {:native, :millisecond}
+      ),
+      counter("adventure_time_api.access_assessment.ip_reveal.count", tags: [:result]),
+      distribution("adventure_time_api.access_assessment.ip_reveal.duration",
+        tags: [:result],
+        unit: {:native, :millisecond}
+      ),
+      counter("adventure_time_api.access_assessment.range_data.count",
+        tags: [:range_set, :status]
+      ),
+      counter("adventure_time_api.access_assessment.enqueue_error.count", tags: [:error]),
+      counter("adventure_time_api.access_assessment.stale_job.count", tags: [:reason]),
+      sum("adventure_time_api.access_assessment.retention.exact_ip_deleted"),
+      sum("adventure_time_api.access_assessment.retention.details_deleted"),
+      sum("adventure_time_api.access_assessment.retention.summaries_deleted"),
+      sum("adventure_time_api.access_assessment.retention.reveal_audits_deleted"),
+      sum("adventure_time_api.access_assessment.retention.snapshots_deleted"),
+      sum("adventure_time_api.access_assessment.retention.challenges_deleted"),
+      distribution("adventure_time_api.access_assessment.retention.duration",
+        unit: {:native, :millisecond}
+      ),
+      counter("adventure_time_api.canonical_client_ip.invalid.count", tags: [:reason]),
+
       # VM Metrics
       summary("vm.memory.total", unit: {:byte, :kilobyte}),
       summary("vm.total_run_queue_lengths.total"),

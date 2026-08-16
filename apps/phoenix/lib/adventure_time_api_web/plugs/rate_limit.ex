@@ -3,6 +3,7 @@ defmodule AdventureTimeApiWeb.Plugs.RateLimit do
 
   import Plug.Conn
 
+  alias AdventureTimeApiWeb.Plugs.CanonicalClientIp
   alias AdventureTimeApiWeb.Plugs.RateLimit.Store
 
   def init(opts), do: opts
@@ -61,6 +62,16 @@ defmodule AdventureTimeApiWeb.Plugs.RateLimit do
     end
   end
 
+  defp build_key(conn, :ip_challenge) do
+    challenge = conn |> param("challengeToken") |> to_string() |> String.trim()
+
+    if challenge == "" do
+      ip_address(conn)
+    else
+      token_key(conn, challenge)
+    end
+  end
+
   defp build_key(conn, {:cookie_token_or_ip, cookie_name}) when is_binary(cookie_name) do
     token = conn |> fetch_cookies() |> Map.fetch!(:req_cookies) |> Map.get(cookie_name, "")
 
@@ -84,10 +95,7 @@ defmodule AdventureTimeApiWeb.Plugs.RateLimit do
     ip_address(conn) <> ":" <> Base.encode16(digest, case: :lower)
   end
 
-  defp ip_address(%Plug.Conn{remote_ip: nil}), do: "unknown"
-
-  defp ip_address(%Plug.Conn{remote_ip: remote_ip}) when is_tuple(remote_ip),
-    do: remote_ip |> Tuple.to_list() |> Enum.join(".")
+  defp ip_address(conn), do: CanonicalClientIp.to_string(conn) || "unknown"
 
   defp param(conn, key) do
     cond do
