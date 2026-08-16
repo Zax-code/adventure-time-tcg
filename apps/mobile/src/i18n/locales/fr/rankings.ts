@@ -16,6 +16,13 @@ const rankings = {
   profileTapHint: "Touche un aventurier pour voir ses couronnes et ses succès",
   historyTitle: "Historique hebdomadaire",
   historyBody: "Aucune semaine de compétition clôturée pour le moment.",
+  yesterdayPending: {
+    eyebrow: "Finalisation mondiale",
+    title: "Le classement d'hier arrive bientôt",
+    body:
+      "Il apparaîtra dès que tous les fuseaux horaires auront terminé et que la synchronisation des pas sera clôturée.",
+    hint: "Tes résultats sont bien enregistrés — rien n'a été perdu.",
+  },
   periods: {
     yesterday: "Hier",
     current_week: "Cette semaine",
