@@ -1,5 +1,20 @@
 import Config
 
+case System.get_env("TRUSTED_PROXY_CIDRS") do
+  value when is_binary(value) and value != "" ->
+    config :adventure_time_api, AdventureTimeApiWeb.Plugs.CanonicalClientIp,
+      trusted_proxy_cidrs:
+        value
+        |> String.split(",", trim: true)
+        |> Enum.map(&String.trim/1)
+
+  _missing ->
+    if config_env() == :prod do
+      config :adventure_time_api, AdventureTimeApiWeb.Plugs.CanonicalClientIp,
+        trusted_proxy_cidrs: ["127.0.0.0/8", "::1/128"]
+    end
+end
+
 google_web_client_id =
   [
     System.get_env("AUTH_GOOGLE_ID"),

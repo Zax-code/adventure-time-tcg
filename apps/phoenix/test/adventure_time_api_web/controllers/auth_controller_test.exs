@@ -1053,6 +1053,52 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
            }
   end
 
+  test "POST /auth/register uses the canonical client IP for attribution and rate limiting", %{
+    conn: conn
+  } do
+    Application.put_env(:adventure_time_api, AdventureTimeApiWeb.Plugs.RateLimit,
+      buckets: %{auth_register: %{limit: 1, scale_ms: 60_000}}
+    )
+
+    assert conn
+           |> put_req_header("x-forwarded-for", "198.51.100.10")
+           |> post(~p"/auth/register", %{
+             email: "canonical-one@example.com",
+             password: "supersecure",
+             displayName: "Canonical One",
+             preferredLanguage: "en"
+           })
+           |> json_response(201)
+
+    assert build_conn()
+           |> put_req_header("x-forwarded-for", "198.51.100.11")
+           |> post(~p"/auth/register", %{
+             email: "canonical-two@example.com",
+             password: "supersecure",
+             displayName: "Canonical Two",
+             preferredLanguage: "en"
+           })
+           |> json_response(201)
+
+    limited_conn =
+      build_conn()
+      |> put_req_header("x-forwarded-for", "198.51.100.10")
+      |> post(~p"/auth/register", %{
+        email: "canonical-three@example.com",
+        password: "supersecure",
+        displayName: "Canonical Three",
+        preferredLanguage: "en"
+      })
+
+    assert json_response(limited_conn, 429)["code"] == "RATE_LIMITED"
+
+    assert Repo.get_by!(EmailAccessRequest, email: "canonical-one@example.com").last_ip_address ==
+             "198.51.100.10"
+
+    assert Repo.get_by!(EmailAccessRequest, email: "canonical-two@example.com").last_ip_address ==
+             "198.51.100.11"
+  end
+
   defp create_user_with_password(email, password, display_name, opts \\ []) do
     role = Keyword.get(opts, :role, :user)
     access_status = Keyword.get(opts, :access_status, :pending)

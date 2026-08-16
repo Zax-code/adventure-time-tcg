@@ -96,6 +96,8 @@ config :adventure_time_api, AdventureTimeApiWeb.Plugs.RateLimit,
     pvp_match_write: %{limit: 30, scale_ms: 60_000}
   }
 
+config :adventure_time_api, AdventureTimeApiWeb.Plugs.CanonicalClientIp, trusted_proxy_cidrs: []
+
 config :adventure_time_api, AdventureTimeApiWeb.Plugs.WebsiteDocumentPlug,
   index_path: "priv/static/assets/web/index.html"
 

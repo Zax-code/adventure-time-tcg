@@ -3,6 +3,7 @@ defmodule AdventureTimeApiWeb.Plugs.RateLimit do
 
   import Plug.Conn
 
+  alias AdventureTimeApiWeb.Plugs.CanonicalClientIp
   alias AdventureTimeApiWeb.Plugs.RateLimit.Store
 
   def init(opts), do: opts
@@ -84,10 +85,7 @@ defmodule AdventureTimeApiWeb.Plugs.RateLimit do
     ip_address(conn) <> ":" <> Base.encode16(digest, case: :lower)
   end
 
-  defp ip_address(%Plug.Conn{remote_ip: nil}), do: "unknown"
-
-  defp ip_address(%Plug.Conn{remote_ip: remote_ip}) when is_tuple(remote_ip),
-    do: remote_ip |> Tuple.to_list() |> Enum.join(".")
+  defp ip_address(conn), do: CanonicalClientIp.to_string(conn) || "unknown"
 
   defp param(conn, key) do
     cond do
