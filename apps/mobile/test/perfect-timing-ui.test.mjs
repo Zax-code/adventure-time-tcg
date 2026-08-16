@@ -10,6 +10,18 @@ const pendingStopSource = readFileSync(
   "src/features/quests/perfect-timing/pending-stop.ts",
   "utf8",
 );
+const timerCardSource = readFileSync(
+  "src/features/quests/perfect-timing/timer-card.tsx",
+  "utf8",
+);
+const trainingPanelSource = readFileSync(
+  "src/features/quests/perfect-timing/training-panel.tsx",
+  "utf8",
+);
+const officialPanelSource = readFileSync(
+  "src/features/quests/perfect-timing/official-panel.tsx",
+  "utf8",
+);
 
 describe("Perfect Timing UI behavior", () => {
   it("derives elapsed time from monotonic timestamps without interval counting", () => {
@@ -28,7 +40,7 @@ describe("Perfect Timing UI behavior", () => {
       screenSource,
       /if \(nextText === "\?\?\?"\) \{\s*animationFrameRef\.current = null;\s*return;/,
     );
-    assert.match(screenSource, /accessibilityElementsHidden=\{timerRunning\}/);
+    assert.match(timerCardSource, /accessibilityElementsHidden=\{timerRunning\}/);
   });
 
   it("automatically stops official attempts for background and navigation transitions", () => {
@@ -55,7 +67,7 @@ describe("Perfect Timing UI behavior", () => {
     assert.match(screenSource, /targetMs: number \| null/);
     assert.match(screenSource, /const targetMs = timer\.targetMs/);
     assert.match(
-      screenSource,
+      trainingPanelSource,
       /phase === "ready" && !isLoading && !isRefreshing/,
     );
   });
@@ -68,10 +80,10 @@ describe("Perfect Timing UI behavior", () => {
 
   it("shows Keep only for a non-Miss candidate and offers sharing for every finalized result", () => {
     assert.match(
-      screenSource,
+      officialPanelSource,
       /state\.status === "result" && result\?\.tier != null && result\.tier !== "miss"/,
     );
-    assert.match(screenSource, /\{state\.finalized \? \(/);
-    assert.match(screenSource, /testID="perfect-timing-share"/);
+    assert.match(officialPanelSource, /\{state\.finalized \? \(/);
+    assert.match(officialPanelSource, /testID="perfect-timing-share"/);
   });
 });

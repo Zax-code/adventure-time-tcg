@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Pressable, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -233,20 +233,13 @@ function useBattleBoardView({
   const [selectedActorId, setSelectedActorId] = useState<string | null>(null);
   const [showLogModal, setShowLogModal] = useState(false);
   const [longPressUnitId, setLongPressUnitId] = useState<string | null>(null);
-  const [turnBannerState, setTurnBannerState] = useState(() => ({
-    turn,
-    bannerKey: 0,
-    visible: true,
-  }));
-
-  useEffect(() => {
-    setTurnBannerState((current) => ({
-      turn,
-      bannerKey:
-        current.turn === turn ? current.bannerKey : current.bannerKey + 1,
-      visible: true,
-    }));
-  }, [turn]);
+  const [dismissedBannerTurn, setDismissedBannerTurn] = useState<number | null>(
+    null,
+  );
+  const validTargetIds = useMemo(
+    () => new Set(targeting?.validTargetIds ?? []),
+    [targeting?.validTargetIds],
+  );
 
   const floatingByUnit = useMemo(() => {
     const next: Record<string, FloatingEvent[]> = {};
@@ -335,7 +328,7 @@ function useBattleBoardView({
     }
 
     if (targeting) {
-      if (targeting.validTargetIds.includes(instanceId)) {
+      if (validTargetIds.has(instanceId)) {
         onSelectTarget(instanceId);
       }
       return;
@@ -370,7 +363,7 @@ function useBattleBoardView({
       return;
     }
 
-    if (targeting?.validTargetIds.includes(instanceId)) {
+    if (validTargetIds.has(instanceId)) {
       onSelectTarget(instanceId);
     }
   };
@@ -380,7 +373,7 @@ function useBattleBoardView({
       return;
     }
 
-    if (targeting?.validTargetIds.includes(instanceId)) {
+    if (validTargetIds.has(instanceId)) {
       onSelectTarget(instanceId);
       return;
     }
@@ -478,8 +471,7 @@ function useBattleBoardView({
                       unit={unit}
                       testID={`pvp-opponent-unit-${index}`}
                       isValidTarget={
-                        targeting?.validTargetIds.includes(unit.instanceId) ??
-                        false
+                        validTargetIds.has(unit.instanceId)
                       }
                       attackerType={actorType}
                       onPress={() => handleOppUnitPress(unit.instanceId)}
@@ -593,8 +585,7 @@ function useBattleBoardView({
                       }
                       isSwapTarget={isSwapMode}
                       isValidTarget={
-                        targeting?.validTargetIds.includes(unit.instanceId) ??
-                        false
+                        validTargetIds.has(unit.instanceId)
                       }
                       onPress={() => handleBenchPress(unit.instanceId)}
                       onLongPress={() => handleLongPress(unit.instanceId)}
@@ -617,8 +608,7 @@ function useBattleBoardView({
                         pendingSwap?.activeInstanceId === unit.instanceId
                       }
                       isValidTarget={
-                        targeting?.validTargetIds.includes(unit.instanceId) ??
-                        false
+                        validTargetIds.has(unit.instanceId)
                       }
                       canSelectAsActor={
                         isMyTurn &&
@@ -673,13 +663,11 @@ function useBattleBoardView({
 
       {!readOnly ? <TargetSelectionHint targeting={targeting} /> : null}
 
-      {!readOnly && turnBannerState.visible ? (
+      {!readOnly && dismissedBannerTurn !== turn ? (
         <TurnBanner
-          key={turnBannerState.bannerKey}
+          key={turn}
           isMyTurn={isMyTurn}
-          onDone={() =>
-            setTurnBannerState((current) => ({ ...current, visible: false }))
-          }
+          onDone={() => setDismissedBannerTurn(turn)}
         />
       ) : null}
 

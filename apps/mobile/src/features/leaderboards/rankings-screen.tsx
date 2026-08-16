@@ -171,16 +171,20 @@ export function RankingsScreen() {
     (isYesterdayPendingPreview ||
       (queryError instanceof ApiClientError &&
         queryError.code === "LEADERBOARD_PERIOD_UNAVAILABLE"));
+  const scrollContentStyle = useMemo(
+    () => ({
+      paddingTop: headerHeight + 18,
+      paddingBottom: bottomPadding,
+      paddingHorizontal: 16,
+      gap: 18,
+    }),
+    [bottomPadding, headerHeight],
+  );
 
   return (
     <ScrollView
       className="flex-1 bg-bg"
-      contentContainerStyle={{
-        paddingTop: headerHeight + 18,
-        paddingBottom: bottomPadding,
-        paddingHorizontal: 16,
-        gap: 18,
-      }}
+      contentContainerStyle={scrollContentStyle}
       showsVerticalScrollIndicator={false}
       testID="rankings-screen"
     >

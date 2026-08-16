@@ -118,7 +118,10 @@ function useAdminFeaturedScreenView() {
     cardsQueryError instanceof Error ? cardsQueryError.message : null;
 
   const toggleRef = useRef(toggleMutation.mutate);
-  toggleRef.current = toggleMutation.mutate;
+
+  useEffect(() => {
+    toggleRef.current = toggleMutation.mutate;
+  }, [toggleMutation.mutate]);
 
   const prefetchKey = useMemo(
     () =>

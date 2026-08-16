@@ -285,12 +285,12 @@ function StatusEffectsList({
       <Text className="font-nunito-bold text-sm text-white/90">
         {t("pvp.activeStatuses")}
       </Text>
-      {statuses.map((status, index) => {
+      {statuses.map((status) => {
         const isDebuff = isDebuffStatus(status.name);
 
         return (
           <View
-            key={`${status.name}-${index}`}
+            key={`${status.name}-${status.appliedAt}-${status.appliedDuringPlayerId ?? "none"}-${status.targetOwnerId ?? "none"}`}
             className={`rounded-2xl border px-3 py-3 ${isDebuff ? "border-dangerBorder/60 bg-dangerTint" : "border-infoBorder/60 bg-infoTint"}`}
           >
             <View className="flex-row items-center justify-between gap-3">

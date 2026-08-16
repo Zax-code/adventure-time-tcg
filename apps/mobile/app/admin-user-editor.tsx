@@ -269,12 +269,12 @@ function useAdminUserEditorScreenView() {
     ],
   );
 
-  const handleAdjustCoins = async (delta: number) => {
+  const handleAdjustCoins = (delta: number) => {
     if (!Number.isInteger(delta) || delta === 0) {
       return;
     }
 
-    await adjustCoinsMutation.mutateAsync(delta);
+    adjustCoinsMutation.mutate(delta);
   };
 
   const confirmResetAll = () => {

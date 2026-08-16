@@ -561,16 +561,6 @@ export function CheckCircleIcon({ size = 24, color = "#16A34A" }: IconProps) {
   );
 }
 
-export function ClaimedIcon({ size = 24, color = "#9CA3AF" }: IconProps) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Circle cx={12} cy={12} r={10} fill={color} fillOpacity={0.2} stroke={color} strokeWidth={2} />
-      <Path d="M6.5 12l3 3L17.5 8" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-      <Path d="M4 12l3 3L13.5 9" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" opacity={0.4} />
-    </Svg>
-  );
-}
-
 export function XCircleIcon({ size = 24, color = "#DC2626" }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">

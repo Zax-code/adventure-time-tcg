@@ -4,6 +4,7 @@ import { Pressable, Text, View } from "react-native";
 
 import { useThemeStore } from "../../stores/theme-store";
 import { THEME_COLORS } from "../../theme/themes";
+import { navigateBackFromQuest } from "./quest-navigation";
 
 type QuestScreenHeaderProps = {
   title: string;
@@ -11,13 +12,6 @@ type QuestScreenHeaderProps = {
   backTestID?: string;
   fallbackHref?: string;
 };
-
-export function navigateBackFromQuest(
-  router: Pick<ReturnType<typeof useRouter>, "dismissTo">,
-  fallbackHref = "/(tabs)/quests",
-) {
-  router.dismissTo(fallbackHref as never);
-}
 
 export function QuestScreenHeader({
   title,
