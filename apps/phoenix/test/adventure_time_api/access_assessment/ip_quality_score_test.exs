@@ -87,7 +87,8 @@ defmodule AdventureTimeApi.AccessAssessment.IpQualityScoreTest do
              shared_connection: true,
              asn: 64_500,
              organization: "Example Carrier",
-             connection_type: "Mobile"
+             connection_type: "Mobile",
+             country_code: nil
            }
   end
 

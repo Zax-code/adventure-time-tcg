@@ -119,7 +119,11 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
         preferredLanguage: "en"
       })
 
-    assert json_response(conn, 201)["accessRequestPending"]
+    body = json_response(conn, 201)
+    assert body["accessRequestPending"]
+    assert body["assessmentChallenge"]["kind"] == "play_integrity_standard"
+    assert is_binary(body["assessmentChallenge"]["token"])
+    assert is_binary(body["assessmentChallenge"]["requestHash"])
 
     request = Repo.get_by!(EmailAccessRequest, email: "assessment-capture@example.com")
     assessment = Repo.get_by!(Assessment, email_access_request_id: request.id)

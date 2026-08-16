@@ -187,6 +187,10 @@
       "privacy.sharing.title": "Sharing and third parties",
       "privacy.sharing.body":
         "Data is sent securely when you use the app. Third-party services are used only as needed for platform login, push notifications, app store distribution, and optional Fitbit connection.",
+      "privacy.security.kicker": "Security",
+      "privacy.security.title": "Access-request fraud prevention",
+      "privacy.security.body":
+        "When you request access, we may assess your IP network, request and app metadata, and Android app/device integrity to help a super administrator review abuse risk. IPQualityScore processes the IP and limited technical metadata for this purpose. The result is advisory only: a person approves or rejects every request. Exact IPs are removed 30 days after review, detailed evidence after 90 days, and the review record after one year.",
       "privacy.control.kicker": "Control",
       "privacy.control.title": "Access and deletion",
       "privacy.control.body":
@@ -522,6 +526,10 @@
       "privacy.sharing.title": "Partage et services tiers",
       "privacy.sharing.body":
         "Les données sont envoyées de façon sécurisée quand tu utilises l'app. Les services tiers servent uniquement, selon les besoins, à la connexion de plateforme, aux notifications push, à la distribution sur les stores et à la connexion Fitbit facultative.",
+      "privacy.security.kicker": "Sécurité",
+      "privacy.security.title": "Prévention de la fraude lors des demandes d'accès",
+      "privacy.security.body":
+        "Lors d'une demande d'accès, nous pouvons évaluer le réseau IP, les métadonnées de la requête et de l'app ainsi que l'intégrité de l'appareil Android afin d'aider un super admin à examiner le risque d'abus. IPQualityScore traite l'IP et des métadonnées techniques limitées à cette fin. Le résultat reste consultatif : une personne approuve ou refuse chaque demande. L'IP exacte est supprimée 30 jours après la décision, les preuves détaillées après 90 jours et le dossier de décision après un an.",
       "privacy.control.kicker": "Contrôle",
       "privacy.control.title": "Accès et suppression",
       "privacy.control.body":

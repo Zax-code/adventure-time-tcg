@@ -22,6 +22,7 @@ defmodule AdventureTimeApi.AccessAssessment.Evidence.IpIntelligence do
     field(:asn, :integer)
     field(:organization, :string)
     field(:connection_type, :string)
+    field(:country_code, :string)
     field(:looked_up_at, :utc_datetime)
   end
 

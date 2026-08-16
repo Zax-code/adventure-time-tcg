@@ -4,6 +4,9 @@ defmodule AdventureTimeApi.AccessAssessment do
   """
 
   alias AdventureTimeApi.AccessAssessment.Assessment
+  alias AdventureTimeApi.AccessAssessment.Challenges
+  alias AdventureTimeApi.AccessAssessment.PlayIntegrity
+  alias AdventureTimeApi.AccessAssessment.IpRevealAudit
   alias AdventureTimeApi.AccessAssessment.Pseudonym
   alias AdventureTimeApi.AccessAssessment.Snapshot
   alias AdventureTimeApi.AccessRequestAssessment.NetworkClassification
@@ -11,6 +14,75 @@ defmodule AdventureTimeApi.AccessAssessment do
   alias AdventureTimeApi.NetworkAddress
   alias AdventureTimeApi.Repo
   alias AdventureTimeApi.Workers.AssessAccessRequestWorker
+
+  import Ecto.Query
+
+  def admin_views(access_request_ids) when is_list(access_request_ids) do
+    if admin_display_enabled?() do
+      Assessment
+      |> where([assessment], assessment.email_access_request_id in ^access_request_ids)
+      |> Repo.all()
+      |> Map.new(&{&1.email_access_request_id, admin_view(&1)})
+    else
+      %{}
+    end
+  end
+
+  def reveal_ip(access_request_id, actor_id, audit_request_id) do
+    Repo.transaction(fn ->
+      assessment =
+        Repo.one(
+          from(a in Assessment,
+            where: a.email_access_request_id == ^access_request_id,
+            lock: "FOR UPDATE"
+          )
+        )
+
+      now = DateTime.utc_now() |> DateTime.truncate(:second)
+
+      if revealable?(assessment, now) do
+        %IpRevealAudit{}
+        |> IpRevealAudit.changeset(%{
+          email_access_request_id: access_request_id,
+          actor_id: actor_id,
+          request_id: audit_request_id
+        })
+        |> Repo.insert!()
+
+        %{
+          ipAddress: NetworkAddress.to_string(assessment.canonical_ip),
+          retainedUntil: iso8601(assessment.exact_ip_retained_until)
+        }
+      else
+        Repo.rollback(:gone)
+      end
+    end)
+  end
+
+  def submit_play_integrity(challenge_token, integrity_token)
+      when is_binary(challenge_token) and is_binary(integrity_token) do
+    with {:ok, challenge} <- Challenges.consume(challenge_token),
+         %Assessment{} = assessment <-
+           Repo.get_by(Assessment,
+             email_access_request_id: challenge.email_access_request_id
+           ),
+         true <- assessment.evidence_revision == challenge.evidence_revision do
+      expected = %{
+        request_hash: challenge.expected_request_hash,
+        now: DateTime.utc_now() |> DateTime.truncate(:second)
+      }
+
+      case PlayIntegrity.decode(integrity_token, expected) do
+        {:ok, evidence} -> persist_integrity(assessment, evidence)
+        {:error, _provider_failure} -> {:ok, :unavailable}
+      end
+    else
+      _invalid_or_stale -> {:error, :invalid_challenge}
+    end
+  end
+
+  def submit_play_integrity(_challenge_token, _integrity_token),
+    do: {:error, :invalid_challenge}
 
   @spec capture(EmailAccessRequest.t(), map()) ::
           {:ok, Assessment.t() | nil} | {:error, Ecto.Changeset.t()}
@@ -136,6 +208,21 @@ defmodule AdventureTimeApi.AccessAssessment do
 
   defp enqueue_assessment(result, _test_lab_or_error), do: result
 
+  defp persist_integrity(assessment, evidence) do
+    next_revision = assessment.evidence_revision + 1
+
+    result =
+      assessment
+      |> Assessment.changeset(%{
+        evidence_revision: next_revision,
+        play_integrity_evidence: evidence,
+        integrity_assessed_at: evidence.verified_at
+      })
+      |> Repo.update()
+
+    enqueue_assessment(result, false)
+  end
+
   defp set_review_retention(repo, assessment, reviewed_at) do
     assessment
     |> Assessment.changeset(%{
@@ -231,4 +318,89 @@ defmodule AdventureTimeApi.AccessAssessment do
 
     "#{prefix}::/64"
   end
+
+  defp admin_view(%Assessment{state: :test_lab} = assessment) do
+    network = network_view(assessment)
+
+    %{
+      "state" => "test_lab",
+      "heuristic" => true,
+      "modelVersion" => assessment.scoring_model_version,
+      "platformProfile" => Atom.to_string(assessment.platform_profile),
+      "network" => network,
+      "assessedAt" => iso8601(assessment.assessed_at)
+    }
+  end
+
+  defp admin_view(%Assessment{} = assessment) do
+    base = %{
+      "state" => Atom.to_string(assessment.state),
+      "heuristic" => true,
+      "modelVersion" => assessment.scoring_model_version,
+      "platformProfile" => Atom.to_string(assessment.platform_profile),
+      "coverage" => assessment.evidence_coverage,
+      "missingReasons" => assessment.missing_reasons,
+      "hardFailureReasons" => assessment.hard_failure_reasons,
+      "network" => network_view(assessment),
+      "assessedAt" => iso8601(assessment.assessed_at)
+    }
+
+    if assessment.state in [:complete, :partial] do
+      Map.merge(base, %{
+        "confidence" => assessment.trustworthiness_confidence,
+        "band" => assessment.band && Atom.to_string(assessment.band),
+        "contributions" => Enum.map(assessment.contributions, &contribution_view/1)
+      })
+    else
+      base
+    end
+  end
+
+  defp network_view(assessment) do
+    facts = assessment.network_facts
+    intelligence = assessment.ip_intelligence_evidence
+
+    %{
+      "maskedIpAddress" => assessment.masked_ip_address,
+      "googleNetwork" => enum_string(facts && facts.google_network),
+      "testLab" => enum_string(facts && facts.test_lab),
+      "testLabMatchedCidr" => facts && facts.test_lab_matched_cidr,
+      "testLabRangeVersion" => facts && facts.test_lab_range_version,
+      "googleMatchedCidr" => facts && facts.google_network_matched_cidr,
+      "googleRangeVersion" => facts && facts.google_network_range_version,
+      "organization" => intelligence && intelligence.organization,
+      "asn" => intelligence && intelligence.asn,
+      "countryCode" => intelligence && intelligence.country_code,
+      "connectionType" => intelligence && intelligence.connection_type,
+      "vpn" => intelligence && intelligence.vpn,
+      "proxy" => intelligence && intelligence.proxy,
+      "hosting" => intelligence && intelligence.hosting,
+      "tor" => intelligence && intelligence.active_tor
+    }
+  end
+
+  defp contribution_view(contribution) do
+    %{
+      "key" => Atom.to_string(contribution.key),
+      "weight" => contribution.weight,
+      "value" => contribution.value,
+      "effectFromNeutral" => contribution.effect_from_neutral,
+      "reasonCodes" => contribution.reason_codes,
+      "observedAt" => iso8601(contribution.observed_at),
+      "hardFailure" => contribution.hard_failure
+    }
+  end
+
+  defp revealable?(%Assessment{canonical_ip: address} = assessment, now)
+       when not is_nil(address) do
+    is_nil(assessment.exact_ip_retained_until) or
+      DateTime.compare(assessment.exact_ip_retained_until, now) == :gt
+  end
+
+  defp revealable?(_assessment, _now), do: false
+
+  defp enum_string(nil), do: "unknown"
+  defp enum_string(value), do: Atom.to_string(value)
+  defp iso8601(nil), do: nil
+  defp iso8601(value), do: DateTime.to_iso8601(value)
 end

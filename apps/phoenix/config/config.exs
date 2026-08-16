@@ -34,8 +34,12 @@ config :phoenix, :filter_parameters, ~w(
     clientSecret
     client_secret
     code
+    challengeToken
+    challenge_token
     idToken
     id_token
+    integrityToken
+    integrity_token
     password
     refreshToken
     refresh_token
@@ -71,6 +75,15 @@ config :adventure_time_api, AdventureTimeApi.AccessAssessment.Pseudonym,
   secret: nil,
   version: "v1"
 
+config :adventure_time_api, AdventureTimeApi.AccessAssessment.PlayIntegrity,
+  adapter: AdventureTimeApi.AccessAssessment.GooglePlayIntegrity,
+  endpoint: "https://playintegrity.googleapis.com",
+  package_name: "love.leaetzak.adventuretime",
+  certificate_digests: [],
+  released_version_codes: [],
+  credentials_path: nil,
+  timeout_ms: 3_000
+
 config :adventure_time_api, AdventureTimeApi.Accounts.EmailDelivery,
   adapter: AdventureTimeApi.Accounts.EmailDelivery.SendmailAdapter
 
@@ -87,7 +100,8 @@ config :adventure_time_api, Oban,
     Oban.Plugins.Pruner,
     {Oban.Plugins.Cron,
      crontab: [
-       {"*/5 * * * *", AdventureTimeApi.Workers.LeaderboardLifecycleWorker}
+       {"*/5 * * * *", AdventureTimeApi.Workers.LeaderboardLifecycleWorker},
+       {"15 3 * * *", AdventureTimeApi.Workers.PruneAccessAssessmentDataWorker}
      ]}
   ]
 
@@ -105,6 +119,7 @@ config :adventure_time_api, AdventureTimeApiWeb.Plugs.RateLimit,
     auth_reset_password: %{limit: 10, scale_ms: 60_000},
     auth_google: %{limit: 10, scale_ms: 60_000},
     auth_apple: %{limit: 10, scale_ms: 60_000},
+    auth_play_integrity: %{limit: 10, scale_ms: 60_000},
     auth_refresh: %{limit: 20, scale_ms: 60_000},
     auth_logout: %{limit: 20, scale_ms: 60_000},
     pvp_match_write: %{limit: 30, scale_ms: 60_000}

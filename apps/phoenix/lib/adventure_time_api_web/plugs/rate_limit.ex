@@ -62,6 +62,16 @@ defmodule AdventureTimeApiWeb.Plugs.RateLimit do
     end
   end
 
+  defp build_key(conn, :ip_challenge) do
+    challenge = conn |> param("challengeToken") |> to_string() |> String.trim()
+
+    if challenge == "" do
+      ip_address(conn)
+    else
+      token_key(conn, challenge)
+    end
+  end
+
   defp build_key(conn, {:cookie_token_or_ip, cookie_name}) when is_binary(cookie_name) do
     token = conn |> fetch_cookies() |> Map.fetch!(:req_cookies) |> Map.get(cookie_name, "")
 

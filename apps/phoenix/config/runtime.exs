@@ -1,5 +1,111 @@
 import Config
 
+truthy? = fn value -> value in ["1", "true", "TRUE", "yes", "YES"] end
+
+assessment_collection_enabled =
+  truthy?.(System.get_env("ACCESS_ASSESSMENT_COLLECTION_ENABLED"))
+
+config :adventure_time_api, AdventureTimeApi.AccessAssessment,
+  collection_enabled: assessment_collection_enabled,
+  admin_display_enabled: truthy?.(System.get_env("ACCESS_ASSESSMENT_ADMIN_DISPLAY_ENABLED"))
+
+if assessment_collection_enabled do
+  ipqs_api_key =
+    System.get_env("IPQS_API_KEY") ||
+      raise("environment variable IPQS_API_KEY is required when assessment collection is enabled")
+
+  pseudonym_secret =
+    System.get_env("ACCESS_ASSESSMENT_PSEUDONYM_SECRET") ||
+      raise(
+        "environment variable ACCESS_ASSESSMENT_PSEUDONYM_SECRET is required when assessment collection is enabled"
+      )
+
+  play_credentials_path =
+    System.get_env("PLAY_INTEGRITY_SERVICE_ACCOUNT_PATH") ||
+      raise(
+        "environment variable PLAY_INTEGRITY_SERVICE_ACCOUNT_PATH is required when assessment collection is enabled"
+      )
+
+  play_certificate_digests =
+    (System.get_env("PLAY_INTEGRITY_CERTIFICATE_DIGESTS") || "")
+    |> String.split(",", trim: true)
+    |> Enum.map(&String.trim/1)
+    |> Enum.reject(&(&1 == ""))
+
+  released_version_codes =
+    (System.get_env("PLAY_INTEGRITY_RELEASED_VERSION_CODES") || "")
+    |> String.split(",", trim: true)
+    |> Enum.map(&String.trim/1)
+    |> Enum.reject(&(&1 == ""))
+
+  released_builds =
+    (System.get_env("ACCESS_ASSESSMENT_RELEASED_BUILDS") || "")
+    |> String.split(",", trim: true)
+    |> Enum.reduce(%{}, fn entry, builds ->
+      case String.split(entry, ":", parts: 3) do
+        [platform, version, build_number]
+        when platform in ["android", "ios"] and version != "" and build_number != "" ->
+          Map.update(
+            builds,
+            platform,
+            [%{version: version, build_number: build_number}],
+            &[%{version: version, build_number: build_number} | &1]
+          )
+
+        _invalid ->
+          raise(
+            "ACCESS_ASSESSMENT_RELEASED_BUILDS must contain comma-separated platform:version:build entries"
+          )
+      end
+    end)
+
+  if play_certificate_digests == [] do
+    raise(
+      "environment variable PLAY_INTEGRITY_CERTIFICATE_DIGESTS is required when assessment collection is enabled"
+    )
+  end
+
+  if released_version_codes == [] do
+    raise(
+      "environment variable PLAY_INTEGRITY_RELEASED_VERSION_CODES is required when assessment collection is enabled"
+    )
+  end
+
+  if map_size(released_builds) == 0 do
+    raise(
+      "environment variable ACCESS_ASSESSMENT_RELEASED_BUILDS is required when assessment collection is enabled"
+    )
+  end
+
+  config :adventure_time_api, AdventureTimeApi.AccessAssessment,
+    collection_enabled: true,
+    admin_display_enabled: truthy?.(System.get_env("ACCESS_ASSESSMENT_ADMIN_DISPLAY_ENABLED")),
+    released_builds: released_builds
+
+  config :adventure_time_api, AdventureTimeApi.AccessAssessment.IpIntelligence,
+    adapter: AdventureTimeApi.AccessAssessment.IpQualityScore,
+    endpoint: System.get_env("IPQS_ENDPOINT") || "https://ipqualityscore.com/api/json/ip",
+    api_key: ipqs_api_key,
+    timeout_ms: String.to_integer(System.get_env("IPQS_TIMEOUT_MS") || "3000")
+
+  config :adventure_time_api, AdventureTimeApi.AccessAssessment.Pseudonym,
+    secret: pseudonym_secret,
+    version: System.get_env("ACCESS_ASSESSMENT_PSEUDONYM_VERSION") || "v1"
+
+  config :adventure_time_api, AdventureTimeApi.AccessAssessment.PlayIntegrity,
+    adapter: AdventureTimeApi.AccessAssessment.GooglePlayIntegrity,
+    endpoint:
+      System.get_env("PLAY_INTEGRITY_ENDPOINT") ||
+        "https://playintegrity.googleapis.com",
+    package_name:
+      System.get_env("PLAY_INTEGRITY_PACKAGE_NAME") ||
+        "love.leaetzak.adventuretime",
+    certificate_digests: play_certificate_digests,
+    released_version_codes: released_version_codes,
+    credentials_path: play_credentials_path,
+    timeout_ms: String.to_integer(System.get_env("PLAY_INTEGRITY_TIMEOUT_MS") || "3000")
+end
+
 case System.get_env("TRUSTED_PROXY_CIDRS") do
   value when is_binary(value) and value != "" ->
     config :adventure_time_api, AdventureTimeApiWeb.Plugs.CanonicalClientIp,

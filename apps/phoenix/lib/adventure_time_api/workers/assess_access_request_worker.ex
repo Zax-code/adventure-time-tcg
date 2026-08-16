@@ -59,6 +59,15 @@ defmodule AdventureTimeApi.Workers.AssessAccessRequestWorker do
   end
 
   defp lookup_ip(request, assessment, now) do
+    if current_ip_evidence?(assessment, now) do
+      evidence = Map.from_struct(assessment.ip_intelligence_evidence)
+      {Signals.ip_intelligence(evidence), evidence, :ok}
+    else
+      fetch_ip(request, assessment, now)
+    end
+  end
+
+  defp fetch_ip(request, assessment, now) do
     input = %{
       ip_address: NetworkAddress.to_string(assessment.canonical_ip),
       user_agent: request.last_user_agent,
@@ -75,6 +84,11 @@ defmodule AdventureTimeApi.Workers.AssessAccessRequestWorker do
       {:error, reason} ->
         {{:missing, "ip.provider_unavailable"}, nil, reason}
     end
+  end
+
+  defp current_ip_evidence?(assessment, now) do
+    assessment.ip_intelligence_evidence != nil and assessment.ip_enriched_at != nil and
+      DateTime.diff(now, assessment.ip_enriched_at, :second) <= 24 * 60 * 60
   end
 
   defp persist_current_revision(original, result, ip_evidence, now) do

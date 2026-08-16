@@ -63,7 +63,8 @@ defmodule AdventureTimeApi.AccessAssessment.IpQualityScore do
        shared_connection: body["shared_connection"],
        asn: body["ASN"] || body["asn"],
        organization: body["organization"],
-       connection_type: body["connection_type"]
+       connection_type: body["connection_type"],
+       country_code: body["country_code"]
      }}
   end
 
