@@ -10,6 +10,7 @@ defmodule AdventureTimeApi.Quests do
   alias AdventureTimeApi.Accounts.User
   alias AdventureTimeApi.Fitbit
   alias AdventureTimeApi.Health
+  alias AdventureTimeApi.Leaderboards.QuestResults
 
   alias AdventureTimeApi.Quests.{
     DailyNumbersArchiveAttempt,
@@ -256,6 +257,8 @@ defmodule AdventureTimeApi.Quests do
       |> Repo.update_all(set: updates)
     end
 
+    QuestResults.sync_safely(user_id, date, :steps)
+
     :ok
   end
 
@@ -387,7 +390,9 @@ defmodule AdventureTimeApi.Quests do
     timezone = reset_timezone_for_user(user_id)
     recover_previous_perfect_timing_attempts(user_id, date, timezone)
     materialize_daily_quests(user_id, date)
-    PerfectTiming.state(user_id, date, timezone)
+    result = PerfectTiming.state(user_id, date, timezone)
+    QuestResults.sync_safely(user_id, date, :perfect_timing)
+    result
   end
 
   def start_perfect_timing(user_id, date_key, quest_version) do
@@ -410,16 +415,20 @@ defmodule AdventureTimeApi.Quests do
     with {:ok, attempt_id} <- Ecto.UUID.cast(attempt_id),
          %PerfectTimingAttempt{} = attempt <-
            Repo.get_by(PerfectTimingAttempt, id: attempt_id, user_id: user_id) do
-      PerfectTiming.stop(
-        user_id,
-        attempt.date,
-        timezone,
-        attempt.id,
-        elapsed_ms,
-        stop_reason,
-        date_key,
-        quest_version
-      )
+      result =
+        PerfectTiming.stop(
+          user_id,
+          attempt.date,
+          timezone,
+          attempt.id,
+          elapsed_ms,
+          stop_reason,
+          date_key,
+          quest_version
+        )
+
+      QuestResults.sync_safely(user_id, attempt.date, :perfect_timing)
+      result
     else
       _ -> {:error, :attempt_not_found}
     end
@@ -445,14 +454,18 @@ defmodule AdventureTimeApi.Quests do
     timezone = reset_timezone_for_user(user_id)
     materialize_daily_quests(user_id, date)
 
-    PerfectTiming.keep_result(
-      user_id,
-      date,
-      timezone,
-      attempt_id,
-      date_key,
-      quest_version
-    )
+    result =
+      PerfectTiming.keep_result(
+        user_id,
+        date,
+        timezone,
+        attempt_id,
+        date_key,
+        quest_version
+      )
+
+    QuestResults.sync_safely(user_id, date, :perfect_timing)
+    result
   end
 
   def perfect_timing_training_target(user_id) do
@@ -557,6 +570,12 @@ defmodule AdventureTimeApi.Quests do
             |> Repo.transaction()
             |> case do
               {:ok, _changes} ->
+                QuestResults.sync_safely(
+                  user_id,
+                  date,
+                  {:daily_numbers, normalized_mode}
+                )
+
                 {:ok, build_daily_numbers_state(user_id, date, normalized_mode)}
 
               {:error, _step, reason, _changes} ->
@@ -775,6 +794,8 @@ defmodule AdventureTimeApi.Quests do
                     solved: solved
                   })
                   |> Repo.insert!()
+
+                  QuestResults.sync_safely(user_id, date, {:wordle, locale})
 
                   quest_just_completed =
                     if solved do
@@ -1180,6 +1201,7 @@ defmodule AdventureTimeApi.Quests do
 
             sync_speed_calculus_quest_from_runs(user_id, run.date)
             state = build_speed_calculus_state(user_id, run.date)
+            QuestResults.sync_safely(user_id, run.date, {:speed_calculus, run.id})
 
             {:ok, Map.merge(state, %{correctAnswers: correct_answers, reward: reward})}
           end

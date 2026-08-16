@@ -6,6 +6,7 @@ defmodule AdventureTimeApi.Health do
   import Ecto.Query
 
   alias AdventureTimeApi.Health.StepSnapshot
+  alias AdventureTimeApi.Leaderboards.QuestResults
   alias AdventureTimeApi.Repo
   alias Ecto.Adapters.SQL
 
@@ -37,28 +38,36 @@ defmodule AdventureTimeApi.Health do
   def upsert_step_snapshot(user_id, source, step_count, recorded_for) do
     source_atom = parse_source(source)
 
-    case Date.from_iso8601(to_string(recorded_for)) do
-      {:ok, date} ->
-        %StepSnapshot{}
-        |> StepSnapshot.changeset(%{
-          user_id: user_id,
-          source: source_atom,
-          step_count: step_count,
-          recorded_for: date
-        })
-        |> Repo.insert(
-          on_conflict: [
-            set: [
-              step_count: step_count,
-              updated_at: DateTime.utc_now() |> DateTime.truncate(:second)
-            ]
-          ],
-          conflict_target: [:user_id, :source, :recorded_for]
-        )
+    result =
+      case Date.from_iso8601(to_string(recorded_for)) do
+        {:ok, date} ->
+          %StepSnapshot{}
+          |> StepSnapshot.changeset(%{
+            user_id: user_id,
+            source: source_atom,
+            step_count: step_count,
+            recorded_for: date
+          })
+          |> Repo.insert(
+            on_conflict: [
+              set: [
+                step_count: step_count,
+                updated_at: DateTime.utc_now() |> DateTime.truncate(:second)
+              ]
+            ],
+            conflict_target: [:user_id, :source, :recorded_for]
+          )
 
-      {:error, _} ->
-        {:error, :invalid_date}
+        {:error, _} ->
+          {:error, :invalid_date}
+      end
+
+    case result do
+      {:ok, %StepSnapshot{recorded_for: date}} -> QuestResults.sync_safely(user_id, date, :steps)
+      _ -> :ok
     end
+
+    result
   end
 
   defp parse_source(source) when is_atom(source), do: source

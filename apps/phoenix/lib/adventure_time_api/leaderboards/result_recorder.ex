@@ -55,45 +55,58 @@ defmodule AdventureTimeApi.Leaderboards.ResultRecorder do
             )
           )
 
-        if previous do
-          previous
-          |> Ecto.Changeset.change(active: false)
-          |> Repo.update!()
-        end
-
         accepted_at = DateTime.utc_now()
 
+        result_attrs = %{
+          user_id: attrs.user_id,
+          board_id: board.id,
+          competition_slot_id: attrs.competition_slot_id,
+          competition_date: attrs.competition_date,
+          ranked_session_id: Map.get(attrs, :ranked_session_id),
+          source_kind: attrs.source_kind,
+          source_id: attrs.source_id,
+          raw_result_schema_version: Map.get(attrs, :raw_result_schema_version, 1),
+          raw_result: attrs.raw_result,
+          raw_numeric_value: Map.get(attrs, :raw_numeric_value),
+          outcome: Map.get(attrs, :outcome),
+          points_milli: points_milli,
+          scoring_version_id: attrs.scoring_version_id,
+          result_status: :accepted,
+          integrity_status: :accepted,
+          eligibility_status: :eligible,
+          active: true,
+          provisional: true,
+          submitted_at: attrs.submitted_at,
+          accepted_at: accepted_at,
+          supersedes_result_id: previous && previous.id
+        }
+
+        same_source =
+          previous && previous.source_kind == attrs.source_kind &&
+            previous.source_id == attrs.source_id
+
         result =
-          %DailyResult{}
-          |> DailyResult.changeset(%{
-            user_id: attrs.user_id,
-            board_id: board.id,
-            competition_slot_id: attrs.competition_slot_id,
-            competition_date: attrs.competition_date,
-            ranked_session_id: Map.get(attrs, :ranked_session_id),
-            source_kind: attrs.source_kind,
-            source_id: attrs.source_id,
-            raw_result_schema_version: Map.get(attrs, :raw_result_schema_version, 1),
-            raw_result: attrs.raw_result,
-            raw_numeric_value: Map.get(attrs, :raw_numeric_value),
-            outcome: Map.get(attrs, :outcome),
-            points_milli: points_milli,
-            scoring_version_id: attrs.scoring_version_id,
-            result_status: :accepted,
-            integrity_status: :accepted,
-            eligibility_status: :eligible,
-            active: true,
-            provisional: true,
-            submitted_at: attrs.submitted_at,
-            accepted_at: accepted_at,
-            supersedes_result_id: previous && previous.id
-          })
-          |> Repo.insert!()
+          if same_source do
+            previous
+            |> DailyResult.changeset(
+              Map.put(result_attrs, :supersedes_result_id, previous.supersedes_result_id)
+            )
+            |> Repo.update!()
+          else
+            if previous do
+              previous
+              |> Ecto.Changeset.change(active: false)
+              |> Repo.update!()
+            end
+
+            %DailyResult{}
+            |> DailyResult.changeset(result_attrs)
+            |> Repo.insert!()
+          end
 
         telemetry = Map.get(attrs, :telemetry, %{})
 
-        %ResultTelemetry{}
-        |> ResultTelemetry.changeset(%{
+        telemetry_attrs = %{
           result_id: result.id,
           board_id: board.id,
           competition_date: attrs.competition_date,
@@ -106,8 +119,19 @@ defmodule AdventureTimeApi.Leaderboards.ResultRecorder do
           integrity_reason_codes: Map.get(telemetry, :integrity_reason_codes, []),
           session_metrics: Map.get(telemetry, :session_metrics, %{}),
           cohort: Map.get(telemetry, :cohort, %{})
-        })
-        |> Repo.insert!()
+        }
+
+        case Repo.get_by(ResultTelemetry, result_id: result.id) do
+          nil ->
+            %ResultTelemetry{}
+            |> ResultTelemetry.changeset(telemetry_attrs)
+            |> Repo.insert!()
+
+          existing ->
+            existing
+            |> ResultTelemetry.changeset(telemetry_attrs)
+            |> Repo.update!()
+        end
 
         result
       end)
