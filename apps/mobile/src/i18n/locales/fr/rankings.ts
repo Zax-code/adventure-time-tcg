@@ -30,7 +30,7 @@ const rankings = {
   },
   boards: {
     steps: "Pas",
-    dailyNumbers: "Le compte est bon",
+    dailyNumbers: "Nombre du jour",
     wordle: "Wordle",
     speedCalculus: "Calcul rapide",
     perfectTiming: "Timing parfait",
@@ -62,9 +62,9 @@ const rankings = {
     noPlacements: "Aucun classement hebdomadaire clôturé pour le moment.",
     noPersonalBests: "Aucun record personnel pour le moment.",
     boardLabels: {
-      dailyNumbers15: "Le compte est bon · 1–5",
-      dailyNumbers24: "Le compte est bon · 2–4",
-      dailyNumbers33: "Le compte est bon · 3–3",
+      dailyNumbers15: "Nombre du jour · 1–5",
+      dailyNumbers24: "Nombre du jour · 2–4",
+      dailyNumbers33: "Nombre du jour · 3–3",
       wordleFr: "Wordle · Français",
       wordleEn: "Wordle · Anglais",
     },

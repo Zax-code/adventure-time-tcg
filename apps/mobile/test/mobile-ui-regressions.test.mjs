@@ -17,6 +17,14 @@ const rankingsSource = readFileSync(
   "src/features/leaderboards/rankings-screen.tsx",
   "utf8",
 );
+const frenchRankingsSource = readFileSync(
+  "src/i18n/locales/fr/rankings.ts",
+  "utf8",
+);
+const loadingStateSource = readFileSync(
+  "src/components/loading-state.tsx",
+  "utf8",
+);
 
 describe("mobile UI regression contracts", () => {
   it("keeps the Speed Calculus timer drain on one uninterrupted animation", () => {
@@ -125,5 +133,37 @@ describe("mobile UI regression contracts", () => {
       /contentInsetAdjustmentBehavior="automatic"/,
       "automatic insets must not duplicate the app header spacing",
     );
+  });
+
+  it("keeps selected quest chips structurally identical with reversed colors", () => {
+    const boardSelectorSource = rankingsSource.slice(
+      rankingsSource.indexOf("{BOARD_OPTIONS.map"),
+      rankingsSource.indexOf("{modeOptions.length"),
+    );
+
+    assert.doesNotMatch(
+      boardSelectorSource,
+      /<LinearGradient/,
+      "selected quests should not switch to a separate gradient component",
+    );
+    assert.match(
+      boardSelectorSource,
+      /selected \? "bg-primaryText" : "bg-surface"/,
+      "only the quest chip background color should change when selected",
+    );
+    assert.match(
+      boardSelectorSource,
+      /selected \? "text-surface" : "text-primaryText"/,
+      "the selected quest label should reverse the unselected label colors",
+    );
+  });
+
+  it("uses the canonical French name for Daily Numbers in rankings", () => {
+    assert.match(frenchRankingsSource, /dailyNumbers: "Nombre du jour"/);
+    assert.doesNotMatch(frenchRankingsSource, /Le compte est bon/);
+  });
+
+  it("keeps the loading card free of clipped platform shadows", () => {
+    assert.doesNotMatch(loadingStateSource, /boxShadow:/);
   });
 });
