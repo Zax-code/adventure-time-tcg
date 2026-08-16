@@ -18,7 +18,7 @@ defmodule AdventureTimeApi.Leaderboards.Boards do
       direction: :lower,
       board_kind: :source,
       raw_result_kind: :exact_completion_time,
-      prizes_enabled: false
+      prizes_enabled: true
     },
     %{
       key: "daily-numbers/2-4",
@@ -27,7 +27,7 @@ defmodule AdventureTimeApi.Leaderboards.Boards do
       direction: :lower,
       board_kind: :source,
       raw_result_kind: :exact_completion_time,
-      prizes_enabled: false
+      prizes_enabled: true
     },
     %{
       key: "daily-numbers/3-3",
@@ -36,7 +36,7 @@ defmodule AdventureTimeApi.Leaderboards.Boards do
       direction: :lower,
       board_kind: :source,
       raw_result_kind: :exact_completion_time,
-      prizes_enabled: false
+      prizes_enabled: true
     },
     %{
       key: "daily-numbers/family",
@@ -59,7 +59,7 @@ defmodule AdventureTimeApi.Leaderboards.Boards do
       direction: :lower,
       board_kind: :source,
       raw_result_kind: :wordle_outcome,
-      prizes_enabled: false
+      prizes_enabled: true
     },
     %{
       key: "wordle/en",
@@ -68,7 +68,7 @@ defmodule AdventureTimeApi.Leaderboards.Boards do
       direction: :lower,
       board_kind: :source,
       raw_result_kind: :wordle_outcome,
-      prizes_enabled: false
+      prizes_enabled: true
     },
     %{
       key: "wordle/family",

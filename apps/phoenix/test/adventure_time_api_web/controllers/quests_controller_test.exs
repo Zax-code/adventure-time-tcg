@@ -4,6 +4,7 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
   alias AdventureTimeApi.Accounts.{EmailCredential, User}
   alias AdventureTimeApi.Fitbit.Account
   alias AdventureTimeApi.Health.StepSnapshot
+  alias AdventureTimeApi.Leaderboards.Board
   alias AdventureTimeApi.Quests
 
   alias AdventureTimeApi.Quests.{
@@ -383,6 +384,12 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
       |> get(~p"/quests/daily-numbers?mode=1-5")
       |> json_response(200)
 
+    ranked_state =
+      access_token
+      |> auth_conn()
+      |> post(~p"/quests/daily-numbers/ranked-start", %{"mode" => "1-5"})
+      |> json_response(200)
+
     other_state =
       other_access_token
       |> auth_conn()
@@ -396,6 +403,8 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
       |> json_response(200)
 
     assert state["mode"] == "1-5"
+    assert ranked_state["numbers"] == state["numbers"]
+    assert ranked_state["target"] == state["target"]
     assert balanced_state["mode"] == "2-4"
     assert state["target"] == other_state["target"]
     assert state["numbers"] == other_state["numbers"]
@@ -460,6 +469,40 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
              "error" => "Daily Numbers already submitted for today",
              "code" => "DAILY_NUMBERS_ALREADY_SUBMITTED"
            }
+  end
+
+  test "ranked session failures never block Daily Numbers play" do
+    user = create_user_with_password("daily-numbers-isolation@example.com", "password123")
+    access_token = login_access_token(user.email, "password123")
+
+    Board
+    |> Repo.get_by!(key: "daily-numbers/1-5")
+    |> Board.changeset(%{enabled: false})
+    |> Repo.update!()
+
+    response =
+      access_token
+      |> auth_conn()
+      |> post(~p"/quests/daily-numbers/ranked-start", %{"mode" => "1-5"})
+      |> json_response(200)
+
+    assert response["mode"] == "1-5"
+    assert response["submitted"] == false
+    assert length(response["numbers"]) == 6
+
+    submitted =
+      access_token
+      |> auth_conn()
+      |> post(~p"/quests/daily-numbers/submit", %{
+        "mode" => "1-5",
+        "dateKey" => response["date"],
+        "questVersion" => response["questVersion"],
+        "steps" => []
+      })
+      |> json_response(200)
+
+    assert submitted["submitted"] == true
+    assert submitted["reward"] == 0
   end
 
   test "POST /quests/daily-numbers/submit keeps the quest failed at 0 percent when the result does not improve",

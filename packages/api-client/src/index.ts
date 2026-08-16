@@ -30,6 +30,13 @@ import {
   pvpSpectateResponseSchema,
   pvpSpectateDetailResponseSchema,
   leaderboardBoardsResponseSchema,
+  leaderboardCorrectionConfirmSchema,
+  leaderboardCorrectionPreviewSchema,
+  leaderboardCorrectionResponseSchema,
+  leaderboardHistoryResponseSchema,
+  leaderboardHistoryDaysResponseSchema,
+  leaderboardResultExclusionSchema,
+  leaderboardResultExclusionResponseSchema,
   leaderboardResponseSchema,
   publicLeaderboardProfileSchema,
   updateDisplayNameSchema,
@@ -135,6 +142,13 @@ import {
   type PvpSpectateDetailResponse,
   type LeaderboardBoardKey,
   type LeaderboardBoardsResponse,
+  type LeaderboardCorrectionConfirmInput,
+  type LeaderboardCorrectionPreviewInput,
+  type LeaderboardCorrectionResponse,
+  type LeaderboardHistoryResponse,
+  type LeaderboardHistoryDaysResponse,
+  type LeaderboardResultExclusionInput,
+  type LeaderboardResultExclusionResponse,
   type LeaderboardResponse,
   type PublicLeaderboardProfile,
   type AppleAuthInput,
@@ -611,6 +625,16 @@ export class ApiClient {
     const query = `?mode=${encodeURIComponent(mode)}`;
     return this.request(`/quests/daily-numbers${query}`, { method: "GET" }, (data) =>
       dailyNumbersStateResponseSchema.parse(data),
+    );
+  }
+
+  async startDailyNumbersRanked(
+    mode: DailyNumbersMode,
+  ): Promise<DailyNumbersStateResponse> {
+    return this.request(
+      "/quests/daily-numbers/ranked-start",
+      { method: "POST", body: JSON.stringify({ mode }) },
+      (data) => dailyNumbersStateResponseSchema.parse(data),
     );
   }
 
@@ -1400,6 +1424,72 @@ export class ApiClient {
       )}?${query.toString()}`,
       { method: "GET" },
       (data) => leaderboardResponseSchema.parse(data),
+    );
+  }
+
+  async leaderboardHistory(
+    boardKey: LeaderboardBoardKey,
+  ): Promise<LeaderboardHistoryResponse> {
+    const [quest, mode] = boardKey.split("/");
+
+    return this.request(
+      `/leaderboards/${encodeURIComponent(quest)}/${encodeURIComponent(mode)}?period=history`,
+      { method: "GET" },
+      (data) => leaderboardHistoryResponseSchema.parse(data),
+    );
+  }
+
+  async leaderboardHistoryDays(
+    boardKey: LeaderboardBoardKey,
+    periodStart: string,
+  ): Promise<LeaderboardHistoryDaysResponse> {
+    const [quest, mode] = boardKey.split("/");
+
+    return this.request(
+      `/leaderboards/${encodeURIComponent(quest)}/${encodeURIComponent(
+        mode,
+      )}/history/${encodeURIComponent(periodStart)}/days`,
+      { method: "GET" },
+      (data) => leaderboardHistoryDaysResponseSchema.parse(data),
+    );
+  }
+
+  async excludeLeaderboardResult(
+    resultId: string,
+    input: LeaderboardResultExclusionInput,
+  ): Promise<LeaderboardResultExclusionResponse> {
+    const body = leaderboardResultExclusionSchema.parse(input);
+
+    return this.request(
+      `/admin/leaderboards/results/${encodeURIComponent(resultId)}/exclude`,
+      { method: "POST", body: JSON.stringify(body) },
+      (data) => leaderboardResultExclusionResponseSchema.parse(data),
+    );
+  }
+
+  async previewLeaderboardCorrection(
+    snapshotId: string,
+    input: LeaderboardCorrectionPreviewInput,
+  ): Promise<LeaderboardCorrectionResponse> {
+    const body = leaderboardCorrectionPreviewSchema.parse(input);
+
+    return this.request(
+      `/admin/leaderboards/snapshots/${encodeURIComponent(snapshotId)}/correction-preview`,
+      { method: "POST", body: JSON.stringify(body) },
+      (data) => leaderboardCorrectionResponseSchema.parse(data),
+    );
+  }
+
+  async confirmLeaderboardCorrection(
+    snapshotId: string,
+    input: LeaderboardCorrectionConfirmInput,
+  ): Promise<LeaderboardCorrectionResponse> {
+    const body = leaderboardCorrectionConfirmSchema.parse(input);
+
+    return this.request(
+      `/admin/leaderboards/snapshots/${encodeURIComponent(snapshotId)}/corrections`,
+      { method: "POST", body: JSON.stringify(body) },
+      (data) => leaderboardCorrectionResponseSchema.parse(data),
     );
   }
 

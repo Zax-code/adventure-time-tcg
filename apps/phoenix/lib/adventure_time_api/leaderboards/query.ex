@@ -7,9 +7,11 @@ defmodule AdventureTimeApi.Leaderboards.Query do
 
   alias AdventureTimeApi.Leaderboards.{
     Board,
+    Configuration,
     DailyResult,
     Period,
     PublicProfiles,
+    Scoring,
     ScoringVersion,
     Snapshot,
     SnapshotRow
@@ -28,31 +30,97 @@ defmodule AdventureTimeApi.Leaderboards.Query do
            Repo.get_by(Snapshot, period_id: period.id, board_id: board.id, current: true),
          %ScoringVersion{} = scoring_version <-
            Repo.get(ScoringVersion, snapshot.scoring_version_id) do
-      rows = fetch_rows(snapshot.id, @visible_row_limit + 1)
-      visible_rows = Enum.take(rows, @visible_row_limit)
-      projected_rows = Enum.map(visible_rows, &project_row(&1, period))
-      current_player_row = find_current_player(snapshot.id, current_user_id, period)
-
-      {:ok,
-       %{
-         board: project_board(board),
-         period: project_period(period, snapshot),
-         podium: Enum.filter(projected_rows, &(&1.rank <= 3)),
-         rows: projected_rows,
-         currentPlayer: current_player_row,
-         pendingCurrentPlayerResult: nil,
-         qualification: qualification(board.id, period, current_user_id, current_player_row),
-         pageInfo: %{nextCursor: nil, hasNextPage: length(rows) > @visible_row_limit},
-         scoring: %{
-           version: scoring_version.version,
-           displayMax: 1_000,
-           weeklyRule: "average_best_3"
-         }
-       }}
+      {:ok, build_payload(board, period, snapshot, scoring_version, current_user_id)}
     else
       nil -> {:error, :period_unavailable}
       {:error, reason} -> {:error, reason}
     end
+  end
+
+  @spec history(String.t(), String.t(), Ecto.UUID.t()) :: {:ok, map()} | {:error, atom()}
+  def history(quest, mode, current_user_id) do
+    with %Board{} = board <- Repo.get_by(Board, key: "#{quest}/#{mode}", enabled: true) do
+      weeks =
+        from(period in Period,
+          join: snapshot in Snapshot,
+          on:
+            snapshot.period_id == period.id and snapshot.board_id == ^board.id and
+              snapshot.current,
+          join: scoring_version in ScoringVersion,
+          on: scoring_version.id == snapshot.scoring_version_id,
+          where:
+            period.period_type == :week and period.status in [:closed, :corrected] and
+              period.origin == :verified,
+          order_by: [desc: period.week_start],
+          limit: 12,
+          select: {period, snapshot, scoring_version}
+        )
+        |> Repo.all()
+        |> Enum.map(fn {period, snapshot, scoring_version} ->
+          build_payload(board, period, snapshot, scoring_version, current_user_id)
+        end)
+
+      {:ok, %{weeks: weeks}}
+    else
+      nil -> {:error, :period_unavailable}
+    end
+  end
+
+  def history_days(quest, mode, period_start, current_user_id) do
+    with %Board{} = board <- Repo.get_by(Board, key: "#{quest}/#{mode}", enabled: true),
+         {:ok, week_start} <- Date.from_iso8601(period_start) do
+      week_end = Date.add(week_start, 6)
+
+      days =
+        from(period in Period,
+          join: snapshot in Snapshot,
+          on:
+            snapshot.period_id == period.id and snapshot.board_id == ^board.id and
+              snapshot.current,
+          join: scoring_version in ScoringVersion,
+          on: scoring_version.id == snapshot.scoring_version_id,
+          where:
+            period.period_type == :day and period.status in [:closed, :corrected] and
+              period.competition_date >= ^week_start and period.competition_date <= ^week_end and
+              period.origin == :verified,
+          order_by: [asc: period.competition_date],
+          select: {period, snapshot, scoring_version}
+        )
+        |> Repo.all()
+        |> Enum.map(fn {period, snapshot, scoring_version} ->
+          build_payload(board, period, snapshot, scoring_version, current_user_id)
+        end)
+
+      {:ok, %{days: days}}
+    else
+      nil -> {:error, :period_unavailable}
+      {:error, _reason} -> {:error, :invalid_period}
+    end
+  end
+
+  defp build_payload(board, period, snapshot, scoring_version, current_user_id) do
+    rows = fetch_rows(snapshot.id, @visible_row_limit + 1)
+    visible_rows = Enum.take(rows, @visible_row_limit)
+    projected_rows = Enum.map(visible_rows, &project_row(&1, period))
+    current_player_row = find_current_player(snapshot.id, current_user_id, period)
+    pending = pending_result(board, period, current_user_id, scoring_version)
+
+    %{
+      board: project_board(board),
+      period: project_period(period, snapshot),
+      podium: Enum.filter(projected_rows, &(&1.rank <= 3)),
+      rows: projected_rows,
+      currentPlayer: current_player_row,
+      pendingCurrentPlayerResult: pending && pending.raw_result,
+      pendingCurrentPlayerPoints: pending && div(pending.points_milli + 500, 1_000),
+      qualification: qualification(board.id, period, current_user_id, current_player_row),
+      pageInfo: %{nextCursor: nil, hasNextPage: length(rows) > @visible_row_limit},
+      scoring: %{
+        version: scoring_version.version,
+        displayMax: 1_000,
+        weeklyRule: "average_best_3"
+      }
+    }
   end
 
   defp fetch_period(board_id, "yesterday") do
@@ -197,9 +265,96 @@ defmodule AdventureTimeApi.Leaderboards.Query do
       serverNow: DateTime.utc_now(),
       revision: snapshot.revision,
       provisional: period.status in [:open, :closing],
-      standingsThrough: period.competition_date,
+      standingsThrough: standings_through(period),
       prizesEnabled: period.prizes_allowed
     }
+  end
+
+  defp standings_through(%Period{period_type: :day, competition_date: date}), do: date
+
+  defp standings_through(%Period{period_type: :week} = period) do
+    week_end = Date.add(period.week_start, 6)
+
+    from(day in Period,
+      where:
+        day.period_type == :day and day.status in [:closed, :corrected] and
+          day.competition_date >= ^period.week_start and day.competition_date <= ^week_end,
+      select: max(day.competition_date)
+    )
+    |> Repo.one()
+  end
+
+  defp pending_result(_board, %Period{period_type: :day}, _user_id, _version), do: nil
+
+  defp pending_result(%Board{board_kind: :source} = board, period, user_id, _version) do
+    case pending_source_daily_result(board.id, period, user_id) do
+      %DailyResult{} = result ->
+        %{raw_result: result.raw_result, points_milli: result.points_milli}
+
+      nil ->
+        nil
+    end
+  end
+
+  defp pending_result(%Board{board_kind: :derived_family} = board, period, user_id, version) do
+    member_keys = Map.get(board.derived_members, "members", [])
+
+    member_boards =
+      Repo.all(
+        from(member in Board, where: member.key in ^member_keys, select: {member.id, member.key})
+      )
+
+    member_ids = Enum.map(member_boards, &elem(&1, 0))
+    keys_by_id = Map.new(member_boards)
+    results = pending_source_daily_results(member_ids, period, user_id)
+    latest_date = results |> Enum.map(& &1.competition_date) |> Enum.max(Date, fn -> nil end)
+
+    member_points =
+      results
+      |> Enum.filter(&(&1.competition_date == latest_date))
+      |> Map.new(&{Map.fetch!(keys_by_id, &1.board_id), &1.points_milli})
+
+    with true <- map_size(member_points) > 0,
+         {:ok, configuration} <- Configuration.normalize(version.configuration),
+         {:ok, derived} <- Scoring.derived(configuration, board.key, member_points) do
+      %{
+        raw_result: %{"kind" => "member_breakdown", "members" => derived.member_points_milli},
+        points_milli: derived.points_milli
+      }
+    else
+      _ -> nil
+    end
+  end
+
+  defp pending_source_daily_result(board_id, %Period{period_type: :week} = period, user_id) do
+    [board_id]
+    |> pending_source_daily_results(period, user_id)
+    |> List.first()
+  end
+
+  defp pending_source_daily_results(board_ids, %Period{period_type: :week} = period, user_id) do
+    week_end = Date.add(period.week_start, 6)
+
+    closed_dates =
+      from(day in Period,
+        where:
+          day.period_type == :day and day.status in [:closed, :corrected] and
+            day.competition_date >= ^period.week_start and day.competition_date <= ^week_end,
+        select: day.competition_date
+      )
+      |> Repo.all()
+
+    from(result in DailyResult,
+      where:
+        result.user_id == ^user_id and result.board_id in ^board_ids and result.active and
+          result.result_status == :accepted and result.integrity_status == :accepted and
+          result.eligibility_status == :eligible and
+          result.competition_date >= ^period.week_start and
+          result.competition_date <= ^week_end and result.competition_date not in ^closed_dates,
+      order_by: [desc: result.competition_date, desc: result.accepted_at],
+      select: result
+    )
+    |> Repo.all()
   end
 
   defp qualification(_board_id, %Period{period_type: :day}, _user_id, _row), do: nil
@@ -210,13 +365,22 @@ defmodule AdventureTimeApi.Leaderboards.Query do
   defp qualification(board_id, %Period{period_type: :week} = period, user_id, nil) do
     week_end = Date.add(period.week_start, 6)
 
+    closed_dates =
+      from(day in Period,
+        where:
+          day.period_type == :day and day.status in [:closed, :corrected] and
+            day.competition_date >= ^period.week_start and day.competition_date <= ^week_end,
+        select: day.competition_date
+      )
+      |> Repo.all()
+
     count =
       from(result in DailyResult,
         where:
           result.user_id == ^user_id and result.board_id == ^board_id and result.active and
             result.result_status in [:accepted, :snapshotted] and
             result.competition_date >= ^period.week_start and
-            result.competition_date <= ^week_end
+            result.competition_date <= ^week_end and result.competition_date in ^closed_dates
       )
       |> Repo.aggregate(:count)
 

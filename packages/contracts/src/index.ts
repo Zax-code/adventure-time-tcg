@@ -123,6 +123,7 @@ export const leaderboardResponseSchema = z.object({
   rows: z.array(leaderboardRowSchema),
   currentPlayer: leaderboardRowSchema.nullable(),
   pendingCurrentPlayerResult: leaderboardRawResultSchema.nullable(),
+  pendingCurrentPlayerPoints: z.number().int().min(0).max(1000).nullable(),
   qualification: z
     .object({ validResults: z.number().int().nonnegative(), requiredResults: z.literal(3) })
     .nullable(),
@@ -135,6 +136,51 @@ export const leaderboardResponseSchema = z.object({
     displayMax: z.literal(1000),
     weeklyRule: z.literal("average_best_3"),
   }),
+});
+
+export const leaderboardHistoryResponseSchema = z.object({
+  weeks: z.array(leaderboardResponseSchema),
+});
+
+export const leaderboardHistoryDaysResponseSchema = z.object({
+  days: z.array(leaderboardResponseSchema),
+});
+
+export const leaderboardResultExclusionSchema = z.object({
+  reason: z.string().trim().min(8),
+});
+
+export const leaderboardResultExclusionResponseSchema = z.object({
+  id: z.string().uuid(),
+  status: z.literal("excluded"),
+});
+
+export const leaderboardCorrectionPreviewSchema = z
+  .object({
+    reason: z.string().trim().min(8),
+    excludeUserIds: z.array(z.string().uuid()).default([]),
+    excludeDailyResultIds: z.array(z.string().uuid()).default([]),
+  })
+  .refine(
+    (input) => input.excludeUserIds.length > 0 || input.excludeDailyResultIds.length > 0,
+    "At least one user or daily result must be excluded",
+  );
+
+export const leaderboardCorrectionConfirmSchema = z.object({
+  previewHash: z.string().min(1),
+  confirm: z.literal(true),
+});
+
+export const leaderboardCorrectionResponseSchema = z.object({
+  id: z.string().uuid(),
+  sourceSnapshotId: z.string().uuid(),
+  sourceRevision: z.number().int().positive(),
+  status: z.enum(["previewed", "applied"]),
+  previewHash: z.string(),
+  proposedChanges: z.record(z.unknown()),
+  rankDelta: z.record(z.unknown()),
+  rewardDelta: z.record(z.unknown()),
+  resultingSnapshotId: z.string().uuid().nullable(),
 });
 
 export const publicLeaderboardProfileSchema = z.object({
@@ -178,6 +224,27 @@ export type LeaderboardBoardsResponse = z.infer<
 >;
 export type LeaderboardRow = z.infer<typeof leaderboardRowSchema>;
 export type LeaderboardResponse = z.infer<typeof leaderboardResponseSchema>;
+export type LeaderboardHistoryResponse = z.infer<
+  typeof leaderboardHistoryResponseSchema
+>;
+export type LeaderboardHistoryDaysResponse = z.infer<
+  typeof leaderboardHistoryDaysResponseSchema
+>;
+export type LeaderboardResultExclusionInput = z.infer<
+  typeof leaderboardResultExclusionSchema
+>;
+export type LeaderboardResultExclusionResponse = z.infer<
+  typeof leaderboardResultExclusionResponseSchema
+>;
+export type LeaderboardCorrectionPreviewInput = z.infer<
+  typeof leaderboardCorrectionPreviewSchema
+>;
+export type LeaderboardCorrectionConfirmInput = z.infer<
+  typeof leaderboardCorrectionConfirmSchema
+>;
+export type LeaderboardCorrectionResponse = z.infer<
+  typeof leaderboardCorrectionResponseSchema
+>;
 export type PublicLeaderboardProfile = z.infer<
   typeof publicLeaderboardProfileSchema
 >;

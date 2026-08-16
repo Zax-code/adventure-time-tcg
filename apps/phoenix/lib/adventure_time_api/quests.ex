@@ -10,6 +10,7 @@ defmodule AdventureTimeApi.Quests do
   alias AdventureTimeApi.Accounts.User
   alias AdventureTimeApi.Fitbit
   alias AdventureTimeApi.Health
+  alias AdventureTimeApi.Leaderboards.{QuestResults, RankedSessions}
 
   alias AdventureTimeApi.Quests.{
     DailyNumbersArchiveAttempt,
@@ -256,6 +257,8 @@ defmodule AdventureTimeApi.Quests do
       |> Repo.update_all(set: updates)
     end
 
+    QuestResults.sync_safely(user_id, date, :steps)
+
     :ok
   end
 
@@ -387,7 +390,9 @@ defmodule AdventureTimeApi.Quests do
     timezone = reset_timezone_for_user(user_id)
     recover_previous_perfect_timing_attempts(user_id, date, timezone)
     materialize_daily_quests(user_id, date)
-    PerfectTiming.state(user_id, date, timezone)
+    result = PerfectTiming.state(user_id, date, timezone)
+    QuestResults.sync_safely(user_id, date, :perfect_timing)
+    result
   end
 
   def start_perfect_timing(user_id, date_key, quest_version) do
@@ -410,16 +415,20 @@ defmodule AdventureTimeApi.Quests do
     with {:ok, attempt_id} <- Ecto.UUID.cast(attempt_id),
          %PerfectTimingAttempt{} = attempt <-
            Repo.get_by(PerfectTimingAttempt, id: attempt_id, user_id: user_id) do
-      PerfectTiming.stop(
-        user_id,
-        attempt.date,
-        timezone,
-        attempt.id,
-        elapsed_ms,
-        stop_reason,
-        date_key,
-        quest_version
-      )
+      result =
+        PerfectTiming.stop(
+          user_id,
+          attempt.date,
+          timezone,
+          attempt.id,
+          elapsed_ms,
+          stop_reason,
+          date_key,
+          quest_version
+        )
+
+      QuestResults.sync_safely(user_id, attempt.date, :perfect_timing)
+      result
     else
       _ -> {:error, :attempt_not_found}
     end
@@ -445,14 +454,18 @@ defmodule AdventureTimeApi.Quests do
     timezone = reset_timezone_for_user(user_id)
     materialize_daily_quests(user_id, date)
 
-    PerfectTiming.keep_result(
-      user_id,
-      date,
-      timezone,
-      attempt_id,
-      date_key,
-      quest_version
-    )
+    result =
+      PerfectTiming.keep_result(
+        user_id,
+        date,
+        timezone,
+        attempt_id,
+        date_key,
+        quest_version
+      )
+
+    QuestResults.sync_safely(user_id, date, :perfect_timing)
+    result
   end
 
   def perfect_timing_training_target(user_id) do
@@ -474,6 +487,77 @@ defmodule AdventureTimeApi.Quests do
 
       {:ok, build_daily_numbers_state(user_id, date, normalized_mode)}
     end
+  end
+
+  def start_daily_numbers_ranked(user_id, mode) do
+    with {:ok, normalized_mode} <- normalize_daily_numbers_mode(mode),
+         %User{} = user <- Repo.get(User, user_id),
+         date = current_reset_date_for_user(user_id) do
+      materialize_daily_quests(user_id, date)
+
+      if is_nil(get_daily_numbers_attempt(user_id, date, normalized_mode)) do
+        start_ranked_session_safely(user, date, normalized_mode)
+      end
+
+      {:ok, build_daily_numbers_state(user_id, date, normalized_mode)}
+    else
+      nil -> {:error, :user_not_found}
+      error -> error
+    end
+  end
+
+  defp start_ranked_session_safely(user, date, mode) do
+    case RankedSessions.start_daily_numbers(user, date, mode) do
+      {:ok, _session} ->
+        :ok
+
+      {:error, reason} ->
+        Logger.warning("Daily Numbers ranked session unavailable",
+          user_id: user.id,
+          date: date,
+          mode: mode,
+          reason: inspect(reason)
+        )
+
+        :ok
+    end
+  rescue
+    exception ->
+      Logger.error("Daily Numbers ranked session failed",
+        user_id: user.id,
+        date: date,
+        mode: mode,
+        error: Exception.message(exception)
+      )
+
+      :ok
+  end
+
+  defp settle_ranked_session_safely(user_id, date, mode, source_id) do
+    case RankedSessions.settle_daily_numbers(user_id, date, mode, source_id) do
+      {:ok, _session} ->
+        :ok
+
+      {:error, reason} ->
+        Logger.warning("Daily Numbers ranked session settlement unavailable",
+          user_id: user_id,
+          date: date,
+          mode: mode,
+          reason: inspect(reason)
+        )
+
+        :ok
+    end
+  rescue
+    exception ->
+      Logger.error("Daily Numbers ranked session settlement failed",
+        user_id: user_id,
+        date: date,
+        mode: mode,
+        error: Exception.message(exception)
+      )
+
+      :ok
   end
 
   def submit_daily_numbers(
@@ -556,7 +640,20 @@ defmodule AdventureTimeApi.Quests do
             end)
             |> Repo.transaction()
             |> case do
-              {:ok, _changes} ->
+              {:ok, %{daily_numbers_attempt: attempt}} ->
+                settle_ranked_session_safely(
+                  user_id,
+                  date,
+                  normalized_mode,
+                  attempt.id
+                )
+
+                QuestResults.sync_safely(
+                  user_id,
+                  date,
+                  {:daily_numbers, normalized_mode}
+                )
+
                 {:ok, build_daily_numbers_state(user_id, date, normalized_mode)}
 
               {:error, _step, reason, _changes} ->
@@ -775,6 +872,8 @@ defmodule AdventureTimeApi.Quests do
                     solved: solved
                   })
                   |> Repo.insert!()
+
+                  QuestResults.sync_safely(user_id, date, {:wordle, locale})
 
                   quest_just_completed =
                     if solved do
@@ -1180,6 +1279,7 @@ defmodule AdventureTimeApi.Quests do
 
             sync_speed_calculus_quest_from_runs(user_id, run.date)
             state = build_speed_calculus_state(user_id, run.date)
+            QuestResults.sync_safely(user_id, run.date, {:speed_calculus, run.id})
 
             {:ok, Map.merge(state, %{correctAnswers: correct_answers, reward: reward})}
           end
@@ -1187,6 +1287,22 @@ defmodule AdventureTimeApi.Quests do
     else
       {:error, reason} -> {:error, reason}
     end
+  end
+
+  @doc "Settles globally expired ranked runs for quest-owned background reconciliation."
+  @spec settle_expired_speed_calculus_runs_since(Date.t(), DateTime.t()) ::
+          {non_neg_integer(), nil}
+  def settle_expired_speed_calculus_runs_since(%Date{} = since, %DateTime{} = now \\ now_utc()) do
+    expiration_cutoff =
+      DateTime.add(now, -SpeedCalculusEngine.finish_grace_seconds(), :second)
+
+    SpeedCalculusDailyRun
+    |> where(
+      [run],
+      run.date >= ^since and run.status == "in_progress" and is_nil(run.manual_paused_at) and
+        run.play_deadline_at < ^expiration_cutoff
+    )
+    |> Repo.update_all(set: [status: "abandoned", score: 0, reward: 0, finished_at: now])
   end
 
   @doc "Cash out: lock the speed calculus quest early with the best run's reward."
@@ -1582,13 +1698,22 @@ defmodule AdventureTimeApi.Quests do
     expiration_cutoff =
       DateTime.add(now, -SpeedCalculusEngine.finish_grace_seconds(), :second)
 
-    SpeedCalculusDailyRun
-    |> where(
-      [r],
-      r.user_id == ^user_id and r.date == ^date and r.status == "in_progress" and
-        is_nil(r.manual_paused_at) and r.play_deadline_at < ^expiration_cutoff
-    )
+    expired_query =
+      SpeedCalculusDailyRun
+      |> where(
+        [r],
+        r.user_id == ^user_id and r.date == ^date and r.status == "in_progress" and
+          is_nil(r.manual_paused_at) and r.play_deadline_at < ^expiration_cutoff
+      )
+
+    expired_run_ids = expired_query |> select([r], r.id) |> Repo.all()
+
+    expired_query
     |> Repo.update_all(set: [status: "abandoned", score: 0, reward: 0, finished_at: now])
+
+    Enum.each(expired_run_ids, fn run_id ->
+      QuestResults.sync_safely(user_id, date, {:speed_calculus, run_id})
+    end)
 
     :ok
   end

@@ -264,7 +264,7 @@ export function DailyNumbersPlayPage() {
   const date = search.get("date");
   const state = useQuery({
     queryKey: ["daily-numbers", date || "today", mode],
-    queryFn: () => date ? webApiClient.dailyNumbersArchiveState(date, mode) : webApiClient.dailyNumbersState(mode),
+    queryFn: () => date ? webApiClient.dailyNumbersArchiveState(date, mode) : webApiClient.startDailyNumbersRanked(mode),
   });
 
   return (

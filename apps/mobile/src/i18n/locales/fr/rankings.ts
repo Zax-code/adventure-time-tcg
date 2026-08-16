@@ -7,10 +7,15 @@ const rankings = {
   you: "Toi",
   provisional: "Provisoire — certains fuseaux horaires jouent encore",
   standingsThrough: "Classement provisoire arrêté au {date}",
+  closedThrough: "Classement final arrêté au {date}",
+  weekEnding: "Semaine se terminant le {date}",
+  viewDays: "Voir les résultats quotidiens",
+  hideDays: "Masquer les résultats quotidiens",
+  pendingResult: "Votre dernier résultat (en attente de clôture) : {result} · {points} pts",
   scoringHelp: "Comprendre le calcul des points",
   profileTapHint: "Touche un aventurier pour voir ses couronnes et ses succès",
   historyTitle: "Historique hebdomadaire",
-  historyBody: "Les semaines terminées apparaîtront ici au lancement des classements.",
+  historyBody: "Aucune semaine de compétition clôturée pour le moment.",
   periods: {
     yesterday: "Hier",
     current_week: "Cette semaine",
@@ -22,6 +27,11 @@ const rankings = {
     wordle: "Wordle",
     speedCalculus: "Calcul rapide",
     perfectTiming: "Timing parfait",
+  },
+  modes: {
+    combined: "Combiné",
+    french: "Français",
+    english: "Anglais",
   },
   profile: {
     title: "Profil du joueur",

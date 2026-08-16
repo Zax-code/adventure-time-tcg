@@ -122,12 +122,20 @@ defmodule AdventureTimeApiWeb.Router do
     post("/health/steps", AppController, :sync_steps)
 
     get("/leaderboards/boards", LeaderboardsController, :boards)
+
+    get(
+      "/leaderboards/:quest/:mode/history/:period_start/days",
+      LeaderboardsController,
+      :history_days
+    )
+
     get("/leaderboards/:quest/:mode", LeaderboardsController, :show)
     get("/public-profiles/:public_profile_id", LeaderboardsController, :public_profile)
 
     get("/quests", QuestsController, :list_quests)
     post("/quests/claim", QuestsController, :claim_quest)
     get("/quests/daily-numbers", QuestsController, :daily_numbers_state)
+    post("/quests/daily-numbers/ranked-start", QuestsController, :start_daily_numbers_ranked)
     post("/quests/daily-numbers/submit", QuestsController, :submit_daily_numbers)
     get("/quests/daily-numbers/history", QuestsController, :daily_numbers_archive_history)
     get("/quests/daily-numbers/archive", QuestsController, :daily_numbers_archive_state)
@@ -199,6 +207,19 @@ defmodule AdventureTimeApiWeb.Router do
     delete("/admin/users/:id", AdminController, :delete_user)
     get("/admin/email-requests", AdminController, :email_requests)
     patch("/admin/email-requests/:id", AdminController, :review_email_request)
+    post("/admin/leaderboards/results/:id/exclude", AdminController, :exclude_leaderboard_result)
+
+    post(
+      "/admin/leaderboards/snapshots/:id/correction-preview",
+      AdminController,
+      :preview_leaderboard_correction
+    )
+
+    post(
+      "/admin/leaderboards/snapshots/:id/corrections",
+      AdminController,
+      :confirm_leaderboard_correction
+    )
 
     get("/admin/packs", AdminController, :list_packs)
     post("/admin/packs", AdminController, :create_pack)
