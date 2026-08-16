@@ -26,7 +26,7 @@ import {
 } from "../../components/icons";
 import { PageLoadingState } from "../../components/loading-state";
 import { useTranslation } from "../../i18n";
-import { apiClient } from "../../lib/api";
+import { ApiClientError, apiClient } from "../../lib/api";
 import { useThemeStore } from "../../stores/theme-store";
 import {
   useAppHeaderHeight,
@@ -67,18 +67,23 @@ const BOARD_OPTIONS: Array<{
 ];
 
 export function RankingsScreen() {
-  const { placement, preview } = useLocalSearchParams<{
+  const { placement, preview, previewState } = useLocalSearchParams<{
     placement?: string;
     preview?: string;
+    previewState?: string;
   }>();
   const isPreview =
     process.env.EXPO_PUBLIC_E2E_AUTH === "1" && preview === "1";
+  const isYesterdayPendingPreview =
+    isPreview && previewState === "yesterday-pending";
   const { t } = useTranslation();
   const themeName = useThemeStore((state) => state.themeName);
   const tc = THEME_COLORS[themeName];
   const headerHeight = useAppHeaderHeight();
   const bottomPadding = useBottomTabBarContentPadding();
-  const [period, setPeriod] = useState<Period>("current_week");
+  const [period, setPeriod] = useState<Period>(
+    isYesterdayPendingPreview ? "yesterday" : "current_week",
+  );
   const [boardKey, setBoardKey] = useState<LeaderboardBoardKey>(
     "perfect-timing/official",
   );
@@ -146,15 +151,21 @@ export function RankingsScreen() {
   );
 
   const data = useMemo<LeaderboardResponse | undefined>(() => {
+    if (isYesterdayPendingPreview) return undefined;
     if (!isPreview) return queryData;
     const previewData =
       placement === "top7" ? RANKINGS_TOP_SEVEN_PREVIEW_DATA : RANKINGS_PREVIEW_DATA;
     return { ...previewData, board: { ...previewData.board, key: boardKey } };
-  }, [boardKey, isPreview, placement, queryData]);
+  }, [boardKey, isPreview, isYesterdayPendingPreview, placement, queryData]);
+
+  const isYesterdayPending =
+    period === "yesterday" &&
+    (isYesterdayPendingPreview ||
+      (queryError instanceof ApiClientError &&
+        queryError.code === "LEADERBOARD_PERIOD_UNAVAILABLE"));
 
   return (
     <ScrollView
-      contentInsetAdjustmentBehavior="automatic"
       className="flex-1 bg-bg"
       contentContainerStyle={{
         paddingTop: headerHeight + 18,
@@ -284,6 +295,8 @@ export function RankingsScreen() {
         ) : (
           <EmptyPanel title={t("rankings.historyTitle")} body={t("rankings.historyBody")} />
         )
+      ) : isYesterdayPending ? (
+        <YesterdayPendingPanel />
       ) : queryIsLoading && !isPreview ? (
         <PageLoadingState
           title={t("rankings.loadingTitle")}
@@ -296,6 +309,56 @@ export function RankingsScreen() {
         <RankingsContent data={data} preview={isPreview} />
       ) : null}
     </ScrollView>
+  );
+}
+
+function YesterdayPendingPanel() {
+  const { t } = useTranslation();
+  const tc = THEME_COLORS[useThemeStore((state) => state.themeName)];
+
+  return (
+    <View
+      className="w-full overflow-hidden rounded-[30px] border border-primaryBorder bg-infoTint"
+      testID="leaderboard-yesterday-pending"
+    >
+      <View className="items-center bg-infoTint px-7 py-8">
+        <ClockIcon size={56} color={tc.primaryDark} />
+
+        <View className="mt-4 rounded-full border border-primaryBorder bg-primaryTint px-4 py-1.5">
+          <Text className="font-nunito-bold text-xs uppercase tracking-[1.5px] text-primaryText">
+            {t("rankings.yesterdayPending.eyebrow")}
+          </Text>
+        </View>
+
+        <Text
+          selectable
+          adjustsFontSizeToFit
+          minimumFontScale={0.9}
+          numberOfLines={1}
+          className="mt-4 w-full text-center font-nunito-extrabold text-xl leading-7 text-fg"
+        >
+          {t("rankings.yesterdayPending.title")}
+        </Text>
+        <Text
+          selectable
+          className="mt-3 w-full text-center font-nunito text-[15px] leading-6 text-fgMuted"
+        >
+          {t("rankings.yesterdayPending.body")}
+        </Text>
+
+        <View className="mt-6 w-full flex-row items-center gap-3 rounded-2xl border border-primaryBorder bg-surface px-4 py-4">
+          <View className="size-10 items-center justify-center rounded-full bg-primaryTint">
+            <TrophyIcon size={22} color={tc.primaryDark} />
+          </View>
+          <Text
+            selectable
+            className="flex-1 font-nunito-semibold text-sm leading-5 text-primaryText"
+          >
+            {t("rankings.yesterdayPending.hint")}
+          </Text>
+        </View>
+      </View>
+    </View>
   );
 }
 

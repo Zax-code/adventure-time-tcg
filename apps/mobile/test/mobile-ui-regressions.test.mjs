@@ -111,4 +111,19 @@ describe("mobile UI regression contracts", () => {
     assert.match(rankingsSource, /<PodiumCard[\s\S]*?onPress=/);
     assert.match(rankingsSource, /<RankingRow[\s\S]*?onPress=/);
   });
+
+  it("treats an unfinished worldwide daily period as a pending leaderboard", () => {
+    assert.match(
+      rankingsSource,
+      /queryError instanceof ApiClientError[\s\S]*?LEADERBOARD_PERIOD_UNAVAILABLE/,
+      "the typed period-unavailable response should select the pending state",
+    );
+    assert.match(rankingsSource, /<YesterdayPendingPanel \/>/);
+    assert.match(rankingsSource, /testID="leaderboard-yesterday-pending"/);
+    assert.doesNotMatch(
+      rankingsSource,
+      /contentInsetAdjustmentBehavior="automatic"/,
+      "automatic insets must not duplicate the app header spacing",
+    );
+  });
 });

@@ -16,6 +16,13 @@ const rankings = {
   profileTapHint: "Tap any adventurer to see their crowns and achievements",
   historyTitle: "Weekly history",
   historyBody: "No closed competition weeks yet.",
+  yesterdayPending: {
+    eyebrow: "Finalizing worldwide",
+    title: "Yesterday's rankings are on the way",
+    body:
+      "They'll appear once every timezone has finished and step synchronizations have closed.",
+    hint: "Your results are safely recorded — nothing has been lost.",
+  },
   periods: {
     yesterday: "Yesterday",
     current_week: "This week",
