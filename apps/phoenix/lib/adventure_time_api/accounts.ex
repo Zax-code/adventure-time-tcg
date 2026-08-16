@@ -28,6 +28,7 @@ defmodule AdventureTimeApi.Accounts do
   alias AdventureTimeApi.Catalog.ImageAsset
   alias AdventureTimeApi.Health.StepSnapshot
   alias AdventureTimeApi.Inventory.OwnedCard
+  alias AdventureTimeApi.Leaderboards.SnapshotRow
   alias AdventureTimeApi.Notifications.Device, as: NotificationDevice
   alias AdventureTimeApi.Pvp.{Loadout, Match}
   alias AdventureTimeApi.Quests
@@ -1883,8 +1884,19 @@ defmodule AdventureTimeApi.Accounts do
 
   defp delete_user_record(%User{} = user) do
     normalized_email = normalize_email(user.email)
+    anonymous_tombstone = Ecto.UUID.generate()
 
     Multi.new()
+    |> Multi.update_all(
+      :anonymize_leaderboard_rows,
+      from(row in SnapshotRow, where: row.user_id == ^user.id),
+      set: [
+        user_id: nil,
+        public_profile_id: nil,
+        anonymous_tombstone: anonymous_tombstone,
+        identity_audit: %{}
+      ]
+    )
     |> Multi.delete_all(
       :delete_pvp_matches,
       from(match in Match, where: match.inviter_id == ^user.id or match.invitee_id == ^user.id)

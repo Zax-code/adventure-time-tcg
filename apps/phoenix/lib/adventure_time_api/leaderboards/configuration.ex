@@ -12,6 +12,10 @@ defmodule AdventureTimeApi.Leaderboards.Configuration do
   alias AdventureTimeApi.Repo
 
   @launch Scoring.launch_configuration()
+  @launch_date ~D[2026-08-15]
+
+  @spec launch_date() :: Date.t()
+  def launch_date, do: @launch_date
 
   @spec ensure_launch_version() :: {:ok, ScoringVersion.t()} | {:error, term()}
   def ensure_launch_version do
@@ -44,13 +48,15 @@ defmodule AdventureTimeApi.Leaderboards.Configuration do
           {:ok, ScoringVersion.t()} | {:error, :not_yet_effective | term()}
   def activate_due(%DateTime{} = now) do
     today = DateTime.to_date(now)
+    launch_available = Date.compare(today, @launch_date) != :lt
 
     Repo.transaction(fn ->
       due =
         from(version in ScoringVersion,
           where:
             version.status in [:scheduled, :active] and
-              version.effective_week_start <= ^today,
+              (version.effective_week_start <= ^today or
+                 (version.version == ^@launch.version and ^launch_available)),
           order_by: [desc: version.effective_week_start],
           limit: 1,
           lock: "FOR UPDATE"
@@ -74,9 +80,14 @@ defmodule AdventureTimeApi.Leaderboards.Configuration do
 
   @spec for_date(Date.t()) :: {:ok, {ScoringVersion.t(), map()}} | {:error, atom()}
   def for_date(%Date{} = date) do
+    launch_available = Date.compare(date, @launch_date) != :lt
+
     version =
       from(version in ScoringVersion,
-        where: version.status in [:active, :retired] and version.effective_week_start <= ^date,
+        where:
+          version.status in [:active, :retired] and
+            (version.effective_week_start <= ^date or
+               (version.version == ^@launch.version and ^launch_available)),
         order_by: [desc: version.effective_week_start],
         limit: 1
       )

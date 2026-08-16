@@ -76,7 +76,7 @@ defmodule AdventureTimeApi.Leaderboards.Query do
       podium: Enum.filter(projected_rows, &(&1.rank <= 3)),
       rows: projected_rows,
       currentPlayer: current_player_row,
-      pendingCurrentPlayerResult: nil,
+      pendingCurrentPlayerResult: pending_result(board.id, period, current_user_id),
       qualification: qualification(board.id, period, current_user_id, current_player_row),
       pageInfo: %{nextCursor: nil, hasNextPage: length(rows) > @visible_row_limit},
       scoring: %{
@@ -229,11 +229,49 @@ defmodule AdventureTimeApi.Leaderboards.Query do
       serverNow: DateTime.utc_now(),
       revision: snapshot.revision,
       provisional: period.status in [:open, :closing],
-      standingsThrough:
-        period.competition_date ||
-          (period.week_start && Date.add(period.week_start, 6)),
+      standingsThrough: standings_through(period),
       prizesEnabled: period.prizes_allowed
     }
+  end
+
+  defp standings_through(%Period{period_type: :day, competition_date: date}), do: date
+
+  defp standings_through(%Period{period_type: :week} = period) do
+    week_end = Date.add(period.week_start, 6)
+
+    from(day in Period,
+      where:
+        day.period_type == :day and day.status in [:closed, :corrected] and
+          day.competition_date >= ^period.week_start and day.competition_date <= ^week_end,
+      select: max(day.competition_date)
+    )
+    |> Repo.one()
+  end
+
+  defp pending_result(_board_id, %Period{period_type: :day}, _user_id), do: nil
+
+  defp pending_result(board_id, %Period{period_type: :week} = period, user_id) do
+    week_end = Date.add(period.week_start, 6)
+
+    closed_dates =
+      from(day in Period,
+        where:
+          day.period_type == :day and day.status in [:closed, :corrected] and
+            day.competition_date >= ^period.week_start and day.competition_date <= ^week_end,
+        select: day.competition_date
+      )
+      |> Repo.all()
+
+    from(result in DailyResult,
+      where:
+        result.user_id == ^user_id and result.board_id == ^board_id and result.active and
+          result.result_status == :accepted and result.competition_date >= ^period.week_start and
+          result.competition_date <= ^week_end and result.competition_date not in ^closed_dates,
+      order_by: [desc: result.competition_date, desc: result.accepted_at],
+      limit: 1,
+      select: result.raw_result
+    )
+    |> Repo.one()
   end
 
   defp qualification(_board_id, %Period{period_type: :day}, _user_id, _row), do: nil
@@ -244,13 +282,22 @@ defmodule AdventureTimeApi.Leaderboards.Query do
   defp qualification(board_id, %Period{period_type: :week} = period, user_id, nil) do
     week_end = Date.add(period.week_start, 6)
 
+    closed_dates =
+      from(day in Period,
+        where:
+          day.period_type == :day and day.status in [:closed, :corrected] and
+            day.competition_date >= ^period.week_start and day.competition_date <= ^week_end,
+        select: day.competition_date
+      )
+      |> Repo.all()
+
     count =
       from(result in DailyResult,
         where:
           result.user_id == ^user_id and result.board_id == ^board_id and result.active and
             result.result_status in [:accepted, :snapshotted] and
             result.competition_date >= ^period.week_start and
-            result.competition_date <= ^week_end
+            result.competition_date <= ^week_end and result.competition_date in ^closed_dates
       )
       |> Repo.aggregate(:count)
 

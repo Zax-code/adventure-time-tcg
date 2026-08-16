@@ -22,12 +22,15 @@ defmodule AdventureTimeApi.Leaderboards.ConfigurationTest do
     assert Repo.aggregate(ScoringVersion, :count) == 1
   end
 
-  test "does not activate the launch version before its effective week" do
+  test "activates for the no-prize partial launch week but not before launch" do
     assert {:ok, scheduled} = Configuration.ensure_launch_version()
 
     assert {:error, :not_yet_effective} =
-             Configuration.activate_due(~U[2026-08-16 23:59:59.000000Z])
+             Configuration.activate_due(~U[2026-08-14 23:59:59.000000Z])
 
     assert Repo.reload!(scheduled).status == :scheduled
+
+    assert {:ok, active} = Configuration.activate_due(~U[2026-08-15 00:00:00.000000Z])
+    assert {:ok, {^active, _configuration}} = Configuration.for_date(~D[2026-08-15])
   end
 end

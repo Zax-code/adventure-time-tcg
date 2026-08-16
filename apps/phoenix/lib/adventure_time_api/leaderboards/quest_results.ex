@@ -19,6 +19,7 @@ defmodule AdventureTimeApi.Leaderboards.QuestResults do
     DailyNumbersDailyAttempt,
     PerfectTimingAttempt,
     SpeedCalculusDailyRun,
+    SpeedCalculusEngine,
     WordleDailyAttempt
   }
 
@@ -65,7 +66,8 @@ defmodule AdventureTimeApi.Leaderboards.QuestResults do
          %User{leaderboard_eligible: true} = user <- Repo.get(User, user_id),
          {:ok, normalized} when is_map(normalized) <- load_source(user, date, source),
          {:ok, {version, configuration}} <- Configuration.for_date(date),
-         {:ok, slot} <- Slots.get_or_create(user, date) do
+         {:ok, slot} <- Slots.get_or_create(user, date),
+         :ok <- validate_attribution_window(normalized, slot, source) do
       normalized
       |> Map.merge(%{
         user_id: user.id,
@@ -85,6 +87,75 @@ defmodule AdventureTimeApi.Leaderboards.QuestResults do
   end
 
   def sync(_user_id, _date, _source), do: {:error, :invalid_result_source}
+
+  @spec reconcile_open_week(DateTime.t()) :: :ok
+  def reconcile_open_week(now \\ DateTime.utc_now()) do
+    today = DateTime.to_date(now)
+    since = max_date(Configuration.launch_date(), Date.beginning_of_week(today, :monday))
+
+    settle_expired_speed_runs(since, now)
+
+    from(snapshot in StepSnapshot,
+      join: user in User,
+      on:
+        user.id == snapshot.user_id and user.preferred_step_source == snapshot.source and
+          user.leaderboard_eligible,
+      where: snapshot.recorded_for >= ^since,
+      select: {snapshot.user_id, snapshot.recorded_for, :steps}
+    )
+    |> Repo.all()
+    |> Enum.each(fn {user_id, date, source} -> sync_safely(user_id, date, source) end)
+
+    from(attempt in DailyNumbersDailyAttempt,
+      where: attempt.date >= ^since,
+      select: {attempt.user_id, attempt.date, attempt.mode}
+    )
+    |> Repo.all()
+    |> Enum.each(fn {user_id, date, mode} ->
+      sync_safely(user_id, date, {:daily_numbers, mode})
+    end)
+
+    from(attempt in WordleDailyAttempt,
+      where: attempt.date >= ^since and (attempt.solved or attempt.attempt == 6),
+      select: {attempt.user_id, attempt.date, attempt.locale}
+    )
+    |> Repo.all()
+    |> Enum.each(fn {user_id, date, locale} -> sync_safely(user_id, date, {:wordle, locale}) end)
+
+    from(run in SpeedCalculusDailyRun,
+      where: run.date >= ^since and run.status in ["completed", "abandoned"],
+      select: {run.user_id, run.date, run.id}
+    )
+    |> Repo.all()
+    |> Enum.each(fn {user_id, date, run_id} ->
+      sync_safely(user_id, date, {:speed_calculus, run_id})
+    end)
+
+    from(attempt in PerfectTimingAttempt,
+      where: attempt.date >= ^since and attempt.status in ^@final_perfect_timing_statuses,
+      select: {attempt.user_id, attempt.date}
+    )
+    |> Repo.all()
+    |> Enum.uniq()
+    |> Enum.each(fn {user_id, date} -> sync_safely(user_id, date, :perfect_timing) end)
+
+    :ok
+  end
+
+  defp settle_expired_speed_runs(since, now) do
+    cutoff = DateTime.add(now, -SpeedCalculusEngine.finish_grace_seconds(), :second)
+
+    from(run in SpeedCalculusDailyRun,
+      where:
+        run.date >= ^since and run.status == "in_progress" and is_nil(run.manual_paused_at) and
+          run.play_deadline_at < ^cutoff
+    )
+    |> Repo.update_all(set: [status: "abandoned", score: 0, reward: 0, finished_at: now])
+  end
+
+  defp max_date(first, second) do
+    if Date.compare(first, second) == :lt, do: second, else: first
+  end
 
   defp load_source(user, date, :steps) do
     case Repo.get_by(StepSnapshot,
@@ -234,6 +305,21 @@ defmodule AdventureTimeApi.Leaderboards.QuestResults do
   end
 
   defp load_source(_user, _date, _source), do: {:error, :invalid_result_source}
+
+  defp validate_attribution_window(normalized, slot, source) do
+    deadline =
+      if source == :steps do
+        DateTime.add(slot.ends_at, 8, :hour)
+      else
+        slot.ends_at
+      end
+
+    if DateTime.compare(normalized.submitted_at, deadline) == :gt do
+      {:error, :slot_attribution_closed}
+    else
+      :ok
+    end
+  end
 
   defp wordle_attrs(attempt, outcome) do
     source_attrs(

@@ -19,6 +19,7 @@ defmodule AdventureTimeApi.Leaderboards.Lifecycle do
     DailyResult,
     Period,
     Prizes,
+    QuestResults,
     Ranking,
     RewardGrant,
     RewardWallet,
@@ -37,7 +38,8 @@ defmodule AdventureTimeApi.Leaderboards.Lifecycle do
     with {:ok, _version} <- Configuration.ensure_launch_version(),
          {:ok, version} <- Configuration.activate_due(now),
          {:ok, configuration} <- Configuration.normalize(version.configuration) do
-      dates = competition_dates(version.effective_week_start, DateTime.to_date(now))
+      QuestResults.reconcile_open_week(now)
+      dates = competition_dates(Configuration.launch_date(), DateTime.to_date(now))
       periods = Enum.map(dates, &ensure_day_period(&1, version, now))
 
       weeks =
@@ -122,10 +124,16 @@ defmodule AdventureTimeApi.Leaderboards.Lifecycle do
   end
 
   defp finalize_day_if_due(period, version, configuration, now) do
-    if period.status in [:closed, :corrected] or DateTime.compare(now, period.closes_at) == :lt do
+    if DateTime.compare(now, period.closes_at) == :lt do
       :ok
     else
-      period = period |> Period.changeset(%{status: :closed}) |> Repo.update!()
+      period =
+        if period.status in [:closed, :corrected] do
+          period
+        else
+          period |> Period.changeset(%{status: :closing}) |> Repo.update!()
+        end
+
       build_all_snapshots(period, version, configuration, now)
 
       from(result in DailyResult,
@@ -134,6 +142,10 @@ defmodule AdventureTimeApi.Leaderboards.Lifecycle do
             result.result_status == :accepted
       )
       |> Repo.update_all(set: [result_status: :snapshotted, provisional: false, updated_at: now])
+
+      if period.status == :closing do
+        period |> Period.changeset(%{status: :closed}) |> Repo.update!()
+      end
     end
   end
 
@@ -182,11 +194,21 @@ defmodule AdventureTimeApi.Leaderboards.Lifecycle do
   defp source_rows(%Period{period_type: :week} = period, board, configuration) do
     week_end = Date.add(period.week_start, 6)
 
+    closed_dates =
+      from(day in Period,
+        where:
+          day.period_type == :day and day.status in [:closed, :corrected] and
+            day.competition_date >= ^period.week_start and day.competition_date <= ^week_end,
+        select: day.competition_date
+      )
+      |> Repo.all()
+
     eligible_results(
       board.id,
       dynamic(
         [result, _user],
-        result.competition_date >= ^period.week_start and result.competition_date <= ^week_end
+        result.competition_date >= ^period.week_start and result.competition_date <= ^week_end and
+          result.competition_date in ^closed_dates
       )
     )
     |> Enum.group_by(fn {result, _user} -> result.user_id end)
@@ -295,21 +317,16 @@ defmodule AdventureTimeApi.Leaderboards.Lifecycle do
 
   defp persist_snapshot(period, board, version, rows, now) do
     signature = snapshot_signature(rows)
-    current = Repo.get_by(Snapshot, period_id: period.id, board_id: board.id, current: true)
 
-    closed_revision =
-      not is_nil(current) and period.status == :closed and
-        DateTime.compare(current.source_cutoff, period.closes_at) != :lt
+    Repo.transaction(fn ->
+      lock_key = "#{period.id}:#{board.id}"
+      Repo.query!("SELECT pg_advisory_xact_lock(hashtextextended($1, 0))", [lock_key])
 
-    unchanged_open_revision =
-      not is_nil(current) and period.status != :closed and current.finalized_by == signature
+      current = Repo.get_by(Snapshot, period_id: period.id, board_id: board.id, current: true)
 
-    if closed_revision or unchanged_open_revision do
-      current
-    else
-      Repo.transaction(fn ->
-        current = Repo.get_by(Snapshot, period_id: period.id, board_id: board.id, current: true)
-
+      if reusable_snapshot?(current, period, signature) do
+        current
+      else
         if current do
           current
           |> Snapshot.changeset(%{current: false, status: :superseded})
@@ -357,9 +374,17 @@ defmodule AdventureTimeApi.Leaderboards.Lifecycle do
         end)
 
         snapshot
-      end)
-    end
+      end
+    end)
   end
+
+  defp reusable_snapshot?(nil, _period, _signature), do: false
+
+  defp reusable_snapshot?(current, %Period{status: :closed} = period, _signature) do
+    DateTime.compare(current.source_cutoff, period.closes_at) != :lt
+  end
+
+  defp reusable_snapshot?(current, _period, signature), do: current.finalized_by == signature
 
   defp snapshot_signature(rows) do
     content =

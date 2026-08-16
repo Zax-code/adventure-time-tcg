@@ -1,8 +1,6 @@
 defmodule AdventureTimeApi.Leaderboards.RewardGrant do
   use Ecto.Schema
 
-  import Ecto.Changeset
-
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
 
@@ -24,35 +22,5 @@ defmodule AdventureTimeApi.Leaderboards.RewardGrant do
     field(:reversed_by_user_id, :binary_id)
     field(:superseding_grant_id, :binary_id)
     timestamps(type: :utc_datetime_usec)
-  end
-
-  def changeset(grant, attrs) do
-    grant
-    |> cast(attrs, [
-      :user_id,
-      :snapshot_id,
-      :board_id,
-      :medal_tier,
-      :crown_family,
-      :amount,
-      :status,
-      :idempotency_key,
-      :reversed_at,
-      :reversal_reason,
-      :reversed_by_user_id,
-      :superseding_grant_id
-    ])
-    |> validate_required([
-      :user_id,
-      :snapshot_id,
-      :board_id,
-      :medal_tier,
-      :crown_family,
-      :amount,
-      :status,
-      :idempotency_key
-    ])
-    |> validate_number(:amount, greater_than_or_equal_to: 1, less_than_or_equal_to: 3)
-    |> unique_constraint(:idempotency_key)
   end
 end

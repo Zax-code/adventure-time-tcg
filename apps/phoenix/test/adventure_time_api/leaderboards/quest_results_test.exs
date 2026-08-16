@@ -181,6 +181,33 @@ defmodule AdventureTimeApi.Leaderboards.QuestResultsTest do
     assert Repo.aggregate(DailyResult, :count) == 0
   end
 
+  test "does not attribute a skill result settled after its locked local midnight", %{
+    user: user,
+    date: date
+  } do
+    run =
+      %SpeedCalculusDailyRun{}
+      |> SpeedCalculusDailyRun.changeset(%{
+        user_id: user.id,
+        date: date,
+        run_number: 1,
+        seed: "late-seed",
+        answers: [],
+        status: "completed",
+        score: 10,
+        reward: 0,
+        started_at: ~U[2026-08-17 23:59:00Z],
+        finished_at: ~U[2026-08-18 00:01:00Z],
+        play_deadline_at: ~U[2026-08-18 00:01:00Z]
+      })
+      |> Repo.insert!()
+
+    assert {:error, :slot_attribution_closed} =
+             QuestResults.sync(user.id, date, {:speed_calculus, run.id})
+
+    assert Repo.aggregate(DailyResult, :count) == 0
+  end
+
   defp insert_steps!(user_id, source, count, date) do
     %StepSnapshot{}
     |> StepSnapshot.changeset(%{

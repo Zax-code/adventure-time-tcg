@@ -21,10 +21,13 @@ defmodule AdventureTimeApi.Leaderboards.BoardsTest do
 
     assert Enum.count(boards, &(&1.board_kind == :source)) == 8
     assert Enum.count(boards, &(&1.board_kind == :derived_family)) == 2
+    assert Enum.all?(boards, & &1.prizes_enabled)
   end
 
   test "loads the seeded enabled catalog from persistence" do
-    assert Boards.list_enabled() |> Enum.map(& &1.key) ==
-             Boards.launch_catalog() |> Enum.map(& &1.key)
+    persisted = Boards.list_enabled()
+
+    assert Enum.map(persisted, & &1.key) == Enum.map(Boards.launch_catalog(), & &1.key)
+    assert Enum.all?(persisted, & &1.prizes_enabled)
   end
 end
