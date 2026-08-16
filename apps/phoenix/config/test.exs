@@ -47,6 +47,10 @@ config :adventure_time_api, AdventureTimeApi.Accounts,
   verification_secret: "test-email-verification-secret-please-change-1234567890",
   expose_dev_code: true
 
+config :adventure_time_api, AdventureTimeApi.AccessAssessment.Pseudonym,
+  secret: "test-ipqs-pseudonym-secret-1234567890",
+  version: "v1"
+
 config :adventure_time_api, AdventureTimeApi.Accounts.EmailDelivery,
   adapter: AdventureTimeApi.Accounts.EmailDelivery.NoopAdapter
 

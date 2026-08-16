@@ -7,6 +7,7 @@ defmodule AdventureTimeApi.Accounts do
   require Logger
 
   alias Ecto.Multi
+  alias AdventureTimeApi.AccessAssessment
   alias AdventureTimeApi.Auth
   alias AdventureTimeApi.Notifications
   alias AdventureTimeApi.Repo
@@ -97,7 +98,9 @@ defmodule AdventureTimeApi.Accounts do
       )
       |> Repo.transaction()
       |> case do
-        {:ok, %{user: user}} ->
+        {:ok, %{user: user, request: request}} ->
+          capture_access_assessment(request, metadata)
+
           record_auth_attempt(%{
             event_type: "email_register_access_request",
             provider: "email",
@@ -819,6 +822,9 @@ defmodule AdventureTimeApi.Accounts do
         reviewed_at: now
       })
     )
+    |> Multi.run(:assessment_snapshot, fn repo, %{request: updated_request} ->
+      AccessAssessment.snapshot_review(repo, updated_request, actor, status, now)
+    end)
     |> Repo.transaction()
     |> case do
       {:ok, %{request: updated_request}} ->
@@ -884,6 +890,7 @@ defmodule AdventureTimeApi.Accounts do
         case Repo.get_by(User, email: profile.email) do
           nil ->
             ensure_pending_access_request(profile.email, preferred_language, metadata, profile)
+            |> capture_access_assessment_result(metadata)
 
             record_google_attempt(
               "google_access_request",
@@ -951,6 +958,7 @@ defmodule AdventureTimeApi.Accounts do
         case Repo.get_by(User, email: profile.email) do
           nil ->
             ensure_pending_access_request(profile.email, preferred_language, metadata, profile)
+            |> capture_access_assessment_result(metadata)
 
             record_apple_attempt(
               "apple_access_request",
@@ -1358,22 +1366,18 @@ defmodule AdventureTimeApi.Accounts do
   end
 
   defp ensure_pending_access_request(repo, %User{} = user, metadata) do
-    case refresh_user_access_state(repo, user) do
-      {:ok, updated_user} ->
-        upsert_pending_access_request(
-          repo,
-          updated_user.email,
-          updated_user.preferred_language,
-          metadata,
-          %{
-            provider: "email"
-          }
-        )
-
-        {:ok, updated_user}
-
-      error ->
-        error
+    with {:ok, updated_user} <- refresh_user_access_state(repo, user),
+         {:ok, request} <-
+           upsert_pending_access_request(
+             repo,
+             updated_user.email,
+             updated_user.preferred_language,
+             metadata,
+             %{
+               provider: "email"
+             }
+           ) do
+      {:ok, request}
     end
   end
 
@@ -1538,11 +1542,22 @@ defmodule AdventureTimeApi.Accounts do
   defp record_auth_attempt(attrs) do
     metadata = Map.get(attrs, :metadata, %{}) || %{}
 
+    access_request =
+      case Map.get(attrs, :email) do
+        email when is_binary(email) ->
+          Repo.get_by(EmailAccessRequest, email: normalize_email(email), status: :pending)
+
+        _missing_email ->
+          nil
+      end
+
     attrs =
       attrs
       |> Map.delete(:metadata)
       |> Map.put_new(:request_id, metadata[:request_id])
       |> Map.put_new(:ip_address, metadata[:ip_address])
+      |> Map.put_new(:canonical_ip, metadata[:ip_address])
+      |> Map.put_new(:email_access_request_id, access_request && access_request.id)
       |> Map.put_new(:user_agent, metadata[:user_agent])
       |> Map.put_new(:accept_language, metadata[:accept_language])
       |> Map.put_new(:client_platform, metadata[:client_platform])
@@ -1606,6 +1621,25 @@ defmodule AdventureTimeApi.Accounts do
   end
 
   defp notify_access_request_created(result), do: result
+
+  defp capture_access_assessment_result({:ok, %EmailAccessRequest{} = request} = result, metadata) do
+    capture_access_assessment(request, metadata)
+    result
+  end
+
+  defp capture_access_assessment_result(result, _metadata), do: result
+
+  defp capture_access_assessment(%EmailAccessRequest{} = request, metadata) do
+    case AccessAssessment.capture(request, metadata) do
+      {:ok, _assessment} ->
+        :ok
+
+      {:error, changeset} ->
+        Logger.warning(
+          "Failed to capture access assessment for request #{request.id}: #{inspect(changeset.errors)}"
+        )
+    end
+  end
 
   defp refresh_user_access_state(repo, %User{} = user) do
     next_status = next_pending_status(user.access_status)
@@ -1799,7 +1833,10 @@ defmodule AdventureTimeApi.Accounts do
        status_code: 403,
        code: "ACCESS_REQUEST_PENDING"
      }}
-    |> tap(fn _ -> ensure_pending_access_request(email, :en, metadata, %{provider: "email"}) end)
+    |> tap(fn _ ->
+      ensure_pending_access_request(email, :en, metadata, %{provider: "email"})
+      |> capture_access_assessment_result(metadata)
+    end)
   end
 
   defp pending_access_error(
@@ -1808,7 +1845,10 @@ defmodule AdventureTimeApi.Accounts do
          metadata \\ %{},
          profile \\ %{provider: "email"}
        ) do
-    if maybe_reopen?, do: ensure_pending_access_request(email, :en, metadata, profile)
+    if maybe_reopen? do
+      ensure_pending_access_request(email, :en, metadata, profile)
+      |> capture_access_assessment_result(metadata)
+    end
 
     {:error,
      %AuthError{

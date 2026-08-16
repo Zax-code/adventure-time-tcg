@@ -1,6 +1,9 @@
 defmodule AdventureTimeApiWeb.AdminControllerTest do
   use AdventureTimeApiWeb.ConnCase, async: false
 
+  alias AdventureTimeApi.AccessAssessment
+  alias AdventureTimeApi.AccessAssessment.Snapshot
+
   alias AdventureTimeApi.Accounts.{
     AuthAttempt,
     AuthProviderIdentity,
@@ -21,9 +24,11 @@ defmodule AdventureTimeApiWeb.AdminControllerTest do
 
   setup do
     original_config = Application.get_env(:adventure_time_api, AdventureTimeApi.Media)
+    original_assessment_config = Application.get_env(:adventure_time_api, AccessAssessment, [])
 
     on_exit(fn ->
       Application.put_env(:adventure_time_api, AdventureTimeApi.Media, original_config)
+      Application.put_env(:adventure_time_api, AccessAssessment, original_assessment_config)
     end)
 
     :ok
@@ -1481,6 +1486,8 @@ defmodule AdventureTimeApiWeb.AdminControllerTest do
   end
 
   test "superadmin can approve email requests and promote users", _context do
+    Application.put_env(:adventure_time_api, AccessAssessment, collection_enabled: true)
+
     super_admin =
       create_user_with_password("boss@example.com", "password123", "Boss",
         verified?: true,
@@ -1503,6 +1510,13 @@ defmodule AdventureTimeApiWeb.AdminControllerTest do
         })
       )
 
+    assert {:ok, _assessment} =
+             AccessAssessment.capture(request, %{
+               ip_address: "198.51.100.17",
+               client_platform: "web",
+               user_agent: "Mozilla/5.0"
+             })
+
     access_token = login_access_token(super_admin.email, "password123")
 
     list_conn =
@@ -1519,6 +1533,11 @@ defmodule AdventureTimeApiWeb.AdminControllerTest do
 
     assert json_response(review_conn, 200) == %{"id" => request.id, "status" => "approved"}
     assert Repo.get!(User, pending_user.id).access_status == :approved
+
+    assert %Snapshot{review_outcome: :approved, review_actor_id: actor_id} =
+             Repo.get_by!(Snapshot, email_access_request_id: request.id)
+
+    assert actor_id == super_admin.id
 
     role_conn =
       build_conn()

@@ -4,6 +4,8 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
   import Ecto.Query
 
   alias AdventureTimeApi.Auth
+  alias AdventureTimeApi.AccessAssessment
+  alias AdventureTimeApi.AccessAssessment.Assessment
 
   alias AdventureTimeApi.Accounts.{
     AppleAuth,
@@ -24,12 +26,16 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
     rate_limit_config =
       Application.get_env(:adventure_time_api, AdventureTimeApiWeb.Plugs.RateLimit)
 
+    assessment_config = Application.get_env(:adventure_time_api, AccessAssessment, [])
+
     on_exit(fn ->
       Application.put_env(
         :adventure_time_api,
         AdventureTimeApiWeb.Plugs.RateLimit,
         rate_limit_config
       )
+
+      Application.put_env(:adventure_time_api, AccessAssessment, assessment_config)
     end)
 
     :ok
@@ -96,6 +102,33 @@ defmodule AdventureTimeApiWeb.AuthControllerTest do
     assert attempt.client_platform == "ios"
     assert attempt.installation_id_hash == request.last_installation_id_hash
     assert attempt.metadata == %{}
+  end
+
+  test "POST /auth/register captures an assessment after the request is durable", %{conn: conn} do
+    Application.put_env(:adventure_time_api, AccessAssessment, collection_enabled: true)
+
+    conn =
+      conn
+      |> put_req_header("x-forwarded-for", "198.51.100.73")
+      |> put_req_header("user-agent", "AdventureTimeNative/1.0.22")
+      |> put_req_header("x-adventure-time-platform", "android")
+      |> post(~p"/auth/register", %{
+        email: "assessment-capture@example.com",
+        password: "supersecure",
+        displayName: "Assessment Capture",
+        preferredLanguage: "en"
+      })
+
+    assert json_response(conn, 201)["accessRequestPending"]
+
+    request = Repo.get_by!(EmailAccessRequest, email: "assessment-capture@example.com")
+    assessment = Repo.get_by!(Assessment, email_access_request_id: request.id)
+    attempt = Repo.get_by!(AuthAttempt, email: request.email)
+
+    assert assessment.state == :assessing
+    assert assessment.canonical_ip == {198, 51, 100, 73}
+    assert attempt.email_access_request_id == request.id
+    assert attempt.canonical_ip == assessment.canonical_ip
   end
 
   test "POST /auth/register rejects an existing pending account", %{

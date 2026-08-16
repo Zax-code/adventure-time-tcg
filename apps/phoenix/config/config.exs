@@ -57,6 +57,20 @@ config :adventure_time_api, AdventureTimeApi.Accounts,
   verification_secret: "dev-email-verification-secret-please-change-1234567890",
   expose_dev_code: false
 
+config :adventure_time_api, AdventureTimeApi.AccessAssessment,
+  collection_enabled: false,
+  admin_display_enabled: false
+
+config :adventure_time_api, AdventureTimeApi.AccessAssessment.IpIntelligence,
+  adapter: AdventureTimeApi.AccessAssessment.IpQualityScore,
+  endpoint: "https://ipqualityscore.com/api/json/ip",
+  api_key: nil,
+  timeout_ms: 3_000
+
+config :adventure_time_api, AdventureTimeApi.AccessAssessment.Pseudonym,
+  secret: nil,
+  version: "v1"
+
 config :adventure_time_api, AdventureTimeApi.Accounts.EmailDelivery,
   adapter: AdventureTimeApi.Accounts.EmailDelivery.SendmailAdapter
 
@@ -68,7 +82,7 @@ config :adventure_time_api, AdventureTimeApi.Media,
 
 config :adventure_time_api, Oban,
   repo: AdventureTimeApi.Repo,
-  queues: [default: 10, maintenance: 5],
+  queues: [default: 10, assessments: 5, maintenance: 5],
   plugins: [
     Oban.Plugins.Pruner,
     {Oban.Plugins.Cron,
