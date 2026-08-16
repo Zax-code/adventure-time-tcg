@@ -423,35 +423,39 @@ function useSettingsScreenView() {
     });
   };
 
-  const handleChooseFitbit = async () => {
+  const handleChooseFitbit = () => {
     setFitbitError(null);
 
     if (fitbitConnected) {
-      await updateSourceMutation.mutateAsync("fitbit");
+      updateSourceMutation.mutate("fitbit");
       return;
     }
 
-    await updateSourceMutation.mutateAsync("fitbit");
+    updateSourceMutation.mutate("fitbit", {
+      onSuccess: async () => {
+        setIsConnectingFitbit(true);
+        try {
+          const result = await connectFitbit("/settings");
 
-    setIsConnectingFitbit(true);
+          if (result.type === "error") {
+            setFitbitError(t("settings.fitbitConnectFailed"));
+          }
 
-    try {
-      const result = await connectFitbit("/settings");
-
-      if (result.type === "error") {
+          await Promise.all([
+            fitbitStatusQueryRefetch(),
+            stepQueryRefetch(),
+            queryClient.invalidateQueries({ queryKey: ["quests"] }),
+          ]);
+        } catch {
+          setFitbitError(t("settings.fitbitConnectFailed"));
+        } finally {
+          setIsConnectingFitbit(false);
+        }
+      },
+      onError: () => {
         setFitbitError(t("settings.fitbitConnectFailed"));
-      }
-    } catch {
-      setFitbitError(t("settings.fitbitConnectFailed"));
-    } finally {
-      setIsConnectingFitbit(false);
-    }
-
-    await Promise.all([
-      fitbitStatusQueryRefetch(),
-      stepQueryRefetch(),
-      queryClient.invalidateQueries({ queryKey: ["quests"] }),
-    ]);
+      },
+    });
   };
 
   const handleNotificationPermissionAction = async () => {
@@ -484,7 +488,7 @@ function useSettingsScreenView() {
       }
     }
 
-    await updateNotificationPreferencesMutation.mutateAsync({
+    updateNotificationPreferencesMutation.mutate({
       ...notificationPreferences,
       [key]: nextValue,
     });
@@ -534,7 +538,7 @@ function useSettingsScreenView() {
           text: t("settings.deleteAccountConfirmAction"),
           style: "destructive",
           onPress: () => {
-            void deleteAccountMutation.mutateAsync();
+            deleteAccountMutation.mutate();
           },
         },
       ],
@@ -579,7 +583,7 @@ function useSettingsScreenView() {
                       <Pressable
                         onPress={() =>
                           editing
-                            ? void uploadAvatarMutation.mutateAsync()
+                            ? uploadAvatarMutation.mutate()
                             : undefined
                         }
                         disabled={!editing || uploadAvatarMutation.isPending}
@@ -694,7 +698,7 @@ function useSettingsScreenView() {
                               compact
                               testID="settings-profile-save-display-name"
                               onPress={() =>
-                                void updateDisplayNameMutation.mutateAsync(
+                                updateDisplayNameMutation.mutate(
                                   displayNameValue,
                                 )
                               }
@@ -787,7 +791,7 @@ function useSettingsScreenView() {
                           disabled={updateLanguageMutation.isPending}
                           testID={`settings-language-${language}`}
                           onPress={() =>
-                            void updateLanguageMutation.mutateAsync(language)
+                            updateLanguageMutation.mutate(language)
                           }
                           tc={tc}
                         >
@@ -911,7 +915,7 @@ function useSettingsScreenView() {
                             }
 
                             setFitbitError(null);
-                            void updateSourceMutation.mutateAsync("device_health");
+                            updateSourceMutation.mutate("device_health");
                           }}
                           tc={tc}
                         >

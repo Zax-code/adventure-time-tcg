@@ -370,7 +370,12 @@ export async function claimQuestsSequentially(
   let newBalance: number | null = null;
   const failures: Array<{ quest: Quest; error: unknown }> = [];
 
-  for (const quest of quests) {
+  const claimNextQuest = async (index: number): Promise<void> => {
+    if (index >= quests.length) {
+      return;
+    }
+
+    const quest = quests[index];
     try {
       const response = await claimQuest(quest);
       claimedCount += 1;
@@ -380,7 +385,11 @@ export async function claimQuestsSequentially(
       failedCount += 1;
       failures.push({ quest, error });
     }
-  }
+
+    await claimNextQuest(index + 1);
+  };
+
+  await claimNextQuest(0);
 
   return {
     claimedCount,

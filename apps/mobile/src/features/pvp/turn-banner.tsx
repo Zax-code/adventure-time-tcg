@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
 import Animated, {
-  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -8,6 +7,7 @@ import Animated, {
   withSpring,
   withTiming,
 } from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 import { LinearGradient } from "expo-linear-gradient";
 import { Text, View } from "react-native";
 
@@ -53,7 +53,7 @@ export function TurnBanner({ isMyTurn, onDone }: TurnBannerProps) {
         980,
         withTiming(0, { duration: 220 }, (finished) => {
           if (finished) {
-            runOnJS(handleDone)();
+            scheduleOnRN(handleDone);
           }
         }),
       ),

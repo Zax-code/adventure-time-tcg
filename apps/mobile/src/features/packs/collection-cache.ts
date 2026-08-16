@@ -72,11 +72,12 @@ export function patchHomeAfterPackOpen(
     return current;
   }
 
-  const newlyOwnedCardIds = new Set(
-    result.cards
-      .filter((card) => card.isNewForUser)
-      .map((card) => card.id),
-  );
+  const newlyOwnedCardIds = new Set<string>();
+  for (const card of result.cards) {
+    if (card.isNewForUser) {
+      newlyOwnedCardIds.add(card.id);
+    }
+  }
   const totalCards = current.collectionStats.totalCards;
   const uniqueOwned = Math.min(
     totalCards,

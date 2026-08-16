@@ -40,10 +40,12 @@ export function useQuestDayCutoff({
   const onTestTriggerConsumedRef = useRef(onTestTriggerConsumed);
   const handledTestTriggerRef = useRef<string | null>(null);
 
-  routeContextRef.current = routeContext;
-  onDayChangedRef.current = onDayChanged;
-  onQuestCutoffRef.current = onQuestCutoff;
-  onTestTriggerConsumedRef.current = onTestTriggerConsumed;
+  useEffect(() => {
+    routeContextRef.current = routeContext;
+    onDayChangedRef.current = onDayChanged;
+    onQuestCutoffRef.current = onQuestCutoff;
+    onTestTriggerConsumedRef.current = onTestTriggerConsumed;
+  }, [onDayChanged, onQuestCutoff, onTestTriggerConsumed, routeContext]);
 
   useEffect(() => {
     if (!enabled || !sessionKey) return;

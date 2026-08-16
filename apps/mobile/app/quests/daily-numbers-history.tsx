@@ -15,8 +15,8 @@ import {
   getModeAccent,
   getModeLabelKey,
 } from "../../src/features/quests/daily-numbers/shared";
+import { navigateBackFromQuest } from "../../src/features/quests/quest-navigation";
 import {
-  navigateBackFromQuest,
   QuestScreenDescription,
   QuestScreenHeader,
 } from "../../src/features/quests/quest-screen-header";

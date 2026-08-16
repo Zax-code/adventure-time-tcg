@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { Text } from "react-native";
 import Animated, {
-  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -9,6 +8,7 @@ import Animated, {
   withSpring,
   withTiming,
 } from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 
 interface FloatingNumberProps {
   amount: number;
@@ -49,7 +49,7 @@ export function FloatingNumber({ amount, type, onDone }: FloatingNumberProps) {
       520,
       withTiming(0, { duration: 300 }, (finished) => {
         if (finished) {
-          runOnJS(onDone)();
+          scheduleOnRN(onDone);
         }
       }),
     );

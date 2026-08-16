@@ -329,7 +329,7 @@ function useGiftsScreenView() {
                   activeDecision={activeDecision}
                   onDecision={(action) => {
                     setActiveDecision({ giftId: gift.id, action });
-                    void processGiftMutation.mutateAsync({
+                    processGiftMutation.mutate({
                       giftId: gift.id,
                       action,
                     });
@@ -365,7 +365,7 @@ function useGiftsScreenView() {
                   activeDecision={activeDecision}
                   onDecision={(action) => {
                     setActiveDecision({ giftId: gift.id, action });
-                    void processGiftMutation.mutateAsync({
+                    processGiftMutation.mutate({
                       giftId: gift.id,
                       action,
                     });

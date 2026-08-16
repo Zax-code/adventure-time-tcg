@@ -37,8 +37,8 @@ import { ShareIcon } from "../../src/components/icons";
 import { PageErrorState } from "../../src/components/error-state";
 import { PageLoadingState } from "../../src/components/loading-state";
 import { QuestActionButton } from "../../src/features/quests/quest-action-button";
+import { navigateBackFromQuest } from "../../src/features/quests/quest-navigation";
 import {
-  navigateBackFromQuest,
   QuestScreenDescription,
   QuestScreenHeader,
 } from "../../src/features/quests/quest-screen-header";
@@ -222,19 +222,15 @@ function useWordleScreenView() {
   const rowClearDisabled = currentGuess.every((l) => l === null) || inputLocked;
 
   const [activeKeys, setActiveKeys] = useState<string[]>([]);
+  const activeKeySet = useMemo(() => new Set(activeKeys), [activeKeys]);
   const [rowContainerWidth, setRowContainerWidth] = useState(0);
 
   // Stable refs for async closures
   const guessesRef = useRef(guesses);
-  guessesRef.current = guesses;
   const solvedRef = useRef(solved);
-  solvedRef.current = solved;
   const currentGuessRef = useRef(currentGuess);
-  currentGuessRef.current = currentGuess;
   const targetWordRef = useRef(targetWord);
-  targetWordRef.current = targetWord;
   const submittingRef = useRef(submitting);
-  submittingRef.current = submitting;
   const activeWordleLanguageRef = useRef<WordleLocale | null>(null);
   const questVersionRef = useRef<string | null>(null);
   const resetByNameRef = useRef<string | null>(null);
@@ -249,6 +245,14 @@ function useWordleScreenView() {
   const removeAnimationTimersRef = useRef<
     Record<number, ReturnType<typeof setTimeout>>
   >({});
+
+  reactEffect(() => {
+    guessesRef.current = guesses;
+    solvedRef.current = solved;
+    currentGuessRef.current = currentGuess;
+    targetWordRef.current = targetWord;
+    submittingRef.current = submitting;
+  }, [currentGuess, guesses, solved, submitting, targetWord]);
 
   const replaceCurrentGuess = useCallback((next: (string | null)[]) => {
     currentGuessRef.current = next;
@@ -427,96 +431,95 @@ function useWordleScreenView() {
     const serverDate = data.date;
     const localeChanged = activeWordleLanguageRef.current !== data.locale;
 
-    setActiveDateKey((prevDate) => {
-      if (!prevDate || localeChanged) {
-        // Initial load
-        clearRevealAnimations();
-        setGuesses(data.guesses as GuessResult[]);
-        setSolved(data.solved);
-        clearCurrentGuess();
-        setMessage(null);
-        setTargetWord(data.targetWord ?? null);
-        questVersionRef.current = data.questVersion ?? null;
-        activeWordleLanguageRef.current = data.locale;
-        return serverDate;
-      }
-
-      if (prevDate !== serverDate) {
-        // Date changed mid-session (day rollover)
-        const hadProgress = guessesRef.current.length > 0;
-        clearRevealAnimations();
-        setGuesses(data.guesses as GuessResult[]);
-        setSolved(data.solved);
-        clearCurrentGuess();
-        setMessage(null);
-        setTargetWord(data.targetWord ?? null);
-        questVersionRef.current = data.questVersion ?? null;
-        activeWordleLanguageRef.current = data.locale;
-        if (hadProgress) setResetModalKind("rollover");
-        return serverDate;
-      }
-
-      // Same date — detect admin reset via questVersion or guess count going backwards
-      const versionChanged =
-        data.questVersion != null &&
-        data.questVersion !== questVersionRef.current;
-      const adminReset =
-        versionChanged || data.guesses.length < guessesRef.current.length;
-      if (adminReset) {
-        const alreadyHandledReset =
-          lastQuestResetAt > 0 &&
-          lastQuestResetAt === lastHandledResetAtRef.current;
-
-        clearRevealAnimations();
-        setGuesses(data.guesses as GuessResult[]);
-        setSolved(data.solved);
-        clearCurrentGuess();
-        setMessage(null);
-        setTargetWord(data.targetWord ?? null);
-        questVersionRef.current = data.questVersion ?? null;
-        activeWordleLanguageRef.current = data.locale;
-        if (
-          !alreadyHandledReset &&
-          (guessesRef.current.length > 0 || solvedRef.current)
-        ) {
-          resetByNameRef.current = data.resetByName ?? null;
-          setResetModalKind("admin");
-        }
-        return prevDate;
-      }
-
-      const hasDraft = currentGuessRef.current.some(
-        (letter) => letter !== null,
-      );
-      const busy = submittingRef.current;
-      const serverAhead =
-        data.guesses.length > guessesRef.current.length ||
-        (data.solved && !solvedRef.current);
-
-      if (!serverAhead) {
-        if (data.targetWord && !targetWordRef.current) {
-          setTargetWord(data.targetWord);
-        }
-        questVersionRef.current = data.questVersion ?? null;
-        activeWordleLanguageRef.current = data.locale;
-        return prevDate;
-      }
-
-      if (busy || hasDraft) {
-        questVersionRef.current = data.questVersion ?? null;
-        return prevDate;
-      }
-
-      // Same date — sync if server is ahead and local UI is idle
+    if (!activeDateKey || localeChanged) {
+      // Initial load
+      clearRevealAnimations();
       setGuesses(data.guesses as GuessResult[]);
       setSolved(data.solved);
+      clearCurrentGuess();
+      setMessage(null);
       setTargetWord(data.targetWord ?? null);
       questVersionRef.current = data.questVersion ?? null;
       activeWordleLanguageRef.current = data.locale;
+      setActiveDateKey(serverDate);
+      return;
+    }
 
-      return prevDate;
-    });
+    if (activeDateKey !== serverDate) {
+      // Date changed mid-session (day rollover)
+      const hadProgress = guessesRef.current.length > 0;
+      clearRevealAnimations();
+      setGuesses(data.guesses as GuessResult[]);
+      setSolved(data.solved);
+      clearCurrentGuess();
+      setMessage(null);
+      setTargetWord(data.targetWord ?? null);
+      questVersionRef.current = data.questVersion ?? null;
+      activeWordleLanguageRef.current = data.locale;
+      if (hadProgress) setResetModalKind("rollover");
+      setActiveDateKey(serverDate);
+      return;
+    }
+
+    // Same date — detect admin reset via questVersion or guess count going backwards
+    const versionChanged =
+      data.questVersion != null &&
+      data.questVersion !== questVersionRef.current;
+    const adminReset =
+      versionChanged || data.guesses.length < guessesRef.current.length;
+    if (adminReset) {
+      const alreadyHandledReset =
+        lastQuestResetAt > 0 &&
+        lastQuestResetAt === lastHandledResetAtRef.current;
+
+      clearRevealAnimations();
+      setGuesses(data.guesses as GuessResult[]);
+      setSolved(data.solved);
+      clearCurrentGuess();
+      setMessage(null);
+      setTargetWord(data.targetWord ?? null);
+      questVersionRef.current = data.questVersion ?? null;
+      activeWordleLanguageRef.current = data.locale;
+      if (
+        !alreadyHandledReset &&
+        (guessesRef.current.length > 0 || solvedRef.current)
+      ) {
+        resetByNameRef.current = data.resetByName ?? null;
+        setResetModalKind("admin");
+      }
+      return;
+    }
+
+    const hasDraft = currentGuessRef.current.some(
+      (letter) => letter !== null,
+    );
+    const busy = submittingRef.current;
+    const serverAhead =
+      data.guesses.length > guessesRef.current.length ||
+      (data.solved && !solvedRef.current);
+
+    if (!serverAhead) {
+      if (data.targetWord && !targetWordRef.current) {
+        setTargetWord(data.targetWord);
+      }
+      questVersionRef.current = data.questVersion ?? null;
+      activeWordleLanguageRef.current = data.locale;
+      return;
+    }
+
+    if (busy || hasDraft) {
+      questVersionRef.current = data.questVersion ?? null;
+      return;
+    }
+
+    // Same date — sync if server is ahead and local UI is idle
+    setGuesses(data.guesses as GuessResult[]);
+    setSolved(data.solved);
+    setTargetWord(data.targetWord ?? null);
+    questVersionRef.current = data.questVersion ?? null;
+    activeWordleLanguageRef.current = data.locale;
   }, [
+    activeDateKey,
     clearCurrentGuess,
     clearRevealAnimations,
     lastQuestResetAt,
@@ -865,7 +868,6 @@ function useWordleScreenView() {
       revealTimers.push(revealDoneTimer);
       revealTimersRef.current[rowIndex] = revealTimers;
 
-      setSubmitting(false);
     } catch (err) {
       if (err instanceof ApiClientError) {
         if (err.status === 409 && err.code === "WORDLE_RESET") {
@@ -882,9 +884,7 @@ function useWordleScreenView() {
       }
       triggerShake();
     } finally {
-      if (submittingRef.current) {
-        setSubmitting(false);
-      }
+      setSubmitting(false);
     }
   }, [
     activeDateKey,
@@ -1293,7 +1293,7 @@ function useWordleScreenView() {
                 reward: claimableQuest.reward,
               })}
               onPress={() => {
-                void claimQuestMutation.mutateAsync(claimableQuest.id);
+                claimQuestMutation.mutate(claimableQuest.id);
               }}
               loading={
                 claimQuestMutation.isPending &&
@@ -1367,7 +1367,7 @@ function useWordleScreenView() {
                     {row.split("").map((letter) => {
                       const kState = keyboardState[letter];
                       const pressed =
-                        activeKeys.includes(letter) && !inputLocked;
+                        activeKeySet.has(letter) && !inputLocked;
                       const keyCls = keyBgBorderClass(kState);
                       const keyStyle = {
                         width: keyWidth || undefined,
@@ -1430,13 +1430,13 @@ function useWordleScreenView() {
               style={{
                 opacity: rowClearDisabled
                   ? 0.4
-                  : activeKeys.includes("CLEAR")
+                  : activeKeySet.has("CLEAR")
                     ? 0.82
                     : 1,
                 transform: [
                   {
                     scale:
-                      activeKeys.includes("CLEAR") && !rowClearDisabled
+                      activeKeySet.has("CLEAR") && !rowClearDisabled
                         ? 0.96
                         : 1,
                   },
@@ -1467,13 +1467,13 @@ function useWordleScreenView() {
               style={{
                 opacity: submitLocked
                   ? 0.4
-                  : activeKeys.includes("SUBMIT")
+                  : activeKeySet.has("SUBMIT")
                     ? 0.88
                     : 1,
                 transform: [
                   {
                     scale:
-                      activeKeys.includes("SUBMIT") && !submitLocked ? 0.96 : 1,
+                      activeKeySet.has("SUBMIT") && !submitLocked ? 0.96 : 1,
                   },
                 ],
               }}

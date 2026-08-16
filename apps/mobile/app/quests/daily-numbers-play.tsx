@@ -32,7 +32,6 @@ import Animated, {
   FadeOutUp,
   LinearTransition,
   interpolate,
-  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -40,6 +39,7 @@ import Animated, {
   withTiming,
   type SharedValue,
 } from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { captureRef } from "react-native-view-shot";
 
@@ -92,8 +92,8 @@ import {
   formatQuestShareDate,
   resolveQuestShareDateKey,
 } from "../../src/features/quests/quest-share-date";
+import { navigateBackFromQuest } from "../../src/features/quests/quest-navigation";
 import {
-  navigateBackFromQuest,
   QuestScreenDescription,
   QuestScreenHeader,
 } from "../../src/features/quests/quest-screen-header";
@@ -2220,7 +2220,7 @@ function OperationCommitOverlay({
           return;
         }
 
-        runOnJS(mergedCallback)();
+        scheduleOnRN(mergedCallback);
         progress.value = withDelay(
           16,
           withTiming(
@@ -2231,7 +2231,7 @@ function OperationCommitOverlay({
             },
             (transferFinished) => {
               if (transferFinished) {
-                runOnJS(finishedCallback)();
+                scheduleOnRN(finishedCallback);
               }
             },
           ),
@@ -3969,7 +3969,7 @@ export default function DailyNumbersPlayScreen() {
       modeCards={modeCards}
       onClaimReward={() => {
         if (state.questVersion) {
-          void claimQuestMutation.mutateAsync(state.questVersion);
+          claimQuestMutation.mutate(state.questVersion);
         }
       }}
       onModeSelect={handleModeSelect}

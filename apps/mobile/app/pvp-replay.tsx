@@ -75,19 +75,19 @@ export default function PvpReplayScreen() {
       return;
     }
 
-    const interval = setInterval(() => {
-      setCurrentTurnIndex((current) => {
-        if (current >= turnViews.length - 1) {
-          setIsPlaying(false);
-          return current;
-        }
+    if (currentTurnIndex >= turnViews.length - 1) {
+      setIsPlaying(false);
+      return;
+    }
 
-        return current + 1;
-      });
+    const interval = setInterval(() => {
+      setCurrentTurnIndex((current) =>
+        Math.min(current + 1, turnViews.length - 1),
+      );
     }, 2000 / playbackSpeed);
 
     return () => clearInterval(interval);
-  }, [isPlaying, playbackSpeed, turnViews.length]);
+  }, [currentTurnIndex, isPlaying, playbackSpeed, turnViews.length]);
 
   if (replayQueryIsLoading) {
     return (

@@ -1615,12 +1615,14 @@ function multiSelectRow({
   values: string[];
   onToggle: (value: string) => void;
 }) {
+  const selectedValues = new Set(values);
+
   return (
     <View className="gap-2">
       <Text className="font-nunito-bold text-xs text-primaryText">{label}</Text>
       <View className="flex-row flex-wrap gap-2">
         {options.map((option) => {
-          const selected = values.includes(option);
+          const selected = selectedValues.has(option);
           return (
             <Pressable
               key={`${label}-${option}`}

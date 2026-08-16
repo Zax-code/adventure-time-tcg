@@ -9,7 +9,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type RefObject,
 } from "react";
 import {
   ActivityIndicator,
@@ -26,14 +25,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
   ApiClientError,
-  type PerfectTimingAttempt,
   type PerfectTimingClientStopReason,
   type PerfectTimingState,
   type PerfectTimingStopInput,
   type PerfectTimingTier,
 } from "@adventure-time/api-client";
 
-import { CoinIcon } from "../../../components/icons";
 import {
   QuestScreenDescription,
   QuestScreenHeader,
@@ -53,26 +50,23 @@ import {
   visibleTimerText,
   type PerfectTimingLocalResult,
 } from "./model";
+import { OffscreenShareCard } from "./offscreen-share-card";
+import { OfficialPanel } from "./official-panel";
 import {
   clearPendingPerfectTimingStop,
   loadPendingPerfectTimingStop,
   savePendingPerfectTimingStop,
 } from "./pending-stop";
-import {
-  PerfectTimingQuestShareCard,
-  type PerfectTimingQuestShareCardStrings,
-} from "./quest-share-card";
+import type { PerfectTimingQuestShareCardStrings } from "./quest-share-card";
 import {
   buildPerfectTimingShareFileName,
   buildPerfectTimingShareResult,
   type PerfectTimingShareResult,
 } from "./share-result";
+import { TargetCard } from "./target-card";
+import { TrainingPanel } from "./training-panel";
+import type { TrainingPhase, Translate } from "./types";
 
-type Translate = (
-  key: string,
-  params?: Record<string, string | number>,
-) => string;
-type ThemeColors = (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
 type TimerOwner = "official" | "training";
 type TimerSnapshot = {
   owner: TimerOwner;
@@ -80,21 +74,11 @@ type TimerSnapshot = {
   startedAt: number;
   targetMs: number | null;
 };
-type TrainingPhase = "ready" | "active" | "result";
 
 const OFFICIAL_QUERY_KEY = ["perfect-timing"] as const;
 
 function tierLabel(t: Translate, tier: PerfectTimingTier) {
   return t(`quests.perfectTiming.tiers.${tier}`);
-}
-
-function directionLabel(
-  t: Translate,
-  direction: "early" | "late" | "exact",
-) {
-  if (direction === "early") return t("quests.perfectTiming.tooEarly");
-  if (direction === "late") return t("quests.perfectTiming.tooLate");
-  return t("quests.perfectTiming.exact");
 }
 
 async function fetchPerfectTimingState(userId: string) {
@@ -180,6 +164,15 @@ function usePerfectTimingScreenView() {
     staleTime: Infinity,
   });
   const trainingTargetMs = trainingTargetQuery.data?.targetMs ?? null;
+  const scrollContentStyle = useMemo(
+    () => ({
+      paddingTop: Math.max(insets.top, 12),
+      paddingBottom: Math.max(insets.bottom, 28),
+      paddingHorizontal: 16,
+      gap: 16,
+    }),
+    [insets.bottom, insets.top],
+  );
 
   useEffect(() => {
     if (state && user && state.coinBalance !== user.coins) {
@@ -282,6 +275,7 @@ function usePerfectTimingScreenView() {
     },
     onSuccess: (next) => {
       setDecisionError(false);
+      reactQueryClient.setQueryData(OFFICIAL_QUERY_KEY, next);
       applyOfficialState(next);
     },
     onError: () => setDecisionError(true),
@@ -299,6 +293,7 @@ function usePerfectTimingScreenView() {
     },
     onSuccess: (next) => {
       setDecisionError(false);
+      reactQueryClient.setQueryData(OFFICIAL_QUERY_KEY, next);
       applyOfficialState(next);
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     },
@@ -586,12 +581,7 @@ function usePerfectTimingScreenView() {
     <ScrollView
       className="flex-1 bg-bg"
       contentInsetAdjustmentBehavior="automatic"
-      contentContainerStyle={{
-        paddingTop: Math.max(insets.top, 12),
-        paddingBottom: Math.max(insets.bottom, 28),
-        paddingHorizontal: 16,
-        gap: 16,
-      }}
+      contentContainerStyle={scrollContentStyle}
       keyboardShouldPersistTaps="handled"
     >
       <QuestScreenHeader
@@ -715,501 +705,6 @@ function ModeSelector({
           </Pressable>
         );
       })}
-    </View>
-  );
-}
-
-function TargetCard({
-  label,
-  targetMs,
-  locale,
-}: {
-  label: string;
-  targetMs: number;
-  locale: Locale;
-}) {
-  return (
-    <View
-      className="items-center gap-2 rounded-3xl border-2 border-primaryBorder bg-primaryTint px-5 py-6"
-      testID="perfect-timing-target-card"
-    >
-      <Text className="font-nunito-bold text-xs uppercase tracking-widest text-primaryText">
-        {label}
-      </Text>
-      <Text
-        className="font-nunito-extrabold text-[40px] leading-[48px] text-primaryStrong"
-        style={{ fontVariant: ["tabular-nums"] }}
-        testID="perfect-timing-target"
-      >
-        {formatPerfectTimingMilliseconds(targetMs, locale)}
-      </Text>
-    </View>
-  );
-}
-
-function TimerCard({
-  timerRunning,
-  timerText,
-  t,
-}: {
-  timerRunning: boolean;
-  timerText: string;
-  t: Translate;
-}) {
-  return (
-    <View className="items-center gap-2 rounded-3xl border-2 border-primaryTint bg-surface px-5 py-8">
-      <Text className="font-nunito-bold text-xs uppercase tracking-widest text-fgMuted">
-        {t("quests.perfectTiming.timer")}
-      </Text>
-      <View
-        accessibilityElementsHidden={timerRunning}
-        importantForAccessibility={timerRunning ? "no-hide-descendants" : "auto"}
-      >
-        <Text
-          className="font-nunito-extrabold text-[48px] leading-[56px] text-fg"
-          style={{ fontVariant: ["tabular-nums"] }}
-          testID="perfect-timing-timer"
-        >
-          {timerText}
-        </Text>
-      </View>
-    </View>
-  );
-}
-
-function OfficialPanel({
-  continuePending,
-  decisionError,
-  isSharing,
-  keepPending,
-  locale,
-  onContinue,
-  onKeep,
-  onRetrySave,
-  onShare,
-  onStart,
-  onStop,
-  result,
-  startError,
-  startPending,
-  state,
-  stopError,
-  t,
-  tc,
-  timerRunning,
-  timerText,
-}: {
-  continuePending: boolean;
-  decisionError: boolean;
-  isSharing: boolean;
-  keepPending: boolean;
-  locale: Locale;
-  onContinue: () => void;
-  onKeep: () => void;
-  onRetrySave: () => void;
-  onShare: () => void;
-  onStart: () => void;
-  onStop: () => void;
-  result: PerfectTimingAttempt | null;
-  startError: boolean;
-  startPending: boolean;
-  state: PerfectTimingState;
-  stopError: boolean;
-  t: Translate;
-  tc: ThemeColors;
-  timerRunning: boolean;
-  timerText: string;
-}) {
-  const showKeep =
-    state.status === "result" && result?.tier != null && result.tier !== "miss";
-
-  return (
-    <View className="gap-4">
-      <View className="flex-row items-center justify-between px-1">
-        <Text className="font-nunito-bold text-sm text-fgMuted">
-          {t("quests.perfectTiming.attemptsRemaining")}
-        </Text>
-        <Text className="font-nunito-extrabold text-sm text-fg">
-          {state.remainingAttempts} / {state.maxAttempts}
-        </Text>
-      </View>
-
-      {timerRunning ? (
-        <>
-          <TimerCard timerRunning timerText={timerText} t={t} />
-          <QuestActionButton
-            label={t("quests.perfectTiming.stop")}
-            onPress={onStop}
-            backgroundColor={tc.dangerDark}
-            minHeight={56}
-            testID="perfect-timing-stop"
-          />
-        </>
-      ) : null}
-
-      {stopError ? (
-        <View className="gap-3 rounded-2xl border border-dangerBorder bg-dangerTint p-4">
-          <Text className="font-nunito-bold text-sm leading-5 text-dangerDark">
-            {t("quests.perfectTiming.stopError")}
-          </Text>
-          <QuestActionButton
-            label={t("quests.perfectTiming.retrySave")}
-            onPress={onRetrySave}
-            backgroundColor={tc.dangerDark}
-            testID="perfect-timing-retry-save"
-          />
-        </View>
-      ) : null}
-
-      {!timerRunning && state.status === "ready" && !stopError ? (
-        <View className="gap-3">
-          <QuestActionButton
-            label={t("quests.perfectTiming.start")}
-            onPress={onStart}
-            loading={startPending}
-            backgroundColor={tc.primary}
-            minHeight={56}
-            testID="perfect-timing-start"
-          />
-          {startError ? (
-            <Text
-              accessibilityRole="alert"
-              className="text-center font-nunito-bold text-sm text-dangerDark"
-            >
-              {t("quests.perfectTiming.startError")}
-            </Text>
-          ) : null}
-        </View>
-      ) : null}
-
-      {!timerRunning && result && (state.status === "result" || state.finalized) ? (
-        <ResultCard
-          elapsedMs={result.elapsedMs ?? 0}
-          final={state.finalized}
-          locale={locale}
-          result={{
-            deviationMs: result.deviationMs ?? 0,
-            direction: result.direction ?? "exact",
-            tier: result.tier ?? "miss",
-            reward: result.reward,
-          }}
-          rewardGranted={state.rewardGranted}
-          t={t}
-        />
-      ) : null}
-
-      {decisionError ? (
-        <Text
-          accessibilityRole="alert"
-          className="text-center font-nunito-bold text-sm text-dangerDark"
-        >
-          {t("quests.perfectTiming.decisionError")}
-        </Text>
-      ) : null}
-
-      {!timerRunning && state.status === "result" ? (
-        <View className="gap-3">
-          {showKeep ? (
-            <QuestActionButton
-              label={t("quests.perfectTiming.keepResult")}
-              onPress={onKeep}
-              loading={keepPending}
-              backgroundColor={tc.successDark}
-              minHeight={52}
-              testID="perfect-timing-keep"
-            />
-          ) : null}
-          <QuestActionButton
-            label={t("quests.perfectTiming.continue")}
-            onPress={onContinue}
-            loading={continuePending}
-            backgroundColor={tc.primary}
-            minHeight={52}
-            testID="perfect-timing-continue"
-          />
-        </View>
-      ) : null}
-
-      {state.finalized ? (
-        <QuestActionButton
-          label={
-            isSharing
-              ? t("quests.perfectTiming.sharePreparing")
-              : t("quests.perfectTiming.shareResult")
-          }
-          onPress={onShare}
-          loading={isSharing}
-          loadingMode="inline"
-          backgroundColor={tc.surface}
-          foregroundColor={tc.primaryDark}
-          borderColor={tc.primaryBorder}
-          minHeight={50}
-          testID="perfect-timing-share"
-        />
-      ) : null}
-    </View>
-  );
-}
-
-function TrainingPanel({
-  elapsedMs,
-  hasError,
-  isLoading,
-  isRefreshing,
-  locale,
-  onNewTarget,
-  onRetry,
-  onStart,
-  onStop,
-  phase,
-  result,
-  t,
-  tc,
-  timerRunning,
-  timerText,
-}: {
-  elapsedMs: number | null;
-  hasError: boolean;
-  isLoading: boolean;
-  isRefreshing: boolean;
-  locale: Locale;
-  onNewTarget: () => void;
-  onRetry: () => void;
-  onStart: () => void;
-  onStop: () => void;
-  phase: TrainingPhase;
-  result: PerfectTimingLocalResult | null;
-  t: Translate;
-  tc: ThemeColors;
-  timerRunning: boolean;
-  timerText: string;
-}) {
-  return (
-    <View className="gap-4">
-      <Text className="rounded-2xl border border-infoBorder bg-infoTint p-4 font-nunito text-sm leading-5 text-infoText">
-        {t("quests.perfectTiming.trainingBody")}
-      </Text>
-
-      {isLoading ? <ActivityIndicator color={tc.primaryDark} /> : null}
-
-      {hasError ? (
-        <View className="gap-3 rounded-2xl border border-dangerBorder bg-dangerTint p-4">
-          <Text
-            accessibilityRole="alert"
-            className="text-center font-nunito-bold text-sm text-dangerDark"
-          >
-            {t("quests.perfectTiming.trainingTargetError")}
-          </Text>
-          <QuestActionButton
-            label={t("common.tryAgain")}
-            onPress={onNewTarget}
-            loading={isRefreshing}
-            backgroundColor={tc.dangerDark}
-            testID="perfect-timing-training-target-retry"
-          />
-        </View>
-      ) : null}
-
-      {timerRunning ? (
-        <>
-          <TimerCard timerRunning timerText={timerText} t={t} />
-          <QuestActionButton
-            label={t("quests.perfectTiming.stop")}
-            onPress={onStop}
-            backgroundColor={tc.dangerDark}
-            minHeight={56}
-            testID="perfect-timing-training-stop"
-          />
-        </>
-      ) : null}
-
-      {!timerRunning && phase === "ready" && !isLoading && !isRefreshing ? (
-        <QuestActionButton
-          label={t("quests.perfectTiming.start")}
-          onPress={onStart}
-          backgroundColor={tc.primary}
-          minHeight={56}
-          testID="perfect-timing-training-start"
-        />
-      ) : null}
-
-      {phase !== "result" && !isLoading && !hasError ? (
-        <QuestActionButton
-          label={t("quests.perfectTiming.newTarget")}
-          onPress={onNewTarget}
-          loading={isRefreshing}
-          backgroundColor={tc.surface}
-          foregroundColor={tc.primaryDark}
-          borderColor={tc.primaryBorder}
-          minHeight={50}
-          testID="perfect-timing-training-new-target"
-        />
-      ) : null}
-
-      {!timerRunning && phase === "result" && result && elapsedMs != null ? (
-        <>
-          <ResultCard
-            elapsedMs={elapsedMs}
-            final={false}
-            locale={locale}
-            result={result}
-            rewardGranted={false}
-            training
-            t={t}
-          />
-          <View className="flex-row gap-3">
-            <View className="flex-1">
-              <QuestActionButton
-                label={t("quests.perfectTiming.retry")}
-                onPress={onRetry}
-                backgroundColor={tc.primary}
-                minHeight={50}
-                testID="perfect-timing-training-retry"
-              />
-            </View>
-            <View className="flex-1">
-              <QuestActionButton
-                label={t("quests.perfectTiming.newTarget")}
-                onPress={onNewTarget}
-                loading={isRefreshing}
-                backgroundColor={tc.surface}
-                foregroundColor={tc.primaryDark}
-                borderColor={tc.primaryBorder}
-                minHeight={50}
-                testID="perfect-timing-training-new-target"
-              />
-            </View>
-          </View>
-        </>
-      ) : null}
-    </View>
-  );
-}
-
-function ResultCard({
-  elapsedMs,
-  final,
-  locale,
-  result,
-  rewardGranted,
-  training = false,
-  t,
-}: {
-  elapsedMs: number;
-  final: boolean;
-  locale: Locale;
-  result: PerfectTimingLocalResult;
-  rewardGranted: boolean;
-  training?: boolean;
-  t: Translate;
-}) {
-  const successful = result.tier !== "miss";
-  return (
-    <View
-      className={`gap-4 rounded-3xl border-2 p-5 ${
-        successful
-          ? "border-successBorder bg-successTint"
-          : "border-dangerBorder bg-dangerTint"
-      }`}
-      testID="perfect-timing-result"
-    >
-      <Text
-        accessibilityRole="header"
-        className={`text-center font-nunito-extrabold text-xl ${
-          successful ? "text-successText" : "text-dangerText"
-        }`}
-      >
-        {final
-          ? t("quests.perfectTiming.finalResultTitle")
-          : t("quests.perfectTiming.resultTitle")}
-      </Text>
-
-      <View className="flex-row gap-3">
-        <ResultMetric
-          label={t("quests.perfectTiming.achievedTime")}
-          value={formatPerfectTimingMilliseconds(elapsedMs, locale)}
-        />
-        <ResultMetric
-          label={t("quests.perfectTiming.deviation")}
-          value={formatPerfectTimingMilliseconds(result.deviationMs, locale)}
-        />
-      </View>
-
-      <Text className="text-center font-nunito-bold text-sm text-fg">
-        {directionLabel(t, result.direction)}
-      </Text>
-      <Text className="text-center font-nunito-extrabold text-2xl text-fg">
-        {tierLabel(t, result.tier)}
-      </Text>
-
-      <View className="flex-row items-center justify-center gap-2">
-        <CoinIcon size={22} />
-        <Text className="font-nunito-extrabold text-lg text-fg">
-          {training ? "0" : result.reward}
-        </Text>
-      </View>
-
-      <Text className="text-center font-nunito-bold text-sm leading-5 text-fgMuted">
-        {training || result.tier === "miss"
-          ? t("quests.perfectTiming.noReward")
-          : rewardGranted
-            ? t("quests.perfectTiming.rewardGranted", { amount: result.reward })
-            : t("quests.perfectTiming.rewardPreview", { amount: result.reward })}
-      </Text>
-
-      {final ? (
-        <Text className="text-center font-nunito-extrabold text-sm text-fg">
-          {successful
-            ? t("quests.perfectTiming.finalSuccess")
-            : t("quests.perfectTiming.finalFailure")}
-        </Text>
-      ) : null}
-    </View>
-  );
-}
-
-function ResultMetric({ label, value }: { label: string; value: string }) {
-  return (
-    <View className="flex-1 items-center gap-1 rounded-2xl bg-surface px-2 py-3">
-      <Text className="text-center font-nunito-bold text-[11px] uppercase text-fgMuted">
-        {label}
-      </Text>
-      <Text
-        className="text-center font-nunito-extrabold text-lg text-fg"
-        style={{ fontVariant: ["tabular-nums"] }}
-      >
-        {value}
-      </Text>
-    </View>
-  );
-}
-
-function OffscreenShareCard({
-  cardRef,
-  colors,
-  result,
-  strings,
-}: {
-  cardRef: RefObject<View | null>;
-  colors: ThemeColors;
-  result: PerfectTimingShareResult;
-  strings: PerfectTimingQuestShareCardStrings;
-}) {
-  return (
-    <View
-      accessibilityElementsHidden
-      pointerEvents="none"
-      collapsable={false}
-      importantForAccessibility="no-hide-descendants"
-      style={{ position: "absolute", left: -9999, top: 0 }}
-    >
-      <View ref={cardRef} collapsable={false}>
-        <PerfectTimingQuestShareCard
-          colors={colors}
-          result={result}
-          strings={strings}
-        />
-      </View>
     </View>
   );
 }

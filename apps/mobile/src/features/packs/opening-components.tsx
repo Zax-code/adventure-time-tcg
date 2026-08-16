@@ -74,6 +74,7 @@ import {
   slugifyPackName,
   toCardTileEntry,
   toRarityName,
+  withOccurrenceKeys,
   withAlpha,
   type CardBackVisualMap,
   type LoadingSparkle,
@@ -355,9 +356,7 @@ function packFaceCanvas({
   );
 }
 
-export const PackOpeningAura = packOpeningAura;
-
-function packOpeningAura({
+export function PackOpeningAura({
   width,
   height,
   gradientId,
@@ -1496,9 +1495,11 @@ export function RevealPullProgress({
     return null;
   }
 
+  const keyedCards = withOccurrenceKeys(cards, (card) => card.id);
+
   return (
     <View className="w-full flex-row gap-1.5">
-      {cards.map((card, index) => {
+      {keyedCards.map(({ item: card, key }, index) => {
         const rarityName = toRarityName(card.rarity?.name);
         const rarityPalette =
           getThemeRarityPalette(themeName, rarityName) ??
@@ -1506,7 +1507,7 @@ export function RevealPullProgress({
 
         return (
           <RevealPullProgressSegment
-            key={`${card.id}-${index}`}
+            key={key}
             colorFrom={rarityPalette.from}
             colorTo={rarityPalette.to}
             index={index}
@@ -1799,9 +1800,7 @@ export function RevealCardStage({
   );
 }
 
-export const SectionBadge = sectionBadge;
-
-function sectionBadge({
+export function SectionBadge({
   icon,
   label,
   backgroundColor,
@@ -1828,9 +1827,7 @@ function sectionBadge({
   );
 }
 
-export const PackSummaryCardSheet = usePackSummaryCardSheetView;
-
-function usePackSummaryCardSheetView({
+export function PackSummaryCardSheet({
   card,
   accessToken,
   onClose,

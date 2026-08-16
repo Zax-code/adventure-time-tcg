@@ -74,6 +74,7 @@ export default function E2EAuthScreen() {
     }
 
     hasStartedRef.current = true;
+    let cancelled = false;
     const accessToken = decodeParam(
       (params as Record<string, string | string[] | undefined>).accessToken,
     );
@@ -106,6 +107,7 @@ export default function E2EAuthScreen() {
           accessToken,
           refreshToken,
         });
+        if (cancelled) return;
         setStatus("Opening requested screen...");
         router.replace(redirectPath);
         return;
@@ -120,14 +122,17 @@ export default function E2EAuthScreen() {
 
       try {
         const result = await apiClient.login({ email, password });
+        if (cancelled) return;
         await setSession({
           user: result.user,
           accessToken: result.tokens.accessToken,
           refreshToken: result.tokens.refreshToken,
         });
+        if (cancelled) return;
         setStatus("Opening requested screen...");
         router.replace(redirectPath);
       } catch (caughtError) {
+        if (cancelled) return;
         const message =
           caughtError instanceof Error
             ? caughtError.message
@@ -139,6 +144,9 @@ export default function E2EAuthScreen() {
     };
 
     void runAuth();
+    return () => {
+      cancelled = true;
+    };
   }, [
     params,
     router,

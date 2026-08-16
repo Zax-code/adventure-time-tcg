@@ -205,11 +205,11 @@ export function LoadoutCardDetailsContent({
             <Text className="font-nunito-bold text-sm text-primaryDark">
               {t("pvp.activeEffects")}
             </Text>
-            {statuses.map((status, index) => {
+            {statuses.map((status) => {
               const debuff = isDebuff(status.name);
               return (
                 <View
-                  key={`${status.name}-${index}`}
+                  key={`${status.name}-${status.duration}-${status.magnitude ?? "none"}`}
                   className={`rounded-2xl border p-3 ${debuff ? "border-dangerBorder bg-dangerTint" : "border-infoBorder bg-infoTint"}`}
                 >
                   <View className="flex-row items-center gap-2">
