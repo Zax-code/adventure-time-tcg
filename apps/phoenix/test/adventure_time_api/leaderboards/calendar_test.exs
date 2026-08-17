@@ -20,8 +20,8 @@ defmodule AdventureTimeApi.Leaderboards.CalendarTest do
   end
 
   describe "publication_cutoff/1" do
-    test "publishes a civil date after the fixed UTC-12 envelope and eight-hour grace" do
-      assert Calendar.publication_cutoff(~D[2026-08-15]) == ~U[2026-08-16 20:15:00Z]
+    test "closes a civil date at 13:00 UTC on the following day" do
+      assert Calendar.publication_cutoff(~D[2026-08-15]) == ~U[2026-08-16 13:00:00Z]
     end
   end
 end

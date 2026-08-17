@@ -12,6 +12,7 @@ defmodule AdventureTimeApi.Leaderboards.Configuration do
   alias AdventureTimeApi.Repo
 
   @launch Scoring.launch_configuration()
+  @legacy Scoring.legacy_configuration()
   @launch_date ~D[2026-08-15]
 
   @spec launch_date() :: Date.t()
@@ -57,7 +58,7 @@ defmodule AdventureTimeApi.Leaderboards.Configuration do
             version.status in [:scheduled, :active] and
               (version.effective_week_start <= ^today or
                  (version.version == ^@launch.version and ^launch_available)),
-          order_by: [desc: version.effective_week_start],
+          order_by: [desc: version.effective_week_start, desc: version.inserted_at],
           limit: 1,
           lock: "FOR UPDATE"
         )
@@ -88,7 +89,7 @@ defmodule AdventureTimeApi.Leaderboards.Configuration do
           version.status in [:active, :retired] and
             (version.effective_week_start <= ^date or
                (version.version == ^@launch.version and ^launch_available)),
-        order_by: [desc: version.effective_week_start],
+        order_by: [desc: version.effective_week_start, desc: version.inserted_at],
         limit: 1
       )
       |> Repo.one()
@@ -104,13 +105,18 @@ defmodule AdventureTimeApi.Leaderboards.Configuration do
 
   @spec normalize(map()) :: {:ok, map()} | {:error, :invalid_configuration}
   def normalize(configuration) when is_map(configuration) do
-    case normalize_from_template(configuration, @launch) do
+    case normalize_from_template(configuration, normalization_template(configuration)) do
       {:ok, normalized} -> {:ok, normalized}
       :error -> {:error, :invalid_configuration}
     end
   end
 
   def normalize(_configuration), do: {:error, :invalid_configuration}
+
+  defp normalization_template(%{"weekly" => %{"formula" => "average_best_n_qualified"}}),
+    do: @legacy
+
+  defp normalization_template(_configuration), do: @launch
 
   @spec configuration_hash(map()) :: String.t()
   def configuration_hash(configuration) do

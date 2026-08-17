@@ -41,7 +41,7 @@ defmodule AdventureTimeApi.Leaderboards.QuestResultsTest do
     assert {:ok, result} = QuestResults.sync(user.id, date, :steps)
     assert result.source_id == selected.id
     assert result.raw_result == %{"kind" => "steps", "steps" => 20_000}
-    assert result.points_milli == 632_121
+    assert result.points_milli == 1_000_000
 
     selected
     |> StepSnapshot.changeset(%{step_count: 30_000})
@@ -51,6 +51,35 @@ defmodule AdventureTimeApi.Leaderboards.QuestResultsTest do
     assert updated.id == result.id
     assert updated.raw_result == %{"kind" => "steps", "steps" => 30_000}
     assert Repo.aggregate(DailyResult, :count) == 1
+  end
+
+  test "accepts Step synchronization from an early timezone until the global cutoff", %{
+    user: user,
+    date: date
+  } do
+    user =
+      user
+      |> Ecto.Changeset.change(timezone: "Pacific/Kiritimati")
+      |> Repo.update!()
+
+    submitted_at = ~U[2026-08-18 12:30:00Z]
+
+    %StepSnapshot{}
+    |> StepSnapshot.changeset(%{
+      user_id: user.id,
+      source: :device_health,
+      step_count: 100_000,
+      recorded_for: date
+    })
+    |> Ecto.Changeset.put_change(:inserted_at, submitted_at)
+    |> Ecto.Changeset.put_change(:updated_at, submitted_at)
+    |> Repo.insert!()
+
+    assert {:ok, result} = QuestResults.sync(user.id, date, :steps, submitted_at)
+    assert result.points_milli == 5_000_000
+
+    assert {:error, :result_window_closed} =
+             QuestResults.sync(user.id, date, :steps, ~U[2026-08-18 13:00:00.000000Z])
   end
 
   test "maps final quest outcomes without trusting client points", %{user: user, date: date} do

@@ -22,16 +22,16 @@ defmodule AdventureTimeApi.Leaderboards.ResultRecorderTest do
 
     first =
       record_steps!(user, board, scoring_version, slot,
-        steps: 20_000,
+        steps: 100_000,
         source_id: Ecto.UUID.generate()
       )
 
-    assert first.points_milli == 632_121
+    assert first.points_milli == 5_000_000
     assert first.result_status == :accepted
     assert first.active
 
     assert Repo.get_by!(ResultTelemetry, result_id: first.id).normalized_metrics == %{
-             "steps" => 20_000
+             "steps" => 100_000
            }
 
     replacement =

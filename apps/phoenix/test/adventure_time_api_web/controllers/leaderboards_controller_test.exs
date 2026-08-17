@@ -70,10 +70,10 @@ defmodule AdventureTimeApiWeb.LeaderboardsControllerTest do
       |> Period.changeset(%{
         period_type: :day,
         competition_timezone: "global",
-        starts_at: ~U[2039-12-01 00:00:00.000000Z],
-        ends_at: ~U[2039-12-01 23:59:59.000000Z],
-        closes_at: ~U[2039-12-02 20:15:00.000000Z],
-        competition_date: ~D[2039-12-01],
+        starts_at: ~U[2026-08-16 00:00:00.000000Z],
+        ends_at: ~U[2026-08-17 00:00:00.000000Z],
+        closes_at: ~U[2026-08-17 13:00:00.000000Z],
+        competition_date: ~D[2026-08-16],
         status: :closed,
         origin: :verified,
         prizes_allowed: true,
@@ -108,7 +108,7 @@ defmodule AdventureTimeApiWeb.LeaderboardsControllerTest do
       position: 1,
       rank: 1,
       tie_group: 1,
-      points_milli: 632_121,
+      points_milli: 1_000_000,
       raw_result: %{"kind" => "steps", "steps" => 20_000},
       medal_tier: :gold
     })
@@ -122,7 +122,7 @@ defmodule AdventureTimeApiWeb.LeaderboardsControllerTest do
 
     assert response["board"]["key"] == "steps/default"
     assert response["period"]["revision"] == 1
-    assert [%{"rank" => 1, "pointsMilli" => 632_121} = row] = response["rows"]
+    assert [%{"rank" => 1, "pointsMilli" => 1_000_000} = row] = response["rows"]
     assert row["profile"]["publicProfileId"] == user.public_profile_id
     assert row["profile"]["fallbackAvatarKey"] in response_avatar_keys()
     assert response["currentPlayer"]["rank"] == 1
@@ -135,7 +135,7 @@ defmodule AdventureTimeApiWeb.LeaderboardsControllerTest do
 
     assert profile["profile"]["handle"] == "BMO##{user.public_discriminator}"
     assert profile["crowns"]["total"] == 0
-    assert [%{"boardKey" => "steps/default", "points" => 632}] = profile["personalBests"]
+    assert [%{"boardKey" => "steps/default", "points" => 1_000}] = profile["personalBests"]
   end
 
   test "GET /leaderboards/:quest/:mode returns the top seven and pins a lower-ranked player", %{
@@ -162,10 +162,10 @@ defmodule AdventureTimeApiWeb.LeaderboardsControllerTest do
       |> Period.changeset(%{
         period_type: :day,
         competition_timezone: "global",
-        starts_at: ~U[2041-01-01 00:00:00.000000Z],
-        ends_at: ~U[2041-01-01 23:59:59.000000Z],
-        closes_at: ~U[2041-01-02 20:15:00.000000Z],
-        competition_date: ~D[2041-01-01],
+        starts_at: ~U[2026-08-16 00:00:00.000000Z],
+        ends_at: ~U[2026-08-17 00:00:00.000000Z],
+        closes_at: ~U[2026-08-17 13:00:00.000000Z],
+        competition_date: ~D[2026-08-16],
         status: :closed,
         origin: :verified,
         prizes_allowed: true,
@@ -219,7 +219,8 @@ defmodule AdventureTimeApiWeb.LeaderboardsControllerTest do
       %User{}
       |> User.registration_changeset(%{
         email: "#{label}-#{System.unique_integer([:positive])}@example.com",
-        display_name: "BMO"
+        display_name: "BMO",
+        timezone: "Etc/UTC"
       })
       |> User.access_changeset(%{role: :user, access_status: :approved})
       |> Repo.insert!()

@@ -6,8 +6,8 @@ defmodule AdventureTimeApi.Leaderboards.Calendar do
   timezone changes can therefore affect only the next unopened slot.
   """
 
-  @publication_hour 20
-  @publication_minute 15
+  @publication_hour 13
+  @publication_minute 0
 
   @spec slot(Date.t(), String.t()) :: {:ok, map()} | {:error, :invalid_timezone}
   def slot(%Date{} = local_date, timezone) when is_binary(timezone) do
