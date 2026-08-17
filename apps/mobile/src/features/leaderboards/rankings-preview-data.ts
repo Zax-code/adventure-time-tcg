@@ -39,16 +39,16 @@ function row(
 }
 
 const previewRows = [
-  row(1, 1, "FinnTheHero", "finn", 42, 874, "gold"),
-  row(2, 2, "BubbleGum", "princess-bubblegum", 58, 826, "silver"),
-  row(3, 3, "JakeTheDog", "jake", 63, 811, "bronze"),
-  row(4, 4, "MarcyRocks", "marceline", 71, 787),
-  row(5, 5, "IceKingCool", "ice-king", 79, 763),
-  row(6, 6, "FlamePrincess", "flame-princess", 88, 736),
-  row(7, 7, "LSPForever", "lumpy-space-princess", 95, 715),
+  row(1, 1, "FinnTheHero", "finn", 42, 1_046, "gold"),
+  row(2, 2, "BubbleGum", "princess-bubblegum", 58, 987, "silver"),
+  row(3, 3, "JakeTheDog", "jake", 63, 969, "bronze"),
+  row(4, 4, "MarcyRocks", "marceline", 71, 940),
+  row(5, 5, "IceKingCool", "ice-king", 79, 910),
+  row(6, 6, "FlamePrincess", "flame-princess", 88, 877),
+  row(7, 7, "LSPForever", "lumpy-space-princess", 95, 852),
 ];
 
-const topSevenCurrentPlayer = row(5, 5, "BMO Player", "bmo", 79, 763);
+const topSevenCurrentPlayer = row(5, 5, "BMO Player", "bmo", 79, 910);
 const topSevenPreviewRows = [
   ...previewRows.slice(0, 4),
   topSevenCurrentPlayer,
@@ -72,26 +72,28 @@ export const RANKINGS_PREVIEW_DATA: LeaderboardResponse = {
   period: {
     type: "week",
     status: "open",
-    startsAt: "2026-08-10T04:00:00.000Z",
-    endsAt: "2026-08-17T04:00:00.000Z",
-    closesAt: "2026-08-17T20:15:00.000Z",
+    startsAt: "2026-08-17T00:00:00.000Z",
+    endsAt: "2026-08-24T00:00:00.000Z",
+    closesAt: "2026-08-24T13:00:00.000Z",
     serverNow: "2026-08-15T21:00:00.000Z",
     revision: 1,
     provisional: true,
-    standingsThrough: "2026-08-13",
+    competitionDate: null,
+    weekStart: "2026-08-17",
+    weekEnd: "2026-08-23",
+    standingsThrough: "2026-08-23",
     prizesEnabled: false,
   },
   podium: previewRows.slice(0, 3),
   rows: previewRows,
-  currentPlayer: row(8, 8, "BMO Player", "bmo", 101, 697),
+  currentPlayer: row(8, 8, "BMO Player", "bmo", 101, 830),
   pendingCurrentPlayerResult: null,
   pendingCurrentPlayerPoints: null,
   qualification: null,
   pageInfo: { nextCursor: null, hasNextPage: false },
   scoring: {
-    version: "2026-W34-v1",
-    displayMax: 1_000,
-    weeklyRule: "average_best_3",
+    version: "2026-W34-v2",
+    weeklyRule: "sum_all_eligible",
   },
 };
 

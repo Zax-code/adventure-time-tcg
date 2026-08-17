@@ -65,9 +65,11 @@ defmodule AdventureTimeApi.Leaderboards.QuestResults do
   end
 
   @spec sync(Ecto.UUID.t(), Date.t(), term()) :: {:ok, term()} | {:error, term()}
-  def sync(user_id, %Date{} = date, source) do
+  def sync(user_id, date, source, now \\ DateTime.utc_now())
+
+  def sync(user_id, %Date{} = date, source, now) do
     with true <-
-           DateTime.compare(DateTime.utc_now(), Calendar.publication_cutoff(date)) == :lt or
+           DateTime.compare(now, Calendar.publication_cutoff(date)) == :lt or
              {:error, :result_window_closed},
          %User{leaderboard_eligible: true} = user <- Repo.get(User, user_id),
          {:ok, normalized} when is_map(normalized) <- load_source(user, date, source),
@@ -92,7 +94,7 @@ defmodule AdventureTimeApi.Leaderboards.QuestResults do
     end
   end
 
-  def sync(_user_id, _date, _source), do: {:error, :invalid_result_source}
+  def sync(_user_id, _date, _source, _now), do: {:error, :invalid_result_source}
 
   @spec reconcile_open_week(DateTime.t()) :: :ok
   def reconcile_open_week(now \\ DateTime.utc_now()) do
@@ -342,7 +344,7 @@ defmodule AdventureTimeApi.Leaderboards.QuestResults do
   defp validate_attribution_window(normalized, slot, source) do
     deadline =
       if source == :steps do
-        DateTime.add(slot.ends_at, 8, :hour)
+        Calendar.publication_cutoff(slot.local_date)
       else
         slot.ends_at
       end

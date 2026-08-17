@@ -352,7 +352,7 @@ defmodule AdventureTimeApi.Leaderboards.Corrections do
               []
           end
         end)
-        |> Ranking.rank(&{&1.points_milli, &1.selected_points_milli})
+        |> Ranking.rank(& &1.points_milli)
         |> Enum.map(&%{&1 | tie_group: &1.rank})
 
       {:ok, corrected}

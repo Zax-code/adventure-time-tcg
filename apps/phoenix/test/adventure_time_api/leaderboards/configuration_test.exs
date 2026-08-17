@@ -10,14 +10,16 @@ defmodule AdventureTimeApi.Leaderboards.ConfigurationTest do
     assert scheduled.status == :scheduled
 
     assert scheduled.configuration["boards"]["steps/default"]["formula"] ==
-             "saturating_higher_better"
+             "linear_higher_better"
 
     assert {:ok, active} = Configuration.activate_due(now)
     assert active.id == scheduled.id
     assert active.status == :active
     assert {:ok, {^active, normalized}} = Configuration.for_date(~D[2026-08-17])
     assert normalized == Scoring.launch_configuration()
-    assert {:ok, 632_121} = Scoring.score(normalized, "steps/default", %{"steps" => 20_000})
+
+    assert {:ok, 1_000_000} =
+             Scoring.score(normalized, "steps/default", %{"steps" => 20_000})
 
     assert Repo.aggregate(ScoringVersion, :count) == 1
   end
@@ -32,5 +34,13 @@ defmodule AdventureTimeApi.Leaderboards.ConfigurationTest do
 
     assert {:ok, active} = Configuration.activate_due(~U[2026-08-15 00:00:00.000000Z])
     assert {:ok, {^active, _configuration}} = Configuration.for_date(~D[2026-08-15])
+  end
+
+  test "normalizes the persisted v1 configuration with its original scoring formulas" do
+    stored = Scoring.legacy_configuration() |> Jason.encode!() |> Jason.decode!()
+
+    assert {:ok, normalized} = Configuration.normalize(stored)
+    assert normalized == Scoring.legacy_configuration()
+    assert {:ok, 632_121} = Scoring.score(normalized, "steps/default", %{"steps" => 20_000})
   end
 end

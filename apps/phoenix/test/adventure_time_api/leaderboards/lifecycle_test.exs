@@ -32,9 +32,9 @@ defmodule AdventureTimeApi.Leaderboards.LifecycleTest do
     assert Repo.aggregate(Period, :count) == 4
     assert Repo.aggregate(Snapshot, :count) == 20
 
-    assert {:ok, payload} = Query.fetch("steps", "default", "current_week", user.id)
+    assert {:ok, payload} = Query.fetch("steps", "default", "current_week", user.id, now)
     assert payload.rows == []
-    assert payload.qualification == %{validResults: 0, requiredResults: 3}
+    assert payload.qualification == %{validResults: 0, requiredResults: 1}
     assert payload.period.provisional
   end
 
@@ -45,6 +45,127 @@ defmodule AdventureTimeApi.Leaderboards.LifecycleTest do
     assert week.launch_partial
     refute week.prizes_allowed
     assert week.status == :open
+  end
+
+  test "one accepted result appears immediately in today's daily and weekly boards" do
+    user = insert_user!("immediate")
+    activate!()
+    insert_and_sync_steps!(user, ~D[2026-08-17], 12_000)
+    now = ~U[2026-08-17 12:00:00.000000Z]
+
+    assert {:ok, daily} = Query.fetch("steps", "default", "today", user.id, now)
+    assert daily.period.competitionDate == ~D[2026-08-17]
+    assert daily.period.provisional
+    assert [%{rank: 1, rawResult: %{"steps" => 12_000}}] = daily.rows
+
+    assert {:ok, weekly} = Query.fetch("steps", "default", "current_week", user.id, now)
+    assert weekly.period.weekStart == ~D[2026-08-17]
+    assert weekly.period.provisional
+    assert [%{rank: 1, rawResult: %{"steps" => 12_000}}] = weekly.rows
+    assert weekly.qualification == %{validResults: 1, requiredResults: 1}
+  end
+
+  test "live revision changes immediately with accepted results" do
+    user = insert_user!("live-revision")
+    activate!()
+    now = ~U[2026-08-17 12:00:00.000000Z]
+
+    assert {:ok, before_result} =
+             Query.fetch("steps", "default", "current_week", user.id, now)
+
+    insert_and_sync_steps!(user, ~D[2026-08-17], 12_000)
+
+    assert {:ok, after_result} =
+             Query.fetch("steps", "default", "current_week", user.id, now)
+
+    refute after_result.period.revision == before_result.period.revision
+    assert after_result.qualification == %{validResults: 1, requiredResults: 1}
+  end
+
+  test "a read at the exact cutoff finalizes the day and exposes it in History" do
+    user = insert_user!("read-finalize")
+    activate!()
+    insert_and_sync_steps!(user, ~D[2026-08-17], 12_000)
+    cutoff = ~U[2026-08-18 13:00:00.000000Z]
+
+    assert {:ok, %{days: [history_day], weeks: []}} =
+             Query.history("steps", "default", user.id, cutoff)
+
+    assert history_day.period.competitionDate == ~D[2026-08-17]
+    refute history_day.period.provisional
+
+    assert {:ok, daily} = Query.fetch("steps", "default", "yesterday", user.id, cutoff)
+    refute daily.period.provisional
+    assert daily.period.status == :closed
+    assert daily.period.serverNow == cutoff
+
+    period = Repo.get_by!(Period, period_type: :day, competition_date: ~D[2026-08-17])
+    assert period.status == :closed
+  end
+
+  test "equal rounded daily scores tie without a hidden raw-result tiebreaker" do
+    first = insert_user!("rounded-tie-first")
+    second = insert_user!("rounded-tie-second")
+    activate!()
+    insert_and_sync_steps!(first, ~D[2026-08-17], 20_000)
+    insert_and_sync_steps!(second, ~D[2026-08-17], 20_009)
+
+    assert {:ok, daily} =
+             Query.fetch(
+               "steps",
+               "default",
+               "today",
+               first.id,
+               ~U[2026-08-17 12:00:00.000000Z]
+             )
+
+    assert Enum.map(daily.rows, &{&1.points, &1.rank}) == [{1_000, 1}, {1_000, 1}]
+  end
+
+  test "yesterday and last week are viewer-relative and may still be provisional" do
+    user = insert_user!("relative")
+    activate!()
+    insert_and_sync_steps!(user, ~D[2026-08-17], 9_000)
+
+    assert {:ok, yesterday} =
+             Query.fetch(
+               "steps",
+               "default",
+               "yesterday",
+               user.id,
+               ~U[2026-08-18 10:00:00.000000Z]
+             )
+
+    assert yesterday.period.competitionDate == ~D[2026-08-17]
+    assert yesterday.period.provisional
+    assert length(yesterday.rows) == 1
+
+    assert {:ok, last_week} =
+             Query.fetch(
+               "steps",
+               "default",
+               "last_week",
+               user.id,
+               ~U[2026-08-24 10:00:00.000000Z]
+             )
+
+    assert last_week.period.weekStart == ~D[2026-08-17]
+    assert last_week.period.weekEnd == ~D[2026-08-23]
+    assert last_week.period.provisional
+    assert length(last_week.rows) == 1
+  end
+
+  test "one accepted result is eligible for final weekly prizes" do
+    user = insert_user!("one-result-prize")
+    activate!()
+    insert_and_sync_steps!(user, ~D[2026-08-17], 15_000)
+
+    assert :ok = Lifecycle.tick(~U[2026-08-24 13:00:00.000000Z])
+
+    week = Repo.get_by!(Period, period_type: :week, week_start: ~D[2026-08-17])
+    assert week.status == :closed
+    assert Repo.aggregate(RewardGrant, :count) == 1
+    assert Repo.aggregate(UserAchievement, :count) == 1
   end
 
   test "reconciles authoritative source records missed by request hooks" do
@@ -63,8 +184,17 @@ defmodule AdventureTimeApi.Leaderboards.LifecycleTest do
     assert :ok = Lifecycle.tick(~U[2026-08-17 12:00:00.000000Z])
     assert Repo.aggregate(DailyResult, :count) == 1
 
-    assert {:ok, weekly} = Query.fetch("steps", "default", "current_week", user.id)
-    assert weekly.pendingCurrentPlayerResult == %{"kind" => "steps", "steps" => 12_000}
+    assert {:ok, weekly} =
+             Query.fetch(
+               "steps",
+               "default",
+               "current_week",
+               user.id,
+               ~U[2026-08-17 12:00:00.000000Z]
+             )
+
+    assert weekly.currentPlayer.rawResult == %{"kind" => "steps", "steps" => 12_000}
+    assert weekly.currentPlayer.rank == 1
   end
 
   test "Monday reconciliation still includes the prior Sunday before global closure" do
@@ -129,7 +259,7 @@ defmodule AdventureTimeApi.Leaderboards.LifecycleTest do
     assert prior_snapshot.scoring_version_id == launch_version_id
   end
 
-  test "closes local-date results and ranks the best three in the current week", _context do
+  test "closes local-date results and sums every eligible result in the current week", _context do
     first = insert_user!("first")
     second = insert_user!("second")
     activate!()
@@ -156,20 +286,28 @@ defmodule AdventureTimeApi.Leaderboards.LifecycleTest do
     now = ~U[2026-08-20 20:16:00.000000Z]
     assert :ok = Lifecycle.tick(now)
 
-    assert {:ok, yesterday} = Query.fetch("steps", "default", "yesterday", first.id)
+    assert {:ok, yesterday} = Query.fetch("steps", "default", "yesterday", first.id, now)
     assert Enum.map(yesterday.rows, & &1.rank) == [1, 2]
     assert yesterday.currentPlayer.rank == 1
 
-    assert {:ok, weekly} = Query.fetch("steps", "default", "current_week", second.id)
+    assert {:ok, weekly} = Query.fetch("steps", "default", "current_week", second.id, now)
     assert Enum.map(weekly.rows, & &1.rank) == [1, 2]
-    assert hd(weekly.rows).pointsMilli == 600_820
-    assert weekly.period.standingsThrough == ~D[2026-08-19]
+
+    expected_first_total =
+      DailyResult
+      |> where([result], result.user_id == ^first.id and result.active)
+      |> Repo.aggregate(:sum, :points_milli)
+      |> Decimal.to_integer()
+
+    assert hd(weekly.rows).pointsMilli == expected_first_total
+    assert weekly.period.weekStart == ~D[2026-08-17]
+    assert weekly.period.weekEnd == ~D[2026-08-23]
     assert weekly.pendingCurrentPlayerResult == nil
     assert weekly.currentPlayer.rank == 2
-    assert is_nil(weekly.qualification)
+    assert weekly.qualification == %{validResults: 3, requiredResults: 1}
 
-    assert {:ok, first_weekly} = Query.fetch("steps", "default", "current_week", first.id)
-    assert first_weekly.pendingCurrentPlayerResult == %{"kind" => "steps", "steps" => 40_000}
+    assert {:ok, first_weekly} = Query.fetch("steps", "default", "current_week", first.id, now)
+    assert first_weekly.currentPlayer.rawResult == %{"kind" => "steps", "steps" => 40_000}
 
     assert DailyResult
            |> where([result], result.result_status == :snapshotted)
@@ -186,7 +324,7 @@ defmodule AdventureTimeApi.Leaderboards.LifecycleTest do
       end)
     end)
 
-    close = ~U[2026-08-24 20:16:00.000000Z]
+    close = ~U[2026-08-24 13:00:00.000000Z]
     assert :ok = Lifecycle.tick(close)
     assert :ok = Lifecycle.tick(close)
 
@@ -215,7 +353,9 @@ defmodule AdventureTimeApi.Leaderboards.LifecycleTest do
            |> Enum.map(& &1.balance)
            |> Enum.sort() == [3, 3, 3]
 
-    assert {:ok, %{weeks: [history]}} = Query.history("steps", "default", hd(users).id)
+    assert {:ok, %{days: [], weeks: [history]}} =
+             Query.history("steps", "default", hd(users).id)
+
     assert history.period.status == :closed
     assert history.period.standingsThrough == ~D[2026-08-23]
     assert Enum.map(history.rows, & &1.rank) == [1, 1, 1]
@@ -252,7 +392,7 @@ defmodule AdventureTimeApi.Leaderboards.LifecycleTest do
 
     insert_and_sync_steps!(first, ~D[2026-08-20], 1)
 
-    assert :ok = Lifecycle.tick(~U[2026-08-24 20:16:00.000000Z])
+    assert :ok = Lifecycle.tick(~U[2026-08-24 13:00:00.000000Z])
     week = Repo.get_by!(Period, period_type: :week, week_start: ~D[2026-08-17])
 
     source =
@@ -264,27 +404,17 @@ defmodule AdventureTimeApi.Leaderboards.LifecycleTest do
 
     actor = %{id: third.id, isSuperAdmin: true}
     first_row = Repo.get_by!(SnapshotRow, snapshot_id: source.id, user_id: first.id)
-    excluded_result_id = hd(first_row.selected_daily_result_ids)
-
-    unselected_result =
-      Repo.get_by!(DailyResult,
-        user_id: first.id,
-        board_id: board_id("steps/default"),
-        competition_date: ~D[2026-08-20]
-      )
+    excluded_result_ids = first_row.selected_daily_result_ids
+    excluded_result_id = hd(excluded_result_ids)
 
     assert {:error, :no_matching_rows} =
              Corrections.preview(source.id, actor, "Invalid mixed result set", %{
-               "excludeDailyResultIds" => [excluded_result_id, unselected_result.id]
+               "excludeDailyResultIds" => [excluded_result_id, Ecto.UUID.generate()]
              })
-
-    unselected_result
-    |> Ecto.Changeset.change(active: false)
-    |> Repo.update!()
 
     assert {:ok, preview} =
              Corrections.preview(source.id, actor, "Invalid winning result", %{
-               "excludeDailyResultIds" => [excluded_result_id]
+               "excludeDailyResultIds" => excluded_result_ids
              })
 
     assert preview.sourceRevision == 1
@@ -298,7 +428,10 @@ defmodule AdventureTimeApi.Leaderboards.LifecycleTest do
     assert replacement.revision == 2
     assert replacement.supersedes_snapshot_id == source.id
     assert Repo.reload!(source).status == :superseded
-    assert Repo.get!(DailyResult, excluded_result_id).result_status == :excluded
+
+    assert Enum.all?(excluded_result_ids, fn result_id ->
+             Repo.get!(DailyResult, result_id).result_status == :excluded
+           end)
 
     replacement_id = replacement.id
 

@@ -9,8 +9,6 @@ defmodule AdventureTimeApi.Leaderboards.Lifecycle do
 
   import Ecto.Query
 
-  alias AdventureTimeApi.Accounts.User
-
   alias AdventureTimeApi.Leaderboards.{
     Board,
     Boards,
@@ -20,11 +18,10 @@ defmodule AdventureTimeApi.Leaderboards.Lifecycle do
     Locks,
     Period,
     Prizes,
+    Projection,
     QuestResults,
-    Ranking,
     RewardGrant,
     RewardWallet,
-    Scoring,
     Snapshot,
     SnapshotRow,
     UserAchievement
@@ -54,6 +51,32 @@ defmodule AdventureTimeApi.Leaderboards.Lifecycle do
     else
       {:error, :not_yet_effective} -> :ok
       {:error, reason} -> {:error, reason}
+    end
+  end
+
+  @spec finalize_for_read(%Period{}, DateTime.t()) ::
+          {:ok, %Period{}} | {:error, term()}
+  def finalize_for_read(%Period{status: status} = period, _now)
+      when status in [:closed, :corrected],
+      do: {:ok, period}
+
+  def finalize_for_read(%Period{} = period, now) do
+    if DateTime.compare(now, period.closes_at) == :lt do
+      {:ok, period}
+    else
+      period = materialize_period(period, now)
+
+      result =
+        case period.period_type do
+          :day -> finalize_day_if_due(period, now)
+          :week -> refresh_week(period, now)
+        end
+
+      case result do
+        :ok -> {:ok, Repo.reload(period)}
+        {:ok, _value} -> {:ok, Repo.reload(period)}
+        {:error, reason} -> {:error, reason}
+      end
     end
   end
 
@@ -127,9 +150,26 @@ defmodule AdventureTimeApi.Leaderboards.Lifecycle do
     )
     |> case do
       {:ok, _period} ->
-        Repo.get_by!(Period, period_type: attrs.period_type, starts_at: attrs.starts_at)
+        period = Repo.get_by!(Period, period_type: attrs.period_type, starts_at: attrs.starts_at)
+
+        if period.status in [:open, :closing] and
+             period.scoring_version_id != attrs.scoring_version_id do
+          period
+          |> Period.changeset(%{scoring_version_id: attrs.scoring_version_id})
+          |> Repo.update!()
+        else
+          period
+        end
     end
   end
+
+  defp materialize_period(%Period{id: nil, period_type: :day, competition_date: date}, now),
+    do: ensure_day_period(date, now)
+
+  defp materialize_period(%Period{id: nil, period_type: :week, week_start: week_start}, now),
+    do: ensure_week_period(week_start, now)
+
+  defp materialize_period(%Period{} = period, _now), do: period
 
   defp finalize_day_if_due(period, now) do
     if DateTime.compare(now, period.closes_at) == :lt do
@@ -199,151 +239,11 @@ defmodule AdventureTimeApi.Leaderboards.Lifecycle do
           Locks.daily_result!(board.id, period.competition_date)
         end
 
-        rows =
-          case board.board_kind do
-            :source -> source_rows(period, board, configuration)
-            :derived_family -> derived_rows(period, board, configuration)
-          end
+        rows = Projection.rows(period, board, configuration)
 
         persist_snapshot(period, board, version, rows, now)
       end)
     end)
-  end
-
-  defp source_rows(%Period{period_type: :day} = period, board, _configuration) do
-    eligible_results(
-      board.id,
-      dynamic([result, _user], result.competition_date == ^period.competition_date)
-    )
-    |> Enum.map(fn {result, user} ->
-      row_from_result(result, user)
-      |> Map.put(:competitive_key, daily_competitive_key(board, result))
-    end)
-    |> Ranking.rank(& &1.competitive_key)
-  end
-
-  defp source_rows(%Period{period_type: :week} = period, board, configuration) do
-    week_end = Date.add(period.week_start, 6)
-
-    closed_dates =
-      from(day in Period,
-        where:
-          day.period_type == :day and day.status in [:closed, :corrected] and
-            day.competition_date >= ^period.week_start and day.competition_date <= ^week_end,
-        select: day.competition_date
-      )
-      |> Repo.all()
-
-    eligible_results(
-      board.id,
-      dynamic(
-        [result, _user],
-        result.competition_date >= ^period.week_start and result.competition_date <= ^week_end and
-          result.competition_date in ^closed_dates
-      )
-    )
-    |> Enum.group_by(fn {result, _user} -> result.user_id end)
-    |> Enum.flat_map(fn {_user_id, result_users} ->
-      sorted = Enum.sort_by(result_users, fn {result, _user} -> result.points_milli end, :desc)
-      points = Enum.map(sorted, fn {result, _user} -> result.points_milli end)
-
-      case Scoring.weekly(configuration, points) do
-        {:ok, %{status: :ranked} = score} ->
-          selected = Enum.take(sorted, length(score.selected_points_milli))
-          {best_result, user} = hd(sorted)
-
-          [
-            %{
-              user_id: user.id,
-              public_profile_id: user.public_profile_id,
-              points_milli: score.points_milli,
-              raw_result: best_result.raw_result,
-              selected_daily_result_ids: Enum.map(selected, fn {result, _} -> result.id end),
-              selected_points_milli: score.selected_points_milli,
-              identity_audit: identity_audit(user),
-              competitive_key: {score.points_milli, score.selected_points_milli}
-            }
-          ]
-
-        _ ->
-          []
-      end
-    end)
-    |> Ranking.rank(& &1.competitive_key)
-  end
-
-  defp eligible_results(board_id, dynamic_where) do
-    from(result in DailyResult,
-      join: user in User,
-      on: user.id == result.user_id,
-      where:
-        result.board_id == ^board_id and result.active and
-          result.result_status in [:accepted, :snapshotted] and
-          result.integrity_status == :accepted and result.eligibility_status == :eligible and
-          user.leaderboard_eligible and user.public_profile_status in [:visible, :hidden],
-      where: ^dynamic_where,
-      select: {result, user}
-    )
-    |> Repo.all()
-  end
-
-  defp row_from_result(result, user) do
-    %{
-      user_id: user.id,
-      public_profile_id: user.public_profile_id,
-      points_milli: result.points_milli,
-      raw_result: result.raw_result,
-      selected_daily_result_ids: [result.id],
-      selected_points_milli: [result.points_milli],
-      identity_audit: identity_audit(user)
-    }
-  end
-
-  defp daily_competitive_key(_board, %{points_milli: 0}), do: {0, 0}
-
-  defp daily_competitive_key(%Board{direction: :higher}, result),
-    do: {result.points_milli, result.raw_numeric_value || 0}
-
-  defp daily_competitive_key(%Board{direction: :lower}, result),
-    do: {result.points_milli, -(result.raw_numeric_value || 0)}
-
-  defp daily_competitive_key(_board, result), do: {result.points_milli, 0}
-
-  defp derived_rows(period, board, configuration) do
-    members = Map.get(board.derived_members, "members", [])
-
-    member_rows =
-      from(row in SnapshotRow,
-        join: snapshot in Snapshot,
-        on: snapshot.id == row.snapshot_id and snapshot.current,
-        join: member in Board,
-        on: member.id == snapshot.board_id,
-        where: snapshot.period_id == ^period.id and member.key in ^members,
-        select: {member.key, row}
-      )
-      |> Repo.all()
-      |> Enum.group_by(fn {_member_key, row} -> row.user_id end)
-
-    member_rows
-    |> Enum.map(fn {user_id, keyed_rows} ->
-      points = Map.new(keyed_rows, fn {key, row} -> {key, row.points_milli} end)
-      {:ok, derived} = Scoring.derived(configuration, board.key, points)
-      user = Repo.get!(User, user_id)
-      member_vector = Enum.map(members, &Map.get(derived.member_points_milli, &1, 0))
-
-      %{
-        user_id: user.id,
-        public_profile_id: user.public_profile_id,
-        points_milli: derived.points_milli,
-        raw_result: %{"kind" => "member_breakdown", "members" => derived.member_points_milli},
-        selected_daily_result_ids:
-          keyed_rows |> Enum.flat_map(fn {_key, row} -> row.selected_daily_result_ids end),
-        selected_points_milli: member_vector,
-        identity_audit: identity_audit(user),
-        competitive_key: {derived.points_milli, member_vector}
-      }
-    end)
-    |> Ranking.rank(& &1.competitive_key)
   end
 
   defp persist_snapshot(period, board, version, rows, now) do
@@ -504,15 +404,6 @@ defmodule AdventureTimeApi.Leaderboards.Lifecycle do
           Repo.get_by!(RewardGrant, idempotency_key: idempotency_key)
       end
     end)
-  end
-
-  defp identity_audit(user) do
-    %{
-      "displayName" => user.display_name,
-      "discriminator" => user.public_discriminator,
-      "avatarAssetId" => user.avatar_asset_id,
-      "visibility" => Atom.to_string(user.public_profile_status)
-    }
   end
 
   defp scoring_for_date!(date) do

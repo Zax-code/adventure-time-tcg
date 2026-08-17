@@ -95,10 +95,7 @@ defmodule AdventureTimeApi.Leaderboards.DailyResult do
       :submitted_at
     ])
     |> validate_number(:raw_result_schema_version, greater_than: 0)
-    |> validate_number(:points_milli,
-      greater_than_or_equal_to: 0,
-      less_than_or_equal_to: 1_000_000
-    )
+    |> validate_number(:points_milli, greater_than_or_equal_to: 0)
     |> unique_constraint([:user_id, :board_id, :competition_date],
       name: :leaderboard_daily_results_one_active_result
     )

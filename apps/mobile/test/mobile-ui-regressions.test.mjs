@@ -145,14 +145,23 @@ describe("mobile UI regression contracts", () => {
     );
   });
 
-  it("treats an unfinished worldwide daily period as a pending leaderboard", () => {
-    assert.match(
-      rankingsSource,
-      /queryError instanceof ApiClientError[\s\S]*?LEADERBOARD_PERIOD_UNAVAILABLE/,
-      "the typed period-unavailable response should select the pending state",
-    );
-    assert.match(rankingsSource, /<YesterdayPendingPanel \/>/);
-    assert.match(rankingsSource, /testID="leaderboard-yesterday-pending"/);
+  it("keeps live daily and weekly period selectors refreshable", () => {
+    for (const option of [
+      '"daily"',
+      '"weekly"',
+      '"today"',
+      '"yesterday"',
+      '"current_week"',
+      '"last_week"',
+    ]) {
+      assert.match(rankingsSource, new RegExp(option));
+    }
+    assert.match(rankingsSource, /testID=\{`rankings-period-\$\{/);
+    assert.match(rankingsSource, /refetchInterval: 60_000/);
+    assert.match(rankingsSource, /<RefreshControl/);
+    assert.match(rankingsSource, /queryIsFetching/);
+    assert.doesNotMatch(rankingsSource, /YesterdayPendingPanel/);
+    assert.doesNotMatch(rankingsSource, /const average =/);
     assert.doesNotMatch(
       rankingsSource,
       /contentInsetAdjustmentBehavior="automatic"/,

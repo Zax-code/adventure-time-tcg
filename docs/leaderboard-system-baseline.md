@@ -6,6 +6,13 @@
 **Repository:** Adventure Time TCG Phoenix/web/Expo workspace  
 **Design source:** [`docs/design/adventure-time-tcg-redesign.pen`](design/adventure-time-tcg-redesign.pen)
 
+> **Superseded period behavior:**
+> [`live-leaderboard-period-spec.md`](live-leaderboard-period-spec.md) replaces this
+> baseline's 20:15 UTC closure, eight-hour Step grace, closed-date-only live comparison,
+> three-result Weekly qualification, and Yesterday/current-week navigation rules. This
+> baseline remains authoritative for scoring formulas, integrity, reward amounts,
+> moderation, corrections, and other rules that the newer specification does not replace.
+
 ## 1. Purpose
 
 This document records the repository findings, proposed leaderboard product rules,

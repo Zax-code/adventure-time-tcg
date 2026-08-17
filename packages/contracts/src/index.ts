@@ -88,7 +88,7 @@ export const leaderboardRawResultSchema = z.discriminatedUnion("kind", [
   }),
   z.object({
     kind: z.literal("member_breakdown"),
-    members: z.record(z.number().int().min(0).max(1_000_000)),
+    members: z.record(z.number().int().nonnegative()),
   }),
 ]);
 
@@ -97,8 +97,8 @@ export const leaderboardRowSchema = z.object({
   rank: z.number().int().positive(),
   profile: leaderboardPublicIdentitySchema,
   rawResult: leaderboardRawResultSchema,
-  points: z.number().int().min(0).max(1000),
-  pointsMilli: z.number().int().min(0).max(1_000_000),
+  points: z.number().int().nonnegative(),
+  pointsMilli: z.number().int().nonnegative(),
   provisional: z.boolean(),
   medal: z.enum(["gold", "silver", "bronze"]).nullable(),
 });
@@ -112,6 +112,9 @@ export const leaderboardPeriodSchema = z.object({
   serverNow: z.string().datetime(),
   revision: z.number().int().nonnegative(),
   provisional: z.boolean(),
+  competitionDate: z.string().date().nullable(),
+  weekStart: z.string().date().nullable(),
+  weekEnd: z.string().date().nullable(),
   standingsThrough: z.string().date().nullable(),
   prizesEnabled: z.boolean(),
 });
@@ -123,11 +126,11 @@ export const leaderboardResponseSchema = z.object({
   rows: z.array(leaderboardRowSchema),
   currentPlayer: leaderboardRowSchema.nullable(),
   pendingCurrentPlayerResult: leaderboardRawResultSchema.nullable(),
-  pendingCurrentPlayerPoints: z.number().int().min(0).max(1000).nullable(),
+  pendingCurrentPlayerPoints: z.number().int().min(0).nullable(),
   qualification: z
     .object({
       validResults: z.number().int().nonnegative(),
-      requiredResults: z.literal(3),
+      requiredResults: z.literal(1),
     })
     .nullable(),
   pageInfo: z.object({
@@ -136,12 +139,12 @@ export const leaderboardResponseSchema = z.object({
   }),
   scoring: z.object({
     version: z.string(),
-    displayMax: z.literal(1000),
-    weeklyRule: z.literal("average_best_3"),
+    weeklyRule: z.enum(["sum_all_eligible", "average_best_3"]),
   }),
 });
 
 export const leaderboardHistoryResponseSchema = z.object({
+  days: z.array(leaderboardResponseSchema),
   weeks: z.array(leaderboardResponseSchema),
 });
 
@@ -207,7 +210,7 @@ export const publicLeaderboardProfileSchema = z.object({
       boardKey: leaderboardBoardKeySchema,
       weekStart: z.string().date(),
       rank: z.number().int().positive(),
-      points: z.number().int().min(0).max(1000),
+      points: z.number().int().nonnegative(),
       medal: z.enum(["gold", "silver", "bronze"]).nullable(),
     }),
   ),

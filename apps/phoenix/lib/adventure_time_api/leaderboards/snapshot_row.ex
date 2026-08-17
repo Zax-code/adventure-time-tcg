@@ -48,10 +48,7 @@ defmodule AdventureTimeApi.Leaderboards.SnapshotRow do
       :points_milli,
       :raw_result
     ])
-    |> validate_number(:points_milli,
-      greater_than_or_equal_to: 0,
-      less_than_or_equal_to: 1_000_000
-    )
+    |> validate_number(:points_milli, greater_than_or_equal_to: 0)
     |> unique_constraint([:snapshot_id, :position])
   end
 end
