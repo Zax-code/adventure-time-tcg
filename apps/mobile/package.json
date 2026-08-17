@@ -24,7 +24,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "test:ui-regressions": "node --test test/mobile-ui-regressions.test.mjs test/perfect-timing-ui.test.mjs",
+    "test:ui-regressions": "node --experimental-strip-types --test test/leaderboard-avatar-source.test.ts test/mobile-ui-regressions.test.mjs test/perfect-timing-ui.test.mjs",
     "test:startup": "node --experimental-strip-types --test test/startup-recovery.test.ts",
     "build:android:dev": "eas build --platform android --profile development",
     "build:ios:dev": "eas build --platform ios --profile development",

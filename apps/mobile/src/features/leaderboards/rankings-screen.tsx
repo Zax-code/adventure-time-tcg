@@ -1,12 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useMemo, useState, type ComponentType } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
 import type {
-  FallbackAvatarKey,
   LeaderboardBoardKey,
   LeaderboardHistoryResponse,
   LeaderboardResponse,
@@ -33,7 +31,7 @@ import {
   useBottomTabBarContentPadding,
 } from "../../theme/layout";
 import { THEME_COLORS } from "../../theme/themes";
-import { LEADERBOARD_AVATAR_SOURCES } from "./avatar-assets";
+import { LeaderboardAvatar } from "./leaderboard-avatar";
 import {
   RANKINGS_PREVIEW_DATA,
   RANKINGS_TOP_SEVEN_PREVIEW_DATA,
@@ -543,7 +541,7 @@ function PodiumCard({ row, place, onPress }: { row: LeaderboardRow; place: 1 | 2
             <Text className="font-nunito-extrabold text-xl text-fg">{place}</Text>
           </View>
         </View>
-        <Avatar
+        <LeaderboardAvatar
           avatarKey={row.profile.fallbackAvatarKey}
           avatarUrl={row.profile.avatarUrl}
           size={place === 1 ? 72 : 58}
@@ -584,7 +582,7 @@ function RankingRow({
       <Text className="w-7 text-center font-nunito-extrabold text-sm text-primaryText">
         {row.rank}
       </Text>
-      <Avatar
+      <LeaderboardAvatar
         avatarKey={row.profile.fallbackAvatarKey}
         avatarUrl={row.profile.avatarUrl}
         size={42}
@@ -606,25 +604,6 @@ function isCurrentPlayer(row: LeaderboardRow, currentPlayer: LeaderboardRow | nu
     return row.profile.publicProfileId === currentPlayer.profile.publicProfileId;
   }
   return row.profile.handle === currentPlayer.profile.handle;
-}
-
-function Avatar({
-  avatarKey,
-  avatarUrl,
-  size,
-}: {
-  avatarKey: FallbackAvatarKey;
-  avatarUrl: string | null;
-  size: number;
-}) {
-  return (
-    <Image
-      source={avatarUrl ? { uri: avatarUrl } : LEADERBOARD_AVATAR_SOURCES[avatarKey]}
-      style={{ width: size, height: size, borderRadius: size / 2 }}
-      contentFit="cover"
-      transition={150}
-    />
-  );
 }
 
 function formatRaw(row: LeaderboardRow) {

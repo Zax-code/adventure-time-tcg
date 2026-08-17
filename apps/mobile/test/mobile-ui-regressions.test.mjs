@@ -17,6 +17,10 @@ const rankingsSource = readFileSync(
   "src/features/leaderboards/rankings-screen.tsx",
   "utf8",
 );
+const leaderboardAvatarSource = readFileSync(
+  "src/features/leaderboards/leaderboard-avatar.tsx",
+  "utf8",
+);
 const frenchRankingsSource = readFileSync(
   "src/i18n/locales/fr/rankings.ts",
   "utf8",
@@ -123,16 +127,21 @@ describe("mobile UI regression contracts", () => {
     assert.match(rankingsSource, /<RankingRow[\s\S]*?onPress=/);
   });
 
-  it("prefers custom profile pictures throughout the rankings", () => {
+  it("authenticates custom profile pictures throughout the rankings", () => {
     assert.equal(
       rankingsSource.match(/avatarUrl=\{row\.profile\.avatarUrl\}/g)?.length,
       2,
-      "both podium cards and ranking rows should pass the public profile picture to Avatar",
+      "both podium cards and ranking rows should pass the public profile picture to LeaderboardAvatar",
     );
     assert.match(
-      rankingsSource,
-      /source=\{avatarUrl \? \{ uri: avatarUrl \} : LEADERBOARD_AVATAR_SOURCES\[avatarKey\]\}/,
-      "Avatar should use the custom profile picture before falling back to a default avatar",
+      leaderboardAvatarSource,
+      /useSessionStore\(\(state\) => state\.accessToken\)/,
+      "LeaderboardAvatar should subscribe to the current access token",
+    );
+    assert.match(
+      leaderboardAvatarSource,
+      /buildLeaderboardAvatarSource\([\s\S]*?avatarUrl,[\s\S]*?accessToken,/,
+      "LeaderboardAvatar should authenticate uploaded profile-image requests",
     );
   });
 

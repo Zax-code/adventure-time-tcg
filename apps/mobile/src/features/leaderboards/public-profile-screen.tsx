@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { Image } from "expo-image";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import type { ComponentType } from "react";
 import { ScrollView, Text, View } from "react-native";
@@ -25,7 +24,7 @@ import { useTranslation } from "../../i18n";
 import { apiClient } from "../../lib/api";
 import { useThemeStore } from "../../stores/theme-store";
 import { THEME_COLORS } from "../../theme/themes";
-import { LEADERBOARD_AVATAR_SOURCES } from "./avatar-assets";
+import { LeaderboardAvatar } from "./leaderboard-avatar";
 import { PUBLIC_PROFILE_PREVIEW_DATA } from "./public-profile-preview-data";
 
 type IconComponent = ComponentType<{ size?: number; color?: string }>;
@@ -301,15 +300,10 @@ function ProfileHero({ profile }: { profile: PublicLeaderboardProfile }) {
 
   return (
     <View className="items-center gap-2 rounded-[30px] border border-primaryBorder bg-surface px-5 py-6">
-      <Image
-        source={
-          profile.profile.avatarUrl
-            ? { uri: profile.profile.avatarUrl }
-            : LEADERBOARD_AVATAR_SOURCES[profile.profile.fallbackAvatarKey]
-        }
-        style={{ width: 96, height: 96, borderRadius: 48 }}
-        contentFit="cover"
-        transition={150}
+      <LeaderboardAvatar
+        avatarKey={profile.profile.fallbackAvatarKey}
+        avatarUrl={profile.profile.avatarUrl}
+        size={96}
       />
       <Text selectable className="text-center font-nunito-extrabold text-2xl text-fg">
         {profile.profile.displayName ?? t("rankings.profile.adventurer")}
