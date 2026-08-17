@@ -141,6 +141,8 @@ defmodule AdventureTimeApi.Leaderboards.QuestResults do
 
     from(run in SpeedCalculusDailyRun,
       where: run.date >= ^since and run.status in ["completed", "abandoned"],
+      distinct: [run.user_id, run.date],
+      order_by: [asc: run.user_id, asc: run.date, desc: run.run_number],
       select: {run.user_id, run.date, run.id}
     )
     |> Repo.all()
