@@ -5,8 +5,9 @@ Status: Approved for implementation on 2026-08-17
 ## Purpose
 
 Make Daily and Weekly leaderboards useful while competition is still underway. Accepted
-results become public immediately as provisional standings, while closed periods remain
-available through simple comparison selectors and the longer-term History archive.
+results become public through regularly refreshed provisional standings. Relative-period
+selectors compare the viewer's current and immediately preceding date or week, while the
+History archive is the place to find finalized periods.
 
 This specification supersedes the existing delayed-comparison behavior wherever it
 conflicts with the rules below. Existing quest gameplay, result validation, scoring
@@ -29,15 +30,16 @@ unchanged unless this document says otherwise.
 5. A valid accepted result worth zero points still counts as participation. Rejected,
    excluded, ineligible, and training results do not. Quest-specific settlement rules
    still determine whether an abandoned attempt becomes an accepted zero-point result.
-6. Daily and Weekly are separate leaderboard views. Each defaults to its current Live
-   Leaderboard and provides a shortcut to the latest Final Leaderboard.
+6. Daily and Weekly are separate leaderboard views. Each defaults to its current period
+   and provides a selector for the viewer's immediately preceding period.
 7. The Daily selector labels are **Today** and **Yesterday**. `Today` is the default.
 8. The Weekly selector labels are **This week** and **Last week**. `This week` is the
    default.
-9. `Yesterday` means the latest closed Daily period, even during the interval when the
-   viewer's literal previous local date has not closed worldwide.
-10. `Last week` means the latest closed Weekly period, even during the interval when the
-    immediately preceding calendar week has not closed worldwide.
+9. `Yesterday` means the Competition Date immediately before the viewer's current
+   Competition Date. It may remain provisional until its 13:00 UTC worldwide closure.
+10. `Last week` means the Competition Week immediately before the viewer's current
+    Competition Week. It may remain provisional until the prior Sunday closes worldwide
+    at 13:00 UTC on Monday.
 11. The leaderboard surface always displays the authoritative date being viewed. Daily
     displays one full date; Weekly displays its full Monday-through-Sunday date range.
     The date display removes any ambiguity created by the conversational selector labels.
@@ -46,15 +48,20 @@ unchanged unless this document says otherwise.
 13. Weekly provisional ranking begins with a player's first accepted result. The player
     does not wait for three closed dates before appearing.
 14. Weekly provisional scoring uses the best accepted results currently available, up
-    to the configured best-three limit. The UI shows qualification progress such as
-    `1/3 results` or `2/3 results`.
-15. Three valid daily results remain required for a final Weekly placement and prize
-    eligibility. A provisional rank never guarantees a final rank, medal, achievement,
-    or Crown.
+    to the configured best-three limit.
+15. One accepted ranked result is sufficient for Live and Final Weekly participation,
+    placement, and prize eligibility. There is no three-result qualification threshold.
+    Players with no accepted ranked result for the selected board remain absent, clearly
+    separating participants from non-participants.
 16. Final Weekly placements, achievements, and Crowns are awarded only after the full
     Competition Week closes.
-17. Leaderboard History remains a distinct archive of finalized periods. The
-    `Yesterday` and `Last week` selectors are shortcuts, not replacements for History.
+17. `Today` and `Yesterday` can both be provisional at the same time. Around the weekly
+    boundary, `This week` and `Last week` can also both be provisional.
+18. Leaderboard History remains the distinct archive for Final Leaderboards. A player
+    looking for the latest closed date or week uses History rather than a relative-period
+    selector.
+19. Live updates use reasonable periodic refresh and user-initiated pull-to-refresh.
+    WebSocket-style pushed standings are not required.
 
 ## Canonical Model
 
@@ -98,9 +105,9 @@ members.
 
 ### Live leaderboard
 
-A Live Leaderboard is public, provisional, and write-through. Every accepted change that
-affects the current active result must be reflected without waiting for period closure.
-This includes:
+A Live Leaderboard is public, provisional, and readable from committed results. Every
+accepted change that affects the current active result must be reflected without waiting
+for period closure. This includes:
 
 - a player's first accepted result;
 - a later result that replaces the active result under that quest's existing rules;
@@ -108,9 +115,11 @@ This includes:
 - a result exclusion or eligibility change; and
 - a correction made before closure.
 
-“Immediately” is a data-consistency requirement: once the write transaction commits, a
-fresh leaderboard read must include it. Client delivery may use invalidation, polling,
-or a pushed update, but the backend must not wait for the five-minute lifecycle job.
+“Immediately” means that once the write transaction commits, a fresh leaderboard read
+must include it. Clients use a reasonable automatic polling interval and retain
+pull-to-refresh for an explicit fresh read. WebSockets, server-sent events, Phoenix
+channels, and other pushed-standings transports are not required. The backend must not
+wait for period closure or a five-minute lifecycle snapshot before serving the result.
 
 ### Final leaderboard
 
@@ -138,7 +147,7 @@ Daily contains a two-option selector:
 | Selector label | Meaning | State |
 | --- | --- | --- |
 | `Today` | The viewer's current Competition Date | Live and provisional |
-| `Yesterday` | The latest globally closed Competition Date | Final |
+| `Yesterday` | The Competition Date immediately before the viewer's `Today` | Provisional or final |
 
 The surface always displays the selected Competition Date separately from the selector.
 For example:
@@ -150,8 +159,8 @@ Monday, August 17, 2026
 Live provisional standings
 ```
 
-Before a literal yesterday has closed at 13:00 UTC, `Yesterday` may resolve to an older
-date. The selector still says `Yesterday`; the displayed full date is authoritative.
+Before yesterday closes globally at 13:00 UTC, its board remains live and provisional.
+The displayed full date and status are always authoritative.
 
 ### Weekly
 
@@ -160,7 +169,7 @@ Weekly contains a two-option selector:
 | Selector label | Meaning | State |
 | --- | --- | --- |
 | `This week` | The viewer's current Competition Week | Live and provisional |
-| `Last week` | The latest globally closed Competition Week | Final |
+| `Last week` | The Competition Week immediately before the viewer's `This week` | Provisional or final |
 
 The surface always displays the selected Monday-through-Sunday range separately from the
 selector. For example:
@@ -172,9 +181,9 @@ August 17–23, 2026
 Live provisional standings
 ```
 
-On Monday before the prior week closes globally at 13:00 UTC, `Last week` may resolve to
-the most recent earlier finalized week. The selector still says `Last week`; the
-displayed date range is authoritative.
+On Monday before the prior week closes globally at 13:00 UTC, `Last week` opens that
+immediately preceding week as a live provisional board. The displayed date range and
+status are always authoritative.
 
 ### Localization
 
@@ -186,13 +195,13 @@ Date or Competition Week keys remain unchanged.
 
 ### History
 
-History contains only Final Leaderboards. It remains the archive for older competition
-weeks and their daily drill-downs. The latest closed periods may be reachable both from
-History and from the `Yesterday` or `Last week` shortcuts; these are different navigation
-paths to the same final facts.
+History contains only Final Leaderboards. It remains the archive for closed competition
+weeks and their daily drill-downs, including discovery of the latest closed Daily or
+Weekly period.
 
 History never contains an open provisional period and never substitutes for the default
-live Daily or Weekly views.
+live Daily or Weekly views. Relative selectors do not skip an open period to find a
+finalized one; that is History's role.
 
 ## Daily Live Standings
 
@@ -221,8 +230,7 @@ participation.
 ## Weekly Live Standings
 
 The `This week` board includes every Leaderboard Participant with at least one accepted
-ranked result for the selected board in that Competition Week. It must not be empty merely
-because fewer than three dates have closed globally.
+ranked result for the selected board in that Competition Week.
 
 For each participant:
 
@@ -231,20 +239,20 @@ For each participant:
 3. Select up to the configured best-three limit.
 4. Calculate the provisional score as the average of the selected available results.
 5. Assign a provisional rank using the existing competition-tie rule.
-6. Display valid-result qualification progress against the three-result requirement.
 
 Examples:
 
-| Valid results | Live treatment | Final eligibility if the week ended now |
+| Valid results | Weekly treatment | Final eligibility if the week ended now |
 | ---: | --- | --- |
-| 1 | Visible and provisionally ranked from that result | Not qualified |
-| 2 | Visible and provisionally ranked from the best two | Not qualified |
-| 3 | Visible and provisionally ranked from the best three | Qualified |
-| 4–7 | Visible and provisionally ranked from the best three | Qualified |
+| 0 | Absent from the selected leaderboard | Not a participant |
+| 1 | Visible and ranked from that result | Eligible |
+| 2 | Visible and ranked from the best two | Eligible |
+| 3 | Visible and ranked from the best three | Eligible |
+| 4–7 | Visible and ranked from the best three | Eligible |
 
-A participant with fewer than three valid results at closure receives no final placement,
-medal, achievement, or Crown. Their participation may remain visible as unqualified, but
-must not be represented as a final ranked placement.
+The result count may be displayed as context, but it is not qualification progress and
+does not restrict ranking or rewards. Final placement remains subject to the established
+integrity, eligibility, moderation, and board-prize rules.
 
 ## Step Handling And The 13:00 UTC Cutoff
 
@@ -280,7 +288,6 @@ Every leaderboard response and screen must distinguish live from final state.
 - Rows and ranks may change.
 - The exact Daily date or Weekly range is visible.
 - No medal, achievement, Crown, or other final-placement reward is granted.
-- Weekly qualification progress is visible.
 - The player must not be told or visually led to believe that a provisional placement is
   secured.
 
@@ -289,7 +296,7 @@ Every leaderboard response and screen must distinguish live from final state.
 - Status is closed or corrected.
 - The exact Daily date or Weekly range is visible.
 - Daily ranks are final subject only to audited correction.
-- Weekly ranks require the established minimum of three valid results.
+- Weekly ranks require at least one accepted ranked result for the selected board.
 - Weekly medals, achievements, and Crowns are awarded from the final eligible snapshot.
 
 Existing competition rank semantics (`1, 1, 3`), tie prize expansion, reward caps,
@@ -310,36 +317,41 @@ At one instant, a UTC+14 viewer may have August 18 as `Today`, while a UTC-12 vi
 August 17. Each screen displays its actual date, so neither relies on the selector label
 alone.
 
-### Yesterday before closure
+### Today and Yesterday can both be provisional
 
-At 10:00 UTC on August 18, August 17 has not yet closed globally. `Yesterday` therefore
-opens the latest finalized Daily board, which may be August 16. The screen displays
-`August 16, 2026` prominently.
+For a viewer whose current Competition Date is August 18, `Today` opens August 18 and
+`Yesterday` opens August 17. At 10:00 UTC, August 17 has not yet closed globally, so both
+boards are provisional and both continue to refresh.
 
-At 13:00 UTC, August 17 becomes final and `Yesterday` advances to August 17.
+At 13:00 UTC, the August 17 board becomes final. `Yesterday` continues to open August 17;
+only its status changes.
 
-### Last week before closure
+### This week and Last week can both be provisional
 
 On Monday at 10:00 UTC, the immediately preceding Sunday has not passed the global
-13:00 UTC cutoff. `Last week` still opens the latest earlier finalized Competition Week
-and displays that week's actual range.
+13:00 UTC cutoff. `This week` opens the new week and `Last week` opens the immediately
+preceding week. Both are provisional.
 
-At 13:00 UTC, the just-ended week becomes final and `Last week` advances to it.
+At 13:00 UTC, the just-ended week becomes final. `Last week` continues to open that same
+week; only its status changes.
 
 ## Current-System Changes Required
 
 The existing implementation does not satisfy this specification:
 
-- `Yesterday` currently exposes only a closed Daily snapshot and has no `Today` live
-  option.
+- `Yesterday` currently resolves to the latest closed Daily snapshot rather than the
+  viewer's immediately preceding Competition Date, and there is no `Today` live option.
 - `This week` currently ranks only globally closed Competition Dates.
 - The current player's newer result is shown separately while other players' pending
   results remain hidden.
-- Weekly rows are omitted until a player has three qualifying closed results.
+- Weekly rows are currently omitted until a player has three qualifying closed results;
+  the new rule ranks a participant from the first accepted result.
+- There is no `Last week` relative-period view that can remain provisional through the
+  Monday closure window.
 - Weekly snapshots refresh through a five-minute lifecycle job rather than directly from
   committed accepted results.
-- Mobile refetches approximately once per minute, which is not true cross-player realtime
-  delivery.
+- Mobile already refetches approximately once per minute; this is an acceptable live
+  delivery mechanism when combined with pull-to-refresh and a backend fresh-read model.
 - The current global closure is 20:15 UTC rather than 13:00 UTC.
 
 Implementation must introduce a live read projection or equivalent write-through model
@@ -351,10 +363,10 @@ an implementation choice, but a fresh read after commit must return the new stan
 The API must let clients request these concepts without inferring them from wall-clock
 labels:
 
-- current live Daily period for the viewer;
-- latest final Daily period;
-- current live Weekly period for the viewer;
-- latest final Weekly period; and
+- the viewer's current Daily period;
+- the viewer's immediately preceding Daily period;
+- the viewer's current Weekly period;
+- the viewer's immediately preceding Weekly period; and
 - finalized History.
 
 Every response includes:
@@ -368,11 +380,11 @@ Every response includes:
 - current revision or live projection version;
 - rows and current-player row;
 - board identity and scoring version; and
-- Weekly qualification counts where applicable.
+- Weekly valid-result count where available as informational context only.
 
-The API must not encode the semantic lie that `Yesterday` is always the viewer's literal
-previous date or that `Last week` is always the immediately preceding week. Those are UI
-labels for `latest final`; the response's actual date keys are authoritative.
+Period selection is viewer-relative and must not depend on whether the selected period is
+closed. The response's actual date keys and status are authoritative. Finalized-period
+discovery belongs to History rather than to the Daily or Weekly relative selectors.
 
 ## Acceptance Criteria
 
@@ -380,10 +392,9 @@ labels for `latest final`; the response's actual date keys are authoritative.
    visible on a fresh `Today` read immediately after commit.
 2. Submitting the first accepted result for a selected Weekly board makes that player
    visible and provisionally ranked on a fresh `This week` read immediately after commit.
-3. A player with one or two results is shown on the Live Weekly board with accurate
-   qualification progress.
-4. A player with fewer than three valid results receives no final Weekly placement or
-   prize.
+3. A player with one accepted ranked result is shown and ranked on both Live and Final
+   Weekly leaderboards.
+4. A player with no accepted ranked result for the selected board and week is absent.
 5. Results from other players and timezones appear publicly before global closure; they
    are not limited to a private pending-current-player callout.
 6. A newer accepted Step sync changes the relevant live rankings before closure.
@@ -395,13 +406,20 @@ labels for `latest final`; the response's actual date keys are authoritative.
     `Last week`.
 11. Every Daily surface displays its actual full date, and every Weekly surface displays
     its actual Monday-through-Sunday range.
-12. Before closure, `Yesterday` and `Last week` can point to older final periods while
-    continuing to display their true dates.
-13. History contains finalized periods only and remains separate from both live views
-    and quick comparison selectors.
-14. Live status, provisional ranking, and Weekly qualification are accessible without
-    relying on color alone.
-15. English and French selector/date/status copy preserve identical semantics.
+12. `Yesterday` always selects the viewer's immediately preceding Competition Date,
+    including while that date is provisional.
+13. `Last week` always selects the viewer's immediately preceding Competition Week,
+    including while that week is provisional.
+14. `Today` and `Yesterday`, or `This week` and `Last week`, may be provisional
+    simultaneously and refresh independently.
+15. History contains finalized periods only and is the place to find the latest closed
+    Daily or Weekly period.
+16. Live standings update through reasonable automatic polling and pull-to-refresh;
+    pushed WebSocket-style delivery is not required.
+17. Pull-to-refresh performs a fresh read that includes all accepted results committed
+    before the request.
+18. Live status and provisional ranking are accessible without relying on color alone.
+19. English and French selector/date/status copy preserve identical semantics.
 
 ## Non-goals
 

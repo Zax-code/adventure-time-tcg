@@ -9,9 +9,9 @@
 > **Superseded period behavior:**
 > [`live-leaderboard-period-spec.md`](live-leaderboard-period-spec.md) replaces this
 > baseline's 20:15 UTC closure, eight-hour Step grace, closed-date-only live comparison,
-> and Yesterday/current-week navigation rules. This baseline remains authoritative for
-> scoring, integrity, rewards, moderation, corrections, and other rules that the newer
-> specification does not replace.
+> three-result Weekly qualification, and Yesterday/current-week navigation rules. This
+> baseline remains authoritative for scoring formulas, integrity, reward amounts,
+> moderation, corrections, and other rules that the newer specification does not replace.
 
 ## 1. Purpose
 

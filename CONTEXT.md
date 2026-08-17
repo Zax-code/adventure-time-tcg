@@ -93,7 +93,7 @@ A player with at least one accepted ranked result for the selected leaderboard a
 _Avoid_: Any active player, any game session
 
 **Live Leaderboard**:
-The public, provisional ranking for the current Competition Date or Competition Week. It changes as accepted results arrive and does not award final placements or prizes.
+The public, provisional ranking for a Competition Date or Competition Week that has not closed globally. It changes as accepted results arrive and does not award final placements or prizes.
 _Avoid_: Pending private result, final standings
 
 **Final Leaderboard**:
@@ -101,13 +101,13 @@ The closed ranking for a Competition Date or Competition Week. Ordinary late res
 _Avoid_: Live leaderboard, provisional standings
 
 **Daily Leaderboard**:
-A leaderboard for one displayed Competition Date. `Today` selects its Live Leaderboard and `Yesterday` selects the latest Final Leaderboard, whose displayed date remains authoritative.
+A leaderboard for one displayed Competition Date. `Today` selects the viewer's current date and `Yesterday` selects the viewer's previous date; either can be provisional until its worldwide closure.
 _Avoid_: Yesterday leaderboard
 
 **Weekly Leaderboard**:
-A leaderboard for one displayed Monday-through-Sunday Competition Week. `This week` selects its Live Leaderboard and `Last week` selects the latest Final Leaderboard, whose displayed date range remains authoritative.
+A leaderboard for one displayed Monday-through-Sunday Competition Week. `This week` selects the viewer's current week and `Last week` selects the immediately preceding week; either can be provisional until its worldwide closure.
 _Avoid_: Current-week-only leaderboard
 
 **Leaderboard History**:
-The archive of Final Leaderboards. It is separate from the `Yesterday` and `Last week` shortcuts even when they reference the same finalized periods.
+The archive used to find Final Leaderboards, including the latest closed Daily or Weekly period. It never contains a provisional period.
 _Avoid_: Live standings, current period
