@@ -1439,7 +1439,7 @@ export class ApiClient {
 
   async leaderboard(
     boardKey: LeaderboardBoardKey,
-    period: "yesterday" | "current_week",
+    period: "today" | "yesterday" | "current_week" | "last_week",
     cursor?: string,
   ): Promise<LeaderboardResponse> {
     const [quest, mode] = boardKey.split("/");

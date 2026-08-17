@@ -7,19 +7,55 @@ tags:
 - launchApp:
     clearState: true
     clearKeychain: true
+- scrollUntilVisible:
+    element:
+      id: auth-email-input
+    direction: DOWN
+    timeout: 40000
+    centerElement: true
+- tapOn:
+    id: auth-email-input
+- eraseText
+- inputText: ${TEST_EMAIL}
+- pressKey: Enter
+- tapOn:
+    id: auth-password-input
+- eraseText
+- inputText: ${TEST_PASSWORD}
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: tab-home
+    timeout: 30000
 - openLink:
-    link: adventure-time:///e2e-auth?redirect=%2F%28tabs%29%2Frankings%3Fpreview%3D1&email=${TEST_EMAIL_URI}&password=${TEST_PASSWORD_URI}
+    link: "adventure-time:///rankings?preview=1"
 - runFlow: subflows/confirm-open-link-if-needed.yaml
 - assertVisible:
     id: rankings-screen
 - waitForAnimationToEnd
-- takeScreenshot: tmp-rankings-shots/01-rankings-top
+- takeScreenshot: tmp-rankings-shots/01-weekly-this-week-selector
+- tapOn:
+    id: rankings-period-daily
+- assertVisible:
+    id: rankings-period-today
+- waitForAnimationToEnd
+- takeScreenshot: tmp-rankings-shots/02-daily-today-selector
+- tapOn:
+    id: rankings-period-yesterday
+- waitForAnimationToEnd
+- takeScreenshot: tmp-rankings-shots/03-daily-yesterday-selector
+- tapOn:
+    id: rankings-period-weekly
+- tapOn:
+    id: rankings-period-last_week
+- waitForAnimationToEnd
+- takeScreenshot: tmp-rankings-shots/04-weekly-last-week-selector
 - swipe:
     start: "50%,78%"
     end: "50%,28%"
     duration: 700
 - waitForAnimationToEnd
-- takeScreenshot: tmp-rankings-shots/02-rankings-lower
+- takeScreenshot: tmp-rankings-shots/05-rankings-lower
 - openLink:
     link: "adventure-time:///rankings?preview=1&placement=top7"
 - runFlow: subflows/confirm-open-link-if-needed.yaml
@@ -30,16 +66,16 @@ tags:
     end: "50%,28%"
     duration: 700
 - waitForAnimationToEnd
-- takeScreenshot: tmp-rankings-shots/03-rankings-player-top-seven
+- takeScreenshot: tmp-rankings-shots/06-rankings-player-top-seven
 - tapOn:
     id: leaderboard-row-5
 - assertVisible:
     id: public-profile-screen
 - waitForAnimationToEnd
-- takeScreenshot: tmp-rankings-shots/04-public-profile-crowns-achievements
+- takeScreenshot: tmp-rankings-shots/07-public-profile-crowns-achievements
 - swipe:
     start: "50%,80%"
     end: "50%,25%"
     duration: 700
 - waitForAnimationToEnd
-- takeScreenshot: tmp-rankings-shots/05-public-profile-details
+- takeScreenshot: tmp-rankings-shots/08-public-profile-details

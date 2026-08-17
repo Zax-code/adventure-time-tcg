@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useMemo, useState, type ComponentType } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
 
 import type {
   LeaderboardBoardKey,
@@ -24,7 +24,7 @@ import {
 } from "../../components/icons";
 import { PageLoadingState } from "../../components/loading-state";
 import { useTranslation } from "../../i18n";
-import { ApiClientError, apiClient } from "../../lib/api";
+import { apiClient } from "../../lib/api";
 import { useThemeStore } from "../../stores/theme-store";
 import {
   useAppHeaderHeight,
@@ -37,7 +37,8 @@ import {
   RANKINGS_TOP_SEVEN_PREVIEW_DATA,
 } from "./rankings-preview-data";
 
-type Period = "yesterday" | "current_week" | "history";
+type MainPeriod = "daily" | "weekly" | "history";
+type LivePeriod = "today" | "yesterday" | "current_week" | "last_week";
 type IconComponent = ComponentType<{ size?: number; color?: string }>;
 
 const BOARD_OPTIONS: Array<{
@@ -72,17 +73,23 @@ export function RankingsScreen() {
   }>();
   const isPreview =
     process.env.EXPO_PUBLIC_E2E_AUTH === "1" && preview === "1";
-  const isYesterdayPendingPreview =
-    isPreview && previewState === "yesterday-pending";
   const isLoadingPreview = isPreview && previewState === "loading";
   const { t } = useTranslation();
   const themeName = useThemeStore((state) => state.themeName);
   const tc = THEME_COLORS[themeName];
   const headerHeight = useAppHeaderHeight();
   const bottomPadding = useBottomTabBarContentPadding();
-  const [period, setPeriod] = useState<Period>(
-    isYesterdayPendingPreview ? "yesterday" : "current_week",
+  const [mainPeriod, setMainPeriod] = useState<MainPeriod>("weekly");
+  const [dailyPeriod, setDailyPeriod] = useState<"today" | "yesterday">("today");
+  const [weeklyPeriod, setWeeklyPeriod] = useState<"current_week" | "last_week">(
+    "current_week",
   );
+  const period: LivePeriod | "history" =
+    mainPeriod === "daily"
+      ? dailyPeriod
+      : mainPeriod === "weekly"
+        ? weeklyPeriod
+        : "history";
   const [boardKey, setBoardKey] = useState<LeaderboardBoardKey>(
     isLoadingPreview ? "steps/default" : "perfect-timing/official",
   );
@@ -111,11 +118,12 @@ export function RankingsScreen() {
     data: queryData,
     error: queryError,
     isError: queryIsError,
+    isFetching: queryIsFetching,
     isLoading: queryIsLoading,
     refetch: refetchLeaderboard,
   } = useQuery({
     queryKey: ["leaderboard", boardKey, period],
-    queryFn: () => apiClient.leaderboard(boardKey, period as "yesterday" | "current_week"),
+    queryFn: () => apiClient.leaderboard(boardKey, period as LivePeriod),
     enabled: !isPreview && period !== "history",
     staleTime: 60_000,
     refetchInterval: 60_000,
@@ -127,6 +135,7 @@ export function RankingsScreen() {
     data: historyData,
     error: historyError,
     isError: historyIsError,
+    isFetching: historyIsFetching,
     isLoading: historyIsLoading,
     refetch: refetchHistory,
   } = useQuery({
@@ -150,25 +159,48 @@ export function RankingsScreen() {
   );
 
   const data = useMemo<LeaderboardResponse | undefined>(() => {
-    if (isYesterdayPendingPreview || isLoadingPreview) return undefined;
+    if (isLoadingPreview) return undefined;
     if (!isPreview) return queryData;
     const previewData =
       placement === "top7" ? RANKINGS_TOP_SEVEN_PREVIEW_DATA : RANKINGS_PREVIEW_DATA;
-    return { ...previewData, board: { ...previewData.board, key: boardKey } };
+    const isDaily = mainPeriod === "daily";
+    const competitionDate = dailyPeriod === "today" ? "2026-08-17" : "2026-08-16";
+    const weekStart = weeklyPeriod === "current_week" ? "2026-08-17" : "2026-08-10";
+    const weekEnd = weeklyPeriod === "current_week" ? "2026-08-23" : "2026-08-16";
+
+    return {
+      ...previewData,
+      board: { ...previewData.board, key: boardKey },
+      period: {
+        ...previewData.period,
+        type: isDaily ? "day" : "week",
+        competitionDate: isDaily ? competitionDate : null,
+        weekStart: isDaily ? null : weekStart,
+        weekEnd: isDaily ? null : weekEnd,
+        standingsThrough: isDaily ? competitionDate : weekEnd,
+      },
+    };
   }, [
     boardKey,
+    dailyPeriod,
     isLoadingPreview,
     isPreview,
-    isYesterdayPendingPreview,
+    mainPeriod,
     placement,
     queryData,
+    weeklyPeriod,
   ]);
-
-  const isYesterdayPending =
-    period === "yesterday" &&
-    (isYesterdayPendingPreview ||
-      (queryError instanceof ApiClientError &&
-        queryError.code === "LEADERBOARD_PERIOD_UNAVAILABLE"));
+  const isRefreshing =
+    mainPeriod === "history"
+      ? historyIsFetching && Boolean(historyData)
+      : queryIsFetching && Boolean(queryData);
+  const onRefresh = useCallback(() => {
+    if (mainPeriod === "history") {
+      void refetchHistory();
+    } else {
+      void refetchLeaderboard();
+    }
+  }, [mainPeriod, refetchHistory, refetchLeaderboard]);
   const scrollContentStyle = useMemo(
     () => ({
       paddingTop: headerHeight + 18,
@@ -185,6 +217,9 @@ export function RankingsScreen() {
       contentContainerStyle={scrollContentStyle}
       showsVerticalScrollIndicator={false}
       testID="rankings-screen"
+      refreshControl={
+        <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor={tc.primaryDark} />
+      }
     >
       <View className="gap-1 px-1">
         <View className="flex-row items-center gap-2">
@@ -204,13 +239,14 @@ export function RankingsScreen() {
       </View>
 
       <View className="flex-row rounded-full border border-primaryBorder bg-surface p-1">
-        {(["yesterday", "current_week", "history"] as Period[]).map((item) => {
-          const selected = period === item;
+        {(["daily", "weekly", "history"] as MainPeriod[]).map((item) => {
+          const selected = mainPeriod === item;
           return (
             <Pressable
               key={item}
-              onPress={() => setPeriod(item)}
+              onPress={() => setMainPeriod(item)}
               className="flex-1 items-center justify-center overflow-hidden rounded-full px-2 py-3"
+              testID={`rankings-period-${item}`}
             >
               {selected ? (
                 <LinearGradient
@@ -229,6 +265,20 @@ export function RankingsScreen() {
           );
         })}
       </View>
+
+      {mainPeriod === "daily" ? (
+        <PeriodSelector
+          options={["today", "yesterday"]}
+          selected={dailyPeriod}
+          onSelect={(value) => setDailyPeriod(value as "today" | "yesterday")}
+        />
+      ) : mainPeriod === "weekly" ? (
+        <PeriodSelector
+          options={["current_week", "last_week"]}
+          selected={weeklyPeriod}
+          onSelect={(value) => setWeeklyPeriod(value as "current_week" | "last_week")}
+        />
+      ) : null}
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-3">
         {BOARD_OPTIONS.map((option) => {
@@ -301,8 +351,6 @@ export function RankingsScreen() {
         ) : (
           <EmptyPanel title={t("rankings.historyTitle")} body={t("rankings.historyBody")} />
         )
-      ) : isYesterdayPending ? (
-        <YesterdayPendingPanel />
       ) : isLoadingPreview || (queryIsLoading && !isPreview) ? (
         <PageLoadingState
           title={t("rankings.loadingTitle")}
@@ -318,58 +366,43 @@ export function RankingsScreen() {
   );
 }
 
-function YesterdayPendingPanel() {
+function PeriodSelector({
+  options,
+  selected,
+  onSelect,
+}: {
+  options: LivePeriod[];
+  selected: LivePeriod;
+  onSelect: (value: LivePeriod) => void;
+}) {
   const { t } = useTranslation();
-  const tc = THEME_COLORS[useThemeStore((state) => state.themeName)];
 
   return (
-    <View
-      className="w-full overflow-hidden rounded-[30px] border border-primaryBorder bg-infoTint"
-      testID="leaderboard-yesterday-pending"
-    >
-      <View className="items-center bg-infoTint px-7 py-8">
-        <ClockIcon size={56} color={tc.primaryDark} />
+    <View className="flex-row rounded-2xl border border-primaryBorder bg-surfaceMuted p-1">
+      {options.map((option) => {
+        const active = selected === option;
 
-        <View className="mt-4 rounded-full border border-primaryBorder bg-primaryTint px-4 py-1.5">
-          <Text className="font-nunito-bold text-xs uppercase tracking-[1.5px] text-primaryText">
-            {t("rankings.yesterdayPending.eyebrow")}
-          </Text>
-        </View>
-
-        <Text
-          selectable
-          adjustsFontSizeToFit
-          minimumFontScale={0.9}
-          numberOfLines={1}
-          className="mt-4 w-full text-center font-nunito-extrabold text-xl leading-7 text-fg"
-        >
-          {t("rankings.yesterdayPending.title")}
-        </Text>
-        <Text
-          selectable
-          className="mt-3 w-full text-center font-nunito text-[15px] leading-6 text-fgMuted"
-        >
-          {t("rankings.yesterdayPending.body")}
-        </Text>
-
-        <View className="mt-6 w-full flex-row items-center gap-3 rounded-2xl border border-primaryBorder bg-surface px-4 py-4">
-          <View className="size-10 items-center justify-center rounded-full bg-primaryTint">
-            <TrophyIcon size={22} color={tc.primaryDark} />
-          </View>
-          <Text
-            selectable
-            className="flex-1 font-nunito-semibold text-sm leading-5 text-primaryText"
+        return (
+          <Pressable
+            key={option}
+            onPress={() => onSelect(option)}
+            className={`flex-1 items-center rounded-xl px-3 py-2.5 ${active ? "bg-surface" : ""}`}
+            testID={`rankings-period-${option}`}
           >
-            {t("rankings.yesterdayPending.hint")}
-          </Text>
-        </View>
-      </View>
+            <Text
+              className={`font-nunito-bold text-sm ${active ? "text-primaryText" : "text-fgMuted"}`}
+            >
+              {t(`rankings.periods.${option}`)}
+            </Text>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }
 
 function RankingsContent({ data, preview }: { data: LeaderboardResponse; preview: boolean }) {
-  const { t } = useTranslation();
+  const { locale, t } = useTranslation();
   const router = useRouter();
   const openProfile = (row: LeaderboardRow) => {
     if (!row.profile.publicProfileId || row.profile.visibility !== "visible") return;
@@ -384,13 +417,17 @@ function RankingsContent({ data, preview }: { data: LeaderboardResponse; preview
 
   return (
     <View className="gap-4">
-      <View className="rounded-2xl bg-primaryTint px-4 py-3">
-        <Text selectable className="text-center font-nunito-bold text-sm text-primaryText">
-          {data.period.standingsThrough
-            ? data.period.provisional
-              ? t("rankings.standingsThrough", { date: data.period.standingsThrough })
-              : t("rankings.closedThrough", { date: data.period.standingsThrough })
-            : t("rankings.provisional")}
+      <View className="items-center gap-2 rounded-2xl bg-primaryTint px-4 py-3">
+        <Text selectable className="text-center font-nunito-extrabold text-base text-fg">
+          {formatPeriodDate(data.period, locale)}
+        </Text>
+        <View className={`rounded-full px-3 py-1 ${data.period.provisional ? "bg-infoTint" : "bg-surface"}`}>
+          <Text className="font-nunito-bold text-xs uppercase tracking-[1px] text-primaryText">
+            {t(data.period.provisional ? "rankings.liveProvisional" : "rankings.final")}
+          </Text>
+        </View>
+        <Text selectable className="text-center font-nunito text-xs text-fgMuted">
+          {t(data.period.provisional ? "rankings.provisionalHint" : "rankings.finalHint")}
         </Text>
       </View>
 
@@ -416,17 +453,6 @@ function RankingsContent({ data, preview }: { data: LeaderboardResponse; preview
         <View className="rounded-[24px] border-2 border-primaryBorder bg-primaryTint">
           <View className="absolute -top-2 left-1/2 size-4 rotate-45 border-l-2 border-t-2 border-primaryBorder bg-primaryTint" />
           <RankingRow row={data.currentPlayer} onPress={() => openProfile(data.currentPlayer!)} />
-        </View>
-      ) : null}
-
-      {data.pendingCurrentPlayerResult ? (
-        <View className="rounded-[24px] border border-primaryBorder bg-infoTint px-4 py-3">
-          <Text className="text-center font-nunito-bold text-sm text-primaryText">
-            {t("rankings.pendingResult", {
-              result: formatRawResult(data.pendingCurrentPlayerResult),
-              points: data.pendingCurrentPlayerPoints ?? 0,
-            })}
-          </Text>
         </View>
       ) : null}
 
@@ -551,7 +577,9 @@ function PodiumCard({ row, place, onPress }: { row: LeaderboardRow; place: 1 | 2
         </Text>
         <Text className="font-nunito-bold text-sm text-fgMuted">{formatRaw(row)}</Text>
         <View className="rounded-lg bg-white/80 px-3 py-1.5">
-          <Text className="font-nunito-extrabold text-base text-primaryText">{row.points} pts</Text>
+          <Text className="font-nunito-extrabold text-base text-primaryText">
+            {row.points.toLocaleString()} pts
+          </Text>
         </View>
       </View>
       <View
@@ -591,8 +619,8 @@ function RankingRow({
         {row.profile.displayName}
       </Text>
       <Text className="font-nunito-semibold text-sm text-fgMuted">{formatRaw(row)}</Text>
-      <Text className="w-16 text-right font-nunito-extrabold text-sm text-primaryText">
-        {row.points} pts
+      <Text className="min-w-20 text-right font-nunito-extrabold text-sm text-primaryText">
+        {row.points.toLocaleString()} pts
       </Text>
     </Pressable>
   );
@@ -610,6 +638,28 @@ function formatRaw(row: LeaderboardRow) {
   return formatRawResult(row.rawResult);
 }
 
+function formatPeriodDate(
+  period: LeaderboardResponse["period"],
+  locale: "en" | "fr",
+) {
+  const formatter = new Intl.DateTimeFormat(locale, {
+    dateStyle: "long",
+    timeZone: "UTC",
+  });
+  const formatDate = (date: string) =>
+    formatter.format(new Date(`${date}T12:00:00.000Z`));
+
+  if (period.type === "day" && period.competitionDate) {
+    return formatDate(period.competitionDate);
+  }
+
+  if (period.weekStart && period.weekEnd) {
+    return `${formatDate(period.weekStart)} – ${formatDate(period.weekEnd)}`;
+  }
+
+  return "—";
+}
+
 function formatRawResult(raw: LeaderboardRow["rawResult"]) {
   if (raw.kind === "duration_error_ms") return `${raw.absoluteErrorMs} ms`;
   if (raw.kind === "steps") return raw.steps.toLocaleString();
@@ -618,8 +668,8 @@ function formatRawResult(raw: LeaderboardRow["rawResult"]) {
   if (raw.kind === "exact_completion_time") return raw.exact ? `${(raw.elapsedMs / 1000).toFixed(1)} s` : "Not exact";
   if (raw.kind === "member_breakdown") {
     const values = Object.values(raw.members);
-    const average = values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
-    return `${Math.round(average / 1000)} pts`;
+    const total = values.reduce((sum, value) => sum + value, 0);
+    return `${Math.round(total / 1000).toLocaleString()} pts`;
   }
   return "—";
 }
