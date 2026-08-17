@@ -4,7 +4,7 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
   alias AdventureTimeApi.Accounts.{EmailCredential, User}
   alias AdventureTimeApi.Fitbit.Account
   alias AdventureTimeApi.Health.StepSnapshot
-  alias AdventureTimeApi.Leaderboards.Board
+  alias AdventureTimeApi.Leaderboards.RankedSession
   alias AdventureTimeApi.Quests
 
   alias AdventureTimeApi.Quests.{
@@ -471,14 +471,9 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
            }
   end
 
-  test "ranked session failures never block Daily Numbers play" do
+  test "legacy ranked-start returns Daily Numbers state without creating a ranked session" do
     user = create_user_with_password("daily-numbers-isolation@example.com", "password123")
     access_token = login_access_token(user.email, "password123")
-
-    Board
-    |> Repo.get_by!(key: "daily-numbers/1-5")
-    |> Board.changeset(%{enabled: false})
-    |> Repo.update!()
 
     response =
       access_token
@@ -489,6 +484,7 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
     assert response["mode"] == "1-5"
     assert response["submitted"] == false
     assert length(response["numbers"]) == 6
+    assert Repo.aggregate(RankedSession, :count) == 0
 
     submitted =
       access_token

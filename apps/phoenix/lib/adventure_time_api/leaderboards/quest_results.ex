@@ -16,7 +16,6 @@ defmodule AdventureTimeApi.Leaderboards.QuestResults do
   alias AdventureTimeApi.Leaderboards.{
     Calendar,
     Configuration,
-    RankedSession,
     ResultRecorder,
     Slots
   }
@@ -120,11 +119,7 @@ defmodule AdventureTimeApi.Leaderboards.QuestResults do
     |> Enum.each(fn {user_id, date, source} -> sync_safely(user_id, date, source) end)
 
     from(attempt in DailyNumbersDailyAttempt,
-      left_join: session in RankedSession,
-      on:
-        session.source_kind == "daily_numbers_daily_attempt" and session.source_id == attempt.id and
-          session.status == :settled and session.integrity_status == :accepted,
-      where: attempt.date >= ^since and (not attempt.exact or not is_nil(session.id)),
+      where: attempt.date >= ^since,
       select: {attempt.user_id, attempt.date, attempt.mode}
     )
     |> Repo.all()
@@ -194,55 +189,26 @@ defmodule AdventureTimeApi.Leaderboards.QuestResults do
       %DailyNumbersDailyAttempt{} = attempt ->
         outcome = if attempt.exact, do: "exact", else: "failed"
 
-        ranked_session =
-          Repo.get_by(RankedSession,
-            source_kind: "daily_numbers_daily_attempt",
-            source_id: attempt.id,
-            status: :settled,
-            integrity_status: :accepted
-          )
-
-        leaderboard_elapsed_ms =
-          case ranked_session do
-            %RankedSession{} = session ->
-              max(
-                DateTime.diff(session.server_ended_at, session.server_started_at, :millisecond),
-                0
-              )
-
-            nil when not attempt.exact ->
-              attempt.elapsed_ms
-
-            nil ->
-              nil
-          end
-
-        if is_nil(leaderboard_elapsed_ms) do
-          {:error, :untrusted_ranked_timing}
-        else
-          {:ok,
-           source_attrs(
-             "daily-numbers/#{mode}",
-             "daily_numbers_daily_attempt",
-             attempt.id,
-             %{
-               "kind" => "exact_completion_time",
-               "exact" => attempt.exact,
-               "elapsedMs" => leaderboard_elapsed_ms
-             },
-             leaderboard_elapsed_ms,
-             outcome,
-             attempt.inserted_at,
-             %{
-               exact: attempt.exact,
-               completed: attempt.completed,
-               clientElapsedMs: attempt.elapsed_ms,
-               serverElapsedMs: leaderboard_elapsed_ms,
-               distance: attempt.distance
-             }
-           )
-           |> Map.put(:ranked_session_id, ranked_session && ranked_session.id)}
-        end
+        {:ok,
+         source_attrs(
+           "daily-numbers/#{mode}",
+           "daily_numbers_daily_attempt",
+           attempt.id,
+           %{
+             "kind" => "exact_completion_time",
+             "exact" => attempt.exact,
+             "elapsedMs" => attempt.elapsed_ms
+           },
+           attempt.elapsed_ms,
+           outcome,
+           attempt.inserted_at,
+           %{
+             exact: attempt.exact,
+             completed: attempt.completed,
+             elapsedMs: attempt.elapsed_ms,
+             distance: attempt.distance
+           }
+         )}
 
       nil ->
         {:ok, :not_final}

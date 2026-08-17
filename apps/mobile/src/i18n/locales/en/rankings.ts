@@ -44,7 +44,7 @@ const rankings = {
     steps: "{count} steps",
     oneGuess: "{count} guess",
     guesses: "{count} guesses",
-    seconds: "{seconds} s",
+    minutesSeconds: "{minutes} min {seconds} s",
     notExact: "Not exact",
   },
   help: {
