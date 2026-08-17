@@ -32,7 +32,7 @@ The leaderboard system must:
 - remain server-authoritative and introduce quest-specific integrity checks;
 - support mobile and web, including podiums, pinned current-player rows, and safe public profiles;
 - collect enough telemetry to recalibrate scoring after at least four full weeks and 500 valid results per quest/mode;
-- leave room for a future overall weekly leaderboard without rewarding account age.
+- provide an overall Daily and Weekly leaderboard without rewarding account age.
 
 ### Non-regression invariant
 
@@ -57,7 +57,7 @@ specification and explicit approval.
 - Versioned scoring configurations.
 - Eligibility, integrity, exclusions, moderation, identity rendering, achievements, and weekly non-tradable rewards.
 - Phoenix services, Ecto schema changes, Oban jobs, shared contracts/client, Expo UI, responsive web UI, caching, telemetry, migration, and testing.
-- A future overall weekly leaderboard design, but not necessarily its first release.
+- An overall Daily and Weekly leaderboard across the five canonical quest families.
 
 ### Out of scope
 
@@ -109,18 +109,18 @@ Current limitations relevant to public competition:
 The expected inventory describes five quest families. The repository materializes
 eight daily quest records and therefore needs eight source/detail leaderboard boards.
 The selected product structure also adds derived family boards for Daily Numbers and
-Wordle, bringing the visible catalog to ten boards.
+Wordle plus the derived All Quests board, bringing the visible catalog to eleven boards.
 
-| Family | Actual daily quest type/board | Actual modes | Expected comparison | Discrepancy or additional behavior |
-|---|---|---|---|---|
-| Steps | `steps_10k` | Source may be `device_health` or `fitbit` | Total trusted daily steps; higher is better | Expected rule is directionally correct, but device-health uploads are not yet sufficiently trusted for prizes. Current quest completion target is 10,000, while leaderboard scoring needs a separate cap/curve. |
-| Daily Numbers | `daily_numbers_1_5` | 1 large + 5 small, alias Classic | Exact completion time; lower is better | Expected inventory mentions Classic and Expert, but repository also has Balanced. All three require separate boards. Non-exact submissions currently earn partial quest rewards but must score zero for ranked results under the proposed competitive rule. |
-| Daily Numbers | `daily_numbers_2_4` | 2 large + 4 small, alias Balanced | Not listed | **Additional ranked mode.** |
-| Daily Numbers | `daily_numbers_3_3` | 3 large + 3 small, alias Expert | Exact completion time; lower is better | Separate board required. |
-| Wordle | `wordle_daily_fr` | French | Guesses; lower is better; failure zero | Repository has language-specific quests, so French and English require separate boards. |
-| Wordle | `wordle_daily_en` | English | Guesses; lower is better; failure zero | **Additional locale board relative to a single generic Wordle inventory item.** |
-| Speed Calculus | `speed_calculus_daily` | Ranked daily runs plus unranked training | Successful calculations in a fixed ranked session; higher is better | Repository allows up to three daily ranked runs and supports pause/resume/cash-out behavior. A daily ranking-result selection rule is required. |
-| Perfect Timing | `perfect_timing_daily` | Official daily attempts plus training target | Absolute error using final kept daily result; lower is better; training excluded; Miss zero | Expected rule matches the intended board, but the repository supports up to three attempts with discard/keep/auto-finalize states, so only the final kept/auto-finalized official result may rank. |
+| Family         | Actual daily quest type/board | Actual modes                                 | Expected comparison                                                                         | Discrepancy or additional behavior                                                                                                                                                                                                                          |
+| -------------- | ----------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Steps          | `steps_10k`                   | Source may be `device_health` or `fitbit`    | Total trusted daily steps; higher is better                                                 | Expected rule is directionally correct, but device-health uploads are not yet sufficiently trusted for prizes. Current quest completion target is 10,000, while leaderboard scoring needs a separate cap/curve.                                             |
+| Daily Numbers  | `daily_numbers_1_5`           | 1 large + 5 small, alias Classic             | Exact completion time; lower is better                                                      | Expected inventory mentions Classic and Expert, but repository also has Balanced. All three require separate boards. Non-exact submissions currently earn partial quest rewards but must score zero for ranked results under the proposed competitive rule. |
+| Daily Numbers  | `daily_numbers_2_4`           | 2 large + 4 small, alias Balanced            | Not listed                                                                                  | **Additional ranked mode.**                                                                                                                                                                                                                                 |
+| Daily Numbers  | `daily_numbers_3_3`           | 3 large + 3 small, alias Expert              | Exact completion time; lower is better                                                      | Separate board required.                                                                                                                                                                                                                                    |
+| Wordle         | `wordle_daily_fr`             | French                                       | Guesses; lower is better; failure zero                                                      | Repository has language-specific quests, so French and English require separate boards.                                                                                                                                                                     |
+| Wordle         | `wordle_daily_en`             | English                                      | Guesses; lower is better; failure zero                                                      | **Additional locale board relative to a single generic Wordle inventory item.**                                                                                                                                                                             |
+| Speed Calculus | `speed_calculus_daily`        | Ranked daily runs plus unranked training     | Successful calculations in a fixed ranked session; higher is better                         | Repository allows up to three daily ranked runs and supports pause/resume/cash-out behavior. A daily ranking-result selection rule is required.                                                                                                             |
+| Perfect Timing | `perfect_timing_daily`        | Official daily attempts plus training target | Absolute error using final kept daily result; lower is better; training excluded; Miss zero | Expected rule matches the intended board, but the repository supports up to three attempts with discard/keep/auto-finalize states, so only the final kept/auto-finalized official result may rank.                                                          |
 
 Additional non-board activity:
 
@@ -138,13 +138,13 @@ Additional non-board activity:
 date, and quest type. It stores target, progress, completion, reward, claim state, and
 timestamps. Quest-specific raw data lives elsewhere.
 
-| Quest | Current raw/result storage | Existing coin reward behavior | Competitive interpretation |
-|---|---|---|---|
-| Steps | `step_snapshots`, unique by user/source/date, plus progress in `daily_quests` | 75 coins at 10,000-step completion | Rank the same total displayed by the existing quest for the user's selected source; points and caps are independent of the 10,000-step quest reward. |
-| Daily Numbers | `daily_numbers_daily_attempts`, unique by user/date/mode; stores submitted expression steps, final value, distance, current 0–100 score, exact/completed flags, and client `elapsed_ms` | Base 45/60/75 coins for 1-5/2-4/3-3, multiplied by current puzzle score percentage | Rank exact solutions only, using validated server elapsed time; non-exact is a valid zero if submitted, and archive rows are excluded. |
-| Wordle | One row per guess in `wordle_daily_attempts`, unique by user/date/locale/attempt; stores guess, evaluation, solved | 35 coins for each locale on solve | Derive final guess count or failure from the server-validated sequence. |
-| Speed Calculus | `speed_calculus_daily_runs`, up to three runs per user/date; stores seed, answer array, status, score, reward, timing and pause fields | 2 coins per correct answer, capped at 80; the current quest projection/reward follows the latest settled run and supports early cash-out | Rank only an official settled run selected by the approved daily-result rule; never reuse the coin reward as points. |
-| Perfect Timing | `perfect_timing_attempts`, up to three official attempts per user/date; stores target, status, stop reason, elapsed, deviation, direction, tier, reward, and microsecond timestamps | Perfect 100, Amazing 75, Great 63, Close 55, Miss 0; successful kept/final result is auto-claimed | Rank only the final official kept or auto-finalized attempt; Miss is a valid zero. |
+| Quest          | Current raw/result storage                                                                                                                                                              | Existing coin reward behavior                                                                                                            | Competitive interpretation                                                                                                                           |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Steps          | `step_snapshots`, unique by user/source/date, plus progress in `daily_quests`                                                                                                           | 75 coins at 10,000-step completion                                                                                                       | Rank the same total displayed by the existing quest for the user's selected source; points and caps are independent of the 10,000-step quest reward. |
+| Daily Numbers  | `daily_numbers_daily_attempts`, unique by user/date/mode; stores submitted expression steps, final value, distance, current 0–100 score, exact/completed flags, and client `elapsed_ms` | Base 45/60/75 coins for 1-5/2-4/3-3, multiplied by current puzzle score percentage                                                       | Rank exact solutions only, using validated server elapsed time; non-exact is a valid zero if submitted, and archive rows are excluded.               |
+| Wordle         | One row per guess in `wordle_daily_attempts`, unique by user/date/locale/attempt; stores guess, evaluation, solved                                                                      | 35 coins for each locale on solve                                                                                                        | Derive final guess count or failure from the server-validated sequence.                                                                              |
+| Speed Calculus | `speed_calculus_daily_runs`, up to three runs per user/date; stores seed, answer array, status, score, reward, timing and pause fields                                                  | 2 coins per correct answer, capped at 80; the current quest projection/reward follows the latest settled run and supports early cash-out | Rank only an official settled run selected by the approved daily-result rule; never reuse the coin reward as points.                                 |
+| Perfect Timing | `perfect_timing_attempts`, up to three official attempts per user/date; stores target, status, stop reason, elapsed, deviation, direction, tier, reward, and microsecond timestamps     | Perfect 100, Amazing 75, Great 63, Close 55, Miss 0; successful kept/final result is auto-claimed                                        | Rank only the final official kept or auto-finalized attempt; Miss is a valid zero.                                                                   |
 
 ### 3.5 Current day/reset model
 
@@ -225,20 +225,22 @@ Consequences for leaderboards:
 
 ### 4.1 Board catalog
 
-**Selected:** launch with eight source/detail boards plus two derived family boards.
+**Selected:** launch with eight source/detail boards, two derived family boards, and one
+derived overall board.
 
-| Board key | Family | Mode | Better direction | Raw result shown |
-|---|---|---|---|---|
-| `steps/default` | Steps | Trusted total | Higher | Steps |
-| `daily-numbers/1-5` | Daily Numbers | Classic / 1-5 | Lower | Exact completion time |
-| `daily-numbers/2-4` | Daily Numbers | Balanced / 2-4 | Lower | Exact completion time |
-| `daily-numbers/3-3` | Daily Numbers | Expert / 3-3 | Lower | Exact completion time |
-| `wordle/fr` | Wordle | French | Lower | Guesses or Failed |
-| `wordle/en` | Wordle | English | Lower | Guesses or Failed |
-| `speed-calculus/ranked` | Speed Calculus | Ranked | Higher | Correct answers |
-| `perfect-timing/official` | Perfect Timing | Official daily | Lower | Absolute error or Miss |
-| `daily-numbers/family` | Daily Numbers | Derived across 1-5, 2-4, and 3-3 | Points | Equal average of all three member-board weekly scores; missing members are zero |
-| `wordle/family` | Wordle | Derived across French and English | Points | Equal average of both member-board weekly scores; missing members are zero |
+| Board key                 | Family         | Mode                                         | Better direction | Raw result shown                                         |
+| ------------------------- | -------------- | -------------------------------------------- | ---------------- | -------------------------------------------------------- |
+| `steps/default`           | Steps          | Trusted total                                | Higher           | Steps                                                    |
+| `daily-numbers/1-5`       | Daily Numbers  | Classic / 1-5                                | Lower            | Exact completion time                                    |
+| `daily-numbers/2-4`       | Daily Numbers  | Balanced / 2-4                               | Lower            | Exact completion time                                    |
+| `daily-numbers/3-3`       | Daily Numbers  | Expert / 3-3                                 | Lower            | Exact completion time                                    |
+| `wordle/fr`               | Wordle         | French                                       | Lower            | Guesses or Failed                                        |
+| `wordle/en`               | Wordle         | English                                      | Lower            | Guesses or Failed                                        |
+| `speed-calculus/ranked`   | Speed Calculus | Ranked                                       | Higher           | Correct answers                                          |
+| `perfect-timing/official` | Perfect Timing | Official daily                               | Lower            | Absolute error or Miss                                   |
+| `daily-numbers/family`    | Daily Numbers  | Derived across 1-5, 2-4, and 3-3             | Points           | Sum of all member-board scores; missing members are zero |
+| `wordle/family`           | Wordle         | Derived across French and English            | Points           | Sum of all member-board scores; missing members are zero |
+| `overall/all-quests`      | Overall        | Derived across five canonical quest families | Points           | Sum of all family scores; missing families are zero      |
 
 The catalog is data-driven so modes can be disabled, made read-only, or added without
 hard-coding query behavior across clients. Derived family boards reference member boards
@@ -247,18 +249,16 @@ and never accept a client-submitted raw result of their own.
 Derived family-board formula:
 
 ```text
-family_period_points = round_half_up(
-  sum(member_board_period_points, with missing members = 0) / member_board_count
-)
+family_period_points = sum(member_board_period_points, with missing members = 0)
 ```
 
-- Daily Numbers family daily score = `(1-5 daily + 2-4 daily + 3-3 daily) / 3`.
-- Daily Numbers family weekly score = `(1-5 weekly + 2-4 weekly + 3-3 weekly) / 3`.
-- Wordle family daily score = `(French daily + English daily) / 2`.
-- Wordle family weekly score = `(French weekly + English weekly) / 2`.
-- Member boards have equal weight because their 0–1,000 scoring curves are expected to
-  normalize difficulty. Missing or ineligible member results contribute zero.
-- Family rows expose a safe member breakdown so players can understand the average.
+- Daily Numbers family daily score = `1-5 daily + 2-4 daily + 3-3 daily`.
+- Daily Numbers family weekly score = `1-5 weekly + 2-4 weekly + 3-3 weekly`.
+- Wordle family daily score = `French daily + English daily`.
+- Wordle family weekly score = `French weekly + English weekly`.
+- Member boards within a family use the same scoring formula. Missing or ineligible
+  member results contribute zero.
+- Family rows expose a safe member breakdown so players can understand the total.
 
 ### 4.2 Competition calendar
 
@@ -279,14 +279,14 @@ Fairness has four distinct dimensions:
 
 No calendar model maximizes all four dimensions.
 
-| Model | Strengths | Weaknesses | Assessment |
-|---|---|---|---|
-| One global Paris day | Same absolute 24-hour window and challenge for everyone; simple closure; convenient for the largest current cohort | Resets around 18:00/19:00 in New York and morning in parts of Asia; non-France Steps no longer match a natural health-data day; visibly France-centered | Simple, but not globally neutral and poor for Steps |
-| One global UTC day | Same absolute window; neutral standard; simplest backend/audit model | Local reset is still inconvenient in many zones; Steps do not match most players' local health day | Technically clean, but user experience and Steps remain problematic |
-| Locked per-player competition timezone | Every player gets a natural midnight-to-midnight day and seven local Monday–Sunday slots; Step sources align naturally | Civil-date boards span up to 26 hours worldwide; earlier zones can share Wordle/Daily Numbers answers; live standings and finalization must wait; timezone changes can be abused without strict controls | Strongest local-access fairness; operational complexity is manageable |
-| Wider global window, such as 36 hours | Same absolute duration with at least one useful waking window almost everywhere | Consecutive daily windows overlap; players can have two challenges open; more answer sharing and more complex result assignment; Steps still need a special rule | Useful for occasional events, awkward for a permanent daily system |
-| Regional boards/timezone bands | Natural hours and more simultaneous regional play | Fragments a small population, complicates prizes, and makes a true global leaderboard unclear | Not recommended at current population size |
-| Hybrid: local Steps, global skill quests | Steps are natural while puzzle sessions remain simultaneous | Users must understand two reset systems; weekly aggregation and navigation become harder to explain | Technically fair by quest, but product complexity is high |
+| Model                                    | Strengths                                                                                                              | Weaknesses                                                                                                                                                                                               | Assessment                                                            |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| One global Paris day                     | Same absolute 24-hour window and challenge for everyone; simple closure; convenient for the largest current cohort     | Resets around 18:00/19:00 in New York and morning in parts of Asia; non-France Steps no longer match a natural health-data day; visibly France-centered                                                  | Simple, but not globally neutral and poor for Steps                   |
+| One global UTC day                       | Same absolute window; neutral standard; simplest backend/audit model                                                   | Local reset is still inconvenient in many zones; Steps do not match most players' local health day                                                                                                       | Technically clean, but user experience and Steps remain problematic   |
+| Locked per-player competition timezone   | Every player gets a natural midnight-to-midnight day and seven local Monday–Sunday slots; Step sources align naturally | Civil-date boards span up to 26 hours worldwide; earlier zones can share Wordle/Daily Numbers answers; live standings and finalization must wait; timezone changes can be abused without strict controls | Strongest local-access fairness; operational complexity is manageable |
+| Wider global window, such as 36 hours    | Same absolute duration with at least one useful waking window almost everywhere                                        | Consecutive daily windows overlap; players can have two challenges open; more answer sharing and more complex result assignment; Steps still need a special rule                                         | Useful for occasional events, awkward for a permanent daily system    |
+| Regional boards/timezone bands           | Natural hours and more simultaneous regional play                                                                      | Fragments a small population, complicates prizes, and makes a true global leaderboard unclear                                                                                                            | Not recommended at current population size                            |
+| Hybrid: local Steps, global skill quests | Steps are natural while puzzle sessions remain simultaneous                                                            | Users must understand two reset systems; weekly aggregation and navigation become harder to explain                                                                                                      | Technically fair by quest, but product complexity is high             |
 
 The selected direction uses a server-controlled effective competition timezone for all
 daily boards, with the following safeguards:
@@ -737,15 +737,15 @@ end. Telemetry must determine whether mode-specific scales are appropriate.
 
 Selected launch lookup:
 
-| Outcome | Points |
-|---|---:|
-| Solved in 1 | 1,000 |
-| Solved in 2 | 900 |
-| Solved in 3 | 750 |
-| Solved in 4 | 550 |
-| Solved in 5 | 350 |
-| Solved in 6 | 200 |
-| Failed | 0 |
+| Outcome     | Points |
+| ----------- | -----: |
+| Solved in 1 |  1,000 |
+| Solved in 2 |    900 |
+| Solved in 3 |    750 |
+| Solved in 4 |    550 |
+| Solved in 5 |    350 |
+| Solved in 6 |    200 |
+| Failed      |      0 |
 
 #### Speed Calculus
 
@@ -799,14 +799,28 @@ for successful results and Miss fixed at zero.
     "wordle/fr": {
       "formula": "outcome_lookup",
       "parameters": {
-        "solved": { "1": 1000, "2": 900, "3": 750, "4": 550, "5": 350, "6": 200 },
+        "solved": {
+          "1": 1000,
+          "2": 900,
+          "3": 750,
+          "4": 550,
+          "5": 350,
+          "6": 200
+        },
         "failed": 0
       }
     },
     "wordle/en": {
       "formula": "outcome_lookup",
       "parameters": {
-        "solved": { "1": 1000, "2": 900, "3": 750, "4": 550, "5": 350, "6": 200 },
+        "solved": {
+          "1": 1000,
+          "2": 900,
+          "3": 750,
+          "4": 550,
+          "5": 350,
+          "6": 200
+        },
         "failed": 0
       }
     },
@@ -816,12 +830,20 @@ for successful results and Miss fixed at zero.
     },
     "perfect-timing/official": {
       "formula": "successful_linear_error",
-      "parameters": { "missPoints": 0, "minimumSuccessfulPoints": 100, "maxErrorMs": 300 }
+      "parameters": {
+        "missPoints": 0,
+        "minimumSuccessfulPoints": 100,
+        "maxErrorMs": 300
+      }
     },
     "daily-numbers/family": {
       "formula": "derived_equal_average",
       "parameters": {
-        "members": ["daily-numbers/1-5", "daily-numbers/2-4", "daily-numbers/3-3"],
+        "members": [
+          "daily-numbers/1-5",
+          "daily-numbers/2-4",
+          "daily-numbers/3-3"
+        ],
         "missingMemberPoints": 0
       }
     },
@@ -872,7 +894,7 @@ Indexes:
 Catalog of rankable quest/mode combinations.
 
 - `id`, `key`, `quest_family`, `mode`, `direction`;
-- `board_kind` (`source`, `derived_family`) and derived-member configuration;
+- `board_kind` (`source`, `derived_family`, `derived_overall`) and derived-member configuration;
 - `enabled`, `prizes_enabled`, `display_order`;
 - `raw_result_kind`, `validation_policy`;
 - timestamps.
@@ -1214,8 +1236,7 @@ not only by hiding client routes.
   },
   "scoring": {
     "version": "2026-W40-v1",
-    "displayMax": 1000,
-    "weeklyRule": "average_best_3"
+    "weeklyRule": "sum_all_eligible"
   }
 }
 ```
@@ -1232,7 +1253,7 @@ Row shape:
     "discriminator": "A4K2",
     "handle": "Finn#A4K2",
     "avatarUrl": null,
-  "fallbackAvatarKey": "finn",
+    "fallbackAvatarKey": "finn",
     "visibility": "visible"
   },
   "rawResult": {
@@ -1297,7 +1318,7 @@ Why it was selected:
 
 - It gives repeat visitors the fastest direct access.
 - It communicates that weekly competition is a first-class product pillar.
-- It gives future overall and seasonal views room to grow without crowding the Quest hub.
+- It gives the current All Quests view and future seasonal views room to grow without crowding the Quest hub.
 - It works on mobile and web with the same conceptual hierarchy.
 
 ### 9.2 Alternative A: Quest-integrated rankings
@@ -1517,10 +1538,11 @@ Process:
 - Schedule activation for a future Monday/week boundary.
 - Continue historical display with the original scoring version.
 
-## 12. Future overall weekly leaderboard
+## 12. Overall All Quests leaderboard
 
-**Proposed, not first-release required:** compute an overall weekly score from the best
-four of five logical quest-family scores.
+The Overall All Quests leaderboard is available for Daily, Weekly, and History periods
+and is the default board when Rankings opens. It computes the sum of five logical
+quest-family scores.
 
 Family score mapping:
 
@@ -1532,22 +1554,19 @@ Family score mapping:
 - Perfect Timing: official weekly score.
 
 ```text
-overall_weekly_points = round_half_up(sum(best(family_scores, 4)) / 4)
+overall_points = steps + daily_numbers + wordle + speed_calculus + perfect_timing
 ```
 
-- Missing family scores are zero.
-- A player with fewer than four qualified family scores remains ranked: missing entries
-  fill the four-score calculation with zero rather than changing the divisor.
-- A leaderboard-eligible player appears only after at least one valid daily result in
-  any family during that week. A completed failure is a valid zero result; an account
-  with no valid weekly activity has no overall row.
+- Missing family scores are zero and do not dilute the families that are present.
+- A leaderboard-eligible player appears after at least one valid result in any family
+  during the selected period. A completed failure is a valid zero result; an account
+  with no valid activity has no overall row.
+- The total has no artificial ceiling and no family is discarded by a best-subset rule.
 - It uses only the requested week through its globally closed dates, never lifetime totals.
 - Account age and historical participation create no carryover advantage.
 - Each family contributes at most once, preventing three Daily Numbers boards or two Wordle locales from dominating.
-- The overall weekly top three receive dated Gold/Silver/Bronze achievements under the
-  same tie, moderation, deletion, snapshot, and correction rules as quest podiums.
 - The overall board grants no Crowns. It does not create a sixth Crown family and does
-  not duplicate Crowns from the four contributing quest families.
+  not duplicate Crowns from contributing quest families.
 
 ## 13. Migration and rollout plan
 
@@ -1736,67 +1755,67 @@ Proposed targets, to be confirmed after population sizing:
 These decisions will be resolved one at a time. The recommended current answer appears
 first so a response can simply approve it or replace it.
 
-| ID | Decision | Recommended current answer | Status |
-|---|---|---|---|
-| D00 | Quest non-regression | Leaderboards are additive/downstream; no existing quest gameplay or reward behavior changes without a separate approved spec | Resolved — mandated by product owner |
-| D01 | Competition day/timezone | Locked per-player competition timezone, natural local Monday–Sunday days, and globally delayed finalization | Resolved — selected by product owner |
-| D01A | Provisional standings visibility | Shared ranks use globally closed dates only; show the player's newer result separately as pending | Resolved — option 1 selected |
-| D01B | Skill-session cutoff | Hard local-midnight cutoff; only server-timestamped pre-cutoff events may settle afterward | Resolved — option 1 selected |
-| D01C | Steps sync grace | Equal 8-hour post-midnight grace for every timezone | Resolved — option 1 selected |
-| D01D | Board publication timing | Publish all daily/weekly boards and prizes together after the longest required Steps grace | Resolved — option 1 selected |
-| D01E | Travel/timezone behavior | Automatically follow device IANA timezone for the next unopened server-controlled slot; never mutate the current slot | Resolved — option 3 selected with slot safeguards |
-| D01F | Frequent timezone changes | Log as telemetry only; no automatic point or prize penalty | Resolved — option 1 selected |
-| D02 | Board granularity | Eight source/detail boards plus derived Daily Numbers and Wordle family boards | Resolved — option 3 selected |
-| D02A | Family-board aggregation direction | Combine all member-board weekly scores and reward breadth | Resolved — option 3 selected |
-| D02B | Family-board weighting and missing members | Equal average of every member board for the requested period; missing members score zero | Resolved — option 1 selected |
-| D03 | Yesterday/history scope | Yesterday as closed daily; history is weekly-first with seven-day drill-down | Resolved — option 1 selected |
-| D04 | Partial first week | Visible preview using only post-launch days; no prizes; official prizes begin with first full week | Resolved — option 1 selected |
-| D05 | Fewer than three weekly results | Unranked until three valid daily results; show personal qualification progress | Resolved — option 2 selected |
-| D06 | Valid failure versus missed day | Completed failure appears daily and qualifies as a zero-point result; a missed day has no row and does not qualify | Resolved — option 1 selected |
-| D07 | Speed daily result | Final/latest settled official run; later runs may lower the daily result | Resolved — option 3 selected |
-| D07A | Abandoned latest Speed run | Starting a new run commits replacement; warn before start; abandonment/timeout settles zero | Resolved — option 1 selected |
-| D08 | Daily Numbers exactness | Exact-only points; non-exact is a visible valid zero and counts toward qualification | Resolved — option 1 selected |
-| D09 | Daily Numbers challenge sharing | Preserve the current shared puzzle permanently for this leaderboard scope; cap prizes and monitor sharing | Resolved — quest non-regression mandate |
-| D10 | Wordle sharing | Preserve current shared locale solutions; accept social sharing and rely on capped prizes/telemetry | Resolved — quest non-regression mandate |
-| D11 | Step-source eligibility | Use the existing displayed total for the user's selected source; device health and Fitbit rank and win identically; never combine sources | Resolved — product owner direction |
-| D12 | Late step sync | Accept through the 8-hour window; later quest syncs do not alter closed standings/prizes; system incidents use audited correction | Resolved — option 1 selected |
-| D13 | Perfect Timing behavior | Preserve current target, attempts, timing interaction, recovery, final-result, rewards, and training | Resolved — quest non-regression mandate |
-| D13A | Perfect Timing prize integrity | Current server-accepted final kept/auto-finalized result is rank- and prize-eligible with bounded prizes | Resolved — option 1 selected |
-| D14 | Tie ranking | Competition ranks `1,1,3`; exact competitive ties share rank and skip the next rank | Resolved — option 1 selected |
-| D15 | Tie prize expansion | Every tied player receives the full shared-rank medal/reward; skipped ranks skip medal tiers; caps still apply | Resolved — option 1 selected |
-| D16 | Prize currency/name | Non-tradable Crowns, 3/2/1 for Gold/Silver/Bronze | Resolved — option 2 selected |
-| D17 | Crown accumulation caps | No weekly or lifetime cap; each podium grant remains fixed at 3/2/1 | Resolved — product owner direction |
-| D17A | Quest-specific Crown model | Five family collections—Steps, Daily Numbers, Wordle, Speed Calculus, Perfect Timing—with per-family counts and combined total | Resolved — option 1 selected |
-| D18 | Achievement repeatability | Record every dated weekly podium instance; profile summarizes counts with history drill-down | Resolved — option 1 selected |
-| D19 | Prize launch timing | Partial launch week has no prizes; achievements/Crowns begin with the first full week; 4-week/500-result gate is recalibration only | Resolved — prior product-owner direction |
-| D20 | Public leaderboard identity | Existing non-unique display name plus stable server-generated discriminator and public-profile ID | Resolved — option 2 selected |
-| D21 | Display-name change policy | Flexible immediate changes with private history and moderation checks; immutable discriminator; no cooldown | Resolved — option 1 selected |
-| D22 | Missing avatar | Deterministic Adventure Time-themed fallback based on public profile ID | Resolved — option 1 selected |
-| D23 | Blocking | No block feature or block-specific leaderboard behavior in v1; reopen if social blocking is added later | Resolved — deferred by product owner |
-| D24 | Moderation | Profile hiding renders `Player hidden` but preserves standings; explicit audited result exclusion is separate | Resolved — option 1 selected |
-| D25 | Deleted accounts | Closed rows become anonymous `Deleted player` facts; open results/prizes and all account-linked profile/reward data are removed | Resolved — option 1 selected |
-| D26 | Community profile visibility | Authenticated approved app/web players only; never anonymous internet access | Resolved — option 1 selected |
-| D27 | Community profile contents | Handle/avatar, five Crown counts plus total, medal totals, 10 recent closed placements, safe per-quest personal bests | Resolved — option 1 selected |
-| D28 | Scoring display/storage | Normalized 0–1,000 display, integer milli-points internally, no artificial raw-performance caps, monotonic saturating curves | Resolved — revised option 1 selected |
-| D29 | Steps formula | Saturating exponential with no Step cap; launch scale 20,000 | Resolved — option 3 selected; recalibrate after threshold |
-| D30 | Daily Numbers formula | Exact-time asymptotic curve with the same 120-second anchor for all three modes; non-exact zero | Resolved — option 2 selected; recalibrate after threshold |
-| D31 | Wordle formula | Fixed 1000/900/750/550/350/200/0 lookup for both locales | Resolved — option 1 selected; recalibrate after threshold |
-| D32 | Speed formula | Saturating exponential with no arbitrary correct-answer cap; launch scale 20 | Resolved — option 3 selected; recalibrate after threshold |
-| D33 | Perfect formula | Linear per-millisecond error within 300 ms; exact 1,000, successful minimum 100, Miss 0 | Resolved — option 1 selected; recalibrate after threshold |
-| D34 | Formula activation | Immutable versions activate only on a future Monday; open/historical periods retain their original version | Resolved — option 1 selected |
-| D35 | Closed corrections | Publish an audited revision, retain the superseded snapshot internally, never edit in place | Resolved — option 1 selected |
-| D35A | Corrected medal/Crown grants | Reverse displaced public achievements/Crowns and grant corrected winners; retain the full private audit trail | Resolved — option 1 selected |
-| D36 | Public/live freshness | Current week refreshes every 60 seconds while visible and on focus/pull; closed revisions use durable caches and ETags | Resolved — option 1 selected |
-| D37 | Navigation | Dedicated Rankings tab; preserve six mobile tabs by moving Gifts to a clear header/inbox shortcut | Resolved — option 2 selected |
-| D38 | Dedicated tab threshold | No threshold required: launch with the dedicated tab and measure engagement after release | Resolved by D37 |
-| D39 | Historical backfill | Separate `Legacy — unverified` archive for reliably reconstructable rows; no mixing, personal bests, qualification, achievements, Crowns, or prizes | Resolved — option 1 selected |
-| D40 | Recalibration gate | Both four complete competition weeks and 500 accepted valid results for the exact board/mode | Resolved — required by original brief |
-| D41 | Future overall formula and qualification | Average the best four of five family weekly scores; fill missing families with zero and still rank partial participants | Resolved — option 2 selected |
-| D41A | Zero-activity overall rows | Require at least one valid daily result in the week; completed failures count, completely inactive accounts do not appear | Resolved — option 1 selected |
-| D42 | Overall family contribution | Five family scores; Daily Numbers and Wordle use their previously selected equal-average derived family scores and each family contributes at most once | Resolved by D02B and original five-family rule |
-| D43 | Overall prizes | Dated Gold/Silver/Bronze achievements only; no Overall Crowns and no duplicate quest-family Crown grants | Resolved — option 1 selected |
-| D44 | Public access | Standings and community profiles require an authenticated approved account; expose no leaderboard identity/result data anonymously | Resolved — option 1 selected |
-| D45 | Operational correction authority | Super-admin only, with before/after preview, mandatory reason, explicit confirmation, stale-preview protection, and immutable audit record | Resolved — option 1 selected |
+| ID   | Decision                                   | Recommended current answer                                                                                                                          | Status                                                    |
+| ---- | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| D00  | Quest non-regression                       | Leaderboards are additive/downstream; no existing quest gameplay or reward behavior changes without a separate approved spec                        | Resolved — mandated by product owner                      |
+| D01  | Competition day/timezone                   | Locked per-player competition timezone, natural local Monday–Sunday days, and globally delayed finalization                                         | Resolved — selected by product owner                      |
+| D01A | Provisional standings visibility           | Shared ranks use globally closed dates only; show the player's newer result separately as pending                                                   | Resolved — option 1 selected                              |
+| D01B | Skill-session cutoff                       | Hard local-midnight cutoff; only server-timestamped pre-cutoff events may settle afterward                                                          | Resolved — option 1 selected                              |
+| D01C | Steps sync grace                           | Equal 8-hour post-midnight grace for every timezone                                                                                                 | Resolved — option 1 selected                              |
+| D01D | Board publication timing                   | Publish all daily/weekly boards and prizes together after the longest required Steps grace                                                          | Resolved — option 1 selected                              |
+| D01E | Travel/timezone behavior                   | Automatically follow device IANA timezone for the next unopened server-controlled slot; never mutate the current slot                               | Resolved — option 3 selected with slot safeguards         |
+| D01F | Frequent timezone changes                  | Log as telemetry only; no automatic point or prize penalty                                                                                          | Resolved — option 1 selected                              |
+| D02  | Board granularity                          | Eight source/detail boards plus derived Daily Numbers, Wordle, and All Quests boards                                                                | Resolved — updated by the live period specification       |
+| D02A | Family-board aggregation direction         | Combine all member-board weekly scores and reward breadth                                                                                           | Resolved — option 3 selected                              |
+| D02B | Family-board weighting and missing members | Sum every eligible member-board score for the requested period; missing members score zero                                                          | Resolved — updated by the live period specification       |
+| D03  | Yesterday/history scope                    | Yesterday as closed daily; history is weekly-first with seven-day drill-down                                                                        | Resolved — option 1 selected                              |
+| D04  | Partial first week                         | Visible preview using only post-launch days; no prizes; official prizes begin with first full week                                                  | Resolved — option 1 selected                              |
+| D05  | Weekly participation threshold             | One eligible result is enough to appear; sum every eligible result in the week                                                                      | Resolved — updated by the live period specification       |
+| D06  | Valid failure versus missed day            | Completed failure appears daily and qualifies as a zero-point result; a missed day has no row and does not qualify                                  | Resolved — option 1 selected                              |
+| D07  | Speed daily result                         | Final/latest settled official run; later runs may lower the daily result                                                                            | Resolved — option 3 selected                              |
+| D07A | Abandoned latest Speed run                 | Starting a new run commits replacement; warn before start; abandonment/timeout settles zero                                                         | Resolved — option 1 selected                              |
+| D08  | Daily Numbers exactness                    | Exact-only points; non-exact is a visible valid zero and counts toward qualification                                                                | Resolved — option 1 selected                              |
+| D09  | Daily Numbers challenge sharing            | Preserve the current shared puzzle permanently for this leaderboard scope; cap prizes and monitor sharing                                           | Resolved — quest non-regression mandate                   |
+| D10  | Wordle sharing                             | Preserve current shared locale solutions; accept social sharing and rely on capped prizes/telemetry                                                 | Resolved — quest non-regression mandate                   |
+| D11  | Step-source eligibility                    | Use the existing displayed total for the user's selected source; device health and Fitbit rank and win identically; never combine sources           | Resolved — product owner direction                        |
+| D12  | Late step sync                             | Accept through the 8-hour window; later quest syncs do not alter closed standings/prizes; system incidents use audited correction                   | Resolved — option 1 selected                              |
+| D13  | Perfect Timing behavior                    | Preserve current target, attempts, timing interaction, recovery, final-result, rewards, and training                                                | Resolved — quest non-regression mandate                   |
+| D13A | Perfect Timing prize integrity             | Current server-accepted final kept/auto-finalized result is rank- and prize-eligible with bounded prizes                                            | Resolved — option 1 selected                              |
+| D14  | Tie ranking                                | Competition ranks `1,1,3`; exact competitive ties share rank and skip the next rank                                                                 | Resolved — option 1 selected                              |
+| D15  | Tie prize expansion                        | Every tied player receives the full shared-rank medal/reward; skipped ranks skip medal tiers; caps still apply                                      | Resolved — option 1 selected                              |
+| D16  | Prize currency/name                        | Non-tradable Crowns, 3/2/1 for Gold/Silver/Bronze                                                                                                   | Resolved — option 2 selected                              |
+| D17  | Crown accumulation caps                    | No weekly or lifetime cap; each podium grant remains fixed at 3/2/1                                                                                 | Resolved — product owner direction                        |
+| D17A | Quest-specific Crown model                 | Five family collections—Steps, Daily Numbers, Wordle, Speed Calculus, Perfect Timing—with per-family counts and combined total                      | Resolved — option 1 selected                              |
+| D18  | Achievement repeatability                  | Record every dated weekly podium instance; profile summarizes counts with history drill-down                                                        | Resolved — option 1 selected                              |
+| D19  | Prize launch timing                        | Partial launch week has no prizes; achievements/Crowns begin with the first full week; 4-week/500-result gate is recalibration only                 | Resolved — prior product-owner direction                  |
+| D20  | Public leaderboard identity                | Existing non-unique display name plus stable server-generated discriminator and public-profile ID                                                   | Resolved — option 2 selected                              |
+| D21  | Display-name change policy                 | Flexible immediate changes with private history and moderation checks; immutable discriminator; no cooldown                                         | Resolved — option 1 selected                              |
+| D22  | Missing avatar                             | Deterministic Adventure Time-themed fallback based on public profile ID                                                                             | Resolved — option 1 selected                              |
+| D23  | Blocking                                   | No block feature or block-specific leaderboard behavior in v1; reopen if social blocking is added later                                             | Resolved — deferred by product owner                      |
+| D24  | Moderation                                 | Profile hiding renders `Player hidden` but preserves standings; explicit audited result exclusion is separate                                       | Resolved — option 1 selected                              |
+| D25  | Deleted accounts                           | Closed rows become anonymous `Deleted player` facts; open results/prizes and all account-linked profile/reward data are removed                     | Resolved — option 1 selected                              |
+| D26  | Community profile visibility               | Authenticated approved app/web players only; never anonymous internet access                                                                        | Resolved — option 1 selected                              |
+| D27  | Community profile contents                 | Handle/avatar, five Crown counts plus total, medal totals, 10 recent closed placements, safe per-quest personal bests                               | Resolved — option 1 selected                              |
+| D28  | Scoring display/storage                    | Normalized 0–1,000 display, integer milli-points internally, no artificial raw-performance caps, monotonic saturating curves                        | Resolved — revised option 1 selected                      |
+| D29  | Steps formula                              | Saturating exponential with no Step cap; launch scale 20,000                                                                                        | Resolved — option 3 selected; recalibrate after threshold |
+| D30  | Daily Numbers formula                      | Exact-time asymptotic curve with the same 120-second anchor for all three modes; non-exact zero                                                     | Resolved — option 2 selected; recalibrate after threshold |
+| D31  | Wordle formula                             | Fixed 1000/900/750/550/350/200/0 lookup for both locales                                                                                            | Resolved — option 1 selected; recalibrate after threshold |
+| D32  | Speed formula                              | Saturating exponential with no arbitrary correct-answer cap; launch scale 20                                                                        | Resolved — option 3 selected; recalibrate after threshold |
+| D33  | Perfect formula                            | Linear per-millisecond error within 300 ms; exact 1,000, successful minimum 100, Miss 0                                                             | Resolved — option 1 selected; recalibrate after threshold |
+| D34  | Formula activation                         | Immutable versions activate only on a future Monday; open/historical periods retain their original version                                          | Resolved — option 1 selected                              |
+| D35  | Closed corrections                         | Publish an audited revision, retain the superseded snapshot internally, never edit in place                                                         | Resolved — option 1 selected                              |
+| D35A | Corrected medal/Crown grants               | Reverse displaced public achievements/Crowns and grant corrected winners; retain the full private audit trail                                       | Resolved — option 1 selected                              |
+| D36  | Public/live freshness                      | Current week refreshes every 60 seconds while visible and on focus/pull; closed revisions use durable caches and ETags                              | Resolved — option 1 selected                              |
+| D37  | Navigation                                 | Dedicated Rankings tab; preserve six mobile tabs by moving Gifts to a clear header/inbox shortcut                                                   | Resolved — option 2 selected                              |
+| D38  | Dedicated tab threshold                    | No threshold required: launch with the dedicated tab and measure engagement after release                                                           | Resolved by D37                                           |
+| D39  | Historical backfill                        | Separate `Legacy — unverified` archive for reliably reconstructable rows; no mixing, personal bests, qualification, achievements, Crowns, or prizes | Resolved — option 1 selected                              |
+| D40  | Recalibration gate                         | Both four complete competition weeks and 500 accepted valid results for the exact board/mode                                                        | Resolved — required by original brief                     |
+| D41  | Overall formula and qualification          | Sum all five family scores without a ceiling; missing families are zero and one eligible result is sufficient                                       | Superseded by live leaderboard decision                   |
+| D41A | Zero-activity overall rows                 | Require at least one valid daily result in the week; completed failures count, completely inactive accounts do not appear                           | Resolved — option 1 selected                              |
+| D42  | Overall family contribution                | Five family scores; Daily Numbers and Wordle use their sum-based derived family scores and each family contributes at most once                     | Resolved by live leaderboard decision                     |
+| D43  | Overall prizes                             | No Overall Crowns and no duplicate quest-family Crown grants                                                                                        | Resolved for launch                                       |
+| D44  | Public access                              | Standings and community profiles require an authenticated approved account; expose no leaderboard identity/result data anonymously                  | Resolved — option 1 selected                              |
+| D45  | Operational correction authority           | Super-admin only, with before/after preview, mandatory reason, explicit confirmation, stale-preview protection, and immutable audit record          | Resolved — option 1 selected                              |
 
 ## 16. Implementation authority
 

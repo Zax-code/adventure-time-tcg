@@ -1,8 +1,20 @@
 import { useQuery } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useMemo, useState, type ComponentType } from "react";
-import { Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ComponentType,
+} from "react";
+import {
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 
 import type {
   LeaderboardBoardKey,
@@ -12,7 +24,7 @@ import type {
 } from "@adventure-time/api-client";
 
 import { PageErrorState } from "../../components/error-state";
-import { SecondaryButton } from "../../components/button";
+import { GhostButton, SecondaryButton } from "../../components/button";
 import {
   ClockIcon,
   DailyNumbersQuestIcon,
@@ -32,6 +44,7 @@ import {
 } from "../../theme/layout";
 import { THEME_COLORS } from "../../theme/themes";
 import { LeaderboardAvatar } from "./leaderboard-avatar";
+import { formatLeaderboardRawResult } from "./format-raw-result";
 import {
   RANKINGS_PREVIEW_DATA,
   RANKINGS_TOP_SEVEN_PREVIEW_DATA,
@@ -46,13 +59,26 @@ const BOARD_OPTIONS: Array<{
   labelKey: string;
   icon: IconComponent;
 }> = [
-  { key: "steps/default", labelKey: "rankings.boards.steps", icon: StepQuestIcon },
+  {
+    key: "overall/all-quests",
+    labelKey: "rankings.boards.allQuests",
+    icon: TrophyIcon,
+  },
+  {
+    key: "steps/default",
+    labelKey: "rankings.boards.steps",
+    icon: StepQuestIcon,
+  },
   {
     key: "daily-numbers/family",
     labelKey: "rankings.boards.dailyNumbers",
     icon: DailyNumbersQuestIcon,
   },
-  { key: "wordle/family", labelKey: "rankings.boards.wordle", icon: WordleQuestIcon },
+  {
+    key: "wordle/family",
+    labelKey: "rankings.boards.wordle",
+    icon: WordleQuestIcon,
+  },
   {
     key: "speed-calculus/ranked",
     labelKey: "rankings.boards.speedCalculus",
@@ -71,8 +97,7 @@ export function RankingsScreen() {
     preview?: string;
     previewState?: string;
   }>();
-  const isPreview =
-    process.env.EXPO_PUBLIC_E2E_AUTH === "1" && preview === "1";
+  const isPreview = process.env.EXPO_PUBLIC_E2E_AUTH === "1" && preview === "1";
   const isLoadingPreview = isPreview && previewState === "loading";
   const { t } = useTranslation();
   const themeName = useThemeStore((state) => state.themeName);
@@ -80,10 +105,12 @@ export function RankingsScreen() {
   const headerHeight = useAppHeaderHeight();
   const bottomPadding = useBottomTabBarContentPadding();
   const [mainPeriod, setMainPeriod] = useState<MainPeriod>("weekly");
-  const [dailyPeriod, setDailyPeriod] = useState<"today" | "yesterday">("today");
-  const [weeklyPeriod, setWeeklyPeriod] = useState<"current_week" | "last_week">(
-    "current_week",
+  const [dailyPeriod, setDailyPeriod] = useState<"today" | "yesterday">(
+    "today",
   );
+  const [weeklyPeriod, setWeeklyPeriod] = useState<
+    "current_week" | "last_week"
+  >("current_week");
   const period: LivePeriod | "history" =
     mainPeriod === "daily"
       ? dailyPeriod
@@ -91,28 +118,8 @@ export function RankingsScreen() {
         ? weeklyPeriod
         : "history";
   const [boardKey, setBoardKey] = useState<LeaderboardBoardKey>(
-    isLoadingPreview ? "steps/default" : "perfect-timing/official",
+    isLoadingPreview ? "steps/default" : "overall/all-quests",
   );
-  const modeOptions = useMemo(() => {
-    if (boardKey.startsWith("daily-numbers/")) {
-      return [
-        { key: "daily-numbers/family", label: t("rankings.modes.combined") },
-        { key: "daily-numbers/1-5", label: "1–5" },
-        { key: "daily-numbers/2-4", label: "2–4" },
-        { key: "daily-numbers/3-3", label: "3–3" },
-      ] as const;
-    }
-
-    if (boardKey.startsWith("wordle/")) {
-      return [
-        { key: "wordle/family", label: t("rankings.modes.combined") },
-        { key: "wordle/fr", label: t("rankings.modes.french") },
-        { key: "wordle/en", label: t("rankings.modes.english") },
-      ] as const;
-    }
-
-    return [];
-  }, [boardKey, t]);
 
   const {
     data: queryData,
@@ -161,12 +168,21 @@ export function RankingsScreen() {
   const data = useMemo<LeaderboardResponse | undefined>(() => {
     if (isLoadingPreview) return undefined;
     if (!isPreview) return queryData;
-    const previewData =
-      placement === "top7" ? RANKINGS_TOP_SEVEN_PREVIEW_DATA : RANKINGS_PREVIEW_DATA;
+    const basePreviewData =
+      placement === "top7"
+        ? RANKINGS_TOP_SEVEN_PREVIEW_DATA
+        : RANKINGS_PREVIEW_DATA;
+    const previewData = withPreviewRawResults(basePreviewData, boardKey);
     const isDaily = mainPeriod === "daily";
-    const competitionDate = dailyPeriod === "today" ? "2026-08-17" : "2026-08-16";
-    const weekStart = weeklyPeriod === "current_week" ? "2026-08-17" : "2026-08-10";
-    const weekEnd = weeklyPeriod === "current_week" ? "2026-08-23" : "2026-08-16";
+    const competitionDate =
+      dailyPeriod === "today" ? "2026-08-17" : "2026-08-16";
+    const weekStart =
+      weeklyPeriod === "current_week" ? "2026-08-17" : "2026-08-10";
+    const weekEnd =
+      weeklyPeriod === "current_week" ? "2026-08-23" : "2026-08-16";
+    const closesAt = isDaily
+      ? `${dailyPeriod === "today" ? "2026-08-18" : "2026-08-17"}T13:00:00.000Z`
+      : `${weeklyPeriod === "current_week" ? "2026-08-24" : "2026-08-17"}T13:00:00.000Z`;
 
     return {
       ...previewData,
@@ -174,6 +190,8 @@ export function RankingsScreen() {
       period: {
         ...previewData.period,
         type: isDaily ? "day" : "week",
+        closesAt,
+        serverNow: "2026-08-17T10:00:00.000Z",
         competitionDate: isDaily ? competitionDate : null,
         weekStart: isDaily ? null : weekStart,
         weekEnd: isDaily ? null : weekEnd,
@@ -218,13 +236,20 @@ export function RankingsScreen() {
       showsVerticalScrollIndicator={false}
       testID="rankings-screen"
       refreshControl={
-        <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor={tc.primaryDark} />
+        <RefreshControl
+          refreshing={isRefreshing}
+          onRefresh={onRefresh}
+          tintColor={tc.primaryDark}
+        />
       }
     >
       <View className="gap-1 px-1">
         <View className="flex-row items-center gap-2">
           <TrophyIcon size={30} color={tc.primaryDark} />
-          <Text selectable className="font-nunito-extrabold text-[32px] text-fg">
+          <Text
+            selectable
+            className="font-nunito-extrabold text-[32px] text-fg"
+          >
             {t("rankings.title")}
           </Text>
         </View>
@@ -276,26 +301,115 @@ export function RankingsScreen() {
         <PeriodSelector
           options={["current_week", "last_week"]}
           selected={weeklyPeriod}
-          onSelect={(value) => setWeeklyPeriod(value as "current_week" | "last_week")}
+          onSelect={(value) =>
+            setWeeklyPeriod(value as "current_week" | "last_week")
+          }
         />
       ) : null}
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-3">
+      <BoardSelector boardKey={boardKey} onSelect={setBoardKey} />
+
+      {period === "history" ? (
+        historyIsLoading && !isPreview ? (
+          <PageLoadingState
+            title={t("rankings.loadingTitle")}
+            message={t("rankings.loadingBody")}
+            icon="trophy"
+          />
+        ) : historyIsError && !isPreview ? (
+          <PageErrorState
+            error={historyError}
+            onRetry={() => void refetchHistory()}
+          />
+        ) : historyData &&
+          (historyData.days.length > 0 || historyData.weeks.length > 0) ? (
+          <HistoryContent boardKey={boardKey} history={historyData} />
+        ) : (
+          <EmptyPanel
+            title={t("rankings.historyTitle")}
+            body={t("rankings.historyBody")}
+          />
+        )
+      ) : isLoadingPreview || (queryIsLoading && !isPreview) ? (
+        <PageLoadingState
+          title={t("rankings.loadingTitle")}
+          message={t("rankings.loadingBody")}
+          icon="trophy"
+        />
+      ) : queryIsError && !isPreview ? (
+        <PageErrorState
+          error={queryError}
+          onRetry={() => void refetchLeaderboard()}
+        />
+      ) : data ? (
+        <RankingsContent data={data} preview={isPreview} />
+      ) : null}
+    </ScrollView>
+  );
+}
+
+function BoardSelector({
+  boardKey,
+  onSelect,
+}: {
+  boardKey: LeaderboardBoardKey;
+  onSelect: (boardKey: LeaderboardBoardKey) => void;
+}) {
+  const { t } = useTranslation();
+  const themeName = useThemeStore((state) => state.themeName);
+  const tc = THEME_COLORS[themeName];
+  const modeOptions = useMemo(() => {
+    if (boardKey.startsWith("daily-numbers/")) {
+      return [
+        { key: "daily-numbers/family", label: t("rankings.modes.combined") },
+        { key: "daily-numbers/1-5", label: "1–5" },
+        { key: "daily-numbers/2-4", label: "2–4" },
+        { key: "daily-numbers/3-3", label: "3–3" },
+      ] as const;
+    }
+
+    if (boardKey.startsWith("wordle/")) {
+      return [
+        { key: "wordle/family", label: t("rankings.modes.combined") },
+        { key: "wordle/fr", label: t("rankings.modes.french") },
+        { key: "wordle/en", label: t("rankings.modes.english") },
+      ] as const;
+    }
+
+    return [];
+  }, [boardKey, t]);
+
+  return (
+    <>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerClassName="gap-3"
+      >
         {BOARD_OPTIONS.map((option) => {
           const selected =
             option.key === boardKey ||
             (option.key.startsWith("daily-numbers/") &&
               boardKey.startsWith("daily-numbers/")) ||
-            (option.key.startsWith("wordle/") && boardKey.startsWith("wordle/"));
+            (option.key.startsWith("wordle/") &&
+              boardKey.startsWith("wordle/"));
           const Icon = option.icon;
+
           return (
-            <Pressable key={option.key} onPress={() => setBoardKey(option.key)}>
+            <Pressable
+              key={option.key}
+              onPress={() => onSelect(option.key)}
+              testID={`rankings-board-${option.key.replace("/", "-")}`}
+            >
               <View
                 className={`h-[92px] w-[106px] items-center justify-center gap-2 rounded-3xl border border-primaryBorder ${
                   selected ? "bg-primaryText" : "bg-surface"
                 }`}
               >
-                <Icon size={30} color={selected ? tc.surface : tc.primaryText} />
+                <Icon
+                  size={30}
+                  color={selected ? tc.surface : tc.primaryText}
+                />
                 <Text
                   className={`text-center font-nunito-bold text-xs ${
                     selected ? "text-surface" : "text-primaryText"
@@ -317,12 +431,13 @@ export function RankingsScreen() {
             return (
               <Pressable
                 key={option.key}
-                onPress={() => setBoardKey(option.key)}
+                onPress={() => onSelect(option.key)}
                 className={`rounded-full border px-4 py-2 ${
                   selected
                     ? "border-primaryBorder bg-primaryTint"
                     : "border-primaryBorder bg-surface"
                 }`}
+                testID={`rankings-mode-${option.key.replace("/", "-")}`}
               >
                 <Text
                   className={`font-nunito-bold text-sm ${
@@ -336,34 +451,62 @@ export function RankingsScreen() {
           })}
         </View>
       ) : null}
-
-      {period === "history" ? (
-        historyIsLoading && !isPreview ? (
-          <PageLoadingState
-            title={t("rankings.loadingTitle")}
-            message={t("rankings.loadingBody")}
-            icon="trophy"
-          />
-        ) : historyIsError && !isPreview ? (
-          <PageErrorState error={historyError} onRetry={() => void refetchHistory()} />
-        ) : historyData && (historyData.days.length > 0 || historyData.weeks.length > 0) ? (
-          <HistoryContent boardKey={boardKey} history={historyData} />
-        ) : (
-          <EmptyPanel title={t("rankings.historyTitle")} body={t("rankings.historyBody")} />
-        )
-      ) : isLoadingPreview || (queryIsLoading && !isPreview) ? (
-        <PageLoadingState
-          title={t("rankings.loadingTitle")}
-          message={t("rankings.loadingBody")}
-          icon="trophy"
-        />
-      ) : queryIsError && !isPreview ? (
-        <PageErrorState error={queryError} onRetry={() => void refetchLeaderboard()} />
-      ) : data ? (
-        <RankingsContent data={data} preview={isPreview} />
-      ) : null}
-    </ScrollView>
+    </>
   );
+}
+
+function withPreviewRawResults(
+  data: LeaderboardResponse,
+  boardKey: LeaderboardBoardKey,
+): LeaderboardResponse {
+  const withRawResult = (row: LeaderboardRow): LeaderboardRow => {
+    const sampleOffset = row.position - 1;
+    let rawResult: LeaderboardRow["rawResult"];
+
+    if (boardKey === "steps/default") {
+      rawResult = { kind: "steps", steps: 20_920 - sampleOffset * 740 };
+    } else if (
+      boardKey.startsWith("daily-numbers/") &&
+      boardKey !== "daily-numbers/family"
+    ) {
+      rawResult = {
+        kind: "exact_completion_time",
+        exact: true,
+        elapsedMs: 8_420 + sampleOffset * 735,
+      };
+    } else if (boardKey.startsWith("wordle/") && boardKey !== "wordle/family") {
+      rawResult = {
+        kind: "wordle_outcome",
+        outcome: "solved",
+        guesses: Math.min(6, 1 + sampleOffset),
+      };
+    } else if (boardKey === "speed-calculus/ranked") {
+      rawResult = {
+        kind: "correct_answers",
+        correctAnswers: 24 - sampleOffset,
+      };
+    } else if (boardKey === "perfect-timing/official") {
+      rawResult = {
+        kind: "duration_error_ms",
+        outcome: "success",
+        absoluteErrorMs: 8 + sampleOffset * 9,
+        tier: "diamond",
+      };
+    } else {
+      rawResult = row.rawResult;
+    }
+
+    return { ...row, rawResult };
+  };
+
+  return {
+    ...data,
+    podium: data.podium.map(withRawResult),
+    rows: data.rows.map(withRawResult),
+    currentPlayer: data.currentPlayer
+      ? withRawResult(data.currentPlayer)
+      : null,
+  };
 }
 
 function PeriodSelector({
@@ -401,11 +544,21 @@ function PeriodSelector({
   );
 }
 
-function RankingsContent({ data, preview }: { data: LeaderboardResponse; preview: boolean }) {
+function RankingsContent({
+  data,
+  preview,
+}: {
+  data: LeaderboardResponse;
+  preview: boolean;
+}) {
   const { locale, t } = useTranslation();
   const router = useRouter();
+  const themeName = useThemeStore((state) => state.themeName);
+  const tc = THEME_COLORS[themeName];
+  const closeCountdown = useCloseCountdown(data.period);
   const openProfile = (row: LeaderboardRow) => {
-    if (!row.profile.publicProfileId || row.profile.visibility !== "visible") return;
+    if (!row.profile.publicProfileId || row.profile.visibility !== "visible")
+      return;
     router.push({
       pathname: "/public-profile",
       params: {
@@ -418,23 +571,69 @@ function RankingsContent({ data, preview }: { data: LeaderboardResponse; preview
   return (
     <View className="gap-4">
       <View className="items-center gap-2 rounded-2xl bg-primaryTint px-4 py-3">
-        <Text selectable className="text-center font-nunito-extrabold text-base text-fg">
+        <Text
+          selectable
+          className="text-center font-nunito-extrabold text-base text-fg"
+        >
           {formatPeriodDate(data.period, locale)}
         </Text>
-        <View className={`rounded-full px-3 py-1 ${data.period.provisional ? "bg-infoTint" : "bg-surface"}`}>
+        <View
+          className={`rounded-full px-3 py-1 ${data.period.provisional ? "bg-infoTint" : "bg-surface"}`}
+        >
           <Text className="font-nunito-bold text-xs uppercase tracking-[1px] text-primaryText">
-            {t(data.period.provisional ? "rankings.liveProvisional" : "rankings.final")}
+            {t(
+              data.period.provisional
+                ? "rankings.liveProvisional"
+                : "rankings.final",
+            )}
           </Text>
         </View>
-        <Text selectable className="text-center font-nunito text-xs text-fgMuted">
-          {t(data.period.provisional ? "rankings.provisionalHint" : "rankings.finalHint")}
+        <Text
+          selectable
+          className="text-center font-nunito text-xs text-fgMuted"
+        >
+          {t(
+            data.period.provisional
+              ? "rankings.provisionalHint"
+              : "rankings.finalHint",
+          )}
         </Text>
+        {closeCountdown ? (
+          <View className="flex-row items-center gap-1.5 rounded-full bg-surface px-3 py-1.5">
+            <ClockIcon size={14} color={tc.primaryText} />
+            <Text
+              accessibilityLiveRegion="polite"
+              className="font-nunito-extrabold text-xs text-primaryText"
+              testID="rankings-close-countdown"
+            >
+              {t("rankings.closesIn", closeCountdown)}
+            </Text>
+          </View>
+        ) : null}
       </View>
 
       <View className="flex-row items-end justify-center gap-1 pt-3">
-        {data.podium[1] ? <PodiumCard row={data.podium[1]} place={2} onPress={() => openProfile(data.podium[1])} /> : null}
-        {data.podium[0] ? <PodiumCard row={data.podium[0]} place={1} onPress={() => openProfile(data.podium[0])} /> : null}
-        {data.podium[2] ? <PodiumCard row={data.podium[2]} place={3} onPress={() => openProfile(data.podium[2])} /> : null}
+        {data.podium[1] ? (
+          <PodiumCard
+            row={data.podium[1]}
+            place={2}
+            onPress={() => openProfile(data.podium[1])}
+          />
+        ) : null}
+        {data.podium[0] ? (
+          <PodiumCard
+            row={data.podium[0]}
+            place={1}
+            onPress={() => openProfile(data.podium[0])}
+          />
+        ) : null}
+        {data.podium[2] ? (
+          <PodiumCard
+            row={data.podium[2]}
+            place={3}
+            onPress={() => openProfile(data.podium[2])}
+          />
+        ) : null}
       </View>
 
       <View className="overflow-hidden rounded-[28px] border border-primaryBorder bg-surface">
@@ -452,7 +651,10 @@ function RankingsContent({ data, preview }: { data: LeaderboardResponse; preview
       {data.currentPlayer && data.currentPlayer.rank > 7 ? (
         <View className="rounded-[24px] border-2 border-primaryBorder bg-primaryTint">
           <View className="absolute -top-2 left-1/2 size-4 rotate-45 border-l-2 border-t-2 border-primaryBorder bg-primaryTint" />
-          <RankingRow row={data.currentPlayer} onPress={() => openProfile(data.currentPlayer!)} />
+          <RankingRow
+            row={data.currentPlayer}
+            onPress={() => openProfile(data.currentPlayer!)}
+          />
         </View>
       ) : null}
 
@@ -463,14 +665,49 @@ function RankingsContent({ data, preview }: { data: LeaderboardResponse; preview
         </Text>
       </View>
 
-      <View className="flex-row items-center justify-center gap-2 py-1">
-        <HelpCircleIcon size={20} color="#DB2777" />
-        <Text className="font-nunito-bold text-sm text-primaryText">
+      <View className="items-center py-1">
+        <GhostButton
+          onPress={() => router.push("/leaderboard-help")}
+          leadingAccessory={<HelpCircleIcon size={20} color={tc.primaryText} />}
+          testID="rankings-open-help-button"
+        >
           {t("rankings.scoringHelp")}
-        </Text>
+        </GhostButton>
       </View>
     </View>
   );
+}
+
+function useCloseCountdown(period: LeaderboardResponse["period"]) {
+  const clock = useMemo(
+    () => ({
+      localStartedAt: Date.now(),
+      serverStartedAt: Date.parse(period.serverNow),
+    }),
+    [period.serverNow],
+  );
+  const [localNow, setLocalNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (!period.provisional) return;
+
+    const interval = setInterval(() => setLocalNow(Date.now()), 60_000);
+    return () => clearInterval(interval);
+  }, [period.closesAt, period.provisional, period.serverNow]);
+
+  if (!period.provisional) return null;
+
+  const authoritativeNow =
+    clock.serverStartedAt + (localNow - clock.localStartedAt);
+  const remainingMinutes = Math.max(
+    0,
+    Math.ceil((Date.parse(period.closesAt) - authoritativeNow) / 60_000),
+  );
+  const days = Math.floor(remainingMinutes / (24 * 60));
+  const hours = Math.floor((remainingMinutes % (24 * 60)) / 60);
+  const minutes = remainingMinutes % 60;
+
+  return { days, hours, minutes };
 }
 
 function HistoryContent({
@@ -490,12 +727,20 @@ function HistoryContent({
             {t("rankings.recentDays")}
           </Text>
           {history.days.map((day) => (
-            <RankingsContent data={day} key={day.period.startsAt} preview={false} />
+            <RankingsContent
+              data={day}
+              key={day.period.startsAt}
+              preview={false}
+            />
           ))}
         </View>
       ) : null}
       {history.weeks.map((week) => (
-        <HistoryWeek boardKey={boardKey} key={week.period.startsAt} week={week} />
+        <HistoryWeek
+          boardKey={boardKey}
+          key={week.period.startsAt}
+          week={week}
+        />
       ))}
     </View>
   );
@@ -537,7 +782,10 @@ function HistoryWeek({
           icon="trophy"
         />
       ) : expanded && days.isError ? (
-        <PageErrorState error={days.error} onRetry={() => void days.refetch()} />
+        <PageErrorState
+          error={days.error}
+          onRetry={() => void days.refetch()}
+        />
       ) : expanded ? (
         <View className="gap-5 border-l-2 border-primaryBorder pl-3">
           {days.data?.days.map((day) => (
@@ -554,8 +802,18 @@ function HistoryWeek({
   );
 }
 
-function PodiumCard({ row, place, onPress }: { row: LeaderboardRow; place: 1 | 2 | 3; onPress: () => void }) {
-  const heightClass = place === 1 ? "h-[236px]" : place === 2 ? "h-[206px]" : "h-[192px]";
+function PodiumCard({
+  row,
+  place,
+  onPress,
+}: {
+  row: LeaderboardRow;
+  place: 1 | 2 | 3;
+  onPress: () => void;
+}) {
+  const { locale, t } = useTranslation();
+  const heightClass =
+    place === 1 ? "h-[236px]" : place === 2 ? "h-[206px]" : "h-[192px]";
   const colors =
     place === 1
       ? ["#FFFBEA", "#FEF3C7"]
@@ -576,7 +834,9 @@ function PodiumCard({ row, place, onPress }: { row: LeaderboardRow; place: 1 | 2
       <View className="h-full items-center justify-end gap-2 px-2 pb-4">
         <View className="absolute inset-x-0 top-3 items-center">
           <View className="size-10 items-center justify-center rounded-full bg-white/80">
-            <Text className="font-nunito-extrabold text-xl text-fg">{place}</Text>
+            <Text className="font-nunito-extrabold text-xl text-fg">
+              {place}
+            </Text>
           </View>
         </View>
         <LeaderboardAvatar
@@ -584,10 +844,15 @@ function PodiumCard({ row, place, onPress }: { row: LeaderboardRow; place: 1 | 2
           avatarUrl={row.profile.avatarUrl}
           size={place === 1 ? 72 : 58}
         />
-        <Text numberOfLines={1} className="w-full text-center font-nunito-bold text-xs text-fg">
+        <Text
+          numberOfLines={1}
+          className="w-full text-center font-nunito-bold text-xs text-fg"
+        >
           {row.profile.displayName}
         </Text>
-        <Text className="font-nunito-bold text-sm text-fgMuted">{formatRaw(row)}</Text>
+        <Text className="font-nunito-bold text-sm text-fgMuted">
+          {formatLeaderboardRawResult(row.rawResult, locale, t)}
+        </Text>
         <View className="rounded-lg bg-white/80 px-3 py-1.5">
           <Text className="font-nunito-extrabold text-base text-primaryText">
             {row.points.toLocaleString()} pts
@@ -613,6 +878,8 @@ function RankingRow({
   current?: boolean;
   onPress?: () => void;
 }) {
+  const { locale, t } = useTranslation();
+
   return (
     <Pressable
       onPress={onPress}
@@ -627,10 +894,15 @@ function RankingRow({
         avatarUrl={row.profile.avatarUrl}
         size={42}
       />
-      <Text numberOfLines={1} className="flex-1 font-nunito-bold text-sm text-fg">
+      <Text
+        numberOfLines={1}
+        className="flex-1 font-nunito-bold text-sm text-fg"
+      >
         {row.profile.displayName}
       </Text>
-      <Text className="font-nunito-semibold text-sm text-fgMuted">{formatRaw(row)}</Text>
+      <Text className="font-nunito-semibold text-sm text-fgMuted">
+        {formatLeaderboardRawResult(row.rawResult, locale, t)}
+      </Text>
       <Text className="min-w-20 text-right font-nunito-extrabold text-sm text-primaryText">
         {row.points.toLocaleString()} pts
       </Text>
@@ -638,16 +910,17 @@ function RankingRow({
   );
 }
 
-function isCurrentPlayer(row: LeaderboardRow, currentPlayer: LeaderboardRow | null) {
+function isCurrentPlayer(
+  row: LeaderboardRow,
+  currentPlayer: LeaderboardRow | null,
+) {
   if (!currentPlayer) return false;
   if (row.profile.publicProfileId && currentPlayer.profile.publicProfileId) {
-    return row.profile.publicProfileId === currentPlayer.profile.publicProfileId;
+    return (
+      row.profile.publicProfileId === currentPlayer.profile.publicProfileId
+    );
   }
   return row.profile.handle === currentPlayer.profile.handle;
-}
-
-function formatRaw(row: LeaderboardRow) {
-  return formatRawResult(row.rawResult);
 }
 
 function formatPeriodDate(
@@ -672,26 +945,16 @@ function formatPeriodDate(
   return "—";
 }
 
-function formatRawResult(raw: LeaderboardRow["rawResult"]) {
-  if (raw.kind === "duration_error_ms") return `${raw.absoluteErrorMs} ms`;
-  if (raw.kind === "steps") return raw.steps.toLocaleString();
-  if (raw.kind === "correct_answers") return String(raw.correctAnswers);
-  if (raw.kind === "wordle_outcome") return raw.outcome === "failed" ? "Failed" : `${raw.guesses}/6`;
-  if (raw.kind === "exact_completion_time") return raw.exact ? `${(raw.elapsedMs / 1000).toFixed(1)} s` : "Not exact";
-  if (raw.kind === "member_breakdown") {
-    const values = Object.values(raw.members);
-    const total = values.reduce((sum, value) => sum + value, 0);
-    return `${Math.round(total / 1000).toLocaleString()} pts`;
-  }
-  return "—";
-}
-
 function EmptyPanel({ title, body }: { title: string; body: string }) {
   return (
     <View className="items-center gap-3 rounded-[28px] border border-primaryBorder bg-surface p-8">
       <TrophyIcon size={44} color="#DB2777" />
-      <Text className="text-center font-nunito-extrabold text-xl text-fg">{title}</Text>
-      <Text className="text-center font-nunito text-sm text-fgMuted">{body}</Text>
+      <Text className="text-center font-nunito-extrabold text-xl text-fg">
+        {title}
+      </Text>
+      <Text className="text-center font-nunito text-sm text-fgMuted">
+        {body}
+      </Text>
     </View>
   );
 }

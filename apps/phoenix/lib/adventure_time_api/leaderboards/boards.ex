@@ -97,6 +97,22 @@ defmodule AdventureTimeApi.Leaderboards.Boards do
       board_kind: :source,
       raw_result_kind: :duration_error_ms,
       prizes_enabled: true
+    },
+    %{
+      key: "overall/all-quests",
+      quest_family: :overall,
+      mode: "all-quests",
+      direction: :points,
+      board_kind: :derived_overall,
+      raw_result_kind: :member_breakdown,
+      prizes_enabled: false,
+      derived_members: [
+        "steps/default",
+        "daily-numbers/family",
+        "wordle/family",
+        "speed-calculus/ranked",
+        "perfect-timing/official"
+      ]
     }
   ]
 

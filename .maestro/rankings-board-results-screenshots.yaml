@@ -1,0 +1,112 @@
+appId: love.leaetzak.adventuretime
+name: Rankings board result screenshots
+tags:
+  - rankings
+  - screenshots
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- scrollUntilVisible:
+    element:
+      id: auth-email-input
+    direction: DOWN
+    timeout: 40000
+    centerElement: true
+- tapOn:
+    id: auth-email-input
+- eraseText
+- inputText: ${TEST_EMAIL}
+- pressKey: Enter
+- tapOn:
+    id: auth-password-input
+- eraseText
+- inputText: ${TEST_PASSWORD}
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: tab-home
+    timeout: 30000
+- openLink:
+    link: "adventure-time:///rankings?preview=1"
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- assertVisible:
+    id: rankings-screen
+- swipe:
+    start: "50%,70%"
+    end: "50%,35%"
+    duration: 500
+- waitForAnimationToEnd
+- takeScreenshot: tmp-rankings-shots/17-all-quests-results
+- swipe:
+    start: "50%,35%"
+    end: "50%,70%"
+    duration: 500
+- tapOn:
+    id: rankings-board-steps-default
+- swipe:
+    start: "50%,70%"
+    end: "50%,35%"
+    duration: 500
+- waitForAnimationToEnd
+- takeScreenshot: tmp-rankings-shots/18-steps-results
+- swipe:
+    start: "50%,35%"
+    end: "50%,70%"
+    duration: 500
+- tapOn:
+    id: rankings-board-daily-numbers-family
+- tapOn:
+    id: rankings-mode-daily-numbers-1-5
+- swipe:
+    start: "50%,70%"
+    end: "50%,35%"
+    duration: 500
+- waitForAnimationToEnd
+- takeScreenshot: tmp-rankings-shots/19-daily-numbers-results
+- swipe:
+    start: "50%,35%"
+    end: "50%,70%"
+    duration: 500
+- swipe:
+    start: "88%,47%"
+    end: "12%,47%"
+    duration: 700
+- tapOn:
+    id: rankings-board-wordle-family
+- tapOn:
+    id: rankings-mode-wordle-en
+- swipe:
+    start: "50%,70%"
+    end: "50%,35%"
+    duration: 500
+- waitForAnimationToEnd
+- takeScreenshot: tmp-rankings-shots/20-wordle-results
+- swipe:
+    start: "50%,35%"
+    end: "50%,70%"
+    duration: 500
+- swipe:
+    start: "88%,47%"
+    end: "12%,47%"
+    duration: 700
+- tapOn:
+    id: rankings-board-speed-calculus-ranked
+- swipe:
+    start: "50%,70%"
+    end: "50%,35%"
+    duration: 500
+- waitForAnimationToEnd
+- takeScreenshot: tmp-rankings-shots/21-speed-calculus-results
+- swipe:
+    start: "50%,35%"
+    end: "50%,70%"
+    duration: 500
+- tapOn:
+    id: rankings-board-perfect-timing-official
+- swipe:
+    start: "50%,70%"
+    end: "50%,35%"
+    duration: 500
+- waitForAnimationToEnd
+- takeScreenshot: tmp-rankings-shots/22-perfect-timing-results
