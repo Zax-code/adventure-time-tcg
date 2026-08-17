@@ -9,10 +9,10 @@ results become public through regularly refreshed provisional standings. Relativ
 selectors compare the viewer's current and immediately preceding date or week, while the
 History archive is the place to find finalized periods.
 
-This specification supersedes the existing delayed-comparison behavior wherever it
-conflicts with the rules below. Existing quest gameplay, result validation, scoring
-formulas, tie handling, moderation, audited corrections, and reward amounts remain
-unchanged unless this document says otherwise.
+This specification supersedes the existing delayed-comparison and leaderboard-scoring
+behavior wherever it conflicts with the rules below. Existing quest gameplay, result
+validation, moderation, audited corrections, and reward amounts remain unchanged unless
+this document says otherwise.
 
 ## Approved Product Decisions
 
@@ -47,8 +47,9 @@ unchanged unless this document says otherwise.
     timezone submit or synchronize results.
 13. Weekly provisional ranking begins with a player's first accepted result. The player
     does not wait for three closed dates before appearing.
-14. Weekly provisional scoring uses the best accepted results currently available, up
-    to the configured best-three limit.
+14. Weekly provisional scoring is the sum of every eligible accepted result currently
+    available in the selected Competition Week. The weekly total has no artificial
+    ceiling.
 15. One accepted ranked result is sufficient for Live and Final Weekly participation,
     placement, and prize eligibility. There is no three-result qualification threshold.
     Players with no accepted ranked result for the selected board remain absent, clearly
@@ -62,6 +63,16 @@ unchanged unless this document says otherwise.
     selector.
 19. Live updates use reasonable periodic refresh and user-initiated pull-to-refresh.
     WebSocket-style pushed standings are not required.
+20. Daily quest scores are rounded half-up to whole points before they are stored and
+    ranked. Players with the same rounded score tie; raw values and hidden fractional
+    precision do not break the tie.
+21. Steps and Speed Calculus scores are linear and have no artificial ceiling. An
+    exceptional result can outweigh weaker performance on other boards.
+22. Daily Numbers uses the same time curve for all three modes. Wordle uses the same
+    guess table for English and French.
+23. Daily Numbers Combined and Wordle Combined sum all eligible member-board points.
+    Missing modes contribute zero but do not prevent a player with one eligible member
+    result from appearing.
 
 ## Canonical Model
 
@@ -100,8 +111,7 @@ points.
 
 For a source board, participation requires a result on that board. For a derived family
 board, participation begins when the player has an accepted result for at least one
-member board; the established family formula continues to supply the values for missing
-members.
+member board. Eligible member results are summed and missing members contribute zero.
 
 ### Live leaderboard
 
@@ -223,9 +233,111 @@ The UI must communicate this with persistent copy such as:
 Live provisional standings — results appear as players compete across timezones.
 ```
 
-The Daily board retains its established board-specific scoring and tie behavior. It does
-not require a minimum number of results beyond the single accepted result that creates
-participation.
+The Daily board uses the scoring rules below. It does not require a minimum number of
+results beyond the single accepted result that creates participation.
+
+## Leaderboard Scoring v2
+
+Leaderboard Scoring v2 applies the following rules to new eligible results. Every daily
+score is rounded half-up to a whole point and stored as that whole-point value. Ranking
+uses only this rounded score, so equal displayed scores are genuine competition ties.
+There is no hidden fractional or raw-result tie-breaker.
+
+Already-finalized v1 snapshots remain immutable. Audited corrections to a v1 snapshot
+continue to use its persisted v1 configuration rather than retroactively applying v2.
+
+### Steps
+
+```text
+points = round(steps / 20)
+```
+
+The formula is linear and has no artificial ceiling.
+
+| Steps | Points |
+| ---: | ---: |
+| 5,000 | 250 |
+| 10,000 | 500 |
+| 20,000 | 1,000 |
+| 50,000 | 2,500 |
+| 100,000 | 5,000 |
+
+### Daily Numbers
+
+All three modes (`1-5`, `2-4`, and `3-3`) use the same piecewise curve. Let `t` be the
+server-validated exact completion time in seconds:
+
+```text
+if 0 < t < 10: points = round(1000 × (10 / t)^0.30)
+if t >= 10:    points = round(1000 × (10 / t)^0.75)
+```
+
+An exact result with zero elapsed time is invalid. A settled non-exact result scores zero
+and still counts as participation when accepted.
+
+| Time | Points | Time | Points |
+| ---: | ---: | ---: | ---: |
+| 0.01 s | 7,943 | 10 s | 1,000 |
+| 0.1 s | 3,981 | 30 s | 439 |
+| 0.5 s | 2,456 | 60 s | 261 |
+| 1 s | 1,995 | 2 min | 155 |
+| 2 s | 1,621 | 4 min | 92 |
+| 3 s | 1,435 | 10 min | 46 |
+| 5 s | 1,231 |  |  |
+| 8 s | 1,069 |  |  |
+
+### Wordle
+
+English and French use the same fixed table.
+
+| Outcome | Points |
+| --- | ---: |
+| Solved in 1 guess | 1,200 |
+| Solved in 2 guesses | 1,000 |
+| Solved in 3 guesses | 800 |
+| Solved in 4 guesses | 600 |
+| Solved in 5 guesses | 400 |
+| Solved in 6 guesses | 200 |
+| Failed | 0 |
+
+### Speed Calculus
+
+```text
+points = correct answers × 50
+```
+
+The formula is linear and has no artificial ceiling.
+
+### Perfect Timing
+
+A successful result has an absolute error from 0 through 300 milliseconds:
+
+```text
+points = round(100 + 1100 × (300 - absolute error in ms) / 300)
+```
+
+A miss scores zero. A result labeled successful with an error above 300 milliseconds is
+invalid.
+
+| Absolute error | Points |
+| ---: | ---: |
+| 0 ms | 1,200 |
+| 10 ms | 1,163 |
+| 25 ms | 1,108 |
+| 50 ms | 1,017 |
+| 100 ms | 833 |
+| 150 ms | 650 |
+| 200 ms | 467 |
+| 250 ms | 283 |
+| 300 ms | 100 |
+| Miss | 0 |
+
+### Combined boards
+
+- Daily Numbers Combined sums eligible points from `1-5`, `2-4`, and `3-3`.
+- Wordle Combined sums eligible English and French points.
+- A missing member contributes zero; one eligible member result is enough to appear.
+- Combined totals have no artificial ceiling.
 
 ## Weekly Live Standings
 
@@ -235,20 +347,18 @@ ranked result for the selected board in that Competition Week.
 For each participant:
 
 1. Gather the player's active accepted results in the selected Competition Week.
-2. Sort them under the existing weekly best-result rules.
-3. Select up to the configured best-three limit.
-4. Calculate the provisional score as the average of the selected available results.
-5. Assign a provisional rank using the existing competition-tie rule.
+2. Sum every eligible result's normalized leaderboard points.
+3. Assign a provisional rank from that total using the competition-tie rule.
 
 Examples:
 
 | Valid results | Weekly treatment | Final eligibility if the week ended now |
 | ---: | --- | --- |
 | 0 | Absent from the selected leaderboard | Not a participant |
-| 1 | Visible and ranked from that result | Eligible |
-| 2 | Visible and ranked from the best two | Eligible |
-| 3 | Visible and ranked from the best three | Eligible |
-| 4–7 | Visible and ranked from the best three | Eligible |
+| 1 | Visible and ranked from that result's points | Eligible |
+| 2 | Visible and ranked from the sum of both results | Eligible |
+| 3 | Visible and ranked from the sum of all three results | Eligible |
+| 4–7 | Visible and ranked from the sum of every eligible result | Eligible |
 
 The result count may be displayed as context, but it is not qualification progress and
 does not restrict ranking or rewards. Final placement remains subject to the established
@@ -335,9 +445,9 @@ preceding week. Both are provisional.
 At 13:00 UTC, the just-ended week becomes final. `Last week` continues to open that same
 week; only its status changes.
 
-## Current-System Changes Required
+## Pre-implementation Gaps
 
-The existing implementation does not satisfy this specification:
+The implementation at the time this specification was written had these gaps:
 
 - `Yesterday` currently resolves to the latest closed Daily snapshot rather than the
   viewer's immediately preceding Competition Date, and there is no `Today` live option.
@@ -420,6 +530,16 @@ discovery belongs to History rather than to the Daily or Weekly relative selecto
     before the request.
 18. Live status and provisional ranking are accessible without relying on color alone.
 19. English and French selector/date/status copy preserve identical semantics.
+20. Weekly points equal the sum of every eligible result in the selected week; no
+    eligible result is discarded by a best-result cap or truncated by a weekly ceiling.
+21. Every locked v2 quest formula produces the documented examples after whole-point
+    half-up rounding.
+22. Steps, Speed Calculus, combined-board, and weekly totals accept values above 1,000
+    without truncation or rejection.
+23. Two results that round to the same whole-point score receive the same rank even when
+    their raw quest values differ.
+24. Daily Numbers Combined and Wordle Combined sum all eligible member scores; one member
+    result is sufficient for participation.
 
 ## Non-goals
 

@@ -105,7 +105,7 @@ A leaderboard for one displayed Competition Date. `Today` selects the viewer's c
 _Avoid_: Yesterday leaderboard
 
 **Weekly Leaderboard**:
-A leaderboard for one displayed Monday-through-Sunday Competition Week. `This week` selects the viewer's current week and `Last week` selects the immediately preceding week; either can be provisional until its worldwide closure.
+A leaderboard for one displayed Monday-through-Sunday Competition Week. `This week` selects the viewer's current week and `Last week` selects the immediately preceding week; either can be provisional until its worldwide closure. A participant's weekly score is the unbounded non-negative sum of every eligible result in that week.
 _Avoid_: Current-week-only leaderboard
 
 **Leaderboard History**:
