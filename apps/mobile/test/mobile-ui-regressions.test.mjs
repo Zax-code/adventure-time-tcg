@@ -17,6 +17,12 @@ const rankingsSource = readFileSync(
   "src/features/leaderboards/rankings-screen.tsx",
   "utf8",
 );
+const leaderboardRawResultSource = readFileSync(
+  "src/features/leaderboards/format-raw-result.ts",
+  "utf8",
+);
+const leaderboardHelpSource = readFileSync("app/leaderboard-help.tsx", "utf8");
+const appLayoutSource = readFileSync("app/_layout.tsx", "utf8");
 const leaderboardAvatarSource = readFileSync(
   "src/features/leaderboards/leaderboard-avatar.tsx",
   "utf8",
@@ -192,8 +198,53 @@ describe("mobile UI regression contracts", () => {
     );
   });
 
+  it("opens rankings on the all-quests board", () => {
+    assert.match(rankingsSource, /key: "overall\/all-quests"/);
+    assert.match(
+      rankingsSource,
+      /useState<LeaderboardBoardKey>\(\s*isLoadingPreview \? "steps\/default" : "overall\/all-quests",\s*\)/,
+    );
+  });
+
+  it("shows player-friendly source result units", () => {
+    assert.match(leaderboardRawResultSource, /rankings\.results\.steps/);
+    assert.match(leaderboardRawResultSource, /rankings\.results\.oneGuess/);
+    assert.match(leaderboardRawResultSource, /rankings\.results\.guesses/);
+    assert.match(leaderboardRawResultSource, /minimumFractionDigits: 2/);
+    assert.match(leaderboardRawResultSource, /maximumFractionDigits: 2/);
+  });
+
+  it("opens a shared leaderboard explanation sheet with every scoring section", () => {
+    assert.match(rankingsSource, /router\.push\("\/leaderboard-help"\)/);
+    assert.match(rankingsSource, /testID="rankings-open-help-button"/);
+    assert.match(appLayoutSource, /name="leaderboard-help"/);
+    assert.match(leaderboardHelpSource, /<ModalSheetRoute/);
+    for (const section of [
+      "allQuestsFormula",
+      "stepsFormula",
+      "dailyNumbersFormulaFast",
+      "dailyNumbersFormulaSlow",
+      "wordleFormula",
+      "speedCalculusFormula",
+      "perfectTimingFormula",
+      "periodsCutoff",
+    ]) {
+      assert.match(leaderboardHelpSource, new RegExp(section));
+    }
+  });
+
+  it("counts down every provisional leaderboard from authoritative server time", () => {
+    assert.match(rankingsSource, /useCloseCountdown\(data\.period\)/);
+    assert.match(rankingsSource, /Date\.parse\(period\.serverNow\)/);
+    assert.match(rankingsSource, /Date\.parse\(period\.closesAt\)/);
+    assert.match(rankingsSource, /setInterval\([\s\S]*?60_000/);
+    assert.match(rankingsSource, /testID="rankings-close-countdown"/);
+  });
+
   it("uses the canonical French name for Daily Numbers in rankings", () => {
     assert.match(frenchRankingsSource, /dailyNumbers: "Nombre du jour"/);
+    assert.match(frenchRankingsSource, /oneGuess: "\{count\} essai"/);
+    assert.match(frenchRankingsSource, /guesses: "\{count\} essais"/);
     assert.doesNotMatch(frenchRankingsSource, /Le compte est bon/);
   });
 

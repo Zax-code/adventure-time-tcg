@@ -650,6 +650,15 @@ function useRootLayoutView() {
                       }}
                     />
                     <Stack.Screen
+                      name="leaderboard-help"
+                      options={{
+                        presentation: "transparentModal",
+                        animation: "none",
+                        contentStyle: { backgroundColor: "transparent" },
+                        headerShown: false,
+                      }}
+                    />
+                    <Stack.Screen
                       name="pvp-card-details"
                       options={{
                         presentation: "transparentModal",

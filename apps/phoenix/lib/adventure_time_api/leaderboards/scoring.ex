@@ -134,6 +134,7 @@ defmodule AdventureTimeApi.Leaderboards.Scoring do
   def validate_configuration(config, %Date{} = today) do
     expected_board_keys =
       AdventureTimeApi.Leaderboards.Boards.launch_catalog()
+      |> Enum.reject(&(&1.board_kind == :derived_overall))
       |> MapSet.new(& &1.key)
 
     with %{schema_version: 1, version: version, effective_competition_week: effective_week} <-
@@ -253,17 +254,13 @@ defmodule AdventureTimeApi.Leaderboards.Scoring do
       if map_size(family_points) == 0 do
         {:ok, %{status: :unranked, points_milli: nil, selected_families: []}}
       else
-        selected =
-          @overall_families
-          |> Enum.map(&{&1, Map.get(family_points, &1, 0)})
-          |> Enum.sort_by(fn {_family, points} -> points end, :desc)
-          |> Enum.take(4)
+        selected_families = Enum.filter(@overall_families, &Map.has_key?(family_points, &1))
 
         {:ok,
          %{
            status: :ranked,
-           points_milli: divide_half_up(Enum.sum(Enum.map(selected, &elem(&1, 1))), 4),
-           selected_families: Enum.map(selected, &elem(&1, 0))
+           points_milli: family_points |> Map.values() |> Enum.sum(),
+           selected_families: selected_families
          }}
       end
     else

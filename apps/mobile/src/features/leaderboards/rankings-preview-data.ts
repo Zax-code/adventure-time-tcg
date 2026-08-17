@@ -9,7 +9,6 @@ function row(
   rank: number,
   name: string,
   avatar: FallbackAvatarKey,
-  errorMs: number,
   points: number,
   medal: "gold" | "silver" | "bronze" | null = null,
 ): LeaderboardRow {
@@ -26,10 +25,14 @@ function row(
       visibility: "visible",
     },
     rawResult: {
-      kind: "duration_error_ms",
-      outcome: "success",
-      absoluteErrorMs: errorMs,
-      tier: errorMs <= 50 ? "amazing" : "great",
+      kind: "member_breakdown",
+      members: {
+        "steps/default": points * 1_000,
+        "daily-numbers/family": 0,
+        "wordle/family": 0,
+        "speed-calculus/ranked": 0,
+        "perfect-timing/official": 0,
+      },
     },
     points,
     pointsMilli: points * 1_000,
@@ -39,16 +42,16 @@ function row(
 }
 
 const previewRows = [
-  row(1, 1, "FinnTheHero", "finn", 42, 1_046, "gold"),
-  row(2, 2, "BubbleGum", "princess-bubblegum", 58, 987, "silver"),
-  row(3, 3, "JakeTheDog", "jake", 63, 969, "bronze"),
-  row(4, 4, "MarcyRocks", "marceline", 71, 940),
-  row(5, 5, "IceKingCool", "ice-king", 79, 910),
-  row(6, 6, "FlamePrincess", "flame-princess", 88, 877),
-  row(7, 7, "LSPForever", "lumpy-space-princess", 95, 852),
+  row(1, 1, "FinnTheHero", "finn", 1_046, "gold"),
+  row(2, 2, "BubbleGum", "princess-bubblegum", 987, "silver"),
+  row(3, 3, "JakeTheDog", "jake", 969, "bronze"),
+  row(4, 4, "MarcyRocks", "marceline", 940),
+  row(5, 5, "IceKingCool", "ice-king", 910),
+  row(6, 6, "FlamePrincess", "flame-princess", 877),
+  row(7, 7, "LSPForever", "lumpy-space-princess", 852),
 ];
 
-const topSevenCurrentPlayer = row(5, 5, "BMO Player", "bmo", 79, 910);
+const topSevenCurrentPlayer = row(5, 5, "BMO Player", "bmo", 910);
 const topSevenPreviewRows = [
   ...previewRows.slice(0, 4),
   topSevenCurrentPlayer,
@@ -57,17 +60,23 @@ const topSevenPreviewRows = [
 
 export const RANKINGS_PREVIEW_DATA: LeaderboardResponse = {
   board: {
-    key: "perfect-timing/official",
-    quest: "perfect-timing",
-    family: "perfect_timing",
-    mode: "official",
-    direction: "lower",
-    boardKind: "source",
-    rawResultKind: "duration_error_ms",
+    key: "overall/all-quests",
+    quest: "overall",
+    family: "overall",
+    mode: "all-quests",
+    direction: "points",
+    boardKind: "derived_overall",
+    rawResultKind: "member_breakdown",
     enabled: true,
-    prizesEnabled: true,
-    displayOrder: 10,
-    members: [],
+    prizesEnabled: false,
+    displayOrder: 11,
+    members: [
+      "steps/default",
+      "daily-numbers/family",
+      "wordle/family",
+      "speed-calculus/ranked",
+      "perfect-timing/official",
+    ],
   },
   period: {
     type: "week",
@@ -86,7 +95,7 @@ export const RANKINGS_PREVIEW_DATA: LeaderboardResponse = {
   },
   podium: previewRows.slice(0, 3),
   rows: previewRows,
-  currentPlayer: row(8, 8, "BMO Player", "bmo", 101, 830),
+  currentPlayer: row(8, 8, "BMO Player", "bmo", 830),
   pendingCurrentPlayerResult: null,
   pendingCurrentPlayerPoints: null,
   qualification: null,

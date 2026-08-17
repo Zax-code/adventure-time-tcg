@@ -42,8 +42,10 @@ defmodule AdventureTimeApiWeb.LeaderboardsControllerTest do
       |> get(~p"/leaderboards/boards")
       |> json_response(200)
 
-    assert length(response["boards"]) == 10
+    assert length(response["boards"]) == 11
     assert hd(response["boards"])["key"] == "steps/default"
+    assert List.last(response["boards"])["key"] == "overall/all-quests"
+    refute List.last(response["boards"])["prizesEnabled"]
     assert length(response["fallbackAvatarKeys"]) == 12
     assert is_binary(response["serverNow"])
   end

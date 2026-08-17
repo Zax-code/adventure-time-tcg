@@ -30,7 +30,7 @@ defmodule AdventureTimeApi.Leaderboards.LifecycleTest do
     assert :ok = Lifecycle.tick(now)
 
     assert Repo.aggregate(Period, :count) == 4
-    assert Repo.aggregate(Snapshot, :count) == 20
+    assert Repo.aggregate(Snapshot, :count) == 22
 
     assert {:ok, payload} = Query.fetch("steps", "default", "current_week", user.id, now)
     assert payload.rows == []
@@ -354,7 +354,12 @@ defmodule AdventureTimeApi.Leaderboards.LifecycleTest do
            |> Enum.sort() == [3, 3, 3]
 
     assert {:ok, %{days: [], weeks: [history]}} =
-             Query.history("steps", "default", hd(users).id)
+             Query.history(
+               "steps",
+               "default",
+               hd(users).id,
+               ~U[2026-08-17 12:59:00.000000Z]
+             )
 
     assert history.period.status == :closed
     assert history.period.standingsThrough == ~D[2026-08-23]

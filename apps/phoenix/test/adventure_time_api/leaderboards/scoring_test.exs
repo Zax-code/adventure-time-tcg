@@ -268,12 +268,18 @@ defmodule AdventureTimeApi.Leaderboards.ScoringTest do
   end
 
   describe "overall/1" do
-    test "averages the best four of five quest-family scores without account-age accumulation" do
+    test "sums every eligible quest-family score without a ceiling" do
       assert {:ok,
               %{
                 status: :ranked,
-                points_milli: 575_000,
-                selected_families: [:steps, :daily_numbers, :wordle, :speed_calculus]
+                points_milli: 2_600_000,
+                selected_families: [
+                  :steps,
+                  :daily_numbers,
+                  :wordle,
+                  :speed_calculus,
+                  :perfect_timing
+                ]
               }} =
                Scoring.overall(%{
                  steps: 800_000,
@@ -284,8 +290,8 @@ defmodule AdventureTimeApi.Leaderboards.ScoringTest do
                })
     end
 
-    test "uses zero for missing families but requires one valid family score" do
-      assert {:ok, %{status: :ranked, points_milli: 200_000}} =
+    test "requires only one valid family score and does not dilute it with missing families" do
+      assert {:ok, %{status: :ranked, points_milli: 800_000}} =
                Scoring.overall(%{steps: 800_000})
 
       assert {:ok, %{status: :unranked, points_milli: nil}} = Scoring.overall(%{})

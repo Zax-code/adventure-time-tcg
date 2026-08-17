@@ -12,12 +12,12 @@ defmodule AdventureTimeApi.Leaderboards.Board do
     field(:key, :string)
 
     field(:quest_family, Ecto.Enum,
-      values: [:steps, :daily_numbers, :wordle, :speed_calculus, :perfect_timing]
+      values: [:overall, :steps, :daily_numbers, :wordle, :speed_calculus, :perfect_timing]
     )
 
     field(:mode, :string)
     field(:direction, Ecto.Enum, values: [:higher, :lower, :points])
-    field(:board_kind, Ecto.Enum, values: [:source, :derived_family])
+    field(:board_kind, Ecto.Enum, values: [:source, :derived_family, :derived_overall])
     field(:derived_members, :map, default: %{})
     field(:enabled, :boolean, default: true)
     field(:prizes_enabled, :boolean, default: false)

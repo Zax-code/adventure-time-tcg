@@ -25,6 +25,7 @@ import { apiClient } from "../../lib/api";
 import { useThemeStore } from "../../stores/theme-store";
 import { THEME_COLORS } from "../../theme/themes";
 import { LeaderboardAvatar } from "./leaderboard-avatar";
+import { formatLeaderboardRawResult } from "./format-raw-result";
 import { PUBLIC_PROFILE_PREVIEW_DATA } from "./public-profile-preview-data";
 
 type IconComponent = ComponentType<{ size?: number; color?: string }>;
@@ -54,6 +55,7 @@ const CROWN_FAMILIES: Array<{
 ];
 
 const BOARD_LABEL_KEYS: Record<LeaderboardBoardKey, string> = {
+  "overall/all-quests": "rankings.boards.allQuests",
   "steps/default": "rankings.boards.steps",
   "daily-numbers/1-5": "rankings.profile.boardLabels.dailyNumbers15",
   "daily-numbers/2-4": "rankings.profile.boardLabels.dailyNumbers24",
@@ -73,7 +75,10 @@ const MEDALS = [
 ] as const;
 
 export function PublicProfileScreen() {
-  const { id, preview } = useLocalSearchParams<{ id?: string; preview?: string }>();
+  const { id, preview } = useLocalSearchParams<{
+    id?: string;
+    preview?: string;
+  }>();
   const router = useRouter();
   const { locale, t } = useTranslation();
   const tc = THEME_COLORS[useThemeStore((state) => state.themeName)];
@@ -184,7 +189,10 @@ export function PublicProfileScreen() {
                   <Icon size={25} color={tc.primaryText} />
                 </View>
                 <View className="min-w-0 flex-1">
-                  <Text numberOfLines={1} className="font-nunito-bold text-xs text-fgMuted">
+                  <Text
+                    numberOfLines={1}
+                    className="font-nunito-bold text-xs text-fgMuted"
+                  >
                     {t(labelKey)}
                   </Text>
                   <View className="flex-row items-center gap-1">
@@ -236,9 +244,15 @@ export function PublicProfileScreen() {
                   key={`${placement.boardKey}-${placement.weekStart}`}
                   className={`flex-row items-center gap-3 px-4 py-3.5 ${index > 0 ? "border-t border-primaryBorder" : ""}`}
                 >
-                  <PlacementBadge rank={placement.rank} medal={placement.medal} />
+                  <PlacementBadge
+                    rank={placement.rank}
+                    medal={placement.medal}
+                  />
                   <View className="min-w-0 flex-1">
-                    <Text numberOfLines={1} className="font-nunito-bold text-sm text-fg">
+                    <Text
+                      numberOfLines={1}
+                      className="font-nunito-bold text-sm text-fg"
+                    >
                       {t(BOARD_LABEL_KEYS[placement.boardKey])}
                     </Text>
                     <Text className="font-nunito text-xs text-fgMuted">
@@ -269,11 +283,14 @@ export function PublicProfileScreen() {
                 >
                   <TrophyIcon size={25} color={tc.primaryText} />
                   <View className="min-w-0 flex-1">
-                    <Text numberOfLines={1} className="font-nunito-bold text-sm text-fg">
+                    <Text
+                      numberOfLines={1}
+                      className="font-nunito-bold text-sm text-fg"
+                    >
                       {t(BOARD_LABEL_KEYS[best.boardKey])}
                     </Text>
                     <Text className="font-nunito-semibold text-xs text-fgMuted">
-                      {formatRawResult(best.rawResult)}
+                      {formatLeaderboardRawResult(best.rawResult, locale, t)}
                     </Text>
                   </View>
                   <Text
@@ -305,7 +322,10 @@ function ProfileHero({ profile }: { profile: PublicLeaderboardProfile }) {
         avatarUrl={profile.profile.avatarUrl}
         size={96}
       />
-      <Text selectable className="text-center font-nunito-extrabold text-2xl text-fg">
+      <Text
+        selectable
+        className="text-center font-nunito-extrabold text-2xl text-fg"
+      >
         {profile.profile.displayName ?? t("rankings.profile.adventurer")}
       </Text>
       <Text selectable className="font-nunito-bold text-sm text-primaryText">
@@ -320,7 +340,13 @@ function ProfileHero({ profile }: { profile: PublicLeaderboardProfile }) {
   );
 }
 
-function SectionHeading({ title, subtitle }: { title: string; subtitle?: string }) {
+function SectionHeading({
+  title,
+  subtitle,
+}: {
+  title: string;
+  subtitle?: string;
+}) {
   return (
     <View className="gap-1 px-1">
       <Text selectable className="font-nunito-extrabold text-xl text-fg">
@@ -335,12 +361,27 @@ function SectionHeading({ title, subtitle }: { title: string; subtitle?: string 
   );
 }
 
-function PlacementBadge({ rank, medal }: { rank: number; medal: "gold" | "silver" | "bronze" | null }) {
+function PlacementBadge({
+  rank,
+  medal,
+}: {
+  rank: number;
+  medal: "gold" | "silver" | "bronze" | null;
+}) {
   const color =
-    medal === "gold" ? "#F4C542" : medal === "silver" ? "#94A3B8" : medal === "bronze" ? "#C47A44" : "#DB2777";
+    medal === "gold"
+      ? "#F4C542"
+      : medal === "silver"
+        ? "#94A3B8"
+        : medal === "bronze"
+          ? "#C47A44"
+          : "#DB2777";
 
   return (
-    <View className="size-11 items-center justify-center rounded-full" style={{ backgroundColor: color + "22" }}>
+    <View
+      className="size-11 items-center justify-center rounded-full"
+      style={{ backgroundColor: color + "22" }}
+    >
       <Text
         selectable
         className="font-nunito-extrabold text-base"
@@ -354,13 +395,22 @@ function PlacementBadge({ rank, medal }: { rank: number; medal: "gold" | "silver
 
 function EmptyCopy({ text }: { text: string }) {
   return (
-    <Text selectable className="px-5 py-6 text-center font-nunito text-sm text-fgMuted">
+    <Text
+      selectable
+      className="px-5 py-6 text-center font-nunito text-sm text-fgMuted"
+    >
       {text}
     </Text>
   );
 }
 
-function LeaderboardCrownIcon({ size, color }: { size: number; color: string }) {
+function LeaderboardCrownIcon({
+  size,
+  color,
+}: {
+  size: number;
+  color: string;
+}) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path
@@ -371,7 +421,12 @@ function LeaderboardCrownIcon({ size, color }: { size: number; color: string }) 
         strokeWidth={1.8}
         strokeLinejoin="round"
       />
-      <Path d="M6 21H18" stroke={color} strokeWidth={1.8} strokeLinecap="round" />
+      <Path
+        d="M6 21H18"
+        stroke={color}
+        strokeWidth={1.8}
+        strokeLinecap="round"
+      />
       <Circle cx={4} cy={7} r={1.5} fill={color} />
       <Circle cx={12} cy={4} r={1.5} fill={color} />
       <Circle cx={20} cy={7} r={1.5} fill={color} />
@@ -386,7 +441,10 @@ function MedalIcon({ size, color }: { size: number; color: string }) {
       <Path d="M29 3H22L19 17H26L29 3Z" fill={color} fillOpacity={0.8} />
       <Circle cx={20} cy={24} r={11} fill={color} />
       <Circle cx={20} cy={24} r={7} fill="#FFFFFF" fillOpacity={0.32} />
-      <Path d="M20 18.5L21.7 22L25.5 22.5L22.7 25.2L23.4 29L20 27.2L16.6 29L17.3 25.2L14.5 22.5L18.3 22L20 18.5Z" fill="#FFFFFF" />
+      <Path
+        d="M20 18.5L21.7 22L25.5 22.5L22.7 25.2L23.4 29L20 27.2L16.6 29L17.3 25.2L14.5 22.5L18.3 22L20 18.5Z"
+        fill="#FFFFFF"
+      />
     </Svg>
   );
 }
@@ -398,13 +456,4 @@ function formatWeek(weekStart: string, locale: "en" | "fr") {
     year: "numeric",
     timeZone: "UTC",
   }).format(new Date(`${weekStart}T12:00:00Z`));
-}
-
-function formatRawResult(raw: LeaderboardRow["rawResult"]) {
-  if (raw.kind === "duration_error_ms") return `${raw.absoluteErrorMs} ms`;
-  if (raw.kind === "steps") return raw.steps.toLocaleString();
-  if (raw.kind === "correct_answers") return String(raw.correctAnswers);
-  if (raw.kind === "wordle_outcome") return raw.outcome === "failed" ? "Failed" : `${raw.guesses}/6`;
-  if (raw.kind === "exact_completion_time") return raw.exact ? `${(raw.elapsedMs / 1000).toFixed(1)} s` : "Not exact";
-  return "—";
 }

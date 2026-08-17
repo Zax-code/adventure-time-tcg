@@ -73,6 +73,20 @@ this document says otherwise.
 23. Daily Numbers Combined and Wordle Combined sum all eligible member-board points.
     Missing modes contribute zero but do not prevent a player with one eligible member
     result from appearing.
+24. All Quests is the default board when Rankings opens. It sums the five canonical
+    quest-family scores, has no artificial ceiling, and includes a player as soon as
+    any contributing family has one eligible result. It grants no additional Crowns.
+25. Every provisional Daily or Weekly view displays a close countdown in days, hours,
+    and minutes. This includes `Today`, `Yesterday`, `This week`, and `Last week` whenever
+    the selected period is still provisional.
+26. Rankings exposes a player-friendly, swipeable explanation sheet from a clickable
+    **How the leaderboard works** control. It documents participation, live refresh,
+    every quest formula, combined and All Quests scoring, weekly summation, rewards,
+    History, and the 13:00 UTC cutoff.
+27. Source-result context is explicit: Steps appends the localized step unit, Wordle
+    shows the localized number of guesses, and exact Daily Numbers results show seconds
+    to two decimal places. Combined boards remain labeled as combined totals because
+    they represent more than one source result.
 
 ## Canonical Model
 
@@ -154,10 +168,10 @@ to `This week`.
 
 Daily contains a two-option selector:
 
-| Selector label | Meaning | State |
-| --- | --- | --- |
-| `Today` | The viewer's current Competition Date | Live and provisional |
-| `Yesterday` | The Competition Date immediately before the viewer's `Today` | Provisional or final |
+| Selector label | Meaning                                                      | State                |
+| -------------- | ------------------------------------------------------------ | -------------------- |
+| `Today`        | The viewer's current Competition Date                        | Live and provisional |
+| `Yesterday`    | The Competition Date immediately before the viewer's `Today` | Provisional or final |
 
 The surface always displays the selected Competition Date separately from the selector.
 For example:
@@ -176,10 +190,10 @@ The displayed full date and status are always authoritative.
 
 Weekly contains a two-option selector:
 
-| Selector label | Meaning | State |
-| --- | --- | --- |
-| `This week` | The viewer's current Competition Week | Live and provisional |
-| `Last week` | The Competition Week immediately before the viewer's `This week` | Provisional or final |
+| Selector label | Meaning                                                          | State                |
+| -------------- | ---------------------------------------------------------------- | -------------------- |
+| `This week`    | The viewer's current Competition Week                            | Live and provisional |
+| `Last week`    | The Competition Week immediately before the viewer's `This week` | Provisional or final |
 
 The surface always displays the selected Monday-through-Sunday range separately from the
 selector. For example:
@@ -254,13 +268,13 @@ points = round(steps / 20)
 
 The formula is linear and has no artificial ceiling.
 
-| Steps | Points |
-| ---: | ---: |
-| 5,000 | 250 |
-| 10,000 | 500 |
-| 20,000 | 1,000 |
-| 50,000 | 2,500 |
-| 100,000 | 5,000 |
+|   Steps | Points |
+| ------: | -----: |
+|   5,000 |    250 |
+|  10,000 |    500 |
+|  20,000 |  1,000 |
+|  50,000 |  2,500 |
+| 100,000 |  5,000 |
 
 ### Daily Numbers
 
@@ -275,30 +289,30 @@ if t >= 10:    points = round(1000 × (10 / t)^0.75)
 An exact result with zero elapsed time is invalid. A settled non-exact result scores zero
 and still counts as participation when accepted.
 
-| Time | Points | Time | Points |
-| ---: | ---: | ---: | ---: |
-| 0.01 s | 7,943 | 10 s | 1,000 |
-| 0.1 s | 3,981 | 30 s | 439 |
-| 0.5 s | 2,456 | 60 s | 261 |
-| 1 s | 1,995 | 2 min | 155 |
-| 2 s | 1,621 | 4 min | 92 |
-| 3 s | 1,435 | 10 min | 46 |
-| 5 s | 1,231 |  |  |
-| 8 s | 1,069 |  |  |
+|   Time | Points |   Time | Points |
+| -----: | -----: | -----: | -----: |
+| 0.01 s |  7,943 |   10 s |  1,000 |
+|  0.1 s |  3,981 |   30 s |    439 |
+|  0.5 s |  2,456 |   60 s |    261 |
+|    1 s |  1,995 |  2 min |    155 |
+|    2 s |  1,621 |  4 min |     92 |
+|    3 s |  1,435 | 10 min |     46 |
+|    5 s |  1,231 |        |        |
+|    8 s |  1,069 |        |        |
 
 ### Wordle
 
 English and French use the same fixed table.
 
-| Outcome | Points |
-| --- | ---: |
-| Solved in 1 guess | 1,200 |
-| Solved in 2 guesses | 1,000 |
-| Solved in 3 guesses | 800 |
-| Solved in 4 guesses | 600 |
-| Solved in 5 guesses | 400 |
-| Solved in 6 guesses | 200 |
-| Failed | 0 |
+| Outcome             | Points |
+| ------------------- | -----: |
+| Solved in 1 guess   |  1,200 |
+| Solved in 2 guesses |  1,000 |
+| Solved in 3 guesses |    800 |
+| Solved in 4 guesses |    600 |
+| Solved in 5 guesses |    400 |
+| Solved in 6 guesses |    200 |
+| Failed              |      0 |
 
 ### Speed Calculus
 
@@ -320,17 +334,17 @@ A miss scores zero. A result labeled successful with an error above 300 millisec
 invalid.
 
 | Absolute error | Points |
-| ---: | ---: |
-| 0 ms | 1,200 |
-| 10 ms | 1,163 |
-| 25 ms | 1,108 |
-| 50 ms | 1,017 |
-| 100 ms | 833 |
-| 150 ms | 650 |
-| 200 ms | 467 |
-| 250 ms | 283 |
-| 300 ms | 100 |
-| Miss | 0 |
+| -------------: | -----: |
+|           0 ms |  1,200 |
+|          10 ms |  1,163 |
+|          25 ms |  1,108 |
+|          50 ms |  1,017 |
+|         100 ms |    833 |
+|         150 ms |    650 |
+|         200 ms |    467 |
+|         250 ms |    283 |
+|         300 ms |    100 |
+|           Miss |      0 |
 
 ### Combined boards
 
@@ -338,6 +352,22 @@ invalid.
 - Wordle Combined sums eligible English and French points.
 - A missing member contributes zero; one eligible member result is enough to appear.
 - Combined totals have no artificial ceiling.
+
+### All Quests board
+
+`overall/all-quests` combines each quest family exactly once:
+
+- Steps contributes `steps/default`.
+- Daily Numbers contributes `daily-numbers/family`.
+- Wordle contributes `wordle/family`.
+- Speed Calculus contributes `speed-calculus/ranked`.
+- Perfect Timing contributes `perfect-timing/official`.
+
+The selected Daily or Weekly family scores are added without averaging, selecting a
+best subset, or applying a ceiling. Missing families contribute zero, and one eligible
+contributing result is enough for the player to appear. The board is available for the
+same Daily, Weekly, and History periods as every quest board and is the initially
+selected board on entry to Rankings. It creates no separate Crown family or Crown award.
 
 ## Weekly Live Standings
 
@@ -352,13 +382,13 @@ For each participant:
 
 Examples:
 
-| Valid results | Weekly treatment | Final eligibility if the week ended now |
-| ---: | --- | --- |
-| 0 | Absent from the selected leaderboard | Not a participant |
-| 1 | Visible and ranked from that result's points | Eligible |
-| 2 | Visible and ranked from the sum of both results | Eligible |
-| 3 | Visible and ranked from the sum of all three results | Eligible |
-| 4–7 | Visible and ranked from the sum of every eligible result | Eligible |
+| Valid results | Weekly treatment                                         | Final eligibility if the week ended now |
+| ------------: | -------------------------------------------------------- | --------------------------------------- |
+|             0 | Absent from the selected leaderboard                     | Not a participant                       |
+|             1 | Visible and ranked from that result's points             | Eligible                                |
+|             2 | Visible and ranked from the sum of both results          | Eligible                                |
+|             3 | Visible and ranked from the sum of all three results     | Eligible                                |
+|           4–7 | Visible and ranked from the sum of every eligible result | Eligible                                |
 
 The result count may be displayed as context, but it is not qualification progress and
 does not restrict ranking or rewards. Final placement remains subject to the established
@@ -397,6 +427,7 @@ Every leaderboard response and screen must distinguish live from final state.
 - Status is provisional.
 - Rows and ranks may change.
 - The exact Daily date or Weekly range is visible.
+- The time remaining until `closes_at` is visible in days, hours, and minutes.
 - No medal, achievement, Crown, or other final-placement reward is granted.
 - The player must not be told or visually led to believe that a provisional placement is
   secured.
@@ -540,6 +571,8 @@ discovery belongs to History rather than to the Daily or Weekly relative selecto
     their raw quest values differ.
 24. Daily Numbers Combined and Wordle Combined sum all eligible member scores; one member
     result is sufficient for participation.
+25. Rankings opens on Weekly / This week / All Quests, and All Quests equals the uncapped
+    sum of the five canonical family scores without double-counting individual modes.
 
 ## Non-goals
 

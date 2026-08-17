@@ -50,12 +50,83 @@ tags:
     id: rankings-period-last_week
 - waitForAnimationToEnd
 - takeScreenshot: tmp-rankings-shots/04-weekly-last-week-selector
+- tapOn:
+    id: rankings-board-steps-default
+- waitForAnimationToEnd
+- takeScreenshot: tmp-rankings-shots/05-steps-with-unit
+- tapOn:
+    id: rankings-board-daily-numbers-family
+- tapOn:
+    id: rankings-mode-daily-numbers-1-5
+- waitForAnimationToEnd
+- takeScreenshot: tmp-rankings-shots/06-daily-numbers-seconds
+- swipe:
+    start: "88%,47%"
+    end: "12%,47%"
+    duration: 700
+- tapOn:
+    id: rankings-board-wordle-family
+- tapOn:
+    id: rankings-mode-wordle-en
+- waitForAnimationToEnd
+- takeScreenshot: tmp-rankings-shots/07-wordle-guesses
+- swipe:
+    start: "88%,47%"
+    end: "12%,47%"
+    duration: 700
+- tapOn:
+    id: rankings-board-speed-calculus-ranked
+- waitForAnimationToEnd
+- takeScreenshot: tmp-rankings-shots/08-speed-calculus
+- tapOn:
+    id: rankings-board-perfect-timing-official
+- waitForAnimationToEnd
+- takeScreenshot: tmp-rankings-shots/09-perfect-timing
+- swipe:
+    start: "12%,47%"
+    end: "88%,47%"
+    duration: 700
+- swipe:
+    start: "12%,47%"
+    end: "88%,47%"
+    duration: 700
+- swipe:
+    start: "12%,47%"
+    end: "88%,47%"
+    duration: 700
+- tapOn:
+    id: rankings-board-overall-all-quests
+- scrollUntilVisible:
+    element:
+      id: rankings-open-help-button
+    direction: DOWN
+    timeout: 30000
+    centerElement: true
+- waitForAnimationToEnd
+- takeScreenshot: tmp-rankings-shots/10-leaderboard-help-button
+- tapOn:
+    id: rankings-open-help-button
+- assertVisible:
+    id: leaderboard-help-screen
+- waitForAnimationToEnd
+- takeScreenshot: tmp-rankings-shots/11-leaderboard-help-overview
+- swipe:
+    start: "50%,80%"
+    end: "50%,25%"
+    duration: 700
+- waitForAnimationToEnd
+- takeScreenshot: tmp-rankings-shots/12-leaderboard-help-formulas
+- openLink:
+    link: "adventure-time:///rankings?preview=1"
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- assertVisible:
+    id: rankings-screen
 - swipe:
     start: "50%,78%"
     end: "50%,28%"
     duration: 700
 - waitForAnimationToEnd
-- takeScreenshot: tmp-rankings-shots/05-rankings-lower
+- takeScreenshot: tmp-rankings-shots/13-rankings-lower
 - openLink:
     link: "adventure-time:///rankings?preview=1&placement=top7"
 - runFlow: subflows/confirm-open-link-if-needed.yaml
@@ -66,16 +137,16 @@ tags:
     end: "50%,28%"
     duration: 700
 - waitForAnimationToEnd
-- takeScreenshot: tmp-rankings-shots/06-rankings-player-top-seven
+- takeScreenshot: tmp-rankings-shots/14-rankings-player-top-seven
 - tapOn:
     id: leaderboard-row-5
 - assertVisible:
     id: public-profile-screen
 - waitForAnimationToEnd
-- takeScreenshot: tmp-rankings-shots/07-public-profile-crowns-achievements
+- takeScreenshot: tmp-rankings-shots/15-public-profile-crowns-achievements
 - swipe:
     start: "50%,80%"
     end: "50%,25%"
     duration: 700
 - waitForAnimationToEnd
-- takeScreenshot: tmp-rankings-shots/08-public-profile-details
+- takeScreenshot: tmp-rankings-shots/16-public-profile-details

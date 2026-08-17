@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const leaderboardBoardKeySchema = z.enum([
+  "overall/all-quests",
   "steps/default",
   "daily-numbers/1-5",
   "daily-numbers/2-4",
@@ -32,6 +33,7 @@ export const leaderboardBoardSchema = z.object({
   key: leaderboardBoardKeySchema,
   quest: z.string(),
   family: z.enum([
+    "overall",
     "steps",
     "daily_numbers",
     "wordle",
@@ -40,7 +42,7 @@ export const leaderboardBoardSchema = z.object({
   ]),
   mode: z.string(),
   direction: z.enum(["higher", "lower", "points"]),
-  boardKind: z.enum(["source", "derived_family"]),
+  boardKind: z.enum(["source", "derived_family", "derived_overall"]),
   rawResultKind: z.string(),
   enabled: z.boolean(),
   prizesEnabled: z.boolean(),
