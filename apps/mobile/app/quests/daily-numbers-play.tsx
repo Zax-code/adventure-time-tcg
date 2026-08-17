@@ -3731,7 +3731,7 @@ export default function DailyNumbersPlayScreen() {
       queryFn: () =>
         archiveMode
           ? apiClient.dailyNumbersArchiveState(archiveDate ?? "", mode)
-          : apiClient.startDailyNumbersRanked(mode),
+          : apiClient.dailyNumbersState(mode),
     })),
   });
 

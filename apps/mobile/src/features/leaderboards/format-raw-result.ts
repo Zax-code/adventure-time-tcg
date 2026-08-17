@@ -28,12 +28,16 @@ export function formatLeaderboardRawResult(
   if (raw.kind === "exact_completion_time") {
     if (!raw.exact) return t("rankings.results.notExact");
 
+    const totalCentiseconds = Math.round(raw.elapsedMs / 10);
+    const minutes = Math.floor(totalCentiseconds / 6_000);
     const seconds = new Intl.NumberFormat(locale === "fr" ? "fr-FR" : "en-US", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-    }).format(raw.elapsedMs / 1_000);
+    }).format((totalCentiseconds % 6_000) / 100);
 
-    return t("rankings.results.seconds", { seconds });
+    if (minutes === 0) return t("rankings.results.seconds", { seconds });
+
+    return t("rankings.results.minutesSeconds", { minutes, seconds });
   }
   if (raw.kind === "member_breakdown") return t("rankings.modes.combined");
   return "—";

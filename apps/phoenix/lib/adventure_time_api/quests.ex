@@ -10,7 +10,7 @@ defmodule AdventureTimeApi.Quests do
   alias AdventureTimeApi.Accounts.User
   alias AdventureTimeApi.Fitbit
   alias AdventureTimeApi.Health
-  alias AdventureTimeApi.Leaderboards.{QuestResults, RankedSessions}
+  alias AdventureTimeApi.Leaderboards.QuestResults
 
   alias AdventureTimeApi.Quests.{
     DailyNumbersArchiveAttempt,
@@ -490,74 +490,8 @@ defmodule AdventureTimeApi.Quests do
   end
 
   def start_daily_numbers_ranked(user_id, mode) do
-    with {:ok, normalized_mode} <- normalize_daily_numbers_mode(mode),
-         %User{} = user <- Repo.get(User, user_id),
-         date = current_reset_date_for_user(user_id) do
-      materialize_daily_quests(user_id, date)
-
-      if is_nil(get_daily_numbers_attempt(user_id, date, normalized_mode)) do
-        start_ranked_session_safely(user, date, normalized_mode)
-      end
-
-      {:ok, build_daily_numbers_state(user_id, date, normalized_mode)}
-    else
-      nil -> {:error, :user_not_found}
-      error -> error
-    end
-  end
-
-  defp start_ranked_session_safely(user, date, mode) do
-    case RankedSessions.start_daily_numbers(user, date, mode) do
-      {:ok, _session} ->
-        :ok
-
-      {:error, reason} ->
-        Logger.warning("Daily Numbers ranked session unavailable",
-          user_id: user.id,
-          date: date,
-          mode: mode,
-          reason: inspect(reason)
-        )
-
-        :ok
-    end
-  rescue
-    exception ->
-      Logger.error("Daily Numbers ranked session failed",
-        user_id: user.id,
-        date: date,
-        mode: mode,
-        error: Exception.message(exception)
-      )
-
-      :ok
-  end
-
-  defp settle_ranked_session_safely(user_id, date, mode, source_id) do
-    case RankedSessions.settle_daily_numbers(user_id, date, mode, source_id) do
-      {:ok, _session} ->
-        :ok
-
-      {:error, reason} ->
-        Logger.warning("Daily Numbers ranked session settlement unavailable",
-          user_id: user_id,
-          date: date,
-          mode: mode,
-          reason: inspect(reason)
-        )
-
-        :ok
-    end
-  rescue
-    exception ->
-      Logger.error("Daily Numbers ranked session settlement failed",
-        user_id: user_id,
-        date: date,
-        mode: mode,
-        error: Exception.message(exception)
-      )
-
-      :ok
+    # Compatibility endpoint for app versions that still call ranked-start.
+    daily_numbers_state(user_id, mode)
   end
 
   def submit_daily_numbers(
@@ -640,14 +574,7 @@ defmodule AdventureTimeApi.Quests do
             end)
             |> Repo.transaction()
             |> case do
-              {:ok, %{daily_numbers_attempt: attempt}} ->
-                settle_ranked_session_safely(
-                  user_id,
-                  date,
-                  normalized_mode,
-                  attempt.id
-                )
-
+              {:ok, %{daily_numbers_attempt: _attempt}} ->
                 QuestResults.sync_safely(
                   user_id,
                   date,

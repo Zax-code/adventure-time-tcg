@@ -172,7 +172,7 @@ defmodule AdventureTimeApi.Leaderboards.QuestResultsTest do
 
     assert dn_result.raw_result == %{
              "kind" => "exact_completion_time",
-             "elapsedMs" => 45_000,
+             "elapsedMs" => 30_000,
              "exact" => true
            }
 
@@ -201,29 +201,36 @@ defmodule AdventureTimeApi.Leaderboards.QuestResultsTest do
     assert Repo.aggregate(DailyResult, :count) == 4
   end
 
-  test "rejects exact Daily Numbers results without server timing evidence", %{
+  test "uses the saved Daily Numbers quest time without a ranked session", %{
     user: user,
     date: date
   } do
-    %DailyNumbersDailyAttempt{}
-    |> DailyNumbersDailyAttempt.changeset(%{
-      user_id: user.id,
-      date: date,
-      mode: "1-5",
-      submitted_steps: [],
-      final_value: 42,
-      distance: 0,
-      score: 100,
-      exact: true,
-      completed: true,
-      elapsed_ms: 0
-    })
-    |> Repo.insert!()
+    attempt =
+      %DailyNumbersDailyAttempt{}
+      |> DailyNumbersDailyAttempt.changeset(%{
+        user_id: user.id,
+        date: date,
+        mode: "1-5",
+        submitted_steps: [],
+        final_value: 42,
+        distance: 0,
+        score: 100,
+        exact: true,
+        completed: true,
+        elapsed_ms: 18_064
+      })
+      |> Repo.insert!()
 
-    assert {:error, :untrusted_ranked_timing} =
-             QuestResults.sync(user.id, date, {:daily_numbers, "1-5"})
+    assert {:ok, result} = QuestResults.sync(user.id, date, {:daily_numbers, "1-5"})
 
-    assert Repo.aggregate(DailyResult, :count) == 0
+    assert result.source_id == attempt.id
+    assert result.ranked_session_id == nil
+
+    assert result.raw_result == %{
+             "kind" => "exact_completion_time",
+             "elapsedMs" => 18_064,
+             "exact" => true
+           }
   end
 
   test "does not record unfinished Wordle or Perfect Timing attempts", %{user: user, date: date} do
@@ -310,6 +317,39 @@ defmodule AdventureTimeApi.Leaderboards.QuestResultsTest do
     assert :ok = QuestResults.reconcile_open_week(now)
     assert Repo.aggregate(DailyResult, :count) == 1
     assert Repo.one!(DailyResult).id == result.id
+  end
+
+  test "reconciliation records Daily Numbers directly from the quest attempt", %{
+    user: user,
+    date: date
+  } do
+    attempt =
+      %DailyNumbersDailyAttempt{}
+      |> DailyNumbersDailyAttempt.changeset(%{
+        user_id: user.id,
+        date: date,
+        mode: "2-4",
+        submitted_steps: [],
+        final_value: 42,
+        distance: 0,
+        score: 100,
+        exact: true,
+        completed: true,
+        elapsed_ms: 18_064
+      })
+      |> Repo.insert!()
+
+    assert :ok = QuestResults.reconcile_open_week(~U[2026-08-17 12:30:00Z])
+
+    result = Repo.one!(DailyResult)
+    assert result.source_id == attempt.id
+    assert result.ranked_session_id == nil
+
+    assert result.raw_result == %{
+             "kind" => "exact_completion_time",
+             "elapsedMs" => 18_064,
+             "exact" => true
+           }
   end
 
   defp insert_steps!(user_id, source, count, date) do
