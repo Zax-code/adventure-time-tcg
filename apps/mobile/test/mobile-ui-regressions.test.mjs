@@ -123,6 +123,19 @@ describe("mobile UI regression contracts", () => {
     assert.match(rankingsSource, /<RankingRow[\s\S]*?onPress=/);
   });
 
+  it("prefers custom profile pictures throughout the rankings", () => {
+    assert.equal(
+      rankingsSource.match(/avatarUrl=\{row\.profile\.avatarUrl\}/g)?.length,
+      2,
+      "both podium cards and ranking rows should pass the public profile picture to Avatar",
+    );
+    assert.match(
+      rankingsSource,
+      /source=\{avatarUrl \? \{ uri: avatarUrl \} : LEADERBOARD_AVATAR_SOURCES\[avatarKey\]\}/,
+      "Avatar should use the custom profile picture before falling back to a default avatar",
+    );
+  });
+
   it("treats an unfinished worldwide daily period as a pending leaderboard", () => {
     assert.match(
       rankingsSource,

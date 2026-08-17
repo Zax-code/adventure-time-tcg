@@ -543,7 +543,11 @@ function PodiumCard({ row, place, onPress }: { row: LeaderboardRow; place: 1 | 2
             <Text className="font-nunito-extrabold text-xl text-fg">{place}</Text>
           </View>
         </View>
-        <Avatar avatarKey={row.profile.fallbackAvatarKey} size={place === 1 ? 72 : 58} />
+        <Avatar
+          avatarKey={row.profile.fallbackAvatarKey}
+          avatarUrl={row.profile.avatarUrl}
+          size={place === 1 ? 72 : 58}
+        />
         <Text numberOfLines={1} className="w-full text-center font-nunito-bold text-xs text-fg">
           {row.profile.displayName}
         </Text>
@@ -580,7 +584,11 @@ function RankingRow({
       <Text className="w-7 text-center font-nunito-extrabold text-sm text-primaryText">
         {row.rank}
       </Text>
-      <Avatar avatarKey={row.profile.fallbackAvatarKey} size={42} />
+      <Avatar
+        avatarKey={row.profile.fallbackAvatarKey}
+        avatarUrl={row.profile.avatarUrl}
+        size={42}
+      />
       <Text numberOfLines={1} className="flex-1 font-nunito-bold text-sm text-fg">
         {row.profile.displayName}
       </Text>
@@ -600,10 +608,18 @@ function isCurrentPlayer(row: LeaderboardRow, currentPlayer: LeaderboardRow | nu
   return row.profile.handle === currentPlayer.profile.handle;
 }
 
-function Avatar({ avatarKey, size }: { avatarKey: FallbackAvatarKey; size: number }) {
+function Avatar({
+  avatarKey,
+  avatarUrl,
+  size,
+}: {
+  avatarKey: FallbackAvatarKey;
+  avatarUrl: string | null;
+  size: number;
+}) {
   return (
     <Image
-      source={LEADERBOARD_AVATAR_SOURCES[avatarKey]}
+      source={avatarUrl ? { uri: avatarUrl } : LEADERBOARD_AVATAR_SOURCES[avatarKey]}
       style={{ width: size, height: size, borderRadius: size / 2 }}
       contentFit="cover"
       transition={150}
