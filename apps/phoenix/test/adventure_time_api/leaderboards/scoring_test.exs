@@ -55,6 +55,12 @@ defmodule AdventureTimeApi.Leaderboards.ScoringTest do
                  "exact" => false,
                  "elapsedMs" => 42_000
                })
+
+      assert {:ok, 0} =
+               Scoring.score(config, "daily-numbers/1-5", %{
+                 "exact" => false,
+                 "elapsedMs" => 0
+               })
     end
 
     test "scores Wordle guesses with the locked even progression in both languages" do

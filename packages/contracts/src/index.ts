@@ -130,7 +130,7 @@ export const leaderboardResponseSchema = z.object({
   qualification: z
     .object({
       validResults: z.number().int().nonnegative(),
-      requiredResults: z.literal(3),
+      requiredResults: z.literal(1),
     })
     .nullable(),
   pageInfo: z.object({
@@ -144,6 +144,7 @@ export const leaderboardResponseSchema = z.object({
 });
 
 export const leaderboardHistoryResponseSchema = z.object({
+  days: z.array(leaderboardResponseSchema),
   weeks: z.array(leaderboardResponseSchema),
 });
 

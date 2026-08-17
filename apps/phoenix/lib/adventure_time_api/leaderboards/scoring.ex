@@ -360,7 +360,7 @@ defmodule AdventureTimeApi.Leaderboards.Scoring do
          %{formula: :exact_piecewise_power_lower_better},
          %{"exact" => false, "elapsedMs" => elapsed_ms}
        )
-       when is_integer(elapsed_ms) and elapsed_ms > 0,
+       when is_integer(elapsed_ms) and elapsed_ms >= 0,
        do: {:ok, 0}
 
   defp score_formula(

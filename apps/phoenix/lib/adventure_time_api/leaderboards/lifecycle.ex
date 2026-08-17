@@ -54,6 +54,32 @@ defmodule AdventureTimeApi.Leaderboards.Lifecycle do
     end
   end
 
+  @spec finalize_for_read(%Period{}, DateTime.t()) ::
+          {:ok, %Period{}} | {:error, term()}
+  def finalize_for_read(%Period{status: status} = period, _now)
+      when status in [:closed, :corrected],
+      do: {:ok, period}
+
+  def finalize_for_read(%Period{} = period, now) do
+    if DateTime.compare(now, period.closes_at) == :lt do
+      {:ok, period}
+    else
+      period = materialize_period(period, now)
+
+      result =
+        case period.period_type do
+          :day -> finalize_day_if_due(period, now)
+          :week -> refresh_week(period, now)
+        end
+
+      case result do
+        :ok -> {:ok, Repo.reload(period)}
+        {:ok, _value} -> {:ok, Repo.reload(period)}
+        {:error, reason} -> {:error, reason}
+      end
+    end
+  end
+
   defp competition_dates(effective_date, today) do
     recorded_dates =
       from(result in DailyResult,
@@ -136,6 +162,14 @@ defmodule AdventureTimeApi.Leaderboards.Lifecycle do
         end
     end
   end
+
+  defp materialize_period(%Period{id: nil, period_type: :day, competition_date: date}, now),
+    do: ensure_day_period(date, now)
+
+  defp materialize_period(%Period{id: nil, period_type: :week, week_start: week_start}, now),
+    do: ensure_week_period(week_start, now)
+
+  defp materialize_period(%Period{} = period, _now), do: period
 
   defp finalize_day_if_due(period, now) do
     if DateTime.compare(now, period.closes_at) == :lt do

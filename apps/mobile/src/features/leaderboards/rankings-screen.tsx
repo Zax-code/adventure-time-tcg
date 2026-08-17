@@ -346,7 +346,7 @@ export function RankingsScreen() {
           />
         ) : historyIsError && !isPreview ? (
           <PageErrorState error={historyError} onRetry={() => void refetchHistory()} />
-        ) : historyData?.weeks.length ? (
+        ) : historyData && (historyData.days.length > 0 || historyData.weeks.length > 0) ? (
           <HistoryContent boardKey={boardKey} history={historyData} />
         ) : (
           <EmptyPanel title={t("rankings.historyTitle")} body={t("rankings.historyBody")} />
@@ -480,8 +480,20 @@ function HistoryContent({
   boardKey: LeaderboardBoardKey;
   history: LeaderboardHistoryResponse;
 }) {
+  const { t } = useTranslation();
+
   return (
     <View className="gap-6">
+      {history.days.length > 0 ? (
+        <View className="gap-4">
+          <Text className="px-1 font-nunito-extrabold text-xl text-fg">
+            {t("rankings.recentDays")}
+          </Text>
+          {history.days.map((day) => (
+            <RankingsContent data={day} key={day.period.startsAt} preview={false} />
+          ))}
+        </View>
+      ) : null}
       {history.weeks.map((week) => (
         <HistoryWeek boardKey={boardKey} key={week.period.startsAt} week={week} />
       ))}

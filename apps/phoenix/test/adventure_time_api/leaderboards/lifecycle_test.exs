@@ -34,7 +34,7 @@ defmodule AdventureTimeApi.Leaderboards.LifecycleTest do
 
     assert {:ok, payload} = Query.fetch("steps", "default", "current_week", user.id, now)
     assert payload.rows == []
-    assert payload.qualification == nil
+    assert payload.qualification == %{validResults: 0, requiredResults: 1}
     assert payload.period.provisional
   end
 
@@ -62,6 +62,45 @@ defmodule AdventureTimeApi.Leaderboards.LifecycleTest do
     assert weekly.period.weekStart == ~D[2026-08-17]
     assert weekly.period.provisional
     assert [%{rank: 1, rawResult: %{"steps" => 12_000}}] = weekly.rows
+    assert weekly.qualification == %{validResults: 1, requiredResults: 1}
+  end
+
+  test "live revision changes immediately with accepted results" do
+    user = insert_user!("live-revision")
+    activate!()
+    now = ~U[2026-08-17 12:00:00.000000Z]
+
+    assert {:ok, before_result} =
+             Query.fetch("steps", "default", "current_week", user.id, now)
+
+    insert_and_sync_steps!(user, ~D[2026-08-17], 12_000)
+
+    assert {:ok, after_result} =
+             Query.fetch("steps", "default", "current_week", user.id, now)
+
+    refute after_result.period.revision == before_result.period.revision
+    assert after_result.qualification == %{validResults: 1, requiredResults: 1}
+  end
+
+  test "a read at the exact cutoff finalizes the day and exposes it in History" do
+    user = insert_user!("read-finalize")
+    activate!()
+    insert_and_sync_steps!(user, ~D[2026-08-17], 12_000)
+    cutoff = ~U[2026-08-18 13:00:00.000000Z]
+
+    assert {:ok, daily} = Query.fetch("steps", "default", "yesterday", user.id, cutoff)
+    refute daily.period.provisional
+    assert daily.period.status == :closed
+    assert daily.period.serverNow == cutoff
+
+    period = Repo.get_by!(Period, period_type: :day, competition_date: ~D[2026-08-17])
+    assert period.status == :closed
+
+    assert {:ok, %{days: [history_day], weeks: []}} =
+             Query.history("steps", "default", user.id)
+
+    assert history_day.period.competitionDate == ~D[2026-08-17]
+    refute history_day.period.provisional
   end
 
   test "equal rounded daily scores tie without a hidden raw-result tiebreaker" do
@@ -265,7 +304,7 @@ defmodule AdventureTimeApi.Leaderboards.LifecycleTest do
     assert weekly.period.weekEnd == ~D[2026-08-23]
     assert weekly.pendingCurrentPlayerResult == nil
     assert weekly.currentPlayer.rank == 2
-    assert is_nil(weekly.qualification)
+    assert weekly.qualification == %{validResults: 3, requiredResults: 1}
 
     assert {:ok, first_weekly} = Query.fetch("steps", "default", "current_week", first.id, now)
     assert first_weekly.currentPlayer.rawResult == %{"kind" => "steps", "steps" => 40_000}

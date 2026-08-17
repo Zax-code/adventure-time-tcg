@@ -107,7 +107,7 @@ config :adventure_time_api, Oban,
     Oban.Plugins.Pruner,
     {Oban.Plugins.Cron,
      crontab: [
-       {"*/5 * * * *", AdventureTimeApi.Workers.LeaderboardLifecycleWorker},
+       {"* * * * *", AdventureTimeApi.Workers.LeaderboardLifecycleWorker},
        {"15 3 * * *", AdventureTimeApi.Workers.PruneAccessAssessmentDataWorker}
      ]}
   ]
