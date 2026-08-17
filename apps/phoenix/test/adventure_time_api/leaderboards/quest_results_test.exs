@@ -1,6 +1,8 @@
 defmodule AdventureTimeApi.Leaderboards.QuestResultsTest do
   use AdventureTimeApi.DataCase, async: false
 
+  import ExUnit.CaptureLog
+
   alias AdventureTimeApi.Accounts.User
   alias AdventureTimeApi.Health.StepSnapshot
 
@@ -350,6 +352,17 @@ defmodule AdventureTimeApi.Leaderboards.QuestResultsTest do
              "elapsedMs" => 18_064,
              "exact" => true
            }
+  end
+
+  test "reconciliation silently skips results whose global window is closed", %{user: user} do
+    insert_steps!(user.id, :device_health, 20_000, ~D[2026-08-16])
+
+    log =
+      capture_log(fn ->
+        assert :ok = QuestResults.reconcile_open_week(~U[2026-08-17 14:00:00Z])
+      end)
+
+    refute log =~ "leaderboard result sync skipped"
   end
 
   defp insert_steps!(user_id, source, count, date) do

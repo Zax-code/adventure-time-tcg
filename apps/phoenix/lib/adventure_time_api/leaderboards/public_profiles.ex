@@ -112,6 +112,7 @@ defmodule AdventureTimeApi.Leaderboards.PublicProfiles do
       where:
         row.user_id == ^user_id and period.period_type == :week and
           period.status in [:closed, :corrected] and period.origin == :verified,
+      where: board.board_kind != :derived_overall,
       order_by: [desc: period.week_start],
       limit: 10,
       select: {board.key, period.week_start, row.rank, row.points_milli, row.medal_tier}
@@ -139,6 +140,7 @@ defmodule AdventureTimeApi.Leaderboards.PublicProfiles do
       where:
         row.user_id == ^user_id and period.period_type == :day and
           period.status in [:closed, :corrected] and period.origin == :verified,
+      where: board.board_kind != :derived_overall,
       order_by: [desc: row.points_milli],
       select: {board.key, row.raw_result, row.points_milli}
     )

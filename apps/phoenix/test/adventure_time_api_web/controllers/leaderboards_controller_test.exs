@@ -53,6 +53,7 @@ defmodule AdventureTimeApiWeb.LeaderboardsControllerTest do
   test "GET /leaderboards/:quest/:mode returns immutable snapshot rows", %{conn: conn} do
     {user, token} = create_approved_user_and_token("snapshot")
     board = Repo.get_by!(Board, key: "steps/default")
+    overall_board = Repo.get_by!(Board, key: "overall/all-quests")
     unique = System.unique_integer([:positive])
 
     scoring_version =
@@ -113,6 +114,40 @@ defmodule AdventureTimeApiWeb.LeaderboardsControllerTest do
       points_milli: 1_000_000,
       raw_result: %{"kind" => "steps", "steps" => 20_000},
       medal_tier: :gold
+    })
+    |> Repo.insert!()
+
+    overall_snapshot =
+      %Snapshot{}
+      |> Snapshot.changeset(%{
+        period_id: period.id,
+        board_id: overall_board.id,
+        revision: 1,
+        status: :closed,
+        scoring_version_id: scoring_version.id,
+        participant_count: 1,
+        valid_result_count: 1,
+        configuration_hash: scoring_version.configuration_hash,
+        source_cutoff: period.closes_at,
+        finalized_at: period.closes_at,
+        finalized_by: "test",
+        current: true
+      })
+      |> Repo.insert!()
+
+    %SnapshotRow{}
+    |> SnapshotRow.changeset(%{
+      snapshot_id: overall_snapshot.id,
+      user_id: user.id,
+      public_profile_id: user.public_profile_id,
+      position: 1,
+      rank: 1,
+      tie_group: 1,
+      points_milli: 1_000_000,
+      raw_result: %{
+        "kind" => "member_breakdown",
+        "members" => %{"steps/default" => 1_000_000}
+      }
     })
     |> Repo.insert!()
 

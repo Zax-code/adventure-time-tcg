@@ -38,7 +38,12 @@ defmodule AdventureTimeApi.Leaderboards.QuestResults do
         :ok
 
       {:error, reason}
-      when reason in [:scoring_unavailable, :leaderboard_ineligible, :result_excluded] ->
+      when reason in [
+             :scoring_unavailable,
+             :leaderboard_ineligible,
+             :result_excluded,
+             :result_window_closed
+           ] ->
         :ok
 
       {:error, reason} ->

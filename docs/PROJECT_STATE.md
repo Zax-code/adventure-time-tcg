@@ -2,8 +2,8 @@
 
 Last verified: 2026-08-17
 Repository: `Zax-code/adventure-time-tcg`
-Branch: `main`
-Commit: `58ce85709abb23e3213b1baf3f79175d7ba563a5`
+Branch: `codex/fix-leaderboard-profile-compat`
+Commit: based on `bbe1481d78e6de5f58288967cf0f41195d4e61d7`
 
 ## Purpose and authority
 
@@ -35,6 +35,7 @@ Phoenix, PostgreSQL, and MinIO are the production backend. The Fastify app in `a
 - **Production backend and website:** the `Deploy Phoenix` workflow completed successfully for `a49bcf0d2effa258bacdc1b99146732a10dd9550` on 2026-08-17 (GitHub Actions run `32040865305`). That revision contains the live daily/weekly leaderboard work, the overall leaderboard, and the Daily Numbers timing correction. The commits after it through current HEAD are the 1.0.28 mobile release merge and do not add a newer Phoenix implementation.
 - **Mobile:** annotated tags `mobile/android/1.0.28` and `mobile/ios/1.0.28` both resolve to `f7bd214d34aaeb8a073812d0061355d5e79bccd5`, with release timestamps on 2026-08-17. The release note identifies the Daily Numbers leaderboard timing and formatting fix.
 - **Not released:** open pull request #244, “Redesign the Daily Numbers in-game UI,” is not on `main`. The tracked native redesign workspace under `docs/design` is a design specification, not evidence of implemented or released application changes.
+- **Not released:** the working branch `codex/fix-leaderboard-profile-compat` keeps aggregate-overall rows out of the public-profile summary for compatibility with installed clients and treats closed result windows as expected leaderboard reconciliation skips instead of warning on every scheduled pass.
 - **Local data:** local Docker database observations in this document are explicitly labeled. They are not evidence of production catalog contents.
 
 ## Current architecture
@@ -209,6 +210,7 @@ At verification time the local Docker development database had the latest two le
 
 ## Completed recently
 
+- **2026-08-17 — leaderboard profile compatibility and log hygiene (working branch):** public-profile summaries omit derived-overall rows so installed clients whose board enum predates `overall/all-quests` can still render profiles; scheduled reconciliation no longer warns for the expected `result_window_closed` outcome. Focused Phoenix regression tests cover both behaviors.
 - **2026-08-17 — mobile 1.0.28:** version bump, Expo 57 Hermes lock refresh, Android release build metaspace adjustment, and iOS/Android store release tags (`553e6cf1`, `cb52ae17`, `f7bd214d`, merge PR #283 at `580c832e`).
 - **2026-08-17 — Daily Numbers ranking time:** rankings now use the saved quest's client chronometer instead of the server interval accidentally created by opening the screen; zero-minute formatting was improved (`ef44b0ef`, `4f084c98`, PR #282). Production Phoenix deploy `a49bcf0…` includes this work.
 - **2026-08-17 — live and overall leaderboards:** live Daily/Weekly periods, all-eligible weekly sums, history cutoff behavior, latest Speed Calculus reconciliation, all-quests aggregate, explanations, and focused tests/flows (`6f81d791`, `5f8b08b7`, `dc63807a`, PRs #277/#278/#280).
