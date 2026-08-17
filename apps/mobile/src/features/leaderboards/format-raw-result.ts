@@ -35,6 +35,8 @@ export function formatLeaderboardRawResult(
       maximumFractionDigits: 2,
     }).format((totalCentiseconds % 6_000) / 100);
 
+    if (minutes === 0) return t("rankings.results.seconds", { seconds });
+
     return t("rankings.results.minutesSeconds", { minutes, seconds });
   }
   if (raw.kind === "member_breakdown") return t("rankings.modes.combined");

@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import { formatLeaderboardRawResult } from "../src/features/leaderboards/format-raw-result.ts";
 
 const translations: Record<string, string> = {
+  "rankings.results.seconds": "{seconds} s",
   "rankings.results.minutesSeconds": "{minutes} min {seconds} s",
 };
 
@@ -39,7 +40,7 @@ describe("leaderboard raw result formatting", () => {
         "en",
         translate,
       ),
-      "0 min 18.06 s",
+      "18.06 s",
     );
 
     assert.equal(
@@ -66,6 +67,19 @@ describe("leaderboard raw result formatting", () => {
         translate,
       ),
       "1 min 5,43 s",
+    );
+
+    assert.equal(
+      formatLeaderboardRawResult(
+        {
+          kind: "exact_completion_time",
+          exact: true,
+          elapsedMs: 18_064,
+        },
+        "fr",
+        translate,
+      ),
+      "18,06 s",
     );
   });
 });
