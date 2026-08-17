@@ -3,7 +3,7 @@
 Last verified: 2026-08-17
 Repository: `Zax-code/adventure-time-tcg`
 Branch: `main`
-Commit: `580c832eb92c13381082cb1e604d033982c500ec`
+Commit: `58ce85709abb23e3213b1baf3f79175d7ba563a5`
 
 ## Purpose and authority
 
@@ -34,7 +34,7 @@ Phoenix, PostgreSQL, and MinIO are the production backend. The Fastify app in `a
 
 - **Production backend and website:** the `Deploy Phoenix` workflow completed successfully for `a49bcf0d2effa258bacdc1b99146732a10dd9550` on 2026-08-17 (GitHub Actions run `32040865305`). That revision contains the live daily/weekly leaderboard work, the overall leaderboard, and the Daily Numbers timing correction. The commits after it through current HEAD are the 1.0.28 mobile release merge and do not add a newer Phoenix implementation.
 - **Mobile:** annotated tags `mobile/android/1.0.28` and `mobile/ios/1.0.28` both resolve to `f7bd214d34aaeb8a073812d0061355d5e79bccd5`, with release timestamps on 2026-08-17. The release note identifies the Daily Numbers leaderboard timing and formatting fix.
-- **Not released:** open pull request #244, “Redesign the Daily Numbers in-game UI,” is not on `main`. Untracked redesign artifacts in the working tree are also not release evidence.
+- **Not released:** open pull request #244, “Redesign the Daily Numbers in-game UI,” is not on `main`. The tracked native redesign workspace under `docs/design` is a design specification, not evidence of implemented or released application changes.
 - **Local data:** local Docker database observations in this document are explicitly labeled. They are not evidence of production catalog contents.
 
 ## Current architecture
@@ -220,7 +220,7 @@ At verification time the local Docker development database had the latest two le
 ## Work currently in progress
 
 - **IN PROGRESS — Daily Numbers UI redesign:** pull request #244 (`codex/daily-numbers-ui-redesign` → `main`) remains open. It was last updated 2026-07-14, before later Daily Numbers and leaderboard work; current merge/rebase fitness was not established.
-- **UNKNOWN — broader redesign artifacts:** `docs/design/adventure-time-tcg-redesign.pen` and `docs/design/adventure-time-tcg-redesign-assets/` are untracked in the current working tree. Their owner, intended scope, and readiness are not established, and this task did not modify them.
+- **PLANNED — broader native redesign:** `docs/design/adventure-time-tcg-redesign.pen` and `docs/design/adventure-time-tcg-redesign-assets/` preserve a native-app baseline, three visual directions, a recommended “Tournament Companion” direction, design-system guidance, and handoff notes. No corresponding application-code implementation was found; the handoff explicitly leaves behavior changes subject to product approval.
 - No other open pull request was returned by the repository query. GitHub issue #256 is PLANNED exploration, not active implementation.
 
 ## Known issues and technical debt

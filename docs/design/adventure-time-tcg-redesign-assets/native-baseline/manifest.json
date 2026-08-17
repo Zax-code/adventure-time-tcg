@@ -1,0 +1,43 @@
+{
+  "captureDate": "2026-08-12",
+  "platform": "iOS Simulator native Expo app",
+  "device": "Maestro_IOS_iPhone-17-Pro_26",
+  "simulatorRuntime": "iOS 26.5",
+  "viewportPixels": "1206x2622",
+  "bundleIdentifier": "love.leaetzak.adventuretime",
+  "repositoryRevision": "e0fce708",
+  "branch": "codex/pencil-redesign-workspace",
+  "fixture": "local simulator user only; no production records",
+  "privacy": "Settings email redacted from generated screenshot asset.",
+  "screens": [
+    { "file": "01-native-auth-empty.png", "screen": "Authentication", "route": "/login", "state": "signed out form with app-provided sample email value" },
+    { "file": "02-native-auth-validation.png", "screen": "Authentication validation", "route": "/login", "state": "invalid empty submit" },
+    { "file": "03-native-home.png", "screen": "Home", "route": "/", "state": "authenticated dashboard" },
+    { "file": "04-native-quests-hub.png", "screen": "Quests", "route": "/quests", "state": "quest hub" },
+    { "file": "05-native-daily-numbers-play.png", "screen": "Daily Numbers", "route": "/quests/daily-numbers-play?mode=daily", "state": "active puzzle" },
+    { "file": "06-native-wordle-blocked.png", "screen": "Daily Wordle", "route": "/quests/wordle", "state": "visible board; submit key below captured viewport" },
+    { "file": "07-native-speed-calculus.png", "screen": "Speed Calculus", "route": "/quests/speed-calculus", "state": "default/training entry" },
+    { "file": "08-native-packs-storefront.png", "screen": "Pack shop", "route": "/packs", "state": "storefront" },
+    { "file": "09-native-pack-ready.png", "screen": "Pack opening", "route": "/packs", "state": "ready to open" },
+    { "file": "10-native-pack-reveal.png", "screen": "Pack reveal", "route": "/packs", "state": "card reveal" },
+    { "file": "11-native-pack-summary.png", "screen": "Pack summary", "route": "/packs", "state": "success summary" },
+    { "file": "12-native-collection-default.png", "screen": "Collection", "route": "/collection", "state": "default card browser" },
+    { "file": "13-native-collection-filtered.png", "screen": "Collection filtered", "route": "/collection", "state": "owned filter active" },
+    { "file": "14-native-card-detail-sheet.png", "screen": "Card details", "route": "/collection-card-detail", "state": "bottom sheet overview" },
+    { "file": "15-native-gifts.png", "screen": "Gifts", "route": "/gifts", "state": "all gifts" },
+    { "file": "16-native-gifts-filtered.png", "screen": "Gifts filtered", "route": "/gifts", "state": "sent filter active" },
+    { "file": "17-native-pvp-lobby.png", "screen": "PvP lobby", "route": "/pvp", "state": "lobby" },
+    { "file": "18-native-pvp-loadouts.png", "screen": "PvP loadouts", "route": "/pvp-loadouts", "state": "create loadout, empty slots" },
+    { "file": "19-native-pvp-reference.png", "screen": "PvP reference", "route": "/pvp-reference", "state": "rules reference" },
+    { "file": "20-native-pvp-history.png", "screen": "PvP history", "route": "/pvp-history", "state": "history list/empty" },
+    { "file": "21-native-settings-profile.png", "screen": "Settings", "route": "/settings", "state": "profile and preferences; test email redacted" },
+    { "file": "22-native-pvp-battle-board.png", "screen": "PvP battle board", "route": "/pvp-match", "state": "fixture-backed live match board" },
+    { "file": "23-native-pvp-replay.png", "screen": "PvP replay", "route": "/pvp-replay", "state": "fixture-backed replay board" }
+  ],
+  "limitations": [
+    "Native auth baseline displays the app-provided sample value finn@example.com; no private account email is shown.",
+    "Wordle submit key was below the captured viewport at the chosen device height, so the screenshot documents a visible-board state and touch-density issue.",
+    "Admin-only screens were not captured because the test user is non-admin.",
+    "No production data was accessed or modified."
+  ]
+}
