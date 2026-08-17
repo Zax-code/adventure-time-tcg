@@ -48,8 +48,9 @@ defmodule AdventureTimeApi.Leaderboards.Query do
     end
   end
 
-  def history(quest, mode, current_user_id) do
-    with %Board{} = board <- Repo.get_by(Board, key: "#{quest}/#{mode}", enabled: true) do
+  def history(quest, mode, current_user_id, now \\ DateTime.utc_now()) do
+    with :ok <- finalize_history_periods(now),
+         %Board{} = board <- Repo.get_by(Board, key: "#{quest}/#{mode}", enabled: true) do
       weeks =
         from(period in Period,
           join: snapshot in Snapshot,
@@ -73,7 +74,7 @@ defmodule AdventureTimeApi.Leaderboards.Query do
             snapshot,
             scoring_version,
             current_user_id,
-            DateTime.utc_now()
+            now
           )
         end)
 
@@ -96,7 +97,7 @@ defmodule AdventureTimeApi.Leaderboards.Query do
         )
         |> Repo.all()
         |> Enum.reject(fn {period, _snapshot, _scoring_version} ->
-          MapSet.member?(closed_week_starts, Date.to_iso8601(period.week_start))
+          MapSet.member?(closed_week_starts, period.week_start)
         end)
         |> Enum.take(7)
         |> Enum.map(fn {period, snapshot, scoring_version} ->
@@ -106,13 +107,14 @@ defmodule AdventureTimeApi.Leaderboards.Query do
             snapshot,
             scoring_version,
             current_user_id,
-            DateTime.utc_now()
+            now
           )
         end)
 
       {:ok, %{days: days, weeks: weeks}}
     else
       nil -> {:error, :period_unavailable}
+      {:error, reason} -> {:error, reason}
     end
   end
 
@@ -485,6 +487,35 @@ defmodule AdventureTimeApi.Leaderboards.Query do
       "sum_all_eligible" -> "sum_all_eligible"
       _ -> "average_best_3"
     end
+  end
+
+  defp finalize_history_periods(now) do
+    latest_date = Date.add(DateTime.to_date(now), -1)
+    latest_week = Date.beginning_of_week(latest_date, :monday)
+
+    persisted_due_periods =
+      from(period in Period,
+        where:
+          period.status in [:open, :closing] and period.closes_at <= ^now and
+            period.origin == :verified
+      )
+      |> Repo.all()
+
+    candidates =
+      if Date.compare(latest_date, Configuration.launch_date()) == :lt do
+        []
+      else
+        [virtual_day(latest_date, now), virtual_week(latest_week, now)]
+      end
+
+    (persisted_due_periods ++ candidates)
+    |> Enum.uniq_by(&{&1.period_type, &1.starts_at})
+    |> Enum.reduce_while(:ok, fn period, :ok ->
+      case Lifecycle.finalize_for_read(period, now) do
+        {:ok, _period} -> {:cont, :ok}
+        {:error, reason} -> {:halt, {:error, reason}}
+      end
+    end)
   end
 
   defp utc_midnight(date), do: DateTime.new!(date, ~T[00:00:00], "Etc/UTC")

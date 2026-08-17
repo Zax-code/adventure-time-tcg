@@ -88,6 +88,12 @@ defmodule AdventureTimeApi.Leaderboards.LifecycleTest do
     insert_and_sync_steps!(user, ~D[2026-08-17], 12_000)
     cutoff = ~U[2026-08-18 13:00:00.000000Z]
 
+    assert {:ok, %{days: [history_day], weeks: []}} =
+             Query.history("steps", "default", user.id, cutoff)
+
+    assert history_day.period.competitionDate == ~D[2026-08-17]
+    refute history_day.period.provisional
+
     assert {:ok, daily} = Query.fetch("steps", "default", "yesterday", user.id, cutoff)
     refute daily.period.provisional
     assert daily.period.status == :closed
@@ -95,12 +101,6 @@ defmodule AdventureTimeApi.Leaderboards.LifecycleTest do
 
     period = Repo.get_by!(Period, period_type: :day, competition_date: ~D[2026-08-17])
     assert period.status == :closed
-
-    assert {:ok, %{days: [history_day], weeks: []}} =
-             Query.history("steps", "default", user.id)
-
-    assert history_day.period.competitionDate == ~D[2026-08-17]
-    refute history_day.period.provisional
   end
 
   test "equal rounded daily scores tie without a hidden raw-result tiebreaker" do
@@ -353,7 +353,9 @@ defmodule AdventureTimeApi.Leaderboards.LifecycleTest do
            |> Enum.map(& &1.balance)
            |> Enum.sort() == [3, 3, 3]
 
-    assert {:ok, %{weeks: [history]}} = Query.history("steps", "default", hd(users).id)
+    assert {:ok, %{days: [], weeks: [history]}} =
+             Query.history("steps", "default", hd(users).id)
+
     assert history.period.status == :closed
     assert history.period.standingsThrough == ~D[2026-08-23]
     assert Enum.map(history.rows, & &1.rank) == [1, 1, 1]

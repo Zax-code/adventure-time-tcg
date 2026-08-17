@@ -4,7 +4,11 @@ defmodule AdventureTimeApi.Workers.LeaderboardLifecycleWorker do
   use Oban.Worker,
     queue: :maintenance,
     max_attempts: 10,
-    unique: [period: 240, fields: [:worker]]
+    unique: [
+      period: 50,
+      fields: [:worker],
+      states: [:available, :scheduled, :executing, :retryable]
+    ]
 
   alias AdventureTimeApi.Leaderboards.Lifecycle
 
