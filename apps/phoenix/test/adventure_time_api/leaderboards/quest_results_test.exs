@@ -280,6 +280,38 @@ defmodule AdventureTimeApi.Leaderboards.QuestResultsTest do
     assert Repo.aggregate(DailyResult, :count) == 0
   end
 
+  test "reconciliation selects only the latest settled Speed Calculus run", %{
+    user: user,
+    date: date
+  } do
+    first =
+      insert_speed_calculus_run!(user.id, date,
+        run_number: 1,
+        score: 20,
+        seed: "first-seed"
+      )
+
+    latest =
+      insert_speed_calculus_run!(user.id, date,
+        run_number: 2,
+        score: 5,
+        seed: "latest-seed"
+      )
+
+    now = ~U[2026-08-17 12:30:00Z]
+    assert :ok = QuestResults.reconcile_open_week(now)
+
+    result = Repo.one!(DailyResult)
+    assert result.source_id == latest.id
+    assert result.source_id != first.id
+    assert result.raw_result == %{"kind" => "correct_answers", "correctAnswers" => 5}
+    assert result.points_milli == 250_000
+
+    assert :ok = QuestResults.reconcile_open_week(now)
+    assert Repo.aggregate(DailyResult, :count) == 1
+    assert Repo.one!(DailyResult).id == result.id
+  end
+
   defp insert_steps!(user_id, source, count, date) do
     %StepSnapshot{}
     |> StepSnapshot.changeset(%{
@@ -287,6 +319,26 @@ defmodule AdventureTimeApi.Leaderboards.QuestResultsTest do
       source: source,
       step_count: count,
       recorded_for: date
+    })
+    |> Repo.insert!()
+  end
+
+  defp insert_speed_calculus_run!(user_id, date, options) do
+    run_number = Keyword.fetch!(options, :run_number)
+
+    %SpeedCalculusDailyRun{}
+    |> SpeedCalculusDailyRun.changeset(%{
+      user_id: user_id,
+      date: date,
+      run_number: run_number,
+      seed: Keyword.fetch!(options, :seed),
+      answers: [],
+      status: "completed",
+      score: Keyword.fetch!(options, :score),
+      reward: 0,
+      started_at: DateTime.add(~U[2026-08-17 11:00:00Z], run_number * 120, :second),
+      finished_at: DateTime.add(~U[2026-08-17 11:01:00Z], run_number * 120, :second),
+      play_deadline_at: DateTime.add(~U[2026-08-17 11:01:00Z], run_number * 120, :second)
     })
     |> Repo.insert!()
   end
