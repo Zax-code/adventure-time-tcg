@@ -2,8 +2,8 @@
 
 Last verified: 2026-08-18
 Repository: `Zax-code/adventure-time-tcg`
-Branch: `codex/daily-numbers-trace-dedup` from `main`
-Feature base: `a97348cc`
+Branch: `codex/daily-numbers-solution-translation` from `main`
+Feature base: `af4e0bfd`
 
 ## Purpose and authority
 
@@ -32,7 +32,7 @@ Phoenix, PostgreSQL, and MinIO are the production backend. The Fastify app in `a
 
 ### Verified release boundary
 
-- **Production backend and website:** the `Deploy Phoenix` workflow completed successfully for `a97348cc9032618bd7deb09420aad74b8a337972` on 2026-08-18 (GitHub Actions run `32143756425`). That revision includes the initial Daily Numbers Solution Hunt implementation. The visible-step deduplication on the current branch is not deployed yet.
+- **Production backend and website:** the `Deploy Phoenix` workflow completed successfully for `af4e0bfd4be373bd99ff0c7d0405a3c6690e588c` on 2026-08-18 (GitHub Actions run `32149911442`). That revision includes Daily Numbers visible-step deduplication and migration `20260818190000`; the player-solution translation follow-up on the current branch is not deployed yet.
 - **Mobile:** annotated tags `mobile/android/1.0.28` and `mobile/ios/1.0.28` both resolve to `f7bd214d34aaeb8a073812d0061355d5e79bccd5`, with release timestamps on 2026-08-17. The release note identifies the Daily Numbers leaderboard timing and formatting fix.
 - **Not released:** open pull request #244, “Redesign the Daily Numbers in-game UI,” is not on `main`. The tracked native redesign workspace under `docs/design` is a design specification, not evidence of implemented or released application changes.
 - **Local data:** local Docker database observations in this document are explicitly labeled. They are not evidence of production catalog contents.
@@ -193,7 +193,7 @@ Ecto migrations are the schema source of truth. Important conceptual groups are:
 
 The foundation begins at `apps/phoenix/priv/repo/migrations/20260324130500_create_foundation_tables.exs`; leaderboard state is introduced by `apps/phoenix/priv/repo/migrations/20260815160000_create_leaderboard_foundation.exs` and extended by `apps/phoenix/priv/repo/migrations/20260817150000_enable_sum_all_weekly_scoring.exs` and `apps/phoenix/priv/repo/migrations/20260817160000_add_overall_quests_leaderboard.exs`. Do not infer current schema from `packages/db`.
 
-At verification time the local development and test databases were migrated through `20260818190000_deduplicate_daily_numbers_solution_traces.exs`. Existing persisted sets upgrade lazily under the challenge advisory lock, preserve the earliest copy of each player discovery, and rebuild their official rows using visible-step equivalence. Production does not have this follow-up migration until the current fix is deployed.
+At verification time the local development and test databases and production were migrated through `20260818190000_deduplicate_daily_numbers_solution_traces.exs`. Production's 2026-08-18 official sets contain 17 solutions for 1-5, 81 for 2-4, and 4 for 3-3 under solution-key version 2. The current follow-up bumps persisted sets to version 3, replaces official rows, translates player discoveries through canonical AST materialization, and reconstructs exact ranked solutions as a recovery source.
 
 ## Deployment and releases
 
@@ -209,6 +209,7 @@ At verification time the local development and test databases were migrated thro
 
 ## Completed recently
 
+- **2026-08-18 — Daily Numbers visible-step deduplication (PR #287):** solution sets now count deterministic visible operation traces rather than structurally distinct ASTs that present the same calculations. Migration `20260818190000` and lazy version-2 replacement are deployed at `af4e0bfd`; the verified 2026-08-18 production totals are 17/81/4 for modes 1-5/2-4/3-3.
 - **2026-08-18 — deterministic leaderboard reconciliation time (PR #285):** historical or explicitly timed reconciliation now propagates its supplied `now` value through result synchronization instead of consulting the wall clock again. Date-sensitive leaderboard tests pin source timestamps and derive controller snapshot dates from the current day, so cutoff scenarios no longer expire as the calendar advances.
 - **2026-08-18 — Expo 57 patch alignment (PR #285):** Expo, Expo Router, and nine related native modules were aligned with the current SDK 57 compatibility matrix; root workspace overrides, npm resolution, and the iOS Pod lock were refreshed. Expo Doctor passes 20/20 checks, the dependency tree is deduplicated, and the lockfile mobile workspace version now matches 1.0.28.
 - **2026-08-18 — Daily Numbers Solution Hunt (PR #285):** completed ranked puzzles expose an optional no-reward/no-leaderboard replay mode. Phoenix canonicalizes associative/commutative addition and multiplication, enumerates and persists the complete solution set once on the challenge's first state load, records the accepted deterministic generation attempt for cheap reconstruction, tracks idempotent per-user discoveries, safely covers a challenge generated before deployment, and bounds future puzzle generation by a configurable solution-count range. The authoritative response numbers player solutions by discovery order and remaining solutions by stable canonical order; mobile and web show each route in a collapsed entry, hide the remaining set behind a reveal, and keep submissions on a separate endpoint. Hunt play replaces the ranked timer display with “Solution found” once a discovery exists.
@@ -223,7 +224,7 @@ At verification time the local development and test databases were migrated thro
 
 ## Work currently in progress
 
-- **IN PROGRESS — Solution Hunt visible-step deduplication:** `codex/daily-numbers-trace-dedup` fixes structurally different trees that display the same arithmetic because an initial tile and a derived tile share a value. The solver keeps AST canonicalization for validation but counts and tracks solutions by a deterministic value/operator/result trace; existing sets upgrade lazily without rerunning enumeration on ordinary requests after upgrade. For the 2026-08-18 production puzzles, corrected totals are 17 for 1-5, 81 for 2-4, and 4 for 3-3.
+- **IN PROGRESS — Solution Hunt player-solution translation:** `codex/daily-numbers-solution-translation` makes canonical AST materialization the shared solution-key seam for solver output and player submissions. The version-3 lazy upgrade discards replaceable official rows, translates retained player submissions, and reconstructs exact ranked attempts so player-owned solutions survive the replacement.
 - **IN PROGRESS — Daily Numbers UI redesign:** pull request #244 (`codex/daily-numbers-ui-redesign` → `main`) remains open. It was last updated 2026-07-14, before later Daily Numbers and leaderboard work; current merge/rebase fitness was not established.
 - **PLANNED — broader native redesign:** `docs/design/adventure-time-tcg-redesign.pen` and `docs/design/adventure-time-tcg-redesign-assets/` preserve a native-app baseline, three visual directions, a recommended “Tournament Companion” direction, design-system guidance, and handoff notes. No corresponding application-code implementation was found; the handoff explicitly leaves behavior changes subject to product approval.
 - No other open pull request was returned by the repository query. GitHub issue #256 is PLANNED exploration, not active implementation.

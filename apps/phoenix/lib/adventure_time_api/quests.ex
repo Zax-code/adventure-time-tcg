@@ -628,6 +628,7 @@ defmodule AdventureTimeApi.Quests do
                user_id,
                solution_set,
                submission.canonicalKey,
+               submission.solutionKey,
                submission.steps
              ) do
         progress = DailyNumbersSolutionHunt.payload(user_id, solution_set, puzzle)
@@ -1957,6 +1958,7 @@ defmodule AdventureTimeApi.Quests do
              user_id,
              solution_set,
              submission.canonicalKey,
+             submission.solutionKey,
              submission.steps
            ) do
       :ok

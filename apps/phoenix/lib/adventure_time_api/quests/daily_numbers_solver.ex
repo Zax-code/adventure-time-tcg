@@ -36,8 +36,7 @@ defmodule AdventureTimeApi.Quests.DailyNumbersSolver do
 
     solutions =
       Enum.reduce(structural_solutions, %{}, fn solution, distinct ->
-        {:ok, steps} = materialize_steps(solution.expression, number_tiles)
-        solution_key = Expression.solution_key_from_steps(steps)
+        solution_key = solution_key(solution.expression, number_tiles)
 
         Map.put_new(
           distinct,
@@ -67,6 +66,17 @@ defmodule AdventureTimeApi.Quests.DailyNumbersSolver do
       {:error, reason} ->
         {:error, reason}
     end
+  end
+
+  @doc """
+  Returns the visible-step identity for an expression after structural
+  canonicalization. This is the shared identity seam for enumerated solutions
+  and player submissions, including associatively equivalent `+`/`*` trees.
+  """
+  def solution_key(expression, number_tiles) when is_list(number_tiles) do
+    expression = Expression.canonicalize(expression)
+    {:ok, steps} = materialize_steps(expression, number_tiles)
+    Expression.solution_key_from_steps(steps)
   end
 
   defp build_value_maps(number_tiles, max_mask) do
