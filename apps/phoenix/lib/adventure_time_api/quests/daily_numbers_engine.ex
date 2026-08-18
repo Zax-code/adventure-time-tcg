@@ -91,6 +91,7 @@ defmodule AdventureTimeApi.Quests.DailyNumbersEngine do
         distance = abs(final_tile.value - next_state.target)
         exact = distance == 0
         exact_expression = if exact, do: final_tile.expression
+        canonical_expression = if exact_expression, do: Expression.canonicalize(exact_expression)
         score = submission_score(default_distance, distance)
         completed = score > 0
 
@@ -102,8 +103,12 @@ defmodule AdventureTimeApi.Quests.DailyNumbersEngine do
            exact: exact,
            canonicalKey:
              if(exact_expression, do: Expression.canonical_key(exact_expression), else: nil),
-           expression:
-             if(exact_expression, do: Expression.canonicalize(exact_expression), else: nil),
+           solutionKey:
+             if(canonical_expression,
+               do: DailyNumbersSolver.solution_key(canonical_expression, puzzle.numbers),
+               else: nil
+             ),
+           expression: canonical_expression,
            score: score,
            completed: completed,
            steps: next_state.validated_steps

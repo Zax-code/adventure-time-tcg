@@ -58,6 +58,55 @@ defmodule AdventureTimeApi.Quests.DailyNumbersSolverTest do
     end)
   end
 
+  test "deduplicates solutions whose visible arithmetic steps only swap equal-valued resources" do
+    number_tiles = tiles([1, 2, 3, 4])
+    result = DailyNumbersSolver.solve(number_tiles, 15)
+
+    display_signatures =
+      Enum.map(result.solutions, fn solution ->
+        {:ok, steps} = DailyNumbersSolver.materialize_steps(solution.expression, number_tiles)
+
+        steps
+        |> Enum.map(fn step ->
+          operands =
+            if step.operator in ["+", "*"],
+              do: Enum.sort([step.leftValue, step.rightValue]),
+              else: [step.leftValue, step.rightValue]
+
+          {step.operator, operands, step.resultValue}
+        end)
+        |> Enum.sort()
+      end)
+
+    assert result.total == 6
+    assert length(display_signatures) == MapSet.size(MapSet.new(display_signatures))
+  end
+
+  test "player submissions use the solver key after associative canonicalization" do
+    number_tiles = tiles([3, 5, 10, 8, 100, 6])
+    puzzle = %{numbers: Enum.map(number_tiles, &Map.put(&1, :source, "initial")), target: 956}
+
+    player_steps = [
+      %{leftId: "n0", operator: "*", rightId: "n1", resultId: "r0"},
+      %{leftId: "n2", operator: "*", rightId: "r0", resultId: "r1"},
+      %{leftId: "n3", operator: "*", rightId: "n4", resultId: "r2"},
+      %{leftId: "r1", operator: "+", rightId: "r2", resultId: "r3"},
+      %{leftId: "n5", operator: "+", rightId: "r3", resultId: "r4"}
+    ]
+
+    assert {:ok, submission} = DailyNumbersEngine.validate_submission(puzzle, player_steps)
+    assert submission.exact
+
+    matching_solution =
+      number_tiles
+      |> DailyNumbersSolver.solve(puzzle.target)
+      |> Map.fetch!(:solutions)
+      |> Enum.find(&(&1.canonical_key == submission.canonicalKey))
+
+    assert matching_solution
+    assert submission.solutionKey == matching_solution.solution_key
+  end
+
   defp tiles(values) do
     values
     |> Enum.with_index()

@@ -13,6 +13,7 @@ defmodule AdventureTimeApi.Quests.DailyNumbersSolutionSet do
     field(:generation_attempt, :integer)
     field(:solution_count, :integer)
     field(:computation_ms, :integer)
+    field(:solution_key_version, :integer, default: 1)
 
     timestamps(type: :utc_datetime, updated_at: false)
   end
@@ -27,11 +28,13 @@ defmodule AdventureTimeApi.Quests.DailyNumbersSolutionSet do
       :numbers,
       :generation_attempt,
       :solution_count,
-      :computation_ms
+      :computation_ms,
+      :solution_key_version
     ])
     |> validate_inclusion(:mode, ["1-5", "2-4", "3-3"])
     |> validate_number(:generation_attempt, greater_than: 0)
     |> validate_number(:solution_count, greater_than: 0)
+    |> validate_number(:solution_key_version, greater_than: 0)
     |> unique_constraint([:date, :mode], name: :daily_numbers_solution_sets_date_mode_key)
   end
 end
