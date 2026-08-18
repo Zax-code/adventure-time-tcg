@@ -57,7 +57,7 @@ Versions below come from current manifests, lockfiles, native configuration, and
 
 | Layer | Verified technology |
 |---|---|
-| Mobile | Expo `57.0.13`, Expo Router `57.0.13`, React Native `0.86.2`, React `19.2.3`, Reanimated `4.5.1`, NativeWind `4.2.3`, Software Mansion Bottom Sheet `0.12.0`, Expo Image, TanStack Query `5.101.4`, Zustand `5.0.15` |
+| Mobile | Expo `57.0.14`, Expo Router `57.0.14`, React Native `0.86.2`, React `19.2.3`, Reanimated `4.5.1`, NativeWind `4.2.3`, Software Mansion Bottom Sheet `0.12.0`, Expo Image, TanStack Query `5.101.4`, Zustand `5.0.15` |
 | Web | React `19.2.3`, React Router `7.18.x`, Vite `8.2.1`, TanStack Query `5.101.4`, Vitest `4.1.10` |
 | Shared TypeScript | Zod `3.25.76`; TypeScript `6.0.3` for mobile/web and `5.9.3` for shared packages in the installed tree |
 | Backend | Elixir `1.19.5` and OTP `28` in CI/release images; Phoenix `1.8.5`, Ecto SQL `3.13.5`, Postgrex `0.22.0`, Bandit `1.10.3`, Oban `2.21.1`, Req `0.5.17`, JOSE `1.11.12`, bcrypt_elixir `3.3.2`, tzdata `1.1.3` |
@@ -65,7 +65,7 @@ Versions below come from current manifests, lockfiles, native configuration, and
 | Build/release | npm workspaces, EAS local builds, native Xcode/Gradle projects, Maestro, Docker Buildx, GHCR, Phoenix releases |
 | Production infrastructure | Podman Quadlet, systemd, Caddy, GitHub Actions, persistent data under `/srv/adventure-time-tcg` |
 
-The Expo 57 migration itself is merged, but the current Expo Doctor result is not clean; see Known issues and technical debt.
+The Expo 57 migration and subsequent patch alignment are complete; Expo Doctor passes all 20 checks.
 
 ## Applications and services
 
@@ -206,10 +206,11 @@ At verification time the local development database was migrated through the Sol
 - **Mobile version:** `apps/mobile/package.json`, `apps/mobile/app.json`, Android `versionName`, and iOS `CFBundleShortVersionString` are 1.0.28. iOS `CFBundleVersion` is 63. EAS uses remote app-version state and production auto-increment; Android's checked-in `versionCode 1` is therefore not the released build number.
 - **Mobile release:** `scripts/release-mobile.mjs` orchestrates one or both platforms. Android builds a local AAB, submits through EAS/Google Play, requires a release note, and updates Play release notes. iOS builds a local IPA and uploads directly with Apple's `xcrun altool` and App Store Connect API credentials. Successful releases create annotated per-platform Git tags.
 - **Environment convention:** Phoenix uses `apps/phoenix/.env`, mobile uses `apps/mobile/.env`, and production secrets are supplied through external runtime env files. No secret value belongs in this document.
-- **Current blockers:** release 1.0.28 is already tagged on both platforms. For the next mobile change, Expo Doctor remains BLOCKED by 11 pre-existing Expo 57 patch mismatches. Availability of future signing/service-account material was deliberately not exposed or revalidated and is UNKNOWN. The local development database is current through the Solution Hunt migration.
+- **Current blockers:** release 1.0.28 is already tagged on both platforms. Availability of future signing/service-account material was deliberately not exposed or revalidated and is UNKNOWN. The local development database is current through the Solution Hunt migration.
 
 ## Completed recently
 
+- **2026-08-18 — Expo 57 patch alignment (working branch):** Expo, Expo Router, and nine related native modules were aligned with the current SDK 57 compatibility matrix; root workspace overrides, npm resolution, and the iOS Pod lock were refreshed. Expo Doctor passes 20/20 checks, the dependency tree is deduplicated, and the lockfile mobile workspace version now matches 1.0.28.
 - **2026-08-18 — Daily Numbers Solution Hunt (working branch):** completed ranked puzzles expose an optional no-reward/no-leaderboard replay mode. Phoenix canonicalizes associative/commutative addition and multiplication, enumerates and persists the complete solution set once on the challenge's first state load, records the accepted deterministic generation attempt for cheap reconstruction, tracks idempotent per-user discoveries, safely covers a challenge generated before deployment, and bounds future puzzle generation by a configurable solution-count range. The authoritative response numbers player solutions by discovery order and remaining solutions by stable canonical order; mobile and web show each route in a collapsed entry, hide the remaining set behind a reveal, and keep submissions on a separate endpoint. Hunt play replaces the ranked timer display with “Solution found” once a discovery exists.
 - **2026-08-17 — leaderboard profile compatibility and log hygiene (working branch):** public-profile summaries omit derived-overall rows so installed clients whose board enum predates `overall/all-quests` can still render profiles; scheduled reconciliation no longer warns for the expected `result_window_closed` outcome. Focused Phoenix regression tests cover both behaviors.
 - **2026-08-17 — mobile 1.0.28:** version bump, Expo 57 Hermes lock refresh, Android release build metaspace adjustment, and iOS/Android store release tags (`553e6cf1`, `cb52ae17`, `f7bd214d`, merge PR #283 at `580c832e`).
@@ -230,8 +231,6 @@ At verification time the local development database was migrated through the Sol
 
 ### Confirmed
 
-- **BLOCKED — Expo Doctor:** 19/20 checks pass, but the SDK dependency check expects 11 newer Expo 57 patch versions, including Expo/Router 57.0.14 instead of installed 57.0.13. This finding is unchanged by the Solution Hunt work.
-- **PARTIAL — release metadata consistency:** `package-lock.json` records the `apps/mobile` workspace version as 1.0.22 while the package/app/native manifests and release tags are 1.0.28.
 - **PARTIAL — media validation/lifecycle:** card/profile uploads have no backend MIME allowlist or image validation; replacement and account deletion do not remove corresponding MinIO objects; whole files are buffered for upload/delivery.
 - **PARTIAL — stale prose:** README's iOS release note still describes temporary EAS profile submission rather than the current direct `xcrun altool` upload, omits `apps/mobile/src/i18n/locales/en/rankings.ts` and `apps/mobile/src/i18n/locales/fr/rankings.ts`, and admin overview copy says seven quest definitions although source defines eight. The Speed Calculus cash-out docstring says “best run,” while current code and recent reconciliation deliberately use the latest settled run.
 - **PARTIAL — rarity icon integration:** `RarityIcon` exists but is private and unused.
@@ -259,10 +258,9 @@ At verification time the local development database was migrated through the Sol
 
 ## Realistic next priorities
 
-1. **Align Expo 57 patch dependencies.** Why: Expo Doctor currently fails and repository policy makes that a mobile completion blocker. Dependencies: current Expo 57 compatibility matrix and checked-in native projects. Completion: `npx expo-doctor`, typecheck, focused mobile tests, and native dependency checks pass without new findings.
-2. **Reconcile mobile release metadata and stale operational prose.** Why: the lockfile reports 1.0.22 while released manifests/tags are 1.0.28, and README release instructions no longer match the iOS script. Dependencies: none beyond preserving current dependency resolution. Completion: install metadata is consistent and release/translation/quest-count documentation matches executable configuration.
-3. **Define and enforce the media replacement/validation lifecycle.** Why: current upload paths accept unvalidated card/profile bytes and leave MinIO objects behind after replacement/deletion. Dependencies: owner decision on retention and accepted formats/limits. Completion: documented policy, validated uploads, object cleanup/reconciliation, and tests for replacement/account deletion.
-4. **Triage pull request #244 against current Daily Numbers.** Why: it is the only open implementation PR and predates the current game, timing, Expo 57, and leaderboard changes. Dependencies: owner confirmation that the redesign is still desired. Completion: refresh and verify it against current `main`, or close it explicitly.
+1. **Reconcile stale operational prose.** Why: README release instructions no longer match the iOS script. Dependencies: none. Completion: release, translation, quest-count, and Speed Calculus documentation matches executable configuration.
+2. **Define and enforce the media replacement/validation lifecycle.** Why: current upload paths accept unvalidated card/profile bytes and leave MinIO objects behind after replacement/deletion. Dependencies: owner decision on retention and accepted formats/limits. Completion: documented policy, validated uploads, object cleanup/reconciliation, and tests for replacement/account deletion.
+3. **Triage pull request #244 against current Daily Numbers.** Why: it is the only open implementation PR and predates the current game, timing, Expo 57, and leaderboard changes. Dependencies: owner confirmation that the redesign is still desired. Completion: refresh and verify it against current `main`, or close it explicitly.
 
 ## Open questions
 
