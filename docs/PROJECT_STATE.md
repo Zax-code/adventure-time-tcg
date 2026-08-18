@@ -2,7 +2,7 @@
 
 Last verified: 2026-08-18
 Repository: `Zax-code/adventure-time-tcg`
-Branch: `codex/mobile-release-20260818-solution-hunt` from `main`
+Branch: `codex/mobile-release-20260818-solution-hunt` via pull request #286
 Feature commits: `a97348cc` and mobile release commit `baf3904e`
 
 ## Purpose and authority
@@ -224,6 +224,7 @@ At verification time the local development database was migrated through the Sol
 
 ## Work currently in progress
 
+- **IN PROGRESS — mobile 1.0.29 release bookkeeping:** pull request #286 records the version bump and release-state update after both platform artifacts were submitted successfully. The immutable platform tags already point to the release commit.
 - **IN PROGRESS — Daily Numbers UI redesign:** pull request #244 (`codex/daily-numbers-ui-redesign` → `main`) remains open. It was last updated 2026-07-14, before later Daily Numbers and leaderboard work; current merge/rebase fitness was not established.
 - **PLANNED — broader native redesign:** `docs/design/adventure-time-tcg-redesign.pen` and `docs/design/adventure-time-tcg-redesign-assets/` preserve a native-app baseline, three visual directions, a recommended “Tournament Companion” direction, design-system guidance, and handoff notes. No corresponding application-code implementation was found; the handoff explicitly leaves behavior changes subject to product approval.
 - No other open pull request was returned by the repository query. GitHub issue #256 is PLANNED exploration, not active implementation.
