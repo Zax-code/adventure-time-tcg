@@ -205,7 +205,6 @@ const quests = {
   speedCalculusCorrectFeedback: "Correct.",
   speedCalculusWrongFeedback: "Wrong. Correct answer: {answer}.",
   speedCalculusResumeCountdownTitle: "Get ready",
-  speedCalculusResumeCountdownBody: "Your run resumes in {seconds} seconds.",
   speedCalculusRunHistory: "Run history",
   speedCalculusRunExpired: "This run expired before it was submitted.",
   speedCalculusRunSummary:

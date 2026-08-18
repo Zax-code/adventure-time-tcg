@@ -209,8 +209,6 @@ const quests = {
   speedCalculusCorrectFeedback: "Correct.",
   speedCalculusWrongFeedback: "Faux. Bonne réponse : {answer}.",
   speedCalculusResumeCountdownTitle: "Prépare-toi",
-  speedCalculusResumeCountdownBody:
-    "Ta manche reprend dans {seconds} secondes.",
   speedCalculusRunHistory: "Historique des manches",
   speedCalculusRunExpired: "Cette manche a expiré avant d'être validée.",
   speedCalculusRunSummary:

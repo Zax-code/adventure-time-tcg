@@ -6,6 +6,22 @@ const hudSource = readFileSync(
   "src/features/quests/speed-calculus/hud-card.tsx",
   "utf8",
 );
+const speedCalculusQuestionSource = readFileSync(
+  "src/features/quests/speed-calculus/question-zone.tsx",
+  "utf8",
+);
+const speedCalculusKeypadSource = readFileSync(
+  "src/features/quests/speed-calculus/keypad.tsx",
+  "utf8",
+);
+const englishQuestsSource = readFileSync(
+  "src/i18n/locales/en/quests.ts",
+  "utf8",
+);
+const frenchQuestsSource = readFileSync(
+  "src/i18n/locales/fr/quests.ts",
+  "utf8",
+);
 const questHubSource = readFileSync(
   "src/features/quests/quest-hub-components.tsx",
   "utf8",
@@ -50,6 +66,37 @@ describe("mobile UI regression contracts", () => {
       hudSource,
       /reactEffect\(\(\) => \{[\s\S]*?progressAnim\.value = withTiming\(0,[\s\S]*?\}, \[[\s\S]*?remainingSeconds[\s\S]*?\]\);/,
       "ordinary timer ticks must not cancel and restart the progress animation",
+    );
+  });
+
+  it("uses only the ring for the Speed Calculus entry countdown", () => {
+    assert.doesNotMatch(
+      speedCalculusQuestionSource,
+      /speedCalculusResumeCountdownBody/,
+      "the entry countdown must not claim that a newly started run is resuming",
+    );
+    assert.doesNotMatch(
+      englishQuestsSource,
+      /speedCalculusResumeCountdownBody/,
+    );
+    assert.doesNotMatch(frenchQuestsSource, /speedCalculusResumeCountdownBody/);
+  });
+
+  it("routes Speed Calculus multi-touch once at the keypad boundary", () => {
+    assert.match(
+      speedCalculusKeypadSource,
+      /onTouchStart=\{handleKeypadTouchStart\}/,
+      "the keypad container should own the native multi-pointer stream",
+    );
+    assert.match(
+      speedCalculusKeypadSource,
+      /pointerEvents="none"/,
+      "individual keys must not capture Android's whole multi-pointer gesture",
+    );
+    assert.doesNotMatch(
+      speedCalculusKeypadSource,
+      /activeTouchCountRef|pressForChangedTouches/,
+      "per-key touch counting would misroute or duplicate multi-touch input",
     );
   });
 

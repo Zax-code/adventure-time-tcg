@@ -26,7 +26,11 @@ const RING_R = 54;
 const RING_C = 2 * Math.PI * RING_R;
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
-export function QuestionZone({ pauseRemainingSeconds, currentQuestion, activeRun }: QuestionZoneProps) {
+export function QuestionZone({
+  pauseRemainingSeconds,
+  currentQuestion,
+  activeRun,
+}: QuestionZoneProps) {
   const { t } = useTranslation();
   const tc = THEME_COLORS[useThemeStore((s) => s.themeName)];
 
@@ -64,15 +68,23 @@ export function QuestionZone({ pauseRemainingSeconds, currentQuestion, activeRun
             {t("quests.speedCalculusResumeCountdownTitle")}
           </Text>
           <View className="relative w-32 h-32 flex items-center justify-center">
-            <Svg width="128" height="128" className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+            <Svg
+              width="128"
+              height="128"
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+            >
               <Circle
-                cx="64" cy="64" r={RING_R}
+                cx="64"
+                cy="64"
+                r={RING_R}
                 stroke={tc.primaryBorder}
                 strokeWidth="4"
                 fill={tc.primaryTint}
               />
               <AnimatedCircle
-                cx="64" cy="64" r={RING_R}
+                cx="64"
+                cy="64"
+                r={RING_R}
                 stroke={tc.primary}
                 strokeWidth="4"
                 fill="none"
@@ -82,15 +94,10 @@ export function QuestionZone({ pauseRemainingSeconds, currentQuestion, activeRun
                 transform="rotate(-90, 64, 64)"
               />
             </Svg>
-            <Text
-              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-center align-middle font-nunito-extrabold text-primaryDark text-[56px]"
-            >
-                  {pauseRemainingSeconds}
+            <Text className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-center align-middle font-nunito-extrabold text-primaryDark text-[56px]">
+              {pauseRemainingSeconds}
             </Text>
           </View>
-          <Text className="text-sm font-nunito mt-5 text-primaryDark/60 text-center max-w-[220px]">
-            {t("quests.speedCalculusResumeCountdownBody", { seconds: pauseRemainingSeconds })}
-          </Text>
         </View>
       ) : currentQuestion ? (
         <View
@@ -104,7 +111,9 @@ export function QuestionZone({ pauseRemainingSeconds, currentQuestion, activeRun
             className="text-[10px] font-nunito-bold uppercase tracking-[4px] text-primary/40"
             testID={`speed-calculus-question-label-${(activeRun?.questionIndex ?? 0) + 1}`}
           >
-            {t("quests.speedCalculusQuestionNumber", { current: (activeRun?.questionIndex ?? 0) + 1 })}
+            {t("quests.speedCalculusQuestionNumber", {
+              current: (activeRun?.questionIndex ?? 0) + 1,
+            })}
           </Text>
           <View className="w-12 h-px mt-2 mb-5 bg-primaryBorder" />
           <Text
@@ -113,7 +122,8 @@ export function QuestionZone({ pauseRemainingSeconds, currentQuestion, activeRun
             numberOfLines={1}
             style={{ transform: [{ translateY: -3 }] }}
           >
-            {currentQuestion.left} {currentQuestion.operator} {currentQuestion.right}
+            {currentQuestion.left} {currentQuestion.operator}{" "}
+            {currentQuestion.right}
           </Text>
         </View>
       ) : (

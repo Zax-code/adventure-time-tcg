@@ -13,9 +13,9 @@ import { THEME_COLORS } from "../../../theme/themes";
 import { KEYPAD_ROWS, type KeypadKey } from "./constants";
 import { withAlpha } from "./palette";
 import {
-  getChangedTouchCount,
-  pressForChangedTouches,
-  releaseChangedTouches,
+  getChangedTouchIdentifiers,
+  getKeyPressesForChangedTouches,
+  type KeyBounds,
 } from "./keypad-touch";
 
 type InteractiveKeyId = KeypadKey | "CLEAR" | "SUBMIT";
@@ -70,51 +70,51 @@ type KeypadProps = {
 };
 
 type KeyButtonProps = {
+  keyId: InteractiveKeyId;
   testID: string;
   disabled: boolean;
+  pressed: boolean;
   style: ViewStyle;
   children: ReactNode;
   onPress: () => void;
+  onBoundsChange: (
+    keyId: InteractiveKeyId,
+    bounds: KeyBounds<InteractiveKeyId>,
+  ) => void;
   scalePressed?: number;
   pressedOpacity?: number;
 };
 
 function KeyButton({
+  keyId,
   testID,
   disabled,
+  pressed,
   style,
   children,
   onPress,
+  onBoundsChange,
   scalePressed = 0.95,
   pressedOpacity = 0.7,
 }: KeyButtonProps) {
-  const activeTouchCountRef = useRef(0);
-  const [pressed, setPressed] = useState(false);
+  const viewRef = useRef<View>(null);
   const showPressed = pressed && !disabled;
 
-  const releaseTouches = useCallback((event: GestureResponderEvent) => {
-    activeTouchCountRef.current = releaseChangedTouches(
-      activeTouchCountRef.current,
-      event,
-    );
-    if (activeTouchCountRef.current === 0) {
-      setPressed(false);
-    }
-  }, []);
-
-  const handleTouchStart = useCallback(
-    (event: GestureResponderEvent) => {
-      if (disabled) return;
-      const changedTouchCount = getChangedTouchCount(event);
-      activeTouchCountRef.current += changedTouchCount;
-      setPressed(true);
-      pressForChangedTouches(event, onPress);
-    },
-    [disabled, onPress],
-  );
+  const measureBounds = useCallback(() => {
+    viewRef.current?.measure((_x, _y, width, height, pageX, pageY) => {
+      onBoundsChange(keyId, {
+        keyId,
+        left: pageX,
+        top: pageY,
+        right: pageX + width,
+        bottom: pageY + height,
+      });
+    });
+  }, [keyId, onBoundsChange]);
 
   return (
     <View
+      ref={viewRef}
       testID={testID}
       accessibilityLabel={testID}
       accessibilityRole="button"
@@ -123,9 +123,8 @@ function KeyButton({
       onAccessibilityTap={() => {
         if (!disabled) onPress();
       }}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={releaseTouches}
-      onTouchCancel={releaseTouches}
+      onLayout={measureBounds}
+      pointerEvents="none"
       style={{
         ...style,
         opacity: disabled ? 0.45 : showPressed ? pressedOpacity : 1,
@@ -156,6 +155,13 @@ export function Keypad({
 }: KeypadProps) {
   const { t } = useTranslation();
   const tc = THEME_COLORS[useThemeStore((s) => s.themeName)];
+  const keyBoundsRef = useRef(
+    new Map<InteractiveKeyId, KeyBounds<InteractiveKeyId>>(),
+  );
+  const activeTouchesRef = useRef(new Map<number | string, InteractiveKeyId>());
+  const [pressedKeys, setPressedKeys] = useState<Set<InteractiveKeyId>>(
+    () => new Set(),
+  );
   const keypadContainerStyle = useMemo<ViewStyle>(
     () => ({
       backgroundColor: tc.surface,
@@ -206,8 +212,62 @@ export function Keypad({
     [onClear, onDelete, onDigit, onSubmit, onToggleSign],
   );
 
+  const updateKeyBounds = useCallback(
+    (keyId: InteractiveKeyId, bounds: KeyBounds<InteractiveKeyId>) => {
+      keyBoundsRef.current.set(keyId, bounds);
+    },
+    [],
+  );
+
+  const syncPressedKeys = useCallback(() => {
+    setPressedKeys(new Set(activeTouchesRef.current.values()));
+  }, []);
+
+  const handleKeypadTouchStart = useCallback(
+    (event: GestureResponderEvent) => {
+      const presses = getKeyPressesForChangedTouches(
+        event,
+        [...keyBoundsRef.current.values()],
+        KEY_GAP / 2,
+      );
+      let pressedStateChanged = false;
+
+      for (const press of presses) {
+        if (activeTouchesRef.current.has(press.identifier) || keypadLocked) {
+          continue;
+        }
+
+        activeTouchesRef.current.set(press.identifier, press.keyId);
+        activateKey(press.keyId);
+        pressedStateChanged = true;
+      }
+
+      if (pressedStateChanged) syncPressedKeys();
+    },
+    [activateKey, keypadLocked, syncPressedKeys],
+  );
+
+  const releaseKeypadTouches = useCallback(
+    (event: GestureResponderEvent) => {
+      let pressedStateChanged = false;
+      for (const identifier of getChangedTouchIdentifiers(event)) {
+        pressedStateChanged =
+          activeTouchesRef.current.delete(identifier) || pressedStateChanged;
+      }
+
+      if (pressedStateChanged) syncPressedKeys();
+    },
+    [syncPressedKeys],
+  );
+
   return (
-    <View className="mx-4 mt-3 rounded-3xl" style={keypadContainerStyle}>
+    <View
+      className="mx-4 mt-3 rounded-3xl"
+      onTouchStart={handleKeypadTouchStart}
+      onTouchEnd={releaseKeypadTouches}
+      onTouchCancel={releaseKeypadTouches}
+      style={keypadContainerStyle}
+    >
       <View style={KEYPAD_GRID_STYLE}>
         {KEYPAD_ROWS.map((row) => (
           <View key={row.join("")} style={KEYPAD_ROW_STYLE}>
@@ -246,10 +306,13 @@ export function Keypad({
               return (
                 <KeyButton
                   key={k}
+                  keyId={k}
                   testID={keyTestID(k)}
                   disabled={isDisabled}
+                  pressed={pressedKeys.has(k)}
                   style={keyStyle}
                   onPress={() => activateKey(k)}
+                  onBoundsChange={updateKeyBounds}
                 >
                   <Text className={keyTextClass}>{label}</Text>
                 </KeyButton>
@@ -262,10 +325,13 @@ export function Keypad({
       {/* Action row: Clear + Submit — same height/radius as grid keys */}
       <View style={ACTION_ROW_STYLE}>
         <KeyButton
+          keyId="CLEAR"
           testID={keyTestID("CLEAR")}
           disabled={keypadLocked || !answer}
+          pressed={pressedKeys.has("CLEAR")}
           style={primaryKeyStyle}
           onPress={() => activateKey("CLEAR")}
+          onBoundsChange={updateKeyBounds}
         >
           <Text className="text-sm font-nunito-extrabold text-primaryDark">
             {t("quests.speedCalculusClear")}
@@ -273,10 +339,13 @@ export function Keypad({
         </KeyButton>
 
         <KeyButton
+          keyId="SUBMIT"
           testID={keyTestID("SUBMIT")}
           disabled={submitDisabled}
+          pressed={pressedKeys.has("SUBMIT")}
           style={SUBMIT_KEY_STYLE}
           onPress={() => activateKey("SUBMIT")}
+          onBoundsChange={updateKeyBounds}
           scalePressed={0.99}
           pressedOpacity={0.9}
         >

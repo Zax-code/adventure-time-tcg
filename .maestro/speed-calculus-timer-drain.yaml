@@ -11,14 +11,30 @@ tags:
 - openLink:
     link: adventure-time:///e2e-auth?redirect=%2Fquests%2Fspeed-calculus%2Ftraining&email=${TEST_EMAIL_URI}&password=${TEST_PASSWORD_URI}
 - runFlow: subflows/confirm-open-link-if-needed.yaml
-- assertVisible:
-    text: Training mode
+- extendedWaitUntil:
+    visible:
+      text: Training mode
+    timeout: 30000
 - tapOn:
     text: Start training run
 - extendedWaitUntil:
     visible:
+      id: speed-calculus-pause-countdown
+    timeout: 10000
+- assertNotVisible:
+    text: Your run resumes in.*
+- extendedWaitUntil:
+    visible:
       id: speed-calculus-question-label-1
     timeout: 10000
+- tapOn:
+    id: speed-calculus-key-1
+- tapOn:
+    id: speed-calculus-key-2
+- assertVisible:
+    id: speed-calculus-answer-value-12
+- tapOn:
+    id: speed-calculus-key-clear
 - takeScreenshot: tmp-speed-calculus-timer-shots/00-before-answers
 - repeat:
     times: 4
