@@ -47,6 +47,7 @@ import {
   ApiClientError,
   type DailyNumbersArchiveStateResponse,
   type DailyNumbersMode,
+  type DailyNumbersSolutionListItem,
   type DailyNumbersSolutionHuntSubmitResponse,
   type DailyNumbersStateResponse,
   type DailyNumbersStep,
@@ -56,6 +57,8 @@ import {
 import { PageErrorState } from "../../src/components/error-state";
 import {
   CheckIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
   ClockIcon,
   CoinIcon,
   EyeIcon,
@@ -125,6 +128,14 @@ type TranslateFn = (
 type ThemeColors = (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
 type DailyNumbersBoardState =
   DailyNumbersStateResponse | DailyNumbersArchiveStateResponse;
+type DailyNumbersSolutionLists = Pick<
+  DailyNumbersSolutionHuntSubmitResponse,
+  | "solutionsFound"
+  | "totalSolutions"
+  | "allSolutionsFound"
+  | "yourSolutions"
+  | "otherSolutions"
+>;
 type ModeCard = {
   mode: DailyNumbersMode;
   state: DailyNumbersBoardState | undefined;
@@ -976,6 +987,8 @@ function InlineMetric({
         className="mt-0.5 text-center font-nunito-extrabold text-lg leading-6 text-fg"
         style={{ fontVariant: ["tabular-nums"] }}
         numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.7}
       >
         {value}
       </Text>
@@ -989,6 +1002,7 @@ function MetricsSection({
   currentDistance,
   formattedElapsedTime,
   modeAccent,
+  showSolutionFound,
   state,
   t,
   tc,
@@ -998,6 +1012,7 @@ function MetricsSection({
   currentDistance: number | undefined;
   formattedElapsedTime: string;
   modeAccent: ReturnType<typeof getModeAccent>;
+  showSolutionFound: boolean;
   state: DailyNumbersBoardState;
   t: TranslateFn;
   tc: ThemeColors;
@@ -1044,8 +1059,16 @@ function MetricsSection({
             <View className="h-px w-full bg-primaryBorder" />
             <View className="w-full">
               <InlineMetric
-                label={t("quests.dailyNumbers.solveTime")}
-                value={formattedElapsedTime}
+                label={
+                  showSolutionFound
+                    ? t("quests.dailyNumbers.solutionHuntTitle")
+                    : t("quests.dailyNumbers.solveTime")
+                }
+                value={
+                  showSolutionFound
+                    ? t("quests.dailyNumbers.solutionHuntSolutionFound")
+                    : formattedElapsedTime
+                }
               />
             </View>
           </>
@@ -1067,8 +1090,16 @@ function MetricsSection({
             <View className="my-2.5 w-px bg-primaryBorder" />
             <View className="flex-1">
               <InlineMetric
-                label={t("quests.dailyNumbers.solveTime")}
-                value={formattedElapsedTime}
+                label={
+                  showSolutionFound
+                    ? t("quests.dailyNumbers.solutionHuntTitle")
+                    : t("quests.dailyNumbers.solveTime")
+                }
+                value={
+                  showSolutionFound
+                    ? t("quests.dailyNumbers.solutionHuntSolutionFound")
+                    : formattedElapsedTime
+                }
               />
             </View>
           </>
@@ -1166,6 +1197,152 @@ function StepList({
   );
 }
 
+function SolutionAccordionItem({
+  solution,
+  t,
+}: {
+  solution: DailyNumbersSolutionListItem;
+  t: TranslateFn;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const label = t("quests.dailyNumbers.solutionHuntSolutionNumber", {
+    number: solution.number,
+  });
+
+  return (
+    <View className="border-b border-primaryBorder">
+      <Pressable
+        accessibilityLabel={label}
+        accessibilityRole="button"
+        accessibilityState={{ expanded }}
+        className="min-h-12 flex-row items-center gap-2 py-3"
+        onPress={() => setExpanded((current) => !current)}
+        testID={`daily-numbers-solution-${solution.number}`}
+      >
+        {expanded ? (
+          <ChevronDownIcon size={18} />
+        ) : (
+          <ChevronRightIcon size={18} />
+        )}
+        <Text className="min-w-0 flex-1 font-nunito-extrabold text-sm text-fg">
+          {label}
+        </Text>
+        <Text className="font-nunito-bold text-xs text-fgMuted">
+          {solution.steps.length}
+        </Text>
+      </Pressable>
+      {expanded ? (
+        <Animated.View entering={FadeIn.duration(160)} className="pb-3 pl-6">
+          <StepList
+            steps={solution.steps}
+            t={t}
+            title={t("quests.dailyNumbers.solutionHuntStepsTitle")}
+          />
+        </Animated.View>
+      ) : null}
+    </View>
+  );
+}
+
+function SolutionAccordionList({
+  solutions,
+  t,
+  title,
+}: {
+  solutions: DailyNumbersSolutionListItem[];
+  t: TranslateFn;
+  title: string;
+}) {
+  if (solutions.length === 0) return null;
+
+  return (
+    <View className="mt-5">
+      <Text className="font-nunito-extrabold text-base text-fg">{title}</Text>
+      <View className="mt-2 border-t border-primaryBorder">
+        {solutions.map((solution) => (
+          <SolutionAccordionItem
+            key={`${solution.number}-${solution.steps.map((step) => step.resultId).join("-")}`}
+            solution={solution}
+            t={t}
+          />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function SolutionHuntLists({
+  onToggleOtherSolutions,
+  progress,
+  revealedOtherSolutions,
+  t,
+  tc,
+}: {
+  onToggleOtherSolutions: () => void;
+  progress: DailyNumbersSolutionLists;
+  revealedOtherSolutions: boolean;
+  t: TranslateFn;
+  tc: ThemeColors;
+}) {
+  const hasDiscoveries = progress.yourSolutions.length > 0;
+  const otherTitle = t(
+    hasDiscoveries
+      ? "quests.dailyNumbers.solutionHuntOtherSolutions"
+      : "quests.dailyNumbers.solutionHuntExistingSolutions",
+  );
+
+  return (
+    <>
+      <SolutionAccordionList
+        solutions={progress.yourSolutions}
+        t={t}
+        title={t("quests.dailyNumbers.solutionHuntYourSolutions")}
+      />
+      {progress.otherSolutions.length > 0 ? (
+        <>
+          <QuestActionButton
+            accessibilityLabel={
+              revealedOtherSolutions
+                ? t("quests.dailyNumbers.solutionHuntHideSolutions", {
+                    title: otherTitle,
+                  })
+                : t("quests.dailyNumbers.solutionHuntShowSolutions", {
+                    title: otherTitle,
+                  })
+            }
+            accessibilityState={{ expanded: revealedOtherSolutions }}
+            backgroundColor={tc.bg}
+            foregroundColor={tc.primaryText}
+            label={
+              revealedOtherSolutions
+                ? t("quests.dailyNumbers.solutionHuntHideSolutions", {
+                    title: otherTitle,
+                  })
+                : t("quests.dailyNumbers.solutionHuntShowSolutions", {
+                    title: otherTitle,
+                  })
+            }
+            leadingIcon={EyeIcon}
+            minHeight={48}
+            onPress={onToggleOtherSolutions}
+            style={{ marginTop: 14 }}
+            testID="daily-numbers-reveal-other-solutions"
+          />
+          {revealedOtherSolutions ? (
+            <Animated.View entering={FadeIn.duration(180)}>
+              <SolutionAccordionList
+                solutions={progress.otherSolutions}
+                t={t}
+                title={otherTitle}
+              />
+            </Animated.View>
+          ) : null}
+        </>
+      ) : null}
+    </>
+  );
+}
+
 function ResultDetails({
   interaction,
   officialSolutionSteps,
@@ -1183,6 +1360,8 @@ function ResultDetails({
   t: TranslateFn;
   tc: ThemeColors;
 }) {
+  const solutionHuntProgress = interaction.solutionHuntResult ?? state.solutionHunt;
+
   return (
     <>
       <View className="mt-6 border-t border-primaryBorder pt-4">
@@ -1209,14 +1388,15 @@ function ResultDetails({
           ))}
         </View>
       </View>
-      {submittedSolutionSteps.length > 0 ? (
+      {submittedSolutionSteps.length > 0 &&
+      (!solutionHuntProgress || solutionHuntProgress.yourSolutions.length === 0) ? (
         <StepList
           steps={submittedSolutionSteps}
           t={t}
           title={t("quests.dailyNumbers.solutionUsedTitle")}
         />
       ) : null}
-      {officialSolutionSteps.length > 0 ? (
+      {!solutionHuntProgress && officialSolutionSteps.length > 0 ? (
         <>
           <QuestActionButton
             label={
@@ -1557,6 +1737,13 @@ function FinishStatePanel({
           <Text className="mt-2 font-nunito-semibold text-xs leading-4 text-fgMuted">
             {t("quests.dailyNumbers.solutionHuntNoRewards")}
           </Text>
+          <SolutionHuntLists
+            onToggleOtherSolutions={onToggleSolution}
+            progress={solutionHuntProgress}
+            revealedOtherSolutions={interaction.revealedSolution}
+            t={t}
+            tc={tc}
+          />
           {!solutionHuntProgress.allSolutionsFound ? (
             <QuestActionButton
               label={t("quests.dailyNumbers.solutionHuntFindAnother")}
@@ -3627,6 +3814,11 @@ function DailyNumbersBoard({
               currentDistance={controller.currentDistance}
               formattedElapsedTime={controller.formattedElapsedTime}
               modeAccent={controller.modeAccent}
+              showSolutionFound={
+                controller.solutionHuntActive &&
+                ((controller.interaction.solutionHuntResult ??
+                  controller.state.solutionHunt)?.solutionsFound ?? 0) > 0
+              }
               state={controller.state}
               t={controller.t}
               tc={controller.tc}
@@ -4069,6 +4261,8 @@ export default function DailyNumbersPlayScreen() {
                   solutionsFound: result.solutionsFound,
                   totalSolutions: result.totalSolutions,
                   allSolutionsFound: result.allSolutionsFound,
+                  yourSolutions: result.yourSolutions,
+                  otherSolutions: result.otherSolutions,
                 },
               }
             : current,

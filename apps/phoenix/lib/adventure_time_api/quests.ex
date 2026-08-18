@@ -521,7 +521,7 @@ defmodule AdventureTimeApi.Quests do
         if get_daily_numbers_attempt(user_id, date, normalized_mode) do
           {:error, :daily_numbers_already_submitted}
         else
-          {:ok, puzzle} = DailyNumbersEngine.generate_puzzle(normalized_mode, date)
+          {:ok, puzzle} = get_daily_numbers_puzzle(normalized_mode, date)
 
           with {:ok, validated_submission} <-
                  DailyNumbersEngine.validate_submission(puzzle, steps) do
@@ -614,7 +614,7 @@ defmodule AdventureTimeApi.Quests do
              get_daily_quest(user_id, date, daily_numbers_quest_type(normalized_mode)),
            %DailyNumbersDailyAttempt{completed: true} <-
              get_daily_numbers_attempt(user_id, date, normalized_mode),
-           {:ok, puzzle} <- DailyNumbersEngine.generate_puzzle(normalized_mode, date),
+           {:ok, puzzle} <- get_daily_numbers_puzzle(normalized_mode, date),
            {:ok, submission} <- DailyNumbersEngine.validate_submission(puzzle, steps),
            true <- submission.exact || {:error, :daily_numbers_solution_hunt_not_exact},
            {:ok, solution_set} <-
@@ -630,7 +630,7 @@ defmodule AdventureTimeApi.Quests do
                submission.canonicalKey,
                submission.steps
              ) do
-        progress = DailyNumbersSolutionHunt.progress(user_id, solution_set)
+        progress = DailyNumbersSolutionHunt.payload(user_id, solution_set, puzzle)
 
         {:ok,
          Map.merge(progress, %{
@@ -1857,7 +1857,7 @@ defmodule AdventureTimeApi.Quests do
         {
           get_daily_quest(user_id, date, daily_numbers_quest_type(mode)),
           get_daily_numbers_attempt(user_id, date, mode),
-          DailyNumbersEngine.generate_puzzle(mode, date)
+          get_daily_numbers_puzzle(mode, date)
         }
       end)
 
@@ -1912,7 +1912,7 @@ defmodule AdventureTimeApi.Quests do
          :ok <-
            maybe_register_ranked_daily_numbers_solution(user_id, solution_set, attempt, puzzle) do
       user_id
-      |> DailyNumbersSolutionHunt.progress(solution_set)
+      |> DailyNumbersSolutionHunt.payload(solution_set, puzzle)
       |> Map.put(:available, true)
     else
       {:error, reason} ->
@@ -1936,6 +1936,12 @@ defmodule AdventureTimeApi.Quests do
          _puzzle
        ),
        do: nil
+
+  defp get_daily_numbers_puzzle(mode, date) do
+    with {:ok, %{puzzle: puzzle}} <- DailyNumbersSolutionHunt.get_or_create_puzzle(date, mode) do
+      {:ok, puzzle}
+    end
+  end
 
   defp maybe_register_ranked_daily_numbers_solution(
          user_id,

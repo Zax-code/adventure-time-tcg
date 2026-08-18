@@ -400,6 +400,17 @@
 .solution-hunt-panel h3 { font-size: 22px; }
 .solution-hunt-panel strong { color: var(--successText); }
 .solution-hunt-panel small { color: var(--fgMuted); }
+.solution-list-group { display: grid; gap: 8px; margin-top: 6px; }
+.solution-list-group h4 { font-size: 17px; }
+.solution-list { display: grid; gap: 7px; }
+.solution-list details,
+.solution-list-reveal { overflow: hidden; border: 1px solid var(--primaryBorder); border-radius: 12px; background: var(--surface); }
+.solution-list summary,
+.solution-list-reveal > summary { padding: 10px 12px; color: var(--fg); font-weight: 900; cursor: pointer; }
+.solution-list details[open] > summary,
+.solution-list-reveal[open] > summary { border-bottom: 1px solid var(--primaryBorder); }
+.solution-list details ol { padding: 9px; }
+.solution-list-reveal > .solution-list { padding: 9px; }
 .archive-list { display: grid; gap: 9px; }
 .archive-list > article { display: grid; align-items: center; grid-template-columns: 110px 1fr; gap: 18px; padding: 13px; border: 1px solid var(--primaryBorder); border-radius: 20px; background: var(--surface); }
 .archive-list > article > div:first-child { display: grid; padding-left: 9px; }

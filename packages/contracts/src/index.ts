@@ -1031,11 +1031,18 @@ export const dailyNumbersSubmissionSchema = z.object({
   officialSolutionSteps: z.array(dailyNumbersStepSchema),
 });
 
+export const dailyNumbersSolutionListItemSchema = z.object({
+  number: z.number().int().positive(),
+  steps: z.array(dailyNumbersStepSchema),
+});
+
 export const dailyNumbersSolutionHuntProgressSchema = z.object({
   available: z.literal(true),
   solutionsFound: z.number().int().nonnegative(),
   totalSolutions: z.number().int().positive(),
   allSolutionsFound: z.boolean(),
+  yourSolutions: z.array(dailyNumbersSolutionListItemSchema),
+  otherSolutions: z.array(dailyNumbersSolutionListItemSchema),
 });
 
 export const dailyNumbersStateResponseSchema = z.object({
@@ -1079,6 +1086,8 @@ export const dailyNumbersSolutionHuntSubmitResponseSchema = z.object({
   solutionsFound: z.number().int().nonnegative(),
   totalSolutions: z.number().int().positive(),
   allSolutionsFound: z.boolean(),
+  yourSolutions: z.array(dailyNumbersSolutionListItemSchema),
+  otherSolutions: z.array(dailyNumbersSolutionListItemSchema),
 });
 
 export const dailyNumbersArchiveStatusSchema = z.enum([
@@ -1847,6 +1856,9 @@ export type DailyNumbersStepInput = z.infer<typeof dailyNumbersStepInputSchema>;
 export type DailyNumbersStep = z.infer<typeof dailyNumbersStepSchema>;
 export type DailyNumbersSubmission = z.infer<
   typeof dailyNumbersSubmissionSchema
+>;
+export type DailyNumbersSolutionListItem = z.infer<
+  typeof dailyNumbersSolutionListItemSchema
 >;
 export type DailyNumbersStateResponse = z.infer<
   typeof dailyNumbersStateResponseSchema

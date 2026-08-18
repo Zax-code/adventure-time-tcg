@@ -8,6 +8,7 @@ defmodule AdventureTimeApi.Repo.Migrations.CreateDailyNumbersSolutionHunt do
       add(:mode, :string, null: false)
       add(:target, :integer, null: false)
       add(:numbers, {:array, :integer}, null: false)
+      add(:generation_attempt, :integer, null: false)
       add(:solution_count, :integer, null: false)
       add(:computation_ms, :integer, null: false)
 
@@ -29,6 +30,12 @@ defmodule AdventureTimeApi.Repo.Migrations.CreateDailyNumbersSolutionHunt do
     create(
       constraint(:daily_numbers_solution_sets, :daily_numbers_solution_sets_count_positive,
         check: "solution_count > 0"
+      )
+    )
+
+    create(
+      constraint(:daily_numbers_solution_sets, :daily_numbers_solution_sets_attempt_positive,
+        check: "generation_attempt > 0"
       )
     )
 
@@ -65,7 +72,7 @@ defmodule AdventureTimeApi.Repo.Migrations.CreateDailyNumbersSolutionHunt do
 
       add(:canonical_key, :text, null: false)
       add(:submitted_steps, {:array, :map}, null: false, default: [])
-      add(:found_at, :utc_datetime, null: false)
+      add(:found_at, :utc_datetime_usec, null: false)
     end
 
     create(

@@ -42,6 +42,19 @@ defmodule AdventureTimeApi.Quests.DailyNumbersEngine do
     end
   end
 
+  def generate_puzzle_at_attempt(mode, %Date{} = date, attempt) do
+    generate_puzzle_at_attempt(mode, Date.to_iso8601(date), attempt)
+  end
+
+  def generate_puzzle_at_attempt(mode, date_key, attempt)
+      when is_binary(mode) and is_binary(date_key) and is_integer(attempt) and attempt > 0 and
+             attempt <= @max_attempts do
+    with {:ok, config} <- fetch_mode_config(mode) do
+      candidate = build_candidate(mode, date_key, attempt, config)
+      {:ok, build_puzzle(candidate, solve(candidate.numbers, candidate.target))}
+    end
+  end
+
   def validate_submission(puzzle, steps) when is_map(puzzle) do
     with true <- is_list(steps) || {:error, "steps must be a list"} do
       initial_tiles =
@@ -117,15 +130,7 @@ defmodule AdventureTimeApi.Quests.DailyNumbersEngine do
   defp find_puzzle(mode, date_key, config, attempt, first_exact, quality_checks, fallback) do
     candidate = build_candidate(mode, date_key, attempt, config)
     solver = solve(candidate.numbers, candidate.target)
-
-    puzzle =
-      candidate
-      |> Map.put(:bestValue, solver.bestValue)
-      |> Map.put(:distance, solver.distance)
-      |> Map.put(:solution, solver.solution)
-      |> Map.put(:numbersUsed, solver.numbersUsed)
-      |> Map.put(:operationsCount, solver.operationsCount)
-      |> Map.put(:shortestExactOperationsCount, solver.shortestExactOperationsCount)
+    puzzle = build_puzzle(candidate, solver)
 
     cond do
       easy_exact_solution?(solver) ->
@@ -239,6 +244,16 @@ defmodule AdventureTimeApi.Quests.DailyNumbersEngine do
     do: count - @max_solution_hunt_solutions
 
   defp solution_count_distance(_count), do: 0
+
+  defp build_puzzle(candidate, solver) do
+    candidate
+    |> Map.put(:bestValue, solver.bestValue)
+    |> Map.put(:distance, solver.distance)
+    |> Map.put(:solution, solver.solution)
+    |> Map.put(:numbersUsed, solver.numbersUsed)
+    |> Map.put(:operationsCount, solver.operationsCount)
+    |> Map.put(:shortestExactOperationsCount, solver.shortestExactOperationsCount)
+  end
 
   defp easy_exact_solution?(%{exact: true, shortestExactOperationsCount: operations_count})
        when is_integer(operations_count),

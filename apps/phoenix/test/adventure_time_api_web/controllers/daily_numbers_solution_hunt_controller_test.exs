@@ -67,6 +67,10 @@ defmodule AdventureTimeApiWeb.DailyNumbersSolutionHuntControllerTest do
     assert ranked["solutionHunt"]["available"] == true
     assert ranked["solutionHunt"]["solutionsFound"] == 1
     assert ranked["solutionHunt"]["totalSolutions"] > 1
+    assert Enum.map(ranked["solutionHunt"]["yourSolutions"], & &1["number"]) == [1]
+
+    assert length(ranked["solutionHunt"]["otherSolutions"]) ==
+             ranked["solutionHunt"]["totalSolutions"] - 1
 
     attempt =
       Repo.get_by!(DailyNumbersDailyAttempt, user_id: user.id, date: date, mode: "3-3")
@@ -119,6 +123,10 @@ defmodule AdventureTimeApiWeb.DailyNumbersSolutionHuntControllerTest do
     assert new_solution["newSolution"] == true
     assert new_solution["alreadyFound"] == false
     assert new_solution["solutionsFound"] == 2
+    assert Enum.map(new_solution["yourSolutions"], & &1["number"]) == [1, 2]
+
+    assert length(new_solution["otherSolutions"]) ==
+             new_solution["totalSolutions"] - 2
 
     reordered_steps = reorder_commutative_step(alternative_steps)
     duplicate = submit_hunt(access_token, state, reordered_steps, 200)
@@ -127,6 +135,8 @@ defmodule AdventureTimeApiWeb.DailyNumbersSolutionHuntControllerTest do
     assert duplicate["newSolution"] == false
     assert duplicate["alreadyFound"] == true
     assert duplicate["solutionsFound"] == 2
+    assert duplicate["yourSolutions"] == new_solution["yourSolutions"]
+    assert duplicate["otherSolutions"] == new_solution["otherSolutions"]
 
     wrong_target = submit_hunt(access_token, state, [], 400)
     assert wrong_target["code"] == "DAILY_NUMBERS_SOLUTION_HUNT_NOT_EXACT"
@@ -150,6 +160,7 @@ defmodule AdventureTimeApiWeb.DailyNumbersSolutionHuntControllerTest do
     assert final_progress["solutionsFound"] == solver_result.total
     assert final_progress["totalSolutions"] == solver_result.total
     assert final_progress["allSolutionsFound"] == true
+    assert final_progress["otherSolutions"] == []
 
     assert Repo.reload!(user).coins == coin_balance
     assert Map.take(Repo.reload!(attempt), ranked_attempt_fields()) == ranked_attempt_snapshot

@@ -43,6 +43,15 @@ defmodule AdventureTimeApi.Quests.DailyNumbersExpressionTest do
     refute key(factored) == key(distributed)
   end
 
+  test "round-trips canonical n-ary expressions through storage" do
+    expression = op("*", op("+", number(3), number(7)), number(25))
+
+    assert expression
+           |> Expression.to_storage()
+           |> Expression.from_storage()
+           |> key() == key(expression)
+  end
+
   defp number(value), do: Expression.number(value)
   defp op(operator, left, right), do: Expression.operation(operator, left, right)
   defp key(expression), do: Expression.canonical_key(expression)

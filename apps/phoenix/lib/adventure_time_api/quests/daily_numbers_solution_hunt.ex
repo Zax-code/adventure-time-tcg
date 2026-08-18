@@ -11,6 +11,7 @@ defmodule AdventureTimeApi.Quests.DailyNumbersSolutionHunt do
   require Logger
 
   alias AdventureTimeApi.Quests.{
+    DailyNumbersEngine,
     DailyNumbersExpression,
     DailyNumbersSolution,
     DailyNumbersSolutionSet,
@@ -20,12 +21,53 @@ defmodule AdventureTimeApi.Quests.DailyNumbersSolutionHunt do
 
   alias AdventureTimeApi.Repo
 
-  def ensure_solution_set(%Date{} = date, mode, puzzle) do
-    numbers = Enum.map(puzzle.numbers, & &1.value)
-    lock_key = "daily-numbers-solution-set:#{Date.to_iso8601(date)}:#{mode}"
+  def get_or_create_puzzle(%Date{} = date, mode) do
+    lock_key = solution_set_lock_key(date, mode)
 
     case Repo.transaction(fn ->
-           Repo.query!("SELECT pg_advisory_xact_lock(hashtextextended($1, 0))", [lock_key])
+           lock_solution_set!(lock_key)
+
+           case Repo.get_by(DailyNumbersSolutionSet, date: date, mode: mode) do
+             nil ->
+               case DailyNumbersEngine.generate_puzzle(mode, date) do
+                 {:ok, puzzle} ->
+                   solution_set =
+                     create_solution_set(date, mode, Enum.map(puzzle.numbers, & &1.value), puzzle)
+
+                   %{puzzle: puzzle, solution_set: solution_set}
+
+                 {:error, reason} ->
+                   Repo.rollback(reason)
+               end
+
+             solution_set ->
+               case DailyNumbersEngine.generate_puzzle_at_attempt(
+                      mode,
+                      date,
+                      solution_set.generation_attempt
+                    ) do
+                 {:ok, puzzle} ->
+                   puzzle = Map.put(puzzle, :solutionCount, solution_set.solution_count)
+                   numbers = Enum.map(puzzle.numbers, & &1.value)
+                   validate_solution_set!(solution_set, numbers, puzzle.target)
+                   %{puzzle: puzzle, solution_set: solution_set}
+
+                 {:error, reason} ->
+                   Repo.rollback(reason)
+               end
+           end
+         end) do
+      {:ok, result} -> {:ok, result}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  def ensure_solution_set(%Date{} = date, mode, puzzle) do
+    numbers = Enum.map(puzzle.numbers, & &1.value)
+    lock_key = solution_set_lock_key(date, mode)
+
+    case Repo.transaction(fn ->
+           lock_solution_set!(lock_key)
 
            case Repo.get_by(DailyNumbersSolutionSet, date: date, mode: mode) do
              nil -> create_solution_set(date, mode, numbers, puzzle)
@@ -49,7 +91,7 @@ defmodule AdventureTimeApi.Quests.DailyNumbersSolutionHunt do
       |> Repo.exists?()
 
     if solution_exists? do
-      now = DateTime.utc_now() |> DateTime.truncate(:second)
+      now = DateTime.utc_now()
 
       {inserted_count, _rows} =
         Repo.insert_all(
@@ -91,6 +133,53 @@ defmodule AdventureTimeApi.Quests.DailyNumbersSolutionHunt do
     }
   end
 
+  def payload(user_id, %DailyNumbersSolutionSet{} = solution_set, puzzle) do
+    discoveries =
+      DailyNumbersUserSolution
+      |> where(
+        [user_solution],
+        user_solution.user_id == ^user_id and
+          user_solution.solution_set_id == ^solution_set.id
+      )
+      |> order_by([user_solution],
+        asc: user_solution.found_at,
+        asc: user_solution.canonical_key
+      )
+      |> Repo.all()
+
+    discovered_keys = MapSet.new(discoveries, & &1.canonical_key)
+
+    your_solutions =
+      discoveries
+      |> Enum.with_index(1)
+      |> Enum.map(fn {discovery, number} ->
+        %{number: number, steps: discovery.submitted_steps}
+      end)
+
+    other_solutions =
+      DailyNumbersSolution
+      |> where([solution], solution.solution_set_id == ^solution_set.id)
+      |> order_by([solution], asc: solution.canonical_key)
+      |> Repo.all()
+      |> Enum.with_index(1)
+      |> Enum.reject(fn {solution, _number} ->
+        MapSet.member?(discovered_keys, solution.canonical_key)
+      end)
+      |> Enum.map(fn {solution, number} ->
+        expression = DailyNumbersExpression.from_storage(solution.expression)
+        {:ok, steps} = DailyNumbersSolver.materialize_steps(expression, puzzle.numbers)
+        %{number: number, steps: steps}
+      end)
+
+    %{
+      solutionsFound: length(your_solutions),
+      totalSolutions: solution_set.solution_count,
+      allSolutionsFound: length(your_solutions) == solution_set.solution_count,
+      yourSolutions: your_solutions,
+      otherSolutions: other_solutions
+    }
+  end
+
   def delete_user_discoveries(user_id, %Date{} = date, mode \\ nil) do
     solution_set_ids =
       DailyNumbersSolutionSet
@@ -128,6 +217,7 @@ defmodule AdventureTimeApi.Quests.DailyNumbersSolutionHunt do
         mode: mode,
         target: puzzle.target,
         numbers: numbers,
+        generation_attempt: Map.get(puzzle, :generationAttempt, 1),
         solution_count: solver_result.total,
         computation_ms: computation_ms
       })
@@ -169,5 +259,13 @@ defmodule AdventureTimeApi.Quests.DailyNumbersSolutionHunt do
     else
       Repo.rollback(:daily_numbers_solution_set_puzzle_mismatch)
     end
+  end
+
+  defp solution_set_lock_key(date, mode) do
+    "daily-numbers-solution-set:#{Date.to_iso8601(date)}:#{mode}"
+  end
+
+  defp lock_solution_set!(lock_key) do
+    Repo.query!("SELECT pg_advisory_xact_lock(hashtextextended($1, 0))", [lock_key])
   end
 end

@@ -92,6 +92,27 @@ defmodule AdventureTimeApi.Quests.DailyNumbersExpression do
     end
   end
 
+  def from_storage(%{"type" => "number", "value" => value})
+      when is_integer(value) and value > 0,
+      do: number(value)
+
+  def from_storage(%{
+        "type" => "operation",
+        "operator" => operator,
+        "children" => children
+      })
+      when operator in @operators and is_list(children) and children != [] do
+    %{
+      type: :operation,
+      operator: operator,
+      children: Enum.map(children, &from_storage/1)
+    }
+  end
+
+  def from_storage(expression) do
+    raise ArgumentError, "invalid stored Daily Numbers expression: #{inspect(expression)}"
+  end
+
   defp flatten_child(%{type: :operation, operator: operator, children: children}, operator),
     do: children
 

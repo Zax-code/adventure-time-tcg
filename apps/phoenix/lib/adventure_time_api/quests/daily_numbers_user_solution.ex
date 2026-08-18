@@ -1,6 +1,5 @@
 defmodule AdventureTimeApi.Quests.DailyNumbersUserSolution do
   use Ecto.Schema
-  import Ecto.Changeset
 
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
@@ -10,21 +9,6 @@ defmodule AdventureTimeApi.Quests.DailyNumbersUserSolution do
     field(:solution_set_id, :binary_id)
     field(:canonical_key, :string)
     field(:submitted_steps, {:array, :map}, default: [])
-    field(:found_at, :utc_datetime)
-  end
-
-  def changeset(user_solution, attrs) do
-    user_solution
-    |> cast(attrs, [:user_id, :solution_set_id, :canonical_key, :submitted_steps, :found_at])
-    |> validate_required([
-      :user_id,
-      :solution_set_id,
-      :canonical_key,
-      :submitted_steps,
-      :found_at
-    ])
-    |> unique_constraint([:user_id, :solution_set_id, :canonical_key],
-      name: :daily_numbers_user_solutions_user_set_key
-    )
+    field(:found_at, :utc_datetime_usec)
   end
 end

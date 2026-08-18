@@ -22,6 +22,8 @@ test("Daily Numbers exposes every post-completion Solution Hunt state", () => {
   assert.match(playSource, /testID="daily-numbers-solution-hunt-new"/);
   assert.match(playSource, /testID="daily-numbers-solution-hunt-duplicate"/);
   assert.match(playSource, /testID="daily-numbers-solution-hunt-complete"/);
+  assert.match(playSource, /testID="daily-numbers-reveal-other-solutions"/);
+  assert.match(playSource, /solutionHuntSolutionFound/);
 });
 
 test("Solution Hunt copy stays aligned in English and French", () => {
@@ -34,6 +36,11 @@ test("Solution Hunt copy stays aligned in English and French", () => {
     "solutionHuntAllFound",
     "solutionHuntNoRewards",
     "solutionHuntPlayingBody",
+    "solutionHuntSolutionFound",
+    "solutionHuntYourSolutions",
+    "solutionHuntOtherSolutions",
+    "solutionHuntExistingSolutions",
+    "solutionHuntSolutionNumber",
   ]) {
     assert.match(englishSource, new RegExp(`${key}:`));
     assert.match(frenchSource, new RegExp(`${key}:`));

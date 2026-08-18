@@ -15,6 +15,7 @@ import { Link, useSearchParams } from "react-router-dom";
 
 import type {
   DailyNumbersMode,
+  DailyNumbersSolutionListItem,
   DailyNumbersSolutionHuntSubmitResponse,
   DailyNumbersStateResponse,
   DailyNumbersStepInput,
@@ -166,6 +167,32 @@ function operationResult(left: number, operator: Operator, right: number) {
   return Number.isInteger(result) && result > 0 ? result : null;
 }
 
+function SolutionDetailsList({
+  solutions,
+}: {
+  solutions: DailyNumbersSolutionListItem[];
+}) {
+  return (
+    <div className="solution-list">
+      {solutions.map((solution) => (
+        <details key={`${solution.number}-${solution.steps.map((step) => step.resultId).join("-")}`}>
+          <summary>Solution {solution.number}</summary>
+          <ol>
+            {solution.steps.map((step, index) => (
+              <li key={step.resultId}>
+                <span>{index + 1}</span>
+                <code>
+                  {step.leftValue} {step.operator === "*" ? "×" : step.operator === "/" ? "÷" : step.operator} {step.rightValue} = {step.resultValue}
+                </code>
+              </li>
+            ))}
+          </ol>
+        </details>
+      ))}
+    </div>
+  );
+}
+
 function PuzzleWorkspace({ archive, state }: { archive: boolean; state: DailyNumbersStateResponse }) {
   const queryClient = useQueryClient();
   const [steps, setSteps] = useState<DailyNumbersStepInput[]>([]);
@@ -260,13 +287,27 @@ function PuzzleWorkspace({ archive, state }: { archive: boolean; state: DailyNum
           <span className="eyebrow">Saved result · mode {state.mode}</span>
           <h2>{state.submission.exact ? "Exactly on target." : "Your closest trail is saved."}</h2>
           <p>Score {state.submission.score} · {Math.round(state.submission.elapsedMs / 1000)} seconds · {state.submission.steps.length} operations.</p>
-          {state.submission.steps.length ? <ol>{state.submission.steps.map((step, index) => <li key={step.resultId}><span>{index + 1}</span><code>{step.leftValue} {step.operator === "*" ? "×" : step.operator === "/" ? "÷" : step.operator} {step.rightValue} = {step.resultValue}</code></li>)}</ol> : null}
+          {state.submission.steps.length && !solutionHuntProgress?.yourSolutions.length ? <ol>{state.submission.steps.map((step, index) => <li key={step.resultId}><span>{index + 1}</span><code>{step.leftValue} {step.operator === "*" ? "×" : step.operator === "/" ? "÷" : step.operator} {step.rightValue} = {step.resultValue}</code></li>)}</ol> : null}
           {!archive && solutionHuntProgress ? (
             <section className="solution-hunt-panel" data-testid="daily-numbers-solution-hunt">
               <span className="eyebrow">Solution Hunt</span>
               <h3>{solutionHuntProgress.solutionsFound} / {solutionHuntProgress.totalSolutions} solutions found</h3>
               {solutionHuntProgress.allSolutionsFound ? <strong>All solutions found!</strong> : solutionHuntResult?.alreadyFound ? <strong>You've already found this solution. Try finding another way!</strong> : solutionHuntResult?.newSolution ? <strong>New solution!</strong> : null}
               <small>Just for fun · no extra rewards or leaderboard points.</small>
+              {solutionHuntProgress.yourSolutions.length ? (
+                <div className="solution-list-group" data-testid="daily-numbers-your-solutions">
+                  <h4>Your solutions</h4>
+                  <SolutionDetailsList solutions={solutionHuntProgress.yourSolutions} />
+                </div>
+              ) : null}
+              {solutionHuntProgress.otherSolutions.length ? (
+                <details className="solution-list-reveal" data-testid="daily-numbers-other-solutions">
+                  <summary>
+                    {solutionHuntProgress.yourSolutions.length ? "Other solutions" : "Existing solutions"}
+                  </summary>
+                  <SolutionDetailsList solutions={solutionHuntProgress.otherSolutions} />
+                </details>
+              ) : null}
               {!solutionHuntProgress.allSolutionsFound ? <Button onClick={() => { setSteps([]); setMessage(undefined); setSolutionHuntActive(true); }}>Find another solution</Button> : null}
             </section>
           ) : null}
