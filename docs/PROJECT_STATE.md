@@ -2,8 +2,8 @@
 
 Last verified: 2026-08-18
 Repository: `Zax-code/adventure-time-tcg`
-Branch: `codex/daily-numbers-solution-hunt`
-Feature commits: `44203c82`, `2a9418c4`, and `91e34c3a`
+Branch: `main` via pull request #285
+Feature commits: `44203c82`, `2a9418c4`, `91e34c3a`, and `026389f5`
 
 ## Purpose and authority
 
@@ -32,10 +32,10 @@ Phoenix, PostgreSQL, and MinIO are the production backend. The Fastify app in `a
 
 ### Verified release boundary
 
-- **Production backend and website:** the `Deploy Phoenix` workflow completed successfully for `a49bcf0d2effa258bacdc1b99146732a10dd9550` on 2026-08-17 (GitHub Actions run `32040865305`). That revision contains the live daily/weekly leaderboard work, the overall leaderboard, and the Daily Numbers timing correction. It remains the deployed Phoenix boundary: later released/tagged mainline commits through the 1.0.28 mobile release do not add a newer deployed Phoenix version, while this working branch contains the unreleased Solution Hunt changes described below.
+- **Production backend and website:** the `Deploy Phoenix` workflow completed successfully for `a49bcf0d2effa258bacdc1b99146732a10dd9550` on 2026-08-17 (GitHub Actions run `32040865305`). That revision contains the live daily/weekly leaderboard work, the overall leaderboard, and the Daily Numbers timing correction. It remains the deployed Phoenix boundary: later released/tagged mainline commits through the 1.0.28 mobile release do not add a newer deployed Phoenix version, while PR #285 contains the unreleased Solution Hunt changes described below.
 - **Mobile:** annotated tags `mobile/android/1.0.28` and `mobile/ios/1.0.28` both resolve to `f7bd214d34aaeb8a073812d0061355d5e79bccd5`, with release timestamps on 2026-08-17. The release note identifies the Daily Numbers leaderboard timing and formatting fix.
 - **Not released:** open pull request #244, “Redesign the Daily Numbers in-game UI,” is not on `main`. The tracked native redesign workspace under `docs/design` is a design specification, not evidence of implemented or released application changes.
-- **Not released:** the working branch `codex/daily-numbers-solution-hunt` adds a post-completion Daily Numbers mode for discovering canonical distinct solutions without changing the ranked attempt, reward, or leaderboard result.
+- **Not released:** pull request #285 adds a post-completion Daily Numbers mode for discovering canonical distinct solutions without changing the ranked attempt, reward, or leaderboard result. A source merge is not evidence of a production or store release.
 - **Local data:** local Docker database observations in this document are explicitly labeled. They are not evidence of production catalog contents.
 
 ## Current architecture
@@ -194,7 +194,7 @@ Ecto migrations are the schema source of truth. Important conceptual groups are:
 
 The foundation begins at `apps/phoenix/priv/repo/migrations/20260324130500_create_foundation_tables.exs`; leaderboard state is introduced by `apps/phoenix/priv/repo/migrations/20260815160000_create_leaderboard_foundation.exs` and extended by `apps/phoenix/priv/repo/migrations/20260817150000_enable_sum_all_weekly_scoring.exs` and `apps/phoenix/priv/repo/migrations/20260817160000_add_overall_quests_leaderboard.exs`. Do not infer current schema from `packages/db`.
 
-At verification time the local development database was migrated through the Solution Hunt migration and Phoenix `/ready` returned successfully. Production remains on the release boundary above until this branch is deployed and its migration runs.
+At verification time the local development database was migrated through the Solution Hunt migration and Phoenix `/ready` returned successfully. Production remains on the release boundary above until the PR #285 result is deployed and its migration runs.
 
 ## Deployment and releases
 
@@ -202,7 +202,7 @@ At verification time the local development database was migrated through the Sol
 - **Production services:** `adventure-time-tcg-api`, PostgreSQL 16, and MinIO run as the `adventure-time-tcg` Podman pod through Quadlet/systemd. Host-only ports are 4200 for Phoenix, 5434 for PostgreSQL, and 9100/9101 for MinIO API/console.
 - **Persistence:** production PostgreSQL and MinIO data live under `/srv/adventure-time-tcg`. Runtime environment files and signing credentials live outside source control.
 - **Backend/web delivery:** `.github/workflows/deploy-phoenix.yml` builds an immutable GHCR image containing the Vite bundle and Phoenix release, deploys the selected SHA over SSH, renders container env files, runs `AdventureTimeApi.Release.migrate`, installs/restarts Quadlets, then checks API and media readiness.
-- **CI:** `.github/workflows/ci.yml` conditionally runs infrastructure tests, workspace typechecks/builds/web tests, Phoenix tests, and container validation. Run `32044367068` passed for the pre-Solution-Hunt mainline; this working branch has not run in GitHub CI.
+- **CI:** `.github/workflows/ci.yml` conditionally runs infrastructure tests, workspace typechecks/builds/web tests, Phoenix tests, and container validation. Run `32044367068` passed for the pre-Solution-Hunt mainline; PR #285 carries the Solution Hunt CI validation.
 - **Mobile version:** `apps/mobile/package.json`, `apps/mobile/app.json`, Android `versionName`, and iOS `CFBundleShortVersionString` are 1.0.28. iOS `CFBundleVersion` is 63. EAS uses remote app-version state and production auto-increment; Android's checked-in `versionCode 1` is therefore not the released build number.
 - **Mobile release:** `scripts/release-mobile.mjs` orchestrates one or both platforms. Android builds a local AAB, submits through EAS/Google Play, requires a release note, and updates Play release notes. iOS builds a local IPA and uploads directly with Apple's `xcrun altool` and App Store Connect API credentials. Successful releases create annotated per-platform Git tags.
 - **Environment convention:** Phoenix uses `apps/phoenix/.env`, mobile uses `apps/mobile/.env`, and production secrets are supplied through external runtime env files. No secret value belongs in this document.
@@ -210,9 +210,9 @@ At verification time the local development database was migrated through the Sol
 
 ## Completed recently
 
-- **2026-08-18 — Expo 57 patch alignment (working branch):** Expo, Expo Router, and nine related native modules were aligned with the current SDK 57 compatibility matrix; root workspace overrides, npm resolution, and the iOS Pod lock were refreshed. Expo Doctor passes 20/20 checks, the dependency tree is deduplicated, and the lockfile mobile workspace version now matches 1.0.28.
-- **2026-08-18 — Daily Numbers Solution Hunt (working branch):** completed ranked puzzles expose an optional no-reward/no-leaderboard replay mode. Phoenix canonicalizes associative/commutative addition and multiplication, enumerates and persists the complete solution set once on the challenge's first state load, records the accepted deterministic generation attempt for cheap reconstruction, tracks idempotent per-user discoveries, safely covers a challenge generated before deployment, and bounds future puzzle generation by a configurable solution-count range. The authoritative response numbers player solutions by discovery order and remaining solutions by stable canonical order; mobile and web show each route in a collapsed entry, hide the remaining set behind a reveal, and keep submissions on a separate endpoint. Hunt play replaces the ranked timer display with “Solution found” once a discovery exists.
-- **2026-08-17 — leaderboard profile compatibility and log hygiene (working branch):** public-profile summaries omit derived-overall rows so installed clients whose board enum predates `overall/all-quests` can still render profiles; scheduled reconciliation no longer warns for the expected `result_window_closed` outcome. Focused Phoenix regression tests cover both behaviors.
+- **2026-08-18 — Expo 57 patch alignment (PR #285):** Expo, Expo Router, and nine related native modules were aligned with the current SDK 57 compatibility matrix; root workspace overrides, npm resolution, and the iOS Pod lock were refreshed. Expo Doctor passes 20/20 checks, the dependency tree is deduplicated, and the lockfile mobile workspace version now matches 1.0.28.
+- **2026-08-18 — Daily Numbers Solution Hunt (PR #285):** completed ranked puzzles expose an optional no-reward/no-leaderboard replay mode. Phoenix canonicalizes associative/commutative addition and multiplication, enumerates and persists the complete solution set once on the challenge's first state load, records the accepted deterministic generation attempt for cheap reconstruction, tracks idempotent per-user discoveries, safely covers a challenge generated before deployment, and bounds future puzzle generation by a configurable solution-count range. The authoritative response numbers player solutions by discovery order and remaining solutions by stable canonical order; mobile and web show each route in a collapsed entry, hide the remaining set behind a reveal, and keep submissions on a separate endpoint. Hunt play replaces the ranked timer display with “Solution found” once a discovery exists.
+- **2026-08-17 — leaderboard profile compatibility and log hygiene (mainline):** public-profile summaries omit derived-overall rows so installed clients whose board enum predates `overall/all-quests` can still render profiles; scheduled reconciliation no longer warns for the expected `result_window_closed` outcome. Focused Phoenix regression tests cover both behaviors.
 - **2026-08-17 — mobile 1.0.28:** version bump, Expo 57 Hermes lock refresh, Android release build metaspace adjustment, and iOS/Android store release tags (`553e6cf1`, `cb52ae17`, `f7bd214d`, merge PR #283 at `580c832e`).
 - **2026-08-17 — Daily Numbers ranking time:** rankings now use the saved quest's client chronometer instead of the server interval accidentally created by opening the screen; zero-minute formatting was improved (`ef44b0ef`, `4f084c98`, PR #282). Production Phoenix deploy `a49bcf0…` includes this work.
 - **2026-08-17 — live and overall leaderboards:** live Daily/Weekly periods, all-eligible weekly sums, history cutoff behavior, latest Speed Calculus reconciliation, all-quests aggregate, explanations, and focused tests/flows (`6f81d791`, `5f8b08b7`, `dc63807a`, PRs #277/#278/#280).
