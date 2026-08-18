@@ -2,8 +2,8 @@
 
 Last verified: 2026-08-18
 Repository: `Zax-code/adventure-time-tcg`
-Branch: `codex/mobile-release-20260818`
-Verified commit: `ea35255a`
+Branch: `codex/daily-numbers-ui-redesign` via pull request #244
+Verified commit: `38bef4e0` plus the current merge resolution
 
 ## Purpose and authority
 
@@ -34,7 +34,6 @@ Phoenix, PostgreSQL, and MinIO are the production backend. The Fastify app in `a
 
 - **Production backend and website:** the `Deploy Phoenix` workflow completed successfully for `afaf4875be27a9185d4332b92eb32383c932195c` on 2026-08-18 (GitHub Actions run `32151688930`). That revision includes Daily Numbers visible-step deduplication, player-solution translation/recovery, and migration `20260818190000`.
 - **Mobile:** annotated tags `mobile/android/1.0.30` and `mobile/ios/1.0.30` both resolve to `ea35255a631b43cb8f312beea8f6604bbf0fa690`, with release timestamps on 2026-08-18. Android version code 52 was accepted on the Google Play closed-testing track, and iOS build 65 was uploaded and validated by App Store Connect. The release note is “Improves Speed Calculus multi-touch input and simplifies the session countdown.”
-- **Not released:** open pull request #244, “Redesign the Daily Numbers in-game UI,” is not on `main`. The tracked native redesign workspace under `docs/design` is a design specification, not evidence of implemented or released application changes.
 - **Local data:** local Docker database observations in this document are explicitly labeled. They are not evidence of production catalog contents.
 
 ## Current architecture
@@ -209,13 +208,14 @@ At verification time the local development and test databases and production wer
 
 ## Completed recently
 
+- **2026-08-18 — stale PR reconciliation (#244, #286, #291):** the 1.0.30 release record and historical 1.0.29 record were merged without downgrading current mobile metadata. The July Daily Numbers redesign branch was reconciled against the evolved Solution Hunt, result animation, sharing, navigation, and timing implementation; current gameplay behavior remains authoritative, while its still-relevant shared-button accessibility-state fallback was retained. Orphaned prototype-only helpers and Maestro flows were not carried into current source.
 - **2026-08-18 — mobile 1.0.29:** Daily Numbers Solution Hunt shipped to both mobile platforms. Android version code 51 was submitted to Google Play and iOS build 64 was validated by App Store Connect; tags `mobile/android/1.0.29` and `mobile/ios/1.0.29` point to `baf3904e`. This historical release was superseded later the same day by mobile 1.0.30.
 - **2026-08-18 — mobile 1.0.30:** Speed Calculus now routes simultaneous keypad contacts independently, the initial session countdown relies on its ring without incorrect resume/seconds copy, and focused Appium checks passed on fresh iOS and Android builds. Android version code 52 was accepted on the Google Play closed-testing track and iOS build 65 was validated in App Store Connect; tags `mobile/android/1.0.30` and `mobile/ios/1.0.30` point to `ea35255a`.
 - **2026-08-18 — Speed Calculus multi-touch validation:** an E2E-only route now hosts the production answer box and keypad for a focused Appium 3 test. A fresh iOS simulator build registered 20/20 two-finger inputs across 0/1/4/8/16 ms pointer offsets, and a fresh Android emulator build registered 20/20 synchronized two-finger inputs. UiAutomator2 cannot synthesize staggered pointer downs as one valid Android multi-touch event, so Android coverage intentionally uses a 0 ms action tick.
 - **2026-08-18 — Daily Numbers player-solution translation (PR #288):** solver output and player submissions now derive visible-step identity from the same canonical AST materialization. The version-3 lazy upgrade atomically replaces disposable official rows, translates retained player submissions, and reconstructs exact ranked attempts. Production deploy `afaf4875`/`32151688930` passed API/media readiness; all 2026-08-18 exact ranked attempts were represented after upgrade.
 - **2026-08-18 — Daily Numbers visible-step deduplication (PR #287):** solution sets now count deterministic visible operation traces rather than structurally distinct ASTs that present the same calculations. Migration `20260818190000` and lazy version-2 replacement are deployed at `af4e0bfd`; the verified 2026-08-18 production totals are 17/81/4 for modes 1-5/2-4/3-3.
 - **2026-08-18 — deterministic leaderboard reconciliation time (PR #285):** historical or explicitly timed reconciliation now propagates its supplied `now` value through result synchronization instead of consulting the wall clock again. Date-sensitive leaderboard tests pin source timestamps and derive controller snapshot dates from the current day, so cutoff scenarios no longer expire as the calendar advances.
-- **2026-08-18 — Expo 57 patch alignment (PR #285):** Expo, Expo Router, and nine related native modules were aligned with the current SDK 57 compatibility matrix; root workspace overrides, npm resolution, and the iOS Pod lock were refreshed. Expo Doctor passes 20/20 checks, the dependency tree is deduplicated, and the lockfile mobile workspace version now matches 1.0.28.
+- **2026-08-18 — Expo 57 patch alignment (PR #285):** Expo, Expo Router, and nine related native modules were aligned with the current SDK 57 compatibility matrix; root workspace overrides, npm resolution, and the iOS Pod lock were refreshed. Expo Doctor passes 20/20 checks, the dependency tree is deduplicated, and the lockfile mobile workspace version matches 1.0.30.
 - **2026-08-18 — Daily Numbers Solution Hunt (PR #285):** completed ranked puzzles expose an optional no-reward/no-leaderboard replay mode. Phoenix canonicalizes associative/commutative addition and multiplication, enumerates and persists the complete solution set once on the challenge's first state load, records the accepted deterministic generation attempt for cheap reconstruction, tracks idempotent per-user discoveries, safely covers a challenge generated before deployment, and bounds future puzzle generation by a configurable solution-count range. The authoritative response numbers player solutions by discovery order and remaining solutions by stable canonical order; mobile and web show each route in a collapsed entry, hide the remaining set behind a reveal, and keep submissions on a separate endpoint. Hunt play replaces the ranked timer display with “Solution found” once a discovery exists.
 - **2026-08-17 — leaderboard profile compatibility and log hygiene (mainline):** public-profile summaries omit derived-overall rows so installed clients whose board enum predates `overall/all-quests` can still render profiles; scheduled reconciliation no longer warns for the expected `result_window_closed` outcome. Focused Phoenix regression tests cover both behaviors.
 - **2026-08-17 — mobile 1.0.28:** version bump, Expo 57 Hermes lock refresh, Android release build metaspace adjustment, and iOS/Android store release tags (`553e6cf1`, `cb52ae17`, `f7bd214d`, merge PR #283 at `580c832e`).
@@ -228,9 +228,8 @@ At verification time the local development and test databases and production wer
 
 ## Work currently in progress
 
-- **IN PROGRESS — Daily Numbers UI redesign:** pull request #244 (`codex/daily-numbers-ui-redesign` → `main`) remains open. It was last updated 2026-07-14, before later Daily Numbers and leaderboard work; current merge/rebase fitness was not established.
 - **PLANNED — broader native redesign:** `docs/design/adventure-time-tcg-redesign.pen` and `docs/design/adventure-time-tcg-redesign-assets/` preserve a native-app baseline, three visual directions, a recommended “Tournament Companion” direction, design-system guidance, and handoff notes. No corresponding application-code implementation was found; the handoff explicitly leaves behavior changes subject to product approval.
-- No other open pull request was returned by the repository query. GitHub issue #256 is PLANNED exploration, not active implementation.
+- No open pull request remains after reconciling #244, #286, and #291. GitHub issue #256 is PLANNED exploration, not active implementation.
 
 ## Known issues and technical debt
 
@@ -265,11 +264,8 @@ At verification time the local development and test databases and production wer
 
 1. **Reconcile stale operational prose.** Why: README release instructions no longer match the iOS script. Dependencies: none. Completion: release, translation, quest-count, and Speed Calculus documentation matches executable configuration.
 2. **Define and enforce the media replacement/validation lifecycle.** Why: current upload paths accept unvalidated card/profile bytes and leave MinIO objects behind after replacement/deletion. Dependencies: owner decision on retention and accepted formats/limits. Completion: documented policy, validated uploads, object cleanup/reconciliation, and tests for replacement/account deletion.
-3. **Triage pull request #244 against current Daily Numbers.** Why: it is the only open implementation PR and predates the current game, timing, Expo 57, and leaderboard changes. Dependencies: owner confirmation that the redesign is still desired. Completion: refresh and verify it against current `main`, or close it explicitly.
-
 ## Open questions
 
-- Is pull request #244 still the desired Daily Numbers visual direction, or should it be closed in favor of the current implementation?
 - Should the active website eventually reach mobile feature parity for Rankings, Perfect Timing, full localization, and native-only health capabilities, or is its smaller scope intentional?
 - Is reciprocal card trading a desired product feature? The repository currently establishes gifting only and contains no verified trading plan.
 - What is the required retention/deletion policy for replaced card/profile/catalog objects in MinIO?

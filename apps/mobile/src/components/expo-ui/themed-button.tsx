@@ -155,6 +155,7 @@ function shouldUseFallbackButton(
   preserveChildLayout: boolean | undefined,
   hitSlop: Insets | number | undefined,
   testID: string | undefined,
+  accessibilityState: AccessibilityState | undefined,
   style: ViewStyle | undefined,
 ) {
   if (
@@ -166,7 +167,8 @@ function shouldUseFallbackButton(
     onLongPress ||
     preserveChildLayout ||
     hitSlop != null ||
-    testID
+    testID ||
+    accessibilityState != null
   ) {
     return true;
   }
@@ -402,6 +404,7 @@ export function ThemedExpoButton(props: ThemedExpoButtonProps) {
     onLongPress,
     hitSlop,
     testID,
+    accessibilityState,
     variant,
   } = props;
   const themeName = useThemeStore((state) => state.themeName);
@@ -421,6 +424,7 @@ export function ThemedExpoButton(props: ThemedExpoButtonProps) {
       preserveChildLayout,
       hitSlop,
       testID,
+      accessibilityState,
       style,
     )
   ) {
