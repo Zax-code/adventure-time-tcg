@@ -2,8 +2,8 @@
 
 Last verified: 2026-08-18
 Repository: `Zax-code/adventure-time-tcg`
-Branch: `main`
-Verified commit: `afaf4875`
+Branch: `codex/speed-calculus-appium`
+Verified commit: `0b2a269f` plus the current working tree
 
 ## Purpose and authority
 
@@ -61,7 +61,7 @@ Versions below come from current manifests, lockfiles, native configuration, and
 | Shared TypeScript | Zod `3.25.76`; TypeScript `6.0.3` for mobile/web and `5.9.3` for shared packages in the installed tree |
 | Backend | Elixir `1.19.5` and OTP `28` in CI/release images; Phoenix `1.8.5`, Ecto SQL `3.13.5`, Postgrex `0.22.0`, Bandit `1.10.3`, Oban `2.21.1`, Req `0.5.17`, JOSE `1.11.12`, bcrypt_elixir `3.3.2`, tzdata `1.1.3` |
 | Runtime/data | Node `22.14.0`, PostgreSQL `16-alpine`, MinIO `RELEASE.2025-02-28T09-55-16Z` |
-| Build/release | npm workspaces, EAS local builds, native Xcode/Gradle projects, Maestro, Docker Buildx, GHCR, Phoenix releases |
+| Build/release | npm workspaces, EAS local builds, native Xcode/Gradle projects, Maestro, focused Appium 3 native multi-touch checks, Docker Buildx, GHCR, Phoenix releases |
 | Production infrastructure | Podman Quadlet, systemd, Caddy, GitHub Actions, persistent data under `/srv/adventure-time-tcg` |
 
 The Expo 57 migration and subsequent patch alignment are complete; Expo Doctor passes all 20 checks.
@@ -100,7 +100,7 @@ The Expo 57 migration and subsequent patch alignment are complete; Expo Doctor p
 | Quests | Steps quest | COMPLETE | 10,000-step target, 75 coins, device-health or Fitbit snapshots, mobile sync/background/widget support, and leaderboard result recording | `apps/phoenix/lib/adventure_time_api/quests.ex`; `apps/phoenix/lib/adventure_time_api/health.ex`; `apps/phoenix/lib/adventure_time_api/fitbit.ex` |
 | Quests | Wordle | COMPLETE | Separate English/French deterministic daily words, dictionary validation, six attempts, definitions, 35-coin rewards, sharing, and leaderboards | `apps/phoenix/lib/adventure_time_api/quests.ex`; `apps/phoenix/lib/adventure_time_api/quests/wordle_engine.ex`; Wordle routes/screens/tests |
 | Quests | Daily Numbers | COMPLETE | Deterministic 1-5, 2-4, and 3-3 modes; server-validated arithmetic; score-scaled rewards; one daily result/mode; 30-day archive; mobile/web UI; per-mode and family boards; post-completion Solution Hunt with AST canonicalization plus visible-step equivalence, canonical solution enumeration, and per-user progress | `apps/phoenix/lib/adventure_time_api/quests/daily_numbers_engine.ex`; `apps/phoenix/lib/adventure_time_api/quests/daily_numbers_expression.ex`; `apps/phoenix/lib/adventure_time_api/quests/daily_numbers_solver.ex`; `apps/phoenix/lib/adventure_time_api/quests/daily_numbers_solution_hunt.ex`; Daily Numbers routes/tests |
-| Quests | Speed Calculus | COMPLETE | Three 30-second scored runs, deterministic server questions, pause/resume, server answer scoring, training, cash-out, reward up to 80 coins, and latest-run leaderboard reconciliation | `apps/phoenix/lib/adventure_time_api/quests/speed_calculus_engine.ex`; `apps/phoenix/lib/adventure_time_api/quests.ex`; commit `5f8b08b7` |
+| Quests | Speed Calculus | COMPLETE | Three 30-second scored runs, deterministic server questions, pause/resume, server answer scoring, training, cash-out, reward up to 80 coins, latest-run leaderboard reconciliation, coordinate-routed multi-touch keypad input, a ring-only entry countdown, and focused Appium multi-pointer coverage | `apps/phoenix/lib/adventure_time_api/quests/speed_calculus_engine.ex`; `apps/phoenix/lib/adventure_time_api/quests.ex`; `apps/mobile/src/features/quests/speed-calculus/keypad.tsx`; `apps/mobile/src/features/quests/speed-calculus/keypad-touch.ts`; `apps/mobile/test/appium/speed-calculus-multitouch.mjs`; commit `5f8b08b7` |
 | Quests | Perfect Timing | COMPLETE | Deterministic 3–10 second target, three-attempt state machine, monotonic client measurement with server plausibility checks/recovery, tiered rewards, training/sharing, and leaderboard | `apps/phoenix/lib/adventure_time_api/quests/perfect_timing.ex`; `apps/phoenix/lib/adventure_time_api/quests/perfect_timing_engine.ex`; commit `b40970d` |
 | Rankings | Per-quest leaderboards | COMPLETE | Steps, three Daily Numbers modes, English/French Wordle, Speed Calculus, and Perfect Timing source boards are implemented and deployed | `apps/phoenix/lib/adventure_time_api/leaderboards/boards.ex`; `apps/phoenix/lib/adventure_time_api_web/controllers/leaderboards_controller.ex`; `apps/phoenix/priv/repo/migrations/20260815160000_create_leaderboard_foundation.exs`; deploy `a49bcf0` |
 | Rankings | Family, weekly, daily, history, and overall boards | COMPLETE | Daily Numbers and Wordle family sums, live daily/weekly projections, finalized history, and overall/all-quests are implemented with mobile period/board selectors | `apps/phoenix/lib/adventure_time_api/leaderboards/projection.ex`; `apps/phoenix/lib/adventure_time_api/leaderboards/query.ex`; `apps/phoenix/priv/repo/migrations/20260817150000_enable_sum_all_weekly_scoring.exs`; `apps/phoenix/priv/repo/migrations/20260817160000_add_overall_quests_leaderboard.exs` |
@@ -209,6 +209,7 @@ At verification time the local development and test databases and production wer
 
 ## Completed recently
 
+- **2026-08-18 — Speed Calculus multi-touch validation:** an E2E-only route now hosts the production answer box and keypad for a focused Appium 3 test. A fresh iOS simulator build registered 20/20 two-finger inputs across 0/1/4/8/16 ms pointer offsets, and a fresh Android emulator build registered 20/20 synchronized two-finger inputs. UiAutomator2 cannot synthesize staggered pointer downs as one valid Android multi-touch event, so Android coverage intentionally uses a 0 ms action tick.
 - **2026-08-18 — Daily Numbers player-solution translation (PR #288):** solver output and player submissions now derive visible-step identity from the same canonical AST materialization. The version-3 lazy upgrade atomically replaces disposable official rows, translates retained player submissions, and reconstructs exact ranked attempts. Production deploy `afaf4875`/`32151688930` passed API/media readiness; all 2026-08-18 exact ranked attempts were represented after upgrade.
 - **2026-08-18 — Daily Numbers visible-step deduplication (PR #287):** solution sets now count deterministic visible operation traces rather than structurally distinct ASTs that present the same calculations. Migration `20260818190000` and lazy version-2 replacement are deployed at `af4e0bfd`; the verified 2026-08-18 production totals are 17/81/4 for modes 1-5/2-4/3-3.
 - **2026-08-18 — deterministic leaderboard reconciliation time (PR #285):** historical or explicitly timed reconciliation now propagates its supplied `now` value through result synchronization instead of consulting the wall clock again. Date-sensitive leaderboard tests pin source timestamps and derive controller snapshot dates from the current day, so cutoff scenarios no longer expire as the calendar advances.
