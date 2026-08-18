@@ -1745,18 +1745,19 @@ function FinishStatePanel({
             tc={tc}
           />
           {!solutionHuntProgress.allSolutionsFound ? (
-            <QuestActionButton
-              label={t("quests.dailyNumbers.solutionHuntFindAnother")}
-              onPress={onStartSolutionHunt}
-              backgroundColor={tc.primaryStrong}
-              foregroundColor="#FFFFFF"
-              minHeight={48}
-              style={{ marginTop: 12 }}
-              testID="daily-numbers-solution-hunt-start"
-              accessibilityLabel={t(
-                "quests.dailyNumbers.solutionHuntFindAnother",
-              )}
-            />
+            <View className="mt-3">
+              <QuestActionButton
+                label={t("quests.dailyNumbers.solutionHuntFindAnother")}
+                onPress={onStartSolutionHunt}
+                backgroundColor={tc.primaryStrong}
+                foregroundColor="#FFFFFF"
+                minHeight={48}
+                testID="daily-numbers-solution-hunt-start"
+                accessibilityLabel={t(
+                  "quests.dailyNumbers.solutionHuntFindAnother",
+                )}
+              />
+            </View>
           ) : null}
         </View>
       ) : null}

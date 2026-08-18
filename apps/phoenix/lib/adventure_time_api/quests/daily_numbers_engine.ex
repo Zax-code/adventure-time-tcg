@@ -192,7 +192,12 @@ defmodule AdventureTimeApi.Quests.DailyNumbersEngine do
        ) do
     if solution_hunt_quality_filter?(date_key) do
       exhaustive = DailyNumbersSolver.solve(puzzle.numbers, puzzle.target)
-      puzzle = Map.put(puzzle, :solutionCount, exhaustive.total)
+
+      puzzle =
+        puzzle
+        |> Map.put(:solutionCount, exhaustive.total)
+        |> Map.put(:solutionHuntSolverResult, exhaustive)
+
       next_checks = quality_checks + 1
       next_fallback = better_solution_count_fallback(fallback, puzzle)
 

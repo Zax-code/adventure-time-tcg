@@ -17,9 +17,9 @@ defmodule AdventureTimeApi.Quests.DailyNumbersSolutionSet do
     timestamps(type: :utc_datetime, updated_at: false)
   end
 
-  def changeset(solution_set, attrs) do
+  def changeset(solution_set) do
     solution_set
-    |> change(attrs)
+    |> change()
     |> validate_required([
       :date,
       :mode,

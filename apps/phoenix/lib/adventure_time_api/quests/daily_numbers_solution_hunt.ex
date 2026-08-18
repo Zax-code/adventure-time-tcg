@@ -201,7 +201,10 @@ defmodule AdventureTimeApi.Quests.DailyNumbersSolutionHunt do
   end
 
   defp create_solution_set(date, mode, numbers, puzzle) do
-    solver_result = DailyNumbersSolver.solve(puzzle.numbers, puzzle.target)
+    solver_result =
+      Map.get_lazy(puzzle, :solutionHuntSolverResult, fn ->
+        DailyNumbersSolver.solve(puzzle.numbers, puzzle.target)
+      end)
 
     if solver_result.total == 0 do
       Repo.rollback(:no_daily_numbers_solutions)
@@ -211,8 +214,7 @@ defmodule AdventureTimeApi.Quests.DailyNumbersSolutionHunt do
     now = DateTime.utc_now() |> DateTime.truncate(:second)
 
     solution_set =
-      %DailyNumbersSolutionSet{}
-      |> DailyNumbersSolutionSet.changeset(%{
+      %DailyNumbersSolutionSet{
         date: date,
         mode: mode,
         target: puzzle.target,
@@ -220,7 +222,8 @@ defmodule AdventureTimeApi.Quests.DailyNumbersSolutionHunt do
         generation_attempt: Map.get(puzzle, :generationAttempt, 1),
         solution_count: solver_result.total,
         computation_ms: computation_ms
-      })
+      }
+      |> DailyNumbersSolutionSet.changeset()
       |> Repo.insert!()
 
     rows =

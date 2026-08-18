@@ -52,6 +52,8 @@ defmodule AdventureTimeApi.Quests.DailyNumbersEngineTest do
     for mode <- ["1-5", "2-4", "3-3"] do
       assert {:ok, puzzle} = DailyNumbersEngine.generate_puzzle(mode, ~D[2026-08-19])
       assert puzzle.solutionCount in DailyNumbersEngine.solution_hunt_solution_range()
+      assert puzzle.solutionHuntSolverResult.total == puzzle.solutionCount
+      assert length(puzzle.solutionHuntSolverResult.solutions) == puzzle.solutionCount
       assert puzzle.shortestExactOperationsCount > 2
     end
   end
