@@ -82,6 +82,31 @@ defmodule AdventureTimeApi.Quests.DailyNumbersSolverTest do
     assert length(display_signatures) == MapSet.size(MapSet.new(display_signatures))
   end
 
+  test "player submissions use the solver key after associative canonicalization" do
+    number_tiles = tiles([3, 5, 10, 8, 100, 6])
+    puzzle = %{numbers: Enum.map(number_tiles, &Map.put(&1, :source, "initial")), target: 956}
+
+    player_steps = [
+      %{leftId: "n0", operator: "*", rightId: "n1", resultId: "r0"},
+      %{leftId: "n2", operator: "*", rightId: "r0", resultId: "r1"},
+      %{leftId: "n3", operator: "*", rightId: "n4", resultId: "r2"},
+      %{leftId: "r1", operator: "+", rightId: "r2", resultId: "r3"},
+      %{leftId: "n5", operator: "+", rightId: "r3", resultId: "r4"}
+    ]
+
+    assert {:ok, submission} = DailyNumbersEngine.validate_submission(puzzle, player_steps)
+    assert submission.exact
+
+    matching_solution =
+      number_tiles
+      |> DailyNumbersSolver.solve(puzzle.target)
+      |> Map.fetch!(:solutions)
+      |> Enum.find(&(&1.canonical_key == submission.canonicalKey))
+
+    assert matching_solution
+    assert submission.solutionKey == matching_solution.solution_key
+  end
+
   defp tiles(values) do
     values
     |> Enum.with_index()

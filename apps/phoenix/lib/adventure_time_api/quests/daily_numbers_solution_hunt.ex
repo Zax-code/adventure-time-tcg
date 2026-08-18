@@ -11,6 +11,7 @@ defmodule AdventureTimeApi.Quests.DailyNumbersSolutionHunt do
   require Logger
 
   alias AdventureTimeApi.Quests.{
+    DailyNumbersDailyAttempt,
     DailyNumbersEngine,
     DailyNumbersExpression,
     DailyNumbersSolution,
@@ -21,7 +22,7 @@ defmodule AdventureTimeApi.Quests.DailyNumbersSolutionHunt do
 
   alias AdventureTimeApi.Repo
 
-  @solution_key_version 2
+  @solution_key_version 3
 
   def get_or_create_puzzle(%Date{} = date, mode) do
     lock_key = solution_set_lock_key(date, mode)
@@ -86,10 +87,14 @@ defmodule AdventureTimeApi.Quests.DailyNumbersSolutionHunt do
     end
   end
 
-  def record_solution(user_id, %DailyNumbersSolutionSet{} = solution_set, canonical_key, steps)
-      when is_binary(canonical_key) and is_list(steps) do
-    solution_key = DailyNumbersExpression.solution_key_from_steps(steps)
-
+  def record_solution(
+        user_id,
+        %DailyNumbersSolutionSet{} = solution_set,
+        canonical_key,
+        solution_key,
+        steps
+      )
+      when is_binary(canonical_key) and is_binary(solution_key) and is_list(steps) do
     solution_exists? =
       DailyNumbersSolution
       |> where(
@@ -296,17 +301,63 @@ defmodule AdventureTimeApi.Quests.DailyNumbersSolutionHunt do
       )
       |> Repo.all()
 
+    ranked_attempts =
+      DailyNumbersDailyAttempt
+      |> where(
+        [attempt],
+        attempt.date == ^solution_set.date and attempt.mode == ^solution_set.mode and
+          attempt.completed == true and attempt.exact == true
+      )
+      |> order_by([attempt], asc: attempt.inserted_at, asc: attempt.id)
+      |> Repo.all()
+
+    candidates =
+      Enum.map(discoveries, fn discovery ->
+        %{
+          id: discovery.id,
+          user_id: discovery.user_id,
+          submitted_steps: discovery.submitted_steps,
+          found_at: discovery.found_at,
+          source_order: 0
+        }
+      end) ++
+        Enum.map(ranked_attempts, fn attempt ->
+          %{
+            id: Ecto.UUID.generate(),
+            user_id: attempt.user_id,
+            submitted_steps: attempt.submitted_steps,
+            found_at: with_microsecond_precision(attempt.inserted_at),
+            source_order: 1
+          }
+        end)
+
     upgraded_discoveries =
-      Enum.reduce(discoveries, %{}, fn discovery, unique ->
-        solution_key =
-          DailyNumbersExpression.solution_key_from_steps(discovery.submitted_steps)
+      candidates
+      |> Enum.sort_by(fn candidate ->
+        {DateTime.to_unix(candidate.found_at, :microsecond), candidate.source_order, candidate.id}
+      end)
+      |> Enum.reduce(%{}, fn candidate, unique ->
+        case DailyNumbersEngine.validate_submission(puzzle, candidate.submitted_steps) do
+          {:ok, %{exact: true, solutionKey: solution_key} = submission}
+          when is_binary(solution_key) ->
+            if MapSet.member?(valid_solution_keys, solution_key) do
+              identity = {candidate.user_id, solution_key}
 
-        identity = {discovery.user_id, solution_key}
+              Map.put_new(unique, identity, %{
+                id: candidate.id,
+                user_id: candidate.user_id,
+                solution_set_id: solution_set.id,
+                canonical_key: submission.canonicalKey,
+                solution_key: solution_key,
+                submitted_steps: submission.steps,
+                found_at: candidate.found_at
+              })
+            else
+              Repo.rollback({:untranslatable_daily_numbers_solution, candidate.id})
+            end
 
-        if MapSet.member?(valid_solution_keys, solution_key) do
-          Map.put_new(unique, identity, %{discovery | solution_key: solution_key})
-        else
-          unique
+          _error ->
+            Repo.rollback({:invalid_persisted_daily_numbers_solution, candidate.id})
         end
       end)
       |> Map.values()
@@ -373,6 +424,7 @@ defmodule AdventureTimeApi.Quests.DailyNumbersSolutionHunt do
       solution_key_version: @solution_key_version,
       unique_solutions: solver_result.total,
       discoveries_preserved: length(discovery_rows),
+      ranked_solutions_considered: length(ranked_attempts),
       computation_ms: solver_result.computation_ms
     )
 
@@ -386,6 +438,9 @@ defmodule AdventureTimeApi.Quests.DailyNumbersSolutionHunt do
       Repo.rollback(:daily_numbers_solution_set_puzzle_mismatch)
     end
   end
+
+  defp with_microsecond_precision(%DateTime{microsecond: {value, _precision}} = date_time),
+    do: %{date_time | microsecond: {value, 6}}
 
   defp solution_set_lock_key(date, mode) do
     "daily-numbers-solution-set:#{Date.to_iso8601(date)}:#{mode}"
