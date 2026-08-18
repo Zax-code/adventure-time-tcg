@@ -78,6 +78,25 @@ defmodule AdventureTimeApi.Quests.DailyNumbersExpression do
     |> serialize_canonical()
   end
 
+  @doc """
+  Returns the stable identity of the arithmetic steps a player can see.
+
+  Step order is irrelevant because independent branches may be evaluated in
+  either order. Addition and multiplication operand values are sorted, while
+  subtraction and division remain ordered. Result and tile identifiers are
+  deliberately excluded: identifiers only describe resource provenance, which
+  is not visible when an initial tile and a derived tile have the same value.
+  """
+  def solution_key_from_steps(steps) when is_list(steps) do
+    serialized_steps =
+      steps
+      |> Enum.map(&serialize_solution_step/1)
+      |> Enum.sort()
+      |> Enum.join("|")
+
+    "steps:v1[#{serialized_steps}]"
+  end
+
   def to_storage(expression) do
     case canonicalize(expression) do
       %{type: :number, value: value} ->
@@ -126,5 +145,26 @@ defmodule AdventureTimeApi.Quests.DailyNumbersExpression do
   defp serialize_canonical(%{type: :operation, operator: operator, children: children}) do
     serialized_children = Enum.map_join(children, ",", &serialize_canonical/1)
     "#{operator}(#{serialized_children})"
+  end
+
+  defp serialize_solution_step(step) when is_map(step) do
+    operator = fetch_step_value!(step, :operator)
+    left = fetch_step_value!(step, :leftValue)
+    right = fetch_step_value!(step, :rightValue)
+    result = fetch_step_value!(step, :resultValue)
+
+    {left, right} =
+      if operator in @commutative_operators and right < left,
+        do: {right, left},
+        else: {left, right}
+
+    "#{operator}:#{left}:#{right}:#{result}"
+  end
+
+  defp fetch_step_value!(step, key) do
+    case Map.fetch(step, key) do
+      {:ok, value} -> value
+      :error -> Map.fetch!(step, Atom.to_string(key))
+    end
   end
 end

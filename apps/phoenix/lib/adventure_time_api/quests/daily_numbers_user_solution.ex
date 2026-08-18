@@ -8,6 +8,7 @@ defmodule AdventureTimeApi.Quests.DailyNumbersUserSolution do
     field(:user_id, :binary_id)
     field(:solution_set_id, :binary_id)
     field(:canonical_key, :string)
+    field(:solution_key, :string)
     field(:submitted_steps, {:array, :map}, default: [])
     field(:found_at, :utc_datetime_usec)
   end

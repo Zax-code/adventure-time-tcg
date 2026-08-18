@@ -58,6 +58,30 @@ defmodule AdventureTimeApi.Quests.DailyNumbersSolverTest do
     end)
   end
 
+  test "deduplicates solutions whose visible arithmetic steps only swap equal-valued resources" do
+    number_tiles = tiles([1, 2, 3, 4])
+    result = DailyNumbersSolver.solve(number_tiles, 15)
+
+    display_signatures =
+      Enum.map(result.solutions, fn solution ->
+        {:ok, steps} = DailyNumbersSolver.materialize_steps(solution.expression, number_tiles)
+
+        steps
+        |> Enum.map(fn step ->
+          operands =
+            if step.operator in ["+", "*"],
+              do: Enum.sort([step.leftValue, step.rightValue]),
+              else: [step.leftValue, step.rightValue]
+
+          {step.operator, operands, step.resultValue}
+        end)
+        |> Enum.sort()
+      end)
+
+    assert result.total == 6
+    assert length(display_signatures) == MapSet.size(MapSet.new(display_signatures))
+  end
+
   defp tiles(values) do
     values
     |> Enum.with_index()

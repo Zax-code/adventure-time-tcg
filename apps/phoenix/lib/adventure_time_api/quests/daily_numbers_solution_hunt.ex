@@ -21,6 +21,8 @@ defmodule AdventureTimeApi.Quests.DailyNumbersSolutionHunt do
 
   alias AdventureTimeApi.Repo
 
+  @solution_key_version 2
+
   def get_or_create_puzzle(%Date{} = date, mode) do
     lock_key = solution_set_lock_key(date, mode)
 
@@ -47,9 +49,10 @@ defmodule AdventureTimeApi.Quests.DailyNumbersSolutionHunt do
                       solution_set.generation_attempt
                     ) do
                  {:ok, puzzle} ->
-                   puzzle = Map.put(puzzle, :solutionCount, solution_set.solution_count)
                    numbers = Enum.map(puzzle.numbers, & &1.value)
                    validate_solution_set!(solution_set, numbers, puzzle.target)
+                   solution_set = upgrade_solution_set!(solution_set, puzzle)
+                   puzzle = Map.put(puzzle, :solutionCount, solution_set.solution_count)
                    %{puzzle: puzzle, solution_set: solution_set}
 
                  {:error, reason} ->
@@ -70,8 +73,12 @@ defmodule AdventureTimeApi.Quests.DailyNumbersSolutionHunt do
            lock_solution_set!(lock_key)
 
            case Repo.get_by(DailyNumbersSolutionSet, date: date, mode: mode) do
-             nil -> create_solution_set(date, mode, numbers, puzzle)
-             solution_set -> validate_solution_set!(solution_set, numbers, puzzle.target)
+             nil ->
+               create_solution_set(date, mode, numbers, puzzle)
+
+             solution_set ->
+               validate_solution_set!(solution_set, numbers, puzzle.target)
+               upgrade_solution_set!(solution_set, puzzle)
            end
          end) do
       {:ok, solution_set} -> {:ok, solution_set}
@@ -81,12 +88,14 @@ defmodule AdventureTimeApi.Quests.DailyNumbersSolutionHunt do
 
   def record_solution(user_id, %DailyNumbersSolutionSet{} = solution_set, canonical_key, steps)
       when is_binary(canonical_key) and is_list(steps) do
+    solution_key = DailyNumbersExpression.solution_key_from_steps(steps)
+
     solution_exists? =
       DailyNumbersSolution
       |> where(
         [solution],
         solution.solution_set_id == ^solution_set.id and
-          solution.canonical_key == ^canonical_key
+          solution.solution_key == ^solution_key
       )
       |> Repo.exists?()
 
@@ -102,12 +111,13 @@ defmodule AdventureTimeApi.Quests.DailyNumbersSolutionHunt do
               user_id: user_id,
               solution_set_id: solution_set.id,
               canonical_key: canonical_key,
+              solution_key: solution_key,
               submitted_steps: steps,
               found_at: now
             }
           ],
           on_conflict: :nothing,
-          conflict_target: [:user_id, :solution_set_id, :canonical_key]
+          conflict_target: [:user_id, :solution_set_id, :solution_key]
         )
 
       {:ok, if(inserted_count == 1, do: :new, else: :already_found)}
@@ -143,11 +153,12 @@ defmodule AdventureTimeApi.Quests.DailyNumbersSolutionHunt do
       )
       |> order_by([user_solution],
         asc: user_solution.found_at,
+        asc: user_solution.solution_key,
         asc: user_solution.canonical_key
       )
       |> Repo.all()
 
-    discovered_keys = MapSet.new(discoveries, & &1.canonical_key)
+    discovered_keys = MapSet.new(discoveries, & &1.solution_key)
 
     your_solutions =
       discoveries
@@ -163,7 +174,7 @@ defmodule AdventureTimeApi.Quests.DailyNumbersSolutionHunt do
       |> Repo.all()
       |> Enum.with_index(1)
       |> Enum.reject(fn {solution, _number} ->
-        MapSet.member?(discovered_keys, solution.canonical_key)
+        MapSet.member?(discovered_keys, solution.solution_key)
       end)
       |> Enum.map(fn {solution, number} ->
         expression = DailyNumbersExpression.from_storage(solution.expression)
@@ -221,7 +232,8 @@ defmodule AdventureTimeApi.Quests.DailyNumbersSolutionHunt do
         numbers: numbers,
         generation_attempt: Map.get(puzzle, :generationAttempt, 1),
         solution_count: solver_result.total,
-        computation_ms: computation_ms
+        computation_ms: computation_ms,
+        solution_key_version: @solution_key_version
       }
       |> DailyNumbersSolutionSet.changeset()
       |> Repo.insert!()
@@ -232,6 +244,7 @@ defmodule AdventureTimeApi.Quests.DailyNumbersSolutionHunt do
           id: Ecto.UUID.generate(),
           solution_set_id: solution_set.id,
           canonical_key: solution.canonical_key,
+          solution_key: solution.solution_key,
           expression: DailyNumbersExpression.to_storage(solution.expression),
           inserted_at: now
         }
@@ -250,6 +263,116 @@ defmodule AdventureTimeApi.Quests.DailyNumbersSolutionHunt do
       numbers: inspect(numbers),
       target: puzzle.target,
       unique_solutions: solver_result.total,
+      computation_ms: solver_result.computation_ms
+    )
+
+    solution_set
+  end
+
+  defp upgrade_solution_set!(
+         %DailyNumbersSolutionSet{solution_key_version: version} = solution_set,
+         _puzzle
+       )
+       when version >= @solution_key_version,
+       do: solution_set
+
+  defp upgrade_solution_set!(%DailyNumbersSolutionSet{} = solution_set, puzzle) do
+    previous_version = solution_set.solution_key_version
+    solver_result = DailyNumbersSolver.solve(puzzle.numbers, puzzle.target)
+
+    if solver_result.total == 0 do
+      Repo.rollback(:no_daily_numbers_solutions)
+    end
+
+    valid_solution_keys = MapSet.new(solver_result.solutions, & &1.solution_key)
+
+    discoveries =
+      DailyNumbersUserSolution
+      |> where([discovery], discovery.solution_set_id == ^solution_set.id)
+      |> order_by([discovery],
+        asc: discovery.found_at,
+        asc: discovery.canonical_key,
+        asc: discovery.id
+      )
+      |> Repo.all()
+
+    upgraded_discoveries =
+      Enum.reduce(discoveries, %{}, fn discovery, unique ->
+        solution_key =
+          DailyNumbersExpression.solution_key_from_steps(discovery.submitted_steps)
+
+        identity = {discovery.user_id, solution_key}
+
+        if MapSet.member?(valid_solution_keys, solution_key) do
+          Map.put_new(unique, identity, %{discovery | solution_key: solution_key})
+        else
+          unique
+        end
+      end)
+      |> Map.values()
+
+    DailyNumbersUserSolution
+    |> where([discovery], discovery.solution_set_id == ^solution_set.id)
+    |> Repo.delete_all()
+
+    DailyNumbersSolution
+    |> where([solution], solution.solution_set_id == ^solution_set.id)
+    |> Repo.delete_all()
+
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
+
+    solution_rows =
+      Enum.map(solver_result.solutions, fn solution ->
+        %{
+          id: Ecto.UUID.generate(),
+          solution_set_id: solution_set.id,
+          canonical_key: solution.canonical_key,
+          solution_key: solution.solution_key,
+          expression: DailyNumbersExpression.to_storage(solution.expression),
+          inserted_at: now
+        }
+      end)
+
+    {inserted_count, _rows} = Repo.insert_all(DailyNumbersSolution, solution_rows)
+
+    if inserted_count != solver_result.total do
+      Repo.rollback(:incomplete_daily_numbers_solution_set_upgrade)
+    end
+
+    discovery_rows =
+      Enum.map(upgraded_discoveries, fn discovery ->
+        %{
+          id: discovery.id,
+          user_id: discovery.user_id,
+          solution_set_id: discovery.solution_set_id,
+          canonical_key: discovery.canonical_key,
+          solution_key: discovery.solution_key,
+          submitted_steps: discovery.submitted_steps,
+          found_at: discovery.found_at
+        }
+      end)
+
+    if discovery_rows != [] do
+      Repo.insert_all(DailyNumbersUserSolution, discovery_rows)
+    end
+
+    solution_set =
+      solution_set
+      |> Ecto.Changeset.change(%{
+        solution_key_version: @solution_key_version,
+        solution_count: solver_result.total,
+        computation_ms: round(solver_result.computation_ms)
+      })
+      |> Repo.update!()
+
+    Logger.info("daily numbers solution set canonicalization upgraded",
+      event: "daily_numbers_solver_upgrade",
+      date: Date.to_iso8601(solution_set.date),
+      mode: solution_set.mode,
+      previous_version: previous_version,
+      solution_key_version: @solution_key_version,
+      unique_solutions: solver_result.total,
+      discoveries_preserved: length(discovery_rows),
       computation_ms: solver_result.computation_ms
     )
 

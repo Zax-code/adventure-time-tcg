@@ -102,6 +102,11 @@ defmodule AdventureTimeApi.Quests.DailyNumbersEngine do
            exact: exact,
            canonicalKey:
              if(exact_expression, do: Expression.canonical_key(exact_expression), else: nil),
+           solutionKey:
+             if(exact_expression,
+               do: Expression.solution_key_from_steps(next_state.validated_steps),
+               else: nil
+             ),
            expression:
              if(exact_expression, do: Expression.canonicalize(exact_expression), else: nil),
            score: score,
