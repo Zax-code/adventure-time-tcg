@@ -178,6 +178,7 @@ defmodule AdventureTimeApi.Leaderboards.LifecycleTest do
       step_count: 12_000,
       recorded_for: ~D[2026-08-17]
     })
+    |> with_source_timestamp(~D[2026-08-17])
     |> Repo.insert!()
 
     assert Repo.aggregate(DailyResult, :count) == 0
@@ -207,6 +208,7 @@ defmodule AdventureTimeApi.Leaderboards.LifecycleTest do
       step_count: 18_000,
       recorded_for: ~D[2026-08-23]
     })
+    |> with_source_timestamp(~D[2026-08-23])
     |> Repo.insert!()
 
     assert :ok = Lifecycle.tick(~U[2026-08-24 12:00:00.000000Z])
@@ -488,14 +490,29 @@ defmodule AdventureTimeApi.Leaderboards.LifecycleTest do
       step_count: steps,
       recorded_for: date
     })
+    |> with_source_timestamp(date)
     |> Repo.insert!()
 
-    assert {:ok, _result} = QuestResults.sync(user.id, date, :steps)
+    assert {:ok, _result} =
+             QuestResults.sync(
+               user.id,
+               date,
+               :steps,
+               DateTime.new!(date, ~T[12:00:00], "Etc/UTC")
+             )
   end
 
   defp board_id(key) do
     AdventureTimeApi.Leaderboards.Board
     |> Repo.get_by!(key: key)
     |> Map.fetch!(:id)
+  end
+
+  defp with_source_timestamp(changeset, date) do
+    timestamp = DateTime.new!(date, ~T[12:00:00], "Etc/UTC")
+
+    changeset
+    |> Ecto.Changeset.put_change(:inserted_at, timestamp)
+    |> Ecto.Changeset.put_change(:updated_at, timestamp)
   end
 end
