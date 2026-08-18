@@ -1,5 +1,263 @@
 import { z } from "zod";
 
+export const leaderboardBoardKeySchema = z.enum([
+  "overall/all-quests",
+  "steps/default",
+  "daily-numbers/1-5",
+  "daily-numbers/2-4",
+  "daily-numbers/3-3",
+  "daily-numbers/family",
+  "wordle/fr",
+  "wordle/en",
+  "wordle/family",
+  "speed-calculus/ranked",
+  "perfect-timing/official",
+]);
+
+export const fallbackAvatarKeySchema = z.enum([
+  "finn",
+  "jake",
+  "princess-bubblegum",
+  "marceline",
+  "bmo",
+  "ice-king",
+  "flame-princess",
+  "lumpy-space-princess",
+  "lady-rainicorn",
+  "gunter",
+  "peppermint-butler",
+  "tree-trunks",
+]);
+
+export const leaderboardBoardSchema = z.object({
+  key: leaderboardBoardKeySchema,
+  quest: z.string(),
+  family: z.enum([
+    "overall",
+    "steps",
+    "daily_numbers",
+    "wordle",
+    "speed_calculus",
+    "perfect_timing",
+  ]),
+  mode: z.string(),
+  direction: z.enum(["higher", "lower", "points"]),
+  boardKind: z.enum(["source", "derived_family", "derived_overall"]),
+  rawResultKind: z.string(),
+  enabled: z.boolean(),
+  prizesEnabled: z.boolean(),
+  displayOrder: z.number().int().positive(),
+  members: z.array(leaderboardBoardKeySchema),
+});
+
+export const leaderboardBoardsResponseSchema = z.object({
+  boards: z.array(leaderboardBoardSchema),
+  fallbackAvatarKeys: z.array(fallbackAvatarKeySchema),
+  serverNow: z.string().datetime(),
+});
+
+export const leaderboardPublicIdentitySchema = z.object({
+  publicProfileId: z.string().uuid().nullable(),
+  displayName: z.string().nullable(),
+  discriminator: z.string(),
+  handle: z.string(),
+  avatarUrl: z.string().url().nullable(),
+  fallbackAvatarKey: fallbackAvatarKeySchema,
+  visibility: z.enum(["visible", "hidden", "moderated", "deleted"]),
+});
+
+export const leaderboardRawResultSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("steps"), steps: z.number().int().nonnegative() }),
+  z.object({
+    kind: z.literal("exact_completion_time"),
+    exact: z.boolean(),
+    elapsedMs: z.number().int().nonnegative(),
+  }),
+  z.object({
+    kind: z.literal("wordle_outcome"),
+    outcome: z.enum(["solved", "failed"]),
+    guesses: z.number().int().min(1).max(6),
+  }),
+  z.object({
+    kind: z.literal("correct_answers"),
+    correctAnswers: z.number().int().nonnegative(),
+  }),
+  z.object({
+    kind: z.literal("duration_error_ms"),
+    outcome: z.enum(["success", "miss"]),
+    absoluteErrorMs: z.number().int().nonnegative(),
+    tier: z.string().nullable(),
+  }),
+  z.object({
+    kind: z.literal("member_breakdown"),
+    members: z.record(z.number().int().nonnegative()),
+  }),
+]);
+
+export const leaderboardRowSchema = z.object({
+  position: z.number().int().positive(),
+  rank: z.number().int().positive(),
+  profile: leaderboardPublicIdentitySchema,
+  rawResult: leaderboardRawResultSchema,
+  points: z.number().int().nonnegative(),
+  pointsMilli: z.number().int().nonnegative(),
+  provisional: z.boolean(),
+  medal: z.enum(["gold", "silver", "bronze"]).nullable(),
+});
+
+export const leaderboardPeriodSchema = z.object({
+  type: z.enum(["day", "week"]),
+  status: z.enum(["scheduled", "open", "closing", "closed", "corrected"]),
+  startsAt: z.string().datetime(),
+  endsAt: z.string().datetime(),
+  closesAt: z.string().datetime(),
+  serverNow: z.string().datetime(),
+  revision: z.number().int().nonnegative(),
+  provisional: z.boolean(),
+  competitionDate: z.string().date().nullable(),
+  weekStart: z.string().date().nullable(),
+  weekEnd: z.string().date().nullable(),
+  standingsThrough: z.string().date().nullable(),
+  prizesEnabled: z.boolean(),
+});
+
+export const leaderboardResponseSchema = z.object({
+  board: leaderboardBoardSchema,
+  period: leaderboardPeriodSchema,
+  podium: z.array(leaderboardRowSchema),
+  rows: z.array(leaderboardRowSchema),
+  currentPlayer: leaderboardRowSchema.nullable(),
+  pendingCurrentPlayerResult: leaderboardRawResultSchema.nullable(),
+  pendingCurrentPlayerPoints: z.number().int().min(0).nullable(),
+  qualification: z
+    .object({
+      validResults: z.number().int().nonnegative(),
+      requiredResults: z.literal(1),
+    })
+    .nullable(),
+  pageInfo: z.object({
+    nextCursor: z.string().nullable(),
+    hasNextPage: z.boolean(),
+  }),
+  scoring: z.object({
+    version: z.string(),
+    weeklyRule: z.enum(["sum_all_eligible", "average_best_3"]),
+  }),
+});
+
+export const leaderboardHistoryResponseSchema = z.object({
+  days: z.array(leaderboardResponseSchema),
+  weeks: z.array(leaderboardResponseSchema),
+});
+
+export const leaderboardHistoryDaysResponseSchema = z.object({
+  days: z.array(leaderboardResponseSchema),
+});
+
+export const leaderboardResultExclusionSchema = z.object({
+  reason: z.string().trim().min(8),
+});
+
+export const leaderboardResultExclusionResponseSchema = z.object({
+  id: z.string().uuid(),
+  status: z.literal("excluded"),
+});
+
+export const leaderboardCorrectionPreviewSchema = z
+  .object({
+    reason: z.string().trim().min(8),
+    excludeUserIds: z.array(z.string().uuid()).default([]),
+    excludeDailyResultIds: z.array(z.string().uuid()).default([]),
+  })
+  .refine(
+    (input) =>
+      input.excludeUserIds.length > 0 || input.excludeDailyResultIds.length > 0,
+    "At least one user or daily result must be excluded",
+  );
+
+export const leaderboardCorrectionConfirmSchema = z.object({
+  previewHash: z.string().min(1),
+  confirm: z.literal(true),
+});
+
+export const leaderboardCorrectionResponseSchema = z.object({
+  id: z.string().uuid(),
+  sourceSnapshotId: z.string().uuid(),
+  sourceRevision: z.number().int().positive(),
+  status: z.enum(["previewed", "applied"]),
+  previewHash: z.string(),
+  proposedChanges: z.record(z.unknown()),
+  rankDelta: z.record(z.unknown()),
+  rewardDelta: z.record(z.unknown()),
+  resultingSnapshotId: z.string().uuid().nullable(),
+});
+
+export const publicLeaderboardProfileSchema = z.object({
+  profile: leaderboardPublicIdentitySchema,
+  crowns: z.object({
+    steps: z.number().int().nonnegative(),
+    dailyNumbers: z.number().int().nonnegative(),
+    wordle: z.number().int().nonnegative(),
+    speedCalculus: z.number().int().nonnegative(),
+    perfectTiming: z.number().int().nonnegative(),
+    total: z.number().int().nonnegative(),
+  }),
+  medals: z.object({
+    gold: z.number().int().nonnegative(),
+    silver: z.number().int().nonnegative(),
+    bronze: z.number().int().nonnegative(),
+  }),
+  recentPlacements: z.array(
+    z.object({
+      boardKey: leaderboardBoardKeySchema,
+      weekStart: z.string().date(),
+      rank: z.number().int().positive(),
+      points: z.number().int().nonnegative(),
+      medal: z.enum(["gold", "silver", "bronze"]).nullable(),
+    }),
+  ),
+  personalBests: z.array(
+    z.object({
+      boardKey: leaderboardBoardKeySchema,
+      rawResult: leaderboardRawResultSchema,
+      points: z.number().int().min(0).max(1000),
+    }),
+  ),
+});
+
+export type LeaderboardBoardKey = z.infer<typeof leaderboardBoardKeySchema>;
+export type FallbackAvatarKey = z.infer<typeof fallbackAvatarKeySchema>;
+export type LeaderboardBoard = z.infer<typeof leaderboardBoardSchema>;
+export type LeaderboardBoardsResponse = z.infer<
+  typeof leaderboardBoardsResponseSchema
+>;
+export type LeaderboardRow = z.infer<typeof leaderboardRowSchema>;
+export type LeaderboardResponse = z.infer<typeof leaderboardResponseSchema>;
+export type LeaderboardHistoryResponse = z.infer<
+  typeof leaderboardHistoryResponseSchema
+>;
+export type LeaderboardHistoryDaysResponse = z.infer<
+  typeof leaderboardHistoryDaysResponseSchema
+>;
+export type LeaderboardResultExclusionInput = z.infer<
+  typeof leaderboardResultExclusionSchema
+>;
+export type LeaderboardResultExclusionResponse = z.infer<
+  typeof leaderboardResultExclusionResponseSchema
+>;
+export type LeaderboardCorrectionPreviewInput = z.infer<
+  typeof leaderboardCorrectionPreviewSchema
+>;
+export type LeaderboardCorrectionConfirmInput = z.infer<
+  typeof leaderboardCorrectionConfirmSchema
+>;
+export type LeaderboardCorrectionResponse = z.infer<
+  typeof leaderboardCorrectionResponseSchema
+>;
+export type PublicLeaderboardProfile = z.infer<
+  typeof publicLeaderboardProfileSchema
+>;
+
 export const stepSourceSchema = z.enum(["device_health", "fitbit"]);
 export const localeSchema = z.enum(["en", "fr"]);
 export const notificationPreferencesSchema = z.object({
@@ -625,6 +883,7 @@ export const questSchema = z.object({
   attemptsUsed: z.number().int().nonnegative().optional(),
   runsUsed: z.number().int().nonnegative().optional(),
   maxRuns: z.number().int().nonnegative().optional(),
+  maxAttempts: z.number().int().nonnegative().optional(),
   latestScore: z.number().int().nonnegative().optional(),
   rewardPreview: z.number().int().nonnegative().optional(),
   locked: z.boolean().optional(),
@@ -634,6 +893,12 @@ export const questSchema = z.object({
   distance: z.number().int().nonnegative().optional(),
   finalValue: z.number().int().positive().optional(),
   elapsedMs: z.number().int().nonnegative().optional(),
+  finalized: z.boolean().optional(),
+  finalTier: z
+    .enum(["perfect", "amazing", "great", "close", "miss"])
+    .nullable()
+    .optional(),
+  finalReward: z.number().int().nonnegative().optional(),
   resetByName: z.string().nullable().optional(),
 });
 
@@ -766,6 +1031,20 @@ export const dailyNumbersSubmissionSchema = z.object({
   officialSolutionSteps: z.array(dailyNumbersStepSchema),
 });
 
+export const dailyNumbersSolutionListItemSchema = z.object({
+  number: z.number().int().positive(),
+  steps: z.array(dailyNumbersStepSchema),
+});
+
+export const dailyNumbersSolutionHuntProgressSchema = z.object({
+  available: z.literal(true),
+  solutionsFound: z.number().int().nonnegative(),
+  totalSolutions: z.number().int().positive(),
+  allSolutionsFound: z.boolean(),
+  yourSolutions: z.array(dailyNumbersSolutionListItemSchema),
+  otherSolutions: z.array(dailyNumbersSolutionListItemSchema),
+});
+
 export const dailyNumbersStateResponseSchema = z.object({
   mode: dailyNumbersModeSchema,
   date: z.string(),
@@ -782,6 +1061,7 @@ export const dailyNumbersStateResponseSchema = z.object({
   completed: z.boolean(),
   submitted: z.boolean(),
   submission: dailyNumbersSubmissionSchema.nullable(),
+  solutionHunt: dailyNumbersSolutionHuntProgressSchema.nullable().optional(),
 });
 
 export const dailyNumbersSubmitSchema = z.object({
@@ -790,6 +1070,24 @@ export const dailyNumbersSubmitSchema = z.object({
   questVersion: z.string().optional(),
   elapsedMs: z.number().int().nonnegative().optional(),
   steps: z.array(dailyNumbersStepInputSchema),
+});
+
+export const dailyNumbersSolutionHuntSubmitSchema = z.object({
+  mode: dailyNumbersModeSchema,
+  dateKey: z.string().min(1),
+  questVersion: z.string().optional(),
+  steps: z.array(dailyNumbersStepInputSchema),
+});
+
+export const dailyNumbersSolutionHuntSubmitResponseSchema = z.object({
+  valid: z.literal(true),
+  newSolution: z.boolean(),
+  alreadyFound: z.boolean(),
+  solutionsFound: z.number().int().nonnegative(),
+  totalSolutions: z.number().int().positive(),
+  allSolutionsFound: z.boolean(),
+  yourSolutions: z.array(dailyNumbersSolutionListItemSchema),
+  otherSolutions: z.array(dailyNumbersSolutionListItemSchema),
 });
 
 export const dailyNumbersArchiveStatusSchema = z.enum([
@@ -832,6 +1130,90 @@ export const dailyNumbersArchiveSubmitSchema = z.object({
   dateKey: z.string().min(1),
   elapsedMs: z.number().int().nonnegative().optional(),
   steps: z.array(dailyNumbersStepInputSchema),
+});
+
+export const perfectTimingTierSchema = z.enum([
+  "perfect",
+  "amazing",
+  "great",
+  "close",
+  "miss",
+]);
+
+export const perfectTimingDirectionSchema = z.enum(["early", "late", "exact"]);
+export const perfectTimingStopReasonSchema = z.enum([
+  "manual",
+  "navigation",
+  "background",
+  "server_recovery",
+]);
+export const perfectTimingClientStopReasonSchema =
+  perfectTimingStopReasonSchema.exclude(["server_recovery"]);
+export const perfectTimingAttemptStatusSchema = z.enum([
+  "started",
+  "result",
+  "discarded",
+  "kept",
+  "auto_finalized",
+  "failed",
+]);
+
+export const perfectTimingAttemptSchema = z.object({
+  id: z.string(),
+  attemptNumber: z.number().int().min(1).max(3),
+  targetMs: z.number().int().min(3_000).max(10_000),
+  status: perfectTimingAttemptStatusSchema,
+  stopReason: perfectTimingStopReasonSchema.nullable(),
+  elapsedMs: z.number().int().nonnegative().nullable(),
+  deviationMs: z.number().int().nonnegative().nullable(),
+  direction: perfectTimingDirectionSchema.nullable(),
+  tier: perfectTimingTierSchema.nullable(),
+  reward: z.number().int().min(0).max(100),
+  startedAt: z.string(),
+  completedAt: z.string().nullable(),
+});
+
+export const perfectTimingStateSchema = z.object({
+  date: z.string(),
+  resetTimezone: z.string(),
+  questVersion: z.string(),
+  resetByName: z.string().nullable().optional(),
+  targetMs: z.number().int().min(3_000).max(10_000),
+  maxAttempts: z.literal(3),
+  attemptsUsed: z.number().int().min(0).max(3),
+  remainingAttempts: z.number().int().min(0).max(3),
+  status: z.enum(["ready", "active", "result", "finalized"]),
+  completed: z.boolean(),
+  failed: z.boolean(),
+  finalized: z.boolean(),
+  rewardGranted: z.boolean(),
+  finalReward: z.number().int().min(0).max(100),
+  finalTier: perfectTimingTierSchema.nullable(),
+  finalizedAttemptNumber: z.number().int().min(1).max(3).nullable(),
+  coinBalance: z.number().int().nonnegative(),
+  activeAttempt: perfectTimingAttemptSchema.nullable(),
+  currentResult: perfectTimingAttemptSchema.nullable(),
+  attempts: z.array(perfectTimingAttemptSchema).max(3),
+});
+
+export const perfectTimingStartSchema = z.object({
+  dateKey: z.string().min(1),
+  questVersion: z.string().min(1),
+});
+
+export const perfectTimingStopSchema = perfectTimingStartSchema.extend({
+  attemptId: z.string().min(1),
+  elapsedMs: z.number().int().nonnegative(),
+  stopReason: perfectTimingClientStopReasonSchema,
+});
+
+export const perfectTimingDecisionSchema = perfectTimingStartSchema.extend({
+  attemptId: z.string().min(1),
+});
+
+export const perfectTimingTrainingTargetSchema = z.object({
+  targetMs: z.number().int().min(3_000).max(10_000),
+  officialTargetMs: z.number().int().min(3_000).max(10_000),
 });
 
 export const speedQuestionSchema = z.object({
@@ -1319,11 +1701,24 @@ export const webAuthConfigSchema = z.object({
     .nullable(),
 });
 
+export const accessAssessmentChallengeSchema = z.object({
+  kind: z.literal("play_integrity_standard"),
+  token: z.string().min(1),
+  requestHash: z.string().min(1),
+  expiresAt: z.string().min(1),
+});
+
+export const submitAccessRequestIntegritySchema = z.object({
+  challengeToken: z.string().min(1),
+  integrityToken: z.string().min(1),
+});
+
 export const registerResponseSchema = z.object({
   success: z.boolean(),
   message: z.string(),
   authorized: z.boolean(),
   accessRequestPending: z.boolean(),
+  assessmentChallenge: accessAssessmentChallengeSchema.optional(),
   devCode: z.string().optional(),
 });
 
@@ -1402,6 +1797,12 @@ export type AuthResponse = z.infer<typeof authResponseSchema>;
 export type WebSessionResponse = z.infer<typeof webSessionResponseSchema>;
 export type WebAuthConfig = z.infer<typeof webAuthConfigSchema>;
 export type RegisterResponse = z.infer<typeof registerResponseSchema>;
+export type AccessAssessmentChallenge = z.infer<
+  typeof accessAssessmentChallengeSchema
+>;
+export type SubmitAccessRequestIntegrityInput = z.infer<
+  typeof submitAccessRequestIntegritySchema
+>;
 export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;
 export type VerifyEmailResponse = z.infer<typeof verifyEmailResponseSchema>;
 export type ResendVerificationInput = z.infer<typeof resendVerificationSchema>;
@@ -1456,10 +1857,22 @@ export type DailyNumbersStep = z.infer<typeof dailyNumbersStepSchema>;
 export type DailyNumbersSubmission = z.infer<
   typeof dailyNumbersSubmissionSchema
 >;
+export type DailyNumbersSolutionListItem = z.infer<
+  typeof dailyNumbersSolutionListItemSchema
+>;
 export type DailyNumbersStateResponse = z.infer<
   typeof dailyNumbersStateResponseSchema
 >;
 export type DailyNumbersSubmitInput = z.infer<typeof dailyNumbersSubmitSchema>;
+export type DailyNumbersSolutionHuntProgress = z.infer<
+  typeof dailyNumbersSolutionHuntProgressSchema
+>;
+export type DailyNumbersSolutionHuntSubmitInput = z.infer<
+  typeof dailyNumbersSolutionHuntSubmitSchema
+>;
+export type DailyNumbersSolutionHuntSubmitResponse = z.infer<
+  typeof dailyNumbersSolutionHuntSubmitResponseSchema
+>;
 export type DailyNumbersArchiveStatus = z.infer<
   typeof dailyNumbersArchiveStatusSchema
 >;
@@ -1477,6 +1890,26 @@ export type DailyNumbersArchiveStateResponse = z.infer<
 >;
 export type DailyNumbersArchiveSubmitInput = z.infer<
   typeof dailyNumbersArchiveSubmitSchema
+>;
+export type PerfectTimingTier = z.infer<typeof perfectTimingTierSchema>;
+export type PerfectTimingDirection = z.infer<
+  typeof perfectTimingDirectionSchema
+>;
+export type PerfectTimingStopReason = z.infer<
+  typeof perfectTimingStopReasonSchema
+>;
+export type PerfectTimingClientStopReason = z.infer<
+  typeof perfectTimingClientStopReasonSchema
+>;
+export type PerfectTimingAttempt = z.infer<typeof perfectTimingAttemptSchema>;
+export type PerfectTimingState = z.infer<typeof perfectTimingStateSchema>;
+export type PerfectTimingStartInput = z.infer<typeof perfectTimingStartSchema>;
+export type PerfectTimingStopInput = z.infer<typeof perfectTimingStopSchema>;
+export type PerfectTimingDecisionInput = z.infer<
+  typeof perfectTimingDecisionSchema
+>;
+export type PerfectTimingTrainingTarget = z.infer<
+  typeof perfectTimingTrainingTargetSchema
 >;
 export type WordleDefinitionVariant = z.infer<
   typeof wordleDefinitionVariantSchema
@@ -1637,6 +2070,98 @@ export const allowedEmailsResponseSchema = z.object({
   emails: z.array(allowedEmailSchema),
 });
 
+const accessAssessmentNetworkSchema = z.object({
+  maskedIpAddress: z.string().nullable(),
+  googleNetwork: z.enum(["matched", "not_matched", "unknown"]),
+  testLab: z.enum(["matched", "not_matched", "unknown"]),
+  testLabMatchedCidr: z.string().nullable(),
+  testLabRangeVersion: z.string().nullable(),
+  googleMatchedCidr: z.string().nullable(),
+  googleRangeVersion: z.string().nullable(),
+  testLabRangeStale: z.boolean().nullable(),
+  googleRangeStale: z.boolean().nullable(),
+  organization: z.string().nullable(),
+  asn: z.number().int().nullable(),
+  countryCode: z.string().nullable(),
+  connectionType: z.string().nullable(),
+  vpn: z.boolean().nullable(),
+  proxy: z.boolean().nullable(),
+  hosting: z.boolean().nullable(),
+  tor: z.boolean().nullable(),
+});
+
+const accessAssessmentContributionSchema = z.object({
+  key: z.enum([
+    "play_integrity",
+    "identity",
+    "continuity",
+    "client",
+    "ip_intelligence",
+  ]),
+  weight: z.number().int(),
+  value: z.number().int(),
+  effectFromNeutral: z.number().nullable(),
+  reasonCodes: z.array(z.string()),
+  explanations: z.array(z.string()),
+  observedAt: z.string().nullable(),
+  hardFailure: z.boolean(),
+  modelVersion: z.string(),
+});
+
+const accessAssessmentBase = {
+  heuristic: z.literal(true),
+  modelVersion: z.string(),
+  platformProfile: z.enum(["android", "ios", "web", "unknown"]),
+  network: accessAssessmentNetworkSchema,
+  assessedAt: z.string().nullable(),
+};
+
+export const accessAssessmentSchema = z.discriminatedUnion("state", [
+  z.object({
+    ...accessAssessmentBase,
+    state: z.literal("assessing"),
+    coverage: z.number().int().nullable(),
+    missingReasons: z.array(z.string()),
+    hardFailureReasons: z.array(z.string()),
+  }),
+  z.object({
+    ...accessAssessmentBase,
+    state: z.literal("complete"),
+    confidence: z.number().int().min(0).max(100),
+    coverage: z.number().int().min(0).max(100),
+    band: z.enum(["stronger", "mixed", "concerning"]),
+    contributions: z.array(accessAssessmentContributionSchema),
+    missingReasons: z.array(z.string()),
+    hardFailureReasons: z.array(z.string()),
+  }),
+  z.object({
+    ...accessAssessmentBase,
+    state: z.literal("partial"),
+    confidence: z.number().int().min(0).max(100),
+    coverage: z.number().int().min(0).max(100),
+    band: z.enum(["stronger", "mixed", "concerning"]),
+    contributions: z.array(accessAssessmentContributionSchema),
+    missingReasons: z.array(z.string()),
+    hardFailureReasons: z.array(z.string()),
+  }),
+  z.object({
+    ...accessAssessmentBase,
+    state: z.literal("unavailable"),
+    coverage: z.number().int().nullable(),
+    missingReasons: z.array(z.string()),
+    hardFailureReasons: z.array(z.string()),
+  }),
+  z.object({
+    ...accessAssessmentBase,
+    state: z.literal("test_lab"),
+  }),
+]);
+
+export const accessRequestIpRevealResponseSchema = z.object({
+  ipAddress: z.string(),
+  retainedUntil: z.string().nullable(),
+});
+
 export const emailAccessRequestSchema = z.object({
   id: z.string(),
   email: z.string().email(),
@@ -1644,17 +2169,14 @@ export const emailAccessRequestSchema = z.object({
   hasAccount: z.boolean(),
   createdAt: z.string(),
   provider: z.string().nullable().optional(),
-  providerSubjectHash: z.string().nullable().optional(),
   googleName: z.string().nullable().optional(),
   googlePictureUrl: z.string().nullable().optional(),
   lastRequestId: z.string().nullable().optional(),
-  lastIpAddress: z.string().nullable().optional(),
   lastUserAgent: z.string().nullable().optional(),
   lastAcceptLanguage: z.string().nullable().optional(),
   lastClientPlatform: z.string().nullable().optional(),
   lastClientAppVersion: z.string().nullable().optional(),
   lastClientBuildNumber: z.string().nullable().optional(),
-  lastInstallationIdHash: z.string().nullable().optional(),
   lastAttestationStatus: z.string().nullable().optional(),
   lastSeenAt: z.string().nullable().optional(),
   attemptCount: z.number().int().nonnegative().optional(),
@@ -1667,17 +2189,16 @@ export const emailAccessRequestSchema = z.object({
         statusCode: z.number().int().nullable().optional(),
         errorCode: z.string().nullable().optional(),
         requestId: z.string().nullable().optional(),
-        ipAddress: z.string().nullable().optional(),
         userAgent: z.string().nullable().optional(),
         clientPlatform: z.string().nullable().optional(),
         clientAppVersion: z.string().nullable().optional(),
         clientBuildNumber: z.string().nullable().optional(),
-        installationIdHash: z.string().nullable().optional(),
         attestationStatus: z.string().nullable().optional(),
         createdAt: z.string(),
       }),
     )
     .optional(),
+  assessment: accessAssessmentSchema.nullable().optional(),
 });
 
 export const emailAccessRequestsResponseSchema = z.object({
@@ -1718,14 +2239,16 @@ export type AdminUserDetail = z.infer<typeof adminUserDetailSchema>;
 export type AdminUserDeleteResponse = z.infer<
   typeof adminUserDeleteResponseSchema
 >;
-export type AccountDeleteResponse = z.infer<
-  typeof accountDeleteResponseSchema
->;
+export type AccountDeleteResponse = z.infer<typeof accountDeleteResponseSchema>;
 export type AdminUserQuestResetResponse = z.infer<
   typeof adminUserQuestResetResponseSchema
 >;
 export type AllowedEmailsResponse = z.infer<typeof allowedEmailsResponseSchema>;
 export type EmailAccessRequestsResponse = z.infer<
   typeof emailAccessRequestsResponseSchema
+>;
+export type AccessAssessment = z.infer<typeof accessAssessmentSchema>;
+export type AccessRequestIpRevealResponse = z.infer<
+  typeof accessRequestIpRevealResponseSchema
 >;
 export type PvpSpectateResponse = z.infer<typeof pvpSpectateResponseSchema>;

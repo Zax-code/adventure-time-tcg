@@ -19,6 +19,7 @@ defmodule AdventureTimeApi.Accounts.AuthAttempt do
     field(:error_code, :string)
     field(:request_id, :string)
     field(:ip_address, :string)
+    field(:canonical_ip, AdventureTimeApi.NetworkAddress.Type)
     field(:user_agent, :string)
     field(:accept_language, :string)
     field(:client_platform, :string)
@@ -28,12 +29,16 @@ defmodule AdventureTimeApi.Accounts.AuthAttempt do
     field(:attestation_status, :string)
     field(:metadata, :map, default: %{})
 
+    belongs_to(:email_access_request, AdventureTimeApi.Accounts.EmailAccessRequest)
+
     timestamps(type: :utc_datetime, updated_at: false)
   end
 
   def changeset(auth_attempt, attrs) do
+    email_access_request_id = attrs[:email_access_request_id]
+
     auth_attempt
-    |> cast(attrs, [
+    |> cast(Map.delete(attrs, :email_access_request_id), [
       :event_type,
       :provider,
       :email,
@@ -46,6 +51,7 @@ defmodule AdventureTimeApi.Accounts.AuthAttempt do
       :error_code,
       :request_id,
       :ip_address,
+      :canonical_ip,
       :user_agent,
       :accept_language,
       :client_platform,
@@ -55,10 +61,17 @@ defmodule AdventureTimeApi.Accounts.AuthAttempt do
       :attestation_status,
       :metadata
     ])
+    |> maybe_put_access_request_id(email_access_request_id)
     |> validate_required([:event_type])
     |> update_change(:email, fn
       nil -> nil
       email -> String.downcase(email)
     end)
+  end
+
+  defp maybe_put_access_request_id(changeset, nil), do: changeset
+
+  defp maybe_put_access_request_id(changeset, email_access_request_id) do
+    put_change(changeset, :email_access_request_id, email_access_request_id)
   end
 end

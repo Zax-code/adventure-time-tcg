@@ -24,8 +24,8 @@ import { ApiClientError, apiClient } from "../../../src/lib/api";
 import { useTranslation } from "../../../src/i18n";
 import { PageLoadingState } from "../../../src/components/loading-state";
 import { PageErrorState } from "../../../src/components/error-state";
+import { navigateBackFromQuest } from "../../../src/features/quests/quest-navigation";
 import {
-  navigateBackFromQuest,
   QuestScreenDescription,
   QuestScreenHeader,
 } from "../../../src/features/quests/quest-screen-header";
@@ -226,15 +226,14 @@ function useSpeedCalculusScreenView() {
     pauseRemainingSecondsRef.current = nextRun.pauseRemainingSeconds;
     setRemainingSeconds(nextRun.remainingSeconds);
     setPauseRemainingSeconds(nextRun.pauseRemainingSeconds);
-    setState((prev) => {
-      if (!prev?.activeRun || prev.activeRun.runId !== nextRun.runId) {
-        return prev;
-      }
+    const currentState = stateRef.current;
+    if (!currentState?.activeRun || currentState.activeRun.runId !== nextRun.runId) {
+      return;
+    }
 
-      const next = { ...prev, activeRun: nextRun };
-      stateRef.current = next;
-      return next;
-    });
+    const nextState = { ...currentState, activeRun: nextRun };
+    stateRef.current = nextState;
+    setState(nextState);
   }, []);
 
   reactEffect(() => {
@@ -587,19 +586,20 @@ function useSpeedCalculusScreenView() {
   }, [queryClient, syncLoadedState, t]);
 
   const claimReward = useCallback(async () => {
-    const questVersion = stateRef.current?.questVersion;
+    const currentState = stateRef.current;
+    const questVersion = currentState?.questVersion;
     if (!questVersion || submitting) return;
 
     setSubmitting(true);
     try {
       const response = await apiClient.claimQuest({ questId: questVersion });
       await patchUser({ coins: response.newBalance });
-      setState((current) => {
-        if (!current) return current;
-        const next = { ...current, claimed: true };
-        stateRef.current = next;
-        return next;
-      });
+      const latestState = stateRef.current;
+      if (latestState) {
+        const nextState = { ...latestState, claimed: true };
+        stateRef.current = nextState;
+        setState(nextState);
+      }
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["quests"] }),
         queryClient.invalidateQueries({ queryKey: ["home"] }),
@@ -607,7 +607,7 @@ function useSpeedCalculusScreenView() {
       setToast({
         type: "success",
         message: t("quests.claimSuccess", {
-          amount: stateRef.current?.rewardPreview ?? 0,
+          amount: latestState?.rewardPreview ?? currentState?.rewardPreview ?? 0,
         }),
       });
     } catch (error) {

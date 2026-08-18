@@ -1,0 +1,33 @@
+appId: love.leaetzak.adventuretime
+name: Collection animation lifecycle
+tags:
+  - collection
+  - performance
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- openLink:
+    link: adventure-time:///e2e-auth?redirect=%2Fcollection&email=${TEST_EMAIL_URI}&password=${TEST_PASSWORD_URI}
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- assertVisible:
+    id: collection-card-tile-0
+- repeat:
+    times: 8
+    commands:
+      - swipe:
+          start: "50%,80%"
+          end: "50%,25%"
+          duration: 250
+- tapOn:
+    id: tab-home
+- assertVisible:
+    id: app-header-settings-button
+- tapOn:
+    id: tab-packs
+- assertVisible:
+    id: pack-storefront
+- tapOn:
+    id: tab-home
+- assertVisible:
+    id: app-header-settings-button

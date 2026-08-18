@@ -56,6 +56,7 @@ defmodule AdventureTimeApiWeb.Router do
 
     get("/health", HealthController, :show)
     get("/ready", HealthController, :ready)
+    get("/ready/media", HealthController, :media_ready)
     get("/media/card/:id", MediaController, :card)
     get("/media/catalog/:id", MediaController, :catalog)
 
@@ -67,6 +68,13 @@ defmodule AdventureTimeApiWeb.Router do
     post("/auth/login", AuthController, :login)
     post("/auth/google", AuthController, :google)
     post("/auth/apple", AuthController, :apple)
+
+    post(
+      "/auth/access-request-assessment/play-integrity",
+      PlayIntegrityController,
+      :create
+    )
+
     post("/auth/refresh", AuthController, :refresh)
     post("/auth/logout", AuthController, :logout)
   end
@@ -120,10 +128,29 @@ defmodule AdventureTimeApiWeb.Router do
     get("/health/steps", AppController, :health_steps)
     post("/health/steps", AppController, :sync_steps)
 
+    get("/leaderboards/boards", LeaderboardsController, :boards)
+
+    get(
+      "/leaderboards/:quest/:mode/history/:period_start/days",
+      LeaderboardsController,
+      :history_days
+    )
+
+    get("/leaderboards/:quest/:mode", LeaderboardsController, :show)
+    get("/public-profiles/:public_profile_id", LeaderboardsController, :public_profile)
+
     get("/quests", QuestsController, :list_quests)
     post("/quests/claim", QuestsController, :claim_quest)
     get("/quests/daily-numbers", QuestsController, :daily_numbers_state)
+    post("/quests/daily-numbers/ranked-start", QuestsController, :start_daily_numbers_ranked)
     post("/quests/daily-numbers/submit", QuestsController, :submit_daily_numbers)
+
+    post(
+      "/quests/daily-numbers/solution-hunt/submit",
+      QuestsController,
+      :submit_daily_numbers_solution_hunt
+    )
+
     get("/quests/daily-numbers/history", QuestsController, :daily_numbers_archive_history)
     get("/quests/daily-numbers/archive", QuestsController, :daily_numbers_archive_state)
 
@@ -134,6 +161,18 @@ defmodule AdventureTimeApiWeb.Router do
     )
 
     get("/quests/speed-calculus", QuestsController, :speed_calculus_state)
+    get("/quests/perfect-timing", QuestsController, :perfect_timing_state)
+    post("/quests/perfect-timing/start", QuestsController, :start_perfect_timing)
+    post("/quests/perfect-timing/stop", QuestsController, :stop_perfect_timing)
+    post("/quests/perfect-timing/continue", QuestsController, :continue_perfect_timing)
+    post("/quests/perfect-timing/keep", QuestsController, :keep_perfect_timing)
+
+    post(
+      "/quests/perfect-timing/training/target",
+      QuestsController,
+      :perfect_timing_training_target
+    )
+
     post("/quests/speed-calculus/start", QuestsController, :start_speed_calculus_run)
 
     post(
@@ -182,6 +221,26 @@ defmodule AdventureTimeApiWeb.Router do
     delete("/admin/users/:id", AdminController, :delete_user)
     get("/admin/email-requests", AdminController, :email_requests)
     patch("/admin/email-requests/:id", AdminController, :review_email_request)
+
+    post(
+      "/admin/email-requests/:id/reveal-ip",
+      AdminController,
+      :reveal_email_request_ip
+    )
+
+    post("/admin/leaderboards/results/:id/exclude", AdminController, :exclude_leaderboard_result)
+
+    post(
+      "/admin/leaderboards/snapshots/:id/correction-preview",
+      AdminController,
+      :preview_leaderboard_correction
+    )
+
+    post(
+      "/admin/leaderboards/snapshots/:id/corrections",
+      AdminController,
+      :confirm_leaderboard_correction
+    )
 
     get("/admin/packs", AdminController, :list_packs)
     post("/admin/packs", AdminController, :create_pack)

@@ -7,7 +7,7 @@ import {
   getDailyNumbersOperatorPressResult,
   getDailyNumbersTileAvailability,
   type DailyNumbersSelectableTile,
-} from "../src/features/quests/daily-numbers/board-interaction.ts";
+} from "../src/features/quests/daily-numbers/board-interaction";
 
 const tile = (id: string, value: number): DailyNumbersSelectableTile => ({
   id,

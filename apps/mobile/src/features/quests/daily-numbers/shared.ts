@@ -1,4 +1,7 @@
-import type { DailyNumbersMode, DailyNumbersStateResponse } from "@adventure-time/api-client";
+import type {
+  DailyNumbersMode,
+  DailyNumbersStateResponse,
+} from "@adventure-time/api-client";
 
 import { THEME_COLORS } from "../../../theme/themes";
 
@@ -41,18 +44,6 @@ export function getModeLabelKey(mode: DailyNumbersMode) {
   return "quests.dailyNumbers.threeThree";
 }
 
-export function getModeMixLabelKey(mode: DailyNumbersMode) {
-  if (mode === "1-5") {
-    return "quests.dailyNumbers.oneFiveMix";
-  }
-
-  if (mode === "2-4") {
-    return "quests.dailyNumbers.twoFourMix";
-  }
-
-  return "quests.dailyNumbers.threeThreeMix";
-}
-
 export function getModeAccent(
   mode: DailyNumbersMode,
   tc: (typeof THEME_COLORS)[keyof typeof THEME_COLORS],
@@ -60,7 +51,7 @@ export function getModeAccent(
   if (mode === "1-5") {
     return {
       border: tc.primaryBorder,
-      bg: tc.primaryBg,
+      bg: tc.primaryTint,
       tint: tc.primaryTint,
       text: tc.primaryStrong,
     };
@@ -89,7 +80,9 @@ export function getModeStatusLabel(
   t: (key: string, params?: Record<string, string | number>) => string,
 ) {
   if (!modeState) {
-    return isLoading ? t("common.loading") : t("quests.dailyNumbers.freshLabel");
+    return isLoading
+      ? t("common.loading")
+      : t("quests.dailyNumbers.freshLabel");
   }
 
   if (modeState.claimed) {

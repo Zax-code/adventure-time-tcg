@@ -297,6 +297,7 @@ function useCollectionCardDetailScreenView() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["gifts"] }),
         queryClient.invalidateQueries({ queryKey: ["collection"] }),
+        queryClient.invalidateQueries({ queryKey: ["home"] }),
       ]);
       router.back();
     } });
@@ -343,7 +344,6 @@ function useCollectionCardDetailScreenView() {
         publishCollectionFeedback(successMessage);
         router.back();
       } else {
-        setIsBusy(false);
         setRecycleExpanded(false);
         setRecycleQuantity(1);
         setToast({
@@ -363,6 +363,7 @@ function useCollectionCardDetailScreenView() {
           ? err.message
           : t("collection.detail.recycleFailed"),
       );
+    } finally {
       setIsBusy(false);
     }
   };
@@ -403,7 +404,6 @@ function useCollectionCardDetailScreenView() {
         type: "craft",
         revealLockedCard: !wasOwned });
 
-      setIsBusy(false);
       setToast({
         type: "success",
         message: successMessage });
@@ -418,6 +418,7 @@ function useCollectionCardDetailScreenView() {
       setCraftError(
         err instanceof Error ? err.message : t("collection.detail.craftFailed"),
       );
+    } finally {
       setIsBusy(false);
     }
   };

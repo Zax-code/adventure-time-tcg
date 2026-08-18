@@ -263,7 +263,7 @@ defmodule AdventureTimeApi.Fitbit do
          {:ok, %Req.Response{status: status, body: body}}
          when status in 200..299 and is_map(body) <-
            Req.get(
-             "#{@fitbit_api_url}/1/user/-/activities/date/#{Date.to_iso8601(date)}.json",
+             "#{api_url()}/1/user/-/activities/date/#{Date.to_iso8601(date)}.json",
              headers: [{"authorization", "Bearer #{access_token}"}]
            ) do
       {:ok, get_in(body, ["summary", "steps"]) || 0}
@@ -319,7 +319,7 @@ defmodule AdventureTimeApi.Fitbit do
          {:ok, %Req.Response{status: status}}
          when status in 200..299 or status == 409 <-
            Req.post(
-             "#{@fitbit_api_url}/1/user/-/activities/apiSubscriptions/#{user_id}.json",
+             "#{api_url()}/1/user/-/activities/apiSubscriptions/#{user_id}.json",
              headers: [{"authorization", "Bearer #{access_token}"}]
            ) do
       case get_account(user_id) do
@@ -345,7 +345,7 @@ defmodule AdventureTimeApi.Fitbit do
          {:ok, %Req.Response{status: status}}
          when status in 200..299 or status == 404 <-
            Req.delete(
-             "#{@fitbit_api_url}/1/user/-/activities/apiSubscriptions/#{account.subscription_id}.json",
+             "#{api_url()}/1/user/-/activities/apiSubscriptions/#{account.subscription_id}.json",
              headers: [{"authorization", "Bearer #{access_token}"}]
            ) do
       :ok
@@ -382,5 +382,6 @@ defmodule AdventureTimeApi.Fitbit do
 
   defp client_id, do: config(:client_id)
   defp client_secret, do: config(:client_secret)
+  defp api_url, do: config(:api_url) || @fitbit_api_url
   defp config(key), do: Application.get_env(:adventure_time_api, __MODULE__, [])[key]
 end

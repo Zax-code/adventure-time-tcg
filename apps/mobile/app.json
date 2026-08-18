@@ -4,7 +4,7 @@
     "description": "Collect Adventure Time-inspired cards, open packs, complete daily quests, and battle friends.",
     "slug": "adventure-time-tcg",
     "scheme": "adventure-time",
-    "version": "1.0.14",
+    "version": "1.0.30",
     "owner": "zax-code",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -49,10 +49,15 @@
     "plugins": [
       "expo-apple-authentication",
       "expo-sharing",
-      "./plugins/with-ios-modular-headers",
       "expo-build-properties",
       "expo-router",
-      "expo-splash-screen"
+      "expo-splash-screen",
+      "expo-background-task",
+      "expo-font",
+      "expo-image",
+      "expo-secure-store",
+      "expo-status-bar",
+      "expo-web-browser"
     ]
   }
 }

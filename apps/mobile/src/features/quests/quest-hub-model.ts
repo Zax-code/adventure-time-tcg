@@ -33,11 +33,16 @@ export type QuestHubItem =
   SingleQuestHubItem | WordleQuestHubItem | DailyNumbersQuestHubItem;
 
 export type QuestHubPreferenceId =
-  "wordle" | "dailyNumbers" | "speedCalculus" | "steps";
+  | "wordle"
+  | "dailyNumbers"
+  | "perfectTiming"
+  | "speedCalculus"
+  | "steps";
 
 export const DEFAULT_QUEST_HUB_ORDER: QuestHubPreferenceId[] = [
   "wordle",
   "dailyNumbers",
+  "perfectTiming",
   "speedCalculus",
   "steps",
 ];
@@ -51,6 +56,10 @@ export function isWordleQuest(questType: string) {
 
 export function isSpeedCalculusQuest(questType: string) {
   return questType === "speed_calculus_daily";
+}
+
+export function isPerfectTimingQuest(questType: string) {
+  return questType === "perfect_timing_daily";
 }
 
 export function isDailyNumbersQuest(questType: string) {
@@ -93,6 +102,10 @@ export function isQuestInProgress(quest: Quest) {
     return (quest.runsUsed ?? quest.progress) > 0;
   }
 
+  if (isPerfectTimingQuest(quest.type)) {
+    return (quest.attemptsUsed ?? quest.progress) > 0;
+  }
+
   return quest.progress > 0;
 }
 
@@ -122,6 +135,10 @@ export function isQuestShareable(quest: Quest) {
       quest.distance != null ||
       quest.finalValue != null
     );
+  }
+
+  if (isPerfectTimingQuest(quest.type)) {
+    return quest.completed || quest.claimed || quest.failed;
   }
 
   return false;
@@ -169,6 +186,16 @@ export function getQuestProgressDisplay(quest: Quest) {
       progress,
       target: 6,
       percentage: Math.min(100, (progress / 6) * 100),
+    };
+  }
+
+  if (isPerfectTimingQuest(quest.type)) {
+    const target = quest.maxAttempts ?? 3;
+    const progress = quest.attemptsUsed ?? quest.progress;
+    return {
+      progress,
+      target,
+      percentage: Math.min(100, (progress / target) * 100),
     };
   }
 
@@ -224,6 +251,7 @@ export function getQuestHubPreferenceId(
   if (item.kind === "wordle") return "wordle";
   if (item.kind === "dailyNumbers") return "dailyNumbers";
   if (isSpeedCalculusQuest(item.quest.type)) return "speedCalculus";
+  if (isPerfectTimingQuest(item.quest.type)) return "perfectTiming";
   if (isStepQuest(item.quest.type)) return "steps";
   return null;
 }
@@ -342,7 +370,12 @@ export async function claimQuestsSequentially(
   let newBalance: number | null = null;
   const failures: Array<{ quest: Quest; error: unknown }> = [];
 
-  for (const quest of quests) {
+  const claimNextQuest = async (index: number): Promise<void> => {
+    if (index >= quests.length) {
+      return;
+    }
+
+    const quest = quests[index];
     try {
       const response = await claimQuest(quest);
       claimedCount += 1;
@@ -352,7 +385,11 @@ export async function claimQuestsSequentially(
       failedCount += 1;
       failures.push({ quest, error });
     }
-  }
+
+    await claimNextQuest(index + 1);
+  };
+
+  await claimNextQuest(0);
 
   return {
     claimedCount,

@@ -1,7 +1,7 @@
 import { useMemo, type ComponentType, type ReactNode, type Ref } from "react";
 import {
-  type AccessibilityState,
   ActivityIndicator,
+  type AccessibilityState,
   type View,
   type ViewStyle,
 } from "react-native";

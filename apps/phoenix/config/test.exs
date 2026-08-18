@@ -27,6 +27,9 @@ config :adventure_time_api, AdventureTimeApiWeb.Endpoint,
 config :adventure_time_api, AdventureTimeApiWeb.Plugs.WebsiteDocumentPlug,
   index_path: Path.expand("../test/support/fixtures/website/index.html", __DIR__)
 
+config :adventure_time_api, AdventureTimeApiWeb.Plugs.CanonicalClientIp,
+  trusted_proxy_cidrs: ["127.0.0.0/8", "::1/128"]
+
 config :adventure_time_api, AdventureTimeApiWeb.WebSessionController,
   refresh_cookie_name: "adventure_time_refresh",
   refresh_cookie_secure: false,
@@ -43,6 +46,10 @@ config :adventure_time_api, AdventureTimeApi.Auth,
 config :adventure_time_api, AdventureTimeApi.Accounts,
   verification_secret: "test-email-verification-secret-please-change-1234567890",
   expose_dev_code: true
+
+config :adventure_time_api, AdventureTimeApi.AccessAssessment.Pseudonym,
+  secret: "test-ipqs-pseudonym-secret-1234567890",
+  version: "v1"
 
 config :adventure_time_api, AdventureTimeApi.Accounts.EmailDelivery,
   adapter: AdventureTimeApi.Accounts.EmailDelivery.NoopAdapter

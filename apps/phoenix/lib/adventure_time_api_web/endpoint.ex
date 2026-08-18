@@ -21,6 +21,7 @@ defmodule AdventureTimeApiWeb.Endpoint do
   )
 
   plug(Plug.RequestId)
+  plug(AdventureTimeApiWeb.Plugs.CanonicalClientIp)
   plug(Plug.Telemetry, event_prefix: [:phoenix, :endpoint])
 
   plug(Plug.Parsers,

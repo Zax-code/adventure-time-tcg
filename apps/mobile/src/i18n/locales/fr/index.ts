@@ -10,6 +10,7 @@ import nav from "./nav";
 import packs from "./packs";
 import pvp from "./pvp";
 import quests from "./quests";
+import rankings from "./rankings";
 import settings from "./settings";
 import time from "./time";
 
@@ -26,6 +27,7 @@ const fr = {
   packs,
   pvp,
   quests,
+  rankings,
   settings,
   time,
 };

@@ -4,7 +4,6 @@ import * as Haptics from "expo-haptics";
 import * as SecureStore from "expo-secure-store";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import * as Sharing from "expo-sharing";
-import { StatusBar } from "expo-status-bar";
 import {
   useCallback,
   useEffect,
@@ -18,6 +17,7 @@ import {
   AccessibilityInfo,
   AppState,
   Alert,
+  type LayoutChangeEvent,
   Pressable,
   ScrollView,
   Text,
@@ -25,12 +25,21 @@ import {
   useWindowDimensions,
 } from "react-native";
 import Animated, {
+  Easing,
   FadeIn,
+  FadeInUp,
   FadeOut,
+  FadeOutUp,
   LinearTransition,
-  ReduceMotion,
-  ZoomIn,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withSpring,
+  withTiming,
+  type SharedValue,
 } from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { captureRef } from "react-native-view-shot";
 
@@ -38,6 +47,8 @@ import {
   ApiClientError,
   type DailyNumbersArchiveStateResponse,
   type DailyNumbersMode,
+  type DailyNumbersSolutionListItem,
+  type DailyNumbersSolutionHuntSubmitResponse,
   type DailyNumbersStateResponse,
   type DailyNumbersStep,
   type DailyNumbersStepInput,
@@ -46,21 +57,17 @@ import {
 import { PageErrorState } from "../../src/components/error-state";
 import {
   CheckIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
   ClockIcon,
   CoinIcon,
   EyeIcon,
   RecycleIcon,
   ShareIcon,
   SkipBackIcon,
-  SparklesIcon,
-  TrophyIcon,
 } from "../../src/components/icons";
 import { PageLoadingState } from "../../src/components/loading-state";
-import { DailyNumbersGameShareCard } from "../../src/features/quests/daily-numbers/game-share-card";
-import {
-  DailyNumbersTargetPal,
-  type DailyNumbersTargetPalMood,
-} from "../../src/features/quests/daily-numbers/target-pal";
+import { DailyNumbersQuestShareCard } from "../../src/features/quests/daily-numbers/quest-share-card";
 import {
   applyDailyNumbersOperation,
   getDailyNumbersOperatorAvailability,
@@ -69,22 +76,14 @@ import {
   type DailyNumbersOperator,
 } from "../../src/features/quests/daily-numbers/board-interaction";
 import {
-  createDailyNumbersBoardInteractionState,
-  dailyNumbersBoardReducer,
-  getDailyNumbersAttemptTiming,
-  type DailyNumbersBoardInteractionState,
-  type DailyNumbersMessageState,
-  type DailyNumbersSlotKey,
-} from "../../src/features/quests/daily-numbers/board-state";
-import {
   buildDailyNumbersShareFileName,
   buildDailyNumbersShareResult,
 } from "../../src/features/quests/daily-numbers/share-result";
 import {
   DAILY_NUMBERS_MODES,
   formatDailyNumbersElapsedTime,
+  getModeAccent,
   getModeLabelKey,
-  getModeMixLabelKey,
   getModeStatusLabel,
   getQuestTypeForMode,
 } from "../../src/features/quests/daily-numbers/shared";
@@ -94,7 +93,12 @@ import {
   isCurrentQuestDay,
 } from "../../src/features/quests/quest-day-cutoff";
 import {
-  navigateBackFromQuest,
+  formatQuestShareDate,
+  resolveQuestShareDateKey,
+} from "../../src/features/quests/quest-share-date";
+import { navigateBackFromQuest } from "../../src/features/quests/quest-navigation";
+import {
+  QuestScreenDescription,
   QuestScreenHeader,
 } from "../../src/features/quests/quest-screen-header";
 import { useTranslation } from "../../src/i18n";
@@ -111,7 +115,7 @@ type BoardTile = {
   status: "available" | "used";
 };
 
-type MessageState = DailyNumbersMessageState;
+type MessageState = { type: "success" | "error"; text: string } | null;
 type Operator = DailyNumbersOperator;
 type PreviewState =
   | { kind: "empty" }
@@ -124,13 +128,49 @@ type TranslateFn = (
 type ThemeColors = (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
 type DailyNumbersBoardState =
   DailyNumbersStateResponse | DailyNumbersArchiveStateResponse;
+type DailyNumbersSolutionLists = Pick<
+  DailyNumbersSolutionHuntSubmitResponse,
+  | "solutionsFound"
+  | "totalSolutions"
+  | "allSolutionsFound"
+  | "yourSolutions"
+  | "otherSolutions"
+>;
 type ModeCard = {
   mode: DailyNumbersMode;
   state: DailyNumbersBoardState | undefined;
   isLoading: boolean;
 };
-type SlotKey = DailyNumbersSlotKey;
-type BoardInteractionState = DailyNumbersBoardInteractionState;
+type SlotKey = "left" | "operator" | "right";
+type BoardInteractionState = {
+  steps: DailyNumbersStep[];
+  selectedLeftId: string | null;
+  selectedOperator: Operator | null;
+  selectedRightId: string | null;
+  message: MessageState;
+  submitting: boolean;
+  revealedSolution: boolean;
+  retrying: boolean;
+  retryAttempt: number;
+  solutionHuntResult: DailyNumbersSolutionHuntSubmitResponse | null;
+};
+type BoardAction =
+  | { type: "selectTile"; tileId: string }
+  | { type: "toggleOperator"; operator: Operator }
+  | { type: "clearSlot"; slot: SlotKey }
+  | { type: "applyStep"; step: DailyNumbersStep; autoSubmitting: boolean }
+  | { type: "undoStep" }
+  | { type: "resetBoard" }
+  | { type: "setMessage"; message: MessageState }
+  | { type: "submitStarted" }
+  | { type: "submitFailed"; message: MessageState }
+  | { type: "submitFinished" }
+  | {
+      type: "solutionHuntSubmitted";
+      result: DailyNumbersSolutionHuntSubmitResponse;
+    }
+  | { type: "startRetry" }
+  | { type: "toggleSolution" };
 type FinishStateProps = {
   claimable: boolean;
   claimPending: boolean;
@@ -148,6 +188,7 @@ type FinishStateProps = {
   onClaimReward: () => void;
   onShareResult: () => void;
   onStartRetry: () => void;
+  onStartSolutionHunt: () => void;
   onToggleSolution: () => void;
   state: DailyNumbersBoardState;
   submittedSolutionSteps: DailyNumbersStep[];
@@ -160,6 +201,7 @@ type LivePlayProps = {
   compact: boolean;
   interactionLocked: boolean;
   localSteps: DailyNumbersStep[];
+  modeAccent: ReturnType<typeof getModeAccent>;
   onApplyStep: () => void;
   onClearSlot: (slot: SlotKey) => void;
   onOperatorPress: (operator: Operator) => void;
@@ -176,19 +218,43 @@ type LivePlayProps = {
   selectedOperator: Operator | null;
   selectedRightTile: BoardTile | null;
   submitting: boolean;
+  target: number;
   t: TranslateFn;
   tc: ThemeColors;
 };
 type AvailableNumbersGridProps = {
   availableTiles: BoardTile[];
   compact: boolean;
+  committingResultId: string | null;
+  committingTileIds: ReadonlySet<string>;
+  futureResultRef: RefObject<View | null>;
   interactionLocked: boolean;
+  modeAccent: ReturnType<typeof getModeAccent>;
+  onTileRef: (tileId: string, node: View | null) => void;
   onTilePress: (tileId: string) => void;
   selectedLeftTile: BoardTile | null;
   selectedOperator: Operator | null;
   selectedRightTile: BoardTile | null;
   t: TranslateFn;
   tc: ThemeColors;
+};
+type MeasuredRect = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+type ResultCommitAnimation = {
+  leftId: string;
+  leftRect: MeasuredRect;
+  leftValue: number;
+  resultRect: MeasuredRect;
+  resultId: string;
+  resultValue: number;
+  rightId: string;
+  rightRect: MeasuredRect;
+  rightValue: number;
+  targetRect: MeasuredRect;
 };
 type OperatorPickerProps = {
   compact: boolean;
@@ -376,126 +442,247 @@ function displayOperator(operator: Operator) {
   return operator === "*" ? "×" : operator === "/" ? "÷" : operator;
 }
 
-function getLiveTargetMood(
-  stepCount: number,
-  currentDistance: number,
-  defaultDistance: number,
-): DailyNumbersTargetPalMood {
-  if (currentDistance === 0) {
-    return "caught";
-  }
-
-  if (
-    currentDistance <= 10 ||
-    (stepCount > 0 && currentDistance < defaultDistance)
-  ) {
-    return "nervous";
-  }
-
-  return "smug";
+function getBoardNumberTextClass(compact: boolean) {
+  return compact ? "text-[22px] leading-[28px]" : "text-[25px] leading-[32px]";
 }
 
-function getLiveTargetMoodKey(
-  stepCount: number,
-  currentDistance: number,
-  defaultDistance: number,
-) {
-  if (currentDistance === 1) {
-    return "quests.dailyNumbers.targetMoodOneAway";
-  }
-
-  if (currentDistance <= 10) {
-    return "quests.dailyNumbers.targetMoodNervous";
-  }
-
-  if (currentDistance <= 25) {
-    return "quests.dailyNumbers.targetMoodFaster";
-  }
-
-  if (stepCount > 0 && currentDistance < defaultDistance) {
-    return "quests.dailyNumbers.targetMoodNoticed";
-  }
-
-  return "quests.dailyNumbers.targetMoodSafe";
+function getBoardTileHeightClass(compact: boolean) {
+  return compact ? "h-[58px]" : "h-16";
 }
 
-function getResultQuipKey({
-  completed,
-  distance,
-  exact,
-}: {
-  completed: boolean;
-  distance: number | null;
-  exact: boolean;
-}) {
-  if (exact) {
-    return "quests.dailyNumbers.resultExactQuip";
-  }
+const BOARD_TILE_WIDTH = "31.5%";
 
-  if (distance === 1) {
-    return "quests.dailyNumbers.resultOneAwayQuip";
-  }
+function measureView(view: View): Promise<MeasuredRect> {
+  return new Promise((resolve, reject) => {
+    view.measureInWindow((x, y, width, height) => {
+      if (width <= 0 || height <= 0) {
+        reject(new Error("Daily Numbers animation target is not measurable."));
+        return;
+      }
 
-  if (distance !== null && distance <= 10) {
-    return "quests.dailyNumbers.resultNearQuip";
-  }
-
-  if (distance !== null && distance <= 49) {
-    return "quests.dailyNumbers.resultMidQuip";
-  }
-
-  return completed
-    ? "quests.dailyNumbers.resultFarQuip"
-    : "quests.dailyNumbers.resultNoQuip";
-}
-
-function formatNumbersShareDate(
-  dateKey: string | null,
-  locale: string,
-): string | undefined {
-  if (!dateKey) return undefined;
-  const [year, month, day] = dateKey.split("-").map((part) => Number(part));
-  if (!year || !month || !day) return dateKey;
-  const date = new Date(year, month - 1, day);
-  if (Number.isNaN(date.getTime())) return dateKey;
-  return date.toLocaleDateString(locale === "fr" ? "fr-FR" : "en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
-
-function buildSubmissionSummary(
-  t: TranslateFn,
-  submission: NonNullable<DailyNumbersBoardState["submission"]>,
-) {
-  if (submission.distance === 0) {
-    return t("quests.dailyNumbers.exactResult", {
-      score: submission.score,
+      resolve({ x, y, width, height });
     });
-  }
-
-  return t("quests.dailyNumbers.closeResult", {
-    value: submission.finalValue,
-    distance: submission.distance,
-    score: submission.score,
   });
 }
 
-function buildBoardIdentity(state: DailyNumbersBoardState) {
+function relativeRect(
+  rect: MeasuredRect,
+  rootRect: MeasuredRect,
+): MeasuredRect {
+  return {
+    x: rect.x - rootRect.x,
+    y: rect.y - rootRect.y,
+    width: rect.width,
+    height: rect.height,
+  };
+}
+
+function buildPuzzleIdentity(state: DailyNumbersBoardState) {
   const numbersIdentity = state.numbers
     .map((tile) => `${tile.id}:${tile.value}`)
     .join("|");
+
   return [
     state.mode,
     state.date,
     isArchiveState(state) ? "archive" : "daily",
     state.questVersion ?? "no-version",
+    numbersIdentity,
+  ].join(":");
+}
+
+function buildBoardIdentity(state: DailyNumbersBoardState) {
+  return [
+    buildPuzzleIdentity(state),
     state.submitted ? "submitted" : "fresh",
     state.submission?.finalValue ?? "no-result",
     state.submission?.elapsedMs ?? "no-time",
-    numbersIdentity,
   ].join(":");
+}
+
+function createBoardInteractionState(
+  state: DailyNumbersBoardState,
+): BoardInteractionState {
+  return {
+    steps: state.submission?.steps ?? [],
+    selectedLeftId: null,
+    selectedOperator: null,
+    selectedRightId: null,
+    message: null,
+    submitting: false,
+    revealedSolution: false,
+    retrying: false,
+    retryAttempt: 0,
+    solutionHuntResult: null,
+  };
+}
+
+function boardReducer(
+  state: BoardInteractionState,
+  action: BoardAction,
+): BoardInteractionState {
+  if (action.type === "selectTile") {
+    if (action.tileId === state.selectedLeftId) {
+      return {
+        ...state,
+        selectedLeftId: null,
+        message: null,
+      };
+    }
+
+    if (action.tileId === state.selectedRightId) {
+      return {
+        ...state,
+        selectedRightId: null,
+        message: null,
+      };
+    }
+
+    if (!state.selectedLeftId) {
+      return {
+        ...state,
+        selectedLeftId: action.tileId,
+        message: null,
+      };
+    }
+
+    if (!state.selectedRightId) {
+      return {
+        ...state,
+        selectedRightId: action.tileId,
+        message: null,
+      };
+    }
+
+    return state;
+  }
+
+  if (action.type === "toggleOperator") {
+    return {
+      ...state,
+      selectedOperator:
+        state.selectedOperator === action.operator ? null : action.operator,
+      message: null,
+    };
+  }
+
+  if (action.type === "clearSlot") {
+    if (action.slot === "left") {
+      return {
+        ...state,
+        selectedLeftId: null,
+        message: null,
+      };
+    }
+
+    if (action.slot === "operator") {
+      return {
+        ...state,
+        selectedOperator: null,
+        message: null,
+      };
+    }
+
+    return {
+      ...state,
+      selectedRightId: null,
+      message: null,
+    };
+  }
+
+  if (action.type === "applyStep") {
+    return {
+      ...state,
+      steps: [...state.steps, action.step],
+      selectedLeftId: null,
+      selectedOperator: null,
+      selectedRightId: null,
+      message: null,
+      submitting: action.autoSubmitting,
+    };
+  }
+
+  if (action.type === "undoStep") {
+    return {
+      ...state,
+      steps: state.steps.slice(0, -1),
+      selectedLeftId: null,
+      selectedOperator: null,
+      selectedRightId: null,
+      message: null,
+    };
+  }
+
+  if (action.type === "resetBoard") {
+    return {
+      ...state,
+      steps: [],
+      selectedLeftId: null,
+      selectedOperator: null,
+      selectedRightId: null,
+      message: null,
+    };
+  }
+
+  if (action.type === "setMessage") {
+    return {
+      ...state,
+      message: action.message,
+    };
+  }
+
+  if (action.type === "submitStarted") {
+    return {
+      ...state,
+      submitting: true,
+      message: null,
+    };
+  }
+
+  if (action.type === "submitFailed") {
+    return {
+      ...state,
+      submitting: false,
+      message: action.message,
+    };
+  }
+
+  if (action.type === "submitFinished") {
+    return {
+      ...state,
+      submitting: false,
+      retrying: false,
+    };
+  }
+
+  if (action.type === "solutionHuntSubmitted") {
+    return {
+      ...state,
+      submitting: false,
+      retrying: false,
+      solutionHuntResult: action.result,
+    };
+  }
+
+  if (action.type === "startRetry") {
+    return {
+      steps: [],
+      selectedLeftId: null,
+      selectedOperator: null,
+      selectedRightId: null,
+      message: null,
+      submitting: false,
+      revealedSolution: false,
+      retrying: true,
+      retryAttempt: state.retryAttempt + 1,
+      solutionHuntResult: state.solutionHuntResult,
+    };
+  }
+
+  return {
+    ...state,
+    revealedSolution: !state.revealedSolution,
+  };
 }
 
 function useDailyNumbersChronometer({
@@ -669,20 +856,79 @@ function MessageBanner({ message }: { message: MessageState }) {
 
 function ModeTabs({
   activeMode,
+  archiveMode,
   modeCards,
   onSelectMode,
   t,
+  tc,
 }: {
   activeMode: DailyNumbersMode;
+  archiveMode: boolean;
   modeCards: ModeCard[];
   onSelectMode: (mode: DailyNumbersMode) => void;
   t: TranslateFn;
+  tc: ThemeColors;
 }) {
+  const [containerWidth, setContainerWidth] = useState(0);
+  const indicatorX = useSharedValue(0);
+  const tabGap = 6;
+  const tabPadding = 4;
+  const activeIndex = Math.max(
+    0,
+    modeCards.findIndex(({ mode }) => mode === activeMode),
+  );
+  const tabWidth =
+    containerWidth > 0 ? (containerWidth - tabPadding * 2 - tabGap * 2) / 3 : 0;
+  const activeAccent = getModeAccent(activeMode, tc);
+  const indicatorStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: indicatorX.value }],
+  }));
+
+  useEffect(() => {
+    if (tabWidth <= 0) {
+      return;
+    }
+
+    indicatorX.value = withSpring(
+      tabPadding + activeIndex * (tabWidth + tabGap),
+      {
+        damping: 20,
+        stiffness: 210,
+        mass: 0.72,
+      },
+    );
+  }, [activeIndex, indicatorX, tabWidth]);
+
+  const handleLayout = useCallback((event: LayoutChangeEvent) => {
+    setContainerWidth(event.nativeEvent.layout.width);
+  }, []);
+
   return (
-    <View className="mb-3 flex-row gap-2">
+    <View
+      className="relative mb-4 flex-row gap-1.5 rounded-2xl p-1"
+      onLayout={handleLayout}
+    >
+      {tabWidth > 0 ? (
+        <Animated.View
+          pointerEvents="none"
+          className="absolute bottom-1 left-0 top-1 rounded-xl"
+          style={[
+            {
+              width: tabWidth,
+              backgroundColor: activeAccent.bg,
+            },
+            indicatorStyle,
+          ]}
+        />
+      ) : null}
       {modeCards.map(({ mode, state, isLoading }) => {
         const selected = mode === activeMode;
-        const statusLabel = getModeStatusLabel(state, isLoading, t);
+        const statusLabel =
+          archiveMode && state?.submission
+            ? t("quests.dailyNumbers.archiveSavedLabel")
+            : getModeStatusLabel(state, isLoading, t);
+        const modeLabel = t(getModeLabelKey(mode));
+        const modeAccent = getModeAccent(mode, tc);
 
         return (
           <Pressable
@@ -691,26 +937,27 @@ function ModeTabs({
               triggerSelectionHaptic();
               onSelectMode(mode);
             }}
-            className={`min-h-[56px] flex-1 items-center justify-center rounded-[18px] px-1.5 py-1.5 active:opacity-70 ${selected ? "bg-primaryTint" : "bg-transparent"}`}
+            className="min-h-[64px] flex-1 items-center justify-center rounded-xl px-1.5 py-2.5"
+            style={({ pressed }) => ({
+              opacity: pressed ? 0.72 : 1,
+              zIndex: 1,
+            })}
             testID={`daily-numbers-mode-${mode}`}
             accessibilityRole="button"
             accessibilityState={{ selected }}
-            accessibilityLabel={`${t(getModeLabelKey(mode))}, ${t(getModeMixLabelKey(mode))}, ${statusLabel}`}
+            accessibilityLabel={`${modeLabel}. ${statusLabel}`}
           >
             <Text
-              className="text-center font-nunito-extrabold text-[15px] text-fg"
+              className="text-center font-nunito-extrabold text-[15px]"
+              style={{ color: selected ? modeAccent.text : tc.fg }}
               numberOfLines={1}
-              adjustsFontSizeToFit
-              maxFontSizeMultiplier={1.2}
-              minimumFontScale={0.72}
             >
-              {t(getModeLabelKey(mode))}
+              {modeLabel}
             </Text>
             <Text
-              className="mt-0.5 font-nunito-bold text-[10px] leading-3 text-fgMuted"
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.7}
+              className="mt-0.5 min-h-6 text-center font-nunito-bold text-[10px] leading-3"
+              style={{ color: selected ? modeAccent.text : tc.fgMuted }}
+              numberOfLines={2}
             >
               {statusLabel}
             </Text>
@@ -721,138 +968,142 @@ function ModeTabs({
   );
 }
 
-function TargetChaseHero({
-  archiveMode,
+function InlineMetric({
+  label,
+  value,
+}: {
+  label: string;
+  value: number | string;
+}) {
+  return (
+    <View className="min-w-0 items-center justify-center px-1.5 py-2.5">
+      <Text
+        className="text-center font-nunito-bold text-[9px] uppercase tracking-[0.8px] text-fgMuted"
+        numberOfLines={2}
+      >
+        {label}
+      </Text>
+      <Text
+        className="mt-0.5 text-center font-nunito-extrabold text-lg leading-6 text-fg"
+        style={{ fontVariant: ["tabular-nums"] }}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.7}
+      >
+        {value}
+      </Text>
+    </View>
+  );
+}
+
+function MetricsSection({
   compact,
   currentBestTile,
   currentDistance,
-  defaultDistance,
   formattedElapsedTime,
+  modeAccent,
+  showSolutionFound,
   state,
-  stepCount,
   t,
   tc,
 }: {
-  archiveMode: boolean;
   compact: boolean;
   currentBestTile: BoardTile | null;
   currentDistance: number | undefined;
-  defaultDistance: number;
   formattedElapsedTime: string;
+  modeAccent: ReturnType<typeof getModeAccent>;
+  showSolutionFound: boolean;
   state: DailyNumbersBoardState;
-  stepCount: number;
   t: TranslateFn;
   tc: ThemeColors;
 }) {
   const { fontScale } = useWindowDimensions();
-  const distance = currentDistance ?? state.bestDistance;
-  const mood = getLiveTargetMood(stepCount, distance, defaultDistance);
-  const moodCopy =
-    archiveMode && stepCount === 0
-      ? t("quests.dailyNumbers.archiveTargetQuip")
-      : stepCount === 0
-        ? t("quests.dailyNumbers.catchThis")
-        : t(getLiveTargetMoodKey(stepCount, distance, defaultDistance));
-  const mascotWidth = compact || fontScale >= 1.35 ? 174 : 194;
+  const stackMetrics = fontScale >= 1.4;
 
   return (
-    <View className="pb-2 pt-1">
-      <Text className="text-center font-nunito-extrabold text-[11px] uppercase tracking-[1.5px] text-primaryText">
-        {t("quests.dailyNumbers.target")}
-      </Text>
-
-      <Animated.View
-        key={mood}
-        accessible
-        accessibilityLabel={`${t("quests.dailyNumbers.target")} ${state.target}`}
-        entering={ZoomIn.duration(220).reduceMotion(ReduceMotion.System)}
-        className="items-center"
-        testID="daily-numbers-target-pal"
-      >
-        <DailyNumbersTargetPal
-          colors={tc}
-          mood={mood}
-          value={state.target}
-          width={mascotWidth}
-        />
-      </Animated.View>
-
-      <View
-        className="-mt-5 max-w-[230px] self-end rounded-[20px] bg-surface px-3.5 py-2.5"
-        style={{ transform: [{ rotate: "-2deg" }] }}
-      >
-        <View
-          className="absolute -left-1.5 bottom-3 h-3 w-3 bg-surface"
-          style={{ transform: [{ rotate: "45deg" }] }}
-        />
-        <Text className="font-nunito-extrabold text-xs leading-4 text-primaryText">
-          {moodCopy}
+    <View className="pb-4">
+      <View className={`${compact ? "py-2" : "py-3"} items-center`}>
+        <Text className="font-nunito-extrabold text-[10px] uppercase tracking-[1.4px] text-fgMuted">
+          {t("quests.dailyNumbers.target")}
+        </Text>
+        <Text
+          className={`${compact ? "text-[52px] leading-[58px]" : "text-[60px] leading-[66px]"} font-nunito-extrabold`}
+          style={{ color: modeAccent.text, fontVariant: ["tabular-nums"] }}
+          numberOfLines={1}
+          selectable
+          testID="daily-numbers-target"
+        >
+          {state.target}
         </Text>
       </View>
-
-      <View className="mt-2 flex-row items-start px-1">
-        <View className="min-w-0 flex-1 items-center">
-          <TrophyIcon size={19} color={tc.primaryText} />
-          <Text
-            className="mt-1 text-center font-nunito-extrabold text-[10px] uppercase tracking-[0.8px] text-fgMuted"
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.72}
-          >
-            {t("quests.dailyNumbers.bestMetric")}
-          </Text>
-          <Text
-            className="mt-0.5 text-center font-nunito-extrabold text-[22px] leading-7 text-fg"
-            style={{ fontVariant: ["tabular-nums"] }}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.7}
-          >
-            {currentBestTile?.value ?? "—"}
-          </Text>
-        </View>
-
-        <View className="min-w-0 flex-1 items-center">
-          <DailyNumbersTargetPal colors={tc} mood={mood} width={26} />
-          <Text
-            className="mt-1 text-center font-nunito-extrabold text-[10px] uppercase tracking-[0.8px] text-fgMuted"
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.72}
-          >
-            {t("quests.dailyNumbers.awayMetric")}
-          </Text>
-          <Text
-            className="mt-0.5 text-center font-nunito-extrabold text-[22px] leading-7 text-fg"
-            style={{ fontVariant: ["tabular-nums"] }}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.7}
-          >
-            {distance}
-          </Text>
-        </View>
-
-        <View className="min-w-0 flex-1 items-center">
-          <ClockIcon size={19} color={tc.primaryText} />
-          <Text
-            className="mt-1 text-center font-nunito-extrabold text-[10px] uppercase tracking-[0.8px] text-fgMuted"
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.72}
-          >
-            {t("quests.dailyNumbers.timeMetric")}
-          </Text>
-          <Text
-            className="mt-0.5 text-center font-nunito-extrabold text-[22px] leading-7 text-fg"
-            style={{ fontVariant: ["tabular-nums"] }}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.7}
-          >
-            {formattedElapsedTime}
-          </Text>
-        </View>
+      <View
+        className={`${stackMetrics ? "flex-col" : "flex-row"} border-y border-primaryBorder`}
+      >
+        {stackMetrics ? (
+          <>
+            <View className="w-full flex-row">
+              <View className="flex-1">
+                <InlineMetric
+                  label={t("quests.dailyNumbers.bestResult")}
+                  value={currentBestTile?.value ?? "—"}
+                />
+              </View>
+              <View className="my-2.5 w-px bg-primaryBorder" />
+              <View className="flex-1">
+                <InlineMetric
+                  label={t("quests.dailyNumbers.bestDistance")}
+                  value={currentDistance ?? state.bestDistance}
+                />
+              </View>
+            </View>
+            <View className="h-px w-full bg-primaryBorder" />
+            <View className="w-full">
+              <InlineMetric
+                label={
+                  showSolutionFound
+                    ? t("quests.dailyNumbers.solutionHuntTitle")
+                    : t("quests.dailyNumbers.solveTime")
+                }
+                value={
+                  showSolutionFound
+                    ? t("quests.dailyNumbers.solutionHuntSolutionFound")
+                    : formattedElapsedTime
+                }
+              />
+            </View>
+          </>
+        ) : (
+          <>
+            <View className="flex-1">
+              <InlineMetric
+                label={t("quests.dailyNumbers.bestResult")}
+                value={currentBestTile?.value ?? "—"}
+              />
+            </View>
+            <View className="my-2.5 w-px bg-primaryBorder" />
+            <View className="flex-1">
+              <InlineMetric
+                label={t("quests.dailyNumbers.bestDistance")}
+                value={currentDistance ?? state.bestDistance}
+              />
+            </View>
+            <View className="my-2.5 w-px bg-primaryBorder" />
+            <View className="flex-1">
+              <InlineMetric
+                label={
+                  showSolutionFound
+                    ? t("quests.dailyNumbers.solutionHuntTitle")
+                    : t("quests.dailyNumbers.solveTime")
+                }
+                value={
+                  showSolutionFound
+                    ? t("quests.dailyNumbers.solutionHuntSolutionFound")
+                    : formattedElapsedTime
+                }
+              />
+            </View>
+          </>
+        )}
       </View>
     </View>
   );
@@ -871,11 +1122,11 @@ function SuccessCallout({
 }) {
   return (
     <Animated.View
-      entering={FadeIn.duration(180).reduceMotion(ReduceMotion.System)}
-      className="mb-3 flex-row items-center justify-center gap-2 px-2 py-1"
+      entering={FadeIn.duration(180)}
+      className="mb-3 flex-row items-start gap-2 px-1"
     >
-      <SparklesIcon size={16} color={tc.successText} />
-      <Text className="font-nunito-extrabold text-xs leading-4 text-successText">
+      <CheckIcon size={17} color={tc.successText} />
+      <Text className="min-w-0 flex-1 font-nunito-bold text-xs leading-4 text-successText">
         {completionReached
           ? archiveMode
             ? t("quests.dailyNumbers.archiveImproved")
@@ -898,7 +1149,7 @@ function StepList({
   title: string;
 }) {
   return (
-    <View className="mt-6">
+    <View className="mt-5">
       <View className="flex-row items-baseline justify-between">
         <Text className="font-nunito-extrabold text-sm text-fg">{title}</Text>
         <Text
@@ -909,23 +1160,22 @@ function StepList({
         </Text>
       </View>
       {steps.length > 0 ? (
-        <View className="mt-2 gap-1">
+        <View className="mt-1.5 border-t border-primaryBorder">
           {steps.map((step, index) => (
             <Animated.View
-              key={`${step.resultId}-${index}`}
-              entering={FadeIn.duration(160)
-                .delay(index * 35)
-                .reduceMotion(ReduceMotion.System)}
-              layout={LinearTransition.duration(180).reduceMotion(
-                ReduceMotion.System,
-              )}
-              className="flex-row items-center gap-3 py-1.5"
+              key={step.resultId}
+              entering={FadeIn.duration(160).delay(index * 35)}
+              layout={LinearTransition.duration(180)}
+              className="flex-row items-center gap-3 border-b border-primaryBorder py-2.5"
             >
               <Text
-                className="w-7 font-nunito-extrabold text-xs text-primaryText"
+                className="w-5 text-center font-nunito-extrabold text-xs text-fgMuted"
                 style={{ fontVariant: ["tabular-nums"] }}
+                accessibilityLabel={t("quests.dailyNumbers.stepNumber", {
+                  step: index + 1,
+                })}
               >
-                #{index + 1}
+                {index + 1}
               </Text>
               <Text className="min-w-0 flex-1 font-nunito-extrabold text-sm leading-5 text-fg">
                 {t("quests.dailyNumbers.stepSummary", {
@@ -947,6 +1197,152 @@ function StepList({
   );
 }
 
+function SolutionAccordionItem({
+  solution,
+  t,
+}: {
+  solution: DailyNumbersSolutionListItem;
+  t: TranslateFn;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const label = t("quests.dailyNumbers.solutionHuntSolutionNumber", {
+    number: solution.number,
+  });
+
+  return (
+    <View className="border-b border-primaryBorder">
+      <Pressable
+        accessibilityLabel={label}
+        accessibilityRole="button"
+        accessibilityState={{ expanded }}
+        className="min-h-12 flex-row items-center gap-2 py-3"
+        onPress={() => setExpanded((current) => !current)}
+        testID={`daily-numbers-solution-${solution.number}`}
+      >
+        {expanded ? (
+          <ChevronDownIcon size={18} />
+        ) : (
+          <ChevronRightIcon size={18} />
+        )}
+        <Text className="min-w-0 flex-1 font-nunito-extrabold text-sm text-fg">
+          {label}
+        </Text>
+        <Text className="font-nunito-bold text-xs text-fgMuted">
+          {solution.steps.length}
+        </Text>
+      </Pressable>
+      {expanded ? (
+        <Animated.View entering={FadeIn.duration(160)} className="pb-3 pl-6">
+          <StepList
+            steps={solution.steps}
+            t={t}
+            title={t("quests.dailyNumbers.solutionHuntStepsTitle")}
+          />
+        </Animated.View>
+      ) : null}
+    </View>
+  );
+}
+
+function SolutionAccordionList({
+  solutions,
+  t,
+  title,
+}: {
+  solutions: DailyNumbersSolutionListItem[];
+  t: TranslateFn;
+  title: string;
+}) {
+  if (solutions.length === 0) return null;
+
+  return (
+    <View className="mt-5">
+      <Text className="font-nunito-extrabold text-base text-fg">{title}</Text>
+      <View className="mt-2 border-t border-primaryBorder">
+        {solutions.map((solution) => (
+          <SolutionAccordionItem
+            key={`${solution.number}-${solution.steps.map((step) => step.resultId).join("-")}`}
+            solution={solution}
+            t={t}
+          />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function SolutionHuntLists({
+  onToggleOtherSolutions,
+  progress,
+  revealedOtherSolutions,
+  t,
+  tc,
+}: {
+  onToggleOtherSolutions: () => void;
+  progress: DailyNumbersSolutionLists;
+  revealedOtherSolutions: boolean;
+  t: TranslateFn;
+  tc: ThemeColors;
+}) {
+  const hasDiscoveries = progress.yourSolutions.length > 0;
+  const otherTitle = t(
+    hasDiscoveries
+      ? "quests.dailyNumbers.solutionHuntOtherSolutions"
+      : "quests.dailyNumbers.solutionHuntExistingSolutions",
+  );
+
+  return (
+    <>
+      <SolutionAccordionList
+        solutions={progress.yourSolutions}
+        t={t}
+        title={t("quests.dailyNumbers.solutionHuntYourSolutions")}
+      />
+      {progress.otherSolutions.length > 0 ? (
+        <>
+          <QuestActionButton
+            accessibilityLabel={
+              revealedOtherSolutions
+                ? t("quests.dailyNumbers.solutionHuntHideSolutions", {
+                    title: otherTitle,
+                  })
+                : t("quests.dailyNumbers.solutionHuntShowSolutions", {
+                    title: otherTitle,
+                  })
+            }
+            accessibilityState={{ expanded: revealedOtherSolutions }}
+            backgroundColor={tc.bg}
+            foregroundColor={tc.primaryText}
+            label={
+              revealedOtherSolutions
+                ? t("quests.dailyNumbers.solutionHuntHideSolutions", {
+                    title: otherTitle,
+                  })
+                : t("quests.dailyNumbers.solutionHuntShowSolutions", {
+                    title: otherTitle,
+                  })
+            }
+            leadingIcon={EyeIcon}
+            minHeight={48}
+            onPress={onToggleOtherSolutions}
+            style={{ marginTop: 14 }}
+            testID="daily-numbers-reveal-other-solutions"
+          />
+          {revealedOtherSolutions ? (
+            <Animated.View entering={FadeIn.duration(180)}>
+              <SolutionAccordionList
+                solutions={progress.otherSolutions}
+                t={t}
+                title={otherTitle}
+              />
+            </Animated.View>
+          ) : null}
+        </>
+      ) : null}
+    </>
+  );
+}
+
 function ResultDetails({
   interaction,
   officialSolutionSteps,
@@ -964,17 +1360,19 @@ function ResultDetails({
   t: TranslateFn;
   tc: ThemeColors;
 }) {
+  const solutionHuntProgress = interaction.solutionHuntResult ?? state.solutionHunt;
+
   return (
     <>
-      <View className="mt-7">
+      <View className="mt-6 border-t border-primaryBorder pt-4">
         <Text className="font-nunito-extrabold text-sm text-fg">
           {t("quests.dailyNumbers.startingNumbersTitle")}
         </Text>
-        <View className="mt-2 flex-row flex-wrap gap-2">
+        <View className="mt-2 flex-row flex-wrap items-center gap-2">
           {state.numbers.map((tile) => (
             <View
+              className="h-11 min-w-[46px] items-center justify-center rounded-xl border border-primaryBorder bg-surface px-2"
               key={tile.id}
-              className="min-w-[48px] rounded-lg bg-surfaceMuted px-3 py-2"
             >
               <Text
                 className="text-center font-nunito-extrabold text-base text-fg"
@@ -982,6 +1380,7 @@ function ResultDetails({
                 numberOfLines={1}
                 adjustsFontSizeToFit
                 minimumFontScale={0.7}
+                selectable
               >
                 {tile.value}
               </Text>
@@ -989,14 +1388,15 @@ function ResultDetails({
           ))}
         </View>
       </View>
-      {submittedSolutionSteps.length > 0 ? (
+      {submittedSolutionSteps.length > 0 &&
+      (!solutionHuntProgress || solutionHuntProgress.yourSolutions.length === 0) ? (
         <StepList
           steps={submittedSolutionSteps}
           t={t}
           title={t("quests.dailyNumbers.solutionUsedTitle")}
         />
       ) : null}
-      {officialSolutionSteps.length > 0 ? (
+      {!solutionHuntProgress && officialSolutionSteps.length > 0 ? (
         <>
           <QuestActionButton
             label={
@@ -1005,25 +1405,23 @@ function ResultDetails({
                 : t("quests.dailyNumbers.revealSolution")
             }
             onPress={onToggleSolution}
-            backgroundColor={tc.surfaceMuted}
+            backgroundColor={tc.bg}
             foregroundColor={tc.primaryText}
             leadingIcon={EyeIcon}
             minHeight={48}
             style={{ marginTop: 14 }}
             testID="daily-numbers-reveal-solution"
-            accessibilityState={{
-              expanded: interaction.revealedSolution,
-            }}
             accessibilityLabel={
               interaction.revealedSolution
                 ? t("quests.dailyNumbers.hideSolution")
                 : t("quests.dailyNumbers.revealSolution")
             }
+            accessibilityState={{ expanded: interaction.revealedSolution }}
           />
           {interaction.revealedSolution ? (
             <Animated.View
-              entering={FadeIn.duration(180).reduceMotion(ReduceMotion.System)}
-              className="mt-5"
+              entering={FadeIn.duration(180)}
+              className="mt-4 border-t border-primaryBorder pt-4"
             >
               <Text className="font-nunito text-sm leading-5 text-fgMuted">
                 {t("quests.dailyNumbers.officialSolutionBody")}
@@ -1058,6 +1456,7 @@ function FinishStatePanel({
   onClaimReward,
   onShareResult,
   onStartRetry,
+  onStartSolutionHunt,
   onToggleSolution,
   officialSolutionSteps,
   state,
@@ -1065,119 +1464,200 @@ function FinishStatePanel({
   t,
   tc,
 }: FinishStateProps) {
-  const resultColor = exactHitState ? tc.successText : tc.primaryText;
-  const mascotMood: DailyNumbersTargetPalMood = exactHitState
-    ? "caught"
+  const { fontScale } = useWindowDimensions();
+  const stackMetrics = fontScale >= 1.4;
+  const resultEmphasisClass = compact
+    ? "text-[42px] leading-[48px]"
+    : "text-[48px] leading-[54px]";
+  const resultColor = exactHitState
+    ? tc.successDark
     : finishCompleted
-      ? "nervous"
-      : "escaped";
-  const resultQuip = t(
-    getResultQuipKey({
-      completed: finishCompleted,
-      distance: finishDistance,
-      exact: exactHitState,
-    }),
-  );
+      ? tc.infoDark
+      : tc.dangerDark;
+  const resultTint = exactHitState
+    ? tc.successTint
+    : finishCompleted
+      ? tc.infoTint
+      : tc.dangerTint;
+  const resultBorder = exactHitState
+    ? tc.successBorder
+    : finishCompleted
+      ? tc.infoBorder
+      : tc.dangerBorder;
   const outcomeLabel = exactHitState
     ? t("quests.dailyNumbers.exactHitLabel")
     : finishDistance == null
-      ? t("quests.dailyNumbers.archiveNoResult")
-      : t("quests.dailyNumbers.archiveDistanceShort", {
+      ? t("quests.dailyNumbers.resultLockedLabel")
+      : t("quests.dailyNumbers.distanceOutcome", {
           distance: finishDistance,
         });
+  const resultNote = state.claimed
+    ? t("quests.dailyNumbers.alreadyClaimed")
+    : !state.submitted && exactHitState
+      ? null
+      : finishCompleted
+        ? t("quests.dailyNumbers.rewardReminder", {
+            reward: state.reward,
+          })
+        : t("quests.dailyNumbers.resultLockedNote");
+  const solutionHuntProgress = interaction.solutionHuntResult ?? state.solutionHunt;
 
   return (
-    <View className="pt-2">
-      {archiveMode ? (
-        <Text className="mb-2 font-nunito-bold text-[10px] uppercase tracking-[1.2px] text-fgMuted">
-          {t("quests.dailyNumbers.archiveResultLabel")}
-        </Text>
-      ) : null}
-
+    <View className="pt-1" testID="daily-numbers-result">
       <Animated.View
-        entering={FadeIn.duration(220).reduceMotion(ReduceMotion.System)}
-        className="min-h-[176px] items-center"
+        entering={FadeIn.duration(220)}
+        className="relative mb-1 items-center overflow-hidden rounded-[28px] border px-4 pb-5 pt-5"
+        style={{ backgroundColor: resultTint, borderColor: resultBorder }}
       >
-        <View className="items-center">
+        <Text
+          className="absolute right-8 top-3 font-nunito-extrabold text-xl"
+          style={{ color: resultColor, opacity: 0.55 }}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        >
+          ✦
+        </Text>
+        <Text
+          className="absolute bottom-3 left-8 font-nunito-extrabold text-sm"
+          style={{ color: resultColor, opacity: 0.42 }}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        >
+          ✦
+        </Text>
+        {archiveMode ? (
           <Text
-            className={`${compact ? "text-[46px] leading-[49px]" : "text-[54px] leading-[57px]"} text-center font-nunito-extrabold`}
+            className="mb-2 font-nunito-bold text-[10px] uppercase tracking-[1.2px]"
+            style={{ color: resultColor }}
+          >
+            {t("quests.dailyNumbers.archiveResultLabel")}
+          </Text>
+        ) : null}
+        {!exactHitState ? (
+          <Text
+            className={`${resultEmphasisClass} text-center font-nunito-extrabold`}
             style={{ color: resultColor, fontVariant: ["tabular-nums"] }}
-            maxFontSizeMultiplier={1.1}
+            selectable
             testID="daily-numbers-result-outcome"
           >
             {outcomeLabel}
           </Text>
-          <Text className="mt-2 max-w-[300px] text-center font-nunito-extrabold text-base leading-5 text-fg">
-            {resultQuip}
-          </Text>
-        </View>
-
-        <View
-          className="-mb-5 -mt-2"
-          style={{ transform: [{ rotate: exactHitState ? "-7deg" : "5deg" }] }}
+        ) : null}
+        {exactHitState ? (
+          <View className="items-center" testID="daily-numbers-exact-target">
+            <Text
+              className={`${resultEmphasisClass} text-center font-nunito-extrabold`}
+              style={{ color: resultColor, fontVariant: ["tabular-nums"] }}
+              selectable
+              adjustsFontSizeToFit
+              numberOfLines={1}
+            >
+              {state.target}
+            </Text>
+            <Text
+              className="font-nunito-extrabold text-[10px] uppercase tracking-[1.4px]"
+              style={{ color: resultColor }}
+            >
+              {t("quests.dailyNumbers.target")}
+            </Text>
+          </View>
+        ) : null}
+        <Text
+          className="mt-2 text-center font-nunito-bold text-xs"
+          style={{ color: resultColor }}
         >
-          <DailyNumbersTargetPal
-            colors={tc}
-            mood={mascotMood}
-            value={state.target}
-            width={compact ? 128 : 140}
-          />
-        </View>
-      </Animated.View>
-
-      {interaction.submitting && !state.submitted && exactHitState ? (
-        <Text className="mt-1 text-center font-nunito-semibold text-xs text-fgMuted">
-          {t("quests.dailyNumbers.autoSubmittingSuccess")}
+          {archiveMode
+            ? t("quests.dailyNumbers.archiveSavedLabel")
+            : finishCompleted
+              ? t("quests.dailyNumbers.completedLabel")
+              : t("quests.dailyNumbers.incompleteLabel")}
         </Text>
+        {interaction.submitting && !state.submitted && exactHitState ? (
+          <Text className="mt-2 text-center font-nunito-semibold text-xs text-fgMuted">
+            {t("quests.dailyNumbers.autoSubmittingSuccess")}
+          </Text>
+        ) : null}
+      </Animated.View>
+      {exactHitState ? (
+        <Animated.Text
+          entering={FadeIn.duration(180).delay(80)}
+          className={`${resultEmphasisClass} py-3 text-center font-nunito-extrabold`}
+          style={{ color: resultColor }}
+          selectable
+          testID="daily-numbers-result-outcome"
+        >
+          {outcomeLabel}
+        </Animated.Text>
       ) : null}
 
-      <View className="mt-5 items-center px-1">
-        <View className="flex-row items-center gap-1.5">
-          <ClockIcon size={14} color={tc.fgMuted} />
-          <Text className="font-nunito-bold text-xs text-fgMuted">
-            {t("quests.dailyNumbers.chaseTime")}
+      <View
+        className={`${stackMetrics ? "flex-col" : "flex-row"} border-b border-primaryBorder`}
+      >
+        <View
+          className={`${stackMetrics ? "px-1" : "pr-5"} min-w-0 flex-1 py-4`}
+        >
+          <View className="min-h-5 flex-row items-center gap-1.5">
+            <ClockIcon size={15} color={tc.fgMuted} />
+            <Text className="font-nunito-extrabold text-[10px] leading-4 uppercase tracking-[1px] text-fgMuted">
+              {t("quests.dailyNumbers.solveTime")}
+            </Text>
+          </View>
+          <Text
+            className="mt-2 font-nunito-extrabold text-[30px] leading-10 text-fg"
+            style={{ fontVariant: ["tabular-nums"] }}
+            selectable
+            testID="daily-numbers-result-time"
+          >
+            {formattedElapsedTime}
           </Text>
         </View>
-        <Text
-          className="mt-0.5 font-nunito-extrabold text-[36px] leading-[40px] text-fg"
-          style={{ fontVariant: ["tabular-nums"] }}
-          maxFontSizeMultiplier={1.12}
-          testID="daily-numbers-result-time"
+        <View
+          className={
+            stackMetrics
+              ? "h-px w-full bg-primaryBorder"
+              : "my-3 w-px bg-primaryBorder"
+          }
+        />
+        <View
+          className={`${stackMetrics ? "px-1" : "pl-5"} min-w-0 flex-1 py-4`}
         >
-          {formattedElapsedTime}
-        </Text>
-
-        <Text className="mt-4 font-nunito-bold text-xs text-fgMuted">
-          {t("quests.dailyNumbers.finalResult")}
-        </Text>
-        <Text
-          className="font-nunito-extrabold text-lg leading-6 text-fg"
-          style={{ fontVariant: ["tabular-nums"] }}
-          adjustsFontSizeToFit
-          maxFontSizeMultiplier={1.15}
-          numberOfLines={1}
-        >
-          {finishValue ?? "—"} {exactHitState ? "=" : "→"} {state.target}
-        </Text>
+          <Text className="min-h-5 font-nunito-extrabold text-[10px] leading-4 uppercase tracking-[1px] text-fgMuted">
+            {t("quests.dailyNumbers.finalResult")}
+          </Text>
+          <Text
+            className="mt-2 font-nunito-extrabold text-2xl leading-9 text-fg"
+            style={{ fontVariant: ["tabular-nums"] }}
+            selectable
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.72}
+          >
+            {finishValue ?? "—"} {exactHitState ? "=" : "→"} {state.target}
+          </Text>
+        </View>
       </View>
 
-      <View className="flex-row flex-wrap justify-center gap-x-5 gap-y-1 px-1 pb-2 pt-4">
+      <View className="flex-row flex-wrap items-center gap-x-5 gap-y-2 py-3">
+        <Text className="font-nunito-bold text-xs text-fgMuted">
+          {t("quests.dailyNumbers.distanceLabel")}: {finishDistance ?? "—"}
+        </Text>
         <Text className="font-nunito-bold text-xs text-fgMuted">
           {t("quests.dailyNumbers.scoreLabel")}:{" "}
           {finishScore != null ? `${finishScore}%` : "—"}
         </Text>
         {!archiveMode ? (
-          <Text className="font-nunito-bold text-xs text-fgMuted">
-            {t("quests.dailyNumbers.reward")}: {state.reward}
-          </Text>
+          <View className="flex-row items-center gap-1.5">
+            <CoinIcon size={16} />
+            <Text className="font-nunito-bold text-xs text-fgMuted">
+              {t("quests.dailyNumbers.reward")}: {state.reward}
+            </Text>
+          </View>
         ) : null}
       </View>
       {archiveMode ? (
-        <View className="px-1 py-2">
-          <Text className="text-center font-nunito-bold text-xs leading-4 text-fgMuted">
-            {t("quests.dailyNumbers.archiveNoReward")}
-          </Text>
-        </View>
+        <Text className="px-1 py-2 text-center font-nunito-bold text-xs leading-4 text-fgMuted">
+          {t("quests.dailyNumbers.archiveNoReward")}
+        </Text>
       ) : claimable && state.questVersion ? (
         <QuestActionButton
           label={t("quests.dailyNumbers.claimReward", {
@@ -1196,21 +1676,11 @@ function FinishStatePanel({
           testID="daily-numbers-claim-reward"
           style={{ marginTop: 12 }}
         />
-      ) : (
-        <View className="px-1 py-2">
-          <Text className="text-center font-nunito-semibold text-xs leading-4 text-fgMuted">
-            {state.claimed
-              ? t("quests.dailyNumbers.alreadyClaimed")
-              : !state.submitted && exactHitState
-                ? t("quests.dailyNumbers.autoSubmittingSuccess")
-                : finishCompleted
-                  ? t("quests.dailyNumbers.rewardReminder", {
-                      reward: state.reward,
-                    })
-                  : t("quests.dailyNumbers.resultLockedNote")}
-          </Text>
-        </View>
-      )}
+      ) : resultNote ? (
+        <Text className="px-1 py-2 text-center font-nunito-semibold text-xs leading-4 text-fgMuted">
+          {resultNote}
+        </Text>
+      ) : null}
       {archiveMode && canRetryArchive ? (
         <QuestActionButton
           label={t("quests.dailyNumbers.archiveTryAgain")}
@@ -1224,17 +1694,85 @@ function FinishStatePanel({
           accessibilityLabel={t("quests.dailyNumbers.archiveTryAgain")}
         />
       ) : null}
+      {!archiveMode && solutionHuntProgress ? (
+        <View
+          className="mt-5 border-t border-primaryBorder pt-5"
+          testID="daily-numbers-solution-hunt"
+        >
+          <Text className="font-nunito-extrabold text-xl text-fg">
+            {t("quests.dailyNumbers.solutionHuntTitle")}
+          </Text>
+          <Text
+            className="mt-1 font-nunito-extrabold text-base text-primaryText"
+            style={{ fontVariant: ["tabular-nums"] }}
+            testID="daily-numbers-solution-hunt-progress"
+          >
+            {t("quests.dailyNumbers.solutionHuntProgress", {
+              found: solutionHuntProgress.solutionsFound,
+              total: solutionHuntProgress.totalSolutions,
+            })}
+          </Text>
+          {solutionHuntProgress.allSolutionsFound ? (
+            <Text
+              className="mt-2 font-nunito-extrabold text-sm text-successText"
+              testID="daily-numbers-solution-hunt-complete"
+            >
+              {t("quests.dailyNumbers.solutionHuntAllFound")}
+            </Text>
+          ) : interaction.solutionHuntResult?.newSolution ? (
+            <Text
+              className="mt-2 font-nunito-extrabold text-sm text-successText"
+              testID="daily-numbers-solution-hunt-new"
+            >
+              {t("quests.dailyNumbers.solutionHuntNewSolution")}
+            </Text>
+          ) : interaction.solutionHuntResult?.alreadyFound ? (
+            <Text
+              className="mt-2 font-nunito-bold text-sm leading-5 text-infoText"
+              testID="daily-numbers-solution-hunt-duplicate"
+            >
+              {t("quests.dailyNumbers.solutionHuntAlreadyFound")}
+            </Text>
+          ) : null}
+          <Text className="mt-2 font-nunito-semibold text-xs leading-4 text-fgMuted">
+            {t("quests.dailyNumbers.solutionHuntNoRewards")}
+          </Text>
+          <SolutionHuntLists
+            onToggleOtherSolutions={onToggleSolution}
+            progress={solutionHuntProgress}
+            revealedOtherSolutions={interaction.revealedSolution}
+            t={t}
+            tc={tc}
+          />
+          {!solutionHuntProgress.allSolutionsFound ? (
+            <View className="mt-3">
+              <QuestActionButton
+                label={t("quests.dailyNumbers.solutionHuntFindAnother")}
+                onPress={onStartSolutionHunt}
+                backgroundColor={tc.primaryStrong}
+                foregroundColor="#FFFFFF"
+                minHeight={48}
+                testID="daily-numbers-solution-hunt-start"
+                accessibilityLabel={t(
+                  "quests.dailyNumbers.solutionHuntFindAnother",
+                )}
+              />
+            </View>
+          ) : null}
+        </View>
+      ) : null}
       <QuestActionButton
         label={
           isSharing
             ? t("quests.dailyNumbers.sharePreparing")
-            : t("quests.dailyNumbers.shareEvidence")
+            : t("quests.dailyNumbers.shareResult")
         }
         onPress={onShareResult}
         loading={isSharing}
         loadingMode="inline"
-        backgroundColor={tc.surfaceMuted}
+        backgroundColor={tc.surface}
         foregroundColor={tc.primaryText}
+        borderColor={tc.primaryBorder}
         leadingIcon={ShareIcon}
         minHeight={48}
         accessibilityLabel={t("quests.dailyNumbers.shareResult")}
@@ -1257,7 +1795,12 @@ function FinishStatePanel({
 function AvailableNumbersGrid({
   availableTiles,
   compact,
+  committingResultId,
+  committingTileIds,
+  futureResultRef,
   interactionLocked,
+  modeAccent,
+  onTileRef,
   onTilePress,
   selectedLeftTile,
   selectedOperator,
@@ -1265,9 +1808,46 @@ function AvailableNumbersGrid({
   t,
   tc,
 }: AvailableNumbersGridProps) {
+  const boardNumberTextClass = getBoardNumberTextClass(compact);
+  const commitInProgress =
+    committingTileIds.size > 0 || committingResultId !== null;
+  const futureTileCount =
+    selectedLeftTile && selectedOperator && selectedRightTile
+      ? Math.max(1, availableTiles.length - 1)
+      : 0;
+
   return (
-    <View className="mt-4">
-      <View className="flex-row flex-wrap justify-between gap-y-2">
+    <View className="mt-5">
+      <View className="flex-row items-baseline justify-between">
+        <Text className="font-nunito-extrabold text-sm text-fg">
+          {t("quests.dailyNumbers.availableNumbers")}
+        </Text>
+        <Text
+          className="font-nunito-bold text-xs text-fgMuted"
+          style={{ fontVariant: ["tabular-nums"] }}
+        >
+          {availableTiles.length}
+        </Text>
+      </View>
+      <View className="relative mt-2.5 flex-row flex-wrap justify-between gap-y-2">
+        {futureTileCount > 0 ? (
+          <View
+            pointerEvents="none"
+            className="absolute inset-0 flex-row flex-wrap justify-between gap-y-2 opacity-0"
+          >
+            {Array.from({ length: futureTileCount }, (_, index) => (
+              <View
+                key={`future-slot-${index}`}
+                ref={
+                  index === futureTileCount - 1 ? futureResultRef : undefined
+                }
+                collapsable={false}
+                className={getBoardTileHeightClass(compact)}
+                style={{ width: BOARD_TILE_WIDTH }}
+              />
+            ))}
+          </View>
+        ) : null}
         {availableTiles.map((tile) => {
           const availability = getDailyNumbersTileAvailability({
             interactionLocked,
@@ -1276,83 +1856,80 @@ function AvailableNumbersGrid({
             selectedRightTile,
             tile,
           });
-          const selectionOrder =
-            tile.id === selectedLeftTile?.id
-              ? 1
-              : tile.id === selectedRightTile?.id
-                ? 2
-                : null;
 
           return (
             <Animated.View
               key={tile.id}
-              entering={FadeIn.duration(180).reduceMotion(ReduceMotion.System)}
-              exiting={FadeOut.duration(140).reduceMotion(ReduceMotion.System)}
-              layout={LinearTransition.duration(200).reduceMotion(
-                ReduceMotion.System,
-              )}
-              style={{ width: "31.5%" }}
+              ref={(node: View | null) => onTileRef(tile.id, node)}
+              collapsable={false}
+              entering={
+                tile.source === "derived" ? undefined : FadeIn.duration(180)
+              }
+              exiting={FadeOut.duration(140)}
+              layout={LinearTransition.duration(200)}
+              style={{ width: BOARD_TILE_WIDTH }}
             >
               <Pressable
                 onPress={() => onTilePress(tile.id)}
                 disabled={availability.disabled}
-                className={`${compact ? "min-h-[62px]" : "min-h-[68px]"} items-center justify-center overflow-hidden rounded-[18px] px-2 py-2 ${availability.selected ? "bg-primaryTint" : tile.source === "derived" ? "bg-surfaceMuted" : "bg-surface"} ${availability.disabled ? "opacity-20" : "active:opacity-70"}`}
-                style={
-                  availability.selected
-                    ? { transform: [{ translateY: -2 }] }
-                    : undefined
-                }
+                className={`${getBoardTileHeightClass(compact)} items-center justify-center overflow-hidden rounded-xl px-2 py-2`}
+                style={{
+                  borderColor: availability.selected
+                    ? modeAccent.text
+                    : tile.source === "derived"
+                      ? tc.primaryStrong
+                      : "transparent",
+                  borderWidth: 2,
+                  backgroundColor: availability.selected
+                    ? modeAccent.bg
+                    : tile.source === "derived"
+                      ? tc.surface
+                      : tc.surface,
+                  opacity:
+                    committingTileIds.has(tile.id) ||
+                    tile.id === committingResultId
+                      ? 0
+                      : !commitInProgress &&
+                          availability.disabled &&
+                          !availability.selected
+                        ? 0.4
+                        : 1,
+                }}
                 testID={`daily-numbers-tile-${tile.id}`}
                 accessibilityRole="button"
                 accessibilityState={{
                   selected: availability.selected,
                   disabled: availability.disabled,
                 }}
-                accessibilityLabel={
-                  selectionOrder
-                    ? t("quests.dailyNumbers.selectedTilePosition", {
-                        value: tile.value,
-                        position: selectionOrder,
-                      })
-                    : availability.disabled
-                      ? t("quests.dailyNumbers.tileUnavailable", {
-                          value: tile.value,
-                        })
-                      : t("quests.dailyNumbers.tileValue", {
-                          value: tile.value,
-                        })
-                }
+                accessibilityLabel={t("quests.dailyNumbers.tileValue", {
+                  value: tile.value,
+                })}
               >
                 {tile.source === "derived" ? (
-                  <View
-                    className="absolute right-2 top-1.5"
+                  <Text
+                    className="absolute right-2 top-1 font-nunito-extrabold text-[10px] text-fgMuted"
                     accessibilityElementsHidden
                     importantForAccessibility="no-hide-descendants"
                   >
-                    <SparklesIcon size={11} color={tc.primaryText} />
-                  </View>
+                    ✦
+                  </Text>
                 ) : null}
                 <Text
-                  className={`text-center font-nunito-extrabold ${compact ? "text-[22px]" : "text-[25px]"}`}
+                  className={`${boardNumberTextClass} text-center font-nunito-extrabold`}
                   style={{
-                    color: availability.selected ? tc.primaryText : tc.fg,
+                    color: availability.selected
+                      ? modeAccent.text
+                      : tile.source === "derived"
+                        ? tc.primaryStrong
+                        : tc.fg,
                     fontVariant: ["tabular-nums"],
                   }}
                   numberOfLines={1}
-                  adjustsFontSizeToFit
+                  adjustsFontSizeToFit={String(tile.value).length > 3}
                   minimumFontScale={0.68}
                 >
                   {tile.value}
                 </Text>
-                {selectionOrder ? (
-                  <Text
-                    className="absolute bottom-1.5 left-2 font-nunito-extrabold text-[10px] text-fg"
-                    accessibilityElementsHidden
-                    importantForAccessibility="no-hide-descendants"
-                  >
-                    {selectionOrder}
-                  </Text>
-                ) : null}
               </Pressable>
             </Animated.View>
           );
@@ -1372,9 +1949,14 @@ function OperatorPicker({
   t,
   tc,
 }: OperatorPickerProps) {
+  const boardNumberTextClass = getBoardNumberTextClass(compact);
+
   return (
-    <View className="mt-3">
-      <View className="flex-row gap-2">
+    <View className="mt-5">
+      <Text className="font-nunito-extrabold text-sm text-fg">
+        {t("quests.dailyNumbers.operators")}
+      </Text>
+      <View className="mt-2 flex-row gap-2">
         {OPERATORS.map((operator) => {
           const availability = getDailyNumbersOperatorAvailability({
             interactionLocked,
@@ -1389,29 +1971,36 @@ function OperatorPicker({
               key={operator}
               onPress={() => onOperatorPress(operator)}
               disabled={availability.disabled}
-              className={`${compact ? "min-h-[48px]" : "min-h-[52px]"} flex-1 items-center justify-center rounded-2xl bg-surface px-2 py-2 ${availability.selected ? "bg-primaryTint" : ""} ${availability.disabled ? "opacity-20" : availability.wouldBeInvalid ? "opacity-[0.34]" : "active:opacity-70"}`}
+              className={`${compact ? "min-h-[58px]" : "min-h-[64px]"} flex-1 items-center justify-center rounded-xl border px-2 py-2`}
+              style={{
+                borderColor: availability.selected
+                  ? tc.accentStrong
+                  : tc.primaryBorder,
+                backgroundColor: availability.selected
+                  ? tc.accentTint
+                  : tc.surface,
+                opacity:
+                  availability.disabled && !availability.selected
+                    ? 0.2
+                    : availability.wouldBeInvalid
+                      ? 0.34
+                      : 1,
+              }}
               testID={`daily-numbers-operator-${operator === "*" ? "multiply" : operator === "/" ? "divide" : operator === "+" ? "plus" : "minus"}`}
               accessibilityRole="button"
               accessibilityState={{
                 selected: availability.selected,
                 disabled: availability.disabled,
               }}
-              accessibilityLabel={
-                availability.wouldBeInvalid
-                  ? t("quests.dailyNumbers.operatorUnavailable", {
-                      operator: displayOperator(operator),
-                    })
-                  : t("quests.dailyNumbers.operatorValue", {
-                      operator: displayOperator(operator),
-                    })
-              }
+              accessibilityLabel={t("quests.dailyNumbers.operatorValue", {
+                operator: displayOperator(operator),
+              })}
             >
               <Text
-                className={`text-center font-nunito-extrabold ${compact ? "text-[20px]" : "text-[23px]"}`}
+                className={`${boardNumberTextClass} text-center font-nunito-extrabold`}
                 style={{
-                  color: availability.selected ? tc.primaryText : tc.fg,
+                  color: availability.selected ? tc.accentStrong : tc.fg,
                 }}
-                maxFontSizeMultiplier={1.2}
               >
                 {displayOperator(operator)}
               </Text>
@@ -1424,95 +2013,156 @@ function OperatorPicker({
 }
 
 function EquationResult({
-  expanded,
+  compact,
+  committing,
+  exactHitPreview,
   interactionLocked,
   onApplyStep,
   previewState,
+  resultRef,
   t,
 }: {
-  expanded?: boolean;
+  compact: boolean;
+  committing: boolean;
+  exactHitPreview: boolean;
   interactionLocked: boolean;
   onApplyStep: () => void;
   previewState: PreviewState;
+  resultRef: RefObject<View | null>;
   t: TranslateFn;
 }) {
-  const ready = previewState.kind === "ready";
+  const boardNumberTextClass = getBoardNumberTextClass(compact);
+  const resultSurfaceClassName = exactHitPreview
+    ? "bg-successTint border-successBorder"
+    : committing
+      ? "bg-surface border-primaryStrong"
+      : "bg-primaryStrong border-primaryStrong";
+  const resultTextClassName = exactHitPreview
+    ? "text-successDark"
+    : committing
+      ? "text-primaryStrong"
+      : "text-white";
 
   return (
-    <Pressable
-      onPress={onApplyStep}
-      disabled={interactionLocked}
-      className={`${expanded ? "min-h-[64px] flex-1" : "h-[72px] min-w-[72px] max-w-[88px] flex-1"} items-center justify-center rounded-[18px] px-2 ${ready ? "bg-primaryStrong" : "bg-surfaceMuted"} ${interactionLocked ? "opacity-20" : ready ? "active:opacity-80" : "opacity-60 active:opacity-80"}`}
-      testID="daily-numbers-apply-step"
-      accessibilityRole="button"
-      accessibilityState={{ disabled: interactionLocked }}
-      accessibilityLabel={t("quests.dailyNumbers.applyStep")}
+    <View
+      className={`${getBoardTileHeightClass(compact)} items-center justify-center`}
+      style={{ width: BOARD_TILE_WIDTH }}
     >
-      {ready ? (
-        <>
-          <Text
-            className="text-center font-nunito-extrabold text-[25px] leading-7 text-white"
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            maxFontSizeMultiplier={1.15}
-            minimumFontScale={0.6}
-          >
-            {previewState.result}
-          </Text>
-          <Text
-            className="mt-0.5 text-center font-nunito-bold text-[9px] leading-3 text-white opacity-80"
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            maxFontSizeMultiplier={1.1}
-            minimumFontScale={0.7}
-          >
-            {t("quests.dailyNumbers.applyStep")}
-          </Text>
-        </>
-      ) : (
-        <Text
-          className={`text-center font-nunito-extrabold text-[11px] leading-4 ${previewState.kind === "invalid" ? "text-dangerText" : "text-fgMuted"}`}
-          numberOfLines={2}
-          adjustsFontSizeToFit
-          maxFontSizeMultiplier={1.15}
-          minimumFontScale={0.7}
+      {previewState.kind === "ready" ? (
+        <Animated.View
+          key={`ready-${previewState.result}`}
+          entering={FadeIn.duration(150)}
+          className="h-full w-full"
+          testID={exactHitPreview ? "daily-numbers-exact-preview" : undefined}
         >
-          {t("quests.dailyNumbers.applyStep")}
-        </Text>
+          <View ref={resultRef} collapsable={false} className="h-full w-full">
+            <Pressable
+              onPress={onApplyStep}
+              disabled={interactionLocked || committing}
+              className={`${resultSurfaceClassName} relative h-full w-full items-center justify-center rounded-xl border-2 px-2 py-2`}
+              style={({ pressed }) => ({
+                opacity:
+                  interactionLocked && !committing ? 0.38 : pressed ? 0.76 : 1,
+              })}
+              accessibilityRole="button"
+              accessibilityState={{
+                disabled: interactionLocked || committing,
+              }}
+              accessibilityLabel={t("quests.dailyNumbers.applyResult", {
+                result: previewState.result,
+              })}
+              accessibilityHint={
+                exactHitPreview
+                  ? t("quests.dailyNumbers.exactHitLabel")
+                  : t("quests.dailyNumbers.applyResultHint")
+              }
+              testID="daily-numbers-apply-step"
+            >
+              <Text
+                className={`${boardNumberTextClass} w-full ${compact ? "px-2" : "px-3"} text-center font-nunito-extrabold ${resultTextClassName}`}
+                numberOfLines={1}
+                adjustsFontSizeToFit={String(previewState.result).length > 4}
+                minimumFontScale={0.68}
+                style={{ fontVariant: ["tabular-nums"] }}
+              >
+                {previewState.result}
+              </Text>
+              {!committing ? (
+                <View
+                  pointerEvents="none"
+                  className="absolute inset-y-0 right-2 items-center justify-center"
+                  accessibilityElementsHidden
+                  importantForAccessibility="no-hide-descendants"
+                >
+                  <Text
+                    className={`font-nunito-extrabold text-lg ${exactHitPreview ? "text-successDark" : "text-white"}`}
+                  >
+                    {exactHitPreview ? "✦" : "↓"}
+                  </Text>
+                </View>
+              ) : null}
+            </Pressable>
+          </View>
+        </Animated.View>
+      ) : (
+        <Animated.View key={previewState.kind} entering={FadeIn.duration(120)}>
+          <Text
+            className={`${boardNumberTextClass} text-center font-nunito-extrabold ${previewState.kind === "invalid" ? "text-dangerText" : "text-fgMuted"}`}
+            numberOfLines={1}
+            minimumFontScale={0.68}
+            style={{ fontVariant: ["tabular-nums"] }}
+          >
+            —
+          </Text>
+        </Animated.View>
       )}
-    </Pressable>
+    </View>
   );
 }
 
 function EquationWorkbench({
+  compact,
+  committing,
   interactionLocked,
   localSteps,
   onApplyStep,
   onClearSlot,
   previewState,
+  resultRef,
   selectedLeftTile,
   selectedOperator,
   selectedRightTile,
+  target,
   t,
+  tc,
 }: {
+  compact: boolean;
+  committing: boolean;
   interactionLocked: boolean;
   localSteps: DailyNumbersStep[];
   onApplyStep: () => void;
   onClearSlot: (slot: SlotKey) => void;
   previewState: PreviewState;
+  resultRef: RefObject<View | null>;
   selectedLeftTile: BoardTile | null;
   selectedOperator: Operator | null;
   selectedRightTile: BoardTile | null;
+  target: number;
   t: TranslateFn;
+  tc: ThemeColors;
 }) {
   const { fontScale, width } = useWindowDimensions();
-  const stackResult = fontScale >= 1.35 || width < 350;
+  const stackResult = fontScale >= 1.35 || width < 380;
+  const equationTextClassName = getBoardNumberTextClass(compact);
+  const equationControlHeight = compact ? "h-[58px]" : "h-16";
+  const exactHitPreview =
+    previewState.kind === "ready" && previewState.result === target;
 
   return (
-    <>
-      <View className="mb-2 mt-5 flex-row items-baseline justify-between px-1">
-        <Text className="font-nunito-extrabold text-xs text-fg">
-          {t("quests.dailyNumbers.makeNumber")}
+    <View>
+      <View className="mb-2 flex-row items-baseline justify-between">
+        <Text className="font-nunito-extrabold text-sm text-fg">
+          {t("quests.dailyNumbers.selection")}
         </Text>
         <Text className="font-nunito-bold text-xs text-fgMuted">
           {t("quests.dailyNumbers.stepNumber", {
@@ -1521,11 +2171,17 @@ function EquationWorkbench({
         </Text>
       </View>
 
-      <View>
+      <View className="border-y border-primaryBorder py-2">
         <View className="flex-row items-center gap-1.5">
           <Pressable
             onPress={() => onClearSlot("left")}
-            className={`h-[72px] min-w-0 flex-1 items-center justify-center rounded-[18px] px-1.5 ${selectedLeftTile ? "bg-surface" : "bg-surfaceMuted opacity-60"} ${interactionLocked ? "opacity-20" : "active:opacity-70"}`}
+            className={`${equationControlHeight} min-w-0 flex-1 items-center justify-center rounded-lg px-1.5`}
+            style={({ pressed }) => ({
+              backgroundColor: selectedLeftTile
+                ? tc.primaryTint
+                : "transparent",
+              opacity: interactionLocked ? 0.34 : pressed ? 0.7 : 1,
+            })}
             disabled={interactionLocked}
             accessibilityRole="button"
             accessibilityState={{ disabled: interactionLocked }}
@@ -1538,18 +2194,26 @@ function EquationWorkbench({
             }
           >
             <Text
-              className={`text-center font-nunito-extrabold text-[29px] ${selectedLeftTile ? "text-primaryText" : "text-fgMuted"}`}
+              className={`${equationTextClassName} text-center font-nunito-extrabold ${selectedLeftTile ? "text-fg" : "text-fgMuted"}`}
               numberOfLines={1}
-              adjustsFontSizeToFit
-              maxFontSizeMultiplier={1.2}
+              adjustsFontSizeToFit={
+                String(selectedLeftTile?.value ?? "—").length > 3
+              }
               minimumFontScale={0.68}
+              style={{ fontVariant: ["tabular-nums"] }}
             >
               {selectedLeftTile?.value ?? "—"}
             </Text>
           </Pressable>
           <Pressable
             onPress={() => onClearSlot("operator")}
-            className={`h-14 w-12 items-center justify-center rounded-2xl px-1 ${selectedOperator ? "bg-primaryTint" : "bg-surfaceMuted opacity-60"} ${interactionLocked ? "opacity-20" : "active:opacity-70"}`}
+            className={`${equationControlHeight} w-14 items-center justify-center rounded-lg px-1`}
+            style={({ pressed }) => ({
+              backgroundColor: selectedOperator
+                ? tc.primaryTint
+                : "transparent",
+              opacity: interactionLocked ? 0.34 : pressed ? 0.7 : 1,
+            })}
             disabled={interactionLocked}
             accessibilityRole="button"
             accessibilityState={{ disabled: interactionLocked }}
@@ -1562,15 +2226,20 @@ function EquationWorkbench({
             }
           >
             <Text
-              className={`text-center font-nunito-extrabold text-[26px] ${selectedOperator ? "text-primaryText" : "text-fgMuted"}`}
-              maxFontSizeMultiplier={1.2}
+              className={`${equationTextClassName} text-center font-nunito-extrabold ${selectedOperator ? "text-fg" : "text-fgMuted"}`}
             >
               {selectedOperator ? displayOperator(selectedOperator) : "?"}
             </Text>
           </Pressable>
           <Pressable
             onPress={() => onClearSlot("right")}
-            className={`h-[72px] min-w-0 flex-1 items-center justify-center rounded-[18px] px-1.5 ${selectedRightTile ? "bg-surface" : "bg-surfaceMuted opacity-60"} ${interactionLocked ? "opacity-20" : "active:opacity-70"}`}
+            className={`${equationControlHeight} min-w-0 flex-1 items-center justify-center rounded-lg px-1.5`}
+            style={({ pressed }) => ({
+              backgroundColor: selectedRightTile
+                ? tc.primaryTint
+                : "transparent",
+              opacity: interactionLocked ? 0.34 : pressed ? 0.7 : 1,
+            })}
             disabled={interactionLocked}
             accessibilityRole="button"
             accessibilityState={{ disabled: interactionLocked }}
@@ -1583,59 +2252,442 @@ function EquationWorkbench({
             }
           >
             <Text
-              className={`text-center font-nunito-extrabold text-[29px] ${selectedRightTile ? "text-primaryText" : "text-fgMuted"}`}
+              className={`${equationTextClassName} text-center font-nunito-extrabold ${selectedRightTile ? "text-fg" : "text-fgMuted"}`}
               numberOfLines={1}
-              adjustsFontSizeToFit
-              maxFontSizeMultiplier={1.2}
+              adjustsFontSizeToFit={
+                String(selectedRightTile?.value ?? "—").length > 3
+              }
               minimumFontScale={0.68}
+              style={{ fontVariant: ["tabular-nums"] }}
             >
               {selectedRightTile?.value ?? "—"}
             </Text>
           </Pressable>
           {!stackResult ? (
             <>
-              <Text className="px-0.5 font-nunito-extrabold text-base text-fgMuted">
+              <Text
+                className={`${equationTextClassName} px-0.5 font-nunito-extrabold text-fgMuted`}
+              >
                 =
               </Text>
               <EquationResult
+                compact={compact}
+                committing={committing}
+                exactHitPreview={exactHitPreview}
                 interactionLocked={interactionLocked}
                 onApplyStep={onApplyStep}
                 previewState={previewState}
+                resultRef={resultRef}
                 t={t}
               />
             </>
           ) : null}
         </View>
         {stackResult ? (
-          <View className="mt-1 flex-row items-center gap-2">
-            <Text className="w-6 text-center font-nunito-extrabold text-lg text-fgMuted">
+          <View className="mt-2 flex-row items-center justify-end gap-2 border-t border-primaryBorder pt-2">
+            <Text
+              className={`${equationTextClassName} w-8 text-center font-nunito-extrabold text-fgMuted`}
+            >
               =
             </Text>
             <EquationResult
-              expanded
+              compact={compact}
+              committing={committing}
+              exactHitPreview={exactHitPreview}
               interactionLocked={interactionLocked}
               onApplyStep={onApplyStep}
               previewState={previewState}
+              resultRef={resultRef}
               t={t}
             />
           </View>
         ) : null}
         <Text
-          className={`mt-1 px-1 text-center font-nunito-bold text-xs leading-4 ${previewState.kind === "invalid" ? "text-dangerText" : previewState.kind === "ready" ? "text-primaryText" : "text-fgMuted"}`}
+          className={`mt-2 px-1 font-nunito-bold text-[11px] leading-4 ${previewState.kind === "invalid" ? "text-dangerText" : "text-fgMuted"}`}
+          numberOfLines={2}
         >
           {previewState.kind === "ready"
-            ? t("quests.dailyNumbers.targetMoodReady", {
-                result: previewState.result,
-              })
+            ? t("quests.dailyNumbers.nextResult")
             : previewState.kind === "invalid"
               ? previewState.reason === "division"
                 ? t("quests.dailyNumbers.invalidDivision")
                 : t("quests.dailyNumbers.invalidPositive")
-              : selectedLeftTile && selectedRightTile && !selectedOperator
-                ? t("quests.dailyNumbers.pickOperator")
-                : t("quests.dailyNumbers.pickTroublemakers")}
+              : t("quests.dailyNumbers.noPreview")}
         </Text>
       </View>
+    </View>
+  );
+}
+
+function ConsumedNumberTile({
+  compact,
+  modeAccent,
+  progress,
+  rect,
+  resultRect,
+  value,
+}: {
+  compact: boolean;
+  modeAccent: ReturnType<typeof getModeAccent>;
+  progress: SharedValue<number>;
+  rect: MeasuredRect;
+  resultRect: MeasuredRect;
+  value: number;
+}) {
+  const translateX =
+    resultRect.x + resultRect.width / 2 - (rect.x + rect.width / 2);
+  const translateY =
+    resultRect.y + resultRect.height / 2 - (rect.y + rect.height / 2);
+  const animatedStyle = useAnimatedStyle(() => {
+    const mergeProgress = interpolate(
+      progress.value,
+      [0, 0.3],
+      [0, 1],
+      "clamp",
+    );
+
+    return {
+      opacity: interpolate(
+        progress.value,
+        [0, 0.22, 0.32],
+        [1, 0.82, 0],
+        "clamp",
+      ),
+      transform: [
+        { translateX: translateX * mergeProgress },
+        { translateY: translateY * mergeProgress },
+        { scale: interpolate(mergeProgress, [0, 1], [1, 0.28]) },
+      ],
+    };
+  });
+
+  return (
+    <Animated.View
+      className="absolute items-center justify-center rounded-xl border-2"
+      style={[
+        {
+          left: rect.x,
+          top: rect.y,
+          width: rect.width,
+          height: rect.height,
+          backgroundColor: modeAccent.bg,
+          borderColor: modeAccent.text,
+        },
+        animatedStyle,
+      ]}
+    >
+      <Text
+        className={`${getBoardNumberTextClass(compact)} text-center font-nunito-extrabold`}
+        style={{
+          color: modeAccent.text,
+          fontVariant: ["tabular-nums"],
+        }}
+      >
+        {value}
+      </Text>
+    </Animated.View>
+  );
+}
+
+function CommittedResultTile({
+  compact,
+  progress,
+  resultRect,
+  targetRect,
+  value,
+}: {
+  compact: boolean;
+  progress: SharedValue<number>;
+  resultRect: MeasuredRect;
+  targetRect: MeasuredRect;
+  value: number;
+}) {
+  const resultCenterX = resultRect.x + resultRect.width / 2;
+  const resultCenterY = resultRect.y + resultRect.height / 2;
+  const targetCenterX = targetRect.x + targetRect.width / 2;
+  const targetCenterY = targetRect.y + targetRect.height / 2;
+  const animatedStyle = useAnimatedStyle(() => {
+    const transferProgress = interpolate(
+      progress.value,
+      [0.3, 1],
+      [0, 1],
+      "clamp",
+    );
+    return {
+      transform: [
+        {
+          translateX: (resultCenterX - targetCenterX) * (1 - transferProgress),
+        },
+        {
+          translateY: (resultCenterY - targetCenterY) * (1 - transferProgress),
+        },
+      ],
+    };
+  });
+  const derivedMarkStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(progress.value, [0.68, 0.9], [0, 1], "clamp"),
+  }));
+
+  return (
+    <Animated.View
+      className="absolute items-center justify-center rounded-xl border-2 border-primaryStrong bg-surface"
+      style={[
+        {
+          left: targetRect.x,
+          top: targetRect.y,
+          width: targetRect.width,
+          height: targetRect.height,
+          zIndex: 2,
+        },
+        animatedStyle,
+      ]}
+    >
+      <Animated.Text
+        className="absolute right-2 top-1 font-nunito-extrabold text-[10px] text-fgMuted"
+        style={derivedMarkStyle}
+      >
+        ✦
+      </Animated.Text>
+      <Text
+        className={`${getBoardNumberTextClass(compact)} text-center font-nunito-extrabold text-primaryStrong`}
+        style={{ fontVariant: ["tabular-nums"] }}
+      >
+        {value}
+      </Text>
+    </Animated.View>
+  );
+}
+
+function OperationCommitOverlay({
+  animation,
+  compact,
+  modeAccent,
+  onMerged,
+  onFinished,
+}: {
+  animation: ResultCommitAnimation;
+  compact: boolean;
+  modeAccent: ReturnType<typeof getModeAccent>;
+  onMerged: () => void;
+  onFinished: () => void;
+}) {
+  const progress = useSharedValue(0);
+  const mergedCallback = useRef(onMerged).current;
+  const finishedCallback = useRef(onFinished).current;
+
+  useEffect(() => {
+    progress.value = withTiming(
+      0.3,
+      {
+        duration: 170,
+        easing: Easing.out(Easing.cubic),
+      },
+      (finished) => {
+        if (!finished) {
+          return;
+        }
+
+        scheduleOnRN(mergedCallback);
+        progress.value = withDelay(
+          16,
+          withTiming(
+            1,
+            {
+              duration: 390,
+              easing: Easing.bezier(0.2, 0.78, 0.2, 1),
+            },
+            (transferFinished) => {
+              if (transferFinished) {
+                scheduleOnRN(finishedCallback);
+              }
+            },
+          ),
+        );
+      },
+    );
+  }, [finishedCallback, mergedCallback, progress]);
+
+  return (
+    <View
+      pointerEvents="none"
+      className="absolute inset-0 z-20"
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+    >
+      <ConsumedNumberTile
+        compact={compact}
+        modeAccent={modeAccent}
+        progress={progress}
+        rect={animation.leftRect}
+        resultRect={animation.resultRect}
+        value={animation.leftValue}
+      />
+      <ConsumedNumberTile
+        compact={compact}
+        modeAccent={modeAccent}
+        progress={progress}
+        rect={animation.rightRect}
+        resultRect={animation.resultRect}
+        value={animation.rightValue}
+      />
+      <CommittedResultTile
+        compact={compact}
+        progress={progress}
+        resultRect={animation.resultRect}
+        targetRect={animation.targetRect}
+        value={animation.resultValue}
+      />
+    </View>
+  );
+}
+
+function LivePlayControls({
+  archiveMode,
+  interactionLocked,
+  localSteps,
+  officialSolutionSteps,
+  onResetBoard,
+  onSubmitPress,
+  onToggleSolution,
+  onUndoStep,
+  revealedSolution,
+  submitting,
+  t,
+  tc,
+}: {
+  archiveMode: boolean;
+  interactionLocked: boolean;
+  localSteps: DailyNumbersStep[];
+  officialSolutionSteps: DailyNumbersStep[];
+  onResetBoard: () => void;
+  onSubmitPress: () => void;
+  onToggleSolution: () => void;
+  onUndoStep: () => void;
+  revealedSolution: boolean;
+  submitting: boolean;
+  t: TranslateFn;
+  tc: ThemeColors;
+}) {
+  const handleToggleSolution = () => {
+    if (revealedSolution) {
+      onToggleSolution();
+      return;
+    }
+
+    Alert.alert(
+      t("quests.dailyNumbers.revealSolutionConfirmTitle"),
+      t("quests.dailyNumbers.revealSolutionConfirmBody"),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("quests.dailyNumbers.revealSolution"),
+          style: "destructive",
+          onPress: onToggleSolution,
+        },
+      ],
+    );
+  };
+
+  return (
+    <>
+      <QuestActionButton
+        label={
+          archiveMode
+            ? t("quests.dailyNumbers.archiveSaveResult")
+            : t("quests.dailyNumbers.submit")
+        }
+        onPress={onSubmitPress}
+        disabled={interactionLocked}
+        loading={submitting}
+        loadingMode="inline"
+        backgroundColor={interactionLocked ? tc.surfaceMuted : tc.surface}
+        foregroundColor={interactionLocked ? tc.fgMuted : tc.primaryText}
+        borderColor={tc.primaryBorder}
+        leadingIcon={CheckIcon}
+        minHeight={50}
+        accessibilityLabel={
+          archiveMode
+            ? t("quests.dailyNumbers.archiveSaveResult")
+            : t("quests.dailyNumbers.submit")
+        }
+        testID="daily-numbers-submit"
+        style={{ marginTop: 12, opacity: interactionLocked ? 0.38 : 1 }}
+      />
+
+      <View className="mt-2 flex-row gap-2">
+        <View className="min-w-0 flex-1">
+          <QuestActionButton
+            label={t("quests.dailyNumbers.undo")}
+            onPress={onUndoStep}
+            disabled={interactionLocked}
+            backgroundColor={tc.primaryTint}
+            foregroundColor={tc.primaryText}
+            borderColor={tc.primaryBorder}
+            leadingIcon={SkipBackIcon}
+            leadingIconSize={16}
+            minHeight={46}
+            textClassName="font-nunito-bold text-xs"
+            accessibilityLabel={t("quests.dailyNumbers.undo")}
+            testID="daily-numbers-undo"
+            style={{ opacity: interactionLocked ? 0.38 : 1 }}
+          />
+        </View>
+        <View className="min-w-0 flex-1">
+          <QuestActionButton
+            label={t("quests.dailyNumbers.reset")}
+            onPress={onResetBoard}
+            disabled={interactionLocked}
+            backgroundColor={tc.accentTint}
+            foregroundColor={tc.accentStrong}
+            borderColor={tc.accentBorder}
+            leadingIcon={RecycleIcon}
+            leadingIconSize={16}
+            minHeight={46}
+            textClassName="font-nunito-bold text-xs"
+            accessibilityLabel={t("quests.dailyNumbers.reset")}
+            testID="daily-numbers-reset"
+            style={{ opacity: interactionLocked ? 0.38 : 1 }}
+          />
+        </View>
+      </View>
+
+      <StepList
+        emptyCopy={t("quests.dailyNumbers.noStepsYet")}
+        steps={localSteps}
+        t={t}
+        title={t("quests.dailyNumbers.stepHistoryTitle")}
+      />
+      {archiveMode && officialSolutionSteps.length > 0 ? (
+        <>
+          <QuestActionButton
+            label={
+              revealedSolution
+                ? t("quests.dailyNumbers.hideSolution")
+                : t("quests.dailyNumbers.revealSolution")
+            }
+            onPress={handleToggleSolution}
+            backgroundColor={tc.bg}
+            foregroundColor={tc.primaryText}
+            leadingIcon={EyeIcon}
+            minHeight={48}
+            style={{ marginTop: 12 }}
+            testID="daily-numbers-archive-reveal-solution"
+            accessibilityLabel={
+              revealedSolution
+                ? t("quests.dailyNumbers.hideSolution")
+                : t("quests.dailyNumbers.revealSolution")
+            }
+            accessibilityState={{ expanded: revealedSolution }}
+          />
+          {revealedSolution ? (
+            <StepList
+              steps={officialSolutionSteps}
+              t={t}
+              title={t("quests.dailyNumbers.officialSolutionTitle")}
+            />
+          ) : null}
+        </>
+      ) : null}
     </>
   );
 }
@@ -1646,6 +2698,7 @@ function LivePlayPanel({
   compact,
   interactionLocked,
   localSteps,
+  modeAccent,
   onApplyStep,
   onClearSlot,
   onOperatorPress,
@@ -1661,39 +2714,144 @@ function LivePlayPanel({
   selectedOperator,
   selectedRightTile,
   submitting,
+  target,
   t,
   tc,
 }: LivePlayProps) {
+  const stageRef = useRef<View>(null);
+  const resultRef = useRef<View>(null);
+  const futureResultRef = useRef<View>(null);
+  const tileRefs = useRef(new Map<string, View>());
+  const [commitAnimation, setCommitAnimation] =
+    useState<ResultCommitAnimation | null>(null);
+  const [preparingCommit, setPreparingCommit] = useState(false);
+  const commitLocked =
+    interactionLocked || preparingCommit || commitAnimation !== null;
+  const committingTileIds = useMemo(
+    () =>
+      new Set(
+        commitAnimation
+          ? [commitAnimation.leftId, commitAnimation.rightId]
+          : [],
+      ),
+    [commitAnimation],
+  );
+
+  const handleTileRef = useCallback((tileId: string, node: View | null) => {
+    if (node) {
+      tileRefs.current.set(tileId, node);
+      return;
+    }
+
+    tileRefs.current.delete(tileId);
+  }, []);
+
+  const handleApplyResult = useCallback(async () => {
+    if (
+      commitLocked ||
+      previewState.kind !== "ready" ||
+      !selectedLeftTile ||
+      !selectedRightTile
+    ) {
+      return;
+    }
+
+    if (previewState.result === target) {
+      onApplyStep();
+      return;
+    }
+
+    const stageNode = stageRef.current;
+    const resultNode = resultRef.current;
+    const targetNode = futureResultRef.current;
+    const leftNode = tileRefs.current.get(selectedLeftTile.id);
+    const rightNode = tileRefs.current.get(selectedRightTile.id);
+
+    if (!stageNode || !resultNode || !targetNode || !leftNode || !rightNode) {
+      onApplyStep();
+      return;
+    }
+
+    setPreparingCommit(true);
+
+    try {
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => resolve());
+      });
+
+      const [stageRect, resultRect, targetRect, leftRect, rightRect] =
+        await Promise.all([
+          measureView(stageNode),
+          measureView(resultNode),
+          measureView(targetNode),
+          measureView(leftNode),
+          measureView(rightNode),
+        ]);
+
+      setCommitAnimation({
+        leftId: selectedLeftTile.id,
+        leftRect: relativeRect(leftRect, stageRect),
+        leftValue: selectedLeftTile.value,
+        resultRect: relativeRect(resultRect, stageRect),
+        resultId: `r${localSteps.length}`,
+        resultValue: previewState.result,
+        rightId: selectedRightTile.id,
+        rightRect: relativeRect(rightRect, stageRect),
+        rightValue: selectedRightTile.value,
+        targetRect: relativeRect(targetRect, stageRect),
+      });
+    } catch (error) {
+      console.warn("Failed to measure Daily Numbers result animation", error);
+      onApplyStep();
+    } finally {
+      setPreparingCommit(false);
+    }
+  }, [
+    commitLocked,
+    localSteps.length,
+    onApplyStep,
+    previewState,
+    selectedLeftTile,
+    selectedRightTile,
+    target,
+  ]);
+
+  const handleCommitMerged = useCallback(() => {
+    onApplyStep();
+  }, [onApplyStep]);
+
+  const handleCommitFinished = useCallback(() => {
+    requestAnimationFrame(() => setCommitAnimation(null));
+  }, []);
+
   return (
     <>
-      <View>
+      <View ref={stageRef} collapsable={false} className="relative">
         <EquationWorkbench
-          interactionLocked={interactionLocked}
+          compact={compact}
+          committing={preparingCommit || commitAnimation !== null}
+          interactionLocked={commitLocked}
           localSteps={localSteps}
-          onApplyStep={onApplyStep}
+          onApplyStep={handleApplyResult}
           onClearSlot={onClearSlot}
           previewState={previewState}
+          resultRef={resultRef}
           selectedLeftTile={selectedLeftTile}
           selectedOperator={selectedOperator}
           selectedRightTile={selectedRightTile}
-          t={t}
-        />
-
-        <OperatorPicker
-          compact={compact}
-          interactionLocked={interactionLocked}
-          onOperatorPress={onOperatorPress}
-          selectedLeftTile={selectedLeftTile}
-          selectedOperator={selectedOperator}
-          selectedRightTile={selectedRightTile}
+          target={target}
           t={t}
           tc={tc}
         />
-
         <AvailableNumbersGrid
           availableTiles={availableTiles}
           compact={compact}
-          interactionLocked={interactionLocked}
+          committingResultId={commitAnimation?.resultId ?? null}
+          committingTileIds={committingTileIds}
+          futureResultRef={futureResultRef}
+          interactionLocked={commitLocked}
+          modeAccent={modeAccent}
+          onTileRef={handleTileRef}
           onTilePress={onTilePress}
           selectedLeftTile={selectedLeftTile}
           selectedOperator={selectedOperator}
@@ -1701,126 +2859,42 @@ function LivePlayPanel({
           t={t}
           tc={tc}
         />
+
+        <OperatorPicker
+          compact={compact}
+          interactionLocked={commitLocked}
+          onOperatorPress={onOperatorPress}
+          selectedLeftTile={selectedLeftTile}
+          selectedOperator={selectedOperator}
+          selectedRightTile={selectedRightTile}
+          t={t}
+          tc={tc}
+        />
+        {commitAnimation ? (
+          <OperationCommitOverlay
+            animation={commitAnimation}
+            compact={compact}
+            modeAccent={modeAccent}
+            onMerged={handleCommitMerged}
+            onFinished={handleCommitFinished}
+          />
+        ) : null}
       </View>
 
-      <View className="mt-4 flex-row gap-2">
-        <View className="min-w-0 flex-[1.25]">
-          <QuestActionButton
-            label={
-              archiveMode
-                ? t("quests.dailyNumbers.archiveSaveResult")
-                : t("quests.dailyNumbers.submit")
-            }
-            onPress={onSubmitPress}
-            disabled={interactionLocked}
-            loading={submitting}
-            loadingMode="inline"
-            backgroundColor={
-              interactionLocked ? tc.surfaceMuted : tc.primaryStrong
-            }
-            foregroundColor={interactionLocked ? tc.fgMuted : "#FFFFFF"}
-            leadingIcon={CheckIcon}
-            leadingIconSize={17}
-            minHeight={54}
-            textClassName="font-nunito-bold text-xs"
-            accessibilityLabel={
-              archiveMode
-                ? t("quests.dailyNumbers.archiveSaveResult")
-                : t("quests.dailyNumbers.submit")
-            }
-            testID="daily-numbers-submit"
-            style={{ opacity: interactionLocked ? 0.38 : 1 }}
-          />
-        </View>
-        <View className="min-w-0 flex-1">
-          <QuestActionButton
-            label={t("quests.dailyNumbers.undoPlayful")}
-            onPress={onUndoStep}
-            disabled={interactionLocked}
-            backgroundColor={tc.surface}
-            foregroundColor={tc.fgMuted}
-            leadingIcon={SkipBackIcon}
-            leadingIconSize={16}
-            minHeight={54}
-            textClassName="font-nunito-bold text-xs"
-            accessibilityLabel={t("quests.dailyNumbers.undo")}
-            testID="daily-numbers-undo"
-            style={{ opacity: interactionLocked ? 0.38 : 1 }}
-          />
-        </View>
-        <View className="min-w-0 flex-1">
-          <QuestActionButton
-            label={t("quests.dailyNumbers.resetPlayful")}
-            onPress={onResetBoard}
-            disabled={interactionLocked}
-            backgroundColor={tc.surfaceMuted}
-            foregroundColor={tc.fgMuted}
-            leadingIcon={RecycleIcon}
-            leadingIconSize={16}
-            minHeight={54}
-            textClassName="font-nunito-bold text-xs"
-            accessibilityLabel={t("quests.dailyNumbers.reset")}
-            testID="daily-numbers-reset"
-            style={{ opacity: interactionLocked ? 0.38 : 1 }}
-          />
-        </View>
-      </View>
-
-      <StepList
-        emptyCopy={t("quests.dailyNumbers.noStepsYet")}
-        steps={localSteps}
+      <LivePlayControls
+        archiveMode={archiveMode}
+        interactionLocked={commitLocked}
+        localSteps={localSteps}
+        officialSolutionSteps={officialSolutionSteps}
+        onResetBoard={onResetBoard}
+        onSubmitPress={onSubmitPress}
+        onToggleSolution={onToggleSolution}
+        onUndoStep={onUndoStep}
+        revealedSolution={revealedSolution}
+        submitting={submitting}
         t={t}
-        title={t("quests.dailyNumbers.mathTrail")}
+        tc={tc}
       />
-      {archiveMode && officialSolutionSteps.length > 0 ? (
-        <>
-          <QuestActionButton
-            label={
-              revealedSolution
-                ? t("quests.dailyNumbers.hideSolution")
-                : t("quests.dailyNumbers.revealSolution")
-            }
-            onPress={() => {
-              if (revealedSolution) {
-                onToggleSolution();
-                return;
-              }
-
-              Alert.alert(
-                t("quests.dailyNumbers.revealSolutionConfirmTitle"),
-                t("quests.dailyNumbers.revealSolutionConfirmBody"),
-                [
-                  { text: t("common.cancel"), style: "cancel" },
-                  {
-                    text: t("quests.dailyNumbers.revealSolution"),
-                    style: "destructive",
-                    onPress: onToggleSolution,
-                  },
-                ],
-              );
-            }}
-            backgroundColor={tc.bg}
-            foregroundColor={tc.primaryText}
-            leadingIcon={EyeIcon}
-            minHeight={48}
-            style={{ marginTop: 12 }}
-            testID="daily-numbers-archive-reveal-solution"
-            accessibilityState={{ expanded: revealedSolution }}
-            accessibilityLabel={
-              revealedSolution
-                ? t("quests.dailyNumbers.hideSolution")
-                : t("quests.dailyNumbers.revealSolution")
-            }
-          />
-          {revealedSolution ? (
-            <StepList
-              steps={officialSolutionSteps}
-              t={t}
-              title={t("quests.dailyNumbers.officialSolutionTitle")}
-            />
-          ) : null}
-        </>
-      ) : null}
     </>
   );
 }
@@ -1832,8 +2906,10 @@ function useDailyNumbersBoardController({
   chronometerActive,
   claimPending,
   compact,
+  modeAccent,
   onClaimReward,
   onResolveResetError,
+  onSolutionHuntApplied,
   onSubmissionApplied,
   state,
   t,
@@ -1845,24 +2921,36 @@ function useDailyNumbersBoardController({
   chronometerActive: boolean;
   claimPending: boolean;
   compact: boolean;
+  modeAccent: ReturnType<typeof getModeAccent>;
   onClaimReward: () => void;
   onResolveResetError: (error: unknown) => Promise<boolean>;
+  onSolutionHuntApplied: (
+    result: DailyNumbersSolutionHuntSubmitResponse,
+  ) => void;
   onSubmissionApplied: (nextState: DailyNumbersBoardState) => void;
   state: DailyNumbersBoardState;
   t: TranslateFn;
   tc: ThemeColors;
 }) {
   const [interaction, dispatch] = useReducer(
-    dailyNumbersBoardReducer,
+    boardReducer,
     state,
-    createDailyNumbersBoardInteractionState,
+    createBoardInteractionState,
   );
+  const solutionHuntActive =
+    !archiveMode &&
+    state.solutionHunt?.available === true &&
+    interaction.retrying;
   const hasLockedSubmission = state.submitted === true && !interaction.retrying;
-  const attemptTiming = getDailyNumbersAttemptTiming(interaction);
   const chronometer = useDailyNumbersChronometer({
-    active: chronometerActive && !hasLockedSubmission,
-    attemptScope: attemptTiming.attemptScope,
-    resetSignal: attemptTiming.resetSignal,
+    active:
+      chronometerActive && !hasLockedSubmission && !solutionHuntActive,
+    attemptScope: solutionHuntActive
+      ? "solution-hunt"
+      : interaction.retrying
+        ? "retry"
+        : "initial",
+    resetSignal: interaction.retrying ? interaction.retryAttempt : 0,
     submitted: hasLockedSubmission,
     state,
   });
@@ -1946,8 +3034,22 @@ function useDailyNumbersBoardController({
       }
 
       try {
-        const elapsedMs = Math.round(chronometer.getElapsedMs());
         const steps = toStepInputs(stepsToSubmit);
+
+        if (solutionHuntActive) {
+          const result = await apiClient.submitDailyNumbersSolutionHunt({
+            mode: activeMode,
+            dateKey: state.date,
+            questVersion: state.questVersion ?? undefined,
+            steps,
+          });
+
+          dispatch({ type: "solutionHuntSubmitted", result });
+          onSolutionHuntApplied(result);
+          return;
+        }
+
+        const elapsedMs = Math.round(chronometer.getElapsedMs());
         const nextState = archiveMode
           ? await apiClient.submitDailyNumbersArchive({
               mode: activeMode,
@@ -1993,7 +3095,9 @@ function useDailyNumbersBoardController({
       hasLockedSubmission,
       interaction.submitting,
       onResolveResetError,
+      onSolutionHuntApplied,
       onSubmissionApplied,
+      solutionHuntActive,
       state,
       t,
     ],
@@ -2237,15 +3341,21 @@ function useDailyNumbersBoardController({
     Alert.alert(
       archiveMode
         ? t("quests.dailyNumbers.archiveSubmitConfirmTitle")
+        : solutionHuntActive
+          ? t("quests.dailyNumbers.solutionHuntSubmitConfirmTitle")
         : t("quests.dailyNumbers.submitConfirmTitle"),
       archiveMode
         ? t("quests.dailyNumbers.archiveSubmitConfirmBody")
+        : solutionHuntActive
+          ? t("quests.dailyNumbers.solutionHuntSubmitConfirmBody")
         : t("quests.dailyNumbers.submitConfirmBody"),
       [
         { text: t("common.cancel"), style: "cancel" },
         {
           text: archiveMode
             ? t("quests.dailyNumbers.archiveSubmitConfirmAction")
+            : solutionHuntActive
+              ? t("quests.dailyNumbers.solutionHuntSubmitConfirmAction")
             : t("quests.dailyNumbers.submitConfirmAction"),
           style: "destructive",
           onPress: () => {
@@ -2259,6 +3369,7 @@ function useDailyNumbersBoardController({
     interaction.steps,
     interaction.submitting,
     hasLockedSubmission,
+    solutionHuntActive,
     submitBoard,
     t,
   ]);
@@ -2284,38 +3395,6 @@ function useDailyNumbersBoardController({
 
   const finishCompletedState =
     exactHitState || state.submission?.completed === true;
-  const submissionSummary = state.submission
-    ? archiveMode
-      ? state.submission.distance === 0
-        ? t("quests.dailyNumbers.archiveExactResult", {
-            score: state.submission.score,
-          })
-        : t("quests.dailyNumbers.archiveCloseResult", {
-            value: state.submission.finalValue,
-            distance: state.submission.distance,
-            score: state.submission.score,
-          })
-      : buildSubmissionSummary(t, state.submission)
-    : null;
-  const exactHitScore =
-    state.submission?.score ?? (exactHitState ? EXACT_HIT_PERCENT : null);
-  const exactHitSummary =
-    exactHitScore === null
-      ? null
-      : t("quests.dailyNumbers.exactResult", {
-          score: exactHitScore,
-        });
-  const archiveExactHitSummary =
-    exactHitScore === null
-      ? null
-      : t("quests.dailyNumbers.archiveExactResult", {
-          score: exactHitScore,
-        });
-  const finishSummary = exactHitState
-    ? archiveMode
-      ? archiveExactHitSummary
-      : exactHitSummary
-    : submissionSummary;
   const finishValue =
     (hasLockedSubmission ? state.submission?.finalValue : null) ??
     (finishScreenState ? (currentBestTile?.value ?? null) : null);
@@ -2344,13 +3423,11 @@ function useDailyNumbersBoardController({
     completionReached,
     currentBestTile,
     currentDistance,
-    defaultDistance,
     exactHitState,
     finishCompletedState,
     finishDistance,
     finishScreenState,
     finishScore,
-    finishSummary,
     finishValue,
     formattedElapsedTime:
       hasLockedSubmission && state.submission?.elapsedMs != null
@@ -2358,6 +3435,7 @@ function useDailyNumbersBoardController({
         : chronometer.formattedElapsedTime,
     interaction,
     interactionLocked,
+    modeAccent,
     onApplyStep: handleApplyStep,
     onClaimReward: handleClaimReward,
     onClearSlot: handleClearSlot,
@@ -2365,6 +3443,7 @@ function useDailyNumbersBoardController({
     onResetBoard: handleResetBoard,
     onSubmitPress: handleSubmitPress,
     onStartRetry: handleStartRetry,
+    onStartSolutionHunt: handleStartRetry,
     onTilePress: handleTilePress,
     onToggleSolution: handleToggleSolution,
     onUndoStep: handleUndoStep,
@@ -2372,6 +3451,7 @@ function useDailyNumbersBoardController({
     selectedLeftTile,
     selectedOperator: interaction.selectedOperator,
     selectedRightTile,
+    solutionHuntActive,
     state,
     submittedSolutionSteps,
     officialSolutionSteps: isArchiveState(state)
@@ -2394,6 +3474,12 @@ function useDailyNumbersShare(
   const { locale } = useTranslation();
   const [isSharing, setIsSharing] = useState(false);
   const shareCardRef = useRef<View>(null);
+  const [shareDateKey, setShareDateKey] = useState(() =>
+    resolveQuestShareDateKey({
+      archive: archiveMode,
+      questDateKey: controller.state.date,
+    }),
+  );
 
   // Spoiler-safe share model — only the player's outcome is surfaced, never the
   // solution steps or the official solution.
@@ -2403,7 +3489,7 @@ function useDailyNumbersShare(
         questTitle: controller.t("quests.dailyNumbers.title"),
         modeLabel: controller.t(getModeLabelKey(controller.state.mode)),
         mode: controller.state.mode,
-        date: controller.state.date,
+        date: shareDateKey,
         target: controller.state.target,
         finalValue: controller.finishValue,
         distance: controller.finishDistance,
@@ -2416,7 +3502,7 @@ function useDailyNumbersShare(
     [
       controller.t,
       controller.state.mode,
-      controller.state.date,
+      shareDateKey,
       controller.state.target,
       controller.finishValue,
       controller.finishDistance,
@@ -2452,40 +3538,24 @@ function useDailyNumbersShare(
     return {
       brand: controller.t("quests.dailyNumbers.shareBrand"),
       modeLabel: controller.t(modeLabelKey),
-      outcomeLabel: controller.exactHitState
-        ? controller.t("quests.dailyNumbers.exactHitLabel")
-        : controller.finishDistance == null
-          ? controller.t("quests.dailyNumbers.archiveNoResult")
-          : controller.t("quests.dailyNumbers.archiveDistanceShort", {
-              distance: controller.finishDistance,
-            }),
-      quip: controller.t(
-        getResultQuipKey({
-          completed: controller.finishCompletedState,
-          distance: controller.finishDistance,
-          exact: controller.exactHitState,
-        }),
-      ),
       resultLine,
       targetLabel: controller.t("quests.dailyNumbers.target"),
       resultValueLabel: controller.t(
         "quests.dailyNumbers.shareResultValueLabel",
       ),
-      scoreLabel: controller.t("quests.dailyNumbers.scoreLabel"),
       timeLabel: controller.t("quests.dailyNumbers.solveTime"),
       archiveLabel: controller.t("quests.dailyNumbers.archiveResultLabel"),
       footer: archiveMode
-        ? controller.t("quests.dailyNumbers.gameShareArchiveFooter")
-        : controller.t("quests.dailyNumbers.gameShareFooter"),
-      date: formatNumbersShareDate(controller.state.date, locale),
+        ? controller.t("quests.dailyNumbers.archiveShareFooter")
+        : controller.t("quests.dailyNumbers.shareFooter"),
+      date: formatQuestShareDate(shareDateKey, locale),
     };
   }, [
     controller.t,
     controller.state.mode,
-    controller.state.date,
+    shareDateKey,
     controller.exactHitState,
     controller.state.completed,
-    controller.finishCompletedState,
     controller.finishScore,
     controller.finishDistance,
     locale,
@@ -2497,6 +3567,11 @@ function useDailyNumbersShare(
       return;
     }
 
+    const currentShareDateKey = resolveQuestShareDateKey({
+      archive: archiveMode,
+      questDateKey: controller.state.date,
+    });
+    setShareDateKey(currentShareDateKey);
     setIsSharing(true);
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
@@ -2521,7 +3596,10 @@ function useDailyNumbersShare(
       // saved file are recognizable.
       let shareUri = uri;
       try {
-        const fileName = buildDailyNumbersShareFileName(shareResult);
+        const fileName = buildDailyNumbersShareFileName({
+          ...shareResult,
+          date: currentShareDateKey,
+        });
         const destination = new File(Paths.cache, fileName);
         if (destination.exists) {
           destination.delete();
@@ -2543,7 +3621,13 @@ function useDailyNumbersShare(
     } finally {
       setIsSharing(false);
     }
-  }, [isSharing, controller.t, shareResult]);
+  }, [
+    archiveMode,
+    controller.state.date,
+    controller.t,
+    isSharing,
+    shareResult,
+  ]);
 
   return {
     handleShareResult,
@@ -2561,8 +3645,10 @@ function DailyNumbersBoard({
   chronometerActive,
   claimPending,
   compact,
+  modeAccent,
   onClaimReward,
   onResolveResetError,
+  onSolutionHuntApplied,
   onSubmissionApplied,
   scrollViewRef,
   state,
@@ -2575,8 +3661,12 @@ function DailyNumbersBoard({
   chronometerActive: boolean;
   claimPending: boolean;
   compact: boolean;
+  modeAccent: ReturnType<typeof getModeAccent>;
   onClaimReward: () => void;
   onResolveResetError: (error: unknown) => Promise<boolean>;
+  onSolutionHuntApplied: (
+    result: DailyNumbersSolutionHuntSubmitResponse,
+  ) => void;
   onSubmissionApplied: (nextState: DailyNumbersBoardState) => void;
   scrollViewRef: RefObject<ScrollView | null>;
   state: DailyNumbersBoardState;
@@ -2590,8 +3680,10 @@ function DailyNumbersBoard({
     chronometerActive,
     claimPending,
     compact,
+    modeAccent,
     onClaimReward,
     onResolveResetError,
+    onSolutionHuntApplied,
     onSubmissionApplied,
     state,
     t,
@@ -2605,27 +3697,30 @@ function DailyNumbersBoard({
     shareResult,
     shareStrings,
   } = useDailyNumbersShare(controller, archiveMode);
-  const finishAnnouncementSentRef = useRef(false);
+  const announcedResultKeyRef = useRef<string | null>(null);
+  const resultKey = buildPuzzleIdentity(controller.state);
 
   useEffect(() => {
     if (!controller.finishScreenState) {
-      finishAnnouncementSentRef.current = false;
+      if (announcedResultKeyRef.current === resultKey) {
+        announcedResultKeyRef.current = null;
+      }
       return;
     }
 
-    if (finishAnnouncementSentRef.current) {
+    const announcement = controller.exactHitState
+      ? controller.t("quests.dailyNumbers.exactHitLabel")
+      : controller.finishDistance == null
+        ? controller.t("quests.dailyNumbers.resultLockedLabel")
+        : controller.t("quests.dailyNumbers.distanceOutcome", {
+            distance: controller.finishDistance,
+          });
+
+    if (!announcement || announcedResultKeyRef.current === resultKey) {
       return;
     }
 
-    finishAnnouncementSentRef.current = true;
-    const announcement =
-      controller.finishSummary ??
-      controller.t(
-        controller.exactHitState
-          ? "quests.dailyNumbers.exactHitLabel"
-          : "quests.dailyNumbers.resultLockedLabel",
-      );
-
+    announcedResultKeyRef.current = resultKey;
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         scrollViewRef.current?.scrollTo({ y: 0, animated: true });
@@ -2634,15 +3729,38 @@ function DailyNumbersBoard({
     });
   }, [
     controller.exactHitState,
+    controller.finishDistance,
     controller.finishScreenState,
-    controller.finishSummary,
     controller.t,
+    resultKey,
     scrollViewRef,
   ]);
 
   return (
     <>
+      {!controller.finishScreenState ? (
+        <View className="mb-3">
+          <QuestScreenDescription>
+            {archiveMode
+              ? controller.t("quests.dailyNumbers.archiveSubtitle")
+              : controller.t("quests.dailyNumbers.subtitle")}
+          </QuestScreenDescription>
+        </View>
+      ) : null}
       <MessageBanner message={controller.visibleMessage} />
+      {controller.solutionHuntActive ? (
+        <View
+          className="mb-4 rounded-2xl border border-infoBorder bg-infoTint px-4 py-3"
+          testID="daily-numbers-solution-hunt-playing"
+        >
+          <Text className="font-nunito-extrabold text-sm text-infoText">
+            {controller.t("quests.dailyNumbers.solutionHuntTitle")}
+          </Text>
+          <Text className="mt-1 font-nunito-semibold text-xs leading-4 text-fgMuted">
+            {controller.t("quests.dailyNumbers.solutionHuntPlayingBody")}
+          </Text>
+        </View>
+      ) : null}
       {controller.completionReached && !controller.finishScreenState ? (
         <SuccessCallout
           archiveMode={archiveMode}
@@ -2652,74 +3770,97 @@ function DailyNumbersBoard({
         />
       ) : null}
 
-      <View className="flex-1">
-        {!controller.finishScreenState ? (
-          <TargetChaseHero
-            archiveMode={archiveMode}
-            compact={controller.compact}
-            currentBestTile={controller.currentBestTile}
-            currentDistance={controller.currentDistance}
-            defaultDistance={controller.defaultDistance}
-            formattedElapsedTime={controller.formattedElapsedTime}
-            state={controller.state}
-            stepCount={controller.interaction.steps.length}
-            t={controller.t}
-            tc={controller.tc}
-          />
-        ) : null}
-
+      <View collapsable={false} className="flex-1">
         {controller.finishScreenState ? (
-          <FinishStatePanel
-            claimable={controller.claimable}
-            claimPending={controller.claimPending}
-            archiveMode={archiveMode}
-            canRetryArchive={archiveMode && !controller.exactHitState}
-            compact={controller.compact}
-            exactHitState={controller.exactHitState}
-            finishCompleted={controller.finishCompletedState}
-            finishDistance={controller.finishDistance}
-            finishScore={controller.finishScore}
-            finishValue={controller.finishValue}
-            formattedElapsedTime={controller.formattedElapsedTime}
-            interaction={controller.interaction}
-            isSharing={isSharing}
-            onClaimReward={controller.onClaimReward}
-            onShareResult={handleShareResult}
-            onStartRetry={controller.onStartRetry}
-            onToggleSolution={controller.onToggleSolution}
-            officialSolutionSteps={controller.officialSolutionSteps}
-            state={controller.state}
-            submittedSolutionSteps={controller.submittedSolutionSteps}
-            t={controller.t}
-            tc={controller.tc}
-          />
+          <Animated.View
+            key="daily-numbers-finish"
+            entering={FadeInUp.duration(240)}
+            className="flex-1"
+          >
+            <FinishStatePanel
+              claimable={controller.claimable}
+              claimPending={controller.claimPending}
+              archiveMode={archiveMode}
+              canRetryArchive={archiveMode && !controller.exactHitState}
+              compact={controller.compact}
+              exactHitState={controller.exactHitState}
+              finishCompleted={controller.finishCompletedState}
+              finishDistance={controller.finishDistance}
+              finishScore={controller.finishScore}
+              finishValue={controller.finishValue}
+              formattedElapsedTime={controller.formattedElapsedTime}
+              interaction={controller.interaction}
+              isSharing={isSharing}
+              onClaimReward={controller.onClaimReward}
+              onShareResult={handleShareResult}
+              onStartRetry={controller.onStartRetry}
+              onStartSolutionHunt={controller.onStartSolutionHunt}
+              onToggleSolution={controller.onToggleSolution}
+              officialSolutionSteps={controller.officialSolutionSteps}
+              state={controller.state}
+              submittedSolutionSteps={controller.submittedSolutionSteps}
+              t={controller.t}
+              tc={controller.tc}
+            />
+          </Animated.View>
         ) : (
-          <LivePlayPanel
-            availableTiles={controller.board.availableTiles}
-            archiveMode={archiveMode}
-            compact={controller.compact}
-            interactionLocked={controller.interactionLocked}
-            localSteps={controller.interaction.steps}
-            onApplyStep={controller.onApplyStep}
-            onClearSlot={controller.onClearSlot}
-            onOperatorPress={controller.onOperatorPress}
-            onResetBoard={controller.onResetBoard}
-            onSubmitPress={controller.onSubmitPress}
-            onTilePress={controller.onTilePress}
-            onToggleSolution={controller.onToggleSolution}
-            onUndoStep={controller.onUndoStep}
-            officialSolutionSteps={controller.officialSolutionSteps}
-            previewState={controller.previewState}
-            revealedSolution={controller.interaction.revealedSolution}
-            selectedLeftTile={controller.selectedLeftTile}
-            selectedOperator={controller.selectedOperator}
-            selectedRightTile={controller.selectedRightTile}
-            submitting={controller.interaction.submitting}
-            t={controller.t}
-            tc={controller.tc}
-          />
+          <Animated.View
+            key="daily-numbers-live"
+            exiting={FadeOutUp.duration(180)}
+            className="flex-1"
+          >
+            <MetricsSection
+              compact={controller.compact}
+              currentBestTile={controller.currentBestTile}
+              currentDistance={controller.currentDistance}
+              formattedElapsedTime={controller.formattedElapsedTime}
+              modeAccent={controller.modeAccent}
+              showSolutionFound={
+                controller.solutionHuntActive &&
+                ((controller.interaction.solutionHuntResult ??
+                  controller.state.solutionHunt)?.solutionsFound ?? 0) > 0
+              }
+              state={controller.state}
+              t={controller.t}
+              tc={controller.tc}
+            />
+            <LivePlayPanel
+              availableTiles={controller.board.availableTiles}
+              archiveMode={archiveMode}
+              compact={controller.compact}
+              interactionLocked={controller.interactionLocked}
+              localSteps={controller.interaction.steps}
+              modeAccent={controller.modeAccent}
+              onApplyStep={controller.onApplyStep}
+              onClearSlot={controller.onClearSlot}
+              onOperatorPress={controller.onOperatorPress}
+              onResetBoard={controller.onResetBoard}
+              onSubmitPress={controller.onSubmitPress}
+              onTilePress={controller.onTilePress}
+              onToggleSolution={controller.onToggleSolution}
+              onUndoStep={controller.onUndoStep}
+              officialSolutionSteps={controller.officialSolutionSteps}
+              previewState={controller.previewState}
+              revealedSolution={controller.interaction.revealedSolution}
+              selectedLeftTile={controller.selectedLeftTile}
+              selectedOperator={controller.selectedOperator}
+              selectedRightTile={controller.selectedRightTile}
+              submitting={controller.interaction.submitting}
+              target={controller.state.target}
+              t={controller.t}
+              tc={controller.tc}
+            />
+          </Animated.View>
         )}
       </View>
+
+      {!controller.finishScreenState ? (
+        <Text className="mt-5 border-t border-primaryBorder px-1 pt-4 font-nunito-semibold text-[11px] leading-4 text-fgMuted">
+          {archiveMode
+            ? controller.t("quests.dailyNumbers.archiveHelperLine")
+            : controller.t("quests.dailyNumbers.helperLine")}
+        </Text>
+      ) : null}
 
       {/* Offscreen, capture-friendly share card. Rendered (not display:none)
           and laid out off-screen so react-native-view-shot can snapshot it. */}
@@ -2732,7 +3873,7 @@ function DailyNumbersBoard({
           style={{ position: "absolute", left: -9999, top: 0 }}
         >
           <View ref={shareCardRef} collapsable={false}>
-            <DailyNumbersGameShareCard
+            <DailyNumbersQuestShareCard
               result={shareResult}
               colors={controller.tc}
               strings={shareStrings}
@@ -2754,10 +3895,14 @@ type DailyNumbersPlayViewProps = {
   claimPending: boolean;
   compact: boolean;
   insets: ReturnType<typeof useSafeAreaInsets>;
+  modeAccent: ReturnType<typeof getModeAccent>;
   modeCards: ModeCard[];
   onClaimReward: () => void;
   onModeSelect: (mode: DailyNumbersMode) => void;
   onResolveResetError: (error: unknown) => Promise<boolean>;
+  onSolutionHuntApplied: (
+    result: DailyNumbersSolutionHuntSubmitResponse,
+  ) => void;
   onSubmissionApplied: (nextState: DailyNumbersBoardState) => void;
   state: DailyNumbersBoardState;
   t: TranslateFn;
@@ -2774,10 +3919,12 @@ function DailyNumbersPlayView({
   claimPending,
   compact,
   insets,
+  modeAccent,
   modeCards,
   onClaimReward,
   onModeSelect,
   onResolveResetError,
+  onSolutionHuntApplied,
   onSubmissionApplied,
   state,
   t,
@@ -2791,7 +3938,7 @@ function DailyNumbersPlayView({
         className="bg-bg pb-2"
         style={{
           paddingTop: insets.top + 10,
-          paddingHorizontal: compact ? 10 : 14,
+          paddingHorizontal: compact ? 12 : 16,
         }}
       >
         <QuestScreenHeader
@@ -2811,6 +3958,7 @@ function DailyNumbersPlayView({
       <ScrollView
         ref={scrollViewRef}
         className="flex-1 bg-bg"
+        contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={{ flexGrow: 1 }}
         keyboardShouldPersistTaps="handled"
       >
@@ -2818,19 +3966,27 @@ function DailyNumbersPlayView({
           style={{
             paddingTop: 8,
             paddingBottom: insets.bottom + 10,
-            paddingHorizontal: compact ? 10 : 14,
+            paddingHorizontal: compact ? 12 : 16,
           }}
         >
           {archiveMode ? (
-            <View
-              className="mb-3 flex-row flex-wrap items-center justify-center gap-2 px-1 py-1"
-              testID="daily-numbers-archive-pill"
-            >
-              <Text className="text-center font-nunito-extrabold text-[10px] uppercase tracking-[1px] text-fgMuted">
-                {t("quests.dailyNumbers.archiveResultLabel")}
-              </Text>
-              <Text className="font-nunito-bold text-xs text-fgMuted">·</Text>
-              <Text className="text-center font-nunito-bold text-xs text-fgMuted">
+            <View className="mb-3 flex-row flex-wrap items-center justify-center gap-2">
+              <View
+                className="rounded-full border px-4 py-1.5"
+                style={{
+                  backgroundColor: tc.secondaryDark,
+                  borderColor: tc.secondaryBorder,
+                }}
+                testID="daily-numbers-archive-pill"
+              >
+                <Text
+                  className="text-center font-nunito-extrabold text-xs uppercase tracking-[1px]"
+                  style={{ color: tc.secondaryText }}
+                >
+                  {t("quests.dailyNumbers.archiveResultLabel")}
+                </Text>
+              </View>
+              <Text className="text-center font-nunito-bold text-sm text-primaryDark">
                 {archiveDate}
               </Text>
             </View>
@@ -2838,9 +3994,11 @@ function DailyNumbersPlayView({
 
           <ModeTabs
             activeMode={activeMode}
+            archiveMode={archiveMode}
             modeCards={modeCards}
             onSelectMode={onModeSelect}
             t={t}
+            tc={tc}
           />
 
           <DailyNumbersBoard
@@ -2851,24 +4009,16 @@ function DailyNumbersPlayView({
             chronometerActive={chronometerActive}
             claimPending={claimPending}
             compact={compact}
+            modeAccent={modeAccent}
             onClaimReward={onClaimReward}
             onResolveResetError={onResolveResetError}
+            onSolutionHuntApplied={onSolutionHuntApplied}
             onSubmissionApplied={onSubmissionApplied}
             scrollViewRef={scrollViewRef}
             state={state}
             t={t}
             tc={tc}
           />
-          {!state.submitted ? (
-            <View className="mt-4 flex-row items-center gap-2 px-1">
-              <SparklesIcon size={15} color={tc.fgMuted} />
-              <Text className="min-w-0 flex-1 font-nunito-semibold text-[11px] leading-4 text-fgMuted">
-                {archiveMode
-                  ? t("quests.dailyNumbers.archiveHelperLine")
-                  : t("quests.dailyNumbers.helperLine")}
-              </Text>
-            </View>
-          ) : null}
         </View>
       </ScrollView>
     </View>
@@ -2885,9 +4035,7 @@ export default function DailyNumbersPlayScreen() {
   const { height, width } = useWindowDimensions();
   const queryClient = useQueryClient();
   const { t } = useTranslation();
-  const themeName = useThemeStore((state) => state.themeName);
-  const tc = THEME_COLORS[themeName];
-  const statusBarStyle = themeName === "nightosphere" ? "light" : "dark";
+  const tc = THEME_COLORS[useThemeStore((state) => state.themeName)];
   const patchUser = useSessionStore((state) => state.patchUser);
   const questTimeZone = useSessionStore(
     (state) => state.user?.timezone ?? DEFAULT_QUEST_TIME_ZONE,
@@ -2933,6 +4081,7 @@ export default function DailyNumbersPlayScreen() {
   const activeQueryIndex = Math.max(DAILY_NUMBERS_MODES.indexOf(activeMode), 0);
   const activeQuery = modeQueries[activeQueryIndex];
   const state = modeCards[activeQueryIndex].state;
+  const modeAccent = getModeAccent(activeMode, tc);
   const resetNoticeMessage = useMemo<MessageState>(() => {
     if (archiveMode) {
       return null;
@@ -3100,77 +4249,94 @@ export default function DailyNumbersPlayScreen() {
     [activeMode, archiveDate, archiveMode, queryClient, questTimeZone],
   );
 
+  const handleSolutionHuntApplied = useCallback(
+    (result: DailyNumbersSolutionHuntSubmitResponse) => {
+      queryClient.setQueryData<DailyNumbersStateResponse>(
+        ["daily-numbers", activeMode],
+        (current) =>
+          current
+            ? {
+                ...current,
+                solutionHunt: {
+                  available: true,
+                  solutionsFound: result.solutionsFound,
+                  totalSolutions: result.totalSolutions,
+                  allSolutionsFound: result.allSolutionsFound,
+                  yourSolutions: result.yourSolutions,
+                  otherSolutions: result.otherSolutions,
+                },
+              }
+            : current,
+      );
+      setUiMessage(null);
+    },
+    [activeMode, queryClient],
+  );
+
   const boardIdentity = state ? buildBoardIdentity(state) : null;
   const bannerMessage = uiMessage ?? resetNoticeMessage;
   const chronometerActive = screenFocused && appActive;
 
   if ((activeQuery.isLoading || activeQuery.isPending) && !state) {
     return (
-      <>
-        <StatusBar style={statusBarStyle} />
-        <PageLoadingState
-          title={t("quests.dailyNumbers.title")}
-          message={t("common.loadingStates.pageBody")}
-          icon="sparkles"
-        />
-      </>
+      <PageLoadingState
+        title={t("quests.dailyNumbers.title")}
+        message={t("common.loadingStates.pageBody")}
+        icon="sparkles"
+      />
     );
   }
 
   if (activeQuery.isError || !state) {
     return (
-      <>
-        <StatusBar style={statusBarStyle} />
-        <PageErrorState
-          error={activeQuery.error}
-          title={t("quests.dailyNumbers.loadError")}
-          body={t("common.errorStates.generic.body")}
-          detail={t("common.errorStates.generic.detail")}
-          onRetry={() => {
-            void activeQuery.refetch();
-          }}
-          onBack={() =>
-            navigateBackFromQuest(
-              router,
-              archiveMode ? "/quests/daily-numbers-history" : "/(tabs)/quests",
-            )
-          }
-          backLabel={
-            archiveMode
-              ? t("quests.dailyNumbers.backToHistory")
-              : t("quests.dailyNumbers.backToQuests")
-          }
-        />
-      </>
+      <PageErrorState
+        error={activeQuery.error}
+        title={t("quests.dailyNumbers.loadError")}
+        body={t("common.errorStates.generic.body")}
+        detail={t("common.errorStates.generic.detail")}
+        onRetry={() => {
+          void activeQuery.refetch();
+        }}
+        onBack={() =>
+          navigateBackFromQuest(
+            router,
+            archiveMode ? "/quests/daily-numbers-history" : "/(tabs)/quests",
+          )
+        }
+        backLabel={
+          archiveMode
+            ? t("quests.dailyNumbers.backToHistory")
+            : t("quests.dailyNumbers.backToQuests")
+        }
+      />
     );
   }
 
   return (
-    <>
-      <StatusBar style={statusBarStyle} />
-      <DailyNumbersPlayView
-        activeMode={activeMode}
-        archiveDate={archiveDate}
-        archiveMode={archiveMode}
-        bannerMessage={bannerMessage}
-        boardIdentity={boardIdentity}
-        chronometerActive={chronometerActive}
-        claimPending={claimQuestMutation.isPending}
-        compact={compact}
-        insets={insets}
-        modeCards={modeCards}
-        onClaimReward={() => {
-          if (state.questVersion) {
-            void claimQuestMutation.mutateAsync(state.questVersion);
-          }
-        }}
-        onModeSelect={handleModeSelect}
-        onResolveResetError={handleResetError}
-        onSubmissionApplied={handleSubmissionApplied}
-        state={state}
-        t={t}
-        tc={tc}
-      />
-    </>
+    <DailyNumbersPlayView
+      activeMode={activeMode}
+      archiveDate={archiveDate}
+      archiveMode={archiveMode}
+      bannerMessage={bannerMessage}
+      boardIdentity={boardIdentity}
+      chronometerActive={chronometerActive}
+      claimPending={claimQuestMutation.isPending}
+      compact={compact}
+      insets={insets}
+      modeAccent={modeAccent}
+      modeCards={modeCards}
+      onClaimReward={() => {
+        if (state.questVersion) {
+          claimQuestMutation.mutate(state.questVersion);
+        }
+      }}
+      onModeSelect={handleModeSelect}
+      onResolveResetError={handleResetError}
+      onSolutionHuntApplied={handleSolutionHuntApplied}
+      onSubmissionApplied={handleSubmissionApplied}
+      state={state}
+      t={t}
+      tc={tc}
+    />
   );
 }

@@ -1,13 +1,24 @@
-import { View, Text, Pressable } from "react-native";
+import { useQuery } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import { Pressable, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Path } from "react-native-svg";
 
-import { CoinIcon, SettingsIcon } from "./icons";
+import { apiClient } from "../lib/api";
 import { useSessionStore } from "../stores/session-store";
 import { useThemeStore } from "../stores/theme-store";
 import { THEME_COLORS } from "../theme/themes";
+import { CoinIcon, GiftHeartIcon, SettingsIcon } from "./icons";
+
+const HEADER_ACTION_SURFACE_STYLE = {
+  width: 40,
+  height: 40,
+  borderRadius: 999,
+  alignItems: "center",
+  justifyContent: "center",
+  boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.1)",
+} as const;
 
 function HeaderShieldUserIcon({ size = 24, color = "#FFFFFF" }: { size?: number; color?: string }) {
   return (
@@ -32,6 +43,13 @@ export function AppHeader() {
   const user = useSessionStore((state) => state.user);
   const coins = useSessionStore((state) => state.user?.coins ?? 0);
   const tc = THEME_COLORS[useThemeStore((s) => s.themeName)];
+  const { data: giftsQueryData } = useQuery({
+    queryKey: ["gifts"],
+    queryFn: () => apiClient.gifts(),
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+  });
+  const pendingGifts = giftsQueryData?.pendingCount ?? 0;
 
   return (
     <View style={{ paddingTop: insets.top, backgroundColor: 'transparent' }}>
@@ -54,6 +72,28 @@ export function AppHeader() {
           <Text style={{ fontFamily: "Nunito_700Bold", fontSize: 14, color: tc.secondaryText }}>{coins}</Text>
         </LinearGradient>
         <View className="flex-row items-center" style={{ columnGap: 16 }}>
+          <Pressable
+            onPress={() => router.push("/(tabs)/gifts" as never)}
+            hitSlop={8}
+            testID="app-header-gifts-button"
+          >
+            <View
+              style={{
+                ...HEADER_ACTION_SURFACE_STYLE,
+                backgroundColor: tc.surfaceMuted,
+              }}
+            >
+              <GiftHeartIcon size={23} color={tc.successText} />
+              {pendingGifts > 0 ? (
+                <View className="absolute -right-1 -top-1 min-w-4 items-center rounded-full bg-dangerDark px-1 py-0.5">
+                  <Text className="font-nunito-bold text-[9px] text-white">
+                    {pendingGifts > 9 ? "9+" : pendingGifts}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+          </Pressable>
+
           {user?.isAdmin ? (
             <Pressable onPress={() => router.push("/admin/cards" as never)} hitSlop={8}>
               <LinearGradient
@@ -81,13 +121,8 @@ export function AppHeader() {
           >
             <View
               style={{
-                width: 40,
-                height: 40,
-                borderRadius: 999,
-                alignItems: "center",
-                justifyContent: "center",
+                ...HEADER_ACTION_SURFACE_STYLE,
                 backgroundColor: tc.surfaceMuted,
-                boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.1)",
               }}
             >
               <SettingsIcon size={24} color={tc.primaryDark} />

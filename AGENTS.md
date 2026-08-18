@@ -453,6 +453,22 @@ Worktree rules:
 - when one worktree is busy or dirty with unrelated work, use the other worktree instead of stashing or overwriting changes
 - for actual feature work in either worktree, create a fresh branch from `main` unless the user explicitly asks for direct work on `main`
 
+## Project-state maintenance
+
+Before planning, recommending, or implementing project work:
+
+1. Read `docs/PROJECT_STATE.md`.
+2. Inspect the relevant source code and recent Git history.
+3. Treat code, migrations, and configuration as authoritative when they conflict with the state document.
+4. Do not recommend or rebuild features recorded as complete without verifying their implementation.
+
+After completing work that changes features, architecture, dependencies, storage, APIs, deployment, UI status, or project priorities:
+
+1. Update the affected sections of `docs/PROJECT_STATE.md`.
+2. Update its verification date, branch, and commit reference when practical.
+3. Record important decisions or new blockers.
+4. Keep it factual and concise; do not add temporary debugging notes.
+
 ## Working Style
 
 Before editing:

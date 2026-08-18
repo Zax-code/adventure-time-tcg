@@ -9,12 +9,12 @@ import {
 import { ScrollView, Text, View } from "react-native";
 import {
   cancelAnimation,
-  runOnJS,
   useSharedValue,
   withDelay,
   withSequence,
   withTiming,
 } from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
@@ -666,7 +666,7 @@ function usePvpScreenView() {
         3200,
         withTiming(-96, { duration: 180 }, (finished) => {
           if (finished) {
-            runOnJS(setToast)(null);
+            scheduleOnRN(setToast, null);
           }
         }),
       ),
@@ -1208,7 +1208,7 @@ function usePvpScreenView() {
                                 return;
                               }
 
-                              void acceptMutation.mutateAsync({
+                              acceptMutation.mutate({
                                 id: invite.id,
                                 cardIds: selectedLoadout.cardIds,
                               });
@@ -1245,7 +1245,7 @@ function usePvpScreenView() {
                           </ThemedExpoButton>
                           <ThemedExpoButton
                             onPress={() =>
-                              void declineMutation.mutateAsync(invite.id)
+                              declineMutation.mutate(invite.id)
                             }
                             preferFallback
                             style={{ flex: 1 }}
@@ -1499,7 +1499,7 @@ function usePvpScreenView() {
                 <ThemedExpoButton
                   disabled={cancelInviteMutation.isPending}
                   onPress={() =>
-                    void cancelInviteMutation.mutateAsync(invite.id)
+                    cancelInviteMutation.mutate(invite.id)
                   }
                   testID={`pvp-cancel-invite-${invite.id}`}
                   variant="ghost"
@@ -1798,7 +1798,7 @@ function usePvpScreenView() {
                 createMutation.isPending ||
                 !hasValidLoadout
               }
-              onPress={() => void createMutation.mutateAsync()}
+              onPress={() => createMutation.mutate()}
               loading={createMutation.isPending}
               label={
                 createMutation.isPending

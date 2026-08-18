@@ -1,0 +1,40 @@
+appId: love.leaetzak.adventuretime
+name: Quest recap includes Perfect Timing
+tags:
+  - quests
+  - sharing
+  - perfect-timing
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- openLink:
+    link: adventure-time:///e2e-auth?redirect=%2Fquests&email=${TEST_EMAIL_URI}&password=${TEST_PASSWORD_URI}
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- extendedWaitUntil:
+    visible:
+      id: quests-progress-summary
+    timeout: 15000
+- assertVisible:
+    id: quests-primary-mode-claim
+- tapOn:
+    id: quests-primary-action
+- extendedWaitUntil:
+    visible:
+      id: quests-share-results
+    timeout: 15000
+- tapOn:
+    id: quests-share-results
+- assertVisible:
+    id: quests-recap-sheet
+- assertVisible:
+    id: quests-share-wordle
+- assertVisible:
+    id: quests-share-perfect-timing
+- waitForAnimationToEnd
+- takeScreenshot: tmp-quest-bug-audit/quests-perfect-timing-share
+- tapOn:
+    id: quests-share-perfect-timing
+- extendedWaitUntil:
+    visible: "Copy"
+    timeout: 15000

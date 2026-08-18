@@ -29,6 +29,16 @@ import {
   rarityNameSchema,
   pvpSpectateResponseSchema,
   pvpSpectateDetailResponseSchema,
+  leaderboardBoardsResponseSchema,
+  leaderboardCorrectionConfirmSchema,
+  leaderboardCorrectionPreviewSchema,
+  leaderboardCorrectionResponseSchema,
+  leaderboardHistoryResponseSchema,
+  leaderboardHistoryDaysResponseSchema,
+  leaderboardResultExclusionSchema,
+  leaderboardResultExclusionResponseSchema,
+  leaderboardResponseSchema,
+  publicLeaderboardProfileSchema,
   updateDisplayNameSchema,
   updateLanguageSchema,
   updateNotificationPreferencesSchema,
@@ -38,6 +48,7 @@ import {
   adminAllowedEmailUpdateSchema,
   adminEmailRequestActionSchema,
   accountDeleteResponseSchema,
+  accessRequestIpRevealResponseSchema,
   appleAuthSchema,
   authUserSchema,
   authResponseSchema,
@@ -49,6 +60,8 @@ import {
   dailyNumbersArchiveStateResponseSchema,
   dailyNumbersArchiveSubmitSchema,
   dailyNumbersStateResponseSchema,
+  dailyNumbersSolutionHuntSubmitResponseSchema,
+  dailyNumbersSolutionHuntSubmitSchema,
   dailyNumbersSubmitSchema,
   craftRecycleResponseSchema,
   dailyClaimResponseSchema,
@@ -66,6 +79,11 @@ import {
   openPackResponseSchema,
   openPackSchema,
   packsResponseSchema,
+  perfectTimingDecisionSchema,
+  perfectTimingStartSchema,
+  perfectTimingStateSchema,
+  perfectTimingStopSchema,
+  perfectTimingTrainingTargetSchema,
   pvpActionSchema,
   pvpEndTurnSchema,
   pvpHistoryResponseSchema,
@@ -94,6 +112,7 @@ import {
   speedTrainingRunSchema,
   speedRunStateSchema,
   syncStepsSchema,
+  submitAccessRequestIntegritySchema,
   updateStepSourceSchema,
   usersResponseSchema,
   verifyEmailResponseSchema,
@@ -114,6 +133,7 @@ import {
   type AdminPacksResponse,
   type AdminUserDeleteResponse,
   type AccountDeleteResponse,
+  type AccessRequestIpRevealResponse,
   type AdminUserDetail,
   type AdminUserQuestResetInput,
   type AdminUserQuestResetResponse,
@@ -125,6 +145,17 @@ import {
   type RaritiesResponse,
   type PvpSpectateResponse,
   type PvpSpectateDetailResponse,
+  type LeaderboardBoardKey,
+  type LeaderboardBoardsResponse,
+  type LeaderboardCorrectionConfirmInput,
+  type LeaderboardCorrectionPreviewInput,
+  type LeaderboardCorrectionResponse,
+  type LeaderboardHistoryResponse,
+  type LeaderboardHistoryDaysResponse,
+  type LeaderboardResultExclusionInput,
+  type LeaderboardResultExclusionResponse,
+  type LeaderboardResponse,
+  type PublicLeaderboardProfile,
   type AppleAuthInput,
   type AuthResponse,
   type ChangePasswordInput,
@@ -136,6 +167,8 @@ import {
   type DailyNumbersArchiveStateResponse,
   type DailyNumbersArchiveSubmitInput,
   type DailyNumbersStateResponse,
+  type DailyNumbersSolutionHuntSubmitInput,
+  type DailyNumbersSolutionHuntSubmitResponse,
   type DailyNumbersSubmitInput,
   type DailyClaimResponse,
   type DailyClaimStatus,
@@ -150,6 +183,11 @@ import {
   type OpenPackInput,
   type OpenPackResponse,
   type PacksResponse,
+  type PerfectTimingDecisionInput,
+  type PerfectTimingStartInput,
+  type PerfectTimingState,
+  type PerfectTimingStopInput,
+  type PerfectTimingTrainingTarget,
   type PvpAction,
   type PvpEndTurnInput,
   type PvpBattleState,
@@ -169,6 +207,7 @@ import {
   type SpeedRunState,
   type SpeedTrainingRun,
   type SyncStepsInput,
+  type SubmitAccessRequestIntegrityInput,
   type UpdateStepSourceInput,
   type UpdateLanguageInput,
   type UpdateNotificationPreferencesInput,
@@ -200,10 +239,10 @@ const adminAbilitiesEnvelopeSchema = z.object({
 
 export interface ApiClientOptions {
   baseUrl: string;
+  requestTimeoutMs?: number;
   getAccessToken?: () => string | null | Promise<string | null>;
   getClientHeaders?: () =>
-    | Record<string, string>
-    | Promise<Record<string, string>>;
+    Record<string, string> | Promise<Record<string, string>>;
   refreshAccessToken?: () => Promise<string | null>;
   onAuthFailure?: () => void | Promise<void>;
 }
@@ -239,7 +278,7 @@ export function isNetworkError(error: unknown): error is ApiNetworkError {
     return false;
   }
 
-  return /network request failed|failed to fetch|load failed/i.test(
+  return /network request failed|request timed out|failed to fetch|load failed/i.test(
     error.message,
   );
 }
@@ -272,19 +311,44 @@ export class ApiClient {
     }
 
     let response: Response;
+    const abortController = new AbortController();
+    const requestTimeoutMs = this.options.requestTimeoutMs ?? 8_000;
+    const upstreamSignal = init.signal;
+    let didTimeout = false;
+    const abortFromUpstream = () =>
+      abortController.abort(upstreamSignal?.reason);
+
+    if (upstreamSignal?.aborted) {
+      abortFromUpstream();
+    } else {
+      upstreamSignal?.addEventListener("abort", abortFromUpstream, {
+        once: true,
+      });
+    }
+
+    const timeout = setTimeout(() => {
+      didTimeout = true;
+      abortController.abort();
+    }, requestTimeoutMs);
 
     try {
       response = await fetch(`${this.options.baseUrl}${path}`, {
         ...init,
         headers,
+        signal: abortController.signal,
       });
     } catch (error) {
       throw new ApiNetworkError(
-        error instanceof Error && error.message
-          ? error.message
-          : "Network request failed",
+        didTimeout
+          ? "Request timed out"
+          : error instanceof Error && error.message
+            ? error.message
+            : "Network request failed",
         error,
       );
+    } finally {
+      clearTimeout(timeout);
+      upstreamSignal?.removeEventListener("abort", abortFromUpstream);
     }
 
     if (
@@ -319,7 +383,7 @@ export class ApiClient {
       );
     }
 
-    return parser(await response.json());
+    return parser(response.status === 204 ? null : await response.json());
   }
 
   private async request<T>(
@@ -350,6 +414,17 @@ export class ApiClient {
       "/auth/register",
       { method: "POST", body: JSON.stringify(body) },
       (data) => registerResponseSchema.parse(data),
+    );
+  }
+
+  async submitAccessRequestIntegrity(
+    input: SubmitAccessRequestIntegrityInput,
+  ): Promise<void> {
+    const body = submitAccessRequestIntegritySchema.parse(input);
+    return this.request(
+      "/auth/access-request-assessment/play-integrity",
+      { method: "POST", body: JSON.stringify(body) },
+      () => undefined,
     );
   }
 
@@ -384,7 +459,9 @@ export class ApiClient {
     );
   }
 
-  async resetPassword(input: ResetPasswordInput): Promise<ResetPasswordResponse> {
+  async resetPassword(
+    input: ResetPasswordInput,
+  ): Promise<ResetPasswordResponse> {
     const body = resetPasswordSchema.parse(input);
     return this.request(
       "/auth/reset-password",
@@ -565,10 +642,24 @@ export class ApiClient {
     );
   }
 
-  async dailyNumbersState(mode: DailyNumbersMode): Promise<DailyNumbersStateResponse> {
+  async dailyNumbersState(
+    mode: DailyNumbersMode,
+  ): Promise<DailyNumbersStateResponse> {
     const query = `?mode=${encodeURIComponent(mode)}`;
-    return this.request(`/quests/daily-numbers${query}`, { method: "GET" }, (data) =>
-      dailyNumbersStateResponseSchema.parse(data),
+    return this.request(
+      `/quests/daily-numbers${query}`,
+      { method: "GET" },
+      (data) => dailyNumbersStateResponseSchema.parse(data),
+    );
+  }
+
+  async startDailyNumbersRanked(
+    mode: DailyNumbersMode,
+  ): Promise<DailyNumbersStateResponse> {
+    return this.request(
+      "/quests/daily-numbers/ranked-start",
+      { method: "POST", body: JSON.stringify({ mode }) },
+      (data) => dailyNumbersStateResponseSchema.parse(data),
     );
   }
 
@@ -580,6 +671,17 @@ export class ApiClient {
       "/quests/daily-numbers/submit",
       { method: "POST", body: JSON.stringify(body) },
       (data) => dailyNumbersStateResponseSchema.parse(data),
+    );
+  }
+
+  async submitDailyNumbersSolutionHunt(
+    input: DailyNumbersSolutionHuntSubmitInput,
+  ): Promise<DailyNumbersSolutionHuntSubmitResponse> {
+    const body = dailyNumbersSolutionHuntSubmitSchema.parse(input);
+    return this.request(
+      "/quests/daily-numbers/solution-hunt/submit",
+      { method: "POST", body: JSON.stringify(body) },
+      (data) => dailyNumbersSolutionHuntSubmitResponseSchema.parse(data),
     );
   }
 
@@ -614,6 +716,64 @@ export class ApiClient {
     );
   }
 
+  async perfectTimingState(): Promise<PerfectTimingState> {
+    return this.request("/quests/perfect-timing", { method: "GET" }, (data) =>
+      perfectTimingStateSchema.parse(data),
+    );
+  }
+
+  async startPerfectTiming(
+    input: PerfectTimingStartInput,
+  ): Promise<PerfectTimingState> {
+    const body = perfectTimingStartSchema.parse(input);
+    return this.request(
+      "/quests/perfect-timing/start",
+      { method: "POST", body: JSON.stringify(body) },
+      (data) => perfectTimingStateSchema.parse(data),
+    );
+  }
+
+  async stopPerfectTiming(
+    input: PerfectTimingStopInput,
+  ): Promise<PerfectTimingState> {
+    const body = perfectTimingStopSchema.parse(input);
+    return this.request(
+      "/quests/perfect-timing/stop",
+      { method: "POST", body: JSON.stringify(body) },
+      (data) => perfectTimingStateSchema.parse(data),
+    );
+  }
+
+  async continuePerfectTiming(
+    input: PerfectTimingDecisionInput,
+  ): Promise<PerfectTimingState> {
+    const body = perfectTimingDecisionSchema.parse(input);
+    return this.request(
+      "/quests/perfect-timing/continue",
+      { method: "POST", body: JSON.stringify(body) },
+      (data) => perfectTimingStateSchema.parse(data),
+    );
+  }
+
+  async keepPerfectTiming(
+    input: PerfectTimingDecisionInput,
+  ): Promise<PerfectTimingState> {
+    const body = perfectTimingDecisionSchema.parse(input);
+    return this.request(
+      "/quests/perfect-timing/keep",
+      { method: "POST", body: JSON.stringify(body) },
+      (data) => perfectTimingStateSchema.parse(data),
+    );
+  }
+
+  async perfectTimingTrainingTarget(): Promise<PerfectTimingTrainingTarget> {
+    return this.request(
+      "/quests/perfect-timing/training/target",
+      { method: "POST", body: JSON.stringify({}) },
+      (data) => perfectTimingTrainingTargetSchema.parse(data),
+    );
+  }
+
   async wordleState(locale?: "fr" | "en"): Promise<WordleStateResponse> {
     const query = locale ? `?locale=${encodeURIComponent(locale)}` : "";
     return this.request(`/wordle${query}`, { method: "GET" }, (data) =>
@@ -625,8 +785,10 @@ export class ApiClient {
     locale?: "fr" | "en",
   ): Promise<WordleDefinitionResponse> {
     const query = locale ? `?locale=${encodeURIComponent(locale)}` : "";
-    return this.request(`/wordle/definition${query}`, { method: "GET" }, (data) =>
-      wordleDefinitionResponseSchema.parse(data),
+    return this.request(
+      `/wordle/definition${query}`,
+      { method: "GET" },
+      (data) => wordleDefinitionResponseSchema.parse(data),
     );
   }
 
@@ -1086,7 +1248,9 @@ export class ApiClient {
     );
   }
 
-  async updateNotificationPreferences(input: UpdateNotificationPreferencesInput) {
+  async updateNotificationPreferences(
+    input: UpdateNotificationPreferencesInput,
+  ) {
     const body = updateNotificationPreferencesSchema.parse(input);
     return this.request(
       "/settings/notification-preferences",
@@ -1105,10 +1269,8 @@ export class ApiClient {
   }
 
   async deleteAccount(): Promise<AccountDeleteResponse> {
-    return this.request(
-      "/settings/account",
-      { method: "DELETE" },
-      (data) => accountDeleteResponseSchema.parse(data),
+    return this.request("/settings/account", { method: "DELETE" }, (data) =>
+      accountDeleteResponseSchema.parse(data),
     );
   }
 
@@ -1262,6 +1424,16 @@ export class ApiClient {
     );
   }
 
+  async revealAdminEmailRequestIp(
+    id: string,
+  ): Promise<AccessRequestIpRevealResponse> {
+    return this.request(
+      `/admin/email-requests/${id}/reveal-ip`,
+      { method: "POST", body: JSON.stringify({}) },
+      (data) => accessRequestIpRevealResponseSchema.parse(data),
+    );
+  }
+
   async pvpSpectate(): Promise<PvpSpectateResponse> {
     return this.request("/pvp/spectate", { method: "GET" }, (data) =>
       pvpSpectateResponseSchema.parse(data),
@@ -1269,10 +1441,111 @@ export class ApiClient {
   }
 
   async pvpSpectateMatch(matchId: string): Promise<PvpSpectateDetailResponse> {
+    return this.request(`/pvp/spectate/${matchId}`, { method: "GET" }, (data) =>
+      pvpSpectateDetailResponseSchema.parse(data),
+    );
+  }
+
+  async leaderboardBoards(): Promise<LeaderboardBoardsResponse> {
+    return this.request("/leaderboards/boards", { method: "GET" }, (data) =>
+      leaderboardBoardsResponseSchema.parse(data),
+    );
+  }
+
+  async leaderboard(
+    boardKey: LeaderboardBoardKey,
+    period: "today" | "yesterday" | "current_week" | "last_week",
+    cursor?: string,
+  ): Promise<LeaderboardResponse> {
+    const [quest, mode] = boardKey.split("/");
+    const query = new URLSearchParams({ period });
+
+    if (cursor) {
+      query.set("cursor", cursor);
+    }
+
     return this.request(
-      `/pvp/spectate/${matchId}`,
+      `/leaderboards/${encodeURIComponent(quest)}/${encodeURIComponent(
+        mode,
+      )}?${query.toString()}`,
       { method: "GET" },
-      (data) => pvpSpectateDetailResponseSchema.parse(data),
+      (data) => leaderboardResponseSchema.parse(data),
+    );
+  }
+
+  async leaderboardHistory(
+    boardKey: LeaderboardBoardKey,
+  ): Promise<LeaderboardHistoryResponse> {
+    const [quest, mode] = boardKey.split("/");
+
+    return this.request(
+      `/leaderboards/${encodeURIComponent(quest)}/${encodeURIComponent(mode)}?period=history`,
+      { method: "GET" },
+      (data) => leaderboardHistoryResponseSchema.parse(data),
+    );
+  }
+
+  async leaderboardHistoryDays(
+    boardKey: LeaderboardBoardKey,
+    periodStart: string,
+  ): Promise<LeaderboardHistoryDaysResponse> {
+    const [quest, mode] = boardKey.split("/");
+
+    return this.request(
+      `/leaderboards/${encodeURIComponent(quest)}/${encodeURIComponent(
+        mode,
+      )}/history/${encodeURIComponent(periodStart)}/days`,
+      { method: "GET" },
+      (data) => leaderboardHistoryDaysResponseSchema.parse(data),
+    );
+  }
+
+  async excludeLeaderboardResult(
+    resultId: string,
+    input: LeaderboardResultExclusionInput,
+  ): Promise<LeaderboardResultExclusionResponse> {
+    const body = leaderboardResultExclusionSchema.parse(input);
+
+    return this.request(
+      `/admin/leaderboards/results/${encodeURIComponent(resultId)}/exclude`,
+      { method: "POST", body: JSON.stringify(body) },
+      (data) => leaderboardResultExclusionResponseSchema.parse(data),
+    );
+  }
+
+  async previewLeaderboardCorrection(
+    snapshotId: string,
+    input: LeaderboardCorrectionPreviewInput,
+  ): Promise<LeaderboardCorrectionResponse> {
+    const body = leaderboardCorrectionPreviewSchema.parse(input);
+
+    return this.request(
+      `/admin/leaderboards/snapshots/${encodeURIComponent(snapshotId)}/correction-preview`,
+      { method: "POST", body: JSON.stringify(body) },
+      (data) => leaderboardCorrectionResponseSchema.parse(data),
+    );
+  }
+
+  async confirmLeaderboardCorrection(
+    snapshotId: string,
+    input: LeaderboardCorrectionConfirmInput,
+  ): Promise<LeaderboardCorrectionResponse> {
+    const body = leaderboardCorrectionConfirmSchema.parse(input);
+
+    return this.request(
+      `/admin/leaderboards/snapshots/${encodeURIComponent(snapshotId)}/corrections`,
+      { method: "POST", body: JSON.stringify(body) },
+      (data) => leaderboardCorrectionResponseSchema.parse(data),
+    );
+  }
+
+  async publicLeaderboardProfile(
+    publicProfileId: string,
+  ): Promise<PublicLeaderboardProfile> {
+    return this.request(
+      `/public-profiles/${encodeURIComponent(publicProfileId)}`,
+      { method: "GET" },
+      (data) => publicLeaderboardProfileSchema.parse(data),
     );
   }
 }

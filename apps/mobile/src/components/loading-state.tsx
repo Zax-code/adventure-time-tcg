@@ -103,9 +103,6 @@ export function LoadingPanel({
         maxWidth: isPage ? 380 : undefined,
         borderRadius: isPage ? 32 : 24,
         borderColor: tc.primaryBorder + "55",
-        boxShadow: isPage
-          ? `0px 10px 18px ${tc.primaryStrong}26`
-          : `0px 6px 12px ${tc.primaryStrong}1F`,
       }}
     >
       <LinearGradient

@@ -4,6 +4,7 @@ defmodule AdventureTimeApiWeb.AdminController do
   alias AdventureTimeApi.Accounts
   alias AdventureTimeApi.Accounts.AuthError
   alias AdventureTimeApi.Catalog
+  alias AdventureTimeApi.Leaderboards.Corrections
   alias AdventureTimeApi.Media
   alias AdventureTimeApi.Pvp
 
@@ -322,6 +323,28 @@ defmodule AdventureTimeApiWeb.AdminController do
     end
   end
 
+  def reveal_email_request_ip(conn, %{"id" => request_id}) do
+    case Accounts.reveal_access_request_ip(
+           request_id,
+           conn.assigns.auth_user,
+           List.first(get_req_header(conn, "x-request-id")) || Ecto.UUID.generate()
+         ) do
+      {:ok, response} ->
+        conn
+        |> put_resp_header("cache-control", "no-store")
+        |> json(response)
+
+      {:error, :gone} ->
+        conn |> put_status(:gone) |> json(%{error: "IP address is no longer retained"})
+
+      {:error, :not_found, message} ->
+        conn |> put_status(:not_found) |> json(%{error: message})
+
+      {:error, %AuthError{} = error} ->
+        conn |> put_status(error.status_code) |> json(%{error: error.message, code: error.code})
+    end
+  end
+
   # ── Ability Admin ──────────────────────────────────────────────────────────
 
   def list_abilities(conn, _params) do
@@ -436,6 +459,83 @@ defmodule AdventureTimeApiWeb.AdminController do
     else
       {:error, conn} -> conn
     end
+  end
+
+  def exclude_leaderboard_result(conn, %{"id" => id, "reason" => reason}) do
+    with :ok <- require_super_admin(conn),
+         {:ok, result} <- Corrections.exclude_result(id, conn.assigns.auth_user, reason) do
+      json(conn, %{id: result.id, status: result.result_status})
+    else
+      {:error, %Plug.Conn{} = conn} -> conn
+      {:error, reason} -> leaderboard_correction_error(conn, reason)
+    end
+  end
+
+  def preview_leaderboard_correction(conn, %{"id" => id, "reason" => reason} = params) do
+    changes = %{
+      "excludeUserIds" => Map.get(params, "excludeUserIds", []),
+      "excludeDailyResultIds" => Map.get(params, "excludeDailyResultIds", [])
+    }
+
+    with :ok <- require_super_admin(conn),
+         {:ok, preview} <-
+           Corrections.preview(id, conn.assigns.auth_user, reason, changes) do
+      json(conn, preview)
+    else
+      {:error, %Plug.Conn{} = conn} -> conn
+      {:error, reason} -> leaderboard_correction_error(conn, reason)
+    end
+  end
+
+  def preview_leaderboard_correction(conn, _params),
+    do: leaderboard_correction_error(conn, :invalid_changes)
+
+  def confirm_leaderboard_correction(conn, %{
+        "id" => id,
+        "previewHash" => preview_hash,
+        "confirm" => confirmed
+      }) do
+    with :ok <- require_super_admin(conn),
+         {:ok, correction} <-
+           Corrections.confirm(id, conn.assigns.auth_user, preview_hash, confirmed) do
+      json(conn, correction)
+    else
+      {:error, %Plug.Conn{} = conn} -> conn
+      {:error, reason} -> leaderboard_correction_error(conn, reason)
+    end
+  end
+
+  def confirm_leaderboard_correction(conn, _params),
+    do: leaderboard_correction_error(conn, :explicit_confirmation_required)
+
+  defp require_super_admin(conn) do
+    user = conn.assigns.auth_user
+
+    if user && user.isSuperAdmin do
+      :ok
+    else
+      forbidden_conn =
+        conn
+        |> put_status(403)
+        |> json(%{error: "Super-admin access required", code: "SUPER_ADMIN_REQUIRED"})
+        |> halt()
+
+      {:error, forbidden_conn}
+    end
+  end
+
+  defp leaderboard_correction_error(conn, reason) do
+    status =
+      if reason in [:stale_snapshot, :stale_correction_preview],
+        do: :conflict,
+        else: :unprocessable_entity
+
+    conn
+    |> put_status(status)
+    |> json(%{
+      error: "Leaderboard correction rejected",
+      code: reason |> to_string() |> String.upcase()
+    })
   end
 
   defp require_admin(conn) do

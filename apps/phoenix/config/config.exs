@@ -34,8 +34,12 @@ config :phoenix, :filter_parameters, ~w(
     clientSecret
     client_secret
     code
+    challengeToken
+    challenge_token
     idToken
     id_token
+    integrityToken
+    integrity_token
     password
     refreshToken
     refresh_token
@@ -57,6 +61,36 @@ config :adventure_time_api, AdventureTimeApi.Accounts,
   verification_secret: "dev-email-verification-secret-please-change-1234567890",
   expose_dev_code: false
 
+config :adventure_time_api, AdventureTimeApi.AccessAssessment,
+  collection_enabled: false,
+  admin_display_enabled: false,
+  scoring_model_version: "access-request-v1",
+  expected_range_versions: %{
+    test_lab: "firebase-test-lab-2026-08-13",
+    google: "google-ip-ranges-1786889149345"
+  }
+
+config :adventure_time_api, AdventureTimeApi.AccessAssessment.IpIntelligence,
+  adapter: AdventureTimeApi.AccessAssessment.IpQualityScore,
+  endpoint: "https://ipqualityscore.com/api/json/ip",
+  api_key: nil,
+  settings_version: "v1",
+  timeout_ms: 3_000
+
+config :adventure_time_api, AdventureTimeApi.AccessAssessment.Pseudonym,
+  secret: nil,
+  version: "v1"
+
+config :adventure_time_api, AdventureTimeApi.AccessAssessment.PlayIntegrity,
+  adapter: AdventureTimeApi.AccessAssessment.GooglePlayIntegrity,
+  endpoint: "https://playintegrity.googleapis.com",
+  package_name: "love.leaetzak.adventuretime",
+  cloud_project_number: nil,
+  certificate_digests: [],
+  released_version_codes: [],
+  credentials_path: nil,
+  timeout_ms: 3_000
+
 config :adventure_time_api, AdventureTimeApi.Accounts.EmailDelivery,
   adapter: AdventureTimeApi.Accounts.EmailDelivery.SendmailAdapter
 
@@ -68,8 +102,15 @@ config :adventure_time_api, AdventureTimeApi.Media,
 
 config :adventure_time_api, Oban,
   repo: AdventureTimeApi.Repo,
-  queues: [default: 10, maintenance: 5],
-  plugins: [Oban.Plugins.Pruner]
+  queues: [default: 10, assessments: 5, maintenance: 5],
+  plugins: [
+    Oban.Plugins.Pruner,
+    {Oban.Plugins.Cron,
+     crontab: [
+       {"* * * * *", AdventureTimeApi.Workers.LeaderboardLifecycleWorker},
+       {"15 3 * * *", AdventureTimeApi.Workers.PruneAccessAssessmentDataWorker}
+     ]}
+  ]
 
 config :adventure_time_api, AdventureTimeApi.Pvp, invite_ttl_hours: 24
 
@@ -85,10 +126,13 @@ config :adventure_time_api, AdventureTimeApiWeb.Plugs.RateLimit,
     auth_reset_password: %{limit: 10, scale_ms: 60_000},
     auth_google: %{limit: 10, scale_ms: 60_000},
     auth_apple: %{limit: 10, scale_ms: 60_000},
+    auth_play_integrity: %{limit: 10, scale_ms: 60_000},
     auth_refresh: %{limit: 20, scale_ms: 60_000},
     auth_logout: %{limit: 20, scale_ms: 60_000},
     pvp_match_write: %{limit: 30, scale_ms: 60_000}
   }
+
+config :adventure_time_api, AdventureTimeApiWeb.Plugs.CanonicalClientIp, trusted_proxy_cidrs: []
 
 config :adventure_time_api, AdventureTimeApiWeb.Plugs.WebsiteDocumentPlug,
   index_path: "priv/static/assets/web/index.html"

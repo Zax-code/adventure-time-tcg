@@ -47,37 +47,42 @@
     "test:mobile:e2e:quest-cutoff:android": "MOBILE_TEST_EMAIL=\"${MOBILE_TEST_EMAIL:-quest-cutoff-e2e-$(date +%s)@leaetzak.love}\" ./scripts/maestro.sh test --platform android .maestro/quest-midnight-cutoff.yaml",
     "test:mobile:e2e:pvp:head-to-head:ios": "./scripts/maestro-pvp-head-to-head.sh --platform ios",
     "test:mobile:e2e:pvp:head-to-head:android": "./scripts/maestro-pvp-head-to-head.sh --platform android",
+    "setup:mobile:appium": "node ./apps/mobile/test/appium/setup.mjs",
+    "test:mobile:appium:speed-calculus:ios": "node ./apps/mobile/test/appium/speed-calculus-multitouch.mjs --platform ios",
+    "test:mobile:appium:speed-calculus:android": "node ./apps/mobile/test/appium/speed-calculus-multitouch.mjs --platform android",
     "db:generate": "npm run db:generate -w @adventure-time/db",
     "db:migrate": "npm run db:migrate -w @adventure-time/db",
     "doctor": "react-doctor"
   },
   "dependencies": {
     "react-native-svg": "15.15.4",
-    "react-native-worklets": "0.8.3"
+    "react-native-worklets": "0.10.1"
   },
   "devDependencies": {
     "@types/react": "~19.2.14",
-    "expo-router": "~56.2.14",
+    "appium": "^3.6.0",
+    "expo-router": "~57.0.14",
     "patch-package": "^8.0.1",
-    "react-doctor": "^0.6.0"
+    "react-doctor": "^0.6.0",
+    "react-native-screens": "4.26.2"
   },
   "overrides": {
-    "@expo/fingerprint": "0.19.7",
-    "@expo/log-box": "56.0.14",
+    "@expo/fingerprint": "0.20.8",
+    "@expo/log-box": "57.0.3",
     "nativewind": "4.2.3",
-    "expo": "56.0.15",
-    "expo-asset": "56.0.19",
-    "expo-constants": "56.0.20",
-    "expo-file-system": "56.0.8",
-    "expo-font": "56.0.7",
-    "expo-modules-core": "56.0.20",
-    "expo-modules-jsi": "56.0.12",
+    "expo": "57.0.14",
+    "expo-asset": "57.0.12",
+    "expo-constants": "57.0.12",
+    "expo-file-system": "57.0.4",
+    "expo-font": "57.0.1",
+    "expo-modules-core": "57.0.11",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native-css-interop": "0.2.3",
-    "react-native-gesture-handler": "2.31.2",
-    "react-native-reanimated": "4.3.1",
+    "react-native-gesture-handler": "2.32.0",
+    "react-native-reanimated": "4.5.1",
     "react-native-safe-area-context": "5.7.0",
-    "react-native-worklets": "0.8.3"
+    "react-native-screens": "4.26.2",
+    "react-native-worklets": "0.10.1"
   }
 }

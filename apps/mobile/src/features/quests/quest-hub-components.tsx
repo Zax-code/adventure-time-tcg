@@ -20,7 +20,7 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-import Animated, { FadeInUp, ReduceMotion } from "react-native-reanimated";
+import Animated, { FadeIn, ReduceMotion } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
@@ -31,10 +31,7 @@ import {
   SparklesIcon,
 } from "../../components/icons";
 import { QuestActionButton } from "./quest-action-button";
-import type {
-  QuestHubPreferenceId,
-  QuestLifecycle,
-} from "./quest-hub-model";
+import type { QuestHubPreferenceId, QuestLifecycle } from "./quest-hub-model";
 import type { THEME_COLORS } from "../../theme/themes";
 
 type ThemeColors = (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
@@ -201,12 +198,18 @@ export function QuestHubSummary({
           }
         >
           <View className="flex-1">
-            <Text className="font-nunito-extrabold text-[28px] leading-8 text-fg">
-              {finishedCount}
-              <Text className="font-nunito-bold text-lg text-fgMuted">
+            <View
+              accessible
+              accessibilityLabel={`${finishedCount} / ${totalCount}`}
+              className="flex-row items-baseline"
+            >
+              <Text className="font-nunito-extrabold text-[28px] leading-10 text-fg">
+                {finishedCount}
+              </Text>
+              <Text className="font-nunito-bold text-lg leading-7 text-fgMuted">
                 {` / ${totalCount}`}
               </Text>
-            </Text>
+            </View>
             <Text className="mt-1 font-nunito-semibold text-sm text-fgMuted">
               {subtitle}
             </Text>
@@ -238,10 +241,10 @@ export function QuestHubSummary({
           />
         </View>
 
-        <View className={stackActions ? "mt-4 gap-3" : "mt-4 flex-row gap-3"}>
+        <View className="mt-4 gap-3">
           {onAction ? (
             <View
-              style={stackActions ? { width: "100%" } : { flex: 1 }}
+              className="w-full"
               testID={
                 claimMode
                   ? "quests-primary-mode-claim"
@@ -274,7 +277,7 @@ export function QuestHubSummary({
             <View
               accessible
               accessibilityLabel={actionLabel}
-              className="min-h-[50px] flex-1 flex-row items-center justify-center gap-2 rounded-xl border border-primaryBorder bg-surfaceMuted px-4 py-3"
+              className="min-h-[50px] w-full flex-row items-center justify-center gap-2 rounded-xl border border-primaryBorder bg-surfaceMuted px-4 py-3"
               testID="quests-completion-status"
             >
               <SparklesIcon size={19} color={tc.primaryText} />
@@ -293,7 +296,7 @@ export function QuestHubSummary({
               borderColor={tc.primaryBorder}
               leadingIcon={ShareIcon}
               minHeight={50}
-              style={stackActions ? { width: "100%" } : undefined}
+              style={{ width: "100%" }}
               testID="quests-share-results"
             />
           ) : null}
@@ -493,7 +496,7 @@ export function QuestHubCard({
 
   return (
     <Animated.View
-      entering={FadeInUp.duration(220)
+      entering={FadeIn.duration(180)
         .delay(index * 45)
         .reduceMotion(ReduceMotion.System)}
     >
@@ -676,6 +679,8 @@ export function QuestLaunchSheet({
             gap: 12,
           }}
         >
+          {/* Launcher choices are fixed at three or fewer; virtualization would add overhead. */}
+          {/* react-doctor-disable-next-line react-doctor/rn-no-scrollview-mapped-list */}
           {options.map((option) => (
             <Pressable
               key={option.id}
@@ -832,6 +837,8 @@ export function QuestRecapSheet({
             gap: 12,
           }}
         >
+          {/* Recap actions are fixed at two or fewer; virtualization would add overhead. */}
+          {/* react-doctor-disable-next-line react-doctor/rn-no-scrollview-mapped-list */}
           {actions.map((action) => {
             const Icon = action.icon;
             return (
@@ -964,6 +971,8 @@ export function QuestOrderSheet({
             gap: 10,
           }}
         >
+          {/* Quest order is fixed at four rows; virtualization would add overhead. */}
+          {/* react-doctor-disable-next-line react-doctor/rn-no-scrollview-mapped-list */}
           {options.map((option, optionIndex) => {
             const Icon = option.icon;
             return (

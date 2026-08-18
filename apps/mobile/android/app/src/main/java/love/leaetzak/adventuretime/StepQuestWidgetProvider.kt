@@ -727,7 +727,8 @@ class StepQuestWidgetProvider : AppWidgetProvider() {
     }
 
     private fun sp(context: Context, value: Float): Float {
-      return value * context.resources.displayMetrics.scaledDensity
+      val resources = context.resources
+      return value * resources.displayMetrics.density * resources.configuration.fontScale
     }
 
     private fun createPendingIntent(context: Context, deepLink: String): PendingIntent {

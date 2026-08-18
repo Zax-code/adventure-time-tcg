@@ -9,7 +9,7 @@ class WidgetSnapshotBridgeModule(
   reactContext: ReactApplicationContext,
 ) : ReactContextBaseJavaModule(reactContext) {
 
-  override fun getName(): String = "WidgetSnapshotBridge"
+  override fun getName(): String = NAME
 
   @ReactMethod
   fun setStepQuestSnapshot(snapshotJson: String, promise: Promise) {
@@ -95,5 +95,9 @@ class WidgetSnapshotBridgeModule(
     } catch (error: Exception) {
       promise.reject("WIDGET_BACKGROUND_SYNC_START_FAILED", error)
     }
+  }
+
+  companion object {
+    const val NAME = "WidgetSnapshotBridge"
   }
 }

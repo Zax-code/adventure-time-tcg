@@ -14,7 +14,6 @@ import {
 import {
   cancelAnimation,
   Easing,
-  runOnJS,
   useSharedValue,
   withDelay,
   withRepeat,
@@ -22,6 +21,7 @@ import {
   withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { scheduleOnRN } from "react-native-worklets";
 
 import type {
   CollectionResponse,
@@ -93,7 +93,6 @@ import {
   SPARK_REVEAL_START_DELAY_MS,
   buildCardBackVisualMap,
   canOpenPackWithBalance,
-  createBurstPattern,
   createLoadingSparkles,
   delay,
   formatPackAvailabilityDate,
@@ -105,13 +104,13 @@ import {
   slugifyPackName,
   toCardTileEntry,
   toRarityName,
+  withOccurrenceKeys,
   withAlpha,
   type CardBackVisualMap,
   type LoadingSparkle,
   type OpenedCard,
   type OpeningPhase,
   type Pack,
-  type PackBurstPattern,
   type RarityName,
 } from "../../src/features/packs/opening-model";
 
@@ -144,10 +143,6 @@ function usePacksScreenView() {
   const [openingRunId, setOpeningRunId] = useState(0);
   const [openError, setOpenError] = useState<string | null>(null);
   const [loadingProgress, setLoadingProgress] = useState(0);
-  const burstPatternRef = useRef<PackBurstPattern | null>(null);
-  if (burstPatternRef.current === null) {
-    burstPatternRef.current = createBurstPattern(320, 320 / PACK_CARD_RATIO);
-  }
   const isCardPreviewVisible = previewedCard !== null;
   const shouldHideTabBar =
     (phase !== "selecting" && phase !== "complete") || isCardPreviewVisible;
@@ -285,12 +280,6 @@ function usePacksScreenView() {
     stopChargeAnimations();
     burstFlashAnim.value = 0;
     burstOpenAnim.value = 0;
-    burstPatternRef.current = createBurstPattern(
-      stageCardWidth,
-      stageCardWidth / PACK_CARD_RATIO,
-      selectedPack ?? undefined,
-    );
-
     burstFlashAnim.value = withSequence(
       withTiming(1, {
         duration: Math.round(PACK_OPEN_BURST_MS * 0.3),
@@ -319,7 +308,7 @@ function usePacksScreenView() {
           easing: Easing.inOut(Easing.quad),
         },
         () => {
-          runOnJS(resolve)();
+          scheduleOnRN(resolve);
         },
       );
     });
@@ -1065,6 +1054,8 @@ function usePacksScreenView() {
     const canReopenSelected =
       nextBalance >= selectedPack.cost && !isPackLimited(selectedPack);
     const summaryCards = [...newCards, ...duplicateCards];
+    const keyedNewCards = withOccurrenceKeys(newCards, (card) => card.id);
+    const keyedSummaryCards = withOccurrenceKeys(summaryCards, (card) => card.id);
     const rarityBreakdown = openedCards.reduce<
       Record<string, { total: number; newCount: number }>
     >((accumulator, card) => {
@@ -1221,9 +1212,9 @@ function usePacksScreenView() {
                 {t("packs.summary.newCards")}
               </Text>
               <View className="flex-row flex-wrap">
-                {newCards.map((card, index) => (
+                {keyedNewCards.map(({ item: card, key }, index) => (
                   <View
-                    key={`${card.id}-${index}`}
+                    key={key}
                     className="w-1/2 px-1.5 pb-3"
                   >
                     <CardTile
@@ -1258,8 +1249,8 @@ function usePacksScreenView() {
               {t("packs.summary.allCards")}
             </Text>
             <View className="flex-row flex-wrap">
-              {summaryCards.map((card, index) => (
-                <View key={`${card.id}-${index}`} className="w-1/2 px-1.5 pb-3">
+              {keyedSummaryCards.map(({ item: card, key }, index) => (
+                <View key={key} className="w-1/2 px-1.5 pb-3">
                   <CardTile
                     testID={`pack-summary-card-all-${index}`}
                     onPress={() => setPreviewedCard(card)}

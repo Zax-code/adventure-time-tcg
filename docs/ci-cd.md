@@ -40,6 +40,8 @@ What it does:
 - refuses to deploy from a dirty host checkout
 - installs the checked-in Quadlet units into `/etc/containers/systemd`
 - renders a container-friendly env file from the host secrets file
+- pulls and verifies the immutable API image before stopping or reloading any production services
+- explicitly stops the API before restarting its required pod, PostgreSQL, and MinIO services so systemd cannot cut over before migrations
 - runs `AdventureTimeApi.Release.migrate` in a one-off container unless manually skipped
 - restarts the Quadlet-generated systemd service
 - verifies `/ready` before reporting success
@@ -110,6 +112,7 @@ The deploy workflow assumes:
 - the host can install Quadlet files into `/etc/containers/systemd`
 - the Phoenix secrets file exists either at `/home/zax/adventure-time-tcg-secrets/api.env` or `apps/phoenix/.env`
 - the API container env file is rendered to `/home/zax/adventure-time-tcg-secrets/api.container.env`
+- the MinIO container env file is rendered to `/home/zax/adventure-time-tcg-secrets/minio.container.env` from the same access key and secret as the API file
 - the host mail relay config exists at `/home/zax/adventure-time-tcg-secrets/msmtprc` so the containerized `sendmail` command can reach Postfix
 - Podman is installed on the VPS
 - passwordless `sudo` is available for `systemctl restart`

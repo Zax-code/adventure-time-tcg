@@ -24,6 +24,8 @@ tags:
 - assertVisible:
     id: quests-order-row-dailyNumbers
 - assertVisible:
+    id: quests-order-row-perfectTiming
+- assertVisible:
     id: quests-order-row-speedCalculus
 - assertVisible:
     id: quests-order-row-steps

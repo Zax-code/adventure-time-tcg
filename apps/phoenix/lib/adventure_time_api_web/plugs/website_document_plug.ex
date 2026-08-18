@@ -63,6 +63,7 @@ defmodule AdventureTimeApiWeb.Plugs.WebsiteDocumentPlug do
                                "/favicon.ico",
                                "/health",
                                "/ready",
+                               "/ready/media",
                                "/robots.txt",
                                "/site.webmanifest",
                                "/theme-bootstrap.js"

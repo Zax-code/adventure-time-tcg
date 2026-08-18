@@ -4,6 +4,7 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
   alias AdventureTimeApi.Accounts.{EmailCredential, User}
   alias AdventureTimeApi.Fitbit.Account
   alias AdventureTimeApi.Health.StepSnapshot
+  alias AdventureTimeApi.Leaderboards.RankedSession
   alias AdventureTimeApi.Quests
 
   alias AdventureTimeApi.Quests.{
@@ -11,6 +12,7 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
     DailyNumbersDailyAttempt,
     DailyNumbersEngine,
     DailyQuest,
+    PerfectTimingAttempt,
     SpeedCalculusDailyRun,
     WordleDictionaryWord,
     WordleDictionaryWordDefinition,
@@ -54,6 +56,36 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
     :ok
   end
 
+  test "daily quest materialization uses one database statement", _context do
+    user = create_user_with_password("quest-materialization@example.com", "password123")
+    handler_id = "quest-materialization-#{System.unique_integer([:positive])}"
+    test_pid = self()
+
+    :telemetry.attach(
+      handler_id,
+      [:adventure_time_api, :repo, :query],
+      fn _event, _measurements, _metadata, _config -> send(test_pid, :quest_query) end,
+      nil
+    )
+
+    on_exit(fn -> :telemetry.detach(handler_id) end)
+
+    Quests.materialize_daily_quests(user.id, Quests.current_reset_date())
+
+    query_count =
+      Stream.repeatedly(fn ->
+        receive do
+          :quest_query -> :query
+        after
+          0 -> :done
+        end
+      end)
+      |> Enum.take_while(&(&1 == :query))
+      |> length()
+
+    assert query_count == 1
+  end
+
   test "GET /quests materializes daily quests and POST /quests/claim preserves reward semantics",
        _context do
     user = create_user_with_password("quests@example.com", "password123")
@@ -62,12 +94,13 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
 
     response = access_token |> auth_conn() |> get(~p"/quests") |> json_response(200)
     assert response["fitbitConnected"] == false
-    assert length(response["quests"]) == 7
+    assert length(response["quests"]) == 8
 
     assert Enum.sort(Enum.map(response["quests"], & &1["type"])) == [
              "daily_numbers_1_5",
              "daily_numbers_2_4",
              "daily_numbers_3_3",
+             "perfect_timing_daily",
              "speed_calculus_daily",
              "steps_10k",
              "wordle_daily_en",
@@ -134,6 +167,34 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
 
   test "GET /quests reports Fitbit connection and uses the preferred step source snapshot",
        _context do
+    bypass = Bypass.open()
+    original_fitbit_config = Application.get_env(:adventure_time_api, AdventureTimeApi.Fitbit)
+    {:ok, request_counter} = Agent.start_link(fn -> 0 end)
+
+    Application.put_env(:adventure_time_api, AdventureTimeApi.Fitbit,
+      client_id: "test-client",
+      client_secret: "test-secret",
+      api_url: "http://localhost:#{bypass.port}"
+    )
+
+    on_exit(fn ->
+      Application.put_env(
+        :adventure_time_api,
+        AdventureTimeApi.Fitbit,
+        original_fitbit_config || []
+      )
+    end)
+
+    Bypass.stub(
+      bypass,
+      "GET",
+      "/1/user/-/activities/date/#{Date.to_iso8601(Quests.current_reset_date())}.json",
+      fn conn ->
+        Agent.update(request_counter, &(&1 + 1))
+        Plug.Conn.resp(conn, 200, Jason.encode!(%{"summary" => %{"steps" => 9_999}}))
+      end
+    )
+
     user = create_user_with_password("fitbit-quests@example.com", "password123")
     access_token = login_access_token(user.email, "password123")
     date = Quests.current_reset_date()
@@ -174,6 +235,15 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
     assert response["fitbitConnected"] == true
 
     assert Enum.find(response["quests"], &(&1["type"] == "steps_10k"))["progress"] == 6400
+    assert Agent.get(request_counter, & &1) == 0
+
+    access_token |> auth_conn() |> get(~p"/health/steps") |> json_response(200)
+    assert Agent.get(request_counter, & &1) == 1
+
+    refreshed = access_token |> auth_conn() |> get(~p"/quests") |> json_response(200)
+
+    assert Enum.find(refreshed["quests"], &(&1["type"] == "steps_10k"))["progress"] == 9999
+    assert Agent.get(request_counter, & &1) == 1
   end
 
   test "POST /quests/claim returns 404 for unknown and foreign quests", _context do
@@ -204,6 +274,101 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
     assert foreign == %{"error" => "Quest not found"}
   end
 
+  test "Perfect Timing API starts, scores, keeps, grants once, and isolates training", _context do
+    user = create_user_with_password("perfect-timing-api@example.com", "password123")
+    access_token = login_access_token(user.email, "password123")
+
+    state =
+      access_token
+      |> auth_conn()
+      |> get(~p"/quests/perfect-timing")
+      |> json_response(200)
+
+    assert state["status"] == "ready"
+    assert state["targetMs"] in 3_000..10_000
+    assert rem(state["targetMs"], 100) == 0
+    assert state["remainingAttempts"] == 3
+
+    training =
+      access_token
+      |> auth_conn()
+      |> post(~p"/quests/perfect-timing/training/target", %{})
+      |> json_response(200)
+
+    assert training["targetMs"] in 3_000..10_000
+    refute training["targetMs"] == state["targetMs"]
+
+    started =
+      access_token
+      |> auth_conn()
+      |> post(~p"/quests/perfect-timing/start", %{
+        "dateKey" => state["date"],
+        "questVersion" => state["questVersion"]
+      })
+      |> json_response(200)
+
+    assert started["status"] == "active"
+    assert started["attemptsUsed"] == 1
+
+    attempt = Repo.get!(PerfectTimingAttempt, started["activeAttempt"]["id"])
+
+    Repo.update!(
+      Ecto.Changeset.change(attempt,
+        started_at:
+          DateTime.utc_now()
+          |> DateTime.add(-(state["targetMs"] + 2_000), :millisecond)
+          |> DateTime.truncate(:microsecond)
+      )
+    )
+
+    stopped =
+      access_token
+      |> auth_conn()
+      |> post(~p"/quests/perfect-timing/stop", %{
+        "attemptId" => attempt.id,
+        "elapsedMs" => state["targetMs"] + 51,
+        "stopReason" => "manual",
+        "dateKey" => state["date"],
+        "questVersion" => state["questVersion"]
+      })
+      |> json_response(200)
+
+    assert stopped["status"] == "result"
+    assert stopped["currentResult"]["tier"] == "great"
+    assert stopped["currentResult"]["reward"] == 63
+
+    kept =
+      access_token
+      |> auth_conn()
+      |> post(~p"/quests/perfect-timing/keep", %{
+        "attemptId" => attempt.id,
+        "dateKey" => state["date"],
+        "questVersion" => state["questVersion"]
+      })
+      |> json_response(200)
+
+    assert kept["finalized"] == true
+    assert kept["completed"] == true
+    assert kept["rewardGranted"] == true
+    assert kept["finalReward"] == 63
+    assert kept["remainingAttempts"] == 0
+    assert kept["coinBalance"] == 163
+
+    repeated =
+      access_token
+      |> auth_conn()
+      |> post(~p"/quests/perfect-timing/keep", %{
+        "attemptId" => attempt.id,
+        "dateKey" => state["date"],
+        "questVersion" => state["questVersion"]
+      })
+      |> json_response(200)
+
+    assert repeated["coinBalance"] == 163
+    assert Repo.get!(User, user.id).coins == 163
+    assert Repo.aggregate(PerfectTimingAttempt, :count, :id) == 1
+  end
+
   test "GET /quests/daily-numbers and POST /quests/daily-numbers/submit preserve deterministic puzzle and percentage reward contracts",
        _context do
     user = create_user_with_password("daily-numbers@example.com", "password123")
@@ -219,6 +384,12 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
       |> get(~p"/quests/daily-numbers?mode=1-5")
       |> json_response(200)
 
+    ranked_state =
+      access_token
+      |> auth_conn()
+      |> post(~p"/quests/daily-numbers/ranked-start", %{"mode" => "1-5"})
+      |> json_response(200)
+
     other_state =
       other_access_token
       |> auth_conn()
@@ -232,6 +403,8 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
       |> json_response(200)
 
     assert state["mode"] == "1-5"
+    assert ranked_state["numbers"] == state["numbers"]
+    assert ranked_state["target"] == state["target"]
     assert balanced_state["mode"] == "2-4"
     assert state["target"] == other_state["target"]
     assert state["numbers"] == other_state["numbers"]
@@ -296,6 +469,36 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
              "error" => "Daily Numbers already submitted for today",
              "code" => "DAILY_NUMBERS_ALREADY_SUBMITTED"
            }
+  end
+
+  test "legacy ranked-start returns Daily Numbers state without creating a ranked session" do
+    user = create_user_with_password("daily-numbers-isolation@example.com", "password123")
+    access_token = login_access_token(user.email, "password123")
+
+    response =
+      access_token
+      |> auth_conn()
+      |> post(~p"/quests/daily-numbers/ranked-start", %{"mode" => "1-5"})
+      |> json_response(200)
+
+    assert response["mode"] == "1-5"
+    assert response["submitted"] == false
+    assert length(response["numbers"]) == 6
+    assert Repo.aggregate(RankedSession, :count) == 0
+
+    submitted =
+      access_token
+      |> auth_conn()
+      |> post(~p"/quests/daily-numbers/submit", %{
+        "mode" => "1-5",
+        "dateKey" => response["date"],
+        "questVersion" => response["questVersion"],
+        "steps" => []
+      })
+      |> json_response(200)
+
+    assert submitted["submitted"] == true
+    assert submitted["reward"] == 0
   end
 
   test "POST /quests/daily-numbers/submit keeps the quest failed at 0 percent when the result does not improve",

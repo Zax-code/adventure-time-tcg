@@ -29,6 +29,7 @@ const QUEST_HUB_PATHNAMES = new Set(["/quests", "/(tabs)/quests"]);
 const DAILY_QUEST_PATHNAMES = new Set([
   "/quests/wordle",
   "/quests/speed-calculus",
+  "/quests/perfect-timing",
   "/quests/daily-numbers",
   "/quests/daily-numbers-play",
 ]);

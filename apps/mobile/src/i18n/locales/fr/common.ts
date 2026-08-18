@@ -12,6 +12,14 @@ const common = {
       "Nous remettons en place tes cartes, tes couleurs et les portes du royaume avant l'aventure.",
     preparing: "Préparation de l'aventure...",
     restoring: "Réconnexion au Royaume des Bonbons...",
+    errorTitle: "L'app n'a pas pu déverrouiller ta session enregistrée.",
+    errorBody:
+      "L'écran de démarrage a été libéré, mais tes informations de connexion ne sont pas encore disponibles.",
+    errorTimeoutDetail:
+      "La vérification du stockage sécurisé a pris trop de temps. Réessaie maintenant.",
+    errorRejectedDetail:
+      "La vérification du stockage sécurisé a temporairement échoué. Réessaie maintenant.",
+    retry: "Relancer le démarrage",
   },
   loadingStates: {
     pageBody: "Un instant pendant que nous préparons cet écran.",

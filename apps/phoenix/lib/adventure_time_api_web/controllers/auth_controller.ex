@@ -26,7 +26,7 @@ defmodule AdventureTimeApiWeb.AuthController do
           conn |> put_status(:internal_server_error) |> json(%{error: message})
 
         {:error, %AuthError{} = error} ->
-          conn |> put_status(error.status_code) |> json(%{error: error.message, code: error.code})
+          render_auth_error(conn, error)
       end
     end
   end
@@ -42,7 +42,7 @@ defmodule AdventureTimeApiWeb.AuthController do
           json(conn, response)
 
         {:error, %AuthError{} = error} ->
-          conn |> put_status(error.status_code) |> json(%{error: error.message, code: error.code})
+          render_auth_error(conn, error)
 
         {:error, _reason, message} ->
           conn |> put_status(:unauthorized) |> json(%{error: message})
@@ -152,9 +152,7 @@ defmodule AdventureTimeApiWeb.AuthController do
           json(conn, response)
 
         {:error, %AuthError{} = error} ->
-          conn
-          |> put_status(error.status_code)
-          |> json(%{error: error.message, code: error.code})
+          render_auth_error(conn, error)
       end
     end
   end
@@ -170,9 +168,7 @@ defmodule AdventureTimeApiWeb.AuthController do
           json(conn, response)
 
         {:error, %AuthError{} = error} ->
-          conn
-          |> put_status(error.status_code)
-          |> json(%{error: error.message, code: error.code})
+          render_auth_error(conn, error)
       end
     end
   end
@@ -213,5 +209,13 @@ defmodule AdventureTimeApiWeb.AuthController do
     conn
     |> put_status(:bad_request)
     |> json(%{error: "Missing refresh token"})
+  end
+
+  defp render_auth_error(conn, error) do
+    payload =
+      %{error: error.message, code: error.code}
+      |> Map.merge(error.details || %{})
+
+    conn |> put_status(error.status_code) |> json(payload)
   end
 end

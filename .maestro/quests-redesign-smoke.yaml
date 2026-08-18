@@ -35,6 +35,8 @@ tags:
     id: quests-recap-sheet
 - assertVisible:
     id: quests-share-wordle
+- assertVisible:
+    id: quests-share-perfect-timing
 - waitForAnimationToEnd
 - takeScreenshot: tmp-quests-redesign-shots/02-share-results
 - swipe:

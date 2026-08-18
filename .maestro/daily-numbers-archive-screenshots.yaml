@@ -68,6 +68,10 @@ tags:
     timeout: 15000
 - tapOn:
     point: "70%,58%"
+- extendedWaitUntil:
+    visible:
+      id: daily-numbers-result
+    timeout: 15000
 - scrollUntilVisible:
     element:
       id: daily-numbers-share-result

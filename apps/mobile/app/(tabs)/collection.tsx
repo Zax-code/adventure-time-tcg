@@ -8,14 +8,17 @@ import {
 } from "react";
 import { ModalBottomSheet } from "@swmansion/react-native-bottom-sheet";
 import { useQuery } from "@tanstack/react-query";
-import { useRouter } from "expo-router";
+import { useIsFocused, useRouter } from "expo-router";
 import {
+  AppState,
   FlatList,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
+  type AppStateStatus,
+  type ViewToken,
   useWindowDimensions,
 } from "react-native";
 import { useSharedValue, withTiming } from "react-native-reanimated";
@@ -55,6 +58,9 @@ type OwnershipFilter = "all" | "owned" | "not-owned";
 type SortOption = "rarity" | "name" | "quantity" | "newest";
 
 const SORT_OPTIONS: SortOption[] = ["rarity", "name", "quantity", "newest"];
+const COLLECTION_VIEWABILITY_CONFIG = {
+  itemVisiblePercentThreshold: 25,
+} as const;
 
 const MODAL_TITLE_STYLE = {
   fontSize: 22,
@@ -130,6 +136,7 @@ export default function CollectionScreen() {
 
 function useCollectionScreenView() {
   const router = useRouter();
+  const screenFocused = useIsFocused();
   const accessToken = useSessionStore((state) => state.accessToken);
   const { t } = useTranslation();
   const themeName = useThemeStore((state) => state.themeName);
@@ -153,6 +160,12 @@ function useCollectionScreenView() {
   const [showSortModal, setShowSortModal] = useState(false);
   const [showDustModal, setShowDustModal] = useState(false);
   const [dustSheetIndex, setDustSheetIndex] = useState(0);
+  const [appActive, setAppActive] = useState(
+    AppState.currentState === "active",
+  );
+  const [visibleCardIds, setVisibleCardIds] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
   const [toast, setToast] = useState<{
     message: string;
     type: "success" | "error";
@@ -184,7 +197,45 @@ function useCollectionScreenView() {
     clearCollectionFeedback();
   }, [clearCollectionFeedback, collectionFeedbackMessage]);
 
-  const { data: collectionQueryData, error: collectionQueryError, isError: collectionQueryIsError, isLoading: collectionQueryIsLoading, refetch: collectionQueryRefetch } = useQuery({
+  useEffect(() => {
+    const handleAppStateChange = (nextState: AppStateStatus) => {
+      setAppActive(nextState === "active");
+    };
+    const subscription = AppState.addEventListener(
+      "change",
+      handleAppStateChange,
+    );
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
+  const onViewableItemsChanged = useRef(
+    ({ viewableItems }: { viewableItems: ViewToken<CollectionEntry>[] }) => {
+      const nextVisibleCardIds = new Set(
+        viewableItems.map(({ item }) => item.id),
+      );
+      setVisibleCardIds((currentVisibleCardIds) => {
+        if (
+          currentVisibleCardIds.size === nextVisibleCardIds.size &&
+          [...nextVisibleCardIds].every((id) => currentVisibleCardIds.has(id))
+        ) {
+          return currentVisibleCardIds;
+        }
+
+        return nextVisibleCardIds;
+      });
+    },
+  ).current;
+
+  const {
+    data: collectionQueryData,
+    error: collectionQueryError,
+    isError: collectionQueryIsError,
+    isLoading: collectionQueryIsLoading,
+    refetch: collectionQueryRefetch,
+  } = useQuery({
     queryKey: ["collection"],
     queryFn: () => apiClient.collection(),
   });
@@ -370,6 +421,9 @@ function useCollectionScreenView() {
       <CardTile
         entry={item}
         accessToken={accessToken}
+        animationsEnabled={
+          screenFocused && appActive && visibleCardIds.has(item.id)
+        }
         muted={item.quantity === 0}
         testID={`collection-card-tile-${index}`}
         onPress={() =>
@@ -380,7 +434,7 @@ function useCollectionScreenView() {
         }
       />
     ),
-    [accessToken, router],
+    [accessToken, appActive, router, screenFocused, visibleCardIds],
   );
 
   if (collectionQueryIsLoading) {
@@ -424,9 +478,7 @@ function useCollectionScreenView() {
   const ownedCount = ownedCards.length;
   const notOwnedCount = Math.max(allCards.length - ownedCount, 0);
   const dustSheetScrim =
-    themeName === "nightosphere"
-      ? "rgba(6,1,10,0.84)"
-      : "rgba(74,34,50,0.44)";
+    themeName === "nightosphere" ? "rgba(6,1,10,0.84)" : "rgba(74,34,50,0.44)";
 
   const listHeader = (
     <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 }}>
@@ -757,6 +809,8 @@ function useCollectionScreenView() {
         numColumns={2}
         columnWrapperStyle={{ justifyContent: "space-evenly" }}
         data={filteredCards}
+        onViewableItemsChanged={onViewableItemsChanged}
+        viewabilityConfig={COLLECTION_VIEWABILITY_CONFIG}
         keyExtractor={(entry: CollectionEntry) => entry.id}
         ListHeaderComponent={
           <View style={{ paddingTop: headerHeight }}>{listHeader}</View>
@@ -1468,7 +1522,6 @@ function useCollectionScreenView() {
                   {t("collection.dustModal.openCardHint")}
                 </Text>
               </View>
-
             </ScrollView>
           </View>
         </DustInfoSheet>

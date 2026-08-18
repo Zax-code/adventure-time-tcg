@@ -15,7 +15,7 @@ require Logger
 
 alias AdventureTimeApi.Accounts.User
 alias AdventureTimeApi.Quests
-alias AdventureTimeApi.Quests.{WordleDictionaryWord, WordleEngine}
+alias AdventureTimeApi.Quests.{DailyQuest, PerfectTiming, WordleDictionaryWord, WordleEngine}
 alias AdventureTimeApi.Repo
 
 Logger.configure(level: :warning)
@@ -56,12 +56,68 @@ case Quests.submit_wordle_guess(
   other -> raise "failed to prepare solved Wordle fixture: #{inspect(other)}"
 end
 
+perfect_timing_quest =
+  Repo.get_by!(DailyQuest,
+    user_id: user.id,
+    date: date,
+    quest_type: PerfectTiming.quest_type()
+  )
+
+started_at = DateTime.utc_now()
+
+{:ok, perfect_timing_started} =
+  PerfectTiming.start(
+    user.id,
+    date,
+    timezone,
+    Date.to_iso8601(date),
+    perfect_timing_quest.id,
+    started_at
+  )
+
+stopped_at =
+  DateTime.add(started_at, perfect_timing_started.targetMs, :millisecond)
+
+{:ok, perfect_timing_result} =
+  PerfectTiming.stop(
+    user.id,
+    date,
+    timezone,
+    perfect_timing_started.activeAttempt.id,
+    perfect_timing_started.targetMs,
+    "manual",
+    Date.to_iso8601(date),
+    perfect_timing_quest.id,
+    stopped_at
+  )
+
+{:ok, perfect_timing_final} =
+  PerfectTiming.keep_result(
+    user.id,
+    date,
+    timezone,
+    perfect_timing_result.currentResult.id,
+    Date.to_iso8601(date),
+    perfect_timing_quest.id,
+    stopped_at
+  )
+
+unless perfect_timing_final.finalized do
+  raise "quest fixture did not produce a finalized Perfect Timing result"
+end
+
 {:ok, %{quests: quests}} = Quests.list_quests_for_user(user.id)
 
 unless Enum.any?(quests, fn quest ->
          quest.type == "wordle_daily_en" and quest.completed and not quest.claimed
        end) do
   raise "quest fixture did not produce a claimable English Wordle"
+end
+
+unless Enum.any?(quests, fn quest ->
+         quest.type == PerfectTiming.quest_type() and quest.claimed
+       end) do
+  raise "quest fixture did not produce a shareable Perfect Timing result"
 end
 
 IO.puts("quest fixture ready")

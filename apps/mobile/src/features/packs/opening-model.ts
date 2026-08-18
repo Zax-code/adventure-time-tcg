@@ -22,6 +22,20 @@ import type { ThemeName } from "../../theme/themes";
 export type Pack = PacksResponse["packs"][number];
 export type CardBackVisual = PacksResponse["cardBackVisuals"][number];
 export type OpenedCard = OpenPackResponse["cards"][number];
+
+export function withOccurrenceKeys<T>(
+  items: readonly T[],
+  getBaseKey: (item: T) => string,
+) {
+  const occurrences = new Map<string, number>();
+
+  return items.map((item) => {
+    const baseKey = getBaseKey(item);
+    const occurrence = occurrences.get(baseKey) ?? 0;
+    occurrences.set(baseKey, occurrence + 1);
+    return { item, key: `${baseKey}-${occurrence}` };
+  });
+}
 export type CardTileEntry = CollectionResponse["cards"][number];
 export type RarityName = "Common" | "Uncommon" | "Rare" | "Epic" | "Legendary";
 export type CardBackVisualMap = Map<string, string>;

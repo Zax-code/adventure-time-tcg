@@ -48,6 +48,7 @@ export function useUserTimezoneSync() {
           queryClient.invalidateQueries({ queryKey: ["wordle"] }),
           queryClient.invalidateQueries({ queryKey: ["speed-calculus"] }),
           queryClient.invalidateQueries({ queryKey: ["daily-numbers"] }),
+          queryClient.invalidateQueries({ queryKey: ["perfect-timing"] }),
           queryClient.invalidateQueries({ queryKey: ["health-steps"] }),
           queryClient.invalidateQueries({ queryKey: ["home"] }),
         ]);

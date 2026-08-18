@@ -52,6 +52,13 @@ import {
   getModeLabelKey,
 } from "../../src/features/quests/daily-numbers/shared";
 import { GroupedQuestShareImage } from "../../src/features/quests/grouped-quest-share-image";
+import { PerfectTimingQuestShareCard } from "../../src/features/quests/perfect-timing/quest-share-card";
+import type { PerfectTimingQuestShareCardStrings } from "../../src/features/quests/perfect-timing/quest-share-card";
+import { formatPerfectTimingMilliseconds } from "../../src/features/quests/perfect-timing/model";
+import {
+  buildPerfectTimingShareResult,
+  type PerfectTimingShareResult,
+} from "../../src/features/quests/perfect-timing/share-result";
 import {
   QuestHubCard,
   QuestHubSummary,
@@ -79,6 +86,7 @@ import {
   isDailyLoginQuest,
   isDailyNumbersQuest,
   isQuestShareable,
+  isPerfectTimingQuest,
   isSpeedCalculusQuest,
   isStepQuest,
   isWordleQuest,
@@ -94,6 +102,10 @@ import {
   DEFAULT_QUEST_TIME_ZONE,
   isCurrentQuestDay,
 } from "../../src/features/quests/quest-day-cutoff";
+import {
+  formatQuestShareDate,
+  resolveQuestShareDateKey,
+} from "../../src/features/quests/quest-share-date";
 import { WordleQuestShareCard } from "../../src/features/quests/wordle/quest-share-card";
 import type { WordleQuestShareCardStrings } from "../../src/features/quests/wordle/quest-share-card";
 import {
@@ -121,7 +133,7 @@ import {
 import { THEME_COLORS } from "../../src/theme/themes";
 
 type ThemeColors = (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
-type SharingGroup = "wordle" | "dailyNumbers";
+type SharingGroup = "wordle" | "dailyNumbers" | "perfectTiming";
 type LauncherKind = "wordle" | "dailyNumbers";
 type QuestIcon = ComponentType<{ size?: number; color?: string }>;
 type Translate = (
@@ -138,19 +150,13 @@ type DailyNumbersGroupShareItem = {
   result: DailyNumbersShareResult;
   strings: DailyNumbersQuestShareCardStrings;
 };
+type PerfectTimingGroupShareItem = {
+  result: PerfectTimingShareResult;
+  strings: PerfectTimingQuestShareCardStrings;
+};
 
 const WORDLE_MAX_ATTEMPTS = 6;
 const WORDLE_WORD_LENGTH = 5;
-const QUEST_SHARE_DATE_FORMAT_OPTIONS = {
-  month: "short",
-  day: "numeric",
-  year: "numeric",
-} as const;
-const QUEST_SHARE_DATE_FORMATTERS = {
-  en: new Intl.DateTimeFormat("en", QUEST_SHARE_DATE_FORMAT_OPTIONS),
-  fr: new Intl.DateTimeFormat("fr", QUEST_SHARE_DATE_FORMAT_OPTIONS),
-} as const;
-
 let lastShownQuestResetToastAt = 0;
 
 function getQuestTitle(titleKey: string, t: Translate) {
@@ -305,6 +311,12 @@ function getVariantStatusLabel(quest: Quest, t: Translate) {
     });
   }
 
+  if (lifecycle === "in_progress" && isPerfectTimingQuest(quest.type)) {
+    return t("quests.perfectTiming.attempt", {
+      number: quest.attemptsUsed ?? quest.progress,
+    });
+  }
+
   return getLifecycleLabel(lifecycle, t);
 }
 
@@ -328,6 +340,10 @@ function getItemDescription(item: QuestHubItem, t: Translate) {
       used: quest.runsUsed ?? quest.progress,
       total: quest.maxRuns ?? quest.target,
     });
+  }
+
+  if (isPerfectTimingQuest(quest.type)) {
+    return t("quests.hub.perfectTimingCardDescription");
   }
 
   return getQuestDescription(quest.description, t);
@@ -378,33 +394,16 @@ function getItemAccessibilitySummary(item: QuestHubItem, t: Translate) {
   return `${t("quests.progress")}: ${getItemProgress(item).label}`;
 }
 
-function formatQuestShareDate(
-  dateKey: string | null | undefined,
-  locale: string,
-) {
-  if (!dateKey) return undefined;
-
-  const parts = dateKey.split("-").map((part) => Number(part));
-  const year = parts[0];
-  const month = parts[1];
-  const day = parts[2];
-  if (!year || !month || !day) return dateKey;
-
-  const formatter = locale.startsWith("fr")
-    ? QUEST_SHARE_DATE_FORMATTERS.fr
-    : QUEST_SHARE_DATE_FORMATTERS.en;
-
-  return formatter.format(new Date(Date.UTC(year, month - 1, day)));
-}
-
 function buildGroupedQuestShareFileName(
   group: SharingGroup,
   dateKey: string | undefined,
 ) {
   const parts = [
-    group === "wordle"
-      ? "adventure-time-wordle-recap"
-      : "adventure-time-numbers-recap",
+    {
+      wordle: "adventure-time-wordle-recap",
+      dailyNumbers: "adventure-time-numbers-recap",
+      perfectTiming: "adventure-time-perfect-timing",
+    }[group],
   ];
 
   if (dateKey) parts.push(dateKey);
@@ -503,8 +502,11 @@ function useQuestsScreenView() {
   >(null);
   const [dailyNumbersGroupShareItems, setDailyNumbersGroupShareItems] =
     useState<DailyNumbersGroupShareItem[] | null>(null);
+  const [perfectTimingGroupShareItem, setPerfectTimingGroupShareItem] =
+    useState<PerfectTimingGroupShareItem | null>(null);
   const wordleGroupShareRef = useRef<View>(null);
   const dailyNumbersGroupShareRef = useRef<View>(null);
+  const perfectTimingGroupShareRef = useRef<View>(null);
   const toastAnim = useSharedValue(-60);
 
   useEffect(() => {
@@ -537,6 +539,7 @@ function useQuestsScreenView() {
       setSharingGroup(null);
       setWordleGroupShareItems(null);
       setDailyNumbersGroupShareItems(null);
+      setPerfectTimingGroupShareItem(null);
     });
   }, []);
 
@@ -586,13 +589,13 @@ function useQuestsScreenView() {
   const {
     data: questsQueryData,
     error: questsQueryError,
-    isError: questsQueryIsError,
     isLoading: questsQueryIsLoading,
     refetch: questsQueryRefetch,
   } = useQuery({
     queryKey: ["quests"],
     queryFn: () => apiClient.quests(),
     refetchInterval: 30_000,
+    retry: false,
   });
 
   const shareableQuestSignature =
@@ -613,8 +616,26 @@ function useQuestsScreenView() {
 
   useFocusEffect(
     useCallback(() => {
-      void questsQueryRefetch();
-    }, [questsQueryRefetch]),
+      const refreshQuestsAndFitbit = async () => {
+        const result = await questsQueryRefetch();
+
+        if (
+          user?.preferredStepSource !== "fitbit" ||
+          !result.data?.fitbitConnected
+        ) {
+          return;
+        }
+
+        try {
+          await apiClient.getHealthSteps();
+          await questsQueryRefetch();
+        } catch {
+          // The cached Fitbit snapshot keeps the quest list usable while offline.
+        }
+      };
+
+      void refreshQuestsAndFitbit();
+    }, [questsQueryRefetch, user?.preferredStepSource]),
   );
 
   useEffect(() => {
@@ -689,10 +710,14 @@ function useQuestsScreenView() {
     }));
 
     try {
-      await syncDeviceStepsNow({
-        interactive: false,
-        source: "manual",
-      });
+      if (user?.preferredStepSource === "fitbit") {
+        await apiClient.getHealthSteps();
+      } else {
+        await syncDeviceStepsNow({
+          interactive: false,
+          source: "manual",
+        });
+      }
       await questsQueryRefetch();
     } finally {
       setStepQuestUiState((state) => ({
@@ -700,7 +725,7 @@ function useQuestsScreenView() {
         isForceRefreshing: false,
       }));
     }
-  }, [questsQueryRefetch]);
+  }, [questsQueryRefetch, user?.preferredStepSource]);
 
   const handleConnectFitbit = useCallback(async () => {
     setIsConnectingFitbit(true);
@@ -975,7 +1000,9 @@ function useQuestsScreenView() {
           return;
         }
 
-        let dateKey: string | undefined;
+        const dateKey = resolveQuestShareDateKey({
+          questDateKey: states[0]?.date,
+        });
         const items = states.map((state: WordleStateResponse, index) => {
           const language = availableLanguages[index];
           if (!state.solved && state.guesses.length < WORDLE_MAX_ATTEMPTS) {
@@ -983,13 +1010,11 @@ function useQuestsScreenView() {
           }
 
           const solved = state.solved;
-          dateKey = dateKey ?? state.date;
-
           return {
             language,
             result: buildWordleShareResult({
               questTitle: t("quests.wordle.title"),
-              date: state.date,
+              date: dateKey,
               wordLocale: language,
               solved,
               maxAttempts: WORDLE_MAX_ATTEMPTS,
@@ -999,7 +1024,7 @@ function useQuestsScreenView() {
             strings: {
               brand: t("quests.wordle.shareBrand"),
               footer: t("quests.wordle.shareFooter"),
-              date: formatQuestShareDate(state.date, locale),
+              date: formatQuestShareDate(dateKey, locale),
               wordLanguage: t(getWordleShareLanguageLabelKey(language)),
               resultLine: solved
                 ? t("quests.wordle.shareSolved", {
@@ -1087,7 +1112,9 @@ function useQuestsScreenView() {
           return;
         }
 
-        let dateKey: string | undefined;
+        const dateKey = resolveQuestShareDateKey({
+          questDateKey: states[0]?.date,
+        });
         const items = states.map((state: DailyNumbersStateResponse, index) => {
           const mode = availableModes[index];
           const quest = quests[mode];
@@ -1104,8 +1131,6 @@ function useQuestsScreenView() {
             quest?.completed ||
             quest?.claimed,
           );
-          dateKey = dateKey ?? state.date;
-
           const resultLine = exact
             ? t("quests.dailyNumbers.shareExact", {
                 score: score ?? 100,
@@ -1125,7 +1150,7 @@ function useQuestsScreenView() {
               questTitle: t("quests.dailyNumbers.title"),
               modeLabel: t(getModeLabelKey(mode)),
               mode,
-              date: state.date,
+              date: dateKey,
               target: state.target,
               finalValue,
               distance,
@@ -1143,7 +1168,7 @@ function useQuestsScreenView() {
               timeLabel: t("quests.dailyNumbers.solveTime"),
               archiveLabel: t("quests.dailyNumbers.archiveResultLabel"),
               footer: t("quests.dailyNumbers.shareFooter"),
-              date: formatQuestShareDate(state.date, locale),
+              date: formatQuestShareDate(dateKey, locale),
             },
           };
         });
@@ -1173,6 +1198,99 @@ function useQuestsScreenView() {
     ],
   );
 
+  const handleSharePerfectTiming = useCallback(async () => {
+    if (shareLockRef.current || sharingGroup) return;
+    shareLockRef.current = true;
+    const cutoffVersionAtStart =
+      useQuestDayCutoffStore.getState().cutoffVersion;
+
+    setSharingGroup("perfectTiming");
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    try {
+      const [canShare, state] = await Promise.all([
+        Sharing.isAvailableAsync(),
+        apiClient.perfectTimingState(),
+      ]);
+
+      if (
+        useQuestDayCutoffStore.getState().cutoffVersion !==
+          cutoffVersionAtStart ||
+        !isCurrentQuestDay(state.date, questTimeZone)
+      ) {
+        return;
+      }
+
+      if (!canShare) {
+        Alert.alert(t("quests.shareAllUnavailable"));
+        return;
+      }
+
+      if (
+        !state.finalized ||
+        !state.finalTier ||
+        !state.finalizedAttemptNumber
+      ) {
+        throw new Error("Perfect Timing share state is not finalized");
+      }
+
+      const result = buildPerfectTimingShareResult({
+        questTitle: t("quests.perfectTiming.title"),
+        date: state.date,
+        targetMs: state.targetMs,
+        finalTier: state.finalTier,
+        finalizedAttemptNumber: state.finalizedAttemptNumber,
+        attempts: state.attempts.map((attempt) => ({
+          attemptNumber: attempt.attemptNumber,
+          elapsedMs: attempt.elapsedMs,
+          tier: attempt.tier,
+        })),
+      });
+      const attemptLabels = result.attempts.map((attempt) =>
+        t("quests.perfectTiming.attempt", {
+          number: attempt.attemptNumber,
+        }),
+      ) as [string, string, string];
+      const attemptValues = result.attempts.map((attempt) =>
+        attempt.elapsedMs == null
+          ? t("quests.perfectTiming.unused")
+          : formatPerfectTimingMilliseconds(attempt.elapsedMs, locale),
+      ) as [string, string, string];
+
+      setPerfectTimingGroupShareItem({
+        result,
+        strings: {
+          brand: t("quests.perfectTiming.shareBrand"),
+          date: formatQuestShareDate(state.date, locale),
+          targetLabel: t("quests.perfectTiming.todaysTarget"),
+          targetValue: formatPerfectTimingMilliseconds(
+            state.targetMs,
+            locale,
+          ),
+          attemptLabels,
+          attemptValues,
+          finalTierLabel: t("quests.perfectTiming.shareFinalTier"),
+          finalTier: t(`quests.perfectTiming.tiers.${state.finalTier}`),
+          finalized: t("quests.perfectTiming.finalized"),
+          unused: t("quests.perfectTiming.unused"),
+          footer: t("quests.perfectTiming.shareFooter"),
+        },
+      });
+      await shareCapturedGroupImage({
+        dateKey: state.date,
+        group: "perfectTiming",
+        ref: perfectTimingGroupShareRef,
+      });
+    } catch (error) {
+      console.warn("Failed to share Perfect Timing recap", error);
+      Alert.alert(t("quests.shareAllError"));
+    } finally {
+      shareLockRef.current = false;
+      setPerfectTimingGroupShareItem(null);
+      setSharingGroup(null);
+    }
+  }, [locale, questTimeZone, shareCapturedGroupImage, sharingGroup, t]);
+
   useEffect(() => {
     if (!lastQuestResetAt || !lastQuestResetPayload) return;
     if (lastShownQuestResetToastAt === lastQuestResetAt) return;
@@ -1198,7 +1316,7 @@ function useQuestsScreenView() {
     );
   }
 
-  if (questsQueryIsError || !questsQueryData) {
+  if (!questsQueryData) {
     return (
       <PageErrorState
         error={questsQueryError}
@@ -1232,6 +1350,10 @@ function useQuestsScreenView() {
   const wordleItem = hubItems.find((item) => item.kind === "wordle");
   const dailyNumbersItem = hubItems.find(
     (item) => item.kind === "dailyNumbers",
+  );
+  const perfectTimingItem = hubItems.find(
+    (item) =>
+      item.kind === "single" && isPerfectTimingQuest(item.quest.type),
   );
   const claimInFlight =
     claimQuestMutation.isPending || claimAllMutation.isPending;
@@ -1362,6 +1484,10 @@ function useQuestsScreenView() {
       dailyNumbers: {
         icon: DailyNumbersQuestIcon,
         title: t("quests.dailyNumbers.title"),
+      },
+      perfectTiming: {
+        icon: SparklesIcon,
+        title: t("quests.perfectTiming.title"),
       },
       speedCalculus: {
         icon: SpeedCalculusQuestIcon,
@@ -1499,6 +1625,23 @@ function useQuestsScreenView() {
         void handleShareDailyNumbersGroup(dailyNumbersItem.questsByMode);
       },
       testID: "quests-share-daily-numbers",
+    });
+  }
+  if (
+    perfectTimingItem?.kind === "single" &&
+    isQuestShareable(perfectTimingItem.quest)
+  ) {
+    recapActions.push({
+      id: "perfectTiming",
+      title: t("quests.perfectTiming.title"),
+      detail: t("quests.hub.resultsReady", { count: 1 }),
+      buttonLabel: t("quests.hub.sharePerfectTiming"),
+      icon: SparklesIcon,
+      isLoading: sharingGroup === "perfectTiming",
+      onPress: () => {
+        void handleSharePerfectTiming();
+      },
+      testID: "quests-share-perfect-timing",
     });
   }
 
@@ -1973,6 +2116,26 @@ function useQuestsScreenView() {
                   strings={item.strings}
                 />
               ))}
+            </GroupedQuestShareImage>
+          </View>
+        </View>
+      ) : null}
+
+      {perfectTimingGroupShareItem ? (
+        <View
+          accessibilityElementsHidden
+          pointerEvents="none"
+          collapsable={false}
+          importantForAccessibility="no-hide-descendants"
+          style={{ position: "absolute", left: -9999, top: 0 }}
+        >
+          <View ref={perfectTimingGroupShareRef} collapsable={false}>
+            <GroupedQuestShareImage colors={tc}>
+              <PerfectTimingQuestShareCard
+                colors={tc}
+                result={perfectTimingGroupShareItem.result}
+                strings={perfectTimingGroupShareItem.strings}
+              />
             </GroupedQuestShareImage>
           </View>
         </View>

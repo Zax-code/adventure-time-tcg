@@ -165,10 +165,12 @@ jobs:
           echo "Unable to fetch the SSH host key from $PRODUCTION_HOST:$PRODUCTION_SSH_PORT." >&2
           exit 1
 
-      - name: Upload deploy script
+      - name: Upload deploy scripts
         run: |
-          scp -P "$PRODUCTION_SSH_PORT" infra/scripts/deploy-phoenix.sh \
-            "$PRODUCTION_SSH_USER@$PRODUCTION_HOST:/tmp/deploy-phoenix.sh"
+          scp -P "$PRODUCTION_SSH_PORT" \
+            infra/scripts/deploy-phoenix.sh \
+            infra/scripts/render-container-envs.sh \
+            "$PRODUCTION_SSH_USER@$PRODUCTION_HOST:/tmp/"
 
       - name: Run production deploy
         env:
@@ -201,7 +203,7 @@ jobs:
             remote_args+=(--skip-migrate)
           fi
 
-          remote_command="chmod +x /tmp/deploy-phoenix.sh && $(printf '%q ' "${remote_args[@]}")"
+          remote_command="chmod +x /tmp/deploy-phoenix.sh /tmp/render-container-envs.sh && $(printf '%q ' "${remote_args[@]}")"
 
           ssh -p "$PRODUCTION_SSH_PORT" "$PRODUCTION_SSH_USER@$PRODUCTION_HOST" \
             "export REGISTRY_PASSWORD=$(printf '%q' "$REGISTRY_PASSWORD"); $remote_command"

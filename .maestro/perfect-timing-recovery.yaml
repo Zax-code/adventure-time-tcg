@@ -1,0 +1,46 @@
+appId: love.leaetzak.adventuretime
+name: Perfect Timing abrupt recovery
+tags:
+  - quests
+  - perfect-timing
+  - recovery
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- openLink:
+    link: adventure-time:///e2e-auth?redirect=%2Fquests%2Fperfect-timing&email=${TEST_EMAIL_URI}&password=${TEST_PASSWORD_URI}
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- extendedWaitUntil:
+    visible:
+      id: perfect-timing-target
+    timeout: 15000
+- waitForAnimationToEnd
+- openLink:
+    link: adventure-time:///quests/perfect-timing
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- extendedWaitUntil:
+    visible:
+      id: perfect-timing-start
+    timeout: 15000
+- tapOn:
+    id: perfect-timing-start
+- waitForAnimationToEnd
+- runFlow:
+    when:
+      visible: "Could not start this attempt."
+    commands:
+      - tapOn:
+          id: perfect-timing-start
+      - waitForAnimationToEnd
+- assertVisible:
+    id: perfect-timing-stop
+- stopApp
+- launchApp
+- openLink:
+    link: adventure-time:///quests/perfect-timing
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- extendedWaitUntil:
+    visible:
+      id: perfect-timing-result
+    timeout: 15000
