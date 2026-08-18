@@ -1,9 +1,9 @@
 # Adventure Time TCG — Project State
 
-Last verified: 2026-08-17
+Last verified: 2026-08-18
 Repository: `Zax-code/adventure-time-tcg`
-Branch: `codex/fix-leaderboard-profile-compat`
-Commit: based on `bbe1481d78e6de5f58288967cf0f41195d4e61d7`
+Branch: `main` via pull request #285
+Feature commits: `44203c82`, `2a9418c4`, `91e34c3a`, and `026389f5`
 
 ## Purpose and authority
 
@@ -32,10 +32,10 @@ Phoenix, PostgreSQL, and MinIO are the production backend. The Fastify app in `a
 
 ### Verified release boundary
 
-- **Production backend and website:** the `Deploy Phoenix` workflow completed successfully for `a49bcf0d2effa258bacdc1b99146732a10dd9550` on 2026-08-17 (GitHub Actions run `32040865305`). That revision contains the live daily/weekly leaderboard work, the overall leaderboard, and the Daily Numbers timing correction. The commits after it through current HEAD are the 1.0.28 mobile release merge and do not add a newer Phoenix implementation.
+- **Production backend and website:** the `Deploy Phoenix` workflow completed successfully for `a49bcf0d2effa258bacdc1b99146732a10dd9550` on 2026-08-17 (GitHub Actions run `32040865305`). That revision contains the live daily/weekly leaderboard work, the overall leaderboard, and the Daily Numbers timing correction. It remains the deployed Phoenix boundary: later released/tagged mainline commits through the 1.0.28 mobile release do not add a newer deployed Phoenix version, while PR #285 contains the unreleased Solution Hunt changes described below.
 - **Mobile:** annotated tags `mobile/android/1.0.28` and `mobile/ios/1.0.28` both resolve to `f7bd214d34aaeb8a073812d0061355d5e79bccd5`, with release timestamps on 2026-08-17. The release note identifies the Daily Numbers leaderboard timing and formatting fix.
 - **Not released:** open pull request #244, “Redesign the Daily Numbers in-game UI,” is not on `main`. The tracked native redesign workspace under `docs/design` is a design specification, not evidence of implemented or released application changes.
-- **Not released:** the working branch `codex/fix-leaderboard-profile-compat` keeps aggregate-overall rows out of the public-profile summary for compatibility with installed clients and treats closed result windows as expected leaderboard reconciliation skips instead of warning on every scheduled pass.
+- **Not released:** pull request #285 adds a post-completion Daily Numbers mode for discovering canonical distinct solutions without changing the ranked attempt, reward, or leaderboard result. A source merge is not evidence of a production or store release.
 - **Local data:** local Docker database observations in this document are explicitly labeled. They are not evidence of production catalog contents.
 
 ## Current architecture
@@ -43,7 +43,7 @@ Phoenix, PostgreSQL, and MinIO are the production backend. The Fastify app in `a
 - **Mobile application:** Expo Router routes in `apps/mobile/app`, product code in `apps/mobile/src`, checked-in native projects in `apps/mobile/ios` and `apps/mobile/android`, and bundled art in `apps/mobile/assets`. It calls Phoenix through `@adventure-time/api-client`, receives quest changes through a Phoenix channel, polls REST endpoints for current PvP state, and stores session state securely on-device.
 - **Web application:** React routes in `apps/web/src/app.tsx` and `apps/web/src/route-manifest.ts`. The production build is copied into Phoenix static assets by `apps/phoenix/Dockerfile`; browser authentication uses secure Phoenix session endpoints.
 - **Backend/API:** Phoenix contexts under `apps/phoenix/lib/adventure_time_api`, controllers/channels under `apps/phoenix/lib/adventure_time_api_web`, and the canonical route map at `apps/phoenix/lib/adventure_time_api_web/router.ex`. Phoenix owns authentication, persistence, uploads, jobs, quests, leaderboards, and PvP validation.
-- **Database:** PostgreSQL 16 with Ecto schemas in `apps/phoenix/lib/adventure_time_api` and 45 canonical migrations in `apps/phoenix/priv/repo/migrations`. `packages/db` is legacy Drizzle reference material.
+- **Database:** PostgreSQL 16 with Ecto schemas in `apps/phoenix/lib/adventure_time_api` and 46 canonical migrations in `apps/phoenix/priv/repo/migrations`. `packages/db` is legacy Drizzle reference material.
 - **Authentication:** email/password with verification and password reset, Google and Apple provider identities, signed access/refresh tokens for native clients, refresh-token sessions, secure browser cookies, role/access approval, and rate limits. Primary code is `apps/phoenix/lib/adventure_time_api/accounts.ex`, `apps/phoenix/lib/adventure_time_api/auth.ex`, and the auth controllers/plugs.
 - **Object storage and image delivery:** a private MinIO bucket accessed through `apps/phoenix/lib/adventure_time_api/media.ex`. Phoenix signs S3-compatible requests and proxies image bytes through `/media/*` routes.
 - **Admin tooling:** role-guarded Phoenix endpoints plus mobile and web admin interfaces for users/access requests, cards, abilities, packs, card backs, featured cards, image assets, quest reset, and leaderboard corrections.
@@ -57,7 +57,7 @@ Versions below come from current manifests, lockfiles, native configuration, and
 
 | Layer | Verified technology |
 |---|---|
-| Mobile | Expo `57.0.13`, Expo Router `57.0.13`, React Native `0.86.2`, React `19.2.3`, Reanimated `4.5.1`, NativeWind `4.2.3`, Software Mansion Bottom Sheet `0.12.0`, Expo Image, TanStack Query `5.101.4`, Zustand `5.0.15` |
+| Mobile | Expo `57.0.14`, Expo Router `57.0.14`, React Native `0.86.2`, React `19.2.3`, Reanimated `4.5.1`, NativeWind `4.2.3`, Software Mansion Bottom Sheet `0.12.0`, Expo Image, TanStack Query `5.101.4`, Zustand `5.0.15` |
 | Web | React `19.2.3`, React Router `7.18.x`, Vite `8.2.1`, TanStack Query `5.101.4`, Vitest `4.1.10` |
 | Shared TypeScript | Zod `3.25.76`; TypeScript `6.0.3` for mobile/web and `5.9.3` for shared packages in the installed tree |
 | Backend | Elixir `1.19.5` and OTP `28` in CI/release images; Phoenix `1.8.5`, Ecto SQL `3.13.5`, Postgrex `0.22.0`, Bandit `1.10.3`, Oban `2.21.1`, Req `0.5.17`, JOSE `1.11.12`, bcrypt_elixir `3.3.2`, tzdata `1.1.3` |
@@ -65,7 +65,7 @@ Versions below come from current manifests, lockfiles, native configuration, and
 | Build/release | npm workspaces, EAS local builds, native Xcode/Gradle projects, Maestro, Docker Buildx, GHCR, Phoenix releases |
 | Production infrastructure | Podman Quadlet, systemd, Caddy, GitHub Actions, persistent data under `/srv/adventure-time-tcg` |
 
-The Expo 57 migration itself is merged, but the current Expo Doctor result is not clean; see Known issues and technical debt.
+The Expo 57 migration and subsequent patch alignment are complete; Expo Doctor passes all 20 checks.
 
 ## Applications and services
 
@@ -100,7 +100,7 @@ The Expo 57 migration itself is merged, but the current Expo Doctor result is no
 | Rewards | Daily login reward | COMPLETE | One 50-coin claim per reset day, separate from daily quests | `apps/phoenix/lib/adventure_time_api/quests.ex`; mobile/web home screens |
 | Quests | Steps quest | COMPLETE | 10,000-step target, 75 coins, device-health or Fitbit snapshots, mobile sync/background/widget support, and leaderboard result recording | `apps/phoenix/lib/adventure_time_api/quests.ex`; `apps/phoenix/lib/adventure_time_api/health.ex`; `apps/phoenix/lib/adventure_time_api/fitbit.ex` |
 | Quests | Wordle | COMPLETE | Separate English/French deterministic daily words, dictionary validation, six attempts, definitions, 35-coin rewards, sharing, and leaderboards | `apps/phoenix/lib/adventure_time_api/quests.ex`; `apps/phoenix/lib/adventure_time_api/quests/wordle_engine.ex`; Wordle routes/screens/tests |
-| Quests | Daily Numbers | COMPLETE | Deterministic 1-5, 2-4, and 3-3 modes; server-validated arithmetic; score-scaled rewards; one daily result/mode; 30-day archive; mobile/web UI; per-mode and family boards | `apps/phoenix/lib/adventure_time_api/quests/daily_numbers_engine.ex`; `apps/phoenix/lib/adventure_time_api/quests.ex`; Daily Numbers routes/tests |
+| Quests | Daily Numbers | COMPLETE | Deterministic 1-5, 2-4, and 3-3 modes; server-validated arithmetic; score-scaled rewards; one daily result/mode; 30-day archive; mobile/web UI; per-mode and family boards; post-completion Solution Hunt with canonical solution enumeration and per-user progress | `apps/phoenix/lib/adventure_time_api/quests/daily_numbers_engine.ex`; `apps/phoenix/lib/adventure_time_api/quests/daily_numbers_solver.ex`; `apps/phoenix/lib/adventure_time_api/quests/daily_numbers_solution_hunt.ex`; Daily Numbers routes/tests |
 | Quests | Speed Calculus | COMPLETE | Three 30-second scored runs, deterministic server questions, pause/resume, server answer scoring, training, cash-out, reward up to 80 coins, and latest-run leaderboard reconciliation | `apps/phoenix/lib/adventure_time_api/quests/speed_calculus_engine.ex`; `apps/phoenix/lib/adventure_time_api/quests.ex`; commit `5f8b08b7` |
 | Quests | Perfect Timing | COMPLETE | Deterministic 3–10 second target, three-attempt state machine, monotonic client measurement with server plausibility checks/recovery, tiered rewards, training/sharing, and leaderboard | `apps/phoenix/lib/adventure_time_api/quests/perfect_timing.ex`; `apps/phoenix/lib/adventure_time_api/quests/perfect_timing_engine.ex`; commit `b40970d` |
 | Rankings | Per-quest leaderboards | COMPLETE | Steps, three Daily Numbers modes, English/French Wordle, Speed Calculus, and Perfect Timing source boards are implemented and deployed | `apps/phoenix/lib/adventure_time_api/leaderboards/boards.ex`; `apps/phoenix/lib/adventure_time_api_web/controllers/leaderboards_controller.ex`; `apps/phoenix/priv/repo/migrations/20260815160000_create_leaderboard_foundation.exs`; deploy `a49bcf0` |
@@ -188,13 +188,13 @@ Ecto migrations are the schema source of truth. Important conceptual groups are:
 - **Identity/auth:** `users`, `email_auth_credentials`, `auth_sessions`, `auth_provider_identities`, access requests, verification codes, auth attempts, integrity challenges, advisory access assessments/snapshots, and audited IP reveals.
 - **Catalog/inventory/media:** `rarities`, `cards`, `packs`, `image_assets`, `card_back_visuals`, `owned_cards`, `pack_openings`, `ability_defs`, and `card_abilities`.
 - **Social/PvP:** `card_gifts`, `pvp_loadouts`, `pvp_matches`, compact `pvp_match_events`, and reconstructed-state `pvp_match_snapshots`.
-- **Quests/health:** `daily_quests`, step snapshots, Fitbit accounts, Wordle dictionary/definitions/attempts, Speed Calculus runs, Daily Numbers daily/archive attempts, and Perfect Timing attempts.
+- **Quests/health:** `daily_quests`, step snapshots, Fitbit accounts, Wordle dictionary/definitions/attempts, Speed Calculus runs, Daily Numbers daily/archive attempts, shared Daily Numbers solution sets and canonical expressions, per-user Solution Hunt discoveries, and Perfect Timing attempts.
 - **Leaderboards:** boards, immutable scoring versions, user competition slots, ranked sessions, daily results, periods, snapshots/rows/corrections, telemetry, achievements, reward wallets, and idempotent grants.
 - **Operations:** notification devices and Oban job tables.
 
 The foundation begins at `apps/phoenix/priv/repo/migrations/20260324130500_create_foundation_tables.exs`; leaderboard state is introduced by `apps/phoenix/priv/repo/migrations/20260815160000_create_leaderboard_foundation.exs` and extended by `apps/phoenix/priv/repo/migrations/20260817150000_enable_sum_all_weekly_scoring.exs` and `apps/phoenix/priv/repo/migrations/20260817160000_add_overall_quests_leaderboard.exs`. Do not infer current schema from `packages/db`.
 
-At verification time the local Docker development database had the latest two leaderboard migrations pending, so its Phoenix `/health` and `/ready` endpoints returned `Phoenix.Ecto.PendingMigrationError`. This does not apply to the production deploy, whose workflow ran release migrations successfully.
+At verification time the local development database was migrated through the Solution Hunt migration and Phoenix `/ready` returned successfully. Production remains on the release boundary above until the PR #285 result is deployed and its migration runs.
 
 ## Deployment and releases
 
@@ -202,15 +202,18 @@ At verification time the local Docker development database had the latest two le
 - **Production services:** `adventure-time-tcg-api`, PostgreSQL 16, and MinIO run as the `adventure-time-tcg` Podman pod through Quadlet/systemd. Host-only ports are 4200 for Phoenix, 5434 for PostgreSQL, and 9100/9101 for MinIO API/console.
 - **Persistence:** production PostgreSQL and MinIO data live under `/srv/adventure-time-tcg`. Runtime environment files and signing credentials live outside source control.
 - **Backend/web delivery:** `.github/workflows/deploy-phoenix.yml` builds an immutable GHCR image containing the Vite bundle and Phoenix release, deploys the selected SHA over SSH, renders container env files, runs `AdventureTimeApi.Release.migrate`, installs/restarts Quadlets, then checks API and media readiness.
-- **CI:** `.github/workflows/ci.yml` conditionally runs infrastructure tests, workspace typechecks/builds/web tests, Phoenix tests, and container validation. CI passed at current HEAD in run `32044367068`.
+- **CI:** `.github/workflows/ci.yml` conditionally runs infrastructure tests, workspace typechecks/builds/web tests, Phoenix tests, and container validation. Run `32044367068` passed for the pre-Solution-Hunt mainline; PR #285 carries the Solution Hunt CI validation.
 - **Mobile version:** `apps/mobile/package.json`, `apps/mobile/app.json`, Android `versionName`, and iOS `CFBundleShortVersionString` are 1.0.28. iOS `CFBundleVersion` is 63. EAS uses remote app-version state and production auto-increment; Android's checked-in `versionCode 1` is therefore not the released build number.
 - **Mobile release:** `scripts/release-mobile.mjs` orchestrates one or both platforms. Android builds a local AAB, submits through EAS/Google Play, requires a release note, and updates Play release notes. iOS builds a local IPA and uploads directly with Apple's `xcrun altool` and App Store Connect API credentials. Successful releases create annotated per-platform Git tags.
 - **Environment convention:** Phoenix uses `apps/phoenix/.env`, mobile uses `apps/mobile/.env`, and production secrets are supplied through external runtime env files. No secret value belongs in this document.
-- **Current blockers:** release 1.0.28 is already tagged on both platforms. For the next mobile change, Expo Doctor is currently BLOCKED by 11 Expo 57 patch mismatches. Availability of future signing/service-account material was deliberately not exposed or revalidated and is UNKNOWN. The local Compose API is BLOCKED by pending migrations until its development database is migrated.
+- **Current blockers:** release 1.0.28 is already tagged on both platforms. Availability of future signing/service-account material was deliberately not exposed or revalidated and is UNKNOWN. The local development database is current through the Solution Hunt migration.
 
 ## Completed recently
 
-- **2026-08-17 — leaderboard profile compatibility and log hygiene (working branch):** public-profile summaries omit derived-overall rows so installed clients whose board enum predates `overall/all-quests` can still render profiles; scheduled reconciliation no longer warns for the expected `result_window_closed` outcome. Focused Phoenix regression tests cover both behaviors.
+- **2026-08-18 — deterministic leaderboard reconciliation time (PR #285):** historical or explicitly timed reconciliation now propagates its supplied `now` value through result synchronization instead of consulting the wall clock again. Date-sensitive leaderboard tests pin source timestamps and derive controller snapshot dates from the current day, so cutoff scenarios no longer expire as the calendar advances.
+- **2026-08-18 — Expo 57 patch alignment (PR #285):** Expo, Expo Router, and nine related native modules were aligned with the current SDK 57 compatibility matrix; root workspace overrides, npm resolution, and the iOS Pod lock were refreshed. Expo Doctor passes 20/20 checks, the dependency tree is deduplicated, and the lockfile mobile workspace version now matches 1.0.28.
+- **2026-08-18 — Daily Numbers Solution Hunt (PR #285):** completed ranked puzzles expose an optional no-reward/no-leaderboard replay mode. Phoenix canonicalizes associative/commutative addition and multiplication, enumerates and persists the complete solution set once on the challenge's first state load, records the accepted deterministic generation attempt for cheap reconstruction, tracks idempotent per-user discoveries, safely covers a challenge generated before deployment, and bounds future puzzle generation by a configurable solution-count range. The authoritative response numbers player solutions by discovery order and remaining solutions by stable canonical order; mobile and web show each route in a collapsed entry, hide the remaining set behind a reveal, and keep submissions on a separate endpoint. Hunt play replaces the ranked timer display with “Solution found” once a discovery exists.
+- **2026-08-17 — leaderboard profile compatibility and log hygiene (mainline):** public-profile summaries omit derived-overall rows so installed clients whose board enum predates `overall/all-quests` can still render profiles; scheduled reconciliation no longer warns for the expected `result_window_closed` outcome. Focused Phoenix regression tests cover both behaviors.
 - **2026-08-17 — mobile 1.0.28:** version bump, Expo 57 Hermes lock refresh, Android release build metaspace adjustment, and iOS/Android store release tags (`553e6cf1`, `cb52ae17`, `f7bd214d`, merge PR #283 at `580c832e`).
 - **2026-08-17 — Daily Numbers ranking time:** rankings now use the saved quest's client chronometer instead of the server interval accidentally created by opening the screen; zero-minute formatting was improved (`ef44b0ef`, `4f084c98`, PR #282). Production Phoenix deploy `a49bcf0…` includes this work.
 - **2026-08-17 — live and overall leaderboards:** live Daily/Weekly periods, all-eligible weekly sums, history cutoff behavior, latest Speed Calculus reconciliation, all-quests aggregate, explanations, and focused tests/flows (`6f81d791`, `5f8b08b7`, `dc63807a`, PRs #277/#278/#280).
@@ -229,9 +232,6 @@ At verification time the local Docker development database had the latest two le
 
 ### Confirmed
 
-- **BLOCKED — Expo Doctor:** 19/20 checks pass, but the SDK dependency check currently expects 11 newer Expo 57 patch versions, including Expo/Router 57.0.14 instead of installed 57.0.13. Repository policy treats a Doctor failure as a regression to resolve before future mobile completion.
-- **BLOCKED — local Compose API:** the running local Phoenix container reports pending leaderboard migrations and returns 503 for `/health` and `/ready`. PostgreSQL and MinIO containers are running; production deployment is separately confirmed healthy by its workflow.
-- **PARTIAL — release metadata consistency:** `package-lock.json` records the `apps/mobile` workspace version as 1.0.22 while the package/app/native manifests and release tags are 1.0.28.
 - **PARTIAL — media validation/lifecycle:** card/profile uploads have no backend MIME allowlist or image validation; replacement and account deletion do not remove corresponding MinIO objects; whole files are buffered for upload/delivery.
 - **PARTIAL — stale prose:** README's iOS release note still describes temporary EAS profile submission rather than the current direct `xcrun altool` upload, omits `apps/mobile/src/i18n/locales/en/rankings.ts` and `apps/mobile/src/i18n/locales/fr/rankings.ts`, and admin overview copy says seven quest definitions although source defines eight. The Speed Calculus cash-out docstring says “best run,” while current code and recent reconciliation deliberately use the latest settled run.
 - **PARTIAL — rarity icon integration:** `RarityIcon` exists but is private and unused.
@@ -259,11 +259,9 @@ At verification time the local Docker development database had the latest two le
 
 ## Realistic next priorities
 
-1. **Align Expo 57 patch dependencies.** Why: Expo Doctor currently fails and repository policy makes that a mobile completion blocker. Dependencies: current Expo 57 compatibility matrix and checked-in native projects. Completion: `npx expo-doctor`, typecheck, focused mobile tests, and native dependency checks pass without new findings.
-2. **Restore the local Compose API to current schema.** Why: pending migrations make local HTTP integration and admin/card review unavailable. Dependencies: a safe local DB migration/backup decision. Completion: all canonical migrations are applied and local `/health`, `/ready`, and `/ready/media` return success.
-3. **Reconcile mobile release metadata and stale operational prose.** Why: the lockfile reports 1.0.22 while released manifests/tags are 1.0.28, and README release instructions no longer match the iOS script. Dependencies: none beyond preserving current dependency resolution. Completion: install metadata is consistent and release/translation/quest-count documentation matches executable configuration.
-4. **Define and enforce the media replacement/validation lifecycle.** Why: current upload paths accept unvalidated card/profile bytes and leave MinIO objects behind after replacement/deletion. Dependencies: owner decision on retention and accepted formats/limits. Completion: documented policy, validated uploads, object cleanup/reconciliation, and tests for replacement/account deletion.
-5. **Triage pull request #244 against current Daily Numbers.** Why: it is the only open implementation PR and predates the current game, timing, Expo 57, and leaderboard changes. Dependencies: owner confirmation that the redesign is still desired. Completion: refresh and verify it against current `main`, or close it explicitly.
+1. **Reconcile stale operational prose.** Why: README release instructions no longer match the iOS script. Dependencies: none. Completion: release, translation, quest-count, and Speed Calculus documentation matches executable configuration.
+2. **Define and enforce the media replacement/validation lifecycle.** Why: current upload paths accept unvalidated card/profile bytes and leave MinIO objects behind after replacement/deletion. Dependencies: owner decision on retention and accepted formats/limits. Completion: documented policy, validated uploads, object cleanup/reconciliation, and tests for replacement/account deletion.
+3. **Triage pull request #244 against current Daily Numbers.** Why: it is the only open implementation PR and predates the current game, timing, Expo 57, and leaderboard changes. Dependencies: owner confirmation that the redesign is still desired. Completion: refresh and verify it against current `main`, or close it explicitly.
 
 ## Open questions
 

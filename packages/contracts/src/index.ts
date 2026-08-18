@@ -1031,6 +1031,20 @@ export const dailyNumbersSubmissionSchema = z.object({
   officialSolutionSteps: z.array(dailyNumbersStepSchema),
 });
 
+export const dailyNumbersSolutionListItemSchema = z.object({
+  number: z.number().int().positive(),
+  steps: z.array(dailyNumbersStepSchema),
+});
+
+export const dailyNumbersSolutionHuntProgressSchema = z.object({
+  available: z.literal(true),
+  solutionsFound: z.number().int().nonnegative(),
+  totalSolutions: z.number().int().positive(),
+  allSolutionsFound: z.boolean(),
+  yourSolutions: z.array(dailyNumbersSolutionListItemSchema),
+  otherSolutions: z.array(dailyNumbersSolutionListItemSchema),
+});
+
 export const dailyNumbersStateResponseSchema = z.object({
   mode: dailyNumbersModeSchema,
   date: z.string(),
@@ -1047,6 +1061,7 @@ export const dailyNumbersStateResponseSchema = z.object({
   completed: z.boolean(),
   submitted: z.boolean(),
   submission: dailyNumbersSubmissionSchema.nullable(),
+  solutionHunt: dailyNumbersSolutionHuntProgressSchema.nullable().optional(),
 });
 
 export const dailyNumbersSubmitSchema = z.object({
@@ -1055,6 +1070,24 @@ export const dailyNumbersSubmitSchema = z.object({
   questVersion: z.string().optional(),
   elapsedMs: z.number().int().nonnegative().optional(),
   steps: z.array(dailyNumbersStepInputSchema),
+});
+
+export const dailyNumbersSolutionHuntSubmitSchema = z.object({
+  mode: dailyNumbersModeSchema,
+  dateKey: z.string().min(1),
+  questVersion: z.string().optional(),
+  steps: z.array(dailyNumbersStepInputSchema),
+});
+
+export const dailyNumbersSolutionHuntSubmitResponseSchema = z.object({
+  valid: z.literal(true),
+  newSolution: z.boolean(),
+  alreadyFound: z.boolean(),
+  solutionsFound: z.number().int().nonnegative(),
+  totalSolutions: z.number().int().positive(),
+  allSolutionsFound: z.boolean(),
+  yourSolutions: z.array(dailyNumbersSolutionListItemSchema),
+  otherSolutions: z.array(dailyNumbersSolutionListItemSchema),
 });
 
 export const dailyNumbersArchiveStatusSchema = z.enum([
@@ -1824,10 +1857,22 @@ export type DailyNumbersStep = z.infer<typeof dailyNumbersStepSchema>;
 export type DailyNumbersSubmission = z.infer<
   typeof dailyNumbersSubmissionSchema
 >;
+export type DailyNumbersSolutionListItem = z.infer<
+  typeof dailyNumbersSolutionListItemSchema
+>;
 export type DailyNumbersStateResponse = z.infer<
   typeof dailyNumbersStateResponseSchema
 >;
 export type DailyNumbersSubmitInput = z.infer<typeof dailyNumbersSubmitSchema>;
+export type DailyNumbersSolutionHuntProgress = z.infer<
+  typeof dailyNumbersSolutionHuntProgressSchema
+>;
+export type DailyNumbersSolutionHuntSubmitInput = z.infer<
+  typeof dailyNumbersSolutionHuntSubmitSchema
+>;
+export type DailyNumbersSolutionHuntSubmitResponse = z.infer<
+  typeof dailyNumbersSolutionHuntSubmitResponseSchema
+>;
 export type DailyNumbersArchiveStatus = z.infer<
   typeof dailyNumbersArchiveStatusSchema
 >;

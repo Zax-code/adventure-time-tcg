@@ -392,6 +392,28 @@ const quests = {
     archiveSubmitConfirmBody:
       "This saves your best result for this archived puzzle. It will not grant a reward.",
     archiveSubmitConfirmAction: "Save result",
+    solutionHuntTitle: "Solution Hunt",
+    solutionHuntProgress: "{found} / {total} solutions found",
+    solutionHuntFindAnother: "Find another solution",
+    solutionHuntNewSolution: "New solution!",
+    solutionHuntAlreadyFound:
+      "You've already found this solution. Try finding another way!",
+    solutionHuntAllFound: "All solutions found!",
+    solutionHuntNoRewards: "Just for fun - no extra rewards or leaderboard points.",
+    solutionHuntSolutionFound: "Solution found",
+    solutionHuntYourSolutions: "Your solutions",
+    solutionHuntOtherSolutions: "Other solutions",
+    solutionHuntExistingSolutions: "Existing solutions",
+    solutionHuntShowSolutions: "Show {title}",
+    solutionHuntHideSolutions: "Hide {title}",
+    solutionHuntSolutionNumber: "Solution {number}",
+    solutionHuntStepsTitle: "Steps",
+    solutionHuntPlayingBody:
+      "Same numbers, same target. Find an exact route you have not used before.",
+    solutionHuntSubmitConfirmTitle: "Check this solution?",
+    solutionHuntSubmitConfirmBody:
+      "This only updates Solution Hunt progress. Your ranked result and reward stay unchanged.",
+    solutionHuntSubmitConfirmAction: "Check solution",
     archiveSaveResult: "Save result",
     stepHistoryTitle: "Your steps",
     noStepsYet: "No steps yet. Start by combining two numbers.",

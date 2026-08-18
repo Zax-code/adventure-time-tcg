@@ -40,16 +40,17 @@ defmodule AdventureTimeApi.Leaderboards.QuestResultsTest do
     selected = insert_steps!(user.id, :device_health, 20_000, date)
     _unselected = insert_steps!(user.id, :fitbit, 40_000, date)
 
-    assert {:ok, result} = QuestResults.sync(user.id, date, :steps)
+    assert {:ok, result} = sync(user.id, date, :steps)
     assert result.source_id == selected.id
     assert result.raw_result == %{"kind" => "steps", "steps" => 20_000}
     assert result.points_milli == 1_000_000
 
     selected
     |> StepSnapshot.changeset(%{step_count: 30_000})
+    |> with_source_timestamp(date)
     |> Repo.update!()
 
-    assert {:ok, updated} = QuestResults.sync(user.id, date, :steps)
+    assert {:ok, updated} = sync(user.id, date, :steps)
     assert updated.id == result.id
     assert updated.raw_result == %{"kind" => "steps", "steps" => 30_000}
     assert Repo.aggregate(DailyResult, :count) == 1
@@ -99,6 +100,7 @@ defmodule AdventureTimeApi.Leaderboards.QuestResultsTest do
         completed: true,
         elapsed_ms: 30_000
       })
+      |> with_source_timestamp(date)
       |> Repo.insert!()
 
     assert {:ok, _session} =
@@ -129,6 +131,7 @@ defmodule AdventureTimeApi.Leaderboards.QuestResultsTest do
         evaluation: ["correct", "correct", "correct", "correct", "correct"],
         solved: true
       })
+      |> with_source_timestamp(date)
       |> Repo.insert!()
 
     speed =
@@ -169,7 +172,7 @@ defmodule AdventureTimeApi.Leaderboards.QuestResultsTest do
       })
       |> Repo.update!()
 
-    assert {:ok, dn_result} = QuestResults.sync(user.id, date, {:daily_numbers, "1-5"})
+    assert {:ok, dn_result} = sync(user.id, date, {:daily_numbers, "1-5"})
     assert dn_result.source_id == daily_numbers.id
 
     assert dn_result.raw_result == %{
@@ -178,7 +181,7 @@ defmodule AdventureTimeApi.Leaderboards.QuestResultsTest do
              "exact" => true
            }
 
-    assert {:ok, wordle_result} = QuestResults.sync(user.id, date, {:wordle, "en"})
+    assert {:ok, wordle_result} = sync(user.id, date, {:wordle, "en"})
     assert wordle_result.source_id == wordle.id
 
     assert wordle_result.raw_result == %{
@@ -187,10 +190,10 @@ defmodule AdventureTimeApi.Leaderboards.QuestResultsTest do
              "outcome" => "solved"
            }
 
-    assert {:ok, speed_result} = QuestResults.sync(user.id, date, {:speed_calculus, speed.id})
+    assert {:ok, speed_result} = sync(user.id, date, {:speed_calculus, speed.id})
     assert speed_result.raw_result == %{"kind" => "correct_answers", "correctAnswers" => 12}
 
-    assert {:ok, perfect_result} = QuestResults.sync(user.id, date, :perfect_timing)
+    assert {:ok, perfect_result} = sync(user.id, date, :perfect_timing)
     assert perfect_result.source_id == perfect.id
 
     assert perfect_result.raw_result == %{
@@ -221,9 +224,10 @@ defmodule AdventureTimeApi.Leaderboards.QuestResultsTest do
         completed: true,
         elapsed_ms: 18_064
       })
+      |> with_source_timestamp(date)
       |> Repo.insert!()
 
-    assert {:ok, result} = QuestResults.sync(user.id, date, {:daily_numbers, "1-5"})
+    assert {:ok, result} = sync(user.id, date, {:daily_numbers, "1-5"})
 
     assert result.source_id == attempt.id
     assert result.ranked_session_id == nil
@@ -257,8 +261,8 @@ defmodule AdventureTimeApi.Leaderboards.QuestResultsTest do
     })
     |> Repo.insert!()
 
-    assert {:ok, :not_final} = QuestResults.sync(user.id, date, {:wordle, "fr"})
-    assert {:ok, :not_final} = QuestResults.sync(user.id, date, :perfect_timing)
+    assert {:ok, :not_final} = sync(user.id, date, {:wordle, "fr"})
+    assert {:ok, :not_final} = sync(user.id, date, :perfect_timing)
     assert Repo.aggregate(DailyResult, :count) == 0
   end
 
@@ -284,7 +288,7 @@ defmodule AdventureTimeApi.Leaderboards.QuestResultsTest do
       |> Repo.insert!()
 
     assert {:error, :slot_attribution_closed} =
-             QuestResults.sync(user.id, date, {:speed_calculus, run.id})
+             sync(user.id, date, {:speed_calculus, run.id})
 
     assert Repo.aggregate(DailyResult, :count) == 0
   end
@@ -339,6 +343,7 @@ defmodule AdventureTimeApi.Leaderboards.QuestResultsTest do
         completed: true,
         elapsed_ms: 18_064
       })
+      |> with_source_timestamp(date)
       |> Repo.insert!()
 
     assert :ok = QuestResults.reconcile_open_week(~U[2026-08-17 12:30:00Z])
@@ -373,7 +378,24 @@ defmodule AdventureTimeApi.Leaderboards.QuestResultsTest do
       step_count: count,
       recorded_for: date
     })
+    |> with_source_timestamp(date)
     |> Repo.insert!()
+  end
+
+  defp with_source_timestamp(changeset, date) do
+    timestamp = DateTime.new!(date, ~T[12:00:00], "Etc/UTC")
+
+    changeset = Ecto.Changeset.force_change(changeset, :inserted_at, timestamp)
+
+    if Map.has_key?(changeset.data, :updated_at) do
+      Ecto.Changeset.force_change(changeset, :updated_at, timestamp)
+    else
+      changeset
+    end
+  end
+
+  defp sync(user_id, date, source) do
+    QuestResults.sync(user_id, date, source, DateTime.new!(date, ~T[12:00:00], "Etc/UTC"))
   end
 
   defp insert_speed_calculus_run!(user_id, date, options) do

@@ -47,6 +47,8 @@ import {
   ApiClientError,
   type DailyNumbersArchiveStateResponse,
   type DailyNumbersMode,
+  type DailyNumbersSolutionListItem,
+  type DailyNumbersSolutionHuntSubmitResponse,
   type DailyNumbersStateResponse,
   type DailyNumbersStep,
   type DailyNumbersStepInput,
@@ -55,6 +57,8 @@ import {
 import { PageErrorState } from "../../src/components/error-state";
 import {
   CheckIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
   ClockIcon,
   CoinIcon,
   EyeIcon,
@@ -124,6 +128,14 @@ type TranslateFn = (
 type ThemeColors = (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
 type DailyNumbersBoardState =
   DailyNumbersStateResponse | DailyNumbersArchiveStateResponse;
+type DailyNumbersSolutionLists = Pick<
+  DailyNumbersSolutionHuntSubmitResponse,
+  | "solutionsFound"
+  | "totalSolutions"
+  | "allSolutionsFound"
+  | "yourSolutions"
+  | "otherSolutions"
+>;
 type ModeCard = {
   mode: DailyNumbersMode;
   state: DailyNumbersBoardState | undefined;
@@ -140,6 +152,7 @@ type BoardInteractionState = {
   revealedSolution: boolean;
   retrying: boolean;
   retryAttempt: number;
+  solutionHuntResult: DailyNumbersSolutionHuntSubmitResponse | null;
 };
 type BoardAction =
   | { type: "selectTile"; tileId: string }
@@ -152,6 +165,10 @@ type BoardAction =
   | { type: "submitStarted" }
   | { type: "submitFailed"; message: MessageState }
   | { type: "submitFinished" }
+  | {
+      type: "solutionHuntSubmitted";
+      result: DailyNumbersSolutionHuntSubmitResponse;
+    }
   | { type: "startRetry" }
   | { type: "toggleSolution" };
 type FinishStateProps = {
@@ -171,6 +188,7 @@ type FinishStateProps = {
   onClaimReward: () => void;
   onShareResult: () => void;
   onStartRetry: () => void;
+  onStartSolutionHunt: () => void;
   onToggleSolution: () => void;
   state: DailyNumbersBoardState;
   submittedSolutionSteps: DailyNumbersStep[];
@@ -495,6 +513,7 @@ function createBoardInteractionState(
     revealedSolution: false,
     retrying: false,
     retryAttempt: 0,
+    solutionHuntResult: null,
   };
 }
 
@@ -636,6 +655,15 @@ function boardReducer(
     };
   }
 
+  if (action.type === "solutionHuntSubmitted") {
+    return {
+      ...state,
+      submitting: false,
+      retrying: false,
+      solutionHuntResult: action.result,
+    };
+  }
+
   if (action.type === "startRetry") {
     return {
       steps: [],
@@ -647,6 +675,7 @@ function boardReducer(
       revealedSolution: false,
       retrying: true,
       retryAttempt: state.retryAttempt + 1,
+      solutionHuntResult: state.solutionHuntResult,
     };
   }
 
@@ -958,6 +987,8 @@ function InlineMetric({
         className="mt-0.5 text-center font-nunito-extrabold text-lg leading-6 text-fg"
         style={{ fontVariant: ["tabular-nums"] }}
         numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.7}
       >
         {value}
       </Text>
@@ -971,6 +1002,7 @@ function MetricsSection({
   currentDistance,
   formattedElapsedTime,
   modeAccent,
+  showSolutionFound,
   state,
   t,
   tc,
@@ -980,6 +1012,7 @@ function MetricsSection({
   currentDistance: number | undefined;
   formattedElapsedTime: string;
   modeAccent: ReturnType<typeof getModeAccent>;
+  showSolutionFound: boolean;
   state: DailyNumbersBoardState;
   t: TranslateFn;
   tc: ThemeColors;
@@ -1026,8 +1059,16 @@ function MetricsSection({
             <View className="h-px w-full bg-primaryBorder" />
             <View className="w-full">
               <InlineMetric
-                label={t("quests.dailyNumbers.solveTime")}
-                value={formattedElapsedTime}
+                label={
+                  showSolutionFound
+                    ? t("quests.dailyNumbers.solutionHuntTitle")
+                    : t("quests.dailyNumbers.solveTime")
+                }
+                value={
+                  showSolutionFound
+                    ? t("quests.dailyNumbers.solutionHuntSolutionFound")
+                    : formattedElapsedTime
+                }
               />
             </View>
           </>
@@ -1049,8 +1090,16 @@ function MetricsSection({
             <View className="my-2.5 w-px bg-primaryBorder" />
             <View className="flex-1">
               <InlineMetric
-                label={t("quests.dailyNumbers.solveTime")}
-                value={formattedElapsedTime}
+                label={
+                  showSolutionFound
+                    ? t("quests.dailyNumbers.solutionHuntTitle")
+                    : t("quests.dailyNumbers.solveTime")
+                }
+                value={
+                  showSolutionFound
+                    ? t("quests.dailyNumbers.solutionHuntSolutionFound")
+                    : formattedElapsedTime
+                }
               />
             </View>
           </>
@@ -1148,6 +1197,152 @@ function StepList({
   );
 }
 
+function SolutionAccordionItem({
+  solution,
+  t,
+}: {
+  solution: DailyNumbersSolutionListItem;
+  t: TranslateFn;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const label = t("quests.dailyNumbers.solutionHuntSolutionNumber", {
+    number: solution.number,
+  });
+
+  return (
+    <View className="border-b border-primaryBorder">
+      <Pressable
+        accessibilityLabel={label}
+        accessibilityRole="button"
+        accessibilityState={{ expanded }}
+        className="min-h-12 flex-row items-center gap-2 py-3"
+        onPress={() => setExpanded((current) => !current)}
+        testID={`daily-numbers-solution-${solution.number}`}
+      >
+        {expanded ? (
+          <ChevronDownIcon size={18} />
+        ) : (
+          <ChevronRightIcon size={18} />
+        )}
+        <Text className="min-w-0 flex-1 font-nunito-extrabold text-sm text-fg">
+          {label}
+        </Text>
+        <Text className="font-nunito-bold text-xs text-fgMuted">
+          {solution.steps.length}
+        </Text>
+      </Pressable>
+      {expanded ? (
+        <Animated.View entering={FadeIn.duration(160)} className="pb-3 pl-6">
+          <StepList
+            steps={solution.steps}
+            t={t}
+            title={t("quests.dailyNumbers.solutionHuntStepsTitle")}
+          />
+        </Animated.View>
+      ) : null}
+    </View>
+  );
+}
+
+function SolutionAccordionList({
+  solutions,
+  t,
+  title,
+}: {
+  solutions: DailyNumbersSolutionListItem[];
+  t: TranslateFn;
+  title: string;
+}) {
+  if (solutions.length === 0) return null;
+
+  return (
+    <View className="mt-5">
+      <Text className="font-nunito-extrabold text-base text-fg">{title}</Text>
+      <View className="mt-2 border-t border-primaryBorder">
+        {solutions.map((solution) => (
+          <SolutionAccordionItem
+            key={`${solution.number}-${solution.steps.map((step) => step.resultId).join("-")}`}
+            solution={solution}
+            t={t}
+          />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function SolutionHuntLists({
+  onToggleOtherSolutions,
+  progress,
+  revealedOtherSolutions,
+  t,
+  tc,
+}: {
+  onToggleOtherSolutions: () => void;
+  progress: DailyNumbersSolutionLists;
+  revealedOtherSolutions: boolean;
+  t: TranslateFn;
+  tc: ThemeColors;
+}) {
+  const hasDiscoveries = progress.yourSolutions.length > 0;
+  const otherTitle = t(
+    hasDiscoveries
+      ? "quests.dailyNumbers.solutionHuntOtherSolutions"
+      : "quests.dailyNumbers.solutionHuntExistingSolutions",
+  );
+
+  return (
+    <>
+      <SolutionAccordionList
+        solutions={progress.yourSolutions}
+        t={t}
+        title={t("quests.dailyNumbers.solutionHuntYourSolutions")}
+      />
+      {progress.otherSolutions.length > 0 ? (
+        <>
+          <QuestActionButton
+            accessibilityLabel={
+              revealedOtherSolutions
+                ? t("quests.dailyNumbers.solutionHuntHideSolutions", {
+                    title: otherTitle,
+                  })
+                : t("quests.dailyNumbers.solutionHuntShowSolutions", {
+                    title: otherTitle,
+                  })
+            }
+            accessibilityState={{ expanded: revealedOtherSolutions }}
+            backgroundColor={tc.bg}
+            foregroundColor={tc.primaryText}
+            label={
+              revealedOtherSolutions
+                ? t("quests.dailyNumbers.solutionHuntHideSolutions", {
+                    title: otherTitle,
+                  })
+                : t("quests.dailyNumbers.solutionHuntShowSolutions", {
+                    title: otherTitle,
+                  })
+            }
+            leadingIcon={EyeIcon}
+            minHeight={48}
+            onPress={onToggleOtherSolutions}
+            style={{ marginTop: 14 }}
+            testID="daily-numbers-reveal-other-solutions"
+          />
+          {revealedOtherSolutions ? (
+            <Animated.View entering={FadeIn.duration(180)}>
+              <SolutionAccordionList
+                solutions={progress.otherSolutions}
+                t={t}
+                title={otherTitle}
+              />
+            </Animated.View>
+          ) : null}
+        </>
+      ) : null}
+    </>
+  );
+}
+
 function ResultDetails({
   interaction,
   officialSolutionSteps,
@@ -1165,6 +1360,8 @@ function ResultDetails({
   t: TranslateFn;
   tc: ThemeColors;
 }) {
+  const solutionHuntProgress = interaction.solutionHuntResult ?? state.solutionHunt;
+
   return (
     <>
       <View className="mt-6 border-t border-primaryBorder pt-4">
@@ -1191,14 +1388,15 @@ function ResultDetails({
           ))}
         </View>
       </View>
-      {submittedSolutionSteps.length > 0 ? (
+      {submittedSolutionSteps.length > 0 &&
+      (!solutionHuntProgress || solutionHuntProgress.yourSolutions.length === 0) ? (
         <StepList
           steps={submittedSolutionSteps}
           t={t}
           title={t("quests.dailyNumbers.solutionUsedTitle")}
         />
       ) : null}
-      {officialSolutionSteps.length > 0 ? (
+      {!solutionHuntProgress && officialSolutionSteps.length > 0 ? (
         <>
           <QuestActionButton
             label={
@@ -1258,6 +1456,7 @@ function FinishStatePanel({
   onClaimReward,
   onShareResult,
   onStartRetry,
+  onStartSolutionHunt,
   onToggleSolution,
   officialSolutionSteps,
   state,
@@ -1301,6 +1500,7 @@ function FinishStatePanel({
             reward: state.reward,
           })
         : t("quests.dailyNumbers.resultLockedNote");
+  const solutionHuntProgress = interaction.solutionHuntResult ?? state.solutionHunt;
 
   return (
     <View className="pt-1" testID="daily-numbers-result">
@@ -1493,6 +1693,73 @@ function FinishStatePanel({
           testID="daily-numbers-archive-retry"
           accessibilityLabel={t("quests.dailyNumbers.archiveTryAgain")}
         />
+      ) : null}
+      {!archiveMode && solutionHuntProgress ? (
+        <View
+          className="mt-5 border-t border-primaryBorder pt-5"
+          testID="daily-numbers-solution-hunt"
+        >
+          <Text className="font-nunito-extrabold text-xl text-fg">
+            {t("quests.dailyNumbers.solutionHuntTitle")}
+          </Text>
+          <Text
+            className="mt-1 font-nunito-extrabold text-base text-primaryText"
+            style={{ fontVariant: ["tabular-nums"] }}
+            testID="daily-numbers-solution-hunt-progress"
+          >
+            {t("quests.dailyNumbers.solutionHuntProgress", {
+              found: solutionHuntProgress.solutionsFound,
+              total: solutionHuntProgress.totalSolutions,
+            })}
+          </Text>
+          {solutionHuntProgress.allSolutionsFound ? (
+            <Text
+              className="mt-2 font-nunito-extrabold text-sm text-successText"
+              testID="daily-numbers-solution-hunt-complete"
+            >
+              {t("quests.dailyNumbers.solutionHuntAllFound")}
+            </Text>
+          ) : interaction.solutionHuntResult?.newSolution ? (
+            <Text
+              className="mt-2 font-nunito-extrabold text-sm text-successText"
+              testID="daily-numbers-solution-hunt-new"
+            >
+              {t("quests.dailyNumbers.solutionHuntNewSolution")}
+            </Text>
+          ) : interaction.solutionHuntResult?.alreadyFound ? (
+            <Text
+              className="mt-2 font-nunito-bold text-sm leading-5 text-infoText"
+              testID="daily-numbers-solution-hunt-duplicate"
+            >
+              {t("quests.dailyNumbers.solutionHuntAlreadyFound")}
+            </Text>
+          ) : null}
+          <Text className="mt-2 font-nunito-semibold text-xs leading-4 text-fgMuted">
+            {t("quests.dailyNumbers.solutionHuntNoRewards")}
+          </Text>
+          <SolutionHuntLists
+            onToggleOtherSolutions={onToggleSolution}
+            progress={solutionHuntProgress}
+            revealedOtherSolutions={interaction.revealedSolution}
+            t={t}
+            tc={tc}
+          />
+          {!solutionHuntProgress.allSolutionsFound ? (
+            <View className="mt-3">
+              <QuestActionButton
+                label={t("quests.dailyNumbers.solutionHuntFindAnother")}
+                onPress={onStartSolutionHunt}
+                backgroundColor={tc.primaryStrong}
+                foregroundColor="#FFFFFF"
+                minHeight={48}
+                testID="daily-numbers-solution-hunt-start"
+                accessibilityLabel={t(
+                  "quests.dailyNumbers.solutionHuntFindAnother",
+                )}
+              />
+            </View>
+          ) : null}
+        </View>
       ) : null}
       <QuestActionButton
         label={
@@ -2642,6 +2909,7 @@ function useDailyNumbersBoardController({
   modeAccent,
   onClaimReward,
   onResolveResetError,
+  onSolutionHuntApplied,
   onSubmissionApplied,
   state,
   t,
@@ -2656,6 +2924,9 @@ function useDailyNumbersBoardController({
   modeAccent: ReturnType<typeof getModeAccent>;
   onClaimReward: () => void;
   onResolveResetError: (error: unknown) => Promise<boolean>;
+  onSolutionHuntApplied: (
+    result: DailyNumbersSolutionHuntSubmitResponse,
+  ) => void;
   onSubmissionApplied: (nextState: DailyNumbersBoardState) => void;
   state: DailyNumbersBoardState;
   t: TranslateFn;
@@ -2666,10 +2937,19 @@ function useDailyNumbersBoardController({
     state,
     createBoardInteractionState,
   );
+  const solutionHuntActive =
+    !archiveMode &&
+    state.solutionHunt?.available === true &&
+    interaction.retrying;
   const hasLockedSubmission = state.submitted === true && !interaction.retrying;
   const chronometer = useDailyNumbersChronometer({
-    active: chronometerActive && !hasLockedSubmission,
-    attemptScope: interaction.retrying ? "retry" : "initial",
+    active:
+      chronometerActive && !hasLockedSubmission && !solutionHuntActive,
+    attemptScope: solutionHuntActive
+      ? "solution-hunt"
+      : interaction.retrying
+        ? "retry"
+        : "initial",
     resetSignal: interaction.retrying ? interaction.retryAttempt : 0,
     submitted: hasLockedSubmission,
     state,
@@ -2754,8 +3034,22 @@ function useDailyNumbersBoardController({
       }
 
       try {
-        const elapsedMs = Math.round(chronometer.getElapsedMs());
         const steps = toStepInputs(stepsToSubmit);
+
+        if (solutionHuntActive) {
+          const result = await apiClient.submitDailyNumbersSolutionHunt({
+            mode: activeMode,
+            dateKey: state.date,
+            questVersion: state.questVersion ?? undefined,
+            steps,
+          });
+
+          dispatch({ type: "solutionHuntSubmitted", result });
+          onSolutionHuntApplied(result);
+          return;
+        }
+
+        const elapsedMs = Math.round(chronometer.getElapsedMs());
         const nextState = archiveMode
           ? await apiClient.submitDailyNumbersArchive({
               mode: activeMode,
@@ -2801,7 +3095,9 @@ function useDailyNumbersBoardController({
       hasLockedSubmission,
       interaction.submitting,
       onResolveResetError,
+      onSolutionHuntApplied,
       onSubmissionApplied,
+      solutionHuntActive,
       state,
       t,
     ],
@@ -3045,15 +3341,21 @@ function useDailyNumbersBoardController({
     Alert.alert(
       archiveMode
         ? t("quests.dailyNumbers.archiveSubmitConfirmTitle")
+        : solutionHuntActive
+          ? t("quests.dailyNumbers.solutionHuntSubmitConfirmTitle")
         : t("quests.dailyNumbers.submitConfirmTitle"),
       archiveMode
         ? t("quests.dailyNumbers.archiveSubmitConfirmBody")
+        : solutionHuntActive
+          ? t("quests.dailyNumbers.solutionHuntSubmitConfirmBody")
         : t("quests.dailyNumbers.submitConfirmBody"),
       [
         { text: t("common.cancel"), style: "cancel" },
         {
           text: archiveMode
             ? t("quests.dailyNumbers.archiveSubmitConfirmAction")
+            : solutionHuntActive
+              ? t("quests.dailyNumbers.solutionHuntSubmitConfirmAction")
             : t("quests.dailyNumbers.submitConfirmAction"),
           style: "destructive",
           onPress: () => {
@@ -3067,6 +3369,7 @@ function useDailyNumbersBoardController({
     interaction.steps,
     interaction.submitting,
     hasLockedSubmission,
+    solutionHuntActive,
     submitBoard,
     t,
   ]);
@@ -3140,6 +3443,7 @@ function useDailyNumbersBoardController({
     onResetBoard: handleResetBoard,
     onSubmitPress: handleSubmitPress,
     onStartRetry: handleStartRetry,
+    onStartSolutionHunt: handleStartRetry,
     onTilePress: handleTilePress,
     onToggleSolution: handleToggleSolution,
     onUndoStep: handleUndoStep,
@@ -3147,6 +3451,7 @@ function useDailyNumbersBoardController({
     selectedLeftTile,
     selectedOperator: interaction.selectedOperator,
     selectedRightTile,
+    solutionHuntActive,
     state,
     submittedSolutionSteps,
     officialSolutionSteps: isArchiveState(state)
@@ -3343,6 +3648,7 @@ function DailyNumbersBoard({
   modeAccent,
   onClaimReward,
   onResolveResetError,
+  onSolutionHuntApplied,
   onSubmissionApplied,
   scrollViewRef,
   state,
@@ -3358,6 +3664,9 @@ function DailyNumbersBoard({
   modeAccent: ReturnType<typeof getModeAccent>;
   onClaimReward: () => void;
   onResolveResetError: (error: unknown) => Promise<boolean>;
+  onSolutionHuntApplied: (
+    result: DailyNumbersSolutionHuntSubmitResponse,
+  ) => void;
   onSubmissionApplied: (nextState: DailyNumbersBoardState) => void;
   scrollViewRef: RefObject<ScrollView | null>;
   state: DailyNumbersBoardState;
@@ -3374,6 +3683,7 @@ function DailyNumbersBoard({
     modeAccent,
     onClaimReward,
     onResolveResetError,
+    onSolutionHuntApplied,
     onSubmissionApplied,
     state,
     t,
@@ -3438,6 +3748,19 @@ function DailyNumbersBoard({
         </View>
       ) : null}
       <MessageBanner message={controller.visibleMessage} />
+      {controller.solutionHuntActive ? (
+        <View
+          className="mb-4 rounded-2xl border border-infoBorder bg-infoTint px-4 py-3"
+          testID="daily-numbers-solution-hunt-playing"
+        >
+          <Text className="font-nunito-extrabold text-sm text-infoText">
+            {controller.t("quests.dailyNumbers.solutionHuntTitle")}
+          </Text>
+          <Text className="mt-1 font-nunito-semibold text-xs leading-4 text-fgMuted">
+            {controller.t("quests.dailyNumbers.solutionHuntPlayingBody")}
+          </Text>
+        </View>
+      ) : null}
       {controller.completionReached && !controller.finishScreenState ? (
         <SuccessCallout
           archiveMode={archiveMode}
@@ -3471,6 +3794,7 @@ function DailyNumbersBoard({
               onClaimReward={controller.onClaimReward}
               onShareResult={handleShareResult}
               onStartRetry={controller.onStartRetry}
+              onStartSolutionHunt={controller.onStartSolutionHunt}
               onToggleSolution={controller.onToggleSolution}
               officialSolutionSteps={controller.officialSolutionSteps}
               state={controller.state}
@@ -3491,6 +3815,11 @@ function DailyNumbersBoard({
               currentDistance={controller.currentDistance}
               formattedElapsedTime={controller.formattedElapsedTime}
               modeAccent={controller.modeAccent}
+              showSolutionFound={
+                controller.solutionHuntActive &&
+                ((controller.interaction.solutionHuntResult ??
+                  controller.state.solutionHunt)?.solutionsFound ?? 0) > 0
+              }
               state={controller.state}
               t={controller.t}
               tc={controller.tc}
@@ -3571,6 +3900,9 @@ type DailyNumbersPlayViewProps = {
   onClaimReward: () => void;
   onModeSelect: (mode: DailyNumbersMode) => void;
   onResolveResetError: (error: unknown) => Promise<boolean>;
+  onSolutionHuntApplied: (
+    result: DailyNumbersSolutionHuntSubmitResponse,
+  ) => void;
   onSubmissionApplied: (nextState: DailyNumbersBoardState) => void;
   state: DailyNumbersBoardState;
   t: TranslateFn;
@@ -3592,6 +3924,7 @@ function DailyNumbersPlayView({
   onClaimReward,
   onModeSelect,
   onResolveResetError,
+  onSolutionHuntApplied,
   onSubmissionApplied,
   state,
   t,
@@ -3679,6 +4012,7 @@ function DailyNumbersPlayView({
             modeAccent={modeAccent}
             onClaimReward={onClaimReward}
             onResolveResetError={onResolveResetError}
+            onSolutionHuntApplied={onSolutionHuntApplied}
             onSubmissionApplied={onSubmissionApplied}
             scrollViewRef={scrollViewRef}
             state={state}
@@ -3915,6 +4249,30 @@ export default function DailyNumbersPlayScreen() {
     [activeMode, archiveDate, archiveMode, queryClient, questTimeZone],
   );
 
+  const handleSolutionHuntApplied = useCallback(
+    (result: DailyNumbersSolutionHuntSubmitResponse) => {
+      queryClient.setQueryData<DailyNumbersStateResponse>(
+        ["daily-numbers", activeMode],
+        (current) =>
+          current
+            ? {
+                ...current,
+                solutionHunt: {
+                  available: true,
+                  solutionsFound: result.solutionsFound,
+                  totalSolutions: result.totalSolutions,
+                  allSolutionsFound: result.allSolutionsFound,
+                  yourSolutions: result.yourSolutions,
+                  otherSolutions: result.otherSolutions,
+                },
+              }
+            : current,
+      );
+      setUiMessage(null);
+    },
+    [activeMode, queryClient],
+  );
+
   const boardIdentity = state ? buildBoardIdentity(state) : null;
   const bannerMessage = uiMessage ?? resetNoticeMessage;
   const chronometerActive = screenFocused && appActive;
@@ -3974,6 +4332,7 @@ export default function DailyNumbersPlayScreen() {
       }}
       onModeSelect={handleModeSelect}
       onResolveResetError={handleResetError}
+      onSolutionHuntApplied={handleSolutionHuntApplied}
       onSubmissionApplied={handleSubmissionApplied}
       state={state}
       t={t}

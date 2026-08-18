@@ -31,9 +31,9 @@ defmodule AdventureTimeApi.Leaderboards.QuestResults do
 
   @final_perfect_timing_statuses ["kept", "auto_finalized", "failed"]
 
-  @spec sync_safely(Ecto.UUID.t(), Date.t(), term()) :: :ok
-  def sync_safely(user_id, date, source) do
-    case sync(user_id, date, source) do
+  @spec sync_safely(Ecto.UUID.t(), Date.t(), term(), DateTime.t()) :: :ok
+  def sync_safely(user_id, date, source, now \\ DateTime.utc_now()) do
+    case sync(user_id, date, source, now) do
       {:ok, _result} ->
         :ok
 
@@ -121,7 +121,7 @@ defmodule AdventureTimeApi.Leaderboards.QuestResults do
       select: {snapshot.user_id, snapshot.recorded_for, :steps}
     )
     |> Repo.all()
-    |> Enum.each(fn {user_id, date, source} -> sync_safely(user_id, date, source) end)
+    |> Enum.each(fn {user_id, date, source} -> sync_safely(user_id, date, source, now) end)
 
     from(attempt in DailyNumbersDailyAttempt,
       where: attempt.date >= ^since,
@@ -129,7 +129,7 @@ defmodule AdventureTimeApi.Leaderboards.QuestResults do
     )
     |> Repo.all()
     |> Enum.each(fn {user_id, date, mode} ->
-      sync_safely(user_id, date, {:daily_numbers, mode})
+      sync_safely(user_id, date, {:daily_numbers, mode}, now)
     end)
 
     from(attempt in WordleDailyAttempt,
@@ -137,7 +137,9 @@ defmodule AdventureTimeApi.Leaderboards.QuestResults do
       select: {attempt.user_id, attempt.date, attempt.locale}
     )
     |> Repo.all()
-    |> Enum.each(fn {user_id, date, locale} -> sync_safely(user_id, date, {:wordle, locale}) end)
+    |> Enum.each(fn {user_id, date, locale} ->
+      sync_safely(user_id, date, {:wordle, locale}, now)
+    end)
 
     from(run in SpeedCalculusDailyRun,
       where: run.date >= ^since and run.status in ["completed", "abandoned"],
@@ -147,7 +149,7 @@ defmodule AdventureTimeApi.Leaderboards.QuestResults do
     )
     |> Repo.all()
     |> Enum.each(fn {user_id, date, run_id} ->
-      sync_safely(user_id, date, {:speed_calculus, run_id})
+      sync_safely(user_id, date, {:speed_calculus, run_id}, now)
     end)
 
     from(attempt in PerfectTimingAttempt,
@@ -156,7 +158,7 @@ defmodule AdventureTimeApi.Leaderboards.QuestResults do
     )
     |> Repo.all()
     |> Enum.uniq()
-    |> Enum.each(fn {user_id, date} -> sync_safely(user_id, date, :perfect_timing) end)
+    |> Enum.each(fn {user_id, date} -> sync_safely(user_id, date, :perfect_timing, now) end)
 
     :ok
   end

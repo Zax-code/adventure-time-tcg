@@ -55,6 +55,10 @@ defmodule AdventureTimeApiWeb.LeaderboardsControllerTest do
     board = Repo.get_by!(Board, key: "steps/default")
     overall_board = Repo.get_by!(Board, key: "overall/all-quests")
     unique = System.unique_integer([:positive])
+    competition_date = Date.add(Date.utc_today(), -1)
+    starts_at = DateTime.new!(competition_date, ~T[00:00:00], "Etc/UTC")
+    ends_at = DateTime.add(starts_at, 1, :day)
+    closes_at = DateTime.add(ends_at, 13, :hour)
 
     scoring_version =
       %ScoringVersion{}
@@ -73,10 +77,10 @@ defmodule AdventureTimeApiWeb.LeaderboardsControllerTest do
       |> Period.changeset(%{
         period_type: :day,
         competition_timezone: "global",
-        starts_at: ~U[2026-08-16 00:00:00.000000Z],
-        ends_at: ~U[2026-08-17 00:00:00.000000Z],
-        closes_at: ~U[2026-08-17 13:00:00.000000Z],
-        competition_date: ~D[2026-08-16],
+        starts_at: starts_at,
+        ends_at: ends_at,
+        closes_at: closes_at,
+        competition_date: competition_date,
         status: :closed,
         origin: :verified,
         prizes_allowed: true,
@@ -181,6 +185,10 @@ defmodule AdventureTimeApiWeb.LeaderboardsControllerTest do
     {current_user, token} = create_approved_user_and_token("rank-eight")
     board = Repo.get_by!(Board, key: "steps/default")
     unique = System.unique_integer([:positive])
+    competition_date = Date.add(Date.utc_today(), -1)
+    starts_at = DateTime.new!(competition_date, ~T[00:00:00], "Etc/UTC")
+    ends_at = DateTime.add(starts_at, 1, :day)
+    closes_at = DateTime.add(ends_at, 13, :hour)
 
     scoring_version =
       %ScoringVersion{}
@@ -199,10 +207,10 @@ defmodule AdventureTimeApiWeb.LeaderboardsControllerTest do
       |> Period.changeset(%{
         period_type: :day,
         competition_timezone: "global",
-        starts_at: ~U[2026-08-16 00:00:00.000000Z],
-        ends_at: ~U[2026-08-17 00:00:00.000000Z],
-        closes_at: ~U[2026-08-17 13:00:00.000000Z],
-        competition_date: ~D[2026-08-16],
+        starts_at: starts_at,
+        ends_at: ends_at,
+        closes_at: closes_at,
+        competition_date: competition_date,
         status: :closed,
         origin: :verified,
         prizes_allowed: true,

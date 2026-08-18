@@ -403,6 +403,29 @@ const quests = {
     archiveSubmitConfirmBody:
       "Cela enregistre ton meilleur résultat pour cette énigme d'archive. Aucune récompense ne sera donnée.",
     archiveSubmitConfirmAction: "Enregistrer",
+    solutionHuntTitle: "Chasse aux solutions",
+    solutionHuntProgress: "{found} / {total} solutions trouvées",
+    solutionHuntFindAnother: "Trouver une autre solution",
+    solutionHuntNewSolution: "Nouvelle solution !",
+    solutionHuntAlreadyFound:
+      "Tu as déjà trouvé cette solution. Essaie une autre méthode !",
+    solutionHuntAllFound: "Toutes les solutions ont été trouvées !",
+    solutionHuntNoRewards:
+      "Juste pour le plaisir : aucune récompense ni aucun point de classement en plus.",
+    solutionHuntSolutionFound: "Solution trouvée",
+    solutionHuntYourSolutions: "Tes solutions",
+    solutionHuntOtherSolutions: "Autres solutions",
+    solutionHuntExistingSolutions: "Solutions existantes",
+    solutionHuntShowSolutions: "Afficher : {title}",
+    solutionHuntHideSolutions: "Masquer : {title}",
+    solutionHuntSolutionNumber: "Solution {number}",
+    solutionHuntStepsTitle: "Étapes",
+    solutionHuntPlayingBody:
+      "Mêmes nombres, même cible. Trouve un chemin exact que tu n'as pas encore utilisé.",
+    solutionHuntSubmitConfirmTitle: "Vérifier cette solution ?",
+    solutionHuntSubmitConfirmBody:
+      "Seule ta progression de chasse aux solutions sera mise à jour. Ton résultat classé et ta récompense restent inchangés.",
+    solutionHuntSubmitConfirmAction: "Vérifier la solution",
     archiveSaveResult: "Enregistrer",
     stepHistoryTitle: "Tes étapes",
     noStepsYet:
