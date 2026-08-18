@@ -144,6 +144,77 @@ defmodule AdventureTimeApiWeb.QuestsController do
     |> json(%{error: "mode, dateKey, and steps are required"})
   end
 
+  def submit_daily_numbers_solution_hunt(
+        conn,
+        %{"mode" => mode, "dateKey" => date_key, "steps" => steps}
+      ) do
+    expected_quest_version = Map.get(conn.body_params, "questVersion")
+
+    timed_action(conn, "submit_daily_numbers_solution_hunt", fn conn, user_id ->
+      case Quests.submit_daily_numbers_solution_hunt(
+             user_id,
+             mode,
+             date_key,
+             steps,
+             expected_quest_version
+           ) do
+        {:ok, payload} ->
+          json(conn, payload)
+
+        {:error, :invalid_daily_numbers_mode} ->
+          conn
+          |> put_status(400)
+          |> json(%{error: "Unsupported Daily Numbers mode", code: "INVALID_DAILY_NUMBERS_MODE"})
+
+        {:error, :daily_numbers_reset} ->
+          conn
+          |> put_status(409)
+          |> json(%{
+            error: "Daily Numbers reset while this puzzle was open",
+            code: "DAILY_NUMBERS_RESET"
+          })
+
+        {:error, :daily_numbers_solution_hunt_locked} ->
+          conn
+          |> put_status(403)
+          |> json(%{
+            error: "Complete the ranked Daily Numbers quest first",
+            code: "DAILY_NUMBERS_SOLUTION_HUNT_LOCKED"
+          })
+
+        {:error, :daily_numbers_solution_hunt_not_exact} ->
+          conn
+          |> put_status(400)
+          |> json(%{
+            error: "Solution Hunt expressions must reach the exact target",
+            code: "DAILY_NUMBERS_SOLUTION_HUNT_NOT_EXACT"
+          })
+
+        {:error, :unknown_solution} ->
+          conn
+          |> put_status(400)
+          |> json(%{
+            error: "Expression is not a valid solution for this puzzle",
+            code: "INVALID_DAILY_NUMBERS_SOLUTION_HUNT_SOLUTION"
+          })
+
+        {:error, message} when is_binary(message) ->
+          conn
+          |> put_status(400)
+          |> json(%{error: message, code: "INVALID_DAILY_NUMBERS_SUBMISSION"})
+
+        {:error, _reason} ->
+          conn |> put_status(500) |> json(%{error: "Internal error"})
+      end
+    end)
+  end
+
+  def submit_daily_numbers_solution_hunt(conn, _params) do
+    conn
+    |> put_status(400)
+    |> json(%{error: "mode, dateKey, and steps are required"})
+  end
+
   # GET /quests/daily-numbers/history
   def daily_numbers_archive_history(conn, _params) do
     timed_action(conn, "daily_numbers_archive_history", fn conn, user_id ->

@@ -47,6 +47,7 @@ import {
   ApiClientError,
   type DailyNumbersArchiveStateResponse,
   type DailyNumbersMode,
+  type DailyNumbersSolutionHuntSubmitResponse,
   type DailyNumbersStateResponse,
   type DailyNumbersStep,
   type DailyNumbersStepInput,
@@ -140,6 +141,7 @@ type BoardInteractionState = {
   revealedSolution: boolean;
   retrying: boolean;
   retryAttempt: number;
+  solutionHuntResult: DailyNumbersSolutionHuntSubmitResponse | null;
 };
 type BoardAction =
   | { type: "selectTile"; tileId: string }
@@ -152,6 +154,10 @@ type BoardAction =
   | { type: "submitStarted" }
   | { type: "submitFailed"; message: MessageState }
   | { type: "submitFinished" }
+  | {
+      type: "solutionHuntSubmitted";
+      result: DailyNumbersSolutionHuntSubmitResponse;
+    }
   | { type: "startRetry" }
   | { type: "toggleSolution" };
 type FinishStateProps = {
@@ -171,6 +177,7 @@ type FinishStateProps = {
   onClaimReward: () => void;
   onShareResult: () => void;
   onStartRetry: () => void;
+  onStartSolutionHunt: () => void;
   onToggleSolution: () => void;
   state: DailyNumbersBoardState;
   submittedSolutionSteps: DailyNumbersStep[];
@@ -495,6 +502,7 @@ function createBoardInteractionState(
     revealedSolution: false,
     retrying: false,
     retryAttempt: 0,
+    solutionHuntResult: null,
   };
 }
 
@@ -636,6 +644,15 @@ function boardReducer(
     };
   }
 
+  if (action.type === "solutionHuntSubmitted") {
+    return {
+      ...state,
+      submitting: false,
+      retrying: false,
+      solutionHuntResult: action.result,
+    };
+  }
+
   if (action.type === "startRetry") {
     return {
       steps: [],
@@ -647,6 +664,7 @@ function boardReducer(
       revealedSolution: false,
       retrying: true,
       retryAttempt: state.retryAttempt + 1,
+      solutionHuntResult: state.solutionHuntResult,
     };
   }
 
@@ -1258,6 +1276,7 @@ function FinishStatePanel({
   onClaimReward,
   onShareResult,
   onStartRetry,
+  onStartSolutionHunt,
   onToggleSolution,
   officialSolutionSteps,
   state,
@@ -1301,6 +1320,7 @@ function FinishStatePanel({
             reward: state.reward,
           })
         : t("quests.dailyNumbers.resultLockedNote");
+  const solutionHuntProgress = interaction.solutionHuntResult ?? state.solutionHunt;
 
   return (
     <View className="pt-1" testID="daily-numbers-result">
@@ -1493,6 +1513,65 @@ function FinishStatePanel({
           testID="daily-numbers-archive-retry"
           accessibilityLabel={t("quests.dailyNumbers.archiveTryAgain")}
         />
+      ) : null}
+      {!archiveMode && solutionHuntProgress ? (
+        <View
+          className="mt-5 border-t border-primaryBorder pt-5"
+          testID="daily-numbers-solution-hunt"
+        >
+          <Text className="font-nunito-extrabold text-xl text-fg">
+            {t("quests.dailyNumbers.solutionHuntTitle")}
+          </Text>
+          <Text
+            className="mt-1 font-nunito-extrabold text-base text-primaryText"
+            style={{ fontVariant: ["tabular-nums"] }}
+            testID="daily-numbers-solution-hunt-progress"
+          >
+            {t("quests.dailyNumbers.solutionHuntProgress", {
+              found: solutionHuntProgress.solutionsFound,
+              total: solutionHuntProgress.totalSolutions,
+            })}
+          </Text>
+          {solutionHuntProgress.allSolutionsFound ? (
+            <Text
+              className="mt-2 font-nunito-extrabold text-sm text-successText"
+              testID="daily-numbers-solution-hunt-complete"
+            >
+              {t("quests.dailyNumbers.solutionHuntAllFound")}
+            </Text>
+          ) : interaction.solutionHuntResult?.newSolution ? (
+            <Text
+              className="mt-2 font-nunito-extrabold text-sm text-successText"
+              testID="daily-numbers-solution-hunt-new"
+            >
+              {t("quests.dailyNumbers.solutionHuntNewSolution")}
+            </Text>
+          ) : interaction.solutionHuntResult?.alreadyFound ? (
+            <Text
+              className="mt-2 font-nunito-bold text-sm leading-5 text-infoText"
+              testID="daily-numbers-solution-hunt-duplicate"
+            >
+              {t("quests.dailyNumbers.solutionHuntAlreadyFound")}
+            </Text>
+          ) : null}
+          <Text className="mt-2 font-nunito-semibold text-xs leading-4 text-fgMuted">
+            {t("quests.dailyNumbers.solutionHuntNoRewards")}
+          </Text>
+          {!solutionHuntProgress.allSolutionsFound ? (
+            <QuestActionButton
+              label={t("quests.dailyNumbers.solutionHuntFindAnother")}
+              onPress={onStartSolutionHunt}
+              backgroundColor={tc.primaryStrong}
+              foregroundColor="#FFFFFF"
+              minHeight={48}
+              style={{ marginTop: 12 }}
+              testID="daily-numbers-solution-hunt-start"
+              accessibilityLabel={t(
+                "quests.dailyNumbers.solutionHuntFindAnother",
+              )}
+            />
+          ) : null}
+        </View>
       ) : null}
       <QuestActionButton
         label={
@@ -2642,6 +2721,7 @@ function useDailyNumbersBoardController({
   modeAccent,
   onClaimReward,
   onResolveResetError,
+  onSolutionHuntApplied,
   onSubmissionApplied,
   state,
   t,
@@ -2656,6 +2736,9 @@ function useDailyNumbersBoardController({
   modeAccent: ReturnType<typeof getModeAccent>;
   onClaimReward: () => void;
   onResolveResetError: (error: unknown) => Promise<boolean>;
+  onSolutionHuntApplied: (
+    result: DailyNumbersSolutionHuntSubmitResponse,
+  ) => void;
   onSubmissionApplied: (nextState: DailyNumbersBoardState) => void;
   state: DailyNumbersBoardState;
   t: TranslateFn;
@@ -2666,10 +2749,19 @@ function useDailyNumbersBoardController({
     state,
     createBoardInteractionState,
   );
+  const solutionHuntActive =
+    !archiveMode &&
+    state.solutionHunt?.available === true &&
+    interaction.retrying;
   const hasLockedSubmission = state.submitted === true && !interaction.retrying;
   const chronometer = useDailyNumbersChronometer({
-    active: chronometerActive && !hasLockedSubmission,
-    attemptScope: interaction.retrying ? "retry" : "initial",
+    active:
+      chronometerActive && !hasLockedSubmission && !solutionHuntActive,
+    attemptScope: solutionHuntActive
+      ? "solution-hunt"
+      : interaction.retrying
+        ? "retry"
+        : "initial",
     resetSignal: interaction.retrying ? interaction.retryAttempt : 0,
     submitted: hasLockedSubmission,
     state,
@@ -2754,8 +2846,22 @@ function useDailyNumbersBoardController({
       }
 
       try {
-        const elapsedMs = Math.round(chronometer.getElapsedMs());
         const steps = toStepInputs(stepsToSubmit);
+
+        if (solutionHuntActive) {
+          const result = await apiClient.submitDailyNumbersSolutionHunt({
+            mode: activeMode,
+            dateKey: state.date,
+            questVersion: state.questVersion ?? undefined,
+            steps,
+          });
+
+          dispatch({ type: "solutionHuntSubmitted", result });
+          onSolutionHuntApplied(result);
+          return;
+        }
+
+        const elapsedMs = Math.round(chronometer.getElapsedMs());
         const nextState = archiveMode
           ? await apiClient.submitDailyNumbersArchive({
               mode: activeMode,
@@ -2801,7 +2907,9 @@ function useDailyNumbersBoardController({
       hasLockedSubmission,
       interaction.submitting,
       onResolveResetError,
+      onSolutionHuntApplied,
       onSubmissionApplied,
+      solutionHuntActive,
       state,
       t,
     ],
@@ -3045,15 +3153,21 @@ function useDailyNumbersBoardController({
     Alert.alert(
       archiveMode
         ? t("quests.dailyNumbers.archiveSubmitConfirmTitle")
+        : solutionHuntActive
+          ? t("quests.dailyNumbers.solutionHuntSubmitConfirmTitle")
         : t("quests.dailyNumbers.submitConfirmTitle"),
       archiveMode
         ? t("quests.dailyNumbers.archiveSubmitConfirmBody")
+        : solutionHuntActive
+          ? t("quests.dailyNumbers.solutionHuntSubmitConfirmBody")
         : t("quests.dailyNumbers.submitConfirmBody"),
       [
         { text: t("common.cancel"), style: "cancel" },
         {
           text: archiveMode
             ? t("quests.dailyNumbers.archiveSubmitConfirmAction")
+            : solutionHuntActive
+              ? t("quests.dailyNumbers.solutionHuntSubmitConfirmAction")
             : t("quests.dailyNumbers.submitConfirmAction"),
           style: "destructive",
           onPress: () => {
@@ -3067,6 +3181,7 @@ function useDailyNumbersBoardController({
     interaction.steps,
     interaction.submitting,
     hasLockedSubmission,
+    solutionHuntActive,
     submitBoard,
     t,
   ]);
@@ -3140,6 +3255,7 @@ function useDailyNumbersBoardController({
     onResetBoard: handleResetBoard,
     onSubmitPress: handleSubmitPress,
     onStartRetry: handleStartRetry,
+    onStartSolutionHunt: handleStartRetry,
     onTilePress: handleTilePress,
     onToggleSolution: handleToggleSolution,
     onUndoStep: handleUndoStep,
@@ -3147,6 +3263,7 @@ function useDailyNumbersBoardController({
     selectedLeftTile,
     selectedOperator: interaction.selectedOperator,
     selectedRightTile,
+    solutionHuntActive,
     state,
     submittedSolutionSteps,
     officialSolutionSteps: isArchiveState(state)
@@ -3343,6 +3460,7 @@ function DailyNumbersBoard({
   modeAccent,
   onClaimReward,
   onResolveResetError,
+  onSolutionHuntApplied,
   onSubmissionApplied,
   scrollViewRef,
   state,
@@ -3358,6 +3476,9 @@ function DailyNumbersBoard({
   modeAccent: ReturnType<typeof getModeAccent>;
   onClaimReward: () => void;
   onResolveResetError: (error: unknown) => Promise<boolean>;
+  onSolutionHuntApplied: (
+    result: DailyNumbersSolutionHuntSubmitResponse,
+  ) => void;
   onSubmissionApplied: (nextState: DailyNumbersBoardState) => void;
   scrollViewRef: RefObject<ScrollView | null>;
   state: DailyNumbersBoardState;
@@ -3374,6 +3495,7 @@ function DailyNumbersBoard({
     modeAccent,
     onClaimReward,
     onResolveResetError,
+    onSolutionHuntApplied,
     onSubmissionApplied,
     state,
     t,
@@ -3438,6 +3560,19 @@ function DailyNumbersBoard({
         </View>
       ) : null}
       <MessageBanner message={controller.visibleMessage} />
+      {controller.solutionHuntActive ? (
+        <View
+          className="mb-4 rounded-2xl border border-infoBorder bg-infoTint px-4 py-3"
+          testID="daily-numbers-solution-hunt-playing"
+        >
+          <Text className="font-nunito-extrabold text-sm text-infoText">
+            {controller.t("quests.dailyNumbers.solutionHuntTitle")}
+          </Text>
+          <Text className="mt-1 font-nunito-semibold text-xs leading-4 text-fgMuted">
+            {controller.t("quests.dailyNumbers.solutionHuntPlayingBody")}
+          </Text>
+        </View>
+      ) : null}
       {controller.completionReached && !controller.finishScreenState ? (
         <SuccessCallout
           archiveMode={archiveMode}
@@ -3471,6 +3606,7 @@ function DailyNumbersBoard({
               onClaimReward={controller.onClaimReward}
               onShareResult={handleShareResult}
               onStartRetry={controller.onStartRetry}
+              onStartSolutionHunt={controller.onStartSolutionHunt}
               onToggleSolution={controller.onToggleSolution}
               officialSolutionSteps={controller.officialSolutionSteps}
               state={controller.state}
@@ -3571,6 +3707,9 @@ type DailyNumbersPlayViewProps = {
   onClaimReward: () => void;
   onModeSelect: (mode: DailyNumbersMode) => void;
   onResolveResetError: (error: unknown) => Promise<boolean>;
+  onSolutionHuntApplied: (
+    result: DailyNumbersSolutionHuntSubmitResponse,
+  ) => void;
   onSubmissionApplied: (nextState: DailyNumbersBoardState) => void;
   state: DailyNumbersBoardState;
   t: TranslateFn;
@@ -3592,6 +3731,7 @@ function DailyNumbersPlayView({
   onClaimReward,
   onModeSelect,
   onResolveResetError,
+  onSolutionHuntApplied,
   onSubmissionApplied,
   state,
   t,
@@ -3679,6 +3819,7 @@ function DailyNumbersPlayView({
             modeAccent={modeAccent}
             onClaimReward={onClaimReward}
             onResolveResetError={onResolveResetError}
+            onSolutionHuntApplied={onSolutionHuntApplied}
             onSubmissionApplied={onSubmissionApplied}
             scrollViewRef={scrollViewRef}
             state={state}
@@ -3915,6 +4056,28 @@ export default function DailyNumbersPlayScreen() {
     [activeMode, archiveDate, archiveMode, queryClient, questTimeZone],
   );
 
+  const handleSolutionHuntApplied = useCallback(
+    (result: DailyNumbersSolutionHuntSubmitResponse) => {
+      queryClient.setQueryData<DailyNumbersStateResponse>(
+        ["daily-numbers", activeMode],
+        (current) =>
+          current
+            ? {
+                ...current,
+                solutionHunt: {
+                  available: true,
+                  solutionsFound: result.solutionsFound,
+                  totalSolutions: result.totalSolutions,
+                  allSolutionsFound: result.allSolutionsFound,
+                },
+              }
+            : current,
+      );
+      setUiMessage(null);
+    },
+    [activeMode, queryClient],
+  );
+
   const boardIdentity = state ? buildBoardIdentity(state) : null;
   const bannerMessage = uiMessage ?? resetNoticeMessage;
   const chronometerActive = screenFocused && appActive;
@@ -3974,6 +4137,7 @@ export default function DailyNumbersPlayScreen() {
       }}
       onModeSelect={handleModeSelect}
       onResolveResetError={handleResetError}
+      onSolutionHuntApplied={handleSolutionHuntApplied}
       onSubmissionApplied={handleSubmissionApplied}
       state={state}
       t={t}

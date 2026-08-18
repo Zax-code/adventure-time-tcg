@@ -15,6 +15,7 @@ import { Link, useSearchParams } from "react-router-dom";
 
 import type {
   DailyNumbersMode,
+  DailyNumbersSolutionHuntSubmitResponse,
   DailyNumbersStateResponse,
   DailyNumbersStepInput,
   WordleLocale,
@@ -172,6 +173,9 @@ function PuzzleWorkspace({ archive, state }: { archive: boolean; state: DailyNum
   const [rightId, setRightId] = useState<string>();
   const [operator, setOperator] = useState<Operator>("+");
   const [message, setMessage] = useState<string>();
+  const [solutionHuntActive, setSolutionHuntActive] = useState(false);
+  const [solutionHuntResult, setSolutionHuntResult] =
+    useState<DailyNumbersSolutionHuntSubmitResponse>();
   const startedAt = useState(() => Date.now())[0];
 
   const tiles = useMemo(() => {
@@ -202,6 +206,29 @@ function PuzzleWorkspace({ archive, state }: { archive: boolean; state: DailyNum
     },
   });
 
+  const submitSolutionHunt = useMutation({
+    mutationFn: () =>
+      webApiClient.submitDailyNumbersSolutionHunt({
+        mode: state.mode,
+        dateKey: state.date,
+        questVersion: state.questVersion ?? undefined,
+        steps,
+      }),
+    onSuccess: async (result) => {
+      setSolutionHuntResult(result);
+      setSolutionHuntActive(false);
+      setSteps([]);
+      setMessage(
+        result.alreadyFound
+          ? "You've already found this solution. Try finding another way!"
+          : result.allSolutionsFound
+            ? "All solutions found!"
+            : "New solution!",
+      );
+      await queryClient.invalidateQueries({ queryKey: ["daily-numbers"] });
+    },
+  });
+
   function combine() {
     const left = tiles.find((tile) => tile.id === leftId);
     const right = tiles.find((tile) => tile.id === rightId);
@@ -219,7 +246,9 @@ function PuzzleWorkspace({ archive, state }: { archive: boolean; state: DailyNum
     setMessage(undefined);
   }
 
-  if (state.submitted && state.submission) {
+  if (state.submitted && state.submission && !solutionHuntActive) {
+    const solutionHuntProgress = solutionHuntResult ?? state.solutionHunt;
+
     return (
       <Panel className="number-result-panel">
         <div className="number-result-orb">
@@ -232,6 +261,15 @@ function PuzzleWorkspace({ archive, state }: { archive: boolean; state: DailyNum
           <h2>{state.submission.exact ? "Exactly on target." : "Your closest trail is saved."}</h2>
           <p>Score {state.submission.score} · {Math.round(state.submission.elapsedMs / 1000)} seconds · {state.submission.steps.length} operations.</p>
           {state.submission.steps.length ? <ol>{state.submission.steps.map((step, index) => <li key={step.resultId}><span>{index + 1}</span><code>{step.leftValue} {step.operator === "*" ? "×" : step.operator === "/" ? "÷" : step.operator} {step.rightValue} = {step.resultValue}</code></li>)}</ol> : null}
+          {!archive && solutionHuntProgress ? (
+            <section className="solution-hunt-panel" data-testid="daily-numbers-solution-hunt">
+              <span className="eyebrow">Solution Hunt</span>
+              <h3>{solutionHuntProgress.solutionsFound} / {solutionHuntProgress.totalSolutions} solutions found</h3>
+              {solutionHuntProgress.allSolutionsFound ? <strong>All solutions found!</strong> : solutionHuntResult?.alreadyFound ? <strong>You've already found this solution. Try finding another way!</strong> : solutionHuntResult?.newSolution ? <strong>New solution!</strong> : null}
+              <small>Just for fun · no extra rewards or leaderboard points.</small>
+              {!solutionHuntProgress.allSolutionsFound ? <Button onClick={() => { setSteps([]); setMessage(undefined); setSolutionHuntActive(true); }}>Find another solution</Button> : null}
+            </section>
+          ) : null}
           <div className="button-row"><ButtonLink to="/quests/daily-numbers" tone="secondary">Other modes</ButtonLink><ButtonLink to="/quests/daily-numbers/history" tone="ghost">Open archive</ButtonLink></div>
         </div>
       </Panel>
@@ -240,7 +278,7 @@ function PuzzleWorkspace({ archive, state }: { archive: boolean; state: DailyNum
 
   return (
     <div className="number-workspace">
-      <Panel className="target-panel"><span>Get close to</span><strong>{state.target}</strong><small>{state.date} · Mode {state.mode}</small></Panel>
+      <Panel className="target-panel"><span>{solutionHuntActive ? "Solution Hunt" : "Get close to"}</span><strong>{state.target}</strong><small>{state.date} · Mode {state.mode}</small></Panel>
       <Panel className="number-board">
         <SectionHeader lede="Select a left tile, an operator, and a right tile." title="Available tiles" />
         <div className="number-tiles">{tiles.map((tile) => <button aria-pressed={leftId === tile.id || rightId === tile.id} className={leftId === tile.id ? "left" : rightId === tile.id ? "right" : ""} key={tile.id} onClick={() => !leftId ? setLeftId(tile.id) : leftId === tile.id ? setLeftId(undefined) : setRightId(tile.id)} type="button">{tile.value}</button>)}</div>
@@ -251,8 +289,9 @@ function PuzzleWorkspace({ archive, state }: { archive: boolean; state: DailyNum
       <Panel className="number-ledger">
         <SectionHeader title="Your working" />
         {steps.length ? <ol>{steps.map((step, index) => <li key={step.resultId}><span>{index + 1}</span><code>{step.leftId.slice(-5)} {step.operator} {step.rightId.slice(-5)}</code></li>)}</ol> : <p>No operations yet. Your steps will appear here.</p>}
-        <FormStatus message={submit.isError ? readErrorMessage(submit.error) : message} success={submit.isSuccess} />
-        <Button busy={submit.isPending} disabled={tiles.length !== 1 || steps.length === 0} onClick={() => submit.mutate()}>Submit final value {tiles.length === 1 ? tiles[0].value : ""}</Button>
+        {solutionHuntActive ? <Notice title="Solution Hunt">Find a new exact route. This does not change rewards or leaderboard points.</Notice> : null}
+        <FormStatus message={submitSolutionHunt.isError ? readErrorMessage(submitSolutionHunt.error) : submit.isError ? readErrorMessage(submit.error) : message} success={submit.isSuccess || submitSolutionHunt.isSuccess} />
+        <Button busy={submit.isPending || submitSolutionHunt.isPending} disabled={steps.length === 0 || (solutionHuntActive ? !tiles.some((tile) => tile.value === state.target) : tiles.length !== 1)} onClick={() => solutionHuntActive ? submitSolutionHunt.mutate() : submit.mutate()}>{solutionHuntActive ? "Check exact solution" : `Submit final value ${tiles.length === 1 ? tiles[0].value : ""}`}</Button>
       </Panel>
     </div>
   );

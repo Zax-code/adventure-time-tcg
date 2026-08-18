@@ -144,6 +144,13 @@ defmodule AdventureTimeApiWeb.Router do
     get("/quests/daily-numbers", QuestsController, :daily_numbers_state)
     post("/quests/daily-numbers/ranked-start", QuestsController, :start_daily_numbers_ranked)
     post("/quests/daily-numbers/submit", QuestsController, :submit_daily_numbers)
+
+    post(
+      "/quests/daily-numbers/solution-hunt/submit",
+      QuestsController,
+      :submit_daily_numbers_solution_hunt
+    )
+
     get("/quests/daily-numbers/history", QuestsController, :daily_numbers_archive_history)
     get("/quests/daily-numbers/archive", QuestsController, :daily_numbers_archive_state)
 

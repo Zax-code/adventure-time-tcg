@@ -16,6 +16,7 @@ defmodule AdventureTimeApi.Quests do
     DailyNumbersArchiveAttempt,
     DailyNumbersDailyAttempt,
     DailyNumbersEngine,
+    DailyNumbersSolutionHunt,
     DailyQuest,
     PerfectTiming,
     PerfectTimingAttempt,
@@ -588,6 +589,60 @@ defmodule AdventureTimeApi.Quests do
             end
           end
         end
+      end
+    end
+  end
+
+  def submit_daily_numbers_solution_hunt(
+        user_id,
+        mode,
+        expected_date_key,
+        steps,
+        expected_quest_version \\ nil
+      ) do
+    with {:ok, normalized_mode} <- normalize_daily_numbers_mode(mode),
+         date = current_reset_date_for_user(user_id),
+         :ok <- validate_daily_numbers_date(date, expected_date_key) do
+      with :ok <-
+             validate_daily_numbers_version(
+               user_id,
+               date,
+               normalized_mode,
+               expected_quest_version
+             ),
+           %DailyQuest{completed: true} <-
+             get_daily_quest(user_id, date, daily_numbers_quest_type(normalized_mode)),
+           %DailyNumbersDailyAttempt{completed: true} <-
+             get_daily_numbers_attempt(user_id, date, normalized_mode),
+           {:ok, puzzle} <- DailyNumbersEngine.generate_puzzle(normalized_mode, date),
+           {:ok, submission} <- DailyNumbersEngine.validate_submission(puzzle, steps),
+           true <- submission.exact || {:error, :daily_numbers_solution_hunt_not_exact},
+           {:ok, solution_set} <-
+             DailyNumbersSolutionHunt.ensure_solution_set(
+               date,
+               normalized_mode,
+               puzzle
+             ),
+           {:ok, discovery_result} <-
+             DailyNumbersSolutionHunt.record_solution(
+               user_id,
+               solution_set,
+               submission.canonicalKey,
+               submission.steps
+             ) do
+        progress = DailyNumbersSolutionHunt.progress(user_id, solution_set)
+
+        {:ok,
+         Map.merge(progress, %{
+           valid: true,
+           newSolution: discovery_result == :new,
+           alreadyFound: discovery_result == :already_found
+         })}
+      else
+        nil -> {:error, :daily_numbers_solution_hunt_locked}
+        %DailyQuest{} -> {:error, :daily_numbers_solution_hunt_locked}
+        %DailyNumbersDailyAttempt{} -> {:error, :daily_numbers_solution_hunt_locked}
+        error -> error
       end
     end
   end
@@ -1438,19 +1493,28 @@ defmodule AdventureTimeApi.Quests do
   end
 
   defp delete_daily_numbers_attempts_for_reset(user_id, date, nil) do
-    DailyNumbersDailyAttempt
-    |> where([a], a.user_id == ^user_id and a.date == ^date)
-    |> Repo.delete_all()
+    result =
+      DailyNumbersDailyAttempt
+      |> where([a], a.user_id == ^user_id and a.date == ^date)
+      |> Repo.delete_all()
+
+    DailyNumbersSolutionHunt.delete_user_discoveries(user_id, date)
+    result
   end
 
   defp delete_daily_numbers_attempts_for_reset(user_id, date, quest_type) do
-    DailyNumbersDailyAttempt
-    |> where(
-      [a],
-      a.user_id == ^user_id and a.date == ^date and
-        a.mode == ^daily_numbers_mode_for_quest_type(quest_type)
-    )
-    |> Repo.delete_all()
+    mode = daily_numbers_mode_for_quest_type(quest_type)
+
+    result =
+      DailyNumbersDailyAttempt
+      |> where(
+        [a],
+        a.user_id == ^user_id and a.date == ^date and a.mode == ^mode
+      )
+      |> Repo.delete_all()
+
+    DailyNumbersSolutionHunt.delete_user_discoveries(user_id, date, mode)
+    result
   end
 
   defp maybe_set_reset_actor(_user_id, _date, _quest_type, nil), do: {0, nil}
@@ -1822,9 +1886,84 @@ defmodule AdventureTimeApi.Quests do
       claimed: if(quest, do: quest.claimed, else: false),
       completed: if(quest, do: quest.completed, else: false),
       submitted: not is_nil(attempt),
-      submission: build_daily_numbers_submission_payload(attempt, puzzle_payload)
+      submission: build_daily_numbers_submission_payload(attempt, puzzle_payload),
+      solutionHunt:
+        build_daily_numbers_solution_hunt_payload(
+          user_id,
+          date,
+          mode,
+          quest,
+          attempt,
+          puzzle_payload
+        )
     }
   end
+
+  defp build_daily_numbers_solution_hunt_payload(
+         user_id,
+         date,
+         mode,
+         %DailyQuest{completed: true},
+         %DailyNumbersDailyAttempt{completed: true} = attempt,
+         puzzle
+       ) do
+    with {:ok, solution_set} <-
+           DailyNumbersSolutionHunt.ensure_solution_set(date, mode, puzzle),
+         :ok <-
+           maybe_register_ranked_daily_numbers_solution(user_id, solution_set, attempt, puzzle) do
+      user_id
+      |> DailyNumbersSolutionHunt.progress(solution_set)
+      |> Map.put(:available, true)
+    else
+      {:error, reason} ->
+        Logger.error("daily numbers solution hunt state unavailable",
+          user_id: user_id,
+          date: Date.to_iso8601(date),
+          mode: mode,
+          reason: inspect(reason)
+        )
+
+        nil
+    end
+  end
+
+  defp build_daily_numbers_solution_hunt_payload(
+         _user_id,
+         _date,
+         _mode,
+         _quest,
+         _attempt,
+         _puzzle
+       ),
+       do: nil
+
+  defp maybe_register_ranked_daily_numbers_solution(
+         user_id,
+         solution_set,
+         %DailyNumbersDailyAttempt{exact: true} = attempt,
+         puzzle
+       ) do
+    with {:ok, submission} <-
+           DailyNumbersEngine.validate_submission(puzzle, attempt.submitted_steps),
+         true <- submission.exact || {:error, :ranked_solution_not_exact},
+         {:ok, _result} <-
+           DailyNumbersSolutionHunt.record_solution(
+             user_id,
+             solution_set,
+             submission.canonicalKey,
+             submission.steps
+           ) do
+      :ok
+    end
+  end
+
+  defp maybe_register_ranked_daily_numbers_solution(
+         _user_id,
+         _solution_set,
+         %DailyNumbersDailyAttempt{},
+         _puzzle
+       ),
+       do: :ok
 
   defp build_daily_numbers_submission_payload(nil, _puzzle), do: nil
 

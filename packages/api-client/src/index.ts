@@ -60,6 +60,8 @@ import {
   dailyNumbersArchiveStateResponseSchema,
   dailyNumbersArchiveSubmitSchema,
   dailyNumbersStateResponseSchema,
+  dailyNumbersSolutionHuntSubmitResponseSchema,
+  dailyNumbersSolutionHuntSubmitSchema,
   dailyNumbersSubmitSchema,
   craftRecycleResponseSchema,
   dailyClaimResponseSchema,
@@ -165,6 +167,8 @@ import {
   type DailyNumbersArchiveStateResponse,
   type DailyNumbersArchiveSubmitInput,
   type DailyNumbersStateResponse,
+  type DailyNumbersSolutionHuntSubmitInput,
+  type DailyNumbersSolutionHuntSubmitResponse,
   type DailyNumbersSubmitInput,
   type DailyClaimResponse,
   type DailyClaimStatus,
@@ -667,6 +671,17 @@ export class ApiClient {
       "/quests/daily-numbers/submit",
       { method: "POST", body: JSON.stringify(body) },
       (data) => dailyNumbersStateResponseSchema.parse(data),
+    );
+  }
+
+  async submitDailyNumbersSolutionHunt(
+    input: DailyNumbersSolutionHuntSubmitInput,
+  ): Promise<DailyNumbersSolutionHuntSubmitResponse> {
+    const body = dailyNumbersSolutionHuntSubmitSchema.parse(input);
+    return this.request(
+      "/quests/daily-numbers/solution-hunt/submit",
+      { method: "POST", body: JSON.stringify(body) },
+      (data) => dailyNumbersSolutionHuntSubmitResponseSchema.parse(data),
     );
   }
 

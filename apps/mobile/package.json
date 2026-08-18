@@ -34,7 +34,7 @@
     "play:release-notes": "node ./scripts/set-play-release-notes.mjs",
     "release:android": "node ./scripts/release-android.mjs",
     "release:ios": "node ./scripts/release-ios.mjs",
-    "test:quests": "node --experimental-strip-types --test test/quest-day-cutoff.test.ts test/quest-hub-model.test.ts test/quest-i18n-parity.test.ts test/quest-share-date.test.ts test/perfect-timing-model.test.ts test/perfect-timing-ui.test.mjs test/daily-numbers-result-layout.test.mjs test/daily-numbers-result-width.test.mjs"
+    "test:quests": "node --experimental-strip-types --test test/quest-day-cutoff.test.ts test/quest-hub-model.test.ts test/quest-i18n-parity.test.ts test/quest-share-date.test.ts test/perfect-timing-model.test.ts test/perfect-timing-ui.test.mjs test/daily-numbers-result-layout.test.mjs test/daily-numbers-result-width.test.mjs test/daily-numbers-solution-hunt.test.mjs"
   },
   "dependencies": {
     "@adventure-time/api-client": "file:../../packages/api-client",

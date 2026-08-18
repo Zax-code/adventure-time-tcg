@@ -45,6 +45,17 @@ defmodule AdventureTimeApi.Quests.DailyNumbersEngineTest do
     assert length(puzzle.solution) > 2
   end
 
+  test "future puzzle generation prefers the bounded Solution Hunt count range" do
+    assert DailyNumbersEngine.solution_hunt_solution_range() == 5..30
+    assert DailyNumbersEngine.max_solution_hunt_quality_checks() == 20
+
+    for mode <- ["1-5", "2-4", "3-3"] do
+      assert {:ok, puzzle} = DailyNumbersEngine.generate_puzzle(mode, ~D[2026-08-19])
+      assert puzzle.solutionCount in DailyNumbersEngine.solution_hunt_solution_range()
+      assert puzzle.shortestExactOperationsCount > 2
+    end
+  end
+
   test "validate_submission starts the untouched board at 0 percent" do
     assert {:ok, submission} = DailyNumbersEngine.validate_submission(puzzle(850), [])
 
