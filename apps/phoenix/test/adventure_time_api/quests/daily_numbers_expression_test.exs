@@ -52,7 +52,48 @@ defmodule AdventureTimeApi.Quests.DailyNumbersExpressionTest do
            |> key() == key(expression)
   end
 
+  test "canonicalizes visible steps independently of evaluation and commutative operand order" do
+    first = [
+      step(100, "-", 5, 95),
+      step(6, "-", 2, 4),
+      step(95, "*", 4, 380),
+      step(75, "-", 4, 71),
+      step(380, "+", 71, 451)
+    ]
+
+    reordered = [
+      step(100, "-", 5, 95),
+      step(4, "*", 95, 380),
+      step(6, "-", 2, 4),
+      step(75, "-", 4, 71),
+      step(71, "+", 380, 451)
+    ]
+
+    assert Expression.solution_key_from_steps(first) ==
+             Expression.solution_key_from_steps(reordered)
+  end
+
+  test "visible step keys preserve subtraction order and different constructions" do
+    refute Expression.solution_key_from_steps([step(50, "-", 25, 25)]) ==
+             Expression.solution_key_from_steps([step(25, "-", 50, -25)])
+
+    factored = [step(10, "+", 5, 15), step(15, "*", 2, 30)]
+
+    distributed = [
+      step(10, "*", 2, 20),
+      step(5, "*", 2, 10),
+      step(20, "+", 10, 30)
+    ]
+
+    refute Expression.solution_key_from_steps(factored) ==
+             Expression.solution_key_from_steps(distributed)
+  end
+
   defp number(value), do: Expression.number(value)
   defp op(operator, left, right), do: Expression.operation(operator, left, right)
   defp key(expression), do: Expression.canonical_key(expression)
+
+  defp step(left, operator, right, result) do
+    %{leftValue: left, operator: operator, rightValue: right, resultValue: result}
+  end
 end

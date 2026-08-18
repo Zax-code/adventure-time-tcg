@@ -2,8 +2,8 @@
 
 Last verified: 2026-08-18
 Repository: `Zax-code/adventure-time-tcg`
-Branch: `main` via pull request #285
-Feature commits: `44203c82`, `2a9418c4`, `91e34c3a`, and `026389f5`
+Branch: `codex/daily-numbers-trace-dedup` from `main`
+Feature base: `a97348cc`
 
 ## Purpose and authority
 
@@ -32,10 +32,9 @@ Phoenix, PostgreSQL, and MinIO are the production backend. The Fastify app in `a
 
 ### Verified release boundary
 
-- **Production backend and website:** the `Deploy Phoenix` workflow completed successfully for `a49bcf0d2effa258bacdc1b99146732a10dd9550` on 2026-08-17 (GitHub Actions run `32040865305`). That revision contains the live daily/weekly leaderboard work, the overall leaderboard, and the Daily Numbers timing correction. It remains the deployed Phoenix boundary: later released/tagged mainline commits through the 1.0.28 mobile release do not add a newer deployed Phoenix version, while PR #285 contains the unreleased Solution Hunt changes described below.
+- **Production backend and website:** the `Deploy Phoenix` workflow completed successfully for `a97348cc9032618bd7deb09420aad74b8a337972` on 2026-08-18 (GitHub Actions run `32143756425`). That revision includes the initial Daily Numbers Solution Hunt implementation. The visible-step deduplication on the current branch is not deployed yet.
 - **Mobile:** annotated tags `mobile/android/1.0.28` and `mobile/ios/1.0.28` both resolve to `f7bd214d34aaeb8a073812d0061355d5e79bccd5`, with release timestamps on 2026-08-17. The release note identifies the Daily Numbers leaderboard timing and formatting fix.
 - **Not released:** open pull request #244, “Redesign the Daily Numbers in-game UI,” is not on `main`. The tracked native redesign workspace under `docs/design` is a design specification, not evidence of implemented or released application changes.
-- **Not released:** pull request #285 adds a post-completion Daily Numbers mode for discovering canonical distinct solutions without changing the ranked attempt, reward, or leaderboard result. A source merge is not evidence of a production or store release.
 - **Local data:** local Docker database observations in this document are explicitly labeled. They are not evidence of production catalog contents.
 
 ## Current architecture
@@ -43,7 +42,7 @@ Phoenix, PostgreSQL, and MinIO are the production backend. The Fastify app in `a
 - **Mobile application:** Expo Router routes in `apps/mobile/app`, product code in `apps/mobile/src`, checked-in native projects in `apps/mobile/ios` and `apps/mobile/android`, and bundled art in `apps/mobile/assets`. It calls Phoenix through `@adventure-time/api-client`, receives quest changes through a Phoenix channel, polls REST endpoints for current PvP state, and stores session state securely on-device.
 - **Web application:** React routes in `apps/web/src/app.tsx` and `apps/web/src/route-manifest.ts`. The production build is copied into Phoenix static assets by `apps/phoenix/Dockerfile`; browser authentication uses secure Phoenix session endpoints.
 - **Backend/API:** Phoenix contexts under `apps/phoenix/lib/adventure_time_api`, controllers/channels under `apps/phoenix/lib/adventure_time_api_web`, and the canonical route map at `apps/phoenix/lib/adventure_time_api_web/router.ex`. Phoenix owns authentication, persistence, uploads, jobs, quests, leaderboards, and PvP validation.
-- **Database:** PostgreSQL 16 with Ecto schemas in `apps/phoenix/lib/adventure_time_api` and 46 canonical migrations in `apps/phoenix/priv/repo/migrations`. `packages/db` is legacy Drizzle reference material.
+- **Database:** PostgreSQL 16 with Ecto schemas in `apps/phoenix/lib/adventure_time_api` and 47 canonical migrations in `apps/phoenix/priv/repo/migrations`. `packages/db` is legacy Drizzle reference material.
 - **Authentication:** email/password with verification and password reset, Google and Apple provider identities, signed access/refresh tokens for native clients, refresh-token sessions, secure browser cookies, role/access approval, and rate limits. Primary code is `apps/phoenix/lib/adventure_time_api/accounts.ex`, `apps/phoenix/lib/adventure_time_api/auth.ex`, and the auth controllers/plugs.
 - **Object storage and image delivery:** a private MinIO bucket accessed through `apps/phoenix/lib/adventure_time_api/media.ex`. Phoenix signs S3-compatible requests and proxies image bytes through `/media/*` routes.
 - **Admin tooling:** role-guarded Phoenix endpoints plus mobile and web admin interfaces for users/access requests, cards, abilities, packs, card backs, featured cards, image assets, quest reset, and leaderboard corrections.
@@ -100,7 +99,7 @@ The Expo 57 migration and subsequent patch alignment are complete; Expo Doctor p
 | Rewards | Daily login reward | COMPLETE | One 50-coin claim per reset day, separate from daily quests | `apps/phoenix/lib/adventure_time_api/quests.ex`; mobile/web home screens |
 | Quests | Steps quest | COMPLETE | 10,000-step target, 75 coins, device-health or Fitbit snapshots, mobile sync/background/widget support, and leaderboard result recording | `apps/phoenix/lib/adventure_time_api/quests.ex`; `apps/phoenix/lib/adventure_time_api/health.ex`; `apps/phoenix/lib/adventure_time_api/fitbit.ex` |
 | Quests | Wordle | COMPLETE | Separate English/French deterministic daily words, dictionary validation, six attempts, definitions, 35-coin rewards, sharing, and leaderboards | `apps/phoenix/lib/adventure_time_api/quests.ex`; `apps/phoenix/lib/adventure_time_api/quests/wordle_engine.ex`; Wordle routes/screens/tests |
-| Quests | Daily Numbers | COMPLETE | Deterministic 1-5, 2-4, and 3-3 modes; server-validated arithmetic; score-scaled rewards; one daily result/mode; 30-day archive; mobile/web UI; per-mode and family boards; post-completion Solution Hunt with canonical solution enumeration and per-user progress | `apps/phoenix/lib/adventure_time_api/quests/daily_numbers_engine.ex`; `apps/phoenix/lib/adventure_time_api/quests/daily_numbers_solver.ex`; `apps/phoenix/lib/adventure_time_api/quests/daily_numbers_solution_hunt.ex`; Daily Numbers routes/tests |
+| Quests | Daily Numbers | COMPLETE | Deterministic 1-5, 2-4, and 3-3 modes; server-validated arithmetic; score-scaled rewards; one daily result/mode; 30-day archive; mobile/web UI; per-mode and family boards; post-completion Solution Hunt with AST canonicalization plus visible-step equivalence, canonical solution enumeration, and per-user progress | `apps/phoenix/lib/adventure_time_api/quests/daily_numbers_engine.ex`; `apps/phoenix/lib/adventure_time_api/quests/daily_numbers_expression.ex`; `apps/phoenix/lib/adventure_time_api/quests/daily_numbers_solver.ex`; `apps/phoenix/lib/adventure_time_api/quests/daily_numbers_solution_hunt.ex`; Daily Numbers routes/tests |
 | Quests | Speed Calculus | COMPLETE | Three 30-second scored runs, deterministic server questions, pause/resume, server answer scoring, training, cash-out, reward up to 80 coins, and latest-run leaderboard reconciliation | `apps/phoenix/lib/adventure_time_api/quests/speed_calculus_engine.ex`; `apps/phoenix/lib/adventure_time_api/quests.ex`; commit `5f8b08b7` |
 | Quests | Perfect Timing | COMPLETE | Deterministic 3–10 second target, three-attempt state machine, monotonic client measurement with server plausibility checks/recovery, tiered rewards, training/sharing, and leaderboard | `apps/phoenix/lib/adventure_time_api/quests/perfect_timing.ex`; `apps/phoenix/lib/adventure_time_api/quests/perfect_timing_engine.ex`; commit `b40970d` |
 | Rankings | Per-quest leaderboards | COMPLETE | Steps, three Daily Numbers modes, English/French Wordle, Speed Calculus, and Perfect Timing source boards are implemented and deployed | `apps/phoenix/lib/adventure_time_api/leaderboards/boards.ex`; `apps/phoenix/lib/adventure_time_api_web/controllers/leaderboards_controller.ex`; `apps/phoenix/priv/repo/migrations/20260815160000_create_leaderboard_foundation.exs`; deploy `a49bcf0` |
@@ -188,13 +187,13 @@ Ecto migrations are the schema source of truth. Important conceptual groups are:
 - **Identity/auth:** `users`, `email_auth_credentials`, `auth_sessions`, `auth_provider_identities`, access requests, verification codes, auth attempts, integrity challenges, advisory access assessments/snapshots, and audited IP reveals.
 - **Catalog/inventory/media:** `rarities`, `cards`, `packs`, `image_assets`, `card_back_visuals`, `owned_cards`, `pack_openings`, `ability_defs`, and `card_abilities`.
 - **Social/PvP:** `card_gifts`, `pvp_loadouts`, `pvp_matches`, compact `pvp_match_events`, and reconstructed-state `pvp_match_snapshots`.
-- **Quests/health:** `daily_quests`, step snapshots, Fitbit accounts, Wordle dictionary/definitions/attempts, Speed Calculus runs, Daily Numbers daily/archive attempts, shared Daily Numbers solution sets and canonical expressions, per-user Solution Hunt discoveries, and Perfect Timing attempts.
+- **Quests/health:** `daily_quests`, step snapshots, Fitbit accounts, Wordle dictionary/definitions/attempts, Speed Calculus runs, Daily Numbers daily/archive attempts, versioned shared Daily Numbers solution sets, structural expression keys, visible-step solution keys, per-user Solution Hunt discoveries, and Perfect Timing attempts.
 - **Leaderboards:** boards, immutable scoring versions, user competition slots, ranked sessions, daily results, periods, snapshots/rows/corrections, telemetry, achievements, reward wallets, and idempotent grants.
 - **Operations:** notification devices and Oban job tables.
 
 The foundation begins at `apps/phoenix/priv/repo/migrations/20260324130500_create_foundation_tables.exs`; leaderboard state is introduced by `apps/phoenix/priv/repo/migrations/20260815160000_create_leaderboard_foundation.exs` and extended by `apps/phoenix/priv/repo/migrations/20260817150000_enable_sum_all_weekly_scoring.exs` and `apps/phoenix/priv/repo/migrations/20260817160000_add_overall_quests_leaderboard.exs`. Do not infer current schema from `packages/db`.
 
-At verification time the local development database was migrated through the Solution Hunt migration and Phoenix `/ready` returned successfully. Production remains on the release boundary above until the PR #285 result is deployed and its migration runs.
+At verification time the local development and test databases were migrated through `20260818190000_deduplicate_daily_numbers_solution_traces.exs`. Existing persisted sets upgrade lazily under the challenge advisory lock, preserve the earliest copy of each player discovery, and rebuild their official rows using visible-step equivalence. Production does not have this follow-up migration until the current fix is deployed.
 
 ## Deployment and releases
 
@@ -224,6 +223,7 @@ At verification time the local development database was migrated through the Sol
 
 ## Work currently in progress
 
+- **IN PROGRESS — Solution Hunt visible-step deduplication:** `codex/daily-numbers-trace-dedup` fixes structurally different trees that display the same arithmetic because an initial tile and a derived tile share a value. The solver keeps AST canonicalization for validation but counts and tracks solutions by a deterministic value/operator/result trace; existing sets upgrade lazily without rerunning enumeration on ordinary requests after upgrade. For the 2026-08-18 production puzzles, corrected totals are 17 for 1-5, 81 for 2-4, and 4 for 3-3.
 - **IN PROGRESS — Daily Numbers UI redesign:** pull request #244 (`codex/daily-numbers-ui-redesign` → `main`) remains open. It was last updated 2026-07-14, before later Daily Numbers and leaderboard work; current merge/rebase fitness was not established.
 - **PLANNED — broader native redesign:** `docs/design/adventure-time-tcg-redesign.pen` and `docs/design/adventure-time-tcg-redesign-assets/` preserve a native-app baseline, three visual directions, a recommended “Tournament Companion” direction, design-system guidance, and handoff notes. No corresponding application-code implementation was found; the handoff explicitly leaves behavior changes subject to product approval.
 - No other open pull request was returned by the repository query. GitHub issue #256 is PLANNED exploration, not active implementation.
