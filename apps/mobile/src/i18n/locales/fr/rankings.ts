@@ -17,6 +17,12 @@ const rankings = {
   hideDays: "Masquer les résultats quotidiens",
   scoringHelp: "Comment fonctionne le classement",
   profileTapHint: "Touche un aventurier pour voir ses couronnes et ses succès",
+  placements: {
+    first: "1re place",
+    second: "2e place",
+    third: "3e place",
+    tied: "Égalité entre {count} joueurs",
+  },
   historyTitle: "Historique des classements",
   historyBody:
     "Aucun jour ni aucune semaine de compétition clôturés pour le moment.",
@@ -49,6 +55,16 @@ const rankings = {
     seconds: "{seconds} s",
     minutesSeconds: "{minutes} min {seconds} s",
     notExact: "Non exact",
+    weeklyExact: "{exact}/{results} exacts · {duration}",
+    weeklyWordleOneGuess: "{solved}/{results} réussis · {guesses} essai",
+    weeklyWordleGuesses: "{solved}/{results} réussis · {guesses} essais",
+    weeklyOneCorrect: "{count} bonne réponse",
+    weeklyCorrect: "{count} bonnes réponses",
+    weeklyOneHit: "{hits}/{results} réussite · {error} ms",
+    weeklyHits: "{hits}/{results} réussites · {error} ms",
+    weeklyScoring: "{scoring}/{results} avec points",
+    weeklySeconds: "{seconds}s",
+    weeklyMinutesSeconds: "{minutes}m {seconds}s",
   },
   help: {
     title: "Comment fonctionne le classement",
@@ -94,6 +110,8 @@ const rankings = {
       "Le classement quotidien utilise la date de compétition du fuseau verrouillé de chaque joueur. Aujourd’hui et Hier peuvent être provisoires en même temps.",
     periodsWeekly:
       "L’hebdomadaire additionne tous les résultats quotidiens admissibles du lundi au dimanche. Un seul résultat suffit, sans règle des trois meilleurs ni plafond hebdomadaire.",
+    periodsWeeklyResults:
+      "Les résumés hebdomadaires utilisent des totaux. Pour Nombre du jour, Wordle et Timing parfait, seuls les résultats exacts, résolus ou réussis contribuent au temps, aux essais ou à l’erreur affichés.",
     periodsCutoff:
       "Une date devient définitive le lendemain à 13 h UTC : le changement de date mondial se termine à 12 h UTC, puis une heure est réservée à la dernière synchronisation des pas. Une semaine devient définitive le lundi à 13 h UTC.",
     periodsHistory:

@@ -177,14 +177,15 @@ describe("mobile UI regression contracts", () => {
   it("keeps leaderboard public profiles discoverable from every ranking placement", () => {
     assert.match(rankingsSource, /pathname: "\/public-profile"/);
     assert.match(rankingsSource, /<PodiumCard[\s\S]*?onPress=/);
+    assert.match(rankingsSource, /<TiedRankGroup[\s\S]*?onPress=/);
     assert.match(rankingsSource, /<RankingRow[\s\S]*?onPress=/);
   });
 
   it("authenticates custom profile pictures throughout the rankings", () => {
     assert.equal(
       rankingsSource.match(/avatarUrl=\{row\.profile\.avatarUrl\}/g)?.length,
-      2,
-      "both podium cards and ranking rows should pass the public profile picture to LeaderboardAvatar",
+      3,
+      "podium cards, tied-rank rows, and ranking rows should pass the public profile picture to LeaderboardAvatar",
     );
     assert.match(
       leaderboardAvatarSource,

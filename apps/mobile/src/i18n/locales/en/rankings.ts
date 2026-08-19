@@ -16,6 +16,12 @@ const rankings = {
   hideDays: "Hide daily results",
   scoringHelp: "How the leaderboard works",
   profileTapHint: "Tap any adventurer to see their crowns and achievements",
+  placements: {
+    first: "1st place",
+    second: "2nd place",
+    third: "3rd place",
+    tied: "{count}-way tie",
+  },
   historyTitle: "Leaderboard history",
   historyBody: "No closed competition days or weeks yet.",
   periods: {
@@ -47,6 +53,16 @@ const rankings = {
     seconds: "{seconds} s",
     minutesSeconds: "{minutes} min {seconds} s",
     notExact: "Not exact",
+    weeklyExact: "{exact}/{results} exact · {duration}",
+    weeklyWordleOneGuess: "{solved}/{results} solved · {guesses} guess",
+    weeklyWordleGuesses: "{solved}/{results} solved · {guesses} guesses",
+    weeklyOneCorrect: "{count} correct",
+    weeklyCorrect: "{count} correct",
+    weeklyOneHit: "{hits}/{results} hit · {error} ms",
+    weeklyHits: "{hits}/{results} hits · {error} ms",
+    weeklyScoring: "{scoring}/{results} scored",
+    weeklySeconds: "{seconds}s",
+    weeklyMinutesSeconds: "{minutes}m {seconds}s",
   },
   help: {
     title: "How the leaderboard works",
@@ -92,6 +108,8 @@ const rankings = {
       "Daily uses the competition date in each player's locked timezone. Today and Yesterday may both be provisional.",
     periodsWeekly:
       "Weekly adds every eligible daily result from Monday through Sunday. One result is enough; there is no best-three rule or weekly ceiling.",
+    periodsWeeklyResults:
+      "Weekly summaries use totals. For Daily Numbers, Wordle, and Perfect Timing, only exact, solved, or successful results contribute to the displayed time, guesses, or error.",
     periodsCutoff:
       "A date becomes final at 13:00 UTC the next day: worldwide date rollover completes by 12:00 UTC, followed by one hour for final Step synchronization. A week becomes final Monday at 13:00 UTC.",
     periodsHistory:

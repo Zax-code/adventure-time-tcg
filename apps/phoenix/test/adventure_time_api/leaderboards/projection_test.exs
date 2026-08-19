@@ -71,6 +71,47 @@ defmodule AdventureTimeApi.Leaderboards.ProjectionTest do
            }
   end
 
+  test "weekly source rows summarize every selected daily result" do
+    monday = ~D[2026-08-17]
+    tuesday = Date.add(monday, 1)
+    scoring_version = insert_scoring_version!()
+    board = Repo.get_by!(Board, key: "speed-calculus/ranked")
+    finn = insert_user!("weekly-finn")
+    slot = insert_slot!(finn.id, monday)
+
+    insert_result!(
+      finn,
+      slot,
+      scoring_version,
+      monday,
+      board.key,
+      900_000,
+      %{"kind" => "correct_answers", "correctAnswers" => 18}
+    )
+
+    insert_result!(
+      finn,
+      slot,
+      scoring_version,
+      tuesday,
+      board.key,
+      1_150_000,
+      %{"kind" => "correct_answers", "correctAnswers" => 23}
+    )
+
+    period = %Period{period_type: :week, week_start: monday}
+    assert [row] = Projection.rows(period, board, Scoring.launch_configuration())
+
+    assert row.points_milli == 2_050_000
+
+    assert row.raw_result == %{
+             "correctAnswers" => 41,
+             "kind" => "weekly_correct_answers",
+             "resultCount" => 2,
+             "scoringResultCount" => 2
+           }
+  end
+
   defp insert_user!(label) do
     %User{}
     |> User.registration_changeset(%{
@@ -112,7 +153,15 @@ defmodule AdventureTimeApi.Leaderboards.ProjectionTest do
     |> Repo.insert!()
   end
 
-  defp insert_result!(user, slot, scoring_version, date, board_key, points_milli) do
+  defp insert_result!(
+         user,
+         slot,
+         scoring_version,
+         date,
+         board_key,
+         points_milli,
+         raw_result \\ %{"kind" => "correct_answers", "correctAnswers" => 1}
+       ) do
     board = Repo.get_by!(Board, key: board_key)
 
     %DailyResult{}
@@ -123,7 +172,7 @@ defmodule AdventureTimeApi.Leaderboards.ProjectionTest do
       competition_date: date,
       source_kind: "projection_test",
       source_id: Ecto.UUID.generate(),
-      raw_result: %{"kind" => "correct_answers", "correctAnswers" => 1},
+      raw_result: raw_result,
       points_milli: points_milli,
       scoring_version_id: scoring_version.id,
       result_status: :accepted,

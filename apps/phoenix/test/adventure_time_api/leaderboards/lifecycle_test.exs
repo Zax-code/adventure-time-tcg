@@ -61,7 +61,19 @@ defmodule AdventureTimeApi.Leaderboards.LifecycleTest do
     assert {:ok, weekly} = Query.fetch("steps", "default", "current_week", user.id, now)
     assert weekly.period.weekStart == ~D[2026-08-17]
     assert weekly.period.provisional
-    assert [%{rank: 1, rawResult: %{"steps" => 12_000}}] = weekly.rows
+
+    assert [
+             %{
+               rank: 1,
+               rawResult: %{
+                 "kind" => "weekly_steps",
+                 "resultCount" => 1,
+                 "scoringResultCount" => 1,
+                 "steps" => 12_000
+               }
+             }
+           ] = weekly.rows
+
     assert weekly.qualification == %{validResults: 1, requiredResults: 1}
   end
 
@@ -194,7 +206,13 @@ defmodule AdventureTimeApi.Leaderboards.LifecycleTest do
                ~U[2026-08-17 12:00:00.000000Z]
              )
 
-    assert weekly.currentPlayer.rawResult == %{"kind" => "steps", "steps" => 12_000}
+    assert weekly.currentPlayer.rawResult == %{
+             "kind" => "weekly_steps",
+             "resultCount" => 1,
+             "scoringResultCount" => 1,
+             "steps" => 12_000
+           }
+
     assert weekly.currentPlayer.rank == 1
   end
 
@@ -309,7 +327,13 @@ defmodule AdventureTimeApi.Leaderboards.LifecycleTest do
     assert weekly.qualification == %{validResults: 3, requiredResults: 1}
 
     assert {:ok, first_weekly} = Query.fetch("steps", "default", "current_week", first.id, now)
-    assert first_weekly.currentPlayer.rawResult == %{"kind" => "steps", "steps" => 40_000}
+
+    assert first_weekly.currentPlayer.rawResult == %{
+             "kind" => "weekly_steps",
+             "resultCount" => 4,
+             "scoringResultCount" => 4,
+             "steps" => 100_000
+           }
 
     assert DailyResult
            |> where([result], result.result_status == :snapshotted)

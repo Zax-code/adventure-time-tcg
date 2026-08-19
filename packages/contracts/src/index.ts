@@ -92,6 +92,45 @@ export const leaderboardRawResultSchema = z.discriminatedUnion("kind", [
     kind: z.literal("member_breakdown"),
     members: z.record(z.number().int().nonnegative()),
   }),
+  z.object({
+    kind: z.literal("weekly_steps"),
+    steps: z.number().int().nonnegative(),
+    resultCount: z.number().int().nonnegative(),
+    scoringResultCount: z.number().int().nonnegative(),
+  }),
+  z.object({
+    kind: z.literal("weekly_exact_completion"),
+    exactResults: z.number().int().nonnegative(),
+    resultCount: z.number().int().nonnegative(),
+    scoringResultCount: z.number().int().nonnegative(),
+    totalElapsedMs: z.number().int().nonnegative(),
+  }),
+  z.object({
+    kind: z.literal("weekly_wordle"),
+    solvedResults: z.number().int().nonnegative(),
+    resultCount: z.number().int().nonnegative(),
+    scoringResultCount: z.number().int().nonnegative(),
+    totalGuesses: z.number().int().nonnegative(),
+  }),
+  z.object({
+    kind: z.literal("weekly_correct_answers"),
+    correctAnswers: z.number().int().nonnegative(),
+    resultCount: z.number().int().nonnegative(),
+    scoringResultCount: z.number().int().nonnegative(),
+  }),
+  z.object({
+    kind: z.literal("weekly_duration_error"),
+    successfulResults: z.number().int().nonnegative(),
+    resultCount: z.number().int().nonnegative(),
+    scoringResultCount: z.number().int().nonnegative(),
+    totalAbsoluteErrorMs: z.number().int().nonnegative(),
+  }),
+  z.object({
+    kind: z.literal("weekly_overall"),
+    familiesPlayed: z.number().int().nonnegative(),
+    resultCount: z.number().int().nonnegative(),
+    scoringResultCount: z.number().int().nonnegative(),
+  }),
 ]);
 
 export const leaderboardRowSchema = z.object({

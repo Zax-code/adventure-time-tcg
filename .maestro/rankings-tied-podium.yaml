@@ -1,0 +1,52 @@
+appId: love.leaetzak.adventuretime
+name: Rankings tied podium screenshot
+tags:
+  - rankings
+  - screenshots
+  - ties
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- scrollUntilVisible:
+    element:
+      id: auth-email-input
+    direction: DOWN
+    timeout: 40000
+    centerElement: true
+- tapOn:
+    id: auth-email-input
+- eraseText
+- inputText: ${TEST_EMAIL}
+- pressKey: Enter
+- tapOn:
+    id: auth-password-input
+- eraseText
+- inputText: ${TEST_PASSWORD}
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: tab-home
+    timeout: 30000
+
+- openLink:
+    link: "adventure-time:///rankings?preview=1&placement=ties"
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- assertVisible:
+    id: rankings-screen
+- scrollUntilVisible:
+    element:
+      id: leaderboard-rank-group-3
+    direction: DOWN
+    timeout: 30000
+    centerElement: true
+- assertVisible:
+    id: leaderboard-tied-podium
+- assertVisible:
+    id: leaderboard-tied-rank-3-row-1
+- assertVisible:
+    id: leaderboard-tied-rank-3-row-2
+- assertVisible:
+    id: leaderboard-tied-rank-3-row-3
+- waitForAnimationToEnd
+- takeScreenshot: tmp-rankings-shots/tied-podium

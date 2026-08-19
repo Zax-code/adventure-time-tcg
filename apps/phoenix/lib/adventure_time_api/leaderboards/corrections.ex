@@ -18,7 +18,8 @@ defmodule AdventureTimeApi.Leaderboards.Corrections do
     SnapshotRow,
     Scoring,
     ScoringVersion,
-    UserAchievement
+    UserAchievement,
+    WeeklySummary
   }
 
   alias AdventureTimeApi.Repo
@@ -336,13 +337,12 @@ defmodule AdventureTimeApi.Leaderboards.Corrections do
           case Scoring.weekly(configuration, Enum.map(results, & &1.points_milli)) do
             {:ok, %{status: :ranked} = score} ->
               selected = Enum.take(results, length(score.selected_points_milli))
-              best = hd(results)
 
               [
                 %{
                   row
                   | points_milli: score.points_milli,
-                    raw_result: best.raw_result,
+                    raw_result: WeeklySummary.source(board.key, selected),
                     selected_daily_result_ids: Enum.map(selected, & &1.id),
                     selected_points_milli: score.selected_points_milli
                 }
