@@ -164,6 +164,7 @@ export default function LeaderboardHelpScreen() {
           >
             <Bullet>{t("rankings.help.periodsDaily")}</Bullet>
             <Bullet>{t("rankings.help.periodsWeekly")}</Bullet>
+            <Bullet>{t("rankings.help.periodsWeeklyResults")}</Bullet>
             <Bullet>{t("rankings.help.periodsCutoff")}</Bullet>
             <Bullet>{t("rankings.help.periodsHistory")}</Bullet>
           </HelpCard>

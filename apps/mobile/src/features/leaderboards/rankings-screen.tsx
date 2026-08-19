@@ -46,7 +46,13 @@ import { THEME_COLORS } from "../../theme/themes";
 import { LeaderboardAvatar } from "./leaderboard-avatar";
 import { formatLeaderboardRawResult } from "./format-raw-result";
 import {
+  buildRankingsPresentation,
+  type TopRank,
+  type TopRankGroup,
+} from "./rankings-presentation";
+import {
   RANKINGS_PREVIEW_DATA,
+  RANKINGS_TIED_PREVIEW_DATA,
   RANKINGS_TOP_SEVEN_PREVIEW_DATA,
 } from "./rankings-preview-data";
 
@@ -169,11 +175,17 @@ export function RankingsScreen() {
     if (isLoadingPreview) return undefined;
     if (!isPreview) return queryData;
     const basePreviewData =
-      placement === "top7"
-        ? RANKINGS_TOP_SEVEN_PREVIEW_DATA
-        : RANKINGS_PREVIEW_DATA;
-    const previewData = withPreviewRawResults(basePreviewData, boardKey);
+      placement === "ties"
+        ? RANKINGS_TIED_PREVIEW_DATA
+        : placement === "top7"
+          ? RANKINGS_TOP_SEVEN_PREVIEW_DATA
+          : RANKINGS_PREVIEW_DATA;
     const isDaily = mainPeriod === "daily";
+    const previewData = withPreviewRawResults(
+      basePreviewData,
+      boardKey,
+      !isDaily,
+    );
     const competitionDate =
       dailyPeriod === "today" ? "2026-08-17" : "2026-08-16";
     const weekStart =
@@ -458,10 +470,74 @@ function BoardSelector({
 function withPreviewRawResults(
   data: LeaderboardResponse,
   boardKey: LeaderboardBoardKey,
+  weekly: boolean,
 ): LeaderboardResponse {
   const withRawResult = (row: LeaderboardRow): LeaderboardRow => {
-    const sampleOffset = row.position - 1;
+    const sampleOffset = row.rank - 1;
     let rawResult: LeaderboardRow["rawResult"];
+    let points = row.points;
+
+    if (weekly) {
+      if (boardKey === "steps/default") {
+        const steps = 72_418 - sampleOffset * 2_470;
+        rawResult = {
+          kind: "weekly_steps",
+          steps,
+          resultCount: 7,
+          scoringResultCount: 7,
+        };
+        points = Math.round(steps / 20);
+      } else if (boardKey.startsWith("daily-numbers/")) {
+        rawResult = {
+          kind: "weekly_exact_completion",
+          exactResults: Math.max(1, 6 - sampleOffset),
+          resultCount: boardKey === "daily-numbers/family" ? 18 : 7,
+          scoringResultCount: Math.max(1, 6 - sampleOffset),
+          totalElapsedMs: 134_000 + sampleOffset * 11_000,
+        };
+        points = 4_820 - sampleOffset * 180;
+      } else if (boardKey.startsWith("wordle/")) {
+        const combined = boardKey === "wordle/family";
+        const solvedResults = Math.max(1, (combined ? 11 : 6) - sampleOffset);
+        rawResult = {
+          kind: "weekly_wordle",
+          solvedResults,
+          resultCount: combined ? 13 : 7,
+          scoringResultCount: solvedResults,
+          totalGuesses: solvedResults * 3 + sampleOffset,
+        };
+        points = 4_600 - sampleOffset * 200;
+      } else if (boardKey === "speed-calculus/ranked") {
+        const correctAnswers = 84 - sampleOffset * 4;
+        rawResult = {
+          kind: "weekly_correct_answers",
+          correctAnswers,
+          resultCount: 7,
+          scoringResultCount: 7,
+        };
+        points = correctAnswers * 50;
+      } else if (boardKey === "perfect-timing/official") {
+        const successfulResults = Math.max(1, 6 - sampleOffset);
+        rawResult = {
+          kind: "weekly_duration_error",
+          successfulResults,
+          resultCount: 7,
+          scoringResultCount: successfulResults,
+          totalAbsoluteErrorMs: 184 + sampleOffset * 37,
+        };
+        points = 5_210 - sampleOffset * 210;
+      } else {
+        rawResult = {
+          kind: "weekly_overall",
+          familiesPlayed: 5,
+          resultCount: 38,
+          scoringResultCount: Math.max(1, 31 - sampleOffset),
+        };
+        points = 22_480 - sampleOffset * 730;
+      }
+
+      return { ...row, rawResult, points, pointsMilli: points * 1_000 };
+    }
 
     if (boardKey === "steps/default") {
       rawResult = { kind: "steps", steps: 20_920 - sampleOffset * 740 };
@@ -556,6 +632,15 @@ function RankingsContent({
   const themeName = useThemeStore((state) => state.themeName);
   const tc = THEME_COLORS[themeName];
   const closeCountdown = useCloseCountdown(data.period);
+  const { topRankGroups, hasTopRankTie, remainingRows } = useMemo(
+    () => buildRankingsPresentation(data.rows),
+    [data.rows],
+  );
+  const firstPlace = topRankGroups.find((group) => group.rank === 1)?.rows[0];
+  const secondPlace = topRankGroups.find(
+    (group) => group.rank === 2,
+  )?.rows[0];
+  const thirdPlace = topRankGroups.find((group) => group.rank === 3)?.rows[0];
   const openProfile = (row: LeaderboardRow) => {
     if (!row.profile.publicProfileId || row.profile.visibility !== "visible")
       return;
@@ -612,41 +697,56 @@ function RankingsContent({
         ) : null}
       </View>
 
-      <View className="flex-row items-end justify-center gap-1 pt-3">
-        {data.podium[1] ? (
-          <PodiumCard
-            row={data.podium[1]}
-            place={2}
-            onPress={() => openProfile(data.podium[1])}
-          />
-        ) : null}
-        {data.podium[0] ? (
-          <PodiumCard
-            row={data.podium[0]}
-            place={1}
-            onPress={() => openProfile(data.podium[0])}
-          />
-        ) : null}
-        {data.podium[2] ? (
-          <PodiumCard
-            row={data.podium[2]}
-            place={3}
-            onPress={() => openProfile(data.podium[2])}
-          />
-        ) : null}
-      </View>
+      {hasTopRankTie ? (
+        <View className="gap-3" testID="leaderboard-tied-podium">
+          {topRankGroups.map((group) => (
+            <TiedRankGroup
+              currentPlayer={data.currentPlayer}
+              group={group}
+              key={group.rank}
+              onPress={openProfile}
+            />
+          ))}
+        </View>
+      ) : (
+        <View className="flex-row items-end justify-center gap-1 pt-3">
+          {secondPlace ? (
+            <PodiumCard
+              row={secondPlace}
+              place={2}
+              onPress={() => openProfile(secondPlace)}
+            />
+          ) : null}
+          {firstPlace ? (
+            <PodiumCard
+              row={firstPlace}
+              place={1}
+              onPress={() => openProfile(firstPlace)}
+            />
+          ) : null}
+          {thirdPlace ? (
+            <PodiumCard
+              row={thirdPlace}
+              place={3}
+              onPress={() => openProfile(thirdPlace)}
+            />
+          ) : null}
+        </View>
+      )}
 
-      <View className="overflow-hidden rounded-[28px] border border-primaryBorder bg-surface">
-        {data.rows.slice(3).map((row, index) => (
-          <RankingRow
-            key={row.profile.handle}
-            row={row}
-            bordered={index > 0}
-            current={isCurrentPlayer(row, data.currentPlayer)}
-            onPress={() => openProfile(row)}
-          />
-        ))}
-      </View>
+      {remainingRows.length > 0 ? (
+        <View className="overflow-hidden rounded-[28px] border border-primaryBorder bg-surface">
+          {remainingRows.map((row, index) => (
+            <RankingRow
+              key={row.profile.handle}
+              row={row}
+              bordered={index > 0}
+              current={isCurrentPlayer(row, data.currentPlayer)}
+              onPress={() => openProfile(row)}
+            />
+          ))}
+        </View>
+      ) : null}
 
       {data.currentPlayer && data.currentPlayer.rank > 7 ? (
         <View className="rounded-[24px] border-2 border-primaryBorder bg-primaryTint">
@@ -850,7 +950,10 @@ function PodiumCard({
         >
           {row.profile.displayName}
         </Text>
-        <Text className="font-nunito-bold text-sm text-fgMuted">
+        <Text
+          numberOfLines={2}
+          className="text-center font-nunito-bold text-xs tabular-nums text-fgMuted"
+        >
           {formatLeaderboardRawResult(row.rawResult, locale, t)}
         </Text>
         <View className="rounded-lg bg-white/80 px-3 py-1.5">
@@ -864,6 +967,115 @@ function PodiumCard({
         className="absolute inset-0 rounded-t-[26px] border border-primaryBorder"
       />
     </Pressable>
+  );
+}
+
+const TIED_RANK_COLORS: Record<TopRank, [string, string]> = {
+  1: ["#FFFBEA", "#FEF3C7"],
+  2: ["#F8FAFC", "#E2E8F0"],
+  3: ["#FFF7ED", "#FED7AA"],
+};
+
+const PLACEMENT_LABEL_KEYS: Record<TopRank, string> = {
+  1: "rankings.placements.first",
+  2: "rankings.placements.second",
+  3: "rankings.placements.third",
+};
+
+function TiedRankGroup({
+  group,
+  currentPlayer,
+  onPress,
+}: {
+  group: TopRankGroup<LeaderboardRow>;
+  currentPlayer: LeaderboardRow | null;
+  onPress: (row: LeaderboardRow) => void;
+}) {
+  const { t } = useTranslation();
+
+  return (
+    <View
+      className="overflow-hidden rounded-[24px] border border-primaryBorder bg-surface"
+      testID={`leaderboard-rank-group-${group.rank}`}
+    >
+      <View className="overflow-hidden px-4 py-3">
+        <LinearGradient
+          colors={TIED_RANK_COLORS[group.rank]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={{ position: "absolute", inset: 0 }}
+        />
+        <View className="flex-row items-center gap-3">
+          <View className="size-10 items-center justify-center rounded-full bg-white/80">
+            <Text className="font-nunito-extrabold text-xl text-fg">
+              {group.rank}
+            </Text>
+          </View>
+          <Text
+            selectable
+            className="flex-1 font-nunito-extrabold text-lg text-fg"
+          >
+            {t(PLACEMENT_LABEL_KEYS[group.rank])}
+          </Text>
+          {group.rows.length > 1 ? (
+            <View className="rounded-full bg-white/80 px-3 py-1.5">
+              <Text className="font-nunito-extrabold text-xs text-primaryText">
+                {t("rankings.placements.tied", {
+                  count: group.rows.length,
+                })}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+      </View>
+
+      {group.rows.map((row, index) => (
+        <Pressable
+          key={row.profile.handle}
+          onPress={() => onPress(row)}
+          className={`flex-row items-center gap-3 px-4 py-3 ${index > 0 ? "border-t border-primaryBorder" : ""} ${isCurrentPlayer(row, currentPlayer) ? "bg-primaryTint" : ""}`}
+          testID={`leaderboard-tied-rank-${group.rank}-row-${index + 1}`}
+        >
+          <LeaderboardAvatar
+            avatarKey={row.profile.fallbackAvatarKey}
+            avatarUrl={row.profile.avatarUrl}
+            size={48}
+          />
+          <View className="min-w-0 flex-1 gap-0.5">
+            <Text
+              selectable
+              numberOfLines={1}
+              className="font-nunito-bold text-sm text-fg"
+            >
+              {row.profile.displayName}
+            </Text>
+            <TiedRankResult row={row} />
+          </View>
+          <View className="rounded-xl bg-primaryTint px-3 py-2">
+            <Text
+              selectable
+              className="font-nunito-extrabold text-sm tabular-nums text-primaryText"
+            >
+              {row.points.toLocaleString()} pts
+            </Text>
+          </View>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
+function TiedRankResult({ row }: { row: LeaderboardRow }) {
+  const { locale, t } = useTranslation();
+
+  return (
+    <Text
+      selectable
+      numberOfLines={2}
+      className="font-nunito-semibold text-xs leading-4 tabular-nums text-fgMuted"
+    >
+      {formatLeaderboardRawResult(row.rawResult, locale, t)}
+    </Text>
   );
 }
 
@@ -900,7 +1112,10 @@ function RankingRow({
       >
         {row.profile.displayName}
       </Text>
-      <Text className="font-nunito-semibold text-sm text-fgMuted">
+      <Text
+        numberOfLines={2}
+        className="max-w-32 text-right font-nunito-semibold text-xs leading-4 tabular-nums text-fgMuted"
+      >
         {formatLeaderboardRawResult(row.rawResult, locale, t)}
       </Text>
       <Text className="min-w-20 text-right font-nunito-extrabold text-sm text-primaryText">

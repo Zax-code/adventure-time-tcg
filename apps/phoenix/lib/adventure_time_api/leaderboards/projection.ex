@@ -10,7 +10,8 @@ defmodule AdventureTimeApi.Leaderboards.Projection do
     DailyResult,
     Period,
     Ranking,
-    Scoring
+    Scoring,
+    WeeklySummary
   }
 
   alias AdventureTimeApi.Repo
@@ -65,7 +66,7 @@ defmodule AdventureTimeApi.Leaderboards.Projection do
       case Scoring.weekly(configuration, points) do
         {:ok, %{status: :ranked} = score} ->
           selected = Enum.take(sorted, length(score.selected_points_milli))
-          {best_result, user} = hd(sorted)
+          {_best_result, user} = hd(sorted)
 
           [
             %{
@@ -73,7 +74,11 @@ defmodule AdventureTimeApi.Leaderboards.Projection do
               user_id: user.id,
               public_profile_id: user.public_profile_id,
               points_milli: score.points_milli,
-              raw_result: best_result.raw_result,
+              raw_result:
+                WeeklySummary.source(
+                  board.key,
+                  Enum.map(selected, fn {result, _user} -> result end)
+                ),
               selected_daily_result_ids: Enum.map(selected, fn {result, _} -> result.id end),
               selected_points_milli: score.selected_points_milli,
               identity_audit: identity_audit(user),
@@ -107,12 +112,19 @@ defmodule AdventureTimeApi.Leaderboards.Projection do
       user = first_row.user
       member_vector = Enum.map(members, &Map.get(derived.member_points_milli, &1, 0))
 
+      raw_result =
+        if period.period_type == :week do
+          WeeklySummary.combine(board.key, Enum.map(keyed_rows, &elem(&1, 1)))
+        else
+          %{"kind" => "member_breakdown", "members" => derived.member_points_milli}
+        end
+
       %{
         user: user,
         user_id: user.id,
         public_profile_id: user.public_profile_id,
         points_milli: derived.points_milli,
-        raw_result: %{"kind" => "member_breakdown", "members" => derived.member_points_milli},
+        raw_result: raw_result,
         selected_daily_result_ids:
           Enum.flat_map(keyed_rows, fn {_key, row} -> row.selected_daily_result_ids end),
         selected_points_milli: member_vector,
@@ -147,12 +159,19 @@ defmodule AdventureTimeApi.Leaderboards.Projection do
       member_points = Map.new(keyed_rows, fn {key, row} -> {key, row.points_milli} end)
       normalized_points = Map.new(members, &{&1, Map.get(member_points, &1, 0)})
 
+      raw_result =
+        if period.period_type == :week do
+          WeeklySummary.overall(Enum.map(keyed_rows, &elem(&1, 1)))
+        else
+          %{"kind" => "member_breakdown", "members" => normalized_points}
+        end
+
       %{
         user: user,
         user_id: user.id,
         public_profile_id: user.public_profile_id,
         points_milli: overall.points_milli,
-        raw_result: %{"kind" => "member_breakdown", "members" => normalized_points},
+        raw_result: raw_result,
         selected_daily_result_ids:
           Enum.flat_map(keyed_rows, fn {_key, row} -> row.selected_daily_result_ids end),
         selected_points_milli: Enum.map(members, &Map.fetch!(normalized_points, &1)),

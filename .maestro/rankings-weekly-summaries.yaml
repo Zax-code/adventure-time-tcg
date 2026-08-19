@@ -1,0 +1,133 @@
+appId: love.leaetzak.adventuretime
+name: Rankings weekly summary screenshots
+tags:
+  - rankings
+  - screenshots
+  - weekly
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- scrollUntilVisible:
+    element:
+      id: auth-email-input
+    direction: DOWN
+    timeout: 40000
+    centerElement: true
+- tapOn:
+    id: auth-email-input
+- eraseText
+- inputText: ${TEST_EMAIL}
+- pressKey: Enter
+- tapOn:
+    id: auth-password-input
+- eraseText
+- inputText: ${TEST_PASSWORD}
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: tab-home
+    timeout: 30000
+
+- openLink:
+    link: "adventure-time:///rankings?preview=1"
+- runFlow: subflows/confirm-open-link-if-needed.yaml
+- assertVisible:
+    id: rankings-screen
+- swipe:
+    start: "50%,78%"
+    end: "50%,28%"
+    duration: 700
+- waitForAnimationToEnd
+- takeScreenshot: tmp-rankings-shots/weekly-summary-all-quests
+
+- scrollUntilVisible:
+    element:
+      id: rankings-board-steps-default
+    direction: UP
+    timeout: 20000
+    centerElement: true
+- tapOn:
+    id: rankings-board-steps-default
+- swipe:
+    start: "50%,78%"
+    end: "50%,28%"
+    duration: 700
+- waitForAnimationToEnd
+- takeScreenshot: tmp-rankings-shots/weekly-summary-steps
+
+- scrollUntilVisible:
+    element:
+      id: rankings-board-daily-numbers-family
+    direction: UP
+    timeout: 20000
+    centerElement: true
+- tapOn:
+    id: rankings-board-daily-numbers-family
+- tapOn:
+    id: rankings-mode-daily-numbers-1-5
+- swipe:
+    start: "50%,78%"
+    end: "50%,28%"
+    duration: 700
+- waitForAnimationToEnd
+- takeScreenshot: tmp-rankings-shots/weekly-summary-daily-numbers
+
+- scrollUntilVisible:
+    element:
+      id: rankings-board-daily-numbers-family
+    direction: UP
+    timeout: 20000
+    centerElement: true
+- swipe:
+    start: "88%,34%"
+    end: "12%,34%"
+    duration: 700
+- tapOn:
+    id: rankings-board-wordle-family
+- tapOn:
+    id: rankings-mode-wordle-en
+- swipe:
+    start: "50%,78%"
+    end: "50%,28%"
+    duration: 700
+- waitForAnimationToEnd
+- takeScreenshot: tmp-rankings-shots/weekly-summary-wordle
+
+- scrollUntilVisible:
+    element:
+      id: rankings-board-wordle-family
+    direction: UP
+    timeout: 20000
+    centerElement: true
+- swipe:
+    start: "88%,34%"
+    end: "12%,34%"
+    duration: 700
+- tapOn:
+    id: rankings-board-speed-calculus-ranked
+- swipe:
+    start: "50%,78%"
+    end: "50%,28%"
+    duration: 700
+- waitForAnimationToEnd
+- takeScreenshot: tmp-rankings-shots/weekly-summary-speed-calculus
+
+- scrollUntilVisible:
+    element:
+      id: rankings-board-speed-calculus-ranked
+    direction: UP
+    timeout: 20000
+    centerElement: true
+- swipe:
+    start: "88%,34%"
+    end: "12%,34%"
+    duration: 700
+- tapOn:
+    id: rankings-board-perfect-timing-official
+- swipe:
+    start: "50%,78%"
+    end: "50%,28%"
+    duration: 700
+- waitForAnimationToEnd
+- takeScreenshot: tmp-rankings-shots/weekly-summary-perfect-timing

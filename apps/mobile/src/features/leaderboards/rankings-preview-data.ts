@@ -58,6 +58,15 @@ const topSevenPreviewRows = [
   ...previewRows.slice(5),
 ];
 
+const tiedPreviewRows = [
+  row(1, 1, "FinnTheHero", "finn", 1_046, "gold"),
+  row(2, 2, "BubbleGum", "princess-bubblegum", 987, "silver"),
+  row(3, 3, "JakeTheDog", "jake", 969, "bronze"),
+  row(4, 3, "MarcyRocks", "marceline", 969, "bronze"),
+  row(5, 3, "BMO Player", "bmo", 969, "bronze"),
+  row(6, 6, "IceKingCool", "ice-king", 910),
+];
+
 export const RANKINGS_PREVIEW_DATA: LeaderboardResponse = {
   board: {
     key: "overall/all-quests",
@@ -111,5 +120,13 @@ export const RANKINGS_TOP_SEVEN_PREVIEW_DATA: LeaderboardResponse = {
   podium: topSevenPreviewRows.slice(0, 3),
   rows: topSevenPreviewRows,
   currentPlayer: topSevenCurrentPlayer,
+  pageInfo: { nextCursor: null, hasNextPage: false },
+};
+
+export const RANKINGS_TIED_PREVIEW_DATA: LeaderboardResponse = {
+  ...RANKINGS_PREVIEW_DATA,
+  podium: tiedPreviewRows.filter((previewRow) => previewRow.rank <= 3),
+  rows: tiedPreviewRows,
+  currentPlayer: tiedPreviewRows[5],
   pageInfo: { nextCursor: null, hasNextPage: false },
 };
