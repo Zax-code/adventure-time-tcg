@@ -1,9 +1,9 @@
 # Adventure Time TCG — Project State
 
-Last verified: 2026-08-19
+Last verified: 2026-08-23
 Repository: `Zax-code/adventure-time-tcg`
-Branch: `codex/weekly-leaderboard-summaries`
-Verified commit: `a3a34d2e` plus the current branch changes
+Branch: `codex/fix-profile-personal-best-limit`
+Verified commit: `a90f900d` plus the current branch changes
 
 ## Purpose and authority
 
@@ -33,7 +33,7 @@ Phoenix, PostgreSQL, and MinIO are the production backend. The Fastify app in `a
 ### Verified release boundary
 
 - **Production backend and website:** the `Deploy Phoenix` workflow completed successfully for `afaf4875be27a9185d4332b92eb32383c932195c` on 2026-08-18 (GitHub Actions run `32151688930`). That revision includes Daily Numbers visible-step deduplication, player-solution translation/recovery, and migration `20260818190000`.
-- **Mobile:** annotated tags `mobile/android/1.0.30` and `mobile/ios/1.0.30` both resolve to `ea35255a631b43cb8f312beea8f6604bbf0fa690`, with release timestamps on 2026-08-18. Android version code 52 was accepted on the Google Play closed-testing track, and iOS build 65 was uploaded and validated by App Store Connect. The release note is “Improves Speed Calculus multi-touch input and simplifies the session countdown.”
+- **Mobile:** annotated tags `mobile/android/1.0.31` and `mobile/ios/1.0.31` both resolve to `250f336377a67734fc4603a933d1b8375df62bc8`, with release timestamps on 2026-08-19. The recorded release note is “Redesigns Daily Numbers and makes weekly leaderboards clearer with accurate summaries and fair tie placements.”
 - **Local data:** local Docker database observations in this document are explicitly labeled. They are not evidence of production catalog contents.
 
 ## Current architecture
@@ -55,7 +55,7 @@ Versions below come from current manifests, lockfiles, native configuration, and
 
 | Layer | Verified technology |
 |---|---|
-| Mobile | Expo `57.0.14`, Expo Router `57.0.14`, React Native `0.86.2`, React `19.2.3`, Reanimated `4.5.1`, NativeWind `4.2.3`, Software Mansion Bottom Sheet `0.12.0`, Expo Image, TanStack Query `5.101.4`, Zustand `5.0.15` |
+| Mobile | Expo `57.0.15`, Expo Router `57.0.15`, React Native `0.86.2`, React `19.2.3`, Reanimated `4.5.1`, NativeWind `4.2.3`, Software Mansion Bottom Sheet `0.12.0`, Expo Image, TanStack Query `5.101.4`, Zustand `5.0.15` |
 | Web | React `19.2.3`, React Router `7.18.x`, Vite `8.2.1`, TanStack Query `5.101.4`, Vitest `4.1.10` |
 | Shared TypeScript | Zod `3.25.76`; TypeScript `6.0.3` for mobile/web and `5.9.3` for shared packages in the installed tree |
 | Backend | Elixir `1.19.5` and OTP `28` in CI/release images; Phoenix `1.8.5`, Ecto SQL `3.13.5`, Postgrex `0.22.0`, Bandit `1.10.3`, Oban `2.21.1`, Req `0.5.17`, JOSE `1.11.12`, bcrypt_elixir `3.3.2`, tzdata `1.1.3` |
@@ -69,7 +69,7 @@ The Expo 57 migration and subsequent patch alignment are complete; Expo Doctor p
 
 | Component | Purpose and communication | Location | Status | Release posture |
 |---|---|---|---|---|
-| Expo mobile app | Primary native player/admin client; REST via `@adventure-time/api-client`, a Phoenix quest channel, PvP polling, and push notifications | `apps/mobile` | COMPLETE | Actively released; iOS and Android 1.0.30 are tagged |
+| Expo mobile app | Primary native player/admin client; REST via `@adventure-time/api-client`, a Phoenix quest channel, PvP polling, and push notifications | `apps/mobile` | COMPLETE | Actively released; iOS and Android 1.0.31 are tagged |
 | Responsive website | Browser player/admin client using the same client/contracts; served as Phoenix static content in production | `apps/web` | COMPLETE | Active; deployed with Phoenix at `a49bcf0…` |
 | Phoenix API | Canonical backend, auth, gameplay, persistence, media, jobs, and web session host | `apps/phoenix` | COMPLETE | Active production service |
 | PostgreSQL | Canonical persistent store and Oban job store | Ecto schemas and `apps/phoenix/priv/repo/migrations` | COMPLETE | PostgreSQL 16 production container |
@@ -202,13 +202,16 @@ At verification time the local development and test databases and production wer
 - **Persistence:** production PostgreSQL and MinIO data live under `/srv/adventure-time-tcg`. Runtime environment files and signing credentials live outside source control.
 - **Backend/web delivery:** `.github/workflows/deploy-phoenix.yml` builds an immutable GHCR image containing the Vite bundle and Phoenix release, deploys the selected SHA over SSH, renders container env files, runs `AdventureTimeApi.Release.migrate`, installs/restarts Quadlets, then checks API and media readiness.
 - **CI:** `.github/workflows/ci.yml` conditionally runs infrastructure tests, workspace typechecks/builds/web tests, Phoenix tests, and container validation. Run `32044367068` passed for the pre-Solution-Hunt mainline; PR #285 carries the Solution Hunt CI validation.
-- **Mobile version:** `apps/mobile/package.json`, `apps/mobile/app.json`, Android `versionName`, and iOS `CFBundleShortVersionString` are 1.0.30. iOS `CFBundleVersion` is 65. EAS uses remote app-version state and production auto-increment; Android's checked-in `versionCode 1` is therefore not the released build number. The current Google Play release uses remote version code 52.
+- **Mobile version:** `apps/mobile/package.json`, `apps/mobile/app.json`, Android `versionName`, and iOS `CFBundleShortVersionString` are 1.0.31. iOS `CFBundleVersion` is 66. EAS uses remote app-version state and production auto-increment; Android's checked-in `versionCode 1` is therefore not the released build number.
 - **Mobile release:** `scripts/release-mobile.mjs` orchestrates one or both platforms. Android builds a local AAB, submits through EAS/Google Play, requires a release note, and updates Play release notes. iOS builds a local IPA and uploads directly with Apple's `xcrun altool` and App Store Connect API credentials. Successful releases create annotated per-platform Git tags.
 - **Environment convention:** Phoenix uses `apps/phoenix/.env`, mobile uses `apps/mobile/.env`, and production secrets are supplied through external runtime env files. No secret value belongs in this document.
-- **Current blockers:** none for the 1.0.30 mobile release; the local iOS signing/App Store Connect path and Android signing/Google Play submission path both completed successfully. The local development database is current through the Solution Hunt migration.
+- **Current blockers:** none recorded for the 1.0.31 mobile release; the local iOS signing/App Store Connect path and Android signing/Google Play submission path both completed successfully according to the annotated release tags. The local development database is current through the Solution Hunt migration.
 
 ## Completed recently
 
+- **2026-08-23 — high-scoring player-profile compatibility:** the shared public-profile contract now accepts any non-negative integer personal-best score instead of rejecting valid scores above the obsolete 1,000-point ceiling. A focused contract regression reproduces the mobile error boundary and preserves negative-score rejection; a read-only production audit confirmed legitimate over-1,000 daily rows across multiple boards.
+- **2026-08-23 — Expo 57 patch alignment:** Expo, Expo Router, the associated SDK 57 native modules, workspace overrides, npm lock, and iOS Pod lock were advanced to the current patch matrix. A clean npm install is reproducible and Expo Doctor passes all 20 checks with no duplicate native modules.
+- **2026-08-19 — mobile 1.0.31:** Daily Numbers redesign and weekly leaderboard summary/tie improvements shipped through the production iOS and Android release workflows. Tags `mobile/ios/1.0.31` and `mobile/android/1.0.31` point to `250f3363`.
 - **2026-08-19 — tie-aware mobile leaderboard podium:** unique first/second/third results retain the classic podium. Any tie in ranks 1–3 switches the full winning area to stacked placement groups, gives every tied player equal visual weight, and resumes the ordinary list at the next competition rank. English/French copy, pure presentation tests, authenticated-avatar coverage, and a fresh iOS Maestro screenshot validate the three-way third-place case.
 - **2026-08-19 — weekly leaderboard result summaries:** weekly Phoenix projections and future snapshots now retain readable totals across all selected daily results rather than repeating one day. Outcome quests exclude failed/missed results from their time, guess, or error totals, while All Quests uses a compact scored/played ratio. The shared contract, English/French mobile formatting, help copy, focused backend/UI tests, and Maestro screenshot flow were updated together.
 - **2026-08-18 — stale PR reconciliation (#244, #286, #291):** the 1.0.30 release record and historical 1.0.29 record were merged without downgrading current mobile metadata. The July Daily Numbers redesign branch was reconciled against the evolved Solution Hunt, result animation, sharing, navigation, and timing implementation; current gameplay behavior remains authoritative, while its still-relevant shared-button accessibility-state fallback was retained. Orphaned prototype-only helpers and Maestro flows were not carried into current source.

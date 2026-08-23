@@ -259,7 +259,7 @@ export const publicLeaderboardProfileSchema = z.object({
     z.object({
       boardKey: leaderboardBoardKeySchema,
       rawResult: leaderboardRawResultSchema,
-      points: z.number().int().min(0).max(1000),
+      points: z.number().int().nonnegative(),
     }),
   ),
 });
