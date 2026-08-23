@@ -297,6 +297,7 @@ const quests = {
     continueConfirmTitle: "Discard this result?",
     continueConfirmBody:
       "Continuing will permanently discard this result. You will not be able to recover it.",
+    continueConfirmStayAction: "Stay with this result",
     continueConfirmAction: "Discard and continue",
     savingResult: "Saving result…",
     retrySave: "Retry saving result",

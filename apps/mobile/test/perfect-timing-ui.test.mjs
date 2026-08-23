@@ -22,6 +22,10 @@ const officialPanelSource = readFileSync(
   "src/features/quests/perfect-timing/official-panel.tsx",
   "utf8",
 );
+const continueConfirmationModalSource = readFileSync(
+  "src/features/quests/perfect-timing/continue-confirmation-modal.tsx",
+  "utf8",
+);
 
 describe("Perfect Timing UI behavior", () => {
   it("derives elapsed time from monotonic timestamps without interval counting", () => {
@@ -72,9 +76,23 @@ describe("Perfect Timing UI behavior", () => {
     );
   });
 
-  it("confirms Continue and permanently sends the active result through the continue endpoint", () => {
-    assert.match(screenSource, /continueConfirmBody/);
-    assert.match(screenSource, /style: "destructive"/);
+  it("uses the themed design-system modal to confirm staying or continuing", () => {
+    assert.match(screenSource, /<ContinueConfirmationModal/);
+    assert.match(continueConfirmationModalSource, /<ThemedModal/);
+    assert.match(continueConfirmationModalSource, /variant="secondary"/);
+    assert.match(continueConfirmationModalSource, /variant="danger"/);
+    assert.match(
+      continueConfirmationModalSource,
+      /testID="perfect-timing-continue-confirmation-stay"/,
+    );
+    assert.match(
+      continueConfirmationModalSource,
+      /testID="perfect-timing-continue-confirmation-discard"/,
+    );
+    assert.doesNotMatch(
+      screenSource,
+      /Alert\.alert\(\s*t\("quests\.perfectTiming\.continueConfirmTitle"\)/,
+    );
     assert.match(screenSource, /continueMutation\.mutate\(result\.id\)/);
   });
 

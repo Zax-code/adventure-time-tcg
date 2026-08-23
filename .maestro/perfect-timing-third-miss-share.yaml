@@ -43,7 +43,8 @@ tags:
     id: perfect-timing-keep
 - tapOn:
     id: perfect-timing-continue
-- tapOn: "Discard and continue"
+- tapOn:
+    id: perfect-timing-continue-confirmation-discard
 - extendedWaitUntil:
     visible:
       id: perfect-timing-start
@@ -61,7 +62,8 @@ tags:
     id: perfect-timing-keep
 - tapOn:
     id: perfect-timing-continue
-- tapOn: "Discard and continue"
+- tapOn:
+    id: perfect-timing-continue-confirmation-discard
 - extendedWaitUntil:
     visible:
       id: perfect-timing-start

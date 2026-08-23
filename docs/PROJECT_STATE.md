@@ -1,9 +1,9 @@
 # Adventure Time TCG — Project State
 
-Last verified: 2026-08-19
+Last verified: 2026-08-23
 Repository: `Zax-code/adventure-time-tcg`
-Branch: `codex/weekly-leaderboard-summaries`
-Verified commit: `a3a34d2e` plus the current branch changes
+Branch: `codex/perfect-timing-result-modal`
+Verified commit: `a90f900d` plus the current branch changes
 
 ## Purpose and authority
 
@@ -209,6 +209,7 @@ At verification time the local development and test databases and production wer
 
 ## Completed recently
 
+- **2026-08-23 — Perfect Timing result confirmation:** the native system alert shown before discarding an attempt result has been replaced by the shared themed modal and shared button layer. The dialog now offers explicit stay/discard actions, keeps English/French copy aligned, and has focused UI and Maestro coverage for both choices.
 - **2026-08-19 — tie-aware mobile leaderboard podium:** unique first/second/third results retain the classic podium. Any tie in ranks 1–3 switches the full winning area to stacked placement groups, gives every tied player equal visual weight, and resumes the ordinary list at the next competition rank. English/French copy, pure presentation tests, authenticated-avatar coverage, and a fresh iOS Maestro screenshot validate the three-way third-place case.
 - **2026-08-19 — weekly leaderboard result summaries:** weekly Phoenix projections and future snapshots now retain readable totals across all selected daily results rather than repeating one day. Outcome quests exclude failed/missed results from their time, guess, or error totals, while All Quests uses a compact scored/played ratio. The shared contract, English/French mobile formatting, help copy, focused backend/UI tests, and Maestro screenshot flow were updated together.
 - **2026-08-18 — stale PR reconciliation (#244, #286, #291):** the 1.0.30 release record and historical 1.0.29 record were merged without downgrading current mobile metadata. The July Daily Numbers redesign branch was reconciled against the evolved Solution Hunt, result animation, sharing, navigation, and timing implementation; current gameplay behavior remains authoritative, while its still-relevant shared-button accessibility-state fallback was retained. Orphaned prototype-only helpers and Maestro flows were not carried into current source.
