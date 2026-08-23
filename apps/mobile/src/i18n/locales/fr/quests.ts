@@ -306,6 +306,7 @@ const quests = {
     continueConfirmTitle: "Abandonner ce résultat ?",
     continueConfirmBody:
       "Continuer abandonnera définitivement ce résultat. Vous ne pourrez pas le récupérer.",
+    continueConfirmStayAction: "Rester sur ce résultat",
     continueConfirmAction: "Abandonner et continuer",
     savingResult: "Enregistrement du résultat…",
     retrySave: "Réessayer d'enregistrer",

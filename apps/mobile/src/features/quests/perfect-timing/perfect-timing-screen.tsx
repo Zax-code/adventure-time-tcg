@@ -57,6 +57,7 @@ import {
   loadPendingPerfectTimingStop,
   savePendingPerfectTimingStop,
 } from "./pending-stop";
+import { ContinueConfirmationModal } from "./continue-confirmation-modal";
 import type { PerfectTimingQuestShareCardStrings } from "./quest-share-card";
 import {
   buildPerfectTimingShareFileName,
@@ -122,6 +123,8 @@ function usePerfectTimingScreenView() {
   const [timerRunning, setTimerRunning] = useState(false);
   const [stopError, setStopError] = useState(false);
   const [decisionError, setDecisionError] = useState(false);
+  const [continueConfirmationVisible, setContinueConfirmationVisible] =
+    useState(false);
   const [trainingPhase, setTrainingPhase] = useState<TrainingPhase>("ready");
   const [trainingResult, setTrainingResult] =
     useState<PerfectTimingLocalResult | null>(null);
@@ -274,11 +277,15 @@ function usePerfectTimingScreenView() {
       });
     },
     onSuccess: (next) => {
+      setContinueConfirmationVisible(false);
       setDecisionError(false);
       reactQueryClient.setQueryData(OFFICIAL_QUERY_KEY, next);
       applyOfficialState(next);
     },
-    onError: () => setDecisionError(true),
+    onError: () => {
+      setContinueConfirmationVisible(false);
+      setDecisionError(true);
+    },
   });
 
   const keepMutation = useMutation({
@@ -439,20 +446,14 @@ function usePerfectTimingScreenView() {
   const confirmContinue = useCallback(() => {
     const result = stateRef.current?.currentResult;
     if (!result || continueMutation.isPending) return;
+    setContinueConfirmationVisible(true);
+  }, [continueMutation.isPending]);
 
-    Alert.alert(
-      t("quests.perfectTiming.continueConfirmTitle"),
-      t("quests.perfectTiming.continueConfirmBody"),
-      [
-        { text: t("common.cancel"), style: "cancel" },
-        {
-          text: t("quests.perfectTiming.continueConfirmAction"),
-          style: "destructive",
-          onPress: () => continueMutation.mutate(result.id),
-        },
-      ],
-    );
-  }, [continueMutation, t]);
+  const discardAndContinue = useCallback(() => {
+    const result = stateRef.current?.currentResult;
+    if (!result || continueMutation.isPending) return;
+    continueMutation.mutate(result.id);
+  }, [continueMutation]);
 
   const shareResult = useMemo<PerfectTimingShareResult | null>(() => {
     if (
@@ -664,6 +665,14 @@ function usePerfectTimingScreenView() {
           strings={shareStrings}
         />
       ) : null}
+
+      <ContinueConfirmationModal
+        visible={continueConfirmationVisible}
+        loading={continueMutation.isPending}
+        onDiscard={discardAndContinue}
+        onStay={() => setContinueConfirmationVisible(false)}
+        t={t}
+      />
     </ScrollView>
   );
 }

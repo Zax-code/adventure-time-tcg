@@ -2,8 +2,8 @@
 
 Last verified: 2026-08-23
 Repository: `Zax-code/adventure-time-tcg`
-Branch: `codex/fix-profile-personal-best-limit`
-Verified commit: `a90f900d` plus the current branch changes
+Branch: `codex/perfect-timing-result-modal`
+Verified commit: `e6e193da` plus the current branch changes
 
 ## Purpose and authority
 
@@ -209,6 +209,7 @@ At verification time the local development and test databases and production wer
 
 ## Completed recently
 
+- **2026-08-23 — Perfect Timing result confirmation:** the native system alert shown before discarding an attempt result has been replaced by the shared themed modal and shared button layer. The dialog now offers explicit stay/discard actions, keeps English/French copy aligned, and has focused UI and Maestro coverage for both choices.
 - **2026-08-23 — high-scoring player-profile compatibility:** the shared public-profile contract now accepts any non-negative integer personal-best score instead of rejecting valid scores above the obsolete 1,000-point ceiling. A focused contract regression reproduces the mobile error boundary and preserves negative-score rejection; a read-only production audit confirmed legitimate over-1,000 daily rows across multiple boards.
 - **2026-08-23 — Expo 57 patch alignment:** Expo, Expo Router, the associated SDK 57 native modules, workspace overrides, npm lock, and iOS Pod lock were advanced to the current patch matrix. A clean npm install is reproducible and Expo Doctor passes all 20 checks with no duplicate native modules.
 - **2026-08-19 — mobile 1.0.31:** Daily Numbers redesign and weekly leaderboard summary/tie improvements shipped through the production iOS and Android release workflows. Tags `mobile/ios/1.0.31` and `mobile/android/1.0.31` point to `250f3363`.
