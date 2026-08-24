@@ -5,6 +5,10 @@ defmodule AdventureTimeApiWeb.ErrorJSON do
   See config/config.exs.
   """
 
+  def render("413.json", _assigns) do
+    %{error: "Upload exceeds the 12 MB application limit", code: "UPLOAD_TOO_LARGE"}
+  end
+
   def render(template, _assigns) do
     %{error: Phoenix.Controller.status_message_from_template(template)}
   end

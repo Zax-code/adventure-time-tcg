@@ -1,5 +1,6 @@
 defmodule AdventureTimeApiWeb.AdminControllerTest do
   use AdventureTimeApiWeb.ConnCase, async: false
+  use Oban.Testing, repo: AdventureTimeApi.Repo
 
   alias AdventureTimeApi.AccessAssessment
   alias AdventureTimeApi.AccessAssessment.IpRevealAudit
@@ -22,6 +23,7 @@ defmodule AdventureTimeApiWeb.AdminControllerTest do
   alias AdventureTimeApi.Quests.{DailyQuest, SpeedCalculusDailyRun, WordleDailyAttempt}
   alias AdventureTimeApi.Social.CardGift
   alias AdventureTimeApi.Repo
+  alias AdventureTimeApi.Workers.MediaCleanupWorker
 
   setup do
     original_config = Application.get_env(:adventure_time_api, AdventureTimeApi.Media)
@@ -913,15 +915,18 @@ defmodule AdventureTimeApiWeb.AdminControllerTest do
     Bypass.expect_once(bypass, fn conn ->
       assert conn.method == "PUT"
       assert String.starts_with?(conn.request_path, "/private-images/card/#{card.id}/")
+      assert String.ends_with?(conn.request_path, ".webp")
       {:ok, body, conn} = Plug.Conn.read_body(conn)
-      assert body == "PNGDATA"
+      assert <<"RIFF", _size::little-size(32), "WEBP", _rest::binary>> = body
       Plug.Conn.resp(conn, 200, "")
     end)
 
     upload_path =
       Path.join(System.tmp_dir!(), "admin-card-upload-#{System.unique_integer([:positive])}.png")
 
-    File.write!(upload_path, "PNGDATA")
+    640
+    |> Image.new!(960, color: "#ec4899")
+    |> Image.write!(upload_path)
 
     upload = %Plug.Upload{
       path: upload_path,
@@ -941,7 +946,11 @@ defmodule AdventureTimeApiWeb.AdminControllerTest do
 
     updated_card = Repo.get!(Card, card.id)
     assert updated_card.image_asset_id == response["assetId"]
-    assert Repo.get!(ImageAsset, response["assetId"]).kind == :card
+
+    uploaded_asset = Repo.get!(ImageAsset, response["assetId"])
+    assert uploaded_asset.kind == :card
+    assert uploaded_asset.mime_type == "image/webp"
+    assert {uploaded_asset.width, uploaded_asset.height} == {640, 960}
   end
 
   test "admin can list and upload catalog image assets", _context do
@@ -1452,7 +1461,8 @@ defmodule AdventureTimeApiWeb.AdminControllerTest do
 
     assert json_response(delete_conn, 200) == %{"success" => true, "deletedUserId" => user.id}
     assert Repo.get(User, user.id) == nil
-    assert Repo.get(ImageAsset, avatar_asset.id) == nil
+    assert Repo.get(ImageAsset, avatar_asset.id)
+    assert_enqueued(worker: MediaCleanupWorker, args: %{"asset_id" => avatar_asset.id})
     assert Repo.aggregate(DailyQuest, :count, :id) == 0
     assert Repo.aggregate(WordleDailyAttempt, :count, :id) == 0
     assert Repo.aggregate(SpeedCalculusDailyRun, :count, :id) == 0

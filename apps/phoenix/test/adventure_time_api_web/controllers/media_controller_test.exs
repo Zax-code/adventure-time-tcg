@@ -263,6 +263,84 @@ defmodule AdventureTimeApiWeb.MediaControllerTest do
     assert get_resp_header(conn, "content-type") == ["image/png"]
   end
 
+  @tag :tmp_dir
+  test "POST /settings/upload stores a normalized profile WebP", %{tmp_dir: tmp_dir} do
+    user = create_user_with_password("profile-upload@example.com", "password123")
+    access_token = login_access_token(user.email, "password123")
+    bypass = Bypass.open()
+    configure_minio_bypass(bypass)
+
+    Bypass.expect_once(bypass, fn conn ->
+      assert conn.method == "PUT"
+      assert String.starts_with?(conn.request_path, "/private-images/profile/#{user.id}/")
+      assert String.ends_with?(conn.request_path, ".webp")
+      {:ok, body, conn} = Plug.Conn.read_body(conn)
+      assert <<"RIFF", _size::little-size(32), "WEBP", _rest::binary>> = body
+      Plug.Conn.resp(conn, 200, "")
+    end)
+
+    upload = image_upload(tmp_dir, ".png", "image/png")
+
+    conn =
+      access_token
+      |> auth_conn()
+      |> post(~p"/settings/upload", %{"file" => upload})
+
+    assert %{"assetId" => asset_id} = json_response(conn, 200)
+    asset = Repo.get!(ImageAsset, asset_id)
+    assert asset.mime_type == "image/webp"
+    assert {asset.width, asset.height} == {512, 512}
+    assert asset.byte_size > 0
+    assert asset.content_hash =~ ~r/^[0-9a-f]{64}$/
+  end
+
+  @tag :tmp_dir
+  test "profile upload errors are structured for unsupported, mismatched, malformed, and oversized files",
+       %{tmp_dir: tmp_dir} do
+    user = create_user_with_password("profile-errors@example.com", "password123")
+    access_token = login_access_token(user.email, "password123")
+
+    svg_path = Path.join(tmp_dir, "unsupported.svg")
+    File.write!(svg_path, ~s(<svg xmlns="http://www.w3.org/2000/svg"></svg>))
+
+    assert_upload_error(
+      access_token,
+      upload(svg_path, "image/svg+xml"),
+      400,
+      "UNSUPPORTED_IMAGE_TYPE"
+    )
+
+    assert_upload_error(
+      access_token,
+      image_upload(tmp_dir, ".png", "image/jpeg"),
+      400,
+      "IMAGE_TYPE_MISMATCH"
+    )
+
+    malformed_path = Path.join(tmp_dir, "malformed.jpg")
+    File.write!(malformed_path, <<0xFF, 0xD8, 0xFF, 1, 2, 3>>)
+
+    assert_upload_error(
+      access_token,
+      upload(malformed_path, "image/jpeg"),
+      400,
+      "MALFORMED_IMAGE"
+    )
+
+    oversized_path = Path.join(tmp_dir, "oversized.jpg")
+    {:ok, file} = File.open(oversized_path, [:write, :binary])
+    {:ok, _position} = :file.position(file, Media.ImageProcessor.max_upload_bytes())
+    :ok = IO.binwrite(file, <<0>>)
+    File.close(file)
+
+    assert_upload_error(
+      access_token,
+      upload(oversized_path, "image/jpeg"),
+      413,
+      "UPLOAD_TOO_LARGE"
+    )
+  end
+
   defp create_user_with_password(email, password) do
     user =
       Repo.insert!(
@@ -291,6 +369,30 @@ defmodule AdventureTimeApiWeb.MediaControllerTest do
   defp auth_conn(access_token) do
     build_conn()
     |> put_req_header("authorization", "Bearer #{access_token}")
+  end
+
+  defp assert_upload_error(access_token, upload, status, code) do
+    conn =
+      access_token
+      |> auth_conn()
+      |> post(~p"/settings/upload", %{"file" => upload})
+
+    assert %{"code" => ^code, "error" => error} = json_response(conn, status)
+    assert is_binary(error)
+  end
+
+  defp image_upload(tmp_dir, extension, mime_type) do
+    path = Path.join(tmp_dir, "profile-#{System.unique_integer([:positive])}#{extension}")
+
+    120
+    |> Image.new!(80, color: "#14b8a6")
+    |> Image.write!(path)
+
+    upload(path, mime_type)
+  end
+
+  defp upload(path, mime_type) do
+    %Plug.Upload{path: path, filename: Path.basename(path), content_type: mime_type}
   end
 
   defp restore_minio_env_on_exit do

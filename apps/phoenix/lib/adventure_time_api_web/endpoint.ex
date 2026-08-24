@@ -24,9 +24,10 @@ defmodule AdventureTimeApiWeb.Endpoint do
   plug(AdventureTimeApiWeb.Plugs.CanonicalClientIp)
   plug(Plug.Telemetry, event_prefix: [:phoenix, :endpoint])
 
-  plug(Plug.Parsers,
+  plug(AdventureTimeApiWeb.Plugs.SafeParsers,
     parsers: [:urlencoded, :multipart, :json],
     pass: ["*/*"],
+    length: 12 * 1024 * 1024,
     json_decoder: Phoenix.json_library(),
     body_reader: {AdventureTimeApiWeb.RawBodyReader, :read_body, []}
   )

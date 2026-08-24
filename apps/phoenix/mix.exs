@@ -53,6 +53,7 @@ defmodule AdventureTimeApi.MixProject do
       {:telemetry_poller, "~> 1.0"},
       {:gettext, "~> 0.26"},
       {:jason, "~> 1.2"},
+      {:image, "~> 0.72"},
       {:req, "~> 0.5"},
       {:oban, "~> 2.20"},
       {:dns_cluster, "~> 0.2.0"},

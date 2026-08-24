@@ -184,9 +184,9 @@ defmodule AdventureTimeApi.Catalog do
     end
   end
 
-  def attach_card_image(card_id, binary_data, mime_type) do
+  def attach_card_image(card_id, %Plug.Upload{} = upload) do
     case Repo.get(Card, card_id) do
-      %Card{} -> Media.store_card_image(card_id, binary_data, mime_type)
+      %Card{} -> Media.store_card_image(card_id, upload)
       nil -> {:error, :not_found}
     end
   end

@@ -158,6 +158,34 @@ docker compose up
 npm run dev:api:container
 ```
 
+### Card and profile image uploads
+
+Phoenix accepts JPEG, PNG, and WebP card/profile uploads up to 12 MiB and 40
+megapixels after decoding. The multipart MIME declaration must agree with the
+decoded raster format. New uploads are auto-oriented, stripped of metadata,
+and encoded as WebP at quality 82; card art keeps its aspect ratio with a
+1,600-pixel longest edge, while profile art is center-cropped and stored on a
+512x512 canvas. Small profile sources are not upscaled: they are centered on a
+transparent canvas.
+
+The Elixir `image` dependency uses Vix's bundled libvips build on the supported
+macOS and Linux targets, so local development, CI, and the production release
+image do not require a separate system libvips package. The existing release
+runner's `libstdc++6` package supports the bundled native library. If the build
+is deliberately changed to `VIX_COMPILATION_MODE=PLATFORM_PROVIDED_LIBVIPS`,
+install `libvips-dev` in the build image and the matching libvips runtime
+package in the release image.
+
+Review database-tracked orphan candidates with the read-only task:
+
+```bash
+cd apps/phoenix
+mix media.audit_orphans
+```
+
+The task never deletes rows or objects and does not scan for MinIO-only
+objects.
+
 ## Production Data Migration
 
 Phoenix now owns the PWA import flow.

@@ -2,6 +2,7 @@ defmodule AdventureTimeApiWeb.MediaController do
   use AdventureTimeApiWeb, :controller
 
   alias AdventureTimeApi.Media
+  alias AdventureTimeApi.Media.UploadError
 
   def card(conn, %{"id" => id}), do: serve_image(conn, id, :card)
   def catalog(conn, %{"id" => id}), do: serve_image(conn, id, :catalog)
@@ -23,18 +24,22 @@ defmodule AdventureTimeApiWeb.MediaController do
     end
   end
 
-  defp handle_profile_upload(conn, %Plug.Upload{path: path, content_type: mime_type}) do
+  defp handle_profile_upload(conn, %Plug.Upload{} = upload) do
     user_id = conn.assigns.auth_user.id
-    binary_data = File.read!(path)
 
-    case Media.store_profile_image(user_id, binary_data, mime_type) do
+    case Media.store_profile_image(user_id, upload) do
       {:ok, asset_id} ->
         json(conn, %{assetId: asset_id})
 
-      {:error, reason} ->
+      {:error, %UploadError{} = error} ->
         conn
-        |> put_status(:internal_server_error)
-        |> json(%{error: "Upload failed: #{inspect(reason)}"})
+        |> put_status(error.status)
+        |> json(%{error: error.message, code: error.code |> Atom.to_string() |> String.upcase()})
+
+      {:error, _reason} ->
+        conn
+        |> put_status(:bad_gateway)
+        |> json(%{error: "Image storage is unavailable", code: "IMAGE_STORAGE_ERROR"})
     end
   end
 

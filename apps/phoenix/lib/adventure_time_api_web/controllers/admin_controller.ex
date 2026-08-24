@@ -6,6 +6,7 @@ defmodule AdventureTimeApiWeb.AdminController do
   alias AdventureTimeApi.Catalog
   alias AdventureTimeApi.Leaderboards.Corrections
   alias AdventureTimeApi.Media
+  alias AdventureTimeApi.Media.UploadError
   alias AdventureTimeApi.Pvp
 
   def users(conn, _params) do
@@ -193,19 +194,26 @@ defmodule AdventureTimeApiWeb.AdminController do
 
   def upload_card_image(conn, %{"id" => card_id}) do
     with :ok <- require_admin(conn),
-         {:ok, upload} <- fetch_upload(conn),
-         binary_data <- File.read!(upload.path) do
-      case Catalog.attach_card_image(card_id, binary_data, upload.content_type) do
+         {:ok, upload} <- fetch_upload(conn) do
+      case Catalog.attach_card_image(card_id, upload) do
         {:ok, asset_id} ->
           json(conn, %{assetId: asset_id})
 
         {:error, :not_found} ->
           conn |> put_status(404) |> json(%{error: "Card not found"})
 
-        {:error, reason} ->
+        {:error, %UploadError{} = error} ->
           conn
-          |> put_status(:internal_server_error)
-          |> json(%{error: "Upload failed: #{inspect(reason)}"})
+          |> put_status(error.status)
+          |> json(%{
+            error: error.message,
+            code: error.code |> Atom.to_string() |> String.upcase()
+          })
+
+        {:error, _reason} ->
+          conn
+          |> put_status(:bad_gateway)
+          |> json(%{error: "Image storage is unavailable", code: "IMAGE_STORAGE_ERROR"})
       end
     else
       {:error, %Plug.Conn{} = conn} ->

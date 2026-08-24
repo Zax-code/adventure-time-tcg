@@ -1,9 +1,9 @@
 # Adventure Time TCG — Project State
 
-Last verified: 2026-08-23
+Last verified: 2026-08-24
 Repository: `Zax-code/adventure-time-tcg`
-Branch: `codex/mobile-release-20260823`
-Verified commit: `28764a8a1afe5a100c4833ce315a83a5f3a4799e` plus the current release-record update
+Branch: `codex/media-ingestion-lifecycle`
+Verified commit: implementation commit pending; branch is based on `a49f01ed`
 
 ## Purpose and authority
 
@@ -58,7 +58,7 @@ Versions below come from current manifests, lockfiles, native configuration, and
 | Mobile | Expo `57.0.15`, Expo Router `57.0.15`, React Native `0.86.2`, React `19.2.3`, Reanimated `4.5.1`, NativeWind `4.2.3`, Software Mansion Bottom Sheet `0.12.0`, Expo Image, TanStack Query `5.101.4`, Zustand `5.0.15` |
 | Web | React `19.2.3`, React Router `7.18.x`, Vite `8.2.1`, TanStack Query `5.101.4`, Vitest `4.1.10` |
 | Shared TypeScript | Zod `3.25.76`; TypeScript `6.0.3` for mobile/web and `5.9.3` for shared packages in the installed tree |
-| Backend | Elixir `1.19.5` and OTP `28` in CI/release images; Phoenix `1.8.5`, Ecto SQL `3.13.5`, Postgrex `0.22.0`, Bandit `1.10.3`, Oban `2.21.1`, Req `0.5.17`, JOSE `1.11.12`, bcrypt_elixir `3.3.2`, tzdata `1.1.3` |
+| Backend | Elixir `1.19.5` and OTP `28` in CI/release images; Phoenix `1.8.5`, Ecto SQL `3.13.5`, Postgrex `0.22.0`, Bandit `1.10.3`, Oban `2.21.1`, Req `0.5.17`, Image `0.72.0`, Vix `0.41.0` with bundled libvips `8.18.3`, JOSE `1.11.12`, bcrypt_elixir `3.3.2`, tzdata `1.1.3` |
 | Runtime/data | Node `22.14.0`, PostgreSQL `16-alpine`, MinIO `RELEASE.2025-02-28T09-55-16Z` |
 | Build/release | npm workspaces, EAS local builds, native Xcode/Gradle projects, Maestro, focused Appium 3 native multi-touch checks, Docker Buildx, GHCR, Phoenix releases |
 | Production infrastructure | Podman Quadlet, systemd, Caddy, GitHub Actions, persistent data under `/srv/adventure-time-tcg` |
@@ -74,7 +74,7 @@ The Expo 57 migration and subsequent patch alignment are complete; Expo Doctor p
 | Phoenix API | Canonical backend, auth, gameplay, persistence, media, jobs, and web session host | `apps/phoenix` | COMPLETE | Active production service |
 | PostgreSQL | Canonical persistent store and Oban job store | Ecto schemas and `apps/phoenix/priv/repo/migrations` | COMPLETE | PostgreSQL 16 production container |
 | MinIO | Private card, profile, card-back, and catalog image objects | `apps/phoenix/lib/adventure_time_api/media.ex`, `infra/containers/quadlet` | COMPLETE | Active production service |
-| Oban | Expiry, assessment, pruning, and leaderboard lifecycle processing | `apps/phoenix/lib/adventure_time_api/workers` | COMPLETE | Runs inside Phoenix production release |
+| Oban | Media cleanup, expiry, assessment, pruning, and leaderboard lifecycle processing | `apps/phoenix/lib/adventure_time_api/workers` | COMPLETE | Runs inside Phoenix production release |
 | Shared API client/contracts | Typed transport and Zod wire contracts shared by web/mobile | `packages/api-client`, `packages/contracts` | COMPLETE | Active runtime packages |
 | Shared game engine/theme | Pure TS combat helpers used by mobile and shared visual tokens/assets | `packages/game-engine`, `packages/theme` | COMPLETE | Active; Phoenix remains authoritative for persisted PvP actions |
 | Fastify API | Archived implementation reference only | `apps/api` | COMPLETE | Legacy; excluded from npm workspaces and not deployed |
@@ -141,17 +141,18 @@ No missing bundled frame, back, or pack-cover file was found for the supported t
 
 ## Image and MinIO infrastructure
 
-- **Model:** `image_assets` stores `kind` (`card`, `profile`, or `catalog`), MIME type, object key, and optional placeholder SVG (`apps/phoenix/lib/adventure_time_api/catalog/image_asset.ex`; migration `apps/phoenix/priv/repo/migrations/20260324130500_create_foundation_tables.exs`). Cards, users, packs, and card-back visuals reference image assets.
+- **Model:** `image_assets` stores `kind` (`card`, `profile`, or `catalog`), MIME type, object key, optional placeholder SVG, and nullable width, height, byte size, and SHA-256 content hash metadata. Migration `20260824120000_add_image_asset_metadata.exs` leaves legacy rows compatible without a backfill. Cards, users, packs, and card-back visuals reference image assets.
 - **Uploads:** authenticated users upload their profile image at `POST /settings/upload`; admins upload card images at `POST /admin/cards/:id/image` and catalog assets at `POST /admin/image-assets` (`apps/phoenix/lib/adventure_time_api_web/router.ex`, `apps/phoenix/lib/adventure_time_api_web/controllers/media_controller.ex`, `apps/phoenix/lib/adventure_time_api_web/controllers/admin_controller.ex`).
-- **Formats and limits:** catalog uploads allow PNG, JPEG, WebP, and SVG. Card/profile backend paths accept the multipart-declared MIME type without their own allowlist, content sniffing, dimension validation, or decoder validation. Phoenix does not override Plug's 8,000,000-byte multipart default (`apps/phoenix/lib/adventure_time_api_web/endpoint.ex`); the production Caddy site has a separate 16 MB outer request-body limit.
-- **Processing:** upload handlers read the temporary file into memory and store the same bytes/MIME type. No resize, recompression, metadata stripping, transcoding, responsive variant generation, or thumbnail pipeline exists. There is one stored object, not a separate retained raw upload plus optimized outputs.
-- **Keys:** new profile objects use `profile/<user-id>/<uuid>`, card objects use `card/<card-id>/<uuid>`, and general catalog objects use `catalog/<uuid>`. Imported/seeded catalog assets may use deterministic catalog keys.
-- **Storage:** `Media` implements AWS Signature V4 requests with Req against the private MinIO bucket. Production uses the `private-images` bucket and persistent MinIO data under `/srv/adventure-time-tcg/minio`.
+- **Formats and limits:** card/profile uploads accept decoded JPEG, PNG, or WebP only; the declared MIME type must agree with the actual format. Phoenix enforces a structured 12 MiB application request/file limit below Caddy's 16 MB outer limit and a 40-megapixel decoded-pixel ceiling. Catalog upload behavior remains separate and continues to allow trusted PNG, JPEG, WebP, and SVG.
+- **Processing:** Image/Vix/libvips reads the multipart temp file, applies orientation, and emits only metadata-stripped WebP at quality 82/effort 6. Card art is not upscaled, preserves aspect ratio, and has a 1,600-pixel longest edge. Profile art uses a centered square crop on a 512x512 canvas; sources under 512 pixels remain native-size and receive transparent padding instead of upscaling. Only the processed WebP is buffered and sent to MinIO.
+- **Keys:** new profile objects use `profile/<user-id>/<uuid>.webp`, card objects use `card/<card-id>/<uuid>.webp`, and general catalog objects retain `catalog/<uuid>`. Imported/seeded assets keep their existing deterministic keys.
+- **Storage:** `Media` implements AWS Signature V4 GET, PUT, HEAD, and idempotent DELETE requests with Req against the private MinIO bucket. Production uses the `private-images` bucket and persistent MinIO data under `/srv/adventure-time-tcg/minio`. Vix bundles libvips for the supported release targets; no separate libvips runtime package is required in the current container mode.
 - **Delivery:** `/media/card/:id` and `/media/catalog/:id` are public. `/media/profile/:id` requires authentication. Card/catalog responses use `public, max-age=31536000, immutable`; profile responses use `private, max-age=3600`.
 - **Fallbacks:** missing object keys or object 404s return kind-specific placeholder SVGs. Other storage failures return a gateway error.
-- **Replacement and cleanup:** uploading a replacement creates a new object and row, then changes the card/user foreign key. The prior asset row/object is not removed. Account deletion removes the avatar asset row, but no MinIO delete request exists, so the object remains. No general asset-delete route or orphan cleanup job was found.
+- **Replacement and cleanup:** the new WebP object is uploaded first; one Ecto transaction locks the owner, inserts the new asset, swaps the foreign key, and enqueues the old asset's maintenance job. A failed transaction triggers immediate best-effort deletion of the new object while returning the original database error. After commit, the retryable Oban worker locks and rechecks the old row, protects all card/user/pack/card-back references and shared object keys, then deletes the object before its row. Account deletion atomically enqueues the same post-commit cleanup without changing the existing account transaction boundary.
+- **Audit:** `mix media.audit_orphans` reports unreferenced `image_assets` rows grouped by kind with review identifiers and metadata. It is always read-only. Historical objects are not deleted automatically, and MinIO-only bucket scanning is a follow-up rather than part of this audit.
 - **Clients:** mobile card/catalog images use `expo-image` memory/disk cache keys and prefetch helpers (`apps/mobile/src/lib/card-images.ts`, `apps/mobile/src/lib/catalog-images.ts`). Authenticated profile images attach the access token. Web card/catalog images are lazy/async; profile images are fetched as authenticated object URLs.
-- **Current limitations:** upload and delivery paths buffer whole objects in application memory, images are single-size originals, and replacement/deletion can leave unreferenced MinIO objects. These are descriptions of current behavior, not proposed designs.
+- **Current limitations:** delivery still buffers complete stored objects, only one stored size exists, no responsive variants are generated, and the audit cannot identify MinIO-only historical objects.
 
 ## Quest and leaderboard system
 
@@ -209,6 +210,7 @@ At verification time the local development and test databases and production wer
 
 ## Completed recently
 
+- **2026-08-24 — safe card/profile media lifecycle:** new uploads now enforce actual JPEG/PNG/WebP decoding, a 12 MiB/40 MP safety policy, orientation-aware WebP normalization and metadata, transactional reference swaps, retryable reference-safe MinIO cleanup, account-deletion cleanup, and a read-only database orphan audit. Catalog SVG behavior and all media URL/cache contracts remain unchanged. This is implemented on `codex/media-ingestion-lifecycle` and is not recorded as deployed.
 - **2026-08-23 — mobile 1.0.32:** Perfect Timing now uses the themed confirmation modal before discarding a result, high leaderboard scores no longer break public-profile parsing, and the Expo 57 patch dependencies are aligned. Android versionCode 54 was accepted on the Google Play closed-testing track and iOS build 67 was validated by App Store Connect; tags `mobile/android/1.0.32` and `mobile/ios/1.0.32` point to `28764a8a`.
 - **2026-08-23 — Perfect Timing result confirmation:** the native system alert shown before discarding an attempt result has been replaced by the shared themed modal and shared button layer. The dialog now offers explicit stay/discard actions, keeps English/French copy aligned, and has focused UI and Maestro coverage for both choices.
 - **2026-08-23 — high-scoring player-profile compatibility:** the shared public-profile contract now accepts any non-negative integer personal-best score instead of rejecting valid scores above the obsolete 1,000-point ceiling. A focused contract regression reproduces the mobile error boundary and preserves negative-score rejection; a read-only production audit confirmed legitimate over-1,000 daily rows across multiple boards.
@@ -243,7 +245,7 @@ At verification time the local development and test databases and production wer
 
 ### Confirmed
 
-- **PARTIAL — media validation/lifecycle:** card/profile uploads have no backend MIME allowlist or image validation; replacement and account deletion do not remove corresponding MinIO objects; whole files are buffered for upload/delivery.
+- **PARTIAL — media delivery variants:** card/profile ingestion and replacement cleanup are implemented, but media delivery still buffers each stored object, responsive variants are absent, and MinIO-only historical objects are outside the database orphan audit.
 - **PARTIAL — stale prose:** README's iOS release note still describes temporary EAS profile submission rather than the current direct `xcrun altool` upload, omits `apps/mobile/src/i18n/locales/en/rankings.ts` and `apps/mobile/src/i18n/locales/fr/rankings.ts`, and admin overview copy says seven quest definitions although source defines eight. The Speed Calculus cash-out docstring says “best run,” while current code and recent reconciliation deliberately use the latest settled run.
 - **PARTIAL — rarity icon integration:** `RarityIcon` exists but is private and unused.
 
@@ -271,7 +273,7 @@ At verification time the local development and test databases and production wer
 ## Realistic next priorities
 
 1. **Reconcile stale operational prose.** Why: README release instructions no longer match the iOS script. Dependencies: none. Completion: release, translation, quest-count, and Speed Calculus documentation matches executable configuration.
-2. **Define and enforce the media replacement/validation lifecycle.** Why: current upload paths accept unvalidated card/profile bytes and leave MinIO objects behind after replacement/deletion. Dependencies: owner decision on retention and accepted formats/limits. Completion: documented policy, validated uploads, object cleanup/reconciliation, and tests for replacement/account deletion.
+2. **Add streaming and responsive media delivery only when prioritized.** Why: ingestion and cleanup are safe, but delivery still buffers one stored WebP and generates no variants. Dependencies: client sizing/caching policy and a variant storage strategy. Completion: bounded-memory delivery and documented responsive URL/cache behavior without breaking existing media routes.
 ## Open questions
 
 - Should the active website eventually reach mobile feature parity for Rankings, Perfect Timing, full localization, and native-only health capabilities, or is its smaller scope intentional?

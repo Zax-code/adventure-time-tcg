@@ -26,7 +26,6 @@ defmodule AdventureTimeApi.Accounts do
     User
   }
 
-  alias AdventureTimeApi.Catalog.ImageAsset
   alias AdventureTimeApi.Health.StepSnapshot
   alias AdventureTimeApi.Inventory.OwnedCard
   alias AdventureTimeApi.Leaderboards.SnapshotRow
@@ -35,6 +34,7 @@ defmodule AdventureTimeApi.Accounts do
   alias AdventureTimeApi.Quests
   alias AdventureTimeApi.Quests.{DailyQuest, SpeedCalculusDailyRun, WordleDailyAttempt}
   alias AdventureTimeApi.Social.CardGift
+  alias AdventureTimeApi.Workers.MediaCleanupWorker
 
   @signup_purpose :signup
   @password_reset_purpose :password_reset
@@ -2059,7 +2059,7 @@ defmodule AdventureTimeApi.Accounts do
       from(code in EmailVerificationCode, where: code.email == ^normalized_email)
     )
     |> Multi.delete(:delete_user, user)
-    |> maybe_delete_avatar_asset(user.avatar_asset_id)
+    |> maybe_enqueue_avatar_cleanup(user.avatar_asset_id)
     |> Repo.transaction()
     |> case do
       {:ok, _changes} ->
@@ -2276,13 +2276,17 @@ defmodule AdventureTimeApi.Accounts do
   defp super_admin?(%{isSuperAdmin: true}), do: true
   defp super_admin?(_), do: false
 
-  defp maybe_delete_avatar_asset(multi, nil), do: multi
+  defp maybe_enqueue_avatar_cleanup(multi, nil), do: multi
 
-  defp maybe_delete_avatar_asset(multi, asset_id) do
-    Multi.delete_all(
+  defp maybe_enqueue_avatar_cleanup(multi, asset_id) do
+    Multi.run(
       multi,
-      :delete_avatar_asset,
-      from(asset in ImageAsset, where: asset.id == ^asset_id)
+      :enqueue_avatar_cleanup,
+      fn _repo, _changes ->
+        %{"asset_id" => asset_id}
+        |> MediaCleanupWorker.new()
+        |> Oban.insert()
+      end
     )
   end
 

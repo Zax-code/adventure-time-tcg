@@ -10,4 +10,11 @@ defmodule AdventureTimeApiWeb.ErrorJSONTest do
              error: "Internal Server Error"
            }
   end
+
+  test "renders a structured application upload limit response" do
+    assert AdventureTimeApiWeb.ErrorJSON.render("413.json", %{}) == %{
+             error: "Upload exceeds the 12 MB application limit",
+             code: "UPLOAD_TOO_LARGE"
+           }
+  end
 end
