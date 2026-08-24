@@ -432,7 +432,7 @@ function AdminCardEditorForm({
       </AdminSection>
 
       <AdminSection
-        description="PNG, JPEG, WEBP, or SVG. Save a new card before uploading."
+        description="JPEG, PNG, or WebP. Images are optimized after upload. Save a new card before uploading."
         title="04 · Artwork"
       >
         {createMode ? (
