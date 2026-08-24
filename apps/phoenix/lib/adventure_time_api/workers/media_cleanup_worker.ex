@@ -4,7 +4,12 @@ defmodule AdventureTimeApi.Workers.MediaCleanupWorker do
   use Oban.Worker,
     queue: :maintenance,
     max_attempts: 10,
-    unique: [period: 86_400, fields: [:worker, :args], keys: [:asset_id]]
+    unique: [
+      period: 86_400,
+      fields: [:worker, :args],
+      keys: [:asset_id],
+      states: :incomplete
+    ]
 
   require Logger
 

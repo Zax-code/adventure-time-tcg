@@ -73,6 +73,17 @@ defmodule AdventureTimeApi.Media.ImageProcessorTest do
   end
 
   @tag :tmp_dir
+  test "accepts absent or generic MIME declarations after validating the image bytes", %{
+    tmp_dir: tmp_dir
+  } do
+    Enum.each([nil, "", "application/octet-stream"], fn mime_type ->
+      upload = image_upload(tmp_dir, ".png", mime_type, 20, 20)
+
+      assert {:ok, %{mime_type: "image/webp"}} = ImageProcessor.process(upload, :card)
+    end)
+  end
+
+  @tag :tmp_dir
   test "rejects malformed bytes with a supported signature", %{tmp_dir: tmp_dir} do
     path = Path.join(tmp_dir, "broken.jpg")
     File.write!(path, <<0xFF, 0xD8, 0xFF, 0, 1, 2, 3>>)

@@ -15,6 +15,7 @@ defmodule AdventureTimeApi.Media.ImageProcessor do
     png: "image/png",
     webp: "image/webp"
   }
+  @generic_mime_types [nil, "", "application/octet-stream"]
 
   def max_upload_bytes, do: @max_upload_bytes
   def max_decoded_pixels, do: @max_decoded_pixels
@@ -84,6 +85,9 @@ defmodule AdventureTimeApi.Media.ImageProcessor do
 
     case normalize_mime_type(declared_mime_type) do
       ^expected_mime_type ->
+        :ok
+
+      mime_type when mime_type in @generic_mime_types ->
         :ok
 
       mime_type when mime_type in ["image/jpeg", "image/png", "image/webp"] ->

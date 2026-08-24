@@ -120,6 +120,13 @@ defmodule AdventureTimeApi.MediaTest do
     assert :ok = perform_cleanup(asset.id)
   end
 
+  test "cleanup uniqueness does not let a completed protected job suppress a later retry" do
+    changeset = MediaCleanupWorker.new(%{"asset_id" => Ecto.UUID.generate()})
+
+    assert changeset.changes.unique.states == Oban.Job.unique_states(:incomplete)
+    refute :completed in changeset.changes.unique.states
+  end
+
   test "MinIO object deletion treats repeated deletes as successful" do
     {_bypass, requests} = storage_bypass()
 
