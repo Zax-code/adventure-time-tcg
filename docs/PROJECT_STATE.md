@@ -3,7 +3,7 @@
 Last verified: 2026-08-24
 Repository: `Zax-code/adventure-time-tcg`
 Branch: `codex/media-ingestion-lifecycle`
-Verified commit: `ec187cd55d87715a9a9c32b0e745ba617d27777e`
+Verified commit: `6e6a070f750ac277e9318c2fc98fe4f3ac744f56`
 
 ## Purpose and authority
 
