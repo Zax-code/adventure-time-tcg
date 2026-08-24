@@ -3,7 +3,7 @@
 Last verified: 2026-08-24
 Repository: `Zax-code/adventure-time-tcg`
 Branch: `codex/media-ingestion-lifecycle`
-Verified commit: implementation commit pending; branch is based on `a49f01ed`
+Verified commit: `ec187cd55d87715a9a9c32b0e745ba617d27777e`
 
 ## Purpose and authority
 
@@ -41,7 +41,7 @@ Phoenix, PostgreSQL, and MinIO are the production backend. The Fastify app in `a
 - **Mobile application:** Expo Router routes in `apps/mobile/app`, product code in `apps/mobile/src`, checked-in native projects in `apps/mobile/ios` and `apps/mobile/android`, and bundled art in `apps/mobile/assets`. It calls Phoenix through `@adventure-time/api-client`, receives quest changes through a Phoenix channel, polls REST endpoints for current PvP state, and stores session state securely on-device.
 - **Web application:** React routes in `apps/web/src/app.tsx` and `apps/web/src/route-manifest.ts`. The production build is copied into Phoenix static assets by `apps/phoenix/Dockerfile`; browser authentication uses secure Phoenix session endpoints.
 - **Backend/API:** Phoenix contexts under `apps/phoenix/lib/adventure_time_api`, controllers/channels under `apps/phoenix/lib/adventure_time_api_web`, and the canonical route map at `apps/phoenix/lib/adventure_time_api_web/router.ex`. Phoenix owns authentication, persistence, uploads, jobs, quests, leaderboards, and PvP validation.
-- **Database:** PostgreSQL 16 with Ecto schemas in `apps/phoenix/lib/adventure_time_api` and 47 canonical migrations in `apps/phoenix/priv/repo/migrations`. `packages/db` is legacy Drizzle reference material.
+- **Database:** PostgreSQL 16 with Ecto schemas in `apps/phoenix/lib/adventure_time_api` and 48 canonical migrations in `apps/phoenix/priv/repo/migrations`. `packages/db` is legacy Drizzle reference material.
 - **Authentication:** email/password with verification and password reset, Google and Apple provider identities, signed access/refresh tokens for native clients, refresh-token sessions, secure browser cookies, role/access approval, and rate limits. Primary code is `apps/phoenix/lib/adventure_time_api/accounts.ex`, `apps/phoenix/lib/adventure_time_api/auth.ex`, and the auth controllers/plugs.
 - **Object storage and image delivery:** a private MinIO bucket accessed through `apps/phoenix/lib/adventure_time_api/media.ex`. Phoenix signs S3-compatible requests and proxies image bytes through `/media/*` routes.
 - **Admin tooling:** role-guarded Phoenix endpoints plus mobile and web admin interfaces for users/access requests, cards, abilities, packs, card backs, featured cards, image assets, quest reset, and leaderboard corrections.
