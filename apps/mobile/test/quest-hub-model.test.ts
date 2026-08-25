@@ -516,4 +516,15 @@ describe("quest hub presentation model", () => {
     assert.equal(getQuestHubItemLifecycle(items[0]), "failed");
     assert.equal(getQuestHubItemStats(items[0]).shareableCount, 2);
   });
+
+  it("makes Speed Calculus shareable after the first recorded run", () => {
+    const quest = makeQuest({
+      type: "speed_calculus_daily",
+      progress: 1,
+      runsUsed: 1,
+      maxRuns: 3,
+    });
+
+    assert.equal(isQuestShareable(quest), true);
+  });
 });

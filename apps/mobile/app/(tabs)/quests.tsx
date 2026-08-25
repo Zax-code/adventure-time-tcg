@@ -59,6 +59,12 @@ import {
   buildPerfectTimingShareResult,
   type PerfectTimingShareResult,
 } from "../../src/features/quests/perfect-timing/share-result";
+import { SpeedCalculusQuestShareCard } from "../../src/features/quests/speed-calculus/quest-share-card";
+import type { SpeedCalculusQuestShareCardStrings } from "../../src/features/quests/speed-calculus/quest-share-card";
+import {
+  buildSpeedCalculusShareResult,
+  type SpeedCalculusShareResult,
+} from "../../src/features/quests/speed-calculus/share-result";
 import {
   QuestHubCard,
   QuestHubSummary,
@@ -133,7 +139,8 @@ import {
 import { THEME_COLORS } from "../../src/theme/themes";
 
 type ThemeColors = (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
-type SharingGroup = "wordle" | "dailyNumbers" | "perfectTiming";
+type SharingGroup =
+  "wordle" | "dailyNumbers" | "perfectTiming" | "speedCalculus";
 type LauncherKind = "wordle" | "dailyNumbers";
 type QuestIcon = ComponentType<{ size?: number; color?: string }>;
 type Translate = (
@@ -153,6 +160,10 @@ type DailyNumbersGroupShareItem = {
 type PerfectTimingGroupShareItem = {
   result: PerfectTimingShareResult;
   strings: PerfectTimingQuestShareCardStrings;
+};
+type SpeedCalculusGroupShareItem = {
+  result: SpeedCalculusShareResult;
+  strings: SpeedCalculusQuestShareCardStrings;
 };
 
 const WORDLE_MAX_ATTEMPTS = 6;
@@ -403,6 +414,7 @@ function buildGroupedQuestShareFileName(
       wordle: "adventure-time-wordle-recap",
       dailyNumbers: "adventure-time-numbers-recap",
       perfectTiming: "adventure-time-perfect-timing",
+      speedCalculus: "adventure-time-speed-calculus",
     }[group],
   ];
 
@@ -504,9 +516,12 @@ function useQuestsScreenView() {
     useState<DailyNumbersGroupShareItem[] | null>(null);
   const [perfectTimingGroupShareItem, setPerfectTimingGroupShareItem] =
     useState<PerfectTimingGroupShareItem | null>(null);
+  const [speedCalculusGroupShareItem, setSpeedCalculusGroupShareItem] =
+    useState<SpeedCalculusGroupShareItem | null>(null);
   const wordleGroupShareRef = useRef<View>(null);
   const dailyNumbersGroupShareRef = useRef<View>(null);
   const perfectTimingGroupShareRef = useRef<View>(null);
+  const speedCalculusGroupShareRef = useRef<View>(null);
   const toastAnim = useSharedValue(-60);
 
   useEffect(() => {
@@ -540,6 +555,7 @@ function useQuestsScreenView() {
       setWordleGroupShareItems(null);
       setDailyNumbersGroupShareItems(null);
       setPerfectTimingGroupShareItem(null);
+      setSpeedCalculusGroupShareItem(null);
     });
   }, []);
 
@@ -988,9 +1004,7 @@ function useQuestsScreenView() {
         if (
           useQuestDayCutoffStore.getState().cutoffVersion !==
             cutoffVersionAtStart ||
-          states.some(
-            (state) => !isCurrentQuestDay(state.date, questTimeZone),
-          )
+          states.some((state) => !isCurrentQuestDay(state.date, questTimeZone))
         ) {
           return;
         }
@@ -1100,9 +1114,7 @@ function useQuestsScreenView() {
         if (
           useQuestDayCutoffStore.getState().cutoffVersion !==
             cutoffVersionAtStart ||
-          states.some(
-            (state) => !isCurrentQuestDay(state.date, questTimeZone),
-          )
+          states.some((state) => !isCurrentQuestDay(state.date, questTimeZone))
         ) {
           return;
         }
@@ -1263,10 +1275,7 @@ function useQuestsScreenView() {
           brand: t("quests.perfectTiming.shareBrand"),
           date: formatQuestShareDate(state.date, locale),
           targetLabel: t("quests.perfectTiming.todaysTarget"),
-          targetValue: formatPerfectTimingMilliseconds(
-            state.targetMs,
-            locale,
-          ),
+          targetValue: formatPerfectTimingMilliseconds(state.targetMs, locale),
           attemptLabels,
           attemptValues,
           finalTierLabel: t("quests.perfectTiming.shareFinalTier"),
@@ -1287,6 +1296,71 @@ function useQuestsScreenView() {
     } finally {
       shareLockRef.current = false;
       setPerfectTimingGroupShareItem(null);
+      setSharingGroup(null);
+    }
+  }, [locale, questTimeZone, shareCapturedGroupImage, sharingGroup, t]);
+
+  const handleShareSpeedCalculus = useCallback(async () => {
+    if (shareLockRef.current || sharingGroup) return;
+    shareLockRef.current = true;
+    const cutoffVersionAtStart =
+      useQuestDayCutoffStore.getState().cutoffVersion;
+
+    setSharingGroup("speedCalculus");
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    try {
+      const [canShare, state] = await Promise.all([
+        Sharing.isAvailableAsync(),
+        apiClient.speedCalculusState(),
+      ]);
+
+      if (
+        useQuestDayCutoffStore.getState().cutoffVersion !==
+          cutoffVersionAtStart ||
+        !isCurrentQuestDay(state.date, questTimeZone)
+      ) {
+        return;
+      }
+
+      if (!canShare) {
+        Alert.alert(t("quests.shareAllUnavailable"));
+        return;
+      }
+
+      if (state.history.length === 0) {
+        throw new Error("Speed Calculus share state has no recorded runs");
+      }
+
+      const result = buildSpeedCalculusShareResult({
+        questTitle: t("quests.speedCalculusTitle"),
+        date: state.date,
+        runs: state.history,
+      });
+      setSpeedCalculusGroupShareItem({
+        result,
+        strings: {
+          brand: t("quests.speedCalculusShareBrand"),
+          date: formatQuestShareDate(state.date, locale),
+          runLabel: (runNumber: number) =>
+            t("quests.speedCalculusShareRun", { run: runNumber }),
+          errorsCorrectLabel: t("quests.speedCalculusShareErrorsCorrect"),
+          accuracyLabel: t("quests.speedCalculusShareAccuracy"),
+          scoreLabel: t("quests.speedCalculusShareScore"),
+          footer: t("quests.speedCalculusShareFooter"),
+        },
+      });
+      await shareCapturedGroupImage({
+        dateKey: state.date,
+        group: "speedCalculus",
+        ref: speedCalculusGroupShareRef,
+      });
+    } catch (error) {
+      console.warn("Failed to share Speed Calculus recap", error);
+      Alert.alert(t("quests.shareAllError"));
+    } finally {
+      shareLockRef.current = false;
+      setSpeedCalculusGroupShareItem(null);
       setSharingGroup(null);
     }
   }, [locale, questTimeZone, shareCapturedGroupImage, sharingGroup, t]);
@@ -1352,8 +1426,10 @@ function useQuestsScreenView() {
     (item) => item.kind === "dailyNumbers",
   );
   const perfectTimingItem = hubItems.find(
-    (item) =>
-      item.kind === "single" && isPerfectTimingQuest(item.quest.type),
+    (item) => item.kind === "single" && isPerfectTimingQuest(item.quest.type),
+  );
+  const speedCalculusItem = hubItems.find(
+    (item) => item.kind === "single" && isSpeedCalculusQuest(item.quest.type),
   );
   const claimInFlight =
     claimQuestMutation.isPending || claimAllMutation.isPending;
@@ -1642,6 +1718,25 @@ function useQuestsScreenView() {
         void handleSharePerfectTiming();
       },
       testID: "quests-share-perfect-timing",
+    });
+  }
+  if (
+    speedCalculusItem?.kind === "single" &&
+    isQuestShareable(speedCalculusItem.quest)
+  ) {
+    const count =
+      speedCalculusItem.quest.runsUsed ?? speedCalculusItem.quest.progress;
+    recapActions.push({
+      id: "speedCalculus",
+      title: t("quests.speedCalculusTitle"),
+      detail: t("quests.hub.resultsReady", { count }),
+      buttonLabel: t("quests.hub.shareSpeedCalculus"),
+      icon: SpeedCalculusQuestIcon,
+      isLoading: sharingGroup === "speedCalculus",
+      onPress: () => {
+        void handleShareSpeedCalculus();
+      },
+      testID: "quests-share-speed-calculus",
     });
   }
 
@@ -2135,6 +2230,26 @@ function useQuestsScreenView() {
                 colors={tc}
                 result={perfectTimingGroupShareItem.result}
                 strings={perfectTimingGroupShareItem.strings}
+              />
+            </GroupedQuestShareImage>
+          </View>
+        </View>
+      ) : null}
+
+      {speedCalculusGroupShareItem ? (
+        <View
+          accessibilityElementsHidden
+          pointerEvents="none"
+          collapsable={false}
+          importantForAccessibility="no-hide-descendants"
+          style={{ position: "absolute", left: -9999, top: 0 }}
+        >
+          <View ref={speedCalculusGroupShareRef} collapsable={false}>
+            <GroupedQuestShareImage colors={tc}>
+              <SpeedCalculusQuestShareCard
+                colors={tc}
+                result={speedCalculusGroupShareItem.result}
+                strings={speedCalculusGroupShareItem.strings}
               />
             </GroupedQuestShareImage>
           </View>

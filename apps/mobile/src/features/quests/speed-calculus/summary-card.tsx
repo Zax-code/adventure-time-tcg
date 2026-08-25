@@ -3,7 +3,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import type { SpeedRunState } from "@adventure-time/api-client";
 
 import { useTranslation } from "../../../i18n";
-import { CoinIcon } from "../../../components/icons";
+import { CoinIcon, ShareIcon } from "../../../components/icons";
 import { QuestActionButton } from "../quest-action-button";
 import { useThemeStore } from "../../../stores/theme-store";
 import { THEME_COLORS } from "../../../theme/themes";
@@ -18,6 +18,8 @@ type SummaryCardProps = {
   onResumeRun: () => void;
   onCashOut: () => void;
   onClaim: () => void;
+  onShare: () => void;
+  sharing: boolean;
 };
 
 export function SummaryCard({
@@ -29,6 +31,8 @@ export function SummaryCard({
   onResumeRun,
   onCashOut,
   onClaim,
+  onShare,
+  sharing,
 }: SummaryCardProps) {
   const { t } = useTranslation();
   const tc = THEME_COLORS[useThemeStore((s) => s.themeName)];
@@ -165,6 +169,26 @@ export function SummaryCard({
           </LinearGradient>
         </Pressable>
       )}
+
+      {!activeRun && (state?.history.length ?? 0) > 0 ? (
+        <QuestActionButton
+          label={
+            sharing
+              ? t("quests.speedCalculusSharePreparing")
+              : t("quests.speedCalculusShareResult")
+          }
+          onPress={onShare}
+          disabled={sharing}
+          loading={sharing}
+          loadingMode="inline"
+          backgroundColor={tc.surface}
+          foregroundColor={tc.primaryText}
+          borderColor={tc.primaryBorder}
+          leadingIcon={ShareIcon}
+          minHeight={48}
+          testID="speed-calculus-share"
+        />
+      ) : null}
 
       {state?.locked && (
         <View className="rounded-2xl border border-successBorder bg-successTint p-4 mt-2">

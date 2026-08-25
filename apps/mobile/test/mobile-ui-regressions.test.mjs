@@ -14,6 +14,10 @@ const speedCalculusKeypadSource = readFileSync(
   "src/features/quests/speed-calculus/keypad.tsx",
   "utf8",
 );
+const speedCalculusSummarySource = readFileSync(
+  "src/features/quests/speed-calculus/summary-card.tsx",
+  "utf8",
+);
 const englishQuestsSource = readFileSync(
   "src/i18n/locales/en/quests.ts",
   "utf8",
@@ -140,6 +144,24 @@ describe("mobile UI regression contracts", () => {
       questsScreenSource,
       /<PerfectTimingQuestShareCard/,
       "the quest list should render the existing Perfect Timing share card for capture",
+    );
+  });
+
+  it("shares recorded Speed Calculus runs from the quest and recap screens", () => {
+    assert.match(
+      speedCalculusSummarySource,
+      /testID="speed-calculus-share"/,
+      "the Speed Calculus screen should expose sharing once a run is recorded",
+    );
+    assert.match(
+      questsScreenSource,
+      /testID: "quests-share-speed-calculus"/,
+      "the recap sheet should offer recorded Speed Calculus runs",
+    );
+    assert.match(
+      questsScreenSource,
+      /<SpeedCalculusQuestShareCard/,
+      "the quest list should render the Speed Calculus share card for capture",
     );
   });
 

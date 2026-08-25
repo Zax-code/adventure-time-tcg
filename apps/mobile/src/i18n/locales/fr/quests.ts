@@ -61,11 +61,12 @@ const quests = {
     share: "Partager les résultats",
     recapTitle: "Partager les résultats des jeux",
     recapSubtitle:
-      "Choisis les résultats terminés à partager. Les réponses restent privées.",
+      "Choisis les résultats enregistrés à partager. Les réponses restent privées.",
     resultsReady: "Résultats terminés : {count}",
     shareWordle: "Partager les résultats Wordle",
     shareDailyNumbers: "Partager les résultats Nombres",
     sharePerfectTiming: "Partager le résultat Timing parfait",
+    shareSpeedCalculus: "Partager les résultats de calcul mental",
     wordleLauncherTitle: "Choisis ton Wordle",
     wordleLauncherSubtitle:
       "Choisis une langue. Chaque énigme a sa propre progression et récompense.",
@@ -264,6 +265,18 @@ const quests = {
   speedCalculusTrainingNoRunsYet: "Aucun entraînement terminé pour le moment.",
   speedCalculusTrainingSummary:
     "{score} bonnes réponses sur {answered} réponses envoyées.",
+  speedCalculusShareResult: "Partager les résultats",
+  speedCalculusSharePreparing: "Préparation…",
+  speedCalculusShareBrand: "Adventure Time TCG",
+  speedCalculusShareRun: "Manche {run}",
+  speedCalculusShareErrorsCorrect: "Erreurs / bonnes",
+  speedCalculusShareAccuracy: "Précision",
+  speedCalculusShareScore: "Score",
+  speedCalculusShareFooter: "Quête quotidienne",
+  speedCalculusShareDialogTitle: "Partager tes résultats de calcul mental",
+  speedCalculusShareError: "Impossible de créer l'image à partager. Réessaie.",
+  speedCalculusShareUnavailable:
+    "Le partage n'est pas disponible sur cet appareil.",
   perfectTiming: {
     title: "Timing parfait",
     subtitle:

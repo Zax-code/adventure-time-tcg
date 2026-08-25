@@ -15,7 +15,13 @@ require Logger
 
 alias AdventureTimeApi.Accounts.User
 alias AdventureTimeApi.Quests
-alias AdventureTimeApi.Quests.{DailyQuest, PerfectTiming, WordleDictionaryWord, WordleEngine}
+alias AdventureTimeApi.Quests.{
+  DailyQuest,
+  PerfectTiming,
+  SpeedCalculusEngine,
+  WordleDictionaryWord,
+  WordleEngine
+}
 alias AdventureTimeApi.Repo
 
 Logger.configure(level: :warning)
@@ -104,6 +110,32 @@ stopped_at =
 
 unless perfect_timing_final.finalized do
   raise "quest fixture did not produce a finalized Perfect Timing result"
+end
+
+for {answer_count, wrong_indexes} <- [{4, [1]}, {5, [0, 4]}] do
+  {:ok, speed_started} = Quests.start_speed_calculus_run(user.id)
+
+  answers =
+    speed_started.activeRun.seed
+    |> SpeedCalculusEngine.build_questions(answer_count)
+    |> Enum.with_index()
+    |> Enum.map(fn {question, index} ->
+      if index in wrong_indexes, do: question.answer + 1, else: question.answer
+    end)
+
+  {:ok, _speed_finished} =
+    Quests.finish_speed_calculus(
+      user.id,
+      speed_started.activeRun.runId,
+      speed_started.questVersion,
+      answers
+    )
+end
+
+{:ok, speed_state} = Quests.speed_calculus_state(user.id)
+
+unless speed_state.runsUsed == 2 and length(speed_state.history) == 2 do
+  raise "quest fixture did not produce two shareable Speed Calculus runs"
 end
 
 {:ok, %{quests: quests}} = Quests.list_quests_for_user(user.id)
