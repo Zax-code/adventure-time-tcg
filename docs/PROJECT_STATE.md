@@ -3,7 +3,7 @@
 Last verified: 2026-08-25
 Repository: `Zax-code/adventure-time-tcg`
 Branch: `codex/share-speed-calculus-results`
-Verified baseline commit: `98865b1a`
+Verified baseline commit: `abe07ef2`
 
 ## Purpose and authority
 
