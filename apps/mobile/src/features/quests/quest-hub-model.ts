@@ -33,11 +33,7 @@ export type QuestHubItem =
   SingleQuestHubItem | WordleQuestHubItem | DailyNumbersQuestHubItem;
 
 export type QuestHubPreferenceId =
-  | "wordle"
-  | "dailyNumbers"
-  | "perfectTiming"
-  | "speedCalculus"
-  | "steps";
+  "wordle" | "dailyNumbers" | "perfectTiming" | "speedCalculus" | "steps";
 
 export const DEFAULT_QUEST_HUB_ORDER: QuestHubPreferenceId[] = [
   "wordle",
@@ -139,6 +135,10 @@ export function isQuestShareable(quest: Quest) {
 
   if (isPerfectTimingQuest(quest.type)) {
     return quest.completed || quest.claimed || quest.failed;
+  }
+
+  if (isSpeedCalculusQuest(quest.type)) {
+    return (quest.runsUsed ?? quest.progress) > 0;
   }
 
   return false;

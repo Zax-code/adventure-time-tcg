@@ -1,6 +1,9 @@
 import { useState, useRef, useMemo, useCallback } from "react";
+import { File, Paths } from "expo-file-system";
 import * as Haptics from "expo-haptics";
+import * as Sharing from "expo-sharing";
 import {
+  Alert,
   AppState,
   type AppStateStatus,
   Pressable,
@@ -14,6 +17,7 @@ import {
   withSequence,
   withTiming,
 } from "react-native-reanimated";
+import { captureRef } from "react-native-view-shot";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
@@ -25,6 +29,7 @@ import { useTranslation } from "../../../src/i18n";
 import { PageLoadingState } from "../../../src/components/loading-state";
 import { PageErrorState } from "../../../src/components/error-state";
 import { navigateBackFromQuest } from "../../../src/features/quests/quest-navigation";
+import { formatQuestShareDate } from "../../../src/features/quests/quest-share-date";
 import {
   QuestScreenDescription,
   QuestScreenHeader,
@@ -35,7 +40,12 @@ import { useThemeStore } from "../../../src/stores/theme-store";
 import { THEME_COLORS } from "../../../src/theme/themes";
 
 import { ActiveRunPanel } from "../../../src/features/quests/speed-calculus/active-run-panel";
+import { SpeedCalculusOffscreenShareCard } from "../../../src/features/quests/speed-calculus/offscreen-share-card";
 import { RunHistoryCard } from "../../../src/features/quests/speed-calculus/run-history";
+import {
+  buildSpeedCalculusShareFileName,
+  buildSpeedCalculusShareResult,
+} from "../../../src/features/quests/speed-calculus/share-result";
 import { SummaryCard } from "../../../src/features/quests/speed-calculus/summary-card";
 import {
   appendDigit,
@@ -58,7 +68,7 @@ export default function SpeedCalculusScreen() {
 }
 
 function useSpeedCalculusScreenView() {
-  const { t } = useTranslation();
+  const { locale, t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { fontScale } = useWindowDimensions();
   const stackMetadata = fontScale >= 1.6;
@@ -80,6 +90,7 @@ function useSpeedCalculusScreenView() {
   const [openRuns, setOpenRuns] = useState<Record<number, boolean>>({});
   const [roundOverScore, setRoundOverScore] = useState(0);
   const [roundOverRunNumber, setRoundOverRunNumber] = useState(1);
+  const [isSharing, setIsSharing] = useState(false);
 
   // ── Refs ─────────────────────────────────────────────────────────
   const playDeadlineRef = useRef<number | null>(null);
@@ -93,6 +104,7 @@ function useSpeedCalculusScreenView() {
   const stateRef = useRef<SpeedRunState | null>(null);
   const questVersionRef = useRef<string | null>(null);
   const mutationEpochRef = useRef(0);
+  const shareCardRef = useRef<View>(null);
   const shakeAnim = useSharedValue(0);
   const feedbackSlide = useSharedValue(-20);
   const feedbackOpacity = useSharedValue(0);
@@ -227,7 +239,10 @@ function useSpeedCalculusScreenView() {
     setRemainingSeconds(nextRun.remainingSeconds);
     setPauseRemainingSeconds(nextRun.pauseRemainingSeconds);
     const currentState = stateRef.current;
-    if (!currentState?.activeRun || currentState.activeRun.runId !== nextRun.runId) {
+    if (
+      !currentState?.activeRun ||
+      currentState.activeRun.runId !== nextRun.runId
+    ) {
       return;
     }
 
@@ -607,7 +622,8 @@ function useSpeedCalculusScreenView() {
       setToast({
         type: "success",
         message: t("quests.claimSuccess", {
-          amount: latestState?.rewardPreview ?? currentState?.rewardPreview ?? 0,
+          amount:
+            latestState?.rewardPreview ?? currentState?.rewardPreview ?? 0,
         }),
       });
     } catch (error) {
@@ -740,6 +756,81 @@ function useSpeedCalculusScreenView() {
   const toggleRunHistory = useCallback((runNumber: number) => {
     setOpenRuns((prev) => ({ ...prev, [runNumber]: !prev[runNumber] }));
   }, []);
+
+  const shareResult = useMemo(() => {
+    if (!state || state.history.length === 0) return null;
+
+    return buildSpeedCalculusShareResult({
+      questTitle: t("quests.speedCalculusTitle"),
+      date: state.date,
+      runs: state.history,
+    });
+  }, [state, t]);
+  const shareStrings = useMemo(() => {
+    if (!shareResult) return null;
+
+    return {
+      brand: t("quests.speedCalculusShareBrand"),
+      date: formatQuestShareDate(shareResult.date, locale),
+      runLabel: (runNumber: number) =>
+        t("quests.speedCalculusShareRun", { run: runNumber }),
+      correctLabel: t("quests.speedCalculusShareCorrect"),
+      errorsLabel: t("quests.speedCalculusShareErrors"),
+      summary: (
+        correctAnswers: number,
+        totalAnswers: number,
+        accuracyPercentage: number,
+      ) =>
+        t("quests.speedCalculusShareSummary", {
+          correct: correctAnswers,
+          total: totalAnswers,
+          accuracy: accuracyPercentage,
+        }),
+      footer: t("quests.speedCalculusShareFooter"),
+    };
+  }, [locale, shareResult, t]);
+
+  const shareSpeedCalculusResult = useCallback(async () => {
+    if (isSharing || !shareCardRef.current || !shareResult) return;
+    setIsSharing(true);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    try {
+      if (!(await Sharing.isAvailableAsync())) {
+        Alert.alert(t("quests.speedCalculusShareUnavailable"));
+        return;
+      }
+
+      const uri = await captureRef(shareCardRef, {
+        format: "png",
+        quality: 1,
+        result: "tmpfile",
+      });
+      let shareUri = uri;
+      try {
+        const destination = new File(
+          Paths.cache,
+          buildSpeedCalculusShareFileName(shareResult),
+        );
+        if (destination.exists) destination.delete();
+        await new File(uri).copy(destination);
+        shareUri = destination.uri;
+      } catch (copyError) {
+        console.warn("Failed to rename Speed Calculus share image", copyError);
+      }
+
+      await Sharing.shareAsync(shareUri, {
+        mimeType: "image/png",
+        dialogTitle: t("quests.speedCalculusShareDialogTitle"),
+        UTI: "public.png",
+      });
+    } catch (error) {
+      console.warn("Failed to share Speed Calculus results", error);
+      Alert.alert(t("quests.speedCalculusShareError"));
+    } finally {
+      setIsSharing(false);
+    }
+  }, [isSharing, shareResult, t]);
 
   // ── Modal visibility ─────────────────────────────────────────────
   const [modalVisible, setModalVisible] = useState(false);
@@ -890,6 +981,8 @@ function useSpeedCalculusScreenView() {
           onResumeRun={() => void resumeRun()}
           onCashOut={() => void cashOut()}
           onClaim={() => void claimReward()}
+          onShare={() => void shareSpeedCalculusResult()}
+          sharing={isSharing}
         />
 
         <View
@@ -969,6 +1062,15 @@ function useSpeedCalculusScreenView() {
         onSubmit={() => void handleSubmit()}
         onDismiss={handleRoundOverDismiss}
       />
+
+      {shareResult && shareStrings ? (
+        <SpeedCalculusOffscreenShareCard
+          cardRef={shareCardRef}
+          colors={tc}
+          result={shareResult}
+          strings={shareStrings}
+        />
+      ) : null}
     </View>
   );
 }

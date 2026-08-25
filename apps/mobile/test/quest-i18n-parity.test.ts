@@ -59,4 +59,13 @@ describe("quest translations", () => {
       );
     }
   });
+
+  it("uses natural French copy for the Speed Calculus correct-answer ratio", () => {
+    assert.equal(fr.speedCalculusShareCorrect, "Correctes");
+    assert.equal(fr.speedCalculusShareErrors, "Erreurs");
+    assert.equal(
+      fr.speedCalculusShareSummary,
+      "{correct} / {total} correctes · {accuracy}% de précision",
+    );
+  });
 });

@@ -37,6 +37,8 @@ tags:
     id: quests-share-wordle
 - assertVisible:
     id: quests-share-perfect-timing
+- assertVisible:
+    id: quests-share-speed-calculus
 - waitForAnimationToEnd
 - takeScreenshot: tmp-quests-redesign-shots/02-share-results
 - swipe:

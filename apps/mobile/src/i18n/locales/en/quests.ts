@@ -57,11 +57,12 @@ const quests = {
     share: "Share results",
     recapTitle: "Share puzzle results",
     recapSubtitle:
-      "Choose which finished puzzle results to share. Answers stay private.",
+      "Choose which recorded results to share. Answers stay private.",
     resultsReady: "Finished results: {count}",
     shareWordle: "Share Wordle results",
     shareDailyNumbers: "Share Numbers results",
     sharePerfectTiming: "Share Perfect Timing result",
+    shareSpeedCalculus: "Share Speed Calculus results",
     wordleLauncherTitle: "Choose your Wordle",
     wordleLauncherSubtitle:
       "Pick a language. Each puzzle has its own progress and reward.",
@@ -256,6 +257,18 @@ const quests = {
   speedCalculusTrainingNoRunsYet: "No training run finished yet.",
   speedCalculusTrainingSummary:
     "{score} correct answers across {answered} submitted answers.",
+  speedCalculusShareResult: "Share results",
+  speedCalculusSharePreparing: "Preparing…",
+  speedCalculusShareBrand: "Adventure Time TCG",
+  speedCalculusShareRun: "Run {run}",
+  speedCalculusShareCorrect: "Correct",
+  speedCalculusShareErrors: "Errors",
+  speedCalculusShareSummary:
+    "{correct} / {total} correct · {accuracy}% accuracy",
+  speedCalculusShareFooter: "Daily Quest",
+  speedCalculusShareDialogTitle: "Share your Speed Calculus results",
+  speedCalculusShareError: "Could not create the share image. Try again.",
+  speedCalculusShareUnavailable: "Sharing isn't available on this device.",
   perfectTiming: {
     title: "Perfect Timing",
     subtitle:
@@ -399,7 +412,8 @@ const quests = {
     solutionHuntAlreadyFound:
       "You've already found this solution. Try finding another way!",
     solutionHuntAllFound: "All solutions found!",
-    solutionHuntNoRewards: "Just for fun - no extra rewards or leaderboard points.",
+    solutionHuntNoRewards:
+      "Just for fun - no extra rewards or leaderboard points.",
     solutionHuntSolutionFound: "Solution found",
     solutionHuntYourSolutions: "Your solutions",
     solutionHuntOtherSolutions: "Other solutions",
