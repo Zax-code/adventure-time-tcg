@@ -43,6 +43,16 @@ defmodule AdventureTimeApiWeb.Router do
     post("/password/reset", PasswordResetController, :confirm)
   end
 
+  scope "/api", AdventureTimeApiWeb do
+    pipe_through(:fitbit_public)
+
+    get("/fitbit/callback", FitbitController, :callback)
+    get("/fitbit/webhook", FitbitController, :webhook_verify)
+    post("/fitbit/webhook", FitbitController, :webhook)
+  end
+
+  # Temporary provider-transition aliases. Fitbit's canonical public endpoints
+  # are under /api and do not require a legacy-host proxy.
   scope "/", AdventureTimeApiWeb do
     pipe_through(:fitbit_public)
 

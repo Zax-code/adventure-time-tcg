@@ -120,13 +120,15 @@ defmodule AdventureTimeApiWeb.WebsiteDocumentPlugTest do
     assert response(static_conn, 200) =~ ":root"
     refute response(static_conn, 200) =~ "data-website-test-index"
 
-    callback_conn =
-      build_conn()
-      |> put_req_header("accept", "text/html")
-      |> put_req_header("sec-fetch-dest", "document")
-      |> get("/fitbit/callback")
+    for path <- ["/api/fitbit/callback", "/fitbit/callback"] do
+      callback_conn =
+        build_conn()
+        |> put_req_header("accept", "text/html")
+        |> put_req_header("sec-fetch-dest", "document")
+        |> get(path)
 
-    assert callback_conn.status == 302
+      assert callback_conn.status == 302
+    end
 
     probe_conn =
       build_conn()

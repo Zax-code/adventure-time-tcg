@@ -46,6 +46,29 @@ add_missing_from_header on
 set_from_header on
 ```
 
+## Fitbit Public Endpoints
+
+Phoenix owns the public Fitbit integration on the main application host:
+
+- OAuth callback: `https://app.leaetzak.love/api/fitbit/callback`
+- subscriber/webhook endpoint: `https://app.leaetzak.love/api/fitbit/webhook`
+
+The source environment rendered into the API container must set
+`FITBIT_REDIRECT_URI` to the exact callback URL above. It must also provide the
+Fitbit client credentials and set `FITBIT_VERIFICATION_CODE` to the subscriber
+verification code shown in the Fitbit developer portal. The checked-in example
+is `apps/phoenix/.env.example`; secret values remain in the host-managed source
+environment and must not be committed.
+
+The provider migration is an external operation: update the registered OAuth
+redirect URL and the default subscriber endpoint in the Fitbit developer portal,
+then run the portal's subscriber verification. Phoenix responds with `204` for
+the matching verification code and `404` for the intentionally incorrect code.
+After new OAuth links and webhook deliveries use `app.leaetzak.love`, the legacy
+`game.leaetzak.love` API proxy exceptions can be removed. Phoenix temporarily
+keeps `/fitbit/callback` and `/fitbit/webhook` aliases on the app host for provider
+transition traffic; they do not require routing through the legacy host.
+
 Install/update the checked-in Quadlet files and then reload systemd:
 
 ```bash
@@ -81,4 +104,4 @@ sudo systemctl reload caddy
 - the API container also expects `/home/zax/adventure-time-tcg-secrets/msmtprc`, mounted to `/etc/msmtprc`, so verification emails can relay through host Postfix
 - PostgreSQL and MinIO publish only to the VPS loopback interface; the host-networked Phoenix container should target them as `127.0.0.1:5434` and `127.0.0.1:9100`
 - `/ready` verifies PostgreSQL for container lifecycle checks, while `/ready/media` verifies MinIO bucket authentication; deploys require both without turning a later media-only outage into a full API restart loop
-- `apps/phoenix/.env.container.example` is the checked-in reference shape for container-side Phoenix env vars
+- `apps/phoenix/.env.example` is the checked-in reference shape for Phoenix and container-side env vars

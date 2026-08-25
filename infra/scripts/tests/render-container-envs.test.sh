@@ -36,6 +36,7 @@ minio_target="$test_root/rendered/minio.container.env"
 
 printf '%s\n' \
   'PHX_HOST=app.example.test' \
+  'FITBIT_REDIRECT_URI=https://app.leaetzak.love/api/fitbit/callback' \
   'MINIO_ENDPOINT=host.containers.internal' \
   'MINIO_PORT=9100' \
   'MINIO_ACCESS_KEY=access=user' \
@@ -48,6 +49,7 @@ bash "$renderer" \
   --minio-target "$minio_target"
 
 assert_line 'PHX_HOST=app.example.test' "$api_target"
+assert_line 'FITBIT_REDIRECT_URI=https://app.leaetzak.love/api/fitbit/callback' "$api_target"
 assert_line 'MINIO_ENDPOINT=127.0.0.1' "$api_target"
 assert_line 'MINIO_ACCESS_KEY=access=user' "$api_target"
 assert_line 'MINIO_SECRET_KEY=secret=value=with-equals' "$api_target"

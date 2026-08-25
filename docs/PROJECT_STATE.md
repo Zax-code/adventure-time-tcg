@@ -1,9 +1,9 @@
 # Adventure Time TCG — Project State
 
-Last verified: 2026-08-24
+Last verified: 2026-08-25
 Repository: `Zax-code/adventure-time-tcg`
-Branch: `codex/media-ingestion-lifecycle`
-Verified commit: `6e6a070f750ac277e9318c2fc98fe4f3ac744f56`
+Branch: `codex/retire-legacy-fitbit-host`
+Verified baseline commit: `f0def176f138018a13bad9d2cc114c032be2bf89`
 
 ## Purpose and authority
 
@@ -198,18 +198,19 @@ At verification time the local development and test databases and production wer
 
 ## Deployment and releases
 
-- **Target:** `https://app.leaetzak.love`, reverse-proxied by Caddy to Phoenix on `127.0.0.1:4200`. The checked-in Caddy site sets a 16 MB body limit and HSTS (`infra/caddy/app.leaetzak.love.Caddyfile`).
+- **Target:** `https://app.leaetzak.love`, reverse-proxied by Caddy to Phoenix on `127.0.0.1:4200`. The checked-in Caddy site sets a 16 MB body limit and HSTS (`infra/caddy/app.leaetzak.love.Caddyfile`). Phoenix exposes the canonical Fitbit OAuth callback at `/api/fitbit/callback` and subscriber endpoint at `/api/fitbit/webhook`; transitional aliases remain at `/fitbit/callback` and `/fitbit/webhook` on the same host.
 - **Production services:** `adventure-time-tcg-api`, PostgreSQL 16, and MinIO run as the `adventure-time-tcg` Podman pod through Quadlet/systemd. Host-only ports are 4200 for Phoenix, 5434 for PostgreSQL, and 9100/9101 for MinIO API/console.
 - **Persistence:** production PostgreSQL and MinIO data live under `/srv/adventure-time-tcg`. Runtime environment files and signing credentials live outside source control.
 - **Backend/web delivery:** `.github/workflows/deploy-phoenix.yml` builds an immutable GHCR image containing the Vite bundle and Phoenix release, deploys the selected SHA over SSH, renders container env files, runs `AdventureTimeApi.Release.migrate`, installs/restarts Quadlets, then checks API and media readiness.
 - **CI:** `.github/workflows/ci.yml` conditionally runs infrastructure tests, workspace typechecks/builds/web tests, Phoenix tests, and container validation. Run `32044367068` passed for the pre-Solution-Hunt mainline; PR #285 carries the Solution Hunt CI validation.
 - **Mobile version:** `apps/mobile/package.json`, `apps/mobile/app.json`, Android `versionName`, and iOS `CFBundleShortVersionString` are 1.0.32. iOS `CFBundleVersion` is 67. EAS uses remote app-version state and production auto-increment; the released Android versionCode is 54 while the checked-in `versionCode 1` remains a local placeholder.
 - **Mobile release:** `scripts/release-mobile.mjs` orchestrates one or both platforms. Android builds a local AAB, submits through EAS/Google Play, requires a release note, and updates Play release notes. iOS builds a local IPA and uploads directly with Apple's `xcrun altool` and App Store Connect API credentials. Successful releases create annotated per-platform Git tags.
-- **Environment convention:** Phoenix uses `apps/phoenix/.env`, mobile uses `apps/mobile/.env`, and production secrets are supplied through external runtime env files. No secret value belongs in this document.
+- **Environment convention:** Phoenix uses `apps/phoenix/.env`, mobile uses `apps/mobile/.env`, and production secrets are supplied through external runtime env files. `FITBIT_REDIRECT_URI` is `https://app.leaetzak.love/api/fitbit/callback`; the Fitbit developer portal's subscriber endpoint is `https://app.leaetzak.love/api/fitbit/webhook`. No secret value belongs in this document.
 - **Current blockers:** none recorded for the 1.0.32 mobile release; the local iOS signing/App Store Connect path and Android signing/Google Play submission path both completed successfully according to the annotated release tags. The local development database is current through the Solution Hunt migration.
 
 ## Completed recently
 
+- **2026-08-25 — canonical Phoenix Fitbit provider endpoints:** Phoenix now owns `https://app.leaetzak.love/api/fitbit/callback` and `https://app.leaetzak.love/api/fitbit/webhook`, including OAuth fallback generation, subscriber verification, signed webhook handling, route tests, deployment examples, and an external provider-registration runbook. Same-host `/fitbit/*` aliases remain temporarily for transition traffic; `game.leaetzak.love` no longer needs API proxy exceptions once the Fitbit developer settings are updated.
 - **2026-08-24 — safe card/profile media lifecycle:** new uploads now enforce actual JPEG/PNG/WebP decoding, a 12 MiB/40 MP safety policy, orientation-aware WebP normalization and metadata, transactional reference swaps, retryable reference-safe MinIO cleanup, account-deletion cleanup, and a read-only database orphan audit. Catalog SVG behavior and all media URL/cache contracts remain unchanged. This is implemented on `codex/media-ingestion-lifecycle` and is not recorded as deployed.
 - **2026-08-23 — mobile 1.0.32:** Perfect Timing now uses the themed confirmation modal before discarding a result, high leaderboard scores no longer break public-profile parsing, and the Expo 57 patch dependencies are aligned. Android versionCode 54 was accepted on the Google Play closed-testing track and iOS build 67 was validated by App Store Connect; tags `mobile/android/1.0.32` and `mobile/ios/1.0.32` point to `28764a8a`.
 - **2026-08-23 — Perfect Timing result confirmation:** the native system alert shown before discarding an attempt result has been replaced by the shared themed modal and shared button layer. The dialog now offers explicit stay/discard actions, keeps English/French copy aligned, and has focused UI and Maestro coverage for both choices.
@@ -263,6 +264,7 @@ At verification time the local development and test databases and production wer
 - Persisted game state and PvP legality are server-authoritative. Client previews never override Phoenix. Measurement sources that remain client-originated are called out explicitly above.
 - MinIO is private storage. Image access goes through Phoenix media routes; profile images require authentication.
 - Active supported products are Phoenix, the responsive website, and Expo mobile for iOS/Android. Mobile store releases originate from the Mac, not GitHub Actions.
+- Fitbit provider traffic terminates at Phoenix on `app.leaetzak.love`; the legacy PWA host must not be required for OAuth callbacks or subscriber notifications.
 - Quest days follow the user's stored IANA timezone, defaulting to `Europe/Paris`. Existing leaderboard competition-slot boundaries remain immutable after creation.
 - Mobile UI copy must remain aligned in English and French under `apps/mobile/src/i18n/locales/en` and `fr`. Canonical backend values stay raw and are localized at render time.
 - Rarity names/order are Common, Uncommon, Rare, Epic, Legendary. Supported card themes are Candy, Ice, and Nightosphere. Supported card types are the ten canonical values listed in Card and rarity system.
