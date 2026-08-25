@@ -8869,7 +8869,7 @@
     },
     "radius-sm": {
       "type": "number",
-      "value": 8
+      "value": 12
     },
     "radius-md": {
       "type": "number",
