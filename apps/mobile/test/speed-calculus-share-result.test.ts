@@ -88,4 +88,28 @@ describe("Speed Calculus share results", () => {
       ],
     );
   });
+
+  it("shares a single result when only the first run is available", () => {
+    const result = buildSpeedCalculusShareResult({
+      questTitle: "Speed Calculus",
+      runs: [
+        {
+          runNumber: 1,
+          score: 6,
+          totalAnswered: 8,
+          correctAnswers: 6,
+        },
+      ],
+    });
+
+    assert.deepEqual(result.runs, [
+      {
+        runNumber: 1,
+        incorrectAnswers: 2,
+        correctAnswers: 6,
+        accuracyPercentage: 75,
+        score: 6,
+      },
+    ]);
+  });
 });
