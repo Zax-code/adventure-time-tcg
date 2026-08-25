@@ -24,7 +24,7 @@ defmodule AdventureTimeApi.Fitbit do
   end
 
   def callback_uri do
-    config(:redirect_uri) || "#{Endpoint.url()}/fitbit/callback"
+    config(:redirect_uri) || "#{Endpoint.url()}/api/fitbit/callback"
   end
 
   def default_mobile_redirect_uri do

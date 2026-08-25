@@ -71,6 +71,7 @@ defmodule AdventureTimeApiWeb.Plugs.WebsiteDocumentPlug do
 
   @reserved_navigation_prefixes [
     "/.well-known/",
+    "/api/fitbit/",
     "/assets/",
     "/auth/",
     "/fitbit/",
