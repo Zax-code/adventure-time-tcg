@@ -1,5 +1,13 @@
 app.leaetzak.love {
 	import common_security
+
+	# Fitbit's subscriber verifier identifies itself as a Java HTTP client.
+	# Route only the canonical webhook before the global scanner-user-agent
+	# abort rule while retaining the site's other headers and body limits.
+	route /api/fitbit/webhook {
+		reverse_proxy 127.0.0.1:4200
+	}
+
 	request_body {
 		max_size 16MB
 	}

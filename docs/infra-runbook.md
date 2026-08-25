@@ -69,6 +69,11 @@ After new OAuth links and webhook deliveries use `app.leaetzak.love`, the legacy
 keeps `/fitbit/callback` and `/fitbit/webhook` aliases on the app host for provider
 transition traffic; they do not require routing through the legacy host.
 
+The checked-in Caddy site routes only `/api/fitbit/webhook` ahead of the shared
+scanner-user-agent abort rule. Fitbit's verifier identifies itself as a Java
+HTTP client, so removing that narrow route makes subscriber verification fail
+at Caddy before Phoenix can return the required `204` or `404` response.
+
 Install/update the checked-in Quadlet files and then reload systemd:
 
 ```bash
