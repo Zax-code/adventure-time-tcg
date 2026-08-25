@@ -269,9 +269,10 @@ const quests = {
   speedCalculusSharePreparing: "Préparation…",
   speedCalculusShareBrand: "Adventure Time TCG",
   speedCalculusShareRun: "Manche {run}",
-  speedCalculusShareCorrectTotal: "Correctes / total",
-  speedCalculusShareAccuracy: "Précision",
-  speedCalculusShareScore: "Score",
+  speedCalculusShareCorrect: "Correctes",
+  speedCalculusShareErrors: "Erreurs",
+  speedCalculusShareSummary:
+    "{correct} / {total} correctes · {accuracy}% de précision",
   speedCalculusShareFooter: "Quête quotidienne",
   speedCalculusShareDialogTitle: "Partager tes résultats de calcul mental",
   speedCalculusShareError: "Impossible de créer l'image à partager. Réessaie.",

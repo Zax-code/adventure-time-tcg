@@ -1344,9 +1344,18 @@ function useQuestsScreenView() {
           date: formatQuestShareDate(state.date, locale),
           runLabel: (runNumber: number) =>
             t("quests.speedCalculusShareRun", { run: runNumber }),
-          correctTotalLabel: t("quests.speedCalculusShareCorrectTotal"),
-          accuracyLabel: t("quests.speedCalculusShareAccuracy"),
-          scoreLabel: t("quests.speedCalculusShareScore"),
+          correctLabel: t("quests.speedCalculusShareCorrect"),
+          errorsLabel: t("quests.speedCalculusShareErrors"),
+          summary: (
+            correctAnswers: number,
+            totalAnswers: number,
+            accuracyPercentage: number,
+          ) =>
+            t("quests.speedCalculusShareSummary", {
+              correct: correctAnswers,
+              total: totalAnswers,
+              accuracy: accuracyPercentage,
+            }),
           footer: t("quests.speedCalculusShareFooter"),
         },
       });

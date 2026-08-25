@@ -11,9 +11,13 @@ export type SpeedCalculusQuestShareCardStrings = {
   brand: string;
   date?: string;
   runLabel: (runNumber: number) => string;
-  correctTotalLabel: string;
-  accuracyLabel: string;
-  scoreLabel: string;
+  correctLabel: string;
+  errorsLabel: string;
+  summary: (
+    correctAnswers: number,
+    totalAnswers: number,
+    accuracyPercentage: number,
+  ) => string;
   footer: string;
 };
 
@@ -75,43 +79,57 @@ export function SpeedCalculusQuestShareCard({
         ) : null}
       </View>
 
-      <View style={{ width: "100%", gap: 10 }}>
-        {result.runs.map((run) => (
-          <View
-            key={run.runNumber}
-            style={asStyle({
-              borderRadius: 18,
-              borderWidth: 2,
-              borderColor: colors.primaryTint,
-              backgroundColor: colors.surface,
-              paddingHorizontal: 14,
-              paddingVertical: 13,
-              gap: 10,
-            })}
-          >
-            <Text
-              className="text-[14px] font-nunito-extrabold"
-              style={{ color: colors.primaryStrong }}
-            >
-              {strings.runLabel(run.runNumber)}
-            </Text>
-            <View style={{ flexDirection: "row", gap: 8 }}>
-              <ResultMetric
-                label={strings.correctTotalLabel}
-                value={`${run.correctAnswers} / ${run.totalAnswers}`}
-                colors={colors}
-              />
-              <ResultMetric
-                label={strings.accuracyLabel}
-                value={`${run.accuracyPercentage}%`}
-                colors={colors}
-              />
-              <ResultMetric
-                label={strings.scoreLabel}
-                value={String(run.score)}
-                colors={colors}
-              />
+      <View style={{ width: "100%", gap: 18 }}>
+        {result.runs.map((run, index) => (
+          <View key={run.runNumber} style={{ gap: 9 }}>
+            <View style={{ gap: 9 }}>
+              <Text
+                className="text-[14px] font-nunito-extrabold"
+                style={{ color: colors.primaryStrong }}
+              >
+                {strings.runLabel(run.runNumber)}
+              </Text>
+              <View style={{ flexDirection: "row", gap: 12 }}>
+                <ResultMetric
+                  label={strings.correctLabel}
+                  value={String(run.correctAnswers)}
+                  backgroundColor={colors.successTint}
+                  borderColor={colors.successBorder}
+                  textColor={colors.successText}
+                />
+                <ResultMetric
+                  label={strings.errorsLabel}
+                  value={String(run.errorAnswers)}
+                  backgroundColor={colors.dangerTint}
+                  borderColor={colors.dangerBorder}
+                  textColor={colors.dangerText}
+                />
+              </View>
+              <View
+                style={asStyle({
+                  borderRadius: 999,
+                  backgroundColor: colors.primaryTint,
+                  paddingHorizontal: 12,
+                  paddingVertical: 8,
+                })}
+              >
+                <Text
+                  className="text-center text-[15px] font-nunito-extrabold"
+                  style={{ color: colors.primaryStrong }}
+                >
+                  {strings.summary(
+                    run.correctAnswers,
+                    run.totalAnswers,
+                    run.accuracyPercentage,
+                  )}
+                </Text>
+              </View>
             </View>
+            {index < result.runs.length - 1 ? (
+              <View
+                style={{ height: 2, backgroundColor: colors.primaryTint }}
+              />
+            ) : null}
           </View>
         ))}
       </View>
@@ -127,12 +145,16 @@ export function SpeedCalculusQuestShareCard({
 }
 
 function ResultMetric({
-  colors,
+  backgroundColor,
+  borderColor,
   label,
+  textColor,
   value,
 }: {
-  colors: ThemeColors;
+  backgroundColor: string;
+  borderColor: string;
   label: string;
+  textColor: string;
   value: string;
 }) {
   return (
@@ -141,22 +163,24 @@ function ResultMetric({
         minWidth: 0,
         flex: 1,
         alignItems: "center",
-        borderRadius: 12,
-        backgroundColor: colors.primaryTint,
-        paddingHorizontal: 4,
-        paddingVertical: 8,
-        gap: 2,
+        borderRadius: 18,
+        borderWidth: 2,
+        borderColor,
+        backgroundColor,
+        paddingHorizontal: 8,
+        paddingVertical: 13,
+        gap: 4,
       })}
     >
       <Text
         className="text-center text-[9px] font-nunito-bold uppercase"
-        style={{ color: colors.fgMuted, letterSpacing: 0.4 }}
+        style={{ color: textColor, letterSpacing: 0.7 }}
       >
         {label}
       </Text>
       <Text
-        className="text-center text-[17px] font-nunito-extrabold"
-        style={{ color: colors.fg }}
+        className="text-center text-[27px] font-nunito-extrabold"
+        style={{ color: textColor }}
       >
         {value}
       </Text>

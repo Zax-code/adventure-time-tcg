@@ -1,9 +1,9 @@
 export type SpeedCalculusShareRun = {
   runNumber: number;
   correctAnswers: number;
+  errorAnswers: number;
   totalAnswers: number;
   accuracyPercentage: number;
-  score: number;
 };
 
 export type SpeedCalculusShareResult = {
@@ -17,7 +17,6 @@ type BuildSpeedCalculusShareResultInput = {
   date?: string | null;
   runs: ReadonlyArray<{
     runNumber: number;
-    score: number;
     totalAnswered: number;
     correctAnswers: number;
   }>;
@@ -34,12 +33,12 @@ export function buildSpeedCalculusShareResult(
       .map((run) => ({
         runNumber: run.runNumber,
         correctAnswers: run.correctAnswers,
+        errorAnswers: Math.max(0, run.totalAnswered - run.correctAnswers),
         totalAnswers: run.totalAnswered,
         accuracyPercentage:
           run.totalAnswered === 0
             ? 0
             : Math.round((run.correctAnswers / run.totalAnswered) * 100),
-        score: run.score,
       })),
   };
 }

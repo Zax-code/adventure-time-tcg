@@ -261,9 +261,10 @@ const quests = {
   speedCalculusSharePreparing: "Preparing…",
   speedCalculusShareBrand: "Adventure Time TCG",
   speedCalculusShareRun: "Run {run}",
-  speedCalculusShareCorrectTotal: "Correct / total",
-  speedCalculusShareAccuracy: "Accuracy",
-  speedCalculusShareScore: "Score",
+  speedCalculusShareCorrect: "Correct",
+  speedCalculusShareErrors: "Errors",
+  speedCalculusShareSummary:
+    "{correct} / {total} correct · {accuracy}% accuracy",
   speedCalculusShareFooter: "Daily Quest",
   speedCalculusShareDialogTitle: "Share your Speed Calculus results",
   speedCalculusShareError: "Could not create the share image. Try again.",
