@@ -1,7 +1,7 @@
 export type SpeedCalculusShareRun = {
   runNumber: number;
-  incorrectAnswers: number;
   correctAnswers: number;
+  totalAnswers: number;
   accuracyPercentage: number;
   score: number;
 };
@@ -33,8 +33,8 @@ export function buildSpeedCalculusShareResult(
       .sort((left, right) => left.runNumber - right.runNumber)
       .map((run) => ({
         runNumber: run.runNumber,
-        incorrectAnswers: Math.max(0, run.totalAnswered - run.correctAnswers),
         correctAnswers: run.correctAnswers,
+        totalAnswers: run.totalAnswered,
         accuracyPercentage:
           run.totalAnswered === 0
             ? 0

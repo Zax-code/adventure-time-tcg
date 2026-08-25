@@ -11,7 +11,7 @@ export type SpeedCalculusQuestShareCardStrings = {
   brand: string;
   date?: string;
   runLabel: (runNumber: number) => string;
-  errorsCorrectLabel: string;
+  correctTotalLabel: string;
   accuracyLabel: string;
   scoreLabel: string;
   footer: string;
@@ -97,8 +97,8 @@ export function SpeedCalculusQuestShareCard({
             </Text>
             <View style={{ flexDirection: "row", gap: 8 }}>
               <ResultMetric
-                label={strings.errorsCorrectLabel}
-                value={`${run.incorrectAnswers} / ${run.correctAnswers}`}
+                label={strings.correctTotalLabel}
+                value={`${run.correctAnswers} / ${run.totalAnswers}`}
                 colors={colors}
               />
               <ResultMetric

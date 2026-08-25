@@ -269,7 +269,7 @@ const quests = {
   speedCalculusSharePreparing: "Préparation…",
   speedCalculusShareBrand: "Adventure Time TCG",
   speedCalculusShareRun: "Manche {run}",
-  speedCalculusShareErrorsCorrect: "Erreurs / bonnes",
+  speedCalculusShareCorrectTotal: "Bonnes / total",
   speedCalculusShareAccuracy: "Précision",
   speedCalculusShareScore: "Score",
   speedCalculusShareFooter: "Quête quotidienne",

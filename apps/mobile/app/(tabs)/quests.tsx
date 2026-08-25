@@ -1344,7 +1344,7 @@ function useQuestsScreenView() {
           date: formatQuestShareDate(state.date, locale),
           runLabel: (runNumber: number) =>
             t("quests.speedCalculusShareRun", { run: runNumber }),
-          errorsCorrectLabel: t("quests.speedCalculusShareErrorsCorrect"),
+          correctTotalLabel: t("quests.speedCalculusShareCorrectTotal"),
           accuracyLabel: t("quests.speedCalculusShareAccuracy"),
           scoreLabel: t("quests.speedCalculusShareScore"),
           footer: t("quests.speedCalculusShareFooter"),

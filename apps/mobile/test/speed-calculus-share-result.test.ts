@@ -4,7 +4,7 @@ import { describe, it } from "node:test";
 import { buildSpeedCalculusShareResult } from "../src/features/quests/speed-calculus/share-result.ts";
 
 describe("Speed Calculus share results", () => {
-  it("includes every recorded run with errors, correct answers, accuracy, and score", () => {
+  it("includes every recorded run with correct answers, total answers, accuracy, and score", () => {
     const result = buildSpeedCalculusShareResult({
       questTitle: "Speed Calculus",
       date: "2026-08-25",
@@ -33,22 +33,22 @@ describe("Speed Calculus share results", () => {
     assert.deepEqual(result.runs, [
       {
         runNumber: 1,
-        incorrectAnswers: 3,
         correctAnswers: 7,
+        totalAnswers: 10,
         accuracyPercentage: 70,
         score: 7,
       },
       {
         runNumber: 2,
-        incorrectAnswers: 2,
         correctAnswers: 9,
+        totalAnswers: 11,
         accuracyPercentage: 82,
         score: 9,
       },
       {
         runNumber: 3,
-        incorrectAnswers: 0,
         correctAnswers: 12,
+        totalAnswers: 12,
         accuracyPercentage: 100,
         score: 12,
       },
@@ -78,12 +78,12 @@ describe("Speed Calculus share results", () => {
     assert.deepEqual(
       result.runs.map((run) => ({
         runNumber: run.runNumber,
-        ratio: `${run.incorrectAnswers}/${run.correctAnswers}`,
+        ratio: `${run.correctAnswers}/${run.totalAnswers}`,
         accuracyPercentage: run.accuracyPercentage,
         score: run.score,
       })),
       [
-        { runNumber: 1, ratio: "1/4", accuracyPercentage: 80, score: 4 },
+        { runNumber: 1, ratio: "4/5", accuracyPercentage: 80, score: 4 },
         { runNumber: 2, ratio: "0/0", accuracyPercentage: 0, score: 0 },
       ],
     );
@@ -105,8 +105,8 @@ describe("Speed Calculus share results", () => {
     assert.deepEqual(result.runs, [
       {
         runNumber: 1,
-        incorrectAnswers: 2,
         correctAnswers: 6,
+        totalAnswers: 8,
         accuracyPercentage: 75,
         score: 6,
       },
