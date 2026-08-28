@@ -35,18 +35,21 @@ What it does:
 
 - optionally connects the GitHub runner to Tailscale before SSH when tailnet credentials are configured
 - builds and pushes the Phoenix release image, including the compiled website, to GHCR
-- uploads the repo-owned deploy script to the production host
-- deploys an exact Git SHA or ref
-- refuses to deploy from a dirty host checkout
-- installs the checked-in Quadlet units into `/etc/containers/systemd`
-- renders a container-friendly env file from the host secrets file
-- pulls and verifies the immutable API image before stopping or reloading any production services
-- explicitly stops the API before restarting its required pod, PostgreSQL, and MinIO services so systemd cannot cut over before migrations
+- sends only a commit SHA and immutable image digest to a fixed, root-owned host deployer
+- validates the image's revision label against the requested pushed commit
+- creates and verifies a PostgreSQL custom-format recovery object before migrations
+- pulls and verifies the immutable API image before stopping the API
+- stops only the API for migrations and the image switch; PostgreSQL, MinIO,
+  Caddy, and Prodigium are not restarted
 - runs `AdventureTimeApi.Release.migrate` in a one-off container unless manually skipped
 - restarts the Quadlet-generated systemd service
 - verifies `/ready` before reporting success
 
-The production logic lives in `infra/scripts/deploy-phoenix.sh`, so deploy behavior is versioned with the application code.
+The reviewed host boundary is installed from
+`infra/scripts/deploy-phoenix-host.sh` and
+`infra/scripts/adventure-time-tcg-deploy-ssh`. Repository changes to those
+root-owned files require an explicit operator installation before a workflow
+may depend on them.
 
 ## Mobile Release Policy
 
@@ -70,17 +73,11 @@ Required secrets:
 - `PRODUCTION_HOST`: hostname or IP of the VPS
 - `PRODUCTION_SSH_USER`: SSH user for deploys
 - `PRODUCTION_SSH_PRIVATE_KEY`: private key allowed to SSH into the VPS
+- `PRODUCTION_KNOWN_HOSTS`: pinned Netcup SSH host keys
 
 Recommended secrets:
 
-- `PRODUCTION_SSH_PORT`: defaults to `22`
-- `PRODUCTION_REPO_PATH`: defaults to `/home/zax/adventure-time-tcg`
-- `PRODUCTION_ENV_FILE`: optional source env file for Phoenix secrets; if omitted the deploy script prefers `/home/zax/adventure-time-tcg-secrets/api.env` and then `apps/phoenix/.env`
-- `PRODUCTION_CONTAINER_ENV_FILE`: defaults to `/home/zax/adventure-time-tcg-secrets/api.container.env`
-- `PRODUCTION_QUADLET_DIR`: defaults to `/etc/containers/systemd`
-- `PRODUCTION_REGISTRY_AUTH_FILE`: optional host-side Podman auth file path for private GHCR pulls
-- `PRODUCTION_SYSTEMD_SERVICE`: defaults to `adventure-time-tcg-api.service`
-- `PRODUCTION_HEALTHCHECK_URL`: optional override; by default deploy checks `http://127.0.0.1:4200/ready`
+- `PRODUCTION_SSH_PORT`: `2222` on Netcup (the workflow defaults to this value)
 
 Optional Tailscale secrets for tailnet-only production hosts:
 
@@ -108,16 +105,35 @@ Recommended GitHub settings:
 
 The deploy workflow assumes:
 
-- the repo is already cloned on the VPS at `/home/zax/adventure-time-tcg` unless overridden
-- the host can install Quadlet files into `/etc/containers/systemd`
-- the Phoenix secrets file exists either at `/home/zax/adventure-time-tcg-secrets/api.env` or `apps/phoenix/.env`
-- the API container env file is rendered to `/home/zax/adventure-time-tcg-secrets/api.container.env`
-- the MinIO container env file is rendered to `/home/zax/adventure-time-tcg-secrets/minio.container.env` from the same access key and secret as the API file
+- the dedicated `adventure-deploy` SSH account is restricted to the installed
+  forced-command wrapper
+- `/usr/local/sbin/deploy-adventure-time-tcg` is root-owned and the account has
+  only its reviewed sudo allowlist
+- the API container env file exists at
+  `/home/zax/adventure-time-tcg-secrets/api.container.env`
 - the host mail relay config exists at `/home/zax/adventure-time-tcg-secrets/msmtprc` so the containerized `sendmail` command can reach Postfix
 - Podman is installed on the VPS
-- passwordless `sudo` is available for `systemctl restart`
-- the Phoenix service name is `adventure-time-tcg-api.service` unless overridden
+- the fixed host deployer owns the only permitted privileged deployment operations
 - if the host is tailnet-only, the `production` GitHub environment includes working Tailscale credentials
+
+Install the reviewed boundary as root before enabling the workflow:
+
+```bash
+install -o root -g root -m 0755 \
+  infra/scripts/adventure-time-tcg-deploy-ssh \
+  /usr/local/libexec/adventure-time-tcg-deploy-ssh
+install -o root -g root -m 0755 \
+  infra/scripts/deploy-phoenix-host.sh \
+  /usr/local/sbin/deploy-adventure-time-tcg
+visudo -cf infra/sudoers/adventure-time-tcg-deploy
+install -o root -g root -m 0440 \
+  infra/sudoers/adventure-time-tcg-deploy \
+  /etc/sudoers.d/adventure-time-tcg-deploy
+```
+
+The dedicated account's only authorized key must use
+`restrict,command="/usr/local/libexec/adventure-time-tcg-deploy-ssh"`. Never add
+the workflow key to `zax` and never install its private half on a server.
 
 Current checked-in Quadlet templates:
 
