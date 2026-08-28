@@ -1,0 +1,5 @@
+Cmnd_Alias ADVENTURE_TIME_TCG_DEPLOY = \
+  /usr/bin/podman login ghcr.io --authfile /etc/adventure-time-tcg-deploy/ghcr-auth.json --username *, \
+  /usr/local/sbin/deploy-adventure-time-tcg *
+
+adventure-deploy ALL=(root) NOPASSWD: ADVENTURE_TIME_TCG_DEPLOY

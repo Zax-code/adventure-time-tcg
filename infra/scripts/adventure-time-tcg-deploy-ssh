@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+readonly command=${SSH_ORIGINAL_COMMAND:-}
+readonly auth_file=/etc/adventure-time-tcg-deploy/ghcr-auth.json
+
+case "$command" in
+  protocol)
+    printf '1\n'
+    ;;
+  registry-login\ *)
+    user=${command#registry-login }
+    [[ $user =~ ^[A-Za-z0-9-]{1,39}$ ]] || exit 64
+    exec sudo -n /usr/bin/podman login ghcr.io \
+      --authfile "$auth_file" \
+      --username "$user" \
+      --password-stdin
+    ;;
+  deploy\ *)
+    read -r verb revision image skip_migrate extra <<<"$command"
+    [[ $verb == deploy && -z ${extra:-} ]] || exit 64
+    [[ $revision =~ ^[0-9a-f]{40}$ ]] || exit 64
+    [[ $image =~ ^ghcr\.io/zax-code/adventure-time-tcg-api@sha256:[0-9a-f]{64}$ ]] || exit 64
+    [[ $skip_migrate == true || $skip_migrate == false ]] || exit 64
+    exec sudo -n /usr/local/sbin/deploy-adventure-time-tcg \
+      "$revision" "$image" "$skip_migrate"
+    ;;
+  public-health)
+    exec /usr/bin/curl --fail --silent --show-error --max-time 10 \
+      --user-agent 'adventure-time-tcg-deployment/1.0' \
+      https://app.leaetzak.love/ready
+    ;;
+  *)
+    echo 'This key is restricted to Adventure Time TCG deployments.' >&2
+    exit 64
+    ;;
+esac

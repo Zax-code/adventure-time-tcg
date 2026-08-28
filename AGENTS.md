@@ -12,8 +12,10 @@ Primary goals:
 - use the legacy PWA and the old Fastify API as reference sources, not target architecture
 - keep shared runtime packages (`packages/api-client`, `packages/contracts`, `packages/game-engine`, `packages/theme`) working until a later consolidation pass removes them deliberately
 
-You are usually operating directly on the Arch Linux VPS that hosts the app.
-Assume local environment setup, systemd work, Caddy work, PostgreSQL access, MinIO access, and Phoenix tooling are in scope when needed.
+Production runs on the shared Debian 13 Netcup VPS reached through SSH alias
+`leaetzak`; the former Arch/OVH host is retired rollback evidence. Treat
+systemd, Caddy, PostgreSQL, MinIO, and other host operations as production work
+and use the infrastructure repository's safety contract before acting.
 
 ## Source Hierarchy
 
