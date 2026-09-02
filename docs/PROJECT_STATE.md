@@ -1,9 +1,9 @@
 # Adventure Time TCG — Project State
 
-Last verified: 2026-08-28
+Last verified: 2026-09-02
 Repository: `Zax-code/adventure-time-tcg`
-Branch: `codex/netcup-restricted-deploy`
-Verified baseline commit: `39ebf57439116497f312f233f15673439f737c33`
+Branch: `codex/mobile-release-20260902`
+Verified baseline commit: `9a25f023`
 
 ## Purpose and authority
 
@@ -206,12 +206,13 @@ At verification time the local development and test databases and production wer
 - **Mobile version:** `apps/mobile/package.json`, `apps/mobile/app.json`, Android `versionName`, and iOS `CFBundleShortVersionString` are 1.0.32. iOS `CFBundleVersion` is 67. EAS uses remote app-version state and production auto-increment; the released Android versionCode is 54 while the checked-in `versionCode 1` remains a local placeholder.
 - **Mobile release:** `scripts/release-mobile.mjs` orchestrates one or both platforms. Android builds a local AAB, submits through EAS/Google Play, requires a release note, and updates Play release notes. iOS builds a local IPA and uploads directly with Apple's `xcrun altool` and App Store Connect API credentials. Successful releases create annotated per-platform Git tags.
 - **Environment convention:** Phoenix uses `apps/phoenix/.env`, mobile uses `apps/mobile/.env`, and production secrets are supplied through external runtime env files. `FITBIT_REDIRECT_URI` is `https://app.leaetzak.love/api/fitbit/callback`; the Fitbit developer portal's subscriber endpoint is `https://app.leaetzak.love/api/fitbit/webhook`. No secret value belongs in this document.
-- **Current blockers:** none recorded for the 1.0.32 mobile release; the local iOS signing/App Store Connect path and Android signing/Google Play submission path both completed successfully according to the annotated release tags. The local development database is current through the Solution Hunt migration.
+- **Current blockers:** none recorded for the 1.0.32 mobile release; the local iOS signing/App Store Connect path and Android signing/Google Play submission path both completed successfully according to the annotated release tags. The local development database is current through the Solution Hunt migration. Current Expo Doctor validation is 19/20 because Expo's recommended SDK 57 patch matrix has advanced beyond the repository's locked versions; aligning the Expo packages and native locks is separate from the quest-layout fix.
 
 ## Completed recently
 
 - **2026-08-28 — Netcup CI/deploy migration prepared:** production deployment was redesigned around a dedicated forced-command SSH identity, pinned host keys, an immutable commit/image-digest protocol, pre-migration PostgreSQL recovery objects, and checks that prevent unrelated service restarts. The change remains pending review and merge before host activation.
 
+- **2026-09-02 — stable mobile quest-card startup layout:** quest cards no longer attach native entering worklets to their layout roots. This prevents startup hydration and background refresh relayouts from leaving an empty card slot while painting that card over a later quest. A focused UI regression contract now rejects any reintroduction of card-root entering animations.
 - **2026-08-25 — Speed Calculus result sharing and Expo patch alignment:** mobile can share one, two, or all three recorded Speed Calculus runs from the quest screen or the daily recap; every run highlights correct and erroneous answers and summarizes correct/total accuracy without a redundant score metric. The workspace and iOS Pod lock are aligned with Expo/Expo Router 57.0.16 and the current SDK 57 patch matrix; Expo Doctor passes all 20 checks.
 - **2026-08-25 — canonical Phoenix Fitbit provider endpoints:** Phoenix now owns `https://app.leaetzak.love/api/fitbit/callback` and `https://app.leaetzak.love/api/fitbit/webhook`, including OAuth fallback generation, subscriber verification, signed webhook handling, route tests, deployment examples, and an external provider-registration runbook. Same-host `/fitbit/*` aliases remain temporarily for transition traffic; `game.leaetzak.love` no longer needs API proxy exceptions once the Fitbit developer settings are updated.
 - **2026-08-24 — safe card/profile media lifecycle:** new uploads now enforce actual JPEG/PNG/WebP decoding, a 12 MiB/40 MP safety policy, orientation-aware WebP normalization and metadata, transactional reference swaps, retryable reference-safe MinIO cleanup, account-deletion cleanup, and a read-only database orphan audit. Catalog SVG behavior and all media URL/cache contracts remain unchanged. This is implemented on `codex/media-ingestion-lifecycle` and is not recorded as deployed.
