@@ -1,9 +1,9 @@
 # Adventure Time TCG — Project State
 
-Last verified: 2026-08-28
+Last verified: 2026-09-02
 Repository: `Zax-code/adventure-time-tcg`
-Branch: `codex/netcup-restricted-deploy`
-Verified baseline commit: `39ebf57439116497f312f233f15673439f737c33`
+Branch: `codex/align-expo-sdk-57-patches`
+Verified baseline commit: `9a25f023ec3f19badc4887c6ff8df41b3a2530ef`
 
 ## Purpose and authority
 
@@ -55,7 +55,7 @@ Versions below come from current manifests, lockfiles, native configuration, and
 
 | Layer | Verified technology |
 |---|---|
-| Mobile | Expo `57.0.16`, Expo Router `57.0.16`, React Native `0.86.2`, React `19.2.3`, Reanimated `4.5.1`, NativeWind `4.2.3`, Software Mansion Bottom Sheet `0.12.0`, Expo Image, TanStack Query `5.101.4`, Zustand `5.0.15` |
+| Mobile | Expo `57.0.19`, Expo Router `57.0.18`, React Native `0.86.3`, React `19.2.3`, Reanimated `4.5.1`, NativeWind `4.2.3`, Software Mansion Bottom Sheet `0.12.0`, Expo Image, TanStack Query `5.101.4`, Zustand `5.0.15` |
 | Web | React `19.2.3`, React Router `7.18.x`, Vite `8.2.1`, TanStack Query `5.101.4`, Vitest `4.1.10` |
 | Shared TypeScript | Zod `3.25.76`; TypeScript `6.0.3` for mobile/web and `5.9.3` for shared packages in the installed tree |
 | Backend | Elixir `1.19.5` and OTP `28` in CI/release images; Phoenix `1.8.5`, Ecto SQL `3.13.5`, Postgrex `0.22.0`, Bandit `1.10.3`, Oban `2.21.1`, Req `0.5.17`, Image `0.72.0`, Vix `0.41.0` with bundled libvips `8.18.3`, JOSE `1.11.12`, bcrypt_elixir `3.3.2`, tzdata `1.1.3` |
@@ -209,6 +209,8 @@ At verification time the local development and test databases and production wer
 - **Current blockers:** none recorded for the 1.0.32 mobile release; the local iOS signing/App Store Connect path and Android signing/Google Play submission path both completed successfully according to the annotated release tags. The local development database is current through the Solution Hunt migration.
 
 ## Completed recently
+
+- **2026-09-02 — Expo 57 patch alignment:** Expo, Expo Router, React Native, and the associated SDK 57 native modules were advanced to the current patch matrix. Workspace overrides, the npm lock, and the iOS Pod lock are aligned; a clean `npm ci` is reproducible and Expo Doctor passes all 20 checks with no duplicate native modules.
 
 - **2026-08-28 — Netcup CI/deploy migration prepared:** production deployment was redesigned around a dedicated forced-command SSH identity, pinned host keys, an immutable commit/image-digest protocol, pre-migration PostgreSQL recovery objects, and checks that prevent unrelated service restarts. The change remains pending review and merge before host activation.
 
