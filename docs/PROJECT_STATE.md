@@ -1,9 +1,9 @@
 # Adventure Time TCG — Project State
 
-Last verified: 2026-08-28
+Last verified: 2026-09-02
 Repository: `Zax-code/adventure-time-tcg`
-Branch: `codex/netcup-restricted-deploy`
-Verified baseline commit: `39ebf57439116497f312f233f15673439f737c33`
+Branch: `codex/mobile-release-20260902`
+Verified baseline commit: `44aa15546ed8ca4bc37478ae3ded38feff054baa`
 
 ## Purpose and authority
 
@@ -33,7 +33,7 @@ Phoenix, PostgreSQL, and MinIO are the production backend. The Fastify app in `a
 ### Verified release boundary
 
 - **Production backend and website:** the `Deploy Phoenix` workflow completed successfully for `afaf4875be27a9185d4332b92eb32383c932195c` on 2026-08-18 (GitHub Actions run `32151688930`). That revision includes Daily Numbers visible-step deduplication, player-solution translation/recovery, and migration `20260818190000`.
-- **Mobile:** annotated tags `mobile/android/1.0.32` and `mobile/ios/1.0.32` both resolve to `28764a8a1afe5a100c4833ce315a83a5f3a4799e`, with release timestamps on 2026-08-23. Android versionCode 54 was accepted on the Google Play closed-testing track, and iOS build 67 was validated by App Store Connect. The recorded release note is “Improves Perfect Timing result confirmations and fixes profiles for high leaderboard scores.”
+- **Mobile:** annotated tag `mobile/android/1.0.33` resolves to `50eac34aec8247907321edee718b8ad552991113`, and `mobile/ios/1.0.33` resolves to `44aa15546ed8ca4bc37478ae3ded38feff054baa`, with release timestamps on 2026-09-02. Android versionCode 55 was accepted on the Google Play closed-testing track, and iOS build 68 was validated by App Store Connect. The recorded release note is “Improves Speed Calculus result sharing and fixes quest cards appearing in the wrong position.”
 - **Local data:** local Docker database observations in this document are explicitly labeled. They are not evidence of production catalog contents.
 
 ## Current architecture
@@ -55,7 +55,7 @@ Versions below come from current manifests, lockfiles, native configuration, and
 
 | Layer | Verified technology |
 |---|---|
-| Mobile | Expo `57.0.16`, Expo Router `57.0.16`, React Native `0.86.2`, React `19.2.3`, Reanimated `4.5.1`, NativeWind `4.2.3`, Software Mansion Bottom Sheet `0.12.0`, Expo Image, TanStack Query `5.101.4`, Zustand `5.0.15` |
+| Mobile | Expo `57.0.19`, Expo Router `57.0.18`, React Native `0.86.3`, React `19.2.3`, Reanimated `4.5.1`, NativeWind `4.2.3`, Software Mansion Bottom Sheet `0.12.0`, Expo Image, TanStack Query `5.101.4`, Zustand `5.0.15` |
 | Web | React `19.2.3`, React Router `7.18.x`, Vite `8.2.1`, TanStack Query `5.101.4`, Vitest `4.1.10` |
 | Shared TypeScript | Zod `3.25.76`; TypeScript `6.0.3` for mobile/web and `5.9.3` for shared packages in the installed tree |
 | Backend | Elixir `1.19.5` and OTP `28` in CI/release images; Phoenix `1.8.5`, Ecto SQL `3.13.5`, Postgrex `0.22.0`, Bandit `1.10.3`, Oban `2.21.1`, Req `0.5.17`, Image `0.72.0`, Vix `0.41.0` with bundled libvips `8.18.3`, JOSE `1.11.12`, bcrypt_elixir `3.3.2`, tzdata `1.1.3` |
@@ -69,7 +69,7 @@ The Expo 57 migration and subsequent patch alignment are complete; Expo Doctor p
 
 | Component | Purpose and communication | Location | Status | Release posture |
 |---|---|---|---|---|
-| Expo mobile app | Primary native player/admin client; REST via `@adventure-time/api-client`, a Phoenix quest channel, PvP polling, and push notifications | `apps/mobile` | COMPLETE | Actively released; iOS and Android 1.0.32 are tagged |
+| Expo mobile app | Primary native player/admin client; REST via `@adventure-time/api-client`, a Phoenix quest channel, PvP polling, and push notifications | `apps/mobile` | COMPLETE | Actively released; iOS and Android 1.0.33 are tagged |
 | Responsive website | Browser player/admin client using the same client/contracts; served as Phoenix static content in production | `apps/web` | COMPLETE | Active; deployed with Phoenix at `a49bcf0…` |
 | Phoenix API | Canonical backend, auth, gameplay, persistence, media, jobs, and web session host | `apps/phoenix` | COMPLETE | Active production service |
 | PostgreSQL | Canonical persistent store and Oban job store | Ecto schemas and `apps/phoenix/priv/repo/migrations` | COMPLETE | PostgreSQL 16 production container |
@@ -201,17 +201,22 @@ At verification time the local development and test databases and production wer
 - **Target:** `https://app.leaetzak.love`, reverse-proxied by Caddy to Phoenix on `127.0.0.1:4200`. The checked-in Caddy site sets a 16 MB body limit and HSTS (`infra/caddy/app.leaetzak.love.Caddyfile`). Phoenix exposes the canonical Fitbit OAuth callback at `/api/fitbit/callback` and subscriber endpoint at `/api/fitbit/webhook`; transitional aliases remain at `/fitbit/callback` and `/fitbit/webhook` on the same host.
 - **Production services:** `adventure-time-tcg-api`, PostgreSQL 16, and MinIO run as the `adventure-time-tcg` Podman pod through Quadlet/systemd. Host-only ports are 4200 for Phoenix, 5434 for PostgreSQL, and 9100/9101 for MinIO API/console.
 - **Persistence:** production PostgreSQL and MinIO data live under `/srv/adventure-time-tcg`. Runtime environment files and signing credentials live outside source control.
-- **Backend/web delivery:** `.github/workflows/deploy-phoenix.yml` builds an immutable GHCR image containing the Vite bundle and Phoenix release, then sends only the pushed commit SHA and exact image digest through a dedicated forced-command SSH account. The root-owned Netcup deployer verifies the image revision, creates and checks a PostgreSQL recovery object, migrates, switches only the API Quadlet image, and checks API/media readiness without restarting PostgreSQL, MinIO, Caddy, or Prodigium. The restricted boundary is prepared on `codex/netcup-restricted-deploy` and is not active until that branch is reviewed, merged, installed, and its GitHub environment configured.
+- **Backend/web delivery:** `.github/workflows/deploy-phoenix.yml` builds an immutable GHCR image containing the Vite bundle and Phoenix release, then sends only the pushed commit SHA and exact image digest through a dedicated forced-command SSH account. The root-owned Netcup deployer verifies the image revision, creates and checks a PostgreSQL recovery object, migrates, switches only the API Quadlet image, and checks API/media readiness without restarting PostgreSQL, MinIO, Caddy, or Prodigium. The restricted boundary was merged in `9a25f023`; host installation and GitHub environment activation were not reverified during this mobile release.
 - **CI:** `.github/workflows/ci.yml` conditionally runs infrastructure tests, workspace typechecks/builds/web tests, Phoenix tests, and container validation. Third-party actions are pinned to immutable commit SHAs; the Netcup boundary has a focused shell regression test.
-- **Mobile version:** `apps/mobile/package.json`, `apps/mobile/app.json`, Android `versionName`, and iOS `CFBundleShortVersionString` are 1.0.32. iOS `CFBundleVersion` is 67. EAS uses remote app-version state and production auto-increment; the released Android versionCode is 54 while the checked-in `versionCode 1` remains a local placeholder.
+- **Mobile version:** `apps/mobile/package.json`, `apps/mobile/app.json`, Android `versionName`, and iOS `CFBundleShortVersionString` are 1.0.33. iOS `CFBundleVersion` is 68. EAS uses remote app-version state and production auto-increment; the released Android versionCode is 55 while the checked-in `versionCode 1` remains a local placeholder.
 - **Mobile release:** `scripts/release-mobile.mjs` orchestrates one or both platforms. Android builds a local AAB, submits through EAS/Google Play, requires a release note, and updates Play release notes. iOS builds a local IPA and uploads directly with Apple's `xcrun altool` and App Store Connect API credentials. Successful releases create annotated per-platform Git tags.
 - **Environment convention:** Phoenix uses `apps/phoenix/.env`, mobile uses `apps/mobile/.env`, and production secrets are supplied through external runtime env files. `FITBIT_REDIRECT_URI` is `https://app.leaetzak.love/api/fitbit/callback`; the Fitbit developer portal's subscriber endpoint is `https://app.leaetzak.love/api/fitbit/webhook`. No secret value belongs in this document.
-- **Current blockers:** none recorded for the 1.0.32 mobile release; the local iOS signing/App Store Connect path and Android signing/Google Play submission path both completed successfully according to the annotated release tags. The local development database is current through the Solution Hunt migration.
+- **Current blockers:** none recorded for the 1.0.33 mobile release; the local iOS signing/App Store Connect path and Android signing/Google Play submission path both completed successfully according to the annotated release tags. The local development database is current through the Solution Hunt migration. Expo Doctor passes all 20 checks after the SDK 57 patch and native lock alignment.
 
 ## Completed recently
 
-- **2026-08-28 — Netcup CI/deploy migration prepared:** production deployment was redesigned around a dedicated forced-command SSH identity, pinned host keys, an immutable commit/image-digest protocol, pre-migration PostgreSQL recovery objects, and checks that prevent unrelated service restarts. The change remains pending review and merge before host activation.
+- **2026-09-02 — mobile 1.0.33:** Speed Calculus result sharing, stable quest-card startup layout, and the current Expo SDK 57 patch alignment shipped through the production mobile release workflows. Android versionCode 55 was accepted on the Google Play closed-testing track and iOS build 68 was validated by App Store Connect; tags `mobile/android/1.0.33` and `mobile/ios/1.0.33` point to `50eac34a` and `44aa1554`, respectively.
 
+- **2026-09-02 — Expo 57 patch alignment:** Expo, Expo Router, React Native, and the associated SDK 57 native modules were advanced to the current patch matrix. Workspace overrides, the npm lock, and the iOS Pod lock are aligned; a clean `npm ci` is reproducible and Expo Doctor passes all 20 checks with no duplicate native modules.
+
+- **2026-08-28 — Netcup CI/deploy migration merged:** production deployment was redesigned around a dedicated forced-command SSH identity, pinned host keys, an immutable commit/image-digest protocol, pre-migration PostgreSQL recovery objects, and checks that prevent unrelated service restarts. The repository change merged in `9a25f023`; host activation was not reverified during the 1.0.33 mobile release.
+
+- **2026-09-02 — stable mobile quest-card startup layout:** quest cards no longer attach native entering worklets to their layout roots. This prevents startup hydration and background refresh relayouts from leaving an empty card slot while painting that card over a later quest. A focused UI regression contract now rejects any reintroduction of card-root entering animations.
 - **2026-08-25 — Speed Calculus result sharing and Expo patch alignment:** mobile can share one, two, or all three recorded Speed Calculus runs from the quest screen or the daily recap; every run highlights correct and erroneous answers and summarizes correct/total accuracy without a redundant score metric. The workspace and iOS Pod lock are aligned with Expo/Expo Router 57.0.16 and the current SDK 57 patch matrix; Expo Doctor passes all 20 checks.
 - **2026-08-25 — canonical Phoenix Fitbit provider endpoints:** Phoenix now owns `https://app.leaetzak.love/api/fitbit/callback` and `https://app.leaetzak.love/api/fitbit/webhook`, including OAuth fallback generation, subscriber verification, signed webhook handling, route tests, deployment examples, and an external provider-registration runbook. Same-host `/fitbit/*` aliases remain temporarily for transition traffic; `game.leaetzak.love` no longer needs API proxy exceptions once the Fitbit developer settings are updated.
 - **2026-08-24 — safe card/profile media lifecycle:** new uploads now enforce actual JPEG/PNG/WebP decoding, a 12 MiB/40 MP safety policy, orientation-aware WebP normalization and metadata, transactional reference swaps, retryable reference-safe MinIO cleanup, account-deletion cleanup, and a read-only database orphan audit. Catalog SVG behavior and all media URL/cache contracts remain unchanged. This is implemented on `codex/media-ingestion-lifecycle` and is not recorded as deployed.

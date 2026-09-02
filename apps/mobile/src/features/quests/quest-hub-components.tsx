@@ -20,7 +20,6 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-import Animated, { FadeIn, ReduceMotion } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
@@ -356,7 +355,6 @@ export function QuestHubCard({
   disabled = false,
   footer,
   icon: Icon,
-  index,
   highlighted = false,
   lifecycle,
   onLayout,
@@ -381,7 +379,6 @@ export function QuestHubCard({
   disabled?: boolean;
   footer?: ReactNode;
   icon: QuestIconComponent;
-  index: number;
   highlighted?: boolean;
   lifecycle: QuestLifecycle;
   onLayout?: (event: import("react-native").LayoutChangeEvent) => void;
@@ -495,54 +492,48 @@ export function QuestHubCard({
   );
 
   return (
-    <Animated.View
-      entering={FadeIn.duration(180)
-        .delay(index * 45)
-        .reduceMotion(ReduceMotion.System)}
+    <View
+      ref={cardRef}
+      className="overflow-hidden rounded-[24px] border bg-surface"
+      style={{
+        borderColor: highlighted ? tc.accentStrong : tone.border,
+        borderWidth: highlighted ? 2 : 1,
+        boxShadow:
+          lifecycle === "ready"
+            ? `0px 8px 16px ${tc.successDark}24`
+            : `0px 4px 10px ${tc.primaryStrong}14`,
+      }}
+      onLayout={onLayout}
+      testID={testID}
     >
-      <View
-        ref={cardRef}
-        className="overflow-hidden rounded-[24px] border bg-surface"
-        style={{
-          borderColor: highlighted ? tc.accentStrong : tone.border,
-          borderWidth: highlighted ? 2 : 1,
-          boxShadow:
-            lifecycle === "ready"
-              ? `0px 8px 16px ${tc.successDark}24`
-              : `0px 4px 10px ${tc.primaryStrong}14`,
-        }}
-        onLayout={onLayout}
-        testID={testID}
-      >
-        {onPress ? (
-          <Pressable
-            ref={actionFocusRef}
-            accessibilityRole="button"
-            accessibilityLabel={cardAccessibilityLabel}
-            accessibilityHint={accessibilityHint}
-            accessibilityState={{ disabled }}
-            disabled={disabled}
-            onPress={onPress}
-            className="p-4"
-            style={({ pressed }) => ({
-              opacity: disabled ? 0.55 : pressed ? 0.82 : 1,
-            })}
-          >
-            {cardContent}
-          </Pressable>
-        ) : (
-          <View className="p-4">{cardContent}</View>
-        )}
-        {footer ? (
-          <View
-            className="border-t px-4 pb-4 pt-3"
-            style={{ borderColor: tc.primaryBorder }}
-          >
-            {footer}
-          </View>
-        ) : null}
-      </View>
-    </Animated.View>
+      {onPress ? (
+        <Pressable
+          ref={actionFocusRef}
+          accessibilityRole="button"
+          accessibilityLabel={cardAccessibilityLabel}
+          accessibilityHint={accessibilityHint}
+          accessibilityState={{ disabled }}
+          disabled={disabled}
+          onPress={onPress}
+          className="p-4"
+          style={({ pressed }) => ({
+            opacity: disabled ? 0.55 : pressed ? 0.82 : 1,
+          })}
+        >
+          {cardContent}
+        </Pressable>
+      ) : (
+        <View className="p-4">{cardContent}</View>
+      )}
+      {footer ? (
+        <View
+          className="border-t px-4 pb-4 pt-3"
+          style={{ borderColor: tc.primaryBorder }}
+        >
+          {footer}
+        </View>
+      ) : null}
+    </View>
   );
 }
 
