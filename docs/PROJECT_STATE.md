@@ -1,9 +1,9 @@
 # Adventure Time TCG — Project State
 
-Last verified: 2026-09-02
+Last verified: 2026-09-14
 Repository: `Zax-code/adventure-time-tcg`
 Branch: `codex/mobile-release-20260902`
-Verified baseline commit: `44aa15546ed8ca4bc37478ae3ded38feff054baa`
+Verified baseline commit: `36d6b48fc886b45f9a68648554aec9b7050ccb6d` (plus the SDK patch reconciliation recorded below)
 
 ## Purpose and authority
 
@@ -55,7 +55,7 @@ Versions below come from current manifests, lockfiles, native configuration, and
 
 | Layer | Verified technology |
 |---|---|
-| Mobile | Expo `57.0.19`, Expo Router `57.0.18`, React Native `0.86.3`, React `19.2.3`, Reanimated `4.5.1`, NativeWind `4.2.3`, Software Mansion Bottom Sheet `0.12.0`, Expo Image, TanStack Query `5.101.4`, Zustand `5.0.15` |
+| Mobile | Expo `57.0.22`, Expo Router `57.0.21`, React Native `0.86.3`, React `19.2.3`, Reanimated `4.5.1`, NativeWind `4.2.3`, Software Mansion Bottom Sheet `0.12.0`, Expo Image, TanStack Query `5.101.4`, Zustand `5.0.15` |
 | Web | React `19.2.3`, React Router `7.18.x`, Vite `8.2.1`, TanStack Query `5.101.4`, Vitest `4.1.10` |
 | Shared TypeScript | Zod `3.25.76`; TypeScript `6.0.3` for mobile/web and `5.9.3` for shared packages in the installed tree |
 | Backend | Elixir `1.19.5` and OTP `28` in CI/release images; Phoenix `1.8.5`, Ecto SQL `3.13.5`, Postgrex `0.22.0`, Bandit `1.10.3`, Oban `2.21.1`, Req `0.5.17`, Image `0.72.0`, Vix `0.41.0` with bundled libvips `8.18.3`, JOSE `1.11.12`, bcrypt_elixir `3.3.2`, tzdata `1.1.3` |
@@ -209,6 +209,8 @@ At verification time the local development and test databases and production wer
 - **Current blockers:** none recorded for the 1.0.33 mobile release; the local iOS signing/App Store Connect path and Android signing/Google Play submission path both completed successfully according to the annotated release tags. The local development database is current through the Solution Hunt migration. Expo Doctor passes all 20 checks after the SDK 57 patch and native lock alignment.
 
 ## Completed recently
+
+- **2026-09-14 — PR #301 dependency reconciliation:** refreshed the SDK 57 patch matrix, root overrides, npm lock, and iOS Pod lock after the remote compatibility matrix advanced. Clean `npm ci`, workspace typecheck, all 38 mobile UI-regression tests, Expo Doctor (20/20), and `pod install` passed. This source-only follow-up preserves mobile 1.0.33/build metadata and the existing Android/iOS release tag commits; the September 2 store artifacts do not include this later dependency update. No mobile rebuild, submission, release, or retag was performed.
 
 - **2026-09-02 — mobile 1.0.33:** Speed Calculus result sharing, stable quest-card startup layout, and the current Expo SDK 57 patch alignment shipped through the production mobile release workflows. Android versionCode 55 was accepted on the Google Play closed-testing track and iOS build 68 was validated by App Store Connect; tags `mobile/android/1.0.33` and `mobile/ios/1.0.33` point to `50eac34a` and `44aa1554`, respectively.
 
