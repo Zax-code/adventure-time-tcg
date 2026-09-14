@@ -1791,7 +1791,7 @@ function useQuestsScreenView() {
     return null;
   };
 
-  const renderQuestCard = (item: QuestHubItem, index: number) => {
+  const renderQuestCard = (item: QuestHubItem) => {
     const lifecycle = getQuestHubItemLifecycle(item);
     const stats = getQuestHubItemStats(item);
     const progress = getItemProgress(item);
@@ -1911,7 +1911,6 @@ function useQuestsScreenView() {
         titleFocusRef={isStep ? stepCardFocusRef : undefined}
         highlighted={isStep && highlightSteps}
         icon={getItemIcon(item)}
-        index={index}
         lifecycle={lifecycle}
         onPress={
           isStep
@@ -2077,9 +2076,7 @@ function useQuestsScreenView() {
                     </View>
                   </View>
                   <View className="gap-3">
-                    {activeItems.map((item, index) =>
-                      renderQuestCard(item, index),
-                    )}
+                    {activeItems.map((item) => renderQuestCard(item))}
                   </View>
                 </>
               ) : null}
@@ -2098,9 +2095,7 @@ function useQuestsScreenView() {
                     </Text>
                   </View>
                   <View className="gap-3">
-                    {finishedItems.map((item, index) =>
-                      renderQuestCard(item, activeItems.length + index),
-                    )}
+                    {finishedItems.map((item) => renderQuestCard(item))}
                   </View>
                 </>
               ) : null}

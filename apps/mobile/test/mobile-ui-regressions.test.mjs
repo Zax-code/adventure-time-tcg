@@ -117,11 +117,23 @@ describe("mobile UI regression contracts", () => {
     );
   });
 
-  it("keeps quest card entrances inside their final layout bounds", () => {
+  it("keeps quest card painting attached to its startup layout slot", () => {
+    const questHubCardStart = questHubSource.indexOf(
+      "export function QuestHubCard",
+    );
+    const questHubCardEnd = questHubSource.indexOf("function SheetSurface");
+
+    assert.notEqual(questHubCardStart, -1);
+    assert.notEqual(questHubCardEnd, -1);
+    const questHubCardSource = questHubSource.slice(
+      questHubCardStart,
+      questHubCardEnd,
+    );
+
     assert.doesNotMatch(
-      questHubSource,
-      /entering=\{FadeInUp/,
-      "vertically translated entrances can temporarily draw one quest over another",
+      questHubCardSource,
+      /entering=/,
+      "a native entering worklet can paint a quest away from the layout slot Yoga assigned during startup hydration",
     );
   });
 
