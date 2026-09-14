@@ -1,0 +1,114 @@
+appId: love.leaetzak.adventuretime
+name: Pack odds sheet and purchase path
+tags:
+  - packs
+  - regression
+---
+- runFlow:
+    file: subflows/pack-odds-storefront.yaml
+    env:
+      TEST_EMAIL: ${TEST_EMAIL}
+      TEST_PASSWORD: ${TEST_PASSWORD}
+- scrollUntilVisible:
+    element:
+      id: pack-odds-button-basic-pack
+    direction: DOWN
+    timeout: 20000
+    centerElement: true
+- tapOn:
+    id: pack-odds-button-basic-pack
+- extendedWaitUntil:
+    visible:
+      id: pack-odds-sheet
+    timeout: 10000
+- assertVisible:
+    id: pack-odds-guaranteed-slots
+- assertVisible:
+    id: pack-odds-random-slots
+- assertVisible:
+    id: pack-odds-distribution
+- takeScreenshot: tmp-pack-odds-shots/basic-pack-odds
+- swipe:
+    start: 50%, 10%
+    end: 50%, 85%
+    duration: 700
+- extendedWaitUntil:
+    notVisible:
+      id: pack-odds-sheet
+    timeout: 10000
+- scrollUntilVisible:
+    element:
+      id: pack-odds-button-legendary-pack
+    direction: DOWN
+    timeout: 20000
+    centerElement: true
+- tapOn:
+    id: pack-odds-button-legendary-pack
+- extendedWaitUntil:
+    visible:
+      id: pack-odds-sheet
+    timeout: 10000
+- assertVisible:
+    id: pack-odds-guaranteed-slots
+- assertVisible:
+    id: pack-odds-distribution
+- takeScreenshot: tmp-pack-odds-shots/legendary-pack-odds
+- scrollUntilVisible:
+    element:
+      id: pack-odds-availability
+    direction: DOWN
+    timeout: 10000
+    centerElement: true
+- assertVisible:
+    id: pack-odds-availability
+- takeScreenshot: tmp-pack-odds-shots/legendary-pack-availability
+- scrollUntilVisible:
+    element:
+      id: pack-odds-guaranteed-slots
+    direction: UP
+    timeout: 10000
+    centerElement: true
+- swipe:
+    start: 50%, 10%
+    end: 50%, 85%
+    duration: 700
+- extendedWaitUntil:
+    notVisible:
+      id: pack-odds-sheet
+    timeout: 10000
+- scrollUntilVisible:
+    element:
+      id: pack-card-basic-pack
+    direction: UP
+    timeout: 20000
+    centerElement: true
+- tapOn:
+    id: pack-card-basic-pack
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible:
+      id: pack-opening-loading
+    timeout: 10000
+- extendedWaitUntil:
+    visible:
+      id: pack-opening-ready
+    timeout: 10000
+- tapOn:
+    id: pack-opening-ready
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible:
+      id: pack-opening-reveal
+    timeout: 10000
+- waitForAnimationToEnd
+- tapOn:
+    id: pack-opening-reveal
+    retryTapIfNoChange: true
+- waitForAnimationToEnd
+- tapOn:
+    id: pack-opening-reveal
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible:
+      id: pack-opening-summary
+    timeout: 10000

@@ -4,7 +4,7 @@ defmodule AdventureTimeApi.InventoryTest do
   alias AdventureTimeApi.Accounts.{EmailCredential, User}
   alias AdventureTimeApi.Catalog.{Card, Pack, Rarity}
   alias AdventureTimeApi.Inventory
-  alias AdventureTimeApi.Inventory.OwnedCard
+  alias AdventureTimeApi.Inventory.{OwnedCard, PackOpening}
   alias AdventureTimeApi.Repo
 
   test "open_pack_for_user increments existing owned cards and returns non-new cards" do
@@ -42,6 +42,190 @@ defmodule AdventureTimeApi.InventoryTest do
     assert {:ok, response} = Inventory.open_pack_for_user(user.id, pack.id)
     assert response.newBalance == 200
     assert Enum.any?(response.cards, &(&1.id == rare_card.id and &1.rarity.name == "Rare"))
+  end
+
+  test "player pack responses expose normalized base odds from the selection rows" do
+    user = create_user("inventory-odds@example.com")
+
+    _common = create_rarity("Common", 52.0, "#9CA3AF")
+    _uncommon = create_rarity("Uncommon", 33.0, "#10B981")
+    _rare = create_rarity("Rare", 10.0, "#3B82F6")
+    _epic = create_rarity("Epic", 4.0, "#8B5CF6")
+    _legendary = create_rarity("Legendary", 1.0, "#F59E0B")
+
+    basic_pack = create_pack("Basic Odds Pack", 5, 100, nil)
+    legendary_pack = create_pack("Legendary Odds Pack", 3, 4_500, "Legendary")
+    guaranteed_only_pack = create_pack("Guaranteed Only Pack", 1, 100, "Rare")
+
+    packs = Inventory.list_active_packs_for_user(user.id)
+    basic_odds = Enum.find(packs, &(&1.id == basic_pack.id)).odds
+    legendary_odds = Enum.find(packs, &(&1.id == legendary_pack.id)).odds
+    guaranteed_only_odds = Enum.find(packs, &(&1.id == guaranteed_only_pack.id)).odds
+
+    assert basic_odds.guaranteedSlotCount == 0
+    assert basic_odds.guaranteedRarity == nil
+    assert basic_odds.randomSlotCount == 5
+    assert basic_odds.weeklyLimit == false
+
+    assert Enum.map(basic_odds.baseRarityPercentages, & &1.rarity) ==
+             ["Common", "Uncommon", "Rare", "Epic", "Legendary"]
+
+    Enum.zip(basic_odds.baseRarityPercentages, [52.0, 33.0, 10.0, 4.0, 1.0])
+    |> Enum.each(fn {actual, expected} ->
+      assert_in_delta actual.percentage, expected, 1.0e-10
+    end)
+
+    assert legendary_odds.guaranteedSlotCount == 1
+    assert legendary_odds.guaranteedRarity == "Legendary"
+    assert legendary_odds.randomSlotCount == 2
+    assert legendary_odds.weeklyLimit == true
+
+    Enum.zip(legendary_odds.baseRarityPercentages, [52.75, 33.0, 10.0, 4.0, 0.25])
+    |> Enum.each(fn {actual, expected} ->
+      assert_in_delta actual.percentage, expected, 1.0e-10
+    end)
+
+    assert guaranteed_only_odds.guaranteedSlotCount == 1
+    assert guaranteed_only_odds.guaranteedRarity == "Rare"
+    assert guaranteed_only_odds.randomSlotCount == 0
+    assert guaranteed_only_odds.baseRarityPercentages == nil
+  end
+
+  test "legendary pack adjustment normalizes the remaining rows when Common is missing" do
+    user = create_user("inventory-legendary-odds-no-common@example.com")
+
+    _uncommon = create_rarity("Uncommon", 33.0, "#10B981")
+    _rare = create_rarity("Rare", 10.0, "#3B82F6")
+    _epic = create_rarity("Epic", 4.0, "#8B5CF6")
+    _legendary = create_rarity("Legendary", 1.0, "#F59E0B")
+
+    pack = create_pack("Legendary Odds Without Common", 3, 4_500, "Legendary")
+
+    odds =
+      Inventory.list_active_packs_for_user(user.id)
+      |> Enum.find(&(&1.id == pack.id))
+      |> Map.fetch!(:odds)
+
+    percentages_by_rarity = Map.new(odds.baseRarityPercentages, &{&1.rarity, &1.percentage})
+
+    assert percentages_by_rarity["Common"] == 0.0
+    assert_in_delta percentages_by_rarity["Uncommon"], 33.0 / 47.25 * 100.0, 1.0e-10
+    assert_in_delta percentages_by_rarity["Rare"], 10.0 / 47.25 * 100.0, 1.0e-10
+    assert_in_delta percentages_by_rarity["Epic"], 4.0 / 47.25 * 100.0, 1.0e-10
+    assert_in_delta percentages_by_rarity["Legendary"], 0.25 / 47.25 * 100.0, 1.0e-10
+
+    assert_in_delta(
+      Enum.sum(Enum.map(odds.baseRarityPercentages, & &1.percentage)),
+      100.0,
+      1.0e-10
+    )
+  end
+
+  test "legendary pack odds are unavailable when the adjusted weights overflow" do
+    user = create_user("inventory-legendary-odds-overflow@example.com")
+
+    _common = create_rarity("Common", 1.0e308, "#9CA3AF")
+    _legendary = create_rarity("Legendary", 1.0e308, "#F59E0B")
+    pack = create_pack("Legendary Odds Overflow", 3, 4_500, "Legendary")
+
+    listed_pack =
+      Inventory.list_active_packs_for_user(user.id)
+      |> Enum.find(&(&1.id == pack.id))
+
+    assert listed_pack.odds.guaranteedSlotCount == 1
+    assert listed_pack.odds.guaranteedRarity == "Legendary"
+    assert listed_pack.odds.randomSlotCount == 2
+    assert listed_pack.odds.baseRarityPercentages == nil
+    assert listed_pack.odds.weeklyLimit == true
+  end
+
+  test "base rarity percentages normalize non-100 weights and include missing rarities" do
+    percentages =
+      PackOpening.base_rarity_percentages([
+        %Rarity{name: "Legendary", drop_rate: 1.0},
+        %Rarity{name: "Common", drop_rate: 3.0},
+        %Rarity{name: "Rare", drop_rate: 2.0}
+      ])
+
+    assert Enum.map(percentages, & &1.rarity) ==
+             ["Common", "Uncommon", "Rare", "Epic", "Legendary"]
+
+    percentages_by_rarity = Map.new(percentages, &{&1.rarity, &1.percentage})
+    assert_in_delta percentages_by_rarity["Common"], 50.0, 1.0e-10
+    assert percentages_by_rarity["Uncommon"] == 0.0
+    assert_in_delta percentages_by_rarity["Rare"], 100.0 / 3.0, 1.0e-10
+    assert percentages_by_rarity["Epic"] == 0.0
+    assert_in_delta percentages_by_rarity["Legendary"], 100.0 / 6.0, 1.0e-10
+    assert_in_delta Enum.sum(Enum.map(percentages, & &1.percentage)), 100.0, 1.0e-10
+    assert Enum.all?(percentages, &(&1.percentage >= 0.0 and &1.percentage <= 100.0))
+
+    percentages_with_zero =
+      PackOpening.base_rarity_percentages([
+        %Rarity{name: "Common", drop_rate: 3.0},
+        %Rarity{name: "Rare", drop_rate: 0.0},
+        %Rarity{name: "Legendary", drop_rate: 1.0}
+      ])
+
+    assert Enum.map(percentages_with_zero, & &1.percentage) == [75.0, 0.0, 0.0, 0.0, 25.0]
+  end
+
+  test "all-zero rarity rows expose and use the selector's first-row fallback" do
+    rare = %Rarity{id: "rare", name: "Rare", drop_rate: 0.0}
+    common = %Rarity{id: "common", name: "Common", drop_rate: 0.0}
+    rare_card = %Card{id: "rare-card", rarity_id: rare.id}
+    common_card = %Card{id: "common-card", rarity_id: common.id}
+
+    percentages = PackOpening.base_rarity_percentages([rare, common])
+
+    assert Enum.map(percentages, & &1.rarity) ==
+             ["Common", "Uncommon", "Rare", "Epic", "Legendary"]
+
+    assert Enum.map(percentages, & &1.percentage) == [0.0, 0.0, 100.0, 0.0, 0.0]
+
+    assert PackOpening.select_card([rare_card, common_card], [rare, common]).id == rare_card.id
+  end
+
+  test "base rarity percentages are unavailable without representable selection rows" do
+    assert PackOpening.base_rarity_percentages([]) == nil
+
+    assert PackOpening.base_rarity_percentages([
+             %Rarity{name: "Mythic", drop_rate: 1.0}
+           ]) == nil
+
+    assert PackOpening.base_rarity_percentages([
+             %Rarity{name: "Common", drop_rate: 1.0},
+             %Rarity{name: "Common", drop_rate: 2.0}
+           ]) == nil
+  end
+
+  test "base rarity percentages remain finite for extreme database weights" do
+    percentages =
+      PackOpening.base_rarity_percentages([
+        %Rarity{name: "Common", drop_rate: 1.0e308},
+        %Rarity{name: "Uncommon", drop_rate: 1.0e308},
+        %Rarity{name: "Legendary", drop_rate: 1.0}
+      ])
+
+    assert_in_delta Enum.sum(Enum.map(percentages, & &1.percentage)), 100.0, 1.0e-10
+    assert Enum.all?(percentages, &(&1.percentage >= 0.0 and &1.percentage <= 100.0))
+    assert Enum.all?(percentages, &(&1.percentage == &1.percentage))
+  end
+
+  test "a missing configured rarity keeps its configured slot and existing random fallback" do
+    user = create_user("inventory-missing-guarantee@example.com") |> grant_coins(300)
+    common = create_rarity("Common", 60.0, "#9CA3AF")
+    common_card = create_card("Fallback Finn", common.id)
+    pack = create_pack("Missing Guarantee Pack", 2, 100, "Mythic")
+
+    assert {:ok, response} = Inventory.open_pack_for_user(user.id, pack.id)
+    assert Enum.map(response.cards, & &1.id) == [common_card.id, common_card.id]
+    assert response.pack.odds.guaranteedSlotCount == 1
+    assert response.pack.odds.guaranteedRarity == "Mythic"
+    assert response.pack.odds.randomSlotCount == 1
+    assert response.pack.odds.weeklyLimit == false
+
+    assert Enum.map(response.pack.odds.baseRarityPercentages, & &1.percentage) ==
+             [100.0, 0.0, 0.0, 0.0, 0.0]
   end
 
   test "open_pack_for_user advances hidden spark counters only on low random rarities" do

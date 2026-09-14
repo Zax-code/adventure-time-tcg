@@ -21,6 +21,31 @@ const packs = {
   standardOdds: "Taux standards",
   openFor: "Ouvrir pour {count}",
   openFailed: "Impossible d'ouvrir le pack.",
+  odds: {
+    title: "Probabilités du pack",
+    view: "Voir les probabilités",
+    slotsTitle: "Fonctionnement des emplacements",
+    guaranteedTitle: "Emplacement garanti",
+    guaranteedBody:
+      "1 emplacement est réservé à une carte de rareté exactement {rarity}.",
+    noGuaranteedBody: "Ce pack n'a aucun emplacement garanti.",
+    randomTitle: "Emplacements aléatoires",
+    randomBody:
+      "Le tirage aléatoire de base est utilisé pour {count} emplacements.",
+    noRandomBody: "Ce pack n'a aucun emplacement aléatoire.",
+    distributionTitle: "Probabilités de rareté de base",
+    distributionSubtitle: "Probabilité pour un emplacement aléatoire",
+    independentDraws:
+      "Chaque tirage aléatoire de base utilise ces probabilités indépendamment. Les cartes d'un pack peuvent différer de cette répartition.",
+    distributionUnavailable:
+      "Les probabilités de rareté de base sont actuellement indisponibles pour ce pack.",
+    availabilityTitle: "Disponibilité",
+    weeklyLimitBody: "Ce pack a une limite d'ouverture hebdomadaire.",
+    weeklyLimitCount:
+      "Ce pack peut être ouvert jusqu'à {count} fois par semaine.",
+    weeklyRemaining: "Ouvertures restantes cette semaine : {count}",
+    noWeeklyLimitBody: "Ce pack n'a aucune limite d'ouverture hebdomadaire.",
+  },
   opening: {
     chargeTag: "Ouverture",
     chargeTitle: "Le portail se charge",

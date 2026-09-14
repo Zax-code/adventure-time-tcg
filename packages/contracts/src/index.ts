@@ -828,7 +828,7 @@ export const packAvailabilitySchema = z.object({
   limit: z.number().int().positive().nullable().optional(),
 });
 
-export const packSchema = z.object({
+const packBaseSchema = z.object({
   id: z.string(),
   name: z.string(),
   description: z.string(),
@@ -841,6 +841,91 @@ export const packSchema = z.object({
   availability: packAvailabilitySchema.optional(),
 });
 
+/** Base rarity selection for one random slot, never whole-pack or personalized odds. */
+export const packOddsSchema = z
+  .object({
+    guaranteedSlotCount: z.number().int().min(0).max(1),
+    guaranteedRarity: z.string().min(1).nullable(),
+    randomSlotCount: z.number().int().nonnegative(),
+    baseRarityPercentages: z
+      .array(
+        z
+          .object({
+            rarity: rarityNameSchema,
+            percentage: z.number().finite().min(0).max(100),
+          })
+          .strict(),
+      )
+      .length(rarityNameValues.length)
+      .nullable(),
+    weeklyLimit: z.boolean(),
+  })
+  .strict()
+  .superRefine((odds, ctx) => {
+    if ((odds.guaranteedSlotCount === 0) !== (odds.guaranteedRarity === null)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["guaranteedRarity"],
+        message: "Guaranteed rarity must match the guaranteed slot count",
+      });
+    }
+    const distribution = odds.baseRarityPercentages;
+    if (odds.randomSlotCount === 0 && distribution !== null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["baseRarityPercentages"],
+        message: "Packs without random slots have no random distribution",
+      });
+    }
+    if (distribution !== null) {
+      if (
+        distribution.some(
+          (row, index) => row.rarity !== rarityNameValues[index],
+        )
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["baseRarityPercentages"],
+          message: "Rarities must appear once in canonical order",
+        });
+      }
+      const total = distribution.reduce((sum, row) => sum + row.percentage, 0);
+      if (Math.abs(total - 100) > 0.000001) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["baseRarityPercentages"],
+          message: "Base percentages must total 100",
+        });
+      }
+    }
+  });
+
+export const packSchema = packBaseSchema
+  .extend({
+    odds: packOddsSchema,
+  })
+  .superRefine((pack, ctx) => {
+    if (
+      pack.odds.guaranteedSlotCount + pack.odds.randomSlotCount !==
+      pack.cardCount
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["odds"],
+        message: "Odds slot counts must equal the pack card count",
+      });
+    }
+    if (pack.odds.guaranteedRarity !== (pack.guaranteedRarity || null)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["odds", "guaranteedRarity"],
+        message: "Odds must describe the configured guarantee",
+      });
+    }
+  });
+
+export type PackOdds = z.infer<typeof packOddsSchema>;
+
 export const cardBackVisualSchema = z.object({
   themeName: z.enum(["candy", "ice", "nightosphere"]),
   rarityName: z.enum(["Common", "Uncommon", "Rare", "Epic", "Legendary"]),
@@ -852,7 +937,7 @@ export const packsResponseSchema = z.object({
   cardBackVisuals: z.array(cardBackVisualSchema),
 });
 
-export const adminPackSchema = packSchema;
+export const adminPackSchema = packBaseSchema;
 
 export const adminPacksResponseSchema = z.object({
   packs: z.array(adminPackSchema),

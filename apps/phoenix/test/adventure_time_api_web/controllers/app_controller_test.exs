@@ -330,6 +330,23 @@ defmodule AdventureTimeApiWeb.AppControllerTest do
     assert response["pack"]["guaranteedRarity"] == "Rare"
     assert response["pack"]["availability"]["canOpen"] == true
     assert Map.has_key?(response["pack"], "packArtAssetId")
+
+    assert response["pack"]["odds"]["guaranteedSlotCount"] == 1
+    assert response["pack"]["odds"]["guaranteedRarity"] == "Rare"
+    assert response["pack"]["odds"]["randomSlotCount"] == 2
+    assert response["pack"]["odds"]["weeklyLimit"] == false
+
+    assert Enum.map(
+             response["pack"]["odds"]["baseRarityPercentages"],
+             & &1["rarity"]
+           ) == ["Common", "Uncommon", "Rare", "Epic", "Legendary"]
+
+    assert_in_delta(
+      Enum.sum(Enum.map(response["pack"]["odds"]["baseRarityPercentages"], & &1["percentage"])),
+      100.0,
+      1.0e-10
+    )
+
     assert length(response["cards"]) == 3
     assert Enum.any?(response["cards"], &(&1["id"] == rare_card.id))
 
@@ -391,7 +408,14 @@ defmodule AdventureTimeApiWeb.AppControllerTest do
     assert Enum.any?(
              response["packs"],
              &(&1["id"] == pack.id and &1["packArtAssetId"] == pack_art_asset.id and
-                 &1["availability"]["canOpen"] == true)
+                 &1["availability"]["canOpen"] == true and
+                 &1["odds"] == %{
+                   "guaranteedSlotCount" => 1,
+                   "guaranteedRarity" => "Rare",
+                   "randomSlotCount" => 4,
+                   "baseRarityPercentages" => nil,
+                   "weeklyLimit" => false
+                 })
            )
 
     assert length(response["cardBackVisuals"]) == 15
@@ -402,6 +426,56 @@ defmodule AdventureTimeApiWeb.AppControllerTest do
                  &1["rarityName"] == "Rare" and
                  &1["imageAssetId"] == back_asset.id)
            )
+  end
+
+  test "GET /packs returns unavailable odds when Legendary adjustment overflows", _context do
+    user = create_user_with_password("pack-odds-overflow@example.com", "rainicorn")
+    access_token = login_access_token(user.email, "rainicorn")
+
+    Repo.insert!(
+      Rarity.changeset(%Rarity{}, %{
+        name: "Common",
+        drop_rate: 1.0e308,
+        color: "#9CA3AF"
+      })
+    )
+
+    Repo.insert!(
+      Rarity.changeset(%Rarity{}, %{
+        name: "Legendary",
+        drop_rate: 1.0e308,
+        color: "#F59E0B"
+      })
+    )
+
+    pack =
+      Repo.insert!(
+        Pack.changeset(%Pack{}, %{
+          name: "Overflow Legendary Pack",
+          description: "Uses extreme catalog weights.",
+          card_count: 3,
+          cost: 4_500,
+          color: "#F59E0B",
+          is_active: true,
+          guaranteed_rarity: "Legendary"
+        })
+      )
+
+    response =
+      access_token
+      |> auth_conn()
+      |> get(~p"/packs")
+      |> json_response(200)
+
+    listed_pack = Enum.find(response["packs"], &(&1["id"] == pack.id))
+
+    assert listed_pack["odds"] == %{
+             "guaranteedSlotCount" => 1,
+             "guaranteedRarity" => "Legendary",
+             "randomSlotCount" => 2,
+             "baseRarityPercentages" => nil,
+             "weeklyLimit" => true
+           }
   end
 
   test "POST /packs/open limits guaranteed Legendary packs to one weekly opening", _context do

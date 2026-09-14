@@ -2,8 +2,8 @@
 
 Last verified: 2026-09-14
 Repository: `Zax-code/adventure-time-tcg`
-Branch: `codex/mobile-release-20260902`
-Verified baseline commit: `36d6b48fc886b45f9a68648554aec9b7050ccb6d` (plus the SDK patch reconciliation recorded below)
+Branch: `codex/server-authored-pack-odds`
+Verified baseline commit: `b3456d49f2d13bfa7710c09e384a009d048c4a71` (PR #301 merge; pack-odds implementation on this branch)
 
 ## Purpose and authority
 
@@ -210,6 +210,9 @@ At verification time the local development and test databases and production wer
 
 ## Completed recently
 
+- **2026-09-14 — server-authored pack odds (feature branch, unreleased):** player pack listing/opening responses now include structured `odds` derived from the same Phoenix rarity rows and Legendary random-rate adjustment used by opening. The mobile storefront has independent View odds actions and a themed EN/FR sheet with existing artwork, exact guarantee slots, per-random-slot base percentages, price/card count, and weekly availability. Percentages retain canonical rarity order; missing rows are zero, zero-weight rows mirror the existing first-row selection fallback, and unavailable/unrepresentable distributions return null. No opening selection, protection, reveal sequence, release metadata, or migrations changed. Verification: Phoenix `mix precommit` (504 tests), focused inventory/controller tests (36), shared contracts (15), API client (4), root typecheck, mobile UI regressions (42), Expo Doctor (20/20), web tests (62), and web build passed. Local iOS simulator English and French odds/dismissal/purchase-summary flows and the unaffordable-purchase odds flow passed; screenshots were captured and inspected in both languages. Phoenix must serve the new required contract before a future mobile release.
+- **2026-09-14 — mobile 1.0.33 reconciliation merged:** PR #301 merged at `b3456d49f2d13bfa7710c09e384a009d048c4a71` after the authorized Expo SDK 57 patch/lock refresh, clean install, typecheck, UI regressions, and Expo Doctor passed. Android/iOS release tags remain at their documented commits; no rebuild, resubmission, rerelease, or retag of mobile 1.0.33 occurred.
+
 - **2026-09-14 — PR #301 dependency reconciliation:** refreshed the SDK 57 patch matrix, root overrides, npm lock, and iOS Pod lock after the remote compatibility matrix advanced. Clean `npm ci`, workspace typecheck, all 38 mobile UI-regression tests, Expo Doctor (20/20), and `pod install` passed. This source-only follow-up preserves mobile 1.0.33/build metadata and the existing Android/iOS release tag commits; the September 2 store artifacts do not include this later dependency update. No mobile rebuild, submission, release, or retag was performed.
 
 - **2026-09-02 — mobile 1.0.33:** Speed Calculus result sharing, stable quest-card startup layout, and the current Expo SDK 57 patch alignment shipped through the production mobile release workflows. Android versionCode 55 was accepted on the Google Play closed-testing track and iOS build 68 was validated by App Store Connect; tags `mobile/android/1.0.33` and `mobile/ios/1.0.33` point to `50eac34a` and `44aa1554`, respectively.
@@ -250,7 +253,7 @@ At verification time the local development and test databases and production wer
 ## Work currently in progress
 
 - **PLANNED — broader native redesign:** `docs/design/adventure-time-tcg-redesign.pen` and `docs/design/adventure-time-tcg-redesign-assets/` preserve a native-app baseline, three visual directions, a recommended “Tournament Companion” direction, design-system guidance, and handoff notes. No corresponding application-code implementation was found; the handoff explicitly leaves behavior changes subject to product approval.
-- No open pull request remains after reconciling #244, #286, and #291. GitHub issue #256 is PLANNED exploration, not active implementation.
+- Server-authored pack odds is implemented and verified on `codex/server-authored-pack-odds`, pending PR review and deployment. GitHub issue #256 remains PLANNED exploration, not active implementation.
 
 ## Known issues and technical debt
 
