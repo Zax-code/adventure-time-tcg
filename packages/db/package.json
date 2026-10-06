@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@adventure-time/game-engine": "file:../game-engine",
-    "drizzle-orm": "^0.44.7",
+    "drizzle-orm": "^0.45.2",
     "pg": "^8.16.3",
     "postgres": "^3.4.7"
   },
