@@ -11,6 +11,7 @@ ContainerName=adventure-time-tcg-minio
 # and the replacement is tracked in docs/operations (MinIO replacement).
 Image=quay.io/minio/minio:RELEASE.2025-02-28T09-55-16Z
 Pod=adventure-time-tcg.pod
+Pull=never
 Volume=/srv/adventure-time-tcg/minio:/data:Z
 EnvironmentFile=/home/zax/adventure-time-tcg-secrets/minio.container.env
 NoNewPrivileges=true

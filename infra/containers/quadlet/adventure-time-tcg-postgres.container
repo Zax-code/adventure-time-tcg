@@ -9,6 +9,7 @@ ContainerName=adventure-time-tcg-postgres
 # 16.15 minor update; same on-disk format as the running 16.x cluster.
 Image=docker.io/library/postgres:16.15-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
 Pod=adventure-time-tcg.pod
+Pull=never
 Volume=/srv/adventure-time-tcg/postgres:/var/lib/postgresql/data:Z
 EnvironmentFile=/home/zax/adventure-time-tcg-secrets/postgres.container.env
 Exec=postgres -c listen_addresses=0.0.0.0
