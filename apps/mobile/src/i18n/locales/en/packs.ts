@@ -22,6 +22,28 @@ const packs = {
   standardOdds: "Standard odds",
   openFor: "Open for {count}",
   openFailed: "Failed to open pack.",
+  odds: {
+    title: "Pack odds",
+    view: "View odds",
+    slotsTitle: "How the slots work",
+    guaranteedTitle: "Guaranteed slot",
+    guaranteedBody: "1 slot is reserved for a card of exactly {rarity} rarity.",
+    noGuaranteedBody: "This pack has no guaranteed slot.",
+    randomTitle: "Random slots",
+    randomBody: "{count} card slots use the base random draw.",
+    noRandomBody: "This pack has no random slots.",
+    distributionTitle: "Base rarity chances",
+    distributionSubtitle: "Chance for one random slot",
+    independentDraws:
+      "Each base random draw uses these chances independently. The cards in one pack can vary from this distribution.",
+    distributionUnavailable:
+      "Base rarity chances are currently unavailable for this pack.",
+    availabilityTitle: "Availability",
+    weeklyLimitBody: "This pack has a weekly opening limit.",
+    weeklyLimitCount: "This pack can be opened up to {count} times per week.",
+    weeklyRemaining: "Openings remaining this week: {count}",
+    noWeeklyLimitBody: "This pack has no weekly opening limit.",
+  },
   opening: {
     chargeTag: "Open",
     chargeTitle: "Charging the portal",

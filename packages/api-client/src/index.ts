@@ -577,6 +577,7 @@ export class ApiClient {
     );
   }
 
+  /** Lists packs with validated server-authored base odds for each random slot. */
   async packs(): Promise<PacksResponse> {
     return this.request("/packs", { method: "GET" }, (data) =>
       packsResponseSchema.parse(data),

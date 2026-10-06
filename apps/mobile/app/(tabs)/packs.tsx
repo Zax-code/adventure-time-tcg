@@ -29,7 +29,11 @@ import type {
   PvpLoadoutsResponse,
 } from "@adventure-time/api-client";
 
-import { PrimaryButton, SecondaryButton } from "../../src/components/button";
+import {
+  GhostButton,
+  PrimaryButton,
+  SecondaryButton,
+} from "../../src/components/button";
 import { CardTile } from "../../src/components/card-tile";
 import { CARD_ART_RATIO } from "../../src/components/card-back-cover-art";
 import { PageErrorState } from "../../src/components/error-state";
@@ -80,6 +84,7 @@ import {
   patchHomeAfterPackOpen,
   patchPvpLoadoutsAfterPackOpen,
 } from "../../src/features/packs/collection-cache";
+import { PackOddsSheet } from "../../src/features/packs/pack-odds-sheet";
 import {
   IS_E2E_BUILD,
   PACK_CARD_RATIO,
@@ -139,6 +144,7 @@ function usePacksScreenView() {
   const [isRevealSettled, setIsRevealSettled] = useState(false);
   const [newBalance, setNewBalance] = useState<number | null>(null);
   const [previewedCard, setPreviewedCard] = useState<OpenedCard | null>(null);
+  const [oddsPack, setOddsPack] = useState<Pack | null>(null);
   const [isOpening, setIsOpening] = useState(false);
   const [openingRunId, setOpeningRunId] = useState(0);
   const [openError, setOpenError] = useState<string | null>(null);
@@ -374,9 +380,8 @@ function usePacksScreenView() {
         ["collection"],
         (current) => patchCollectionAfterPackOpen(current, result),
       );
-      queryClient.setQueryData<HomeResponse | undefined>(
-        ["home"],
-        (current) => patchHomeAfterPackOpen(current, result),
+      queryClient.setQueryData<HomeResponse | undefined>(["home"], (current) =>
+        patchHomeAfterPackOpen(current, result),
       );
       queryClient.setQueryData<PvpLoadoutsResponse | undefined>(
         ["pvp-loadouts"],
@@ -1055,7 +1060,10 @@ function usePacksScreenView() {
       nextBalance >= selectedPack.cost && !isPackLimited(selectedPack);
     const summaryCards = [...newCards, ...duplicateCards];
     const keyedNewCards = withOccurrenceKeys(newCards, (card) => card.id);
-    const keyedSummaryCards = withOccurrenceKeys(summaryCards, (card) => card.id);
+    const keyedSummaryCards = withOccurrenceKeys(
+      summaryCards,
+      (card) => card.id,
+    );
     const rarityBreakdown = openedCards.reduce<
       Record<string, { total: number; newCount: number }>
     >((accumulator, card) => {
@@ -1213,10 +1221,7 @@ function usePacksScreenView() {
               </Text>
               <View className="flex-row flex-wrap">
                 {keyedNewCards.map(({ item: card, key }, index) => (
-                  <View
-                    key={key}
-                    className="w-1/2 px-1.5 pb-3"
-                  >
+                  <View key={key} className="w-1/2 px-1.5 pb-3">
                     <CardTile
                       testID={`pack-summary-card-new-${index}`}
                       onPress={() => setPreviewedCard(card)}
@@ -1398,67 +1403,102 @@ function usePacksScreenView() {
             />
 
             {heroPack ? (
-              <Pressable
-                onPress={() =>
-                  !isOpening && heroCanOpen && void openPack(heroPack)
-                }
-                disabled={isOpening || !heroCanOpen}
-                style={{ opacity: heroCanOpen ? 1 : 0.62 }}
+              <View
+                style={{
+                  overflow: "hidden",
+                  borderRadius: 24,
+                  backgroundColor: heroCanOpen
+                    ? tc.primaryStrong
+                    : tc.surfaceMuted,
+                }}
               >
+                <Pressable
+                  onPress={() =>
+                    !isOpening && heroCanOpen && void openPack(heroPack)
+                  }
+                  disabled={isOpening || !heroCanOpen}
+                  style={{ opacity: heroCanOpen ? 1 : 0.62 }}
+                >
+                  <View className="flex-row items-center justify-between px-5 py-4">
+                    <View className="flex-1 gap-1 pr-3">
+                      <Text
+                        className="font-nunito-extrabold text-lg"
+                        style={{ color: heroCanOpen ? "#FFFFFF" : tc.fg }}
+                      >
+                        {heroPack.name}
+                      </Text>
+                      <Text
+                        className="font-nunito text-sm"
+                        style={{
+                          color: heroCanOpen
+                            ? "rgba(255,255,255,0.82)"
+                            : tc.fgMuted,
+                        }}
+                      >
+                        {isPackLimited(heroPack)
+                          ? heroPack.availability?.nextAvailableAt
+                            ? t("packs.weeklyLimitAvailable", {
+                                date: formatPackAvailabilityDate(
+                                  heroPack.availability.nextAvailableAt,
+                                ),
+                              })
+                            : t("packs.weeklyLimitReached")
+                          : heroCanOpen
+                            ? t("packs.tapToOpen")
+                            : cheapestLockedPack
+                              ? t("packs.nextGoal", {
+                                  name: heroPack.name,
+                                  count: heroPack.cost - coins,
+                                })
+                              : t("packs.allAffordable")}
+                      </Text>
+                    </View>
+                    <View className="flex-row items-center gap-2">
+                      <CoinIcon size={16} />
+                      <Text
+                        className="font-nunito-extrabold text-lg"
+                        style={{
+                          color: heroCanOpen ? "#FFFFFF" : tc.primaryStrong,
+                        }}
+                      >
+                        {heroPack.cost}
+                      </Text>
+                    </View>
+                  </View>
+                </Pressable>
                 <View
-                  className="flex-row items-center justify-between rounded-[24px] px-5 py-4"
+                  className="border-t px-3 py-1"
                   style={{
-                    backgroundColor: heroCanOpen
-                      ? tc.primaryStrong
-                      : tc.surfaceMuted,
+                    borderTopColor: heroCanOpen
+                      ? "rgba(255,255,255,0.22)"
+                      : tc.primaryBorder,
                   }}
                 >
-                  <View className="flex-1 gap-1 pr-3">
-                    <Text
-                      className="font-nunito-extrabold text-lg"
-                      style={{ color: heroCanOpen ? "#FFFFFF" : tc.fg }}
-                    >
-                      {heroPack.name}
-                    </Text>
-                    <Text
-                      className="font-nunito text-sm"
-                      style={{
-                        color: heroCanOpen
-                          ? "rgba(255,255,255,0.82)"
-                          : tc.fgMuted,
-                      }}
-                    >
-                      {isPackLimited(heroPack)
-                        ? heroPack.availability?.nextAvailableAt
-                          ? t("packs.weeklyLimitAvailable", {
-                              date: formatPackAvailabilityDate(
-                                heroPack.availability.nextAvailableAt,
-                              ),
-                            })
-                          : t("packs.weeklyLimitReached")
-                        : heroCanOpen
-                          ? t("packs.tapToOpen")
-                          : cheapestLockedPack
-                            ? t("packs.nextGoal", {
-                                name: heroPack.name,
-                                count: heroPack.cost - coins,
-                              })
-                            : t("packs.allAffordable")}
-                    </Text>
-                  </View>
-                  <View className="flex-row items-center gap-2">
-                    <CoinIcon size={16} />
-                    <Text
-                      className="font-nunito-extrabold text-lg"
-                      style={{
-                        color: heroCanOpen ? "#FFFFFF" : tc.primaryStrong,
-                      }}
-                    >
-                      {heroPack.cost}
-                    </Text>
-                  </View>
+                  <GhostButton
+                    testID={`pack-odds-hero-${slugifyPackName(heroPack.name)}`}
+                    onPress={() => setOddsPack(heroPack)}
+                    leadingAccessory={
+                      <EyeIcon
+                        size={16}
+                        color={heroCanOpen ? "#FFFFFF" : tc.primaryText}
+                      />
+                    }
+                    fallbackAppearance={{
+                      backgroundColor: "transparent",
+                      borderColor: "transparent",
+                      borderRadius: 16,
+                      foregroundColor: heroCanOpen ? "#FFFFFF" : tc.primaryText,
+                      gradientColors: null,
+                      minHeight: 44,
+                      paddingHorizontal: 12,
+                      paddingVertical: 10,
+                    }}
+                    style={{ width: "100%" }}
+                  >
+                    {t("packs.odds.view")}
+                  </GhostButton>
                 </View>
-              </Pressable>
+              </View>
             ) : null}
           </View>
         </View>
@@ -1503,27 +1543,27 @@ function usePacksScreenView() {
                 : null;
 
             return (
-              <Pressable
+              <View
                 key={pack.id}
-                testID={`pack-card-${slug}`}
-                onPress={() => !isOpening && canOpen && void openPack(pack)}
-                disabled={isOpening || !canOpen}
-                style={{ opacity: canOpen ? 1 : 0.54 }}
+                className="overflow-hidden rounded-[30px] border"
+                style={{
+                  backgroundColor: limitReached
+                    ? tc.surfaceMuted
+                    : packSurfaceColor,
+                  borderColor: limitReached
+                    ? tc.primaryBorder
+                    : isFeatured
+                      ? withAlpha(pack.color || tc.primary, "66")
+                      : withAlpha(pack.color || tc.primaryBorder, "2E"),
+                }}
               >
-                <View
-                  className="rounded-[30px] border p-4"
-                  style={{
-                    backgroundColor: limitReached
-                      ? tc.surfaceMuted
-                      : packSurfaceColor,
-                    borderColor: limitReached
-                      ? tc.primaryBorder
-                      : isFeatured
-                        ? withAlpha(pack.color || tc.primary, "66")
-                        : withAlpha(pack.color || tc.primaryBorder, "2E"),
-                  }}
+                <Pressable
+                  testID={`pack-card-${slug}`}
+                  onPress={() => !isOpening && canOpen && void openPack(pack)}
+                  disabled={isOpening || !canOpen}
+                  style={{ opacity: canOpen ? 1 : 0.54 }}
                 >
-                  <View className="flex-row items-start gap-4">
+                  <View className="flex-row items-start gap-4 p-4">
                     <View className="items-center justify-center p-4">
                       <PackIconVisual pack={pack} size={34} />
                     </View>
@@ -1611,14 +1651,44 @@ function usePacksScreenView() {
                       )}
                     </View>
                   </View>
+                </Pressable>
+                <View className="border-t border-primaryBorder bg-surface px-3 py-1">
+                  <GhostButton
+                    testID={`pack-odds-button-${slug}`}
+                    onPress={() => setOddsPack(pack)}
+                    leadingAccessory={
+                      <EyeIcon size={16} color={tc.primaryText} />
+                    }
+                    fallbackAppearance={{
+                      backgroundColor: "transparent",
+                      borderColor: "transparent",
+                      borderRadius: 16,
+                      foregroundColor: tc.primaryText,
+                      gradientColors: null,
+                      minHeight: 44,
+                      paddingHorizontal: 12,
+                      paddingVertical: 10,
+                    }}
+                    style={{ width: "100%" }}
+                  >
+                    {t("packs.odds.view")}
+                  </GhostButton>
                 </View>
-              </Pressable>
+              </View>
             );
           })}
         </View>
 
         <View style={{ height: storefrontScrollBottomSpacerHeight }} />
       </ScrollView>
+      {oddsPack ? (
+        <PackOddsSheet
+          key={oddsPack.id}
+          pack={oddsPack}
+          coins={coins}
+          onClose={() => setOddsPack(null)}
+        />
+      ) : null}
     </View>
   );
 }

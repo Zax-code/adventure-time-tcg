@@ -1,0 +1,34 @@
+appId: love.leaetzak.adventuretime
+name: Sign in and open pack odds storefront
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- scrollUntilVisible:
+    element:
+      id: auth-email-input
+    direction: DOWN
+    timeout: 40000
+    centerElement: true
+- assertVisible:
+    id: auth-email-input
+- tapOn:
+    id: auth-email-input
+- eraseText
+- inputText: ${TEST_EMAIL}
+- pressKey: Enter
+- assertVisible:
+    id: auth-password-input
+- tapOn:
+    id: auth-password-input
+- eraseText
+- inputText: ${TEST_PASSWORD}
+- pressKey: Enter
+- assertVisible:
+    id: tab-home
+- tapOn:
+    id: tab-packs
+- extendedWaitUntil:
+    visible:
+      id: pack-storefront
+    timeout: 15000

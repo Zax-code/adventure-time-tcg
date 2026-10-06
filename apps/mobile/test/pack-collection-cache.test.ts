@@ -70,6 +70,19 @@ const openResult: OpenPackResponse = {
     isActive: true,
     guaranteedRarity: null,
     packArtAssetId: null,
+    odds: {
+      guaranteedSlotCount: 0,
+      guaranteedRarity: null,
+      randomSlotCount: 3,
+      baseRarityPercentages: [
+        { rarity: "Common", percentage: 100 },
+        { rarity: "Uncommon", percentage: 0 },
+        { rarity: "Rare", percentage: 0 },
+        { rarity: "Epic", percentage: 0 },
+        { rarity: "Legendary", percentage: 0 },
+      ],
+      weeklyLimit: false,
+    },
     availability: {
       canOpen: true,
       reason: null,
@@ -88,10 +101,7 @@ const openResult: OpenPackResponse = {
 
 describe("pack opening collection cache patches", () => {
   it("increments cached collection quantities immediately after a pack opens", () => {
-    const patched = patchCollectionAfterPackOpen(
-      cachedCollection,
-      openResult,
-    );
+    const patched = patchCollectionAfterPackOpen(cachedCollection, openResult);
 
     assert.equal(
       patched?.cards.find((entry) => entry.cardId === "card-existing")

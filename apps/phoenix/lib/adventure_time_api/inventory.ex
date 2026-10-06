@@ -23,11 +23,13 @@ defmodule AdventureTimeApi.Inventory do
   @low_rarity_names MapSet.new(["Common", "Uncommon", "Rare"])
 
   def list_active_packs_for_user(user_id) do
+    available_rarities = available_rarities()
+
     Pack
     |> where([pack], pack.is_active == true)
     |> order_by([pack], asc: pack.cost, asc: pack.inserted_at)
     |> Repo.all()
-    |> Enum.map(&to_pack_response(&1, user_id))
+    |> Enum.map(&to_pack_response(&1, user_id, DateTime.utc_now(), available_rarities))
   end
 
   def dust_sacrifice_value(rarity_name) do
@@ -230,7 +232,13 @@ defmodule AdventureTimeApi.Inventory do
         |> Repo.insert!()
 
         %{
-          pack: to_pack_response(pack, user_id, DateTime.add(now, 1, :second)),
+          pack:
+            to_pack_response(
+              pack,
+              user_id,
+              DateTime.add(now, 1, :second),
+              available_rarities
+            ),
           cards:
             Enum.map(selected_drops, fn %{card: card} = drop ->
               card_payload =
@@ -566,7 +574,7 @@ defmodule AdventureTimeApi.Inventory do
     end
   end
 
-  defp to_pack_response(pack, user_id, now \\ DateTime.utc_now()) do
+  defp to_pack_response(pack, user_id, now, available_rarities) do
     %{
       id: pack.id,
       name: pack.name,
@@ -577,8 +585,42 @@ defmodule AdventureTimeApi.Inventory do
       isActive: pack.is_active,
       guaranteedRarity: pack.guaranteed_rarity,
       packArtAssetId: pack.pack_art_asset_id,
-      availability: pack_availability(user_id, nil, pack, now)
+      availability: pack_availability(user_id, nil, pack, now),
+      odds: pack_odds(pack, available_rarities)
     }
+  end
+
+  defp pack_odds(pack, available_rarities) do
+    guaranteed_slot_count =
+      case pack.guaranteed_rarity do
+        rarity when is_binary(rarity) and rarity != "" -> 1
+        _ -> 0
+      end
+
+    random_slot_count = max(pack.card_count - guaranteed_slot_count, 0)
+
+    base_rarity_percentages =
+      if random_slot_count == 0 do
+        nil
+      else
+        base_rarity_percentages_for_pack(pack, available_rarities)
+      end
+
+    %{
+      guaranteedSlotCount: guaranteed_slot_count,
+      guaranteedRarity: if(guaranteed_slot_count == 1, do: pack.guaranteed_rarity, else: nil),
+      randomSlotCount: random_slot_count,
+      baseRarityPercentages: base_rarity_percentages,
+      weeklyLimit: weekly_limited_pack?(pack)
+    }
+  end
+
+  defp base_rarity_percentages_for_pack(pack, available_rarities) do
+    pack
+    |> random_rarities_for_pack(available_rarities)
+    |> PackOpening.base_rarity_percentages()
+  rescue
+    ArithmeticError -> nil
   end
 
   defp pack_availability(user_id, timezone, pack) do
