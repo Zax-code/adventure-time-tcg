@@ -92,13 +92,17 @@ async function getClientHeaders() {
 
 export async function getAccessToken() {
   const session = useSessionStore.getState();
-  if (session.hydrated && !session.accessToken) {
-    return null;
+  // Once hydrated, the store mirrors SecureStore (setSession/clearSession write both),
+  // so skip the keychain read that every request used to pay.
+  if (session.hydrated) {
+    return session.accessToken;
   }
 
   return (await getSecureStoreValue("accessToken")) ?? session.accessToken;
 }
 
+// Still read from storage: refresh-token rotation by another context is detected by
+// comparing the stored token with the one that just failed.
 async function getRefreshToken() {
   const session = useSessionStore.getState();
   if (session.hydrated && !session.refreshToken) {
