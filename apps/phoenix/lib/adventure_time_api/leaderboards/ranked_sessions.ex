@@ -1,11 +1,23 @@
 defmodule AdventureTimeApi.Leaderboards.RankedSessions do
-  @moduledoc "Server-observed timing evidence for ranked quest sessions."
+  @moduledoc """
+  Server-observed timing evidence for ranked quest sessions.
+
+  Daily Numbers scoring still uses the client's elapsed time, because the mobile
+  timer pauses while the board is off screen. The session only bounds it: a client
+  time longer than the server window (plus tolerance) or a submission after the slot
+  deadline is rejected, and a client time far below a long server window is flagged
+  for review without being rejected.
+  """
 
   import Ecto.Query
 
   alias AdventureTimeApi.Accounts.User
   alias AdventureTimeApi.Leaderboards.{Board, RankedSession, Slots}
   alias AdventureTimeApi.Repo
+
+  @client_elapsed_tolerance_ms 5_000
+  @suspicious_ratio 0.2
+  @suspicious_min_server_elapsed_ms 120_000
 
   @spec start_daily_numbers(User.t(), Date.t(), String.t(), DateTime.t()) ::
           {:ok, RankedSession.t()} | {:error, term()}
@@ -75,9 +87,22 @@ defmodule AdventureTimeApi.Leaderboards.RankedSessions do
     end
   end
 
-  @spec settle_daily_numbers(Ecto.UUID.t(), Date.t(), String.t(), Ecto.UUID.t(), DateTime.t()) ::
-          {:ok, RankedSession.t()} | {:error, atom()}
-  def settle_daily_numbers(user_id, %Date{} = date, mode, source_id, now \\ DateTime.utc_now())
+  @spec settle_daily_numbers(
+          Ecto.UUID.t(),
+          Date.t(),
+          String.t(),
+          Ecto.UUID.t(),
+          DateTime.t(),
+          keyword()
+        ) :: {:ok, RankedSession.t()} | {:error, atom()}
+  def settle_daily_numbers(
+        user_id,
+        %Date{} = date,
+        mode,
+        source_id,
+        now \\ DateTime.utc_now(),
+        opts \\ []
+      )
       when mode in ["1-5", "2-4", "3-3"] do
     board = Repo.get_by(Board, key: "daily-numbers/#{mode}", enabled: true)
 
@@ -95,15 +120,13 @@ defmodule AdventureTimeApi.Leaderboards.RankedSessions do
 
       case session do
         %RankedSession{} = session ->
-          integrity_status =
-            if DateTime.compare(now, session.server_deadline_at) == :gt,
-              do: :rejected,
-              else: :accepted
+          server_elapsed_ms =
+            max(DateTime.diff(now, session.server_started_at, :millisecond), 0)
 
-          reason_codes =
-            if integrity_status == :accepted,
-              do: ["server_observed_elapsed"],
-              else: ["ranked_session_deadline_exceeded"]
+          client_elapsed_ms = Keyword.get(opts, :client_elapsed_ms)
+
+          {integrity_status, reason_codes} =
+            evaluate_elapsed(session, now, server_elapsed_ms, client_elapsed_ms)
 
           session
           |> Ecto.Changeset.change(%{
@@ -112,7 +135,12 @@ defmodule AdventureTimeApi.Leaderboards.RankedSessions do
             status: :settled,
             server_ended_at: now,
             integrity_status: integrity_status,
-            integrity_reason_codes: reason_codes
+            integrity_reason_codes: reason_codes,
+            client_metadata:
+              Map.merge(session.client_metadata || %{}, %{
+                "serverElapsedMs" => server_elapsed_ms,
+                "clientElapsedMs" => client_elapsed_ms
+              })
           })
           |> Repo.update!()
 
@@ -120,6 +148,38 @@ defmodule AdventureTimeApi.Leaderboards.RankedSessions do
           Repo.rollback(:ranked_session_missing)
       end
     end)
+  end
+
+  defp evaluate_elapsed(session, now, server_elapsed_ms, client_elapsed_ms) do
+    cond do
+      DateTime.compare(now, session.server_deadline_at) == :gt ->
+        {:rejected, ["ranked_session_deadline_exceeded"]}
+
+      is_integer(client_elapsed_ms) and
+          client_elapsed_ms > server_elapsed_ms + @client_elapsed_tolerance_ms ->
+        {:rejected, ["client_elapsed_exceeds_server_window"]}
+
+      is_integer(client_elapsed_ms) and
+        server_elapsed_ms > @suspicious_min_server_elapsed_ms and
+          client_elapsed_ms < server_elapsed_ms * @suspicious_ratio ->
+        {:accepted, ["server_observed_elapsed", "suspicious_elapsed_ratio"]}
+
+      true ->
+        {:accepted, ["server_observed_elapsed"]}
+    end
+  end
+
+  @doc "The settled session that attests a Daily Numbers attempt, if any."
+  @spec settled_for_daily_numbers_attempt(Ecto.UUID.t()) :: RankedSession.t() | nil
+  def settled_for_daily_numbers_attempt(attempt_id) do
+    Repo.one(
+      from(session in RankedSession,
+        where:
+          session.source_kind == "daily_numbers_daily_attempt" and
+            session.source_id == ^attempt_id and session.status == :settled,
+        limit: 1
+      )
+    )
   end
 
   defp nonce_hash do

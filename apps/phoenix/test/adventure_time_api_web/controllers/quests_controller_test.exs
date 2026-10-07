@@ -471,20 +471,25 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
            }
   end
 
-  test "legacy ranked-start returns Daily Numbers state without creating a ranked session" do
+  test "ranked-start opens one server-timed session that the submission settles" do
     user = create_user_with_password("daily-numbers-isolation@example.com", "password123")
     access_token = login_access_token(user.email, "password123")
 
-    response =
+    start = fn ->
       access_token
       |> auth_conn()
       |> post(~p"/quests/daily-numbers/ranked-start", %{"mode" => "1-5"})
       |> json_response(200)
+    end
 
+    response = start.()
     assert response["mode"] == "1-5"
     assert response["submitted"] == false
     assert length(response["numbers"]) == 6
-    assert Repo.aggregate(RankedSession, :count) == 0
+    assert %{"startedAt" => started_at, "deadlineAt" => _deadline} = response["rankedSession"]
+
+    assert %{"rankedSession" => %{"startedAt" => ^started_at}} = start.()
+    assert Repo.aggregate(RankedSession, :count) == 1
 
     submitted =
       access_token
@@ -499,6 +504,17 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
 
     assert submitted["submitted"] == true
     assert submitted["reward"] == 0
+    refute Map.has_key?(submitted, "rankedSession")
+
+    session = Repo.one!(RankedSession)
+    assert session.status == :settled
+    assert session.integrity_status == :accepted
+    assert session.client_metadata["clientElapsedMs"] == 0
+    assert is_integer(session.client_metadata["serverElapsedMs"])
+
+    # Reopening the board after submitting does not open another session.
+    refute Map.has_key?(start.(), "rankedSession")
+    assert Repo.aggregate(RankedSession, :count) == 1
   end
 
   test "POST /quests/daily-numbers/submit keeps the quest failed at 0 percent when the result does not improve",

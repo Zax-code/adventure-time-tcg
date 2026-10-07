@@ -16,6 +16,8 @@ defmodule AdventureTimeApi.Leaderboards.QuestResults do
   alias AdventureTimeApi.Leaderboards.{
     Calendar,
     Configuration,
+    RankedSession,
+    RankedSessions,
     ResultRecorder,
     Slots
   }
@@ -197,8 +199,8 @@ defmodule AdventureTimeApi.Leaderboards.QuestResults do
         outcome = if attempt.exact, do: "exact", else: "failed"
 
         {:ok,
-         source_attrs(
-           "daily-numbers/#{mode}",
+         "daily-numbers/#{mode}"
+         |> source_attrs(
            "daily_numbers_daily_attempt",
            attempt.id,
            %{
@@ -215,6 +217,9 @@ defmodule AdventureTimeApi.Leaderboards.QuestResults do
              elapsedMs: attempt.elapsed_ms,
              distance: attempt.distance
            }
+         )
+         |> put_ranked_session_evidence(
+           RankedSessions.settled_for_daily_numbers_attempt(attempt.id)
          )}
 
       nil ->
@@ -342,6 +347,25 @@ defmodule AdventureTimeApi.Leaderboards.QuestResults do
       attempt.inserted_at,
       %{locale: attempt.locale, outcome: outcome, guesses: attempt.attempt}
     )
+  end
+
+  # The score keeps using the client's elapsed time; the ranked session only decides
+  # integrity. Submissions without a session stay accepted but are marked for admins.
+  defp put_ranked_session_evidence(attrs, %RankedSession{} = session) do
+    attrs
+    |> Map.put(:ranked_session_id, session.id)
+    |> Map.put(:integrity_status, session.integrity_status)
+    |> put_in([:telemetry, :integrity_reason_codes], session.integrity_reason_codes)
+    |> put_in(
+      [:telemetry, :session_metrics],
+      Map.take(session.client_metadata || %{}, ["serverElapsedMs", "clientElapsedMs"])
+    )
+  end
+
+  defp put_ranked_session_evidence(attrs, nil) do
+    attrs
+    |> Map.put(:ranked_session_id, nil)
+    |> put_in([:telemetry, :integrity_reason_codes], ["no_ranked_session"])
   end
 
   defp source_attrs(
