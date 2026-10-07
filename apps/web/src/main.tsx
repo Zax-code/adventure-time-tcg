@@ -10,7 +10,6 @@ import { App } from "@/app";
 
 import "@/styles.css";
 import "@/styles/features.css";
-import "@/styles/admin.css";
 
 const root = document.getElementById("root");
 
