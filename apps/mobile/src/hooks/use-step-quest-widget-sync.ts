@@ -18,8 +18,10 @@ import { useThemeStore } from "../stores/theme-store";
 export function useStepQuestWidgetSync() {
   const accessToken = useSessionStore((state) => state.accessToken);
   const refreshToken = useSessionStore((state) => state.refreshToken);
-  const user = useSessionStore((state) => state.user);
   const userId = useSessionStore((state) => state.user?.id ?? null);
+  const stepGoalNotifications = useSessionStore(
+    (state) => state.user?.notificationPreferences.stepGoal ?? null,
+  );
   const preferredStepSource = useSessionStore(
     (state) => state.user?.preferredStepSource ?? "device_health",
   );
@@ -39,15 +41,15 @@ export function useStepQuestWidgetSync() {
       locale,
       refreshToken,
       themeName,
-      ...(user
+      ...(userId && userLocale && stepGoalNotifications != null
         ? {
             user: {
-              id: user.id,
+              id: userId,
               notificationPreferences: {
-                stepGoal: user.notificationPreferences.stepGoal,
+                stepGoal: stepGoalNotifications,
               },
-              preferredLanguage: user.preferredLanguage,
-              preferredStepSource: user.preferredStepSource,
+              preferredLanguage: userLocale,
+              preferredStepSource,
             },
           }
         : {}),
@@ -93,7 +95,11 @@ export function useStepQuestWidgetSync() {
     const currentData = queryClient.getQueryData<QuestsResponse>(["quests"]);
     void syncFromData(currentData);
 
-    const unsubscribe = queryClient.getQueryCache().subscribe(() => {
+    const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
+      if (event.query.queryKey[0] !== "quests") {
+        return;
+      }
+
       const nextData = queryClient.getQueryData<QuestsResponse>(["quests"]);
       void syncFromData(nextData);
     });
@@ -102,5 +108,14 @@ export function useStepQuestWidgetSync() {
       cancelled = true;
       unsubscribe();
     };
-  }, [accessToken, locale, preferredStepSource, refreshToken, themeName, user, userId]);
+  }, [
+    accessToken,
+    locale,
+    preferredStepSource,
+    refreshToken,
+    stepGoalNotifications,
+    themeName,
+    userId,
+    userLocale,
+  ]);
 }

@@ -753,6 +753,7 @@ export async function hydrateLocalStepSyncState(userId: string) {
 }
 
 export async function clearLocalDeviceStepState(userId: string) {
+  lastAppliedDeviceSteps = null;
   await Promise.all([
     clearLocalStepSnapshotForUser(userId),
     clearServerSyncAttemptState(userId),
@@ -826,6 +827,15 @@ export async function disableBackgroundStepSync() {
   }
 }
 
+// Last device reading already persisted locally and pushed to the widget, so an
+// unchanged automatic tick can skip those writes.
+let lastAppliedDeviceSteps: {
+  userId: string;
+  recordedFor: string;
+  steps: number;
+  snapshot: LocalStepSnapshot;
+} | null = null;
+
 export async function syncDeviceStepsNow({
   interactive = false,
   allowPermissionPrompt = interactive,
@@ -863,16 +873,33 @@ export async function syncDeviceStepsNow({
 
       const now = new Date();
       const recordedFor = formatLocalDate(now);
-      const localSnapshot = await persistLocalStepSnapshot({
-        userId: user.id,
-        recordedFor,
-        stepCount: steps,
-      });
+      const previous = lastAppliedDeviceSteps;
+      const unchanged =
+        !forceServerSync &&
+        source !== "manual" &&
+        previous?.userId === user.id &&
+        previous.recordedFor === recordedFor &&
+        previous.steps === steps;
+      const localSnapshot = unchanged
+        ? previous.snapshot
+        : await persistLocalStepSnapshot({
+            userId: user.id,
+            recordedFor,
+            stepCount: steps,
+          });
       updateLiveDeviceSteps(localSnapshot.stepCount);
       if (!pedometerSubscription) {
         pedometerBaseSteps = localSnapshot.stepCount;
       }
-      await syncLocalStepQuestWidgetSnapshot(localSnapshot, user);
+      if (!unchanged) {
+        await syncLocalStepQuestWidgetSnapshot(localSnapshot, user);
+        lastAppliedDeviceSteps = {
+          userId: user.id,
+          recordedFor,
+          steps,
+          snapshot: localSnapshot,
+        };
+      }
 
       queryClient.setQueryData<QuestsResponse | undefined>(
         ["quests"],
@@ -1053,6 +1080,7 @@ export function stopStepTracking() {
 }
 
 export function resetStepSyncState() {
+  lastAppliedDeviceSteps = null;
   stopStepTracking();
   useStepSyncStore.getState().reset();
 }
