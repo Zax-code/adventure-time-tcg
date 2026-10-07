@@ -7,6 +7,7 @@ import { apiClient } from "../src/lib/api";
 import { ThemedExpoButton } from "../src/components/expo-ui/themed-button";
 import { SectionErrorState } from "../src/components/error-state";
 import { LoadingPanel } from "../src/components/loading-state";
+import { useFocusedRefetchInterval } from "../src/hooks/use-focused-refetch-interval";
 import { useTranslation } from "../src/i18n";
 import { useThemeStore } from "../src/stores/theme-store";
 import { THEME_COLORS } from "../src/theme/themes";
@@ -38,10 +39,11 @@ export default function PvpSpectateScreen() {
   const { t } = useTranslation();
   const tc = THEME_COLORS[useThemeStore((state) => state.themeName)];
 
+  const spectateRefetchInterval = useFocusedRefetchInterval(10_000);
   const { data: spectateQueryData, error: spectateQueryError, isError: spectateQueryIsError, isLoading: spectateQueryIsLoading, refetch: spectateQueryRefetch } = useQuery({
     queryKey: ["pvp-spectate"],
     queryFn: () => apiClient.pvpSpectate(),
-    refetchInterval: 10_000,
+    refetchInterval: spectateRefetchInterval,
   });
   const now = useMinuteNow((spectateQueryData?.matches.length ?? 0) > 0);
 

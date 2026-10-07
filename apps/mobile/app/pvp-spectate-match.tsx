@@ -6,11 +6,22 @@ import { PageLoadingState } from "../src/components/loading-state";
 import { PageErrorState } from "../src/components/error-state";
 import { BattleBoard } from "../src/features/pvp/battle-board";
 import { buildSpectateMatchView } from "../src/features/pvp/read-only-view";
+import { useFocusedRefetchInterval } from "../src/hooks/use-focused-refetch-interval";
 import { useLandscapeOrientationLock } from "../src/hooks/use-orientation-lock";
 import { useTranslation } from "../src/i18n";
 import { apiClient } from "../src/lib/api";
 import { useThemeStore } from "../src/stores/theme-store";
 import { THEME_VARS } from "../src/theme/themes";
+
+const TERMINAL_MATCH_STATUSES = new Set(["COMPLETED", "DECLINED", "EXPIRED"]);
+
+// Mirrors the participant match screen: stop polling once the match is over.
+function isLiveSpectateQuery(query: {
+  state: { status: string; data?: { match: { status: string } } };
+}) {
+  const status = query.state.data?.match.status;
+  return !status || !TERMINAL_MATCH_STATUSES.has(status);
+}
 
 export default function PvpSpectateMatchScreen() {
   useLandscapeOrientationLock();
@@ -20,12 +31,13 @@ export default function PvpSpectateMatchScreen() {
   const themeName = useThemeStore((state) => state.themeName);
   const { t } = useTranslation();
 
+  const spectateRefetchInterval = useFocusedRefetchInterval(3000, isLiveSpectateQuery);
   const { data: spectateQueryData, error: spectateQueryError, isError: spectateQueryIsError, isLoading: spectateQueryIsLoading, refetch: spectateQueryRefetch } = useQuery({
     queryKey: ["pvp-spectate", id],
     queryFn: () => apiClient.pvpSpectateMatch(id ?? ""),
     enabled: Boolean(id),
     retry: 0,
-    refetchInterval: (query) => (query.state.status === "error" ? false : 3000),
+    refetchInterval: spectateRefetchInterval,
   });
 
   const matchView = buildSpectateMatchView(spectateQueryData?.battleState);

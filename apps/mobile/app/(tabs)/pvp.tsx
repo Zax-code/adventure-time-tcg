@@ -40,6 +40,7 @@ import {
   XIcon,
   ZapIcon,
 } from "../../src/components/icons";
+import { useFocusedRefetchInterval } from "../../src/hooks/use-focused-refetch-interval";
 import { useTranslation } from "../../src/i18n";
 import { apiClient } from "../../src/lib/api";
 import {
@@ -315,26 +316,26 @@ function usePvpScreenView() {
   const [toast, setToast] = useState<ToastState | null>(null);
   const toastAnim = useSharedValue(-96);
 
+  const lobbyRefetchInterval = useFocusedRefetchInterval(
+    PVP_LOBBY_REFETCH_INTERVAL_MS,
+  );
   const { data: invitesQueryData } = useQuery({
     queryKey: ["pvp-invites"],
     queryFn: () => apiClient.pvpInvites(),
     refetchOnMount: "always",
-    refetchInterval: (query) =>
-      query.state.status === "error" ? false : PVP_LOBBY_REFETCH_INTERVAL_MS,
+    refetchInterval: lobbyRefetchInterval,
   });
   const { data: matchesQueryData } = useQuery({
     queryKey: ["pvp-matches"],
     queryFn: () => apiClient.pvpMatches(),
     refetchOnMount: "always",
-    refetchInterval: (query) =>
-      query.state.status === "error" ? false : PVP_LOBBY_REFETCH_INTERVAL_MS,
+    refetchInterval: lobbyRefetchInterval,
   });
   const { data: historyQueryData } = useQuery({
     queryKey: ["pvp-history"],
     queryFn: () => apiClient.pvpHistory(),
     refetchOnMount: "always",
-    refetchInterval: (query) =>
-      query.state.status === "error" ? false : PVP_LOBBY_REFETCH_INTERVAL_MS,
+    refetchInterval: lobbyRefetchInterval,
   });
   const { data: loadoutsQueryData } = useQuery({
     queryKey: ["pvp-loadouts"],

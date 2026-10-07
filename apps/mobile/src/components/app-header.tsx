@@ -47,7 +47,6 @@ export function AppHeader() {
     queryKey: ["gifts"],
     queryFn: () => apiClient.gifts(),
     staleTime: 30_000,
-    refetchInterval: 30_000,
   });
   const pendingGifts = giftsQueryData?.pendingCount ?? 0;
 
