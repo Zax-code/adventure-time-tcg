@@ -238,6 +238,7 @@ defmodule AdventureTimeApiWeb.Router do
       :reveal_email_request_ip
     )
 
+    get("/admin/leaderboards/results/flagged", AdminController, :flagged_leaderboard_results)
     post("/admin/leaderboards/results/:id/exclude", AdminController, :exclude_leaderboard_result)
 
     post(

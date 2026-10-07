@@ -4,7 +4,7 @@ defmodule AdventureTimeApiWeb.AdminController do
   alias AdventureTimeApi.Accounts
   alias AdventureTimeApi.Accounts.AuthError
   alias AdventureTimeApi.Catalog
-  alias AdventureTimeApi.Leaderboards.Corrections
+  alias AdventureTimeApi.Leaderboards.{Corrections, IntegrityReview}
   alias AdventureTimeApi.Media
   alias AdventureTimeApi.Media.UploadError
   alias AdventureTimeApi.Pvp
@@ -466,6 +466,16 @@ defmodule AdventureTimeApiWeb.AdminController do
       end
     else
       {:error, conn} -> conn
+    end
+  end
+
+  def flagged_leaderboard_results(conn, params) do
+    with :ok <- require_super_admin(conn),
+         {:ok, payload} <- IntegrityReview.list_flagged(Map.get(params, "reason")) do
+      json(conn, payload)
+    else
+      {:error, %Plug.Conn{} = conn} -> conn
+      {:error, reason} -> leaderboard_correction_error(conn, reason)
     end
   end
 
