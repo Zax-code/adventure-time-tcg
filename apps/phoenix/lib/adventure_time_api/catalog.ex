@@ -10,15 +10,6 @@ defmodule AdventureTimeApi.Catalog do
   alias AdventureTimeApi.Catalog.{Card, CardBackVisual, CardType, ImageAsset, Pack, Rarity}
   alias AdventureTimeApi.Media
 
-  @dust_sacrifice_by_rarity %{
-    "common" => 1,
-    "uncommon" => 5,
-    "rare" => 20,
-    "epic" => 50,
-    "legendary" => 100
-  }
-  @craft_cost_multiplier 5
-
   def rarity_module, do: Rarity
   def image_asset_module, do: ImageAsset
   def card_module, do: Card
@@ -191,16 +182,9 @@ defmodule AdventureTimeApi.Catalog do
     end
   end
 
-  def rarity_dust_value(name) do
-    name
-    |> String.trim()
-    |> String.downcase()
-    |> then(&Map.get(@dust_sacrifice_by_rarity, &1, @dust_sacrifice_by_rarity["common"]))
-  end
-
-  def rarity_craft_cost(name) do
-    rarity_dust_value(name) * @craft_cost_multiplier
-  end
+  # Inventory owns the dust economy because it is what crafting and recycling charge.
+  defdelegate rarity_dust_value(name), to: AdventureTimeApi.Inventory, as: :dust_sacrifice_value
+  defdelegate rarity_craft_cost(name), to: AdventureTimeApi.Inventory, as: :dust_craft_cost
 
   defp to_rarity_response(rarity) do
     %{
