@@ -35,7 +35,7 @@ defmodule AdventureTimeApi.Leaderboards.Lifecycle do
   def tick(now \\ DateTime.utc_now()) do
     with {:ok, _version} <- Configuration.ensure_launch_version(),
          {:ok, _version} <- Configuration.activate_due(now) do
-      QuestResults.reconcile_open_week(now)
+      QuestResults.reconcile_open_week(now, full: full_reconcile?(now))
       dates = competition_dates(Configuration.launch_date(), DateTime.to_date(now))
       periods = Enum.map(dates, &ensure_day_period(&1, now))
 
@@ -79,6 +79,19 @@ defmodule AdventureTimeApi.Leaderboards.Lifecycle do
         {:error, reason} -> {:error, reason}
       end
     end
+  end
+
+  # Reconciliation is incremental except hourly (minute 0) and on the first tick at or
+  # after a day's publication cutoff, i.e. while a due day period is not yet settled.
+  # The second rule also covers a missed 13:00 UTC tick.
+  defp full_reconcile?(now) do
+    now.minute == 0 or
+      from(period in Period,
+        where:
+          period.period_type == :day and is_nil(period.settled_at) and
+            period.closes_at <= ^now
+      )
+      |> Repo.exists?()
   end
 
   # Settled day periods are final, so only dates whose day period is missing or

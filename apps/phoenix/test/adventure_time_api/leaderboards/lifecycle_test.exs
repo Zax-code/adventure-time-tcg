@@ -613,6 +613,53 @@ defmodule AdventureTimeApi.Leaderboards.LifecycleTest do
     assert Repo.reload!(day).settled_at == ~U[2026-08-18 13:00:00.000000Z]
   end
 
+  test "off-hour ticks reconcile only recently changed sources until the hourly full pass" do
+    stale = aged_user!("reconcile-stale")
+    recent = aged_user!("reconcile-recent")
+    insert_step_snapshot!(stale, ~D[2026-08-17], 8_000, ~U[2026-08-17 10:00:00Z])
+    insert_step_snapshot!(recent, ~D[2026-08-17], 9_000, ~U[2026-08-17 10:28:30Z])
+
+    assert :ok = Lifecycle.tick(~U[2026-08-17 10:30:00.000000Z])
+    assert synced_dates(recent) == [~D[2026-08-17]]
+    assert synced_dates(stale) == []
+
+    assert :ok = Lifecycle.tick(~U[2026-08-17 11:00:00.000000Z])
+    assert synced_dates(stale) == [~D[2026-08-17]]
+  end
+
+  test "an owner change such as a new preferred step source is reconciled off the hour" do
+    user = aged_user!("reconcile-owner")
+    insert_step_snapshot!(user, ~D[2026-08-17], 8_000, ~U[2026-08-17 09:00:00Z], :fitbit)
+
+    assert :ok = Lifecycle.tick(~U[2026-08-17 10:30:00.000000Z])
+    assert synced_dates(user) == []
+
+    user
+    |> Ecto.Changeset.change(
+      preferred_step_source: :fitbit,
+      updated_at: ~U[2026-08-17 10:30:30Z]
+    )
+    |> Repo.update!()
+
+    assert :ok = Lifecycle.tick(~U[2026-08-17 10:31:00.000000Z])
+    assert synced_dates(user) == [~D[2026-08-17]]
+  end
+
+  test "the first tick after the publication cutoff runs a full reconciliation" do
+    user = aged_user!("reconcile-cutoff")
+    insert_step_snapshot!(user, ~D[2026-08-18], 8_000, ~U[2026-08-18 09:00:00Z])
+
+    assert :ok = Lifecycle.tick(~U[2026-08-18 12:30:00.000000Z])
+    assert synced_dates(user) == []
+
+    # The 13:00 tick was missed; the next one still sees Aug 17 due and unsettled.
+    assert :ok = Lifecycle.tick(~U[2026-08-18 13:02:00.000000Z])
+    assert synced_dates(user) == [~D[2026-08-18]]
+
+    assert Repo.get_by!(Period, period_type: :day, competition_date: ~D[2026-08-17]).settled_at ==
+             ~U[2026-08-18 13:02:00.000000Z]
+  end
+
   defp activate! do
     {:ok, _version} = Configuration.ensure_launch_version()
     {:ok, _version} = Configuration.activate_due(~U[2026-08-17 00:01:00.000000Z])
@@ -660,6 +707,33 @@ defmodule AdventureTimeApi.Leaderboards.LifecycleTest do
     changeset
     |> Ecto.Changeset.put_change(:inserted_at, timestamp)
     |> Ecto.Changeset.put_change(:updated_at, timestamp)
+  end
+
+  defp aged_user!(suffix) do
+    suffix
+    |> insert_user!()
+    |> Ecto.Changeset.change(updated_at: ~U[2026-08-01 00:00:00Z])
+    |> Repo.update!()
+  end
+
+  defp insert_step_snapshot!(user, date, steps, updated_at, source \\ :device_health) do
+    %StepSnapshot{}
+    |> StepSnapshot.changeset(%{
+      user_id: user.id,
+      source: source,
+      step_count: steps,
+      recorded_for: date
+    })
+    |> with_timestamp(updated_at)
+    |> Repo.insert!()
+  end
+
+  defp synced_dates(user) do
+    DailyResult
+    |> where([result], result.user_id == ^user.id and result.active)
+    |> select([result], result.competition_date)
+    |> order_by([result], asc: result.competition_date)
+    |> Repo.all()
   end
 
   defp touches_day?(lock_key, day) do
