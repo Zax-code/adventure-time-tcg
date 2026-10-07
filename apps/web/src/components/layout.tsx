@@ -42,6 +42,7 @@ const adminNav = [
   { href: "/admin/abilities", icon: SwordsIcon, label: "Abilities" },
   { href: "/admin/users", icon: UserPlusIcon, label: "Users" },
   { href: "/admin/email-requests", icon: BarChartIcon, label: "Requests" },
+  { href: "/admin/leaderboard-integrity", icon: BarChartIcon, label: "Integrity" },
 ] as const;
 
 export function PublicLayout() {
@@ -85,6 +86,8 @@ export function PublicLayout() {
   );
 }
 
+const SUPER_ADMIN_NAV = new Set(["/admin/email-requests", "/admin/leaderboard-integrity"]);
+
 export function AppLayout({ admin = false }: { admin?: boolean }) {
   const auth = useAuth();
   const { logout, user } = auth;
@@ -92,7 +95,7 @@ export function AppLayout({ admin = false }: { admin?: boolean }) {
   const [accountOpen, setAccountOpen] = useState(false);
   const nav = admin
     ? adminNav.filter(
-        (item) => item.href !== "/admin/email-requests" || user?.isSuperAdmin,
+        (item) => !SUPER_ADMIN_NAV.has(item.href) || user?.isSuperAdmin,
       )
     : playerNav;
 

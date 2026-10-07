@@ -20,3 +20,4 @@ export {
   AdminUserDetailPage,
   AdminUsersPage,
 } from "./users-pages";
+export { AdminLeaderboardIntegrityPage } from "./leaderboard-integrity-page";
