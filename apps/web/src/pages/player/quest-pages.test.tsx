@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -138,13 +138,15 @@ describe("Daily Numbers Solution Hunt", () => {
   });
 
   it("shows discovered solutions directly and keeps remaining solutions behind a reveal", async () => {
-    vi.spyOn(webApiClient, "startDailyNumbersRanked").mockResolvedValue(
+    vi.spyOn(webApiClient, "dailyNumbersState").mockResolvedValue(
       dailyNumbersState(),
     );
+    const rankedStart = vi.spyOn(webApiClient, "startDailyNumbersRanked");
 
     renderPage(<DailyNumbersPlayPage />);
 
     expect(await screen.findByText("Your solutions")).toBeVisible();
+    expect(rankedStart).not.toHaveBeenCalled();
     const yourSolution = screen
       .getByTestId("daily-numbers-your-solutions")
       .querySelector("details");
@@ -155,7 +157,7 @@ describe("Daily Numbers Solution Hunt", () => {
   });
 
   it("uses Existing solutions before the player discovers an exact route", async () => {
-    vi.spyOn(webApiClient, "startDailyNumbersRanked").mockResolvedValue(
+    vi.spyOn(webApiClient, "dailyNumbersState").mockResolvedValue(
       dailyNumbersState(0, 3),
     );
 
@@ -184,7 +186,7 @@ describe("Daily Numbers Solution Hunt", () => {
       otherSolutions: [initial.solutionHunt!.otherSolutions[0]],
     };
 
-    vi.spyOn(webApiClient, "startDailyNumbersRanked").mockResolvedValue(initial);
+    vi.spyOn(webApiClient, "dailyNumbersState").mockResolvedValue(initial);
     const submit = vi
       .spyOn(webApiClient, "submitDailyNumbersSolutionHunt")
       .mockResolvedValue(result);
@@ -234,6 +236,31 @@ describe("Speed Calculus focus management", () => {
     await waitFor(() => {
       expect(screen.getByRole("textbox", { name: "Answer" })).toHaveFocus();
     });
+  });
+
+  it("finishes an expired run exactly once", async () => {
+    const expired = speedRunState(false);
+    expired.activeRun = { ...expired.activeRun!, remainingSeconds: 0 };
+    vi.spyOn(webApiClient, "speedCalculusState").mockResolvedValue(expired);
+    let resolveFinish: (() => void) | null = null;
+    const finish = vi
+      .spyOn(webApiClient, "finishSpeedCalculus")
+      .mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            resolveFinish = () => resolve({} as never);
+          }),
+      );
+
+    renderPage(<SpeedCalculusPage />);
+
+    await waitFor(() => expect(finish).toHaveBeenCalledTimes(1));
+    await act(async () => {
+      resolveFinish?.();
+    });
+    // The refetched state still shows the same expired run.
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(finish).toHaveBeenCalledTimes(1);
   });
 
   it("focuses training only after the player starts and advances it", async () => {

@@ -343,8 +343,9 @@ export function DailyNumbersPlayPage() {
   const mode = dailyModes.some((item) => item.value === search.get("mode")) ? search.get("mode") as DailyNumbersMode : "1-5";
   const date = search.get("date");
   const state = useQuery({
-    queryKey: ["daily-numbers", date || "today", mode],
-    queryFn: () => date ? webApiClient.dailyNumbersArchiveState(date, mode) : webApiClient.startDailyNumbersRanked(mode),
+    // Today's state shares the overview's cache entry; ranked-start is a side-effecting POST.
+    queryKey: date ? ["daily-numbers", date, mode] : ["daily-numbers", mode],
+    queryFn: () => date ? webApiClient.dailyNumbersArchiveState(date, mode) : webApiClient.dailyNumbersState(mode),
   });
 
   return (
@@ -404,18 +405,26 @@ export function SpeedCalculusPage() {
   });
 
   const activeRun = state.data?.activeRun;
+  const activeRunId = activeRun?.runId;
+  const activeRunPaused = activeRun?.isManuallyPaused ?? false;
+  const activeRunExhausted = activeRun ? activeRun.questionIndex >= activeRun.questions.length : false;
+  const questVersion = state.data?.questVersion ?? undefined;
+  const { isPending: finishPending, mutate: finishRun } = finish;
+  // A run is finished at most once, even if a re-render lands before the refetch.
+  const finishedRunIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     setDisplayRemainingSeconds(activeRun?.remainingSeconds ?? 0);
   }, [activeRun?.isManuallyPaused, activeRun?.remainingSeconds, activeRun?.runId]);
 
   useEffect(() => {
-    if (!activeRun || activeRun.isManuallyPaused || finish.isPending) {
+    if (!activeRunId || activeRunPaused || finishPending || finishedRunIdRef.current === activeRunId) {
       return;
     }
 
-    if (displayRemainingSeconds <= 0 || activeRun.questionIndex >= activeRun.questions.length) {
-      finish.mutate({ runId: activeRun.runId, questVersion: state.data?.questVersion ?? undefined });
+    if (displayRemainingSeconds <= 0 || activeRunExhausted) {
+      finishedRunIdRef.current = activeRunId;
+      finishRun({ runId: activeRunId, questVersion });
       return;
     }
 
@@ -424,7 +433,7 @@ export function SpeedCalculusPage() {
     }, 1_000);
 
     return () => window.clearTimeout(timer);
-  }, [activeRun, displayRemainingSeconds, finish, state.data?.questVersion]);
+  }, [activeRunExhausted, activeRunId, activeRunPaused, displayRemainingSeconds, finishPending, finishRun, questVersion]);
 
   useEffect(() => {
     if (
