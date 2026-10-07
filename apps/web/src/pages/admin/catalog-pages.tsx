@@ -6,6 +6,7 @@ import type {
   AdminPackDetail,
   AdminPackEditInput,
 } from "@adventure-time/api-client";
+import { THEME_NAMES } from "@adventure-time/theme";
 
 import { PackIcon, SparklesIcon } from "../../components/icons";
 import { Button, EmptyState, Field, FormStatus } from "../../components/ui";
@@ -364,7 +365,7 @@ type CardBackMutationInput = {
   imageAssetId: string | null;
 };
 
-const CARD_BACK_THEMES = ["candy", "ice", "nightosphere"] as const;
+const CARD_BACK_THEMES = THEME_NAMES;
 
 export function AdminCardBacksPage() {
   const queryClient = useQueryClient();

@@ -1,5 +1,6 @@
 import {
   type FormEvent,
+  useDeferredValue,
   useMemo,
   useState,
 } from "react";
@@ -191,10 +192,12 @@ export function CollectionPage() {
   const [rarity, setRarity] = useState("all");
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("name");
+  // Keep typing responsive: the grid filters against a deferred copy of the search.
+  const deferredSearch = useDeferredValue(search);
 
   const filtered = useMemo(() => {
     const cards = collection.data?.cards ?? [];
-    const normalizedSearch = search.trim().toLowerCase();
+    const normalizedSearch = deferredSearch.trim().toLowerCase();
     return [...cards]
       .filter((entry) => (
         (view === "all" || (view === "owned" ? entry.quantity > 0 : entry.quantity === 0))
@@ -206,7 +209,7 @@ export function CollectionPage() {
         if (sort === "rarity") return (rarityOrder[right.card.rarity.name] ?? 0) - (rarityOrder[left.card.rarity.name] ?? 0);
         return left.card.name.localeCompare(right.card.name);
       });
-  }, [collection.data, rarity, search, sort, view]);
+  }, [collection.data, deferredSearch, rarity, sort, view]);
 
   return (
     <div className="page-stack collection-page">
@@ -385,10 +388,11 @@ export function GiftsPage() {
   const { refreshUser, user } = useAuth();
   const queryClient = useQueryClient();
   const gifts = useQuery({ queryKey: ["gifts"], queryFn: () => webApiClient.gifts() });
-  const users = useQuery({ queryKey: ["gift-users"], queryFn: () => webApiClient.users() });
   const collection = useQuery({ queryKey: ["collection"], queryFn: () => webApiClient.collection() });
   const [view, setView] = useState<GiftView>("pending");
   const [composerOpen, setComposerOpen] = useState(false);
+  // The player directory is only needed by the composer.
+  const users = useQuery({ queryKey: ["gift-users"], queryFn: () => webApiClient.users(), enabled: composerOpen });
   const [message, setMessage] = useState<string>();
   const [success, setSuccess] = useState(false);
   const process = useMutation({

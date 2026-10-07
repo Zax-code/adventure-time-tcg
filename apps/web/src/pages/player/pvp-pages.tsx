@@ -1,5 +1,6 @@
 import {
   type FormEvent,
+  useMemo,
   useState,
 } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -15,7 +16,7 @@ import type {
   PvpSpectateBattleState,
   PvpUnitState,
 } from "@adventure-time/api-client";
-import { pvpStatusNameValues } from "@adventure-time/api-client";
+import { cardTypeValues, pvpStatusNameValues } from "@adventure-time/api-client";
 import {
   applyEventsToState,
   type BattleState,
@@ -421,6 +422,12 @@ export function PvpMatchPage() {
     else setSelection((current) => ({ ...current, swapBenchId: instanceId }));
   }
 
+  const battleState = match.data?.battleState ?? null;
+  const actionOptions = useMemo(
+    () => (battleState ? getBattleActionOptions(battleState, actorId) : []),
+    [actorId, battleState],
+  );
+
   if (match.isPending) return <LoadingState label="Reconstructing the battle…" />;
   if (match.isError) return <ErrorState error={match.error} onRetry={() => void match.refetch()} />;
   if (!match.data.battleState) return <EmptyState action={<ButtonLink to="/pvp">Back to lobby</ButtonLink>} copy="The invitation may still need to be accepted, or this battle has no active state." title="Battle board unavailable" />;
@@ -428,7 +435,6 @@ export function PvpMatchPage() {
   const me = state.players.find((player) => player.userId === state.myUserId) ?? state.players[0];
   const opponent = state.players.find((player) => player.userId !== state.myUserId) ?? state.players[1];
   const actor = me.units.find((unit) => unit.instanceId === actorId);
-  const actionOptions = getBattleActionOptions(state, actorId);
   const isActiveTurn = state.isMyTurn && state.phase === "active";
   const canAct = isActiveTurn && !command.isPending;
   const legalTargetIds = new Set(targeting?.validTargetIds ?? []);
@@ -548,11 +554,15 @@ export function PvpReplayPage() {
   const { user } = useAuth();
   const replay = useQuery({ queryKey: ["pvp-replay", matchId], queryFn: () => webApiClient.pvpHistoryDetail(matchId) });
   const [cursor, setCursor] = useState(0);
+  const replayPayload = replay.data?.replay ?? null;
+  const replayState = useMemo(
+    () => (replayPayload ? replayStateAtCursor(replayPayload, cursor) : null),
+    [cursor, replayPayload],
+  );
   if (replay.isPending) return <LoadingState label="Loading replay journal…" />;
   if (replay.isError) return <ErrorState error={replay.error} onRetry={() => void replay.refetch()} />;
   const events = replay.data.replay?.log ?? [];
   const visible = events.slice(0, cursor);
-  const replayState = replay.data.replay ? replayStateAtCursor(replay.data.replay, cursor) : null;
   const currentEvent = visible.at(-1);
   return (
     <div className="page-stack replay-page">
@@ -619,9 +629,8 @@ const statusDescriptions: Record<(typeof pvpStatusNameValues)[number], string> =
   Barrier: "Protective barrier that absorbs or limits incoming effects.",
   Doom: "A delayed fatal condition when its recorded duration expires.",
 };
-const types = ["Hero", "Tech", "Royalty", "Candy", "Undead", "Ice", "Fire", "Magic", "Demon", "Cosmic"];
 
 export function PvpReferencePage() {
   const [view, setView] = useState<"statuses" | "types" | "terms">("statuses");
-  return <div className="page-stack combat-reference-page"><PageHeader actions={<ButtonLink to="/pvp" tone="ghost">Back to lobby</ButtonLink>} eyebrow="Combat reference" lede="A quick field guide to the canonical words used by cards, abilities, event logs, and the battle board." title="Read the battlefield" /><SegmentedControl label="Reference section" onChange={setView} options={[{ label: "Statuses", value: "statuses" }, { label: "Types", value: "types" }, { label: "Terms", value: "terms" }]} value={view} />{view === "statuses" ? <div className="reference-grid">{pvpStatusNameValues.map((status) => <article key={status}><ZapIcon /><h2>{status}</h2><p>{statusDescriptions[status]}</p></article>)}</div> : view === "types" ? <div className="reference-grid">{types.map((type) => <article key={type}><SwordsIcon /><h2>{type}</h2><p>A canonical card identity used by abilities, team effects, and conditional combat payloads.</p></article>)}</div> : <div className="reference-grid">{[["Active unit", "One of up to three units currently able to act and be targeted."], ["Bench", "Reserve units available for a legal end-of-turn swap."], ["Cooldown", "Owner turns remaining before an ability becomes available again."], ["Ultimate", "A powerful ability that may be limited to once per match."], ["Combat event", "An ordered server record describing one resolved part of an action."], ["Replay", "A read-only walk through the event journal and saved battle snapshots."]].map(([term, copy]) => <article key={term}><CheckCircleIcon /><h2>{term}</h2><p>{copy}</p></article>)}</div>}</div>;
+  return <div className="page-stack combat-reference-page"><PageHeader actions={<ButtonLink to="/pvp" tone="ghost">Back to lobby</ButtonLink>} eyebrow="Combat reference" lede="A quick field guide to the canonical words used by cards, abilities, event logs, and the battle board." title="Read the battlefield" /><SegmentedControl label="Reference section" onChange={setView} options={[{ label: "Statuses", value: "statuses" }, { label: "Types", value: "types" }, { label: "Terms", value: "terms" }]} value={view} />{view === "statuses" ? <div className="reference-grid">{pvpStatusNameValues.map((status) => <article key={status}><ZapIcon /><h2>{status}</h2><p>{statusDescriptions[status]}</p></article>)}</div> : view === "types" ? <div className="reference-grid">{cardTypeValues.map((type) => <article key={type}><SwordsIcon /><h2>{type}</h2><p>A canonical card identity used by abilities, team effects, and conditional combat payloads.</p></article>)}</div> : <div className="reference-grid">{[["Active unit", "One of up to three units currently able to act and be targeted."], ["Bench", "Reserve units available for a legal end-of-turn swap."], ["Cooldown", "Owner turns remaining before an ability becomes available again."], ["Ultimate", "A powerful ability that may be limited to once per match."], ["Combat event", "An ordered server record describing one resolved part of an action."], ["Replay", "A read-only walk through the event journal and saved battle snapshots."]].map(([term, copy]) => <article key={term}><CheckCircleIcon /><h2>{term}</h2><p>{copy}</p></article>)}</div>}</div>;
 }

@@ -4,6 +4,7 @@ import type {
   PvpPlayerState,
   PvpUnitState,
 } from "@adventure-time/api-client";
+import { pvpStatusNameValues } from "@adventure-time/api-client";
 import {
   getAbilityTarget,
   getValidTargets,
@@ -45,29 +46,7 @@ export interface BattleActionOption {
   disabledReason?: string;
 }
 
-const validStatusNames = new Set<StatusName>([
-  "Burn",
-  "Freeze",
-  "Shield",
-  "GuardUp",
-  "Vulnerable",
-  "Weakened",
-  "Haste",
-  "Taunt",
-  "Regeneration",
-  "Silence",
-  "SummoningSickness",
-  "Cover",
-  "Stunned",
-  "Poison",
-  "Thorns",
-  "Stealth",
-  "Empower",
-  "Counter",
-  "Mark",
-  "Barrier",
-  "Doom",
-]);
+const validStatusNames = new Set<StatusName>(pvpStatusNameValues);
 
 function hasStatus(unit: PvpUnitState, name: string) {
   return unit.statuses.some((status) => status.name === name);
