@@ -437,8 +437,8 @@ Priority: `P3`
 Files:
 
 - `apps/mobile/app/(tabs)/packs.tsx`
-- `apps/mobile/src/components/pack-opening-visuals.tsx`
-- `apps/mobile/src/components/pack-opening-art.tsx`
+- `apps/mobile/src/components/pack-opening-visuals.ts`
+- `apps/mobile/src/components/pack-opening-art.ts`
 - `apps/mobile/src/components/pack-opening-sequence-dom.tsx`
 
 Observed:
@@ -540,7 +540,6 @@ Files include:
 
 - `apps/mobile/app/settings.tsx`
 - `apps/mobile/src/components/admin/admin-ui.tsx`
-- `apps/mobile/src/components/expo-ui/themed-segmented-control.tsx`
 
 Observed:
 

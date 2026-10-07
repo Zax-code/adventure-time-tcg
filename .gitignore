@@ -10,6 +10,9 @@ apps/phoenix/priv/static/assets/web/
 .expo/
 .expo-shared/
 .agents/
+!.agents/skills/
+!.agents/skills/generate-card/
+!.agents/skills/generate-card/**
 .maestro/.maestro-flow.*
 .maestro/*-temp.yaml
 .maestro/test-output/
@@ -29,3 +32,4 @@ apps/mobile/ios/.xcode.env.local
 apps/mobile/ios/*.xcworkspace/xcuserdata/
 apps/mobile/ios/*.xcodeproj/xcuserdata/
 apps/mobile/ios/*.xcuserstate
+.tmp-*-venv/
