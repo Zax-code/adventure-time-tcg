@@ -50,24 +50,26 @@ export function AdminLeaderboardIntegrityPage() {
   const [note, setNote] = useState("");
   const [preview, setPreview] = useState<LeaderboardCorrectionResponse>();
   const queryKey = ADMIN_QUERY_KEYS.leaderboardIntegrity(reason);
-  const query = useQuery({
+  const {
+    data,
+    error: queryError,
+    isPending: queryPending,
+    refetch,
+  } = useQuery({
     queryKey,
     queryFn: () => webApiClient.adminFlaggedLeaderboardResults(reason),
   });
-  const results = query.data?.results ?? [];
+  const results = data?.results ?? [];
   const selected = results.find((result) => result.id === chosenId) ?? results[0];
   const trimmedNote = note.trim();
   const noteValid = trimmedNote.length >= MIN_REASON_LENGTH;
-
-  const refresh = () =>
-    queryClient.invalidateQueries({ queryKey: ["admin", "leaderboard-integrity"] });
 
   const exclude = useMutation({
     mutationFn: (result: AdminFlaggedLeaderboardResult) =>
       webApiClient.excludeLeaderboardResult(result.id, { reason: trimmedNote }),
     onSuccess: async () => {
       setNote("");
-      await refresh();
+      await queryClient.invalidateQueries({ queryKey: ["admin", "leaderboard-integrity"] });
     },
   });
   const previewCorrection = useMutation({
@@ -88,7 +90,7 @@ export function AdminLeaderboardIntegrityPage() {
     onSuccess: async () => {
       setPreview(undefined);
       setNote("");
-      await refresh();
+      await queryClient.invalidateQueries({ queryKey: ["admin", "leaderboard-integrity"] });
     },
   });
 
@@ -118,14 +120,14 @@ export function AdminLeaderboardIntegrityPage() {
         message={actionMessage}
         success={exclude.isSuccess || confirmCorrection.isSuccess}
       />
-      {query.isPending || query.error ? (
+      {queryPending || queryError ? (
         <AdminDataState
-          error={query.error}
-          loading={query.isPending}
-          onRetry={() => void query.refetch()}
+          error={queryError}
+          loading={queryPending}
+          onRetry={() => void refetch()}
         />
       ) : null}
-      {query.data ? (
+      {data ? (
         <div className="admin-request-layout">
           <AdminSection
             action={
@@ -236,6 +238,7 @@ export function AdminLeaderboardIntegrityPage() {
                       label="Moderation reason"
                     >
                       <textarea
+                        aria-label="Moderation reason"
                         onChange={(event) => setNote(event.currentTarget.value)}
                         rows={3}
                         value={note}
