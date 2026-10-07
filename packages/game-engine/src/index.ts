@@ -1,13 +1,6 @@
-export function calculateCollectionCompletion(totalCards: number, uniqueOwned: number) {
-  if (totalCards <= 0) {
-    return 0;
-  }
-
-  return Math.max(0, Math.min(100, Math.round((uniqueOwned / totalCards) * 100)));
-}
-
-export * from "./combat/index";
-export * from "./combat/context";
-export * from "./combat/abilityDefs";
-export * from "./combat/replay";
-export * from "./pvp/replay-contract";
+// Pure client helpers only: targeting previews, the type chart, and replay.
+// Combat rules are owned by Phoenix (battle_engine.ex).
+export * from "./combat/types";
+export * from "./targeting";
+export * from "./type-chart";
+export * from "./replay";

@@ -3,7 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "exports": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./targeting": "./src/targeting.ts",
+    "./type-chart": "./src/type-chart.ts",
+    "./replay": "./src/replay.ts"
+  },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
