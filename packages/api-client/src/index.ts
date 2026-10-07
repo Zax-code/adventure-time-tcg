@@ -22,14 +22,12 @@ import {
   adminUserQuestResetResponseSchema,
   adminUserRoleUpdateSchema,
   adminUsersResponseSchema,
-  allowedEmailsResponseSchema,
   emailAccessRequestsResponseSchema,
   featuredCardsResponseSchema,
   raritiesResponseSchema,
   rarityNameSchema,
   pvpSpectateResponseSchema,
   pvpSpectateDetailResponseSchema,
-  leaderboardBoardsResponseSchema,
   leaderboardCorrectionConfirmSchema,
   leaderboardCorrectionPreviewSchema,
   leaderboardCorrectionResponseSchema,
@@ -44,8 +42,6 @@ import {
   updateNotificationPreferencesSchema,
   updateTimezoneSchema,
   adminCoinAdjustSchema,
-  adminAllowedEmailSchema,
-  adminAllowedEmailUpdateSchema,
   adminEmailRequestActionSchema,
   accountDeleteResponseSchema,
   accessRequestIpRevealResponseSchema,
@@ -94,7 +90,6 @@ import {
   pvpInviteSchema,
   pvpInvitesResponseSchema,
   questsResponseSchema,
-  registerNotificationDeviceSchema,
   refreshTokenSchema,
   requestPasswordResetResponseSchema,
   requestPasswordResetSchema,
@@ -139,14 +134,12 @@ import {
   type AdminUserQuestResetResponse,
   type AdminUserRoleUpdateInput,
   type AdminUsersResponse,
-  type AllowedEmailsResponse,
   type EmailAccessRequestsResponse,
   type FeaturedCardsResponse,
   type RaritiesResponse,
   type PvpSpectateResponse,
   type PvpSpectateDetailResponse,
   type LeaderboardBoardKey,
-  type LeaderboardBoardsResponse,
   type LeaderboardCorrectionConfirmInput,
   type LeaderboardCorrectionPreviewInput,
   type LeaderboardCorrectionResponse,
@@ -194,7 +187,6 @@ import {
   type PvpMatch,
   type PvpMatchDetailResponse,
   type QuestsResponse,
-  type RegisterNotificationDeviceInput,
   type RefreshTokenInput,
   type RequestPasswordResetInput,
   type RequestPasswordResetResponse,
@@ -1274,22 +1266,7 @@ export class ApiClient {
     );
   }
 
-  async registerNotificationDevice(input: RegisterNotificationDeviceInput) {
-    const body = registerNotificationDeviceSchema.parse(input);
-    return this.request(
-      "/notifications/device",
-      { method: "POST", body: JSON.stringify(body) },
-      () => undefined,
-    );
-  }
 
-  async unregisterNotificationDevice(installationId: string) {
-    return this.request(
-      `/notifications/device/${encodeURIComponent(installationId)}`,
-      { method: "DELETE" },
-      () => undefined,
-    );
-  }
 
   async uploadProfileImage(formData: FormData) {
     return this.upload(
@@ -1377,37 +1354,9 @@ export class ApiClient {
     );
   }
 
-  async adminAllowedEmails(): Promise<AllowedEmailsResponse> {
-    return this.request("/admin/emails", { method: "GET" }, (data) =>
-      allowedEmailsResponseSchema.parse(data),
-    );
-  }
 
-  async addAdminAllowedEmail(email: string, isAdmin?: boolean) {
-    const body = adminAllowedEmailSchema.parse({ email, isAdmin });
-    return this.request(
-      "/admin/emails",
-      { method: "POST", body: JSON.stringify(body) },
-      (data) => data as Record<string, unknown>,
-    );
-  }
 
-  async updateAdminAllowedEmail(id: string, isAdmin: boolean) {
-    const body = adminAllowedEmailUpdateSchema.parse({ isAdmin });
-    return this.request(
-      `/admin/emails/${id}`,
-      { method: "PATCH", body: JSON.stringify(body) },
-      (data) => data as Record<string, unknown>,
-    );
-  }
 
-  async deleteAdminAllowedEmail(id: string) {
-    return this.request(
-      `/admin/emails/${id}`,
-      { method: "DELETE" },
-      (data) => data as { success: boolean },
-    );
-  }
 
   async adminEmailRequests(): Promise<EmailAccessRequestsResponse> {
     return this.request("/admin/email-requests", { method: "GET" }, (data) =>
@@ -1446,11 +1395,6 @@ export class ApiClient {
     );
   }
 
-  async leaderboardBoards(): Promise<LeaderboardBoardsResponse> {
-    return this.request("/leaderboards/boards", { method: "GET" }, (data) =>
-      leaderboardBoardsResponseSchema.parse(data),
-    );
-  }
 
   async leaderboard(
     boardKey: LeaderboardBoardKey,
