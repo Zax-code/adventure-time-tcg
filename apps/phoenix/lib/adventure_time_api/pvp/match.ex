@@ -15,6 +15,7 @@ defmodule AdventureTimeApi.Pvp.Match do
     field(:seed, :string)
     field(:initial_state, :map)
     field(:current_turn, :integer, default: 0)
+    field(:current_player_id, :binary_id)
     field(:turn_started_at, :utc_datetime)
     field(:expires_at, :utc_datetime)
 
@@ -33,6 +34,7 @@ defmodule AdventureTimeApi.Pvp.Match do
       :seed,
       :initial_state,
       :current_turn,
+      :current_player_id,
       :turn_started_at,
       :expires_at
     ])

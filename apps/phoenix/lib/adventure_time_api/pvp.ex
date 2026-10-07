@@ -235,8 +235,12 @@ defmodule AdventureTimeApi.Pvp do
     with %Match{} = match <- Repo.get(Match, match_id),
          match <- maybe_expire_match_if_due(match),
          :ok <- verify_participant(match, user_id),
-         {:ok, battle_state} <- build_battle_state_for_view(match, user_id) do
-      {:ok, %{match: serialize_match(match), battleState: battle_state}}
+         {:ok, state} <- battle_state_for_view(match) do
+      {:ok,
+       %{
+         match: serialize_match(match, state),
+         battleState: state && BattleEngine.build_view(state, user_id)
+       }}
     else
       nil -> {:error, :not_found}
       {:error, reason} -> {:error, reason}
@@ -309,6 +313,7 @@ defmodule AdventureTimeApi.Pvp do
             seed: seed,
             initial_state: initial_state,
             current_turn: 1,
+            current_player_id: initial_state["currentPlayerId"],
             turn_started_at: now,
             expires_at: nil
           })
@@ -321,7 +326,9 @@ defmodule AdventureTimeApi.Pvp do
       |> case do
         {:ok, %{match: updated_match, battle_state: battle_state}} ->
           maybe_notify_current_player(updated_match, battle_state, user_id)
-          {:ok, %{match: serialize_match(updated_match), battleState: battle_state}}
+
+          {:ok,
+           %{match: serialize_match(updated_match, initial_state), battleState: battle_state}}
 
         {:error, %Ecto.Changeset{} = changeset} ->
           {:error, changeset}
@@ -376,7 +383,8 @@ defmodule AdventureTimeApi.Pvp do
         |> Match.changeset(%{
           status: "completed",
           winner_id: winner_id,
-          current_turn: new_state["turn"]
+          current_turn: new_state["turn"],
+          current_player_id: new_state["currentPlayerId"]
         })
         |> Repo.update!()
 
@@ -429,6 +437,7 @@ defmodule AdventureTimeApi.Pvp do
                 status: status,
                 winner_id: winner_id,
                 current_turn: new_state["turn"],
+                current_player_id: new_state["currentPlayerId"],
                 turn_started_at: turn_started_at
               })
               |> Repo.update!()
@@ -445,7 +454,7 @@ defmodule AdventureTimeApi.Pvp do
 
               {:ok,
                %{
-                 match: serialize_match(updated_match),
+                 match: serialize_match(updated_match, new_state),
                  battleState: battle_state,
                  events: persisted_events
                }}
@@ -494,6 +503,7 @@ defmodule AdventureTimeApi.Pvp do
             status: status,
             winner_id: winner_id,
             current_turn: new_state["turn"],
+            current_player_id: new_state["currentPlayerId"],
             turn_started_at: now
           })
           |> Repo.update!()
@@ -510,7 +520,7 @@ defmodule AdventureTimeApi.Pvp do
 
           {:ok,
            %{
-             match: serialize_match(updated_match),
+             match: serialize_match(updated_match, new_state),
              battleState: battle_state,
              events: persisted_events
            }}
@@ -549,9 +559,13 @@ defmodule AdventureTimeApi.Pvp do
       %Match{} = match ->
         match = maybe_expire_match_if_due(match)
 
-        case build_battle_state_for_spectate(match) do
-          {:ok, battle_state} ->
-            {:ok, %{match: serialize_match(match), battleState: battle_state}}
+        case battle_state_for_spectate(match) do
+          {:ok, state} ->
+            {:ok,
+             %{
+               match: serialize_match(match, state),
+               battleState: state && BattleEngine.build_spectator_view(state)
+             }}
 
           {:error, reason} ->
             {:error, reason}
@@ -780,6 +794,18 @@ defmodule AdventureTimeApi.Pvp do
     )
   end
 
+  # Serializes with a battle state the caller already reconstructed or computed.
+  defp serialize_match(match, nil), do: serialize_match(match)
+
+  defp serialize_match(match, %{} = state) do
+    serialize_match(
+      match,
+      user_display_map([match]),
+      completion_reason_map([match]),
+      %{match.id => Map.get(state, "currentPlayerId")}
+    )
+  end
+
   defp serialize_match(match, display_names, completion_reasons, current_player_ids) do
     invitee_loadout = match.invitee_card_ids || []
 
@@ -924,19 +950,25 @@ defmodule AdventureTimeApi.Pvp do
     Enum.map(matches, &serialize_match(&1, display_names, completion_reasons, current_player_ids))
   end
 
+  # Matches written before current_player_id was persisted fall back to replaying
+  # their event journal.
   defp current_player_id_map(matches) do
     matches
     |> Enum.filter(&(&1.status == "in_progress"))
-    |> Enum.map(& &1.id)
-    |> Enum.uniq()
-    |> Map.new(fn match_id ->
-      current_player_id =
-        case reconstruct_state(match_id) do
-          {:ok, %{} = state} -> Map.get(state, "currentPlayerId")
-          _ -> nil
-        end
+    |> Enum.uniq_by(& &1.id)
+    |> Map.new(fn
+      %Match{id: match_id, current_player_id: current_player_id}
+      when is_binary(current_player_id) ->
+        {match_id, current_player_id}
 
-      {match_id, current_player_id}
+      %Match{id: match_id} ->
+        current_player_id =
+          case reconstruct_state(match_id) do
+            {:ok, %{} = state} -> Map.get(state, "currentPlayerId")
+            _ -> nil
+          end
+
+        {match_id, current_player_id}
     end)
   end
 
@@ -1015,30 +1047,24 @@ defmodule AdventureTimeApi.Pvp do
     }
   end
 
-  defp build_battle_state_for_view(%Match{status: status}, _user_id)
+  defp build_battle_state_for_view(match, user_id) do
+    with {:ok, state} <- battle_state_for_view(match) do
+      {:ok, state && BattleEngine.build_view(state, user_id)}
+    end
+  end
+
+  defp battle_state_for_view(%Match{status: status})
        when status in ["pending", "declined", "expired"] do
     {:ok, nil}
   end
 
-  defp build_battle_state_for_view(match, user_id) do
-    with {:ok, state} <- reconstruct_state(match.id) do
-      {:ok, BattleEngine.build_view(state, user_id)}
-    end
-  end
+  defp battle_state_for_view(match), do: reconstruct_state(match.id)
 
-  defp build_battle_state_for_spectate(%Match{status: status}) when status == "pending" do
+  defp battle_state_for_spectate(%Match{status: status}) when status in ["pending", "expired"] do
     {:ok, nil}
   end
 
-  defp build_battle_state_for_spectate(%Match{status: status}) when status == "expired" do
-    {:ok, nil}
-  end
-
-  defp build_battle_state_for_spectate(match) do
-    with {:ok, state} <- reconstruct_state(match.id) do
-      {:ok, BattleEngine.build_spectator_view(state)}
-    end
-  end
+  defp battle_state_for_spectate(match), do: reconstruct_state(match.id)
 
   defp build_replay_payload(%Match{status: "completed"} = match) do
     with %{} = initial_state <- match.initial_state,
@@ -1416,7 +1442,8 @@ defmodule AdventureTimeApi.Pvp do
                     |> Match.changeset(%{
                       status: "completed",
                       winner_id: winner_id,
-                      current_turn: new_state["turn"]
+                      current_turn: new_state["turn"],
+                      current_player_id: new_state["currentPlayerId"]
                     })
                     |> Repo.update!()
 
