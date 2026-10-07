@@ -245,7 +245,8 @@ describe("mobile UI regression contracts", () => {
       assert.match(rankingsSource, new RegExp(option));
     }
     assert.match(rankingsSource, /testID=\{`rankings-period-\$\{/);
-    assert.match(rankingsSource, /refetchInterval: 60_000/);
+    assert.match(rankingsSource, /useFocusedRefetchInterval\(60_000\)/);
+    assert.match(rankingsSource, /refetchInterval: leaderboardRefetchInterval/);
     assert.match(rankingsSource, /<RefreshControl/);
     assert.match(rankingsSource, /queryIsFetching/);
     assert.doesNotMatch(rankingsSource, /YesterdayPendingPanel/);
