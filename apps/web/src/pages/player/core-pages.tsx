@@ -392,7 +392,7 @@ export function GiftsPage() {
   const [view, setView] = useState<GiftView>("pending");
   const [composerOpen, setComposerOpen] = useState(false);
   // The player directory is only needed by the composer.
-  const users = useQuery({ queryKey: ["gift-users"], queryFn: () => webApiClient.users(), enabled: composerOpen });
+  const { data: giftUsers } = useQuery({ queryKey: ["gift-users"], queryFn: () => webApiClient.users(), enabled: composerOpen });
   const [message, setMessage] = useState<string>();
   const [success, setSuccess] = useState(false);
   const process = useMutation({
@@ -451,7 +451,7 @@ export function GiftsPage() {
       <Dialog description="Only owned cards can be sent. The recipient chooses whether to accept." onClose={() => setComposerOpen(false)} open={composerOpen} title="Send a card">
         <form className="stack-form" onSubmit={submitGift}>
           <Field label="Card"><select defaultValue={new URLSearchParams(location.search).get("card") ?? ""} name="cardId" required><option disabled value="">Choose an owned card</option>{collection.data?.cards.flatMap((entry) => entry.quantity > 0 ? [<option key={entry.cardId} value={entry.cardId}>{entry.card.name} · {entry.quantity} owned</option>] : [])}</select></Field>
-          <Field label="Recipient"><select name="toUserId" required><option disabled value="">Choose a player</option>{users.data?.users.map((user) => <option key={user.id} value={user.id}>{user.displayName || user.email}</option>)}</select></Field>
+          <Field label="Recipient"><select name="toUserId" required><option disabled value="">Choose a player</option>{giftUsers?.users.map((user) => <option key={user.id} value={user.id}>{user.displayName || user.email}</option>)}</select></Field>
           <Field hint="You cannot send more copies than you own." label="Quantity"><input defaultValue="1" min="1" name="quantity" required type="number" /></Field>
           <Field hint="Optional · visible only to the recipient" label="Message"><textarea maxLength={280} name="message" placeholder="A note for this card's next chapter" /></Field>
           <Button busy={send.isPending} type="submit">Send gift</Button>
