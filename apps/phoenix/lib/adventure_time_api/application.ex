@@ -13,6 +13,7 @@ defmodule AdventureTimeApi.Application do
     children = [
       AdventureTimeApiWeb.Telemetry,
       AdventureTimeApi.Repo,
+      AdventureTimeApi.Quests.DailyNumbersPuzzleCache,
       AdventureTimeApi.Quests.WordleCacheWarmer,
       {Oban, Application.fetch_env!(:adventure_time_api, Oban)},
       {DNSCluster,

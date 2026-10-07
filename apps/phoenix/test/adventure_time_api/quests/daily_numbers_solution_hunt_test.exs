@@ -395,6 +395,27 @@ defmodule AdventureTimeApi.Quests.DailyNumbersSolutionHuntTest do
     assert completed_payload.otherSolutions == []
   end
 
+  test "steady-state Daily Numbers reads skip the solver lock" do
+    user = create_user("solution-hunt-cache@example.com")
+
+    assert {:ok, first} = AdventureTimeApi.Quests.daily_numbers_state(user.id, "1-5")
+
+    {second, second_locks} =
+      capture_solution_set_locks(fn ->
+        AdventureTimeApi.Quests.daily_numbers_state(user.id, "1-5")
+      end)
+
+    {third, third_locks} =
+      capture_solution_set_locks(fn ->
+        AdventureTimeApi.Quests.daily_numbers_state(user.id, "1-5")
+      end)
+
+    assert length(second_locks) <= 1
+    assert third_locks == []
+    assert {:ok, ^first} = second
+    assert {:ok, ^first} = third
+  end
+
   defp create_user(email) do
     %User{}
     |> User.registration_changeset(%{email: email, display_name: "Solver"})
@@ -412,5 +433,44 @@ defmodule AdventureTimeApi.Quests.DailyNumbersSolutionHuntTest do
           %{id: "n#{index}", value: value, source: "initial", status: "available"}
         end)
     }
+  end
+
+  defp capture_solution_set_locks(fun) do
+    handler_id = "solution-set-locks-#{System.unique_integer([:positive])}"
+
+    :ok =
+      :telemetry.attach(
+        handler_id,
+        [:adventure_time_api, :repo, :query],
+        &__MODULE__.forward_solution_set_lock/4,
+        self()
+      )
+
+    result =
+      try do
+        fun.()
+      after
+        :telemetry.detach(handler_id)
+      end
+
+    {result, collect_solution_set_locks([])}
+  end
+
+  @doc false
+  def forward_solution_set_lock(_event, _measurements, %{params: [key | _]}, test_pid)
+      when is_binary(key) do
+    if self() == test_pid and String.starts_with?(key, "daily-numbers-solution-set:") do
+      send(test_pid, {:solution_set_lock, key})
+    end
+  end
+
+  def forward_solution_set_lock(_event, _measurements, _metadata, _test_pid), do: :ok
+
+  defp collect_solution_set_locks(keys) do
+    receive do
+      {:solution_set_lock, key} -> collect_solution_set_locks([key | keys])
+    after
+      0 -> Enum.reverse(keys)
+    end
   end
 end
