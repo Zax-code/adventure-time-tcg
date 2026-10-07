@@ -37,6 +37,7 @@ import {
   leaderboardHistoryDaysResponseSchema,
   leaderboardResultExclusionSchema,
   leaderboardResultExclusionResponseSchema,
+  adminFlaggedLeaderboardResultsResponseSchema,
   leaderboardResponseSchema,
   publicLeaderboardProfileSchema,
   updateDisplayNameSchema,
@@ -154,6 +155,8 @@ import {
   type LeaderboardHistoryDaysResponse,
   type LeaderboardResultExclusionInput,
   type LeaderboardResultExclusionResponse,
+  type AdminFlaggedLeaderboardResultsResponse,
+  type LeaderboardIntegrityReason,
   type LeaderboardResponse,
   type PublicLeaderboardProfile,
   type AppleAuthInput,
@@ -1497,6 +1500,18 @@ export class ApiClient {
       )}/history/${encodeURIComponent(periodStart)}/days`,
       { method: "GET" },
       (data) => leaderboardHistoryDaysResponseSchema.parse(data),
+    );
+  }
+
+  async adminFlaggedLeaderboardResults(
+    reason?: LeaderboardIntegrityReason,
+  ): Promise<AdminFlaggedLeaderboardResultsResponse> {
+    const query = reason ? `?reason=${encodeURIComponent(reason)}` : "";
+
+    return this.request(
+      `/admin/leaderboards/results/flagged${query}`,
+      { method: "GET" },
+      (data) => adminFlaggedLeaderboardResultsResponseSchema.parse(data),
     );
   }
 
