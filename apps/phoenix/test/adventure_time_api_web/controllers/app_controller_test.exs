@@ -1,6 +1,7 @@
 defmodule AdventureTimeApiWeb.AppControllerTest do
   use AdventureTimeApiWeb.ConnCase, async: true
 
+  alias AdventureTimeApi.Accounts
   alias AdventureTimeApi.Auth
   alias AdventureTimeApi.Accounts.{AuthProviderIdentity, EmailCredential, Session, User}
   alias AdventureTimeApi.Catalog.{Card, CardBackVisual, ImageAsset, Pack, Rarity}
@@ -899,6 +900,60 @@ defmodule AdventureTimeApiWeb.AppControllerTest do
 
       assert invalid == %{"error" => "quantity must be a positive integer"}
     end
+  end
+
+  test "current-user payloads keep authMethods while token auth uses one query" do
+    user = create_user_with_password("auth-methods@example.com", "pass12345")
+
+    login =
+      build_conn()
+      |> post(~p"/auth/login", %{email: user.email, password: "pass12345"})
+      |> json_response(200)
+
+    expected = %{"password" => true, "google" => false, "apple" => false}
+    assert get_in(login, ["user", "authMethods"]) == expected
+
+    refreshed =
+      build_conn()
+      |> post(~p"/auth/refresh", %{"refreshToken" => get_in(login, ["tokens", "refreshToken"])})
+      |> json_response(200)
+
+    assert get_in(refreshed, ["user", "authMethods"]) == expected
+
+    access_token = get_in(login, ["tokens", "accessToken"])
+    me = access_token |> auth_conn() |> get(~p"/me") |> json_response(200)
+    assert me["authMethods"] == expected
+    assert me["id"] == user.id
+
+    home = access_token |> auth_conn() |> get(~p"/home") |> json_response(200)
+    assert home["user"]["authMethods"] == expected
+
+    handler_id = "auth-query-count-#{System.unique_integer([:positive])}"
+    test_pid = self()
+
+    :ok =
+      :telemetry.attach(
+        handler_id,
+        [:adventure_time_api, :repo, :query],
+        &__MODULE__.forward_query/4,
+        test_pid
+      )
+
+    try do
+      assert {:ok, auth_user} = Accounts.fetch_auth_user_from_access_token(access_token)
+      assert auth_user.id == user.id
+      refute Map.has_key?(auth_user, :authMethods)
+    after
+      :telemetry.detach(handler_id)
+    end
+
+    assert_received {:repo_query, _source}
+    refute_received {:repo_query, _source}
+  end
+
+  @doc false
+  def forward_query(_event, _measurements, metadata, test_pid) do
+    if self() == test_pid, do: send(test_pid, {:repo_query, metadata[:source]})
   end
 
   defp create_user_with_password(email, password) do

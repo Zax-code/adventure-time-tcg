@@ -9,17 +9,14 @@ defmodule AdventureTimeApiWeb.AppController do
   alias AdventureTimeApi.Quests
 
   def me(conn, _params) do
-    case Accounts.auth_user_for_id(conn.assigns.auth_user.id) do
-      {:ok, auth_user} -> json(conn, auth_user)
-      {:error, :not_found} -> conn |> put_status(:not_found) |> json(%{error: "User not found"})
-    end
+    json(conn, Accounts.put_auth_methods(conn.assigns.auth_user))
   end
 
   def home(conn, _params) do
     auth_user = conn.assigns.auth_user
 
     json(conn, %{
-      user: auth_user,
+      user: Accounts.put_auth_methods(auth_user),
       collectionStats: Inventory.collection_stats_for_user(auth_user.id)
     })
   end
@@ -241,7 +238,7 @@ defmodule AdventureTimeApiWeb.AppController do
   def health_steps(conn, _params) do
     user_id = conn.assigns.auth_user.id
 
-    case Accounts.auth_user_for_id(user_id) do
+    case Accounts.auth_user_for_id(user_id, include_auth_methods: false) do
       {:ok, auth_user} ->
         preferred_source = auth_user.preferredStepSource
 
