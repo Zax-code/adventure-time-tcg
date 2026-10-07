@@ -503,22 +503,134 @@ defmodule AdventureTimeApi.Leaderboards.LifecycleTest do
     assert Repo.aggregate(from(grant in RewardGrant, where: grant.status == :active), :count) == 2
   end
 
+  test "settled days are skipped without rebuilding their snapshots" do
+    user = insert_user!("settled-day")
+    activate!()
+    insert_and_sync_steps!(user, ~D[2026-08-17], 12_000)
+
+    cutoff = ~U[2026-08-18 13:00:00.000000Z]
+    assert :ok = Lifecycle.tick(cutoff)
+
+    day = Repo.get_by!(Period, period_type: :day, competition_date: ~D[2026-08-17])
+    assert day.status == :closed
+    assert day.settled_at == cutoff
+    snapshot_count = Repo.aggregate(Snapshot, :count)
+
+    lock_keys =
+      capture_lock_keys(fn ->
+        assert :ok = Lifecycle.tick(~U[2026-08-18 13:01:00.000000Z])
+        assert :ok = Lifecycle.tick(~U[2026-08-18 13:02:00.000000Z])
+      end)
+
+    assert Repo.aggregate(Snapshot, :count) == snapshot_count
+    assert Repo.reload!(day) == day
+    refute Enum.any?(lock_keys, &touches_day?(&1, day))
+
+    lock_keys =
+      capture_lock_keys(fn -> assert :ok = Lifecycle.tick(~U[2026-08-19 13:05:00.000000Z]) end)
+
+    refute Enum.any?(lock_keys, &touches_day?(&1, day))
+
+    assert Repo.get_by!(Period, period_type: :day, competition_date: ~D[2026-08-18]).settled_at ==
+             ~U[2026-08-19 13:05:00.000000Z]
+  end
+
+  test "an audited correction clears settlement so the next tick reprocesses the period" do
+    [first, second] = Enum.map(1..2, &insert_user!("day-correction-#{&1}"))
+    activate!()
+    insert_and_sync_steps!(first, ~D[2026-08-17], 20_000)
+    insert_and_sync_steps!(second, ~D[2026-08-17], 10_000)
+
+    assert :ok = Lifecycle.tick(~U[2026-08-18 13:00:00.000000Z])
+    day = Repo.get_by!(Period, period_type: :day, competition_date: ~D[2026-08-17])
+
+    source =
+      Repo.get_by!(Snapshot,
+        period_id: day.id,
+        board_id: board_id("steps/default"),
+        current: true
+      )
+
+    actor = %{id: second.id, isSuperAdmin: true}
+    first_row = Repo.get_by!(SnapshotRow, snapshot_id: source.id, user_id: first.id)
+
+    assert {:ok, preview} =
+             Corrections.preview(source.id, actor, "Invalid daily result", %{
+               "excludeDailyResultIds" => first_row.selected_daily_result_ids
+             })
+
+    assert {:ok, applied} = Corrections.confirm(source.id, actor, preview.previewHash, true)
+
+    corrected = Repo.reload!(day)
+    assert corrected.status == :corrected
+    assert is_nil(corrected.settled_at)
+
+    next_tick = ~U[2026-08-18 13:05:00.000000Z]
+    lock_keys = capture_lock_keys(fn -> assert :ok = Lifecycle.tick(next_tick) end)
+
+    assert Enum.any?(lock_keys, &touches_day?(&1, day))
+
+    resettled = Repo.reload!(day)
+    assert resettled.status == :corrected
+    assert resettled.settled_at == next_tick
+
+    assert Repo.get_by!(Snapshot,
+             period_id: day.id,
+             board_id: board_id("steps/default"),
+             current: true
+           ).id == applied.resultingSnapshotId
+  end
+
+  test "a result recorded before the cutoff by a player west of UTC is in the final day" do
+    west = insert_user!("west", "America/Los_Angeles")
+    utc = insert_user!("utc")
+    activate!()
+    insert_and_sync_steps!(utc, ~D[2026-08-17], 9_000)
+
+    # 23:30 on Aug 17 in Los Angeles, already Aug 18 in UTC.
+    late = ~U[2026-08-18 06:30:00.000000Z]
+    insert_and_sync_steps!(west, ~D[2026-08-17], 14_000, late)
+
+    assert :ok = Lifecycle.tick(~U[2026-08-18 12:59:00.000000Z])
+    day = Repo.get_by!(Period, period_type: :day, competition_date: ~D[2026-08-17])
+    assert is_nil(day.settled_at)
+
+    assert :ok = Lifecycle.tick(~U[2026-08-18 13:00:00.000000Z])
+
+    snapshot =
+      Repo.get_by!(Snapshot,
+        period_id: day.id,
+        board_id: board_id("steps/default"),
+        current: true
+      )
+
+    assert SnapshotRow
+           |> where([row], row.snapshot_id == ^snapshot.id)
+           |> order_by([row], asc: row.position)
+           |> Repo.all()
+           |> Enum.map(&{&1.user_id, &1.rank}) == [{west.id, 1}, {utc.id, 2}]
+
+    assert Repo.reload!(day).settled_at == ~U[2026-08-18 13:00:00.000000Z]
+  end
+
   defp activate! do
     {:ok, _version} = Configuration.ensure_launch_version()
     {:ok, _version} = Configuration.activate_due(~U[2026-08-17 00:01:00.000000Z])
   end
 
-  defp insert_user!(suffix) do
+  defp insert_user!(suffix, timezone \\ "Etc/UTC") do
     %User{}
     |> User.registration_changeset(%{
       email: "lifecycle-#{suffix}-#{System.unique_integer([:positive])}@example.com",
       display_name: suffix,
-      timezone: "Etc/UTC"
+      timezone: timezone
     })
     |> Repo.insert!()
   end
 
-  defp insert_and_sync_steps!(user, date, steps) do
+  defp insert_and_sync_steps!(user, date, steps, at \\ nil) do
+    at = at || DateTime.new!(date, ~T[12:00:00], "Etc/UTC")
+
     %StepSnapshot{}
     |> StepSnapshot.changeset(%{
       user_id: user.id,
@@ -526,16 +638,10 @@ defmodule AdventureTimeApi.Leaderboards.LifecycleTest do
       step_count: steps,
       recorded_for: date
     })
-    |> with_source_timestamp(date)
+    |> with_timestamp(at)
     |> Repo.insert!()
 
-    assert {:ok, _result} =
-             QuestResults.sync(
-               user.id,
-               date,
-               :steps,
-               DateTime.new!(date, ~T[12:00:00], "Etc/UTC")
-             )
+    assert {:ok, _result} = QuestResults.sync(user.id, date, :steps, at)
   end
 
   defp board_id(key) do
@@ -545,10 +651,57 @@ defmodule AdventureTimeApi.Leaderboards.LifecycleTest do
   end
 
   defp with_source_timestamp(changeset, date) do
-    timestamp = DateTime.new!(date, ~T[12:00:00], "Etc/UTC")
+    with_timestamp(changeset, DateTime.new!(date, ~T[12:00:00], "Etc/UTC"))
+  end
+
+  defp with_timestamp(changeset, timestamp) do
+    timestamp = DateTime.truncate(timestamp, :second)
 
     changeset
     |> Ecto.Changeset.put_change(:inserted_at, timestamp)
     |> Ecto.Changeset.put_change(:updated_at, timestamp)
+  end
+
+  defp touches_day?(lock_key, day) do
+    String.starts_with?(lock_key, "leaderboard-period:#{day.id}:") or
+      String.ends_with?(lock_key, ":#{Date.to_iso8601(day.competition_date)}")
+  end
+
+  defp capture_lock_keys(fun) do
+    handler_id = "lifecycle-lock-keys-#{System.unique_integer([:positive])}"
+
+    :ok =
+      :telemetry.attach(
+        handler_id,
+        [:adventure_time_api, :repo, :query],
+        &__MODULE__.forward_lock_key/4,
+        self()
+      )
+
+    try do
+      fun.()
+    after
+      :telemetry.detach(handler_id)
+    end
+
+    collect_lock_keys([])
+  end
+
+  @doc false
+  def forward_lock_key(_event, _measurements, %{query: query, params: [key | _]}, test_pid)
+      when is_binary(key) do
+    if self() == test_pid and String.contains?(query, "pg_advisory_xact_lock") do
+      send(test_pid, {:lock_key, key})
+    end
+  end
+
+  def forward_lock_key(_event, _measurements, _metadata, _test_pid), do: :ok
+
+  defp collect_lock_keys(keys) do
+    receive do
+      {:lock_key, key} -> collect_lock_keys([key | keys])
+    after
+      0 -> Enum.reverse(keys)
+    end
   end
 end

@@ -186,7 +186,7 @@ defmodule AdventureTimeApi.Leaderboards.Corrections do
         reconcile_prizes(source, replacement, period, board, actor, correction.reason, now)
 
         if period.status in [:closed, :corrected] do
-          period |> Ecto.Changeset.change(status: :corrected) |> Repo.update!()
+          period |> Ecto.Changeset.change(status: :corrected, settled_at: nil) |> Repo.update!()
         end
 
         correction =

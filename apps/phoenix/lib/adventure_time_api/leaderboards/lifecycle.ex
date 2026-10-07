@@ -42,6 +42,7 @@ defmodule AdventureTimeApi.Leaderboards.Lifecycle do
       weeks =
         dates
         |> Enum.map(&Date.beginning_of_week(&1, :monday))
+        |> Enum.concat(unsettled_week_starts())
         |> Enum.uniq()
         |> Enum.map(&ensure_week_period(&1, now))
 
@@ -80,10 +81,16 @@ defmodule AdventureTimeApi.Leaderboards.Lifecycle do
     end
   end
 
+  # Settled day periods are final, so only dates whose day period is missing or
+  # still unsettled are reprocessed. Today and yesterday are always included.
   defp competition_dates(effective_date, today) do
     recorded_dates =
       from(result in DailyResult,
-        where: result.competition_date >= ^effective_date,
+        left_join: period in Period,
+        on:
+          period.period_type == :day and
+            period.competition_date == result.competition_date,
+        where: result.competition_date >= ^effective_date and is_nil(period.settled_at),
         distinct: true,
         select: result.competition_date
       )
@@ -93,6 +100,14 @@ defmodule AdventureTimeApi.Leaderboards.Lifecycle do
     |> Enum.filter(&(Date.compare(&1, effective_date) != :lt))
     |> Enum.uniq()
     |> Enum.sort(Date)
+  end
+
+  defp unsettled_week_starts do
+    from(period in Period,
+      where: period.period_type == :week and is_nil(period.settled_at),
+      select: period.week_start
+    )
+    |> Repo.all()
   end
 
   defp ensure_day_period(date, now) do
@@ -172,7 +187,7 @@ defmodule AdventureTimeApi.Leaderboards.Lifecycle do
   defp materialize_period(%Period{} = period, _now), do: period
 
   defp finalize_day_if_due(period, now) do
-    if DateTime.compare(now, period.closes_at) == :lt do
+    if DateTime.compare(now, period.closes_at) == :lt or settled?(period) do
       :ok
     else
       Repo.transaction(fn ->
@@ -199,35 +214,67 @@ defmodule AdventureTimeApi.Leaderboards.Lifecycle do
           set: [result_status: :snapshotted, provisional: false, updated_at: now]
         )
 
-        if period.status == :closing do
-          period |> Period.changeset(%{status: :closed}) |> Repo.update!()
-        end
+        period
+        |> Period.changeset(%{status: settled_status(period.status), settled_at: now})
+        |> Repo.update!()
       end)
     end
   end
 
   defp refresh_week(period, now) do
-    Repo.transaction(fn ->
-      Boards.list_enabled()
-      |> Enum.each(&Locks.period_board!(period.id, &1.id))
+    if settled?(period) do
+      :ok
+    else
+      Repo.transaction(fn ->
+        Boards.list_enabled()
+        |> Enum.each(&Locks.period_board!(period.id, &1.id))
 
-      {version, configuration} = scoring_for_period!(period)
-      closing = DateTime.compare(now, period.closes_at) != :lt
+        {version, configuration} = scoring_for_period!(period)
+        closing = DateTime.compare(now, period.closes_at) != :lt
 
-      period =
-        if closing and period.status not in [:closed, :corrected] do
-          period |> Period.changeset(%{status: :closed}) |> Repo.update!()
-        else
-          period
+        period =
+          if closing and period.status not in [:closed, :corrected] do
+            period |> Period.changeset(%{status: :closed}) |> Repo.update!()
+          else
+            period
+          end
+
+        build_all_snapshots(period, version, configuration, now)
+
+        if period.status == :closed do
+          award_week(period, now)
         end
 
-      build_all_snapshots(period, version, configuration, now)
-
-      if period.status == :closed do
-        award_week(period, now)
-      end
-    end)
+        if closing do
+          period |> Period.changeset(%{settled_at: now}) |> Repo.update!()
+        end
+      end)
+    end
   end
+
+  defp settled_status(:closing), do: :closed
+  defp settled_status(status), do: status
+
+  # A settled period was fully finalized (snapshots, result status, weekly awards)
+  # after its publication cutoff. The audited correction flow clears `settled_at`
+  # to force one more pass. The snapshot check mirrors `reusable_snapshot?/3`.
+  defp settled?(%Period{settled_at: nil}), do: false
+
+  defp settled?(%Period{status: status} = period) when status in [:closed, :corrected] do
+    board_ids = Enum.map(Boards.list_enabled(), & &1.id)
+
+    final_snapshots =
+      from(snapshot in Snapshot,
+        where:
+          snapshot.period_id == ^period.id and snapshot.current and
+            snapshot.board_id in ^board_ids and snapshot.source_cutoff >= ^period.closes_at
+      )
+      |> Repo.aggregate(:count)
+
+    final_snapshots == length(board_ids)
+  end
+
+  defp settled?(_period), do: false
 
   defp build_all_snapshots(period, version, configuration, now) do
     Boards.list_enabled()

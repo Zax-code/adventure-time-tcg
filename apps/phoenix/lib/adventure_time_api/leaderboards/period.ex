@@ -24,6 +24,7 @@ defmodule AdventureTimeApi.Leaderboards.Period do
     field(:prizes_allowed, :boolean, default: false)
     field(:scoring_version_id, :binary_id)
     field(:launch_partial, :boolean, default: false)
+    field(:settled_at, :utc_datetime_usec)
     timestamps(type: :utc_datetime_usec)
   end
 
@@ -41,7 +42,8 @@ defmodule AdventureTimeApi.Leaderboards.Period do
       :origin,
       :prizes_allowed,
       :scoring_version_id,
-      :launch_partial
+      :launch_partial,
+      :settled_at
     ])
     |> validate_required([
       :period_type,
