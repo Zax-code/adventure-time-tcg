@@ -58,14 +58,14 @@ const dailyModes: Array<{ label: string; value: DailyNumbersMode; copy: string }
 ];
 
 export function QuestsPage() {
-  const { restore } = useAuth();
+  const { refreshUser } = useAuth();
   const queryClient = useQueryClient();
   const quests = useQuery({ queryKey: ["quests"], queryFn: () => webApiClient.quests() });
   const fitbit = useQuery({ queryKey: ["fitbit"], queryFn: () => webApiClient.fitbitStatus() });
   const claim = useMutation({
     mutationFn: (questId: string) => webApiClient.claimQuest({ questId }),
     onSuccess: async () => {
-      await restore();
+      await refreshUser();
       void queryClient.invalidateQueries({ queryKey: ["quests"] });
       void queryClient.invalidateQueries({ queryKey: ["home"] });
     },

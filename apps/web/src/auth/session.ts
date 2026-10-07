@@ -15,6 +15,7 @@ import {
 import {
   configureWebApiAuth,
   isAuthenticationError,
+  webApiClient,
   webJsonRequest,
 } from "../lib/api";
 
@@ -140,12 +141,39 @@ export async function restoreWebSession() {
       return null;
     }
 
-    clearLocalWebSession(
+    const restoreError =
       error instanceof Error
         ? error.message
-        : "We could not restore your browser session.",
-    );
+        : "We could not restore your browser session.";
+
+    // A network error, 5xx or rate limit must not sign out an authenticated user;
+    // only the initial restore settles as anonymous.
+    if (snapshot.status === "authenticated") {
+      publish({ ...snapshot, restoreError });
+      return snapshot.user;
+    }
+
+    clearLocalWebSession(restoreError);
     return null;
+  }
+}
+
+/**
+ * Reloads the current user (coins, dust, profile) after a mutation without
+ * rotating the session. Authentication failures are handled by the API client;
+ * any other failure keeps the user already shown.
+ */
+export async function refreshCurrentUser() {
+  try {
+    const user = await webApiClient.me();
+
+    if (snapshot.status === "authenticated") {
+      publish({ ...snapshot, user });
+    }
+
+    return user;
+  } catch {
+    return snapshot.user;
   }
 }
 

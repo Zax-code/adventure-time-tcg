@@ -2,12 +2,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { AuthUser } from "@adventure-time/api-client";
 
-import { webApiClient } from "../lib/api";
+import { act, render, screen, waitFor } from "@testing-library/react";
+import { createElement } from "react";
+
+import { queryClient, webApiClient } from "../lib/api";
+import { AuthProvider, useAuth } from "./auth-provider";
 import {
   clearLocalWebSession,
   createWebSession,
   getAccessToken,
   getAuthSnapshot,
+  refreshCurrentUser,
   restoreWebSession,
 } from "./session";
 
@@ -158,5 +163,89 @@ describe("web session", () => {
         "X-Adventure-Time-Web": "1",
       }),
     );
+  });
+  it("keeps an authenticated session when a refresh is rate limited", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.endsWith("/web/session")) {
+        return jsonResponse({ user, accessToken: "access-1" });
+      }
+      return jsonResponse({ error: "Too many requests" }, 429);
+    });
+
+    await createWebSession({ email: "finn@example.com", password: "adventure" });
+    await expect(restoreWebSession()).resolves.toEqual(user);
+
+    expect(getAuthSnapshot()).toMatchObject({
+      status: "authenticated",
+      user,
+      restoreError: "Too many requests",
+    });
+    expect(getAccessToken()).toBe("access-1");
+  });
+
+  it("still settles as anonymous when the first restore fails transiently", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      jsonResponse({ error: "Service unavailable" }, 503),
+    );
+
+    await expect(restoreWebSession()).resolves.toBeNull();
+    expect(getAuthSnapshot()).toMatchObject({
+      status: "anonymous",
+      user: null,
+      restoreError: "Service unavailable",
+    });
+  });
+
+  it("refreshes the current user without rotating the session", async () => {
+    const updated = { ...user, coins: 40 };
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.endsWith("/web/session")) {
+        return jsonResponse({ user, accessToken: "access-1" });
+      }
+      if (url.endsWith("/me")) {
+        return jsonResponse(updated);
+      }
+      throw new Error(`Unexpected request: ${url}`);
+    });
+
+    await createWebSession({ email: "finn@example.com", password: "adventure" });
+    await expect(refreshCurrentUser()).resolves.toEqual(updated);
+
+    expect(getAuthSnapshot()).toMatchObject({ status: "authenticated", user: updated });
+    expect(getAccessToken()).toBe("access-1");
+    expect(
+      fetchMock.mock.calls.some(([input]) => String(input).endsWith("/web/session/refresh")),
+    ).toBe(false);
+  });
+
+  it("clears cached queries on logout", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+      const url = String(input);
+      if (url.endsWith("/web/session") && init?.method === "DELETE") {
+        return new Response(null, { status: 204 });
+      }
+      return jsonResponse({ user, accessToken: "access-1" });
+    });
+
+    let logout: (() => Promise<void>) | null = null;
+    function Probe() {
+      const auth = useAuth();
+      logout = auth.logout;
+      return createElement("span", null, auth.status);
+    }
+
+    await createWebSession({ email: "finn@example.com", password: "adventure" });
+    render(createElement(AuthProvider, null, createElement(Probe)));
+    await screen.findByText("authenticated");
+    queryClient.setQueryData(["collection"], { cards: ["previous-account"] });
+
+    await act(async () => {
+      await logout?.();
+    });
+
+    await waitFor(() => expect(screen.getByText("anonymous")).toBeTruthy());
+    expect(queryClient.getQueryData(["collection"])).toBeUndefined();
   });
 });

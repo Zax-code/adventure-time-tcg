@@ -75,7 +75,7 @@ function invalidatePlayerData(queryClient: ReturnType<typeof useQueryClient>) {
 }
 
 export function HomePage() {
-  const { restore } = useAuth();
+  const { refreshUser } = useAuth();
   const queryClient = useQueryClient();
   const home = useQuery({ queryKey: ["home"], queryFn: () => webApiClient.home() });
   const daily = useQuery({ queryKey: ["daily-claim"], queryFn: () => webApiClient.getDailyClaimStatus() });
@@ -84,7 +84,7 @@ export function HomePage() {
   const claim = useMutation({
     mutationFn: () => webApiClient.claimDailyReward(),
     onSuccess: async () => {
-      await restore();
+      await refreshUser();
       void queryClient.invalidateQueries({ queryKey: ["daily-claim"] });
       void queryClient.invalidateQueries({ queryKey: ["home"] });
     },
@@ -249,7 +249,7 @@ export function CollectionPage() {
 }
 
 export function CardDetailPage() {
-  const { restore } = useAuth();
+  const { refreshUser } = useAuth();
   const { cardId = "" } = useParams();
   const queryClient = useQueryClient();
   const collection = useQuery({ queryKey: ["collection"], queryFn: () => webApiClient.collection() });
@@ -260,7 +260,7 @@ export function CardDetailPage() {
     mutationFn: ({ kind, id }: { kind: "craft" | "recycle"; id: string }) => kind === "craft" ? webApiClient.craftCard(id) : webApiClient.recycleCard(id),
     onSuccess: async (result, variables) => {
       setMessage(variables.kind === "craft" ? "Card crafted and added to your collection." : "Duplicate recycled into dust.");
-      await restore();
+      await refreshUser();
       await invalidatePlayerData(queryClient);
       void result;
     },
@@ -319,7 +319,7 @@ export function CardDetailPage() {
 }
 
 export function PacksPage() {
-  const { restore } = useAuth();
+  const { refreshUser } = useAuth();
   const queryClient = useQueryClient();
   const packs = useQuery({ queryKey: ["packs"], queryFn: () => webApiClient.packs() });
   const [opened, setOpened] = useState<OpenPackResponse | null>(null);
@@ -329,7 +329,7 @@ export function PacksPage() {
     onSuccess: async (data) => {
       setOpened(data);
       setMessage(undefined);
-      await restore();
+      await refreshUser();
       await invalidatePlayerData(queryClient);
     },
     onError: (error) => setMessage(readErrorMessage(error)),
@@ -382,7 +382,7 @@ export function PacksPage() {
 type GiftView = "pending" | "received" | "sent" | "all";
 
 export function GiftsPage() {
-  const { restore, user } = useAuth();
+  const { refreshUser, user } = useAuth();
   const queryClient = useQueryClient();
   const gifts = useQuery({ queryKey: ["gifts"], queryFn: () => webApiClient.gifts() });
   const users = useQuery({ queryKey: ["gift-users"], queryFn: () => webApiClient.users() });
@@ -394,7 +394,7 @@ export function GiftsPage() {
   const process = useMutation({
     mutationFn: ({ id, action }: { id: string; action: "accept" | "reject" }) => webApiClient.processGift({ giftId: id, action }),
     onSuccess: async () => {
-      await restore();
+      await refreshUser();
       await invalidatePlayerData(queryClient);
     },
   });
@@ -404,7 +404,7 @@ export function GiftsPage() {
       setSuccess(true);
       setMessage("Gift sent. It will remain pending until your friend answers.");
       setComposerOpen(false);
-      await restore();
+      await refreshUser();
       await invalidatePlayerData(queryClient);
     },
     onError: (error) => {
