@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const leaderboardBoardKeySchema = z.enum([
+const leaderboardBoardKeySchema = z.enum([
   "overall/all-quests",
   "steps/default",
   "daily-numbers/1-5",
@@ -14,7 +14,7 @@ export const leaderboardBoardKeySchema = z.enum([
   "perfect-timing/official",
 ]);
 
-export const fallbackAvatarKeySchema = z.enum([
+const fallbackAvatarKeySchema = z.enum([
   "finn",
   "jake",
   "princess-bubblegum",
@@ -29,7 +29,7 @@ export const fallbackAvatarKeySchema = z.enum([
   "tree-trunks",
 ]);
 
-export const leaderboardBoardSchema = z.object({
+const leaderboardBoardSchema = z.object({
   key: leaderboardBoardKeySchema,
   quest: z.string(),
   family: z.enum([
@@ -50,13 +50,7 @@ export const leaderboardBoardSchema = z.object({
   members: z.array(leaderboardBoardKeySchema),
 });
 
-export const leaderboardBoardsResponseSchema = z.object({
-  boards: z.array(leaderboardBoardSchema),
-  fallbackAvatarKeys: z.array(fallbackAvatarKeySchema),
-  serverNow: z.string().datetime(),
-});
-
-export const leaderboardPublicIdentitySchema = z.object({
+const leaderboardPublicIdentitySchema = z.object({
   publicProfileId: z.string().uuid().nullable(),
   displayName: z.string().nullable(),
   discriminator: z.string(),
@@ -66,7 +60,7 @@ export const leaderboardPublicIdentitySchema = z.object({
   visibility: z.enum(["visible", "hidden", "moderated", "deleted"]),
 });
 
-export const leaderboardRawResultSchema = z.discriminatedUnion("kind", [
+const leaderboardRawResultSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("steps"), steps: z.number().int().nonnegative() }),
   z.object({
     kind: z.literal("exact_completion_time"),
@@ -133,7 +127,7 @@ export const leaderboardRawResultSchema = z.discriminatedUnion("kind", [
   }),
 ]);
 
-export const leaderboardRowSchema = z.object({
+const leaderboardRowSchema = z.object({
   position: z.number().int().positive(),
   rank: z.number().int().positive(),
   profile: leaderboardPublicIdentitySchema,
@@ -144,7 +138,7 @@ export const leaderboardRowSchema = z.object({
   medal: z.enum(["gold", "silver", "bronze"]).nullable(),
 });
 
-export const leaderboardPeriodSchema = z.object({
+const leaderboardPeriodSchema = z.object({
   type: z.enum(["day", "week"]),
   status: z.enum(["scheduled", "open", "closing", "closed", "corrected"]),
   startsAt: z.string().datetime(),
@@ -266,10 +260,6 @@ export const publicLeaderboardProfileSchema = z.object({
 
 export type LeaderboardBoardKey = z.infer<typeof leaderboardBoardKeySchema>;
 export type FallbackAvatarKey = z.infer<typeof fallbackAvatarKeySchema>;
-export type LeaderboardBoard = z.infer<typeof leaderboardBoardSchema>;
-export type LeaderboardBoardsResponse = z.infer<
-  typeof leaderboardBoardsResponseSchema
->;
 export type LeaderboardRow = z.infer<typeof leaderboardRowSchema>;
 export type LeaderboardResponse = z.infer<typeof leaderboardResponseSchema>;
 export type LeaderboardHistoryResponse = z.infer<
@@ -297,16 +287,16 @@ export type PublicLeaderboardProfile = z.infer<
   typeof publicLeaderboardProfileSchema
 >;
 
-export const stepSourceSchema = z.enum(["device_health", "fitbit"]);
-export const localeSchema = z.enum(["en", "fr"]);
-export const notificationPreferencesSchema = z.object({
+const stepSourceSchema = z.enum(["device_health", "fitbit"]);
+const localeSchema = z.enum(["en", "fr"]);
+const notificationPreferencesSchema = z.object({
   dailyReset: z.boolean(),
   stepGoal: z.boolean(),
   pvpInvite: z.boolean(),
   pvpTurn: z.boolean(),
   giftReceived: z.boolean(),
 });
-export const authMethodsSchema = z.object({
+const authMethodsSchema = z.object({
   password: z.boolean(),
   google: z.boolean(),
   apple: z.boolean(),
@@ -329,12 +319,11 @@ export const authUserSchema = z.object({
 });
 
 export type AuthUser = z.infer<typeof authUserSchema>;
-export type AuthMethods = z.infer<typeof authMethodsSchema>;
 export type NotificationPreferences = z.infer<
   typeof notificationPreferencesSchema
 >;
 
-export const authTokensSchema = z.object({
+const authTokensSchema = z.object({
   accessToken: z.string(),
   refreshToken: z.string(),
   expiresInSeconds: z.number().int().positive(),
@@ -383,7 +372,7 @@ export const googleAuthSchema = z
     message: "Either idToken or accessToken is required.",
   });
 
-export const appleFullNameSchema = z.object({
+const appleFullNameSchema = z.object({
   givenName: z.string().nullable().optional(),
   familyName: z.string().nullable().optional(),
 });
@@ -395,7 +384,7 @@ export const appleAuthSchema = z.object({
   fullName: appleFullNameSchema.optional(),
 });
 
-export const raritySchema = z.object({
+const raritySchema = z.object({
   id: z.string(),
   name: z.string(),
   dropRate: z.number(),
@@ -418,7 +407,7 @@ export const cardTypeValues = [
 export const cardTypeSchema = z.enum(cardTypeValues);
 export type CardType = z.infer<typeof cardTypeSchema>;
 
-export const rarityNameValues = [
+const rarityNameValues = [
   "Common",
   "Uncommon",
   "Rare",
@@ -452,9 +441,9 @@ export const pvpStatusNameValues = [
   "Doom",
 ] as const;
 
-export const pvpStatusNameSchema = z.enum(pvpStatusNameValues);
+const pvpStatusNameSchema = z.enum(pvpStatusNameValues);
 
-export const passiveTriggerValues = [
+const passiveTriggerValues = [
   "onBattleInit",
   "onBattleStart",
   "onStartTurn",
@@ -472,9 +461,9 @@ export const passiveTriggerValues = [
   "onActionStart",
 ] as const;
 
-export const passiveTriggerSchema = z.enum(passiveTriggerValues);
+const passiveTriggerSchema = z.enum(passiveTriggerValues);
 
-export const abilityTargetValues = [
+const abilityTargetValues = [
   "self",
   "ally",
   "enemy",
@@ -485,9 +474,9 @@ export const abilityTargetValues = [
   "all",
 ] as const;
 
-export const abilityTargetSchema = z.enum(abilityTargetValues);
+const abilityTargetSchema = z.enum(abilityTargetValues);
 
-export const abilityTargetSelectorValues = [
+const abilityTargetSelectorValues = [
   "lowestHp",
   "highestHp",
   "lowestAtk",
@@ -498,9 +487,9 @@ export const abilityTargetSelectorValues = [
   "highestSpd",
 ] as const;
 
-export const abilityTargetSelectorSchema = z.enum(abilityTargetSelectorValues);
+const abilityTargetSelectorSchema = z.enum(abilityTargetSelectorValues);
 
-export const pvpCombatEventTypeValues = [
+const pvpCombatEventTypeValues = [
   "matchStart",
   "turnStart",
   "turnEnd",
@@ -539,9 +528,9 @@ export const pvpCombatEventTypeValues = [
   "swapHp",
 ] as const;
 
-export const pvpCombatEventTypeSchema = z.enum(pvpCombatEventTypeValues);
+const pvpCombatEventTypeSchema = z.enum(pvpCombatEventTypeValues);
 
-export const cardAbilityDefinitionSchema = z.object({
+const cardAbilityDefinitionSchema = z.object({
   key: z.string(),
   name: z.string(),
   nameFr: z.string().nullable().optional(),
@@ -648,7 +637,7 @@ const pvpPayloadConditionalEffectSchema = z
   })
   .passthrough();
 
-export const pvpAbilityPayloadSchema = z
+const pvpAbilityPayloadSchema = z
   .object({
     damageMul: z.number().optional(),
     ignoreDefensePct: z.number().optional(),
@@ -724,13 +713,13 @@ export const pvpAbilityPayloadSchema = z
   })
   .passthrough();
 
-export const cardAbilitiesSchema = z.object({
+const cardAbilitiesSchema = z.object({
   passive: cardAbilityDefinitionSchema.nullable(),
   skill: cardAbilityDefinitionSchema.nullable(),
   ultimate: cardAbilityDefinitionSchema.nullable(),
 });
 
-export const cardSchema = z.object({
+const cardSchema = z.object({
   id: z.string(),
   name: z.string(),
   character: z.string(),
@@ -745,7 +734,7 @@ export const cardSchema = z.object({
   abilities: cardAbilitiesSchema.nullable().optional(),
 });
 
-export const collectionEntrySchema = z.object({
+const collectionEntrySchema = z.object({
   id: z.string(),
   cardId: z.string(),
   quantity: z.number().int().nonnegative(),
@@ -753,7 +742,7 @@ export const collectionEntrySchema = z.object({
   card: cardSchema,
 });
 
-export const collectionStatsSchema = z.object({
+const collectionStatsSchema = z.object({
   totalCards: z.number().int().nonnegative(),
   uniqueOwned: z.number().int().nonnegative(),
   completionPercentage: z.number().int().min(0).max(100),
@@ -765,7 +754,7 @@ export const collectionResponseSchema = z.object({
   stats: collectionStatsSchema,
 });
 
-export const userSummarySchema = z.object({
+const userSummarySchema = z.object({
   id: z.string(),
   email: z.string().email(),
   displayName: z.string(),
@@ -790,7 +779,7 @@ export const craftRecycleResponseSchema = z.object({
   dustSpent: z.number().int().nonnegative().optional(),
 });
 
-export const giftSchema = z.object({
+const giftSchema = z.object({
   id: z.string(),
   cardId: z.string(),
   quantity: z.number().int().positive(),
@@ -820,7 +809,7 @@ export const processGiftSchema = z.object({
   action: z.enum(["accept", "reject"]),
 });
 
-export const packAvailabilitySchema = z.object({
+const packAvailabilitySchema = z.object({
   canOpen: z.boolean(),
   reason: z.string().nullable().optional(),
   nextAvailableAt: z.string().nullable().optional(),
@@ -828,7 +817,7 @@ export const packAvailabilitySchema = z.object({
   limit: z.number().int().positive().nullable().optional(),
 });
 
-export const packSchema = z.object({
+const packSchema = z.object({
   id: z.string(),
   name: z.string(),
   description: z.string(),
@@ -841,7 +830,7 @@ export const packSchema = z.object({
   availability: packAvailabilitySchema.optional(),
 });
 
-export const cardBackVisualSchema = z.object({
+const cardBackVisualSchema = z.object({
   themeName: z.enum(["candy", "ice", "nightosphere"]),
   rarityName: z.enum(["Common", "Uncommon", "Rare", "Epic", "Legendary"]),
   imageAssetId: z.string().nullable(),
@@ -852,10 +841,8 @@ export const packsResponseSchema = z.object({
   cardBackVisuals: z.array(cardBackVisualSchema),
 });
 
-export const adminPackSchema = packSchema;
-
 export const adminPacksResponseSchema = z.object({
-  packs: z.array(adminPackSchema),
+  packs: z.array(packSchema),
 });
 
 export const adminPackEditSchema = z.object({
@@ -869,7 +856,7 @@ export const adminPackEditSchema = z.object({
   packArtAssetId: z.string().nullable().optional(),
 });
 
-export const openedCardSchema = cardSchema.extend({
+const openedCardSchema = cardSchema.extend({
   isNewForUser: z.boolean(),
   revealSource: z.enum(["spark"]).optional(),
 });
@@ -898,14 +885,7 @@ export const dailyClaimResponseSchema = z.object({
   newBalance: z.number().int().nonnegative(),
 });
 
-export const dailyClaimConflictSchema = z.object({
-  error: z.string(),
-  code: z.literal("DAILY_ALREADY_CLAIMED"),
-  timeUntilNextClaim: z.number().int().nonnegative(),
-  timezone: z.string(),
-});
-
-export const questSchema = z.object({
+const questSchema = z.object({
   id: z.string(),
   version: z.string(),
   type: z.string(),
@@ -980,9 +960,9 @@ export const claimQuestResponseSchema = z.object({
   }),
 });
 
-export const wordleLetterStateSchema = z.enum(["correct", "present", "absent"]);
-export const wordleLocaleSchema = z.enum(["fr", "en"]);
-export const wordleGuessSchema = z.object({
+const wordleLetterStateSchema = z.enum(["correct", "present", "absent"]);
+const wordleLocaleSchema = z.enum(["fr", "en"]);
+const wordleGuessSchema = z.object({
   guess: z.string(),
   evaluation: z.array(wordleLetterStateSchema),
 });
@@ -999,7 +979,7 @@ export const wordleStateResponseSchema = z.object({
   resetByName: z.string().nullable().optional(),
 });
 
-export const wordleDefinitionVariantSchema = z.object({
+const wordleDefinitionVariantSchema = z.object({
   displayWord: z.string(),
   definition: z.string(),
   partOfSpeech: z.string().nullable().optional(),
@@ -1034,30 +1014,30 @@ export const wordleSubmitResponseSchema = z.object({
   targetWord: z.string().nullable().optional(),
 });
 
-export const dailyNumbersModeSchema = z.enum(["1-5", "2-4", "3-3"]);
-export const dailyNumbersOperatorSchema = z.enum(["+", "-", "*", "/"]);
+const dailyNumbersModeSchema = z.enum(["1-5", "2-4", "3-3"]);
+const dailyNumbersOperatorSchema = z.enum(["+", "-", "*", "/"]);
 
-export const dailyNumbersTileSchema = z.object({
+const dailyNumbersTileSchema = z.object({
   id: z.string(),
   value: z.number().int().positive(),
   source: z.enum(["initial", "derived"]),
   status: z.enum(["available", "used"]),
 });
 
-export const dailyNumbersStepInputSchema = z.object({
+const dailyNumbersStepInputSchema = z.object({
   leftId: z.string().min(1),
   operator: dailyNumbersOperatorSchema,
   rightId: z.string().min(1),
   resultId: z.string().min(1),
 });
 
-export const dailyNumbersStepSchema = dailyNumbersStepInputSchema.extend({
+const dailyNumbersStepSchema = dailyNumbersStepInputSchema.extend({
   leftValue: z.number().int().positive(),
   rightValue: z.number().int().positive(),
   resultValue: z.number().int().positive(),
 });
 
-export const dailyNumbersSubmissionSchema = z.object({
+const dailyNumbersSubmissionSchema = z.object({
   finalValue: z.number().int().positive(),
   defaultDistance: z.number().int().nonnegative(),
   distance: z.number().int().nonnegative(),
@@ -1070,12 +1050,12 @@ export const dailyNumbersSubmissionSchema = z.object({
   officialSolutionSteps: z.array(dailyNumbersStepSchema),
 });
 
-export const dailyNumbersSolutionListItemSchema = z.object({
+const dailyNumbersSolutionListItemSchema = z.object({
   number: z.number().int().positive(),
   steps: z.array(dailyNumbersStepSchema),
 });
 
-export const dailyNumbersSolutionHuntProgressSchema = z.object({
+const dailyNumbersSolutionHuntProgressSchema = z.object({
   available: z.literal(true),
   solutionsFound: z.number().int().nonnegative(),
   totalSolutions: z.number().int().positive(),
@@ -1129,14 +1109,14 @@ export const dailyNumbersSolutionHuntSubmitResponseSchema = z.object({
   otherSolutions: z.array(dailyNumbersSolutionListItemSchema),
 });
 
-export const dailyNumbersArchiveStatusSchema = z.enum([
+const dailyNumbersArchiveStatusSchema = z.enum([
   "unplayed",
   "tried",
   "solved",
   "exact",
 ]);
 
-export const dailyNumbersArchiveModeSummarySchema = z.object({
+const dailyNumbersArchiveModeSummarySchema = z.object({
   mode: dailyNumbersModeSchema,
   status: dailyNumbersArchiveStatusSchema,
   finalValue: z.number().int().positive().nullable(),
@@ -1147,7 +1127,7 @@ export const dailyNumbersArchiveModeSummarySchema = z.object({
   elapsedMs: z.number().int().nonnegative().nullable(),
 });
 
-export const dailyNumbersArchiveHistoryEntrySchema = z.object({
+const dailyNumbersArchiveHistoryEntrySchema = z.object({
   date: z.string(),
   modes: z.array(dailyNumbersArchiveModeSummarySchema),
 });
@@ -1171,7 +1151,7 @@ export const dailyNumbersArchiveSubmitSchema = z.object({
   steps: z.array(dailyNumbersStepInputSchema),
 });
 
-export const perfectTimingTierSchema = z.enum([
+const perfectTimingTierSchema = z.enum([
   "perfect",
   "amazing",
   "great",
@@ -1179,16 +1159,16 @@ export const perfectTimingTierSchema = z.enum([
   "miss",
 ]);
 
-export const perfectTimingDirectionSchema = z.enum(["early", "late", "exact"]);
-export const perfectTimingStopReasonSchema = z.enum([
+const perfectTimingDirectionSchema = z.enum(["early", "late", "exact"]);
+const perfectTimingStopReasonSchema = z.enum([
   "manual",
   "navigation",
   "background",
   "server_recovery",
 ]);
-export const perfectTimingClientStopReasonSchema =
+const perfectTimingClientStopReasonSchema =
   perfectTimingStopReasonSchema.exclude(["server_recovery"]);
-export const perfectTimingAttemptStatusSchema = z.enum([
+const perfectTimingAttemptStatusSchema = z.enum([
   "started",
   "result",
   "discarded",
@@ -1197,7 +1177,7 @@ export const perfectTimingAttemptStatusSchema = z.enum([
   "failed",
 ]);
 
-export const perfectTimingAttemptSchema = z.object({
+const perfectTimingAttemptSchema = z.object({
   id: z.string(),
   attemptNumber: z.number().int().min(1).max(3),
   targetMs: z.number().int().min(3_000).max(10_000),
@@ -1255,14 +1235,14 @@ export const perfectTimingTrainingTargetSchema = z.object({
   officialTargetMs: z.number().int().min(3_000).max(10_000),
 });
 
-export const speedQuestionSchema = z.object({
+const speedQuestionSchema = z.object({
   index: z.number().int().nonnegative(),
   left: z.number().int(),
   right: z.number().int(),
   operator: z.enum(["+", "-"]),
 });
 
-export const speedRunHistoryEntrySchema = z.object({
+const speedRunHistoryEntrySchema = z.object({
   index: z.number().int().nonnegative(),
   left: z.number().int(),
   right: z.number().int(),
@@ -1325,7 +1305,7 @@ export const speedAnswerSchema = z.object({
   questVersion: z.string().optional(),
 });
 
-export const speedSyncedAnswersSchema = z.array(z.number().int()).max(120);
+const speedSyncedAnswersSchema = z.array(z.number().int()).max(120);
 
 export const speedPauseSchema = z.object({
   answers: speedSyncedAnswersSchema.optional(),
@@ -1367,7 +1347,7 @@ export const pvpInviteSchema = z.object({
   loadout: z.array(z.string()).length(6),
 });
 
-export const pvpLoadoutSchema = z.object({
+const pvpLoadoutSchema = z.object({
   id: z.string(),
   ownerId: z.string(),
   name: z.string(),
@@ -1388,7 +1368,7 @@ export const pvpLoadoutMutationSchema = z.object({
   cardIds: z.array(z.string()).length(6),
 });
 
-export const pvpMatchSchema = z.object({
+const pvpMatchSchema = z.object({
   id: z.string(),
   inviterId: z.string(),
   inviteeId: z.string(),
@@ -1413,7 +1393,7 @@ export const pvpMatchSchema = z.object({
   updatedAt: z.string(),
 });
 
-export const pvpUnitStatusSchema = z.object({
+const pvpUnitStatusSchema = z.object({
   name: pvpStatusNameSchema,
   duration: z.number().int(),
   magnitude: z.number().optional().nullable(),
@@ -1426,7 +1406,7 @@ export const pvpUnitStatusSchema = z.object({
   ownerTurnsSeen: z.number().int().nonnegative().optional(),
 });
 
-export const pvpAbilityDefinitionSchema = z.object({
+const pvpAbilityDefinitionSchema = z.object({
   key: z.string(),
   name: z.string(),
   description: z.string(),
@@ -1437,7 +1417,7 @@ export const pvpAbilityDefinitionSchema = z.object({
   payload: pvpAbilityPayloadSchema.nullable().optional(),
 });
 
-export const pvpUnitStateSchema = z.object({
+const pvpUnitStateSchema = z.object({
   instanceId: z.string(),
   cardId: z.string(),
   name: z.string(),
@@ -1464,7 +1444,7 @@ export const pvpUnitStateSchema = z.object({
   knockedOut: z.boolean(),
 });
 
-export const pvpPlayerStateSchema = z.object({
+const pvpPlayerStateSchema = z.object({
   userId: z.string(),
   name: z.string(),
   energy: z.number().int(),
@@ -1474,14 +1454,14 @@ export const pvpPlayerStateSchema = z.object({
   bench: z.array(pvpUnitStateSchema),
 });
 
-export const pvpCombatEventSchema = z.object({
+const pvpCombatEventSchema = z.object({
   seq: z.number().int(),
   turn: z.number().int().nonnegative(),
   type: pvpCombatEventTypeSchema,
   payload: z.record(z.string(), z.unknown()),
 });
 
-export const pvpBattleStateBaseSchema = z.object({
+const pvpBattleStateBaseSchema = z.object({
   id: z.string(),
   turn: z.number().int().positive(),
   phase: z.enum(["active", "ended"]),
@@ -1494,17 +1474,15 @@ export const pvpBattleStateBaseSchema = z.object({
     .optional(),
 });
 
-export const pvpParticipantBattleStateSchema = pvpBattleStateBaseSchema.extend({
+const pvpParticipantBattleStateSchema = pvpBattleStateBaseSchema.extend({
   isMyTurn: z.boolean(),
   myUserId: z.string(),
 });
 
-export const pvpSpectateBattleStateSchema = pvpBattleStateBaseSchema.extend({
+const pvpSpectateBattleStateSchema = pvpBattleStateBaseSchema.extend({
   isMyTurn: z.literal(false),
   myUserId: z.null(),
 });
-
-export const pvpBattleStateSchema = pvpParticipantBattleStateSchema;
 
 export const pvpMatchDetailResponseSchema = z.object({
   match: pvpMatchSchema,
@@ -1566,11 +1544,6 @@ export const pvpEndTurnSchema = z.object({
     .optional(),
 });
 
-export const adminCardMutationSchema = z.object({
-  isFeatured: z.boolean().optional(),
-  isArchived: z.boolean().optional(),
-});
-
 export const pvpInvitesResponseSchema = z.object({
   invites: z.array(pvpMatchSchema),
 });
@@ -1612,7 +1585,7 @@ export const adminCardsResponseSchema = z.object({
   cards: z.array(adminCardSummarySchema),
 });
 
-export const adminPackDetailSchema = adminPackSchema;
+export const adminPackDetailSchema = packSchema;
 
 export const adminImageAssetSchema = z.object({
   id: z.string(),
@@ -1636,20 +1609,6 @@ export const adminCardBackVisualEditSchema = z.object({
   themeName: z.enum(["candy", "ice", "nightosphere"]),
   rarityName: z.enum(["Common", "Uncommon", "Rare", "Epic", "Legendary"]),
   imageAssetId: z.string().nullable(),
-});
-
-export const adminCardEditSchema = z.object({
-  name: z.string().min(1),
-  character: z.string().min(1),
-  description: z.string().min(1),
-  hp: z.number().int().positive(),
-  attack: z.number().int().positive(),
-  defense: z.number().int().positive(),
-  speed: z.number().int().positive(),
-  type: cardTypeSchema,
-  rarityId: z.string().min(1),
-  isFeatured: z.boolean().optional(),
-  isArchived: z.boolean().optional(),
 });
 
 export const adminAbilitySchema = z.object({
@@ -1740,7 +1699,7 @@ export const webAuthConfigSchema = z.object({
     .nullable(),
 });
 
-export const accessAssessmentChallengeSchema = z.object({
+const accessAssessmentChallengeSchema = z.object({
   kind: z.literal("play_integrity_standard"),
   token: z.string().min(1),
   requestHash: z.string().min(1),
@@ -1780,7 +1739,7 @@ export const resetPasswordResponseSchema = z.object({
   message: z.string(),
 });
 
-export const stepSummarySchema = z.object({
+const stepSummarySchema = z.object({
   source: stepSourceSchema,
   stepCount: z.number().int().nonnegative(),
   recordedFor: z.string(),
@@ -1819,14 +1778,6 @@ export const changePasswordSchema = z.object({
   newPassword: z.string().min(8),
 });
 
-export const notificationPlatformSchema = z.enum(["ios", "android"]);
-
-export const registerNotificationDeviceSchema = z.object({
-  installationId: z.string().min(1).max(128),
-  platform: notificationPlatformSchema,
-  expoPushToken: z.string().min(1).max(512),
-});
-
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type GoogleAuthInput = z.infer<typeof googleAuthSchema>;
@@ -1855,7 +1806,6 @@ export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 export type ResetPasswordResponse = z.infer<typeof resetPasswordResponseSchema>;
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 export type CollectionResponse = z.infer<typeof collectionResponseSchema>;
-export type UsersResponse = z.infer<typeof usersResponseSchema>;
 export type HomeResponse = z.infer<typeof homeResponseSchema>;
 export type PacksResponse = z.infer<typeof packsResponseSchema>;
 export type CardBackVisual = z.infer<typeof cardBackVisualSchema>;
@@ -1876,7 +1826,6 @@ export type OpenPackInput = z.infer<typeof openPackSchema>;
 export type OpenPackResponse = z.infer<typeof openPackResponseSchema>;
 export type DailyClaimStatus = z.infer<typeof dailyClaimStatusSchema>;
 export type DailyClaimResponse = z.infer<typeof dailyClaimResponseSchema>;
-export type DailyClaimConflict = z.infer<typeof dailyClaimConflictSchema>;
 export type QuestsResponse = z.infer<typeof questsResponseSchema>;
 export type FitbitStatusResponse = z.infer<typeof fitbitStatusResponseSchema>;
 export type FitbitAuthorizeInput = z.infer<typeof fitbitAuthorizeSchema>;
@@ -1890,12 +1839,8 @@ export type ClaimQuestInput = z.infer<typeof claimQuestSchema>;
 export type ClaimQuestResponse = z.infer<typeof claimQuestResponseSchema>;
 export type WordleStateResponse = z.infer<typeof wordleStateResponseSchema>;
 export type DailyNumbersMode = z.infer<typeof dailyNumbersModeSchema>;
-export type DailyNumbersTile = z.infer<typeof dailyNumbersTileSchema>;
 export type DailyNumbersStepInput = z.infer<typeof dailyNumbersStepInputSchema>;
 export type DailyNumbersStep = z.infer<typeof dailyNumbersStepSchema>;
-export type DailyNumbersSubmission = z.infer<
-  typeof dailyNumbersSubmissionSchema
->;
 export type DailyNumbersSolutionListItem = z.infer<
   typeof dailyNumbersSolutionListItemSchema
 >;
@@ -1903,9 +1848,6 @@ export type DailyNumbersStateResponse = z.infer<
   typeof dailyNumbersStateResponseSchema
 >;
 export type DailyNumbersSubmitInput = z.infer<typeof dailyNumbersSubmitSchema>;
-export type DailyNumbersSolutionHuntProgress = z.infer<
-  typeof dailyNumbersSolutionHuntProgressSchema
->;
 export type DailyNumbersSolutionHuntSubmitInput = z.infer<
   typeof dailyNumbersSolutionHuntSubmitSchema
 >;
@@ -1917,9 +1859,6 @@ export type DailyNumbersArchiveStatus = z.infer<
 >;
 export type DailyNumbersArchiveModeSummary = z.infer<
   typeof dailyNumbersArchiveModeSummarySchema
->;
-export type DailyNumbersArchiveHistoryEntry = z.infer<
-  typeof dailyNumbersArchiveHistoryEntrySchema
 >;
 export type DailyNumbersArchiveHistoryResponse = z.infer<
   typeof dailyNumbersArchiveHistoryResponseSchema
@@ -1933,9 +1872,6 @@ export type DailyNumbersArchiveSubmitInput = z.infer<
 export type PerfectTimingTier = z.infer<typeof perfectTimingTierSchema>;
 export type PerfectTimingDirection = z.infer<
   typeof perfectTimingDirectionSchema
->;
-export type PerfectTimingStopReason = z.infer<
-  typeof perfectTimingStopReasonSchema
 >;
 export type PerfectTimingClientStopReason = z.infer<
   typeof perfectTimingClientStopReasonSchema
@@ -1962,10 +1898,8 @@ export type WordleSubmitResponse = z.infer<typeof wordleSubmitResponseSchema>;
 export type SpeedRunState = z.infer<typeof speedRunStateSchema>;
 export type SpeedRunAnswerResponse = z.infer<typeof speedAnswerResponseSchema>;
 export type SpeedTrainingRun = z.infer<typeof speedTrainingRunSchema>;
-export type SpeedRunHistoryEntry = z.infer<typeof speedRunHistoryEntrySchema>;
 export type PvpAction = z.infer<typeof pvpActionSchema>;
 export type PvpEndTurnInput = z.infer<typeof pvpEndTurnSchema>;
-export type PvpBattleStateBase = z.infer<typeof pvpBattleStateBaseSchema>;
 export type PvpParticipantBattleState = z.infer<
   typeof pvpParticipantBattleStateSchema
 >;
@@ -1990,7 +1924,6 @@ export type AdminAbilitiesResponse = z.infer<
   typeof adminAbilitiesResponseSchema
 >;
 export type GiftsResponse = z.infer<typeof giftsResponseSchema>;
-export type StepSummary = z.infer<typeof stepSummarySchema>;
 export type HealthStepsResponse = z.infer<typeof healthStepsResponseSchema>;
 export type SyncStepsInput = z.infer<typeof syncStepsSchema>;
 export type UpdateStepSourceInput = z.infer<typeof updateStepSourceSchema>;
@@ -1999,10 +1932,6 @@ export type UpdateTimezoneInput = z.infer<typeof updateTimezoneSchema>;
 export type UpdateNotificationPreferencesInput = z.infer<
   typeof updateNotificationPreferencesSchema
 >;
-export type RegisterNotificationDeviceInput = z.infer<
-  typeof registerNotificationDeviceSchema
->;
-
 export const updateDisplayNameSchema = z.object({
   displayName: z.string().min(1).max(64),
 });
@@ -2016,7 +1945,7 @@ export const raritiesResponseSchema = z.object({
   ),
 });
 
-export const adminUserSchema = z.object({
+const adminUserSchema = z.object({
   id: z.string(),
   email: z.string().email(),
   displayName: z.string().nullable(),
@@ -2055,11 +1984,9 @@ export const adminUserQuestResetInputSchema = z.discriminatedUnion("mode", [
   }),
 ]);
 
-export const adminUserDailyQuestSchema = questSchema;
-
 export const adminUserDetailSchema = adminUserSchema.extend({
   todayDate: z.string(),
-  dailyQuests: z.array(adminUserDailyQuestSchema),
+  dailyQuests: z.array(questSchema),
   viewerPermissions: z.object({
     canManageCoins: z.boolean(),
     canManageAdminRights: z.boolean(),
@@ -2082,31 +2009,8 @@ export const adminUserQuestResetResponseSchema = z.object({
   questType: z.string().nullable(),
 });
 
-export const adminAllowedEmailSchema = z.object({
-  email: z.string().email(),
-  isAdmin: z.boolean().optional(),
-  isSuperAdmin: z.boolean().optional(),
-});
-
-export const adminAllowedEmailUpdateSchema = z.object({
-  isAdmin: z.boolean().optional(),
-  isSuperAdmin: z.boolean().optional(),
-});
-
 export const adminEmailRequestActionSchema = z.object({
   status: z.enum(["approved", "rejected"]),
-});
-
-export const allowedEmailSchema = z.object({
-  id: z.string(),
-  email: z.string().email(),
-  isAdmin: z.boolean(),
-  isSuperAdmin: z.boolean(),
-  createdAt: z.string(),
-});
-
-export const allowedEmailsResponseSchema = z.object({
-  emails: z.array(allowedEmailSchema),
 });
 
 const accessAssessmentNetworkSchema = z.object({
@@ -2155,7 +2059,7 @@ const accessAssessmentBase = {
   assessedAt: z.string().nullable(),
 };
 
-export const accessAssessmentSchema = z.discriminatedUnion("state", [
+const accessAssessmentSchema = z.discriminatedUnion("state", [
   z.object({
     ...accessAssessmentBase,
     state: z.literal("assessing"),
@@ -2201,7 +2105,7 @@ export const accessRequestIpRevealResponseSchema = z.object({
   retainedUntil: z.string().nullable(),
 });
 
-export const emailAccessRequestSchema = z.object({
+const emailAccessRequestSchema = z.object({
   id: z.string(),
   email: z.string().email(),
   status: z.enum(["pending", "approved", "rejected"]),
@@ -2244,7 +2148,7 @@ export const emailAccessRequestsResponseSchema = z.object({
   requests: z.array(emailAccessRequestSchema),
 });
 
-export const pvpSpectateMatchSchema = z.object({
+const pvpSpectateMatchSchema = z.object({
   id: z.string(),
   inviterId: z.string(),
   inviteeId: z.string(),
@@ -2263,11 +2167,9 @@ export const pvpSpectateResponseSchema = z.object({
   matches: z.array(pvpSpectateMatchSchema),
 });
 
-export type UpdateDisplayNameInput = z.infer<typeof updateDisplayNameSchema>;
 export type RaritiesResponse = z.infer<typeof raritiesResponseSchema>;
 export type AdminUser = z.infer<typeof adminUserSchema>;
 export type AdminUsersResponse = z.infer<typeof adminUsersResponseSchema>;
-export type AdminCoinAdjustInput = z.infer<typeof adminCoinAdjustSchema>;
 export type AdminUserRoleUpdateInput = z.infer<
   typeof adminUserRoleUpdateSchema
 >;
@@ -2282,11 +2184,9 @@ export type AccountDeleteResponse = z.infer<typeof accountDeleteResponseSchema>;
 export type AdminUserQuestResetResponse = z.infer<
   typeof adminUserQuestResetResponseSchema
 >;
-export type AllowedEmailsResponse = z.infer<typeof allowedEmailsResponseSchema>;
 export type EmailAccessRequestsResponse = z.infer<
   typeof emailAccessRequestsResponseSchema
 >;
-export type AccessAssessment = z.infer<typeof accessAssessmentSchema>;
 export type AccessRequestIpRevealResponse = z.infer<
   typeof accessRequestIpRevealResponseSchema
 >;
