@@ -240,6 +240,8 @@ const adminAbilitiesEnvelopeSchema = z.object({
 export interface ApiClientOptions {
   baseUrl: string;
   requestTimeoutMs?: number;
+  /** Deadline for multipart uploads (images up to 16 MB); defaults to 120 s. */
+  uploadTimeoutMs?: number;
   getAccessToken?: () => string | null | Promise<string | null>;
   getClientHeaders?: () =>
     Record<string, string> | Promise<Record<string, string>>;
@@ -290,7 +292,7 @@ export class ApiClient {
     path: string,
     init: RequestInit,
     parser: (data: unknown) => T,
-    opts: { allowRefresh: boolean; isJson: boolean },
+    opts: { allowRefresh: boolean; isJson: boolean; timeoutMs?: number },
   ): Promise<T> {
     const accessToken = await this.options.getAccessToken?.();
     const clientHeaders = (await this.options.getClientHeaders?.()) ?? {};
@@ -312,7 +314,8 @@ export class ApiClient {
 
     let response: Response;
     const abortController = new AbortController();
-    const requestTimeoutMs = this.options.requestTimeoutMs ?? 8_000;
+    const requestTimeoutMs =
+      opts.timeoutMs ?? this.options.requestTimeoutMs ?? 8_000;
     const upstreamSignal = init.signal;
     let didTimeout = false;
     const abortFromUpstream = () =>
@@ -405,6 +408,7 @@ export class ApiClient {
     return this.execute(path, { method: "POST", body: formData }, parser, {
       allowRefresh: !path.startsWith("/auth/"),
       isJson: false,
+      timeoutMs: this.options.uploadTimeoutMs ?? 120_000,
     });
   }
 
