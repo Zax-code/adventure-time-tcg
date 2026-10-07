@@ -1101,6 +1101,13 @@ export const dailyNumbersStateResponseSchema = z.object({
   submitted: z.boolean(),
   submission: dailyNumbersSubmissionSchema.nullable(),
   solutionHunt: dailyNumbersSolutionHuntProgressSchema.nullable().optional(),
+  /** Present only on ranked-start: the server-timed session used as integrity evidence. */
+  rankedSession: z
+    .object({
+      startedAt: z.string(),
+      deadlineAt: z.string(),
+    })
+    .optional(),
 });
 
 export const dailyNumbersSubmitSchema = z.object({
