@@ -13,6 +13,16 @@ const DEFAULT_OUTPUT_PATH = path.resolve(
   import.meta.dirname,
   "../local-build/ios-production.ipa",
 );
+
+// npm -w runs this script from apps/mobile, while the user typed --output relative
+// to where they launched npm (INIT_CWD); EAS then runs from apps/mobile too, so a
+// relative path must be made absolute here.
+function resolveOutputPath(output) {
+  const trimmed = output?.trim();
+  return trimmed
+    ? path.resolve(process.env.INIT_CWD ?? process.cwd(), trimmed)
+    : DEFAULT_OUTPUT_PATH;
+}
 const DEFAULT_API_KEY_SUBJECT = "user";
 
 async function readEnvValueFromFile(filePath, key) {
@@ -206,7 +216,7 @@ async function parseCliOptions(mobileRoot) {
       .filter(Boolean),
     message: values.message?.trim() || "",
     note: values.note?.trim() || "",
-    outputPath: values.output?.trim() || DEFAULT_OUTPUT_PATH,
+    outputPath: resolveOutputPath(values.output),
     profile: values.profile?.trim() || DEFAULT_PROFILE,
   };
 }
