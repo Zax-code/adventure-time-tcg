@@ -304,7 +304,8 @@ defmodule AdventureTimeApi.Leaderboards.Lifecycle do
 
   defp reusable_snapshot?(nil, _period, _signature), do: false
 
-  defp reusable_snapshot?(current, %Period{status: :closed} = period, _signature) do
+  defp reusable_snapshot?(current, %Period{status: status} = period, _signature)
+       when status in [:closed, :corrected] do
     DateTime.compare(current.source_cutoff, period.closes_at) != :lt
   end
 

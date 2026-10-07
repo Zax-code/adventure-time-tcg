@@ -489,6 +489,18 @@ defmodule AdventureTimeApi.Leaderboards.LifecycleTest do
              from(achievement in UserAchievement, where: achievement.status == :active),
              :count
            ) == 2
+
+    assert :ok = Lifecycle.tick(~U[2026-08-24 13:05:00.000000Z])
+
+    assert %Snapshot{id: ^replacement_id} =
+             Repo.get_by!(Snapshot,
+               period_id: week.id,
+               board_id: board_id("steps/default"),
+               current: true
+             )
+
+    assert Repo.reload!(week).status == :corrected
+    assert Repo.aggregate(from(grant in RewardGrant, where: grant.status == :active), :count) == 2
   end
 
   defp activate! do
