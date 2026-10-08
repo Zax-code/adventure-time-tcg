@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useShallow } from "zustand/react/shallow";
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
@@ -94,7 +95,16 @@ function useSettingsScreenView() {
 
   const themeName = useThemeStore((state) => state.themeName);
   const setTheme = useThemeStore((state) => state.setTheme);
-  const stepSync = useStepSyncStore();
+  const stepSync = useStepSyncStore(
+    useShallow((state) => ({
+      availability: state.availability,
+      deviceStepCount: state.deviceStepCount,
+      healthPermissionStatus: state.healthPermissionStatus,
+      isSyncing: state.isSyncing,
+      lastError: state.lastError,
+      notificationPermissionStatus: state.notificationPermissionStatus,
+    })),
+  );
   const tc = THEME_COLORS[themeName];
 
   const [editing, setEditing] = useState(false);

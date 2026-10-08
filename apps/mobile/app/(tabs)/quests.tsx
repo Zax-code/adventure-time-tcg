@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useShallow } from "zustand/react/shallow";
 import { File, Paths } from "expo-file-system";
 import * as Haptics from "expo-haptics";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
@@ -451,7 +452,16 @@ function useQuestsScreenView() {
   const patchUser = useSessionStore((state) => state.patchUser);
   const user = useSessionStore((state) => state.user);
   const questTimeZone = user?.timezone ?? DEFAULT_QUEST_TIME_ZONE;
-  const stepSync = useStepSyncStore();
+  // Only the fields rendered here: deviceStepCount changes on pedometer callbacks
+  // and must not re-render the whole quest hub.
+  const stepSync = useStepSyncStore(
+    useShallow((state) => ({
+      availability: state.availability,
+      healthPermissionStatus: state.healthPermissionStatus,
+      isSyncing: state.isSyncing,
+      lastError: state.lastError,
+    })),
+  );
   const { locale, t } = useTranslation();
   const headerHeight = useAppHeaderHeight();
   const bottomTabPadding = useBottomTabBarContentPadding();
