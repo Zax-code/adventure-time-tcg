@@ -1,5 +1,4 @@
 const home = {
-  dailyReward: "Daily reward",
   todayStatus: "Today",
   rewardReady: "Reward ready",
   rewardClaimed: "Reward claimed",
@@ -8,7 +7,6 @@ const home = {
   claimCoins: "Claim {amount} coins!",
   nextClaim: "Next: {time}",
   collectionProgress: "Collection progress",
-  complete: "{percent}% complete",
   cardsCollected: "{owned} of {total} cards collected",
   uniqueCards: "Unique cards",
   cardsRemaining: "Still missing",

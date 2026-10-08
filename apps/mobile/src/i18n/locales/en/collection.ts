@@ -5,7 +5,6 @@ const collection = {
   dust: "Dust",
   searchByNameOrCharacter: "Search by name or character...",
   all: "All",
-  owned: "Owned",
   notOwned: "Not owned",
   ownershipFilters: {
     all: "All cards",
@@ -23,8 +22,6 @@ const collection = {
   noFilterMatches: "No cards match your filters.",
   empty: "Your collection is empty. Open packs or craft your first card!",
   locked: {
-    illustration: "Hidden art",
-    description: "Craft or unlock this card to reveal its story and powers.",
     statsHint: "Craft or unlock this card to reveal its battle stats.",
   },
   dustModal: {
@@ -55,7 +52,6 @@ const collection = {
   },
   detail: {
     manageCard: "Review the card, its value, and its actions in one place.",
-    rarity: "Rarity",
     stats: "Stats",
     ownedCopies: "Owned copies",
     dustBalance: "Dust balance",

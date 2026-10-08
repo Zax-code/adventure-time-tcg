@@ -5,7 +5,6 @@ const collection = {
   dust: "Poussière",
   searchByNameOrCharacter: "Rechercher par nom ou personnage...",
   all: "Toutes",
-  owned: "Possedees",
   notOwned: "Non possedees",
   ownershipFilters: {
     all: "Toutes",
@@ -23,9 +22,6 @@ const collection = {
   noFilterMatches: "Aucune carte ne correspond à tes filtres.",
   empty: "Ta collection est vide. Ouvre des packs ou cree ta premiere carte !",
   locked: {
-    illustration: "Illustration cachee",
-    description:
-      "Cree ou debloque cette carte pour reveler son histoire et ses pouvoirs.",
     statsHint:
       "Cree ou debloque cette carte pour reveler ses statistiques de combat.",
   },
@@ -60,7 +56,6 @@ const collection = {
   },
   detail: {
     manageCard: "Retrouve la carte, sa valeur et ses actions au meme endroit.",
-    rarity: "Rareté",
     stats: "Stats",
     ownedCopies: "Copies possedees",
     dustBalance: "Poussiere disponible",

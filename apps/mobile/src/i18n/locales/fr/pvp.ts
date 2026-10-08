@@ -3,13 +3,8 @@ const pvp = {
     title: "Combat PvP",
     subtitle:
       "Défie tes amis · Crée tes compositions · Grimpe dans le classement",
-    accept: "Accepter",
     decline: "Refuser",
-    expired: "Expirée",
-    declined: "Refusée",
     turn: "Tour {count}",
-    watch: "Observer",
-    spectating: "Observation du match",
   },
   match: {
     loading: "Chargement du match...",
@@ -35,9 +30,7 @@ const pvp = {
     hoursMinutes: "{hours} h {minutes} min",
   },
   board: {
-    bench: "BANC",
     ready: "GO",
-    turnLabel: "Tour {turn} • {hint}",
     hint: {
       copySource: "Appuie sur l'unité source à copier",
       ally: "Appuie sur un allié à cibler",
@@ -277,7 +270,6 @@ const pvp = {
     rarityTitle: "Différences de rareté",
     rarityIntro:
       "La rareté modifie les statistiques de base au début du combat. Les cartes légendaires activent aussi un emplacement passif.",
-    rarityColRarity: "Rareté",
     rarityColHp: "Bonus PV",
     rarityColAtk: "Bonus ATK",
     rarityColPassive: "Passif en plus",
@@ -285,9 +277,7 @@ const pvp = {
     rarityNo: "Non",
   },
   unknown: "Inconnu",
-  sendInvite: "Envoyer une invitation",
   sendChallenge: "Envoyer un défi",
-  friendEmailPlaceholder: "ami@example.com",
   createLoadout: "Créer une composition",
   newLoadout: "Nouvelle composition",
   editLoadout: "Modifier la composition",
@@ -311,7 +301,6 @@ const pvp = {
   readyToSave: "La composition est prête à être enregistrée.",
   slotsRemaining: "Il reste {count} emplacement(s) à remplir.",
   loadoutNamePlaceholder: "Nom de la composition...",
-  selectLoadout: "Choisis ta composition :",
   selectLoadoutLabel: "Choisir une composition",
   maxCards: "Maximum 6 cartes autorisées",
   maxLegendaryOne: "La composition peut contenir au maximum 1 carte légendaire",
@@ -325,8 +314,6 @@ const pvp = {
   loadoutDeleted: "Composition supprimée",
   noCardsFound:
     "Aucune carte trouvée. Ouvre des packs pour agrandir ta collection !",
-  activeBenchHint:
-    "Les 3 premières cartes sont actives (anneau vert), les 3 dernières sont sur le banc",
   activeSlot: "Actif {index}",
   benchSlot: "Banc {index}",
   firstThreeActive:
@@ -344,7 +331,6 @@ const pvp = {
   recentBattles: "Combats récents",
   replayArrow: "Replay ->",
   viewAllArrow: "Voir tout ->",
-  continueArrow: "Continuer ->",
   continueBattle: "Continuer le combat",
   activeBattleYourTurn: "À toi de jouer",
   activeBattleTheirTurn: "Tour adverse",
@@ -365,23 +351,17 @@ const pvp = {
     "Choisis une composition prête et lance un défi en un geste.",
   challengeSheetIntro:
     "Choisis une composition prête, commence avec tes derniers adversaires ou cherche un joueur précis.",
-  createLoadoutHint:
-    "Construis d'abord une équipe valide de 6 cartes avant d'envoyer un défi.",
   needLoadoutToInvite:
     "Crée au moins une composition avant d'envoyer une invitation.",
   manageLoadoutsHint:
     "Crée, corrige et réorganise les équipes que tu utilises en PvP.",
   spectateHint:
     "Observe des matchs en direct pour mieux comprendre les compositions et les affrontements.",
-  friendEmail: "E-mail de ton ami",
   invalidLoadout: "{count} carte(s) invalide(s) - composition inutilisable",
-  needValidLoadout:
-    "Tu as besoin d'une composition valide pour accepter ce défi.",
   loadoutReady: "Prête",
   loadoutNeedsFixes: "À corriger",
   openChallenges: "Défis ouverts",
   liveMatches: "Matchs en direct",
-  stopWatching: "Arrêter de regarder",
   live: "Direct",
   spectateTitle: "Observer les matchs",
   spectateSubtitle: "Regarde les combats PvP en direct.",
@@ -418,7 +398,6 @@ const pvp = {
   failedAcceptInvite: "Impossible d'accepter l'invitation.",
   inviteDeclined: "Invitation refusée.",
   sending: "Envoi...",
-  accepting: "Acceptation...",
   acceptBattle: "Accepter le combat",
   chooseLoadoutAccept: "Choisis ta composition pour accepter :",
   chooseOpponent: "Choisis un joueur :",

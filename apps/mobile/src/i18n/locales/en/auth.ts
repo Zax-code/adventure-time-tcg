@@ -87,7 +87,6 @@ const auth = {
     googleNotConfigured:
       "Google sign-in is not configured for this app environment yet.",
     googleLoading: "Google sign-in is still loading. Please try again.",
-    completingGoogleSignIn: "Finishing Google sign-in...",
   },
   errors: {
     failed: "Authentication failed",

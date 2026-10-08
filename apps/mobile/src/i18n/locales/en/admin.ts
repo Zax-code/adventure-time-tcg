@@ -1,8 +1,6 @@
 const admin = {
   saving: "Saving...",
   shell: {
-    backToGame: "Back to game",
-    consoleLabel: "Admin area",
     consoleTitle: "Operations console",
     nav: {
       cards: "Cards",
@@ -15,7 +13,6 @@ const admin = {
     },
   },
   common: {
-    close: "Close",
     saving: "Saving...",
     upload: "Upload",
     uploading: "Uploading...",
@@ -52,8 +49,6 @@ const admin = {
     guidanceTitle: "Review with context",
     guidanceBody:
       "Open any account to adjust coins, inspect quest progress, or review access without losing your place in the list.",
-    guidanceBodySuperAdmin:
-      "Open any account to adjust coins, inspect quest progress, or review access. Access requests stay separated below for fast moderation.",
     requestsCount: "{count} requests",
     usersCount: "{count} users",
     usersLabel: "Visible users",
@@ -94,9 +89,6 @@ const admin = {
     noUsersTitle: "No users found",
     noUsersBody: "Try a different search term.",
     questCompletion: "Quests {percentage}%",
-    accessRequestsTitle: "Access requests",
-    accessRequestsSubtitle:
-      "Approve or reject new sign-in requests. Approved users stay here until they create an account.",
     approvedWaiting: "Approved - waiting for sign-in",
     approved: "Approved",
     pending: "Pending",
@@ -104,10 +96,8 @@ const admin = {
     accountCreated: "Account created",
     requestProvider: "Provider",
     requestGoogleName: "Google name",
-    requestIpAddress: "IP address",
     requestUserAgent: "User agent",
     requestApp: "App",
-    requestInstallation: "Install hash",
     requestAttestation: "Attestation",
     requestId: "Request ID",
     requestLastSeen: "Last seen",
@@ -227,8 +217,6 @@ const admin = {
     assessmentRevealedIp: "Exact IP",
     approve: "Approve",
     reject: "Reject",
-    noRequestsTitle: "No requests waiting",
-    noRequestsBody: "New access requests will appear here.",
     noPendingTitle: "No requests waiting",
     noPendingBody:
       "New sign-in requests will appear here as soon as they need review.",
@@ -390,7 +378,6 @@ const admin = {
     selectedLabel: "Selected",
     slotsLeftLabel: "Slots left",
     featuredCount: "{count} / 5 featured",
-    waitingCount: "{count} waiting",
     guidanceTitle: "Curate the showcase",
     guidanceBody:
       "Promote cards that represent the current season, recent additions, or packs you want players to notice first.",
@@ -464,7 +451,6 @@ const admin = {
     title: "Cards",
     subtitle:
       "Create, refine, archive, and restore cards without losing sight of the live catalog.",
-    stats: "Card stats",
     activeLabel: "Active catalog",
     archivedLabel: "Archived",
     featuredLabel: "Featured live",
@@ -479,13 +465,9 @@ const admin = {
       "Tap any active card to edit it immediately. Archived cards stay separated so the day-to-day list is easier to scan.",
     activeSubtitle: "Live cards you can edit right away.",
     archivedSubtitle: "Retired cards kept out of the live catalog.",
-    tapToEdit: "Tap a card to edit it.",
-    tapToManage: "Tap a card to manage it.",
     searchPlaceholder: "Search by name or character",
     activeTitle: "Active cards ({count})",
-    activeTitleWithTotal: "All cards ({count}) / {total}",
     archivedTitle: "Archived cards ({count})",
-    archivedTitleWithTotal: "Archived cards ({count}) / {total}",
     loading: "Loading cards...",
     noActiveTitle: "No active cards found",
     noActiveBody: "Try a different search or create a new card.",

@@ -4,7 +4,6 @@ const rankings = {
   previewLabel: "Preview standings",
   loadingTitle: "Gathering the adventurers",
   loadingBody: "Loading the latest closed and provisional standings.",
-  you: "You",
   liveProvisional: "Live · Provisional",
   final: "Final",
   provisionalHint: "Results update as accepted games arrive.",
