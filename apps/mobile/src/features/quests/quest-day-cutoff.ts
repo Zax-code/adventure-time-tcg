@@ -93,7 +93,7 @@ function getQuestDayKeyInTimeZone(timestampMs: number, timeZone: string) {
   return `${year}-${month}-${day}`;
 }
 
-export function getQuestDayKey(timestampMs: number, timeZone: string) {
+function getQuestDayKey(timestampMs: number, timeZone: string) {
   return getQuestDayKeyInTimeZone(
     timestampMs,
     resolveQuestTimeZone(timeZone),

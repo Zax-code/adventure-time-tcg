@@ -1082,7 +1082,4 @@ export function stepSyncIntervalMs() {
   return STEP_SYNC_INTERVAL_MS;
 }
 
-export {
-  BACKGROUND_STEP_SYNC_INTERVAL_MINUTES,
-  STEP_SYNC_BACKGROUND_TASK,
-};
+export { STEP_SYNC_BACKGROUND_TASK };

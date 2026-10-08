@@ -1,4 +1,4 @@
-export type KeypadTouchPoint = {
+type KeypadTouchPoint = {
   identifier?: number | string;
   pageX?: number;
   pageY?: number;

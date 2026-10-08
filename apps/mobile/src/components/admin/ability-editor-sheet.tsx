@@ -32,7 +32,7 @@ import { withAlpha } from "../theme";
 
 type AbilityType = "PASSIVE" | "SKILL" | "ULTIMATE";
 
-export type EditableAbility = {
+type EditableAbility = {
   id: string;
   key: string;
   name: string;

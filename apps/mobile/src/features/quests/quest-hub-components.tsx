@@ -74,7 +74,7 @@ export type QuestOrderOption = {
   positionLabel: string;
 };
 
-export function QuestRewardPill({
+function QuestRewardPill({
   accessibilityLabel,
   amount,
   label,

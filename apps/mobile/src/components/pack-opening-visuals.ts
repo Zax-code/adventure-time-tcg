@@ -1,4 +1,4 @@
-export type PackVisualIconKind =
+type PackVisualIconKind =
   | "box"
   | "gift-box"
   | "sparkle"

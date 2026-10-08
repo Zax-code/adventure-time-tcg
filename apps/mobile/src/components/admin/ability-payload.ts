@@ -80,7 +80,7 @@ export const ABILITY_TARGET_SELECTORS = [
 
 export type StatusName = (typeof STATUS_NAMES)[number];
 export type TypeName = (typeof TYPE_NAMES)[number];
-export type PassiveTrigger = (typeof PASSIVE_TRIGGERS)[number];
+type PassiveTrigger = (typeof PASSIVE_TRIGGERS)[number];
 
 export function isConsumptionOnlyStatus(name: StatusName | string) {
   return CONSUMPTION_ONLY_STATUS_NAMES.includes(

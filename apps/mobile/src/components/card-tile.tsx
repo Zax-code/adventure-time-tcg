@@ -42,7 +42,7 @@ import { THEME_COLORS } from "../theme/themes";
 
 type CollectionEntry = CollectionResponse["cards"][number];
 
-export type CardTileSize = "small" | "large";
+type CardTileSize = "small" | "large";
 
 export type CardTileCard = {
   id?: string;

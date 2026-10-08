@@ -7,7 +7,7 @@ import type { Locale } from "../i18n/types";
 import type { ThemeName } from "../theme/themes";
 import { formatLocalStepDate } from "./local-step-overlay";
 
-export type StepQuestWidgetStatus =
+type StepQuestWidgetStatus =
   | "active"
   | "completed"
   | "claimed"
