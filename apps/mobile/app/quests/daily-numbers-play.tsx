@@ -859,21 +859,12 @@ function useDailyNumbersChronometer({
     };
   }, [active, getElapsedMs, saveElapsedMs, submitted]);
 
-  const resetElapsedMs = useCallback(() => {
-    elapsedMsRef.current = 0;
-    startedAtRef.current = active && !submitted ? Date.now() : null;
-    lastSavedAtRef.current = Date.now();
-    void SecureStore.setItemAsync(storageKey, "0");
-    forceTick();
-  }, [active, storageKey, submitted]);
-
   const elapsedMs = submitted ? submittedElapsedMs : getElapsedMs();
 
   return {
     elapsedMs,
     formattedElapsedTime: formatDailyNumbersElapsedTime(elapsedMs),
     getElapsedMs,
-    resetElapsedMs,
   };
 }
 

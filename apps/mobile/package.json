@@ -22,6 +22,7 @@
     "android:local": "./scripts/run-android.sh",
     "ios:local": "./scripts/run-ios.sh",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --experimental-strip-types --test test/*.test.ts test/*.test.mjs",
     "android": "expo run:android",
     "ios": "expo run:ios",
     "test:ui-regressions": "node --experimental-strip-types --test test/leaderboard-avatar-source.test.ts test/leaderboard-raw-result-format.test.ts test/leaderboard-tie-presentation.test.ts test/mobile-ui-regressions.test.mjs test/perfect-timing-ui.test.mjs",
