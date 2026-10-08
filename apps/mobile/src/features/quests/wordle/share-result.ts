@@ -7,7 +7,7 @@
 
 export type WordleTileStatus = "correct" | "present" | "absent" | "empty";
 
-export type WordleShareAttempt = {
+type WordleShareAttempt = {
   statuses: WordleTileStatus[];
 };
 

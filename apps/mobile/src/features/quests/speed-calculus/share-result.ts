@@ -1,4 +1,4 @@
-export type SpeedCalculusShareRun = {
+type SpeedCalculusShareRun = {
   runNumber: number;
   correctAnswers: number;
   errorAnswers: number;

@@ -2,7 +2,7 @@ import { Platform } from "react-native";
 
 import type { AccessAssessmentChallenge } from "@adventure-time/api-client";
 
-import PlayIntegrity from "../../modules/play-integrity/src/PlayIntegrityModule";
+import PlayIntegrity from "../../modules/play-integrity";
 import { apiClient, ApiClientError } from "./api";
 
 const cloudProjectNumber = Number(

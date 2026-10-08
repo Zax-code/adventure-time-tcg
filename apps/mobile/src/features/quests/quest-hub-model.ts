@@ -8,21 +8,21 @@ export type Quest = QuestsResponse["quests"][number];
 export type QuestLifecycle =
   "fresh" | "in_progress" | "ready" | "claimed" | "failed";
 
-export type SingleQuestHubItem = {
+type SingleQuestHubItem = {
   id: string;
   kind: "single";
   quest: Quest;
   quests: Quest[];
 };
 
-export type WordleQuestHubItem = {
+type WordleQuestHubItem = {
   id: "wordle";
   kind: "wordle";
   quests: Quest[];
   questsByLanguage: Partial<Record<WordleLocale, Quest>>;
 };
 
-export type DailyNumbersQuestHubItem = {
+type DailyNumbersQuestHubItem = {
   id: "dailyNumbers";
   kind: "dailyNumbers";
   quests: Quest[];
@@ -87,7 +87,7 @@ export function getDailyNumbersModeFromQuestType(
   return null;
 }
 
-export function isQuestInProgress(quest: Quest) {
+function isQuestInProgress(quest: Quest) {
   if (quest.claimed || quest.completed || quest.failed) return false;
 
   if (isWordleQuest(quest.type)) {
@@ -113,7 +113,7 @@ export function getQuestLifecycle(quest: Quest): QuestLifecycle {
   return "fresh";
 }
 
-export function isQuestFinished(quest: Quest) {
+function isQuestFinished(quest: Quest) {
   return quest.claimed || quest.completed || quest.failed;
 }
 
@@ -245,7 +245,7 @@ export function moveQuestHubPreference(
   return reordered;
 }
 
-export function getQuestHubPreferenceId(
+function getQuestHubPreferenceId(
   item: QuestHubItem,
 ): QuestHubPreferenceId | null {
   if (item.kind === "wordle") return "wordle";

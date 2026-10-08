@@ -21,7 +21,7 @@ import { queryClient } from "../../lib/query-client";
 import { useSessionStore } from "../../stores/session-store";
 import { useThemeStore } from "../../stores/theme-store";
 import { THEME_COLORS } from "../../theme/themes";
-import { withAlpha } from "./admin-palette";
+import { withAlpha } from "../theme";
 import { AdminBackground } from "./admin-ui";
 
 const NAV_ITEMS: {

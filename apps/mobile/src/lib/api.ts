@@ -90,7 +90,7 @@ async function getClientHeaders() {
   };
 }
 
-export async function getAccessToken() {
+async function getAccessToken() {
   const session = useSessionStore.getState();
   // Once hydrated, the store mirrors SecureStore (setSession/clearSession write both),
   // so skip the keychain read that every request used to pay.
@@ -156,7 +156,7 @@ export function shouldClearSessionForAuthError(error: unknown) {
   );
 }
 
-function wait(ms: number) {
+export function wait(ms: number) {
   return new Promise((resolve) => {
     setTimeout(resolve, ms);
   });

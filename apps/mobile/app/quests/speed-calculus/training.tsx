@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as Haptics from "expo-haptics";
 import { ScrollView, Text, View } from "react-native";
 import {
@@ -36,7 +36,6 @@ import {
 } from "../../../src/features/quests/speed-calculus/palette";
 import { TrainingHistoryCard } from "../../../src/features/quests/speed-calculus/training-history-card";
 import { TrainingSummaryCard } from "../../../src/features/quests/speed-calculus/training-summary-card";
-import { reactEffect, effectEvent } from "../../../src/lib/react-primitives";
 
 const DEFAULT_RUN_DURATION_SECONDS = 30;
 const E2E_RUN_DURATION_SECONDS = 120;
@@ -241,7 +240,7 @@ function useSpeedCalculusTrainingScreenView() {
     [activeRun, applyActiveRun, t],
   );
 
-  reactEffect(() => {
+  useEffect(() => {
     if (!toast) {
       return;
     }
@@ -250,7 +249,7 @@ function useSpeedCalculusTrainingScreenView() {
     return () => clearTimeout(timer);
   }, [toast]);
 
-  reactEffect(() => {
+  useEffect(() => {
     const feedbackTimeoutRefSnapshot = feedbackTimeoutRef.current;
 
     return () => {
@@ -260,18 +259,18 @@ function useSpeedCalculusTrainingScreenView() {
     };
   }, []);
 
-  reactEffect(() => {
+  useEffect(() => {
     if (activeRun && !activeRun.isManuallyPaused && !modalVisible) {
       setModalVisible(true);
       setShowRoundOver(false);
     }
   }, [activeRun, modalVisible]);
 
-  const finishRunEvent = effectEvent(() => {
+  const finishRunEvent = () => {
     finishRun();
-  });
+  };
 
-  reactEffect(() => {
+  useEffect(() => {
     if (!activeRun) {
       return;
     }
@@ -336,7 +335,7 @@ function useSpeedCalculusTrainingScreenView() {
     return () => clearInterval(interval);
   }, [activeRun, isManuallyPaused, runDurationSeconds]);
 
-  reactEffect(() => {
+  useEffect(() => {
     if (!activeRun || pauseRemainingSeconds > 0 || isManuallyPaused) {
       return;
     }

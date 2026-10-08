@@ -17,7 +17,7 @@ const SESSION_SECURE_STORE_OPTIONS = {
   keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK,
 } as const;
 
-export const GENERAL_NOTIFICATION_CHANNEL_ID = "game-updates";
+const GENERAL_NOTIFICATION_CHANNEL_ID = "game-updates";
 export const STEP_NOTIFICATION_CHANNEL_ID = "step-goals";
 
 function notificationPromptHiddenKey(userId: string) {

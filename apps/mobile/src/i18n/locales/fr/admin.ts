@@ -1,8 +1,6 @@
 const admin = {
   saving: "Enregistrement...",
   shell: {
-    backToGame: "Retour au jeu",
-    consoleLabel: "Zone admin",
     consoleTitle: "Console d'opérations",
     nav: {
       cards: "Cartes",
@@ -15,7 +13,6 @@ const admin = {
     },
   },
   common: {
-    close: "Fermer",
     saving: "Enregistrement...",
     upload: "Téléverser",
     uploading: "Téléversement...",
@@ -52,8 +49,6 @@ const admin = {
     guidanceTitle: "Décider avec du contexte",
     guidanceBody:
       "Ouvre un compte pour ajuster les pièces, vérifier les quêtes ou revoir l'accès sans perdre ta place dans la liste.",
-    guidanceBodySuperAdmin:
-      "Ouvre un compte pour ajuster les pièces, vérifier les quêtes ou revoir l'accès. Les demandes d'accès restent séparées ci-dessous pour une modération rapide.",
     requestsCount: "{count} demandes",
     usersCount: "{count} utilisateurs",
     usersLabel: "Utilisateurs visibles",
@@ -94,9 +89,6 @@ const admin = {
     noUsersTitle: "Aucun utilisateur trouvé",
     noUsersBody: "Essaie un autre terme de recherche.",
     questCompletion: "Quêtes {percentage} %",
-    accessRequestsTitle: "Demandes d'accès",
-    accessRequestsSubtitle:
-      "Approuve ou rejette les nouvelles demandes de connexion.",
     approvedWaiting: "Approuvée - en attente de connexion",
     approved: "Approuvée",
     pending: "En attente",
@@ -104,10 +96,8 @@ const admin = {
     accountCreated: "Compte créé",
     requestProvider: "Fournisseur",
     requestGoogleName: "Nom Google",
-    requestIpAddress: "Adresse IP",
     requestUserAgent: "Agent utilisateur",
     requestApp: "App",
-    requestInstallation: "Hash installation",
     requestAttestation: "Attestation",
     requestId: "ID requête",
     requestLastSeen: "Dernière vue",
@@ -240,8 +230,6 @@ const admin = {
     assessmentRevealedIp: "IP exacte",
     approve: "Approuver",
     reject: "Rejeter",
-    noRequestsTitle: "Aucune demande en attente",
-    noRequestsBody: "Les nouvelles demandes d'accès apparaîtront ici.",
     noPendingTitle: "Aucune demande en attente",
     noPendingBody:
       "Les nouvelles demandes de connexion apparaîtront ici dès qu'elles auront besoin d'être traitées.",
@@ -404,7 +392,6 @@ const admin = {
     selectedLabel: "Sélectionnées",
     slotsLeftLabel: "Places restantes",
     featuredCount: "{count} / 5 à la une",
-    waitingCount: "{count} en attente",
     guidanceTitle: "Compose la vitrine",
     guidanceBody:
       "Mets en avant les cartes qui représentent la saison en cours, les nouveautés ou les packs que tu veux faire remarquer en premier.",
@@ -486,7 +473,6 @@ const admin = {
     title: "Cartes",
     subtitle:
       "Crée, ajuste, archive et restaure les cartes sans perdre de vue le catalogue actif.",
-    stats: "Stats des cartes",
     activeLabel: "Catalogue actif",
     archivedLabel: "Archivées",
     featuredLabel: "À la une",
@@ -502,13 +488,9 @@ const admin = {
     activeSubtitle: "Cartes en ligne que tu peux modifier tout de suite.",
     archivedSubtitle:
       "Cartes retirées du catalogue actif mais toujours conservées.",
-    tapToEdit: "Appuie sur une carte pour la modifier.",
-    tapToManage: "Appuie sur une carte pour la gérer.",
     searchPlaceholder: "Rechercher par nom ou personnage",
     activeTitle: "Cartes actives ({count})",
-    activeTitleWithTotal: "Toutes les cartes ({count}) / {total}",
     archivedTitle: "Cartes archivées ({count})",
-    archivedTitleWithTotal: "Cartes archivées ({count}) / {total}",
     loading: "Chargement des cartes...",
     noActiveTitle: "Aucune carte active trouvée",
     noActiveBody: "Essaie une autre recherche ou crée une nouvelle carte.",

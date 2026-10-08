@@ -1,6 +1,6 @@
 import type { PerfectTimingTier } from "@adventure-time/api-client";
 
-export type PerfectTimingShareAttempt = {
+type PerfectTimingShareAttempt = {
   attemptNumber: number;
   elapsedMs: number | null;
   tier: PerfectTimingTier | null;

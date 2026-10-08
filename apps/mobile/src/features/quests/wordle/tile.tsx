@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import Animated, {
   cancelAnimation,
   type SharedValue,
@@ -6,7 +7,6 @@ import Animated, {
   withSequence,
   withTiming,
 } from "react-native-reanimated";
-import { reactEffect } from "../../../lib/react-primitives";
 
 const NARROW_TILE_LETTER_STYLE = {
   minWidth: 12,
@@ -35,7 +35,7 @@ export function WordleTile({
   const removeShake = useSharedValue(0);
   const removeLetterOpacity = useSharedValue(1);
 
-  reactEffect(() => {
+  useEffect(() => {
     cancelAnimation(entryScale);
     cancelAnimation(entryOpacity);
 
@@ -51,7 +51,7 @@ export function WordleTile({
     entryOpacity.value = withTiming(1, { duration: 110 });
   }, [entryOpacity, entryScale, isRemovingCell, letter]);
 
-  reactEffect(() => {
+  useEffect(() => {
     cancelAnimation(removeShake);
     cancelAnimation(removeLetterOpacity);
 

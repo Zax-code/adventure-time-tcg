@@ -25,7 +25,6 @@ export type CardBackcoverRarityName =
   | "Legendary";
 
 export const CARD_ART_RATIO = 1024 / 1536;
-export const CARD_BACKCOVER_RATIO = CARD_ART_RATIO;
 
 type CardBackcoverSource = string | number;
 

@@ -11,7 +11,7 @@ import {
 } from "@adventure-time/game-engine";
 import type { PvpBattleState, PvpPlayerState, PvpUnitState } from "@adventure-time/api-client";
 
-export type { PvpBattleState, PvpPlayerState, PvpUnitState };
+export type { PvpBattleState, PvpUnitState };
 
 export interface MyMatchView {
   id: string;

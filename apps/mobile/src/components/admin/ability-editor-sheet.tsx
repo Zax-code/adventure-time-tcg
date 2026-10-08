@@ -1,8 +1,4 @@
-import { useState,
-  useCallback,
-  useMemo,
-  useRef,
-  type ReactNode } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Pressable, Text, View } from "react-native";
 import Ionicons from "@react-native-vector-icons/ionicons";
 
@@ -32,12 +28,11 @@ import { useTranslation } from "../../i18n";
 import type { IoniconName } from "../../lib/ionicons";
 import { useThemeStore } from "../../stores/theme-store";
 import { THEME_COLORS } from "../../theme/themes";
-import { withAlpha } from "./admin-palette";
-import { reactEffect } from "../../lib/react-primitives";
+import { withAlpha } from "../theme";
 
 type AbilityType = "PASSIVE" | "SKILL" | "ULTIMATE";
 
-export type EditableAbility = {
+type EditableAbility = {
   id: string;
   key: string;
   name: string;
@@ -186,7 +181,7 @@ function useAbilityEditorFormView({
     ? rawPayloadText
     : syncedRawPayloadText;
 
-  reactEffect(() => {
+  useEffect(() => {
     if (!rawPayloadTouchedRef.current) {
       setRawPayloadText(syncedRawPayloadText);
     }

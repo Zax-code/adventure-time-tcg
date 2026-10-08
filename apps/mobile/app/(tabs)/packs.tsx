@@ -3,7 +3,7 @@ import { Image } from "expo-image";
 import { useIsFocused, useNavigation } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
-import { useState, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Pressable,
   ScrollView,
@@ -47,7 +47,7 @@ import { getPackOpeningArtSource } from "../../src/components/pack-opening-art";
 import PackOpeningSequenceDom from "../../src/components/pack-opening-sequence-dom";
 import { RARITY_COLORS } from "../../src/components/theme";
 import { useTranslation } from "../../src/i18n";
-import { apiClient } from "../../src/lib/api";
+import { apiClient, wait } from "../../src/lib/api";
 import { prefetchCatalogImages } from "../../src/lib/catalog-images";
 import { prefetchCardImages } from "../../src/lib/card-images";
 import { useSessionStore } from "../../src/stores/session-store";
@@ -57,7 +57,6 @@ import {
   useBottomTabBarContentPadding,
 } from "../../src/theme/layout";
 import { THEME_COLORS } from "../../src/theme/themes";
-import { reactEffect } from "../../src/lib/react-primitives";
 
 import {
   BackgroundOrbs,
@@ -94,7 +93,6 @@ import {
   buildCardBackVisualMap,
   canOpenPackWithBalance,
   createLoadingSparkles,
-  delay,
   formatPackAvailabilityDate,
   getHapticForCard,
   getPackArtUrl,
@@ -180,7 +178,7 @@ function usePacksScreenView() {
   );
   const isRevealAnimatingRef = useRef(false);
 
-  reactEffect(() => {
+  useEffect(() => {
     navigation.setOptions({
       tabBarStyle: shouldHideTabBar ? { display: "none" } : undefined,
     });
@@ -192,7 +190,7 @@ function usePacksScreenView() {
     };
   }, [navigation, shouldHideTabBar]);
 
-  reactEffect(() => {
+  useEffect(() => {
     if (phase !== "readyToReveal") {
       return;
     }
@@ -231,7 +229,7 @@ function usePacksScreenView() {
     };
   }, [phase, pulseAnim, readyRevealAnim, stackSpreadAnim]);
 
-  reactEffect(() => {
+  useEffect(() => {
     if (phase !== "loading") {
       cancelAnimation(loadingIdleAnim);
       loadingIdleAnim.value = 0;
@@ -358,11 +356,11 @@ function usePacksScreenView() {
 
     const apiCallPromise = apiClient.openPack({ packId: pack.id });
 
-    await delay(PACK_OPEN_SHAKE_MS);
+    await wait(PACK_OPEN_SHAKE_MS);
     setPhase("bursting");
     startBurstAnimation();
 
-    await delay(PACK_OPEN_BURST_MS);
+    await wait(PACK_OPEN_BURST_MS);
     setPhase("loading");
 
     try {
@@ -600,7 +598,7 @@ function usePacksScreenView() {
     ].join(",");
   }, [packsQueryData]);
 
-  reactEffect(() => {
+  useEffect(() => {
     if (!packsQueryData || !packVisualPrefetchKey) {
       return;
     }

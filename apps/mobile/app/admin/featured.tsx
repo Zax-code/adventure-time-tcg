@@ -11,7 +11,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { AdminCardsResponse } from "@adventure-time/api-client";
 
 import { CardTile } from "../../src/components/card-tile";
-import { withAlpha } from "../../src/components/admin/admin-palette";
+import { withAlpha } from "../../src/components/theme";
 import {
   AdminButton,
   AdminChip,

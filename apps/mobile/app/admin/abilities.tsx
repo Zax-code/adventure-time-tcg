@@ -11,7 +11,6 @@ import Animated, {
 } from "react-native-reanimated";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import { ZodError } from "zod";
 
 import { apiClient } from "../../src/lib/api";
 import {
@@ -32,6 +31,7 @@ import {
 } from "../../src/components/admin/admin-ui";
 import { KEYBOARD_AWARE_SCROLL_PROPS } from "../../src/components/keyboard-aware-scroll-props";
 import { useTranslation } from "../../src/i18n";
+import { formatAbilitiesError } from "../../src/components/admin/ability-payload";
 
 type AdminAbilityData = Awaited<ReturnType<typeof apiClient.adminAbilities>>;
 type AdminAbility = AdminAbilityData["abilities"][number];
@@ -58,26 +58,6 @@ const CREATE_ACTION_EXITING = FadeOutLeft.duration(200);
 
 function allowsPassiveSlot(card: AdminAbilityCard | undefined) {
   return card?.rarityName === "Legendary";
-}
-
-function formatAbilitiesError(error: unknown, invalidDataLabel: string) {
-  if (error instanceof ZodError) {
-    const details = error.issues
-      .slice(0, 3)
-      .map((issue) => {
-        const path = issue.path.length ? issue.path.join(".") : "response";
-        return `${path}: ${issue.message}`;
-      })
-      .join("; ");
-
-    return invalidDataLabel.replace("{details}", details);
-  }
-
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  return null;
 }
 
 export default function AdminAbilitiesScreen() {

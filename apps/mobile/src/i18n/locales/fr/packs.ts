@@ -1,9 +1,7 @@
 const packs = {
-  loading: "Chargement des packs...",
   unavailable: "Packs indisponibles.",
   title: "Boutique de packs",
   subtitle: "Choisis un pack, ouvre-le, puis révèle chaque carte à ton rythme.",
-  balance: "Solde",
   affordableCount: "{count} packs prêts",
   nextGoal: "{name} dans {count} pièces",
   nextGoalValue: "Pack conseillé : {name} avec {count} cartes.",
@@ -19,18 +17,12 @@ const packs = {
   cardsCount: "{count} cartes",
   guaranteed: "{rarity} garanti",
   standardOdds: "Taux standards",
-  openFor: "Ouvrir pour {count}",
   openFailed: "Impossible d'ouvrir le pack.",
   opening: {
-    chargeTag: "Ouverture",
     chargeTitle: "Le portail se charge",
-    chargeBody:
-      "On brise le sceau du pack pour que la révélation ait un vrai moment.",
-    sortingTag: "Synchronisation",
     sortingTitle: "On trie ton butin",
     sortingBody:
       "Chaque carte est ajoutée à ta collection et ton solde est mis à jour avant la révélation.",
-    revealTag: "Révélation",
     readyTitle: "Tout est prêt",
     readyBody:
       "Retourne les cartes une par une pour laisser à chaque trouvaille le temps d'exister.",

@@ -18,7 +18,6 @@ import { AuthForm } from "../src/components/auth-form";
 import { KEYBOARD_AWARE_SCROLL_PROPS } from "../src/components/keyboard-aware-scroll-props";
 import { useThemeStore } from "../src/stores/theme-store";
 import { THEME_COLORS, THEME_VARS } from "../src/theme/themes";
-import { asStyle } from "../src/lib/style-object";
 
 const PARTICLES = [
   { left: "8%", top: "12%", size: 14, delay: 0, duration: 3200 },
@@ -64,7 +63,7 @@ function FloatingHeart({
   return (
     <Animated.View
       style={[
-        asStyle({
+        {
           position: "absolute",
           left,
           top,
@@ -72,7 +71,7 @@ function FloatingHeart({
           height: size,
           borderRadius: size / 2,
           backgroundColor: color,
-        }),
+        },
         animatedStyle,
       ]}
     />

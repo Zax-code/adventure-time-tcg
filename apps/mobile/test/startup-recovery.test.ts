@@ -15,6 +15,14 @@ const sessionStoreSource = readFileSync(
 );
 const themeStoreSource = readFileSync("src/stores/theme-store.ts", "utf8");
 const localeStoreSource = readFileSync("src/stores/locale-store.ts", "utf8");
+const wordleLanguageStoreSource = readFileSync(
+  "src/stores/wordle-language-store.ts",
+  "utf8",
+);
+const persistedPreferenceSource = readFileSync(
+  "src/stores/persisted-preference.ts",
+  "utf8",
+);
 const apiSource = readFileSync("src/lib/api.ts", "utf8");
 
 describe("mobile startup recovery", () => {
@@ -77,13 +85,18 @@ describe("mobile startup recovery", () => {
       /hydrated: true,[\s\S]*?bootstrapPhase: "error"/,
     );
     assert.match(
+      persistedPreferenceSource,
+      /keychainAccessible: SecureStore\.AFTER_FIRST_UNLOCK/,
+    );
+    assert.match(persistedPreferenceSource, /runStartupTask\(async \(\) =>/);
+    for (const storeSource of [
       themeStoreSource,
-      /keychainAccessible: SecureStore\.AFTER_FIRST_UNLOCK/,
-    );
-    assert.match(
       localeStoreSource,
-      /keychainAccessible: SecureStore\.AFTER_FIRST_UNLOCK/,
-    );
+      wordleLanguageStoreSource,
+    ]) {
+      assert.match(storeSource, /createPersistedPreference</);
+      assert.doesNotMatch(storeSource, /SecureStore\./);
+    }
   });
 
   it("bounds secure storage used before API request deadlines begin", () => {

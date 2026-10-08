@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo, useCallback } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { File, Paths } from "expo-file-system";
 import * as Haptics from "expo-haptics";
 import * as Sharing from "expo-sharing";
@@ -59,7 +59,6 @@ import {
   getAnswerBoxPalette,
   withAlpha,
 } from "../../../src/features/quests/speed-calculus/palette";
-import { reactEffect, effectEvent } from "../../../src/lib/react-primitives";
 
 type ActiveSpeedRun = NonNullable<SpeedRunState["activeRun"]>;
 
@@ -251,15 +250,15 @@ function useSpeedCalculusScreenView() {
     setState(nextState);
   }, []);
 
-  reactEffect(() => {
+  useEffect(() => {
     void loadState();
   }, [loadState]);
 
-  const loadStateEvent = effectEvent(() => {
+  const loadStateEvent = () => {
     void loadState();
-  });
+  };
 
-  reactEffect(() => {
+  useEffect(() => {
     if (activeRun) {
       return;
     }
@@ -272,7 +271,7 @@ function useSpeedCalculusScreenView() {
     return () => clearInterval(interval);
   }, [activeRun]);
 
-  reactEffect(() => {
+  useEffect(() => {
     if (!lastQuestResetAt) return;
     void loadState();
   }, [lastQuestResetAt, loadState]);
@@ -295,14 +294,14 @@ function useSpeedCalculusScreenView() {
   );
 
   // ── Toast auto-dismiss ───────────────────────────────────────────
-  reactEffect(() => {
+  useEffect(() => {
     if (!toast) return;
     const timer = setTimeout(() => setToast(null), 4000);
     return () => clearTimeout(timer);
   }, [toast]);
 
   // ── Feedback cleanup ─────────────────────────────────────────────
-  reactEffect(() => {
+  useEffect(() => {
     const feedbackTimeoutRefSnapshot = feedbackTimeoutRef.current;
 
     return () => {
@@ -366,7 +365,7 @@ function useSpeedCalculusScreenView() {
   );
 
   // ── Countdown timer ──────────────────────────────────────────────
-  reactEffect(() => {
+  useEffect(() => {
     if (!state?.activeRun) return;
 
     if (isManuallyPaused) {
@@ -406,7 +405,7 @@ function useSpeedCalculusScreenView() {
   }, [finishRun, isManuallyPaused, state?.activeRun]);
 
   // ── Auto-finish when all questions answered ──────────────────────
-  reactEffect(() => {
+  useEffect(() => {
     if (!activeRun || pauseRemainingSeconds > 0 || isManuallyPaused) return;
     if (activeRun.questionIndex >= activeRun.questions.length) {
       void finishRun(activeRunRef.current);
@@ -733,7 +732,7 @@ function useSpeedCalculusScreenView() {
     t,
   ]);
 
-  const handleAppStateChange = effectEvent((nextState: AppStateStatus) => {
+  const handleAppStateChange = (nextState: AppStateStatus) => {
     if (nextState === "active") {
       void loadState();
       return;
@@ -742,9 +741,9 @@ function useSpeedCalculusScreenView() {
     if (activeRunRef.current && !activeRunRef.current.isManuallyPaused) {
       pauseRun();
     }
-  });
+  };
 
-  reactEffect(() => {
+  useEffect(() => {
     const subscription = AppState.addEventListener(
       "change",
       handleAppStateChange,
@@ -838,7 +837,7 @@ function useSpeedCalculusScreenView() {
   const displayedCorrectAnswers =
     activeRun?.correctAnswers ?? (showRoundOver ? roundOverScore : 0);
 
-  reactEffect(() => {
+  useEffect(() => {
     if (activeRun && !activeRun.isManuallyPaused && !modalVisible) {
       setModalVisible(true);
       setShowRoundOver(false);

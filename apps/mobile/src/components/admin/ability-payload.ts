@@ -1,3 +1,5 @@
+import { ZodError } from "zod";
+
 export const STATUS_NAMES = [
   "Burn",
   "Freeze",
@@ -78,7 +80,7 @@ export const ABILITY_TARGET_SELECTORS = [
 
 export type StatusName = (typeof STATUS_NAMES)[number];
 export type TypeName = (typeof TYPE_NAMES)[number];
-export type PassiveTrigger = (typeof PASSIVE_TRIGGERS)[number];
+type PassiveTrigger = (typeof PASSIVE_TRIGGERS)[number];
 
 export function isConsumptionOnlyStatus(name: StatusName | string) {
   return CONSUMPTION_ONLY_STATUS_NAMES.includes(
@@ -598,4 +600,24 @@ export function stripStructuredPayloadKeys(payload: Record<string, unknown>): Re
     }
   }
   return extra;
+}
+
+export function formatAbilitiesError(error: unknown, invalidDataLabel: string) {
+  if (error instanceof ZodError) {
+    const details = error.issues
+      .slice(0, 3)
+      .map((issue) => {
+        const path = issue.path.length ? issue.path.join(".") : "response";
+        return `${path}: ${issue.message}`;
+      })
+      .join("; ");
+
+    return invalidDataLabel.replace("{details}", details);
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return null;
 }

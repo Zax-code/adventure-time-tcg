@@ -4,7 +4,6 @@ const rankings = {
   previewLabel: "Aperçu du classement",
   loadingTitle: "Rassemblement des aventuriers",
   loadingBody: "Chargement des derniers classements provisoires et clôturés.",
-  you: "Toi",
   liveProvisional: "En direct · Provisoire",
   final: "Final",
   provisionalHint:

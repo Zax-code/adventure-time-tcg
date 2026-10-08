@@ -3,7 +3,6 @@ import { Text, View } from "react-native";
 
 import type { THEME_COLORS } from "../../../theme/themes";
 import type { PerfectTimingShareResult } from "./share-result";
-import { asStyle } from "../../../lib/style-object";
 
 type ThemeColors = (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
 
@@ -45,7 +44,7 @@ export function PerfectTimingQuestShareCard({
 
   return (
     <View
-      style={asStyle({
+      style={{
         width: 360,
         backgroundColor: colors.bg,
         borderRadius: 28,
@@ -55,7 +54,7 @@ export function PerfectTimingQuestShareCard({
         paddingVertical: 28,
         alignItems: "center",
         gap: 18,
-      })}
+      }}
     >
       <LinearGradient
         colors={[colors.primary, colors.primaryDark]}
@@ -93,7 +92,7 @@ export function PerfectTimingQuestShareCard({
       </View>
 
       <View
-        style={asStyle({
+        style={{
           width: "100%",
           alignItems: "center",
           gap: 3,
@@ -102,7 +101,7 @@ export function PerfectTimingQuestShareCard({
           borderColor: colors.primaryTint,
           backgroundColor: colors.surface,
           paddingVertical: 12,
-        })}
+        }}
       >
         <Text
           className="text-[10px] font-nunito-bold uppercase"
@@ -124,7 +123,7 @@ export function PerfectTimingQuestShareCard({
           return (
             <View
               key={attempt.attemptNumber}
-              style={asStyle({
+              style={{
                 minHeight: 48,
                 flexDirection: "row",
                 alignItems: "center",
@@ -136,7 +135,7 @@ export function PerfectTimingQuestShareCard({
                   ? resultTone.background
                   : colors.surface,
                 paddingHorizontal: 14,
-              })}
+              }}
             >
               <Text
                 className="text-[13px] font-nunito-bold"

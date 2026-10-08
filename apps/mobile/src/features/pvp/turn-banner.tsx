@@ -14,7 +14,6 @@ import { Text, View } from "react-native";
 import { useTranslation } from "../../i18n";
 import { useThemeStore } from "../../stores/theme-store";
 import { THEME_COLORS } from "../../theme/themes";
-import { asStyle } from "../../lib/style-object";
 
 interface TurnBannerProps {
   isMyTurn: boolean;
@@ -74,7 +73,7 @@ export function TurnBanner({ isMyTurn, onDone }: TurnBannerProps) {
       testID="pvp-turn-banner"
       pointerEvents="none"
       style={[
-        asStyle({
+        {
           position: "absolute",
           top: 0,
           left: 0,
@@ -83,7 +82,7 @@ export function TurnBanner({ isMyTurn, onDone }: TurnBannerProps) {
           zIndex: 200,
           alignItems: "center",
           justifyContent: "center",
-        }),
+        },
         animatedStyle,
       ]}
     >

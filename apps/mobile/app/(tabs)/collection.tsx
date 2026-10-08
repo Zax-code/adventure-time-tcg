@@ -53,7 +53,6 @@ import {
   useBottomTabBarContentPadding,
 } from "../../src/theme/layout";
 import { THEME_COLORS } from "../../src/theme/themes";
-import { asStyle } from "../../src/lib/style-object";
 
 type CollectionEntry = CollectionResponse["cards"][number];
 type OwnershipFilter = "all" | "owned" | "not-owned";
@@ -525,7 +524,7 @@ function useCollectionScreenView() {
     <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 }}>
       {/* Title */}
       <Text
-        style={asStyle({
+        style={{
           fontSize: 30,
           fontFamily: "Nunito_800ExtraBold",
           color: tc.primaryDark,
@@ -534,7 +533,7 @@ function useCollectionScreenView() {
           textShadowColor: "rgba(0,0,0,0.15)",
           textShadowOffset: { width: 0, height: 1 },
           textShadowRadius: 3,
-        })}
+        }}
       >
         {t("collection.title")}
       </Text>
@@ -574,7 +573,7 @@ function useCollectionScreenView() {
       <View style={{ alignItems: "center", marginBottom: 16 }}>
         <Pressable
           onPress={() => setShowStatsModal(true)}
-          style={asStyle({
+          style={{
             flexDirection: "row",
             alignItems: "center",
             gap: 8,
@@ -585,7 +584,7 @@ function useCollectionScreenView() {
             paddingHorizontal: 20,
             paddingVertical: 8,
             boxShadow: "0px 0px 6px rgba(0, 0, 0, 0.1)",
-          })}
+          }}
         >
           <BarChartIcon size={20} color={tc.primaryText} />
           <Text
@@ -620,7 +619,7 @@ function useCollectionScreenView() {
 
       {/* Search */}
       <View
-        style={asStyle({
+        style={{
           flexDirection: "row",
           alignItems: "center",
           backgroundColor: "rgba(255,255,255,0.7)",
@@ -630,7 +629,7 @@ function useCollectionScreenView() {
           borderWidth: 1,
           borderColor: tc.primaryBorder,
           marginBottom: 12,
-        })}
+        }}
       >
         <Text style={{ fontSize: 14, marginRight: 6, color: tc.muted }}>
           🔍
@@ -685,7 +684,7 @@ function useCollectionScreenView() {
             <Pressable
               key={option.key}
               onPress={() => setOwnershipFilter(option.key)}
-              style={asStyle({
+              style={{
                 flex: 1,
                 borderRadius: 14,
                 borderWidth: 1,
@@ -695,7 +694,7 @@ function useCollectionScreenView() {
                 paddingVertical: 10,
                 alignItems: "center",
                 gap: 2,
-              })}
+              }}
               testID={`collection-ownership-filter-${option.key}`}
             >
               <Text
@@ -793,7 +792,7 @@ function useCollectionScreenView() {
       >
         <Pressable
           onPress={() => setShowSortModal(true)}
-          style={asStyle({
+          style={{
             flexDirection: "row",
             alignItems: "center",
             gap: 4,
@@ -803,7 +802,7 @@ function useCollectionScreenView() {
             borderRadius: 8,
             paddingHorizontal: 12,
             paddingVertical: 6,
-          })}
+          }}
         >
           <Text
             style={{
@@ -902,7 +901,7 @@ function useCollectionScreenView() {
               return (
                 <View
                   key={name}
-                  style={asStyle({
+                  style={{
                     backgroundColor: tc.surfaceMuted,
                     borderRadius: 16,
                     borderWidth: 1,
@@ -912,7 +911,7 @@ function useCollectionScreenView() {
                     flexGrow: 1,
                     flexBasis: "30%",
                     alignItems: "center",
-                  })}
+                  }}
                 >
                   <Text
                     style={{

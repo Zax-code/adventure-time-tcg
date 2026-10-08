@@ -6,7 +6,6 @@ import type {
   WordleQuestShareResult,
   WordleTileStatus,
 } from "./share-result";
-import { asStyle } from "../../../lib/style-object";
 
 type ThemeColors = (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
 
@@ -58,7 +57,7 @@ export function WordleQuestShareCard({
 
   return (
     <View
-      style={asStyle({
+      style={{
         width: CARD_WIDTH,
         backgroundColor: colors.bg,
         borderRadius: 28,
@@ -68,7 +67,7 @@ export function WordleQuestShareCard({
         paddingVertical: 28,
         alignItems: "center",
         gap: 18,
-      })}
+      }}
     >
       {/* Brand badge */}
       <LinearGradient

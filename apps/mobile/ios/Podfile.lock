@@ -242,8 +242,6 @@ PODS:
   - ExpoBackgroundTask (57.0.17):
     - ExpoModulesCore
     - ExpoTaskManager
-  - ExpoBlur (57.0.3):
-    - ExpoModulesCore
   - ExpoCrypto (57.0.3):
     - ExpoModulesCore
   - ExpoDomWebView (57.0.1):
@@ -3531,7 +3529,6 @@ DEPENDENCIES:
   - ExpoAppleAuthentication (from `../../../node_modules/expo-apple-authentication/ios`)
   - ExpoAsset (from `../../../node_modules/expo-asset/ios`)
   - ExpoBackgroundTask (from `../../../node_modules/expo-background-task/ios`)
-  - ExpoBlur (from `../../../node_modules/expo-blur/ios`)
   - ExpoCrypto (from `../../../node_modules/expo-crypto/ios`)
   - "ExpoDomWebView (from `../../../node_modules/@expo/dom-webview/ios`)"
   - ExpoFileSystem (from `../../../node_modules/expo-file-system/ios`)
@@ -3705,8 +3702,6 @@ EXTERNAL SOURCES:
     :path: "../../../node_modules/expo-asset/ios"
   ExpoBackgroundTask:
     :path: "../../../node_modules/expo-background-task/ios"
-  ExpoBlur:
-    :path: "../../../node_modules/expo-blur/ios"
   ExpoCrypto:
     :path: "../../../node_modules/expo-crypto/ios"
   ExpoDomWebView:
@@ -3967,7 +3962,6 @@ SPEC CHECKSUMS:
   ExpoAppleAuthentication: 16c2955d33ec7315e5a99d17fb5d62ed33cdb5b9
   ExpoAsset: b3999ffb3d4049b6c870708c60ea2209ace9f170
   ExpoBackgroundTask: 7f529e66e42f892236d16511306e224abd9c0bc1
-  ExpoBlur: 975b78b65b3c8f475c44bd8f8b53948146b1ff9b
   ExpoCrypto: 3ba3d7fcf244a3ae8cb888c5759e0db70ecc236d
   ExpoDomWebView: beaec034e51bd028428b98bb1f2633ab79c6d095
   ExpoFileSystem: 28778f942725170102f7c6cf4dee05a526ddacd0

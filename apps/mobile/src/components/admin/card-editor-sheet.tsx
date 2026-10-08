@@ -23,7 +23,7 @@ import {
 import { useTranslation } from "../../i18n";
 import { useThemeStore } from "../../stores/theme-store";
 import { THEME_COLORS } from "../../theme/themes";
-import { pickReadableTextColor, withAlpha } from "./admin-palette";
+import { pickReadableTextColor, withAlpha } from "../theme";
 import type { AssignmentDraft, CardDraft } from "./card-editor-draft";
 
 type EditableCard = AdminCardsResponse["cards"][number] | AdminCardDetail;

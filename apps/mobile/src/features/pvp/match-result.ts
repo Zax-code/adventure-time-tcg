@@ -1,6 +1,6 @@
 import type { PvpMatch } from "@adventure-time/api-client";
 
-export type PvpMatchResultTone = "win" | "loss" | "draw";
+type PvpMatchResultTone = "win" | "loss" | "draw";
 
 export type PvpMatchResultView = {
   tone: PvpMatchResultTone;

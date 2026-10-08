@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   FlatList,
   Modal,
@@ -64,7 +64,6 @@ import { useSessionStore } from "../../src/stores/session-store";
 import { useThemeStore } from "../../src/stores/theme-store";
 import { useWordleLanguageStore } from "../../src/stores/wordle-language-store";
 import { THEME_COLORS, THEME_VARS } from "../../src/theme/themes";
-import { reactEffect } from "../../src/lib/react-primitives";
 
 const MAX_ATTEMPTS = 6;
 const WORD_LENGTH = 5;
@@ -246,7 +245,7 @@ function useWordleScreenView() {
     Record<number, ReturnType<typeof setTimeout>>
   >({});
 
-  reactEffect(() => {
+  useEffect(() => {
     guessesRef.current = guesses;
     solvedRef.current = solved;
     currentGuessRef.current = currentGuess;
@@ -282,7 +281,7 @@ function useWordleScreenView() {
     setTileFaceUp(new Set());
   }, [rowFlipAnims]);
 
-  reactEffect(() => {
+  useEffect(() => {
     void hydrateWordleLanguage();
   }, [hydrateWordleLanguage]);
 
@@ -424,7 +423,7 @@ function useWordleScreenView() {
     ],
   );
 
-  reactEffect(() => {
+  useEffect(() => {
     const data = stateQueryData;
     if (!data) return;
 
@@ -559,7 +558,7 @@ function useWordleScreenView() {
     [clearCurrentGuess, clearRevealAnimations],
   );
 
-  reactEffect(() => {
+  useEffect(() => {
     if (!lastQuestResetAt || !lastQuestResetPayload) return;
     if (lastQuestResetAt === lastHandledResetAtRef.current) return;
 
@@ -587,7 +586,7 @@ function useWordleScreenView() {
     wordleLanguage,
   ]);
 
-  reactEffect(() => {
+  useEffect(() => {
     const revealTimersSnapshot = revealTimersRef.current;
 
     return () => {
@@ -906,19 +905,19 @@ function useWordleScreenView() {
     setActiveKeys([]);
   }, []);
 
-  reactEffect(() => {
+  useEffect(() => {
     if (!definitionModalVisible) {
       setExpandedDefinitionWord(null);
     }
   }, [definitionModalVisible]);
 
-  reactEffect(() => {
+  useEffect(() => {
     if (!canShowDefinition && definitionModalVisible) {
       setDefinitionModalVisible(false);
     }
   }, [canShowDefinition, definitionModalVisible]);
 
-  reactEffect(() => {
+  useEffect(() => {
     const variants = definitionQueryData?.variants ?? [];
 
     if (variants.length === 0) {
@@ -971,7 +970,7 @@ function useWordleScreenView() {
     ],
   );
 
-  reactEffect(() => {
+  useEffect(() => {
     if (!wordleLanguageHydrated) {
       return;
     }

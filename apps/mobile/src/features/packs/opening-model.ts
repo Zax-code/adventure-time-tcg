@@ -5,7 +5,7 @@ import type {
   OpenPackResponse,
   PacksResponse,
 } from "@adventure-time/api-client";
-import { CARD_BACKCOVER_RATIO } from "../../components/card-back-cover-art";
+import { CARD_ART_RATIO } from "../../components/card-back-cover-art";
 import {
   getContainedPackOpeningArtLayout,
   getPackOpeningArtDimensions,
@@ -120,7 +120,7 @@ export function formatPackAvailabilityDate(value: string | null | undefined) {
 }
 
 export const PACK_CARD_RATIO = 320 / 460;
-export const REVEAL_CARD_RATIO = CARD_BACKCOVER_RATIO;
+export const REVEAL_CARD_RATIO = CARD_ART_RATIO;
 export const IS_E2E_BUILD = process.env.EXPO_PUBLIC_E2E_AUTH === "1";
 export const PACK_OPEN_SHAKE_MS = IS_E2E_BUILD ? 3200 : 950;
 export const PACK_OPEN_BURST_MS = IS_E2E_BUILD ? 2400 : 2800;
@@ -243,10 +243,6 @@ export const CARD_BACK_STACK_SPECS: [
     zIndex: 3,
   },
 ];
-export function delay(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 export function slugifyPackName(name: string) {
   return name
     .toLowerCase()

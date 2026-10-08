@@ -68,7 +68,7 @@ describe("mobile UI regression contracts", () => {
     );
     assert.doesNotMatch(
       hudSource,
-      /reactEffect\(\(\) => \{[\s\S]*?progressAnim\.value = withTiming\(0,[\s\S]*?\}, \[[\s\S]*?remainingSeconds[\s\S]*?\]\);/,
+      /useEffect\(\(\) => \{[\s\S]*?progressAnim\.value = withTiming\(0,[\s\S]*?\}, \[[\s\S]*?remainingSeconds[\s\S]*?\]\);/,
       "ordinary timer ticks must not cancel and restart the progress animation",
     );
   });

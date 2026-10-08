@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   GoogleSignin,
   isCancelledResponse,
@@ -31,7 +31,6 @@ import { PrimaryButton } from "./button";
 import { ThemedExpoTextInput } from "./expo-ui/themed-text-input";
 import { CardsIcon, PackIcon, QuestIcon } from "./icons";
 import { KeyboardScreenView } from "./keyboard-screen-view";
-import { reactEffect, effectEvent } from "../lib/react-primitives";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -548,8 +547,7 @@ function BrowserGoogleAuthSection({
   const router = useRouter();
   const isExpoGo =
     Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
-  const retryGoogleAuth = effectEvent(
-    async (idToken?: string, accessToken?: string) => {
+  const retryGoogleAuth = async (idToken?: string, accessToken?: string) => {
       const authResult = await apiClient.googleAuth({
         idToken,
         accessToken,
@@ -562,8 +560,7 @@ function BrowserGoogleAuthSection({
         refreshToken: authResult.tokens.refreshToken,
       });
       router.replace("/(tabs)");
-    },
-  );
+    };
   const [request, response, promptAsync] = Google.useAuthRequest(
     isExpoGo
       ? {
@@ -582,7 +579,7 @@ function BrowserGoogleAuthSection({
         },
   );
 
-  reactEffect(() => {
+  useEffect(() => {
     if (!response) {
       return;
     }
@@ -799,7 +796,7 @@ export function AuthForm({ prefill }: { prefill?: AuthFormPrefill }) {
   const preferredLanguage = useLocaleStore((state) => state.locale);
   const setPreferredLanguage = useLocaleStore((state) => state.setLocale);
 
-  reactEffect(() => {
+  useEffect(() => {
     if (prefill?.locale && prefill.locale !== preferredLanguage) {
       void setPreferredLanguage(prefill.locale);
     }
@@ -846,11 +843,11 @@ function useAuthFormInnerView({ prefill }: { prefill?: AuthFormPrefill }) {
   const appleAuthConfigured = Platform.OS === "ios" && appleAuthAvailable;
   const socialAuthConfigured = googleAuthConfigured || appleAuthConfigured;
   const autoVerifyTriggeredRef = useRef(false);
-  const submitAutoVerify = effectEvent(() => {
+  const submitAutoVerify = () => {
     void submit();
-  });
+  };
 
-  reactEffect(() => {
+  useEffect(() => {
     let cancelled = false;
 
     async function checkAppleAvailability() {
@@ -963,7 +960,7 @@ function useAuthFormInnerView({ prefill }: { prefill?: AuthFormPrefill }) {
     setInfo(nextInfo ?? null);
   }
 
-  reactEffect(() => {
+  useEffect(() => {
     if (
       !prefill?.autoVerify ||
       autoVerifyTriggeredRef.current ||
