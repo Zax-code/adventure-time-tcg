@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
-import { useNavigation } from "expo-router";
+import { useIsFocused, useNavigation } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { useState, useMemo, useRef } from "react";
@@ -120,6 +120,8 @@ export default function PacksScreen() {
 
 function usePacksScreenView() {
   const navigation = useNavigation();
+  // The hidden pre-warm WebView only matters while the Packs tab is on screen.
+  const screenFocused = useIsFocused();
   const queryClient = useQueryClient();
   const accessToken = useSessionStore((state) => state.accessToken);
   const patchUser = useSessionStore((state) => state.patchUser);
@@ -1306,7 +1308,7 @@ function usePacksScreenView() {
         secondary={tc.secondaryTint}
         accent={tc.accentTint}
       />
-      {heroPack ? (
+      {heroPack && screenFocused ? (
         <View
           pointerEvents="none"
           style={{
