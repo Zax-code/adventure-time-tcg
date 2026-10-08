@@ -13,6 +13,26 @@ grep -Fq 'systemctl start "$service"' "$deployer"
 grep -Fq 'adventure-time-tcg-postgres.service' "$deployer"
 grep -Fq 'adventure-time-tcg-minio.service' "$deployer"
 grep -Fq 'minecraft-prodigium.service' "$deployer"
+grep -Fq '"$drift_check" check' "$deployer"
+grep -Fq '"$drift_check" approve "$quadlet"' "$deployer"
+
+line_of() { grep -n -m 1 -F "$1" "$deployer" | cut -d: -f1; }
+[[ $(line_of '"$drift_check" check') -lt $(line_of 'podman pull') ]] || {
+  echo 'The drift check must run before the deployment changes anything.' >&2
+  exit 1
+}
+[[ $(line_of "grep -c '^Image='") -lt $(line_of 'current-revision.new') ]] || {
+  echo 'The installed image must be verified before the deployment is recorded.' >&2
+  exit 1
+}
+[[ $(line_of '"$drift_check" approve') -gt $(line_of 'current-revision.new') ]] || {
+  echo 'The drift approval must follow the verified, recorded deployment.' >&2
+  exit 1
+}
+if grep -Eq 'leaetzak-drift-check"? baseline|drift_check"? baseline' "$deployer"; then
+  echo 'The deployer must approve only its Quadlet, never re-record the baseline.' >&2
+  exit 1
+fi
 
 if grep -Eq 'systemctl (restart|stop) (adventure-time-tcg-(postgres|minio)|caddy|minecraft-prodigium)' "$deployer"; then
   echo 'The restricted deployer must not stop or restart an unrelated service.' >&2
