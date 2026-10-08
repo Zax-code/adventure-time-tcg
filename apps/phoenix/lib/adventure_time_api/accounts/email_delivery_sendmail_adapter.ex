@@ -3,16 +3,6 @@ defmodule AdventureTimeApi.Accounts.EmailDelivery.SendmailAdapter do
 
   @behaviour AdventureTimeApi.Accounts.EmailDelivery
 
-  def render_verification_message(email, code, opts \\ []) do
-    email_content = AdventureTimeApi.Accounts.VerificationEmailTemplate.render(email, code, opts)
-    build_message(default_from(), email, email_content)
-  end
-
-  def render_password_reset_message(email, code, opts \\ []) do
-    email_content = AdventureTimeApi.Accounts.PasswordResetEmailTemplate.render(email, code, opts)
-    build_message(default_from(), email, email_content)
-  end
-
   def send_verification_code(email, code, opts \\ []) do
     email_content = AdventureTimeApi.Accounts.VerificationEmailTemplate.render(email, code, opts)
     deliver_message(email, email_content)

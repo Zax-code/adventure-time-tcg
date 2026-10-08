@@ -92,12 +92,6 @@ defmodule AdventureTimeApi.Quests.SpeedCalculusEngine do
     %{correct_answers: correct, total_answered: length(limited)}
   end
 
-  @doc "Reconstruct per-question history for settled runs (answered questions only)."
-  def build_run_history(seed, answers) when is_list(answers) do
-    questions = build_questions(seed)
-    build_run_history_for_questions(questions, answers)
-  end
-
   @doc "Reconstruct per-question history using a precomputed question list."
   def build_run_history_for_questions(questions, answers)
       when is_list(questions) and is_list(answers) do

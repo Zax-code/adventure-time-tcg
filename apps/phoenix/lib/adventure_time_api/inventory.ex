@@ -11,8 +11,6 @@ defmodule AdventureTimeApi.Inventory do
   alias AdventureTimeApi.Pvp
   alias AdventureTimeApi.Repo
 
-  def owned_card_module, do: OwnedCard
-
   @dust_sacrifice %{common: 1, uncommon: 5, rare: 20, epic: 50, legendary: 100}
   @craft_cost_multiplier 5
   @weekly_limited_rarity "legendary"

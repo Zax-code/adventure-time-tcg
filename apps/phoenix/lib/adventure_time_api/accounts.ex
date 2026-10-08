@@ -42,10 +42,6 @@ defmodule AdventureTimeApi.Accounts do
   @verification_max_attempts 5
   @default_timezone "Europe/Paris"
 
-  def user_module, do: User
-  def email_credential_module, do: EmailCredential
-  def session_module, do: Session
-
   def register(attrs, metadata) do
     normalized_email = normalize_email(attrs["email"])
 

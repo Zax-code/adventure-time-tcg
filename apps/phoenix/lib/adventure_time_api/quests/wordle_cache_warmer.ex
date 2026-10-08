@@ -1,29 +1,19 @@
 defmodule AdventureTimeApi.Quests.WordleCacheWarmer do
-  use GenServer
+  @moduledoc "Warms the Wordle dictionary cache once at boot, without staying resident."
+
+  use Task, restart: :temporary
 
   require Logger
 
-  def start_link(opts \\ []) do
-    GenServer.start_link(__MODULE__, :ok, opts)
-  end
+  def start_link(_opts \\ []), do: Task.start_link(&warm/0)
 
-  @impl true
-  def init(:ok) do
-    send(self(), :warm_cache)
-    {:ok, %{}}
-  end
-
-  @impl true
-  def handle_info(:warm_cache, state) do
+  def warm do
     case AdventureTimeApi.Quests.wordle_cache_warm() do
       :ok -> :ok
       other -> Logger.warning("Unexpected Wordle cache warm result: #{inspect(other)}")
     end
-
-    {:noreply, state}
   rescue
     error ->
       Logger.warning("Failed to warm Wordle cache on startup: #{Exception.message(error)}")
-      {:noreply, state}
   end
 end

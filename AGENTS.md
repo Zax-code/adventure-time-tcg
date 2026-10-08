@@ -139,6 +139,7 @@ Phoenix:
 - `cd apps/phoenix && mix format`
 - `cd apps/phoenix && mix precommit`
 - `cd apps/phoenix && ./scripts/rotate-env-secrets.sh` - local bootstrap only: creates `apps/phoenix/.env` from `.env.example` if needed, regenerates the token secrets, and resets the other keys (Google client IDs, MinIO credentials, mail settings) to template defaults; never run it against production env files
+- `cd apps/phoenix && mix wordle.import_dictionary ...` - replaces the Wordle dictionary in the database; it clears the dictionary cache only in its own VM, so restart the running API (in production `adventure-time-tcg-api.service`) afterwards for players to get the new words
 
 PWA import:
 - `cd apps/phoenix && set -a && source .env && set +a && MIX_ENV=dev mix pwa_import audit`
