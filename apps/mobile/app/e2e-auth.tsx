@@ -67,6 +67,17 @@ export default function E2EAuthScreen() {
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState("Starting test sign-in...");
   const hasStartedRef = useRef(false);
+  // Only an unmount may abandon the sign-in. Store updates (setSession) re-render
+  // the route with a new params object; tying cancellation to the effect cleanup
+  // dropped the redirect while hasStartedRef blocked any retry.
+  const unmountedRef = useRef(false);
+
+  useEffect(
+    () => () => {
+      unmountedRef.current = true;
+    },
+    [],
+  );
 
   useEffect(() => {
     if (hasStartedRef.current) {
@@ -74,7 +85,6 @@ export default function E2EAuthScreen() {
     }
 
     hasStartedRef.current = true;
-    let cancelled = false;
     const accessToken = decodeParam(
       (params as Record<string, string | string[] | undefined>).accessToken,
     );
@@ -107,7 +117,7 @@ export default function E2EAuthScreen() {
           accessToken,
           refreshToken,
         });
-        if (cancelled) return;
+        if (unmountedRef.current) return;
         setStatus("Opening requested screen...");
         router.replace(redirectPath);
         return;
@@ -122,17 +132,17 @@ export default function E2EAuthScreen() {
 
       try {
         const result = await apiClient.login({ email, password });
-        if (cancelled) return;
+        if (unmountedRef.current) return;
         await setSession({
           user: result.user,
           accessToken: result.tokens.accessToken,
           refreshToken: result.tokens.refreshToken,
         });
-        if (cancelled) return;
+        if (unmountedRef.current) return;
         setStatus("Opening requested screen...");
         router.replace(redirectPath);
       } catch (caughtError) {
-        if (cancelled) return;
+        if (unmountedRef.current) return;
         const message =
           caughtError instanceof Error
             ? caughtError.message
@@ -144,9 +154,6 @@ export default function E2EAuthScreen() {
     };
 
     void runAuth();
-    return () => {
-      cancelled = true;
-    };
   }, [
     params,
     router,
