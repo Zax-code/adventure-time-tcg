@@ -202,6 +202,40 @@ export const leaderboardResultExclusionResponseSchema = z.object({
   status: z.literal("excluded"),
 });
 
+export const leaderboardIntegrityReasonValues = [
+  "suspicious_elapsed_ratio",
+  "client_elapsed_exceeds_server_window",
+  "ranked_session_deadline_exceeded",
+  "no_ranked_session",
+] as const;
+
+export const leaderboardIntegrityReasonSchema = z.enum(
+  leaderboardIntegrityReasonValues,
+);
+
+export const adminFlaggedLeaderboardResultSchema = z.object({
+  id: z.string().uuid(),
+  boardKey: z.string(),
+  competitionDate: z.string(),
+  userId: z.string().uuid().nullable(),
+  displayName: z.string().nullable(),
+  resultStatus: z.enum(["pending", "accepted", "rejected", "excluded", "snapshotted"]),
+  integrityStatus: z.enum(["pending", "accepted", "review", "rejected"]),
+  integrityReasonCodes: z.array(z.string()),
+  serverElapsedMs: z.number().int().nullable(),
+  clientElapsedMs: z.number().int().nullable(),
+  pointsMilli: z.number().int().nullable(),
+  rawResult: z.record(z.unknown()),
+  submittedAt: z.string().nullable(),
+  snapshotId: z.string().uuid().nullable(),
+});
+
+export const adminFlaggedLeaderboardResultsResponseSchema = z.object({
+  reason: leaderboardIntegrityReasonSchema,
+  reasons: z.array(leaderboardIntegrityReasonSchema),
+  results: z.array(adminFlaggedLeaderboardResultSchema),
+});
+
 export const leaderboardCorrectionPreviewSchema = z
   .object({
     reason: z.string().trim().min(8),
@@ -289,6 +323,15 @@ export type LeaderboardCorrectionPreviewInput = z.infer<
 >;
 export type LeaderboardCorrectionConfirmInput = z.infer<
   typeof leaderboardCorrectionConfirmSchema
+>;
+export type LeaderboardIntegrityReason = z.infer<
+  typeof leaderboardIntegrityReasonSchema
+>;
+export type AdminFlaggedLeaderboardResult = z.infer<
+  typeof adminFlaggedLeaderboardResultSchema
+>;
+export type AdminFlaggedLeaderboardResultsResponse = z.infer<
+  typeof adminFlaggedLeaderboardResultsResponseSchema
 >;
 export type LeaderboardCorrectionResponse = z.infer<
   typeof leaderboardCorrectionResponseSchema
@@ -1101,6 +1144,13 @@ export const dailyNumbersStateResponseSchema = z.object({
   submitted: z.boolean(),
   submission: dailyNumbersSubmissionSchema.nullable(),
   solutionHunt: dailyNumbersSolutionHuntProgressSchema.nullable().optional(),
+  /** Present only on ranked-start: the server-timed session used as integrity evidence. */
+  rankedSession: z
+    .object({
+      startedAt: z.string(),
+      deadlineAt: z.string(),
+    })
+    .optional(),
 });
 
 export const dailyNumbersSubmitSchema = z.object({

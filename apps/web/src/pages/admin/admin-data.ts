@@ -5,6 +5,8 @@ export const ADMIN_QUERY_KEYS = {
   cards: ["admin", "cards"] as const,
   emailRequests: ["admin", "email-requests"] as const,
   imageAssets: ["admin", "image-assets"] as const,
+  leaderboardIntegrity: (reason: string) =>
+    ["admin", "leaderboard-integrity", reason] as const,
   pack: (id: string) => ["admin", "packs", id] as const,
   packs: ["admin", "packs"] as const,
   rarities: ["admin", "rarities"] as const,

@@ -1759,6 +1759,108 @@ defmodule AdventureTimeApiWeb.AdminControllerTest do
     assert identity.provider_subject_hash == String.duplicate("d", 64)
   end
 
+  test "super admins list Daily Numbers results flagged by ranked session evidence", _context do
+    {:ok, _version} = AdventureTimeApi.Leaderboards.Configuration.ensure_launch_version()
+    {:ok, _version} = AdventureTimeApi.Leaderboards.Configuration.activate_due(DateTime.utc_now())
+
+    super_admin =
+      create_user_with_password("integrity-admin@example.com", "password123", "Integrity",
+        verified?: true,
+        access_status: :approved,
+        role: :super_admin
+      )
+
+    admin =
+      create_user_with_password("integrity-plain-admin@example.com", "password123", "Plain",
+        verified?: true,
+        access_status: :approved,
+        role: :admin
+      )
+
+    player =
+      create_user_with_password("integrity-player@example.com", "password123", "Player",
+        verified?: true,
+        access_status: :approved
+      )
+
+    today = Date.utc_today()
+    started_at = DateTime.new!(today, ~T[00:00:00.000000], "Etc/UTC")
+    settled_at = DateTime.new!(today, ~T[00:10:00.000000], "Etc/UTC")
+
+    attempt =
+      %AdventureTimeApi.Quests.DailyNumbersDailyAttempt{}
+      |> AdventureTimeApi.Quests.DailyNumbersDailyAttempt.changeset(%{
+        user_id: player.id,
+        date: today,
+        mode: "1-5",
+        submitted_steps: [],
+        final_value: 42,
+        distance: 0,
+        score: 100,
+        exact: true,
+        completed: true,
+        elapsed_ms: 20_000
+      })
+      |> Ecto.Changeset.put_change(:inserted_at, DateTime.truncate(settled_at, :second))
+      |> Repo.insert!()
+
+    assert {:ok, _session} =
+             AdventureTimeApi.Leaderboards.RankedSessions.start_daily_numbers(
+               player,
+               today,
+               "1-5",
+               started_at
+             )
+
+    assert {:ok, _session} =
+             AdventureTimeApi.Leaderboards.RankedSessions.settle_daily_numbers(
+               player.id,
+               today,
+               "1-5",
+               attempt.id,
+               settled_at,
+               client_elapsed_ms: 20_000
+             )
+
+    assert {:ok, result} =
+             AdventureTimeApi.Leaderboards.QuestResults.sync(
+               player.id,
+               today,
+               {:daily_numbers, "1-5"},
+               settled_at
+             )
+
+    get_flagged = fn token, query ->
+      build_conn()
+      |> put_req_header("authorization", "Bearer #{token}")
+      |> get("/admin/leaderboards/results/flagged#{query}")
+    end
+
+    super_token = login_access_token(super_admin.email, "password123")
+
+    assert %{"reason" => "suspicious_elapsed_ratio", "results" => [flagged]} =
+             super_token |> get_flagged.("") |> json_response(200)
+
+    assert flagged["id"] == result.id
+    assert flagged["boardKey"] == "daily-numbers/1-5"
+    assert flagged["displayName"] == "Player"
+    assert flagged["integrityStatus"] == "accepted"
+    assert flagged["resultStatus"] == "accepted"
+    assert flagged["serverElapsedMs"] == 600_000
+    assert flagged["clientElapsedMs"] == 20_000
+    assert flagged["snapshotId"] == nil
+
+    assert "suspicious_elapsed_ratio" in flagged["integrityReasonCodes"]
+
+    assert %{"results" => []} =
+             super_token |> get_flagged.("?reason=no_ranked_session") |> json_response(200)
+
+    assert super_token |> get_flagged.("?reason=anything") |> json_response(422)
+
+    admin_token = login_access_token(admin.email, "password123")
+    assert admin_token |> get_flagged.("") |> json_response(403)
+  end
+
   defp create_user_with_password(email, password, display_name, opts) do
     role = Keyword.get(opts, :role, :user)
     access_status = Keyword.get(opts, :access_status, :pending)

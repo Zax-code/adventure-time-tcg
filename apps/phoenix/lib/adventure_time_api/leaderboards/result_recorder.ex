@@ -83,7 +83,7 @@ defmodule AdventureTimeApi.Leaderboards.ResultRecorder do
           points_milli: points_milli,
           scoring_version_id: attrs.scoring_version_id,
           result_status: :accepted,
-          integrity_status: :accepted,
+          integrity_status: Map.get(attrs, :integrity_status, :accepted),
           eligibility_status: :eligible,
           active: true,
           provisional: true,

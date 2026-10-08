@@ -685,6 +685,53 @@ function boardReducer(
   };
 }
 
+const RANKED_START_STORAGE_PREFIX = "dailyNumbersRankedStart";
+const rankedStartsThisLaunch = new Set<string>();
+
+/**
+ * Opens the server-timed ranked session the first time the official board is on
+ * screen for a date and mode. It is integrity evidence only: the score keeps using
+ * the paused-when-hidden chronometer, and failures never block play.
+ */
+function useDailyNumbersRankedSessionStart({
+  enabled,
+  date,
+  mode,
+}: {
+  enabled: boolean;
+  date: string;
+  mode: DailyNumbersMode;
+}) {
+  useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+
+    const key = [RANKED_START_STORAGE_PREFIX, date, mode]
+      .map((part) => part.replace(SECURE_STORE_KEY_UNSAFE_CHARS, "_"))
+      .join(".");
+
+    if (rankedStartsThisLaunch.has(key)) {
+      return;
+    }
+    rankedStartsThisLaunch.add(key);
+
+    void (async () => {
+      if ((await SecureStore.getItemAsync(key).catch(() => null)) === "1") {
+        return;
+      }
+
+      try {
+        await apiClient.startDailyNumbersRanked(mode);
+        await SecureStore.setItemAsync(key, "1").catch(() => undefined);
+      } catch {
+        // Offline or server error: the submission is accepted without a session.
+        rankedStartsThisLaunch.delete(key);
+      }
+    })();
+  }, [date, enabled, mode]);
+}
+
 function useDailyNumbersChronometer({
   active,
   attemptScope,
@@ -2942,6 +2989,16 @@ function useDailyNumbersBoardController({
     state.solutionHunt?.available === true &&
     interaction.retrying;
   const hasLockedSubmission = state.submitted === true && !interaction.retrying;
+  useDailyNumbersRankedSessionStart({
+    enabled:
+      chronometerActive &&
+      !archiveMode &&
+      !isArchiveState(state) &&
+      !state.submitted &&
+      !interaction.retrying,
+    date: state.date,
+    mode: state.mode,
+  });
   const chronometer = useDailyNumbersChronometer({
     active:
       chronometerActive && !hasLockedSubmission && !solutionHuntActive,

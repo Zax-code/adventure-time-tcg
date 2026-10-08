@@ -75,6 +75,7 @@ const AdminUsersPage = lazyNamed(adminPages, "AdminUsersPage");
 const AdminUserDetailPage = lazyNamed(adminPages, "AdminUserDetailPage");
 const AdminEmailRequestsPage = lazyNamed(adminPages, "AdminEmailRequestsPage");
 const AdminBalancePage = lazyNamed(adminPages, "AdminBalancePage");
+const AdminLeaderboardIntegrityPage = lazyNamed(adminPages, "AdminLeaderboardIntegrityPage");
 
 function DocumentMetadata() {
   const { pathname } = useLocation();
@@ -143,6 +144,7 @@ export function App() {
           <Route path="admin/users/:id" element={<AdminUserDetailPage />} />
           <Route element={<SuperAdminRoute />}>
             <Route path="admin/email-requests" element={<AdminEmailRequestsPage />} />
+            <Route path="admin/leaderboard-integrity" element={<AdminLeaderboardIntegrityPage />} />
           </Route>
           <Route path="admin/balance" element={<AdminBalancePage />} />
         </Route>

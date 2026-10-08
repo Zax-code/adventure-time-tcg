@@ -9,8 +9,10 @@ defmodule AdventureTimeApi.Leaderboards.QuestResultsTest do
   alias AdventureTimeApi.Leaderboards.{
     Configuration,
     DailyResult,
+    Query,
     QuestResults,
-    RankedSessions
+    RankedSessions,
+    ResultTelemetry
   }
 
   alias AdventureTimeApi.Quests.{
@@ -368,6 +370,170 @@ defmodule AdventureTimeApi.Leaderboards.QuestResultsTest do
       end)
 
     refute log =~ "leaderboard result sync skipped"
+  end
+
+  describe "Daily Numbers ranked session evidence" do
+    test "a settled session attests the result without changing its score", %{
+      user: user,
+      date: date
+    } do
+      attempt = insert_daily_numbers!(user, date, 40_000)
+
+      start_and_settle!(
+        user,
+        date,
+        attempt,
+        ~U[2026-08-17 11:59:00.000000Z],
+        ~U[2026-08-17 12:00:00.000000Z]
+      )
+
+      assert {:ok, result} = sync(user.id, date, {:daily_numbers, "1-5"})
+      assert is_binary(result.ranked_session_id)
+      assert result.integrity_status == :accepted
+      assert result.raw_result["elapsedMs"] == 40_000
+
+      telemetry = Repo.get_by!(ResultTelemetry, result_id: result.id)
+      assert telemetry.integrity_reason_codes == ["server_observed_elapsed"]
+
+      assert telemetry.session_metrics == %{
+               "serverElapsedMs" => 60_000,
+               "clientElapsedMs" => 40_000
+             }
+
+      assert [%{rank: 1, rawResult: %{"elapsedMs" => 40_000}}] = daily_numbers_rows(user)
+    end
+
+    test "a client time beyond the server window plus tolerance is rejected and unranked", %{
+      user: user,
+      date: date
+    } do
+      attempt = insert_daily_numbers!(user, date, 66_000)
+
+      start_and_settle!(
+        user,
+        date,
+        attempt,
+        ~U[2026-08-17 11:59:00.000000Z],
+        ~U[2026-08-17 12:00:00.000000Z]
+      )
+
+      assert {:ok, result} = sync(user.id, date, {:daily_numbers, "1-5"})
+      assert result.integrity_status == :rejected
+
+      assert Repo.get_by!(ResultTelemetry, result_id: result.id).integrity_reason_codes ==
+               ["client_elapsed_exceeds_server_window"]
+
+      assert daily_numbers_rows(user) == []
+    end
+
+    test "a client time within the 5 s tolerance stays accepted", %{user: user, date: date} do
+      attempt = insert_daily_numbers!(user, date, 65_000)
+
+      start_and_settle!(
+        user,
+        date,
+        attempt,
+        ~U[2026-08-17 11:59:00.000000Z],
+        ~U[2026-08-17 12:00:00.000000Z]
+      )
+
+      assert {:ok, %{integrity_status: :accepted}} = sync(user.id, date, {:daily_numbers, "1-5"})
+    end
+
+    test "a submission without a session is accepted and marked", %{user: user, date: date} do
+      insert_daily_numbers!(user, date, 40_000)
+
+      assert {:ok, result} = sync(user.id, date, {:daily_numbers, "1-5"})
+      assert is_nil(result.ranked_session_id)
+      assert result.integrity_status == :accepted
+
+      assert Repo.get_by!(ResultTelemetry, result_id: result.id).integrity_reason_codes ==
+               ["no_ranked_session"]
+
+      assert [_row] = daily_numbers_rows(user)
+    end
+
+    test "a very short client time in a long server window is flagged, not rejected", %{
+      user: user,
+      date: date
+    } do
+      attempt = insert_daily_numbers!(user, date, 20_000)
+
+      start_and_settle!(
+        user,
+        date,
+        attempt,
+        ~U[2026-08-17 11:50:00.000000Z],
+        ~U[2026-08-17 12:00:00.000000Z]
+      )
+
+      assert {:ok, result} = sync(user.id, date, {:daily_numbers, "1-5"})
+      assert result.integrity_status == :accepted
+
+      assert Repo.get_by!(ResultTelemetry, result_id: result.id).integrity_reason_codes == [
+               "server_observed_elapsed",
+               "suspicious_elapsed_ratio"
+             ]
+
+      assert [_row] = daily_numbers_rows(user)
+    end
+
+    test "a submission after the slot deadline is rejected", %{user: user, date: date} do
+      attempt = insert_daily_numbers!(user, date, 40_000)
+
+      start_and_settle!(
+        user,
+        date,
+        attempt,
+        ~U[2026-08-17 23:59:00.000000Z],
+        ~U[2026-08-18 00:00:30.000000Z]
+      )
+
+      assert {:ok, result} = sync(user.id, date, {:daily_numbers, "1-5"})
+      assert result.integrity_status == :rejected
+
+      assert Repo.get_by!(ResultTelemetry, result_id: result.id).integrity_reason_codes ==
+               ["ranked_session_deadline_exceeded"]
+    end
+  end
+
+  defp insert_daily_numbers!(user, date, elapsed_ms) do
+    %DailyNumbersDailyAttempt{}
+    |> DailyNumbersDailyAttempt.changeset(%{
+      user_id: user.id,
+      date: date,
+      mode: "1-5",
+      submitted_steps: [],
+      final_value: 42,
+      distance: 0,
+      score: 100,
+      exact: true,
+      completed: true,
+      elapsed_ms: elapsed_ms
+    })
+    |> with_source_timestamp(date)
+    |> Repo.insert!()
+  end
+
+  defp start_and_settle!(user, date, attempt, started_at, settled_at) do
+    assert {:ok, _session} = RankedSessions.start_daily_numbers(user, date, "1-5", started_at)
+
+    assert {:ok, _session} =
+             RankedSessions.settle_daily_numbers(
+               user.id,
+               date,
+               "1-5",
+               attempt.id,
+               settled_at,
+               client_elapsed_ms: attempt.elapsed_ms
+             )
+  end
+
+  defp daily_numbers_rows(user) do
+    assert {:ok, payload} =
+             Query.fetch("daily-numbers", "1-5", "today", user.id, ~U[2026-08-17 12:00:00Z])
+
+    payload.rows
   end
 
   defp insert_steps!(user_id, source, count, date) do

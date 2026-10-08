@@ -10,7 +10,7 @@ defmodule AdventureTimeApi.Quests do
   alias AdventureTimeApi.Accounts.User
   alias AdventureTimeApi.Fitbit
   alias AdventureTimeApi.Health
-  alias AdventureTimeApi.Leaderboards.QuestResults
+  alias AdventureTimeApi.Leaderboards.{QuestResults, RankedSessions}
 
   alias AdventureTimeApi.Quests.{
     DailyNumbersArchiveAttempt,
@@ -490,9 +490,74 @@ defmodule AdventureTimeApi.Quests do
     end
   end
 
+  @doc """
+  Opens (or returns) today's server-timed ranked session when the player opens the
+  ranked board, then returns the usual state with an additive `rankedSession`.
+  Sessions are integrity evidence only: failures never block play.
+  """
   def start_daily_numbers_ranked(user_id, mode) do
-    # Compatibility endpoint for app versions that still call ranked-start.
-    daily_numbers_state(user_id, mode)
+    with {:ok, normalized_mode} <- normalize_daily_numbers_mode(mode),
+         {:ok, state} <- daily_numbers_state(user_id, normalized_mode) do
+      date = Date.from_iso8601!(state.date)
+
+      {:ok,
+       maybe_put_ranked_session(state, ensure_ranked_session(user_id, date, normalized_mode))}
+    end
+  end
+
+  defp ensure_ranked_session(user_id, date, mode) do
+    with nil <- get_daily_numbers_attempt(user_id, date, mode),
+         %User{} = user <- Repo.get(User, user_id),
+         {:ok, session} <- RankedSessions.start_daily_numbers(user, date, mode) do
+      session
+    else
+      {:error, reason} ->
+        Logger.warning("daily numbers ranked session not started",
+          user_id: user_id,
+          mode: mode,
+          reason: inspect(reason)
+        )
+
+        nil
+
+      _ ->
+        nil
+    end
+  end
+
+  defp maybe_put_ranked_session(state, nil), do: state
+
+  defp maybe_put_ranked_session(state, session) do
+    Map.put(state, :rankedSession, %{
+      startedAt: DateTime.to_iso8601(session.server_started_at),
+      deadlineAt: DateTime.to_iso8601(session.server_deadline_at)
+    })
+  end
+
+  defp settle_ranked_daily_numbers(user_id, date, mode, attempt) do
+    case RankedSessions.settle_daily_numbers(
+           user_id,
+           date,
+           mode,
+           attempt.id,
+           DateTime.utc_now(),
+           client_elapsed_ms: attempt.elapsed_ms
+         ) do
+      {:ok, _session} ->
+        :ok
+
+      {:error, :ranked_session_missing} ->
+        :ok
+
+      {:error, reason} ->
+        Logger.warning("daily numbers ranked session not settled",
+          user_id: user_id,
+          mode: mode,
+          reason: inspect(reason)
+        )
+
+        :ok
+    end
   end
 
   def submit_daily_numbers(
@@ -575,7 +640,9 @@ defmodule AdventureTimeApi.Quests do
             end)
             |> Repo.transaction()
             |> case do
-              {:ok, %{daily_numbers_attempt: _attempt}} ->
+              {:ok, %{daily_numbers_attempt: attempt}} ->
+                settle_ranked_daily_numbers(user_id, date, normalized_mode, attempt)
+
                 QuestResults.sync_safely(
                   user_id,
                   date,
