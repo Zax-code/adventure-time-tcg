@@ -533,6 +533,36 @@ defmodule AdventureTimeApiWeb.PvpControllerTest do
              |> json_response(200)
   end
 
+  test "concurrent end turns by the same player apply exactly once", _context do
+    %{battle_state: battle_state, match_id: match_id} =
+      create_accepted_match_fixture("concurrent-end-turn")
+
+    acting_user_id = battle_state["currentPlayerId"]
+
+    events_before =
+      Repo.aggregate(
+        from(e in AdventureTimeApi.Pvp.MatchEvent, where: e.match_id == ^match_id),
+        :count
+      )
+
+    results =
+      1..2
+      |> Enum.map(fn _ -> Task.async(fn -> Pvp.end_turn(acting_user_id, match_id, nil) end) end)
+      |> Enum.map(&Task.await(&1, 15_000))
+
+    assert Enum.count(results, &match?({:ok, _}, &1)) == 1
+
+    assert Enum.count(results, fn
+             {:error, reason} -> reason in [:not_your_turn, :conflict]
+             _ -> false
+           end) == 1
+
+    assert Repo.aggregate(
+             from(e in AdventureTimeApi.Pvp.MatchEvent, where: e.match_id == ^match_id),
+             :count
+           ) == events_before + 1
+  end
+
   test "skill and ultimate action routes execute assigned abilities", _context do
     %{
       acting_token: acting_token,
