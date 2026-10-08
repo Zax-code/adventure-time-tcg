@@ -192,8 +192,18 @@ defmodule AdventureTimeApi.Quests do
     date = date || current_reset_date_for_user(user_id)
     now = now_utc()
 
+    # Reads materialize the day's quests; skip the upsert when every quest already
+    # exists with its current target so steady-state GETs do not write.
+    existing_targets =
+      DailyQuest
+      |> where([q], q.user_id == ^user_id and q.date == ^date)
+      |> select([q], {q.quest_type, q.target})
+      |> Repo.all()
+      |> Map.new()
+
     entries =
-      Enum.map(@quest_definitions, fn def ->
+      @quest_definitions
+      |> Enum.map(fn def ->
         %{
           id: Ecto.UUID.generate(),
           user_id: user_id,
@@ -208,11 +218,14 @@ defmodule AdventureTimeApi.Quests do
           updated_at: now
         }
       end)
+      |> Enum.reject(&(Map.get(existing_targets, &1.quest_type) == &1.target))
 
-    Repo.insert_all(DailyQuest, entries,
-      on_conflict: {:replace, [:target, :updated_at]},
-      conflict_target: [:user_id, :date, :quest_type]
-    )
+    if entries != [] do
+      Repo.insert_all(DailyQuest, entries,
+        on_conflict: {:replace, [:target, :updated_at]},
+        conflict_target: [:user_id, :date, :quest_type]
+      )
+    end
 
     :ok
   end
@@ -253,9 +266,15 @@ defmodule AdventureTimeApi.Quests do
           updates
         end
 
-      DailyQuest
-      |> where([q], q.id == ^quest.id)
-      |> Repo.update_all(set: updates)
+      changed? =
+        progress != quest.progress or (quest.completed || completed) != quest.completed or
+          Keyword.has_key?(updates, :completed_at)
+
+      if changed? do
+        DailyQuest
+        |> where([q], q.id == ^quest.id)
+        |> Repo.update_all(set: updates)
+      end
     end
 
     QuestResults.sync_safely(user_id, date, :steps)
