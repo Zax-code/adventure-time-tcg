@@ -43,6 +43,10 @@ const leaderboardRawResultSource = readFileSync(
 );
 const leaderboardHelpSource = readFileSync("app/leaderboard-help.tsx", "utf8");
 const appLayoutSource = readFileSync("app/_layout.tsx", "utf8");
+const rootRouteEffectsSource = readFileSync(
+  "src/components/root-route-effects.tsx",
+  "utf8",
+);
 const leaderboardAvatarSource = readFileSync(
   "src/features/leaderboards/leaderboard-avatar.tsx",
   "utf8",
@@ -356,5 +360,15 @@ describe("mobile UI regression contracts", () => {
     assert.match(adminFrenchSource, /assessmentTestLabWarning:/);
     assert.match(adminEnglishSource, /assessmentReasons: \{/);
     assert.match(adminFrenchSource, /assessmentReasons: \{/);
+  });
+
+  it("keeps route subscriptions out of the root layout", () => {
+    assert.doesNotMatch(appLayoutSource, /usePathname|useGlobalSearchParams/);
+    assert.match(appLayoutSource, /<RootRouteEffects \/>/);
+    assert.match(rootRouteEffectsSource, /usePathname\(\)/);
+    assert.match(
+      rootRouteEffectsSource,
+      /useNotificationResponseRouting\(bootstrapPhase === "ready"\)/,
+    );
   });
 });

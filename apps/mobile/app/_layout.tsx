@@ -3,15 +3,10 @@ import {
   configureReanimatedLogger,
   ReanimatedLogLevel,
 } from "react-native-reanimated";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { BottomSheetProvider } from "@swmansion/react-native-bottom-sheet";
-import { AccessibilityInfo, ActivityIndicator, View } from "react-native";
-import {
-  Stack,
-  useGlobalSearchParams,
-  usePathname,
-  useRouter,
-} from "expo-router";
+import { ActivityIndicator, View } from "react-native";
+import { Stack } from "expo-router";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Orientation from "react-native-orientation-locker";
@@ -29,25 +24,17 @@ import {
 import "../global.css";
 
 import { useStepSyncManager } from "../src/hooks/use-step-sync-manager";
-import { useQuestDayCutoff } from "../src/hooks/use-quest-day-cutoff";
 import { useRetryFailedQueriesOnAppActive } from "../src/hooks/use-retry-failed-queries-on-app-active";
 import { useStepQuestWidgetSync } from "../src/hooks/use-step-quest-widget-sync";
 import { useUserTimezoneSync } from "../src/hooks/use-user-timezone-sync";
 import { useWidgetRefreshPushRegistration } from "../src/hooks/use-widget-refresh-push-registration";
 import { useWarmPackVisuals } from "../src/hooks/use-warm-pack-visuals";
-import { useNotificationResponseRouting } from "../src/hooks/use-notification-response-routing";
 import { useGiftBadgeRefresh } from "../src/hooks/use-gift-badge-refresh";
 import { useNativeSplashDismissal } from "../src/hooks/use-native-splash-dismissal";
 import { AppLaunchScreen } from "../src/components/app-launch-screen";
 import { AppOverlayProvider } from "../src/components/app-overlay-portal";
 import { PageErrorState } from "../src/components/error-state";
-import { QuestDayCutoffModal } from "../src/features/quests/quest-day-cutoff-modal";
-import {
-  isQuestExperiencePath,
-  isQuestHubPath,
-  type QuestDayCutoffEvent,
-  type QuestRouteContext,
-} from "../src/features/quests/quest-day-cutoff";
+import { RootRouteEffects } from "../src/components/root-route-effects";
 import { useTranslation } from "../src/i18n";
 import { queryClient } from "../src/lib/query-client";
 import {
@@ -58,7 +45,6 @@ import { useBootstrap } from "../src/hooks/use-bootstrap";
 import { apiClient } from "../src/lib/api";
 import { API_BASE_URL } from "../src/lib/api-config";
 import { registerWidgetRefreshNotificationTask } from "../src/lib/widget-refresh-notification-task";
-import { rememberContentPathname } from "../src/lib/widget-route-history";
 import { preparePlayIntegrity } from "../src/lib/play-integrity";
 import {
   connectQuestRealtime,
@@ -68,7 +54,6 @@ import {
   type QuestResetPayload,
   useQuestResetStore,
 } from "../src/stores/quest-reset-store";
-import { useQuestDayCutoffStore } from "../src/stores/quest-day-cutoff-store";
 import { useSessionStore } from "../src/stores/session-store";
 import { useStepSyncStore } from "../src/stores/step-sync-store";
 import { useLocaleStore } from "../src/stores/locale-store";
@@ -100,75 +85,11 @@ const LANDSCAPE_SCREEN_OPTIONS = {
   orientation: "landscape",
 } as const;
 
-const QUEST_DAY_CACHE_KEYS = [
-  ["quests"],
-  ["wordle"],
-  ["wordleDefinition"],
-  ["daily-numbers"],
-  ["speed-calculus"],
-  ["perfect-timing"],
-] as const;
-
-async function refreshQuestDayData() {
-  await Promise.allSettled(
-    QUEST_DAY_CACHE_KEYS.map((queryKey) =>
-      queryClient.cancelQueries({ queryKey }),
-    ),
-  );
-
-  for (const queryKey of QUEST_DAY_CACHE_KEYS.slice(1)) {
-    queryClient.removeQueries({ queryKey });
-  }
-
-  const secondaryRefreshes = Promise.allSettled([
-    queryClient.invalidateQueries({
-      queryKey: ["home"],
-      refetchType: "all",
-    }),
-    queryClient.invalidateQueries({
-      queryKey: ["daily-claim"],
-      refetchType: "all",
-    }),
-    queryClient.invalidateQueries({
-      queryKey: ["health-steps"],
-      refetchType: "all",
-    }),
-  ]);
-
-  try {
-    await queryClient.fetchQuery({
-      queryKey: ["quests"],
-      queryFn: () => apiClient.quests(),
-      staleTime: 0,
-    });
-  } catch (error) {
-    const questsQuery = queryClient.getQueryCache().find({
-      queryKey: ["quests"],
-      exact: true,
-    });
-    if (!questsQuery?.isActive()) {
-      queryClient.removeQueries({ queryKey: ["quests"], exact: true });
-    }
-    throw error;
-  } finally {
-    await secondaryRefreshes;
-  }
-}
-
 export default function RootLayout() {
   return useRootLayoutView();
 }
 
 function useRootLayoutView() {
-  const pathname = usePathname();
-  const router = useRouter();
-  const globalSearchParams = useGlobalSearchParams<{
-    archiveDate?: string | string[];
-    _e2eQuestCutoff?: string | string[];
-  }>();
-  const archiveDateParam = globalSearchParams.archiveDate;
-  const questCutoffTestParam = globalSearchParams._e2eQuestCutoff;
-
   useBootstrap();
 
   useEffect(() => {
@@ -208,101 +129,6 @@ function useRootLayoutView() {
   );
   const publishReset = useQuestResetStore((state) => state.publishReset);
   const tc = THEME_COLORS[themeName];
-  const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [questDayCutoff, setQuestDayCutoff] = useState<{
-    event: QuestDayCutoffEvent;
-    sessionKey: string;
-    status: "error" | "ready" | "refreshing";
-  } | null>(null);
-  const archiveDate =
-    typeof archiveDateParam === "string" ? archiveDateParam : null;
-  const questCutoffTestTrigger =
-    typeof questCutoffTestParam === "string" ? questCutoffTestParam : null;
-  const questRouteContext = useMemo(
-    () => ({ pathname, archiveDate }),
-    [archiveDate, pathname],
-  );
-
-  const handleQuestDayChanged = useCallback(
-    (event: QuestDayCutoffEvent) => {
-      if (refreshTimeoutRef.current !== null) {
-        clearTimeout(refreshTimeoutRef.current);
-      }
-
-      const refreshSessionKey = authUserId;
-      const shouldAnnounce = isQuestExperiencePath(questRouteContext);
-      refreshTimeoutRef.current = setTimeout(() => {
-        refreshTimeoutRef.current = null;
-        void refreshQuestDayData().then(
-          () => {
-            setQuestDayCutoff((current) =>
-              current?.sessionKey === refreshSessionKey &&
-              current.event.currentDayKey === event.currentDayKey
-                ? { ...current, status: "ready" }
-                : current,
-            );
-            if (
-              shouldAnnounce &&
-              useSessionStore.getState().user?.id === refreshSessionKey
-            ) {
-              AccessibilityInfo.announceForAccessibility(
-                t("quests.dailyCutoff.body"),
-              );
-            }
-          },
-          () => {
-            setQuestDayCutoff((current) =>
-              current?.sessionKey === refreshSessionKey &&
-              current.event.currentDayKey === event.currentDayKey
-                ? { ...current, status: "error" }
-                : current,
-            );
-            if (
-              shouldAnnounce &&
-              useSessionStore.getState().user?.id === refreshSessionKey
-            ) {
-              AccessibilityInfo.announceForAccessibility(
-                t("quests.dailyCutoff.errorBody"),
-              );
-            }
-          },
-        );
-      }, 0);
-    },
-    [authUserId, questRouteContext, t],
-  );
-
-  const handleQuestCutoff = useCallback(
-    (event: QuestDayCutoffEvent, routeContext: QuestRouteContext) => {
-      if (!authUserId) return;
-
-      useQuestDayCutoffStore.getState().publishCutoff(event.currentDayKey);
-      setQuestDayCutoff({
-        event,
-        sessionKey: authUserId,
-        status: "refreshing",
-      });
-
-      if (!isQuestHubPath(routeContext)) {
-        router.dismissTo("/(tabs)/quests" as never);
-      }
-    },
-    [authUserId, router],
-  );
-
-  useQuestDayCutoff({
-    enabled: bootstrapPhase === "ready" && Boolean(accessToken && authUserId),
-    sessionKey: authUserId,
-    testTrigger: questCutoffTestTrigger,
-    timeZone: timezone,
-    onTestTriggerConsumed: () => {
-      router.setParams({ _e2eQuestCutoff: undefined } as never);
-    },
-    routeContext: questRouteContext,
-    onDayChanged: handleQuestDayChanged,
-    onQuestCutoff: handleQuestCutoff,
-  });
-
   useWidgetRefreshPushRegistration({
     accessToken,
     notificationPermissionStatus,
@@ -331,7 +157,6 @@ function useRootLayoutView() {
 
   useNativeSplashDismissal(localBootReady);
 
-  useNotificationResponseRouting(localBootReady && bootstrapPhase === "ready");
   useGiftBadgeRefresh(localBootReady && bootstrapPhase === "ready");
 
   useEffect(() => {
@@ -378,19 +203,6 @@ function useRootLayoutView() {
   useEffect(() => {
     Orientation.lockToPortrait();
   }, []);
-
-  useEffect(
-    () => () => {
-      if (refreshTimeoutRef.current !== null) {
-        clearTimeout(refreshTimeoutRef.current);
-      }
-    },
-    [],
-  );
-
-  useEffect(() => {
-    rememberContentPathname(pathname);
-  }, [pathname]);
 
   useEffect(() => {
     void registerWidgetRefreshNotificationTask();
@@ -682,22 +494,7 @@ function useRootLayoutView() {
                     />
                   </Stack>
                 )}
-                <QuestDayCutoffModal
-                  visible={
-                    bootstrapPhase === "ready" &&
-                    questDayCutoff?.sessionKey === authUserId &&
-                    isQuestHubPath({ pathname })
-                  }
-                  status={questDayCutoff?.status ?? "refreshing"}
-                  onContinue={() => setQuestDayCutoff(null)}
-                  onRetry={() => {
-                    if (!questDayCutoff) return;
-                    setQuestDayCutoff((current) =>
-                      current ? { ...current, status: "refreshing" } : current,
-                    );
-                    handleQuestDayChanged(questDayCutoff.event);
-                  }}
-                />
+                <RootRouteEffects />
               </View>
             </AppOverlayProvider>
           </BottomSheetProvider>
