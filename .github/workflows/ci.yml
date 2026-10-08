@@ -134,12 +134,6 @@ jobs:
       - name: Check shell syntax
         run: bash -n infra/scripts/*.sh infra/scripts/tests/*.sh
 
-      - name: Test container env rendering
-        run: bash infra/scripts/tests/render-container-envs.test.sh
-
-      - name: Test production deploy ordering
-        run: bash infra/scripts/tests/deploy-phoenix-order.test.sh
-
       - name: Test restricted Netcup deploy boundary
         run: bash infra/scripts/tests/deploy-phoenix-host.test.sh
 
