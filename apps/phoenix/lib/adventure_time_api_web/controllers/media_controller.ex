@@ -51,19 +51,48 @@ defmodule AdventureTimeApiWeb.MediaController do
         |> json(%{error: "Image not found"})
 
       asset ->
-        case Media.fetch_image(asset) do
-          {:ok, body, mime_type} ->
-            conn
-            |> put_resp_header("content-type", mime_type || "image/svg+xml")
-            |> put_resp_header("cache-control", cache_control(kind))
-            |> send_resp(200, body)
+        etag = etag(asset)
 
-          {:error, _reason} ->
-            conn
-            |> put_status(:bad_gateway)
-            |> json(%{error: "Failed to load image"})
+        if etag && etag in if_none_match(conn) do
+          conn
+          |> put_resp_header("etag", etag)
+          |> put_resp_header("cache-control", cache_control(kind))
+          |> send_resp(304, "")
+        else
+          send_image(conn, asset, kind, etag)
         end
     end
+  end
+
+  defp send_image(conn, asset, kind, etag) do
+    case Media.fetch_image(asset) do
+      {:ok, body, mime_type} ->
+        conn
+        |> put_resp_header("content-type", mime_type || "image/svg+xml")
+        |> put_resp_header("cache-control", cache_control(kind))
+        |> maybe_put_etag(etag)
+        |> send_resp(200, body)
+
+      {:error, _reason} ->
+        conn
+        |> put_status(:bad_gateway)
+        |> json(%{error: "Failed to load image"})
+    end
+  end
+
+  # Only assets with a recorded content hash get a validator; older assets keep the
+  # previous behavior rather than risk a stale 304.
+  defp etag(%{content_hash: hash}) when is_binary(hash) and hash != "", do: ~s("#{hash}")
+  defp etag(_asset), do: nil
+
+  defp maybe_put_etag(conn, nil), do: conn
+  defp maybe_put_etag(conn, etag), do: put_resp_header(conn, "etag", etag)
+
+  defp if_none_match(conn) do
+    conn
+    |> get_req_header("if-none-match")
+    |> Enum.flat_map(&String.split(&1, ","))
+    |> Enum.map(&(&1 |> String.trim() |> String.replace_prefix("W/", "")))
   end
 
   defp cache_control(:card), do: Media.card_cache_control()
