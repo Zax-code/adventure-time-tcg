@@ -1,31 +1,7 @@
 // Replay engine for reconstructing battle state from logs
 // This allows replaying matches turn-by-turn using the combat events
 
-import { BattleState, CombatEvent, CardData, StatusName } from "./types";
-import { createBattleState } from "./simulate";
-
-/**
- * A snapshot of the battle state at a specific point in time
- */
-export interface ReplaySnapshot {
-  turn: number;
-  eventIndex: number; // Index of the last event processed
-  state: BattleState;
-  events: CombatEvent[]; // Events that occurred to reach this state
-}
-
-/**
- * Replay data needed to reconstruct a match
- */
-export interface ReplayData {
-  log: CombatEvent[];
-  seed: string;
-  inviterCards: CardData[];
-  inviteeCards: CardData[];
-  inviter: { userId: string; name: string };
-  invitee: { userId: string; name: string };
-  matchId: string;
-}
+import { BattleState, CombatEvent, StatusName } from "./types";
 
 /**
  * Groups events by turn for easier navigation
@@ -109,26 +85,6 @@ export function getEventsForTurn(
   turn: number,
 ): CombatEvent[] {
   return log.filter((event) => event.turn === turn);
-}
-
-/**
- * Create the initial battle state for replay
- */
-export function createInitialReplayState(data: ReplayData): BattleState {
-  return createBattleState(
-    data.matchId,
-    {
-      userId: data.inviter.userId,
-      name: data.inviter.name,
-      cards: data.inviterCards,
-    },
-    {
-      userId: data.invitee.userId,
-      name: data.invitee.name,
-      cards: data.inviteeCards,
-    },
-    data.seed,
-  );
 }
 
 /**
@@ -505,47 +461,6 @@ function findUnit(state: BattleState, instanceId: string) {
     if (benchUnit) return benchUnit;
   }
   return null;
-}
-
-/**
- * Create snapshots at each turn start for efficient navigation
- */
-export function createTurnSnapshots(
-  data: ReplayData,
-): Map<number, ReplaySnapshot> {
-  const snapshots = new Map<number, ReplaySnapshot>();
-  const turnGroups = groupEventsByTurn(data.log);
-
-  // Create initial state
-  const initialState = createInitialReplayState(data);
-
-  // The initial state already includes turn 1 start
-  snapshots.set(0, {
-    turn: 0,
-    eventIndex: -1,
-    state: JSON.parse(JSON.stringify(initialState)),
-    events: [],
-  });
-
-  const currentState = JSON.parse(JSON.stringify(initialState)) as BattleState;
-  currentState.log = []; // Clear log for replay tracking
-
-  for (const turnGroup of turnGroups) {
-    // Apply all events for this turn
-    for (const event of turnGroup.events) {
-      applyEventToState(currentState, event);
-    }
-
-    // Save snapshot at end of turn
-    snapshots.set(turnGroup.turn, {
-      turn: turnGroup.turn,
-      eventIndex: turnGroup.endIndex,
-      state: JSON.parse(JSON.stringify(currentState)),
-      events: turnGroup.events,
-    });
-  }
-
-  return snapshots;
 }
 
 /**
