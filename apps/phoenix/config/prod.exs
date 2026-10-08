@@ -9,3 +9,6 @@ config :adventure_time_api, AdventureTimeApiWeb.WebSessionController,
 
 # Runtime production configuration, including reading
 # of environment variables, is done on config/runtime.exs.
+
+# The release's website index.html is immutable; serve it from memory.
+config :adventure_time_api, AdventureTimeApiWeb.Plugs.WebsiteDocumentPlug, cache_document: true
