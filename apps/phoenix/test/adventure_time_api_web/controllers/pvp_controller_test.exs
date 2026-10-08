@@ -1,9 +1,12 @@
 defmodule AdventureTimeApiWeb.PvpControllerTest do
   use AdventureTimeApiWeb.ConnCase, async: false
 
+  import Ecto.Query
+
   alias AdventureTimeApi.Accounts.{EmailCredential, User}
   alias AdventureTimeApi.Catalog.{Card, Rarity}
   alias AdventureTimeApi.Inventory.OwnedCard
+  alias AdventureTimeApi.Pvp
   alias AdventureTimeApi.Pvp.{AbilityDef, CardAbility, Loadout, Match}
   alias AdventureTimeApi.Repo
   alias AdventureTimeApi.Workers.ExpirePendingInviteWorker
@@ -489,6 +492,45 @@ defmodule AdventureTimeApiWeb.PvpControllerTest do
 
     assert %{"matches" => [%{"currentPlayerId" => ^next_player_id, "currentTurn" => 2}]} =
              json_response(matches_conn, 200)
+  end
+
+  test "persisted current player matches the replayed battle state, with a legacy fallback",
+       _context do
+    %{
+      acting_token: acting_token,
+      battle_state: battle_state,
+      match_id: match_id
+    } =
+      create_accepted_match_fixture("persisted-current-player")
+
+    acting_user_id = battle_state["currentPlayerId"]
+    assert Repo.get!(Match, match_id).current_player_id == acting_user_id
+
+    end_turn_response =
+      acting_token
+      |> auth_conn()
+      |> post(~p"/pvp/matches/#{match_id}/end-turn", %{})
+      |> json_response(200)
+
+    next_player_id = end_turn_response["match"]["currentPlayerId"]
+    assert next_player_id != acting_user_id
+    assert end_turn_response["battleState"]["currentPlayerId"] == next_player_id
+    assert Repo.get!(Match, match_id).current_player_id == next_player_id
+    assert {:ok, %{"currentPlayerId" => ^next_player_id}} = Pvp.reconstruct_state(match_id)
+
+    # Matches persisted before the column existed still resolve the current player.
+    Match
+    |> where([m], m.id == ^match_id)
+    |> Repo.update_all(set: [current_player_id: nil])
+
+    assert %{"matches" => [%{"currentPlayerId" => ^next_player_id}]} =
+             acting_token |> auth_conn() |> get(~p"/pvp/matches") |> json_response(200)
+
+    assert %{"match" => %{"currentPlayerId" => ^next_player_id}} =
+             acting_token
+             |> auth_conn()
+             |> get(~p"/pvp/matches/#{match_id}")
+             |> json_response(200)
   end
 
   test "skill and ultimate action routes execute assigned abilities", _context do

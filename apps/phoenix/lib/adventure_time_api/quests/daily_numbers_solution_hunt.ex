@@ -14,6 +14,7 @@ defmodule AdventureTimeApi.Quests.DailyNumbersSolutionHunt do
     DailyNumbersDailyAttempt,
     DailyNumbersEngine,
     DailyNumbersExpression,
+    DailyNumbersPuzzleCache,
     DailyNumbersSolution,
     DailyNumbersSolutionSet,
     DailyNumbersSolver,
@@ -25,6 +26,36 @@ defmodule AdventureTimeApi.Quests.DailyNumbersSolutionHunt do
   @solution_key_version 3
 
   def get_or_create_puzzle(%Date{} = date, mode) do
+    case cached_puzzle(date, mode) do
+      {:ok, result} -> {:ok, result}
+      :miss -> get_or_create_puzzle_locked(date, mode)
+    end
+  end
+
+  # Lock-free read path for a current solution set whose deterministic puzzle is
+  # already cached; creation and upgrades still go through the advisory lock.
+  defp cached_puzzle(date, mode) do
+    with %DailyNumbersSolutionSet{solution_key_version: @solution_key_version} = solution_set <-
+           Repo.get_by(DailyNumbersSolutionSet, date: date, mode: mode),
+         {:ok, puzzle} <-
+           DailyNumbersPuzzleCache.get(
+             date,
+             mode,
+             solution_set.generation_attempt,
+             @solution_key_version
+           ),
+         true <- current_solution_set?(solution_set, puzzle) do
+      {:ok,
+       %{
+         puzzle: Map.put(puzzle, :solutionCount, solution_set.solution_count),
+         solution_set: solution_set
+       }}
+    else
+      _ -> :miss
+    end
+  end
+
+  defp get_or_create_puzzle_locked(date, mode) do
     lock_key = solution_set_lock_key(date, mode)
 
     case Repo.transaction(fn ->
@@ -53,6 +84,15 @@ defmodule AdventureTimeApi.Quests.DailyNumbersSolutionHunt do
                    numbers = Enum.map(puzzle.numbers, & &1.value)
                    validate_solution_set!(solution_set, numbers, puzzle.target)
                    solution_set = upgrade_solution_set!(solution_set, puzzle)
+
+                   DailyNumbersPuzzleCache.put(
+                     date,
+                     mode,
+                     solution_set.generation_attempt,
+                     @solution_key_version,
+                     puzzle
+                   )
+
                    puzzle = Map.put(puzzle, :solutionCount, solution_set.solution_count)
                    %{puzzle: puzzle, solution_set: solution_set}
 
@@ -67,6 +107,16 @@ defmodule AdventureTimeApi.Quests.DailyNumbersSolutionHunt do
   end
 
   def ensure_solution_set(%Date{} = date, mode, puzzle) do
+    with %DailyNumbersSolutionSet{solution_key_version: @solution_key_version} = solution_set <-
+           Repo.get_by(DailyNumbersSolutionSet, date: date, mode: mode),
+         true <- current_solution_set?(solution_set, puzzle) do
+      {:ok, solution_set}
+    else
+      _ -> ensure_solution_set_locked(date, mode, puzzle)
+    end
+  end
+
+  defp ensure_solution_set_locked(date, mode, puzzle) do
     numbers = Enum.map(puzzle.numbers, & &1.value)
     lock_key = solution_set_lock_key(date, mode)
 
@@ -429,6 +479,11 @@ defmodule AdventureTimeApi.Quests.DailyNumbersSolutionHunt do
     )
 
     solution_set
+  end
+
+  defp current_solution_set?(solution_set, puzzle) do
+    solution_set.numbers == Enum.map(puzzle.numbers, & &1.value) and
+      solution_set.target == puzzle.target
   end
 
   defp validate_solution_set!(solution_set, numbers, target) do

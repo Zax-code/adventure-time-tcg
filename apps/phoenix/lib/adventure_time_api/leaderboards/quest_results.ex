@@ -31,6 +31,9 @@ defmodule AdventureTimeApi.Leaderboards.QuestResults do
 
   @final_perfect_timing_statuses ["kept", "auto_finalized", "failed"]
 
+  # Three cron intervals, so a single missed minute tick loses nothing.
+  @reconcile_watermark_seconds 180
+
   @spec sync_safely(Ecto.UUID.t(), Date.t(), term(), DateTime.t()) :: :ok
   def sync_safely(user_id, date, source, now \\ DateTime.utc_now()) do
     case sync(user_id, date, source, now) do
@@ -100,9 +103,25 @@ defmodule AdventureTimeApi.Leaderboards.QuestResults do
 
   def sync(_user_id, _date, _source, _now), do: {:error, :invalid_result_source}
 
-  @spec reconcile_open_week(DateTime.t()) :: :ok
-  def reconcile_open_week(now \\ DateTime.utc_now()) do
+  @doc """
+  Re-syncs the open week's authoritative source records.
+
+  With `full: false`, step snapshots and Daily Numbers attempts are limited to rows
+  (or their owners) changed within the last few minutes; the caller is responsible
+  for scheduling periodic full passes.
+  """
+  @spec reconcile_open_week(DateTime.t(), keyword()) :: :ok
+  def reconcile_open_week(now \\ DateTime.utc_now(), opts \\ []) do
     today = DateTime.to_date(now)
+
+    changed_since =
+      if Keyword.get(opts, :full, true) do
+        nil
+      else
+        now
+        |> DateTime.add(-@reconcile_watermark_seconds, :second)
+        |> DateTime.truncate(:second)
+      end
 
     since =
       today
@@ -120,12 +139,23 @@ defmodule AdventureTimeApi.Leaderboards.QuestResults do
       where: snapshot.recorded_for >= ^since,
       select: {snapshot.user_id, snapshot.recorded_for, :steps}
     )
+    |> changed_since(
+      changed_since,
+      &dynamic([snapshot, user], snapshot.updated_at >= ^&1 or user.updated_at >= ^&1)
+    )
     |> Repo.all()
     |> Enum.each(fn {user_id, date, source} -> sync_safely(user_id, date, source, now) end)
 
+    # Daily Numbers attempts are insert-only, so inserted_at is their change marker.
     from(attempt in DailyNumbersDailyAttempt,
+      join: user in User,
+      on: user.id == attempt.user_id,
       where: attempt.date >= ^since,
       select: {attempt.user_id, attempt.date, attempt.mode}
+    )
+    |> changed_since(
+      changed_since,
+      &dynamic([attempt, user], attempt.inserted_at >= ^&1 or user.updated_at >= ^&1)
     )
     |> Repo.all()
     |> Enum.each(fn {user_id, date, mode} ->
@@ -162,6 +192,9 @@ defmodule AdventureTimeApi.Leaderboards.QuestResults do
 
     :ok
   end
+
+  defp changed_since(query, nil, _condition), do: query
+  defp changed_since(query, since, condition), do: where(query, ^condition.(since))
 
   defp max_date(first, second) do
     if Date.compare(first, second) == :lt, do: second, else: first

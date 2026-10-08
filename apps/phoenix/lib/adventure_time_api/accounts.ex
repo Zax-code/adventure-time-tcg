@@ -461,26 +461,38 @@ defmodule AdventureTimeApi.Accounts do
     end
   end
 
+  @doc """
+  Authenticates an access token with a single user lookup.
+
+  The returned auth user omits `authMethods`; endpoints that serialize the current
+  user to the client add it with `put_auth_methods/1`.
+  """
   def fetch_auth_user_from_access_token(token) do
     with {:ok, claims} <- Auth.verify_access_token(token),
-         {:ok, auth_user} <- auth_user_for_id(claims["sub"]) do
+         {:ok, auth_user} <- auth_user_for_id(claims["sub"], include_auth_methods: false) do
       {:ok, auth_user}
     else
       _ -> {:error, :unauthorized}
     end
   end
 
-  def auth_user_for_id(user_id) do
+  def auth_user_for_id(user_id, opts \\ []) do
     case Repo.get(User, user_id) do
       %User{} = user ->
         with :ok <- ensure_user_approved(user) do
-          build_auth_user(user)
+          build_auth_user(user, opts)
         end
 
       nil ->
         {:error, :not_found}
     end
   end
+
+  @doc "Adds the client-facing `authMethods` to an auth user built without them."
+  def put_auth_methods(%{authMethods: _} = auth_user), do: auth_user
+
+  def put_auth_methods(%{id: _} = auth_user),
+    do: Map.put(auth_user, :authMethods, auth_methods_for_user(auth_user))
 
   def update_display_name(user_id, display_name) do
     with %User{} = user <- Repo.get(User, user_id),
@@ -1218,29 +1230,33 @@ defmodule AdventureTimeApi.Accounts do
     |> Repo.one()
   end
 
-  defp build_auth_user(user) do
-    {:ok,
-     %{
-       id: user.id,
-       email: user.email,
-       displayName: user.display_name,
-       avatarAssetId: user.avatar_asset_id,
-       coins: user.coins,
-       dust: user.dust,
-       authMethods: auth_methods_for_user(user),
-       isAdmin: admin_role?(user.role),
-       isSuperAdmin: super_admin_role?(user.role),
-       preferredStepSource: Atom.to_string(user.preferred_step_source),
-       preferredLanguage: Atom.to_string(user.preferred_language),
-       timezone: user.timezone || @default_timezone,
-       notificationPreferences: %{
-         dailyReset: user.notify_daily_reset,
-         stepGoal: user.notify_step_goal,
-         pvpInvite: user.notify_pvp_invite,
-         pvpTurn: user.notify_pvp_turn,
-         giftReceived: user.notify_gift_received
-       }
-     }}
+  defp build_auth_user(user, opts \\ []) do
+    auth_user = %{
+      id: user.id,
+      email: user.email,
+      displayName: user.display_name,
+      avatarAssetId: user.avatar_asset_id,
+      coins: user.coins,
+      dust: user.dust,
+      isAdmin: admin_role?(user.role),
+      isSuperAdmin: super_admin_role?(user.role),
+      preferredStepSource: Atom.to_string(user.preferred_step_source),
+      preferredLanguage: Atom.to_string(user.preferred_language),
+      timezone: user.timezone || @default_timezone,
+      notificationPreferences: %{
+        dailyReset: user.notify_daily_reset,
+        stepGoal: user.notify_step_goal,
+        pvpInvite: user.notify_pvp_invite,
+        pvpTurn: user.notify_pvp_turn,
+        giftReceived: user.notify_gift_received
+      }
+    }
+
+    if Keyword.get(opts, :include_auth_methods, true) do
+      {:ok, put_auth_methods(auth_user)}
+    else
+      {:ok, auth_user}
+    end
   end
 
   defp auth_methods_for_user(user) do
