@@ -14,10 +14,12 @@ tags:
     id: collection-ownership-filter-all
 - assertVisible:
     id: collection-card-tile-0
+# ensure-mobile-test-user.sh grants every catalog card to the test user, so
+# "Owned" lists cards and "Not owned" is the empty state.
 - tapOn:
     id: collection-ownership-filter-owned
-- assertVisible: No cards match your filters.
-- tapOn:
-    id: collection-ownership-filter-not-owned
 - assertVisible:
     id: collection-card-tile-0
+- tapOn:
+    id: collection-ownership-filter-not-owned
+- assertVisible: No cards match your filters.

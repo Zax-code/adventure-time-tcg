@@ -81,7 +81,7 @@ tags:
 - scrollUntilVisible:
     element:
       id: quests-card-speed_calculus_daily
-    direction: UP
+    direction: DOWN
     timeout: 10000
 - tapOn:
     id: quests-card-speed_calculus_daily
