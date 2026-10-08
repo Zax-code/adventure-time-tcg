@@ -207,20 +207,26 @@ defmodule AdventureTimeApi.Inventory do
             ]
           )
 
-        Enum.each(selected_drops, fn %{card: card} ->
-          case Repo.get_by(OwnedCard, user_id: user_id, card_id: card.id) do
-            nil ->
-              %OwnedCard{}
-              |> OwnedCard.changeset(%{quantity: 1, obtained_at: now})
-              |> Ecto.Changeset.put_change(:user_id, user_id)
-              |> Ecto.Changeset.put_change(:card_id, card.id)
-              |> Repo.insert!()
-
-            %OwnedCard{} = owned_card ->
-              owned_card
-              |> Ecto.Changeset.change(quantity: owned_card.quantity + 1)
-              |> Repo.update!()
-          end
+        # One upsert per distinct card instead of a lookup plus a write per drop;
+        # existing rows keep their obtained_at, as before.
+        selected_drops
+        |> Enum.frequencies_by(fn %{card: card} -> card.id end)
+        |> Enum.each(fn {card_id, count} ->
+          Repo.insert_all(
+            OwnedCard,
+            [
+              %{
+                id: Ecto.UUID.generate(),
+                user_id: user_id,
+                card_id: card_id,
+                quantity: count,
+                obtained_at: now,
+                inserted_at: now
+              }
+            ],
+            on_conflict: [inc: [quantity: count]],
+            conflict_target: [:user_id, :card_id]
+          )
         end)
 
         %PackOpeningRecord{}

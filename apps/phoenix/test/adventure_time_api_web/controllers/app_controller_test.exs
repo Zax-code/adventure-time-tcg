@@ -1,6 +1,8 @@
 defmodule AdventureTimeApiWeb.AppControllerTest do
   use AdventureTimeApiWeb.ConnCase, async: true
 
+  import Ecto.Query
+
   alias AdventureTimeApi.Accounts
   alias AdventureTimeApi.Auth
   alias AdventureTimeApi.Accounts.{AuthProviderIdentity, EmailCredential, Session, User}
@@ -337,6 +339,65 @@ defmodule AdventureTimeApiWeb.AppControllerTest do
     assert Enum.all?(response["cards"], fn card ->
              Map.has_key?(card, "isNewForUser") and Map.has_key?(card, "rarity")
            end)
+  end
+
+  test "POST /packs/open adds repeated drops to an owned card in one row", _context do
+    user = create_user_with_password("packs-repeat@example.com", "rainicorn")
+    user = user |> Ecto.Changeset.change(coins: 250) |> Repo.update!()
+    access_token = login_access_token(user.email, "rainicorn")
+
+    rare =
+      Repo.insert!(
+        Rarity.changeset(%Rarity{}, %{name: "Rare", drop_rate: 10.0, color: "#3B82F6"})
+      )
+
+    card =
+      Repo.insert!(
+        Card.changeset(%Card{}, %{
+          name: "Marceline",
+          character: "Marceline",
+          description: "Vampire rocker.",
+          hp: 15,
+          attack: 9,
+          defense: 4,
+          speed: 58,
+          type: "Undead",
+          rarity_id: rare.id
+        })
+      )
+
+    obtained_at = ~U[2026-01-01 00:00:00Z]
+
+    Repo.insert!(
+      OwnedCard.changeset(%OwnedCard{}, %{quantity: 2, obtained_at: obtained_at})
+      |> Ecto.Changeset.put_change(:user_id, user.id)
+      |> Ecto.Changeset.put_change(:card_id, card.id)
+    )
+
+    pack =
+      Repo.insert!(
+        Pack.changeset(%Pack{}, %{
+          name: "Single Card Pack",
+          description: "Always Marceline.",
+          card_count: 3,
+          cost: 100,
+          color: "#F59E0B",
+          is_active: true
+        })
+      )
+
+    response =
+      access_token
+      |> auth_conn()
+      |> post(~p"/packs/open", %{packId: pack.id})
+      |> json_response(200)
+
+    assert length(response["cards"]) == 3
+    assert Enum.all?(response["cards"], &(&1["id"] == card.id and &1["isNewForUser"] == false))
+
+    assert [owned] = Repo.all(from(o in OwnedCard, where: o.user_id == ^user.id))
+    assert owned.quantity == 5
+    assert owned.obtained_at == obtained_at
   end
 
   test "GET /packs returns pack art ids and card back visual mappings", _context do
