@@ -185,12 +185,17 @@ describe("mobile UI regression contracts", () => {
     );
     assert.match(
       collectionSource,
-      /animationsEnabled=\{\s*screenFocused &&\s*appActive &&\s*visibleCardIds\.has\(item\.id\)\s*\}/,
+      /const animationsAllowed = screenFocused && appActive;/,
       "off-focus collection cards should remain mounted but stop their animations",
     );
     assert.match(
       collectionSource,
-      /\[accessToken, appActive, router, screenFocused, visibleCardIds\]/,
+      /animationsEnabled=\{animationsAllowed && visible\}/,
+      "only visible tiles of a focused, active collection animate",
+    );
+    assert.match(
+      collectionSource,
+      /\[accessToken, animationsAllowed, openCard\]/,
       "focus changes should refresh visible tiles so their animations actually stop and resume",
     );
   });
