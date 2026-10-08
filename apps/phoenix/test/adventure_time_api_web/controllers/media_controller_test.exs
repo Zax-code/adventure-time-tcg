@@ -6,14 +6,11 @@ defmodule AdventureTimeApiWeb.MediaControllerTest do
   alias AdventureTimeApi.Media
   alias AdventureTimeApi.Repo
 
-  @minio_env_keys [
-    "MINIO_BASE_URL",
-    "MINIO_ENDPOINT",
-    "MINIO_PORT",
-    "MINIO_USE_SSL",
-    "MINIO_BUCKET",
-    "MINIO_ACCESS_KEY",
-    "MINIO_SECRET_KEY"
+  @object_storage_env_keys [
+    "OBJECT_STORAGE_URL",
+    "OBJECT_STORAGE_BUCKET",
+    "OBJECT_STORAGE_ACCESS_KEY",
+    "OBJECT_STORAGE_SECRET_KEY"
   ]
 
   setup do
@@ -88,7 +85,7 @@ defmodule AdventureTimeApiWeb.MediaControllerTest do
     Application.put_env(:adventure_time_api, AdventureTimeApi.Media,
       base_url: "http://127.0.0.1:#{bypass.port}",
       bucket: "private-images",
-      access_key: "minio",
+      access_key: "GK000000000000000000000001",
       secret_key: "secret"
     )
 
@@ -120,7 +117,7 @@ defmodule AdventureTimeApiWeb.MediaControllerTest do
     Application.put_env(:adventure_time_api, AdventureTimeApi.Media,
       base_url: "http://127.0.0.1:#{bypass.port}",
       bucket: "private-images",
-      access_key: "minio",
+      access_key: "GK000000000000000000000001",
       secret_key: "secret"
     )
 
@@ -152,7 +149,7 @@ defmodule AdventureTimeApiWeb.MediaControllerTest do
 
   test "object storage readiness succeeds when the configured bucket accepts credentials" do
     bypass = Bypass.open()
-    configure_minio_bypass(bypass)
+    configure_object_storage_bypass(bypass)
 
     Bypass.expect_once(bypass, "HEAD", "/private-images", fn conn ->
       Plug.Conn.resp(conn, 200, "")
@@ -163,7 +160,7 @@ defmodule AdventureTimeApiWeb.MediaControllerTest do
 
   test "object storage readiness reports rejected credentials" do
     bypass = Bypass.open()
-    configure_minio_bypass(bypass)
+    configure_object_storage_bypass(bypass)
 
     Bypass.expect_once(bypass, "HEAD", "/private-images", fn conn ->
       Plug.Conn.resp(conn, 403, "")
@@ -173,23 +170,23 @@ defmodule AdventureTimeApiWeb.MediaControllerTest do
   end
 
   test "object storage readiness rejects a partial configuration" do
-    restore_minio_env_on_exit()
-    Enum.each(@minio_env_keys, &System.delete_env/1)
+    restore_object_storage_env_on_exit()
+    Enum.each(@object_storage_env_keys, &System.delete_env/1)
 
     Application.put_env(:adventure_time_api, AdventureTimeApi.Media,
       base_url: "http://127.0.0.1:9100",
       bucket: nil,
-      access_key: "minio",
+      access_key: "GK000000000000000000000001",
       secret_key: "secret"
     )
 
     assert Media.ready?() == {:error, :object_storage_not_configured}
   end
 
-  test "GET /media/card/:id serves object storage bytes when configured through MinIO env parts",
+  test "GET /media/card/:id serves object storage bytes when configured through OBJECT_STORAGE env vars",
        %{conn: conn} do
     bypass = Bypass.open()
-    restore_minio_env_on_exit()
+    restore_object_storage_env_on_exit()
 
     Application.put_env(:adventure_time_api, AdventureTimeApi.Media,
       base_url: nil,
@@ -198,13 +195,10 @@ defmodule AdventureTimeApiWeb.MediaControllerTest do
       secret_key: nil
     )
 
-    System.delete_env("MINIO_BASE_URL")
-    System.put_env("MINIO_ENDPOINT", "127.0.0.1")
-    System.put_env("MINIO_PORT", Integer.to_string(bypass.port))
-    System.put_env("MINIO_USE_SSL", "false")
-    System.put_env("MINIO_BUCKET", "private-images")
-    System.put_env("MINIO_ACCESS_KEY", "minio")
-    System.put_env("MINIO_SECRET_KEY", "secret")
+    System.put_env("OBJECT_STORAGE_URL", "http://127.0.0.1:#{bypass.port}")
+    System.put_env("OBJECT_STORAGE_BUCKET", "private-images")
+    System.put_env("OBJECT_STORAGE_ACCESS_KEY", "GK000000000000000000000001")
+    System.put_env("OBJECT_STORAGE_SECRET_KEY", "secret")
 
     Bypass.expect_once(bypass, "GET", "/private-images/cards/jake.png", fn conn ->
       conn = Plug.Conn.put_resp_header(conn, "content-type", "image/png")
@@ -228,7 +222,7 @@ defmodule AdventureTimeApiWeb.MediaControllerTest do
 
   test "GET /media/card/:id serves svg placeholder content type when object storage is unavailable",
        %{conn: conn} do
-    restore_minio_env_on_exit()
+    restore_object_storage_env_on_exit()
 
     Application.put_env(:adventure_time_api, AdventureTimeApi.Media,
       base_url: nil,
@@ -237,7 +231,7 @@ defmodule AdventureTimeApiWeb.MediaControllerTest do
       secret_key: nil
     )
 
-    Enum.each(@minio_env_keys, &System.delete_env/1)
+    Enum.each(@object_storage_env_keys, &System.delete_env/1)
 
     asset =
       Repo.insert!(
@@ -277,7 +271,7 @@ defmodule AdventureTimeApiWeb.MediaControllerTest do
     Application.put_env(:adventure_time_api, AdventureTimeApi.Media,
       base_url: "http://127.0.0.1:#{bypass.port}",
       bucket: "private-images",
-      access_key: "minio",
+      access_key: "GK000000000000000000000001",
       secret_key: "secret"
     )
 
@@ -306,7 +300,7 @@ defmodule AdventureTimeApiWeb.MediaControllerTest do
     user = create_user_with_password("profile-upload@example.com", "password123")
     access_token = login_access_token(user.email, "password123")
     bypass = Bypass.open()
-    configure_minio_bypass(bypass)
+    configure_object_storage_bypass(bypass)
 
     Bypass.expect_once(bypass, fn conn ->
       assert conn.method == "PUT"
@@ -433,9 +427,9 @@ defmodule AdventureTimeApiWeb.MediaControllerTest do
     %Plug.Upload{path: path, filename: Path.basename(path), content_type: mime_type}
   end
 
-  defp restore_minio_env_on_exit do
+  defp restore_object_storage_env_on_exit do
     original_env =
-      Map.new(@minio_env_keys, fn key ->
+      Map.new(@object_storage_env_keys, fn key ->
         {key, System.get_env(key)}
       end)
 
@@ -447,14 +441,14 @@ defmodule AdventureTimeApiWeb.MediaControllerTest do
     end)
   end
 
-  defp configure_minio_bypass(bypass) do
-    restore_minio_env_on_exit()
-    Enum.each(@minio_env_keys, &System.delete_env/1)
+  defp configure_object_storage_bypass(bypass) do
+    restore_object_storage_env_on_exit()
+    Enum.each(@object_storage_env_keys, &System.delete_env/1)
 
     Application.put_env(:adventure_time_api, AdventureTimeApi.Media,
       base_url: "http://127.0.0.1:#{bypass.port}",
       bucket: "private-images",
-      access_key: "minio",
+      access_key: "GK000000000000000000000001",
       secret_key: "secret"
     )
   end

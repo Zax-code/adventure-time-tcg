@@ -39,7 +39,7 @@ What it does:
 - validates the image's revision label against the requested pushed commit
 - creates and verifies a PostgreSQL custom-format recovery object before migrations
 - pulls and verifies the immutable API image before stopping the API
-- stops only the API for migrations and the image switch; PostgreSQL, MinIO,
+- stops only the API for migrations and the image switch; PostgreSQL, Garage,
   Caddy, and Prodigium are not restarted
 - runs `AdventureTimeApi.Release.migrate` in a one-off container unless manually skipped
 - restarts the Quadlet-generated systemd service
@@ -139,7 +139,7 @@ Current checked-in Quadlet templates:
 
 - `infra/containers/quadlet/adventure-time-tcg.pod`
 - `infra/containers/quadlet/adventure-time-tcg-postgres.container`
-- `infra/containers/quadlet/adventure-time-tcg-minio.container`
+- `infra/containers/quadlet/adventure-time-tcg-garage.container`
 - `infra/containers/quadlet/adventure-time-tcg-api.container`
 
 Current Caddy reverse proxy template:

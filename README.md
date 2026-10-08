@@ -45,7 +45,7 @@ Infrastructure helpers:
 
 - `infra/caddy` - Caddy site snippets
 - `infra/scripts` - host and local helper scripts
-- `infra/containers/quadlet` - checked-in Podman Quadlet units for the production pod plus API, PostgreSQL, and MinIO containers
+- `infra/containers/quadlet` - checked-in Podman Quadlet units for the production pod plus API, PostgreSQL, and Garage object storage containers
 
 ## Primary Commands
 
@@ -74,7 +74,7 @@ What they do:
 - `npm run dev:api` - start Phoenix
 - `npm run dev:web` - start the Vite website on `http://127.0.0.1:4173`, proxying API traffic to Phoenix
 - `npm run dev:api:container` - start the Phoenix API inside the local compose stack
-- `npm run dev:stack` - start Phoenix, PostgreSQL, and MinIO together in containers
+- `npm run dev:stack` - start Phoenix, PostgreSQL, and Garage object storage together in containers
 - `npm run dev:mobile` - start the Expo dev server for installed development builds
 - `npm run dev:mobile:ios` - boot the iOS simulator if needed and install/run the local iOS development build
 - `npm run dev:mobile:android` - boot or create an Android emulator if needed and install/run the local Android development build
@@ -183,7 +183,7 @@ cd apps/phoenix
 mix media.audit_orphans
 ```
 
-The task never deletes rows or objects and does not scan for MinIO-only
+The task never deletes rows or objects and does not scan for storage-only
 objects.
 
 ## Production Data Migration
@@ -280,7 +280,7 @@ Important Phoenix env values include:
 - `REFRESH_TOKEN_SECRET`
 - `EMAIL_VERIFICATION_SECRET`
 - `PHX_HOST`
-- MinIO settings
+- object storage settings (`OBJECT_STORAGE_*`)
 - Google auth client IDs
 
 ## Verification

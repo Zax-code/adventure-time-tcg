@@ -330,22 +330,11 @@ if config_env() == :prod do
         raise("environment variable EMAIL_VERIFICATION_SECRET is missing"),
     expose_dev_code: System.get_env("AUTH_EMAIL_EXPOSE_DEV_CODE") == "true"
 
-  minio_base_url =
-    case {System.get_env("MINIO_ENDPOINT"), System.get_env("MINIO_PORT")} do
-      {endpoint, port}
-      when is_binary(endpoint) and endpoint != "" and is_binary(port) and port != "" ->
-        scheme = if System.get_env("MINIO_USE_SSL") in ~w(true 1), do: "https", else: "http"
-        "#{scheme}://#{endpoint}:#{port}"
-
-      _ ->
-        nil
-    end
-
   config :adventure_time_api, AdventureTimeApi.Media,
-    base_url: minio_base_url,
-    bucket: System.get_env("MINIO_BUCKET"),
-    access_key: System.get_env("MINIO_ACCESS_KEY"),
-    secret_key: System.get_env("MINIO_SECRET_KEY")
+    base_url: System.get_env("OBJECT_STORAGE_URL"),
+    bucket: System.get_env("OBJECT_STORAGE_BUCKET"),
+    access_key: System.get_env("OBJECT_STORAGE_ACCESS_KEY"),
+    secret_key: System.get_env("OBJECT_STORAGE_SECRET_KEY")
 end
 
 if config_env() == :prod do

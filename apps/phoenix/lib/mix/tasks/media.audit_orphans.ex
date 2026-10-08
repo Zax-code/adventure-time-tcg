@@ -11,7 +11,7 @@ defmodule Mix.Tasks.Media.AuditOrphans do
 
       mix media.audit_orphans
 
-  This task is always read-only. It does not inspect or delete MinIO-only
+  This task is always read-only. It does not inspect or delete storage-only
   objects and it has no delete mode.
   """
 

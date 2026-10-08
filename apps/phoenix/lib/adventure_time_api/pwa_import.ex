@@ -1326,13 +1326,11 @@ defmodule AdventureTimeApi.PwaImport do
   end
 
   defp target_storage_config(env) do
-    scheme = if env["MINIO_USE_SSL"] in ["true", "1"], do: "https", else: "http"
-
     %{
-      base_url: scheme <> "://" <> env["MINIO_ENDPOINT"] <> ":" <> env["MINIO_PORT"],
-      bucket: env["MINIO_BUCKET"],
-      access_key: env["MINIO_ACCESS_KEY"],
-      secret_key: env["MINIO_SECRET_KEY"]
+      base_url: String.trim_trailing(Map.fetch!(env, "OBJECT_STORAGE_URL"), "/"),
+      bucket: Map.fetch!(env, "OBJECT_STORAGE_BUCKET"),
+      access_key: Map.fetch!(env, "OBJECT_STORAGE_ACCESS_KEY"),
+      secret_key: Map.fetch!(env, "OBJECT_STORAGE_SECRET_KEY")
     }
   end
 

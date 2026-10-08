@@ -1,14 +1,11 @@
 defmodule AdventureTimeApiWeb.HealthControllerTest do
   use AdventureTimeApiWeb.ConnCase, async: false
 
-  @minio_env_keys [
-    "MINIO_BASE_URL",
-    "MINIO_ENDPOINT",
-    "MINIO_PORT",
-    "MINIO_USE_SSL",
-    "MINIO_BUCKET",
-    "MINIO_ACCESS_KEY",
-    "MINIO_SECRET_KEY"
+  @object_storage_env_keys [
+    "OBJECT_STORAGE_URL",
+    "OBJECT_STORAGE_BUCKET",
+    "OBJECT_STORAGE_ACCESS_KEY",
+    "OBJECT_STORAGE_SECRET_KEY"
   ]
 
   test "GET /health", %{conn: conn} do
@@ -47,7 +44,7 @@ defmodule AdventureTimeApiWeb.HealthControllerTest do
     Application.put_env(:adventure_time_api, AdventureTimeApi.Media,
       base_url: "http://127.0.0.1:#{bypass.port}",
       bucket: "private-images",
-      access_key: "minio",
+      access_key: "GK000000000000000000000001",
       secret_key: "wrong-secret"
     )
 
@@ -80,9 +77,9 @@ defmodule AdventureTimeApiWeb.HealthControllerTest do
 
   defp restore_media_config_on_exit do
     original_config = Application.get_env(:adventure_time_api, AdventureTimeApi.Media)
-    original_env = Map.new(@minio_env_keys, &{&1, System.get_env(&1)})
+    original_env = Map.new(@object_storage_env_keys, &{&1, System.get_env(&1)})
 
-    Enum.each(@minio_env_keys, &System.delete_env/1)
+    Enum.each(@object_storage_env_keys, &System.delete_env/1)
 
     on_exit(fn ->
       Application.put_env(:adventure_time_api, AdventureTimeApi.Media, original_config)

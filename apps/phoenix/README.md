@@ -13,7 +13,7 @@ This is the primary backend for `adventure-time-tcg`.
 
 - HTTP: `127.0.0.1:4200`
 - PostgreSQL: `127.0.0.1:5434`
-- MinIO: `127.0.0.1:9100`
+- Garage (S3 object storage): `127.0.0.1:3900`
 - host: `app.leaetzak.love`
 
 ## Commands
@@ -75,7 +75,7 @@ The checked-in Quadlet templates are:
 
 - `infra/containers/quadlet/adventure-time-tcg.pod`
 - `infra/containers/quadlet/adventure-time-tcg-postgres.container`
-- `infra/containers/quadlet/adventure-time-tcg-minio.container`
+- `infra/containers/quadlet/adventure-time-tcg-garage.container`
 - `infra/containers/quadlet/adventure-time-tcg-api.container`
 
 The checked-in public Caddy proxy snippet is:

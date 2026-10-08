@@ -908,7 +908,7 @@ defmodule AdventureTimeApiWeb.AdminControllerTest do
     Application.put_env(:adventure_time_api, AdventureTimeApi.Media,
       base_url: "http://127.0.0.1:#{bypass.port}",
       bucket: "private-images",
-      access_key: "minio",
+      access_key: "GK000000000000000000000001",
       secret_key: "secret"
     )
 
@@ -991,7 +991,7 @@ defmodule AdventureTimeApiWeb.AdminControllerTest do
     Application.put_env(:adventure_time_api, AdventureTimeApi.Media,
       base_url: "http://127.0.0.1:#{bypass.port}",
       bucket: "private-images",
-      access_key: "minio",
+      access_key: "GK000000000000000000000001",
       secret_key: "secret"
     )
 
