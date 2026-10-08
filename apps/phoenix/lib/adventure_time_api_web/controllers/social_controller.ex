@@ -3,8 +3,8 @@ defmodule AdventureTimeApiWeb.SocialController do
 
   alias AdventureTimeApi.Social
 
-  def users(conn, _params) do
-    {:ok, response} = Social.list_giftable_users(conn.assigns.auth_user)
+  def users(conn, params) do
+    {:ok, response} = Social.list_giftable_users(conn.assigns.auth_user, params["q"])
     json(conn, response)
   end
 

@@ -175,7 +175,7 @@ defmodule AdventureTimeApiWeb.Plugs.WebsiteDocumentPlug do
   end
 
   defp serve_document(conn, status) do
-    case File.read(index_path()) do
+    case read_document() do
       {:ok, document} ->
         body = if conn.method == "HEAD", do: "", else: document
 
@@ -212,6 +212,35 @@ defmodule AdventureTimeApiWeb.Plugs.WebsiteDocumentPlug do
     |> put_resp_header("vary", "Accept, Sec-Fetch-Dest, Sec-Fetch-Mode")
     |> put_resp_header("x-content-type-options", "nosniff")
     |> put_resp_header("x-frame-options", "DENY")
+  end
+
+  # Releases ship an immutable index.html, so production can keep it in memory;
+  # dev and test re-read it so rebuilds and per-test fixtures are picked up.
+  defp read_document do
+    path = index_path()
+
+    if cache_document?() do
+      key = {__MODULE__, path}
+
+      case :persistent_term.get(key, nil) do
+        nil ->
+          with {:ok, document} <- File.read(path) do
+            :persistent_term.put(key, document)
+            {:ok, document}
+          end
+
+        document ->
+          {:ok, document}
+      end
+    else
+      File.read(path)
+    end
+  end
+
+  defp cache_document? do
+    :adventure_time_api
+    |> Application.get_env(__MODULE__, [])
+    |> Keyword.get(:cache_document, false)
   end
 
   defp index_path do

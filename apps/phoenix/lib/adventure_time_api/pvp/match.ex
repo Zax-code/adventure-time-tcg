@@ -18,6 +18,8 @@ defmodule AdventureTimeApi.Pvp.Match do
     field(:current_player_id, :binary_id)
     field(:turn_started_at, :utc_datetime)
     field(:expires_at, :utc_datetime)
+    # Set by list queries that skip loading initial_state.
+    field(:has_replay_data, :boolean, virtual: true)
 
     timestamps()
   end

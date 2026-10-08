@@ -56,7 +56,7 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
     :ok
   end
 
-  test "daily quest materialization uses one database statement", _context do
+  test "daily quest materialization writes once, then only reads", _context do
     user = create_user_with_password("quest-materialization@example.com", "password123")
     handler_id = "quest-materialization-#{System.unique_integer([:positive])}"
     test_pid = self()
@@ -64,26 +64,73 @@ defmodule AdventureTimeApiWeb.QuestsControllerTest do
     :telemetry.attach(
       handler_id,
       [:adventure_time_api, :repo, :query],
-      fn _event, _measurements, _metadata, _config -> send(test_pid, :quest_query) end,
+      fn _event, _measurements, metadata, _config ->
+        send(test_pid, {:quest_query, metadata.query})
+      end,
       nil
     )
 
     on_exit(fn -> :telemetry.detach(handler_id) end)
 
-    Quests.materialize_daily_quests(user.id, Quests.current_reset_date())
-
-    query_count =
+    collect = fn ->
       Stream.repeatedly(fn ->
         receive do
-          :quest_query -> :query
+          {:quest_query, query} -> query
         after
           0 -> :done
         end
       end)
-      |> Enum.take_while(&(&1 == :query))
-      |> length()
+      |> Enum.take_while(&(&1 != :done))
+    end
 
-    assert query_count == 1
+    date = Quests.current_reset_date()
+
+    Quests.materialize_daily_quests(user.id, date)
+    first = collect.()
+    assert Enum.count(first, &String.starts_with?(&1, "INSERT")) == 1
+    assert length(first) == 2
+
+    Quests.materialize_daily_quests(user.id, date)
+    second = collect.()
+    assert length(second) == 1
+    refute Enum.any?(second, &String.starts_with?(&1, "INSERT"))
+  end
+
+  test "a repeated GET /quests performs no writes", _context do
+    user = create_user_with_password("quests-idempotent@example.com", "password123")
+    access_token = login_access_token(user.email, "password123")
+
+    access_token |> auth_conn() |> get(~p"/quests") |> json_response(200)
+
+    handler_id = "quests-writes-#{System.unique_integer([:positive])}"
+    test_pid = self()
+
+    :telemetry.attach(
+      handler_id,
+      [:adventure_time_api, :repo, :query],
+      fn _event, _measurements, metadata, _config ->
+        if self() == test_pid, do: send(test_pid, {:quest_query, metadata.query})
+      end,
+      nil
+    )
+
+    on_exit(fn -> :telemetry.detach(handler_id) end)
+
+    access_token |> auth_conn() |> get(~p"/quests") |> json_response(200)
+    :telemetry.detach(handler_id)
+
+    writes =
+      Stream.repeatedly(fn ->
+        receive do
+          {:quest_query, query} -> query
+        after
+          0 -> :done
+        end
+      end)
+      |> Enum.take_while(&(&1 != :done))
+      |> Enum.filter(&String.match?(&1, ~r/^(INSERT|UPDATE|DELETE)/))
+
+    assert writes == []
   end
 
   test "GET /quests materializes daily quests and POST /quests/claim preserves reward semantics",

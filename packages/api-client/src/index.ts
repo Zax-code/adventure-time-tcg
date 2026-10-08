@@ -523,8 +523,9 @@ export class ApiClient {
     );
   }
 
-  async users() {
-    return this.request("/users", { method: "GET" }, (data) =>
+  async users(query?: string) {
+    const search = query?.trim() ? `?q=${encodeURIComponent(query.trim())}` : "";
+    return this.request(`/users${search}`, { method: "GET" }, (data) =>
       usersResponseSchema.parse(data),
     );
   }
@@ -956,8 +957,15 @@ export class ApiClient {
     );
   }
 
-  async pvpHistory() {
-    return this.request("/pvp/history", { method: "GET" }, (data) =>
+  /** Without options the server returns its default page of the most recent matches. */
+  async pvpHistory(options: { limit?: number; offset?: number } = {}) {
+    const params = new URLSearchParams();
+    if (options.limit !== undefined) params.set("limit", String(options.limit));
+    if (options.offset !== undefined) params.set("offset", String(options.offset));
+    const encoded = params.toString();
+    const query = encoded ? `?${encoded}` : "";
+
+    return this.request(`/pvp/history${query}`, { method: "GET" }, (data) =>
       pvpHistoryResponseSchema.parse(data),
     );
   }

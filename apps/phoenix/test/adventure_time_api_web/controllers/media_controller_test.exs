@@ -112,6 +112,44 @@ defmodule AdventureTimeApiWeb.MediaControllerTest do
     assert get_resp_header(conn, "content-type") == ["image/png"]
   end
 
+  test "GET /media/card/:id answers 304 for a matching ETag without fetching storage", %{
+    conn: conn
+  } do
+    bypass = Bypass.open()
+
+    Application.put_env(:adventure_time_api, AdventureTimeApi.Media,
+      base_url: "http://127.0.0.1:#{bypass.port}",
+      bucket: "private-images",
+      access_key: "minio",
+      secret_key: "secret"
+    )
+
+    Bypass.expect_once(bypass, "GET", "/private-images/cards/bmo.png", fn conn ->
+      conn = Plug.Conn.put_resp_header(conn, "content-type", "image/png")
+      Plug.Conn.resp(conn, 200, "PNGDATA")
+    end)
+
+    hash = String.duplicate("ab", 32)
+
+    asset =
+      %ImageAsset{}
+      |> ImageAsset.changeset(%{kind: :card, mime_type: "image/png", object_key: "cards/bmo.png"})
+      |> Ecto.Changeset.put_change(:content_hash, hash)
+      |> Repo.insert!()
+
+    first = get(conn, ~p"/media/card/#{asset.id}")
+    assert response(first, 200) == "PNGDATA"
+    assert get_resp_header(first, "etag") == [~s("#{hash}")]
+
+    revalidated =
+      build_conn()
+      |> put_req_header("if-none-match", ~s(W/"other", "#{hash}"))
+      |> get(~p"/media/card/#{asset.id}")
+
+    assert response(revalidated, 304) == ""
+    assert get_resp_header(revalidated, "etag") == [~s("#{hash}")]
+  end
+
   test "object storage readiness succeeds when the configured bucket accepts credentials" do
     bypass = Bypass.open()
     configure_minio_bypass(bypass)

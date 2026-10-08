@@ -27,6 +27,7 @@ defmodule AdventureTimeApi.Leaderboards.ResultRecorder do
   @spec record_validated(map()) :: {:ok, DailyResult.t()} | {:error, term()}
   def record_validated(attrs) when is_map(attrs) do
     with :ok <- require_keys(attrs),
+         :changed <- unchanged_result(attrs),
          {:ok, points_milli} <-
            Scoring.score(attrs.scoring_configuration, attrs.board_key, attrs.raw_result) do
       Repo.transaction(fn ->
@@ -146,6 +147,36 @@ defmodule AdventureTimeApi.Leaderboards.ResultRecorder do
   end
 
   def record_validated(_attrs), do: {:error, :invalid_result}
+
+  # Read paths re-sync on every request; an identical live result needs no write.
+  # Anything that could change the row (source, raw result, scoring version, ranked
+  # session or integrity) falls through to the locked recording path.
+  defp unchanged_result(attrs) do
+    existing =
+      Repo.one(
+        from(result in DailyResult,
+          join: board in Board,
+          on: board.id == result.board_id,
+          where:
+            board.key == ^attrs.board_key and board.enabled and
+              result.user_id == ^attrs.user_id and
+              result.competition_date == ^attrs.competition_date and result.active,
+          limit: 1
+        )
+      )
+
+    if existing && existing.result_status == :accepted &&
+         existing.source_kind == attrs.source_kind && existing.source_id == attrs.source_id &&
+         existing.raw_result == attrs.raw_result &&
+         existing.scoring_version_id == attrs.scoring_version_id &&
+         existing.competition_slot_id == attrs.competition_slot_id &&
+         existing.ranked_session_id == Map.get(attrs, :ranked_session_id) &&
+         existing.integrity_status == Map.get(attrs, :integrity_status, :accepted) do
+      {:ok, existing}
+    else
+      :changed
+    end
+  end
 
   defp require_keys(attrs) do
     if Enum.all?(@required_keys, &Map.has_key?(attrs, &1)) do

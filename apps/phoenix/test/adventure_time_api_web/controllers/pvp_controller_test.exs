@@ -1,5 +1,6 @@
 defmodule AdventureTimeApiWeb.PvpControllerTest do
   use AdventureTimeApiWeb.ConnCase, async: false
+  use Oban.Testing, repo: AdventureTimeApi.Repo
 
   import Ecto.Query
 
@@ -531,6 +532,71 @@ defmodule AdventureTimeApiWeb.PvpControllerTest do
              |> auth_conn()
              |> get(~p"/pvp/matches/#{match_id}")
              |> json_response(200)
+  end
+
+  test "the timeout worker expires due turns that spectator reads no longer sweep",
+       _context do
+    %{inviter_token: inviter_token, match_id: match_id} =
+      create_accepted_match_fixture("timeout-worker")
+
+    stale =
+      DateTime.utc_now() |> DateTime.add(-25 * 60 * 60, :second) |> DateTime.truncate(:second)
+
+    Match
+    |> where([m], m.id == ^match_id)
+    |> Repo.update_all(set: [turn_started_at: stale])
+
+    spectate = inviter_token |> auth_conn() |> get(~p"/pvp/spectate") |> json_response(200)
+    assert Enum.any?(spectate["matches"], &(&1["id"] == match_id))
+    assert Repo.get!(Match, match_id).status == "in_progress"
+
+    assert :ok = perform_job(AdventureTimeApi.Workers.PvpMatchTimeoutWorker, %{})
+    assert Repo.get!(Match, match_id).status == "completed"
+
+    spectate = inviter_token |> auth_conn() |> get(~p"/pvp/spectate") |> json_response(200)
+    refute Enum.any?(spectate["matches"], &(&1["id"] == match_id))
+  end
+
+  test "history pages matches while stats and totalCount cover the whole history", _context do
+    me = create_user_with_password("history-pages@example.com", "password123", "Me")
+    other = create_user_with_password("history-other@example.com", "password123", "Other")
+    token = login_access_token(me.email, "password123")
+
+    outcomes = [me.id, me.id, other.id, nil, me.id]
+
+    outcomes
+    |> Enum.with_index()
+    |> Enum.each(fn {winner_id, index} ->
+      %Match{}
+      |> Match.changeset(%{
+        inviter_id: me.id,
+        invitee_id: other.id,
+        status: "completed",
+        inviter_card_ids: [],
+        winner_id: winner_id,
+        initial_state: if(index == 4, do: %{"players" => []}, else: nil)
+      })
+      |> Ecto.Changeset.put_change(
+        :updated_at,
+        NaiveDateTime.add(~N[2026-10-01 12:00:00], index * 60)
+      )
+      |> Repo.insert!()
+    end)
+
+    page = token |> auth_conn() |> get(~p"/pvp/history?limit=2") |> json_response(200)
+    assert length(page["matches"]) == 2
+    assert page["totalCount"] == 5
+    assert page["stats"] == %{"wins" => 3, "losses" => 1, "draws" => 1, "winRate" => 75}
+
+    [newest | _] = page["matches"]
+    assert newest["hasReplayData"] == true
+
+    next = token |> auth_conn() |> get(~p"/pvp/history?limit=2&offset=4") |> json_response(200)
+    assert length(next["matches"]) == 1
+    refute Map.has_key?(hd(next["matches"]), "hasReplayData")
+
+    all = token |> auth_conn() |> get(~p"/pvp/history") |> json_response(200)
+    assert length(all["matches"]) == 5
   end
 
   test "concurrent end turns by the same player apply exactly once", _context do

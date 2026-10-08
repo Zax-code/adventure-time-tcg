@@ -1,6 +1,10 @@
 defmodule AdventureTimeApiWeb.RawBodyReader do
   @moduledoc false
 
+  # Only the Fitbit webhook verifies a signature over the exact raw body; other
+  # requests should not keep a second reference to their (up to 12 MB) body.
+  @raw_body_paths ["/api/fitbit/webhook", "/fitbit/webhook"]
+
   def read_body(conn, opts) do
     read_body(conn, opts, "")
   end
@@ -15,7 +19,7 @@ defmodule AdventureTimeApiWeb.RawBodyReader do
         if byte_size(full_body) > max_length do
           raise Plug.Parsers.RequestTooLargeError
         else
-          {:ok, full_body, Plug.Conn.put_private(conn, :raw_body, full_body)}
+          {:ok, full_body, maybe_keep_raw_body(conn, full_body)}
         end
 
       {:more, body, conn} ->
@@ -28,4 +32,10 @@ defmodule AdventureTimeApiWeb.RawBodyReader do
         end
     end
   end
+
+  defp maybe_keep_raw_body(%Plug.Conn{request_path: path} = conn, body)
+       when path in @raw_body_paths,
+       do: Plug.Conn.put_private(conn, :raw_body, body)
+
+  defp maybe_keep_raw_body(conn, _body), do: conn
 end

@@ -9,9 +9,11 @@ defmodule AdventureTimeApi.Leaderboards.Query do
     Board,
     Calendar,
     Configuration,
+    DailyResult,
     Lifecycle,
     Period,
     Projection,
+    ProjectionCache,
     PublicProfiles,
     ScoringVersion,
     Snapshot,
@@ -157,6 +159,29 @@ defmodule AdventureTimeApi.Leaderboards.Query do
     end
   end
 
+  # Everything a live projection reads: a changed result (including exclusions)
+  # or user profile changes the key, so cached rows are never stale on those.
+  defp live_projection_key(board, period, scoring_version) do
+    {first_date, last_date} = period_date_range(period)
+
+    results_changed_at =
+      from(result in DailyResult,
+        where: result.competition_date >= ^first_date and result.competition_date <= ^last_date,
+        select: max(result.updated_at)
+      )
+      |> Repo.one()
+
+    users_changed_at = from(user in User, select: max(user.updated_at)) |> Repo.one()
+
+    {board.id, period.period_type, period.starts_at, scoring_version.id, results_changed_at,
+     users_changed_at}
+  end
+
+  defp period_date_range(%Period{period_type: :day, competition_date: date}), do: {date, date}
+
+  defp period_date_range(%Period{period_type: :week, week_start: week_start}),
+    do: {week_start, Date.add(week_start, 6)}
+
   defp fetch_finalized(board, period, current_user_id, now) do
     with %Snapshot{} = snapshot <-
            Repo.get_by(Snapshot, period_id: period.id, board_id: board.id, current: true),
@@ -177,7 +202,12 @@ defmodule AdventureTimeApi.Leaderboards.Query do
   end
 
   defp build_live_payload(board, period, scoring_version, configuration, current_user_id, now) do
-    all_rows = Projection.rows(period, board, configuration)
+    all_rows =
+      ProjectionCache.fetch(
+        live_projection_key(board, period, scoring_version),
+        fn -> Projection.rows(period, board, configuration) end
+      )
+
     visible_rows = Enum.take(all_rows, @visible_row_limit)
     projected_rows = Enum.map(visible_rows, &project_live_row(&1, period))
 
