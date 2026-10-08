@@ -14,8 +14,10 @@ tags:
     visible:
       id: pack-storefront
     timeout: 10000
+# The price is server-authored; match any amount. Card art is prefetched before
+# the reveal, so run this flow with local MinIO up (/ready/media must be 200).
 - tapOn:
-    text: Legendary Pack, Tap to open, 1000
+    text: "Legendary Pack, Tap to open, .*"
     retryTapIfNoChange: true
 - extendedWaitUntil:
     visible:
