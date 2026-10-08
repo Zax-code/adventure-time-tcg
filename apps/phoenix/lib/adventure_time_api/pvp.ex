@@ -24,6 +24,7 @@ defmodule AdventureTimeApi.Pvp do
   alias AdventureTimeApi.Workers.ExpirePendingInviteWorker
 
   @turn_timeout_hours 24
+  @history_page_size 200
 
   # ── Loadouts ───────────────────────────────────────────────────────────────
 
@@ -108,7 +109,7 @@ defmodule AdventureTimeApi.Pvp do
     expire_due_pending_invites(user_id)
 
     invites =
-      Match
+      match_list_query()
       |> where(
         [m],
         (m.inviter_id == ^user_id or m.invitee_id == ^user_id) and m.status == "pending"
@@ -177,7 +178,7 @@ defmodule AdventureTimeApi.Pvp do
     expire_due_in_progress_matches(user_id)
 
     matches =
-      Match
+      match_list_query()
       |> where(
         [m],
         (m.inviter_id == ^user_id or m.invitee_id == ^user_id) and m.status == "in_progress"
@@ -188,24 +189,41 @@ defmodule AdventureTimeApi.Pvp do
     {:ok, %{matches: serialize_matches(matches), currentUserId: user_id}}
   end
 
-  def list_history(user_id) do
+  def list_history(user_id, opts \\ []) do
     expire_due_pending_invites(user_id)
     expire_due_in_progress_matches(user_id)
 
-    matches =
-      Match
+    limit = opts |> Keyword.get(:limit, @history_page_size) |> clamp(1, @history_page_size)
+    offset = opts |> Keyword.get(:offset, 0) |> max(0)
+
+    history_query =
+      match_list_query()
       |> where(
         [m],
         (m.inviter_id == ^user_id or m.invitee_id == ^user_id) and
           m.status in ["completed", "declined", "expired"]
       )
+
+    matches =
+      history_query
       |> order_by([m], desc: m.updated_at)
+      |> limit(^limit)
+      |> offset(^offset)
       |> Repo.all()
 
-    completed_matches = Enum.filter(matches, &(&1.status == "completed"))
-    wins = Enum.count(completed_matches, &(&1.winner_id == user_id))
-    losses = Enum.count(completed_matches, &(&1.winner_id && &1.winner_id != user_id))
-    draws = Enum.count(completed_matches, &is_nil(&1.winner_id))
+    # Stats and totalCount cover the whole history, not just this page.
+    %{total: total_completed, wins: wins, draws: draws} =
+      history_query
+      |> exclude(:select)
+      |> where([m], m.status == "completed")
+      |> select([m], %{
+        total: count(m.id),
+        wins: filter(count(m.id), m.winner_id == type(^user_id, :binary_id)),
+        draws: filter(count(m.id), is_nil(m.winner_id))
+      })
+      |> Repo.one()
+
+    losses = total_completed - wins - draws
     display_names = user_display_map(matches)
     completion_reasons = completion_reason_map(matches)
     current_player_ids = current_player_id_map(matches)
@@ -220,7 +238,7 @@ defmodule AdventureTimeApi.Pvp do
     {:ok,
      %{
        matches: serialized_matches,
-       totalCount: length(completed_matches),
+       totalCount: total_completed,
        currentUserId: user_id,
        stats: %{
          wins: wins,
@@ -547,7 +565,7 @@ defmodule AdventureTimeApi.Pvp do
   # Due matches are expired by PvpMatchTimeoutWorker every minute.
   def list_spectatable do
     matches =
-      Match
+      match_list_query()
       |> where([m], m.status == "in_progress")
       |> order_by([m], desc: m.updated_at)
       |> Repo.all()
@@ -1010,8 +1028,7 @@ defmodule AdventureTimeApi.Pvp do
   defp default_completion_reason(%Match{winner_id: nil}), do: "DRAW"
   defp default_completion_reason(_match), do: "KO"
 
-  defp maybe_put_replay_flag(payload, %Match{status: "completed", initial_state: initial_state})
-       when is_map(initial_state) do
+  defp maybe_put_replay_flag(payload, %Match{status: "completed", has_replay_data: true}) do
     Map.put(payload, :hasReplayData, true)
   end
 
@@ -1374,8 +1391,9 @@ defmodule AdventureTimeApi.Pvp do
 
   defp expire_due_in_progress_matches(nil) do
     due_in_progress_matches_query()
+    |> select([m], m.id)
     |> Repo.all()
-    |> Enum.each(&timeout_match_if_due(&1.id))
+    |> Enum.each(&timeout_match_if_due/1)
 
     :ok
   end
@@ -1383,8 +1401,9 @@ defmodule AdventureTimeApi.Pvp do
   defp expire_due_in_progress_matches(user_id) do
     due_in_progress_matches_query()
     |> where([m], m.inviter_id == ^user_id or m.invitee_id == ^user_id)
+    |> select([m], m.id)
     |> Repo.all()
-    |> Enum.each(&timeout_match_if_due(&1.id))
+    |> Enum.each(&timeout_match_if_due/1)
 
     :ok
   end
@@ -1396,11 +1415,25 @@ defmodule AdventureTimeApi.Pvp do
       (m.inviter_id == ^user_a and m.invitee_id == ^user_b) or
         (m.inviter_id == ^user_b and m.invitee_id == ^user_a)
     )
+    |> select([m], m.id)
     |> Repo.all()
-    |> Enum.each(&timeout_match_if_due(&1.id))
+    |> Enum.each(&timeout_match_if_due/1)
 
     :ok
   end
+
+  # Match rows without the opening battle state, which only replays need.
+  defp match_list_query do
+    fields = Match.__schema__(:fields) -- [:initial_state]
+
+    from(m in Match,
+      select: struct(m, ^fields),
+      select_merge: %{has_replay_data: not is_nil(m.initial_state)}
+    )
+  end
+
+  defp clamp(value, low, high) when is_integer(value), do: value |> max(low) |> min(high)
+  defp clamp(_value, _low, high), do: high
 
   defp due_in_progress_matches_query do
     cutoff = turn_timeout_cutoff()

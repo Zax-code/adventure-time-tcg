@@ -203,10 +203,11 @@ defmodule AdventureTimeApiWeb.PvpController do
   end
 
   # GET /pvp/history
-  def list_history(conn, _params) do
+  def list_history(conn, params) do
     user_id = conn.assigns.auth_user.id
+    opts = [limit: parse_int(params["limit"]), offset: parse_int(params["offset"])]
 
-    case Pvp.list_history(user_id) do
+    case Pvp.list_history(user_id, Enum.reject(opts, fn {_key, value} -> is_nil(value) end)) do
       {:ok, history} -> json(conn, history)
     end
   end
@@ -443,4 +444,13 @@ defmodule AdventureTimeApiWeb.PvpController do
         conn |> put_status(500) |> json(%{error: "Internal error"})
     end
   end
+
+  defp parse_int(value) when is_binary(value) do
+    case Integer.parse(value) do
+      {integer, ""} -> integer
+      _ -> nil
+    end
+  end
+
+  defp parse_int(_value), do: nil
 end

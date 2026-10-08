@@ -557,6 +557,48 @@ defmodule AdventureTimeApiWeb.PvpControllerTest do
     refute Enum.any?(spectate["matches"], &(&1["id"] == match_id))
   end
 
+  test "history pages matches while stats and totalCount cover the whole history", _context do
+    me = create_user_with_password("history-pages@example.com", "password123", "Me")
+    other = create_user_with_password("history-other@example.com", "password123", "Other")
+    token = login_access_token(me.email, "password123")
+
+    outcomes = [me.id, me.id, other.id, nil, me.id]
+
+    outcomes
+    |> Enum.with_index()
+    |> Enum.each(fn {winner_id, index} ->
+      %Match{}
+      |> Match.changeset(%{
+        inviter_id: me.id,
+        invitee_id: other.id,
+        status: "completed",
+        inviter_card_ids: [],
+        winner_id: winner_id,
+        initial_state: if(index == 4, do: %{"players" => []}, else: nil)
+      })
+      |> Ecto.Changeset.put_change(
+        :updated_at,
+        NaiveDateTime.add(~N[2026-10-01 12:00:00], index * 60)
+      )
+      |> Repo.insert!()
+    end)
+
+    page = token |> auth_conn() |> get(~p"/pvp/history?limit=2") |> json_response(200)
+    assert length(page["matches"]) == 2
+    assert page["totalCount"] == 5
+    assert page["stats"] == %{"wins" => 3, "losses" => 1, "draws" => 1, "winRate" => 75}
+
+    [newest | _] = page["matches"]
+    assert newest["hasReplayData"] == true
+
+    next = token |> auth_conn() |> get(~p"/pvp/history?limit=2&offset=4") |> json_response(200)
+    assert length(next["matches"]) == 1
+    refute Map.has_key?(hd(next["matches"]), "hasReplayData")
+
+    all = token |> auth_conn() |> get(~p"/pvp/history") |> json_response(200)
+    assert length(all["matches"]) == 5
+  end
+
   test "skill and ultimate action routes execute assigned abilities", _context do
     %{
       acting_token: acting_token,
